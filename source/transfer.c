@@ -273,13 +273,10 @@ int transfer_init(
 	  return _FAILURE_;
 	}
 
-/* 	printf("Sources interpolated\n"); */
-
- 	index_l = 0;
-
 	/** (c) loop over l. For each value of l: */
 
-	while (index_l < ptr->l_size[index_mode]) {
+	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
+	for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
 
 	  if (ptr->transfer_verbose > 1)
 	    printf("Compute transfer for l=%d\n",ptr->l[index_mode][index_l]);
@@ -417,8 +414,6 @@ int transfer_init(
 	  }
 
 	  /* end of loop over k */
-
-	  index_l++;
 
 	}
 

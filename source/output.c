@@ -42,7 +42,7 @@ int output_init(
 	  if ((ppt_input->has_ad) && (index_ic == ppt_input->index_ic_ad)) {
 	    out[index_ic]=fopen(pop->cls_ad,"w");
 	    if (out[index_ic] == NULL) {
-	      sprintf(pop->error_message,"%s(L:%d) : Could not open ou[index_ic]",__func__,__LINE__);
+	      sprintf(pop->error_message,"%s(L:%d) : Could not open out[index_ic]",__func__,__LINE__);
 	      return _FAILURE_;
 	    }
 	  }
