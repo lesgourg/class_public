@@ -56,7 +56,7 @@ int primordial_at_k(
 
   int index_ic;
   double lnk;
-  int * last_index;
+  int last_index;
 
   /** if k negative or null return an error */
 
@@ -90,7 +90,7 @@ int primordial_at_k(
 			       ppm->ddlnpk[index_mode],
 			       ppm->ic_size[index_mode],
 			       lnk,
-			       last_index,
+			       &last_index,
 			       pk,
 			       ppm->ic_size[index_mode],
 			       errmsg) == _FAILURE_) {

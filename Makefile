@@ -1,4 +1,5 @@
-#Some Makefile
+#Some Makefile for CLASS.
+#Julien Lesgourgues, 18.04.2010
 
 MDIR := $(shell pwd)
 WRKDIR = $(MDIR)/build

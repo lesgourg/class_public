@@ -175,6 +175,8 @@ int array_derive1_order2_table_line_to_line(
   *(array+(n_lines-1)*n_columns+index_dy) = *(array+(n_lines-2)*n_columns+index_dy) 
     + (x_array[n_lines-1] - x_array[n_lines-2]) * 2.*(dyp*dxm-dym*dxp)/(dxp*dxm*(dxp-dxm)); 
 
+  return _SUCCESS_;
+
 }
 
 int array_derive2_order2_table_line_to_line(
@@ -214,6 +216,8 @@ int array_derive2_order2_table_line_to_line(
   *(array+(n_lines-1)*n_columns+index_dy) = *(array+(n_lines-2)*n_columns+index_dy) 
     + (x_array[n_lines-1] - x_array[n_lines-2]) * *(array+(n_lines-2)*n_columns+index_ddy); 
   *(array+(n_lines-1)*n_columns+index_ddy) = *(array+(n_lines-2)*n_columns+index_ddy);
+
+  return _SUCCESS_;
 
 }
 

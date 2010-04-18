@@ -31,7 +31,7 @@ int spectra_cl_at_l(
 		    double * cl
 		    ) {
 
-  int * last_index;
+  int last_index;
 
   if ((index_mode < 0) && (index_mode >= ppt->md_size)) {
     sprintf(psp->error_message,"%s(L:%d) : index_mode=%d out of bounds",__func__,__LINE__,index_mode);
@@ -50,7 +50,7 @@ int spectra_cl_at_l(
 			       psp->ddcl[index_mode],
 			       ppt->ic_size[index_mode]*psp->ct_size,
 			       l,
-			       last_index,
+			       &last_index,
 			       cl,
 			       ppt->ic_size[index_mode]*psp->ct_size,
 			       errmsg) == _FAILURE_) {
