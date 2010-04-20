@@ -13,10 +13,10 @@ vpath %.o build
 vpath .base build
 
 CC       = gcc
-CCFLAG   = -O2 -fopenmp
-LDFLAG   = -O2 -fopenmp
-#CCFLAG = -O2
-#LDFLAG = -O2
+#CCFLAG   = -O2 -fopenmp
+#LDFLAG   = -O2 -fopenmp
+CCFLAG = -O2 
+LDFLAG = -O2
 
 INCLUDES = ../include
 
@@ -61,9 +61,6 @@ class: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_transfer: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(TEST_TRANSFER)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_bessel: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TEST_BESSEL)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_bessel: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TEST_BESSEL)

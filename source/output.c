@@ -15,7 +15,7 @@ int output_init(
 
   FILE * * out;
   int index_mode,index_ic,index_ct,l;
-  double *cl;
+  double * cl_output;
 
   if (pop->output_verbose > 0)
     printf("Writing in output files \n");
@@ -30,9 +30,10 @@ int output_init(
 	return _FAILURE_;
       }
 
-      cl = malloc(ppt_input->ic_size[index_mode]*sizeof(double));
-      if (cl == NULL) {
-	sprintf(pop->error_message,"%s(L:%d) : Could not allocate cl",__func__,__LINE__);
+      cl_output= malloc(ppt_input->ic_size[index_mode]*psp_input->ct_size*sizeof(double));
+
+      if (cl_output == NULL) {
+	sprintf(pop->error_message,"%s(L:%d) : Could not allocate cl_output",__func__,__LINE__);
 	return _FAILURE_;
       }
 
@@ -51,7 +52,7 @@ int output_init(
 
       for (l = 2; l <= psp_input->l[index_mode][psp_input->l_size[index_mode]-1]; l++) {  
 
-	if (spectra_cl_at_l((double)l,index_mode,cl) == _FAILURE_) {
+	if (spectra_cl_at_l((double)l,index_mode,cl_output) == _FAILURE_) {
 	  sprintf(pop->error_message,"%s(L:%d) : error in spectra_cl_at_l()\n=>%s",__func__,__LINE__,psp_input->error_message);
 	  return _FAILURE_;
 	}
@@ -61,7 +62,7 @@ int output_init(
 	  fprintf(out[index_ic],"%d",l);
 	  for (index_ct=0; index_ct < psp_input->ct_size; index_ct++) {
 	    fprintf(out[index_ic]," ",l);
-	    fprintf(out[index_ic],"%e",l*(l+1)*cl[index_ic * psp_input->ct_size + index_ct]);
+	    fprintf(out[index_ic],"%e",l*(l+1)*cl_output[index_ic * psp_input->ct_size + index_ct]);
 	  }
 	  fprintf(out[index_ic],"\n");	
 	  
@@ -76,7 +77,7 @@ int output_init(
       }
 
       free(out);
-      free(cl);
+      free(cl_output);
 
     }
   }

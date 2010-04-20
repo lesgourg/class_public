@@ -1,5 +1,5 @@
 /** @file class.c 
- * Julien Lesgourgues, 18.04.2010    
+ * Julien Lesgourgues, 20.04.2010    
  */
  
 #include "precision.h"
@@ -10,6 +10,7 @@
 #include "transfer.h"
 #include "primordial.h"
 #include "spectra.h"
+#include "output.h"
 
 main() {
 
@@ -21,7 +22,7 @@ main() {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct spectra op;          /* for output files */
+  struct output op;           /* for output files */
  
   if (precision_init(&pr) == _FAILURE_) {
     printf("\n\nError running precision_init \n=>%s\n",pr.error_message); 
@@ -90,7 +91,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (bessel_free() == _FAILURE_) {
+  if (bessel_free() == _FAILURE_)  {
     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }
