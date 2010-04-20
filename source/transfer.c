@@ -200,6 +200,8 @@ int transfer_init(
   int number_of_threads;
   /* table of integrand of transfer function, copied number_of_threads times*/
   struct transfer_integrand *pti;
+  /* instrumentation times */
+  double tstart, tstop;
 #endif
 
   if (ptr_output->has_cls == _FALSE_)
@@ -310,6 +312,10 @@ int transfer_init(
 	/** (c) loop over l. For each value of l: */
 
 	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
+#ifdef _OPENMP
+	tstart = omp_get_wtime();
+#endif
+
 	abort=0;
 #pragma omp parallel							\
   shared (ptr,ppr,ppt,index_mode,index_ic,index_type,			\
@@ -478,6 +484,10 @@ int transfer_init(
 
 	/* end of parallel region */
 	if (abort) return _FAILURE_;
+#ifdef _OPENMP
+	tstop = omp_get_wtime();
+	printf("Time spent in parallel region (loop over ells) = %e\n",tstop-tstart);
+#endif
 
       }     
       
