@@ -312,10 +312,6 @@ int transfer_init(
 	/** (c) loop over l. For each value of l: */
 
 	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
-#ifdef _OPENMP
-	tstart = omp_get_wtime();
-#endif
-
 	abort=0;
 #pragma omp parallel							\
   shared (ptr,ppr,ppt,index_mode,index_ic,index_type,			\
@@ -330,6 +326,9 @@ int transfer_init(
 	{
 #ifdef _OPENMP
 	  ti = &pti[omp_get_thread_num()];
+#endif
+#ifdef _OPENMP
+	tstart = omp_get_wtime();
 #endif
 #pragma omp for schedule (static)
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
@@ -480,14 +479,14 @@ int transfer_init(
 	  }
 
 	/* end of loop over l */
+#ifdef _OPENMP
+	  tstop = omp_get_wtime();
+	  printf("Time spent in parallel region (loop over ells) = %e\n",tstop-tstart);
+#endif
 	}
 
 	/* end of parallel region */
 	if (abort) return _FAILURE_;
-#ifdef _OPENMP
-	tstop = omp_get_wtime();
-	printf("Time spent in parallel region (loop over ells) = %e\n",tstop-tstart);
-#endif
 
       }     
       
