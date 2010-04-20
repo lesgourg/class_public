@@ -13,9 +13,10 @@ vpath %.o build
 vpath .base build
 
 CC       = gcc
+
 #CCFLAG   = -O2 -fopenmp
 #LDFLAG   = -O2 -fopenmp
-CCFLAG = -O2 
+CCFLAG = -O2
 LDFLAG = -O2
 
 INCLUDES = ../include

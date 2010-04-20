@@ -1,0 +1,218 @@
+\documentclass{article}
+
+\begin{document}
+
+\title{The Cosmic Linear Anisotropy Solving System (CLASS)}
+
+\author{Julien Lesgourgues}
+
+%\email{Julien.Lesgourgues@cern.ch}
+
+\date{\today}
+
+%\affiliation{CERN}
+
+\maketitle
+
+\section{Overall architecture of {\sc class}}
+
+\subsection{The seven-module backbone}
+
+The purpose of {\sc class} consists in computing some power spectra for a
+given set of cosmological parameters. This task can be decomposed in few steps
+or modules:
+\begin{enumerate}
+\item
+compute the evolution of cosmological background quantitites.
+\item
+compute the evolution of thermodynamical quantitites (ionization fractions, etc.)
+\item
+compute the evolution of source functions $S(k,\eta)$ (by integrating over all perturbations).
+\item
+compute Bessel functions (in order to go from Fourier to harmonic space).
+\item
+compute transfer functions $\Delta_l(k)$ (unless one needs only Fourier spectra $P(k)$'s and no harmonic spectra $C_l$'s).
+\item
+compute the primordial spectrum for scalars, tensors, etc.
+(straightforward if the input consists in spectral parameters $A_s$,
+$n_s$, $r$, ..., but this module will incorporate the option of integrating
+over inflationary perturbations).
+\item
+compute power spectra $C_l$'s and/or $P(k)$'s.
+\end{enumerate}
+In {\sc class}, each of these steps is associated with a structure:
+\begin{enumerate}
+\item {\tt  struct background }      for cosmological background,
+\item {\tt  struct thermo      }     for thermodynamics,
+\item {\tt  struct perturbs     }    for source functions,
+\item {\tt  struct bessels  }        for bessel functions,
+\item {\tt  struct transfers }       for transfer functions,
+\item {\tt  struct primordial }      for primordial spectra,
+\item {\tt  struct spectra     }     for output spectra. 
+\end{enumerate}
+A given structure contains ``everything concerning one step that the
+subsequent steps need to know'' (for instance, everything about source
+functions that the transfer module needs to know). In particular, each
+structure contains one array of tabulated values (background
+quantitites as a function of time, thermodynamical quantitites as a
+function of redshift, sources as a function of $(k, \eta)$, etc.).  It
+also contains information about the size of this array and the value
+of the index of each physical quantity, so that the table can be
+easily read and interpolated. Finally, it contains any derived
+quantity that other modules might need to know. Hence, the
+comunication from one module A to another module B
+consists in passing a pointer to the structure filled by A, and nothing else.
+
+Each structure is defined and filled in one of the following modules
+(and precisely in the order below):
+\begin{enumerate}
+\item {\tt  background.c }
+\item {\tt  thermodynamics.c   }
+\item {\tt  perturbations.c    }
+\item {\tt  bessel.c  } 
+\item {\tt  transfer.c }
+\item {\tt  primordial.c }
+\item {\tt  spectra.c     }
+\end{enumerate}
+Each of these modules contains at least three functions:
+\begin{itemize}
+\item {\it module}\_{\tt init(...)}
+\item {\it module}\_{\tt free()}
+\item {\it module}\_{\it something}\_{\tt at}\_{\it somevalue}{\tt(...)}
+\end{itemize}
+The first function allocates and fills each structure. This can be
+done provided that the previous structures in the hierarchy have been
+already allocated and filled. In summary, calling one of {\it module}\_{\tt
+init(...)} amounts in solving entirely one of the steps 1 to 7.\\ 
+The second function deallocates the fields of each structure. This
+can be done optionally at the end of the code (or, when the code is embedded
+in a sampler, this {\it must} be done 
+between each execution of {\sc class}, and especially before calling {\it
+module}\_{\tt init(...)} again with different input parameters).\\ The
+third function is able to interpolate the pre-computed tables. For
+instance, {\tt background\_init()} fills a table of background
+quantitites for discrete values of conformal time $\eta$, but {\tt
+background\_at\_eta(eta, * values)} will return these values for any
+arbitrary $\eta$. \\ Note that functions of the type {\it module}\_{\it
+something}\_{\tt at}\_{\it somevalue}{\tt(...)} are the only ones which are
+called from another module, while functions of the type {\it
+module}\_{\tt init(...)} and {\it module}\_{\tt free()} are the only
+one called by the main executable.  All other functions are for
+internal use in each module.\\
+
+\subsection{Input}
+
+There are two types of input:
+\begin{enumerate}
+\item ``precision parameters'' (controlling the precision of the output and the execution time),
+\item ``input parameters'' (cosmological parameters, flags telling to the code what it should compute, ...)
+\end{enumerate}
+All ``precision parameters'' have been grouped in a single structure
+{\tt struct precision}. The code contains {\it no other arbitrary
+numerical coefficient}. This structure is initialized in a simple
+module {\tt precision.c} by the function {\tt
+precision\_init()}. Nothing is allocated dynamically in this function,
+so there is no need for a {\tt precision\_free()} function.\\ Each
+``input parameter'' refers to one particular step in the computation:
+background, thermodynamics, perturbations, etc. Hence they are defined
+as part of the corresponding structure. Their values are assigned in a
+simple module {\tt input.c}, by a function {\tt input\_init(...)}
+which has a pointer towards each structure in its list of
+arguments. Hence, when a given function {\it module}\_{\tt init(...)}
+is called, the corresponding structure already contains input
+parameters; the function fills the rest of this structure. The
+function {\tt input\_init(...)} does not allocate any field
+dynamically, so there is no need for an {\tt input\_free()} function.
+
+\subsection{Output}
+
+A simple module {\tt output.c} writes the final results in files. The
+name of the files are considered as input parameters making part of a
+small structure {\tt struct output}.  Like for all other input
+parameters, these names are assigned inside the function {\tt
+input\_init(...)}. Again this structure contains no dynamically allocated
+quantitites, so there is no need for an {\tt output\_free()} function.
+
+\subsection{Summary}
+
+We hope that after this short overview, it is clear for the reader
+that the main executable of {\sc class} should consist only in the 
+following lines
+(not including comments and error-management lines):
+
+\vspace{0.5cm}
+
+\noindent
+{\tt
+main() \{ \\
+\indent  struct precision pr;\\
+\indent  struct background ba;\\
+\indent  struct thermo th;     \\
+\indent  struct perturbs pt;   \\
+\indent  struct bessels bs;    \\
+\indent  struct transfers tr;  \\
+\indent  struct primordial pm;  \\
+\indent  struct spectra sp;     \\
+\indent  struct output op;      \\
+ \\
+\indent  precision\_init(\&pr)\\
+\indent  input\_init(\&ba,\&th,\&pt,\&bs,\&tr,\&pm,\&sp,\&op)\\
+\indent  background\_init(\&pr,\&ba)\\
+\indent  thermodynamics\_init(\&ba,\&pr,\&th)\\
+\indent  perturb\_init(\&ba,\&th,\&pr,\&pt)\\
+\indent  bessel\_init(\&ba,\&pt,\&pr,\&bs)\\
+\indent  transfer\_init(\&ba,\&th,\&pt,\&bs,\&pr,\&tr)\\
+\indent  primordial\_init(\&pt,\&pr,\&pm)\\
+\indent  spectra\_init(\&pt,\&tr,\&pm,\&sp)\\
+\indent  output\_init(\&pt,\&tr,\&sp,\&op)\\
+\\
+\indent  /****** done ******/\\
+\\
+\indent  spectra\_free()\\
+\indent  primordial\_free()\\
+\indent  transfer\_free()\\
+\indent  bessel\_free()\\
+\indent  perturb\_free()\\
+\indent  thermodynamics\_free()\\
+\indent background\_free()\\
+\}
+}
+
+\vspace{0.5cm}
+
+For a given purpose, somebody could only be interested in the
+intermediate steps (only background quantitites, only the
+thermodynamics, only the perturbations and sources, etc.) It is
+then straightforward to truncate the full hierarchy of modules 1, ... 7 at some
+arbitrary order. We provide several ``reduced executables'' 
+{\tt test}\_{\it module} achieving precisely this.
+
+Note also that if {\sc class} is embedded in a
+parameter sampler and only ``fast'' parameters are varied (i.e.,
+parameters related to the primordial spectra), then it is only
+necessary to repeat the following steps after {\tt output\_init(...)}:
+
+\vspace{0.5cm}
+
+{\tt 
+\indent  spectra\_free()\\
+\indent  primordial\_free()\\
+\indent  input\_init(\&ba,\&th,\&pt,\&bs,\&tr,\&pm,\&sp,\&op)\\
+\indent  primordial\_init(\&pt,\&pr,\&pm)\\
+\indent  spectra\_init(\&pt,\&tr,\&pm,\&sp)\\
+\indent  output\_init(\&pt,\&tr,\&sp,\&op)\\
+}
+
+\section{General principles}
+
+\subsection{Flexibility}
+
+Explain allocation of indices, ...
+
+\subsection{Control of precision}
+
+Explain precision structure, ...
+
+\subsection{Control of errors}
+
+\end{document}
