@@ -13,7 +13,11 @@ vpath %.o build
 vpath .base build
 
 CC       = gcc
-CCFLAG   = -O2 
+CCFLAG   = -O2 -fopenmp
+LDFLAG   = -O2 -fopenmp
+#CCFLAG = -O2
+#LDFLAG = -O2
+
 INCLUDES = ../include
 
 %.o:  %.c .base
@@ -54,25 +58,25 @@ TEST_THERMODYNAMICS = test_thermodynamics.o
 TEST_BACKGROUND = test_background.o
 
 class: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(CLASS)
-	gcc -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_transfer: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(TEST_TRANSFER)
-	gcc -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_bessel: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TEST_BESSEL)
-	gcc -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_bessel: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TEST_BESSEL)
-	gcc -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_perturbations: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(TEST_PERTURBATIONS)
-	gcc -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_thermodynamics: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(TEST_THERMODYNAMICS)
-	gcc -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_background: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(TEST_BACKGROUND)
-	gcc -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 clean: .base
 	rm -rf $(WRKDIR);

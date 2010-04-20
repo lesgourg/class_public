@@ -18,6 +18,9 @@
  * -# transfer_free() at the end, when no more calls to transfer_functions_at_k() are needed
  */
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "transfer.h"
 
 /** @name - structures used within the transfer module: */
@@ -187,8 +190,17 @@ int transfer_init(
   double * interpolated_sources;
   /* array of splines values S''(k,eta) (second derivative with respect to k, not eta!) */
   double * source_spline;
-  /* table of integrand of transfer function */
-  struct transfer_integrand ti;
+  /* (pointer on) integrand structure */
+  struct transfer_integrand *ti;
+  /* abort flag, useful for parallel regions */
+  int abort;
+
+#ifdef _OPENMP
+  /* number of available omp threads */
+  int number_of_threads;
+  /* table of integrand of transfer function, copied number_of_threads times*/
+  struct transfer_integrand *pti;
+#endif
 
   if (ptr_output->has_cls == _FALSE_)
     return _SUCCESS_;
@@ -215,23 +227,45 @@ int transfer_init(
 
   /** - initialize all indices in the transfer_integrand structure and allocate its array. Fill the eta column. */
 
-  index = 0;
-  ti.trans_int_eta = index;
-  index++;
-  ti.trans_int_y = index;
-  index++;
-  ti.trans_int_ddy = index;
-  index++;
-  ti.trans_int_col_num = index;
-
-  ti.trans_int =  malloc(sizeof(double) * ppt->eta_size * ti.trans_int_col_num);
-  if (ti.trans_int==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ti.trans_int",__func__,__LINE__);
-    return _FAILURE_;
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+    number_of_threads = omp_get_num_threads();
   }
+  pti = (struct transfer_integrand*)malloc(number_of_threads * sizeof(struct transfer_integrand));
+#endif
 
-  for (index=0; index < ppt->eta_size; index++)
-    ti.trans_int[ti.trans_int_col_num*index+ti.trans_int_eta] = ppt->eta_sampling[index];
+  abort=0;
+#pragma omp parallel shared(pti) private(ti,index)
+  {
+#ifdef _OPENMP
+    ti = &pti[omp_get_thread_num()];
+#else
+    ti = (struct transfer_integrand*)malloc(sizeof(struct transfer_integrand));
+#endif
+    index = 0;
+    ti->trans_int_eta = index;
+    index++;
+    ti->trans_int_y = index;
+    index++;
+    ti->trans_int_ddy = index;
+    index++;
+    ti->trans_int_col_num = index;
+
+    ti->trans_int =  malloc(sizeof(double) * ppt->eta_size * ti->trans_int_col_num);
+
+    if (ti->trans_int==NULL) {
+    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ti.trans_int",__func__,__LINE__);
+    abort++;
+    }
+    else
+      {
+
+	for (index=0; index < ppt->eta_size; index++)
+	  ti->trans_int[ti->trans_int_col_num*index+ti->trans_int_eta] = ppt->eta_sampling[index];
+      }
+  }
+  if (abort) return _FAILURE_;
 
   /** - loop over all indices of the table of transfer functions. For each mode, initial condition and type: */
 
@@ -276,148 +310,174 @@ int transfer_init(
 	/** (c) loop over l. For each value of l: */
 
 	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
-	for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
+	abort=0;
+#pragma omp parallel							\
+  shared (ptr,ppr,ppt,index_mode,index_ic,index_type,			\
+	  interpolated_sources,pti,abort)				\
+  private (index_l,cut_transfer,global_max,global_min,			\
+	   last_local_max,last_local_min,transfer_function,		\
+	   transfer_last,transfer_last_last,cl,cl_var,			\
+	   cl_var_last,cl_var_last_last,delta_cl,			\
+	   index_k,current_k,ti,					\
+	   Transmit_Error_Message)
 
-	  if (ptr->transfer_verbose > 1)
-	    printf("Compute transfer for l=%d\n",ptr->l[index_mode][index_l]);
-	  
-	  /** (c.a) if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
-	  
-	  if (ppr->transfer_cut == tc_osc) {
-	    cut_transfer = _FALSE_;
-	    global_max=0.;
-	    global_min=0.;
-	    last_local_max=0.;
-	    last_local_min=0.;
-	    transfer_function=0;
-	    transfer_last=0;
-	    transfer_last_last=0;
-	  }
-
-	  if (ppr->transfer_cut == tc_cl) {
-	    cut_transfer = _FALSE_;
-	    cl=0.;
-	    cl_var=1.;
-	    cl_var_last=1.;
-	    cl_var_last_last=1.;
-	  }
-
-	  /** (c.b) loop over k. For each k, if the option of stopping the transfer function computation at some k_max is not selected or if we are below k_max, compute \f$ \Delta_l(k) \f$ with transfer_integrate(); if it is selected and we are above k_max, set the transfer function to zero; if it is selected and we are below k_max, check wether k_max is being reached. */
-
-	  for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
-
-	    current_k = ptr->k[index_mode][index_k];
-	    if (current_k == 0.) {
-	      sprintf(Transmit_Error_Message,"%s(L:%d) : k=0, stop to avoid division by zero",__func__,__LINE__);
-	      sprintf(ptr->error_message,Transmit_Error_Message);
-	      return _FAILURE_;
-	    }
-
-	    if (ptr->transfer_verbose > 2)
-	      printf("Compute transfer for l=%d k=%e type=%d\n",ptr->l[index_mode][index_l],current_k,index_type);
-
-            /* update previous transfer values in the tc_osc method */
-	    if (ppr->transfer_cut == tc_osc) {
-	      transfer_last_last = transfer_last;
-	      transfer_last = transfer_function;
-	    }
-
-            /* update previous relative C_l's variation in the tc_cl method */
-	    if (ppr->transfer_cut == tc_cl) {
-	      cl_var_last_last = cl_var_last;
-	      cl_var_last = cl_var;
-	    }
-
-	    /* compute transfer function or set it to zero if above k_max */
-	    if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
-	      if (transfer_integrate(
-				     index_mode,
-				     index_ic,
-				     index_type,
-				     index_l,
-				     index_k,
-				     interpolated_sources,
-				     &ti,
-				     &transfer_function) == _FAILURE_) {
-		sprintf(Transmit_Error_Message,"%s(L:%d) : error callin transfer_integrate()\n=>%s",__func__,__LINE__,ptr->error_message);
-		sprintf(ptr->error_message,Transmit_Error_Message);
-		return _FAILURE_;
+	{
+#ifdef _OPENMP
+	  ti = &pti[omp_get_thread_num()];
+#endif
+#pragma omp for schedule (static)
+	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
+#pragma omp flush(abort)
+	    if (!abort) {
+	      
+	      if (ptr->transfer_verbose > 1)
+		printf("Compute transfer for l=%d\n",ptr->l[index_mode][index_l]);
+	      
+	      /** (c.a) if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
+	      
+	      if (ppr->transfer_cut == tc_osc) {
+		cut_transfer = _FALSE_;
+		global_max=0.;
+		global_min=0.;
+		last_local_max=0.;
+		last_local_min=0.;
+		transfer_function=0;
+		transfer_last=0;
+		transfer_last_last=0;
 	      }
-
-	    }
-	    else {
-	      transfer_function = 0.;
+	      
+	      if (ppr->transfer_cut == tc_cl) {
+		cut_transfer = _FALSE_;
+		cl=0.;
+		cl_var=1.;
+		cl_var_last=1.;
+		cl_var_last_last=1.;
 	    }
 	      
-	    /* store transfer function in transfer structure */
-	    ptr->transfer[index_mode][((index_ic * ppt->tp_size + index_type)
-				       * ptr->l_size[index_mode] + index_l)
-				      * ptr->k_size[index_mode] + index_k]
-	      = transfer_function;
+	      /** (c.b) loop over k. For each k, if the option of stopping the transfer function computation at some k_max is not selected or if we are below k_max, compute \f$ \Delta_l(k) \f$ with transfer_integrate(); if it is selected and we are above k_max, set the transfer function to zero; if it is selected and we are below k_max, check wether k_max is being reached. */
 
-	    /* in the tc_osc case, update various quantities and check wether k_max is reached */
-	    if ((ppr->transfer_cut == tc_osc) && (index_k>=2)) {
-
-	      /* detect local/global maximum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */
-	      if ((transfer_last > 0.) && (transfer_function < transfer_last) && (transfer_last > transfer_last_last)) {
-		last_local_max = transfer_last;
-		if (last_local_max > global_max) {
-		  global_max = last_local_max;
+	      for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
+		
+		current_k = ptr->k[index_mode][index_k];
+		if (current_k == 0.) {
+		  sprintf(Transmit_Error_Message,"%s(L:%d) : k=0, stop to avoid division by zero",__func__,__LINE__);
+		  sprintf(ptr->error_message,Transmit_Error_Message);
+		  abort = 1;
+#pragma omp flush (abort)
 		}
-		if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
-		  cut_transfer = _TRUE_;
+		
+		if (ptr->transfer_verbose > 2)
+		  printf("Compute transfer for l=%d k=%e type=%d\n",ptr->l[index_mode][index_l],current_k,index_type);
+		
+		/* update previous transfer values in the tc_osc method */
+		if (ppr->transfer_cut == tc_osc) {
+		  transfer_last_last = transfer_last;
+		  transfer_last = transfer_function;
 		}
-
-	      }
-  
-	      /* detect local/global minimum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */ 
-	      if ((transfer_last < 0.) && (transfer_function > transfer_last) && (transfer_last < transfer_last_last)) {
-		last_local_min = transfer_last;
-		if (last_local_min < global_min) {
-		  global_min = last_local_min;
+		
+		/* update previous relative C_l's variation in the tc_cl method */
+		if (ppr->transfer_cut == tc_cl) {
+		  cl_var_last_last = cl_var_last;
+		  cl_var_last = cl_var;
 		}
-		if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
-		  cut_transfer = _TRUE_;
+		
+		/* compute transfer function or set it to zero if above k_max */
+		if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
+		  if (transfer_integrate(
+					 index_mode,
+					 index_ic,
+					 index_type,
+					 index_l,
+					 index_k,
+					 interpolated_sources,
+					 ti,
+					 &transfer_function) == _FAILURE_) {
+		    sprintf(Transmit_Error_Message,"%s(L:%d) : error callin transfer_integrate()\n=>%s",__func__,__LINE__,ptr->error_message);
+		    sprintf(ptr->error_message,Transmit_Error_Message);
+		    abort = 1;
+#pragma omp flush (abort)
+		  }
+		  
 		}
-	      }
-  	    }
-
-	    /* in the _TC_CUT_ case, update various quantities and check wether k_max is reached */
-	    if ((ppr->transfer_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
-
-              /* rough estimate of the contribution of the last step to C_l, assuming flat primordial spectrum */
-	      delta_cl = transfer_function * transfer_function / current_k * 0.5 * (ptr->k[index_mode][index_k+1] - ptr->k[index_mode][index_k-1]);
-
-	      /* update C_l */
-	      cl += delta_cl;
-
-	      /* compute its relative variation */
-	      if (cl != 0) {
-		cl_var = delta_cl / cl;
-	      }
-	      else {
-		sprintf(ptr->error_message,"%s(L:%d) : cl=0, stop to avoid division by zero",__func__,__LINE__);
-		return _FAILURE_;
-	      }
-
-	      /* check if k_max is reached */
-	      if ((cl_var < cl_var_last) && (cl_var_last > cl_var_last_last)) {
-		if (cl_var_last < ppr->transfer_cut_threshold_cl) {
-		  cut_transfer = _TRUE_;
+		else {
+		  transfer_function = 0.;
 		}
-
+		
+		/* store transfer function in transfer structure */
+		ptr->transfer[index_mode][((index_ic * ppt->tp_size + index_type)
+					   * ptr->l_size[index_mode] + index_l)
+					  * ptr->k_size[index_mode] + index_k]
+		  = transfer_function;
+		
+		/* in the tc_osc case, update various quantities and check wether k_max is reached */
+		if ((ppr->transfer_cut == tc_osc) && (index_k>=2)) {
+		  
+		  /* detect local/global maximum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */
+		  if ((transfer_last > 0.) && (transfer_function < transfer_last) && (transfer_last > transfer_last_last)) {
+		    last_local_max = transfer_last;
+		    if (last_local_max > global_max) {
+		      global_max = last_local_max;
+		    }
+		    if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
+		      cut_transfer = _TRUE_;
+		    }
+		    
+		  }
+		  
+		  /* detect local/global minimum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */ 
+		  if ((transfer_last < 0.) && (transfer_function > transfer_last) && (transfer_last < transfer_last_last)) {
+		    last_local_min = transfer_last;
+		    if (last_local_min < global_min) {
+		      global_min = last_local_min;
+		    }
+		    if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
+		      cut_transfer = _TRUE_;
+		    }
+		  }
+		}
+		
+		/* in the _TC_CUT_ case, update various quantities and check wether k_max is reached */
+		if ((ppr->transfer_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
+		  
+		  /* rough estimate of the contribution of the last step to C_l, assuming flat primordial spectrum */
+		  delta_cl = transfer_function * transfer_function / current_k * 0.5 * (ptr->k[index_mode][index_k+1] - ptr->k[index_mode][index_k-1]);
+		  
+		  /* update C_l */
+		  cl += delta_cl;
+		  
+		  /* compute its relative variation */
+		  if (cl != 0) {
+		    cl_var = delta_cl / cl;
+		  }
+		  else {
+		    sprintf(ptr->error_message,"%s(L:%d) : cl=0, stop to avoid division by zero",__func__,__LINE__);
+		    abort = 1;
+#pragma omp flush (abort)
+		  }
+		  
+		  /* check if k_max is reached */
+		  if ((cl_var < cl_var_last) && (cl_var_last > cl_var_last_last)) {
+		    if (cl_var_last < ppr->transfer_cut_threshold_cl) {
+		      cut_transfer = _TRUE_;
+		    }
+		    
+		  }
+		}
+		
+		/* end of transfer function computation for given (l,k) */
+		
 	      }
+
+	    /* end of loop over k */
 	    }
-
-	    /* end of transfer function computation for given (l,k) */
-
+	  
 	  }
 
-	  /* end of loop over k */
-
+	/* end of loop over l */
 	}
 
-	/* end of loop over l */
+	/* end of parallel region */
+	if (abort) return _FAILURE_;
 
       }     
       
@@ -433,9 +493,17 @@ int transfer_init(
   }
   
   /* end of loop over mode */
-
-  free(ti.trans_int);
-
+#ifdef _OPENMP
+#pragma omp parallel shared(pti) private(ti)
+  {
+    ti = &pti[omp_get_thread_num()];
+    free(ti->trans_int);
+  }
+  free(pti);
+#else
+  free(ti->trans_int);
+  free(ti);
+#endif
   return _SUCCESS_;
 }
 
@@ -637,7 +705,8 @@ int transfer_get_l_list_size(
     *pl_list_size = index_l+1;
       
   }
-      
+  return _SUCCESS_;
+
 }
 
 /**
