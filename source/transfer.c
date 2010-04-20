@@ -330,7 +330,7 @@ int transfer_init(
 #ifdef _OPENMP
 	tstart = omp_get_wtime();
 #endif
-#pragma omp for schedule (static)
+#pragma omp for schedule (dynamic)
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
 #pragma omp flush(abort)
 	    if (!abort) {
