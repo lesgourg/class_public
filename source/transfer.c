@@ -66,7 +66,7 @@ ErrorMsg Transmit_Error_Message; /**< contains error message */
  *
  * @param index_mode Input: index of requested mode
  * @param index_ic Input: index of requested initial condition
- * @param index_type Input: index of requested type
+ * @param index_tt Input: index of requested type
  * @param index_l Input: index of requested multipole
  * @param k Input: any wavenumber
  * @param ptransfer_local Output: transfer function
@@ -75,7 +75,7 @@ ErrorMsg Transmit_Error_Message; /**< contains error message */
 int transfer_functions_at_k(
 			    int index_mode,
 			    int index_ic,
-			    int index_type,
+			    int index_tt,
 			    int index_l,
 			    double k,
 			    double * ptransfer_local 
@@ -88,7 +88,7 @@ int transfer_functions_at_k(
 			    1,
 			    0,
 			    ptr->transfer[index_mode]
-			    +((index_ic * ppt->tp_size + index_type) * ptr->l_size[index_mode] + index_l)
+			    +((index_ic * ptr->tt_size + index_tt) * ptr->l_size[index_mode] + index_l)
 			    * ptr->k_size[index_mode],
 			    1,
 			    ptr->k_size[index_mode],
@@ -120,7 +120,7 @@ int transfer_functions_at_k(
  * -# for each k and l, compute the transfer function by convolving the sources with 
  *    the Bessel functions using transfer_solve()
  * -# store result in the transfer table 
- *    (transfer[index_mode])[index_ic][index_type][index_l][index_k]
+ *    (transfer[index_mode])[index_ic][index_tt][index_l][index_k]
  *
  * This function shall be called at the beginning of each run, but
  * only after background_init(), thermodynamics_init() and perturb_init(). It
@@ -155,7 +155,7 @@ int transfer_init(
   /* running index for wavenumbers */
   int index_k; 
   /* running index for types */
-  int index_type; 
+  int index_tt; 
   /* running index for multipoles */
   int index_l; 
   /* another index */
@@ -206,8 +206,14 @@ int transfer_init(
   double tstart, tstop;
 #endif
 
-  if (ptr_output->has_cls == _FALSE_)
+  if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
+      (ppt->has_cl_cmb_polarization == _FALSE_) &&
+      (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
+    ptr->tt_size=0;
+    if (ptr->transfer_verbose > 0)
+      printf("No harmonic space transfer functions to compute\n");
     return _SUCCESS_;
+  }
 
   /** - get conformal age / recombination time from background / thermodynamics structures (only place where these structures are used in this module) */
   eta0 = pba_input->conformal_age;
@@ -295,14 +301,14 @@ int transfer_init(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
-      for (index_type = 0; index_type < ppt->tp_size; index_type++) {
+      for (index_tt = 0; index_tt < ptr->tt_size; index_tt++) {
 
 	/** (b) interpolate sources to get them at the right values of k using transfer_interpolate_sources() */
 
 	if (transfer_interpolate_sources(
 					 index_mode,
 					 index_ic,
-					 index_type,
+					 index_tt,
 					 index_l,
 					 source_spline,
 					 interpolated_sources) == _FAILURE_) {
@@ -316,7 +322,7 @@ int transfer_init(
 	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
 	abort=0;
 #pragma omp parallel							\
-  shared (ptr,ppr,ppt,index_mode,index_ic,index_type,			\
+  shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
 	  interpolated_sources,pti,abort)				\
   private (index_l,cut_transfer,global_max,global_min,			\
 	   last_local_max,last_local_min,transfer_function,		\
@@ -374,7 +380,7 @@ int transfer_init(
 		}
 		
 		if (ptr->transfer_verbose > 2)
-		  printf("Compute transfer for l=%d k=%e type=%d\n",ptr->l[index_mode][index_l],current_k,index_type);
+		  printf("Compute transfer for l=%d k=%e type=%d\n",ptr->l[index_mode][index_l],current_k,index_tt);
 		
 		/* update previous transfer values in the tc_osc method */
 		if (ppr->transfer_cut == tc_osc) {
@@ -393,7 +399,7 @@ int transfer_init(
 		  if (transfer_integrate(
 					 index_mode,
 					 index_ic,
-					 index_type,
+					 index_tt,
 					 index_l,
 					 index_k,
 					 interpolated_sources,
@@ -411,7 +417,7 @@ int transfer_init(
 		}
 		
 		/* store transfer function in transfer structure */
-		ptr->transfer[index_mode][((index_ic * ppt->tp_size + index_type)
+		ptr->transfer[index_mode][((index_ic * ptr->tt_size + index_tt)
 					   * ptr->l_size[index_mode] + index_l)
 					  * ptr->k_size[index_mode] + index_k]
 		  = transfer_function;
@@ -561,7 +567,24 @@ int transfer_indices_of_transfers() {
 
   /** - define local variables */
 
-  int index_mode,index_eta;
+  int index_mode,index_eta,index_tt;
+
+  /** define indices for transfer types */
+  
+  index_tt = 0;
+  if (ppt->has_cl_cmb_temperature == _TRUE_) {
+    ptr->index_tt_t = index_tt;
+    index_tt++;
+  }
+  if (ppt->has_cl_cmb_polarization == _TRUE_) {
+    ptr->index_tt_p = index_tt;
+    index_tt++;
+  }
+  if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+    ptr->index_tt_lcmb = index_tt;
+    index_tt++;
+  }
+  ptr->tt_size=index_tt;
 
   /** - allocate arrays of (k, l) values and transfer functions */
 
@@ -647,8 +670,8 @@ int transfer_indices_of_transfers() {
       return _FAILURE_;
     }
 
-    /** (e) allocate arrays of transfer functions, (ptr->transfer[index_mode])[index_ic][index_type][index_l][index_k] */
-    ptr->transfer[index_mode] = malloc(ppt->ic_size[index_mode] * ppt->tp_size * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double));
+    /** (e) allocate arrays of transfer functions, (ptr->transfer[index_mode])[index_ic][index_tt][index_l][index_k] */
+    ptr->transfer[index_mode] = malloc(ppt->ic_size[index_mode] * ptr->tt_size * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double));
     if (ptr->transfer[index_mode]==NULL) {
       sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->transfer[index_mode]",__func__,__LINE__);
       return _FAILURE_;
@@ -845,7 +868,7 @@ int transfer_get_k_list(
  *
  * @param current_index_mode Input : index of mode
  * @param current_index_ic Input : index of initial condition
- * @param current_index_type Input : index of type
+ * @param current_index_tt Input : index of type of transfer
  * @param current_index_l Input : index of multipole
  * @param source_spline Input : array of second derivative of sources (filled here but allocated in transfer_init())
  * @param interpolated_sources Output : array of interpolated sources
@@ -854,7 +877,7 @@ int transfer_get_k_list(
 int transfer_interpolate_sources(
 				 int current_index_mode,
 				 int current_index_ic,
-				 int current_index_type,
+				 int current_index_tt,
 				 int current_index_l,
 				 double * source_spline,
 				 double * interpolated_sources) {
@@ -864,7 +887,13 @@ int transfer_interpolate_sources(
   /** - define local variables */
 
   /* index running on k values in the original source array */
-  int index_k, index_eta;
+  int index_k;
+
+  /* index running on time */
+  int index_eta;
+
+  /* index running on type of source (not type of transfer) */
+  int index_type;
 
   /* index running on k values in the interpolated source array */
   int index_k_tr;
@@ -872,9 +901,15 @@ int transfer_interpolate_sources(
   /* variables used for spline interpolation algorithm */
   double h, a, b;
 
+  /* which source are we considering? Correspondance between transfer
+     type and source type*/
+  if (current_index_tt == ptr->index_tt_t) index_type=ppt->index_tp_t;
+  if (current_index_tt == ptr->index_tt_p) index_type=ppt->index_tp_p;
+  if (current_index_tt == ptr->index_tt_lcmb) index_type=ppt->index_tp_g;
+
   if (array_spline_table_columns(ppt->k[current_index_mode],
 				 ppt->k_size[current_index_mode],
-				 ppt->sources[current_index_mode][current_index_ic * ppt->tp_size + current_index_type],
+				 ppt->sources[current_index_mode][current_index_ic * ptr->tt_size + index_type],
 				 ppt->eta_size,
 				 source_spline,
 				 _SPLINE_EST_DERIV_,
@@ -911,13 +946,38 @@ int transfer_interpolate_sources(
 
       interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 
 	a * ppt->sources[current_index_mode]
-	[current_index_ic * ppt->tp_size + current_index_type]
+	[current_index_ic * ppt->tp_size + index_type]
 	[index_eta*ppt->k_size[current_index_mode]+index_k]
 	+ b * ppt->sources[current_index_mode]
-	[current_index_ic * ppt->tp_size + current_index_type]
+	[current_index_ic * ppt->tp_size + index_type]
 	[index_eta*ppt->k_size[current_index_mode]+index_k+1]
 	+ ((a*a*a-a) * source_spline[index_eta*ppt->k_size[current_index_mode]+index_k]
 	   +(b*b*b-b) * source_spline[index_eta*ppt->k_size[current_index_mode]+index_k+1])*h*h/6.0;
+
+      /* for lensing, multiply gravitational potential by appropriate window function */
+
+      /* case of cmb lensing */
+      if (current_index_tt == ptr->index_tt_lcmb) {
+	/* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
+	   with 
+	   psi = (newtonian) gravitationnal potential  
+	   W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
+	   H(x) = Heaviside
+	   (in eta = eta_0, source = 0 to avoid division by zero (regulated anyway by Bessel)).
+	*/
+	if ((ppt->eta_sampling[index_eta] > eta_rec) && 
+	    ((eta0-ppt->eta_sampling[index_eta]) > 0.)) {
+	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] *=
+	    4.*_PI_*(2.*
+		     (ppt->eta_sampling[index_eta]-eta_rec)
+		     /(eta0-ppt->eta_sampling[index_eta])
+		     /(eta0-eta_rec));
+	}
+	else {
+	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 0;
+	}
+
+      }
 
     }
 
@@ -945,7 +1005,7 @@ int transfer_interpolate_sources(
  * 
  * @param current_index_mode Input : index of mode
  * @param current_index_ic Input : index of initial condition
- * @param current_index_type Input : index of type
+ * @param current_index_tt Input : index of type
  * @param current_index_l Input : index of multipole
  * @param current_index_k Input : index of wavenumber
  * @param interpolated_sources Input: array of interpolated sources
@@ -956,7 +1016,7 @@ int transfer_interpolate_sources(
 int transfer_integrate(
 		       int current_index_mode,
 		       int current_index_ic,
-		       int current_index_type,
+		       int current_index_tt,
 		       int current_index_l,
 		       int current_index_k,
 		       double * interpolated_sources,
@@ -1009,7 +1069,7 @@ int transfer_integrate(
       interpolated_sources[current_index_k * ppt->eta_size + index_eta]*bessel;
 
     /* for debugging */
-/*     if ((current_index_type == ppt->index_tp_l) && (current_index_l == 40) && (current_index_k == 2500)) { */
+/*     if ((current_index_tt == ppt->index_tp_g) && (current_index_l == 40) && (current_index_k == 2500)) { */
 
 /*       printf("%e %e %e\n", */
 /* 	     ppt->eta_sampling[index_eta], */
@@ -1052,7 +1112,7 @@ int transfer_integrate(
     * pti->trans_int[pti->trans_int_col_num*index_eta_max+pti->trans_int_y]/2.;
 
   if ((ppt->has_scalars == _TRUE_) && (current_index_mode == ppt->index_md_scalars)) {
-    if ((ppt->has_source_p == _TRUE_) && (current_index_type == ppt->index_tp_p)) {
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (current_index_tt == ptr->index_tt_p)) {
       /* scalar polarization */
       *trsf *= sqrt((pbs->l[current_index_l]+2.) * (pbs->l[current_index_l]+1.) * (pbs->l[current_index_l]) * (pbs->l[current_index_l]-1.)); 
     }

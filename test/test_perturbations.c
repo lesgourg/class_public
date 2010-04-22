@@ -53,7 +53,7 @@ main() {
   FILE * output;
   int index_k,index_eta;
   int index_mode=pt.index_md_scalars;
-  int index_type=pt.index_tp_l;
+  int index_type=pt.index_tp_g;
   int index_ic=pt.index_ic_ad;
 
   output=fopen("output/source.dat","w");

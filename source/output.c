@@ -20,7 +20,7 @@ int output_init(
   if (pop->output_verbose > 0)
     printf("Writing in output files \n");
 
-  if (ptr_input->has_cls == _TRUE_) {
+  if (ptr_input->tt_size >0) {
 
     for (index_mode = 0; index_mode < ppt_input->md_size; index_mode++) {
 

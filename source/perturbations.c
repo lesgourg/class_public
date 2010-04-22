@@ -178,6 +178,23 @@ int perturb_init(
   if (ppt->perturbations_verbose > 0)
     printf("Computing sources\n");
 
+  /** - decide which types of sources must be computed */
+  if (ppt->has_cl_cmb_temperature == _TRUE_) 
+    ppt->has_source_t=_TRUE_;
+  else 
+    ppt->has_source_t= _FALSE_;
+  
+  if (ppt->has_cl_cmb_polarization == _TRUE_)
+    ppt->has_source_p=_TRUE_;
+  else
+    ppt->has_source_p=_FALSE_;
+  
+  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || 
+      (ppt->has_pk_matter == _TRUE_))
+    ppt->has_source_g=_TRUE_;
+  else
+    ppt->has_source_g=_FALSE_;
+
   /** - allocate memory for the background vector pvecback_pt (global variable in perturbations.c, used as long as perturb_init() is not ending) */
   pvecback_pt=malloc(pba->bg_size_short*sizeof(double));
   if (pvecback_pt==NULL) {
@@ -185,9 +202,8 @@ int perturb_init(
     return _FAILURE_;
   }
 
-  /** - if CMB requested, allocate memory for the background vector pvecthermo_pt (global variable in perturbations.c, used as long as perturb_init() is not ending) */
-  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) 
-    pvecthermo_pt=malloc(pth->th_size*sizeof(double));
+  /** - allocate memory for vector pvecthermo_pt (global variable in perturbations.c, used as long as perturb_init() is not ending) */
+  pvecthermo_pt=malloc(pth->th_size*sizeof(double));
   if (pvecthermo_pt==NULL) {
     sprintf(ppt->error_message,"%s(L:%d): Cannot allocate pvecthermo_pt",__func__,__LINE__);
     return _FAILURE_;
@@ -363,8 +379,8 @@ int perturb_indices_of_perturbs() {
     ppt->index_tp_p = index_type; 
     index_type++;
   }
-  if (ppt->has_source_l == _TRUE_) {
-    ppt->index_tp_l = index_type; 
+  if (ppt->has_source_g == _TRUE_) {
+    ppt->index_tp_g = index_type; 
     index_type++;
   }
 
@@ -680,6 +696,9 @@ int perturb_timesampling_for_sources() {
 
     /* should define here how we sample sources when CMB is not requested (yet to be done) */
 
+    sprintf(ppt->error_message,"%s(L:%d) : did not define yet how we sample sources when CMB not requested",__func__,__LINE__);
+    return _FAILURE_;
+    
   }
 
   /** - Loop over modes, initial conditions and types. For each of them, allocate array of source functions, ((ppt->source[index_mode])[index_ic][index_type])[index_k][index_eta] */
@@ -1203,7 +1222,7 @@ int perturb_solve() {
   /* by default, today */
   etamax = pba->conformal_age;
   /* eventually stop earlier, when k*eta=k_eta_max, but not before the end of recombination */
-  if (ppt->has_source_l == _FALSE_) {
+  if (ppt->has_source_g == _FALSE_) {
     if ((ppr->k_eta_max/current_k < pba->conformal_age) && (ppr->k_eta_max/current_k > eta_visibility_free_streaming))
       etamax= ppr->k_eta_max/current_k;
     if ((ppr->k_eta_max/current_k < eta_visibility_free_streaming) && (eta_visibility_free_streaming < pba->conformal_age))
@@ -2177,7 +2196,7 @@ int perturb_source_terms(
     }
 
     /* lensing (scalars only) */
-    if ((ppt->has_source_l == _TRUE_) && (index_type == ppt->index_tp_l)) {
+    if ((ppt->has_source_g == _TRUE_) && (index_type == ppt->index_tp_g)) {
       
       if ((ppt->has_scalars == _TRUE_) && (current_index_mode == ppt->index_md_scalars)) {
 
@@ -2191,27 +2210,16 @@ int perturb_source_terms(
 
 	/* newtonian gauge */
 	if (ppr->gauge == newtonian) {
-	  if ((eta > pth->eta_rec) && ((pba->conformal_age-eta) > 0.)) {
-	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 4.*_PI_*(2.*(eta-pth->eta_rec)/(pba->conformal_age-eta)/(pba->conformal_age-pth->eta_rec))
-	      * pvecmetric[cv.index_mt_phi];
-	  }
-	  else {
-	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 0.;
-	  }
+	  pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 
+	    pvecmetric[cv.index_mt_phi];
 	  pvecsource_terms[index_type * cv.st_size + cv.index_st_dS1] = 0.;
 	  pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.;
 	}
 
 	/* synchronous gauge */
 	if (ppr->gauge == synchronous) {
-	  if ((eta > pth->eta_rec) && ((pba->conformal_age-eta) > 0.)) {
-	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 
-	      4.*_PI_*(2.*(eta-pth->eta_rec)/(pba->conformal_age-eta)/(pba->conformal_age-pth->eta_rec))
-	    * (a_prime_over_a * (pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime])/2./k2 + pvecmetric[cv.index_mt_alpha_prime]);
-	  }
-	  else {
-	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 0.;
-	  }
+	  pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 
+	    (a_prime_over_a * (pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime])/2./k2 + pvecmetric[cv.index_mt_alpha_prime]);
 	  pvecsource_terms[index_type * cv.st_size + cv.index_st_dS1] = 0.;
 	  pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.;
 	}

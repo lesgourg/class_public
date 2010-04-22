@@ -49,9 +49,14 @@ struct perturbs
   short has_nid;     /**< do we need isocurvature nid mode? */
   short has_niv;     /**< do we need isocurvature niv mode? */
 
+  short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
+  short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
+  short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
+  short has_pk_matter;                /**< do we need matter Fourier spectrum? */
+
   short has_source_t;  /**< do we need source for CMB temperature? */
   short has_source_p;  /**< do we need source for CMB polarisation? */
-  short has_source_l;  /**< do we need source for lensing? */
+  short has_source_g;  /**< do we need source for gravitationnal potential? */
 
   //@}
 
@@ -61,7 +66,7 @@ struct perturbs
 
   int index_tp_t; /**< index value for temperature */
   int index_tp_p; /**< index value for polarization */
-  int index_tp_l; /**< index value for lensing */
+  int index_tp_g; /**< index value for lensing */
   int tp_size; /**< number of types included in computation */
 
   //@}

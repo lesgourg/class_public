@@ -64,7 +64,7 @@ main() {
 
   int index_mode=pt.index_md_scalars;
   int index_ic  =pt.index_ic_ad;
-  int index_type=pt.index_tp_l;
+  int index_type=pt.index_tp_g;
   int index_l=40;
 
 

@@ -80,7 +80,7 @@ int spectra_init(
   /** - define local variables */
   int index_mode; /* index running over modes (scalar, tensor, ...) */
   int index_ic; /* index running over initial conditions */
-  int index_type; /* index running over types (temperature, polarisation, ...) */
+  int index_tt; /* index running over transfer type (temperature, polarisation, ...) */
   int index_k; /* index running over wavenumber */
   int index_l;  /* multipoles */
   int index_ct;
@@ -107,7 +107,7 @@ int spectra_init(
 
   /** - deal with cl's, if any */
 
-  if (ptr_input->has_cls == _TRUE_) {
+  if (ptr->tt_size > 0) {
 
     psp->l_size = malloc (sizeof(int)*ppt_input->md_size);
     if (psp->l_size == NULL) {
@@ -202,38 +202,38 @@ int spectra_init(
 
 	    /* above routine checks that k>0: no possible division by zero below */
 
-	    for (index_type=0; index_type < ppt->tp_size; index_type++) {
+	    for (index_tt=0; index_tt < ptr->tt_size; index_tt++) {
 
-	      transfer[index_type] = 
+	      transfer[index_tt] = 
 		ptr->transfer[index_mode]
-		[((index_ic * ppt->tp_size + index_type)
+		[((index_ic * ptr->tt_size + index_tt)
 		  * ptr->l_size[index_mode] + index_l)
 		 * ptr->k_size[index_mode] + index_k];
 
 	    }
 
-	    if (ppt->has_source_t == _TRUE_) {
+	    if (ppt->has_cl_cmb_temperature == _TRUE_) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
-		* transfer[ppt->index_tp_t]
-		* transfer[ppt->index_tp_t]
+		* transfer[ptr->index_tt_t]
+		* transfer[ptr->index_tt_t]
 		/ k;
 	    }
 	      
-	    if (ppt->has_source_p == _TRUE_) {
+	    if (ppt->has_cl_cmb_polarization == _TRUE_) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
-		* transfer[ppt->index_tp_p]
-		* transfer[ppt->index_tp_p]
+		* transfer[ptr->index_tt_p]
+		* transfer[ptr->index_tt_p]
 		/ k;
 	    }
 
-	    if ((ppt->has_source_t == _TRUE_) && (ppt->has_source_p == _TRUE_)) {
+	    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
-		* transfer[ppt->index_tp_t]
-		* transfer[ppt->index_tp_p]
+		* transfer[ptr->index_tt_t]
+		* transfer[ptr->index_tt_p]
 		/ k;
 	    }
 
-	    if ((ppt->has_source_p == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
+	    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
 
 	      if (index_mode == ppt->index_md_scalars) {
 		cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.;
@@ -245,17 +245,17 @@ int spectra_init(
 	      
 	    }
 	      
-	    if (ppt->has_source_l == _TRUE_) {
+	    if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
-		* transfer[ppt->index_tp_l]
-		* transfer[ppt->index_tp_l]
+		* transfer[ptr->index_tt_lcmb]
+		* transfer[ptr->index_tt_lcmb]
 		/ k;
 	    }
 
-	    if ((ppt->has_source_t == _TRUE_) && (ppt->has_source_l == _TRUE_)) {
+	    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
-		* transfer[ppt->index_tp_t]
-		* transfer[ppt->index_tp_l]
+		* transfer[ptr->index_tt_t]
+		* transfer[ptr->index_tt_lcmb]
 		/ k;
 	    }
 
@@ -325,30 +325,33 @@ int spectra_indices(){
 
   int index_ct;
 
-  if (ptr->has_cls == _TRUE_) {
+  if (ptr->tt_size > 0) {
 
     index_ct=0;
-    if (ppt->has_source_t == _TRUE_) {
+    if (ppt->has_cl_cmb_temperature == _TRUE_) {
       psp->index_ct_tt=index_ct;
       index_ct++;
     }
-    if (ppt->has_source_p == _TRUE_) {
+    if (ppt->has_cl_cmb_polarization == _TRUE_) {
       psp->index_ct_ee=index_ct;
       index_ct++;
     }
-    if ((ppt->has_source_t == _TRUE_) && (ppt->has_source_p == _TRUE_)) {
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && 
+	(ppt->has_cl_cmb_polarization == _TRUE_)) {
       psp->index_ct_te=index_ct;
       index_ct++;
     }
-    if ((ppt->has_source_p == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && 
+	(ppt->has_tensors == _TRUE_)) {
       psp->index_ct_bb=index_ct;
       index_ct++;
     }
-    if (ppt->has_source_l == _TRUE_) {
+    if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
       psp->index_ct_pp=index_ct;
       index_ct++;
     }
-    if ((ppt->has_source_t == _TRUE_) && (ppt->has_source_l == _TRUE_)) {
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && 
+	(ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
       psp->index_ct_tp=index_ct;
       index_ct++;
     }

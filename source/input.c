@@ -46,7 +46,7 @@ int input_init(
   
   /** - define which perturbations and sources should be computed */
 
-  ppt->has_scalars=_TRUE_;
+  ppt->has_scalars=_TRUE_;  
   ppt->has_vectors=_FALSE_;
   ppt->has_tensors=_FALSE_;
 
@@ -56,13 +56,10 @@ int input_init(
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
 
-  ppt->has_source_t=_TRUE_;
-  ppt->has_source_p=_TRUE_;
-  ppt->has_source_l=_TRUE_;
-
-  /** - state whether Cl's (spectra in harmonic space) will be required */
-
-  ptr->has_cls=_TRUE_;
+  ppt->has_cl_cmb_temperature = _TRUE_;
+  ppt->has_cl_cmb_polarization = _TRUE_;
+  ppt->has_cl_cmb_lensing_potential = _FALSE_;
+  ppt->has_pk_matter = _FALSE_;
 
   /** - define the primordial spectrum */
 
