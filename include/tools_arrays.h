@@ -223,7 +223,7 @@ int array_integrate_all_spline(
 			    double x,
 			    double * result,
 			    int result_size, /** from 1 to n_columns_y */
-			    char *errmsg);
+			    char * errmsg);
 
   int array_interpolate_equal(
 			    double * array,
@@ -233,7 +233,7 @@ int array_integrate_all_spline(
 			    double x_min,
 			    double x_max,
 			    double * result,
-			    char *errmsg);
+			    char * errmsg);
 
   int array_smooth(double * array,
 		   int n_columns,

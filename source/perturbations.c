@@ -677,9 +677,9 @@ int perturb_timesampling_for_sources() {
 
   }
 
-  if (ppt->has_source_l == _TRUE_) {
-      
-    /* lensing source not coded yet */
+  else{
+
+    /* should define here how we sample sources when CMB is not requested (yet to be done) */
 
   }
 
@@ -1989,9 +1989,10 @@ int perturb_einstein(
  *
  * Compute the terms contributing to the source functions (for all
  * requested types) and store results in global variable
- * pvecsourceterms. The source functions can be decomposed as \f$ S =
- * S_0 + S_1' + S_2'' \f$.  This function computes \f$ ( S_0, S_1, S_2
- * ) \f$.
+ * pvecsourceterms. The source functions can be decomposed as 
+ * \f$ S = S_0 + S_1' + S_2'' \f$.  
+ * This function computes \f$ ( S_0, S_1', S_2') \f$ for temperature
+ * and \f$ ( S_0, S_1', S_2'') \f$ for other quantitites.
  *
  * @param eta Input: conformal time  
  * @return the error status
@@ -2151,8 +2152,8 @@ int perturb_source_terms(
 
 
 /* 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S2] = 0.; */
-/* 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS2] = 0.; */
-	    pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.;
+/*  	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS2] = 0.; */
+	    pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.; 
 
 	      }
 	  else {
@@ -2175,7 +2176,48 @@ int perturb_source_terms(
 
       }
     }
-     
+
+    /* lensing (scalars only) */
+    if ((ppt->has_source_l == _TRUE_) && (index_type == ppt->index_tp_l)) {
+      
+      if ((ppt->has_scalars == _TRUE_) && (current_index_mode == ppt->index_md_scalars)) {
+
+	/* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
+	   with 
+	   psi = (newtonian) gravitationnal potential  
+	   W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
+	   H(x) = Heaviside
+	   (in eta = eta_0, source = 0 to avoid division by zero (regulated anyway by Bessel)).
+	  */
+
+	/* newtonian gauge */
+	if (ppr->gauge == newtonian) {
+	  if ((eta > pth->eta_rec) && ((pba->conformal_age-eta) > 0.)) {
+	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 4.*_PI_*(2.*(eta-pth->eta_rec)/(pba->conformal_age-eta)/(pba->conformal_age-pth->eta_rec))
+	      * pvecmetric[cv.index_mt_phi];
+	  }
+	  else {
+	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 0.;
+	  }
+	  pvecsource_terms[index_type * cv.st_size + cv.index_st_dS1] = 0.;
+	  pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.;
+	}
+
+	/* synchronous gauge */
+	if (ppr->gauge == synchronous) {
+	  if ((eta > pth->eta_rec) && ((pba->conformal_age-eta) > 0.)) {
+	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 
+	      4.*_PI_*(2.*(eta-pth->eta_rec)/(pba->conformal_age-eta)/(pba->conformal_age-pth->eta_rec))
+	    * (a_prime_over_a * (pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime])/2./k2 + pvecmetric[cv.index_mt_alpha_prime]);
+	  }
+	  else {
+	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 0.;
+	  }
+	  pvecsource_terms[index_type * cv.st_size + cv.index_st_dS1] = 0.;
+	  pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.;
+	}
+      }
+    }     
   }
 
   return _SUCCESS_;

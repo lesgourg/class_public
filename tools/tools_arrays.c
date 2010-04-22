@@ -5,7 +5,7 @@
 
 #include "tools_arrays.h"
 
- /**
+/**
  * Called by thermodynamics_init(); perturb_sources().
  */
 int array_derive(
@@ -1329,22 +1329,23 @@ int array_interpolate_two(
   inf=0;
   sup=n_lines-1;
 
-  if (*(array_x+inf*n_columns_x+index_x) < *(array_x+sup*n_columns_x+index_x)){
+  if (array_x[inf*n_columns_x+index_x] < array_x[sup*n_columns_x+index_x]){
 
-    if (x < *(array_x+inf*n_columns_x+index_x)) {
-      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,*(array_x+inf*n_columns_x+index_x));
+    if (x < array_x[inf*n_columns_x+index_x]) {
+
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,array_x[inf*n_columns_x+index_x]);
       return _FAILURE_;
     }
 
-    if (x > *(array_x+sup*n_columns_x+index_x)) {
-      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,*(array_x+sup*n_columns_x+index_x));
+    if (x > array_x[sup*n_columns_x+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,array_x[sup*n_columns_x+index_x]);
       return _FAILURE_;
     }
 
     while (sup-inf > 1) {
 
       mid=(int)(0.5*(inf+sup));
-      if (x < *(array_x+mid*n_columns_x+index_x)) {sup=mid;}
+      if (x < array_x[mid*n_columns_x+index_x]) {sup=mid;}
       else {inf=mid;}
 
     }

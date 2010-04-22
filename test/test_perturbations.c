@@ -48,7 +48,33 @@ main() {
     return _FAILURE_;
   }
 
-  /****** here you could output the source functions ******/
+  /****** here you can output the source functions ******/
+
+  FILE * output;
+  int index_k,index_eta;
+  int index_mode=pt.index_md_scalars;
+  int index_type=pt.index_tp_l;
+  int index_ic=pt.index_ic_ad;
+
+  output=fopen("output/source.dat","w");
+
+  for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
+    for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
+
+      fprintf(output,"%e %e %e\n",
+	      pt.eta_sampling[index_eta],
+	      pt.k[index_mode][index_k],
+	      pt.sources[index_mode]
+	      [index_ic * pt.tp_size + index_type]
+	      [index_eta * pt.k_size[index_mode] + index_k]
+	      );
+    }
+    fprintf(output,"\n");
+  }
+
+  fclose(output);
+
+  /******************************************************/
 
   if (perturb_free() == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);

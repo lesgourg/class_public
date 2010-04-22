@@ -89,7 +89,7 @@ int spectra_init(
   double clvalue;
   int cl_integrand_num_columns;
   double * cl_integrand;
-  double * trsf;
+  double * transfer;
   double * primordial_pk;  /*pk[index_ic]*/
 
   /** - identify the spectra structure (used throughout transfer.c as global variable) to the input/output structure of this function */
@@ -110,13 +110,13 @@ int spectra_init(
 
   if (ptr_input->has_cls == _TRUE_) {
 
-    psp->l_size = malloc (sizeof(int)*ppt->md_size);
+    psp->l_size = malloc (sizeof(int)*ppt_input->md_size);
     if (psp->l_size == NULL) {
       sprintf(psp->error_message,"%s(L:%d) : Could not allocate l_size",__func__,__LINE__);
       return _FAILURE_;
     }
 
-    psp->l = malloc (sizeof(double *)*ppt->md_size);
+    psp->l = malloc (sizeof(double *)*ppt_input->md_size);
     if (psp->l == NULL) {
       sprintf(psp->error_message,"%s(L:%d) : Could not allocate l",__func__,__LINE__);
       return _FAILURE_;
@@ -170,15 +170,15 @@ int spectra_init(
 	return _FAILURE_;
       }
 
-      primordial_pk=malloc(ppt_input->ic_size[index_mode]);
+      primordial_pk=malloc(ppt_input->ic_size[index_mode]*sizeof(double));
       if (primordial_pk == NULL) {
 	sprintf(psp->error_message,"%s(L:%d) : Could not allocate primordial_pk",__func__,__LINE__);
 	return _FAILURE_;
       }
 
-      trsf=malloc(ppt_input->tp_size);
-      if (trsf == NULL) {
-	sprintf(psp->error_message,"%s(L:%d) : Could not allocate trsf",__func__,__LINE__);
+      transfer=malloc(ppt_input->tp_size*sizeof(double));
+      if (transfer == NULL) {
+	sprintf(psp->error_message,"%s(L:%d) : Could not allocate transfer",__func__,__LINE__);
 	return _FAILURE_;
       }
 
@@ -205,7 +205,7 @@ int spectra_init(
 
 	    for (index_type=0; index_type < ppt->tp_size; index_type++) {
 
-	      trsf[index_type] = 
+	      transfer[index_type] = 
 		ptr->transfer[index_mode]
 		[((index_ic * ppt->tp_size + index_type)
 		  * ptr->l_size[index_mode] + index_l)
@@ -215,22 +215,22 @@ int spectra_init(
 
 	    if (ppt->has_source_t == _TRUE_) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
-		* trsf[ppt->index_tp_t]
-		* trsf[ppt->index_tp_t]
+		* transfer[ppt->index_tp_t]
+		* transfer[ppt->index_tp_t]
 		/ k;
 	    }
 	      
 	    if (ppt->has_source_p == _TRUE_) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
-		* trsf[ppt->index_tp_p]
-		* trsf[ppt->index_tp_p]
+		* transfer[ppt->index_tp_p]
+		* transfer[ppt->index_tp_p]
 		/ k;
 	    }
 
 	    if ((ppt->has_source_t == _TRUE_) && (ppt->has_source_p == _TRUE_)) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
-		* trsf[ppt->index_tp_t]
-		* trsf[ppt->index_tp_p]
+		* transfer[ppt->index_tp_t]
+		* transfer[ppt->index_tp_p]
 		/ k;
 	    }
 
@@ -244,8 +244,22 @@ int spectra_init(
 		return _FAILURE_;
 	      }
 	      
-
 	    }
+	      
+	    if (ppt->has_source_l == _TRUE_) {
+	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
+		* transfer[ppt->index_tp_l]
+		* transfer[ppt->index_tp_l]
+		/ k;
+	    }
+
+	    if ((ppt->has_source_t == _TRUE_) && (ppt->has_source_l == _TRUE_)) {
+	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
+		* transfer[ppt->index_tp_t]
+		* transfer[ppt->index_tp_l]
+		/ k;
+	    }
+
 	  }
 
 	  for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
@@ -285,8 +299,10 @@ int spectra_init(
       }
 
       free(cl_integrand);
+
       free(primordial_pk);
-      free(trsf);
+
+      free(transfer);
 
       if (array_spline_table_lines(psp->l[index_mode],
 				   psp->l_size[index_mode],
@@ -327,6 +343,14 @@ int spectra_indices(){
     }
     if ((ppt->has_source_p == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
       psp->index_ct_bb=index_ct;
+      index_ct++;
+    }
+    if (ppt->has_source_l == _TRUE_) {
+      psp->index_ct_pp=index_ct;
+      index_ct++;
+    }
+    if ((ppt->has_source_t == _TRUE_) && (ppt->has_source_l == _TRUE_)) {
+      psp->index_ct_tp=index_ct;
       index_ct++;
     }
     psp->ct_size = index_ct;

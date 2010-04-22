@@ -50,7 +50,7 @@ double eta_rec; /* conformal time at recombination */
 //@{
 
 char * errmsg; /**< error management pointer */
-char Transmit_Error_Message[2048]; /**< contains error message */
+ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 //@}
 
@@ -85,17 +85,20 @@ int transfer_functions_at_k(
 
   /** - interpolate in pre-computed table using array_interpolate_two() */
   if (array_interpolate_two(
-			    ppt->k[index_mode],
+			    ptr->k[index_mode],
 			    1,
+			    0,
+			    ptr->transfer[index_mode]
+			    +((index_ic * ppt->tp_size + index_type) * ptr->l_size[index_mode] + index_l)
+			    * ptr->k_size[index_mode],
 			    1,
-			    ptr->transfer[index_mode] + ( index_ic * ppt->tp_size + index_type) * ptr->l_size[index_mode] + index_l,
-			    1,
-			    ppt->k_size[index_mode],
+			    ptr->k_size[index_mode],
 			    k,
 			    ptransfer_local,
 			    1,
-			    errmsg) == _FAILURE_) {
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_interpolate_two() \n=>%s",__func__,__LINE__,errmsg);
+			    Transmit_Error_Message) == _FAILURE_) {
+
+    sprintf(ptr->error_message,"%s(L:%d) : error in array_interpolate_two() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
   
@@ -1005,6 +1008,16 @@ int transfer_integrate(
 
     pti->trans_int[pti->trans_int_col_num*index_eta+pti->trans_int_y]= 
       interpolated_sources[current_index_k * ppt->eta_size + index_eta]*bessel;
+
+    /* for debugging */
+/*     if ((current_index_type == ppt->index_tp_l) && (current_index_l == 40) && (current_index_k == 2500)) { */
+
+/*       printf("%e %e %e\n", */
+/* 	     ppt->eta_sampling[index_eta], */
+/* 	     interpolated_sources[current_index_k * ppt->eta_size + index_eta], */
+/* 	     bessel); */
+/*     } */
+
 
   }
 

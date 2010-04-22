@@ -58,7 +58,7 @@ int input_init(
 
   ppt->has_source_t=_TRUE_;
   ppt->has_source_p=_TRUE_;
-  ppt->has_source_l=_FALSE_;
+  ppt->has_source_l=_TRUE_;
 
   /** - state whether Cl's (spectra in harmonic space) will be required */
 
