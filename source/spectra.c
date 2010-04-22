@@ -83,6 +83,7 @@ int spectra_init(
   int index_tt; /* index running over transfer type (temperature, polarisation, ...) */
   int index_k; /* index running over wavenumber */
   int index_l;  /* multipoles */
+  int index_eta;
   int index_ct;
   double k; /* wavenumber */
   double clvalue;
@@ -317,6 +318,46 @@ int spectra_init(
     }
 
   }
+
+/*   if (ppt->has_pk_matter == _TRUE_) { */
+
+/*     if (ppt->has_scalars = _FALSE_) { */
+/*       sprintf(psp->error_message,"%s(L:%d) : you cannot ask for matter power spectrum since you turned off scalar modes",__func__,__LINE__); */
+/*       return _FAILURE_; */
+/*     } */
+/*     index_mode = ppt->index_md_scalars; */
+/*     index_eta = ppt->eta_size-1; */
+
+/*     psp->k_size = ppt->k_size[index_mode]; */
+/*     psp->k = malloc(sizeof(double)*psp->k_size); */
+/*     if (psp->k == NULL) { */
+/*       sprintf(psp->error_message,"%s(L:%d) : Could not allocate k",__func__,__LINE__); */
+/*       return _FAILURE_; */
+/*     } */
+/*     psp->pk = malloc(sizeof(double)*psp->k_size*ppt->ic_size[index_mode]); */
+/*     if (psp->pk == NULL) { */
+/*       sprintf(psp->error_message,"%s(L:%d) : Could not allocate pk",__func__,__LINE__); */
+/*       return _FAILURE_; */
+/*     } */
+
+/*     for (index_k=0; index_k<psp->k_size; index_k++) */
+/*       psp->k[index_k]=ppt->k[index_mode][index_k]; */
+
+    /** - loop over initial conditions */
+/*     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) { */
+
+/*       for (index_k=0; index_k<psp->k_size; index_k++) { */
+
+/* 	psp->pk[index_ic * psp->k_size + index_k] =  */
+/* 	  ppt->sources[index_mode] */
+/* 	  [index_ic * ppt->tp_size + ppt->index_tp_g] */
+/* 	  [index_eta * ppt->k_size[index_mode] + index_k]; */
+
+/*       } */
+
+/*     } */
+
+/*   } */
 
   return _SUCCESS_;
 }

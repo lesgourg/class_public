@@ -9,6 +9,8 @@ struct output {
 
   char * cls_ad;
 
+  char * pk;
+
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@{

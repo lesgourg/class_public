@@ -26,6 +26,10 @@ struct spectra {
   int index_ct_tp;
   int ct_size; /**< number of ct_type (TT, TE, EE, etc.) ct_size[index_mode]*/
 
+  int k_size;
+  int * k;
+  double * pk;
+
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@{

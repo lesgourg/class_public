@@ -58,8 +58,8 @@ int input_init(
 
   ppt->has_cl_cmb_temperature = _TRUE_;
   ppt->has_cl_cmb_polarization = _TRUE_;
-  ppt->has_cl_cmb_lensing_potential = _FALSE_;
-  ppt->has_pk_matter = _FALSE_;
+  ppt->has_cl_cmb_lensing_potential = _TRUE_;
+  ppt->has_pk_matter = _TRUE_;
 
   /** - define the primordial spectrum */
 
@@ -72,6 +72,7 @@ int input_init(
   /** - name of output files */
 
   pop->cls_ad = "output/cls.dat";
+  pop->pk = "output/pk.dat";
 
   /** - amount of information sent to standard output (none if all set to zero) */
 

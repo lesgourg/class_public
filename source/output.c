@@ -14,7 +14,8 @@ int output_init(
 		) {
 
   FILE * * out;
-  int index_mode,index_ic,index_ct,l;
+  FILE * outbis;
+  int index_mode,index_ic,index_ct,l,index_k;
   double * cl_output;
 
   if (pop->output_verbose > 0)
@@ -81,6 +82,26 @@ int output_init(
 
     }
   }
+
+/*   if (ppt_input->has_pk_matter == _TRUE_) { */
+
+/*     printf("Gets here\n"); */
+
+/*     outbis=fopen(pop->pk,"w"); */
+
+/*     index_mode=ppt_input->index_md_scalars; */
+
+/*     for (index_k=0; index_k<psp_input->k_size; index_k++) { */
+
+/*       fprintf(outbis,"%e",psp_input->k[index_k]); */
+/*       for (index_ic = 0; index_ic < ppt_input->ic_size[index_mode]; index_ic++) { */
+/* 	fprintf(outbis," %e",psp_input->pk[index_ic * psp_input->k_size + index_k]); */
+/*       } */
+/*       fprintf(outbis,"\n"); */
+/*     } */
+/*     fclose(outbis); */
+
+/*   } */
 
   return _SUCCESS_;
 
