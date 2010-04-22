@@ -2,7 +2,7 @@
 
 #define dsign(a,b) ( (b) > 0. ? (a) : (-(a)) )
 
-char Transmit_Error_Message[2048];
+ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 double * yscal;
 double * y;

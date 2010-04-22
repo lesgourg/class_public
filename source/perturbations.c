@@ -67,8 +67,7 @@ int current_index_type; /**< runs on types (temperature, polarization, lensing, 
 
 double current_k; /**< current value of comoving wavenumber */
 
-char * errmsg; /**< error management pointer */
-char Transmit_Error_Message[2048]; /**< contains error message */
+ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 double eta_visibility_start_sources, eta_visibility_free_streaming; /**< characteristic times defined by the visibility function */
 
@@ -121,8 +120,8 @@ int perturb_sources_at_eta(
 			    eta,
 			    psource_local,
 			    1,
-			    errmsg) == _FAILURE_) {
-    sprintf(ppt->error_message,"%s(L:%d) : error in array_interpolate_two() \n=>%s",__func__,__LINE__,errmsg);
+			    Transmit_Error_Message) == _FAILURE_) {
+    sprintf(ppt->error_message,"%s(L:%d) : error in array_interpolate_two() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
     
@@ -2262,8 +2261,8 @@ int perturb_sources(
 						cv.st_size,
 						cv.index_st_dS2,
 						cv.index_st_ddS2,
-						errmsg) == _FAILURE_) {
-      sprintf(ppt->error_message,"%s(L:%d) : error in array_derive1_order2_table_line_to_line()\n=>%s",__func__,__LINE__,errmsg);
+						Transmit_Error_Message) == _FAILURE_) {
+      sprintf(ppt->error_message,"%s(L:%d) : error in array_derive1_order2_table_line_to_line()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }
 

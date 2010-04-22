@@ -48,8 +48,7 @@ double kb_over_mH; /* k_B/mH */
 
 //@{
 
-char * errmsg; /**< error management pointer */
-char Transmit_Error_Message[2048]; /**< contains error message */
+ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 //@}
 
@@ -143,8 +142,8 @@ int thermodynamics_at_z(
 				   last_index,
 				   pvecthermo_local,
 				   pth->th_size,
-				   errmsg)== _FAILURE_) {
-	sprintf(pth->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,errmsg);
+				   Transmit_Error_Message)== _FAILURE_) {
+	sprintf(pth->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
 	return _FAILURE_;
       }
 
@@ -162,8 +161,8 @@ int thermodynamics_at_z(
 						   last_index,
 						   pvecthermo_local,
 						   pth->th_size,
-						   errmsg)== _FAILURE_) {
-	sprintf(pth->error_message,"%s(L:%d) : error in array_interpolate_spline_growing_closeby() \n=>%s",__func__,__LINE__,errmsg);
+						   Transmit_Error_Message)== _FAILURE_) {
+	sprintf(pth->error_message,"%s(L:%d) : error in array_interpolate_spline_growing_closeby() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
 	return _FAILURE_;
       }
 
@@ -392,8 +391,8 @@ int thermodynamics_init(
 				      pth->index_th_dkappa,
 				      pth->index_th_dddkappa,
 				      _SPLINE_EST_DERIV_,
-				      errmsg) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_spline_table_line_to_line()\n=>%s",__func__,__LINE__,errmsg);
+				      Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pth->error_message,"%s(L:%d) : error in array_spline_table_line_to_line()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -405,8 +404,8 @@ int thermodynamics_init(
 					     pth->index_th_dkappa,
 					     pth->index_th_dddkappa,
 					     pth->index_th_ddkappa,
-					     errmsg) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_derive_spline_table_line_to_line()\n=>%s",__func__,__LINE__,errmsg);
+					     Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pth->error_message,"%s(L:%d) : error in array_derive_spline_table_line_to_line()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -418,8 +417,8 @@ int thermodynamics_init(
 						pth->index_th_dkappa,
 						pth->index_th_dddkappa,
 						pth->index_th_g,
-						errmsg) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_integrate_spline_table_line_to_line()\n=>%s",__func__,__LINE__,errmsg);
+						Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pth->error_message,"%s(L:%d) : error in array_integrate_spline_table_line_to_line()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -498,8 +497,8 @@ int thermodynamics_init(
 		   pth->tt_size,
 		   pth->index_th_rate,
 		   ppr->thermo_rate_smoothing_radius,
-		   errmsg) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_smooth()\n=>%s",__func__,__LINE__,errmsg);
+		   Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pth->error_message,"%s(L:%d) : error in array_smooth()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -553,8 +552,8 @@ int thermodynamics_init(
 			       pth->th_size,
 			       pth->d2thermodynamics_dz2_table,
 			       _SPLINE_EST_DERIV_,
-			       errmsg) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,errmsg);
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pth->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -1199,8 +1198,8 @@ int thermodynamics_reionization_discretize(
 		   preio->index_re_dkappadz,
 		   preio->index_re_d3kappadz3,
 		   _SPLINE_EST_DERIV_,
-		   errmsg) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,errmsg);
+		   Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pth->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
   
@@ -1212,8 +1211,8 @@ int thermodynamics_reionization_discretize(
 				 preio->index_re_dkappadz,
 				 preio->index_re_d3kappadz3,
 				 &(preio->reionization_optical_depth),
-				 errmsg) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_integrate_all_spline()\n=>%s",__func__,__LINE__,errmsg);
+				 Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pth->error_message,"%s(L:%d) : error in array_integrate_all_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 

@@ -40,8 +40,7 @@ double * pvecback; /**< vector of background quantities, used
 
 //@{
 
-char * errmsg; /**< error management pointer */
-char Transmit_Error_Message[_ERRORMSGSIZE_]; /**< contains error message */
+ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 //@}
 
@@ -109,8 +108,8 @@ int background_at_eta(
 				 last_index,
 				 pvecback_local,
 				 pvecback_size,
-				 errmsg) == _FAILURE_) {
-      sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,errmsg);
+				 Transmit_Error_Message) == _FAILURE_) {
+      sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }
   }
@@ -125,8 +124,8 @@ int background_at_eta(
 						 last_index,
 						 pvecback_local,
 						 pvecback_size,
-						 errmsg) == _FAILURE_) {
-      sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline_growing_closeby() \n=>%s",__func__,__LINE__,errmsg);
+						 Transmit_Error_Message) == _FAILURE_) {
+      sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline_growing_closeby() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;  
     }
   }
@@ -184,8 +183,8 @@ int background_eta_of_z(
 			       &last_index,
 			       eta,
 			       1,
-			       errmsg) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,errmsg);
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -788,8 +787,8 @@ int background_solve() {
 		   &last_index,
 		   pvecback_integration,
 		   pba->bi_size,
-		   errmsg) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate() \n=>%s",__func__,__LINE__,errmsg);
+		   Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -875,8 +874,8 @@ int background_solve() {
 			       1,
 			       pba->d2eta_dz2_table,
 			       _SPLINE_EST_DERIV_,
-			       errmsg) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_spline_table_lines() \n=>%s",__func__,__LINE__,errmsg);
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pba->error_message,"%s(L:%d) : error in array_spline_table_lines() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -886,8 +885,8 @@ int background_solve() {
 			       pba->bg_size,
 			       pba->d2background_deta2_table,
 			       _SPLINE_EST_DERIV_,
-			       errmsg) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,errmsg);
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(pba->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 

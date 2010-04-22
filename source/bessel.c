@@ -25,8 +25,7 @@ struct bessels * pbs; /**< a bessels structure pointer for internal use in the p
 
 //@{
 
-char * errmsg; /**< error management pointer */
-char Transmit_Error_Message[2048]; /**< contains error message */
+ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 //@}
 
@@ -402,8 +401,8 @@ int bessel_init(
 		       column_j,
 		       column_ddj,
 		       _SPLINE_EST_DERIV_,
-		       errmsg) == _FAILURE_) {
-	printf(pbs->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,errmsg);
+		       Transmit_Error_Message) == _FAILURE_) {
+	printf(pbs->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
 	return _FAILURE_;
       }
 

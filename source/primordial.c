@@ -25,8 +25,7 @@ struct primordial * ppm; /**< a primordial structure pointer for internal use in
 
 //@{
 
-char * errmsg; /**< error management pointer */
-char Transmit_Error_Message[2048]; /**< contains error message */
+ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 //@}
 
@@ -93,8 +92,8 @@ int primordial_at_k(
 			       &last_index,
 			       pk,
 			       ppm->ic_size[index_mode],
-			       errmsg) == _FAILURE_) {
-    sprintf(ppm->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,errmsg);
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(ppm->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -302,8 +301,8 @@ int primordial_init(
 				 ppm->ic_size[index_mode],
 				 ppm->ddlnpk[index_mode],
 				 _SPLINE_EST_DERIV_,
-				 errmsg) == _FAILURE_) {
-      sprintf(ppm->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,errmsg);
+				 Transmit_Error_Message) == _FAILURE_) {
+      sprintf(ppm->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }
 

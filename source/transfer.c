@@ -49,7 +49,6 @@ double eta_rec; /* conformal time at recombination */
 
 //@{
 
-char * errmsg; /**< error management pointer */
 ErrorMsg Transmit_Error_Message; /**< contains error message */
 
 //@}
@@ -879,9 +878,9 @@ int transfer_interpolate_sources(
 				 ppt->eta_size,
 				 source_spline,
 				 _SPLINE_EST_DERIV_,
-				 errmsg
+				 Transmit_Error_Message
 				 ) == _FAILURE_) {
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_spline_table_columns()\n=>%s",__func__,__LINE__,errmsg);
+    sprintf(ptr->error_message,"%s(L:%d) : error in array_spline_table_columns()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -931,9 +930,9 @@ int transfer_interpolate_sources(
 /* 				 ptr->k_size[current_index_mode], */
 /* 				 splined_interpolated_sources, */
 /* 				 _SPLINE_EST_DERIV_, */
-/* 				 errmsg */
+/* 				 Transmit_Error_Message */
 /* 				 ) == _FAILURE_) { */
-/*     sprintf(ptr->error_message,"problem in array_spline_table_columns \n=>%s",errmsg); */
+/*     sprintf(ptr->error_message,"problem in array_spline_table_columns \n=>%s",Transmit_Error_Message); */
 /*     return _FAILURE_; */
 /*   } */
 
@@ -1030,8 +1029,8 @@ int transfer_integrate(
 		   pti->trans_int_y,
 		   pti->trans_int_ddy,
 		   _SPLINE_EST_DERIV_,
-		   errmsg) == _FAILURE_) {
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,errmsg);
+		   Transmit_Error_Message) == _FAILURE_) {
+    sprintf(ptr->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -1043,8 +1042,8 @@ int transfer_integrate(
 				 pti->trans_int_y,
 				 pti->trans_int_ddy,
 				 trsf,
-				 errmsg) == _FAILURE_) {
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_integrate_all_spline()\n=>%s",__func__,__LINE__,errmsg);
+				 Transmit_Error_Message) == _FAILURE_) {
+    sprintf(ptr->error_message,"%s(L:%d) : error in array_integrate_all_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 

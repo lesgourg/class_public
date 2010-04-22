@@ -19,8 +19,6 @@
  */
 int precision_init ( struct precision * ppr ) {
 
-  char Transmit_Error_Message[_ERRORMSGSIZE_]; /**< contains error message */
-
   /** Summary: */
 
   /**
