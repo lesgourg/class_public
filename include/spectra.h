@@ -27,7 +27,7 @@ struct spectra {
   int ct_size; /**< number of ct_type (TT, TE, EE, etc.) ct_size[index_mode]*/
 
   int k_size;
-  int * k;
+  double * k;
   double * pk;
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
@@ -57,6 +57,7 @@ extern "C" {
 		      );
 
   int spectra_init(
+	      struct background * pba,
 	      struct perturbs * ppt,
 	      struct transfers * ptr,
 	      struct primordial * ppm,
@@ -66,6 +67,8 @@ extern "C" {
   int spectra_free();
 
   int spectra_indices();
+
+  int spectra_pk();
 
 #ifdef __cplusplus
 }
