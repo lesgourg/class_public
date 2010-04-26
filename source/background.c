@@ -386,6 +386,8 @@ int background_init(
     return _FAILURE_;
   }
 
+  pba->h = pba->H0 * _c_ /100.;
+
   /* curvature */
   Omega0_tot = pba->Omega0_g + pba->Omega0_b;
   if (pba->has_cdm == _TRUE_) {

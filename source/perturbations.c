@@ -175,11 +175,8 @@ int perturb_init(
   pth = pth_input;
   ppt = ppt_output; 
 
-  if (ppt->perturbations_verbose > 0)
-    printf("Computing sources\n");
-
   /** - decide which types of sources must be computed */
-  if (ppt->has_cl_cmb_temperature == _TRUE_) 
+  if (ppt->has_cl_cmb_temperature == _TRUE_)
     ppt->has_source_t=_TRUE_;
   else 
     ppt->has_source_t= _FALSE_;
@@ -189,11 +186,22 @@ int perturb_init(
   else
     ppt->has_source_p=_FALSE_;
   
-  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || 
+  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
       (ppt->has_pk_matter == _TRUE_))
     ppt->has_source_g=_TRUE_;
   else
     ppt->has_source_g=_FALSE_;
+
+  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+   if (ppt->perturbations_verbose > 0)
+      printf("No sources requested. Perturbation module skipped.\n");
+    return _SUCCESS_;
+  }
+  else {
+    if (ppt->perturbations_verbose > 0)
+      printf("Computing sources\n");
+  }
+
 
   /** - allocate memory for the background vector pvecback_pt (global variable in perturbations.c, used as long as perturb_init() is not ending) */
   pvecback_pt=malloc(pba->bg_size_short*sizeof(double));
@@ -560,44 +568,128 @@ int perturb_timesampling_for_sources() {
   /* just for calling back_and_thermo */
   double timescale;
 
-  current_k = 1.; /* prevents from any division by zero in perturb_back_nad_thermo() */
+  current_k = 1.; /* k is not yet relevant, but this line prevents from any division by zero in perturb_back_nad_thermo() */
 
-  /** If CMB requested (temperature, polarisation): */
+  /** (a) compute conformal time corresponding to opaque universe (starting point for source sampling) using background_eta_of_z() */
+  if (background_eta_of_z(pth->z_visibility_start_sources,&eta_visibility_start_sources)
+      == _FAILURE_) {
+    sprintf(ppt->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
+    return _FAILURE_;
+  }
 
+  /** (b) compute conformal time corresponding to end of efficient recombination using background_eta_of_z() */
+  if (background_eta_of_z(pth->z_visibility_free_streaming,&eta_visibility_free_streaming)
+      == _FAILURE_) {
+    sprintf(ppt->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
+    return _FAILURE_;
+  }
+
+  /** (c) first, just count the number of sampling points in order to allocate the array containing all values: */
+
+
+  /** (c.a) if CMB requested, first sampling point = when the universe stops being opaque; otherwise,
+            start sampling gravitational potential at recombination */
   if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
-
-    /** (b) compute conformal time corresponding to opaque universe (starting point for source sampling) using background_eta_of_z() */
-    if (background_eta_of_z(pth->z_visibility_start_sources,&eta_visibility_start_sources)
-	== _FAILURE_) {
-      sprintf(ppt->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
-      return _FAILURE_;
-    }
-
-    /** (c) compute conformal time corresponding to end of efficient recombination using background_eta_of_z() */
-    if (background_eta_of_z(pth->z_visibility_free_streaming,&eta_visibility_free_streaming)
-	== _FAILURE_) {
-      sprintf(ppt->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
-      return _FAILURE_;
-    }
-
-    /** (d) first, just count the number of sampling points in order to allocate the array containing all values: */
-
-
-    /** (d.a) first sampling point = when the universe stops being opaque */
     eta = eta_visibility_start_sources;
-    counter = 1;
+  }
+  else {
+    eta = pth->eta_rec;
+  }
 
-    /** (d.b) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where
-	timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
-        timescale_source2 = \f$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} \f$ (to smaple correctly the late ISW effect; and 
-        timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today  */
-    while (eta < pba->conformal_age) {
+  counter = 1;
 
-      if (perturb_back_and_thermo(eta,normal,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-	sprintf(ppt->error_message,Transmit_Error_Message);
-	return _FAILURE_;
-      }
+  /** (c.b) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where:
+      - if CMB requested:
+      timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
+      timescale_source2 = \f$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} \f$ (to sample correctly the late ISW effect; and 
+      timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today.
+      - if CMB not requested:
+      timescale_source = 1/aH; repeat till today.
+       */
+  while (eta < pba->conformal_age) {
+
+    if (perturb_back_and_thermo(eta,normal,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
+      sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
+      sprintf(ppt->error_message,Transmit_Error_Message);
+      return _FAILURE_;
+    }
+
+    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
+
+      /* variation rate of thermodynamics variables */
+      rate_thermo = pvecthermo_pt[pth->index_th_rate];
+      
+      /* variation rate of metric due to late ISW effect (important at late times) */
+      a_prime_over_a = pvecback_pt[pba->index_bg_H] * pvecback_pt[pba->index_bg_a];
+      a_primeprime_over_a = pvecback_pt[pba->index_bg_H_prime] * pvecback_pt[pba->index_bg_a]
+	+ 2. * a_prime_over_a * a_prime_over_a;
+      rate_isw_squared = fabs(2.*a_primeprime_over_a-a_prime_over_a*a_prime_over_a);
+	
+      /* compute rate */
+      timescale_source = sqrt(rate_thermo*rate_thermo+rate_isw_squared);
+    }
+    else {
+      /* variation rate given by Hubble time */
+      a_prime_over_a = pvecback_pt[pba->index_bg_H] * pvecback_pt[pba->index_bg_a];
+
+      timescale_source = a_prime_over_a;
+    }
+
+    /* check it is non-zero */
+    if (timescale_source == 0.) {
+      sprintf(ppt->error_message,"%s(L:%d) : null evolution rate, integration is diverging",__func__,__LINE__);
+      return _FAILURE_;
+    }
+    /* compute inverse rate */
+    timescale_source = 1./timescale_source;
+
+    if (ppr->perturb_sampling_stepsize*timescale_source < ppr->smallest_allowed_variation) {
+      sprintf(ppt->error_message,"%s(L:%d) : error : integration step =%e < machine precision : leads either to numerical error or infinite loop\n",__func__,__LINE__,ppr->perturb_sampling_stepsize*timescale_source);
+      return _FAILURE_;
+    }
+
+    eta = eta + ppr->perturb_sampling_stepsize*timescale_source; 
+    counter++;
+
+  }
+
+  /** (e) infer total number of time steps, ppt->eta_size */
+  ppt->eta_size = counter;
+
+  /** (f) allocate array of time steps, ppt->eta_sampling[index_eta] */
+  ppt->eta_sampling = malloc(ppt->eta_size * sizeof(double));
+  if (ppt->eta_sampling==NULL) {
+    sprintf(ppt->error_message,"%s(L:%d): Cannot allocate ppt->k[index_mode]",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  /** (g) repeat the loop, now filling the array with each eta value: */
+
+  /** (g.a) first sampling point = when the universe stops being opaque */
+  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
+    eta = eta_visibility_start_sources;
+  }
+  else {
+    eta = pth->eta_rec;
+  }
+  counter = 0;
+  ppt->eta_sampling[counter]=eta;
+
+  /** (g.b) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where
+      timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
+      timescale_source2 = \f$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} \f$ (to smaple correctly the late ISW effect; and 
+      timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today
+      - if CMB not requested:
+      timescale_source = 1/aH; repeat till today.  */
+  while (eta < pba->conformal_age) {
+
+    if (perturb_back_and_thermo(eta,normal,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
+      sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
+      sprintf(ppt->error_message,Transmit_Error_Message);
+      return _FAILURE_;
+    }
+
+    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo_pt[pth->index_th_rate];
@@ -610,98 +702,34 @@ int perturb_timesampling_for_sources() {
 
       /* compute rate */
       timescale_source = sqrt(rate_thermo*rate_thermo+rate_isw_squared);
-      /* check it is non-zero */
-      if (timescale_source == 0.) {
-	sprintf(ppt->error_message,"%s(L:%d) : null evolution rate, integration is diverging",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      /* compute inverse rate */
-      timescale_source = 1./timescale_source;
-
-      if (ppr->perturb_sampling_stepsize*timescale_source < ppr->smallest_allowed_variation) {
-	sprintf(ppt->error_message,"%s(L:%d) : error : integration step =%e < machine precision : leads either to numerical error or infinite loop\n",__func__,__LINE__,ppr->perturb_sampling_stepsize*timescale_source);
-	return _FAILURE_;
-      }
-
-      eta = eta + ppr->perturb_sampling_stepsize*timescale_source; 
-      counter++;
-
     }
+    else {
+      a_prime_over_a = pvecback_pt[pba->index_bg_H] * pvecback_pt[pba->index_bg_a];
+      timescale_source = a_prime_over_a;
+    }
+    /* check it is non-zero */
+    if (timescale_source == 0.) {
+      sprintf(ppt->error_message,"%s(L:%d) : null evolution rate, integration is diverging",__func__,__LINE__);
+      return _FAILURE_;
+    }
+    /* compute inverse rate */
+    timescale_source = 1./timescale_source;
 
-    /** (e) infer total number of time steps, ppt->eta_size */
-    ppt->eta_size = counter;
-
-    /** (f) allocate array of time steps, ppt->eta_sampling[index_eta] */
-    ppt->eta_sampling = malloc(ppt->eta_size * sizeof(double));
-    if (ppt->eta_sampling==NULL) {
-      sprintf(ppt->error_message,"%s(L:%d): Cannot allocate ppt->k[index_mode]",__func__,__LINE__);
+    if (ppr->perturb_sampling_stepsize*timescale_source < ppr->smallest_allowed_variation) {
+      sprintf(ppt->error_message,"%s(L:%d) : error : integration step =%e < machine precision : leads either to numerical error or infinite loop",__func__,__LINE__,ppr->perturb_sampling_stepsize*timescale_source);
       return _FAILURE_;
     }
 
-    /** (g) repeat the loop, now filling the array with each eta value: */
-
-    /** (g.a) first sampling point = when the universe stops being opaque */
-    eta = eta_visibility_start_sources;
-    counter = 0;
+    eta = eta + ppr->perturb_sampling_stepsize*timescale_source; 
+    counter++;
     ppt->eta_sampling[counter]=eta;
 
-    /** (g.b) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where
-	timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
-        timescale_source2 = \f$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} \f$ (to smaple correctly the late ISW effect; and 
-        timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today  */
-    while (eta < pba->conformal_age) {
-
-      if (perturb_back_and_thermo(eta,normal,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-	sprintf(ppt->error_message,Transmit_Error_Message);
-	return _FAILURE_;
-      }
-
-      /* variation rate of thermodynamics variables */
-      rate_thermo = pvecthermo_pt[pth->index_th_rate];
-
-      /* variation rate of metric due to late ISW effect (important at late times) */
-      a_prime_over_a = pvecback_pt[pba->index_bg_H] * pvecback_pt[pba->index_bg_a];
-      a_primeprime_over_a = pvecback_pt[pba->index_bg_H_prime] * pvecback_pt[pba->index_bg_a]
-	+ 2. * a_prime_over_a * a_prime_over_a;
-      rate_isw_squared = fabs(2.*a_primeprime_over_a-a_prime_over_a*a_prime_over_a);
-
-      /* compute rate */
-      timescale_source = sqrt(rate_thermo*rate_thermo+rate_isw_squared);
-      /* check it is non-zero */
-      if (timescale_source == 0.) {
-	sprintf(ppt->error_message,"%s(L:%d) : null evolution rate, integration is diverging",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      /* compute inverse rate */
-      timescale_source = 1./timescale_source;
-
-      if (ppr->perturb_sampling_stepsize*timescale_source < ppr->smallest_allowed_variation) {
-	sprintf(ppt->error_message,"%s(L:%d) : error : integration step =%e < machine precision : leads either to numerical error or infinite loop",__func__,__LINE__,ppr->perturb_sampling_stepsize*timescale_source);
-	return _FAILURE_;
-      }
-
-      eta = eta + ppr->perturb_sampling_stepsize*timescale_source; 
-      counter++;
-      ppt->eta_sampling[counter]=eta;
-
-    }
-
-    /** (g.c) last sampling point = exactly today */
-    ppt->eta_sampling[counter] = pba->conformal_age;
-
   }
 
-  else{
+  /** (g.c) last sampling point = exactly today */
+  ppt->eta_sampling[counter] = pba->conformal_age;
 
-    /* should define here how we sample sources when CMB is not requested (yet to be done) */
-
-    sprintf(ppt->error_message,"%s(L:%d) : did not define yet how we sample sources when CMB not requested",__func__,__LINE__);
-    return _FAILURE_;
-    
-  }
-
-  /** - Loop over modes, initial conditions and types. For each of them, allocate array of source functions, ((ppt->source[index_mode])[index_ic][index_type])[index_k][index_eta] */
+/** - Loop over modes, initial conditions and types. For each of them, allocate array of source functions, ((ppt->source[index_mode])[index_ic][index_type])[index_k][index_eta] */
   
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
@@ -740,19 +768,19 @@ int perturb_get_k_list_size(
   /** - get number of wavenumbers for scalar mode */
   if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
 
-/*     *pk_list_size = (int)(1./ppr->k_scalar_step_super) */
-/*       + (int)((ppr->k_scalar_oscillations - 1.)/ppr->k_scalar_step_sub) */
-/*       + 2; */
+    /*     *pk_list_size = (int)(1./ppr->k_scalar_step_super) */
+    /*       + (int)((ppr->k_scalar_oscillations - 1.)/ppr->k_scalar_step_sub) */
+    /*       + 2; */
 
-/*     index_k=0; */
-/*     k = ppr->k_scalar_min * pba->H0; */
-/*     while (k<ppr->k_scalar_oscillations*2. * _PI_ / pth->rs_rec) { */
-/*       k_next=min(k*ppr->k_scalar_logstep, */
-/* 		 k+ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec); */
-/*       index_k++; */
-/*       k=k_next; */
-/*     } */
-/*     *pk_list_size = index_k+1; */
+    /*     index_k=0; */
+    /*     k = ppr->k_scalar_min * pba->H0; */
+    /*     while (k<ppr->k_scalar_oscillations*2. * _PI_ / pth->rs_rec) { */
+    /*       k_next=min(k*ppr->k_scalar_logstep, */
+    /* 		 k+ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec); */
+    /*       index_k++; */
+    /*       k=k_next; */
+    /*     } */
+    /*     *pk_list_size = index_k+1; */
 
     if (ppr->k_scalar_step_transition == 0.) {
       sprintf(ppt->error_message,"%s(L:%d) : you have k_scalr_step_transition=0, stop to avoid division by zero",__func__,__LINE__);
@@ -826,22 +854,22 @@ int perturb_get_k_list(
   /** - get list of wavenumbers for scalar mode */
   if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
 
-/*     pk_list[0] = ppr->k_scalar_min * pba->H0; */
-/*     for (index_k = 1; index_k < (int)(1./ppr->k_scalar_step_super); index_k++) { */
-/*       pk_list[index_k] = index_k * ppr->k_scalar_step_super * 2. * _PI_ / pth->rs_rec; */
-/*     } */
-/*     for (index_k = 0; index_k <= (int)((ppr->k_scalar_oscillations - 1.)/ppr->k_scalar_step_sub)+1; index_k++) { */
-/*       pk_list[index_k+(int)(1./ppr->k_scalar_step_super)] = 2. * _PI_ / pth->rs_rec + index_k * ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec; */
-/*     } */
+    /*     pk_list[0] = ppr->k_scalar_min * pba->H0; */
+    /*     for (index_k = 1; index_k < (int)(1./ppr->k_scalar_step_super); index_k++) { */
+    /*       pk_list[index_k] = index_k * ppr->k_scalar_step_super * 2. * _PI_ / pth->rs_rec; */
+    /*     } */
+    /*     for (index_k = 0; index_k <= (int)((ppr->k_scalar_oscillations - 1.)/ppr->k_scalar_step_sub)+1; index_k++) { */
+    /*       pk_list[index_k+(int)(1./ppr->k_scalar_step_super)] = 2. * _PI_ / pth->rs_rec + index_k * ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec; */
+    /*     } */
   
-/*     index_k=0; */
-/*     pk_list[index_k] = ppr->k_scalar_min * pba->H0; */
-/*     while (index_k<pk_list_size-1) { */
-/*       pk_list[index_k+1] */
-/* 	=min(pk_list[index_k]*ppr->k_scalar_logstep, */
-/* 	     pk_list[index_k]+ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec); */
-/*       index_k++; */
-/*     } */
+    /*     index_k=0; */
+    /*     pk_list[index_k] = ppr->k_scalar_min * pba->H0; */
+    /*     while (index_k<pk_list_size-1) { */
+    /*       pk_list[index_k+1] */
+    /* 	=min(pk_list[index_k]*ppr->k_scalar_logstep, */
+    /* 	     pk_list[index_k]+ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec); */
+    /*       index_k++; */
+    /*     } */
 
     if (ppr->k_scalar_step_transition == 0.) {
       sprintf(ppt->error_message,"%s(L:%d) : you have k_scalr_step_transition=0, stop to avoid division by zero",__func__,__LINE__);
@@ -875,9 +903,9 @@ int perturb_get_k_list(
   }
 
   /* for testing */
-/*    pk_list[0] = 2.324362609532460e-006; */
-/*    pk_list[1] = 1.680172909432291e-002; */
-/*    pk_list[0] = 0.266624298684783; */
+  /*    pk_list[0] = 2.324362609532460e-006; */
+  /*    pk_list[1] = 1.680172909432291e-002; */
+  /*    pk_list[0] = 0.266624298684783; */
 
   /** - get list of wavenumbers for tensor mode */
   if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
@@ -1278,10 +1306,10 @@ int perturb_solve() {
   timestep = ppr->perturb_integration_stepsize*timescale;
 
   /** (e) compute metric perturbations using perturb_einstein() */ 
-/*   if (perturb_einstein(eta,pvecperturbations) == _FAILURE_) { */
-/*     sprintf(ppt->error_message,"%s(L:%d) : Error running perturb_einstein",__func__,__LINE__); */
-/*     return _FAILURE_; */
-/*   } */
+  /*   if (perturb_einstein(eta,pvecperturbations) == _FAILURE_) { */
+  /*     sprintf(ppt->error_message,"%s(L:%d) : Error running perturb_einstein",__func__,__LINE__); */
+  /*     return _FAILURE_; */
+  /*   } */
 
   /** (f) if this is the first sampling point, compute source terms with pvecsource_terms(), store it and define next point as eta_sampling[1]; otherwise, just define next point as eta_sampling[0] */
   if (eta == ppt->eta_sampling[0]) {
@@ -1381,10 +1409,10 @@ int perturb_solve() {
 	timestep = ppr->perturb_integration_stepsize*timescale;
 
 	/** (a.5) compute metric perturbations at eta = eta using perturb_einstein() */ 
-/* 	if (perturb_einstein(eta) == _FAILURE_) { */
-/* 	  sprintf(ppt->error_message,"%s(L:%d) : Error running perturb_einstein",__func__,__LINE__); */
-/* 	  return _FAILURE_; */
-/* 	} */
+	/* 	if (perturb_einstein(eta) == _FAILURE_) { */
+	/* 	  sprintf(ppt->error_message,"%s(L:%d) : Error running perturb_einstein",__func__,__LINE__); */
+	/* 	  return _FAILURE_; */
+	/* 	} */
 
 	/* 	    if (current_k*current_k < 3.e-10) { */
 	/* 	      printf("%e %e %e %e %e %e %e %e %e\n", */
@@ -1461,9 +1489,9 @@ int perturb_solve() {
 
       /** (a.5) compute metric perturbations at eta using perturb_einstein() */ 
       /* if (perturb_einstein(eta) == _FAILURE_) { */
-/* 	sprintf(ppt->error_message,"%s(L:%d) : Error running perturb_einstein",__func__,__LINE__); */
-/* 	return _FAILURE_; */
-/*       } */
+      /* 	sprintf(ppt->error_message,"%s(L:%d) : Error running perturb_einstein",__func__,__LINE__); */
+      /* 	return _FAILURE_; */
+      /*       } */
  
       /* 	    if (current_k*current_k < 3.e-10) { */
       /* 	      printf("%e %e %e %e %e %e %e %e %e\n", */
@@ -1497,7 +1525,7 @@ int perturb_solve() {
       for (current_index_type = 0; current_index_type < ppt->tp_size; current_index_type++) {
 	for (index_st = 0; index_st < cv.st_size; index_st++) {
 	  source_term_table[current_index_type][next_index_eta*cv.st_size+index_st] = 0.;
-	    }
+	}
       }
     }
 
@@ -2089,7 +2117,7 @@ int perturb_source_terms(
 	  
 	    /* S1 */
 	    /* pvecsource_terms[index_type * cv.st_size + cv.index_st_S1] = */
-/* 	      pvecthermo_pt[pth->index_th_g] * pvecperturbations[cv.index_pt_theta_b] / k2; */
+	    /* 	      pvecthermo_pt[pth->index_th_g] * pvecperturbations[cv.index_pt_theta_b] / k2; */
 
 	    /* dS1 */
 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS1] =
@@ -2098,8 +2126,8 @@ int perturb_source_terms(
 
 	    /* S2 */
 	    /* pvecsource_terms[index_type * cv.st_size + cv.index_st_S2] = */
-/* 	      pvecthermo_pt[pth->index_th_exp_m_kappa] * (pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime])/2./k2  */
-/* 	      + 3./16. * pvecthermo_pt[pth->index_th_g] * Pi / k2; */
+	    /* 	      pvecthermo_pt[pth->index_th_exp_m_kappa] * (pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime])/2./k2  */
+	    /* 	      + 3./16. * pvecthermo_pt[pth->index_th_g] * Pi / k2; */
 
             /* dS2 */
 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS2] =
@@ -2109,22 +2137,22 @@ int perturb_source_terms(
 	      + 3./16. * pvecthermo_pt[pth->index_th_dg] * Pi / k2
 	      + 3./16. * pvecthermo_pt[pth->index_th_g] * Pi_prime / k2;
 
-/* 	    Pi_prime = -current_k*pvecperturbations[cv.index_pt_pol0_g+1] */
-/* 	      -pvecthermo_pt[pth->index_th_dkappa] * (pvecperturbations[cv.index_pt_pol0_g]-Pi/2.) */
-/* 	      +current_k/5. * (2.*pvecperturbations[cv.index_pt_pol2_g-1]-3.*pvecperturbations[cv.index_pt_pol2_g+1]) */
-/* 	      -pvecthermo_pt[pth->index_th_dkappa] * (pvecperturbations[cv.index_pt_pol2_g]-Pi/10.) */
-/*               +8./15.*pvecperturbations[cv.index_pt_theta_g] */
-/* 	      -3./5.*current_k*pvecperturbations[cv.index_pt_shear_g+1] */
-/* 	      +4./15.*pvecmetric[cv.index_mt_h_prime] */
-/* 	      +8./5.*pvecmetric[cv.index_mt_eta_prime] */
-/* 	      -pvecthermo_pt[pth->index_th_dkappa] * (2.*pvecperturbations[cv.index_pt_shear_g]-1./10.*Pi); */
+	    /* 	    Pi_prime = -current_k*pvecperturbations[cv.index_pt_pol0_g+1] */
+	    /* 	      -pvecthermo_pt[pth->index_th_dkappa] * (pvecperturbations[cv.index_pt_pol0_g]-Pi/2.) */
+	    /* 	      +current_k/5. * (2.*pvecperturbations[cv.index_pt_pol2_g-1]-3.*pvecperturbations[cv.index_pt_pol2_g+1]) */
+	    /* 	      -pvecthermo_pt[pth->index_th_dkappa] * (pvecperturbations[cv.index_pt_pol2_g]-Pi/10.) */
+	    /*               +8./15.*pvecperturbations[cv.index_pt_theta_g] */
+	    /* 	      -3./5.*current_k*pvecperturbations[cv.index_pt_shear_g+1] */
+	    /* 	      +4./15.*pvecmetric[cv.index_mt_h_prime] */
+	    /* 	      +8./5.*pvecmetric[cv.index_mt_eta_prime] */
+	    /* 	      -pvecthermo_pt[pth->index_th_dkappa] * (2.*pvecperturbations[cv.index_pt_shear_g]-1./10.*Pi); */
 
-/* 	    Pi_prime = -3./10.*pvecthermo_pt[pth->index_th_dkappa]*Pi */
-/* 	      -3./5.*current_k * (pvecperturbations[cv.index_pt_pol1_g]+ */
-/* 				pvecperturbations[cv.index_pt_pol2_g+1]+ */
-/* 				pvecperturbations[cv.index_pt_shear_g+1]) */
-/* 	      +8./15.*pvecperturbations[cv.index_pt_theta_g] */
-/* 	      +4./15. * (pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime]); */
+	    /* 	    Pi_prime = -3./10.*pvecthermo_pt[pth->index_th_dkappa]*Pi */
+	    /* 	      -3./5.*current_k * (pvecperturbations[cv.index_pt_pol1_g]+ */
+	    /* 				pvecperturbations[cv.index_pt_pol2_g+1]+ */
+	    /* 				pvecperturbations[cv.index_pt_shear_g+1]) */
+	    /* 	      +8./15.*pvecperturbations[cv.index_pt_theta_g] */
+	    /* 	      +4./15. * (pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime]); */
 
 	  }
 	}
@@ -2165,15 +2193,15 @@ int perturb_source_terms(
 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] =
 	      + 3./16. * pvecthermo_pt[pth->index_th_g] * Pi / x2;   /* /x2; */ 
 	
-/* 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S1] = 0.; */
+	    /* 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S1] = 0.; */
 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS1] = 0.;
 
 
-/* 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S2] = 0.; */
-/*  	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS2] = 0.; */
+	    /* 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S2] = 0.; */
+	    /*  	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS2] = 0.; */
 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.; 
 
-	      }
+	  }
 	  else {
 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_S0] = 0.;
 	    pvecsource_terms[index_type * cv.st_size + cv.index_st_dS1] = 0.;
@@ -2199,14 +2227,6 @@ int perturb_source_terms(
     if ((ppt->has_source_g == _TRUE_) && (index_type == ppt->index_tp_g)) {
       
       if ((ppt->has_scalars == _TRUE_) && (current_index_mode == ppt->index_md_scalars)) {
-
-	/* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
-	   with 
-	   psi = (newtonian) gravitationnal potential  
-	   W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
-	   H(x) = Heaviside
-	   (in eta = eta_0, source = 0 to avoid division by zero (regulated anyway by Bessel)).
-	  */
 
 	/* newtonian gauge */
 	if (ppr->gauge == newtonian) {
@@ -2261,7 +2281,7 @@ int perturb_sources(
     while ((source_terms_array[index_eta * cv.st_size + cv.index_st_dS2] == 0.) && (index_eta > 0))
       index_eta--;
 
-  /* numerical derivative */
+    /* numerical derivative */
     if (array_derive1_order2_table_line_to_line(
 						ppt->eta_sampling,
 						index_eta+1,
@@ -2290,22 +2310,22 @@ int perturb_sources(
   }
 
   /* for testing */
-/*   if (current_index_k == 0*ppt->k_size[current_index_mode]  ) { */
-/*     FILE * output; */
-/*     output=fopen("test_output/source_terms.dat","w"); */
-/*     for (index_eta = 0; index_eta < ppt->eta_size; index_eta++) { */
-/*     fprintf(output,"%e %e %e %e %e %e %e %e\n", */
-/* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_eta], */
-/* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_S0], */
-/* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_S1], */
-/* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_S2], */
-/* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_dS1], */
-/* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_dS2], */
-/* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_ddS2], */
-/* 	    ppt->sources[current_index_mode][current_index_ic * ppt->tp_size + current_index_type][index_eta * ppt->k_size[current_index_mode] + current_index_k]; */
-/*     } */
-/*     fclose(output); */
-/*   } */
+  /*   if (current_index_k == 0*ppt->k_size[current_index_mode]  ) { */
+  /*     FILE * output; */
+  /*     output=fopen("test_output/source_terms.dat","w"); */
+  /*     for (index_eta = 0; index_eta < ppt->eta_size; index_eta++) { */
+  /*     fprintf(output,"%e %e %e %e %e %e %e %e\n", */
+  /* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_eta], */
+  /* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_S0], */
+  /* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_S1], */
+  /* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_S2], */
+  /* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_dS1], */
+  /* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_dS2], */
+  /* 	    source_terms_array[index_eta * cv.st_size + cv.index_st_ddS2], */
+  /* 	    ppt->sources[current_index_mode][current_index_ic * ppt->tp_size + current_index_type][index_eta * ppt->k_size[current_index_mode] + current_index_k]; */
+  /*     } */
+  /*     fclose(output); */
+  /*   } */
 
   return _SUCCESS_;
 }
@@ -2672,10 +2692,10 @@ void perturb_derivs(double eta,       /**< Input : conformal time */
 	  -(dy[cv.index_pt_theta_b]+a_prime_over_a*y[cv.index_pt_theta_b]-pvecthermo_pt[pth->index_th_cb2]*k2*y[cv.index_pt_delta_b])/R
 	  +k2*(y[cv.index_pt_delta_g]/4.-y[cv.index_pt_shear_g]);
 
-/*       	  dy[cv.index_pt_theta_g] = /\* photon velocity (used here in CAMB, leading to more instabilities) *\/ */
-/*       	    k2*(y[cv.index_pt_delta_g]/4.-y[cv.index_pt_shear_g]) */
-/*       	    + pvecthermo_pt[pth->index_th_dkappa]*(y[cv.index_pt_theta_b] */
-/*       						 -y[cv.index_pt_theta_g]); */
+      /*       	  dy[cv.index_pt_theta_g] = /\* photon velocity (used here in CAMB, leading to more instabilities) *\/ */
+      /*       	    k2*(y[cv.index_pt_delta_g]/4.-y[cv.index_pt_shear_g]) */
+      /*       	    + pvecthermo_pt[pth->index_th_dkappa]*(y[cv.index_pt_theta_b] */
+      /*       						 -y[cv.index_pt_theta_g]); */
 
       /** (e.2.b) all other photon perturbations vanish */
 
@@ -2818,19 +2838,19 @@ void perturb_derivs(double eta,       /**< Input : conformal time */
       dy[cv.index_pt_eta] = pvecmetric[cv.index_mt_eta_prime];
 
       /* for testing, will be useful for improving tight-coupling approximation */
-/*       if ((current_index_k == 0) && (eta > 800)) */
-/* 	printf("%e %e %e %e %e %e %e %e %e %e %e\n", */
-/* 	       eta, */
-/* 	       y[cv.index_pt_delta_g], */
-/* 	       y[cv.index_pt_theta_g], */
-/* 	       y[cv.index_pt_shear_g], */
-/* 	       y[cv.index_pt_l3_g], */
-/* 	       y[cv.index_pt_pol0_g], */
-/* 	       y[cv.index_pt_pol1_g], */
-/* 	       y[cv.index_pt_pol2_g], */
-/* 	       y[cv.index_pt_pol3_g], */
-/* 	       y[cv.index_pt_delta_b], */
-/* 	       y[cv.index_pt_theta_b]); */
+      /*       if ((current_index_k == 0) && (eta > 800)) */
+      /* 	printf("%e %e %e %e %e %e %e %e %e %e %e\n", */
+      /* 	       eta, */
+      /* 	       y[cv.index_pt_delta_g], */
+      /* 	       y[cv.index_pt_theta_g], */
+      /* 	       y[cv.index_pt_shear_g], */
+      /* 	       y[cv.index_pt_l3_g], */
+      /* 	       y[cv.index_pt_pol0_g], */
+      /* 	       y[cv.index_pt_pol1_g], */
+      /* 	       y[cv.index_pt_pol2_g], */
+      /* 	       y[cv.index_pt_pol3_g], */
+      /* 	       y[cv.index_pt_delta_b], */
+      /* 	       y[cv.index_pt_theta_b]); */
 	       
     }
 

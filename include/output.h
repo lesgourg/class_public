@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
   int output_init(
+		  struct background * pba,
 		  struct perturbs * ppt,
 		  struct transfers * ptr,
 		  struct spectra * psp,

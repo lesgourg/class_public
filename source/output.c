@@ -7,6 +7,7 @@
 #include "output.h"
 
 int output_init(
+		struct background * pba_input,
 		struct perturbs * ppt_input,
 		struct transfers * ptr_input,
 		struct spectra * psp_input,
@@ -87,13 +88,21 @@ int output_init(
 
     outbis=fopen(pop->pk,"w");
 
+/*     fprintf(outbis,"# Number of redshifts z:\n"); */
+/*     fprintf(outbis,"%d\n",1); */
+    fprintf(outbis,"# Number of wavenumbers k:\n");
+    fprintf(outbis,"%d\n",psp_input->k_size);
+    fprintf(outbis,"# k (h/Mpc)  P (Mpc/h)^3:\n");
+
     index_mode=ppt_input->index_md_scalars;
 
     for (index_k=0; index_k<psp_input->k_size; index_k++) {
 
-      fprintf(outbis,"%e",psp_input->k[index_k]);
+      fprintf(outbis,"%e",psp_input->k[index_k]/pba_input->h);
+
       for (index_ic = 0; index_ic < ppt_input->ic_size[index_mode]; index_ic++) {
-	fprintf(outbis," %e",psp_input->pk[index_ic * psp_input->k_size + index_k]);
+	fprintf(outbis," %e",
+		pow(pba_input->h,3)*psp_input->pk[index_ic * psp_input->k_size + index_k]);
       }
       fprintf(outbis,"\n");
     }

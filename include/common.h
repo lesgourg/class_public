@@ -23,6 +23,8 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
 #define _Mpc_over_m_ 3.085678e22 /**< conversion factor from meters to megaparsecs */
 #define _Gyr_over_Mpc_ 306.61 /**< conversion factor from megaparsecs to gigayears (c=1 units) */
 
+#define _c_ 2.9997e5 /**< c in km/s */
+
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
 #define min(a,b) (((a)<(b)) ? (a) : (b) ) /**< the usual "min" function */

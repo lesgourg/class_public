@@ -58,19 +58,11 @@ struct background
 
   //@}
 
-
-  /** @name - background cosmological parameters */
-
-  //@{
-
-  struct background_params * params; /**< a cosmo_params structure pointer */
-
-  //@}
-
-  /** @name - related parameters which can be computed only after the background integration */
+  /** @name - related parameters */
 
   //@{
 
+  double h; /** reduced Hubble parameter */
   double age; /**< age in Gyears */
   double conformal_age; /**< conformal age in Mpc */
 

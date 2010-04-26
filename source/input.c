@@ -22,7 +22,7 @@ int input_init(
 
   /* H0 in Mpc^{-1} = h / 2999.7 */
   h=0.7;
-  pba->H0 = h / 2999.7;
+  pba->H0 = 100. * h / _c_;
 
   /* effective number of neutrinos (following the usual definition) */
   Neff=3.04;
@@ -56,9 +56,9 @@ int input_init(
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
 
-  ppt->has_cl_cmb_temperature = _TRUE_;
-  ppt->has_cl_cmb_polarization = _TRUE_;
-  ppt->has_cl_cmb_lensing_potential = _TRUE_;
+  ppt->has_cl_cmb_temperature = _FALSE_;
+  ppt->has_cl_cmb_polarization = _FALSE_;
+  ppt->has_cl_cmb_lensing_potential = _FALSE_;
   ppt->has_pk_matter = _TRUE_;
 
   /** - define the primordial spectrum */

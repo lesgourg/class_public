@@ -206,27 +206,27 @@ int transfer_init(
   double tstart, tstop;
 #endif
 
-  if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
-      (ppt->has_cl_cmb_polarization == _FALSE_) &&
-      (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
-    ptr->tt_size=0;
-    if (ptr->transfer_verbose > 0)
-      printf("No harmonic space transfer functions to compute\n");
-    return _SUCCESS_;
-  }
-
-  /** - get conformal age / recombination time from background / thermodynamics structures (only place where these structures are used in this module) */
-  eta0 = pba_input->conformal_age;
-  eta_rec = pth_input->eta_rec;
-
   /** - identify the perturbs, precision_params, bessels and transfers structures ppt, ppr, pbs, ptr (used throughout transfer.c as global variables) to the input/output structures of this function (ppt, ppr, pbs are already filled, ptr will be filled by this function) */
   ppt = ppt_input;
   ppr = ppr_input;
   pbs = pbs_input;
   ptr = ptr_output; 
 
+  if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
+      (ppt->has_cl_cmb_polarization == _FALSE_) &&
+      (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
+    ptr->tt_size=0;
+    if (ptr->transfer_verbose > 0)
+      printf("No harmonic space transfer functions to compute. Transfer module skipped.\n");
+    return _SUCCESS_;
+  }
+
   if (ptr->transfer_verbose > 0)
     printf("Computing transfers\n");
+
+  /** - get conformal age / recombination time from background / thermodynamics structures (only place where these structures are used in this module) */
+  eta0 = pba_input->conformal_age;
+  eta_rec = pth_input->eta_rec;
 
   /** - initialize all indices in the transfers structure and allocate all its arrays using transfer_indices_of_transfers() */
   if (transfer_indices_of_transfers() == _FAILURE_) {
@@ -536,17 +536,19 @@ int transfer_free() {
 
   int index_mode;
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
-    free(ptr->l[index_mode]);
-    free(ptr->k[index_mode]);
-    free(ptr->transfer[index_mode]);
-  }  
+  if (ptr->tt_size>0) {
+    for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+      free(ptr->l[index_mode]);
+      free(ptr->k[index_mode]);
+      free(ptr->transfer[index_mode]);
+    }  
 
-  free(ptr->l_size);
-  free(ptr->l);
-  free(ptr->k_size);
-  free(ptr->k);
-  free(ptr->transfer);
+    free(ptr->l_size);
+    free(ptr->l);
+    free(ptr->k_size);
+    free(ptr->k);
+    free(ptr->transfer);
+  }
 
   return _SUCCESS_;
   
