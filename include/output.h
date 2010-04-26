@@ -11,6 +11,8 @@ struct output {
 
   char * pk;
 
+  double z_pk;
+
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@{
@@ -32,6 +34,7 @@ extern "C" {
 #endif
 
   int output_init(
+		  struct precision * ppr_input,
 		  struct background * pba,
 		  struct perturbs * ppt,
 		  struct transfers * ptr,

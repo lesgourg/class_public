@@ -66,7 +66,7 @@ int precision_init ( struct precision * ppr ) {
   ppr->gauge=synchronous;
 
   ppr->k_scalar_min=0.3; /* 0.3 -> 0.1 */
-  ppr->k_scalar_oscillations=7.; 
+  ppr->k_scalar_oscillations=7.;  
   ppr->k_scalar_step_sub=0.1;  /* 0.02 -> 0.005 */
   ppr->k_scalar_step_super=0.005;  /* 0.01 -> 0.005 */
   ppr->k_scalar_step_transition=0.4;
@@ -129,6 +129,16 @@ int precision_init ( struct precision * ppr ) {
 
   ppr->l_scalar_max = 2500;
   ppr->l_tensor_max = 1000;
+
+  /**
+   * - parameter related to the transfer functions
+   */
+
+  ppr->z_max_pk = 0.;
+
+  /**
+   * - automatic estimate of machine precision
+   */
 
   if (get_machine_precision(&(ppr->smallest_allowed_variation)) == _FAILURE_) {
     sprintf(ppr->error_message,"%s(L:%d) : error in get_machine_precision() \n",__func__,__LINE__);

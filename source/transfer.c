@@ -905,13 +905,22 @@ int transfer_interpolate_sources(
 
   /* which source are we considering? Correspondance between transfer
      type and source type*/
-  if (current_index_tt == ptr->index_tt_t) index_type=ppt->index_tp_t;
-  if (current_index_tt == ptr->index_tt_p) index_type=ppt->index_tp_p;
-  if (current_index_tt == ptr->index_tt_lcmb) index_type=ppt->index_tp_g;
+
+  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
+      (current_index_tt == ptr->index_tt_t)) 
+    index_type=ppt->index_tp_t;
+
+  if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
+      (current_index_tt == ptr->index_tt_p)) 
+    index_type=ppt->index_tp_p;
+
+  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
+      (current_index_tt == ptr->index_tt_lcmb)) 
+    index_type=ppt->index_tp_g;
 
   if (array_spline_table_columns(ppt->k[current_index_mode],
 				 ppt->k_size[current_index_mode],
-				 ppt->sources[current_index_mode][current_index_ic * ptr->tt_size + index_type],
+				 ppt->sources[current_index_mode][current_index_ic * ppt->tp_size + index_type],
 				 ppt->eta_size,
 				 source_spline,
 				 _SPLINE_EST_DERIV_,
@@ -959,7 +968,8 @@ int transfer_interpolate_sources(
       /* for lensing, multiply gravitational potential by appropriate window function */
 
       /* case of cmb lensing */
-      if (current_index_tt == ptr->index_tt_lcmb) {
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
+	  (current_index_tt == ptr->index_tt_lcmb)) {
 	/* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
 	   with 
 	   psi = (newtonian) gravitationnal potential  

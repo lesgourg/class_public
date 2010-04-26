@@ -42,7 +42,7 @@ int input_init(
   pth->reio_parametrization=reio_camb; /* reio_camb means "same form for X_e(z) as in camb" */
   pth->reio_z_or_tau=reio_tau;
   pth->z_reio=10.;   /* used only if above set to reio_z */
-  pth->tau_reio=0.1; /* used only if above set to reio_tau */
+  pth->tau_reio=0.09; /* used only if above set to reio_tau */
   
   /** - define which perturbations and sources should be computed */
 
@@ -56,8 +56,8 @@ int input_init(
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
 
-  ppt->has_cl_cmb_temperature = _FALSE_;
-  ppt->has_cl_cmb_polarization = _FALSE_;
+  ppt->has_cl_cmb_temperature = _TRUE_;
+  ppt->has_cl_cmb_polarization = _TRUE_;
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
   ppt->has_pk_matter = _TRUE_;
 
@@ -65,7 +65,7 @@ int input_init(
 
   ppm->primordial_spec_type = smooth_Pk;
   ppm->A_s_ad = 2.3e-9 ; /* amplitude */
-  ppm->n_s_ad = 0.96 ; /* tilt */
+  ppm->n_s_ad = 1. ; /* tilt */
   ppm->alpha_s_ad = 0. ; /* running */ 
   ppm->k_pivot = 0.05; /* pivot wavenumber in Mpc-1 */
 
@@ -73,6 +73,7 @@ int input_init(
 
   pop->cls_ad = "output/cls.dat";
   pop->pk = "output/pk.dat";
+  pop->z_pk = 0.;
 
   /** - amount of information sent to standard output (none if all set to zero) */
 

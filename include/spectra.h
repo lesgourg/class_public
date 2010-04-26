@@ -28,7 +28,10 @@ struct spectra {
 
   int k_size;
   double * k;
-  double * pk;
+  int eta_size; 
+  double * eta;
+  double * pk;   /**< power spectrum pk[(index_ic * psp->k_size + index_k)*eta_size+index_eta] */
+  double * ddpk; /**< table of second derivatives with respect to eta in view of spline interpolation */
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
@@ -56,13 +59,19 @@ extern "C" {
 		      double *cl
 		      );
 
+  int spectra_pk_at_z(
+		    double z,
+		    double * pk
+		    );
+
   int spectra_init(
-	      struct background * pba,
-	      struct perturbs * ppt,
-	      struct transfers * ptr,
-	      struct primordial * ppm,
-	      struct spectra * psp
-	      );
+		   struct precision *ppr,
+		   struct background * pba,
+		   struct perturbs * ppt,
+		   struct transfers * ptr,
+		   struct primordial * ppm,
+		   struct spectra * psp
+		   );
 
   int spectra_free();
 

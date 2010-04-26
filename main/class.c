@@ -64,12 +64,12 @@ main() {
     return _FAILURE_;
   }
 
-  if (spectra_init(&ba,&pt,&tr,&pm,&sp) == _FAILURE_) {
+  if (spectra_init(&pr,&ba,&pt,&tr,&pm,&sp) == _FAILURE_) {
     printf("\n\nError in spectra_init \n=>%s\n",sp.error_message);
     return _FAILURE_;
   }
 
-  if (output_init(&ba,&pt,&tr,&sp,&op) == _FAILURE_) {
+  if (output_init(&pr,&ba,&pt,&tr,&sp,&op) == _FAILURE_) {
     printf("\n\nError in output_init \n=>%s\n",op.error_message);
     return _FAILURE_;
   }

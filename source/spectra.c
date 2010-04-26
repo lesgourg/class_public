@@ -11,6 +11,7 @@
 
 //@{
 
+struct precision * ppr; /**< a precision_params structure pointer for internal use in the perturbation module */
 struct background * pba; /**< a cosmo structure pointer for internal use in the thermodynamics module */
 struct perturbs * ppt; /**< a perturbs structure pointer for internal use in the perturbation module */
 struct transfers * ptr; /**< a transfers structure pointer for internal use in the perturbation module */
@@ -63,6 +64,44 @@ int spectra_cl_at_l(
 
 }
 
+int spectra_pk_at_z(
+		    double z,
+		    double * pk
+		    ) {
+
+  int last_index,index_mode;
+  double eta_requested;
+
+  if (background_eta_of_z(z,&eta_requested) == _FAILURE_) {
+    sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
+    return _FAILURE_;
+  } 
+
+  if ((eta_requested < psp->eta[0]) || (eta_requested > psp->eta[psp->eta_size-1])) {
+    sprintf(psp->error_message,"%s(L:%d) : eta(z)=%e out of bounds",__func__,__LINE__,eta_requested);
+    return _FAILURE_;
+  }
+
+  index_mode=0;
+
+  if (array_interpolate_spline(psp->eta,
+			       psp->eta_size,
+			       psp->pk,
+			       psp->ddpk,
+			       ppt->ic_size[index_mode]*psp->k_size,
+			       eta_requested,
+			       &last_index,
+			       pk,
+			       ppt->ic_size[index_mode]*psp->k_size,
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(psp->error_message,"%s(L:%d) : error in array_interpolate_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
+    return _FAILURE_;
+  }
+
+  return _SUCCESS_;
+
+}
+
 /**
  * Computes the \f$ C_l^{X}, P(k), ... \f$'s
  *
@@ -73,6 +112,7 @@ int spectra_cl_at_l(
  * @return the error status
  */
 int spectra_init(
+		 struct precision * ppr_input,
 		 struct background * pba_input,
 		 struct perturbs * ppt_input,
 		 struct transfers * ptr_input,
@@ -99,6 +139,7 @@ int spectra_init(
   double Omega_m;
 
   /** - identify the spectra structure (used throughout transfer.c as global variable) to the input/output structure of this function */
+  ppr = ppr_input;
   pba = pba_input; 
   ppt = ppt_input; 
   ptr = ptr_input; 
@@ -264,21 +305,21 @@ int spectra_cl() {
 	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
 	      * transfer[ptr->index_tt_t]
 	      * transfer[ptr->index_tt_t]
-	      / k;
+	      * 4. * _PI_ / k;
 	  }
 	      
 	  if (ppt->has_cl_cmb_polarization == _TRUE_) {
 	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
 	      * transfer[ptr->index_tt_p]
 	      * transfer[ptr->index_tt_p]
-	      / k;
+	      * 4. * _PI_ / k;
 	  }
 
 	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) {
 	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
 	      * transfer[ptr->index_tt_t]
 	      * transfer[ptr->index_tt_p]
-	      / k;
+	      * 4. * _PI_ / k;
 	  }
 
 	  if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
@@ -297,14 +338,14 @@ int spectra_cl() {
 	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
 	      * transfer[ptr->index_tt_lcmb]
 	      * transfer[ptr->index_tt_lcmb]
-	      / k;
+	      * 4. * _PI_ / k;
 	  }
 
 	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
 	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
 	      * transfer[ptr->index_tt_t]
 	      * transfer[ptr->index_tt_lcmb]
-	      / k;
+	      * 4. * _PI_ / k;
 	  }
 
 	}
@@ -377,25 +418,76 @@ int spectra_pk() {
   int last_index_back;
   double * pvecback_sp_long;
   double Omega_m;
+  double eta_min;
 
   if (ppt->has_scalars == _FALSE_) {
     sprintf(psp->error_message,"%s(L:%d) : you cannot ask for matter power spectrum since you turned off scalar modes",__func__,__LINE__);
     return _FAILURE_;
   }
-  index_mode = ppt->index_md_scalars;
-  index_eta = ppt->eta_size-1;
 
+  index_mode = ppt->index_md_scalars;
+
+  /* if z_max_pk<0, return error */
+  if (ppr->z_max_pk < 0) {
+    sprintf(psp->error_message,"%s(L:%d) : aksed for z=%e, cannot compute P(k) in the future\n=>%s",__func__,__LINE__,ppr->z_max_pk);
+    return _FAILURE_;
+  }
+
+  /* if z_max_pk=0, there is just one value to store */
+  if (ppr->z_max_pk == 0.) {
+    psp->eta_size=1;
+  }
+
+  /* if z_max_pk>0, store several values (with a confortable margin above z_max_pk) in view of interpolation */
+  else{
+
+    /* find the first relevant value of eta (last value in the table eta_ampling before eta(z_max)) and infer the number of vlaues of eta at which P(k) must be stored */
+
+    if (background_eta_of_z(ppr->z_max_pk,&eta_min) == _FAILURE_) {
+      sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
+      return _FAILURE_;
+    }   
+
+    index_eta=0;
+    if (eta_min < ppt->eta_sampling[index_eta]) {
+      sprintf(psp->error_message,"%s(L:%d) : you asked for zmax=%e, i.e. etamin=%e, smaller than first possible value =%e",__func__,__LINE__,ppr->z_max_pk,eta_min,ppt->eta_sampling[0]);
+      return _FAILURE_;
+    }
+    while (ppt->eta_sampling[index_eta] < eta_min){
+      index_eta++;
+    }
+    index_eta --;
+    /* whenever possible, take a few more values in to avoid boundary effects in the interpolation */
+    if (index_eta>0) index_eta--; 
+    if (index_eta>0) index_eta--; 
+    if (index_eta>0) index_eta--; 
+    if (index_eta>0) index_eta--; 
+    psp->eta_size=ppt->eta_size-index_eta;
+
+  }
+
+  /** - allocate and fill table of eta values at which P(k,eta) is stored */
+  psp->eta=malloc(sizeof(double)*psp->eta_size);
+  if (psp->eta == NULL) {
+    sprintf(psp->error_message,"%s(L:%d) : Could not allocate eta",__func__,__LINE__);
+    return _FAILURE_;
+  }
+  for (index_eta=0; index_eta<psp->eta_size; index_eta++) {
+    psp->eta[index_eta]=ppt->eta_sampling[index_eta-psp->eta_size+ppt->eta_size];
+  }
+
+  /** - allocate and fill table of k values at which P(k,eta) is stored */
   psp->k_size = ppt->k_size[index_mode];
   psp->k = malloc(sizeof(double)*psp->k_size);
   if (psp->k == NULL) {
     sprintf(psp->error_message,"%s(L:%d) : Could not allocate k",__func__,__LINE__);
     return _FAILURE_;
   }
-  psp->pk = malloc(sizeof(double)*psp->k_size*ppt->ic_size[index_mode]);
-  if (psp->pk == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate pk",__func__,__LINE__);
-    return _FAILURE_;
+  for (index_k=0; index_k<psp->k_size; index_k++) {
+    psp->k[index_k]=ppt->k[index_mode][index_k];
   }
+
+  /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
   primordial_pk=malloc(ppt->ic_size[index_mode]*sizeof(double));
   if (primordial_pk == NULL) {
     sprintf(psp->error_message,"%s(L:%d) : Could not allocate primordial_pk",__func__,__LINE__);
@@ -407,51 +499,85 @@ int spectra_pk() {
     return _FAILURE_;
   }
 
-  for (index_k=0; index_k<psp->k_size; index_k++) {
-    psp->k[index_k]=ppt->k[index_mode][index_k];
-  }
-
-  if (background_at_eta(ppt->eta_sampling[index_eta], long_info, normal, &last_index_back, pvecback_sp_long) == _FAILURE_) {
-    sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
+  /** - allocate and fill array of P(k,eta) values */
+  psp->pk = malloc(sizeof(double)*psp->eta_size*psp->k_size*ppt->ic_size[index_mode]);
+  if (psp->pk == NULL) {
+    sprintf(psp->error_message,"%s(L:%d) : Could not allocate pk",__func__,__LINE__);
     return _FAILURE_;
-  }  
-
-  Omega_m = pvecback_sp_long[pba->index_bg_Omega_b];
-  if (pba->has_cdm == _TRUE_) {
-    Omega_m += pvecback_sp_long[pba->index_bg_Omega_cdm];
   }
 
-  for (index_k=0; index_k<psp->k_size; index_k++) {
+  for (index_eta=0 ; index_eta < psp->eta_size; index_eta++) {
 
-    if (primordial_at_k(index_mode,psp->k[index_k],primordial_pk) == _FAILURE_) {
-      sprintf(psp->error_message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+    if (background_at_eta(ppt->eta_sampling[index_eta-psp->eta_size+ppt->eta_size], long_info, normal, &last_index_back, pvecback_sp_long) == _FAILURE_) {
+      sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
+      return _FAILURE_;
+    }  
+
+    Omega_m = pvecback_sp_long[pba->index_bg_Omega_b];
+    if (pba->has_cdm == _TRUE_) {
+      Omega_m += pvecback_sp_long[pba->index_bg_Omega_cdm];
+    }
+
+    for (index_k=0; index_k<psp->k_size; index_k++) {
+
+      if (primordial_at_k(index_mode,psp->k[index_k],primordial_pk) == _FAILURE_) {
+	sprintf(psp->error_message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+	return _FAILURE_;
+      }
+
+      /* loop over initial conditions */
+      for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+	
+	/* primordial spectrum: 
+	   P_R(k) = 1/(2pi^2) k^3 <R R>
+	   so, primordial curvature correlator: 
+	   <R R> = (2pi^2) k^-3 P_R(k) 
+	   so, gravitational potential correlator:
+	   <phi phi> = (2pi^2) k^-3 (source_phi)^2 P_R(k) 
+	   so, matter power spectrum (using Poisson):
+	   P(k) = <delta_m delta_m>
+	        = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi>
+	        = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R> 
+		= 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R> */
+
+	psp->pk[(index_eta * ppt->ic_size[index_mode] + index_ic) * psp->k_size + index_k] =
+	  8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)/pow(Omega_m,2)*psp->k[index_k]/pow(pvecback_sp_long[pba->index_bg_a],4)
+	  *primordial_pk[index_ic]
+	  *pow(ppt->sources[index_mode]
+	       [index_ic * ppt->tp_size + ppt->index_tp_g]
+	       [(index_eta-psp->eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k],2);
+	
+      }
+      
+    }
+
+  }
+
+  /* if interpolation of P(k,eta) needed (as a function of eta), spline
+     the table */  
+  if (psp->eta_size > 1) {
+
+    psp->ddpk = malloc(sizeof(double)*psp->eta_size*psp->k_size*ppt->ic_size[index_mode]);
+    if (psp->ddpk == NULL) {
+      sprintf(psp->error_message,"%s(L:%d) : Could not allocate pk",__func__,__LINE__);
       return _FAILURE_;
     }
 
-    /* loop over initial conditions */
-    for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
-	
-      /* primordial curvature correlator 
-	 <R R> = 1/(2pi^2) k^3 P_R(k) 
-	 where P_R(k) is the primordial curvature power spectrum in our conventions. So 
-	 <phi phi> = 1/(2pi^2) k^3 (source_phi)^2 P_R(k) and 
-	 P(k) 
-	 = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi> 
-	 = 2/9 pi^-2 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 P_R(k) */
-
-
-      psp->pk[index_ic * psp->k_size + index_k] =
-	2./9/_PI_/_PI_/pow(pvecback_sp_long[pba->index_bg_H],4)/pow(Omega_m,2)*psp->k[index_k]/pow(pvecback_sp_long[pba->index_bg_a],4)
-	*primordial_pk[index_ic]
-	*pow(ppt->sources[index_mode]
-	     [index_ic * ppt->tp_size + ppt->index_tp_g]
-	     [index_eta * ppt->k_size[index_mode] + index_k],2);
-	
+    if (array_spline_table_lines(psp->eta,
+				 psp->eta_size,
+				 psp->pk,
+				 ppt->ic_size[index_mode]*psp->k_size,
+				 psp->ddpk,
+				 _SPLINE_EST_DERIV_,
+				 Transmit_Error_Message) == _FAILURE_) {
+      sprintf(psp->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
+      return _FAILURE_;
     }
-      
+
   }
 
   free (primordial_pk);
+  free (pvecback_sp_long);
 
   return _SUCCESS_;
 }
@@ -516,8 +642,13 @@ int spectra_free() {
   }
 
   if (ppt->has_pk_matter == _TRUE_) {
+
+    free(psp->eta);
     free(psp->k);
     free(psp->pk);
+    if (psp->eta_size > 0) {
+      free(psp->ddpk);
+    }
   }    
 
   return _SUCCESS_;

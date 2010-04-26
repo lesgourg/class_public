@@ -236,6 +236,16 @@ struct precision
 
   double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
 
+  //@}
+
+  /** @name - parameters related to the observable spectra */
+
+  //@{
+
+  double z_max_pk; /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if p(k) only needed today */
+
+  //@}
+
   /** @name - zone for writing error messages */
 
   //@{
