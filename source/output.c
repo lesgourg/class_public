@@ -108,7 +108,7 @@ int output_init(
   }
 
   if (ppt_input->has_pk_matter == _TRUE_) {
-    
+
     if (pop->z_pk > ppr_input->z_max_pk) {
       sprintf(pop->error_message,"%s(L:%d) : P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",__func__,__LINE__,ppr_input->z_max_pk,pop->z_pk);
       return _FAILURE_;
@@ -118,7 +118,7 @@ int output_init(
 
     /* if z_pk = 0, no interpolation needed, 
        just let pk_output point to the right address */
-    if (pop->z_pk == 0) {
+    if (pop->z_pk == 0.) {
       pk_output=&(psp_input->pk[(psp_input->eta_size-1) * ppt_input->ic_size[index_mode] * psp_input->k_size]);
     }
 

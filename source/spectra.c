@@ -64,6 +64,22 @@ int spectra_cl_at_l(
 
 }
 
+/**
+ * Interpolate the spectrum at an arbitrary redhsifts, for all tabulated values of k between kmin and kmax.
+ *
+ * The output vector pk[] is in the format:
+ *
+ *     pk[index_ic * psp->k_size + index_k]
+ *
+ * with index_ic=0, ..., ppt->ic_size[index_mode]
+ *      index_k =0, ..., psp->k_size
+ *
+ * it corresponds physically to the values of the power spectrum P(psp->k[index_k]) 
+ * for the initial condtions (adiabatic, cdi, etc...) of index_ic
+ *
+ * k[] is in units of 1/Mpc, pk[] in Mpc^3
+ *
+ */
 int spectra_pk_at_z(
 		    double z,
 		    double * pk
@@ -71,18 +87,35 @@ int spectra_pk_at_z(
 
   int last_index,index_mode;
   double eta_requested;
+  int index;
+
+  index_mode=ppt->index_md_scalars;
 
   if (background_eta_of_z(z,&eta_requested) == _FAILURE_) {
     sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
     return _FAILURE_;
   } 
 
+  /* interpolation makes sense only if there are at least two values of eta. deal with case of one value. */
+  if (psp->eta_size == 1) {
+    if (z==0.) {
+      for (index=0; index < ppt->ic_size[index_mode]*psp->k_size; index++) {
+	pk[index] = psp->pk[index];
+      }
+      return _SUCCESS_;
+    }
+    else {
+      sprintf(psp->error_message,"%s(L:%d) : asked z=%e but only P(k,z=0) has been tabulated",__func__,__LINE__,z);
+      return _FAILURE_;
+    }
+  }
+
   if ((eta_requested < psp->eta[0]) || (eta_requested > psp->eta[psp->eta_size-1])) {
     sprintf(psp->error_message,"%s(L:%d) : eta(z)=%e out of bounds",__func__,__LINE__,eta_requested);
     return _FAILURE_;
   }
 
-  index_mode=0;
+  index_mode=ppt->index_md_scalars;
 
   if (array_interpolate_spline(psp->eta,
 			       psp->eta_size,
@@ -97,6 +130,167 @@ int spectra_pk_at_z(
     sprintf(psp->error_message,"%s(L:%d) : error in array_interpolate_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Interpolate the spectrum at an arbitrary redhsifts and wavenumber between kmin and kmax
+ * (in the case of a smooth primordial spectrum, k may be between 0 and kmax: extrapolation 
+ *  is performed for suoper-hubble scales down to k=0, given the values of the tilt, running, etc.)
+ *
+ *  @param k Input : wavenumber k in units of 1/Mpc 
+ *  @param z Input : redhsift z
+ *  @param index_ic : index of initial condition (ppt->index_ic_ad for adiabatic, etc...)
+ *  @param pk Ouput : P(k,z) in units of Mpc^3  
+ */
+int spectra_pk_at_k_and_z(
+			  double k,
+			  double z,
+			  int index_ic,
+			  double * pk
+			  ) {
+
+  double * temporary_pk;
+  double * spline_pk;
+  double * spline_ddpk;
+  int index_mode,index_k;
+  int last_index;
+  double * pkini_k;
+  double * pkini_kmin;
+
+  index_mode=ppt->index_md_scalars;
+
+  /* check input parameters (z will be checked in spectra_pk_at_z) */
+
+  if ((index_ic < 0) && (index_ic >= ppt->ic_size[index_mode])) {
+    sprintf(psp->error_message,"%s(L:%d) : index_ic=%d out of bounds",__func__,__LINE__,index_ic);
+    return _FAILURE_;
+  }
+
+  if ((k < 0) || (k > psp->k[psp->k_size-1])) {
+    sprintf(psp->error_message,"%s(L:%d) : k=%e out of bounds [0:%e]",__func__,__LINE__,k,psp->k[psp->k_size-1]);
+    return _FAILURE_;
+  }
+
+  /* get P(k) at the right value of z */
+
+  temporary_pk = malloc(sizeof(double)*ppt->ic_size[index_mode]*psp->k_size);
+  if (temporary_pk == NULL) {
+    sprintf(psp->error_message,"%s(L:%d) : Could not allocate temporary_pk",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  if(spectra_pk_at_z(z,temporary_pk) == _FAILURE_) {
+    sprintf(Transmit_Error_Message,"%s(L:%d) : error in spectra_pk_at_z()\n=>%s",__func__,__LINE__,psp->error_message);
+    sprintf(psp->error_message,Transmit_Error_Message);
+    return _FAILURE_;
+  } 
+
+
+  /* deal with case k < kmin */
+
+  if (k < psp->k[0]) {
+
+    /* extrapolate down to zero if analytical primordial spectrum: in this case we know that on super-Hubble scales:        P(k) = A k P_ini(k) 
+       so     
+       P(k) = P(kmin) * (k P_ini(k)) / (kmin P_ini(kmin)) 
+    */
+    if (ppm->primordial_spec_type == smooth_Pk) {
+      
+      if (k == 0.) {
+	*pk=0.;
+	return _SUCCESS_;
+      }
+	
+      pkini_k = malloc (sizeof(double)*ppt->ic_size[index_mode]);
+      if (pkini_k == NULL) {
+	sprintf(psp->error_message,"%s(L:%d) : Could not allocate pkini_k",__func__,__LINE__);
+	return _FAILURE_;
+      }
+      pkini_kmin = malloc (sizeof(double)*ppt->ic_size[index_mode]);
+      if (pkini_kmin == NULL) {
+	sprintf(psp->error_message,"%s(L:%d) : Could not allocate pkini_kmin",__func__,__LINE__);
+	return _FAILURE_;
+      }
+      
+      if(primordial_at_k(index_mode,k,pkini_k)==_FAILURE_) {
+	sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+	sprintf(psp->error_message,Transmit_Error_Message);
+	return _FAILURE_;
+      }
+      if(primordial_at_k(index_mode,psp->k[0],pkini_kmin)==_FAILURE_) {
+	sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+	sprintf(psp->error_message,Transmit_Error_Message);
+	return _FAILURE_;
+      }
+
+      *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic];
+
+      free(temporary_pk);
+      free(pkini_k);
+      free(pkini_kmin);
+
+      return _SUCCESS_;
+
+    }
+
+    /* unable to extrapolate if numerical primordial spectrum */
+    else {
+      sprintf(psp->error_message,"%s(L:%d) : k=%e < k_min=%e, and cannot extrapolate in this case",__func__,__LINE__,k,psp->k[0]);
+      return _FAILURE_;
+    }
+
+  }
+
+  /* now, spline and interpolate */
+
+  spline_pk = malloc(sizeof(double)*psp->k_size);
+  if (spline_pk == NULL) {
+    sprintf(psp->error_message,"%s(L:%d) : Could not allocate spline_pk",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  for (index_k=0; index_k < psp->k_size; index_k++) {
+    spline_pk[index_k] = temporary_pk[index_ic*psp->k_size+index_k];
+  }
+
+  free(temporary_pk);
+  
+  spline_ddpk = malloc(sizeof(double)*psp->k_size);
+  if (spline_ddpk == NULL) {
+    sprintf(psp->error_message,"%s(L:%d) : Could not allocate spline_ddpk",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  if (array_spline_table_lines(psp->k,
+			       psp->k_size,
+			       spline_pk,
+			       1,
+			       spline_ddpk,
+			       _SPLINE_EST_DERIV_,
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(psp->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
+    return _FAILURE_;
+  }
+
+  if (array_interpolate_spline(psp->k,
+			       psp->k_size,
+			       spline_pk,
+			       spline_ddpk,
+			       1,
+			       k,
+			       &last_index,
+			       pk,
+			       1,
+			       Transmit_Error_Message) == _FAILURE_) {
+    sprintf(psp->error_message,"%s(L:%d) : error in array_interpolate_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
+    return _FAILURE_;
+  }
+
+  free(spline_pk);
+  free(spline_ddpk);
 
   return _SUCCESS_;
 

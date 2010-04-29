@@ -234,8 +234,6 @@ struct precision
   int l_scalar_max; /**< maximum l value for scalars (must be <= l_max) */
   int l_tensor_max; /**< maximum l value for tensors (must be <= l_max) */
 
-  double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
-
   //@}
 
   /** @name - parameters related to the observable spectra */
@@ -243,6 +241,14 @@ struct precision
   //@{
 
   double z_max_pk; /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if p(k) only needed today */
+
+  //@}
+
+  /** @name - parameters set automatically bu the code */
+
+  //@{
+
+  double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
 
   //@}
 
