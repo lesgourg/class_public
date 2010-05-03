@@ -85,7 +85,7 @@ int thermodynamics_at_z(
 
   /* deal with case z < z_min=0, unphysical */
   if (z < pth->z_table[0]) {
-    sprintf(pth->error_message,"%s(L:%d) : z < z_min=%d",__func__,__LINE__,pth->z_table[0]);
+    sprintf(pth->error_message,"%s(L:%d) : z < z_min=%e",__func__,__LINE__,pth->z_table[0]);
     return _FAILURE_;
   }
 
@@ -505,7 +505,7 @@ int thermodynamics_init(
   /* check consistency of these values */
 
   if (pth->z_visibility_start_sources == 0.) {
-    sprintf(pth->error_message,"%s(L:%d) : Source functions cannot be sampled, probably because ppr->visibility_threshold_start_sources=%e is too large and exceeds maximum of g",__func__,__LINE__);
+    sprintf(pth->error_message,"%s(L:%d) : Source functions cannot be sampled, probably because ppr->visibility_threshold_start_sources=%e is too large and exceeds maximum of g",__func__,__LINE__,ppr->visibility_threshold_start_sources);
     return _FAILURE_;
   }
 
@@ -515,7 +515,7 @@ int thermodynamics_init(
   }
 
   if (pth->z_visibility_free_streaming > pth->z_visibility_max) {
-    sprintf(pth->error_message,"%s(L:%d) : pth->z_visibility_free_streaming=%e should never be larger than pth->z_visibility_max=%e \n=>%s",__func__,__LINE__,pth->z_visibility_free_streaming,pth->z_visibility_max);
+    sprintf(pth->error_message,"%s(L:%d) : pth->z_visibility_free_streaming=%e should never be larger than pth->z_visibility_max=%e",__func__,__LINE__,pth->z_visibility_free_streaming,pth->z_visibility_max);
     return _FAILURE_;
   }
 

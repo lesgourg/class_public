@@ -173,7 +173,7 @@ int primordial_init(
 				   ppr_input->k_per_decade_primordial,
 				   &(ppm->lnk_size)) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_get_lnk_list_size()\n=>%s",__func__,__LINE__,ppm->error_message);
-    sprintf(ppm->error_message,Transmit_Error_Message);
+    sprintf(ppm->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
     
@@ -190,7 +190,7 @@ int primordial_init(
 			      ppm->lnk_size,
 			      ppm->lnk) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_get_lnk_list()\n=>%s",__func__,__LINE__,ppm->error_message);
-    sprintf(ppm->error_message,Transmit_Error_Message);
+    sprintf(ppm->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 

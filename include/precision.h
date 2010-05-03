@@ -130,6 +130,9 @@ struct precision
   double k_scalar_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
   double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  double k_scalar_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. */
 
+  double k_scalar_kmax_for_pk; /**< maximum value of k in h/Mpc in P(k) (overseeded by value kmax inferred from k_scalar_oscillations if it is bigger) */
+  double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade */
+
   int k_tensor_number;  /**< number of k values (tensor modes) */
   double k_tensor_min; /**< min k value (tensor modes) */
   double k_tensor_logstep; /**< logstep for k sampling (tensor modes) */
@@ -234,6 +237,8 @@ struct precision
   int l_scalar_max; /**< maximum l value for scalars (must be <= l_max) */
   int l_tensor_max; /**< maximum l value for tensors (must be <= l_max) */
 
+  double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
+
   //@}
 
   /** @name - parameters related to the observable spectra */
@@ -241,14 +246,6 @@ struct precision
   //@{
 
   double z_max_pk; /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if p(k) only needed today */
-
-  //@}
-
-  /** @name - parameters set automatically bu the code */
-
-  //@{
-
-  double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
 
   //@}
 

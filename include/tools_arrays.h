@@ -116,16 +116,28 @@ extern "C" {
 		       char * errmsg
 		       );
 
-int array_integrate_all_spline(
-		   double * array,
-		   int n_columns,
-		   int n_lines,
-		   int index_x,
-		   int index_y,
-		   int index_ddy,
-		   double * result,
-		   char * errmsg
-		   );
+  int array_spline_table_one_column(
+				    double * x, /* vector of size x_size */
+				    int x_size,
+				    double * y_array, /* array of size x_size*y_size with elements 
+							 y_array[index_y*x_size+index_x] */
+				    int y_size,    
+				    int index_y,   
+				    double * ddy_array, /* array of size x_size*y_size */
+				    short spline_mode,
+				    char * errmsg
+				    );
+
+  int array_integrate_all_spline(
+				 double * array,
+				 int n_columns,
+				 int n_lines,
+				 int index_x,
+				 int index_y,
+				 int index_ddy,
+				 double * result,
+				 char * errmsg
+				 );
 
   int array_integrate(
 		      double * array,
@@ -211,6 +223,19 @@ int array_integrate_all_spline(
 					       double * result,
 					       int result_size, /** from 1 to n_columns */
 					       char * errmsg);
+
+  int array_interpolate_spline_one_column(
+					  double * x_array,
+					  int x_size,
+					  double * y_array, /* array of size x_size*y_size with elements 
+							       y_array[index_y*x_size+index_x] */
+					  int y_size,    
+					  int index_y,   
+					  double * ddy_array, /* array of size x_size*y_size */
+					  double x,   /* input */
+					  double * y, /* output */
+					  char * errmsg
+					  );
 
   /** interpolate to get y_i(x), when x and y_i are in two different arrays*/
   int array_interpolate_two(

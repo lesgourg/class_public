@@ -64,13 +64,6 @@ extern "C" {
 		    double * pk
 		    );
 
-  int spectra_pk_at_k_and_z(
-			    double k,
-			    double z,
-			    int index_ic,
-			    double * pk
-			    );
-
   int spectra_init(
 		   struct precision *ppr,
 		   struct background * pba,

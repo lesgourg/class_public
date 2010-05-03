@@ -101,6 +101,7 @@ struct perturbs
   //@{
 
   int * k_size;     /**< k_size[index_mode] = number of values */
+  int * k_size_cl;     /**< k_size_cl[index_mode] number of values to take into account in transfer functions for C_l spectra (could be smaller than k_size if extra points needed in P(k) */
   double ** k;      /**< (k[index_mode])[index_k] = list of values */
 
   //@}
@@ -245,13 +246,15 @@ struct current_vectors
     
     int perturb_get_k_list_size(
 				int index_mode,
-				int * pk_list_size
+				int * k_list_size,
+				int * k_size_cl
 				);
  
     int perturb_get_k_list(
 			   int index_mode,
-			   int pk_list_size,
-			   double * pk_list
+			   int k_list_size,
+			   int k_list_cl_size,
+			   double * k_list
 			   );
     
     int perturb_indices_of_current_vectors();

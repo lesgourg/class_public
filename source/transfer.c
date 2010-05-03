@@ -231,7 +231,7 @@ int transfer_init(
   /** - initialize all indices in the transfers structure and allocate all its arrays using transfer_indices_of_transfers() */
   if (transfer_indices_of_transfers() == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_indices_of_transfers() \n=>%s",__func__,__LINE__,ptr->error_message);
-    sprintf(ptr->error_message,Transmit_Error_Message);
+    sprintf(ptr->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -313,7 +313,7 @@ int transfer_init(
 					 source_spline,
 					 interpolated_sources) == _FAILURE_) {
 	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_interpolate_sources()\n=>%s",__func__,__LINE__,ptr->error_message);
-	  sprintf(ptr->error_message,Transmit_Error_Message);
+	  sprintf(ptr->error_message,"%s",Transmit_Error_Message);
 	  return _FAILURE_;
 	}
 
@@ -374,7 +374,7 @@ int transfer_init(
 		current_k = ptr->k[index_mode][index_k];
 		if (current_k == 0.) {
 		  sprintf(Transmit_Error_Message,"%s(L:%d) : k=0, stop to avoid division by zero",__func__,__LINE__);
-		  sprintf(ptr->error_message,Transmit_Error_Message);
+		  sprintf(ptr->error_message,"%s",Transmit_Error_Message);
 		  abort = 1;
 #pragma omp flush (abort)
 		}
@@ -406,7 +406,7 @@ int transfer_init(
 					 ti,
 					 &transfer_function) == _FAILURE_) {
 		    sprintf(Transmit_Error_Message,"%s(L:%d) : error callin transfer_integrate()\n=>%s",__func__,__LINE__,ptr->error_message);
-		    sprintf(ptr->error_message,Transmit_Error_Message);
+		    sprintf(ptr->error_message,"%s",Transmit_Error_Message);
 		    abort = 1;
 #pragma omp flush (abort)
 		  }
@@ -637,7 +637,7 @@ int transfer_indices_of_transfers() {
     /** (a) get number of k values using transfer_get_k_list_size() */
     if (transfer_get_k_list_size(index_mode,&(ptr->k_size[index_mode])) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfert_get_k_list_size\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,Transmit_Error_Message);
+      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -649,14 +649,14 @@ int transfer_indices_of_transfers() {
     }
     if (transfer_get_k_list(index_mode,ptr->k[index_mode]) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfert_get_k_list()\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,Transmit_Error_Message);
+      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
     /** (c) get number of l values using transfer_get_l_list_size() */
     if (transfer_get_l_list_size(index_mode,&(ptr->l_size[index_mode])) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_get_l_list_size()\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,Transmit_Error_Message);
+      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -668,7 +668,7 @@ int transfer_indices_of_transfers() {
     }
     if (transfer_get_l_list(index_mode,ptr->l[index_mode]) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_get_l_list()\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,Transmit_Error_Message);
+      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -706,7 +706,7 @@ int transfer_get_l_list_size(
 
     if (ppr->l_scalar_max > pbs->l[pbs->l_size-1]) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : For scalar transfer functions, asked for l_max greater than in Bessel table",__func__,__LINE__);
-      sprintf(ptr->error_message,Transmit_Error_Message);
+      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -726,7 +726,7 @@ int transfer_get_l_list_size(
 
     if (ppr->l_tensor_max > pbs->l[pbs->l_size-1]) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : For transfer transfer functions, asked for l_max greater than in Bessel table",__func__,__LINE__);
-      sprintf(ptr->error_message,Transmit_Error_Message);
+      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -791,7 +791,7 @@ int transfer_get_k_list_size(
 
   if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
     k_min = ppt->k[ppt->index_md_scalars][0]; /* first value, inferred from perturbations structure */
-    k_max_pt = ppt->k[ppt->index_md_scalars][ppt->k_size[ppt->index_md_scalars]-1]; /* last value, inferred from perturbations structure */
+    k_max_pt = ppt->k[ppt->index_md_scalars][ppt->k_size_cl[ppt->index_md_scalars]-1]; /* last value, inferred from perturbations structure */
     if ((eta0-eta_rec) != 0.) {
       k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans; /* step_size, inferred from precision_params structure */
     }
@@ -1073,7 +1073,7 @@ int transfer_integrate(
 
     if (bessel_at_x(ptr->k[current_index_mode][current_index_k] * (eta0-ppt->eta_sampling[index_eta]),current_index_l,&bessel) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error when calling bessel_at_x()\n=>%s",__func__,__LINE__,pbs->error_message);
-      sprintf(ptr->error_message,Transmit_Error_Message);
+      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 

@@ -182,18 +182,26 @@ int bessel_init(
   /** - identify the bessels structures pbs (used throughout bessel.c as global variables) to the output structure pbs_output of this function */
   pbs = pbs_output; 
 
+  if ((ppt_input->has_cl_cmb_temperature == _FALSE_) &&
+      (ppt_input->has_cl_cmb_polarization == _FALSE_) &&
+      (ppt_input->has_cl_cmb_lensing_potential == _FALSE_)) {
+    if (pbs->bessels_verbose > 0)
+      printf("No harmonic space transfer functions to compute. Bessel module skipped.\n");
+    return _SUCCESS_;
+  }
+
   /** - get conformal age from background structure (only place where this structure is used in this module) */
   eta0 = pba_input->conformal_age;
 
   /** - get maximum and minimum wavenumber from perturbation structure (only place where this structure is used in this module) */
   if (ppt_input->has_scalars) {
     kmax = ppt_input->k[ppt_input->index_md_scalars]
-      [ppt_input->k_size[ppt_input->index_md_scalars]-1];
+      [ppt_input->k_size_cl[ppt_input->index_md_scalars]-1];
     kmin = ppt_input->k[ppt_input->index_md_scalars][0];
   }
   if (ppt_input->has_tensors) {
     kmax=max(kmax,ppt_input->k[ppt_input->index_md_tensors]
-	     [ppt_input->k_size[ppt_input->index_md_scalars]-1]);
+	     [ppt_input->k_size_cl[ppt_input->index_md_scalars]-1]);
     kmin = min(kmin,ppt_input->k[ppt_input->index_md_scalars][0]);
   }
 
@@ -202,7 +210,7 @@ int bessel_init(
 
   if (bessel_get_l_list_size(ppr_input,&(pbs->l_size)) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_get_l_list_size() \n=>%s",__func__,__LINE__,pbs->error_message);
-    sprintf(pbs->error_message,Transmit_Error_Message);
+    sprintf(pbs->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -210,7 +218,7 @@ int bessel_init(
 
   if (bessel_get_l_list(ppr_input,pbs->l) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_get_l_list() \n=>%s",__func__,__LINE__,pbs->error_message);
-    sprintf(pbs->error_message,Transmit_Error_Message);
+    sprintf(pbs->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -233,14 +241,29 @@ int bessel_init(
 	printf("File bessels.dat did not exist.\n");
     }
     else {
-      fread(&l_size_file,sizeof(int),1,bessel_file);
+      if(fread(&l_size_file,sizeof(int),1,bessel_file) != 1) {
+	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	return _FAILURE_;
+      }
       l_file = malloc(l_size_file * sizeof(int));
       for (index_l=0; index_l < l_size_file; index_l++) {
-	fread(&l_file[index_l],sizeof(int),1,bessel_file);
+	if(fread(&l_file[index_l],sizeof(int),1,bessel_file) != 1) {
+	  sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	  return _FAILURE_;
+	}
       }
-      fread(&x_step_file,sizeof(double),1,bessel_file);
-      fread(&x_max_file,sizeof(double),1,bessel_file);
-      fread(&j_cut_file,sizeof(double),1,bessel_file);
+      if(fread(&x_step_file,sizeof(double),1,bessel_file) != 1) {
+	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	return _FAILURE_;
+      }
+      if(fread(&x_max_file,sizeof(double),1,bessel_file) != 1) {
+	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	return _FAILURE_;
+      }
+      if(fread(&j_cut_file,sizeof(double),1,bessel_file) != 1) {
+	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	return _FAILURE_;
+      }
 
       index_l=0;
       if (l_size_file == pbs->l_size) {
@@ -266,17 +289,29 @@ int bessel_init(
 	pbs->j=malloc(pbs->l_size*sizeof(double));
 	pbs->ddj=malloc(pbs->l_size*sizeof(double));
 
-	fread(pbs->x_min,sizeof(double),pbs->l_size,bessel_file);
-	fread(pbs->x_size,sizeof(int),pbs->l_size,bessel_file);
+	if(fread(pbs->x_min,sizeof(double),pbs->l_size,bessel_file) != pbs->l_size) {
+	  sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	  return _FAILURE_;
+	}
+	if(fread(pbs->x_size,sizeof(int),pbs->l_size,bessel_file) != pbs->l_size) {
+	  sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	  return _FAILURE_;
+	}
 
 	for (index_l=0; index_l < pbs->l_size; index_l++) {
 	  pbs->j[index_l] = malloc(pbs->x_size[index_l]*sizeof(double));
-	  fread(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
+	  if(fread(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l]) {
+	    sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	    return _FAILURE_;
+	  }
 	}
 
 	for (index_l=0; index_l < pbs->l_size; index_l++) {
 	    pbs->ddj[index_l] = malloc(pbs->x_size[index_l]*sizeof(double));
-	    fread(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
+	    if(fread(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l]) {
+	      sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
+	      return _FAILURE_;
+	    }
 	}
 
 	fclose(bessel_file);
@@ -318,7 +353,7 @@ int bessel_init(
 		 &j  /* j_l(x) */
 		 ) == _FAILURE_) {
       printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-      sprintf(pbs->error_message,Transmit_Error_Message);
+      sprintf(pbs->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -340,7 +375,7 @@ int bessel_init(
 		   &j  /* j_l(x) */
 		   ) == _FAILURE_) {
 	printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-	sprintf(pbs->error_message,Transmit_Error_Message);
+	sprintf(pbs->error_message,"%s",Transmit_Error_Message);
 	return _FAILURE_;
       }
 
@@ -357,7 +392,7 @@ int bessel_init(
 		 &j  /* j_l(x) */
 		 ) == _FAILURE_) {
       printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-      sprintf(pbs->error_message,Transmit_Error_Message);
+      sprintf(pbs->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
     
@@ -388,7 +423,7 @@ int bessel_init(
 		     j_array+index_x*column_num+column_j  /* j_l(x) */
 		     ) == _FAILURE_) {
 	  printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-	  sprintf(pbs->error_message,Transmit_Error_Message);
+	  sprintf(pbs->error_message,"%s",Transmit_Error_Message);
 	  return _FAILURE_;
 	}
 	

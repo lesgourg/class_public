@@ -220,14 +220,14 @@ int perturb_init(
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
   if (perturb_indices_of_perturbs() == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_indices_of_perturbs() \n=>%s",__func__,__LINE__,ppt->error_message);
-    sprintf(ppt->error_message,Transmit_Error_Message);
+    sprintf(ppt->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
   /** - define time sampling for sources using perturb_timesampling_for_sources() */
   if (perturb_timesampling_for_sources() == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_timesampling_for_sources() \n=>%s",__func__,__LINE__,ppt->error_message);
-    sprintf(ppt->error_message,Transmit_Error_Message);
+    sprintf(ppt->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -240,7 +240,7 @@ int perturb_init(
     /** (a) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
     if (perturb_indices_of_current_vectors() == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_indices_of_current_vectors() \n=>%s",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -287,7 +287,7 @@ int perturb_init(
 
 	if (perturb_solve() == _FAILURE_) {
 	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in in perturb_solve()\n=>%s",__func__,__LINE__,ppt->error_message);
-	  sprintf(ppt->error_message,Transmit_Error_Message);
+	  sprintf(ppt->error_message,"%s",Transmit_Error_Message);
 	  return _FAILURE_;
 	}
       }
@@ -347,6 +347,8 @@ int perturb_free() {
 
   free(ppt->k_size);
 
+  free(ppt->k_size_cl);
+
   free(ppt->k);
 
   free(ppt->sources);
@@ -373,7 +375,7 @@ int perturb_indices_of_perturbs() {
   /** - define local variables */
 
   int index_type, index_mode, index_ic;
-  int k_list_size;
+  int k_list_size,k_list_cl_size;
 
   /** - count types (eta, temperature, polarization, lensing, ...) and assign corresponding indices */
   
@@ -436,6 +438,12 @@ int perturb_indices_of_perturbs() {
   ppt->k_size = malloc(ppt->md_size * sizeof(int));
   if (ppt->k_size==NULL) {
     sprintf(ppt->error_message,"%s(L:%d): Cannot allocate ppt->k_size \n",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  ppt->k_size_cl = malloc(ppt->md_size * sizeof(int));
+  if (ppt->k_size_cl==NULL) {
+    sprintf(ppt->error_message,"%s(L:%d): Cannot allocate ppt->k_size_cl \n",__func__,__LINE__);
     return _FAILURE_;
   }
 
@@ -504,12 +512,13 @@ int perturb_indices_of_perturbs() {
 
     /** (b) for each mode, count values of k with perturb_get_k_list_size() */
 
-    if (perturb_get_k_list_size(index_mode,&k_list_size) == _FAILURE_) {
+    if (perturb_get_k_list_size(index_mode,&k_list_size,&k_list_cl_size) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_get_k_list_size() \n=>%s",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
     ppt->k_size[index_mode] = k_list_size;
+    ppt->k_size_cl[index_mode] = k_list_cl_size;
 
     /** (c) allocate array of k values, (ppt->k[index_mode])[index_k] */
     ppt->k[index_mode] = malloc(k_list_size*sizeof(double));
@@ -519,9 +528,9 @@ int perturb_indices_of_perturbs() {
     }
 
     /** (d) fill array of k values with  perturb_get_k_list() */
-    if (perturb_get_k_list(index_mode,k_list_size,ppt->k[index_mode]) == _FAILURE_) {
+    if (perturb_get_k_list(index_mode,k_list_size,k_list_cl_size,ppt->k[index_mode]) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_get_k_list() \n=>%s",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -610,7 +619,7 @@ int perturb_timesampling_for_sources() {
 
     if (perturb_back_and_thermo(eta,normal,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -685,7 +694,7 @@ int perturb_timesampling_for_sources() {
 
     if (perturb_back_and_thermo(eta,normal,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -758,7 +767,8 @@ int perturb_timesampling_for_sources() {
  */
 int perturb_get_k_list_size(
 			    int index_mode,
-			    int * pk_list_size
+			    int * k_list_size,
+			    int * k_list_cl_size
 			    ) {
   int index_k;
   double k,k_next,k_rec,step;
@@ -768,7 +778,7 @@ int perturb_get_k_list_size(
   /** - get number of wavenumbers for scalar mode */
   if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
 
-    /*     *pk_list_size = (int)(1./ppr->k_scalar_step_super) */
+    /*     *k_list_size = (int)(1./ppr->k_scalar_step_super) */
     /*       + (int)((ppr->k_scalar_oscillations - 1.)/ppr->k_scalar_step_sub) */
     /*       + 2; */
 
@@ -780,7 +790,7 @@ int perturb_get_k_list_size(
     /*       index_k++; */
     /*       k=k_next; */
     /*     } */
-    /*     *pk_list_size = index_k+1; */
+    /*     *k_list_size = index_k+1; */
 
     if (ppr->k_scalar_step_transition == 0.) {
       sprintf(ppt->error_message,"%s(L:%d) : you have k_scalr_step_transition=0, stop to avoid division by zero",__func__,__LINE__);
@@ -811,18 +821,28 @@ int perturb_get_k_list_size(
       index_k++;
       k=k_next;
     }
-    *pk_list_size = index_k;
+    *k_list_cl_size  = index_k;
+
+    if (k < ppr->k_scalar_kmax_for_pk*pba->h) {
+
+      index_k += (int)((log(ppr->k_scalar_kmax_for_pk*pba->h/k)/log(10.))*ppr->k_scalar_k_per_decade_for_pk)+1;
+
+    }
+
+    *k_list_size = index_k;
 
   }
 
   /* for testing */
-  /*  *pk_list_size = 1; */
+  /*  *k_list_size = 1; */
 
-  /* printf("size=%d\n",*pk_list_size); */
+  /* printf("size=%d\n",*k_list_size); */
 
   /** - get number of wavenumbers for tensor mode */
-  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors))
-    *pk_list_size = ppr->k_tensor_number;
+  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
+    *k_list_size = ppr->k_tensor_number;
+    *k_list_cl_size  = index_k;
+  }
 
   /* vectors not coded yet */
 
@@ -834,14 +854,15 @@ int perturb_get_k_list_size(
  * Define the list of comoving wavenumbers using the information passed in the precision structure.
  *
  * @param index_mode Input: index describing the mode (scalar, tensor, etc.)
- * @param pk_list_size Input: number of wavenumbers 
- * @param pk_list Output: list of wavenumbers 
+ * @param k_list_size Input: number of wavenumbers 
+ * @param k_list Output: list of wavenumbers 
  * @return the error status
  */
 int perturb_get_k_list(
 		       int index_mode,
-		       int pk_list_size,
-		       double * pk_list
+		       int k_list_size,
+		       int k_list_cl_size,
+		       double * k_list
 		       ) {
 
   /** Summary: */
@@ -854,20 +875,20 @@ int perturb_get_k_list(
   /** - get list of wavenumbers for scalar mode */
   if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
 
-    /*     pk_list[0] = ppr->k_scalar_min * pba->H0; */
+    /*     k_list[0] = ppr->k_scalar_min * pba->H0; */
     /*     for (index_k = 1; index_k < (int)(1./ppr->k_scalar_step_super); index_k++) { */
-    /*       pk_list[index_k] = index_k * ppr->k_scalar_step_super * 2. * _PI_ / pth->rs_rec; */
+    /*       k_list[index_k] = index_k * ppr->k_scalar_step_super * 2. * _PI_ / pth->rs_rec; */
     /*     } */
     /*     for (index_k = 0; index_k <= (int)((ppr->k_scalar_oscillations - 1.)/ppr->k_scalar_step_sub)+1; index_k++) { */
-    /*       pk_list[index_k+(int)(1./ppr->k_scalar_step_super)] = 2. * _PI_ / pth->rs_rec + index_k * ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec; */
+    /*       k_list[index_k+(int)(1./ppr->k_scalar_step_super)] = 2. * _PI_ / pth->rs_rec + index_k * ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec; */
     /*     } */
   
     /*     index_k=0; */
-    /*     pk_list[index_k] = ppr->k_scalar_min * pba->H0; */
-    /*     while (index_k<pk_list_size-1) { */
-    /*       pk_list[index_k+1] */
-    /* 	=min(pk_list[index_k]*ppr->k_scalar_logstep, */
-    /* 	     pk_list[index_k]+ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec); */
+    /*     k_list[index_k] = ppr->k_scalar_min * pba->H0; */
+    /*     while (index_k<k_list_size-1) { */
+    /*       k_list[index_k+1] */
+    /* 	=min(k_list[index_k]*ppr->k_scalar_logstep, */
+    /* 	     k_list[index_k]+ppr->k_scalar_step_sub * 2. * _PI_ / pth->rs_rec); */
     /*       index_k++; */
     /*     } */
 
@@ -885,38 +906,47 @@ int perturb_get_k_list(
     }
     
     index_k=0;
-    pk_list[index_k] = ppr->k_scalar_min * pba->H0;
+    k_list[index_k] = ppr->k_scalar_min * pba->H0;
     index_k=1;
-    while (index_k < pk_list_size) {
+    while (index_k < k_list_cl_size) {
       step = ppr->k_scalar_step_super 
-	+ 0.5 * (tanh((pk_list[index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
+	+ 0.5 * (tanh((k_list[index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
 
       if (step * k_rec < ppr->smallest_allowed_variation) {
 	sprintf(ppt->error_message,"%s(L:%d) : error : k step =%e < machine precision : leads either to numerical error or infinite loop",__func__,__LINE__,step * k_rec);
 	return _FAILURE_;
       }
 
-      pk_list[index_k]=pk_list[index_k-1] + step * k_rec;
+      k_list[index_k]=k_list[index_k-1] + step * k_rec;
       index_k++;
     }
+
+    while (index_k < k_list_size) {
+      
+      k_list[index_k] = k_list[index_k-1] 
+	* exp(log(ppr->k_scalar_kmax_for_pk*pba->h/k_list[k_list_cl_size-1])/(k_list_size-k_list_cl_size));
+      index_k++;
+
+    }
+
 
   }
 
   /* for testing */
-  /*    pk_list[0] = 2.324362609532460e-006; */
-  /*    pk_list[1] = 1.680172909432291e-002; */
-  /*    pk_list[0] = 0.266624298684783; */
+  /*    k_list[0] = 2.324362609532460e-006; */
+  /*    k_list[1] = 1.680172909432291e-002; */
+  /*    k_list[0] = 0.266624298684783; */
 
   /** - get list of wavenumbers for tensor mode */
   if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
     for (index_k = 0; index_k < ppr->k_tensor_number; index_k++) {
-      pk_list[index_k] = ppr->k_tensor_min * exp(index_k * log(ppr->k_tensor_logstep));
+      k_list[index_k] = ppr->k_tensor_min * exp(index_k * log(ppr->k_tensor_logstep));
     }
   }
 
   /* FOR TESTING!!!!!!!!!!!!!!!!!!! */
 
-  /* pk_list[0] = 1.03399391e-5; */
+  /* k_list[0] = 1.03399391e-5; */
 
   /* vectors not coded yet */  
   
@@ -1291,14 +1321,14 @@ int perturb_solve() {
   /** (b) compute background quantities and smallest relevant time scale in the system using perturb_back_and_thermo() */
   if (perturb_back_and_thermo(eta,normal,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-    sprintf(ppt->error_message,Transmit_Error_Message);
+    sprintf(ppt->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
   /** (c) fill the vector of perturbation variables with appropriate initial conditions using perturb_initial_conditions() */
   if (perturb_initial_conditions(eta) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_initial_conditions() \n=>%s",__func__,__LINE__,ppt->error_message);
-    sprintf(ppt->error_message,Transmit_Error_Message);
+    sprintf(ppt->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
@@ -1319,7 +1349,7 @@ int perturb_solve() {
     /* compute source terms at eta using pvecsource_terms() */
     if (perturb_source_terms(eta) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_source_terms()\n=>%s",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
@@ -1358,7 +1388,7 @@ int perturb_solve() {
 			       ppr->tol_perturb_integration,
 			       &generic_integrator_in) == _FAILURE_) {
 	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in generic_integrator() \n=>%s\n=>%s",__func__,__LINE__,generic_integrator_in.error_message,ppt->error_message);
-	  sprintf(ppt->error_message,Transmit_Error_Message);
+	  sprintf(ppt->error_message,"%s",Transmit_Error_Message);
 	  return _FAILURE_;
 	}
       
@@ -1373,7 +1403,7 @@ int perturb_solve() {
 	/** (a.3) compute background quantities and smallest relevant time scale in the system using perturb_back_and_thermo() */
 	if (perturb_back_and_thermo(eta,closeby,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
 	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-	  sprintf(ppt->error_message,Transmit_Error_Message);
+	  sprintf(ppt->error_message,"%s",Transmit_Error_Message);
 	  return _FAILURE_;
 	}
 
@@ -1438,7 +1468,7 @@ int perturb_solve() {
 			     ppr->tol_perturb_integration,
 			     &generic_integrator_in) == _FAILURE_) {
 	sprintf(Transmit_Error_Message,"%s(L:%d) : error in generic_integrator() \n=>%s\n=>%s",__func__,__LINE__,generic_integrator_in.error_message,ppt->error_message);
-	sprintf(ppt->error_message,Transmit_Error_Message);
+	sprintf(ppt->error_message,"%s",Transmit_Error_Message);
 	return _FAILURE_;
       }
 
@@ -1448,7 +1478,7 @@ int perturb_solve() {
       /** (a.3) compute background quantities and smallest relevant time scale in the system using perturb_back_and_thermo() */
       if (perturb_back_and_thermo(eta,closeby,&last_index_back,&last_index_thermo,&tca,&rp,&timescale) == _FAILURE_) {
 	sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-	sprintf(ppt->error_message,Transmit_Error_Message);
+	sprintf(ppt->error_message,"%s",Transmit_Error_Message);
 	return _FAILURE_;
       }
 
@@ -1508,7 +1538,7 @@ int perturb_solve() {
       /** (a.6) compute source terms at eta using pvecsource_terms() */
       if (perturb_source_terms(eta) == _FAILURE_) {
 	sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_source_terms()\n=>%s",__func__,__LINE__,ppt->error_message);
-	sprintf(ppt->error_message,Transmit_Error_Message);
+	sprintf(ppt->error_message,"%s",Transmit_Error_Message);
 	return _FAILURE_;
       }
 
@@ -1541,7 +1571,7 @@ int perturb_solve() {
       
     if (perturb_sources(source_term_table[current_index_type]) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_sources() \n=>%s",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
     
@@ -2223,7 +2253,7 @@ int perturb_source_terms(
       }
     }
 
-    /* lensing (scalars only) */
+    /* gravitational potential (scalars only) */
     if ((ppt->has_source_g == _TRUE_) && (index_type == ppt->index_tp_g)) {
       
       if ((ppt->has_scalars == _TRUE_) && (current_index_mode == ppt->index_md_scalars)) {
@@ -2244,7 +2274,9 @@ int perturb_source_terms(
 	  pvecsource_terms[index_type * cv.st_size + cv.index_st_ddS2] = 0.;
 	}
       }
-    }     
+    }
+   
+     
   }
 
   return _SUCCESS_;
@@ -2377,7 +2409,7 @@ void perturb_derivs(double eta,       /**< Input : conformal time */
   /** - get background/thermodynamical quantities using perturb_back_and_thermo(). Important: as far as the tight-coupling and free-streaming approximations are concerned, we pass here some local rather than global flags. Indeed, the tight-coupling flags should not change at each occurence of perturb_derivs, but rather at the edge of an integration step. Hence, the local flags passed here are irrelevant: the subroutine will rely on the global ones. */
   if (perturb_back_and_thermo(eta,closeby,&last_index_back,&last_index_thermo,&tca_local,&rp_local,&timescale)== _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-    sprintf(ppt->error_message,Transmit_Error_Message);
+    sprintf(ppt->error_message,"%s",Transmit_Error_Message);
     return;
   }
 
@@ -2397,7 +2429,7 @@ void perturb_derivs(double eta,       /**< Input : conformal time */
     /** (a) get metric perturbations with perturb_einstein() */
     if (perturb_einstein(eta,y)== _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_einstein() \n",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,Transmit_Error_Message);
+      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
       return;
     }
 

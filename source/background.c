@@ -78,7 +78,7 @@ int background_at_eta(
   /** - check that eta is in the pre-computed range */
 
   if (eta < pba->eta_table[0]) {
-    sprintf(pba->error_message,"%s(L:%d) : eta=%e < eta_min=%e\n",__func__,__LINE__,eta,pba->eta_table[0]);
+    sprintf(pba->error_message,"%s(L:%d) : eta=%e < eta_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",__func__,__LINE__,eta,pba->eta_table[0]);
     return _FAILURE_;
   }
   if (eta > pba->eta_table[pba->bt_size-1]) {

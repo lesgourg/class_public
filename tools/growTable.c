@@ -98,7 +98,7 @@ int gt_retrieve(
   }
 
   if ((idx>self->csz) || (idx+sz>self->csz)) {
-    sprintf(self->error_message,"%s(L:%d): Not enough data in growTable (asked for [%ld,%ld[ got only  %ld data)\n",__func__,__LINE__);
+    sprintf(self->error_message,"%s(L:%d): Not enough data in growTable",__func__,__LINE__);
     return _FAILURE_;  
   }
   

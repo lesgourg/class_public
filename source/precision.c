@@ -25,7 +25,7 @@ int precision_init ( struct precision * ppr ) {
    * - parameters related to the background
    */
 
-  ppr->a_ini_over_a_today_default = 1.e-7;  /* 1.e-7 */
+  ppr->a_ini_over_a_today_default = 1.e-9;  /* 1.e-7 unless needs large k_max in P(k) */
   ppr->a_today = 1.;
   ppr->back_integration_stepsize = 2.e-2;   /* 0.02 */
   ppr->tol_background_integration = 1.e-3;  /* 0.002 */
@@ -70,6 +70,9 @@ int precision_init ( struct precision * ppr ) {
   ppr->k_scalar_step_sub=0.1;  /* 0.02 -> 0.005 */
   ppr->k_scalar_step_super=0.005;  /* 0.01 -> 0.005 */
   ppr->k_scalar_step_transition=0.4;
+
+  ppr->k_scalar_kmax_for_pk=1.;
+  ppr->k_scalar_k_per_decade_for_pk=10.;
 
   ppr->k_tensor_number=15;
   ppr->k_tensor_min=1.e-4;
@@ -131,7 +134,7 @@ int precision_init ( struct precision * ppr ) {
   ppr->l_tensor_max = 1000;
 
   /**
-   * - parameter related to the transfer functions
+   * - parameter related to the power spectra
    */
 
   ppr->z_max_pk = 0.;
