@@ -12,6 +12,10 @@
 #include "spectra.h"
 #include "output.h"
 
+/* #include "readConf.h" */
+/* #include "errorio.h" */
+
+//main(int argc, char **argv) {
 main() {
 
   struct precision pr;        /* for precision parameters */
@@ -24,6 +28,21 @@ main() {
   struct spectra sp;          /* for output spectra */
   struct output op;           /* for output files */
  
+  /* sample for using readConf sparser */ 
+/*   confFile* rc; */
+/*   error *_err; */
+/*   error **err; */
+/*   double dres; */
+
+/*   _err = initError(); */
+/*   err = &_err; */
+
+/*   rc = rc_init_from_args(argc,argv,err); */
+/*   quitOnError(*err,__LINE__,stderr); */
+/*   dres = rc_get_real(rc, "test_double", err); */
+/*   quitOnError(*err,__LINE__,stderr); */
+/*   fprintf(stderr,"read test_double -> %g\n",dres); */
+
   if (precision_init(&pr) == _FAILURE_) {
     printf("\n\nError running precision_init \n=>%s\n",pr.error_message); 
     return _FAILURE_;

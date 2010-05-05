@@ -58,8 +58,8 @@ int input_init(
 
   ppt->has_cl_cmb_temperature = _TRUE_;
   ppt->has_cl_cmb_polarization = _TRUE_;
-  ppt->has_cl_cmb_lensing_potential = _FALSE_;
-  ppt->has_pk_matter = _TRUE_;
+  ppt->has_cl_cmb_lensing_potential = _TRUE_;
+  ppt->has_pk_matter = _FALSE_;
 
   /** - define the primordial spectrum */
 

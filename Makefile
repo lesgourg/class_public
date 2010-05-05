@@ -3,6 +3,7 @@
 
 MDIR := $(shell pwd)
 WRKDIR = $(MDIR)/build
+#PMCLIB = $(MDIR)/../../../pmclib
 
 .base:
 	if ! [ -a $(WRKDIR) ]; then mkdir $(WRKDIR) ; mkdir $(WRKDIR)/lib; fi;
@@ -17,12 +18,14 @@ CC       = gcc
 #CCFLAG   = -O2 -fopenmp
 #LDFLAG   = -O2 -fopenmp
 CCFLAG = -O2
-LDFLAG = -O2
+LDFLAG = -O2 
+#-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 
 INCLUDES = ../include
+#-I../../../../pmclib/include/pmclib/tools -I../../../../pmclib/include
 
 %.o:  %.c .base
-	cd $(WRKDIR);$(CC) $(CCFLAG) -I $(INCLUDES) -c ../$< -o $*.o
+	cd $(WRKDIR);$(CC) $(CCFLAG) -I$(INCLUDES) -c ../$< -o $*.o
 
 TOOLS = growTable.o dei_rkck.o tools_arrays.o
 
