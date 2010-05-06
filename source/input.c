@@ -59,7 +59,7 @@ int input_init(
   ppt->has_cl_cmb_temperature = _TRUE_;
   ppt->has_cl_cmb_polarization = _TRUE_;
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
-  ppt->has_pk_matter = _FALSE_;
+  ppt->has_pk_matter = _TRUE_;
 
   /** - define the primordial spectrum */
 
@@ -68,6 +68,10 @@ int input_init(
   ppm->n_s_ad = 1. ; /* tilt */
   ppm->alpha_s_ad = 0. ; /* running */ 
   ppm->k_pivot = 0.05; /* pivot wavenumber in Mpc-1 */
+
+  /** - define up to which value P(k) should be computed */
+
+  psp->z_max_pk = 0.;
 
   /** - name of output files */
 

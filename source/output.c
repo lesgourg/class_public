@@ -77,7 +77,7 @@ int output_init(
 
       for (l = 2; l <= psp_input->l[index_mode][psp_input->l_size[index_mode]-1]; l++) {  
 
-	if (spectra_cl_at_l((double)l,index_mode,cl_output) == _FAILURE_) {
+	if (spectra_cl_at_l(psp_input,index_mode,(double)l,cl_output) == _FAILURE_) {
 	  sprintf(pop->error_message,"%s(L:%d) : error in spectra_cl_at_l()\n=>%s",__func__,__LINE__,psp_input->error_message);
 	  return _FAILURE_;
 	}
@@ -109,8 +109,8 @@ int output_init(
 
   if (ppt_input->has_pk_matter == _TRUE_) {
     
-    if (pop->z_pk > ppr_input->z_max_pk) {
-      sprintf(pop->error_message,"%s(L:%d) : P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",__func__,__LINE__,ppr_input->z_max_pk,pop->z_pk);
+    if (pop->z_pk > psp_input->z_max_pk) {
+      sprintf(pop->error_message,"%s(L:%d) : P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",__func__,__LINE__,psp_input->z_max_pk,pop->z_pk);
       return _FAILURE_;
     }
 
@@ -129,7 +129,7 @@ int output_init(
 	sprintf(pop->error_message,"%s(L:%d) : Could not allocate pk_output",__func__,__LINE__);
 	return _FAILURE_;
       }
-      if (spectra_pk_at_z(pop->z_pk,pk_output) == _FAILURE_) {
+      if (spectra_pk_at_z(pba_input,psp_input,ppt_input->index_md_scalars,pop->z_pk,pk_output) == _FAILURE_) {
 	sprintf(pop->error_message,"%s(L:%d) : error in spectra_pk_at_z()\n=>%s",__func__,__LINE__,psp_input->error_message);
 	return _FAILURE_;
       }

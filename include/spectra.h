@@ -12,6 +12,9 @@
  */
 struct spectra {
   
+  int md_size; /**< number of modes included in computation */
+  int * ic_size;       /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+
   int * l_size; /**< number of multipole values for each requested mode, l_size[index_mode] */
   double ** l; /**< list of multipole values for each requested mode, (l[index_mode])[index_l] */
   
@@ -24,7 +27,10 @@ struct spectra {
   int index_ct_bb;
   int index_ct_pp;
   int index_ct_tp;
-  int ct_size; /**< number of ct_type (TT, TE, EE, etc.) ct_size[index_mode]*/
+  int ct_size; /**< number of ct_type (TT, TE, EE, etc.) */
+
+
+  double z_max_pk; /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
 
   int k_size;
   double * k;
@@ -42,6 +48,7 @@ struct spectra {
   //@}
 
   ErrorMsg error_message; /**< zone for writing error messages */
+  ErrorMsg transmit_message; /**< temporary zone for passing error messages */
 };
 
 /*************************************************************************************************************/
@@ -54,25 +61,32 @@ extern "C" {
 #endif
 
   int spectra_cl_at_l(
-		      double l,
+		      struct spectra * psp,
 		      int index_mode,
+		      double l,
 		      double *cl
 		      );
 
   int spectra_pk_at_z(
-		    double z,
-		    double * pk
-		    );
+		      struct background * pba,
+		      struct spectra * psp,
+		      int index_mode,
+		      double z,
+		      double * pk
+		      );
 
   int spectra_pk_at_k_and_z(
+			    struct background * pba,
+			    struct primordial * ppm,
+			    struct spectra * psp,
+			    int index_mode,
+			    int index_ic,
 			    double k,
 			    double z,
-			    int index_ic,
-			        double * pk
+			    double * pk
 			    );
 
   int spectra_init(
-		   struct precision *ppr,
 		   struct background * pba,
 		   struct perturbs * ppt,
 		   struct transfers * ptr,
@@ -80,11 +94,29 @@ extern "C" {
 		   struct spectra * psp
 		   );
 
-  int spectra_free();
+  int spectra_free(
+		   struct spectra * psp
+		   );
 
-  int spectra_indices();
+  int spectra_indices(
+		      struct perturbs * ppt,
+		      struct transfers * ptr,
+		      struct spectra * psp
+		      );
 
-  int spectra_pk();
+  int spectra_cl(
+		 struct perturbs * ppt,
+		 struct transfers * ptr,
+		 struct primordial * ppm,
+		 struct spectra * psp
+		 );
+
+  int spectra_pk(
+		 struct background * pba,
+		 struct perturbs * ppt,
+		 struct primordial * ppm,
+		 struct spectra * psp
+		 );
 
 #ifdef __cplusplus
 }

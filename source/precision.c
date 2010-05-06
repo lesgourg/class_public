@@ -134,12 +134,6 @@ int precision_init ( struct precision * ppr ) {
   ppr->l_tensor_max = 1000;
 
   /**
-   * - parameter related to the power spectra
-   */
-
-  ppr->z_max_pk = 0.;
-
-  /**
    * - automatic estimate of machine precision
    */
 

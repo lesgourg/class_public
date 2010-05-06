@@ -42,7 +42,6 @@ int primordial_spectrum_at_k(
   int index_ic;
   double lnk;
   int last_index;
-  ErrorMsg Transmit_Error_Message;
 
   /** if k negative or null return an error */
 
@@ -79,8 +78,8 @@ int primordial_spectrum_at_k(
 			       &last_index,
 			       pk,
 			       ppm->ic_size[index_mode],
-			       Transmit_Error_Message) == _FAILURE_) {
-    sprintf(ppm->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
+			       ppm->transmit_message) == _FAILURE_) {
+    sprintf(ppm->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,ppm->transmit_message);
     return _FAILURE_;
   }
 
@@ -113,7 +112,6 @@ int primordial_init(
 
   double k,k_min,k_max;
   int index_mode,index_ic,index_k;
-  ErrorMsg Transmit_Error_Message;
 
   if (ppm->primordial_verbose > 0)
     printf("Computing primordial spectra\n");
@@ -160,8 +158,8 @@ int primordial_init(
 			      k_max,
 			      ppr->k_per_decade_primordial
 			      ) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_get_lnk_list()\n=>%s",__func__,__LINE__,ppm->error_message);
-    sprintf(ppm->error_message,"%s",Transmit_Error_Message);
+    sprintf(ppm->transmit_message,"%s(L:%d) : error in primordial_get_lnk_list()\n=>%s",__func__,__LINE__,ppm->error_message);
+    sprintf(ppm->error_message,"%s",ppm->transmit_message);
     return _FAILURE_;
   }
 
@@ -272,8 +270,8 @@ int primordial_init(
 				 ppm->ic_size[index_mode],
 				 ppm->ddlnpk[index_mode],
 				 _SPLINE_EST_DERIV_,
-				 Transmit_Error_Message) == _FAILURE_) {
-      sprintf(ppm->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,Transmit_Error_Message);
+				 ppm->transmit_message) == _FAILURE_) {
+      sprintf(ppm->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,ppm->transmit_message);
       return _FAILURE_;
     }
 
