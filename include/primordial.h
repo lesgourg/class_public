@@ -58,32 +58,27 @@ extern "C" {
 #endif
 
   int primordial_spectrum_at_k(
-			      struct primordial * ppm,					
-			      int index_mode,
-			      double k,
-			      double * pk
-			      );
+			       struct primordial * ppm,
+			       int index_mode,
+			       double k,
+			       double * pk
+			       );
 
   int primordial_init(
-		    struct perturbs * ppt_input,
-		    struct precision * ppr_input,
-		    struct primordial * ppm_output
-		    );
+		      struct precision  * ppr,
+		      struct perturbs   * ppt,
+		      struct primordial * ppm
+		      );
     
-  int primordial_free();
+  int primordial_free(
+		      struct primordial * ppm
+		      );
     
-  int primordial_get_lnk_list_size(
-				   double kmin,
-				   double kmax,
-				   double k_per_decade,
-				   int * lnk_list_size
-				   );
-
   int primordial_get_lnk_list(
+			      struct primordial * ppm,
 			      double kmin,
-			      double k_per_decade,
-			      int lnk_list_size,
-			      double * lnpk_list
+			      double kmax,
+			      double k_per_decade
 			      );
 
 #ifdef __cplusplus

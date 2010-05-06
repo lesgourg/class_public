@@ -213,13 +213,13 @@ int spectra_pk_at_k_and_z(
 	return _FAILURE_;
       }
       
-      if(primordial_at_k(index_mode,k,pkini_k)==_FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+      if(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k)==_FAILURE_) {
+	sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
 	sprintf(psp->error_message,Transmit_Error_Message);
 	return _FAILURE_;
       }
-      if(primordial_at_k(index_mode,psp->k[0],pkini_kmin)==_FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+      if(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin)==_FAILURE_) {
+	sprintf(Transmit_Error_Message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
 	sprintf(psp->error_message,Transmit_Error_Message);
 	return _FAILURE_;
       }
@@ -477,8 +477,8 @@ int spectra_cl() {
 
 	  cl_integrand[index_k*cl_integrand_num_columns+0] = k;
 	    
-	  if (primordial_at_k(index_mode,k,primordial_pk) == _FAILURE_) {
-	    sprintf(psp->error_message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+	  if (primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk) == _FAILURE_) {
+	    sprintf(psp->error_message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
 	    return _FAILURE_;
 	  }
 
@@ -713,8 +713,8 @@ int spectra_pk() {
 
     for (index_k=0; index_k<psp->k_size; index_k++) {
 
-      if (primordial_at_k(index_mode,psp->k[index_k],primordial_pk) == _FAILURE_) {
-	sprintf(psp->error_message,"%s(L:%d) : error in primordial_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
+      if (primordial_spectrum_at_k(ppm,index_mode,psp->k[index_k],primordial_pk) == _FAILURE_) {
+	sprintf(psp->error_message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
 	return _FAILURE_;
       }
 

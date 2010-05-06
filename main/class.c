@@ -78,8 +78,8 @@ main() {
     return _FAILURE_;
   }
 
-  if (primordial_init(&pt,&pr,&pm) == _FAILURE_) {
-    printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
+  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
+    printf("\n\nError in transfer_init \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }
 
@@ -100,7 +100,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (primordial_free() == _FAILURE_) {
+  if (primordial_free(&pm) == _FAILURE_) {
     printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }
