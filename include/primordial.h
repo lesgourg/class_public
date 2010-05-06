@@ -58,6 +58,7 @@ extern "C" {
 #endif
 
   int primordial_spectrum_at_k(
+			      struct primordial * ppm,					
 			      int index_mode,
 			      double k,
 			      double * pk
