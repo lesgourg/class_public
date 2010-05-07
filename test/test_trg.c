@@ -44,7 +44,7 @@ main() {
   pt.has_cl_cmb_lensing_potential = _FALSE_;
   pt.has_pk_matter = _TRUE_;
 
-  sp.z_max_pk = 1000.;
+  sp.z_max_pk = 100.;
 
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);
