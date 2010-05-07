@@ -355,7 +355,7 @@ int trg_integrate_xy_at_eta(
 
     double epsilon; /* cut-off scale to avoid numerical divergence*/
 
-    epsilon=1e-12;
+    epsilon=psp->k[0];
 
     sum_y=calloc(n_xy,sizeof(double));
    
@@ -672,12 +672,13 @@ int trg_init (
   }
 
   if(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,Transmit_Error_Message)==_FAILURE_){
-    sprintf(pnl->error_message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
+    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>%s",__func__,__LINE__,pnl->error_message);
+    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
 
   if(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,Transmit_Error_Message)==_FAILURE_){
-    sprintf(pnl->error_message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>",__func__,__LINE__,Transmit_Error_Message);
+    sprintf(pnl->error_message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
 
