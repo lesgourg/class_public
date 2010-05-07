@@ -338,73 +338,89 @@ int trg_integrate_xy_at_eta(
 			      double * result,
 			      char *errmsg
 			      ){
-    int index_k;
-    double k_max=pnl->k_max; /* choice of maximum k when integrating over x*/
-    double x,y;
-    double x_step,y_step;
-    double temp;
-    int index_y,index_x;
+  
+  FILE *toto;
 
-    double arg_plus,arg_minus;
-    double x_min,x_max;
-    double y_min,y_max;
+  int index_k;
+  double k_max=pnl->k_max; /* choice of maximum k when integrating over x*/
+  double x,y;
+  double x_step,y_step;
+  double temp;
+  int index_y,index_x;
+  
+  double arg_plus,arg_minus;
+  double x_min,x_max;
+  double y_min,y_max;
+  
+  double *sum_y;
 
-    y_min=0;
+  if((toto=fopen("arg_of_y.dat","w"))==NULL){
+    printf("Error:cannot create the file\n");
+  }
+  fprintf(toto,"##hello world\n");
 
-    double *sum_y;
 
-    double epsilon; /* cut-off scale to avoid numerical divergence*/
 
-    epsilon=psp->k[0];
 
-    sum_y=calloc(n_xy,sizeof(double));
-   
-    for(index_k=0; index_k<k_size; index_k++){
-      x_min=pnl->k[index_k]/sqrt(2);
-      y_max=x_min;
-      x_max=k_max;
+  
+  double epsilon; /* cut-off scale to avoid numerical divergence*/
 
-      x_step= 1./(n_xy-1) * (x_max - x_min);
-      y_step= 1./(n_xy-1) * (y_max - y_min);
-      
-      for(index_x=0; index_x<n_xy; index_x++){
-	if (x_step==0 || y_step==0){
-	  sum_y[index_x]=0;
+  epsilon=psp->k[0];
+  y_min=epsilon;
+
+  sum_y=calloc(n_xy,sizeof(double));
+  
+  for(index_k=0; index_k<k_size; index_k++){
+    x_min=pnl->k[index_k]/sqrt(2);
+    y_max=x_min;
+    x_max=k_max;
+    
+    x_step= 1./(n_xy-1) * (x_max - x_min);
+    y_step= 1./(n_xy-1) * (y_max - y_min);
+    
+    for(index_x=0; index_x<n_xy; index_x++){
+      if (x_step==0 || y_step==0){
+	sum_y[index_x]=0;
+      }
+      else {
+	x=x_min+index_x*x_step;
+	y=y_min;
+
+	if(trg_A_arg(name,pnl->k[index_k],x/sqrt(2),x/sqrt(2),index_eta,&temp,errmsg)==_FAILURE_){
+	  sprintf(pnl->error_message,"%s(L:%d): error of definition in integrals A\n=>%s",__func__,__LINE__,errmsg);
 	}
-	else {
-	  x=x_min+index_x*x_step;
-	  y=y_min;
+	arg_plus=(x*x-y*y)/4 * temp;
+	if(index_x==0){
+	  fprintf(toto,"%e %e\n",y,arg_plus);}
+	  
 
-	  if(trg_A_arg(name,pnl->k[index_k],x/sqrt(2),x/sqrt(2),index_eta,&temp,errmsg)==_FAILURE_){
-	    sprintf(pnl->error_message,"%s(L:%d): error of definition in integrals A\n=>%s",__func__,__LINE__,errmsg);
+	for(index_y=0; index_y<n_xy; index_y++){
+	  arg_minus=arg_plus;
+	  y=y_min+index_y*y_step;
+	  
+	  if((x+y)>k_max*sqrt(2) || (x-y)<epsilon*sqrt(2)){
+	    temp=0;
+	  }
+	  else {
+	    if(trg_A_arg(name,pnl->k[index_k],(x+y)/sqrt(2),(x-y)/sqrt(2),index_eta,&temp,errmsg)==_FAILURE_){
+	      sprintf(pnl->error_message,"%s(L:%d): error of definition of integrals A\n=>%s",__func__,__LINE__,errmsg);
+	      return _FAILURE_;
+	    }
 	  }
 	  arg_plus=(x*x-y*y)/4 * temp;
-
-	  for(index_y=0; index_y<n_xy; index_y++){
-	    arg_minus=arg_plus;
-	    y=y_min+index_y*y_step;
-	    
-	    if((x+y)>k_max*sqrt(2) || (x-y)<epsilon*sqrt(2)){
-	      temp=0;
-	    }
-	    else {
-	      if(trg_A_arg(name,pnl->k[index_k],(x+y)/sqrt(2),(x-y)/sqrt(2),index_eta,&temp,errmsg)==_FAILURE_){
-		sprintf(pnl->error_message,"%s(L:%d): error of definition of integrals A\n=>%s",__func__,__LINE__,errmsg);
-		return _FAILURE_;
-	      }
-	    }
-	    arg_plus=(x*x-y*y)/4 * temp;
-	    sum_y[index_x]+=y_step*0.5*(arg_plus+arg_minus);
-	  }
+	  sum_y[index_x]+=y_step*0.5*(arg_plus+arg_minus);
+	  if(index_x==0){
+	    fprintf(toto,"%e %e\n",y,arg_plus);}
 	}
-      }
-	
-      for(index_x=0; index_x<(n_xy-1); index_x++){
-	result[index_k+k_size*index_eta]+=x_step*0.5*(sum_y[index_x]+sum_y[index_x+1]); /* integration over x */
       }
     }
     
-    return _SUCCESS_;
+    for(index_x=0; index_x<(n_xy-1); index_x++){
+      result[index_k+k_size*index_eta]+=x_step*0.5*(sum_y[index_x]+sum_y[index_x+1]); /* integration over x */
+    }
+  }
+  fclose(toto);
+  return _SUCCESS_;
 }
 
 
@@ -433,8 +449,6 @@ int trg_init (
 	      struct spectra * psp_input, /**< structure containing list of k, z and P(k,z) values) */
 	      struct spectra_nl * pnl_output 
 	      ) {
-
-  
 
   int index_k;
   int index_eta;
@@ -656,36 +670,24 @@ int trg_init (
 
   n_xy=100; /* number of dots for integration with trapezoidal
 	       method */
-  for(index_k=0; index_k<pnl->k_size; index_k++){
-    if(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,0,pnl->k[index_k],&temp1,Transmit_Error_Message)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d):error in trg_p_ab_at_any_k()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    }
-    if(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,0,pnl->k[index_k],&temp2,Transmit_Error_Message)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d):error in trg_p_ab_at_any_k()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    }
-    if(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,0,pnl->k[index_k],&temp3,Transmit_Error_Message)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d):error in trg_p_ab_at_any_k()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    }
-    
 
-    printf("%1.2e\t%1.2e %1.2e\t%1.2e %1.2e\t%1.2e %1.2e\n",pnl->k[index_k],pnl->pk_nl[index_k],temp1,pnl->p_12[index_k],temp2,pnl->p_22[index_k],temp3);
-  }
+
 
   if(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,Transmit_Error_Message)==_FAILURE_){
     sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>%s",__func__,__LINE__,pnl->error_message);
     sprintf(pnl->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
-
+  
   if(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,Transmit_Error_Message)==_FAILURE_){
     sprintf(pnl->error_message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
   }
-
-   for(index_k=0;index_k<pnl->k_size;index_k++){
+  
+  /*   for(index_k=0;index_k<pnl->k_size;index_k++){
      printf("%e\t%e\t%e\t%e\n",pnl->k[index_k],pnl->p_12[index_k],A0[index_k],A11[index_k]);
    }
-  
+  */
    /*
   if(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k,k_size,A12,Transmit_Error_Message)==_FAILURE_){
     sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
