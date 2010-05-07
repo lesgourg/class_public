@@ -51,6 +51,8 @@ OUTPUT = output.o
 
 CLASS = class.o
 
+TRG = trg.o
+
 TEST_TRANSFER = test_transfer.o
 
 TEST_BESSEL = test_bessel.o
@@ -61,7 +63,12 @@ TEST_THERMODYNAMICS = test_thermodynamics.o
 
 TEST_BACKGROUND = test_background.o
 
+TEST_TRG = test_trg.o
+
 class: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(CLASS)
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_trg: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(TRG) $(TEST_TRG)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_transfer: $(TOOLS) $(PRECISION) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(TEST_TRANSFER)
