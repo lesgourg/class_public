@@ -16,30 +16,26 @@ int spectra_cl_at_l(
 
   int last_index;
 
-  if ((index_mode < 0) || (index_mode >= psp->md_size)) {
-    sprintf(psp->error_message,"%s(L:%d) : index_mode=%d out of bounds",__func__,__LINE__,index_mode);
-    return _FAILURE_;
-  }
+  class_test((index_mode < 0) || (index_mode >= psp->md_size),
+	     psp->error_message,
+	     "index_mode=%d out of range[%d:%d]",index_mode,0,psp->md_size);
+  
+  class_test((l < psp->l[index_mode][0]) || (l > psp->l[index_mode][psp->l_size[index_mode]-1]),
+	     psp->error_message,
+	     "l=%f out of range [%f:%f]",psp->l[index_mode][0],psp->l[index_mode][psp->l_size[index_mode]-1]);
 
-  if ((l < psp->l[index_mode][0]) || (l > psp->l[index_mode][psp->l_size[index_mode]-1])) {
-    sprintf(psp->error_message,"%s(L:%d) : l=%f out of range [%f:%f]",
-	    __func__,__LINE__,l,psp->l[index_mode][0],psp->l[index_mode][psp->l_size[index_mode]-1]);
-    return _FAILURE_;
-  }
-
-  if (array_interpolate_spline(psp->l[index_mode],
-			       psp->l_size[index_mode],
-			       psp->cl[index_mode],
-			       psp->ddcl[index_mode],
-			       psp->ic_size[index_mode]*psp->ct_size,
-			       l,
-			       &last_index,
-			       cl,
-			       psp->ic_size[index_mode]*psp->ct_size,
-			       psp->transmit_message) == _FAILURE_) {
-    sprintf(psp->error_message,"%s(L:%d) : error in array_interpolate_spline()\n=>%s",__func__,__LINE__,psp->transmit_message);
-    return _FAILURE_;
-  }
+  class_call(array_interpolate_spline(psp->l[index_mode],
+				      psp->l_size[index_mode],
+				      psp->cl[index_mode],
+				      psp->ddcl[index_mode],
+				      psp->ic_size[index_mode]*psp->ct_size,
+				      l,
+				      &last_index,
+				      cl,
+				      psp->ic_size[index_mode]*psp->ct_size,
+				      psp->error_message),
+	     psp->error_message,
+	     psp->error_message);
 
   return _SUCCESS_;
 
@@ -73,43 +69,43 @@ int spectra_pk_at_z(
   double eta_requested;
   int index_ic;
 
-  if (background_eta_of_z(z,&eta_requested) == _FAILURE_) {
-    sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
-    return _FAILURE_;
-  } 
+  class_call(background_eta_of_z(z,&eta_requested),
+	     pba->error_message,
+	     psp->error_message);
 
   /* interpolation makes sense only if there are at least two values of eta. deal with case of one value. */
   if (psp->eta_size == 1) {
-    if (z==0.) {
-      for (index_ic=0; index_ic < psp->ic_size[index_mode]*psp->k_size; index_ic++) {
-	pk[index_ic] = psp->pk[index_ic];
-      }
-      return _SUCCESS_;
+
+    class_test(z!=0.,
+	       psp->error_message,
+	       "asked z=%e but only P(k,z=0) has been tabulated",z);
+
+    /* case z=0 */
+    for (index_ic=0; index_ic < psp->ic_size[index_mode]*psp->k_size; index_ic++) {
+      pk[index_ic] = psp->pk[index_ic];
     }
-    else {
-      sprintf(psp->error_message,"%s(L:%d) : asked z=%e but only P(k,z=0) has been tabulated",__func__,__LINE__,z);
-      return _FAILURE_;
-    }
+    return _SUCCESS_;
+    
   }
 
-  if ((eta_requested < psp->eta[0]) || (eta_requested > psp->eta[psp->eta_size-1])) {
-    sprintf(psp->error_message,"%s(L:%d) : eta(z)=%e out of bounds",__func__,__LINE__,eta_requested);
-    return _FAILURE_;
-  }
+  class_test((eta_requested < psp->eta[0]) || (eta_requested > psp->eta[psp->eta_size-1]),
+	     psp->error_message,
+	     "eta(z)=%e out of bounds [%e:%e]",
+	     eta_requested,psp->eta[0],psp->eta[psp->eta_size-1]);
 
-  if (array_interpolate_spline(psp->eta,
-			       psp->eta_size,
-			       psp->pk,
-			       psp->ddpk,
-			       psp->ic_size[index_mode]*psp->k_size,
-			       eta_requested,
-			       &last_index,
-			       pk,
-			       psp->ic_size[index_mode]*psp->k_size,
-			       psp->transmit_message) == _FAILURE_) {
-    sprintf(psp->error_message,"%s(L:%d) : error in array_interpolate_spline()\n=>%s",__func__,__LINE__,psp->transmit_message);
-    return _FAILURE_;
-  }
+
+  class_call(array_interpolate_spline(psp->eta,
+				      psp->eta_size,
+				      psp->pk,
+				      psp->ddpk,
+				      psp->ic_size[index_mode]*psp->k_size,
+				      eta_requested,
+				      &last_index,
+				      pk,
+				      psp->ic_size[index_mode]*psp->k_size,
+				      psp->error_message),
+	     psp->error_message,
+	     psp->error_message);
 
   return _SUCCESS_;
 
@@ -123,7 +119,7 @@ int spectra_pk_at_z(
  *  @param k Input : wavenumber k in units of 1/Mpc 
  *  @param z Input : redhsift z
  *  @param index_ic : index of initial condition (ppt->index_ic_ad for adiabatic, etc...)
- *  @param pk Ouput : P(k,z) in units of Mpc^3  
+ *  @param pk Ouput : "P(k,z) in units of Mpc^3  
  */
 int spectra_pk_at_k_and_z(
 			  struct background * pba,
@@ -146,23 +142,26 @@ int spectra_pk_at_k_and_z(
 
   /* check input parameters (z will be checked in spectra_pk_at_z) */
 
-  if ((index_ic < 0) || (index_ic >= psp->ic_size[index_mode])) {
-    sprintf(psp->error_message,"%s(L:%d) : index_ic=%d out of bounds",__func__,__LINE__,index_ic);
-    return _FAILURE_;
-  }
+  class_test((index_ic < 0) || (index_ic >= psp->ic_size[index_mode]),
+	     psp->error_message,
+	     "index_ic=%d out of bounds [%d:%d]",
+	     index_ic,0,psp->ic_size[index_mode]);
 
-  if ((k < 0) || (k > psp->k[psp->k_size-1])) {
-    sprintf(psp->error_message,"%s(L:%d) : k=%e out of bounds [0:%e]",__func__,__LINE__,k,psp->k[psp->k_size-1]);
-    return _FAILURE_;
-  }
+  class_test((k < 0) || (k > psp->k[psp->k_size-1]),
+	     psp->error_message,
+	     "k=%e out of bounds [%e:%e]",k,0,psp->k[psp->k_size-1]);
 
   /* get P(k) at the right value of z */
 
-  temporary_pk = malloc(sizeof(double)*psp->ic_size[index_mode]*psp->k_size);
-  if (temporary_pk == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate temporary_pk",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(temporary_pk,
+	      sizeof(double)*psp->ic_size[index_mode]*psp->k_size,
+	      psp->error_message);
+
+/*   temporary_pk = malloc(sizeof(double)*psp->ic_size[index_mode]*psp->k_size); */
+/*   if (temporary_pk == NULL) { */
+/*     sprintf(psp->error_message,"%s(L:%d) : Could not allocate temporary_pk",__func__,__LINE__); */
+/*     return _FAILURE_; */
+/*   } */
 
   if(spectra_pk_at_z(pba,psp,index_mode,z,temporary_pk) == _FAILURE_) {
     sprintf(psp->transmit_message,"%s(L:%d) : error in spectra_pk_at_z()\n=>%s",__func__,__LINE__,psp->error_message);
@@ -303,11 +302,11 @@ int spectra_init(
     printf("Computing output spectra\n");
 
   psp->md_size = ppt->md_size;
-  psp->ic_size = malloc(sizeof(int)*psp->md_size);
-  if (psp->ic_size == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate ic_size",__func__,__LINE__);
-    return _FAILURE_;
-  }
+
+  class_alloc(psp->ic_size,
+	      sizeof(int)*psp->md_size,
+	      psp->error_message);
+
   for (index_mode=0; index_mode < psp->md_size; index_mode++) 
     psp->ic_size[index_mode] = ppt->ic_size[index_mode];
 
@@ -321,11 +320,17 @@ int spectra_init(
 
   if (ptr->tt_size > 0) {
 
-    if (spectra_cl(ppt,ptr,ppm,psp) == _FAILURE_) {
-      sprintf(psp->transmit_message,"%s(L:%d) : error in spectra_cl()\n=>%s",__func__,__LINE__,psp->error_message);
-      sprintf(psp->error_message,"%s",psp->transmit_message);
-      return _FAILURE_;
-    }
+/*     if (spectra_cl(ppt,ptr,ppm,psp) == _FAILURE_) { */
+/*       sprintf(psp->transmit_message,"%s(L:%d) : error in spectra_cl()\n=>%s",__func__,__LINE__,psp->error_message); */
+/*       sprintf(psp->error_message,"%s",psp->transmit_message); */
+/*       return _FAILURE_; */
+/*     } */
+
+
+    class_call(spectra_cl(ppt,ptr,ppm,psp),
+	       psp->error_message,
+	       psp->error_message);
+
 
   }
   else {
@@ -467,7 +472,7 @@ int spectra_cl(
     sprintf(psp->error_message,"%s(L:%d) : Could not allocate cl",__func__,__LINE__);
     return _FAILURE_;
   }
-
+  
   psp->ddcl = malloc (sizeof(double *)*psp->md_size);
   if (psp->ddcl == NULL) {
     sprintf(psp->error_message,"%s(L:%d) : Could not allocate ddcl",__func__,__LINE__);

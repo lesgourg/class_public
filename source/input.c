@@ -44,7 +44,7 @@ int input_init(
   pth->z_reio=10.;   /* used only if above set to reio_z */
   pth->tau_reio=0.09; /* used only if above set to reio_tau */
   
-  /** - define which perturbations and sources should be computed */
+  /** - define which perturbations and sources should be computed, and down to which scale */
 
   ppt->has_scalars=_TRUE_;  
   ppt->has_vectors=_FALSE_;
@@ -69,11 +69,12 @@ int input_init(
   ppm->alpha_s_ad = 0. ; /* running */ 
   ppm->k_pivot = 0.05; /* pivot wavenumber in Mpc-1 */
 
-  /** - define up to which value P(k) should be computed */
+  /** - define up to which value of z P(k) should be computed */
 
   psp->z_max_pk = 0.;
 
-  /** - name of output files */
+  /** - prefix for name of output files (blank if no output files needed);
+   number of redshift for output P(k) (including 0 and z_max_pk if non-zero) */
 
   pop->cls_ad = "output/cls.dat";
   pop->pk = "output/pk.dat";
