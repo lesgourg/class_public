@@ -73,8 +73,8 @@ int trg_p12_ini(
       sprintf(pnl->error_message,"%s",errmsg);
       return _FAILURE_;
     }
-    temp3   = (temp2 - temp1)/pnl->eta_step;
-    result[index_k] = sqrt(temp1) * sqrt(fabs(temp3));
+    temp3   = (sqrt(temp2) - sqrt(temp1))/pnl->eta_step;
+    result[index_k] = sqrt(temp1) * temp3;
   }
   return _SUCCESS_;
 }
@@ -103,8 +103,8 @@ int trg_p22_ini(
       sprintf(pnl->error_message,"%s",errmsg);
       return _FAILURE_;
     }
-    temp3   = (temp2 - temp1)/pnl->eta_step;
-    result[index_k] = sqrt(fabs(temp3))*sqrt(fabs(temp3));
+    temp3   = (sqrt(temp2) - sqrt(temp1))/pnl->eta_step;
+    result[index_k] = temp3*temp3;
   }
   return _SUCCESS_;
 }
@@ -165,8 +165,6 @@ int trg_p_ab_at_any_k(
   /********************
    * Argument of the integral of all A's, B's, given at any time eta,
    * usually written as F( k,x+y/sqrt(2),x-y/sqrt(2) ) + F( y <-> -y)
-   *
-   *
    ********************/
 
  
@@ -180,7 +178,6 @@ int trg_p_ab_at_any_k(
 		double * result, 
 		char * errmsg){
 
-    double z;
     double p_11k,p_11m,p_11p;
     double p_12k,p_12m,p_12p;
     double p_22k,p_22m,p_22p;
@@ -188,119 +185,199 @@ int trg_p_ab_at_any_k(
     double gamma1_kpm,gamma1_pkm,gamma1_mkp,gamma1_mpk,gamma1_pmk,gamma1_kmp;
     double gamma2_kpm,gamma2_pkm,gamma2_mkp,gamma2_mpk,gamma2_pmk,gamma2_kmp;
 
-    int index_ic=0; /* or ppt->index_ic adiabatic=0 */
-
-    int k_size=pnl->k_size;
-
-    z=exp(pnl->eta[index_eta])-1.;
-    
-    if(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-   
-    if(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg)==_FAILURE_){
-    sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-    return _FAILURE_;
-    }
-   
-    if(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-    
-    if(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-   
-    if(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with vertex functions\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with vertex functions\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_gamma_222(p,k,m,&gamma2_pkm,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with vertex functions\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_gamma_222(p,m,k,&gamma2_pmk,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with vertex functions\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_gamma_222(m,p,k,&gamma2_mpk,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with vertex functions\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-
-    if(trg_gamma_222(m,k,p,&gamma2_mkp,errmsg)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): problem with vertex functions\n=>%s",__func__,__LINE__,errmsg);
-      return _FAILURE_;
-    }
-    
-    trg_gamma_121(k,p,m,&gamma1_kpm);
-    trg_gamma_121(k,m,p,&gamma1_kmp);
-
-    trg_gamma_121(p,k,m,&gamma1_pkm);
-    trg_gamma_121(p,m,k,&gamma1_pmk);
-
-    trg_gamma_121(m,p,k,&gamma1_mpk);
-    trg_gamma_121(m,k,p,&gamma1_mkp);
+/********************
+ * Every function needed for the argument of a certain integral is
+ * only called inside the switch case instance, in order to lower the
+ * execution time - this way the lecture of this function is somehow
+ * harder, but the argument is called in the very end of each case
+ * bloc. Moreover, the call of function is in this order : P_ab, the
+ * gamma2, then finally gamma1.
+ ********************/
 
     switch(name){
     case 'A0':
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,k,m,&gamma2_pkm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,m,k,&gamma2_pmk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,p,k,&gamma2_mpk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,k,p,&gamma2_mkp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+   
+   
       *result= gamma1_kpm *( gamma2_kpm*p_22p*p_22m + gamma2_pmk*p_22m*p_22k + 
 			     gamma2_mkp*p_22k*p_22p )
              + gamma1_kmp *( gamma2_kmp*p_22m*p_22p + gamma2_mpk*p_22p*p_22k + 
 			     gamma2_pkm*p_22k*p_22m );
        return _SUCCESS_;
       break;
+
+/****************************************/
+
     case 'A11':
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+      class_call(trg_gamma_222(p,k,m,&gamma2_pkm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,m,k,&gamma2_pmk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,p,k,&gamma2_mpk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,k,p,&gamma2_mkp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+
+       
+
+
       *result= gamma1_kpm *( gamma1_kpm*p_22p*p_12m + gamma1_kmp*p_12p*p_22m + 
 			     gamma2_pmk*p_22m*p_22k + gamma2_mkp*p_12k*p_22p)
 	     + gamma1_kmp *( gamma1_kmp*p_22m*p_12p + gamma1_kpm*p_12m*p_22p + 
 			     gamma2_mpk*p_22p*p_22k + gamma2_pkm*p_12k*p_22m);
        return _SUCCESS_;
       break;
+
+/****************************************/
+
     case 'A12':
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+   
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,k,m,&gamma2_pkm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,k,p,&gamma2_mkp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+  
+    
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
        *result= gamma1_kpm *( gamma2_kpm*p_22p*p_22m + gamma1_pmk*p_22m*p_12k +
 			      gamma1_pkm*p_12m*p_22k + gamma2_mkp*p_12k*p_22p)
 	      + gamma1_kmp *( gamma2_kmp*p_22m*p_22p + gamma1_mpk*p_22p*p_12k +
 			      gamma1_mkp*p_12p*p_22m + gamma2_pkm*p_12k*p_22m);
       return _SUCCESS_;
       break;
+
+/****************************************/
+
     case 'A21':
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+    
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
       *result= gamma1_kpm *( gamma2_kpm*p_12p*p_12m + gamma1_pmk*p_12m*p_11k +
 			     gamma1_pkm*p_11m*p_12k + gamma1_mkp*p_12k*p_11p +
 			     gamma1_mpk*p_11k*p_12p)
@@ -309,17 +386,414 @@ int trg_p_ab_at_any_k(
 			     gamma1_pmk*p_11k*p_12m);
       return _SUCCESS_;
       break;
-          /*
+
+/****************************************/
+
     case 'A22':
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      
+   
+      class_call(trg_gamma_222(p,m,k,&gamma2_pmk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,p,k,&gamma2_mpk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+  
+    
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
+
+      *result= gamma1_kpm *( gamma1_kpm*p_22p*p_11m + gamma1_kmp*p_12p*p_12m +
+			     gamma2_pmk*p_22m*p_12k + gamma1_mkp*p_22k*p_11p +
+			     gamma1_mpk*p_12k*p_12p)
+	     + gamma1_kmp *( gamma1_kmp*p_22m*p_11p + gamma1_kpm*p_12m*p_12p +
+			     gamma2_mpk*p_22p*p_12k + gamma1_pkm*p_22k*p_11m +
+			     gamma1_pmk*p_12k*p_12m);
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
     case 'A3':
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
+
+      *result= (gamma1_kpm+gamma1_kmp) *(
+		             gamma1_kpm*p_12p*p_11m + gamma1_kmp*p_11p*p_12m +
+			     gamma1_pmk*p_12m*p_11k + gamma1_pkm*p_11m*p_12k +
+			     gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
+
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
     case 'B0':
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+    
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
+      *result= (gamma2_kpm+gamma2_kmp) *(
+			     gamma1_kpm*p_12p*p_11m + gamma1_kmp*p_11p*p_12m +
+			     gamma1_pmk*p_12m*p_11k + gamma1_pkm*p_11m*p_12k +
+			     gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
     case 'B11':
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
+
+      *result= gamma2_kpm *( gamma2_kpm*p_12p*p_12m + gamma1_pmk*p_12m*p_11k +
+			     gamma1_pkm*p_11m*p_12k + gamma1_mkp*p_12k*p_11p +
+			     gamma1_mpk*p_11k*p_12p)
+	     + gamma2_kmp *( gamma2_kmp*p_12m*p_12p + gamma1_mpk*p_12p*p_11k +
+			     gamma1_mkp*p_11p*p_12k + gamma1_pkm*p_12k*p_11m +
+			     gamma1_pmk*p_11k*p_12m);
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
     case 'B12':
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+   
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,m,k,&gamma2_pmk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,p,k,&gamma2_mpk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+       
+    
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
+       *result= gamma2_kpm *( gamma1_kpm*p_22p*p_11m + gamma1_kmp*p_12p*p_12m +
+			      gamma2_pmk*p_22m*p_12k + gamma1_mkp*p_22k*p_11p +
+			      gamma1_mpk*p_12k*p_12p)
+	      + gamma2_kmp *( gamma1_kmp*p_22m*p_11p + gamma1_kpm*p_12m*p_12p +
+			      gamma2_mpk*p_22p*p_12k + gamma1_pkm*p_22k*p_11m +
+			      gamma1_pmk*p_12k*p_12m);
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
     case 'B21':
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+   
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,k,m,&gamma2_pkm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,m,k,&gamma2_pmk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,p,k,&gamma2_mpk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,k,p,&gamma2_mkp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+  
+    
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+
+
+      *result= gamma2_kpm *( gamma1_kpm*p_22p*p_12m + gamma1_kmp*p_12p*p_22m + 
+			     gamma2_pmk*p_22m*p_22k + gamma2_mkp*p_12k*p_22p)
+	     + gamma2_kmp *( gamma1_kmp*p_22m*p_12p + gamma1_kpm*p_12m*p_22p + 
+			     gamma2_mpk*p_22p*p_22k + gamma2_pkm*p_12k*p_22m);
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
     case 'B22':
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,p,&p_12p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,m,&p_12m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+
+    
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+   
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,k,m,&gamma2_pkm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,k,p,&gamma2_mkp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+  
+    
+      trg_gamma_121(p,k,m,&gamma1_pkm);
+      trg_gamma_121(p,m,k,&gamma1_pmk);
+      trg_gamma_121(m,p,k,&gamma1_mpk);
+      trg_gamma_121(m,k,p,&gamma1_mkp);
+
+      *result= gamma2_kpm *( gamma2_kpm*p_22p*p_22m + gamma1_pmk*p_22m*p_12k +
+			     gamma1_pkm*p_12m*p_22k + gamma2_mkp*p_12k*p_22p)
+	     + gamma2_kmp *( gamma2_kmp*p_22m*p_22p + gamma1_mpk*p_22p*p_12k +
+			     gamma1_mkp*p_12p*p_22m + gamma2_pkm*p_12k*p_22m);
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
     case 'B3':
-      return;
-      break;*/
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,p,&p_22p,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,m,&p_22m,errmsg),
+		 errmsg,
+		 pnl->error_message);
+    
+   
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,k,m,&gamma2_pkm,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(p,m,k,&gamma2_pmk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,p,k,&gamma2_mpk,errmsg),
+		 errmsg,
+		 pnl->error_message);
+      class_call(trg_gamma_222(m,k,p,&gamma2_mkp,errmsg),
+		 errmsg,
+		 pnl->error_message);
+  
+    
+      *result= gamma2_kpm *( gamma2_kpm*p_22p*p_22m + gamma2_pmk*p_22m*p_22k + 
+			     gamma2_mkp*p_22k*p_22p )
+             + gamma2_kmp *( gamma2_kmp*p_22m*p_22p + gamma2_mpk*p_22p*p_22k + 
+			     gamma2_pkm*p_22k*p_22m );
+      return _SUCCESS_;
+      break;
+
+/****************************************/
+
       default:
 	sprintf(pnl->error_message,"%s(L:%d): non valid argument in integrals A of I, %d is not defined\n",__func__,__LINE__,name);
 	return _FAILURE_;
@@ -339,8 +813,6 @@ int trg_integrate_xy_at_eta(
 			      char *errmsg
 			      ){
   
-  FILE *toto;
-
   int index_k;
   double k_max=pnl->k_max; /* choice of maximum k when integrating over x*/
   double x,y;
@@ -354,15 +826,6 @@ int trg_integrate_xy_at_eta(
   
   double *sum_y;
 
-  if((toto=fopen("arg_of_y.dat","w"))==NULL){
-    printf("Error:cannot create the file\n");
-  }
-  fprintf(toto,"##hello world\n");
-
-
-
-
-  
   double epsilon; /* cut-off scale to avoid numerical divergence*/
 
   epsilon=psp->k[0];
@@ -390,8 +853,6 @@ int trg_integrate_xy_at_eta(
 	  sprintf(pnl->error_message,"%s(L:%d): error of definition in integrals A\n=>%s",__func__,__LINE__,errmsg);
 	}
 	arg_plus=(x*x-y*y)/4 * temp;
-	if(index_x==0){
-	  fprintf(toto,"%e %e\n",y,arg_plus);}
 	  
 
 	for(index_y=0; index_y<n_xy; index_y++){
@@ -409,8 +870,6 @@ int trg_integrate_xy_at_eta(
 	  }
 	  arg_plus=(x*x-y*y)/4 * temp;
 	  sum_y[index_x]+=y_step*0.5*(arg_plus+arg_minus);
-	  if(index_x==0){
-	    fprintf(toto,"%e %e\n",y,arg_plus);}
 	}
       }
     }
@@ -419,7 +878,6 @@ int trg_integrate_xy_at_eta(
       result[index_k+k_size*index_eta]+=x_step*0.5*(sum_y[index_x]+sum_y[index_x+1]); /* integration over x */
     }
   }
-  fclose(toto);
   return _SUCCESS_;
 }
 
@@ -468,6 +926,11 @@ int trg_init (
 
   double eta_step; /* step for integrations */
   double k_step;
+
+  double exp_eta;
+  double pi_over_k;
+  int index;  
+  int index_plus; /* intermediate variables for time integration */
   
   double Omega_11,Omega_12; /* Definition of the matrix Omega that mixes terms together*/
   double *Omega_21,*Omega_22;
@@ -665,89 +1128,230 @@ int trg_init (
   B22 = calloc(pnl->k_size*pnl->eta_size,sizeof(double));
   B3  = calloc(pnl->k_size*pnl->eta_size,sizeof(double));
 
-  /* integrer a eta=0 */
+  /********************
+   *
+   * Integration at eta=0 with n_xy number of steps for integration
+   * over x and n_xy over y.
+   *
+   ********************/
   double temp1,temp2,temp3;
 
   n_xy=100; /* number of dots for integration with trapezoidal
 	       method */
 
+  if (pnl->spectra_nl_verbose > 0)
+    printf("Initialisation...\n");
+
+  class_call(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+  if (pnl->spectra_nl_verbose > 0)
+    printf("1  out of 12\n");
+				     
+  class_call(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+  if (pnl->spectra_nl_verbose > 0)
+    printf("2  out of 12\n");
+  
+  class_call(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k_size,A12,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+  if (pnl->spectra_nl_verbose > 0)
+    printf("3  out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k_size,A21,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("4  out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k_size,A22,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("5  out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k_size,A3,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("6  out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k_size,B0,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("7  out of 12\n");
+  
+  class_call(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k_size,B11,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("8  out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k_size,B12,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("9  out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k_size,B21,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("10 out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k_size,B22,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("11 out of 12\n");
+
+  class_call(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k_size,B3,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+   if (pnl->spectra_nl_verbose > 0)
+    printf("12 out of 12\n");
 
 
-  if(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>%s",__func__,__LINE__,pnl->error_message);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  
-  if(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,Transmit_Error_Message)==_FAILURE_){
-    sprintf(pnl->error_message,"%s(L:%d):error in trg_integrate_xy_at_eta()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  
-  /*   for(index_k=0;index_k<pnl->k_size;index_k++){
-     printf("%e\t%e\t%e\t%e\n",pnl->k[index_k],pnl->p_12[index_k],A0[index_k],A11[index_k]);
-   }
-  */
-   /*
-  if(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k,k_size,A12,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k,k_size,A21,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k,k_size,A22,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k,k_size,A3,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
+  /********************
+   * Now we calculate the time evolution with a very simple integrator
+   ********************/
+
+  if (pnl->spectra_nl_verbose > 0)
+    printf("\n\nprogression in per cent\n\n");
+
+  for (index_eta=1; index_eta<pnl->eta_size; index_eta++){
+    exp_eta=exp(pnl->eta[index_eta-1]);
+    printf("%2.2f\n",100.*index_eta/(pnl->eta_size-1.));
+    for (index_k=0; index_k<pnl->k_size; index_k++){
+      pi_over_k=4*_PI_/(pnl->k[index_k]);
+      index = index_k+pnl->k_size*(index_eta-1);
+      index_plus = index_k+pnl->k_size*index_eta;
+
+      pnl->pk_nl[index_plus]= eta_step *(
+					 -2*Omega_11*pnl->pk_nl[index]
+					 -2*Omega_12*pnl->p_12[index]
+					 +exp_eta*4*pi_over_k*a22[index] )
+	                    + pnl->pk_nl[index];
+
+      pnl->p_22[index_plus] = eta_step *(
+					 -2*Omega_22[index_eta-1]*pnl->p_22[index]
+					 -2*Omega_21[index_eta-1]*pnl->p_12[index]
+					 +exp_eta*2*pi_over_k*b3[index] )
+	                    + pnl->p_22[index];
+
+      pnl->p_12[index_plus] = eta_step *(
+					 -pnl->p_12[index]*(Omega_11+Omega_22[index_eta-1])
+					 -Omega_12*pnl->p_22[index]
+					 -Omega_21[index_eta-1]*pnl->pk_nl[index]
+					 +exp_eta*pi_over_k*(2*a22[index]+b21[index]))
+	                     + pnl->p_12[index];
+
+      a0[index_plus]         = eta_step *(
+					  -Omega_21[index_eta-1]*(a11[index]+2*a12[index])
+					  -3*Omega_22[index_eta-1]*a0[index]
+					  +2*exp_eta*A0[index])
+	                     + a0[index];
+
+      a11[index_plus] = eta_step *(
+				   -a11[index]*(2*Omega_22[index_eta-1]+Omega_11)
+				   -3*Omega_12*a0[index]
+				   -2*Omega_21[index_eta-1]*a22[index]
+				   +2*exp_eta*A11[index])
+	              + a11[index];
+
+      a12[index_plus] = eta_step *(
+				   -a12[index]*(2*Omega_22[index_eta-1]+Omega_11)
+				   -Omega_21[index_eta-1]*(a22[index]+a21[index])
+				   -Omega_12*a0[index]
+				   +2*exp_eta*A12[index])
+	              + a12[index];
+
+      a21[index_plus] = eta_step *(
+				   -a21[index]*(2*Omega_11+Omega_22[index_eta-1])
+				   -2*Omega_12*a12[index]
+				   -Omega_21[index_eta-1]*a3[index]
+				   +2*exp_eta*A21[index])
+	              + a21[index];
+
+      a22[index_plus] = eta_step *(
+				   -a22[index]*(2*Omega_11+Omega_22[index_eta-1])
+				   -Omega_12*(a12[index]+a11[index])
+				   -Omega_21[index_eta-1]*a3[index]
+				   +2*exp_eta*A22[index])
+	              + a22[index];
+
+      a3[index_plus]  = eta_step *(
+				   -a3[index]*3*Omega_11
+				   -Omega_12*(2*a22[index]+a21[index])
+				   +2*exp_eta*A3[index])
+	              + a3[index];
+
+      b0[index_plus]  = eta_step *(
+				   -3*b0[index]*Omega_11
+				   -Omega_12*(b11[index]+2*b12[index])
+				   +2*exp_eta*B0[index])
+ 	              + b0[index];
+
+      b11[index_plus] = eta_step *(
+				   -b11[index]*(2*Omega_11+Omega_22[index_eta-1])
+				   -2*Omega_12*b22[index]
+				   -Omega_21[index_eta-1]*b0[index]
+				   +2*exp_eta*B11[index])
+	              + b11[index];
+
+      b12[index_plus] = eta_step *(
+				   -b12[index]*(2*Omega_22[index_eta-1]+Omega_11)
+				   -Omega_12*(b22[index]+b21[index])
+				   -Omega_21[index_eta-1]*b0[index]
+				   +2*exp_eta*B12[index])
+	              + b12[index];
+
+      b21[index_plus] = eta_step *(
+				   -b21[index]*(2*Omega_22[index_eta-1]+Omega_11)
+				   -2*Omega_21[index_eta-1]*b12[index]
+				   -Omega_12*b3[index]
+				   +2*exp_eta*B21[index])
+	              + b21[index];
+
+      b22[index_plus] = eta_step *(
+				   -b22[index]*(2*Omega_22[index_eta-1]+Omega_11)
+				   -2*Omega_21[index_eta-1]*(b12[index]+b11[index])
+				   -Omega_12*b3[index]
+				   +2*exp_eta*B22[index])
+	              + b22[index];
+
+      b3[index_plus]  = eta_step *(
+				   -3*Omega_22[index_eta-1]*b3[index]
+				   -Omega_21[index_eta-1]*(b21[index]+2*b22[index])
+				   +2*exp_eta*B3[index])
+	              + b3[index];
+	
+    }
   }
 
-  if(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k,k_size,B0,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k,k_size,B11,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k,k_size,B12,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k,k_size,B21,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k,k_size,B22,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k,k_size,B3,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d):error in trg_integrate_xy_at_eta",__func__,__LINE__);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  
-  */
+
 
   /* if (trg_gamma_222(2,2,2)==0.){
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in trg_gamma_222() (divide by 0!)\n=>%s",__func__,__LINE__,pnl->error_message);
     sprintf(pnl->error_message,Transmit_Error_Message);
      return(_FAILURE_);
     }*/
+
   
   free(B3);
   free(B22);
@@ -794,23 +1398,3 @@ int trg_free(){
 
   return _SUCCESS_;  
 }
-
-  /* how to return an error after calling a function*/
-/*   if (trg_xxx() == _FAILURE_) { */
-/*     sprintf(Transmit_Error_Message,"%s(L:%d) : error in trg_xxx()\n=>%s",__func__,__LINE__,pnl->error_message); */
-/*     sprintf(pnl->error_message,Transmit_Error_Message);  */
-/*     return _FAILURE_; */
-/*   }  */
-
-  /* how to return an error in other cases*/
-/*   if (1==0) { */
-/*     sprintf(Transmit_Error_Message,"%s(L:%d) : this is a short summary of the error",__func__,__LINE__); */
-/*     sprintf(pnl->error_message,Transmit_Error_Message);  */
-/*     return _FAILURE_; */
-/*   } */
-
-/* int trg_xxx () { */
-
-/*   return _SUCCESS_; */
-
-/* } */
