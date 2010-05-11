@@ -908,6 +908,8 @@ int trg_init (
 	      struct spectra_nl * pnl_output 
 	      ) {
 
+  FILE *nl_spectra;
+
   int index_k;
   int index_eta;
 
@@ -966,7 +968,7 @@ int trg_init (
   eta_max = log(ppr->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 10;
+  pnl->eta_size = 5;
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
@@ -1142,102 +1144,110 @@ int trg_init (
   if (pnl->spectra_nl_verbose > 0)
     printf("Initialisation...\n");
 
+
   class_call(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-  if (pnl->spectra_nl_verbose > 0)
-    printf("1  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf(" 1/12");}
 				     
   class_call(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-  if (pnl->spectra_nl_verbose > 0)
-    printf("2  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 2/12");}
   
   class_call(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k_size,A12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-  if (pnl->spectra_nl_verbose > 0)
-    printf("3  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 3/12");}
 
   class_call(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k_size,A21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("4  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 4/12");}
 
   class_call(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k_size,A22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("5  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 5/12");}
 
   class_call(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k_size,A3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("6  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 6/12");}
 
   class_call(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k_size,B0,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("7  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 7/12");}
   
   class_call(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k_size,B11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("8  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 8/12");}
 
   class_call(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k_size,B12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("9  out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r 9/12");}
 
   class_call(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k_size,B21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("10 out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r10/12");}
 
   class_call(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k_size,B22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("11 out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r11/12");}
 
   class_call(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k_size,B3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
-   if (pnl->spectra_nl_verbose > 0)
-    printf("12 out of 12\n");
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\r12/12");}
 
 
   /********************
    * Now we calculate the time evolution with a very simple integrator
    ********************/
 
-  if (pnl->spectra_nl_verbose > 0)
-    printf("\n\nprogression in per cent\n\n");
+  if((nl_spectra = fopen("nl_spectra.dat","wr")) == NULL)
+    printf("could not create nl_spectra.dat !!n");
 
+  if (pnl->spectra_nl_verbose > 0){
+    printf("\n\nprogression in per cent\n\n");}
+ 
   for (index_eta=1; index_eta<pnl->eta_size; index_eta++){
     exp_eta=exp(pnl->eta[index_eta-1]);
-    printf("%2.2f\n",100.*index_eta/(pnl->eta_size-1.));
     for (index_k=0; index_k<pnl->k_size; index_k++){
+
+      /**********
+       * Computation for every k of the function at the next time step
+       **********/
+
       pi_over_k=4*_PI_/(pnl->k[index_k]);
       index = index_k+pnl->k_size*(index_eta-1);
       index_plus = index_k+pnl->k_size*index_eta;
@@ -1267,84 +1277,146 @@ int trg_init (
 					  +2*exp_eta*A0[index])
 	                     + a0[index];
 
-      a11[index_plus] = eta_step *(
-				   -a11[index]*(2*Omega_22[index_eta-1]+Omega_11)
-				   -3*Omega_12*a0[index]
-				   -2*Omega_21[index_eta-1]*a22[index]
-				   +2*exp_eta*A11[index])
-	              + a11[index];
+      a11[index_plus]        = eta_step *(
+					  -a11[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -3*Omega_12*a0[index]
+					  -2*Omega_21[index_eta-1]*a22[index]
+					  +2*exp_eta*A11[index])
+	                     + a11[index];
 
-      a12[index_plus] = eta_step *(
-				   -a12[index]*(2*Omega_22[index_eta-1]+Omega_11)
-				   -Omega_21[index_eta-1]*(a22[index]+a21[index])
-				   -Omega_12*a0[index]
-				   +2*exp_eta*A12[index])
-	              + a12[index];
+      a12[index_plus]        = eta_step *(
+					  -a12[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -Omega_21[index_eta-1]*(a22[index]+a21[index])
+					  -Omega_12*a0[index]
+					  +2*exp_eta*A12[index])
+	                     + a12[index];
 
-      a21[index_plus] = eta_step *(
-				   -a21[index]*(2*Omega_11+Omega_22[index_eta-1])
-				   -2*Omega_12*a12[index]
-				   -Omega_21[index_eta-1]*a3[index]
-				   +2*exp_eta*A21[index])
-	              + a21[index];
+      a21[index_plus]        = eta_step *(
+					  -a21[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -2*Omega_12*a12[index]
+					  -Omega_21[index_eta-1]*a3[index]
+					  +2*exp_eta*A21[index])
+	                     + a21[index];
 
-      a22[index_plus] = eta_step *(
-				   -a22[index]*(2*Omega_11+Omega_22[index_eta-1])
-				   -Omega_12*(a12[index]+a11[index])
-				   -Omega_21[index_eta-1]*a3[index]
-				   +2*exp_eta*A22[index])
-	              + a22[index];
+      a22[index_plus]        = eta_step *(
+					  -a22[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -Omega_12*(a12[index]+a11[index])
+					  -Omega_21[index_eta-1]*a3[index]
+					  +2*exp_eta*A22[index])
+	                     + a22[index];
 
-      a3[index_plus]  = eta_step *(
-				   -a3[index]*3*Omega_11
-				   -Omega_12*(2*a22[index]+a21[index])
-				   +2*exp_eta*A3[index])
-	              + a3[index];
+      a3[index_plus]         = eta_step *(
+					  -a3[index]*3*Omega_11
+					  -Omega_12*(2*a22[index]+a21[index])
+					  +2*exp_eta*A3[index])
+	                     + a3[index];
 
-      b0[index_plus]  = eta_step *(
-				   -3*b0[index]*Omega_11
-				   -Omega_12*(b11[index]+2*b12[index])
-				   +2*exp_eta*B0[index])
- 	              + b0[index];
+      b0[index_plus]         = eta_step *(
+					  -3*b0[index]*Omega_11
+					  -Omega_12*(b11[index]+2*b12[index])
+					  +2*exp_eta*B0[index])
+ 	                     + b0[index];
 
-      b11[index_plus] = eta_step *(
-				   -b11[index]*(2*Omega_11+Omega_22[index_eta-1])
-				   -2*Omega_12*b22[index]
-				   -Omega_21[index_eta-1]*b0[index]
-				   +2*exp_eta*B11[index])
-	              + b11[index];
+      b11[index_plus]        = eta_step *(
+					  -b11[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -2*Omega_12*b22[index]
+					  -Omega_21[index_eta-1]*b0[index]
+					  +2*exp_eta*B11[index])
+	                     + b11[index];
 
-      b12[index_plus] = eta_step *(
-				   -b12[index]*(2*Omega_22[index_eta-1]+Omega_11)
-				   -Omega_12*(b22[index]+b21[index])
-				   -Omega_21[index_eta-1]*b0[index]
-				   +2*exp_eta*B12[index])
-	              + b12[index];
+      b12[index_plus]        = eta_step *(
+					  -b12[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -Omega_12*(b22[index]+b21[index])
+					  -Omega_21[index_eta-1]*b0[index]
+					  +2*exp_eta*B12[index])
+	                     + b12[index];
 
-      b21[index_plus] = eta_step *(
-				   -b21[index]*(2*Omega_22[index_eta-1]+Omega_11)
-				   -2*Omega_21[index_eta-1]*b12[index]
-				   -Omega_12*b3[index]
-				   +2*exp_eta*B21[index])
-	              + b21[index];
+      b21[index_plus]        = eta_step *(
+					  -b21[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -2*Omega_21[index_eta-1]*b12[index]
+					  -Omega_12*b3[index]
+					  +2*exp_eta*B21[index])
+	                     + b21[index];
 
-      b22[index_plus] = eta_step *(
-				   -b22[index]*(2*Omega_22[index_eta-1]+Omega_11)
-				   -2*Omega_21[index_eta-1]*(b12[index]+b11[index])
-				   -Omega_12*b3[index]
-				   +2*exp_eta*B22[index])
-	              + b22[index];
+      b22[index_plus]        = eta_step *(
+					  -b22[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -2*Omega_21[index_eta-1]*(b12[index]+b11[index])
+					  -Omega_12*b3[index]
+					  +2*exp_eta*B22[index])
+	                     + b22[index];
 
-      b3[index_plus]  = eta_step *(
-				   -3*Omega_22[index_eta-1]*b3[index]
-				   -Omega_21[index_eta-1]*(b21[index]+2*b22[index])
-				   +2*exp_eta*B3[index])
-	              + b3[index];
+      b3[index_plus]         = eta_step *(
+					  -3*Omega_22[index_eta-1]*b3[index]
+					  -Omega_21[index_eta-1]*(b21[index]+2*b22[index])
+					  +2*exp_eta*B3[index])
+	                     + b3[index];
 	
     }
+    
+    /**********
+     * Update of A's and B's function at the new index_eta
+     **********/
+    
+    class_call(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k_size,A12,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k_size,A21,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k_size,A22,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k_size,A3,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k_size,B0,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k_size,B11,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k_size,B12,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k_size,B21,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k_size,B22,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k_size,B3,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+    
+    printf("%2.2f%%\n",100.*index_eta/(pnl->eta_size-1.));
   }
 
+  printf("Done !\n");
 
+  fprintf(nl_spectra,"##for %d values of k\n## k\tpk_nl\tp_12\tp_22 at last eta(today)\n",pnl->k_size);
+
+  for(index_k=0; index_k<pnl->k_size; index_k++){
+    fprintf(nl_spectra,"%e\t%e\t%e\t%e\n",pnl->k[index_k],pnl->pk_nl[index_k+pnl->k_size*(pnl->eta_size-1)],pnl->p_12[index_k+pnl->k_size*(pnl->eta_size-1)],pnl->p_22[index_k+pnl->k_size*(pnl->eta_size-1)]);
+  }
+
+  fclose(nl_spectra);
 
   /* if (trg_gamma_222(2,2,2)==0.){
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in trg_gamma_222() (divide by 0!)\n=>%s",__func__,__LINE__,pnl->error_message);
