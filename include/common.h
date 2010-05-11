@@ -44,6 +44,23 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
     }									\
   } while(0);
 
+
+/* same in parallel region */
+#define class_call_parallel(function,					\
+			    error_message_from_function,		\
+			    error_message_output)			\
+  do {									\
+    if (abort == _FALSE_) {						\
+      if (function == _FAILURE_) {					\
+	ErrorMsg Transmit_Error_Message;				\
+	sprintf(Transmit_Error_Message,"%s(L:%d) : error in %s;\n=>%s",	\
+		__func__,__LINE__,#function,error_message_from_function); \
+	sprintf(error_message_output,"%s",Transmit_Error_Message);	\
+	abort=_TRUE_;							\
+      }									\
+    }									\
+  } while(0);
+
 /* macro for testing condition and returning error if condition is true;
    args is a variable list of optional arguments, e.g.: args="x=%d",x 
    args cannot be empty, if there is nothing to pass use args="" */
@@ -64,6 +81,26 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
     }									\
   } while(0);
 
+/* same in parallel region */
+#define class_test_parallel(condition,					\
+		   error_message_output,				\
+		   args...)						\
+  do {									\
+    if (abort == _FALSE_) {						\
+      if (condition) {							\
+	ErrorMsg Transmit_Error_Message;				\
+	ErrorMsg Optional_arguments;					\
+	sprintf(Transmit_Error_Message,					\
+		"%s(L:%d) : condition (%s) is true",			\
+		__func__,__LINE__,#condition);				\
+	sprintf(Optional_arguments,args);				\
+	sprintf(error_message_output,"%s; %s",				\
+		Transmit_Error_Message, Optional_arguments);		\
+	abort=_TRUE_;							\
+      }									\
+    }									\
+  } while(0);
+
 /* macro for allocating memory and returning error if it failed */
 #define class_alloc(pointer,						\
 		    size,						\
@@ -78,6 +115,25 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
 	      #pointer,size);						\
       sprintf(error_message_output,"%s",Transmit_Error_Message);	\
       return _FAILURE_;							\
+    }									\
+  } while(0);
+
+/* same inside parallel structure */
+#define class_alloc_parallel(pointer,					\
+		    size,						\
+		    error_message_output)				\
+  do {									\
+    if (abort == _FALSE_) {						\
+      pointer=malloc(size);						\
+      if (pointer == NULL) {						\
+	ErrorMsg Transmit_Error_Message;				\
+	sprintf(Transmit_Error_Message,					\
+		"%s(L:%d) : could not allocate %s with size %d",	\
+		__func__,__LINE__,					\
+		#pointer,size);						\
+	sprintf(error_message_output,"%s",Transmit_Error_Message);	\
+	abort=_TRUE_;							\
+      }									\
     }									\
   } while(0);
 

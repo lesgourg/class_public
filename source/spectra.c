@@ -6,6 +6,9 @@
  */
 
 #include "spectra.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 int spectra_cl_at_l(
 		    struct spectra * psp,
@@ -169,11 +172,11 @@ int spectra_pk_at_k_and_z(
      * P(k) = A k P_ini(k) 
      * so     
      * P(k) = P(kmin) * (k P_ini(k)) / (kmin P_ini(kmin)) 
-    */
+     */
 
     class_test((ppm->primordial_spec_type != smooth_Pk),
-	      psp->error_message,
-	      "in this case, exptrapolation for k=%e below k_min=%e is impossible",k,psp->k[0]);
+	       psp->error_message,
+	       "in this case, exptrapolation for k=%e below k_min=%e is impossible",k,psp->k[0]);
       
     if (k == 0.) {
       *pk=0.;
@@ -402,6 +405,15 @@ int spectra_cl(
   double * transfer;
   double * primordial_pk;  /*pk[index_ic]*/
 
+#ifdef _OPENMP
+  /* abort flag, useful for parallel regions */
+  int abort;
+  /* instrumentation times */
+  double tstart, tstop;
+
+  abort=_FALSE_;
+#endif
+
   class_alloc(psp->l_size,sizeof(int)*psp->md_size,psp->error_message);
   class_alloc(psp->l,sizeof(double *)*psp->md_size,psp->error_message);
   class_alloc(psp->cl,sizeof(double *)*psp->md_size,psp->error_message);
@@ -419,134 +431,214 @@ int spectra_cl(
     }
 
     class_alloc(psp->cl[index_mode],sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode],psp->error_message);
- 
     class_alloc(psp->ddcl[index_mode],sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode],psp->error_message);
-
     cl_integrand_num_columns = 1+psp->ct_size*2; /* one for k, ct_size for each type, ct_size for each second derivative of each type */
-
-    class_alloc(cl_integrand,ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),psp->error_message);
-
-    class_alloc(primordial_pk,psp->ic_size[index_mode]*sizeof(double),psp->error_message);
-
-    class_alloc(transfer,ptr->tt_size*sizeof(double),psp->error_message);
 
     /** - loop over initial conditions */
     for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
 
-      /** - loop over l values defined in the transfer module. For each l: */
-      for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
+#pragma omp parallel							\
+  shared(ptr,ppm,index_mode,psp,ppt,cl_integrand_num_columns,index_ic,abort) \
+  private(tstart,cl_integrand,primordial_pk,transfer,index_l,index_k,k,index_tt,index_ct,clvalue,tstop)
+      
+      {
 
-	/** - compute integrand \f$ \Delta_l(k)^2 / k \f$ for each k in the transfer function's table (assumes flat primordial spectrum) */
+#ifdef _OPENMP
+	tstart = omp_get_wtime();
+	class_alloc_parallel(cl_integrand,ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),psp->error_message);
+	class_alloc_parallel(primordial_pk,psp->ic_size[index_mode]*sizeof(double),psp->error_message);
+	class_alloc_parallel(transfer,ptr->tt_size*sizeof(double),psp->error_message);
+#pragma omp flush(abort)
+	if (abort == _FALSE_) {
+#else
+	  class_alloc(cl_integrand,ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),psp->error_message);
+	  class_alloc(primordial_pk,psp->ic_size[index_mode]*sizeof(double),psp->error_message);
+	  class_alloc(transfer,ptr->tt_size*sizeof(double),psp->error_message);
+#endif
 
-	for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
+#pragma omp for schedule (dynamic)
 
-	  k = ptr->k[index_mode][index_k];
+	  /** - loop over l values defined in the transfer module. For each l: */
+	  for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
 
-	  cl_integrand[index_k*cl_integrand_num_columns+0] = k;
-	    
-	  class_call(primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk),
-		     ppm->error_message,
-		     psp->error_message);
+	    /** - compute integrand \f$ \Delta_l(k)^2 / k \f$ for each k in the transfer function's table (assumes flat primordial spectrum) */
 
-	  /* above routine checks that k>0: no possible division by zero below */
+	    for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
 
-	  for (index_tt=0; index_tt < ptr->tt_size; index_tt++) {
+	      k = ptr->k[index_mode][index_k];
 
-	    transfer[index_tt] = 
-	      ptr->transfer[index_mode]
-	      [((index_ic * ptr->tt_size + index_tt)
-		* ptr->l_size[index_mode] + index_l)
-	       * ptr->k_size[index_mode] + index_k];
+	      cl_integrand[index_k*cl_integrand_num_columns+0] = k;
 
-	  }
+#ifdef _OPENMP
+	      class_call_parallel(primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk),
+				  ppm->error_message,
+				  psp->error_message);
 
-	  if (ppt->has_cl_cmb_temperature == _TRUE_) {
-	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
-	      * transfer[ptr->index_tt_t]
-	      * transfer[ptr->index_tt_t]
-	      * 4. * _PI_ / k;
-	  }
+#pragma omp flush(abort)
+
+	      if (abort == _FALSE_) {
+#else
+		class_call(primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk),
+			   ppm->error_message,
+			   psp->error_message);
+#endif
+
+		/* above routine checks that k>0: no possible division by zero below */
+
+		for (index_tt=0; index_tt < ptr->tt_size; index_tt++) {
+		
+		  transfer[index_tt] = 
+		    ptr->transfer[index_mode]
+		    [((index_ic * ptr->tt_size + index_tt)
+		      * ptr->l_size[index_mode] + index_l)
+		     * ptr->k_size[index_mode] + index_k];
+		
+		}
+
+		if (ppt->has_cl_cmb_temperature == _TRUE_) {
+		  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
+		    * transfer[ptr->index_tt_t]
+		    * transfer[ptr->index_tt_t]
+		    * 4. * _PI_ / k;
+		}
 	      
-	  if (ppt->has_cl_cmb_polarization == _TRUE_) {
-	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
-	      * transfer[ptr->index_tt_p]
-	      * transfer[ptr->index_tt_p]
-	      * 4. * _PI_ / k;
-	  }
+		if (ppt->has_cl_cmb_polarization == _TRUE_) {
+		  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
+		    * transfer[ptr->index_tt_p]
+		    * transfer[ptr->index_tt_p]
+		    * 4. * _PI_ / k;
+		}
 
-	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) {
-	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
-	      * transfer[ptr->index_tt_t]
-	      * transfer[ptr->index_tt_p]
-	      * 4. * _PI_ / k;
-	  }
+		if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) {
+		  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
+		    * transfer[ptr->index_tt_t]
+		    * transfer[ptr->index_tt_p]
+		    * 4. * _PI_ / k;
+		}
 
-	  if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
+		if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
 
-	    if (index_mode == ppt->index_md_scalars) {
-	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.;
+		  if (index_mode == ppt->index_md_scalars) {
+		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.;
+		  }
+
+#ifdef _OPENMP
+		  class_test_parallel((index_mode == ppt->index_md_tensors),
+				      psp->error_message,"tensors not coded yet");
+#else
+		  class_test((index_mode == ppt->index_md_tensors),
+			     psp->error_message,"tensors not coded yet");
+#endif
+	      
+		}
+	      
+		if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+		  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
+		    * transfer[ptr->index_tt_lcmb]
+		    * transfer[ptr->index_tt_lcmb]
+		    * 4. * _PI_ / k;
+		}
+
+		if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
+		  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
+		    * transfer[ptr->index_tt_t]
+		    * transfer[ptr->index_tt_lcmb]
+		    * 4. * _PI_ / k;
+		}
+
+#ifdef _OPENMP
+	      }
+#endif
+
 	    }
 
-	    class_test((index_mode == ppt->index_md_tensors),
-		       psp->error_message,"tensors not coded yet");
-	      
-	  }
-	      
-	  if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
-	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
-	      * transfer[ptr->index_tt_lcmb]
-	      * transfer[ptr->index_tt_lcmb]
-	      * 4. * _PI_ / k;
-	  }
+	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 
-	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
-	    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
-	      * transfer[ptr->index_tt_t]
-	      * transfer[ptr->index_tt_lcmb]
-	      * 4. * _PI_ / k;
+#ifdef _OPENMP
+	      class_call_parallel(array_spline(cl_integrand,
+					       cl_integrand_num_columns,
+					       ptr->k_size[index_mode],
+					       0,
+					       1+index_ct,
+					       1+psp->ct_size+index_ct,
+					       _SPLINE_EST_DERIV_,
+					       psp->error_message),
+				  psp->error_message,
+				  psp->error_message);
+
+	      class_call_parallel(array_integrate_all_spline(cl_integrand,
+							     cl_integrand_num_columns,
+							     ptr->k_size[index_mode],
+							     0,
+							     1+index_ct,
+							     1+psp->ct_size+index_ct,
+							     &clvalue,
+							     psp->error_message),
+				  psp->error_message,
+				  psp->error_message);
+
+#pragma omp flush(abort)
+
+	      if (abort == _FALSE_) {
+
+#else
+	      class_call(array_spline(cl_integrand,
+				      cl_integrand_num_columns,
+				      ptr->k_size[index_mode],
+				      0,
+				      1+index_ct,
+				      1+psp->ct_size+index_ct,
+				      _SPLINE_EST_DERIV_,
+				      psp->error_message),
+			 psp->error_message,
+			 psp->error_message);
+
+	      class_call(array_integrate_all_spline(cl_integrand,
+						    cl_integrand_num_columns,
+						    ptr->k_size[index_mode],
+						    0,
+						    1+index_ct,
+						    1+psp->ct_size+index_ct,
+						    &clvalue,
+						    psp->error_message),
+			 psp->error_message,
+			 psp->error_message);
+
+#endif
+
+	      psp->cl[index_mode]
+		[(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
+		= clvalue;
+
+#ifdef _OPENMP
+	      }
+#endif
+
+	    }
+
 	  }
+	
+#ifdef _OPENMP
+	  tstop = omp_get_wtime();
+	  if (psp->spectra_verbose > 1)
+	    printf("Time spent in parallel region (loop over ells) = %e\n",tstop-tstart);
+#endif
+
+	  free(cl_integrand);
+    
+	  free(primordial_pk);
+	
+	  free(transfer);
 
 	}
 
-	for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
-
-	  class_call(array_spline(cl_integrand,
-				  cl_integrand_num_columns,
-				  ptr->k_size[index_mode],
-				  0,
-				  1+index_ct,
-				  1+psp->ct_size+index_ct,
-				  _SPLINE_EST_DERIV_,
-				  psp->error_message),
-		     psp->error_message,
-		     psp->error_message);
-	    
-	  class_call(array_integrate_all_spline(cl_integrand,
-						cl_integrand_num_columns,
-						ptr->k_size[index_mode],
-						0,
-						1+index_ct,
-						1+psp->ct_size+index_ct,
-						&clvalue,
-						psp->error_message),
-		     psp->error_message,
-		     psp->error_message);
-
-	  psp->cl[index_mode]
-	    [(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
-	    = clvalue;
-
-	}
-
+#ifdef _OPENMP
       }
+      /* end of parallel region */
+      if (abort == _TRUE_) return _FAILURE_;
+#endif
 
     }
-
-    free(cl_integrand);
-
-    free(primordial_pk);
-
-    free(transfer);
 
     class_call(array_spline_table_lines(psp->l[index_mode],
 					psp->l_size[index_mode],
@@ -557,7 +649,7 @@ int spectra_cl(
 					psp->error_message),
 	       psp->error_message,
 	       psp->error_message);
-
+    
   }
 
   return _SUCCESS_;
@@ -677,9 +769,9 @@ int spectra_pk(
 	   <phi phi> = (2pi^2) k^-3 (source_phi)^2 P_R(k) 
 	   so, matter power spectrum (using Poisson):
 	   P(k) = <delta_m delta_m>
-	        = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi>
-	        = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R> 
-		= 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R> */
+	   = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi>
+	   = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R> 
+	   = 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R> */
 
 	psp->pk[(index_eta * psp->ic_size[index_mode] + index_ic) * psp->k_size + index_k] =
 	  8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)/pow(Omega_m,2)*psp->k[index_k]/pow(pvecback_sp_long[pba->index_bg_a],4)
