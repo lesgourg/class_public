@@ -73,7 +73,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (transfer_init(&ba,&th,&pt,&bs,&pr,&tr) == _FAILURE_) {
+  if (transfer_init(&pr,&ba,&th,&pt,&bs,&tr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
@@ -105,7 +105,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (transfer_free() == _FAILURE_) {
+  if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }

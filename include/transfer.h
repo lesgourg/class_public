@@ -15,6 +15,8 @@
  */
 struct transfers {
 
+  int md_size; /**< number of modes included in computation */
+
   int index_tt_t; /**< index for transfer type = temperature */
   int index_tt_p; /**< index for transfer type = temperature */
   int index_tt_lcmb; /**< index for transfer type = CMB lensing */
@@ -63,62 +65,98 @@ extern "C" {
 #endif
 
   int transfer_functions_at_k(
+			      struct transfers * ptr,
 			      int index_mode,
 			      int index_ic,
 			      int index_type,
 			      int index_l,
 			      double k,
-			      double * ptransfer_local
+			      double * ptransfer
 			      );
 
   int transfer_init(
-		    struct background * pba_input,
-		    struct thermo * pth_input,
-		    struct perturbs * ppt_input,
-		    struct bessels * pbs_input,
-		    struct precision * ppr_input,
+		    struct precision * ppr,
+		    struct background * pba,
+		    struct thermo * pth,
+		    struct perturbs * ppt,
+		    struct bessels * pbs,
 		    struct transfers * ptr_output
 		    );
     
-  int transfer_free();
+  int transfer_free(
+		    struct transfers * ptr
+		    );
 
-  int transfer_indices_of_transfers();
+  int transfer_indices_of_transfers(
+				    struct precision * ppr,
+				    struct perturbs * ppt,
+				    struct bessels * pbs,
+				    struct transfers * ptr,
+				    double eta0,
+				    double eta_rec
+				    );
 
   int transfer_get_l_list_size(
+			       struct precision * ppr,
+			       struct perturbs * ppt,
+			       struct bessels * pbs,
+			       struct transfers * ptr,
 			       int index_mode,
 			       int * pl_list_size
 			       );
 
   int transfer_get_l_list(
+			  struct perturbs * ppt,
+			  struct bessels * pbs,
+			  struct transfers * ptr,
 			  int index_mode,
 			  int * pl_list
 			  );
 
   int transfer_get_k_list_size(
+			       struct precision * ppr,
+			       struct perturbs * ppt,
+			       struct transfers * ptr,
 			       int index_mode,
+			       double eta0,
+			       double eta_rec,
 			       int * pk_list_size
 			       );
 
   int transfer_get_k_list(
+			  struct precision * ppr,
+			  struct perturbs * ppt,
+			  struct transfers * ptr,
 			  int index_mode,
+			  double eta0,
+			  double eta_rec,
 			  double * pk_list
 			  );
 
   int transfer_interpolate_sources(
+				   struct perturbs * ppt,
+				   struct transfers * ptr,
 				   int current_index_mode,
 				   int current_index_ic,
 				   int current_index_type,
 				   int current_index_l,
+				   double eta0,
+				   double eta_rec,
 				   double * source_spline,
 				   double * interpolated_sources
 				   );
 
   int transfer_integrate(
+			 struct perturbs * ppt,
+			 struct bessels * pbs,
+			 struct transfers * ptr,
 			 int current_index_mode,
 			 int current_index_ic,
 			 int current_index_type,
 			 int current_index_l,
 			 int current_index_k,
+			 double eta0,
+			 double eta_rec,
 			 double * interpolated_sources,
 			 struct transfer_integrand * pti,
 			 double * trsf

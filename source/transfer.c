@@ -19,31 +19,9 @@
  */
 
 #ifdef _OPENMP
-#include <omp.h>
+#include "omp.h"
 #endif
 #include "transfer.h"
-
-/** @name - structures used within the transfer module: */
-
-//@{
-
-struct precision * ppr; /**< a precision_params structure pointer for internal use in the perturbation module */
-struct perturbs * ppt; /**< a perturbs structure pointer for internal use in the perturbation module */
-struct bessels * pbs; /**< a bessels structure pointer for internal use in the perturbation module */
-struct transfers * ptr; /**< a transfers structure pointer for internal use in the perturbation module */
-
-//@}
-
-/** @name - instead of having pba and pth as global variables, only
-    share these two fields (the only one needed throughout the modules
-    from these structures) */
-
-//@{
-
-double eta0; /* conformal age (conformal time today) */
-double eta_rec; /* conformal time at recombination */
-
-//@}
 
 /** @name - miscellaneous: */
 
@@ -73,33 +51,32 @@ ErrorMsg Transmit_Error_Message; /**< contains error message */
  * @return the error status
  */
 int transfer_functions_at_k(
+			    struct transfers * ptr,
 			    int index_mode,
 			    int index_ic,
 			    int index_tt,
 			    int index_l,
 			    double k,
-			    double * ptransfer_local 
+			    double * ptransfer 
 			    ) {
   /** Summary: */
 
   /** - interpolate in pre-computed table using array_interpolate_two() */
-  if (array_interpolate_two(
-			    ptr->k[index_mode],
-			    1,
-			    0,
-			    ptr->transfer[index_mode]
-			    +((index_ic * ptr->tt_size + index_tt) * ptr->l_size[index_mode] + index_l)
-			    * ptr->k_size[index_mode],
-			    1,
-			    ptr->k_size[index_mode],
-			    k,
-			    ptransfer_local,
-			    1,
-			    Transmit_Error_Message) == _FAILURE_) {
-
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_interpolate_two() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_interpolate_two(
+				   ptr->k[index_mode],
+				   1,
+				   0,
+				   ptr->transfer[index_mode]
+				   +((index_ic * ptr->tt_size + index_tt) * ptr->l_size[index_mode] + index_l)
+				   * ptr->k_size[index_mode],
+				   1,
+				   ptr->k_size[index_mode],
+				   k,
+				   ptransfer,
+				   1,
+				   ptr->error_message),
+	     ptr->error_message,
+	     ptr->error_message);
   
   return _SUCCESS_;
 }
@@ -127,21 +104,21 @@ int transfer_functions_at_k(
  * allocates memory spaces which should be freed later with
  * transfer_free().
  *
- * @param pba_input Input : Initialized background structure 
- * @param pth_input Input : Initialized thermodynamics structure 
- * @param ppt_input Input : Initialized perturbation structure
- * @param pbs_input Input : Initialized bessels structure
- * @param ptr_input Input : Parameters describing how the computation is to be performed
- * @param ptr_output Output : Initialized transfers structure
+ * @param pba Input : Initialized background structure 
+ * @param pth Input : Initialized thermodynamics structure 
+ * @param ppt Input : Initialized perturbation structure
+ * @param pbs Input : Initialized bessels structure
+ * @param ppr Input : Parameters describing how the computation is to be performed
+ * @param ptr Output : Initialized transfers structure
  * @return the error status
  */
 int transfer_init(
-		  struct background * pba_input,
-		  struct thermo * pth_input,
-		  struct perturbs * ppt_input,
-		  struct bessels * pbs_input,
-		  struct precision * ppr_input,
-		  struct transfers * ptr_output
+		  struct precision * ppr,
+		  struct background * pba,
+		  struct thermo * pth,
+		  struct perturbs * ppt,
+		  struct bessels * pbs,
+		  struct transfers * ptr
 		  ) {
 
   /** Summary: */
@@ -162,6 +139,10 @@ int transfer_init(
   int index;
   /* current wavenumber value */
   double current_k;
+  /* conformal time today */
+  double eta0;
+  /* conformal time at recombination */
+  double eta_rec;
   /* result for each transfer function */
   double transfer_function;
   /* flag: for a given l, should the transfer functions stop being computed at next value of k? */
@@ -206,12 +187,6 @@ int transfer_init(
   double tstart, tstop;
 #endif
 
-  /** - identify the perturbs, precision_params, bessels and transfers structures ppt, ppr, pbs, ptr (used throughout transfer.c as global variables) to the input/output structures of this function (ppt, ppr, pbs are already filled, ptr will be filled by this function) */
-  ppt = ppt_input;
-  ppr = ppr_input;
-  pbs = pbs_input;
-  ptr = ptr_output; 
-
   if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
       (ppt->has_cl_cmb_polarization == _FALSE_) &&
       (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
@@ -224,16 +199,16 @@ int transfer_init(
   if (ptr->transfer_verbose > 0)
     printf("Computing transfers\n");
 
+  ptr->md_size = ppt->md_size;
+
   /** - get conformal age / recombination time from background / thermodynamics structures (only place where these structures are used in this module) */
-  eta0 = pba_input->conformal_age;
-  eta_rec = pth_input->eta_rec;
+  eta0 = pba->conformal_age;
+  eta_rec = pth->eta_rec;
 
   /** - initialize all indices in the transfers structure and allocate all its arrays using transfer_indices_of_transfers() */
-  if (transfer_indices_of_transfers() == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_indices_of_transfers() \n=>%s",__func__,__LINE__,ptr->error_message);
-    sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,eta0,eta_rec),
+	     ptr->error_message,
+	     ptr->error_message);
 
   /** - initialize all indices in the transfer_integrand structure and allocate its array. Fill the eta column. */
 
@@ -262,15 +237,12 @@ int transfer_init(
     index++;
     ti->trans_int_col_num = index;
 
-    ti->trans_int =  malloc(sizeof(double) * ppt->eta_size * ti->trans_int_col_num);
+    class_alloc(ti->trans_int,
+		sizeof(double) * ppt->eta_size * ti->trans_int_col_num,
+		ptr->error_message);
 
-    if (ti->trans_int==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ti.trans_int",__func__,__LINE__);
-    abort++;
-    }
-    else
+    if (abort != 0)
       {
-
 	for (index=0; index < ppt->eta_size; index++)
 	  ti->trans_int[ti->trans_int_col_num*index+ti->trans_int_eta] = ppt->eta_sampling[index];
       }
@@ -279,7 +251,7 @@ int transfer_init(
 
   /** - loop over all indices of the table of transfer functions. For each mode, initial condition and type: */
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+  for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
 
     /** (a) allocate temporary arrays relevant for this mode */
 
@@ -305,11 +277,14 @@ int transfer_init(
 
 	/** (b) interpolate sources to get them at the right values of k using transfer_interpolate_sources() */
 
-	if (transfer_interpolate_sources(
+	if (transfer_interpolate_sources(ppt,
+					 ptr,
 					 index_mode,
 					 index_ic,
 					 index_tt,
 					 index_l,
+					 eta0,
+					 eta_rec,
 					 source_spline,
 					 interpolated_sources) == _FAILURE_) {
 	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_interpolate_sources()\n=>%s",__func__,__LINE__,ptr->error_message);
@@ -322,7 +297,7 @@ int transfer_init(
 	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
 	abort=0;
 #pragma omp parallel							\
-  shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
+  shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,eta0,eta_rec,	\
 	  interpolated_sources,pti,abort)				\
   private (index_l,cut_transfer,global_max,global_min,			\
 	   last_local_max,last_local_min,transfer_function,		\
@@ -396,12 +371,16 @@ int transfer_init(
 		
 		/* compute transfer function or set it to zero if above k_max */
 		if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
-		  if (transfer_integrate(
+		  if (transfer_integrate(ppt,
+					 pbs,
+					 ptr,
 					 index_mode,
 					 index_ic,
 					 index_tt,
 					 index_l,
 					 index_k,
+					 eta0,
+					 eta_rec,
 					 interpolated_sources,
 					 ti,
 					 &transfer_function) == _FAILURE_) {
@@ -532,12 +511,14 @@ int transfer_init(
  *
  * @return the error status
  */
-int transfer_free() {
+int transfer_free(
+		  struct transfers * ptr
+		  ) {
 
   int index_mode;
 
   if (ptr->tt_size>0) {
-    for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+    for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
       free(ptr->l[index_mode]);
       free(ptr->k[index_mode]);
       free(ptr->transfer[index_mode]);
@@ -563,7 +544,14 @@ int transfer_free() {
  *
  * @return the error status
  */
-int transfer_indices_of_transfers() {
+int transfer_indices_of_transfers(
+				  struct precision * ppr,
+				  struct perturbs * ppt,
+				  struct bessels * pbs,
+				  struct transfers * ptr,
+				  double eta0,
+				  double eta_rec
+				  ) {
 
   /** Summary: */
 
@@ -592,92 +580,56 @@ int transfer_indices_of_transfers() {
 
   /* number of l values for each mode, l_size[index_mode] */
 
-  ptr->l_size = malloc(ppt->md_size * sizeof(int));
-  if (ptr->l_size==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->l_size",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(ptr->l_size,ptr->md_size * sizeof(int),ptr->error_message);
 
   /* list of la values for each mode, l[index_mode] */
 
-  ptr->l = malloc(ppt->md_size * sizeof(int *));
-  if (ptr->l==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->l",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(ptr->l,ptr->md_size * sizeof(int *),ptr->error_message);
 
   /* number of k values for each mode, k_size[index_mode] */
 
-  ptr->k_size = malloc(ppt->md_size * sizeof(int));
-  if (ptr->k_size==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->k_size",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(ptr->k_size,ptr->md_size * sizeof(int),ptr->error_message);
 
   /* list of k values for each mode, k[index_mode] */
 
-  ptr->k = malloc(ppt->md_size * sizeof(double *));
-  if (ptr->k==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->k",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(ptr->k,ptr->md_size * sizeof(double *),ptr->error_message);
 
   /* array (of array) of transfer functions for each mode, transfer[index_mode] */
 
-  ptr->transfer = malloc(ppt->md_size * sizeof(double *));
-  if (ptr->transfer==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->transfer",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
   /** - loop over modes (scalar, etc). For each mode: */
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+  for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
 
     /** (a) get number of k values using transfer_get_k_list_size() */
-    if (transfer_get_k_list_size(index_mode,&(ptr->k_size[index_mode])) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfert_get_k_list_size\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(transfer_get_k_list_size(ppr,ppt,ptr,index_mode,eta0,eta_rec,&(ptr->k_size[index_mode])),
+					ptr->error_message,
+					ptr->error_message);
 
     /** (b) get list of k values using transfer_get_k_list() */
-    ptr->k[index_mode] = malloc(ptr->k_size[index_mode]*sizeof(double));
-    if (ptr->k[index_mode]==NULL) {
-      sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->k[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
-    if (transfer_get_k_list(index_mode,ptr->k[index_mode]) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfert_get_k_list()\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_alloc(ptr->k[index_mode],ptr->k_size[index_mode]*sizeof(double),ptr->error_message);
+
+    class_call(transfer_get_k_list(ppr,ppt,ptr,index_mode,eta0,eta_rec,ptr->k[index_mode]),
+	       ptr->error_message,
+	       ptr->error_message);
 
     /** (c) get number of l values using transfer_get_l_list_size() */
-    if (transfer_get_l_list_size(index_mode,&(ptr->l_size[index_mode])) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_get_l_list_size()\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(transfer_get_l_list_size(ppr,ppt,pbs,ptr,index_mode,&(ptr->l_size[index_mode])),
+	       ptr->error_message,
+	       ptr->error_message);
 
     /** (d) get list of l values using transfer_get_l_list() */
-    ptr->l[index_mode] = malloc(ptr->l_size[index_mode]*sizeof(int));
-    if (ptr->l[index_mode]==NULL) {
-      sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->l[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
-    if (transfer_get_l_list(index_mode,ptr->l[index_mode]) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_get_l_list()\n=>%s",__func__,__LINE__,ptr->error_message);
-      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_alloc(ptr->l[index_mode],ptr->l_size[index_mode]*sizeof(int),ptr->error_message);
+
+    class_call(transfer_get_l_list(ppt,pbs,ptr,index_mode,ptr->l[index_mode]),
+	       ptr->error_message,
+	       ptr->error_message); 
 
     /** (e) allocate arrays of transfer functions, (ptr->transfer[index_mode])[index_ic][index_tt][index_l][index_k] */
-    ptr->transfer[index_mode] = malloc(ppt->ic_size[index_mode] * ptr->tt_size * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double));
-    if (ptr->transfer[index_mode]==NULL) {
-      sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ptr->transfer[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(ptr->transfer[index_mode],
+		ppt->ic_size[index_mode] * ptr->tt_size * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double),
+		ptr->error_message);
 
   }
 
@@ -696,6 +648,10 @@ int transfer_indices_of_transfers() {
  * @return the error status
  */
 int transfer_get_l_list_size(
+			     struct precision * ppr,
+			     struct perturbs * ppt,
+			     struct bessels * pbs,
+			     struct transfers * ptr,
 			     int index_mode,
 			     int * pl_list_size
 			     ) {
@@ -704,11 +660,9 @@ int transfer_get_l_list_size(
 
   if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
 
-    if (ppr->l_scalar_max > pbs->l[pbs->l_size-1]) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : For scalar transfer functions, asked for l_max greater than in Bessel table",__func__,__LINE__);
-      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_test(ppr->l_scalar_max > pbs->l[pbs->l_size-1],
+	       ptr->error_message,
+	       "For scalar transfer functions, asked for l_max greater than in Bessel table");
 
     index_l=0;
     while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppr->l_scalar_max)) {
@@ -724,11 +678,9 @@ int transfer_get_l_list_size(
 
   if (ppt->has_tensors && index_mode == ppt->index_md_tensors) {
 
-    if (ppr->l_tensor_max > pbs->l[pbs->l_size-1]) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : For transfer transfer functions, asked for l_max greater than in Bessel table",__func__,__LINE__);
-      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_test(ppr->l_tensor_max > pbs->l[pbs->l_size-1],
+	       ptr->error_message,
+	       "For tensor transfer functions, asked for l_max greater than in Bessel table");
 
     index_l=0;
     while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppr->l_tensor_max)) {
@@ -756,6 +708,9 @@ int transfer_get_l_list_size(
  * @return the error status
  */
 int transfer_get_l_list(
+			struct perturbs * ppt,
+			struct bessels * pbs,
+			struct transfers * ptr,
 			int index_mode,
 			int * pl_list
 			) {
@@ -781,7 +736,12 @@ int transfer_get_l_list(
  * @return the error status
  */
 int transfer_get_k_list_size(
+			     struct precision * ppr,
+			     struct perturbs * ppt,
+			     struct transfers * ptr,
 			     int index_mode,
+			     double eta0,
+			     double eta_rec,
 			     int * pk_list_size
 			     ) {
 
@@ -792,21 +752,18 @@ int transfer_get_k_list_size(
   if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
     k_min = ppt->k[ppt->index_md_scalars][0]; /* first value, inferred from perturbations structure */
     k_max_pt = ppt->k[ppt->index_md_scalars][ppt->k_size_cl[ppt->index_md_scalars]-1]; /* last value, inferred from perturbations structure */
-    if ((eta0-eta_rec) != 0.) {
-      k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans; /* step_size, inferred from precision_params structure */
-    }
-    else {
-      sprintf(ptr->error_message,"%s(L:%d) : (eta0-eta_rec)=0, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
 
-    if (k_step != 0.) {
-      *pk_list_size = (int)((k_max_pt-k_min)/k_step) + 1; /* corresponding number of k values */
-          }
-    else {
-      sprintf(ptr->error_message,"%s(L:%d) : k_step=0, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test((eta0-eta_rec) == 0.,
+	       ptr->error_message,
+	       "stop to avoid division by zero");
+
+    k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans; /* step_size, inferred from precision_params structure */
+
+    class_test(k_step == 0.,
+	       ptr->error_message,
+	       "stop to avoid division by zero");
+
+    *pk_list_size = (int)((k_max_pt-k_min)/k_step) + 1; /* corresponding number of k values */
 
   }
 
@@ -828,7 +785,12 @@ int transfer_get_k_list_size(
  * @return the error status
  */
 int transfer_get_k_list(
+			struct precision * ppr,
+			struct perturbs * ppt,
+			struct transfers * ptr,
 			int index_mode,
+			double eta0,
+			double eta_rec,
 			double * pk_list
 			) {
 
@@ -839,13 +801,12 @@ int transfer_get_k_list(
   if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
 
     k_min = ppt->k[ppt->index_md_scalars][0]; /* first value, inferred from perturbations structure */
-    if ((eta0-eta_rec) != 0.) {
-      k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans; /* step_size, inferred from precision_params structure */
-    }
-    else {
-      sprintf(ptr->error_message,"%s(L:%d) : (eta0-eta_rec)=0, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
+
+    class_test((eta0-eta_rec) == 0.,
+	       ptr->error_message,
+	       "stop to avoid division by zero");
+
+    k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans; /* step_size, inferred from precision_params structure */
 
     for (index_k = 0; index_k < ptr->k_size[ppt->index_md_scalars]; index_k++) {
       pk_list[index_k] = k_min + index_k * k_step;
@@ -877,10 +838,14 @@ int transfer_get_k_list(
  * @return the error status
  */
 int transfer_interpolate_sources(
+				 struct perturbs * ppt,
+				 struct transfers * ptr,
 				 int current_index_mode,
 				 int current_index_ic,
 				 int current_index_tt,
 				 int current_index_l,
+				 double eta0,
+				 double eta_rec,
 				 double * source_spline,
 				 double * interpolated_sources) {
 
@@ -918,17 +883,15 @@ int transfer_interpolate_sources(
       (current_index_tt == ptr->index_tt_lcmb)) 
     index_type=ppt->index_tp_g;
 
-  if (array_spline_table_columns(ppt->k[current_index_mode],
-				 ppt->k_size[current_index_mode],
-				 ppt->sources[current_index_mode][current_index_ic * ppt->tp_size + index_type],
-				 ppt->eta_size,
-				 source_spline,
-				 _SPLINE_EST_DERIV_,
-				 Transmit_Error_Message
-				 ) == _FAILURE_) {
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_spline_table_columns()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_spline_table_columns(ppt->k[current_index_mode],
+					ppt->k_size[current_index_mode],
+					ppt->sources[current_index_mode][current_index_ic * ppt->tp_size + index_type],
+					ppt->eta_size,
+					source_spline,
+					_SPLINE_EST_DERIV_,
+					ptr->error_message),
+	     ptr->error_message,
+	     ptr->error_message);
 
   /** - interpolate at each k value */
 
@@ -944,13 +907,11 @@ int transfer_interpolate_sources(
       h = ppt->k[current_index_mode][index_k+1] - ppt->k[current_index_mode][index_k];
     }
 
-    if (h != 0.) {
-      b = (ptr->k[current_index_mode][index_k_tr] - ppt->k[current_index_mode][index_k])/h;
-    }
-    else {
-      sprintf(ptr->error_message,"%s(L:%d) : h=0, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test(h == 0.,
+	       ptr->error_message,
+	       "stop to avoid division by zero");
+
+    b = (ptr->k[current_index_mode][index_k_tr] - ppt->k[current_index_mode][index_k])/h;
     a = 1.-b;
     
     for (index_eta = 0; index_eta < ppt->eta_size; index_eta++) {
@@ -995,19 +956,6 @@ int transfer_interpolate_sources(
 
   }
 
-  /** - fill array of second derivatives with respect to \f$ \eta \f$ (in view of spline interpolation at arbitrary value of \f$ \eta \f$) **/
-/*   if (array_spline_table_columns(ppt->eta_sampling, */
-/* 				 ppt->eta_size, */
-/* 				 interpolated_sources, */
-/* 				 ptr->k_size[current_index_mode], */
-/* 				 splined_interpolated_sources, */
-/* 				 _SPLINE_EST_DERIV_, */
-/* 				 Transmit_Error_Message */
-/* 				 ) == _FAILURE_) { */
-/*     sprintf(ptr->error_message,"problem in array_spline_table_columns \n=>%s",Transmit_Error_Message); */
-/*     return _FAILURE_; */
-/*   } */
-
   return _SUCCESS_;
 
 }
@@ -1026,11 +974,16 @@ int transfer_interpolate_sources(
  * @return the error status
  */
 int transfer_integrate(
+		       struct perturbs * ppt,
+		       struct bessels * pbs,
+		       struct transfers * ptr,
 		       int current_index_mode,
 		       int current_index_ic,
 		       int current_index_tt,
 		       int current_index_l,
 		       int current_index_k,
+		       double eta0,
+		       double eta_rec,
 		       double * interpolated_sources,
 		       struct transfer_integrand * pti,
 		       double * trsf
@@ -1071,53 +1024,39 @@ int transfer_integrate(
 
   for (index_eta = 0; index_eta <= index_eta_max; index_eta++) {
 
-    if (bessel_at_x(ptr->k[current_index_mode][current_index_k] * (eta0-ppt->eta_sampling[index_eta]),current_index_l,&bessel) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error when calling bessel_at_x()\n=>%s",__func__,__LINE__,pbs->error_message);
-      sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(bessel_at_x(ptr->k[current_index_mode][current_index_k] * (eta0-ppt->eta_sampling[index_eta]),current_index_l,&bessel),
+	       ptr->error_message,
+	       ptr->error_message);
 
     pti->trans_int[pti->trans_int_col_num*index_eta+pti->trans_int_y]= 
       interpolated_sources[current_index_k * ppt->eta_size + index_eta]*bessel;
-
-    /* for debugging */
-/*     if ((current_index_tt == ppt->index_tp_g) && (current_index_l == 40) && (current_index_k == 2500)) { */
-
-/*       printf("%e %e %e\n", */
-/* 	     ppt->eta_sampling[index_eta], */
-/* 	     interpolated_sources[current_index_k * ppt->eta_size + index_eta], */
-/* 	     bessel); */
-/*     } */
-
 
   }
 
   /** (d) spline the integrand: */
 
-  if (array_spline(pti->trans_int,
-		   pti->trans_int_col_num,
-		   index_eta_max+1,
-		   pti->trans_int_eta,
-		   pti->trans_int_y,
-		   pti->trans_int_ddy,
-		   _SPLINE_EST_DERIV_,
-		   Transmit_Error_Message) == _FAILURE_) {
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_spline(pti->trans_int,
+			  pti->trans_int_col_num,
+			  index_eta_max+1,
+			  pti->trans_int_eta,
+			  pti->trans_int_y,
+			  pti->trans_int_ddy,
+			  _SPLINE_EST_DERIV_,
+			  ptr->error_message),
+	     ptr->error_message,
+	     ptr->error_message);
 
   /** (e) integrate: */
-  if (array_integrate_all_spline(pti->trans_int,
-				 pti->trans_int_col_num,
-				 index_eta_max+1,
-				 pti->trans_int_eta,
-				 pti->trans_int_y,
-				 pti->trans_int_ddy,
-				 trsf,
-				 Transmit_Error_Message) == _FAILURE_) {
-    sprintf(ptr->error_message,"%s(L:%d) : error in array_integrate_all_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_integrate_all_spline(pti->trans_int,
+					pti->trans_int_col_num,
+					index_eta_max+1,
+					pti->trans_int_eta,
+					pti->trans_int_y,
+					pti->trans_int_ddy,
+					trsf,
+					ptr->error_message),
+	     ptr->error_message,
+	     ptr->error_message);
 
   /** (f) correct for last piece of integral (up to point where bessel vanishes) */
   *trsf += (eta_max_bessel-ppt->eta_sampling[index_eta_max])
