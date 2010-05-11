@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
   int output_init(
-		  struct precision * ppr_input,
+		  struct precision * ppr,
 		  struct background * pba,
 		  struct perturbs * ppt,
 		  struct transfers * ptr,

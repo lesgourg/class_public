@@ -157,81 +157,47 @@ int spectra_pk_at_k_and_z(
 	      sizeof(double)*psp->ic_size[index_mode]*psp->k_size,
 	      psp->error_message);
 
-/*   temporary_pk = malloc(sizeof(double)*psp->ic_size[index_mode]*psp->k_size); */
-/*   if (temporary_pk == NULL) { */
-/*     sprintf(psp->error_message,"%s(L:%d) : Could not allocate temporary_pk",__func__,__LINE__); */
-/*     return _FAILURE_; */
-/*   } */
-
-  if(spectra_pk_at_z(pba,psp,index_mode,z,temporary_pk) == _FAILURE_) {
-    sprintf(psp->transmit_message,"%s(L:%d) : error in spectra_pk_at_z()\n=>%s",__func__,__LINE__,psp->error_message);
-    sprintf(psp->error_message,psp->transmit_message);
-    return _FAILURE_;
-  } 
-
+  class_call(spectra_pk_at_z(pba,psp,index_mode,z,temporary_pk),
+	     psp->error_message,
+	     psp->error_message);
 
   /* deal with case k < kmin */
 
   if (k < psp->k[0]) {
 
-    /* extrapolate down to zero if analytical primordial spectrum: in this case we know that on super-Hubble scales:        P(k) = A k P_ini(k) 
-       so     
-       P(k) = P(kmin) * (k P_ini(k)) / (kmin P_ini(kmin)) 
+    /* extrapolate down to zero if analytical primordial spectrum: in this case we know that on super-Hubble scales:        
+     * P(k) = A k P_ini(k) 
+     * so     
+     * P(k) = P(kmin) * (k P_ini(k)) / (kmin P_ini(kmin)) 
     */
-    if (ppm->primordial_spec_type == smooth_Pk) {
+
+    class_test((ppm->primordial_spec_type != smooth_Pk),
+	      psp->error_message,
+	      "in this case, exptrapolation for k=%e below k_min=%e is impossible",k,psp->k[0]);
       
-      if (k == 0.) {
-	*pk=0.;
-	return _SUCCESS_;
-      }
-	
-      pkini_k = malloc (sizeof(double)*psp->ic_size[index_mode]);
-      if (pkini_k == NULL) {
-	sprintf(psp->error_message,"%s(L:%d) : Could not allocate pkini_k",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      pkini_kmin = malloc (sizeof(double)*psp->ic_size[index_mode]);
-      if (pkini_kmin == NULL) {
-	sprintf(psp->error_message,"%s(L:%d) : Could not allocate pkini_kmin",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      
-      if(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k)==_FAILURE_) {
-	sprintf(psp->transmit_message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
-	sprintf(psp->error_message,psp->transmit_message);
-	return _FAILURE_;
-      }
-      if(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin)==_FAILURE_) {
-	sprintf(psp->transmit_message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
-	sprintf(psp->error_message,psp->transmit_message);
-	return _FAILURE_;
-      }
-
-      *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic];
-
-      free(temporary_pk);
-      free(pkini_k);
-      free(pkini_kmin);
-
+    if (k == 0.) {
+      *pk=0.;
       return _SUCCESS_;
-
     }
-
-    /* unable to extrapolate if numerical primordial spectrum */
-    else {
-      sprintf(psp->error_message,"%s(L:%d) : k=%e < k_min=%e, and cannot extrapolate in this case",__func__,__LINE__,k,psp->k[0]);
-      return _FAILURE_;
-    }
+	
+    class_alloc(pkini_k,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
+    class_alloc(pkini_kmin,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
+    class_call(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k),ppm->error_message,psp->error_message);
+    class_call(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin),ppm->error_message,psp->error_message);
+    
+    *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic];
+    
+    free(temporary_pk);
+    free(pkini_k);
+    free(pkini_kmin);
+    
+    return _SUCCESS_;
 
   }
 
   /* now, spline and interpolate */
 
-  spline_pk = malloc(sizeof(double)*psp->k_size);
-  if (spline_pk == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate spline_pk",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(spline_pk,sizeof(double)*psp->k_size,psp->error_message);
 
   for (index_k=0; index_k < psp->k_size; index_k++) {
     spline_pk[index_k] = temporary_pk[index_ic*psp->k_size+index_k];
@@ -239,36 +205,30 @@ int spectra_pk_at_k_and_z(
 
   free(temporary_pk);
   
-  spline_ddpk = malloc(sizeof(double)*psp->k_size);
-  if (spline_ddpk == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate spline_ddpk",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(spline_ddpk,sizeof(double)*psp->k_size,psp->error_message);
 
-  if (array_spline_table_lines(psp->k,
-			       psp->k_size,
-			       spline_pk,
-			       1,
-			       spline_ddpk,
-			       _SPLINE_EST_DERIV_,
-			       psp->transmit_message) == _FAILURE_) {
-    sprintf(psp->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,psp->transmit_message);
-    return _FAILURE_;
-  }
+  class_call(array_spline_table_lines(psp->k,
+				      psp->k_size,
+				      spline_pk,
+				      1,
+				      spline_ddpk,
+				      _SPLINE_EST_DERIV_,
+				      psp->error_message),
+	     psp->error_message,
+	     psp->error_message);
 
-  if (array_interpolate_spline(psp->k,
-			       psp->k_size,
-			       spline_pk,
-			       spline_ddpk,
-			       1,
-			       k,
-			       &last_index,
-			       pk,
-			       1,
-			       psp->transmit_message) == _FAILURE_) {
-    sprintf(psp->error_message,"%s(L:%d) : error in array_interpolate_spline()\n=>%s",__func__,__LINE__,psp->transmit_message);
-    return _FAILURE_;
-  }
+  class_call(array_interpolate_spline(psp->k,
+				      psp->k_size,
+				      spline_pk,
+				      spline_ddpk,
+				      1,
+				      k,
+				      &last_index,
+				      pk,
+				      1,
+				      psp->error_message),
+	     psp->error_message,
+	     psp->error_message);
 
   free(spline_pk);
   free(spline_ddpk);
@@ -310,27 +270,17 @@ int spectra_init(
   for (index_mode=0; index_mode < psp->md_size; index_mode++) 
     psp->ic_size[index_mode] = ppt->ic_size[index_mode];
 
-  if (spectra_indices(ppt,ptr,psp) == _FAILURE_) {
-    sprintf(psp->transmit_message,"%s(L:%d) : error in spectra_indices()\n=>%s",__func__,__LINE__,psp->error_message);
-    sprintf(psp->error_message,"%s",psp->transmit_message);
-    return _FAILURE_;
-  }
+  class_call(spectra_indices(ppt,ptr,psp),
+	     psp->error_message,
+	     psp->error_message);
 
   /** - deal with cl's, if any */
 
   if (ptr->tt_size > 0) {
 
-/*     if (spectra_cl(ppt,ptr,ppm,psp) == _FAILURE_) { */
-/*       sprintf(psp->transmit_message,"%s(L:%d) : error in spectra_cl()\n=>%s",__func__,__LINE__,psp->error_message); */
-/*       sprintf(psp->error_message,"%s",psp->transmit_message); */
-/*       return _FAILURE_; */
-/*     } */
-
-
     class_call(spectra_cl(ppt,ptr,ppm,psp),
 	       psp->error_message,
 	       psp->error_message);
-
 
   }
   else {
@@ -341,12 +291,9 @@ int spectra_init(
 
   if (ppt->has_pk_matter == _TRUE_) {
 
-    if (spectra_pk(pba,ppt,ppm,psp) == _FAILURE_) {
-      sprintf(psp->transmit_message,"%s(L:%d) : error in spectra_pk()\n=>%s",__func__,__LINE__,psp->error_message);
-      sprintf(psp->error_message,"%s",psp->transmit_message);
-      return _FAILURE_;
-    }
-
+    class_call(spectra_pk(pba,ppt,ppm,psp),
+	       psp->error_message,
+	       psp->error_message);
   }
   else {
     psp->k_size=0;
@@ -455,77 +402,33 @@ int spectra_cl(
   double * transfer;
   double * primordial_pk;  /*pk[index_ic]*/
 
-  psp->l_size = malloc (sizeof(int)*psp->md_size);
-  if (psp->l_size == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate l_size",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
-  psp->l = malloc (sizeof(double *)*psp->md_size);
-  if (psp->l == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate l",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
-  psp->cl = malloc (sizeof(double *)*psp->md_size);
-  if (psp->cl == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate cl",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  
-  psp->ddcl = malloc (sizeof(double *)*psp->md_size);
-  if (psp->ddcl == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate ddcl",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(psp->l_size,sizeof(int)*psp->md_size,psp->error_message);
+  class_alloc(psp->l,sizeof(double *)*psp->md_size,psp->error_message);
+  class_alloc(psp->cl,sizeof(double *)*psp->md_size,psp->error_message);
+  class_alloc(psp->ddcl,sizeof(double *)*psp->md_size,psp->error_message);
 
   /** - loop over modes (scalar, tensors, etc) */
   for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
 
     psp->l_size[index_mode] = ptr->l_size[index_mode];
 
-    psp->l[index_mode] = malloc(sizeof(double)*psp->l_size[index_mode]);
-    if (psp->l[index_mode] == NULL) {
-      sprintf(psp->error_message,"%s(L:%d) : Could not allocate l[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
-
+    class_alloc(psp->l[index_mode],sizeof(double)*psp->l_size[index_mode],psp->error_message);
 
     for (index_l=0; index_l < psp->l_size[index_mode]; index_l++) {
       psp->l[index_mode][index_l] = (double)ptr->l[index_mode][index_l];
     }
 
-    psp->cl[index_mode] = malloc(sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode]);
-    if (psp->cl[index_mode] == NULL) {
-      sprintf(psp->error_message,"%s(L:%d) : Could not allocate cl[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
-
-    psp->ddcl[index_mode] = malloc(sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode]);
-    if (psp->ddcl[index_mode] == NULL) {
-      sprintf(psp->error_message,"%s(L:%d) : Could not allocate ddcl[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(psp->cl[index_mode],sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode],psp->error_message);
+ 
+    class_alloc(psp->ddcl[index_mode],sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode],psp->error_message);
 
     cl_integrand_num_columns = 1+psp->ct_size*2; /* one for k, ct_size for each type, ct_size for each second derivative of each type */
 
-    cl_integrand = malloc(ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double));
-    if (cl_integrand == NULL) {
-      sprintf(psp->error_message,"%s(L:%d) : Could not allocate cl_integrand",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(cl_integrand,ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),psp->error_message);
 
-    primordial_pk=malloc(psp->ic_size[index_mode]*sizeof(double));
-    if (primordial_pk == NULL) {
-      sprintf(psp->error_message,"%s(L:%d) : Could not allocate primordial_pk",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(primordial_pk,psp->ic_size[index_mode]*sizeof(double),psp->error_message);
 
-    transfer=malloc(ptr->tt_size*sizeof(double));
-    if (transfer == NULL) {
-      sprintf(psp->error_message,"%s(L:%d) : Could not allocate transfer",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(transfer,ptr->tt_size*sizeof(double),psp->error_message);
 
     /** - loop over initial conditions */
     for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
@@ -541,10 +444,9 @@ int spectra_cl(
 
 	  cl_integrand[index_k*cl_integrand_num_columns+0] = k;
 	    
-	  if (primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk) == _FAILURE_) {
-	    sprintf(psp->error_message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
-	    return _FAILURE_;
-	  }
+	  class_call(primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk),
+		     ppm->error_message,
+		     psp->error_message);
 
 	  /* above routine checks that k>0: no possible division by zero below */
 
@@ -584,10 +486,9 @@ int spectra_cl(
 	    if (index_mode == ppt->index_md_scalars) {
 	      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.;
 	    }
-	    if (index_mode == ppt->index_md_tensors) {
-	      sprintf(psp->error_message,"%s(L:%d) : tensors not coded yet",__func__,__LINE__);
-	      return _FAILURE_;
-	    }
+
+	    class_test((index_mode == ppt->index_md_tensors),
+		       psp->error_message,"tensors not coded yet");
 	      
 	  }
 	      
@@ -609,29 +510,27 @@ int spectra_cl(
 
 	for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 
-	  if (array_spline(cl_integrand,
-			   cl_integrand_num_columns,
-			   ptr->k_size[index_mode],
-			   0,
-			   1+index_ct,
-			   1+psp->ct_size+index_ct,
-			   _SPLINE_EST_DERIV_,
-			   psp->transmit_message) == _FAILURE_) {
-	    sprintf(psp->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,psp->transmit_message);
-	    return _FAILURE_;
-	  }
+	  class_call(array_spline(cl_integrand,
+				  cl_integrand_num_columns,
+				  ptr->k_size[index_mode],
+				  0,
+				  1+index_ct,
+				  1+psp->ct_size+index_ct,
+				  _SPLINE_EST_DERIV_,
+				  psp->error_message),
+		     psp->error_message,
+		     psp->error_message);
 	    
-	  if (array_integrate_all_spline(cl_integrand,
-					 cl_integrand_num_columns,
-					 ptr->k_size[index_mode],
-					 0,
-					 1+index_ct,
-					 1+psp->ct_size+index_ct,
-					 &clvalue,
-					 psp->transmit_message) == _FAILURE_) {
-	    sprintf(psp->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,psp->transmit_message);
-	    return _FAILURE_;
-	  }
+	  class_call(array_integrate_all_spline(cl_integrand,
+						cl_integrand_num_columns,
+						ptr->k_size[index_mode],
+						0,
+						1+index_ct,
+						1+psp->ct_size+index_ct,
+						&clvalue,
+						psp->error_message),
+		     psp->error_message,
+		     psp->error_message);
 
 	  psp->cl[index_mode]
 	    [(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
@@ -649,16 +548,15 @@ int spectra_cl(
 
     free(transfer);
 
-    if (array_spline_table_lines(psp->l[index_mode],
-				 psp->l_size[index_mode],
-				 psp->cl[index_mode],
-				 psp->ic_size[index_mode]*psp->ct_size,
-				 psp->ddcl[index_mode],
-				 _SPLINE_EST_DERIV_,
-				 psp->transmit_message) == _FAILURE_) {
-      sprintf(psp->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,psp->transmit_message);
-      return _FAILURE_;
-    }
+    class_call(array_spline_table_lines(psp->l[index_mode],
+					psp->l_size[index_mode],
+					psp->cl[index_mode],
+					psp->ic_size[index_mode]*psp->ct_size,
+					psp->ddcl[index_mode],
+					_SPLINE_EST_DERIV_,
+					psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
 
   }
 
@@ -682,18 +580,16 @@ int spectra_pk(
   double Omega_m;
   double eta_min;
 
-  if (ppt->has_scalars == _FALSE_) {
-    sprintf(psp->error_message,"%s(L:%d) : you cannot ask for matter power spectrum since you turned off scalar modes",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test((ppt->has_scalars == _FALSE_),
+	     psp->error_message,
+	     "you cannot ask for matter power spectrum since you turned off scalar modes");
 
   index_mode = ppt->index_md_scalars;
 
   /* if z_max_pk<0, return error */
-  if (psp->z_max_pk < 0) {
-    sprintf(psp->error_message,"%s(L:%d) : aksed for z=%e, cannot compute P(k) in the future",__func__,__LINE__,psp->z_max_pk);
-    return _FAILURE_;
-  }
+  class_test((psp->z_max_pk < 0),
+	     psp->error_message,
+	     "asked for z=%e. Code not designed to compute anything in the future...");
 
   /* if z_max_pk=0, there is just one value to store */
   if (psp->z_max_pk == 0.) {
@@ -705,16 +601,15 @@ int spectra_pk(
 
     /* find the first relevant value of eta (last value in the table eta_ampling before eta(z_max)) and infer the number of vlaues of eta at which P(k) must be stored */
 
-    if (background_eta_of_z(psp->z_max_pk,&eta_min) == _FAILURE_) {
-      sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
-      return _FAILURE_;
-    }   
+    class_call(background_eta_of_z(psp->z_max_pk,&eta_min),
+	       pba->error_message,
+	       psp->error_message);
 
     index_eta=0;
-    if (eta_min < ppt->eta_sampling[index_eta]) {
-      sprintf(psp->error_message,"%s(L:%d) : you asked for zmax=%e, i.e. etamin=%e, smaller than first possible value =%e",__func__,__LINE__,psp->z_max_pk,eta_min,ppt->eta_sampling[0]);
-      return _FAILURE_;
-    }
+    class_test((eta_min < ppt->eta_sampling[index_eta]),
+	       psp->error_message,
+	       "you asked for zmax=%e, i.e. etamin=%e, smaller than first possible value =%e",psp->z_max_pk,eta_min,ppt->eta_sampling[0]);
+  
     while (ppt->eta_sampling[index_eta] < eta_min){
       index_eta++;
     }
@@ -729,51 +624,36 @@ int spectra_pk(
   }
 
   /** - allocate and fill table of eta values at which P(k,eta) is stored */
-  psp->eta=malloc(sizeof(double)*psp->eta_size);
-  if (psp->eta == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate eta",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(psp->eta,sizeof(double)*psp->eta_size,psp->error_message);
+
   for (index_eta=0; index_eta<psp->eta_size; index_eta++) {
     psp->eta[index_eta]=ppt->eta_sampling[index_eta-psp->eta_size+ppt->eta_size];
   }
 
   /** - allocate and fill table of k values at which P(k,eta) is stored */
   psp->k_size = ppt->k_size[index_mode];
-  psp->k = malloc(sizeof(double)*psp->k_size);
-  if (psp->k == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate k",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(psp->k,sizeof(double)*psp->k_size,psp->error_message);
+
   for (index_k=0; index_k<psp->k_size; index_k++) {
     psp->k[index_k]=ppt->k[index_mode][index_k];
   }
 
   /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
-  primordial_pk=malloc(psp->ic_size[index_mode]*sizeof(double));
-  if (primordial_pk == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate primordial_pk",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  pvecback_sp_long = malloc(pba->bg_size*sizeof(double));
-  if (pvecback_sp_long==NULL) {
-    sprintf(psp->error_message,"%s(L:%d): Cannot allocate pvecback_sp_long \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(primordial_pk,psp->ic_size[index_mode]*sizeof(double),psp->error_message);
+  class_alloc(pvecback_sp_long,pba->bg_size*sizeof(double),psp->error_message);
 
   /** - allocate and fill array of P(k,eta) values */
-  psp->pk = malloc(sizeof(double)*psp->eta_size*psp->k_size*psp->ic_size[index_mode]);
-  if (psp->pk == NULL) {
-    sprintf(psp->error_message,"%s(L:%d) : Could not allocate pk",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(psp->pk,sizeof(double)*psp->eta_size*psp->k_size*psp->ic_size[index_mode],psp->error_message);
 
   for (index_eta=0 ; index_eta < psp->eta_size; index_eta++) {
 
-    if (background_at_eta(ppt->eta_sampling[index_eta-psp->eta_size+ppt->eta_size], long_info, normal, &last_index_back, pvecback_sp_long) == _FAILURE_) {
-      sprintf(psp->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
-      return _FAILURE_;
-    }  
+    class_call(background_at_eta(ppt->eta_sampling[index_eta-psp->eta_size+ppt->eta_size], 
+				 long_info, 
+				 normal, 
+				 &last_index_back, 
+				 pvecback_sp_long),
+	       pba->error_message,
+	       psp->error_message);
 
     Omega_m = pvecback_sp_long[pba->index_bg_Omega_b];
     if (pba->has_cdm == _TRUE_) {
@@ -782,10 +662,9 @@ int spectra_pk(
 
     for (index_k=0; index_k<psp->k_size; index_k++) {
 
-      if (primordial_spectrum_at_k(ppm,index_mode,psp->k[index_k],primordial_pk) == _FAILURE_) {
-	sprintf(psp->error_message,"%s(L:%d) : error in primordial_spectrum_at_k()\n=>%s",__func__,__LINE__,ppm->error_message);
-	return _FAILURE_;
-      }
+      class_call(primordial_spectrum_at_k(ppm,index_mode,psp->k[index_k],primordial_pk),
+		 ppm->error_message,
+		 psp->error_message);
 
       /* loop over initial conditions */
       for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
@@ -819,22 +698,17 @@ int spectra_pk(
      the table */  
   if (psp->eta_size > 1) {
 
-    psp->ddpk = malloc(sizeof(double)*psp->eta_size*psp->k_size*psp->ic_size[index_mode]);
-    if (psp->ddpk == NULL) {
-      sprintf(psp->error_message,"%s(L:%d) : Could not allocate pk",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(psp->ddpk,sizeof(double)*psp->eta_size*psp->k_size*psp->ic_size[index_mode],psp->error_message);
 
-    if (array_spline_table_lines(psp->eta,
-				 psp->eta_size,
-				 psp->pk,
-				 psp->ic_size[index_mode]*psp->k_size,
-				 psp->ddpk,
-				 _SPLINE_EST_DERIV_,
-				 psp->transmit_message) == _FAILURE_) {
-      sprintf(psp->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,psp->transmit_message);
-      return _FAILURE_;
-    }
+    class_call(array_spline_table_lines(psp->eta,
+					psp->eta_size,
+					psp->pk,
+					psp->ic_size[index_mode]*psp->k_size,
+					psp->ddpk,
+					_SPLINE_EST_DERIV_,
+					psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
 
   }
 

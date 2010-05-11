@@ -48,7 +48,6 @@ struct spectra {
   //@}
 
   ErrorMsg error_message; /**< zone for writing error messages */
-  ErrorMsg transmit_message; /**< temporary zone for passing error messages */
 };
 
 /*************************************************************************************************************/

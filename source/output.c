@@ -7,11 +7,11 @@
 #include "output.h"
 
 int output_init(
-		struct precision * ppr_input,
-		struct background * pba_input,
-		struct perturbs * ppt_input,
-		struct transfers * ptr_input,
-		struct spectra * psp_input,
+		struct precision * ppr,
+		struct background * pba,
+		struct perturbs * ppt,
+		struct transfers * ptr,
+		struct spectra * psp,
 		struct output * pop
 		) {
 
@@ -24,70 +24,58 @@ int output_init(
   if (pop->output_verbose > 0)
     printf("Writing in output files \n");
 
-  if (ptr_input->tt_size >0) {
+  if (ptr->tt_size >0) {
 
-    for (index_mode = 0; index_mode < ppt_input->md_size; index_mode++) {
+    for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
-      out = malloc(ppt_input->ic_size[index_mode]*sizeof(FILE *));
-      if (out == NULL) {
-	sprintf(pop->error_message,"%s(L:%d) : Could not allocate out",__func__,__LINE__);
-	return _FAILURE_;
-      }
+      class_alloc(out,ppt->ic_size[index_mode]*sizeof(FILE *),pop->error_message);
 
-      cl_output= malloc(ppt_input->ic_size[index_mode]*psp_input->ct_size*sizeof(double));
+      class_alloc(cl_output,ppt->ic_size[index_mode]*psp->ct_size*sizeof(double),pop->error_message);
 
-      if (cl_output == NULL) {
-	sprintf(pop->error_message,"%s(L:%d) : Could not allocate cl_output",__func__,__LINE__);
-	return _FAILURE_;
-      }
+      for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
-      for (index_ic = 0; index_ic < ppt_input->ic_size[index_mode]; index_ic++) {
+	if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
+	  if ((ppt->has_ad) && (index_ic == ppt->index_ic_ad)) {
 
-	if ((ppt_input->has_scalars) && (index_mode == ppt_input->index_md_scalars)) {
-	  if ((ppt_input->has_ad) && (index_ic == ppt_input->index_ic_ad)) {
-	    out[index_ic]=fopen(pop->cls_ad,"w");
-	    if (out[index_ic] == NULL) {
-	      sprintf(pop->error_message,"%s(L:%d) : Could not open out[index_ic]",__func__,__LINE__);
-	      return _FAILURE_;
-	    }
+	    class_open(out[index_ic],pop->cls_ad,"w",pop->error_message);
+
 	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for adiabatic mode\n");
 	  }
 	}
 	
 	fprintf(out[index_ic],"# number of values of l:\n");
-	fprintf(out[index_ic],"%d\n",(int)(psp_input->l[index_mode][psp_input->l_size[index_mode]-1]-1));
+	fprintf(out[index_ic],"%d\n",(int)(psp->l[index_mode][psp->l_size[index_mode]-1]-1));
         fprintf(out[index_ic],"#  l ");
-	for (index_ct=0; index_ct < psp_input->ct_size; index_ct++) {
-	  if ((ppt_input->has_cl_cmb_temperature == _TRUE_) &&
-	      (index_ct == psp_input->index_ct_tt)) fprintf(out[index_ic],"TT           ");
-	  if ((ppt_input->has_cl_cmb_polarization == _TRUE_) &&
-	      (index_ct == psp_input->index_ct_ee)) fprintf(out[index_ic],"EE           ");
-	  if ((ppt_input->has_cl_cmb_temperature == _TRUE_) &&
-	      (ppt_input->has_cl_cmb_polarization == _TRUE_) &&
-	      (index_ct == psp_input->index_ct_te)) fprintf(out[index_ic],"TE            ");
-	  if ((ppt_input->has_cl_cmb_lensing_potential == _TRUE_) &&
-	      (index_ct == psp_input->index_ct_pp)) fprintf(out[index_ic],"phiphi       ");
-	  if ((ppt_input->has_cl_cmb_temperature == _TRUE_) &&
-	      (ppt_input->has_cl_cmb_lensing_potential == _TRUE_) &&
-	      (index_ct == psp_input->index_ct_tp)) fprintf(out[index_ic],"Tphi           ");
+	for (index_ct=0; index_ct < psp->ct_size; index_ct++) {
+	  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
+	      (index_ct == psp->index_ct_tt)) fprintf(out[index_ic],"TT           ");
+	  if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
+	      (index_ct == psp->index_ct_ee)) fprintf(out[index_ic],"EE           ");
+	  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
+	      (ppt->has_cl_cmb_polarization == _TRUE_) &&
+	      (index_ct == psp->index_ct_te)) fprintf(out[index_ic],"TE            ");
+	  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
+	      (index_ct == psp->index_ct_pp)) fprintf(out[index_ic],"phiphi       ");
+	  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
+	      (ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
+	      (index_ct == psp->index_ct_tp)) fprintf(out[index_ic],"Tphi           ");
 	}
 	fprintf(out[index_ic],"\n");
 
       }
 
-      for (l = 2; l <= psp_input->l[index_mode][psp_input->l_size[index_mode]-1]; l++) {  
+      for (l = 2; l <= psp->l[index_mode][psp->l_size[index_mode]-1]; l++) {  
 
-	if (spectra_cl_at_l(psp_input,index_mode,(double)l,cl_output) == _FAILURE_) {
-	  sprintf(pop->error_message,"%s(L:%d) : error in spectra_cl_at_l()\n=>%s",__func__,__LINE__,psp_input->error_message);
-	  return _FAILURE_;
-	}
+	class_call(spectra_cl_at_l(psp,index_mode,(double)l,cl_output),
+		   psp->error_message,
+		   pop->error_message);
 
-	for (index_ic = 0; index_ic < ppt_input->ic_size[index_mode]; index_ic++) {
+	for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
 	  fprintf(out[index_ic],"%4d",l);
-	  for (index_ct=0; index_ct < psp_input->ct_size; index_ct++) {
+	  for (index_ct=0; index_ct < psp->ct_size; index_ct++) {
 	    fprintf(out[index_ic]," ",l);
-	    fprintf(out[index_ic],"%e",l*(l+1)/2./_PI_*cl_output[index_ic * psp_input->ct_size + index_ct]);
+	    fprintf(out[index_ic],"%e",l*(l+1)/2./_PI_*cl_output[index_ic * psp->ct_size + index_ct]);
 	  }
 	  fprintf(out[index_ic],"\n");	
 	  
@@ -95,7 +83,7 @@ int output_init(
 
       }
 
-      for (index_ic = 0; index_ic < ppt_input->ic_size[index_mode]; index_ic++) {
+      for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
 	fclose(out[index_ic]);
 
@@ -107,50 +95,43 @@ int output_init(
     }
   }
 
-  if (ppt_input->has_pk_matter == _TRUE_) {
+  if (ppt->has_pk_matter == _TRUE_) {
     
-    if (pop->z_pk > psp_input->z_max_pk) {
-      sprintf(pop->error_message,"%s(L:%d) : P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",__func__,__LINE__,psp_input->z_max_pk,pop->z_pk);
-      return _FAILURE_;
-    }
+    class_test((pop->z_pk > psp->z_max_pk),
+	       pop->error_message,
+	       "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk);
 
-    index_mode=ppt_input->index_md_scalars;
+    index_mode=ppt->index_md_scalars;
 
     /* if z_pk = 0, no interpolation needed, 
        just let pk_output point to the right address */
     if (pop->z_pk == 0) {
-      pk_output=&(psp_input->pk[(psp_input->eta_size-1) * ppt_input->ic_size[index_mode] * psp_input->k_size]);
+      pk_output=&(psp->pk[(psp->eta_size-1) * ppt->ic_size[index_mode] * psp->k_size]);
     }
 
     /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
     else {
-      pk_output = malloc(sizeof(double)*ppt_input->ic_size[index_mode]*psp_input->k_size);
-      if (pk_output == NULL) {
-	sprintf(pop->error_message,"%s(L:%d) : Could not allocate pk_output",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      if (spectra_pk_at_z(pba_input,psp_input,ppt_input->index_md_scalars,pop->z_pk,pk_output) == _FAILURE_) {
-	sprintf(pop->error_message,"%s(L:%d) : error in spectra_pk_at_z()\n=>%s",__func__,__LINE__,psp_input->error_message);
-	return _FAILURE_;
-      }
-		      
+      class_alloc(pk_output,sizeof(double)*ppt->ic_size[index_mode]*psp->k_size,pop->error_message);
+      class_call(spectra_pk_at_z(pba,psp,ppt->index_md_scalars,pop->z_pk,pk_output),
+		 psp->error_message,
+		 pop->error_message);
     }
       
-    outbis=fopen(pop->pk,"w");
+    class_open(outbis,pop->pk,"w",pop->error_message);
 
     fprintf(outbis,"# Matter power spectrum P(k) at redshift z=%f\n",pop->z_pk);
     fprintf(outbis,"# Number of wavenumbers k:\n");
-    fprintf(outbis,"%d\n",psp_input->k_size);
+    fprintf(outbis,"%d\n",psp->k_size);
     fprintf(outbis,"# k (h/Mpc)  P (Mpc/h)^3:\n");
     /* if isocurvature modes present, should improve these preliminary lines */
 
-    for (index_k=0; index_k<psp_input->k_size; index_k++) {
+    for (index_k=0; index_k<psp->k_size; index_k++) {
 
-      fprintf(outbis,"%e",psp_input->k[index_k]/pba_input->h);
+      fprintf(outbis,"%e",psp->k[index_k]/pba->h);
 
-      for (index_ic = 0; index_ic < ppt_input->ic_size[index_mode]; index_ic++) {
+      for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 	fprintf(outbis," %e",
-		pow(pba_input->h,3)*pk_output[index_ic * psp_input->k_size + index_k]);
+		pow(pba->h,3)*pk_output[index_ic * psp->k_size + index_k]);
       }
       fprintf(outbis,"\n");
     }
