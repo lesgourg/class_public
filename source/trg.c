@@ -14,6 +14,7 @@
 #include "primordial.h"
 #include "spectra.h"
 #include "trg.h"
+#include <time.h>
 
 ErrorMsg Transmit_Error_Message; /**< contains error message */
 
@@ -54,6 +55,7 @@ int trg_gamma_222(
 int trg_p12_ini(
 		double *k,
 		int index_ic,
+		double *H,
 		double * result,
 		char * errmsg
 		){
@@ -63,18 +65,18 @@ int trg_p12_ini(
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
 
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z_ini,&temp1)==_FAILURE_){
+    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[0],&temp1)==_FAILURE_){
       sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
       sprintf(pnl->error_message,"%s",errmsg);
       return _FAILURE_;
     }
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z_ini+pnl->eta_step,&temp2)==_FAILURE_){
+    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[1],&temp2)==_FAILURE_){
       sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
       sprintf(pnl->error_message,"%s",errmsg);
       return _FAILURE_;
     }
-    temp3   = (sqrt(temp2) - sqrt(temp1))/pnl->eta_step;
-    result[index_k] = sqrt(temp1) * temp3;
+    temp3   = (sqrt(temp2) - sqrt(temp1))/(pnl->z[1]-pnl->z[0]);
+    result[index_k] = - (1+pnl->z[0]) * sqrt(temp1) * temp3 ;
   }
   return _SUCCESS_;
 }
@@ -85,6 +87,7 @@ int trg_p12_ini(
 int trg_p22_ini(
 		double *k,
 		int index_ic,
+		double *H,
 		double * result,
 		char * errmsg
 		){
@@ -93,18 +96,18 @@ int trg_p22_ini(
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
 
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z_ini,&temp1)==_FAILURE_){
+    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[0],&temp1)==_FAILURE_){
       sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
       sprintf(pnl->error_message,"%s",errmsg);
       return _FAILURE_;
     }
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z_ini+pnl->eta_step,&temp2)==_FAILURE_){
+    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[1],&temp2)==_FAILURE_){
       sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
       sprintf(pnl->error_message,"%s",errmsg);
       return _FAILURE_;
     }
-    temp3   = (sqrt(temp2) - sqrt(temp1))/pnl->eta_step;
-    result[index_k] = temp3*temp3;
+    temp3   = (sqrt(temp2) - sqrt(temp1))/ (pnl->z[0] - pnl->z[1]);
+    result[index_k] = (1+pnl->z[0])*(1+pnl->z[0])*temp3*temp3;
   }
   return _SUCCESS_;
 }
@@ -910,6 +913,8 @@ int trg_init (
 
   FILE *nl_spectra;
 
+  time_t time_1,time_2;
+
   int index_k;
   int index_eta;
 
@@ -961,14 +966,14 @@ int trg_init (
     printf("Computing non-linear spectrum with TRG method\n");
 
   /* define initial eta and redshift */
-  a_ini = 5e-3;
+  a_ini = 1e-2;
   pnl->z_ini = ppr->a_today/a_ini - 1.;
 
   /* define eta_max, where eta=log(a/a_ini) */
   eta_max = log(ppr->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 5;
+  pnl->eta_size = 50;
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
@@ -989,9 +994,12 @@ int trg_init (
   /* fill array of eta values */
 
   pnl->eta = calloc(pnl->eta_size,sizeof(double));
+  pnl->z   = calloc(pnl->eta_size,sizeof(double));
 
   for (index_eta=0; index_eta<pnl->eta_size; index_eta++) {
     pnl->eta[index_eta] = index_eta*eta_step;
+    pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(ppr->a_today/a_ini)-1;
+    if(pnl->z[index_eta]<0) pnl->z[index_eta]=0;
   }
 
   /* definition of background values for each eta */
@@ -1014,14 +1022,17 @@ int trg_init (
     if (pba->has_cdm == _TRUE_) {
     Omega_m[index_eta] += pvecback_nl[pba->index_bg_Omega_cdm];
     }
+
     H[index_eta] = pvecback_nl[pba->index_bg_H] * a_ini * exp(pnl->eta[index_eta]);
-    H_prime[index_eta] = pvecback_nl[pba->index_bg_H_prime] * a_ini * exp(pnl->eta[index_eta]);
+    H_prime[index_eta] =H[index_eta]*(1 + pvecback_nl[pba->index_bg_H_prime] / a_ini * exp(-pnl->eta[index_eta])/pvecback_nl[pba->index_bg_H]/pvecback_nl[pba->index_bg_H]);
+
   }
   /* now Omega_m, H are known at each eta */
 
   /* Definition of the matrix elements Omega_11,Omega_12, Omega_22,
      Omega_12 for each eta, to modify in order to take into account
      more physics with a k dependence, for instance */
+
 
   Omega_11 = 1.;
   Omega_12 = -1.;
@@ -1032,7 +1043,7 @@ int trg_init (
   for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {
     Omega_21[index_eta] = -3./2 * Omega_m[index_eta];
     Omega_22[index_eta] = 2 + H_prime[index_eta]/H[index_eta];
-  }  
+  } 
 
   /* Definition of P_11=pk_nl, P_12=<delta theta> and P_22=<theta
      theta>, and initialization at eta[0]=0, k[0] 
@@ -1059,11 +1070,11 @@ int trg_init (
       sprintf(pnl->error_message,"%s(L:%d): error in initializing pk_nl\n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }
-    if(trg_p12_ini(pnl->k,index_ic,pnl->p_12,Transmit_Error_Message)==_FAILURE_){
+    if(trg_p12_ini(pnl->k,index_ic,H,pnl->p_12,Transmit_Error_Message)==_FAILURE_){
       sprintf(pnl->error_message,"%s(L:%d): error in initializing p_12\n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }
-    if(trg_p22_ini(pnl->k,index_ic,pnl->p_22,Transmit_Error_Message)==_FAILURE_){
+    if(trg_p22_ini(pnl->k,index_ic,H,pnl->p_22,Transmit_Error_Message)==_FAILURE_){
       sprintf(pnl->error_message,"%s(L:%d): error in initializing p_22\n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }
@@ -1140,9 +1151,9 @@ int trg_init (
 
   n_xy=100; /* number of dots for integration with trapezoidal
 	       method */
-
+  
   if (pnl->spectra_nl_verbose > 0)
-    printf("Initialisation...\n");
+    printf("Initialisation\n");
 
 
   class_call(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,pnl->error_message),
@@ -1150,84 +1161,85 @@ int trg_init (
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(" 1/12");}
+    printf(".");}
 				     
   class_call(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 2/12");}
+    printf(".");}
   
   class_call(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k_size,A12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 3/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k_size,A21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 4/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k_size,A22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 5/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k_size,A3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 6/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k_size,B0,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 7/12");}
+    printf(".");}
   
   class_call(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k_size,B11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 8/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k_size,B12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r 9/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k_size,B21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r10/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k_size,B22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r11/12");}
+    printf(".");}
 
   class_call(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k_size,B3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf("\r12/12");}
+    printf(".");}
+
 
 
   /********************
@@ -1239,9 +1251,12 @@ int trg_init (
 
   if (pnl->spectra_nl_verbose > 0){
     printf("\n\nprogression in per cent\n\n");}
+
+  time_1=time(NULL);
  
   for (index_eta=1; index_eta<pnl->eta_size; index_eta++){
     exp_eta=exp(pnl->eta[index_eta-1]);
+
     for (index_k=0; index_k<pnl->k_size; index_k++){
 
       /**********
@@ -1251,6 +1266,8 @@ int trg_init (
       pi_over_k=4*_PI_/(pnl->k[index_k]);
       index = index_k+pnl->k_size*(index_eta-1);
       index_plus = index_k+pnl->k_size*index_eta;
+
+     
 
       pnl->pk_nl[index_plus]= eta_step *(
 					 -2*Omega_11*pnl->pk_nl[index]
@@ -1270,6 +1287,7 @@ int trg_init (
 					 -Omega_21[index_eta-1]*pnl->pk_nl[index]
 					 +exp_eta*pi_over_k*(2*a22[index]+b21[index]))
 	                     + pnl->p_12[index];
+
 
       a0[index_plus]         = eta_step *(
 					  -Omega_21[index_eta-1]*(a11[index]+2*a12[index])
@@ -1405,17 +1423,59 @@ int trg_init (
 	       pnl->error_message,
 	       pnl->error_message);
     
-    printf("%2.2f%%\n",100.*index_eta/(pnl->eta_size-1.));
+    printf("%2.2f%% done\n",100.*index_eta/(pnl->eta_size-1.));
+    
+    time_2=time(NULL);
+    if(index_eta==1){
+      printf("elapsed time after one loop : %f\n",difftime(time_2, time_1));
+      printf("estimated remaining : %3.f minutes\n",difftime(time_2,time_1)*(pnl->eta_size-2)/60);}
   }
 
   printf("Done !\n");
-
-  fprintf(nl_spectra,"##for %d values of k\n## k\tpk_nl\tp_12\tp_22 at last eta(today)\n",pnl->k_size);
-
-  for(index_k=0; index_k<pnl->k_size; index_k++){
-    fprintf(nl_spectra,"%e\t%e\t%e\t%e\n",pnl->k[index_k],pnl->pk_nl[index_k+pnl->k_size*(pnl->eta_size-1)],pnl->p_12[index_k+pnl->k_size*(pnl->eta_size-1)],pnl->p_22[index_k+pnl->k_size*(pnl->eta_size-1)]);
+  /*
+  fprintf(nl_spectra,"##for %d values of k\n##eta is equal to %f\n## k\tpk_nl\tp_12\tp_22 at last eta(today)\n",pnl->k_size,pnl->eta[1]);
+  */
+  /* 
+  for(index_eta=0; index_eta<pnl->eta_size; index_eta++){
+    class_call(
+	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[50],pnl->z[index_eta],&temp1),
+	       psp->error_message,
+	       pnl->error_message);
+				    
+    fprintf(nl_spectra,"%e\t%e\t%e\t%e\t%e\t%e\n",
+	    pnl->eta[index_eta],
+	    pnl->z[index_eta],
+	    Omega_m[index_eta],
+	    pnl->pk_nl[50+pnl->k_size*index_eta] / pnl->pk_nl[50] * exp(pnl->eta[index_eta]*2),
+	    temp1/pnl->pk_nl[50],
+	    exp(pnl->eta[index_eta]*2) );
   }
+  */
 
+  fprintf(nl_spectra,"##for %d values of k\n##eta is equal to %f\n## k\tpk_nl\tpk_lin at last eta(today)\n",pnl->k_size,pnl->eta[pnl->eta_size-1]);
+  /*
+  for(index_k=0; index_k<pnl->k_size; index_k++){
+    class_call(
+	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[pnl->eta_size-1],&temp1),
+	       psp->error_message,
+	       pnl->error_message);
+
+    fprintf(nl_spectra,"%e\t%e\t%e\n",pnl->k[index_k],pnl->pk_nl[index_k+(pnl->k_size*(pnl->eta_size-1))]*exp(pnl->eta[pnl->eta_size-1]*2),temp1);
+  }
+  */
+  /*
+    fprintf(nl_spectra,"\n\n## eta      z\n");
+  */
+    
+
+  for(index_eta=0; index_eta<pnl->eta_size; index_eta++){
+    class_call(
+	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[50],pnl->z[index_eta],&temp1),
+	       psp->error_message,
+	       pnl->error_message);
+    fprintf(nl_spectra,"%e\t%e\t%e\n",exp(pnl->eta[index_eta])*a_ini,pnl->pk_nl[50+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),temp1);
+  }
+  
   fclose(nl_spectra);
 
   /* if (trg_gamma_222(2,2,2)==0.){

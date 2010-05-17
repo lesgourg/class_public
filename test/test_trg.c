@@ -98,7 +98,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (transfer_free() == _FAILURE_) {
+  if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }

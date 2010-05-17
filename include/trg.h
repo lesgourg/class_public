@@ -13,6 +13,7 @@ struct spectra_nl {
   double * ddpk_nl;
   double * ddp_12;
   double * ddp_22;
+  double * z;
 
   double k_max;
 
@@ -60,6 +61,7 @@ extern "C" {
   int trg_p12_ini(
 		  double *k,
 		  int index_ic,
+		  double *H,
 		  double * result,
 		  char * errmsg				
 		  );
@@ -67,6 +69,7 @@ extern "C" {
   int trg_p22_ini(
 		  double *k,
 		  int index_ic,
+		  double *H,
 		  double * result,
 		  char * errmsg				
 		  );
