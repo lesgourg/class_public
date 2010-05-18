@@ -237,9 +237,8 @@ int transfer_init(
     index++;
     ti->trans_int_col_num = index;
 
-    class_alloc(ti->trans_int,
-		sizeof(double) * ppt->eta_size * ti->trans_int_col_num,
-		ptr->error_message);
+
+    ti->trans_int=malloc(sizeof(double)*ppt->eta_size*ti->trans_int_col_num);
 
     if (abort != 0)
       {
