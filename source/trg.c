@@ -35,8 +35,8 @@ int trg_gamma_121(
 		   double  p, 
 		   double  *result
 		  ){
-  *result =  (1./ (4*q*q)) * (- p*p + k*k + q*q);
-    return _SUCCESS_;
+   *result =  (1./ (4*q*q)) * (- p*p + k*k + q*q);
+   return _SUCCESS_;
 }
 
 
@@ -135,6 +135,11 @@ int trg_pk_nl_ini(
   }
   return _SUCCESS_;
 }
+
+ /********************
+  * Fill the second derivative table of p_ab up to the index_eta
+  * subscript
+  ********************/
 
 int trg_ddp_ab(
 	       double *p_ab,
@@ -973,7 +978,7 @@ int trg_init (
   eta_max = log(ppr->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 50;
+  pnl->eta_size = 30;
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
@@ -1161,84 +1166,84 @@ int trg_init (
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 				     
   class_call(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
   
   class_call(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k_size,A12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k_size,A21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k_size,A22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k_size,A3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k_size,B0,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
   
   class_call(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k_size,B11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k_size,B12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k_size,B21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k_size,B22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
   class_call(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k_size,B3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
-    printf(".");}
+    printf(".\n");}
 
 
 
@@ -1297,7 +1302,7 @@ int trg_init (
 
       a11[index_plus]        = eta_step *(
 					  -a11[index]*(2*Omega_22[index_eta-1]+Omega_11)
-					  -3*Omega_12*a0[index]
+					  -Omega_12*a0[index]
 					  -2*Omega_21[index_eta-1]*a22[index]
 					  +2*exp_eta*A11[index])
 	                     + a11[index];
@@ -1343,7 +1348,7 @@ int trg_init (
 	                     + b11[index];
 
       b12[index_plus]        = eta_step *(
-					  -b12[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -b12[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(b22[index]+b21[index])
 					  -Omega_21[index_eta-1]*b0[index]
 					  +2*exp_eta*B12[index])
@@ -1358,7 +1363,7 @@ int trg_init (
 
       b22[index_plus]        = eta_step *(
 					  -b22[index]*(2*Omega_22[index_eta-1]+Omega_11)
-					  -2*Omega_21[index_eta-1]*(b12[index]+b11[index])
+					  -Omega_21[index_eta-1]*(b12[index]+b11[index])
 					  -Omega_12*b3[index]
 					  +2*exp_eta*B22[index])
 	                     + b22[index];
@@ -1370,56 +1375,73 @@ int trg_init (
 	                     + b3[index];
 	
     }
-    
+
+    /**********
+     * Update of second derivatives for interpolation
+     **********/
+
+    class_call(trg_ddp_ab(pnl->pk_nl,index_eta,pnl->ddpk_nl,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_ddp_ab(pnl->p_12,index_eta,pnl->ddp_12,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_ddp_ab(pnl->p_22,index_eta,pnl->ddp_22,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+
     /**********
      * Update of A's and B's function at the new index_eta
      **********/
     
-    class_call(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('A0',index_eta,n_xy,pnl->k_size,A0,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('A11',index_eta,n_xy,pnl->k_size,A11,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k_size,A12,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('A12',index_eta,n_xy,pnl->k_size,A12,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k_size,A21,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('A21',index_eta,n_xy,pnl->k_size,A21,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k_size,A22,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('A22',index_eta,n_xy,pnl->k_size,A22,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k_size,A3,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('A3',index_eta,n_xy,pnl->k_size,A3,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k_size,B0,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('B0',index_eta,n_xy,pnl->k_size,B0,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k_size,B11,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('B11',index_eta,n_xy,pnl->k_size,B11,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k_size,B12,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('B12',index_eta,n_xy,pnl->k_size,B12,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k_size,B21,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('B21',index_eta,n_xy,pnl->k_size,B21,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k_size,B22,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('B22',index_eta,n_xy,pnl->k_size,B22,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k_size,B3,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta('B3',index_eta,n_xy,pnl->k_size,B3,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -1429,6 +1451,8 @@ int trg_init (
     if(index_eta==1){
       printf("elapsed time after one loop : %f\n",difftime(time_2, time_1));
       printf("estimated remaining : %3.f minutes\n",difftime(time_2,time_1)*(pnl->eta_size-2)/60);}
+
+    if(isnan(pnl->pk_nl[50+pnl->k_size*index_eta])!=0){printf("ca marche pas !!!nan!!!\n");}
   }
 
   printf("Done !\n");
@@ -1467,16 +1491,40 @@ int trg_init (
     fprintf(nl_spectra,"\n\n## eta      z\n");
   */
     
-
+  
   for(index_eta=0; index_eta<pnl->eta_size; index_eta++){
     class_call(
 	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[50],pnl->z[index_eta],&temp1),
 	       psp->error_message,
 	       pnl->error_message);
-    fprintf(nl_spectra,"%e\t%e\t%e\n",exp(pnl->eta[index_eta])*a_ini,pnl->pk_nl[50+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),temp1);
+    fprintf(nl_spectra,"%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
+	    exp(pnl->eta[index_eta])*a_ini,
+	    pnl->pk_nl[50+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),
+	    temp1,
+	    A0[50+(pnl->k_size*(index_eta))],
+	    A11[50+(pnl->k_size*(index_eta))],
+	    A12[50+(pnl->k_size*(index_eta))],
+	    A21[50+(pnl->k_size*(index_eta))],
+	    A22[50+(pnl->k_size*(index_eta))],
+	    A3[50+(pnl->k_size*(index_eta))],
+	    B0[50+(pnl->k_size*(index_eta))],
+	    B11[50+(pnl->k_size*(index_eta))],
+	    B12[50+(pnl->k_size*(index_eta))],
+	    B21[50+(pnl->k_size*(index_eta))],
+	    B22[50+(pnl->k_size*(index_eta))],
+	    B3[50+(pnl->k_size*(index_eta))]);
   }
   
   fclose(nl_spectra);
+
+  for(index_k=0; index_k<pnl->k_size; index_k++){
+    class_call(
+	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[pnl->eta_size-1],&temp1),
+	       psp->error_message,
+	       pnl->error_message);
+    printf("%e\t%e\t%e\n",pnl->k[index_k],pnl->pk_nl[index_k+pnl->k_size*(pnl->eta_size-1)]*exp(pnl->eta[pnl->eta_size-1]),temp1);
+
+  }
 
   /* if (trg_gamma_222(2,2,2)==0.){
     sprintf(Transmit_Error_Message,"%s(L:%d) : error in trg_gamma_222() (divide by 0!)\n=>%s",__func__,__LINE__,pnl->error_message);
