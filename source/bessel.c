@@ -60,7 +60,7 @@ int bessel_at_x(
   /** - if index_l is too large to be in the interpolation table, return  an error */
 
   if (index_l > pbs->l_size) {
-    printf(pbs->error_message,"%s(L:%d) : index_l=%d>l_size=%d; increase l_max.",__func__,__LINE__,index_l,pbs->l_size);
+    sprintf(pbs->error_message,"%s(L:%d) : index_l=%d>l_size=%d; increase l_max.",__func__,__LINE__,index_l,pbs->l_size);
     return _FAILURE_;
   } 
 
@@ -76,7 +76,7 @@ int bessel_at_x(
     /** - if x is too large to be in the interpolation table, return  an error (this should never occur since x_max in the table should really be the highest value needed by the code, given the precision parameters) */
 
     if (x > pbs->x_max) {
-      printf(pbs->error_message,"%s(L:%d) : x=%e>x_max=%e; increase x_max.",__func__,__LINE__,x,pbs->x_max);
+      sprintf(pbs->error_message,"%s(L:%d) : x=%e>x_max=%e; increase x_max.",__func__,__LINE__,x,pbs->x_max);
       return _FAILURE_;
     }
 
@@ -352,13 +352,13 @@ int bessel_init(
 		 x_min_up, /* x */
 		 &j  /* j_l(x) */
 		 ) == _FAILURE_) {
-      printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
+      sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
       sprintf(pbs->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
 
     if (j < pbs->j_cut) {
-      printf(pbs->error_message,"%s(L:%d) : in dichotomy, wrong initial guess for x_min_up.",__func__,__LINE__);
+      sprintf(pbs->error_message,"%s(L:%d) : in dichotomy, wrong initial guess for x_min_up.",__func__,__LINE__);
       return _FAILURE_;
     }
       
@@ -374,7 +374,7 @@ int bessel_init(
 		   0.5 * (x_min_up+x_min_down), /* x */
 		   &j  /* j_l(x) */
 		   ) == _FAILURE_) {
-	printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
+	sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
 	sprintf(pbs->error_message,"%s",Transmit_Error_Message);
 	return _FAILURE_;
       }
@@ -391,7 +391,7 @@ int bessel_init(
 		 pbs->x_min[index_l], /* x */
 		 &j  /* j_l(x) */
 		 ) == _FAILURE_) {
-      printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
+      sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
       sprintf(pbs->error_message,"%s",Transmit_Error_Message);
       return _FAILURE_;
     }
@@ -422,7 +422,7 @@ int bessel_init(
 		     j_array[index_x*column_num+column_x], /* x */
 		     j_array+index_x*column_num+column_j  /* j_l(x) */
 		     ) == _FAILURE_) {
-	  printf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
+	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
 	  sprintf(pbs->error_message,"%s",Transmit_Error_Message);
 	  return _FAILURE_;
 	}
@@ -437,7 +437,7 @@ int bessel_init(
 		       column_ddj,
 		       _SPLINE_EST_DERIV_,
 		       Transmit_Error_Message) == _FAILURE_) {
-	printf(pbs->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
+	sprintf(pbs->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
 	return _FAILURE_;
       }
 

@@ -13,12 +13,12 @@ vpath %.c source:tools:main:test
 vpath %.o build
 vpath .base build
 
-CC       = gcc
+CC       = gcc-4.2
 
-#CCFLAG   = -O2 -fopenmp
-#LDFLAG   = -O2 -fopenmp
-CCFLAG = -O2
-LDFLAG = -O2 
+CCFLAG   = -O2 -fopenmp
+LDFLAG   = -O2 -fopenmp
+#CCFLAG = -O2
+#LDFLAG = -O2 
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 
