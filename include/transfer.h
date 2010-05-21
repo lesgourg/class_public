@@ -71,7 +71,7 @@ extern "C" {
 			      int index_type,
 			      int index_l,
 			      double k,
-			      double * ptransfer
+			      double * ptransfer_local
 			      );
 
   int transfer_init(
@@ -80,7 +80,7 @@ extern "C" {
 		    struct thermo * pth,
 		    struct perturbs * ppt,
 		    struct bessels * pbs,
-		    struct transfers * ptr_output
+		    struct transfers * ptr
 		    );
     
   int transfer_free(
@@ -96,52 +96,31 @@ extern "C" {
 				    double eta_rec
 				    );
 
-  int transfer_get_l_list_size(
-			       struct precision * ppr,
-			       struct perturbs * ppt,
-			       struct bessels * pbs,
-			       struct transfers * ptr,
-			       int index_mode,
-			       int * pl_list_size
-			       );
-
   int transfer_get_l_list(
+			  struct precision * ppr,
 			  struct perturbs * ppt,
 			  struct bessels * pbs,
 			  struct transfers * ptr,
-			  int index_mode,
-			  int * pl_list
+			  int index_mode
 			  );
-
-  int transfer_get_k_list_size(
-			       struct precision * ppr,
-			       struct perturbs * ppt,
-			       struct transfers * ptr,
-			       int index_mode,
-			       double eta0,
-			       double eta_rec,
-			       int * pk_list_size
-			       );
 
   int transfer_get_k_list(
 			  struct precision * ppr,
 			  struct perturbs * ppt,
 			  struct transfers * ptr,
-			  int index_mode,
 			  double eta0,
 			  double eta_rec,
-			  double * pk_list
+			  int index_mode
 			  );
 
   int transfer_interpolate_sources(
 				   struct perturbs * ppt,
 				   struct transfers * ptr,
+				   double eta0,
+				   double eta_rec,
 				   int current_index_mode,
 				   int current_index_ic,
 				   int current_index_type,
-				   int current_index_l,
-				   double eta0,
-				   double eta_rec,
 				   double * source_spline,
 				   double * interpolated_sources
 				   );
@@ -150,13 +129,13 @@ extern "C" {
 			 struct perturbs * ppt,
 			 struct bessels * pbs,
 			 struct transfers * ptr,
+			 double eta0,
+			 double eta_rec,
 			 int current_index_mode,
 			 int current_index_ic,
 			 int current_index_type,
 			 int current_index_l,
 			 int current_index_k,
-			 double eta0,
-			 double eta_rec,
 			 double * interpolated_sources,
 			 struct transfer_integrand * pti,
 			 double * trsf

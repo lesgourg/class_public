@@ -329,7 +329,7 @@ int spectra_free(
     free(psp->eta);
     free(psp->k);
     free(psp->pk);
-    if (psp->eta_size > 0) {
+    if (psp->eta_size > 1) {
       free(psp->ddpk);
     }
   }    
