@@ -492,8 +492,10 @@ int transfer_init(
 #endif
 	}
 
+#ifdef _OPENMP
 	/* end of parallel region */
-	if (abort == _TRUE_) {printf("There\n");return _FAILURE_;}
+	if (abort == _TRUE_) return _FAILURE_;
+#endif
 
       }   
       
@@ -964,7 +966,7 @@ int transfer_integrate(
 
   for (index_eta = 0; index_eta <= index_eta_max; index_eta++) {
 
-    class_call(bessel_at_x(ptr->k[current_index_mode][current_index_k] * (eta0-ppt->eta_sampling[index_eta]),current_index_l,&bessel),
+    class_call(bessel_at_x(pbs,ptr->k[current_index_mode][current_index_k] * (eta0-ppt->eta_sampling[index_eta]),current_index_l,&bessel),
 	       pbs->error_message,
 	       ptr->error_message);
 

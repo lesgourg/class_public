@@ -12,22 +12,9 @@
  */
 
 #include "bessel.h"
-
-/** @name - structures used within the transfer module: */
-
-//@{
-
-struct bessels * pbs; /**< a bessels structure pointer for internal use in the perturbation module */
-
-//@}
-
-/** @name - miscellaneous: */
-
-//@{
-
-ErrorMsg Transmit_Error_Message; /**< contains error message */
-
-//@}
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 /** 
  * Bessel function for arbitrary argument x. 
@@ -44,6 +31,7 @@ ErrorMsg Transmit_Error_Message; /**< contains error message */
  * @return the error status
  */
 int bessel_at_x(
+		struct bessels * pbs,
 		double x,
 		int index_l,
 		double * j
@@ -59,11 +47,9 @@ int bessel_at_x(
 
   /** - if index_l is too large to be in the interpolation table, return  an error */
 
-  if (index_l > pbs->l_size) {
-    sprintf(pbs->error_message,"%s(L:%d) : index_l=%d>l_size=%d; increase l_max.",__func__,__LINE__,index_l,pbs->l_size);
-    return _FAILURE_;
-  } 
-
+  class_test(index_l > pbs->l_size,
+	     pbs->error_message,
+	     "index_l=%d>l_size=%d; increase l_max.",index_l,pbs->l_size);
 
   /** - if x is too small to be in the interpolation table, return 0 */
 
@@ -75,28 +61,24 @@ int bessel_at_x(
 
     /** - if x is too large to be in the interpolation table, return  an error (this should never occur since x_max in the table should really be the highest value needed by the code, given the precision parameters) */
 
-    if (x > pbs->x_max) {
-      sprintf(pbs->error_message,"%s(L:%d) : x=%e>x_max=%e; increase x_max.",__func__,__LINE__,x,pbs->x_max);
-      return _FAILURE_;
-    }
+    class_test(x > pbs->x_max,
+	       pbs->error_message,
+	       "x=%e>x_max=%e; increase x_max.",x,pbs->x_max);
 
     /** - otherwise, interpolation is needed: */
 
-    else {
+    /** (a) find index_x, i.e. the position of x in the table; no complicated algorithm needed, since values are regularly spaced with a known step and known first value */
 
-      /** (a) find index_x, i.e. the position of x in the table; no complicated algorithm needed, since values are regularly spaced with a known step and known first value */
+    index_x = (int)((x-pbs->x_min[index_l])/pbs->x_step);
 
-      index_x = (int)((x-pbs->x_min[index_l])/pbs->x_step);
-
-      /** (b) find result with the splint algorithm (equivalent to the one in numerical recipies) */
-      h=pbs->x_step;
-      b = ( x - (pbs->x_min[index_l]+pbs->x_step*index_x) )/h;
-      a = 1.-b;
-      *j= a * pbs->j[index_l][index_x] 
-	+ b * pbs->j[index_l][index_x+1]
-	+ ((a*a*a-a) * pbs->ddj[index_l][index_x]
-	   +(b*b*b-b) * pbs->ddj[index_l][index_x+1]) * (h*h)/6.0;
-    }
+    /** (b) find result with the splint algorithm (equivalent to the one in numerical recipies) */
+    h=pbs->x_step;
+    b = ( x - (pbs->x_min[index_l]+pbs->x_step*index_x) )/h;
+    a = 1.-b;
+    *j= a * pbs->j[index_l][index_x] 
+      + b * pbs->j[index_l][index_x+1]
+      + ((a*a*a-a) * pbs->ddj[index_l][index_x]
+	 +(b*b*b-b) * pbs->ddj[index_l][index_x+1]) * (h*h)/6.0;
   }
 
   return _SUCCESS_;
@@ -135,10 +117,10 @@ int bessel_at_x(
  * @return the error status
  */
 int bessel_init(
-		struct background * pba_input,
-		struct perturbs * ppt_input,
-		struct precision * ppr_input,
-		struct bessels * pbs_output
+		struct precision * ppr,
+		struct background * pba,
+		struct perturbs * ppt,
+		struct bessels * pbs
 		) {
 
   /** Summary: */
@@ -179,60 +161,57 @@ int bessel_init(
   int column_ddj=2;
   int column_num=3;
 
-  /** - identify the bessels structures pbs (used throughout bessel.c as global variables) to the output structure pbs_output of this function */
-  pbs = pbs_output; 
+#ifdef _OPENMP
+  /* abort flag, useful for parallel regions */
+  int abort;
+  /* instrumentation times */
+  double tstart, tstop;
 
-  if ((ppt_input->has_cl_cmb_temperature == _FALSE_) &&
-      (ppt_input->has_cl_cmb_polarization == _FALSE_) &&
-      (ppt_input->has_cl_cmb_lensing_potential == _FALSE_)) {
+  abort=_FALSE_;
+#endif
+
+  if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
+      (ppt->has_cl_cmb_polarization == _FALSE_) &&
+      (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
     if (pbs->bessels_verbose > 0)
       printf("No harmonic space transfer functions to compute. Bessel module skipped.\n");
     return _SUCCESS_;
   }
 
   /** - get conformal age from background structure (only place where this structure is used in this module) */
-  eta0 = pba_input->conformal_age;
+  eta0 = pba->conformal_age;
 
   /** - get maximum and minimum wavenumber from perturbation structure (only place where this structure is used in this module) */
-  if (ppt_input->has_scalars) {
-    kmax = ppt_input->k[ppt_input->index_md_scalars]
-      [ppt_input->k_size_cl[ppt_input->index_md_scalars]-1];
-    kmin = ppt_input->k[ppt_input->index_md_scalars][0];
+  if (ppt->has_scalars) {
+    kmax = ppt->k[ppt->index_md_scalars]
+      [ppt->k_size_cl[ppt->index_md_scalars]-1];
+    kmin = ppt->k[ppt->index_md_scalars][0];
   }
-  if (ppt_input->has_tensors) {
-    kmax=max(kmax,ppt_input->k[ppt_input->index_md_tensors]
-	     [ppt_input->k_size_cl[ppt_input->index_md_scalars]-1]);
-    kmin = min(kmin,ppt_input->k[ppt_input->index_md_scalars][0]);
+  if (ppt->has_tensors) {
+    kmax=max(kmax,ppt->k[ppt->index_md_tensors]
+	     [ppt->k_size_cl[ppt->index_md_scalars]-1]);
+    kmin = min(kmin,ppt->k[ppt->index_md_scalars][0]);
   }
 
   /** - compute l values, x_step and j_cut given the parameters passed
       in the precision structure; and x_max given eta0 and kmax */
 
-  if (bessel_get_l_list_size(ppr_input,&(pbs->l_size)) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_get_l_list_size() \n=>%s",__func__,__LINE__,pbs->error_message);
-    sprintf(pbs->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(bessel_get_l_list(ppr,pbs),
+	     pbs->error_message,
+	     pbs->error_message);
 
-  pbs->l = malloc(pbs->l_size*sizeof(int));
+  pbs->x_step = ppr->bessel_scalar_x_step;
+  
+  class_test(pbs->x_step <= 0.,
+	     pbs->error_message,
+	     "x_step=%e",pbs->x_step);
 
-  if (bessel_get_l_list(ppr_input,pbs->l) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_get_l_list() \n=>%s",__func__,__LINE__,pbs->error_message);
-    sprintf(pbs->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-
-  pbs->x_step = ppr_input->bessel_scalar_x_step;
-  if (pbs->x_step <= 0.) {
-    sprintf(pbs->error_message,"%s(L:%d) : x_step=%e negative or null",__func__,__LINE__,pbs->x_step);
-    return _FAILURE_;
-  }
-  pbs->j_cut = ppr_input->bessel_scalar_j_cut;
+  pbs->j_cut = ppr->bessel_scalar_j_cut;
   pbs->x_max = ((int)(kmax * eta0 / pbs->x_step)+1)*pbs->x_step; /* always multiple of x_step */
 
   /** - check if file bessels.dat already exists with the same (l's, x_step, x_max, j_cut). If yes, read it. */
 
-  if (ppr_input->bessel_always_recompute == _FALSE_) {
+  if (ppr->bessel_always_recompute == _FALSE_) {
 
     bessel_file=fopen("bessels.dat","r");
   
@@ -241,29 +220,30 @@ int bessel_init(
 	printf("File bessels.dat did not exist.\n");
     }
     else {
-      if(fread(&l_size_file,sizeof(int),1,bessel_file) != 1) {
-	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	return _FAILURE_;
-      }
+
+      class_test(fread(&l_size_file,sizeof(int),1,bessel_file) != 1,
+		 pbs->error_message,
+		 "Could not read in bessel file");
+
       l_file = malloc(l_size_file * sizeof(int));
+
       for (index_l=0; index_l < l_size_file; index_l++) {
-	if(fread(&l_file[index_l],sizeof(int),1,bessel_file) != 1) {
-	  sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	  return _FAILURE_;
-	}
+	class_test(fread(&l_file[index_l],sizeof(int),1,bessel_file) != 1,
+		   pbs->error_message,
+		   "Could not read in bessel file");
       }
-      if(fread(&x_step_file,sizeof(double),1,bessel_file) != 1) {
-	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      if(fread(&x_max_file,sizeof(double),1,bessel_file) != 1) {
-	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      if(fread(&j_cut_file,sizeof(double),1,bessel_file) != 1) {
-	sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	return _FAILURE_;
-      }
+
+      class_test(fread(&x_step_file,sizeof(double),1,bessel_file) != 1,
+		 pbs->error_message,
+		 "Could not read in bessel file");
+
+      class_test(fread(&x_max_file,sizeof(double),1,bessel_file) != 1,
+		 pbs->error_message,
+		 "Could not read in bessel file");
+
+      class_test(fread(&j_cut_file,sizeof(double),1,bessel_file) != 1,
+		 pbs->error_message,
+		 "Could not read in bessel file");
 
       index_l=0;
       if (l_size_file == pbs->l_size) {
@@ -281,37 +261,38 @@ int bessel_init(
 	  (j_cut_file == pbs->j_cut) &&
 	  (x_max_file == pbs->x_max)) {
 
-	  if (pbs->bessels_verbose > 0)
-	    printf("Read bessels in file 'bessels.dat'\n");
+	if (pbs->bessels_verbose > 0)
+	  printf("Read bessels in file 'bessels.dat'\n");
 	
-	pbs->x_min=malloc(pbs->l_size*sizeof(double));
-	pbs->x_size=malloc(pbs->l_size*sizeof(int));
-	pbs->j=malloc(pbs->l_size*sizeof(double));
-	pbs->ddj=malloc(pbs->l_size*sizeof(double));
+	class_alloc(pbs->x_min,pbs->l_size*sizeof(double),pbs->error_message);
+	class_alloc(pbs->x_size,pbs->l_size*sizeof(int),pbs->error_message);
+	class_alloc(pbs->j,pbs->l_size*sizeof(double),pbs->error_message);
+	class_alloc(pbs->ddj,pbs->l_size*sizeof(double),pbs->error_message);
 
-	if(fread(pbs->x_min,sizeof(double),pbs->l_size,bessel_file) != pbs->l_size) {
-	  sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	  return _FAILURE_;
-	}
-	if(fread(pbs->x_size,sizeof(int),pbs->l_size,bessel_file) != pbs->l_size) {
-	  sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	  return _FAILURE_;
+	class_test(fread(pbs->x_min,sizeof(double),pbs->l_size,bessel_file) != pbs->l_size,
+		   pbs->error_message,
+		   "Could not read in bessel file");
+
+	class_test(fread(pbs->x_size,sizeof(int),pbs->l_size,bessel_file) != pbs->l_size,
+		   pbs->error_message,
+		   "Could not read in bessel file");
+
+	for (index_l=0; index_l < pbs->l_size; index_l++) {
+	    
+	  class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+
+	  class_test(fread(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
+		     pbs->error_message,
+		     "Could not read in bessel file");
 	}
 
 	for (index_l=0; index_l < pbs->l_size; index_l++) {
-	  pbs->j[index_l] = malloc(pbs->x_size[index_l]*sizeof(double));
-	  if(fread(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l]) {
-	    sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	    return _FAILURE_;
-	  }
-	}
 
-	for (index_l=0; index_l < pbs->l_size; index_l++) {
-	    pbs->ddj[index_l] = malloc(pbs->x_size[index_l]*sizeof(double));
-	    if(fread(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l]) {
-	      sprintf(pbs->error_message,"%s(L:%d) : Could not read in bessel file",__func__,__LINE__);
-	      return _FAILURE_;
-	    }
+	  class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+	    
+	  class_test(fread(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
+		     pbs->error_message,
+		     "Could not read in bessel file");
 	}
 
 	fclose(bessel_file);
@@ -330,131 +311,236 @@ int bessel_init(
   if (pbs->bessels_verbose > 0)
     printf("Computing bessels\n");
 
-  pbs->x_min = malloc(pbs->l_size*sizeof(double));
-  pbs->x_size = malloc(pbs->l_size*sizeof(int));
-  pbs->j = malloc(pbs->l_size*sizeof(double));
-  pbs->ddj = malloc(pbs->l_size*sizeof(double));
+  class_alloc(pbs->x_min,pbs->l_size*sizeof(double),pbs->error_message);
+  class_alloc(pbs->x_size,pbs->l_size*sizeof(int),pbs->error_message);
+  class_alloc(pbs->j,pbs->l_size*sizeof(double),pbs->error_message);
+  class_alloc(pbs->ddj,pbs->l_size*sizeof(double),pbs->error_message);
 
-  /** (a) loop over l and x values, compute \f$ j_l(x) \f$ for each of them */
+#pragma omp parallel							\
+  shared(pbs,kmin,ppr,column_num,column_x,column_j,column_ddj)		\
+  private(index_l,index_x,j,x_min_up,x_min_down,j_array,tstart,tstop)
 
-  for (index_l = 0; index_l < pbs->l_size; index_l++) {
+  {
+
+#ifdef _OPENMP
+    tstart = omp_get_wtime();
+#endif
+
+#pragma omp for schedule (dynamic)
+
+    /** (a) loop over l and x values, compute \f$ j_l(x) \f$ for each of them */
+
+    for (index_l = 0; index_l < pbs->l_size; index_l++) {
     
-    index_x=0;
-    j = 0.;
+#pragma omp flush(abort)
+#ifdef _OPENMP
+      if (abort == _FALSE_) {
+#endif
 
+	index_x=0;
+	j = 0.;
 
-    /* find x_min[index_l] by dichotomy */
-    x_min_up=(double)pbs->l[index_l]+0.5;
-    x_min_down=0.;
+	/* find x_min[index_l] by dichotomy */
+	x_min_up=(double)pbs->l[index_l]+0.5;
+	x_min_down=0.;
 
-    if (bessel_j(
-		 pbs->l[index_l], /* l */
-		 x_min_up, /* x */
-		 &j  /* j_l(x) */
-		 ) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-      sprintf(pbs->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
-
-    if (j < pbs->j_cut) {
-      sprintf(pbs->error_message,"%s(L:%d) : in dichotomy, wrong initial guess for x_min_up.",__func__,__LINE__);
-      return _FAILURE_;
-    }
-      
-    while ((x_min_up-x_min_down) > kmin) {
-      
-      if ((x_min_up-x_min_down) < ppr_input->smallest_allowed_variation) {
-	sprintf(pbs->error_message,"%s(L:%d) : (x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",__func__,__LINE__,(x_min_up-x_min_down),kmin);
-	return _FAILURE_;
-      }
-
-      if (bessel_j(
-		   pbs->l[index_l], /* l */
-		   0.5 * (x_min_up+x_min_down), /* x */
-		   &j  /* j_l(x) */
-		   ) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-	sprintf(pbs->error_message,"%s",Transmit_Error_Message);
-	return _FAILURE_;
-      }
-
-      if (j >= pbs->j_cut) 
-	x_min_up=0.5 * (x_min_up+x_min_down);
-      else
-	x_min_down=0.5 * (x_min_up+x_min_down);
-    }
-    pbs->x_min[index_l]=x_min_down;
-
-    if (bessel_j(
-		 pbs->l[index_l], /* l */
-		 pbs->x_min[index_l], /* x */
-		 &j  /* j_l(x) */
-		 ) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-      sprintf(pbs->error_message,"%s",Transmit_Error_Message);
-      return _FAILURE_;
-    }
+#ifdef _OPENMP
+	class_call_parallel(bessel_j(pbs,
+				     pbs->l[index_l], /* l */
+				     x_min_up, /* x */
+				     &j),  /* j_l(x) */
+			    pbs->error_message,
+			    pbs->error_message);
     
-    /* case when all values of j_l(x) were negligible for this l*/
-    if (pbs->x_min[index_l] >= pbs->x_max) {
-      pbs->x_min[index_l] = pbs->x_max;
-      pbs->x_size[index_l] = 1;
-      pbs->j[index_l]=malloc(pbs->x_size[index_l]*sizeof(double));
-      pbs->ddj[index_l]=malloc(pbs->x_size[index_l]*sizeof(double));
-      pbs->j[index_l][0]=0;
-      pbs->ddj[index_l][0]=0;
-    }
-    /* write first non-negligible value */
-    else {
-      pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
-      j_array=malloc(pbs->x_size[index_l]*column_num*sizeof(double));
-      j_array[0*column_num+column_x]=pbs->x_min[index_l];
-      j_array[0*column_num+column_j]=j;
+	class_test_parallel(j < pbs->j_cut,
+			    pbs->error_message,
+			    "in dichotomy, wrong initial guess for x_min_up.");
 
-      /* loop over other non-negligible values */
-      for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
+#pragma omp flush(abort)
+#ifdef _OPENMP
+	if (abort == _FALSE_) {
+#endif	
 
-	j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step;
+#else
+	  class_call(bessel_j(pbs,
+			      pbs->l[index_l], /* l */
+			      x_min_up, /* x */
+			      &j),  /* j_l(x) */
+		     pbs->error_message,
+		     pbs->error_message);
 
-	if (bessel_j(
-		     pbs->l[index_l], /* l */
-		     j_array[index_x*column_num+column_x], /* x */
-		     j_array+index_x*column_num+column_j  /* j_l(x) */
-		     ) == _FAILURE_) {
-	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in bessel_j()\n=>%s",__func__,__LINE__,pbs->error_message);
-	  sprintf(pbs->error_message,"%s",Transmit_Error_Message);
-	  return _FAILURE_;
+	  class_test(j < pbs->j_cut,
+		     pbs->error_message,
+		     "in dichotomy, wrong initial guess for x_min_up.");
+#endif
+ 
+	  while ((x_min_up-x_min_down) > kmin) {
+      
+#ifdef _OPENMP
+	    class_test_parallel((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
+				pbs->error_message,
+				"(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
+				(x_min_up-x_min_down),kmin);
+
+	    class_call_parallel(bessel_j(pbs,
+					 pbs->l[index_l], /* l */
+					 0.5 * (x_min_up+x_min_down), /* x */
+					 &j),  /* j_l(x) */
+				pbs->error_message,
+				pbs->error_message);
+#pragma omp flush(abort)
+	    if (abort == _FALSE_) {
+#else
+	      class_test((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
+			 pbs->error_message,
+			 "(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
+			 (x_min_up-x_min_down),kmin);
+
+	      class_call(bessel_j(pbs,
+				  pbs->l[index_l], /* l */
+				  0.5 * (x_min_up+x_min_down), /* x */
+				  &j),  /* j_l(x) */
+			 pbs->error_message,
+			 pbs->error_message);
+#endif
+
+	      if (j >= pbs->j_cut) 
+		x_min_up=0.5 * (x_min_up+x_min_down);
+	      else
+		x_min_down=0.5 * (x_min_up+x_min_down);
+
+#ifdef _OPENMP
+	    }
+#endif
+	  }
+
+	  pbs->x_min[index_l]=x_min_down;
+
+#ifdef _OPENMP
+	  class_call_parallel(bessel_j(pbs,
+				       pbs->l[index_l], /* l */
+				       pbs->x_min[index_l], /* x */
+				       &j),  /* j_l(x) */
+			      pbs->error_message,
+			      pbs->error_message);
+#pragma omp flush(abort)
+	  if (abort == _FALSE_) {
+#else
+	    class_call(bessel_j(pbs,
+				pbs->l[index_l], /* l */
+				pbs->x_min[index_l], /* x */
+				&j),  /* j_l(x) */
+		       pbs->error_message,
+		       pbs->error_message);
+#endif
+
+	    /* case when all values of j_l(x) were negligible for this l*/
+	    if (pbs->x_min[index_l] >= pbs->x_max) {
+	      pbs->x_min[index_l] = pbs->x_max;
+	      pbs->x_size[index_l] = 1;
+
+#ifdef _OPENMP
+	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+#else
+	      class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+	      class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+#endif
+	      pbs->j[index_l][0]=0;
+	      pbs->ddj[index_l][0]=0;
+	    }
+	    /* write first non-negligible value */
+	    else {
+	      pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
+
+#ifdef _OPENMP
+	      class_alloc_parallel(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
+#else
+	      class_alloc(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
+#endif
+
+	      j_array[0*column_num+column_x]=pbs->x_min[index_l];
+	      j_array[0*column_num+column_j]=j;
+
+	      /* loop over other non-negligible values */
+	      for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
+
+#pragma omp flush(abort)
+#ifdef _OPENMP
+		if (abort == _FALSE_) {
+#endif
+
+		  j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step;
+
+#ifdef _OPENMP
+		  class_call_parallel(bessel_j(pbs,
+					       pbs->l[index_l], /* l */
+					       j_array[index_x*column_num+column_x], /* x */
+					       j_array+index_x*column_num+column_j),  /* j_l(x) */
+				      pbs->error_message,
+				      pbs->error_message);
+		}
+#else
+		  class_call(bessel_j(pbs,
+				      pbs->l[index_l], /* l */
+				      j_array[index_x*column_num+column_x], /* x */
+				      j_array+index_x*column_num+column_j),  /* j_l(x) */
+			     pbs->error_message,
+			     pbs->error_message);
+#endif
+
+	      }
+
+#ifdef _OPENMP
+	      class_call_parallel(array_spline(j_array,
+					       column_num,
+					       pbs->x_size[index_l],
+					       column_x,
+					       column_j,
+					       column_ddj,
+					       _SPLINE_EST_DERIV_,
+					       pbs->error_message),
+				  pbs->error_message,
+				  pbs->error_message);
+
+	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+#else
+	      class_call(array_spline(j_array,
+				      column_num,
+				      pbs->x_size[index_l],
+				      column_x,
+				      column_j,
+				      column_ddj,
+				      _SPLINE_EST_DERIV_,
+				      pbs->error_message),
+			 pbs->error_message,
+			 pbs->error_message);
+
+	      class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+	      class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+#endif
+	      for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) {
+		pbs->j[index_l][index_x] = j_array[index_x*column_num+column_j];
+		pbs->ddj[index_l][index_x] = j_array[index_x*column_num+column_ddj];
+	      }
+
+	      free(j_array);
+     
+	    }      
+	  }
 	}
-	
+#ifdef _OPENMP
       }
-
-      if (array_spline(j_array,
-		       column_num,
-		       pbs->x_size[index_l],
-		       column_x,
-		       column_j,
-		       column_ddj,
-		       _SPLINE_EST_DERIV_,
-		       Transmit_Error_Message) == _FAILURE_) {
-	sprintf(pbs->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
-
-      pbs->j[index_l]=malloc(pbs->x_size[index_l]*sizeof(double));
-      pbs->ddj[index_l]=malloc(pbs->x_size[index_l]*sizeof(double));
-
-      for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) {
-	pbs->j[index_l][index_x] = j_array[index_x*column_num+column_j];
-	pbs->ddj[index_l][index_x] = j_array[index_x*column_num+column_ddj];
-      }
-
-      free(j_array);
-     
-    } 
-     
+    }
+    tstop = omp_get_wtime();
+    if (pbs->bessels_verbose > 1)
+      printf("Time spent in parallel region (loop over l's) = %e\n",tstop-tstart);
   }
-  
+  /* end of parallel region */
+  if (abort == _TRUE_) return _FAILURE_;
+#endif
+
   if (pbs->bessels_verbose > 0)
     printf(" -> (over)write in file 'bessels.dat'\n");
 
@@ -483,7 +569,6 @@ int bessel_init(
   fclose(bessel_file);
 
   return _SUCCESS_;
-
 }
 
 /**
@@ -493,7 +578,8 @@ int bessel_init(
  *
  * @return the error status
  */
-int bessel_free() {
+int bessel_free(
+		struct bessels * pbs) {
 
   int index_l;
 
@@ -519,95 +605,77 @@ int bessel_free() {
  * @param pl_list_size Output: number of multipole 
  * @return the error status
  */
-int bessel_get_l_list_size(
-			   struct precision * ppr_input,
-			   int * pl_list_size
-			   ) {
+int bessel_get_l_list(
+		      struct precision * ppr,
+		      struct bessels * pbs
+		      ) {
 
   int index_l,increment,current_l;
 
   index_l = 0;
   current_l = 2;
-  increment = max((int)(current_l * (ppr_input->l_logstep-1.)),1);
+  increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
     
-  while (((current_l+increment) < ppr_input->l_max) && 
-	 (increment < ppr_input->l_linstep)) {
+  while (((current_l+increment) < ppr->l_max) && 
+	 (increment < ppr->l_linstep)) {
       
     index_l ++;
     current_l += increment;
-    increment = max((int)(current_l * (ppr_input->l_logstep-1.)),1);
+    increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
 
   }
 
-  increment = ppr_input->l_linstep;
+  increment = ppr->l_linstep;
 
-  while ((current_l+increment) <= ppr_input->l_max) {
+  while ((current_l+increment) <= ppr->l_max) {
 
     index_l ++;
     current_l += increment;
 
   }
 
-  if (current_l != ppr_input->l_max) {
+  if (current_l != ppr->l_max) {
 
     index_l ++;
-    current_l = ppr_input->l_max;
+    current_l = ppr->l_max;
 
   } 
 
-  *pl_list_size = index_l+1;
-  
-  return _SUCCESS_;
+  pbs->l_size = index_l+1;
 
-}
-
-/**
- * Define list of mutipoles l
- *
- * Define the list of multipoles l for each mode, using information
- * in the precision structure.
- *
- * @param pl_list Output: list of multipole 
- * @return the error status
- */
-int bessel_get_l_list(
-		      struct precision * ppr_input,
-		      int * pl_list
-		      ) {
-
-  int index_l,increment;
+  pbs->l = malloc(pbs->l_size*sizeof(int));
 
   index_l = 0;
-  pl_list[0] = 2;
-  increment = max((int)(pl_list[0] * (ppr_input->l_logstep-1.)),1);
+  pbs->l[0] = 2;
+  increment = max((int)(pbs->l[0] * (ppr->l_logstep-1.)),1);
 
-  while (((pl_list[index_l]+increment) < ppr_input->l_max) && 
-	 (increment < ppr_input->l_linstep)) {
+  while (((pbs->l[index_l]+increment) < ppr->l_max) && 
+	 (increment < ppr->l_linstep)) {
       
     index_l ++;
-    pl_list[index_l]=pl_list[index_l-1]+increment;
-    increment = max((int)(pl_list[index_l] * (ppr_input->l_logstep-1.)),1);
+    pbs->l[index_l]=pbs->l[index_l-1]+increment;
+    increment = max((int)(pbs->l[index_l] * (ppr->l_logstep-1.)),1);
  
   }
 
-  increment = ppr_input->l_linstep;
+  increment = ppr->l_linstep;
 
-  while ((pl_list[index_l]+increment) <= ppr_input->l_max) {
+  while ((pbs->l[index_l]+increment) <= ppr->l_max) {
 
     index_l ++;
-    pl_list[index_l]=pl_list[index_l-1]+increment;
+    pbs->l[index_l]=pbs->l[index_l-1]+increment;
  
   }
 
-  if (pl_list[index_l] != ppr_input->l_scalar_max) {
+  if (pbs->l[index_l] != ppr->l_scalar_max) {
 
     index_l ++;
-    pl_list[index_l]=ppr_input->l_max;
+    pbs->l[index_l]=ppr->l_max;
        
   }
-
-  return _SUCCESS_;
   
+  return _SUCCESS_;
+
 }
 
 /**
@@ -621,6 +689,7 @@ int bessel_get_l_list(
  * @return the error status
  */
 int bessel_j(
+	     struct bessels * pbs,
 	     int l,
 	     double x,
 	     double * jl
@@ -632,16 +701,13 @@ int bessel_j(
   double trigarg,expterm,fl;
   double l3,cosb;
 
-  if (l < 0) {
-    sprintf(pbs->error_message,"%s(L:%d) : bessel_j() called for l<0",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(l < 0,
+	     pbs->error_message,
+	     "");
 
-  if (x < 0) {
-    sprintf(pbs->error_message,"%s(L:%d) : bessel_j() called for x<0",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
+  class_test(x < 0,
+	     pbs->error_message,
+	     "");
 
   fl = (double)l;
 
@@ -787,8 +853,9 @@ int bessel_j(
 
   }
 
-  sprintf(pbs->error_message,"%s(L:%d) : value of l=%d or x=%e out of bounds",__func__,__LINE__,l,x);
-  return _FAILURE_;
+  class_test(0==0,
+	     pbs->error_message,
+	     "value of l=%d or x=%e out of bounds",l,x);
 
 }
 

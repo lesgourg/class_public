@@ -85,9 +85,9 @@ int input_init(
   pba->background_verbose = 1;
   pth->thermodynamics_verbose = 1;
   ppt->perturbations_verbose = 1;
-  pbs->bessels_verbose = 1;
+  pbs->bessels_verbose = 2;
+  ptr->transfer_verbose = 1;
   ppm->primordial_verbose = 1;
-  ptr->transfer_verbose = 2;
   psp->spectra_verbose = 1;
   pop->output_verbose = 1;
 

@@ -65,31 +65,30 @@ extern "C" {
 #endif
 
   int bessel_at_x(
-		double x,
-		int l,
-		double * j
-		);
-
-  int bessel_init(
-		  struct background * pbs_input,
-		  struct perturbs * ppt_input,
-		  struct precision * ppr_input,
-		  struct bessels * pbs_output
+		  struct bessels * pbs,
+		  double x,
+		  int l,
+		  double * j
 		  );
 
-  int bessel_free();
+  int bessel_init(
+		  struct precision * ppr,
+		  struct background * pba,
+		  struct perturbs * ppt,
+		  struct bessels * pbs
+		  );
 
-  int bessel_get_l_list_size(
-			     struct precision * ppr_input,
-			     int * pl_list_size
-			     );
+  int bessel_free(
+		  struct bessels * pbs
+		  );
 
   int bessel_get_l_list(
-			struct precision * ppr_input,
-			int * pl_list
+			struct precision * ppr,
+			struct bessels * pbs
 			);
 
   int bessel_j(
+	       struct bessels * pbs,
 	       int l,
 	       double x,
 	       double * jl

@@ -68,7 +68,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (bessel_init(&ba,&pt,&pr,&bs) == _FAILURE_) {
+  if (bessel_init(&pr,&ba,&pt,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }
@@ -110,7 +110,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (bessel_free() == _FAILURE_)  {
+  if (bessel_free(&bs) == _FAILURE_)  {
     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }
