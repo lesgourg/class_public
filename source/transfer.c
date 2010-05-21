@@ -18,10 +18,10 @@
  * -# transfer_free() at the end, when no more calls to transfer_functions_at_k() are needed
  */
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 #include "transfer.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 /** @name - miscellaneous: */
 
@@ -175,9 +175,9 @@ int transfer_init(
   double * source_spline;
   /* (pointer on) integrand structure */
   struct transfer_integrand *ti;
+
   /* abort flag, useful for parallel regions */
   int abort;
-
 #ifdef _OPENMP
   /* number of available omp threads */
   int number_of_threads;
@@ -185,7 +185,11 @@ int transfer_init(
   struct transfer_integrand *pti;
   /* instrumentation times */
   double tstart, tstop;
+
+  abort=_FALSE_;
 #endif
+  abort=_FALSE_;
+
 
   if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
       (ppt->has_cl_cmb_polarization == _FALSE_) &&
@@ -217,16 +221,15 @@ int transfer_init(
   {
     number_of_threads = omp_get_num_threads();
   }
-  pti = (struct transfer_integrand*)malloc(number_of_threads * sizeof(struct transfer_integrand));
+  class_alloc(pti,number_of_threads * sizeof(struct transfer_integrand),ptr->error_message);
 #endif
 
-  abort=0;
-#pragma omp parallel shared(pti) private(ti,index)
+#pragma omp parallel shared(pti,ptr,ppt) private(ti,index)
   {
 #ifdef _OPENMP
     ti = &pti[omp_get_thread_num()];
 #else
-    ti = (struct transfer_integrand*)malloc(sizeof(struct transfer_integrand));
+    class_alloc(ti,sizeof(struct transfer_integrand),ptr->error_message);
 #endif
     index = 0;
     ti->trans_int_eta = index;
@@ -237,20 +240,27 @@ int transfer_init(
     index++;
     ti->trans_int_col_num = index;
 
-    ti->trans_int =  malloc(sizeof(double) * ppt->eta_size * ti->trans_int_col_num);
+#ifdef _OPENMP
+    class_alloc_parallel(ti->trans_int,
+		sizeof(double) * ppt->eta_size * ti->trans_int_col_num,
+		ptr->error_message);
+#pragma omp flush(abort)
+    if (abort == _FALSE_) {    
+#else
+      class_alloc(ti->trans_int,
+		  sizeof(double) * ppt->eta_size * ti->trans_int_col_num,
+		  ptr->error_message);
+#endif
 
-    if (ti->trans_int==NULL) {
-    sprintf(ptr->error_message,"%s(L:%d): Cannot allocate ti.trans_int",__func__,__LINE__);
-    abort++;
+      for (index=0; index < ppt->eta_size; index++)
+	ti->trans_int[ti->trans_int_col_num*index+ti->trans_int_eta] = ppt->eta_sampling[index];
+      
     }
-    else
-      {
 
-	for (index=0; index < ppt->eta_size; index++)
-	  ti->trans_int[ti->trans_int_col_num*index+ti->trans_int_eta] = ppt->eta_sampling[index];
-      }
-  }
-  if (abort) return _FAILURE_;
+#ifdef _OPENMP 
+  } 
+  if (abort == _TRUE_) return _FAILURE_;
+#endif
 
   /** - loop over all indices of the table of transfer functions. For each mode, initial condition and type: */
 
@@ -258,21 +268,13 @@ int transfer_init(
 
     /** (a) allocate temporary arrays relevant for this mode */
 
-    interpolated_sources = malloc(ptr->k_size[index_mode]
-				  * ppt->eta_size
-				  * sizeof(double));
-    if (interpolated_sources==NULL) {
-      sprintf(ptr->error_message,"%s(L:%d): Cannot allocate interpolated_sources",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(interpolated_sources,
+		ptr->k_size[index_mode]*ppt->eta_size*sizeof(double),
+		ptr->error_message);
 
-    source_spline = malloc(sizeof(double) 
-			   * ppt->eta_size 
-			   * ppt->k_size[index_mode]);
-    if (source_spline==NULL) {
-      sprintf(ptr->error_message,"%s(L:%d): Cannot allocate source_spline",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(source_spline,
+		sizeof(double)*ppt->eta_size*ppt->k_size[index_mode],
+		ptr->error_message);
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
@@ -280,25 +282,22 @@ int transfer_init(
 
 	/** (b) interpolate sources to get them at the right values of k using transfer_interpolate_sources() */
 
-	if (transfer_interpolate_sources(
-					 ppt,
-					 ptr,
-					 eta0,
-					 eta_rec,
-					 index_mode,
-					 index_ic,
-					 index_tt,
-					 source_spline,
-					 interpolated_sources) == _FAILURE_) {
-	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in transfer_interpolate_sources()\n=>%s",__func__,__LINE__,ptr->error_message);
-	  sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-	  return _FAILURE_;
-	}
+	class_call(transfer_interpolate_sources(ppt,
+						ptr,
+						eta0,
+						eta_rec,
+						index_mode,
+						index_ic,
+						index_tt,
+						source_spline,
+						interpolated_sources),
+		   ptr->error_message,
+		   ptr->error_message);
 
 	/** (c) loop over l. For each value of l: */
 
 	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
-	abort=0;
+
 #pragma omp parallel							\
   shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
 	  interpolated_sources,pti,abort)				\
@@ -319,7 +318,7 @@ int transfer_init(
 #pragma omp for schedule (dynamic)
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
 #pragma omp flush(abort)
-	    if (!abort) {
+	    if (abort == _FALSE_) {
 	      
 	      if (ptr->transfer_verbose > 1)
 		printf("Compute transfer for l=%d\n",ptr->l[index_mode][index_l]);
@@ -353,7 +352,7 @@ int transfer_init(
 		if (current_k == 0.) {
 		  sprintf(Transmit_Error_Message,"%s(L:%d) : k=0, stop to avoid division by zero",__func__,__LINE__);
 		  sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-		  abort = 1;
+		  abort = _TRUE_;
 #pragma omp flush (abort)
 		}
 		
@@ -390,7 +389,7 @@ int transfer_init(
 					 &transfer_function) == _FAILURE_) {
 		    sprintf(Transmit_Error_Message,"%s(L:%d) : error callin transfer_integrate()\n=>%s",__func__,__LINE__,ptr->error_message);
 		    sprintf(ptr->error_message,"%s",Transmit_Error_Message);
-		    abort = 1;
+		    abort = _TRUE_;
 #pragma omp flush (abort)
 		  }
 		  
@@ -447,7 +446,7 @@ int transfer_init(
 		  }
 		  else {
 		    sprintf(ptr->error_message,"%s(L:%d) : cl=0, stop to avoid division by zero",__func__,__LINE__);
-		    abort = 1;
+		    abort = _TRUE_;
 #pragma omp flush (abort)
 		  }
 		  
@@ -477,7 +476,7 @@ int transfer_init(
 	}
 
 	/* end of parallel region */
-	if (abort) return _FAILURE_;
+	if (abort == _TRUE_) {printf("There\n");return _FAILURE_;}
 
       }     
       
