@@ -168,9 +168,15 @@ int transfer_init(
   /* (pointer on) integrand structure */
   struct transfer_integrand *ti;
 
-#ifdef _OPENMP
-  /* abort flag, useful for parallel regions */
+  /* This code can be optionally compiled with the openmp option for parallel computation.
+     Inside parallel regions, the use of the command "return" is forbidden.
+     For error management, instead of "return _FAILURE_", we will set the variable below
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
+     parallel region. */
   int abort;
+
+#ifdef _OPENMP
+
   /* number of available omp threads */
   int number_of_threads;
   /* table of integrand of transfer function, copied number_of_threads times*/
@@ -178,7 +184,6 @@ int transfer_init(
   /* instrumentation times */
   double tstart, tstop;
 
-  abort=_FALSE_;
 #endif
 
   if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
@@ -204,8 +209,6 @@ int transfer_init(
 	     ptr->error_message,
 	     ptr->error_message);
 
-  /** - initialize all indices in the transfer_integrand structure and allocate its array. Fill the eta column. */
-
 #ifdef _OPENMP
 #pragma omp parallel
   {
@@ -214,8 +217,16 @@ int transfer_init(
   class_alloc(pti,number_of_threads * sizeof(struct transfer_integrand),ptr->error_message);
 #endif
 
+  /* initialize error management flag */
+  abort = _FALSE_;
+
+  /*** beginning of parallel region ***/
+
 #pragma omp parallel shared(pti,ptr,ppt) private(ti,index)
   {
+
+    /** - initialize all indices in the transfer_integrand structure and allocate its array. Fill the eta column. */
+
 #ifdef _OPENMP
     ti = &pti[omp_get_thread_num()];
 #else
@@ -230,27 +241,18 @@ int transfer_init(
     index++;
     ti->trans_int_col_num = index;
 
-#ifdef _OPENMP
     class_alloc_parallel(ti->trans_int,
 			 sizeof(double) * ppt->eta_size * ti->trans_int_col_num,
 			 ptr->error_message);
-#pragma omp flush(abort)
-    if (abort == _FALSE_) {    
-#else
-      class_alloc(ti->trans_int,
-		  sizeof(double) * ppt->eta_size * ti->trans_int_col_num,
-		  ptr->error_message);
-#endif
 
-      for (index=0; index < ppt->eta_size; index++)
-	ti->trans_int[ti->trans_int_col_num*index+ti->trans_int_eta] = ppt->eta_sampling[index];
+    for (index=0; index < ppt->eta_size; index++)
+      ti->trans_int[ti->trans_int_col_num*index+ti->trans_int_eta] = ppt->eta_sampling[index];
       
-    }
+  }
 
-#ifdef _OPENMP 
-  } 
+  /*** end of parallel region ***/
+
   if (abort == _TRUE_) return _FAILURE_;
-#endif
 
   /** - loop over all indices of the table of transfer functions. For each mode, initial condition and type: */
 
@@ -286,7 +288,10 @@ int transfer_init(
 
 	/** (c) loop over l. For each value of l: */
 
-	/***** THIS IS THE LOOP WHICH SHOULD BE PARALLELISED ******/
+	/* initialize error management flag */
+	abort = _FALSE_;
+
+	/*** beginning of parallel region ***/
 
 #pragma omp parallel						\
   shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,		\
@@ -298,18 +303,19 @@ int transfer_init(
 	   index_k,current_k,ti)
 
 	{
+
 #ifdef _OPENMP
 	  ti = &pti[omp_get_thread_num()];
-#endif
-#ifdef _OPENMP
 	  tstart = omp_get_wtime();
 #endif
+
 #pragma omp for schedule (dynamic)
+
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
+
 #pragma omp flush(abort)
-#ifdef _OPENMP
+
 	    if (abort == _FALSE_) {
-#endif	      
 
 	      if (ptr->transfer_verbose > 2)
 		printf("Compute transfer for l=%d\n",ptr->l[index_mode][index_l]);
@@ -340,9 +346,9 @@ int transfer_init(
 	      for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
 
 #pragma omp flush(abort)
-#ifdef _OPENMP
+
 		if (abort == _FALSE_) {
-#endif
+
 		  current_k = ptr->k[index_mode][index_k];
 		
 		  if (ptr->transfer_verbose > 3)
@@ -363,7 +369,6 @@ int transfer_init(
 		  /* compute transfer function or set it to zero if above k_max */
 		  if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
 
-#ifdef _OPENMP
 		    class_call_parallel(transfer_integrate(ppt,
 							   pbs,
 							   ptr,
@@ -379,32 +384,15 @@ int transfer_init(
 							   &transfer_function),
 					ptr->error_message,
 					ptr->error_message);
-#else	  
-		    class_call(transfer_integrate(ppt,
-						  pbs,
-						  ptr,
-						  eta0,
-						  eta_rec,
-						  index_mode,
-						  index_ic,
-						  index_tt,
-						  index_l,
-						  index_k,
-						  interpolated_sources,
-						  ti,
-						  &transfer_function),
-			       ptr->error_message,
-			       ptr->error_message);
-#endif
+
 		  }
 		  else {
 		    transfer_function = 0.;
 		  }
 
 #pragma omp flush(abort)
-#ifdef _OPENMP
+
 		  if (abort == _FALSE_) { 		  
-#endif
 
 		    /* store transfer function in transfer structure */
 		    ptr->transfer[index_mode][((index_ic * ptr->tt_size + index_tt)
@@ -448,17 +436,12 @@ int transfer_init(
 		      /* update C_l */
 		      cl += delta_cl;
 		  
-#ifdef _OPENMP
 		      class_test_parallel(cl == 0.,
-					   ptr->error_message,
-					   "stop to avoid division by zero");
+					  ptr->error_message,
+					  "stop to avoid division by zero");
 #pragma omp flush (abort)
+
 		      if (abort == _FALSE_) {
-#else
-			class_test(cl == 0.,
-				    ptr->error_message,
-				    "stop to avoid division by zero");      
-#endif
 
 			/* compute its relative variation */
 			cl_var = delta_cl / cl;
@@ -471,46 +454,35 @@ int transfer_init(
 		    
 			}
 		      }
-
-#ifdef _OPENMP	      
 		    }
 		  }
 		}
-	      }
-#endif
+	      } /* end of loop over k */
 	    }
-
-	      /* end of loop over k */
-	  
-	  }
+	  } /* end of loop over l */
 
 	  /* end of loop over l */
+
 #ifdef _OPENMP
 	  tstop = omp_get_wtime();
 	  if (ptr->transfer_verbose>1)
-	    printf("Time spent in parallel region (loop over ells) = %e\n",tstop-tstart);
+	    printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
+		   __func__,tstop-tstart,omp_get_thread_num());
 #endif
 	}
 
-#ifdef _OPENMP
-	/* end of parallel region */
+	/*** end of parallel region ***/
+
 	if (abort == _TRUE_) return _FAILURE_;
-#endif
 
-      }   
-      
-      /* end of loop over type */
-
-    }
-
-    /* end of loop over initial condition */
+      } /* end of loop over type */
+    } /* end of loop over initial condition */
 
     free(interpolated_sources);
     free(source_spline);
 
-  }
-  
-  /* end of loop over mode */
+  } /* end of loop over mode */
+
 #ifdef _OPENMP
 #pragma omp parallel shared(pti) private(ti)
   {

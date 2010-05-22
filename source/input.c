@@ -40,7 +40,7 @@ int input_init(
   pth->Tcmb=2.726;
   pth->YHe=0.25;
   pth->reio_parametrization=reio_camb; /* reio_camb means "same form for X_e(z) as in camb" */
-  pth->reio_z_or_tau=reio_tau;
+  pth->reio_z_or_tau=reio_z;
   pth->z_reio=10.;   /* used only if above set to reio_z */
   pth->tau_reio=0.09; /* used only if above set to reio_tau */
   
@@ -86,9 +86,9 @@ int input_init(
   pth->thermodynamics_verbose = 1;
   ppt->perturbations_verbose = 1;
   pbs->bessels_verbose = 2;
-  ptr->transfer_verbose = 1;
+  ptr->transfer_verbose = 2;
   ppm->primordial_verbose = 1;
-  psp->spectra_verbose = 1;
+  psp->spectra_verbose = 2;
   pop->output_verbose = 1;
 
   return _SUCCESS_;

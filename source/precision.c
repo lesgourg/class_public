@@ -50,7 +50,7 @@ int precision_init ( struct precision * ppr ) {
 
   ppr->reionization_z_start_max = 50.;
   ppr->reionization_sampling=1.e-2; /*1.e-2*/
-  ppr->reionization_optical_depth_tol=1.e-3;
+  ppr->reionization_optical_depth_tol=1.e-2;
   ppr->reionization_exponent=1.5;
   ppr->reionization_width=0.5;
   ppr->reionization_start_factor=8.;

@@ -161,13 +161,16 @@ int bessel_init(
   int column_ddj=2;
   int column_num=3;
 
-#ifdef _OPENMP
-  /* abort flag, useful for parallel regions */
+  /* This code can be optionally compiled with the openmp option for parallel computation.
+     Inside parallel regions, the use of the command "return" is forbidden.
+     For error management, instead of "return _FAILURE_", we will set the variable below
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
+     parallel region. */
   int abort;
+
+#ifdef _OPENMP
   /* instrumentation times */
   double tstart, tstop;
-
-  abort=_FALSE_;
 #endif
 
   if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
@@ -316,6 +319,11 @@ int bessel_init(
   class_alloc(pbs->j,pbs->l_size*sizeof(double),pbs->error_message);
   class_alloc(pbs->ddj,pbs->l_size*sizeof(double),pbs->error_message);
 
+  /* initialize error management flag */
+  abort = _FALSE_;
+  
+  /*** beginning of parallel region ***/
+
 #pragma omp parallel							\
   shared(pbs,kmin,ppr,column_num,column_x,column_j,column_ddj)		\
   private(index_l,index_x,j,x_min_up,x_min_down,j_array,tstart,tstop)
@@ -333,9 +341,8 @@ int bessel_init(
     for (index_l = 0; index_l < pbs->l_size; index_l++) {
     
 #pragma omp flush(abort)
-#ifdef _OPENMP
+
       if (abort == _FALSE_) {
-#endif
 
 	index_x=0;
 	j = 0.;
@@ -344,7 +351,6 @@ int bessel_init(
 	x_min_up=(double)pbs->l[index_l]+0.5;
 	x_min_down=0.;
 
-#ifdef _OPENMP
 	class_call_parallel(bessel_j(pbs,
 				     pbs->l[index_l], /* l */
 				     x_min_up, /* x */
@@ -357,26 +363,11 @@ int bessel_init(
 			    "in dichotomy, wrong initial guess for x_min_up.");
 
 #pragma omp flush(abort)
-#ifdef _OPENMP
+
 	if (abort == _FALSE_) {
-#endif	
-
-#else
-	  class_call(bessel_j(pbs,
-			      pbs->l[index_l], /* l */
-			      x_min_up, /* x */
-			      &j),  /* j_l(x) */
-		     pbs->error_message,
-		     pbs->error_message);
-
-	  class_test(j < pbs->j_cut,
-		     pbs->error_message,
-		     "in dichotomy, wrong initial guess for x_min_up.");
-#endif
  
 	  while ((x_min_up-x_min_down) > kmin) {
       
-#ifdef _OPENMP
 	    class_test_parallel((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
 				pbs->error_message,
 				"(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
@@ -388,64 +379,38 @@ int bessel_init(
 					 &j),  /* j_l(x) */
 				pbs->error_message,
 				pbs->error_message);
-#pragma omp flush(abort)
-	    if (abort == _FALSE_) {
-#else
-	      class_test((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
-			 pbs->error_message,
-			 "(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
-			 (x_min_up-x_min_down),kmin);
 
-	      class_call(bessel_j(pbs,
-				  pbs->l[index_l], /* l */
-				  0.5 * (x_min_up+x_min_down), /* x */
-				  &j),  /* j_l(x) */
-			 pbs->error_message,
-			 pbs->error_message);
-#endif
+#pragma omp flush(abort)
+
+	    if (abort == _FALSE_) {
 
 	      if (j >= pbs->j_cut) 
 		x_min_up=0.5 * (x_min_up+x_min_down);
 	      else
 		x_min_down=0.5 * (x_min_up+x_min_down);
 
-#ifdef _OPENMP
 	    }
-#endif
 	  }
 
 	  pbs->x_min[index_l]=x_min_down;
 
-#ifdef _OPENMP
 	  class_call_parallel(bessel_j(pbs,
 				       pbs->l[index_l], /* l */
 				       pbs->x_min[index_l], /* x */
 				       &j),  /* j_l(x) */
 			      pbs->error_message,
 			      pbs->error_message);
-#pragma omp flush(abort)
+
 	  if (abort == _FALSE_) {
-#else
-	    class_call(bessel_j(pbs,
-				pbs->l[index_l], /* l */
-				pbs->x_min[index_l], /* x */
-				&j),  /* j_l(x) */
-		       pbs->error_message,
-		       pbs->error_message);
-#endif
 
 	    /* case when all values of j_l(x) were negligible for this l*/
 	    if (pbs->x_min[index_l] >= pbs->x_max) {
 	      pbs->x_min[index_l] = pbs->x_max;
 	      pbs->x_size[index_l] = 1;
 
-#ifdef _OPENMP
 	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
 	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-#else
-	      class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-	      class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-#endif
+
 	      pbs->j[index_l][0]=0;
 	      pbs->ddj[index_l][0]=0;
 	    }
@@ -453,11 +418,7 @@ int bessel_init(
 	    else {
 	      pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
 
-#ifdef _OPENMP
 	      class_alloc_parallel(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
-#else
-	      class_alloc(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
-#endif
 
 	      j_array[0*column_num+column_x]=pbs->x_min[index_l];
 	      j_array[0*column_num+column_j]=j;
@@ -466,13 +427,11 @@ int bessel_init(
 	      for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
 
 #pragma omp flush(abort)
-#ifdef _OPENMP
+
 		if (abort == _FALSE_) {
-#endif
 
 		  j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step;
 
-#ifdef _OPENMP
 		  class_call_parallel(bessel_j(pbs,
 					       pbs->l[index_l], /* l */
 					       j_array[index_x*column_num+column_x], /* x */
@@ -480,18 +439,8 @@ int bessel_init(
 				      pbs->error_message,
 				      pbs->error_message);
 		}
-#else
-		  class_call(bessel_j(pbs,
-				      pbs->l[index_l], /* l */
-				      j_array[index_x*column_num+column_x], /* x */
-				      j_array+index_x*column_num+column_j),  /* j_l(x) */
-			     pbs->error_message,
-			     pbs->error_message);
-#endif
-
 	      }
 
-#ifdef _OPENMP
 	      class_call_parallel(array_spline(j_array,
 					       column_num,
 					       pbs->x_size[index_l],
@@ -505,21 +454,7 @@ int bessel_init(
 
 	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
 	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-#else
-	      class_call(array_spline(j_array,
-				      column_num,
-				      pbs->x_size[index_l],
-				      column_x,
-				      column_j,
-				      column_ddj,
-				      _SPLINE_EST_DERIV_,
-				      pbs->error_message),
-			 pbs->error_message,
-			 pbs->error_message);
 
-	      class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-	      class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-#endif
 	      for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) {
 		pbs->j[index_l][index_x] = j_array[index_x*column_num+column_j];
 		pbs->ddj[index_l][index_x] = j_array[index_x*column_num+column_ddj];
@@ -530,16 +465,21 @@ int bessel_init(
 	    }      
 	  }
 	}
-#ifdef _OPENMP
       }
-    }
+    } /* end of loop over l */
+
+#ifdef _OPENMP
     tstop = omp_get_wtime();
     if (pbs->bessels_verbose > 1)
-      printf("Time spent in parallel region (loop over l's) = %e\n",tstop-tstart);
-  }
-  /* end of parallel region */
-  if (abort == _TRUE_) return _FAILURE_;
+      printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
+	     __func__,tstop-tstart,omp_get_thread_num());
 #endif
+
+  }
+
+  /*** end of parallel region ***/
+
+  if (abort == _TRUE_) return _FAILURE_;
 
   if (pbs->bessels_verbose > 0)
     printf(" -> (over)write in file 'bessels.dat'\n");
