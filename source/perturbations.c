@@ -580,14 +580,14 @@ int perturb_timesampling_for_sources() {
   current_k = 1.; /* k is not yet relevant, but this line prevents from any division by zero in perturb_back_nad_thermo() */
 
   /** (a) compute conformal time corresponding to opaque universe (starting point for source sampling) using background_eta_of_z() */
-  if (background_eta_of_z(pth->z_visibility_start_sources,&eta_visibility_start_sources)
+  if (background_eta_of_z(pba,pth->z_visibility_start_sources,&eta_visibility_start_sources)
       == _FAILURE_) {
     sprintf(ppt->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
     return _FAILURE_;
   }
 
   /** (b) compute conformal time corresponding to end of efficient recombination using background_eta_of_z() */
-  if (background_eta_of_z(pth->z_visibility_free_streaming,&eta_visibility_free_streaming)
+  if (background_eta_of_z(pba,pth->z_visibility_free_streaming,&eta_visibility_free_streaming)
       == _FAILURE_) {
     sprintf(ppt->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
     return _FAILURE_;
@@ -1891,7 +1891,7 @@ int perturb_back_and_thermo(double eta,
   eta_k = 1./current_k;
 
   /** - evaluate background quantities with background_at_eta() and Hubble time scale \f$ \eta_h = a/a' \f$ */
-  if (background_at_eta(eta, short_info, intermode, last_index_back, pvecback_pt) == _FAILURE_) {
+  if (background_at_eta(pba,eta, short_info, intermode, last_index_back, pvecback_pt) == _FAILURE_) {
     sprintf(ppt->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
     return _FAILURE_;
   }

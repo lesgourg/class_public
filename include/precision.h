@@ -46,11 +46,6 @@ struct precision
    */ 
   double a_ini_over_a_today_default; 
 
-  /**
-   * scale factor today (this value should remain arbitrary and irrelevant) 
-   */
-  double a_today;
-
   /** 
    * default step d eta in background integration, in units of 
    * conformal Hubble time (\f$ d eta \f$ = back_integration_stepsize / aH )

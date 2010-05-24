@@ -72,7 +72,7 @@ int spectra_pk_at_z(
   double eta_requested;
   int index_ic;
 
-  class_call(background_eta_of_z(z,&eta_requested),
+  class_call(background_eta_of_z(pba,z,&eta_requested),
 	     pba->error_message,
 	     psp->error_message);
 
@@ -670,7 +670,7 @@ int spectra_pk(
 
     /* find the first relevant value of eta (last value in the table eta_ampling before eta(z_max)) and infer the number of vlaues of eta at which P(k) must be stored */
 
-    class_call(background_eta_of_z(psp->z_max_pk,&eta_min),
+    class_call(background_eta_of_z(pba,psp->z_max_pk,&eta_min),
 	       pba->error_message,
 	       psp->error_message);
 
@@ -716,7 +716,7 @@ int spectra_pk(
 
   for (index_eta=0 ; index_eta < psp->eta_size; index_eta++) {
 
-    class_call(background_at_eta(ppt->eta_sampling[index_eta-psp->eta_size+ppt->eta_size], 
+    class_call(background_at_eta(pba,ppt->eta_sampling[index_eta-psp->eta_size+ppt->eta_size], 
 				 long_info, 
 				 normal, 
 				 &last_index_back, 

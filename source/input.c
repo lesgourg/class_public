@@ -35,6 +35,9 @@ int input_init(
   pba->Omega0_lambda = 1.-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_g-pba->Omega0_nur;
   pba->Omega0_de = 0.;
 
+  /** scale factor today (arbitrary) */
+  pba->a_today = 1.;
+
   /** - assign values to thermodynamics cosmological parameters */
 
   pth->Tcmb=2.726;

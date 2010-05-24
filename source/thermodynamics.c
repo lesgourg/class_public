@@ -110,7 +110,7 @@ int thermodynamics_at_z(
 
 
     /* Calculate dz/deta = -H with background_functions_of_a() */
-    if (background_functions_of_a(1./(1.+z),short_info,pvecback_th) == _FAILURE_) {
+    if (background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th) == _FAILURE_) {
       sprintf(pth->error_message,"%s(L:%d) : Error calling background_functions_of_a \n=>%s",__func__,__LINE__,pba->error_message);
       return _FAILURE_;
     }
@@ -371,7 +371,7 @@ int thermodynamics_init(
   /** -compute table of corresponding conformal times */
 
   for (i=0; i < pth->tt_size; i++) {
-    if (background_eta_of_z(pth->z_table[i],eta_table+i) == _FAILURE_){
+    if (background_eta_of_z(pba,pth->z_table[i],eta_table+i) == _FAILURE_){
       sprintf(pth->error_message,"%s(L:%d) : error in background_eta_of_z()\n=>%s",__func__,__LINE__,pba->error_message);
       return _FAILURE_;
     }
@@ -520,7 +520,7 @@ int thermodynamics_init(
   }
 
   /** - find conformal recombination time using background_eta_of_z() **/
-  if (background_eta_of_z(pth->z_visibility_max,&eta_visibility_max)
+  if (background_eta_of_z(pba,pth->z_visibility_max,&eta_visibility_max)
       == _FAILURE_) {
     sprintf(pth->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
     return _FAILURE_;
@@ -537,7 +537,7 @@ int thermodynamics_init(
     sprintf(pth->error_message,"%s(L:%d): Cannot allocate pvecback_th_long \n",__func__,__LINE__);
     return _FAILURE_;
   }
-  if (background_at_eta(pth->eta_rec, long_info, normal, &last_index_back, pvecback_th_long) == _FAILURE_) {
+  if (background_at_eta(pba,pth->eta_rec, long_info, normal, &last_index_back, pvecback_th_long) == _FAILURE_) {
     sprintf(pth->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
     return _FAILURE_;
   }  
@@ -1038,7 +1038,7 @@ int thermodynamics_reionization_discretize(
   reio_vector[preio->index_re_xe] = xe;
 
   /** - get \f$ d kappa / d z = (d kappa / d eta) * (d eta / d z) = - (d kappa / d eta) / H \f$ */
-  if (background_functions_of_a(1./(1.+z),short_info,pvecback_th) == _FAILURE_){
+  if (background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th) == _FAILURE_){
     sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
     return _FAILURE_;
   }
@@ -1087,7 +1087,7 @@ int thermodynamics_reionization_discretize(
       sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_function()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }  
-    if (background_functions_of_a(1./(1.+z_next),short_info,pvecback_th) == _FAILURE_){
+    if (background_functions_of_a(pba,1./(1.+z_next),short_info,pvecback_th) == _FAILURE_){
       sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
       return _FAILURE_;
     }
@@ -1119,7 +1119,7 @@ int thermodynamics_reionization_discretize(
 	sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_function()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
 	return _FAILURE_;
       }
-      if (background_functions_of_a(1./(1.+z_next),short_info,pvecback_th) == _FAILURE_){
+      if (background_functions_of_a(pba,1./(1.+z_next),short_info,pvecback_th) == _FAILURE_){
 	sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
 	return _FAILURE_;
       }
@@ -1574,7 +1574,7 @@ void thermodynamics_derivs_with_recfast(
   n_He = fHe * Nnow * pow((1.+z),3);
   Trad = Tnow * (1.+z);
 
-  if (background_functions_of_a(1./(1.+z),short_info,pvecback_th) == _FAILURE_){
+  if (background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th) == _FAILURE_){
     sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
     return;
   }

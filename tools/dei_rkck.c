@@ -1,48 +1,52 @@
 #include "dei_rkck.h"
 
-#define dsign(a,b) ( (b) > 0. ? (a) : (-(a)) )
-
-ErrorMsg Transmit_Error_Message; /**< contains error message */
-
-double * yscal;
-double * y;
-double * dydx;
-
-double * yerr;
-double * ytempo;
-
-double * ak2;
-double * ak3;
-double * ak4;
-double * ak5;
-double * ak6;
-double * ytemp;
-
-int n;
-
 /**
  * Initialize the integrator
  *
  */
-int initialize_generic_integrator(int n_dim, Generic_integrator_struct *generic_integrator_in){
+int initialize_generic_integrator(
+				  int n_dim, 
+				  struct generic_integrator_workspace * pgi){
 
   /** - Allocate workspace dynamically */ 
 
-  n = n_dim;
+  pgi->n = n_dim;
 
-  yscal=malloc(sizeof(double)*n_dim);
-  y=malloc(sizeof(double)*n_dim);
-  dydx=malloc(sizeof(double)*n_dim);
+  class_alloc(pgi->yscal,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->y,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->dydx,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
 
-  yerr=malloc(sizeof(double)*n_dim);
-  ytempo=malloc(sizeof(double)*n_dim);
+  class_alloc(pgi->yerr,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->ytempo,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
 
-  ak2=malloc(sizeof(double)*n_dim);
-  ak3=malloc(sizeof(double)*n_dim);
-  ak4=malloc(sizeof(double)*n_dim);
-  ak5=malloc(sizeof(double)*n_dim);
-  ak6=malloc(sizeof(double)*n_dim);
-  ytemp=malloc(sizeof(double)*n_dim);
+  class_alloc(pgi->ak2,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->ak3,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->ak4,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->ak5,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->ak6,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
+  class_alloc(pgi->ytemp,
+	      sizeof(double)*n_dim,
+	      pgi->error_message);
 
   return _SUCCESS_;
 }
@@ -53,85 +57,78 @@ int initialize_generic_integrator(int n_dim, Generic_integrator_struct *generic_
  *
  * Called by background_solve(); thermodynamics_solve_with_recfast(); perturb_solve().
  */
-int cleanup_generic_integrator(Generic_integrator_struct *generic_integrator_in){
+int cleanup_generic_integrator(struct generic_integrator_workspace * pgi){
 
-  free(yscal);
-  free(y);
-  free(dydx);
+  free(pgi->yscal);
+  free(pgi->y);
+  free(pgi->dydx);
 
-  free(yerr);
-  free(ytempo);
+  free(pgi->yerr);
+  free(pgi->ytempo);
 
-  free(ak2);
-  free(ak3);
-  free(ak4);
-  free(ak5);
-  free(ak6);
-  free(ytemp);
+  free(pgi->ak2);
+  free(pgi->ak3);
+  free(pgi->ak4);
+  free(pgi->ak5);
+  free(pgi->ak6);
+  free(pgi->ytemp);
 
   return _SUCCESS_;
 }
 
-/**
- * Integration
- *
- * Called by background_solve(); thermodynamics_solve_with_recfast(); perturb_solve().
- */
-int generic_integrator ( void (*derivs)(double x, double y[], double yprime[]),
-			 double x_start,
-			 double x_end,
-			 double y_start[],
-			 double tol,
-			 Generic_integrator_struct *generic_integrator_in
-			 ){
-
-  if (odeint(y_start,x_start,x_end,tol,x_end-x_start,0.,derivs)==_FAILURE_) {
-    sprintf(generic_integrator_in->error_message,"Problem in odeint \n=>%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-
-  return _SUCCESS_;
-
-}
-
-int odeint(double ystart[],  
-	   double x1, 
-	   double x2, 
-	   double eps, 
-	   double h1,
-	   double hmin, 
-	   void (*derivs)(double, double [], double []))
+int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * fixed_parameters),
+		       double x1, 
+		       double x2,  
+		       double ystart[],  
+		       void * fixed_parameters_for_derivs,
+		       double eps, 
+		       double hmin, 
+		       struct generic_integrator_workspace * pgi)
 
 {
   int nstp,i;
-  double x,hnext,hdid,h;
+  double x,hnext,hdid,h,h1;
 
+  h1=x2-x1;
   x=x1;
   h=dsign(h1,x2-x1);
-  for (i=0;i<n;i++) y[i]=ystart[i];
+  for (i=0;i<pgi->n;i++) pgi->y[i]=ystart[i];
   for (nstp=1;nstp<=_MAXSTP_;nstp++) {
-    (*derivs)(x,y,dydx);
-    for (i=0;i<n;i++)
-      yscal[i]=fabs(y[i])+fabs(dydx[i]*h)+_TINY_;
+    (*derivs)(x,pgi->y,pgi->dydx,fixed_parameters_for_derivs);
+    for (i=0;i<pgi->n;i++)
+      pgi->yscal[i]=fabs(pgi->y[i])+fabs(pgi->dydx[i]*h)+_TINY_;
     if ((x+h-x2)*(x+h-x1) > 0.0) h=x2-x;
-    rkqs(&x,h,eps,&hdid,&hnext,derivs);
+    class_call(rkqs(&x,
+		    h,
+		    eps,
+		    &hdid,
+		    &hnext,
+		    derivs,
+		    fixed_parameters_for_derivs,
+		    pgi),
+	       pgi->error_message,
+	       pgi->error_message);
     if ((x-x2)*(x2-x1) >= 0.0) {
-      for (i=0;i<n;i++) ystart[i]=y[i];
+      for (i=0;i<pgi->n;i++) ystart[i]=pgi->y[i];
       return _SUCCESS_;
     }
-    if (fabs(hnext) <= hmin) {
-      sprintf(Transmit_Error_Message,"%s(L:%d): Step size too small in odeint\n",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test(fabs(hnext) <= hmin,
+	       pgi->error_message,
+	       "Step size too small");
     h=hnext;
   }
-  sprintf(Transmit_Error_Message,"%s(L:%d): Too many steps in routine odeint\n",__func__,__LINE__);
-  return _FAILURE_;
+
+  class_test(0 == 0,
+	     pgi->error_message,
+	     "Too many steps");
+
 }
 
 int rkqs(double *x, double htry, double eps,
 	 double *hdid, double *hnext,
-	 void (*derivs)(double, double [], double []))
+	 int (*derivs)(double, double [], double [], void * fixed_parameters),
+	 void * fixed_parameters_for_derivs,
+	 struct generic_integrator_workspace * pgi)
 {
 
   int i;
@@ -139,26 +136,24 @@ int rkqs(double *x, double htry, double eps,
 
   h=htry;
   for (;;) {
-    if (rkck(*x,h,derivs)==_FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d): error in rkck\n",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_call(rkck(*x,h,derivs,fixed_parameters_for_derivs,pgi),
+	       pgi->error_message,
+	       pgi->error_message);
     errmax=0.0;
-    for (i=0;i<n;i++) errmax=max(errmax,fabs(yerr[i]/yscal[i]));
+    for (i=0;i<pgi->n;i++) errmax=max(errmax,fabs(pgi->yerr[i]/pgi->yscal[i]));
     errmax /= eps;
     if (errmax <= 1.0) break;
     htemp=_SAFETY_*h*pow(errmax,_PSHRNK_);
     h=(h >= 0.0 ? max(htemp,0.1*h) : min(htemp,0.1*h));
     xnew=(*x)+h;
-    if (xnew == *x) {
-      sprintf(Transmit_Error_Message,"%s(L:%d): stepsize underflow in rkqs\n",__func__,__LINE__);
-      return _FAILURE_;
-    } 
+    class_test(xnew == *x,
+	       pgi->error_message,
+	       "stepsize underflow");
   }
   if (errmax > _ERRCON_) *hnext=_SAFETY_*h*pow(errmax,_PGROW_);
   else *hnext=5.0*h;
   *x += (*hdid=h);
-  for (i=0;i<n;i++) y[i]=ytemp[i];
+  for (i=0;i<pgi->n;i++) pgi->y[i]=pgi->ytemp[i];
 
   return _SUCCESS_;
 }
@@ -166,29 +161,66 @@ int rkqs(double *x, double htry, double eps,
 int rkck(
 	 double x, 
 	 double h,
-	 void (*derivs)(double, double [], double []))
+	 int (*derivs)(double, double [], double [], void * fixed_parameters),
+	 void * fixed_parameters_for_derivs,
+	 struct generic_integrator_workspace * pgi)
 {
   int i;
 
-  for (i=0;i<n;i++)
-    ytemp[i]=y[i]+_RKCK_b21_*h*dydx[i];
-  (*derivs)(x+_RKCK_a2_*h,ytemp,ak2);
-  for (i=0;i<n;i++)
-    ytemp[i]=y[i]+h*(_RKCK_b31_*dydx[i]+_RKCK_b32_*ak2[i]);
-  (*derivs)(x+_RKCK_a3_*h,ytemp,ak3);
-  for (i=0;i<n;i++)
-    ytemp[i]=y[i]+h*(_RKCK_b41_*dydx[i]+_RKCK_b42_*ak2[i]+_RKCK_b43_*ak3[i]);
-  (*derivs)(x+_RKCK_a4_*h,ytemp,ak4);
-  for (i=0;i<n;i++)
-    ytemp[i]=y[i]+h*(_RKCK_b51_*dydx[i]+_RKCK_b52_*ak2[i]+_RKCK_b53_*ak3[i]+_RKCK_b54_*ak4[i]);
-  (*derivs)(x+_RKCK_a5_*h,ytemp,ak5);
-  for (i=0;i<n;i++)
-    ytemp[i]=y[i]+h*(_RKCK_b61_*dydx[i]+_RKCK_b62_*ak2[i]+_RKCK_b63_*ak3[i]+_RKCK_b64_*ak4[i]+_RKCK_b65_*ak5[i]);
-  (*derivs)(x+_RKCK_a6_*h,ytemp,ak6);
-  for (i=0;i<n;i++)
-    ytemp[i]=y[i]+h*(_RKCK_c1_*dydx[i]+_RKCK_c3_*ak3[i]+_RKCK_c4_*ak4[i]+_RKCK_c6_*ak6[i]);
-  for (i=0;i<n;i++)
-    yerr[i]=h*(_RKCK_dc1_*dydx[i]+_RKCK_dc3_*ak3[i]+_RKCK_dc4_*ak4[i]+_RKCK_dc5_*ak5[i]+_RKCK_dc6_*ak6[i]);
+  for (i=0;i<pgi->n;i++)
+    pgi->ytemp[i]=pgi->y[i]+_RKCK_b21_*h*pgi->dydx[i];
+
+  class_test((*derivs)(x+_RKCK_a2_*h,
+		       pgi->ytemp,
+		       pgi->ak2,
+		       fixed_parameters_for_derivs)==_FAILURE_,
+	     pgi->error_message,
+	     "\n function that computes derivatives returned an error when x=%e \n(in this case no more precision can be given)",x+_RKCK_a2_*h);
+  
+  for (i=0;i<pgi->n;i++)
+    pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b31_*pgi->dydx[i]+_RKCK_b32_*pgi->ak2[i]);
+
+  class_test((*derivs)(x+_RKCK_a3_*h,
+		       pgi->ytemp,
+		       pgi->ak3,
+		       fixed_parameters_for_derivs)==_FAILURE_,
+	     pgi->error_message,
+	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a3_*h);
+
+  for (i=0;i<pgi->n;i++)
+    pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b41_*pgi->dydx[i]+_RKCK_b42_*pgi->ak2[i]+_RKCK_b43_*pgi->ak3[i]);
+
+  class_test((*derivs)(x+_RKCK_a4_*h,
+		       pgi->ytemp,
+		       pgi->ak4,
+		       fixed_parameters_for_derivs)==_FAILURE_,
+	     pgi->error_message,
+	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a4_*h);
+
+  for (i=0;i<pgi->n;i++)
+    pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b51_*pgi->dydx[i]+_RKCK_b52_*pgi->ak2[i]+_RKCK_b53_*pgi->ak3[i]+_RKCK_b54_*pgi->ak4[i]);
+
+  class_test((*derivs)(x+_RKCK_a5_*h,
+		       pgi->ytemp,
+		       pgi->ak5,fixed_parameters_for_derivs)==_FAILURE_,
+	     pgi->error_message,
+	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a5_*h);
+
+  for (i=0;i<pgi->n;i++)
+    pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b61_*pgi->dydx[i]+_RKCK_b62_*pgi->ak2[i]+_RKCK_b63_*pgi->ak3[i]+_RKCK_b64_*pgi->ak4[i]+_RKCK_b65_*pgi->ak5[i]);
+
+  class_test((*derivs)(x+_RKCK_a6_*h,
+		       pgi->ytemp,
+		       pgi->ak6,
+		       fixed_parameters_for_derivs)==_FAILURE_,
+	     pgi->error_message,
+	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a6_*h);
+
+  for (i=0;i<pgi->n;i++)
+    pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_c1_*pgi->dydx[i]+_RKCK_c3_*pgi->ak3[i]+_RKCK_c4_*pgi->ak4[i]+_RKCK_c6_*pgi->ak6[i]);
+
+  for (i=0;i<pgi->n;i++)
+    pgi->yerr[i]=h*(_RKCK_dc1_*pgi->dydx[i]+_RKCK_dc3_*pgi->ak3[i]+_RKCK_dc4_*pgi->ak4[i]+_RKCK_dc5_*pgi->ak5[i]+_RKCK_dc6_*pgi->ak6[i]);
 
   return _SUCCESS_;
 }

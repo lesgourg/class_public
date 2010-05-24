@@ -22,12 +22,6 @@
 
 #include "background.h"
 
-/** @name - structures used within the background module: */
-
-//@{
-
-struct precision * ppr; /**< a precision_params structure pointer for internal use in the background module */
-struct background * pba; /**< a cosmo structure pointer for internal use in the background module */
 
 double * pvecback; /**< vector of background quantities, used
 		      throughout the background module. Use a global
@@ -61,6 +55,7 @@ ErrorMsg Transmit_Error_Message; /**< contains error message */
   * @return the error status
   */
 int background_at_eta(
+		      struct background *pba,
 		      double eta,
 		      enum format_info return_format,
 		      enum interpolation_mode intermode,
@@ -146,6 +141,7 @@ int background_at_eta(
   * @return the error status
   */
 int background_eta_of_z(
+			struct background *pba,
 			double z,
 			double * eta
 		      ) {
@@ -209,6 +205,7 @@ int background_eta_of_z(
   * @return the error status
   */
 int background_functions_of_a(
+			      struct background *pba,
 			      double a,
 			      enum format_info return_format,
 			      double * pvecback_local
@@ -231,7 +228,7 @@ int background_functions_of_a(
   rho_tot = 0.;
   p_tot = 0.;
   rho_r=0.;
-  a_rel = a / ppr->a_today;
+  a_rel = a / pba->a_today;
 
   if (a_rel <= 0.) { /* mainly to avoid segmentation faults */
     sprintf(pba->error_message,"%s(L:%d): a = %e instead of strictly positive \n",__func__,__LINE__,a_rel);
@@ -343,13 +340,13 @@ int background_functions_of_a(
   *
   * This function shall be called at the beginning of each run. It allocates memory spaces which should be freed later with background_free().
   *
-  * @param ppr_input Input : Parameters describing how the computation is to be performed
-  * @param pba_output Output : Initialized background structure
+  * @param ppr Input : Parameters describing how the computation is to be performed
+  * @param pba Output : Initialized background structure
   * @return the error status
   */
 int background_init(
-  struct precision * ppr_input,
-  struct background * pba_output
+  struct precision * ppr,
+  struct background * pba
   ) {
 
   /** Summary: */
@@ -358,14 +355,11 @@ int background_init(
 
   double Omega0_tot;
 
-  /** - identify the cosmo and precision_params structures pba and ppr (used throughout background.c as global variables) to the input/output structures of this function (ppr is already filled, pba will be filled in this function)*/
-  ppr = ppr_input;
-  pba = pba_output;
   if (pba->background_verbose > 0)
     printf("Computing background\n");
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
-  if (background_indices() == _FAILURE_) {
+  if (background_indices(pba) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s",pba->error_message);
     sprintf(pba->error_message,"%s(L:%d) : error in background_indices() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
@@ -408,8 +402,8 @@ int background_init(
   }
 
   /* other quantities which would lead to segmentation fault if zero */
-  if (ppr->a_today <= 0) {
-    sprintf(pba->error_message,"%s(L:%d): input a_today = %e instead of strictly positive \n",__func__,__LINE__,ppr->a_today);
+  if (pba->a_today <= 0) {
+    sprintf(pba->error_message,"%s(L:%d): input a_today = %e instead of strictly positive \n",__func__,__LINE__,pba->a_today);
     return _FAILURE_;
   }
   if (_Gyr_over_Mpc_ <= 0) {
@@ -417,10 +411,8 @@ int background_init(
     return _FAILURE_;
   }
 
-
-
   /** - integrate background, allocate and fill the background table with background_solve()*/
-  if (background_solve() == _FAILURE_) {
+  if (background_solve(ppr,pba) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s",pba->error_message);
     sprintf(pba->error_message,"%s(L:%d) : error in background_solve() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
@@ -443,7 +435,9 @@ int background_init(
  *
  * @return the error status
  */
-int background_free() {
+int background_free(
+		    struct background *pba
+		    ) {
 
   free(pba->eta_table);
   free(pba->z_table);
@@ -461,7 +455,9 @@ int background_free() {
  *
  * @return the error status
  */
-int background_indices() {
+int background_indices(
+		       struct background *pba
+		       ) {
 
   /** Summary: */
 
@@ -647,14 +643,17 @@ int background_indices() {
  *
  * @return the error status
  */
-int background_solve() {
+int background_solve(
+		     struct precision *ppr,
+		     struct background *pba
+		     ) {
 
   /** Summary: */
 
   /** - define local variables */
 
   /* contains all quantities relevant for the integration algorithm */
-  Generic_integrator_struct generic_integrator_in;
+  struct generic_integrator_workspace gi;
   /* a growing table (since the number of time steps is not known a priori) */
   growTable gTable;
   /* needed for growing table */
@@ -684,13 +683,12 @@ int background_solve() {
   /* Size of vector to integrate is (pba->bi_size-1) rather than
    * (pba->bi_size), since eta is not integrated.
    */
-  if (initialize_generic_integrator((pba->bi_size-1), &generic_integrator_in) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in initialize_generic_integrator() \n=>%s",__func__,__LINE__,generic_integrator_in.error_message);
-    return _FAILURE_;
-  }
+  class_call(initialize_generic_integrator((pba->bi_size-1),&gi),
+	     gi.error_message,
+	     pba->error_message);
 
   /** - impose initial conditions with background_initial_conditions() */
-  if (background_initial_conditions(pvecback_integration) == _FAILURE_) {
+  if (background_initial_conditions(ppr,pba,pvecback_integration) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s",pba->error_message);
     sprintf(pba->error_message,"%s(L:%d) : probelm in background_initial_conditions() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
@@ -710,18 +708,18 @@ int background_solve() {
 
   /** - loop over integration steps : call background_functions_of_a(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of eta */
 
-  while (pvecback_integration[pba->index_bi_a] < ppr->a_today) {
+  while (pvecback_integration[pba->index_bi_a] < pba->a_today) {
 
     eta_start = eta_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
-    if (background_functions_of_a(pvecback_integration[pba->index_bi_a], short_info, pvecback) == _FAILURE_) {
+    if (background_functions_of_a(pba,pvecback_integration[pba->index_bi_a], short_info, pvecback) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s",pba->error_message);
       sprintf(pba->error_message,"%s(L:%d) : error in background_functions_of_a() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
     }
 
-    if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < ppr->a_today) {
+    if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
       eta_end = eta_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]); 
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions_of_a() */
     }
@@ -743,17 +741,17 @@ int background_solve() {
     pba->bt_size++;
 
     /* -> perform one step */
-    if (generic_integrator(background_derivs,
-			   eta_start,
-			   eta_end,
-			   pvecback_integration,
-			   ppr->tol_background_integration,
-			   &generic_integrator_in)== _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s",pba->error_message);
-      sprintf(pba->error_message,"%s(L:%d) : error in generic_integrator() \n=>%s\n=>%s",__func__,__LINE__,generic_integrator_in.error_message,Transmit_Error_Message);
-      return _FAILURE_;
-    }
-
+    class_call(generic_integrator(background_derivs,
+				  eta_start,
+				  eta_end,
+				  pvecback_integration,
+				  pba,
+				  ppr->tol_background_integration,
+				  ppr->smallest_allowed_variation,
+				  &gi),
+	       gi.error_message,
+	       pba->error_message);
+    
     /* -> store value of eta */
     pvecback_integration[pba->index_bi_eta]=eta_end;
 
@@ -770,8 +768,9 @@ int background_solve() {
   /* integration finished */
 
   /** - clean up generic integrator with cleanup_generic_integrator() */
-  if (cleanup_generic_integrator(&generic_integrator_in) == _FAILURE_)
-    sprintf(pba->error_message,"%s(L:%d) : error in cleanup_generic_integrator() \n=>%s",__func__,__LINE__,generic_integrator_in.error_message);
+  class_call(cleanup_generic_integrator(&gi),
+	     gi.error_message,
+	     pba->error_message);
 
   /** - retrieve data stored in the growTable with gt_getPtr() */
   if (gt_getPtr(&gTable,(void**)&pData) == _FAILURE_) {
@@ -785,7 +784,7 @@ int background_solve() {
 		   pba->bi_size,
 		   pba->bt_size,
 		   pba->index_bi_a, 
-		   ppr->a_today,
+		   pba->a_today,
 		   &last_index,
 		   pvecback_integration,
 		   pba->bi_size,
@@ -839,7 +838,7 @@ int background_solve() {
     pba->eta_table[i] = pData[i*pba->bi_size+pba->index_bi_eta];
 
     if (pData[i*pba->bi_size+pba->index_bi_a] > 0) /* mainly to avoid segmentation fault */
-      pba->z_table[i] = ppr->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
+      pba->z_table[i] = pba->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
     else {
       sprintf(pba->error_message,"%s(L:%d): a = %e instead of strictly positive \n",__func__,__LINE__,pData[i*pba->bi_size+pba->index_bi_a]);
       return _FAILURE_;
@@ -851,7 +850,7 @@ int background_solve() {
     pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities */
-    if (background_functions_of_a(pvecback[pba->index_bg_a], long_info, pvecback) == _FAILURE_) {
+    if (background_functions_of_a(pba,pvecback[pba->index_bg_a], long_info, pvecback) == _FAILURE_) {
       sprintf(Transmit_Error_Message,"%s",pba->error_message);
       sprintf(pba->error_message,"%s(L:%d) : error in background_functions_of_a() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return _FAILURE_;
@@ -910,7 +909,11 @@ int background_solve() {
  *
  * @return the error status
  */
-int background_initial_conditions(double * pvecback_integration) {
+int background_initial_conditions(
+				  struct precision *ppr,
+				  struct background *pba,
+				  double * pvecback_integration
+				  ) {
 
   /** Summary: */
 
@@ -920,7 +923,7 @@ int background_initial_conditions(double * pvecback_integration) {
   double a;
 
   /** - fix initial value of \f$ a \f$ */
-  a = ppr->a_ini_over_a_today_default * ppr->a_today;
+  a = ppr->a_ini_over_a_today_default * pba->a_today;
   pvecback_integration[pba->index_bi_a] = a;
 
   /* for some models, we will need to add here some tests on the
@@ -928,7 +931,7 @@ int background_initial_conditions(double * pvecback_integration) {
      relativistic? etc.) If the test is OK, fix other initial values: */
 
   /** - compute initial H with background_functions_of_a() */
-  if (background_functions_of_a(a, short_info, pvecback) == _FAILURE_) {
+  if (background_functions_of_a(pba,a, short_info, pvecback) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s",pba->error_message);
     sprintf(pba->error_message,"%s(L:%d) : error in background_functions_of_a() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
     return _FAILURE_;
@@ -964,17 +967,21 @@ int background_initial_conditions(double * pvecback_integration) {
   * @param eta Input : conformal time
   * @param y Input : vector of variable
   * @param dy Output : its derivative (already allocated)
+  * @param fixed_parameters Input: pointer to fixed parameters (e.g. indices); here, this is just a pointer to the background structure; passed as a generic pointer in order to match declarations in generic integrator module.
   */
-void background_derivs(
-		       double eta,
-		       double* y, 
-		       double* dy 
-		       ) {
+int background_derivs(
+		      double eta,
+		      double* y, 
+		      double* dy,
+		      void * fixed_parameters
+		      ) {
 
-  /** Summary: */
+  struct background * pba;
+
+  pba =  fixed_parameters;
 
   /** - Calculates functions of /f$ a /f$ with background_functions_of_a() */
-  if (background_functions_of_a(y[pba->index_bi_a], short_info, pvecback) == _FAILURE_) {
+  if (background_functions_of_a((struct background *)pba,y[pba->index_bi_a], short_info, pvecback) == _FAILURE_) {
     sprintf(Transmit_Error_Message,"%s",pba->error_message);
     sprintf(pba->error_message,"%s(L:%d) : error in calling background_derivs() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
       return;

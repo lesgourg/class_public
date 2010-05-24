@@ -3,15 +3,33 @@
 #ifndef __DEI__
 #define __DEI__
 
-struct integrator_structure_in     { 
+struct generic_integrator_workspace 
+{ 
+
+  int n;
+
+  double * yscal;
+  double * y;
+  double * dydx;
+  
+  double * yerr;
+  double * ytempo;
+
+  double * ak2;
+  double * ak3;
+  double * ak4;
+  double * ak5;
+  double * ak6;
+  double * ytemp;
+
+  double stepmin;
 
   /** 
     * zone for writing error messages 
     */
   ErrorMsg error_message;
-                                     };
 
-typedef struct integrator_structure_in Generic_integrator_struct;
+};
 
 /**************************************************************/
 
@@ -22,42 +40,44 @@ typedef struct integrator_structure_in Generic_integrator_struct;
 extern "C" {
 #endif
 
-  int initialize_generic_integrator(int n_dim, Generic_integrator_struct *generic_integrator_in);
+  int initialize_generic_integrator(
+				    int n_dim, 
+				    struct generic_integrator_workspace * pgi
+				    );
 
-  int cleanup_generic_integrator(Generic_integrator_struct * generic_integrator_in);
+  int cleanup_generic_integrator(struct generic_integrator_workspace * pgi);
 
-  int generic_integrator ( void (*derivs)(double x, double y[], double yprime[]),
-			 double x_start,
-			 double x_end,
-			 double y_start[],
-			 double tol,
-			 Generic_integrator_struct *generic_integrator_in
-			 );
-
-  int odeint(double ystart[], 
-	     double x1, 
-	     double x2, 
-	     double eps, 
-	     double h1,
-	     double hmin, 
-	     void (*derivs)(double, double [], double []));
+  int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * fixed_parameters),
+			 double x1, 
+			 double x2,  
+			 double ystart[],  
+			 void * fixed_parameters_for_derivs,
+			 double eps, 
+			 double hmin, 
+			 struct generic_integrator_workspace * pgi);
 
   int rkqs(double *x, 
 	   double htry, 
 	   double eps,
 	   double *hdid, 
 	   double *hnext,
-	   void (*derivs)(double, double [], double []));
+	   int (*derivs)(double, double [], double [], void *),
+	   void * fixed_parameters_for_derivs,
+	   struct generic_integrator_workspace * pgi);
 
   int rkck(double x, 
 	   double h,
-	   void (*derivs)(double, double [], double []));
+	   int (*derivs)(double, double [], double [], void *),
+	   void * fixed_parameters_for_derivs,
+	   struct generic_integrator_workspace * pgi);
 
 #ifdef __cplusplus
 }
 #endif
 
 /**************************************************************/
+
+#define dsign(a,b) ( (b) > 0. ? (a) : (-(a)) )
 
 #define _MAXSTP_ 10000
 #define _TINY_ 1.0e-30

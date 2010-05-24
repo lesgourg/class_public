@@ -125,7 +125,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (background_free() == _FAILURE_) {
+  if (background_free(&ba) == _FAILURE_) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }

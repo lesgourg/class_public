@@ -26,7 +26,6 @@ int precision_init ( struct precision * ppr ) {
    */
 
   ppr->a_ini_over_a_today_default = 1.e-9;  /* 1.e-7 unless needs large k_max in P(k) */
-  ppr->a_today = 1.;
   ppr->back_integration_stepsize = 2.e-2;   /* 0.02 */
   ppr->tol_background_integration = 1.e-3;  /* 0.002 */
 

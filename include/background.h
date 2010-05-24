@@ -68,6 +68,14 @@ struct background
 
   //@}
 
+  /** @name - other background parameters */
+
+  //@{
+
+  double a_today; /** scale factor today (arbitrary and irrelevant for most purposes) */
+
+  //@}
+
   /** @name - all indices for the vector of background (=bg) quantities */
 
   //@{
@@ -181,6 +189,7 @@ extern "C" {
 #endif
 
   int background_at_eta(
+			struct background *pba,
 			double eta,
 			enum format_info return_format,
 			enum interpolation_mode intermode,
@@ -189,33 +198,47 @@ extern "C" {
 			);
 
   int background_functions_of_a(
+				struct background *pba,
 				double a,
 				enum format_info return_format,
 				double * pvecback_local
 				);
 
   int background_eta_of_z(
+			  struct background *pba,
 			  double z,
 			  double * eta
 			  );
 
   int background_init(
-		      struct precision *ppr_input,
-		      struct background *pba_output
+		      struct precision *ppr,
+		      struct background *pba
 		      );
 
-  int background_free();
+  int background_free(
+		      struct background *pba
+		      );
 
-  int background_indices();
+  int background_indices(
+			 struct background *pba
+			 );
 
-  int background_solve();
+  int background_solve(
+		       struct precision *ppr,
+		       struct background *pba
+		       );
 
-  int background_initial_conditions(double * pvecback_integration);
+  int background_initial_conditions(
+				    struct precision *ppr,
+				    struct background *pba,
+				    double * pvecback_integration
+				    );
 
-  void background_derivs(
+  int background_derivs(
 			 double z,
 			 double * y,
-			 double * dy
+			 double * dy,
+			 void * fixed_parameters
 			 );
       
 #ifdef __cplusplus
