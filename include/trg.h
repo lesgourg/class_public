@@ -35,12 +35,18 @@ extern "C" {
 #endif
 
   enum name_A{
-    A0,
-    A11,
-    A12,
-    A21,
-    A22,
-    A3
+    _A0_,
+    _A11_,
+    _A12_,
+    _A21_,
+    _A22_,
+    _A3_,
+    _B0_,
+    _B11_,
+    _B12_,
+    _B21_,
+    _B22_,
+    _B3_
   };
 
   int trg_gamma_121(
@@ -59,26 +65,30 @@ extern "C" {
 		    );
 
   int trg_p12_ini(
-		  double *k,
+		  struct background * pba,
+		  struct primordial * ppm,
+		  struct spectra * psp,
+		  struct spectra_nl * pnl,
 		  int index_ic,
-		  double *H,
-		  double * result,
-		  char * errmsg				
+		  double * result
 		  );
 
   int trg_p22_ini(
-		  double *k,
+		  struct background * pba,
+		  struct primordial * ppm,
+		  struct spectra * psp,
+		  struct spectra_nl * pnl,
 		  int index_ic,
-		  double *H,
-		  double * result,
-		  char * errmsg				
+		  double * result
 		  );
   
   int trg_pk_nl_ini(
-		    double *k,
+		    struct background * pba,
+		    struct primordial * ppm,
+		    struct spectra * psp,
+		    struct spectra_nl * pnl,
 		    int index_ic,
-		    double * result,
-		    char * errmsg				
+		    double *result				
 		    );
   
   int trg_ddp_ab(
@@ -136,14 +146,16 @@ extern "C" {
 
 
   int trg_init(
-	       struct precision *ppr_input,
-	       struct background *pba_input,
-	       struct primordial *ppm_input,
-	       struct spectra *psp_input,
-	       struct spectra_nl *pnl_output
+	       struct precision *ppr,
+	       struct background *pba,
+	       struct primordial *ppm,
+	       struct spectra *psp,
+	       struct spectra_nl *pnl
 	       );
 
-  int trg_free();
+  int trg_free(
+	       struct spectra_nl *pnl
+);
       
 #ifdef __cplusplus
 }

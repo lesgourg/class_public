@@ -22,7 +22,7 @@ struct precision * ppr;
 struct background * pba;
 struct primordial * ppm;
 struct spectra * psp;
-struct spectra_nl * pnl; 
+struct spectra_nl * pnl;
 
 double * pvecback_nl;
 
@@ -53,28 +53,27 @@ int trg_gamma_222(
 }
 
 int trg_p12_ini(
-		double *k,
+		struct background * pba, /* all struct are input here */
+		struct primordial * ppm,
+		struct spectra * psp,
+		struct spectra_nl * pnl,
 		int index_ic,
-		double *H,
-		double * result,
-		char * errmsg
+		double * result
 		){
-  
+
   double temp1,temp2,temp3;
   int index_k;
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
 
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[0],&temp1)==_FAILURE_){
-      sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
-      sprintf(pnl->error_message,"%s",errmsg);
-      return _FAILURE_;
-    }
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[1],&temp2)==_FAILURE_){
-      sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
-      sprintf(pnl->error_message,"%s",errmsg);
-      return _FAILURE_;
-    }
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[0],&temp1),
+	       psp->error_message,
+	       pnl->error_message);
+    
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[1],&temp2),
+	       psp->error_message,
+	       pnl->error_message);
+
     temp3   = (sqrt(temp2) - sqrt(temp1))/(pnl->z[1]-pnl->z[0]);
     result[index_k] = - (1+pnl->z[0]) * sqrt(temp1) * temp3 ;
   }
@@ -85,27 +84,26 @@ int trg_p12_ini(
 
 
 int trg_p22_ini(
-		double *k,
+		struct background * pba,
+		struct primordial * ppm,
+		struct spectra * psp,
+		struct spectra_nl * pnl,
 		int index_ic,
-		double *H,
-		double * result,
-		char * errmsg
+		double * result
 		){
   double temp1,temp2,temp3;
   int index_k;
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
 
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[0],&temp1)==_FAILURE_){
-      sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
-      sprintf(pnl->error_message,"%s",errmsg);
-      return _FAILURE_;
-    }
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z[1],&temp2)==_FAILURE_){
-      sprintf(errmsg,"%s(L:%d): problem with inter-extrapolation of pk\n=>%s",__func__,__LINE__,psp->error_message);
-      sprintf(pnl->error_message,"%s",errmsg);
-      return _FAILURE_;
-    }
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[0],&temp1),
+	       psp->error_message,
+	       pnl->error_message);
+
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[1],&temp2),
+	       psp->error_message,
+	       pnl->error_message);
+        
     temp3   = (sqrt(temp2) - sqrt(temp1))/ (pnl->z[0] - pnl->z[1]);
     result[index_k] = (1+pnl->z[0])*(1+pnl->z[0])*temp3*temp3;
   }
@@ -118,20 +116,20 @@ int trg_p22_ini(
    is done by the following command */
 
 int trg_pk_nl_ini(
-		   double *k,
-		   int index_ic,
-		   double *result,
-		   char * errmsg
-		   ){
+		  struct background * pba,
+		  struct primordial * ppm,
+		  struct spectra * psp,
+		  struct spectra_nl * pnl,
+		  int index_ic,
+		  double *result
+		  ){
 
   int index_k;
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
-    if(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k[index_k],pnl->z_ini,&result[index_k])==_FAILURE_){
-      sprintf(errmsg,"%s(L:%d) error in spectra_pk_at_k_and_z{}\n=>%s",__func__,__LINE__,psp->error_message);
-      sprintf(pnl->error_message,"%s",errmsg);
-      return _FAILURE_;
-    }
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z_ini,&result[index_k]),
+	       psp->error_message,
+	       pnl->error_message);
   }
   return _SUCCESS_;
 }
@@ -204,7 +202,7 @@ int trg_p_ab_at_any_k(
  ********************/
 
     switch(name){
-    case 'A0':
+    case _A0_:
       class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -247,7 +245,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'A11':
+    case _A11_:
       class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -296,7 +294,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'A12':
+    case _A12_:
       class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -349,7 +347,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'A21':
+    case _A21_:
       class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -398,7 +396,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'A22':
+    case _A22_:
       class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -456,7 +454,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'A3':
+    case _A3_:
       class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -497,7 +495,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'B0':
+    case _B0_:
       class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -544,7 +542,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'B11':
+    case _B11_:
       class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -592,7 +590,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'B12':
+    case _B12_:
       class_call(trg_p_ab_at_any_k(pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -655,7 +653,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'B21':
+    case _B21_:
       class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -711,7 +709,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'B22':
+    case _B22_:
       class_call(trg_p_ab_at_any_k(pnl->p_12,pnl->ddp_12,index_eta,k,&p_12k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -762,7 +760,7 @@ int trg_p_ab_at_any_k(
 
 /****************************************/
 
-    case 'B3':
+    case _B3_:
       class_call(trg_p_ab_at_any_k(pnl->p_22,pnl->ddp_22,index_eta,k,&p_22k,errmsg),
 		 errmsg,
 		 pnl->error_message);
@@ -1040,11 +1038,11 @@ int trg_integrate_xy_at_eta(
    *********************************/
 
 int trg_init (
-	      struct precision * ppr_input,
-	      struct background * pba_input, /**< structure containing all background evolution */
-	      struct primordial * ppm_input,
-	      struct spectra * psp_input, /**< structure containing list of k, z and P(k,z) values) */
-	      struct spectra_nl * pnl_output 
+	      struct precision * ppr, /* input */
+	      struct background * pba, /**< structure containing all background evolution */
+	      struct primordial * ppm,
+	      struct spectra * psp, /**< structure containing list of k, z and P(k,z) values) */
+	      struct spectra_nl * pnl /* output */ 
 	      ) {
 
   FILE *nl_spectra;
@@ -1087,12 +1085,6 @@ int trg_init (
   double *B0,*B11,*B12,*B21,*B22,*B3; /* Definition of the variables
 					 Aijk,lmn */
 
-  pba = pba_input; 
-  ppm = ppm_input;
-  ppr = ppr_input;
-  psp = psp_input;
-  pnl = pnl_output;
-
   pnl->spectra_nl_verbose=1;
 
   pvecback_nl = calloc(pba->bg_size,sizeof(double));
@@ -1102,13 +1094,13 @@ int trg_init (
 
   /* define initial eta and redshift */
   a_ini = 1e-2;
-  pnl->z_ini = ppr->a_today/a_ini - 1.;
+  pnl->z_ini = pba->a_today/a_ini - 1.;
 
   /* define eta_max, where eta=log(a/a_ini) */
-  eta_max = log(ppr->a_today/a_ini);
+  eta_max = log(pba->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 1000;
+  pnl->eta_size = 500;
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
@@ -1132,7 +1124,7 @@ int trg_init (
 
   for (index_eta=0; index_eta<pnl->eta_size; index_eta++) {
     pnl->eta[index_eta] = index_eta*eta_step;
-    pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(ppr->a_today/a_ini)-1;
+    pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1;
     if(pnl->z[index_eta]<0) pnl->z[index_eta]=0;
   }
 
@@ -1143,18 +1135,18 @@ int trg_init (
   H_prime = calloc(pnl->eta_size,sizeof(double));
 
   for (index_eta=0; index_eta<pnl->eta_size; index_eta++){
-    if (background_functions_of_a(
-				a_ini*exp(pnl->eta[index_eta]),
-				long_info,
-				pvecback_nl
-				) == _FAILURE_ ) {
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
-	return _FAILURE_;	 
-    } 
+    class_call(background_functions_of_a(
+					 pba,
+					 a_ini*exp(pnl->eta[index_eta]),
+					 long_info,
+					 pvecback_nl
+					 ),
+	       pba->error_message,
+	       pnl->error_message);
 
     Omega_m[index_eta] = pvecback_nl[pba->index_bg_Omega_b];
     if (pba->has_cdm == _TRUE_) {
-    Omega_m[index_eta] += pvecback_nl[pba->index_bg_Omega_cdm];
+      Omega_m[index_eta] += pvecback_nl[pba->index_bg_Omega_cdm];
     }
 
     H[index_eta] = pvecback_nl[pba->index_bg_H] * a_ini * exp(pnl->eta[index_eta]);
@@ -1200,15 +1192,15 @@ int trg_init (
 
 
   if(pnl->pk_nl != NULL && pnl->p_12 != NULL && pnl->p_22 != NULL){
-    class_call(trg_pk_nl_ini(pnl->k,index_ic,pnl->pk_nl,pnl->error_message),
+    class_call(trg_pk_nl_ini(pba,ppm,psp,pnl,index_ic,pnl->pk_nl),
 	       pnl->error_message,
 	       pnl->error_message);
     
-    class_call(trg_p12_ini(pnl->k,index_ic,H,pnl->p_12,pnl->error_message),
+    class_call(trg_p12_ini(pba,ppm,psp,pnl,index_ic,pnl->p_12),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_p22_ini(pnl->k,index_ic,H,pnl->p_22,pnl->error_message),
+    class_call(trg_p22_ini(pba,ppm,psp,pnl,index_ic,pnl->p_22),
 	       pnl->error_message,
 	       pnl->error_message);
 
@@ -1295,84 +1287,84 @@ int trg_init (
     printf("Initialisation\n");
 
 
-  class_call(trg_integrate_xy_at_eta('A0',0,n_xy,pnl->k_size,A0,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_A0_,0,n_xy,pnl->k_size,A0,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 				     
-  class_call(trg_integrate_xy_at_eta('A11',0,n_xy,pnl->k_size,A11,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_A11_,0,n_xy,pnl->k_size,A11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
   
-  class_call(trg_integrate_xy_at_eta('A12',0,n_xy,pnl->k_size,A12,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_A12_,0,n_xy,pnl->k_size,A12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('A21',0,n_xy,pnl->k_size,A21,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_A21_,0,n_xy,pnl->k_size,A21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('A22',0,n_xy,pnl->k_size,A22,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_A22_,0,n_xy,pnl->k_size,A22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('A3',0,n_xy,pnl->k_size,A3,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_A3_,0,n_xy,pnl->k_size,A3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('B0',0,n_xy,pnl->k_size,B0,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_B0_,0,n_xy,pnl->k_size,B0,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
   
-  class_call(trg_integrate_xy_at_eta('B11',0,n_xy,pnl->k_size,B11,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_B11_,0,n_xy,pnl->k_size,B11,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('B12',0,n_xy,pnl->k_size,B12,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_B12_,0,n_xy,pnl->k_size,B12,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('B21',0,n_xy,pnl->k_size,B21,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_B21_,0,n_xy,pnl->k_size,B21,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('B22',0,n_xy,pnl->k_size,B22,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_B22_,0,n_xy,pnl->k_size,B22,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   if (pnl->spectra_nl_verbose > 0){
     printf(".\n");}
 
-  class_call(trg_integrate_xy_at_eta('B3',0,n_xy,pnl->k_size,B3,pnl->error_message),
+  class_call(trg_integrate_xy_at_eta(_B3_,0,n_xy,pnl->k_size,B3,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
@@ -1531,51 +1523,51 @@ int trg_init (
      * Update of A's and B's function at the new index_eta
      **********/
     
-    class_call(trg_integrate_xy_at_eta('A0',index_eta,n_xy,pnl->k_size,A0,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_A0_,index_eta,n_xy,pnl->k_size,A0,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A11',index_eta,n_xy,pnl->k_size,A11,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_A11_,index_eta,n_xy,pnl->k_size,A11,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A12',index_eta,n_xy,pnl->k_size,A12,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_A12_,index_eta,n_xy,pnl->k_size,A12,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A21',index_eta,n_xy,pnl->k_size,A21,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_A21_,index_eta,n_xy,pnl->k_size,A21,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A22',index_eta,n_xy,pnl->k_size,A22,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_A22_,index_eta,n_xy,pnl->k_size,A22,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('A3',index_eta,n_xy,pnl->k_size,A3,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_A3_,index_eta,n_xy,pnl->k_size,A3,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B0',index_eta,n_xy,pnl->k_size,B0,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_B0_,index_eta,n_xy,pnl->k_size,B0,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B11',index_eta,n_xy,pnl->k_size,B11,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_B11_,index_eta,n_xy,pnl->k_size,B11,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B12',index_eta,n_xy,pnl->k_size,B12,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_B12_,index_eta,n_xy,pnl->k_size,B12,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B21',index_eta,n_xy,pnl->k_size,B21,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_B21_,index_eta,n_xy,pnl->k_size,B21,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B22',index_eta,n_xy,pnl->k_size,B22,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_B22_,index_eta,n_xy,pnl->k_size,B22,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
 
-    class_call(trg_integrate_xy_at_eta('B3',index_eta,n_xy,pnl->k_size,B3,pnl->error_message),
+    class_call(trg_integrate_xy_at_eta(_B3_,index_eta,n_xy,pnl->k_size,B3,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -1695,7 +1687,9 @@ int trg_init (
    
 }
 
-int trg_free(){
+int trg_free(
+	     struct spectra_nl * pnl
+	     ){
   
   free(pnl->k);
   free(pnl->pk_nl);

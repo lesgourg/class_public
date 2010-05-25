@@ -51,7 +51,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (thermodynamics_init(&ba,&pr,&th) == _FAILURE_) {
+  if (thermodynamics_init(&pr,&ba,&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
@@ -61,7 +61,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (bessel_init(&ba,&pt,&pr,&bs) == _FAILURE_) {
+  if (bessel_init(&pr,&ba,&pt,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }
@@ -88,6 +88,12 @@ main() {
 
   /****** done ******/
 
+  
+  if (trg_free(&nl) == _FAILURE_) {
+    printf("\n\nError in trg_free \n=>%s\n",nl.error_message);
+    return _FAILURE_;
+  }
+
   if (spectra_free(&sp) == _FAILURE_) {
     printf("\n\nError in spectra_free \n=>%s\n",sp.error_message);
     return _FAILURE_;
@@ -103,7 +109,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (bessel_free() == _FAILURE_)  {
+  if (bessel_free(&bs) == _FAILURE_)  {
     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }
@@ -113,19 +119,15 @@ main() {
     return _FAILURE_;
   }
 
-  if (thermodynamics_free() == _FAILURE_) {
+  if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
 
-  if (background_free() == _FAILURE_) {
+  if (background_free(&ba) == _FAILURE_) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }
 
-  if (trg_free() == _FAILURE_) {
-    printf("\n\nError in trg_free \n=>%s\n",nl.error_message);
-    return _FAILURE_;
-  }
 
 }
