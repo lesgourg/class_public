@@ -213,6 +213,13 @@ struct current_vectors
   int st_size; /**< size of this vector */ 
 };
 
+struct perturbation_derivs_parameters {
+
+  double * pvecback;
+  double * pvecthermo;
+
+};
+
 /*************************************************************************************************************/
 
 /*
@@ -262,7 +269,8 @@ struct current_vectors
     int perturb_solve();
 
     int perturb_initial_conditions(
-				   double eta
+				   double eta,
+				   double * pvecback
 				   );
 
     int perturb_back_and_thermo(
@@ -270,6 +278,8 @@ struct current_vectors
 				enum interpolation_mode intermode,
 				int * last_index_back,
 				int * last_index_thermo,
+				double * pvecback,
+				double * pvecthermo,
 				enum tca_flags * tca_local,
 				enum rp_flags * rp_local,
 				double * timescale
@@ -277,10 +287,12 @@ struct current_vectors
 
     int perturb_einstein(
 			 double eta,
+			 double * pvecback,
 			 double * y
 			 );
 
-    int perturb_source_terms();
+    int perturb_source_terms(double eta,
+			     struct perturbation_derivs_parameters * ppdp);
 
     int perturb_sources(
 			double * source_terms_array

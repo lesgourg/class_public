@@ -1444,7 +1444,7 @@ int thermodynamics_recombination(
  * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
  * is a bit special:
  * - fixed parameters that the function should know are passed through a generic pointer. Here, this pointer contains the 
- *   background, thermodynamics, recombination structures, etc., but generic_integrator() doesn't know that.
+ *   precision, background and recombination structures, but generic_integrator() doesn't know that.
  * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic 
  *   error_message passed in the list of arguments.
  *
