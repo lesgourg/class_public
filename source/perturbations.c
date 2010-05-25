@@ -1921,7 +1921,9 @@ int perturb_back_and_thermo(double eta,
   if ((ppt->has_scalars) && (current_index_mode == ppt->index_md_scalars)) {
 
     /** (a) evaluate thermodynamical quantities with thermodynamics_at_z() */
-    if (thermodynamics_at_z(1./pvecback_pt[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+    if (thermodynamics_at_z(pba,
+			    pth,
+			    1./pvecback_pt[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
 			    intermode,
 			    last_index_thermo,
 			    pvecthermo_pt) == _FAILURE_) {

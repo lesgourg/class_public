@@ -96,6 +96,14 @@ struct thermo
 
   //@}
 
+/** @name - total number density of electrons today (free or not) */
+
+  //@{
+
+  double n_e;
+
+  //@}
+
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@{
@@ -141,6 +149,31 @@ struct recombination {
 
   double * recombination_table;
   int rt_size;
+
+  //@}
+
+  /** @name - recfast parameters */
+
+  //@{
+
+  double CDB;
+  double CR;
+  double CK;
+  double CL;
+  double CT;
+  double fHe;
+  double CDB_He;
+  double CK_He;
+  double CL_He;
+  double fu;
+  double H_frac;
+  double Tnow;
+  double Nnow;
+  double Bfact;
+  double CB1;
+  double CB1_He1;
+  double CB1_He2;
+  double H0; 
 
   //@}
 
@@ -219,6 +252,14 @@ struct reionization {
 
 };
 
+struct thermodynamics_derivs_parameters {
+
+  struct background * pba;
+  struct precision * ppr;
+  struct recombination * preco;
+
+};
+
 /**************************************************************/
 
 /*
@@ -229,6 +270,8 @@ extern "C" {
 #endif
 
   int thermodynamics_at_z(
+			  struct background * pba,
+			  struct thermo * pth,
 			  double z,
 			  enum interpolation_mode intermode,
 			  int * last_index,
@@ -236,12 +279,14 @@ extern "C" {
 			  );
 
   int thermodynamics_init(
-			  struct background * pco_input,
-			  struct precision * ppp_input,
-			  struct thermo * pth_output
+			  struct precision * ppr,
+			  struct background * pba,
+			  struct thermo * pth
 			  );
 
-  int thermodynamics_free();
+  int thermodynamics_free(
+			  struct thermo * pthermo
+			  );
 
   int thermodynamics_indices(
 			     struct thermo * pthermo,
@@ -251,25 +296,37 @@ extern "C" {
 
   int thermodynamics_reionization_function(
 					   double z,
+					   struct thermo * pth,
 					   struct reionization * preio,
 					   double * xe
 					   );
 
   int thermodynamics_reionization(
+				  struct precision * ppr,
+				  struct background * pba,
+				  struct thermo * pth,
 				  struct recombination * preco,
 				  struct reionization * preio
 				  );
 
   int thermodynamics_reionization_discretize(
+					     struct precision * ppr,
+					     struct background * pba,
+					     struct thermo * pth,
 					     struct recombination * preco,
 					     struct reionization * preio
 					     );
 
-  int thermodynamics_get_xe_before_reionization(double z,
+  int thermodynamics_get_xe_before_reionization(struct precision * ppr,
+						struct thermo * pth,
 						struct recombination * preco,
+						double z,
 						double * xe);
 
   int thermodynamics_recombination(
+				   struct precision * ppr,
+				   struct background * pba,
+				   struct thermo * pth,
 				   struct recombination * prec
 				   );
 

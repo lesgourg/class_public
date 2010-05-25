@@ -58,7 +58,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (thermodynamics_init(&ba,&pr,&th) == _FAILURE_) {
+  if (thermodynamics_init(&pr,&ba,&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
@@ -120,7 +120,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (thermodynamics_free() == _FAILURE_) {
+  if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
   }

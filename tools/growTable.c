@@ -140,6 +140,8 @@ int gt_getPtr(
   ) {
   self->freeze=_TRUE_;
   *ptr=self->buffer;
+
+  return _SUCCESS_;
 }
 
 
@@ -153,5 +155,7 @@ int gt_free(growTable* self) {
   self->csz=-1;
   self->sz=-1;
   self->freeze=_FALSE_;  /**< This line added by JL */
+
+  return _SUCCESS_;
 }
 

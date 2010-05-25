@@ -22,36 +22,6 @@
 
 #include "thermodynamics.h"
 
-/** @name - structures used within the thermodynamics module: */
-
-//@{
-
-struct background * pba; /**< a cosmo structure pointer for internal use in the thermodynamics module */
-struct precision * ppr; /**< a precision_params structure pointer for internal use in the thermodynamics module */
-struct thermo * pth; /**< a thermo structure pointer for internal use in the thermodynamics module */
-
-double * pvecback_th; /**< vector of background quantities, used
-			 throughout the thermodynamics module.Use a
-			 global variable in order to avoid
-			 reallocating it many times. */
-
-/** @name - recfast variables: */
-
-//@{
-double CDB,CR,CK,CL,CT,fHe,CDB_He,CK_He,CL_He,fu,H_frac,Tnow,Nnow,Bfact;
-double C1P3P,cc3P1P,cccP,hck,CB1,CB1_He1,CB1_He2,H0; 
-double kb_over_mH; /* k_B/mH */
-
-//@}
-
-/** @name - miscellaneous: */
-
-//@{
-
-ErrorMsg Transmit_Error_Message; /**< contains error message */
-
-//@}
-
 /** 
  * Thermodynamics quantities at given redshift z. 
  *
@@ -68,6 +38,8 @@ ErrorMsg Transmit_Error_Message; /**< contains error message */
  * @return the error status
  */
 int thermodynamics_at_z(
+			struct background * pba,
+			struct thermo * pth,
 			double z,
 			enum interpolation_mode intermode,
 			int * last_index,
@@ -84,10 +56,8 @@ int thermodynamics_at_z(
       \f$, extrapolate */
 
   /* deal with case z < z_min=0, unphysical */
-  if (z < pth->z_table[0]) {
-    sprintf(pth->error_message,"%s(L:%d) : z < z_min=%e",__func__,__LINE__,pth->z_table[0]);
-    return _FAILURE_;
-  }
+  class_test(z < pth->z_table[0],
+	     pth->error_message,"out of range: z < z_min=%e",pth->z_table[0]);
 
   /* deal with case z > z_max, not stored inside interpolation table,
      but doable with simple analytic approximations */
@@ -99,28 +69,27 @@ int thermodynamics_at_z(
     pvecthermo_local[pth->index_th_xe] = x0;
 
     /* Calculate Tb */
-    pvecthermo_local[pth->index_th_Tb] = Tnow*(1.+z);
+    pvecthermo_local[pth->index_th_Tb] = pth->Tcmb*(1.+z);
 
     /* Calculate cb2 (cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)) */
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
-    pvecthermo_local[pth->index_th_cb2] = kb_over_mH * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * Tnow * (1.+z) * 4. / 3.;
+    pvecthermo_local[pth->index_th_cb2] = _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pth->Tcmb * (1.+z) * 4. / 3.;
 
     /* Calculate dkappa/deta (dkappa/deta = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T in units of 1/Mpc) */
-    pvecthermo_local[pth->index_th_dkappa] = (1.+z) * (1.+z) * Nnow * x0 * _sigma_ * _Mpc_over_m_;
+    pvecthermo_local[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
 
 
     /* Calculate dz/deta = -H with background_functions_of_a() */
-    if (background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th) == _FAILURE_) {
-      sprintf(pth->error_message,"%s(L:%d) : Error calling background_functions_of_a \n=>%s",__func__,__LINE__,pba->error_message);
-      return _FAILURE_;
-    }
+    class_call(background_functions_of_a(pba,1./(1.+z),short_info,pba->pvecback),
+	       pba->error_message,
+	       pth->error_message);
 
     /* Calculate d2kappa/deta2 = dz/deta d/dz[dkappa/deta] */
-    pvecthermo_local[pth->index_th_ddkappa] = -pvecback_th[pba->index_bg_H] * 2. / (1.+z) * pvecthermo_local[pth->index_th_dkappa];
+    pvecthermo_local[pth->index_th_ddkappa] = -pba->pvecback[pba->index_bg_H] * 2. / (1.+z) * pvecthermo_local[pth->index_th_dkappa];
 
     /* Calculate d3kappa/deta3 = dz/deta d/dz[d2kappa/deta2] */
-    /*     pvecthermo_local[pth->index_th_ddkappa] = (pvecback_th[pba->index_bg_Hdot] / pvecback_th[pba->index_bg_H] - */
-    /*        pvecback_th[pba->index_bg_H]	/ (1.+z)) * pvecthermo_local[pth->index_th_ddkappa]; */
+    /*     pvecthermo_local[pth->index_th_ddkappa] = (pba->pvecback[pba->index_bg_Hdot] / pba->pvecback[pba->index_bg_H] - */
+    /*        pba->pvecback[pba->index_bg_H]	/ (1.+z)) * pvecthermo_local[pth->index_th_ddkappa]; */
 
     /* visibility = g = (dkappa/deta) * exp(- kappa) */
     pvecthermo_local[pth->index_th_g]=0.;
@@ -132,40 +101,37 @@ int thermodynamics_at_z(
 
     if (intermode == normal) {
 
-      if (array_interpolate_spline(
-				   pth->z_table,
-				   pth->tt_size,
-				   pth->thermodynamics_table,
-				   pth->d2thermodynamics_dz2_table,
-				   pth->th_size,
-				   z,
-				   last_index,
-				   pvecthermo_local,
-				   pth->th_size,
-				   Transmit_Error_Message)== _FAILURE_) {
-	sprintf(pth->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
+      class_call(array_interpolate_spline(
+					  pth->z_table,
+					  pth->tt_size,
+					  pth->thermodynamics_table,
+					  pth->d2thermodynamics_dz2_table,
+					  pth->th_size,
+					  z,
+					  last_index,
+					  pvecthermo_local,
+					  pth->th_size,
+					  pth->error_message),
+		 pth->error_message,
+		 pth->error_message);
 
     }
 
     if (intermode == closeby) {
 
-      if (array_interpolate_spline_growing_closeby(
-						   pth->z_table,
-						   pth->tt_size,
-						   pth->thermodynamics_table,
-						   pth->d2thermodynamics_dz2_table,
-						   pth->th_size,
-						   z,
-						   last_index,
-						   pvecthermo_local,
-						   pth->th_size,
-						   Transmit_Error_Message)== _FAILURE_) {
-	sprintf(pth->error_message,"%s(L:%d) : error in array_interpolate_spline_growing_closeby() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
-
+      class_call(array_interpolate_spline_growing_closeby(
+							  pth->z_table,
+							  pth->tt_size,
+							  pth->thermodynamics_table,
+							  pth->d2thermodynamics_dz2_table,
+							  pth->th_size,
+							  z,
+							  last_index,
+							  pvecthermo_local,
+							  pth->th_size,
+							  pth->error_message),
+		 pth->error_message,
+		 pth->error_message);
     }
 
   }
@@ -193,9 +159,9 @@ int thermodynamics_at_z(
  * @return the error status
  */
 int thermodynamics_init(
-			struct background * pba_input,
-			struct precision * ppr_input,
-			struct thermo * pth_output
+			struct precision * ppr,
+			struct background * pba,
+			struct thermo * pth
 			) {
 
   /** Summary: */
@@ -208,18 +174,12 @@ int thermodynamics_init(
   double g, g_previous, eta_visibility_max;
   /* for calling background_at_eta() */
   int last_index_back;
-  double * pvecback_th_long;
   double * eta_table; /**< list of eta values associated with z values in pth->z_table */
 
   struct recombination reco;
   struct reionization reio;
   struct recombination * preco;
   struct reionization * preio;
-
-  /** - identify the cosmo, precision and thermo structures pba, ppr, pth (used throughout thermodynamics.c as global variables) to the input/output structures of this function (pba and ppr are already filled, pth will be filled by this function) */
-  pba = pba_input;
-  ppr = ppr_input;
-  pth = pth_output;
 
   preco=&reco;
   preio=&reio;
@@ -228,113 +188,78 @@ int thermodynamics_init(
     printf("Computing thermodynamics\n");
 
   /* Tcmb in K */
-  if ((pth->Tcmb < _TCMB_SMALL_)||(pth->Tcmb > _TCMB_BIG_)) {
-    sprintf(pth->error_message,"%s(L:%d): Tcmb out of bounds (got %g, expected %g<Tcmb<%g)",__func__,__LINE__,pth->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
-    return _FAILURE_;
-  }
+  class_test((pth->Tcmb < _TCMB_SMALL_)||(pth->Tcmb > _TCMB_BIG_),
+	     pth->error_message,
+	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pth->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
 
   /* Y_He */
-  if ((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_)) {
-    sprintf(pth->error_message,"%s(L:%d): Y_He out of bounds (got %g, expected %g<Y_He<%g)",__func__,__LINE__,pth->YHe,_YHE_SMALL_,_YHE_BIG_);
-    return _FAILURE_;
-  }
+  class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
+	     pth->error_message,
+	     "Y_He=%g out of bounds (%g<Y_He<%g)",pth->YHe,_YHE_SMALL_,_YHE_BIG_);
 
-  /* tests in order to prevent segmentaltion fault in the following */
-  if (_not4_ == 0.) {
-    sprintf(pth->error_message,"%s(L:%d) : you have _not4_=0, stop to avoid division by zero",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  if (pth->YHe == 1.) {
-    sprintf(pth->error_message,"%s(L:%d) : you have YHe=1, stop to avoid division by zero",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  /* tests in order to prevent segmentation fault in the following */
+  class_test(_not4_ == 0.,
+	     pth->error_message,
+	     "stop to avoid division by zero");
+  class_test(pth->YHe == 1.,
+	     pth->error_message,
+	     "stop to avoid division by zero");
 
   /** - assign values to all indices in the structures with thermodynamics_indices()*/
-  if (thermodynamics_indices(pth,preco,preio) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pth->error_message);
-    sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_indices()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
-
-  /** - allocate memory for the background vector pvecback_th (global variable in thermodynamics.c, used as long as thermodynamics_free() is not called) */
-  pvecback_th = malloc(pba->bg_size_short*sizeof(double));
-  if (pvecback_th==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate pvecback_th \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_call(thermodynamics_indices(pth,preco,preio),
+	     pth->error_message,
+	     pth->error_message);
 
   /** - solve recombination and store values of \f$ z, x_e, d \kappa / d \eta, T_b, c_b^2 \f $ with thermodynamics_recombination() */
-  if (thermodynamics_recombination(preco) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pth->error_message);
-    sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_recombination()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(thermodynamics_recombination(ppr,pba,pth,preco),
+	     pth->error_message,
+	     pth->error_message);
 
   /** - solve reionization and store values of \f$ z, x_e, d \kappa / d z \f $ with thermodynamics_recombination()*/
   if (pth->reio_parametrization != reio_none) {
-    if (thermodynamics_reionization(preco,preio) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s",pth->error_message);
-      sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(thermodynamics_reionization(ppr,pba,pth,preco,preio),
+	       pth->error_message,
+	       pth->error_message);
   }
   else {
     preio->rt_size=0;
     preio->index_reco_when_reio_start=-1;
   }
 
-/*   FILE * output; */
+  /*   FILE * output; */
 
-/*   output=fopen("test_output/reco","w"); */
-/*   for (i=0;i < preco->rt_size;i++) { */
-/*     fprintf(output,"%e %e\n", */
-/* 	    preco->recombination_table[i*preco->re_size+preco->index_re_z], */
-/* 	    preco->recombination_table[i*preco->re_size+preco->index_re_xe]); */
-/*   } */
-/*   fclose(output); */
-/*   output=fopen("test_output/reio","w"); */
-/*   for (i=0;i < preio->rt_size;i++) { */
-/*     fprintf(output,"%e %e\n", */
-/* 	    preio->reionization_table[i*preio->re_size+preio->index_re_z], */
-/* 	    preio->reionization_table[i*preio->re_size+preio->index_re_xe]); */
-/*   } */
-/*   fclose(output); */
+  /*   output=fopen("test_output/reco","w"); */
+  /*   for (i=0;i < preco->rt_size;i++) { */
+  /*     fprintf(output,"%e %e\n", */
+  /* 	    preco->recombination_table[i*preco->re_size+preco->index_re_z], */
+  /* 	    preco->recombination_table[i*preco->re_size+preco->index_re_xe]); */
+  /*   } */
+  /*   fclose(output); */
+  /*   output=fopen("test_output/reio","w"); */
+  /*   for (i=0;i < preio->rt_size;i++) { */
+  /*     fprintf(output,"%e %e\n", */
+  /* 	    preio->reionization_table[i*preio->re_size+preio->index_re_z], */
+  /* 	    preio->reionization_table[i*preio->re_size+preio->index_re_xe]); */
+  /*   } */
+  /*   fclose(output); */
 
 
   /** - allocate memory for thermodynamics interpolation tables */
 
   /* first, a little check that the two tables match each other and can be merged */
   if (pth->reio_parametrization != reio_none) {
-    if (preco->recombination_table
-	[preio->index_reco_when_reio_start*preco->re_size+preco->index_re_z] !=
-	preio->reionization_table[(preio->rt_size -1)*preio->re_size+preio->index_re_z]) {
-      sprintf(pth->error_message,"%s(L:%d) : mismatch which should never happen \n",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test(preco->recombination_table[preio->index_reco_when_reio_start*preco->re_size+preco->index_re_z] !=
+	       preio->reionization_table[(preio->rt_size -1)*preio->re_size+preio->index_re_z],
+	       pth->error_message,
+	       "mismatch which should never happen");
   }
 
   /* number of redshift in full table = number in reco + number in reio - overlap */
   pth->tt_size = ppr->recfast_Nz0 + preio->rt_size - preio->index_reco_when_reio_start - 1;
-  pth->z_table = malloc(pth->tt_size*sizeof(double));
-  if (pth->z_table==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate pth->z_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  eta_table = malloc(pth->tt_size*sizeof(double));
-  if (eta_table==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate eta_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  pth->thermodynamics_table = malloc(pth->th_size*pth->tt_size*sizeof(double));
-  if (pth->thermodynamics_table==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate pth->thermodynamics_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  pth->d2thermodynamics_dz2_table = malloc(pth->th_size*pth->tt_size*sizeof(double));  
-  if (pth->d2thermodynamics_dz2_table==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate pth->d2thermodynamics_dz2_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(pth->z_table,pth->tt_size*sizeof(double),pth->error_message);
+  class_alloc(eta_table,pth->tt_size*sizeof(double),pth->error_message);
+  class_alloc(pth->thermodynamics_table,pth->th_size*pth->tt_size*sizeof(double),pth->error_message);
+  class_alloc(pth->d2thermodynamics_dz2_table,pth->th_size*pth->tt_size*sizeof(double),pth->error_message);  
 
   for (i=0; i < preio->rt_size; i++) {
     pth->z_table[i]=
@@ -371,10 +296,9 @@ int thermodynamics_init(
   /** -compute table of corresponding conformal times */
 
   for (i=0; i < pth->tt_size; i++) {
-    if (background_eta_of_z(pba,pth->z_table[i],eta_table+i) == _FAILURE_){
-      sprintf(pth->error_message,"%s(L:%d) : error in background_eta_of_z()\n=>%s",__func__,__LINE__,pba->error_message);
-      return _FAILURE_;
-    }
+    class_call(background_eta_of_z(pba,pth->z_table[i],eta_table+i),
+	       pba->error_message,
+	       pth->error_message);
   }
 
   /** - fill missing columns (quantities not computed previously but
@@ -384,43 +308,40 @@ int thermodynamics_init(
 
   /* -> second derivative with respect to eta of dkappa */
   /** - fill tables of second derivatives (in view of spline interpolation) */
-  if (array_spline_table_line_to_line(eta_table,
-				      pth->tt_size,
-				      pth->thermodynamics_table,
-				      pth->th_size,
-				      pth->index_th_dkappa,
-				      pth->index_th_dddkappa,
-				      _SPLINE_EST_DERIV_,
-				      Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_spline_table_line_to_line()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
-
-  /* -> first derivative with respect to eta of dkappa */
-  if (array_derive_spline_table_line_to_line(eta_table,
+  class_call(array_spline_table_line_to_line(eta_table,
 					     pth->tt_size,
 					     pth->thermodynamics_table,
 					     pth->th_size,
 					     pth->index_th_dkappa,
 					     pth->index_th_dddkappa,
-					     pth->index_th_ddkappa,
-					     Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_derive_spline_table_line_to_line()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+					     _SPLINE_EST_DERIV_,
+					     pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+
+  /* -> first derivative with respect to eta of dkappa */
+  class_call(array_derive_spline_table_line_to_line(eta_table,
+						    pth->tt_size,
+						    pth->thermodynamics_table,
+						    pth->th_size,
+						    pth->index_th_dkappa,
+						    pth->index_th_dddkappa,
+						    pth->index_th_ddkappa,
+						    pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
 
   /* -> compute -kappa = [int_{eta_today}^{eta} deta dkappa/deta], store temporarily in column "g" */ 
-  if (array_integrate_spline_table_line_to_line(eta_table,
-						pth->tt_size,
-						pth->thermodynamics_table,
-						pth->th_size,
-						pth->index_th_dkappa,
-						pth->index_th_dddkappa,
-						pth->index_th_g,
-						Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_integrate_spline_table_line_to_line()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_integrate_spline_table_line_to_line(eta_table,
+						       pth->tt_size,
+						       pth->thermodynamics_table,
+						       pth->th_size,
+						       pth->index_th_dkappa,
+						       pth->index_th_dddkappa,
+						       pth->index_th_g,
+						       pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
 
   free(eta_table);
 
@@ -475,87 +396,69 @@ int thermodynamics_init(
     /* g */
     pth->thermodynamics_table[i*pth->th_size+pth->index_th_g] = g;
 
-    /* maximum variation rate */
-    if (pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa] != 0.) {
-      pth->thermodynamics_table[i*pth->th_size+pth->index_th_rate] =
-	sqrt(pow(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2.)
-	     +pow(pth->thermodynamics_table[i*pth->th_size+pth->index_th_ddkappa]/ 
-		  pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2.)
-	     +fabs(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dddkappa]/ 
-		   pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa]));
-    }
-    else {
-      sprintf(pth->error_message,"%s(L:%d) : [dkappa/deta vanishes], variation rate diverges",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa] == 0.,
+	       pth->error_message,
+	       "variation rate diverges");
+
+    pth->thermodynamics_table[i*pth->th_size+pth->index_th_rate] =
+      sqrt(pow(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2.)
+	   +pow(pth->thermodynamics_table[i*pth->th_size+pth->index_th_ddkappa]/ 
+		pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2.)
+	   +fabs(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dddkappa]/ 
+		 pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa]));
 
   }
 
   /* -> compute smooth the rate (detaile dof smoothing unimportant: only the order of magnitude of the rate matters) */ 
-  if (array_smooth(pth->thermodynamics_table,
-		   pth->th_size,
-		   pth->tt_size,
-		   pth->index_th_rate,
-		   ppr->thermo_rate_smoothing_radius,
-		   Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_smooth()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_smooth(pth->thermodynamics_table,
+			  pth->th_size,
+			  pth->tt_size,
+			  pth->index_th_rate,
+			  ppr->thermo_rate_smoothing_radius,
+			  pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
 
   /* check consistency of these values */
 
-  if (pth->z_visibility_start_sources == 0.) {
-    sprintf(pth->error_message,"%s(L:%d) : Source functions cannot be sampled, probably because ppr->visibility_threshold_start_sources=%e is too large and exceeds maximum of g",__func__,__LINE__,ppr->visibility_threshold_start_sources);
-    return _FAILURE_;
-  }
+  class_test(pth->z_visibility_start_sources == 0.,
+	     pth->error_message,
+	     "source functions cannot be sampled, probably because ppr->visibility_threshold_start_sources=%e is too large and exceeds maximum of g",ppr->visibility_threshold_start_sources);
 
-  if (pth->z_visibility_max == 0.) {
-    sprintf(pth->error_message,"%s(L:%d) : Maximum of visibility function, hence recombination time could not be found",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(pth->z_visibility_max == 0.,
+	     pth->error_message,
+	     "maximum of visibility function is today, hence recombination time could not be found");
 
-  if (pth->z_visibility_free_streaming > pth->z_visibility_max) {
-    sprintf(pth->error_message,"%s(L:%d) : pth->z_visibility_free_streaming=%e should never be larger than pth->z_visibility_max=%e",__func__,__LINE__,pth->z_visibility_free_streaming,pth->z_visibility_max);
-    return _FAILURE_;
-  }
+  class_test(pth->z_visibility_free_streaming > pth->z_visibility_max,
+	     pth->error_message,
+	     "pth->z_visibility_free_streaming=%e should never be larger than pth->z_visibility_max=%e",pth->z_visibility_free_streaming,pth->z_visibility_max);
 
   /** - find conformal recombination time using background_eta_of_z() **/
-  if (background_eta_of_z(pba,pth->z_visibility_max,&eta_visibility_max)
-      == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in background_eta_of_z() \n=>%s",__func__,__LINE__,pba->error_message);
-    return _FAILURE_;
-  }
+  class_call(background_eta_of_z(pba,pth->z_visibility_max,&eta_visibility_max),
+	     pba->error_message,
+	     pth->error_message);
 
   pth->eta_rec = eta_visibility_max;
   /*   printf("eta_rec=%e\n",eta_visibility_max); */
   /*   printf("eta_0=%e\n",pba->conformal_age-eta_visibility_max); */
   /*   printf("eta_0-eta_rec=%e\n",pba->conformal_age-eta_visibility_max); */
 
-  /** - find sound horizon at recombination using background_at_eta() */
-  pvecback_th_long = malloc(pba->bg_size*sizeof(double));
-  if (pvecback_th_long==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate pvecback_th_long \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  if (background_at_eta(pba,pth->eta_rec, long_info, normal, &last_index_back, pvecback_th_long) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in background_at_eta()\n=>%s",__func__,__LINE__,pba->error_message);
-    return _FAILURE_;
-  }  
-  pth->rs_rec=pvecback_th_long[pba->index_bg_rs];
-  free(pvecback_th_long);
+  class_call(background_at_eta(pba,pth->eta_rec, long_info, normal, &last_index_back, pba->pvecback),
+	     pba->error_message,
+	     pth->error_message);
 
+  pth->rs_rec=pba->pvecback[pba->index_bg_rs];
 
   /** - fill tables of second derivatives with respect to z (in view of spline interpolation) */
-  if (array_spline_table_lines(pth->z_table,
-			       pth->tt_size,
-			       pth->thermodynamics_table,
-			       pth->th_size,
-			       pth->d2thermodynamics_dz2_table,
-			       _SPLINE_EST_DERIV_,
-			       Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_spline_table_lines()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_spline_table_lines(pth->z_table,
+				      pth->tt_size,
+				      pth->thermodynamics_table,
+				      pth->th_size,
+				      pth->d2thermodynamics_dz2_table,
+				      _SPLINE_EST_DERIV_,
+				      pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
 
   if (pth->thermodynamics_verbose > 0) {
     printf(" -> recombination at z = %f\n",pth->z_visibility_max);
@@ -578,12 +481,13 @@ int thermodynamics_init(
  *
  * @return the error status
  */
-int thermodynamics_free() {
+int thermodynamics_free(
+			struct thermo * pth
+			) {
 
   free(pth->z_table);
   free(pth->thermodynamics_table);
   free(pth->d2thermodynamics_dz2_table);
-  free(pvecback_th);
 
   return _SUCCESS_;
 }
@@ -598,9 +502,11 @@ int thermodynamics_free() {
  * @param Input/Output: pointer to reionization structure 
  * @return the error status
  */
-int thermodynamics_indices(struct thermo * pthermo,
+int thermodynamics_indices(
+			   struct thermo * pth,
 			   struct recombination * preco,
-			   struct reionization * preio) {
+			   struct reionization * preio
+			   ) {
 
   /** Summary: */
 
@@ -612,29 +518,29 @@ int thermodynamics_indices(struct thermo * pthermo,
   /** - intialization of all indices and flags in thermo structure */
   index = 0;
   
-  pthermo->index_th_xe = index;
+  pth->index_th_xe = index;
   index++;
-  pthermo->index_th_dkappa = index;
+  pth->index_th_dkappa = index;
   index++;
-  pthermo->index_th_ddkappa = index;
+  pth->index_th_ddkappa = index;
   index++;
-  pthermo->index_th_dddkappa = index;
+  pth->index_th_dddkappa = index;
   index++;
-  pthermo->index_th_exp_m_kappa = index;
+  pth->index_th_exp_m_kappa = index;
   index++;
-  pthermo->index_th_g = index;
+  pth->index_th_g = index;
   index++;
-  pthermo->index_th_dg = index;
+  pth->index_th_dg = index;
   index++;
-  pthermo->index_th_Tb = index;
+  pth->index_th_Tb = index;
   index++;
-  pthermo->index_th_cb2 = index;
+  pth->index_th_cb2 = index;
   index++;
-  pthermo->index_th_rate = index;
+  pth->index_th_rate = index;
   index++;
 
   /* end of indices */
-  pthermo->th_size = index;
+  pth->th_size = index;
 
   /** - intialization of all indices and flags in recombination structure */
   index = 0;
@@ -716,6 +622,7 @@ int thermodynamics_indices(struct thermo * pthermo,
  */
 int thermodynamics_reionization_function(
 					 double z,
+					 struct thermo * pth,
 					 struct reionization * preio,
 					 double * xe
 					 ) {
@@ -755,24 +662,28 @@ int thermodynamics_reionization_function(
 
   }
 
-  sprintf(pth->error_message,"%s(L:%d) : value of reio_parametrization=%d unclear",__func__,__LINE__,pth->reio_parametrization);
-  return _FAILURE_;
-
+  class_test(0 == 0,
+	     pth->error_message,
+	     "value of reio_parametrization=%d unclear",pth->reio_parametrization);
 }
 
 
-int thermodynamics_get_xe_before_reionization(double z,
+int thermodynamics_get_xe_before_reionization(
+					      struct precision * ppr,
+					      struct thermo * pth,
 					      struct recombination * preco,
-					      double * xe) {
+					      double z,
+					      double * xe
+					      ) {
+
   int i;
 
   i=0;
   while (preco->recombination_table[i*preco->re_size+preco->index_re_z] < z) {
     i++;
-    if (i == ppr->recfast_Nz0) {
-      sprintf(pth->error_message,"%s(L:%d) : z = %e > largest redshift in thermodynamics table \n",__func__,__LINE__,ppr->reionization_z_start_max);
-      return _FAILURE_;
-    }
+    class_test(i == ppr->recfast_Nz0,
+	       pth->error_message,
+	       "z = %e > largest redshift in thermodynamics table \n",ppr->reionization_z_start_max);
   }
   
   *xe = preco->recombination_table[i*preco->re_size+preco->index_re_xe];
@@ -791,8 +702,13 @@ int thermodynamics_get_xe_before_reionization(double z,
  * @param Input/Output: pointer to reionization structure 
  * @return the error status
  */
-int thermodynamics_reionization(struct recombination * preco,
-				struct reionization * preio) {
+int thermodynamics_reionization(
+				struct precision * ppr,
+				struct background * pba,
+				struct thermo * pth,
+				struct recombination * preco,
+				struct reionization * preio
+				) {
 
   int i,counter;
   double z_sup,z_mid,z_inf;
@@ -804,12 +720,7 @@ int thermodynamics_reionization(struct recombination * preco,
 
     /** - allocate the parameters of the function \f$ X_e(z) \f$ */
 
-    preio->reionization_parameters=malloc(preio->reio_num_params*sizeof(double)); 
-
-    if (preio->reionization_parameters==NULL) {
-      sprintf(pth->error_message,"%s(L:%d): Cannot allocate reionization_parameters \n",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message); 
     
     /** - set values of these parameters, excepted those depending on the reionization redshift */
 
@@ -823,18 +734,17 @@ int thermodynamics_reionization(struct recombination * preco,
     preio->reionization_parameters[preio->index_helium_fullreio_redshift] = ppr->helium_fullreio_redshift; /* helium_fullreio_redshift */
     preio->reionization_parameters[preio->index_helium_fullreio_width] = ppr->helium_fullreio_width;    /* helium_fullreio_width */
 
-    if (preio->reionization_parameters[preio->index_reio_exponent]==0) {
-      sprintf(pth->error_message,"%s(L:%d) : reio_exponent is null, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
-    if (preio->reionization_parameters[preio->index_reio_width]==0) {
-      sprintf(pth->error_message,"%s(L:%d) : reio_width is null, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
-    if (preio->reionization_parameters[preio->index_helium_fullreio_width]==0) {
-      sprintf(pth->error_message,"%s(L:%d) : fullreio_width is null, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test(preio->reionization_parameters[preio->index_reio_exponent]==0,
+	       pth->error_message,
+	       "stop to avoid division by zero");
+
+    class_test(preio->reionization_parameters[preio->index_reio_width]==0,
+	       pth->error_message,
+	       "stop to avoid division by zero");
+
+    class_test(preio->reionization_parameters[preio->index_helium_fullreio_width]==0,
+	       pth->error_message,
+	       "stop to avoid division by zero");
 
     /** - if reionization redshift given as an input, initialize the remaining values and fill reionization table*/
 
@@ -844,24 +754,23 @@ int thermodynamics_reionization(struct recombination * preco,
       preio->reionization_parameters[preio->index_reio_redshift] = pth->z_reio; 
       /* infer starting redshift */
       preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*ppr->reionization_width;
-      if (preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max) {
-	sprintf(pth->error_message,"%s(L:%d) : starting redshift for reionization > reionization_z_start_max = %e\n",__func__,__LINE__,ppr->reionization_z_start_max);
-	return _FAILURE_;
-      }
+      class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
+		 pth->error_message,
+		 "starting redshift for reionization > reionization_z_start_max = %e\n",ppr->reionization_z_start_max);
+
       /* infer xe_before_reio */
-      if(thermodynamics_get_xe_before_reionization(preio->reionization_parameters[preio->index_reio_redshift],
-						   preco,
-						   &(preio->reionization_parameters[preio->index_reio_xe_before])) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s",pth->error_message);
-	sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_get_xe_before_reionization()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
+      class_call(thermodynamics_get_xe_before_reionization(ppr,
+							   pth,
+							   preco,
+							   preio->reionization_parameters[preio->index_reio_redshift],
+							   &(preio->reionization_parameters[preio->index_reio_xe_before])),
+		 pth->error_message,
+		 pth->error_message);
+
       /* fill reionization table */
-      if (thermodynamics_reionization_discretize(preco,preio) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s",pth->error_message);
-	sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_discretize()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
+      class_call(thermodynamics_reionization_discretize(ppr,pba,pth,preco,preio),
+		 pth->error_message,
+		 pth->error_message);
 
       pth->tau_reio=preio->reionization_optical_depth;
 
@@ -874,34 +783,33 @@ int thermodynamics_reionization(struct recombination * preco,
       /* upper value */
 
       z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*ppr->reionization_width;
-      if (z_sup < 0.) {
-	sprintf(pth->error_message,"%s(L:%d) : Parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max",__func__,__LINE__);
-	return _FAILURE_;
-      }
+      class_test(z_sup < 0.,
+		 pth->error_message,
+		 "parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max");
 
       /* reionization redshift */
       preio->reionization_parameters[preio->index_reio_redshift] = z_sup; 
       /* infer starting redshift */
       preio->reionization_parameters[preio->index_reio_start] = ppr->reionization_z_start_max;
       /* infer xe_before_reio */
-      if(thermodynamics_get_xe_before_reionization(preio->reionization_parameters[preio->index_reio_redshift],
-						   preco,
-						   &(preio->reionization_parameters[preio->index_reio_xe_before])) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s",pth->error_message);
-	sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_get_xe_before_reionization()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
+      class_call(thermodynamics_get_xe_before_reionization(ppr,
+							   pth,
+							   preco,
+							   preio->reionization_parameters[preio->index_reio_redshift],
+							   &(preio->reionization_parameters[preio->index_reio_xe_before])),
+		 pth->error_message,
+		 pth->error_message);
+
       /* fill reionization table */
-      if (thermodynamics_reionization_discretize(preco,preio) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s",pth->error_message);
-	sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_discretize()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
+      class_call(thermodynamics_reionization_discretize(ppr,pba,pth,preco,preio),
+		 pth->error_message,
+		 pth->error_message);
+
       tau_sup=preio->reionization_optical_depth;
-      if (tau_sup < pth->tau_reio) {
-	sprintf(pth->error_message,"%s(L:%d) : parameters are such that reionization cannot start after z_start_max",__func__,__LINE__,pth->error_message);
-	return _FAILURE_;
-      }
+
+      class_test(tau_sup < pth->tau_reio,
+		 pth->error_message,
+		 "parameters are such that reionization cannot start after z_start_max");
 
       /* lower value */
 
@@ -918,24 +826,25 @@ int thermodynamics_reionization(struct recombination * preco,
 	preio->reionization_parameters[preio->index_reio_redshift] = z_mid;
 	/* infer starting redshift */
 	preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*ppr->reionization_width;
-	if (preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max) {
-	  sprintf(pth->error_message,"%s(L:%d) : starting redshift for reionization > reionization_z_start_max = %e\n",__func__,__LINE__,ppr->reionization_z_start_max);
-	  return _FAILURE_;
-	}
+	class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
+		   pth->error_message,
+		   "starting redshift for reionization > reionization_z_start_max = %e",ppr->reionization_z_start_max);
+
 	/* infer xe_before_reio */
-	if(thermodynamics_get_xe_before_reionization(preio->reionization_parameters[preio->index_reio_redshift],
-						     preco,
-						     &(preio->reionization_parameters[preio->index_reio_xe_before])) == _FAILURE_) {
-	  sprintf(pth->error_message,"%s(L:%d) : reionization_z_start_max = %e > largest z in thermodynamics table \n",__func__,__LINE__,ppr->reionization_z_start_max);
-	  return _FAILURE_;
-	}
+	class_call(thermodynamics_get_xe_before_reionization(ppr,
+							     pth,
+							     preco,
+							     preio->reionization_parameters[preio->index_reio_redshift],
+							     &(preio->reionization_parameters[preio->index_reio_xe_before])),
+		   pth->error_message,
+		   pth->error_message);
+
 	/* clean and fill reionization table */
 	free(preio->reionization_table);
-	if (thermodynamics_reionization_discretize(preco,preio) == _FAILURE_) {
-	  sprintf(Transmit_Error_Message,"%s",pth->error_message);
-	  sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_discretize()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	  return _FAILURE_;
-	}
+	class_call(thermodynamics_reionization_discretize(ppr,pba,pth,preco,preio),
+		   pth->error_message,
+		   pth->error_message);
+
 	tau_mid=preio->reionization_optical_depth;
 	
 	/* trial */
@@ -950,11 +859,9 @@ int thermodynamics_reionization(struct recombination * preco,
 	}
 
 	counter++;
-	if (counter > _MAX_IT_) {
-	  sprintf(pth->error_message,"%s(L:%d) : while searching for reionization_optical_depth, maximum number of iterations exceeded",__func__,__LINE__);
-	  return _FAILURE_;
-	}
-	
+	class_test(counter > _MAX_IT_,
+		   pth->error_message,
+		   "while searching for reionization_optical_depth, maximum number of iterations exceeded");
       }
 
       /* store z reionization in thermodynamics structure */
@@ -968,12 +875,16 @@ int thermodynamics_reionization(struct recombination * preco,
 
   }
 
-  sprintf(pth->error_message,"%s(L:%d) : value of reio_z_or_tau=%d unclear",__func__,__LINE__,pth->reio_z_or_tau);
-  return _FAILURE_;
+  class_test(0 == 0,
+	     pth->error_message,
+	     "value of reio_z_or_tau=%d unclear",pth->reio_z_or_tau);
 
 }
 
 int thermodynamics_reionization_discretize(
+					   struct precision * ppr,
+					   struct background * pba,
+					   struct thermo * pth,
 					   struct recombination * preco,
 					   struct reionization * preio
 					   ) {
@@ -1000,17 +911,12 @@ int thermodynamics_reionization_discretize(
   Yp = pth->YHe;
 
   /** (a) allocate vector of values related to reionization */
-  reio_vector=malloc((preio->re_size)*sizeof(double));
-  if (reio_vector==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate reio_vector \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
+  class_alloc(reio_vector,preio->re_size*sizeof(double),pth->error_message);
 
   /** (b) create a growTable with gt_init() */
-  if (gt_init(&gTable) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in gt_init() \n=>%s",__func__,__LINE__,gTable.error_message);
-  }
+  class_call(gt_init(&gTable),
+	     gTable.error_message,
+	     pth->error_message);
 
   /** (c) first line is taken from thermodynamics table, just before reionization starts */
 
@@ -1018,10 +924,9 @@ int thermodynamics_reionization_discretize(
   i=0;
   while (preco->recombination_table[i*preco->re_size+preco->index_re_z] < preio->reionization_parameters[preio->index_reio_start]) {
     i++;
-    if (i == ppr->recfast_Nz0) {
-      sprintf(pth->error_message,"%s(L:%d) : reionization_z_start_max = %e > largest redshift in thermodynamics table",__func__,__LINE__,ppr->reionization_z_start_max);
-      return _FAILURE_;
-    }
+    class_test(i == ppr->recfast_Nz0,
+	       pth->error_message,
+	       "reionization_z_start_max = %e > largest redshift in thermodynamics table",ppr->reionization_z_start_max);
   }
 
   /** - get redshift */
@@ -1030,26 +935,25 @@ int thermodynamics_reionization_discretize(
   preio->index_reco_when_reio_start=i;
 
   /** - get \f$ X_e \f$ */
-  if (thermodynamics_reionization_function(z,preio,&xe) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pth->error_message);
-    sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_function()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(thermodynamics_reionization_function(z,pth,preio,&xe),
+	     pth->error_message,
+	     pth->error_message);
+
   reio_vector[preio->index_re_xe] = xe;
 
   /** - get \f$ d kappa / d z = (d kappa / d eta) * (d eta / d z) = - (d kappa / d eta) / H \f$ */
-  if (background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th) == _FAILURE_){
-    sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
-    return _FAILURE_;
-  }
-  reio_vector[preio->index_re_dkappadeta] = (1.+z) * (1.+z) * Nnow * xe * _sigma_ * _Mpc_over_m_;
-  if (pvecback_th[pba->index_bg_H] != 0.) {
-    reio_vector[preio->index_re_dkappadz] = reio_vector[preio->index_re_dkappadeta] / pvecback_th[pba->index_bg_H];
-  }
-  else {
-    sprintf(pth->error_message,"%s(L:%d) : H is null, stop to avoid division by zero",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_call(background_functions_of_a(pba,1./(1.+z),short_info,pba->pvecback),
+	     pba->error_message,
+	     pth->error_message);
+
+  reio_vector[preio->index_re_dkappadeta] = (1.+z) * (1.+z) * pth->n_e * xe * _sigma_ * _Mpc_over_m_;
+
+  class_test(pba->pvecback[pba->index_bg_H] == 0.,
+	     pth->error_message,
+	     "stop to avoid division by zero");
+
+  reio_vector[preio->index_re_dkappadz] = reio_vector[preio->index_re_dkappadeta] / pba->pvecback[pba->index_bg_H];
+
   dkappadz = reio_vector[preio->index_re_dkappadz];
   dkappadeta = reio_vector[preio->index_re_dkappadeta];
 
@@ -1061,13 +965,13 @@ int thermodynamics_reionization_discretize(
   Tba2 = Tb/(1+z)/(1+z);
 
   /** - get baryon sound speed */
-  reio_vector[preio->index_re_cb2] = 5./3. * kb_over_mH * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+  reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
 
   /** - store these values in growing table */
-  if (gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)) == _FAILURE_) { 
-    sprintf(pth->error_message,"%s(L:%d) : error in gt_add()\n=>%s",__func__,__LINE__,gTable.error_message);
-    return _FAILURE_;
-  }
+  class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
+	     gTable.error_message,
+	     pth->error_message);
+
   number_of_redshifts=1;
 
   /** (d) set the maximum step value (equal to the step in thermodynamics table) */
@@ -1082,55 +986,53 @@ int thermodynamics_reionization_discretize(
     z_next=z-dz;
     if (z_next < 0.) z_next=0.;
 
-    if (thermodynamics_reionization_function(z_next,preio,&xe_next) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s",pth->error_message);
-      sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_function()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }  
-    if (background_functions_of_a(pba,1./(1.+z_next),short_info,pvecback_th) == _FAILURE_){
-      sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
-      return _FAILURE_;
-    }
-    if (pvecback_th[pba->index_bg_H] != 0.) {
-      dkappadz_next= (1.+z_next) * (1.+z_next) * Nnow * xe_next * _sigma_ * _Mpc_over_m_ / pvecback_th[pba->index_bg_H];
-    }
-    else {
-      sprintf(pth->error_message,"%s(L:%d) : H is null, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
-    dkappadeta_next= (1.+z_next) * (1.+z_next) * Nnow * xe_next * _sigma_ * _Mpc_over_m_;
+    class_call(thermodynamics_reionization_function(z_next,pth,preio,&xe_next),
+	       pth->error_message,
+	       pth->error_message);
 
-    if ((dkappadz == 0.) && (dkappadeta == 0.)) {
-      sprintf(pth->error_message,"%s(L:%d) : dkappadz=%e, dkappadeta=%e, stop to avoid division by zero",__func__,__LINE__,dkappadz,dkappadeta);
-      return _FAILURE_;
-    }
+    class_call(background_functions_of_a(pba,1./(1.+z_next),short_info,pba->pvecback),
+	       pba->error_message,
+	       pth->error_message);
+
+    class_test(pba->pvecback[pba->index_bg_H] == 0.,
+	       pth->error_message,
+	       "stop to avoid division by zero");
+
+    dkappadz_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_ / pba->pvecback[pba->index_bg_H];
+
+    dkappadeta_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_;
+
+    class_test((dkappadz == 0.) || (dkappadeta == 0.),
+	       pth->error_message,
+	       "dkappadz=%e, dkappadeta=%e, stop to avoid division by zero",dkappadz,dkappadeta);
 
     /** - reduce step if necessary */
     while (((fabs(dkappadz_next-dkappadz)/dkappadz) > ppr->reionization_sampling) || 
 	   ((fabs(dkappadeta_next-dkappadeta)/dkappadeta) > ppr->reionization_sampling)) {
+
       dz*=0.9;
-      if (dz < ppr->smallest_allowed_variation) {
-	sprintf(pth->error_message,"%s(L:%d) : error : integration step =%e < machine precision : leads either to numerical error or infinite loop\n",__func__,__LINE__,dz);
-	return _FAILURE_;
-      }
+
+      class_test(dz < ppr->smallest_allowed_variation,
+		 pth->error_message,
+		 "integration step =%e < machine precision : leads either to numerical error or infinite loop",dz);
+
       z_next=z-dz;
-      if (thermodynamics_reionization_function(z_next,preio,&xe_next) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s",pth->error_message);
-	sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_reionization_function()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-	return _FAILURE_;
-      }
-      if (background_functions_of_a(pba,1./(1.+z_next),short_info,pvecback_th) == _FAILURE_){
-	sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
-	return _FAILURE_;
-      }
-      if (pvecback_th[pba->index_bg_H] != 0.) {
-	dkappadz_next= (1.+z_next) * (1.+z_next) * Nnow * xe_next * _sigma_ * _Mpc_over_m_ / pvecback_th[pba->index_bg_H];
-      }
-      else {
-	sprintf(pth->error_message,"%s(L:%d) : H is null, stop to avoid division by zero",__func__,__LINE__);
-	return _FAILURE_;
-      }
-      dkappadeta_next= (1.+z_next) * (1.+z_next) * Nnow * xe_next * _sigma_ * _Mpc_over_m_;
+
+      class_call(thermodynamics_reionization_function(z_next,pth,preio,&xe_next),
+		 pth->error_message,
+		 pth->error_message);
+
+      class_call(background_functions_of_a(pba,1./(1.+z_next),short_info,pba->pvecback),
+		 pba->error_message,
+		 pth->error_message);
+
+      class_test(pba->pvecback[pba->index_bg_H] == 0.,
+		 pth->error_message,
+		 "stop to avoid division by zero");
+
+      dkappadz_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_ / pba->pvecback[pba->index_bg_H];
+
+      dkappadeta_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_;
     }
 
     /** - get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
@@ -1139,82 +1041,78 @@ int thermodynamics_reionization_discretize(
     dkappadz=dkappadz_next;
     dkappadeta= dkappadeta_next;
 
-    if ((dkappadz == 0.) && (dkappadeta == 0.)) {
-      sprintf(pth->error_message,"%s(L:%d) : dkappadz=%e, dkappadeta=%e, stop to avoid division by zero",__func__,__LINE__,dkappadz,dkappadeta);
-      return _FAILURE_;
-    }
+    class_test((dkappadz == 0.) || (dkappadeta == 0.),
+	       pth->error_message,
+	       "dkappadz=%e, dkappadeta=%e, stop to avoid division by zero",dkappadz,dkappadeta);
 
     reio_vector[preio->index_re_z] = z;   
     reio_vector[preio->index_re_xe] = xe;
     reio_vector[preio->index_re_dkappadz] = dkappadz;
-    reio_vector[preio->index_re_dkappadeta] = dkappadz * pvecback_th[pba->index_bg_H];
+    reio_vector[preio->index_re_dkappadeta] = dkappadz * pba->pvecback[pba->index_bg_H];
 
     /** - get baryon temperature **/
     Tb = Tba2*(1+z)*(1+z);
     reio_vector[preio->index_re_Tb] = Tb;
     
     /** - get baryon sound speed */
-    reio_vector[preio->index_re_cb2] = 5./3. * kb_over_mH * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+    reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
 
-    if (gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)) == _FAILURE_) { 
-      sprintf(pth->error_message,"%s(L:%d) : error in gt_add() \n=>%s",__func__,__LINE__,gTable.error_message);
-      return _FAILURE_;
-    }
+    class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
+	       gTable.error_message,
+	       pth->error_message);
+
     number_of_redshifts++;
   }
   
   /** - allocate reionization_table with correct size */
-  preio->reionization_table=malloc(preio->re_size*number_of_redshifts*sizeof(double));
-  if (preio->reionization_table==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate preio->reionization_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(preio->reionization_table,preio->re_size*number_of_redshifts*sizeof(double),pth->error_message);
+
   preio->rt_size=number_of_redshifts;
 
   /** - retrieve data stored in the growTable with gt_getPtr() */
-  if (gt_getPtr(&gTable,(void**)&pData) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in gt_getPtr()\n=>%s",__func__,__LINE__,gTable.error_message);
-    return _FAILURE_;
-  }
+  class_call(gt_getPtr(&gTable,(void**)&pData),
+	     gTable.error_message,
+	     pth->error_message);
 
   /** -- copy growTable to reionization_temporary_table (invert order of lines, so that redshift is growing, like in recombination table) */
   for (i=0; i < preio->rt_size; i++) {
     memcopy_result = memcpy(preio->reionization_table+i*preio->re_size,pData+(preio->rt_size-i-1)*preio->re_size,preio->re_size*sizeof(double));
-    if (memcopy_result != preio->reionization_table+i*preio->re_size) {
-      sprintf(pth->error_message,"%s(L:%d) : Cannot copy data back to reionization_temporary_table",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test(memcopy_result != preio->reionization_table+i*preio->re_size,
+	       pth->error_message,
+	       "cannot copy data back to reionization_temporary_table");
+
   }
 
   /** - free the growTable with gt_free() , free vector of reionization variables */
-  gt_free(&gTable);
+  class_call(gt_free(&gTable),
+	     gTable.error_message,
+	     pth->error_message);
+  
   free(reio_vector);
 
   /** - spline \f$ d tau / dz \f$ with respect to z in view of integrating for optical depth */
-  if (array_spline(preio->reionization_table,
-		   preio->re_size,
-		   preio->rt_size,
-		   preio->index_re_z,
-		   preio->index_re_dkappadz,
-		   preio->index_re_d3kappadz3,
-		   _SPLINE_EST_DERIV_,
-		   Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_spline(preio->reionization_table,
+			  preio->re_size,
+			  preio->rt_size,
+			  preio->index_re_z,
+			  preio->index_re_dkappadz,
+			  preio->index_re_d3kappadz3,
+			  _SPLINE_EST_DERIV_,
+			  pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
   
   /** - integrate for optical depth */
-  if (array_integrate_all_spline(preio->reionization_table,
-				 preio->re_size,
-				 preio->rt_size,
-				 preio->index_re_z,
-				 preio->index_re_dkappadz,
-				 preio->index_re_d3kappadz3,
-				 &(preio->reionization_optical_depth),
-				 Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pth->error_message,"%s(L:%d) : error in array_integrate_all_spline()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_integrate_all_spline(preio->reionization_table,
+					preio->re_size,
+					preio->rt_size,
+					preio->index_re_z,
+					preio->index_re_dkappadz,
+					preio->index_re_d3kappadz3,
+					&(preio->reionization_optical_depth),
+					pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
 
   return _SUCCESS_;
 
@@ -1231,7 +1129,12 @@ int thermodynamics_reionization_discretize(
  * @param Input/Ouput: pointer to recombination structure
  * @return the error status
  */
-int thermodynamics_recombination(struct recombination * preco) {
+int thermodynamics_recombination(
+				 struct precision * ppr,
+				 struct background * pba,
+				 struct thermo * pth,
+				 struct recombination * preco
+				 ) {
 
   /* vector of variables to be integrated: xH, xHe, Tmat */
   double y[3],dy[3];
@@ -1245,17 +1148,13 @@ int thermodynamics_recombination(struct recombination * preco) {
   /* contains all quantities relevant for the integration algorithm */
   struct generic_integrator_workspace gi;
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
-  void * fixed_parameters_for_derivs;
+  struct thermodynamics_derivs_parameters tdp;
   
   /** Summary: */
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
   preco->rt_size = ppr->recfast_Nz0;
-  preco->recombination_table = malloc(preco->re_size*preco->rt_size*sizeof(double));
-  if (preco->recombination_table==NULL) {
-    sprintf(pth->error_message,"%s(L:%d): Cannot allocate recombination_table",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
 
   /** - initialize generic integrator with initialize_generic_integrator() */
   class_call(initialize_generic_integrator(_RECFAST_INTEG_SIZE_, &gi),
@@ -1268,8 +1167,7 @@ int thermodynamics_recombination(struct recombination * preco) {
   Nz=ppr->recfast_Nz0;
 
   /* Ho : must be h in 100km/s/Mpc * bigH */
-  H0 = pba->H0 * _bigH_;
-  /* printf("h=H0/(100km/s/Mpc)= %f, H0= %e SI \n",pba->.H0*2999.7,H0);*/
+  preco->H0 = pba->H0 * _bigH_;
 
   /* Omega_b */
   OmegaB = pba->Omega0_b;
@@ -1280,56 +1178,59 @@ int thermodynamics_recombination(struct recombination * preco) {
   /*printf("Y_He = %f \n",Yp);*/
 
   /* Tnow */
-  Tnow = pth->Tcmb;
-  /*printf("T_cmb = %f \n",Tnow);*/
+  preco->Tnow = pth->Tcmb;
 
   /* z_initial and z_final */
   zinitial=ppr->recfast_z_initial;
   zfinal=ppr->recfast_z_final;
 
   /* H_frac */ 
-  H_frac = ppr->recfast_H_frac;
+  preco->H_frac = ppr->recfast_H_frac;
 
   /* fudge */
-  fu = ppr->recfast_fudge;
+  preco->fu = ppr->recfast_fudge;
  
   /* related quantities */ 
   z=zinitial;
   mu_H = 1./(1.-Yp);
   mu_T = _not4_ /(_not4_ - (_not4_-1.)*Yp); /* recfast 1.4*/
-  kb_over_mH= _k_B_ / ( _C_ * _C_ * _m_H_ );
-  fHe = Yp/(_not4_ *(1.-Yp)); /* recfast 1.4 */
-  Nnow = 3.*H0*H0*OmegaB/(8.*_PI_*_G_*mu_H*_m_H_);
+  preco->fHe = Yp/(_not4_ *(1.-Yp)); /* recfast 1.4 */
+  preco->Nnow = 3.*preco->H0*preco->H0*OmegaB/(8.*_PI_*_G_*mu_H*_m_H_);
+  pth->n_e = preco->Nnow;
   /*  printf("Nnow= %e\n",Nnow); */
 
   /* quantities related to constants defined in thermodynamics.h */
-  n = Nnow * pow((1.+z),3);
+  n = preco->Nnow * pow((1.+z),3);
   Lalpha = 1./_L_H_alpha_;
   Lalpha_He = 1./_L_He_2p_;
   DeltaB = _h_P_*_C_*(_L_H_ion_-_L_H_alpha_);
-  CDB = DeltaB/_k_B_;
+  preco->CDB = DeltaB/_k_B_;
   DeltaB_He = _h_P_*_C_*(_L_He1_ion_-_L_He_2s_);
-  CDB_He = DeltaB_He/_k_B_;
-  CB1 = _h_P_*_C_*_L_H_ion_/_k_B_;
-  CB1_He1 = _h_P_*_C_*_L_He1_ion_/_k_B_;
-  CB1_He2 = _h_P_*_C_*_L_He2_ion_/_k_B_;
-  CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
-  CK = pow(Lalpha,3)/(8.*_PI_);
-  CK_He = pow(Lalpha_He,3)/(8.*_PI_);
-  CL = _C_*_h_P_/(_k_B_*Lalpha);
-  CL_He = _C_*_h_P_/(_k_B_/_L_He_2s_);
-  CT = (8./3.)*(_sigma_/(_m_e_*_C_))*_a_;
-  Bfact = _h_P_*_C_*(_L_He_2p_-_L_He_2s_)/_k_B_;
+  preco->CDB_He = DeltaB_He/_k_B_;
+  preco->CB1 = _h_P_*_C_*_L_H_ion_/_k_B_;
+  preco->CB1_He1 = _h_P_*_C_*_L_He1_ion_/_k_B_;
+  preco->CB1_He2 = _h_P_*_C_*_L_He2_ion_/_k_B_;
+  preco->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
+  preco->CK = pow(Lalpha,3)/(8.*_PI_);
+  preco->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
+  preco->CL = _C_*_h_P_/(_k_B_*Lalpha);
+  preco->CL_He = _C_*_h_P_/(_k_B_/_L_He_2s_);
+  preco->CT = (8./3.)*(_sigma_/(_m_e_*_C_))*_a_;
+  preco->Bfact = _h_P_*_C_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
-  C1P3P = _C2p1P_-_C2p3P_;
-  cc3P1P = _C2p3P_/_C2p1P_; 
-  cccP=pow(cc3P1P,3);
-  hck=_h_P_*_C_/_k_B_; 
+  /* C1P3P = _C2p1P_-_C2p3P_; */
+  /* cc3P1P = _C2p3P_/_C2p1P_;  */
+  /* cccP = pow(cc3P1P,3); */
+  /* hck=_h_P_*_C_/_k_B_;  */
 
-  if (zinitial < 8000.) {
-    sprintf(pth->error_message,"%s(L:%d): z_initial=%f<8000, should get recfast initial conditions from get_init()",__func__,__LINE__,zinitial);
-    return _FAILURE_;
-  }
+  tdp.pba = pba;
+  tdp.ppr = ppr;
+  tdp.preco = preco;
+
+  class_test(zinitial < 8000.,
+	     pth->error_message,
+	     "z_initial=%f<8000, should get recfast initial conditions from get_init()",zinitial);
+
   /* uncomment this part only if the initial redshift is not larger than 8000 */
   /*   if (get_init(z,y)== _FAILURE_) { */
   /*     sprintf(pth->error_message,"%s(L:%d): error in calling get_init()",__func__,__LINE__); */
@@ -1339,8 +1240,8 @@ int thermodynamics_recombination(struct recombination * preco) {
   /** - impose initial conditions */
   y[0] = 1.;
   y[1] = 1.;
-  x0 = 1.+2.*fHe;
-  y[2] = Tnow*(1.+z);
+  x0 = 1.+2.*preco->fHe;
+  y[2] = preco->Tnow*(1.+z);
 
   w0=1./ sqrt(1. + zinitial);
   w1=1./ sqrt(1. + zfinal);
@@ -1360,53 +1261,53 @@ int thermodynamics_recombination(struct recombination * preco) {
     if (zend > 8000.) {
       x_H0 = 1.;
       x_He0 = 1.;
-      x0 = 1.+2.*fHe;
+      x0 = 1.+2.*preco->fHe;
       y[0] = x_H0;
       y[1] = x_He0;
-      y[2] = Tnow*(1.+z);
+      y[2] = preco->Tnow*(1.+z);
     }
     else 
       if (z > 5000.) {
 	x_H0 = 1.;
 	x_He0 = 1.;
-	rhs = exp( 1.5*log(CR*Tnow/(1.+z)) - CB1_He2/(Tnow*(1.+z)) ) / Nnow;
+	rhs = exp( 1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He2/(preco->Tnow*(1.+z)) ) / preco->Nnow;
 	rhs = rhs*1.;
-	x0 = 0.5*(sqrt(pow((rhs-1.-fHe),2) + 4.*(1.+2.*fHe)*rhs) - (rhs-1.-fHe));
+	x0 = 0.5*(sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe));
 	y[0] = x_H0;
 	y[1] = x_He0;
-	y[2] = Tnow*(1.+z);
+	y[2] = preco->Tnow*(1.+z);
       }
       else 
 	if (z > 3500.) {
 	  x_H0 = 1.;
 	  x_He0 = 1.;
-	  x0 = x_H0 + fHe*x_He0;
+	  x0 = x_H0 + preco->fHe*x_He0;
 	  y[0] = x_H0;
 	  y[1] = x_He0;
-	  y[2] = Tnow*(1.+z);
+	  y[2] = preco->Tnow*(1.+z);
 	}
 	else 
 	  if (y[1] > ppr->recfast_x_He0_trigger) {
 	    x_H0 = 1.;
-	    rhs = exp(1.5*log(CR*Tnow/(1.+z)) - CB1_He1/(Tnow*(1.+z)))/Nnow;
+	    rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
 	    rhs = rhs*4.;
-	    x_He0 = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+fHe)*rhs )- (rhs-1.));
+	    x_He0 = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.));
 	    x0 = x_He0;
-	    x_He0 = (x0-1.)/fHe;
+	    x_He0 = (x0-1.)/preco->fHe;
 	    y[0] = x_H0;
 	    y[1] = x_He0;
-	    y[2] = Tnow*(1.+z);
+	    y[2] = preco->Tnow*(1.+z);
 	  }
 	  else 
 	    if (y[0] > ppr->recfast_x_H0_trigger) {
-	      rhs = exp(1.5*log(CR*Tnow/(1.+z)) - CB1/(Tnow*(1.+z)))/Nnow;
+	      rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
 	      x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
 
 	      class_call(generic_integrator(thermodynamics_derivs_with_recfast,
 					    zstart,
 					    zend,
 					    y,
-					    fixed_parameters_for_derivs,
+					    &tdp,
 					    ppr->tol_thermo_integration,
 					    ppr->smallest_allowed_variation,
 					    &gi),
@@ -1414,7 +1315,7 @@ int thermodynamics_recombination(struct recombination * preco) {
 			 pth->error_message);
 
 	      y[0] = x_H0;
-	      x0 = y[0] + fHe*y[1];
+	      x0 = y[0] + preco->fHe*y[1];
 
 	      
 
@@ -1425,14 +1326,14 @@ int thermodynamics_recombination(struct recombination * preco) {
 					    zstart,
 					    zend,
 					    y,
-					    fixed_parameters_for_derivs,
+					    &tdp,
 					    ppr->tol_thermo_integration,
 					    ppr->smallest_allowed_variation,
 					    &gi),
 			 gi.error_message,
 			 pth->error_message);
 
-	      x0 = y[0] + fHe*y[1];
+	      x0 = y[0] + preco->fHe*y[1];
 
 	    }
 
@@ -1449,17 +1350,17 @@ int thermodynamics_recombination(struct recombination * preco) {
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=y[2];
 
     /* -> get dTb/dz=dy[2] */
-    class_call(thermodynamics_derivs_with_recfast(zend, y, dy, fixed_parameters_for_derivs,pth->error_message),
+    class_call(thermodynamics_derivs_with_recfast(zend, y, dy, &tdp,pth->error_message),
 	       pth->error_message,
 	       pth->error_message);
 
     /* -> cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = kb_over_mH * (1. + (1./_not4_ - 1.) * Yp + x0 * (1.-Yp)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
+      = _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + x0 * (1.-Yp)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
 
     /* -> dkappa/deta = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadeta)
-      = (1.+zend) * (1.+zend) * Nnow * x0 * _sigma_ * _Mpc_over_m_;
+      = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
     
   }
 
@@ -1574,35 +1475,45 @@ int thermodynamics_derivs_with_recfast(
   double tauHe_t,pHe_t,CfHe_t,CL_PSt,gamma_2Pt;
   short Heflag;
 
+  struct thermodynamics_derivs_parameters * ptdp;
+  struct precision * ppr;
+  struct background * pba;
+  struct recombination * preco;
+
+  ptdp = fixed_parameters;
+  ppr = ptdp->ppr;
+  pba = ptdp->pba;
+  preco = ptdp->preco;
+
   x_H = y[0];
   x_He = y[1];
-  x = x_H + fHe * x_He;
+  x = x_H + preco->fHe * x_He;
   Tmat = y[2];
 
-  n = Nnow * pow((1.+z),3);
-  n_He = fHe * Nnow * pow((1.+z),3);
-  Trad = Tnow * (1.+z);
+  n = preco->Nnow * pow((1.+z),3);
+  n_He = preco->fHe * preco->Nnow * pow((1.+z),3);
+  Trad = preco->Tnow * (1.+z);
 
-  class_call(background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th),
+  class_call(background_functions_of_a(pba,1./(1.+z),short_info,pba->pvecback),
 	     pba->error_message,
 	     error_message);
   
-  Hz=pvecback_th[pba->index_bg_H]/_Mpc_in_sec_;
+  Hz=pba->pvecback[pba->index_bg_H]/_Mpc_in_sec_;
 
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
-  Rup = Rdown * pow((CR*Tmat),1.5)*exp(-CDB/Tmat);
+  Rup = Rdown * pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat);
 
   sq_0 = sqrt(Tmat/_T_0_);
   sq_1 = sqrt(Tmat/_T_1_);
   Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
-  Rup_He = Rdown_He*pow((CR*Tmat),1.5)*exp(-CDB_He/Tmat);
+  Rup_He = Rdown_He*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB_He/Tmat);
   Rup_He = 4.*Rup_He;
-  K = CK/Hz;
+  K = preco->CK/Hz;
 
   /* following is from recfast 1.4 */
 
   Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
-  Rup_trip = Rdown_trip*exp(-_h_P_*_C_*_L_He2St_ion_/(_k_B_*Tmat))*pow(CR*Tmat,1.5)*4./3.;
+  Rup_trip = Rdown_trip*exp(-_h_P_*_C_*_L_He2St_ion_/(_k_B_*Tmat))*pow(preco->CR*Tmat,1.5)*4./3.;
 
   if ((x_He < 5.e-9) || (x_He > 0.980)) 
     Heflag = 0;
@@ -1610,16 +1521,16 @@ int thermodynamics_derivs_with_recfast(
     Heflag = ppr->recfast_Heswitch;
 
   if (Heflag == 0)
-    K_He = CK_He/Hz;
+    K_He = preco->CK_He/Hz;
   else {
-    tauHe_s = _A2P_s_*CK_He*3.*n_He*(1.-x_He)/Hz;
+    tauHe_s = _A2P_s_*preco->CK_He*3.*n_He*(1.-x_He)/Hz;
     pHe_s = (1.-exp(-tauHe_s))/tauHe_s;
     K_He = 1./(_A2P_s_*pHe_s*3.*n_He*(1.-x_He));
 
     if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) {
       Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_C_*_C_);
       Doppler = _C_*_L_He_2p_*sqrt(Doppler);
-      gamma_2Ps = 3.*_A2P_s_*fHe*(1.-x_He)*_C_*_C_
+      gamma_2Ps = 3.*_A2P_s_*preco->fHe*(1.-x_He)*_C_*_C_
 	/(sqrt(_PI_)*_sigma_He_2Ps_*8.*_PI_*Doppler*(1.-x_H))
 	/pow(_C_*_L_He_2p_,2.);
       pb = 0.36;
@@ -1639,7 +1550,7 @@ int thermodynamics_derivs_with_recfast(
       else {
 	Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_C_*_C_);
 	Doppler = _C_*_L_He_2Pt_*sqrt(Doppler);
-	gamma_2Pt = 3.*_A2P_t_*fHe*(1.-x_He)*_C_*_C_
+	gamma_2Pt = 3.*_A2P_t_*preco->fHe*(1.-x_He)*_C_*_C_
 	  /(sqrt(_PI_)*_sigma_He_2Pt_*8.*_PI_*Doppler*(1.-x_H))
 	  /pow(_C_*_L_He_2Pt_,2.);
 	pb = 0.66;
@@ -1653,17 +1564,17 @@ int thermodynamics_derivs_with_recfast(
 
   /* end of new recfast 1.4 piece */
 
-  timeTh=(1./(CT*pow(Trad,4.)))*(1.+x+fHe)/x;
-  timeH=2./(3.*H0*pow(1.+z,1.5)); 
+  timeTh=(1./(preco->CT*pow(Trad,4.)))*(1.+x+preco->fHe)/x;
+  timeH=2./(3.*preco->H0*pow(1.+z,1.5)); 
 
   if (x_H > 0.99)
     dy[0] = 0.;
   else {
     if (x_H > 0.985) {
-      dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-CL/Tmat)) /(Hz*(1.+z));
+      dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) /(Hz*(1.+z));
     }
     else {
-      dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./fu+K*_Lambda_*n*(1.-x)/fu +K*Rup*n*(1.-x)));
+      dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)));
     }
   }
 
@@ -1671,12 +1582,12 @@ int thermodynamics_derivs_with_recfast(
     dy[1]=0.;
   else {
 
-    if (Bfact/Tmat < 680.) 
-      He_Boltz=exp(Bfact/Tmat);
+    if (preco->Bfact/Tmat < 680.) 
+      He_Boltz=exp(preco->Bfact/Tmat);
     else 
       He_Boltz=exp(680.);
 
-    dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-CL_He/Tmat)) *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)) /(Hz*(1+z) * (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
+    dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat)) *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)) /(Hz*(1+z) * (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
 
     if (Heflag == 3)
       dy[1] = dy[1] + 
@@ -1686,10 +1597,10 @@ int thermodynamics_derivs_with_recfast(
 	
   }
 
-  if (timeTh < H_frac*timeH)
+  if (timeTh < preco->H_frac*timeH)
     dy[2]=Tmat/(1.+z);
   else
-    dy[2]= CT * pow(Trad,4) * x / (1.+x+fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
+    dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
 
   return _SUCCESS_;
 }      
@@ -1704,27 +1615,27 @@ int thermodynamics_derivs_with_recfast(
 /*   if(z > 8000.) { */
 /*     x_H0 = 1.; */
 /*     x_He0 = 1.; */
-/*     x0 = 1.+2.*fHe; */
+/*     x0 = 1.+2.*preco->fHe; */
 /*   } */
 /*   else { */
 /*     if (z > 3500.) { */
 /*       x_H0 = 1.; */
 /*       x_He0 = 1.; */
-/*       rhs = exp( 1.5 * log(CR*Tnow/(1.+z)) - CB1_He2/(Tnow*(1.+z)) ) / Nnow; */
+/*       rhs = exp( 1.5 * log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He2/(preco->Tnow*(1.+z)) ) / preco->Nnow; */
 /*       rhs = rhs*1.;  /\*ratio of g's is 1 for He++ <-> He+*\/ */
-/*       x0 = 0.5 * ( sqrt( pow((rhs-1.-fHe),2) + 4.*(1.+2.*fHe)*rhs) - (rhs-1.-fHe) ); */
+/*       x0 = 0.5 * ( sqrt( pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe) ); */
 /*     } */
 /*     else { */
 /*       if(z > 2000.) { */
 /*         x_H0 = 1.; */
-/* 	rhs = exp( 1.5 * log(CR*Tnow/(1.+z)) - CB1_He1/(Tnow*(1.+z)) ) / Nnow; */
+/* 	rhs = exp( 1.5 * log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)) ) / preco->Nnow; */
 /*         rhs = rhs*4.;  /\*ratio of g's is 4 for He+ <-> He0*\/ */
-/* 	x_He0 = 0.5  * ( sqrt( pow((rhs-1.),2) + 4.*(1.+fHe)*rhs )- (rhs-1.)); */
+/* 	x_He0 = 0.5  * ( sqrt( pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.)); */
 /* 	x0 = x_He0; */
-/* 	x_He0 = (x0 - 1.)/fHe; */
+/* 	x_He0 = (x0 - 1.)/preco->fHe; */
 /*       } */
 /*       else { */
-/* 	rhs = exp( 1.5 * log(CR*Tnow/(1.+z)) - CB1/(Tnow*(1.+z)) ) / Nnow; */
+/* 	rhs = exp( 1.5 * log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)) ) / preco->Nnow; */
 /* 	x_H0 = 0.5 * (sqrt( pow(rhs,2)+4.*rhs ) - rhs ); */
 /* 	x_He0 = 0.; */
 /* 	x0 = x_H0; */
@@ -1734,7 +1645,7 @@ int thermodynamics_derivs_with_recfast(
 
 /*   y[0]=x_H0; */
 /*   y[1]=x_He0; */
-/*   y[2]=Tnow*(1.+z); */
+/*   y[2]=preco->Tnow*(1.+z); */
 
 /*   return _SUCCESS_; */
 /* } */
