@@ -163,10 +163,11 @@ int trg_p_ab_at_any_k(
 		      double *result, /* will get a value of p_ab at any k different from k[index_k]*/
 		      char *errmsg
 		      ){
-  if(array_interpolate_spline_one_column(pnl->k,pnl->k_size,p_ab,pnl->eta_size,index_eta,ddp_ab,any_k,result,errmsg)==_FAILURE_){
-    sprintf(pnl->error_message,"%s(L:%d):problem with array_interpolate_spline_one_column()\n=>%s",__func__,__LINE__,errmsg);
-    return _FAILURE_;
-  }
+
+  class_call(array_interpolate_spline_one_column(pnl->k,pnl->k_size,p_ab,pnl->eta_size,index_eta,ddp_ab,any_k,result,errmsg),
+	     errmsg,
+	     pnl->error_message);
+
   return _SUCCESS_;
 }
 
@@ -198,7 +199,7 @@ int trg_p_ab_at_any_k(
  * only called inside the switch case instance, in order to lower the
  * execution time - this way the lecture of this function is somehow
  * harder, but the argument is called in the very end of each case
- * bloc. Moreover, the call of function is in this order : P_ab, the
+ * bloc. Moreover, the call of functions is in this order : P_ab, the
  * gamma2, then finally gamma1.
  ********************/
 
@@ -816,78 +817,208 @@ int trg_integrate_xy_at_eta(
 			      int n_xy,
 			      int k_size, /* functions of k for
 					     integration are defined
-					     from [0] to [k_size-1]*/
+					     from [0+k_size*index_eta]
+					     to
+					     [k_size-1+k_size*index_eta]*/
 			      double * result,
 			      char *errmsg
 			      ){
   
   int index_k;
   double k_max=pnl->k_max; /* choice of maximum k when integrating over x*/
-  double x,y;
-  double x_step,y_step;
+  double *x,*y;
+  double x_calc,y_calc;
+  double logstep;
   double temp;
   int index_y,index_x;
+  int x_size,y_size;
   
   double arg_plus,arg_minus;
   double x_min,x_max;
   double y_min,y_max;
   
   double *sum_y;
+  double diff_sum_y;
 
   double epsilon; /* cut-off scale to avoid numerical divergence*/
+  double epsilon_prime; /* smallest change in integrands that we want
+			   to consider, one should test its influence
+			   on the final result, if any*/
 
-  epsilon=psp->k[0];
-  y_min=epsilon;
+  /* The following approximation consists in taking into account the
+     fact that for small k's, the influence of non linearity is
+     small. Hence, one could take the linear evolution for P's for
+     sufficiently small k's. Here, arbitrarily, one takes values of
+     index_k before 10 to follow linear regime, i.e. putting to zero
+     their A's. 
 
-  sum_y=calloc(n_xy,sizeof(double));
-  
+     This approximation is here to calculate more precisely the first
+     k points on x-y domains. The other solution (cleaner, but more
+     time consuming) would consist in modifying the lower bound in the
+     table_array routines by chosing an arbitrarily small cut-off for
+     P's (well under the k_min).
+
+  */
+
+  epsilon_prime=1e-6;
+
+  epsilon=pnl->k[0];
+
+  diff_sum_y=1;
+
   for(index_k=0; index_k<k_size; index_k++){
-    x_min=pnl->k[index_k]/sqrt(2);
-    y_max=x_min;
-    x_max=k_max;
     
-    x_step= 1./(n_xy-1) * (x_max - x_min);
-    y_step= 1./(n_xy-1) * (y_max - y_min);
-    
-    for(index_x=0; index_x<n_xy; index_x++){
-      if (x_step==0 || y_step==0){
-	sum_y[index_x]=0;
-      }
-      else {
-	x=x_min+index_x*x_step;
-	y=y_min;
-
-	if(trg_A_arg(name,pnl->k[index_k],x/sqrt(2),x/sqrt(2),index_eta,&temp,errmsg)==_FAILURE_){
-	  sprintf(pnl->error_message,"%s(L:%d): error of definition in integrals A\n=>%s",__func__,__LINE__,errmsg);
-	}
-	arg_plus=(x*x-y*y)/4 * temp;
-	  
-
-	for(index_y=0; index_y<n_xy; index_y++){
-	  arg_minus=arg_plus;
-	  y=y_min+index_y*y_step;
-	  
-	  if((x+y)>k_max*sqrt(2) || (x-y)<epsilon*sqrt(2)){
-	    temp=0;
-	  }
-	  else {
-	    if(trg_A_arg(name,pnl->k[index_k],(x+y)/sqrt(2),(x-y)/sqrt(2),index_eta,&temp,errmsg)==_FAILURE_){
-	      sprintf(pnl->error_message,"%s(L:%d): error of definition of integrals A\n=>%s",__func__,__LINE__,errmsg);
-	      return _FAILURE_;
-	    }
-	  }
-	  arg_plus=(x*x-y*y)/4 * temp;
-	  sum_y[index_x]+=y_step*0.5*(arg_plus+arg_minus);
-	}
-      }
+    if(index_k<11){
+      result[index_k+k_size*index_eta]=0;
     }
     
-    for(index_x=0; index_x<(n_xy-1); index_x++){
-      result[index_k+k_size*index_eta]+=x_step*0.5*(sum_y[index_x]+sum_y[index_x+1]); /* integration over x */
+    else{
+      x_min=pnl->k[index_k]/sqrt(2);
+      
+      logstep=1+2*epsilon/pnl->k[index_k];
+      
+      /*checking number of integration steps for x */
+
+      x_calc=x_min;
+      
+      index_x=0;
+      while(x_calc<k_max*sqrt(2)){
+	x_calc=x_calc*logstep;
+	index_x++;
+      }
+      
+      x_size=index_x;
+      
+      /*recording of x values */
+      
+      x=calloc(x_size,sizeof(double));
+      x[0]=x_min;
+      for(index_x=1; index_x<x_size-1; index_x++){
+	x[index_x]=x[index_x-1]*logstep;
+      }
+      x[x_size-1]=sqrt(2)*k_max;
+      
+      /*checking number of integration steps for y*/
+      
+      index_y=0;
+      y_calc=x_min;
+      while(y_calc<(2*x_min)){
+	y_calc=y_calc*logstep;
+	index_y++;
+      }
+      
+      y_size=index_y;
+      
+      /*recording of y values*/
+      
+      y=calloc(y_size,sizeof(double));
+      y[0]=pnl->k[index_k]/sqrt(2);
+      y_calc=y[0];
+      for(index_y=1; index_y<y_size-1; index_y++){
+	y_calc=y_calc*logstep;
+	y[index_y]=2*y[0]-y_calc;
+      }
+      y[y_size-1]=0;
+      
+      /* Loops */
+      
+      sum_y=calloc(x_size,sizeof(double));
+          
+	/* beware the sign change to compensate integration
+	   boundaries */
+	
+	/* For each x, perform integration on y */
+      
+	/* First, the case index_x==0 , the integration starts at index_y=1*/
+      
+      for(index_x=0; index_x<x_size; index_x++){
+	if(index_x==0){
+	  
+	  if((x[0]-y[1])<epsilon*sqrt(2)){
+	    class_call(trg_A_arg(name,pnl->k[index_k],(x[0]+y[1])/sqrt(2),epsilon,index_eta,&temp,errmsg),
+		       errmsg,
+		       pnl->error_message);
+	  }
+	  else {
+	    class_call(trg_A_arg(name,pnl->k[index_k],(x[0]+y[1])/sqrt(2),(x[0]-y[1])/sqrt(2),index_eta,&temp,errmsg),
+		       errmsg,
+		       pnl->error_message);
+	  }
+	  arg_plus=-(x[0]*x[0]-y[1]*y[1])/4 * temp;
+	  
+	  for(index_y=2; index_y<y_size; index_y++){
+	    arg_minus=arg_plus;
+	    if((x[0]+y[index_y])>k_max*sqrt(2)){
+	      temp=0;
+	    }
+	    else {
+	      class_call(trg_A_arg(name,pnl->k[index_k],(x[0]+y[index_y])/sqrt(2),(x[0]-y[index_y])/sqrt(2),index_eta,&temp,errmsg),
+			 errmsg,
+			 pnl->error_message);
+	      
+	      arg_plus=-(x[0]*x[0]-y[index_y]*y[index_y])/4 * temp;
+	      sum_y[0]+=(y[index_y]-y[index_y-1])*0.5*(arg_plus+arg_minus);
+	    }
+	  }
+	}
+	
+	/* Now the rest of the cases */
+	
+	else if(fabs(diff_sum_y)<epsilon_prime){
+	  sum_y[index_x]=0;
+	  diff_sum_y=0;
+	  
+	}
+	else{
+	  if((x[index_x]+y[0])>k_max*sqrt(2)){
+	    temp=0;
+	  }
+	  else if((x[index_x]-y[0])<epsilon*sqrt(2)){
+	    class_call(trg_A_arg(name,pnl->k[index_k],(x[index_x]+y[0])/sqrt(2),epsilon,index_eta,&temp,errmsg),
+		       errmsg,
+		       pnl->error_message);
+	    
+	  }
+	  else{
+	    class_call(trg_A_arg(name,pnl->k[index_k],(x[index_x]+y[0])/sqrt(2),(x[index_x]-y[0])/sqrt(2),index_eta,&temp,errmsg),
+		       errmsg,
+		       pnl->error_message);
+	  }
+	  arg_plus=-(x[index_x]*x[index_x]-y[0]*y[0])/4*temp;
+	  
+	  for(index_y=1; index_y<y_size; index_y++){
+	    arg_minus=arg_plus;
+	    if((x[index_x]+y[index_y])>k_max*sqrt(2)){
+	      temp=0;
+	    }
+	    else if((x[index_x]-y[index_y])<epsilon*sqrt(2)){
+	      class_call(trg_A_arg(name,pnl->k[index_k],(x[index_x]+y[index_y])/sqrt(2),epsilon,index_eta,&temp,errmsg),
+			 errmsg,
+			 pnl->error_message);
+	    }
+	    else{
+	      class_call(trg_A_arg(name,pnl->k[index_k],(x[index_x]+y[index_y])/sqrt(2),(x[index_x]-y[index_y])/sqrt(2),index_eta,&temp,errmsg),
+			 errmsg,
+			 pnl->error_message);
+	    }
+	    arg_plus=-(x[index_x]*x[index_x]-y[index_y]*y[index_y])/4*temp;
+	    sum_y[index_x]+=(y[index_y]-y[index_y-1])*0.5*(arg_plus+arg_minus);
+	  }
+	  diff_sum_y=sum_y[index_x]-sum_y[index_x-1];
+	}
+      }
+      for(index_x=1; index_x<x_size; index_x++){
+	  result[index_k+k_size*index_eta]+=(x[index_x]-x[index_x-1])*0.5*(sum_y[index_x]+sum_y[index_x-1]); /* integration over x */
+	}
+	
+	free(sum_y);
+	free(x);
+	free(y);
     }
   }
   return _SUCCESS_;
 }
+
 
 
 
@@ -937,7 +1068,6 @@ int trg_init (
   double * Omega_m, * H, *H_prime;
 
   double eta_step; /* step for integrations */
-  double k_step;
 
   double exp_eta;
   double pi_over_k;
@@ -978,23 +1108,22 @@ int trg_init (
   eta_max = log(ppr->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 30;
+  pnl->eta_size = 1000;
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
   /* at any time, a = a_ini * exp(eta) and z=exp(eta)-1*/
   
   /* fill array of k values  */
-  pnl->k_size = psp->k_size;//100;//psp->k_size;
+  pnl->k_size = psp->k_size-8;//100;//psp->k_size;
   pnl->k = calloc(pnl->k_size,sizeof(double));
 
-  pnl->k_max=psp->k[pnl->k_size-1];
-  k_step=pnl->k_max/(pnl->k_size-1);
+  pnl->k_max=psp->k[psp->k_size-1];
 
   for (index_k=0; index_k<pnl->k_size; index_k++) {
     pnl->k[index_k]= psp->k[index_k];//index_k*k_step;
+    printf("%d\t%e\n",index_k,psp->k[index_k]);
   }
-  
  
   /* fill array of eta values */
 
@@ -1071,18 +1200,18 @@ int trg_init (
 
 
   if(pnl->pk_nl != NULL && pnl->p_12 != NULL && pnl->p_22 != NULL){
-    if(trg_pk_nl_ini(pnl->k,index_ic,pnl->pk_nl,Transmit_Error_Message)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): error in initializing pk_nl\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
-    if(trg_p12_ini(pnl->k,index_ic,H,pnl->p_12,Transmit_Error_Message)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): error in initializing p_12\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
-    if(trg_p22_ini(pnl->k,index_ic,H,pnl->p_22,Transmit_Error_Message)==_FAILURE_){
-      sprintf(pnl->error_message,"%s(L:%d): error in initializing p_22\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(trg_pk_nl_ini(pnl->k,index_ic,pnl->pk_nl,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+    
+    class_call(trg_p12_ini(pnl->k,index_ic,H,pnl->p_12,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_p22_ini(pnl->k,index_ic,H,pnl->p_22,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
   }
   else {
     sprintf(Transmit_Error_Message,"%s(L:%d): could not allocate memory !",__func__,__LINE__);
@@ -1090,22 +1219,27 @@ int trg_init (
     return _FAILURE_;
   }
 
+  /* Initialisation and definition of second derivatives */
+
   pnl->ddpk_nl=calloc(pnl->k_size*pnl->eta_size,sizeof(double));
   pnl->ddp_12=calloc(pnl->k_size*pnl->eta_size,sizeof(double));
   pnl->ddp_22=calloc(pnl->k_size*pnl->eta_size,sizeof(double));
   
-  if(trg_ddp_ab(pnl->pk_nl,0,pnl->ddpk_nl,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d): error in trg_ddp_ab()\n=>%s",__func__,__LINE__,pnl->error_message);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
+  if(pnl->pk_nl != NULL && pnl->p_12 != NULL && pnl->p_22 != NULL){
+    class_call(trg_ddp_ab(pnl->pk_nl,0,pnl->ddpk_nl,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_ddp_ab(pnl->p_12,0,pnl->ddp_12,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+
+    class_call(trg_ddp_ab(pnl->p_22,0,pnl->ddp_22,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
   }
-  if(trg_ddp_ab(pnl->p_12,0,pnl->ddp_12,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d): error in trg_ddp_ab()\n=>%s",__func__,__LINE__,pnl->error_message);
-    sprintf(pnl->error_message,"%s",Transmit_Error_Message);
-    return _FAILURE_;
-  }
-  if(trg_ddp_ab(pnl->p_22,0,pnl->ddp_22,Transmit_Error_Message)==_FAILURE_){
-    sprintf(Transmit_Error_Message,"%s(L:%d): error in trg_ddp_ab()\n=>%s",__func__,__LINE__,pnl->error_message);
+  else {
+    sprintf(Transmit_Error_Message,"%s(L:%d): could not allocate memory !",__func__,__LINE__);
     sprintf(pnl->error_message,"%s",Transmit_Error_Message);
     return _FAILURE_;
   }
@@ -1476,22 +1610,34 @@ int trg_init (
   }
   */
 
-  fprintf(nl_spectra,"##for %d values of k\n##eta is equal to %f\n## k\tpk_nl\tpk_lin at last eta(today)\n",pnl->k_size,pnl->eta[pnl->eta_size-1]);
-  /*
+  fprintf(nl_spectra,"##for %d values of k\n##z is equal to %f\n## k\tpk_nl\tpk_lin at last eta(today)\n",pnl->k_size,pnl->z[738]);
+  
   for(index_k=0; index_k<pnl->k_size; index_k++){
     class_call(
-	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[pnl->eta_size-1],&temp1),
+	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[738],&temp1),
 	       psp->error_message,
 	       pnl->error_message);
 
-    fprintf(nl_spectra,"%e\t%e\t%e\n",pnl->k[index_k],pnl->pk_nl[index_k+(pnl->k_size*(pnl->eta_size-1))]*exp(pnl->eta[pnl->eta_size-1]*2),temp1);
+    fprintf(nl_spectra,"%e\t%e\t%e\n",pnl->k[index_k]/pba->h,pow(pba->h,3)*pnl->pk_nl[index_k+(pnl->k_size*(738))]*exp(pnl->eta[738]*2),pow(pba->h,3)*temp1);
   }
-  */
+
+
+    fprintf(nl_spectra,"\n\n## for z = %e\n",pnl->z[848]);
+
+  for(index_k=0; index_k<pnl->k_size; index_k++){
+    class_call(
+	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[848],&temp1),
+	       psp->error_message,
+	       pnl->error_message);
+
+    fprintf(nl_spectra,"%e\t%e\t%e\n",pnl->k[index_k]/pba->h,pow(pba->h,3)*pnl->pk_nl[index_k+(pnl->k_size*(848))]*exp(pnl->eta[848]*2),pow(pba->h,3)*temp1);
+  }
+  
   /*
     fprintf(nl_spectra,"\n\n## eta      z\n");
   */
     
-  
+  /*
   for(index_eta=0; index_eta<pnl->eta_size; index_eta++){
     class_call(
 	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[50],pnl->z[index_eta],&temp1),
@@ -1514,24 +1660,8 @@ int trg_init (
 	    B22[50+(pnl->k_size*(index_eta))],
 	    B3[50+(pnl->k_size*(index_eta))]);
   }
-  
+  */
   fclose(nl_spectra);
-
-  for(index_k=0; index_k<pnl->k_size; index_k++){
-    class_call(
-	       spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[pnl->eta_size-1],&temp1),
-	       psp->error_message,
-	       pnl->error_message);
-    printf("%e\t%e\t%e\n",pnl->k[index_k],pnl->pk_nl[index_k+pnl->k_size*(pnl->eta_size-1)]*exp(pnl->eta[pnl->eta_size-1]),temp1);
-
-  }
-
-  /* if (trg_gamma_222(2,2,2)==0.){
-    sprintf(Transmit_Error_Message,"%s(L:%d) : error in trg_gamma_222() (divide by 0!)\n=>%s",__func__,__LINE__,pnl->error_message);
-    sprintf(pnl->error_message,Transmit_Error_Message);
-     return(_FAILURE_);
-    }*/
-
   
   free(B3);
   free(B22);

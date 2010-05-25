@@ -31,7 +31,7 @@ int input_init(
   pba->Omega0_g = 2.3812e-5/h/h*pow(2.726/2.7,4.);
   pba->Omega0_nur = Neff*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.05;
-  pba->Omega0_cdm = 0.23;
+  pba->Omega0_cdm = 0.25;
   pba->Omega0_lambda = 1.-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_g-pba->Omega0_nur;
   pba->Omega0_de = 0.;
 
