@@ -257,6 +257,7 @@ struct thermodynamics_derivs_parameters {
   struct background * pba;
   struct precision * ppr;
   struct recombination * preco;
+  double * pvecback;
 
 };
 
@@ -275,7 +276,8 @@ extern "C" {
 			  double z,
 			  enum interpolation_mode intermode,
 			  int * last_index,
-			  double * pvecthermo_local
+			  double * pvecback,
+			  double * pvecthermo
 			  );
 
   int thermodynamics_init(
@@ -306,7 +308,8 @@ extern "C" {
 				  struct background * pba,
 				  struct thermo * pth,
 				  struct recombination * preco,
-				  struct reionization * preio
+				  struct reionization * preio,
+				  double * pvecback
 				  );
 
   int thermodynamics_reionization_discretize(
@@ -314,7 +317,8 @@ extern "C" {
 					     struct background * pba,
 					     struct thermo * pth,
 					     struct recombination * preco,
-					     struct reionization * preio
+					     struct reionization * preio,
+					     double * pvecback
 					     );
 
   int thermodynamics_get_xe_before_reionization(struct precision * ppr,
@@ -327,7 +331,8 @@ extern "C" {
 				   struct precision * ppr,
 				   struct background * pba,
 				   struct thermo * pth,
-				   struct recombination * prec
+				   struct recombination * prec,
+				   double * pvecback
 				   );
 
 /*   int thermodynamics_cure_discontinuity( */

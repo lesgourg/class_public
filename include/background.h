@@ -162,13 +162,6 @@ struct background
 
   //@}
 
-  /** @name - background workspace (used throughout the code, placed here to avoid
-      waste of time in multiple allocations/deallocations) */
-
-  double * pvecback; /**< a vector of background quantities */
-
-  //@{
-
   //@}
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
@@ -186,6 +179,16 @@ struct background
   ErrorMsg error_message;
 
   //@}
+};
+
+/* parameters, variables, workspace, etc. passed to the
+   background_derivs function */
+
+struct background_derivs_parameters {
+
+  struct background * pba; /* contains indices */
+  double * pvecback;       /* a background vector (workspace) */
+
 };
 
 /**************************************************************/
@@ -240,6 +243,7 @@ extern "C" {
   int background_initial_conditions(
 				    struct precision *ppr,
 				    struct background *pba,
+				    double * pvecback,
 				    double * pvecback_integration
 				    );
 
@@ -247,7 +251,7 @@ extern "C" {
 			 double z,
 			 double * y,
 			 double * dy,
-			 void * fixed_parameters,
+			 void * parameters_and_workspace,
 			 ErrorMsg error_message
 			 );
       

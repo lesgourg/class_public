@@ -35,7 +35,7 @@
   * @param return_format Input: format of output vector
   * @param intermode Input: interpolation mode (normal or growing_closeby)
   * @param last_index Input/Ouput: index of the previous/current point in the interpolation array (input only for closeby mode, output for both) 
-  * @param pvecback_local Output: vector (assumed to be already allocated)
+  * @param pvecback Output: vector (assumed to be already allocated)
   * @return the error status
   */
 int background_at_eta(
@@ -336,9 +336,6 @@ int background_init(
   class_call(background_indices(pba),
 	     pba->error_message,
 	     pba->error_message);
-
-  /** - allocate memory for the two useful background vectors pvecback and pvecback_integration (global variables in background.c, used as long as background_init() is not finished) */
-  class_alloc(pba->pvecback ,pba->bg_size*sizeof(double),pba->error_message);
   
   /** - control that cosmological parameter values make sense */
 
@@ -403,7 +400,6 @@ int background_free(
   free(pba->d2eta_dz2_table);
   free(pba->background_table);
   free(pba->d2background_deta2_table);
-  free(pba->pvecback);
 
   return _SUCCESS_;
 }
@@ -613,6 +609,8 @@ int background_solve(
 
   /* contains all quantities relevant for the integration algorithm */
   struct generic_integrator_workspace gi;
+  /* parameters and workspace for the background_derivs function */
+  struct background_derivs_parameters bdp;
   /* a growing table (since the number of time steps is not known a priori) */
   growTable gTable;
   /* needed for growing table */
@@ -628,7 +626,13 @@ int background_solve(
   /* vector of quantities to be integrated */
   double * pvecback_integration;
   
+  double * pvecback;
+
   int last_index=0; /* necessary for calling array_interpolate(), but never used */
+
+  bdp.pba = pba;
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+  bdp.pvecback = pvecback;  
 
   /** - allocate vector of quantities to be integrated */
   class_alloc(pvecback_integration,pba->bi_size*sizeof(double),pba->error_message);
@@ -643,7 +647,7 @@ int background_solve(
 	     pba->error_message);
 
   /** - impose initial conditions with background_initial_conditions() */
-  class_call(background_initial_conditions(ppr,pba,pvecback_integration),
+  class_call(background_initial_conditions(ppr,pba,pvecback,pvecback_integration),
 	     pba->error_message,
 	     pba->error_message);
 
@@ -666,16 +670,16 @@ int background_solve(
     eta_start = eta_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
-    class_call(background_functions_of_a(pba,pvecback_integration[pba->index_bi_a], short_info, pba->pvecback),
+    class_call(background_functions_of_a(pba,pvecback_integration[pba->index_bi_a], short_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
 
     if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
-      eta_end = eta_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pba->pvecback[pba->index_bg_H]); 
+      eta_end = eta_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]); 
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions_of_a() */
     }
     else {
-      eta_end = eta_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pba->pvecback[pba->index_bg_H]);  
+      eta_end = eta_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);  
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions_of_a() */
     }
 
@@ -694,7 +698,7 @@ int background_solve(
 				  eta_start,
 				  eta_end,
 				  pvecback_integration,
-				  pba,
+				  &bdp,
 				  ppr->tol_background_integration,
 				  ppr->smallest_allowed_variation,
 				  &gi),
@@ -773,17 +777,17 @@ int background_solve(
 
     pba->z_table[i] = pba->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
 
-    pba->pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
-    pba->pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_eta];
-    pba->pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
+    pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
+    pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_eta];
+    pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities */
-    class_call(background_functions_of_a(pba,pData[i*pba->bi_size+pba->index_bi_a], long_info, pba->pvecback),
+    class_call(background_functions_of_a(pba,pData[i*pba->bi_size+pba->index_bi_a], long_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
     
     /* -> write in the table */
-    memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pba->pvecback,pba->bg_size*sizeof(double));
+    memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
 
     class_test(memcopy_result != pba->background_table + i*pba->bg_size,
 	       pba->error_message,
@@ -822,6 +826,7 @@ int background_solve(
     printf(" -> conformal age = %f Mpc\n",pba->conformal_age);    
   }
 
+  free(pvecback);
   free(pvecback_integration);
 
   return _SUCCESS_;
@@ -838,6 +843,7 @@ int background_solve(
 int background_initial_conditions(
 				  struct precision *ppr,
 				  struct background *pba,
+				  double * pvecback,
 				  double * pvecback_integration
 				  ) {
 
@@ -857,7 +863,7 @@ int background_initial_conditions(
      relativistic? etc.) If the test is OK, fix other initial values: */
 
   /** - compute initial H with background_functions_of_a() */
-  class_call(background_functions_of_a(pba,a, short_info, pba->pvecback),
+  class_call(background_functions_of_a(pba,a, short_info, pvecback),
 	     pba->error_message,
 	     pba->error_message);
 
@@ -865,16 +871,16 @@ int background_initial_conditions(
         universe since Big Bang and therefore \f$ t=1/(2H) \f$ (good
         approximation for most purposes) */
 
-  class_test(pba->pvecback[pba->index_bg_H] <= 0.,
+  class_test(pvecback[pba->index_bg_H] <= 0.,
 	     pba->error_message,
-	     "H = %e instead of strictly positive",pba->pvecback[pba->index_bg_H]);
+	     "H = %e instead of strictly positive",pvecback[pba->index_bg_H]);
 
-  pvecback_integration[pba->index_bi_time] = 1./(2.*  pba->pvecback[pba->index_bg_H]);
+  pvecback_integration[pba->index_bi_time] = 1./(2.* pvecback[pba->index_bg_H]);
 
   /** - compute initial conformal time, assuming radiation-dominated
         universe since Big Bang and therefore \f$ \eta=1/(aH) \f$
         (good approximation for most purposes) */
-  pvecback_integration[pba->index_bi_eta] = 1./(a * pba->pvecback[pba->index_bg_H]);
+  pvecback_integration[pba->index_bi_eta] = 1./(a * pvecback[pba->index_bg_H]);
 
   /** - compute initial sound horizon, assuming c_s=1/sqrt(3) initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_eta]/sqrt(3.);
@@ -889,45 +895,49 @@ int background_initial_conditions(
   * This is one of the few functions in the code which are passed to the generic_integrator() routine. 
   * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
   * is a bit special:
-  * - fixed parameters that the function should know are passed through a generic pointer. Here, this is just a pointer to the 
-  *   background structure, but generic_integrator() doesn't know that.
+  * - fixed input parameters and wokspaces are passed through a generic pointer. Here, this is just a pointer to the 
+  *   background structure and to a background vector, but generic_integrator() doesn't know its fine structure.
   * - the error management is a bit special: errors are not written as usual to pba->error_message, but to a generic 
   *   error_message passed in the list of arguments.
   *
   * @param eta Input : conformal time
   * @param y Input : vector of variable
   * @param dy Output : its derivative (already allocated)
-  * @param fixed_parameters Input: pointer to fixed parameters (e.g. indices)
+  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
   * @param error_message Output : error message
   */
 int background_derivs(
 		      double eta,
 		      double* y, 
 		      double* dy,
-		      void * fixed_parameters,
+		      void * parameters_and_workspace,
 		      ErrorMsg error_message
 		      ) {
 
+  struct background_derivs_parameters * pbdp;
   struct background * pba;
+  double * pvecback;
 
-  pba =  fixed_parameters;
+  pbdp = parameters_and_workspace;
+  pba =  pbdp->pba;
+  pvecback = pbdp->pvecback;
 
   /** - Calculates functions of /f$ a /f$ with background_functions_of_a() */
-  class_call(background_functions_of_a((struct background *)pba,y[pba->index_bi_a], short_info, pba->pvecback),
+  class_call(background_functions_of_a((struct background *)pba,y[pba->index_bi_a], short_info, pvecback),
 	     pba->error_message,
 	     error_message);
 
     /** - calculate /f$ a'=a^2 H /f$ */
-    dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pba->pvecback[pba->index_bg_H];
+    dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
 
     /** - calculate /f$ t' = a /f$ */
     dy[pba->index_bi_time] = y[pba->index_bi_a];
 
-    class_test(pba->pvecback[pba->index_bg_rho_g] <= 0.,
+    class_test(pvecback[pba->index_bg_rho_g] <= 0.,
 	       error_message,
-	       "rho_g = %e instead of strictly positive",pba->pvecback[pba->index_bg_rho_g]);
+	       "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
-    dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pba->pvecback[pba->index_bg_rho_b]/4./pba->pvecback[pba->index_bg_rho_g]));
+    dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));
 
     return _SUCCESS_;
 

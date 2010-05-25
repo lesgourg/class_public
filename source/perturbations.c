@@ -1908,6 +1908,7 @@ int perturb_back_and_thermo(double eta,
 			    1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
 			    intermode,
 			    last_index_thermo,
+			    pvecback,
 			    pvecthermo) == _FAILURE_) {
       sprintf(ppt->error_message,"%s(L:%d) : error in thermodynamics_at_z()\n=>%s",__func__,__LINE__,pth->error_message);
       return _FAILURE_;
