@@ -286,10 +286,12 @@ struct current_vectors
 			double * source_terms_array
 			);
 
-    void perturb_derivs(
+    int perturb_derivs(
 			double eta,
 			double * pperturbations,
-			double * pperturbations_derivs
+			double * pperturbations_derivs,
+			void * fixed_parameters,
+			ErrorMsg error_message
 			);
 
 #ifdef __cplusplus

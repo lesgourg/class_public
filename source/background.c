@@ -22,22 +22,6 @@
 
 #include "background.h"
 
-
-double * pvecback; /**< vector of background quantities, used
-		      throughout the background module. Use a global
-		      variable in order to avoid reallocating it many
-		      times. */
-
-//@}
-
-/** @name - miscellaneous: */
-
-//@{
-
-ErrorMsg Transmit_Error_Message; /**< contains error message */
-
-//@}
-
   /**
    * Background quantities at given conformal time eta.
    *
@@ -60,7 +44,7 @@ int background_at_eta(
 		      enum format_info return_format,
 		      enum interpolation_mode intermode,
 		      int * last_index,
-		      double * pvecback_local
+		      double * pvecback
 		      ) {
 
   /** Summary: */
@@ -72,14 +56,13 @@ int background_at_eta(
 
   /** - check that eta is in the pre-computed range */
 
-  if (eta < pba->eta_table[0]) {
-    sprintf(pba->error_message,"%s(L:%d) : eta=%e < eta_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",__func__,__LINE__,eta,pba->eta_table[0]);
-    return _FAILURE_;
-  }
-  if (eta > pba->eta_table[pba->bt_size-1]) {
-    sprintf(pba->error_message,"%s(L:%d) : eta=%e > eta_max=%e\n",__func__,__LINE__,eta,pba->eta_table[pba->bt_size-1]);
-    return _FAILURE_;
-  }
+  class_test(eta < pba->eta_table[0],
+	     pba->error_message,
+	     "out of range: eta=%e < eta_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",eta,pba->eta_table[0]);
+
+  class_test(eta > pba->eta_table[pba->bt_size-1],
+	     pba->error_message,
+	     "out of range: eta=%e > eta_max=%e\n",eta,pba->eta_table[pba->bt_size-1]);
 
   /** - deduce length of returned vector from format mode */ 
 
@@ -93,36 +76,34 @@ int background_at_eta(
   /** - interpolate from pre-computed table with array_interpolate() or array_interpolate_growing_closeby() (depending on interpolation mode) */
 
   if (intermode == normal) {
-    if (array_interpolate_spline(
-				 pba->eta_table,
-				 pba->bt_size,
-				 pba->background_table,
-				 pba->d2background_deta2_table,
-				 pba->bg_size,
-				 eta,
-				 last_index,
-				 pvecback_local,
-				 pvecback_size,
-				 Transmit_Error_Message) == _FAILURE_) {
-      sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(array_interpolate_spline(
+					pba->eta_table,
+					pba->bt_size,
+					pba->background_table,
+					pba->d2background_deta2_table,
+					pba->bg_size,
+					eta,
+					last_index,
+					pvecback,
+					pvecback_size,
+					pba->error_message),
+	       pba->error_message,
+	       pba->error_message);
   }
   if (intermode == closeby) {
-    if (array_interpolate_spline_growing_closeby(
-						 pba->eta_table,
-						 pba->bt_size,
-						 pba->background_table,
-						 pba->d2background_deta2_table,
-						 pba->bg_size,
-						 eta,
-						 last_index,
-						 pvecback_local,
-						 pvecback_size,
-						 Transmit_Error_Message) == _FAILURE_) {
-      sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline_growing_closeby() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;  
-    }
+    class_call(array_interpolate_spline_growing_closeby(
+							pba->eta_table,
+							pba->bt_size,
+							pba->background_table,
+							pba->d2background_deta2_table,
+							pba->bg_size,
+							eta,
+							last_index,
+							pvecback,
+							pvecback_size,
+							pba->error_message),
+	       pba->error_message,
+	       pba->error_message);
   }
 
   return _SUCCESS_;
@@ -153,36 +134,31 @@ int background_eta_of_z(
   /* scale factor */
   double a; 
 
-  /* vector of background quantities */
-  double * pvecback_local;
-
   int last_index; /* necessary for calling array_interpolate(), but never used */
 
   /** - check that \f$ z \f$ is in the pre-computed range */
-  if (z < pba->z_table[pba->bt_size-1]) {
-    sprintf(pba->error_message,"%s(L%d) : z=%e < z_min=%e\n",__func__,__LINE__,z,pba->z_table[pba->bt_size-1]);
-    return _FAILURE_;
-  }
-  if (z > pba->z_table[0]) {
-    sprintf(pba->error_message,"%s(L%d) : a=%e > a_max=%e\n",__func__,__LINE__,z,pba->z_table[0]);
-    return _FAILURE_;
-  }
+  class_test(z < pba->z_table[pba->bt_size-1],
+	     pba->error_message,
+	     "out of range: z=%e < z_min=%e\n",z,pba->z_table[pba->bt_size-1]);
+
+  class_test(z > pba->z_table[0],
+	     pba->error_message,
+	     "out of range: a=%e > a_max=%e\n",z,pba->z_table[0]);
 
   /** - interpolate from pre-computed table with array_interpolate() */
-  if (array_interpolate_spline(
-			       pba->z_table,
-			       pba->bt_size, 
-			       pba->eta_table,
-			       pba->d2eta_dz2_table,
-			       1,
-			       z,
-			       &last_index,
-			       eta,
-			       1,
-			       Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_interpolate_spline(
+				      pba->z_table,
+				      pba->bt_size, 
+				      pba->eta_table,
+				      pba->d2eta_dz2_table,
+				      1,
+				      z,
+				      &last_index,
+				      eta,
+				      1,
+				      pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
 
   return _SUCCESS_;
 }
@@ -201,14 +177,14 @@ int background_eta_of_z(
   *
   * @param a Input: value of scale factor 
   * @param return_format Input: format of output vector 
-  * @param pvecback_local Output: vector of background quantities (assmued to be already allocated) 
+  * @param pvecback Output: vector of background quantities (assmued to be already allocated) 
   * @return the error status
   */
 int background_functions_of_a(
 			      struct background *pba,
 			      double a,
 			      enum format_info return_format,
-			      double * pvecback_local
+			      double * pvecback
 			      ) {
 
   /** Summary: */
@@ -230,93 +206,91 @@ int background_functions_of_a(
   rho_r=0.;
   a_rel = a / pba->a_today;
 
-  if (a_rel <= 0.) { /* mainly to avoid segmentation faults */
-    sprintf(pba->error_message,"%s(L:%d): a = %e instead of strictly positive \n",__func__,__LINE__,a_rel);
-    return _FAILURE_;
-  }
+  class_test(a_rel <= 0.,
+	     pba->error_message,
+	     "a = %e instead of strictly positive",a_rel);
 
   /** - pass value of a to output */
-  pvecback_local[pba->index_bg_a] = a;
+  pvecback[pba->index_bg_a] = a;
 
   /** - compute each component's density and pressure */
 
   /* photons */
-  pvecback_local[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a_rel,4);
-  rho_tot += pvecback_local[pba->index_bg_rho_g];
-  p_tot += (1./3.) * pvecback_local[pba->index_bg_rho_g];
-  rho_r += pvecback_local[pba->index_bg_rho_g];
+  pvecback[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a_rel,4);
+  rho_tot += pvecback[pba->index_bg_rho_g];
+  p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
+  rho_r += pvecback[pba->index_bg_rho_g];
 
   /* baryons */
-  pvecback_local[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a_rel,3);
-  rho_tot += pvecback_local[pba->index_bg_rho_b];
+  pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a_rel,3);
+  rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
 
   /* cdm */
   if (pba->has_cdm == _TRUE_) {
-    pvecback_local[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a_rel,3);
-    rho_tot += pvecback_local[pba->index_bg_rho_cdm];
+    pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a_rel,3);
+    rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
   }
 
   /* Lambda */
   if (pba->has_lambda == _TRUE_) {
-    pvecback_local[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
-    rho_tot += pvecback_local[pba->index_bg_rho_lambda];
-    p_tot -= pvecback_local[pba->index_bg_rho_lambda];
+    pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
+    rho_tot += pvecback[pba->index_bg_rho_lambda];
+    p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
 
   /* dark energy fluid with constant w */
   if (pba->has_dark_energy_fluid == _TRUE_) {
-    pvecback_local[pba->index_bg_rho_de] = pba->Omega0_de * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w_de));
-    rho_tot += pvecback_local[pba->index_bg_rho_de];
-    p_tot += pba->w_de * pvecback_local[pba->index_bg_rho_de];
+    pvecback[pba->index_bg_rho_de] = pba->Omega0_de * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w_de));
+    rho_tot += pvecback[pba->index_bg_rho_de];
+    p_tot += pba->w_de * pvecback[pba->index_bg_rho_de];
   }
 
   /* relativistic neutrinos (and all relativistic relics) */
   if (pba->has_nur == _TRUE_) {
-    pvecback_local[pba->index_bg_rho_nur] = pba->Omega0_nur * pow(pba->H0,2) / pow(a_rel,4);
-    rho_tot += pvecback_local[pba->index_bg_rho_nur];
-    p_tot += (1./3.) * pvecback_local[pba->index_bg_rho_nur];
-    rho_r += pvecback_local[pba->index_bg_rho_nur];
+    pvecback[pba->index_bg_rho_nur] = pba->Omega0_nur * pow(pba->H0,2) / pow(a_rel,4);
+    rho_tot += pvecback[pba->index_bg_rho_nur];
+    p_tot += (1./3.) * pvecback[pba->index_bg_rho_nur];
+    rho_r += pvecback[pba->index_bg_rho_nur];
   }
 
   /** - compute relativistic density to total density ratio */
-  pvecback_local[pba->index_bg_Omega_r] = rho_r / rho_tot;
+  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
 
   /** - compute expansion rate H from Friedmann equation */
-  pvecback_local[pba->index_bg_H] = sqrt(rho_tot);
+  pvecback[pba->index_bg_H] = sqrt(rho_tot);
 
   /** - compute derivative of H with respect to conformal time */
-  pvecback_local[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a;
+  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a;
 
   /** - compute other quantities in the exhaustive, redundent format: */
   if (return_format == long_info) {
     
     /** - compute critical density */
-    pvecback_local[pba->index_bg_rho_crit] = rho_tot;
-    if (pvecback_local[pba->index_bg_rho_crit] <= 0.) { /* to avoid segmentation fault in next lines */
-      sprintf(pba->error_message,"%s(L:%d): rho_tot = %e instead of strictly positive \n",__func__,__LINE__,pvecback_local[pba->index_bg_rho_crit]);
-      return _FAILURE_;
-    }
+    pvecback[pba->index_bg_rho_crit] = rho_tot;
+    class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
+	       pba->error_message,
+	       "rho_tot = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
 
     /** - compute Omega's */
 
     /* photons */
-    pvecback_local[pba->index_bg_Omega_g] = pvecback_local[pba->index_bg_rho_g] / pvecback_local[pba->index_bg_rho_crit];
+    pvecback[pba->index_bg_Omega_g] = pvecback[pba->index_bg_rho_g] / pvecback[pba->index_bg_rho_crit];
     /* baryons */
-    pvecback_local[pba->index_bg_Omega_b] = pvecback_local[pba->index_bg_rho_b] / pvecback_local[pba->index_bg_rho_crit];
+    pvecback[pba->index_bg_Omega_b] = pvecback[pba->index_bg_rho_b] / pvecback[pba->index_bg_rho_crit];
     /* cdm */
     if (pba->has_cdm == _TRUE_)
-      pvecback_local[pba->index_bg_Omega_cdm] = pvecback_local[pba->index_bg_rho_cdm] / pvecback_local[pba->index_bg_rho_crit];
+      pvecback[pba->index_bg_Omega_cdm] = pvecback[pba->index_bg_rho_cdm] / pvecback[pba->index_bg_rho_crit];
     /* Lambda */
     if (pba->has_lambda == _TRUE_)
-      pvecback_local[pba->index_bg_Omega_lambda] = pvecback_local[pba->index_bg_rho_lambda] / pvecback_local[pba->index_bg_rho_crit];
+      pvecback[pba->index_bg_Omega_lambda] = pvecback[pba->index_bg_rho_lambda] / pvecback[pba->index_bg_rho_crit];
     /* dark energy fluid with constant w */
     if (pba->has_dark_energy_fluid == _TRUE_)
-      pvecback_local[pba->index_bg_Omega_de] = pvecback_local[pba->index_bg_rho_de] / pvecback_local[pba->index_bg_rho_crit];
+      pvecback[pba->index_bg_Omega_de] = pvecback[pba->index_bg_rho_de] / pvecback[pba->index_bg_rho_crit];
     /* relativistic neutrinos */
     if (pba->has_nur == _TRUE_)
-      pvecback_local[pba->index_bg_Omega_nur] = pvecback_local[pba->index_bg_rho_nur] / pvecback_local[pba->index_bg_rho_crit];
+      pvecback[pba->index_bg_Omega_nur] = pvecback[pba->index_bg_rho_nur] / pvecback[pba->index_bg_rho_crit];
     
     /* one can put other variables here */
     /*  */
@@ -359,26 +333,19 @@ int background_init(
     printf("Computing background\n");
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
-  if (background_indices(pba) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pba->error_message);
-    sprintf(pba->error_message,"%s(L:%d) : error in background_indices() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(background_indices(pba),
+	     pba->error_message,
+	     pba->error_message);
 
   /** - allocate memory for the two useful background vectors pvecback and pvecback_integration (global variables in background.c, used as long as background_init() is not finished) */
-  pvecback = malloc(pba->bg_size*sizeof(double));
-  if (pvecback==NULL) {
-    sprintf(pba->error_message,"%s(L:%d): error : cannot allocate pvecback \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
+  class_alloc(pba->pvecback ,pba->bg_size*sizeof(double),pba->error_message);
+  
   /** - control that cosmological parameter values make sense */
 
   /* H0 in Mpc^{-1} */
-  if ((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_)) {
-    sprintf(pba->error_message,"%s(L:%d): H0 out of bounds (got %g, expected %g<H0<%g) \n",__func__,__LINE__,pba->H0,_H0_SMALL_,_H0_BIG_);
-    return _FAILURE_;
-  }
+  class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
+    pba->error_message,
+    "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
 
   pba->h = pba->H0 * _c_ /100.;
 
@@ -396,31 +363,23 @@ int background_init(
   if (pba->has_nur == _TRUE_) {
     Omega0_tot += pba->Omega0_nur;
   }
-  if (fabs(Omega0_tot-1.) > _TOLERANCE_ON_CURVATURE_) {
-    sprintf(pba->error_message,"%s(L:%d): Non zero spatial curvature not available (Omega0 = %g) \n",__func__,__LINE__,Omega0_tot);
-    return _FAILURE_;
-  }
+  class_test(fabs(Omega0_tot-1.) > _TOLERANCE_ON_CURVATURE_,
+	     pba->error_message,
+	     "non zero spatial curvature not available (Omega0 = %g)",Omega0_tot);
 
   /* other quantities which would lead to segmentation fault if zero */
-  if (pba->a_today <= 0) {
-    sprintf(pba->error_message,"%s(L:%d): input a_today = %e instead of strictly positive \n",__func__,__LINE__,pba->a_today);
-    return _FAILURE_;
-  }
-  if (_Gyr_over_Mpc_ <= 0) {
-    sprintf(pba->error_message,"%s(L:%d): _Gyr_over_Mpc = %e instead of strictly positive \n",__func__,__LINE__,_Gyr_over_Mpc_);
-    return _FAILURE_;
-  }
+  class_test(pba->a_today <= 0,
+	     pba->error_message,
+	     "input a_today = %e instead of strictly positive",pba->a_today);
+
+  class_test(_Gyr_over_Mpc_ <= 0,
+	     pba->error_message,
+	     "_Gyr_over_Mpc = %e instead of strictly positive",_Gyr_over_Mpc_);
 
   /** - integrate background, allocate and fill the background table with background_solve()*/
-  if (background_solve(ppr,pba) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pba->error_message);
-    sprintf(pba->error_message,"%s(L:%d) : error in background_solve() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
-
-  /** - free memory allocated for pvecback and pvecback_integration */
- 
-  free(pvecback);
+  class_call(background_solve(ppr,pba),
+	     pba->error_message,
+	     pba->error_message);
 
   return _SUCCESS_;
 
@@ -444,6 +403,7 @@ int background_free(
   free(pba->d2eta_dz2_table);
   free(pba->background_table);
   free(pba->d2background_deta2_table);
+  free(pba->pvecback);
 
   return _SUCCESS_;
 }
@@ -627,10 +587,9 @@ int background_indices(
 
   /* index_bi_eta must be the last index, because eta is part of this vector for the purpose of being stored, */
   /* but it is not a quantity to be integrated (since integration is over eta itself) */      
-  if (pba->index_bi_eta != index_bi-1) {
-    sprintf(pba->error_message,"%s(L%d) : background integration requires index_bi_eta to be the last of all index_bi's. \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(pba->index_bi_eta != index_bi-1,
+	     pba->error_message,
+	     "background integration requires index_bi_eta to be the last of all index_bi's");
 
   return _SUCCESS_;
 
@@ -672,11 +631,7 @@ int background_solve(
   int last_index=0; /* necessary for calling array_interpolate(), but never used */
 
   /** - allocate vector of quantities to be integrated */
-  pvecback_integration = malloc(pba->bi_size*sizeof(double));
-  if (pvecback_integration==NULL) {
-    sprintf(pba->error_message,"%s(L:%d): error : cannot allocate pvecback_integration \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(pvecback_integration,pba->bi_size*sizeof(double),pba->error_message);
 
   /** - initialize generic integrator with initialize_generic_integrator() */ 
 
@@ -688,20 +643,18 @@ int background_solve(
 	     pba->error_message);
 
   /** - impose initial conditions with background_initial_conditions() */
-  if (background_initial_conditions(ppr,pba,pvecback_integration) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pba->error_message);
-    sprintf(pba->error_message,"%s(L:%d) : probelm in background_initial_conditions() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(background_initial_conditions(ppr,pba,pvecback_integration),
+	     pba->error_message,
+	     pba->error_message);
 
   /* here eta_end is in fact the initial time (in the next loop
      eta_start = eta_end) */
   eta_end=pvecback_integration[pba->index_bi_eta];
 
   /** - create a growTable with gt_init() */
-  if (gt_init(&gTable) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in gt_init() \n=>%s",__func__,__LINE__,gTable.error_message);
-  }
+  class_call(gt_init(&gTable),
+	     gTable.error_message,
+	     pba->error_message);
   
   /* initialize the counter for the number of steps */
   pba->bt_size=0;
@@ -713,31 +666,27 @@ int background_solve(
     eta_start = eta_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
-    if (background_functions_of_a(pba,pvecback_integration[pba->index_bi_a], short_info, pvecback) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s",pba->error_message);
-      sprintf(pba->error_message,"%s(L:%d) : error in background_functions_of_a() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(background_functions_of_a(pba,pvecback_integration[pba->index_bi_a], short_info, pba->pvecback),
+	       pba->error_message,
+	       pba->error_message);
 
     if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
-      eta_end = eta_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]); 
+      eta_end = eta_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pba->pvecback[pba->index_bg_H]); 
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions_of_a() */
     }
     else {
-      eta_end = eta_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);  
+      eta_end = eta_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pba->pvecback[pba->index_bg_H]);  
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions_of_a() */
     }
 
-    if ((eta_end-eta_start) < ppr->smallest_allowed_variation) {
-      sprintf(pba->error_message,"%s(L:%d) : error : integration step =%e < machine precision : leads either to numerical error or infinite loop \n",__func__,__LINE__,eta_end-eta_start,gTable.error_message);
-      return _FAILURE_;
-    }
+    class_test((eta_end-eta_start) < ppr->smallest_allowed_variation,
+	       pba->error_message,
+	       "integration step =%e < machine precision : leads either to numerical error or infinite loop",eta_end-eta_start);
 
     /* -> save data in growTable */
-    if (gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size) == _FAILURE_) { 
-      sprintf(pba->error_message,"%s(L:%d) : error in gt_add() \n=>%s",__func__,__LINE__,gTable.error_message);
-      return _FAILURE_;
-    }
+    class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),
+	       gTable.error_message,
+	       pba->error_message);
     pba->bt_size++;
 
     /* -> perform one step */
@@ -758,10 +707,9 @@ int background_solve(
   }
 
   /** - save last data in growTable with gt_add() */
-  if (gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in gt_add() \n=>%s",__func__,__LINE__,gTable.error_message);
-    return _FAILURE_;
-  }
+  class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),
+	     gTable.error_message,
+	     pba->error_message);
   pba->bt_size++;
 
 
@@ -773,25 +721,23 @@ int background_solve(
 	     pba->error_message);
 
   /** - retrieve data stored in the growTable with gt_getPtr() */
-  if (gt_getPtr(&gTable,(void**)&pData) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in gt_getPtr() \n=>%s",__func__,__LINE__,gTable.error_message);
-    return _FAILURE_;
-  }
+  class_call(gt_getPtr(&gTable,(void**)&pData),
+	     gTable.error_message,
+	     pba->error_message);
 
   /** - interpolate to get quantities precisely today with array_interpolate() */
-  if (array_interpolate(
-		   pData,
-		   pba->bi_size,
-		   pba->bt_size,
-		   pba->index_bi_a, 
-		   pba->a_today,
-		   &last_index,
-		   pvecback_integration,
-		   pba->bi_size,
-		   Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_interpolate() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_interpolate(
+			       pData,
+			       pba->bi_size,
+			       pba->bt_size,
+			       pba->index_bi_a, 
+			       pba->a_today,
+			       &last_index,
+			       pvecback_integration,
+			       pba->bi_size,
+			       pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
 
   /* substitute last line with quantities today */
   for (i=0; i<pba->bi_size; i++) 
@@ -804,31 +750,15 @@ int background_solve(
   pba->conformal_age = pvecback_integration[pba->index_bi_eta];
 
   /** - allocate background tables */
-  pba->eta_table = malloc(pba->bt_size * sizeof(double));
-  if (pba->eta_table==NULL) {
-    sprintf(pba->error_message,"%s(L:%d): error : cannot allocate pba->eta_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  pba->z_table = malloc(pba->bt_size * sizeof(double));
-  if (pba->z_table==NULL) {
-    sprintf(pba->error_message,"%s(L:%d): error : cannot allocate pba->z_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  pba->d2eta_dz2_table = malloc(pba->bt_size * sizeof(double));
-  if (pba->d2eta_dz2_table==NULL) {
-    sprintf(pba->error_message,"%s(L:%d): error : cannot allocate pba->d2eta_dz2_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  pba->background_table = malloc(pba->bt_size * pba->bg_size * sizeof(double));
-  if (pba->background_table==NULL) {
-    sprintf(pba->error_message,"%s(L:%d): error : cannot allocate pba->background_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  pba->d2background_deta2_table = malloc(pba->bt_size * pba->bg_size * sizeof(double));
-  if (pba->d2background_deta2_table==NULL) {
-    sprintf(pba->error_message,"%s(L:%d): error : cannot allocate pba->d2background_deta2_table \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(pba->eta_table,pba->bt_size * sizeof(double),pba->error_message);
+
+  class_alloc(pba->z_table,pba->bt_size * sizeof(double),pba->error_message);
+
+  class_alloc(pba->d2eta_dz2_table,pba->bt_size * sizeof(double),pba->error_message);
+
+  class_alloc(pba->background_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
+
+  class_alloc(pba->d2background_deta2_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
   
   /** - In a loop over lines, fill background table using the result of the integration plus background_functions_of_a() */
   for (i=0; i < pba->bt_size; i++) {
@@ -837,59 +767,55 @@ int background_solve(
 
     pba->eta_table[i] = pData[i*pba->bi_size+pba->index_bi_eta];
 
-    if (pData[i*pba->bi_size+pba->index_bi_a] > 0) /* mainly to avoid segmentation fault */
-      pba->z_table[i] = pba->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
-    else {
-      sprintf(pba->error_message,"%s(L:%d): a = %e instead of strictly positive \n",__func__,__LINE__,pData[i*pba->bi_size+pba->index_bi_a]);
-      return _FAILURE_;
-    }
+    class_test(pData[i*pba->bi_size+pba->index_bi_a] <= 0.,
+	       pba->error_message,
+	       "a = %e instead of strictly positiv",pData[i*pba->bi_size+pba->index_bi_a]);
 
-    pvecback[pba->index_bg_a] = pData[i*pba->bi_size+pba->index_bi_a];
-    pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
-    pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_eta];
-    pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
+    pba->z_table[i] = pba->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
+
+    pba->pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
+    pba->pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_eta];
+    pba->pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities */
-    if (background_functions_of_a(pba,pvecback[pba->index_bg_a], long_info, pvecback) == _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s",pba->error_message);
-      sprintf(pba->error_message,"%s(L:%d) : error in background_functions_of_a() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(background_functions_of_a(pba,pData[i*pba->bi_size+pba->index_bi_a], long_info, pba->pvecback),
+	       pba->error_message,
+	       pba->error_message);
     
     /* -> write in the table */
-    memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
-    if (memcopy_result != pba->background_table + i*pba->bg_size) {
-      sprintf(pba->error_message,"%s(L:%d) : error : cannot copy data back to pba->background_table \n",__func__,__LINE__);
-      return _FAILURE_;
-                                                                                                                                                                                                                   }
+    memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pba->pvecback,pba->bg_size*sizeof(double));
+
+    class_test(memcopy_result != pba->background_table + i*pba->bg_size,
+	       pba->error_message,
+	       "cannot copy data back to pba->background_table");
   }
 
   /** - free the growTable with gt_free() */
 
-  gt_free(&gTable);
+  class_call(gt_free(&gTable),
+	     gTable.error_message,
+	     pba->error_message);
   
   /** - fill tables of second derivatives (in view of spline interpolation) */
-  if (array_spline_table_lines(pba->z_table,
-			       pba->bt_size,
-			       pba->eta_table,
-			       1,
-			       pba->d2eta_dz2_table,
-			       _SPLINE_EST_DERIV_,
-			       Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_spline_table_lines() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_spline_table_lines(pba->z_table,
+				      pba->bt_size,
+				      pba->eta_table,
+				      1,
+				      pba->d2eta_dz2_table,
+				      _SPLINE_EST_DERIV_,
+				      pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
 
-  if (array_spline_table_lines(pba->eta_table,
-			       pba->bt_size,
-			       pba->background_table,
-			       pba->bg_size,
-			       pba->d2background_deta2_table,
-			       _SPLINE_EST_DERIV_,
-			       Transmit_Error_Message) == _FAILURE_) {
-    sprintf(pba->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(array_spline_table_lines(pba->eta_table,
+				      pba->bt_size,
+				      pba->background_table,
+				      pba->bg_size,
+				      pba->d2background_deta2_table,
+				      _SPLINE_EST_DERIV_,
+				       pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
 
   if (pba->background_verbose > 0) {
     printf(" -> age = %f Gyr\n",pba->age);
@@ -931,26 +857,24 @@ int background_initial_conditions(
      relativistic? etc.) If the test is OK, fix other initial values: */
 
   /** - compute initial H with background_functions_of_a() */
-  if (background_functions_of_a(pba,a, short_info, pvecback) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pba->error_message);
-    sprintf(pba->error_message,"%s(L:%d) : error in background_functions_of_a() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-    return _FAILURE_;
-  }
+  class_call(background_functions_of_a(pba,a, short_info, pba->pvecback),
+	     pba->error_message,
+	     pba->error_message);
 
   /** - compute initial proper time, assuming radiation-dominated
         universe since Big Bang and therefore \f$ t=1/(2H) \f$ (good
         approximation for most purposes) */
-  if (pvecback[pba->index_bg_H] > 0.) /* mainly to avoid segmentation fault */
-    pvecback_integration[pba->index_bi_time] = 1./(2.*  pvecback[pba->index_bg_H]);
-  else { 
-    sprintf(pba->error_message,"%s(L:%d): H = %e instead of strictly positive \n",__func__,__LINE__,pvecback[pba->index_bg_H]);
-    return _FAILURE_;
-  }
+
+  class_test(pba->pvecback[pba->index_bg_H] <= 0.,
+	     pba->error_message,
+	     "H = %e instead of strictly positive",pba->pvecback[pba->index_bg_H]);
+
+  pvecback_integration[pba->index_bi_time] = 1./(2.*  pba->pvecback[pba->index_bg_H]);
 
   /** - compute initial conformal time, assuming radiation-dominated
         universe since Big Bang and therefore \f$ \eta=1/(aH) \f$
         (good approximation for most purposes) */
-  pvecback_integration[pba->index_bi_eta] = 1./(a * pvecback[pba->index_bg_H]);
+  pvecback_integration[pba->index_bi_eta] = 1./(a * pba->pvecback[pba->index_bg_H]);
 
   /** - compute initial sound horizon, assuming c_s=1/sqrt(3) initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_eta]/sqrt(3.);
@@ -962,18 +886,26 @@ int background_initial_conditions(
 /** 
   * Subroutine evaluating the derivative with respect to conformal time of quantities which are integrated (a, t, etc). 
   *
-  * Passed as an argument to the generic_integrator() function.
+  * This is one of the few functions in the code which are passed to the generic_integrator() routine. 
+  * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
+  * is a bit special:
+  * - fixed parameters that the function should know are passed through a generic pointer. Here, this is just a pointer to the 
+  *   background structure, but generic_integrator() doesn't know that.
+  * - the error management is a bit special: errors are not written as usual to pba->error_message, but to a generic 
+  *   error_message passed in the list of arguments.
   *
   * @param eta Input : conformal time
   * @param y Input : vector of variable
   * @param dy Output : its derivative (already allocated)
-  * @param fixed_parameters Input: pointer to fixed parameters (e.g. indices); here, this is just a pointer to the background structure; passed as a generic pointer in order to match declarations in generic integrator module.
+  * @param fixed_parameters Input: pointer to fixed parameters (e.g. indices)
+  * @param error_message Output : error message
   */
 int background_derivs(
 		      double eta,
 		      double* y, 
 		      double* dy,
-		      void * fixed_parameters
+		      void * fixed_parameters,
+		      ErrorMsg error_message
 		      ) {
 
   struct background * pba;
@@ -981,26 +913,22 @@ int background_derivs(
   pba =  fixed_parameters;
 
   /** - Calculates functions of /f$ a /f$ with background_functions_of_a() */
-  if (background_functions_of_a((struct background *)pba,y[pba->index_bi_a], short_info, pvecback) == _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s",pba->error_message);
-    sprintf(pba->error_message,"%s(L:%d) : error in calling background_derivs() \n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return;
-    }
+  class_call(background_functions_of_a((struct background *)pba,y[pba->index_bi_a], short_info, pba->pvecback),
+	     pba->error_message,
+	     error_message);
 
     /** - calculate /f$ a'=a^2 H /f$ */
-    dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
+    dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pba->pvecback[pba->index_bg_H];
 
     /** - calculate /f$ t' = a /f$ */
     dy[pba->index_bi_time] = y[pba->index_bi_a];
 
-    /** - calculate /f$ r_s' = c_s /f$ */
-    if (pvecback[pba->index_bg_rho_g] > 0.) /* mainly to avoid segmentation fault */
-      dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));
-    else {
-      sprintf(pba->error_message,"%s(L:%d): rho_g = %e instead of strictly positive \n",__func__,__LINE__,pvecback[pba->index_bg_rho_g]);
-      return;
-    }
+    class_test(pba->pvecback[pba->index_bg_rho_g] <= 0.,
+	       error_message,
+	       "rho_g = %e instead of strictly positive",pba->pvecback[pba->index_bg_rho_g]);
 
-    return;
+    dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pba->pvecback[pba->index_bg_rho_b]/4./pba->pvecback[pba->index_bg_rho_g]));
+
+    return _SUCCESS_;
 
 }

@@ -14,11 +14,7 @@ int gt_init(
   growTable* self /***< a pointer on an empty growTable */ 
   ) {
     
-  self->buffer = malloc(_GT_INITSIZE_);
-  if (self->buffer==NULL) {
-    sprintf(self->error_message,"%s(L:%d): Cannot allocate growTable->buffer \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(self->buffer,_GT_INITSIZE_,self->error_message);
   self->sz=_GT_INITSIZE_;
   self->csz=0;
   self->freeze=_FALSE_;  /**< This line added by JL */
@@ -42,10 +38,9 @@ int gt_add(
   
   /** - assumes the growTable is correctly initialized */
   
-  if (self->freeze == _TRUE_) {
-    sprintf(self->error_message,"%s(L:%d): cannot add any more data in the growTable (freeze is on)\n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(self->freeze == _TRUE_,
+	     self->error_message,
+	     "cannot add any more data in the growTable (freeze is on)");
   
   if (idx==_GT_END_) {
     ridx=self->csz;
@@ -53,27 +48,24 @@ int gt_add(
   else {
     ridx=idx;
   }
-  if (ridx<0) {
-    sprintf(self->error_message,"%s(L:%d): Don't know what to do with idx=%ld\n",__func__,__LINE__,ridx);
-    return _FAILURE_;
-  }
+  class_test(ridx<0,
+	     self->error_message,
+	     "Don't know what to do with idx=%ld",ridx);
  
   if (ridx+sz>self->sz) {
     /** - test -> pass -> ok we need to grow */
     nbuffer=realloc(self->buffer,self->sz*_GT_FACTOR_);
-    if (nbuffer==NULL) {
-      sprintf(self->error_message,"%s(L:%d): Cannot grow growTable\n",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test(nbuffer==NULL,
+	       self->error_message,
+	       "Cannot grow growTable");
     self->buffer=nbuffer;
     self->sz=self->sz*_GT_FACTOR_;
   }
   
   res=memcpy((void*) (self->buffer+ridx),(void*) data,(size_t) sz);
-  if (res!=self->buffer+ridx) {
-    sprintf(self->error_message,"%s(L:%d): Cannot add data to growTable\n",__func__,__LINE__);
-    return _FAILURE_;  
-  }
+  class_test(res!=self->buffer+ridx,
+	     self->error_message,
+	     "Cannot add data to growTable");
   self->csz=ridx+sz;
   
   return _SUCCESS_;
@@ -92,21 +84,19 @@ int gt_retrieve(
   ) {
   void *res;
   
-  if (idx<0) {
-    sprintf(self->error_message,"%s(L:%d): Don't know what to do with idx=%ld\n",__func__,__LINE__,idx);
-    return _FAILURE_;
-  }
+  class_test(idx<0,
+	     self->error_message,
+	     "don't know what to do with idx=%ld",idx);
 
-  if ((idx>self->csz) || (idx+sz>self->csz)) {
-    sprintf(self->error_message,"%s(L:%d): Not enough data in growTable",__func__,__LINE__);
-    return _FAILURE_;  
-  }
+  class_test((idx>self->csz) || (idx+sz>self->csz),
+	     self->error_message,
+	     "not enough data in growTable");
   
   res=memcpy(data,self->buffer+idx,sz);
-  if (res!=self->buffer+idx) {
-    sprintf(self->error_message,"%s(L:%d): Cannot retrieve data from the growTable\n",__func__,__LINE__);
-    return _FAILURE_; 
-  }
+  class_test(res!=self->buffer+idx,
+	     self->error_message,
+	     "cannot retrieve data from the growTable");
+
   return _SUCCESS_;
 }
 
@@ -131,10 +121,9 @@ int gt_getSize(
   growTable* self,/**< a growTable*/
   long *idx /**< OUTPUT : the size of the growTable ::self*/ 
   ) {
-  if (self->csz<0) {
-    sprintf(self->error_message,"%s(L:%d): growTable does not make sense\n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(self->csz<0,
+	     self->error_message,
+	     "growTable does not make sense");
   *idx=self->csz;
   return _SUCCESS_;
 }

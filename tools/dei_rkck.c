@@ -76,7 +76,7 @@ int cleanup_generic_integrator(struct generic_integrator_workspace * pgi){
   return _SUCCESS_;
 }
 
-int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * fixed_parameters),
+int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * fixed_parameters, ErrorMsg error_message),
 		       double x1, 
 		       double x2,  
 		       double ystart[],  
@@ -94,7 +94,9 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
   h=dsign(h1,x2-x1);
   for (i=0;i<pgi->n;i++) pgi->y[i]=ystart[i];
   for (nstp=1;nstp<=_MAXSTP_;nstp++) {
-    (*derivs)(x,pgi->y,pgi->dydx,fixed_parameters_for_derivs);
+    class_call((*derivs)(x,pgi->y,pgi->dydx,fixed_parameters_for_derivs, pgi->error_message),
+	       pgi->error_message,
+	       pgi->error_message);
     for (i=0;i<pgi->n;i++)
       pgi->yscal[i]=fabs(pgi->y[i])+fabs(pgi->dydx[i]*h)+_TINY_;
     if ((x+h-x2)*(x+h-x1) > 0.0) h=x2-x;
@@ -126,7 +128,7 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
 
 int rkqs(double *x, double htry, double eps,
 	 double *hdid, double *hnext,
-	 int (*derivs)(double, double [], double [], void * fixed_parameters),
+	 int (*derivs)(double, double [], double [], void * fixed_parameters, ErrorMsg error_message),
 	 void * fixed_parameters_for_derivs,
 	 struct generic_integrator_workspace * pgi)
 {
@@ -161,7 +163,7 @@ int rkqs(double *x, double htry, double eps,
 int rkck(
 	 double x, 
 	 double h,
-	 int (*derivs)(double, double [], double [], void * fixed_parameters),
+	 int (*derivs)(double, double [], double [], void * fixed_parameters, ErrorMsg error_message),
 	 void * fixed_parameters_for_derivs,
 	 struct generic_integrator_workspace * pgi)
 {
@@ -170,51 +172,56 @@ int rkck(
   for (i=0;i<pgi->n;i++)
     pgi->ytemp[i]=pgi->y[i]+_RKCK_b21_*h*pgi->dydx[i];
 
-  class_test((*derivs)(x+_RKCK_a2_*h,
+  class_call((*derivs)(x+_RKCK_a2_*h,
 		       pgi->ytemp,
 		       pgi->ak2,
-		       fixed_parameters_for_derivs)==_FAILURE_,
+		       fixed_parameters_for_derivs,
+		       pgi->error_message),
 	     pgi->error_message,
-	     "\n function that computes derivatives returned an error when x=%e \n(in this case no more precision can be given)",x+_RKCK_a2_*h);
+	     pgi->error_message);
   
   for (i=0;i<pgi->n;i++)
     pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b31_*pgi->dydx[i]+_RKCK_b32_*pgi->ak2[i]);
 
-  class_test((*derivs)(x+_RKCK_a3_*h,
+  class_call((*derivs)(x+_RKCK_a3_*h,
 		       pgi->ytemp,
 		       pgi->ak3,
-		       fixed_parameters_for_derivs)==_FAILURE_,
+		       fixed_parameters_for_derivs,
+		       pgi->error_message),
 	     pgi->error_message,
-	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a3_*h);
+	     pgi->error_message);
 
   for (i=0;i<pgi->n;i++)
     pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b41_*pgi->dydx[i]+_RKCK_b42_*pgi->ak2[i]+_RKCK_b43_*pgi->ak3[i]);
 
-  class_test((*derivs)(x+_RKCK_a4_*h,
+  class_call((*derivs)(x+_RKCK_a4_*h,
 		       pgi->ytemp,
 		       pgi->ak4,
-		       fixed_parameters_for_derivs)==_FAILURE_,
+		       fixed_parameters_for_derivs,
+		       pgi->error_message),
 	     pgi->error_message,
-	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a4_*h);
+	     pgi->error_message);
 
   for (i=0;i<pgi->n;i++)
     pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b51_*pgi->dydx[i]+_RKCK_b52_*pgi->ak2[i]+_RKCK_b53_*pgi->ak3[i]+_RKCK_b54_*pgi->ak4[i]);
 
-  class_test((*derivs)(x+_RKCK_a5_*h,
+  class_call((*derivs)(x+_RKCK_a5_*h,
 		       pgi->ytemp,
-		       pgi->ak5,fixed_parameters_for_derivs)==_FAILURE_,
+		       pgi->ak5,fixed_parameters_for_derivs,
+		       pgi->error_message),
 	     pgi->error_message,
-	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a5_*h);
+	     pgi->error_message);
 
   for (i=0;i<pgi->n;i++)
     pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b61_*pgi->dydx[i]+_RKCK_b62_*pgi->ak2[i]+_RKCK_b63_*pgi->ak3[i]+_RKCK_b64_*pgi->ak4[i]+_RKCK_b65_*pgi->ak5[i]);
 
-  class_test((*derivs)(x+_RKCK_a6_*h,
+  class_call((*derivs)(x+_RKCK_a6_*h,
 		       pgi->ytemp,
 		       pgi->ak6,
-		       fixed_parameters_for_derivs)==_FAILURE_,
+		       fixed_parameters_for_derivs,
+		       pgi->error_message),
 	     pgi->error_message,
-	     "\n function that computes derivatives returned an error when x=%e \n (in this case no more precision can be given)",x+_RKCK_a6_*h);
+	     pgi->error_message);
 
   for (i=0;i<pgi->n;i++)
     pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_c1_*pgi->dydx[i]+_RKCK_c3_*pgi->ak3[i]+_RKCK_c4_*pgi->ak4[i]+_RKCK_c6_*pgi->ak6[i]);

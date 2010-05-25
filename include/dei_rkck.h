@@ -47,7 +47,11 @@ extern "C" {
 
   int cleanup_generic_integrator(struct generic_integrator_workspace * pgi);
 
-  int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * fixed_parameters),
+  int generic_integrator(int (*derivs)(double x, 
+				       double y[], 
+				       double yprime[], 
+				       void * fixed_parameters,
+				       ErrorMsg error_message),
 			 double x1, 
 			 double x2,  
 			 double ystart[],  
@@ -61,13 +65,13 @@ extern "C" {
 	   double eps,
 	   double *hdid, 
 	   double *hnext,
-	   int (*derivs)(double, double [], double [], void *),
+	   int (*derivs)(double, double [], double [], void *, ErrorMsg),
 	   void * fixed_parameters_for_derivs,
 	   struct generic_integrator_workspace * pgi);
 
   int rkck(double x, 
 	   double h,
-	   int (*derivs)(double, double [], double [], void *),
+	   int (*derivs)(double, double [], double [], void *, ErrorMsg),
 	   void * fixed_parameters_for_derivs,
 	   struct generic_integrator_workspace * pgi);
 

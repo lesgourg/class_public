@@ -1241,7 +1241,11 @@ int thermodynamics_recombination(struct recombination * preco) {
   double x0,w0,w1,Lw0,Lw1,hW;
   double zstart,zend,rhs,Trad,Tmat;
   int i,Nz;
-  Generic_integrator_struct generic_integrator_in;
+
+  /* contains all quantities relevant for the integration algorithm */
+  struct generic_integrator_workspace gi;
+  /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
+  void * fixed_parameters_for_derivs;
   
   /** Summary: */
 
@@ -1254,10 +1258,9 @@ int thermodynamics_recombination(struct recombination * preco) {
   }
 
   /** - initialize generic integrator with initialize_generic_integrator() */
-  if (initialize_generic_integrator(_RECFAST_INTEG_SIZE_, &generic_integrator_in) == _FAILURE_){
-    sprintf(pth->error_message,"%s(L:%d) : error in initialize_generic_integrator() \n=>%s",__func__,__LINE__,generic_integrator_in.error_message);
-    return _FAILURE_;
-  }
+  class_call(initialize_generic_integrator(_RECFAST_INTEG_SIZE_, &gi),
+	     gi.error_message,
+	     pth->error_message);
   
   /** - read a few precision/cosmological parameters */
 
@@ -1399,16 +1402,16 @@ int thermodynamics_recombination(struct recombination * preco) {
 	      rhs = exp(1.5*log(CR*Tnow/(1.+z)) - CB1/(Tnow*(1.+z)))/Nnow;
 	      x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
 
-	      if (generic_integrator(thermodynamics_derivs_with_recfast,
-				     zstart,
-				     zend,
-				     y,
-				     ppr->tol_thermo_integration,
-				     &generic_integrator_in)== _FAILURE_) {
-		sprintf(Transmit_Error_Message,"%s",pth->error_message);
-		sprintf(pth->error_message,"%s(L:%d) : error in generic_integrator()\n=>%s\n=>%s",__func__,__LINE__,generic_integrator_in.error_message,Transmit_Error_Message);
-		return _FAILURE_;
-	      }
+	      class_call(generic_integrator(thermodynamics_derivs_with_recfast,
+					    zstart,
+					    zend,
+					    y,
+					    fixed_parameters_for_derivs,
+					    ppr->tol_thermo_integration,
+					    ppr->smallest_allowed_variation,
+					    &gi),
+			 gi.error_message,
+			 pth->error_message);
 
 	      y[0] = x_H0;
 	      x0 = y[0] + fHe*y[1];
@@ -1418,16 +1421,16 @@ int thermodynamics_recombination(struct recombination * preco) {
 	    }      
 	    else {
 
-	      if (generic_integrator(thermodynamics_derivs_with_recfast,
-				     zstart,
-				     zend,
-				     y,
-				     ppr->tol_thermo_integration,
-				     &generic_integrator_in)== _FAILURE_) {
-		sprintf(Transmit_Error_Message,"%s",pth->error_message);
-		sprintf(pth->error_message,"%s(L:%d) : error in generic_integrator()\n=>%s\n=>%s",__func__,__LINE__,generic_integrator_in.error_message,Transmit_Error_Message);
-		return _FAILURE_;
-	      }
+	      class_call(generic_integrator(thermodynamics_derivs_with_recfast,
+					    zstart,
+					    zend,
+					    y,
+					    fixed_parameters_for_derivs,
+					    ppr->tol_thermo_integration,
+					    ppr->smallest_allowed_variation,
+					    &gi),
+			 gi.error_message,
+			 pth->error_message);
 
 	      x0 = y[0] + fHe*y[1];
 
@@ -1446,13 +1449,9 @@ int thermodynamics_recombination(struct recombination * preco) {
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=y[2];
 
     /* -> get dTb/dz=dy[2] */
-    sprintf(pth->error_message,"");                             // initialise the error_message to "".
-    thermodynamics_derivs_with_recfast(zend, y, dy);            // run a 'void' function -> we don't know if a problem occured in this function.
-    if(strcmp(pth->error_message,"")){                          // check if the error_message is still "" to look if the function worked corectly.
-      sprintf(Transmit_Error_Message,"%s",pth->error_message);
-      sprintf(pth->error_message,"%s(L:%d) : error in thermodynamics_derivs_with_recfast()\n=>%s",__func__,__LINE__,Transmit_Error_Message);
-      return _FAILURE_;
-    }
+    class_call(thermodynamics_derivs_with_recfast(zend, y, dy, fixed_parameters_for_derivs,pth->error_message),
+	       pth->error_message,
+	       pth->error_message);
 
     /* -> cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
@@ -1468,10 +1467,9 @@ int thermodynamics_recombination(struct recombination * preco) {
 
   /** - cleanup generic integrator with cleanup_generic_integrator() */
 
-  if (cleanup_generic_integrator(&generic_integrator_in) == _FAILURE_){
-    sprintf(pth->error_message,"%s(L:%d) : error in cleanup_generic_integrator()\n=>%s",__func__,__LINE__,generic_integrator_in.error_message);
-    return _FAILURE_;
-  }
+  class_call(cleanup_generic_integrator(&gi),
+	     gi.error_message,
+	     pth->error_message);
   
   return _SUCCESS_;
 }
@@ -1539,18 +1537,29 @@ int thermodynamics_recombination(struct recombination * preco) {
  * Subroutine evaluating the derivative with respect to redshift of thermodynamical quantities (from RECFAST version 1.4). 
  *
  * Computes derivatives of the three variables to integrate: 
- * \f$ d x_H / dz, d x_{He} / dz, d T_{mat} / dz \f$. Passed as an argument to
- * the generic_integrator() function.
+ * \f$ d x_H / dz, d x_{He} / dz, d T_{mat} / dz \f$.
+ * 
+ * This is one of the few functions in the code which are passed to the generic_integrator() routine. 
+ * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
+ * is a bit special:
+ * - fixed parameters that the function should know are passed through a generic pointer. Here, this pointer contains the 
+ *   background, thermodynamics, recombination structures, etc., but generic_integrator() doesn't know that.
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic 
+ *   error_message passed in the list of arguments.
  *
  * @param z Input : redshift
  * @param y Input : vector of variable
  * @param dy Output : its derivative (already allocated)
+ * @param fixed_parameters Input: pointer to fixed parameters (e.g. indices)
+ * @param error_message Output : error message
  */
-void thermodynamics_derivs_with_recfast(
-					double z,
-					double * y,
-					double * dy
-					) {
+int thermodynamics_derivs_with_recfast(
+				       double z,
+				       double * y,
+				       double * dy,
+				       void * fixed_parameters,
+				       ErrorMsg error_message
+				       ) {
 
   double x,n,n_He,Trad,Tmat,x_H,x_He,Hz;
   double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
@@ -1574,10 +1583,9 @@ void thermodynamics_derivs_with_recfast(
   n_He = fHe * Nnow * pow((1.+z),3);
   Trad = Tnow * (1.+z);
 
-  if (background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th) == _FAILURE_){
-    sprintf(pth->error_message,"%s(L:%d) : error in background_functions_of_a()\n=>%s",__func__,__LINE__,pba->error_message);
-    return;
-  }
+  class_call(background_functions_of_a(pba,1./(1.+z),short_info,pvecback_th),
+	     pba->error_message,
+	     error_message);
   
   Hz=pvecback_th[pba->index_bg_H]/_Mpc_in_sec_;
 
@@ -1682,7 +1690,8 @@ void thermodynamics_derivs_with_recfast(
     dy[2]=Tmat/(1.+z);
   else
     dy[2]= CT * pow(Trad,4) * x / (1.+x+fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
-  return;
+
+  return _SUCCESS_;
 }      
 
 /* int get_init( */

@@ -15,16 +15,15 @@ int array_derive(
 		 int index_x,   /** from 0 to (n_columns-1) */
 		 int index_y,
 		 int index_dydx,
-		 char * errmsg) {
+		 ErrorMsg errmsg) {
   
   int i;
 
   double dx1,dx2,dy1,dy2,weight1,weight2;
 
-  if ((index_dydx == index_x) || (index_dydx == index_y)) {
-    sprintf(errmsg,"%s(L:%d) Output column %d must differ from input columns %d and %d",__func__,__LINE__,index_dydx,index_x,index_y);
-    return _FAILURE_;
-  }
+  class_test((index_dydx == index_x) || (index_dydx == index_y),
+	     errmsg,
+	     "output column %d must differ from input columns %d and %d",index_dydx,index_x,index_y);
 
   dx2=array[1*n_columns+index_x]-array[0*n_columns+index_x];
   dy2=array[1*n_columns+index_y]-array[0*n_columns+index_y];
@@ -35,10 +34,9 @@ int array_derive(
     dy1 = dy2;
     dx2 = array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x];
     dy2 = array[(i+1)*n_columns+index_y]-array[i*n_columns+index_y];
-    if ((dx1 == 0) || (dx2 == 0)) {
-      sprintf(errmsg,"%s(L:%d) dx1=0 or dx2=0, stop to avoid division by zero",__func__,__LINE__);
-      return _FAILURE_;
-    }
+    class_test((dx1 == 0) || (dx2 == 0),
+	       errmsg,
+	       "stop to avoid division by zero");
     weight1 = dx2*dx2;
     weight2 = dx1*dx1;
     array[i*n_columns+index_dydx] = (weight1*dy1+weight2*dy2) / (weight1*dx1+weight2*dx2);
@@ -61,7 +59,7 @@ int array_derive_spline(
 		 int n_columns,
 		 int index_y,
 		 int index_dydx,
-		 char * errmsg) {
+		 ErrorMsg errmsg) {
   
   int i;
 
@@ -101,7 +99,7 @@ int array_derive_spline_table_line_to_line(
 		 int index_y,
 		 int index_ddy,
 		 int index_dy,
-		 char * errmsg) {
+		 ErrorMsg errmsg) {
   
   int i;
 
@@ -135,7 +133,7 @@ int array_derive1_order2_table_line_to_line(
 				       int n_columns,
 				       int index_y,
 				       int index_dy,
-				       char * errmsg) {
+				       ErrorMsg errmsg) {
 
   int i;
   double dxp,dxm,dyp,dym;
@@ -187,7 +185,7 @@ int array_derive2_order2_table_line_to_line(
 				       int index_y,
 				       int index_dy,
 				       int index_ddy,
-				       char * errmsg) {
+				       ErrorMsg errmsg) {
 
   int i;
   double dxp,dxm,dyp,dym;
@@ -229,7 +227,7 @@ int array_integrate_spline_table_line_to_line(
 		 int index_y,
 		 int index_ddy,
 		 int index_inty,
-		 char * errmsg) {
+		 ErrorMsg errmsg) {
   
   int i;
 
@@ -262,7 +260,7 @@ int array_derive_two(
 		     int index_y,
 		     int index_dydx,
 		     int index_ddydxdx,
-		     char * errmsg) {
+		     ErrorMsg errmsg) {
   
   int i;
 
@@ -315,7 +313,7 @@ int array_spline(
 		  int index_y,
 		  int index_ddydx2,
 		  short spline_mode,
-		  char * errmsg) {
+		  ErrorMsg errmsg) {
 
   int i,k;
   double p,qn,sig,un;
@@ -430,7 +428,7 @@ int array_spline_table_line_to_line(
 				    int index_y,
 				    int index_ddydx2,
 				    short spline_mode,
-				    char * errmsg) {
+				    ErrorMsg errmsg) {
   
   int i,k;
   double p,qn,sig,un;
@@ -527,7 +525,7 @@ int array_spline_table_lines(
 			     int y_size,   
 			     double * ddy_array, /* array of size x_size*y_size */
 			     short spline_mode,
-			     char * errmsg
+			     ErrorMsg errmsg
 			     ) {
 
   double * p;
@@ -688,7 +686,7 @@ int array_spline_table_columns(
 		       int y_size,    
 		       double * ddy_array, /* array of size x_size*y_size */
 		       short spline_mode,
-		       char * errmsg
+		       ErrorMsg errmsg
 		       ) {
 
   double * p;
@@ -848,7 +846,7 @@ int array_spline_table_one_column(
 		       int index_y,   
 		       double * ddy_array, /* array of size x_size*y_size */
 		       short spline_mode,
-		       char * errmsg
+		       ErrorMsg errmsg
 		       ) {
 
   double p;
@@ -971,7 +969,7 @@ int array_integrate_all_spline(
 		   int index_y,
 		   int index_ddy,
 		   double * result,
-		   char * errmsg) {
+		   ErrorMsg errmsg) {
 
   int i;
   double h;
@@ -1001,7 +999,7 @@ int array_integrate(
 		   int index_x,   /** from 0 to (n_columns-1) */
 		   int index_y,
 		   int index_int_y_dx,
-		   char * errmsg) {
+		   ErrorMsg errmsg) {
 
   int i;
   double sum;
@@ -1037,7 +1035,7 @@ int array_integrate_ratio(
 		   int index_y1,
 		   int index_y2,
 		   int index_int_y1_over_y2_dx,
-		   char * errmsg) {
+		   ErrorMsg errmsg) {
 
   int i;
   double sum;
@@ -1078,7 +1076,7 @@ int array_interpolate(
 		   int * last_index,
 		   double * result,
 		   int result_size, /** from 1 to n_columns */
-		   char * errmsg) {
+		   ErrorMsg errmsg) {
 
   int inf,sup,mid,i;
   double weight;
@@ -1158,7 +1156,7 @@ int array_interpolate_spline(
 			     int * last_index,
 			     double * result,
 			     int result_size, /** from 1 to n_columns */
-			     char * errmsg) {
+			     ErrorMsg errmsg) {
 
   int inf,sup,mid,i;
   double h,a,b;
@@ -1241,7 +1239,7 @@ int array_interpolate_spline_one_column(
 					double * ddy_array, /* array of size x_size*y_size */
 					double x,   /* input */
 					double * y, /* output */
-					char * errmsg
+					ErrorMsg errmsg
 					) {
 
 
@@ -1323,7 +1321,7 @@ int array_interpolate_growing_closeby(
 		   int * last_index,
 		   double * result,
 		   int result_size, /** from 1 to n_columns */
-		   char * errmsg) {
+		   ErrorMsg errmsg) {
 
   int inf,sup,mid,i;
   double weight;
@@ -1378,7 +1376,7 @@ int array_interpolate_spline_growing_closeby(
 					     int * last_index,
 					     double * result,
 					     int result_size, /** from 1 to n_columns */
-					     char * errmsg) {
+					     ErrorMsg errmsg) {
 
   int inf,sup,mid,i;
   double h,a,b;
@@ -1434,7 +1432,7 @@ int array_interpolate_spline_growing_hunt(
 					     int * last_index,
 					     double * result,
 					     int result_size, /** from 1 to n_columns */
-					     char * errmsg) {
+					     ErrorMsg errmsg) {
 
   int inf,sup,mid,i,inc;
   double h,a,b;
@@ -1527,7 +1525,7 @@ int array_interpolate_two(
 		   double x,
 		   double * result,
 		   int result_size, /** from 1 to n_columns_y */
-		   char * errmsg) {
+		   ErrorMsg errmsg) {
 
   int inf,sup,mid,i;
   double weight;
@@ -1604,7 +1602,7 @@ int array_interpolate_equal(
 			    double x_min,
 			    double x_max,
 			    double * result,
-			    char * errmsg) {
+			    ErrorMsg errmsg) {
   
   int index_minus,i;
   double x_step,x_minus,weight;
@@ -1666,7 +1664,7 @@ int array_smooth(double * array,
 		 int n_lines,
 		 int index, /** from 0 to (n_columns-1) */
 		 int radius,
-		 char * errmsg) {
+		 ErrorMsg errmsg) {
 
   double * smooth;
   int i,j,jmin,jmax;

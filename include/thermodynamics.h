@@ -277,11 +277,13 @@ extern "C" {
 /* 					int index_th */
 /* 					); */
 
-  void thermodynamics_derivs_with_recfast(
-					  double z,
-					  double * y,
-					  double * dy
-					  );
+  int thermodynamics_derivs_with_recfast(
+					 double z,
+					 double * y,
+					 double * dy,
+					 void * fixed_parameters,
+					 ErrorMsg error_message
+					 );
 
 #ifdef __cplusplus
 }

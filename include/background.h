@@ -162,6 +162,15 @@ struct background
 
   //@}
 
+  /** @name - background workspace (used throughout the code, placed here to avoid
+      waste of time in multiple allocations/deallocations) */
+
+  double * pvecback; /**< a vector of background quantities */
+
+  //@{
+
+  //@}
+
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@{
@@ -194,14 +203,14 @@ extern "C" {
 			enum format_info return_format,
 			enum interpolation_mode intermode,
 			int * last_index,
-			double * pvecback_local
+			double * pvecback
 			);
 
   int background_functions_of_a(
 				struct background *pba,
 				double a,
 				enum format_info return_format,
-				double * pvecback_local
+				double * pvecback
 				);
 
   int background_eta_of_z(
@@ -238,7 +247,8 @@ extern "C" {
 			 double z,
 			 double * y,
 			 double * dy,
-			 void * fixed_parameters
+			 void * fixed_parameters,
+			 ErrorMsg error_message
 			 );
       
 #ifdef __cplusplus

@@ -1238,7 +1238,10 @@ int perturb_solve() {
   /** - define local variables */ 
 
   /* contains all quantities relevant for the integration algorithm */
-  Generic_integrator_struct generic_integrator_in;
+  struct generic_integrator_workspace gi;
+
+  /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
+  void * fixed_parameters_for_derivs;
 
   /* conformal time */
   double eta;
@@ -1290,10 +1293,9 @@ int perturb_solve() {
   /** - initialize generic integrator with initialize_generic_integrator() */ 
 
   /* Size of vector to integrate is cv.pt_size (the number of dynamical variables in the differential system of perturbations */
-  if (initialize_generic_integrator(cv.pt_size, &generic_integrator_in) == _FAILURE_){
-    sprintf(ppt->error_message,"%s(L:%d) : Error in initialize_generic_integrator()\n=>%s",__func__,__LINE__,generic_integrator_in.error_message);
-    return _FAILURE_;
-  }
+  class_call(initialize_generic_integrator(cv.pt_size, &gi),
+	     gi.error_message,
+	     ppt->error_message);
   
   /** - allocate source terms array for the current mode, initial condition and wavenumber: (source_terms_table[index_type])[index_eta][index_st] */
   source_term_table = malloc(ppt->tp_size * sizeof(double *));
@@ -1381,16 +1383,16 @@ int perturb_solve() {
       while (eta + 2.*timestep < ppt->eta_sampling[next_index_eta]) {
 
 	/** (a.1) integrate perturbations till eta + timestep using generic_integrator() */
-	if (generic_integrator(perturb_derivs,
-			       eta,
-			       eta+timestep,
-			       pvecperturbations,
-			       ppr->tol_perturb_integration,
-			       &generic_integrator_in) == _FAILURE_) {
-	  sprintf(Transmit_Error_Message,"%s(L:%d) : error in generic_integrator() \n=>%s\n=>%s",__func__,__LINE__,generic_integrator_in.error_message,ppt->error_message);
-	  sprintf(ppt->error_message,"%s",Transmit_Error_Message);
-	  return _FAILURE_;
-	}
+	class_call(generic_integrator(perturb_derivs,
+				      eta,
+				      eta+timestep,
+				      pvecperturbations,
+				      fixed_parameters_for_derivs,
+				      ppr->tol_perturb_integration,
+				      ppr->smallest_allowed_variation,
+				      &gi),
+		   gi.error_message,
+		   ppt->error_message);
       
 	/** (a.2) define new time value eta = eta + timestep */
 	eta = eta + timestep;
@@ -1461,16 +1463,16 @@ int perturb_solve() {
       /** (b) perform integration step till exactly the next eta_sampling[next_index_eta] value: */    
 
       /** (b.1) integrate perturbations over current step using generic_integrator() */
-      if (generic_integrator(perturb_derivs,
-			     eta,
-			     ppt->eta_sampling[next_index_eta],
-			     pvecperturbations,
-			     ppr->tol_perturb_integration,
-			     &generic_integrator_in) == _FAILURE_) {
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in generic_integrator() \n=>%s\n=>%s",__func__,__LINE__,generic_integrator_in.error_message,ppt->error_message);
-	sprintf(ppt->error_message,"%s",Transmit_Error_Message);
-	return _FAILURE_;
-      }
+      class_call(generic_integrator(perturb_derivs,
+				    eta,
+				    ppt->eta_sampling[next_index_eta],
+				    pvecperturbations,
+				    fixed_parameters_for_derivs,
+				    ppr->tol_perturb_integration,
+				    ppr->smallest_allowed_variation,
+				    &gi),
+		 gi.error_message,
+		 ppt->error_message);
 
       /** (a.2) define new time value eta = eta_sampling[next_index_eta] */
       eta = ppt->eta_sampling[next_index_eta];
@@ -1585,10 +1587,9 @@ int perturb_solve() {
     
   /** - clean up generic integrator with cleanup_generic_integrator() */
 
-  if (cleanup_generic_integrator(&generic_integrator_in) == _FAILURE_) {
-    sprintf(ppt->error_message,"%s(L:%d) : error in cleanup_generic_integrator()\n=>%s",__func__,__LINE__,generic_integrator_in.error_message);
-    return _FAILURE_;
-  }
+  class_call(cleanup_generic_integrator(&gi),
+	     gi.error_message,
+	     ppt->error_message);
     
   return _SUCCESS_;
 }
@@ -2086,7 +2087,11 @@ int perturb_source_terms(
  
   int index_type;
 
-  perturb_derivs(eta,pvecperturbations,pvecderivs);
+  void * fixed_parameters_for_derivs;
+
+  class_call(perturb_derivs(eta,pvecperturbations,pvecderivs,fixed_parameters_for_derivs,pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
 
   k2 = current_k * current_k;
 
@@ -2369,13 +2374,25 @@ int perturb_sources(
  * function computes the derivative of all values in the vector of
  * perturbed variables to be integrated.
  *
+ * This is one of the few functions in the code which are passed to the generic_integrator() routine. 
+ * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
+ * is a bit special:
+ * - fixed parameters that the function should know are passed through a generic pointer. Here, this pointer contains the 
+ *   background, thermodynamics, etc., but generic_integrator() doesn't know that.
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic 
+ *   error_message passed in the list of arguments.
+ *
  * @param eta Input: conformal time
  * @param y Input: vector of perturbations
- * @param dy Ouput: vector of derivatives y'
+ * @param dy Ouput: vector of its derivatives (already allocated)
+ * @param fixed_parameters Input: pointer to fixed parameters (e.g. indices)
+ * @param error_message Output : error message
  */
-void perturb_derivs(double eta,       /**< Input : conformal time */
-		    double * y,       /**< Input : vector of perturbations */
-		    double * dy /**< Output : derivative of vector of perturbations */
+int perturb_derivs(double eta,       /**< Input : conformal time */
+		   double * y,       /**< Input : vector of perturbations */
+		   double * dy, /**< Output : derivative of vector of perturbations */
+		   void * fixed_parameters,
+		   ErrorMsg error_message
 		    ) {
   /** Summary: */
 
@@ -2407,11 +2424,9 @@ void perturb_derivs(double eta,       /**< Input : conformal time */
   k2 = current_k*current_k;
 
   /** - get background/thermodynamical quantities using perturb_back_and_thermo(). Important: as far as the tight-coupling and free-streaming approximations are concerned, we pass here some local rather than global flags. Indeed, the tight-coupling flags should not change at each occurence of perturb_derivs, but rather at the edge of an integration step. Hence, the local flags passed here are irrelevant: the subroutine will rely on the global ones. */
-  if (perturb_back_and_thermo(eta,closeby,&last_index_back,&last_index_thermo,&tca_local,&rp_local,&timescale)== _FAILURE_) {
-    sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_back_and_thermo() \n=>%s",__func__,__LINE__,ppt->error_message);
-    sprintf(ppt->error_message,"%s",Transmit_Error_Message);
-    return;
-  }
+  class_call(perturb_back_and_thermo(eta,closeby,&last_index_back,&last_index_thermo,&tca_local,&rp_local,&timescale),
+	     ppt->error_message,
+	     error_message);
 
   /** - compute related background quantities */
   k2 = current_k*current_k;
@@ -2427,11 +2442,9 @@ void perturb_derivs(double eta,       /**< Input : conformal time */
   if (ppt->has_scalars && current_index_mode == ppt->index_md_scalars) {
 
     /** (a) get metric perturbations with perturb_einstein() */
-    if (perturb_einstein(eta,y)== _FAILURE_) {
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in perturb_einstein() \n",__func__,__LINE__,ppt->error_message);
-      sprintf(ppt->error_message,"%s",Transmit_Error_Message);
-      return;
-    }
+    class_call(perturb_einstein(eta,y),
+	       ppt->error_message,
+	       error_message);
 
     /* compute metric-related quantities */
     h_plus_six_eta_prime = pvecmetric[cv.index_mt_h_prime] + 6. * pvecmetric[cv.index_mt_eta_prime];

@@ -24,7 +24,7 @@ extern "C" {
 		   int index_x,   /** from 0 to (n_columns-1) */
 		   int index_y,
 		   int index_dydx,
-		   char *errmsg);
+		   ErrorMsg errmsg);
 
   int array_derive_spline(
 			  double * x_array,
@@ -34,7 +34,7 @@ extern "C" {
 			  int n_columns,
 			  int index_y,
 			  int index_dydx,
-			  char *errmsg);
+			  ErrorMsg errmsg);
 
   int array_derive_spline_table_line_to_line(
 				       double * x_array,
@@ -44,7 +44,7 @@ extern "C" {
 				       int index_y,
 				       int index_ddy,
 				       int index_dy,
-				       char * errmsg);
+				       ErrorMsg errmsg);
 
   int array_derive1_order2_table_line_to_line(
 				       double * x_array,
@@ -53,7 +53,7 @@ extern "C" {
 				       int n_columns,
 				       int index_y,
 				       int index_dy,
-				       char * errmsg);
+				       ErrorMsg errmsg);
 
   int array_derive2_order2_table_line_to_line(
 				       double * x_array,
@@ -63,7 +63,7 @@ extern "C" {
 				       int index_y,
 				       int index_dy,
 				       int index_ddy,
-				       char * errmsg);
+				       ErrorMsg errmsg);
 
   int array_derive_two(
 		   double * array,
@@ -73,7 +73,7 @@ extern "C" {
 		   int index_y,
 		   int index_dydx,
 		   int index_ddydxdx,
-		   char *errmsg);
+		   ErrorMsg errmsg);
 
 
 
@@ -85,7 +85,7 @@ extern "C" {
 		   int index_y,
 		   int index_ddydx2,
 		   short spline_mode,
-		   char * errmsg);
+		   ErrorMsg errmsg);
 
   int array_spline_table_line_to_line(
 				      double * x, /* vector of size x_size */
@@ -95,7 +95,7 @@ extern "C" {
 				      int index_y,
 				      int index_ddydx2,
 				      short spline_mode,
-				      char * errmsg);
+				      ErrorMsg errmsg);
        
   int array_spline_table_columns(
 		       double * x,
@@ -104,7 +104,7 @@ extern "C" {
 		       int y_size,    
 		       double * ddy_array,
 		       short spline_mode,
-		       char * errmsg);
+		       ErrorMsg errmsg);
 
   int array_spline_table_lines(
 		       double * x,
@@ -113,7 +113,7 @@ extern "C" {
 		       int y_size, 
 		       double * ddy_array,
 		       short spline_mode,
-		       char * errmsg
+		       ErrorMsg errmsg
 		       );
 
   int array_spline_table_one_column(
@@ -125,7 +125,7 @@ extern "C" {
 				    int index_y,   
 				    double * ddy_array, /* array of size x_size*y_size */
 				    short spline_mode,
-				    char * errmsg
+				    ErrorMsg errmsg
 				    );
 
   int array_integrate_all_spline(
@@ -136,7 +136,7 @@ extern "C" {
 				 int index_y,
 				 int index_ddy,
 				 double * result,
-				 char * errmsg
+				 ErrorMsg errmsg
 				 );
 
   int array_integrate(
@@ -146,7 +146,7 @@ extern "C" {
 		      int index_x,   /** from 0 to (n_columns-1) */
 		      int index_y,
 		      int index_int_y_dx,
-		      char *errmsg);
+		      ErrorMsg errmsg);
   
   int array_integrate_all(
 		      double * array,
@@ -164,7 +164,7 @@ extern "C" {
 			    int index_y1,
 			    int index_y2,
 			    int index_int_y1_over_y2_dx,
-			    char *errmsg);
+			    ErrorMsg errmsg);
 
   int array_interpolate(
 			double * array,
@@ -175,7 +175,7 @@ extern "C" {
 			int * last_index,
 			double * result,
 			int result_size,
-			char *errmsg); /** from 1 to n_columns */
+			ErrorMsg errmsg); /** from 1 to n_columns */
 
   int array_interpolate_spline(
 			       double * x_array,
@@ -187,7 +187,7 @@ extern "C" {
 			       int * last_index,
 			       double * result,
 			       int result_size, /** from 1 to n_columns */
-			       char * errmsg);
+			       ErrorMsg errmsg);
 
   int array_interpolate_growing_closeby(
 			double * array,
@@ -198,7 +198,7 @@ extern "C" {
 			int * last_index,
 			double * result,
 			int result_size,
-			char *errmsg); /** from 1 to n_columns */
+			ErrorMsg errmsg); /** from 1 to n_columns */
 
   int array_interpolate_spline_growing_closeby(
 					       double * x_array,
@@ -210,7 +210,7 @@ extern "C" {
 					       int * last_index,
 					       double * result,
 					       int result_size, /** from 1 to n_columns */
-					       char * errmsg);
+					       ErrorMsg errmsg);
 
   int array_interpolate_spline_growing_hunt(
 					       double * x_array,
@@ -222,7 +222,7 @@ extern "C" {
 					       int * last_index,
 					       double * result,
 					       int result_size, /** from 1 to n_columns */
-					       char * errmsg);
+					       ErrorMsg errmsg);
 
   int array_interpolate_spline_one_column(
 					  double * x_array,
@@ -234,7 +234,7 @@ extern "C" {
 					  double * ddy_array, /* array of size x_size*y_size */
 					  double x,   /* input */
 					  double * y, /* output */
-					  char * errmsg
+					  ErrorMsg errmsg
 					  );
 
   /** interpolate to get y_i(x), when x and y_i are in two different arrays*/
@@ -248,7 +248,7 @@ extern "C" {
 			    double x,
 			    double * result,
 			    int result_size, /** from 1 to n_columns_y */
-			    char * errmsg);
+			    ErrorMsg errmsg);
 
   int array_interpolate_equal(
 			    double * array,
@@ -258,14 +258,14 @@ extern "C" {
 			    double x_min,
 			    double x_max,
 			    double * result,
-			    char * errmsg);
+			    ErrorMsg errmsg);
 
   int array_smooth(double * array,
 		   int n_columns,
 		   int n_lines,
 		   int index, /** from 0 to (n_columns-1) */
 		   int radius,
-		   char * errmsg);
+		   ErrorMsg errmsg);
 
 
 #ifdef __cplusplus
