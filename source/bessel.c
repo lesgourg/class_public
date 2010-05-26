@@ -228,7 +228,7 @@ int bessel_init(
 		 pbs->error_message,
 		 "Could not read in bessel file");
 
-      l_file = malloc(l_size_file * sizeof(int));
+      class_alloc(l_file,l_size_file * sizeof(int),pbs->error_message);
 
       for (index_l=0; index_l < l_size_file; index_l++) {
 	class_test(fread(&l_file[index_l],sizeof(int),1,bessel_file) != 1,
@@ -583,7 +583,7 @@ int bessel_get_l_list(
 
   pbs->l_size = index_l+1;
 
-  pbs->l = malloc(pbs->l_size*sizeof(int));
+  class_alloc(pbs->l,pbs->l_size*sizeof(int),pbs->error_message);
 
   index_l = 0;
   pbs->l[0] = 2;

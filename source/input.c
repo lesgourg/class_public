@@ -66,7 +66,7 @@ int input_init(
 
   /** - define the primordial spectrum */
 
-  ppm->primordial_spec_type = smooth_Pk;
+  ppm->primordial_spec_type = analytic_Pk;
   ppm->A_s_ad = 2.3e-9 ; /* amplitude */
   ppm->n_s_ad = 1. ; /* tilt */
   ppm->alpha_s_ad = 0. ; /* running */ 

@@ -1158,7 +1158,7 @@ int thermodynamics_recombination(
   /* contains all quantities relevant for the integration algorithm */
   struct generic_integrator_workspace gi;
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
-  struct thermodynamics_derivs_parameters tdp;
+  struct thermodynamics_parameters_and_workspace tpaw;
   
   /** Summary: */
 
@@ -1233,10 +1233,10 @@ int thermodynamics_recombination(
   /* cccP = pow(cc3P1P,3); */
   /* hck=_h_P_*_C_/_k_B_;  */
 
-  tdp.pba = pba;
-  tdp.ppr = ppr;
-  tdp.preco = preco;
-  tdp.pvecback = pvecback;
+  tpaw.pba = pba;
+  tpaw.ppr = ppr;
+  tpaw.preco = preco;
+  tpaw.pvecback = pvecback;
 
   class_test(zinitial < 8000.,
 	     pth->error_message,
@@ -1318,7 +1318,7 @@ int thermodynamics_recombination(
 					    zstart,
 					    zend,
 					    y,
-					    &tdp,
+					    &tpaw,
 					    ppr->tol_thermo_integration,
 					    ppr->smallest_allowed_variation,
 					    &gi),
@@ -1337,7 +1337,7 @@ int thermodynamics_recombination(
 					    zstart,
 					    zend,
 					    y,
-					    &tdp,
+					    &tpaw,
 					    ppr->tol_thermo_integration,
 					    ppr->smallest_allowed_variation,
 					    &gi),
@@ -1361,7 +1361,7 @@ int thermodynamics_recombination(
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=y[2];
 
     /* -> get dTb/dz=dy[2] */
-    class_call(thermodynamics_derivs_with_recfast(zend, y, dy, &tdp,pth->error_message),
+    class_call(thermodynamics_derivs_with_recfast(zend, y, dy, &tpaw,pth->error_message),
 	       pth->error_message,
 	       pth->error_message);
 
@@ -1487,17 +1487,17 @@ int thermodynamics_derivs_with_recfast(
   double tauHe_t,pHe_t,CfHe_t,CL_PSt,gamma_2Pt;
   short Heflag;
 
-  struct thermodynamics_derivs_parameters * ptdp;
+  struct thermodynamics_parameters_and_workspace * ptpaw;
   struct precision * ppr;
   struct background * pba;
   struct recombination * preco;
   double * pvecback;
 
-  ptdp = parameters_and_workspace;
-  ppr = ptdp->ppr;
-  pba = ptdp->pba;
-  preco = ptdp->preco;
-  pvecback = ptdp->pvecback;
+  ptpaw = parameters_and_workspace;
+  ppr = ptpaw->ppr;
+  pba = ptpaw->pba;
+  preco = ptpaw->preco;
+  pvecback = ptpaw->pvecback;
 
   x_H = y[0];
   x_He = y[1];

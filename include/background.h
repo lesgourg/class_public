@@ -181,13 +181,16 @@ struct background
   //@}
 };
 
-/* parameters, variables, workspace, etc. passed to the
+/* parameters and workspace passed to the
    background_derivs function */
 
-struct background_derivs_parameters {
+struct background_parameters_and_workspace {
 
-  struct background * pba; /* contains indices */
-  double * pvecback;       /* a background vector (workspace) */
+  /* fixed input parameters (indices, ...) */
+  struct background * pba; 
+
+  /* workspace */
+  double * pvecback;
 
 };
 

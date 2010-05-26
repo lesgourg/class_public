@@ -116,7 +116,7 @@ int spectra_pk_at_z(
 
 /**
  * Interpolate the spectrum at an arbitrary redhsifts and wavenumber between kmin and kmax
- * (in the case of a smooth primordial spectrum, k may be between 0 and kmax: extrapolation 
+ * (in the case of an analytic primordial spectrum, k may be between 0 and kmax: extrapolation 
  *  is performed for suoper-hubble scales down to k=0, given the values of the tilt, running, etc.)
  *
  *  @param k Input : wavenumber k in units of 1/Mpc 
@@ -174,7 +174,7 @@ int spectra_pk_at_k_and_z(
      * P(k) = P(kmin) * (k P_ini(k)) / (kmin P_ini(kmin)) 
      */
 
-    class_test((ppm->primordial_spec_type != smooth_Pk),
+    class_test((ppm->primordial_spec_type != analytic_Pk),
 	       psp->error_message,
 	       "in this case, exptrapolation for k=%e below k_min=%e is impossible",k,psp->k[0]);
       
@@ -186,13 +186,11 @@ int spectra_pk_at_k_and_z(
     class_alloc(pkini_k,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
     class_alloc(pkini_kmin,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
 
-/*     class_call(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k),ppm->error_message,psp->error_message); */
-/*     class_call(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin),ppm->error_message,psp->error_message); */
+    class_call(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k),ppm->error_message,psp->error_message);
+    class_call(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin),ppm->error_message,psp->error_message);
     
-/*     *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic]; */
+    *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic];
     
-    *pk=temporary_pk[index_ic*psp->k_size]*pow(k/psp->k[0],ppm->n_s_ad); /*** provisory: should change instead interpolation routine in primordial_spectra */
-
     free(temporary_pk);
     free(pkini_k);
     free(pkini_kmin);

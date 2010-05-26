@@ -610,7 +610,7 @@ int background_solve(
   /* contains all quantities relevant for the integration algorithm */
   struct generic_integrator_workspace gi;
   /* parameters and workspace for the background_derivs function */
-  struct background_derivs_parameters bdp;
+  struct background_parameters_and_workspace bpaw;
   /* a growing table (since the number of time steps is not known a priori) */
   growTable gTable;
   /* needed for growing table */
@@ -630,9 +630,9 @@ int background_solve(
 
   int last_index=0; /* necessary for calling array_interpolate(), but never used */
 
-  bdp.pba = pba;
+  bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-  bdp.pvecback = pvecback;  
+  bpaw.pvecback = pvecback;  
 
   /** - allocate vector of quantities to be integrated */
   class_alloc(pvecback_integration,pba->bi_size*sizeof(double),pba->error_message);
@@ -698,7 +698,7 @@ int background_solve(
 				  eta_start,
 				  eta_end,
 				  pvecback_integration,
-				  &bdp,
+				  &bpaw,
 				  ppr->tol_background_integration,
 				  ppr->smallest_allowed_variation,
 				  &gi),
@@ -914,13 +914,13 @@ int background_derivs(
 		      ErrorMsg error_message
 		      ) {
 
-  struct background_derivs_parameters * pbdp;
+  struct background_parameters_and_workspace * pbpaw;
   struct background * pba;
   double * pvecback;
 
-  pbdp = parameters_and_workspace;
-  pba =  pbdp->pba;
-  pvecback = pbdp->pvecback;
+  pbpaw = parameters_and_workspace;
+  pba =  pbpaw->pba;
+  pvecback = pbpaw->pvecback;
 
   /** - Calculates functions of /f$ a /f$ with background_functions_of_a() */
   class_call(background_functions_of_a((struct background *)pba,y[pba->index_bi_a], short_info, pvecback),

@@ -29,10 +29,10 @@
  * @return the error status
  */
 int primordial_spectrum_at_k(
-		    struct primordial * ppm,
-		    int index_mode,
-		    double k,
-		    double * pk
+			     struct primordial * ppm,
+			     int index_mode,
+			     double k,
+			     double * pk
 		) {
 
   /** Summary: */
@@ -40,48 +40,57 @@ int primordial_spectrum_at_k(
   /** - define local variables */
 
   int index_ic;
-  double lnk;
+  double lnk,lnpk;
   int last_index;
 
   /** if k negative or null return an error */
 
-  if (k<=0.) {
-    sprintf(ppm->error_message,"%s(L:%d) : k negative or null",__func__,__LINE__);
-    return _FAILURE_;
-  } 
+  class_test(k<=0.,
+	     ppm->error_message,
+	     "k = %e",k);
 
   lnk=log(k);
 
-  /** - if ln(k) is too large to be in the interpolation table, return  an error */
+  /** - if ln(k) is too large to be in the interpolation table, return  an error unless we are in the coase of a analytic spectrum, for which extrapolation is possible */
 
-  if (lnk > ppm->lnk[ppm->lnk_size-1]) {
-    sprintf(ppm->error_message,"%s(L:%d) : k=%e > k_max=%e",__func__,__LINE__,k,exp(ppm->lnk[ppm->lnk_size-1]));
-    return _FAILURE_;
-  } 
+  if ((lnk > ppm->lnk[ppm->lnk_size-1]) || (lnk < ppm->lnk[0])) {
 
-  /** - if ln(k) is too small to be in the interpolation table, return an error */
+    class_test(ppm->primordial_spec_type != analytic_Pk,
+	       ppm->error_message,
+	       "k=%e out of range [%e : %e]",k,exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
-  if (lnk < ppm->lnk[0]) {
-    sprintf(ppm->error_message,"%s(L:%d) : k=%e < k_min=%e",__func__,__LINE__,k,exp(ppm->lnk[0]));
-    return _FAILURE_;
+    /* extrapolate */
+    for (index_ic=0; index_ic < ppm->ic_size[index_mode]; index_ic++) {
+      class_call(primordial_analytic_spectrum(ppm,
+					      index_mode,
+					      index_ic,
+					      k,
+					      &lnpk),
+		 ppm->error_message,
+		 ppm->error_message);
+
+      pk[index_ic]=exp(lnpk);
+    }
+    
+    return _SUCCESS_;
+
   } 
 
   /** - otherwise, interpolate: */
 
-  if (array_interpolate_spline(
-			       ppm->lnk,
-			       ppm->lnk_size,
-			       ppm->lnpk[index_mode],
-			       ppm->ddlnpk[index_mode],
-			       ppm->ic_size[index_mode],
-			       lnk,
-			       &last_index,
-			       pk,
-			       ppm->ic_size[index_mode],
-			       ppm->transmit_message) == _FAILURE_) {
-    sprintf(ppm->error_message,"%s(L:%d) : error in array_interpolate_spline() \n=>%s",__func__,__LINE__,ppm->transmit_message);
-    return _FAILURE_;
-  }
+  class_call(array_interpolate_spline(
+				      ppm->lnk,
+				      ppm->lnk_size,
+				      ppm->lnpk[index_mode],
+				      ppm->ddlnpk[index_mode],
+				      ppm->ic_size[index_mode],
+				      lnk,
+				      &last_index,
+				      pk,
+				      ppm->ic_size[index_mode],
+				      ppm->error_message),
+	     ppm->error_message,
+	     ppm->error_message);
 
   /** - output P(k), not ln(P(k)) */
 
@@ -112,6 +121,7 @@ int primordial_init(
 
   double k,k_min,k_max;
   int index_mode,index_ic,index_k;
+  double lnpk;
 
   if (ppm->primordial_verbose > 0)
     printf("Computing primordial spectra\n");
@@ -131,88 +141,45 @@ int primordial_init(
 
   }
   
-  if (k_min <= 0.) {
-    sprintf(ppm->error_message,"%s(L:%d) : k_min negative or null: stop to avoid segmentation fault",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(k_min <= 0.,
+	     ppm->error_message,
+	     "k_min negative or null: stop to avoid segmentation fault");
 
-  if (k_max <= 0.) {
-    sprintf(ppm->error_message,"%s(L:%d) : k_max negative or null: stop to avoid segmentation fault",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(k_max <= 0.,
+	     ppm->error_message,
+	     "k_max negative or null: stop to avoid segmentation fault");
 
-   if (ppm->k_pivot <= 0.) {
-    sprintf(ppm->error_message,"%s(L:%d) : k_pivot negative or null: stop to avoid segmentation fault",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_test(ppm->k_pivot <= 0.,
+	     ppm->error_message,
+	     "k_pivot negative or null: stop to avoid segmentation fault");
 
-   if (ppr->k_per_decade_primordial <= 0.) {
-     sprintf(ppm->error_message,"%s(L:%d) : k_per_decade_primordial negative or null: stop to avoid segmentation fault",__func__,__LINE__);
-     return _FAILURE_;
-   }
+  class_test(ppr->k_per_decade_primordial <= 0.,
+	     ppm->error_message,
+	     "k_per_decade_primordial negative or null: stop to avoid segmentation fault");
     
   /** - allocate and fill values of lnk's */
 
-  if (primordial_get_lnk_list(ppm,
-			      k_min,
-			      k_max,
-			      ppr->k_per_decade_primordial
-			      ) == _FAILURE_) {
-    sprintf(ppm->transmit_message,"%s(L:%d) : error in primordial_get_lnk_list()\n=>%s",__func__,__LINE__,ppm->error_message);
-    sprintf(ppm->error_message,"%s",ppm->transmit_message);
-    return _FAILURE_;
-  }
+  class_call(primordial_get_lnk_list(ppm,
+				     k_min,
+				     k_max,
+				     ppr->k_per_decade_primordial
+				     ),
+	     ppm->error_message,
+	     ppm->error_message);
 
-  /** - allocate array for lnPk and its second derivative */
+  class_call(primordial_indices(ppt,
+				ppm),
+	     ppm->error_message,
+	     ppm->error_message);
+				
+  /** - deal with case of analytic primordial spectra (with titl, running etc.) */
 
-  ppm->md_size = ppt->md_size;
+  if (ppm->primordial_spec_type == analytic_Pk) {
 
-  ppm->lnpk = malloc(ppt->md_size*sizeof(double*));
-  if (ppm->lnpk == NULL) {
-    sprintf(ppm->error_message,"%s(L:%d) : Could not allocate lnpk",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
-  ppm->ddlnpk = malloc(ppt->md_size*sizeof(double*));
-  if (ppm->ddlnpk == NULL) {
-    sprintf(ppm->error_message,"%s(L:%d) : Could not allocate ddlnpk",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
-  ppm->ic_size = malloc(ppt->md_size*sizeof(int*));
-  if (ppm->ic_size == NULL) {
-    sprintf(ppm->error_message,"%s(L:%d) : Could not allocate ic_size",__func__,__LINE__);
-    return _FAILURE_;
-  }
-
-
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {		     
-
-    ppm->lnpk[index_mode] = malloc(ppm->lnk_size*ppt->ic_size[index_mode]*sizeof(double));
-    if (ppm->lnpk[index_mode] == NULL) {
-      sprintf(ppm->error_message,"%s(L:%d) : Could not allocate lnpk[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
-
-    ppm->ddlnpk[index_mode] = malloc(ppm->lnk_size*ppt->ic_size[index_mode]*sizeof(double));
-    if (ppm->ddlnpk[index_mode] == NULL) {
-      sprintf(ppm->error_message,"%s(L:%d) : Could not allocate ddlnpk[index_mode]",__func__,__LINE__);
-      return _FAILURE_;
-    }
-
-    ppm->ic_size[index_mode] = ppt->ic_size[index_mode];
-
-  }
-		     
-  /** - deal with case of smooth primordial spectra (with titl, running etc.) */
-
-  if (ppm->primordial_spec_type == smooth_Pk) {
-
-    if ((ppt->has_ad) && (ppt->has_ad)) {
-      if (ppm->A_s_ad <= 0.) {
-	sprintf(ppm->error_message,"%s(L:%d) : A_s_ad negative or null: stop to avoid segmentation fault",__func__,__LINE__);
-	return _FAILURE_;
-      }
+    if ((ppm->has_ad) && (ppm->has_ad)) {
+      class_test(ppm->A_s_ad <= 0.,
+		 ppm->error_message,
+		 "stop to avoid segmentation fault");
     }
 
     for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
@@ -221,31 +188,17 @@ int primordial_init(
 
       for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 	
-	for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+	for (index_ic = 0; index_ic < ppm->ic_size[index_mode]; index_ic++) {
 
-	  if ((ppt->has_ad) && (index_ic == ppt->index_ic_ad)) {
+	  class_call(primordial_analytic_spectrum(ppm,
+						  index_mode,
+						  index_ic,
+						  k,
+						  &lnpk),
+		     ppm->error_message,
+		     ppm->error_message);
 
-	    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-	      /** (a) scalar adiabatic primordial spectrum */
-	      ppm->lnpk[index_mode][index_k*ppm->ic_size[index_mode]+index_ic] = 
-		log(ppm->A_s_ad) 
-		+ (ppm->n_s_ad-1.) * log(k/ppm->k_pivot)
-		+ 0.5 * ppm->alpha_s_ad * pow(log(k/ppm->k_pivot), 2.); 
-
-	    }
-	    
-	    else {
-	      sprintf(ppm->error_message,"%s(L:%d) : isocurvature primordial spectrum not coded yet (although trivial)",__func__,__LINE__);
-	      return _FAILURE_;
-	    }
-
-	  }
-
-	  else {
-	    sprintf(ppm->error_message,"%s(L:%d) : tensor primordial spectrum not coded yet (although trivial)",__func__,__LINE__);
-	    return _FAILURE_;
-	  }
+	  ppm->lnpk[index_mode][index_k*ppm->ic_size[index_mode]+index_ic] = lnpk;
 
 	}
 
@@ -256,24 +209,23 @@ int primordial_init(
   }
 
   else {
-    sprintf(ppm->error_message,"%s(L:%d) : only smooth primordial spectrum coded yet",__func__,__LINE__);
+    sprintf(ppm->error_message,"%s(L:%d) : only analytic primordial spectrum coded yet",__func__,__LINE__);
     return _FAILURE_;
   }     
 
   /** - compute second derivative of each P(k) with spline, in view of interpolation */
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+  for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
 
-    if (array_spline_table_lines(ppm->lnk,
-				 ppm->lnk_size,
-				 ppm->lnpk[index_mode],
-				 ppm->ic_size[index_mode],
-				 ppm->ddlnpk[index_mode],
-				 _SPLINE_EST_DERIV_,
-				 ppm->transmit_message) == _FAILURE_) {
-      sprintf(ppm->error_message,"%s(L:%d) : error in array_spline_table_lines \n=>%s",__func__,__LINE__,ppm->transmit_message);
-      return _FAILURE_;
-    }
+    class_call(array_spline_table_lines(ppm->lnk,
+					ppm->lnk_size,
+					ppm->lnpk[index_mode],
+					ppm->ic_size[index_mode],
+					ppm->ddlnpk[index_mode],
+					_SPLINE_EST_DERIV_,
+					ppm->error_message),
+	       ppm->error_message,
+	       ppm->error_message);
 
   }
 
@@ -307,6 +259,97 @@ int primordial_free(
   return _SUCCESS_; 
 }
 
+int primordial_indices(
+		       struct perturbs   * ppt,
+		       struct primordial * ppm
+		       ) {
+
+  int index_mode;
+
+  ppm->md_size = ppt->md_size;
+
+  ppm->has_scalars = ppt->has_scalars;
+
+  if (ppm->has_scalars == _TRUE_) {
+
+    ppm->index_md_scalars = ppt->index_md_scalars;
+
+    ppm->has_ad = ppt->has_ad;
+    if (ppm->has_ad == _TRUE_) ppm->index_ic_ad = ppt->index_ic_ad;
+
+    ppm->has_bi = ppt->has_bi;
+    if (ppm->has_bi == _TRUE_) ppm->index_ic_bi = ppt->index_ic_bi;
+
+    ppm->has_cdi = ppt->has_cdi;
+    if (ppm->has_cdi == _TRUE_) ppm->index_ic_cdi = ppt->index_ic_cdi;
+
+    ppm->has_nid = ppt->has_nid;
+    if (ppm->has_nid == _TRUE_) ppm->index_ic_nid = ppt->index_ic_nid;
+
+    ppm->has_niv = ppt->has_niv;
+    if (ppm->has_niv == _TRUE_) ppm->index_ic_niv = ppt->index_ic_niv;
+
+  }
+
+  ppm->has_tensors = ppt->has_tensors;
+
+  if (ppm->has_tensors == _TRUE_) {
+
+    ppm->index_md_tensors = ppt->index_md_tensors;
+
+    ppm->index_ic_ten = ppt->index_ic_ten;
+
+  }
+
+  class_alloc(ppm->lnpk,ppt->md_size*sizeof(double*),ppm->error_message);
+
+  class_alloc(ppm->ddlnpk,ppt->md_size*sizeof(double*),ppm->error_message);
+
+  class_alloc(ppm->ic_size,ppt->md_size*sizeof(int*),ppm->error_message);
+
+  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {		     
+
+    class_alloc(ppm->lnpk[index_mode],ppm->lnk_size*ppt->ic_size[index_mode]*sizeof(double),ppm->error_message);
+
+    class_alloc(ppm->ddlnpk[index_mode],ppm->lnk_size*ppt->ic_size[index_mode]*sizeof(double),ppm->error_message);
+
+    ppm->ic_size[index_mode] = ppt->ic_size[index_mode];
+
+  }
+
+  return _SUCCESS_;
+
+}
+
+int primordial_analytic_spectrum(
+				 struct primordial * ppm,
+				 int index_mode,
+				 int index_ic,
+				 double k,
+				 double * lnpk
+				 ) {  
+
+  if ((ppm->has_ad) && (index_ic == ppm->index_ic_ad)) {
+
+    if ((ppm->has_scalars == _TRUE_) && (index_mode == ppm->index_md_scalars)) {
+
+      /** (a) scalar adiabatic primordial spectrum */
+      *lnpk = log(ppm->A_s_ad) 
+	+ (ppm->n_s_ad-1.)*log(k/ppm->k_pivot)
+	+ 0.5 * ppm->alpha_s_ad * pow(log(k/ppm->k_pivot), 2.);
+	      
+      return _SUCCESS_;
+ 
+    }
+
+  }
+
+  class_test(0 == 0,
+	     ppm->error_message,
+	     "only scalar adiabatic primordial spectrum coded yet\n");
+
+}
+
 /**
  * Allocate and fill list of wavenumbers k
  *
@@ -326,18 +369,13 @@ int primordial_get_lnk_list(
 
   int i;
 
-  if ((kmin <= 0.) || (kmax <= kmin))  {
-    sprintf(ppm->error_message,"%s(L:%d) : inconsistent values of kmin=%e, kmax=%e",__func__,__LINE__,kmin,kmax);
-    return _FAILURE_;
-  }
+  class_test((kmin <= 0.) || (kmax <= kmin),
+	     ppm->error_message,
+	     "inconsistent values of kmin=%e, kmax=%e",kmin,kmax);
 
   ppm->lnk_size = (int)(log(kmax/kmin)/log(10.)*k_per_decade) + 2;
 
-  ppm->lnk =  malloc(ppm->lnk_size*sizeof(double));
-  if (ppm->lnk == NULL) {
-    sprintf(ppm->error_message,"%s(L:%d) : Could not allocate lnk",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(ppm->lnk,ppm->lnk_size*sizeof(double),ppm->error_message);
 
   for (i=0; i<ppm->lnk_size; i++)
     ppm->lnk[i]=log(kmin)+i*log(10.)/k_per_decade;

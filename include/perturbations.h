@@ -31,9 +31,9 @@ enum rp_flags {rp_on, rp_off};
  * Once initialized by perturb_init(), contains all the necessary
  * information on the perturbations, and in particular, all possible
  * indices and flags, and a table of source functions used for
- * interpolation in other modules.
+ * intesrpolation in other modules.
  */
-struct perturbs 
+struct perturbs
 {
   /** @name - all possible flags stating which perturbations should be computed */
 
@@ -219,6 +219,9 @@ struct perturb_workspace
   double * pvecmetric;
   double * pvecsource_terms;
 
+  /* table of source terms for each mode, initial condition and wavenumber: (source_terms_table[index_type])[index_eta][index_st] */
+  double ** source_term_table;
+
   int * last_index_back;  /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
   int * last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
 
@@ -227,10 +230,17 @@ struct perturb_workspace
 
 };
 
-struct perturbation_derivs_parameters {
+struct perturb_parameters_and_workspace {
 
+  /* fixed input parameters */
+  struct precision * ppr;
+  struct background * pba;
+  struct thermo * pth;
+  struct perturbs * ppt;
   int index_mode;
   double k;
+
+  /* workspace */
   struct perturb_workspace * ppw;
   
 };
@@ -245,6 +255,7 @@ struct perturbation_derivs_parameters {
 #endif
 
     int perturb_sources_at_eta(
+			       struct perturbs * ppt,
 			       int index_mode,
 			       int index_ic,
 			       int index_k,
@@ -254,41 +265,56 @@ struct perturbation_derivs_parameters {
 			       );
 
     int perturb_init(
-		     struct background * pba_input,
-		     struct thermo * pth_input,
-		     struct precision * ppr_input,
-		     struct perturbs * ppt_output
+		     struct precision * ppr,
+		     struct background * pba,
+		     struct thermo * pth,
+		     struct perturbs * ppt
 		     );
 
-    int perturb_free();
+    int perturb_free(
+		     struct perturbs * ppt
+		     );
 
-    int perturb_indices_of_perturbs();
+    int perturb_indices_of_perturbs(
+				    struct precision * ppr,
+				    struct background * pba,
+				    struct thermo * pth,
+				    struct perturbs * ppt
+				    );
 
-    int perturb_timesampling_for_sources();
+    int perturb_timesampling_for_sources(
+					 struct precision * ppr,
+					 struct background * pba,
+					 struct thermo * pth,
+					 struct perturbs * ppt
+					 );
     
-    int perturb_get_k_list_size(
-				int index_mode,
-				int * k_list_size,
-				int * k_size_cl
-				);
- 
     int perturb_get_k_list(
-			   int index_mode,
-			   int k_list_size,
-			   int k_list_cl_size,
-			   double * k_list
-			   );
-    
+			   struct precision * ppr,
+			   struct background * pba,
+			   struct thermo * pth,
+			   struct perturbs * ppt,
+			   int index_mode);
+
     int perturb_workspace_init(
+			       struct precision * ppr,
+			       struct background * pba,
+			       struct thermo * pth,
+			       struct perturbs * ppt,
 			       int index_mode,
 			       struct perturb_workspace * ppw
 			       );
 
     int perturb_workspace_free(
+			       struct perturbs * ppt,
 			       struct perturb_workspace * ppw
 			       );
 
     int perturb_solve(
+		      struct precision * ppr,
+		      struct background * pba,
+		      struct thermo * pth,
+		      struct perturbs * ppt,
 		      int index_mode,
 		      int index_ic,
 		      int index_k,
@@ -296,6 +322,9 @@ struct perturbation_derivs_parameters {
 		      );
 
     int perturb_initial_conditions(
+				   struct precision * ppr,
+				   struct background * pba,
+				   struct perturbs * ppt,
 				   int index_mode,
 				   int index_ic,
 				   double k,
@@ -303,16 +332,23 @@ struct perturbation_derivs_parameters {
 				   struct perturb_workspace * ppw
 				   );
 
-    int perturb_back_and_thermo(
-				int index_mode,
-				double k,
-				double eta,
-				enum interpolation_mode intermode,
-				struct perturb_workspace * ppw,
-				double * timescale
-				);
+    int perturb_timescale_and_approximations(
+					     struct precision * ppr,
+					     struct background * pba,
+					     struct thermo * pth,
+					     struct perturbs * ppt,
+					     int index_mode,
+					     double k,
+					     double eta,
+					     enum interpolation_mode intermode,
+					     struct perturb_workspace * ppw,
+					     double * timescale
+					     );
 
     int perturb_einstein(
+			 struct precision * ppr,
+			 struct background * pba,
+			 struct perturbs * ppt,
 			 int index_mode,
 			 double k,
 			 double eta,
@@ -322,15 +358,14 @@ struct perturbation_derivs_parameters {
 
     int perturb_source_terms(
 			     double eta,
-			     struct perturbation_derivs_parameters * ppdp
+			     struct perturb_parameters_and_workspace * pppaw
 			     );
 
     int perturb_sources(
+			struct perturbs * ppt,
 			int index_mode,
 			int index_ic,
 			int index_k,
-			int index_type,
-			double * source_terms_array,
 			struct perturb_workspace * ppw
 			);
 

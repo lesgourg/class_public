@@ -63,7 +63,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (perturb_init(&ba,&th,&pr,&pt) == _FAILURE_) {
+  if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
@@ -79,7 +79,7 @@ main() {
   }
 
   if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
-    printf("\n\nError in transfer_init \n=>%s\n",pm.error_message);
+    printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }
 
@@ -115,7 +115,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (perturb_free() == _FAILURE_) {
+  if (perturb_free(&pt) == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }

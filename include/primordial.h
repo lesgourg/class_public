@@ -6,7 +6,7 @@
 #define __PRIMORDIAL__
 
 enum primordial_spectrum_type {
-  smooth_Pk,
+  analytic_Pk,
   inflation_V,
   inflation_H
 };
@@ -21,6 +21,29 @@ enum primordial_spectrum_type {
  */
 struct primordial {
 
+  short has_scalars;
+  short has_vectors;
+  short has_tensors;
+
+  short has_ad;     
+  short has_bi;     
+  short has_cdi;    
+  short has_nid;    
+  short has_niv;    
+
+  int index_md_scalars; /**< index value for scalars */
+  int index_md_tensors; /**< index value for tensors */
+  int index_md_vectors; /**< index value for vectors */
+  int md_size; /**< number of modes included in computation */
+
+  int index_ic_ad; /**< index value for adiabatic */
+  int index_ic_cdi; /**< index value for CDM isocurvature */
+  int index_ic_bi; /**< index value for baryon isocurvature */
+  int index_ic_nid; /**< index value for neutrino density isocurvature */
+  int index_ic_niv; /**< index value for neutrino velocity isocurvature */
+  int index_ic_ten; /**< index value for unique possibility for tensors */
+  int * ic_size;       /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+
   enum primordial_spectrum_type primordial_spec_type;
 
   double k_pivot; /* pivot scale in Mpc-1 */
@@ -34,8 +57,6 @@ struct primordial {
 
   double ** lnpk; /* primordial spectra (lnP[index_mode])[index_ic][index_k] */
   double ** ddlnpk; /* second derivative of lnP for spline interpolation */
-  int * ic_size;  /* number of initial conditions ic_size[index_x] */
-  int md_size; /* number of modes (scalars, tensors...)*/
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
@@ -76,6 +97,19 @@ extern "C" {
 		      struct primordial * ppm
 		      );
     
+  int primordial_indices(
+			 struct perturbs   * ppt,
+			 struct primordial * ppm
+			 );
+
+  int primordial_analytic_spectrum(
+				   struct primordial * ppm,
+				   int index_mode,
+				   int index_ic,
+				   double k,
+				   double * pk
+				   );
+
   int primordial_get_lnk_list(
 			      struct primordial * ppm,
 			      double kmin,

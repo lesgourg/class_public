@@ -252,11 +252,17 @@ struct reionization {
 
 };
 
-struct thermodynamics_derivs_parameters {
+/* parameters and workspace passed to the
+   thermodynamics_derivs function */
 
+struct thermodynamics_parameters_and_workspace {
+
+  /* parameters */
   struct background * pba;
   struct precision * ppr;
   struct recombination * preco;
+
+  /* workspace */
   double * pvecback;
 
 };

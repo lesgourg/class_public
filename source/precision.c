@@ -136,15 +136,11 @@ int precision_init ( struct precision * ppr ) {
    * - automatic estimate of machine precision
    */
 
-  if (get_machine_precision(&(ppr->smallest_allowed_variation)) == _FAILURE_) {
-    sprintf(ppr->error_message,"%s(L:%d) : error in get_machine_precision() \n",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  get_machine_precision(&(ppr->smallest_allowed_variation));
 
-  if (ppr->smallest_allowed_variation < 0) {
-    sprintf(ppr->error_message,"%s(L:%d) : smallest_allowed_variation = %e < 0\n",__func__,__LINE__,ppr->smallest_allowed_variation);
-    return _FAILURE_;
-  }
+  class_test(ppr->smallest_allowed_variation < 0,
+	     ppr->error_message,
+	     "smallest_allowed_variation = %e < 0");
 
   return _SUCCESS_;
 
