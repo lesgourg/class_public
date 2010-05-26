@@ -21,6 +21,8 @@ struct spectra_nl {
   double eta_step;
   int eta_size;
   int k_size;
+  int k_size_eff;
+  int index_k_1;
 
   short spectra_nl_verbose;  /**< from 0 to 1: amount of information written in standard output */
 
@@ -92,6 +94,7 @@ extern "C" {
 		    );
   
   int trg_ddp_ab(
+		 struct spectra_nl * pnl,
 		 double *p_ab,
 		 int index_eta,
 		 double *result,
@@ -100,6 +103,7 @@ extern "C" {
 		 
 
   int trg_p_ab_at_any_k(
+			struct spectra_nl * pnl,
 			double * p_ab,
 			double * ddp_ab,
 			int index_eta,
@@ -117,6 +121,7 @@ extern "C" {
    ********************/
 
   int trg_A_arg(
+		struct spectra_nl *pnl,
 		enum name_A name, 
 		double k, 
 		double p, 
@@ -134,9 +139,9 @@ extern "C" {
    **************/
 
   int trg_integrate_xy_at_eta(
+			      struct spectra_nl * pnl,
 			      enum name_A name,
 			      int index_eta,
-			      int n_xy,
 			      int k_size, /* functions of k for
 					     integration are defined
 					     from [0] to [k_size-1]*/
@@ -155,7 +160,7 @@ extern "C" {
 
   int trg_free(
 	       struct spectra_nl *pnl
-);
+	       );
       
 #ifdef __cplusplus
 }

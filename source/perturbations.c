@@ -2437,7 +2437,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 				     &rp_local,
 				     &timescale),
 	     ppt->error_message,
-	     ppt->error_message);
+	     error_message);
 
   /** - compute related background quantities */
   k2 = current_k*current_k;
@@ -2960,6 +2960,6 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
   /*     printf("eta   : %e \n",dy[16]); */
   /*     printf("h     : %e \n",pvecmetric[cv.index_mt_h_prime]); */
 
-  return;
+  return _SUCCESS_;
 }
 

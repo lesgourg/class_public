@@ -36,7 +36,7 @@ main() {
     return _FAILURE_;
   }
 
-  pr.k_scalar_kmax_for_pk=10.;
+  pr.k_scalar_kmax_for_pk=105.;
   pr.k_scalar_k_per_decade_for_pk=10.;
 
   pt.has_cl_cmb_temperature = _FALSE_;
