@@ -150,7 +150,7 @@ struct perturbs
  * different: hence, there will be one such structure created for each
  * mode. This structure is not used in any other modules. 
  */
-struct current_vectors 
+struct perturb_workspace 
 {
   /** @name - all possible useful indices for the vector of perturbed quantities to be integrated over time. "_pt_" stands for "perturbation". */
 
@@ -211,13 +211,28 @@ struct current_vectors
   int index_st_dS2;     /**< derivative S2' */
   int index_st_ddS2;     /**< derivative S2'' */
   int st_size; /**< size of this vector */ 
+  
+  double * pvecback;
+  double * pvecthermo;
+  double * pvecperturbations; /**< vector of perturbations to be integrated, used throughout the perturbation module */
+  double * pvecderivs; 
+  double * pvecmetric;
+  double * pvecsource_terms;
+
+  int * last_index_back;  /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
+  int * last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
+
+  enum tca_flags tca; /**< flag for tight-coupling approximation */
+  enum rp_flags rp; /**< flag for free-streaming approximation (switch on/off radiation perturbations) */
+
 };
 
 struct perturbation_derivs_parameters {
 
-  double * pvecback;
-  double * pvecthermo;
-
+  int index_mode;
+  double k;
+  struct perturb_workspace * ppw;
+  
 };
 
 /*************************************************************************************************************/
@@ -264,45 +279,66 @@ struct perturbation_derivs_parameters {
 			   double * k_list
 			   );
     
-    int perturb_indices_of_current_vectors();
+    int perturb_workspace_init(
+			       int index_mode,
+			       struct perturb_workspace * ppw
+			       );
 
-    int perturb_solve();
+    int perturb_workspace_free(
+			       struct perturb_workspace * ppw
+			       );
+
+    int perturb_solve(
+		      int index_mode,
+		      int index_ic,
+		      int index_k,
+		      struct perturb_workspace * ppw
+		      );
 
     int perturb_initial_conditions(
+				   int index_mode,
+				   int index_ic,
+				   double k,
 				   double eta,
-				   double * pvecback
+				   struct perturb_workspace * ppw
 				   );
 
     int perturb_back_and_thermo(
+				int index_mode,
+				double k,
 				double eta,
 				enum interpolation_mode intermode,
-				int * last_index_back,
-				int * last_index_thermo,
-				double * pvecback,
-				double * pvecthermo,
-				enum tca_flags * tca_local,
-				enum rp_flags * rp_local,
+				struct perturb_workspace * ppw,
 				double * timescale
 				);
 
     int perturb_einstein(
+			 int index_mode,
+			 double k,
 			 double eta,
-			 double * pvecback,
-			 double * y
+			 double * y,
+			 struct perturb_workspace * ppw
 			 );
 
-    int perturb_source_terms(double eta,
-			     struct perturbation_derivs_parameters * ppdp);
+    int perturb_source_terms(
+			     double eta,
+			     struct perturbation_derivs_parameters * ppdp
+			     );
 
     int perturb_sources(
-			double * source_terms_array
+			int index_mode,
+			int index_ic,
+			int index_k,
+			int index_type,
+			double * source_terms_array,
+			struct perturb_workspace * ppw
 			);
 
     int perturb_derivs(
 			double eta,
-			double * pperturbations,
-			double * pperturbations_derivs,
-			void * fixed_parameters,
+			double * y,
+			double * dy,
+			void * parameters_and_workspace,
 			ErrorMsg error_message
 			);
 
