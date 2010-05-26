@@ -13,7 +13,7 @@ vpath %.c source:tools:main:test
 vpath %.o build
 vpath .base build
 
-CC       = gcc -g
+CC       = gcc
 
 CCFLAG   = -O2 -fopenmp
 LDFLAG   = -O2 -fopenmp

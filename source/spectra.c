@@ -186,16 +186,13 @@ int spectra_pk_at_k_and_z(
     class_alloc(pkini_k,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
     class_alloc(pkini_kmin,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
 
-    /*
-    class_call(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k),ppm->error_message,psp->error_message);
-    class_call(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin),ppm->error_message,psp->error_message);
+/*     class_call(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k),ppm->error_message,psp->error_message); */
+/*     class_call(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin),ppm->error_message,psp->error_message); */
     
-    *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic];
-
-    */
-
-    *pk=temporary_pk[index_ic*psp->k_size]*pow(k/psp->k[0],ppm->n_s_ad);
+/*     *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic]; */
     
+    *pk=temporary_pk[index_ic*psp->k_size]*pow(k/psp->k[0],ppm->n_s_ad); /*** provisory: should change instead interpolation routine in primordial_spectra */
+
     free(temporary_pk);
     free(pkini_k);
     free(pkini_kmin);
