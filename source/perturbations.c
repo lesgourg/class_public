@@ -24,6 +24,9 @@
  */
 
 #include "perturbations.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 /** 
  * Source function \f$ S^{X} (k, \eta) \f$ at given conformal time eta.
@@ -112,8 +115,31 @@ int perturb_init(
   int index_ic; 
   /* running index for wavenumbers */
   int index_k; 
-  /* workspace for each mode */
-  struct perturb_workspace pw;
+  /* struct perturb_workspace pw; */
+  struct perturb_workspace * ppw;
+
+  /* This code can be optionally compiled with the openmp option for parallel computation.
+     Inside parallel regions, the use of the command "return" is forbidden.
+     For error management, instead of "return _FAILURE_", we will set the variable below
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
+     parallel region. */
+  int abort;
+
+#ifdef _OPENMP
+  /* number of available omp threads */
+  int number_of_threads;
+  /* instrumentation times */
+  double tstart, tstop;
+  /* pointer to one "ppw" per thread */
+  struct perturb_workspace ** pppw;
+
+#pragma omp parallel 
+  {
+    number_of_threads = omp_get_num_threads();
+  }
+  class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
+  
+#endif
 
   /** - decide which types of sources must be computed */
   if (ppt->has_cl_cmb_temperature == _TRUE_)
@@ -162,42 +188,107 @@ int perturb_init(
 
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
-    /** (a) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
-    class_call(perturb_workspace_init(ppr,
-				      pba,
-				      pth,
-				      ppt,
-				      index_mode,
-				      &pw),
-	       ppt->error_message,
-	       ppt->error_message);
+    abort = _FALSE_;
+
+#pragma omp parallel				   \
+  shared(pppw,ppr,pba,pth,ppt,index_mode,abort)    \
+  private(ppw)
+
+    {
+
+      class_alloc_parallel(ppw,sizeof(struct perturb_workspace),ppt->error_message);
+
+#ifdef _OPENMP
+      pppw[omp_get_thread_num()]=ppw;
+#endif
+
+      /** (a) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
+      class_call_parallel(perturb_workspace_init(ppr,
+						 pba,
+						 pth,
+						 ppt,
+						 index_mode,
+					 	 ppw),
+			  ppt->error_message,
+			  ppt->error_message);
+
+    } /* end of parallel region */
+
+    if (abort == _TRUE_) return _FAILURE_;
 
     /** (c) loop over initial conditions and wavenumbers; for each of them, evolve perturbations and compute source functions with perturb_solve() */
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
-      for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
+      abort = _FALSE_;
 
-	if (ppt->perturbations_verbose > 2)
-	  printf("evolving mode k=%e /Mpc \n",(ppt->k[index_mode])[index_k]);
+#pragma omp parallel					   \
+  shared(pppw,ppr,pba,pth,ppt,index_mode,index_ic,abort)   \
+  private(index_k,ppw)
 
-	class_call(perturb_solve(ppr,
-				 pba,
-				 pth,
-				 ppt,
-				 index_mode,
-				 index_ic,
-				 index_k,
-				 &pw),
-		   ppt->error_message,
-		   ppt->error_message);
+      {
 
-      } /* end of loop over wavenumbers */
+#ifdef _OPENMP
+	ppw=pppw[omp_get_thread_num()];
+	tstart = omp_get_wtime();
+#endif
+
+#pragma omp for schedule (dynamic)
+
+	for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
+	  
+	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
+	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);
+	  
+	  class_call_parallel(perturb_solve(ppr,
+					    pba,
+					    pth,
+					    ppt,
+					    index_mode,
+					    index_ic,
+					    index_k,
+					    ppw),
+			      ppt->error_message,
+			      ppt->error_message);
+
+#pragma omp flush(abort)
+
+	} /* end of loop over wavenumbers */
+
+#ifdef _OPENMP
+	tstop = omp_get_wtime();
+	if (ppt->perturbations_verbose>1)
+	  printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
+		 __func__,tstop-tstart,omp_get_thread_num());
+#endif
+
+      } /* end of parallel region */
+
+      if (abort == _TRUE_) return _FAILURE_;
+
     } /* end of loop over initial conditions */
     
-    class_call(perturb_workspace_free(ppt,&pw),
-	       ppt->error_message,
-	       ppt->error_message);
-    
+    abort = _FALSE_;
+
+#pragma omp parallel				\
+  shared(pppw,ppt,abort)			\
+  private(ppw)
+
+    {
+
+#ifdef _OPENMP
+      ppw=pppw[omp_get_thread_num()];
+#endif
+      
+      class_call_parallel(perturb_workspace_free(ppt,ppw),
+			  ppt->error_message,
+			  ppt->error_message);
+      
+      if (abort == _FALSE_) free(ppw);
+
+    } /* end of parallel region */
+
+    if (abort == _TRUE_) return _FAILURE_;
+
   } /* end loop over modes */    
 
   return _SUCCESS_;
