@@ -36,7 +36,7 @@ main() {
     return _FAILURE_;
   }
 
-  pr.k_scalar_kmax_for_pk=105.;
+  pr.k_scalar_kmax_for_pk=500.;
   pr.k_scalar_k_per_decade_for_pk=10.;
 
   pt.has_cl_cmb_temperature = _FALSE_;
@@ -44,7 +44,7 @@ main() {
   pt.has_cl_cmb_lensing_potential = _FALSE_;
   pt.has_pk_matter = _TRUE_;
 
-  sp.z_max_pk = 1000.;
+  sp.z_max_pk = 100.;
 
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);
@@ -56,7 +56,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (perturb_init(&ba,&th,&pr,&pt) == _FAILURE_) {
+  if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
@@ -114,7 +114,7 @@ main() {
     return _FAILURE_;
   }
 
-  if (perturb_free() == _FAILURE_) {
+  if (perturb_free(&pt) == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
