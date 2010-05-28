@@ -103,13 +103,27 @@ extern "C" {
 		      struct spectra * psp
 		      );
 
-  int spectra_cl(
-		 struct perturbs * ppt,
-		 struct transfers * ptr,
-		 struct primordial * ppm,
-		 struct spectra * psp
-		 );
+  int spectra_cls(
+		  struct perturbs * ppt,
+		  struct transfers * ptr,
+		  struct primordial * ppm,
+		  struct spectra * psp
+		  );
 
+  int spectra_compute_cl(
+			 struct perturbs * ppt,
+			 struct transfers * ptr,
+			 struct primordial * ppm,
+			 struct spectra * psp,
+			 int index_mode,
+			 int index_ic,
+			 int index_l,
+			 int cl_integrand_num_columns,
+			 double * cl_integrand,
+			 double * primordial_pk,
+			 double * transfer
+			 );
+  
   int spectra_pk(
 		 struct background * pba,
 		 struct perturbs * ppt,

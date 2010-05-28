@@ -282,7 +282,7 @@ int spectra_init(
 
   if (ptr->tt_size > 0) {
 
-    class_call(spectra_cl(ppt,ptr,ppm,psp),
+    class_call(spectra_cls(ppt,ptr,ppm,psp),
 	       psp->error_message,
 	       psp->error_message);
 
@@ -385,22 +385,17 @@ int spectra_indices(
 
 }
 
-int spectra_cl(
-	       struct perturbs * ppt,
-	       struct transfers * ptr,
-	       struct primordial * ppm,
-	       struct spectra * psp
-	       ) {
+int spectra_cls(
+		struct perturbs * ppt,
+		struct transfers * ptr,
+		struct primordial * ppm,
+		struct spectra * psp
+		) {
 
   /** - define local variables */
   int index_mode; /* index running over modes (scalar, tensor, ...) */
   int index_ic; /* index running over initial conditions */
-  int index_tt; /* index running over transfer type (temperature, polarisation, ...) */
-  int index_k; /* index running over wavenumber */
   int index_l;  /* multipoles */
-  int index_ct;
-  double k; /* wavenumber */
-  double clvalue;
   int cl_integrand_num_columns;
   double * cl_integrand;
   double * transfer;
@@ -448,7 +443,7 @@ int spectra_cl(
 
 #pragma omp parallel							\
   shared(ptr,ppm,index_mode,psp,ppt,cl_integrand_num_columns,index_ic,abort) \
-  private(tstart,cl_integrand,primordial_pk,transfer,index_l,index_k,k,index_tt,index_ct,clvalue,tstop)
+  private(tstart,cl_integrand,primordial_pk,transfer,index_l,tstop)
       
       {
 
@@ -456,11 +451,14 @@ int spectra_cl(
 	tstart = omp_get_wtime();
 #endif
 
-	class_alloc_parallel(cl_integrand,ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),psp->error_message);
+	class_alloc_parallel(cl_integrand,ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),
+			     psp->error_message);
 
-	class_alloc_parallel(primordial_pk,psp->ic_size[index_mode]*sizeof(double),psp->error_message);
+	class_alloc_parallel(primordial_pk,psp->ic_size[index_mode]*sizeof(double),
+			     psp->error_message);
 
-	class_alloc_parallel(transfer,ptr->tt_size*sizeof(double),psp->error_message);
+	class_alloc_parallel(transfer,ptr->tt_size*sizeof(double),
+			     psp->error_message);
 
 #pragma omp for schedule (dynamic)
 
@@ -469,129 +467,145 @@ int spectra_cl(
 
 #pragma omp flush(abort)
 
-	  if (abort == _FALSE_) {
-
-	    /** - compute integrand \f$ \Delta_l(k)^2 / k \f$ for each k in the transfer function's table (assumes flat primordial spectrum) */
-
-	    for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
-
-#pragma omp flush(abort)
-
-	      if (abort == _FALSE_) {
-
-		k = ptr->k[index_mode][index_k];
-
-		cl_integrand[index_k*cl_integrand_num_columns+0] = k;
-
-		class_call_parallel(primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk),
-				    ppm->error_message,
-				    psp->error_message);
-
-		/* above routine checks that k>0: no possible division by zero below */
-
-#pragma omp flush(abort)
-
-		if (abort == _FALSE_) {
-
-		  for (index_tt=0; index_tt < ptr->tt_size; index_tt++) {
-		  
-		    transfer[index_tt] = 
-		      ptr->transfer[index_mode]
-		      [((index_ic * ptr->tt_size + index_tt)
-			* ptr->l_size[index_mode] + index_l)
-		       * ptr->k_size[index_mode] + index_k];
-		  
-		  }
-		
-		  if (ppt->has_cl_cmb_temperature == _TRUE_) {
-		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
-		      * transfer[ptr->index_tt_t]
-		      * transfer[ptr->index_tt_t]
-		      * 4. * _PI_ / k;
-		  }
-		  
-		  if (ppt->has_cl_cmb_polarization == _TRUE_) {
-		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
-		      * transfer[ptr->index_tt_p]
-		      * transfer[ptr->index_tt_p]
-		      * 4. * _PI_ / k;
-		  }
-
-		  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) {
-		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
-		      * transfer[ptr->index_tt_t]
-		      * transfer[ptr->index_tt_p]
-		      * 4. * _PI_ / k;
-		  }
-
-		  if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
-
-		    if (index_mode == ppt->index_md_scalars) {
-		      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.;
-		    }
-		  
-		    class_test_parallel((index_mode == ppt->index_md_tensors),
-					psp->error_message,"tensors not coded yet");
-		  
-		  }
-	      
-		  if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
-		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
-		      * transfer[ptr->index_tt_lcmb]
-		      * transfer[ptr->index_tt_lcmb]
-		      * 4. * _PI_ / k;
-		  }
-
-		  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
-		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
-		      * transfer[ptr->index_tt_t]
-		      * transfer[ptr->index_tt_lcmb]
-		      * 4. * _PI_ / k;
-		  }
-
-		}
-
-	      }
-
-	    }
-
-	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
-
-#pragma omp flush(abort)
-
-	      if (abort == _FALSE_) {
-
-		class_call_parallel(array_spline(cl_integrand,
+	  class_call_parallel(spectra_compute_cl(ppt,
+						 ptr,
+						 ppm,
+						 psp,
+						 index_mode,
+						 index_ic,
+						 index_l,
 						 cl_integrand_num_columns,
-						 ptr->k_size[index_mode],
-						 0,
-						 1+index_ct,
-						 1+psp->ct_size+index_ct,
-						 _SPLINE_EST_DERIV_,
-						 psp->error_message),
-				    psp->error_message,
-				    psp->error_message);
+						 cl_integrand,
+						 primordial_pk,
+						 transfer),
+			      psp->error_message,
+			      psp->error_message);
 
-		class_call_parallel(array_integrate_all_spline(cl_integrand,
-							       cl_integrand_num_columns,
-							       ptr->k_size[index_mode],
-							       0,
-							       1+index_ct,
-							       1+psp->ct_size+index_ct,
-							       &clvalue,
-							       psp->error_message),
-				    psp->error_message,
-				    psp->error_message);
+	  /* below: old version to be removed at some point */
 
-		psp->cl[index_mode]
-		  [(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
-		  = clvalue;
+/* 	  if (abort == _FALSE_) { */
 
-	      }
+/* 	    /\** - compute integrand \f$ \Delta_l(k)^2 / k \f$ for each k in the transfer function's table (assumes flat primordial spectrum) *\/ */
 
-	    }
+/* 	    for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) { */
 
-	  }
+/* #pragma omp flush(abort) */
+
+/* 	      if (abort == _FALSE_) { */
+
+/* 		k = ptr->k[index_mode][index_k]; */
+
+/* 		cl_integrand[index_k*cl_integrand_num_columns+0] = k; */
+
+/* 		class_call_parallel(primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk), */
+/* 				    ppm->error_message, */
+/* 				    psp->error_message); */
+
+/* 		/\* above routine checks that k>0: no possible division by zero below *\/ */
+
+/* #pragma omp flush(abort) */
+
+/* 		if (abort == _FALSE_) { */
+
+/* 		  for (index_tt=0; index_tt < ptr->tt_size; index_tt++) { */
+		  
+/* 		    transfer[index_tt] =  */
+/* 		      ptr->transfer[index_mode] */
+/* 		      [((index_ic * ptr->tt_size + index_tt) */
+/* 			* ptr->l_size[index_mode] + index_l) */
+/* 		       * ptr->k_size[index_mode] + index_k]; */
+		  
+/* 		  } */
+		
+/* 		  if (ppt->has_cl_cmb_temperature == _TRUE_) { */
+/* 		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic] */
+/* 		      * transfer[ptr->index_tt_t] */
+/* 		      * transfer[ptr->index_tt_t] */
+/* 		      * 4. * _PI_ / k; */
+/* 		  } */
+		  
+/* 		  if (ppt->has_cl_cmb_polarization == _TRUE_) { */
+/* 		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic] */
+/* 		      * transfer[ptr->index_tt_p] */
+/* 		      * transfer[ptr->index_tt_p] */
+/* 		      * 4. * _PI_ / k; */
+/* 		  } */
+
+/* 		  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) { */
+/* 		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic] */
+/* 		      * transfer[ptr->index_tt_t] */
+/* 		      * transfer[ptr->index_tt_p] */
+/* 		      * 4. * _PI_ / k; */
+/* 		  } */
+
+/* 		  if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) { */
+
+/* 		    if (index_mode == ppt->index_md_scalars) { */
+/* 		      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.; */
+/* 		    } */
+		  
+/* 		    class_test_parallel((index_mode == ppt->index_md_tensors), */
+/* 					psp->error_message,"tensors not coded yet"); */
+		  
+/* 		  } */
+	      
+/* 		  if (ppt->has_cl_cmb_lensing_potential == _TRUE_) { */
+/* 		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic] */
+/* 		      * transfer[ptr->index_tt_lcmb] */
+/* 		      * transfer[ptr->index_tt_lcmb] */
+/* 		      * 4. * _PI_ / k; */
+/* 		  } */
+
+/* 		  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) { */
+/* 		    cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic] */
+/* 		      * transfer[ptr->index_tt_t] */
+/* 		      * transfer[ptr->index_tt_lcmb] */
+/* 		      * 4. * _PI_ / k; */
+/* 		  } */
+
+/* 		} */
+
+/* 	      } */
+
+/* 	    } */
+
+/* 	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) { */
+
+/* #pragma omp flush(abort) */
+
+/* 	      if (abort == _FALSE_) { */
+
+/* 		class_call_parallel(array_spline(cl_integrand, */
+/* 						 cl_integrand_num_columns, */
+/* 						 ptr->k_size[index_mode], */
+/* 						 0, */
+/* 						 1+index_ct, */
+/* 						 1+psp->ct_size+index_ct, */
+/* 						 _SPLINE_EST_DERIV_, */
+/* 						 psp->error_message), */
+/* 				    psp->error_message, */
+/* 				    psp->error_message); */
+
+/* 		class_call_parallel(array_integrate_all_spline(cl_integrand, */
+/* 							       cl_integrand_num_columns, */
+/* 							       ptr->k_size[index_mode], */
+/* 							       0, */
+/* 							       1+index_ct, */
+/* 							       1+psp->ct_size+index_ct, */
+/* 							       &clvalue, */
+/* 							       psp->error_message), */
+/* 				    psp->error_message, */
+/* 				    psp->error_message); */
+
+/* 		psp->cl[index_mode] */
+/* 		  [(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct] */
+/* 		  = clvalue; */
+
+/* 	      } */
+
+/* 	    } */
+
+/* 	  } */
 
 	} /* end of loop over l */
 
@@ -609,9 +623,7 @@ int spectra_cl(
 	
 	free(transfer);
 
-      }
-
-      /*** end of parallel region ***/
+      } /* end of parallel region */
 
       if (abort == _TRUE_) return _FAILURE_;
 
@@ -627,6 +639,131 @@ int spectra_cl(
 	       psp->error_message,
 	       psp->error_message);
     
+  }
+
+  return _SUCCESS_;
+
+}
+
+int spectra_compute_cl(
+		       struct perturbs * ppt,
+		       struct transfers * ptr,
+		       struct primordial * ppm,
+		       struct spectra * psp,
+		       int index_mode,
+		       int index_ic,
+		       int index_l,
+		       int cl_integrand_num_columns,
+		       double * cl_integrand,
+		       double * primordial_pk,
+		       double * transfer
+		       ) {
+
+  int index_k;
+  int index_tt;
+  int index_ct;
+  double k;
+  double clvalue;
+
+  for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
+
+    k = ptr->k[index_mode][index_k];
+
+    cl_integrand[index_k*cl_integrand_num_columns+0] = k;
+
+    class_call(primordial_spectrum_at_k(ppm,index_mode,k,primordial_pk),
+	       ppm->error_message,
+	       psp->error_message);
+
+    /* above routine checks that k>0: no possible division by zero below */
+
+    for (index_tt=0; index_tt < ptr->tt_size; index_tt++) {
+		  
+      transfer[index_tt] = 
+	ptr->transfer[index_mode]
+	[((index_ic * ptr->tt_size + index_tt)
+	  * ptr->l_size[index_mode] + index_l)
+	 * ptr->k_size[index_mode] + index_k];
+      
+    }
+		
+    if (ppt->has_cl_cmb_temperature == _TRUE_) {
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
+	* transfer[ptr->index_tt_t]
+	* transfer[ptr->index_tt_t]
+	* 4. * _PI_ / k;
+    }
+		  
+    if (ppt->has_cl_cmb_polarization == _TRUE_) {
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
+	* transfer[ptr->index_tt_p]
+	* transfer[ptr->index_tt_p]
+	* 4. * _PI_ / k;
+    }
+
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) {
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
+	* transfer[ptr->index_tt_t]
+	* transfer[ptr->index_tt_p]
+	* 4. * _PI_ / k;
+    }
+
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
+
+      if (index_mode == ppt->index_md_scalars) {
+	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.;
+      }
+		  
+      class_test((index_mode == ppt->index_md_tensors),
+		 psp->error_message,"tensors not coded yet");
+		  
+    }
+	      
+    if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
+	* transfer[ptr->index_tt_lcmb]
+	* transfer[ptr->index_tt_lcmb]
+	* 4. * _PI_ / k;
+    }
+
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
+	* transfer[ptr->index_tt_t]
+	* transfer[ptr->index_tt_lcmb]
+	* 4. * _PI_ / k;
+    }
+    
+  }
+  
+
+  for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+
+    class_call(array_spline(cl_integrand,
+			    cl_integrand_num_columns,
+			    ptr->k_size[index_mode],
+			    0,
+			    1+index_ct,
+			    1+psp->ct_size+index_ct,
+			    _SPLINE_EST_DERIV_,
+			    psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
+
+    class_call(array_integrate_all_spline(cl_integrand,
+					  cl_integrand_num_columns,
+					  ptr->k_size[index_mode],
+					  0,
+					  1+index_ct,
+					  1+psp->ct_size+index_ct,
+					  &clvalue,
+					  psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
+
+    psp->cl[index_mode]
+      [(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
+      = clvalue;
+
   }
 
   return _SUCCESS_;

@@ -87,6 +87,13 @@ extern "C" {
 			struct bessels * pbs
 			);
 
+  int bessel_j_for_l(
+		     struct precision * ppr,
+		     struct bessels * pbs,
+		     int index_l,
+		     double kmin
+		     );
+
   int bessel_j(
 	       struct bessels * pbs,
 	       int l,

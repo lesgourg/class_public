@@ -10,6 +10,7 @@
 #include "transfer.h"
 #include "primordial.h"
 #include "spectra.h"
+#include "output.h"
 
 main() {
 
@@ -38,19 +39,38 @@ main() {
     return _FAILURE_;
   }
 
-  if (thermodynamics_init(&ba,&pr,&th) == _FAILURE_) {
+  if (thermodynamics_init(&pr,&ba,&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
 
-  /****** here you could output the thermodynamics evolution ******/
+  /********************************************/
+  /***** output thermodynamics quantities *****/
+  /********************************************/
+  
+  int i;
 
-  if (thermodynamics_free() == _FAILURE_) {
+  printf("#1: redshift z\n");
+  printf("#2: electron ionization fraction x_e\n");
+  printf("#3: exponential of optical depth e^-kappa\n");
+  printf("#4: Thomson scattering rate kappa'\n");
+  printf("#5: visibility function g=kappa' e^-kappa \n");
+  for (i=0; i < th.tt_size; i++)
+    printf("%e %e %e %e %e\n",
+	   th.z_table[i],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_exp_m_kappa],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_g]);
+
+  /********************************************/
+
+  if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
 
-  if (background_free() == _FAILURE_) {
+  if (background_free(&ba) == _FAILURE_) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }

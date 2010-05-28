@@ -115,7 +115,7 @@ int perturb_init(
   int index_ic; 
   /* running index for wavenumbers */
   int index_k; 
-  /* struct perturb_workspace pw; */
+  /* pointer over workspace */
   struct perturb_workspace * ppw;
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
@@ -126,19 +126,8 @@ int perturb_init(
   int abort;
 
 #ifdef _OPENMP
-  /* number of available omp threads */
-  int number_of_threads;
   /* instrumentation times */
   double tstart, tstop;
-  /* pointer to one "ppw" per thread */
-  struct perturb_workspace ** pppw;
-
-#pragma omp parallel 
-  {
-    number_of_threads = omp_get_num_threads();
-  }
-  class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
-  
 #endif
 
   /** - decide which types of sources must be computed */
@@ -188,21 +177,22 @@ int perturb_init(
 
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
-    abort = _FALSE_;
+    /** (a) create and initialize the workspace (with openmp, as many workspaces as threads) */
+
+    abort = _FALSE_;  
 
 #pragma omp parallel				   \
-  shared(pppw,ppr,pba,pth,ppt,index_mode,abort)    \
-  private(ppw)
+  shared(ppr,pba,pth,ppt,index_mode,abort)    \
+  private(ppw,index_ic,index_k)
 
     {
 
-      class_alloc_parallel(ppw,sizeof(struct perturb_workspace),ppt->error_message);
-
 #ifdef _OPENMP
-      pppw[omp_get_thread_num()]=ppw;
+      tstart = omp_get_wtime();
 #endif
 
-      /** (a) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
+      class_alloc_parallel(ppw,sizeof(struct perturb_workspace),ppt->error_message);
+
       class_call_parallel(perturb_workspace_init(ppr,
 						 pba,
 						 pth,
@@ -211,31 +201,19 @@ int perturb_init(
 					 	 ppw),
 			  ppt->error_message,
 			  ppt->error_message);
+    
+      /** (c) loop over initial conditions */
 
-    } /* end of parallel region */
+      for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
-    if (abort == _TRUE_) return _FAILURE_;
-
-    /** (c) loop over initial conditions and wavenumbers; for each of them, evolve perturbations and compute source functions with perturb_solve() */
-    for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
-
-      abort = _FALSE_;
-
-#pragma omp parallel					   \
-  shared(pppw,ppr,pba,pth,ppt,index_mode,index_ic,abort)   \
-  private(index_k,ppw)
-
-      {
-
-#ifdef _OPENMP
-	ppw=pppw[omp_get_thread_num()];
-	tstart = omp_get_wtime();
-#endif
+	/** (c) loop over wavenumbers; for each of them, evolve perturbations and compute source functions with perturb_solve(); distributed between different threads if compiled with openmp */
 
 #pragma omp for schedule (dynamic)
 
 	for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
 	  
+#pragma omp flush(abort)
+
 	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
 	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);
 	  
@@ -250,40 +228,22 @@ int perturb_init(
 			      ppt->error_message,
 			      ppt->error_message);
 
-#pragma omp flush(abort)
-
 	} /* end of loop over wavenumbers */
 
-#ifdef _OPENMP
-	tstop = omp_get_wtime();
-	if (ppt->perturbations_verbose>1)
-	  printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
-		 __func__,tstop-tstart,omp_get_thread_num());
-#endif
-
-      } /* end of parallel region */
-
-      if (abort == _TRUE_) return _FAILURE_;
-
-    } /* end of loop over initial conditions */
-    
-    abort = _FALSE_;
-
-#pragma omp parallel				\
-  shared(pppw,ppt,abort)			\
-  private(ppw)
-
-    {
-
-#ifdef _OPENMP
-      ppw=pppw[omp_get_thread_num()];
-#endif
+      } /* end of loop over initial conditions */
+      
+      /** - free all workspaces */
       
       class_call_parallel(perturb_workspace_free(ppt,ppw),
 			  ppt->error_message,
 			  ppt->error_message);
-      
-      if (abort == _FALSE_) free(ppw);
+
+#ifdef _OPENMP
+      tstop = omp_get_wtime();
+      if (ppt->perturbations_verbose>1)
+	printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
+	       __func__,tstop-tstart,omp_get_thread_num());
+#endif
 
     } /* end of parallel region */
 
@@ -1142,6 +1102,7 @@ int perturb_workspace_free (
     free(ppw->source_term_table[index_type]);
   }
   free(ppw->source_term_table);
+  free(ppw);
 
   return _SUCCESS_;
 }

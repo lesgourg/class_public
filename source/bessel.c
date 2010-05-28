@@ -129,15 +129,11 @@ int bessel_init(
 
   /* index for l (since first value of l is always 2, l=index_l+2) */
   int index_l;
-  /* index for x (x=x_min[index_l]+x_step*index_x) */
-  int index_x;
-  /* conformal time today (useful for computing x_max) */
+   /* conformal time today (useful for computing x_max) */
   double eta0;
   /* minimum, maximum value of k (useful for computing x_min,x_max) */
   double kmin,kmax;
-  /* for computing x_min */
-  double x_min_up,x_min_down;
-  /* first numbers to be read in bessels.dat file */
+   /* first numbers to be read in bessels.dat file */
   int l_size_file;
   int * l_file;
   double x_step_file;
@@ -150,17 +146,7 @@ int bessel_init(
   void * junk;
   /* bessels.dat file */
   FILE * bessel_file;
-  /* value of j_l(x) returned by bessel_j() */
-  double j;
-  /* an array used temporarily: for each l, contains the list of x
-     values in column number column_x, of j_l values in columns_j, of
-     j_l'' values in column ddj */
-  double * j_array;
-  int column_x=0;
-  int column_j=1;
-  int column_ddj=2;
-  int column_num=3;
-
+  
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
@@ -325,9 +311,9 @@ int bessel_init(
   /*** beginning of parallel region ***/
 
 #pragma omp parallel							\
-  shared(pbs,kmin,ppr,column_num,column_x,column_j,column_ddj)		\
-  private(index_l,index_x,j,x_min_up,x_min_down,j_array,tstart,tstop)
-
+  shared(ppr,pbs,kmin,abort)						\
+  private(index_l,tstart,tstop)
+  
   {
 
 #ifdef _OPENMP
@@ -342,130 +328,138 @@ int bessel_init(
     
 #pragma omp flush(abort)
 
-      if (abort == _FALSE_) {
+      class_call_parallel(bessel_j_for_l(ppr,pbs,index_l,kmin),
+			  pbs->error_message,
+			  pbs->error_message);
+			  
 
-	index_x=0;
-	j = 0.;
 
-	/* find x_min[index_l] by dichotomy */
-	x_min_up=(double)pbs->l[index_l]+0.5;
-	x_min_down=0.;
 
-	class_call_parallel(bessel_j(pbs,
-				     pbs->l[index_l], /* l */
-				     x_min_up, /* x */
-				     &j),  /* j_l(x) */
-			    pbs->error_message,
-			    pbs->error_message);
+/*       if (abort == _FALSE_) { */
+
+/* 	index_x=0; */
+/* 	j = 0.; */
+
+/* 	/\* find x_min[index_l] by dichotomy *\/ */
+/* 	x_min_up=(double)pbs->l[index_l]+0.5; */
+/* 	x_min_down=0.; */
+
+/* 	class_call_parallel(bessel_j(pbs, */
+/* 				     pbs->l[index_l], /\* l *\/ */
+/* 				     x_min_up, /\* x *\/ */
+/* 				     &j),  /\* j_l(x) *\/ */
+/* 			    pbs->error_message, */
+/* 			    pbs->error_message); */
     
-	class_test_parallel(j < pbs->j_cut,
-			    pbs->error_message,
-			    "in dichotomy, wrong initial guess for x_min_up.");
+/* 	class_test_parallel(j < pbs->j_cut, */
+/* 			    pbs->error_message, */
+/* 			    "in dichotomy, wrong initial guess for x_min_up."); */
 
-#pragma omp flush(abort)
+/* #pragma omp flush(abort) */
 
-	if (abort == _FALSE_) {
+/* 	if (abort == _FALSE_) { */
  
-	  while ((x_min_up-x_min_down) > kmin) {
+/* 	  while ((x_min_up-x_min_down) > kmin) { */
       
-	    class_test_parallel((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
-				pbs->error_message,
-				"(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
-				(x_min_up-x_min_down),kmin);
+/* 	    class_test_parallel((x_min_up-x_min_down) < ppr->smallest_allowed_variation, */
+/* 				pbs->error_message, */
+/* 				"(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small", */
+/* 				(x_min_up-x_min_down),kmin); */
 
-	    class_call_parallel(bessel_j(pbs,
-					 pbs->l[index_l], /* l */
-					 0.5 * (x_min_up+x_min_down), /* x */
-					 &j),  /* j_l(x) */
-				pbs->error_message,
-				pbs->error_message);
+/* 	    class_call_parallel(bessel_j(pbs, */
+/* 					 pbs->l[index_l], /\* l *\/ */
+/* 					 0.5 * (x_min_up+x_min_down), /\* x *\/ */
+/* 					 &j),  /\* j_l(x) *\/ */
+/* 				pbs->error_message, */
+/* 				pbs->error_message); */
 
-#pragma omp flush(abort)
+/* #pragma omp flush(abort) */
 
-	    if (abort == _FALSE_) {
+/* 	    if (abort == _FALSE_) { */
 
-	      if (j >= pbs->j_cut) 
-		x_min_up=0.5 * (x_min_up+x_min_down);
-	      else
-		x_min_down=0.5 * (x_min_up+x_min_down);
+/* 	      if (j >= pbs->j_cut)  */
+/* 		x_min_up=0.5 * (x_min_up+x_min_down); */
+/* 	      else */
+/* 		x_min_down=0.5 * (x_min_up+x_min_down); */
 
-	    }
-	  }
+/* 	    } */
+/* 	  } */
 
-	  pbs->x_min[index_l]=x_min_down;
+/* 	  pbs->x_min[index_l]=x_min_down; */
 
-	  class_call_parallel(bessel_j(pbs,
-				       pbs->l[index_l], /* l */
-				       pbs->x_min[index_l], /* x */
-				       &j),  /* j_l(x) */
-			      pbs->error_message,
-			      pbs->error_message);
+/* 	  class_call_parallel(bessel_j(pbs, */
+/* 				       pbs->l[index_l], /\* l *\/ */
+/* 				       pbs->x_min[index_l], /\* x *\/ */
+/* 				       &j),  /\* j_l(x) *\/ */
+/* 			      pbs->error_message, */
+/* 			      pbs->error_message); */
 
-	  if (abort == _FALSE_) {
+/* 	  if (abort == _FALSE_) { */
 
-	    /* case when all values of j_l(x) were negligible for this l*/
-	    if (pbs->x_min[index_l] >= pbs->x_max) {
-	      pbs->x_min[index_l] = pbs->x_max;
-	      pbs->x_size[index_l] = 1;
+/* 	    /\* case when all values of j_l(x) were negligible for this l*\/ */
+/* 	    if (pbs->x_min[index_l] >= pbs->x_max) { */
+/* 	      pbs->x_min[index_l] = pbs->x_max; */
+/* 	      pbs->x_size[index_l] = 1; */
 
-	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+/* 	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message); */
+/* 	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message); */
 
-	      pbs->j[index_l][0]=0;
-	      pbs->ddj[index_l][0]=0;
-	    }
-	    /* write first non-negligible value */
-	    else {
-	      pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
+/* 	      pbs->j[index_l][0]=0; */
+/* 	      pbs->ddj[index_l][0]=0; */
+/* 	    } */
+/* 	    /\* write first non-negligible value *\/ */
+/* 	    else { */
+/* 	      pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1; */
 
-	      class_alloc_parallel(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
+/* 	      class_alloc_parallel(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message); */
 
-	      j_array[0*column_num+column_x]=pbs->x_min[index_l];
-	      j_array[0*column_num+column_j]=j;
+/* 	      j_array[0*column_num+column_x]=pbs->x_min[index_l]; */
+/* 	      j_array[0*column_num+column_j]=j; */
 
-	      /* loop over other non-negligible values */
-	      for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
+/* 	      /\* loop over other non-negligible values *\/ */
+/* 	      for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) { */
 
-#pragma omp flush(abort)
+/* #pragma omp flush(abort) */
 
-		if (abort == _FALSE_) {
+/* 		if (abort == _FALSE_) { */
 
-		  j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step;
+/* 		  j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step; */
 
-		  class_call_parallel(bessel_j(pbs,
-					       pbs->l[index_l], /* l */
-					       j_array[index_x*column_num+column_x], /* x */
-					       j_array+index_x*column_num+column_j),  /* j_l(x) */
-				      pbs->error_message,
-				      pbs->error_message);
-		}
-	      }
+/* 		  class_call_parallel(bessel_j(pbs, */
+/* 					       pbs->l[index_l], /\* l *\/ */
+/* 					       j_array[index_x*column_num+column_x], /\* x *\/ */
+/* 					       j_array+index_x*column_num+column_j),  /\* j_l(x) *\/ */
+/* 				      pbs->error_message, */
+/* 				      pbs->error_message); */
+/* 		} */
+/* 	      } */
 
-	      class_call_parallel(array_spline(j_array,
-					       column_num,
-					       pbs->x_size[index_l],
-					       column_x,
-					       column_j,
-					       column_ddj,
-					       _SPLINE_EST_DERIV_,
-					       pbs->error_message),
-				  pbs->error_message,
-				  pbs->error_message);
+/* 	      class_call_parallel(array_spline(j_array, */
+/* 					       column_num, */
+/* 					       pbs->x_size[index_l], */
+/* 					       column_x, */
+/* 					       column_j, */
+/* 					       column_ddj, */
+/* 					       _SPLINE_EST_DERIV_, */
+/* 					       pbs->error_message), */
+/* 				  pbs->error_message, */
+/* 				  pbs->error_message); */
 
-	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+/* 	      class_alloc_parallel(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message); */
+/* 	      class_alloc_parallel(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message); */
 
-	      for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) {
-		pbs->j[index_l][index_x] = j_array[index_x*column_num+column_j];
-		pbs->ddj[index_l][index_x] = j_array[index_x*column_num+column_ddj];
-	      }
+/* 	      for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) { */
+/* 		pbs->j[index_l][index_x] = j_array[index_x*column_num+column_j]; */
+/* 		pbs->ddj[index_l][index_x] = j_array[index_x*column_num+column_ddj]; */
+/* 	      } */
 
-	      free(j_array);
+/* 	      free(j_array); */
      
-	    }      
-	  }
-	}
-      }
+/* 	    }       */
+/* 	  } */
+/* 	} */
+/*       } */
+
     } /* end of loop over l */
 
 #ifdef _OPENMP
@@ -475,9 +469,7 @@ int bessel_init(
 	     __func__,tstop-tstart,omp_get_thread_num());
 #endif
 
-  }
-
-  /*** end of parallel region ***/
+  } /* end of parallel region */
 
   if (abort == _TRUE_) return _FAILURE_;
 
@@ -617,6 +609,137 @@ int bessel_get_l_list(
   return _SUCCESS_;
 
 }
+
+int bessel_j_for_l(
+		   struct precision * ppr,
+		   struct bessels * pbs,
+		   int index_l,
+		   double kmin
+		   ){
+  
+  /* index for x (x=x_min[index_l]+x_step*index_x) */
+  int index_x;
+  /* value of j_l(x) returned by bessel_j() */
+  double j;
+  /* for computing x_min */
+  double x_min_up;
+  double x_min_down;
+
+  /* an array used temporarily: for each l, contains the list of x
+     values in column number column_x, of j_l values in columns_j, of
+     j_l'' values in column ddj */
+  double * j_array;
+  int column_x=0;
+  int column_j=1;
+  int column_ddj=2;
+  int column_num=3;
+
+  index_x=0;
+  j = 0.;
+
+  /* find x_min[index_l] by dichotomy */
+  x_min_up=(double)pbs->l[index_l]+0.5;
+  x_min_down=0.;
+
+  class_call(bessel_j(pbs,
+		      pbs->l[index_l], /* l */
+		      x_min_up, /* x */
+		      &j),  /* j_l(x) */
+	     pbs->error_message,
+	     pbs->error_message);
+  
+  class_test(j < pbs->j_cut,
+	     pbs->error_message,
+	     "in dichotomy, wrong initial guess for x_min_up.");
+ 
+  while ((x_min_up-x_min_down) > kmin) {
+      
+    class_test((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
+	       pbs->error_message,
+	       "(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
+	       (x_min_up-x_min_down),kmin);
+    
+    class_call(bessel_j(pbs,
+			pbs->l[index_l], /* l */
+			0.5 * (x_min_up+x_min_down), /* x */
+			&j),  /* j_l(x) */
+	       pbs->error_message,
+	       pbs->error_message);
+    
+    if (j >= pbs->j_cut) 
+      x_min_up=0.5 * (x_min_up+x_min_down);
+    else
+      x_min_down=0.5 * (x_min_up+x_min_down);
+
+  }
+  
+  pbs->x_min[index_l]=x_min_down;
+
+  class_call(bessel_j(pbs,
+		      pbs->l[index_l], /* l */
+		      pbs->x_min[index_l], /* x */
+		      &j),  /* j_l(x) */
+	     pbs->error_message,
+	     pbs->error_message);
+
+  /* case when all values of j_l(x) were negligible for this l*/
+  if (pbs->x_min[index_l] >= pbs->x_max) {
+    pbs->x_min[index_l] = pbs->x_max;
+    pbs->x_size[index_l] = 1;
+
+    class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+    class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+
+    pbs->j[index_l][0]=0;
+    pbs->ddj[index_l][0]=0;
+  }
+  /* write first non-negligible value */
+  else {
+    pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
+
+    class_alloc(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
+
+    j_array[0*column_num+column_x]=pbs->x_min[index_l];
+    j_array[0*column_num+column_j]=j;
+
+	      /* loop over other non-negligible values */
+    for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
+
+      j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step;
+
+      class_call(bessel_j(pbs,
+			  pbs->l[index_l], /* l */
+			  j_array[index_x*column_num+column_x], /* x */
+			  j_array+index_x*column_num+column_j),  /* j_l(x) */
+		 pbs->error_message,
+		 pbs->error_message);
+    }
+ 
+
+    class_call(array_spline(j_array,
+			    column_num,
+			    pbs->x_size[index_l],
+			    column_x,
+			    column_j,
+			    column_ddj,
+			    _SPLINE_EST_DERIV_,
+			    pbs->error_message),
+	       pbs->error_message,
+	       pbs->error_message);
+
+    class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+    class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+
+    for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) {
+      pbs->j[index_l][index_x] = j_array[index_x*column_num+column_j];
+      pbs->ddj[index_l][index_x] = j_array[index_x*column_num+column_ddj];
+    }
+
+    free(j_array);
+  }
+  return _SUCCESS_;
+}
+    
 
 /**
  * Compute spherical Bessel function \f$ j_l(x) \f$ for a given l and x.
