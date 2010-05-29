@@ -237,7 +237,7 @@ extern "C" {
 					  ErrorMsg errmsg
 					  );
 
-  /** interpolate to get y_i(x), when x and y_i are in two different arrays*/
+  /** interpolate to get y(x), when x_i and y_i are in two different arrays*/
   int array_interpolate_two(
 			    double * array_x,
 			    int n_columns_x,
@@ -249,6 +249,16 @@ extern "C" {
 			    double * result,
 			    int result_size, /** from 1 to n_columns_y */
 			    ErrorMsg errmsg);
+
+  int array_interpolate_two_arrays_one_column(
+					      double * array_x, /* assumed to be a vector (i.e. one column array) */
+					      double * array_y,
+					      int n_columns_y,
+					      int index_y, /* between 0 and (n_columns_y-1) */
+					      int n_lines,  /** must be the same for array_x and array_y */
+					      double x,
+					      double * result,
+					      ErrorMsg errmsg);
 
   int array_interpolate_equal(
 			    double * array,

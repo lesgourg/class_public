@@ -148,7 +148,6 @@ extern "C" {
 			 double eta0,
 			 double eta_rec,
 			 int index_mode,
-			 int index_ic,
 			 int index_tt,
 			 int index_l,
 			 int index_k,
@@ -157,6 +156,18 @@ extern "C" {
 			 double * trsf
 			 );
     
+int transfer_limber(
+		    struct perturbs * ppt,
+		    struct transfers * ptr,
+		    double eta0,
+		    int index_mode,
+		    int index_tt,
+		    int index_l,
+		    int index_k,
+		    double * interpolated_sources,
+		    double * trsf
+		    );
+
 #ifdef __cplusplus
 }
 #endif

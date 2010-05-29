@@ -38,22 +38,22 @@ main() {
     return _FAILURE_;
   }
 
-  if (thermodynamics_init(&ba,&pr,&th) == _FAILURE_) {
+  if (thermodynamics_init(&pr,&ba,&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
 
-  if (perturb_init(&ba,&th,&pr,&pt) == _FAILURE_) {
+  if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
 
-  if (bessel_init(&ba,&pt,&pr,&bs) == _FAILURE_) {
+  if (bessel_init(&pr,&ba,&pt,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }
 
-  if (transfer_init(&ba,&th,&pt,&bs,&pr,&tr) == _FAILURE_) {
+  if (transfer_init(&pr,&ba,&th,&pt,&bs,&tr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
@@ -64,9 +64,9 @@ main() {
 
   int index_mode=pt.index_md_scalars;
   int index_ic  =pt.index_ic_ad;
-  int index_type=pt.index_tp_g;
-  int index_l=40;
-
+  int index_type=pt.index_tp_t;
+  int index_l=tr.l_size[index_mode]-5;
+/*   int index_l = 20; */
 
   /* here you can output the transfer functions 
      at some k's of your choice */
@@ -94,43 +94,43 @@ main() {
 
   /* here you can output the full tabulated arrays*/
 
-/*   int index_k; */
-/*   double transfer; */
+  int index_k;
+  double transfer;
 
-/*   for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) {  */
+  for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
 
-/*     transfer=tr.transfer[index_mode] */
-/*       [((index_ic * pt.tp_size + index_type) */
-/* 	* tr.l_size[index_mode] + index_l) */
-/*        * tr.k_size[index_mode] + index_k]; */
+    transfer=tr.transfer[index_mode]
+      [((index_ic * pt.tp_size + index_type)
+	* tr.l_size[index_mode] + index_l)
+       * tr.k_size[index_mode] + index_k];
     
-/*     printf("%e %e\n",tr.k[index_mode][index_k],transfer);  */
+    printf("%d %e %e\n",tr.l[index_mode][index_l],tr.k[index_mode][index_k],transfer); 
 
-/*   }  */
+  } 
 
   /************************************************************/
 
-  if (transfer_free() == _FAILURE_) {
+  if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
 
-  if (bessel_free() == _FAILURE_) {
+  if (bessel_free(&bs) == _FAILURE_) {
     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }
 
-  if (perturb_free() == _FAILURE_) {
+  if (perturb_free(&pt) == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
 
-  if (thermodynamics_free() == _FAILURE_) {
+  if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);
     return _FAILURE_;
   }
 
-  if (background_free() == _FAILURE_) {
+  if (background_free(&ba) == _FAILURE_) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }

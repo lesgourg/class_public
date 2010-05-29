@@ -1590,6 +1590,74 @@ int array_interpolate_two(
   return _SUCCESS_;
 }
 
+/** 
+ * interpolate linearily to get y_i(x), when x and y_i are in two different arrays
+ *
+ * Called by transfer_interpolate_sources(); transfer_functions_at_k(); perturb_sources_at_eta().
+ */
+int array_interpolate_two_arrays_one_column(
+					    double * array_x, /* assumed to be a vector (i.e. one column array) */
+					    double * array_y,
+					    int n_columns_y,
+					    int index_y, /* between 0 and (n_columns_y-1) */
+					    int n_lines,  /** must be the same for array_x and array_y */
+					    double x,
+					    double * result,
+					    ErrorMsg errmsg) {
+
+  int inf,sup,mid;
+  double weight;
+
+  inf=0;
+  sup=n_lines-1;
+
+  if (array_x[inf] < array_x[sup]){
+
+    class_test(x < array_x[inf],
+	       errmsg,
+	       "x=%e < x_min=%e",x,array_x[inf]);
+
+    class_test(x > array_x[sup],
+	       errmsg,
+	       "x=%e > x_max=%e",x,array_x[sup]);
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x < array_x[mid]) {sup=mid;}
+      else {inf=mid;}
+      
+    }
+
+  }
+
+  else {
+
+    class_test(x < array_x[sup],
+	       errmsg,
+	       "x=%e < x_min=%e",x,array_x[sup]);
+
+    class_test(x > array_x[inf],
+	       errmsg,
+	       "x=%e > x_max=%e",x,array_x[inf]);
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x > array_x[mid]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  weight=(x-array_x[inf])/(array_x[sup]-array_x[inf]);
+
+  *result = array_y[index_y*n_lines+inf] * (1.-weight)
+    + weight * array_y[index_y*n_lines+sup];
+
+  return _SUCCESS_;
+}
 
 /** 
  * Called by transfer_solve().

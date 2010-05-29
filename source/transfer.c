@@ -802,21 +802,39 @@ int transfer_compute_for_each_l(
     /* compute transfer function or set it to zero if above k_max */
     if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
 
-      class_call(transfer_integrate(ppt,
-				    pbs,
-				    ptr,
-				    eta0,
-				    eta_rec,
-				    index_mode,
-				    index_ic,
-				    index_tt,
-				    index_l,
-				    index_k,
-				    interpolated_sources,
-				    ptw,
-				    &transfer_function),
-		 ptr->error_message,
-		 ptr->error_message);
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
+	
+      	class_call(transfer_limber(ppt,
+				   ptr,
+				   eta0,
+				   index_mode,
+				   index_tt,
+				   index_l,
+				   index_k,
+				   interpolated_sources,
+				   &transfer_function),
+		   ptr->error_message,
+		   ptr->error_message); 
+
+      }
+      else {
+	
+	class_call(transfer_integrate(ppt,
+				      pbs,
+				      ptr,
+				      eta0,
+				      eta_rec,
+				      index_mode,
+				      index_tt,
+				      index_l,
+				      index_k,
+				      interpolated_sources,
+				      ptw,
+				      &transfer_function),
+		   ptr->error_message,
+		   ptr->error_message);
+	
+      }
 
     }
     else {
@@ -908,7 +926,6 @@ int transfer_integrate(
 		       double eta0,
 		       double eta_rec,
 		       int index_mode,
-		       int index_ic,
 		       int index_tt,
 		       int index_l,
 		       int index_k,
@@ -1015,4 +1032,54 @@ int transfer_integrate(
   }
   
   return _SUCCESS_;
+}
+
+int transfer_limber(
+		    struct perturbs * ppt,
+		    struct transfers * ptr,
+		    double eta0,
+		    int index_mode,
+		    int index_tt,
+		    int index_l,
+		    int index_k,
+		    double * interpolated_sources,
+		    double * trsf
+		    ){
+
+  double l;
+  double k;
+  double eta;
+
+  l = (double)ptr->l[index_mode][index_l];
+  k = ptr->k[index_mode][index_k];
+  eta = eta0-(l+0.5)/k;
+
+  if (eta < ppt->eta_sampling[0]) {
+    *trsf = 0.;
+    return _SUCCESS_;
+  }
+
+  class_call(array_interpolate_two_arrays_one_column(
+						     ppt->eta_sampling,
+						     interpolated_sources,
+						     ptr->k_size[index_mode],
+						     index_k,
+						     ppt->eta_size,
+						     eta,
+						     trsf,
+						     ptr->error_message),
+	     ptr->error_message,
+	     ptr->error_message);
+
+  *trsf *= sqrt(_PI_/(2.*l+1.))/k;
+
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_p)) {
+      /* for scalar polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
+      *trsf *= sqrt((l+2.)*(l+1.)*l*(l-1.)); 
+    }
+  }
+    
+  return _SUCCESS_;
+  
 }
