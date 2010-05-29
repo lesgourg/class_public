@@ -42,10 +42,11 @@ struct transfers {
 };
 
 /**
- * Table of integrand of transfer function, together with their second
+ * Workspace for transfer computation. Contains a
+ * table of integrand of transfer function, together with their second
  * derivatives for spline interpolation:
  */
-struct transfer_integrand {
+struct transfer_workspace {
 
 double * trans_int; /* table of integrand \f$ S(k,\eta)*j_l[k(\eta_0-\eta)] \f$ as a function of \f$ \eta \f%, as well as its splined second derivative */
 
@@ -125,19 +126,34 @@ extern "C" {
 				   double * interpolated_sources
 				   );
 
+  int transfer_compute_for_each_l(
+				  struct precision * ppr,
+				  struct perturbs * ppt,
+				  struct bessels * pbs,
+				  struct transfers * ptr,
+				  double eta0,
+				  double eta_rec,
+				  int index_mode,
+				  int index_ic,
+				  int index_tt,
+				  int index_l,
+				  double * interpolated_sources,
+				  struct transfer_workspace * ptw
+				  );
+
   int transfer_integrate(
 			 struct perturbs * ppt,
 			 struct bessels * pbs,
 			 struct transfers * ptr,
 			 double eta0,
 			 double eta_rec,
-			 int current_index_mode,
-			 int current_index_ic,
-			 int current_index_type,
-			 int current_index_l,
-			 int current_index_k,
+			 int index_mode,
+			 int index_ic,
+			 int index_tt,
+			 int index_l,
+			 int index_k,
 			 double * interpolated_sources,
-			 struct transfer_integrand * pti,
+			 struct transfer_workspace * ptw,
 			 double * trsf
 			 );
     

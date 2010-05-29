@@ -129,44 +129,16 @@ int transfer_init(
   int index_l; 
   /* another index */
   int index;
-  /* current wavenumber value */
-  double current_k;
-  /* result for each transfer function */
-  double transfer_function;
-  /* flag: for a given l, should the transfer functions stop being computed at next value of k? */
-  short cut_transfer;
-  /* global maximum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
-  double global_max;
-  /* global minimum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
-  double global_min;
-  /* last local maximum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
-  double last_local_max;
-  /* last local minimum of \f$ S(k, \eta) j_l(k [\eta_0 - \eta]) \f$ as a function of k, used for cutting the integral */
-  double last_local_min;
-  /* in loop over k, last computed value of transfer function \f$ \Delta_l(k) \f$ */
-  double transfer_last;
-  /* in loop over k, value of transfer function \f$ \Delta_l(k) \f$ computed two steps before */
-  double transfer_last_last;
-  /* rough estimate of C_l, used only for cutting the transfer function computation at some k_max */
-  double cl;
-  /* rough estimate of C_l's variation, used only for cutting the transfer function computation at some k_max */
-  double delta_cl;
-  /* rough estimate of C_l's fractional variation, used only for cutting the transfer function computation at some k_max */
-  double cl_var;
-  /* last computed value of C_l's fractional variation, used only for cutting the transfer function computation at some k_max */
-  double cl_var_last;
-  /* value of C_l's fractional variation computed two steps ago, used only for cutting the transfer function computation at some k_max */
-  double cl_var_last_last;
-  /* table of source functions interpolated at the right values of k, interpolated_sources[index_k][index_eta] */
   /* conformal time today */
   double eta0;
   /* conformal time at recombination */
   double eta_rec;
+/* table of source functions interpolated at the right values of k, interpolated_sources[index_k][index_eta] */
   double * interpolated_sources;
   /* array of splines values S''(k,eta) (second derivative with respect to k, not eta!) */
   double * source_spline;
-  /* (pointer on) integrand structure */
-  struct transfer_integrand *ti;
+  /* (pointer on) workspace structure */
+  struct transfer_workspace * ptw;
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
@@ -179,8 +151,8 @@ int transfer_init(
 
   /* number of available omp threads */
   int number_of_threads;
-  /* table of integrand of transfer function, copied number_of_threads times*/
-  struct transfer_integrand *pti;
+  /* pointer to one "ptw" per thread */
+  struct transfer_workspace ** pptw;
   /* instrumentation times */
   double tstart, tstop;
 
@@ -214,7 +186,8 @@ int transfer_init(
   {
     number_of_threads = omp_get_num_threads();
   }
-  class_alloc(pti,number_of_threads * sizeof(struct transfer_integrand),ptr->error_message);
+  class_alloc(pptw,number_of_threads * sizeof(struct transfer_workspace *),
+	      ptr->error_message);
 #endif
 
   /* initialize error management flag */
@@ -222,35 +195,34 @@ int transfer_init(
 
   /*** beginning of parallel region ***/
 
-#pragma omp parallel shared(pti,ptr,ppt) private(ti,index)
+#pragma omp parallel shared(pptw,ptr,ppt,abort) private(ptw,index)
   {
 
-    /** - initialize all indices in the transfer_integrand structure and allocate its array. Fill the eta column. */
+    /** - initialize all indices in the transfer_workspace structure and allocate its array. Fill the eta column. */
+
+    class_alloc_parallel(ptw,sizeof(struct transfer_workspace),ptr->error_message);
 
 #ifdef _OPENMP
-    ti = &pti[omp_get_thread_num()];
-#else
-    class_alloc(ti,sizeof(struct transfer_integrand),ptr->error_message);
+    pptw[omp_get_thread_num()] = ptw;
 #endif
+
     index = 0;
-    ti->trans_int_eta = index;
+    ptw->trans_int_eta = index;
     index++;
-    ti->trans_int_y = index;
+    ptw->trans_int_y = index;
     index++;
-    ti->trans_int_ddy = index;
+    ptw->trans_int_ddy = index;
     index++;
-    ti->trans_int_col_num = index;
+    ptw->trans_int_col_num = index;
 
-    class_alloc_parallel(ti->trans_int,
-			 sizeof(double) * ppt->eta_size * ti->trans_int_col_num,
+    class_alloc_parallel(ptw->trans_int,
+			 sizeof(double) * ppt->eta_size * ptw->trans_int_col_num,
 			 ptr->error_message);
-
+    
     for (index=0; index < ppt->eta_size; index++)
-      ti->trans_int[ti->trans_int_col_num*index+ti->trans_int_eta] = ppt->eta_sampling[index];
-      
-  }
-
-  /*** end of parallel region ***/
+      ptw->trans_int[ptw->trans_int_col_num*index+ptw->trans_int_eta] = ppt->eta_sampling[index];
+    
+  }  /* end of parallel region */
 
   if (abort == _TRUE_) return _FAILURE_;
 
@@ -271,7 +243,6 @@ int transfer_init(
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
       for (index_tt = 0; index_tt < ptr->tt_size; index_tt++) {
-
 	/** (b) interpolate sources to get them at the right values of k using transfer_interpolate_sources() */
 
 	class_call(transfer_interpolate_sources(ppt,
@@ -289,23 +260,20 @@ int transfer_init(
 	/** (c) loop over l. For each value of l: */
 
 	/* initialize error management flag */
+
 	abort = _FALSE_;
 
 	/*** beginning of parallel region ***/
 
 #pragma omp parallel						\
   shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,		\
-	  interpolated_sources,pti,abort)			\
-  private (index_l,cut_transfer,global_max,global_min,		\
-	   last_local_max,last_local_min,transfer_function,	\
-	   transfer_last,transfer_last_last,cl,cl_var,		\
-	   cl_var_last,cl_var_last_last,delta_cl,		\
-	   index_k,current_k,ti)
+	  interpolated_sources,pptw,abort)			\
+  private (index_l,ptw,tstart,tstop)
 
 	{
 
 #ifdef _OPENMP
-	  ti = &pti[omp_get_thread_num()];
+	  ptw = pptw[omp_get_thread_num()];
 	  tstart = omp_get_wtime();
 #endif
 
@@ -313,155 +281,24 @@ int transfer_init(
 
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
 
-#pragma omp flush(abort)
-
-	    if (abort == _FALSE_) {
-
-	      if (ptr->transfer_verbose > 2)
-		printf("Compute transfer for l=%d\n",ptr->l[index_mode][index_l]);
-	      
-	      /** (c.a) if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
-	      
-	      if (ppr->transfer_cut == tc_osc) {
-		cut_transfer = _FALSE_;
-		global_max=0.;
-		global_min=0.;
-		last_local_max=0.;
-		last_local_min=0.;
-		transfer_function=0;
-		transfer_last=0;
-		transfer_last_last=0;
-	      }
-	      
-	      if (ppr->transfer_cut == tc_cl) {
-		cut_transfer = _FALSE_;
-		cl=0.;
-		cl_var=1.;
-		cl_var_last=1.;
-		cl_var_last_last=1.;
-	      }
-	      
-	      /** (c.b) loop over k. For each k, if the option of stopping the transfer function computation at some k_max is not selected or if we are below k_max, compute \f$ \Delta_l(k) \f$ with transfer_integrate(); if it is selected and we are above k_max, set the transfer function to zero; if it is selected and we are below k_max, check wether k_max is being reached. */
-
-	      for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
+	    class_call_parallel(transfer_compute_for_each_l(ppr,
+							    ppt,
+							    pbs,
+							    ptr,
+							    eta0,
+							    eta_rec,
+							    index_mode,
+							    index_ic,
+							    index_tt,
+							    index_l,
+							    interpolated_sources,
+							    ptw),
+				ptr->error_message,
+				ptr->error_message);
 
 #pragma omp flush(abort)
 
-		if (abort == _FALSE_) {
-
-		  current_k = ptr->k[index_mode][index_k];
-		
-		  if (ptr->transfer_verbose > 3)
-		    printf("Compute transfer for l=%d k=%e type=%d\n",ptr->l[index_mode][index_l],current_k,index_tt);
-		
-		  /* update previous transfer values in the tc_osc method */
-		  if (ppr->transfer_cut == tc_osc) {
-		    transfer_last_last = transfer_last;
-		    transfer_last = transfer_function;
-		  }
-		
-		  /* update previous relative C_l's variation in the tc_cl method */
-		  if (ppr->transfer_cut == tc_cl) {
-		    cl_var_last_last = cl_var_last;
-		    cl_var_last = cl_var;
-		  }
-		
-		  /* compute transfer function or set it to zero if above k_max */
-		  if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
-
-		    class_call_parallel(transfer_integrate(ppt,
-							   pbs,
-							   ptr,
-							   eta0,
-							   eta_rec,
-							   index_mode,
-							   index_ic,
-							   index_tt,
-							   index_l,
-							   index_k,
-							   interpolated_sources,
-							   ti,
-							   &transfer_function),
-					ptr->error_message,
-					ptr->error_message);
-
-		  }
-		  else {
-		    transfer_function = 0.;
-		  }
-
-#pragma omp flush(abort)
-
-		  if (abort == _FALSE_) { 		  
-
-		    /* store transfer function in transfer structure */
-		    ptr->transfer[index_mode][((index_ic * ptr->tt_size + index_tt)
-					       * ptr->l_size[index_mode] + index_l)
-					      * ptr->k_size[index_mode] + index_k]
-		      = transfer_function;
-		
-		    /* in the tc_osc case, update various quantities and check wether k_max is reached */
-		    if ((ppr->transfer_cut == tc_osc) && (index_k>=2)) {
-		  
-		      /* detect local/global maximum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */
-		      if ((transfer_last > 0.) && (transfer_function < transfer_last) && (transfer_last > transfer_last_last)) {
-			last_local_max = transfer_last;
-			if (last_local_max > global_max) {
-			  global_max = last_local_max;
-			}
-			if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
-			  cut_transfer = _TRUE_;
-			}
-		      
-		      }
-		  
-		      /* detect local/global minimum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */ 
-		      if ((transfer_last < 0.) && (transfer_function > transfer_last) && (transfer_last < transfer_last_last)) {
-			last_local_min = transfer_last;
-			if (last_local_min < global_min) {
-			  global_min = last_local_min;
-			}
-			if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
-			  cut_transfer = _TRUE_;
-			}
-		      }
-		    }
-		
-		    /* in the _TC_CUT_ case, update various quantities and check wether k_max is reached */
-		    if ((ppr->transfer_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
-		  
-		      /* rough estimate of the contribution of the last step to C_l, assuming flat primordial spectrum */
-		      delta_cl = transfer_function * transfer_function / current_k * 0.5 * (ptr->k[index_mode][index_k+1] - ptr->k[index_mode][index_k-1]);
-		  
-		      /* update C_l */
-		      cl += delta_cl;
-		  
-		      class_test_parallel(cl == 0.,
-					  ptr->error_message,
-					  "stop to avoid division by zero");
-#pragma omp flush (abort)
-
-		      if (abort == _FALSE_) {
-
-			/* compute its relative variation */
-			cl_var = delta_cl / cl;
-		  
-			/* check if k_max is reached */
-			if ((cl_var < cl_var_last) && (cl_var_last > cl_var_last_last)) {
-			  if (cl_var_last < ppr->transfer_cut_threshold_cl) {
-			    cut_transfer = _TRUE_;
-			  }
-		    
-			}
-		      }
-		    }
-		  }
-		}
-	      } /* end of loop over k */
-	    }
 	  } /* end of loop over l */
-
-	  /* end of loop over l */
 
 #ifdef _OPENMP
 	  tstop = omp_get_wtime();
@@ -469,13 +306,12 @@ int transfer_init(
 	    printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
 		   __func__,tstop-tstart,omp_get_thread_num());
 #endif
-	}
-
-	/*** end of parallel region ***/
+	} /* end of parallel region */
 
 	if (abort == _TRUE_) return _FAILURE_;
 
       } /* end of loop over type */
+
     } /* end of loop over initial condition */
 
     free(interpolated_sources);
@@ -483,17 +319,15 @@ int transfer_init(
 
   } /* end of loop over mode */
 
-#ifdef _OPENMP
-#pragma omp parallel shared(pti) private(ti)
+#pragma omp parallel shared(pptw) private(ptw)
   {
-    ti = &pti[omp_get_thread_num()];
-    free(ti->trans_int);
-  }
-  free(pti);
-#else
-  free(ti->trans_int);
-  free(ti);
+#ifdef _OPENMP
+    ptw = pptw[omp_get_thread_num()];
 #endif
+    free(ptw->trans_int);
+    free(ptw);
+  }
+
   return _SUCCESS_;
 }
 
@@ -743,10 +577,10 @@ int transfer_get_k_list(
 /**
  * Interpolate sources \f$ S(k, \eta) \f$ using array_spline_table_columns() to get them at the right values of k; get also the second derivative of all source values with respect to \f$ \eta \f$, using again array_spline_table_columns(), in view of later "spline interpolation" of the sources.
  *
- * @param current_index_mode Input : index of mode
- * @param current_index_ic Input : index of initial condition
- * @param current_index_tt Input : index of type of transfer
- * @param current_index_l Input : index of multipole
+ * @param index_mode Input : index of mode
+ * @param index_ic Input : index of initial condition
+ * @param index_tt Input : index of type of transfer
+ * @param index_l Input : index of multipole
  * @param source_spline Input : array of second derivative of sources (filled here but allocated in transfer_init())
  * @param interpolated_sources Output : array of interpolated sources
  * @return the error status
@@ -756,9 +590,9 @@ int transfer_interpolate_sources(
 				 struct transfers * ptr,
 				 double eta0,
 				 double eta_rec,
-				 int current_index_mode,
-				 int current_index_ic,
-				 int current_index_tt,
+				 int index_mode,
+				 int index_ic,
+				 int index_tt,
 				 double * source_spline,
 				 double * interpolated_sources) {
 
@@ -785,21 +619,21 @@ int transfer_interpolate_sources(
      type and source type*/
 
   if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
-      (current_index_tt == ptr->index_tt_t)) 
+      (index_tt == ptr->index_tt_t)) 
     index_type=ppt->index_tp_t;
 
   if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
-      (current_index_tt == ptr->index_tt_p)) 
+      (index_tt == ptr->index_tt_p)) 
     index_type=ppt->index_tp_p;
 
   if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
-      (current_index_tt == ptr->index_tt_lcmb)) 
+      (index_tt == ptr->index_tt_lcmb)) 
     index_type=ppt->index_tp_g;
 
 
-  class_call(array_spline_table_columns(ppt->k[current_index_mode],
-					ppt->k_size[current_index_mode],
-					ppt->sources[current_index_mode][current_index_ic * ppt->tp_size + index_type],
+  class_call(array_spline_table_columns(ppt->k[index_mode],
+					ppt->k_size[index_mode],
+					ppt->sources[index_mode][index_ic * ppt->tp_size + index_type],
 					ppt->eta_size,
 					source_spline,
 					_SPLINE_EST_DERIV_,
@@ -810,41 +644,41 @@ int transfer_interpolate_sources(
   /** - interpolate at each k value */
 
   index_k = 0;
-  h = ppt->k[current_index_mode][index_k+1] - ppt->k[current_index_mode][index_k];
+  h = ppt->k[index_mode][index_k+1] - ppt->k[index_mode][index_k];
 
-  for (index_k_tr = 0; index_k_tr < ptr->k_size[current_index_mode]; index_k_tr++) {
+  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
 
-    while (((index_k+1) < ppt->k_size[current_index_mode]) &&
-	   (ppt->k[current_index_mode][index_k+1] < 
-	    ptr->k[current_index_mode][index_k_tr])) {
+    while (((index_k+1) < ppt->k_size[index_mode]) &&
+	   (ppt->k[index_mode][index_k+1] < 
+	    ptr->k[index_mode][index_k_tr])) {
       index_k++;
-      h = ppt->k[current_index_mode][index_k+1] - ppt->k[current_index_mode][index_k];
+      h = ppt->k[index_mode][index_k+1] - ppt->k[index_mode][index_k];
     }
 
     class_test(h==0.,
 	       ptr->error_message,
 	       "stop to avoid division by zero");
 
-    b = (ptr->k[current_index_mode][index_k_tr] - ppt->k[current_index_mode][index_k])/h;
+    b = (ptr->k[index_mode][index_k_tr] - ppt->k[index_mode][index_k])/h;
     a = 1.-b;
     
     for (index_eta = 0; index_eta < ppt->eta_size; index_eta++) {
 
       interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 
-	a * ppt->sources[current_index_mode]
-	[current_index_ic * ppt->tp_size + index_type]
-	[index_eta*ppt->k_size[current_index_mode]+index_k]
-	+ b * ppt->sources[current_index_mode]
-	[current_index_ic * ppt->tp_size + index_type]
-	[index_eta*ppt->k_size[current_index_mode]+index_k+1]
-	+ ((a*a*a-a) * source_spline[index_eta*ppt->k_size[current_index_mode]+index_k]
-	   +(b*b*b-b) * source_spline[index_eta*ppt->k_size[current_index_mode]+index_k+1])*h*h/6.0;
+	a * ppt->sources[index_mode]
+	[index_ic * ppt->tp_size + index_type]
+	[index_eta*ppt->k_size[index_mode]+index_k]
+	+ b * ppt->sources[index_mode]
+	[index_ic * ppt->tp_size + index_type]
+	[index_eta*ppt->k_size[index_mode]+index_k+1]
+	+ ((a*a*a-a) * source_spline[index_eta*ppt->k_size[index_mode]+index_k]
+	   +(b*b*b-b) * source_spline[index_eta*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
 
       /* for lensing, multiply gravitational potential by appropriate window function */
 
       /* case of cmb lensing */
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
-	  (current_index_tt == ptr->index_tt_lcmb)) {
+	  (index_tt == ptr->index_tt_lcmb)) {
 	/* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
 	   with 
 	   psi = (newtonian) gravitationnal potential  
@@ -874,16 +708,196 @@ int transfer_interpolate_sources(
 
 }
 
+int transfer_compute_for_each_l(
+				struct precision * ppr,
+				struct perturbs * ppt,
+				struct bessels * pbs,
+				struct transfers * ptr,
+				double eta0,
+				double eta_rec,
+				int index_mode,
+				int index_ic,
+				int index_tt,
+				int index_l,
+				double * interpolated_sources,
+				struct transfer_workspace * ptw
+				){
+
+  /* running index for wavenumbers */	
+  int index_k;
+  /* current wavenumber value */
+  double k;
+  /* flag: for a given l, should the transfer functions stop being computed at next value of k? */
+  short cut_transfer;
+  /* global maximum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
+  double global_max;
+  /* global minimum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
+  double global_min;
+  /* last local maximum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
+  double last_local_max;
+  /* last local minimum of \f$ S(k, \eta) j_l(k [\eta_0 - \eta]) \f$ as a function of k, used for cutting the integral */
+  double last_local_min;
+  /* value of transfer function */
+  double transfer_function;
+  /* in loop over k, last computed value of transfer function \f$ \Delta_l(k) \f$ */
+  double transfer_last;
+  /* in loop over k, value of transfer function \f$ \Delta_l(k) \f$ computed two steps before */
+  double transfer_last_last;
+  /* rough estimate of C_l, used only for cutting the transfer function computation at some k_max */
+  double cl;
+  /* rough estimate of C_l's variation, used only for cutting the transfer function computation at some k_max */
+  double delta_cl;
+  /* rough estimate of C_l's fractional variation, used only for cutting the transfer function computation at some k_max */
+  double cl_var;
+  /* last computed value of C_l's fractional variation, used only for cutting the transfer function computation at some k_max */
+  double cl_var_last;
+  /* value of C_l's fractional variation computed two steps ago, used only for cutting the transfer function computation at some k_max */
+  double cl_var_last_last;
+
+  if (ptr->transfer_verbose > 2)
+    printf("Compute transfer for l=%d\n",ptr->l[index_mode][index_l]);
+	      
+  /** - if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
+	      
+  if (ppr->transfer_cut == tc_osc) {
+    cut_transfer = _FALSE_;
+    global_max=0.;
+    global_min=0.;
+    last_local_max=0.;
+    last_local_min=0.;
+    transfer_function=0.;
+    transfer_last=0.;
+    transfer_last_last=0;
+  }
+	      
+  if (ppr->transfer_cut == tc_cl) {
+    cut_transfer = _FALSE_;
+    cl=0.;
+    cl_var=1.;
+    cl_var_last=1.;
+    cl_var_last_last=1.;
+  }
+	      
+  /** - loop over k. For each k, if the option of stopping the transfer function computation at some k_max is not selected or if we are below k_max, compute \f$ \Delta_l(k) \f$ with transfer_integrate(); if it is selected and we are above k_max, set the transfer function to zero; if it is selected and we are below k_max, check wether k_max is being reached. */
+
+  for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
+
+    k = ptr->k[index_mode][index_k];
+		
+    if (ptr->transfer_verbose > 3)
+      printf("Compute transfer for l=%d k=%e type=%d\n",ptr->l[index_mode][index_l],k,index_tt);
+		
+    /* update previous transfer values in the tc_osc method */
+    if (ppr->transfer_cut == tc_osc) {
+      transfer_last_last = transfer_last;
+      transfer_last = transfer_function;
+    }
+		
+    /* update previous relative C_l's variation in the tc_cl method */
+    if (ppr->transfer_cut == tc_cl) {
+      cl_var_last_last = cl_var_last;
+      cl_var_last = cl_var;
+    }
+		
+    /* compute transfer function or set it to zero if above k_max */
+    if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
+
+      class_call(transfer_integrate(ppt,
+				    pbs,
+				    ptr,
+				    eta0,
+				    eta_rec,
+				    index_mode,
+				    index_ic,
+				    index_tt,
+				    index_l,
+				    index_k,
+				    interpolated_sources,
+				    ptw,
+				    &transfer_function),
+		 ptr->error_message,
+		 ptr->error_message);
+
+    }
+    else {
+      transfer_function = 0.;
+    }
+
+    /* store transfer function in transfer structure */
+    ptr->transfer[index_mode][((index_ic * ptr->tt_size + index_tt)
+			       * ptr->l_size[index_mode] + index_l)
+			      * ptr->k_size[index_mode] + index_k]
+      = transfer_function;
+		
+    /* in the tc_osc case, update various quantities and check wether k_max is reached */
+    if ((ppr->transfer_cut == tc_osc) && (index_k>=2)) {
+      
+      /* detect local/global maximum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */
+      if ((transfer_last > 0.) && (transfer_function < transfer_last) && (transfer_last > transfer_last_last)) {
+	last_local_max = transfer_last;
+	if (last_local_max > global_max) {
+	  global_max = last_local_max;
+	}
+	if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
+	  cut_transfer = _TRUE_;
+	}
+	
+      }
+		  
+      /* detect local/global minimum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */ 
+      if ((transfer_last < 0.) && (transfer_function > transfer_last) && (transfer_last < transfer_last_last)) {
+	last_local_min = transfer_last;
+	if (last_local_min < global_min) {
+	  global_min = last_local_min;
+	}
+	if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
+	  cut_transfer = _TRUE_;
+	}
+      }
+    }
+		
+    /* in the _TC_CUT_ case, update various quantities and check wether k_max is reached */
+    if ((ppr->transfer_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
+		  
+      /* rough estimate of the contribution of the last step to C_l, assuming flat primordial spectrum */
+      delta_cl = transfer_function * transfer_function / k * 0.5 * (ptr->k[index_mode][index_k+1] - ptr->k[index_mode][index_k-1]);
+      
+      /* update C_l */
+      cl += delta_cl;
+      
+      class_test(cl == 0.,
+		 ptr->error_message,
+		 "stop to avoid division by zero");
+
+      /* compute its relative variation */
+      cl_var = delta_cl / cl;
+      
+      /* check if k_max is reached */
+      if ((cl_var < cl_var_last) && (cl_var_last > cl_var_last_last)) {
+	if (cl_var_last < ppr->transfer_cut_threshold_cl) {
+	  cut_transfer = _TRUE_;
+	}
+
+      }
+    }
+
+  } /* end of loop over k */
+
+  return _SUCCESS_;
+
+}
+
+
 /**
  * for given values of l and k, compute the transfer function \f$ \Delta_l(k) \f$ by integrating \f$ S(k, \eta) j_l(k[\eta_0-\eta]) \f$ over \f$ \eta \f$ (in the range of \f$ \eta \f$ values where both functions are non-negligible and actually sampled).
  * 
- * @param current_index_mode Input : index of mode
- * @param current_index_ic Input : index of initial condition
- * @param current_index_tt Input : index of type
- * @param current_index_l Input : index of multipole
- * @param current_index_k Input : index of wavenumber
+ * @param index_mode Input : index of mode
+ * @param index_ic Input : index of initial condition
+ * @param index_tt Input : index of type
+ * @param index_l Input : index of multipole
+ * @param index_k Input : index of wavenumber
  * @param interpolated_sources Input: array of interpolated sources
- * @param pti Input: pointer towards array of transfer integrand (already allocated and filled with eta values)
+ * @param ptw Input: pointer towards array of transfer workspace (already allocated and filled with eta values)
  * @param trsf Output: transfer function \f$ \Delta_l(k) \f$ 
  * @return the error status
  */
@@ -893,13 +907,13 @@ int transfer_integrate(
 		       struct transfers * ptr,
 		       double eta0,
 		       double eta_rec,
-		       int current_index_mode,
-		       int current_index_ic,
-		       int current_index_tt,
-		       int current_index_l,
-		       int current_index_k,
+		       int index_mode,
+		       int index_ic,
+		       int index_tt,
+		       int index_l,
+		       int index_k,
 		       double * interpolated_sources,
-		       struct transfer_integrand * pti,
+		       struct transfer_workspace * ptw,
 		       double * trsf
 		       ) {
 
@@ -915,7 +929,7 @@ int transfer_integrate(
   int index_eta,index_eta_max;
 
   /** - find maximum value of \f$ \eta \f$ at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  eta_max_bessel = eta0 - pbs->x_min[current_index_l]/ptr->k[current_index_mode][current_index_k]; /* segmentation fault impossible, checked before that current_k != 0 */
+  eta_max_bessel = eta0 - pbs->x_min[index_l]/ptr->k[index_mode][index_k]; /* segmentation fault impossible, checked before that k != 0 */
 
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
   if (eta_max_bessel <= ppt->eta_sampling[0]) {
@@ -931,26 +945,26 @@ int transfer_integrate(
     index_eta_max--;
 
   /** (b) the source function can vanish at large $\f k \eta \f$. Check if further points can be eliminated. */
-  while ((interpolated_sources[current_index_k * ppt->eta_size + index_eta_max-1] == 0.)  && (index_eta_max > 2)) 
+  while ((interpolated_sources[index_k * ppt->eta_size + index_eta_max-1] == 0.)  && (index_eta_max > 2)) 
     index_eta_max--;
 
   /** (c) loop over points: */
 
   for (index_eta = 0; index_eta <= index_eta_max; index_eta++) {
 
-    class_call(bessel_at_x(pbs,ptr->k[current_index_mode][current_index_k] * (eta0-ppt->eta_sampling[index_eta]),current_index_l,&bessel),
+    class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]),index_l,&bessel),
 	       pbs->error_message,
 	       ptr->error_message);
 
-    pti->trans_int[pti->trans_int_col_num*index_eta+pti->trans_int_y]= 
-      interpolated_sources[current_index_k * ppt->eta_size + index_eta]*bessel;
+    ptw->trans_int[ptw->trans_int_col_num*index_eta+ptw->trans_int_y]= 
+      interpolated_sources[index_k * ppt->eta_size + index_eta]*bessel;
 
     /* for debugging */
-    /*     if ((current_index_tt == ppt->index_tp_g) && (current_index_l == 40) && (current_index_k == 2500)) { */
+    /*     if ((index_tt == ppt->index_tp_g) && (index_l == 40) && (index_k == 2500)) { */
 
     /*       printf("%e %e %e\n", */
     /* 	     ppt->eta_sampling[index_eta], */
-    /* 	     interpolated_sources[current_index_k * ppt->eta_size + index_eta], */
+    /* 	     interpolated_sources[index_k * ppt->eta_size + index_eta], */
     /* 	     bessel); */
     /*     } */
 
@@ -959,12 +973,12 @@ int transfer_integrate(
 
   /** (d) spline the integrand: */
 
-  class_call(array_spline(pti->trans_int,
-			  pti->trans_int_col_num,
+  class_call(array_spline(ptw->trans_int,
+			  ptw->trans_int_col_num,
 			  index_eta_max+1,
-			  pti->trans_int_eta,
-			  pti->trans_int_y,
-			  pti->trans_int_ddy,
+			  ptw->trans_int_eta,
+			  ptw->trans_int_y,
+			  ptw->trans_int_ddy,
 			  _SPLINE_EST_DERIV_,
 			  ptr->error_message),
 	     ptr->error_message,
@@ -972,12 +986,12 @@ int transfer_integrate(
 
   /** (e) integrate: */
 
-  class_call(array_integrate_all_spline(pti->trans_int,
-					pti->trans_int_col_num,
+  class_call(array_integrate_all_spline(ptw->trans_int,
+					ptw->trans_int_col_num,
 					index_eta_max+1,
-					pti->trans_int_eta,
-					pti->trans_int_y,
-					pti->trans_int_ddy,
+					ptw->trans_int_eta,
+					ptw->trans_int_y,
+					ptw->trans_int_ddy,
 					trsf,
 					ptr->error_message),
 	     ptr->error_message,
@@ -985,17 +999,17 @@ int transfer_integrate(
 
   /** (f) correct for last piece of integral (up to point where bessel vanishes) */
   *trsf += (eta_max_bessel-ppt->eta_sampling[index_eta_max])
-    * pti->trans_int[pti->trans_int_col_num*index_eta_max+pti->trans_int_y]/2.;
+    * ptw->trans_int[ptw->trans_int_col_num*index_eta_max+ptw->trans_int_y]/2.;
 
-  if ((ppt->has_scalars == _TRUE_) && (current_index_mode == ppt->index_md_scalars)) {
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (current_index_tt == ptr->index_tt_p)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_p)) {
       /* for scalar polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
-      *trsf *= sqrt((pbs->l[current_index_l]+2.) * (pbs->l[current_index_l]+1.) * (pbs->l[current_index_l]) * (pbs->l[current_index_l]-1.)); 
+      *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.)); 
     }
   }
 
   else {
-    if ((ppt->has_tensors == _TRUE_) && (current_index_mode == ppt->index_md_tensors)) {
+    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
       /* tensors not coded yet */
     }
   }
