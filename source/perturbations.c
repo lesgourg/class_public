@@ -169,7 +169,7 @@ int perturb_init(
   }
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
-  class_test(perturb_indices_of_perturbs(ppr,
+  class_call(perturb_indices_of_perturbs(ppr,
 					 pba,
 					 pth,
 					 ppt),
@@ -177,7 +177,7 @@ int perturb_init(
 	     ppt->error_message);
 
   /** - define time sampling for sources using perturb_timesampling_for_sources() */
-  class_test(perturb_timesampling_for_sources(ppr,
+  class_call(perturb_timesampling_for_sources(ppr,
 					      pba,
 					      pth,
 					      ppt),
@@ -190,7 +190,7 @@ int perturb_init(
 
     abort = _FALSE_;
 
-#pragma omp parallel				   \
+#pragma omp parallel			      \
   shared(pppw,ppr,pba,pth,ppt,index_mode,abort)    \
   private(ppw)
 
@@ -880,7 +880,8 @@ int perturb_workspace_init(
 
     /* reject inconsistent values of the number of mutipoles in photon polarization hierachy */
     class_test(ppr->l_max_pol_g < 4,
-	       ppt->error_message,"%s(L:%d) : ppr->l_max_pol_g should be at least 4");
+	       ppt->error_message,
+	       "ppr->l_max_pol_g should be at least 4");
 
     /* photons */
 

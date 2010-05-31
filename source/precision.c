@@ -140,7 +140,7 @@ int precision_init ( struct precision * ppr ) {
 
   class_test(ppr->smallest_allowed_variation < 0,
 	     ppr->error_message,
-	     "smallest_allowed_variation = %e < 0");
+	     "smallest_allowed_variation = %e < 0",ppr->smallest_allowed_variation);
 
   return _SUCCESS_;
 

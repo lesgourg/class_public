@@ -25,7 +25,7 @@ int spectra_cl_at_l(
   
   class_test((l < psp->l[index_mode][0]) || (l > psp->l[index_mode][psp->l_size[index_mode]-1]),
 	     psp->error_message,
-	     "l=%f out of range [%f:%f]",psp->l[index_mode][0],psp->l[index_mode][psp->l_size[index_mode]-1]);
+	     "l=%f out of range [%f:%f]",l,psp->l[index_mode][0],psp->l[index_mode][psp->l_size[index_mode]-1]);
 
   class_call(array_interpolate_spline(psp->l[index_mode],
 				      psp->l_size[index_mode],
@@ -152,7 +152,7 @@ int spectra_pk_at_k_and_z(
 
   class_test((k < 0) || (k > psp->k[psp->k_size-1]),
 	     psp->error_message,
-	     "k=%e out of bounds [%e:%e]",k,0,psp->k[psp->k_size-1]);
+	     "k=%e out of bounds [%e:%e]",k,0.,psp->k[psp->k_size-1]);
 
   /* get P(k) at the right value of z */
 
@@ -670,7 +670,7 @@ int spectra_pk(
   /* if z_max_pk<0, return error */
   class_test((psp->z_max_pk < 0),
 	     psp->error_message,
-	     "asked for z=%e. Code not designed to compute anything in the future...");
+	     "asked for z=%e. Code not designed to compute anything in the future...",psp->z_max_pk);
 
   /* if z_max_pk=0, there is just one value to store */
   if (psp->z_max_pk == 0.) {

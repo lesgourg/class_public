@@ -137,6 +137,24 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
     }									\
   } while(0);
 
+/* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
+#define class_calloc(pointer,						\
+		     number,						\
+		     size,						\
+		     error_message_output)				\
+  do {									\
+    pointer=calloc(number,size);					\
+    if (pointer == NULL) {						\
+      ErrorMsg Transmit_Error_Message;					\
+      sprintf(Transmit_Error_Message,					\
+	      "%s(L:%d) : could not allocate %s with size %d",		\
+	      __func__,__LINE__,					\
+	      #pointer,number*size);					\
+      sprintf(error_message_output,"%s",Transmit_Error_Message);	\
+      return _FAILURE_;							\
+    }									\
+  } while(0);
+
 /* macro for opening file and returning error if it failed */
 #define class_open(pointer,						\
 		   filename,						\
