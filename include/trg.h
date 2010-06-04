@@ -6,23 +6,23 @@
 struct spectra_nl {
 
   double * k;
+  int k_size; /**< total number of k values */
+  int index_k_L;  /**< for index_k=0, ...,(index_k_L-1), use linear theory only */
+
   double * eta;
+  int eta_size;
+  double eta_step;
+
+  double * z;
+  double z_ini;
+
   double * pk_nl;
   double * p_12;
   double * p_22;
+
   double * ddpk_nl;
   double * ddp_12;
   double * ddp_22;
-  double * z;
-
-  double k_max;
-
-  double z_ini;
-  double eta_step;
-  int eta_size;
-  int k_size;
-  int k_size_eff;
-  int index_k_1;
 
   short spectra_nl_verbose;  /**< from 0 to 1: amount of information written in standard output */
 
@@ -127,6 +127,7 @@ extern "C" {
 		double p, 
 		double m, 
 		int index_eta,
+		int index_k, /**< used only for testing, could be supressed */
 		double * result, 
 		char * errmsg);
 
@@ -142,9 +143,6 @@ extern "C" {
 			      struct spectra_nl * pnl,
 			      enum name_A name,
 			      int index_eta,
-			      int k_size, /* functions of k for
-					     integration are defined
-					     from [0] to [k_size-1]*/
 			      double * result,
 			      char * errmsg
 			      );
