@@ -344,8 +344,6 @@ int background_init(
     pba->error_message,
     "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
 
-  pba->h = pba->H0 * _c_ /100.;
-
   /* curvature */
   Omega0_tot = pba->Omega0_g + pba->Omega0_b;
   if (pba->has_cdm == _TRUE_) {

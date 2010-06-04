@@ -1,5 +1,6 @@
 /** @file input.h Documented includes for input module */
 
+#include "parser.h"
 #include "background.h"
 #include "thermodynamics.h"
 #include "perturbations.h"
@@ -22,6 +23,8 @@ extern "C" {
 #endif
 
   int input_init(
+		 int argc, 
+		 char **argv,
 		 struct background *pba,
 		 struct thermo *pth,
 		 struct perturbs *ppt,
@@ -29,7 +32,8 @@ extern "C" {
 		 struct transfers *ptr,
 		 struct primordial *ppm,
 		 struct spectra *psp,
-		 struct output *pop
+		 struct output *pop,
+		 ErrorMsg errmsg
 		 );
 
 #ifdef __cplusplus

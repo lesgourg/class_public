@@ -365,14 +365,12 @@ extern "C" {
 
 //@{
 
-#define _C_ 2.99792458e8
 #define _k_B_ 1.380658e-23
 #define _h_P_ 6.6260755e-34
 #define _m_e_ 9.1093897e-31
 #define _m_H_ 1.673575e-27  /*updated like in recfast 1.4*/
 #define _sigma_ 6.6524616e-29
 #define _a_ 7.565914e-16
-#define _G_ 6.6742e-11  /*updated like in recfast 1.4*/
 #define _m_p_ 1.672623e-27
 #define _not4_ 3.9715  /*updated like in recfast 1.4*/
 #define _Mpc_in_sec_ 1.029272e14

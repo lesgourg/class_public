@@ -52,6 +52,7 @@ struct background
   double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$ : cold dark matter */
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$ : cosmological constant */
   double Omega0_de; /**< \f$ \Omega_{0 de} \f$ : dark energy fluid with constant \f$ w \f$ */
+  double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
   double w_de; /**< \f$ w_{DE} \f$ : dark energy equation of state */
   double cs2_de; /**< \f$ c^2_{s~DE} \f$ : dark energy sound speed */
   double Omega0_nur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
@@ -263,6 +264,22 @@ extern "C" {
 #endif
 
 /**************************************************************/
+
+/**  
+ * @name Some conversion factors and fundamental constants needed by background module:
+ */
+
+//@{
+
+#define _Mpc_over_m_ 3.085677581282e22 /**< conversion factor from meters to megaparsecs */
+#define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears 
+				       (c=1 units, Julian years of 365.25 days) */
+
+#define _c_ 2.99792458e8 /**< c in m/s */
+#define _sigma_B_  5.6704e-8 /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+#define _G_ 6.67428e-11 /**< Newton constant in m^3/Kg/s^2 */
+
+//@}
 
 /**  
  * @name Some limits imposed on cosmological parameter values:

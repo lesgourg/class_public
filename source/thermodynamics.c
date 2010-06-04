@@ -74,7 +74,7 @@ int thermodynamics_at_z(
 
     /* Calculate cb2 (cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)) */
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
-    pvecthermo[pth->index_th_cb2] = _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pth->Tcmb * (1.+z) * 4. / 3.;
+    pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pth->Tcmb * (1.+z) * 4. / 3.;
 
     /* Calculate dkappa/deta (dkappa/deta = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T in units of 1/Mpc) */
     pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
@@ -974,7 +974,7 @@ int thermodynamics_reionization_discretize(
   Tba2 = Tb/(1+z)/(1+z);
 
   /** - get baryon sound speed */
-  reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+  reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
 
   /** - store these values in growing table */
   class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
@@ -1064,7 +1064,7 @@ int thermodynamics_reionization_discretize(
     reio_vector[preio->index_re_Tb] = Tb;
     
     /** - get baryon sound speed */
-    reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+    reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
 
     class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
 	       gTable.error_message,
@@ -1213,25 +1213,25 @@ int thermodynamics_recombination(
   n = preco->Nnow * pow((1.+z),3);
   Lalpha = 1./_L_H_alpha_;
   Lalpha_He = 1./_L_He_2p_;
-  DeltaB = _h_P_*_C_*(_L_H_ion_-_L_H_alpha_);
+  DeltaB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_);
   preco->CDB = DeltaB/_k_B_;
-  DeltaB_He = _h_P_*_C_*(_L_He1_ion_-_L_He_2s_);
+  DeltaB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_);
   preco->CDB_He = DeltaB_He/_k_B_;
-  preco->CB1 = _h_P_*_C_*_L_H_ion_/_k_B_;
-  preco->CB1_He1 = _h_P_*_C_*_L_He1_ion_/_k_B_;
-  preco->CB1_He2 = _h_P_*_C_*_L_He2_ion_/_k_B_;
+  preco->CB1 = _h_P_*_c_*_L_H_ion_/_k_B_;
+  preco->CB1_He1 = _h_P_*_c_*_L_He1_ion_/_k_B_;
+  preco->CB1_He2 = _h_P_*_c_*_L_He2_ion_/_k_B_;
   preco->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
   preco->CK = pow(Lalpha,3)/(8.*_PI_);
   preco->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
-  preco->CL = _C_*_h_P_/(_k_B_*Lalpha);
-  preco->CL_He = _C_*_h_P_/(_k_B_/_L_He_2s_);
-  preco->CT = (8./3.)*(_sigma_/(_m_e_*_C_))*_a_;
-  preco->Bfact = _h_P_*_C_*(_L_He_2p_-_L_He_2s_)/_k_B_;
+  preco->CL = _c_*_h_P_/(_k_B_*Lalpha);
+  preco->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
+  preco->CT = (8./3.)*(_sigma_/(_m_e_*_c_))*_a_;
+  preco->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
   /* C1P3P = _C2p1P_-_C2p3P_; */
   /* cc3P1P = _C2p3P_/_C2p1P_;  */
   /* cccP = pow(cc3P1P,3); */
-  /* hck=_h_P_*_C_/_k_B_;  */
+  /* hck=_h_P_*_c_/_k_B_;  */
 
   tpaw.pba = pba;
   tpaw.ppr = ppr;
@@ -1367,7 +1367,7 @@ int thermodynamics_recombination(
 
     /* -> cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _C_ * _C_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + x0 * (1.-Yp)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + x0 * (1.-Yp)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
 
     /* -> dkappa/deta = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadeta)
@@ -1527,7 +1527,7 @@ int thermodynamics_derivs_with_recfast(
   /* following is from recfast 1.4 */
 
   Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
-  Rup_trip = Rdown_trip*exp(-_h_P_*_C_*_L_He2St_ion_/(_k_B_*Tmat))*pow(preco->CR*Tmat,1.5)*4./3.;
+  Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(preco->CR*Tmat,1.5)*4./3.;
 
   if ((x_He < 5.e-9) || (x_He > 0.980)) 
     Heflag = 0;
@@ -1542,11 +1542,11 @@ int thermodynamics_derivs_with_recfast(
     K_He = 1./(_A2P_s_*pHe_s*3.*n_He*(1.-x_He));
 
     if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) {
-      Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_C_*_C_);
-      Doppler = _C_*_L_He_2p_*sqrt(Doppler);
-      gamma_2Ps = 3.*_A2P_s_*preco->fHe*(1.-x_He)*_C_*_C_
+      Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
+      Doppler = _c_*_L_He_2p_*sqrt(Doppler);
+      gamma_2Ps = 3.*_A2P_s_*preco->fHe*(1.-x_He)*_c_*_c_
 	/(sqrt(_PI_)*_sigma_He_2Ps_*8.*_PI_*Doppler*(1.-x_H))
-	/pow(_C_*_L_He_2p_,2.);
+	/pow(_c_*_L_He_2p_,2.);
       pb = 0.36;
       qb = ppr->recfast_fudge_He;
       AHcon = _A2P_s_/(1.+pb*pow(gamma_2Ps,qb));
@@ -1556,17 +1556,17 @@ int thermodynamics_derivs_with_recfast(
     if (Heflag >= 3) {
       tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3.));
       pHe_t = (1. - exp(-tauHe_t))/tauHe_t;
-      CL_PSt = _h_P_*_C_*(_L_He_2Pt_ - _L_He_2St_)/_k_B_;
+      CL_PSt = _h_P_*_c_*(_L_He_2Pt_ - _L_He_2St_)/_k_B_;
       if ((Heflag == 3) || (Heflag == 5) || (x_H >= 0.99999)) {
 	CfHe_t = _A2P_t_*pHe_t*exp(-CL_PSt/Tmat);
 	CfHe_t = CfHe_t/(Rup_trip+CfHe_t);
       }
       else {
-	Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_C_*_C_);
-	Doppler = _C_*_L_He_2Pt_*sqrt(Doppler);
-	gamma_2Pt = 3.*_A2P_t_*preco->fHe*(1.-x_He)*_C_*_C_
+	Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
+	Doppler = _c_*_L_He_2Pt_*sqrt(Doppler);
+	gamma_2Pt = 3.*_A2P_t_*preco->fHe*(1.-x_He)*_c_*_c_
 	  /(sqrt(_PI_)*_sigma_He_2Pt_*8.*_PI_*Doppler*(1.-x_H))
-	  /pow(_C_*_L_He_2Pt_,2.);
+	  /pow(_c_*_L_He_2Pt_,2.);
 	pb = 0.66;
 	qb = 0.9;
 	AHcon = _A2P_t_/(1.+pb*pow(gamma_2Pt,qb))/3.;
@@ -1606,7 +1606,7 @@ int thermodynamics_derivs_with_recfast(
     if (Heflag == 3)
       dy[1] = dy[1] + 
 	(x*x_He*n*Rdown_trip
-	 - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_C_*_L_He_2St_/(_k_B_*Tmat)))
+	 - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_c_*_L_He_2St_/(_k_B_*Tmat)))
 	*CfHe_t/(Hz*(1.+z));
 	
   }
