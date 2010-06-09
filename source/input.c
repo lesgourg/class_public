@@ -83,19 +83,19 @@ int input_init(
 	     errmsg,
 	     "In input file, you can only enter one of Tcmb, Omega_g or omega_g, choose one");
   if (flag1 == _SUCCESS_) {
-    /* rho_g / rho_c0, each of bthem expressed in Kg/m/s^2 */
+    /* Omega0_g = rho_g / rho_c0, each of them expressed in Kg/m/s^2 */
     /* rho_g = (4 sigma_B / c) T^4 */
     /* rho_c0 = 3 c^2 H0^2 / (8 pi G) */ 
-    pba->Omega0_g = (4.*_sigma_B_/_c_*pow(param1,4)) / (3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/pba->h/pba->h/8./_PI_/_G_);
+    pba->Omega0_g = (4.*_sigma_B_/_c_*pow(param1,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
     pth->Tcmb=param1;
   }
   if (flag2 == _SUCCESS_) {
     pba->Omega0_g = param2;
-    pth->Tcmb=pow(pba->Omega0_g * (3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/pba->h/pba->h/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
+    pth->Tcmb=pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
   }
   if (flag3 == _SUCCESS_) {
     pba->Omega0_g = param3/pba->h/pba->h;
-    pth->Tcmb = pow(pba->Omega0_g * (3.*_c_*_c_*1.e10/_Mpc_over_m_/_Mpc_over_m_/pba->h/pba->h/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
+    pth->Tcmb = pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
   }
 
   Omega_tot = pba->Omega0_g;
