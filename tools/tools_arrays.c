@@ -864,6 +864,8 @@ int array_spline_table_one_column(
     return _FAILURE_;
   }
 
+  /************************************************/
+
   index_x=0;
 
   if (spline_mode == _SPLINE_NATURAL_) {
@@ -894,6 +896,8 @@ int array_spline_table_one_column(
     }
   }
   
+  /************************************************/
+
   for (index_x=1; index_x < x_size-1; index_x++) {
 
     sig = (x[index_x] - x[index_x-1])/(x[index_x+1] - x[index_x-1]);
@@ -901,7 +905,7 @@ int array_spline_table_one_column(
     p = sig * ddy_array[index_y*x_size+(index_x-1)] + 2.0;
 
     ddy_array[index_y*x_size+index_x] = (sig-1.0)/p;
-
+  
     u[index_x] =	
       (y_array[index_y*x_size+(index_x+1)] - y_array[index_y*x_size+index_x])
       / (x[index_x+1] - x[index_x])
@@ -913,6 +917,8 @@ int array_spline_table_one_column(
 		  - sig * u[index_x-1]) / p;
     
   }
+
+  /************************************************/
 
   if (spline_mode == _SPLINE_NATURAL_) {
 
@@ -943,6 +949,8 @@ int array_spline_table_one_column(
     }
   }
     
+  /************************************************/
+
   index_x=x_size-1;
 
   ddy_array[index_y*x_size+index_x] =
@@ -1382,6 +1390,9 @@ int array_interpolate_spline_growing_closeby(
   double h,a,b;
 
   inf = *last_index;
+  class_test(inf<0 || inf>(n_lines-1),
+	     errmsg,
+	     "*lastindex=%d out of range [0:%d]\n",inf,n_lines-1);
   while (x < x_array[inf]) {
     inf--;
     if (inf < 0) {

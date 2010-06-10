@@ -159,6 +159,8 @@ int bessel_init(
   double tstart, tstop;
 #endif
 
+  pbs->l_size=0;
+
   if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
       (ppt->has_cl_cmb_polarization == _FALSE_) &&
       (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
@@ -387,15 +389,19 @@ int bessel_free(
 
   int index_l;
 
-  for (index_l = 0; index_l < pbs->l_size; index_l++) {
-    free(pbs->j[index_l]);
-    free(pbs->ddj[index_l]);
+  if (pbs->l_size > 0){
+
+    for (index_l = 0; index_l < pbs->l_size; index_l++) {
+      free(pbs->j[index_l]);
+      free(pbs->ddj[index_l]);
+    }
+    free(pbs->j);
+    free(pbs->ddj);
+    free(pbs->x_min);
+    free(pbs->x_size);
+    free(pbs->l);
+    
   }
-  free(pbs->j);
-  free(pbs->ddj);
-  free(pbs->x_min);
-  free(pbs->x_size);
-  free(pbs->l);
 
   return _SUCCESS_; 
 }

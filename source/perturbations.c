@@ -141,6 +141,18 @@ int perturb_init(
   
 #endif
 
+  class_test(ppt->has_vectors == _TRUE_,
+	     ppt->error_message,
+	     "Vectors not coded yet");
+  class_test(ppt->has_tensors == _TRUE_,
+	     ppt->error_message,
+	     "Tensors not tested yet");
+
+  if (ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_) {
+    printf("Warning: isocurvature initial condition implemented, but not tested yet\n");
+  }
+
+
   /** - decide which types of sources must be computed */
   if (ppt->has_cl_cmb_temperature == _TRUE_)
     ppt->has_source_t=_TRUE_;
@@ -159,7 +171,7 @@ int perturb_init(
     ppt->has_source_g=_FALSE_;
 
   if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
-   if (ppt->perturbations_verbose > 0)
+    if (ppt->perturbations_verbose > 0)
       printf("No sources requested. Perturbation module skipped.\n");
     return _SUCCESS_;
   }
@@ -190,8 +202,8 @@ int perturb_init(
 
     abort = _FALSE_;
 
-#pragma omp parallel			      \
-  shared(pppw,ppr,pba,pth,ppt,index_mode,abort)    \
+#pragma omp parallel				\
+  shared(pppw,ppr,pba,pth,ppt,index_mode,abort)	\
   private(ppw)
 
     {
@@ -214,6 +226,7 @@ int perturb_init(
 
     } /* end of parallel region */
 
+
     if (abort == _TRUE_) return _FAILURE_;
 
     /** (c) loop over initial conditions and wavenumbers; for each of them, evolve perturbations and compute source functions with perturb_solve() */
@@ -221,8 +234,8 @@ int perturb_init(
 
       abort = _FALSE_;
 
-#pragma omp parallel					   \
-  shared(pppw,ppr,pba,pth,ppt,index_mode,index_ic,abort)   \
+#pragma omp parallel						\
+  shared(pppw,ppr,pba,pth,ppt,index_mode,index_ic,abort)	\
   private(index_k,ppw,tstart,tstop)
 
       {
@@ -285,6 +298,7 @@ int perturb_init(
 
     } /* end of parallel region */
 
+
     if (abort == _TRUE_) return _FAILURE_;
 
   } /* end loop over modes */    
@@ -306,35 +320,39 @@ int perturb_free(
 
   int index_mode,index_ic,index_k,index_type;
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+  if (((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) || (ppt->has_source_g == _TRUE_)) {
+
+    for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
     
-    for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+      for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
-      for (index_type = 0; index_type < ppt->tp_size; index_type++) {
+	for (index_type = 0; index_type < ppt->tp_size; index_type++) {
 
-	free(ppt->sources[index_mode][index_ic*ppt->tp_size+index_type]);
+	  free(ppt->sources[index_mode][index_ic*ppt->tp_size+index_type]);
+
+	}
 
       }
 
+      free(ppt->k[index_mode]);
+
+      free(ppt->sources[index_mode]);
+
     }
+    
+    free(ppt->eta_sampling);
+	 
+    free(ppt->ic_size);
 
-    free(ppt->k[index_mode]);
+    free(ppt->k_size);
 
-    free(ppt->sources[index_mode]);
+    free(ppt->k_size_cl);
+
+    free(ppt->k);
+
+    free(ppt->sources);
 
   }
-    
-  free(ppt->eta_sampling);
-	 
-  free(ppt->ic_size);
-
-  free(ppt->k_size);
-
-  free(ppt->k_size_cl);
-
-  free(ppt->k);
-
-  free(ppt->sources);
 
   return _SUCCESS_;
 
@@ -408,8 +426,8 @@ int perturb_indices_of_perturbs(
   ppt->md_size = index_mode;
 
   class_test(index_mode == 0,
-	    ppt->error_message,
-	    "you should have at least one out of {scalars, vectors, tensors} !!!");
+	     ppt->error_message,
+	     "you should have at least one out of {scalars, vectors, tensors} !!!");
 
   /** - allocate array of number of initial conditions for each mode, ppt->ic_size[index_mode] */
 
@@ -550,7 +568,7 @@ int perturb_timesampling_for_sources(
   /** (c) first, just count the number of sampling points in order to allocate the array containing all values: */
 
   /** (c.a) if CMB requested, first sampling point = when the universe stops being opaque; otherwise,
-            start sampling gravitational potential at recombination */
+      start sampling gravitational potential at recombination */
   if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
     eta = eta_visibility_start_sources;
   }
@@ -567,7 +585,7 @@ int perturb_timesampling_for_sources(
       timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today.
       - if CMB not requested:
       timescale_source = 1/aH; repeat till today.
-       */
+  */
   while (eta < pba->conformal_age) {
 
     class_call(background_at_eta(pba,
@@ -714,7 +732,7 @@ int perturb_timesampling_for_sources(
   free(pvecback);
   free(pvecthermo);
 
-/** - Loop over modes, initial conditions and types. For each of them, allocate array of source functions, ((ppt->source[index_mode])[index_ic][index_type])[index_k][index_eta] */
+  /** - Loop over modes, initial conditions and types. For each of them, allocate array of source functions, ((ppt->source[index_mode])[index_ic][index_type])[index_k][index_eta] */
   
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
@@ -1125,7 +1143,7 @@ int perturb_workspace_init(
 int perturb_workspace_free (
 			    struct perturbs * ppt,
 			    struct perturb_workspace * ppw
-			   ) {
+			    ) {
 
   int index_type;
 
@@ -1213,6 +1231,9 @@ int perturb_solve(
 
   old_tca = tca_on;
   old_rp = rp_on;
+
+  *(ppw->last_index_back)=0;
+  *(ppw->last_index_thermo)=0;
 
   k = (ppt->k[index_mode])[index_k];
 
@@ -1513,7 +1534,7 @@ int perturb_solve(
   class_call(cleanup_generic_integrator(&gi),
 	     gi.error_message,
 	     ppt->error_message);
-    
+
   return _SUCCESS_;
 }
   
@@ -1793,17 +1814,17 @@ int perturb_initial_conditions(struct precision * ppr,
  * @return the error status
  */
 int perturb_timescale_and_approximations(
-			    struct precision * ppr,
-			    struct background * pba,
-			    struct thermo * pth,
-			    struct perturbs * ppt,
-			    int index_mode,
-			    double k,
-			    double eta,
-			    enum interpolation_mode intermode,
-			    struct perturb_workspace * ppw,
-			    double * timescale
-			    ) {
+					 struct precision * ppr,
+					 struct background * pba,
+					 struct thermo * pth,
+					 struct perturbs * ppt,
+					 int index_mode,
+					 double k,
+					 double eta,
+					 enum interpolation_mode intermode,
+					 struct perturb_workspace * ppw,
+					 double * timescale
+					 ) {
   /** Summary: */
 
   /** - define local variables */
@@ -2355,7 +2376,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 		   double * dy, /**< Output : derivative of vector of perturbations */
 		   void * parameters_and_workspace,
 		   ErrorMsg error_message
-		    ) {
+		   ) {
   /** Summary: */
 
   /** - define local variables */
@@ -2426,7 +2447,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 				 pvecback,
 				 pvecthermo),
 	     pth->error_message,
-	     ppt->error_message);
+	     error_message);
 
   /** - compute related background quantities */
   k2 = k*k;
@@ -2547,14 +2568,14 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 	  + k2*pvecmetric[ppw->index_mt_psi] 
 	  + pvecthermo[pth->index_th_cb2]*k2*y[ppw->index_pt_delta_b]
 	  + R*pvecthermo[pth->index_th_dkappa] * (y[ppw->index_pt_theta_g]
-						     -y[ppw->index_pt_theta_b]);
+						  -y[ppw->index_pt_theta_b]);
       if (ppr->gauge == synchronous)
 	/* Synchronous gauge : */
 	dy[ppw->index_pt_theta_b] = /* baryon velocity */
 	  - a_prime_over_a*y[ppw->index_pt_theta_b] 
 	  + pvecthermo[pth->index_th_cb2]*k2*y[ppw->index_pt_delta_b]
 	  + R*pvecthermo[pth->index_th_dkappa] * (y[ppw->index_pt_theta_g]
-						     -y[ppw->index_pt_theta_b]);
+						  -y[ppw->index_pt_theta_b]);
     }
 
     /** (d.2) Baryon velocity if baryon tight-coupling is on */
@@ -2627,7 +2648,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 	    k2*(y[ppw->index_pt_delta_g]/4.
 		-y[ppw->index_pt_shear_g]+pvecmetric[ppw->index_mt_psi])
 	    +pvecthermo[pth->index_th_dkappa]*(y[ppw->index_pt_theta_b]
-						  -y[ppw->index_pt_theta_g]);
+					       -y[ppw->index_pt_theta_g]);
 	  dy[ppw->index_pt_shear_g] = /* photon shear */
 	    0.5*(8./15.*y[ppw->index_pt_theta_g]
 		 -3./5.*k*y[ppw->index_pt_shear_g+1]
@@ -2647,7 +2668,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 	    k2*(y[ppw->index_pt_delta_g]/4.
 		-y[ppw->index_pt_shear_g])
 	    + pvecthermo[pth->index_th_dkappa]*(y[ppw->index_pt_theta_b]
-						   -y[ppw->index_pt_theta_g]);
+						-y[ppw->index_pt_theta_g]);
 
 	  dy[ppw->index_pt_shear_g] = /* photon shear */
 	    0.5*(8./15.*y[ppw->index_pt_theta_g]
@@ -2872,7 +2893,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 	l = ppw->l_max_nur; /* l=lmax */
 	dy[ppw->index_pt_delta_nur+ppw->l_max_nur] = /* last term of ultra-relativistic neutrinos/relics */
 	  k/(2.*l+1)*(l*y[ppw->index_pt_delta_nur+ppw->l_max_nur-1]-(l+1.)*
-			      ((2.*l+1)/k/eta*y[ppw->index_pt_delta_nur+ppw->l_max_nur]-y[ppw->index_pt_delta_nur+ppw->l_max_nur-1]));
+		      ((2.*l+1)/k/eta*y[ppw->index_pt_delta_nur+ppw->l_max_nur]-y[ppw->index_pt_delta_nur+ppw->l_max_nur-1]));
       }
 
       else{

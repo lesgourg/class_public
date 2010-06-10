@@ -76,9 +76,10 @@ int input_init(
   flag1=parser_read_double(&fc,"T_cmb",&param1,errmsg);
   flag2=parser_read_double(&fc,"Omega_g",&param2,errmsg);
   flag3=parser_read_double(&fc,"omega_g",&param3,errmsg);
-  class_test((flag1 == _FAILURE_) && (flag2 == _FAILURE_) && (flag3 == _FAILURE_),
-	     errmsg,
-	     "In input file, enter either T_cmb (K) or Omega_g or omega_g (to infer photon density)");
+  if((flag1 == _FAILURE_) && (flag2 == _FAILURE_) && (flag3 == _FAILURE_)) {
+    pth->Tcmb=2.726;
+    pba->Omega0_g = (4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+  }
   class_test(((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_)) || ((flag1 == _SUCCESS_) && (flag3 == _SUCCESS_)) || ((flag2 == _SUCCESS_) && (flag3 == _SUCCESS_)),
 	     errmsg,
 	     "In input file, you can only enter one of Tcmb, Omega_g or omega_g, choose one");
@@ -121,8 +122,7 @@ int input_init(
   flag2=parser_read_double(&fc,"Omega_nur",&param2,errmsg);
   flag3=parser_read_double(&fc,"omega_nur",&param3,errmsg);
   if((flag1 == _FAILURE_) && (flag2 == _FAILURE_) && (flag3 == _FAILURE_)) {
-    printf("Warning: you are computing a model without massless neutrinos (why not...)\n");
-    pba->Omega0_nur = 0.;
+    pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   }
   class_test(((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_)) || ((flag1 == _SUCCESS_) && (flag3 == _SUCCESS_)) || ((flag2 == _SUCCESS_) && (flag3 == _SUCCESS_)),
 	     errmsg,
@@ -182,15 +182,15 @@ int input_init(
     pba->Omega0_k = param1 + param2 + Omega_tot - 1.;
   }
 
-  printf("h=%f\n",pba->h);
-  printf("Omega_g=%e\n",pba->Omega0_g);
-  printf("Omega_b=%f\n",pba->Omega0_b);
-  printf("Omega_nur=%e\n",pba->Omega0_nur);
-  printf("Omega_nur/Omega_g=%e\n",pba->Omega0_nur/pba->Omega0_g);
-  printf("Omega_cdm=%f\n",pba->Omega0_cdm);
-  printf("Omega_lambda=%f\n",pba->Omega0_lambda);
-  printf("Omega_de=%f\n",pba->Omega0_de);
-  printf("Omega_k=%f\n",pba->Omega0_k);
+/*   printf("h=%f\n",pba->h); */
+/*   printf("Omega_g=%e\n",pba->Omega0_g); */
+/*   printf("Omega_b=%f\n",pba->Omega0_b); */
+/*   printf("Omega_nur=%e\n",pba->Omega0_nur); */
+/*   printf("Omega_nur/Omega_g=%e\n",pba->Omega0_nur/pba->Omega0_g); */
+/*   printf("Omega_cdm=%f\n",pba->Omega0_cdm); */
+/*   printf("Omega_lambda=%f\n",pba->Omega0_lambda); */
+/*   printf("Omega_de=%f\n",pba->Omega0_de); */
+/*   printf("Omega_k=%f\n",pba->Omega0_k); */
 
   class_test(pba->Omega0_de != 0.,
 	     errmsg,
@@ -263,33 +263,154 @@ int input_init(
   
   /** - define which perturbations and sources should be computed, and down to which scale */
 
-  ppt->has_scalars=_TRUE_;  
-  ppt->has_vectors=_FALSE_;
-  ppt->has_tensors=_FALSE_;
-  flag1 = parser_read_string(&fc,"mode",&string1,errmsg);
-  class_test(flag1 == _FALSE_,
-	     errmsg,
-	     "Could not identify which modes you need. Write at least one of scalars, tensors, vectors");
-  
+  flag1=parser_read_string(&fc,"output",&string1,errmsg);
+  if (flag1 == _FAILURE_) {
+    ppt->has_cl_cmb_temperature = _FALSE_;
+    ppt->has_cl_cmb_polarization = _FALSE_;
+    ppt->has_cl_cmb_lensing_potential = _FALSE_;
+    ppt->has_pk_matter = _FALSE_;
+  }
+  else {
 
-  ppt->has_ad=_TRUE_;
-  ppt->has_bi=_FALSE_;
-  ppt->has_cdi=_FALSE_;
-  ppt->has_nid=_FALSE_;
-  ppt->has_niv=_FALSE_;
+    if ((strstr(string1,"tCl") == NULL) && (strstr(string1,"TCl") == NULL) && (strstr(string1,"TCL") == NULL))
+      ppt->has_cl_cmb_temperature=_FALSE_;
+    else
+      ppt->has_cl_cmb_temperature=_TRUE_;  
 
-  ppt->has_cl_cmb_temperature = _TRUE_;
-  ppt->has_cl_cmb_polarization = _TRUE_;
-  ppt->has_cl_cmb_lensing_potential = _TRUE_;
-  ppt->has_pk_matter = _TRUE_;
+    if ((strstr(string1,"pCl") == NULL) && (strstr(string1,"PCl") == NULL) && (strstr(string1,"PCL") == NULL))
+      ppt->has_cl_cmb_polarization=_FALSE_;
+    else
+      ppt->has_cl_cmb_polarization=_TRUE_;  
+    
+    if ((strstr(string1,"lCl") == NULL) && (strstr(string1,"LCl") == NULL) && (strstr(string1,"LCL") == NULL))
+      ppt->has_cl_cmb_lensing_potential=_FALSE_;
+    else
+      ppt->has_cl_cmb_lensing_potential=_TRUE_;  
+
+    if ((strstr(string1,"mPk") == NULL) && (strstr(string1,"MPk") == NULL) && (strstr(string1,"MPK") == NULL))
+      ppt->has_pk_matter=_FALSE_;
+    else
+      ppt->has_pk_matter=_TRUE_;  
+
+  }
+
+  flag1=parser_read_string(&fc,"modes",&string1,errmsg);
+  if (flag1 == _FAILURE_) {
+    ppt->has_scalars=_TRUE_;  
+    ppt->has_vectors=_FALSE_;
+    ppt->has_tensors=_FALSE_;
+  }
+  else {
+    
+    if ((strstr(string1,"s") == NULL) && (strstr(string1,"S") == NULL))
+      ppt->has_scalars=_FALSE_;
+    else
+      ppt->has_scalars=_TRUE_;  
+
+    if ((strstr(string1,"v") == NULL) && (strstr(string1,"V") == NULL))
+      ppt->has_vectors=_FALSE_;
+    else
+      ppt->has_vectors=_TRUE_;  
+
+    if ((strstr(string1,"t") == NULL) && (strstr(string1,"T") == NULL))
+      ppt->has_tensors=_FALSE_;
+    else
+      ppt->has_tensors=_TRUE_;  
+
+    class_test(ppt->has_scalars==_FALSE_ && ppt->has_vectors ==_FALSE_ && ppt->has_tensors ==_FALSE_,
+	       errmsg,	       
+               "You wrote: modes=%s. Could not identify any of the modes ('s', 'v', 't') in such input",string1);
+  }
+
+  if (ppt->has_scalars == _TRUE_) {
+    flag1=parser_read_string(&fc,"ic",&string1,errmsg);
+    if (flag1 == _FAILURE_) {
+      ppt->has_ad=_TRUE_;  
+      ppt->has_bi=_FALSE_;
+      ppt->has_cdi=_FALSE_;
+      ppt->has_nid=_FALSE_;
+      ppt->has_niv=_FALSE_;
+    }
+    else {
+      
+      if ((strstr(string1,"ad") == NULL) && (strstr(string1,"AD") == NULL))
+	ppt->has_ad=_FALSE_;
+      else
+	ppt->has_ad=_TRUE_; 
+      
+      if ((strstr(string1,"bi") == NULL) && (strstr(string1,"BI") == NULL))
+	ppt->has_bi=_FALSE_;
+      else
+	ppt->has_bi=_TRUE_; 
+      
+      if ((strstr(string1,"cdi") == NULL) && (strstr(string1,"CDI") == NULL))
+	ppt->has_cdi=_FALSE_;
+      else
+	ppt->has_cdi=_TRUE_; 
+      
+      if ((strstr(string1,"nid") == NULL) && (strstr(string1,"NID") == NULL))
+	ppt->has_nid=_FALSE_;
+      else
+	ppt->has_nid=_TRUE_; 
+      
+      if ((strstr(string1,"niv") == NULL) && (strstr(string1,"NIV") == NULL))
+	ppt->has_niv=_FALSE_;
+      else
+	ppt->has_niv=_TRUE_; 
+      
+      class_test(ppt->has_ad==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
+		 errmsg,	       
+		 "You wrote: ic=%s. Could not identify any of the initial conditions ('ad', 'bi', 'cdi', 'nid', 'niv') in such input",string1);
+
+    }
+  }
 
   /** - define the primordial spectrum */
 
-  ppm->primordial_spec_type = analytic_Pk;
-  ppm->A_s_ad = 2.3e-9 ; /* amplitude */
-  ppm->n_s_ad = 1. ; /* tilt */
-  ppm->alpha_s_ad = 0. ; /* running */ 
-  ppm->k_pivot = 0.05; /* pivot wavenumber in Mpc-1 */
+  flag1=parser_read_string(&fc,"P_k_ini type",&string1,errmsg);
+  if (flag1 == _FAILURE_) {
+    ppm->primordial_spec_type = analytic_Pk;
+  }
+  else {
+    flag2=_FALSE_;
+    if (strcmp(string1,"analytic_Pk") == 0) {
+      ppm->primordial_spec_type = analytic_Pk;
+    }
+    else {
+    	flag2=_TRUE_;
+    }
+    class_test(flag2==_TRUE_,
+	       errmsg,
+	       "could not identify primordial spectrum type, check that it is one of 'analytic_pk', ...");
+  }
+
+  if (ppm->primordial_spec_type == analytic_Pk) {
+
+    flag1=parser_read_double(&fc,"A_s_ad",&param1,errmsg);
+    if (flag1==_FAILURE_)
+      ppm->A_s_ad = 1.;
+    else
+      ppm->A_s_ad = param1;
+
+    flag1=parser_read_double(&fc,"n_s_ad",&param1,errmsg);
+    if (flag1==_FAILURE_)
+      ppm->n_s_ad = 1.;
+    else
+      ppm->n_s_ad = param1;
+
+    flag1=parser_read_double(&fc,"alpha_s_ad",&param1,errmsg);
+    if (flag1==_FAILURE_)
+      ppm->alpha_s_ad = 0.;
+    else
+      ppm->alpha_s_ad = param1;
+
+    flag1=parser_read_double(&fc,"k_pivot",&param1,errmsg);
+    if (flag1==_FAILURE_)
+      ppm->k_pivot = 0.05;
+    else
+      ppm->k_pivot = param1;
+
+  }
 
   /** - define up to which value of z P(k) should be computed */
 

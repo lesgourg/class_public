@@ -158,6 +158,8 @@ int transfer_init(
 
 #endif
 
+  ptr->md_size=0;
+
   if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
       (ppt->has_cl_cmb_polarization == _FALSE_) &&
       (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
@@ -345,18 +347,21 @@ int transfer_free(
 
   int index_mode;
 
-  if (ptr->tt_size>0) {
-    for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
-      free(ptr->l[index_mode]);
-      free(ptr->k[index_mode]);
-      free(ptr->transfer[index_mode]);
-    }  
-
-    free(ptr->l_size);
-    free(ptr->l);
-    free(ptr->k_size);
-    free(ptr->k);
-    free(ptr->transfer);
+  if (ptr->md_size > 0){
+    
+    if (ptr->tt_size>0) {
+      for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
+	free(ptr->l[index_mode]);
+	free(ptr->k[index_mode]);
+	free(ptr->transfer[index_mode]);
+      }  
+      
+      free(ptr->l_size);
+      free(ptr->l);
+      free(ptr->k_size);
+      free(ptr->k);
+      free(ptr->transfer);
+    }
   }
 
   return _SUCCESS_;

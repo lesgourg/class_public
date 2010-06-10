@@ -21,8 +21,15 @@ int output_init(
   double * cl_output;
   double * pk_output;
 
-  if (pop->output_verbose > 0)
-    printf("Writing in output files \n");
+  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+    if (pop->output_verbose > 0)
+      printf("No spectra requested. Output module skipped.\n");
+    return _SUCCESS_;
+  }
+  else {
+    if (pop->output_verbose > 0)
+      printf("Writing in output files \n");
+  }
 
   if (ptr->tt_size >0) {
 

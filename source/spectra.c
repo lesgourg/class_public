@@ -262,8 +262,17 @@ int spectra_init(
   /** - define local variables */
   int index_mode; /* index running over modes (scalar, tensor, ...) */
 
-  if (psp->spectra_verbose > 0)
-    printf("Computing output spectra\n");
+  psp->md_size = 0;
+
+  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+    if (psp->spectra_verbose > 0)
+      printf("No spectra requested. Spectra module skipped.\n");
+    return _SUCCESS_;
+  }
+  else {
+    if (psp->spectra_verbose > 0)
+      printf("Computing output spectra\n");
+  }
 
   psp->md_size = ppt->md_size;
 
@@ -312,28 +321,32 @@ int spectra_free(
 
   int index_mode;
 
-  if (psp->ct_size > 0) {
+  if (psp->md_size > 0) {
 
-    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
-      free(psp->l[index_mode]);
-      free(psp->cl[index_mode]);
-      free(psp->ddcl[index_mode]);
+    if (psp->ct_size > 0) {
+    
+      for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+	free(psp->l[index_mode]);
+	free(psp->cl[index_mode]);
+	free(psp->ddcl[index_mode]);
+      }
+      free(psp->l);
+      free(psp->l_size);
+      free(psp->cl);
+      free(psp->ddcl);
     }
-    free(psp->l);
-    free(psp->l_size);
-    free(psp->cl);
-    free(psp->ddcl);
+
+    if (psp->k_size > 0) {
+
+      free(psp->eta);
+      free(psp->k);
+      free(psp->pk);
+      if (psp->eta_size > 1) {
+	free(psp->ddpk);
+      }
+    }    
+
   }
-
-  if (psp->k_size > 0) {
-
-    free(psp->eta);
-    free(psp->k);
-    free(psp->pk);
-    if (psp->eta_size > 1) {
-      free(psp->ddpk);
-    }
-  }    
 
   return _SUCCESS_;
  

@@ -123,8 +123,17 @@ int primordial_init(
   int index_mode,index_ic,index_k;
   double lnpk;
 
-  if (ppm->primordial_verbose > 0)
-    printf("Computing primordial spectra\n");
+  ppm->lnk_size=0;
+
+  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+    if (ppm->primordial_verbose > 0)
+      printf("No perturbations requested. Primordial module skipped.\n");
+    return _SUCCESS_;
+  }
+  else {
+    if (ppm->primordial_verbose > 0)
+      printf("Computing primordial spectra\n");
+  }
 
   /** - get kmin and kmax from perturbation structure */
 
@@ -247,14 +256,17 @@ int primordial_free(
 
   int index_mode;
 
-  for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
-    free(ppm->lnpk[index_mode]);
-    free(ppm->ddlnpk[index_mode]);
+  if (ppm->lnk_size > 0) {
+
+    for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
+      free(ppm->lnpk[index_mode]);
+      free(ppm->ddlnpk[index_mode]);
+    }
+    free(ppm->ic_size);
+    free(ppm->lnpk);
+    free(ppm->ddlnpk);
+    free(ppm->lnk);    
   }
-  free(ppm->ic_size);
-  free(ppm->lnpk);
-  free(ppm->ddlnpk);
-  free(ppm->lnk);
 
   return _SUCCESS_; 
 }
