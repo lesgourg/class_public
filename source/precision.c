@@ -107,7 +107,6 @@ int precision_init ( struct precision * ppr ) {
 
   ppr->l_logstep=1.2 /* 1.4*/;
   ppr->l_linstep=50;
-  ppr->l_max = 2500;
 
   ppr->bessel_scalar_x_step=0.1; /* 1. 1.27 optimized 9/09/08 */
   ppr->bessel_scalar_j_cut=1.e-5; /* 8.1e-5 optimized 9/09/08 */
@@ -128,9 +127,6 @@ int precision_init ( struct precision * ppr ) {
   ppr->transfer_cut=tc_cl;
   ppr->transfer_cut_threshold_osc=0.01; /* 0.01 */
   ppr->transfer_cut_threshold_cl=2.e-6; /* 2.e-6 */
-
-  ppr->l_scalar_max = 2500;
-  ppr->l_tensor_max = 1000;
 
   /**
    * - automatic estimate of machine precision

@@ -18,44 +18,82 @@ int input_init(
 	       ErrorMsg errmsg
 	       ) {
 
-  int flag1,flag2,flag3;
-  double param1,param2,param3;
   struct file_content fc;
   char input_file[_ARGUMENT_LENGTH_MAX_];
+  char precision_file[_ARGUMENT_LENGTH_MAX_];
+
+  /* if input_init is called with arg=0 or 1, set null input file names in order to read parameters from code */
+  if (argc < 2) {
+    input_file[0]=='\0';
+    precision_file[0]=='\0';
+  }
+  else {
+    class_call(input_check_arguments_of_main(argc, argv, input_file,precision_file,errmsg),
+	       errmsg,
+	       errmsg);
+  }
+
+  if (input_file[0]=='\0') {
+
+    printf("read input from code\n");
+    class_call(input_init_from_code(pba,
+				    pth,
+				    ppt,
+				    pbs,
+				    ptr,
+				    ppm,
+				    psp,
+				    pop),
+	       errmsg,
+	       errmsg);
+
+  }
+  else {
+
+    class_call(parser_read_file(input_file,&fc,errmsg),
+	       errmsg,
+	       errmsg);
+
+    class_call(input_init_from_file(&fc,
+				    pba,
+				    pth,
+				    ppt,
+				    pbs,
+				    ptr,
+				    ppm,
+				    psp,
+				    pop,
+				    errmsg),
+	       errmsg,
+	       errmsg);
+  }
+
+  return _SUCCESS_;
+}
+
+  int input_init_from_file(
+			   struct file_content * pfc,
+			   struct background *pba,
+			   struct thermo *pth,
+			   struct perturbs *ppt,
+			   struct bessels * pbs,
+			   struct transfers *ptr,
+			   struct primordial *ppm,
+			   struct spectra *psp,
+			   struct output *pop,
+			   ErrorMsg errmsg
+			   ) {
+
+  int flag1,flag2,flag3;
+  double param1,param2,param3;
+  int int1;
   double Omega_tot;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_LINE_LENGTH_MAX_];
 
-  /** - assign values to background cosmological parameters */
-  /* the following parameters must be assigned:
-
-     pba->H0
-     pba->Omega0_g
-     pba->Omega0_nur
-     pba->Omega0_b
-     pba->Omega0_cdm     (optional; 0. if not passed)
-     pba->Omega0_lambda  (optional; 0. if not passed)
-     pba->Omega0_de      (optional; 0. if not passed)
-     pba->a_today        (optional; 1. if not passed)
-     pth->Tcmb
-     pth->YHe            (optional; 0.25 if not passed)
-     pth->reio_parametrization
-     pth->reio_z_or_tau
-     pth->z_reio
-     pth->tau_reio
-  */
-
-  class_call(input_check_arguments_of_main(argc, argv, input_file,errmsg),
-	     errmsg,
-	     errmsg);
-
-  class_call(parser_read_file(input_file,&fc,errmsg),
-	     errmsg,
-	     errmsg);
-
   /* h (dimensionless) and H0 in Mpc^{-1} = h / 2999.7 */
-  flag1=parser_read_double(&fc,"H0",&param1,errmsg);
-  flag2=parser_read_double(&fc,"h",&param2,errmsg);
+  flag1=parser_read_double(pfc,"H0",&param1,errmsg);
+  flag2=parser_read_double(pfc,"h",&param2,errmsg);
   class_test((flag1 == _FAILURE_) && (flag2 == _FAILURE_),
 	     errmsg,
 	     "In input file, enter either h (dimensionless) or H0 (in km/s/Mpc)");
@@ -73,9 +111,9 @@ int input_init(
 
 
   /* Omega_0_g (photons) and Tcmb */
-  flag1=parser_read_double(&fc,"T_cmb",&param1,errmsg);
-  flag2=parser_read_double(&fc,"Omega_g",&param2,errmsg);
-  flag3=parser_read_double(&fc,"omega_g",&param3,errmsg);
+  flag1=parser_read_double(pfc,"T_cmb",&param1,errmsg);
+  flag2=parser_read_double(pfc,"Omega_g",&param2,errmsg);
+  flag3=parser_read_double(pfc,"omega_g",&param3,errmsg);
   if((flag1 == _FAILURE_) && (flag2 == _FAILURE_) && (flag3 == _FAILURE_)) {
     pth->Tcmb=2.726;
     pba->Omega0_g = (4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
@@ -102,8 +140,8 @@ int input_init(
   Omega_tot = pba->Omega0_g;
 
   /* Omega_0_b (baryons) */
-  flag1=parser_read_double(&fc,"Omega_b",&param1,errmsg);
-  flag2=parser_read_double(&fc,"omega_b",&param2,errmsg);
+  flag1=parser_read_double(pfc,"Omega_b",&param1,errmsg);
+  flag2=parser_read_double(pfc,"omega_b",&param2,errmsg);
   class_test((flag1 == _FAILURE_) && (flag2 == _FAILURE_),
 	     errmsg,
 	     "In input file, enter either Omega_b or omega_b (to infer baryon density)");
@@ -118,9 +156,9 @@ int input_init(
   Omega_tot += pba->Omega0_b;
 
   /* Omega_0_nur (ultra-relativistic species / massless neutrino) */
-  flag1=parser_read_double(&fc,"N_eff",&param1,errmsg);
-  flag2=parser_read_double(&fc,"Omega_nur",&param2,errmsg);
-  flag3=parser_read_double(&fc,"omega_nur",&param3,errmsg);
+  flag1=parser_read_double(pfc,"N_eff",&param1,errmsg);
+  flag2=parser_read_double(pfc,"Omega_nur",&param2,errmsg);
+  flag3=parser_read_double(pfc,"omega_nur",&param3,errmsg);
   if((flag1 == _FAILURE_) && (flag2 == _FAILURE_) && (flag3 == _FAILURE_)) {
     pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   }
@@ -140,8 +178,8 @@ int input_init(
   Omega_tot += pba->Omega0_nur;
 
   /* Omega_0_cdm (CDM) */
-  flag1=parser_read_double(&fc,"Omega_cdm",&param1,errmsg);
-  flag2=parser_read_double(&fc,"omega_cdm",&param2,errmsg);
+  flag1=parser_read_double(pfc,"Omega_cdm",&param1,errmsg);
+  flag2=parser_read_double(pfc,"omega_cdm",&param2,errmsg);
   if ((flag1 == _FAILURE_) && (flag2 == _FAILURE_)) {
     printf("Warning: you are computing a model without Cold Dark Matter (why not...)\n");
     pba->Omega0_cdm = 0.;
@@ -157,9 +195,9 @@ int input_init(
   Omega_tot += pba->Omega0_cdm;
 
   /* Omega_0_lambda (cosmological constant), Omega0_de (dark energy fluid), Omega0_k (curvature) */
-  flag1=parser_read_double(&fc,"Omega_Lambda",&param1,errmsg);
-  flag2=parser_read_double(&fc,"Omega_de",&param2,errmsg);
-  flag3=parser_read_double(&fc,"Omega_k",&param3,errmsg);
+  flag1=parser_read_double(pfc,"Omega_Lambda",&param1,errmsg);
+  flag2=parser_read_double(pfc,"Omega_de",&param2,errmsg);
+  flag3=parser_read_double(pfc,"Omega_k",&param3,errmsg);
   class_test(((flag1 == _FAILURE_) && (flag2 == _FAILURE_)) || ((flag1 == _FAILURE_) && (flag3 == _FAILURE_)) || ((flag2 == _FAILURE_) && (flag3 == _FAILURE_)),
 	     errmsg,
 	     "In input file, enter two parameters our of Omega_Lambda, Omega_de, Omega_k (to infer the third one)");
@@ -201,7 +239,7 @@ int input_init(
 	     "Open/close case not written yet");
 
   /* scale factor today (arbitrary) */
-  flag1=parser_read_double(&fc,"a_today",&param1,errmsg);
+  flag1=parser_read_double(pfc,"a_today",&param1,errmsg);
   if (flag1 == _FAILURE_)
     pba->a_today = 1.;
   else 
@@ -210,20 +248,19 @@ int input_init(
   /** - assign values to thermodynamics cosmological parameters */
 
   /* scale factor today (arbitrary) */
-  flag1=parser_read_double(&fc,"YHe",&param1,errmsg);
+  flag1=parser_read_double(pfc,"YHe",&param1,errmsg);
   if (flag1 == _FAILURE_)
     pth->YHe = 0.25;
   else 
     pth->YHe = param1;
 
   /* reionization parametrization */
-  flag1=parser_read_string(&fc,"reio_parametrization",&string1,errmsg);
+  flag1=parser_read_string(pfc,"reio_parametrization",&string1,errmsg);
   if (flag1 == _FAILURE_) {
     pth->reio_parametrization=reio_none;
     printf("Warning: you are computing a model without reionization (why not...)\n");
   }
   else {
-    printf("read:%s;\n",string1);
     flag2=_FALSE_;
     if (strcmp(string1,"reio_none") == 0) {
       pth->reio_parametrization=reio_none;
@@ -243,8 +280,8 @@ int input_init(
 
   /* reionization parameters if reio_parametrization=reio_camb */
   if (pth->reio_parametrization == reio_camb) {
-    flag1=parser_read_double(&fc,"z_reio",&param1,errmsg);
-    flag2=parser_read_double(&fc,"tau_reio",&param2,errmsg);
+    flag1=parser_read_double(pfc,"z_reio",&param1,errmsg);
+    flag2=parser_read_double(pfc,"tau_reio",&param2,errmsg);
     class_test((flag1 == _FAILURE_) && (flag2 == _FAILURE_),
 	       errmsg,
 	       "Since you have set reionization parameterization to reio_camb, enter one of z_reio or tau_reio");
@@ -263,7 +300,7 @@ int input_init(
   
   /** - define which perturbations and sources should be computed, and down to which scale */
 
-  flag1=parser_read_string(&fc,"output",&string1,errmsg);
+  flag1=parser_read_string(pfc,"output",&string1,errmsg);
   if (flag1 == _FAILURE_) {
     ppt->has_cl_cmb_temperature = _FALSE_;
     ppt->has_cl_cmb_polarization = _FALSE_;
@@ -294,7 +331,7 @@ int input_init(
 
   }
 
-  flag1=parser_read_string(&fc,"modes",&string1,errmsg);
+  flag1=parser_read_string(pfc,"modes",&string1,errmsg);
   if (flag1 == _FAILURE_) {
     ppt->has_scalars=_TRUE_;  
     ppt->has_vectors=_FALSE_;
@@ -323,7 +360,7 @@ int input_init(
   }
 
   if (ppt->has_scalars == _TRUE_) {
-    flag1=parser_read_string(&fc,"ic",&string1,errmsg);
+    flag1=parser_read_string(pfc,"ic",&string1,errmsg);
     if (flag1 == _FAILURE_) {
       ppt->has_ad=_TRUE_;  
       ppt->has_bi=_FALSE_;
@@ -367,7 +404,7 @@ int input_init(
 
   /** - define the primordial spectrum */
 
-  flag1=parser_read_string(&fc,"P_k_ini type",&string1,errmsg);
+  flag1=parser_read_string(pfc,"P_k_ini type",&string1,errmsg);
   if (flag1 == _FAILURE_) {
     ppm->primordial_spec_type = analytic_Pk;
   }
@@ -386,25 +423,25 @@ int input_init(
 
   if (ppm->primordial_spec_type == analytic_Pk) {
 
-    flag1=parser_read_double(&fc,"A_s_ad",&param1,errmsg);
+    flag1=parser_read_double(pfc,"A_s_ad",&param1,errmsg);
     if (flag1==_FAILURE_)
       ppm->A_s_ad = 1.;
     else
       ppm->A_s_ad = param1;
 
-    flag1=parser_read_double(&fc,"n_s_ad",&param1,errmsg);
+    flag1=parser_read_double(pfc,"n_s_ad",&param1,errmsg);
     if (flag1==_FAILURE_)
       ppm->n_s_ad = 1.;
     else
       ppm->n_s_ad = param1;
 
-    flag1=parser_read_double(&fc,"alpha_s_ad",&param1,errmsg);
+    flag1=parser_read_double(pfc,"alpha_s_ad",&param1,errmsg);
     if (flag1==_FAILURE_)
       ppm->alpha_s_ad = 0.;
     else
       ppm->alpha_s_ad = param1;
 
-    flag1=parser_read_double(&fc,"k_pivot",&param1,errmsg);
+    flag1=parser_read_double(pfc,"k_pivot",&param1,errmsg);
     if (flag1==_FAILURE_)
       ppm->k_pivot = 0.05;
     else
@@ -412,27 +449,183 @@ int input_init(
 
   }
 
-  /** - define up to which value of z P(k) should be computed */
+  /** - parameters for output spectra */
 
-  psp->z_max_pk = 0.;
+  flag1=parser_read_string(pfc,"cls",&string1,errmsg);
+  if (flag1 == _FAILURE_) {
+    pop->cls_ad = "output/cls.dat";
+  }
+  else {
+    class_alloc(pop->cls_ad,sizeof(char)*(strlen(string1)+1),errmsg);
+    strcpy(pop->cls_ad,string1);
+  }
 
-  /** - prefix for name of output files (blank if no output files needed);
-   number of redshift for output P(k) (including 0 and z_max_pk if non-zero) */
+  flag1=parser_read_double(pfc,"l_scalar_max",&param1,errmsg);
+  if (flag1==_FAILURE_) {
+    pbs->l_max=2500;
+    ptr->l_scalar_max=2500;
+  }
+  else {
+    pbs->l_max=param1;
+    ptr->l_scalar_max=param1;
+  }
 
-  pop->cls_ad = "output/cls.dat";
-  pop->pk = "output/pk.dat";
-  pop->z_pk = 0.;
+  flag1=parser_read_double(pfc,"l_tensor_max",&param1,errmsg);
+  if (flag1==_FAILURE_) {
+    ptr->l_tensor_max=1000;
+  }
+  else {
+    ptr->l_tensor_max=param1;
+  }
+
+  flag1=parser_read_string(pfc,"pk",&string1,errmsg);
+  if (flag1 == _FAILURE_) {
+    pop->pk = "output/pk.dat";
+  }
+  else {
+    class_alloc(pop->pk,sizeof(char)*(strlen(string1)+1),errmsg);
+    strcpy(pop->pk,string1);
+  }
+
+  flag1=parser_read_double(pfc,"z_pk",&param1,errmsg);
+  if (flag1==_FAILURE_) {
+    psp->z_max_pk = 0.;
+    pop->z_pk = 0.;
+  }
+  else {
+    psp->z_max_pk = param1;
+    pop->z_pk = param1;
+  }
 
   /** - amount of information sent to standard output (none if all set to zero) */
 
-  pba->background_verbose = 1;
-  pth->thermodynamics_verbose = 1;
-  ppt->perturbations_verbose = 2;
-  pbs->bessels_verbose = 2;
-  ptr->transfer_verbose = 2;
-  ppm->primordial_verbose = 1;
-  psp->spectra_verbose = 2;
-  pop->output_verbose = 1;
+  flag1=parser_read_int(pfc,"background_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    pba->background_verbose = 1;
+  else
+    pba->background_verbose = int1;
+
+  flag1=parser_read_int(pfc,"thermodynamics_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    pth->thermodynamics_verbose = 1;
+  else
+    pth->thermodynamics_verbose = int1;
+
+  flag1=parser_read_int(pfc,"perturbations_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    ppt->perturbations_verbose = 1;
+  else
+    ppt->perturbations_verbose = int1;
+
+  flag1=parser_read_int(pfc,"bessels_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    pbs->bessels_verbose = 1;
+  else
+    pbs->bessels_verbose = int1;
+
+  flag1=parser_read_int(pfc,"transfer_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    ptr->transfer_verbose = 1;
+  else
+    ptr->transfer_verbose = int1;
+
+  flag1=parser_read_int(pfc,"primordial_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    ppm->primordial_verbose = 1;
+  else
+    ppm->primordial_verbose = int1;
+
+  flag1=parser_read_int(pfc,"spectra_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    psp->spectra_verbose = 1;
+  else
+    psp->spectra_verbose = int1;
+
+  flag1=parser_read_int(pfc,"output_verbose",&int1,errmsg);
+  if (flag1==_FAILURE_)
+    pop->output_verbose = 1;
+  else
+    pop->output_verbose = int1;
+
+
+/*   pth->thermodynamics_verbose = 1; */
+/*   ppt->perturbations_verbose = 2; */
+/*   pbs->bessels_verbose = 2; */
+/*   ptr->transfer_verbose = 2; */
+/*   ppm->primordial_verbose = 1; */
+/*   psp->spectra_verbose = 2; */
+/*   pop->output_verbose = 1; */
+
+  return _SUCCESS_;
+
+}
+
+int input_init_from_code(
+			 struct background *pba,
+			 struct thermo *pth,
+			 struct perturbs *ppt,
+			 struct bessels * pbs,
+			 struct transfers *ptr,
+			 struct primordial *ppm,
+			 struct spectra *psp,
+			 struct output *pop
+			 ) {
+
+  pba->h = 0.7;
+  pba->H0 = pba->h * 1.e5 / _c_;
+  pth->Tcmb = 2.726;
+  pba->Omega0_g = (4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+  pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+  pba->Omega0_b = 0.05;
+  pba->Omega0_cdm = 0.25;    
+  pba->Omega0_k = 0.;
+  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm;
+  pba->Omega0_de = 0.;     
+  pba->a_today = 1.;       
+
+  pth->YHe=0.25;            
+  pth->reio_parametrization=reio_camb;
+  pth->reio_z_or_tau=reio_z;
+  pth->z_reio=10.;
+  pth->tau_reio=0.08;
+
+  ppt->has_cl_cmb_temperature = _TRUE_;
+  ppt->has_cl_cmb_polarization = _TRUE_;
+  ppt->has_cl_cmb_lensing_potential = _FALSE_;
+  ppt->has_pk_matter = _FALSE_;
+
+  ppt->has_ad=_TRUE_;  
+  ppt->has_bi=_FALSE_;
+  ppt->has_cdi=_FALSE_;
+  ppt->has_nid=_FALSE_;
+  ppt->has_niv=_FALSE_;
+
+  ppt->has_scalars=_TRUE_;  
+  ppt->has_vectors=_FALSE_;
+  ppt->has_tensors=_FALSE_;  
+
+  ppm->primordial_spec_type = analytic_Pk;
+  ppm->A_s_ad = 2.3e-9;
+  ppm->n_s_ad = 1.;
+  ppm->alpha_s_ad = 0.;
+  ppm->k_pivot = 0.05;
+
+  pop->cls_ad = "output/cls.dat";
+  pbs->l_max=2500;
+  ptr->l_scalar_max=2500;
+  ptr->l_tensor_max=2500;
+
+  pop->pk = "output/pk.dat";
+  psp->z_max_pk = 0.;
+  pop->z_pk = 0.;
+
+  pth->thermodynamics_verbose = 0;
+  ppt->perturbations_verbose = 0;
+  pbs->bessels_verbose = 0;
+  ptr->transfer_verbose = 0;
+  ppm->primordial_verbose = 0;
+  psp->spectra_verbose = 0;
+  pop->output_verbose = 0;
 
   return _SUCCESS_;
 
@@ -442,29 +635,36 @@ int input_check_arguments_of_main(
 				  int argc, 
 				  char **argv, 
 				  char * input,
+				  char * precision,
 				  ErrorMsg errmsg) {
 
   int i;
   char extension[5];
 
-  class_test(argc == 1,
-	     errmsg,
-	     "No input file xxx.ini, run with e.g. \n >./class params.ini");
+  if (argc == 1) {
+    input[0]='\0';
+    precision[0]='\0';
+    return _SUCCESS_;
+  }
 
   input[0]='\0';
+  precision[0]='\0';
   for (i=1; i<argc; i++) {
     strncpy(extension,(argv[i]+strlen(argv[i])-4),4);
     extension[4]='\0';
     if (strcmp(extension,".ini") == 0) {
       class_test(input[0] != '\0',
 		 errmsg,
-		 "You have passed more than one input file xxx.ini. Choose one.");
+		 "You have passed more than one input file with extension '.ini', choose one.");
       strcpy(input,argv[i]);
     }
+    if (strcmp(extension,".pre") == 0) {
+      class_test(precision[0] != '\0',
+		 errmsg,
+		 "You have passed more than one precision with extension '.pre', choose one.");
+      strcpy(precision,argv[i]);
+    }
   }
-  class_test(input[0] == '\0',
-	     errmsg,
-	     "No input file xxx.ini, run with e.g. \n >./class params.ini");
 
   return _SUCCESS_;
 

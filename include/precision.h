@@ -199,7 +199,6 @@ struct precision
 
   //@{
 
-  int l_max; /**< maximum value of l */
   int l_linstep; /**< factor for logarithmic spacing of values of l over which transfer functions are sampled */
   double l_logstep; /**< maximum spacing of values of l over which transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
@@ -228,9 +227,6 @@ struct precision
   double transfer_cut_threshold_osc; /**< threshold used for cutting the transfer function computation at a given \f$ k_{max} \f$ value, if transfer_cut = _TC_OSC_ (oscillation method: for given l, compute transfer functions until k_max such that oscillations of \f$ \Delta_l(k) \f$ are tiny relatively to largest oscillation) */
 
   double transfer_cut_threshold_cl; /**< threshold used for cutting the transfer function computation at a given \f$ k_{max} \f$ value, if transfer_cut = _TC_CL_ (Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny, C_l being computed approximately and with flat spectrum) */
-
-  int l_scalar_max; /**< maximum l value for scalars (must be <= l_max) */
-  int l_tensor_max; /**< maximum l value for tensors (must be <= l_max) */
 
   double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
 

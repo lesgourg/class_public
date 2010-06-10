@@ -17,6 +17,8 @@ struct bessels {
 
   //@{
 
+  int l_max; /**< maximum value of l */
+
   int l_size; /**< number of multipole values */
   int * l; /**< list of multipole values, l[index_l] */
 

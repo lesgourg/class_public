@@ -15,6 +15,9 @@
  */
 struct transfers {
 
+  int l_scalar_max; /**< maximum l value for scalars (must be <= l_max) */
+  int l_tensor_max; /**< maximum l value for tensors (must be <= l_max) */
+
   int md_size; /**< number of modes included in computation */
 
   int index_tt_t; /**< index for transfer type = temperature */

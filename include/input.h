@@ -36,6 +36,36 @@ extern "C" {
 		 ErrorMsg errmsg
 		 );
 
+  int input_init_from_file(
+			   struct file_content * pfc,
+			   struct background *pba,
+			   struct thermo *pth,
+			   struct perturbs *ppt,
+			   struct bessels * pbs,
+			   struct transfers *ptr,
+			   struct primordial *ppm,
+			   struct spectra *psp,
+			   struct output *pop,
+			   ErrorMsg errmsg
+			   );
+
+  int input_init_from_code(
+			   struct background *pba,
+			   struct thermo *pth,
+			   struct perturbs *ppt,
+			   struct bessels * pbs,
+			   struct transfers *ptr,
+			   struct primordial *ppm,
+			   struct spectra *psp,
+			   struct output *pop);
+
+int input_check_arguments_of_main(
+				  int argc, 
+				  char **argv, 
+				  char * input,
+				  char * precision,
+				  ErrorMsg errmsg);
+
 #ifdef __cplusplus
 }
 #endif

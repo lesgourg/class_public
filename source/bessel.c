@@ -426,7 +426,7 @@ int bessel_get_l_list(
   current_l = 2;
   increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
     
-  while (((current_l+increment) < ppr->l_max) && 
+  while (((current_l+increment) < pbs->l_max) && 
 	 (increment < ppr->l_linstep)) {
       
     index_l ++;
@@ -437,17 +437,17 @@ int bessel_get_l_list(
 
   increment = ppr->l_linstep;
 
-  while ((current_l+increment) <= ppr->l_max) {
+  while ((current_l+increment) <= pbs->l_max) {
 
     index_l ++;
     current_l += increment;
 
   }
 
-  if (current_l != ppr->l_max) {
+  if (current_l != pbs->l_max) {
 
     index_l ++;
-    current_l = ppr->l_max;
+    current_l = pbs->l_max;
 
   } 
 
@@ -459,7 +459,7 @@ int bessel_get_l_list(
   pbs->l[0] = 2;
   increment = max((int)(pbs->l[0] * (ppr->l_logstep-1.)),1);
 
-  while (((pbs->l[index_l]+increment) < ppr->l_max) && 
+  while (((pbs->l[index_l]+increment) < pbs->l_max) && 
 	 (increment < ppr->l_linstep)) {
       
     index_l ++;
@@ -470,17 +470,17 @@ int bessel_get_l_list(
 
   increment = ppr->l_linstep;
 
-  while ((pbs->l[index_l]+increment) <= ppr->l_max) {
+  while ((pbs->l[index_l]+increment) <= pbs->l_max) {
 
     index_l ++;
     pbs->l[index_l]=pbs->l[index_l-1]+increment;
  
   }
 
-  if (pbs->l[index_l] != ppr->l_scalar_max) {
+  if (pbs->l[index_l] != pbs->l_max) {
 
     index_l ++;
-    pbs->l[index_l]=ppr->l_max;
+    pbs->l[index_l]=pbs->l_max;
        
   }
   

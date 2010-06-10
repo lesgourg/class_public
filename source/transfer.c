@@ -478,15 +478,15 @@ int transfer_get_l_list(
 
   if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
 
-    class_test(ppr->l_scalar_max > pbs->l[pbs->l_size-1],
+    class_test(ptr->l_scalar_max > pbs->l[pbs->l_size-1],
 	       ptr->error_message,
-	       "For scalar transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppr->l_scalar_max,pbs->l[pbs->l_size-1]);
+	       "For scalar transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ptr->l_scalar_max,pbs->l[pbs->l_size-1]);
     
     index_l=0;
-    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppr->l_scalar_max)) {
+    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ptr->l_scalar_max)) {
       index_l++;
     }
-    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ppr->l_scalar_max)) {
+    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ptr->l_scalar_max)) {
       index_l++;
     }
 
@@ -494,15 +494,15 @@ int transfer_get_l_list(
 
   if (ppt->has_tensors && index_mode == ppt->index_md_tensors) {
 
-    class_test(ppr->l_tensor_max > pbs->l[pbs->l_size-1],
+    class_test(ptr->l_tensor_max > pbs->l[pbs->l_size-1],
 	       ptr->error_message,
-	       "For tensor transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppr->l_scalar_max,pbs->l[pbs->l_size-1]);
+	       "For tensor transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ptr->l_scalar_max,pbs->l[pbs->l_size-1]);
     
     index_l=0;
-    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppr->l_tensor_max)) {
+    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ptr->l_tensor_max)) {
       index_l++;
     }
-    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ppr->l_tensor_max)) {
+    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ptr->l_tensor_max)) {
       index_l++;
     }
 
