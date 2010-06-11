@@ -1,9 +1,9 @@
 /** @file primordial.h Documented includes for primordial module */
 
-#include "transfer.h"
-
 #ifndef __PRIMORDIAL__
 #define __PRIMORDIAL__
+
+#include "transfer.h"
 
 enum primordial_spectrum_type {
   analytic_Pk,

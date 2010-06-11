@@ -2,10 +2,10 @@
  * definitions for module thermodynamics.c 
  */
 
-#include "precision.h"
-
 #ifndef __TOOLS_ARRAYS__
 #define __TOOLS_ARRAYS__
+
+#include "common.h"
 
 #define _SPLINE_NATURAL_ 0 /**< natural spline: ddy0=ddyn=0 */
 #define _SPLINE_EST_DERIV_ 1 /**< spline with estimation of first derivative on both edges */

@@ -70,7 +70,6 @@ int precision_init ( struct precision * ppr ) {
   ppr->k_scalar_step_super=0.005;  /* 0.01 -> 0.005 */
   ppr->k_scalar_step_transition=0.4;
 
-  ppr->k_scalar_kmax_for_pk=1.;
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
   ppr->k_tensor_number=15;

@@ -1,11 +1,11 @@
 /***
  * A table that  grows automatically. 
  */
- 
-#include "precision.h"
 
 #ifndef __GROWTABLE__
 #define __GROWTABLE__
+
+#include "common.h"
 
 #define _GT_INITSIZE_ 4096 /**< Init size of a growTable (in bytes)*/
 #define _GT_FACTOR_ 2      /**< inflating factor when current max size is reached */

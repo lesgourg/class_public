@@ -1,9 +1,9 @@
 /** @file bessel.h Documented includes for Bessel module */
 
-#include "perturbations.h"
-
 #ifndef __BESSEL__
 #define __BESSEL__
+
+#include "perturbations.h"
 
 /**
  * All Bessel functions.

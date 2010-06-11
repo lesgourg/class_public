@@ -1,12 +1,13 @@
 /** @file background.h Documented includes for background module */
 
+#ifndef __BACKGROUND__
+#define __BACKGROUND__
+
 #include "precision.h"
 #include "growTable.h"
 #include "tools_arrays.h"
 #include "dei_rkck.h"
-
-#ifndef __BACKGROUND__
-#define __BACKGROUND__
+#include "parser.h"
 
 /**
  * List of possible formats for the vector of background quantities.

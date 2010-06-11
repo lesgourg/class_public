@@ -1,9 +1,9 @@
 /** @file transfer.h Documented includes for transfer module */
 
-#include "bessel.h"
-
 #ifndef __TRANSFER__
 #define __TRANSFER__
+
+#include "bessel.h"
 
 /**
  * All tables of transfer functions \f$ \Delta_l^{X} (k) \f$.

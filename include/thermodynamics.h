@@ -1,9 +1,9 @@
 /** @file thermodynamics.h Documented includes for thermodynamics module */
 
-#include "background.h"
-
 #ifndef __THERMODYNAMICS__
 #define __THERMODYNAMICS__
+
+#include "background.h"
 
 enum reionization_parametrization {
   reio_none, /**< no reionization */

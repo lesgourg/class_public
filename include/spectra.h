@@ -1,9 +1,9 @@
 /** @file spectra.h Documented includes for \f$ C_l^{X}, P(k), ... \f$ module */
 
-#include "primordial.h"
-
 #ifndef __SPECTRA__
 #define __SPECTRA__
+
+#include "primordial.h"
 
 /**
  * All \f$ C_l^{X} or P(k,z) \f$.

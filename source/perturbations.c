@@ -798,9 +798,9 @@ int perturb_get_k_list(
     }
     ppt->k_size_cl[index_mode] = index_k;
 
-    if (k < ppr->k_scalar_kmax_for_pk*pba->h) {
+    if (k < ppt->k_scalar_kmax_for_pk*pba->h) {
 
-      index_k += (int)((log(ppr->k_scalar_kmax_for_pk*pba->h/k)/log(10.))*ppr->k_scalar_k_per_decade_for_pk)+1;
+      index_k += (int)((log(ppt->k_scalar_kmax_for_pk*pba->h/k)/log(10.))*ppr->k_scalar_k_per_decade_for_pk)+1;
 
     }
 
@@ -827,7 +827,7 @@ int perturb_get_k_list(
     while (index_k < ppt->k_size[index_mode]) {
       
       ppt->k[index_mode][index_k] = ppt->k[index_mode][index_k-1] 
-	* exp(log(ppr->k_scalar_kmax_for_pk*pba->h/ppt->k[index_mode][ppt->k_size_cl[index_mode]-1])/(ppt->k_size[index_mode]-ppt->k_size_cl[index_mode]));
+	* exp(log(ppt->k_scalar_kmax_for_pk*pba->h/ppt->k[index_mode][ppt->k_size_cl[index_mode]-1])/(ppt->k_size[index_mode]-ppt->k_size_cl[index_mode]));
       index_k++;
 
     }

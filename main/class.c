@@ -2,18 +2,7 @@
  * Julien Lesgourgues, 20.04.2010    
  */
  
-#include "precision.h"
-#include "background.h"
-#include "thermodynamics.h"
-#include "perturbations.h"
-#include "bessel.h"
-#include "transfer.h"
-#include "primordial.h"
-#include "spectra.h"
-#include "output.h"
-
-/* #include "readConf.h" */
-/* #include "errorio.h" */
+#include "class.h"
 
 main(int argc, char **argv) {
 

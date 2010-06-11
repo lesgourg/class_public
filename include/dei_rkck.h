@@ -1,7 +1,7 @@
-#include "precision.h"
-
 #ifndef __DEI__
 #define __DEI__
+
+#include "common.h"
 
 struct generic_integrator_workspace 
 { 

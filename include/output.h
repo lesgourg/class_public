@@ -1,16 +1,16 @@
 /** @file output.h Documented includes for output module */
 
-#include "spectra.h"
-
 #ifndef __OUTPUT__
 #define __OUTPUT__
 
+#include "spectra.h"
+
 struct output {
 
-  char * cls_ad;
+  FileArg cls_ad;
 
-  char * pk;
-
+  FileArg pk;
+  
   double z_pk;
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */

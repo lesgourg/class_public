@@ -1,7 +1,7 @@
-#include "common.h"
-
 #ifndef __PARSER__
 #define __PARSER__
+
+#include "common.h"
 
 #define _LINE_LENGTH_MAX_ 200 /**< size of the string read in each line of the file (extra characters not taken into account) */
 #define _ARGUMENT_LENGTH_MAX_ 30 /**< maximum size of each argument (name or value), including the final null character */

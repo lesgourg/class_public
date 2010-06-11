@@ -1,9 +1,9 @@
 /** @file perturbations.h Documented includes for perturbation module */
 
-#include "thermodynamics.h"
-
 #ifndef __PERTURBATIONS__
 #define __PERTURBATIONS__
+
+#include "thermodynamics.h"
 
 /**  
  * @name Flag values for tight-coupling approximation
@@ -103,6 +103,7 @@ struct perturbs
   int * k_size;     /**< k_size[index_mode] = number of values */
   int * k_size_cl;     /**< k_size_cl[index_mode] number of values to take into account in transfer functions for C_l spectra (could be smaller than k_size if extra points needed in P(k) */
   double ** k;      /**< (k[index_mode])[index_k] = list of values */
+  double k_scalar_kmax_for_pk; /**< maximum value of k in h/Mpc in P(k) (overseeded by value kmax inferred from k_scalar_oscillations if it is bigger) */
 
   //@}
 

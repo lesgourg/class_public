@@ -1,9 +1,9 @@
 /** @file precision.h Documented includes for precision module */
 
-#include <common.h>
-
 #ifndef __PRECISION__
 #define __PRECISION__
+
+#include "common.h"
 
 #define _TOLVAR_ 100. /**< The minimum allowed variation is the machine precision times this number */ 
 
@@ -125,7 +125,6 @@ struct precision
   double k_scalar_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
   double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  double k_scalar_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. */
 
-  double k_scalar_kmax_for_pk; /**< maximum value of k in h/Mpc in P(k) (overseeded by value kmax inferred from k_scalar_oscillations if it is bigger) */
   double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade */
 
   int k_tensor_number;  /**< number of k values (tensor modes) */
