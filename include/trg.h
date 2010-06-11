@@ -17,14 +17,23 @@ struct spectra_nl {
   double z_ini;
 
   double * pk_nl;
+  double * p_12_nl;
+  double * p_22_nl;
+
+  double * p_11;
   double * p_12;
   double * p_22;
 
   double * ddpk_nl;
+  double * ddp_12_nl;
+  double * ddp_22_nl;
+
+  double * ddp_11;
   double * ddp_12;
   double * ddp_22;
 
   short spectra_nl_verbose;  /**< from 0 to 1: amount of information written in standard output */
+  short mode; /**< from 0 to 2: 0 being linear theory, 1 for one loop and 2 for full trg calculation*/
 
   ErrorMsg error_message; /**< zone for writing error messages */
 };
@@ -40,8 +49,10 @@ extern "C" {
     _A0_,
     _A11_,
     _A12_,
+    _A13_,
     _A21_,
     _A22_,
+    _A23_,
     _A3_,
     _B0_,
     _B11_,
@@ -66,32 +77,38 @@ extern "C" {
 		    char * errmsg
 		    );
 
-  int trg_p12_ini(
-		  struct background * pba,
-		  struct primordial * ppm,
-		  struct spectra * psp,
-		  struct spectra_nl * pnl,
-		  int index_ic,
-		  double * result
-		  );
+  int trg_p12_at_k(
+	      struct background * pba,
+	      struct primordial * ppm,
+	      struct spectra * psp,
+	      struct spectra_nl * pnl,
+	      int index_eta,
+	      int index_ic,
+	      double k,
+	      double * result
+	      );
 
-  int trg_p22_ini(
-		  struct background * pba,
-		  struct primordial * ppm,
-		  struct spectra * psp,
-		  struct spectra_nl * pnl,
-		  int index_ic,
-		  double * result
-		  );
+  int trg_p22_at_k(
+	      struct background * pba,
+	      struct primordial * ppm,
+	      struct spectra * psp,
+	      struct spectra_nl * pnl,
+	      int index_eta,
+	      int index_ic,
+	      double k,
+	      double * result
+	      );
   
-  int trg_pk_nl_ini(
-		    struct background * pba,
-		    struct primordial * ppm,
-		    struct spectra * psp,
-		    struct spectra_nl * pnl,
-		    int index_ic,
-		    double *result				
-		    );
+  int trg_p11_at_k(
+	      struct background * pba,
+	      struct primordial * ppm,
+	      struct spectra * psp,
+	      struct spectra_nl * pnl,
+	      int index_eta,
+	      int index_ic,
+	      double k,
+	      double *result				
+	      );
   
   int trg_ddp_ab(
 		 struct spectra_nl * pnl,
@@ -131,6 +148,17 @@ extern "C" {
 		double * result, 
 		char * errmsg);
 
+  int trg_A_arg_one_loop(
+			 struct spectra_nl * pnl,
+			 enum name_A name, 
+			 double k, 
+			 double p, 
+			 double m, 
+			 int index_eta,
+			 int index_k, /**< used only for testing, could be supressed */
+			 double * result, 
+			 char * errmsg);
+
 
 
   /**************
@@ -140,6 +168,9 @@ extern "C" {
    **************/
 
   int trg_integrate_xy_at_eta(
+			      struct background * pba,
+			      struct primordial * ppm,
+			      struct spectra * psp,
 			      struct spectra_nl * pnl,
 			      enum name_A name,
 			      int index_eta,
