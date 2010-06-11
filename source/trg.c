@@ -1756,7 +1756,9 @@ int trg_A_arg_one_loop(
 
 
 /***************
- * the famous certainly wrong function...
+ *
+ * Integration with the Simpson's method (over y, and simple trapeze for x)
+ *
  ***************/
 
 int trg_integrate_xy_at_eta(
@@ -1779,10 +1781,10 @@ int trg_integrate_xy_at_eta(
   double logstepx;
     
   int index_y;
-  double y,y_previous,y_max,y_min;
+  double y,y_previous,y_max,y_min,y_mid;
   double logstepy;
 
-  double arg,arg_previous,temp;
+  double arg,arg_previous,arg_mid,temp,temp2;
   double * sum_y;
 
   /* The following approximation consists in taking into account the
@@ -1893,22 +1895,36 @@ int trg_integrate_xy_at_eta(
 
 	    y = y_max + k/sqrt(2.) * (1. - pow(logstepy,index_y)); /* next values of y */
 
+	    y_mid = (y_previous+y)*0.5;
+
 	    if (y < y_min) y = y_min; /* correct the last value */
 	    
 	    if(pnl->mode==2){
 	    class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&temp,errmsg),
 		       errmsg,
-		       pnl->error_message);}
+		       pnl->error_message);
+
+	    class_call(trg_A_arg(pnl,name,k,(x+y_mid)/sqrt(2.),(x-y_mid)/sqrt(2.),index_eta,index_k,&temp2,errmsg),
+		       errmsg,
+		       pnl->error_message);
+	    }
 
 	    else {
 	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2),(x-y)/sqrt(2),index_eta,index_k,&temp,errmsg),
 			 errmsg,
-			 pnl->error_message);}
+			 pnl->error_message);
+
+	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y_mid)/sqrt(2),(x-y_mid)/sqrt(2),index_eta,index_k,&temp2,errmsg),
+			 errmsg,
+			 pnl->error_message);
+	    }
 	    
 	   	  
 	    arg = -(x*x-y*y)/4.*temp;
+	    
+	    arg_mid = -(x*x-y_mid*y_mid)/4.*temp2;
 	  
-	    sum_y[index_x]+=(y-y_previous)*0.5*(arg+arg_previous);
+	    sum_y[index_x]+=(y-y_previous)/6.*(arg+4*arg_mid+arg_previous);
 
 	  }
 
@@ -2020,7 +2036,7 @@ int trg_init (
   eta_max = log(pba->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 200; /* to calculate fast */
+  pnl->eta_size = 100; /* to calculate fast */
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
@@ -2622,17 +2638,17 @@ int trg_init (
 
     /* to plot some values, directly on screen in case of divergence and the program does not execute to the end */
 
-    if(index_eta==2 || index_eta==20 || index_eta==30){  for(index_k=0; index_k<pnl->k_size; index_k++){ printf("%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
-									       pnl->k[index_k],
-									       A0[index_k+pnl->k_size*index_eta],A11[index_k+pnl->k_size*index_eta],
-									       A12[index_k+pnl->k_size*index_eta],A13[index_k+pnl->k_size*index_eta],A21[index_k+pnl->k_size*index_eta],
-									       A22[index_k+pnl->k_size*index_eta],A23[index_k+pnl->k_size*index_eta],A3[index_k+pnl->k_size*index_eta],
-									       B0[index_k+pnl->k_size*index_eta],B11[index_k+pnl->k_size*index_eta],
-									       B12[index_k+pnl->k_size*index_eta],B21[index_k+pnl->k_size*index_eta],
-									       B22[index_k+pnl->k_size*index_eta],B3[index_k+pnl->k_size*index_eta],
-									       pnl->pk_nl[index_k+pnl->k_size*index_eta],pnl->p_12_nl[index_k+pnl->k_size*index_eta],
-														pnl->p_22_nl[index_k+pnl->k_size*index_eta]);}
-    }
+    /* if(index_eta==2 || index_eta==20 || index_eta==30){  for(index_k=0; index_k<pnl->k_size; index_k++){ printf("%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", */
+/* 									       pnl->k[index_k], */
+/* 									       A0[index_k+pnl->k_size*index_eta],A11[index_k+pnl->k_size*index_eta], */
+/* 									       A12[index_k+pnl->k_size*index_eta],A13[index_k+pnl->k_size*index_eta],A21[index_k+pnl->k_size*index_eta], */
+/* 									       A22[index_k+pnl->k_size*index_eta],A23[index_k+pnl->k_size*index_eta],A3[index_k+pnl->k_size*index_eta], */
+/* 									       B0[index_k+pnl->k_size*index_eta],B11[index_k+pnl->k_size*index_eta], */
+/* 									       B12[index_k+pnl->k_size*index_eta],B21[index_k+pnl->k_size*index_eta], */
+/* 									       B22[index_k+pnl->k_size*index_eta],B3[index_k+pnl->k_size*index_eta], */
+/* 									       pnl->pk_nl[index_k+pnl->k_size*index_eta],pnl->p_12_nl[index_k+pnl->k_size*index_eta], */
+/* 														pnl->p_22_nl[index_k+pnl->k_size*index_eta]);} */
+/*     } */
     
     
     time_2=time(NULL);
