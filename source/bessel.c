@@ -347,6 +347,8 @@ int bessel_init(
 
   if (abort == _TRUE_) return _FAILURE_;
 
+  if (ppr->bessel_always_recompute == _FALSE_) {
+
   if (pbs->bessels_verbose > 0)
     printf(" -> (over)write in file 'bessels.dat'\n");
 
@@ -373,6 +375,8 @@ int bessel_init(
   }
 
   fclose(bessel_file);
+
+  }
 
   return _SUCCESS_;
 }

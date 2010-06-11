@@ -110,7 +110,7 @@ int precision_init ( struct precision * ppr ) {
 
   ppr->bessel_scalar_x_step=0.1; /* 1. 1.27 optimized 9/09/08 */
   ppr->bessel_scalar_j_cut=1.e-5; /* 8.1e-5 optimized 9/09/08 */
-  ppr->bessel_always_recompute=_FALSE_;
+  ppr->bessel_always_recompute=_TRUE_;
 
   /**
    * - parameter related to the primordial spectra
