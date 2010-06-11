@@ -451,15 +451,17 @@ int input_init(
 
   /** - parameters for output spectra */
 
-  flag1=parser_read_string(pfc,"cls",&string1,errmsg);
-  if (flag1 == _FAILURE_) {
-    pop->cls_ad = "output/cls.dat";
+  if (pop!=NULL) {
+    flag1=parser_read_string(pfc,"cls",&string1,errmsg);
+    if (flag1 == _FAILURE_) {
+      class_alloc(pop->cls_ad,sizeof(char)*(15+1),errmsg);
+      sprintf(pop->cls_ad,"output/cls.dat");
+    } else {
+      class_alloc(pop->cls_ad,sizeof(char)*(strlen(string1)+1),errmsg);
+      strcpy(pop->cls_ad,string1);
+    }
   }
-  else {
-    class_alloc(pop->cls_ad,sizeof(char)*(strlen(string1)+1),errmsg);
-    strcpy(pop->cls_ad,string1);
-  }
-
+  
   flag1=parser_read_double(pfc,"l_scalar_max",&param1,errmsg);
   if (flag1==_FAILURE_) {
     pbs->l_max=2500;
@@ -478,23 +480,27 @@ int input_init(
     ptr->l_tensor_max=param1;
   }
 
-  flag1=parser_read_string(pfc,"pk",&string1,errmsg);
-  if (flag1 == _FAILURE_) {
-    pop->pk = "output/pk.dat";
-  }
-  else {
-    class_alloc(pop->pk,sizeof(char)*(strlen(string1)+1),errmsg);
-    strcpy(pop->pk,string1);
-  }
+  if (pop!=NULL) {
+    flag1=parser_read_string(pfc,"pk",&string1,errmsg);
+    if (flag1 == _FAILURE_) {
+        class_alloc(pop->pk,sizeof(char)*(15+1),errmsg);
+      sprintf(pop->pk,"output/pk.dat");
+    }
+    else {
+      class_alloc(pop->pk,sizeof(char)*(strlen(string1)+1),errmsg);
+      strcpy(pop->pk,string1);
+    }
+  } 
 
   flag1=parser_read_double(pfc,"z_pk",&param1,errmsg);
   if (flag1==_FAILURE_) {
     psp->z_max_pk = 0.;
-    pop->z_pk = 0.;
   }
   else {
     psp->z_max_pk = param1;
-    pop->z_pk = param1;
+  }
+  if (pop!=NULL) {
+    pop->z_pk = psp->z_max_pk;      
   }
 
   /** - amount of information sent to standard output (none if all set to zero) */
@@ -541,11 +547,13 @@ int input_init(
   else
     psp->spectra_verbose = int1;
 
-  flag1=parser_read_int(pfc,"output_verbose",&int1,errmsg);
-  if (flag1==_FAILURE_)
-    pop->output_verbose = 1;
-  else
-    pop->output_verbose = int1;
+  if (pop!=NULL) {
+    flag1=parser_read_int(pfc,"output_verbose",&int1,errmsg);
+    if (flag1==_FAILURE_)
+      pop->output_verbose = 1;
+    else
+      pop->output_verbose = int1;    
+  }
 
 
 /*   pth->thermodynamics_verbose = 1; */
@@ -610,15 +618,19 @@ int input_init_from_code(
   ppm->alpha_s_ad = 0.;
   ppm->k_pivot = 0.05;
 
-  pop->cls_ad = "output/cls.dat";
+  if (pop!=NULL) {
+    class_alloc(pop->cls_ad,sizeof(char)*(15+1),errmsg);
+    sprintf(pop->cls_ad,"output/cls.dat");
+    class_alloc(pop->cls_ad,sizeof(char)*(15+1),errmsg);
+    sprintf(pop->cls_ad,"output/pk.dat");
+    pop->z_pk = 0.;  
+  }
   pbs->l_max=2500;
   ptr->l_scalar_max=2500;
   ptr->l_tensor_max=2500;
 
-  pop->pk = "output/pk.dat";
   psp->z_max_pk = 0.;
-  pop->z_pk = 0.;
-
+  
   pth->thermodynamics_verbose = 0;
   ppt->perturbations_verbose = 0;
   pbs->bessels_verbose = 0;
