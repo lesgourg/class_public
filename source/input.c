@@ -579,6 +579,8 @@ int input_init_from_code(
 			 struct output *pop
 			 ) {
 
+  ErrorMsg errmsg;
+         
   pba->h = 0.7;
   pba->H0 = pba->h * 1.e5 / _c_;
   pth->Tcmb = 2.726;
