@@ -41,7 +41,7 @@ extern "C" {
 			ErrorMsg errmsg
 			);
 
-  int input_init_default(
+  int input_default_params(
 			   struct background *pba,
 			   struct thermo *pth,
 			   struct perturbs *ppt,
@@ -51,17 +51,42 @@ extern "C" {
 			   struct spectra *psp,
 			   struct output *pop);
 
-int input_check_arguments_of_main(
-				  int argc, 
-				  char **argv, 
-				  char * input,
-				  char * precision,
-				  ErrorMsg errmsg);
+  int input_check_arguments_of_main(
+				    int argc, 
+				    char **argv, 
+				    char * input,
+				    char * precision,
+				    ErrorMsg errmsg);
+  
+  int get_machine_precision(double * smallest_allowed_variation);
 
 #ifdef __cplusplus
 }
 #endif
 
 /**************************************************************/
+
+/* macro for opening file and returning error if it failed */
+#define class_read_double(name,destination)				\
+  do {									\
+    flag1=parser_read_double(pfc,name,&param1,errmsg);			\
+    if (flag1 == _SUCCESS_)						\
+      destination = param1;						\
+  } while(0);
+
+
+#define class_read_int(name,destination)				\
+  do {									\
+    flag1=parser_read_int(pfc,name,&int1,errmsg);			\
+    if (flag1 == _SUCCESS_)						\
+      destination = int1;						\
+  } while(0);
+
+#define class_read_string(name,destination)				\
+  do {									\
+    flag1=parser_read_string(pfc,name,&string1,errmsg);			\
+    if (flag1 == _SUCCESS_)						\
+      strcpy(destination,string1);					\
+  } while(0);
 
 #endif

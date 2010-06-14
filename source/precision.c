@@ -140,29 +140,3 @@ int precision_init ( struct precision * ppr ) {
   return _SUCCESS_;
 
 }
-  
-/** 
- * Computes automatically the machine precision. 
- *
- * @param smallest_allowed_variation a pointer to the smallest allowed variation
- *
- * Returns the smallest
- * allowed variation (minimum epsilon * _TOLVAR_)
- */
-int get_machine_precision(double * smallest_allowed_variation) {
-  double one, meps, sum;
-  
-  one = 1.0;
-  meps = 1.0;
-  do {
-    meps /= 2.0;
-    sum = one + meps;
-  } while (sum != one);
-  meps *= 2.0;
-  
-  *smallest_allowed_variation = meps * _TOLVAR_;
-
-  return _SUCCESS_;
-
-}
-

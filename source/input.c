@@ -4,6 +4,12 @@
 
 #include "input.h" 
 
+/* If class is executed in a terminal, use this routine to extract initial parameters 
+   from the arguments of the main.
+   If instead class is embedded into another code, use directly input_init_params() to
+   pass input parameters through a 'file_content' structure.
+ */
+
 int input_init(
 	       int argc, 
 	       char **argv,
@@ -33,20 +39,18 @@ int input_init(
 	       errmsg);
   }
 
-  class_call(input_init_default(pba,
-				pth,
-				ppt,
-				pbs,
-				ptr,
-				ppm,
-				psp,
-				pop),
-	     errmsg,
-	     errmsg);
-
   if (input_file[0]=='\0') {
 
-    printf("read input from code\n");
+    class_call(input_default_params(pba,
+				    pth,
+				    ppt,
+				    pbs,
+				    ptr,
+				    ppm,
+				    psp,
+				    pop),
+	       errmsg,
+	       errmsg);
 
   }
   else {
@@ -91,6 +95,17 @@ int input_init(
   double Omega_tot;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_LINE_LENGTH_MAX_];
+
+  class_call(input_default_params(pba,
+				  pth,
+				  ppt,
+				  pbs,
+				  ptr,
+				  ppm,
+				  psp,
+				  pop),
+	     errmsg,
+	     errmsg);
 
   /* h (dimensionless) and H0 in Mpc^{-1} = h / 2999.7 */
   flag1=parser_read_double(pfc,"H0",&param1,errmsg);
@@ -358,52 +373,29 @@ int input_init(
 
   if (ppm->primordial_spec_type == analytic_Pk) {
 
-    flag1=parser_read_double(pfc,"A_s_ad",&param1,errmsg);
-    if (flag1==_SUCCESS_)
-      ppm->A_s_ad = param1;
+    class_read_double("A_s_ad",ppm->A_s_ad);
 
-    flag1=parser_read_double(pfc,"n_s_ad",&param1,errmsg);
-    if (flag1==_SUCCESS_)
-      ppm->n_s_ad = param1;
+    class_read_double("n_s_ad",ppm->n_s_ad);
 
-    flag1=parser_read_double(pfc,"alpha_s_ad",&param1,errmsg);
-    if (flag1==_SUCCESS_)
-      ppm->alpha_s_ad = param1;
+    class_read_double("alpha_s_ad",ppm->alpha_s_ad);
 
-    flag1=parser_read_double(pfc,"k_pivot",&param1,errmsg);
-    if (flag1==_SUCCESS_)
-      ppm->k_pivot = param1;
+    class_read_double("k_pivot",ppm->k_pivot);
 
   }
 
   /** - parameters for output spectra */
 
-  flag1=parser_read_string(pfc,"cls",&string1,errmsg);
-  if (flag1 == _SUCCESS_) {
-    strcpy(pop->cls_ad,string1);
-  }
-  
-  flag1=parser_read_double(pfc,"l_max",&param1,errmsg);
-  if (flag1==_SUCCESS_) {
-    pbs->l_max=param1;
-    ptr->l_scalar_max=param1;
-    ptr->l_tensor_max=param1;
-  }
+  class_read_string("cls",pop->cls_ad);
 
-  flag1=parser_read_string(pfc,"pk",&string1,errmsg);
-  if (flag1 == _SUCCESS_) {
-    strcpy(pop->pk,string1);
-  }
+  class_read_double("l_max",pbs->l_max);
+  ptr->l_scalar_max=pbs->l_max;
+  ptr->l_tensor_max=pbs->l_max;
 
-  flag1=parser_read_double(pfc,"z_pk",&param1,errmsg);
-  if (flag1==_SUCCESS_) {
-    pop->z_pk = param1;
-  }
+  class_read_string("pk",pop->pk);
 
-  flag1=parser_read_double(pfc,"P_k_max",&param1,errmsg);
-  if (flag1==_SUCCESS_) {
-    ppt->k_scalar_kmax_for_pk = param1;
-  }
+  class_read_double("z_pk",pop->z_pk);
+
+  class_read_double("P_k_max",ppt->k_scalar_kmax_for_pk);
 
   flag1=parser_read_double(pfc,"z_max_pk",&param1,errmsg);
   if (flag1==_SUCCESS_) {
@@ -415,49 +407,35 @@ int input_init(
 
   /** - amount of information sent to standard output (none if all set to zero) */
 
-  flag1=parser_read_int(pfc,"background_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    pba->background_verbose = 1;
-  else
-    pba->background_verbose = int1;
+  class_read_int("background_verbose",
+		 pba->background_verbose);
 
-  flag1=parser_read_int(pfc,"thermodynamics_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    pth->thermodynamics_verbose = 1;
-  else
-    pth->thermodynamics_verbose = int1;
+  class_read_int("thermodynamics_verbose",
+		 pth->thermodynamics_verbose);
 
-  flag1=parser_read_int(pfc,"perturbations_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    ppt->perturbations_verbose = 1;
-  else
-    ppt->perturbations_verbose = int1;
+  class_read_int("perturbations_verbose",
+		 ppt->perturbations_verbose);
 
-  flag1=parser_read_int(pfc,"bessels_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    pbs->bessels_verbose = int1;
+  class_read_int("bessels_verbose",
+		 pbs->bessels_verbose);
 
-  flag1=parser_read_int(pfc,"transfer_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    ptr->transfer_verbose = int1;
+  class_read_int("transfer_verbose",
+		 ptr->transfer_verbose);
 
-  flag1=parser_read_int(pfc,"primordial_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    ppm->primordial_verbose = int1;
+  class_read_int("primordial_verbose",
+		 ppm->primordial_verbose);
 
-  flag1=parser_read_int(pfc,"spectra_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    psp->spectra_verbose = int1;
+  class_read_int("spectra_verbose",
+		 psp->spectra_verbose);
 
-  flag1=parser_read_int(pfc,"output_verbose",&int1,errmsg);
-  if (flag1==_SUCCESS_)
-    pop->output_verbose = int1;    
+  class_read_int("output_verbose",
+		 pop->output_verbose);
 
   return _SUCCESS_;
 
 }
 
-int input_init_default(
+int input_default_params(
 			 struct background *pba,
 			 struct thermo *pth,
 			 struct perturbs *ppt,
@@ -564,6 +542,31 @@ int input_check_arguments_of_main(
       strcpy(precision,argv[i]);
     }
   }
+
+  return _SUCCESS_;
+
+}
+
+/** 
+ * Computes automatically the machine precision. 
+ *
+ * @param smallest_allowed_variation a pointer to the smallest allowed variation
+ *
+ * Returns the smallest
+ * allowed variation (minimum epsilon * _TOLVAR_)
+ */
+int get_machine_precision(double * smallest_allowed_variation) {
+  double one, meps, sum;
+  
+  one = 1.0;
+  meps = 1.0;
+  do {
+    meps /= 2.0;
+    sum = one + meps;
+  } while (sum != one);
+  meps *= 2.0;
+  
+  *smallest_allowed_variation = meps * _TOLVAR_;
 
   return _SUCCESS_;
 

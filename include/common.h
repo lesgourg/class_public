@@ -22,6 +22,8 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
 
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
+#define _TOLVAR_ 100. /**< The minimum allowed variation is the machine precision times this number */
+
 #define min(a,b) (((a)<(b)) ? (a) : (b) ) /**< the usual "min" function */
 #define max(a,b) (((a)<(b)) ? (b) : (a) ) /**< the usual "max" function */
 

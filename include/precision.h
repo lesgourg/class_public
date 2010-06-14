@@ -5,8 +5,6 @@
 
 #include "common.h"
 
-#define _TOLVAR_ 100. /**< The minimum allowed variation is the machine precision times this number */ 
-
 /** 
  * List of methods for stopping the transfer function computation 
  * at a given k for each l (saves lots of time). 
@@ -27,6 +25,7 @@ enum possible_gauges {
   newtonian, /**< newtonian (or longitudinal) gauge */
   synchronous /**< synchronous gauge with \f$ \theta_{cdm} = 0 \f$ by convention */
 };
+
 
 /**
  * All precision parameters. 
@@ -248,8 +247,6 @@ struct precision
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-  int get_machine_precision(double * smallest_allowed_variation);
 
   int precision_init (struct precision * ppp);
 
