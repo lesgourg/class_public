@@ -13,7 +13,7 @@
 #include "output.h"
 #include "trg.h"
 
-main() {
+main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -25,18 +25,15 @@ main() {
   struct output op;
   struct spectra sp;          /* for output spectra */
   struct spectra_nl nl; 
+
+  ErrorMsg errmsg;
+
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+    return _FAILURE_;
+  }
  
-  if (precision_init(&pr) == _FAILURE_) {
-    printf("\n\nError running precision_init \n=>%s\n",pr.error_message); 
-    return _FAILURE_;
-  }
-
-  if (input_init(&ba,&th,&pt,&bs,&tr,&pm,&sp,&op) == _FAILURE_) {
-    printf("\n\nError running input_init"); 
-    return _FAILURE_;
-  }
-
-  pr.k_scalar_kmax_for_pk=200.;
+  pt.k_scalar_kmax_for_pk=200.;
   pr.k_scalar_k_per_decade_for_pk=10.;
 
   pt.has_cl_cmb_temperature = _FALSE_;
