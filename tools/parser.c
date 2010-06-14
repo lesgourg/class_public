@@ -51,9 +51,13 @@ int parser_read_file(
 int parser_free(
 		struct file_content * pfc
 		) {
-  free(pfc->filename);
-  free(pfc->name);
-  free(pfc->value);
+
+  if (pfc->size > 0) {
+    free(pfc->name);
+    free(pfc->value);
+  }
+
+  return _SUCCESS_;
 }
 
 int parser_read_line(
@@ -225,3 +229,37 @@ int parser_read_string(
 
 }
 
+int parser_cat(
+	       struct file_content * pfc1,
+	       struct file_content * pfc2,
+	       struct file_content * pfc3,
+	       ErrorMsg errmsg
+	       ) {
+
+  int i;
+
+  class_test(pfc1->size < 0.,
+	     errmsg,
+	     "size of file_content structure probably not initialized properly\n");
+
+  class_test(pfc2->size < 0.,
+	     errmsg,
+	     "size of file_content structure probably not initialized properly\n");
+
+  pfc3->size = pfc1->size + pfc2->size;
+  class_alloc(pfc3->value,pfc3->size*sizeof(FileArg),errmsg);
+  class_alloc(pfc3->name,pfc3->size*sizeof(FileArg),errmsg);
+
+  for (i=0; i < pfc1->size; i++) {
+    strcpy(pfc3->value[i],pfc1->value[i]);
+    strcpy(pfc3->name[i],pfc1->name[i]);
+  }
+
+  for (i=0; i < pfc2->size; i++) {
+    strcpy(pfc3->value[i+pfc1->size],pfc2->value[i]);
+    strcpy(pfc3->name[i+pfc1->size],pfc2->name[i]);
+  }
+  
+  return _SUCCESS_;
+
+}

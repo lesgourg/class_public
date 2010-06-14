@@ -64,6 +64,13 @@ int parser_read_string(
 		       ErrorMsg errmsg
 		       );
 
+int parser_cat(
+	       struct file_content * pfc1,
+	       struct file_content * pfc2,
+	       struct file_content * pfc3,
+	       ErrorMsg errmsg
+	       );
+
 #ifdef __cplusplus
 }
 #endif

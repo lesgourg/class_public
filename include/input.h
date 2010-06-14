@@ -3,68 +3,16 @@
 #ifndef __INPUT__
 #define __INPUT__
 
-#include "class.h"
-
-/**************************************************************/
-
-/*
- * Boilerplate for C++ 
- */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-  int input_init(
-		 int argc, 
-		 char **argv,
-		 struct background *pba,
-		 struct thermo *pth,
-		 struct perturbs *ppt,
-		 struct bessels *pbs,
-		 struct transfers *ptr,
-		 struct primordial *ppm,
-		 struct spectra *psp,
-		 struct output *pop,
-		 ErrorMsg errmsg
-		 );
-
-  int input_init_params(
-			struct file_content * pfc,
-			struct background *pba,
-			struct thermo *pth,
-			struct perturbs *ppt,
-			struct bessels * pbs,
-			struct transfers *ptr,
-			struct primordial *ppm,
-			struct spectra *psp,
-			struct output *pop,
-			ErrorMsg errmsg
-			);
-
-  int input_default_params(
-			   struct background *pba,
-			   struct thermo *pth,
-			   struct perturbs *ppt,
-			   struct bessels * pbs,
-			   struct transfers *ptr,
-			   struct primordial *ppm,
-			   struct spectra *psp,
-			   struct output *pop);
-
-  int input_check_arguments_of_main(
-				    int argc, 
-				    char **argv, 
-				    char * input,
-				    char * precision,
-				    ErrorMsg errmsg);
-  
-  int get_machine_precision(double * smallest_allowed_variation);
-
-#ifdef __cplusplus
-}
-#endif
-
-/**************************************************************/
+#include "common.h"
+#include "parser.h"
+#include "background.h"
+#include "thermodynamics.h"
+#include "perturbations.h"
+#include "bessel.h"
+#include "transfer.h"
+#include "primordial.h"
+#include "spectra.h"
+#include "output.h"
 
 /* macro for opening file and returning error if it failed */
 #define class_read_double(name,destination)				\
@@ -88,5 +36,67 @@ extern "C" {
     if (flag1 == _SUCCESS_)						\
       strcpy(destination,string1);					\
   } while(0);
+
+
+/**************************************************************/
+
+/*
+ * Boilerplate for C++ 
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+  int input_init_from_arguments(
+		 int argc, 
+		 char **argv,
+		 struct precision * ppr,
+		 struct background *pba,
+		 struct thermo *pth,
+		 struct perturbs *ppt,
+		 struct bessels *pbs,
+		 struct transfers *ptr,
+		 struct primordial *ppm,
+		 struct spectra *psp,
+		 struct output *pop,
+		 ErrorMsg errmsg
+		 );
+
+  int input_init(
+		 struct file_content * pfc,
+		 struct precision * ppr,
+		 struct background *pba,
+		 struct thermo *pth,
+		 struct perturbs *ppt,
+		 struct bessels * pbs,
+		 struct transfers *ptr,
+		 struct primordial *ppm,
+		 struct spectra *psp,
+		 struct output *pop,
+		 ErrorMsg errmsg
+		 );
+
+  int input_default_params(
+			   struct background *pba,
+			   struct thermo *pth,
+			   struct perturbs *ppt,
+			   struct bessels * pbs,
+			   struct transfers *ptr,
+			   struct primordial *ppm,
+			   struct spectra *psp,
+			   struct output *pop
+			   );
+  
+  int input_default_precision(
+			      struct precision * ppp
+			      );
+
+  int get_machine_precision(double * smallest_allowed_variation);
+
+#ifdef __cplusplus
+}
+#endif
+
+/**************************************************************/
 
 #endif

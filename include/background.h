@@ -3,7 +3,7 @@
 #ifndef __BACKGROUND__
 #define __BACKGROUND__
 
-#include "precision.h"
+#include "common.h"
 #include "growTable.h"
 #include "tools_arrays.h"
 #include "dei_rkck.h"
