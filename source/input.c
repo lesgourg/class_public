@@ -591,7 +591,10 @@ int input_default_params(
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm;
   pba->Omega0_de = 0.;     
   pba->a_today = 1.;       
+  pba->w_de=-1.;
+  pba->cs2_de=1.;
 
+  /* pth->Tcmb already fixed above */
   pth->YHe=0.25;            
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
@@ -657,7 +660,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to the background
    */
 
-  ppr->a_ini_over_a_today_default = 1.e-9;  /* 1.e-7 unless needs large k_max in P(k) */
+  ppr->a_ini_over_a_today_default = 1.e-13;  /* 1.e-7 unless needs large k_max in P(k) */
   ppr->back_integration_stepsize = 2.e-2;   /* 0.02 */
   ppr->tol_background_integration = 1.e-3;  /* 0.002 */
 

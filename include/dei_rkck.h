@@ -83,7 +83,7 @@ extern "C" {
 
 #define dsign(a,b) ( (b) > 0. ? (a) : (-(a)) )
 
-#define _MAXSTP_ 10000
+#define _MAXSTP_ 100000
 #define _TINY_ 1.0e-30
 #define _SAFETY_ 0.9
 #define _PGROW_ -0.2

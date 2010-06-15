@@ -253,6 +253,7 @@ int trg_A_arg(
 			   gamma2_mkp*p_22k*p_22p )
       + gamma1_kmp *( gamma2_kmp*p_22m*p_22p + gamma2_mpk*p_22p*p_22k + 
 		      gamma2_pkm*p_22k*p_22m );
+
     return _SUCCESS_;
     break;
 
@@ -410,6 +411,7 @@ int trg_A_arg(
 			   gamma1_mkp*p_22k*p_12p + gamma1_mpk*p_12k*p_22p)
       + gamma1_kmp *( gamma2_kmp*p_22m*p_12p + gamma2_mpk*p_12p*p_22k +
 		      gamma1_pkm*p_22k*p_12m + gamma1_pmk*p_12k*p_22m);
+
     return _SUCCESS_;
     break;
 
@@ -1045,6 +1047,10 @@ int trg_A_arg_one_loop(
 			   gamma2_mkp*p_22k*p_22p )
       + gamma1_kmp *( gamma2_kmp*p_22m*p_22p + gamma2_mpk*p_22p*p_22k + 
 		      gamma2_pkm*p_22k*p_22m );
+
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result),0.,0.,0.,0.,0.,0.,0.);
+
     return _SUCCESS_;
     break;
 
@@ -1094,6 +1100,10 @@ int trg_A_arg_one_loop(
 			   gamma2_pmk*p_22m*p_12k + gamma2_mkp*p_12k*p_22p)
       + gamma1_kmp *( gamma1_kmp*p_22m*p_12p + gamma1_kpm*p_12m*p_22p + 
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
+
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),0.,p*m*(*result),0.,0.,0.,0.,0.,0.);
+
     return _SUCCESS_;
     break;
 
@@ -1147,6 +1157,10 @@ int trg_A_arg_one_loop(
 			   gamma1_pkm*p_12m*p_22k + gamma2_mkp*p_22k*p_12p)
       + gamma1_kmp *( gamma2_kmp*p_12m*p_22p + gamma1_mpk*p_22p*p_12k +
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
+
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),0.,0.,p*m*(*result),0.,0.,0.,0.,0.);
+
     return _SUCCESS_;
     break;
 
@@ -1202,6 +1216,10 @@ int trg_A_arg_one_loop(
 			   gamma1_mkp*p_22k*p_12p + gamma1_mpk*p_12k*p_22p)
       + gamma1_kmp *( gamma2_kmp*p_22m*p_12p + gamma2_mpk*p_12p*p_22k +
 		      gamma1_pkm*p_22k*p_12m + gamma1_pmk*p_12k*p_22m);
+
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),0.,0.,0.,p*m*(*result),0.,0.,0.,0.);
+
     return _SUCCESS_;
     break;
 
@@ -1255,6 +1273,10 @@ int trg_A_arg_one_loop(
       + gamma1_kmp *( gamma2_kmp*p_12m*p_12p + gamma1_mpk*p_12p*p_12k +
 		      gamma1_mkp*p_11p*p_22k + gamma1_pkm*p_22k*p_11m +
 		      gamma1_pmk*p_12k*p_12m);
+
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),0.,0.,0.,0.,p*m*(*result),0.,0.,0.);
+
     return _SUCCESS_;
     break;
 
@@ -1314,10 +1336,8 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_12p*p_12k + gamma1_pkm*p_12k*p_12m +
 		      gamma1_pmk*p_11k*p_22m);
 
-    /* if (index_k==103) */
-    if (index_k==30 || index_k==pnl->k_size-1)
-       printf("%e %e %e %e %e %e\n",k,p,m,(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result)); 
-    
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),0.,0.,0.,0.,0.,p*m*(*result),0.,0.);
 
     return _SUCCESS_;
     break;
@@ -1378,6 +1398,9 @@ int trg_A_arg_one_loop(
 		      gamma1_mpk*p_22p*p_11k + gamma1_mkp*p_12p*p_12k +
 		      gamma2_pkm*p_12k*p_12m);
 
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),0.,0.,0.,0.,0.,0.,p*m*(*result),0.);
+
     return _SUCCESS_;
     break;
 
@@ -1418,6 +1441,9 @@ int trg_A_arg_one_loop(
 				       gamma1_kpm*p_12p*p_11m + gamma1_kmp*p_11p*p_12m +
 				       gamma1_pmk*p_12m*p_11k + gamma1_pkm*p_11m*p_12k +
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
+
+    if ((k > 5.) && (k < 5.1)) 
+      printf("%e %e %e %e %e %e %e %e %e %e\n",(p+m)/sqrt(2.),(p-m)/sqrt(2.),0.,0.,0.,0.,0.,0.,0.,p*m*(*result));
 
     return _SUCCESS_;
     break;
@@ -2363,6 +2389,8 @@ int trg_init (
 	       pnl->error_message);
   }
 
+  /* plotting */
+
   class_open(nl_spectra,"output/nl_ini.dat","wr",pnl->error_message);
 
   for(index_k=0; index_k<pnl->k_size; index_k++){ fprintf(nl_spectra,
@@ -2379,6 +2407,7 @@ int trg_init (
   
   fclose(nl_spectra);
 
+  return _SUCCESS_;
 
   /********************
    * Now we calculate the time evolution with a very simple integrator

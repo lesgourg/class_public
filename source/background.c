@@ -344,6 +344,10 @@ int background_init(
     pba->error_message,
     "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
 
+  class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
+	     pba->error_message,
+	     "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
+
   /* curvature */
   Omega0_tot = pba->Omega0_g + pba->Omega0_b;
   if (pba->has_cdm == _TRUE_) {

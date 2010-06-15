@@ -197,6 +197,13 @@ int thermodynamics_init(
 	     pth->error_message,
 	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pth->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
 
+  class_test(fabs(pba->Omega0_g/((4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_))-1.) > ppr->smallest_allowed_variation,
+	     pth->error_message,
+	     "inconsistency between photon temperature and density (fixed by stefan-Boltzmann law): you have Tcmb=%f K, but Omega0_g=%e and omega0_g=%e",
+	     pth->Tcmb,
+	     pba->Omega0_g,
+	     pba->Omega0_g*pba->h*pba->h);
+
   /* Y_He */
   class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
 	     pth->error_message,
