@@ -197,4 +197,6 @@ extern "C" {
 
 /**** below some define commands ***/
 
+#define _STOP_INT_ 1.e-3
+
 #endif
