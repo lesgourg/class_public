@@ -1414,7 +1414,7 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2.;
 
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
+/*     printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1922,7 +1922,7 @@ int trg_integrate_xy_at_eta(
 
   double * partial_sum;
   double * partial_area;
-  double sum,area;
+  double sum,area,max;
   double increment_sum,increment_area;
 
   double local_average_value,previous_average_value,total_average_value;
@@ -1945,8 +1945,8 @@ int trg_integrate_xy_at_eta(
   k_min=pnl->k[0];
   k_max=pnl->k[pnl->k_size-1];
 
-    for(index_k=0; index_k<pnl->k_size; index_k++){
-  /* for(index_k=pnl->k_size-1; index_k<pnl->k_size; index_k++){ */
+  for(index_k=0; index_k<pnl->k_size; index_k++){
+  /* for(index_k=50; index_k<51; index_k++){ */
 
     k=pnl->k[index_k];
 
@@ -2071,6 +2071,7 @@ int trg_integrate_xy_at_eta(
 
     sum = 0.;
     area = 0.;
+    max = 0.;
 
     /********************* loop over L-shaped regions **********************/
 
@@ -2176,10 +2177,11 @@ int trg_integrate_xy_at_eta(
 	partial_sum[il] += increment_sum;
 	partial_area[il] += increment_area;
 
-	if (fabs(increment_sum/increment_area/(partial_sum[il]/partial_area[il])) < _STOP_INT_) {
-	  index_stop = index_x+1; /* will remember where we stoped */
-	  index_x = y_size-1;     /* to exit this loop */
-	}
+	/* if (fabs(increment_sum/increment_area/((sum+partial_sum[il])/(area+partial_area[il]))) < _STOP_INT_) { */
+	/* if (fabs(increment_sum/increment_area/(sum+partial_sum[il])) < _STOP_INT_) { */
+/* 	  index_stop = index_x+1; /\* will remember where we stoped *\/ */
+/* 	  index_x = y_size-1;     /\* to exit this loop *\/ */
+/* 	} */
 
       }
 
@@ -2230,41 +2232,51 @@ int trg_integrate_xy_at_eta(
 	  partial_sum[il] += increment_sum;
 	  partial_area[il] += increment_area;
 
-	  if (fabs(increment_sum/increment_area/(partial_sum[il]/partial_area[il])) < _STOP_INT_) {
-	    index_stop = index_x+1; /* will remember where we stoped */
-	    index_x = x_size;     /* to exit this loop */
-	  }
+	  /* if (fabs(increment_sum/increment_area/((sum+partial_sum[il])/(area+partial_area[il]))) < _STOP_INT_) { */
+	  /* if (fabs(increment_sum/(sum+partial_sum[il])) < _STOP_INT_) { */
+/* 	    index_stop = index_x+1; /\* will remember where we stoped *\/ */
+/* 	    index_x = x_size;     /\* to exit this loop *\/ */
+/* 	  } */
 
 	}
       }
 
       /*************** for non-computed points fill new line/column with zeros **********/
 
-      for (index_x = index_stop+1; index_x < x_size; index_x++)
-	h_do[index_x] = 0.;
+      /* for (index_x = index_stop+1; index_x < x_size; index_x++) */
+/* 	h_do[index_x] = 0.; */
       
-      for (index_y = index_stop+1; index_y < y_size; index_y++)
-	v_ri[index_y] = 0.;
+/*       for (index_y = index_stop+1; index_y < y_size; index_y++) */
+/* 	v_ri[index_y] = 0.; */
       
       /* update the total sum with the new L-shaped region */
 
       sum += partial_sum[il];
       area += partial_area[il];
 	
-      if (il > 0) {
+      /* if (il > 0) { */
 
-	local_average_value = partial_sum[il]/partial_area[il];
-	previous_average_value = partial_sum[il-1]/partial_area[il-1];
-	total_average_value = sum/area;
+/* 	local_average_value = partial_sum[il]/partial_area[il]; */
+/* 	previous_average_value = partial_sum[il-1]/partial_area[il-1]; */
+/* 	total_average_value = sum/area; */
 
-	if (fabs(local_average_value/total_average_value) < _STOP_INT_)
-	  /* 	if ((fabs(local_average_value/total_average_value) < _STOP_INT_) && */
-	  /* 	    (fabs((local_average_value- previous_average_value) */
-	  /* 		  /(xx[il]-xx[il-1])/total_average_value) < _STOP_INT_)) */
-	  il=y_size-1;
+/* 	/\* if (fabs(local_average_value/total_average_value) < _STOP_INT_) *\/ */
+
+/* 	/\* if (fabs(local_average_value/total_average_value) < 1e-2/\\*_STOP_INT_*\\/) *\/ */
+/* /\* 	  /\\* 	if ((fabs(local_average_value/total_average_value) < _STOP_INT_) && *\\/ *\/ */
+/* /\* 	  /\\* 	    (fabs((local_average_value- previous_average_value) *\\/ *\/ */
+/* /\* 	  /\\* 		  /(xx[il]-xx[il-1])/total_average_value) < _STOP_INT_)) *\\/ *\/ */
+/* /\* 	  il=y_size-1; *\/ */
 	
-      }
+/* 	/\******** new stopping scheme *******\/ */
 
+/* 	/\* if(fabs(partial_sum[il])>max) *\/ */
+/* /\* 	  max=fabs(partial_sum[il]); *\/ */
+	
+/* /\* 	if(fabs((partial_sum[il]-partial_sum[il-1])/(xx[il]-xx[il-1])) < _STOP_INT_ && *\/ */
+/* /\* 	   fabs(partial_sum[il]/max) < _STOP_INT_) *\/ */
+/* /\* 	  il=y_size-1; *\/ */
+/*       } */
     }
 
     /*       printf("finished index_k=%d, name=%d\n",index_k,(int)name);  */
@@ -2355,7 +2367,7 @@ int trg_init (
 
   double * pvecback_nl;
 
-  pnl->spectra_nl_verbose=1;
+  pnl->spectra_nl_verbose=0;
   pnl->mode=1; /* 0 is linear evolution, 1 one loop and 2 full trg */
 
   if (pnl->spectra_nl_verbose > 0)
@@ -2692,80 +2704,80 @@ int trg_init (
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*     printf("\n\n"); */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A11_,0,A11,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A12_,0,A12,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
     
 
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A13_,0,A13,pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A21_,0,A21,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A22_,0,A22,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A23_,0,A23,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A3_,0,A3,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B0_,0,B0,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B11_,0,B11,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B12_,0,B12,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
 
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B21_,0,B21,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
     
-    /* printf("\n\n"); */
+     printf("\n\n"); 
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B22_,0,B22,pnl->error_message),
       	       pnl->error_message,
       	       pnl->error_message);
 
-    /* printf("\n\n"); */
+/*      printf("\n\n");  */
 
     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B3_,0,B3,pnl->error_message),
       	       pnl->error_message,

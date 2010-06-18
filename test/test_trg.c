@@ -33,7 +33,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
  
-  pt.k_scalar_kmax_for_pk=30.;
+  pt.k_scalar_kmax_for_pk=100.;
   pr.k_scalar_k_per_decade_for_pk=10.;
 
   pt.has_cl_cmb_temperature = _FALSE_;
