@@ -15,6 +15,9 @@
 #include "spectra.h"
 #include "trg.h"
 #include "time.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 /* if possible, no other global variable here */
 
@@ -2351,6 +2354,8 @@ int trg_init (
   double * temp_k;
   double temp; 
   
+  int index_name,name_size;
+  double ** AA;
 
   /*
     Variables of calculation, k and eta, and initialization
@@ -2379,13 +2384,25 @@ int trg_init (
 					 replace the Bispectra
 					 variables*/
 
-  double *A0,*A11,*A12,*A13,*A21,*A22,*A23,*A3;
-  double *B0,*B11,*B12,*B21,*B22,*B3; /* Definition of the variables
+/*   double *A0,*A11,*A12,*A13,*A21,*A22,*A23,*A3; */
+/*   double *B0,*B11,*B12,*B21,*B22,*B3; */ /* Definition of the variables
 					 Aijk,lmn */
 
   double * pvecback_nl;
 
-  pnl->spectra_nl_verbose=0;
+  /* This code can be optionally compiled with the openmp option for parallel computation.
+     Inside parallel regions, the use of the command "return" is forbidden.
+     For error management, instead of "return _FAILURE_", we will set the variable below
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
+     parallel region. */
+  int abort;
+
+#ifdef _OPENMP
+  /* instrumentation times */
+  double tstart, tstop;
+#endif
+
+  pnl->spectra_nl_verbose=2;
   pnl->mode=1; /* 0 is linear evolution, 1 one loop and 2 full trg */
 
   if (pnl->spectra_nl_verbose > 0)
@@ -2464,7 +2481,6 @@ int trg_init (
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
     pnl->k[index_k]=temp_k[index_k];
-    printf("index k %d and k %e %e\n",index_k,pnl->k[index_k],k_max);
     if( (pnl->k[index_k] > k_L*pba->h) && temp==0){
       pnl->index_k_L=index_k;
       temp++;
@@ -2477,8 +2493,7 @@ int trg_init (
   }
   /* pnl->k[pnl->k_size-1]=k_max; */
   free(temp_k);
-  printf("%d et %e et %e\n",pnl->k_size,k_max,pnl->k[pnl->k_size-1]);
-
+ 
   /* fill array of eta values, and pick two values z_1 and z_2
      resp. near 2.33 and 1.00 (for output) */
 
@@ -2665,21 +2680,27 @@ int trg_init (
      the 1's and 2's, and initialization with pk_nl, p_12,
      p_22. Convention is taken for A_121,any = A any and A_222,any = B any */
 
-  class_calloc(A0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(A11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(A12,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(A13,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(A21,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(A22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(A23,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(A3 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+/*   class_calloc(A0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(A11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(A12,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(A13,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(A21,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(A22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(A23,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(A3 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
 
-  class_calloc(B0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(B11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(B12,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(B21,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(B22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(B3 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+/*   class_calloc(B0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(B11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(B12,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(B21,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(B22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+/*   class_calloc(B3 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); */
+
+  name_size = _B3_+1;
+  class_calloc(AA,name_size,sizeof(double*),pnl->error_message);
+  for (index_name=0; index_name<name_size; index_name++) 
+    class_calloc(AA[index_name],pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+
 
   /********************
    *
@@ -2740,126 +2761,125 @@ int trg_init (
   
   if(pnl->mode > 0){
 
-    time_1=time(NULL);
+    /* initialize error management flag */
+    abort = _FALSE_;
 
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A0_,0,A0,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
+    /*** beginning of parallel region ***/
 
-    time_2=time(NULL);
-    printf("elapsed time after A0 : %2.f s\n",difftime(time_2, time_1));
-
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A11_,0,A11,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
+#pragma omp parallel							\
+  shared(name_size,abort,pba,ppm,psp,pnl,AA)				\
+  private(tstart,index_name,tstop)
     
-    time_2=time(NULL);
-    printf("elapsed time after A11 : %2.f s\n",difftime(time_2, time_1));
-      
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A12_,0,A12,pnl->error_message),
-	       pnl->error_message,
-	       pnl->error_message);
+    {
+
+#ifdef _OPENMP
+      tstart = omp_get_wtime();
+#endif
+
+#pragma omp for schedule (dynamic)
+      for (index_name=0; index_name<name_size; index_name++) {
+
+#pragma omp flush(abort)
+
+	class_call_parallel(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,index_name,0,AA[index_name],pnl->error_message),
+			    pnl->error_message,
+			    pnl->error_message);
+      }
+
+#ifdef _OPENMP
+	tstop = omp_get_wtime();
+	if (pnl->spectra_nl_verbose > 1)
+	  printf("In %s: time spent in parallel region (loop over names) = %e s for thread %d\n",
+		 __func__,tstop-tstart,omp_get_thread_num());
+#endif
+
+    } /* end of parallel region */
+
+    if (abort == _TRUE_) return _FAILURE_;
+
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A0_,0,A0,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
+
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A11_,0,A11,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
     
-    time_2=time(NULL);
-    printf("elapsed time after A12 : %2.f s\n",difftime(time_2, time_1));
- 
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A13_,0,A13,pnl->error_message),
-	       pnl->error_message,
-	       pnl->error_message);
-
-    time_2=time(NULL);
-    printf("elapsed time after A13 : %2.f s\n",difftime(time_2, time_1));
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A12_,0,A12,pnl->error_message), */
+/* 	       pnl->error_message, */
+/* 	       pnl->error_message); */
     
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A21_,0,A21,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A13_,0,A13,pnl->error_message), */
+/* 	       pnl->error_message, */
+/* 	       pnl->error_message); */
 
-    time_2=time(NULL);
-    printf("elapsed time after A21 : %2.f s\n",difftime(time_2, time_1));
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A21_,0,A21,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
+
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A22_,0,A22,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
+
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A23_,0,A23,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
+
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A3_,0,A3,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
+
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B0_,0,B0,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
+
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B11_,0,B11,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
     
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A22_,0,A22,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B12_,0,B12,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
 
-    time_2=time(NULL);
-    printf("elapsed time after A22 : %2.f s\n",difftime(time_2, time_1));
-    
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A23_,0,A23,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B21_,0,B21,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
 
-    time_2=time(NULL);
-    printf("elapsed time after A23 : %2.f s\n",difftime(time_2, time_1));
-    
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A3_,0,A3,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B22_,0,B22,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
 
-    time_2=time(NULL);
-    printf("elapsed time after A3 : %2.f s\n",difftime(time_2, time_1));
-    
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B0_,0,B0,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
+/*     class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B3_,0,B3,pnl->error_message), */
+/*       	       pnl->error_message, */
+/*       	       pnl->error_message); */
 
-    time_2=time(NULL);
-    printf("elapsed time after B0 : %2.f s\n",difftime(time_2, time_1));
-    
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B11_,0,B11,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
-    
-    time_2=time(NULL);
-    printf("elapsed time after B11 : %2.f s\n",difftime(time_2, time_1));
-
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B12_,0,B12,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
-
-    time_2=time(NULL);
-    printf("elapsed time after B12 : %2.f s\n",difftime(time_2, time_1));
-
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B21_,0,B21,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
-
-    time_2=time(NULL);
-    printf("elapsed time after B21 : %2.f s\n",difftime(time_2, time_1));
-    
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B22_,0,B22,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
-
-    time_2=time(NULL);
-    printf("elapsed time after B22 : %2.f s\n",difftime(time_2, time_1));
-
-    class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B3_,0,B3,pnl->error_message),
-      	       pnl->error_message,
-      	       pnl->error_message);
-
-    time_2=time(NULL);
-    
-     printf("elapsed time after initialisation : %2.f s\n",difftime(time_2, time_1));
-       
   }
 
   class_open(nl_spectra,"output/nl_ini.dat","wr",pnl->error_message);
 
-  for(index_k=0; index_k<pnl->k_size; index_k++){ fprintf(nl_spectra,
-							  "%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
-							  pnl->k[index_k],
-							  A0[index_k],A11[index_k],
-							  A12[index_k],A13[index_k],A21[index_k],
-							  A22[index_k],A23[index_k],A3[index_k],
-							  B0[index_k],B11[index_k],
-							  B12[index_k],B21[index_k],
-							  B22[index_k],B3[index_k],
-							  pnl->pk_nl[index_k],pnl->p_12_nl[index_k],
-							  pnl->p_22_nl[index_k]);}
+/*   for(index_k=0; index_k<pnl->k_size; index_k++){ fprintf(nl_spectra, */
+/* 							  "%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", */
+/* 							  pnl->k[index_k], */
+/* 							  A0[index_k],A11[index_k], */
+/* 							  A12[index_k],A13[index_k],A21[index_k], */
+/* 							  A22[index_k],A23[index_k],A3[index_k], */
+/* 							  B0[index_k],B11[index_k], */
+/* 							  B12[index_k],B21[index_k], */
+/* 							  B22[index_k],B3[index_k], */
+/* 							  pnl->pk_nl[index_k],pnl->p_12_nl[index_k], */
+/* 							  pnl->p_22_nl[index_k]);} */
+
+  for(index_k=0; index_k<pnl->k_size; index_k++){ 
+    fprintf(nl_spectra,"%e ",pnl->k[index_k]);
+    for (index_name=0; index_name<name_size; index_name++)
+      fprintf(nl_spectra,"%e ",AA[index_name][index_k]);
+    fprintf(nl_spectra,"%e %e %e\n",
+	    pnl->pk_nl[index_k],
+	    pnl->p_12_nl[index_k],
+	    pnl->p_22_nl[index_k]);
+  }
   
   fclose(nl_spectra);
-
-  return _SUCCESS_; 
 
 
   /********************
@@ -2911,95 +2931,95 @@ int trg_init (
       a0[index_plus]         = eta_step *(
 					  -Omega_21[index_eta-1]*(a11[index]+a12[index]+a13[index])
 					  -3*Omega_22[index_eta-1]*a0[index]
-					  +2*exp_eta*A0[index])
+					  +2*exp_eta*AA[_A0_][index])
 	+ a0[index];
 
       a11[index_plus]        = eta_step *(
 					  -a11[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index_eta-1]*(a22[index]+a23[index])
-					  +2*exp_eta*A11[index])
+					  +2*exp_eta*AA[_A11_][index])
 	+ a11[index];
 
       a12[index_plus]        = eta_step *(
 					  -a12[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_21[index_eta-1]*(a23[index]+a21[index])
 					  -Omega_12*a0[index]
-					  +2*exp_eta*A12[index])
+					  +2*exp_eta*AA[_A12_][index])
 	+ a12[index];
 
       a13[index_plus]        = eta_step *(
 					  -a13[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index_eta-1]*(a22[index]+a21[index])
-					  +2*exp_eta*A13[index])
+					  +2*exp_eta*AA[_A13_][index])
 	+ a13[index];
 
       a21[index_plus]        = eta_step *(
 					  -a21[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(a12[index]+a13[index])
 					  -Omega_21[index_eta-1]*a3[index]
-					  +2*exp_eta*A21[index])
+					  +2*exp_eta*AA[_A21_][index])
 	+ a21[index];
 
       a22[index_plus]        = eta_step *(
 					  -a22[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(a13[index]+a11[index])
 					  -Omega_21[index_eta-1]*a3[index]
-					  +2*exp_eta*A22[index])
+					  +2*exp_eta*AA[_A22_][index])
 	+ a22[index];
 
       a23[index_plus]        = eta_step *(
 					  -a23[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(a12[index]+a11[index])
 					  -Omega_21[index_eta-1]*a3[index]
-					  +2*exp_eta*A23[index])
+					  +2*exp_eta*AA[_A23_][index])
 	+ a23[index];
 
       a3[index_plus]         = eta_step *(
 					  -a3[index]*3*Omega_11
 					  -Omega_12*(a22[index]+a21[index]+a23[index])
-					  +2*exp_eta*A3[index])
+					  +2*exp_eta*AA[_A3_][index])
 	+ a3[index];
 
       b0[index_plus]         = eta_step *(
 					  -3*b0[index]*Omega_11
 					  -Omega_12*(b11[index]+2*b12[index])
-					  +2*exp_eta*B0[index])
+					  +2*exp_eta*AA[_B0_][index])
 	+ b0[index];
 
       b11[index_plus]        = eta_step *(
 					  -b11[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -2*Omega_12*b22[index]
 					  -Omega_21[index_eta-1]*b0[index]
-					  +2*exp_eta*B11[index])
+					  +2*exp_eta*AA[_B11_][index])
 	+ b11[index];
 
       b12[index_plus]        = eta_step *(
 					  -b12[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(b22[index]+b21[index])
 					  -Omega_21[index_eta-1]*b0[index]
-					  +2*exp_eta*B12[index])
+					  +2*exp_eta*AA[_B12_][index])
 	+ b12[index];
 
       b21[index_plus]        = eta_step *(
 					  -b21[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -2*Omega_21[index_eta-1]*b12[index]
 					  -Omega_12*b3[index]
-					  +2*exp_eta*B21[index])
+					  +2*exp_eta*AA[_B21_][index])
 	+ b21[index];
 
       b22[index_plus]        = eta_step *(
 					  -b22[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_21[index_eta-1]*(b12[index]+b11[index])
 					  -Omega_12*b3[index]
-					  +2*exp_eta*B22[index])
+					  +2*exp_eta*AA[_B22_][index])
 	+ b22[index];
 
       b3[index_plus]         = eta_step *(
 					  -3*Omega_22[index_eta-1]*b3[index]
 					  -Omega_21[index_eta-1]*(b21[index]+2*b22[index])
-					  +2*exp_eta*B3[index])
+					  +2*exp_eta*AA[_B3_][index])
 	+ b3[index];
 	
     }
@@ -3059,61 +3079,99 @@ int trg_init (
      **********/
     
     if(pnl->mode>0){
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A0_,index_eta,A0,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
-      
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A11_,index_eta,A11,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
-      
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A12_,index_eta,A12,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
-      
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A13_,index_eta,A13,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A21_,index_eta,A21,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+    /* initialize error management flag */
+    abort = _FALSE_;
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A22_,index_eta,A22,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+    /*** beginning of parallel region ***/
+
+#pragma omp parallel							\
+  shared(name_size,abort,pba,ppm,psp,pnl,index_eta,AA)			\
+  private(tstart,index_name,tstop)
     
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A23_,index_eta,A23,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+    {
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A3_,index_eta,A3,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+#ifdef _OPENMP
+      tstart = omp_get_wtime();
+#endif
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B0_,index_eta,B0,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+#pragma omp for schedule (dynamic)
+      for (index_name=0; index_name<name_size; index_name++) {
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B11_,index_eta,B11,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+#pragma omp flush(abort)
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B12_,index_eta,B12,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+	class_call_parallel(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,index_name,index_eta,AA[index_name],pnl->error_message),
+		   pnl->error_message,
+		   pnl->error_message);
+      }
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B21_,index_eta,B21,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+
+#ifdef _OPENMP
+	tstop = omp_get_wtime();
+	if (pnl->spectra_nl_verbose > 1)
+	  printf("In %s: time spent in parallel region (loop over names) = %e s for thread %d\n",
+		 __func__,tstop-tstart,omp_get_thread_num());
+#endif
+
+    } /* end of parallel region */
+
+    if (abort == _TRUE_) return _FAILURE_;
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A0_,index_eta,A0,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
       
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B22_,index_eta,B22,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A11_,index_eta,A11,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+      
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A12_,index_eta,A12,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+      
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A13_,index_eta,A13,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
 
-      class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B3_,index_eta,B3,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A21_,index_eta,A21,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A22_,index_eta,A22,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+    
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A23_,index_eta,A23,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_A3_,index_eta,A3,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B0_,index_eta,B0,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B11_,index_eta,B11,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B12_,index_eta,B12,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B21_,index_eta,B21,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+      
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B22_,index_eta,B22,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
+
+/*       class_call(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,_B3_,index_eta,B3,pnl->error_message), */
+/* 		 pnl->error_message, */
+/* 		 pnl->error_message); */
     }
     
     printf("    %2.1f%% done\n",100.*index_eta/(pnl->eta_size-1.));
@@ -3238,21 +3296,25 @@ int trg_init (
 
   fclose(nl_spectra);
   
-  free(B3);
-  free(B22);
-  free(B21);
-  free(B12);
-  free(B11);
-  free(B0);
+  for (index_name=0; index_name<name_size; index_name++) 
+    free(AA[index_name]);
+  free(AA);
 
-  free(A3);
-  free(A23);
-  free(A22);
-  free(A21);
-  free(A13);
-  free(A12);
-  free(A11);
-  free(A0);
+/*   free(B3); */
+/*   free(B22); */
+/*   free(B21); */
+/*   free(B12); */
+/*   free(B11); */
+/*   free(B0); */
+
+/*   free(A3); */
+/*   free(A23); */
+/*   free(A22); */
+/*   free(A21); */
+/*   free(A13); */
+/*   free(A12); */
+/*   free(A11); */
+/*   free(A0); */
 
   free(b3);
   free(b22);

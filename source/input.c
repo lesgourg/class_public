@@ -154,7 +154,7 @@ int input_init(
 	     errmsg,
 	     errmsg);
 
-  if (pfc->size == 0.) 
+  if (pfc->size == 0) 
     return _SUCCESS_;
 
   /* h (dimensionless) and H0 in Mpc^{-1} = h / 2999.7 */
