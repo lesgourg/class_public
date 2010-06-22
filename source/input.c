@@ -138,6 +138,8 @@ int input_init(
   double Omega_tot;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_LINE_LENGTH_MAX_];
+  int i;
+  FILE * param_output;
 
   class_call(input_default_params(pba,
 				  pth,
@@ -435,13 +437,15 @@ int input_init(
 
   /** - parameters for output spectra */
 
-  class_read_string("cls",pop->cls_ad);
+  flag1=parser_read_string(pfc,"root",&string1,errmsg);
+  if (flag1 == _SUCCESS_) {
+    sprintf(pop->cls_ad,"%s%s",string1,"cls.dat");
+    sprintf(pop->pk,"%s%s",string1,"pk.dat");
+  }
 
   class_read_double("l_max",pbs->l_max);
   ptr->l_scalar_max=pbs->l_max;
   ptr->l_tensor_max=pbs->l_max;
-
-  class_read_string("pk",pop->pk);
 
   class_read_double("z_pk",pop->z_pk);
 
@@ -562,6 +566,24 @@ int input_init(
   class_read_double("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
+
+  flag1=parser_read_string(pfc,"parameters",&string1,errmsg);
+  if (flag1 == _SUCCESS_) {
+    class_open(param_output,string1,"w",errmsg);
+    fprintf(param_output,"# List of input/precision parameters actually read\n");
+    fprintf(param_output,"# (all other parameters set to default values)\n");
+    fprintf(param_output,"#\n");
+    fprintf(param_output,"# This file, written by CLASS, can be used as the input file\n");
+    fprintf(param_output,"# of another run provided that it has a suffix xxx.ini or xxx.pre;\n");
+    fprintf(param_output,"# in the next run you can change this name with the\n");
+    fprintf(param_output,"# parameters = ... entry of your input file.\n");
+    fprintf(param_output,"#\n");
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _TRUE_)
+	fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
+    }
+    fprintf(param_output,"#\n");
+  }
 
   return _SUCCESS_;
 

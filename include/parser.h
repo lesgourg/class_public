@@ -14,6 +14,7 @@ struct file_content {
   int size;
   FileArg * name;  /**< list of (size) names */
   FileArg * value; /**< list of (size) values */
+  short * read;    /**< set to _TRUE_ if this parameter is effectively read */
 };
 
 /**************************************************************/

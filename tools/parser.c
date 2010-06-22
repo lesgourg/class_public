@@ -29,6 +29,7 @@ int parser_read_file(
   pfc->size = counter++;
   class_alloc(pfc->name,pfc->size*sizeof(FileArg),errmsg);
   class_alloc(pfc->value,pfc->size*sizeof(FileArg),errmsg);
+  class_alloc(pfc->read,pfc->size*sizeof(short),errmsg);
 
   rewind(inputfile);
 
@@ -38,6 +39,7 @@ int parser_read_file(
     if (is_data == _TRUE_) {
       strcpy(pfc->name[counter],name);
       strcpy(pfc->value[counter],value);
+      pfc->read[counter]=_FALSE_;
       counter++;
     }
   }
@@ -55,6 +57,7 @@ int parser_free(
   if (pfc->size > 0) {
     free(pfc->name);
     free(pfc->value);
+    free(pfc->read);
   }
 
   return _SUCCESS_;
@@ -163,6 +166,8 @@ int parser_read_int(
 	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
   }
 
+  pfc->read[index] = _TRUE_;
+
   return _SUCCESS_;
 
 }
@@ -195,6 +200,8 @@ int parser_read_double(
 	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
   }
 
+  pfc->read[index] = _TRUE_;
+
   return _SUCCESS_;
 
 }
@@ -225,6 +232,8 @@ int parser_read_string(
 	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
   }
 
+  pfc->read[index] = _TRUE_;
+
   return _SUCCESS_;
 
 }
@@ -249,15 +258,18 @@ int parser_cat(
   pfc3->size = pfc1->size + pfc2->size;
   class_alloc(pfc3->value,pfc3->size*sizeof(FileArg),errmsg);
   class_alloc(pfc3->name,pfc3->size*sizeof(FileArg),errmsg);
+  class_alloc(pfc3->read,pfc3->size*sizeof(short),errmsg);
 
   for (i=0; i < pfc1->size; i++) {
     strcpy(pfc3->value[i],pfc1->value[i]);
     strcpy(pfc3->name[i],pfc1->name[i]);
+    pfc3->read[i]=pfc1->read[i];
   }
 
   for (i=0; i < pfc2->size; i++) {
     strcpy(pfc3->value[i+pfc1->size],pfc2->value[i]);
     strcpy(pfc3->name[i+pfc1->size],pfc2->name[i]);
+    pfc3->read[i+pfc1->size]=pfc2->read[i];
   }
   
   return _SUCCESS_;

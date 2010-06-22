@@ -3101,14 +3101,14 @@ int trg_init (
 #pragma omp flush(abort)
 
 	class_call_parallel(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,index_name,index_eta,AA[index_name],pnl->error_message),
-		   pnl->error_message,
-		   pnl->error_message);
+			    pnl->error_message,
+			    pnl->error_message);
       }
 
 
 #ifdef _OPENMP
-	tstop = omp_get_wtime();
-	if (pnl->spectra_nl_verbose > 1)
+      tstop = omp_get_wtime();
+      if (pnl->spectra_nl_verbose > 1)
 	  printf("In %s: time spent in parallel region (loop over names) = %e s for thread %d\n",
 		 __func__,tstop-tstart,omp_get_thread_num());
 #endif
