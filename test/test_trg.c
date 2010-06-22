@@ -33,7 +33,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
  
-  pt.k_scalar_kmax_for_pk=100.;
+  pt.k_scalar_kmax_for_pk=400.;
   pr.k_scalar_k_per_decade_for_pk=10.;
 
   pt.has_cl_cmb_temperature = _FALSE_;
@@ -42,6 +42,8 @@ main(int argc, char **argv) {
   pt.has_pk_matter = _TRUE_;
 
   sp.z_max_pk = 50.;
+
+  nl.k_max=pt.k_scalar_kmax_for_pk*ba.h-1.;
 
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);

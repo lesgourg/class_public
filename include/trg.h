@@ -6,6 +6,7 @@
 struct spectra_nl {
 
   double * k;
+  double k_max;
   int k_size; /**< total number of k values */
   int index_k_L;  /**< for index_k=0, ...,(index_k_L-1), use linear theory only */
 
@@ -197,6 +198,6 @@ extern "C" {
 
 /**** below some define commands ***/
 
-#define _STOP_INT_ 1.e-2
+#define _STOP_INT_ 1.e-1
 
 #endif
