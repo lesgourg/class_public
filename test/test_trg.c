@@ -80,7 +80,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (trg_init(&pr,&ba,&pm,&sp,&nl) == _FAILURE_) {
+  if (trg_init(&pr,&ba,&pt,&pm,&sp,&nl) == _FAILURE_) {
     printf("\n\nError in trg_init \n=>%s\n",nl.error_message);
     return _FAILURE_;
   }

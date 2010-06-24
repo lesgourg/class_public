@@ -1,5 +1,5 @@
 /** @file trg.c Document Time Renormalization Group module
- *  Benjamin Audren, 03.05.2010
+ *  Benjamin Audren, 24.06.2010
  *
  *  Calculates the non linear matter spectra P_k
  *
@@ -19,7 +19,12 @@
 #include "omp.h"
 #endif
 
-/* if possible, no other global variable here */
+
+/********************
+ *
+ * Definition of gamma functions, carrying all non-linear information
+ *
+ ********************/
 
 int trg_gamma_121(
 		  double  k, 
@@ -44,71 +49,17 @@ int trg_gamma_222(
   return _SUCCESS_;
 }
 
-/* calculate spectrum p_12 at index_eta and k */
 
-int trg_p12_at_k(
-		 struct background * pba, /* all struct are input here */
-		 struct primordial * ppm,
-		 struct spectra * psp,
-		 struct spectra_nl * pnl,
-		 int index_eta,
-		 int index_ic,
-		 double k,
-		 double * result
-		 ){
-
-  double temp1,temp2,temp3;
-
-  class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k,pnl->z[index_eta-1],&temp1),
-	     psp->error_message,
-	     pnl->error_message);
-
-  temp1 *= exp(-2*pnl->eta[index_eta]);
-    
-  class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k,pnl->z[index_eta+1],&temp2),
-	     psp->error_message,
-	     pnl->error_message);
-
-  temp2 *= exp(-2*pnl->eta[index_eta]);
-
-  temp3   = (sqrt(temp2) - sqrt(temp1))/(pnl->z[index_eta+1]-pnl->z[index_eta-1]);
-  *result = - (1+pnl->z[index_eta]) * sqrt(temp1) * temp3 ;
-  
-  return _SUCCESS_;
-}
-
-/* calculate spectrum p_22 at index_eta and k */
-
-
-int trg_p22_at_k(
-		 struct background * pba,
-		 struct primordial * ppm,
-		 struct spectra * psp,
-		 struct spectra_nl * pnl,
-		 int index_eta,
-		 int index_ic,
-		 double k,
-		 double * result
-		 ){
-  double temp1,temp2,temp3;
-  
-  class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k,pnl->z[index_eta-1],&temp1),
-	     psp->error_message,
-	     pnl->error_message);
-
-  temp1 *= exp(-2*pnl->eta[index_eta]);
-  
-  class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k,pnl->z[index_eta+1],&temp2),
-	     psp->error_message,
-	     pnl->error_message);
-
-  temp2 *= exp(-2*pnl->eta[index_eta]);
-        
-  temp3   = (sqrt(temp2) - sqrt(temp1))/ (pnl->z[index_eta+1] - pnl->z[index_eta-1]);
-  *result = (1+pnl->z[index_eta])*(1+pnl->z[index_eta])*temp3*temp3;
-  
-  return _SUCCESS_;
-}
+/********************
+ *
+ * Calls the spectrum computed by spectra.c at any time eta, and
+ * multiplies it by the exponential to get to the same unit as the
+ * rest of the code.  
+ * It serves at the initialisation for both 1-loop
+ * et TRG, and is after only used by the 1-loop computation to input
+ * in the A integrals.
+ *
+ ********************/
 
 
 int trg_p11_at_k(
@@ -131,14 +82,22 @@ int trg_p11_at_k(
   return _SUCCESS_;
 }
 
-/* As soon as one leaves the initial condition, one needs to
-   interpolate pk from the already computed non linear spectrum. This
-   is done by the following two commands */
-
 /********************
- * Fill the second derivative table of p_ab up to the index_eta
- * subscript
+ *
+ * As soon as one leaves the initial condition, one needs to
+ * interpolate pk_nl, p_12_nl and p_22_nl from the already computed
+ * non linear spectrum. This is done by the following two commands
+ *
  ********************/
+
+/*====>*/
+
+   /********************
+    *
+    * Fill the second derivative table of p_ab up to the index_eta
+    * subscript
+    *
+    ********************/
 
 int trg_ddp_ab(
 	       struct spectra_nl * pnl,
@@ -154,7 +113,11 @@ int trg_ddp_ab(
 
 }
 
-/**** interpolate any structure *****/
+    /********************
+     *
+     * Interpolate any structure 
+     *
+     ********************/
 
 int trg_p_ab_at_any_k(
 		      struct spectra_nl * pnl,
@@ -174,9 +137,13 @@ int trg_p_ab_at_any_k(
 }
 
 /********************
+ *
  * Argument of the integral of all A's, B's, given at any time eta,
- * usually written as F( k,x+y/sqrt(2),x-y/sqrt(2) ) + F( y <-> -y)
- * p stands for x+y/sqrt(2) (plus) and m for x-y/sqrt(2) (minus)
+ * usually written as F( k,x+y/sqrt(2),x-y/sqrt(2) ) + F( y <-> -y) p
+ * stands for x+y/sqrt(2) (plus) and m for x-y/sqrt(2) (minus).  This
+ * function is used when mode is set to 2, to perform full TRG
+ * computation.
+ *
  ********************/
 
  
@@ -199,31 +166,32 @@ int trg_A_arg(
   double gamma1_kpm,gamma1_pkm,gamma1_mkp,gamma1_mpk,gamma1_pmk,gamma1_kmp;
   double gamma2_kpm,gamma2_pkm,gamma2_mkp,gamma2_mpk,gamma2_pmk,gamma2_kmp;
 
-  /* our scheme is such that the first value of (x-y)/sqrt(2)=m is k_min. However
-     there might be a small rounding error. After checking that this error is at most of 0.1per cent,
-     impose manually that the minimum (x-y)/sqrt(2) is exactly epsilon */
+  /**********
+   * Under and above the two chosen cut-off k_max and k_min, force the
+   * result to 0.
+   * m can only be under k_min, while p might be under
+   * k_min and above k_max.
+   **********/
 
-  class_test(m < 0.999*pnl->k[0],
-	     pnl->error_message,
-	     "error in cut-off implementation (k=%e, (x-y)/sqrt(2)=%e x=%e y=%e k_min=%e)",
-	     k,m,(p+m)/sqrt(2),(p-m)/sqrt(2),pnl->k[0]);
-  if (m<pnl->k[0]) m=pnl->k[0];
+  if (m < pnl->k[0]) {
+    *result=0.;
+    return _SUCCESS_;
+  }
 
-  /* set argument to zero when p is not between the two cut-off values */
 
   if ((p<pnl->k[0]) || (p>pnl->k[pnl->k_size-1])) {
     *result=0.;
     return _SUCCESS_;
   }
 
-  /********************
+  /**********
    * Every function needed for the argument of a certain integral is
    * only called inside the switch case instance, in order to lower the
    * execution time - this way the lecture of this function is somehow
    * harder, but the argument is called in the very end of each case
    * bloc. Moreover, the call of functions is in this order : P_ab, the
    * gamma2, then finally gamma1.
-   ********************/
+   **********/
 
   switch(name){
   case _A0_:
@@ -264,6 +232,9 @@ int trg_A_arg(
 			   gamma2_mkp*p_22k*p_22p )
       + gamma1_kmp *( gamma2_kmp*p_22m*p_22p + gamma2_mpk*p_22p*p_22k + 
 		      gamma2_pkm*p_22k*p_22m );
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -313,6 +284,9 @@ int trg_A_arg(
 			   gamma2_pmk*p_22m*p_12k + gamma2_mkp*p_12k*p_22p)
       + gamma1_kmp *( gamma1_kmp*p_22m*p_12p + gamma1_kpm*p_12m*p_22p + 
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -366,6 +340,9 @@ int trg_A_arg(
 			   gamma1_pkm*p_12m*p_22k + gamma2_mkp*p_22k*p_12p)
       + gamma1_kmp *( gamma2_kmp*p_12m*p_22p + gamma1_mpk*p_22p*p_12k +
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -421,6 +398,9 @@ int trg_A_arg(
 			   gamma1_mkp*p_22k*p_12p + gamma1_mpk*p_12k*p_22p)
       + gamma1_kmp *( gamma2_kmp*p_22m*p_12p + gamma2_mpk*p_12p*p_22k +
 		      gamma1_pkm*p_22k*p_12m + gamma1_pmk*p_12k*p_22m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -474,6 +454,9 @@ int trg_A_arg(
       + gamma1_kmp *( gamma2_kmp*p_12m*p_12p + gamma1_mpk*p_12p*p_12k +
 		      gamma1_mkp*p_11p*p_22k + gamma1_pkm*p_22k*p_11m +
 		      gamma1_pmk*p_12k*p_12m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -533,10 +516,7 @@ int trg_A_arg(
 		      gamma2_mpk*p_12p*p_12k + gamma1_pkm*p_12k*p_12m +
 		      gamma1_pmk*p_11k*p_22m);
 
-    /* if (index_k==103) */
-    if (index_k==30 || index_k==pnl->k_size-1)
-      printf("%e %e %e %e %e %e\n",k,p,m,(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result)); 
-    
+    *result *= m*p/2./pow(2*_PI_,3); 
 
     return _SUCCESS_;
     break;
@@ -597,6 +577,8 @@ int trg_A_arg(
 		      gamma1_mpk*p_22p*p_11k + gamma1_mkp*p_12p*p_12k +
 		      gamma2_pkm*p_12k*p_12m);
 
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -637,6 +619,8 @@ int trg_A_arg(
 				       gamma1_kpm*p_12p*p_11m + gamma1_kmp*p_11p*p_12m +
 				       gamma1_pmk*p_12m*p_11k + gamma1_pkm*p_11m*p_12k +
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
+
+    *result *= m*p/2./pow(2*_PI_,3);
 
     return _SUCCESS_;
     break;
@@ -685,6 +669,9 @@ int trg_A_arg(
 				       gamma1_kpm*p_12p*p_11m + gamma1_kmp*p_11p*p_12m +
 				       gamma1_pmk*p_12m*p_11k + gamma1_pkm*p_11m*p_12k +
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -712,9 +699,11 @@ int trg_A_arg(
 	       errmsg,
 	       pnl->error_message);
 
+
     class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
+
     
     class_call(trg_gamma_222(k,p,m,&gamma2_kpm,errmsg),
 	       errmsg,
@@ -736,6 +725,9 @@ int trg_A_arg(
       + gamma2_kmp *( gamma2_kmp*p_12m*p_12p + gamma1_mpk*p_12p*p_12k +
 		      gamma1_mkp*p_11p*p_22k + gamma1_pkm*p_22k*p_11m +
 		      gamma1_pmk*p_12k*p_12m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -801,6 +793,9 @@ int trg_A_arg(
       + gamma2_kmp *( gamma1_kmp*p_22m*p_11p + gamma1_kpm*p_12m*p_12p +
 		      gamma2_mpk*p_12p*p_12k + gamma1_pkm*p_12k*p_12m +
 		      gamma1_pmk*p_11k*p_22m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -857,6 +852,9 @@ int trg_A_arg(
 			   gamma2_pmk*p_22m*p_12k + gamma2_mkp*p_12k*p_22p)
       + gamma2_kmp *( gamma1_kmp*p_22m*p_12p + gamma1_kpm*p_12m*p_22p + 
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -914,6 +912,9 @@ int trg_A_arg(
 			   gamma1_pkm*p_12m*p_22k + gamma2_mkp*p_22k*p_12p)
       + gamma2_kmp *( gamma2_kmp*p_12m*p_22p + gamma1_mpk*p_22p*p_12k +
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
+
+    *result *= m*p/2./pow(2*_PI_,3);
+
     return _SUCCESS_;
     break;
 
@@ -956,8 +957,7 @@ int trg_A_arg(
       + gamma2_kmp *( gamma2_kmp*p_22m*p_22p + gamma2_mpk*p_22p*p_22k + 
 		      gamma2_pkm*p_22k*p_22m );
 
-    if (index_k==30 || index_k==pnl->k_size-1)
-      printf("%e %e %e %e %e %e\n",k,p,m,(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result)); 
+    *result *= m*p/2./pow(2*_PI_,3);
 
     return _SUCCESS_;
     break;
@@ -971,6 +971,15 @@ int trg_A_arg(
   }
 
 }
+
+/******************
+ *
+ * Argument of the integral A's when mode is set to 1, i.e. for a
+ * one-loop computation. The only difference with the above function
+ * is that every non linear spectrum involved in the calculation is
+ * replaced by the linear one extracted from the CLASS code.
+ *
+ ******************/
 
 
 int trg_A_arg_one_loop(
@@ -991,37 +1000,31 @@ int trg_A_arg_one_loop(
   double gamma1_kpm,gamma1_pkm,gamma1_mkp,gamma1_mpk,gamma1_pmk,gamma1_kmp;
   double gamma2_kpm,gamma2_pkm,gamma2_mkp,gamma2_mpk,gamma2_pmk,gamma2_kmp;
 
-  /* our scheme is such that the first value of (x-y)/sqrt(2)=m is k_min. However
-     there might be a small rounding error. After checking that this error is at most of 0.1per cent,
-     impose manually that the minimum (x-y)/sqrt(2) is exactly epsilon */
-
-  /*   class_test(m < 0.999*pnl->k[0], */
-  /* 	     pnl->error_message, */
-  /* 	     "error in cut-off implementation (k=%e, (x-y)/sqrt(2)=%e x=%e y=%e k_min=%e)", */
-  /* 	     k,m,(p+m)/sqrt(2),(p-m)/sqrt(2),pnl->k[0]); */
-  /*  if (m<pnl->k[0]) m=pnl->k[0]; */
+  /**********
+   * Under and above the two chosen cut-off k_max and k_min, force the
+   * result to 0.
+   * m can only be under k_min, while p might be under
+   * k_min and above k_max.
+   **********/
 
   if (m < pnl->k[0]) {
     *result=0.;
     return _SUCCESS_;
   }
 
-
-  /* set argument to zero when p is not between the two cut-off values */
-
   if ((p<pnl->k[0]) || (p>pnl->k[pnl->k_size-1])) {
     *result=0.;
     return _SUCCESS_;
   }
 
-  /********************
+  /**********
    * Every function needed for the argument of a certain integral is
    * only called inside the switch case instance, in order to lower the
    * execution time - this way the lecture of this function is somehow
    * harder, but the argument is called in the very end of each case
    * bloc. Moreover, the call of functions is in this order : P_ab, the
    * gamma2, then finally gamma1.
-   ********************/
+   **********/
 
   switch(name){
   case _A0_:
@@ -1064,8 +1067,6 @@ int trg_A_arg_one_loop(
 		      gamma2_pkm*p_22k*p_22m );
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1118,8 +1119,6 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1176,8 +1175,6 @@ int trg_A_arg_one_loop(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1237,8 +1234,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1294,8 +1289,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1356,13 +1349,7 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_12p*p_12k + gamma1_pkm*p_12k*p_12m +
 		      gamma1_pmk*p_11k*p_22m);
 
-    /* if (index_k==103) */
-    /*     if (index_k==30 || index_k==pnl->k_size-1) */
-    /*        printf("%e %e %e %e %e %e\n",k,p,m,(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result)); */ 
-
     *result *= m*p/2./pow(2*_PI_,3);    
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1425,8 +1412,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-/*     printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1469,8 +1454,6 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1521,8 +1504,6 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1577,8 +1558,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1648,8 +1627,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1708,8 +1685,6 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1771,8 +1746,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1817,12 +1790,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-
-    /*     if (index_k==30 || index_k==pnl->k_size-1) */
-    /*        printf("%e %e %e %e %e %e\n",k,p,m,(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result));  */
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1839,11 +1806,11 @@ int trg_A_arg_one_loop(
 
 
 
-/***************
+/********************
  *
  * Integration with the Simpson's method (over y, and simple trapeze for x)
  *
- ***************/
+ ********************/
 
 int trg_integrate_xy_at_eta(
 			    struct background * pba,
@@ -1874,56 +1841,67 @@ int trg_integrate_xy_at_eta(
   double * v_le;
   double * v_ri;
   
-  int il,index_stop;
+  int il;
 
   double * partial_sum;
   double * partial_area;
   double sum,area,max;
   double increment_sum,increment_area;
 
-  double local_average_value,previous_average_value,total_average_value;
+  /**********
+   * The following approximation consists in taking into account the
+   * fact that for small k's, the influence of non linearity is
+   * small. Hence, one could take the linear evolution for P's for
+   * sufficiently small k's. Here, arbitrarily, one takes values of
+   * index_k before 10 to follow linear regime, i.e. putting to zero
+   * their A's.
+   **********/
 
-  /* The following approximation consists in taking into account the
-     fact that for small k's, the influence of non linearity is
-     small. Hence, one could take the linear evolution for P's for
-     sufficiently small k's. Here, arbitrarily, one takes values of
-     index_k before 10 to follow linear regime, i.e. putting to zero
-     their A's. 
-
-     This approximation is here to calculate more precisely the first
-     k points on x-y domains. The other solution (cleaner, but more
-     time consuming) would consist in modifying the lower bound in the
-     table_array routines by chosing an arbitrarily small cut-off for
-     P's (well under the k_min).
-
-  */	     
+  /**********
+   * This approximation is here to calculate more precisely the first
+   * k points on x-y domains. The other solution (cleaner, but more
+   * time consuming) would consist in modifying the lower bound in the
+   * table_array routines by chosing an arbitrarily small cut-off for
+   * P's (well under the k_min).
+   **********/
 
   k_min=pnl->k[0];
   k_max=pnl->k[pnl->k_size-1];
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
-  /* for(index_k=50; index_k<51; index_k++){ */
 
     k=pnl->k[index_k];
 
-    /*    logstepx=min(1.1,1+0.01/pow(k,2)); */
+    logstepx=min(1.1,1+0.01/pow(k,1)); /***> PRECISION PARAMETER <***/
 
-    logstepx=min(1.1,1+0.01/pow(k,1));
+    if(logstepx<1.0035) 
+      logstepx=1.0037;                 /***> PRECISION PARAMETER <***/
 
-    if(logstepx<1.0035) logstepx=1.0037;
-
-/*     printf("%d step : %e\n",index_k,logstepx); */
-   
     logstepy=logstepx;
 
-    if(index_k<pnl->index_k_L){ /*size under which we pick linear
-				  theory, index_k_L defined in
-				  trg_init */
+    /**********
+     * Linear theory is applied below the scale defined by k_L, chosen
+     * in trg.c
+     **********/
+
+    if(index_k<pnl->index_k_L){
 
       result[index_k+pnl->k_size*index_eta]=0.;
+
     }
 
-   /*  extrapolate high k's behaviour */
+
+     /***                                                          ***/
+    /**** TO CHECK : DO WITHOUT : MAYBE COMPENSATIONS THERE ALSO ! ****/
+     /***                                                          ***/ 
+
+
+
+    /**********
+     * Near the highest k's computed, the necessary cut-off in the
+     * computation of the integral introduces bad values : the
+     * different constituant do not compensate anymore.
+     **********/
 
     else if(index_k>pnl->k_size-5){
     
@@ -1933,6 +1911,10 @@ int trg_integrate_xy_at_eta(
     	result[pnl->k_size-5+pnl->k_size*index_eta];
       
     }
+
+    /**********
+     * Normal computation for all the remaining points
+     **********/
     
     else{
 
@@ -1943,8 +1925,6 @@ int trg_integrate_xy_at_eta(
 
       class_calloc(h_up,x_size,sizeof(double),pnl->error_message);
       class_calloc(h_do,x_size,sizeof(double),pnl->error_message);
-
-      /*       class_calloc(sum_y,x_size,sizeof(double),pnl->error_message); */
 
       index_x = 0; 
 
@@ -1960,8 +1940,6 @@ int trg_integrate_xy_at_eta(
 	index_x ++;
 
       } while (xx[index_x-1] < k_max*sqrt(2.));
-
-      if (x_size != index_x) printf("x: %d %d\n", x_size,index_x);
 
       x_size = index_x;
 
@@ -1990,14 +1968,7 @@ int trg_integrate_xy_at_eta(
 	
       } while (yy[index_y-1] > 0.);
 
-      if (y_size != index_y) printf("y: %d %d\n", y_size,index_y);
-
       y_size = index_y;
-
-      /*       printf("integrate for name=%d, index_k=%d\n",(int)name,index_k); */
-
-
-      /* compute first h and v lines */
 
       h_do[0]=0.;
       v_ri[0]=h_do[0];
@@ -2008,9 +1979,14 @@ int trg_integrate_xy_at_eta(
 	y=yy[0];
 
 	if (x <= sqrt(2.)*k_max-y) {
-	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x],errmsg),
-		     errmsg,
-		     pnl->error_message);
+	  if(pnl->mode==1){
+	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x],errmsg),
+		       errmsg,
+		       pnl->error_message);}
+	  else if(pnl->mode==2){
+	    class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x],errmsg),
+		       errmsg,
+		       pnl->error_message);}
 	}
 	else {
 	  h_do[index_x]=0.;
@@ -2023,10 +1999,15 @@ int trg_integrate_xy_at_eta(
 	x=xx[0];
 	y=yy[index_y];
 
-	class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_y],errmsg),
-		   errmsg,
-		   pnl->error_message);
+	if(pnl->mode==1){
+	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_y],errmsg),
+		     errmsg,
+		     pnl->error_message);}
 
+	else if(pnl->mode==2){
+	  class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_y],errmsg),
+		     errmsg,
+		     pnl->error_message);}
       }
 
       sum = 0.;
@@ -2036,10 +2017,6 @@ int trg_integrate_xy_at_eta(
       /********************* loop over L-shaped regions **********************/
 
       for (il=0; il < y_size-1; il++) {
-
-	/* intialize stop index */ 
-
-	index_stop = x_size-1;
 
 	/* move previous bottom-line to up-line, and previous right-line to left-line 
 	   (remember that some point may have not been calculated, 
@@ -2055,9 +2032,16 @@ int trg_integrate_xy_at_eta(
 
 	x=xx[il+1];
 	y=yy[il+1];
-	class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[il+1],errmsg),
-		   errmsg,
-		   pnl->error_message);
+
+	if(pnl->mode==1){
+	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[il+1],errmsg),
+		     errmsg,
+		     pnl->error_message);}
+	else if(pnl->mode==2){
+	  class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[il+1],errmsg),
+		     errmsg,
+		     pnl->error_message);}
+
 	v_ri[il+1]= h_do[il+1];
 
 	increment_sum = (xx[il+1]-xx[il])*(yy[il]-yy[il+1])*0.25*(h_up[il]+h_up[il+1]+v_le[il+1]+v_ri[il+1]);
@@ -2070,23 +2054,24 @@ int trg_integrate_xy_at_eta(
 
 	for (index_x=il+1; index_x < y_size-1; index_x ++) {
 
-	  /* the point h_up[index_x+1] may have not been calculated at the previous stage; check and calculate */
-
-	  if (h_up[index_x+1] == 0.) {
-
-	    x=xx[index_x+1];
-	    y=yy[il];
+	  x=xx[index_x+1];
+	  y=yy[il];
 	    
-	    if (x <= sqrt(2)*k_max-y) {
+	  if (x <= sqrt(2)*k_max-y) {
+	    if(pnl->mode==1){
 	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_up[index_x+1],errmsg),
 			 errmsg,
-			 pnl->error_message);
-	    } 
-	    else {
-	      h_up[index_x+1]=0.;
-	    }
-	    
+			 pnl->error_message);}
+	    else if(pnl->mode==2){
+	      class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_up[index_x+1],errmsg),
+			 errmsg,
+			 pnl->error_message);}
+	  } 
+	  else {
+	    h_up[index_x+1]=0.;
 	  }
+	    
+	  
 
 	  /* the point h_do[index_x+1] is new; calculate */
 
@@ -2094,9 +2079,14 @@ int trg_integrate_xy_at_eta(
 	  y=yy[il+1];
 
 	  if (x <= sqrt(2)*k_max-y) {
-	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x+1],errmsg),
-		       errmsg,
-		       pnl->error_message);
+	    if(pnl->mode==1){
+	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x+1],errmsg),
+			 errmsg,
+			 pnl->error_message);}
+	    else if(pnl->mode==2){
+	      class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x+1],errmsg),
+			 errmsg,
+			 pnl->error_message);}
 	  } 
 	  else {
 	    h_do[index_x+1]=0.;
@@ -2104,25 +2094,32 @@ int trg_integrate_xy_at_eta(
 
 	  /* the point v_le[index_x+1] may have not been calculated at the previous stage; check and calculate */
 
-	  if (v_le[index_x+1] == 0.) {
+	  x=xx[il];
+	  y=yy[index_x+1];
 	    
-	    x=xx[il];
-	    y=yy[index_x+1];
-
+	  if(pnl->mode==1){
 	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_le[index_x+1],errmsg),
 		       errmsg,
-		       pnl->error_message);
-	    
-	  }
+		       pnl->error_message);}
+	  else if(pnl->mode==2){
+	    class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_le[index_x+1],errmsg),
+		       errmsg,
+		       pnl->error_message);}
+	  
 
 	  /* the point v_ri[index_x+1] is new; calculate */
 
 	  x=xx[il+1];
 	  y=yy[index_x+1];
 
-	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_x+1],errmsg),
-		     errmsg,
-		     pnl->error_message);
+	  if(pnl->mode==1){
+	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_x+1],errmsg),
+		       errmsg,
+		       pnl->error_message);}
+	  else if(pnl->mode==2){
+	    class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_x+1],errmsg),
+		       errmsg,
+		       pnl->error_message);}
 
 	  /* now integrate on the two new cells */
 
@@ -2137,90 +2134,68 @@ int trg_integrate_xy_at_eta(
 	  partial_sum[il] += increment_sum;
 	  partial_area[il] += increment_area;
 
-	 /*  if (fabs(increment_sum/increment_area/((sum+partial_sum[il])/(area+partial_area[il]))) < _STOP_INT_) { */
-/* 	    index_stop = index_x+1; /\* will remember where we stoped *\/ */
-/* 	    printf("  index_k : %d,y_size-1 : %d stop at index_x : %d\n",index_k,y_size-1,index_x); */
-/* 	    index_x = y_size-1;     /\* to exit this loop *\/ */
-/* 	  } */
-	  
 	}
 
 	/***************** new points on the horizontal, beyond the square *******************/
 
-	if (index_stop == x_size-1) {
-	  for (index_x=y_size-1; index_x < x_size-1; index_x ++) {
+	for (index_x=y_size-1; index_x < x_size-1; index_x ++) {
 
-	    /* the point h_up[index_x+1] may have not been calculated at the previous stage; check and calculate */
-
-	    if (h_up[index_x+1] == 0.) {
+	  /* the point h_up[index_x+1] may have not been calculated at the previous stage; check and calculate */
+	  
+	  x=xx[index_x+1];
+	  y=yy[il];
 	      
-	      x=xx[index_x+1];
-	      y=yy[il];
-	      
-	      if (x <= sqrt(2)*k_max-y) {
-		class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_up[index_x+1],errmsg),
-			   errmsg,
-			   pnl->error_message);
-	      } 
-	      else {
-		h_up[index_x+1]=0.;
-	      }
-	    
-	    }
+	  if (x <= sqrt(2)*k_max-y) {
+	    if(pnl->mode==1){
+	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_up[index_x+1],errmsg),
+			 errmsg,
+			 pnl->error_message);}
+	    else if(pnl->mode==2){
+	      class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_up[index_x+1],errmsg),
+			 errmsg,
+			 pnl->error_message);}
+	  } 
+	  else {
+	    h_up[index_x+1]=0.;
+	  }
+	  
+	  /* the point h_do[index_x+1] is new; calculate */
 
-	    /* the point h_do[index_x+1] is new; calculate */
+	  x=xx[index_x+1];
+	  y=yy[il+1];
 
-	    x=xx[index_x+1];
-	    y=yy[il+1];
-
-	    if (x <= sqrt(2)*k_max-y) {
+	  if (x <= sqrt(2)*k_max-y) {
+	    if(pnl->mode==1){
 	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x+1],errmsg),
 			 errmsg,
-			 pnl->error_message);
-	    } 
-	    else {
-	      h_do[index_x+1]=0.;
-	    }
-
-	    /* now integrate on the new cell */
-
-	    increment_sum = (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1])*0.25*
-	      (h_up[index_x]+h_up[index_x+1]+h_do[index_x]+h_do[index_x+1]);
-
-	    increment_area = (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1]);
-
-	    partial_sum[il] += increment_sum;
-	    partial_area[il] += increment_area;
-
-	    /* if (fabs(increment_sum/increment_area/((sum+partial_sum[il])/(area+partial_area[il]))) < _STOP_INT_) { */
-	    /* if (fabs(increment_sum/(sum+partial_sum[il])) < _STOP_INT_) { */
-	    /* 	    index_stop = index_x+1; /\* will remember where we stoped *\/ */
-	    /* 	    index_x = x_size;     /\* to exit this loop *\/ */
-	    /* 	  } */
-
+			 pnl->error_message);}
+	    else if(pnl->mode==2){
+	      class_call(trg_A_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x+1],errmsg),
+			 errmsg,
+			 pnl->error_message);}
+	  } 
+	  else {
+	    h_do[index_x+1]=0.;
 	  }
+
+	  /* now integrate on the new cell */
+	  
+	  increment_sum = (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1])*0.25*
+	    (h_up[index_x]+h_up[index_x+1]+h_do[index_x]+h_do[index_x+1]);
+	  
+	  increment_area = (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1]);
+	  
+	  partial_sum[il] += increment_sum;
+	  partial_area[il] += increment_area;
+	  
 	}
+	
 
-	/*************** for non-computed points fill new line/column with zeros **********/
-
-	/* for (index_x = index_stop+1; index_x < x_size; index_x++) */
-	/* 	h_do[index_x] = 0.; */
-      
-	/*       for (index_y = index_stop+1; index_y < y_size; index_y++) */
-	/* 	v_ri[index_y] = 0.; */
-      
 	/* update the total sum with the new L-shaped region */
 
 	sum += partial_sum[il];
 	area += partial_area[il];
 	
-	if ( (il > 0) && (index_k > 1) ) {
-
-	  local_average_value = partial_sum[il]/partial_area[il];
-	  previous_average_value = partial_sum[il-1]/partial_area[il-1];
-	  total_average_value = sum/area;
-
-	}
       }
 
       result[index_k+pnl->k_size*index_eta]=sum;
@@ -2244,25 +2219,30 @@ int trg_integrate_xy_at_eta(
 
 /*******************************
  *
- * Summary : taking the power spectrum of matter, matter-velocity
- *           and velocity, at a chosen time a_ini when matter dominated
- *           already but before all modes become non linear, it computes the
- *           fully non-linear evolution of these 3 quantities for a range of
- *           eta=log(a/a_ini) up to today.
+ * Summary : taking the power spectrum of matter, matter-velocity and
+ *           velocity, at a chosen time a_ini when matter dominated
+ *           already but before all modes become non linear, it
+ *           computes the fully non-linear evolution of these 3
+ *           quantities for a range of eta=log(a/a_ini) up to today.
  *
- *	       It requires the definition of many quantities (12+12) built
- *	       on the Bispectra of matter and velocity and on the spectra
- *           as well, in order to put the equations in a more
- *           numerically friendly shape, as explained in annex B of the
- *	       Pietroni article (astro-ph 0806.0971v3).
+ ******************************/
+
+/******************************
+ *
+ *	       It requires the definition of many quantities (14+14)
+ *	       built on the Bispectra of matter and velocity and on
+ *	       the spectra as well, in order to put the equations in a
+ *	       more numerically friendly shape, as explained in annex
+ *	       B of the Pietroni article (astro-ph 0806.0971v3).
  *
  *********************************/
 
 int trg_init (
-	      struct precision * ppr, /* input */
+	      struct precision  * ppr, /* input */
 	      struct background * pba, /**< structure containing all background evolution */
+	      struct perturbs   * ppt, 
 	      struct primordial * ppm,
-	      struct spectra * psp, /**< structure containing list of k, z and P(k,z) values) */
+	      struct spectra    * psp, /**< structure containing list of k, z and P(k,z) values) */
 	      struct spectra_nl * pnl /* output */ 
 	      ) {
 
@@ -2273,13 +2253,18 @@ int trg_init (
   int index_k;
   int index_eta;
 
-  int index_ic=0; /*or ppt->index_ic; adiabatic=0 */
+  int index_ic=ppt->index_ic; /* for adiabatic modes = 0 */
 
   double * temp_k;
   double temp; 
+
+  double k_max;
+  double k_L;
+  double k_min;
   
   int index_name,name_size;
-  double ** AA;
+  double ** AA; /* Definition of all the A's integral in one vector of
+		   matrix */
 
   /*
     Variables of calculation, k and eta, and initialization
@@ -2294,12 +2279,14 @@ int trg_init (
 
   double exp_eta;
   double fourpi_over_k;
+
   int index;  
   int index_plus; /* intermediate variables for time integration */
   
   double Omega_11,Omega_12; /* Definition of the matrix Omega that
-			       mixes terms together, two are k
-			       indepedant and two dependant*/
+			       mixes terms together, two are time
+			       indepedant and two dependant --- SO
+			       FAR ---*/
   double *Omega_21,*Omega_22;
 
   double *a0,*a11,*a12,*a13,*a21,*a22,*a23,*a3;
@@ -2307,10 +2294,6 @@ int trg_init (
 					 1ijk,lmn and 2 ijk,lmn that
 					 replace the Bispectra
 					 variables*/
-
-/*   double *A0,*A11,*A12,*A13,*A21,*A22,*A23,*A3; */
-/*   double *B0,*B11,*B12,*B21,*B22,*B3; */ /* Definition of the variables
-					 Aijk,lmn */
 
   double * pvecback_nl;
 
@@ -2326,70 +2309,63 @@ int trg_init (
   double tstart, tstop;
 #endif
 
-  pnl->spectra_nl_verbose=0;
-  pnl->mode=1; /* 0 is linear evolution, 1 one loop and 2 full trg */
+  pnl->spectra_nl_verbose=1; /* 0 gives no information at all, 1 the
+				minimum amount of it, 2 gives a
+				percentage evolution of time
+				integrator while 3 gives also the time
+				spend in every parallel region */
+
+  pnl->mode=2; /* 0 is linear evolution, 1 one loop and 2 full trg */
 
   if (pnl->spectra_nl_verbose > 0)
     printf("Computing non-linear spectra with TRG method\n");
 
   class_alloc(pvecback_nl,pba->bg_size*sizeof(double),pnl->error_message);
 
-  /* define initial eta and redshift */
+  /* Define initial eta and redshift */
   a_ini = 2e-2;   /* gives a starting redshift of 49 */
   pnl->z_ini = pba->a_today/a_ini - 1.;
 
-  /* define eta_max, where eta=log(a/a_ini) */
+
+  /* Define eta_max, where eta=log(a/a_ini) */
   eta_max = log(pba->a_today/a_ini);
 
-  /* define size and step for integration in eta */
-  pnl->eta_size = 150; /* to calculate fast */
+
+  /* Define size and step for integration in eta */
+  pnl->eta_size = 75; /***> PRECISION PARAMETER <***/
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
   /* at any time, a = a_ini * exp(eta) and z=exp(eta)-1*/
+
   
-  /* fill array of k values  */
+  /* Define k parameters */ 
 
-  /* first define the total length, to reach the k_max bound
-     for the integrator */
-  double k_max;
-  double k_L;
-  double k_min;
-  /*   double k_2; */
-  double logstepk;
+  k_max = pnl->k_max;  /**< PRECISION PARAMETER */ /* set in test_trg.c */
+  k_L   = 1.e-3;        /**< PRECISION PARAMETER */  /* scale above which we take linear theory */
+  k_min = 1.e-4;      /**< PRECISION PARAMETER */  /* minimun cut-off scale  */
 
- /*  k_max=ppt->k_scalar_kmax_for_pk*pba->h; */    /**< PRECISION PARAMETER *\/ /\* not above k_scalar_max*h in test_trg *\/ */
-  k_max=pnl->k_max;
-  k_L=1.e-3;        /**< PRECISION PARAMETER */
-  k_min=1.e-4;      /**< PRECISION PARAMETER */
-
-  logstepk=1.01;    /**< PRECISION PARAMETER */ /* with 1.01 we map
-						  finely the
-						  oscillations,
-						  though very much
-						  time consuming */
-
-  /* find total number of k values in the module */
+  /* Defining the values of k with three set of log steps */
   index_k=0;
   class_calloc(temp_k,2000,sizeof(double),pnl->error_message);
   temp_k[0]=k_min;
 
-  while(temp_k[index_k]<0.01){
+  while( temp_k[index_k] < 0.01 ) {
     index_k++;
-    temp_k[index_k]=k_min*pow(1.2,index_k);
-  }
+    temp_k[index_k]=k_min*pow(1.2,index_k); 
+  } /* To have roughly 10 points per decade until 0.01 h/Mpc */
   temp=index_k;
   temp_k[index_k]=0.01;
-  while(temp_k[index_k]<50){
+  while( temp_k[index_k] < 50 ) {
     index_k++;
     temp_k[index_k]=0.01*pow(1.02,(index_k-temp));
-  }
+  } /* To have roughly 100 points per decade until 50 h/Mpc */
   temp=index_k;
   temp_k[index_k]=50;
-  while(temp_k[index_k]<k_max){
+  while( temp_k[index_k] < k_max ) {
     index_k++;
     temp_k[index_k]=50*pow(1.12,(index_k-temp));
-  }
+  } /* To have roughly 30 points per decade afterwards */
   temp_k[index_k]=k_max;
 
   pnl->k_size=index_k+1;
@@ -2427,6 +2403,9 @@ int trg_init (
   int temp_z;
 
   temp_z=0;
+
+  /* Fill in values of eta and z, while determining the precise index
+     of z_1 and z_2 */
 
   for (index_eta=0; index_eta<pnl->eta_size; index_eta++) {
     pnl->eta[index_eta] = index_eta*eta_step;
@@ -2483,27 +2462,17 @@ int trg_init (
   class_alloc(Omega_21,pnl->eta_size*sizeof(double),pnl->error_message);
   class_alloc(Omega_22,pnl->eta_size*sizeof(double),pnl->error_message);
 
- /*  if(pnl->mode!=1) { */
-/*     for(index_eta=0; index_eta<pnl->eta_size; index_eta++) { */
-/*       Omega_21[index_eta] = -3./2 * Omega_m[index_eta]; */
-/*       Omega_22[index_eta] = 2 + H_prime[index_eta]/H[index_eta]; */
-/*     }  */
-/*   } */
-
-/*   else { */
-/*     for(index_eta=0; index_eta<pnl->eta_size; index_eta++) { */
-/*       Omega_21[index_eta] = -3./2; */
-/*       Omega_22[index_eta] = 3./2; */
-/*     } */
-/*   } */
-
   for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {
       Omega_21[index_eta] = -3./2 * Omega_m[index_eta];
       Omega_22[index_eta] = 2 + H_prime[index_eta]/H[index_eta];
     }
 
-  /* Definition of P_11=pk_nl, P_12=<delta theta> and P_22=<theta
-     theta>, and initialization at eta[0]=0, k[0] 
+  /* Definition of P_ab=<\phi_a \phi_b> and initialization at
+     eta[0]=0, k[0]. At the first time, no previous non-gaussianity is
+     considered, so the spectra are all linear. Hence P_ab=p_ab usual,
+     without time factors. Moreover, P_ab=P_cd for all a b c d, since
+     in the linear theory, whatever domination era it is, this
+     equality holds.
 
      Convention is taken so that all the upcoming matrices are lines
      at constant eta and column at constant k. So the first line will
@@ -2585,102 +2554,29 @@ int trg_init (
 	     pnl->error_message);
 
 
-
-  /******* TESTING ZONE *********/
-
-/*   for(index_k=0; index_k<pnl->k_size; index_k++) { */
-  
-/*     class_call(trg_p11_at_k(pba,ppm,psp,pnl,0,index_ic,pnl->k[index_k],&pnl->p_11[index_k]), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-
-/*     class_call(trg_p11_at_k(pba,ppm,psp,pnl,0,index_ic,pnl->k[index_k],&pnl->p_12[index_k]), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-    
-/*     class_call(trg_p11_at_k(pba,ppm,psp,pnl,0,index_ic,pnl->k[index_k],&pnl->p_22[index_k]), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-
-/*     class_call(trg_p11_at_k(pba,ppm,psp,pnl,1,index_ic,pnl->k[index_k],&pnl->p_11[index_k+pnl->k_size*1]), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-
-/*     class_call(trg_p12_at_k(pba,ppm,psp,pnl,1,index_ic,pnl->k[index_k],&pnl->p_12[index_k+pnl->k_size*1]), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-    
-/*     class_call(trg_p22_at_k(pba,ppm,psp,pnl,1,index_ic,pnl->k[index_k],&pnl->p_22[index_k+pnl->k_size*1]), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-
-/*     /\* class_call(trg_p11_at_k(pba,ppm,psp,pnl,pnl->eta_size-1,index_ic,pnl->k[index_k],&pnl->p_11[index_k+pnl->k_size*(pnl->eta_size-1)]), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-
-/* /\*     class_call(trg_p12_at_k(pba,ppm,psp,pnl,pnl->eta_size-1,index_ic,pnl->k[index_k],&pnl->p_12[index_k+pnl->k_size*(pnl->eta_size-1)]), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-    
-/* /\*     class_call(trg_p22_at_k(pba,ppm,psp,pnl,pnl->eta_size-1,index_ic,pnl->k[index_k],&pnl->p_22[index_k+pnl->k_size*(pnl->eta_size-1)]), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-
-/* /\*     class_call(trg_p11_at_k(pba,ppm,psp,pnl,pnl->eta_size-10,index_ic,pnl->k[index_k],&pnl->p_11[index_k+pnl->k_size*(pnl->eta_size-1)]), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-
-/* /\*     class_call(trg_p12_at_k(pba,ppm,psp,pnl,pnl->eta_size-10,index_ic,pnl->k[index_k],&pnl->p_12[index_k+pnl->k_size*(pnl->eta_size-1)]), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-    
-/* /\*     class_call(trg_p22_at_k(pba,ppm,psp,pnl,pnl->eta_size-10,index_ic,pnl->k[index_k],&pnl->p_22[index_k+pnl->k_size*(pnl->eta_size-1)]), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-
-/*     printf("%e %e %e %e %e %e %e\n ", */
-/* 	   pnl->k[index_k], */
-/* 	   pnl->p_11[index_k+pnl->k_size*0], */
-/* 	   pnl->p_12[index_k+pnl->k_size*0], */
-/* 	   pnl->p_22[index_k+pnl->k_size*0], */
-/* 	   pnl->p_11[index_k+pnl->k_size*1], */
-/* 	   pnl->p_12[index_k+pnl->k_size*1], */
-/* 	   pnl->p_22[index_k+pnl->k_size*1] */
-/* 	   /\* pnl->p_11[index_k+pnl->k_size*(pnl->eta_size-1)], *\/ */
-/* /\* 	   pnl->p_12[index_k+pnl->k_size*(pnl->eta_size-1)], *\/ */
-/* /\* 	   pnl->p_22[index_k+pnl->k_size*(pnl->eta_size-1)], *\/ */
-/* 	  /\*  pnl->p_11[index_k+pnl->k_size*(pnl->eta_size-10)], *\/ */
-/* /\* 	   pnl->p_12[index_k+pnl->k_size*(pnl->eta_size-10)], *\/ */
-/* /\* 	   pnl->p_22[index_k+pnl->k_size*(pnl->eta_size-10)] *\/); */
-
-/*     /\* class_call(trg_ddp_ab(pnl,pnl->p_11,0,pnl->ddp_11,pnl->error_message), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-
-/* /\*     class_call(trg_ddp_ab(pnl,pnl->p_12,0,pnl->ddp_12,pnl->error_message), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-    
-/* /\*     class_call(trg_ddp_ab(pnl,pnl->p_22,0,pnl->ddp_22,pnl->error_message), *\/ */
-/* /\* 	       pnl->error_message, *\/ */
-/* /\* 	       pnl->error_message); *\/ */
-
-/* /\*     printf("%e %e %e %e\n"); *\/ */
-
-/*   } */
-  
-
-
-/*   return _SUCCESS_; */
-
-
-  /******* END OF TESTING ZONE *******/
-
-  
-  
-   /* Definition of 1_0, 1_11,(here a0, a11,...) etc, and 2_0, 2_11,
-     (here b0,b11,...) etc.. and initialization (directly with calloc
+  /* Definition of I_{121,lmn} (here a0, a11,...) and I_{222,lmn}
+     (here b0,b11,...) and initialization (directly with calloc
      for assuming no initial non gaussianity in the spectrum) */
+
+  /**********
+   * The convention for naming the different I_{121,lmn} in a's
+   * (resp. I_{222,lmn} in b's) is the following : 
+   * --> the numbers after the a (resp. b) indicate first the 
+   *     number of 1 (resp. 2) in the last three indices
+   * --> the possibly second number indicates, when such an
+   *     information is needed, the position of the lonely index
+   **********/
+
+  /**********
+   * As an example worth more than arid explanations, I_{121,212} will
+   * be called a12. Indeed, the three first indices are 121, so it is an
+   * 'a'. Then there is only one '1' in the last three indices, so
+   * there is a '1', and finally the only '1' in these three indices
+   * is in the 2nd position, so a '2'. a12. On the other hand,
+   * I_{222,212} will be called b22, because there a two '2', and the
+   * lonely '1' in the last indices is at the 2nd position, so '2'
+   * again. Nothing cryptic !
+   **********/
 
   class_calloc(a0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(a11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2698,9 +2594,8 @@ int trg_init (
   class_calloc(b22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(b3 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); 
 
-  /* Definition of the A_121,122's that appear in time-evolution of
-     the 1's and 2's, and initialization with pk_nl, p_12,
-     p_22. Convention is taken for A_121,any = A any and A_222,any = B any */
+  /* Definition of the A's that appear in time-evolution of
+     the 1's and 2's */
 
   name_size = _B3_+1;
   class_calloc(AA,name_size,sizeof(double*),pnl->error_message);
@@ -2710,13 +2605,12 @@ int trg_init (
 
   /********************
    *
-   * Integration at eta=0 with n_xy number of steps for integration
-   * over x and n_xy over y.
+   * Integration at eta=0 with trg_integrate_at_xy().
    *
    ********************/
-  double temp1,temp2,temp3;
+  double temp1;
 
-  if (pnl->spectra_nl_verbose > 0)
+  if (pnl->spectra_nl_verbose > 1)
     printf(" -> initialisation\n");
   
   if(pnl->mode > 0){
@@ -2748,7 +2642,7 @@ int trg_init (
 
 #ifdef _OPENMP
 	tstop = omp_get_wtime();
-	if (pnl->spectra_nl_verbose > 1)
+	if (pnl->spectra_nl_verbose > 2)
 	  printf("In %s: time spent in parallel region (loop over names) = %e s for thread %d\n",
 		 __func__,tstop-tstart,omp_get_thread_num());
 #endif
@@ -2775,12 +2669,12 @@ int trg_init (
 
 
   /********************
-   * Now we calculate the time evolution with a very simple integrator
+   * Calculate the time evolution with a very simple integrator
    ********************/
 
   class_open(nl_spectra,"output/nl_spectra.dat","wr",pnl->error_message)
 
-    if (pnl->spectra_nl_verbose > 0){
+    if (pnl->spectra_nl_verbose > 1){
       printf(" -> progression:\n");}
 
   time_1=time(NULL);
@@ -2916,6 +2810,10 @@ int trg_init (
 	
     }
 
+
+    /**********************************************************************/
+
+
     /**********
      * Update of second derivatives for interpolation
      **********/
@@ -3001,7 +2899,7 @@ int trg_init (
 
 #ifdef _OPENMP
 	tstop = omp_get_wtime();
-	if (pnl->spectra_nl_verbose > 1)
+	if (pnl->spectra_nl_verbose > 2)
 	  printf("In %s: time spent in parallel region (loop over names) = %e s for thread %d\n",
 		 __func__,tstop-tstart,omp_get_thread_num());
 #endif
@@ -3012,35 +2910,31 @@ int trg_init (
 
     }
 
-    /* else if(pnl->mode==1) { */
-
-/*       for(index_name=0; index_name<name_size; index_name++) { */
-/* 	for(index_k=0; index_k<pnl->k_size; index_k++){ */
-/* 	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)]; */
-/* 	} */
-/*       } */
-/*     } */
-    
-    printf("    %2.1f%% done\n",100.*index_eta/(pnl->eta_size-1.));
+    if(pnl->spectra_nl_verbose > 1)
+      printf("    %2.1f%% done\n",100.*index_eta/(pnl->eta_size-1.));
     
     
     time_2=time(NULL);
-    if(index_eta==9){
-      printf("elapsed time after ten loops : %2.f s\n",difftime(time_2, time_1));
-      printf("estimated remaining : %3.1f min\n",difftime(time_2,time_1)*(pnl->eta_size-2)/60/10);
+    if(pnl->spectra_nl_verbose > 0){
+      if(index_eta==9){
+	printf("  elapsed time after ten loops : %2.f s\n",difftime(time_2, time_1));
+	printf("  estimated remaining : %3.1f min\n",difftime(time_2,time_1)*(pnl->eta_size-2)/60/10);
+      }
     }
-    if(isnan(pnl->pk_nl[50+pnl->k_size*index_eta])!=0){
-      printf("ca marche pas !!!nan!!!\n");
-    }
+    class_test( isnan(pnl->pk_nl[50+pnl->k_size*index_eta]) !=0 ,
+	       pnl->error_message,"Time integrator produces nan !!\n");
+	       
+	       
   }
 
-  printf("Done in %2.f min !\n",difftime(time_2,time_1)/60);
+  if(pnl->spectra_nl_verbose > 0)
+    printf("Done in %2.f min !\n",difftime(time_2,time_1)/60);
 
-  /* printing on a file */
+  /* Printing results in a file */
 
   fprintf(nl_spectra,"## k (h/Mpc) P_NL ([Mpc/h]^3) P_L ([Mpc/h]^3) \n");
  
-  for(index_eta=9; index_eta<pnl->eta_size; index_eta+=10) {
+  for(index_eta=4; index_eta<pnl->eta_size; index_eta+=5) {
 
     fprintf(nl_spectra,"##at z =%e\n",pnl->z[index_eta]);
 
@@ -3054,16 +2948,11 @@ int trg_init (
       fprintf(nl_spectra,"%e\t%e\t%e\t",pnl->k[index_k]/pba->h,pow(pba->h,3)*pnl->pk_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),pow(pba->h,3)*temp1);
       
       for (index_name=0; index_name<name_size; index_name++)
-	fprintf(nl_spectra,"%e\t",AA[index_name][index_k]);
+	fprintf(nl_spectra,"%e\t",AA[index_name][index_k+pnl->k_size*index_eta]);
       fprintf(nl_spectra,"\n");
     }
     fprintf(nl_spectra,"\n\n");
   }
-  
-
- 
-
-  fprintf(nl_spectra,"\n\n");
   
   fclose(nl_spectra);
   

@@ -75,48 +75,48 @@ extern "C" {
 		    double p, 
 		    double q,
 		    double * result,
-		    char * errmsg
+		    char   * errmsg
 		    );
 
   int trg_p12_at_k(
-	      struct background * pba,
-	      struct primordial * ppm,
-	      struct spectra * psp,
-	      struct spectra_nl * pnl,
-	      int index_eta,
-	      int index_ic,
-	      double k,
-	      double * result
-	      );
+		   struct background * pba,
+		   struct primordial * ppm,
+		   struct spectra * psp,
+		   struct spectra_nl * pnl,
+		   int    index_eta,
+		   int    index_ic,
+		   double k,
+		   double * result
+		   );
 
   int trg_p22_at_k(
-	      struct background * pba,
-	      struct primordial * ppm,
-	      struct spectra * psp,
-	      struct spectra_nl * pnl,
-	      int index_eta,
-	      int index_ic,
-	      double k,
-	      double * result
-	      );
+		   struct background * pba,
+		   struct primordial * ppm,
+		   struct spectra    * psp,
+		   struct spectra_nl * pnl,
+		   int    index_eta,
+		   int    index_ic,
+		   double k,
+		   double * result
+		   );
   
   int trg_p11_at_k(
-	      struct background * pba,
-	      struct primordial * ppm,
-	      struct spectra * psp,
-	      struct spectra_nl * pnl,
-	      int index_eta,
-	      int index_ic,
-	      double k,
-	      double *result				
-	      );
+		   struct background * pba,
+		   struct primordial * ppm,
+		   struct spectra    * psp,
+		   struct spectra_nl * pnl,
+		   int    index_eta,
+		   int    index_ic,
+		   double k,
+		   double *result				
+		   );
   
   int trg_ddp_ab(
 		 struct spectra_nl * pnl,
 		 double *p_ab,
-		 int index_eta,
+		 int    index_eta,
 		 double *result,
-		 char * errmsg
+		 char   * errmsg
 		 );
 		 
 
@@ -124,10 +124,10 @@ extern "C" {
 			struct spectra_nl * pnl,
 			double * p_ab,
 			double * ddp_ab,
-			int index_eta,
+			int    index_eta,
 			double any_k,
 			double * result,
-			char *errmsg
+			char   *errmsg
 			);
 
 
@@ -139,26 +139,26 @@ extern "C" {
    ********************/
 
   int trg_A_arg(
-		struct spectra_nl *pnl,
-		enum name_A name, 
+		struct spectra_nl * pnl,
+		enum   name_A     name, 
 		double k, 
 		double p, 
 		double m, 
-		int index_eta,
-		int index_k, /**< used only for testing, could be supressed */
+		int    index_eta,
+		int    index_k, /**< used only for testing, could be supressed */
 		double * result, 
-		char * errmsg);
+		char   * errmsg);
 
   int trg_A_arg_one_loop(
 			 struct spectra_nl * pnl,
-			 enum name_A name, 
+			 enum   name_A     name, 
 			 double k, 
 			 double p, 
 			 double m, 
-			 int index_eta,
-			 int index_k, /**< used only for testing, could be supressed */
+			 int    index_eta,
+			 int    index_k, /**< used only for testing, could be supressed */
 			 double * result, 
-			 char * errmsg);
+			 char   * errmsg);
 
 
 
@@ -171,20 +171,21 @@ extern "C" {
   int trg_integrate_xy_at_eta(
 			      struct background * pba,
 			      struct primordial * ppm,
-			      struct spectra * psp,
+			      struct spectra    * psp,
 			      struct spectra_nl * pnl,
-			      enum name_A name,
-			      int index_eta,
+			      enum   name_A name,
+			      int    index_eta,
 			      double * result,
-			      char * errmsg
+			      char   * errmsg
 			      );
 
 
   int trg_init(
-	       struct precision *ppr,
+	       struct precision  *ppr,
 	       struct background *pba,
+	       struct perturbs   *ppt,
 	       struct primordial *ppm,
-	       struct spectra *psp,
+	       struct spectra    *psp,
 	       struct spectra_nl *pnl
 	       );
 
@@ -195,9 +196,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
-/**** below some define commands ***/
-
-#define _STOP_INT_ 1.e-1
 
 #endif
