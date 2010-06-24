@@ -2253,7 +2253,7 @@ int trg_init (
   int index_k;
   int index_eta;
 
-  int index_ic=ppt->index_ic; /* for adiabatic modes = 0 */
+  int index_ic=ppt->index_ic_ad; /* for adiabatic modes */
 
   double * temp_k;
   double temp; 
