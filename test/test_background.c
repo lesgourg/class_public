@@ -2,16 +2,9 @@
  * Julien Lesgourgues, 18.04.2010    
  */
  
-#include "precision.h"
-#include "background.h"
-#include "thermodynamics.h"
-#include "perturbations.h"
-#include "bessel.h"
-#include "transfer.h"
-#include "primordial.h"
-#include "spectra.h"
+#include "class.h"
 
-main() {
+main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -23,13 +16,10 @@ main() {
   struct spectra sp;          /* for output spectra */
   struct spectra op;          /* for output files */
  
-  if (precision_init(&pr) == _FAILURE_) {
-    printf("\n\nError running precision_init \n=>%s\n",pr.error_message); 
-    return _FAILURE_;
-  }
+  ErrorMsg errmsg;
 
-  if (input_init(&ba,&th,&pt,&bs,&tr,&pm,&sp,&op) == _FAILURE_) {
-    printf("\n\nError running input_init"); 
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
 

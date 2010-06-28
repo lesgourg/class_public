@@ -144,14 +144,12 @@ int perturb_init(
   class_test(ppt->has_vectors == _TRUE_,
 	     ppt->error_message,
 	     "Vectors not coded yet");
-  class_test(ppt->has_tensors == _TRUE_,
-	     ppt->error_message,
-	     "Tensors not tested yet");
+
+  if (ppt->has_tensors == _TRUE_) printf("!!! TENSORS UNDER DEBUGGING PHASE !!!\n");
 
   if (ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_) {
     printf("Warning: isocurvature initial condition implemented, but not tested yet\n");
   }
-
 
   /** - decide which types of sources must be computed */
   if (ppt->has_cl_cmb_temperature == _TRUE_)
@@ -1030,19 +1028,19 @@ int perturb_workspace_init(
   if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
 
 
-    /** count and assign values to indices in the vector of perturbations to be integrated */
+    /** (a) count and assign values to indices in the vector of perturbations to be integrated */
 
     index_pt = 0;
 
     /* reject inconsistent values of the number of mutipoles in photon temperature hierachy */
-    class_test(ppr->l_max_g_ten < 4,
+    class_test(ppr->l_max_g_ten < 5,
 	       ppt->error_message,
-	       "ppr->l_max_g_ten should be at least 4, i.e. we must integrate at least over photon density, velocity, shear, third and fourth momentum");
+	       "ppr->l_max_g_ten should be at least 5, i.e. we must integrate at least over photon density, velocity, shear, third, fourth, fifth momentum");
  
     /* reject inconsistent values of the number of mutipoles in photon polarization hierachy */
-    class_test(ppr->l_max_pol_g_ten < 4,
+    class_test(ppr->l_max_pol_g_ten < 5,
 	       ppt->error_message,
-	       "ppr->l_max_pol_g_ten should be at least 4");
+	       "ppr->l_max_pol_g_ten should be at least 5");
 
     ppw->index_pt_delta_g = index_pt; /* photon density */
     index_pt++;
@@ -1074,14 +1072,16 @@ int perturb_workspace_init(
     ppw->l_max_pol_g = ppr->l_max_pol_g_ten; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2) */
     index_pt += (ppw->l_max_pol_g-3); 
 
+    /** (b) metric perturbation h is a propagating degree of freedom, so h and hdot are included
+	in the vector of ordinary perturbations, no in that of metric perturbations */
+
+    index_mt = 0;
+
     ppw->index_pt_gw = index_pt;     /* tensor metric perturbation h (gravitational waves) */
     index_pt++;
 
     ppw->index_pt_gwdot = index_pt; /* its time-derivative */
     index_pt++;
-
-    /* no additional metric perturbations for tensors */
-    index_mt = 0;
 
   }
 
@@ -1959,7 +1959,7 @@ int perturb_einstein(
   a_prime_over_a = pvecback[pba->index_bg_H]*a;
 
   /** - for scalar modes: */  
-  if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     
     /** (a) compute the total \f$ \delta \rho, \delta \theta, \delta \sigma \f$ */
  
@@ -2014,16 +2014,22 @@ int perturb_einstein(
 
     }
 
-  }
-
-  /** - for tensor modes: nothing to be done */  
-  if (ppt->has_tensors && index_mode == ppt->index_md_tensors) {
-
-    /*****/
+    return _SUCCESS_;
 
   }
 
-  return _SUCCESS_;
+  if ((ppt->has_tensors == _TRUE_) || (index_mode == ppt->index_md_tensors)) {
+
+    /* nothing to be done for tensors: only one propagating degree of freedom, no constraint equation */
+
+    return _SUCCESS_;
+
+  }
+
+  class_test(0 == 0,
+	     ppt->error_message,
+	     "strange value of index_mode: neither scalar not tensor. Vectors not coded yet!");
+
 }
 
 /**
@@ -2931,23 +2937,94 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 
   /** - tensor mode */
 
-  /* not coded yet */
   if (ppt->has_tensors && index_mode == ppt->index_md_tensors) {
 
-    dy[ppw->index_pt_delta_g] = 0; /* photon density */
-    dy[ppw->index_pt_theta_g] = 0; /* photon velocity */
-    dy[ppw->index_pt_shear_g] = 0; /* photon shear */
-    for (l=3; l <= ppw->l_max_g; l++)
-      dy[ppw->index_pt_delta_g+l] = 0;  /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2) */
+    /* photon density */
+    dy[ppw->index_pt_delta_g] = 
+      -4./3.*y[ppw->index_pt_theta_g]
+      -4.*y[ppw->index_pt_gwdot]
+      -pvecthermo[pth->index_th_dkappa]*(9./10.*y[ppw->index_pt_theta_g]+12./5.*y[ppw->index_pt_pol0_g]);
 
-    dy[ppw->index_pt_pol0_g] = 0; /* photon polarization, l=0 */
-    dy[ppw->index_pt_pol1_g] = 0; /* photon polarization, l=1 */
-    dy[ppw->index_pt_pol2_g] = 0; /* photon polarization, l=2 */
-    for (l=3; l < ppw->l_max_pol_g; l++)
-      dy[ppw->index_pt_pol0_g+l] = 0;  /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2) */
+    /* photon velocity */
+    dy[ppw->index_pt_theta_g] = 
+      k2*(y[ppw->index_pt_delta_g]/4.-y[ppw->index_pt_shear_g])
+      -pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_theta_g];
 
-    dy[ppw->index_pt_gw] = 0;     /* tensor metric perturbation h (gravitational waves) */
-    dy[ppw->index_pt_gwdot] = 0;  /* its time-derivative */
+    /* photon shear */
+    dy[ppw->index_pt_shear_g] =	
+      0.5*(8./15.*y[ppw->index_pt_theta_g]
+	   -3./5.*k*y[ppw->index_pt_shear_g+1]
+	   -pvecthermo[pth->index_th_dkappa]*(68./35.*y[ppw->index_pt_shear_g]-6./35.*y[ppw->index_pt_pol2_g]));
+
+    /* photon l=3 */
+    dy[ppw->index_pt_l3_g] = 
+      k/7.*(6.*y[ppw->index_pt_shear_g]-4.*y[ppw->index_pt_l3_g+1])
+      -pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_l3_g];
+      
+    /* photon l=4 */
+    l=4;
+    dy[ppw->index_pt_delta_g+l] = 
+      k/(2.*l+1.)*(l*y[ppw->index_pt_delta_g+l-1]-(l+1.)*y[ppw->index_pt_delta_g+l+1])
+      -pvecthermo[pth->index_th_dkappa]*(209./210.*y[ppw->index_pt_l3_g+1]+1./210.*y[ppw->index_pt_pol2_g+2]);
+
+
+    /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
+    for (l=5; l < ppw->l_max_g; l++)
+      dy[ppw->index_pt_delta_g+l] = 
+	k/(2.*l+1.)*(l*y[ppw->index_pt_delta_g+l-1]-(l+1.)*y[ppw->index_pt_delta_g+l+1])
+	-pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_delta_g+l];  
+
+    /* l=lmax */
+    l = ppw->l_max_g;
+    dy[ppw->index_pt_delta_g+l] = 
+      k*y[ppw->index_pt_delta_g+l-1]
+      -(1.+l)/eta*y[ppw->index_pt_delta_g+l]
+      - pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_delta_g+l];
+
+    /* photon polarization, l=0 */
+    dy[ppw->index_pt_pol0_g] = 
+      -k*y[ppw->index_pt_pol0_g+1]
+      -pvecthermo[pth->index_th_dkappa]*(2./5.*y[ppw->index_pt_pol0_g]+1./10.*y[ppw->index_pt_delta_g]); 
+    
+    /* photon polarization, l=1 */
+    dy[ppw->index_pt_pol1_g] = 
+      k/3.*(y[ppw->index_pt_pol1_g-1]-2.*y[ppw->index_pt_pol1_g+1])
+      -pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_pol1_g]; 
+
+    /* photon polarization, l=2 */
+    dy[ppw->index_pt_pol2_g] = 
+      k/5.*(2.*y[ppw->index_pt_pol2_g-1]-3.*y[ppw->index_pt_pol2_g+1])
+      -pvecthermo[pth->index_th_dkappa]*(41./35.*y[ppw->index_pt_pol2_g]+2./35.*y[ppw->index_pt_shear_g]); 
+
+    /* photon polarization, l=3 */
+    dy[ppw->index_pt_pol3_g] = 
+      k/7.*(3.*y[ppw->index_pt_pol3_g-1]-4.*y[ppw->index_pt_pol3_g+1])
+      -pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_pol3_g]; 
+
+    /* photon polarization, l=4 */
+    l=4;
+    dy[ppw->index_pt_pol0_g+l] = 
+      k/(2.*l+1.)*(l*y[ppw->index_pt_pol0_g+l-1]-(l+1.)*y[ppw->index_pt_pol0_g+l+1])
+      -pvecthermo[pth->index_th_dkappa]*(209./210.*y[ppw->index_pt_pol0_g+l]+1./210.*y[ppw->index_pt_delta_g+l]); 
+
+    /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
+    for (l=5; l < ppw->l_max_pol_g; l++)
+      dy[ppw->index_pt_pol0_g+l] = 
+	k/(2.*l+1.)*(l*y[ppw->index_pt_pol0_g+l-1]-(l+1.)*y[ppw->index_pt_pol0_g+l+1])
+	-pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_pol0_g+l];
+
+    /* l=lmax */
+    l = ppw->l_max_pol_g;
+    dy[ppw->index_pt_pol0_g+l] = 
+      k*y[ppw->index_pt_pol0_g+l-1]
+      -(l+1.)/eta*y[ppw->index_pt_pol0_g+l]
+      -pvecthermo[pth->index_th_dkappa]*y[ppw->index_pt_pol0_g+l];
+
+      /* tensor metric perturbation h (gravitational waves) */
+    dy[ppw->index_pt_gw] = y[ppw->index_pt_gwdot];     
+
+    /* its time-derivative */
+    dy[ppw->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->index_pt_gwdot]-k2*y[ppw->index_pt_gw];
   }
 
   /*     printf("Leaves derivs with:\n"); */

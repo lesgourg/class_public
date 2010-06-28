@@ -740,8 +740,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_g=10; /* optimized 9/09/08  */
   ppr->l_max_pol_g=10; /* optimized 9/09/08  */
   ppr->l_max_nur=25;
-  ppr->l_max_g_ten=0;
-  ppr->l_max_pol_g_ten=0;
+  ppr->l_max_g_ten=5;
+  ppr->l_max_pol_g_ten=5;
 
   ppr->phi_ini=1.;
   ppr->entropy_ini=1.;
