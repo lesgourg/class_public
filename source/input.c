@@ -502,8 +502,8 @@ int input_init(
   class_read_double("recfast_x_He0_trigger",ppr->recfast_x_He0_trigger);
   class_read_double("recfast_fudge",ppr->recfast_fudge);
   class_read_double("recfast_fudge_He",ppr->recfast_fudge_He);
-  class_read_double("recfast_Heswitch",ppr->recfast_Heswitch);
-  class_read_double("recfast_Nz0",ppr->recfast_Nz0);
+  class_read_int("recfast_Heswitch",ppr->recfast_Heswitch);
+  class_read_int("recfast_Nz0",ppr->recfast_Nz0);
   class_read_double("tol_thermo_integration",ppr->tol_thermo_integration);
   class_read_double("visibility_threshold_start_sources",ppr->visibility_threshold_start_sources);
   class_read_double("visibility_threshold_free_streaming",ppr->visibility_threshold_free_streaming);
@@ -515,28 +515,28 @@ int input_init(
   class_read_double("reionization_start_factor",ppr->reionization_start_factor);
   class_read_double("helium_fullreio_redshift",ppr->helium_fullreio_redshift);
   class_read_double("helium_fullreio_width",ppr->helium_fullreio_width);
-  class_read_double("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
+  class_read_int("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
 
   /** - parameters related to the perturbations */
 
-  class_read_double("gauge",ppr->gauge);
+  class_read_int("gauge",ppr->gauge);
   class_read_double("k_scalar_min",ppr->k_scalar_min);
   class_read_double("k_scalar_oscillations",ppr->k_scalar_oscillations);
   class_read_double("k_scalar_step_sub",ppr->k_scalar_step_sub);
   class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
   class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
   class_read_double("k_scalar_k_per_decade_for_pk",ppr->k_scalar_k_per_decade_for_pk);
-  class_read_double("k_tensor_number",ppr->k_tensor_number);
+  class_read_int("k_tensor_number",ppr->k_tensor_number);
   class_read_double("k_tensor_min",ppr->k_tensor_min);
   class_read_double("k_tensor_logstep",ppr->k_tensor_logstep);
   class_read_double("k_eta_min",ppr->k_eta_min);
   class_read_double("eta_min_over_sampling_min",ppr->eta_min_over_sampling_min);
   class_read_double("k_eta_ma",ppr->k_eta_max);
-  class_read_double("l_max_g",ppr->l_max_g);
-  class_read_double("l_max_pol_g",ppr->l_max_pol_g);
-  class_read_double("l_max_nur",ppr->l_max_nur);
-  class_read_double("l_max_g_ten",ppr->l_max_g_ten);
-  class_read_double("l_max_pol_g_ten",ppr->l_max_pol_g_ten);
+  class_read_int("l_max_g",ppr->l_max_g);
+  class_read_int("l_max_pol_g",ppr->l_max_pol_g);
+  class_read_int("l_max_nur",ppr->l_max_nur);
+  class_read_int("l_max_g_ten",ppr->l_max_g_ten);
+  class_read_int("l_max_pol_g_ten",ppr->l_max_pol_g_ten);
   class_read_double("phi_ini",ppr->phi_ini);
   class_read_double("entropy_ini",ppr->entropy_ini);
   class_read_double("gw_ini",ppr->gw_ini);
@@ -551,10 +551,10 @@ int input_init(
   /** - parameter related to the Bessel functions */
 
   class_read_double("l_logstep",ppr->l_logstep);
-  class_read_double("l_linstep",ppr->l_linstep);
+  class_read_int("l_linstep",ppr->l_linstep);
   class_read_double("bessel_scalar_x_step",ppr->bessel_scalar_x_step);
   class_read_double("bessel_scalar_j_cut",ppr->bessel_scalar_j_cut);
-  class_read_double("bessel_always_recompute",ppr->bessel_always_recompute);
+  class_read_int("bessel_always_recompute",ppr->bessel_always_recompute);
 
   /** - parameter related to the primordial spectra */
 

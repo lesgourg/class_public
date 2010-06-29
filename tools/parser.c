@@ -149,7 +149,7 @@ int parser_read_int(
 
   index=0;
 
-  while ((strcmp(pfc->name[index],name) != 0) && (index < pfc->size))
+  while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
     index++;
 
   class_test(index == pfc->size,
@@ -183,14 +183,14 @@ int parser_read_double(
 
   index=0;
 
-  while ((strcmp(pfc->name[index],name) != 0) && (index < pfc->size))
+  while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
     index++;
 
   class_test(index == pfc->size,
 	     errmsg,
 	     "did not find parameter %s in file %s\n",name,pfc->filename);
 
-  class_test(sscanf(pfc->value[index],"%lf",value) != 1,
+  class_test(sscanf(pfc->value[index],"%lg",value) != 1,
 	     errmsg,
 	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
 
@@ -217,7 +217,7 @@ int parser_read_string(
 
   index=0;
 
-  while ((strcmp(pfc->name[index],name) != 0) && (index < pfc->size))
+  while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
     index++;
 
   class_test(index == pfc->size,

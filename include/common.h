@@ -238,7 +238,7 @@ struct precision
   double recfast_H_frac; /**< recfast parameter */
   double recfast_fudge; /**< recfast parameter */
   double recfast_fudge_He; /**< recfast 1.4 parameter */
-  short recfast_Heswitch; /**< recfast 1.4 parameter */
+  int recfast_Heswitch; /**< recfast 1.4 parameter */
   double recfast_x_H0_trigger;  /**< recfast parameter */
   double recfast_x_He0_trigger;  /**< recfast parameter */
   int recfast_Nz0; /**< recfast parameter */
@@ -303,11 +303,11 @@ struct precision
 
   double k_eta_max; /**< maximum value of \f$ k \times \eta \f$ for which the sources should be computed in a pure CMB run*/
 
-  double l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
-  double l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
-  double l_max_nur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
-  double l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
-  double l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarisation (tensor), at least 4 */
+  int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
+  int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
+  int l_max_nur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+  int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
+  int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarisation (tensor), at least 4 */
 
   double phi_ini;     /**< initial condition for Bardeen potential for adiabatic */
   double entropy_ini; /**< initial condition for entropy perturbation for isocurvature */ 
@@ -369,7 +369,7 @@ struct precision
 
   double bessel_scalar_x_step; /**< step dx for sampling Bessel functions \f$ j_l(x) \f$ */
   double bessel_scalar_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
-  short bessel_always_recompute; /**< if set to true, Bessels are never read from file */
+  int bessel_always_recompute; /**< if set to true, Bessels are never read from file */
 
   //@}
 

@@ -17,8 +17,8 @@ CC       = gcc
 
 CCFLAG   = -O2 -fopenmp
 LDFLAG   = -O2 -fopenmp
-#CCFLAG = -O2
-#LDFLAG = -O2 
+CCFLAG = -O2
+LDFLAG = -O2 
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 
@@ -68,6 +68,8 @@ TEST_BACKGROUND = test_background.o
 
 TEST_TRG = test_trg.o
 
+TEST_KARIM = test_karim.o
+
 class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(CLASS)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
@@ -90,6 +92,9 @@ test_thermodynamics: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(TEST_THERMODYNA
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_background: $(TOOLS) $(INPUT) $(BACKGROUND) $(TEST_BACKGROUND)
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_karim: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(TEST_KARIM)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 clean: .base

@@ -14,7 +14,7 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct spectra op;          /* for output files */
+  struct output op;          /* for output files */
  
   ErrorMsg errmsg;
 

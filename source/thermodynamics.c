@@ -421,7 +421,7 @@ int thermodynamics_init(
 
   }
 
-  /* -> compute smooth the rate (detaile dof smoothing unimportant: only the order of magnitude of the rate matters) */ 
+  /* -> smooth the rate (detaile of smoothing unimportant: only the order of magnitude of the rate matters) */ 
   class_call(array_smooth(pth->thermodynamics_table,
 			  pth->th_size,
 			  pth->tt_size,
@@ -643,6 +643,7 @@ int thermodynamics_reionization_function(
 
   double argument;
 
+  /* ionization function like in CAMB */
   if (pth->reio_parametrization == reio_camb) {
 
     if (z > preio->reionization_parameters[preio->index_reio_start]) {

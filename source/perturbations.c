@@ -1886,6 +1886,9 @@ int perturb_timescale_and_approximations(
     /** (b.1.) if \f$ \kappa'=0 \f$, recombination is finished; check that tight-coupling approximation is off */
     if (ppw->pvecthermo[pth->index_th_dkappa] == 0.) {
       ppw->tca = tca_off;
+      class_test(ppw->pvecthermo[pth->index_th_dkappa] == 0.,
+		 ppt->error_message,
+		 "This test is just for debugging, you can erase it\n");
     }
 
     /** (b.2.) if \f$ \kappa' \neq 0 \f$, recombination is not finished: */
@@ -2465,6 +2468,8 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
   fracnu = pvecback[pba->index_bg_rho_nur] / (pvecback[pba->index_bg_rho_g] + pvecback[pba->index_bg_rho_nur]);
 
+/*   fprintf(stderr,"%g %g %g %d %d\n",eta,z,k,ppw->rp,ppw->tca); */
+
   /** - for scalar mode: */
   if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
 
@@ -2518,16 +2523,16 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 	}
       }
 
-      for (l = 2; l < ppw->l_max_g; l++) {
+      for (l = 2; l <= ppw->l_max_g; l++) {
 	y[ppw->index_pt_delta_g+l] = 0.;
       }
       
-      for (l = 0; l < ppw->l_max_pol_g; l++) {
+      for (l = 0; l <= ppw->l_max_pol_g; l++) {
 	y[ppw->index_pt_pol0_g+l] = 0.;
       }
 
       if (pba->has_nur == _TRUE_) {
-	for (l = 2; l < ppw->l_max_nur; l++) {
+	for (l = 2; l <= ppw->l_max_nur; l++) {
 	  y[ppw->index_pt_delta_nur+l] = 0.;
 	}
       }
@@ -2712,7 +2717,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 
       }
       else {
-	for (l = 3; l < ppw->l_max_g; l++) {
+	for (l = 3; l <= ppw->l_max_g; l++) {
 	  dy[ppw->index_pt_delta_g+l] = 0.; /* photon T high momenta when switched off */
 	}
 
@@ -2745,7 +2750,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
       }
       else {
 
-	for (l = 0; l < ppw->l_max_pol_g; l++) {
+	for (l = 0; l <= ppw->l_max_pol_g; l++) {
 	  dy[ppw->index_pt_pol0_g+l] = 0.; /* photon polarization when switched off */
 	}
       }
@@ -2903,7 +2908,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
       }
 
       else{
-	for (l = 3; l < ppw->l_max_nur; l++) {
+	for (l = 3; l <= ppw->l_max_nur; l++) {
 	  dy[ppw->index_pt_delta_nur+l] = 0.;
 	}
       }

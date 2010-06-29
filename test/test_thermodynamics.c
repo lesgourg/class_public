@@ -14,7 +14,7 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct spectra op;          /* for output files */
+  struct output op;          /* for output files */
  
   ErrorMsg errmsg;
 
@@ -45,12 +45,15 @@ main(int argc, char **argv) {
   printf("#4: Thomson scattering rate kappa'\n");
   printf("#5: visibility function g=kappa' e^-kappa \n");
   for (i=0; i < th.tt_size; i++)
-    printf("%e %e %e %e %e\n",
+    printf("%e %e %e %e %e %e %e\n",
 	   th.z_table[i],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_exp_m_kappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_g]);
+	   th.thermodynamics_table[i*th.th_size+th.index_th_ddkappa],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_exp_m_kappa],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_g],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2]
+	   );
 
   /********************************************/
 
