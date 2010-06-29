@@ -653,6 +653,7 @@ int input_default_params(
   pop->z_pk = 0.;  
   psp->z_max_pk = pop->z_pk;
   
+  pth->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
   ppt->perturbations_verbose = 0;
   pbs->bessels_verbose = 0;
