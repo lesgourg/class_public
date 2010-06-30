@@ -9,6 +9,7 @@ struct spectra_nl {
   double k_max;
   int k_size; /**< total number of k values */
   int index_k_L;  /**< for index_k=0, ...,(index_k_L-1), use linear theory only */
+  int index_k_M; /**< for index_k>index_k_M we use an extrapolation to avoid numerical horros */
 
   double * eta;
   int eta_size;
