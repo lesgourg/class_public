@@ -1314,6 +1314,115 @@ int array_interpolate_spline_one_column(
   return _SUCCESS_;
 }
 
+ /**
+  * interpolate to get y_i(x), when x and y_i are in different arrays
+  *
+  * 
+  */
+int array_interpolate_extrapolate_spline_one_column(
+						    double * x_array,
+						    int x_size,
+						    double * y_array, /* array of size x_size*y_size with elements 
+									 y_array[index_y*x_size+index_x] */
+						    int y_size,    
+						    int index_y,   
+						    double * ddy_array, /* array of size x_size*y_size */
+						    double x,   /* input */
+						    double * y, /* output */
+						    ErrorMsg errmsg
+						    ) {
+
+
+  int inf,sup,mid,i;
+  double h,a,b;
+
+  if (x > x_array[x_size-2]) {
+
+    /*interpolate/extrapolate linearly ln(y) as a function of ln(x)*/
+
+    class_test(y_array[index_y * x_size + (x_size-1)] <= 0.,
+	       errmsg,
+	       "inter/extra-polating log(y) impossible since y<=0");
+
+    class_test(y_array[index_y * x_size + (x_size-2)] <= 0.,
+	       errmsg,
+	       "inter/extra-polating log(y) impossible since y<=0");
+
+    h = log(x_array[x_size-1]) - log(x_array[x_size-2]);
+    b = (log(x)-log(x_array[x_size-2]))/h;
+    a = 1-b;
+    
+    *y = exp(a * log(y_array[index_y * x_size + (x_size-2)]) +
+	     b * log(y_array[index_y * x_size + (x_size-1)]));
+
+
+  }
+
+  else {
+
+    /*interpolate y as a function of x with a spline*/
+  
+    inf=0;
+    sup=x_size-1;
+  
+    if (x_array[inf] < x_array[sup]){
+      
+      if (x < x_array[inf]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[inf]);
+	return _FAILURE_;
+      }
+      
+      if (x > x_array[sup]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[sup]);
+	return _FAILURE_;
+      }
+      
+      while (sup-inf > 1) {
+	
+	mid=(int)(0.5*(inf+sup));
+	if (x < x_array[mid]) {sup=mid;}
+	else {inf=mid;}
+	
+      }
+      
+    }
+
+    else {
+      
+      if (x < x_array[sup]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[sup]);
+	return _FAILURE_;
+      }
+      
+      if (x > x_array[inf]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[inf]);
+	return _FAILURE_;
+      }
+      
+      while (sup-inf > 1) {
+	
+	mid=(int)(0.5*(inf+sup));
+	if (x > x_array[mid]) {sup=mid;}
+	else {inf=mid;}
+	
+      }
+      
+    }
+    
+    h = x_array[sup] - x_array[inf];
+    b = (x-x_array[inf])/h;
+    a = 1-b;
+    
+    *y = 
+      a * y_array[index_y * x_size + inf] +
+      b * y_array[index_y * x_size + sup] +
+      ((a*a*a-a)* ddy_array[index_y * x_size + inf] +
+       (b*b*b-b)* ddy_array[index_y * x_size + sup])*h*h/6.;
+
+  }
+
+  return _SUCCESS_;
+}
 
  /**
   * interpolate to get y_i(x), when x and y_i are all columns of the same array, x is arranged in growing order, and the point x is presumably close to the previous point x from the last call of this function.

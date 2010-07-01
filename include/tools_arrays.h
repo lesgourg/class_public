@@ -237,6 +237,19 @@ extern "C" {
 					  ErrorMsg errmsg
 					  );
 
+  int array_interpolate_extrapolate_spline_one_column(
+					  double * x_array,
+					  int x_size,
+					  double * y_array, /* array of size x_size*y_size with elements 
+							       y_array[index_y*x_size+index_x] */
+					  int y_size,    
+					  int index_y,   
+					  double * ddy_array, /* array of size x_size*y_size */
+					  double x,   /* input */
+					  double * y, /* output */
+					  ErrorMsg errmsg
+					  );
+
   /** interpolate to get y(x), when x_i and y_i are in two different arrays*/
   int array_interpolate_two(
 			    double * array_x,
