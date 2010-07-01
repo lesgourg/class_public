@@ -128,6 +128,18 @@ extern "C" {
 				    ErrorMsg errmsg
 				    );
 
+  int array_logspline_table_one_column(
+				    double * x, /* vector of size x_size */
+				    int x_size,
+				    double * y_array, /* array of size x_size*y_size with elements 
+							 y_array[index_y*x_size+index_x] */
+				    int y_size,    
+				    int index_y,   
+				    double * ddlogy_array, /* array of size x_size*y_size */
+				    short spline_mode,
+				    ErrorMsg errmsg
+				    );
+
   int array_integrate_all_spline(
 				 double * array,
 				 int n_columns,
@@ -245,6 +257,19 @@ extern "C" {
 					  int y_size,    
 					  int index_y,   
 					  double * ddy_array, /* array of size x_size*y_size */
+					  double x,   /* input */
+					  double * y, /* output */
+					  ErrorMsg errmsg
+					  );
+
+  int array_interpolate_extrapolate_spline_one_column(
+					  double * x_array,
+					  int x_size,
+					  double * y_array, /* array of size x_size*y_size with elements 
+							       y_array[index_y*x_size+index_x] */
+					  int y_size,    
+					  int index_y,   
+					  double * ddlogy_array, /* array of size x_size*y_size */
 					  double x,   /* input */
 					  double * y, /* output */
 					  ErrorMsg errmsg

@@ -969,6 +969,139 @@ int array_spline_table_one_column(
   return _SUCCESS_;
 }
 
+int array_logspline_table_one_column(
+		       double * x, /* vector of size x_size */
+		       int x_size,
+		       double * y_array, /* array of size x_size*y_size with elements 
+					  y_array[index_y*x_size+index_x] */
+		       int y_size,    
+		       int index_y,   
+		       double * ddlogy_array, /* array of size x_size*y_size */
+		       short spline_mode,
+		       ErrorMsg errmsg
+		       ) {
+
+  double p;
+  double qn;
+  double un; 
+  double * u;
+  double sig;
+  int index_x;
+  double dy_first;
+  double dy_last;
+
+  u = malloc((x_size-1) * sizeof(double));
+  if (u == NULL) {
+    sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  /************************************************/
+
+  index_x=0;
+
+  if (spline_mode == _SPLINE_NATURAL_) {
+    ddlogy_array[index_y*x_size+index_x] = 0.0;
+    u[index_x] = 0.0;
+  }
+  else {
+    if (spline_mode == _SPLINE_EST_DERIV_) {
+
+      dy_first = 
+	((log(x[2])-log(x[0]))*(log(x[2])-log(x[0]))*
+	 (log(y_array[index_y*x_size+1])-log(y_array[index_y*x_size+0]))-
+	 (log(x[1])-log(x[0]))*(log(x[1])-log(x[0]))*
+	 (log(y_array[index_y*x_size+2])-log(y_array[index_y*x_size+0])))/
+	((log(x[2])-log(x[0]))*(log(x[1])-log(x[0]))*(log(x[2])-log(x[1])));
+      
+      ddlogy_array[index_y*x_size+index_x] = -0.5;
+      
+      u[index_x] =
+	(3./(log(x[1]) -  log(x[0])))*
+	((log(y_array[index_y*x_size+1])-log(y_array[index_y*x_size+0]))/
+	 (log(x[1]) - log(x[0]))-dy_first);
+      
+    }
+    else {
+      sprintf(errmsg,"%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
+      return _FAILURE_;
+    }
+  }
+  
+  /************************************************/
+
+  for (index_x=1; index_x < x_size-1; index_x++) {
+
+    sig = (log(x[index_x]) - log(x[index_x-1]))/(log(x[index_x+1]) - log(x[index_x-1]));
+
+    p = sig * ddlogy_array[index_y*x_size+(index_x-1)] + 2.0;
+
+    ddlogy_array[index_y*x_size+index_x] = (sig-1.0)/p;
+  
+    u[index_x] =	
+      (log(y_array[index_y*x_size+(index_x+1)]) - log(y_array[index_y*x_size+index_x]))
+      / (log(x[index_x+1]) - log(x[index_x]))
+      - (log(y_array[index_y*x_size+index_x]) - log(y_array[index_y*x_size+(index_x-1)]))
+      / (log(x[index_x]) - log(x[index_x-1]));
+    
+    u[index_x] = (6.0 * u[index_x] /
+		  (log(x[index_x+1]) - log(x[index_x-1]))
+		  - sig * u[index_x-1]) / p;
+    
+  }
+
+  /************************************************/
+
+  if (spline_mode == _SPLINE_NATURAL_) {
+
+      qn=un=0.0;
+
+  }
+  else {
+    if (spline_mode == _SPLINE_EST_DERIV_) {
+
+      dy_last = 
+	((log(x[x_size-3])-log(x[x_size-1]))*(log(x[x_size-3])-log(x[x_size-1]))*
+	 (log(y_array[index_y*x_size+(x_size-2)])-log(y_array[index_y*x_size+(x_size-1)]))-
+	 (log(x[x_size-2])-log(x[x_size-1]))*(log(x[x_size-2])-log(x[x_size-1]))*
+	 (log(y_array[index_y*x_size+(x_size-3)])-log(y_array[index_y*x_size+(x_size-1)])))/
+	((log(x[x_size-3])-log(x[x_size-1]))*(log(x[x_size-2])-log(x[x_size-1]))*
+	 (log(x[x_size-3])-log(x[x_size-2])));
+
+      qn=0.5;
+
+      un=
+	(3./(log(x[x_size-1]) - log(x[x_size-2])))*
+	(dy_last-(log(y_array[index_y*x_size+(x_size-1)]) - log(y_array[index_y*x_size+(x_size-2)]))/
+	 (log(x[x_size-1]) - log(x[x_size-2])));	
+      
+    }
+    else {
+      sprintf(errmsg,"%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
+      return _FAILURE_;
+    }
+  }
+    
+  /************************************************/
+
+  index_x=x_size-1;
+
+  ddlogy_array[index_y*x_size+index_x] =
+    (un - qn * u[index_x-1]) /
+    (qn * ddlogy_array[index_y*x_size+(index_x-1)] + 1.0);
+
+  for (index_x=x_size-2; index_x >= 0; index_x--) {
+
+    ddlogy_array[index_y*x_size+index_x] = ddlogy_array[index_y*x_size+index_x] *
+      ddlogy_array[index_y*x_size+(index_x+1)] + u[index_x];
+
+  }
+
+  free(u);
+
+  return _SUCCESS_;
+}
+
 int array_integrate_all_spline(
 		   double * array,
 		   int n_columns,
@@ -1418,6 +1551,107 @@ int array_interpolate_extrapolate_spline_one_column(
       b * y_array[index_y * x_size + sup] +
       ((a*a*a-a)* ddy_array[index_y * x_size + inf] +
        (b*b*b-b)* ddy_array[index_y * x_size + sup])*h*h/6.;
+
+  }
+
+  return _SUCCESS_;
+}
+
+ /**
+  * interpolate to get y_i(x), when x and y_i are in different arrays
+  *
+  * 
+  */
+int array_interpolate_extrapolate_logspline_one_column(
+						    double * x_array,
+						    int x_size,
+						    double * y_array, /* array of size x_size*y_size with elements 
+									 y_array[index_y*x_size+index_x] */
+						    int y_size,    
+						    int index_y,   
+						    double * ddlogy_array, /* array of size x_size*y_size */
+						    double x,   /* input */
+						    double * y, /* output */
+						    ErrorMsg errmsg
+						    ) {
+
+
+  int inf,sup,mid,i;
+  double h,a,b;
+
+  if (x > x_array[x_size-2]) {
+
+    /*interpolate/extrapolate linearly ln(y) as a function of ln(x)*/
+
+    h = log(x_array[x_size-1]) - log(x_array[x_size-2]);
+    b = (log(x)-log(x_array[x_size-2]))/h;
+    a = 1-b;
+    
+    *y = exp(a * log(y_array[index_y * x_size + (x_size-2)]) +
+	     b * log(y_array[index_y * x_size + (x_size-1)]));
+
+
+  }
+
+  else {
+
+    /*interpolate ln(y) as a function of ln(x) with a spline*/
+  
+    inf=0;
+    sup=x_size-1;
+  
+    if (x_array[inf] < x_array[sup]){
+      
+      if (x < x_array[inf]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[inf]);
+	return _FAILURE_;
+      }
+      
+      if (x > x_array[sup]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[sup]);
+	return _FAILURE_;
+      }
+      
+      while (sup-inf > 1) {
+	
+	mid=(int)(0.5*(inf+sup));
+	if (x < x_array[mid]) {sup=mid;}
+	else {inf=mid;}
+	
+      }
+      
+    }
+
+    else {
+      
+      if (x < x_array[sup]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[sup]);
+	return _FAILURE_;
+      }
+      
+      if (x > x_array[inf]) {
+	sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[inf]);
+	return _FAILURE_;
+      }
+      
+      while (sup-inf > 1) {
+	
+	mid=(int)(0.5*(inf+sup));
+	if (x > x_array[mid]) {sup=mid;}
+	else {inf=mid;}
+	
+      }
+      
+    }
+    
+    h = log(x_array[sup]) - log(x_array[inf]);
+    b = (log(x)-log(x_array[inf]))/h;
+    a = 1-b;
+    
+    *y = exp(a * log(y_array[index_y * x_size + inf]) +
+	     b * log(y_array[index_y * x_size + sup]) +
+	     ((a*a*a-a)* ddlogy_array[index_y * x_size + inf] +
+	      (b*b*b-b)* ddlogy_array[index_y * x_size + sup])*h*h/6.);
 
   }
 
