@@ -76,7 +76,7 @@ int spectra_pk_at_z(
 	     pba->error_message,
 	     psp->error_message);
 
-  /* interpolation makes sense only if there are at least two values of eta. deal with case of one value. */
+  /* interpolation makes sense only if there are at least two values of eta. Deal with case of one value. */
   if (psp->eta_size == 1) {
 
     class_test(z!=0.,
@@ -97,10 +97,10 @@ int spectra_pk_at_z(
 	     eta_requested,psp->eta[0],psp->eta[psp->eta_size-1]);
 
 
-  class_call(array_interpolate_spline(psp->eta,
+  class_call(array_interpolate_logspline(psp->eta,
 				      psp->eta_size,
 				      psp->pk,
-				      psp->ddpk,
+				      psp->ddlnpk,
 				      psp->ic_size[index_mode]*psp->k_size,
 				      eta_requested,
 				      &last_index,
@@ -137,7 +137,7 @@ int spectra_pk_at_k_and_z(
 
   double * temporary_pk;
   double * spline_pk;
-  double * spline_ddpk;
+  double * spline_ddlnpk;
   int index_k;
   int last_index;
   double * pkini_k;
@@ -209,22 +209,22 @@ int spectra_pk_at_k_and_z(
 
   free(temporary_pk);
   
-  class_alloc(spline_ddpk,sizeof(double)*psp->k_size,psp->error_message);
+  class_alloc(spline_ddlnpk,sizeof(double)*psp->k_size,psp->error_message);
 
-  class_call(array_spline_table_lines(psp->k,
+  class_call(array_logspline_table_lines(psp->k,
 				      psp->k_size,
 				      spline_pk,
 				      1,
-				      spline_ddpk,
-				      _SPLINE_EST_DERIV_,
+				      spline_ddlnpk,
+				      _SPLINE_NATURAL_,
 				      psp->error_message),
 	     psp->error_message,
 	     psp->error_message);
 
-  class_call(array_interpolate_spline(psp->k,
+  class_call(array_interpolate_logspline(psp->k,
 				      psp->k_size,
 				      spline_pk,
-				      spline_ddpk,
+				      spline_ddlnpk,
 				      1,
 				      k,
 				      &last_index,
@@ -235,7 +235,7 @@ int spectra_pk_at_k_and_z(
 	     psp->error_message);
 
   free(spline_pk);
-  free(spline_ddpk);
+  free(spline_ddlnpk);
 
   return _SUCCESS_;
 
@@ -342,7 +342,7 @@ int spectra_free(
       free(psp->k);
       free(psp->pk);
       if (psp->eta_size > 1) {
-	free(psp->ddpk);
+	free(psp->ddlnpk);
       }
     }    
 
@@ -693,7 +693,7 @@ int spectra_pk(
   /* if z_max_pk>0, store several values (with a confortable margin above z_max_pk) in view of interpolation */
   else{
 
-    /* find the first relevant value of eta (last value in the table eta_ampling before eta(z_max)) and infer the number of vlaues of eta at which P(k) must be stored */
+    /* find the first relevant value of eta (last value in the table eta_ampling before eta(z_max)) and infer the number of values of eta at which P(k) must be stored */
 
     class_call(background_eta_of_z(pba,psp->z_max_pk,&eta_min),
 	       pba->error_message,
@@ -792,13 +792,13 @@ int spectra_pk(
      the table */  
   if (psp->eta_size > 1) {
 
-    class_alloc(psp->ddpk,sizeof(double)*psp->eta_size*psp->k_size*psp->ic_size[index_mode],psp->error_message);
+    class_alloc(psp->ddlnpk,sizeof(double)*psp->eta_size*psp->k_size*psp->ic_size[index_mode],psp->error_message);
 
-    class_call(array_spline_table_lines(psp->eta,
+    class_call(array_logspline_table_lines(psp->eta,
 					psp->eta_size,
 					psp->pk,
 					psp->ic_size[index_mode]*psp->k_size,
-					psp->ddpk,
+					psp->ddlnpk,
 					_SPLINE_EST_DERIV_,
 					psp->error_message),
 	       psp->error_message,

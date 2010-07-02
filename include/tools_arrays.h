@@ -115,7 +115,17 @@ extern "C" {
 		       short spline_mode,
 		       ErrorMsg errmsg
 		       );
-
+	
+  int array_logspline_table_lines(
+				  double * x,
+				  int x_size,
+				  double * y_array,
+				  int y_size, 
+				  double * ddlny_array,
+				  short spline_mode,
+				  ErrorMsg errmsg
+				  );
+	
   int array_spline_table_one_column(
 				    double * x, /* vector of size x_size */
 				    int x_size,
@@ -200,17 +210,29 @@ extern "C" {
 			       double * result,
 			       int result_size, /** from 1 to n_columns */
 			       ErrorMsg errmsg);
-
+	
+  int array_interpolate_logspline(
+				  double * x_array,
+				  int n_lines,
+				  double * array,
+				  double * array_logsplined,
+				  int n_columns,
+				  double x,
+				  int * last_index,
+				  double * result,
+				  int result_size, /** from 1 to n_columns */
+				  ErrorMsg errmsg);
+	
   int array_interpolate_growing_closeby(
-			double * array,
-			int n_columns,
-			int n_lines,
-			int index_x,   /** from 0 to (n_columns-1) */
-			double x,
-			int * last_index,
-			double * result,
-			int result_size,
-			ErrorMsg errmsg); /** from 1 to n_columns */
+					double * array,
+					int n_columns,
+					int n_lines,
+					int index_x,   /** from 0 to (n_columns-1) */
+					double x,
+					int * last_index,
+					double * result,
+					int result_size,
+					ErrorMsg errmsg); /** from 1 to n_columns */
 
   int array_interpolate_spline_growing_closeby(
 					       double * x_array,

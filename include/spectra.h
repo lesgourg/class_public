@@ -37,7 +37,7 @@ struct spectra {
   int eta_size; 
   double * eta;
   double * pk;   /**< power spectrum pk[(index_ic * psp->k_size + index_k)*eta_size+index_eta] */
-  double * ddpk; /**< table of second derivatives with respect to eta in view of spline interpolation */
+  double * ddlnpk; /**< table of second derivatives of ln(P) with respect to ln(eta) in view of spline interpolation */
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
