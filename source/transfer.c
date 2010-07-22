@@ -638,7 +638,7 @@ int transfer_interpolate_sources(
 
   class_call(array_spline_table_columns(ppt->k[index_mode],
 					ppt->k_size[index_mode],
-					ppt->sources[index_mode][index_ic * ppt->tp_size + index_type],
+					ppt->sources[index_mode][index_ic * ppt->tp_size[index_mode] + index_type],
 					ppt->eta_size,
 					source_spline,
 					_SPLINE_EST_DERIV_,
@@ -671,37 +671,50 @@ int transfer_interpolate_sources(
 
       interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 
 	a * ppt->sources[index_mode]
-	[index_ic * ppt->tp_size + index_type]
+	[index_ic * ppt->tp_size[index_mode] + index_type]
 	[index_eta*ppt->k_size[index_mode]+index_k]
 	+ b * ppt->sources[index_mode]
-	[index_ic * ppt->tp_size + index_type]
+	[index_ic * ppt->tp_size[index_mode] + index_type]
 	[index_eta*ppt->k_size[index_mode]+index_k+1]
 	+ ((a*a*a-a) * source_spline[index_eta*ppt->k_size[index_mode]+index_k]
 	   +(b*b*b-b) * source_spline[index_eta*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
 
-      /* for lensing, multiply gravitational potential by appropriate window function */
+      /* case of cmb lensing: multiply gravitational potential by appropriate window function */
 
-      /* case of cmb lensing */
-      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
-	  (index_tt == ptr->index_tt_lcmb)) {
-	/* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
-	   with 
-	   psi = (newtonian) gravitationnal potential  
-	   W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
-	   H(x) = Heaviside
-	   (in eta = eta_0, source = 0 to avoid division by zero (regulated anyway by Bessel)).
-	*/
-	if ((ppt->eta_sampling[index_eta] > eta_rec) && 
-	    ((eta0-ppt->eta_sampling[index_eta]) > 0.)) {
-	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] *=
-	    4.*_PI_*(2.*
-		     (ppt->eta_sampling[index_eta]-eta_rec)
-		     /(eta0-ppt->eta_sampling[index_eta])
-		     /(eta0-eta_rec));
+      if ((ppt->has_scalars && index_mode) == (ppt->index_md_scalars)) {
+
+	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
+	    (index_tt == ptr->index_tt_lcmb)) {
+	  /* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
+	     with 
+	     psi = (newtonian) gravitationnal potential  
+	     W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
+	     H(x) = Heaviside
+	     (in eta = eta_0, source = 0 to avoid division by zero (regulated anyway by Bessel)).
+	  */
+	  if ((ppt->eta_sampling[index_eta] > eta_rec) && 
+	      ((eta0-ppt->eta_sampling[index_eta]) > 0.)) {
+	    interpolated_sources[index_k_tr*ppt->eta_size+index_eta] *=
+	      4.*_PI_*(2.*
+		       (ppt->eta_sampling[index_eta]-eta_rec)
+		       /(eta0-ppt->eta_sampling[index_eta])
+		       /(eta0-eta_rec));
+	  }
+	  else {
+	    interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 0;
+	  }
 	}
-	else {
-	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 0;
-	}
+      }
+
+      /* case of tensors: factor (k(eta0-eta)**2 to account for tensor spherical eigenfunction */
+      
+      if ((ppt->has_scalars && index_mode) == (ppt->index_md_scalars)) {
+	
+	class_test(eta0-ppt->eta_sampling[index_eta] <= 0.,
+		   ptr->error_message,
+		   "cannot compute tensor spherical eigenfunctions\n");
+	interpolated_sources[index_k_tr*ppt->eta_size+index_eta] /= 
+	  pow(ppt->k[index_mode][index_k+1]*(eta0-ppt->eta_sampling[index_eta]),2.);
 
       }
 
@@ -1023,6 +1036,8 @@ int transfer_integrate(
   *trsf += (eta_max_bessel-ppt->eta_sampling[index_eta_max])
     * ptw->trans_int[ptw->trans_int_col_num*index_eta_max+ptw->trans_int_y]/2.;
 
+  /** (g) extra factors for polarization, lensing */
+
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_p)) {
       /* for scalar polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
@@ -1032,8 +1047,9 @@ int transfer_integrate(
 
   else {
     if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-      /* tensors not coded yet */
-    }
+      /* for tensor polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
+      *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.) / 2.);
+       }
   }
   
   return _SUCCESS_;

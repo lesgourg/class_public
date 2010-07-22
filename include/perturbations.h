@@ -60,17 +60,6 @@ struct perturbs
 
   //@}
 
-  /** @name - index running on types (temperature, polarization, lensing, ...) */
-
-  //@{
-
-  int index_tp_t; /**< index value for temperature */
-  int index_tp_p; /**< index value for polarization */
-  int index_tp_g; /**< index value for lensing */
-  int tp_size; /**< number of types included in computation */
-
-  //@}
-
   /** @name - index running on modes (scalar, vector, tensor) */
 
   //@{
@@ -79,6 +68,17 @@ struct perturbs
   int index_md_tensors; /**< index value for tensors */
   int index_md_vectors; /**< index value for vectors */
   int md_size; /**< number of modes included in computation */
+
+  //@}
+
+  /** @name - index running on types (temperature, polarization, lensing, ...) */
+
+  //@{
+
+  int index_tp_t; /**< index value for temperature */
+  int index_tp_p; /**< index value for polarization */
+  int index_tp_g; /**< index value for lensing */
+  int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
 
   //@}
 
@@ -308,6 +308,7 @@ struct perturb_parameters_and_workspace {
 
     int perturb_workspace_free(
 			       struct perturbs * ppt,
+			       int index_mode,
 			       struct perturb_workspace * ppw
 			       );
 

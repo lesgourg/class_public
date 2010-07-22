@@ -779,7 +779,7 @@ int spectra_pk(
 	  8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)/pow(Omega_m,2)*psp->k[index_k]/pow(pvecback_sp_long[pba->index_bg_a],4)
 	  *primordial_pk[index_ic]
 	  *pow(ppt->sources[index_mode]
-	       [index_ic * ppt->tp_size + ppt->index_tp_g]
+	       [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_g]
 	       [(index_eta-psp->eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k],2);
 	
       }

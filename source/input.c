@@ -730,7 +730,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
-  ppr->k_tensor_number=15;
+  ppr->k_tensor_number=14;
   ppr->k_tensor_min=1.e-4;
   ppr->k_tensor_logstep=2.;
 
