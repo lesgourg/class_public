@@ -141,6 +141,7 @@ extern "C" {
   int array_logspline_table_one_column(
 				    double * x, /* vector of size x_size */
 				    int x_size,
+				    int x_stop,
 				    double * y_array, /* array of size x_size*y_size with elements 
 							 y_array[index_y*x_size+index_x] */
 				    int y_size,    
@@ -284,9 +285,10 @@ extern "C" {
 					  ErrorMsg errmsg
 					  );
 
-  int array_interpolate_extrapolate_spline_one_column(
+  int array_interpolate_extrapolate_logspline_one_column(
 					  double * x_array,
 					  int x_size,
+					  int x_stop,
 					  double * y_array, /* array of size x_size*y_size with elements 
 							       y_array[index_y*x_size+index_x] */
 					  int y_size,    
