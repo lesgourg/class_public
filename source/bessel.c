@@ -173,16 +173,24 @@ int bessel_init(
   eta0 = pba->conformal_age;
 
   /** - get maximum and minimum wavenumber from perturbation structure (only place where this structure is used in this module) */
-  if (ppt->has_scalars) {
+  kmax=0.;
+  kmin=_HUGE_;
+  if (ppt->has_scalars == _TRUE_) {
     kmax = ppt->k[ppt->index_md_scalars]
       [ppt->k_size_cl[ppt->index_md_scalars]-1];
     kmin = ppt->k[ppt->index_md_scalars][0];
   }
-  if (ppt->has_tensors) {
-    kmax=max(kmax,ppt->k[ppt->index_md_tensors]
+  if (ppt->has_tensors == _TRUE_) {
+    kmax = max(kmax,ppt->k[ppt->index_md_tensors]
 	     [ppt->k_size_cl[ppt->index_md_scalars]-1]);
     kmin = min(kmin,ppt->k[ppt->index_md_scalars][0]);
   }
+  class_test(kmax<=0.,
+	     pbs->error_message,
+	     "value of kmax could not be inferred\n");
+  class_test((kmin>=_HUGE_)||(kmin<=0.),
+	     pbs->error_message,
+	     "value of kmin could not be inferred\n");
 
   /** - compute l values, x_step and j_cut given the parameters passed
       in the precision structure; and x_max given eta0 and kmax */

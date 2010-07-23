@@ -40,12 +40,12 @@ main(int argc, char **argv) {
 
   /****** here you can output the source functions ******/
 
-  if (pt.has_source_g == _TRUE_) {
+  if (pt.has_source_t == _TRUE_) {
 
     FILE * output;
     int index_k,index_eta;
     int index_mode=pt.index_md_scalars;
-    int index_type=pt.index_tp_g;
+    int index_type=pt.index_tp_t;
     int index_ic=pt.index_ic_ad;
 
     output=fopen("output/source.dat","w");
@@ -57,7 +57,7 @@ main(int argc, char **argv) {
 		pt.eta_sampling[index_eta],
 		pt.k[index_mode][index_k],
 		pt.sources[index_mode]
-		[index_ic * pt.tp_size + index_type]
+		[index_ic * pt.tp_size[index_mode] + index_type]
 		[index_eta * pt.k_size[index_mode] + index_k]
 		);
       }

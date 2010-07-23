@@ -24,6 +24,8 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
 
 #define _TOLVAR_ 100. /**< The minimum allowed variation is the machine precision times this number */
 
+#define _HUGE_ 1.e99
+
 #define min(a,b) (((a)<(b)) ? (a) : (b) ) /**< the usual "min" function */
 #define max(a,b) (((a)<(b)) ? (b) : (a) ) /**< the usual "max" function */
 

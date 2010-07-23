@@ -476,7 +476,7 @@ int transfer_get_l_list(
 
   int index_l;
 
-  if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     class_test(ptr->l_scalar_max > pbs->l[pbs->l_size-1],
 	       ptr->error_message,
@@ -492,7 +492,7 @@ int transfer_get_l_list(
 
   }
 
-  if (ppt->has_tensors && index_mode == ppt->index_md_tensors) {
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
     class_test(ptr->l_tensor_max > pbs->l[pbs->l_size-1],
 	       ptr->error_message,
@@ -544,7 +544,7 @@ int transfer_get_k_list(
   double k_step;
   int index_k;
 
-  if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     k_min = ppt->k[ppt->index_md_scalars][0]; /* first value, inferred from perturbations structure */
     k_max_pt = ppt->k[ppt->index_md_scalars][ppt->k_size_cl[ppt->index_md_scalars]-1]; /* last value, inferred from perturbations structure */
  
@@ -572,7 +572,7 @@ int transfer_get_k_list(
 
   }
 
-  if (ppt->has_tensors && index_mode == ppt->index_md_tensors)
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))
     ptr->k_size[index_mode] = ppr->k_tensor_number;
   
   return _SUCCESS_;
@@ -681,7 +681,7 @@ int transfer_interpolate_sources(
 
       /* case of cmb lensing: multiply gravitational potential by appropriate window function */
 
-      if ((ppt->has_scalars && index_mode) == (ppt->index_md_scalars)) {
+      if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
 	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
 	    (index_tt == ptr->index_tt_lcmb)) {
@@ -708,13 +708,17 @@ int transfer_interpolate_sources(
 
       /* case of tensors: factor (k(eta0-eta)**2 to account for tensor spherical eigenfunction */
       
-      if ((ppt->has_scalars && index_mode) == (ppt->index_md_scalars)) {
+      if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 	
-	class_test(eta0-ppt->eta_sampling[index_eta] <= 0.,
+	class_test(eta0-ppt->eta_sampling[index_eta] < 0.,
 		   ptr->error_message,
-		   "cannot compute tensor spherical eigenfunctions\n");
-	interpolated_sources[index_k_tr*ppt->eta_size+index_eta] /= 
-	  pow(ppt->k[index_mode][index_k+1]*(eta0-ppt->eta_sampling[index_eta]),2.);
+		   "cannot compute tensor spherical eigenfunctions, %e\n");
+
+	if (eta0-ppt->eta_sampling[index_eta] == 0.) 
+	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta]=0.;
+	else
+	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] /= 
+	    pow(ppt->k[index_mode][index_k+1]*(eta0-ppt->eta_sampling[index_eta]),2.);
 
       }
 

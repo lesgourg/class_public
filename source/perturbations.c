@@ -206,17 +206,13 @@ int perturb_init(
 
     {
 
-      fprintf(stderr,"get here for thread %d\n",omp_get_thread_num());
-
       class_alloc_parallel(ppw,sizeof(struct perturb_workspace),ppt->error_message);
 
-      fprintf(stderr,"here 1 %d\n",omp_get_thread_num());
 
 #ifdef _OPENMP
       pppw[omp_get_thread_num()]=ppw;
 #endif
 
-      fprintf(stderr,"here 1 %d\n",omp_get_thread_num());
 
       /** (a) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
       class_call_parallel(perturb_workspace_init(ppr,
@@ -227,8 +223,6 @@ int perturb_init(
 					 	 ppw),
 			  ppt->error_message,
 			  ppt->error_message);
-
-      fprintf(stderr,"here 2 %d\n",omp_get_thread_num());
 
     } /* end of parallel region */
 
@@ -245,15 +239,11 @@ int perturb_init(
 
       {
 
-	fprintf(stderr,"here 3 %d\n",omp_get_thread_num());
-
 #ifdef _OPENMP
 	ppw=pppw[omp_get_thread_num()];
 	tstart = omp_get_wtime();
 #endif
 	
-	fprintf(stderr,"here 4 %d\n",omp_get_thread_num());
-
 #pragma omp for schedule (dynamic)
 
 	for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
@@ -304,8 +294,6 @@ int perturb_init(
       class_call_parallel(perturb_workspace_free(ppt,index_mode,ppw),
 			  ppt->error_message,
 			  ppt->error_message);
-
-      fprintf(stderr,"get there for thread %d\n",omp_get_thread_num());
 
     } /* end of parallel region */
 
@@ -447,7 +435,7 @@ int perturb_indices_of_perturbs(
 
     /* scalars */
 
-    if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
+    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     /** - count initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) and assign corresponding indices */
 
@@ -500,12 +488,12 @@ int perturb_indices_of_perturbs(
       
     }
     
-    if ((ppt->has_vectors) && (index_mode == ppt->index_md_vectors)) {
+    if ((ppt->has_vectors == _TRUE_) && (index_mode == ppt->index_md_vectors)) {
 
       /* vectors not treated yet */
     }
 
-    if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
+    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
       /* only one initial condition for tensors*/
 
@@ -808,7 +796,7 @@ int perturb_get_k_list(
   /** Summary: */
 
   /** - get number of wavenumbers for scalar mode */
-  if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     class_test(ppr->k_scalar_step_transition == 0.,
 	       ppt->error_message,
@@ -874,7 +862,7 @@ int perturb_get_k_list(
   }
 
   /** - get number of wavenumbers for tensor mode */
-  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
     ppt->k_size[index_mode] = ppr->k_tensor_number;
     ppt->k_size_cl[index_mode] = index_k;
 
@@ -924,7 +912,7 @@ int perturb_workspace_init(
 
   /** - for scalar mode: */
 
-  if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     /** (a) count and assign values to indices in the vector of perturbations to be integrated */
 
@@ -1066,7 +1054,7 @@ int perturb_workspace_init(
 
   /** - for tensor mode: */
 
-  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
     /** (a) count and assign values to indices in the vector of perturbations to be integrated */
 
@@ -1270,8 +1258,6 @@ int perturb_solve(
 
   double eta_visibility_free_streaming;
 
-  fprintf(stderr,"enter perturb_solve: %d %d %d\n",index_mode,index_ic,index_k);
-
   old_tca = tca_on;
   old_rp = rp_on;
 
@@ -1400,7 +1386,7 @@ int perturb_solve(
 				      &gi),
 		   gi.error_message,
 		   ppt->error_message);
-      
+
 	/** (a.2) define new time value eta = eta + timestep */
 	eta = eta + timestep;
 
@@ -1534,8 +1520,6 @@ int perturb_solve(
 		 ppt->error_message,
 		 "integration step =%e < machine precision : leads either to numerical error or infinite loop",timestep);
 
-
-
       /** (a.6) compute source terms at eta using perturb_source_terms() */
       class_call(perturb_source_terms(eta,&ppaw),
 		 ppt->error_message,
@@ -1563,8 +1547,6 @@ int perturb_solve(
     next_index_eta++;
 
   } /* end of loop over time */
-
-  fprintf(stderr,"End loop over time\n");
 
   /** - infer source functions from source terms using perturb_sources() */
       
@@ -1624,7 +1606,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
   /* additional perturbations relevant only for the scalar mode */
 
-  if ((ppt->has_scalars && index_mode) == (ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     ppw->pvecperturbations[ppw->index_pt_delta_b] = 0.;  /* baryon density */
     ppw->pvecperturbations[ppw->index_pt_theta_b] = 0.;  /* baryon velocity */
@@ -1656,18 +1638,18 @@ int perturb_initial_conditions(struct precision * ppr,
 
   /* additional perturbations relevant only for the tensor mode */
 
-  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
     ppw->pvecperturbations[ppw->index_pt_gw] = 0.;     /* tensor metric perturbation h (gravitational waves) */
     ppw->pvecperturbations[ppw->index_pt_gwdot] = 0.;  /* its time-derivative */
   }
 
   /** - initial conditions for scalars */
 
-  if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     /** (a) adiabatic */ 
 
-    if ((ppt->has_ad) && (index_ic == ppt->index_ic_ad)) {
+    if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
 
       /* relevant background quantities */
 
@@ -1768,7 +1750,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
     /** (b) Cold dark matter Isocurvature */ 
 
-    if ((ppt->has_cdi) && (index_ic == ppt->index_ic_cdi)) { 
+    if ((ppt->has_cdi == _TRUE_) && (index_ic == ppt->index_ic_cdi)) { 
       
       class_test(pba->has_cdm == _FALSE_,
 		 ppt->error_message,
@@ -1780,7 +1762,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
     /** (c) Baryon Isocurvature */ 
 
-    if ((ppt->has_bi) && (index_ic == ppt->index_ic_bi)) {
+    if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
 
       ppw->pvecperturbations[ppw->index_pt_delta_b] = ppr->entropy_ini;
 
@@ -1788,7 +1770,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
     /** (d) Neutrino density Isocurvature */ 
 
-    if ((ppt->has_nid) && (index_ic == ppt->index_ic_nid)) {
+    if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
 
       class_test(pba->has_nur == _FALSE_,
 		 ppt->error_message,
@@ -1800,7 +1782,7 @@ int perturb_initial_conditions(struct precision * ppr,
      
     /** (e) Neutrino velocity Isocurvature */ 
 
-    if ((ppt->has_niv) && (index_ic == ppt->index_ic_niv)) {
+    if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
 
       class_test(pba->has_nur == _FALSE_,
 		 ppt->error_message,
@@ -1814,7 +1796,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
   /** - initial conditions for tensors */
 
-  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
     if (index_ic == ppt->index_ic_ten) {
       ppw->pvecperturbations[ppw->index_pt_gw] = ppr->gw_ini;
@@ -1917,7 +1899,7 @@ int perturb_timescale_and_approximations(
   }
 
   /** - for scalars modes: */
-  if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     /** (a) evaluate thermodynamical quantities with thermodynamics_at_z() */
     class_call(thermodynamics_at_z(pba,
@@ -1958,7 +1940,7 @@ int perturb_timescale_and_approximations(
   }
 
   /** - for tensor modes: tight-coupling approximation is off, time scale remains \f$ min (\eta_k , \eta_h) \f$. */
-  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
     ppw->tca = tca_off;
   }
 
@@ -2332,10 +2314,11 @@ int perturb_source_terms(
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
 
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
-	  -pvecperturbations[ppw->index_pt_theta_b]*pvecthermo[pth->index_th_exp_m_kappa]
+	  -pvecperturbations[ppw->index_pt_gw]*pvecthermo[pth->index_th_exp_m_kappa]
 	  +pvecthermo[pth->index_th_g]*Psi;
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;
+
       }
 
       /* tensor polarization */
@@ -2537,7 +2520,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 /*   fprintf(stderr,"%g %g %g %d %d\n",eta,z,k,ppw->rp,ppw->tca); */
 
   /** - for scalar mode: */
-  if (ppt->has_scalars && index_mode == ppt->index_md_scalars) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     /** (a) get metric perturbations with perturb_einstein() */
     class_call(perturb_einstein(ppr,
@@ -3008,7 +2991,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 
   /** - tensor mode */
 
-  if (ppt->has_tensors && index_mode == ppt->index_md_tensors) {
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
       
     Psi = 
       y[ppw->index_pt_delta_g]/40.

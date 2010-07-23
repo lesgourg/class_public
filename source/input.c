@@ -366,16 +366,22 @@ int input_init(
 
     flag1=parser_read_string(pfc,"modes",&string1,errmsg);
     if (flag1 == _SUCCESS_) {
-    
+
+      /* if no modes are specified, the default is has_scalars=_TRUE_; 
+	 but if they are specified we should reset has_scalars to _FALSE_ before reading */
+      ppt->has_scalars=_FALSE_;
+
       if ((strstr(string1,"s") != NULL) || (strstr(string1,"S") != NULL))
-	ppt->has_scalars=_TRUE_;  
-      
-      if ((strstr(string1,"v") != NULL) || (strstr(string1,"V") != NULL))
+	ppt->has_scalars=_TRUE_; 
+
+      if ((strstr(string1,"v") != NULL) || (strstr(string1,"V") != NULL)) {
 	ppt->has_vectors=_TRUE_;  
+      }
       
-      if ((strstr(string1,"t") != NULL) || (strstr(string1,"T") != NULL))
-	ppt->has_tensors=_TRUE_;  
-      
+      if ((strstr(string1,"t") != NULL) || (strstr(string1,"T") != NULL)) {
+	ppt->has_tensors=_TRUE_;
+      }
+
       class_test(ppt->has_scalars==_FALSE_ && ppt->has_vectors ==_FALSE_ && ppt->has_tensors ==_FALSE_,
 		 errmsg,	       
 		 "You wrote: modes=%s. Could not identify any of the modes ('s', 'v', 't') in such input",string1);
@@ -385,6 +391,10 @@ int input_init(
 
       flag1=parser_read_string(pfc,"ic",&string1,errmsg);
       if (flag1 == _SUCCESS_) {
+
+	/* if no initial conditions are specified, the default is has_ad=_TRUE_; 
+	   but if they are specified we should reset has_ad to _FALSE_ before reading */
+	ppt->has_ad=_FALSE_;
 
 	if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL))
 	  ppt->has_ad=_TRUE_; 
@@ -732,7 +742,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->k_tensor_number=14;
   ppr->k_tensor_min=1.e-4;
-  ppr->k_tensor_logstep=2.;
+  ppr->k_tensor_logstep=1.5;
 
   ppr->k_eta_min=1.e-1; /* 4.5e-6 optimized 9/09/08  */
   ppr->eta_min_over_sampling_min=0.5;
