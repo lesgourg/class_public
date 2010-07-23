@@ -1133,6 +1133,7 @@ int array_spline_table_one_column(
 int array_logspline_table_one_column(
 		       double * x, /* vector of size x_size */
 		       int x_size,
+		       int x_stop,
 		       double * y_array, /* array of size x_size*y_size with elements 
 					  y_array[index_y*x_size+index_x] */
 		       int y_size,    
@@ -1151,7 +1152,7 @@ int array_logspline_table_one_column(
   double dy_first;
   double dy_last;
 
-  u = malloc((x_size-1) * sizeof(double));
+  u = malloc((x_stop-1) * sizeof(double));
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -1191,7 +1192,7 @@ int array_logspline_table_one_column(
   
   /************************************************/
 
-  for (index_x=1; index_x < x_size-1; index_x++) {
+  for (index_x=1; index_x < x_stop-1; index_x++) {
 
     sig = (log(x[index_x]) - log(x[index_x-1]))/(log(x[index_x+1]) - log(x[index_x-1]));
 
@@ -1222,19 +1223,19 @@ int array_logspline_table_one_column(
     if (spline_mode == _SPLINE_EST_DERIV_) {
 
       dy_last = 
-	((log(x[x_size-3])-log(x[x_size-1]))*(log(x[x_size-3])-log(x[x_size-1]))*
-	 (log(y_array[index_y*x_size+(x_size-2)])-log(y_array[index_y*x_size+(x_size-1)]))-
-	 (log(x[x_size-2])-log(x[x_size-1]))*(log(x[x_size-2])-log(x[x_size-1]))*
-	 (log(y_array[index_y*x_size+(x_size-3)])-log(y_array[index_y*x_size+(x_size-1)])))/
-	((log(x[x_size-3])-log(x[x_size-1]))*(log(x[x_size-2])-log(x[x_size-1]))*
-	 (log(x[x_size-3])-log(x[x_size-2])));
+	((log(x[x_stop-3])-log(x[x_stop-1]))*(log(x[x_stop-3])-log(x[x_stop-1]))*
+	 (log(y_array[index_y*x_size+(x_stop-2)])-log(y_array[index_y*x_size+(x_stop-1)]))-
+	 (log(x[x_stop-2])-log(x[x_stop-1]))*(log(x[x_stop-2])-log(x[x_stop-1]))*
+	 (log(y_array[index_y*x_size+(x_stop-3)])-log(y_array[index_y*x_size+(x_stop-1)])))/
+	((log(x[x_stop-3])-log(x[x_stop-1]))*(log(x[x_stop-2])-log(x[x_stop-1]))*
+	 (log(x[x_stop-3])-log(x[x_stop-2])));
 
       qn=0.5;
 
       un=
-	(3./(log(x[x_size-1]) - log(x[x_size-2])))*
-	(dy_last-(log(y_array[index_y*x_size+(x_size-1)]) - log(y_array[index_y*x_size+(x_size-2)]))/
-	 (log(x[x_size-1]) - log(x[x_size-2])));	
+	(3./(log(x[x_stop-1]) - log(x[x_stop-2])))*
+	(dy_last-(log(y_array[index_y*x_size+(x_stop-1)]) - log(y_array[index_y*x_size+(x_stop-2)]))/
+	 (log(x[x_stop-1]) - log(x[x_stop-2])));	
       
     }
     else {
@@ -1245,13 +1246,13 @@ int array_logspline_table_one_column(
     
   /************************************************/
 
-  index_x=x_size-1;
+  index_x=x_stop-1;
 
   ddlogy_array[index_y*x_size+index_x] =
     (un - qn * u[index_x-1]) /
     (qn * ddlogy_array[index_y*x_size+(index_x-1)] + 1.0);
 
-  for (index_x=x_size-2; index_x >= 0; index_x--) {
+  for (index_x=x_stop-2; index_x >= 0; index_x--) {
 
     ddlogy_array[index_y*x_size+index_x] = ddlogy_array[index_y*x_size+index_x] *
       ddlogy_array[index_y*x_size+(index_x+1)] + u[index_x];
@@ -1809,6 +1810,7 @@ int array_interpolate_extrapolate_spline_one_column(
 int array_interpolate_extrapolate_logspline_one_column(
 						    double * x_array,
 						    int x_size,
+						    int x_stop,
 						    double * y_array, /* array of size x_size*y_size with elements 
 									 y_array[index_y*x_size+index_x] */
 						    int y_size,    
@@ -1823,16 +1825,21 @@ int array_interpolate_extrapolate_logspline_one_column(
   int inf,sup,mid,i;
   double h,a,b;
 
-  if (x > x_array[x_size-2]) {
+  if (x > x_array[x_stop-1]) {
 
     /*interpolate/extrapolate linearly ln(y) as a function of ln(x)*/
 
-    h = log(x_array[x_size-1]) - log(x_array[x_size-2]);
-    b = (log(x)-log(x_array[x_size-2]))/h;
+    h = log(x_array[x_stop-1]) - log(x_array[x_stop-2]);
+    b = (log(x)-log(x_array[x_stop-2]))/h;
     a = 1-b;
     
-    *y = exp(a * log(y_array[index_y * x_size + (x_size-2)]) +
-	     b * log(y_array[index_y * x_size + (x_size-1)]));
+/*     *y = exp(a * log(y_array[index_y * x_size + (x_stop-2)]) + */
+/* 	     b * log(y_array[index_y * x_size + (x_stop-1)])); */
+
+    *y = exp(log(y_array[index_y * x_size + (x_stop-1)])
+	     +(log(x)-log(x_array[x_stop-1]))
+	     *((log(y_array[index_y * x_size + (x_stop-1)])-log(y_array[index_y * x_size + (x_stop-2)]))/h
+	       +h/6.*(ddlogy_array[index_y * x_size + (x_stop-2)]+2.*ddlogy_array[index_y * x_size + (x_stop-1)])));
 
 
   }
@@ -1842,7 +1849,7 @@ int array_interpolate_extrapolate_logspline_one_column(
     /*interpolate ln(y) as a function of ln(x) with a spline*/
   
     inf=0;
-    sup=x_size-1;
+    sup=x_stop-1;
   
     if (x_array[inf] < x_array[sup]){
       
@@ -2320,6 +2327,136 @@ int array_integrate_all(
   }
 
   *result = sum;
+
+  return _SUCCESS_;
+
+}
+
+int array_smooth_trg(double * array,
+		     int k_size,
+		     int starting_k,
+		     int eta_size,
+		     int index_eta,
+		     int radius, /*3, 5 or 7 */
+		     ErrorMsg errmsg) {
+
+  double * smooth;
+  int i,j,jmin,jmax;
+  double weigth;
+  double *coeff;
+
+   smooth=malloc(k_size*sizeof(double));
+  if (smooth == NULL) {
+    sprintf(errmsg,"%s(L:%d) Cannot allocate smooth",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  class_calloc(coeff,2*radius+1,sizeof(double),errmsg);
+
+  switch(radius){
+  case 3:
+    weigth = 21;
+
+    coeff[0] = -2;
+    coeff[1] = 3;
+    coeff[2] = 6;
+    coeff[3] = 7;
+    coeff[4] = 6;
+    coeff[5] = 3;
+    coeff[6] = -2;
+    
+    break;
+  case 4:
+    weigth = 231;
+
+    coeff[0] = -21;
+    coeff[1] = 14;
+    coeff[2] = 39;
+    coeff[3] = 54;
+    coeff[4] = 59;
+    coeff[5] = 54;
+    coeff[6] = 39;
+    coeff[7] = 14;
+    coeff[8] = -21;
+
+    break;
+  case 5:
+    weigth = 429;
+
+    coeff[0] = -36;
+    coeff[1] = 9;
+    coeff[2] = 44;
+    coeff[3] = 69;
+    coeff[4] = 84;
+    coeff[5] = 89;
+    coeff[6] = 84;
+    coeff[7] = 69;
+    coeff[8] = 44;
+    coeff[9] = 9;
+    coeff[10] = -36;
+
+    break;
+  case 6:
+    weigth = 143;
+
+    coeff[0] = -11;
+    coeff[1] = 0;
+    coeff[2] = 9;
+    coeff[3] = 16;
+    coeff[4] = 21;
+    coeff[5] = 24;
+    coeff[6] = 25;
+    coeff[7] = 24;
+    coeff[8] = 21;
+    coeff[9] = 16;
+    coeff[10] = 9;
+    coeff[11] = 0;
+    coeff[12] = -11;
+
+    break;
+  case 7:
+    weigth = 1105;
+
+    coeff[0] = -78;
+    coeff[1] = -13;
+    coeff[2] = 42;
+    coeff[3] = 87;
+    coeff[4] = 122;
+    coeff[5] = 147;
+    coeff[6] = 162;
+    coeff[7] = 167;
+    coeff[8] = 162;
+    coeff[9] = 147;
+    coeff[10] = 122;
+    coeff[11] = 87;
+    coeff[12] = 42;
+    coeff[13] = -13;
+    coeff[14] = -78;
+
+    break;
+
+/*   case 8: */
+    
+
+  default:
+    printf("Non valid radius : please chose between 3 4 5 or 6\n");
+    break;
+  }
+
+  for (i=starting_k; i<k_size-radius; i++) {
+      smooth[i]=0.;
+      jmin = max(i-radius,0);
+      jmax = min(i+radius,k_size-1);
+      for (j=jmin; j <= jmax; j++) {
+	smooth[i] += coeff[j-jmin]*array[j+k_size*index_eta];
+      }
+      smooth[i] /= weigth;
+  }
+
+  for (i=starting_k; i<k_size-radius; i++) 
+    array[i+k_size*index_eta] = smooth[i];
+
+  free(smooth);
 
   return _SUCCESS_;
 
