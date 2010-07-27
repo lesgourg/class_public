@@ -2289,6 +2289,19 @@ int perturb_source_terms(
 	    (a_prime_over_a * (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2./k2 + pvecmetric[ppw->index_mt_alpha_prime]);
 	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
 	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;
+
+	  /* testing zone */
+/* 	  if ((k>1.e-3) && (k<2.e-3)) */
+/* 	    printf("%g %g %g %g %g %g\n", */
+/* 		   k, */
+/* 		   pvecback[pba->index_bg_a],    */
+/* 		   a_prime_over_a*pvecperturbations[ppw->index_pt_theta_b], */
+/* 		   pvecthermo[pth->index_th_cb2]*k2*pvecperturbations[ppw->index_pt_delta_b], */
+/* 		   k2*pvecperturbations[ppw->index_pt_eta], */
+/* 		   0.5*a_prime_over_a*pvecmetric[ppw->index_mt_h_prime] */
+/* 		   ); */
+	 
+
 	}
       }
     }

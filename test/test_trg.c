@@ -28,6 +28,77 @@ main(int argc, char **argv) {
 
   ErrorMsg errmsg;
 
+
+  /******* just for testing routine array_interpolate_extrapolate_logspline_one_column *****/
+
+/*   int ix,nx; */
+/*   int ny; */
+/*   int nxstop; */
+/*   int i; */
+/*   double*x; */
+/*   double*y; */
+/*   double*ddy; */
+
+/*   int nxx; */
+/*   double*xx; */
+/*   double*yy; */
+
+/*   nx=100; */
+/*   ny=4; */
+/*   x=malloc(sizeof(double)*nx); */
+/*   y=malloc(sizeof(double)*nx*ny); */
+/*   ddy=malloc(sizeof(double)*nx*ny); */
+/*   for (ix=0; ix<nx; ix++) { */
+/*     x[ix]=pow(1.2,ix); */
+/*     y[ix]=exp(sin(log(x[ix]))); */
+/*     y[nx+ix]=exp(cos(log(x[ix]))); */
+/*     y[2*nx+ix]=exp(2.*sin(log(x[ix]))); */
+/*     y[3*nx+ix]=exp(2.*cos(log(x[ix]))); */
+/*   } */
+
+
+/*   for (ix=1; ix<nx-1; ix++) { */
+/*     printf("%g %g %g %g %g\n",x[ix],y[2*nx+ix],0.,-(log(y[2*nx+ix+1])-log(y[2*nx+ix-1]))/(log(x[ix+1])-log(x[ix-1])),0.); */
+/*   } */
+/*   printf("\n\n"); */
+
+/*   nxstop=80; */
+
+/*   array_logspline_table_one_column(x, */
+/* 				   nx, */
+/* 				   nxstop, */
+/* 				   y, */
+/* 				   ny, */
+/* 				   2, */
+/* 				   ddy, */
+/* 				   //_SPLINE_EST_DERIV_, */
+/* 				   _SPLINE_NATURAL_, */
+/* 				   errmsg); */
+
+/*   nxx=1000; */
+/*   xx=malloc(sizeof(double)*nxx); */
+/*   yy=malloc(sizeof(double)*nxx); */
+
+/*   for (i=0; i <nxx; i++) { */
+/*     xx[i]=pow(1.02,i); */
+/*     array_interpolate_extrapolate_logspline_one_column(x, */
+/* 						       nx, */
+/* 						       nxstop, */
+/* 						       y, */
+/* 						       ny, */
+/* 						       2, */
+/* 						       ddy, */
+/* 						       xx[i], */
+/* 						       &(yy[i]), */
+/* 						       errmsg); */
+/*   } */
+
+/*   for (i=1; i <nxx-1; i++) { */
+/*     printf("%g %g %g %g %g\n",xx[i],0.,yy[i],0.,-(log(yy[i+1])-log(yy[i-1]))/(log(xx[i+1])-log(xx[i-1]))); */
+/*   } */
+
+/*   return _SUCCESS_; */
+
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;

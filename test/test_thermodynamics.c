@@ -41,9 +41,11 @@ main(int argc, char **argv) {
 
   printf("#1: redshift z\n");
   printf("#2: electron ionization fraction x_e\n");
-  printf("#3: exponential of optical depth e^-kappa\n");
-  printf("#4: Thomson scattering rate kappa'\n");
-  printf("#5: visibility function g=kappa' e^-kappa \n");
+  printf("#3: Thomson scattering rate kappa'\n");
+  printf("#4: Thomson scattering rate derivative kappa''\n");
+  printf("#5: exponential of optical depth e^-kappa\n");
+  printf("#6: visibility function g=kappa' e^-kappa \n");
+  printf("#7: squared baryon sound speed c_b^2 \n");
   for (i=0; i < th.tt_size; i++)
     printf("%e %e %e %e %e %e %e\n",
 	   th.z_table[i],
