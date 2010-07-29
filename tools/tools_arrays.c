@@ -1807,19 +1807,19 @@ int array_interpolate_extrapolate_spline_one_column(
   *
   * 
   */
-int array_interpolate_extrapolate_logspline_one_column(
-						    double * x_array,
-						    int x_size,
-						    int x_stop,
-						    double * y_array, /* array of size x_size*y_size with elements 
-									 y_array[index_y*x_size+index_x] */
-						    int y_size,    
-						    int index_y,   
-						    double * ddlogy_array, /* array of size x_size*y_size */
-						    double x,   /* input */
-						    double * y, /* output */
-						    ErrorMsg errmsg
-						    ) {
+int array_interpolate_extrapolate_logspline_loglinear_one_column(
+								 double * x_array,
+								 int x_size,
+								 int x_stop,
+								 double * y_array, /* array of size x_size*y_size with elements 
+										      y_array[index_y*x_size+index_x] */
+								 int y_size,    
+								 int index_y,   
+								 double * ddlogy_array, /* array of size x_size*y_size */
+								 double x,   /* input */
+								 double * y, /* output */
+								 ErrorMsg errmsg
+								 ) {
 
 
   int inf,sup,mid,i;
@@ -1905,6 +1905,70 @@ int array_interpolate_extrapolate_logspline_one_column(
 	      (b*b*b-b)* ddlogy_array[index_y * x_size + sup])*h*h/6.);
 
   }
+
+  return _SUCCESS_;
+}
+
+ /**
+  * interpolate to get y_i(x), when x and y_i are in different arrays
+  *
+  * 
+  */
+int array_interpolate_extrapolate_logspline_one_column(
+						    double * x_array,
+						    int x_size,
+						    int x_stop,
+						    double * y_array, /* array of size x_size*y_size with elements 
+									 y_array[index_y*x_size+index_x] */
+						    int y_size,    
+						    int index_y,   
+						    double * ddlogy_array, /* array of size x_size*y_size */
+						    double x,   /* input */
+						    double * y, /* output */
+						    ErrorMsg errmsg
+						    ) {
+
+
+  int inf,sup,mid,i;
+  double h,a,b;
+
+  /*interpolate ln(y) as a function of ln(x) with a spline*/
+  
+  inf=0;
+  sup=x_stop-1;
+  
+  if (x_array[inf] < x_array[sup]){
+      
+    if (x < x_array[inf]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[inf]);
+      return _FAILURE_;
+    }
+      
+    while (sup-inf > 1) {
+	
+      mid=(int)(0.5*(inf+sup));
+      if (x < x_array[mid]) {sup=mid;}
+      else {inf=mid;}
+      
+    }
+      
+  }
+
+  else {
+   
+    sprintf(errmsg,"%s(L:%d) : x[i] must be in growing order in this routine",__func__,__LINE__);
+    return _FAILURE_;
+      
+  }
+    
+  h = log(x_array[sup]) - log(x_array[inf]);
+  b = (log(x)-log(x_array[inf]))/h;
+  a = 1-b;
+    
+  *y = exp(a * log(y_array[index_y * x_size + inf]) +
+	   b * log(y_array[index_y * x_size + sup]) +
+	   ((a*a*a-a)* ddlogy_array[index_y * x_size + inf] +
+	    (b*b*b-b)* ddlogy_array[index_y * x_size + sup])*h*h/6.);
 
   return _SUCCESS_;
 }

@@ -285,6 +285,20 @@ extern "C" {
 					  ErrorMsg errmsg
 					  );
 
+  int array_interpolate_extrapolate_logspline_loglinear_one_column(
+								   double * x_array,
+								   int x_size,
+								   int x_stop,
+								   double * y_array, /* array of size x_size*y_size with elements 
+											y_array[index_y*x_size+index_x] */
+								   int y_size,    
+								   int index_y,   
+								   double * ddlogy_array, /* array of size x_size*y_size */
+								   double x,   /* input */
+								   double * y, /* output */
+								   ErrorMsg errmsg
+								   );
+
   int array_interpolate_extrapolate_logspline_one_column(
 					  double * x_array,
 					  int x_size,
