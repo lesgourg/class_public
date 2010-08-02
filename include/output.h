@@ -9,6 +9,8 @@ struct output {
 
   FileArg cls_ad;
 
+  FileArg clt;
+
   FileArg pk;
   
   double z_pk;

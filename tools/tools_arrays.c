@@ -892,6 +892,16 @@ int array_spline_table_columns(
   else {
     if (spline_mode == _SPLINE_EST_DERIV_) {
 
+      class_test(x[2]-x[0]==0.,
+		 errmsg,
+		 "x[2]=%g, x[0]=%g, stop to avoid seg fault",x[2],x[0]);  
+      class_test(x[1]-x[0]==0.,
+		 errmsg,
+		 "x[1]=%g, x[0]=%g, stop to avoid seg fault",x[1],x[0]);  
+      class_test(x[2]-x[1]==0.,
+		 errmsg,
+		 "x[2]=%g, x[1]=%g, stop to avoid seg fault",x[2],x[1]);  
+
       for (index_y=0; index_y < y_size; index_y++) {
 
 	dy_first = 

@@ -59,7 +59,7 @@ int transfer_functions_at_k(
 				   1,
 				   0,
 				   ptr->transfer[index_mode]
-				   +((index_ic * ptr->tt_size + index_tt) * ptr->l_size[index_mode] + index_l)
+				   +((index_ic * ptr->tt_size[index_mode] + index_tt) * ptr->l_size[index_mode] + index_l)
 				   * ptr->k_size[index_mode],
 				   1,
 				   ptr->k_size[index_mode],
@@ -158,12 +158,13 @@ int transfer_init(
 
 #endif
 
-  ptr->md_size=0;
+  /** check whether any spectrum in harmonic space (i.e., any C_l's) is actually requested; 
+      if not, set ptr->tt_size to NULL (so that it can be used as a flag) and skip module */
 
   if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
       (ppt->has_cl_cmb_polarization == _FALSE_) &&
       (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
-    ptr->tt_size=0;
+    ptr->tt_size=NULL;
     if (ptr->transfer_verbose > 0)
       printf("No harmonic space transfer functions to compute. Transfer module skipped.\n");
     return _SUCCESS_;
@@ -171,6 +172,8 @@ int transfer_init(
 
   if (ptr->transfer_verbose > 0)
     printf("Computing transfers\n");
+
+  /** get number of modes (scalars, tensors...) */
 
   ptr->md_size = ppt->md_size;
 
@@ -244,7 +247,7 @@ int transfer_init(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
-      for (index_tt = 0; index_tt < ptr->tt_size; index_tt++) {
+      for (index_tt = 0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
 	/** (b) interpolate sources to get them at the right values of k using transfer_interpolate_sources() */
 
 	class_call(transfer_interpolate_sources(ppt,
@@ -347,21 +350,21 @@ int transfer_free(
 
   int index_mode;
 
-  if (ptr->md_size > 0){
+  if (ptr->tt_size != NULL) {
+
+    for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
+      free(ptr->l[index_mode]);
+      free(ptr->k[index_mode]);
+      free(ptr->transfer[index_mode]);
+    }  
+   
+    free(ptr->tt_size);
+    free(ptr->l_size);
+    free(ptr->l);
+    free(ptr->k_size);
+    free(ptr->k);
+    free(ptr->transfer);
     
-    if (ptr->tt_size>0) {
-      for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
-	free(ptr->l[index_mode]);
-	free(ptr->k[index_mode]);
-	free(ptr->transfer[index_mode]);
-      }  
-      
-      free(ptr->l_size);
-      free(ptr->l);
-      free(ptr->k_size);
-      free(ptr->k);
-      free(ptr->transfer);
-    }
   }
 
   return _SUCCESS_;
@@ -393,6 +396,10 @@ int transfer_indices_of_transfers(
   int index_mode,index_eta,index_tt;
 
   /** define indices for transfer types */
+
+  class_alloc(ptr->tt_size,ptr->md_size * sizeof(int),ptr->error_message);
+
+  /** - types valid for both scalars and tensors */
   
   index_tt = 0;
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
@@ -403,11 +410,19 @@ int transfer_indices_of_transfers(
     ptr->index_tt_p = index_tt;
     index_tt++;
   }
+
+  if (ppt->has_tensors == _TRUE_)
+    ptr->tt_size[ppt->index_md_tensors]=index_tt;
+
+  /** - types valid for scalars only */
+
   if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
     ptr->index_tt_lcmb = index_tt;
     index_tt++;
   }
-  ptr->tt_size=index_tt;
+
+  if (ppt->has_scalars == _TRUE_)
+    ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
   /** - allocate arrays of (k, l) values and transfer functions */
 
@@ -447,7 +462,7 @@ int transfer_indices_of_transfers(
 
     /** (c) allocate arrays of transfer functions, (ptr->transfer[index_mode])[index_ic][index_tt][index_l][index_k] */
     class_alloc(ptr->transfer[index_mode],
-		ppt->ic_size[index_mode] * ptr->tt_size * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double),
+		ppt->ic_size[index_mode] * ptr->tt_size[index_mode] * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double),
 		ptr->error_message);
 
   }
@@ -544,36 +559,47 @@ int transfer_get_k_list(
   double k_step;
   int index_k;
 
+  class_test((eta0-eta_rec) == 0.,
+	     ptr->error_message,
+	     "stop to avoid division by zero");
+
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
     k_min = ppt->k[ppt->index_md_scalars][0]; /* first value, inferred from perturbations structure */
+
     k_max_pt = ppt->k[ppt->index_md_scalars][ppt->k_size_cl[ppt->index_md_scalars]-1]; /* last value, inferred from perturbations structure */
  
-    class_test((eta0-eta_rec) == 0.,
-	       ptr->error_message,
-	       "stop to avoid division by zero");
-
-    k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans; /* step_size, inferred from precision_params structure */
-
-    class_test(k_step == 0.,
-	       ptr->error_message,
-	       "stop to avoid division by zero");
-
-    ptr->k_size[index_mode] = (int)((k_max_pt-k_min)/k_step) + 1; /* corresponding number of k values */
-
-    class_alloc(ptr->k[index_mode],ptr->k_size[index_mode]*sizeof(double),ptr->error_message);
-
-    for (index_k = 0; index_k < ptr->k_size[ppt->index_md_scalars]; index_k++) {
-      ptr->k[index_mode][index_k] = k_min + index_k * k_step;
-      class_test(ptr->k[index_mode][index_k] == 0.,
-		 ptr->error_message,
-		 "stop to avoid division by zero in transfer_init()");
-
-    }
+    k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans_scalars; /* step_size, inferred from precision_params structure */
 
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))
-    ptr->k_size[index_mode] = ppr->k_tensor_number;
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+
+    k_min = ppt->k[ppt->index_md_tensors][0]; /* first value, inferred from perturbations structure */
+
+    k_max_pt = ppt->k[ppt->index_md_tensors][ppt->k_size_cl[ppt->index_md_tensors]-1]; /* last value, inferred from perturbations structure */
+    
+    k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans_tensors; /* step_size, inferred from precision_params structure */
+
+  }
+
+  class_test(k_step == 0.,
+	     ptr->error_message,
+	     "stop to avoid division by zero");
+
+  ptr->k_size[index_mode] = (int)((k_max_pt-k_min)/k_step) + 1; /* corresponding number of k values */
+
+  class_alloc(ptr->k[index_mode],ptr->k_size[index_mode]*sizeof(double),ptr->error_message);
+
+  for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
+
+    ptr->k[index_mode][index_k] = k_min + index_k * k_step;
+
+    class_test(ptr->k[index_mode][index_k] == 0.,
+	       ptr->error_message,
+	       "stop to avoid division by zero in transfer_init()");
+
+  }
   
   return _SUCCESS_;
 
@@ -634,8 +660,7 @@ int transfer_interpolate_sources(
   if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
       (index_tt == ptr->index_tt_lcmb)) 
     index_type=ppt->index_tp_g;
-
-
+	  
   class_call(array_spline_table_columns(ppt->k[index_mode],
 					ppt->k_size[index_mode],
 					ppt->sources[index_mode][index_ic * ppt->tp_size[index_mode] + index_type],
@@ -864,7 +889,7 @@ int transfer_compute_for_each_l(
     }
 
     /* store transfer function in transfer structure */
-    ptr->transfer[index_mode][((index_ic * ptr->tt_size + index_tt)
+    ptr->transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt)
 			       * ptr->l_size[index_mode] + index_l)
 			      * ptr->k_size[index_mode] + index_k]
       = transfer_function;
@@ -972,7 +997,7 @@ int transfer_integrate(
 
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
   if (eta_max_bessel <= ppt->eta_sampling[0]) {
-    *trsf = 0;
+    *trsf = 0.;
     return _SUCCESS_;
   }
 
@@ -1040,7 +1065,7 @@ int transfer_integrate(
   *trsf += (eta_max_bessel-ppt->eta_sampling[index_eta_max])
     * ptw->trans_int[ptw->trans_int_col_num*index_eta_max+ptw->trans_int_y]/2.;
 
-  /** (g) extra factors for polarization, lensing */
+  /** (g) extra factors for polarization, lensing, tensors.. */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_p)) {
@@ -1049,11 +1074,9 @@ int transfer_integrate(
     }
   }
 
-  else {
-    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-      /* for tensor polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
-      *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.) / 2.);
-       }
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+    /* for tensor polarization, multiply by square root of  [(l+2)(l+1)l(l-1)/2] */
+    *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.) / 2.);
   }
   
   return _SUCCESS_;

@@ -11,7 +11,7 @@
 #include "primordial.h"
 #include "spectra.h"
 
-main() {
+main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -21,15 +21,12 @@ main() {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct spectra op;          /* for output files */
- 
-  if (precision_init(&pr) == _FAILURE_) {
-    printf("\n\nError running precision_init \n=>%s\n",pr.error_message); 
-    return _FAILURE_;
-  }
+  struct output op;          /* for output files */
+  
+  ErrorMsg errmsg;
 
-  if (input_init(&ba,&th,&pt,&bs,&tr,&pm,&sp,&op) == _FAILURE_) {
-    printf("\n\nError running input_init"); 
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
 
@@ -62,11 +59,11 @@ main() {
 
   printf("Output of transfer functions\n");
 
-  int index_mode=pt.index_md_scalars;
+  int index_mode=pt.index_md_tensors;
   int index_ic  =pt.index_ic_ad;
   int index_type=pt.index_tp_t;
   int index_l=tr.l_size[index_mode]-5;
-/*   int index_l = 20; */
+  /* int index_l = 30; */
 
   /* here you can output the transfer functions 
      at some k's of your choice */
@@ -100,7 +97,7 @@ main() {
   for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
 
     transfer=tr.transfer[index_mode]
-      [((index_ic * pt.tp_size + index_type)
+      [((index_ic * pt.tp_size[index_mode] + index_type)
 	* tr.l_size[index_mode] + index_l)
        * tr.k_size[index_mode] + index_k];
     

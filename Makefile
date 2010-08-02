@@ -17,8 +17,10 @@ CC       = gcc
 
 CCFLAG   = -O2 -fopenmp
 LDFLAG   = -O2 -fopenmp
+#CCFLAG = -O2 -ggdb
+#LDFLAG = -O2 -ggdb
 #CCFLAG = -O2
-#LDFLAG = -O2 
+#LDFLAG = -O2
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 

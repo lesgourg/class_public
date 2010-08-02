@@ -387,7 +387,8 @@ struct precision
 
   //@{
 
-  double k_step_trans; /**< sampling step in k space, in units of \f$ 2\pi/(\eta_0-\eta_{rec}) \f$, which is the typical period of oscillations of \f$ \Delta_l(k) \f$ */
+  double k_step_trans_scalars; /**< sampling step in k space, in units of \f$ 2\pi/(\eta_0-\eta_{rec}) \f$, which is the typical period of oscillations of \f$ \Delta_l(k) \f$ */
+  double k_step_trans_tensors; /**< sampling step in k space, in units of \f$ 2\pi/(\eta_0-\eta_{rec}) \f$, which is the typical period of oscillations of \f$ \Delta_l(k) \f$ */
 
   enum transfer_cutting transfer_cut; /**< flag telling how to cut automatically the transfer function computation at a given \f$ k_{max} \f$ value */
 

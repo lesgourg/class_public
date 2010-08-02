@@ -340,7 +340,7 @@ int input_init(
       pth->reio_z_or_tau=reio_tau;
     }
   }
-  
+
   /** - define which perturbations and sources should be computed, and down to which scale */
 
   flag1=parser_read_string(pfc,"output",&string1,errmsg);
@@ -352,11 +352,11 @@ int input_init(
     if ((strstr(string1,"pCl") != NULL) || (strstr(string1,"PCl") != NULL) || (strstr(string1,"PCL") != NULL))
       ppt->has_cl_cmb_polarization=_TRUE_;  
     
-    if ((strstr(string1,"lCl") != NULL) || (strstr(string1,"LCl") != NULL) || (strstr(string1,"LCL") == NULL))
-      ppt->has_cl_cmb_lensing_potential=_TRUE_;  
+    if ((strstr(string1,"lCl") != NULL) || (strstr(string1,"LCl") != NULL) || (strstr(string1,"LCL") != NULL))
+      ppt->has_cl_cmb_lensing_potential=_TRUE_;
 
-    if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") == NULL))
-      ppt->has_pk_matter=_TRUE_;  
+    if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL))
+      ppt->has_pk_matter=_TRUE_; 
   }
 
   if ((ppt->has_cl_cmb_temperature == _TRUE_) ||
@@ -417,6 +417,19 @@ int input_init(
 	
       }
     }
+
+    else {
+
+      class_test(ppt->has_cl_cmb_lensing_potential == _TRUE_,
+		 errmsg,
+		 "Inconsistency: you want C_l's for cmb lensing potential, but no scalar modes\n");
+
+      class_test(ppt->has_pk_matter == _TRUE_,
+		 errmsg,
+		 "Inconsistency: you want P(k) of matter, but no scalar modes\n");
+
+    }
+
   }
 
   /** - define the primordial spectrum */
@@ -435,13 +448,27 @@ int input_init(
 
   if (ppm->primordial_spec_type == analytic_Pk) {
 
-    class_read_double("A_s_ad",ppm->A_s_ad);
-
-    class_read_double("n_s_ad",ppm->n_s_ad);
-
-    class_read_double("alpha_s_ad",ppm->alpha_s_ad);
-
     class_read_double("k_pivot",ppm->k_pivot);
+
+    if (ppt->has_scalars == _TRUE_) {
+      
+      if (ppt->has_ad == _TRUE_) {
+
+	class_read_double("A_s_ad",ppm->A_s_ad);
+	class_read_double("n_s_ad",ppm->n_s_ad);
+	class_read_double("alpha_s_ad",ppm->alpha_s_ad);
+
+      }
+
+    }
+
+    if (ppt->has_tensors == _TRUE_) {
+    
+      	class_read_double("A_t",ppm->A_t);
+	class_read_double("n_t",ppm->n_t);
+	class_read_double("alpha_t",ppm->alpha_t);
+
+    }
 
   }
 
@@ -449,13 +476,22 @@ int input_init(
 
   flag1=parser_read_string(pfc,"root",&string1,errmsg);
   if (flag1 == _SUCCESS_) {
-    sprintf(pop->cls_ad,"%s%s",string1,"cls.dat");
+    sprintf(pop->cls_ad,"%s%s",string1,"cls_ad.dat");
+    sprintf(pop->clt,"%s%s",string1,"clt.dat");
     sprintf(pop->pk,"%s%s",string1,"pk.dat");
   }
 
-  class_read_double("l_max",pbs->l_max);
-  ptr->l_scalar_max=pbs->l_max;
-  ptr->l_tensor_max=pbs->l_max;
+  pbs->l_max=0;
+
+  if (ppt->has_scalars == _TRUE_) {
+    class_read_double("l_max_scalars",ptr->l_scalar_max);
+    pbs->l_max=ptr->l_scalar_max;
+  }
+
+  if (ppt->has_tensors == _TRUE_) {   
+    class_read_double("l_max_tensors",ptr->l_tensor_max);
+    pbs->l_max=max(pbs->l_max,ptr->l_tensor_max);
+  }
 
   class_read_double("z_pk",pop->z_pk);
 
@@ -572,7 +608,8 @@ int input_init(
 
   /** - parameter related to the transfer functions */
 
-  class_read_double("k_step_trans",ppr->k_step_trans);
+  class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
+  class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
   class_read_double("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
@@ -649,15 +686,19 @@ int input_default_params(
   ppt->has_tensors=_FALSE_;  
 
   ppm->primordial_spec_type = analytic_Pk;
+  ppm->k_pivot = 0.05;
   ppm->A_s_ad = 2.3e-9;
   ppm->n_s_ad = 1.;
   ppm->alpha_s_ad = 0.;
-  ppm->k_pivot = 0.05;
+  ppm->A_t = 2.3e-9;
+  ppm->n_t = 0.;
+  ppm->alpha_t = 0.;
 
   sprintf(pop->cls_ad,"output/cls.dat");
+  sprintf(pop->clt,"output/clt.dat");
   pbs->l_max=2500;
   ptr->l_scalar_max=2500;
-  ptr->l_tensor_max=2500;
+  ptr->l_tensor_max=500;
 
   sprintf(pop->pk,"output/pk.dat");
   pop->z_pk = 0.;  
@@ -789,7 +830,8 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->k_step_trans=0.15; /* 0.1 sampling step in k space, in units of 2pi/(eta_0-eta_rec), which is the typical period of oscillations of |Delta_l(k)|^2 */
+  ppr->k_step_trans_scalars=0.15; /* 0.1 sampling step in k space, in units of 2pi/(eta_0-eta_rec), which is the typical period of oscillations of |Delta_l(k)|^2 */
+  ppr->k_step_trans_tensors=0.15;
 
   ppr->transfer_cut=tc_cl;
   ppr->transfer_cut_threshold_osc=0.01; /* 0.01 */

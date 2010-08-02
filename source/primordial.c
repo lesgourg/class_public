@@ -125,7 +125,7 @@ int primordial_init(
 
   ppm->lnk_size=0;
 
-  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+  if (ppt->tp_size == NULL) {
     if (ppm->primordial_verbose > 0)
       printf("No perturbations requested. Primordial module skipped.\n");
     return _SUCCESS_;
@@ -137,7 +137,7 @@ int primordial_init(
 
   /** - get kmin and kmax from perturbation structure */
 
-  k_min=1.e10; /* huge initial value before scanning all modes */
+  k_min=_HUGE_; /* huge initial value before scanning all modes */
   k_max=0.;    /* zero initial value before scanning all modes */
 
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
@@ -185,8 +185,14 @@ int primordial_init(
 
   if (ppm->primordial_spec_type == analytic_Pk) {
 
-    if ((ppm->has_ad) && (ppm->has_ad)) {
+    if ((ppm->has_scalars == _TRUE_) && (ppm->has_ad == _TRUE_)) {
       class_test(ppm->A_s_ad <= 0.,
+		 ppm->error_message,
+		 "stop to avoid segmentation fault");
+    }
+
+    if (ppm->has_tensors == _TRUE_) {
+      class_test(ppm->A_t <= 0.,
 		 ppm->error_message,
 		 "stop to avoid segmentation fault");
     }
@@ -218,8 +224,11 @@ int primordial_init(
   }
 
   else {
-    sprintf(ppm->error_message,"%s(L:%d) : only analytic primordial spectrum coded yet",__func__,__LINE__);
-    return _FAILURE_;
+
+    class_test(0==0,
+	       ppm->error_message,
+	       "only analytic primordial spectrum coded yet");
+
   }     
 
   /** - compute second derivative of each P(k) with spline, in view of interpolation */
@@ -341,9 +350,9 @@ int primordial_analytic_spectrum(
 				 double * lnpk
 				 ) {  
 
-  if ((ppm->has_ad) && (index_ic == ppm->index_ic_ad)) {
+  if ((ppm->has_scalars == _TRUE_) && (index_mode == ppm->index_md_scalars)) {
 
-    if ((ppm->has_scalars == _TRUE_) && (index_mode == ppm->index_md_scalars)) {
+    if ((ppm->has_ad == _TRUE_) && (index_ic == ppm->index_ic_ad)) {
 
       /** (a) scalar adiabatic primordial spectrum */
       *lnpk = log(ppm->A_s_ad) 
@@ -356,9 +365,20 @@ int primordial_analytic_spectrum(
 
   }
 
+  if ((ppm->has_tensors == _TRUE_) && (index_mode == ppm->index_md_tensors)) {
+
+    /** (b) tensor primordial spectrum */
+    *lnpk = log(ppm->A_t) 
+      + ppm->n_t * log(k/ppm->k_pivot)
+      + 0.5 * ppm->alpha_t * pow(log(k/ppm->k_pivot), 2.);
+
+    return _SUCCESS_;
+
+  }
+
   class_test(0 == 0,
 	     ppm->error_message,
-	     "only scalar adiabatic primordial spectrum coded yet\n");
+	     "could not recognize which primordial spectrum you want; maybe yet uncoded isocurvature? Or vectors? \n");
 
 }
 

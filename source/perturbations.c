@@ -162,13 +162,13 @@ int perturb_init(
   else
     ppt->has_source_p=_FALSE_;
   
-  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
-      (ppt->has_pk_matter == _TRUE_))
+  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_pk_matter == _TRUE_))
     ppt->has_source_g=_TRUE_;
   else
     ppt->has_source_g=_FALSE_;
-
+  
   if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+    ppt->tp_size = NULL;
     if (ppt->perturbations_verbose > 0)
       printf("No sources requested. Perturbation module skipped.\n");
     return _SUCCESS_;
@@ -319,7 +319,7 @@ int perturb_free(
 
   int index_mode,index_ic,index_k,index_type;
 
-  if (((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) || (ppt->has_source_g == _TRUE_)) {
+  if (ppt->tp_size != NULL) {
 
     for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
     
@@ -341,6 +341,8 @@ int perturb_free(
     
     free(ppt->eta_sampling);
 	 
+    free(ppt->tp_size);
+
     free(ppt->ic_size);
 
     free(ppt->k_size);
@@ -864,7 +866,7 @@ int perturb_get_k_list(
   /** - get number of wavenumbers for tensor mode */
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
     ppt->k_size[index_mode] = ppr->k_tensor_number;
-    ppt->k_size_cl[index_mode] = index_k;
+    ppt->k_size_cl[index_mode] = ppr->k_tensor_number;
 
     class_alloc(ppt->k[index_mode],ppt->k_size[index_mode]*sizeof(double),ppt->error_message);
 

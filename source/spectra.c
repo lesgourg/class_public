@@ -264,7 +264,7 @@ int spectra_init(
 
   psp->md_size = 0;
 
-  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+  if (ppt->tp_size == NULL) {
     if (psp->spectra_verbose > 0)
       printf("No spectra requested. Spectra module skipped.\n");
     return _SUCCESS_;
@@ -289,7 +289,7 @@ int spectra_init(
 
   /** - deal with cl's, if any */
 
-  if (ptr->tt_size > 0) {
+  if (ptr->tt_size != NULL) {
 
     class_call(spectra_cls(ppt,ptr,ppm,psp),
 	       psp->error_message,
@@ -360,36 +360,71 @@ int spectra_indices(
 
   int index_ct;
 
-  if (ptr->tt_size > 0) {
+  if (ptr->tt_size != NULL) {
+
+    /* types of C_l's relevant for both scalars and tensors: TT, EE, TE */
 
     index_ct=0;
+
     if (ppt->has_cl_cmb_temperature == _TRUE_) {
-      psp->index_ct_tt=index_ct;
+      psp->has_tt = _TRUE_;
+      psp->index_ct_tt=index_ct;      
       index_ct++;
     }
+    else {
+      psp->has_tt = _FALSE_;
+    }
+
     if (ppt->has_cl_cmb_polarization == _TRUE_) {
+      psp->has_ee = _TRUE_;
       psp->index_ct_ee=index_ct;
       index_ct++;
     }
+    else {
+      psp->has_ee = _FALSE_;
+    }
+
     if ((ppt->has_cl_cmb_temperature == _TRUE_) && 
 	(ppt->has_cl_cmb_polarization == _TRUE_)) {
-      psp->index_ct_te=index_ct;
+      psp->has_te = _TRUE_;
+      psp->index_ct_te=index_ct;      
       index_ct++;
     }
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && 
-	(ppt->has_tensors == _TRUE_)) {
+    else {
+      psp->has_te = _FALSE_;
+    }
+
+    /* types of C_l's relevant only for tensors: BB */
+
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
+      psp->has_bb = _TRUE_;
       psp->index_ct_bb=index_ct;
       index_ct++;
     }
-    if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+    else {
+      psp->has_bb = _FALSE_;
+    }
+
+    /* types of C_l's relevant only for scalars: phi-phi, T-phi */
+    
+    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+      psp->has_pp = _TRUE_;
       psp->index_ct_pp=index_ct;
       index_ct++;
     }
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && 
-	(ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
+    else {
+      psp->has_pp = _FALSE_;
+    }
+
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+      psp->has_tp = _TRUE_;
       psp->index_ct_tp=index_ct;
       index_ct++;
     }
+    else {
+      psp->has_tp = _FALSE_;
+    }
+
     psp->ct_size = index_ct;
 
   }
@@ -470,7 +505,7 @@ int spectra_cls(
 	class_alloc_parallel(primordial_pk,psp->ic_size[index_mode]*sizeof(double),
 			     psp->error_message);
 
-	class_alloc_parallel(transfer,ptr->tt_size*sizeof(double),
+	class_alloc_parallel(transfer,ptr->tt_size[index_mode]*sizeof(double),
 			     psp->error_message);
 
 #pragma omp for schedule (dynamic)
@@ -551,6 +586,7 @@ int spectra_compute_cl(
   int index_ct;
   double k;
   double clvalue;
+  int nonzero;
 
   for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
 
@@ -564,92 +600,93 @@ int spectra_compute_cl(
 
     /* above routine checks that k>0: no possible division by zero below */
 
-    for (index_tt=0; index_tt < ptr->tt_size; index_tt++) {
+    for (index_tt=0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
 		  
       transfer[index_tt] = 
 	ptr->transfer[index_mode]
-	[((index_ic * ptr->tt_size + index_tt)
+	[((index_ic * ptr->tt_size[index_mode] + index_tt)
 	  * ptr->l_size[index_mode] + index_l)
 	 * ptr->k_size[index_mode] + index_k];
       
     }
-		
-    if (ppt->has_cl_cmb_temperature == _TRUE_) {
+
+    if (psp->has_tt == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_t]
 	* transfer[ptr->index_tt_t]
 	* 4. * _PI_ / k;
-    }
 		  
-    if (ppt->has_cl_cmb_polarization == _TRUE_) {
+    if (psp->has_ee == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_p]
 	* transfer[ptr->index_tt_p]
 	* 4. * _PI_ / k;
-    }
 
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_)) {
+    if (psp->has_te == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_t]
 	* transfer[ptr->index_tt_p]
 	* 4. * _PI_ / k;
-    }
+    
+    if ((psp->has_bb == _TRUE_) && (index_mode == ppt->index_md_tensors))
+	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=primordial_pk[index_ic]
+	* transfer[ptr->index_tt_p]
+	* transfer[ptr->index_tt_p]
+	* 4. * _PI_ / k;
 
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
-
-      if (index_mode == ppt->index_md_scalars) {
-	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=0.;
-      }
-		  
-      class_test((index_mode == ppt->index_md_tensors),
-		 psp->error_message,"tensors not coded yet");
-		  
-    }
-	      
-    if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+    if ((psp->has_pp == _TRUE_) && (index_mode == ppt->index_md_scalars))
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_lcmb]
 	* transfer[ptr->index_tt_lcmb]
 	* 4. * _PI_ / k;
-    }
-
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
+    
+    if ((psp->has_tp == _TRUE_) && (index_mode == ppt->index_md_scalars))
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_t]
 	* transfer[ptr->index_tt_lcmb]
 	* 4. * _PI_ / k;
-    }
-    
+
   }
   
-
   for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 
-    class_call(array_spline(cl_integrand,
-			    cl_integrand_num_columns,
-			    ptr->k_size[index_mode],
-			    0,
-			    1+index_ct,
-			    1+psp->ct_size+index_ct,
-			    _SPLINE_EST_DERIV_,
-			    psp->error_message),
-	       psp->error_message,
-	       psp->error_message);
+    if (((index_ct == psp->index_ct_bb) && (psp->has_bb == _TRUE_) && (index_mode == ppt->index_md_scalars)) ||
+	((index_ct == psp->index_ct_pp) && (psp->has_pp == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
+	((index_ct == psp->index_ct_tp) && (psp->has_tp == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
 
-    class_call(array_integrate_all_spline(cl_integrand,
-					  cl_integrand_num_columns,
-					  ptr->k_size[index_mode],
-					  0,
-					  1+index_ct,
-					  1+psp->ct_size+index_ct,
-					  &clvalue,
-					  psp->error_message),
-	       psp->error_message,
-	       psp->error_message);
+      psp->cl[index_mode]
+	[(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct] = 0.;
 
-    psp->cl[index_mode]
-      [(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
-      = clvalue;
+    }
+    else {
+
+      class_call(array_spline(cl_integrand,
+			      cl_integrand_num_columns,
+			      ptr->k_size[index_mode],
+			      0,
+			      1+index_ct,
+			      1+psp->ct_size+index_ct,
+			      _SPLINE_EST_DERIV_,
+			      psp->error_message),
+		 psp->error_message,
+		 psp->error_message);
+      
+      class_call(array_integrate_all_spline(cl_integrand,
+					    cl_integrand_num_columns,
+					    ptr->k_size[index_mode],
+					    0,
+					    1+index_ct,
+					    1+psp->ct_size+index_ct,
+					    &clvalue,
+					    psp->error_message),
+		 psp->error_message,
+		 psp->error_message);
+      
+      psp->cl[index_mode]
+	[(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
+	= clvalue;
+
+    }
 
   }
 

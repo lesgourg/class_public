@@ -21,7 +21,7 @@ int output_init(
   double * cl_output;
   double * pk_output;
 
-  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+  if (ppt->tp_size == NULL) {
     if (pop->output_verbose > 0)
       printf("No spectra requested. Output module skipped.\n");
     return _SUCCESS_;
@@ -31,7 +31,9 @@ int output_init(
       printf("Writing in output files \n");
   }
 
-  if (ptr->tt_size >0) {
+  /* deal with all C_l's */
+
+  if (ptr->tt_size != NULL) {
 
     for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
@@ -42,31 +44,66 @@ int output_init(
       for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
 	if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
+
 	  if ((ppt->has_ad) && (index_ic == ppt->index_ic_ad)) {
 
 	    class_open(out[index_ic],pop->cls_ad,"w",pop->error_message);
 
-	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for adiabatic mode\n");
+	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for scalar adiabatic mode\n");
 	  }
+	  else {
+	    class_test(0==0,
+		       pop->error_message,
+		       "coding isocurvature modes not finished");
+	  }	  
 	}
+
+	if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
 	
+	  class_open(out[index_ic],pop->clt,"w",pop->error_message);
+
+	  fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for tensor mode\n");
+
+	}
+
 	fprintf(out[index_ic],"# number of values of l:\n");
 	fprintf(out[index_ic],"%d\n",(int)(psp->l[index_mode][psp->l_size[index_mode]-1]-1));
         fprintf(out[index_ic],"#  l ");
-	for (index_ct=0; index_ct < psp->ct_size; index_ct++) {
-	  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
-	      (index_ct == psp->index_ct_tt)) fprintf(out[index_ic],"TT           ");
-	  if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
-	      (index_ct == psp->index_ct_ee)) fprintf(out[index_ic],"EE           ");
-	  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
-	      (ppt->has_cl_cmb_polarization == _TRUE_) &&
-	      (index_ct == psp->index_ct_te)) fprintf(out[index_ic],"TE            ");
-	  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
-	      (index_ct == psp->index_ct_pp)) fprintf(out[index_ic],"phiphi       ");
-	  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
-	      (ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
-	      (index_ct == psp->index_ct_tp)) fprintf(out[index_ic],"Tphi           ");
-	}
+
+	if (psp->has_tt == _TRUE_)
+	  fprintf(out[index_ic],"TT           ");
+	if (psp->has_ee == _TRUE_)
+	  fprintf(out[index_ic],"EE           ");
+	if (psp->has_te == _TRUE_)
+	  fprintf(out[index_ic],"TE            ");
+	if (psp->has_bb == _TRUE_)
+	  fprintf(out[index_ic],"BB             ");
+	if (psp->has_pp == _TRUE_)
+	  fprintf(out[index_ic],"phiphi       ");
+	if (psp->has_tp == _TRUE_)
+	  fprintf(out[index_ic],"Tphi           ");
+
+/* 	for (index_ct=0; index_ct < psp->ct_size[index_mode]; index_ct++) { */
+/* 	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && */
+/* 	      (index_ct == psp->index_ct_tt)) fprintf(out[index_ic],"TT           "); */
+/* 	  if ((ppt->has_cl_cmb_polarization == _TRUE_) && */
+/* 	      (index_ct == psp->index_ct_ee)) fprintf(out[index_ic],"EE           "); */
+/* 	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && */
+/* 	      (ppt->has_cl_cmb_polarization == _TRUE_) && */
+/* 	      (index_ct == psp->index_ct_te)) fprintf(out[index_ic],"TE            "); */
+/* 	  if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) { */
+/* 	    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && */
+/* 		(index_ct == psp->index_ct_pp)) fprintf(out[index_ic],"phiphi       "); */
+/* 	    if ((ppt->has_cl_cmb_temperature == _TRUE_) && */
+/* 		(ppt->has_cl_cmb_lensing_potential == _TRUE_) && */
+/* 		(index_ct == psp->index_ct_tp)) fprintf(out[index_ic],"Tphi           "); */
+/* 	  } */
+/* 	  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) { */
+/* 	    if ((ppt->has_cl_cmb_polarization == _TRUE_) && */
+/* 		(index_ct == psp->index_ct_bb)) fprintf(out[index_ic],"BB           "); */
+/* 	  } */
+/* 	} */
+
 	fprintf(out[index_ic],"\n");
 
       }
@@ -101,6 +138,8 @@ int output_init(
 
     }
   }
+
+  /* deal with all Fourier space spectra */
 
   if (ppt->has_pk_matter == _TRUE_) {
     

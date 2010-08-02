@@ -27,8 +27,14 @@ struct spectra {
   int index_ct_bb;
   int index_ct_pp;
   int index_ct_tp;
-  int ct_size; /**< number of ct_type (TT, TE, EE, etc.) */
+  int ct_size; /**< number of C_l types in the file of total spectra (spectra + tensors if any): TT, TE, EE, BB, phi-phi, T-phi, ... */
 
+  int has_tt;
+  int has_ee;
+  int has_te;
+  int has_bb;
+  int has_pp;
+  int has_tp;
 
   double z_max_pk; /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
 

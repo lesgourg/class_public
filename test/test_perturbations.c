@@ -44,7 +44,7 @@ main(int argc, char **argv) {
 
     FILE * output;
     int index_k,index_eta;
-    int index_mode=pt.index_md_scalars;
+    int index_mode=pt.index_md_tensors;
     int index_type=pt.index_tp_t;
     int index_ic=pt.index_ic_ad;
 

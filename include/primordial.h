@@ -52,6 +52,10 @@ struct primordial {
   double n_s_ad;  /* scalar tilt (adiabatic) */
   double alpha_s_ad; /* scalar running (adiabatic) */
 
+  double A_t;  /* tensor amplitude  */
+  double n_t;  /* tensor tilt */
+  double alpha_t; /* tensor running */
+
   double * lnk; /* list of ln(k) values lnk[index_k] */
   int lnk_size; /* number of ln(k) values */
 
@@ -67,7 +71,6 @@ struct primordial {
   //@}
 
   ErrorMsg error_message; /**< zone for writing error messages */
-  ErrorMsg transmit_message; /**< temporary zone for passing error messages */
 
 };
 
