@@ -145,8 +145,6 @@ int perturb_init(
 	     ppt->error_message,
 	     "Vectors not coded yet");
 
-  if (ppt->has_tensors == _TRUE_) printf("!!! TENSORS UNDER DEBUGGING PHASE !!!\n");
-
   if (ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_) {
     printf("Warning: isocurvature initial condition implemented, but not tested yet\n");
   }
@@ -518,7 +516,7 @@ int perturb_indices_of_perturbs(
 
       class_test(index_type == 0,
 		 ppt->error_message,
-		 "you should have at least one out of {temperature, polarisation, lensing...} !!!");
+		 "inconsistent input: for each of the mode (scalars/tensors) that you requested, you should have at least one non-zero type (temperature, polarisation, lensing...). Please adjust your input.");
 
     }
 
@@ -808,7 +806,7 @@ int perturb_get_k_list(
 	       ppt->error_message,
 	       "stop to avoid division by zero");
 
-    k_rec = 2. * _PI_ / pth->rs_rec;
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresping to sound horizon at recombination */
 
     index_k=0;
     k = ppr->k_scalar_min * pba->H0;
@@ -865,13 +863,53 @@ int perturb_get_k_list(
 
   /** - get number of wavenumbers for tensor mode */
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-    ppt->k_size[index_mode] = ppr->k_tensor_number;
-    ppt->k_size_cl[index_mode] = ppr->k_tensor_number;
+
+    class_test(ppr->k_tensor_step_transition == 0.,
+	       ppt->error_message,
+	       "stop to avoid division by zero");
+
+    class_test(pth->rs_rec == 0.,
+	       ppt->error_message,
+	       "stop to avoid division by zero");
+
+    k_rec = 2. * _PI_ / pth->eta_rec; /* comoving scale corresping to causal horizon at recombination 
+					 (roughly, sqrt(3) bigger than sound horizon) */
+
+    index_k=0;
+    k = ppr->k_tensor_min * pba->H0;
+    index_k=1;
+    while (k < ppr->k_tensor_oscillations*k_rec) {
+      step = ppr->k_tensor_step_super 
+	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
+
+      class_test(step * k_rec < ppr->smallest_allowed_variation,
+		 ppt->error_message,
+		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
+
+      k_next=k + step * k_rec;
+      index_k++;
+      k=k_next;
+    }
+
+    ppt->k_size_cl[index_mode] = index_k;
+    ppt->k_size[index_mode] = index_k;
 
     class_alloc(ppt->k[index_mode],ppt->k_size[index_mode]*sizeof(double),ppt->error_message);
 
-    for (index_k = 0; index_k < ppr->k_tensor_number; index_k++) {
-      ppt->k[index_mode][index_k] = ppr->k_tensor_min * exp(index_k * log(ppr->k_tensor_logstep));
+    /* now fill the array */
+
+    index_k=0;
+    ppt->k[index_mode][index_k] = ppr->k_tensor_min * pba->H0;
+    index_k++;
+    while (index_k < ppt->k_size_cl[index_mode]) {
+      step = ppr->k_tensor_step_super 
+	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
+
+      class_test(step * k_rec < ppr->smallest_allowed_variation,
+		 ppt->error_message,
+		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
+      ppt->k[index_mode][index_k]=ppt->k[index_mode][index_k-1] + step * k_rec;
+      index_k++;
     }
 
   }
@@ -1065,7 +1103,7 @@ int perturb_workspace_init(
     /* reject inconsistent values of the number of mutipoles in photon temperature hierachy */
     class_test(ppr->l_max_g_ten < 4,
 	       ppt->error_message,
-	       "ppr->l_max_g_ten should be at least 5, i.e. we must integrate at least over photon density, velocity, shear, third, fourth momentum");
+	       "ppr->l_max_g_ten should be at least 4, i.e. we must integrate at least over photon density, velocity, shear, third momentum");
  
     /* reject inconsistent values of the number of mutipoles in photon polarization hierachy */
     class_test(ppr->l_max_pol_g_ten < 2,
@@ -2329,7 +2367,7 @@ int perturb_source_terms(
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
 
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
-	  -pvecperturbations[ppw->index_pt_gw]*pvecthermo[pth->index_th_exp_m_kappa]
+	  -pvecperturbations[ppw->index_pt_gwdot]*pvecthermo[pth->index_th_exp_m_kappa]
 	  +pvecthermo[pth->index_th_g]*Psi;
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;

@@ -291,13 +291,17 @@ struct precision
   double k_scalar_min; /**< first mode k_min in units of Hubble radius today */
   double k_scalar_oscillations; /**< number of acoustic oscillations experienced by last mode k_max (to resolve n acoustic peaks, one should set this number to more than n) */
   double k_scalar_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
-  double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  double k_scalar_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. */
+  double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
+  double k_scalar_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. */
 
   double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade */
 
-  int k_tensor_number;  /**< number of k values (tensor modes) */
-  double k_tensor_min; /**< min k value (tensor modes) */
-  double k_tensor_logstep; /**< logstep for k sampling (tensor modes) */
+
+  double k_tensor_min; /**< first mode k_min in units of Hubble radius today (tensor modes) */
+  double k_tensor_oscillations; /**< number oscillations experienced by last mode k_max (to resolve n peaks, one should set this number to more than n) (tensor modes) */
+  double k_tensor_step_sub; /**< step in k space, in units of one period of oscillation at decoupling, for scales inside horizon at decoupling (tensor modes) */
+  double k_tensor_step_super; /**< step in k space, in units of one period of oscillation at decoupling, for scales above horizon at decoupling (tensor modes) */  
+  double k_tensor_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. (tensor modes) */
 
   double k_eta_min; /**< default value of \f$ k \times \eta \f$ for starting integration of given wavenumber */
 

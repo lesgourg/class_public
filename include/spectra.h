@@ -21,6 +21,10 @@ struct spectra {
   double ** cl; /**< table of spectrum multipole \f$ C_l^{X} \f$'s for each mode, initial condition and cl_type, (cl[index_mode])[index_ic][index_ct][index_l] */
   double ** ddcl; /**< table of second derivatives in view of spline interpolation */ 
 
+  int * l_max; /**< last multipole (given as an input) at which we trust our C_ls;
+		  (l[index_mode][l_size[index_mode]-1] can be larger than l_max[index_mode], 
+		  in order to ensure better interpolation with no boundary effects) */
+
   int index_ct_tt;
   int index_ct_ee;
   int index_ct_te;
@@ -68,6 +72,12 @@ extern "C" {
   int spectra_cl_at_l(
 		      struct spectra * psp,
 		      int index_mode,
+		      double l,
+		      double *cl
+		      );
+
+  int spectra_cl_tot_at_l(
+		      struct spectra * psp,
 		      double l,
 		      double *cl
 		      );

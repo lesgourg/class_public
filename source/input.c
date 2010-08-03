@@ -477,7 +477,12 @@ int input_init(
   flag1=parser_read_string(pfc,"root",&string1,errmsg);
   if (flag1 == _SUCCESS_) {
     sprintf(pop->cls_ad,"%s%s",string1,"cls_ad.dat");
+    sprintf(pop->cls_bi,"%s%s",string1,"cls_bi.dat");
+    sprintf(pop->cls_cdi,"%s%s",string1,"cls_cdi.dat");
+    sprintf(pop->cls_nid,"%s%s",string1,"cls_nid.dat");
+    sprintf(pop->cls_niv,"%s%s",string1,"cls_niv.dat");
     sprintf(pop->clt,"%s%s",string1,"clt.dat");
+    sprintf(pop->cltot,"%s%s",string1,"cltot.dat");
     sprintf(pop->pk,"%s%s",string1,"pk.dat");
   }
 
@@ -572,9 +577,11 @@ int input_init(
   class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
   class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
   class_read_double("k_scalar_k_per_decade_for_pk",ppr->k_scalar_k_per_decade_for_pk);
-  class_read_int("k_tensor_number",ppr->k_tensor_number);
   class_read_double("k_tensor_min",ppr->k_tensor_min);
-  class_read_double("k_tensor_logstep",ppr->k_tensor_logstep);
+  class_read_double("k_tensor_oscillations",ppr->k_tensor_oscillations);
+  class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
+  class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
+  class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
   class_read_double("k_eta_min",ppr->k_eta_min);
   class_read_double("eta_min_over_sampling_min",ppr->eta_min_over_sampling_min);
   class_read_double("k_eta_ma",ppr->k_eta_max);
@@ -781,9 +788,11 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
-  ppr->k_tensor_number=14;
-  ppr->k_tensor_min=1.e-4;
-  ppr->k_tensor_logstep=1.5;
+  ppr->k_tensor_min=0.1; /* 0.3 -> 0.1 */
+  ppr->k_tensor_oscillations=3.5;  
+  ppr->k_tensor_step_sub=0.01;  /* 0.02 -> 0.005 */
+  ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
+  ppr->k_tensor_step_transition=0.2;
 
   ppr->k_eta_min=1.e-1; /* 4.5e-6 optimized 9/09/08  */
   ppr->eta_min_over_sampling_min=0.5;

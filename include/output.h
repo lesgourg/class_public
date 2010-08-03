@@ -8,8 +8,14 @@
 struct output {
 
   FileArg cls_ad;
+  FileArg cls_bi;
+  FileArg cls_cdi;
+  FileArg cls_nid;
+  FileArg cls_niv;
 
   FileArg clt;
+
+  FileArg cltot;
 
   FileArg pk;
   

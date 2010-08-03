@@ -20,6 +20,7 @@ int output_init(
   int index_mode,index_ic,index_ct,l,index_k;
   double * cl_output;
   double * pk_output;
+  int lmax;
 
   if (ppt->tp_size == NULL) {
     if (pop->output_verbose > 0)
@@ -35,11 +36,19 @@ int output_init(
 
   if (ptr->tt_size != NULL) {
 
+    /* loop over modes */
+
     for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+
+      /* create bunch of files for this mode and all initial conditions */
 
       class_alloc(out,ppt->ic_size[index_mode]*sizeof(FILE *),pop->error_message);
 
+      /* create temporary vector for writing the C_l's */
+
       class_alloc(cl_output,ppt->ic_size[index_mode]*psp->ct_size*sizeof(double),pop->error_message);
+
+      /* give its name to each file (for each mode and initial conditions) */
 
       for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
@@ -51,11 +60,35 @@ int output_init(
 
 	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for scalar adiabatic mode\n");
 	  }
-	  else {
-	    class_test(0==0,
-		       pop->error_message,
-		       "coding isocurvature modes not finished");
-	  }	  
+
+	  if ((ppt->has_bi) && (index_ic == ppt->index_ic_bi)) {
+
+	    class_open(out[index_ic],pop->cls_bi,"w",pop->error_message);
+
+	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for scalar baryon isocurvature mode\n");
+	  }
+
+	  if ((ppt->has_cdi) && (index_ic == ppt->index_ic_cdi)) {
+
+	    class_open(out[index_ic],pop->cls_cdi,"w",pop->error_message);
+
+	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for scalar CDM isocurvature mode\n");
+	  }
+
+	  if ((ppt->has_nid) && (index_ic == ppt->index_ic_nid)) {
+
+	    class_open(out[index_ic],pop->cls_nid,"w",pop->error_message);
+
+	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for scalar neutrino density isocurvature mode\n");
+	  }
+
+	  if ((ppt->has_niv) && (index_ic == ppt->index_ic_niv)) {
+
+	    class_open(out[index_ic],pop->cls_niv,"w",pop->error_message);
+
+	    fprintf(out[index_ic],"# dimensionless [l(l+1)/2pi] C_l for scalar neutrino velocity isocurvature mode\n");
+	  }
+
 	}
 
 	if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
@@ -66,8 +99,10 @@ int output_init(
 
 	}
 
+	/* write headers */
+
 	fprintf(out[index_ic],"# number of values of l:\n");
-	fprintf(out[index_ic],"%d\n",(int)(psp->l[index_mode][psp->l_size[index_mode]-1]-1));
+	fprintf(out[index_ic],"%d\n",(int)(psp->l_max[index_mode]-1));
         fprintf(out[index_ic],"#  l ");
 
 	if (psp->has_tt == _TRUE_)
@@ -75,44 +110,29 @@ int output_init(
 	if (psp->has_ee == _TRUE_)
 	  fprintf(out[index_ic],"EE           ");
 	if (psp->has_te == _TRUE_)
-	  fprintf(out[index_ic],"TE            ");
+	  fprintf(out[index_ic],"TE           "); 
 	if (psp->has_bb == _TRUE_)
-	  fprintf(out[index_ic],"BB             ");
+	  fprintf(out[index_ic],"BB           ");
 	if (psp->has_pp == _TRUE_)
 	  fprintf(out[index_ic],"phiphi       ");
 	if (psp->has_tp == _TRUE_)
-	  fprintf(out[index_ic],"Tphi           ");
-
-/* 	for (index_ct=0; index_ct < psp->ct_size[index_mode]; index_ct++) { */
-/* 	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && */
-/* 	      (index_ct == psp->index_ct_tt)) fprintf(out[index_ic],"TT           "); */
-/* 	  if ((ppt->has_cl_cmb_polarization == _TRUE_) && */
-/* 	      (index_ct == psp->index_ct_ee)) fprintf(out[index_ic],"EE           "); */
-/* 	  if ((ppt->has_cl_cmb_temperature == _TRUE_) && */
-/* 	      (ppt->has_cl_cmb_polarization == _TRUE_) && */
-/* 	      (index_ct == psp->index_ct_te)) fprintf(out[index_ic],"TE            "); */
-/* 	  if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) { */
-/* 	    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && */
-/* 		(index_ct == psp->index_ct_pp)) fprintf(out[index_ic],"phiphi       "); */
-/* 	    if ((ppt->has_cl_cmb_temperature == _TRUE_) && */
-/* 		(ppt->has_cl_cmb_lensing_potential == _TRUE_) && */
-/* 		(index_ct == psp->index_ct_tp)) fprintf(out[index_ic],"Tphi           "); */
-/* 	  } */
-/* 	  if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) { */
-/* 	    if ((ppt->has_cl_cmb_polarization == _TRUE_) && */
-/* 		(index_ct == psp->index_ct_bb)) fprintf(out[index_ic],"BB           "); */
-/* 	  } */
-/* 	} */
+	  fprintf(out[index_ic],"Tphi         ");
 
 	fprintf(out[index_ic],"\n");
 
       }
 
-      for (l = 2; l <= psp->l[index_mode][psp->l_size[index_mode]-1]; l++) {  
+      /* loop over l */
+
+      for (l = 2; l <= psp->l_max[index_mode]; l++) {  
+
+	/* get results for one given mode (but all ic's and types) */
 
 	class_call(spectra_cl_at_l(psp,index_mode,(double)l,cl_output),
 		   psp->error_message,
 		   pop->error_message);
+
+	/* write result in corresponding file for each ic */
 
 	for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
@@ -127,6 +147,8 @@ int output_init(
 
       }
 
+      /* close files */
+
       for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
 	fclose(out[index_ic]);
@@ -137,6 +159,61 @@ int output_init(
       free(cl_output);
 
     }
+
+    /* if more than one mode or more than one initial condition, output also the total C_l's summed over modes and ic's */
+
+    if ((psp->md_size > 1) || ((psp->md_size == 1) && (psp->ic_size[0] > 1))) {
+
+      class_alloc(cl_output,psp->ct_size*sizeof(double),pop->error_message);
+
+      class_open(outbis,pop->cltot,"w",pop->error_message);
+
+      lmax=0;
+      for (index_mode=0; index_mode<psp->md_size; index_mode++) {
+	lmax=max(lmax,psp->l_max[index_mode]);
+      }
+
+      fprintf(outbis,"# dimensionless [l(l+1)/2pi] C_l summed over modes and initial conditions \n");
+
+      fprintf(outbis,"# number of values of l:\n");
+      fprintf(outbis,"%d\n",(int)(lmax-1));
+      fprintf(outbis,"#  l ");
+
+      if (psp->has_tt == _TRUE_)
+	fprintf(outbis,"TT           ");
+      if (psp->has_ee == _TRUE_)
+	fprintf(outbis,"EE           ");
+      if (psp->has_te == _TRUE_)
+	fprintf(outbis,"TE           "); 
+      if (psp->has_bb == _TRUE_)
+	fprintf(outbis,"BB           ");
+      if (psp->has_pp == _TRUE_)
+	fprintf(outbis,"phiphi       ");
+      if (psp->has_tp == _TRUE_)
+	fprintf(outbis,"Tphi         ");
+      fprintf(outbis,"\n");
+
+      for (l = 2; l <= lmax; l++) {  
+
+	class_call(spectra_cl_tot_at_l(psp,(double)l,cl_output),
+		   psp->error_message,
+		   pop->error_message);
+
+	fprintf(outbis,"%4d",l);
+	for (index_ct=0; index_ct < psp->ct_size; index_ct++) {
+	  fprintf(outbis," ");
+	  fprintf(outbis,"%e",l*(l+1)/2./_PI_*cl_output[index_ct]);
+	}
+	fprintf(outbis,"\n");	
+	  
+      }
+
+      fclose(outbis);
+
+      free(cl_output);
+
+    }
+
   }
 
   /* deal with all Fourier space spectra */

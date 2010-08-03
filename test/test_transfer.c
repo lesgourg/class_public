@@ -59,9 +59,9 @@ main(int argc, char **argv) {
 
   printf("Output of transfer functions\n");
 
-  int index_mode=pt.index_md_tensors;
+  int index_mode=pt.index_md_scalars;
   int index_ic  =pt.index_ic_ad;
-  int index_type=pt.index_tp_t;
+  int index_type=pt.index_tp_g;
   int index_l=tr.l_size[index_mode]-5;
   /* int index_l = 30; */
 

@@ -514,10 +514,12 @@ int transfer_get_l_list(
 	       "For tensor transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ptr->l_scalar_max,pbs->l[pbs->l_size-1]);
     
     index_l=0;
+    /* go to first point in Bessel's l list which is greater than l_max (or only equal to it is l_max_Bessel coincides with l_max) */
     while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ptr->l_tensor_max)) {
       index_l++;
     }
-    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ptr->l_tensor_max)) {
+    /* if possible, take one more point in the list, in order to ensure a more accurate interpolation with less boundary effects */
+    if (index_l < (pbs->l_size-1)) {
       index_l++;
     }
 
