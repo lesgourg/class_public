@@ -1070,15 +1070,25 @@ int transfer_integrate(
   /** (g) extra factors for polarization, lensing, tensors.. */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+    /* for scalar (E-)polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
+
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_p)) {
-      /* for scalar polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
+
       *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.)); 
+
     }
   }
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-    /* for tensor polarization, multiply by square root of  [(l+2)(l+1)l(l-1)/2] */
-    *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.) / 2.);
+
+    /* for tensor temperature, multiply by square root of  (l+2)(l+1)l(l-1)/2 */
+
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) {
+
+      *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.));
+
+    }
   }
   
   return _SUCCESS_;

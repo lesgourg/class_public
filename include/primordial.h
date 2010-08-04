@@ -52,7 +52,7 @@ struct primordial {
   double n_s_ad;  /* scalar tilt (adiabatic) */
   double alpha_s_ad; /* scalar running (adiabatic) */
 
-  double A_t;  /* tensor amplitude  */
+  double r;  /* tensor to scalar ratio A_T/A_S=P_h/P_R  */
   double n_t;  /* tensor tilt */
   double alpha_t; /* tensor running */
 

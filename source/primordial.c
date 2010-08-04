@@ -192,7 +192,7 @@ int primordial_init(
     }
 
     if (ppm->has_tensors == _TRUE_) {
-      class_test(ppm->A_t <= 0.,
+      class_test(ppm->r <= 0.,
 		 ppm->error_message,
 		 "stop to avoid segmentation fault");
     }
@@ -368,7 +368,7 @@ int primordial_analytic_spectrum(
   if ((ppm->has_tensors == _TRUE_) && (index_mode == ppm->index_md_tensors)) {
 
     /** (b) tensor primordial spectrum */
-    *lnpk = log(ppm->A_t) 
+    *lnpk = log(ppm->A_s_ad*ppm->r/16.) 
       + ppm->n_t * log(k/ppm->k_pivot)
       + 0.5 * ppm->alpha_t * pow(log(k/ppm->k_pivot), 2.);
 

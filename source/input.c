@@ -464,7 +464,7 @@ int input_init(
 
     if (ppt->has_tensors == _TRUE_) {
     
-      	class_read_double("A_t",ppm->A_t);
+      	class_read_double("r",ppm->r);
 	class_read_double("n_t",ppm->n_t);
 	class_read_double("alpha_t",ppm->alpha_t);
 
@@ -697,7 +697,7 @@ int input_default_params(
   ppm->A_s_ad = 2.3e-9;
   ppm->n_s_ad = 1.;
   ppm->alpha_s_ad = 0.;
-  ppm->A_t = 2.3e-9;
+  ppm->r = 1.;
   ppm->n_t = 0.;
   ppm->alpha_t = 0.;
 
