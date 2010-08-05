@@ -21,9 +21,10 @@ struct transfers {
   int md_size; /**< number of modes included in computation */
 
   int index_tt_t; /**< index for transfer type = temperature */
-  int index_tt_p; /**< index for transfer type = temperature */
+  int index_tt_e; /**< index for transfer type = E-polarization */
+  int index_tt_b; /**< index for transfer type = B-polarization */
   int index_tt_lcmb; /**< index for transfer type = CMB lensing */
-  int * tt_size;    /**< number of requested transfer types tt_size[index_mode] for each mode (set to NULL of no transfer functions requested) */
+  int * tt_size;    /**< number of requested transfer types tt_size[index_mode] for each mode (set to NULL if no transfer functions requested) */
 
   int * l_size; /**< number of multipole values for each requested mode, l_size[index_mode] */
   int ** l; /**< list of multipole values for each requested mode, (l[index_mode])[index_l] */

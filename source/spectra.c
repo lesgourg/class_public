@@ -680,20 +680,20 @@ int spectra_compute_cl(
 		  
     if (psp->has_ee == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_p]
-	* transfer[ptr->index_tt_p]
+	* transfer[ptr->index_tt_e]
+	* transfer[ptr->index_tt_e]
 	* 4. * _PI_ / k;
 
     if (psp->has_te == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_t]
-	* transfer[ptr->index_tt_p]
+	* transfer[ptr->index_tt_e]
 	* 4. * _PI_ / k;
     
     if ((psp->has_bb == _TRUE_) && (index_mode == ppt->index_md_tensors))
 	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_p]
-	* transfer[ptr->index_tt_p]
+	* transfer[ptr->index_tt_b]
+	* transfer[ptr->index_tt_b]
 	* 4. * _PI_ / k;
 
     if ((psp->has_pp == _TRUE_) && (index_mode == ppt->index_md_scalars))

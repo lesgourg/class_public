@@ -393,36 +393,57 @@ int transfer_indices_of_transfers(
 
   /** - define local variables */
 
-  int index_mode,index_eta,index_tt;
+  int index_mode,index_eta,index_tt,index_tt_common;
 
   /** define indices for transfer types */
 
   class_alloc(ptr->tt_size,ptr->md_size * sizeof(int),ptr->error_message);
 
-  /** - types valid for both scalars and tensors */
-  
+  /** - type indices common to scalars and tensors */
+
   index_tt = 0;
+
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
     ptr->index_tt_t = index_tt;
     index_tt++;
   }
+
   if (ppt->has_cl_cmb_polarization == _TRUE_) {
-    ptr->index_tt_p = index_tt;
+    ptr->index_tt_e = index_tt;
     index_tt++;
   }
 
-  if (ppt->has_tensors == _TRUE_)
+  index_tt_common=index_tt;
+
+  /** - type indices for scalars */
+
+  if (ppt->has_scalars == _TRUE_) {
+  
+    index_tt = index_tt_common;
+
+    if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+      ptr->index_tt_lcmb = index_tt;
+      index_tt++;
+    }
+
+    ptr->tt_size[ppt->index_md_scalars]=index_tt;
+
+  }
+
+  /** - type indices for tensors */
+
+  if (ppt->has_tensors == _TRUE_) {
+  
+    index_tt = index_tt_common;
+
+    if (ppt->has_cl_cmb_polarization == _TRUE_) {
+      ptr->index_tt_b = index_tt;
+      index_tt++;
+    }
+
     ptr->tt_size[ppt->index_md_tensors]=index_tt;
 
-  /** - types valid for scalars only */
-
-  if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
-    ptr->index_tt_lcmb = index_tt;
-    index_tt++;
   }
-
-  if (ppt->has_scalars == _TRUE_)
-    ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
   /** - allocate arrays of (k, l) values and transfer functions */
 
@@ -651,17 +672,31 @@ int transfer_interpolate_sources(
   /* which source are we considering? Correspondance between transfer
      type and source type*/
 
-  if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
-      (index_tt == ptr->index_tt_t)) 
-    index_type=ppt->index_tp_t;
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-  if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
-      (index_tt == ptr->index_tt_p)) 
-    index_type=ppt->index_tp_p;
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
+      index_type=ppt->index_tp_t;
 
-  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
-      (index_tt == ptr->index_tt_lcmb)) 
-    index_type=ppt->index_tp_g;
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) 
+      index_type=ppt->index_tp_e;
+
+    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) 
+      index_type=ppt->index_tp_g;
+    
+  }
+
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
+      index_type=ppt->index_tp_t;
+
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) 
+      index_type=ppt->index_tp_e;
+
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b)) 
+      index_type=ppt->index_tp_b;
+    
+  }
 	  
   class_call(array_spline_table_columns(ppt->k[index_mode],
 					ppt->k_size[index_mode],
@@ -735,19 +770,19 @@ int transfer_interpolate_sources(
 
       /* case of tensors: factor (k(eta0-eta)**2 to account for tensor spherical eigenfunction */
       
-      if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+/*       if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) { */
 	
-	class_test(eta0-ppt->eta_sampling[index_eta] < 0.,
-		   ptr->error_message,
-		   "cannot compute tensor spherical eigenfunctions, %e\n");
+/* 	class_test(eta0-ppt->eta_sampling[index_eta] < 0., */
+/* 		   ptr->error_message, */
+/* 		   "cannot compute tensor spherical eigenfunctions, %e\n"); */
 
-	if (eta0-ppt->eta_sampling[index_eta] == 0.) 
-	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta]=0.;
-	else
-	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] /= 
-	    pow(ppt->k[index_mode][index_k+1]*(eta0-ppt->eta_sampling[index_eta]),2.);
+/* 	if (eta0-ppt->eta_sampling[index_eta] == 0.)  */
+/* 	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta]=0.; */
+/* 	else */
+/* 	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] /=  */
+/* 	    pow(ppt->k[index_mode][index_k+1]*(eta0-ppt->eta_sampling[index_eta]),2.); */
 
-      }
+/*       } */
 
     }
 
@@ -1073,7 +1108,7 @@ int transfer_integrate(
 
     /* for scalar (E-)polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
 
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_p)) {
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) {
 
       *trsf *= sqrt((pbs->l[index_l]+2.) * (pbs->l[index_l]+1.) * (pbs->l[index_l]) * (pbs->l[index_l]-1.)); 
 
@@ -1134,12 +1169,19 @@ int transfer_limber(
   *trsf *= sqrt(_PI_/(2.*l+1.))/k;
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_p)) {
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) {
       /* for scalar polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
       *trsf *= sqrt((l+2.)*(l+1.)*l*(l-1.)); 
     }
   }
     
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+    /* for tensor temperature, multiply by square root of  (l+2)(l+1)l(l-1)/2 */
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) {
+      *trsf *= sqrt((l+2.)*(l+1.)*l*(l-1.)); 
+    }
+  }
+  
   return _SUCCESS_;
   
 }

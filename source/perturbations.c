@@ -115,6 +115,8 @@ int perturb_init(
   int index_ic; 
   /* running index for wavenumbers */
   int index_k; 
+  /* flag to see whether at least one source is needed */
+  int has_source;
   /* struct perturb_workspace pw; */
   struct perturb_workspace * ppw;
 
@@ -150,22 +152,39 @@ int perturb_init(
   }
 
   /** - decide which types of sources must be computed */
-  if (ppt->has_cl_cmb_temperature == _TRUE_)
-    ppt->has_source_t=_TRUE_;
+
+  has_source=_FALSE_;
+
+  if (ppt->has_cl_cmb_temperature == _TRUE_) {
+    ppt->has_source_t = _TRUE_;
+    has_source = _TRUE_;
+  }
   else 
-    ppt->has_source_t= _FALSE_;
+    ppt->has_source_t = _FALSE_;
   
-  if (ppt->has_cl_cmb_polarization == _TRUE_)
-    ppt->has_source_p=_TRUE_;
+  if (ppt->has_cl_cmb_polarization == _TRUE_) {
+    ppt->has_source_e = _TRUE_;
+    has_source = _TRUE_;
+  }
   else
-    ppt->has_source_p=_FALSE_;
+    ppt->has_source_e = _FALSE_;
   
-  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_pk_matter == _TRUE_))
+  if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
+    ppt->has_source_b = _TRUE_;
+    has_source = _TRUE_;
+  }
+  else
+    ppt->has_source_b = _FALSE_;
+  
+  if (((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_pk_matter == _TRUE_)) 
+      && (ppt->has_scalars == _TRUE_)) {
     ppt->has_source_g=_TRUE_;
+    has_source = _TRUE_;
+  }
   else
-    ppt->has_source_g=_FALSE_;
+    ppt->has_source_g = _FALSE_;
   
-  if (((ppt->has_source_t == _FALSE_) && (ppt->has_source_p == _FALSE_)) && (ppt->has_source_g == _FALSE_)) {
+  if (has_source == _FALSE_) {
     ppt->tp_size = NULL;
     if (ppt->perturbations_verbose > 0)
       printf("No sources requested. Perturbation module skipped.\n");
@@ -379,7 +398,7 @@ int perturb_indices_of_perturbs(
 
   /** - define local variables */
 
-  int index_type, index_mode, index_ic;
+  int index_type, index_mode, index_ic, index_type_common;
   int k_list_size,k_list_cl_size;
 
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
@@ -426,12 +445,27 @@ int perturb_indices_of_perturbs(
 
   class_alloc(ppt->sources,ppt->md_size * sizeof(double *),ppt->error_message);
 
+  /** - count source types (temperature, polarization, ...) that all modes have in common, and assign corresponding indices */
+
+  index_type = 0;
+
+  if (ppt->has_source_t == _TRUE_) {
+    ppt->index_tp_t = index_type; 
+    index_type++;
+  }
+  if (ppt->has_source_e == _TRUE_) {
+    ppt->index_tp_e = index_type; 
+    index_type++;
+  }
+
+  index_type_common = index_type;
+
   /** - loop over modes. For each mode: */
 
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
     index_ic = 0;
-    index_type = 0;
+    index_type = index_type_common;
 
     /* scalars */
 
@@ -465,16 +499,8 @@ int perturb_indices_of_perturbs(
 		 ppt->error_message,
 		 "you should have at least one adiabatic or isocurvature initial condition...} !!!");
 
-      /** - count types (eta, temperature, polarization, lensing, ...) and assign corresponding indices */
+      /** - count types specific to scalars (gravitational potential, ...) and assign corresponding indices */
 
-      if (ppt->has_source_t == _TRUE_) {
-	ppt->index_tp_t = index_type; 
-	index_type++;
-      }
-      if (ppt->has_source_p == _TRUE_) {
-	ppt->index_tp_p = index_type; 
-	index_type++;
-      }
       if (ppt->has_source_g == _TRUE_) {
 	ppt->index_tp_g = index_type; 
 	index_type++;
@@ -484,7 +510,7 @@ int perturb_indices_of_perturbs(
 
       class_test(index_type == 0,
 		 ppt->error_message,
-		 "you should have at least one out of {temperature, polarisation, lensing...} !!!");
+		 "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarisation, lensing/gravitational potential, ...). Please adjust your input.");
       
     }
     
@@ -501,14 +527,10 @@ int perturb_indices_of_perturbs(
       index_ic++;
       ppt->ic_size[index_mode] = index_ic;
 
-      /** - count types (eta, temperature, polarization, lensing, ...) and assign corresponding indices */
+      /** - count types specific to tensors (B-polarization, ...) and assign corresponding indices */
 
-      if (ppt->has_source_t == _TRUE_) {
-	ppt->index_tp_t = index_type; 
-	index_type++;
-      }
-      if (ppt->has_source_p == _TRUE_) {
-	ppt->index_tp_p = index_type; 
+      if (ppt->has_source_b == _TRUE_) {
+	ppt->index_tp_b = index_type; 
 	index_type++;
       }
 
@@ -516,7 +538,7 @@ int perturb_indices_of_perturbs(
 
       class_test(index_type == 0,
 		 ppt->error_message,
-		 "inconsistent input: for each of the mode (scalars/tensors) that you requested, you should have at least one non-zero type (temperature, polarisation, lensing...). Please adjust your input.");
+		 "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
 
     }
 
@@ -596,7 +618,7 @@ int perturb_timesampling_for_sources(
 
   /** (c.a) if CMB requested, first sampling point = when the universe stops being opaque; otherwise,
       start sampling gravitational potential at recombination */
-  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
+  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
     eta = eta_visibility_start_sources;
   }
   else {
@@ -634,7 +656,7 @@ int perturb_timesampling_for_sources(
 	       pth->error_message,
 	       ppt->error_message);
 
-    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
+    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
@@ -681,7 +703,7 @@ int perturb_timesampling_for_sources(
   /** (g) repeat the loop, now filling the array with each eta value: */
 
   /** (g.a) first sampling point = when the universe stops being opaque */
-  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
+  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
     eta = eta_visibility_start_sources;
   }
   else {
@@ -717,7 +739,7 @@ int perturb_timesampling_for_sources(
 	       pth->error_message,
 	       ppt->error_message);
 
-    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_p == _TRUE_)) {
+    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
@@ -2126,9 +2148,10 @@ int perturb_source_terms(
   /** - define local variables */
 
   double k2,a_prime_over_a,a_primeprime_over_a,R;
-  double Pi,Pi_prime,Psi;
-  double x2;
+  double Pi,Pi_prime,Psi,Psi_prime;
+  double x,x2;
   int index_type;
+  double c1,c2,c3,c4,c5,c6;
 
   struct precision * ppr;
   struct background * pba;
@@ -2277,7 +2300,7 @@ int perturb_source_terms(
       }
 
       /* scalar polarization */
-      if ((ppt->has_source_p == _TRUE_) && (index_type == ppt->index_tp_p)) {
+      if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
 
 	if (pvecthermo[pth->index_th_g] != 0.) {
 
@@ -2351,12 +2374,21 @@ int perturb_source_terms(
   /* tensors */
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-    Psi=pvecperturbations[ppw->index_pt_delta_g]/40.
-      +2.*pvecperturbations[ppw->index_pt_shear_g]/35.
-      +pvecperturbations[ppw->index_pt_delta_g+4]/210.
-      -3.*pvecperturbations[ppw->index_pt_pol0_g]/5. 
-      +6.*pvecperturbations[ppw->index_pt_pol2_g]/35. 
-      -pvecperturbations[ppw->index_pt_pol0_g+4]/210.;
+    c1=1./40.;
+    c2=2./35.;
+    c3=1./210.;
+    c4=-3./5.;
+    c5=6./35.;
+    c6=-1./210.;
+
+    Psi=c1*pvecperturbations[ppw->index_pt_delta_g]
+      +c2*pvecperturbations[ppw->index_pt_shear_g]
+      +c3*pvecperturbations[ppw->index_pt_delta_g+4]
+      +c4*pvecperturbations[ppw->index_pt_pol0_g] 
+      +c5*pvecperturbations[ppw->index_pt_pol2_g] 
+      +c6*pvecperturbations[ppw->index_pt_pol0_g+4];
+
+    x = k * (pba->conformal_age-eta);
 
     /** - for each type and each mode, compute S0, S1, S2 */
     for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
@@ -2366,23 +2398,73 @@ int perturb_source_terms(
       /* tensor temperature */
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
 
-	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
-	  -pvecperturbations[ppw->index_pt_gwdot]*pvecthermo[pth->index_th_exp_m_kappa]
-	  +pvecthermo[pth->index_th_g]*Psi;
+	if (x > 0.) {
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
+	    (-pvecperturbations[ppw->index_pt_gwdot]*pvecthermo[pth->index_th_exp_m_kappa]
+	    +pvecthermo[pth->index_th_g]*Psi)/x/x;
+	}
+	else {
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 0.;
+	}
+
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;
 
       }
 
       /* tensor polarization */
-      if ((ppt->has_source_p == _TRUE_) && (index_type == ppt->index_tp_p)) {
+      if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
 
-	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
-	  -pvecthermo[pth->index_th_g]*Psi;
+	if (x > 0.) {
+	
+	  Psi_prime=c1*pvecderivs[ppw->index_pt_delta_g]
+	    +c2*pvecderivs[ppw->index_pt_shear_g]
+	    +c3*pvecderivs[ppw->index_pt_delta_g+4]
+	    +c4*pvecderivs[ppw->index_pt_pol0_g] 
+	    +c5*pvecderivs[ppw->index_pt_pol2_g] 
+	    +c6*pvecderivs[ppw->index_pt_pol0_g+4];
+	  
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
+	    (1.-2./x/x)*pvecthermo[pth->index_th_g]*Psi;
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 
+	    -4./x*(pvecthermo[pth->index_th_g]*(Psi/x+Psi_prime/k)+pvecthermo[pth->index_th_dg]*Psi/k);
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS2] = 
+	    -(pvecthermo[pth->index_th_g]*Psi_prime+pvecthermo[pth->index_th_dg]*Psi)/k/k;
+
+	}
+
+	else {
+
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 0.;
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS2] = 0.;
+
+	}
+
+      }
+
+      if ((ppt->has_source_b == _TRUE_) && (index_type == ppt->index_tp_b)) {
+
+	if (x > 0.) {
+	
+	  Psi_prime=c1*pvecderivs[ppw->index_pt_delta_g]
+	    +c2*pvecderivs[ppw->index_pt_shear_g]
+	    +c3*pvecderivs[ppw->index_pt_delta_g+4]
+	    +c4*pvecderivs[ppw->index_pt_pol0_g] 
+	    +c5*pvecderivs[ppw->index_pt_pol2_g] 
+	    +c6*pvecderivs[ppw->index_pt_pol0_g+4];
+	  
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
+	    -pvecthermo[pth->index_th_g]*(4.*Psi/x+2.*Psi_prime/k)-2.*pvecthermo[pth->index_th_dg]*Psi/k;
+	}
+	
+	else {
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 0.;
+	}
+	
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
 	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
-
     }
   }
 
@@ -2420,6 +2502,30 @@ int perturb_sources(
 
     if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
+
+	/* before computing numerical derivatives, slice out the end of the table if filled with zeros */
+	index_eta = ppt->eta_size-1;
+	while ((ppw->source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS2] == 0.) && (index_eta > 0))
+	  index_eta--;
+	
+	/* numerical derivative */
+	class_call(array_derive1_order2_table_line_to_line(
+							   ppt->eta_sampling,
+							   index_eta+1,
+							   ppw->source_term_table[index_type],
+							   ppw->st_size,
+							   ppw->index_st_dS2,
+							   ppw->index_st_ddS2,
+							   ppt->error_message),
+		   ppt->error_message,
+		   ppt->error_message);
+      }
+    }
+
+    /** - for tensor E-polarization, infer \f$ S_2'' \f$ from \f$ S_2' \f$ at each time with array_derive1_order2_table_line_to_line() */
+
+    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+      if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
 
 	/* before computing numerical derivatives, slice out the end of the table if filled with zeros */
 	index_eta = ppt->eta_size-1;
@@ -3051,7 +3157,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
       +2.*y[ppw->index_pt_shear_g]/35.
       +y[ppw->index_pt_delta_g+4]/210.
       -3.*y[ppw->index_pt_pol0_g]/5. 
-      +6.*y[ppw->index_pt_pol2_g]/35. 
+      +6.*y[ppw->index_pt_pol2_g]/35.
       -y[ppw->index_pt_pol0_g+4]/210.;
 
     /* photon density (4*F_0) */
