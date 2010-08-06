@@ -142,23 +142,41 @@ int parser_read_int(
 		    struct file_content * pfc,
 		    char * name,
 		    int * value,
+		    int * found,
 		    ErrorMsg errmsg
 		    ) {
   int index;
   int i;
 
-  index=0;
+  /* intialize the 'found' flag to false */
 
+  * found = _FALSE_;
+
+  /* search parameter */
+
+  index=0;
   while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
     index++;
 
-  class_test(index == pfc->size,
-	     errmsg,
-	     "did not find parameter %s in file %s\n",name,pfc->filename);
+  /* if parameter not found, return with 'found' flag still equal to false */
+
+  if (index == pfc->size)
+    return _SUCCESS_;
+
+  /* read parameter value. If this fails, return an error */
 
   class_test(sscanf(pfc->value[index],"%d",value) != 1,
 	     errmsg,
 	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
+
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
+     associated with this parameter in the file_content structure */ 
+
+  * found = _TRUE_;
+  pfc->read[index] = _TRUE_;
+
+  /* check for multiple entries of the same parameter. If another occurence is found, 
+     return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
@@ -166,7 +184,7 @@ int parser_read_int(
 	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
   }
 
-  pfc->read[index] = _TRUE_;
+  /* if everything proceeded normally, return with 'found' flag equal to true */
 
   return _SUCCESS_;
 
@@ -176,23 +194,41 @@ int parser_read_double(
 		    struct file_content * pfc,
 		    char * name,
 		    double * value,
+		    int * found,
 		    ErrorMsg errmsg
 		    ) {
   int index;
   int i;
 
-  index=0;
+  /* intialize the 'found' flag to false */
 
+  * found = _FALSE_;
+
+  /* search parameter */
+
+  index=0;
   while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
     index++;
 
-  class_test(index == pfc->size,
-	     errmsg,
-	     "did not find parameter %s in file %s\n",name,pfc->filename);
+  /* if parameter not found, return with 'found' flag still equal to false */
+
+  if (index == pfc->size)
+    return _SUCCESS_;
+
+  /* read parameter value. If this fails, return an error */
 
   class_test(sscanf(pfc->value[index],"%lg",value) != 1,
 	     errmsg,
 	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
+
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
+     associated with this parameter in the file_content structure */ 
+
+  * found = _TRUE_;
+  pfc->read[index] = _TRUE_;
+
+  /* check for multiple entries of the same parameter. If another occurence is found, 
+     return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
@@ -200,7 +236,7 @@ int parser_read_double(
 	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
   }
 
-  pfc->read[index] = _TRUE_;
+  /* if everything proceeded normally, return with 'found' flag equal to true */
 
   return _SUCCESS_;
 
@@ -210,21 +246,39 @@ int parser_read_string(
 		       struct file_content * pfc,
 		       char * name,
 		       FileArg * value,
+		       int * found,
 		       ErrorMsg errmsg
 		       ) {
   int index;
   int i;
 
-  index=0;
+  /* intialize the 'found' flag to false */
 
+  * found = _FALSE_;
+
+  /* search parameter */
+
+  index=0;
   while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
     index++;
 
-  class_test(index == pfc->size,
-	     errmsg,
-	     "did not find parameter %s in file %s\n",name,pfc->filename);
+  /* if parameter not found, return with 'found' flag still equal to false */
+
+  if (index == pfc->size)
+    return _SUCCESS_;
+
+  /* read parameter value. */
 
   strcpy(*value,pfc->value[index]);
+
+  /* Set 'found' flag to true, as well as the flag 
+     associated with this parameter in the file_content structure */ 
+
+  * found = _TRUE_;
+  pfc->read[index] = _TRUE_;
+
+  /* check for multiple entries of the same parameter. If another occurence is found, 
+     return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
@@ -232,7 +286,7 @@ int parser_read_string(
 	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
   }
 
-  pfc->read[index] = _TRUE_;
+  /* if everything proceeded normally, return with 'found' flag equal to true */
 
   return _SUCCESS_;
 
@@ -254,6 +308,19 @@ int parser_cat(
   class_test(pfc2->size < 0.,
 	     errmsg,
 	     "size of file_content structure probably not initialized properly\n");
+
+  if (pfc1->size == 0) {
+    class_alloc(pfc3->filename,(strlen(pfc2->filename)+1)*sizeof(char),errmsg);
+    sprintf(pfc3->filename,"%s",pfc2->filename);
+  }
+  if (pfc2->size == 0) {
+    class_alloc(pfc3->filename,(strlen(pfc1->filename)+1)*sizeof(char),errmsg);
+    sprintf(pfc3->filename,"%s",pfc1->filename);
+  }
+  if ((pfc1->size !=0) && (pfc2->size != 0)) {
+    class_alloc(pfc3->filename,(strlen(pfc1->filename)+strlen(pfc2->filename)+5)*sizeof(char),errmsg);
+    sprintf(pfc3->filename,"%s or %s",pfc1->filename,pfc2->filename);
+  }
 
   pfc3->size = pfc1->size + pfc2->size;
   class_alloc(pfc3->value,pfc3->size*sizeof(FileArg),errmsg);

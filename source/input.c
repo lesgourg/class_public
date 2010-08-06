@@ -160,34 +160,44 @@ int input_init(
     return _SUCCESS_;
 
   /* h (dimensionless) and H0 in Mpc^{-1} = h / 2999.7 */
-  flag1=parser_read_double(pfc,"H0",&param1,errmsg);
-  flag2=parser_read_double(pfc,"h",&param2,errmsg);
-  class_test((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_),
+  class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"h",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
 	     errmsg,
 	     "In input file, you cannot enter both h and H0, choose one");
-  if (flag1 == _SUCCESS_) {
+  if (flag1 == _TRUE_) {
     pba->H0 = param1 * 1.e3 / _c_;
     pba->h = param1 / 100.;
     }
-  if (flag2 == _SUCCESS_) {
+  if (flag2 == _TRUE_) {
     pba->H0 = param2 *  1.e5 / _c_;
     pba->h = param2;
   }
 
   /* Omega_0_g (photons) and Tcmb */
-  flag1=parser_read_double(pfc,"T_cmb",&param1,errmsg);
-  flag2=parser_read_double(pfc,"Omega_g",&param2,errmsg);
-  flag3=parser_read_double(pfc,"omega_g",&param3,errmsg);
-  class_test(((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_)) || ((flag1 == _SUCCESS_) && (flag3 == _SUCCESS_)) || ((flag2 == _SUCCESS_) && (flag3 == _SUCCESS_)),
+  class_call(parser_read_double(pfc,"T_cmb",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"Omega_g",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"omega_g",&param3,&flag3,errmsg),
+	     errmsg,
+	     errmsg);
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
 	     errmsg,
 	     "In input file, you can only enter one of Tcmb, Omega_g or omega_g, choose one");
 
-  if ((flag1 == _FAILURE_) && (flag2 == _FAILURE_) && (flag3 == _FAILURE_)) {
+  if (class_none_of_three(flag1,flag2,flag3)) {
     pba->Omega0_g = (4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   }
   else {
 
-    if (flag1 == _SUCCESS_) {
+    if (flag1 == _TRUE_) {
       /* Omega0_g = rho_g / rho_c0, each of them expressed in Kg/m/s^2 */
       /* rho_g = (4 sigma_B / c) T^4 */
       /* rho_c0 = 3 c^2 H0^2 / (8 pi G) */ 
@@ -195,12 +205,12 @@ int input_init(
       pth->Tcmb=param1;
     }
 
-    if (flag2 == _SUCCESS_) {
+    if (flag2 == _TRUE_) {
       pba->Omega0_g = param2;
       pth->Tcmb=pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
     }
 
-    if (flag3 == _SUCCESS_) {
+    if (flag3 == _TRUE_) {
       pba->Omega0_g = param3/pba->h/pba->h;
       pth->Tcmb = pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
     }
@@ -209,38 +219,48 @@ int input_init(
   Omega_tot = pba->Omega0_g;
 
   /* Omega_0_b (baryons) */
-  flag1=parser_read_double(pfc,"Omega_b",&param1,errmsg);
-  flag2=parser_read_double(pfc,"omega_b",&param2,errmsg);
-  class_test(((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_)),
+  class_call(parser_read_double(pfc,"Omega_b",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"omega_b",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
 	     errmsg,
 	     "In input file, you can only enter one of Omega_b or omega_b, choose one");
-  if (flag1 == _SUCCESS_)
+  if (flag1 == _TRUE_)
     pba->Omega0_b = param1;
-  if (flag2 == _SUCCESS_)
+  if (flag2 == _TRUE_)
     pba->Omega0_b = param2/pba->h/pba->h;
 
   Omega_tot += pba->Omega0_b;
 
   /* Omega_0_nur (ultra-relativistic species / massless neutrino) */
-  flag1=parser_read_double(pfc,"N_eff",&param1,errmsg);
-  flag2=parser_read_double(pfc,"Omega_nur",&param2,errmsg);
-  flag3=parser_read_double(pfc,"omega_nur",&param3,errmsg);
-  class_test(((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_)) || ((flag1 == _SUCCESS_) && (flag3 == _SUCCESS_)) || ((flag2 == _SUCCESS_) && (flag3 == _SUCCESS_)),
+  class_call(parser_read_double(pfc,"N_eff",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"Omega_nur",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"omega_nur",&param3,&flag3,errmsg),
+	     errmsg,
+	     errmsg);
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
 	     errmsg,
 	     "In input file, you can only enter one of N_eff, Omega_nur or omega_nur, choose one");
 
-  if ((flag1 == _FAILURE_) && (flag2 == _FAILURE_) && (flag3 == _FAILURE_)) {
+  if (class_none_of_three(flag1,flag2,flag3)) {
     pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   }
   else {
 
-    if (flag1 == _SUCCESS_) {
+    if (flag1 == _TRUE_) {
       pba->Omega0_nur = param1*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
     }
-    if (flag2 == _SUCCESS_) {
+    if (flag2 == _TRUE_) {
       pba->Omega0_nur = param2;
     }
-    if (flag3 == _SUCCESS_) {
+    if (flag3 == _TRUE_) {
       pba->Omega0_nur = param3/pba->h/pba->h;
     }
   }
@@ -248,39 +268,45 @@ int input_init(
   Omega_tot += pba->Omega0_nur;
 
   /* Omega_0_cdm (CDM) */
-  flag1=parser_read_double(pfc,"Omega_cdm",&param1,errmsg);
-  flag2=parser_read_double(pfc,"omega_cdm",&param2,errmsg);
-  class_test(((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_)),
+  class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
 	     errmsg,
 	     "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
-  if (flag1 == _SUCCESS_)
+  if (flag1 == _TRUE_)
     pba->Omega0_cdm = param1;
-  if (flag2 == _SUCCESS_)
+  if (flag2 == _TRUE_)
     pba->Omega0_cdm = param2/pba->h/pba->h;
 
   Omega_tot += pba->Omega0_cdm;
 
   /* Omega_0_k (curvature) */
-  flag1=parser_read_double(pfc,"Omega_k",&param1,errmsg);
-  if (flag1 == _SUCCESS_)
-    pba->Omega0_k = param1;
+  class_read_double("Omega_k",pba->Omega0_k);
 
   /* Omega_0_lambda (cosmological constant), Omega0_de (dark energy fluid) */
-  flag1=parser_read_double(pfc,"Omega_Lambda",&param1,errmsg);
-  flag2=parser_read_double(pfc,"Omega_de",&param2,errmsg);
-  class_test((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_),
+  class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"Omega_de",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
 	     errmsg,
 	     "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
-  if ((flag1 == _FAILURE_) && (flag2 == _FAILURE_)) {	
+  if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {	
     pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm;
   }
   else {
-    if (flag1 == _SUCCESS_) {
+    if (flag1 == _TRUE_) {
       pba->Omega0_lambda= param1;
       pba->Omega0_de = 1. + pba->Omega0_k - param1 - Omega_tot;
     }
-    if (flag2 == _SUCCESS_) {
+    if (flag2 == _TRUE_) {
       pba->Omega0_lambda= 1. + pba->Omega0_k - param2 - Omega_tot;
       pba->Omega0_de = param2;
     }
@@ -295,20 +321,19 @@ int input_init(
 	     "Open/close case not written yet");
 
   /* scale factor today (arbitrary) */
-  flag1=parser_read_double(pfc,"a_today",&param1,errmsg);
-  if (flag1 == _SUCCESS_)
-    pba->a_today = param1;
+  class_read_double("a_today",pba->a_today);
 
   /** - assign values to thermodynamics cosmological parameters */
 
   /* scale factor today (arbitrary) */
-  flag1=parser_read_double(pfc,"YHe",&param1,errmsg);
-  if (flag1 == _SUCCESS_)
-    pth->YHe = param1;
+  class_read_double("YHe",pth->YHe);
 
   /* reionization parametrization */
-  flag1=parser_read_string(pfc,"reio_parametrization",&string1,errmsg);
-  if (flag1 == _SUCCESS_) {
+  class_call(parser_read_string(pfc,"reio_parametrization",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+
+  if (flag1 == _TRUE_) {
     flag2=_FALSE_;
     if (strcmp(string1,"reio_none") == 0) {
       pth->reio_parametrization=reio_none;
@@ -326,16 +351,20 @@ int input_init(
 
   /* reionization parameters if reio_parametrization=reio_camb */
   if (pth->reio_parametrization == reio_camb) {
-    flag1=parser_read_double(pfc,"z_reio",&param1,errmsg);
-    flag2=parser_read_double(pfc,"tau_reio",&param2,errmsg);
-    class_test(((flag1 == _SUCCESS_) && (flag2 == _SUCCESS_)),
+    class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+    class_call(parser_read_double(pfc,"tau_reio",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
 	       errmsg,
 	       "In input file, you can only enter one of z_reio or tau_reio, choose one");
-    if (flag1 == _SUCCESS_) {
+    if (flag1 == _TRUE_) {
       pth->z_reio=param1;
       pth->reio_z_or_tau=reio_z;
     }
-    if (flag2 == _SUCCESS_) {
+    if (flag2 == _TRUE_) {
       pth->tau_reio=param2;
       pth->reio_z_or_tau=reio_tau;
     }
@@ -343,8 +372,11 @@ int input_init(
 
   /** - define which perturbations and sources should be computed, and down to which scale */
 
-  flag1=parser_read_string(pfc,"output",&string1,errmsg);
-  if (flag1 == _SUCCESS_) {
+  class_call(parser_read_string(pfc,"output",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+
+  if (flag1 == _TRUE_) {
 
     if ((strstr(string1,"tCl") != NULL) || (strstr(string1,"TCl") != NULL) || (strstr(string1,"TCL") != NULL))
       ppt->has_cl_cmb_temperature=_TRUE_;  
@@ -364,8 +396,11 @@ int input_init(
       (ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
       (ppt->has_pk_matter == _TRUE_)) {
 
-    flag1=parser_read_string(pfc,"modes",&string1,errmsg);
-    if (flag1 == _SUCCESS_) {
+    class_call(parser_read_string(pfc,"modes",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+
+    if (flag1 == _TRUE_) {
 
       /* if no modes are specified, the default is has_scalars=_TRUE_; 
 	 but if they are specified we should reset has_scalars to _FALSE_ before reading */
@@ -382,15 +417,18 @@ int input_init(
 	ppt->has_tensors=_TRUE_;
       }
 
-      class_test(ppt->has_scalars==_FALSE_ && ppt->has_vectors ==_FALSE_ && ppt->has_tensors ==_FALSE_,
+      class_test(class_none_of_three(ppt->has_scalars,ppt->has_vectors,ppt->has_tensors),
 		 errmsg,	       
 		 "You wrote: modes=%s. Could not identify any of the modes ('s', 'v', 't') in such input",string1);
     }
 
     if (ppt->has_scalars == _TRUE_) {
 
-      flag1=parser_read_string(pfc,"ic",&string1,errmsg);
-      if (flag1 == _SUCCESS_) {
+      class_call(parser_read_string(pfc,"ic",&string1,&flag1,errmsg),
+		 errmsg,
+		 errmsg);
+
+      if (flag1 == _TRUE_) {
 
 	/* if no initial conditions are specified, the default is has_ad=_TRUE_; 
 	   but if they are specified we should reset has_ad to _FALSE_ before reading */
@@ -434,8 +472,11 @@ int input_init(
 
   /** - define the primordial spectrum */
 
-  flag1=parser_read_string(pfc,"P_k_ini type",&string1,errmsg);
-  if (flag1 == _SUCCESS_) {
+  class_call(parser_read_string(pfc,"P_k_ini type",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+
+  if (flag1 == _TRUE_) {
     flag2=_FALSE_;
     if (strcmp(string1,"analytic_Pk") == 0) {
       ppm->primordial_spec_type = analytic_Pk;
@@ -474,8 +515,11 @@ int input_init(
 
   /** - parameters for output spectra */
 
-  flag1=parser_read_string(pfc,"root",&string1,errmsg);
-  if (flag1 == _SUCCESS_) {
+  class_call(parser_read_string(pfc,"root",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+
+  if (flag1 == _TRUE_) {
     sprintf(pop->cls_ad,"%s%s",string1,"cls_ad.dat");
     sprintf(pop->cls_bi,"%s%s",string1,"cls_bi.dat");
     sprintf(pop->cls_cdi,"%s%s",string1,"cls_cdi.dat");
@@ -502,8 +546,11 @@ int input_init(
 
   class_read_double("P_k_max",ppt->k_scalar_kmax_for_pk);
 
-  flag1=parser_read_double(pfc,"z_max_pk",&param1,errmsg);
-  if (flag1==_SUCCESS_) {
+  class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  
+  if (flag1==_TRUE_) {
     psp->z_max_pk = param1;
   }
   else {
@@ -621,8 +668,11 @@ int input_init(
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
 
-  flag1=parser_read_string(pfc,"parameters",&string1,errmsg);
-  if (flag1 == _SUCCESS_) {
+  class_call(parser_read_string(pfc,"parameters",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);				
+
+  if (flag1 == _TRUE_) {
     class_open(param_output,string1,"w",errmsg);
     fprintf(param_output,"# List of input/precision parameters actually read\n");
     fprintf(param_output,"# (all other parameters set to default values)\n");

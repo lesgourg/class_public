@@ -10,7 +10,7 @@
 
 /* tools for class */
 #include "growTable.h"
-#include "tools_arrays.h"
+#include "arrays.h"
 #include "dei_rkck.h"
 #include "parser.h"
 

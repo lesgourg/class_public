@@ -48,6 +48,7 @@ int parser_read_int(
 		    struct file_content * pfc,
 		    char * name,
 		    int * value,
+		    int * found,
 		    ErrorMsg errmsg
 		    );
 
@@ -55,6 +56,7 @@ int parser_read_double(
 		    struct file_content * pfc,
 		    char * name,
 		    double * value,
+		    int * found,
 		    ErrorMsg errmsg
 		    );
 
@@ -62,6 +64,7 @@ int parser_read_string(
 		       struct file_content * pfc,
 		       char * name,
 		       FileArg * value,
+		       int * found,
 		       ErrorMsg errmsg
 		       );
 

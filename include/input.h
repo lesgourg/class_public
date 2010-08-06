@@ -17,26 +17,39 @@
 /* macro for opening file and returning error if it failed */
 #define class_read_double(name,destination)				\
   do {									\
-    flag1=parser_read_double(pfc,name,&param1,errmsg);			\
-    if (flag1 == _SUCCESS_)						\
+    class_call(parser_read_double(pfc,name,&param1,&flag1,errmsg),      \
+	       errmsg,							\
+	       errmsg);							\
+    if (flag1 == _TRUE_)						\
       destination = param1;						\
   } while(0);
 
 
 #define class_read_int(name,destination)				\
   do {									\
-    flag1=parser_read_int(pfc,name,&int1,errmsg);			\
-    if (flag1 == _SUCCESS_)						\
+    class_call(parser_read_int(pfc,name,&int1,&flag1,errmsg),		\
+ 	       errmsg,							\
+	       errmsg);							\
+    if (flag1 == _TRUE_)						\
       destination = int1;						\
   } while(0);
 
 #define class_read_string(name,destination)				\
   do {									\
-    flag1=parser_read_string(pfc,name,&string1,errmsg);			\
-    if (flag1 == _SUCCESS_)						\
+    class_call(parser_read_string(pfc,name,&string1,&flag1,errmsg),	\
+ 	       errmsg,							\
+	       errmsg);							\
+    if (flag1 == _TRUE_)						\
       strcpy(destination,string1);					\
   } while(0);
 
+#define class_at_least_two_of_three(a,b,c)		\
+  ((a == _TRUE_) && (b == _TRUE_)) ||		\
+  ((a == _TRUE_) && (c == _TRUE_)) ||		\
+  ((b == _TRUE_) && (c == _TRUE_))
+
+#define class_none_of_three(a,b,c)				\
+  (a == _FALSE_) && (b == _FALSE_) && (c == _FALSE_)
 
 /**************************************************************/
 

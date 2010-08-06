@@ -30,7 +30,7 @@ INCLUDES = ../include
 %.o:  %.c .base
 	cd $(WRKDIR);$(CC) $(CCFLAG) -I$(INCLUDES) -c ../$< -o $*.o
 
-TOOLS = growTable.o dei_rkck.o tools_arrays.o parser.o
+TOOLS = growTable.o dei_rkck.o arrays.o parser.o
 
 INPUT = input.o
 
