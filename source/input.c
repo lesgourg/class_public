@@ -510,6 +510,38 @@ int input_init(
 
       }
 
+      if (ppt->has_bi == _TRUE_) {
+
+	class_read_double("f_bi",ppm->f_bi);
+	class_read_double("n_s_bi",ppm->n_s_bi);
+	class_read_double("alpha_s_bi",ppm->alpha_s_bi);
+
+      }
+
+      if (ppt->has_cdi == _TRUE_) {
+
+	class_read_double("f_bi",ppm->f_cdi);
+	class_read_double("n_s_bi",ppm->n_s_cdi);
+	class_read_double("alpha_s_bi",ppm->alpha_s_cdi);
+
+      }
+
+      if (ppt->has_nid == _TRUE_) {
+
+	class_read_double("f_nid",ppm->f_nid);
+	class_read_double("n_s_nid",ppm->n_s_nid);
+	class_read_double("alpha_s_nid",ppm->alpha_s_nid);
+
+      }
+
+      if (ppt->has_niv == _TRUE_) {
+
+	class_read_double("f_niv",ppm->f_niv);
+	class_read_double("n_s_niv",ppm->n_s_niv);
+	class_read_double("alpha_s_niv",ppm->alpha_s_niv);
+
+      }
+
     }
 
     if (ppt->has_tensors == _TRUE_) {
@@ -756,6 +788,18 @@ int input_default_params(
   ppm->A_s_ad = 2.3e-9;
   ppm->n_s_ad = 1.;
   ppm->alpha_s_ad = 0.;
+  ppm->f_bi = 1.;
+  ppm->n_s_bi = 1.;
+  ppm->alpha_s_bi = 0.;
+  ppm->f_cdi = 1.;
+  ppm->n_s_cdi = 1.;
+  ppm->alpha_s_cdi = 0.;
+  ppm->f_nid = 1.;
+  ppm->n_s_nid = 1.;
+  ppm->alpha_s_nid = 0.;
+  ppm->f_niv = 1.;
+  ppm->n_s_niv = 1.;
+  ppm->alpha_s_niv = 0.;
   ppm->r = 1.;
   ppm->n_t = 0.;
   ppm->alpha_t = 0.;

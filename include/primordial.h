@@ -56,6 +56,22 @@ struct primordial {
   double n_t;  /* tensor tilt */
   double alpha_t; /* tensor running */
 
+  double f_bi;  /* baryon isocurvature (BI) to adiabatic ratio A_s_bi/A_s_ad */
+  double n_s_bi;  /* BI tilt */
+  double alpha_s_bi; /* BI running */
+
+  double f_cdi;  /* CDM isocurvature (CDI) to adiabatic ratio A_s_cdi/A_s_ad */
+  double n_s_cdi;  /* CDI tilt */
+  double alpha_s_cdi; /* CDI running */
+
+  double f_nid;  /* NID isocurvature to adiabatic ratio A_s_nid/A_s_ad */
+  double n_s_nid;  /* NID tilt */
+  double alpha_s_nid; /* NID running */
+
+  double f_niv;  /* NIV isocurvature to adiabatic ratio A_s_niv/A_s_ad */
+  double n_s_niv;  /* NIV tilt */
+  double alpha_s_niv; /* NIV running */
+
   double * lnk; /* list of ln(k) values lnk[index_k] */
   int lnk_size; /* number of ln(k) values */
 

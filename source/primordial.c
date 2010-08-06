@@ -363,6 +363,50 @@ int primordial_analytic_spectrum(
  
     }
 
+    if ((ppm->has_bi == _TRUE_) && (index_ic == ppm->index_ic_bi)) {
+
+      /** (a) scalar BI primordial spectrum */
+      *lnpk = log(ppm->A_s_ad*ppm->f_bi) 
+	+ (ppm->n_s_bi-1.)*log(k/ppm->k_pivot)
+	+ 0.5 * ppm->alpha_s_bi * pow(log(k/ppm->k_pivot), 2.);
+	      
+      return _SUCCESS_;
+ 
+    }
+
+    if ((ppm->has_cdi == _TRUE_) && (index_ic == ppm->index_ic_cdi)) {
+
+      /** (a) scalar CDI primordial spectrum */
+      *lnpk = log(ppm->A_s_ad*ppm->f_cdi) 
+	+ (ppm->n_s_cdi-1.)*log(k/ppm->k_pivot)
+	+ 0.5 * ppm->alpha_s_cdi * pow(log(k/ppm->k_pivot), 2.);
+	      
+      return _SUCCESS_;
+ 
+    }
+
+    if ((ppm->has_nid == _TRUE_) && (index_ic == ppm->index_ic_nid)) {
+
+      /** (a) scalar NID primordial spectrum */
+      *lnpk = log(ppm->A_s_ad*ppm->f_nid) 
+	+ (ppm->n_s_nid-1.)*log(k/ppm->k_pivot)
+	+ 0.5 * ppm->alpha_s_nid * pow(log(k/ppm->k_pivot), 2.);
+	      
+      return _SUCCESS_;
+ 
+    }
+
+    if ((ppm->has_niv == _TRUE_) && (index_ic == ppm->index_ic_niv)) {
+
+      /** (a) scalar NID primordial spectrum */
+      *lnpk = log(ppm->A_s_ad*ppm->f_niv) 
+	+ (ppm->n_s_niv-1.)*log(k/ppm->k_pivot)
+	+ 0.5 * ppm->alpha_s_niv * pow(log(k/ppm->k_pivot), 2.);
+	      
+      return _SUCCESS_;
+ 
+    }
+
   }
 
   if ((ppm->has_tensors == _TRUE_) && (index_mode == ppm->index_md_tensors)) {
@@ -378,7 +422,7 @@ int primordial_analytic_spectrum(
 
   class_test(0 == 0,
 	     ppm->error_message,
-	     "could not recognize which primordial spectrum you want; maybe yet uncoded isocurvature? Or vectors? \n");
+	     "could not recognize which primordial spectrum you want; maybe (yet uncoded) vectors? \n");
 
 }
 
