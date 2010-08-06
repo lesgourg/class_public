@@ -15,6 +15,8 @@
  */
 struct transfers {
 
+  short has_cls; /**< copy of same flag in perturbation structure */
+
   int l_scalar_max; /**< maximum l value for scalars (must be <= l_max) */
   int l_tensor_max; /**< maximum l value for tensors (must be <= l_max) */
 

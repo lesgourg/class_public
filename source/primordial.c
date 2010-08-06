@@ -125,7 +125,7 @@ int primordial_init(
 
   ppm->lnk_size=0;
 
-  if (ppt->tp_size == NULL) {
+  if (ppt->has_perturbations == _FALSE_) {
     if (ppm->primordial_verbose > 0)
       printf("No perturbations requested. Primordial module skipped.\n");
     return _SUCCESS_;

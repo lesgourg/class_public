@@ -35,35 +35,32 @@ enum rp_flags {rp_on, rp_off};
  */
 struct perturbs
 {
-  /** @name - all possible flags stating which perturbations should be computed */
+  /** @name - general flags stating which spectra should be computed (passed as input) */
 
   //@{
-
-  short has_scalars; /**< do we need scalars? */
-  short has_vectors; /**< do we need vectors? */
-  short has_tensors; /**< do we need tensors? */
-
-  short has_ad;      /**< do we need adiabatic mode? */
-  short has_bi;      /**< do we need isocurvature bi mode? */
-  short has_cdi;     /**< do we need isocurvature cdi mode? */
-  short has_nid;     /**< do we need isocurvature nid mode? */
-  short has_niv;     /**< do we need isocurvature niv mode? */
 
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
 
-  short has_source_t;  /**< do we need source for CMB temperature? */
-  short has_source_e;  /**< do we need source for CMB E-polarisation? */
-  short has_source_b;  /**< do we need source for CMB B-polarisation? */
-  short has_source_g;  /**< do we need source for gravitationnal potential? */
+
+  /** @name - other general flags which can be infered from previous ones */
+
+  short has_perturbations; /**< do we need to compute perturbations at all ? */
+  short has_cmb; /**< do we need CMB-related sources (temperature, polarization) ? */
+  short has_lss; /**< do we need LSS-related sources (lensing potential, ...) ? */
+  short has_cls; /**< do we need any harmonic space spectrum C_l (and hence Bessel functions, transfer functions, ...)? */
 
   //@}
 
-  /** @name - index running on modes (scalar, vector, tensor) */
+  /** @name - flags and indices running on modes (scalar, vector, tensor) */
 
   //@{
+
+  short has_scalars; /**< do we need scalars? */
+  short has_vectors; /**< do we need vectors? */
+  short has_tensors; /**< do we need tensors? */
 
   int index_md_scalars; /**< index value for scalars */
   int index_md_tensors; /**< index value for tensors */
@@ -72,9 +69,14 @@ struct perturbs
 
   //@}
 
-  /** @name - index running on types (temperature, polarization, lensing, ...) */
+  /** @name - flags and indices running on types (temperature, polarization, lensing, ...) */
 
   //@{
+
+  short has_source_t;  /**< do we need source for CMB temperature? */
+  short has_source_e;  /**< do we need source for CMB E-polarisation? */
+  short has_source_b;  /**< do we need source for CMB B-polarisation? */
+  short has_source_g;  /**< do we need source for gravitationnal potential? */
 
   int index_tp_t; /**< index value for temperature */
   int index_tp_e; /**< index value for E-polarization */
@@ -84,9 +86,15 @@ struct perturbs
 
   //@}
 
-  /** @name - index running on initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) */
+  /** @name - flags and indices running on initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) */
 
   //@{
+
+  short has_ad;      /**< do we need adiabatic mode? */
+  short has_bi;      /**< do we need isocurvature bi mode? */
+  short has_cdi;     /**< do we need isocurvature cdi mode? */
+  short has_nid;     /**< do we need isocurvature nid mode? */
+  short has_niv;     /**< do we need isocurvature niv mode? */
 
   int index_ic_ad; /**< index value for adiabatic */
   int index_ic_cdi; /**< index value for CDM isocurvature */

@@ -372,29 +372,40 @@ int input_init(
 
   /** - define which perturbations and sources should be computed, and down to which scale */
 
+  ppt->has_perturbations = _FALSE_;
+  ppt->has_cls = _FALSE_;
+
   class_call(parser_read_string(pfc,"output",&string1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
 
   if (flag1 == _TRUE_) {
 
-    if ((strstr(string1,"tCl") != NULL) || (strstr(string1,"TCl") != NULL) || (strstr(string1,"TCL") != NULL))
-      ppt->has_cl_cmb_temperature=_TRUE_;  
+    if ((strstr(string1,"tCl") != NULL) || (strstr(string1,"TCl") != NULL) || (strstr(string1,"TCL") != NULL)) {
+      ppt->has_cl_cmb_temperature = _TRUE_;  
+      ppt->has_perturbations = _TRUE_;  
+      ppt->has_cls = _TRUE_;
+    }
 
-    if ((strstr(string1,"pCl") != NULL) || (strstr(string1,"PCl") != NULL) || (strstr(string1,"PCL") != NULL))
-      ppt->has_cl_cmb_polarization=_TRUE_;  
+    if ((strstr(string1,"pCl") != NULL) || (strstr(string1,"PCl") != NULL) || (strstr(string1,"PCL") != NULL)) {
+      ppt->has_cl_cmb_polarization = _TRUE_;  
+      ppt->has_perturbations = _TRUE_;  
+      ppt->has_cls = _TRUE_;
+    }
     
-    if ((strstr(string1,"lCl") != NULL) || (strstr(string1,"LCl") != NULL) || (strstr(string1,"LCL") != NULL))
-      ppt->has_cl_cmb_lensing_potential=_TRUE_;
+    if ((strstr(string1,"lCl") != NULL) || (strstr(string1,"LCl") != NULL) || (strstr(string1,"LCL") != NULL)) {
+      ppt->has_cl_cmb_lensing_potential = _TRUE_;
+      ppt->has_perturbations = _TRUE_; 
+      ppt->has_cls = _TRUE_;
+    }
 
-    if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL))
+    if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL)) {
       ppt->has_pk_matter=_TRUE_; 
+      ppt->has_perturbations = _TRUE_;  
+    }
   }
 
-  if ((ppt->has_cl_cmb_temperature == _TRUE_) ||
-      (ppt->has_cl_cmb_polarization == _TRUE_) ||
-      (ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
-      (ppt->has_pk_matter == _TRUE_)) {
+  if (ppt->has_perturbations == _TRUE_) { 
 
     class_call(parser_read_string(pfc,"modes",&string1,&flag1,errmsg),
 	       errmsg,
@@ -409,13 +420,11 @@ int input_init(
       if ((strstr(string1,"s") != NULL) || (strstr(string1,"S") != NULL))
 	ppt->has_scalars=_TRUE_; 
 
-      if ((strstr(string1,"v") != NULL) || (strstr(string1,"V") != NULL)) {
+      if ((strstr(string1,"v") != NULL) || (strstr(string1,"V") != NULL))
 	ppt->has_vectors=_TRUE_;  
-      }
-      
-      if ((strstr(string1,"t") != NULL) || (strstr(string1,"T") != NULL)) {
+
+      if ((strstr(string1,"t") != NULL) || (strstr(string1,"T") != NULL))
 	ppt->has_tensors=_TRUE_;
-      }
 
       class_test(class_none_of_three(ppt->has_scalars,ppt->has_vectors,ppt->has_tensors),
 		 errmsg,	       

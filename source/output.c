@@ -22,7 +22,7 @@ int output_init(
   double * pk_output;
   int lmax;
 
-  if (ppt->tp_size == NULL) {
+  if (ppt->has_perturbations == _FALSE_) {
     if (pop->output_verbose > 0)
       printf("No spectra requested. Output module skipped.\n");
     return _SUCCESS_;
@@ -34,7 +34,7 @@ int output_init(
 
   /* deal with all C_l's */
 
-  if (ptr->tt_size != NULL) {
+  if (ppt->has_cls == _TRUE_) {
 
     /* loop over modes */
 

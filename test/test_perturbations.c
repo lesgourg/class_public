@@ -40,12 +40,12 @@ main(int argc, char **argv) {
 
   /****** here you can output the source functions ******/
 
-  if (pt.has_source_t == _TRUE_) {
+  if (pt.has_source_b == _TRUE_) {
 
     FILE * output;
     int index_k,index_eta;
     int index_mode=pt.index_md_tensors;
-    int index_type=pt.index_tp_t;
+    int index_type=pt.index_tp_b;
     int index_ic=pt.index_ic_ten;
 
     output=fopen("output/source.dat","w");

@@ -161,14 +161,14 @@ int transfer_init(
   /** check whether any spectrum in harmonic space (i.e., any C_l's) is actually requested; 
       if not, set ptr->tt_size to NULL (so that it can be used as a flag) and skip module */
 
-  if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
-      (ppt->has_cl_cmb_polarization == _FALSE_) &&
-      (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
-    ptr->tt_size=NULL;
+  if (ppt->has_cls == _FALSE_) {
+    ptr->has_cls = _FALSE_;
     if (ptr->transfer_verbose > 0)
       printf("No harmonic space transfer functions to compute. Transfer module skipped.\n");
     return _SUCCESS_;
   }
+  else
+    ptr->has_cls = _TRUE_;
 
   if (ptr->transfer_verbose > 0)
     printf("Computing transfers\n");
@@ -350,7 +350,7 @@ int transfer_free(
 
   int index_mode;
 
-  if (ptr->tt_size != NULL) {
+  if (ptr->has_cls == _TRUE_) {
 
     for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
       free(ptr->l[index_mode]);
@@ -669,8 +669,8 @@ int transfer_interpolate_sources(
   /* variables used for spline interpolation algorithm */
   double h, a, b;
 
-  /* which source are we considering? Correspondance between transfer
-     type and source type*/
+  /* which source are we considering? Correspondence between transfer
+     types and source types */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
@@ -693,9 +693,9 @@ int transfer_interpolate_sources(
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) 
       index_type=ppt->index_tp_e;
 
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b)) 
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b))
       index_type=ppt->index_tp_b;
-    
+
   }
 	  
   class_call(array_spline_table_columns(ppt->k[index_mode],
@@ -745,8 +745,7 @@ int transfer_interpolate_sources(
 
       if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) &&
-	    (index_tt == ptr->index_tt_lcmb)) {
+	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 	  /* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
 	     with 
 	     psi = (newtonian) gravitationnal potential  
@@ -767,25 +766,7 @@ int transfer_interpolate_sources(
 	  }
 	}
       }
-
-      /* case of tensors: factor (k(eta0-eta)**2 to account for tensor spherical eigenfunction */
-      
-/*       if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) { */
-	
-/* 	class_test(eta0-ppt->eta_sampling[index_eta] < 0., */
-/* 		   ptr->error_message, */
-/* 		   "cannot compute tensor spherical eigenfunctions, %e\n"); */
-
-/* 	if (eta0-ppt->eta_sampling[index_eta] == 0.)  */
-/* 	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta]=0.; */
-/* 	else */
-/* 	  interpolated_sources[index_k_tr*ppt->eta_size+index_eta] /=  */
-/* 	    pow(ppt->k[index_mode][index_k+1]*(eta0-ppt->eta_sampling[index_eta]),2.); */
-
-/*       } */
-
     }
-
   }
 
   return _SUCCESS_;

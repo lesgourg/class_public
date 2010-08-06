@@ -115,8 +115,6 @@ int perturb_init(
   int index_ic; 
   /* running index for wavenumbers */
   int index_k; 
-  /* flag to see whether at least one source is needed */
-  int has_source;
   /* struct perturb_workspace pw; */
   struct perturb_workspace * ppw;
 
@@ -134,58 +132,11 @@ int perturb_init(
   double tstart, tstop;
   /* pointer to one "ppw" per thread */
   struct perturb_workspace ** pppw;
-
-#pragma omp parallel 
-  {
-    number_of_threads = omp_get_num_threads();
-  }
-  class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
-  
 #endif
 
-  class_test(ppt->has_vectors == _TRUE_,
-	     ppt->error_message,
-	     "Vectors not coded yet");
+  /** - preliminary checks */
 
-  if (ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_) {
-    printf("Warning: isocurvature initial condition implemented, but not tested yet\n");
-  }
-
-  /** - decide which types of sources must be computed */
-
-  has_source=_FALSE_;
-
-  if (ppt->has_cl_cmb_temperature == _TRUE_) {
-    ppt->has_source_t = _TRUE_;
-    has_source = _TRUE_;
-  }
-  else 
-    ppt->has_source_t = _FALSE_;
-  
-  if (ppt->has_cl_cmb_polarization == _TRUE_) {
-    ppt->has_source_e = _TRUE_;
-    has_source = _TRUE_;
-  }
-  else
-    ppt->has_source_e = _FALSE_;
-  
-  if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
-    ppt->has_source_b = _TRUE_;
-    has_source = _TRUE_;
-  }
-  else
-    ppt->has_source_b = _FALSE_;
-  
-  if (((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_pk_matter == _TRUE_)) 
-      && (ppt->has_scalars == _TRUE_)) {
-    ppt->has_source_g=_TRUE_;
-    has_source = _TRUE_;
-  }
-  else
-    ppt->has_source_g = _FALSE_;
-  
-  if (has_source == _FALSE_) {
-    ppt->tp_size = NULL;
+  if (ppt->has_perturbations == _FALSE_) {
     if (ppt->perturbations_verbose > 0)
       printf("No sources requested. Perturbation module skipped.\n");
     return _SUCCESS_;
@@ -195,6 +146,20 @@ int perturb_init(
       printf("Computing sources\n");
   }
 
+  class_test(ppt->has_vectors == _TRUE_,
+	     ppt->error_message,
+	     "Vectors not coded yet");
+
+  if ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_) || (ppt->has_niv == _TRUE_)) {
+    printf("Warning: isocurvature initial condition implemented, but not tested yet\n");
+  }
+
+  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_) &&
+      (ppt->has_tensors == _TRUE_)) {
+      printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008. Mistake in one of the two codes? To be checked.\n");
+  }
+
+
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
   class_call(perturb_indices_of_perturbs(ppr,
 					 pba,
@@ -203,13 +168,26 @@ int perturb_init(
 	     ppt->error_message,
 	     ppt->error_message);
 
-  /** - define time sampling for sources using perturb_timesampling_for_sources() */
+  /** - define the common time sampling for all sources using perturb_timesampling_for_sources() */
   class_call(perturb_timesampling_for_sources(ppr,
 					      pba,
 					      pth,
 					      ppt),
 	     ppt->error_message,
 	     ppt->error_message);
+
+
+  /** - create an array of workspaces in multi-thread case */
+
+#ifdef _OPENMP
+
+#pragma omp parallel 
+  {
+    number_of_threads = omp_get_num_threads();
+  }
+  class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
+  
+#endif
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */
 
@@ -222,6 +200,8 @@ int perturb_init(
   private(ppw)
 
     {
+
+      /** create a workspace (one per thread in multi-thread case) */
 
       class_alloc_parallel(ppw,sizeof(struct perturb_workspace),ppt->error_message);
 
@@ -314,10 +294,13 @@ int perturb_init(
 
     } /* end of parallel region */
 
-
     if (abort == _TRUE_) return _FAILURE_;
 
   } /* end loop over modes */    
+
+#ifdef _OPENMP
+  free(pppw);
+#endif
 
   return _SUCCESS_;
 }
@@ -336,7 +319,7 @@ int perturb_free(
 
   int index_mode,index_ic,index_k,index_type;
 
-  if (ppt->tp_size != NULL) {
+  if (ppt->has_perturbations == _TRUE_) {
 
     for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
     
@@ -445,33 +428,61 @@ int perturb_indices_of_perturbs(
 
   class_alloc(ppt->sources,ppt->md_size * sizeof(double *),ppt->error_message);
 
-  /** - count source types (temperature, polarization, ...) that all modes have in common, and assign corresponding indices */
+  /** - count source types that all modes have in common (temperature, polarization, ...), and assign corresponding indices */
 
   index_type = 0;
+  ppt->has_cmb = _FALSE_; /* initialization (will eventually be set to true later) */
+  ppt->has_lss = _FALSE_; /* initialization (will eventually be set to true later) */
 
-  if (ppt->has_source_t == _TRUE_) {
+  if (ppt->has_cl_cmb_temperature == _TRUE_) {
+    ppt->has_source_t = _TRUE_;
+    ppt->has_cmb = _TRUE_;
     ppt->index_tp_t = index_type; 
     index_type++;
   }
-  if (ppt->has_source_e == _TRUE_) {
+  else 
+    ppt->has_source_t = _FALSE_;
+
+  if (ppt->has_cl_cmb_polarization == _TRUE_) {
+    ppt->has_source_e = _TRUE_;
+    ppt->has_cmb = _TRUE_;
     ppt->index_tp_e = index_type; 
     index_type++;
   }
+  else
+    ppt->has_source_e = _FALSE_;
 
   index_type_common = index_type;
 
-  /** - loop over modes. For each mode: */
+  /** - loop over modes. Initialize flags and indices which are specific to each mode. */
 
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
     index_ic = 0;
     index_type = index_type_common;
 
-    /* scalars */
+    /** - scalars */
 
     if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-    /** - count initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) and assign corresponding indices */
+      /** - count source types specific to scalars (gravitational potential, ...) and assign corresponding indices */
+
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_pk_matter == _TRUE_)) { 
+        ppt->has_source_g = _TRUE_;
+	ppt->has_lss = _TRUE_;
+	ppt->index_tp_g = index_type; 
+	index_type++;
+      }
+      else
+	ppt->has_source_g = _FALSE_;
+
+      ppt->tp_size[index_mode] = index_type;
+
+      class_test(index_type == 0,
+		 ppt->error_message,
+		 "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarisation, lensing/gravitational potential, ...). Please adjust your input.");
+
+    /** - count scalar initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) and assign corresponding indices */
 
       if (ppt->has_ad == _TRUE_) {
 	ppt->index_ic_ad = index_ic;
@@ -499,19 +510,6 @@ int perturb_indices_of_perturbs(
 		 ppt->error_message,
 		 "you should have at least one adiabatic or isocurvature initial condition...} !!!");
 
-      /** - count types specific to scalars (gravitational potential, ...) and assign corresponding indices */
-
-      if (ppt->has_source_g == _TRUE_) {
-	ppt->index_tp_g = index_type; 
-	index_type++;
-      }
-
-      ppt->tp_size[index_mode] = index_type;
-
-      class_test(index_type == 0,
-		 ppt->error_message,
-		 "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarisation, lensing/gravitational potential, ...). Please adjust your input.");
-      
     }
     
     if ((ppt->has_vectors == _TRUE_) && (index_mode == ppt->index_md_vectors)) {
@@ -519,26 +517,32 @@ int perturb_indices_of_perturbs(
       /* vectors not treated yet */
     }
 
+    /** - tensors */
+
     if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-      /* only one initial condition for tensors*/
+      /** - count source types specific to tensors (B-polarization, ...) and assign corresponding indices */
 
-      ppt->index_ic_ten = index_ic;
-      index_ic++;
-      ppt->ic_size[index_mode] = index_ic;
-
-      /** - count types specific to tensors (B-polarization, ...) and assign corresponding indices */
-
-      if (ppt->has_source_b == _TRUE_) {
+      if (ppt->has_cl_cmb_polarization == _TRUE_) {
+	ppt->has_source_b = _TRUE_;
+	ppt->has_cmb = _TRUE_;
 	ppt->index_tp_b = index_type; 
 	index_type++;
       }
+      else
+	ppt->has_source_b = _FALSE_;
 
       ppt->tp_size[index_mode] = index_type;
 
       class_test(index_type == 0,
 		 ppt->error_message,
 		 "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
+
+      /** - only one initial condition for tensors*/
+
+      ppt->index_ic_ten = index_ic;
+      index_ic++;
+      ppt->ic_size[index_mode] = index_ic;
 
     }
 
@@ -552,7 +556,7 @@ int perturb_indices_of_perturbs(
 	       ppt->error_message,
 	       ppt->error_message);
 
-    /** (e) allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_mode])[index_ic][index_type] */
+    /** (e) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_mode])[index_ic][index_type] */
     class_alloc(ppt->sources[index_mode],
 		ppt->ic_size[index_mode] * ppt->tp_size[index_mode] * sizeof(double *),
 		ppt->error_message);
@@ -618,7 +622,7 @@ int perturb_timesampling_for_sources(
 
   /** (c.a) if CMB requested, first sampling point = when the universe stops being opaque; otherwise,
       start sampling gravitational potential at recombination */
-  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
+  if (ppt->has_cmb == _TRUE_) {
     eta = eta_visibility_start_sources;
   }
   else {
@@ -656,7 +660,7 @@ int perturb_timesampling_for_sources(
 	       pth->error_message,
 	       ppt->error_message);
 
-    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
+    if (ppt->has_cmb == _TRUE_) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
@@ -703,7 +707,7 @@ int perturb_timesampling_for_sources(
   /** (g) repeat the loop, now filling the array with each eta value: */
 
   /** (g.a) first sampling point = when the universe stops being opaque */
-  if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
+  if (ppt->has_cmb == _TRUE_) {
     eta = eta_visibility_start_sources;
   }
   else {
@@ -739,7 +743,7 @@ int perturb_timesampling_for_sources(
 	       pth->error_message,
 	       ppt->error_message);
 
-    if ((ppt->has_source_t == _TRUE_) || (ppt->has_source_e == _TRUE_) || (ppt->has_source_b == _TRUE_)) {
+    if (ppt->has_cmb == _TRUE_) {
 
       /* variation rate of thermodynamics variables */
       rate_thermo = pvecthermo[pth->index_th_rate];
@@ -1341,7 +1345,7 @@ int perturb_solve(
   /* by default, today */
   etamax = pba->conformal_age;
   /* eventually stop earlier, when k*eta=k_eta_max, but not before the end of recombination */
-  if (ppt->has_source_g == _FALSE_) {
+  if (ppt->has_lss == _FALSE_) {
     if ((ppr->k_eta_max/k < pba->conformal_age) && (ppr->k_eta_max/k > eta_visibility_free_streaming))
       etamax= ppr->k_eta_max/k;
     if ((ppr->k_eta_max/k < eta_visibility_free_streaming) && (eta_visibility_free_streaming < pba->conformal_age))
@@ -2149,9 +2153,8 @@ int perturb_source_terms(
 
   double k2,a_prime_over_a,a_primeprime_over_a,R;
   double Pi,Pi_prime,Psi,Psi_prime;
-  double x,x2;
+  double x;
   int index_type;
-  double c1,c2,c3,c4,c5,c6;
 
   struct precision * ppr;
   struct background * pba;
@@ -2189,6 +2192,8 @@ int perturb_source_terms(
 			    ppt->error_message),
 	     ppt->error_message,
 	     ppt->error_message);
+
+  x = k * (pba->conformal_age-eta);
 
   /* scalars */
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
@@ -2302,37 +2307,17 @@ int perturb_source_terms(
       /* scalar polarization */
       if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
 
-	if (pvecthermo[pth->index_th_g] != 0.) {
-
-	  x2 = k2 * (pba->conformal_age-eta) * (pba->conformal_age-eta);
-
-	  if (x2 != 0.) {
-
-	    /* in all gauges */
-	    
-	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] =
-	      + 3./16. * pvecthermo[pth->index_th_g] * Pi / x2;   /* /x2; */ 
-	
-	    /* 	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S1] = 0.; */
-	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
-
-
-	    /* 	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S2] = 0.; */
-	    /*  	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS2] = 0.; */
-	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.; 
-
-	  }
-	  else {
-	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 0.;
-	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
-	    pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;
-	  }
+	if (x > 0.) {
+	  /* in all gauges */
+	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] =
+	    + 3./16. * pvecthermo[pth->index_th_g] * Pi /x/x;  
 	}
 	else {
 	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 0.;
-	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
-	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;
 	}
+	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 0.;
+	pvecsource_terms[index_type * ppw->st_size + ppw->index_st_ddS2] = 0.;
+
       }
 
       /* gravitational potential */
@@ -2374,21 +2359,19 @@ int perturb_source_terms(
   /* tensors */
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-    c1=1./40.;
-    c2=2./35.;
-    c3=1./210.;
-    c4=-3./5.;
-    c5=6./35.;
-    c6=-1./210.;
+    Psi=pvecperturbations[ppw->index_pt_delta_g]/40.
+      +pvecperturbations[ppw->index_pt_shear_g]*2./35.
+      +pvecperturbations[ppw->index_pt_delta_g+4]/210.
+      -pvecperturbations[ppw->index_pt_pol0_g]*3./5. 
+      +pvecperturbations[ppw->index_pt_pol2_g]*6./35.
+      -pvecperturbations[ppw->index_pt_pol0_g+4]/210.;
 
-    Psi=c1*pvecperturbations[ppw->index_pt_delta_g]
-      +c2*pvecperturbations[ppw->index_pt_shear_g]
-      +c3*pvecperturbations[ppw->index_pt_delta_g+4]
-      +c4*pvecperturbations[ppw->index_pt_pol0_g] 
-      +c5*pvecperturbations[ppw->index_pt_pol2_g] 
-      +c6*pvecperturbations[ppw->index_pt_pol0_g+4];
-
-    x = k * (pba->conformal_age-eta);
+    Psi_prime=pvecderivs[ppw->index_pt_delta_g]/40.
+      +pvecderivs[ppw->index_pt_shear_g]*2./35.
+      +pvecderivs[ppw->index_pt_delta_g+4]/210.
+      -pvecderivs[ppw->index_pt_pol0_g]*3./5.  
+      +pvecderivs[ppw->index_pt_pol2_g]*6./35. 
+      -pvecderivs[ppw->index_pt_pol0_g+4]/210.;
 
     /** - for each type and each mode, compute S0, S1, S2 */
     for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
@@ -2416,14 +2399,7 @@ int perturb_source_terms(
       if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
 
 	if (x > 0.) {
-	
-	  Psi_prime=c1*pvecderivs[ppw->index_pt_delta_g]
-	    +c2*pvecderivs[ppw->index_pt_shear_g]
-	    +c3*pvecderivs[ppw->index_pt_delta_g+4]
-	    +c4*pvecderivs[ppw->index_pt_pol0_g] 
-	    +c5*pvecderivs[ppw->index_pt_pol2_g] 
-	    +c6*pvecderivs[ppw->index_pt_pol0_g+4];
-	  
+
 	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
 	    (1.-2./x/x)*pvecthermo[pth->index_th_g]*Psi;
 	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_dS1] = 
@@ -2447,15 +2423,8 @@ int perturb_source_terms(
 
 	if (x > 0.) {
 	
-	  Psi_prime=c1*pvecderivs[ppw->index_pt_delta_g]
-	    +c2*pvecderivs[ppw->index_pt_shear_g]
-	    +c3*pvecderivs[ppw->index_pt_delta_g+4]
-	    +c4*pvecderivs[ppw->index_pt_pol0_g] 
-	    +c5*pvecderivs[ppw->index_pt_pol2_g] 
-	    +c6*pvecderivs[ppw->index_pt_pol0_g+4];
-	  
 	  pvecsource_terms[index_type * ppw->st_size + ppw->index_st_S0] = 
-	    -pvecthermo[pth->index_th_g]*(4.*Psi/x+2.*Psi_prime/k)-2.*pvecthermo[pth->index_th_dg]*Psi/k;
+ 	    -pvecthermo[pth->index_th_g]*(4.*Psi/x+2.*Psi_prime/k)-2.*pvecthermo[pth->index_th_dg]*Psi/k;
 	}
 	
 	else {

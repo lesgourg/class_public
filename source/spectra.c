@@ -314,12 +314,8 @@ int spectra_init(
 		 struct spectra * psp
 		 ) {
 
-  /** - define local variables */
-  int index_mode; /* index running over modes (scalar, tensor, ...) */
-
-  psp->md_size = 0;
-
-  if (ppt->tp_size == NULL) {
+  if (ppt->has_perturbations == _FALSE_) {
+    psp->md_size = 0;
     if (psp->spectra_verbose > 0)
       printf("No spectra requested. Spectra module skipped.\n");
     return _SUCCESS_;
@@ -329,22 +325,13 @@ int spectra_init(
       printf("Computing output spectra\n");
   }
 
-  psp->md_size = ppt->md_size;
-
-  class_alloc(psp->ic_size,
-	      sizeof(int)*psp->md_size,
-	      psp->error_message);
-
-  for (index_mode=0; index_mode < psp->md_size; index_mode++) 
-    psp->ic_size[index_mode] = ppt->ic_size[index_mode];
-
   class_call(spectra_indices(ppt,ptr,psp),
 	     psp->error_message,
 	     psp->error_message);
 
   /** - deal with cl's, if any */
 
-  if (ptr->tt_size != NULL) {
+  if (ppt->has_cls == _TRUE_) {
 
     class_call(spectra_cls(ppt,ptr,ppm,psp),
 	       psp->error_message,
@@ -414,8 +401,18 @@ int spectra_indices(
 		    ){
 
   int index_ct;
+  int index_mode;
 
-  if (ptr->tt_size != NULL) {
+  psp->md_size = ppt->md_size;
+
+  class_alloc(psp->ic_size,
+	      sizeof(int)*psp->md_size,
+	      psp->error_message);
+
+  for (index_mode=0; index_mode < psp->md_size; index_mode++) 
+    psp->ic_size[index_mode] = ppt->ic_size[index_mode];
+
+  if (ppt->has_cls == _TRUE_) {
 
     /* types of C_l's relevant for both scalars and tensors: TT, EE, TE */
 
@@ -690,19 +687,19 @@ int spectra_compute_cl(
 	* transfer[ptr->index_tt_e]
 	* 4. * _PI_ / k;
     
-    if ((psp->has_bb == _TRUE_) && (index_mode == ppt->index_md_tensors))
+    if ((psp->has_bb == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))
 	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_b]
 	* transfer[ptr->index_tt_b]
 	* 4. * _PI_ / k;
 
-    if ((psp->has_pp == _TRUE_) && (index_mode == ppt->index_md_scalars))
+    if ((psp->has_pp == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars))
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_lcmb]
 	* transfer[ptr->index_tt_lcmb]
 	* 4. * _PI_ / k;
     
-    if ((psp->has_tp == _TRUE_) && (index_mode == ppt->index_md_scalars))
+    if ((psp->has_tp == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars))
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
 	* transfer[ptr->index_tt_t]
 	* transfer[ptr->index_tt_lcmb]
@@ -712,6 +709,8 @@ int spectra_compute_cl(
   
   for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 
+    /* treat null spectra (C_l^BB of scalars, C_l^pp of tensors, etc. */
+
     if (((index_ct == psp->index_ct_bb) && (psp->has_bb == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) ||
 	((index_ct == psp->index_ct_pp) && (psp->has_pp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
 	((index_ct == psp->index_ct_tp) && (psp->has_tp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
@@ -720,6 +719,7 @@ int spectra_compute_cl(
 	[(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct] = 0.;
 
     }
+    /* for non-zero spectra, integrate over k */
     else {
 
       class_call(array_spline(cl_integrand,

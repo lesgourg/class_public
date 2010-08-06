@@ -161,9 +161,7 @@ int bessel_init(
 
   pbs->l_size=0;
 
-  if ((ppt->has_cl_cmb_temperature == _FALSE_) &&
-      (ppt->has_cl_cmb_polarization == _FALSE_) &&
-      (ppt->has_cl_cmb_lensing_potential == _FALSE_)) {
+  if (ppt->has_cls == _FALSE_) {
     if (pbs->bessels_verbose > 0)
       printf("No harmonic space transfer functions to compute. Bessel module skipped.\n");
     return _SUCCESS_;
