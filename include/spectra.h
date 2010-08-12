@@ -14,16 +14,20 @@ struct spectra {
   
   int md_size; /**< number of modes included in computation */
   int * ic_size;       /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+  int * ic_ic_size;    /**< number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just ic_size[index_mode](ic_size[index_mode]+1)/2  */
+  short * * is_non_zero;  /**< is_non_zero[index_mode][index_ic1_ic2] */
 
   int * l_size; /**< number of multipole values for each requested mode, l_size[index_mode] */
   double ** l; /**< list of multipole values for each requested mode, (l[index_mode])[index_l] */
   
-  double ** cl; /**< table of spectrum multipole \f$ C_l^{X} \f$'s for each mode, initial condition and cl_type, (cl[index_mode])[index_ic][index_ct][index_l] */
+  double ** cl; /**< table of spectrum multipole \f$ C_l^{X} \f$'s for each mode, initial condition and cl_type, cl[index_mode][(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< table of second derivatives in view of spline interpolation */ 
 
   int * l_max; /**< last multipole (given as an input) at which we trust our C_ls;
 		  (l[index_mode][l_size[index_mode]-1] can be larger than l_max[index_mode], 
 		  in order to ensure better interpolation with no boundary effects) */
+
+  int l_max_tot; /**< greatest of all l_max[index_mode] */
 
   int index_ct_tt;
   int index_ct_ee;
@@ -71,15 +75,10 @@ extern "C" {
 
   int spectra_cl_at_l(
 		      struct spectra * psp,
-		      int index_mode,
 		      double l,
-		      double *cl
-		      );
-
-  int spectra_cl_tot_at_l(
-		      struct spectra * psp,
-		      double l,
-		      double *cl
+		      double * cl,
+		      double * * cl_md,
+		      double * * cl_md_ic
 		      );
 
   int spectra_pk_at_z(
@@ -132,12 +131,14 @@ extern "C" {
 			 struct primordial * ppm,
 			 struct spectra * psp,
 			 int index_mode,
-			 int index_ic,
+			 int index_ic1,
+			 int index_ic2,
 			 int index_l,
 			 int cl_integrand_num_columns,
 			 double * cl_integrand,
 			 double * primordial_pk,
-			 double * transfer
+			 double * transfer_ic1,
+			 double * transfer_ic2
 			 );
   
   int spectra_pk(

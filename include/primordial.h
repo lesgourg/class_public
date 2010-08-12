@@ -21,56 +21,82 @@ enum primordial_spectrum_type {
  */
 struct primordial {
 
-  short has_scalars;
-  short has_vectors;
-  short has_tensors;
-
-  short has_ad;     
-  short has_bi;     
-  short has_cdi;    
-  short has_nid;    
-  short has_niv;    
-
-  int index_md_scalars; /**< index value for scalars */
-  int index_md_tensors; /**< index value for tensors */
-  int index_md_vectors; /**< index value for vectors */
   int md_size; /**< number of modes included in computation */
-
-  int index_ic_ad; /**< index value for adiabatic */
-  int index_ic_cdi; /**< index value for CDM isocurvature */
-  int index_ic_bi; /**< index value for baryon isocurvature */
-  int index_ic_nid; /**< index value for neutrino density isocurvature */
-  int index_ic_niv; /**< index value for neutrino velocity isocurvature */
-  int index_ic_ten; /**< index value for unique possibility for tensors */
   int * ic_size;       /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+  int * ic_ic_size;    /**< number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just ic_size[index_mode](ic_size[index_mode]+1)/2  */
 
   enum primordial_spectrum_type primordial_spec_type;
 
   double k_pivot; /* pivot scale in Mpc-1 */
 
-  double A_s_ad;  /* scalar amplitude (adiabatic) */
-  double n_s_ad;  /* scalar tilt (adiabatic) */
-  double alpha_s_ad; /* scalar running (adiabatic) */
+  double A_s;  /* usual scalar amplitude = curvature power spectrum at pivot scale */
+  double n_s;  /* usual scalar tilt = [curvature power spectrum tilt at pivot scale -1] */
+  double alpha_s; /* usual scalar running */
 
-  double r;  /* tensor to scalar ratio A_T/A_S=P_h/P_R  */
-  double n_t;  /* tensor tilt */
-  double alpha_t; /* tensor running */
+  double r;    /* usual tensor to scalar ratio of power spectra, r=A_T/A_S=P_h/P_R */
+  double n_t;  /* usual tensor tilt = [GW power spectrum tilt at pivot scale] */
+  double alpha_t; /* usual tensor running */
 
-  double f_bi;  /* baryon isocurvature (BI) to adiabatic ratio A_s_bi/A_s_ad */
-  double n_s_bi;  /* BI tilt */
-  double alpha_s_bi; /* BI running */
+  double f_bi;  /* baryon isocurvature (BI) entropy-to-curvature ratio S_bi/R */
+  double n_bi;  /* BI tilt */
+  double alpha_bi; /* BI running */
 
-  double f_cdi;  /* CDM isocurvature (CDI) to adiabatic ratio A_s_cdi/A_s_ad */
-  double n_s_cdi;  /* CDI tilt */
-  double alpha_s_cdi; /* CDI running */
+  double f_cdi;  /* CDM isocurvature (CDI) entropy-to-curvature ratio S_cdi/R */
+  double n_cdi;  /* CDI tilt */
+  double alpha_cdi; /* CDI running */
 
-  double f_nid;  /* NID isocurvature to adiabatic ratio A_s_nid/A_s_ad */
-  double n_s_nid;  /* NID tilt */
-  double alpha_s_nid; /* NID running */
+  double f_nid;  /* neutrino density isocurvature (NID) entropy-to-curvature ratio S_nid/R */
+  double n_nid;  /* NID tilt */
+  double alpha_nid; /* NID running */
 
-  double f_niv;  /* NIV isocurvature to adiabatic ratio A_s_niv/A_s_ad */
-  double n_s_niv;  /* NIV tilt */
-  double alpha_s_niv; /* NIV running */
+  double f_niv;  /* neutrino velocity isocurvature (NIV) entropy-to-curvature ratio S_niv/R */
+  double n_niv;  /* NIV tilt */
+  double alpha_niv; /* NIV running */
+
+  double c_ad_bi; /* ADxBI cross-correlation at pivot scale, from -1 to 1 */
+  double n_ad_bi; /* ADxBI cross-correlation tilt */
+  double alpha_ad_bi; /* ADxBI cross-correlation running */
+
+  double c_ad_cdi; /* ADxCDI cross-correlation at pivot scale, from -1 to 1 */
+  double n_ad_cdi; /* ADxCDI cross-correlation tilt */
+  double alpha_ad_cdi; /* ADxCDI cross-correlation running */
+
+  double c_ad_nid; /* ADxNID cross-correlation at pivot scale, from -1 to 1 */
+  double n_ad_nid; /* ADxNID cross-correlation tilt */
+  double alpha_ad_nid; /* ADxNID cross-correlation running */
+
+  double c_ad_niv; /* ADxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_ad_niv; /* ADxNIV cross-correlation tilt */
+  double alpha_ad_niv; /* ADxNIV cross-correlation running */
+
+  double c_bi_cdi; /* BIxCDI cross-correlation at pivot scale, from -1 to 1 */
+  double n_bi_cdi; /* BIxCDI cross-correlation tilt */
+  double alpha_bi_cdi; /* BIxCDI cross-correlation running */
+
+  double c_bi_nid; /* BIxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_bi_nid; /* BIxNIV cross-correlation tilt */
+  double alpha_bi_nid; /* BIxNIV cross-correlation running */
+
+  double c_bi_niv; /* BIxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_bi_niv; /* BIxNIV cross-correlation tilt */
+  double alpha_bi_niv; /* BIxNIV cross-correlation running */
+
+  double c_cdi_nid; /* CDIxNID cross-correlation at pivot scale, from -1 to 1 */
+  double n_cdi_nid; /* CDIxNID cross-correlation tilt */
+  double alpha_cdi_nid; /* CDIxNID cross-correlation running */
+
+  double c_cdi_niv; /* CDIxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_cdi_niv; /* CDIxNIV cross-correlation tilt */
+  double alpha_cdi_niv; /* CDIxNIV cross-correlation running */
+
+  double c_nid_niv; /* NIDxNIV cross-correlation at pivot scale, from -1 to 1 */
+  double n_nid_niv; /* NIDxNIV cross-correlation tilt */
+  double alpha_nid_niv; /* NIDxNIV cross-correlation running */
+
+  short * * has_correlation;
+  double * * amplitude;
+  double * * tilt;
+  double * * running;
 
   double * lnk; /* list of ln(k) values lnk[index_k] */
   int lnk_size; /* number of ln(k) values */
@@ -121,10 +147,16 @@ extern "C" {
 			 struct primordial * ppm
 			 );
 
+  int primordial_analytic_spectrum_init(
+					struct perturbs   * ppt,
+					struct primordial * ppm
+					);
+
   int primordial_analytic_spectrum(
 				   struct primordial * ppm,
 				   int index_mode,
-				   int index_ic,
+				   int index_ic1,
+				   int index_ic2,
 				   double k,
 				   double * pk
 				   );

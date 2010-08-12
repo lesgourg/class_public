@@ -542,6 +542,7 @@ int array_spline_table_lines(
   p = malloc(y_size * sizeof(double));
   qn = malloc(y_size * sizeof(double));
   un = malloc(y_size * sizeof(double));
+
   if (u == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
@@ -585,7 +586,7 @@ int array_spline_table_lines(
 	  (3./(x[1] -  x[0]))*
 	  ((y_array[1*y_size+index_y]-y_array[0*y_size+index_y])/
 	   (x[1] - x[0])-dy_first);
-	
+
       }
     }
     else {
@@ -653,7 +654,6 @@ int array_spline_table_lines(
   }
     
   index_x=x_size-1;
-
 
   for (index_y=0; index_y < y_size; index_y++) {
     ddy_array[index_x*y_size+index_y] = 

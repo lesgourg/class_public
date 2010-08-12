@@ -504,43 +504,103 @@ int input_init(
       
       if (ppt->has_ad == _TRUE_) {
 
-	class_read_double("A_s_ad",ppm->A_s_ad);
-	class_read_double("n_s_ad",ppm->n_s_ad);
-	class_read_double("alpha_s_ad",ppm->alpha_s_ad);
+	class_read_double("A_s",ppm->A_s);
+	class_read_double("n_s",ppm->n_s);
+	class_read_double("alpha_s",ppm->alpha_s);
 
       }
 
       if (ppt->has_bi == _TRUE_) {
 
 	class_read_double("f_bi",ppm->f_bi);
-	class_read_double("n_s_bi",ppm->n_s_bi);
-	class_read_double("alpha_s_bi",ppm->alpha_s_bi);
+	class_read_double("n_bi",ppm->n_bi);
+	class_read_double("alpha_bi",ppm->alpha_bi);
 
       }
 
       if (ppt->has_cdi == _TRUE_) {
 
-	class_read_double("f_bi",ppm->f_cdi);
-	class_read_double("n_s_bi",ppm->n_s_cdi);
-	class_read_double("alpha_s_bi",ppm->alpha_s_cdi);
+	class_read_double("f_cdi",ppm->f_cdi);
+	class_read_double("n_cdi",ppm->n_cdi);
+	class_read_double("alpha_cdi",ppm->alpha_cdi);
 
       }
 
       if (ppt->has_nid == _TRUE_) {
 
 	class_read_double("f_nid",ppm->f_nid);
-	class_read_double("n_s_nid",ppm->n_s_nid);
-	class_read_double("alpha_s_nid",ppm->alpha_s_nid);
+	class_read_double("n_nid",ppm->n_nid);
+	class_read_double("alpha_nid",ppm->alpha_nid);
 
       }
 
       if (ppt->has_niv == _TRUE_) {
 
 	class_read_double("f_niv",ppm->f_niv);
-	class_read_double("n_s_niv",ppm->n_s_niv);
-	class_read_double("alpha_s_niv",ppm->alpha_s_niv);
+	class_read_double("n_niv",ppm->n_niv);
+	class_read_double("alpha_niv",ppm->alpha_niv);
 
       }
+
+      if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_)) {
+	class_read_double_one_of_two("c_ad_bi","c_bi_ad",ppm->c_ad_bi);
+	class_read_double_one_of_two("n_ad_bi","n_bi_ad",ppm->n_ad_bi);
+	class_read_double_one_of_two("alpha_ad_bi","alpha_bi_ad",ppm->alpha_ad_bi);
+      }
+
+      if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
+	class_read_double_one_of_two("c_ad_cdi","c_cdi_ad",ppm->c_ad_cdi);
+	class_read_double_one_of_two("n_ad_cdi","n_cdi_ad",ppm->n_ad_cdi);
+	class_read_double_one_of_two("alpha_ad_cdi","alpha_cdi_ad",ppm->alpha_ad_cdi);
+      }
+
+      if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_)) {
+	class_read_double_one_of_two("c_ad_nid","c_nid_ad",ppm->c_ad_nid);
+	class_read_double_one_of_two("n_ad_nid","n_nid_ad",ppm->n_ad_nid);
+	class_read_double_one_of_two("alpha_ad_nid","alpha_nid_ad",ppm->alpha_ad_nid);
+      }
+
+      if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_)) {
+	class_read_double_one_of_two("c_ad_niv","c_niv_ad",ppm->c_ad_niv);
+	class_read_double_one_of_two("n_ad_niv","n_niv_ad",ppm->n_ad_niv);
+	class_read_double_one_of_two("alpha_ad_niv","alpha_niv_ad",ppm->alpha_ad_niv);
+      }
+
+      if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_)) {
+	class_read_double_one_of_two("c_bi_cdi","c_cdi_bi",ppm->c_bi_cdi);
+	class_read_double_one_of_two("n_bi_cdi","n_cdi_bi",ppm->n_bi_cdi);
+	class_read_double_one_of_two("alpha_bi_cdi","alpha_cdi_bi",ppm->alpha_bi_cdi);
+      }
+
+      if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_)) {
+	class_read_double_one_of_two("c_bi_nid","c_nid_bi",ppm->c_bi_nid);
+	class_read_double_one_of_two("n_bi_nid","n_nid_bi",ppm->n_bi_nid);
+	class_read_double_one_of_two("alpha_bi_nid","alpha_nid_bi",ppm->alpha_bi_nid);
+      }
+
+      if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_)) {
+	class_read_double_one_of_two("c_bi_niv","c_niv_bi",ppm->c_bi_niv);
+	class_read_double_one_of_two("n_bi_niv","n_niv_bi",ppm->n_bi_niv);
+	class_read_double_one_of_two("alpha_bi_niv","alpha_niv_bi",ppm->alpha_bi_niv);
+      }
+
+      if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_)) {
+	class_read_double_one_of_two("c_cdi_nid","c_nid_cdi",ppm->c_cdi_nid);
+	class_read_double_one_of_two("n_cdi_nid","n_nid_cdi",ppm->n_cdi_nid);
+	class_read_double_one_of_two("alpha_cdi_nid","alpha_nid_cdi",ppm->alpha_cdi_nid);
+      }
+
+      if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_)) {
+	class_read_double_one_of_two("c_cdi_niv","c_niv_cdi",ppm->c_cdi_niv);
+	class_read_double_one_of_two("n_cdi_niv","n_niv_cdi",ppm->n_cdi_niv);
+	class_read_double_one_of_two("alpha_cdi_niv","alpha_niv_cdi",ppm->alpha_cdi_niv);
+      }
+
+      if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_)) {
+	class_read_double_one_of_two("c_nid_niv","c_niv_nid",ppm->c_nid_niv);
+	class_read_double_one_of_two("n_nid_niv","n_niv_nid",ppm->n_nid_niv);
+	class_read_double_one_of_two("alpha_nid_niv","alpha_niv_nid",ppm->alpha_nid_niv);
+      }  
 
     }
 
@@ -560,16 +620,25 @@ int input_init(
 	     errmsg,
 	     errmsg);
 
-  if (flag1 == _TRUE_) {
-    sprintf(pop->cls_ad,"%s%s",string1,"cls_ad.dat");
-    sprintf(pop->cls_bi,"%s%s",string1,"cls_bi.dat");
-    sprintf(pop->cls_cdi,"%s%s",string1,"cls_cdi.dat");
-    sprintf(pop->cls_nid,"%s%s",string1,"cls_nid.dat");
-    sprintf(pop->cls_niv,"%s%s",string1,"cls_niv.dat");
-    sprintf(pop->clt,"%s%s",string1,"clt.dat");
-    sprintf(pop->cltot,"%s%s",string1,"cltot.dat");
-    sprintf(pop->pk,"%s%s",string1,"pk.dat");
-  }
+  sprintf(pop->cl,"%s%s",string1,"cl.dat");
+  sprintf(pop->cls,"%s%s",string1,"cls.dat");
+  sprintf(pop->clt,"%s%s",string1,"clt.dat");
+  sprintf(pop->cls_ad,"%s%s",string1,"cls_ad.dat");
+  sprintf(pop->cls_bi,"%s%s",string1,"cls_bi.dat");
+  sprintf(pop->cls_cdi,"%s%s",string1,"cls_cdi.dat");
+  sprintf(pop->cls_nid,"%s%s",string1,"cls_nid.dat");
+  sprintf(pop->cls_niv,"%s%s",string1,"cls_niv.dat");
+  sprintf(pop->cls_ad_bi,"%s%s",string1,"cls_ad_bi.dat");
+  sprintf(pop->cls_ad_cdi,"%s%s",string1,"cls_ad_cdi.dat");
+  sprintf(pop->cls_ad_nid,"%s%s",string1,"cls_ad_nid.dat");
+  sprintf(pop->cls_ad_niv,"%s%s",string1,"cls_ad_niv.dat");
+  sprintf(pop->cls_bi_cdi,"%s%s",string1,"cls_bi_cdi.dat");
+  sprintf(pop->cls_bi_nid,"%s%s",string1,"cls_bi_nid.dat");
+  sprintf(pop->cls_bi_niv,"%s%s",string1,"cls_bi_niv.dat");
+  sprintf(pop->cls_cdi_nid,"%s%s",string1,"cls_cdi_nid.dat");
+  sprintf(pop->cls_cdi_niv,"%s%s",string1,"cls_cdi_niv.dat");
+  sprintf(pop->cls_nid_niv,"%s%s",string1,"cls_nid_niv.dat");
+  sprintf(pop->pk,"%s%s",string1,"pk.dat");
 
   pbs->l_max=0;
 
@@ -785,31 +854,77 @@ int input_default_params(
 
   ppm->primordial_spec_type = analytic_Pk;
   ppm->k_pivot = 0.05;
-  ppm->A_s_ad = 2.3e-9;
-  ppm->n_s_ad = 1.;
-  ppm->alpha_s_ad = 0.;
+  ppm->A_s = 2.3e-9;
+  ppm->n_s = 1.;
+  ppm->alpha_s = 0.;
   ppm->f_bi = 1.;
-  ppm->n_s_bi = 1.;
-  ppm->alpha_s_bi = 0.;
+  ppm->n_bi = 1.;
+  ppm->alpha_bi = 0.;
   ppm->f_cdi = 1.;
-  ppm->n_s_cdi = 1.;
-  ppm->alpha_s_cdi = 0.;
+  ppm->n_cdi = 1.;
+  ppm->alpha_cdi = 0.;
   ppm->f_nid = 1.;
-  ppm->n_s_nid = 1.;
-  ppm->alpha_s_nid = 0.;
+  ppm->n_nid = 1.;
+  ppm->alpha_nid = 0.;
   ppm->f_niv = 1.;
-  ppm->n_s_niv = 1.;
-  ppm->alpha_s_niv = 0.;
+  ppm->n_niv = 1.;
+  ppm->alpha_niv = 0.;
+  ppm->c_ad_bi = 0.;
+  ppm->n_ad_bi = 1.;
+  ppm->alpha_ad_bi = 0.;
+  ppm->c_ad_cdi = 0.;
+  ppm->n_ad_cdi = 1.;
+  ppm->alpha_ad_cdi = 0.;
+  ppm->c_ad_nid = 0.;
+  ppm->n_ad_nid = 1.;
+  ppm->alpha_ad_nid = 0.;
+  ppm->c_ad_niv = 0.;
+  ppm->n_ad_niv = 1.;
+  ppm->alpha_ad_niv = 0.;
+  ppm->c_bi_cdi = 0.;
+  ppm->n_bi_cdi = 1.;
+  ppm->alpha_bi_cdi = 0.;
+  ppm->c_bi_nid = 0.;
+  ppm->n_bi_nid = 1.;
+  ppm->alpha_bi_nid = 0.;
+  ppm->c_bi_niv = 0.;
+  ppm->n_bi_niv = 1.;
+  ppm->alpha_bi_niv = 0.;
+  ppm->c_cdi_nid = 0.;
+  ppm->n_cdi_nid = 1.;
+  ppm->alpha_cdi_nid = 0.;
+  ppm->c_cdi_niv = 0.;
+  ppm->n_cdi_niv = 1.;
+  ppm->alpha_cdi_niv = 0.;
+  ppm->c_nid_niv = 0.;
+  ppm->n_nid_niv = 1.;
+  ppm->alpha_nid_niv = 0.;
   ppm->r = 1.;
   ppm->n_t = 0.;
   ppm->alpha_t = 0.;
 
-  sprintf(pop->cls_ad,"output/cls.dat");
-  sprintf(pop->clt,"output/clt.dat");
   pbs->l_max=2500;
   ptr->l_scalar_max=2500;
   ptr->l_tensor_max=500;
 
+  sprintf(pop->cl,"output/cl.dat");
+  sprintf(pop->cls,"output/cls.dat");
+  sprintf(pop->clt,"output/clt.dat");
+  sprintf(pop->cls_ad,"output/cls_ad.dat");
+  sprintf(pop->cls_bi,"output/cls_bi.dat");
+  sprintf(pop->cls_cdi,"output/cls_cdi.dat");
+  sprintf(pop->cls_nid,"output/cls_nid.dat");
+  sprintf(pop->cls_niv,"output/cls_niv.dat");
+  sprintf(pop->cls_ad_bi,"output/cls_ad_bi.dat");
+  sprintf(pop->cls_ad_cdi,"output/cls_ad_cdi.dat");
+  sprintf(pop->cls_ad_nid,"output/cls_ad_nid.dat");
+  sprintf(pop->cls_ad_niv,"output/cls_ad_niv.dat");
+  sprintf(pop->cls_bi_cdi,"output/cls_bi_cdi.dat");
+  sprintf(pop->cls_bi_nid,"output/cls_bi_nid.dat");
+  sprintf(pop->cls_bi_niv,"output/cls_bi_niv.dat");
+  sprintf(pop->cls_cdi_nid,"output/cls_cdi_nid.dat");
+  sprintf(pop->cls_cdi_niv,"output/cls_cdi_niv.dat");
+  sprintf(pop->cls_nid_niv,"output/cls_nid_niv.dat");
   sprintf(pop->pk,"output/pk.dat");
   pop->z_pk = 0.;  
   psp->z_max_pk = pop->z_pk;
@@ -909,7 +1024,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->phi_ini=1.;
   ppr->entropy_ini=1.;
-  ppr->gw_ini=1.;
+  ppr->gw_ini=4.; /* to match normalization convention for GW in most of litterature and ensure standard definition of r */
 
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
   ppr->tol_perturb_integration=1.e-3; 

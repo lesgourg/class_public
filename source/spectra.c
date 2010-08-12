@@ -12,86 +12,99 @@
 
 int spectra_cl_at_l(
 		    struct spectra * psp,
-		    int index_mode,
 		    double l,
-		    double * cl  /* for a given mode, cl[index_ic * psp->ct_size + index_ct] for each initial condition and type, of size psp->ic_size[index_mode]*psp->ct_size */
+		    double * cl,      /* cl[index_ct] (already allocated) */
+		    double * * cl_md,   /* cl_md[index_mode][index_ct] (already allocated only if several modes) */
+		    double * * cl_md_ic /* cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] (already allocated for a given mode only if several ic's) */
 		    ) {
 
   int last_index;
+  int index_mode, index_ic1,index_ic2,index_ic1_ic2,index_ct;
 
-  class_test((index_mode < 0) || (index_mode >= psp->md_size),
-	     psp->error_message,
-	     "index_mode=%d out of range[%d:%d]",index_mode,0,psp->md_size);
-  
-  class_test((l < psp->l[index_mode][0]) || (l > psp->l_max[index_mode]),
-	     psp->error_message,
-	     "l=%f out of range [%f:%f]",l,psp->l[index_mode][0],psp->l_max[index_mode]);
-
-  class_call(array_interpolate_spline(psp->l[index_mode],
-				      psp->l_size[index_mode],
-				      psp->cl[index_mode],
-				      psp->ddcl[index_mode],
-				      psp->ic_size[index_mode]*psp->ct_size,
-				      l,
-				      &last_index,
-				      cl,
-				      psp->ic_size[index_mode]*psp->ct_size,
-				      psp->error_message),
-	     psp->error_message,
-	     psp->error_message);
-
-  return _SUCCESS_;
-
-}
-
-int spectra_cl_tot_at_l(
-		    struct spectra * psp,
-		    double l,
-		    double * cl /* cl[index_ct] for each type, of size psp->ct_size, summed over modes and initial conditions */
-		    ) {
-
-  int last_index;
-  int index_mode;
-  int index_ic;
-  int index_ct;
-  int lmax;
-  double * cl_mode;
-
-  /* if l out of range, will just return zero's, not an error */
-
-  for (index_ct = 0; index_ct < psp->ct_size; index_ct++) {
-    cl[index_ct]=0.;
+    if ((psp->md_size == 1) && (psp->ic_size[0] == 1)) {
+      index_mode = 0;
+      if (l <= psp->l_max_tot) {
+	class_call(array_interpolate_spline(psp->l[index_mode],
+					    psp->l_size[index_mode],
+					    psp->cl[index_mode],
+					    psp->ddcl[index_mode],
+					    psp->ic_ic_size[index_mode]*psp->ct_size,
+					    l,
+					    &last_index,
+					    cl,
+					    psp->ic_size[index_mode]*psp->ct_size,
+					    psp->error_message),
+		   psp->error_message,
+		   psp->error_message);
+      }
+      else {
+	for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+	  cl[index_ct]=0.;
+      }
+    return _SUCCESS_;
   }
-
-  for (index_mode=0; index_mode<psp->md_size; index_mode++) {
-    
-    if ((l >= psp->l[index_mode][0]) && (l <= psp->l_max[index_mode])) {
-
-      class_alloc(cl_mode,
-		  psp->ic_size[index_mode]*psp->ct_size*sizeof(double),
-		  psp->error_message);
-
-      class_call(array_interpolate_spline(psp->l[index_mode],
-					  psp->l_size[index_mode],
-					  psp->cl[index_mode],
-					  psp->ddcl[index_mode],
-					  psp->ic_size[index_mode]*psp->ct_size,
-					  l,
-					  &last_index,
-					  cl_mode,
-					  psp->ic_size[index_mode]*psp->ct_size,
-					  psp->error_message),
-		 psp->error_message,
-		 psp->error_message);
-
-      for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
-	for (index_ct = 0; index_ct < psp->ct_size; index_ct++) {
-	  cl[index_ct]+=cl_mode[index_ic * psp->ct_size + index_ct];
+  if (psp->md_size > 1) {
+    for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+      cl[index_ct]=0.;
+    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+      if (psp->ic_size[index_mode] == 1) {
+	if (l <= psp->l_max[index_mode]) {
+	  class_call(array_interpolate_spline(psp->l[index_mode],
+					      psp->l_size[index_mode],
+					      psp->cl[index_mode],
+					      psp->ddcl[index_mode],
+					      psp->ic_ic_size[index_mode]*psp->ct_size,
+					      l,
+					      &last_index,
+					      cl_md[index_mode],
+					      psp->ic_size[index_mode]*psp->ct_size,
+					      psp->error_message),
+		     psp->error_message,
+		     psp->error_message);
+	}
+	else {
+	  for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+	    cl_md[index_mode][index_ct]=0.;
 	}
       }
-
-      free(cl_mode);
-
+      else {
+	for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+	  cl_md[index_mode][index_ct]=0.;
+	for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	  for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	    /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
+	       takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
+	    index_ic1_ic2 = index_ic1 + psp->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+	    if ((l <= psp->l_max[index_mode]) && 
+		((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_))) {
+	      class_call(array_interpolate_spline(psp->l[index_mode],
+						  psp->l_size[index_mode],
+						  psp->cl[index_mode],
+						  psp->ddcl[index_mode],
+						  psp->ic_ic_size[index_mode]*psp->ct_size,
+						  l,
+						  &last_index,
+						  cl_md_ic[index_mode],
+						  psp->ic_size[index_mode]*psp->ct_size,
+						  psp->error_message),
+			 psp->error_message,
+			 psp->error_message);
+	    }
+	    else {
+	      for (index_ct=0; index_ct<psp->ct_size; index_ct++)
+		cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
+	    }
+	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+	      if (index_ic1 == index_ic2)
+		cl_md[index_mode][index_ct]+=cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct];
+	      else
+		cl_md[index_mode][index_ct]+=2.*cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct];
+	    }
+	  }
+	}
+      }
+      for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+	cl[index_ct]+=cl_md[index_mode][index_ct];
     }
   }
 
@@ -374,6 +387,7 @@ int spectra_free(
       }
       free(psp->l);
       free(psp->l_size);
+      free(psp->l_max);
       free(psp->cl);
       free(psp->ddcl);
     }
@@ -389,6 +403,12 @@ int spectra_free(
     }    
 
   }
+
+  for (index_mode=0; index_mode < psp->md_size; index_mode++)
+    free(psp->is_non_zero[index_mode]);
+  free(psp->is_non_zero);
+  free(psp->ic_size);
+  free(psp->ic_ic_size);
 
   return _SUCCESS_;
  
@@ -409,8 +429,21 @@ int spectra_indices(
 	      sizeof(int)*psp->md_size,
 	      psp->error_message);
 
-  for (index_mode=0; index_mode < psp->md_size; index_mode++) 
+  class_alloc(psp->ic_ic_size,
+	      sizeof(int)*psp->md_size,
+	      psp->error_message);
+
+  class_alloc(psp->is_non_zero,
+	      sizeof(short *)*psp->md_size,
+	      psp->error_message);
+
+  for (index_mode=0; index_mode < psp->md_size; index_mode++) {
     psp->ic_size[index_mode] = ppt->ic_size[index_mode];
+    psp->ic_ic_size[index_mode] = (psp->ic_size[index_mode]*(psp->ic_size[index_mode]+1))/2;
+    class_alloc(psp->is_non_zero[index_mode],
+		sizeof(short)*psp->ic_ic_size[index_mode],
+		psp->error_message);
+  }
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -494,11 +527,13 @@ int spectra_cls(
 
   /** - define local variables */
   int index_mode; /* index running over modes (scalar, tensor, ...) */
-  int index_ic; /* index running over initial conditions */
+  int index_ic1,index_ic2,index_ic1_ic2; /* index running over initial conditions */
   int index_l;  /* multipoles */
+  int index_ct;
   int cl_integrand_num_columns;
   double * cl_integrand;
-  double * transfer;
+  double * transfer_ic1;
+  double * transfer_ic2;
   double * primordial_pk;  /*pk[index_ic]*/
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
@@ -530,96 +565,132 @@ int spectra_cls(
       psp->l[index_mode][index_l] = (double)ptr->l[index_mode][index_l];
     }
 
-    class_alloc(psp->cl[index_mode],sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode],psp->error_message);
-    class_alloc(psp->ddcl[index_mode],sizeof(double)*psp->ct_size*psp->ic_size[index_mode]*ptr->l_size[index_mode],psp->error_message);
+    class_alloc(psp->cl[index_mode],sizeof(double)*psp->l_size[index_mode]*psp->ct_size*psp->ic_ic_size[index_mode],psp->error_message);
+    class_alloc(psp->ddcl[index_mode],sizeof(double)*psp->l_size[index_mode]*psp->ct_size*psp->ic_ic_size[index_mode],psp->error_message);
     cl_integrand_num_columns = 1+psp->ct_size*2; /* one for k, ct_size for each type, ct_size for each second derivative of each type */
 
-    if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars))
+    /* last multipole for each mode (given as an input) at which we trust our C_ls;
+       (l[index_mode][l_size[index_mode]-1] can be larger than l_max[index_mode], 
+       in order to ensure better interpolation with no boundary effects).
+       Compute also the max over all modes */
+    psp->l_max_tot=0;
+    if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
       psp->l_max[index_mode] = ptr->l_scalar_max;
+      if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
+    }
     
-    if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors))
+    if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
       psp->l_max[index_mode] = ptr->l_tensor_max;
+      if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
+    }
 
     /** - loop over initial conditions */
-    for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
+    for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+      for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
 
-      /* initialize error management flag */
-      abort = _FALSE_;
+	/* non-diagonal coefficients should be computed only if non-zero correlation */
+	if ((index_ic1 == index_ic2) || (ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] == _TRUE_)) {
 
-      /*** beginning of parallel region ***/
+	  /* initialize error management flag */
+	  abort = _FALSE_;
+
+	  /*** beginning of parallel region ***/
 
 #pragma omp parallel							\
-  shared(ptr,ppm,index_mode,psp,ppt,cl_integrand_num_columns,index_ic,abort) \
-  private(tstart,cl_integrand,primordial_pk,transfer,index_l,tstop)
+  shared(ptr,ppm,index_mode,psp,ppt,cl_integrand_num_columns,index_ic1,index_ic2,abort) \
+  private(tstart,cl_integrand,primordial_pk,transfer_ic1,transfer_ic2,index_l,tstop)
       
-      {
+	  {
 
 #ifdef _OPENMP
-	tstart = omp_get_wtime();
+	    tstart = omp_get_wtime();
 #endif
 
-	class_alloc_parallel(cl_integrand,ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),
-			     psp->error_message);
-
-	class_alloc_parallel(primordial_pk,psp->ic_size[index_mode]*sizeof(double),
-			     psp->error_message);
-
-	class_alloc_parallel(transfer,ptr->tt_size[index_mode]*sizeof(double),
-			     psp->error_message);
+	    class_alloc_parallel(cl_integrand,
+				 ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),
+				 psp->error_message);
+	    
+	    class_alloc_parallel(primordial_pk,
+				 psp->ic_ic_size[index_mode]*sizeof(double),
+				 psp->error_message);
+	    
+	    class_alloc_parallel(transfer_ic1,
+				 ptr->tt_size[index_mode]*sizeof(double),
+				 psp->error_message);
+	    
+	    class_alloc_parallel(transfer_ic2,
+				 ptr->tt_size[index_mode]*sizeof(double),
+				 psp->error_message);
 
 #pragma omp for schedule (dynamic)
 
-	/** - loop over l values defined in the transfer module. For each l: */
-	for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
+	    /** - loop over l values defined in the transfer module. For each l: */
+	    for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
 
 #pragma omp flush(abort)
 
-	  class_call_parallel(spectra_compute_cl(ppt,
-						 ptr,
-						 ppm,
-						 psp,
-						 index_mode,
-						 index_ic,
-						 index_l,
-						 cl_integrand_num_columns,
-						 cl_integrand,
-						 primordial_pk,
-						 transfer),
-			      psp->error_message,
-			      psp->error_message);
+	      class_call_parallel(spectra_compute_cl(ppt,
+						     ptr,
+						     ppm,
+						     psp,
+						     index_mode,
+						     index_ic1,
+						     index_ic2,
+						     index_l,
+						     cl_integrand_num_columns,
+						     cl_integrand,
+						     primordial_pk,
+						     transfer_ic1,
+						     transfer_ic2),
+				  psp->error_message,
+				  psp->error_message);
 
-	} /* end of loop over l */
-
+	    } /* end of loop over l */
 	
 #ifdef _OPENMP
-	tstop = omp_get_wtime();
-	if (psp->spectra_verbose > 1)
-	  printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
-		 __func__,tstop-tstart,omp_get_thread_num());
+	    tstop = omp_get_wtime();
+	    if (psp->spectra_verbose > 1)
+	      printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
+		     __func__,tstop-tstart,omp_get_thread_num());
 #endif
-
-	free(cl_integrand);
+	    free(cl_integrand);
     
-	free(primordial_pk);
+	    free(primordial_pk);
 	
-	free(transfer);
+	    free(transfer_ic1);
+	  
+	    free(transfer_ic2);
 
-      } /* end of parallel region */
+	  } /* end of parallel region */
 
-      if (abort == _TRUE_) return _FAILURE_;
+	  if (abort == _TRUE_) return _FAILURE_;
 
+	}
+	else {
+          /* set non-diagonal coefficients to zero if pair of ic's uncorrelated */
+	  index_ic1_ic2 = index_ic1 + ppt->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+	  for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
+	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+	      psp->cl[index_mode]
+		[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct]
+		= 0.;
+	      psp->is_non_zero[index_mode][index_ic1_ic2] = _FALSE_;
+
+	    }
+	  }
+	}
+      }
     }
 
     class_call(array_spline_table_lines(psp->l[index_mode],
 					psp->l_size[index_mode],
 					psp->cl[index_mode],
-					psp->ic_size[index_mode]*psp->ct_size,
+					psp->ic_ic_size[index_mode]*psp->ct_size,
 					psp->ddcl[index_mode],
 					_SPLINE_EST_DERIV_,
 					psp->error_message),
 	       psp->error_message,
 	       psp->error_message);
-    
   }
 
   return _SUCCESS_;
@@ -632,12 +703,14 @@ int spectra_compute_cl(
 		       struct primordial * ppm,
 		       struct spectra * psp,
 		       int index_mode,
-		       int index_ic,
+		       int index_ic1,
+		       int index_ic2,
 		       int index_l,
 		       int cl_integrand_num_columns,
 		       double * cl_integrand,
 		       double * primordial_pk,
-		       double * transfer
+		       double * transfer_ic1,
+		       double * transfer_ic2
 		       ) {
 
   int index_k;
@@ -646,6 +719,11 @@ int spectra_compute_cl(
   double k;
   double clvalue;
   int nonzero;
+  int index_ic1_ic2;
+
+  /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
+     takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
+  index_ic1_ic2 = index_ic1 + ppt->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2; 
 
   for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
 
@@ -661,48 +739,63 @@ int spectra_compute_cl(
 
     for (index_tt=0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
 		  
-      transfer[index_tt] = 
+      transfer_ic1[index_tt] = 
 	ptr->transfer[index_mode]
-	[((index_ic * ptr->tt_size[index_mode] + index_tt)
+	[((index_ic1 * ptr->tt_size[index_mode] + index_tt)
 	  * ptr->l_size[index_mode] + index_l)
 	 * ptr->k_size[index_mode] + index_k];
       
+      if (index_ic1 == index_ic2) {
+	transfer_ic2[index_tt] = transfer_ic1[index_tt];
+      }
+      else {
+	transfer_ic2[index_tt] = ptr->transfer[index_mode]
+	  [((index_ic2 * ptr->tt_size[index_mode] + index_tt)
+	    * ptr->l_size[index_mode] + index_l)
+	   * ptr->k_size[index_mode] + index_k];
+      }
     }
 
     if (psp->has_tt == _TRUE_)
-      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_t]
-	* transfer[ptr->index_tt_t]
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=
+	primordial_pk[index_ic1_ic2]
+	* transfer_ic1[ptr->index_tt_t]
+	* transfer_ic2[ptr->index_tt_t]
 	* 4. * _PI_ / k;
 		  
     if (psp->has_ee == _TRUE_)
-      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_e]
-	* transfer[ptr->index_tt_e]
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=
+	primordial_pk[index_ic1_ic2]
+	* transfer_ic1[ptr->index_tt_e]
+	* transfer_ic2[ptr->index_tt_e]
 	* 4. * _PI_ / k;
 
     if (psp->has_te == _TRUE_)
-      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_t]
-	* transfer[ptr->index_tt_e]
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=
+	primordial_pk[index_ic1_ic2]
+	* 0.5*(transfer_ic1[ptr->index_tt_t] * transfer_ic2[ptr->index_tt_e] +
+	       transfer_ic1[ptr->index_tt_e] * transfer_ic2[ptr->index_tt_t])
 	* 4. * _PI_ / k;
     
     if ((psp->has_bb == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))
-	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_b]
-	* transfer[ptr->index_tt_b]
+	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_bb]=
+	  primordial_pk[index_ic1_ic2]
+	* transfer_ic1[ptr->index_tt_b]
+	* transfer_ic2[ptr->index_tt_b]
 	* 4. * _PI_ / k;
 
     if ((psp->has_pp == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars))
-      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_lcmb]
-	* transfer[ptr->index_tt_lcmb]
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_pp]=
+	primordial_pk[index_ic1_ic2]
+	* transfer_ic1[ptr->index_tt_lcmb]
+	* transfer_ic2[ptr->index_tt_lcmb]
 	* 4. * _PI_ / k;
     
     if ((psp->has_tp == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars))
-      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=primordial_pk[index_ic]
-	* transfer[ptr->index_tt_t]
-	* transfer[ptr->index_tt_lcmb]
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=
+	primordial_pk[index_ic1_ic2]
+	* 0.5*(transfer_ic1[ptr->index_tt_t] * transfer_ic2[ptr->index_tt_lcmb] +
+	       transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_t])
 	* 4. * _PI_ / k;
 
   }
@@ -715,8 +808,10 @@ int spectra_compute_cl(
 	((index_ct == psp->index_ct_pp) && (psp->has_pp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
 	((index_ct == psp->index_ct_tp) && (psp->has_tp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
 
+      index_ic1_ic2 = index_ic1 + psp->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2-1))/2;
+
       psp->cl[index_mode]
-	[(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct] = 0.;
+	[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] = 0.;
 
     }
     /* for non-zero spectra, integrate over k */
@@ -745,8 +840,14 @@ int spectra_compute_cl(
 		 psp->error_message);
       
       psp->cl[index_mode]
-	[(index_l * psp->ic_size[index_mode] + index_ic) * psp->ct_size + index_ct]
+	[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct]
 	= clvalue;
+      psp->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
+
+      fprintf(stderr,"%d %d %d %d %d %g %g\n",index_mode,index_ic1_ic2,index_l,index_ct,
+	      (index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct,
+	      psp->l[index_mode][index_l],
+	      psp->cl[index_mode][(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct]);
 
     }
 

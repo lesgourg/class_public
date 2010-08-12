@@ -14,7 +14,7 @@
 #include "spectra.h"
 #include "output.h"
 
-/* macro for opening file and returning error if it failed */
+/* macro for reading parameter values with routines from the parser */
 #define class_read_double(name,destination)				\
   do {									\
     class_call(parser_read_double(pfc,name,&param1,&flag1,errmsg),      \
@@ -41,6 +41,24 @@
 	       errmsg);							\
     if (flag1 == _TRUE_)						\
       strcpy(destination,string1);					\
+  } while(0);
+
+#define class_read_double_one_of_two(name1,name2,destination)		\
+  do {									\
+    class_call(parser_read_double(pfc,name1,&param1,&flag1,errmsg),	\
+	       errmsg,							\
+	       errmsg);							\
+    class_call(parser_read_double(pfc,name2,&param2,&flag2,errmsg),	\
+	       errmsg,							\
+	       errmsg);							\
+    class_test((flag1 == _TRUE_) && (flag1 == _TRUE_),			\
+	       errmsg,							\
+	       "In input file, you can only enter one of %s, %s, choose one", \
+	       name1,name2);						\
+    if (flag1 == _TRUE_)						\
+      destination = param1;						\
+    if (flag2 == _TRUE_)						\
+      destination = param2;						\
   } while(0);
 
 #define class_at_least_two_of_three(a,b,c)		\
