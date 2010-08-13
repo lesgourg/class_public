@@ -21,7 +21,7 @@ struct spectra {
   double ** l; /**< list of multipole values for each requested mode, (l[index_mode])[index_l] */
   
   double ** cl; /**< table of spectrum multipole \f$ C_l^{X} \f$'s for each mode, initial condition and cl_type, cl[index_mode][(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] */
-  double ** ddcl; /**< table of second derivatives in view of spline interpolation */ 
+  double ** ddcl; /**< table of second derivatives w.r.t l in view of spline interpolation */ 
 
   int * l_max; /**< last multipole (given as an input) at which we trust our C_ls;
 		  (l[index_mode][l_size[index_mode]-1] can be larger than l_max[index_mode], 
@@ -46,11 +46,12 @@ struct spectra {
 
   double z_max_pk; /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
 
+  int index_md_scalars;
   int k_size;
   double * k;
   int eta_size; 
   double * eta;
-  double * pk;   /**< power spectrum pk[(index_ic * psp->k_size + index_k)*eta_size+index_eta] */
+  double * pk;   /**< power spectrum pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->k_size + index_k] */
   double * ddlnpk; /**< table of second derivatives of ln(P) with respect to ln(eta) in view of spline interpolation */
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
@@ -84,20 +85,19 @@ extern "C" {
   int spectra_pk_at_z(
 		      struct background * pba,
 		      struct spectra * psp,
-		      int index_mode,
 		      double z,
-		      double * pk
+		      double * pk,      /* pk[index_k] (already alloocated) */
+		      double * pk_ic    /* pk_ic[index_k][index_ic1_ic2] (already allocated if more than one ic) */
 		      );
 
   int spectra_pk_at_k_and_z(
 			    struct background * pba,
 			    struct primordial * ppm,
 			    struct spectra * psp,
-			    int index_mode,
-			    int index_ic,
 			    double k,
 			    double z,
-			    double * pk
+			    double * pk,
+			    double * pk_ic   /* pk_ic[index_ic1_ic2] */
 			    );
 
   int spectra_init(
@@ -115,6 +115,7 @@ extern "C" {
   int spectra_indices(
 		      struct perturbs * ppt,
 		      struct transfers * ptr,
+		      struct primordial * ppm,
 		      struct spectra * psp
 		      );
 

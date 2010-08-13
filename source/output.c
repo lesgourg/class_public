@@ -22,11 +22,12 @@ int output_init(
   double * * cl_md;      /* cl_md[index_mode][index_ct] */
   double * cl_tot;           /* cl_tot[index_ct] */
 
-  FILE * outbis;
+  FILE * * out_ic;
 
   int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_ct,l,index_k;
 
-  double * pk_output;
+  double pk_tot;
+  double * pk_ic;
 
   FileArg file_name;
   char * first_line;
@@ -157,7 +158,7 @@ int output_init(
 		  (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
 
 		strcpy(file_name,pop->cls_nid);
-		first_line="# dimensionless [l(l+1)/2pi] C_l for scalar CDM isocurvature (CDI) mode";
+		first_line="# dimensionless [l(l+1)/2pi] C_l for scalar neutrino density isocurvature (NID) mode";
 	      }
 
 	      if ((ppt->has_niv) && 
@@ -357,10 +358,166 @@ int output_init(
 
     index_mode=ppt->index_md_scalars;
 
-    /* if z_pk = 0, no interpolation needed, 
-       just let pk_output point to the right address */
-    if (pop->z_pk == 0) {
-      pk_output=&(psp->pk[(psp->eta_size-1) * ppt->ic_size[index_mode] * psp->k_size]);
+    class_call(output_open_pk_file(psp,
+				   pop,
+				   &out,
+				   pop->pk,
+				   "",
+				   pop->z_pk
+				   ),
+	       pop->error_message,
+	       pop->error_message);
+   
+    if (psp->ic_size[index_mode] > 1) {
+
+      class_alloc(out_ic,
+		  ic_ic_size[index_mode]*sizeof(FILE *),
+		  pop->error_message);
+
+      for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_mode]; index_ic1++) {
+	  
+	for (index_ic2 = index_ic1; index_ic2 < ppt->ic_size[index_mode]; index_ic2++) {
+	  
+	  if ((ppt->has_ad) && 
+	      (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
+	    
+	    strcpy(file_name,pop->pk_ad);
+	    first_line="for adiabatic (AD) mode" ;
+	  }
+
+	  if ((ppt->has_bi) && 
+	      (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
+	    
+	    strcpy(file_name,pop->pk_bi);
+	    first_line="for baryon isocurvature (BI) mode ";
+	  }
+	  
+	  if ((ppt->has_cdi) && 
+	      (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_cdi)) {
+	    
+	    strcpy(file_name,pop->pk_cdi);
+	    first_line="for CDM isocurvature (CDI) mode ";
+	  }
+	  
+	  if ((ppt->has_nid) && 
+	      (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
+	    
+	    strcpy(file_name,pop->pk_nid);
+	    first_line="for neutrino density isocurvature (NID) mode ";
+	  }
+	  
+	  if ((ppt->has_niv) && 
+	      (index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_niv)) {
+	    
+	    strcpy(file_name,pop->pk_niv);
+	    first_line="for neutrino velocity isocurvature (NIV) mode ";
+	  }
+	  
+	  if ((ppt->has_ad) && 
+	      (ppt->has_bi) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) {
+	    
+	    strcpy(file_name,pop->pk_ad_bi);
+	    first_line="for cross ADxBI mode ";
+	  }
+	  
+	  if ((ppt->has_ad) && (ppt->has_cdi) && 
+	      (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) {
+	    
+	    strcpy(file_name,pop->pk_ad_cdi);
+	    first_line="for cross ADxCDI mode ";
+	  }
+	  
+	  if ((ppt->has_ad) && (ppt->has_nid) && 
+	      (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) {
+	    
+	    strcpy(file_name,pop->pk_ad_nid);
+	    first_line="for scalar cross ADxNID mode ";
+	  }
+	  
+	  if ((ppt->has_ad) && (ppt->has_niv) && 
+	      (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) {
+	    
+	    strcpy(file_name,pop->pk_ad_niv);
+	    first_line="for cross ADxNIV mode ";
+	  }
+	  
+	  if ((ppt->has_bi) && (ppt->has_cdi) && 
+	      (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
+	    
+	    strcpy(file_name,pop->pk_bi_cdi);
+	    first_line="for cross BIxCDI mode ";
+	  }
+	  
+	  if ((ppt->has_bi) && (ppt->has_nid) && 
+	      (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) {
+	    
+	    strcpy(file_name,pop->pk_bi_nid);
+	    first_line="for cross BIxNID mode ";
+	  }
+	  
+	  if ((ppt->has_bi) && (ppt->has_niv) && 
+	      (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) {
+	    
+	    strcpy(file_name,pop->pk_bi_niv);
+	    first_line="for cross BIxNIV mode ";
+	  }
+	  
+	  if ((ppt->has_cdi) && (ppt->has_nid) && 
+	      (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
+	    
+	    strcpy(file_name,pop->pk_cdi_nid);
+	    first_line="for cross CDIxNID mode ";
+	  }
+	  
+	  if ((ppt->has_cdi) && (ppt->has_niv) && 
+	      (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) {
+	    
+	    strcpy(file_name,pop->pk_cdi_niv);
+	    first_line="for cross CDIxNIV mode ";
+	  }
+	  
+	  if ((ppt->has_nid) && (ppt->has_niv) && 
+	      (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
+	    
+	    strcpy(file_name,pop->pk_nid_niv);
+	    first_line="for cross NIDxNIV mode ";
+	  }
+
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+
+	  class_call(output_open_pk_file(psp,
+					 pop,
+					 &(out[index_ic1_index_ic2]),
+					 file_name,
+					 first_line,
+					 pop->z_pk
+					 ),
+		     pop->error_message,
+		     pop->error_message);
+	  
+	} 
+      }
+    }
+
+    if (psp->ic_size[index_mode] > 1) {
+      class_alloc(pk_ic,psp->ic_ic_size[index_mode],pop->error_message);
+    }
+    
+    for (index_k=0; index_k<psp->k_size; index_k++) {
+    
+      /* if z_pk = 0, no interpolation needed */
+      if (pop->z_pk == 0) {
+      
+	if (psp->ic_size[index_mode] == 1)
+	  pk_tot = &(psp->pk[(psp->eta_size-1) * psp->k_size]);
+	else
+	  
+
+	
+	pk_ic=&(psp->pk[(psp->eta_size-1) * ppt->ic_size[index_mode] * psp->k_size]);
+
+
+      pk_ic=&(psp->pk[(psp->eta_size-1) * ppt->ic_size[index_mode] * psp->k_size]);
     }
 
     /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
@@ -413,7 +570,8 @@ int output_open_cl_file(
   class_open(*clfile,filename,"w",pop->error_message);
 
   fprintf(*clfile,"%s\n",first_line); 
-  fprintf(*clfile,"# for l=2 to %d, i.e. number of lines equal to\n",(int)lmax);
+  fprintf(*clfile,"# for l=2 to %d,\n");
+  fprintf(*clfile,"# i.e. number of lines equal to\n",(int)lmax);
   fprintf(*clfile,"%d\n",(int)(lmax-1));
   fprintf(*clfile,"#  l ");
 
@@ -450,6 +608,38 @@ int output_one_line_of_cl(
     fprintf(clfile,"%e",l*(l+1)/2./_PI_*cl[index_ct]);
   }
   fprintf(clfile,"\n");	
+    
+  return _SUCCESS_;
+    
+}
+
+int output_open_pk_file(
+			struct spectra * psp,
+			struct output * pop,
+			FILE * * clfile,
+			FileArg filename,
+			char * first_line,
+			double z
+			) {
+
+    class_open(*clfile,filename,"w",pop->error_message);
+
+    fprintf(*clfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
+    fprintf(*clfile,"# for k=%g to %g h/Mpc,\n");
+    fprintf(*clfile,"# number of wavenumbers equal to\n",psp->k[0],psp->k[psp->k_size-1]);
+    fprintf(*clfile,"%d\n",psp->k_size);
+    fprintf(*clfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
+
+    return _SUCCESS_;
+}
+
+int output_one_line_of_pk(
+			  FILE * clfile,
+			  double one_k,
+			  double * one_pk
+			  ) {
+
+  fprintf(clfile,"%g %g\n",one_k,one_pk);
     
   return _SUCCESS_;
     

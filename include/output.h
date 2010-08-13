@@ -74,7 +74,21 @@ extern "C" {
 			    double * cl,
 			    int ct_size
 			    );
-  
+
+  int output_open_pk_file(
+			  struct spectra * psp,
+			  struct output * pop,
+			  FILE * * clfile,
+			  FileArg filename,
+			  char * first_line,
+			  double z
+			  );
+
+  int output_one_line_of_pk(
+			    FILE * clfile,
+			    double one_k,
+			    double * one_pk
+			    );
 #ifdef __cplusplus
 }
 #endif

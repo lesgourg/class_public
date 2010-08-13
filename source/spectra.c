@@ -54,7 +54,7 @@ int spectra_cl_at_l(
 	   takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
 	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 	if ((l <= psp->l_max[index_mode]) && 
-	    ((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_))) {
+	    (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 	  class_call(array_interpolate_spline(psp->l[index_mode],
 					      psp->l_size[index_mode],
 					      psp->cl[index_mode],
@@ -116,7 +116,7 @@ int spectra_cl_at_l(
 	       takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
 	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 	    if ((l <= psp->l_max[index_mode]) && 
-		((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_))) {
+		(psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 	      class_call(array_interpolate_spline(psp->l[index_mode],
 						  psp->l_size[index_mode],
 						  psp->cl[index_mode],
@@ -176,14 +176,19 @@ int spectra_cl_at_l(
 int spectra_pk_at_z(
 		    struct background * pba,
 		    struct spectra * psp,
-		    int index_mode,
 		    double z,
-		    double * pk
+		    double * pk,
+		    double * pk_ic
 		    ) {
 
+  int index_mode;
   int last_index;
+  int index_k;
   double eta_requested;
-  int index_ic;
+  int index_ic1,index_ic2;
+  int index_ic1_ic2;
+
+  index_mode = psp->index_md_scalars;
 
   class_call(background_eta_of_z(pba,z,&eta_requested),
 	     pba->error_message,
@@ -197,8 +202,8 @@ int spectra_pk_at_z(
 	       "asked z=%e but only P(k,z=0) has been tabulated",z);
 
     /* case z=0 */
-    for (index_ic=0; index_ic < psp->ic_size[index_mode]*psp->k_size; index_ic++) {
-      pk[index_ic] = psp->pk[index_ic];
+    for (index_ic1_ic2=0; index_ic1_ic2 < psp->ic_ic_size[index_mode]*psp->k_size; index_ic1_ic2++) {
+      pk[index_ic1_ic2] = psp->pk[index_ic1_ic2];
     }
     return _SUCCESS_;
     
@@ -209,20 +214,59 @@ int spectra_pk_at_z(
 	     "eta(z)=%e out of bounds [%e:%e]",
 	     eta_requested,psp->eta[0],psp->eta[psp->eta_size-1]);
 
+  if (psp->ic_ic_size[index_mode] == 1) {
+    
+    class_call(array_interpolate_logspline(psp->eta,
+					   psp->eta_size,
+					   psp->pk,
+					   psp->ddlnpk,
+					   psp->k_size,
+					   eta_requested,
+					   &last_index,
+					   pk,
+					   psp->k_size,
+					   psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
+  }
+  else {
 
-  class_call(array_interpolate_logspline(psp->eta,
-				      psp->eta_size,
-				      psp->pk,
-				      psp->ddlnpk,
-				      psp->ic_size[index_mode]*psp->k_size,
-				      eta_requested,
-				      &last_index,
-				      pk,
-				      psp->ic_size[index_mode]*psp->k_size,
-				      psp->error_message),
-	     psp->error_message,
-	     psp->error_message);
+    class_call(array_interpolate_logspline(psp->eta,
+					   psp->eta_size,
+					   psp->pk,
+					   psp->ddlnpk,
+					   psp->ic_ic_size[index_mode]*psp->k_size,
+					   eta_requested,
+					   &last_index,
+					   pk_ic,
+					   psp->ic_ic_size[index_mode]*psp->k_size,
+					   psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
 
+    for (index_k=0; index_k<psp->k_size; index_k++) {
+
+      pk[index_k] = 0.;
+
+      for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+
+	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+
+	    if (index_ic1 == index_ic2)
+	      pk[index_k] += pk_ic[index_ic1_ic2 * psp->k_size + index_k];
+	    else
+	      pk[index_k] += 2.*pk_ic[index_ic1_ic2 * psp->k_size + index_k];
+	  }
+	  else {
+	    pk_ic[index_ic1_ic2 * psp->k_size + index_k] = 0.;
+	  }
+	}
+      }
+    }
+  }
+	    
   return _SUCCESS_;
 
 }
@@ -241,43 +285,57 @@ int spectra_pk_at_k_and_z(
 			  struct background * pba,
 			  struct primordial * ppm,
 			  struct spectra * psp,
-			  int index_mode,
-			  int index_ic,
 			  double k,
 			  double z,
-			  double * pk
+			  double * pk,
+			  double * pk_ic
 			  ) {
 
   double * temporary_pk;
+  double * temporary_pk_ic;
   double * spline_pk;
   double * spline_ddlnpk;
   int index_k;
   int last_index;
   double * pkini_k;
   double * pkini_kmin;
+  int index_mode;
+  int index_ic1,index_ic2;
+  int index_ic1_ic2;
 
-  /* check input parameters (z will be checked in spectra_pk_at_z) */
+  index_mode = psp->index_md_scalars;
 
-  class_test((index_ic < 0) || (index_ic >= psp->ic_size[index_mode]),
-	     psp->error_message,
-	     "index_ic=%d out of bounds [%d:%d]",
-	     index_ic,0,psp->ic_size[index_mode]);
+  /* check input parameters:
+     - z will be checked in spectra_pk_at_z
+     - reject k<0 or k>kmax. However 0 <= k < kmin is allowed, see below. 
+  */
 
   class_test((k < 0) || (k > psp->k[psp->k_size-1]),
 	     psp->error_message,
 	     "k=%e out of bounds [%e:%e]",k,0.,psp->k[psp->k_size-1]);
 
-  /* get P(k) at the right value of z */
+  /* get P(k) at the right value of z, (if more than one ic: for each pair ic1,ic2 and for the total) */
 
   class_alloc(temporary_pk,
-	      sizeof(double)*psp->ic_size[index_mode]*psp->k_size,
+	      sizeof(double)*psp->k_size,
 	      psp->error_message);
-
-  class_call(spectra_pk_at_z(pba,psp,index_mode,z,temporary_pk),
+  
+  if (psp->ic_size[index_mode] > 1) {
+        
+    class_alloc(temporary_pk_ic,
+		sizeof(double)*psp->ic_ic_size[index_mode]*psp->k_size,
+		psp->error_message); 
+  }
+  
+  class_call(spectra_pk_at_z(pba,
+			     psp,
+			     z,
+			     temporary_pk,
+			     temporary_pk_ic),
 	     psp->error_message,
 	     psp->error_message);
 
-  /* deal with case k < kmin */
+  /* deal with case 0 <= k < kmin */
 
   if (k < psp->k[0]) {
 
@@ -293,18 +351,50 @@ int spectra_pk_at_k_and_z(
       
     if (k == 0.) {
       *pk=0.;
+      free(temporary_pk);
+      if (psp->ic_size[index_mode] > 1)
+	free(temporary_pk_ic);
       return _SUCCESS_;
     }
 	
-    class_alloc(pkini_k,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
-    class_alloc(pkini_kmin,sizeof(double)*psp->ic_size[index_mode],psp->error_message);
+    class_alloc(pkini_k,sizeof(double)*psp->ic_ic_size[index_mode],psp->error_message);
+    class_alloc(pkini_kmin,sizeof(double)*psp->ic_ic_size[index_mode],psp->error_message);
 
     class_call(primordial_spectrum_at_k(ppm,index_mode,k,pkini_k),ppm->error_message,psp->error_message);
     class_call(primordial_spectrum_at_k(ppm,index_mode,psp->k[0],pkini_kmin),ppm->error_message,psp->error_message);
     
-    *pk=temporary_pk[index_ic*psp->k_size]*k*pkini_k[index_ic]/psp->k[0]/pkini_kmin[index_ic];
+    if (psp->ic_size[index_mode] == 1) {
+
+      *pk = temporary_pk[0]*k*pkini_k[0]/psp->k[0]/pkini_kmin[0];
+      
+    }
+    else {
+
+      *pk = 0.;
+      
+      for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	  
+	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+
+	    pk_ic[index_ic1_ic2] = temporary_pk_ic[index_ic1_ic2]*k*pkini_k[index_ic1_ic2]/psp->k[0]/pkini_kmin[index_ic1_ic2];
+	    
+	    if (index_ic1 == index_ic2)
+	      *pk += pk_ic[index_ic1_ic2];
+	    else
+	      *pk += 2.*pk_ic[index_ic1_ic2];
+	  }
+	  else {
+	    pk_ic[index_ic1_ic2] = 0.;
+	  }
+	}
+      }
+    }
     
     free(temporary_pk);
+    if (psp->ic_size[index_mode] > 1)
+      free(temporary_pk_ic);
     free(pkini_k);
     free(pkini_kmin);
     
@@ -312,41 +402,83 @@ int spectra_pk_at_k_and_z(
 
   }
 
-  /* now, spline and interpolate */
+  /* deal with case  kmin <= k <= kmax */
 
-  class_alloc(spline_pk,sizeof(double)*psp->k_size,psp->error_message);
+  class_alloc(spline_pk,sizeof(double)*psp->ic_ic_size[index_mode]*psp->k_size,psp->error_message);
 
   for (index_k=0; index_k < psp->k_size; index_k++) {
-    spline_pk[index_k] = temporary_pk[index_ic*psp->k_size+index_k];
+    if (psp->ic_size[index_mode] == 1) {
+      spline_pk[index_k] = temporary_pk[index_k];
+      free(temporary_pk);
+    }
+    else {
+      for (index_ic1_ic2=0; index_ic1_ic2 < psp->ic_ic_size[index_mode]*psp->k_size; index_ic1_ic2++)
+	spline_pk[index_ic1_ic2*psp->k_size+index_k] = temporary_pk_ic[index_ic1_ic2*psp->k_size+index_k];
+      free(temporary_pk);
+      free(temporary_pk_ic);
+    }
   }
-
-  free(temporary_pk);
   
-  class_alloc(spline_ddlnpk,sizeof(double)*psp->k_size,psp->error_message);
+  class_alloc(spline_ddlnpk,sizeof(double)*psp->ic_ic_size[index_mode]*psp->k_size,psp->error_message);
 
   class_call(array_logspline_table_lines(psp->k,
-				      psp->k_size,
-				      spline_pk,
-				      1,
-				      spline_ddlnpk,
-				      _SPLINE_NATURAL_,
-				      psp->error_message),
+					 psp->k_size,
+					 spline_pk,
+					 psp->ic_ic_size[index_mode],
+					 spline_ddlnpk,
+					 _SPLINE_NATURAL_,
+					 psp->error_message),
 	     psp->error_message,
 	     psp->error_message);
-
-  class_call(array_interpolate_logspline(psp->k,
-				      psp->k_size,
-				      spline_pk,
-				      spline_ddlnpk,
-				      1,
-				      k,
-				      &last_index,
-				      pk,
-				      1,
-				      psp->error_message),
-	     psp->error_message,
-	     psp->error_message);
-
+  
+  if (psp->ic_size[index_mode] == 1) {
+    class_call(array_interpolate_logspline(psp->k,
+					   psp->k_size,
+					   spline_pk,
+					   spline_ddlnpk,
+					   1,
+					   k,
+					   &last_index,
+					   pk,
+					   1,
+					   psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
+  }
+  else {
+    class_call(array_interpolate_logspline(psp->k,
+					   psp->k_size,
+					   spline_pk,
+					   spline_ddlnpk,
+					   psp->ic_ic_size[index_mode],
+					   k,
+					   &last_index,
+					   pk_ic,
+					   psp->ic_ic_size[index_mode],
+					   psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
+    
+    *pk = 0.;
+      
+    for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+      for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	  
+	if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	    
+	  if (index_ic1 == index_ic2)
+	    *pk += pk_ic[index_ic1_ic2];
+	  else
+	    *pk += 2.*pk_ic[index_ic1_ic2];
+	}
+	else {
+	  pk_ic[index_ic1_ic2] = 0.;
+	}
+      }
+    }
+  }
+  
   free(spline_pk);
   free(spline_ddlnpk);
 
@@ -383,7 +515,7 @@ int spectra_init(
       printf("Computing output spectra\n");
   }
 
-  class_call(spectra_indices(ppt,ptr,psp),
+  class_call(spectra_indices(ppt,ptr,ppm,psp),
 	     psp->error_message,
 	     psp->error_message);
 
@@ -462,13 +594,15 @@ int spectra_free(
 int spectra_indices(
 		    struct perturbs * ppt,
 		    struct transfers * ptr,
+		    struct primordial * ppm,
 		    struct spectra * psp
 		    ){
 
   int index_ct;
   int index_mode;
+  int index_ic1_ic2;
 
-  psp->md_size = ppt->md_size;
+  psp->md_size = ppm->md_size;
 
   class_alloc(psp->ic_size,
 	      sizeof(int)*psp->md_size,
@@ -483,13 +617,15 @@ int spectra_indices(
 	      psp->error_message);
 
   for (index_mode=0; index_mode < psp->md_size; index_mode++) {
-    psp->ic_size[index_mode] = ppt->ic_size[index_mode];
-    psp->ic_ic_size[index_mode] = (psp->ic_size[index_mode]*(psp->ic_size[index_mode]+1))/2;
+    psp->ic_size[index_mode] = ppm->ic_size[index_mode];
+    psp->ic_ic_size[index_mode] = ppm->ic_ic_size[index_mode];
     class_alloc(psp->is_non_zero[index_mode],
 		sizeof(short)*psp->ic_ic_size[index_mode],
 		psp->error_message);
+    for (index_ic1_ic2=0; index_ic1_ic2 < psp->ic_ic_size[index_mode]*psp->k_size; index_ic1_ic2++)
+      psp->is_non_zero[index_mode][index_ic1_ic2] = ppm->is_non_zero[index_mode][index_ic1_ic2];
   }
-
+  
   if (ppt->has_cls == _TRUE_) {
 
     /* types of C_l's relevant for both scalars and tensors: TT, EE, TE */
@@ -636,9 +772,7 @@ int spectra_cls(
 	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 
 	/* non-diagonal coefficients should be computed only if non-zero correlation */
-	if ((index_ic1 == index_ic2) || (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
-
-	  psp->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
+	if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
 	  /* initialize error management flag */
 	  abort = _FALSE_;
@@ -718,8 +852,6 @@ int spectra_cls(
 	else {
           /* set non-diagonal coefficients to zero if pair of ic's uncorrelated */
 	
-	  psp->is_non_zero[index_mode][index_ic1_ic2] = _FALSE_;
-
 	  for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
 	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 	      psp->cl[index_mode]
@@ -905,7 +1037,7 @@ int spectra_pk(
 	       ) {
 
   int index_mode; /* index running over modes (scalar, tensor, ...) */
-  int index_ic; /* index running over initial conditions */
+  int index_ic1,index_ic2,index_ic1_ic2; /* index running over initial conditions */
   int index_k; /* index running over wavenumber */
   int index_eta; /* index running over conformal time */
   double * primordial_pk;  /*pk[index_ic]*/
@@ -913,12 +1045,15 @@ int spectra_pk(
   double * pvecback_sp_long;
   double Omega_m;
   double eta_min;
+  double source_g_ic1;
+  double source_g_ic2;
 
   class_test((ppt->has_scalars == _FALSE_),
 	     psp->error_message,
 	     "you cannot ask for matter power spectrum since you turned off scalar modes");
-
-  index_mode = ppt->index_md_scalars;
+  
+  psp->index_md_scalars = ppt->index_md_scalars;
+  index_mode = psp->index_md_scalars;
 
   /* if z_max_pk<0, return error */
   class_test((psp->z_max_pk < 0),
@@ -973,11 +1108,11 @@ int spectra_pk(
   }
 
   /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
-  class_alloc(primordial_pk,psp->ic_size[index_mode]*sizeof(double),psp->error_message);
+  class_alloc(primordial_pk,psp->ic_ic_size[index_mode]*sizeof(double),psp->error_message);
   class_alloc(pvecback_sp_long,pba->bg_size*sizeof(double),psp->error_message);
 
   /** - allocate and fill array of P(k,eta) values */
-  class_alloc(psp->pk,sizeof(double)*psp->eta_size*psp->k_size*psp->ic_size[index_mode],psp->error_message);
+  class_alloc(psp->pk,sizeof(double)*psp->eta_size*psp->k_size*psp->ic_ic_size[index_mode],psp->error_message);
 
   for (index_eta=0 ; index_eta < psp->eta_size; index_eta++) {
 
@@ -1001,31 +1136,47 @@ int spectra_pk(
 		 psp->error_message);
 
       /* loop over initial conditions */
-      for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
-	
-	/* primordial spectrum: 
-	   P_R(k) = 1/(2pi^2) k^3 <R R>
-	   so, primordial curvature correlator: 
-	   <R R> = (2pi^2) k^-3 P_R(k) 
-	   so, gravitational potential correlator:
-	   <phi phi> = (2pi^2) k^-3 (source_phi)^2 P_R(k) 
-	   so, matter power spectrum (using Poisson):
-	   P(k) = <delta_m delta_m>
-	   = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi>
-	   = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R> 
-	   = 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R> */
+      for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	for (index_ic2 = 0; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	  
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
 
-	psp->pk[(index_eta * psp->ic_size[index_mode] + index_ic) * psp->k_size + index_k] =
-	  8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)/pow(Omega_m,2)*psp->k[index_k]/pow(pvecback_sp_long[pba->index_bg_a],4)
-	  *primordial_pk[index_ic]
-	  *pow(ppt->sources[index_mode]
-	       [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_g]
-	       [(index_eta-psp->eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k],2);
-	
+	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+
+	    /* primordial spectrum: 
+	       P_R(k) = 1/(2pi^2) k^3 <R R>
+	       so, primordial curvature correlator: 
+	       <R R> = (2pi^2) k^-3 P_R(k) 
+	       so, gravitational potential correlator:
+	       <phi phi> = (2pi^2) k^-3 (source_phi)^2 P_R(k) 
+	       so, matter power spectrum (using Poisson):
+	       P(k) = <delta_m delta_m>
+	       = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi>
+	       = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R> 
+	       = 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R> */
+
+	    source_g_ic1 = ppt->sources[index_mode]
+	      [index_ic1 * ppt->tp_size[index_mode] + ppt->index_tp_g]
+	      [(index_eta-psp->eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+	    
+	    if (index_ic1 == index_ic2)
+	      source_g_ic2 = source_g_ic1;
+	    else
+	      source_g_ic2 = ppt->sources[index_mode]
+		[index_ic2 * ppt->tp_size[index_mode] + ppt->index_tp_g]
+		[(index_eta-psp->eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+	    
+	    psp->pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->k_size + index_k] =
+	      8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)/pow(Omega_m,2)*psp->k[index_k]/pow(pvecback_sp_long[pba->index_bg_a],4)
+	      *primordial_pk[index_ic1_ic2]*source_g_ic1*source_g_ic2;
+	    
+	  }
+	  else {
+	    psp->pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->k_size + index_k] = 0.;
+	  }
+	}
       }
-      
     }
-
   }
 
   /* if interpolation of P(k,eta) needed (as a function of eta), spline

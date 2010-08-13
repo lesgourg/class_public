@@ -93,10 +93,10 @@ struct primordial {
   double n_nid_niv; /* NIDxNIV cross-correlation tilt */
   double alpha_nid_niv; /* NIDxNIV cross-correlation running */
 
-  short * * is_non_zero;
-  double * * amplitude;
-  double * * tilt;
-  double * * running;
+  /* above parameters are stored more conveniently in symmetric matrices */
+  double ** amplitude; /* amplitude[index_mode][index_ic1_ic2] */
+  double ** tilt;      /* tilt[index_mode][index_ic1_ic2] */
+  double ** running;   /* running[index_mode][index_ic1_ic2] */
   
   double * lnk; /* list of ln(k) values lnk[index_k] */
   int lnk_size; /* number of ln(k) values */
@@ -123,7 +123,11 @@ struct primordial {
                          constant (e.g for fully correlated/anticorrelated initial conditions)
 			 or nearly constant, and with arbitrary sign.
 		    */
-  
+  short ** is_non_zero; /* is_non_zero[index_mode][index_ic1_ic2] set to false if pair
+			    (index_ic1, index_ic2) is uncorrelated 
+			    (ensures more precision and saves time with respect to the option
+			    of simply setting P(k)_(index_ic1, index_ic2) to zero) */
+
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@{

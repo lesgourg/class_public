@@ -333,12 +333,10 @@ int primordial_free(
 
     if (ppm->primordial_spec_type == analytic_Pk) {
       for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
-	free(ppm->is_non_zero[index_mode]);
 	free(ppm->amplitude[index_mode]);
 	free(ppm->tilt[index_mode]);
 	free(ppm->running[index_mode]);
       }
-      free(ppm->is_non_zero);
       free(ppm->amplitude);
       free(ppm->tilt);
       free(ppm->running);
@@ -347,10 +345,12 @@ int primordial_free(
     for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
       free(ppm->lnpk[index_mode]);
       free(ppm->ddlnpk[index_mode]);
+      free(ppm->is_non_zero[index_mode]);
     }
 
     free(ppm->lnpk);
     free(ppm->ddlnpk);
+    free(ppm->is_non_zero);
     free(ppm->ic_size);
     free(ppm->ic_ic_size);
 
@@ -378,15 +378,26 @@ int primordial_indices(
 
   class_alloc(ppm->ic_ic_size,ppt->md_size*sizeof(int*),ppm->error_message);
 
+  class_alloc(ppm->is_non_zero,ppm->md_size*sizeof(short *),ppm->error_message);
+
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {		     
 
     ppm->ic_size[index_mode] = ppt->ic_size[index_mode];
 
     ppm->ic_ic_size[index_mode] = (ppm->ic_size[index_mode]*(ppm->ic_size[index_mode]+1))/2;
 
-    class_alloc(ppm->lnpk[index_mode],ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),ppm->error_message);
+    class_alloc(ppm->lnpk[index_mode],
+		ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),
+		ppm->error_message);
 
-    class_alloc(ppm->ddlnpk[index_mode],ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),ppm->error_message);
+    class_alloc(ppm->ddlnpk[index_mode],
+		ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),
+		ppm->error_message);
+
+    class_alloc(ppm->is_non_zero[index_mode],
+		ppm->ic_ic_size[index_mode]*sizeof(short),
+		ppm->error_message);
+    
 
   }
 
@@ -403,10 +414,6 @@ int primordial_analytic_spectrum_init(
   int index_ic1_ic2,index_ic1_ic1,index_ic2_ic2;
   double one_amplitude,one_tilt,one_running,one_correlation;
 
-  class_alloc(ppm->is_non_zero,
-	      ppm->md_size*sizeof(short *),
-	      ppm->error_message);
-
   class_alloc(ppm->amplitude,
 	      ppm->md_size*sizeof(double *),
 	      ppm->error_message);
@@ -420,10 +427,6 @@ int primordial_analytic_spectrum_init(
 	      ppm->error_message);
 
   for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
-
-    class_alloc(ppm->is_non_zero[index_mode],
-		ppm->ic_ic_size[index_mode]*sizeof(short),
-		ppm->error_message);
 
     class_alloc(ppm->amplitude[index_mode],
 		ppm->ic_ic_size[index_mode]*sizeof(double),
