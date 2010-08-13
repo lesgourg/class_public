@@ -51,7 +51,7 @@
     class_call(parser_read_double(pfc,name2,&param2,&flag2,errmsg),	\
 	       errmsg,							\
 	       errmsg);							\
-    class_test((flag1 == _TRUE_) && (flag1 == _TRUE_),			\
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),			\
 	       errmsg,							\
 	       "In input file, you can only enter one of %s, %s, choose one", \
 	       name1,name2);						\

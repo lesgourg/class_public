@@ -13,7 +13,7 @@
 int spectra_cl_at_l(
 		    struct spectra * psp,
 		    double l,
-		    double * cl,      /* cl[index_ct] (already allocated) */
+		    double * cl_tot,    /* cl_tot[index_ct] (already allocated) */
 		    double * * cl_md,   /* cl_md[index_mode][index_ct] (already allocated only if several modes) */
 		    double * * cl_md_ic /* cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] (already allocated for a given mode only if several ic's) */
 		    ) {
@@ -21,34 +21,40 @@ int spectra_cl_at_l(
   int last_index;
   int index_mode, index_ic1,index_ic2,index_ic1_ic2,index_ct;
 
-    if ((psp->md_size == 1) && (psp->ic_size[0] == 1)) {
-      index_mode = 0;
-      if (l <= psp->l_max_tot) {
-	class_call(array_interpolate_spline(psp->l[index_mode],
-					    psp->l_size[index_mode],
-					    psp->cl[index_mode],
-					    psp->ddcl[index_mode],
-					    psp->ic_ic_size[index_mode]*psp->ct_size,
-					    l,
-					    &last_index,
-					    cl,
-					    psp->ic_size[index_mode]*psp->ct_size,
-					    psp->error_message),
-		   psp->error_message,
-		   psp->error_message);
-      }
-      else {
-	for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
-	  cl[index_ct]=0.;
-      }
+  if ((psp->md_size == 1) && (psp->ic_size[0] == 1)) {
+    index_mode = 0;
+    if (l <= psp->l_max_tot) {
+      class_call(array_interpolate_spline(psp->l[index_mode],
+					  psp->l_size[index_mode],
+					  psp->cl[index_mode],
+					  psp->ddcl[index_mode],
+					  psp->ct_size,
+					  l,
+					  &last_index,
+					  cl_tot,
+					  psp->ct_size,
+					  psp->error_message),
+		 psp->error_message,
+		 psp->error_message);
+    }
+    else {
+      for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+	cl_tot[index_ct]=0.;
+    }
     return _SUCCESS_;
   }
-  if (psp->md_size > 1) {
+    
+  if ((psp->md_size == 1) && (psp->ic_size[0] > 1)) {
+    index_mode = 0;
     for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
-      cl[index_ct]=0.;
-    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
-      if (psp->ic_size[index_mode] == 1) {
-	if (l <= psp->l_max[index_mode]) {
+      cl_tot[index_ct]=0.;
+    for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+      for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	/* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
+	   takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	if ((l <= psp->l_max[index_mode]) && 
+	    ((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_))) {
 	  class_call(array_interpolate_spline(psp->l[index_mode],
 					      psp->l_size[index_mode],
 					      psp->cl[index_mode],
@@ -56,8 +62,42 @@ int spectra_cl_at_l(
 					      psp->ic_ic_size[index_mode]*psp->ct_size,
 					      l,
 					      &last_index,
+					      cl_md_ic[index_mode],
+					      psp->ic_ic_size[index_mode]*psp->ct_size,
+					      psp->error_message),
+		     psp->error_message,
+		     psp->error_message);
+	}
+	else {
+	  for (index_ct=0; index_ct<psp->ct_size; index_ct++)
+	    cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
+	}
+	for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+	  if (index_ic1 == index_ic2)
+	    cl_tot[index_ct]+=cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct];
+	  else
+	    cl_tot[index_ct]+=2.*cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct];
+	}
+      }
+    }
+    return _SUCCESS_;
+  }
+
+  if (psp->md_size > 1) {
+    for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+      cl_tot[index_ct]=0.;
+    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+      if (psp->ic_size[index_mode] == 1) {
+	if (l <= psp->l_max[index_mode]) {
+	  class_call(array_interpolate_spline(psp->l[index_mode],
+					      psp->l_size[index_mode],
+					      psp->cl[index_mode],
+					      psp->ddcl[index_mode],
+					      psp->ct_size,
+					      l,
+					      &last_index,
 					      cl_md[index_mode],
-					      psp->ic_size[index_mode]*psp->ct_size,
+					      psp->ct_size,
 					      psp->error_message),
 		     psp->error_message,
 		     psp->error_message);
@@ -67,14 +107,14 @@ int spectra_cl_at_l(
 	    cl_md[index_mode][index_ct]=0.;
 	}
       }
-      else {
+      if (psp->ic_size[index_mode] > 1) {
 	for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
 	  cl_md[index_mode][index_ct]=0.;
 	for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	  for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
 	    /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
 	       takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
-	    index_ic1_ic2 = index_ic1 + psp->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 	    if ((l <= psp->l_max[index_mode]) && 
 		((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_))) {
 	      class_call(array_interpolate_spline(psp->l[index_mode],
@@ -85,7 +125,7 @@ int spectra_cl_at_l(
 						  l,
 						  &last_index,
 						  cl_md_ic[index_mode],
-						  psp->ic_size[index_mode]*psp->ct_size,
+						  psp->ic_ic_size[index_mode]*psp->ct_size,
 						  psp->error_message),
 			 psp->error_message,
 			 psp->error_message);
@@ -104,11 +144,16 @@ int spectra_cl_at_l(
 	}
       }
       for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
-	cl[index_ct]+=cl_md[index_mode][index_ct];
+	cl_tot[index_ct]+=cl_md[index_mode][index_ct];
     }
+
+    return _SUCCESS_;
+
   }
 
-  return _SUCCESS_;
+  class_test(0 == 0,
+	     psp->error_message,
+	     "should never arrive here...");
 
 }
 
@@ -554,6 +599,8 @@ int spectra_cls(
   class_alloc(psp->cl,sizeof(double *)*psp->md_size,psp->error_message);
   class_alloc(psp->ddcl,sizeof(double *)*psp->md_size,psp->error_message);
 
+  psp->l_max_tot=0;
+
   /** - loop over modes (scalar, tensors, etc) */
   for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
 
@@ -573,7 +620,6 @@ int spectra_cls(
        (l[index_mode][l_size[index_mode]-1] can be larger than l_max[index_mode], 
        in order to ensure better interpolation with no boundary effects).
        Compute also the max over all modes */
-    psp->l_max_tot=0;
     if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
       psp->l_max[index_mode] = ptr->l_scalar_max;
       if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
@@ -587,9 +633,12 @@ int spectra_cls(
     /** - loop over initial conditions */
     for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 
 	/* non-diagonal coefficients should be computed only if non-zero correlation */
-	if ((index_ic1 == index_ic2) || (ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] == _TRUE_)) {
+	if ((index_ic1 == index_ic2) || (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
+
+	  psp->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
 
 	  /* initialize error management flag */
 	  abort = _FALSE_;
@@ -668,14 +717,14 @@ int spectra_cls(
 	}
 	else {
           /* set non-diagonal coefficients to zero if pair of ic's uncorrelated */
-	  index_ic1_ic2 = index_ic1 + ppt->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+	
+	  psp->is_non_zero[index_mode][index_ic1_ic2] = _FALSE_;
+
 	  for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
 	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 	      psp->cl[index_mode]
 		[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct]
 		= 0.;
-	      psp->is_non_zero[index_mode][index_ic1_ic2] = _FALSE_;
-
 	    }
 	  }
 	}
@@ -723,7 +772,7 @@ int spectra_compute_cl(
 
   /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
      takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
-  index_ic1_ic2 = index_ic1 + ppt->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2; 
+  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 
   for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
 
@@ -808,8 +857,6 @@ int spectra_compute_cl(
 	((index_ct == psp->index_ct_pp) && (psp->has_pp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
 	((index_ct == psp->index_ct_tp) && (psp->has_tp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
 
-      index_ic1_ic2 = index_ic1 + psp->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2-1))/2;
-
       psp->cl[index_mode]
 	[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] = 0.;
 
@@ -842,15 +889,8 @@ int spectra_compute_cl(
       psp->cl[index_mode]
 	[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct]
 	= clvalue;
-      psp->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
-
-      fprintf(stderr,"%d %d %d %d %d %g %g\n",index_mode,index_ic1_ic2,index_l,index_ct,
-	      (index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct,
-	      psp->l[index_mode][index_l],
-	      psp->cl[index_mode][(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct]);
 
     }
-
   }
 
   return _SUCCESS_;

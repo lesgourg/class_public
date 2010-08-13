@@ -40,7 +40,7 @@ int primordial_spectrum_at_k(
   /** - define local variables */
 
   int index_ic1,index_ic2,index_ic1_ic2;
-  double lnk,lnpk;
+  double lnk;
   int last_index;
 
   /** if k negative or null return an error */
@@ -61,23 +61,23 @@ int primordial_spectrum_at_k(
 	       "k=%e out of range [%e : %e]",k,exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
     /* extrapolate */
+
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
-	/* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
+	
+/* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
 	   takes values between 0 and N(N+1)/2-1 with N=ppm->ic_size[index_mode] */
-	index_ic1_ic2 = index_ic1 + ppm->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
-	if ((index_ic1 == index_ic2) || (ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] == _TRUE_)) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
+
+	if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
 	  class_call(primordial_analytic_spectrum(ppm,
 						  index_mode,
-						  index_ic1,
-						  index_ic2,
+						  index_ic1_ic2,
 						  k,
-						  &lnpk),
+						  &(pk[index_ic1_ic2])),
 		     ppm->error_message,
 		     ppm->error_message);
-
-	  pk[index_ic1_ic2] = exp(lnpk);
 	}
 	else {
 	  pk[index_ic1_ic2] = 0.;
@@ -100,22 +100,32 @@ int primordial_spectrum_at_k(
 				      lnk,
 				      &last_index,
 				      pk,
-				      ppm->ic_size[index_mode],
+				      ppm->ic_ic_size[index_mode],
 				      ppm->error_message),
 	     ppm->error_message,
 	     ppm->error_message);
 
-  /** - output P(k), not ln(P(k)) */
+  /** - diagonal coefficients in the initial conditions: output P(k), not ln(P(k)) */
 
   for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-    for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
 
-      /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
-	 takes values between 0 and N(N+1)/2-1 with N=ppm->ic_size[index_mode] */
-      index_ic1_ic2 = index_ic1 + ppm->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+    pk[index_ic1_ic2]=exp(pk[index_ic1_ic2]);
+
+  }
+
+  
+  /** - non-diagonal coefficients in the initial conditions: output P(k), not cosDelta(k) (Delta = cross-correlation angle) */
+  
+  for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
+    for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
       
-      if ((index_ic1 == index_ic2) || (ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] == _TRUE_)) {
-	pk[index_ic1_ic2] = exp(pk[index_ic1_ic2]);
+      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
+      
+      if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+
+	pk[index_ic1_ic2] *= sqrt(pk[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode])]*
+				  pk[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode])]);
       }
       else {
 	pk[index_ic1_ic2] = 0.;
@@ -147,7 +157,7 @@ int primordial_init(
 
   double k,k_min,k_max;
   int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_k;
-  double lnpk;
+  double lnpk,pk,pk1,pk2;
 
   ppm->lnk_size=0;
 
@@ -191,7 +201,7 @@ int primordial_init(
   class_test(ppr->k_per_decade_primordial <= 0.,
 	     ppm->error_message,
 	     "k_per_decade_primordial negative or null: stop to avoid segmentation fault");
-    
+
   /** - allocate and fill values of lnk's */
 
   class_call(primordial_get_lnk_list(ppm,
@@ -211,51 +221,65 @@ int primordial_init(
 
   if (ppm->primordial_spec_type == analytic_Pk) {
 
-    if (ppt->has_scalars == _TRUE_) {
-      class_call(primordial_analytic_spectrum_init(ppt,
-							       ppm),
-		 ppm->error_message,
-		 ppm->error_message);
-    }
-
-    if (ppt->has_tensors == _TRUE_) {
-      class_test(ppm->r <= 0.,
-		 ppm->error_message,
-		 "stop to avoid segmentation fault");
-    }
-
+    class_call(primordial_analytic_spectrum_init(ppt,
+						 ppm),
+	       ppm->error_message,
+	       ppm->error_message);
+    
     for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
 
       k=exp(ppm->lnk[index_k]);
 
       for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
-	
 	for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-	  for (index_ic2 = 0; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
+	  for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
 
-	    /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
-	       takes values between 0 and N(N+1)/2-1 with N=ppm->ic_size[index_mode] */
-	    index_ic1_ic2 = index_ic1 + ppm->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
 
-	    if ((index_ic1 == index_ic2) || (ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] == _TRUE_)) {
+	    if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
 	      class_call(primordial_analytic_spectrum(ppm,
 						      index_mode,
-						      index_ic1,
-						      index_ic2,
+						      index_ic1_ic2,
 						      k,
-						      &lnpk),
+						      &pk),
 			 ppm->error_message,
 			 ppm->error_message);
+	      
+	      if (index_ic1 == index_ic2) {
 
-	      ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = lnpk;
+		/* diagonal coefficients: ln[P(k)] */
 
+		ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = log(pk);
+	      }
+	      else {
+
+		/* non-diagonal coefficients: cosDelta(k) = P(k)_12/sqrt[P(k)_1 P(k)_2] */
+
+		class_call(primordial_analytic_spectrum(ppm,
+							index_mode,
+							index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]),
+							k,
+							&pk1),
+			   ppm->error_message,
+			   ppm->error_message);			     
+
+		class_call(primordial_analytic_spectrum(ppm,
+							index_mode,
+							index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode]),
+							k,
+							&pk2),
+			   ppm->error_message,
+			   ppm->error_message);	
+
+		ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = pk/sqrt(pk1*pk2);
+	      }
 	    }
-	    
 	    else {
+	      
+	      /* non-diagonal coefficients when ic's are uncorrelated */
 
 	      ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = 0.;
-
 	    }
 	  }
 	}
@@ -271,7 +295,7 @@ int primordial_init(
 
   }     
 
-  /** - compute second derivative of each P(k) with spline, in view of interpolation */
+  /** - compute second derivative of each lnpk versus lnk  with spline, in view of interpolation */
 
   for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
 
@@ -307,23 +331,29 @@ int primordial_free(
 
   if (ppm->lnk_size > 0) {
 
+    if (ppm->primordial_spec_type == analytic_Pk) {
+      for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
+	free(ppm->is_non_zero[index_mode]);
+	free(ppm->amplitude[index_mode]);
+	free(ppm->tilt[index_mode]);
+	free(ppm->running[index_mode]);
+      }
+      free(ppm->is_non_zero);
+      free(ppm->amplitude);
+      free(ppm->tilt);
+      free(ppm->running);
+    }
+
     for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
-      free(ppm->has_correlation[index_mode]);
-      free(ppm->amplitude[index_mode]);
-      free(ppm->tilt[index_mode]);
-      free(ppm->running[index_mode]);
       free(ppm->lnpk[index_mode]);
       free(ppm->ddlnpk[index_mode]);
     }
-    free(ppm->has_correlation);
-    free(ppm->amplitude);
-    free(ppm->tilt);
-    free(ppm->running);
 
-    free(ppm->ic_size);
-    free(ppm->ic_ic_size);
     free(ppm->lnpk);
     free(ppm->ddlnpk);
+    free(ppm->ic_size);
+    free(ppm->ic_ic_size);
+
     free(ppm->lnk);
     
   }
@@ -354,9 +384,9 @@ int primordial_indices(
 
     ppm->ic_ic_size[index_mode] = (ppm->ic_size[index_mode]*(ppm->ic_size[index_mode]+1))/2;
 
-    class_alloc(ppm->lnpk[index_mode],ppm->lnk_size*ppm->ic_size[index_mode]*sizeof(double),ppm->error_message);
+    class_alloc(ppm->lnpk[index_mode],ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),ppm->error_message);
 
-    class_alloc(ppm->ddlnpk[index_mode],ppm->lnk_size*ppm->ic_size[index_mode]*sizeof(double),ppm->error_message);
+    class_alloc(ppm->ddlnpk[index_mode],ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),ppm->error_message);
 
   }
 
@@ -370,9 +400,10 @@ int primordial_analytic_spectrum_init(
 				      ) {
 
   int index_mode,index_ic1,index_ic2;
+  int index_ic1_ic2,index_ic1_ic1,index_ic2_ic2;
   double one_amplitude,one_tilt,one_running,one_correlation;
 
-  class_alloc(ppm->has_correlation,
+  class_alloc(ppm->is_non_zero,
 	      ppm->md_size*sizeof(short *),
 	      ppm->error_message);
 
@@ -390,21 +421,22 @@ int primordial_analytic_spectrum_init(
 
   for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
 
-    class_alloc(ppm->has_correlation[index_mode],
-		ppm->ic_size[index_mode]*ppm->ic_size[index_mode]*sizeof(short),
+    class_alloc(ppm->is_non_zero[index_mode],
+		ppm->ic_ic_size[index_mode]*sizeof(short),
 		ppm->error_message);
 
     class_alloc(ppm->amplitude[index_mode],
-		ppm->ic_size[index_mode]*ppm->ic_size[index_mode]*sizeof(double),
+		ppm->ic_ic_size[index_mode]*sizeof(double),
 		ppm->error_message);
 
     class_alloc(ppm->tilt[index_mode],
-		ppm->ic_size[index_mode]*ppm->ic_size[index_mode]*sizeof(double),
+		ppm->ic_ic_size[index_mode]*sizeof(double),
 		ppm->error_message);
 
     class_alloc(ppm->running[index_mode],
-		ppm->ic_size[index_mode]*ppm->ic_size[index_mode]*sizeof(double),
+		ppm->ic_ic_size[index_mode]*sizeof(double),
 		ppm->error_message);
+
   }
       
   for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
@@ -459,9 +491,13 @@ int primordial_analytic_spectrum_init(
 		 ppm->error_message,
 		 "inconsistent input for primordial amplitude: %g for index_mode=%d, index_ic=%d\n",
 		 one_amplitude,index_mode,index_ic1);
-      ppm->amplitude[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic1] = one_amplitude;
-      ppm->tilt[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic1] = one_tilt;
-      ppm->running[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic1] = one_running;
+
+      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+      
+      ppm->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
+      ppm->amplitude[index_mode][index_ic1_ic2] = one_amplitude;
+      ppm->tilt[index_mode][index_ic1_ic2] = one_tilt;
+      ppm->running[index_mode][index_ic1_ic2] = one_running;
     }
 
     /* non-diagonal coefficients */
@@ -557,31 +593,31 @@ int primordial_analytic_spectrum_init(
 		   ppm->error_message,
 		   "inconsistent input for isocurvature cross-correlation\n");
 
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
+	index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+	index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode]);
+
 	if (one_correlation == 0.) {
-	  ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = _FALSE_;
-	  ppm->amplitude[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = 0.;
-	  ppm->tilt[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = 0.;
-	  ppm->running[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = 0.;
+	  ppm->is_non_zero[index_mode][index_ic1_ic2] = _FALSE_;
+	  ppm->amplitude[index_mode][index_ic1_ic2] = 0.;
+	  ppm->tilt[index_mode][index_ic1_ic2] = 0.;
+	  ppm->running[index_mode][index_ic1_ic2] = 0.;
 	}
 	else {
-	  ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = _TRUE_;
-	  ppm->amplitude[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = 
-	    sqrt(ppm->amplitude[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic1]*
-		 ppm->amplitude[index_mode][index_ic2*ppm->ic_size[index_mode]+index_ic2])*
+	  ppm->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
+	  ppm->amplitude[index_mode][index_ic1_ic2] = 
+	    sqrt(ppm->amplitude[index_mode][index_ic1_ic1]*
+		 ppm->amplitude[index_mode][index_ic2_ic2])*
 	    one_correlation;
-	  ppm->tilt[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = one_tilt;
-	  ppm->running[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] = one_running;
+	  ppm->tilt[index_mode][index_ic1_ic2] = 
+	    0.5*(ppm->tilt[index_mode][index_ic1_ic1]
+		 +ppm->tilt[index_mode][index_ic2_ic2])
+	    + one_tilt;
+	  ppm->running[index_mode][index_ic1_ic2] = 
+	    0.5*(ppm->running[index_mode][index_ic1_ic1]
+		 +ppm->running[index_mode][index_ic2_ic2])
+	    + one_running;
 	}
-
-	ppm->has_correlation[index_mode][index_ic2*ppm->ic_size[index_mode]+index_ic1] = 
-	  ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2];
-	ppm->amplitude[index_mode][index_ic2*ppm->ic_size[index_mode]+index_ic1] = 
-	  ppm->amplitude[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2];
-	ppm->tilt[index_mode][index_ic2*ppm->ic_size[index_mode]+index_ic1] = 
-	  ppm->tilt[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2];
-	ppm->running[index_mode][index_ic2*ppm->ic_size[index_mode]+index_ic1] = 
-	  ppm->running[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2];
-      
       }
     }
   }
@@ -593,17 +629,16 @@ int primordial_analytic_spectrum_init(
 int primordial_analytic_spectrum(
 				 struct primordial * ppm,
 				 int index_mode,
-				 int index_ic1,
-				 int index_ic2,
+				 int index_ic1_ic2,
 				 double k,
-				 double * lnpk
+				 double * pk
 				 ) {  
   
-  if ((index_ic1 == index_ic2) || (ppm->has_correlation[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] == _TRUE_)) {
+  if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
-    *lnpk = log(ppm->amplitude[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2]) 
-      + (ppm->tilt[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2]-1.)*log(k/ppm->k_pivot)
-      + 0.5 * ppm->running[index_mode][index_ic1*ppm->ic_size[index_mode]+index_ic2] * pow(log(k/ppm->k_pivot), 2.);
+    *pk = ppm->amplitude[index_mode][index_ic1_ic2]
+      *exp((ppm->tilt[index_mode][index_ic1_ic2]-1.)*log(k/ppm->k_pivot)
+	   + 0.5 * ppm->running[index_mode][index_ic1_ic2] * pow(log(k/ppm->k_pivot), 2.));
     
   }
 

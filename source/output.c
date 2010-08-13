@@ -16,7 +16,7 @@ int output_init(
 		) {
 
   FILE * * * out_md_ic;  /* out_md_ic[index_mode][index_ic1_ic2] */
-  FILE * *out_md;         /* out_md[index_mode] (cls summed eventually over ic's) */
+  FILE * * out_md;       /* out_md[index_mode] (cls summed eventually over ic's) */
   FILE * out;            /* (cls summed eventually over modes and ic's) */
   double * * cl_md_ic;   /* cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] */
   double * * cl_md;      /* cl_md[index_mode][index_ct] */
@@ -48,25 +48,25 @@ int output_init(
     /* first, allocate all arrays of files and cls */
 
     class_alloc(out_md_ic,
-		ppt->md_size*sizeof(FILE * *),
+		psp->md_size*sizeof(FILE * *),
 		pop->error_message);
         
     class_alloc(cl_md_ic,
-		ppt->md_size*sizeof(double *),
+		psp->md_size*sizeof(double *),
 		pop->error_message);
 
     class_alloc(out_md,
-		ppt->md_size*sizeof(FILE *),
+		psp->md_size*sizeof(FILE *),
 		pop->error_message);
     
     class_alloc(cl_md,
-		ppt->md_size*sizeof(double *),
+		psp->md_size*sizeof(double *),
 		pop->error_message);
 
     for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
       class_alloc(out_md_ic[index_mode],
-		  ppt->ic_size[index_mode]*ppt->ic_size[index_mode]*sizeof(FILE *),
+		  psp->ic_ic_size[index_mode]*sizeof(FILE *),
 		  pop->error_message);
       
     }
@@ -249,24 +249,27 @@ int output_init(
 
 	    /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
 	       takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
-	    index_ic1_ic2 = index_ic1 + psp->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 
-	    class_call(output_open_cl_file(psp,
-					   pop,
-					   &(out_md_ic[index_mode][index_ic1_ic2]),
-					   file_name,
-					   first_line,
-					   psp->l_max[index_mode]
-					   ),
-		       pop->error_message,
-		       pop->error_message);
+	    if ((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 
-	    class_alloc(cl_md_ic[index_mode],
-			psp->ic_ic_size[index_mode]*psp->ct_size*sizeof(double),
-			pop->error_message);
-	    
+	      class_call(output_open_cl_file(psp,
+					     pop,
+					     &(out_md_ic[index_mode][index_ic1_ic2]),
+					     file_name,
+					     first_line,
+					     psp->l_max[index_mode]
+					     ),
+			 pop->error_message,
+			 pop->error_message);
+
+	    }
 	  }
 	}
+
+	class_alloc(cl_md_ic[index_mode],
+			psp->ic_ic_size[index_mode]*psp->ct_size*sizeof(double),
+			pop->error_message);
       }
     }
 
@@ -294,15 +297,17 @@ int output_init(
       for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 	if ((ppt->ic_size[index_mode] > 1) && (l <= psp->l_max[index_mode])) {
 	  for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_mode]; index_ic1++) {
-	    for (index_ic2 = 0; index_ic2 < ppt->ic_size[index_mode]; index_ic2++) {
-
+	    for (index_ic2 = index_ic1; index_ic2 < ppt->ic_size[index_mode]; index_ic2++) {
 	      /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
 		 takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
-	      index_ic1_ic2 = index_ic1 + psp->ic_size[index_mode]*index_ic2 - (index_ic2*(index_ic2+1))/2;
+	      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 
-	      class_call(output_one_line_of_cl(out_md_ic[index_mode][index_ic1_ic2],l,&(cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size]),psp->ct_size),
-			 pop->error_message,
-			 pop->error_message);
+	      if ((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
+
+		class_call(output_one_line_of_cl(out_md_ic[index_mode][index_ic1_ic2],l,&(cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size]),psp->ct_size),
+			   pop->error_message,
+			   pop->error_message);
+	      }
 	    }
 	  }
 	}
@@ -314,11 +319,14 @@ int output_init(
     for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
       if (ppt->ic_size[index_mode] > 1) {
 	for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_mode]; index_ic1++) {
-	  for (index_ic2 = 0; index_ic2 < ppt->ic_size[index_mode]; index_ic2++) {
-	    fclose(out_md_ic[index_mode][index_ic1_ic2]);
-	    free(cl_md_ic[index_mode]);
+	  for (index_ic2 = index_ic1; index_ic2 < ppt->ic_size[index_mode]; index_ic2++) {
+	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	    if ((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
+	      fclose(out_md_ic[index_mode][index_ic1_ic2]);
+	    }
 	  }
 	}
+	free(cl_md_ic[index_mode]);
       }
     }
     if (ppt->md_size > 1) {

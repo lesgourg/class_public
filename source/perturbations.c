@@ -151,12 +151,16 @@ int perturb_init(
 	     "Vectors not coded yet");
 
   if ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_) || (ppt->has_niv == _TRUE_)) {
-    printf("Warning: so far, isocurvature initial condition only implemented at first order in (k eta), not very precise\n");
+    printf("Warning: so far, isocurvature initial condition only implemented at first order in (k eta), not very precise...\n");
   }
 
   if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
       printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008. Mistake in one of the two codes? To be checked.\n");
+  }
+
+  if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
+      printf("Warning: so far, C_l^phiphi and C_l^Tphi computed using Limber for all l's, not very precise...\n");
   }
 
 
