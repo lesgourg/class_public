@@ -27,7 +27,22 @@ struct output {
   FileArg cls_nid_niv;
 
   FileArg pk;
-  
+  FileArg pk_ad;
+  FileArg pk_bi;
+  FileArg pk_cdi;
+  FileArg pk_nid;
+  FileArg pk_niv;
+  FileArg pk_ad_bi;
+  FileArg pk_ad_cdi;
+  FileArg pk_ad_nid;
+  FileArg pk_ad_niv;
+  FileArg pk_bi_cdi;
+  FileArg pk_bi_nid;
+  FileArg pk_bi_niv;
+  FileArg pk_cdi_nid;
+  FileArg pk_cdi_niv;
+  FileArg pk_nid_niv;
+
   double z_pk;
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
@@ -87,7 +102,7 @@ extern "C" {
   int output_one_line_of_pk(
 			    FILE * clfile,
 			    double one_k,
-			    double * one_pk
+			    double one_pk
 			    );
 #ifdef __cplusplus
 }

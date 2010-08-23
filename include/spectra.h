@@ -86,7 +86,7 @@ extern "C" {
 		      struct background * pba,
 		      struct spectra * psp,
 		      double z,
-		      double * pk,      /* pk[index_k] (already alloocated) */
+		      double * pk,      /* pk[index_k] (already allocated) */
 		      double * pk_ic    /* pk_ic[index_k][index_ic1_ic2] (already allocated if more than one ic) */
 		      );
 

@@ -24,9 +24,9 @@ int output_init(
 
   FILE * * out_ic;
 
-  int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_ct,l,index_k;
+  int index_mode,index_ic1,index_ic2,index_ic1_ic2,l,index_k;
 
-  double pk_tot;
+  double * pk_tot;
   double * pk_ic;
 
   FileArg file_name;
@@ -297,18 +297,12 @@ int output_init(
 	  
       for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 	if ((ppt->ic_size[index_mode] > 1) && (l <= psp->l_max[index_mode])) {
-	  for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_mode]; index_ic1++) {
-	    for (index_ic2 = index_ic1; index_ic2 < ppt->ic_size[index_mode]; index_ic2++) {
-	      /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
-		 takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
-	      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	  for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
+	    if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
-	      if ((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
-
-		class_call(output_one_line_of_cl(out_md_ic[index_mode][index_ic1_ic2],l,&(cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size]),psp->ct_size),
-			   pop->error_message,
-			   pop->error_message);
-	      }
+	      class_call(output_one_line_of_cl(out_md_ic[index_mode][index_ic1_ic2],l,&(cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size]),psp->ct_size),
+			 pop->error_message,
+			 pop->error_message);
 	    }
 	  }
 	}
@@ -319,12 +313,9 @@ int output_init(
 
     for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
       if (ppt->ic_size[index_mode] > 1) {
-	for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_mode]; index_ic1++) {
-	  for (index_ic2 = index_ic1; index_ic2 < ppt->ic_size[index_mode]; index_ic2++) {
-	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
-	    if ((index_ic1 == index_ic2) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
-	      fclose(out_md_ic[index_mode][index_ic1_ic2]);
-	    }
+	for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
+	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	    fclose(out_md_ic[index_mode][index_ic1_ic2]);
 	  }
 	}
 	free(cl_md_ic[index_mode]);
@@ -358,6 +349,8 @@ int output_init(
 
     index_mode=ppt->index_md_scalars;
 
+    /* open relevant files and write headers */
+
     class_call(output_open_pk_file(psp,
 				   pop,
 				   &out,
@@ -368,10 +361,18 @@ int output_init(
 	       pop->error_message,
 	       pop->error_message);
    
+    class_alloc(pk_tot,
+		psp->k_size*sizeof(double),
+		pop->error_message);
+
     if (psp->ic_size[index_mode] > 1) {
 
       class_alloc(out_ic,
-		  ic_ic_size[index_mode]*sizeof(FILE *),
+		  psp->ic_ic_size[index_mode]*sizeof(FILE *),
+		  pop->error_message);
+
+      class_alloc(pk_ic,
+		  psp->k_size*psp->ic_ic_size[index_mode]*sizeof(double),
 		  pop->error_message);
 
       for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_mode]; index_ic1++) {
@@ -382,7 +383,7 @@ int output_init(
 	      (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
 	    
 	    strcpy(file_name,pop->pk_ad);
-	    first_line="for adiabatic (AD) mode" ;
+	    first_line="for adiabatic (AD) mode " ;
 	  }
 
 	  if ((ppt->has_bi) && 
@@ -487,7 +488,7 @@ int output_init(
 
 	  class_call(output_open_pk_file(psp,
 					 pop,
-					 &(out[index_ic1_index_ic2]),
+					 &(out_ic[index_ic1_ic2]),
 					 file_name,
 					 first_line,
 					 pop->z_pk
@@ -499,61 +500,73 @@ int output_init(
       }
     }
 
-    if (psp->ic_size[index_mode] > 1) {
-      class_alloc(pk_ic,psp->ic_ic_size[index_mode],pop->error_message);
+    /* compute P(k) for each k (if several ic's, compute it for each ic and compute also the total) */
+
+    /* if z_pk = 0, no interpolation needed */
+
+    if (pop->z_pk == 0) {
+
+      for (index_k=0; index_k<psp->k_size; index_k++) {
+
+	if (psp->ic_size[index_mode] == 1) {
+	  pk_tot[index_k] = psp->pk[(psp->eta_size-1) * psp->k_size + index_k];
+	}
+	else {
+	  pk_tot[index_k] = 0.;
+	  for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
+	    pk_ic[index_ic1_ic2 * psp->k_size + index_k] = psp->pk[((psp->eta_size-1) * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->k_size + index_k];
+	    pk_tot[index_k] += pk_ic[index_ic1_ic2 * psp->k_size + index_k];
+	  }
+	}
+      }
     }
-    
-    for (index_k=0; index_k<psp->k_size; index_k++) {
-    
-      /* if z_pk = 0, no interpolation needed */
-      if (pop->z_pk == 0) {
       
-	if (psp->ic_size[index_mode] == 1)
-	  pk_tot = &(psp->pk[(psp->eta_size-1) * psp->k_size]);
-	else
-	  
-
-	
-	pk_ic=&(psp->pk[(psp->eta_size-1) * ppt->ic_size[index_mode] * psp->k_size]);
-
-
-      pk_ic=&(psp->pk[(psp->eta_size-1) * ppt->ic_size[index_mode] * psp->k_size]);
-    }
-
     /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
     else {
-      class_alloc(pk_output,sizeof(double)*ppt->ic_size[index_mode]*psp->k_size,pop->error_message);
-      class_call(spectra_pk_at_z(pba,psp,ppt->index_md_scalars,pop->z_pk,pk_output),
+
+      class_call(spectra_pk_at_z(pba,
+				 psp,
+				 pop->z_pk,
+				 pk_tot,
+				 pk_ic),
 		 psp->error_message,
 		 pop->error_message);
     }
-      
-    class_open(outbis,pop->pk,"w",pop->error_message);
 
-    fprintf(outbis,"# Matter power spectrum P(k) at redshift z=%f\n",pop->z_pk);
-    fprintf(outbis,"# Number of wavenumbers k:\n");
-    fprintf(outbis,"%d\n",psp->k_size);
-    fprintf(outbis,"# k (h/Mpc)  P (Mpc/h)^3:\n");
-    /* if isocurvature modes present, should improve these preliminary lines */
+    /* now write in files */
 
     for (index_k=0; index_k<psp->k_size; index_k++) {
+	
+      class_call(output_one_line_of_pk(out,
+				       psp->k[index_k],
+				       pk_tot[index_k]),
+		 pop->error_message,
+		 pop->error_message);
 
-      fprintf(outbis,"%e",psp->k[index_k]/pba->h);
-
-      for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_mode]; index_ic1++) {
-	fprintf(outbis," %e",
-		pow(pba->h,3)*pk_output[index_ic1 * psp->k_size + index_k]);
+      if (psp->ic_size[index_mode] > 1) {
+	  
+	for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
+	    
+	  class_call(output_one_line_of_pk(out_ic[index_ic1_ic2],
+					   psp->k[index_k],
+					   pk_ic[index_ic1_ic2*psp->k_size+index_k]),
+		     pop->error_message,
+		     pop->error_message);
+	}
       }
-      fprintf(outbis,"\n");
     }
 
-    fclose(outbis);
+    free(pk_tot);
+    fclose(out);
 
-    if (pop->z_pk != 0.)
-      free(pk_output);
-
+    if (psp->ic_size[index_mode] > 1) {
+      for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++)
+	fclose(out_ic[index_ic1_ic2]);
+      free(out_ic);
+      free(pk_ic);
+    }
   }
-
+  
   return _SUCCESS_;
 
 }
@@ -570,9 +583,9 @@ int output_open_cl_file(
   class_open(*clfile,filename,"w",pop->error_message);
 
   fprintf(*clfile,"%s\n",first_line); 
-  fprintf(*clfile,"# for l=2 to %d,\n");
-  fprintf(*clfile,"# i.e. number of lines equal to\n",(int)lmax);
-  fprintf(*clfile,"%d\n",(int)(lmax-1));
+  fprintf(*clfile,"# for l=2 to %d,\n",lmax);
+  fprintf(*clfile,"# i.e. number of lines equal to\n");
+  fprintf(*clfile,"%d\n",lmax-1);
   fprintf(*clfile,"#  l ");
 
   if (psp->has_tt == _TRUE_)
@@ -636,7 +649,7 @@ int output_open_pk_file(
 int output_one_line_of_pk(
 			  FILE * clfile,
 			  double one_k,
-			  double * one_pk
+			  double one_pk
 			  ) {
 
   fprintf(clfile,"%g %g\n",one_k,one_pk);

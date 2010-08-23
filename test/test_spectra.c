@@ -1,15 +1,8 @@
 /** @file class.c 
- * Julien Lesgourgues, 18.04.2010    
+ * Julien Lesgourgues, 20.04.2010    
  */
  
-#include "precision.h"
-#include "background.h"
-#include "thermodynamics.h"
-#include "perturbations.h"
-#include "bessel.h"
-#include "transfer.h"
-#include "primordial.h"
-#include "spectra.h"
+#include "class.h"
 
 main(int argc, char **argv) {
 
@@ -21,8 +14,8 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct output op;          /* for output files */
-  
+  struct output op;           /* for output files */
+ 
   ErrorMsg errmsg;
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
@@ -55,64 +48,49 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  /****** output the transfer functions ******/
+  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
+    printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
+    return _FAILURE_;
+  }
 
-  printf("Output of transfer functions\n");
+  if (spectra_init(&ba,&pt,&tr,&pm,&sp) == _FAILURE_) {
+    printf("\n\nError in spectra_init \n=>%s\n",sp.error_message);
+    return _FAILURE_;
+  }
 
-  int index_mode=pt.index_md_scalars;
-  int index_ic  =pt.index_ic_ad;
-  int index_type=pt.index_tp_t;
-  int index_l=tr.l_size[index_mode]-5;
-  /* int index_l = 30; */
+  /****** ouput Cls or P(k) ******/
 
-  /* here you can output the transfer functions 
-     at some k's of your choice */
- 
-/*   double k; */
-/*   double transfer; */
+  int index_mode=0;
+  int index_ic1_ic2=0;
 
-/*   for (k=1.e-4; k<1.e0; k*=1.1) {  */
-
-/*     if (transfer_functions_at_k( */
-/* 				index_mode, */
-/* 				index_ic, */
-/* 				index_type, */
-/* 				index_l, */
-/* 				k, */
-/* 				&transfer */
-/* 				) == _FAILURE_) { */
-/*       printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message); */
-/*       return _FAILURE_;; */
-/*     } */
-
-/*     printf("%e %e\n",k,transfer);  */
-
-/*   }  */
-
-  /* here you can output the full tabulated arrays*/
-
+/*   int index_ct=0; */
+/*   int index_l; */
+  
+/*   for (index_l=0; index_l < sp.l_size[index_mode]; index_l++)   */
+/*     printf("%g %g\n", */
+/* 	   sp.l[index_mode][index_l], */
+/* 	   sp.cl[index_mode][(index_l * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ct_size + index_ct]); */
+	   
+  int index_eta = sp.eta_size-1;
   int index_k;
-  double transfer;
+  
+  for (index_k=0; index_k < sp.k_size; index_k++)  
+    printf("%g %g\n",
+	   sp.k[index_k],
+	   sp.pk[(index_eta * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.k_size + index_k]);
 
-  for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
 
-    transfer=tr.transfer[index_mode]
-      [((index_ic * pt.tp_size[index_mode] + index_type)
-	* tr.l_size[index_mode] + index_l)
-       * tr.k_size[index_mode] + index_k];
-    
-    printf("%d %e %e\n",tr.l[index_mode][index_l],tr.k[index_mode][index_k],transfer); 
-
-  } 
-
-  /************************************************************/
+  if (primordial_free(&pm) == _FAILURE_) {
+    printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);
+    return _FAILURE_;
+  }
 
   if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
 
-  if (bessel_free(&bs) == _FAILURE_) {
+  if (bessel_free(&bs) == _FAILURE_)  {
     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }

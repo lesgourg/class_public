@@ -639,6 +639,21 @@ int input_init(
   sprintf(pop->cls_cdi_niv,"%s%s",string1,"cls_cdi_niv.dat");
   sprintf(pop->cls_nid_niv,"%s%s",string1,"cls_nid_niv.dat");
   sprintf(pop->pk,"%s%s",string1,"pk.dat");
+  sprintf(pop->pk_ad,"%s%s",string1,"pk_ad.dat");
+  sprintf(pop->pk_bi,"%s%s",string1,"pk_bi.dat");
+  sprintf(pop->pk_cdi,"%s%s",string1,"pk_cdi.dat");
+  sprintf(pop->pk_nid,"%s%s",string1,"pk_nid.dat");
+  sprintf(pop->pk_niv,"%s%s",string1,"pk_niv.dat");
+  sprintf(pop->pk_ad_bi,"%s%s",string1,"pk_ad_bi.dat");
+  sprintf(pop->pk_ad_cdi,"%s%s",string1,"pk_ad_cdi.dat");
+  sprintf(pop->pk_ad_nid,"%s%s",string1,"pk_ad_nid.dat");
+  sprintf(pop->pk_ad_niv,"%s%s",string1,"pk_ad_niv.dat");
+  sprintf(pop->pk_bi_cdi,"%s%s",string1,"pk_bi_cdi.dat");
+  sprintf(pop->pk_bi_nid,"%s%s",string1,"pk_bi_nid.dat");
+  sprintf(pop->pk_bi_niv,"%s%s",string1,"pk_bi_niv.dat");
+  sprintf(pop->pk_cdi_nid,"%s%s",string1,"pk_cdi_nid.dat");
+  sprintf(pop->pk_cdi_niv,"%s%s",string1,"pk_cdi_niv.dat");
+  sprintf(pop->pk_nid_niv,"%s%s",string1,"pk_nid_niv.dat");
 
   pbs->l_max=0;
 
@@ -926,6 +941,21 @@ int input_default_params(
   sprintf(pop->cls_cdi_niv,"output/cls_cdi_niv.dat");
   sprintf(pop->cls_nid_niv,"output/cls_nid_niv.dat");
   sprintf(pop->pk,"output/pk.dat");
+  sprintf(pop->pk_ad,"output/pk_ad.dat");
+  sprintf(pop->pk_bi,"output/pk_bi.dat");
+  sprintf(pop->pk_cdi,"output/pk_cdi.dat");
+  sprintf(pop->pk_nid,"output/pk_nid.dat");
+  sprintf(pop->pk_niv,"output/pk_niv.dat");
+  sprintf(pop->pk_ad_bi,"output/pk_ad_bi.dat");
+  sprintf(pop->pk_ad_cdi,"output/pk_ad_cdi.dat");
+  sprintf(pop->pk_ad_nid,"output/pk_ad_nid.dat");
+  sprintf(pop->pk_ad_niv,"output/pk_ad_niv.dat");
+  sprintf(pop->pk_bi_cdi,"output/pk_bi_cdi.dat");
+  sprintf(pop->pk_bi_nid,"output/pk_bi_nid.dat");
+  sprintf(pop->pk_bi_niv,"output/pk_bi_niv.dat");
+  sprintf(pop->pk_cdi_nid,"output/pk_cdi_nid.dat");
+  sprintf(pop->pk_cdi_niv,"output/pk_cdi_niv.dat");
+  sprintf(pop->pk_nid_niv,"output/pk_nid_niv.dat");
   pop->z_pk = 0.;  
   psp->z_max_pk = pop->z_pk;
   
