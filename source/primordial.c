@@ -1,38 +1,60 @@
 /** @file primordial.c primordial module
- * Julien Lesgourgues, 6.05.2010    
  *
- * This module computes the primordial spectra
- * (from simple parametric form, or by evolving inflaton perturbations).
+ * Julien Lesgourgues, 14.08.2010    
  *
- * Hence the following functions can be called from other modules:
+ * This module computes the primordial spectra. Can be used in different modes:
+ * simple parametric form, evolving inflaton perturbations, etc. So far only
+ * the mode corresponding to a simple analytic form in terms of amplitudes, tilts 
+ * and runnings has been developped.
  *
- * -# primordial_init() at the beginning (but after precision_init(), input_init())
- * -# primordial_spectrum_at_k() at any time for computing a value P(k) at any k by interpolation
+ * The following functions can be called from other modules:
+ *
+ * -# primordial_init() at the beginning (but after input_init())
+ * -# primordial_spectrum_at_k() at any time for computing P(k) at any k
  * -# primordial_free() at the end
  */
 
 #include "primordial.h"
 
 /** 
- * Primordial spectra for arbitrary argument k and for all initial conditions. 
+ * Primordial spectra for arbitrary argument and for all initial conditions. 
  *
- * Evaluates the primordial spectrum at a given value of k by
- * interpolating in the pre-computed table of (lnk, lnPk).  This function can be
+ * This routine evaluates the primordial spectrum at a given value of k by
+ * interpolating in the pre-computed table. 
+ * 
+ * When k is not in the pre-computed range but the spectrum can be found
+ * analytically, finds it. Otherwise returns an error.
+ * 
+ * Can be called in two modes: linear or logarithmic.
+ * 
+ * - linear: takes k, returns P(k)
+ * 
+ * - logarithmic: takes ln(k), return ln(P(k)) 
+ *
+ * One little subtlety: in case of several correlated initial conditions,
+ * the cross-correlation spectrum can be negative. Then, in logarithmic mode, 
+ * the non-diagonal elements contain the cross-correlation angle P_12/sqrt(P_11 P_22) 
+ * (from -1 to 1) instead of ln(P_12)
+ *
+ * This function can be
  * called from whatever module at whatever time, provided that
  * primordial_init() has been called before, and primordial_free() has not
  * been called yet.
  *
  * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum 
  * @param index_mode Input: index of mode (scalar, tensor, ...) 
- * @param k          Input: wavenumber in 1/Mpc
- * @param pk         Ouput: primordial spectrum P(k) in Mpc**3 for each initial condition, pk[index_ic]
+ * @param mode       Input: linear or logarithmic
+ * @param k          Input: wavenumber in 1/Mpc (linear mode) or its logarithm (logarithmic mode)
+ * @param pk         Ouput: for each pair of initial conditions, primordial spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
  * @return the error status
  */
+
 int primordial_spectrum_at_k(
 			     struct primordial * ppm,
 			     int index_mode,
-			     double k,
-			     double * pk
+			     enum linear_or_logarithmic mode, 
+			     double input,  
+			     double * output /* array with argument output[index_ic1_ic2] */
 			     ) {
 
   /** Summary: */
@@ -43,30 +65,32 @@ int primordial_spectrum_at_k(
   double lnk;
   int last_index;
 
-  /** if k negative or null return an error */
+  /** - infer ln(k) from input. In linear mode, reject negative value of input k value. */
 
-  class_test(k<=0.,
-	     ppm->error_message,
-	     "k = %e",k);
+  if (mode == linear) {
+    class_test(input<=0.,
+	       ppm->error_message,
+	       "k = %e",input);
+    lnk=log(input);
+  }
+  else {
+    lnk = input;
+  }
 
-  lnk=log(k);
-
-  /** - if ln(k) is too large to be in the interpolation table, return  an error 
-      unless we are in the case of a analytic spectrum, for which an extrapolation is possible */
+  /** - if ln(k) is not in the interpolation range, return an error, unless 
+      we are in the case of a analytic spectrum, for which a direct computation is possible */
   
   if ((lnk > ppm->lnk[ppm->lnk_size-1]) || (lnk < ppm->lnk[0])) {
 
     class_test(ppm->primordial_spec_type != analytic_Pk,
 	       ppm->error_message,
-	       "k=%e out of range [%e : %e]",k,exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
+	       "k=%e out of range [%e : %e]",exp(lnk),exp(ppm->lnk[0]),exp(ppm->lnk[ppm->lnk_size-1]));
 
-    /* extrapolate */
+    /* direct computation */
 
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
 	
-/* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
-	   takes values between 0 and N(N+1)/2-1 with N=ppm->ic_size[index_mode] */
 	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
 
 	if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
@@ -74,77 +98,91 @@ int primordial_spectrum_at_k(
 	  class_call(primordial_analytic_spectrum(ppm,
 						  index_mode,
 						  index_ic1_ic2,
-						  k,
-						  &(pk[index_ic1_ic2])),
+						  exp(lnk),
+						  &(output[index_ic1_ic2])),
 		     ppm->error_message,
 		     ppm->error_message);
 	}
 	else {
-	  pk[index_ic1_ic2] = 0.;
+	  output[index_ic1_ic2] = 0.;
 	}
       }
     }
     
-    return _SUCCESS_;
+    /* if mode==linear, output is already in the correct format. Otherwise, apply necessary transformation. */
 
+    if (mode == logarithmic) {
+
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+	output[index_ic1_ic2] = log(output[index_ic1_ic2]);
+      }
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
+	for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
+	  if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	    output[index_ic1_ic2] /= sqrt(output[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode])]*
+					  output[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode])]);
+	  }
+	}
+      }
+    }
   } 
 
-  /** - otherwise, interpolate: */
+  /** - otherwise, interpolate in the pre-computed table: */
 
-  class_call(array_interpolate_spline(
-				      ppm->lnk,
-				      ppm->lnk_size,
-				      ppm->lnpk[index_mode],
-				      ppm->ddlnpk[index_mode],
-				      ppm->ic_ic_size[index_mode],
-				      lnk,
-				      &last_index,
-				      pk,
-				      ppm->ic_ic_size[index_mode],
-				      ppm->error_message),
-	     ppm->error_message,
-	     ppm->error_message);
+  else {
 
-  /** - diagonal coefficients in the initial conditions: output P(k), not ln(P(k)) */
-
-  for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-
-    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
-    pk[index_ic1_ic2]=exp(pk[index_ic1_ic2]);
-
-  }
-
+    class_call(array_interpolate_spline(
+					ppm->lnk,
+					ppm->lnk_size,
+					ppm->lnpk[index_mode],
+					ppm->ddlnpk[index_mode],
+					ppm->ic_ic_size[index_mode],
+					lnk,
+					&last_index,
+					output,
+					ppm->ic_ic_size[index_mode],
+					ppm->error_message),
+	       ppm->error_message,
+	       ppm->error_message);
   
-  /** - non-diagonal coefficients in the initial conditions: output P(k), not cosDelta(k) (Delta = cross-correlation angle) */
-  
-  for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-    for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
-      
-      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
-      
-      if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+    /* if mode==logarithmic, output is already in the correct format. Otherwise, apply necessary transformation. */
 
-	pk[index_ic1_ic2] *= sqrt(pk[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode])]*
-				  pk[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode])]);
+    if (mode == linear) {
+
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+	output[index_ic1_ic2]=exp(output[index_ic1_ic2]);
       }
-      else {
-	pk[index_ic1_ic2] = 0.;
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
+	for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
+	  if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	    output[index_ic1_ic2] *= sqrt(output[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode])]*
+					  output[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode])]);
+	  }
+	  else {
+	    output[index_ic1_ic2] = 0.;
+	  }
+	}
       }
     }
   }
   
   return _SUCCESS_;
-    
+  
 }
 
 /**
- * Initialize primordial structure (in particular, compute table of primordial spectrum values)
+ * This routine initializes the primordial structure (in particular, compute table of primordial spectrum values)
  * 
  * @param ppr Input : pointer to precision structure (defines method and precision for all computations)
  * @param ppt Input : pointer to perturbation structure (useful for knowing k_min, k_max, etc.)
  * @param ppm Output: pointer to initialized primordial structure 
  * @return the error status
  */
+
 int primordial_init(
 		    struct precision  * ppr,
 		    struct perturbs   * ppt,
@@ -171,19 +209,14 @@ int primordial_init(
       printf("Computing primordial spectra\n");
   }
 
-  /** - get kmin and kmax from perturbation structure */
+  /** - get kmin and kmax from perturbation structure. Test that they make sense. */
 
   k_min=_HUGE_; /* huge initial value before scanning all modes */
-  k_max=0.;    /* zero initial value before scanning all modes */
+  k_max=0.;     /* zero initial value before scanning all modes */
 
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
-
-    k_min = min(k_min,ppt->k[index_mode][0]); 
-    /* first value, inferred from perturbations structure */
-
-    k_max = max(k_max,ppt->k[index_mode][ppt->k_size[index_mode]-1]); 
-    /* last value, inferred from perturbations structure */
-
+    k_min = min(k_min,ppt->k[index_mode][0]); /* first value, inferred from perturbations structure */
+    k_max = max(k_max,ppt->k[index_mode][ppt->k_size[index_mode]-1]); /* last value, inferred from perturbations structure */
   }
   
   class_test(k_min <= 0.,
@@ -212,12 +245,14 @@ int primordial_init(
 	     ppm->error_message,
 	     ppm->error_message);
 
+  /** - define indices and allocate tables in primordial structure */
+
   class_call(primordial_indices(ppt,
 				ppm),
 	     ppm->error_message,
 	     ppm->error_message);
 		
-  /** - deal with case of analytic primordial spectra (with tilt, running etc.) */
+  /** - deal with case of analytic primordial spectra (with amplitudes, tilts, runnings etc.) */
 
   if (ppm->primordial_spec_type == analytic_Pk) {
 
@@ -316,13 +351,14 @@ int primordial_init(
 }
 
 /**
- * Free all memory space allocated by primordial_init().
+ * This routine frees all the memory space allocated by primordial_init().
  *
  * To be called at the end of each run.
  *
  * @param ppm Input: pointer to primordial structure (which fields must be freed)
  * @return the error status
  */
+
 int primordial_free(
 		    struct primordial * ppm
 		    ) {
@@ -360,6 +396,14 @@ int primordial_free(
 
   return _SUCCESS_; 
 }
+
+/**
+ * This routine defines indices and allocates tables in the primordial structure 
+ *
+ * @param ppt  Input : pointer to perturbation structure
+ * @param ppm  Input/output: pointer to primordial structure 
+ * @return the error status
+ */
 
 int primordial_indices(
 		       struct perturbs   * ppt,
@@ -404,6 +448,52 @@ int primordial_indices(
   return _SUCCESS_;
 
 }
+
+/**
+ * This routine allocates and fills the list of wavenumbers k
+ *
+ *
+ * @param ppm  Input/output: pointer to primordial structure 
+ * @param kmin Input : first value
+ * @param kmax Input : last value that we should encompass
+ * @param k_per_decade Input : number of k per decade
+ * @return the error status
+ */
+
+int primordial_get_lnk_list(
+			    struct primordial * ppm,
+			    double kmin,
+			    double kmax,
+			    double k_per_decade
+			    ) {
+
+  int i;
+
+  class_test((kmin <= 0.) || (kmax <= kmin),
+	     ppm->error_message,
+	     "inconsistent values of kmin=%e, kmax=%e",kmin,kmax);
+ 
+  ppm->lnk_size = (int)(log(kmax/kmin)/log(10.)*k_per_decade) + 2;
+
+  class_alloc(ppm->lnk,ppm->lnk_size*sizeof(double),ppm->error_message);
+
+  for (i=0; i<ppm->lnk_size; i++)
+    ppm->lnk[i]=log(kmin)+i*log(10.)/k_per_decade;
+        
+  return _SUCCESS_;
+  
+}
+
+/**
+ * This routine interprets and stores in a condensed form the input parameters 
+ * in the case of a simple analytic spectra with amplitudes, tilts, runnings, 
+ * in such way that later on, the spectrum can be obtained by a quick call to
+ * the routine primordial_analytic_spectrum(()
+ *
+ * @param ppt  Input : pointer to perturbation structure
+ * @param ppm  Input/output: pointer to primordial structure 
+ * @return the error status
+ */
 
 int primordial_analytic_spectrum_init(
 				      struct perturbs   * ppt,
@@ -629,6 +719,19 @@ int primordial_analytic_spectrum_init(
 
 }
 
+/**
+ * This routine returns the primordial spectrum in the simple analytic case with
+ * amplitudes, tilts, runnings, for each mode (scalar/tensor...),
+ * pair of initial conditions, and wavenumber.
+ *
+ * @param ppm            Input/output: pointer to primordial structure 
+ * @param index_mode     Input: index of mode (scalar, tensor, ...) 
+ * @param index_ic1_ic2  Input: pair of initial conditions (ic1, ic2)
+ * @param k              Input: wavenumber in same units as pivot scale, i.e. in 1/Mpc 
+ * @param pk             Output: primordial power spectrum A (k/k_pivot)^(n+...)
+ * @return the error status
+ */
+
 int primordial_analytic_spectrum(
 				 struct primordial * ppm,
 				 int index_mode,
@@ -638,55 +741,14 @@ int primordial_analytic_spectrum(
 				 ) {  
   
   if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
-
     *pk = ppm->amplitude[index_mode][index_ic1_ic2]
       *exp((ppm->tilt[index_mode][index_ic1_ic2]-1.)*log(k/ppm->k_pivot)
 	   + 0.5 * ppm->running[index_mode][index_ic1_ic2] * pow(log(k/ppm->k_pivot), 2.));
-    
   }
-
   else {
-
-    class_test(0==0,
-	       ppm->error_message,
-	       "you are calling this routine for an uncorrelated pair of ic's, this should never happen\n");
-    
+    *pk = 0.;
   }
 
-  return _SUCCESS_;
-  
-}
-
-/**
- * Allocate and fill list of wavenumbers k
- *
- *
- * @param ppm  Input/output: pointer to primordial structure 
- * @param kmin Input : first value
- * @param kmax Input : last value that we should encompass
- * @param k_per_decade Input : number of k per decade
- * @return the error status
- */
-int primordial_get_lnk_list(
-			    struct primordial * ppm,
-			    double kmin,
-			    double kmax,
-			    double k_per_decade
-			    ) {
-
-  int i;
-
-  class_test((kmin <= 0.) || (kmax <= kmin),
-	     ppm->error_message,
-	     "inconsistent values of kmin=%e, kmax=%e",kmin,kmax);
-
-  ppm->lnk_size = (int)(log(kmax/kmin)/log(10.)*k_per_decade) + 2;
-
-  class_alloc(ppm->lnk,ppm->lnk_size*sizeof(double),ppm->error_message);
-
-  for (i=0; i<ppm->lnk_size; i++)
-    ppm->lnk[i]=log(kmin)+i*log(10.)/k_per_decade;
-        
   return _SUCCESS_;
   
 }

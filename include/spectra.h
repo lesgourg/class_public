@@ -47,13 +47,35 @@ struct spectra {
   double z_max_pk; /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
 
   int index_md_scalars;
-  int k_size;
-  double * k;
-  int eta_size; 
-  double * eta;
-  double * pk;   /**< power spectrum pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->k_size + index_k] */
-  double * ddlnpk; /**< table of second derivatives of ln(P) with respect to ln(eta) in view of spline interpolation */
+  int lnk_size;
+  double * lnk;    /* list of ln(k) values lnk[index_k] */
+  int ln_eta_size; 
+  double * ln_eta;    /* list of ln(eta) values lneta[index_k] */
+  double * lnpk;   /* Matter power spectrum.
+		      depends on indices index_mode, index_ic1, index_ic2, index_k as:
+		      lnpk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->k_size + index_k]
+		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
+		      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
+		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
+		      ln[P(k)] where P(k) is positive by construction.
+		      - for non-diagonal elements this arrays contains the k-dependent 
+		      cosine of the correlation angle, namely
+		      P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+		      This choice is convenient since the sign of the non-diagonal cross-correlation 
+		      is arbitrary. For fully correlated or anti-correlated initial conditions,
+		      this non-diagonal element is independent on k, and equal to +1 or -1.
+		   */
 
+  double * ddlnpk; /* second derivative of above array with respect to log(eta), for spline interpolation. So: 
+		      - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
+		      good since this function is usually smooth.
+		      - for non-diagonal coefficients, we spline  
+		      P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+		      vs. ln(k), which is fine since this quantity is often assumed to be
+		      constant (e.g for fully correlated/anticorrelated initial conditions)
+		      or nearly constant, and with arbitrary sign.
+		   */
+  
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@{
