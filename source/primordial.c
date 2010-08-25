@@ -1,6 +1,6 @@
 /** @file primordial.c primordial module
  *
- * Julien Lesgourgues, 14.08.2010    
+ * Julien Lesgourgues, 24.08.2010    
  *
  * This module computes the primordial spectra. Can be used in different modes:
  * simple parametric form, evolving inflaton perturbations, etc. So far only
@@ -29,7 +29,7 @@
  * 
  * - linear: takes k, returns P(k)
  * 
- * - logarithmic: takes ln(k), return ln(P(k)) 
+ * - logarithmic: takes ln(k), return ln(P(k))
  *
  * One little subtlety: in case of several correlated initial conditions,
  * the cross-correlation spectrum can be negative. Then, in logarithmic mode, 
@@ -54,7 +54,7 @@ int primordial_spectrum_at_k(
 			     int index_mode,
 			     enum linear_or_logarithmic mode, 
 			     double input,  
-			     double * output /* array with argument output[index_ic1_ic2] */
+			     double * output /* array with argument output[index_ic1_ic2] (already allocated) */
 			     ) {
 
   /** Summary: */

@@ -5,11 +5,15 @@
 
 #include "transfer.h"
 
+/** enum defining how should the primnordial spectrum be compurted */
+
 enum primordial_spectrum_type {
   analytic_Pk,
   inflation_V,
   inflation_H
 };
+
+/** enum defining whether the spectrum routine works with linear or logarithmic input/output */
 
 enum linear_or_logarithmic {
   linear,

@@ -19,9 +19,6 @@
  */
 
 #include "transfer.h"
-#ifdef _OPENMP
-#include "omp.h"
-#endif
 
 /** Transfer function \f$ \Delta_l^{X} (k) \f$ at a given wavenumber k.
  *

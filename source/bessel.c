@@ -12,9 +12,6 @@
  */
 
 #include "bessel.h"
-#ifdef _OPENMP
-#include "omp.h"
-#endif
 
 /** 
  * Bessel function for arbitrary argument x. 

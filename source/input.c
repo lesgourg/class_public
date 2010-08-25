@@ -140,6 +140,7 @@ int input_init(
   char string2[_LINE_LENGTH_MAX_];
   int i;
   FILE * param_output;
+  char param_output_name[_LINE_LENGTH_MAX_];
 
   class_call(input_default_params(pba,
 				  pth,
@@ -620,6 +621,8 @@ int input_init(
 	     errmsg,
 	     errmsg);
 
+  if (flag1 == _FALSE_) sprintf(string1,"output/");
+
   sprintf(pop->cl,"%s%s",string1,"cl.dat");
   sprintf(pop->cls,"%s%s",string1,"cls.dat");
   sprintf(pop->clt,"%s%s",string1,"clt.dat");
@@ -654,6 +657,7 @@ int input_init(
   sprintf(pop->pk_cdi_nid,"%s%s",string1,"pk_cdi_nid.dat");
   sprintf(pop->pk_cdi_niv,"%s%s",string1,"pk_cdi_niv.dat");
   sprintf(pop->pk_nid_niv,"%s%s",string1,"pk_nid_niv.dat");
+  sprintf(param_output_name,"%s%s",string1,"parameters.ini");
 
   pbs->l_max=0;
 
@@ -793,12 +797,12 @@ int input_init(
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
 
-  class_call(parser_read_string(pfc,"parameters",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);				
 
-  if (flag1 == _TRUE_) {
-    class_open(param_output,string1,"w",errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    class_open(param_output,param_output_name,"w",errmsg);
     fprintf(param_output,"# List of input/precision parameters actually read\n");
     fprintf(param_output,"# (all other parameters set to default values)\n");
     fprintf(param_output,"#\n");
@@ -922,40 +926,6 @@ int input_default_params(
   ptr->l_scalar_max=2500;
   ptr->l_tensor_max=500;
 
-  sprintf(pop->cl,"output/cl.dat");
-  sprintf(pop->cls,"output/cls.dat");
-  sprintf(pop->clt,"output/clt.dat");
-  sprintf(pop->cls_ad,"output/cls_ad.dat");
-  sprintf(pop->cls_bi,"output/cls_bi.dat");
-  sprintf(pop->cls_cdi,"output/cls_cdi.dat");
-  sprintf(pop->cls_nid,"output/cls_nid.dat");
-  sprintf(pop->cls_niv,"output/cls_niv.dat");
-  sprintf(pop->cls_ad_bi,"output/cls_ad_bi.dat");
-  sprintf(pop->cls_ad_cdi,"output/cls_ad_cdi.dat");
-  sprintf(pop->cls_ad_nid,"output/cls_ad_nid.dat");
-  sprintf(pop->cls_ad_niv,"output/cls_ad_niv.dat");
-  sprintf(pop->cls_bi_cdi,"output/cls_bi_cdi.dat");
-  sprintf(pop->cls_bi_nid,"output/cls_bi_nid.dat");
-  sprintf(pop->cls_bi_niv,"output/cls_bi_niv.dat");
-  sprintf(pop->cls_cdi_nid,"output/cls_cdi_nid.dat");
-  sprintf(pop->cls_cdi_niv,"output/cls_cdi_niv.dat");
-  sprintf(pop->cls_nid_niv,"output/cls_nid_niv.dat");
-  sprintf(pop->pk,"output/pk.dat");
-  sprintf(pop->pk_ad,"output/pk_ad.dat");
-  sprintf(pop->pk_bi,"output/pk_bi.dat");
-  sprintf(pop->pk_cdi,"output/pk_cdi.dat");
-  sprintf(pop->pk_nid,"output/pk_nid.dat");
-  sprintf(pop->pk_niv,"output/pk_niv.dat");
-  sprintf(pop->pk_ad_bi,"output/pk_ad_bi.dat");
-  sprintf(pop->pk_ad_cdi,"output/pk_ad_cdi.dat");
-  sprintf(pop->pk_ad_nid,"output/pk_ad_nid.dat");
-  sprintf(pop->pk_ad_niv,"output/pk_ad_niv.dat");
-  sprintf(pop->pk_bi_cdi,"output/pk_bi_cdi.dat");
-  sprintf(pop->pk_bi_nid,"output/pk_bi_nid.dat");
-  sprintf(pop->pk_bi_niv,"output/pk_bi_niv.dat");
-  sprintf(pop->pk_cdi_nid,"output/pk_cdi_nid.dat");
-  sprintf(pop->pk_cdi_niv,"output/pk_cdi_niv.dat");
-  sprintf(pop->pk_nid_niv,"output/pk_nid_niv.dat");
   pop->z_pk = 0.;  
   psp->z_max_pk = pop->z_pk;
   

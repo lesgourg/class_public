@@ -66,13 +66,24 @@ extern "C" {
 #endif
 
   int output_init(
-		  struct precision * ppr,
 		  struct background * pba,
 		  struct perturbs * ppt,
-		  struct transfers * ptr,
 		  struct spectra * psp,
 		  struct output * pop
 		  );
+
+  int output_cl(
+		struct perturbs * ppt,
+		struct spectra * psp,
+		struct output * pop
+		);
+
+  int output_pk(
+		struct background * pba,
+		struct perturbs * ppt,
+		struct spectra * psp,
+		struct output * pop
+		);
 
   int output_open_cl_file(
 			  struct spectra * psp,

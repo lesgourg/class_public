@@ -1,10 +1,13 @@
 /** @file common.h Generic libraries, parameters and functions used in the whole code. */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <float.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "math.h"
+#include "string.h"
+#include "float.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 #ifndef __COMMON__
 #define __COMMON__

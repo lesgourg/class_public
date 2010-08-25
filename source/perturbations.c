@@ -24,9 +24,6 @@
  */
 
 #include "perturbations.h"
-#ifdef _OPENMP
-#include "omp.h"
-#endif
 
 /** 
  * Source function \f$ S^{X} (k, \eta) \f$ at given conformal time eta.

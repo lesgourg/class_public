@@ -2,11 +2,14 @@
 #define __CLASS__
 
 /* standard libraries */
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <float.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "math.h"
+#include "string.h"
+#include "float.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 /* tools for class */
 #include "growTable.h"
