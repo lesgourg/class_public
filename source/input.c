@@ -9,22 +9,22 @@
 
    If class is embedded into another code, you will probably prefer to call directly 
    input_init() in order to pass input parameters through a 'file_content' structure.
- */
+*/
 
 int input_init_from_arguments(
-	       int argc, 
-	       char **argv,
-	       struct precision * ppr,
-	       struct background *pba,
-	       struct thermo *pth,
-	       struct perturbs *ppt,
-	       struct bessels * pbs,
-	       struct transfers *ptr,
-	       struct primordial *ppm,
-	       struct spectra *psp,
-	       struct output *pop,
-	       ErrorMsg errmsg
-	       ) {
+			      int argc, 
+			      char **argv,
+			      struct precision * ppr,
+			      struct background *pba,
+			      struct thermo *pth,
+			      struct perturbs *ppt,
+			      struct bessels * pbs,
+			      struct transfers *ptr,
+			      struct primordial *ppm,
+			      struct spectra *psp,
+			      struct output *pop,
+			      ErrorMsg errmsg
+			      ) {
 
   struct file_content fc;
   struct file_content fc_input;
@@ -71,16 +71,16 @@ int input_init_from_arguments(
   if (input_file[0]!='\0')
     
     class_call(parser_read_file(input_file,&fc_input,errmsg),
-		 errmsg,
-		 errmsg);
+	       errmsg,
+	       errmsg);
 
   /* if there is an 'xxx.pre' file, read it and store its content. */
 
   if (precision_file[0]!='\0')
     
     class_call(parser_read_file(precision_file,&fc_precision,errmsg),
-		 errmsg,
-		 errmsg);
+	       errmsg,
+	       errmsg);
 
   /* if files were read, merge their contents in a single 'file_content' structure. */
 
@@ -135,10 +135,14 @@ int input_init(
   int flag1,flag2,flag3;
   double param1,param2,param3;
   int int1;
-  double Omega_tot;
+  double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_LINE_LENGTH_MAX_];
+
+  double Omega_tot;
+
   int i;
+
   FILE * param_output;
   char param_output_name[_LINE_LENGTH_MAX_];
 
@@ -173,7 +177,7 @@ int input_init(
   if (flag1 == _TRUE_) {
     pba->H0 = param1 * 1.e3 / _c_;
     pba->h = param1 / 100.;
-    }
+  }
   if (flag2 == _TRUE_) {
     pba->H0 = param2 *  1.e5 / _c_;
     pba->h = param2;
@@ -353,11 +357,11 @@ int input_init(
   /* reionization parameters if reio_parametrization=reio_camb */
   if (pth->reio_parametrization == reio_camb) {
     class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
-	     errmsg,
-	     errmsg);
+	       errmsg,
+	       errmsg);
     class_call(parser_read_double(pfc,"tau_reio",&param2,&flag2,errmsg),
-	     errmsg,
-	     errmsg);
+	       errmsg,
+	       errmsg);
     class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
 	       errmsg,
 	       "In input file, you can only enter one of z_reio or tau_reio, choose one");
@@ -607,9 +611,9 @@ int input_init(
 
     if (ppt->has_tensors == _TRUE_) {
     
-      	class_read_double("r",ppm->r);
-	class_read_double("n_t",ppm->n_t);
-	class_read_double("alpha_t",ppm->alpha_t);
+      class_read_double("r",ppm->r);
+      class_read_double("n_t",ppm->n_t);
+      class_read_double("alpha_t",ppm->alpha_t);
 
     }
 
@@ -617,74 +621,55 @@ int input_init(
 
   /** - parameters for output spectra */
 
-  class_call(parser_read_string(pfc,"root",&string1,&flag1,errmsg),
-	     errmsg,
-	     errmsg);
+  if (ppt->has_cls = _TRUE_) {
 
-  if (flag1 == _FALSE_) sprintf(string1,"output/");
+    pbs->l_max=0;
 
-  sprintf(pop->cl,"%s%s",string1,"cl.dat");
-  sprintf(pop->cls,"%s%s",string1,"cls.dat");
-  sprintf(pop->clt,"%s%s",string1,"clt.dat");
-  sprintf(pop->cls_ad,"%s%s",string1,"cls_ad.dat");
-  sprintf(pop->cls_bi,"%s%s",string1,"cls_bi.dat");
-  sprintf(pop->cls_cdi,"%s%s",string1,"cls_cdi.dat");
-  sprintf(pop->cls_nid,"%s%s",string1,"cls_nid.dat");
-  sprintf(pop->cls_niv,"%s%s",string1,"cls_niv.dat");
-  sprintf(pop->cls_ad_bi,"%s%s",string1,"cls_ad_bi.dat");
-  sprintf(pop->cls_ad_cdi,"%s%s",string1,"cls_ad_cdi.dat");
-  sprintf(pop->cls_ad_nid,"%s%s",string1,"cls_ad_nid.dat");
-  sprintf(pop->cls_ad_niv,"%s%s",string1,"cls_ad_niv.dat");
-  sprintf(pop->cls_bi_cdi,"%s%s",string1,"cls_bi_cdi.dat");
-  sprintf(pop->cls_bi_nid,"%s%s",string1,"cls_bi_nid.dat");
-  sprintf(pop->cls_bi_niv,"%s%s",string1,"cls_bi_niv.dat");
-  sprintf(pop->cls_cdi_nid,"%s%s",string1,"cls_cdi_nid.dat");
-  sprintf(pop->cls_cdi_niv,"%s%s",string1,"cls_cdi_niv.dat");
-  sprintf(pop->cls_nid_niv,"%s%s",string1,"cls_nid_niv.dat");
-  sprintf(pop->pk,"%s%s",string1,"pk.dat");
-  sprintf(pop->pk_ad,"%s%s",string1,"pk_ad.dat");
-  sprintf(pop->pk_bi,"%s%s",string1,"pk_bi.dat");
-  sprintf(pop->pk_cdi,"%s%s",string1,"pk_cdi.dat");
-  sprintf(pop->pk_nid,"%s%s",string1,"pk_nid.dat");
-  sprintf(pop->pk_niv,"%s%s",string1,"pk_niv.dat");
-  sprintf(pop->pk_ad_bi,"%s%s",string1,"pk_ad_bi.dat");
-  sprintf(pop->pk_ad_cdi,"%s%s",string1,"pk_ad_cdi.dat");
-  sprintf(pop->pk_ad_nid,"%s%s",string1,"pk_ad_nid.dat");
-  sprintf(pop->pk_ad_niv,"%s%s",string1,"pk_ad_niv.dat");
-  sprintf(pop->pk_bi_cdi,"%s%s",string1,"pk_bi_cdi.dat");
-  sprintf(pop->pk_bi_nid,"%s%s",string1,"pk_bi_nid.dat");
-  sprintf(pop->pk_bi_niv,"%s%s",string1,"pk_bi_niv.dat");
-  sprintf(pop->pk_cdi_nid,"%s%s",string1,"pk_cdi_nid.dat");
-  sprintf(pop->pk_cdi_niv,"%s%s",string1,"pk_cdi_niv.dat");
-  sprintf(pop->pk_nid_niv,"%s%s",string1,"pk_nid_niv.dat");
-  sprintf(param_output_name,"%s%s",string1,"parameters.ini");
+    if (ppt->has_scalars == _TRUE_) {
+      class_read_double("l_max_scalars",ptr->l_scalar_max);
+      pbs->l_max=ptr->l_scalar_max;
+    }
 
-  pbs->l_max=0;
-
-  if (ppt->has_scalars == _TRUE_) {
-    class_read_double("l_max_scalars",ptr->l_scalar_max);
-    pbs->l_max=ptr->l_scalar_max;
+    if (ppt->has_tensors == _TRUE_) {   
+      class_read_double("l_max_tensors",ptr->l_tensor_max);
+      pbs->l_max=max(pbs->l_max,ptr->l_tensor_max);
+    }
   }
 
-  if (ppt->has_tensors == _TRUE_) {   
-    class_read_double("l_max_tensors",ptr->l_tensor_max);
-    pbs->l_max=max(pbs->l_max,ptr->l_tensor_max);
-  }
+  if (ppt->has_pk_matter == _TRUE_) {
 
-  class_read_double("z_pk",pop->z_pk);
+    class_read_double("P_k_max",ppt->k_scalar_kmax_for_pk);
 
-  class_read_double("P_k_max",ppt->k_scalar_kmax_for_pk);
+    class_call(parser_read_list_of_doubles(pfc,
+					   "z_pk",
+					   &(int1),
+					   &(pointer1),
+					   &flag1,
+					   errmsg),
+	       errmsg,
+	       errmsg);
+    
+    if (flag1 == _TRUE_) {
+      free(pop->z_pk);
+      pop->z_pk_num = int1;
+      pop->z_pk = pointer1;
+    }
 
-  class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
-	     errmsg,
-	     errmsg);
+    class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
   
-  if (flag1==_TRUE_) {
-    psp->z_max_pk = param1;
+    if (flag1==_TRUE_) {
+      psp->z_max_pk = param1;
+    }
+    else {
+      psp->z_max_pk = 0.;
+      for (i=0; i<pop->z_pk_num; i++)
+	psp->z_max_pk = max(psp->z_max_pk,pop->z_pk[i]);
+    }
   }
-  else {
-    psp->z_max_pk = pop->z_pk;
-  }
+
+  class_read_string("root",pop->root);
 
   /** - amount of information sent to standard output (none if all set to zero) */
 
@@ -797,12 +782,18 @@ int input_init(
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
 
+  /** Eventually write all the read parameters in a file */
+
   class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
 	     errmsg,
-	     errmsg);				
+	     errmsg);	
 
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
+
     class_open(param_output,param_output_name,"w",errmsg);
+
     fprintf(param_output,"# List of input/precision parameters actually read\n");
     fprintf(param_output,"# (all other parameters set to default values)\n");
     fprintf(param_output,"#\n");
@@ -811,6 +802,7 @@ int input_init(
     fprintf(param_output,"# in the next run you can change this name with the\n");
     fprintf(param_output,"# parameters = ... entry of your input file.\n");
     fprintf(param_output,"#\n");
+
     for (i=0; i<pfc->size; i++) {
       if (pfc->read[i] == _TRUE_)
 	fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
@@ -926,9 +918,16 @@ int input_default_params(
   ptr->l_scalar_max=2500;
   ptr->l_tensor_max=500;
 
-  pop->z_pk = 0.;  
-  psp->z_max_pk = pop->z_pk;
+  ppt->k_scalar_kmax_for_pk=0.1;
+
+  pop->z_pk_num = 1;
+  class_alloc(pop->z_pk,pop->z_pk_num*sizeof(double),errmsg);
+  pop->z_pk[0] = 0.;  
+
+  psp->z_max_pk = pop->z_pk[0];
   
+  sprintf(pop->root,"output/");
+
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
   ppt->perturbations_verbose = 0;

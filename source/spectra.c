@@ -1,9 +1,10 @@
-/** @file cl.c Documented \f$ C_l^{X}, P(k), ... \f$ module
+/** @file cl.c Documented spectra module
  *
  * Julien Lesgourgues, 25.08.2010    
  *
- * This module computes the anisotropy and Fourier power spectra \f$ C_l^{X}, P(k), ... \f$'s given the 
- * transfer and Bessel functions (for anisotropy spectra), the source functions (for Fourier spectra) 
+ * This module computes the anisotropy and Fourier power spectra 
+ * \f$ C_l^{X}, P(k), ... \f$'s given the transfer and Bessel functions 
+ * (for anisotropy spectra), the source functions (for Fourier spectra) 
  * and the primordial spectra.
  *
  * The following functions can be called from other modules:
@@ -40,17 +41,27 @@
 int spectra_cl_at_l(
 		    struct spectra * psp,
 		    double l,
-		    double * cl_tot,    /* array of srgument cl_tot[index_ct] (already allocated) */
-		    double * * cl_md,   /* array of srgument cl_md[index_mode][index_ct] (already allocated only if several modes) */
-		    double * * cl_md_ic /* array of srgument cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] (already allocated for a given mode only if several ic's) */
+		    double * cl_tot,    /* array with argument cl_tot[index_ct] (must be already allocated) */
+		    double * * cl_md,   /* array with argument cl_md[index_mode][index_ct] (must be already allocated only if several modes) */
+		    double * * cl_md_ic /* array with argument cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] (must be already allocated for a given mode only if several ic's) */
 		    ) {
 
+  /** Summary: */
+
+  /** - define local variables */
+
   int last_index;
-  int index_mode, index_ic1,index_ic2,index_ic1_ic2,index_ct;
+  int index_mode;
+  int index_ic1,index_ic2,index_ic1_ic2;
+  int index_ct;
+
+  /** A) treat case in which there is only one mode and one initial condition. 
+         Then, only cl_tot needs to be filled. */
 
   if ((psp->md_size == 1) && (psp->ic_size[0] == 1)) {
     index_mode = 0;
     if ((int)l <= psp->l_max_tot) {
+
       class_call(array_interpolate_spline(psp->l[index_mode],
 					  psp->l_size[index_mode],
 					  psp->cl[index_mode],
@@ -68,20 +79,22 @@ int spectra_cl_at_l(
       for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
 	cl_tot[index_ct]=0.;
     }
-    return _SUCCESS_;
   }
     
+  /** B) treat case in which there is only one mode 
+         with several initial condition. 
+         Fill cl_md_ic[index_mode=0] and sum it to get cl_tot. */
+
   if ((psp->md_size == 1) && (psp->ic_size[0] > 1)) {
     index_mode = 0;
     for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
       cl_tot[index_ct]=0.;
     for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
-	/* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
-	   takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
 	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 	if (((int)l <= psp->l_max[index_mode]) && 
 	    (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
+
 	  class_call(array_interpolate_spline(psp->l[index_mode],
 					      psp->l_size[index_mode],
 					      psp->cl[index_mode],
@@ -99,6 +112,8 @@ int spectra_cl_at_l(
 	  for (index_ct=0; index_ct<psp->ct_size; index_ct++)
 	    cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
 	}
+
+        /* compute cl_tot by summing over cl_md_ic */
 	for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 	  if (index_ic1 == index_ic2)
 	    cl_tot[index_ct]+=cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct];
@@ -107,15 +122,24 @@ int spectra_cl_at_l(
 	}
       }
     }
-    return _SUCCESS_;
   }
 
+  /** C) loop over modes */
+
   if (psp->md_size > 1) {
+
     for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
       cl_tot[index_ct]=0.;
+
     for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+
+  /** C.1) treat case in which the mode under consideration 
+           has only one initial condition. 
+	   Fill cl_md[index_mode]. */
+
       if (psp->ic_size[index_mode] == 1) {
 	if ((int)l <= psp->l_max[index_mode]) {
+
 	  class_call(array_interpolate_spline(psp->l[index_mode],
 					      psp->l_size[index_mode],
 					      psp->cl[index_mode],
@@ -134,16 +158,20 @@ int spectra_cl_at_l(
 	    cl_md[index_mode][index_ct]=0.;
 	}
       }
+
+  /** C.2) treat case in which the mode under consideration 
+           has several initial conditions. 
+	   Fill cl_md_ic[index_mode] and sum it to get cl_md[index_mode] */
+
       if (psp->ic_size[index_mode] > 1) {
 	for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
 	  cl_md[index_mode][index_ct]=0.;
 	for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	  for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
-	    /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
-	       takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
 	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 	    if (((int)l <= psp->l_max[index_mode]) && 
 		(psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
+
 	      class_call(array_interpolate_spline(psp->l[index_mode],
 						  psp->l_size[index_mode],
 						  psp->cl[index_mode],
@@ -161,6 +189,8 @@ int spectra_cl_at_l(
 	      for (index_ct=0; index_ct<psp->ct_size; index_ct++)
 		cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
 	    }
+
+	    /* compute cl_md[index_mode] by summing over cl_md_ic[index_mode] */
 	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 	      if (index_ic1 == index_ic2)
 		cl_md[index_mode][index_ct]+=cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct];
@@ -170,17 +200,15 @@ int spectra_cl_at_l(
 	  }
 	}
       }
+
+  /** C.3) add contribution of cl_md[index_mode] to cl_tot */
+
       for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
 	cl_tot[index_ct]+=cl_md[index_mode][index_ct];
     }
-
-    return _SUCCESS_;
-
   }
 
-  class_test(0 == 0,
-	     psp->error_message,
-	     "should never arrive here...");
+  return _SUCCESS_;
 
 }
 
@@ -222,8 +250,8 @@ int spectra_pk_at_z(
 		    struct spectra * psp,
 		    enum linear_or_logarithmic mode, 
 		    double z,
-		    double * output_tot, /* array with argument output_tot[index_k] (already allocated) */
-		    double * output_ic   /* array with argument output_tot[index_ic1_ic2 * psp->ln_k_size + index_k] (already allocated only if more than one initial condition) */
+		    double * output_tot, /* array with argument output_tot[index_k] (must be already allocated) */
+		    double * output_ic   /* array with argument output_tot[index_ic1_ic2 * psp->ln_k_size + index_k] (must be already allocated only if more than one initial condition) */
 		    ) {
 
   /** Summary: */
@@ -290,19 +318,20 @@ int spectra_pk_at_z(
 					  psp->error_message),
 		 psp->error_message,
 		 psp->error_message);
+
     }
     else {
       
-      class_call(array_interpolate_logspline(psp->ln_eta,
-					     psp->ln_eta_size,
-					     psp->ln_pk,
-					     psp->ddln_pk,
-					     psp->ic_ic_size[index_mode]*psp->ln_k_size,
-					     ln_eta,
-					     &last_index,
-					     output_ic,
-					     psp->ic_ic_size[index_mode]*psp->ln_k_size,
-					     psp->error_message),
+      class_call(array_interpolate_spline(psp->ln_eta,
+					  psp->ln_eta_size,
+					  psp->ln_pk,
+					  psp->ddln_pk,
+					  psp->ic_ic_size[index_mode]*psp->ln_k_size,
+					  ln_eta,
+					  &last_index,
+					  output_ic,
+					  psp->ic_ic_size[index_mode]*psp->ln_k_size,
+					  psp->error_message),
 		 psp->error_message,
 		 psp->error_message);
     }
@@ -321,10 +350,11 @@ int spectra_pk_at_z(
 	  }
 	  else {
 	    if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
-	      output_tot[index_k] += 2. * output_ic[index_ic1_ic2 * psp->ln_k_size + index_k]
-		*sqrt(exp(output_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])])
-		      *exp(output_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])]));
-	    }
+	      output_tot[index_k] += 
+		2. * output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] *
+		sqrt(exp(output_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]) * psp->ln_k_size + index_k]) *
+		     exp(output_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode]) * psp->ln_k_size + index_k]));
+	}
 	    else
 	      output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] = 0.;
 	  }
@@ -339,34 +369,47 @@ int spectra_pk_at_z(
   }
 
   /** - fourth step: depending on requested mode (linear or logarithmic), apply necessary transformation to the output arrays */
-  /**   (a.) linear mode: convert output_ic to linear format, output_tot is already in this format */
+
+  /**   (a.) linear mode: if only one initial condition, convert output_pk to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
 
   if (mode == linear) {
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-      for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
-	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]);
-	output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] = exp(output_ic[index_ic1_ic2 * psp->ln_k_size + index_k]);
+
+    if (psp->ic_size[index_mode] == 1) {
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+	output_tot[index_k] = exp(output_tot[index_k]); 
       }
-      for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
-	for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
-	  output_ic[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k] = 
-	    output_ic[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]
-	    *sqrt(output_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])* psp->ln_k_size + index_k] *
-		  output_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]);
+    }
+
+    else {
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+	for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]);
+	  output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] = exp(output_ic[index_ic1_ic2 * psp->ln_k_size + index_k]);
+	}
+	for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	  for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	    output_ic[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k] =
+	      output_ic[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]
+	      *sqrt(output_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])* psp->ln_k_size + index_k] *
+		    output_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]);
+	  }
 	}
       }
     }
   }
 
-  /**   (b.) logarithmic mode: convert output_tot to logarithmic format, output_ic is already in this format */
+  /**   (b.) logarithmic mode: if only one initial condition, nothing to be done; if several initial conditions, convert output_tot to logarithmic format, output_ic is already in this format */
 
   else {
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-      /* we have already checked above that output_tot was positive */
-      output_tot[index_k] = log(output_tot[index_k]); 
+
+    if (psp->ic_size[index_mode] > 1) {
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+	/* we have already checked above that output_tot was positive */
+	output_tot[index_k] = log(output_tot[index_k]); 
+      }
     }
   }
-	    
+  
   return _SUCCESS_;
 
 }
@@ -401,8 +444,8 @@ int spectra_pk_at_k_and_z(
 			  struct spectra * psp,
 			  double k,
 			  double z,
-			  double * pk_tot, /* pointer to a single number (already allocated) */
-			  double * pk_ic   /* array of argument pk_ic[index_ic1_ic2] (already allocated only if several initial conditions) */
+			  double * pk_tot, /* pointer to a single number (must be already allocated) */
+			  double * pk_ic   /* array of argument pk_ic[index_ic1_ic2] (must be already allocated only if several initial conditions) */
 			  ) {
 
   /** Summary: */
@@ -466,8 +509,8 @@ int spectra_pk_at_k_and_z(
       }
       class_call(spectra_pk_at_z(pba,
 				 psp,
-				 z,
 				 linear,
+				 z,
 				 spectrum_at_z,
 				 spectrum_at_z_ic),
 		 psp->error_message,
@@ -537,8 +580,8 @@ int spectra_pk_at_k_and_z(
     }
     class_call(spectra_pk_at_z(pba,
 			       psp,
-			       z,
 			       logarithmic,
+			       z,
 			       spectrum_at_z,
 			       spectrum_at_z_ic),
 	       psp->error_message,
@@ -649,22 +692,29 @@ int spectra_pk_at_k_and_z(
 	}
       }
     }
+
+    class_test(*pk_tot <= 0.,
+	       psp->error_message,
+	       "for k=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_total results negative",k);
+    
   }
 
   return _SUCCESS_;
 
 }
 
-
 /**
- * Computes the \f$ C_l^{X}, P(k), ... \f$'s
- *
- * @param ppt Input : Initialized perturbation structure
- * @param ptr Input : Initialized transfers structure
- * @param ppm Input : Initialized primordial structure
- * @param pcl Output : Initialized cls structure
+ * This routine initializes the spectra structure (in particular, 
+ * compute table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
+ * 
+ * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param ppt Input : pointer perturbation structure
+ * @param ptr Input : pointer to transfer structure
+ * @param ppm Input : pointer to primordial structure
+ * @param psp Output: pointer to initialized spectra structure
  * @return the error status
  */
+
 int spectra_init(
 		 struct background * pba,
 		 struct perturbs * ppt,
@@ -673,7 +723,11 @@ int spectra_init(
 		 struct spectra * psp
 		 ) {
 
-  if (ppt->has_perturbations == _FALSE_) {
+  /** Summary: */
+
+  /** - check that we really want to compute at least one spectrum */
+
+  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_)) {
     psp->md_size = 0;
     if (psp->spectra_verbose > 0)
       printf("No spectra requested. Spectra module skipped.\n");
@@ -684,11 +738,14 @@ int spectra_init(
       printf("Computing output spectra\n");
   }
 
+  /** - initialize indices and allocate some of the arrays in the 
+        spectra structure */
+
   class_call(spectra_indices(ppt,ptr,ppm,psp),
 	     psp->error_message,
 	     psp->error_message);
 
-  /** - deal with cl's, if any */
+  /** - deal with C_l's, if any */
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -701,7 +758,7 @@ int spectra_init(
     psp->ct_size=0;
   }
 
-  /** - deal with pk's, if any */
+  /** - deal with P(k)'s, if any */
 
   if (ppt->has_pk_matter == _TRUE_) {
 
@@ -715,6 +772,15 @@ int spectra_init(
 
   return _SUCCESS_;
 }
+
+/**
+ * This routine frees all the memory space allocated by spectra_init().
+ *
+ * To be called at the end of each run.
+ *
+ * @param psp Input: pointer to spectra structure (which fields must be freed)
+ * @return the error status
+ */
 
 int spectra_free(
 		 struct spectra * psp
@@ -759,6 +825,16 @@ int spectra_free(
   return _SUCCESS_;
  
 }
+
+/**
+ * This routine defines indices and allocates tables in the spectra structure 
+ *
+ * @param ppt  Input : pointer to perturbation structure
+ * @param ppt  Input : pointer to transfers structure
+ * @param ppt  Input : pointer to primordial structure
+ * @param ppm  Input/output: pointer to spectra structure 
+ * @return the error status
+ */
 
 int spectra_indices(
 		    struct perturbs * ppt,
@@ -868,6 +944,17 @@ int spectra_indices(
 
 }
 
+/**
+ * This routine computes a table of values for all harmonic spectra C_l's,
+ * given the transfer functions and primordial spectra.
+ * 
+ * @param ppt Input : pointer to perturbation structure
+ * @param ptr Input : pointer to transfers structure
+ * @param ppm Input : pointer to primordial structure
+ * @param psp Input/Output: pointer to spectra structure 
+ * @return the error status
+ */
+
 int spectra_cls(
 		struct perturbs * ppt,
 		struct transfers * ptr,
@@ -875,16 +962,20 @@ int spectra_cls(
 		struct spectra * psp
 		) {
 
+  /** Summary: */
+
   /** - define local variables */
-  int index_mode; /* index running over modes (scalar, tensor, ...) */
-  int index_ic1,index_ic2,index_ic1_ic2; /* index running over initial conditions */
-  int index_l;  /* multipoles */
+
+  int index_mode;
+  int index_ic1,index_ic2,index_ic1_ic2;
+  int index_l;
   int index_ct;
   int cl_integrand_num_columns;
-  double * cl_integrand;
-  double * transfer_ic1;
-  double * transfer_ic2;
-  double * primordial_pk;  /*pk[index_ic]*/
+
+  double * cl_integrand; /* array with argument cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct] */
+  double * transfer_ic1; /* array with argument transfer_ic1[index_tt] */
+  double * transfer_ic2; /* idem */
+  double * primordial_pk;  /* array with argument primordial_pk[index_ic_ic]*/
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
@@ -898,6 +989,8 @@ int spectra_cls(
   double tstart, tstop;
 #endif
 
+  /** - allocate pointers to arrays where results will be stored */
+
   class_alloc(psp->l_size,sizeof(int)*psp->md_size,psp->error_message);
   class_alloc(psp->l,sizeof(double *)*psp->md_size,psp->error_message);
   class_alloc(psp->l_max,sizeof(int)*psp->md_size,psp->error_message);
@@ -906,8 +999,11 @@ int spectra_cls(
 
   psp->l_max_tot=0;
 
-  /** - loop over modes (scalar, tensors, etc) */
+  /** - loop over modes (scalar, tensors, etc). For each mode: */
+
   for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+
+    /** - a) store values of l */
 
     psp->l_size[index_mode] = ptr->l_size[index_mode];
 
@@ -917,14 +1013,19 @@ int spectra_cls(
       psp->l[index_mode][index_l] = (double)ptr->l[index_mode][index_l];
     }
 
+    /** - b) allocate arrays where results will be stored */
+
     class_alloc(psp->cl[index_mode],sizeof(double)*psp->l_size[index_mode]*psp->ct_size*psp->ic_ic_size[index_mode],psp->error_message);
     class_alloc(psp->ddcl[index_mode],sizeof(double)*psp->l_size[index_mode]*psp->ct_size*psp->ic_ic_size[index_mode],psp->error_message);
     cl_integrand_num_columns = 1+psp->ct_size*2; /* one for k, ct_size for each type, ct_size for each second derivative of each type */
 
-    /* last multipole for each mode (given as an input) at which we trust our C_ls;
-       (l[index_mode][l_size[index_mode]-1] can be larger than l_max[index_mode], 
-       in order to ensure better interpolation with no boundary effects).
-       Compute also the max over all modes */
+    /** c) get from input the last multipole for each mode (given as an input) 
+	at which we trust our C_ls; this number 
+	(l[index_mode][l_size[index_mode]-1] can be larger than 
+	l_max[index_mode], 
+	in order to ensure better interpolation with no boundary effects).
+	Compute also the max over all modes */
+
     if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
       psp->l_max[index_mode] = ptr->l_scalar_max;
       if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
@@ -935,7 +1036,8 @@ int spectra_cls(
       if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
     }
 
-    /** - loop over initial conditions */
+    /** d) loop over initial conditions */
+
     for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
 	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
@@ -946,7 +1048,7 @@ int spectra_cls(
 	  /* initialize error management flag */
 	  abort = _FALSE_;
 
-	  /*** beginning of parallel region ***/
+	  /* beginning of parallel region */
 
 #pragma omp parallel							\
   shared(ptr,ppm,index_mode,psp,ppt,cl_integrand_num_columns,index_ic1,index_ic2,abort) \
@@ -976,7 +1078,11 @@ int spectra_cls(
 
 #pragma omp for schedule (dynamic)
 
-	    /** - loop over l values defined in the transfer module. For each l: */
+	    /** - loop over l values defined in the transfer module. 
+		For each l, compute the C_l's for all types (TT, TE, ...) 
+		by convolving primordial spectra with transfer  functions. 
+		This elementary task is assigned to spectra_compute_cl() */
+
 	    for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
 
 #pragma omp flush(abort)
@@ -1019,6 +1125,7 @@ int spectra_cls(
 
 	}
 	else {
+
           /* set non-diagonal coefficients to zero if pair of ic's uncorrelated */
 	
 	  for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
@@ -1031,6 +1138,10 @@ int spectra_cls(
 	}
       }
     }
+
+    /** - e) now that for a given mode, all possible C_l's have been computed, 
+	compute second derivative of the array in which they are stored, 
+	in view of spline interpolation. */
 
     class_call(array_spline_table_lines(psp->l[index_mode],
 					psp->l_size[index_mode],
@@ -1046,6 +1157,27 @@ int spectra_cls(
   return _SUCCESS_;
 
 }
+
+/**
+ * This routine computes the C_l's for a given mode, pair of initial conditions
+ * and multipole, but for all types (TT, TE...), by convolving the
+ * transfer functions with the primordial spectra.
+ * 
+ * @param ppt           Input : pointer to perturbation structure
+ * @param ptr           Input : pointer to transfers structure
+ * @param ppm           Input : pointer to primordial structure
+ * @param psp           Input/Output: pointer to spectra structure (result stored here)
+ * @param index_mode    Input : index of mode under consideration
+ * @param index_ic1     Input : index of first initial condition in the correlator
+ * @param index_ic2     Input : index of second initial condition in the correlato
+ * @param index_l       Input : index of multipole under consideration
+ * @param cl_integrand_num_column Input : number of columns in cl_integrand 
+ * @param cl_integrand  Input : an allocated workspace
+ * @param primordial_pk Input : table of primordial spectrum values
+ * @param transfer_ic1  Input : table of transfer function values for first initial condition
+ * @param transfer_ic2  Input : table of transfer function values for second initial condition
+ * @return the error status
+ */
 
 int spectra_compute_cl(
 		       struct perturbs * ppt,
@@ -1071,8 +1203,6 @@ int spectra_compute_cl(
   int nonzero;
   int index_ic1_ic2;
 
-  /* index value for the coefficients of the symmetric index_ic1*index_ic2 matrix; 
-     takes values between 0 and N(N+1)/2-1 with N=ppt->ic_size[index_mode] */
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 
   for (index_k=0; index_k < ptr->k_size[index_mode]; index_k++) {
@@ -1198,6 +1328,17 @@ int spectra_compute_cl(
 
 }
 
+/**
+ * This routine computes a table of values for all matter power spectra P(k),
+ * given the source functions and primordial spectra.
+ * 
+ * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param ppt Input : pointer to perturbation structure (contain source functions)
+ * @param ppm Input : pointer to primordial structure
+ * @param psp Input/Output: pointer to spectra structure 
+ * @return the error status
+ */
+
 int spectra_pk(
 	       struct background * pba,
 	       struct perturbs * ppt,
@@ -1205,17 +1346,23 @@ int spectra_pk(
 	       struct spectra * psp
 	       ) {
 
-  int index_mode; /* index running over modes (scalar, tensor, ...) */
-  int index_ic1,index_ic2,index_ic1_ic2; /* index running over initial conditions */
-  int index_k; /* index running over wavenumber */
-  int index_eta; /* index running over conformal time */
-  double * primordial_pk;  /*pk[index_ic]*/
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_mode;
+  int index_ic1,index_ic2,index_ic1_ic2;
+  int index_k;
+  int index_eta;
+  double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
   int last_index_back;
-  double * pvecback_sp_long;
+  double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
   double Omega_m;
   double eta_min;
   double source_g_ic1;
   double source_g_ic2;
+
+  /** - check the presence of scalar modes */
 
   class_test((ppt->has_scalars == _FALSE_),
 	     psp->error_message,
@@ -1224,10 +1371,16 @@ int spectra_pk(
   psp->index_md_scalars = ppt->index_md_scalars;
   index_mode = psp->index_md_scalars;
 
+  /** - check the maximum redshift z_max_pk at which P(k,z) should be 
+      computable by interpolation. If it is equal to zero, only P(k,z=0) 
+      needs to be computed. If it is higher, we will store in a table 
+      various P(k,eta) at several values of eta generously encompassing 
+      the range 0<z<z_max_pk */
+
   /* if z_max_pk<0, return error */
   class_test((psp->z_max_pk < 0),
 	     psp->error_message,
-	     "asked for z=%e. Code not designed to compute anything in the future...",psp->z_max_pk);
+	     "asked for negative redshift z=%e",psp->z_max_pk);
 
   /* if z_max_pk=0, there is just one value to store */
   if (psp->z_max_pk == 0.) {
@@ -1262,6 +1415,7 @@ int spectra_pk(
   }
 
   /** - allocate and fill table of eta values at which P(k,eta) is stored */
+
   class_alloc(psp->ln_eta,sizeof(double)*psp->ln_eta_size,psp->error_message);
 
   for (index_eta=0; index_eta<psp->ln_eta_size; index_eta++) {
@@ -1269,6 +1423,7 @@ int spectra_pk(
   }
 
   /** - allocate and fill table of k values at which P(k,eta) is stored */
+
   psp->ln_k_size = ppt->k_size[index_mode];
   class_alloc(psp->ln_k,sizeof(double)*psp->ln_k_size,psp->error_message);
 
@@ -1280,15 +1435,21 @@ int spectra_pk(
   }
 
   /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
+
   class_alloc(primordial_pk,psp->ic_ic_size[index_mode]*sizeof(double),psp->error_message);
   class_alloc(pvecback_sp_long,pba->bg_size*sizeof(double),psp->error_message);
 
   /** - allocate and fill array of P(k,eta) values */
+
   class_alloc(psp->ln_pk,sizeof(double)*psp->ln_eta_size*psp->ln_k_size*psp->ic_ic_size[index_mode],psp->error_message);
 
   for (index_eta=0 ; index_eta < psp->ln_eta_size; index_eta++) {
 
-    class_call(background_at_eta(pba,ppt->eta_sampling[index_eta-psp->ln_eta_size+ppt->eta_size], 
+    class_call(background_at_eta(pba,
+				 ppt->eta_sampling[index_eta-psp->ln_eta_size+ppt->eta_size], 
+    /* for this last argument we could have passed 
+       exp(psp->ln_eta[index_eta]) but we would then loose 
+       precision in the exp(log(x)) operation) */
 				 long_info, 
 				 normal, 
 				 &last_index_back, 
@@ -1319,7 +1480,8 @@ int spectra_pk(
 	 = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R> 
 	 = 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R> 
 
-	 For isocurvature or cross ad-iso parts, replace one or two R by S */
+	 For isocurvature or cross adiabatic-isocurvature parts, 
+	 replace one or two 'R' by 'S_i's */
 
       /* part diagonal in initial conditions */
       for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
@@ -1364,8 +1526,9 @@ int spectra_pk(
     }
   }
 
-  /* if interpolation of P(k,eta) needed (as a function of eta), spline
-     the table */  
+  /**- if interpolation of P(k,eta) will be needed (as a function of eta), 
+     compute array of second derivatives in view of spline interpolation */  
+ 
   if (psp->ln_eta_size > 1) {
 
     class_alloc(psp->ddln_pk,sizeof(double)*psp->ln_eta_size*psp->ln_k_size*psp->ic_ic_size[index_mode],psp->error_message);

@@ -68,6 +68,15 @@ int parser_read_string(
 		       ErrorMsg errmsg
 		       );
 
+int parser_read_list_of_doubles(
+				struct file_content * pfc,
+				char * name,
+				int * size,
+				double ** pointer_to_list,
+				int * found,
+				ErrorMsg errmsg
+				);
+
 int parser_cat(
 	       struct file_content * pfc1,
 	       struct file_content * pfc2,

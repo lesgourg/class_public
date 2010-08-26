@@ -5,45 +5,30 @@
 
 #include "spectra.h"
 
+/**
+ * Structure containing various informations on the output format, 
+ * initialized in input_init() in the input module
+ *
+ */
+
 struct output {
 
-  FileArg cl;
-  FileArg cls;
-  FileArg clt;
-  FileArg cls_ad;
-  FileArg cls_bi;
-  FileArg cls_cdi;
-  FileArg cls_nid;
-  FileArg cls_niv;
-  FileArg cls_ad_bi;
-  FileArg cls_ad_cdi;
-  FileArg cls_ad_nid;
-  FileArg cls_ad_niv;
-  FileArg cls_bi_cdi;
-  FileArg cls_bi_nid;
-  FileArg cls_bi_niv;
-  FileArg cls_cdi_nid;
-  FileArg cls_cdi_niv;
-  FileArg cls_nid_niv;
+   /** @name - root for all file names */
 
-  FileArg pk;
-  FileArg pk_ad;
-  FileArg pk_bi;
-  FileArg pk_cdi;
-  FileArg pk_nid;
-  FileArg pk_niv;
-  FileArg pk_ad_bi;
-  FileArg pk_ad_cdi;
-  FileArg pk_ad_nid;
-  FileArg pk_ad_niv;
-  FileArg pk_bi_cdi;
-  FileArg pk_bi_nid;
-  FileArg pk_bi_niv;
-  FileArg pk_cdi_nid;
-  FileArg pk_cdi_niv;
-  FileArg pk_nid_niv;
+  //@{
 
-  double z_pk;
+  FileArg root;
+
+  //@}
+
+  /** @name - number and value(s) of redshift at which P(k,z) should be written */
+
+  //@{
+
+  double z_pk_num;
+  double * z_pk;
+
+  //@}
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 

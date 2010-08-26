@@ -1,4 +1,4 @@
-/** @file primordial.c primordial module
+/** @file primordial.c Documented primordial module
  *
  * Julien Lesgourgues, 24.08.2010    
  *
@@ -54,7 +54,7 @@ int primordial_spectrum_at_k(
 			     int index_mode,
 			     enum linear_or_logarithmic mode, 
 			     double input,  
-			     double * output /* array with argument output[index_ic1_ic2] (already allocated) */
+			     double * output /* array with argument output[index_ic1_ic2] (must be already allocated) */
 			     ) {
 
   /** Summary: */
@@ -197,9 +197,10 @@ int primordial_init(
   int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_k;
   double lnpk,pk,pk1,pk2;
 
-  ppm->lnk_size=0;
+  /** - check that we really need to compute the primordial spectra */
 
   if (ppt->has_perturbations == _FALSE_) {
+    ppm->lnk_size=0;
     if (ppm->primordial_verbose > 0)
       printf("No perturbations requested. Primordial module skipped.\n");
     return _SUCCESS_;
