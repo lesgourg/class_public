@@ -1,5 +1,9 @@
-/** @file class.c 
- * Julien Lesgourgues, 20.04.2010    
+/** @file test_spectra.c
+ * 
+ * Julien Lesgourgues, 26.08.2010
+ *
+ * main intended for computing power spectra, not using the output module.
+ *     
  */
  
 #include "class.h"
@@ -58,26 +62,29 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  /****** ouput Cls or P(k) ******/
+  /****** output Cls ******/
 
   int index_mode=0;
   int index_ic1_ic2=0;
-
-/*   int index_ct=0; */
-/*   int index_l; */
+  int index_ct=0;
+  int index_l;
   
-/*   for (index_l=0; index_l < sp.l_size[index_mode]; index_l++)   */
-/*     printf("%g %g\n", */
-/* 	   sp.l[index_mode][index_l], */
-/* 	   sp.cl[index_mode][(index_l * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ct_size + index_ct]); */
-	   
-  int index_eta = sp.eta_size-1;
+  for (index_l=0; index_l < sp.l_size[index_mode]; index_l++)
+    printf("%g %g\n",
+	   sp.l[index_mode][index_l],
+	   sp.cl[index_mode][(index_l * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ct_size + index_ct]);
+  
+  /****** output P(k) ******/
+
+/*   int index_mode=0; */
+/*   int index_ic1_ic2=0; */
+  int index_eta = sp.ln_eta_size-1;
   int index_k;
   
-  for (index_k=0; index_k < sp.k_size; index_k++)  
+  for (index_k=0; index_k < sp.ln_k_size; index_k++)  
     printf("%g %g\n",
-	   sp.k[index_k],
-	   sp.pk[(index_eta * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.k_size + index_k]);
+	   sp.ln_k[index_k],
+	   sp.ln_pk[(index_eta * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ln_k_size + index_k]);
 
 
   if (primordial_free(&pm) == _FAILURE_) {

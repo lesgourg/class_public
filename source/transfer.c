@@ -1,5 +1,6 @@
 /** @file transfer.c Documented transfer module.
- * Julien Lesgourgues, 18.04.2010    
+ *
+ * Julien Lesgourgues, 26.08.2010    
  *
  * This module has two purposes: 
  *
@@ -13,30 +14,34 @@
  *
  * Hence the following functions can be called from other modules:
  *
- * -# transfer_init() at the beginning (but after background_init(), thermodynamics_init() and perturb_init())
+ * -# transfer_init() at the beginning (but after perturb_init() and bessel_init())
  * -# transfer_functions_at_k() at any later time 
  * -# transfer_free() at the end, when no more calls to transfer_functions_at_k() are needed
+ * 
+ * Note that in the standard implementation of CLASS, only the pre-computed 
+ * values of the transfer functions are used, no interpolation is necessary; 
+ * hence the routine transfer_functions_at_k() is actually never called.
  */
 
 #include "transfer.h"
 
-/** Transfer function \f$ \Delta_l^{X} (k) \f$ at a given wavenumber k.
+/** 
+ * Transfer function \f$ \Delta_l^{X} (k) \f$ at a given wavenumber k.
  *
  * For a given mode (scalar, vector, tensor), initial condition, type
  * (temperature, polarization, lensing, etc) and multipole, compute
  * the transfer function for an arbitary value of k by interpolating
- * between pre-computed values of k. Output the result as a
- * two-dimensional vector pvectransfer_local = (k, transfer). This
+ * between pre-computed values of k. This
  * function can be called from whatever module at whatever time,
  * provided that transfer_init() has been called before, and
  * transfer_free() has not been called yet.
  *
  * @param index_mode Input: index of requested mode
- * @param index_ic Input: index of requested initial condition
- * @param index_tt Input: index of requested type
- * @param index_l Input: index of requested multipole
- * @param k Input: any wavenumber
- * @param ptransfer_local Output: transfer function
+ * @param index_ic   Input: index of requested initial condition
+ * @param index_tt   Input: index of requested type
+ * @param index_l    Input: index of requested multipole
+ * @param k          Input: any wavenumber
+ * @param transfer_function Output: transfer function
  * @return the error status
  */
 int transfer_functions_at_k(
@@ -46,7 +51,7 @@ int transfer_functions_at_k(
 			    int index_tt,
 			    int index_l,
 			    double k,
-			    double * ptransfer_local 
+			    double * transfer_function
 			    ) {
   /** Summary: */
 
@@ -61,7 +66,7 @@ int transfer_functions_at_k(
 				   1,
 				   ptr->k_size[index_mode],
 				   k,
-				   ptransfer_local,
+				   transfer_function,
 				   1,
 				   ptr->error_message),
 	     ptr->error_message,
@@ -155,8 +160,7 @@ int transfer_init(
 
 #endif
 
-  /** check whether any spectrum in harmonic space (i.e., any C_l's) is actually requested; 
-      if not, set ptr->tt_size to NULL (so that it can be used as a flag) and skip module */
+  /** check whether any spectrum in harmonic space (i.e., any C_l's) is actually requested */
 
   if (ppt->has_cls == _FALSE_) {
     ptr->has_cls = _FALSE_;
@@ -209,20 +213,20 @@ int transfer_init(
 #endif
 
     index = 0;
-    ptw->trans_int_eta = index;
+    ptw->index_ti_eta = index;
     index++;
-    ptw->trans_int_y = index;
+    ptw->index_ti_y = index;
     index++;
-    ptw->trans_int_ddy = index;
+    ptw->index_ti_ddy = index;
     index++;
-    ptw->trans_int_col_num = index;
+    ptw->ti_size = index;
 
     class_alloc_parallel(ptw->trans_int,
-			 sizeof(double) * ppt->eta_size * ptw->trans_int_col_num,
+			 sizeof(double) * ppt->eta_size * ptw->ti_size,
 			 ptr->error_message);
     
     for (index=0; index < ppt->eta_size; index++)
-      ptw->trans_int[ptw->trans_int_col_num*index+ptw->trans_int_eta] = ppt->eta_sampling[index];
+      ptw->trans_int[ptw->ti_size*index+ptw->index_ti_eta] = ppt->eta_sampling[index];
     
   }  /* end of parallel region */
 
@@ -1035,7 +1039,7 @@ int transfer_integrate(
 	       pbs->error_message,
 	       ptr->error_message);
 
-    ptw->trans_int[ptw->trans_int_col_num*index_eta+ptw->trans_int_y]= 
+    ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_y]= 
       interpolated_sources[index_k * ppt->eta_size + index_eta]*bessel;
 
     /* for debugging */
@@ -1053,11 +1057,11 @@ int transfer_integrate(
   /** (d) spline the integrand: */
 
   class_call(array_spline(ptw->trans_int,
-			  ptw->trans_int_col_num,
+			  ptw->ti_size,
 			  index_eta_max+1,
-			  ptw->trans_int_eta,
-			  ptw->trans_int_y,
-			  ptw->trans_int_ddy,
+			  ptw->index_ti_eta,
+			  ptw->index_ti_y,
+			  ptw->index_ti_ddy,
 			  _SPLINE_EST_DERIV_,
 			  ptr->error_message),
 	     ptr->error_message,
@@ -1066,11 +1070,11 @@ int transfer_integrate(
   /** (e) integrate: */
 
   class_call(array_integrate_all_spline(ptw->trans_int,
-					ptw->trans_int_col_num,
+					ptw->ti_size,
 					index_eta_max+1,
-					ptw->trans_int_eta,
-					ptw->trans_int_y,
-					ptw->trans_int_ddy,
+					ptw->index_ti_eta,
+					ptw->index_ti_y,
+					ptw->index_ti_ddy,
 					trsf,
 					ptr->error_message),
 	     ptr->error_message,
@@ -1078,7 +1082,7 @@ int transfer_integrate(
 
   /** (f) correct for last piece of integral (up to point where bessel vanishes) */
   *trsf += (eta_max_bessel-ppt->eta_sampling[index_eta_max])
-    * ptw->trans_int[ptw->trans_int_col_num*index_eta_max+ptw->trans_int_y]/2.;
+    * ptw->trans_int[ptw->ti_size*index_eta_max+ptw->index_ti_y]/2.;
 
   /** (g) extra factors for polarization, lensing, tensors.. */
 

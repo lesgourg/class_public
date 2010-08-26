@@ -1,4 +1,4 @@
-/** @file primordial.c Documented primordial module
+/** @file primordial.c Documented primordial module.
  *
  * Julien Lesgourgues, 24.08.2010    
  *

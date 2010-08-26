@@ -1,4 +1,4 @@
-/** @file transfer.h Documented includes for transfer module */
+/** @file transfer.h Documented includes for transfer module. */
 
 #ifndef __TRANSFER__
 #define __TRANSFER__
@@ -6,35 +6,69 @@
 #include "bessel.h"
 
 /**
- * All tables of transfer functions \f$ \Delta_l^{X} (k) \f$.
+ * Structure containing everything about transfer functions in harmonic space \f$ \Delta_l^{X} (k) \f$ that other modules need to know.
  *
  * Once initialized by transfer_init(), contains all tables of
  * transfer functions used for interpolation in other modules, for all
  * requested modes (scalar/vector/tensor), initial conditions, type
- * (temperature, polarization, etc), l and k.
+ * (temperature, polarization, etc), multipole l and wavenumber k.
  */
+
 struct transfers {
 
+  /** @name - flag stating whether we need transfer functions at all */
+
+  //@{
+
   short has_cls; /**< copy of same flag in perturbation structure */
+
+  //@}
+
+  /** @name - number of modes and transfer function types */
+
+  //@{
+
+  int md_size;       /**< number of modes included in computation */
+
+  int index_tt_t;    /**< index for transfer type = temperature */
+  int index_tt_e;    /**< index for transfer type = E-polarization */
+  int index_tt_b;    /**< index for transfer type = B-polarization */
+  int index_tt_lcmb; /**< index for transfer type = CMB lensing */
+
+  int * tt_size;     /**< number of requested transfer types tt_size[index_mode] for each mode */
+
+  //@}
+
+  /** @name - number and list of multipoles */
+
+  //@{
 
   int l_scalar_max; /**< maximum l value for scalars (must be <= l_max) */
   int l_tensor_max; /**< maximum l value for tensors (must be <= l_max) */
 
-  int md_size; /**< number of modes included in computation */
-
-  int index_tt_t; /**< index for transfer type = temperature */
-  int index_tt_e; /**< index for transfer type = E-polarization */
-  int index_tt_b; /**< index for transfer type = B-polarization */
-  int index_tt_lcmb; /**< index for transfer type = CMB lensing */
-  int * tt_size;    /**< number of requested transfer types tt_size[index_mode] for each mode (set to NULL if no transfer functions requested) */
-
   int * l_size; /**< number of multipole values for each requested mode, l_size[index_mode] */
-  int ** l; /**< list of multipole values for each requested mode, (l[index_mode])[index_l] */
+
+  int ** l;     /**< list of multipole values for each requested mode, l[index_mode][index_l] */
+
+  //@}
+
+  /** @name - number and list of wavenumbers */
+
+  //@{
 
   int * k_size; /**< number of wavenumber values for each requested mode, k_size[index_mode] */
-  double ** k; /**< list of wavenumber values for each requested mode, (k[index_mode])[index_k] */
 
-  double ** transfer; /**< table of transfer functions for each mode, initial condition and type, (transfer[index_mode])[index_ic][index_type][index_l][index_k] */
+  double ** k;  /**< list of wavenumber values for each requested mode, k[index_mode][index_k] */
+
+  //@}
+
+  /** @name - transfer functions */
+
+  //@{
+
+  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt) * ptr->l_size[index_mode] + index_l) * ptr->k_size[index_mode] + index_k] */
+
+  //@}
 
   /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
 
@@ -48,18 +82,23 @@ struct transfers {
 };
 
 /**
- * Workspace for transfer computation. Contains a
- * table of integrand of transfer function, together with their second
- * derivatives for spline interpolation:
+ * A workspace for each transfer function computation. 
+ *
+ * Will contain tabulated values of conformal time, 
+ * of the integrand of each transfer function, 
+ * and of its second derivative with respect to time, 
+ * in view of for spline interpolation:
  */
+
 struct transfer_workspace {
 
-double * trans_int; /* table of integrand \f$ S(k,\eta)*j_l[k(\eta_0-\eta)] \f$ as a function of \f$ \eta \f%, as well as its splined second derivative */
+  double * trans_int; /* array of argument trans_int[index_eta*ptw->ti_size+index_ti] */
 
-int trans_int_eta; /* index of column for time */
-int trans_int_y; /* index of column for integrand */
-int trans_int_ddy; /* index of column for secoind derivative of integrand */
-int trans_int_col_num; /* it number of columns */
+int index_ti_eta; /* index of column for time */
+int index_ti_y;   /* index of column for integrand */
+int index_ti_ddy; /* index of column for second derivative of integrand */
+
+int ti_size; /* number of columns in trans_int */
 };
 
 /*************************************************************************************************************/
@@ -162,29 +201,20 @@ extern "C" {
 			 double * trsf
 			 );
     
-int transfer_limber(
-		    struct perturbs * ppt,
-		    struct transfers * ptr,
-		    double eta0,
-		    int index_mode,
-		    int index_tt,
-		    int index_l,
-		    int index_k,
-		    double * interpolated_sources,
-		    double * trsf
-		    );
-
+  int transfer_limber(
+		      struct perturbs * ppt,
+		      struct transfers * ptr,
+		      double eta0,
+		      int index_mode,
+		      int index_tt,
+		      int index_l,
+		      int index_k,
+		      double * interpolated_sources,
+		      double * trsf
+		      );
+  
 #ifdef __cplusplus
 }
 #endif
-
-/**  
- * @name Constants
- */
-
-//@{
-
-
-//@}
 
 #endif
