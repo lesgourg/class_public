@@ -1458,11 +1458,6 @@ int spectra_pk(
 	       pba->error_message,
 	       psp->error_message);
 
-    Omega_m = pvecback_sp_long[pba->index_bg_Omega_b];
-    if (pba->has_cdm == _TRUE_) {
-      Omega_m += pvecback_sp_long[pba->index_bg_Omega_cdm];
-    }
-
     for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
       class_call(primordial_spectrum_at_k(ppm,index_mode,logarithmic,psp->ln_k[index_k],primordial_pk),
@@ -1494,7 +1489,9 @@ int spectra_pk(
 	  [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	
 	psp->ln_pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ln_k_size + index_k] =
-	  log(8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)/pow(Omega_m,2)*exp(psp->ln_k[index_k])
+	  log(8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)
+	      /pow(pvecback_sp_long[pba->index_bg_Omega_m],2)
+	      *exp(psp->ln_k[index_k])
 	      /pow(pvecback_sp_long[pba->index_bg_a],4)
 	      *exp(primordial_pk[index_ic1_ic2])*source_g_ic1*source_g_ic1);
       }

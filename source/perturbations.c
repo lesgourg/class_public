@@ -1222,7 +1222,7 @@ int perturb_workspace_init(
 
   class_alloc(ppw->pvecperturbations,ppw->pt_size * sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecderivs,ppw->pt_size * sizeof(double),ppt->error_message);
-  class_alloc(ppw->pvecback,pba->bg_size_short*sizeof(double),ppt->error_message);
+  class_alloc(ppw->pvecback,pba->bg_size_normal*sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecthermo,pth->th_size*sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecmetric,ppw->mt_size*sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecsource_terms,ppw->st_size * ppt->tp_size[index_mode] * sizeof(double),ppt->error_message);
@@ -1948,7 +1948,7 @@ int perturb_timescale_and_approximations(
   eta_k = 1./k;
 
   /** - evaluate background quantities with background_at_eta() and Hubble time scale \f$ \eta_h = a/a' \f$ */
-  class_call(background_at_eta(pba,eta, short_info, intermode, ppw->last_index_back, ppw->pvecback),
+  class_call(background_at_eta(pba,eta, normal_info, intermode, ppw->last_index_back, ppw->pvecback),
 	     pba->error_message,
 	     ppt->error_message);
 
@@ -2627,7 +2627,7 @@ int perturb_derivs(double eta,       /**< Input : conformal time */
 
   class_call(background_at_eta(pba,
 			       eta, 
-			       short_info, 
+			       normal_info, 
 			       closeby, 
 			       ppw->last_index_back, 
 			       pvecback),

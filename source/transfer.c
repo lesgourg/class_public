@@ -106,7 +106,7 @@ int transfer_functions_at_k(
  * @param pth Input : pointer to thermodynamics structure 
  * @param ppt Input : pointer to perturbation structure
  * @param pbs Input : pointer to bessels structure
- * @param ptr_output Output : pointer to initialized transfers structure
+ * @param ptr Output: pointer to initialized transfers structure
  * @return the error status
  */
 

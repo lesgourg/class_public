@@ -1,50 +1,107 @@
 /** @file background.c Documented background module
- * Julien Lesgourgues, 18.04.2010    
  *
- * Deals with the cosmological background evolution issues.
+ * Julien Lesgourgues, 27.08.2010    
+ *
+ * Deals with the cosmological background evolution.
  * This module has two purposes: 
  *
  * - at the beginning, to initialize the background, i.e. to integrate
-     the background equations, and store all background quantities
-     as a function of time and scale factor, inside an interpolation
-     table.
+ *    the background equations, and store all background quantities
+ *    as a function of conformal time inside an interpolation table.
  *
- * - at any time in the code, to evaluate any background quantity for
-     a given value of the scale factor, redshift or conformal time (by
-     interpolating within the interpolation table).
+ * - to provide routines which allow to evaluate any background
+ *    quantity for a given value of the conformal time (by
+ *    interpolating within the interpolation table), or to find the
+ *    correspondance between redhsift and conformal time.
  *
- * Hence the following functions can be called from other modules:
+ *
+ * The overall logic in this module is the following: 
+ *
+ * 1. most background parameters that we will call {A}
+ * (e.g. rho_gamma, ..) can be expressed as simple analytical
+ * functions of a few variables that we will call {B} (in simplest
+ * models, of the scale factor 'a'; in extended cosmologies, of 'a'
+ * plus e.g. (phi, phidot) for quintessence, or some temperature for
+ * exotic particles, etc...).
+ *
+ * 2. in turn, quantitites {B} can be found as a function of conformal
+ * time by integrating the background equations.
+ * 
+ * 3. some other quantitites that we will call {C} (like e.g. the
+ * sound horizon or proper time) also require an integration with
+ * respect to time, that cannot be infered analytically from
+ * parameters {B}.
+ *
+ * So, we define the following routines:
+ *
+ * - background_functions() returns all background
+ *    quantitites {A} as a function of quantitites {B}.
+ * 
+ * - background_solve() integrates the quantities {B} and {C} with
+ *    respect to conformal time; this integration requires many calls
+ *    to background_functions().
+ *
+ * - the result is stored in the form of a big table in the background
+ *    structure. There is one column for conformal time 'eta'; one or
+ *    more for quantitites {B}; then several columns for quantities {A}
+ *    and {C}.
+ *
+ * Later in the code, if we know the variables {B} and need some
+ * quantity {A}, the quickest and most procise way is to call directly
+ * background_functions() (for instance, in simple models, if we want
+ * H at a given value of the scale factor). If we know 'eta' and want
+ * any other qunatity, we can call background_at_eta(), which
+ * interpolates in the table and returns all values. Finally it can be
+ * useful to get 'eta' for a given redshift 'z': this can be done with
+ * background_eta_of_z(). So, in principle, if we know z, calling
+ * background_eta_of_z() and then background_at_eta() will provide
+ * roughly the same information as calling directly
+ * background_functions() with a=a_0/(1+z).
+ *
+ *
+ * In order to save time, background_at_eta() can be called in three
+ * modes: short_info, normal_info, long_info (returning only essential
+ * quantities, or useful quantitites, or rarely useful
+ * quantities). Each line in the interpolation table is a vector which
+ * first few elements correspond to the short_info format; a larger
+ * fraction contribute to the normal format; and the full vector
+ * corresponds to the long format. The guideline is that short_info
+ * returns only geometric quantitites like a, H, H'; normal format
+ * returns quantities strictly needed at each step in the integration
+ * of perturbations; long_info returns quantitites needed only
+ * occasionally.
+ *
+ * In summary, the following functions can be called from other modules:
  *
  * -# background_init() at the beginning  
- * -# background_at_eta(), background_functions_of_a(), background_eta_of_z() at any later time
+ * -# background_at_eta(), background_functions(), background_eta_of_z() at any later time
  * -# background_free() at the end, when no more calls to the previous functions are needed
  */
 
 #include "background.h"
 
-  /**
-   * Background quantities at given conformal time eta.
-   *
-  * Evaluates all background quantities at a given value of
-  * conformal time by reading the pre-computed table ant interpolating.
-  * This function can be called from whatever module at whatever time,
-  * provided that background_init() has been called before, and 
-  * background_free() has not been called yet.
-  *
-  * @param eta Input: value of conformal time
-  * @param return_format Input: format of output vector
-  * @param intermode Input: interpolation mode (normal or growing_closeby)
-  * @param last_index Input/Ouput: index of the previous/current point in the interpolation array (input only for closeby mode, output for both) 
-  * @param pvecback Output: vector (assumed to be already allocated)
-  * @return the error status
-  */
+/**
+ * Background quantities at given conformal time eta.
+ *
+ * Evaluates all background quantities at a given value of
+ * conformal time by reading the pre-computed table ant interpolating.
+ *
+ * @param pba           Input: pointer to background structure
+ * @param eta           Input: value of conformal time
+ * @param return_format Input: format of output vector (short, normal, long)
+ * @param intermode     Input: interpolation mode (normal or closeby)
+ * @param last_index    Input/Ouput: index of the previous/current point in the interpolation array (input only for closeby mode, output for both) 
+ * @param pvecback      Output: vector (assumed to be already allocated)
+ * @return the error status
+ */
+
 int background_at_eta(
 		      struct background *pba,
 		      double eta,
 		      enum format_info return_format,
 		      enum interpolation_mode intermode,
 		      int * last_index,
-		      double * pvecback
+		      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
 		      ) {
 
   /** Summary: */
@@ -66,14 +123,21 @@ int background_at_eta(
 
   /** - deduce length of returned vector from format mode */ 
 
-  if (return_format == long_info) {
-    pvecback_size=pba->bg_size;
+  if (return_format == normal__info) {
+    pvecback_size=pba->bg_size_normal;
   }
-  else { 
-    pvecback_size=pba->bg_size_short;
+  else {
+    if (return_format == normalshort_info) {
+      pvecback_size=pba->bg_size_short;
+    }
+    else { 
+      pvecback_size=pba->bg_size;
+    }
   }
 
-  /** - interpolate from pre-computed table with array_interpolate() or array_interpolate_growing_closeby() (depending on interpolation mode) */
+  /** - interpolate from pre-computed table with array_interpolate()
+      or array_interpolate_growing_closeby() (depending on
+      interpolation mode) */
 
   if (intermode == normal) {
     class_call(array_interpolate_spline(
@@ -110,22 +174,21 @@ int background_at_eta(
 }
 
 /** 
-  * Conformal time at given redhsift.
-  *
-  * Returns eta(z) by interpolation from pre-computed table.
-  * This function can be called from whatever module at whatever time,
-  * provided that background_init() has been called before, and 
-  * background_free() has not been called yet.
-  *
-  * @param z Input: redshift
-  * @param eta Output: conformal time
-  * @return the error status
-  */
+ * Conformal time at given redhsift.
+ *
+ * Returns eta(z) by interpolation from pre-computed table.
+ *
+ * @param pba Input: pointer to background structure
+ * @param z   Input: redshift
+ * @param eta Output: conformal time
+ * @return the error status
+ */
+
 int background_eta_of_z(
 			struct background *pba,
 			double z,
 			double * eta
-		      ) {
+			) {
 
   /** Summary: */
 
@@ -133,8 +196,8 @@ int background_eta_of_z(
 
   /* scale factor */
   double a; 
-
-  int last_index; /* necessary for calling array_interpolate(), but never used */
+  /* necessary for calling array_interpolate(), but never used */
+  int last_index; 
 
   /** - check that \f$ z \f$ is in the pre-computed range */
   class_test(z < pba->z_table[pba->bt_size-1],
@@ -163,30 +226,30 @@ int background_eta_of_z(
   return _SUCCESS_;
 }
 
-  /**
-   * Background quantities at given a.
-   *
-  * Function evaluating all background quantities which can be
-  * computed analytically as a function of a. Hence, it does not
-  * interpolate within the table, and it does not return the variables
-  * which require a time integration. In particular, it cannot provide
-  * the time as a function of a: for this purpose one should call
-  * background_eta_of_z().  This function can be called at any time,
-  * even before background_init().  It is called at each step of
-  * integration by background_solve() and background_derivs().
-  *
-  * @param a Input: value of scale factor 
-  * @param return_format Input: format of output vector 
-  * @param pvecback Output: vector of background quantities (assmued to be already allocated) 
-  * @return the error status
-  */
-int background_functions_of_a(
-			      struct background *pba,
-			      double a,
-			      enum format_info return_format,
-			      double * pvecback
-			      ) {
+/**
+ * Background quantities at given a.
+ *
+ * Function evaluating all background quantities which can be computed
+ * analytically as a function of parameters like the scale factor 'a'
+ * (see discussion at the beginnign of this file). In extended
+ * comsological models, we would include other input parameters than
+ * just 'a', e.g. (phi, phidot) for quintessence, some temperature of
+ * exotic relics, etc...
+ *
+ * @param pba           Input: pointer to background structure
+ * @param a             Input: value of scale factor 
+ * @param return_format Input: format of output vector 
+ * @param pvecback      Output: vector of background quantities (assmued to be already allocated) 
+ * @return the error status
+ */
 
+int background_functions(
+			 struct background *pba,
+			 double a, /* in extended models there could be more than one argument: phi, phidot of quintessence; temperature of some particles; etc. */
+			 enum format_info return_format,
+			 double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
+			 ) {
+  
   /** Summary: */
 
   /** - define local variables */
@@ -197,6 +260,8 @@ int background_functions_of_a(
   double p_tot;
   /* total relativistic density */
   double rho_r;
+  /* total non-relativistic density */
+  double rho_m;
   /* scale factor relative to scale factor today */
   double a_rel;
 
@@ -204,6 +269,7 @@ int background_functions_of_a(
   rho_tot = 0.;
   p_tot = 0.;
   rho_r=0.;
+  rho_m=0.;
   a_rel = a / pba->a_today;
 
   class_test(a_rel <= 0.,
@@ -225,12 +291,14 @@ int background_functions_of_a(
   pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a_rel,3);
   rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
+  rho_m += pvecback[pba->index_bg_rho_b];
 
   /* cdm */
   if (pba->has_cdm == _TRUE_) {
     pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a_rel,3);
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
+    rho_m += pvecback[pba->index_bg_rho_cdm];
   }
 
   /* Lambda */
@@ -255,14 +323,14 @@ int background_functions_of_a(
     rho_r += pvecback[pba->index_bg_rho_nur];
   }
 
-  /** - compute relativistic density to total density ratio */
-  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
-
   /** - compute expansion rate H from Friedmann equation */
   pvecback[pba->index_bg_H] = sqrt(rho_tot);
 
   /** - compute derivative of H with respect to conformal time */
   pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a;
+
+  /** - compute relativistic density to total density ratio */
+  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
 
   /** - compute other quantities in the exhaustive, redundent format: */
   if (return_format == long_info) {
@@ -275,22 +343,8 @@ int background_functions_of_a(
 
     /** - compute Omega's */
 
-    /* photons */
-    pvecback[pba->index_bg_Omega_g] = pvecback[pba->index_bg_rho_g] / pvecback[pba->index_bg_rho_crit];
-    /* baryons */
-    pvecback[pba->index_bg_Omega_b] = pvecback[pba->index_bg_rho_b] / pvecback[pba->index_bg_rho_crit];
-    /* cdm */
-    if (pba->has_cdm == _TRUE_)
-      pvecback[pba->index_bg_Omega_cdm] = pvecback[pba->index_bg_rho_cdm] / pvecback[pba->index_bg_rho_crit];
-    /* Lambda */
-    if (pba->has_lambda == _TRUE_)
-      pvecback[pba->index_bg_Omega_lambda] = pvecback[pba->index_bg_rho_lambda] / pvecback[pba->index_bg_rho_crit];
-    /* dark energy fluid with constant w */
-    if (pba->has_dark_energy_fluid == _TRUE_)
-      pvecback[pba->index_bg_Omega_de] = pvecback[pba->index_bg_rho_de] / pvecback[pba->index_bg_rho_crit];
-    /* relativistic neutrinos */
-    if (pba->has_nur == _TRUE_)
-      pvecback[pba->index_bg_Omega_nur] = pvecback[pba->index_bg_rho_nur] / pvecback[pba->index_bg_rho_crit];
+    /** - compute relativistic density to total density ratio */
+    pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
     
     /* one can put other variables here */
     /*  */
@@ -303,25 +357,18 @@ int background_functions_of_a(
 }
 
 /** 
-  * Initialize the cosmo structure, including interpolation table.
-  * 
-  * Reads the cosmological parameters and initialize all fields in the
-  * structure cosmo, in particular:
-  *
-  * - initializes all indices given the list of cosmological ingredients
-  *
-  * - integrates the background equations (Friedmann, ...) and initializes the background interpolation table.
-  *
-  * This function shall be called at the beginning of each run. It allocates memory spaces which should be freed later with background_free().
-  *
-  * @param ppr Input : Parameters describing how the computation is to be performed
-  * @param pba Output : Initialized background structure
-  * @return the error status
-  */
+ * Initialize the background structure, and in particular the
+ * background interpolation table.
+ * 
+ * @param ppr Input : pointer to precision structure
+ * @param pba Input/Output : pointer to initialized background structure
+ * @return the error status
+ */
+
 int background_init(
-  struct precision * ppr,
-  struct background * pba
-  ) {
+		    struct precision * ppr,
+		    struct background * pba
+		    ) {
 
   /** Summary: */
 
@@ -341,8 +388,8 @@ int background_init(
 
   /* H0 in Mpc^{-1} */
   class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
-    pba->error_message,
-    "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
+	     pba->error_message,
+	     "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
 
   class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
 	     pba->error_message,
@@ -384,15 +431,14 @@ int background_init(
 
 }
 
- /**
- * Free all memory space allocated by background_init() for the
- * background table.
+/**
+ * Free all memory space allocated by background_init().
  * 
- * To be called at the end of each run, only when no further calls to
- * background_at_eta() or  background_eta_of_z() are needed. 
  *
+ * @param pba Input : pointer to background structure
  * @return the error status
  */
+
 int background_free(
 		    struct background *pba
 		    ) {
@@ -409,10 +455,10 @@ int background_free(
 /**
  * Assign value to each relevant index in vectors of background quantities.
  *
- * Called once by background_init().
- *
+ * @param pba Input : pointer to background structure
  * @return the error status
  */
+
 int background_indices(
 		       struct background *pba
 		       ) {
@@ -439,6 +485,9 @@ int background_indices(
   index_bg++;
   pba->index_bg_H_prime = index_bg; 
   index_bg++;
+
+  /* - end of indices in the short vector of background values */
+  pba->bg_size_short = index_bg;
 
   /* - index for rho_g (photon density) */
   pba->index_bg_rho_g = index_bg; 
@@ -495,54 +544,25 @@ int background_indices(
   /* - index for Omega_r (relativistic density fraction) */
   pba->index_bg_Omega_r = index_bg; 
   index_bg++;
-  
-  /* - put here additional ingredients that you want to appear in the short array */
+
+  /* - put here additional ingredients that you want to appear in the
+     normal vector */
   /*    */
   /*    */
 
-  /* - end of indices in the short vector of background values */
-  pba->bg_size_short = index_bg;
+  /* - end of indices in the normal vector of background values */
+  pba->bg_size_normal = index_bg;
 
   /* - indices in the long version : */
 
   /* -> critical density */
   pba->index_bg_rho_crit = index_bg; 
   index_bg++;
-
-  /* -> all Omega's : */
-
-  /* photons */
-  pba->index_bg_Omega_g = index_bg; 
+  
+  /* - index for Omega_ (non-relativistic density fraction) */
+  pba->index_bg_Omega_m = index_bg; 
   index_bg++;
 
-  /* baryons */
-  pba->index_bg_Omega_b = index_bg; 
-  index_bg++;
-  
-  /* cdm */
-  if (pba->has_cdm==_TRUE_) {
-    pba->index_bg_Omega_cdm = index_bg; 
-    index_bg++;
-  }
-
-  /* lambda */
-  if (pba->has_lambda==_TRUE_) {
-    pba->index_bg_Omega_lambda = index_bg; 
-    index_bg++;
-  }
-
-  /* dark energy fluid */
-  if (pba->has_dark_energy_fluid==_TRUE_) {
-    pba->index_bg_Omega_de = index_bg; 
-    index_bg++;
-  }
-
-  /* relativistic neutrinos and relics */
-  if (pba->has_nur==_TRUE_) {
-    pba->index_bg_Omega_nur = index_bg; 
-    index_bg++;
-  }
-  
   /* -> conformal distance */
   pba->index_bg_conf_distance = index_bg; 
   index_bg++;
@@ -555,7 +575,7 @@ int background_indices(
   pba->index_bg_rs = index_bg; 
   index_bg++;
 
- /* -> put here additional quantities describing background */
+  /* -> put here additional quantities describing background */
   /*    */
   /*    */
 
@@ -596,10 +616,11 @@ int background_indices(
 /** 
  * Integrate background, allocate and fill the background interpolation table
  *
- * Called once by background_init().
- *
+ * @param ppr Input : pointer to precision structure
+ * @param pba Input/Output : pointer to background structure
  * @return the error status
  */
+
 int background_solve(
 		     struct precision *ppr,
 		     struct background *pba
@@ -665,24 +686,24 @@ int background_solve(
   /* initialize the counter for the number of steps */
   pba->bt_size=0;
 
-  /** - loop over integration steps : call background_functions_of_a(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of eta */
+  /** - loop over integration steps : call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of eta */
 
   while (pvecback_integration[pba->index_bi_a] < pba->a_today) {
 
     eta_start = eta_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
-    class_call(background_functions_of_a(pba,pvecback_integration[pba->index_bi_a], short_info, pvecback),
+    class_call(background_functions(pba,pvecback_integration[pba->index_bi_a], short_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
 
     if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
       eta_end = eta_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]); 
-      /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions_of_a() */
+      /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
     else {
       eta_end = eta_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);  
-      /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions_of_a() */
+      /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
 
     class_test((eta_end-eta_start) < ppr->smallest_allowed_variation,
@@ -766,7 +787,7 @@ int background_solve(
 
   class_alloc(pba->d2background_deta2_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
   
-  /** - In a loop over lines, fill background table using the result of the integration plus background_functions_of_a() */
+  /** - In a loop over lines, fill background table using the result of the integration plus background_functions() */
   for (i=0; i < pba->bt_size; i++) {
     
     /* -> establish correspondance between the integrated variable and the bg variables */
@@ -784,7 +805,7 @@ int background_solve(
     pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities */
-    class_call(background_functions_of_a(pba,pData[i*pba->bi_size+pba->index_bi_a], long_info, pvecback),
+    class_call(background_functions(pba,pData[i*pba->bi_size+pba->index_bi_a], long_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
     
@@ -819,7 +840,7 @@ int background_solve(
 				      pba->bg_size,
 				      pba->d2background_deta2_table,
 				      _SPLINE_EST_DERIV_,
-				       pba->error_message),
+				      pba->error_message),
 	     pba->error_message,
 	     pba->error_message);
 
@@ -836,17 +857,20 @@ int background_solve(
 }
 
 /**
- * Assign initial values to background integrated variables (initial a, eta, t, etc).
+ * Assign initial values to background integrated variables.
  *
- * Called once by background_solve().
- *
+ * @param ppr                  Input : pointer to precision structure
+ * @param pba                  Input : pointer to background structure
+ * @param pvecback             Input : vector of background quantitites used as workspace
+ * @param pvecback_integration Output : vector of background quantitites to be integrated, returned with proper initial values
  * @return the error status
  */
+
 int background_initial_conditions(
 				  struct precision *ppr,
 				  struct background *pba,
-				  double * pvecback,
-				  double * pvecback_integration
+				  double * pvecback, /* vector with argument pvecback[index_bg] (must be already allocated, short format is sufficient) */
+				  double * pvecback_integration /* vector with argument pvecback_integration[index_bi] (must be already allocated with size pba->bi_size) */
 				  ) {
 
   /** Summary: */
@@ -860,18 +884,18 @@ int background_initial_conditions(
   a = ppr->a_ini_over_a_today_default * pba->a_today;
   pvecback_integration[pba->index_bi_a] = a;
 
-  /* for some models, we will need to add here some tests on the
-     validity of this choice (e.g.: are massive neutrinos
-     relativistic? etc.) If the test is OK, fix other initial values: */
+  /* for some models, we need to add here some tests on the validity
+     of this choice (e.g.: are massive neutrinos relativistic? etc.)
+     If the test is OK, proceed with other initial values: */
 
-  /** - compute initial H with background_functions_of_a() */
-  class_call(background_functions_of_a(pba,a, short_info, pvecback),
+  /** - compute initial H with background_functions() */
+  class_call(background_functions(pba,a, short_info, pvecback),
 	     pba->error_message,
 	     pba->error_message);
 
   /** - compute initial proper time, assuming radiation-dominated
-        universe since Big Bang and therefore \f$ t=1/(2H) \f$ (good
-        approximation for most purposes) */
+      universe since Big Bang and therefore \f$ t=1/(2H) \f$ (good
+      approximation for most purposes) */
 
   class_test(pvecback[pba->index_bg_H] <= 0.,
 	     pba->error_message,
@@ -880,8 +904,8 @@ int background_initial_conditions(
   pvecback_integration[pba->index_bi_time] = 1./(2.* pvecback[pba->index_bg_H]);
 
   /** - compute initial conformal time, assuming radiation-dominated
-        universe since Big Bang and therefore \f$ \eta=1/(aH) \f$
-        (good approximation for most purposes) */
+      universe since Big Bang and therefore \f$ \eta=1/(aH) \f$
+      (good approximation for most purposes) */
   pvecback_integration[pba->index_bi_eta] = 1./(a * pvecback[pba->index_bg_H]);
 
   /** - compute initial sound horizon, assuming c_s=1/sqrt(3) initially */
@@ -892,29 +916,42 @@ int background_initial_conditions(
 }
 
 /** 
-  * Subroutine evaluating the derivative with respect to conformal time of quantities which are integrated (a, t, etc). 
-  *
-  * This is one of the few functions in the code which are passed to the generic_integrator() routine. 
-  * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
-  * is a bit special:
-  * - fixed input parameters and wokspaces are passed through a generic pointer. Here, this is just a pointer to the 
-  *   background structure and to a background vector, but generic_integrator() doesn't know its fine structure.
-  * - the error management is a bit special: errors are not written as usual to pba->error_message, but to a generic 
-  *   error_message passed in the list of arguments.
-  *
-  * @param eta Input : conformal time
-  * @param y Input : vector of variable
-  * @param dy Output : its derivative (already allocated)
-  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
-  * @param error_message Output : error message
-  */
+ * Subroutine evaluating the derivative with respect to conformal time
+ * of quantities which are integrated (a, t, etc).
+ *
+ * This is one of the few functions in the code which are passed to
+ * the generic_integrator() routine.  Since generic_integrator()
+ * should work with functions passed from various modules, the format
+ * of the arguments is a bit special:
+ *
+ * - fixed input parameters and wokspaces are passed through a generic
+ * pointer. Here, this is just a pointer to the background structure
+ * and to a background vector, but generic_integrator() doesn't know
+ * its fine structure.  
+ *
+ * - the error management is a bit special: errors are not written as
+ * usual to pba->error_message, but to a generic error_message passed
+ * in the list of arguments.
+ *
+ * @param eta                      Input : conformal time
+ * @param y                        Input : vector of variable
+ * @param dy                       Output : its derivative (already allocated)
+ * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
+ * @param error_message            Output : error message
+ */
 int background_derivs(
 		      double eta,
-		      double* y, 
-		      double* dy,
+		      double* y, /* vector with argument y[index_bi] (must be already allocated with size pba->bi_size) */
+		      double* dy, /* vector with argument dy[index_bi]
+				     (must be already allocated with
+				     size pba->bi_size) */
 		      void * parameters_and_workspace,
 		      ErrorMsg error_message
 		      ) {
+
+  /** Summary: */
+
+  /** - define local variables */
 
   struct background_parameters_and_workspace * pbpaw;
   struct background * pba;
@@ -924,23 +961,23 @@ int background_derivs(
   pba =  pbpaw->pba;
   pvecback = pbpaw->pvecback;
 
-  /** - Calculates functions of /f$ a /f$ with background_functions_of_a() */
-  class_call(background_functions_of_a((struct background *)pba,y[pba->index_bi_a], short_info, pvecback),
+  /** - Calculates functions of /f$ a /f$ with background_functions() */
+  class_call(background_functions((struct background *)pba,y[pba->index_bi_a], normal_info, pvecback),
 	     pba->error_message,
 	     error_message);
 
-    /** - calculate /f$ a'=a^2 H /f$ */
-    dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
+  /** - calculate /f$ a'=a^2 H /f$ */
+  dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
 
-    /** - calculate /f$ t' = a /f$ */
-    dy[pba->index_bi_time] = y[pba->index_bi_a];
+  /** - calculate /f$ t' = a /f$ */
+  dy[pba->index_bi_time] = y[pba->index_bi_a];
 
-    class_test(pvecback[pba->index_bg_rho_g] <= 0.,
-	       error_message,
-	       "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
+  class_test(pvecback[pba->index_bg_rho_g] <= 0.,
+	     error_message,
+	     "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
-    dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));
+  dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));
 
-    return _SUCCESS_;
+  return _SUCCESS_;
 
 }

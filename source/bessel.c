@@ -122,7 +122,7 @@ int bessel_init(
   /* index for l (since first value of l is always 2, l=index_l+2) */
   int index_l;
 
-   /* first numbers to be read in bessels.dat file */
+  /* first numbers to be read in bessels.dat file */
   int l_size_file;
   int * l_file;
   double x_step_file;
@@ -287,8 +287,8 @@ int bessel_init(
   
   /* beginning of parallel region */
 
-#pragma omp parallel						\
-  shared(ppr,pbs,abort)						\
+#pragma omp parallel				\
+  shared(ppr,pbs,abort)				\
   private(index_l,tstart,tstop)
   
   {
@@ -324,32 +324,32 @@ int bessel_init(
 
   if (pbs->bessel_always_recompute == _FALSE_) {
 
-  if (pbs->bessels_verbose > 0)
-    printf(" -> (over)write in file %s\n",pbs-> bessel_file_name);
+    if (pbs->bessels_verbose > 0)
+      printf(" -> (over)write in file %s\n",pbs-> bessel_file_name);
 
-  /** (b) write in file */
+    /** (b) write in file */
 
-  bessel_file = fopen(pbs->bessel_file_name,"w");
+    bessel_file = fopen(pbs->bessel_file_name,"w");
 
-  fwrite(&(pbs->l_size),sizeof(int),1,bessel_file);
-  fwrite(pbs->l,sizeof(int),pbs->l_size,bessel_file);
-  fwrite(&(pbs->x_step),sizeof(double),1,bessel_file);
-  fwrite(&(pbs->x_max),sizeof(double),1,bessel_file);
-  fwrite(&(pbs->j_cut),sizeof(double),1,bessel_file);
+    fwrite(&(pbs->l_size),sizeof(int),1,bessel_file);
+    fwrite(pbs->l,sizeof(int),pbs->l_size,bessel_file);
+    fwrite(&(pbs->x_step),sizeof(double),1,bessel_file);
+    fwrite(&(pbs->x_max),sizeof(double),1,bessel_file);
+    fwrite(&(pbs->j_cut),sizeof(double),1,bessel_file);
 
-  fwrite(pbs->x_min,sizeof(double),pbs->l_size,bessel_file);
+    fwrite(pbs->x_min,sizeof(double),pbs->l_size,bessel_file);
 
-  fwrite(pbs->x_size,sizeof(int),pbs->l_size,bessel_file);
+    fwrite(pbs->x_size,sizeof(int),pbs->l_size,bessel_file);
 
-  for (index_l=0; index_l<pbs->l_size; index_l++) {
-    fwrite(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
-  }
+    for (index_l=0; index_l<pbs->l_size; index_l++) {
+      fwrite(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
+    }
 
-  for (index_l=0; index_l<pbs->l_size; index_l++) {
-    fwrite(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
-  }
+    for (index_l=0; index_l<pbs->l_size; index_l++) {
+      fwrite(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
+    }
 
-  fclose(bessel_file);
+    fclose(bessel_file);
 
   }
 

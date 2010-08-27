@@ -1,15 +1,18 @@
-/** @file input.c 
- * Julien Lesgourgues, 18.04.2010    
+/** @file input.c Documented input module.
+ *
+ * Julien Lesgourgues, 27.08.2010    
  */
 
 #include "input.h" 
 
-/* Use this routine to extract initial parameters 
-   from files 'xxx.ini' and/or 'xxx.pre'. They can be the arguments of the main() routine.
-
-   If class is embedded into another code, you will probably prefer to call directly 
-   input_init() in order to pass input parameters through a 'file_content' structure.
-*/
+/**
+ * Use this routine to extract initial parameters from files 'xxx.ini'
+ * and/or 'xxx.pre'. They can be the arguments of the main() routine.
+ *
+ * If class is embedded into another code, you will probably prefer to
+ * call directly input_init() in order to pass input parameters
+ * through a 'file_content' structure.
+ */
 
 int input_init_from_arguments(
 			      int argc, 
@@ -26,6 +29,10 @@ int input_init_from_arguments(
 			      ErrorMsg errmsg
 			      ) {
 
+  /** Summary: */
+
+  /** - define local variables */
+
   struct file_content fc;
   struct file_content fc_input;
   struct file_content fc_precision;
@@ -36,8 +43,10 @@ int input_init_from_arguments(
   int i;
   char extension[5];
 
-  /* Initialize some values. If no arguments are passed, they will remain null and
-     inform init_params() that all parameters take default values. */
+  /** - Initialize the two file_content structures (for input
+      parameters and precision parameters) to some null content. If no
+      arguments are passed, they will remain null and inform
+      init_params() that all parameters take default values. */
 
   fc.size = 0;
   fc_input.size = 0;
@@ -45,7 +54,8 @@ int input_init_from_arguments(
   input_file[0]='\0';
   precision_file[0]='\0';
 
-  /* If some arguments are passed, identify eventual 'xxx.ini' and 'xxx.pre' files, and store their name. */
+  /** If some arguments are passed, identify eventually some 'xxx.ini'
+      and 'xxx.pre' files, and store their name. */
 
   if (argc > 1) {
     for (i=1; i<argc; i++) {
@@ -66,23 +76,24 @@ int input_init_from_arguments(
     }
   }
   
-  /* if there is an 'xxx.ini' file, read it and store its content. */
+  /** - if there is an 'xxx.ini' file, read it and store its content. */
 
-  if (input_file[0]!='\0')
+  if (input_file[0] != '\0')
     
     class_call(parser_read_file(input_file,&fc_input,errmsg),
 	       errmsg,
 	       errmsg);
 
-  /* if there is an 'xxx.pre' file, read it and store its content. */
+  /** - if there is an 'xxx.pre' file, read it and store its content. */
 
-  if (precision_file[0]!='\0')
+  if (precision_file[0] != '\0')
     
     class_call(parser_read_file(precision_file,&fc_precision,errmsg),
 	       errmsg,
 	       errmsg);
 
-  /* if files were read, merge their contents in a single 'file_content' structure. */
+  /** - if one or two files were read, merge their contents in a
+      single 'file_content' structure. */
 
   if ((input_file[0]!='\0') || (precision_file[0]!='\0'))
 
@@ -93,8 +104,9 @@ int input_init_from_arguments(
   class_call(parser_free(&fc_input),errmsg,errmsg);
   class_call(parser_free(&fc_precision),errmsg,errmsg);
   
-  /* now, initialize all parameters given the input 'file_content' structure. 
-     If its size is null, all parameters take their default values. */
+  /** - now, initialize all parameters given the input 'file_content'
+      structure.  If its size is null, all parameters take their
+      default values. */
 
   class_call(input_init(&fc,
 			ppr,
@@ -115,8 +127,12 @@ int input_init_from_arguments(
   return _SUCCESS_;
 }
 
-/* Initialize all parameters given the input 'file_content' structure. 
-   If its size is null, all parameters take their default values. */
+/**
+ * Initialize each parameters, first to its default values, and then
+ * from what can be interpreted from the values passed in the input
+ * 'file_content' structure. If its size is null, all parameters keep
+ * their default values.
+ */
 
 int input_init(
 	       struct file_content * pfc,
@@ -132,6 +148,10 @@ int input_init(
 	       ErrorMsg errmsg
 	       ) {
 
+  /** Summary: */
+
+  /** - define local variables */
+
   int flag1,flag2,flag3;
   double param1,param2,param3;
   int int1;
@@ -145,6 +165,8 @@ int input_init(
 
   FILE * param_output;
   char param_output_name[_LINE_LENGTH_MAX_];
+
+  /** - set all parameters (input and precision) to default values */
 
   class_call(input_default_params(pba,
 				  pth,
@@ -161,8 +183,14 @@ int input_init(
 	     errmsg,
 	     errmsg);
 
+  /** - if entries passed in file_content structure, carefully read
+      and interpret each of them, and tune accordingly the relevant
+      input parameters */
+
   if (pfc->size == 0) 
     return _SUCCESS_;
+
+  /** (a) background parameters */
 
   /* h (dimensionless) and H0 in Mpc^{-1} = h / 2999.7 */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
@@ -328,7 +356,7 @@ int input_init(
   /* scale factor today (arbitrary) */
   class_read_double("a_today",pba->a_today);
 
-  /** - assign values to thermodynamics cosmological parameters */
+  /** (b) assign values to thermodynamics cosmological parameters */
 
   /* scale factor today (arbitrary) */
   class_read_double("YHe",pth->YHe);
@@ -375,7 +403,7 @@ int input_init(
     }
   }
 
-  /** - define which perturbations and sources should be computed, and down to which scale */
+  /** (c) define which perturbations and sources should be computed, and down to which scale */
 
   ppt->has_perturbations = _FALSE_;
   ppt->has_cls = _FALSE_;
@@ -484,7 +512,7 @@ int input_init(
 
   }
 
-  /** - define the primordial spectrum */
+  /** (d) define the primordial spectrum */
 
   class_call(parser_read_string(pfc,"P_k_ini type",&string1,&flag1,errmsg),
 	     errmsg,
@@ -619,7 +647,7 @@ int input_init(
 
   }
 
-  /** - parameters for final spectra */
+  /** (e) parameters for final spectra */
 
   pbs->l_max=0;
 
@@ -684,7 +712,7 @@ int input_init(
     strcpy(pbs->bessel_file_name,string1);
   }
   
-  /** - amount of information sent to standard output (none if all set to zero) */
+  /** (f) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
 		 pba->background_verbose);
@@ -710,15 +738,15 @@ int input_init(
   class_read_int("output_verbose",
 		 pop->output_verbose);
 
-  /** Precision parameters */
+  /** (g) all precision parameters */
 
-  /** - parameters related to the background */
+  /** g.1. parameters related to the background */
 
   class_read_double("a_ini_over_a_today_default",ppr->a_ini_over_a_today_default);
   class_read_double("back_integration_stepsize",ppr->back_integration_stepsize);
   class_read_double("tol_background_integration",ppr->tol_background_integration);
 
-  /** - parameters related to the thermodynamics */
+  /** g.2. parameters related to the thermodynamics */
 
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
   class_read_double("recfast_z_final",ppr->recfast_z_final);
@@ -742,7 +770,7 @@ int input_init(
   class_read_double("helium_fullreio_width",ppr->helium_fullreio_width);
   class_read_int("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
 
-  /** - parameters related to the perturbations */
+  /** g.3. parameters related to the perturbations */
 
   class_read_int("gauge",ppr->gauge);
   class_read_double("k_scalar_min",ppr->k_scalar_min);
@@ -775,7 +803,7 @@ int input_init(
   class_read_double("rad_pert_trigger_k_over_aH",ppr->rad_pert_trigger_k_over_aH);
   class_read_double("rad_pert_trigger_Omega_r",ppr->rad_pert_trigger_Omega_r);
 
-  /** - parameter related to the Bessel functions */
+  /** g.4. parameter related to the Bessel functions */
 
   class_read_double("l_logstep",ppr->l_logstep);
   class_read_int("l_linstep",ppr->l_linstep);
@@ -784,11 +812,11 @@ int input_init(
   class_read_double("bessel_delta_x_min",ppr->bessel_delta_x_min);
   class_read_double("bessel_x_max_over_l_max",ppr->bessel_x_max_over_l_max);
 
-  /** - parameter related to the primordial spectra */
+  /** g.5. parameter related to the primordial spectra */
 
   class_read_double("k_per_decade_primordial",ppr->k_per_decade_primordial);
 
-  /** - parameter related to the transfer functions */
+  /** g.6. parameter related to the transfer functions */
 
   class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
   class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
@@ -796,7 +824,7 @@ int input_init(
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
 
-  /** Eventually write all the read parameters in a file */
+  /** (h) eventually write all the read parameters in a file */
 
   class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
 	     errmsg,
@@ -828,6 +856,20 @@ int input_init(
 
 }
 
+/** 
+ * All default parameter values (for input parameters)
+ *
+ * @param pba Input : pointer to background structure 
+ * @param pth Input : pointer to thermodynamics structure 
+ * @param ppt Input : pointer to perturbation structure
+ * @param pbs Input : pointer to bessels structure
+ * @param ptr Input : pointer to transfer structure 
+ * @param ppm Input : pointer to primordial structure 
+ * @param psp Input : pointer to spectra structure
+ * @param pop Input : pointer to output structure
+ * @return the error status
+ */
+
 int input_default_params(
 			 struct background *pba,
 			 struct thermo *pth,
@@ -840,7 +882,9 @@ int input_default_params(
 			 ) {
 
   ErrorMsg errmsg;
-         
+   
+  /** - background structure */
+      
   pba->h = 0.7;
   pba->H0 = pba->h * 1.e5 / _c_;
   pth->Tcmb = 2.726;
@@ -855,12 +899,16 @@ int input_default_params(
   pba->w_de=-1.;
   pba->cs2_de=1.;
 
+  /** - thermodynamics structure */
+
   /* pth->Tcmb already fixed above */
   pth->YHe=0.25;            
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
   pth->z_reio=10.;
   pth->tau_reio=0.08;
+
+  /** - perturbation structure */
 
   ppt->has_cl_cmb_temperature = _FALSE_;
   ppt->has_cl_cmb_polarization = _FALSE_;
@@ -881,9 +929,13 @@ int input_default_params(
   ppt->l_tensor_max=500;
   ppt->k_scalar_kmax_for_pk=0.1;
 
+  /** - bessels structure */
+
   pbs->l_max = max(ppt->l_scalar_max,ppt->l_tensor_max);
   pbs->bessel_always_recompute = _TRUE_;
   strcpy(pbs->bessel_file_name,"");
+
+  /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
   ppm->k_pivot = 0.05;
@@ -936,13 +988,18 @@ int input_default_params(
   ppm->n_t = 0.;
   ppm->alpha_t = 0.;
 
+  /** - output structure */ 
+
   pop->z_pk_num = 1;
   class_alloc(pop->z_pk,pop->z_pk_num*sizeof(double),errmsg);
   pop->z_pk[0] = 0.;  
+  sprintf(pop->root,"output/");
+
+  /** - spectra structure */ 
 
   psp->z_max_pk = pop->z_pk[0];
-  
-  sprintf(pop->root,"output/");
+
+  /** - all verbose parameters */ 
 
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
@@ -960,12 +1017,14 @@ int input_default_params(
 /** 
  * Initialize the precision parameter structure. 
  * 
+ * All precision parameters used in the other moduels are listed here
+ * and assigned here a default value.
+ *
  * @param ppr Input/Ouput: a precision_params structure pointer  
  * @return the error status
  *
- * All precision parameters used in the other moduels are assigned
- * here a default value, namely:
  */
+
 int input_default_precision ( struct precision * ppr ) {
 
   /** Summary: */
@@ -1014,7 +1073,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->gauge=synchronous;
 
   ppr->k_scalar_min=0.3; /* 0.3 -> 0.1 */
-/*   ppr->k_scalar_oscillations=7.;   */
+  /*   ppr->k_scalar_oscillations=7.;   */
   ppr->l_max_over_k_max_scalars = 8000.;
   ppr->k_scalar_step_sub=0.1;  /* 0.02 -> 0.005 */
   ppr->k_scalar_step_super=0.005;  /* 0.01 -> 0.005 */
@@ -1023,7 +1082,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
   ppr->k_tensor_min=0.1; /* 0.3 -> 0.1 */
- /*  ppr->k_tensor_oscillations=3.5;   */
+  /*  ppr->k_tensor_oscillations=3.5;   */
   ppr->l_max_over_k_max_tensors = 6300.;
   ppr->k_tensor_step_sub=0.01;  /* 0.02 -> 0.005 */
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
@@ -1104,6 +1163,7 @@ int input_default_precision ( struct precision * ppr ) {
  * Returns the smallest
  * allowed variation (minimum epsilon * _TOLVAR_)
  */
+
 int get_machine_precision(double * smallest_allowed_variation) {
   double one, meps, sum;
   

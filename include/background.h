@@ -13,8 +13,9 @@
  * List of possible formats for the vector of background quantities.
  */
 enum format_info {
-  short_info, /**< compact format */
-  long_info /**< exhaustive, redundent format */ 
+  short_info,  /**< compact format (when only a, H, H' should be returned) */
+  normal_info, /**< normal format (needed when integrating over perturbations: same plus rho_i's and Omega_r) */
+  long_info    /**< exhaustive format (same plus proper time, sound horizon, Omega_m, etc.) */ 
 };
 
 /**
@@ -93,17 +94,14 @@ struct background
   int index_bg_rho_nur;       /**< relativistic neutrinos/relics density */
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
   int index_bg_rho_crit;      /**< critical density */
-  int index_bg_Omega_g;       /**< Omega photons */
-  int index_bg_Omega_b;       /**< Omega baryons */
-  int index_bg_Omega_cdm;     /**< Omega cdm */
-  int index_bg_Omega_lambda;  /**< Omega cosmological constant */
-  int index_bg_Omega_de;      /**< Omega dark energy fluid with constant w */
-  int index_bg_Omega_nur;     /**< Omega relativistic neutrinos/relics */
+  int index_bg_Omega_m;       /**< non-relativistic density fraction (\f$ \Omega_b + \Omega_cdm + \Omega_{\nu nr} \f$) */
   int index_bg_conf_distance; /**< conformal distance (from us) */
   int index_bg_time;          /**< proper (cosmological) time */
   int index_bg_rs;            /**< comoving sound horizon */
-  int bg_size_short; /**< size of background vector in the "short format" */
-  int bg_size;       /**< size of background vector in the "long format" */
+
+  int bg_size_short;  /**< size of background vector in the "short format" */
+  int bg_size_normal; /**< size of background vector in the "normal format" */
+  int bg_size;        /**< size of background vector in the "long format" */
 
   //@}
 
@@ -214,12 +212,12 @@ extern "C" {
 			double * pvecback
 			);
 
-  int background_functions_of_a(
-				struct background *pba,
-				double a,
-				enum format_info return_format,
-				double * pvecback
-				);
+  int background_functions(
+			   struct background *pba,
+			   double a,
+			   enum format_info return_format,
+			   double * pvecback
+			   );
 
   int background_eta_of_z(
 			  struct background *pba,
