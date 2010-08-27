@@ -123,11 +123,11 @@ int background_at_eta(
 
   /** - deduce length of returned vector from format mode */ 
 
-  if (return_format == normal__info) {
+  if (return_format == normal_info) {
     pvecback_size=pba->bg_size_normal;
   }
   else {
-    if (return_format == normalshort_info) {
+    if (return_format == short_info) {
       pvecback_size=pba->bg_size_short;
     }
     else { 

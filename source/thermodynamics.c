@@ -80,8 +80,8 @@ int thermodynamics_at_z(
     pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
 
 
-    /* Calculate dz/deta = -H with background_functions_of_a() */
-    class_call(background_functions_of_a(pba,1./(1.+z),short_info,pvecback),
+    /* Calculate dz/deta = -H with background_functions() */
+    class_call(background_functions(pba,1./(1.+z),short_info,pvecback),
 	       pba->error_message,
 	       pth->error_message);
 
@@ -959,7 +959,7 @@ int thermodynamics_reionization_discretize(
   reio_vector[preio->index_re_xe] = xe;
 
   /** - get \f$ d kappa / d z = (d kappa / d eta) * (d eta / d z) = - (d kappa / d eta) / H \f$ */
-  class_call(background_functions_of_a(pba,1./(1.+z),short_info,pvecback),
+  class_call(background_functions(pba,1./(1.+z),short_info,pvecback),
 	     pba->error_message,
 	     pth->error_message);
 
@@ -1007,7 +1007,7 @@ int thermodynamics_reionization_discretize(
 	       pth->error_message,
 	       pth->error_message);
 
-    class_call(background_functions_of_a(pba,1./(1.+z_next),short_info,pvecback),
+    class_call(background_functions(pba,1./(1.+z_next),short_info,pvecback),
 	       pba->error_message,
 	       pth->error_message);
 
@@ -1039,7 +1039,7 @@ int thermodynamics_reionization_discretize(
 		 pth->error_message,
 		 pth->error_message);
 
-      class_call(background_functions_of_a(pba,1./(1.+z_next),short_info,pvecback),
+      class_call(background_functions(pba,1./(1.+z_next),short_info,pvecback),
 		 pba->error_message,
 		 pth->error_message);
 
@@ -1516,7 +1516,7 @@ int thermodynamics_derivs_with_recfast(
   n_He = preco->fHe * preco->Nnow * pow((1.+z),3);
   Trad = preco->Tnow * (1.+z);
 
-  class_call(background_functions_of_a(pba,1./(1.+z),short_info,pvecback),
+  class_call(background_functions(pba,1./(1.+z),short_info,pvecback),
 	     pba->error_message,
 	     error_message);
   
