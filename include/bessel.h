@@ -3,27 +3,44 @@
 #ifndef __BESSEL__
 #define __BESSEL__
 
-#include "perturbations.h"
+#include "common.h"
+#include "arrays.h"
 
 /**
- * All Bessel functions.
+ * Structure containing everything about spherical bessel functions 
+ * that other modules need to know.
  *
  * Once initialized by bessel_init(), contains table of
- * all Bessel functions (for the moment, only spherical Bessels \f$ j_l(x) \f$).
+ * spherical Bessel functions \f$ j_l(x) \f$).
  */
+
 struct bessels {
 
-  /** @name - parameters defining the exact content of the Bessel table */
-
+  /** @name - input parameters initialized by user in input module 
+      (all other quantitites are computed in this module, given these 
+      parameters and the content of the 'precision' structure) */
+  
   //@{
 
-  int l_max; /**< maximum value of l */
+  int l_max; /**< last l value */
+
+  short bessel_always_recompute; /**< if set to true, Bessels are never read from / written in files */
+
+  FileName bessel_file_name; /**< if previous flag set to false, name of file for reading/writing table of Bessels */
+
+ //@}
+
+  /** @name - parameters defining uniquely the exact content of the Bessel table
+      (hence when reading a file, will compare these values with needed value
+      in order to take the decision to recompute or not) */
+
+  //@{
 
   int l_size; /**< number of multipole values */
   int * l; /**< list of multipole values, l[index_l] */
 
-  double x_step; /**< step dx for sampling Bessel functions \f$ j_l(x) \f$ */
-  double x_max; /**< last value of x (always a multiple of x_step!) */
+  double x_step; /**< step dx for sampling Bessel functions */
+  double x_max; /**< maximum value of x (always multiple of x-step) */
   double j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region x << l) */
 
  //@}
@@ -32,26 +49,20 @@ struct bessels {
 
   //@{
 
-  double * x_min; /**< x_min[index_l] is the minimum value of x for l[index_l], given f_cut; always a multiple of x_step */
+  double * x_min; /**< x_min[index_l] is the minimum value of x for l[index_l], given j_cut; always a multiple of x_step */
   int * x_size; /* x_min[index_l] is the number of x values for l[index_l]; hence x_min[index_l]+x_step*(x_size[index_l]-1) = x_max */
   double ** j; /* (j[index_l])[index_x] is \f$ j_l(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
   double ** ddj; /* (ddj[index_l])[index_x] is the splined \f$ j_l''(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
 
   //@}
 
-  /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
+  /** @name - technical parameters */
 
   //@{
 
-  short bessels_verbose;
+  short bessels_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
-  //@}
-
-  /** @name - zone for writing error messages */
-
-  //@{
-
-  ErrorMsg error_message;
+  ErrorMsg error_message; /**< zone for writing error messages */
 
   //@}
 
@@ -75,8 +86,6 @@ extern "C" {
 
   int bessel_init(
 		  struct precision * ppr,
-		  struct background * pba,
-		  struct perturbs * ppt,
 		  struct bessels * pbs
 		  );
 
@@ -92,8 +101,7 @@ extern "C" {
   int bessel_j_for_l(
 		     struct precision * ppr,
 		     struct bessels * pbs,
-		     int index_l,
-		     double kmin
+		     int index_l
 		     );
 
   int bessel_j(

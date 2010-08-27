@@ -469,8 +469,8 @@ int perturb_indices_of_perturbs(
       /** - count source types specific to scalars (gravitational potential, ...) and assign corresponding indices */
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_pk_matter == _TRUE_)) { 
-        ppt->has_source_g = _TRUE_;
 	ppt->has_lss = _TRUE_;
+        ppt->has_source_g = _TRUE_;
 	ppt->index_tp_g = index_type; 
 	index_type++;
       }
@@ -818,7 +818,7 @@ int perturb_get_k_list(
 		       int index_mode
 		       ) {
   int index_k;
-  double k,k_next,k_rec,step;
+  double k,k_next,k_rec,step,k_max_cl;
 
   /** Summary: */
 
@@ -838,7 +838,13 @@ int perturb_get_k_list(
     index_k=0;
     k = ppr->k_scalar_min * pba->H0;
     index_k=1;
-    while (k < ppr->k_scalar_oscillations*k_rec) {
+
+    if (ppt->has_cls == _TRUE_)
+      k_max_cl = ppt->l_scalar_max/ppr->l_max_over_k_max_scalars;
+    else
+      k_max_cl = 0.;
+
+    while (k < k_max_cl) {
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
 
@@ -852,12 +858,13 @@ int perturb_get_k_list(
     }
     ppt->k_size_cl[index_mode] = index_k;
 
-    if (k < ppt->k_scalar_kmax_for_pk*pba->h) {
+    if (ppt->has_pk_matter == _TRUE_) {
+      if (k < ppt->k_scalar_kmax_for_pk*pba->h) {
 
-      index_k += (int)((log(ppt->k_scalar_kmax_for_pk*pba->h/k)/log(10.))*ppr->k_scalar_k_per_decade_for_pk)+1;
-
+	index_k += (int)((log(ppt->k_scalar_kmax_for_pk*pba->h/k)/log(10.))*ppr->k_scalar_k_per_decade_for_pk)+1;
+	
+      }
     }
-
     ppt->k_size[index_mode] = index_k;
 
     class_alloc(ppt->k[index_mode],ppt->k_size[index_mode]*sizeof(double),ppt->error_message);
@@ -905,7 +912,8 @@ int perturb_get_k_list(
     index_k=0;
     k = ppr->k_tensor_min * pba->H0;
     index_k=1;
-    while (k < ppr->k_tensor_oscillations*k_rec) {
+
+    while (k < ppt->l_tensor_max/ppr->l_max_over_k_max_tensors) {
       step = ppr->k_tensor_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
 

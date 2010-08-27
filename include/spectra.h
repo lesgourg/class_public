@@ -16,6 +16,17 @@
 
 struct spectra {
 
+  /** @name - input parameters initialized by user in input module
+      (all other quantitites are computed in this module, given these parameters
+      and the content of the 'background', 'perturbs', 'transfers' and
+      'primordial' structures) */
+
+  //@{
+
+  double z_max_pk;  /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
+  
+  //@}
+
    /** @name - information on number of modes and pairs of initial conditions */
 
   //@{
@@ -70,8 +81,6 @@ struct spectra {
 
   //@{
 
-  double z_max_pk;  /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
-
   int index_md_scalars; /**< index for scalar modes (the matter power spectrum refers by construction to scalar modes) */
 
   int ln_k_size;    /**< number ln(k) values */
@@ -107,15 +116,15 @@ struct spectra {
   
   //@}
 
-  /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
+  /** @name - technical parameters */
 
   //@{
 
-  short spectra_verbose;
-
-  //@}
+  short spectra_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
+
+  //@}
 };
 
 /*************************************************************************************************************/

@@ -35,37 +35,69 @@ enum rp_flags {rp_on, rp_off};
  */
 struct perturbs
 {
-  /** @name - general flags stating which spectra should be computed (passed as input) */
+  /** @name - input parameters initialized by user in input module (all other 
+      quantitites are either infered from previous modules, or computed here) */
 
   //@{
+
+  short has_perturbations; /**< do we need to compute perturbations at all ? */
+
+  short has_cls; /**< do we need any harmonic space spectrum C_l (and hence Bessel functions, transfer functions, ...)? */
+
+  short has_scalars; /**< do we need scalars? */
+  short has_vectors; /**< do we need vectors? */
+  short has_tensors; /**< do we need tensors? */
+
+  short has_ad;      /**< do we need adiabatic mode? */
+  short has_bi;      /**< do we need isocurvature bi mode? */
+  short has_cdi;     /**< do we need isocurvature cdi mode? */
+  short has_nid;     /**< do we need isocurvature nid mode? */
+  short has_niv;     /**< do we need isocurvature niv mode? */
 
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
 
-
-  /** @name - other general flags which can be infered from previous ones */
-
-  short has_perturbations; /**< do we need to compute perturbations at all ? */
-  short has_cmb; /**< do we need CMB-related sources (temperature, polarization) ? */
-  short has_lss; /**< do we need LSS-related sources (lensing potential, ...) ? */
-  short has_cls; /**< do we need any harmonic space spectrum C_l (and hence Bessel functions, transfer functions, ...)? */
+  int l_scalar_max; /**< maximum l value for scalars C_ls */
+  int l_tensor_max; /**< maximum l value for tensors C_ls */
+  double k_scalar_kmax_for_pk; /**< maximum value of k in h/Mpc in P(k) (if scalar C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
 
   //@}
 
-  /** @name - flags and indices running on modes (scalar, vector, tensor) */
+  /** @name - useful flags infered from the ones above */
 
   //@{
 
-  short has_scalars; /**< do we need scalars? */
-  short has_vectors; /**< do we need vectors? */
-  short has_tensors; /**< do we need tensors? */
+  short has_cmb; /**< do we need CMB-related sources (temperature, polarization) ? */
+  short has_lss; /**< do we need LSS-related sources (lensing potential, ...) ? */
+
+  //@}
+
+  /** @name - indices running on modes (scalar, vector, tensor) */
+
+  //@{
 
   int index_md_scalars; /**< index value for scalars */
   int index_md_tensors; /**< index value for tensors */
   int index_md_vectors; /**< index value for vectors */
+
   int md_size; /**< number of modes included in computation */
+
+  //@}
+
+  /** @name - indices running on initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) */
+
+  //@{
+
+  int index_ic_ad; /**< index value for adiabatic */
+  int index_ic_cdi; /**< index value for CDM isocurvature */
+  int index_ic_bi; /**< index value for baryon isocurvature */
+  int index_ic_nid; /**< index value for neutrino density isocurvature */
+  int index_ic_niv; /**< index value for neutrino velocity isocurvature */
+  int index_ic_ten; /**< index value for unique possibility for tensors */
+
+  int * ic_size;       /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
 
   //@}
 
@@ -82,27 +114,8 @@ struct perturbs
   int index_tp_e; /**< index value for E-polarization */
   int index_tp_b; /**< index value for B-polarization */
   int index_tp_g; /**< index value for gravitationnal potential */
+
   int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
-
-  //@}
-
-  /** @name - flags and indices running on initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) */
-
-  //@{
-
-  short has_ad;      /**< do we need adiabatic mode? */
-  short has_bi;      /**< do we need isocurvature bi mode? */
-  short has_cdi;     /**< do we need isocurvature cdi mode? */
-  short has_nid;     /**< do we need isocurvature nid mode? */
-  short has_niv;     /**< do we need isocurvature niv mode? */
-
-  int index_ic_ad; /**< index value for adiabatic */
-  int index_ic_cdi; /**< index value for CDM isocurvature */
-  int index_ic_bi; /**< index value for baryon isocurvature */
-  int index_ic_nid; /**< index value for neutrino density isocurvature */
-  int index_ic_niv; /**< index value for neutrino velocity isocurvature */
-  int index_ic_ten; /**< index value for unique possibility for tensors */
-  int * ic_size;       /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
 
   //@}
 
@@ -111,9 +124,10 @@ struct perturbs
   //@{
 
   int * k_size;     /**< k_size[index_mode] = number of values */
+
   int * k_size_cl;     /**< k_size_cl[index_mode] number of values to take into account in transfer functions for C_l spectra (could be smaller than k_size, e.g. for scalars if extra points needed in P(k) */
+
   double ** k;      /**< (k[index_mode])[index_k] = list of values */
-  double k_scalar_kmax_for_pk; /**< maximum value of k in h/Mpc in P(k) (overseeded by value kmax inferred from k_scalar_oscillations if it is bigger) */
 
   //@}
 
@@ -122,6 +136,7 @@ struct perturbs
   //@{
 
   int eta_size;     /**< eta_size = number of values */
+
   double * eta_sampling;      /**< eta_sampling = list of eta values */
 
   //@}
@@ -136,19 +151,13 @@ struct perturbs
 
   //@}
 
-  /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
+  /** @name - technical parameters */
 
   //@{
 
-  short perturbations_verbose;
+  short perturbations_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
-  //@}
-
-  /** @name - zone for writing error messages */
-
-  //@{
-
-  ErrorMsg error_message;
+  ErrorMsg error_message; /**< zone for writing error messages */
 
   //@}
 

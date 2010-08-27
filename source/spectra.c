@@ -9,7 +9,7 @@
  *
  * The following functions can be called from other modules:
  *
- * -# spectra_init() at the beginning (but after input_init())
+ * -# spectra_init() at the beginning (but after transfer_init())
  * -# spectra_cl_at_l() at any time for computing C at any l
  * -# spectra_spectrum_at_z() at any time for computing P(k) at any z
  * -# spectra_spectrum_at_k_and z() at any time for computing P at any k and z
@@ -705,10 +705,10 @@ int spectra_pk_at_k_and_z(
 
 /**
  * This routine initializes the spectra structure (in particular, 
- * compute table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
+ * computes table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
  * 
  * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
- * @param ppt Input : pointer perturbation structure
+ * @param ppt Input : pointer to perturbation structure
  * @param ptr Input : pointer to transfer structure
  * @param ppm Input : pointer to primordial structure
  * @param psp Output: pointer to initialized spectra structure
@@ -776,7 +776,8 @@ int spectra_init(
 /**
  * This routine frees all the memory space allocated by spectra_init().
  *
- * To be called at the end of each run.
+ * To be called at the end of each run, only when no further calls to
+ * spectra_cls_at_l(), spectra_pk_at_z(), spectra_pk_at_k_and_z() are needed.
  *
  * @param psp Input: pointer to spectra structure (which fields must be freed)
  * @return the error status
@@ -830,9 +831,9 @@ int spectra_free(
  * This routine defines indices and allocates tables in the spectra structure 
  *
  * @param ppt  Input : pointer to perturbation structure
- * @param ppt  Input : pointer to transfers structure
- * @param ppt  Input : pointer to primordial structure
- * @param ppm  Input/output: pointer to spectra structure 
+ * @param ptr  Input : pointer to transfers structure
+ * @param ppm  Input : pointer to primordial structure
+ * @param psp  Input/output: pointer to spectra structure 
  * @return the error status
  */
 
@@ -1027,12 +1028,12 @@ int spectra_cls(
 	Compute also the max over all modes */
 
     if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
-      psp->l_max[index_mode] = ptr->l_scalar_max;
+      psp->l_max[index_mode] = ppt->l_scalar_max;
       if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
     }
     
     if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
-      psp->l_max[index_mode] = ptr->l_tensor_max;
+      psp->l_max[index_mode] = ppt->l_tensor_max;
       if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
     }
 

@@ -108,7 +108,7 @@ int output_cl(
   int index_ic1,index_ic2,index_ic1_ic2;
   int l;
 
-  FileArg file_name;
+  FileName file_name;
   char first_line[_LINE_LENGTH_MAX_];
 
   /** - first, allocate all arrays of files and cls */
@@ -448,8 +448,8 @@ int output_pk(
   int index_k;
   int index_z;
 
-  FileArg file_name;
-  FileArg redshift_suffix;
+  FileName file_name;
+  FileName redshift_suffix;
   char first_line[_LINE_LENGTH_MAX_];
     
   index_mode=ppt->index_md_scalars;
@@ -730,7 +730,7 @@ int output_open_cl_file(
 			struct spectra * psp,
 			struct output * pop,
 			FILE * * clfile,
-			FileArg filename,
+			FileName filename,
 			char * first_line,
 			int lmax
 			) {
@@ -807,7 +807,7 @@ int output_open_pk_file(
 			struct spectra * psp,
 			struct output * pop,
 			FILE * * clfile,
-			FileArg filename,
+			FileName filename,
 			char * first_line,
 			double z
 			) {

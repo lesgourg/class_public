@@ -38,7 +38,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (bessel_init(&pr,&ba,&pt,&bs) == _FAILURE_) {
+  if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }

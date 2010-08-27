@@ -14,9 +14,13 @@
  *
  * Hence the following functions can be called from other modules:
  *
- * -# transfer_init() at the beginning (but after perturb_init() and bessel_init())
+ * -# transfer_init() at the beginning (but after perturb_init() 
+ *    and bessel_init())
+ *
  * -# transfer_functions_at_k() at any later time 
- * -# transfer_free() at the end, when no more calls to transfer_functions_at_k() are needed
+ *
+ * -# transfer_free() at the end, when no more calls to 
+ *    transfer_functions_at_k() are needed
  * 
  * Note that in the standard implementation of CLASS, only the pre-computed 
  * values of the transfer functions are used, no interpolation is necessary; 
@@ -75,37 +79,37 @@ int transfer_functions_at_k(
   return _SUCCESS_;
 }
 
-/** Initialize the transfers structure, including transfer functions interpolation table.
+/**
+ * This routine initializes the transfers structure, (in particular,
+ * computes table of transfer functions \f$ \Delta_l^{X} (k) \f$)
  *
- * This function: 
- * - initializes all indices in the transfers structure
+ * Main steps: 
+ *
+ * - initialize all indices in the transfers structure
  *   and allocate all its arrays using transfer_indices_of_transfers().
+ *
  * - for a all requested modes (scalar, vector, tensor),
  *   initial conditions and types (temperature, polarization, lensing,
  *   etc), compute the transfer function \f$ \Delta_l^{X} (k) \f$
  *   following the following steps:
- * -# interpolate sources \f$ S(k, \eta) \f$ to get them at the right values of k 
- *    using transfer_interpolate_sources()
- * -# for each k, resample sources at the right values of \f$ \eta \f$ with 
- *    transfer_resample_sources()
- * -# for each k and l, compute the transfer function by convolving the sources with 
- *    the Bessel functions using transfer_solve()
- * -# store result in the transfer table 
- *    (transfer[index_mode])[index_ic][index_tt][index_l][index_k]
+ &
+ * -# interpolate sources \f$ S(k, \eta) \f$ to get them at the right 
+ *    values of k using transfer_interpolate_sources()
  *
- * This function shall be called at the beginning of each run, but
- * only after background_init(), thermodynamics_init() and perturb_init(). It
- * allocates memory spaces which should be freed later with
- * transfer_free().
+ * -# for each l, compute the transfer function by convolving the 
+ *    sources with the Bessel functions using transfer_compute_for_each_l()
+ *    (this step is parallelized). Store result in the transfer table 
+ *    transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt) * ptr->l_size[index_mode] + index_l) * ptr->k_size[index_mode] + index_k]
  *
- * @param pba_input Input : Initialized background structure 
- * @param pth_input Input : Initialized thermodynamics structure 
- * @param ppt_input Input : Initialized perturbation structure
- * @param pbs_input Input : Initialized bessels structure
- * @param ptr_input Input : Parameters describing how the computation is to be performed
- * @param ptr_output Output : Initialized transfers structure
+ * @param ppr Input : pointer to precision structure 
+ * @param pba Input : pointer to background structure 
+ * @param pth Input : pointer to thermodynamics structure 
+ * @param ppt Input : pointer to perturbation structure
+ * @param pbs Input : pointer to bessels structure
+ * @param ptr_output Output : pointer to initialized transfers structure
  * @return the error status
  */
+
 int transfer_init(
 		  struct precision * ppr,
 		  struct background * pba,
@@ -129,16 +133,26 @@ int transfer_init(
   int index_tt; 
   /* running index for multipoles */
   int index_l; 
-  /* another index */
-  int index;
+  /* running index for transfer integration table columns */
+  int index_ti;
+  /* running index for conformal time */
+  int index_eta;
+
   /* conformal time today */
   double eta0;
   /* conformal time at recombination */
   double eta_rec;
-/* table of source functions interpolated at the right values of k, interpolated_sources[index_k][index_eta] */
-  double * interpolated_sources;
-  /* array of splines values S''(k,eta) (second derivative with respect to k, not eta!) */
+
+  /* array of source derivatives S''(k,eta) 
+     (second derivative with respect to k, not eta!), 
+     used to interpolate sources at the right values of k,
+     source_spline[index_eta*ppt->k_size[index_mode]+index_k] */
   double * source_spline;
+
+  /* table of source functions interpolated at the right values of k, 
+     interpolated_sources[index_k_tr*ppt->eta_size+index_eta] */
+  double * interpolated_sources;
+
   /* (pointer on) workspace structure */
   struct transfer_workspace * ptw;
 
@@ -178,14 +192,19 @@ int transfer_init(
 
   ptr->md_size = ppt->md_size;
 
-  /** - get conformal age / recombination time from background / thermodynamics structures (only place where these structures are used in this module) */
+  /** - get conformal age / recombination time 
+        from background / thermodynamics structures 
+	(only place where these structures are used in this module) */
   eta0 = pba->conformal_age;
   eta_rec = pth->eta_rec;
 
-  /** - initialize all indices in the transfers structure and allocate all its arrays using transfer_indices_of_transfers() */
+  /** - initialize all indices in the transfers structure and 
+        allocate all its arrays using transfer_indices_of_transfers() */
   class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,eta0,eta_rec),
 	     ptr->error_message,
 	     ptr->error_message);
+
+  /* find number of threads */
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -199,9 +218,9 @@ int transfer_init(
   /* initialize error management flag */
   abort = _FALSE_;
 
-  /*** beginning of parallel region ***/
+  /* beginning of parallel region */
 
-#pragma omp parallel shared(pptw,ptr,ppt,abort) private(ptw,index)
+#pragma omp parallel shared(pptw,ptr,ppt,abort) private(ptw,index_ti,index_eta)
   {
 
     /** - initialize all indices in the transfer_workspace structure and allocate its array. Fill the eta column. */
@@ -212,27 +231,28 @@ int transfer_init(
     pptw[omp_get_thread_num()] = ptw;
 #endif
 
-    index = 0;
-    ptw->index_ti_eta = index;
-    index++;
-    ptw->index_ti_y = index;
-    index++;
-    ptw->index_ti_ddy = index;
-    index++;
-    ptw->ti_size = index;
+    index_ti = 0;
+    ptw->index_ti_eta = index_ti;
+    index_ti++;
+    ptw->index_ti_y = index_ti;
+    index_ti++;
+    ptw->index_ti_ddy = index_ti;
+    index_ti++;
+    ptw->ti_size = index_ti;
 
     class_alloc_parallel(ptw->trans_int,
 			 sizeof(double) * ppt->eta_size * ptw->ti_size,
 			 ptr->error_message);
     
-    for (index=0; index < ppt->eta_size; index++)
-      ptw->trans_int[ptw->ti_size*index+ptw->index_ti_eta] = ppt->eta_sampling[index];
+    for (index_eta=0; index_eta < ppt->eta_size; index_eta++)
+      ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_eta] = ppt->eta_sampling[index_eta];
     
-  }  /* end of parallel region */
+  } /* end of parallel region */
 
   if (abort == _TRUE_) return _FAILURE_;
 
-  /** - loop over all indices of the table of transfer functions. For each mode, initial condition and type: */
+  /** - loop over all indices of the table of transfer functions. 
+        For each mode, initial condition and type: */
 
   for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
 
@@ -243,13 +263,15 @@ int transfer_init(
 		ptr->error_message);
 
     class_alloc(source_spline,
-		sizeof(double)*ppt->eta_size*ppt->k_size[index_mode],
+		ppt->k_size[index_mode]*ppt->eta_size*sizeof(double),
 		ptr->error_message);
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
       for (index_tt = 0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
-	/** (b) interpolate sources to get them at the right values of k using transfer_interpolate_sources() */
+	
+        /** (b) interpolate sources to get them at the right values of k 
+                using transfer_interpolate_sources() */
 
 	class_call(transfer_interpolate_sources(ppt,
 						ptr,
@@ -263,13 +285,13 @@ int transfer_init(
 		   ptr->error_message,
 		   ptr->error_message);
 
-	/** (c) loop over l. For each value of l: */
+	/** (c) loop over l. For each value of l, compute transfer function. */
 
 	/* initialize error management flag */
 
 	abort = _FALSE_;
 
-	/*** beginning of parallel region ***/
+	/* beginning of parallel region */
 
 #pragma omp parallel						\
   shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,		\
@@ -338,13 +360,15 @@ int transfer_init(
 }
 
 /**
- * Free all memory space allocated by transfer_init().
+ * This routine frees all the memory space allocated by transfer_init().
  *
  * To be called at the end of each run, only when no further calls to
  * transfer_functions_at_k() are needed.
  *
+ * @param ptr Input: pointer to transfers structure (which fields must be freed)
  * @return the error status
  */
+
 int transfer_free(
 		  struct transfers * ptr
 		  ) {
@@ -373,7 +397,8 @@ int transfer_free(
 }
 
 /**
- * Initialize all indices and allocate all arrays in the transfers structure. 
+ * This routine defines all indices and allocates alltables 
+ * in the transfers structure 
  *
  * Compute list of (k, l) values, allocate and fill corresponding
  * arrays in the transfers structure. Allocate the array of transfer
@@ -381,6 +406,7 @@ int transfer_free(
  *
  * @return the error status
  */
+
 int transfer_indices_of_transfers(
 				  struct precision * ppr,
 				  struct perturbs * ppt,
@@ -494,15 +520,16 @@ int transfer_indices_of_transfers(
 }
 
 /**
- * Define number of mutipoles l
+ * This routine defines the number and values of mutipoles l for each mode.
  *
- * Define the number of multipoles l for each mode, using information
- * in the precision_params structure.
- *
+ * @param ppr  Input : pointer to precision structure
+ * @param ppt  Input : pointer to perturbation structure
+ * @param pbs  Input : pointer to bessels structure
+ * @param ptr  Input/Output : pointer to transfers structure containing l's
  * @param index_mode Input: index of requested mode (scalar, tensor, etc) 
- * @param pl_list_size Output: number of multipole 
  * @return the error status
  */
+
 int transfer_get_l_list(
 			struct precision * ppr,
 			struct perturbs * ppt,
@@ -515,15 +542,15 @@ int transfer_get_l_list(
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-    class_test(ptr->l_scalar_max > pbs->l[pbs->l_size-1],
+    class_test(ppt->l_scalar_max > pbs->l[pbs->l_size-1],
 	       ptr->error_message,
-	       "For scalar transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ptr->l_scalar_max,pbs->l[pbs->l_size-1]);
+	       "For scalar transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppt->l_scalar_max,pbs->l[pbs->l_size-1]);
     
     index_l=0;
-    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ptr->l_scalar_max)) {
+    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppt->l_scalar_max)) {
       index_l++;
     }
-    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ptr->l_scalar_max)) {
+    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ppt->l_scalar_max)) {
       index_l++;
     }
 
@@ -531,15 +558,17 @@ int transfer_get_l_list(
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-    class_test(ptr->l_tensor_max > pbs->l[pbs->l_size-1],
+    class_test(ppt->l_tensor_max > pbs->l[pbs->l_size-1],
 	       ptr->error_message,
-	       "For tensor transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ptr->l_scalar_max,pbs->l[pbs->l_size-1]);
+	       "For tensor transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppt->l_scalar_max,pbs->l[pbs->l_size-1]);
     
     index_l=0;
+
     /* go to first point in Bessel's l list which is greater than l_max (or only equal to it is l_max_Bessel coincides with l_max) */
-    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ptr->l_tensor_max)) {
+    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppt->l_tensor_max)) {
       index_l++;
     }
+
     /* if possible, take one more point in the list, in order to ensure a more accurate interpolation with less boundary effects */
     if (index_l < (pbs->l_size-1)) {
       index_l++;
@@ -560,15 +589,19 @@ int transfer_get_l_list(
 }
 
 /**
- * Define number of wavenumbers k
+ * This routine defines the number and values of wavenumbers k for each mode
+ * (different in perturbation module and transfer module: 
+ * higher sampling needed here)
  *
- * Define the number of wavenumbers k for each mode, using information
- * in the precision_params and perturbation structure.
- *
+ * @param ppr     Input : pointer to precision structure
+ * @param ppt     Input : pointer to perturbation structure
+ * @param ptr     Input/Output : pointer to transfers structure containing k's
+ * @param eta0    Input : conformal time today
+ * @param eta_rec Input : conformal time at recombination
  * @param index_mode Input: index of requested mode (scalar, tensor, etc) 
- * @param pk_list_size Output: number of wavenumbers 
  * @return the error status
  */
+
 int transfer_get_k_list(
 			struct precision * ppr,
 			struct perturbs * ppt,
@@ -630,16 +663,32 @@ int transfer_get_k_list(
 }
 
 /**
- * Interpolate sources \f$ S(k, \eta) \f$ using array_spline_table_columns() to get them at the right values of k; get also the second derivative of all source values with respect to \f$ \eta \f$, using again array_spline_table_columns(), in view of later "spline interpolation" of the sources.
+ * This routine interpolates sources \f$ S(k, \eta) \f$ for each mode, 
+ * initial condition and type, to get them at the right values of k,
+ * using the spline interpolation method. 
  *
- * @param index_mode Input : index of mode
- * @param index_ic Input : index of initial condition
- * @param index_tt Input : index of type of transfer
- * @param index_l Input : index of multipole
- * @param source_spline Input : array of second derivative of sources (filled here but allocated in transfer_init())
- * @param interpolated_sources Output : array of interpolated sources
+ * Important: some physics enters here. This is indeed the most
+ * efficient place for mutiplying the sources by some factors
+ * in order to transform the 'raw source functions' with a given
+ * 'source types' into an 'observable source funtion' with a given
+ * 'transfer type'.
+ *
+ * E.g.: here we can multiply the gravitational potential source 
+ * by one or several window functions, transforming it into one or 
+ * several lensing source functions.
+ * 
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param eta0                  Input : conformal time today
+ * @param eta_rec               Input : conformal time at recombination
+ * @param index_mode            Input : index of mode
+ * @param index_ic              Input : index of initial condition
+ * @param index_tt              Input : index of type of transfer
+ * @param source_spline         Output: array of second derivative of sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
+ * @param interpolated_sources  Output: array of interpolated sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
  * @return the error status
  */
+
 int transfer_interpolate_sources(
 				 struct perturbs * ppt,
 				 struct transfers * ptr,
@@ -648,8 +697,9 @@ int transfer_interpolate_sources(
 				 int index_mode,
 				 int index_ic,
 				 int index_tt,
-				 double * source_spline,
-				 double * interpolated_sources) {
+				 double * source_spline, /* array with argument source_spline[index_eta*ppt->k_size[index_mode]+index_k] (must be allocated) */
+				 double * interpolated_sources /* array with argument interpolated_sources[index_k_tr*ppt->eta_size+index_eta] (must be allocated) */
+				 ) {
 
   /** Summary: */
 
@@ -670,8 +720,8 @@ int transfer_interpolate_sources(
   /* variables used for spline interpolation algorithm */
   double h, a, b;
 
-  /* which source are we considering? Correspondence between transfer
-     types and source types */
+  /** - which source are we considering? 
+        Define correspondence between transfer types and source types */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
@@ -699,6 +749,9 @@ int transfer_interpolate_sources(
 
   }
 	  
+  /** - find second derivative of original sources with respect to k
+        in view of spline interpolation */
+
   class_call(array_spline_table_columns(ppt->k[index_mode],
 					ppt->k_size[index_mode],
 					ppt->sources[index_mode][index_ic * ppt->tp_size[index_mode] + index_type],
@@ -709,7 +762,12 @@ int transfer_interpolate_sources(
 	     ptr->error_message,
 	     ptr->error_message);
 
-  /** - interpolate at each k value */
+  /** - interpolate at each k value using the usual 
+        spline interpolation algorithm. 
+        Eventually mutiply the result by a factor accounting for the 
+        difference between 'raw source functions' in the perturbation module
+        and 'observable source functions' in the transfer module
+        (e.g. gravitational potential source -> lensing source) */
 
   index_k = 0;
   h = ppt->k[index_mode][index_k+1] - ppt->k[index_mode][index_k];
@@ -732,6 +790,8 @@ int transfer_interpolate_sources(
     
     for (index_eta = 0; index_eta < ppt->eta_size; index_eta++) {
 
+      /**   a) interpolate for each value of conformal time */
+
       interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 
 	a * ppt->sources[index_mode]
 	[index_ic * ppt->tp_size[index_mode] + index_type]
@@ -742,17 +802,20 @@ int transfer_interpolate_sources(
 	+ ((a*a*a-a) * source_spline[index_eta*ppt->k_size[index_mode]+index_k]
 	   +(b*b*b-b) * source_spline[index_eta*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
 
-      /* case of cmb lensing: multiply gravitational potential by appropriate window function */
+      /**   b) case of cmb lensing: multiply gravitational potential 
+               by appropriate window function */
 
       if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
 	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
+
 	  /* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
 	     with 
 	     psi = (newtonian) gravitationnal potential  
 	     W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
 	     H(x) = Heaviside
-	     (in eta = eta_0, source = 0 to avoid division by zero (regulated anyway by Bessel)).
+	     (in eta = eta_0, set source = 0 to avoid division by zero;
+              regulated anyway by Bessel).
 	  */
 	  if ((ppt->eta_sampling[index_eta] > eta_rec) && 
 	      ((eta0-ppt->eta_sampling[index_eta]) > 0.)) {
@@ -774,6 +837,37 @@ int transfer_interpolate_sources(
 
 }
 
+/**
+ * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
+ * as a function of wavenumber k for each mode, initial condition,
+ * type and multipole l passed in input. 
+ *
+ * For a given value of k, the transfer function is infered from 
+ * the source function (passed in input in the array interpolated_sources)
+ * and from Bessel functions (passed in input in the bessels structure),
+ * either by convolving them along eta, or by a Limber appoximation.
+ * This elementary task is distributed either to transfer_integrate()
+ * or to transfer_limber(). The task of this routine is mainly to
+ * loop over k values, and to decide at which k_max the calculation can
+ * be stopped, according to some approximation scheme designed to find a 
+ * compromise between execution time and precision. The approximation scheme
+ * is defined by parameters in bthe precision structure.
+ * 
+ * @param ppr                   Input : pointer to precision structure 
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param pbs                   Input : pointer to bessels structure 
+ * @param ptr                   Input/output : pointer to transfers structure (result stored there)
+ * @param eta0                  Input : conformal time today
+ * @param eta_rec               Input : conformal time at recombination
+ * @param index_mode            Input : index of mode
+ * @param index_ic              Input : index of initial condition
+ * @param index_tt              Input : index of type of transfer
+ * @param index_l               Input : index of multipole
+ * @param interpolated_sources  Input : array containing the sources
+ * @param ptw                   Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation) 
+ * @return the error status
+ */
+
 int transfer_compute_for_each_l(
 				struct precision * ppr,
 				struct perturbs * ppt,
@@ -785,9 +879,13 @@ int transfer_compute_for_each_l(
 				int index_ic,
 				int index_tt,
 				int index_l,
-				double * interpolated_sources,
+				double * interpolated_sources, /* array with argument interpolated_sources[index_k_tr*ppt->eta_size+index_eta] */
 				struct transfer_workspace * ptw
 				){
+
+  /** Summary: */
+
+  /** - define local variables */
 
   /* running index for wavenumbers */	
   int index_k;
@@ -844,7 +942,17 @@ int transfer_compute_for_each_l(
     cl_var_last_last=1.;
   }
 	      
-  /** - loop over k. For each k, if the option of stopping the transfer function computation at some k_max is not selected or if we are below k_max, compute \f$ \Delta_l(k) \f$ with transfer_integrate(); if it is selected and we are above k_max, set the transfer function to zero; if it is selected and we are below k_max, check wether k_max is being reached. */
+  /** - loop over k. For each k:
+        (a) if the option of stopping the transfer function computation 
+            at some k_max is not selected or if we are below k_max, 
+            compute \f$ \Delta_l(k) \f$ either with transfer_integrate() 
+            or with transfer_limber(); store the result in the table
+            in transfers structure;
+        (b) if it is selected and we are above k_max, set the transfer function 
+            to zero; 
+        (c) if it is selected and we are below k_max, check wether k_max is 
+            being reached. 
+  */
 
   for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
 
@@ -859,14 +967,17 @@ int transfer_compute_for_each_l(
       transfer_last = transfer_function;
     }
 		
-    /* update previous relative C_l's variation in the tc_cl method */
+    /* update previous relative pseudo-C_l variation in the tc_cl method */
     if (ppr->transfer_cut == tc_cl) {
       cl_var_last_last = cl_var_last;
       cl_var_last = cl_var;
     }
 		
-    /* compute transfer function or set it to zero if above k_max */
+    /* below k_max: compute transfer function */
     if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
+
+      /* criterium for chosing between integration and Limber 
+	 must be implemented here */
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 	
@@ -903,6 +1014,8 @@ int transfer_compute_for_each_l(
       }
 
     }
+
+    /* above k_max: set transfer function to zero */
     else {
       transfer_function = 0.;
     }
@@ -912,11 +1025,13 @@ int transfer_compute_for_each_l(
 			       * ptr->l_size[index_mode] + index_l)
 			      * ptr->k_size[index_mode] + index_k]
       = transfer_function;
-		
-    /* in the tc_osc case, update various quantities and check wether k_max is reached */
+    
+    /* in the tc_osc case, update various quantities and 
+       check wether k_max is reached */
     if ((ppr->transfer_cut == tc_osc) && (index_k>=2)) {
       
-      /* detect local/global maximum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */
+      /* detect local/global maximum of \f$ \Delta_l(k) \f$; 
+	 if detected, check the criteria for reaching k_max */
       if ((transfer_last > 0.) && (transfer_function < transfer_last) && (transfer_last > transfer_last_last)) {
 	last_local_max = transfer_last;
 	if (last_local_max > global_max) {
@@ -928,7 +1043,8 @@ int transfer_compute_for_each_l(
 	
       }
 		  
-      /* detect local/global minimum of \f$ \Delta_l(k) \f$; if detected, check the criteria for reaching k_max */ 
+      /* detect local/global minimum of \f$ \Delta_l(k) \f$; 
+	 if detected, check the criteria for reaching k_max */ 
       if ((transfer_last < 0.) && (transfer_function > transfer_last) && (transfer_last < transfer_last_last)) {
 	last_local_min = transfer_last;
 	if (last_local_min < global_min) {
@@ -940,13 +1056,14 @@ int transfer_compute_for_each_l(
       }
     }
 		
-    /* in the _TC_CUT_ case, update various quantities and check wether k_max is reached */
+    /* in the tc_cl case, update various quantities and check wether k_max is reached */
     if ((ppr->transfer_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
 		  
-      /* rough estimate of the contribution of the last step to C_l, assuming flat primordial spectrum */
+      /* rough estimate of the contribution of the last step to pseudo-C_l, 
+	 assuming flat primordial spectrum */
       delta_cl = transfer_function * transfer_function / k * 0.5 * (ptr->k[index_mode][index_k+1] - ptr->k[index_mode][index_k-1]);
       
-      /* update C_l */
+      /* update pseudo-C_l */
       cl += delta_cl;
       
       class_test(cl == 0.,
@@ -971,20 +1088,28 @@ int transfer_compute_for_each_l(
 
 }
 
-
 /**
- * for given values of l and k, compute the transfer function \f$ \Delta_l(k) \f$ by integrating \f$ S(k, \eta) j_l(k[\eta_0-\eta]) \f$ over \f$ \eta \f$ (in the range of \f$ \eta \f$ values where both functions are non-negligible and actually sampled).
- * 
- * @param index_mode Input : index of mode
- * @param index_ic Input : index of initial condition
- * @param index_tt Input : index of type
- * @param index_l Input : index of multipole
- * @param index_k Input : index of wavenumber
- * @param interpolated_sources Input: array of interpolated sources
- * @param ptw Input: pointer towards array of transfer workspace (already allocated and filled with eta values)
- * @param trsf Output: transfer function \f$ \Delta_l(k) \f$ 
+ * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
+ * for each mode, initial condition, type, multipole l and wavenumber k,
+ * by convolving  the source function (passed in input in the array 
+ * interpolated_sources) with Bessel functions (passed in input in the 
+ * bessels structure).
+ *
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param pbs                   Input : pointer to bessels structure 
+ * @param ptr                   Input : pointer to transfers structure
+ * @param eta0                  Input : conformal time today
+ * @param eta_rec               Input : conformal time at recombination
+ * @param index_mode            Input : index of mode
+ * @param index_tt              Input : index of type
+ * @param index_l               Input : index of multipole
+ * @param index_k               Input : index of wavenumber
+ * @param interpolated_sources  Input: array of interpolated sources
+ * @param ptw                   Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation) 
+ * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
  * @return the error status
  */
+
 int transfer_integrate(
 		       struct perturbs * ppt,
 		       struct bessels * pbs,
@@ -995,10 +1120,12 @@ int transfer_integrate(
 		       int index_tt,
 		       int index_l,
 		       int index_k,
-		       double * interpolated_sources,
+		       double * interpolated_sources, /* array with argument interpolated_sources[index_k_tr*ppt->eta_size+index_eta] */
 		       struct transfer_workspace * ptw,
 		       double * trsf
 		       ) {
+
+  /** Summary: */
 
   /** - define local variables */
 
@@ -1041,16 +1168,6 @@ int transfer_integrate(
 
     ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_y]= 
       interpolated_sources[index_k * ppt->eta_size + index_eta]*bessel;
-
-    /* for debugging */
-    /*     if ((index_tt == ppt->index_tp_g) && (index_l == 40) && (index_k == 2500)) { */
-
-    /*       printf("%e %e %e\n", */
-    /* 	     ppt->eta_sampling[index_eta], */
-    /* 	     interpolated_sources[index_k * ppt->eta_size + index_eta], */
-    /* 	     bessel); */
-    /*     } */
-
 
   }
 
@@ -1111,6 +1228,25 @@ int transfer_integrate(
   return _SUCCESS_;
 }
 
+/**
+ * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
+ * for each mode, initial condition, type, multipole l and wavenumber k,
+ * by using the Limber approximation, i.e by evaluating the source function 
+ * (passed in input in the array interpolated_sources) at a single value of
+ * eta (the Bessel function being approximated as a Dirac distribution)
+ *
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param eta0                  Input : conformal time today
+ * @param index_mode            Input : index of mode
+ * @param index_tt              Input : index of type
+ * @param index_l               Input : index of multipole
+ * @param index_k               Input : index of wavenumber
+ * @param interpolated_sources  Input: array of interpolated sources
+ * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
+ * @return the error status
+ */
+
 int transfer_limber(
 		    struct perturbs * ppt,
 		    struct transfers * ptr,
@@ -1119,13 +1255,23 @@ int transfer_limber(
 		    int index_tt,
 		    int index_l,
 		    int index_k,
-		    double * interpolated_sources,
+		    double * interpolated_sources, /* array with argument interpolated_sources[index_k_tr*ppt->eta_size+index_eta] */
 		    double * trsf
 		    ){
 
+  /** Summary: */
+
+  /** - define local variables */
+
+  /* multipole under consideration */
   double l;
+  /* wavenumber under consideration */
   double k;
+  /* conformal time at which source must be computed */
   double eta;
+
+  /** - get k, l and infer eta such that k(eta0-eta)=l+1/2; 
+      check that eta is in appropriate range */
 
   l = (double)ptr->l[index_mode][index_l];
   k = ptr->k[index_mode][index_k];
@@ -1135,6 +1281,8 @@ int transfer_limber(
     *trsf = 0.;
     return _SUCCESS_;
   }
+
+  /** - get source at this value eta */
 
   class_call(array_interpolate_two_arrays_one_column(
 						     ppt->eta_sampling,
@@ -1148,17 +1296,23 @@ int transfer_limber(
 	     ptr->error_message,
 	     ptr->error_message);
 
+  /** - get transfer = source * sqrt(pi/(2l+1))/k 
+      (times extra factors for polarization, tensors, ...) */
+
   *trsf *= sqrt(_PI_/(2.*l+1.))/k;
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) {
+
       /* for scalar polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
       *trsf *= sqrt((l+2.)*(l+1.)*l*(l-1.)); 
     }
   }
     
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+
     /* for tensor temperature, multiply by square root of  (l+2)(l+1)l(l-1)/2 */
+
     if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) {
       *trsf *= sqrt((l+2.)*(l+1.)*l*(l-1.)); 
     }

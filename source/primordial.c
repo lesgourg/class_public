@@ -9,7 +9,7 @@
  *
  * The following functions can be called from other modules:
  *
- * -# primordial_init() at the beginning (but after input_init())
+ * -# primordial_init() at the beginning (anytime after perturb_init() and before spectra_init())
  * -# primordial_spectrum_at_k() at any time for computing P(k) at any k
  * -# primordial_free() at the end
  */

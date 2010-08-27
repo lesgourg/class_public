@@ -7,7 +7,7 @@
 
 /**
  * Structure containing various informations on the output format, 
- * initialized in input_init() in the input module
+ * all of them initialized by user in input module.
  *
  */
 
@@ -17,7 +17,7 @@ struct output {
 
   //@{
 
-  FileArg root;
+  FileName root;
 
   //@}
 
@@ -30,15 +30,15 @@ struct output {
 
   //@}
 
-  /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
+  /** @name - technical parameters */
 
   //@{
   
-  short output_verbose;
-
-  //@}
+  short output_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
+
+  //@}
 };
 
 /*************************************************************************************************************/
@@ -74,7 +74,7 @@ extern "C" {
 			  struct spectra * psp,
 			  struct output * pop,
 			  FILE * * clfile,
-			  FileArg filename,
+			  FileName filename,
 			  char * first_line,
 			  int lmax
 			  );
@@ -90,7 +90,7 @@ extern "C" {
 			  struct spectra * psp,
 			  struct output * pop,
 			  FILE * * clfile,
-			  FileArg filename,
+			  FileName filename,
 			  char * first_line,
 			  double z
 			  );

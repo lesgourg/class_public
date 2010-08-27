@@ -4,6 +4,7 @@
 #define __TRANSFER__
 
 #include "bessel.h"
+#include "perturbations.h"
 
 /**
  * Structure containing everything about transfer functions in harmonic space \f$ \Delta_l^{X} (k) \f$ that other modules need to know.
@@ -12,6 +13,10 @@
  * transfer functions used for interpolation in other modules, for all
  * requested modes (scalar/vector/tensor), initial conditions, type
  * (temperature, polarization, etc), multipole l and wavenumber k.
+ * 
+ * The content of this structure is entirely computed in this module,
+ * given the content of the 'precision', 'bessels', 'background',
+ * 'thermodynamics' and 'perturbation' structures.
  */
 
 struct transfers {
@@ -43,9 +48,6 @@ struct transfers {
 
   //@{
 
-  int l_scalar_max; /**< maximum l value for scalars (must be <= l_max) */
-  int l_tensor_max; /**< maximum l value for tensors (must be <= l_max) */
-
   int * l_size; /**< number of multipole values for each requested mode, l_size[index_mode] */
 
   int ** l;     /**< list of multipole values for each requested mode, l[index_mode][index_l] */
@@ -70,15 +72,15 @@ struct transfers {
 
   //@}
 
-  /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
+  /** @name - technical parameters */
 
   //@{
 
-  short transfer_verbose;
-
-  //@}
+  short transfer_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
+
+  //@}
 };
 
 /**

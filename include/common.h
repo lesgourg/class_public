@@ -21,6 +21,9 @@
 #define _ERRORMSGSIZE_ 2048 /**< generic error messages are cut beyond this number of characters */
 typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is such a field in each structure) */
 
+#define _FILENAMESIZE_ 40 /**< size of the string read in each line of the file (extra characters not taken into account) */
+typedef char FileName[_FILENAMESIZE_];
+
 #define _PI_ 3.1415926535897932384626433832795e0 /**< The number pi */
 
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
@@ -295,7 +298,9 @@ struct precision
   enum possible_gauges gauge; 
 
   double k_scalar_min; /**< first mode k_min in units of Hubble radius today */
-  double k_scalar_oscillations; /**< number of acoustic oscillations experienced by last mode k_max (to resolve n acoustic peaks, one should set this number to more than n) */
+
+  double l_max_over_k_max_scalars; /**< number defining k_max (in units of Mpc^-1) for scalars: k_max = l_max times this number (order of magnitude given by few Hubble radius in Mpc, i.e. few times 3000) */
+
   double k_scalar_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
   double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
   double k_scalar_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. */
@@ -304,7 +309,9 @@ struct precision
 
 
   double k_tensor_min; /**< first mode k_min in units of Hubble radius today (tensor modes) */
-  double k_tensor_oscillations; /**< number oscillations experienced by last mode k_max (to resolve n peaks, one should set this number to more than n) (tensor modes) */
+
+  double l_max_over_k_max_tensors; /**< number defining k_max (in units of Mpc^-1) for tensors: k_max = l_max times this number (order of magnitude given by few Hubble radius in Mpc, i.e. few times 3000) */
+
   double k_tensor_step_sub; /**< step in k space, in units of one period of oscillation at decoupling, for scales inside horizon at decoupling (tensor modes) */
   double k_tensor_step_super; /**< step in k space, in units of one period of oscillation at decoupling, for scales above horizon at decoupling (tensor modes) */  
   double k_tensor_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. (tensor modes) */
@@ -376,12 +383,13 @@ struct precision
 
   //@{
 
-  int l_linstep; /**< factor for logarithmic spacing of values of l over which transfer functions are sampled */
-  double l_logstep; /**< maximum spacing of values of l over which transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
+  int l_linstep; /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
+  double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
-  double bessel_scalar_x_step; /**< step dx for sampling Bessel functions \f$ j_l(x) \f$ */
-  double bessel_scalar_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
-  int bessel_always_recompute; /**< if set to true, Bessels are never read from file */
+  double bessel_x_step; /**< step dx for sampling Bessel functions \f$ j_l(x) \f$ */
+  double bessel_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
+  double bessel_delta_x_min;  /**< precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
+  double bessel_x_max_over_l_max; /**< x_max is defined as this parameter times largest l in Cls computation */ 
 
   //@}
 

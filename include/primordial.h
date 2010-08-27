@@ -29,64 +29,17 @@ enum linear_or_logarithmic {
 
 struct primordial {
 
-  /** @name - pre-computed table of primordial spectra, and related quantities */
+  /** @name - input parameters initialized by user in input module 
+      (all other quantitites are computed in this module, given these parameters
+       and the content of the 'precision' and 'perturbs' structures) */
 
   //@{
 
-  int md_size;      /**< number of modes included in computation */
+  double k_pivot; /**< pivot scale in Mpc-1 */
 
-  int * ic_size;    /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+  enum primordial_spectrum_type primordial_spec_type; /**< type of primordial spectrum (simple analytic from, integration of inflationary perturbations, etc.) */
 
-  int * ic_ic_size; /**< number of ordered pairs of (index_ic1, index_ic2); this number is just N(N+1)/2  where N = ic_size[index_mode] */
-
-  int lnk_size;    /**< number of ln(k) values */
-
-  double * lnk;    /**< list of ln(k) values lnk[index_k] */
-
-  double ** lnpk;  /**< depends on indices index_mode, index_ic1, index_ic2, index_k as:
-		      lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2]
-		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
-                      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
-		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
-		      ln[P(k)] where P(k) is positive by construction.
-		      - for non-diagonal elements this arrays contains the k-dependent 
-		      cosine of the correlation angle, namely
-		      P(k )_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-		      This choice is convenient since the sign of the non-diagonal cross-correlation 
-		      is arbitrary. For fully correlated or anti-correlated initial conditions,
-		      this non -diagonal element is independent on k, and equal to +1 or -1.
-		   */ 
-
-  double ** ddlnpk; /**< second derivative of above array, for spline interpolation. So: 
-		       - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
-		         good since this function is usually smooth.
-		       - for non-diagonal coefficients, we spline  
-		         P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-			 vs. ln(k), which is fine since this quantity is often assumed to be
-                         constant (e.g for fully correlated/anticorrelated initial conditions)
-			 or nearly constant, and with arbitrary sign.
-		    */
-
-  short ** is_non_zero; /**< is_non_zero[index_mode][index_ic1_ic2] set to false if pair
-			    (index_ic1, index_ic2) is uncorrelated 
-			    (ensures more precision and saves time with respect to the option
-			    of simply setting P(k)_(index_ic1, index_ic2) to zero) */
-
-  //@}
-
-  /** @name - primordial spectrum type and pivot scale */
-
-  //@{
-
-  enum primordial_spectrum_type primordial_spec_type;
-
-  double k_pivot; /* pivot scale in Mpc-1 */
-
-  //@}
-
-  /** @name - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
-
-  //@{
+  /** - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
 
   double A_s;  /**< usual scalar amplitude = curvature power spectrum at pivot scale */
   double n_s;  /**< usual scalar tilt = [curvature power spectrum tilt at pivot scale -1] */
@@ -152,7 +105,54 @@ struct primordial {
   double n_nid_niv; /**< NIDxNIV cross-correlation tilt */
   double alpha_nid_niv; /**< NIDxNIV cross-correlation running */
 
-  /* above parameters are stored more conveniently in symmetric matrices */
+  //@}
+
+  /** @name - pre-computed table of primordial spectra, and related quantities */
+
+  //@{
+
+  int md_size;      /**< number of modes included in computation */
+
+  int * ic_size;    /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+
+  int * ic_ic_size; /**< number of ordered pairs of (index_ic1, index_ic2); this number is just N(N+1)/2  where N = ic_size[index_mode] */
+
+  int lnk_size;    /**< number of ln(k) values */
+
+  double * lnk;    /**< list of ln(k) values lnk[index_k] */
+
+  double ** lnpk;  /**< depends on indices index_mode, index_ic1, index_ic2, index_k as:
+		      lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2]
+		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
+                      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
+		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
+		      ln[P(k)] where P(k) is positive by construction.
+		      - for non-diagonal elements this arrays contains the k-dependent 
+		      cosine of the correlation angle, namely
+		      P(k )_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+		      This choice is convenient since the sign of the non-diagonal cross-correlation 
+		      is arbitrary. For fully correlated or anti-correlated initial conditions,
+		      this non -diagonal element is independent on k, and equal to +1 or -1.
+		   */ 
+
+  double ** ddlnpk; /**< second derivative of above array, for spline interpolation. So: 
+		       - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
+		         good since this function is usually smooth.
+		       - for non-diagonal coefficients, we spline  
+		         P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+			 vs. ln(k), which is fine since this quantity is often assumed to be
+                         constant (e.g for fully correlated/anticorrelated initial conditions)
+			 or nearly constant, and with arbitrary sign.
+		    */
+
+  short ** is_non_zero; /**< is_non_zero[index_mode][index_ic1_ic2] set to false if pair
+			    (index_ic1, index_ic2) is uncorrelated 
+			    (ensures more precision and saves time with respect to the option
+			    of simply setting P(k)_(index_ic1, index_ic2) to zero) */
+
+  //@}
+
+  /** @name - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
 
   double ** amplitude; /**< all amplitudes in matrix form: amplitude[index_mode][index_ic1_ic2] */
   double ** tilt;      /**< all tilts in matrix form: tilt[index_mode][index_ic1_ic2] */

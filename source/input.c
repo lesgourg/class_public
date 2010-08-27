@@ -619,20 +619,20 @@ int input_init(
 
   }
 
-  /** - parameters for output spectra */
+  /** - parameters for final spectra */
 
-  if (ppt->has_cls = _TRUE_) {
+  pbs->l_max=0;
 
-    pbs->l_max=0;
+  if (ppt->has_cls == _TRUE_) {
 
     if (ppt->has_scalars == _TRUE_) {
-      class_read_double("l_max_scalars",ptr->l_scalar_max);
-      pbs->l_max=ptr->l_scalar_max;
+      class_read_double("l_max_scalars",ppt->l_scalar_max);
+      pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
     }
 
     if (ppt->has_tensors == _TRUE_) {   
-      class_read_double("l_max_tensors",ptr->l_tensor_max);
-      pbs->l_max=max(pbs->l_max,ptr->l_tensor_max);
+      class_read_double("l_max_tensors",ppt->l_tensor_max);
+      pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
     }
   }
 
@@ -671,6 +671,19 @@ int input_init(
 
   class_read_string("root",pop->root);
 
+  class_call(parser_read_string(pfc,
+				"bessels",
+				&(string1),
+				&(flag1),
+				errmsg),
+	     errmsg,
+	     errmsg);
+	     
+  if (flag1 == _TRUE_) {
+    pbs->bessel_always_recompute = _FALSE_;
+    strcpy(pbs->bessel_file_name,string1);
+  }
+  
   /** - amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
@@ -733,13 +746,13 @@ int input_init(
 
   class_read_int("gauge",ppr->gauge);
   class_read_double("k_scalar_min",ppr->k_scalar_min);
-  class_read_double("k_scalar_oscillations",ppr->k_scalar_oscillations);
+  class_read_double("l_max_over_k_max_scalars",ppr->l_max_over_k_max_scalars);
   class_read_double("k_scalar_step_sub",ppr->k_scalar_step_sub);
   class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
   class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
   class_read_double("k_scalar_k_per_decade_for_pk",ppr->k_scalar_k_per_decade_for_pk);
   class_read_double("k_tensor_min",ppr->k_tensor_min);
-  class_read_double("k_tensor_oscillations",ppr->k_tensor_oscillations);
+  class_read_double("l_max_over_k_max_tensors",ppr->l_max_over_k_max_tensors);
   class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
   class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
   class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
@@ -766,9 +779,10 @@ int input_init(
 
   class_read_double("l_logstep",ppr->l_logstep);
   class_read_int("l_linstep",ppr->l_linstep);
-  class_read_double("bessel_scalar_x_step",ppr->bessel_scalar_x_step);
-  class_read_double("bessel_scalar_j_cut",ppr->bessel_scalar_j_cut);
-  class_read_int("bessel_always_recompute",ppr->bessel_always_recompute);
+  class_read_double("bessel_x_step",ppr->bessel_x_step);
+  class_read_double("bessel_j_cut",ppr->bessel_j_cut);
+  class_read_double("bessel_delta_x_min",ppr->bessel_delta_x_min);
+  class_read_double("bessel_x_max_over_l_max",ppr->bessel_x_max_over_l_max);
 
   /** - parameter related to the primordial spectra */
 
@@ -863,6 +877,14 @@ int input_default_params(
   ppt->has_vectors=_FALSE_;
   ppt->has_tensors=_FALSE_;  
 
+  ppt->l_scalar_max=2500;
+  ppt->l_tensor_max=500;
+  ppt->k_scalar_kmax_for_pk=0.1;
+
+  pbs->l_max = max(ppt->l_scalar_max,ppt->l_tensor_max);
+  pbs->bessel_always_recompute = _TRUE_;
+  strcpy(pbs->bessel_file_name,"");
+
   ppm->primordial_spec_type = analytic_Pk;
   ppm->k_pivot = 0.05;
   ppm->A_s = 2.3e-9;
@@ -913,12 +935,6 @@ int input_default_params(
   ppm->r = 1.;
   ppm->n_t = 0.;
   ppm->alpha_t = 0.;
-
-  pbs->l_max=2500;
-  ptr->l_scalar_max=2500;
-  ptr->l_tensor_max=500;
-
-  ppt->k_scalar_kmax_for_pk=0.1;
 
   pop->z_pk_num = 1;
   class_alloc(pop->z_pk,pop->z_pk_num*sizeof(double),errmsg);
@@ -998,7 +1014,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->gauge=synchronous;
 
   ppr->k_scalar_min=0.3; /* 0.3 -> 0.1 */
-  ppr->k_scalar_oscillations=7.;  
+/*   ppr->k_scalar_oscillations=7.;   */
+  ppr->l_max_over_k_max_scalars = 8000.;
   ppr->k_scalar_step_sub=0.1;  /* 0.02 -> 0.005 */
   ppr->k_scalar_step_super=0.005;  /* 0.01 -> 0.005 */
   ppr->k_scalar_step_transition=0.4;
@@ -1006,7 +1023,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
   ppr->k_tensor_min=0.1; /* 0.3 -> 0.1 */
-  ppr->k_tensor_oscillations=3.5;  
+ /*  ppr->k_tensor_oscillations=3.5;   */
+  ppr->l_max_over_k_max_tensors = 6300.;
   ppr->k_tensor_step_sub=0.01;  /* 0.02 -> 0.005 */
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
@@ -1042,9 +1060,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_logstep=1.2 /* 1.4*/;
   ppr->l_linstep=50;
 
-  ppr->bessel_scalar_x_step=0.1; /* 1. 1.27 optimized 9/09/08 */
-  ppr->bessel_scalar_j_cut=1.e-5; /* 8.1e-5 optimized 9/09/08 */
-  ppr->bessel_always_recompute=_TRUE_;
+  ppr->bessel_x_step=0.1; /* 1. 1.27 optimized 9/09/08 */
+  ppr->bessel_j_cut=1.e-5; /* 8.1e-5 optimized 9/09/08 */
+  ppr->bessel_delta_x_min =1.e-4; /* precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
+  ppr->bessel_x_max_over_l_max=2.;
 
   /**
    * - parameter related to the primordial spectra

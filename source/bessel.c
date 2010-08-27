@@ -1,12 +1,13 @@
-/** @file bessel.c Documented Bessel module
- * Julien Lesgourgues, 18.04.2010    
+/** @file bessel.c Documented Bessel module.
+ *
+ * Julien Lesgourgues, 26.08.2010    
  *
  * This module loads spherical Bessel functions
  * (either read from file or computed from scratch).
  *
  * Hence the following functions can be called from other modules:
  *
- * -# bessel_init() at the beginning (but after background_init(), thermodynamics_init() and perturb_init())
+ * -# bessel_init() at the beginning (anytime after input_init() and before transfer_init())
  * -# bessel_at_x() at any time for computing a value j_l(x) at any x by interpolation
  * -# bessel_free() at the end
  */
@@ -22,9 +23,10 @@
  * bessel_init() has been called before, and bessel_free() has not
  * been called yet.
  *
- * @param x Input: argument x of \f$j_l(x) \f$
- * @param l Input: order l of \f$j_l(x) \f$
- * @param j Ouput: \f$j_l(x) \f$
+ * @param pbs     Input: pointer to bessels structure
+ * @param x       Input: argument x
+ * @param index_l Input: index defining l = pbs->l[index_l]
+ * @param j       Ouput: \f$j_l(x) \f$
  * @return the error status
  */
 int bessel_at_x(
@@ -56,11 +58,11 @@ int bessel_at_x(
   }
   else {
 
-    /** - if x is too large to be in the interpolation table, return  an error (this should never occur since x_max in the table should really be the highest value needed by the code, given the precision parameters) */
+    /** - if x is too large to be in the interpolation table, return an error (this should never occur since x_max in the table should really be the highest value needed by the code, given the precision parameters) */
 
     class_test(x > pbs->x_max,
 	       pbs->error_message,
-	       "x=%e>x_max=%e; increase x_max.",x,pbs->x_max);
+	       "x=%e>x_max=%e; increase bessel_x_max_over_l_max in precision structure.",x,pbs->x_max);
 
     /** - otherwise, interpolation is needed: */
 
@@ -83,40 +85,33 @@ int bessel_at_x(
 }
 
 /**
- * Get spherical Bessel functions (either read from file or compute from scratch).  
+ * Get spherical Bessel functions (either read from file or compute
+ * from scratch).
  *
  * Each table of spherical Bessel functions \f$ j_l(x) \f$ corresponds
  * to a set of values for: 
  *
- * -# l_max: last value of l (first value is always 2, so number of values is l_max-1)
- * -# x_step: step dx for sampling Bessel functions \f$ j_l(x) \f$
- * -# x_max: last value of x (always a multiple of x_step!)
- * -# j_cut: value of \f$ j_l \f$ below which it is approximated by zero (in the region x << l)
+ * -# pbs->l[index_l]: list of l values l of size pbs->l_size
+ * -# pbs->x_step: step dx for sampling Bessel functions \f$ j_l(x) \f$
+ * -# pbs->x_max: last value of x (always a multiple of x_step!)
+ * -# pbs->j_cut: value of \f$ j_l \f$ below which it is approximated by zero (in the region x << l)
  *
  * This function checks whether there is alread a file "bessels.dat"
- * with the same (x_step, j_cut), and greater or equal values of
- * (l_max, x_max). If yes, it fills the table of bessel functions (and
+ * with the same l's, x_step, x_max, j_cut). 
+ * If yes, it fills the table of bessel functions (and
  * their second derivatives, needed for spline interpolation) with the
  * values read from the file. If not, it computes all values using
- * bessel_j() and array_spline(), and stores them both in the bessels
+ * bessel_j_for_l(), and stores them both in the bessels
  * stucture pbs, and in a file "bessels.dat" (in view of the next
  * runs).
  *
- * This function shall be called at the beginning of each run, but
- * only after background_init(), thermodynamics_init() and perturb_init(). It
- * allocates memory spaces which should be freed later with
- * bessel_free().
- *
- * @param pba_input Input : Initialized background structure (useful for knowing conformal age eta_0)
- * @param ppt_input Input : Initialized perturbation structure (useful for knowing k_max)
- * @param ppr_input Input : Parameters describing how the computation is to be performed
- * @param pbs_output Output : Initialized bessel structure 
+ * @param ppr Input : pointer to precision strucutre
+ * @param pbs Output: initialized bessel structure 
  * @return the error status
  */
+
 int bessel_init(
 		struct precision * ppr,
-		struct background * pba,
-		struct perturbs * ppt,
 		struct bessels * pbs
 		) {
 
@@ -126,21 +121,20 @@ int bessel_init(
 
   /* index for l (since first value of l is always 2, l=index_l+2) */
   int index_l;
-   /* conformal time today (useful for computing x_max) */
-  double eta0;
-  /* minimum, maximum value of k (useful for computing x_min,x_max) */
-  double kmin,kmax;
+
    /* first numbers to be read in bessels.dat file */
   int l_size_file;
   int * l_file;
   double x_step_file;
   double x_max_file;
   double j_cut_file;
+
   /* useful for reading useless data in bessels.dat file */
   int x_extra;
   int l_extra;
   int * x_size_file;
   void * junk;
+
   /* bessels.dat file */
   FILE * bessel_file;
   
@@ -156,62 +150,39 @@ int bessel_init(
   double tstart, tstop;
 #endif
 
-  pbs->l_size=0;
-
-  if (ppt->has_cls == _FALSE_) {
+  if (pbs->l_max == 0) {
     if (pbs->bessels_verbose > 0)
       printf("No harmonic space transfer functions to compute. Bessel module skipped.\n");
     return _SUCCESS_;
   }
 
-  /** - get conformal age from background structure (only place where this structure is used in this module) */
-  eta0 = pba->conformal_age;
-
-  /** - get maximum and minimum wavenumber from perturbation structure (only place where this structure is used in this module) */
-  kmax=0.;
-  kmin=_HUGE_;
-  if (ppt->has_scalars == _TRUE_) {
-    kmax = ppt->k[ppt->index_md_scalars]
-      [ppt->k_size_cl[ppt->index_md_scalars]-1];
-    kmin = ppt->k[ppt->index_md_scalars][0];
-  }
-  if (ppt->has_tensors == _TRUE_) {
-    kmax = max(kmax,ppt->k[ppt->index_md_tensors]
-	     [ppt->k_size_cl[ppt->index_md_scalars]-1]);
-    kmin = min(kmin,ppt->k[ppt->index_md_scalars][0]);
-  }
-  class_test(kmax<=0.,
-	     pbs->error_message,
-	     "value of kmax could not be inferred\n");
-  class_test((kmin>=_HUGE_)||(kmin<=0.),
-	     pbs->error_message,
-	     "value of kmin could not be inferred\n");
-
-  /** - compute l values, x_step and j_cut given the parameters passed
-      in the precision structure; and x_max given eta0 and kmax */
+  /** - infer l values from precision parameters and from l_max */
 
   class_call(bessel_get_l_list(ppr,pbs),
 	     pbs->error_message,
 	     pbs->error_message);
 
-  pbs->x_step = ppr->bessel_scalar_x_step;
-  
+  /** - infer x_step, x_max and j_cut from precision parameters and from l_max */
+
+  pbs->x_step = ppr->bessel_x_step;  
+
   class_test(pbs->x_step <= 0.,
 	     pbs->error_message,
-	     "x_step=%e",pbs->x_step);
+	     "x_step=%e, stop to avoid segmentation fault",pbs->x_step);
 
-  pbs->j_cut = ppr->bessel_scalar_j_cut;
-  pbs->x_max = ((int)(kmax * eta0 / pbs->x_step)+1)*pbs->x_step; /* always multiple of x_step */
+  pbs->x_max = ((int)(pbs->l_max * ppr->bessel_x_max_over_l_max / pbs->x_step)+1)*pbs->x_step;
+
+  pbs->j_cut = ppr->bessel_j_cut;
 
   /** - check if file bessels.dat already exists with the same (l's, x_step, x_max, j_cut). If yes, read it. */
 
-  if (ppr->bessel_always_recompute == _FALSE_) {
+  if (pbs->bessel_always_recompute == _FALSE_) {
 
-    bessel_file=fopen("bessels.dat","r");
+    bessel_file=fopen(pbs-> bessel_file_name,"r");
   
     if (bessel_file == NULL) {
       if (pbs->bessels_verbose > 1)
-	printf("File bessels.dat did not exist.\n");
+	printf("File %s did not exist.\n",pbs-> bessel_file_name);
     }
     else {
 
@@ -240,6 +211,7 @@ int bessel_init(
 		 "Could not read in bessel file");
 
       index_l=0;
+
       if (l_size_file == pbs->l_size) {
 	while ((pbs->l[index_l] == l_file[index_l]) && (index_l < pbs->l_size-1)) {
 	  index_l++;
@@ -256,7 +228,7 @@ int bessel_init(
 	  (x_max_file == pbs->x_max)) {
 
 	if (pbs->bessels_verbose > 0)
-	  printf("Read bessels in file 'bessels.dat'\n");
+	  printf("Read bessels in file %s\n",pbs-> bessel_file_name);
 	
 	class_alloc(pbs->x_min,pbs->l_size*sizeof(double),pbs->error_message);
 	class_alloc(pbs->x_size,pbs->l_size*sizeof(int),pbs->error_message);
@@ -313,10 +285,10 @@ int bessel_init(
   /* initialize error management flag */
   abort = _FALSE_;
   
-  /*** beginning of parallel region ***/
+  /* beginning of parallel region */
 
-#pragma omp parallel							\
-  shared(ppr,pbs,kmin,abort)						\
+#pragma omp parallel						\
+  shared(ppr,pbs,abort)						\
   private(index_l,tstart,tstop)
   
   {
@@ -331,7 +303,7 @@ int bessel_init(
 
     for (index_l = 0; index_l < pbs->l_size; index_l++) {
 
-      class_call_parallel(bessel_j_for_l(ppr,pbs,index_l,kmin),
+      class_call_parallel(bessel_j_for_l(ppr,pbs,index_l),
 			  pbs->error_message,
 			  pbs->error_message);
 	
@@ -350,14 +322,14 @@ int bessel_init(
 
   if (abort == _TRUE_) return _FAILURE_;
 
-  if (ppr->bessel_always_recompute == _FALSE_) {
+  if (pbs->bessel_always_recompute == _FALSE_) {
 
   if (pbs->bessels_verbose > 0)
-    printf(" -> (over)write in file 'bessels.dat'\n");
+    printf(" -> (over)write in file %s\n",pbs-> bessel_file_name);
 
   /** (b) write in file */
 
-  bessel_file = fopen("bessels.dat","w");
+  bessel_file = fopen(pbs->bessel_file_name,"w");
 
   fwrite(&(pbs->l_size),sizeof(int),1,bessel_file);
   fwrite(pbs->l,sizeof(int),pbs->l_size,bessel_file);
@@ -389,14 +361,16 @@ int bessel_init(
  *
  * To be called at the end of each run.
  *
+ * @param pbs Input : Initialized bessel structure 
  * @return the error status
  */
+
 int bessel_free(
 		struct bessels * pbs) {
 
   int index_l;
 
-  if (pbs->l_size > 0){
+  if (pbs->l_max > 0) {
 
     for (index_l = 0; index_l < pbs->l_size; index_l++) {
       free(pbs->j[index_l]);
@@ -414,20 +388,30 @@ int bessel_free(
 }
 
 /**
- * Define number of mutipoles l
+ * Define number and values of mutipoles l. This is crucial since not
+ * only the Bessel functions, but also the transfer functions and
+ * anisotropy spectra C_l will automatically be sampled at the same
+ * values (there would be no logic in having various l lists differing
+ * from each other).
  *
- * Define the number of multipoles l for each mode, using information
- * in the precision structure.
  *
- * @param pl_list_size Output: number of multipole 
+ * @param ppr Input : pointer to precision structure
+ * @param pbs Input/Output : pointer to besseld structure (result stored here) 
  * @return the error status
  */
+
 int bessel_get_l_list(
 		      struct precision * ppr,
 		      struct bessels * pbs
 		      ) {
 
+  /** Summary: */
+
+  /** - define local variables */
+
   int index_l,increment,current_l;
+
+  /** - start from l = 2 and increase with logarithmic step */
 
   index_l = 0;
   current_l = 2;
@@ -442,6 +426,9 @@ int bessel_get_l_list(
 
   }
 
+  /** - when the logarithmic step becomes larger than some linear step, 
+      stick to this linear step till l_max */
+
   increment = ppr->l_linstep;
 
   while ((current_l+increment) <= pbs->l_max) {
@@ -451,6 +438,8 @@ int bessel_get_l_list(
 
   }
 
+  /** - last value set to exactly l_max */
+
   if (current_l != pbs->l_max) {
 
     index_l ++;
@@ -459,6 +448,9 @@ int bessel_get_l_list(
   } 
 
   pbs->l_size = index_l+1;
+
+  /** - so far we just counted the number of values. Now repeat the
+      whole thing but fill array with values. */
 
   class_alloc(pbs->l,pbs->l_size*sizeof(int),pbs->error_message);
 
@@ -487,7 +479,7 @@ int bessel_get_l_list(
   if (pbs->l[index_l] != pbs->l_max) {
 
     index_l ++;
-    pbs->l[index_l]=pbs->l_max;
+    pbs->l[index_l]= pbs->l_max;
        
   }
   
@@ -495,13 +487,29 @@ int bessel_get_l_list(
 
 }
 
+/**
+ * Get spherical Bessel functions for given value of l.
+ *
+ * Find the first value x_min(l) at which the function is not
+ * negligible (for large l values, Bessel functions are very close to
+ * zero nearly until x=l).
+ * Then, sample it with step x_step till x_max.
+ *
+ * @param ppr Input : pointer to precision structure
+ * @param pbs Input/Output : pointer to bessel structure (store result here) 
+ * @return the error status
+ */
+
 int bessel_j_for_l(
 		   struct precision * ppr,
 		   struct bessels * pbs,
-		   int index_l,
-		   double kmin
+		   int index_l
 		   ){
   
+  /** Summary: */
+
+  /** - define local variables */
+
   /* index for x (x=x_min[index_l]+x_step*index_x) */
   int index_x;
   /* value of j_l(x) returned by bessel_j() */
@@ -522,7 +530,8 @@ int bessel_j_for_l(
   index_x=0;
   j = 0.;
 
-  /* find x_min[index_l] by dichotomy */
+  /** - find x_min[index_l] by dichotomy */
+
   x_min_up=(double)pbs->l[index_l]+0.5;
   x_min_down=0.;
 
@@ -537,12 +546,12 @@ int bessel_j_for_l(
 	     pbs->error_message,
 	     "in dichotomy, wrong initial guess for x_min_up.");
  
-  while ((x_min_up-x_min_down) > kmin) {
+  while ((x_min_up-x_min_down) > ppr->bessel_delta_x_min) {
       
     class_test((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
 	       pbs->error_message,
 	       "(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
-	       (x_min_up-x_min_down),kmin);
+	       (x_min_up-x_min_down),ppr->bessel_delta_x_min);
     
     class_call(bessel_j(pbs,
 			pbs->l[index_l], /* l */
@@ -567,8 +576,10 @@ int bessel_j_for_l(
 	     pbs->error_message,
 	     pbs->error_message);
 
-  /* case when all values of j_l(x) were negligible for this l*/
+  /** - case when all values of j_l(x) were negligible for this l*/
+
   if (pbs->x_min[index_l] >= pbs->x_max) {
+
     pbs->x_min[index_l] = pbs->x_max;
     pbs->x_size[index_l] = 1;
 
@@ -578,16 +589,18 @@ int bessel_j_for_l(
     pbs->j[index_l][0]=0;
     pbs->ddj[index_l][0]=0;
   }
-  /* write first non-negligible value */
+
+  /** -otherwise, write first non-negligible value and then loop over x */
   else {
+
     pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
 
     class_alloc(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
-
+    
     j_array[0*column_num+column_x]=pbs->x_min[index_l];
     j_array[0*column_num+column_j]=j;
 
-	      /* loop over other non-negligible values */
+    /* loop over other non-negligible values */
     for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
 
       j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step;
@@ -631,11 +644,13 @@ int bessel_j_for_l(
  *
  * Inspired from Numerical Recipies.
  * 
- * @param l Input: l value
- * @param x Input: x value
- * @param jl Output: \f$ j_l(x) \f$ value
+ * @param pbs Input : pointer to bessel structure (used only for error mess ge)
+ * @param l   Input: l value
+ * @param x   Input: x value
+ * @param jl  Output: \f$ j_l(x) \f$ value
  * @return the error status
  */
+
 int bessel_j(
 	     struct bessels * pbs,
 	     int l,
