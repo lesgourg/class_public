@@ -242,14 +242,29 @@ struct precision
 
   /** - for recombination */
 
-  double recfast_z_initial; /**< recfast parameter */
-  double recfast_z_final; /**< recfast parameter */
-  double recfast_x_H0; /**< recfast parameter */
-  double recfast_x_He0; /**< recfast parameter */
-  double recfast_H_frac; /**< recfast parameter */
-  double recfast_fudge; /**< recfast parameter */
+  double recfast_z_initial;/**< recfast parameter */
+  double recfast_z_final;  /**< recfast parameter */
+  double recfast_x_H0;     /**< recfast parameter */
+  double recfast_x_He0;    /**< recfast parameter */
+  double recfast_H_frac;   /**< recfast parameter */
+
+  /* He fudge parameters from recfast 1.4 */
+  int recfast_Heswitch;  /**< recfast 1.4 parameter */
   double recfast_fudge_He; /**< recfast 1.4 parameter */
-  int recfast_Heswitch; /**< recfast 1.4 parameter */
+
+  /* H fudge parameters from recfast 1.4 */
+  double recfast_fudge_H; /**< H fudge factor when recfast_Hswitch set to false */
+
+  /* H fudge parameters from recfast 1.5 (Gaussian fits for extra H physics by Adam Moss) */
+  int recfast_Hswitch;            /**< recfast 1.5 switching parameter */
+  double recfast_delta_fudge_H;   /**< correction to H fudge factor in new scheme */
+  double recfast_AGauss1;         /**< Amplitude of 1st Gaussian */
+  double recfast_AGauss2;         /**< Amplitude of 2nd Gaussian */
+  double recfast_zGauss1;         /**< ln(1+z) of 1st Gaussian */
+  double recfast_zGauss2;         /**< ln(1+z) of 2nd Gaussian */
+  double recfast_wGauss1;         /**< Width of 1st Gaussian */
+  double recfast_wGauss2;         /**< Width of 2nd Gaussian */
+
   double recfast_x_H0_trigger;  /**< recfast parameter */
   double recfast_x_He0_trigger;  /**< recfast parameter */
   int recfast_Nz0; /**< recfast parameter */

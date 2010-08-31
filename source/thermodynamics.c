@@ -1143,6 +1143,34 @@ int thermodynamics_reionization_discretize(
  * thermodynamics_init()). Called once by
  * thermodynamics_init().
  *
+ *******************************************************************************
+ * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium,   *
+ * developed by Douglas Scott (dscott@astro.ubc.ca)                            *
+ * based on calculations in the paper Seager, Sasselov & Scott                 *
+ * (ApJ, 523, L1, 1999).                                                       *
+ * and "fudge" updates in Wong, Moss & Scott (2008).                           *
+ *                                                                             *
+ * Permission to use, copy, modify and distribute without fee or royalty at    *
+ * any tier, this software and its documentation, for any purpose and without  *
+ * fee or royalty is hereby granted, provided that you agree to comply with    *
+ * the following copyright notice and statements, including the disclaimer,    *
+ * and that the same appear on ALL copies of the software and documentation,   *
+ * including modifications that you make for internal use or for distribution: *
+ *                                                                             *
+ * Copyright 1999-2010 by University of British Columbia.  All rights reserved.*
+ *                                                                             *
+ * THIS SOFTWARE IS PROVIDED "AS IS", AND U.B.C. MAKES NO                      *
+ * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.                          *
+ * BY WAY OF EXAMPLE, BUT NOT LIMITATION,                                      *
+ * U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES OF                            *
+ * MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT               *
+ * THE USE OF THE LICENSED SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE         *
+ * ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.            *
+ *******************************************************************************
+ *
+ * Version 1.5: includes extra fitting function from
+ *              Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
+ *
  * @param Input/Ouput: pointer to recombination structure
  * @return the error status
  */
@@ -1205,9 +1233,19 @@ int thermodynamics_recombination(
   /* H_frac */ 
   preco->H_frac = ppr->recfast_H_frac;
 
-  /* fudge */
-  preco->fu = ppr->recfast_fudge;
- 
+  /* H fudging */
+  class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
+	     pth->error_message,
+	     "RECFAST error: unknown H fudging scheme");
+  preco->fu = ppr->recfast_fudge_H;
+  if (ppr->recfast_Hswitch == _TRUE_) 
+    preco->fu += ppr->recfast_delta_fudge_H;
+
+  /* He fudging */
+  class_test((ppr->recfast_Heswitch < 0) || (ppr->recfast_Heswitch > 6),
+	     pth->error_message,
+	     "RECFAST error: unknown He fudging scheme");
+
   /* related quantities */ 
   z=zinitial;
   mu_H = 1./(1.-Yp);
@@ -1380,8 +1418,18 @@ int thermodynamics_recombination(
     /* -> dkappa/deta = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadeta)
       = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
+
+/*     fprintf(stdout,"%g %g %g %g %g\n", */
+/* 	    zend, */
+/* 	    y[0], */
+/* 	    y[1], */
+/* 	    y[2], */
+/* 	    x0); */
     
   }
+
+/*   class_test(0==0,pth->error_message,"stop here for testing") */
+
 
   /* RECFAST is done */
 
@@ -1482,7 +1530,7 @@ int thermodynamics_derivs_with_recfast(
 				       ErrorMsg error_message
 				       ) {
 
-  double x,n,n_He,Trad,Tmat,x_H,x_He,Hz;
+  double x,n,n_He,Trad,Tmat,x_H,x_He,Hz,dHdz,epsilon;
   double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
   double timeTh,timeH;
   double sq_0,sq_1,a_PPB,b_PPB,c_PPB,d_PPB;
@@ -1493,7 +1541,7 @@ int thermodynamics_derivs_with_recfast(
   /* new in recfast 1.4: */
   double Rdown_trip,Rup_trip,tauHe_s,pHe_s,Doppler,gamma_2Ps,pb,qb,AHcon;
   double tauHe_t,pHe_t,CfHe_t,CL_PSt,gamma_2Pt;
-  short Heflag;
+  int Heflag;
 
   struct thermodynamics_parameters_and_workspace * ptpaw;
   struct precision * ppr;
@@ -1521,6 +1569,7 @@ int thermodynamics_derivs_with_recfast(
 	     error_message);
   
   Hz=pvecback[pba->index_bg_H]/_Mpc_in_sec_;
+  dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today;
 
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
   Rup = Rdown * pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat);
@@ -1531,6 +1580,15 @@ int thermodynamics_derivs_with_recfast(
   Rup_He = Rdown_He*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB_He/Tmat);
   Rup_He = 4.*Rup_He;
   K = preco->CK/Hz;
+
+  /* following is from recfast 1.5 */
+
+  if (ppr->recfast_Hswitch == _TRUE_ )
+    K *= 1.
+      + ppr->recfast_AGauss1*exp(-pow((log(1.+z)-ppr->recfast_zGauss1)/ppr->recfast_wGauss1,2)) 
+      + ppr->recfast_AGauss2*exp(-pow((log(1.+z)-ppr->recfast_zGauss2)/ppr->recfast_wGauss2,2));
+
+  /* end of new recfast 1.5 piece */
 
   /* following is from recfast 1.4 */
 
@@ -1549,7 +1607,9 @@ int thermodynamics_derivs_with_recfast(
     pHe_s = (1.-exp(-tauHe_s))/tauHe_s;
     K_He = 1./(_A2P_s_*pHe_s*3.*n_He*(1.-x_He));
 
-    if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) {
+    /*    if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) { */
+    if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.9999999)) { /* threshold changed by Antony Lewis in 2008 to get smoother Helium */
+
       Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
       Doppler = _c_*_L_He_2p_*sqrt(Doppler);
       gamma_2Ps = 3.*_A2P_s_*preco->fHe*(1.-x_He)*_c_*_c_
@@ -1594,6 +1654,14 @@ int thermodynamics_derivs_with_recfast(
   else {
     if (x_H > 0.985) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) /(Hz*(1.+z));
+
+    /*   fprintf(stderr,"%e %e %e %e %e %e %e %e %e %e %e\n",x,x_H,n,Rdown,Rup,preco->CL,Tmat, */
+/* 	      x*x_H*n*Rdown, */
+/* 	      Rup*(1.-x_H)*exp(-preco->CL/Tmat), */
+/* 	      x*x_H*n*Rdown-Rup*(1.-x_H)*exp(-preco->CL/Tmat), */
+/* 	      dy[0]); */
+
+/*       class_test(0==0,error_message,""); */
     }
     else {
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)));
@@ -1611,16 +1679,25 @@ int thermodynamics_derivs_with_recfast(
 
     dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat)) *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)) /(Hz*(1+z) * (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
 
-    if (Heflag == 3)
+    /* following is from recfast 1.4 */
+
+    if (Heflag >= 3)
       dy[1] = dy[1] + 
 	(x*x_He*n*Rdown_trip
 	 - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_c_*_L_He_2St_/(_k_B_*Tmat)))
 	*CfHe_t/(Hz*(1.+z));
-	
+
+    /* end of new recfast 1.4 piece */
   }
 
-  if (timeTh < preco->H_frac*timeH)
+  if (timeTh < preco->H_frac*timeH) {
     dy[2]=Tmat/(1.+z);
+    /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
+/*     epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x); */
+/*     dy[2] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*((y[0]+preco->fHe*y[1])/x)  */
+/*       - epsilon* dHdz/Hz + 3.*epsilon/(1.+z); */
+    
+  }
   else
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
 

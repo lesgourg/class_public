@@ -753,9 +753,23 @@ int input_init(
   class_read_double("recfast_H_frac",ppr->recfast_H_frac);
   class_read_double("recfast_x_H0_trigger",ppr->recfast_x_H0_trigger);
   class_read_double("recfast_x_He0_trigger",ppr->recfast_x_He0_trigger);
-  class_read_double("recfast_fudge",ppr->recfast_fudge);
-  class_read_double("recfast_fudge_He",ppr->recfast_fudge_He);
+
   class_read_int("recfast_Heswitch",ppr->recfast_Heswitch);
+  class_read_double("recfast_fudge_He",ppr->recfast_fudge_He);
+
+  class_read_double("recfast_fudge_H",ppr->recfast_fudge_H);
+
+  class_read_int("recfast_Hswitch",ppr->recfast_Hswitch);
+  if (ppr->recfast_Hswitch == _TRUE_) {
+    class_read_double("recfast_delta_fudge_H",ppr->recfast_delta_fudge_H);
+    class_read_double("recfast_AGauss1",ppr->recfast_AGauss1);
+    class_read_double("recfast_AGauss2",ppr->recfast_AGauss2);
+    class_read_double("recfast_zGauss1",ppr->recfast_zGauss1);
+    class_read_double("recfast_zGauss2",ppr->recfast_zGauss2);
+    class_read_double("recfast_wGauss1",ppr->recfast_wGauss1);
+    class_read_double("recfast_wGauss2",ppr->recfast_wGauss2);
+  }
+
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
   class_read_double("tol_thermo_integration",ppr->tol_thermo_integration);
   class_read_double("visibility_threshold_start_sources",ppr->visibility_threshold_start_sources);
@@ -1043,12 +1057,27 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->recfast_z_initial=1.e4;
   ppr->recfast_z_final=0.;
+
+  /********************************************/
+  /* should be converted as 'input parameters' */
   ppr->recfast_H_frac=1.e-3; /* from recfast */      
   ppr->recfast_x_H0_trigger=0.99; /* from recfast */   
   ppr->recfast_x_He0_trigger=0.99; /* from recfast */  
-  ppr->recfast_fudge=1.14; /* from recfast */
-  ppr->recfast_fudge_He=0.86; /* from recfast 1.4 */
-  ppr->recfast_Heswitch=6.; /* from recfast 1.4 */ 
+
+  ppr->recfast_Heswitch=6;             /* from recfast 1.4 */
+  ppr->recfast_fudge_He=0.86;          /* from recfast 1.4 */
+
+  ppr->recfast_fudge_H = 1.14;         /* from recfast 1.4 */
+  ppr->recfast_Hswitch = _TRUE_;       /* from recfast 1.5 */
+  ppr->recfast_delta_fudge_H = -0.035; /* from recfast 1.5 */
+  ppr->recfast_AGauss1 = -0.14;        /* from recfast 1.5 */ 
+  ppr->recfast_AGauss2 =  0.05;        /* from recfast 1.5 */
+  ppr->recfast_zGauss1 =  7.28;        /* from recfast 1.5 */
+  ppr->recfast_zGauss2 =  6.75;        /* from recfast 1.5 */
+  ppr->recfast_wGauss1 =  0.18;        /* from recfast 1.5 */
+  ppr->recfast_wGauss2 =  0.33;        /* from recfast 1.5 */
+  /********************************************/
+ 
   ppr->recfast_Nz0=10000; /* smaller than 6000 gives bug in transfer, need to check why */
   ppr->tol_thermo_integration=1.e-3; /* optimized 9/09/08  */
 
@@ -1059,7 +1088,11 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->reionization_sampling=1.e-2; /*1.e-2*/
   ppr->reionization_optical_depth_tol=1.e-2;
   ppr->reionization_exponent=1.5;
+
+  /* should be converted as 'input parameters' */
   ppr->reionization_width=0.5;
+  /********************************************/
+
   ppr->reionization_start_factor=8.;
   ppr->helium_fullreio_redshift=3.5;
   ppr->helium_fullreio_width=0.5;
