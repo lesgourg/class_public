@@ -365,15 +365,11 @@ extern "C" {
 
 //@{
 
-#define _k_B_ 1.380658e-23
-#define _h_P_ 6.6260755e-34
-#define _m_e_ 9.1093897e-31
-#define _m_H_ 1.673575e-27  /*updated like in recfast 1.4*/
-#define _sigma_ 6.6524616e-29
-#define _a_ 7.565914e-16
-#define _m_p_ 1.672623e-27
-#define _not4_ 3.9715  /*updated like in recfast 1.4*/
-#define _Mpc_in_sec_ 1.029272e14
+#define _m_e_ 9.10938215e-31  /**< electron mass in Kg */
+#define _m_p_ 1.672621637e-27 /**< proton mass in Kg */
+#define _m_H_ 1.673575e-27    /**< Hydrogen mass in Kg */
+#define _not4_ 3.9715         /**< Helium to Hydrogen mass ratio */
+#define _sigma_ 6.6524616e-29 /* Thomson cross-section in m^2 */
 
 //@}
 
@@ -393,7 +389,6 @@ extern "C" {
 #define _L_He2_ion_ 4.389088863e7
 #define _L_He_2s_ 1.66277434e7
 #define _L_He_2p_ 1.71134891e7
-#define _bigH_ 100.0e3/(1.0e6*3.0856775807e16)*2999.7
 #define	_A2P_s_		1.798287e9  /*updated like in recfast 1.4*/
 #define	_A2P_t_		177.58e0  /*updated like in recfast 1.4*/
 #define	_L_He_2Pt_	1.690871466e7  /*updated like in recfast 1.4*/

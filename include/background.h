@@ -48,7 +48,7 @@ struct background
 
   //@{
 
-  double H0; /**< \f$ H_0 \f$ : Hubble parameter in \f$ Mpc^{-1} \f$ */
+  double H0; /**< \f$ H_0 \f$ : Hubble parameter (in fact, [H_0/c]) in \f$ Mpc^{-1} \f$ */
   double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$ : photons */
   double Omega0_b; /**< \f$ \Omega_{0 b} \f$ : baryons */
   double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$ : cold dark matter */
@@ -273,10 +273,13 @@ extern "C" {
 #define _Mpc_over_m_ 3.085677581282e22 /**< conversion factor from meters to megaparsecs */
 #define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears 
 				       (c=1 units, Julian years of 365.25 days) */
-
 #define _c_ 2.99792458e8 /**< c in m/s */
-#define _sigma_B_  5.6704e-8 /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 #define _G_ 6.67428e-11 /**< Newton constant in m^3/Kg/s^2 */
+
+/* parameters entering into the Stefan-Boltzmann constant sigma_B */
+#define _k_B_ 1.3806504e-23
+#define _h_P_ 6.62606896e-34
+/* sigma_B = 2pi^5k_B^4/(15h^3c^2) = 5.670400e-8 = Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
 //@}
 

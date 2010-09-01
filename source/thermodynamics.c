@@ -197,13 +197,6 @@ int thermodynamics_init(
 	     pth->error_message,
 	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pth->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
 
-  class_test(fabs(pba->Omega0_g/((4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_))-1.) > ppr->smallest_allowed_variation,
-	     pth->error_message,
-	     "inconsistency between photon temperature and density (fixed by stefan-Boltzmann law): you have Tcmb=%f K, but Omega0_g=%e and omega0_g=%e",
-	     pth->Tcmb,
-	     pba->Omega0_g,
-	     pba->Omega0_g*pba->h*pba->h);
-
   /* Y_He */
   class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
 	     pth->error_message,
@@ -1212,16 +1205,15 @@ int thermodynamics_recombination(
   /* Nz */
   Nz=ppr->recfast_Nz0;
 
-  /* Ho : must be h in 100km/s/Mpc * bigH */
-  preco->H0 = pba->H0 * _bigH_;
+  /* preco->H0 is H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
+
+  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
 
   /* Omega_b */
   OmegaB = pba->Omega0_b;
-  /*printf("Omega_b = %f \n",OmegaB);*/
 
   /* Yp */
   Yp = pth->YHe;
-  /*printf("Y_He = %f \n",Yp);*/
 
   /* Tnow */
   preco->Tnow = pth->Tcmb;
@@ -1253,7 +1245,6 @@ int thermodynamics_recombination(
   preco->fHe = Yp/(_not4_ *(1.-Yp)); /* recfast 1.4 */
   preco->Nnow = 3.*preco->H0*preco->H0*OmegaB/(8.*_PI_*_G_*mu_H*_m_H_);
   pth->n_e = preco->Nnow;
-  /*  printf("Nnow= %e\n",Nnow); */
 
   /* quantities related to constants defined in thermodynamics.h */
   n = preco->Nnow * pow((1.+z),3);
@@ -1271,7 +1262,9 @@ int thermodynamics_recombination(
   preco->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
   preco->CL = _c_*_h_P_/(_k_B_*Lalpha);
   preco->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
-  preco->CT = (8./3.)*(_sigma_/(_m_e_*_c_))*_a_;
+  preco->CT = (8./3.) * (_sigma_/(_m_e_*_c_)) * 
+    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3));
+
   preco->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
   /* C1P3P = _C2p1P_-_C2p3P_; */
@@ -1568,7 +1561,9 @@ int thermodynamics_derivs_with_recfast(
 	     pba->error_message,
 	     error_message);
   
-  Hz=pvecback[pba->index_bg_H]/_Mpc_in_sec_;
+  /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
+  Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
+
   dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today;
 
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
@@ -1655,7 +1650,10 @@ int thermodynamics_derivs_with_recfast(
     if (x_H > 0.985) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) /(Hz*(1.+z));
 
-    /*   fprintf(stderr,"%e %e %e %e %e %e %e %e %e %e %e\n",x,x_H,n,Rdown,Rup,preco->CL,Tmat, */
+/*       fprintf(stderr,"Rup/Rdown=%e depends on CR=%e CDB=%e Tmat=%e\n",Rup/Rdown,preco->CR,preco->CDB,Tmat); */
+
+
+/*       fprintf(stderr,"%e %e %e %e %e %e %e %e %e %e %e\n",x,x_H,n,Rdown,Rup,preco->CL,Tmat, */
 /* 	      x*x_H*n*Rdown, */
 /* 	      Rup*(1.-x_H)*exp(-preco->CL/Tmat), */
 /* 	      x*x_H*n*Rdown-Rup*(1.-x_H)*exp(-preco->CL/Tmat), */
@@ -1703,48 +1701,3 @@ int thermodynamics_derivs_with_recfast(
 
   return _SUCCESS_;
 }      
-
-/* int get_init( */
-/* 	     double z,	     /\**< Input  : redshift *\/ */
-/* 	     double * y      /\**< Ouput : x_H0, x_He0, T *\/ */
-/* 	     ) { */
-  
-/*   double rhs,x_H0,x_He0,x0; */
-  
-/*   if(z > 8000.) { */
-/*     x_H0 = 1.; */
-/*     x_He0 = 1.; */
-/*     x0 = 1.+2.*preco->fHe; */
-/*   } */
-/*   else { */
-/*     if (z > 3500.) { */
-/*       x_H0 = 1.; */
-/*       x_He0 = 1.; */
-/*       rhs = exp( 1.5 * log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He2/(preco->Tnow*(1.+z)) ) / preco->Nnow; */
-/*       rhs = rhs*1.;  /\*ratio of g's is 1 for He++ <-> He+*\/ */
-/*       x0 = 0.5 * ( sqrt( pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe) ); */
-/*     } */
-/*     else { */
-/*       if(z > 2000.) { */
-/*         x_H0 = 1.; */
-/* 	rhs = exp( 1.5 * log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)) ) / preco->Nnow; */
-/*         rhs = rhs*4.;  /\*ratio of g's is 4 for He+ <-> He0*\/ */
-/* 	x_He0 = 0.5  * ( sqrt( pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.)); */
-/* 	x0 = x_He0; */
-/* 	x_He0 = (x0 - 1.)/preco->fHe; */
-/*       } */
-/*       else { */
-/* 	rhs = exp( 1.5 * log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)) ) / preco->Nnow; */
-/* 	x_H0 = 0.5 * (sqrt( pow(rhs,2)+4.*rhs ) - rhs ); */
-/* 	x_He0 = 0.; */
-/* 	x0 = x_H0; */
-/*       } */
-/*     } */
-/*   } */
-
-/*   y[0]=x_H0; */
-/*   y[1]=x_He0; */
-/*   y[2]=preco->Tnow*(1.+z); */
-
-/*   return _SUCCESS_; */
-/* } */

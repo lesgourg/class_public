@@ -166,6 +166,10 @@ int input_init(
   FILE * param_output;
   char param_output_name[_LINE_LENGTH_MAX_];
 
+  double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+
+  sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
+
   /** - set all parameters (input and precision) to default values */
 
   class_call(input_default_params(pba,
@@ -192,7 +196,7 @@ int input_init(
 
   /** (a) background parameters */
 
-  /* h (dimensionless) and H0 in Mpc^{-1} = h / 2999.7 */
+  /* h (dimensionless) and [H0/c] in Mpc^{-1} = h / 2999.7 */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
@@ -226,7 +230,7 @@ int input_init(
 	     "In input file, you can only enter one of Tcmb, Omega_g or omega_g, choose one");
 
   if (class_none_of_three(flag1,flag2,flag3)) {
-    pba->Omega0_g = (4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+    pba->Omega0_g = (4.*sigma_B/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   }
   else {
 
@@ -234,18 +238,18 @@ int input_init(
       /* Omega0_g = rho_g / rho_c0, each of them expressed in Kg/m/s^2 */
       /* rho_g = (4 sigma_B / c) T^4 */
       /* rho_c0 = 3 c^2 H0^2 / (8 pi G) */ 
-      pba->Omega0_g = (4.*_sigma_B_/_c_*pow(param1,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+      pba->Omega0_g = (4.*sigma_B/_c_*pow(param1,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
       pth->Tcmb=param1;
     }
 
     if (flag2 == _TRUE_) {
       pba->Omega0_g = param2;
-      pth->Tcmb=pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
+      pth->Tcmb=pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*sigma_B/_c_),0.25);
     }
 
     if (flag3 == _TRUE_) {
       pba->Omega0_g = param3/pba->h/pba->h;
-      pth->Tcmb = pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*_sigma_B_/_c_),0.25);
+      pth->Tcmb = pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*sigma_B/_c_),0.25);
     }
   }
 
@@ -896,13 +900,16 @@ int input_default_params(
 			 ) {
 
   ErrorMsg errmsg;
-   
+  double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+
+  sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
+
   /** - background structure */
       
   pba->h = 0.7;
   pba->H0 = pba->h * 1.e5 / _c_;
   pth->Tcmb = 2.726;
-  pba->Omega0_g = (4.*_sigma_B_/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+  pba->Omega0_g = (4.*sigma_B/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.05;
   pba->Omega0_cdm = 0.25;    
