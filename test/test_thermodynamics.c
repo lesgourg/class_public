@@ -47,14 +47,17 @@ main(int argc, char **argv) {
   printf("#6: visibility function g=kappa' e^-kappa \n");
   printf("#7: squared baryon sound speed c_b^2 \n");
   for (i=0; i < th.tt_size; i++)
-    printf("%e %e %e %e %e %e %e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   th.z_table[i],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_ddkappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_exp_m_kappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_g],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2]
+	   th.thermodynamics_table[i*th.th_size+th.index_th_dg],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_rate],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_Tb]
 	   );
 
   /********************************************/

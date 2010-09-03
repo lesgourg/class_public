@@ -413,10 +413,6 @@ extern "C" {
 #define _a_VF_ pow(10.,-16.744)
 #define _b_VF_ 0.711
 #define _T_1_ pow(10.,5.114)
-#define _C2p3P_ 1.69087
-#define _C2p1P_ 1.71135
-#define _A2p3P_ 233.
-#define _g3P_ 3.
 #define	_a_trip_ pow(10.,-16.306) /* from recfast 1.4 */
 #define	_b_trip_ 0.761 /* from recfast 1.4 */
 

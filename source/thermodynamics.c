@@ -406,9 +406,9 @@ int thermodynamics_init(
 	       "variation rate diverges");
 
     pth->thermodynamics_table[i*pth->th_size+pth->index_th_rate] =
-      sqrt(pow(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2.)
+      sqrt(pow(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2)
 	   +pow(pth->thermodynamics_table[i*pth->th_size+pth->index_th_ddkappa]/ 
-		pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2.)
+		pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa],2)
 	   +fabs(pth->thermodynamics_table[i*pth->th_size+pth->index_th_dddkappa]/ 
 		 pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa]));
 
@@ -1178,17 +1178,18 @@ int thermodynamics_recombination(
   /* vector of variables to be integrated: xH, xHe, Tmat */
   double y[3],dy[3];
 
-  double OmegaB,Yp,zinitial,zfinal,x_H0,x_He0;
+  double OmegaB,Yp,zinitial,zfinal,x_H0,x_He0,x0;
   double z,mu_H,n,Lalpha,Lalpha_He,DeltaB,DeltaB_He,mu_T;
-  double x0,w0,w1,Lw0,Lw1,hW;
   double zstart,zend,rhs,Trad,Tmat;
   int i,Nz;
+
+  double x0_previous,x0_new,smoothing_factor;
 
   /* contains all quantities relevant for the integration algorithm */
   struct generic_integrator_workspace gi;
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
   struct thermodynamics_parameters_and_workspace tpaw;
-  
+
   /** Summary: */
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
@@ -1267,25 +1268,14 @@ int thermodynamics_recombination(
 
   preco->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
-  /* C1P3P = _C2p1P_-_C2p3P_; */
-  /* cc3P1P = _C2p3P_/_C2p1P_;  */
-  /* cccP = pow(cc3P1P,3); */
-  /* hck=_h_P_*_c_/_k_B_;  */
-
   tpaw.pba = pba;
   tpaw.ppr = ppr;
   tpaw.preco = preco;
   tpaw.pvecback = pvecback;
 
-  class_test(zinitial < 8000.,
+  class_test(zinitial < ppr->recfast_z_He_3,
 	     pth->error_message,
-	     "z_initial=%f<8000, should get recfast initial conditions from get_init()",zinitial);
-
-  /* uncomment this part only if the initial redshift is not larger than 8000 */
-  /*   if (get_init(z,y)== _FAILURE_) { */
-  /*     sprintf(pth->error_message,"%s(L:%d): error in calling get_init()",__func__,__LINE__); */
-  /*     return _FAILURE_; */
-  /*   } */
+	     "increase zinitial, otherwise should get initial conditions from recfast's get_init routine (less precise anyway)");
 
   /** - impose initial conditions */
   y[0] = 1.;
@@ -1293,22 +1283,19 @@ int thermodynamics_recombination(
   x0 = 1.+2.*preco->fHe;
   y[2] = preco->Tnow*(1.+z);
 
-  w0=1./ sqrt(1. + zinitial);
-  w1=1./ sqrt(1. + zfinal);
-  Lw0 = log(w0);
-  Lw1 = log(w1);
-  hW=(Lw1-Lw0)/(1.*Nz);
-
   /** - loop over redshift steps Nz : perform each step with
       generic_integrator(), store the results in the table using thermodynamics_derivs_with_recfast()*/
 
   for(i=0; i <Nz; i++) {
 
-    zstart = zinitial  + (zfinal-zinitial)*i/(1.*Nz);
-    zend   = zinitial  + (zfinal-zinitial)*(i+1)/(1.*Nz);
+    zstart = zinitial  + (zfinal-zinitial)*(double)i/(double)Nz;
+    zend   = zinitial  + (zfinal-zinitial)*(double)(i+1)/(double)Nz;
     z = zend;
+
+/*     if (z == 1670)       return _FAILURE_; */
+
     
-    if (zend > 8000.) {
+    if (z > ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1) {
       x_H0 = 1.;
       x_He0 = 1.;
       x0 = 1.+2.*preco->fHe;
@@ -1317,21 +1304,56 @@ int thermodynamics_recombination(
       y[2] = preco->Tnow*(1.+z);
     }
     else 
-      if (z > 5000.) {
+      if (z > ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2) {
 	x_H0 = 1.;
 	x_He0 = 1.;
+
 	rhs = exp( 1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He2/(preco->Tnow*(1.+z)) ) / preco->Nnow;
-	rhs = rhs*1.;
-	x0 = 0.5*(sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe));
+
+	/* smoothed transition */
+	if (z > ppr->recfast_z_He_1-ppr->recfast_delta_z_He_1) {
+	  x0_previous = 1.+2.*preco->fHe;
+	  x0_new = 0.5*(sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe));
+
+	  /* get x from -1 to 1 */
+	  smoothing_factor = (ppr->recfast_z_He_1-z)/ppr->recfast_delta_z_He_1;
+	  /* infer f(x)=-3/4*x*(x*x/3-1)+1/2 = smooth function interpolating from 0 to 1 */
+	  smoothing_factor = -0.75*smoothing_factor*(smoothing_factor*smoothing_factor/3.-1.)+0.5;
+
+	  x0 = smoothing_factor*x0_new+(1.-smoothing_factor)*x0_previous;
+	}
+	/* transition finished */
+	else {
+	  x0 = 0.5*(sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe));
+	}
+
 	y[0] = x_H0;
 	y[1] = x_He0;
 	y[2] = preco->Tnow*(1.+z);
       }
       else 
-	if (z > 3500.) {
+	if (z > ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3) {
 	  x_H0 = 1.;
 	  x_He0 = 1.;
-	  x0 = x_H0 + preco->fHe*x_He0;
+
+	  /* smoothed transition */
+	  if (z > ppr->recfast_z_He_2-ppr->recfast_delta_z_He_2) {
+	    rhs = exp( 1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He2/(preco->Tnow*(1.+z)) ) / preco->Nnow;
+	    x0_previous = 0.5*(sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe));
+	    x0_new = 1. + preco->fHe;
+	    /* get x from -1 to 1 */
+	    smoothing_factor = (ppr->recfast_z_He_2-z)/ppr->recfast_delta_z_He_2;
+	    /* infer f(x)=-3/4*x*(x*x/3-1)+1/2 = smooth function interpolating from 0 to 1 */
+	    smoothing_factor = -0.75*smoothing_factor*(smoothing_factor*smoothing_factor/3.-1.)+0.5;
+
+	    x0 = smoothing_factor*x0_new+(1.-smoothing_factor)*x0_previous;
+
+	  }
+	  /* transition finished */
+	  else {
+	    x0 = 1.+preco->fHe;
+	  }
+	  
 	  y[0] = x_H0;
 	  y[1] = x_He0;
 	  y[2] = preco->Tnow*(1.+z);
@@ -1339,10 +1361,26 @@ int thermodynamics_recombination(
 	else 
 	  if (y[1] > ppr->recfast_x_He0_trigger) {
 	    x_H0 = 1.;
-	    rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
-	    rhs = rhs*4.;
+
+	    rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
 	    x_He0 = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.));
-	    x0 = x_He0;
+
+	    /* smoothed transition */
+	    if (z > ppr->recfast_z_He_3-ppr->recfast_delta_z_He_3) {
+	      x0_previous = 1. + preco->fHe;
+	      x0_new = x_He0;
+	      /* get x from -1 to 1 */
+	      smoothing_factor = (ppr->recfast_z_He_3-z)/ppr->recfast_delta_z_He_3;
+	      /* infer f(x)=-3/4*x*(x*x/3-1)+1/2 = smooth function interpolating from 0 to 1 */
+	      smoothing_factor = -0.75*smoothing_factor*(smoothing_factor*smoothing_factor/3.-1.)+0.5;
+
+	      x0 = smoothing_factor*x0_new+(1.-smoothing_factor)*x0_previous;
+	    }
+	    /* transition finished */
+	    else {
+	      x0 = x_He0;
+	    }
+
 	    x_He0 = (x0-1.)/preco->fHe;
 	    y[0] = x_H0;
 	    y[1] = x_He0;
@@ -1350,6 +1388,7 @@ int thermodynamics_recombination(
 	  }
 	  else 
 	    if (y[0] > ppr->recfast_x_H0_trigger) {
+
 	      rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
 	      x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
 
@@ -1363,14 +1402,34 @@ int thermodynamics_recombination(
 					    &gi),
 			 gi.error_message,
 			 pth->error_message);
-
-	      y[0] = x_H0;
-	      x0 = y[0] + preco->fHe*y[1];
-
 	      
+	      y[0] = x_H0;
+	      
+	      /* smoothed transition */
+	      if (ppr->recfast_x_He0_trigger - y[1] < ppr->recfast_x_He0_trigger_delta) {
+		rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
+		x0_previous = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.));
+		x0_new = y[0] + preco->fHe*y[1];
+		/* get x from 0 to 1 */
+		smoothing_factor = (ppr->recfast_x_He0_trigger - y[1])/ppr->recfast_x_He0_trigger_delta;
+		/* infer f(x)=x*x*(1/2-x/3)*6= smooth function interpolating from 0 to 1 */
+		smoothing_factor = smoothing_factor*smoothing_factor*(0.5-smoothing_factor/3.)*6.;
 
+		x0 = smoothing_factor*x0_new+(1.-smoothing_factor)*x0_previous;
+	      }
+	      /* transition finished */
+	      else {
+		x0 = y[0] + preco->fHe*y[1];
+	      }
+	      	      
 	    }      
 	    else {
+	      
+	      /* quantities used for smoothed transition */
+	      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta) {
+		rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
+		x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
+	      }
 
 	      class_call(generic_integrator(thermodynamics_derivs_with_recfast,
 					    zstart,
@@ -1383,8 +1442,20 @@ int thermodynamics_recombination(
 			 gi.error_message,
 			 pth->error_message);
 
-	      x0 = y[0] + preco->fHe*y[1];
+	      /* smoothed transition */
+	      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta) {
+		/* get x from 0 to 1 */
+ 		smoothing_factor = (ppr->recfast_x_H0_trigger - y[0])/ppr->recfast_x_H0_trigger_delta; 
+		/* infer f(x)=x*x*(1/2-x/3)*6= smooth function interpolating from 0 to 1 */
+		smoothing_factor = smoothing_factor*smoothing_factor*(0.5-smoothing_factor/3.)*6.;
+		
+		x0 = smoothing_factor*y[0]+(1.-smoothing_factor)*x_H0 + preco->fHe*y[1];
 
+	      }
+	      /* transition finished */	
+ 	      else {
+		x0 = y[0] + preco->fHe*y[1];
+	      }
 	    }
 
     /* store the results in the table */
@@ -1411,17 +1482,8 @@ int thermodynamics_recombination(
     /* -> dkappa/deta = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadeta)
       = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
-
-/*     fprintf(stdout,"%g %g %g %g %g\n", */
-/* 	    zend, */
-/* 	    y[0], */
-/* 	    y[1], */
-/* 	    y[2], */
-/* 	    x0); */
     
   }
-
-/*   class_test(0==0,pth->error_message,"stop here for testing") */
 
 
   /* RECFAST is done */
@@ -1553,8 +1615,8 @@ int thermodynamics_derivs_with_recfast(
   x = x_H + preco->fHe * x_He;
   Tmat = y[2];
 
-  n = preco->Nnow * pow((1.+z),3);
-  n_He = preco->fHe * preco->Nnow * pow((1.+z),3);
+  n = preco->Nnow * (1.+z) * (1.+z) * (1.+z);
+  n_He = preco->fHe * n;
   Trad = preco->Tnow * (1.+z);
 
   class_call(background_functions(pba,1./(1.+z),short_info,pvecback),
@@ -1564,16 +1626,13 @@ int thermodynamics_derivs_with_recfast(
   /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
 
-  dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today;
-
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
   Rup = Rdown * pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat);
 
   sq_0 = sqrt(Tmat/_T_0_);
   sq_1 = sqrt(Tmat/_T_1_);
   Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
-  Rup_He = Rdown_He*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB_He/Tmat);
-  Rup_He = 4.*Rup_He;
+  Rup_He = 4.*Rdown_He*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB_He/Tmat);
   K = preco->CK/Hz;
 
   /* following is from recfast 1.5 */
@@ -1590,7 +1649,7 @@ int thermodynamics_derivs_with_recfast(
   Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
   Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(preco->CR*Tmat,1.5)*4./3.;
 
-  if ((x_He < 5.e-9) || (x_He > 0.980)) 
+  if ((x_He < 5.e-9) || (x_He > ppr->recfast_x_He0_trigger2)) 
     Heflag = 0;
   else
     Heflag = ppr->recfast_Heswitch;
@@ -1609,7 +1668,7 @@ int thermodynamics_derivs_with_recfast(
       Doppler = _c_*_L_He_2p_*sqrt(Doppler);
       gamma_2Ps = 3.*_A2P_s_*preco->fHe*(1.-x_He)*_c_*_c_
 	/(sqrt(_PI_)*_sigma_He_2Ps_*8.*_PI_*Doppler*(1.-x_H))
-	/pow(_c_*_L_He_2p_,2.);
+	/pow(_c_*_L_He_2p_,2);
       pb = 0.36;
       qb = ppr->recfast_fudge_He;
       AHcon = _A2P_s_/(1.+pb*pow(gamma_2Ps,qb));
@@ -1617,7 +1676,7 @@ int thermodynamics_derivs_with_recfast(
     }
 
     if (Heflag >= 3) {
-      tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3.));
+      tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3));
       pHe_t = (1. - exp(-tauHe_t))/tauHe_t;
       CL_PSt = _h_P_*_c_*(_L_He_2Pt_ - _L_He_2St_)/_k_B_;
       if ((Heflag == 3) || (Heflag == 5) || (x_H >= 0.99999)) {
@@ -1629,7 +1688,7 @@ int thermodynamics_derivs_with_recfast(
 	Doppler = _c_*_L_He_2Pt_*sqrt(Doppler);
 	gamma_2Pt = 3.*_A2P_t_*preco->fHe*(1.-x_He)*_c_*_c_
 	  /(sqrt(_PI_)*_sigma_He_2Pt_*8.*_PI_*Doppler*(1.-x_H))
-	  /pow(_c_*_L_He_2Pt_,2.);
+	  /pow(_c_*_L_He_2Pt_,2);
 	pb = 0.66;
 	qb = 0.9;
 	AHcon = _A2P_t_/(1.+pb*pow(gamma_2Pt,qb))/3.;
@@ -1641,28 +1700,44 @@ int thermodynamics_derivs_with_recfast(
 
   /* end of new recfast 1.4 piece */
 
-  timeTh=(1./(preco->CT*pow(Trad,4.)))*(1.+x+preco->fHe)/x;
+  timeTh=(1./(preco->CT*pow(Trad,4)))*(1.+x+preco->fHe)/x;
   timeH=2./(3.*preco->H0*pow(1.+z,1.5)); 
 
-  if (x_H > 0.99)
+  if (x_H > ppr->recfast_x_H0_trigger)
     dy[0] = 0.;
   else {
-    if (x_H > 0.985) {
-      dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) /(Hz*(1.+z));
+    if (x_H > ppr->recfast_x_H0_trigger2) {
+      dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z));
 
 /*       fprintf(stderr,"Rup/Rdown=%e depends on CR=%e CDB=%e Tmat=%e\n",Rup/Rdown,preco->CR,preco->CDB,Tmat); */
 
+/*       if (z==1576.) { */
+/* 	fprintf(stderr,"Delta=%.60e\n    x=%.60e\n  x_H=%.60e\n x_He=%.60e\n Tmat=%.60e\n    z=%.60e\n Nnow=%.60e\nnumer=%.60e\n  dy[0]=%.60e\n", */
+/* 		x*x_H*preco->Nnow * pow((1.+z),3)-(1.-x_H)*exp(-preco->CL/Tmat)*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat), */
+/* 		x, */
+/* 		x_H, */
+/* 		x_He, */
+/* 		Tmat, */
+/* 		z, */
+/* 		preco->Nnow, */
+/* 		(x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)), */
+/* 		dy[0]); */
 
-/*       fprintf(stderr,"%e %e %e %e %e %e %e %e %e %e %e\n",x,x_H,n,Rdown,Rup,preco->CL,Tmat, */
-/* 	      x*x_H*n*Rdown, */
-/* 	      Rup*(1.-x_H)*exp(-preco->CL/Tmat), */
-/* 	      x*x_H*n*Rdown-Rup*(1.-x_H)*exp(-preco->CL/Tmat), */
-/* 	      dy[0]); */
+/* 	class_test(0==0,error_message,""); */
+/*       } */
 
-/*       class_test(0==0,error_message,""); */
+
     }
     else {
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)));
+
+/*       if (x_H > 0.985)  */
+/* 	fprintf(stderr,"%.10e %.10e %.10e %.10e \n", */
+/* 		z, */
+/* 		(1. + K*_Lambda_*n*(1.-x_H)), */
+/* 		(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)), */
+/* 		K*Rup*n*(1.-x)); */
+
     }
   }
 
@@ -1675,7 +1750,9 @@ int thermodynamics_derivs_with_recfast(
     else 
       He_Boltz=exp(680.);
 
-    dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat)) *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)) /(Hz*(1+z) * (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
+    dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat)) 
+	     *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))
+      /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
 
     /* following is from recfast 1.4 */
 
@@ -1686,18 +1763,43 @@ int thermodynamics_derivs_with_recfast(
 	*CfHe_t/(Hz*(1.+z));
 
     /* end of new recfast 1.4 piece */
+
+/*     if (z < 1672) { */
+/*       fprintf(stdout,"z    =%.20e\n",z); */
+/*       fprintf(stdout,"dy[1]=%.20e\n",dy[1]); */
+/*       fprintf(stdout,"num  =%.20e\n",((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat))  */
+/* 	     *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))); */
+/*       fprintf(stdout,"num1 =%.20e\n",(x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat))); */
+/*       fprintf(stdout,"num11=%.20e\n",x*x_He*n*Rdown_He); */
+/*       fprintf(stdout,"x    =%.20e\n",x); */
+/*       fprintf(stdout,"x_He =%.20e\n",x_He); */
+/*       fprintf(stdout,"n    =%.20e\n",n); */
+/*       fprintf(stdout,"Rdown_He=%.20e\n",Rdown_He); */
+/*     } */
+
   }
 
   if (timeTh < preco->H_frac*timeH) {
-    dy[2]=Tmat/(1.+z);
+  /*   dy[2]=Tmat/(1.+z); */
     /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
-/*     epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x); */
-/*     dy[2] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*((y[0]+preco->fHe*y[1])/x)  */
-/*       - epsilon* dHdz/Hz + 3.*epsilon/(1.+z); */
+    dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today* _c_ / _Mpc_over_m_;
+    epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x);
+    dy[2] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*((dy[0]+preco->fHe*dy[1])/x)
+      - epsilon* dHdz/Hz + 3.*epsilon/(1.+z);
     
   }
-  else
+  else {
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
+/*     dHdz=0.; */
+  }
 
+/*   fprintf(stdout,"%g %.10e %.10e %.10e %.10e  %.10e\n", */
+/* 	  z, */
+/* 	  y[0], */
+/* 	  y[1], */
+/* 	  y[2], */
+/* 	  Hz, */
+/* 	  dHdz); */
+  
   return _SUCCESS_;
 }      

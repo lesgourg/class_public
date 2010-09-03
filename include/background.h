@@ -270,7 +270,13 @@ extern "C" {
 
 //@{
 
-#define _Mpc_over_m_ 3.085677581282e22 /**< conversion factor from meters to megaparsecs */
+/*
+  #define _Mpc_over_m_ 3.085677581282e22 */ /**< conversion factor from meters to megaparsecs */
+
+
+/* for testing, set like in CAMB, although less precise: */
+#define _Mpc_over_m_ 3.085678e22
+
 #define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears 
 				       (c=1 units, Julian years of 365.25 days) */
 #define _c_ 2.99792458e8 /**< c in m/s */

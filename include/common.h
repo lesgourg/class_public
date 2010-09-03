@@ -242,22 +242,26 @@ struct precision
 
   /** - for recombination */
 
-  double recfast_z_initial;/**< recfast parameter */
-  double recfast_z_final;  /**< recfast parameter */
-  double recfast_x_H0;     /**< recfast parameter */
-  double recfast_x_He0;    /**< recfast parameter */
-  double recfast_H_frac;   /**< recfast parameter */
+  /* initial and final redshifts in recfast */
+
+  double recfast_z_initial;/**< initial redshift in recfast */
+  double recfast_z_final;  /**< final redshift in recfast */
+
+  /* parameters governing precision of integration */
+  
+  int recfast_Nz0;               /**< number of integration steps */
+  double tol_thermo_integration; /**< precision of each integration step */
 
   /* He fudge parameters from recfast 1.4 */
-  int recfast_Heswitch;  /**< recfast 1.4 parameter */
+
+  int recfast_Heswitch;    /**< recfast 1.4 parameter */
   double recfast_fudge_He; /**< recfast 1.4 parameter */
 
-  /* H fudge parameters from recfast 1.4 */
-  double recfast_fudge_H; /**< H fudge factor when recfast_Hswitch set to false */
+  /* H  fudge parameters from recfast 1.5 (Gaussian fits for extra H physics by Adam Moss) */
 
-  /* H fudge parameters from recfast 1.5 (Gaussian fits for extra H physics by Adam Moss) */
   int recfast_Hswitch;            /**< recfast 1.5 switching parameter */
-  double recfast_delta_fudge_H;   /**< correction to H fudge factor in new scheme */
+  double recfast_fudge_H;         /**< H fudge factor when recfast_Hswitch set to false (v1.4 fudging) */
+  double recfast_delta_fudge_H;   /**< correction to H fudge factor in v1.5 */
   double recfast_AGauss1;         /**< Amplitude of 1st Gaussian */
   double recfast_AGauss2;         /**< Amplitude of 2nd Gaussian */
   double recfast_zGauss1;         /**< ln(1+z) of 1st Gaussian */
@@ -265,10 +269,30 @@ struct precision
   double recfast_wGauss1;         /**< Width of 1st Gaussian */
   double recfast_wGauss2;         /**< Width of 2nd Gaussian */
 
-  double recfast_x_H0_trigger;  /**< recfast parameter */
-  double recfast_x_He0_trigger;  /**< recfast parameter */
-  int recfast_Nz0; /**< recfast parameter */
-  double tol_thermo_integration; /**< recfast parameter */
+  /* triggers for switching approximations; ranges for doing it smoothly */
+
+  double recfast_z_He_1;              /**< down to which redshift Helium fully ionized */
+  double recfast_delta_z_He_1;        /**< z range over which transition is smoothed */
+
+  double recfast_z_He_2;              /**< down to which redshift first Helium recombination 
+					   not complete */
+  double recfast_delta_z_He_2;        /**< z range over which transition is smoothed */
+
+  double recfast_z_He_3;              /**< down to which redshift Helium singly ionized */
+  double recfast_delta_z_He_3;        /**< z range over which transition is smoothed */
+
+  double recfast_x_He0_trigger;       /**< below which Helium ionization fraction start using 
+                                           full equation for Helium */
+  double recfast_x_He0_trigger2;      /**< a second threshold used in derivative routine */
+  double recfast_x_He0_trigger_delta; /**< x_He range over which transition is smoothed */
+
+  double recfast_x_H0_trigger;        /**< below which Helium ionization fraction start using 
+                                           full equation for Helium */
+  double recfast_x_H0_trigger2;       /**< a second threshold used in derivative routine */
+  double recfast_x_H0_trigger_delta;  /**< x_H range over which transition is smoothed */
+
+  double recfast_H_frac;              /**< governs time at which full equation of evolution 
+					   for Tmat is used */
 
   /** - for reionization */
 

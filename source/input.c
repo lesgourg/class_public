@@ -754,16 +754,15 @@ int input_init(
 
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
   class_read_double("recfast_z_final",ppr->recfast_z_final);
-  class_read_double("recfast_H_frac",ppr->recfast_H_frac);
-  class_read_double("recfast_x_H0_trigger",ppr->recfast_x_H0_trigger);
-  class_read_double("recfast_x_He0_trigger",ppr->recfast_x_He0_trigger);
+
+  class_read_int("recfast_Nz0",ppr->recfast_Nz0);
+  class_read_double("tol_thermo_integration",ppr->tol_thermo_integration);
 
   class_read_int("recfast_Heswitch",ppr->recfast_Heswitch);
   class_read_double("recfast_fudge_He",ppr->recfast_fudge_He);
 
-  class_read_double("recfast_fudge_H",ppr->recfast_fudge_H);
-
   class_read_int("recfast_Hswitch",ppr->recfast_Hswitch);
+  class_read_double("recfast_fudge_H",ppr->recfast_fudge_H);
   if (ppr->recfast_Hswitch == _TRUE_) {
     class_read_double("recfast_delta_fudge_H",ppr->recfast_delta_fudge_H);
     class_read_double("recfast_AGauss1",ppr->recfast_AGauss1);
@@ -774,10 +773,20 @@ int input_init(
     class_read_double("recfast_wGauss2",ppr->recfast_wGauss2);
   }
 
-  class_read_int("recfast_Nz0",ppr->recfast_Nz0);
-  class_read_double("tol_thermo_integration",ppr->tol_thermo_integration);
-  class_read_double("visibility_threshold_start_sources",ppr->visibility_threshold_start_sources);
-  class_read_double("visibility_threshold_free_streaming",ppr->visibility_threshold_free_streaming);
+  class_read_double("recfast_z_He_1",ppr->recfast_z_He_1);
+  class_read_double("recfast_delta_z_He_1",ppr->recfast_delta_z_He_1);
+  class_read_double("recfast_z_He_2",ppr->recfast_z_He_2);
+  class_read_double("recfast_delta_z_He_2",ppr->recfast_delta_z_He_2);
+  class_read_double("recfast_z_He_3",ppr->recfast_z_He_3);
+  class_read_double("recfast_delta_z_He_3",ppr->recfast_delta_z_He_3);
+  class_read_double("recfast_x_He0_trigger",ppr->recfast_x_He0_trigger);
+  class_read_double("recfast_x_He0_trigger2",ppr->recfast_x_He0_trigger2);
+  class_read_double("recfast_x_He0_trigger_delta",ppr->recfast_x_He0_trigger_delta);
+  class_read_double("recfast_x_H0_trigger",ppr->recfast_x_H0_trigger);
+  class_read_double("recfast_x_H0_trigger2",ppr->recfast_x_H0_trigger2);
+  class_read_double("recfast_x_H0_trigger_delta",ppr->recfast_x_H0_trigger_delta);
+  class_read_double("recfast_H_frac",ppr->recfast_H_frac);
+
   class_read_double("reionization_z_start_max",ppr->reionization_z_start_max);
   class_read_double("reionization_sampling",ppr->reionization_sampling);
   class_read_double("reionization_optical_depth_tol",ppr->reionization_optical_depth_tol);
@@ -786,6 +795,9 @@ int input_init(
   class_read_double("reionization_start_factor",ppr->reionization_start_factor);
   class_read_double("helium_fullreio_redshift",ppr->helium_fullreio_redshift);
   class_read_double("helium_fullreio_width",ppr->helium_fullreio_width);
+
+  class_read_double("visibility_threshold_start_sources",ppr->visibility_threshold_start_sources);
+  class_read_double("visibility_threshold_free_streaming",ppr->visibility_threshold_free_streaming);
   class_read_int("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
 
   /** g.3. parameters related to the perturbations */
@@ -1062,47 +1074,59 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to the thermodynamics
    */
 
+  /* for recombination */
+
   ppr->recfast_z_initial=1.e4;
   ppr->recfast_z_final=0.;
 
-  /********************************************/
-  /* should be converted as 'input parameters' */
-  ppr->recfast_H_frac=1.e-3; /* from recfast */      
-  ppr->recfast_x_H0_trigger=0.99; /* from recfast */   
-  ppr->recfast_x_He0_trigger=0.99; /* from recfast */  
+  ppr->recfast_Nz0=10000;                  /* found to be OK on 3.09.10 */
+  ppr->tol_thermo_integration=1.e-5;       /* found to be OK on 3.09.10 */
 
-  ppr->recfast_Heswitch=6;             /* from recfast 1.4 */
-  ppr->recfast_fudge_He=0.86;          /* from recfast 1.4 */
+  ppr->recfast_Heswitch=6;                 /* from recfast 1.4 */
+  ppr->recfast_fudge_He=0.86;              /* from recfast 1.4 */
 
-  ppr->recfast_fudge_H = 1.14;         /* from recfast 1.4 */
-  ppr->recfast_Hswitch = _TRUE_;       /* from recfast 1.5 */
-  ppr->recfast_delta_fudge_H = -0.035; /* from recfast 1.5 */
-  ppr->recfast_AGauss1 = -0.14;        /* from recfast 1.5 */ 
-  ppr->recfast_AGauss2 =  0.05;        /* from recfast 1.5 */
-  ppr->recfast_zGauss1 =  7.28;        /* from recfast 1.5 */
-  ppr->recfast_zGauss2 =  6.75;        /* from recfast 1.5 */
-  ppr->recfast_wGauss1 =  0.18;        /* from recfast 1.5 */
-  ppr->recfast_wGauss2 =  0.33;        /* from recfast 1.5 */
-  /********************************************/
- 
-  ppr->recfast_Nz0=10000; /* smaller than 6000 gives bug in transfer, need to check why */
-  ppr->tol_thermo_integration=1.e-3; /* optimized 9/09/08  */
+  ppr->recfast_Hswitch = _TRUE_;           /* from recfast 1.5 */
+  ppr->recfast_fudge_H = 1.14;             /* from recfast 1.4 */
+  ppr->recfast_delta_fudge_H = -0.035;     /* from recfast 1.5 */
+  ppr->recfast_AGauss1 = -0.14;            /* from recfast 1.5 */ 
+  ppr->recfast_AGauss2 =  0.05;            /* from recfast 1.5 */
+  ppr->recfast_zGauss1 =  7.28;            /* from recfast 1.5 */
+  ppr->recfast_zGauss2 =  6.75;            /* from recfast 1.5 */
+  ppr->recfast_wGauss1 =  0.18;            /* from recfast 1.5 */
+  ppr->recfast_wGauss2 =  0.33;            /* from recfast 1.5 */
 
-  ppr->visibility_threshold_start_sources=3.5e-7; /* 3.5e-7 optimized 9/09/08  */
-  ppr->visibility_threshold_free_streaming=1.e-5;
+  ppr->recfast_z_He_1 = 8000.;             /* from recfast 1.4 */
+  ppr->recfast_delta_z_He_1 = 50.;         /* found to be OK on 3.09.10 */
+  ppr->recfast_z_He_2 = 5000.;             /* from recfast 1.4 */
+  ppr->recfast_delta_z_He_2 = 100.;        /* found to be OK on 3.09.10 */
+  ppr->recfast_z_He_3 = 3500.;             /* from recfast 1.4 */
+  ppr->recfast_delta_z_He_3 = 50.;         /* found to be OK on 3.09.10 */
+  ppr->recfast_x_He0_trigger = 0.995;      /* raised from 0.99 to 0.995 for smoother Helium */              
+  ppr->recfast_x_He0_trigger2 = 0.995;     /* raised from 0.985 to same as previous one for smoother Helium */
+  ppr->recfast_x_He0_trigger_delta = 0.05; /* found to be OK on 3.09.10 */
+  ppr->recfast_x_H0_trigger = 0.995;       /* raised from 0.99 to 0.995 for smoother Hydrogen */
+  ppr->recfast_x_H0_trigger2 = 0.995;      /* raised from 0.98 to same as previous one for smoother Hydrogen */
+  ppr->recfast_x_H0_trigger_delta = 0.05;  /* found to be OK on 3.09.10 */ 
+
+  ppr->recfast_H_frac=1.e-3;               /* from recfast 1.4 */
+
+  /* for reionization */
 
   ppr->reionization_z_start_max = 50.;
   ppr->reionization_sampling=1.e-2; /*1.e-2*/
   ppr->reionization_optical_depth_tol=1.e-2;
   ppr->reionization_exponent=1.5;
 
-  /* should be converted as 'input parameters' */
-  ppr->reionization_width=0.5;
-  /********************************************/
+  ppr->reionization_width=0.5;  /* should be converted as 'input parameters' */
 
   ppr->reionization_start_factor=8.;
   ppr->helium_fullreio_redshift=3.5;
   ppr->helium_fullreio_width=0.5;
+
+  /* general */
+
+  ppr->visibility_threshold_start_sources=3.5e-7; /* 3.5e-7 optimized 9/09/08  */
+  ppr->visibility_threshold_free_streaming=1.e-5;
 
   ppr->thermo_rate_smoothing_radius=10;
 
