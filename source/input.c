@@ -753,7 +753,6 @@ int input_init(
   /** g.2. parameters related to the thermodynamics */
 
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
-  class_read_double("recfast_z_final",ppr->recfast_z_final);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
   class_read_double("tol_thermo_integration",ppr->tol_thermo_integration);
@@ -1077,7 +1076,6 @@ int input_default_precision ( struct precision * ppr ) {
   /* for recombination */
 
   ppr->recfast_z_initial=1.e4;
-  ppr->recfast_z_final=0.;
 
   ppr->recfast_Nz0=10000;                  /* found to be OK on 3.09.10 */
   ppr->tol_thermo_integration=1.e-5;       /* found to be OK on 3.09.10 */
@@ -1128,7 +1126,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->visibility_threshold_start_sources=3.5e-7; /* 3.5e-7 optimized 9/09/08  */
   ppr->visibility_threshold_free_streaming=1.e-5;
 
-  ppr->thermo_rate_smoothing_radius=10;
+  ppr->thermo_rate_smoothing_radius=50;
 
   /**
    * - parameters related to the perturbations

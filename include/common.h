@@ -244,8 +244,7 @@ struct precision
 
   /* initial and final redshifts in recfast */
 
-  double recfast_z_initial;/**< initial redshift in recfast */
-  double recfast_z_final;  /**< final redshift in recfast */
+  double recfast_z_initial;      /**< initial redshift in recfast */
 
   /* parameters governing precision of integration */
   
@@ -254,8 +253,8 @@ struct precision
 
   /* He fudge parameters from recfast 1.4 */
 
-  int recfast_Heswitch;    /**< recfast 1.4 parameter */
-  double recfast_fudge_He; /**< recfast 1.4 parameter */
+  int recfast_Heswitch;           /**< recfast 1.4 parameter */
+  double recfast_fudge_He;        /**< recfast 1.4 parameter */
 
   /* H  fudge parameters from recfast 1.5 (Gaussian fits for extra H physics by Adam Moss) */
 

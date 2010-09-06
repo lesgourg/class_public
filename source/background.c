@@ -9,8 +9,8 @@
  *    the background equations, and store all background quantities
  *    as a function of conformal time inside an interpolation table.
  *
- * - to provide routines which allow to evaluate any background
- *    quantity for a given value of the conformal time (by
+ * - to provide routines which allow other modules to evaluate any
+ *    background quantity for a given value of the conformal time (by
  *    interpolating within the interpolation table), or to find the
  *    correspondance between redhsift and conformal time.
  *
@@ -86,7 +86,7 @@
  * Evaluates all background quantities at a given value of
  * conformal time by reading the pre-computed table ant interpolating.
  *
- * @param pba           Input: pointer to background structure
+ * @param pba           Input: pointer to background structure (containing pre-computed table)
  * @param eta           Input: value of conformal time
  * @param return_format Input: format of output vector (short, normal, long)
  * @param intermode     Input: interpolation mode (normal or closeby)
@@ -435,7 +435,7 @@ int background_init(
  * Free all memory space allocated by background_init().
  * 
  *
- * @param pba Input : pointer to background structure
+ * @param pba Input : pointer to background structure (to be freed)
  * @return the error status
  */
 

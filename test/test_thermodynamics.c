@@ -43,22 +43,58 @@ main(int argc, char **argv) {
   printf("#2: electron ionization fraction x_e\n");
   printf("#3: Thomson scattering rate kappa'\n");
   printf("#4: Thomson scattering rate derivative kappa''\n");
-  printf("#5: exponential of optical depth e^-kappa\n");
-  printf("#6: visibility function g=kappa' e^-kappa \n");
-  printf("#7: squared baryon sound speed c_b^2 \n");
+  printf("#5: Thomson scattering rate derivative kappa'''\n");
+  printf("#6: exponential of optical depth e^-kappa\n");
+  printf("#7: visibility function g = kappa' e^-kappa \n");
+  printf("#8: derivative of visibility function g' \n");
+  printf("#9: baryon temperature \n");
+  printf("#10: squared baryon sound speed c_b^2 \n");
+  printf("#11: variation rate \n");
+
   for (i=0; i < th.tt_size; i++)
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   th.z_table[i],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_ddkappa],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_dddkappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_exp_m_kappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_g],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dg],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_Tb],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_rate],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_Tb]
+	   th.thermodynamics_table[i*th.th_size+th.index_th_rate]
 	   );
+
+  double z;
+  double eta;
+  int last_index;
+  double pvecback[30];
+  double pvecthermo[30];
+
+  for (z = th.z_table[th.tt_size-1]; z < 1000*th.z_table[th.tt_size-1]; z *= 2.) {
+
+    background_eta_of_z(&ba,z,&eta);
+    
+    background_at_eta(&ba,eta,short_info,normal,&last_index,pvecback);
+
+    thermodynamics_at_z(&ba,&th,z,normal,&last_index,pvecback,pvecthermo);
+    
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+	   z,
+	   pvecthermo[th.index_th_xe],
+	   pvecthermo[th.index_th_dkappa],
+	   pvecthermo[th.index_th_ddkappa],
+	   pvecthermo[th.index_th_dddkappa],
+	   pvecthermo[th.index_th_exp_m_kappa],
+	   pvecthermo[th.index_th_g],
+	   pvecthermo[th.index_th_dg],
+	   pvecthermo[th.index_th_Tb],
+	   pvecthermo[th.index_th_cb2],
+	   pvecthermo[th.index_th_rate]
+	   );
+    
+  }
 
   /********************************************/
 

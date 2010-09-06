@@ -12,6 +12,7 @@
 /**
  * List of possible formats for the vector of background quantities.
  */
+
 enum format_info {
   short_info,  /**< compact format (when only a, H, H' should be returned) */
   normal_info, /**< normal format (needed when integrating over perturbations: same plus rho_i's and Omega_r) */
@@ -21,13 +22,14 @@ enum format_info {
 /**
  * List of possible interpolation modes when calling the background_at_eta() interpolation function
  */
+
 enum interpolation_mode {
   normal,   /**< default mode, OK for any situation */
   closeby /**< when the interpolation variable is arranged in growing order, and the new interpolation point is presumably close to the previous one */ 
 };
 
 /**
- * All background parameters and all background evolution.
+ * All background parameters and evolution that other modules need to know.
  *
  * Once initialized by the backgound_init(), contains all necessary
  * information on the background evolution (excepted thermodynamics),
@@ -35,9 +37,12 @@ enum interpolation_mode {
  * function of time and scale factor, used for interpolation in other
  * modules.
  */
+
 struct background
 {
-  /** @name - background cosmological parameters.
+  /** @name - input parameters initialized by user in input module
+   *  (all other quantitites are computed in this module, given these parameters
+   *   and the content of the 'precision' structure)
    *
    * The background cosmological parameters listed here form a parameter
    * basis which is directly usable by the background module. Nothing
@@ -45,7 +50,7 @@ struct background
    * differently, and to pre-process them into this format, using the input
    * module (this might require iterative calls of background_init()
    * e.g. for dark energy or decaying dark matter). */
-
+  
   //@{
 
   double H0; /**< \f$ H_0 \f$ : Hubble parameter (in fact, [H_0/c]) in \f$ Mpc^{-1} \f$ */
@@ -79,7 +84,7 @@ struct background
 
   //@}
 
-  /** @name - all indices for the vector of background (=bg) quantities */
+  /** @name - all indices for the vector of background (=bg) quantities stored in table */
 
   //@{
 
@@ -110,9 +115,9 @@ struct background
   //@{
 
   int bt_size; /**< number of lines (i.e. time-steps) in the array */
-  double * eta_table; /**< values of \f$ \eta \f$ (conformal time) */
-  double * z_table; /**< values of \f$ z \f$ (redshift) */
-  double * background_table; /**< all other quantities (array of size bg_size*bt_size) **/
+  double * eta_table; /**< vector eta_table[index_eta] with values of \f$ \eta \f$ (conformal time) */
+  double * z_table; /**< vector z_table[index_eta] with values of \f$ z \f$ (redshift) */
+  double * background_table; /**< table background_table[index_eta*pba->bg_size+pba->index_bg] with all other quantities (array of size bg_size*bt_size) **/
 
   //@}
 
@@ -120,8 +125,8 @@ struct background
 
   //@{
 
-  double * d2eta_dz2_table; /**< values of \f$ d^2 \eta / dz^2 \f$ (conformal time) */
-  double * d2background_deta2_table; /**< values of \f$ d^2 b_i / d\eta^2 \f$ (conformal time) */
+  double * d2eta_dz2_table; /**< vector d2eta_dz2_table[index_eta] with values of \f$ d^2 \eta / dz^2 \f$ (conformal time) */
+  double * d2background_deta2_table; /**< table d2background_deta2_table[index_eta*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\eta^2 \f$ (conformal time) */
 
   //@}
 
@@ -162,31 +167,24 @@ struct background
 
   //@}
 
-  //@}
-
-  /** @name - flag regulating the amount of information sent to standard output (none if set to zero) */
+  /** @name - technical parameters */
 
   //@{
 
-  short background_verbose;
+  short background_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
-  //@}
-
-  /** @name - zone for writing error messages */
-
-  //@{
-
-  ErrorMsg error_message;
+  ErrorMsg error_message; /**< zone for writing error messages */
 
   //@}
 };
 
-/* parameters and workspace passed to the
-   background_derivs function */
+/**
+ * temporary parameters and workspace passed to the background_derivs function 
+ */
 
 struct background_parameters_and_workspace {
 
-  /* fixed input parameters (indices, ...) */
+  /* structures containing fixed input parameters (indices, ...) */
   struct background * pba; 
 
   /* workspace */
