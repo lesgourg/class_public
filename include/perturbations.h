@@ -6,38 +6,34 @@
 #include "thermodynamics.h"
 
 /**  
- * @name Flag values for tight-coupling approximation
+ * flags for various approximation schemes (tca = tight-coupling
+ * approximation, fas = free-streaming approximation)
  */
 
 //@{
 
 enum tca_flags {tca_off, tca_on};
-
-//@}
-
-/**  
- * @name Flag values for switching on/off the integration of high momenta l>=2 for radiation (photons, massless neutrinos...).  At late time and inside the Hubble radius, theses perturbations vanish according to the free-streaming approximation.
- */
-
-//@{
-
-enum rp_flags {rp_on, rp_off};
+enum fsa_flags {fsa_off, fsa_on};
 
 //@}
 
 /**
- * All perturbation-related parameters and tables of source functions \f$ S^{X} (k, \eta) \f$.
+ * Structure containing everything about perturbations that other
+ * modules need to know, in particular tabuled values of the source
+ * functions \f$ S(k, \eta) \f$ for all requested modes
+ * (scalar/vector/tensor), initial conditions, types (temperature,
+ * E-polarization, B-polarisation, lensing potential, etc), multipole
+ * l and wavenumber k.
  *
- * Once initialized by perturb_init(), contains all the necessary
- * information on the perturbations, and in particular, all possible
- * indices and flags, and a table of source functions used for
- * intesrpolation in other modules.
  */
+
 struct perturbs
 {
-  /** @name - input parameters initialized by user in input module (all other 
-      quantitites are either infered from previous modules, or computed here) */
-
+  /** @name - input parameters initialized by user in input module
+   *  (all other quantitites are computed in this module, given these
+   *  parameters and the content of the 'precision', 'background' and
+   *  'thermodynamics' structures) */
+  
   //@{
 
   short has_perturbations; /**< do we need to compute perturbations at all ? */
@@ -125,19 +121,24 @@ struct perturbs
 
   int * k_size;     /**< k_size[index_mode] = number of values */
 
-  int * k_size_cl;     /**< k_size_cl[index_mode] number of values to take into account in transfer functions for C_l spectra (could be smaller than k_size, e.g. for scalars if extra points needed in P(k) */
+  int * k_size_cl;  /**< k_size_cl[index_mode] number of values to
+		       take into account in transfer functions for
+		       harmonic spectra C_l's (could be smaller than
+		       k_size, e.g. for scalars if extra points needed
+		       in P(k)) */
 
-  double ** k;      /**< (k[index_mode])[index_k] = list of values */
+  double ** k;      /**< k[index_mode][index_k] = list of values */
 
   //@}
 
-  /** @name - list of conformal time values in the source table (for all modes and types) */
+  /** @name - list of conformal time values in the source table
+      (common to all modes and types) */
 
   //@{
 
-  int eta_size;     /**< eta_size = number of values */
+  int eta_size;          /**< eta_size = number of values */
 
-  double * eta_sampling;      /**< eta_sampling = list of eta values */
+  double * eta_sampling; /**< eta_sampling[index_eta] = list of eta values */
 
   //@}
 
@@ -145,9 +146,8 @@ struct perturbs
 
   //@{
 
-  double *** sources; /**< Pointer towards the source interpolation table ((sources[index_mode])[index_ic][index_type])[index_eta][index_k] */
-
-  /* ((sources[index_mode])[index_ic][index_type])[index_eta][index_k] = for each mode, initial condition, type, time step and wavenumber, value of source function. ((sources[index_mode])[index_ic][index_type]) defined in the code as an array of size eta_size[index_type]*k_size[index_mode]. (sources[index_mode])  defined in the code as an array (of arrays) of size ic_size[index_mode]*tp_size. sources defined in the code as an array (of arrays of arrays) of size md_size. */
+  double *** sources; /**< Pointer towards the source interpolation table
+			 sources[index_mode][index_ic * ppt->tp_size[index_mode] + index_type][index_k * ppt->eta_size] */
 
   //@}
 
@@ -164,18 +164,25 @@ struct perturbs
 };
 
 /**
- * All indices in the vectors describing all perturbations at a given time.
- *
- * For each mode, the vectors of perturbations are
- * different: hence, there will be one such structure created for each
- * mode. This structure is not used in any other modules. 
+ * Structure containing the list of flags describing all possible
+ * approximation schemes.
  */
-struct perturb_workspace 
+
+struct perturb_approximations 
 {
-  /** @name - all possible useful indices for the vector of perturbed quantities to be integrated over time. "_pt_" stands for "perturbation". */
+  enum tca_flags tca; /**< flag for tight-coupling approximation */
+  enum fsa_flags fsa; /**< flag for free-streaming approximation */
+};
 
-  //@{
+/**
+ * Structure containing the indices and the values of the perturbation
+ * variables which are integrated over time (as well as their
+ * time-derivatives). For a given wavenumber, the size of these
+ * vectors changes when the approximation scheme changes.
+ */
 
+struct perturb_vector
+{
   int index_pt_delta_g;   /**< photon density */
   int index_pt_theta_g;   /**< photon velocity */
   int index_pt_shear_g;   /**< photon shear */
@@ -190,8 +197,8 @@ struct perturb_workspace
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
   int index_pt_theta_cdm; /**< cdm velocity */
-  int index_pt_delta_de; /**< dark energy density */
-  int index_pt_theta_de; /**< dark energy velocity */
+  int index_pt_delta_de;  /**< dark energy density */
+  int index_pt_theta_de;  /**< dark energy velocity */
   int index_pt_delta_nur; /**< density of ultra-relativistic neutrinos/relics */
   int index_pt_theta_nur; /**< velocity of ultra-relativistic neutrinos/relics */
   int index_pt_shear_nur; /**< shear of ultra-relativistic neutrinos/relics */
@@ -202,23 +209,44 @@ struct perturb_workspace
   int index_pt_gwdot;     /**< its time-derivative */
   int pt_size;            /**< size of perturbation vector */
 
-  //@}
+  double * y;             /**< vector of perturbations to be integrated */
+  double * dy;            /**< time-derivative of the same vector */
 
-  /** @name - all possible useful indices for metric perturbations not to be integrated over time, but to be inferred from Einstein equations. "_mt_" stands for "metric".*/
+};
+
+
+/**
+ * Workspace containing, among other things, the value at a given time
+ * of all background/perturbed quantitites, as well as their indices.
+ *
+ * There will be one such structure created for each mode
+ * (scalar/.../tensor) and each thread (in case of parallel computing)
+ */
+
+struct perturb_workspace 
+{
+
+  /** @name - all possible useful indices for those metric
+      perturbations which are not integrated over time, but just
+      inferred from Einstein equations. "_mt_" stands for "metric".*/
 
   //@{
 
-  int index_mt_phi; /**< phi in longitudinal gauge */
-  int index_mt_psi; /**< psi in longitudinal gauge */
-  int index_mt_phi_prime; /**< (d phi/d conf.time) in longitudinal gauge */
-  int index_mt_h_prime; /**< (d h/d conf.time) in synchronous gauge */
-  int index_mt_eta_prime; /**< (d \f$ \eta \f$/d conf.time) in synchronous gauge */
+  int index_mt_phi;         /**< phi in longitudinal gauge */
+  int index_mt_psi;         /**< psi in longitudinal gauge */
+  int index_mt_phi_prime;   /**< (d phi/d conf.time) in longitudinal gauge */
+  int index_mt_h_prime;     /**< (d h/d conf.time) in synchronous gauge */
+  int index_mt_eta_prime;   /**< (d \f$ \eta \f$/d conf.time) in synchronous gauge */
   int index_mt_alpha_prime; /**< (d \f$ \alpha \f$/d conf.time) in synchronous gauge, where \f$ \alpha = (h' + 6 \eta') / (2 k^2) \f$ */
-  int mt_size; /**< size of metric perturbation vector */
+  int mt_size;              /**< size of metric perturbation vector */
 
   //@}
 
-  /** @name - all possible useful indices for terms contributing to source function S=S0+S1'+S2'', not to be integrated over time, but to be inferred from "_pt_" and "_mt_" vectors. "_st_" stands for "source term".
+  /** @name - all possible useful indices for terms contributing to
+      the source function S=S0+S1'+S2''. These quantitites are not
+      integrated over time, but to inferred from the "_pt_" and "_mt_"
+      vectors, and their time derivatives. "_st_" stands for "source
+      term".
    */
 
   //@{
@@ -227,41 +255,72 @@ struct perturb_workspace
   int index_st_S0;     /**< first piece S0 */
   int index_st_S1;     /**< second piece S1 */
   int index_st_S2;     /**< third piece S2 */
-  int index_st_dS1;     /**< derivative S1' */
-  int index_st_dS2;     /**< derivative S2' */
-  int index_st_ddS2;     /**< derivative S2'' */
-  int st_size; /**< size of this vector */ 
+  int index_st_dS1;    /**< derivative S1' */
+  int index_st_dS2;    /**< derivative S2' */
+  int index_st_ddS2;   /**< derivative S2'' */
+  int st_size;         /**< size of this vector */ 
   
-  double * pvecback;
-  double * pvecthermo;
-  double * pvecperturbations; /**< vector of perturbations to be integrated, used throughout the perturbation module */
-  double * pvecderivs; 
-  double * pvecmetric;
-  double * pvecsource_terms;
+  //@}
 
-  /* table of source terms for each mode, initial condition and wavenumber: (source_terms_table[index_type])[index_eta][index_st] */
+  /** @name - value at a given time of all background/perturbed
+      quantitites
+   */
+
+  //@{
+
+  double * pvecback;          /**< background quantitites */
+  double * pvecthermo;        /**< thermodynamics quantitites */
+  double * pvecmetric;        /**< metric quantitites */
+  double * pvecsource_terms;  /**< source terms */
+  struct perturb_vector * pv; /**< pointer to vector of integrated
+				 perturbations and their
+				 time-derivatives */
+
+  //@}
+
+  /** @name - table of source terms for each mode, initial condition
+      and wavenumber: source_term_table[index_type][index_eta*ppw->st_size+index_st] */
+
+  //@{
+
   double ** source_term_table;
 
-  int * last_index_back;  /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
-  int * last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
+  //@}
 
-  enum tca_flags tca; /**< flag for tight-coupling approximation */
-  enum rp_flags rp; /**< flag for free-streaming approximation (switch on/off radiation perturbations) */
+  /** @name - indices useful for searching background/termo quantitites in tables */
+
+  //@{
+
+  int last_index_back;   /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
+  int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
+
+  //@}
+
+  /** @name - approximations used at a given time */
+
+  //@{
+
+  struct perturb_approximations * pa;
+
+  //@}
 
 };
 
+/**
+ * Structure poiting towards all what the function perturb_derivs
+ * needs to know: fixed input parameters and indices contained in the
+ * various structures, workspace, etc.
+*/ 
+
 struct perturb_parameters_and_workspace {
 
-  /* fixed input parameters */
-  struct precision * ppr;
-  struct background * pba;
-  struct thermo * pth;
-  struct perturbs * ppt;
-  int index_mode;
+  struct precision * ppr;         /**< pointer to the precision structure */
+  struct background * pba;        /**< pointer to the background structure */
+  struct thermo * pth;            /**< pointer to the thermodynamics structure */
+  struct perturbs * ppt;          /**< pointer to the precision structure */
+  int index_mode;                 /**< index of mode (scalar/.../vector/tensor) */
   double k;
-
-  /* workspace */
-  struct perturb_workspace * ppw;
+  struct perturb_workspace * ppw; /**< worspace defined above */
   
 };
 
@@ -308,7 +367,6 @@ struct perturb_parameters_and_workspace {
 					 struct thermo * pth,
 					 struct perturbs * ppt
 					 );
-    
     int perturb_get_k_list(
 			   struct precision * ppr,
 			   struct background * pba,
@@ -341,6 +399,34 @@ struct perturb_parameters_and_workspace {
 		      int index_k,
 		      struct perturb_workspace * ppw
 		      );
+
+    int perturb_vector_init(
+			    struct precision * ppr,
+			    struct background * pba,
+			    struct thermo * pth,
+			    struct perturbs * ppt,
+			    int index_mode,
+			    int index_ic,
+			    double k,
+			    double eta,
+			    struct perturb_workspace * ppw,
+			    struct perturb_approximations * pa_old
+			    );
+
+    int perturb_vector_free(
+			    struct perturb_vector * pv
+			    );
+
+    int perturb_compare_approximations(
+				       struct perturb_approximations * pa_previous,
+				       struct perturb_approximations * pa_new,
+				       int * number_of_differences
+				       );
+
+    int perturb_copy_approximations(
+				    struct perturb_approximations * pa_input,
+				    struct perturb_approximations * pa_copy
+				    );
 
     int perturb_initial_conditions(
 				   struct precision * ppr,

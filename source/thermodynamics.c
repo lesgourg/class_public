@@ -79,7 +79,7 @@
  * Thermodynamics quantities at given redshift z. 
  *
  * Evaluates all thermodynamics quantities at a given value of
- * the redshift by reading the pre-computed table ant interpolating.
+ * the redshift by reading the pre-computed table and interpolating.
  *
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure (containing pre-computed table)
@@ -198,7 +198,6 @@ int thermodynamics_at_z(
  * Initialize the thermo structure, and in particular the
  * thermodynamics interpolation table.
  * 
- *
  * @param ppr Input : pointer to precision structure
  * @param pba Input : pointer to background structure
  * @param pth Input/Output : pointer to initialized thermo structure
