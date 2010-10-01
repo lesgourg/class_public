@@ -441,7 +441,7 @@ int thermodynamics_init(
 
   class_test(pth->z_visibility_start_sources >= pth->z_table[pth->tt_size-1],
 	     pth->error_message,
-	     "source functions should start being sampled at a larger redshift than z_initial: either ppr->visibility_threshold_start_sources=%e is too small and you are too demanding, or ppr->recfast_z_initial is too small and you start studying recombination too late",ppr->visibility_threshold_start_sources,ppr->recfast_z_initial);
+	     "source functions should start being sampled at a larger redshift than z_initial: either ppr->visibility_threshold_start_sources=%e is too small and you are too demanding, or ppr->recfast_z_initial=%e is too small and you start studying recombination too late",ppr->visibility_threshold_start_sources,ppr->recfast_z_initial);
 
   class_test(pth->z_visibility_max == 0.,
 	     pth->error_message,

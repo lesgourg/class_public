@@ -26,10 +26,10 @@ int parser_read_file(
 
   class_alloc(pfc->filename,(strlen(filename)+1)*sizeof(char),errmsg);
   strcpy(pfc->filename,filename);
-  pfc->size = counter++;
-  class_alloc(pfc->name,pfc->size*sizeof(FileArg),errmsg);
-  class_alloc(pfc->value,pfc->size*sizeof(FileArg),errmsg);
-  class_alloc(pfc->read,pfc->size*sizeof(short),errmsg);
+
+  class_call(parser_init(pfc,counter,errmsg),
+	     errmsg,
+	     errmsg);
 
   rewind(inputfile);
 
@@ -48,6 +48,22 @@ int parser_read_file(
 
   return _SUCCESS_;
 
+}
+
+int parser_init(
+		struct file_content * pfc,
+		int size,
+		ErrorMsg errmsg
+		) {
+
+  if (size > 0) {
+    pfc->size=size;
+    class_alloc(pfc->name,size*sizeof(FileArg),errmsg);
+    class_alloc(pfc->value,size*sizeof(FileArg),errmsg);
+    class_alloc(pfc->read,size*sizeof(short),errmsg);
+  }
+
+  return _SUCCESS_;
 }
 
 int parser_free(

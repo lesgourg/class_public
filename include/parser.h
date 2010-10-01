@@ -4,7 +4,7 @@
 #include "common.h"
 
 #define _LINE_LENGTH_MAX_ 200 /**< size of the string read in each line of the file (extra characters not taken into account) */
-#define _ARGUMENT_LENGTH_MAX_ 30 /**< maximum size of each argument (name or value), including the final null character */
+#define _ARGUMENT_LENGTH_MAX_ 40 /**< maximum size of each argument (name or value), including the final null character */
 
 typedef char FileArg[_ARGUMENT_LENGTH_MAX_];
 
@@ -31,6 +31,12 @@ int parser_read_file(
 		     struct file_content * pfc,
 		     ErrorMsg errmsg
 		     );
+
+int parser_init(
+		struct file_content * pfc,
+		int size,
+		ErrorMsg errmsg
+		);
 
 int parser_free(
 		struct file_content * pfc

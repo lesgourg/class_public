@@ -1115,7 +1115,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->reionization_optical_depth_tol=1.e-2;
   ppr->reionization_exponent=1.5;
 
-  ppr->reionization_width=0.5;  /* should be converted as 'input parameters' */
+  ppr->reionization_width=0.5;  /* could be converted as 'input parameters' */
 
   ppr->reionization_start_factor=8.;
   ppr->helium_fullreio_redshift=3.5;
