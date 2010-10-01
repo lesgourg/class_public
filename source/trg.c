@@ -73,10 +73,12 @@ int trg_p11_at_k(
 		 double *result
 		 ){
 
-  class_call(spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,k,pnl->z[index_eta],result),
+  double * junk;
+
+  class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,pnl->z[index_eta],result,junk),
 	     psp->error_message,
 	     pnl->error_message);
-
+  
   *result=exp(-2*pnl->eta[index_eta])* *result;
   
   return _SUCCESS_;
@@ -2651,6 +2653,8 @@ int trg_init (
 
   int temp_index_k;
 
+  double * junk;
+
  /*  k_max=ppt->k_scalar_kmax_for_pk*pba->h; */    /**< PRECISION PARAMETER *\/ /\* not above k_scalar_max*h in test_trg *\/ */
   k_max=pnl->k_max;
   k_L=1.e-3;        /**< PRECISION PARAMETER */
@@ -2776,18 +2780,18 @@ int trg_init (
   class_alloc(H_prime,pnl->eta_size*sizeof(double),pnl->error_message);
 
   for (index_eta=0; index_eta<pnl->eta_size; index_eta++){
-    class_call(background_functions_of_a(
-					 pba,
-					 a_ini*exp(pnl->eta[index_eta]),
-					 long_info,
-					 pvecback_nl
-					 ),
+    class_call(background_functions(
+				    pba,
+				    a_ini*exp(pnl->eta[index_eta]),
+				    long_info,
+				    pvecback_nl
+				    ),
 	       pba->error_message,
 	       pnl->error_message);
     
-    Omega_m[index_eta] = pvecback_nl[pba->index_bg_Omega_b];
+    Omega_m[index_eta] = pvecback_nl[pba->index_bg_rho_b]/pvecback_nl[pba->index_bg_rho_crit];
     if (pba->has_cdm == _TRUE_) {
-      Omega_m[index_eta] += pvecback_nl[pba->index_bg_Omega_cdm];
+      Omega_m[index_eta] += pvecback_nl[pba->index_bg_rho_cdm]/pvecback_nl[pba->index_bg_rho_crit];
     }
     
     H[index_eta] = pvecback_nl[pba->index_bg_H] * a_ini * exp(pnl->eta[index_eta]);
@@ -3423,7 +3427,7 @@ int trg_init (
       for(index_k=0; index_k<pnl->k_size-2*2*index_eta; index_k++){ 
 
 	class_call(
-		   spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[index_eta],&temp1),
+		   spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[index_eta],&temp1,junk),
 		   psp->error_message,
 		   pnl->error_message);
 	

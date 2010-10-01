@@ -68,6 +68,7 @@ struct thermo
   int index_th_exp_m_kappa;  /**< \f$ exp^{-\kappa} \f$ */
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \eta) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \eta) \f$ */
+  int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \eta^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \eta), used for computing integration step in perturbation module */

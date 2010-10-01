@@ -129,7 +129,7 @@ int thermodynamics_at_z(
     /* Calculate d3kappa/deta3 given that [dkappa/deta] proportional to (1+z)^2 */
     pvecthermo[pth->index_th_dddkappa] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
 
-    /* \f$ exp^{-\kappa}, g, g' \f$ can be set to zero: they are used
+    /* \f$ exp^{-\kappa}, g, g', g'' \f$ can be set to zero: they are used
        only for computing the source functions in the perturbation
        module; but source functions only need to be sampled below
        z_initial (this is guaranteed by the fact that
@@ -137,6 +137,7 @@ int thermodynamics_at_z(
     pvecthermo[pth->index_th_exp_m_kappa] = 0.;
     pvecthermo[pth->index_th_g]=0.;
     pvecthermo[pth->index_th_dg]=0.;
+    pvecthermo[pth->index_th_ddg]=0.;
 
     /* Calculate Tb */
     pvecthermo[pth->index_th_Tb] = pth->Tcmb*(1.+z);
@@ -394,6 +395,16 @@ int thermodynamics_init(
        pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa]) *
       exp(pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g]);
     
+    /** -> compute g''  */
+    pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_ddg] = 
+      (pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dddkappa] +
+       pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
+       pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_ddkappa] * 2. +
+       pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
+       pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
+       pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa]) *
+      exp(pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g]);
+
     /** -> store g */
     pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g] = g;
 
@@ -542,6 +553,8 @@ int thermodynamics_indices(
   pth->index_th_g = index;
   index++;
   pth->index_th_dg = index;
+  index++;
+  pth->index_th_ddg = index;
   index++;
   pth->index_th_Tb = index;
   index++;

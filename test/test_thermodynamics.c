@@ -47,12 +47,13 @@ main(int argc, char **argv) {
   printf("#6: exponential of optical depth e^-kappa\n");
   printf("#7: visibility function g = kappa' e^-kappa \n");
   printf("#8: derivative of visibility function g' \n");
-  printf("#9: baryon temperature \n");
-  printf("#10: squared baryon sound speed c_b^2 \n");
-  printf("#11: variation rate \n");
+  printf("#9: second derivative of visibility function g'' \n");
+  printf("#10: baryon temperature \n");
+  printf("#11: squared baryon sound speed c_b^2 \n");
+  printf("#12: variation rate \n");
 
   for (i=0; i < th.tt_size; i++)
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   th.z_table[i],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
@@ -61,6 +62,7 @@ main(int argc, char **argv) {
 	   th.thermodynamics_table[i*th.th_size+th.index_th_exp_m_kappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_g],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dg],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_ddg],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_Tb],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_rate]
@@ -80,7 +82,7 @@ main(int argc, char **argv) {
 
     thermodynamics_at_z(&ba,&th,z,normal,&last_index,pvecback,pvecthermo);
     
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   z,
 	   pvecthermo[th.index_th_xe],
 	   pvecthermo[th.index_th_dkappa],
@@ -89,6 +91,7 @@ main(int argc, char **argv) {
 	   pvecthermo[th.index_th_exp_m_kappa],
 	   pvecthermo[th.index_th_g],
 	   pvecthermo[th.index_th_dg],
+	   pvecthermo[th.index_th_ddg],
 	   pvecthermo[th.index_th_Tb],
 	   pvecthermo[th.index_th_cb2],
 	   pvecthermo[th.index_th_rate]

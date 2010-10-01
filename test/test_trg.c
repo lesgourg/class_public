@@ -104,18 +104,18 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
  
-  pt.k_scalar_kmax_for_pk=2000.;
-/*   pt.k_scalar_kmax_for_pk=600.; */
-  pr.k_scalar_k_per_decade_for_pk=10.;
+/*   pt.k_scalar_kmax_for_pk=2000.; */
+  pt.k_scalar_kmax_for_pk=600.;
+  pr.k_scalar_k_per_decade_for_pk=10.; 
 
   pt.has_cl_cmb_temperature = _FALSE_;
   pt.has_cl_cmb_polarization = _FALSE_;
   pt.has_cl_cmb_lensing_potential = _FALSE_;
   pt.has_pk_matter = _TRUE_;
 
-  sp.z_max_pk = 50.;
+  sp.z_max_pk = 50.; 
 
-  nl.k_max=pt.k_scalar_kmax_for_pk*ba.h-1.;
+/*   nl.k_max=pt.k_scalar_kmax_for_pk*ba.h-1.; */
 
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);
@@ -132,7 +132,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (bessel_init(&pr,&ba,&pt,&bs) == _FAILURE_) {
+  if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }
