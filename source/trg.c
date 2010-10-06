@@ -34,8 +34,10 @@ int trg_gamma_121(
 		  double  p, 
 		  double  *result
 		  ){
+
   *result =  (1./ (4*q*q)) * (- p*p + k*k + q*q);
   return _SUCCESS_;
+
 }
 
 
@@ -47,8 +49,10 @@ int trg_gamma_222(
 		  double * result,
 		  char * errmsg
 		  ){
+
   *result=k*k/(4*q*q*p*p) * (k*k - p*p - q*q);
   return _SUCCESS_;
+
 }
 
 
@@ -101,12 +105,27 @@ int trg_ddp_ab(
 	       char *errmsg
 	       ){
   if(index_eta>=1) {
-    class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-2*2*index_eta,p_ab,pnl->eta_size,index_eta,result,_SPLINE_NATURAL_,errmsg),
+    class_call(array_logspline_table_one_column(pnl->k,
+						pnl->k_size,
+						pnl->k_size-2*2*index_eta,
+						p_ab,
+						pnl->eta_size,
+						index_eta,result,
+						_SPLINE_NATURAL_,
+						errmsg),
 	       errmsg,
 	       errmsg);
   }
   else {
-    class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size,p_ab,pnl->eta_size,index_eta,result,_SPLINE_NATURAL_,errmsg),
+    class_call(array_logspline_table_one_column(pnl->k,
+						pnl->k_size,
+						pnl->k_size,
+						p_ab,
+						pnl->eta_size,
+						index_eta,
+						result,
+						_SPLINE_NATURAL_,
+						errmsg),
 	       errmsg,
 	       errmsg);
   }
@@ -127,16 +146,35 @@ int trg_p_ab_at_any_k(
 		      ){
 
   if(index_eta>=1) {
-    class_call(array_interpolate_extrapolate_logspline_one_column(pnl->k,pnl->k_size,pnl->k_size-2*2*index_eta,p_ab,pnl->eta_size,index_eta,ddp_ab,any_k,result,errmsg),
+    class_call(array_interpolate_extrapolate_logspline_one_column(pnl->k,
+								  pnl->k_size,
+								  pnl->k_size-2*2*index_eta,
+								  p_ab,
+								  pnl->eta_size,
+								  index_eta,
+								  ddp_ab,
+								  any_k,
+								  result,
+								  errmsg),
 	     errmsg,
 	     pnl->error_message);
   }
   else {
-    class_call(array_interpolate_extrapolate_logspline_one_column(pnl->k,pnl->k_size,pnl->k_size,p_ab,pnl->eta_size,index_eta,ddp_ab,any_k,result,errmsg),
+    class_call(array_interpolate_extrapolate_logspline_one_column(pnl->k,
+								  pnl->k_size,
+								  pnl->k_size,
+								  p_ab,
+								  pnl->eta_size,
+								  index_eta,
+								  ddp_ab,
+								  any_k,
+								  result,
+								  errmsg),
 	     errmsg,
 	     pnl->error_message);
   }
   return _SUCCESS_;
+
 }
 
 /********************
@@ -1358,13 +1396,7 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_12p*p_12k + gamma1_pkm*p_12k*p_12m +
 		      gamma1_pmk*p_11k*p_22m);
 
-    /* if (index_k==103) */
-    /*     if (index_k==30 || index_k==pnl->k_size-1) */
-    /*        printf("%e %e %e %e %e %e\n",k,p,m,(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result)); */ 
-
     *result *= m*p/2./pow(2*_PI_,3);    
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1427,8 +1459,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-/*     printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1471,8 +1501,6 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1523,8 +1551,6 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1579,8 +1605,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1650,8 +1674,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1710,8 +1732,6 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
 
     return _SUCCESS_;
     break;
@@ -1773,8 +1793,6 @@ int trg_A_arg_one_loop(
 
     *result *= m*p/2./pow(2*_PI_,3);
 
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1820,11 +1838,6 @@ int trg_A_arg_one_loop(
     *result *= m*p/2./pow(2*_PI_,3);
 
 
-    /*     if (index_k==30 || index_k==pnl->k_size-1) */
-    /*        printf("%e %e %e %e %e %e\n",k,p,m,(p+m)/sqrt(2.),(p-m)/sqrt(2.),p*m*(*result));  */
-
-    /* printf("%e %e %e %e\n",k,(p+m)/sqrt(2.),(p-m)/sqrt(2.),(*result)); */
-
     return _SUCCESS_;
     break;
 
@@ -1841,11 +1854,28 @@ int trg_A_arg_one_loop(
 
 
 
-/***************
+/*************************
  *
- * Integration with the Simpson's method (over y, and simple trapeze for x)
+ * Integrator using a square pattern.
+ * ----------
  *
- ***************/
+ * The integral over (x,y) is evaluated by the following procedure.  
+ *   - For each k from k_L to k_max, define the integration domain 
+ *    over x and y. It defines a rectangular zone.
+ *   - Starting by the top-left corner of the rectangle, draw L-shaped
+ *    regions of square of size \Delta x. The integral will be performed
+ *    over these regions to take into account the symmetry of the
+ *    argument
+ *   - For each square, the integral will be calculated by taking the
+ *    value of the central point as the value for the whole function.
+ *   - So as to avoid computing several times the argument at the same
+ *    point in (x,y), its values are temporarily stocked into the variables
+ *    h_up,h_do,v_le,v_ri, standing (resp.) for the upper horizontal line of
+ *    the L-shaped region, the lower horizontal line, the left verical line
+ *    and the right vertical line.
+ *     
+ *
+ *************************/
 
 int trg_integrate_xy_at_eta(
 			    struct background * pba,
@@ -1889,6 +1919,8 @@ int trg_integrate_xy_at_eta(
   double local_average_value,previous_average_value,total_average_value;
   double temp,slope,coeff;
 
+  int double_escape;
+
   /* The following approximation consists in taking into account the
      fact that for small k's, the influence of non linearity is
      small. Hence, one could take the linear evolution for P's for
@@ -1902,117 +1934,42 @@ int trg_integrate_xy_at_eta(
      table_array routines by chosing an arbitrarily small cut-off for
      P's (well under the k_min).
 
+     In order to get convergent quantities not plagued by numerical
+     instabilities, we use here a 'double escape' process. At every
+     step, we delete twice a fixed number of points in k. By default,
+     set to 2, for it seems to be the more effective while letting
+     enough information at the end of the calculation for sufficiently
+     high starting value of k_max.
+
   */	     
 
-  k_min=pnl->k[0];
- /*  k_max=1500.; *///1000 //pnl->k[pnl->k_size-1];
+  double_escape=2;
 
+  k_min=pnl->k[0];
   k_max=2000.;
 
-  for(index_k=0; index_k<pnl->k_size-2*(2*index_eta+1); index_k++){
-  /* for(index_k=50; index_k<51; index_k++){ */
-
+  for(index_k=0; index_k<pnl->k_size- double_escape*(2*index_eta+1); index_k++){
+  
     k=pnl->k[index_k];
 
-    /*    logstepx=min(1.1,1+0.01/pow(k,2)); */
-
     logstepx=min(1.1,1+0.01/pow(k,1));
-
-    
-    if(logstepx<1.008) logstepx=1.008;
-
-  /*   if(logstepx<1.0035) logstepx=1.0035; */
+    if(logstepx<1.008) logstepx=1.008; /*For more precision (and still reasonnable computing time) pick 1.0035*/
 
     logstepy=logstepx;
 
-    if(index_k<pnl->index_k_L){ /*size under which we pick linear
-				  theory, index_k_L defined in
-				  trg_init */
+    /* Over the size defined by k_L we pick linear theory (defined in trg_init) */
 
+    if(index_k<pnl->index_k_L){   
+      
       result[index_k+pnl->k_size*index_eta]=0.;
     }
-
-   /*  extrapolate high k's behaviour */
-
-    /* else if(index_k>pnl->k_size-8-index_eta && index_eta > 0){ */
-
-/*       coeff=result[pnl->k_size-8-index_eta+pnl->k_size*index_eta]/result[pnl->k_size-8-index_eta]; */
-
-/*       result[index_k+pnl->k_size*index_eta]=result[index_k]*coeff; */
-      
-      
-/*       /\* slope=0; *\/ */
-      
-/* /\*       if( result[index_k+pnl->k_size*index_eta] > 0 ) { *\/ */
-    
-/* /\* 	result[index_k+pnl->k_size*index_eta]=exp( *\/ */
-/* /\* 						  ((log(result[pnl->k_size-5+pnl->k_size*index_eta])  - *\/ */
-/* /\* 						    log(result[pnl->k_size-6+pnl->k_size*index_eta])) / *\/ */
-/* /\* 						   ( log(pnl->k[pnl->k_size-5])-log(pnl->k[pnl->k_size-6])) ) *\/ */
-/* /\* 						  * (log(pnl->k[index_k])-log(pnl->k[pnl->k_size-5])) + *\/ */
-/* /\* 						  log(result[pnl->k_size-5+pnl->k_size*index_eta])); *\/ */
-/* /\*       } *\/ */
-      
-/* /\*       else { *\/ */
-	
-/* /\* 	result[index_k+pnl->k_size*index_eta]= - exp( *\/ */
-/* /\* 						     ( (log(fabs(result[pnl->k_size-5+pnl->k_size*index_eta]) )  - *\/ */
-/* /\* 						       log(fabs(result[pnl->k_size-6+pnl->k_size*index_eta]))) / *\/ */
-/* /\* 						       ( log(pnl->k[pnl->k_size-5])-log(pnl->k[pnl->k_size-6])) ) *\/ */
-/* /\* 						     * (log(pnl->k[index_k])-log(pnl->k[pnl->k_size-5])) + *\/ */
-/* /\* 						     log(fabs(result[pnl->k_size-5+pnl->k_size*index_eta]))); *\/ */
-
-/* /\*       } *\/ */
-	
-      
-/*       /\* slope+=(log(result[pnl->k_size-4+pnl->k_size*index_eta])- *\/ */
-/* /\* 	      log(result[pnl->k_size-5+pnl->k_size*index_eta]))/ *\/ */
-/* /\* 	(log(pnl->k[pnl->k_size-4])-log(pnl->k[pnl->k_size-5])); *\/ */
-
-/* /\*       slope+=(log(result[pnl->k_size-4+pnl->k_size*index_eta])- *\/ */
-/* /\* 	      log(result[pnl->k_size-6+pnl->k_size*index_eta]))/ *\/ */
-/* /\* 	(log(pnl->k[pnl->k_size-4])-log(pnl->k[pnl->k_size-6])); *\/ */
-
-/* /\*       slope+=(log(result[pnl->k_size-5+pnl->k_size*index_eta])- *\/ */
-/* /\* 	      log(result[pnl->k_size-6+pnl->k_size*index_eta]))/ *\/ */
-/* /\* 	(log(pnl->k[pnl->k_size-5])-log(pnl->k[pnl->k_size-6])); *\/ */
-
-/* /\*       slope+=(log(result[pnl->k_size-5+pnl->k_size*index_eta])- *\/ */
-/* /\* 	      log(result[pnl->k_size-7+pnl->k_size*index_eta]))/ *\/ */
-/* /\* 	(log(pnl->k[pnl->k_size-5])-log(pnl->k[pnl->k_size-7])); *\/ */
-
-/* /\*       slope=slope/4.; *\/ */
-      
-      
-
-/* /\*       result[index_k+pnl->k_size*index_eta]=exp(slope * (log(pnl->k[index_k])-log(pnl->k[pnl->k_size-4])) + log(result[pnl->k_size-4+pnl->k_size*index_eta])); *\/ */
-
-/*  /\*      slope+=(result[pnl->k_size-4+pnl->k_size*index_eta]- *\/ */
-/* /\* 	      result[pnl->k_size-5+pnl->k_size*index_eta])/ *\/ */
-/* /\* 	(pnl->k[pnl->k_size-4]-pnl->k[pnl->k_size-5]); *\/ */
-
-/* /\*       slope+=(result[pnl->k_size-4+pnl->k_size*index_eta]- *\/ */
-/* /\* 	      result[pnl->k_size-6+pnl->k_size*index_eta])/ *\/ */
-/* /\* 	(pnl->k[pnl->k_size-4]-pnl->k[pnl->k_size-6]); *\/ */
-
-/* /\*       slope+=(result[pnl->k_size-5+pnl->k_size*index_eta]- *\/ */
-/* /\* 	      result[pnl->k_size-6+pnl->k_size*index_eta])/ *\/ */
-/* /\* 	(pnl->k[pnl->k_size-5]-pnl->k[pnl->k_size-6]); *\/ */
-
-/* /\*       slope+=(result[pnl->k_size-5+pnl->k_size*index_eta]- *\/ */
-/* /\* 	      result[pnl->k_size-7+pnl->k_size*index_eta])/ *\/ */
-/* /\* 	(pnl->k[pnl->k_size-5]-pnl->k[pnl->k_size-7]); *\/ */
-
-/* /\*       slope=slope/4.; *\/ */
-      
-      
-
-/* /\*       result[index_k+pnl->k_size*index_eta]=slope * (pnl->k[index_k]-pnl->k[pnl->k_size-4]) + result[pnl->k_size-4+pnl->k_size*index_eta]; *\/ */
-      
-/*     } */
-    
+ 
     else{
 
+
+      /********************
+       * Definition of integration domain over x
+       ********************/
 
       x_size = (int)(log(2.*k_max/k)/log(logstepx)) + 2;
 
@@ -2020,8 +1977,6 @@ int trg_integrate_xy_at_eta(
 
       class_calloc(h_up,x_size,sizeof(double),pnl->error_message);
       class_calloc(h_do,x_size,sizeof(double),pnl->error_message);
-
-      /*       class_calloc(sum_y,x_size,sizeof(double),pnl->error_message); */
 
       index_x = 0; 
 
@@ -2038,9 +1993,15 @@ int trg_integrate_xy_at_eta(
 
       } while (xx[index_x-1] < k_max*sqrt(2.));
 
-      if (x_size != index_x) printf("x: %d %d\n", x_size,index_x);
+      if (x_size != index_x) printf("Beware int. domain for x: %d %d\nChange value of initial x_size\n", x_size,index_x);
 
-      x_size = index_x;
+      x_size = index_x; /* just to be sure */
+
+
+
+      /********************
+       * Definition of integration domain over y 
+       ********************/
 
       y_size = (int)(log(2.)/log(logstepy)) + 2;
 
@@ -2067,14 +2028,13 @@ int trg_integrate_xy_at_eta(
 	
       } while (yy[index_y-1] > 0.);
 
-      if (y_size != index_y) printf("y: %d %d\n", y_size,index_y);
+      if (y_size != index_y) printf("Beware int. domain for y: %d %d\nChange value of initial y_size\n", y_size,index_y);
 
       y_size = index_y;
 
-      /*       printf("integrate for name=%d, index_k=%d\n",(int)name,index_k); */
 
 
-      /* compute first h and v lines */
+      /* compute first h(orizontal) and v(ertical) lines */
 
       h_do[0]=0.;
       v_ri[0]=h_do[0];
@@ -2531,8 +2491,8 @@ int trg_logstep1_k (
 		   double k,
 		   double * logstep) {
 
-  *logstep = 1.11 - 0.09*tanh(300*(k-0.01));
-/*   *logstep = 1.02; */
+  /*  *logstep = 1.11 - 0.09*tanh(300*(k-0.01));*/
+   *logstep = 1.02; 
 /*   *logstep = 1.10 - 0.09*tanh(300*(k-0.01)); */
 }
 
@@ -2613,8 +2573,8 @@ int trg_init (
   double tstart, tstop;
 #endif
 
-  pnl->spectra_nl_verbose=0;
-  pnl->mode=2; /* 0 is linear evolution, 1 one loop and 2 full trg */
+  pnl->spectra_nl_verbose=1;
+  pnl->mode=1; /* 0 is linear evolution, 1 one loop and 2 full trg */
 
   if (pnl->spectra_nl_verbose > 0){
     if(pnl->mode==0)
@@ -2660,7 +2620,7 @@ int trg_init (
   k_L=1.e-3;        /**< PRECISION PARAMETER */
   k_min=1.e-4;      /**< PRECISION PARAMETER */
 
-  logstepk=1.01;    /**< PRECISION PARAMETER */ /* with 1.01 we map
+  logstepk=1.1;    /**< PRECISION PARAMETER */ /* with 1.01 we map
 						  finely the
 						  oscillations,
 						  though very much
@@ -3421,7 +3381,7 @@ int trg_init (
     class_test(isnan(pnl->pk_nl[50+pnl->k_size*index_eta])!=0,pnl->error_message,"Code returns nan!\n");
   
     if(index_eta%1==0){
-      sprintf(filename,"output/pknl_double_echappement4_8_%d.dat",index_eta);
+      sprintf(filename,"output/test_%d.dat",index_eta);
       class_open(nl_spectra,filename,"wr",pnl->error_message);
       fprintf(nl_spectra,"##at z =%e\n",pnl->z[index_eta]);
       for(index_k=0; index_k<pnl->k_size-2*2*index_eta; index_k++){ 
@@ -3431,7 +3391,12 @@ int trg_init (
 		   psp->error_message,
 		   pnl->error_message);
 	
-	fprintf(nl_spectra,"%e\t%e\t%e\t%e\t%e\t",pnl->k[index_k]/pba->h,pow(pba->h,3)*pnl->pk_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),pow(pba->h,3)*pnl->p_12_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),pow(pba->h,3)*pnl->p_22_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),pow(pba->h,3)*temp1);
+	fprintf(nl_spectra,"%e\t%e\t%e\t%e\t%e\t",
+		pnl->k[index_k]/pba->h,
+		pow(pba->h,3)*pnl->pk_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),
+		pow(pba->h,3)*pnl->p_12_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),
+		pow(pba->h,3)*pnl->p_22_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),
+		pow(pba->h,3)*temp1);
 	
 	for (index_name=0; index_name<name_size; index_name++)
 	  fprintf(nl_spectra,"%e\t",AA[index_name][index_k+pnl->k_size*index_eta]);
