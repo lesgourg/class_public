@@ -31,8 +31,8 @@ main(int argc, char **argv) {
   double percentage,max_percentage;
   int max_l;
 
-  parameter_initial=8000.;
-  parameter_logstep=1.1;
+  parameter_initial=6.e-6;
+  parameter_logstep=1.5;
   param_num=11;
   
   l_max=2500;
@@ -48,18 +48,18 @@ main(int argc, char **argv) {
   parser_init(&fc,3,errmsg);
 
   strcpy(fc.name[0],"output");
-  strcpy(fc.value[0],"tCl,pCl");
+  strcpy(fc.value[0],"tCl");
 
   strcpy(fc.name[1],"l_max_scalars");
   sprintf(fc.value[1],"%d",l_max);
  
-  strcpy(fc.name[2],"l_max_over_k_max_scalars");
+  strcpy(fc.name[2],"transfer_cut_threshold_cl");
 
   for (i=0; i<param_num; i++) {
 
     parameter[i] = parameter_initial / exp((double)i*log(parameter_logstep));
 
-    sprintf(fc.value[2],"%e",parameter[i]);
+    sprintf(fc.value[2],"%g",parameter[i]);
     fprintf(stderr,"#run with %s\n",fc.value[2]);
     fprintf(stdout,"#run with %s\n",fc.value[2]);
 
