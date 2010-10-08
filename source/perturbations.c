@@ -188,9 +188,11 @@ int perturb_init(
 
 #ifdef _OPENMP
 
-#pragma omp parallel 
+#pragma omp parallel      \
+       shared(number_of_threads)
   {
-    number_of_threads = omp_get_num_threads();
+    if (omp_get_thread_num() == 0) 
+      number_of_threads = omp_get_num_threads();
   }
   class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
   
@@ -1476,7 +1478,6 @@ int perturb_solve(
       }
 
       /** (b) perform integration step till exactly the next eta_sampling[next_index_eta] value: */    
-
       /** (b.1) integrate perturbations over current step using generic_integrator() */
       
       class_call(generic_integrator(perturb_derivs,
@@ -2035,6 +2036,9 @@ int perturb_vector_init(
 	  ppv->y[ppv->index_pt_shear_nur] =
 	    ppw->pv->y[ppw->pv->index_pt_shear_nur];
 
+	  ppv->y[ppv->index_pt_l3_nur] =
+	    ppw->pv->y[ppw->pv->index_pt_l3_nur];
+
 	  for (l=4; l <= ppv->l_max_nur; l++)
 	    ppv->y[ppv->index_pt_delta_nur+l] = 
 	      ppw->pv->y[ppw->pv->index_pt_delta_nur+l];
@@ -2267,7 +2271,7 @@ int perturb_copy_approximations(
  * @param index_ic   Input: index of initial condition under consideration (ad, iso...)
  * @param k          Input: wavenumber
  * @param eta        Input: conformal time
- * @param ppw        Input/Output: workspace containing input the approximation scheme, the background/thermodynamics/metric quantitites, and eventually the previous vector y; and in output the new vector y.
+ * @param ppw        Input/Output: workspace containing in input the approximation scheme, the background/thermodynamics/metric quantitites, and eventually the previous vector y; and in output the new vector y.
  * @return the error status
  */
 int perturb_initial_conditions(struct precision * ppr,
@@ -2501,6 +2505,11 @@ int perturb_initial_conditions(struct precision * ppr,
     }
 
   }
+
+/*   printf("%e %e ",k,eta); */
+/*   for (l=0;l<ppw->pv->pt_size;l++) { */
+/*     printf("%e \n",ppw->pv->y[l]); */
+/*   } */
 
   return _SUCCESS_;
 }

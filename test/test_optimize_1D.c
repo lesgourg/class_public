@@ -22,25 +22,30 @@ main(int argc, char **argv) {
 
   struct file_content fc;
 
-  double parameter,parameter_initial,parameter_logstep;
+  double parameter_initial,parameter_logstep;
+  double * parameter;
   int param_num;
 
   double *** cl;
+  double chi2;
+  double percentage,max_percentage;
+  int max_l;
 
-  parameter_initial=0.02;
-  parameter_logstep=1.5;
+  parameter_initial=8000.;
+  parameter_logstep=1.1;
   param_num=11;
   
   l_max=2500;
 
   class_alloc(cl,param_num*sizeof(double**),errmsg);
+  class_alloc(parameter,param_num*sizeof(double),errmsg);
   for (i=0; i<param_num; i++) {
     class_alloc(cl[i],(l_max+1)*sizeof(double*),errmsg);
     for (l=2; l <= l_max; l++)
       class_alloc(cl[i][l],6*sizeof(double),errmsg);
   }
 
-  parser_init(&fc,2,errmsg);
+  parser_init(&fc,3,errmsg);
 
   strcpy(fc.name[0],"output");
   strcpy(fc.value[0],"tCl,pCl");
@@ -48,17 +53,15 @@ main(int argc, char **argv) {
   strcpy(fc.name[1],"l_max_scalars");
   sprintf(fc.value[1],"%d",l_max);
  
-/*   strcpy(fc.name[2],"back_integration_stepsize"); */
-
-  parameter_initial=0.02;
-  parameter_logstep=1.5;
+  strcpy(fc.name[2],"l_max_over_k_max_scalars");
 
   for (i=0; i<param_num; i++) {
 
-    parameter = parameter_initial / exp((double)i*log(parameter_logstep));
+    parameter[i] = parameter_initial / exp((double)i*log(parameter_logstep));
 
-/*     sprintf(fc.value[2],"%e",parameter); */
-/*     printf("#run with %s\n",fc.value[2]); */
+    sprintf(fc.value[2],"%e",parameter[i]);
+    fprintf(stderr,"#run with %s\n",fc.value[2]);
+    fprintf(stdout,"#run with %s\n",fc.value[2]);
 
     if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
       printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -75,13 +78,23 @@ main(int argc, char **argv) {
       
     printf("\n");
     
-    if (i>20) {
-      chi2=0;
-      for (l=2; l <= 2500; l++)
-	chi2 += ((cl[i][l][0]-cl[0][l][0])/cl[0][l][0])**2+((cl[i][l][1]-cl[0][l][1])/cl[0][l][1])**2;
-      printf("%g %g\n",parameter,chi2);
+  }
+
+  for (i=0; i<param_num-1; i++) {
+
+    chi2=0;
+    max_percentage = 0.;
+    max_l = 0;
+    for (l=2; l <= 2500; l++) {
+      chi2 += pow(((cl[i][l][0]-cl[param_num-1][l][0])/cl[param_num-1][l][0]),2);
+      percentage = fabs(cl[i][l][0]/cl[param_num-1][l][0]-1.)*100.;
+      if (percentage > max_percentage) {
+	max_percentage = percentage;
+	max_l = l;
+      }
     }
-     
+    fprintf(stderr,"parameter=%e chi2=%e l=%d percentage=%g\n",
+	    parameter[i],chi2,max_l,max_percentage);
   }
 }
 

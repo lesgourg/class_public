@@ -420,7 +420,7 @@ int spectra_pk_at_z(
  * This routine evaluates the matter power spectrum at a given value of k and z by
  * interpolating in a table of all P(k)'s computed at this z by spectra_pk_at_z() (when kmin <= k <= kmax), 
  * or eventually by using directly the primordial spectrum (when 0 <= k < kmin): 
- * the latter case this is approximation, valid when kmin << comoving Hubble scale today.
+ * the latter case is an approximation, valid when kmin << comoving Hubble scale today.
  * Returns zero when k=0. Returns an error when k<0 or k > kmax.
  * 
  * This function can be

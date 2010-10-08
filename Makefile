@@ -41,6 +41,7 @@ BACKGROUND = background.o
 THERMO = thermodynamics.o
 
 PERTURBATIONS = perturbations.o 
+PERTURBATIONS_NEW = perturbations_new.o 
 
 BESSEL = bessel.o
 

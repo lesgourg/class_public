@@ -1066,8 +1066,8 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->a_ini_over_a_today_default = 1.e-13;  /* 1.e-7 unless needs large k_max in P(k) */
-  ppr->back_integration_stepsize = 2.e-2;   /* 0.02 */
-  ppr->tol_background_integration = 1.e-3;  /* 0.002 */
+  ppr->back_integration_stepsize = 5.e-2;   /* 0.02 */
+  ppr->tol_background_integration = 1.e-2;  /* 0.002 */
 
   /**
    * - parameters related to the thermodynamics
@@ -1134,9 +1134,9 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->gauge=synchronous;
 
-  ppr->k_scalar_min=0.3; /* 0.3 -> 0.1 */
+  ppr->k_scalar_min=0.02; /* 0.3 -> 0.1 */
   /*   ppr->k_scalar_oscillations=7.;   */
-  ppr->l_max_over_k_max_scalars = 8000.;
+  ppr->l_max_over_k_max_scalars = 7000.; /* 8000.; */
   ppr->k_scalar_step_sub=0.1;  /* 0.02 -> 0.005 */
   ppr->k_scalar_step_super=0.005;  /* 0.01 -> 0.005 */
   ppr->k_scalar_step_transition=0.4;

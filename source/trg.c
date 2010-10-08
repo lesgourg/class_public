@@ -2595,7 +2595,7 @@ int trg_init (
   eta_max = log(pba->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 50; /* to calculate fast */
+  pnl->eta_size = 10; /* to calculate fast */
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 

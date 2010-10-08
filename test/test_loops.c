@@ -35,15 +35,15 @@ main(int argc, char **argv) {
   strcpy(fc.name[2],"T_cmb");
   sprintf(fc.value[2],"%e",2.726);
 
-  strcpy(fc.name[2],"H0");
-  sprintf(fc.value[2],"%e",72.);
+  strcpy(fc.name[3],"H0");
+  sprintf(fc.value[3],"%e",72.);
 
-   strcpy(fc.name[2],"omega_b");
-   sprintf(fc.value[2],"%e",0.024);
+  strcpy(fc.name[4],"omega_b");
+  sprintf(fc.value[4],"%e",0.024);
 
   strcpy(fc.name[5],"omega_cdm");
   sprintf(fc.value[5],"%e",0.05);
-
+  
   strcpy(fc.name[6],"z_reio");
   sprintf(fc.value[6],"%e",10.);
 

@@ -837,7 +837,7 @@ int output_one_line_of_pk(
 			  double one_pk
 			  ) {
 
-  fprintf(clfile,"%g %g\n",one_k,one_pk);
+  fprintf(clfile,"%e %e\n",one_k,one_pk);
     
   return _SUCCESS_;
     

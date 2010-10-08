@@ -40,18 +40,18 @@ main(int argc, char **argv) {
 
   /****** here you can output the source functions ******/
 
-  if (pt.has_source_b == _TRUE_) {
+  if (pt.has_source_t == _TRUE_) {
 
     FILE * output;
     int index_k,index_eta;
-    int index_mode=pt.index_md_tensors;
-    int index_type=pt.index_tp_b;
-    int index_ic=pt.index_ic_ten;
+    int index_mode=pt.index_md_scalars;
+    int index_type=pt.index_tp_t;
+    int index_ic=pt.index_ic_ad;
 
-    output=fopen("output/source.dat","w");
+    output=fopen("output/source1.dat","w");
 
     for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
-      for (index_eta=0; index_eta < pt.eta_size; index_eta++) {
+      for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
 
 	fprintf(output,"%e %e %e\n",
 		pt.eta_sampling[index_eta],
