@@ -30,7 +30,7 @@ INCLUDES = ../include
 %.o:  %.c .base
 	cd $(WRKDIR);$(CC) $(CCFLAG) -I$(INCLUDES) -c ../$< -o $*.o
 
-TOOLS = growTable.o dei_rkck.o arrays.o parser.o
+TOOLS = growTable.o dei_rkck.o evolver_rkck.o arrays.o parser.o
 
 INPUT = input.o
 
@@ -41,7 +41,6 @@ BACKGROUND = background.o
 THERMO = thermodynamics.o
 
 PERTURBATIONS = perturbations.o 
-PERTURBATIONS_NEW = perturbations_new.o 
 
 BESSEL = bessel.o
 
@@ -78,9 +77,6 @@ TEST_TRG = test_trg.o
 TEST_KARIM = test_karim.o
 
 class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(CLASS)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-class_new: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS_NEW) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(CLASS)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_optimize_1D: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(TEST_OPTIMIZE_1D)

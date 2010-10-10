@@ -76,11 +76,11 @@ int cleanup_generic_integrator(struct generic_integrator_workspace * pgi){
   return _SUCCESS_;
 }
 
-int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * fixed_parameters, ErrorMsg error_message),
+int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * parameters_and_workspace, ErrorMsg error_message),
 		       double x1, 
 		       double x2,  
 		       double ystart[],  
-		       void * fixed_parameters_for_derivs,
+		       void * parameters_and_workspace_for_derivs,
 		       double eps, 
 		       double hmin, 
 		       struct generic_integrator_workspace * pgi)
@@ -94,7 +94,7 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
   h=dsign(h1,x2-x1);
   for (i=0;i<pgi->n;i++) pgi->y[i]=ystart[i];
   for (nstp=1;nstp<=_MAXSTP_;nstp++) {
-    class_call((*derivs)(x,pgi->y,pgi->dydx,fixed_parameters_for_derivs, pgi->error_message),
+    class_call((*derivs)(x,pgi->y,pgi->dydx,parameters_and_workspace_for_derivs, pgi->error_message),
 	       pgi->error_message,
 	       pgi->error_message);
     for (i=0;i<pgi->n;i++)
@@ -106,7 +106,7 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
 		    &hdid,
 		    &hnext,
 		    derivs,
-		    fixed_parameters_for_derivs,
+		    parameters_and_workspace_for_derivs,
 		    pgi),
 	       pgi->error_message,
 	       pgi->error_message);
@@ -132,8 +132,8 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
 
 int rkqs(double *x, double htry, double eps,
 	 double *hdid, double *hnext,
-	 int (*derivs)(double, double [], double [], void * fixed_parameters, ErrorMsg error_message),
-	 void * fixed_parameters_for_derivs,
+	 int (*derivs)(double, double [], double [], void * parameters_and_workspace, ErrorMsg error_message),
+	 void * parameters_and_workspace_for_derivs,
 	 struct generic_integrator_workspace * pgi)
 {
 
@@ -142,7 +142,7 @@ int rkqs(double *x, double htry, double eps,
 
   h=htry;
   for (;;) {
-    class_call(rkck(*x,h,derivs,fixed_parameters_for_derivs,pgi),
+    class_call(rkck(*x,h,derivs,parameters_and_workspace_for_derivs,pgi),
 	       pgi->error_message,
 	       pgi->error_message);
     errmax=0.0;
@@ -167,8 +167,8 @@ int rkqs(double *x, double htry, double eps,
 int rkck(
 	 double x, 
 	 double h,
-	 int (*derivs)(double, double [], double [], void * fixed_parameters, ErrorMsg error_message),
-	 void * fixed_parameters_for_derivs,
+	 int (*derivs)(double, double [], double [], void * parameters_and_workspace, ErrorMsg error_message),
+	 void * parameters_and_workspace_for_derivs,
 	 struct generic_integrator_workspace * pgi)
 {
   int i;
@@ -179,7 +179,7 @@ int rkck(
   class_call((*derivs)(x+_RKCK_a2_*h,
 		       pgi->ytemp,
 		       pgi->ak2,
-		       fixed_parameters_for_derivs,
+		       parameters_and_workspace_for_derivs,
 		       pgi->error_message),
 	     pgi->error_message,
 	     pgi->error_message);
@@ -190,7 +190,7 @@ int rkck(
   class_call((*derivs)(x+_RKCK_a3_*h,
 		       pgi->ytemp,
 		       pgi->ak3,
-		       fixed_parameters_for_derivs,
+		       parameters_and_workspace_for_derivs,
 		       pgi->error_message),
 	     pgi->error_message,
 	     pgi->error_message);
@@ -201,7 +201,7 @@ int rkck(
   class_call((*derivs)(x+_RKCK_a4_*h,
 		       pgi->ytemp,
 		       pgi->ak4,
-		       fixed_parameters_for_derivs,
+		       parameters_and_workspace_for_derivs,
 		       pgi->error_message),
 	     pgi->error_message,
 	     pgi->error_message);
@@ -211,7 +211,7 @@ int rkck(
 
   class_call((*derivs)(x+_RKCK_a5_*h,
 		       pgi->ytemp,
-		       pgi->ak5,fixed_parameters_for_derivs,
+		       pgi->ak5,parameters_and_workspace_for_derivs,
 		       pgi->error_message),
 	     pgi->error_message,
 	     pgi->error_message);
@@ -222,7 +222,7 @@ int rkck(
   class_call((*derivs)(x+_RKCK_a6_*h,
 		       pgi->ytemp,
 		       pgi->ak6,
-		       fixed_parameters_for_derivs,
+		       parameters_and_workspace_for_derivs,
 		       pgi->error_message),
 	     pgi->error_message,
 	     pgi->error_message);

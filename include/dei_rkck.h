@@ -50,29 +50,29 @@ extern "C" {
   int generic_integrator(int (*derivs)(double x, 
 				       double y[], 
 				       double yprime[], 
-				       void * fixed_parameters,
+				       void * parameters_and_workspace,
 				       ErrorMsg error_message),
 			 double x1, 
 			 double x2,  
 			 double ystart[],  
-			 void * fixed_parameters_for_derivs,
+			 void * parameters_and_workspace_for_derivs,
 			 double eps, 
 			 double hmin, 
 			 struct generic_integrator_workspace * pgi);
-
+  
   int rkqs(double *x, 
 	   double htry, 
 	   double eps,
 	   double *hdid, 
 	   double *hnext,
 	   int (*derivs)(double, double [], double [], void *, ErrorMsg),
-	   void * fixed_parameters_for_derivs,
+	   void * parameters_and_workspace_for_derivs,
 	   struct generic_integrator_workspace * pgi);
 
   int rkck(double x, 
 	   double h,
 	   int (*derivs)(double, double [], double [], void *, ErrorMsg),
-	   void * fixed_parameters_for_derivs,
+	   void * parameters_and_workspace_for_derivs,
 	   struct generic_integrator_workspace * pgi);
 
 #ifdef __cplusplus
