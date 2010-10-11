@@ -463,6 +463,7 @@ struct perturb_parameters_and_workspace {
     int perturb_source_terms(
 			     double eta,
 			     double * pvecperturbations,
+			     double * pvecderivs,
 			     int index_eta,
 			     void * parameters_and_workspace,
 			     ErrorMsg error_message

@@ -22,6 +22,7 @@ int generic_evolver(int (*derivs)(double x,
 		    int x_size,
 		    int (*output)(double x,
 				  double y[], 
+				  double dy[],
 				  int index_x,
 				  void * parameters_and_workspace,
 				  ErrorMsg error_message),
@@ -31,7 +32,8 @@ int generic_evolver(int (*derivs)(double x,
   double x1,x2,timestep;
   int approximation_is_changing;
   struct generic_integrator_workspace gi;
-  
+  double * dy;
+
   x1=*x;
 
   class_test(x1 > x_sampling[x_size-1],
@@ -45,6 +47,8 @@ int generic_evolver(int (*derivs)(double x,
 	     gi.error_message,
 	     error_message);
   
+  class_alloc(dy,y_size*sizeof(double),error_message);
+
   timestep = timestep_over_timescale * timescale;
       
   class_test(timestep < minimum_variation,
@@ -90,7 +94,9 @@ int generic_evolver(int (*derivs)(double x,
 	class_call(cleanup_generic_integrator(&gi),
 		   gi.error_message,
 		   error_message);
-		      
+		  
+	free(dy);
+    
 	*x = x1;
 
 	return _SUCCESS_;
@@ -101,8 +107,17 @@ int generic_evolver(int (*derivs)(double x,
       
     }
     
+    class_call((*derivs)(x1,
+			 y,
+			 dy,
+			 parameters_and_workspace_for_derivs,
+			 error_message),
+	       error_message,
+	       error_message);
+    
     class_call((*output)(x1,
-			 y, 
+			 y,
+			 dy,
 			 next_index_x,
 			 parameters_and_workspace_for_derivs,
 			 error_message),
@@ -117,6 +132,8 @@ int generic_evolver(int (*derivs)(double x,
 	     gi.error_message,
 	     error_message);
   
+  free(dy);
+
   *x = x1;
 
   return _SUCCESS_;

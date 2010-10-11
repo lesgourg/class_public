@@ -2653,6 +2653,7 @@ int perturb_einstein(
 int perturb_source_terms(
 			 double eta,
 			 double * pvecperturbations,
+			 double * pvecderivs,
 			 int index_eta,
 			 void * parameters_and_workspace,
 			 ErrorMsg error_message
@@ -2678,7 +2679,6 @@ int perturb_source_terms(
   double * pvecback;
   double * pvecthermo;
   double * pvecmetric;
-  double * pvecderivs;
   double ** source_term_table;
 
   double delta_g;
@@ -2697,7 +2697,6 @@ int perturb_source_terms(
   pvecback = ppw->pvecback;
   pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
-  pvecderivs = ppw->pv->dy;
   source_term_table = ppw->source_term_table;
   pa = ppw->pa;
 
@@ -2727,14 +2726,6 @@ int perturb_source_terms(
 				 pvecthermo),
 	     pth->error_message,
 	     error_message);
-
-  class_call(perturb_derivs(eta,
-			    pvecperturbations,
-			    pvecderivs,
-			    parameters_and_workspace,
-			    ppt->error_message),
-	     ppt->error_message,
-	     ppt->error_message);
 
   /* scalars */
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
