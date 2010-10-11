@@ -292,6 +292,7 @@ struct perturb_workspace
 
   //@{
 
+  enum interpolation_mode intermode;
   int last_index_back;   /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
   int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
 
@@ -441,16 +442,11 @@ struct perturb_parameters_and_workspace {
 				   );
 
     int perturb_timescale_and_approximations(
-					     struct precision * ppr,
-					     struct background * pba,
-					     struct thermo * pth,
-					     struct perturbs * ppt,
-					     int index_mode,
-					     double k,
 					     double eta,
-					     enum interpolation_mode intermode,
-					     struct perturb_workspace * ppw,
-					     double * timescale
+					     void * parameters_and_workspace,
+					     double * timescale,
+					     int * num_changing_approximations,
+					     ErrorMsg error_message
 					     );
 
     int perturb_einstein(
@@ -466,7 +462,10 @@ struct perturb_parameters_and_workspace {
 
     int perturb_source_terms(
 			     double eta,
-			     struct perturb_parameters_and_workspace * pppaw
+			     double * pvecperturbations,
+			     int index_eta,
+			     void * parameters_and_workspace,
+			     ErrorMsg error_message
 			     );
 
     int perturb_sources(
