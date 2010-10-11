@@ -197,7 +197,8 @@ extern "C" {
 			      );
 
   int trg_logstep_k( 
-		    struct spectra_nl pnl);
+		    struct background *pba,
+		    struct spectra_nl * pnl);
 
 
   int trg_init(

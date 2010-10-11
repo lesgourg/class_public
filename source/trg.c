@@ -1874,7 +1874,7 @@ int trg_A_arg(
 					    m,
 					    index_eta,
 					    index_k,
-					    *result,
+					    result,
 					    errmsg),
 			 errmsg,
 			 pnl->error_message);
@@ -1886,7 +1886,7 @@ int trg_A_arg(
 				       m,
 				       index_eta,
 				       index_k,
-				       *result,
+				       result,
 				       errmsg),
 			 errmsg,
 			 pnl->error_message);
@@ -2384,8 +2384,11 @@ int trg_integrate_xy_at_eta(
  *
  *********************************/
 
-int trg_logstep_k( 
-		  struct spectra_nl pnl){
+int trg_logstep_k(
+		  struct background * pba,
+		  struct spectra_nl * pnl
+		  ){
+
   
   int index_k;
   double *temp_k;
@@ -2420,7 +2423,7 @@ int trg_logstep_k(
 
     class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n");
 
-    logstep_k = step_k_start - step_k_jump1*tanh(300*(k-0.01));
+    logstepk = step_k_start - step_k_jump1*tanh(300*(temp_k[index_k]-0.01));
     index_k++;
     temp_k[index_k]=temp_k[index_k-1]*logstepk;
   }
@@ -2431,7 +2434,7 @@ int trg_logstep_k(
 
     class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n");
 
-    logstep_k = step_k_end + step_k_jump2*tanh(0.08*(k-50));
+    logstepk = step_k_end + step_k_jump2*tanh(0.08*(temp_k[index_k]-50));
     index_k++;
     temp_k[index_k]=temp_k[index_k-1]*logstepk;
   }
@@ -2551,7 +2554,7 @@ int trg_init (
   eta_max = log(pba->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 10; /* to calculate fast */
+  pnl->eta_size = 100; /* to calculate fast */
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
   eta_step = pnl->eta_step;
 
@@ -2568,7 +2571,9 @@ int trg_init (
   pnl->k_min=1.e-4;      /**< PRECISION PARAMETER */
 
   
-  class_call(trg_logstep_k(pnl))
+  class_call(trg_logstep_k(pba,pnl),
+	     pnl->error_message,
+	     pnl->error_message);
  
   /* fill array of eta values, and pick two values z_1 and z_2
      resp. near 2.33 and 1.00 (for output) */
