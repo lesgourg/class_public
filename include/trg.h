@@ -7,6 +7,8 @@ struct spectra_nl {
 
   double * k;
   double k_max;
+  double k_min;
+  double k_L;
   int k_size; /**< total number of k values */
   int index_k_L;  /**< for index_k=0, ...,(index_k_L-1), use linear theory only */
   int index_k_M; /**< for index_k>index_k_M we use an extrapolation to avoid numerical horros */
@@ -139,7 +141,7 @@ extern "C" {
    *
    ********************/
 
-  int trg_A_arg(
+  int trg_A_arg_trg(
 		struct spectra_nl *pnl,
 		enum name_A name, 
 		double k, 
@@ -161,7 +163,21 @@ extern "C" {
 			 double * result, 
 			 char * errmsg);
 
+  /********************
+   * Choice between one loop or trg during integration
+   * in order to avoid repetitions
+   ********************/
 
+  int trg_A_arg(
+		struct spectra_nl *pnl,
+		enum name_A name,
+		double k, 
+		double p, 
+		double m, 
+		int index_eta,
+		int index_k,
+		double * result, 
+		char * errmsg);
 
   /**************
    * Function that performs the integration with a simple trapeze
@@ -179,6 +195,9 @@ extern "C" {
 			      double * result,
 			      char * errmsg
 			      );
+
+  int trg_logstep_k( 
+		    struct spectra_nl pnl);
 
 
   int trg_init(
