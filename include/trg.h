@@ -36,6 +36,8 @@ struct spectra_nl {
   double * ddp_12;
   double * ddp_22;
 
+  int double_escape;
+
   short spectra_nl_verbose;  /**< from 0 to 1: amount of information written in standard output */
   short mode; /**< from 0 to 2: 0 being linear theory, 1 for one loop and 2 for full trg calculation*/
 
