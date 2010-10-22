@@ -299,33 +299,6 @@ extern "C" {
 								   ErrorMsg errmsg
 								   );
 
-  int array_interpolate_extrapolate_logspline_one_column(
-					  double * x_array,
-					  int x_size,
-					  int x_stop,
-					  double * y_array, /* array of size x_size*y_size with elements 
-							       y_array[index_y*x_size+index_x] */
-					  int y_size,    
-					  int index_y,   
-					  double * ddlogy_array, /* array of size x_size*y_size */
-					  double x,   /* input */
-					  double * y, /* output */
-					  ErrorMsg errmsg
-					  );
-
-  /** interpolate to get y(x), when x_i and y_i are in two different arrays*/
-  int array_interpolate_two(
-			    double * array_x,
-			    int n_columns_x,
-			    int index_x,   /** from 0 to (n_columns_x-1) */
-			    double * array_y,
-			    int n_columns_y,
-			    int n_lines,  /** must be the same for array_x and array_y */
-			    double x,
-			    double * result,
-			    int result_size, /** from 1 to n_columns_y */
-			    ErrorMsg errmsg);
-
   int array_interpolate_two_arrays_one_column(
 					      double * array_x, /* assumed to be a vector (i.e. one column array) */
 					      double * array_y,
