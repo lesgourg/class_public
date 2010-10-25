@@ -160,7 +160,6 @@ extern "C" {
 			 double k, 
 			 double p, 
 			 double m, 
-			 int index_eta,
 			 int index_k, /**< used only for testing, could be supressed */
 			 double * result, 
 			 char * errmsg);

@@ -30,11 +30,11 @@
 
 int trg_gamma_121(
 		  double  k, 
-		  double  q, 
 		  double  p, 
+		  double  q, 
 		  double  *result
 		  ){
-  *result =  (1./ (4*q*q)) * (- p*p + k*k + q*q);
+  *result =  (1./ (4*p*p)) * (- q*q + k*k + p*p);
   return _SUCCESS_;
 }
 
@@ -991,7 +991,6 @@ int trg_A_arg_one_loop(
 		       double k, 
 		       double p, 
 		       double m, 
-		       int index_eta,
 		       int index_k, /**< used only for testing, could be supressed */
 		       double * result, 
 		       char * errmsg){
@@ -2017,7 +2016,7 @@ int trg_integrate_xy_at_eta(
 
 	if (x <= sqrt(2.)*k_max) {
 	  if(pnl->mode==1){
-	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x],errmsg),
+	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&h_do[index_x],errmsg),
 		       errmsg,
 		       pnl->error_message);
 	  }
@@ -2041,7 +2040,7 @@ int trg_integrate_xy_at_eta(
 	y=yy[index_y];
 	
 	if(pnl->mode==1){
-	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_y],errmsg),
+	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&v_ri[index_y],errmsg),
 		     errmsg,
 		     pnl->error_message);
 	}
@@ -2080,7 +2079,7 @@ int trg_integrate_xy_at_eta(
 	x=xx[il+1];
 	y=yy[il+1];
 	if(pnl->mode==1){
-	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[il+1],errmsg),
+	  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&h_do[il+1],errmsg),
 		     errmsg,
 		     pnl->error_message);
 	}
@@ -2111,7 +2110,7 @@ int trg_integrate_xy_at_eta(
 	    
 	    if (x <= sqrt(2)*k_max) {
 	      if(pnl->mode==1){
-		class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_up[index_x+1],errmsg),
+		class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&h_up[index_x+1],errmsg),
 			   errmsg,
 			   pnl->error_message);
 	      }
@@ -2134,7 +2133,7 @@ int trg_integrate_xy_at_eta(
 
 	  if (x <= sqrt(2)*k_max) {
 	    if(pnl->mode==1){
-	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x+1],errmsg),
+	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&h_do[index_x+1],errmsg),
 			 errmsg,
 			 pnl->error_message);
 	    }
@@ -2156,7 +2155,7 @@ int trg_integrate_xy_at_eta(
 	    y=yy[index_x+1];
 
 	    if(pnl->mode==1){
-	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_le[index_x+1],errmsg),
+	      class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&v_le[index_x+1],errmsg),
 			 errmsg,
 			 pnl->error_message);
 	    }
@@ -2174,7 +2173,7 @@ int trg_integrate_xy_at_eta(
 	  y=yy[index_x+1];
 
 	  if(pnl->mode==1){
-	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&v_ri[index_x+1],errmsg),
+	    class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&v_ri[index_x+1],errmsg),
 		       errmsg,
 		       pnl->error_message);
 	  }
@@ -2212,7 +2211,7 @@ int trg_integrate_xy_at_eta(
 	      
 	      if (x <= sqrt(2)*k_max) {
 		if(pnl->mode==1){
-		  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_up[index_x+1],errmsg),
+		  class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&h_up[index_x+1],errmsg),
 			     errmsg,
 			     pnl->error_message);
 		}
@@ -2235,7 +2234,7 @@ int trg_integrate_xy_at_eta(
 
 	    if (x <= sqrt(2)*k_max) {
 	      if(pnl->mode==1){
-		class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_eta,index_k,&h_do[index_x+1],errmsg),
+		class_call(trg_A_arg_one_loop(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),index_k,&h_do[index_x+1],errmsg),
 			   errmsg,
 			   pnl->error_message);
 	      }
@@ -2404,9 +2403,9 @@ int trg_init (
   double tstart, tstop;
 #endif
 
-  pnl->double_escape=2;
+  pnl->double_escape=0;
   pnl->spectra_nl_verbose=1;
-  pnl->mode=2; /* 0 is linear evolution, 1 one loop and 2 full trg */
+  pnl->mode=1; /* 0 is linear evolution, 1 one loop and 2 full trg */
 
   if (pnl->spectra_nl_verbose > 0){
     if(pnl->mode==0)
@@ -3246,7 +3245,7 @@ int trg_init (
     class_test(isnan(pnl->pk_nl[50+pnl->k_size*index_eta])!=0,pnl->error_message,"Code returns nan!\n");
   
     if(index_eta%1==0){
-      sprintf(filename,"output/test_%d.dat",index_eta);
+      sprintf(filename,"output/test_one_loop2_%d.dat",index_eta);
       class_open(nl_spectra,filename,"wr",pnl->error_message);
       fprintf(nl_spectra,"##at z =%e\n",pnl->z[index_eta]);
       for(index_k=0; index_k<pnl->k_size-2*2*index_eta; index_k++){ 
