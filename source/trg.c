@@ -94,7 +94,7 @@ int trg_p11_at_k(
    is done by the following two commands */
 
 /********************
- * Fill the second derivative table of p_ab up to the index_eta
+* Fill the second derivative table of p_ab up to the index_eta
  * subscript
  ********************/
 
@@ -128,7 +128,6 @@ int trg_p_ab_at_any_k(
 		      double *p_ab, /*filled until [any_index_k+k_size*index_eta]*/
 		      double *ddp_ab,/*filled until the same index*/
 		      int index_eta,
-		      int index_eta_2,
 		      double any_k,
 		      double *result, /* will get a value of p_ab at any k different from k[index_k]*/
 		      char *errmsg
@@ -139,7 +138,7 @@ int trg_p_ab_at_any_k(
 									  pnl->k_size-pnl->double_escape*2*index_eta,
 									  p_ab,
 									  pnl->eta_size,
-									  index_eta_2,
+									  index_eta,
 									  ddp_ab,
 									  any_k,
 									  result,
@@ -203,13 +202,13 @@ int trg_A_arg_trg(
 
   switch(name){
   case _A0_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
       
@@ -249,23 +248,23 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A11_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -301,24 +300,24 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A12_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -359,24 +358,24 @@ int trg_A_arg_trg(
   case _A13_:
 
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -417,26 +416,26 @@ int trg_A_arg_trg(
   case _A21_:
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -471,32 +470,32 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A22_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
       
@@ -532,32 +531,32 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A23_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
       
@@ -594,24 +593,24 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A3_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -638,24 +637,24 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _B0_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -688,28 +687,28 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _B11_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -744,32 +743,32 @@ int trg_A_arg_trg(
   case _B12_:
 
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -811,24 +810,24 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _B21_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -870,24 +869,24 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _B22_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12_nl,pnl->ddp_12_nl,index_eta,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -930,13 +929,13 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _B3_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22_nl,pnl->ddp_22_nl,index_eta,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1020,13 +1019,13 @@ int trg_A_arg_one_loop(
 
   switch(name){
   case _A0_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
       
@@ -1066,23 +1065,23 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _A11_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -1118,23 +1117,23 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _A12_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1175,24 +1174,24 @@ int trg_A_arg_one_loop(
   case _A13_:
 
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1233,26 +1232,26 @@ int trg_A_arg_one_loop(
   case _A21_:
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -1287,32 +1286,32 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _A22_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
       
@@ -1348,32 +1347,32 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _A23_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
       
@@ -1409,24 +1408,24 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _A3_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -1452,24 +1451,24 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _B0_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
@@ -1502,28 +1501,28 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _B11_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1558,32 +1557,32 @@ int trg_A_arg_one_loop(
   case _B12_:
 
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,k,&p_11k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,k,&p_11k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,p,&p_11p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,index_eta,m,&p_11m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,m,&p_11m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1624,24 +1623,24 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _B21_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1683,24 +1682,24 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _B22_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,k,&p_12k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,p,&p_12p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,index_eta,m,&p_12m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,m,&p_12m,errmsg),
 	       errmsg,
 	       pnl->error_message);
 
     
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1743,13 +1742,13 @@ int trg_A_arg_one_loop(
     /****************************************/
 
   case _B3_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,k,&p_22k,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,p,&p_22p,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p,errmsg),
 	       errmsg,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,index_eta,m,&p_22m,errmsg),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,m,&p_22m,errmsg),
 	       errmsg,
 	       pnl->error_message);
     
@@ -1845,31 +1844,32 @@ int trg_integrate_xy_at_eta(
   double sum,area,max;
   double increment_sum,increment_area;
 
-  /* The following approximation consists in taking into account the
-     fact that for small k's, the influence of non linearity is
-     small. Hence, one could take the linear evolution for P's for
-     sufficiently small k's. Here, arbitrarily, one takes values of
-     index_k before 10 to follow linear regime, i.e. putting to zero
-     their A's. 
+/*
+ *  The following approximation consists in taking into account the
+ *  fact that for small k's, the influence of non linearity is
+ *  small. Hence, one could take the linear evolution for P's for
+ *  sufficiently small k's. Here, arbitrarily, one takes values of
+ *  index_k before 10 to follow linear regime, i.e. putting to zero
+ *  their A's. 
+ *
+ *  This approximation is here to calculate more precisely the first
+ *  k points on x-y domains. The other solution (cleaner, but more
+ *  time consuming) would consist in modifying the lower bound in the
+ *  table_array routines by chosing an arbitrarily small cut-off for
+ *  P's (well under the k_min).
+ */
 
-     This approximation is here to calculate more precisely the first
-     k points on x-y domains. The other solution (cleaner, but more
-     time consuming) would consist in modifying the lower bound in the
-     table_array routines by chosing an arbitrarily small cut-off for
-     P's (well under the k_min).
-
-  */	     
 
   k_min=pnl->k[0];
   k_max=3000.;
 
-  for(index_k=0; index_k<pnl->k_size-2*(2*index_eta+1); index_k++){
+  for(index_k=0; index_k<pnl->k_size-pnl->double_escape*(2*index_eta+1); index_k++){
 
     k=pnl->k[index_k];
 
     logstepx=min(1.1,1+0.01/pow(k,1));
     
-    if(logstepx<1.008) logstepx=1.008; /*much more precise with 1.0035*/
+    if(logstepx< (1.04) )  logstepx= 1.04; /*(1+0.02-0.018*(pow(index_eta/100,0.2))) ; good with 1.008*/
 
     logstepy=logstepx;
 
@@ -1882,6 +1882,9 @@ int trg_integrate_xy_at_eta(
 
     else{
 
+      /*
+       *Definition of the domain of integration over x
+       */
 
       x_size = (int)(log(2.*k_max/k)/log(logstepx)) + 2;
 
@@ -1907,7 +1910,9 @@ int trg_integrate_xy_at_eta(
 
       x_size = index_x; /* just to be sure of it */
 
-
+      /*
+       *Definition of the domain of integration over y
+       */
 
       y_size = (int)(log(2.)/log(logstepy)) + 2;
 
@@ -1934,11 +1939,11 @@ int trg_integrate_xy_at_eta(
 	
       } while (yy[index_y-1] > 0.);
 
-      if (y_size != index_y) printf("y: %d %d\n", y_size,index_y);
+      y_size = index_y; /* just to be sure of it */
 
-      y_size = index_y;
-
-      /* compute first h and v lines */
+      /*
+       *compute first h and v lines
+       */
 
       h_do[0]=0.;
       v_ri[0]=h_do[0];
@@ -2243,9 +2248,9 @@ int trg_logstep1_k (
 		   double k,
 		   double * logstep) {
 
-/*   *logstep = 1.11 - 0.09*tanh(300*(k-0.01)); */
-  *logstep = 1.02;
-/*   *logstep = 1.10 - 0.09*tanh(300*(k-0.01)); */
+  *logstep = 1.11 - 0.09*tanh(300*(k-0.01)); 
+/*  *logstep = 1.02; */
+/*  *logstep = 1.10 - 0.09*tanh(300*(k-0.01)); */ 
 }
 
 int trg_logstep2_k (
@@ -2284,6 +2289,13 @@ int trg_init (
     Variables of calculation, k and eta, and initialization
   */
 
+  double k_max;
+  double k_L;
+  double k_min;
+  double logstepk;
+
+  int temp_index_k;
+
   double *pk_linear11;
   double *pk_linear12;
   double *pk_linear22;
@@ -2292,10 +2304,6 @@ int trg_init (
   double z_ini;
   double eta_max;
   double * Omega_m, *Omega_r,* H, *H_prime;
-
-  double eta_step; /* step for integrations */
-
-  double slope1,slope2,slope3;
 
   double exp_eta;
   double fourpi_over_k;
@@ -2331,20 +2339,20 @@ int trg_init (
   double tstart, tstop;
 #endif
 
-  pnl->double_escape=0;
-  pnl->spectra_nl_verbose=1;
-  pnl->mode=1; /* 0 is linear evolution, 1 one loop and 2 full trg */
+  pnl->double_escape=2; /**< TO ADD IN .INI FILE ASAP !!!! */
+  pnl->spectra_nl_verbose=1; /**< SAME FOR THIS ONE AND THE NEXT */
+  pnl->mode=2; /* 0 is linear evolution, 1 one loop and 2 full trg */
 
   if (pnl->spectra_nl_verbose > 0){
     if(pnl->mode==0)
       printf("Testing trg.c module with linear spectra computation\n");
     if(pnl->mode==1)
-      printf("Computing non-linear spectra with one loop method\n");
+      printf("Computing non-linear spectra with one-loop method\n");
     if(pnl->mode==2)
       printf("Computing non-linear spectra with TRG method\n");
   }
 
-  class_alloc(pvecback_nl,pba->bg_size*sizeof(double),pnl->error_message);
+  class_calloc(pvecback_nl,pba->bg_size,sizeof(double),pnl->error_message);
 
   /* define initial eta and redshift */
   a_ini = 1./36.;   /* gives a starting redshift of 35 as in Pietroni's article */
@@ -2354,9 +2362,8 @@ int trg_init (
   eta_max = log(pba->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 100; /* to calculate fast */
+  pnl->eta_size = 100; 
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
-  eta_step = pnl->eta_step;
 
   /* at any time, a = a_ini * exp(eta) and z=exp(eta)-1*/
   
@@ -2364,24 +2371,9 @@ int trg_init (
 
   /* first define the total length, to reach the k_max bound
      for the integrator */
-  double k_max;
-  double k_L;
-  double k_min;
-  /*   double k_2; */
-  double logstepk;
-
-  int temp_index_k;
-
- /*  k_max=ppt->k_scalar_kmax_for_pk*pba->h; */    /**< PRECISION PARAMETER *\/ /\* not above k_scalar_max*h in test_trg *\/ */
-  k_max=pnl->k_max;
+  k_max=pnl->k_max; /**< SET IN TEST_TRG.C */
   k_L=1.e-3;        /**< PRECISION PARAMETER */
   k_min=1.e-4;      /**< PRECISION PARAMETER */
-
-  logstepk=1.01;    /**< PRECISION PARAMETER */ /* with 1.01 we map
-						  finely the
-						  oscillations,
-						  though very much
-						  time consuming */
 
   /* find total number of k values in the module */
   index_k=0;
@@ -2396,7 +2388,7 @@ int trg_init (
     index_k++;
     temp_k[index_k]=temp_k[index_k-1]*logstepk;
   }
-  temp_k[index_k]=temp_k[index_k-1]*1.02;
+  temp_k[index_k]=temp_k[index_k-1]*logstepk;
 /*   temp_k[index_k]=temp_k[index_k-1]*1.01; */
   temp_index_k=index_k;
 
@@ -2408,30 +2400,6 @@ int trg_init (
     index_k++;
     temp_k[index_k]=temp_k[index_k-1]*logstepk;
   }
-
-  /* while(temp_k[index_k]<0.01){ */
-  /*     class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n"); */
-/*     index_k++; */
-/*     temp_k[index_k]=k_min*pow(1.2,index_k); */
-/*   } */
-/*   temp=index_k; */
-/*   temp_k[index_k]=0.01; */
-/*   while(temp_k[index_k]<100){ */
-/*     class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n"); */
-/*     index_k++; */
-/*     temp_k[index_k]=0.01*pow(1.02,(index_k-temp)); */
-/*   } */
-/*   temp=index_k; */
-/*   temp_k[index_k]=100; */
-/*   while(temp_k[index_k]<k_max){ */
-/*     class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n"); */
-/*     index_k++; */
-/*     temp_k[index_k]=100*pow(1.12,(index_k-temp)); */
-/*   } */
-
-/*   temp_k[index_k]=k_max; */
-
-  /* pnl->k_size=index_k+1; */
 
   pnl->k_size=index_k;
 
@@ -2446,10 +2414,6 @@ int trg_init (
     pnl->k[index_k]=temp_k[index_k];
     if( (pnl->k[index_k] > k_L*pba->h) && temp==0){
       pnl->index_k_L=index_k;
-      temp++;
-    }
-    if( (pnl->k[index_k] > 150*pba->h) && temp==1){
-      pnl->index_k_M=index_k;
       temp++;
     }
   }
@@ -2474,7 +2438,7 @@ int trg_init (
   temp_z=0;
 
   for (index_eta=0; index_eta<pnl->eta_size; index_eta++) {
-    pnl->eta[index_eta] = index_eta*eta_step;
+    pnl->eta[index_eta] = index_eta*pnl->eta_step;
     pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1;
     if(pnl->z[index_eta]<z_1 && temp_z==0){
       index_eta_1=index_eta;
@@ -2761,7 +2725,7 @@ int trg_init (
   for (index_eta=1; index_eta<pnl->eta_size; index_eta++){
     exp_eta=exp(pnl->eta[index_eta-1]);
 
-    for (index_k=0; index_k<pnl->k_size-2*2*index_eta; index_k++){
+    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*index_eta; index_k++){
 
       /**********
        * Computation for every k of the function at the next time step
@@ -2773,19 +2737,19 @@ int trg_init (
 
      
 
-      pnl->pk_nl[index_plus]= eta_step *(
+      pnl->pk_nl[index_plus]= pnl->eta_step *(
 					 -2*Omega_11*pnl->pk_nl[index]
 					 -2*Omega_12*pnl->p_12_nl[index]
 					 +exp_eta*4*fourpi_over_k*a22[index] )
 	+ pnl->pk_nl[index];
 
-      pnl->p_22_nl[index_plus] = eta_step *(
+      pnl->p_22_nl[index_plus] = pnl->eta_step *(
 					    -2*Omega_22[index_eta-1]*pnl->p_22_nl[index]
 					    -2*Omega_21[index_eta-1]*pnl->p_12_nl[index]
 					    +exp_eta*2*fourpi_over_k*b3[index] )
 	+ pnl->p_22_nl[index];
 
-      pnl->p_12_nl[index_plus] = eta_step *(
+      pnl->p_12_nl[index_plus] = pnl->eta_step *(
 					    -pnl->p_12_nl[index]*(Omega_11+Omega_22[index_eta-1])
 					    -Omega_12*pnl->p_22_nl[index]
 					    -Omega_21[index_eta-1]*pnl->pk_nl[index]
@@ -2793,95 +2757,95 @@ int trg_init (
 	+ pnl->p_12_nl[index];
 
 
-      a0[index_plus]         = eta_step *(
+      a0[index_plus]         = pnl->eta_step *(
 					  -Omega_21[index_eta-1]*(a11[index]+a12[index]+a13[index])
 					  -3*Omega_22[index_eta-1]*a0[index]
 					  +2*exp_eta*AA[_A0_][index])
 	+ a0[index];
 
-      a11[index_plus]        = eta_step *(
+      a11[index_plus]        = pnl->eta_step *(
 					  -a11[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index_eta-1]*(a22[index]+a23[index])
 					  +2*exp_eta*AA[_A11_][index])
 	+ a11[index];
 
-      a12[index_plus]        = eta_step *(
+      a12[index_plus]        = pnl->eta_step *(
 					  -a12[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_21[index_eta-1]*(a23[index]+a21[index])
 					  -Omega_12*a0[index]
 					  +2*exp_eta*AA[_A12_][index])
 	+ a12[index];
 
-      a13[index_plus]        = eta_step *(
+      a13[index_plus]        = pnl->eta_step *(
 					  -a13[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index_eta-1]*(a22[index]+a21[index])
 					  +2*exp_eta*AA[_A13_][index])
 	+ a13[index];
 
-      a21[index_plus]        = eta_step *(
+      a21[index_plus]        = pnl->eta_step *(
 					  -a21[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(a12[index]+a13[index])
 					  -Omega_21[index_eta-1]*a3[index]
 					  +2*exp_eta*AA[_A21_][index])
 	+ a21[index];
 
-      a22[index_plus]        = eta_step *(
+      a22[index_plus]        = pnl->eta_step *(
 					  -a22[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(a13[index]+a11[index])
 					  -Omega_21[index_eta-1]*a3[index]
 					  +2*exp_eta*AA[_A22_][index])
 	+ a22[index];
 
-      a23[index_plus]        = eta_step *(
+      a23[index_plus]        = pnl->eta_step *(
 					  -a23[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(a12[index]+a11[index])
 					  -Omega_21[index_eta-1]*a3[index]
 					  +2*exp_eta*AA[_A23_][index])
 	+ a23[index];
 
-      a3[index_plus]         = eta_step *(
+      a3[index_plus]         = pnl->eta_step *(
 					  -a3[index]*3*Omega_11
 					  -Omega_12*(a22[index]+a21[index]+a23[index])
 					  +2*exp_eta*AA[_A3_][index])
 	+ a3[index];
 
-      b0[index_plus]         = eta_step *(
+      b0[index_plus]         = pnl->eta_step *(
 					  -3*b0[index]*Omega_11
 					  -Omega_12*(b11[index]+2*b12[index])
 					  +2*exp_eta*AA[_B0_][index])
 	+ b0[index];
 
-      b11[index_plus]        = eta_step *(
+      b11[index_plus]        = pnl->eta_step *(
 					  -b11[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -2*Omega_12*b22[index]
 					  -Omega_21[index_eta-1]*b0[index]
 					  +2*exp_eta*AA[_B11_][index])
 	+ b11[index];
 
-      b12[index_plus]        = eta_step *(
+      b12[index_plus]        = pnl->eta_step *(
 					  -b12[index]*(2*Omega_11+Omega_22[index_eta-1])
 					  -Omega_12*(b22[index]+b21[index])
 					  -Omega_21[index_eta-1]*b0[index]
 					  +2*exp_eta*AA[_B12_][index])
 	+ b12[index];
 
-      b21[index_plus]        = eta_step *(
+      b21[index_plus]        = pnl->eta_step *(
 					  -b21[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -2*Omega_21[index_eta-1]*b12[index]
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B21_][index])
 	+ b21[index];
 
-      b22[index_plus]        = eta_step *(
+      b22[index_plus]        = pnl->eta_step *(
 					  -b22[index]*(2*Omega_22[index_eta-1]+Omega_11)
 					  -Omega_21[index_eta-1]*(b12[index]+b11[index])
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B22_][index])
 	+ b22[index];
 
-      b3[index_plus]         = eta_step *(
+      b3[index_plus]         = pnl->eta_step *(
 					  -3*Omega_22[index_eta-1]*b3[index]
 					  -Omega_21[index_eta-1]*(b21[index]+2*b22[index])
 					  +2*exp_eta*AA[_B3_][index])
@@ -2890,19 +2854,19 @@ int trg_init (
       /*********************
        * Linear part
        *********************/
-      pk_linear11[index_plus]= eta_step *(
+      pk_linear11[index_plus]= pnl->eta_step *(
 					  -2*Omega_11*pk_linear11[index]
 					  -2*Omega_12*pk_linear12[index]
 					  )
 	+ pk_linear11[index];
 
-      pk_linear22[index_plus] = eta_step *(
+      pk_linear22[index_plus] = pnl->eta_step *(
 					   -2*Omega_22[index_eta-1]*pk_linear22[index]
 					   -2*Omega_21[index_eta-1]*pk_linear12[index]
 					   )
 	+ pk_linear22[index];
 
-      pk_linear12[index_plus] = eta_step *(
+      pk_linear12[index_plus] = pnl->eta_step *(
 					   -pk_linear12[index]*(Omega_11+Omega_22[index_eta-1])
 					   -Omega_12*pk_linear22[index]
 					   -Omega_21[index_eta-1]*pk_linear11[index]
@@ -2911,48 +2875,9 @@ int trg_init (
     }
 
     /**********
-     * smoothing of spectra
-     **********/
-
-   /*  class_call(array_smooth_trg(pnl->pk_nl,pnl->k_size-3*(index_eta-1),pnl->k_size-200,pnl->eta_size,index_eta,3,pnl->error_message), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-/*     class_call(array_smooth_trg(pnl->pk_nl,pnl->k_size-3*(index_eta-1),pnl->k_size-200,pnl->eta_size,index_eta,3,pnl->error_message), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-
-/*     class_call(array_smooth_trg(pnl->p_12_nl,pnl->k_size-3*(index_eta-1),pnl->k_size-200,pnl->eta_size,index_eta,3,pnl->error_message), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-/*     class_call(array_smooth_trg(pnl->p_12_nl,pnl->k_size-3*(index_eta-1),pnl->k_size-200,pnl->eta_size,index_eta,3,pnl->error_message), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-
-/*     class_call(array_smooth_trg(pnl->p_22_nl,pnl->k_size-3*(index_eta-1),pnl->k_size-200,pnl->eta_size,index_eta,3,pnl->error_message), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-/*     class_call(array_smooth_trg(pnl->p_22_nl,pnl->k_size-3*(index_eta-1),pnl->k_size-200,pnl->eta_size,index_eta,3,pnl->error_message), */
-/* 	       pnl->error_message, */
-/* 	       pnl->error_message); */
-    
-
-    /**********
-     * Correction of the tails
-   
-/*     slope1=(log(pnl->pk_nl[pnl->index_k_M-1+pnl->k_size*index_eta])-log(pnl->pk_nl[pnl->index_k_M-2+pnl->k_size*index_eta]))/(log(pnl->k[pnl->index_k_M-1])-log(pnl->k[pnl->index_k_M-2])); */
-/*     slope2=(log(pnl->p_12_nl[pnl->index_k_M-1+pnl->k_size*index_eta])-log(pnl->p_12_nl[pnl->index_k_M-2+pnl->k_size*index_eta]))/(log(pnl->k[pnl->index_k_M-1])-log(pnl->k[pnl->index_k_M-2])); */
-/*     slope3=(log(pnl->p_22_nl[pnl->index_k_M-1+pnl->k_size*index_eta])-log(pnl->p_22_nl[pnl->index_k_M-2+pnl->k_size*index_eta]))/(log(pnl->k[pnl->index_k_M-1])-log(pnl->k[pnl->index_k_M-2])); */
-
-/*     for(index_k=pnl->index_k_M; index_k<pnl->k_size; index_k++){ */
-/*       pnl->pk_nl[index_k+pnl->k_size*index_eta]   = exp(slope1 *(log(pnl->k[index_k])-log(pnl->k[pnl->index_k_M-1])) + log(pnl->pk_nl[pnl->index_k_M-1+pnl->k_size*index_eta])); */
-/*       pnl->p_12_nl[index_k+pnl->k_size*index_eta] = exp(slope2 *(log(pnl->k[index_k])-log(pnl->k[pnl->index_k_M-1])) + log(pnl->p_12_nl[pnl->index_k_M-1+pnl->k_size*index_eta])); */
-/*       pnl->p_12_nl[index_k+pnl->k_size*index_eta] = exp(slope3 *(log(pnl->k[index_k])-log(pnl->k[pnl->index_k_M-1])) + log(pnl->p_22_nl[pnl->index_k_M-1+pnl->k_size*index_eta])); */
-	
-/*     } */
-
-    /**********
      * Update of second derivatives for interpolation
      **********/
+
     if(pnl->mode==2){
       class_call(trg_ddp_ab(pnl,pnl->pk_nl,index_eta,pnl->ddpk_nl,pnl->error_message),
 		 pnl->error_message,
@@ -2966,53 +2891,21 @@ int trg_init (
 		 pnl->error_message,
 		 pnl->error_message);
     }
-/*
-    else if(pnl->mode==1){
-
-      for(index_k=0; index_k<pnl->k_size; index_k++){
-
-	class_call(trg_p11_at_k(pba,ppm,psp,pnl,index_eta,0,pnl->k[index_k],&pnl->p_11[index_k+pnl->k_size*index_eta]),
-		   pnl->error_message,
-		   pnl->error_message);
-
-	class_call(trg_p11_at_k(pba,ppm,psp,pnl,index_eta,0,pnl->k[index_k],&pnl->p_12[index_k+pnl->k_size*index_eta]),
-		   pnl->error_message,
-		   pnl->error_message);
-
-	class_call(trg_p11_at_k(pba,ppm,psp,pnl,index_eta,0,pnl->k[index_k],&pnl->p_22[index_k+pnl->k_size*index_eta]),
-		   pnl->error_message,
-		   pnl->error_message);
-
-      }
-
-      class_call(trg_ddp_ab(pnl,pnl->p_11,index_eta,pnl->ddp_11,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
-
-      class_call(trg_ddp_ab(pnl,pnl->p_12,index_eta,pnl->ddp_12,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
-
-      class_call(trg_ddp_ab(pnl,pnl->p_22,index_eta,pnl->ddp_22,pnl->error_message),
-		 pnl->error_message,
-		 pnl->error_message);
-    }
-      
-*/
 
     /**********
      * Update of A's and B's function at the new index_eta which needs
      * the interpolation of P's
+     * For the one-loop computation, just report the previous values into the new A's
      **********/
 
- /*    if(pnl->mode==1){ */
-/*       for (index_name=0; index_name<name_size; index_name++){ */
-/* 	for(index_k=0; index_k<pnl->k_size; index_k++){ */
-/* 	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)];} */
-/*       } */
-/*     } */
+    if(pnl->mode==1){ 
+       for (index_name=0; index_name<name_size; index_name++){ 
+ 	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*index_eta; index_k++){ 
+ 	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)];} 
+       } 
+     } 
     
-    if(pnl->mode>0){
+    if(pnl->mode>1){
 
     /* initialize error management flag */
     abort = _FALSE_;
@@ -3042,7 +2935,7 @@ int trg_init (
 
 #ifdef _OPENMP
 	tstop = omp_get_wtime();
-	if (pnl->spectra_nl_verbose > 2)
+	if ((pnl->spectra_nl_verbose > 2) && (pnl->mode > 1))
 	  printf("In %s: time spent in parallel region (loop over names) = %e s for thread %d\n",
 		 __func__,tstop-tstart,omp_get_thread_num());
 #endif
@@ -3053,18 +2946,6 @@ int trg_init (
 
     }
 
-    /* else if(pnl->mode==1) { */
-
-/*       for(index_name=0; index_name<name_size; index_name++) { */
-/* 	for(index_k=0; index_k<pnl->k_size; index_k++){ */
-/* 	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)]; */
-/* 	} */
-/*       } */
-/*     } */
-
-/*     for (index_name=0; index_name<name_size; index_name++) */
-/*       AA[index_name][pnl->k_size-1+pnl->k_size*index_eta]=0.; */
-    
     if(pnl->spectra_nl_verbose>1)
       printf("    %2.1f%% done\n",100.*index_eta/(pnl->eta_size-1.));
     
@@ -3073,17 +2954,17 @@ int trg_init (
     if(pnl->spectra_nl_verbose>0){
       if(index_eta==9){
 	printf("     elapsed time after ten loops : %2.f s\n",difftime(time_2, time_1));
-	printf("     estimated remaining : %3.1f min\n",difftime(time_2,time_1)*(pnl->eta_size-2)/60/10);
+	printf("     max estimated remaining : %3.1f min\n",difftime(time_2,time_1)*(pnl->eta_size-2)/60/10);
       }
     }
     
     class_test(isnan(pnl->pk_nl[50+pnl->k_size*index_eta])!=0,pnl->error_message,"Code returns nan!\n");
   
     if(index_eta%1==0){
-      sprintf(filename,"output/test_one_loop2_%d.dat",index_eta);
+      sprintf(filename,"output/test_trg7_%d.dat",index_eta);
       class_open(nl_spectra,filename,"wr",pnl->error_message);
       fprintf(nl_spectra,"##at z =%e\n",pnl->z[index_eta]);
-      for(index_k=0; index_k<pnl->k_size-2*2*index_eta; index_k++){ 
+      for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*index_eta; index_k++){ 
 
 	class_call(
 		   spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[index_eta],&temp1,junk),
@@ -3110,41 +2991,10 @@ int trg_init (
 
   printf("Done in %2.f min !\n",difftime(time_2,time_1)/60);
 
-  /* printing on a file */
-
-/*   class_open(nl_spectra,"output/nl_spectra.dat","wr",pnl->error_message); */
-
-/*   fprintf(nl_spectra,"## k (h/Mpc) P_NL ([Mpc/h]^3) P_L ([Mpc/h]^3) \n"); */
- 
-/*   for(index_eta=9; index_eta<pnl->eta_size; index_eta+=10) { */
-
-/*     fprintf(nl_spectra,"##at z =%e\n",pnl->z[index_eta]); */
-
-/*     for(index_k=0; index_k<pnl->k_size; index_k++){  */
-
-/*       class_call( */
-/* 		 spectra_pk_at_k_and_z(pba,ppm,psp,0,index_ic,pnl->k[index_k],pnl->z[index_eta],&temp1), */
-/* 		 psp->error_message, */
-/* 		 pnl->error_message); */
-      
-/*       fprintf(nl_spectra,"%e\t%e\t%e\t",pnl->k[index_k]/pba->h,pow(pba->h,3)*pnl->pk_nl[index_k+(pnl->k_size*(index_eta))]*exp(pnl->eta[index_eta]*2),pow(pba->h,3)*temp1); */
-      
-/*       for (index_name=0; index_name<name_size; index_name++) */
-/* 	fprintf(nl_spectra,"%e\t",AA[index_name][index_k]); */
-/*       fprintf(nl_spectra,"\n"); */
-/*     } */
-/*     fprintf(nl_spectra,"\n\n"); */
-/*   } */
-  
-
- 
-
-/*   fprintf(nl_spectra,"\n\n"); */
-  
-/*   fclose(nl_spectra); */
-  
-  
-
+  /*
+   * End of computation
+   * Beginning of cleaning
+   */
 
   for (index_name=0; index_name<name_size; index_name++) 
     free(AA[index_name]);
