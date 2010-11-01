@@ -2,14 +2,7 @@
  * Julien Lesgourgues, 18.04.2010    
  */
  
-#include "precision.h"
-#include "background.h"
-#include "thermodynamics.h"
-#include "perturbations.h"
-#include "bessel.h"
-#include "transfer.h"
-#include "primordial.h"
-#include "spectra.h"
+#include "class.h"
 
 main(int argc, char **argv) {
 
@@ -21,11 +14,12 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct output op;          /* for output files */
-  
+  struct output op;           /* for output files */
+  struct spectra_nl nl;       /* for calculation of non-linear spectra */
+
   ErrorMsg errmsg;
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -45,7 +39,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (bessel_init(&pr,&ba,&pt,&bs) == _FAILURE_) {
+  if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }

@@ -33,8 +33,6 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
  
-  nl.k_max=pt.k_scalar_kmax_for_pk*ba.h-1.;
-
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);
     return _FAILURE_;

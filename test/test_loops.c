@@ -15,6 +15,7 @@ main(int argc, char **argv) {
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
   struct output op;           /* for output files */
+  struct spectra_nl nl;       /* for calculation of non-linear spectra */
  
   ErrorMsg errmsg;
 
@@ -58,7 +59,7 @@ main(int argc, char **argv) {
     sprintf(fc.value[4],"%e",0.001+i*0.004);
     printf("#run with omega_b = %s\n",fc.value[4]);
 
-    class(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,errmsg);
+    class(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,l_max,errmsg);
 
   }
 
@@ -75,6 +76,7 @@ int class(
 	  struct primordial * ppm,
 	  struct spectra * psp,
 	  struct output * pop,
+	  struct spectra_nl * pnl,
 	  int l_max,
 	  ErrorMsg errmsg) {
 
@@ -86,7 +88,7 @@ int class(
   double ** junk1;
   double ** junk2;
 
-  if (input_init(pfc,ppr,pba,pth,ppt,pbs,ptr,ppm,psp,pop,errmsg) == _FAILURE_) {
+  if (input_init(pfc,ppr,pba,pth,ppt,pbs,ptr,ppm,psp,pop,pnl,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
