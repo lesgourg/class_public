@@ -13,6 +13,7 @@
 #include "primordial.h"
 #include "spectra.h"
 #include "output.h"
+#include "trg.h"
 
 /* macro for reading parameter values with routines from the parser */
 #define class_read_double(name,destination)				\
@@ -90,6 +91,7 @@ extern "C" {
 		 struct primordial *ppm,
 		 struct spectra *psp,
 		 struct output *pop,
+		 struct spectra_nl * pnl,
 		 ErrorMsg errmsg
 		 );
 
@@ -104,6 +106,7 @@ extern "C" {
 		 struct primordial *ppm,
 		 struct spectra *psp,
 		 struct output *pop,
+		 struct spectra_nl * pnl,
 		 ErrorMsg errmsg
 		 );
 
@@ -115,7 +118,8 @@ extern "C" {
 			   struct transfers *ptr,
 			   struct primordial *ppm,
 			   struct spectra *psp,
-			   struct output *pop
+			   struct output *pop,
+			   struct spectra_nl * pnl
 			   );
   
   int input_default_precision(

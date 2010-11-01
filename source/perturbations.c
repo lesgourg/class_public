@@ -1112,6 +1112,13 @@ int perturb_workspace_init(
 	      sizeof(struct perturb_approximations),
 	      ppt->error_message);
 
+  /** - For definitness, initialize approximation flags to arbitrary
+      values (correct values are overwritten during the first call to
+      perturb_timescale_and_approximations) */
+
+  ppw->pa->fsa=fsa_off;
+  ppw->pa->tca=tca_on;
+
   return _SUCCESS_;
 }
 
@@ -1283,7 +1290,7 @@ int perturb_solve(
   /** - prepare eveything for the integration over time: */
 
   /** (a) fill the structure containing all fixed parameters, indices
-      and workspaces neded by perturb_derivs */
+      and workspaces needed by perturb_derivs */
 
   ppaw.ppr = ppr;
   ppaw.pba = pba;

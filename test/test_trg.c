@@ -24,26 +24,15 @@ main(int argc, char **argv) {
   struct primordial pm;       /* for primordial spectra */
   struct output op;
   struct spectra sp;          /* for output spectra */
-  struct spectra_nl nl; 
+  struct spectra_nl nl;       /* for calculation of non-linear spectra */
 
   ErrorMsg errmsg;
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
  
-  pt.k_scalar_kmax_for_pk=1000.; 
-  /*  pt.k_scalar_kmax_for_pk=600.; */
-  pr.k_scalar_k_per_decade_for_pk=10.; 
-
-  pt.has_cl_cmb_temperature = _FALSE_;
-  pt.has_cl_cmb_polarization = _FALSE_;
-  pt.has_cl_cmb_lensing_potential = _FALSE_;
-  pt.has_pk_matter = _TRUE_;
-
-  sp.z_max_pk = 50.; 
-
   nl.k_max=pt.k_scalar_kmax_for_pk*ba.h-1.;
 
   if (background_init(&pr,&ba) == _FAILURE_) {

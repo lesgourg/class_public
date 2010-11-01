@@ -1869,7 +1869,7 @@ int trg_integrate_xy_at_eta(
 
     logstepx=min(1.1,1+0.01/pow(k,1));
     
-    if(logstepx< (1.04) )  logstepx= 1.04; /*(1+0.02-0.018*(pow(index_eta/100,0.2))) ; good with 1.008*/
+    if(logstepx< pnl->logstepx_min)  logstepx= pnl->logstepx_min; /*(1+0.02-0.018*(pow(index_eta/100,0.2))) ; good with 1.008*/
 
     logstepy=logstepx;
 
@@ -2290,8 +2290,6 @@ int trg_init (
   */
 
   double k_max;
-  double k_L;
-  double k_min;
   double logstepk;
 
   int temp_index_k;
@@ -2339,10 +2337,6 @@ int trg_init (
   double tstart, tstop;
 #endif
 
-  pnl->double_escape=2; /**< TO ADD IN .INI FILE ASAP !!!! */
-  pnl->spectra_nl_verbose=1; /**< SAME FOR THIS ONE AND THE NEXT */
-  pnl->mode=2; /* 0 is linear evolution, 1 one loop and 2 full trg */
-
   if (pnl->spectra_nl_verbose > 0){
     if(pnl->mode==0)
       printf("Testing trg.c module with linear spectra computation\n");
@@ -2355,14 +2349,12 @@ int trg_init (
   class_calloc(pvecback_nl,pba->bg_size,sizeof(double),pnl->error_message);
 
   /* define initial eta and redshift */
-  a_ini = 1./36.;   /* gives a starting redshift of 35 as in Pietroni's article */
-  pnl->z_ini = pba->a_today/a_ini - 1.;
+  a_ini = pba->a_today/(pnl->z_ini + 1.);
 
   /* define eta_max, where eta=log(a/a_ini) */
   eta_max = log(pba->a_today/a_ini);
 
   /* define size and step for integration in eta */
-  pnl->eta_size = 100; 
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
 
   /* at any time, a = a_ini * exp(eta) and z=exp(eta)-1*/
@@ -2372,13 +2364,11 @@ int trg_init (
   /* first define the total length, to reach the k_max bound
      for the integrator */
   k_max=pnl->k_max; /**< SET IN TEST_TRG.C */
-  k_L=1.e-3;        /**< PRECISION PARAMETER */
-  k_min=1.e-4;      /**< PRECISION PARAMETER */
 
   /* find total number of k values in the module */
   index_k=0;
   class_calloc(temp_k,2000,sizeof(double),pnl->error_message);
-  temp_k[0]=k_min;
+  temp_k[0]=pnl->k_min;
 
   while(temp_k[index_k]<1){
     class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n");
@@ -2412,7 +2402,7 @@ int trg_init (
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
     pnl->k[index_k]=temp_k[index_k];
-    if( (pnl->k[index_k] > k_L*pba->h) && temp==0){
+    if( (pnl->k[index_k] > pnl->k_L*pba->h) && temp==0){
       pnl->index_k_L=index_k;
       temp++;
     }

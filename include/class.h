@@ -28,5 +28,6 @@
 #include "primordial.h"
 #include "spectra.h"
 #include "output.h"
+#include "trg.h"
 
 #endif

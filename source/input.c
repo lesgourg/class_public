@@ -26,6 +26,7 @@ int input_init_from_arguments(
 			      struct primordial *ppm,
 			      struct spectra *psp,
 			      struct output *pop,
+			      struct spectra_nl * pnl,
 			      ErrorMsg errmsg
 			      ) {
 
@@ -118,6 +119,7 @@ int input_init_from_arguments(
 			ppm,
 			psp,
 			pop,
+			pnl,
 			errmsg),
 	     errmsg,
 	     errmsg);
@@ -145,6 +147,7 @@ int input_init(
 	       struct primordial *ppm,
 	       struct spectra *psp,
 	       struct output *pop,
+	       struct spectra_nl * pnl,
 	       ErrorMsg errmsg
 	       ) {
 
@@ -179,7 +182,8 @@ int input_init(
 				  ptr,
 				  ppm,
 				  psp,
-				  pop),
+				  pop,
+				  pnl),
 	     errmsg,
 	     errmsg);
 
@@ -715,8 +719,18 @@ int input_init(
     pbs->bessel_always_recompute = _FALSE_;
     strcpy(pbs->bessel_file_name,string1);
   }
+
+  /** (f) parameter related to the non-linear spectra computation */
+
+  class_read_int("non-linearity mode",pnl->mode);
+  class_read_int("double escape",pnl->double_escape);
+  class_read_double("z_ini",pnl->z_ini);
+  class_read_double("eta_size",pnl->eta_size);
+  class_read_double("k_L",pnl->k_L);
+  class_read_double("k_min",pnl->k_min);
+  class_read_double("logstepx_min",pnl->logstepx_min);
   
-  /** (f) amount of information sent to standard output (none if all set to zero) */
+  /** (g) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
 		 pba->background_verbose);
@@ -742,15 +756,18 @@ int input_init(
   class_read_int("output_verbose",
 		 pop->output_verbose);
 
-  /** (g) all precision parameters */
+  class_read_int("spectra_nl_verbose",
+		 pnl->spectra_nl_verbose);
 
-  /** g.1. parameters related to the background */
+  /** (h) all precision parameters */
+
+  /** h.1. parameters related to the background */
 
   class_read_double("a_ini_over_a_today_default",ppr->a_ini_over_a_today_default);
   class_read_double("back_integration_stepsize",ppr->back_integration_stepsize);
   class_read_double("tol_background_integration",ppr->tol_background_integration);
 
-  /** g.2. parameters related to the thermodynamics */
+  /** h.2. parameters related to the thermodynamics */
 
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
@@ -799,7 +816,7 @@ int input_init(
   class_read_double("visibility_threshold_free_streaming",ppr->visibility_threshold_free_streaming);
   class_read_int("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
 
-  /** g.3. parameters related to the perturbations */
+  /** h.3. parameters related to the perturbations */
 
   class_read_int("gauge",ppr->gauge);
   class_read_double("k_scalar_min",ppr->k_scalar_min);
@@ -832,7 +849,7 @@ int input_init(
   class_read_double("rad_pert_trigger_k_over_aH",ppr->rad_pert_trigger_k_over_aH);
   class_read_double("rad_pert_trigger_Omega_r",ppr->rad_pert_trigger_Omega_r);
 
-  /** g.4. parameter related to the Bessel functions */
+  /** h.4. parameter related to the Bessel functions */
 
   class_read_double("l_logstep",ppr->l_logstep);
   class_read_int("l_linstep",ppr->l_linstep);
@@ -841,11 +858,11 @@ int input_init(
   class_read_double("bessel_delta_x_min",ppr->bessel_delta_x_min);
   class_read_double("bessel_x_max_over_l_max",ppr->bessel_x_max_over_l_max);
 
-  /** g.5. parameter related to the primordial spectra */
+  /** h.5. parameter related to the primordial spectra */
 
   class_read_double("k_per_decade_primordial",ppr->k_per_decade_primordial);
 
-  /** g.6. parameter related to the transfer functions */
+  /** h.6. parameter related to the transfer functions */
 
   class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
   class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
@@ -853,7 +870,7 @@ int input_init(
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
 
-  /** (h) eventually write all the read parameters in a file */
+  /** (i) eventually write all the read parameters in a file */
 
   class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
 	     errmsg,
@@ -907,7 +924,8 @@ int input_default_params(
 			 struct transfers *ptr,
 			 struct primordial *ppm,
 			 struct spectra *psp,
-			 struct output *pop
+			 struct output *pop,
+			 struct spectra_nl * pnl
 			 ) {
 
   ErrorMsg errmsg;
@@ -1031,6 +1049,16 @@ int input_default_params(
 
   psp->z_max_pk = pop->z_pk[0];
 
+  /** - spectra_nl structure */ 
+
+  pnl->mode = 2;
+  pnl->double_escape=2;
+  pnl->z_ini = 35.;
+  pnl->eta_size = 100.;
+  pnl->k_L = 1.e-3;
+  pnl->k_min = 1.e-4;
+  pnl->logstepx_min = 1.04;
+
   /** - all verbose parameters */ 
 
   pba->background_verbose = 0;
@@ -1041,6 +1069,7 @@ int input_default_params(
   ppm->primordial_verbose = 0;
   psp->spectra_verbose = 0;
   pop->output_verbose = 0;
+  pnl->spectra_nl_verbose = 0;
 
   return _SUCCESS_;
 
