@@ -32,7 +32,9 @@ main(int argc, char **argv) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
- 
+  
+  nl.k_max=pt.k_scalar_kmax_for_pk*ba.h-1.;
+
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);
     return _FAILURE_;
