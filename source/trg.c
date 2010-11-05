@@ -2289,7 +2289,6 @@ int trg_init (
     Variables of calculation, k and eta, and initialization
   */
 
-  double k_max;
   double logstepk;
 
   int temp_index_k;
@@ -2359,12 +2358,6 @@ int trg_init (
 
   /* at any time, a = a_ini * exp(eta) and z=exp(eta)-1*/
   
-  /* fill array of k values  */
-
-  /* first define the total length, to reach the k_max bound
-     for the integrator */
-  k_max=pnl->k_max; /**< SET IN TEST_TRG.C */
-
   /* find total number of k values in the module */
   index_k=0;
   class_calloc(temp_k,2000,sizeof(double),pnl->error_message);
@@ -2382,7 +2375,7 @@ int trg_init (
 /*   temp_k[index_k]=temp_k[index_k-1]*1.01; */
   temp_index_k=index_k;
 
-  while(temp_k[index_k]<k_max){
+  while(temp_k[index_k]<pnl->k_max){
     class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n");
     class_call(trg_logstep2_k(temp_k[index_k],&logstepk),
 	       pnl->error_message,
@@ -2951,7 +2944,7 @@ int trg_init (
     class_test(isnan(pnl->pk_nl[50+pnl->k_size*index_eta])!=0,pnl->error_message,"Code returns nan!\n");
   
     if(index_eta%1==0){
-      sprintf(filename,"output/test_trg7_%d.dat",index_eta);
+      sprintf(filename,"%strg_%d.dat",pnl->root,index_eta);
       class_open(nl_spectra,filename,"wr",pnl->error_message);
       fprintf(nl_spectra,"##at z =%e\n",pnl->z[index_eta]);
       for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*index_eta; index_k++){ 

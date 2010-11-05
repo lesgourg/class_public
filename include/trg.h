@@ -5,6 +5,14 @@
 
 struct spectra_nl {
 
+   /** @name - root for all file names */
+
+  //@{
+
+  FileName root;
+
+  //@}
+
   double * k;
   double k_max;
   double k_min;

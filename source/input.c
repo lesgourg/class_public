@@ -706,6 +706,7 @@ int input_init(
   }
 
   class_read_string("root",pop->root);
+  class_read_string("root",pnl->root);
 
   class_call(parser_read_string(pfc,
 				"bessels",
@@ -725,11 +726,12 @@ int input_init(
   class_read_int("non-linearity mode",pnl->mode);
   class_read_int("double escape",pnl->double_escape);
   class_read_double("z_ini",pnl->z_ini);
-  class_read_double("eta_size",pnl->eta_size);
+  class_read_int("eta_size",pnl->eta_size);
   class_read_double("k_L",pnl->k_L);
   class_read_double("k_min",pnl->k_min);
   class_read_double("logstepx_min",pnl->logstepx_min);
-  
+  pnl->k_max = ppt->k_scalar_kmax_for_pk * pba->h - 1.;
+
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
@@ -1044,6 +1046,7 @@ int input_default_params(
   class_alloc(pop->z_pk,pop->z_pk_num*sizeof(double),errmsg);
   pop->z_pk[0] = 0.;  
   sprintf(pop->root,"output/");
+  sprintf(pnl->root,"output/");
 
   /** - spectra structure */ 
 
