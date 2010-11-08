@@ -55,6 +55,7 @@ struct perturbs
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
+  short has_transfers;                /**< do we need to output individual transfer functions? */
 
   int l_scalar_max; /**< maximum l value for scalars C_ls */
   int l_tensor_max; /**< maximum l value for tensors C_ls */
@@ -106,11 +107,21 @@ struct perturbs
   short has_source_e;  /**< do we need source for CMB E-polarisation? */
   short has_source_b;  /**< do we need source for CMB B-polarisation? */
   short has_source_g;  /**< do we need source for gravitationnal potential? */
+  short has_source_delta_g;   /**< do we need source for delta of gammas? */
+  short has_source_delta_b;   /**< do we need source for delta of baryons? */
+  short has_source_delta_cdm; /**< do we need source for delta of cold dark matter? */
+  short has_source_delta_de;  /**< do we need source for delta of dark energy? */
+  short has_source_delta_nur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
 
   int index_tp_t; /**< index value for temperature */
   int index_tp_e; /**< index value for E-polarization */
   int index_tp_b; /**< index value for B-polarization */
   int index_tp_g; /**< index value for gravitationnal potential */
+  int index_tp_delta_g;   /**< index value for delta of gammas */
+  int index_tp_delta_b;   /**< index value for delta of baryons */
+  int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
+  int index_tp_delta_de;  /**< index value for delta of dark energy */
+  int index_tp_delta_nur; /**< index value for delta of ultra-relativistic neutrinos/relics */
 
   int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
 

@@ -703,6 +703,379 @@ int spectra_pk_at_k_and_z(
 
 }
 
+/** 
+ * Transfer function for arbitrary redshift and for all initial conditions. 
+ *
+ * This routine evaluates the transfer functions at a given value of z by
+ * interpolating in the pre-computed table (if several values of z have been stored)
+ * or by directly reading it (if it only contains values at z=0 and we want T_i(k,z=0)) 
+ * 
+ * 
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * spectra_init() has been called before, and spectra_free() has not
+ * been called yet.
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into eta)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param z          Input: redshift
+ * @param output     Ouput: transfer functions
+ * @return the error status
+ */
+
+int spectra_transfers_at_z(
+			   struct background * pba,
+			   struct spectra * psp,
+			   double z,
+			   double * output /* array with argument output[(index_ic*psp->tr_size+index_tr)*psp->ln_k_size+index_k] (must be already allocated) */
+			   ) {
+  
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_mode;
+  int last_index;
+  int index_k;
+  int index_tr;
+  double eta,ln_eta;
+  int index_ic;
+
+  index_mode = psp->index_md_scalars;
+
+  /** - first step: convert z into ln(eta) */
+
+  class_call(background_eta_of_z(pba,z,&eta),
+	     pba->error_message,
+	     psp->error_message);
+
+  class_test(eta <= 0.,
+	     psp->error_message,
+	     "negative or null value of conformal time: cannot interpolate");
+
+  ln_eta = log(eta);
+
+  /** - second step: store the transfer functions in the output array */
+
+  /**   (a.) if only values at eta=eta_today are stored and we want T_i(k,z=0), no need to interpolate */
+
+  if (psp->ln_eta_size == 1) {
+    
+    class_test(z != 0.,
+	       psp->error_message,
+	       "asked z=%e but only P(k,z=0) has been tabulated",z);
+    
+    for (index_k=0; index_k<psp->ln_k_size; index_k++)
+      for (index_tr=0; index_tr<psp->tr_size; index_tr++)
+	for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++)
+	  output[(index_ic*psp->tr_size+index_tr)*psp->ln_k_size+index_k]
+	    = psp->transfer[(index_ic * psp->tr_size + index_tr) * psp->ln_k_size + index_k];
+
+
+  }
+
+  /**   (b.) if several values of eta have been stored, use interpolation routine to get spectra at correct redshift */
+
+  else {
+      
+    class_call(array_interpolate_spline(psp->ln_eta,
+					psp->ln_eta_size,
+					psp->transfer,
+					psp->ddtransfer,
+					psp->ic_size[index_mode]*psp->tr_size*psp->ln_k_size,
+					ln_eta,
+					&last_index,
+					output,
+					psp->ic_size[index_mode]*psp->tr_size*psp->ln_k_size,
+					psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
+    
+  }
+
+  return _SUCCESS_;
+
+}
+
+/** 
+ * Transfer functions for arbitrary wavenumber, redshift and initial condition. 
+ *
+ * This routine evaluates the transfer functions at a given value of k and z by
+ * interpolating in a table of all T_i(k,z)'s computed at this z by spectra_transfers_at_z() (when kmin <= k <= kmax), 
+ * or eventually by assuming a plateau for k < kmin: 
+ * the latter case is an approximation, valid when kmin << comoving Hubble scale today.
+ * Returns zero when k=0. Returns an error when k<0 or k > kmax.
+ * 
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * spectra_init() has been called before, and spectra_free() has not
+ * been called yet.
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into eta)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param k          Input: wavenumber in 1/Mpc
+ * @param z          Input: redshift
+ * @param output     Ouput: transfer functions
+ * @return the error status
+ */
+
+int spectra_pk_at_k_and_z(
+			  struct background * pba,
+			  struct spectra * psp,
+			  double k,
+			  double z,
+			  double * output  /* array with argument output[index_ic*psp->tr_size+index_tr] (must be already allocated) */
+			  ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_mode;
+  int index_k;
+  int last_index;
+  int index_ic;
+  int index_tr;
+
+  index_mode = psp->index_md_scalars;
+
+  /** - first step: check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_pk_at_z()) */
+ 
+  class_test((k < 0.) || (k > exp(psp->ln_k[psp->ln_k_size-1])),
+	     psp->error_message,
+	     "k=%e out of bounds [%e:%e]",k,0.,exp(psp->ln_k[psp->ln_k_size-1]));
+  
+  /** - deal with case 0 <= k < kmin */
+
+  if (k < exp(psp->ln_k[0])) {
+    
+    /**   (a.) subcase k=0: then P(k)=0 */
+  
+    if (k == 0.) {
+      if (psp->ic_size[index_mode] == 1) {
+	*pk_tot=0.;
+      }
+      else {
+	for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
+	  pk_ic[index_ic1_ic2] = 0.;
+	}
+      }
+    }
+
+    /**    (b.) subcase 0<k<kmin: in this case we know that on super-Hubble scales:        
+     *          P(k) = [some number] * k  * P_primordial(k) 
+     *          so     
+     *          P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin)) 
+     *          (note that the result is accurate only if kmin is such that [a0 kmin] << H0) 
+     */
+
+    else {
+
+      /* compute P(k,z) which contains P(kmin,z)*/
+      class_alloc(spectrum_at_z,
+		  psp->ln_k_size*sizeof(double),
+		  psp->error_message);
+      if (psp->ic_size[index_mode] > 1) {
+	class_alloc(spectrum_at_z_ic,
+		    sizeof(double)*psp->ic_ic_size[index_mode]*psp->ln_k_size,
+		    psp->error_message); 
+      }
+      class_call(spectra_pk_at_z(pba,
+				 psp,
+				 linear,
+				 z,
+				 spectrum_at_z,
+				 spectrum_at_z_ic),
+		 psp->error_message,
+		 psp->error_message);
+      
+      /* compute P_primordial(k) */
+      class_alloc(pk_primordial_k,
+		  sizeof(double)*psp->ic_ic_size[index_mode],
+		  psp->error_message);
+      class_call(primordial_spectrum_at_k(ppm,
+					  index_mode,
+					  linear,
+					  k,
+					  pk_primordial_k),
+		 ppm->error_message,psp->error_message);
+
+      /* compute P_primordial(kmin) */
+      kmin = exp(psp->ln_k[0]);
+      class_alloc(pk_primordial_kmin,
+		  sizeof(double)*psp->ic_ic_size[index_mode],
+		  psp->error_message);
+      class_call(primordial_spectrum_at_k(ppm,
+					  index_mode,
+					  linear,
+					  kmin,
+					  pk_primordial_kmin),
+		 ppm->error_message,
+		 psp->error_message);
+    
+      /* apply above analytic approximation for P(k) */
+      index_k=0;
+      if (psp->ic_size[index_mode] == 1) {
+	index_ic1_ic2 = 0;
+	*pk_tot = spectrum_at_z[index_k]
+	  *k*pk_primordial_k[index_ic1_ic2]
+	  /kmin/pk_primordial_kmin[index_ic1_ic2];
+      }
+      else {
+      	for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
+	  pk_ic[index_ic1_ic2] = spectrum_at_z_ic[index_ic1_ic2]
+	    *k*pk_primordial_k[index_ic1_ic2]
+	    /kmin/pk_primordial_kmin[index_ic1_ic2];
+	}
+      }
+    }
+
+    free(spectrum_at_z);
+    if (psp->ic_size[index_mode] > 1)
+      free(spectrum_at_z_ic);
+    free(pk_primordial_k);
+    free(pk_primordial_kmin);
+
+  }
+
+  /** - deal with case kmin <= k <= kmax */
+
+  else {
+
+    /* compute P(k,z) (in logarithmic format for more accurate interpolation) */
+    class_alloc(spectrum_at_z,
+		psp->ln_k_size*sizeof(double),
+		psp->error_message);
+    if (psp->ic_size[index_mode] > 1) {
+      class_alloc(spectrum_at_z_ic,
+		  sizeof(double)*psp->ic_ic_size[index_mode]*psp->ln_k_size,
+		  psp->error_message); 
+    }
+    class_call(spectra_pk_at_z(pba,
+			       psp,
+			       logarithmic,
+			       z,
+			       spectrum_at_z,
+			       spectrum_at_z_ic),
+	       psp->error_message,
+	       psp->error_message);
+
+    /* get its second derivatives with spline, then interpolate, then convert to linear format */
+
+    class_alloc(spline,
+		sizeof(double)*psp->ic_ic_size[index_mode]*psp->ln_k_size,
+		psp->error_message);
+
+    if (psp->ic_size[index_mode] == 1) {
+
+      class_call(array_spline_table_lines(psp->ln_k,
+					  psp->ln_k_size,
+					  spectrum_at_z,
+					  1,
+					  spline,
+					  _SPLINE_NATURAL_,
+					  psp->error_message),
+		 psp->error_message,
+		 psp->error_message);
+      
+      class_call(array_interpolate_spline(psp->ln_k,
+					  psp->ln_k_size,
+					  spectrum_at_z,
+					  spline,
+					  1,
+					  log(k),
+					  &last_index,
+					  pk_tot,
+					  1,
+					  psp->error_message),
+		 psp->error_message,
+		 psp->error_message);
+
+      *pk_tot = exp(*pk_tot);
+
+    }
+    else {
+      
+      class_call(array_spline_table_lines(psp->ln_k,
+					  psp->ln_k_size,
+					  spectrum_at_z_ic,
+					  psp->ic_ic_size[index_mode],
+					  spline,
+					  _SPLINE_NATURAL_,
+					  psp->error_message),
+		 psp->error_message,
+		 psp->error_message);
+
+      class_call(array_interpolate_spline(psp->ln_k,
+					  psp->ln_k_size,
+					  spectrum_at_z_ic,
+					  spline,
+					  psp->ic_ic_size[index_mode],
+					  log(k),
+					  &last_index,
+					  pk_ic,
+					  psp->ic_ic_size[index_mode],
+					  psp->error_message),
+		 psp->error_message,
+		 psp->error_message);
+
+      for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]);
+	pk_ic[index_ic1_ic2] = exp(pk_ic[index_ic1_ic2]);
+      }
+      for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	    pk_ic[index_ic1_ic2] = pk_ic[index_ic1_ic2]*
+	      sqrt(pk_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])]*
+		   pk_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])]);
+	  }
+	  else {
+	    pk_ic[index_ic1_ic2] = 0.;
+	  }
+	}
+      }
+      free(spectrum_at_z_ic);
+    }
+
+    free(spectrum_at_z);
+    free(spline);
+  }
+
+  /** - last step: if more than one condition, sum over pk_ic to get pk_tot, and set back coefficients of non-correlated pairs to exactly zero. */
+
+  if (psp->ic_size[index_mode] > 1) {
+
+    *pk_tot = 0.;
+      
+    for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+      for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	
+	if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	  
+	  if (index_ic1 == index_ic2)
+	    *pk_tot += pk_ic[index_ic1_ic2];
+	  else
+	    *pk_tot += 2.*pk_ic[index_ic1_ic2];
+	}
+	else {
+	  pk_ic[index_ic1_ic2] = 0.;
+	}
+      }
+    }
+
+    class_test(*pk_tot <= 0.,
+	       psp->error_message,
+	       "for k=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_total results negative",k);
+    
+  }
+
+  return _SUCCESS_;
+
+}
+
 /**
  * This routine initializes the spectra structure (in particular, 
  * computes table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
@@ -758,13 +1131,34 @@ int spectra_init(
     psp->ct_size=0;
   }
 
-  /** - deal with P(k)'s, if any */
+  /** - deal with P(k,eta) and T_i(k,eta) */
 
-  if (ppt->has_pk_matter == _TRUE_) {
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_pk_matter == _TRUE_)) {
 
-    class_call(spectra_pk(pba,ppt,ppm,psp),
+    class_call(spectra_k_and_eta(pba,ppt,psp),
 	       psp->error_message,
 	       psp->error_message);
+
+    if (ppt->has_pk_matter == _TRUE_) {
+
+      class_call(spectra_pk(pba,ppt,ppm,psp),
+		 psp->error_message,
+		 psp->error_message);
+    }
+    else {
+      psp->ln_pk=NULL;
+    }
+
+    if (ppt->has_transfers == _TRUE_) {
+
+      class_call(spectra_transfers(pba,ppt,psp),
+		 psp->error_message,
+		 psp->error_message);
+    }
+    else {
+      psp->transfer=NULL;
+    }
+
   }
   else {
     psp->ln_k_size=0;
@@ -809,12 +1203,24 @@ int spectra_free(
 
       free(psp->ln_eta);
       free(psp->ln_k);
-      free(psp->ln_pk);
-      if (psp->ln_eta_size > 1) {
-	free(psp->ddln_pk);
+
+      if (psp->ln_pk != NULL) { 
+
+	free(psp->ln_pk);
+
+	if (psp->ln_eta_size > 1) {
+	  free(psp->ddln_pk);
+	}
+      }
+
+      if (psp->transfer != NULL) {
+	
+	free(psp->transfer);
+	if (psp->ln_eta_size > 1) {
+	  free(psp->ddtransfer);
+	}
       }
     }    
-
   }
 
   for (index_mode=0; index_mode < psp->md_size; index_mode++)
@@ -847,6 +1253,7 @@ int spectra_indices(
   int index_ct;
   int index_mode;
   int index_ic1_ic2;
+  int index_tr;
 
   psp->md_size = ppm->md_size;
 
@@ -938,6 +1345,27 @@ int spectra_indices(
     }
 
     psp->ct_size = index_ct;
+
+  }
+
+  if (ppt->has_transfers == _TRUE_) {
+
+    /* indices for species associated with a transfer function in Fourier space */
+
+    index_tr=0;
+    psp->index_tr_g = index_tr;
+    index_tr++;
+    psp->index_tr_b = index_tr;
+    index_tr++;
+    psp->index_tr_cdm = index_tr;
+    index_tr++;
+    psp->index_tr_de = index_tr;
+    index_tr++;
+    psp->index_tr_nur = index_tr;
+    index_tr++;
+    psp->index_tr_tot = index_tr;
+    index_tr++;
+    psp->tr_size = index_tr;
 
   }
 
@@ -1330,38 +1758,29 @@ int spectra_compute_cl(
 }
 
 /**
- * This routine computes a table of values for all matter power spectra P(k),
- * given the source functions and primordial spectra.
+ * This routine computes the values of k and eta at which the matter power
+ * spectra P(k,eta) and the transfer functions T_i(k,eta) will be stored.
  * 
- * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param pba Input : pointer to background structure (for z to eta conversion)
  * @param ppt Input : pointer to perturbation structure (contain source functions)
- * @param ppm Input : pointer to primordial structure
  * @param psp Input/Output: pointer to spectra structure 
  * @return the error status
  */
 
-int spectra_pk(
-	       struct background * pba,
-	       struct perturbs * ppt,
-	       struct primordial * ppm,
-	       struct spectra * psp
-	       ) {
+int spectra_k_and_eta(
+		      struct background * pba,
+		      struct perturbs * ppt,
+		      struct spectra * psp
+		      ) {
 
   /** Summary: */
 
   /** - define local variables */
 
   int index_mode;
-  int index_ic1,index_ic2,index_ic1_ic2;
   int index_k;
   int index_eta;
-  double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
-  int last_index_back;
-  double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
-  double Omega_m;
   double eta_min;
-  double source_g_ic1;
-  double source_g_ic2;
 
   /** - check the presence of scalar modes */
 
@@ -1372,7 +1791,7 @@ int spectra_pk(
   psp->index_md_scalars = ppt->index_md_scalars;
   index_mode = psp->index_md_scalars;
 
-  /** - check the maximum redshift z_max_pk at which P(k,z) should be 
+  /** - check the maximum redshift z_max_pk at which P(k,z) and T_i(k,z) should be 
       computable by interpolation. If it is equal to zero, only P(k,z=0) 
       needs to be computed. If it is higher, we will store in a table 
       various P(k,eta) at several values of eta generously encompassing 
@@ -1415,7 +1834,7 @@ int spectra_pk(
 
   }
 
-  /** - allocate and fill table of eta values at which P(k,eta) is stored */
+  /** - allocate and fill table of eta values at which P(k,eta) and T_i(k,eta) are stored */
 
   class_alloc(psp->ln_eta,sizeof(double)*psp->ln_eta_size,psp->error_message);
 
@@ -1434,6 +1853,51 @@ int spectra_pk(
 	       "stop to avoid segmentation fault");
     psp->ln_k[index_k]=log(ppt->k[index_mode][index_k]);
   }
+
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes a table of values for all matter power spectra P(k),
+ * given the source functions and primordial spectra.
+ * 
+ * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param ppt Input : pointer to perturbation structure (contain source functions)
+ * @param ppm Input : pointer to primordial structure
+ * @param psp Input/Output: pointer to spectra structure 
+ * @return the error status
+ */
+
+int spectra_pk(
+	       struct background * pba,
+	       struct perturbs * ppt,
+	       struct primordial * ppm,
+	       struct spectra * psp
+	       ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_mode;
+  int index_ic1,index_ic2,index_ic1_ic2;
+  int index_k;
+  int index_eta;
+  double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
+  int last_index_back;
+  double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
+  double Omega_m;
+  double source_g_ic1;
+  double source_g_ic2;
+
+  /** - check the presence of scalar modes */
+
+  class_test((ppt->has_scalars == _FALSE_),
+	     psp->error_message,
+	     "you cannot ask for matter power spectrum since you turned off scalar modes");
+  
+  psp->index_md_scalars = ppt->index_md_scalars;
+  index_mode = psp->index_md_scalars;
 
   /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
 
@@ -1546,5 +2010,195 @@ int spectra_pk(
   free (primordial_pk);
   free (pvecback_sp_long);
   
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes a table of values for all matter power spectra P(k),
+ * given the source functions and primordial spectra.
+ * 
+ * @param pba Input : pointer to background structure (will provide density of each species)
+ * @param ppt Input : pointer to perturbation structure (contain source functions)
+ * @param psp Input/Output: pointer to spectra structure 
+ * @return the error status
+ */
+
+int spectra_transfers(
+	       struct background * pba,
+	       struct perturbs * ppt,
+	       struct spectra * psp
+	       ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_mode;
+  int index_ic;
+  int index_k;
+  int index_eta;
+  int last_index_back;
+  double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
+  double delta_i,rho_i;
+  double delta_rho_tot,rho_tot;
+
+  /** - check the presence of scalar modes */
+
+  class_test((ppt->has_scalars == _FALSE_),
+	     psp->error_message,
+	     "you cannot ask for matter power spectrum since you turned off scalar modes");
+  
+  psp->index_md_scalars = ppt->index_md_scalars;
+  index_mode = psp->index_md_scalars;
+
+  /** - allocate and fill array of T_i(k,eta) values */
+
+  class_alloc(psp->transfer,sizeof(double)*psp->ln_eta_size*psp->ln_k_size*psp->ic_size[index_mode]*psp->tr_size,psp->error_message);
+
+  /** - allocate temporary vectors where the background quantitites will be stored */
+
+  class_alloc(pvecback_sp_long,pba->bg_size*sizeof(double),psp->error_message);
+
+  for (index_eta=0 ; index_eta < psp->ln_eta_size; index_eta++) {
+
+    class_call(background_at_eta(pba,
+				 ppt->eta_sampling[index_eta-psp->ln_eta_size+ppt->eta_size], 
+    /* for this last argument we could have passed 
+       exp(psp->ln_eta[index_eta]) but we would then loose 
+       precision in the exp(log(x)) operation) */
+				 long_info, 
+				 normal, 
+				 &last_index_back, 
+				 pvecback_sp_long),
+	       pba->error_message,
+	       psp->error_message);
+
+    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+
+      for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
+
+	delta_rho_tot=0.;
+	rho_tot=0.;
+
+	/* T_g(k,eta) */
+
+	delta_i = ppt->sources[index_mode]
+	  [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_g]
+	  [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+	
+	rho_i = pvecback_sp_long[pba->index_bg_rho_g];
+
+	psp->transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_g) * psp->ln_k_size + index_k] = delta_i;
+
+	delta_rho_tot += rho_i * delta_i;
+
+	rho_tot += rho_i;
+
+	/* T_b(k,eta) */
+
+	delta_i = ppt->sources[index_mode]
+	  [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_b]
+	  [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+	
+	rho_i = pvecback_sp_long[pba->index_bg_rho_b];
+
+	psp->transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_b) * psp->ln_k_size + index_k] = delta_i;
+
+	delta_rho_tot += rho_i * delta_i;
+
+	rho_tot += rho_i;
+	
+	/* T_cdm(k,eta) */
+	
+	if (pba->has_cdm == _TRUE_) {
+	  
+	  delta_i = ppt->sources[index_mode]
+	    [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_cdm]
+	    [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+	  
+	  rho_i = pvecback_sp_long[pba->index_bg_rho_cdm];
+	  
+	  psp->transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_cdm) * psp->ln_k_size + index_k] = delta_i;
+	  
+	  delta_rho_tot += rho_i * delta_i;
+	  
+	  rho_tot += rho_i;
+	  
+	}
+	
+	/* T_de(k,eta) */
+
+	if (pba->has_dark_energy_fluid == _TRUE_) {
+
+	  delta_i = ppt->sources[index_mode]
+	    [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_de]
+	    [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+
+	  rho_i = pvecback_sp_long[pba->index_bg_rho_de];
+	  
+	  psp->transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_de) * psp->ln_k_size + index_k] = delta_i;
+	  
+	  delta_rho_tot += rho_i * delta_i;
+	  
+	  rho_tot += rho_i;
+
+	}
+
+	/* T_nur(k,eta) */
+
+	if (pba->has_nur == _TRUE_) {
+	
+	  delta_i = ppt->sources[index_mode]
+	    [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_nur]
+	    [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+	  
+	  rho_i = pvecback_sp_long[pba->index_bg_rho_nur];
+	  
+	  psp->transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_nur) * psp->ln_k_size + index_k] = delta_i;
+	  
+	  delta_rho_tot += rho_i * delta_i;
+	  
+	  rho_tot += rho_i;
+
+	}
+
+	/* include homogeneous component in rho_tot */
+
+	if (pba->has_lambda == _TRUE_) {
+
+	  rho_i = pvecback_sp_long[pba->index_bg_rho_lambda];
+
+	  rho_tot += rho_i;
+	}
+
+	/* T_tot(k,eta) */
+
+	psp->transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_tot) * psp->ln_k_size + index_k] = delta_rho_tot/rho_tot;
+
+      }
+    }
+  }
+
+  /**- if interpolation of P(k,eta) will be needed (as a function of eta), 
+     compute array of second derivatives in view of spline interpolation */  
+ 
+  if (psp->ln_eta_size > 1) {
+
+    class_alloc(psp->ddtransfer,sizeof(double)*psp->ln_eta_size*psp->ln_k_size*psp->ic_size[index_mode]*psp->tr_size,psp->error_message);
+
+    class_call(array_spline_table_lines(psp->ln_eta,
+					psp->ln_eta_size,
+					psp->transfer,
+					psp->ic_size[index_mode]*psp->ln_k_size*psp->tr_size,
+					psp->ddtransfer,
+					_SPLINE_EST_DERIV_,
+					psp->error_message),
+	       psp->error_message,
+	       psp->error_message);
+    
+  }
+
+  free (pvecback_sp_long);
+
   return _SUCCESS_;
 }

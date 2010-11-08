@@ -486,6 +486,41 @@ int perturb_indices_of_perturbs(
       else
 	ppt->has_source_g = _FALSE_;
 
+      if (ppt->has_transfers == _TRUE_) {
+	ppt->has_lss = _TRUE_;
+	ppt->has_source_delta_g = _TRUE_;
+	ppt->index_tp_delta_g = index_type;
+	index_type++;
+	ppt->has_source_delta_b = _TRUE_;
+	ppt->index_tp_delta_b = index_type;
+	index_type++;
+	if (pba->has_cdm == _TRUE_) {
+	  ppt->has_source_delta_cdm = _TRUE_;
+	  ppt->index_tp_delta_cdm = index_type;
+	  index_type++;
+	}
+	else ppt->has_source_delta_cdm = _FALSE_;
+	if (pba->has_dark_energy_fluid == _TRUE_) {
+	  ppt->has_source_delta_de = _TRUE_;
+	  ppt->index_tp_delta_de = index_type;
+	  index_type++;
+	}
+	else ppt->has_source_delta_de = _FALSE_;
+	if (pba->has_nur == _TRUE_) {
+	  ppt->has_source_delta_nur = _TRUE_;
+	  ppt->index_tp_delta_nur = index_type;
+	  index_type++;
+	}
+	else ppt->has_source_delta_nur = _FALSE_;
+      }
+      else {
+	ppt->has_source_delta_g = _FALSE_;
+	ppt->has_source_delta_b = _FALSE_;
+	ppt->has_source_delta_cdm = _FALSE_;
+	ppt->has_source_delta_de = _FALSE_;
+	ppt->has_source_delta_nur = _FALSE_;
+      }
+
       ppt->tp_size[index_mode] = index_type;
 
       class_test(index_type == 0,
@@ -2392,7 +2427,8 @@ int perturb_timescale_and_approximations(
 
     if ((eta_h/eta_k > ppr->rad_pert_trigger_k_over_aH) && 
 	//      (eta > eta_visibility_free_streaming) && /* optionally this line could be restored, to check that this does not happen before recombination is completed) */
-	(pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r)) {
+	(pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r) &&
+	(ppt->has_transfers == _FALSE_)) {
       
       if (pa->fsa == fsa_off) (*num_of_changing_approximations)++;
       pa->fsa = fsa_on;
@@ -2908,9 +2944,49 @@ int perturb_source_terms(
 	 
 
 	}
+
+      }
+
+      /* delta_g */
+      if ((ppt->has_source_delta_g == _TRUE_) && (index_type == ppt->index_tp_delta_g)) {
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	  pvecperturbations[ppw->pv->index_pt_delta_g]; 
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
+      }
+
+      /* delta_baryon */
+      if ((ppt->has_source_delta_b == _TRUE_) && (index_type == ppt->index_tp_delta_b)) {
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	  pvecperturbations[ppw->pv->index_pt_delta_b]; 
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
+      }
+
+      /* delta_cdm */
+      if ((ppt->has_source_delta_cdm == _TRUE_) && (index_type == ppt->index_tp_delta_cdm)) {
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	  pvecperturbations[ppw->pv->index_pt_delta_cdm]; 
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
+      }
+
+      /* delta_de */
+      if ((ppt->has_source_delta_de == _TRUE_) && (index_type == ppt->index_tp_delta_de)) {
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	  pvecperturbations[ppw->pv->index_pt_delta_de]; 
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
+      }
+
+      /* delta_nur */
+      if ((ppt->has_source_delta_nur == _TRUE_) && (index_type == ppt->index_tp_delta_nur)) {
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	  pvecperturbations[ppw->pv->index_pt_delta_nur];
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
     }
-
   }
 
   /* tensors */

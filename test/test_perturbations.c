@@ -68,6 +68,44 @@ main(int argc, char **argv) {
     fclose(output);
   }
 
+  if (pt.has_transfers == _TRUE_) {
+
+    FILE * output;
+    int index_k,index_eta;
+    int index_mode=pt.index_md_scalars;
+
+    int index_type=pt.index_tp_t;
+
+    int index_ic=pt.index_ic_ad;
+
+    output=fopen("output/transfers.dat","w");
+
+    for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
+      for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
+	
+	fprintf(output,"%e %e %e %e %e %e\n",
+		pt.eta_sampling[index_eta],
+		pt.k[index_mode][index_k],
+		pt.sources[index_mode]
+		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_g]
+		[index_eta * pt.k_size[index_mode] + index_k],
+		pt.sources[index_mode]
+		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_b]
+		[index_eta * pt.k_size[index_mode] + index_k],
+		pt.sources[index_mode]
+		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_cdm]
+		[index_eta * pt.k_size[index_mode] + index_k],
+		pt.sources[index_mode]
+		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_nur]
+		[index_eta * pt.k_size[index_mode] + index_k]
+		);
+      }
+      fprintf(output,"\n");
+    }
+    
+    fclose(output);
+  }
+
   /******************************************************/
 
   if (perturb_free(&pt) == _FAILURE_) {

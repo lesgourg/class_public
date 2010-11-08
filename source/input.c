@@ -444,6 +444,12 @@ int input_init(
       ppt->has_pk_matter=_TRUE_; 
       ppt->has_perturbations = _TRUE_;  
     }
+
+    if ((strstr(string1,"transfers") != NULL) || (strstr(string1,"Transfers") != NULL) || (strstr(string1,"TRANSFERS") != NULL)) {
+      ppt->has_transfers=_TRUE_; 
+      ppt->has_perturbations = _TRUE_;  
+    }
+
   }
 
   if (ppt->has_perturbations == _TRUE_) { 
@@ -966,6 +972,7 @@ int input_default_params(
   ppt->has_cl_cmb_polarization = _FALSE_;
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
+  ppt->has_transfers = _FALSE_;
 
   ppt->has_ad=_TRUE_;  
   ppt->has_bi=_FALSE_;

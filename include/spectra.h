@@ -114,6 +114,21 @@ struct spectra {
 		      or nearly constant, and with arbitrary sign.
 		   */
   
+  int index_tr_g;   /**< index of gamma transfer function */
+  int index_tr_b;   /**< index of baryon transfer function */
+  int index_tr_cdm; /**< index of cold dark matter transfer function */
+  int index_tr_de;  /**< index of dark energy fluid transfer function */
+  int index_tr_nur; /**< index of ultra-relativistic neutrinos/relics transfer function */
+  int index_tr_tot; /**< index of total matter transfer function */
+  int tr_size;      /**< total number of species in transfer functions */
+
+  double * transfer;   /**< Transfer functions.
+			  depends on indices index_mode, index_ic, index_k, index_tr as:
+			  ln_transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * tr_size + index_tr) * psp->ln_k_size + index_k]
+		       */
+  double * ddtransfer; /**< second derivative of above array with respect to log(eta), for spline interpolation. */
+  
+
   //@}
 
   /** @name - technical parameters */
@@ -163,6 +178,21 @@ extern "C" {
 			    double * pk_ic
 			    );
 
+  int spectra_transfers_at_z(
+		      struct background * pba,
+		      struct spectra * psp,
+		      double z,
+		      double * output
+		      );
+
+  int spectra_transfers_at_k_and_z(
+			    struct background * pba,
+			    struct spectra * psp,
+			    double k,
+			    double z,
+			    double * output
+			    );
+
   int spectra_init(
 		   struct background * pba,
 		   struct perturbs * ppt,
@@ -205,12 +235,24 @@ extern "C" {
 			 double * transfer_ic2
 			 );
   
+  int spectra_k_and_eta(
+			struct background * pba,
+			struct perturbs * ppt,
+			struct spectra * psp
+			);
+
   int spectra_pk(
 		 struct background * pba,
 		 struct perturbs * ppt,
 		 struct primordial * ppm,
 		 struct spectra * psp
 		 );
+  
+  int spectra_transfers(
+			struct background * pba,
+			struct perturbs * ppt,
+			struct spectra * psp
+			);
 
 #ifdef __cplusplus
 }
