@@ -251,7 +251,7 @@ int spectra_pk_at_z(
 		    enum linear_or_logarithmic mode, 
 		    double z,
 		    double * output_tot, /* array with argument output_tot[index_k] (must be already allocated) */
-		    double * output_ic   /* array with argument output_tot[index_ic1_ic2 * psp->ln_k_size + index_k] (must be already allocated only if more than one initial condition) */
+		    double * output_ic   /* array with argument output_tot[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
 		    ) {
 
   /** Summary: */
@@ -294,8 +294,8 @@ int spectra_pk_at_z(
       }
       else {
 	for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
-	  output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] = 
-	    psp->ln_pk[index_ic1_ic2* psp->ln_k_size + index_k];
+	  output_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] = 
+	    psp->ln_pk[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2];
 	}
       }
   }
@@ -346,17 +346,17 @@ int spectra_pk_at_z(
 	for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
 	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
 	  if (index_ic1 == index_ic2) {
-	    output_tot[index_k] += exp(output_ic[index_ic1_ic2 * psp->ln_k_size + index_k]);
+	    output_tot[index_k] += exp(output_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2]);
 	  }
 	  else {
 	    if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 	      output_tot[index_k] += 
-		2. * output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] *
-		sqrt(exp(output_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]) * psp->ln_k_size + index_k]) *
-		     exp(output_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode]) * psp->ln_k_size + index_k]));
+		2. * output_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] *
+		sqrt(exp(output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])]) *
+		     exp(output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])]));
 	}
 	    else
-	      output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] = 0.;
+	      output_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] = 0.;
 	  }
 	}
       }
@@ -384,14 +384,14 @@ int spectra_pk_at_z(
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 	for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]);
-	  output_ic[index_ic1_ic2 * psp->ln_k_size + index_k] = exp(output_ic[index_ic1_ic2 * psp->ln_k_size + index_k]);
+	  output_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] = exp(output_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2]);
 	}
 	for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	  for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
-	    output_ic[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k] =
-	      output_ic[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]
-	      *sqrt(output_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])* psp->ln_k_size + index_k] *
-		    output_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]);
+	    output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])] =
+	      output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])]
+	      *sqrt(output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])] *
+		    output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])]);
 	  }
 	}
       }
@@ -728,9 +728,9 @@ int spectra_tk_at_z(
 			   struct background * pba,
 			   struct spectra * psp,
 			   double z,
-			   double * output /* array with argument output[(index_ic*psp->tr_size+index_tr)*psp->ln_k_size+index_k] (must be already allocated) */
+			   double * output /* array with argument output[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+index_tr] (must be already allocated) */
 			   ) {
-  
+
   /** Summary: */
 
   /** - define local variables */
@@ -764,15 +764,14 @@ int spectra_tk_at_z(
     
     class_test(z != 0.,
 	       psp->error_message,
-	       "asked z=%e but only P(k,z=0) has been tabulated",z);
+	       "asked z=%e but only T_i(k,z=0) has been tabulated",z);
     
     for (index_k=0; index_k<psp->ln_k_size; index_k++)
       for (index_tr=0; index_tr<psp->tr_size; index_tr++)
 	for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++)
-	  output[(index_ic*psp->tr_size+index_tr)*psp->ln_k_size+index_k]
-	    = psp->matter_transfer[(index_ic * psp->tr_size + index_tr) * psp->ln_k_size + index_k];
-
-
+	  output[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+index_tr]
+	    = psp->matter_transfer[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+index_tr];
+    
   }
 
   /**   (b.) if several values of eta have been stored, use interpolation routine to get spectra at correct redshift */
@@ -1779,7 +1778,7 @@ int spectra_pk(
 	  [index_ic1 * ppt->tp_size[index_mode] + ppt->index_tp_g]
 	  [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	
-	psp->ln_pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ln_k_size + index_k] =
+	psp->ln_pk[(index_eta * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] =
 	  log(8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)
 	      /pow(pvecback_sp_long[pba->index_bg_Omega_m],2)
 	      *exp(psp->ln_k[index_k])
@@ -1803,12 +1802,12 @@ int spectra_pk(
 	      [index_ic2 * ppt->tp_size[index_mode] + ppt->index_tp_g]
 	      [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	      
-	    psp->ln_pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ln_k_size + index_k] =
+	    psp->ln_pk[(index_eta * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] =
 	      primordial_pk[index_ic1_ic2]*sign(source_g_ic1)*sign(source_g_ic2);
 		    
 	  }
 	  else {
-	    psp->ln_pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ln_k_size + index_k] = 0.;
+	    psp->ln_pk[(index_eta * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] = 0.;
 	  }
 	}
       }
@@ -1915,7 +1914,7 @@ int spectra_matter_transfers(
 	
 	rho_i = pvecback_sp_long[pba->index_bg_rho_g];
 
-	psp->matter_transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_g) * psp->ln_k_size + index_k] = delta_i;
+	psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_g] = delta_i;
 
 	delta_rho_tot += rho_i * delta_i;
 
@@ -1929,7 +1928,7 @@ int spectra_matter_transfers(
 	
 	rho_i = pvecback_sp_long[pba->index_bg_rho_b];
 
-	psp->matter_transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_b) * psp->ln_k_size + index_k] = delta_i;
+	psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_b] = delta_i;
 
 	delta_rho_tot += rho_i * delta_i;
 
@@ -1944,8 +1943,8 @@ int spectra_matter_transfers(
 	    [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	  
 	  rho_i = pvecback_sp_long[pba->index_bg_rho_cdm];
-	  
-	  psp->matter_transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_cdm) * psp->ln_k_size + index_k] = delta_i;
+
+	psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_cdm] = delta_i;
 	  
 	  delta_rho_tot += rho_i * delta_i;
 	  
@@ -1963,7 +1962,7 @@ int spectra_matter_transfers(
 
 	  rho_i = pvecback_sp_long[pba->index_bg_rho_de];
 	  
-	  psp->matter_transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_de) * psp->ln_k_size + index_k] = delta_i;
+	  psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_de] = delta_i;
 	  
 	  delta_rho_tot += rho_i * delta_i;
 	  
@@ -1981,7 +1980,7 @@ int spectra_matter_transfers(
 	  
 	  rho_i = pvecback_sp_long[pba->index_bg_rho_nur];
 	  
-	  psp->matter_transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_nur) * psp->ln_k_size + index_k] = delta_i;
+	  psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_nur] = delta_i;
 	  
 	  delta_rho_tot += rho_i * delta_i;
 	  
@@ -2000,8 +1999,8 @@ int spectra_matter_transfers(
 
 	/* T_tot(k,eta) */
 
-	psp->matter_transfer[((index_eta * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_tot) * psp->ln_k_size + index_k] = delta_rho_tot/rho_tot;
-
+	psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_tot] = delta_rho_tot/rho_tot;
+	
       }
     }
   }

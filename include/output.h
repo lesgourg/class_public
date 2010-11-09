@@ -21,7 +21,7 @@ struct output {
 
   //@}
 
-  /** @name - number and value(s) of redshift at which P(k,z) should be written */
+  /** @name - number and value(s) of redshift at which P(k,z) and T_i(k,z) should be written */
 
   //@{
 
@@ -70,6 +70,13 @@ extern "C" {
 		struct output * pop
 		);
 
+  int output_pk(
+		struct background * pba,
+		struct perturbs * ppt,
+		struct spectra * psp,
+		struct output * pop
+		);
+
   int output_open_cl_file(
 			  struct spectra * psp,
 			  struct output * pop,
@@ -89,16 +96,33 @@ extern "C" {
   int output_open_pk_file(
 			  struct spectra * psp,
 			  struct output * pop,
-			  FILE * * clfile,
+			  FILE * * pkfile,
 			  FileName filename,
 			  char * first_line,
 			  double z
 			  );
 
   int output_one_line_of_pk(
-			    FILE * clfile,
+			    FILE * tkfile,
 			    double one_k,
 			    double one_pk
+			    );
+
+  int output_open_tk_file(
+			  struct background * pba,
+			  struct spectra * psp,
+			  struct output * pop,
+			  FILE * * tkfile,
+			  FileName filename,
+			  char * first_line,
+			  double z
+			  );
+
+  int output_one_line_of_tk(
+			    FILE * tkfile,
+			    double one_k,
+			    double * tk,
+			    int tr_size
 			    );
 #ifdef __cplusplus
 }

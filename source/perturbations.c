@@ -2225,7 +2225,7 @@ int perturb_initial_conditions(struct precision * ppr,
       /* synchronous gauge */
       if (ppr->gauge == synchronous) {
 
-	ppw->pv->y[ppw->pv->index_pt_delta_g] = - k*k*eta*eta/3. * (1.-om*eta/5.); /* photon density */
+	ppw->pv->y[ppw->pv->index_pt_delta_g] = - k*k*eta*eta/3. * (1.-om*eta/5.) * ppr->curvature_ini; /* photon density */
 	/* ppw->pv->y[ppw->pv->index_pt_theta_g] = - k*k*k*k*eta*eta*eta/36.; /\* photon velocity *\/ */
 	ppw->pv->y[ppw->pv->index_pt_theta_g] = k*k*eta/9.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* photon velocity */
 
@@ -2244,11 +2244,11 @@ int perturb_initial_conditions(struct precision * ppr,
 
 	if (pba->has_nur == _TRUE_) {
 	  ppw->pv->y[ppw->pv->index_pt_delta_nur] = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
-	  ppw->pv->y[ppw->pv->index_pt_theta_nur] = - pow(k*eta,3.)*k/36. * (23.+4.*fracnu)/(15.+4.*fracnu); /* velocity of ultra-relativistic neutrinos/relics */
-	  ppw->pv->y[ppw->pv->index_pt_shear_nur] = k*k*eta*eta*2./3./(12.+fracnu); /* shear of ultra-relativistic neutrinos/relics */
+	  ppw->pv->y[ppw->pv->index_pt_theta_nur] = - pow(k*eta,3.)*k/36. * (23.+4.*fracnu)/(15.+4.*fracnu)* ppr->curvature_ini; /* velocity of ultra-relativistic neutrinos/relics */
+	  ppw->pv->y[ppw->pv->index_pt_shear_nur] = k*k*eta*eta*2./3./(12.+fracnu)* ppr->curvature_ini; /* shear of ultra-relativistic neutrinos/relics */
 	}    
 
-	ppw->pv->y[ppw->pv->index_pt_eta] = 1.-(5.+4.*fracnu)/12./(15.+4.*fracnu)*k*k*eta*eta; /* metric perturbation eta */
+	ppw->pv->y[ppw->pv->index_pt_eta] = (1.-(5.+4.*fracnu)/12./(15.+4.*fracnu)*k*k*eta*eta)* ppr->curvature_ini; /* metric perturbation eta */
 
       }
 

@@ -63,6 +63,13 @@ int output_init(
 	       pop->error_message);
   }
 
+  if (ppt->has_matter_transfers == _TRUE_) {
+
+    class_call(output_tk(pba,ppt,psp,pop),
+	       pop->error_message,
+	       pop->error_message);
+  }
+
   return _SUCCESS_;
 
 }
@@ -437,14 +444,13 @@ int output_pk(
   FILE * out;     /* (will contain total P(k) summed eventually over initial conditions) */
   
   double * pk_ic;  /* array with argument 
-		      pk_ic[index_ic1_ic2 * psp->ln_k_size + index_k] */
+		      pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] */
 
   double * pk_tot; /* array with argument 
 		      pk_tot[index_k] */
 
   int index_mode;
   int index_ic1,index_ic2,index_ic1_ic2;
-  int l;
   int index_k;
   int index_z;
 
@@ -622,7 +628,7 @@ int output_pk(
       }
     }
   
-    /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this i9s done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of eta. */
+    /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of eta. */
   
     /* if z_pk = 0, no interpolation needed */
 
@@ -637,16 +643,16 @@ int output_pk(
 	  pk_tot[index_k] = 0.;
 	  for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]);
-	    pk_ic[index_ic1_ic2 * psp->ln_k_size + index_k] = exp(psp->ln_pk[((psp->ln_eta_size-1) * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ln_k_size + index_k]);
-	    pk_tot[index_k] += pk_ic[index_ic1_ic2 * psp->ln_k_size + index_k];
+	    pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] = exp(psp->ln_pk[((psp->ln_eta_size-1) * psp->ln_k_size + index_k) * psp->ic_ic_size[index_mode] + index_ic1_ic2]);
+	    pk_tot[index_k] += pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2];
 	  }
 	  for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	    for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
-	      pk_ic[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k] = 
-		psp->ln_pk[index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]
-		*sqrt(pk_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])* psp->ln_k_size + index_k] *
-		      pk_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])* psp->ln_k_size + index_k]);
-	      pk_tot[index_k] += 2.*pk_ic[index_ic1_ic2 * psp->ln_k_size + index_k];
+	      pk_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])] = 
+		psp->ln_pk[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])]
+		*sqrt(pk_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])] *
+		      pk_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_mode])]);
+	      pk_tot[index_k] += 2.*pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2];
 	    }
 	  }
 	}
@@ -684,7 +690,7 @@ int output_pk(
 
 	    class_call(output_one_line_of_pk(out_ic[index_ic1_ic2],
 					     exp(psp->ln_k[index_k]),
-					     pk_ic[index_ic1_ic2*psp->ln_k_size+index_k]),
+					     pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2]),
 		       pop->error_message,
 		       pop->error_message);
 	  }
@@ -712,6 +718,172 @@ int output_pk(
   return _SUCCESS_;
 
 }
+
+/** 
+ * This routines writes the output in files for matter transfer functions T_i(k)'s.
+ * 
+ * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
+ * @param ppt Input : pointer perturbation structure
+ * @param psp Input : pointer to spectra structure
+ * @param pop Input : pointer to output structure
+ */
+
+int output_tk(
+	      struct background * pba,
+	      struct perturbs * ppt,
+	      struct spectra * psp,
+	      struct output * pop
+	      ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  FILE ** out_ic; /* array of pointers to files with argument 
+		     out_ic[index_ic] 
+		     (will contain T_i(k)'s for each initial conditions) */
+    
+  double * tk;  /* array with argument 
+		      pk_ic[(index_k * psp->ic_size[index_mode] + index_ic)*psp->tr_size+index_tr] */
+
+  int index_mode;
+  int index_ic;
+  int index_k;
+  int index_z;
+  int index_tr;
+
+  FileName file_name;
+  FileName redshift_suffix;
+  char first_line[_LINE_LENGTH_MAX_];
+    
+  index_mode=ppt->index_md_scalars;
+
+  for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
+
+    /** - first, check that requested redshift z_pk is consistent */
+
+    class_test((pop->z_pk[index_z] > psp->z_max_pk),
+	       pop->error_message,
+	       "T_i(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk[index_z]);
+
+    if (pop->z_pk_num == 1) 
+      sprintf(redshift_suffix,"");
+    else
+      sprintf(redshift_suffix,"z%d_",index_z+1);
+
+    /** - second, open only the relevant files, and write a heading in each of them */
+    
+    class_alloc(out_ic,
+		psp->ic_size[index_mode]*sizeof(FILE *),
+		pop->error_message);
+    
+    class_alloc(tk,
+		psp->ln_k_size*psp->ic_size[index_mode]*psp->tr_size*sizeof(double),
+		pop->error_message);
+
+    for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+	  
+      if ((ppt->has_ad) && (index_ic == ppt->index_ic_ad)) {
+	
+	if (ppt->ic_size[index_mode] == 1)
+	  sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
+	else
+	  sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_ad.dat");
+	strcpy(first_line,"for adiabatic (AD) mode (normalized to initial curvature=1) ");
+      }
+
+      if ((ppt->has_bi) && (index_ic == ppt->index_ic_bi)) {
+
+	sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_bi.dat");
+	strcpy(first_line,"for baryon isocurvature (BI) mode (normalized to initial entropy=1)");
+      }
+	  
+      if ((ppt->has_cdi) && (index_ic == ppt->index_ic_cdi)) {
+	
+	sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_cdi.dat");
+	strcpy(first_line,"for CDM isocurvature (CDI) mode (normalized to initial entropy=1)");
+      }
+	  
+      if ((ppt->has_nid) && (index_ic == ppt->index_ic_nid)) {
+	    
+	sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_nid.dat");
+	strcpy(first_line,"for neutrino density isocurvature (NID) mode (normalized to initial entropy=1)");
+      }
+	  
+      if ((ppt->has_niv) && (index_ic == ppt->index_ic_niv)) {
+	    
+	sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_niv.dat");
+	strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
+      }
+
+      class_call(output_open_tk_file(pba,
+				     psp,
+				     pop,
+				     &(out_ic[index_ic]),
+				     file_name,
+				     first_line,
+				     pop->z_pk[index_z]
+				     ),
+		 pop->error_message,
+		 pop->error_message);
+      
+    }
+  
+    /** - third, compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of eta. */
+  
+    /* if z_pk = 0, no interpolation needed */
+
+    if (pop->z_pk[index_z] == 0.) {
+
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+	for (index_tr=0; index_tr<psp->tr_size; index_tr++) {
+	  for (index_ic=0; index_ic<psp->ic_size[index_mode]; index_ic++) {
+	    tk[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr];
+	  }
+	}
+      }
+    }
+      
+    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
+    else {
+
+      class_call(spectra_tk_at_z(pba,
+				 psp,
+				 pop->z_pk[index_z],
+				 tk),
+		 psp->error_message,
+		 pop->error_message);
+    }
+
+    /** - fourth, write in files */
+
+    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+      for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
+
+	class_call(output_one_line_of_tk(out_ic[index_ic],
+					 exp(psp->ln_k[index_k]),
+					 &(tk[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size]),
+					 psp->tr_size),
+		   pop->error_message,
+		   pop->error_message);
+      }
+    }
+
+    /** - fifth, free memory and close files */
+
+    free(tk);
+
+    for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
+      fclose(out_ic[index_ic]);
+    }
+    free(out_ic);
+ 
+  }
+  
+  return _SUCCESS_;
+  
+}
+
 
 /**
  * This routine opens one file where some C_l's will be written, and writes 
@@ -796,7 +968,7 @@ int output_one_line_of_cl(
  *
  * @param psp        Input : pointer to spectra structure
  * @param pop        Input : pointer to output structure
- * @param clfile     Output: returned pointer to file pointer
+ * @param tkfile     Output: returned pointer to file pointer
  * @param filename   Input : name of the file
  * @param first_line Input : text describing the content (initial conditions, ...)
  * @param z          Input : redshift of the output
@@ -806,39 +978,113 @@ int output_one_line_of_cl(
 int output_open_pk_file(
 			struct spectra * psp,
 			struct output * pop,
-			FILE * * clfile,
+			FILE * * tkfile,
 			FileName filename,
 			char * first_line,
 			double z
 			) {
 
-  class_open(*clfile,filename,"w",pop->error_message);
+  class_open(*tkfile,filename,"w",pop->error_message);
 
-  fprintf(*clfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*clfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0]),exp(psp->ln_k[psp->ln_k_size-1]));
-  fprintf(*clfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
-  fprintf(*clfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
+  fprintf(*tkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
+  fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0]),exp(psp->ln_k[psp->ln_k_size-1]));
+  fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+  fprintf(*tkfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
 
   return _SUCCESS_;
 }
 
 /**
- * This routine write one line with k and P(k)
+ * This routine writes one line with k and P(k)
  *
- * @param clfile  Input : file pointer
+ * @param tkfile  Input : file pointer
  * @param one_k   Input : wavenumber
  * @param one_pk  Input : matter power sectrum
  * @return the error status
  */
 
 int output_one_line_of_pk(
-			  FILE * clfile,
+			  FILE * tkfile,
 			  double one_k,
 			  double one_pk
 			  ) {
 
-  fprintf(clfile,"%e %e\n",one_k,one_pk);
+  fprintf(tkfile,"%e %e\n",one_k,one_pk);
     
+  return _SUCCESS_;
+    
+}
+
+/**
+ * This routine opens one file where some T_i(k)'s will be written, and writes 
+ * a heading with some general information concerning its content.
+ *
+ * @param psp        Input : pointer to spectra structure
+ * @param pop        Input : pointer to output structure
+ * @param tkfile     Output: returned pointer to file pointer
+ * @param filename   Input : name of the file
+ * @param first_line Input : text describing the content (initial conditions, ...)
+ * @param z          Input : redshift of the output
+ * @return the error status
+ */
+
+int output_open_tk_file(
+			struct background * pba,
+			struct spectra * psp,
+			struct output * pop,
+			FILE * * tkfile,
+			FileName filename,
+			char * first_line,
+			double z
+			) {
+
+  class_open(*tkfile,filename,"w",pop->error_message);
+
+  fprintf(*tkfile,"# Matter transfer functions T_i(k) %sat redshift z=%g\n",first_line,z); 
+  fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0]),exp(psp->ln_k[psp->ln_k_size-1]));
+  fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+  fprintf(*tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+  fprintf(*tkfile,"# T_tot stands for (delta rho_tot/rho_tot)(k,z) with eventually rho_Lambda included \n");
+  fprintf(*tkfile,"# k (h/Mpc)   ");
+  fprintf(*tkfile,"T_g            ");
+  fprintf(*tkfile,"T_b            ");
+  if (pba->has_cdm == _TRUE_)
+    fprintf(*tkfile,"T_cdm          ");
+  if (pba->has_dark_energy_fluid == _TRUE_)
+    fprintf(*tkfile,"T_de           ");
+  if (pba->has_nur == _TRUE_)
+    fprintf(*tkfile,"T_nur          ");
+  fprintf(*tkfile,"T_tot\n");
+  
+  return _SUCCESS_;
+}
+
+/**
+ * This routine writes one line with k and T_i(k)'s
+ *
+ * @param tkfile  Input : file pointer
+ * @param one_k   Input : wavenumber
+ * @param tk      Input : vector of transfer functions tk[index_tr] 
+ * @param tr_size Input : number of transfer functions
+ * @return the error status
+ */
+
+int output_one_line_of_tk(
+			  FILE * tkfile,
+			  double one_k,
+			  double * tk,
+			  int tr_size
+			  ) {
+
+  int index_tr;
+
+  fprintf(tkfile,"%e",one_k);
+    
+  for (index_tr=0; index_tr<tr_size; index_tr++)
+    fprintf(tkfile,"  %e",tk[index_tr]);
+
+  fprintf(tkfile,"\n");
+
   return _SUCCESS_;
     
 }

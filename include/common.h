@@ -366,7 +366,7 @@ struct precision
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
   int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarisation (tensor), at least 4 */
 
-  double phi_ini;     /**< initial condition for Bardeen potential for adiabatic */
+  double curvature_ini;     /**< initial condition for curvature for adiabatic */
   double entropy_ini; /**< initial condition for entropy perturbation for isocurvature */ 
   double gw_ini;      /**< initial condition for tensor metric perturbation h */
 

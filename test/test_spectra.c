@@ -99,12 +99,7 @@ main(int argc, char **argv) {
     for (index_k=0; index_k < sp.ln_k_size; index_k++)  
       fprintf(output,"%g %g\n",
 	      sp.ln_k[index_k],
-	      sp.ln_pk[(index_eta * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ln_k_size + index_k]);
-   
-
-    spectra_pk_at_k_and_z(&ba,&pm,&sp,0.01,0.,&pk,&junk);
- 
-    fprintf(output,"%g %g\n",log(0.01),log(pk));
+	      sp.ln_pk[(index_eta * sp.ln_k_size + index_k) * sp.ic_ic_size[index_mode] + index_ic1_ic2]);
 
     fclose(output);
 
@@ -125,34 +120,10 @@ main(int argc, char **argv) {
       fprintf(output,"%g",sp.ln_k[index_k]);
       for (index_tr=0; index_tr < sp.tr_size; index_tr++) {  
 	fprintf(output,"  %g",
-		sp.matter_transfer[((index_eta * sp.ic_size[index_mode] + index_ic) * sp.tr_size + index_tr) * sp.ln_k_size + index_k]);
+		sp.matter_transfer[((index_eta * sp.ln_k_size + index_k) * sp.ic_size[index_mode] + index_ic) * sp.tr_size + index_tr]);
       }
       fprintf(output,"\n");
-    }
-    
-    tk=malloc(sizeof(double)*sp.tr_size);
-    tkk=malloc(sizeof(double)*sp.tr_size*sp.ln_k_size);
-
-    spectra_tk_at_z(&ba,&sp,0.,tkk);
-
-    for (index_k=0; index_k < sp.ln_k_size; index_k++) {
-      fprintf(output,"%g",sp.ln_k[index_k]);
-      for (index_tr=0; index_tr < sp.tr_size; index_tr++) {  
-	fprintf(output," %g",tk[index_tr*sp.ln_k_size+index_k]);
-      }
-      fprintf(output,"\n");
-    }
-
-/*     spectra_tk_at_k_and_z(&ba,&sp,0.01,0.,tk); */
-
-/*     fprintf(output,"%g",log(0.01)); */
-/*     for (index_tr=0; index_tr < sp.tr_size; index_tr++) {   */
-/*       fprintf(output," %g",tk[index_tr]); */
-/*     } */
-/*     fprintf(output,"\n"); */
-
-    fclose(output);
-
+    }    
   }
 
   

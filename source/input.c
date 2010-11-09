@@ -846,7 +846,7 @@ int input_init(
   class_read_int("l_max_nur",ppr->l_max_nur);
   class_read_int("l_max_g_ten",ppr->l_max_g_ten);
   class_read_int("l_max_pol_g_ten",ppr->l_max_pol_g_ten);
-  class_read_double("phi_ini",ppr->phi_ini);
+  class_read_double("curvature_ini",ppr->curvature_ini);
   class_read_double("entropy_ini",ppr->entropy_ini);
   class_read_double("gw_ini",ppr->gw_ini);
   class_read_double("perturb_integration_stepsize",ppr->perturb_integration_stepsize);
@@ -1199,8 +1199,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 
-  ppr->phi_ini=1.;
-  ppr->entropy_ini=1.;
+  ppr->curvature_ini=1.; /* initial curvature; used to fix adiabatic initial conditions; must remain fixed to one as long as the primordial adiabatic spectrum stands for the curvature power spectrum */
+  ppr->entropy_ini=1.;   /* initial entropy; used to fix isocurvature initial conditions; must remain fixed to one as long as the primordial isocurvature spectrum stands for an entropy power spectrum */
   ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
 
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 

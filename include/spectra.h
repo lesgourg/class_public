@@ -91,7 +91,7 @@ struct spectra {
 
   double * ln_pk;   /**< Matter power spectrum.
 		      depends on indices index_mode, index_ic1, index_ic2, index_k as:
-		      ln_pk[(index_eta * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->k_size + index_k]
+		      ln_pk[(index_eta * psp->k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2]
 		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
 		      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
 		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
@@ -122,13 +122,9 @@ struct spectra {
   int index_tr_tot; /**< index of total matter transfer function */
   int tr_size;      /**< total number of species in transfer functions */
 
-  double * matter_transfer;   /**< Transfer functions.  depends on
-				 indices index_mode, index_ic,
-				 index_k, index_tr as:
-				 matter_transfer[((index_eta *
-				 psp->ic_size[index_mode] + index_ic)
-				 * psp->tr_size + index_tr) *
-				 psp->ln_k_size + index_k]
+  double * matter_transfer;   /**< Matter transfer functions.  
+	Depends on indices index_mode,index_eta,index_ic,index_k, index_tr as:
+        matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr]
 		       */
   double * ddmatter_transfer; /**< second derivative of above array with respect to log(eta), for spline interpolation. */
   
