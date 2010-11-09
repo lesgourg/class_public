@@ -55,7 +55,7 @@ struct perturbs
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
-  short has_transfers;                /**< do we need to output individual transfer functions? */
+  short has_matter_transfers;         /**< do we need to output individual matter transfer functions? */
 
   int l_scalar_max; /**< maximum l value for scalars C_ls */
   int l_tensor_max; /**< maximum l value for tensors C_ls */

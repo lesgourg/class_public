@@ -486,7 +486,7 @@ int perturb_indices_of_perturbs(
       else
 	ppt->has_source_g = _FALSE_;
 
-      if (ppt->has_transfers == _TRUE_) {
+      if (ppt->has_matter_transfers == _TRUE_) {
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_delta_g = _TRUE_;
 	ppt->index_tp_delta_g = index_type;
@@ -2428,7 +2428,7 @@ int perturb_timescale_and_approximations(
     if ((eta_h/eta_k > ppr->rad_pert_trigger_k_over_aH) && 
 	//      (eta > eta_visibility_free_streaming) && /* optionally this line could be restored, to check that this does not happen before recombination is completed) */
 	(pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r) &&
-	(ppt->has_transfers == _FALSE_)) {
+	(ppt->has_matter_transfers == _FALSE_)) {
       
       if (pa->fsa == fsa_off) (*num_of_changing_approximations)++;
       pa->fsa = fsa_on;

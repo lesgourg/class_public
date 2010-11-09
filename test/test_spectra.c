@@ -63,30 +63,101 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  FILE * output;
+  int index_mode=0;
+
   /****** output Cls ******/
 
-  int index_mode=0;
   int index_ic1_ic2=0;
   int index_ct=0;
   int index_l;
+
+  if (pt.has_cmb == _TRUE_) {
   
-  for (index_l=0; index_l < sp.l_size[index_mode]; index_l++)
-    printf("%g %g\n",
-	   sp.l[index_mode][index_l],
-	   sp.cl[index_mode][(index_l * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ct_size + index_ct]);
-  
+    output=fopen("output/testing_cls.dat","w");
+    
+    for (index_l=0; index_l < sp.l_size[index_mode]; index_l++)
+      fprintf(output,"%g %g\n",
+	      sp.l[index_mode][index_l],
+	      sp.cl[index_mode][(index_l * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ct_size + index_ct]);
+    
+    fclose(output);
+
+  }
+
   /****** output P(k) ******/
 
-/*   int index_mode=0; */
-/*   int index_ic1_ic2=0; */
   int index_eta = sp.ln_eta_size-1;
   int index_k;
-  
-  for (index_k=0; index_k < sp.ln_k_size; index_k++)  
-    printf("%g %g\n",
-	   sp.ln_k[index_k],
-	   sp.ln_pk[(index_eta * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ln_k_size + index_k]);
+  double pk;
+  double junk;
 
+  if (pt.has_pk_matter == _TRUE_) {
+    
+    output=fopen("output/testing_pks.dat","w");
+    
+    for (index_k=0; index_k < sp.ln_k_size; index_k++)  
+      fprintf(output,"%g %g\n",
+	      sp.ln_k[index_k],
+	      sp.ln_pk[(index_eta * sp.ic_ic_size[index_mode] + index_ic1_ic2) * sp.ln_k_size + index_k]);
+   
+
+    spectra_pk_at_k_and_z(&ba,&pm,&sp,0.01,0.,&pk,&junk);
+ 
+    fprintf(output,"%g %g\n",log(0.01),log(pk));
+
+    fclose(output);
+
+  }
+
+  /****** output T_i(k) ******/
+
+  int index_ic=0;
+  int index_tr;
+  double * tk;
+  double * tkk;
+
+  if (pt.has_matter_transfers == _TRUE_) {
+
+    output=fopen("output/testing_tks.dat","w");
+
+    for (index_k=0; index_k < sp.ln_k_size; index_k++) {
+      fprintf(output,"%g",sp.ln_k[index_k]);
+      for (index_tr=0; index_tr < sp.tr_size; index_tr++) {  
+	fprintf(output,"  %g",
+		sp.matter_transfer[((index_eta * sp.ic_size[index_mode] + index_ic) * sp.tr_size + index_tr) * sp.ln_k_size + index_k]);
+      }
+      fprintf(output,"\n");
+    }
+    
+    tk=malloc(sizeof(double)*sp.tr_size);
+    tkk=malloc(sizeof(double)*sp.tr_size*sp.ln_k_size);
+
+    spectra_tk_at_z(&ba,&sp,0.,tkk);
+
+    for (index_k=0; index_k < sp.ln_k_size; index_k++) {
+      fprintf(output,"%g",sp.ln_k[index_k]);
+      for (index_tr=0; index_tr < sp.tr_size; index_tr++) {  
+	fprintf(output," %g",tk[index_tr*sp.ln_k_size+index_k]);
+      }
+      fprintf(output,"\n");
+    }
+
+/*     spectra_tk_at_k_and_z(&ba,&sp,0.01,0.,tk); */
+
+/*     fprintf(output,"%g",log(0.01)); */
+/*     for (index_tr=0; index_tr < sp.tr_size; index_tr++) {   */
+/*       fprintf(output," %g",tk[index_tr]); */
+/*     } */
+/*     fprintf(output,"\n"); */
+
+    fclose(output);
+
+  }
+
+  
+
+  /****************************/
 
   if (primordial_free(&pm) == _FAILURE_) {
     printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);

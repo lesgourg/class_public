@@ -68,7 +68,7 @@ main(int argc, char **argv) {
     fclose(output);
   }
 
-  if (pt.has_transfers == _TRUE_) {
+  if (pt.has_matter_transfers == _TRUE_) {
 
     FILE * output;
     int index_k,index_eta;
