@@ -2265,74 +2265,99 @@ int trg_logstep2_k (
 int trg_init (
 	      struct precision * ppr, /* input */
 	      struct background * pba, /**< structure containing all background evolution */
+	      struct thermo *pth,
 	      struct primordial * ppm,
 	      struct spectra * psp, /**< structure containing list of k, z and P(k,z) values) */
 	      struct spectra_nl * pnl /* output */ 
 	      ) {
 
   FILE *nl_spectra;
+  char filename[50];
 
-  time_t time_1,time_2;
-
-  int index_k;
-  int index_eta;
+  double temp; 
+  double * junk;
 
   int index_ic=0; /*or ppt->index_ic; adiabatic=0 */
 
-  double * temp_k;
-  double temp; 
-  
-  int index_name,name_size;
-  double ** AA;
+  /** Variables for time control of the computation */
 
-  /*
-    Variables of calculation, k and eta, and initialization
-  */
+  time_t time_1,time_2;
 
-  double logstepk;
+  /** Wave-number (k) quantities */
 
+  int index_k;
   int temp_index_k;
+
+  double * temp_k;
+  double logstepk;
+  double fourpi_over_k;
+
+  /** Time (t or eta) quantities */
+
+  int index_eta;
+
+  int index;  
+  int index_plus; 
+
+  double a_ini;
+  double z_ini;
+  double eta_max;
+  double exp_eta;
+
+  /** Variables of calculation */
 
   double *pk_linear11;
   double *pk_linear12;
   double *pk_linear22;
 
-  double a_ini;
-  double z_ini;
-  double eta_max;
-  double * Omega_m, *Omega_r,* H, *H_prime;
+  double * transfer;
 
-  double exp_eta;
-  double fourpi_over_k;
-  int index;  
-  int index_plus; /* intermediate variables for time integration */
-  
-  double Omega_11,Omega_12; /* Definition of the matrix Omega that
-			       mixes terms together, two are k
-			       indepedant and two dependant*/
-  double *Omega_21,*Omega_22;
+  double * tr_g, *tr_b, *tr_cdm, *tr_nur;
 
-  double *a0,*a11,*a12,*a13,*a21,*a22,*a23,*a3;
-  double *b0,*b11,*b12,*b21,*b22,*b3; /* Definition of the variables
-					 1ijk,lmn and 2 ijk,lmn that
-					 replace the Bispectra
-					 variables*/
+  /** Background quantities */
 
   double * pvecback_nl;
+  double * Omega_m, * H, *H_prime;
+  double * rho_g, *rho_b, *rho_cdm, *rho_nur;
 
-  char filename[50];
+  /** Thermodynamical quantities */
 
-  double * junk;
+  double * cb2;
+  double * pvecthermo;
+  int last_index;
 
-  /* This code can be optionally compiled with the openmp option for parallel computation.
-     Inside parallel regions, the use of the command "return" is forbidden.
-     For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
-     parallel region. */
+  /**
+   * Definition of the matrix Omega that mixes terms together,
+   * two are k indepedant and two dependant
+   */
+
+  double Omega_11,Omega_12;
+  double *Omega_21,*Omega_22;
+
+  /**
+   * Definition of the variables 1 ijk,lmn and 2 ijk,lmn that
+   * replace the Bispectra variables, and of the A's.
+   */
+
+  double *a0,*a11,*a12,*a13,*a21,*a22,*a23,*a3;
+  double *b0,*b11,*b12,*b21,*b22,*b3;
+
+  int index_name,name_size;
+  double ** AA;
+
+  /**
+   * This code can be optionally compiled with the openmp option for parallel computation.
+   *
+   * Inside parallel regions, the use of the command "return" is forbidden.
+   *
+   * For error management, instead of "return _FAILURE_", we will set the variable below
+   * to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
+   * parallel region. 
+   */
   int abort;
 
 #ifdef _OPENMP
-  /* instrumentation times */
+  /** instrumentation times */
   double tstart, tstop;
 #endif
 
@@ -2347,18 +2372,20 @@ int trg_init (
 
   class_calloc(pvecback_nl,pba->bg_size,sizeof(double),pnl->error_message);
 
-  /* define initial eta and redshift */
+  /** define initial eta and redshift */
+
   a_ini = pba->a_today/(pnl->z_ini + 1.);
 
-  /* define eta_max, where eta=log(a/a_ini) */
+  /** define eta_max, where eta=log(a/a_ini) */
+
   eta_max = log(pba->a_today/a_ini);
 
-  /* define size and step for integration in eta */
+  /** define size and step for integration in eta, at any time now, a = a_ini * exp(eta) and z=exp(eta)-1 */
+
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
 
-  /* at any time, a = a_ini * exp(eta) and z=exp(eta)-1*/
-  
-  /* find total number of k values in the module */
+  /** find total number of k values in the module */
+
   index_k=0;
   class_calloc(temp_k,2000,sizeof(double),pnl->error_message);
   temp_k[0]=pnl->k_min;
@@ -2371,8 +2398,8 @@ int trg_init (
     index_k++;
     temp_k[index_k]=temp_k[index_k-1]*logstepk;
   }
+
   temp_k[index_k]=temp_k[index_k-1]*logstepk;
-/*   temp_k[index_k]=temp_k[index_k-1]*1.01; */
   temp_index_k=index_k;
 
   while(temp_k[index_k]<pnl->k_max){
@@ -2437,15 +2464,40 @@ int trg_init (
   if (pnl->spectra_nl_verbose > 0)
     printf(" -> starting calculation at redshift z = %2.2f\n",pnl->z[0]);
 
-  /* definition of background values for each eta */
+  /** Definition of thermodynamical values */
 
-  class_alloc(Omega_m,pnl->eta_size*sizeof(double),pnl->error_message);
-  class_alloc(Omega_r,pnl->eta_size*sizeof(double),pnl->error_message);
-  class_alloc(H,pnl->eta_size*sizeof(double),pnl->error_message);
-  class_alloc(H_prime,pnl->eta_size*sizeof(double),pnl->error_message);
+  class_calloc(pvecthermo,pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(cb2,       pnl->eta_size,sizeof(double),pnl->error_message);
+
+  for(index_eta=0; index_eta < pnl->eta_size; index_eta++){
+    class_call(thermodynamics_at_z(
+				   pba,
+	                           pth,
+	                           pnl->z[index_eta],
+	                           normal, 
+	                           &last_index,
+	                           pvecback_nl,
+	                           pvecthermo
+	                           ),
+	       pth->error_message,
+	       pnl->error_message);
+
+    cb2[index_eta]=pvecthermo[pth->index_th_cb2];
+  }
+
+  /** Definition of background values */
+
+  class_alloc(Omega_m,pnl->eta_size * sizeof(double),pnl->error_message);
+
+  class_alloc(rho_g,  pnl->eta_size * sizeof(double),pnl->error_message);
+  class_alloc(rho_nur,pnl->eta_size * sizeof(double),pnl->error_message);
+  class_alloc(rho_b,  pnl->eta_size * sizeof(double),pnl->error_message);
+  class_alloc(rho_cdm,pnl->eta_size * sizeof(double),pnl->error_message);
+
+  class_alloc(H,      pnl->eta_size * sizeof(double),pnl->error_message);
+  class_alloc(H_prime,pnl->eta_size * sizeof(double),pnl->error_message);
   
-
-  for (index_eta=0; index_eta<pnl->eta_size; index_eta++){
+  for (index_eta=0; index_eta < pnl->eta_size; index_eta++){
     class_call(background_functions(
 				    pba,
 				    a_ini*exp(pnl->eta[index_eta]),
@@ -2460,46 +2512,69 @@ int trg_init (
       Omega_m[index_eta] += pvecback_nl[pba->index_bg_rho_cdm]/pvecback_nl[pba->index_bg_rho_crit];
     }
 
-    Omega_r[index_eta] = pvecback_nl[pba->index_bg_rho_g]/pvecback_nl[pba->index_bg_rho_crit];
-    if (pba->has_nur == _TRUE_) {
-      Omega_r[index_eta] += pvecback_nl[pba->index_bg_rho_nur]/pvecback_nl[pba->index_bg_rho_crit];
-    }
+    rho_g[index_eta]   = pvecback_nl[pba->index_bg_rho_g];
+    rho_nur[index_eta] = pvecback_nl[pba->index_bg_rho_nur];
+    rho_b[index_eta]   = pvecback_nl[pba->index_bg_rho_b];
+    rho_cdm[index_eta] = pvecback_nl[pba->index_bg_rho_cdm];
     
     H[index_eta] = pvecback_nl[pba->index_bg_H] * a_ini * exp(pnl->eta[index_eta]);
     H_prime[index_eta] =H[index_eta]*(1 + pvecback_nl[pba->index_bg_H_prime] / a_ini * exp(-pnl->eta[index_eta])/pvecback_nl[pba->index_bg_H]/pvecback_nl[pba->index_bg_H]);
+    /*printf("%e %e %e %e %e %e\n",pnl->eta[index_eta],cb2[index_eta],rho_g[index_eta],rho_nur[index_eta],rho_b[index_eta],rho_cdm[index_eta]);*/
     
   }
 
-  /* now Omega_m, H are known at each eta */
+  /** Definition of the transfert functions for each relevant species */
 
-  /* Definition of the matrix elements Omega_11,Omega_12, Omega_22,
-     Omega_12 for each eta, to modify in order to take into account
-     more physics with a k dependence, for instance */
+  class_calloc(tr_g,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(tr_nur, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(tr_b,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(tr_cdm, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+
+  class_calloc(transfer,psp->tr_size,sizeof(double),pnl->error_message);
+
+  for (index_eta=0; index_eta < pnl->eta_size; index_eta++){
+    for (index_k=0; index_k < pnl->k_size; index_k++){
+      class_call(spectra_tk_at_k_and_z(
+                                       pba,
+				       psp,
+				       pnl->k[index_k],
+				       pnl->eta[index_eta],
+				       transfer
+	                               ),
+	         psp->error_message,
+		 pnl->error_message);
+       
+      tr_g[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_g];
+      tr_nur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_nur];
+      tr_b[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_b];
+      tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm];
+   if(index_eta==0 || index_eta==1)  printf("%e %e %e %e %e\n",pnl->k[index_k],tr_g[index_k+pnl->k_size*index_eta],tr_nur[index_k+pnl->k_size*index_eta],tr_b[index_k+pnl->k_size*index_eta],tr_cdm[index_k+pnl->k_size*index_eta]);
+    }
+    if(index_eta==0 || index_eta==1)printf("\n\n");
+  }
+  /** Definition of the matrix elements Omega_11,Omega_12, Omega_22,Omega_12 for each k and eta */
 
   Omega_11 = 1.;
   Omega_12 = -1.;
   
-  class_alloc(Omega_21,pnl->eta_size*sizeof(double),pnl->error_message);
-  class_alloc(Omega_22,pnl->eta_size*sizeof(double),pnl->error_message);
+  class_calloc(Omega_21, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(Omega_22, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
 
- /*  if(pnl->mode!=1) { */
-/*     for(index_eta=0; index_eta<pnl->eta_size; index_eta++) { */
-/*       Omega_21[index_eta] = -3./2 * Omega_m[index_eta]; */
-/*       Omega_22[index_eta] = 2 + H_prime[index_eta]/H[index_eta]; */
-/*     }  */
-/*   } */
+  for(index_eta=0; index_eta < pnl->eta_size; index_eta++) {
+    for(index_k=0; index_k < pnl->k_size; index_k++) {
+      
+      index=index_k+pnl->k_size*index_eta;
 
-/*   else { */
-/*     for(index_eta=0; index_eta<pnl->eta_size; index_eta++) { */
-/*       Omega_21[index_eta] = -3./2; */
-/*       Omega_22[index_eta] = 3./2; */
-/*     } */
-/*   } */
+      Omega_21[index] = -3./2 * Omega_m[index_eta] * (1. + 
+	  4./3*(rho_g[index_eta]*tr_g[index]+ 
+	        rho_nur[index_eta]*tr_nur[index])
+	  /(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index]) 
+	  - 2./3*pow(H[index_eta],2)*cb2[index_eta]*pow(pnl->k[index_k],2)*rho_b[index_eta]*tr_b[index]/
+	  (Omega_m[index_eta]*(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index])));
 
-  for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {
-    Omega_21[index_eta] = -3./2 * (Omega_m[index_eta]+ 4/3*Omega_r[index_eta]);
-    Omega_22[index_eta] = 2 + H_prime[index_eta]/H[index_eta];
+      Omega_22[index] = 2 + H_prime[index_eta]/H[index_eta];
     }
+  }
 
   /* Definition of P_11=pk_nl, P_12=<delta theta> and P_22=<theta
      theta>, and initialization at eta[0]=0, k[0] 
@@ -2727,64 +2802,64 @@ int trg_init (
 	+ pnl->pk_nl[index];
 
       pnl->p_22_nl[index_plus] = pnl->eta_step *(
-					    -2*Omega_22[index_eta-1]*pnl->p_22_nl[index]
-					    -2*Omega_21[index_eta-1]*pnl->p_12_nl[index]
+					    -2*Omega_22[index]*pnl->p_22_nl[index]
+					    -2*Omega_21[index]*pnl->p_12_nl[index]
 					    +exp_eta*2*fourpi_over_k*b3[index] )
 	+ pnl->p_22_nl[index];
 
       pnl->p_12_nl[index_plus] = pnl->eta_step *(
-					    -pnl->p_12_nl[index]*(Omega_11+Omega_22[index_eta-1])
+					    -pnl->p_12_nl[index]*(Omega_11+Omega_22[index])
 					    -Omega_12*pnl->p_22_nl[index]
-					    -Omega_21[index_eta-1]*pnl->pk_nl[index]
+					    -Omega_21[index]*pnl->pk_nl[index]
 					    +exp_eta*fourpi_over_k*(2*a13[index]+b21[index]))
 	+ pnl->p_12_nl[index];
 
 
       a0[index_plus]         = pnl->eta_step *(
-					  -Omega_21[index_eta-1]*(a11[index]+a12[index]+a13[index])
-					  -3*Omega_22[index_eta-1]*a0[index]
+					  -Omega_21[index]*(a11[index]+a12[index]+a13[index])
+					  -3*Omega_22[index]*a0[index]
 					  +2*exp_eta*AA[_A0_][index])
 	+ a0[index];
 
       a11[index_plus]        = pnl->eta_step *(
-					  -a11[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -a11[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_12*a0[index]
-					  -Omega_21[index_eta-1]*(a22[index]+a23[index])
+					  -Omega_21[index]*(a22[index]+a23[index])
 					  +2*exp_eta*AA[_A11_][index])
 	+ a11[index];
 
       a12[index_plus]        = pnl->eta_step *(
-					  -a12[index]*(2*Omega_22[index_eta-1]+Omega_11)
-					  -Omega_21[index_eta-1]*(a23[index]+a21[index])
+					  -a12[index]*(2*Omega_22[index]+Omega_11)
+					  -Omega_21[index]*(a23[index]+a21[index])
 					  -Omega_12*a0[index]
 					  +2*exp_eta*AA[_A12_][index])
 	+ a12[index];
 
       a13[index_plus]        = pnl->eta_step *(
-					  -a13[index]*(2*Omega_22[index_eta-1]+Omega_11)
+					  -a13[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_12*a0[index]
-					  -Omega_21[index_eta-1]*(a22[index]+a21[index])
+					  -Omega_21[index]*(a22[index]+a21[index])
 					  +2*exp_eta*AA[_A13_][index])
 	+ a13[index];
 
       a21[index_plus]        = pnl->eta_step *(
-					  -a21[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -a21[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a12[index]+a13[index])
-					  -Omega_21[index_eta-1]*a3[index]
+					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A21_][index])
 	+ a21[index];
 
       a22[index_plus]        = pnl->eta_step *(
-					  -a22[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -a22[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a13[index]+a11[index])
-					  -Omega_21[index_eta-1]*a3[index]
+					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A22_][index])
 	+ a22[index];
 
       a23[index_plus]        = pnl->eta_step *(
-					  -a23[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -a23[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a12[index]+a11[index])
-					  -Omega_21[index_eta-1]*a3[index]
+					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A23_][index])
 	+ a23[index];
 
@@ -2801,36 +2876,36 @@ int trg_init (
 	+ b0[index];
 
       b11[index_plus]        = pnl->eta_step *(
-					  -b11[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -b11[index]*(2*Omega_11+Omega_22[index])
 					  -2*Omega_12*b22[index]
-					  -Omega_21[index_eta-1]*b0[index]
+					  -Omega_21[index]*b0[index]
 					  +2*exp_eta*AA[_B11_][index])
 	+ b11[index];
 
       b12[index_plus]        = pnl->eta_step *(
-					  -b12[index]*(2*Omega_11+Omega_22[index_eta-1])
+					  -b12[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(b22[index]+b21[index])
-					  -Omega_21[index_eta-1]*b0[index]
+					  -Omega_21[index]*b0[index]
 					  +2*exp_eta*AA[_B12_][index])
 	+ b12[index];
 
       b21[index_plus]        = pnl->eta_step *(
-					  -b21[index]*(2*Omega_22[index_eta-1]+Omega_11)
-					  -2*Omega_21[index_eta-1]*b12[index]
+					  -b21[index]*(2*Omega_22[index]+Omega_11)
+					  -2*Omega_21[index]*b12[index]
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B21_][index])
 	+ b21[index];
 
       b22[index_plus]        = pnl->eta_step *(
-					  -b22[index]*(2*Omega_22[index_eta-1]+Omega_11)
-					  -Omega_21[index_eta-1]*(b12[index]+b11[index])
+					  -b22[index]*(2*Omega_22[index]+Omega_11)
+					  -Omega_21[index]*(b12[index]+b11[index])
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B22_][index])
 	+ b22[index];
 
       b3[index_plus]         = pnl->eta_step *(
-					  -3*Omega_22[index_eta-1]*b3[index]
-					  -Omega_21[index_eta-1]*(b21[index]+2*b22[index])
+					  -3*Omega_22[index]*b3[index]
+					  -Omega_21[index]*(b21[index]+2*b22[index])
 					  +2*exp_eta*AA[_B3_][index])
 	+ b3[index];
 	
@@ -2844,15 +2919,15 @@ int trg_init (
 	+ pk_linear11[index];
 
       pk_linear22[index_plus] = pnl->eta_step *(
-					   -2*Omega_22[index_eta-1]*pk_linear22[index]
-					   -2*Omega_21[index_eta-1]*pk_linear12[index]
+					   -2*Omega_22[index]*pk_linear22[index]
+					   -2*Omega_21[index]*pk_linear12[index]
 					   )
 	+ pk_linear22[index];
 
       pk_linear12[index_plus] = pnl->eta_step *(
-					   -pk_linear12[index]*(Omega_11+Omega_22[index_eta-1])
+					   -pk_linear12[index]*(Omega_11+Omega_22[index])
 					   -Omega_12*pk_linear22[index]
-					   -Omega_21[index_eta-1]*pk_linear11[index]
+					   -Omega_21[index]*pk_linear11[index]
 					   )
 	+ pk_linear12[index];
     }

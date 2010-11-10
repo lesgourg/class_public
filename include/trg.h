@@ -214,6 +214,7 @@ extern "C" {
   int trg_init(
 	       struct precision *ppr,
 	       struct background *pba,
+	       struct thermo *pth,
 	       struct primordial *ppm,
 	       struct spectra *psp,
 	       struct spectra_nl *pnl
