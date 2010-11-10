@@ -1,10 +1,35 @@
-/** @file trg.c Document Time Renormalization Group module
- *  Benjamin Audren, 25.10.2010
+/** @file trg.c Documented Time Renormalization Group module
  *
- *  Computes the non linear matter spectra P_k with Time
- *  Renormalization Group method given the linear power spectrum at
- *  z_ini. No initial non-gaussianity assumed.
+ * Benjamin Audren, 10.11.2010
  *
+ * Computes the non linear matter spectra P_k with Time
+ * Renormalization Group method given the linear power spectrum at
+ * z_ini. No initial non-gaussianity assumed. The matter density perturbation
+ * is here understood as the barycenter of the baryon density and cdm density.
+ * Hereafter, 'matter' is used in this sense.
+ *
+ * The logic is the following :
+ *
+ * - in a first step, recover all relevant information from all other modules,
+ *   namely from background (all \rho's and \Omega), thermodynamics
+ *   (sound speed of baryons) and spectra (the initial matter power 
+ *   spectrum and transfer functions for every needed k).
+ *
+ * - in a second step, initialize all relevant quantities, i.e. the matter power 
+ *   spectra and the I's variables (that contain the matter bispectra).
+ *
+ * - in a third step, compute the A variables (complicated functions of the matter 
+ *   power spectra), at first time.
+ *
+ * - the final step consists in a loop, where the matter power spectra and I's are
+ *   computed step by step in time, by integrating the system of equation. With
+ *   the new spectra, the code computes the new A's, and continues the loop.
+ *
+ * - by default, a file is written for every step in time, with all spectra information
+ *   and all A's. TO BE MODIFIED to output I's : useful information, even maybe B's ?
+ *
+ * - the quantities pnl->pk_nl, pnl->p_12_nl, pnl->p_22_nl are written after the call
+ *   of trg_init() 
  **/
 
 #include "precision.h"
@@ -22,11 +47,16 @@
 #endif
 
 
-/********************
+/**
+ * Gamma function 121, for any set of wavevectors (k,p,q)
  *
- * Vertex functions encoding the non linear behaviour
+ * Encodes the non linear behaviour of the evolution
  *
- ********************/
+ * @param k       Input: wave-vector
+ * @param p       Input: wave-vector
+ * @param q       Input: wave-vector
+ * @param result  Output: computed the rational
+ */
 
 int trg_gamma_121(
 		  double  k, 
@@ -38,6 +68,16 @@ int trg_gamma_121(
   return _SUCCESS_;
 }
 
+/**
+ * Gamma function 222, for any set of wavevectors (k,p,q)
+ *
+ * Encodes the non linear behaviour of the evolution
+ *
+ * @param k       Input: wave-vector
+ * @param p       Input: wave-vector
+ * @param q       Input: wave-vector
+ * @param result  Output: computed the rational
+ */
 
 
 int trg_gamma_222(
