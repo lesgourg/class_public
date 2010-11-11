@@ -2427,8 +2427,8 @@ int perturb_timescale_and_approximations(
 
     if ((eta_h/eta_k > ppr->rad_pert_trigger_k_over_aH) && 
 	//      (eta > eta_visibility_free_streaming) && /* optionally this line could be restored, to check that this does not happen before recombination is completed) */
-	(pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r) &&
-	(ppt->has_matter_transfers == _FALSE_)) {
+	(pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r)) {
+/* 	&& (ppt->has_matter_transfers == _FALSE_)) { add this condition if want to output transfer functions delta_g, delta_nur at very small redshift for very large k... */
       
       if (pa->fsa == fsa_off) (*num_of_changing_approximations)++;
       pa->fsa = fsa_on;
@@ -2949,8 +2949,13 @@ int perturb_source_terms(
 
       /* delta_g */
       if ((ppt->has_source_delta_g == _TRUE_) && (index_type == ppt->index_tp_delta_g)) {
-	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
-	  pvecperturbations[ppw->pv->index_pt_delta_g]; 
+	if (pa->fsa==fsa_off) {
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	    pvecperturbations[ppw->pv->index_pt_delta_g];
+	}
+	else {
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 0.;
+	}
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
@@ -2981,8 +2986,13 @@ int perturb_source_terms(
 
       /* delta_nur */
       if ((ppt->has_source_delta_nur == _TRUE_) && (index_type == ppt->index_tp_delta_nur)) {
-	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
-	  pvecperturbations[ppw->pv->index_pt_delta_nur];
+	if (pa->fsa==fsa_off) {
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	    pvecperturbations[ppw->pv->index_pt_delta_nur];
+	}
+	else {
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 0.;
+	}
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }

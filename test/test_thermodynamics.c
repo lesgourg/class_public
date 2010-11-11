@@ -49,7 +49,7 @@ main(int argc, char **argv) {
   printf("#7: visibility function g = kappa' e^-kappa \n");
   printf("#8: derivative of visibility function g' \n");
   printf("#9: second derivative of visibility function g'' \n");
-  printf("#10: baryon temperature \n");
+  printf("#10: squared baryon temperature\n");
   printf("#11: squared baryon sound speed c_b^2 \n");
   printf("#12: variation rate \n");
 
