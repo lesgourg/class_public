@@ -91,57 +91,14 @@ extern "C" {
 		    double * result,
 		    char * errmsg
 		    );
-
-  int trg_p12_at_k(
-	      struct background * pba,
-	      struct primordial * ppm,
-	      struct spectra * psp,
-	      struct spectra_nl * pnl,
-	      int index_eta,
-	      int index_ic,
-	      double k,
-	      double * result
-	      );
-
-  int trg_p22_at_k(
-	      struct background * pba,
-	      struct primordial * ppm,
-	      struct spectra * psp,
-	      struct spectra_nl * pnl,
-	      int index_eta,
-	      int index_ic,
-	      double k,
-	      double * result
-	      );
   
-  int trg_p11_at_k(
-	      struct background * pba,
-	      struct primordial * ppm,
-	      struct spectra * psp,
-	      struct spectra_nl * pnl,
-	      int index_eta,
-	      int index_ic,
-	      double k,
-	      double *result				
-	      );
-  
-  int trg_ddp_ab(
-		 struct spectra_nl * pnl,
-		 double *p_ab,
-		 int index_eta,
-		 double *result,
-		 char * errmsg
-		 );
-		 
-
   int trg_p_ab_at_any_k(
 			struct spectra_nl * pnl,
 			double * p_ab,
 			double * ddp_ab,
 			int index_eta,
 			double any_k,
-			double * result,
-			char *errmsg
+			double * result
 			);
 
 
@@ -159,9 +116,8 @@ extern "C" {
 		double p, 
 		double m, 
 		int index_eta,
-		int index_k, /**< used only for testing, could be supressed */
-		double * result, 
-		char * errmsg);
+		double * result 
+		);
 
   int trg_A_arg_one_loop(
 			 struct spectra_nl * pnl,
@@ -169,9 +125,8 @@ extern "C" {
 			 double k, 
 			 double p, 
 			 double m, 
-			 int index_k, /**< used only for testing, could be supressed */
-			 double * result, 
-			 char * errmsg);
+			 double * result 
+			 );
 
   /********************
    * Choice between one loop or trg during integration
@@ -202,8 +157,7 @@ extern "C" {
 			      struct spectra_nl * pnl,
 			      enum name_A name,
 			      int index_eta,
-			      double * result,
-			      char * errmsg
+			      double * result
 			      );
 
   int trg_logstep_k( 
