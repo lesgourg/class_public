@@ -34,7 +34,7 @@ main(int argc, char **argv) {
 
   parameter_initial=6.e-6;
   parameter_logstep=1.5;
-  param_num=11;
+  param_num=101;
   
   l_max=2500;
 
@@ -43,7 +43,7 @@ main(int argc, char **argv) {
   for (i=0; i<param_num; i++) {
     class_alloc(cl[i],(l_max+1)*sizeof(double*),errmsg);
     for (l=2; l <= l_max; l++)
-      class_alloc(cl[i][l],6*sizeof(double),errmsg);
+      class_alloc(cl[i][l],sizeof(double),errmsg);
   }
 
   parser_init(&fc,3,errmsg);
@@ -54,15 +54,23 @@ main(int argc, char **argv) {
   strcpy(fc.name[1],"l_max_scalars");
   sprintf(fc.value[1],"%d",l_max);
  
-  strcpy(fc.name[2],"transfer_cut_threshold_cl");
+  strcpy(fc.name[2],"perturbations_verbose");
+  sprintf(fc.value[2],"%d",2);
+
+/*   strcpy(fc.name[2],"transfer_cut_threshold_cl"); */
+
+/*   if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) { */
+/*     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);  */
+/*     return _FAILURE_; */
+/*   } */
 
   for (i=0; i<param_num; i++) {
 
-    parameter[i] = parameter_initial / exp((double)i*log(parameter_logstep));
+/*     parameter[i] = parameter_initial / exp((double)i*log(parameter_logstep)); */
 
-    sprintf(fc.value[2],"%g",parameter[i]);
-    fprintf(stderr,"#run with %s\n",fc.value[2]);
-    fprintf(stdout,"#run with %s\n",fc.value[2]);
+/*     sprintf(fc.value[2],"%g",parameter[i]); */
+/*     fprintf(stderr,"#run with %s\n",fc.value[2]); */
+/*     fprintf(stdout,"#run with %s\n",fc.value[2]); */
 
     if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
       printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -71,13 +79,13 @@ main(int argc, char **argv) {
 
     class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,cl[i],errmsg);
 
-    for (l=2; l <= 2500; l++)
-      printf("%d %e %e %e\n",l,
-	     (l*(l+1)/2./_PI_)*cl[i][l][0],  /* here cl is the dimensionless C_l */
-	     (l*(l+1)/2./_PI_)*cl[i][l][1],  /* multiply by pow((th.Tcmb*1.e6),2) for muK */
-	     (l*(l+1)/2./_PI_)*cl[i][l][2]);
+/*     for (l=2; l <= 2500; l++) */
+/*       printf("%d %e %e %e\n",l, */
+    /* 	     (l*(l+1)/2./_PI_)*cl[i][l][0],  */ /* here cl is the dimensionless C_l */ 
+    /* 	     (l*(l+1)/2./_PI_)*cl[i][l][1],  */ /* multiply by pow((th.Tcmb*1.e6),2) for muK */ 
+/* 	     (l*(l+1)/2./_PI_)*cl[i][l][2]); */
       
-    printf("\n");
+/*     printf("\n"); */
     
   }
 

@@ -1045,6 +1045,7 @@ int perturb_workspace_init(
   int index_type;
   int index_eta;
   int number_of_sources;
+  int index_ap;
 
   /** - define indices of metric perturbations obeying to constraint
         equations (this can be done once and for all, because the
@@ -1147,6 +1148,32 @@ int perturb_workspace_init(
 	      sizeof(struct perturb_approximations),
 	      ppt->error_message);
 
+  /** - count number of approximation, initialize their indices and their flags */
+
+  index_ap=0;
+
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+    ppw->pa->index_ap_tca=index_ap;
+    index_ap++;
+
+    ppw->pa->index_ap_fsa=index_ap;
+    index_ap++;
+
+  }
+
+  ppw->pa->ap_size=index_ap;
+
+  class_alloc(ppw->pa->flag,index_ap*sizeof(int),ppt->error_message);
+
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+    ppw->pa->flag[ppw->pa->index_ap_tca]=(int)tca_on;
+    ppw->pa->flag[ppw->pa->index_ap_fsa]=(int)fsa_off;
+
+  }
+
+
   /** - For definitness, initialize approximation flags to arbitrary
       values (correct values are overwritten during the first call to
       perturb_timescale_and_approximations) */
@@ -1185,6 +1212,7 @@ int perturb_workspace_free (
   }
   free(ppw->source_term_table);
   free(ppw->pa);
+  free(ppw->pa->flag);
   free(ppw);
 
   return _SUCCESS_;
@@ -1482,6 +1510,70 @@ int perturb_solve(
   return _SUCCESS_;
 }
   
+
+/* int perturb_find_approximation_switches(struct perturbs * ppt, */
+/* 					double eta_ini, */
+/* 					double eta_end */
+/* 					){ */
+  
+/*   double junk; */
+/*   int ijunk; */
+
+/*   class_call(perturb_timescale_and_approximations(eta_ini, */
+/* 						  ppaw, */
+/* 						  &junk, */
+/* 						  &ijunk, */
+/* 						  ppt->error_message), */
+/* 	     ppt->error_message, */
+/* 	     ppt->error_message); */
+
+/*   approx_level_ini=ppaw->pa->tca+ppaw->pa->fsa; */
+  
+/*   class_call(perturb_timescale_and_approximations(eta_end, */
+/* 						  ppaw, */
+/* 						  &junk, */
+/* 						  &ijunk, */
+/* 						  ppt->error_message), */
+/* 	     ppt->error_message, */
+/* 	     ppt->error_message); */
+
+/*   num_switches = approx_level_end-approx_level_ini; */
+
+/*   find num_switches-1 points where approx_level = approx_level_ini+1,...,approx_level_end-1 */
+
+/*   class_alloc(eta_switch,num_switches*sizeof(double),ppt->error_message); */
+
+/*   for (i=0;i<num_switches;i++) { */
+
+/*     eta_sup=eta_end; */
+/*     if (i==0) */
+/*       eta_inf==eta_ini; */
+/*     else */
+/*       eta_inf=eta_switch[i-1]; */
+
+/*     while (eta_sup-eta_inf>tol) { */
+
+/*       eta_switch[i]=0.5*(eta_sup-eta_inf); */
+
+/*       class_call(perturb_timescale_and_approximations(eta_mid, */
+/* 						      ppaw, */
+/* 						      &junk, */
+/* 						      &ijunk, */
+/* 						      ppt->error_message), */
+/* 	     ppt->error_message, */
+/* 	     ppt->error_message); */
+      
+/*       if (approx_level>approx_level_ini+i) */
+/* 	eta_inf=eta_switch[i]; */
+/*       else */
+/* 	eta_inf=eta_switch[i]; */
+
+/*     } */
+/*   } */
+
+/*   return _SUCCESS_; */
+/* } */
+
 /**
  * Initialize the field '->pv' of a perturb_workspace structure, which
  * is a perturb_vector structure. This structure contains indices and
@@ -1736,7 +1828,7 @@ int perturb_vector_init(
   /** - allocate vectors for storing the values of all these
         quantities and their time-derivatives at a given time */
 
-  class_alloc(ppv->y,ppv->pt_size*sizeof(double),ppt->error_message);
+  class_calloc(ppv->y,ppv->pt_size,sizeof(double),ppt->error_message);
   class_alloc(ppv->dy,ppv->pt_size*sizeof(double),ppt->error_message);
 
   /** - case of setting initial conditions for a new wavenumber */
@@ -1819,17 +1911,11 @@ int perturb_vector_init(
 	ppv->y[ppv->index_pt_l3_g] = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*
 	  ppv->y[ppv->index_pt_shear_g]; /* tight-coupling approximation for l=3 */
 
-	for (l = 4; l <= ppv->l_max_g; l++) /* photon additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	  ppv->y[ppv->index_pt_delta_g+l] = 0.;
-
 	ppv->y[ppv->index_pt_pol0_g] = 2.5*ppv->y[ppv->index_pt_shear_g]; /* tight-coupling approximation for polarization, l=0 */
 	ppv->y[ppv->index_pt_pol1_g] = 7./12.*ppv->y[ppv->index_pt_l3_g]; /* tight-coupling approximation for polarization, l=1 */
 	ppv->y[ppv->index_pt_pol2_g] = 0.5*ppv->y[ppv->index_pt_shear_g]; /* tight-coupling approximation for polarization, l=2 */
 	ppv->y[ppv->index_pt_pol3_g] = 0.25*ppv->y[ppv->index_pt_l3_g];   /* tight-coupling approximation for polarization, l=3 */
 	
-	for (l = 4; l <= ppv->l_max_pol_g; l++) /* photon additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	  ppv->y[ppv->index_pt_pol0_g+l] = 0.;
-
 	ppv->y[ppv->index_pt_delta_b] =
 	  ppw->pv->y[ppw->pv->index_pt_delta_b];
 	
@@ -1936,17 +2022,6 @@ int perturb_vector_init(
 	  ppv->y[ppv->index_pt_theta_g] = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
 	}
 
-	ppv->y[ppv->index_pt_shear_g] = 0.;
-	ppv->y[ppv->index_pt_l3_g] = 0.;
-	for (l = 4; l <= ppv->l_max_g; l++)
-	  ppv->y[ppv->index_pt_delta_g+l] = 0.;
-	ppv->y[ppv->index_pt_pol0_g] = 0.;
-	ppv->y[ppv->index_pt_pol1_g] = 0.;
-	ppv->y[ppv->index_pt_pol2_g] = 0.;
-	ppv->y[ppv->index_pt_pol3_g] = 0.;
-	for (l = 4; l <= ppv->l_max_pol_g; l++)
-	  ppv->y[ppv->index_pt_pol0_g+l] = 0.;
-
 	ppv->y[ppv->index_pt_delta_b] =
 	  ppw->pv->y[ppw->pv->index_pt_delta_b];
 	
@@ -1984,10 +2059,6 @@ int perturb_vector_init(
 	    ppv->y[ppv->index_pt_delta_nur] = -4.*ppw->pvecmetric[ppw->index_mt_alpha_prime];
 	    ppv->y[ppv->index_pt_theta_nur] = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
 	  }
-
-	  ppv->y[ppv->index_pt_shear_nur] = 0.;
-	  for (l=4; l <= ppv->l_max_nur; l++)
-	    ppv->y[ppv->index_pt_delta_nur+l] = 0.;
 
 	}	
 
@@ -2094,62 +2165,9 @@ int perturb_initial_conditions(struct precision * ppr,
   /* multipole l */
   int l;
 
-  /** - first set everything to zero */
+  /** - assuming that everything has already been set to zero, write non-zero initial conditions: */
 
-  ppw->pv->y[ppw->pv->index_pt_delta_g] = 0.; /* photon density */
-  ppw->pv->y[ppw->pv->index_pt_theta_g] = 0.; /* photon velocity */
-
-  /* additional perturbations relevant only for the scalar mode */
-
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-    ppw->pv->y[ppw->pv->index_pt_delta_b] = 0.;  /* baryon density */
-    ppw->pv->y[ppw->pv->index_pt_theta_b] = 0.;  /* baryon velocity */
-
-    if (pba->has_cdm == _TRUE_) {       
-      ppw->pv->y[ppw->pv->index_pt_delta_cdm] = 0.; /* cdm density */
-      if (ppr->gauge == newtonian) 
-	ppw->pv->y[ppw->pv->index_pt_theta_cdm] = 0.; /* cdm velocity */
-    }
-    
-    if (pba->has_dark_energy_fluid == _TRUE_) {        
-      ppw->pv->y[ppw->pv->index_pt_delta_de] = 0.; /* dark energy density */   
-      ppw->pv->y[ppw->pv->index_pt_theta_de] = 0.; /* dark energy velocity */ 
-    } 
-    
-    if (pba->has_nur == _TRUE_) {
-      ppw->pv->y[ppw->pv->index_pt_delta_nur] = 0; /* density of ultra-relativistic neutrinos/relics */
-      ppw->pv->y[ppw->pv->index_pt_theta_nur] = 0; /* velocity of ultra-relativistic neutrinos/relics */
-      ppw->pv->y[ppw->pv->index_pt_shear_nur] = 0.; /* shear of ultra-relativistic neutrinos/relics */
-      ppw->pv->y[ppw->pv->index_pt_l3_nur] = 0.; /* l=3 of ultra-relativistic neutrinos/relics */
-      for (l=4; l <= ppw->pv->l_max_nur; l++)
-	ppw->pv->y[ppw->pv->index_pt_delta_nur+l] = 0.;  /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2) */
-    }
-    
-    if (ppr->gauge == synchronous)
-      ppw->pv->y[ppw->pv->index_pt_eta] = 0; /* metric perturbation eta */ 
-
-  }
-
-  /* additional perturbations relevant only for the tensor mode */
-
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-
-    ppw->pv->y[ppw->pv->index_pt_shear_g] = 0.; /* photon shear */
-    ppw->pv->y[ppw->pv->index_pt_l3_g] = 0.; /* photon shear */
-    for (l=4; l <= ppw->pv->l_max_g; l++) ppw->pv->y[ppw->pv->index_pt_delta_g+l] = 0.;  /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-    
-    ppw->pv->y[ppw->pv->index_pt_pol0_g] = 0.; /* photon polarization, l=0 */
-    ppw->pv->y[ppw->pv->index_pt_pol1_g] = 0.; /* photon polarization, l=1 */
-    ppw->pv->y[ppw->pv->index_pt_pol2_g] = 0.; /* photon polarization, l=2 */
-    ppw->pv->y[ppw->pv->index_pt_pol3_g] = 0.; /* photon polarization, l=3 */
-    for (l=4; l <= ppw->pv->l_max_pol_g; l++) ppw->pv->y[ppw->pv->index_pt_pol0_g+l] = 0.;  /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-    
-    ppw->pv->y[ppw->pv->index_pt_gw] = 0.;     /* tensor metric perturbation h (gravitational waves) */
-    ppw->pv->y[ppw->pv->index_pt_gwdot] = 0.;  /* its time-derivative */
-  }
-
-  /** - initial conditions for scalars */
+  /** - for scalars */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
@@ -2300,7 +2318,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
   }
 
-  /** - initial conditions for tensors */
+  /** - for tensors */
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
@@ -2309,11 +2327,6 @@ int perturb_initial_conditions(struct precision * ppr,
     }
 
   }
-
-/*   printf("%e %e ",k,eta); */
-/*   for (l=0;l<ppw->pv->pt_size;l++) { */
-/*     printf("%e \n",ppw->pv->y[l]); */
-/*   } */
 
   return _SUCCESS_;
 }

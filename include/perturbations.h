@@ -8,12 +8,16 @@
 
 /**  
  * flags for various approximation schemes (tca = tight-coupling
- * approximation, fas = free-streaming approximation)
+ * approximation, fsa = free-streaming approximation)
+ *
+ * CAUTION: must be listed below in chronological order, and cannot be
+ * reversible. It is only possible to switch from left to right in the
+ * lists below.
  */
 
 //@{
 
-enum tca_flags {tca_off, tca_on};
+enum tca_flags {tca_on, tca_off};
 enum fsa_flags {fsa_off, fsa_on};
 
 //@}
@@ -184,6 +188,11 @@ struct perturb_approximations
 {
   enum tca_flags tca; /**< flag for tight-coupling approximation */
   enum fsa_flags fsa; /**< flag for free-streaming approximation */
+
+  int * flag;
+  int index_ap_tca; 
+  int index_ap_fsa;
+  int ap_size;
 };
 
 /**
@@ -412,6 +421,8 @@ struct perturb_parameters_and_workspace {
 		      int index_k,
 		      struct perturb_workspace * ppw
 		      );
+
+    int perturb_find_approximation_switches();
 
     int perturb_vector_init(
 			    struct precision * ppr,
