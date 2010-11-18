@@ -2368,6 +2368,8 @@ int trg_init (
 
   double * tr_g, *tr_b, *tr_cdm, *tr_nur;
 
+  double transfer_tot,transfer_bc;
+
   double cutoff;
 
   /** Background quantities */
@@ -2593,7 +2595,7 @@ int trg_init (
                                        pba,
 				       psp,
 				       pnl->k[index_k],
-				       pnl->eta[index_eta],
+				       pnl->z[index_eta],
 				       transfer
 	                               ),
 	         psp->error_message,
@@ -2622,7 +2624,7 @@ int trg_init (
 	  4./3*(rho_g[index_eta]*tr_g[index]+ 
 	        rho_nur[index_eta]*tr_nur[index])
 	  /(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index]) 
-	  - 2./3*pow(H[index_eta],2)*cb2[index_eta]*pow(pnl->k[index_k],2)*rho_b[index_eta]*tr_b[index]/
+	  - 0.*2./3*pow(H[index_eta],2)*cb2[index_eta]*pow(pnl->k[index_k],2)*rho_b[index_eta]*tr_b[index]/
 	  (Omega_m[index_eta]*(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index])));
 
       Omega_22[index] = 2 + H_prime[index_eta]/H[index_eta];
@@ -2657,32 +2659,61 @@ int trg_init (
   class_calloc(pk_linear22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
-
     cutoff=1.;
-
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],0,&pnl->pk_nl[index_k],junk),
-	       psp->error_message,
-	       pnl->error_message);
-
-    pnl->pk_nl[index_k]*=cutoff;
-    pnl->p_11[index_k]=pnl->pk_nl[index_k];
-    pk_linear11[index_k]=pnl->pk_nl[index_k];
     
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],0,&pnl->p_12_nl[index_k],junk),
-	       psp->error_message,
-	       pnl->error_message);
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->pk_nl[index_k],junk),
+               psp->error_message,
+               pnl->error_message);
 
-    pnl->p_12_nl[index_k]*=cutoff;
-    pnl->p_12[index_k]=pnl->p_12_nl[index_k];
-    pk_linear12[index_k]=pnl->p_12_nl[index_k];
 
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],0,&pnl->p_22_nl[index_k],junk),
-	       psp->error_message,
-	       pnl->error_message);
+    class_call(spectra_tk_at_k_and_z(pba,psp,pnl->k[index_k],pnl->z[0],transfer),
+               psp->error_message,
+               pnl->error_message);
 
-    pnl->p_22_nl[index_k]*=cutoff;
-    pnl->p_22[index_k]=pnl->p_22_nl[index_k];
-    pk_linear22[index_k]=pnl->p_22_nl[index_k];
+    transfer_tot = transfer[psp->index_tr_tot];
+    transfer_bc = transfer[psp->index_tr_b];
+    if (pba->has_cdm == _TRUE_) {
+      transfer_bc = (rho_b[0] * transfer_bc + rho_cdm[0] * transfer[psp->index_tr_cdm])/(rho_b[0]+rho_cdm[0]);
+    }
+
+    pnl->pk_nl[index_k] *= pow(transfer_bc/transfer_tot,2);
+
+    pnl->pk_nl[index_k] *=cutoff;
+
+    pnl->p_11[index_k]    = pnl->pk_nl[index_k];
+    pk_linear11[index_k]  = pnl->pk_nl[index_k];
+
+    pnl->p_12_nl[index_k] = pnl->pk_nl[index_k];
+    pnl->p_12[index_k]    = pnl->pk_nl[index_k];
+    pk_linear12[index_k]  = pnl->pk_nl[index_k];
+
+    pnl->p_22_nl[index_k] = pnl->pk_nl[index_k];
+    pnl->p_22[index_k]    = pnl->pk_nl[index_k];
+    pk_linear22[index_k]  = pnl->pk_nl[index_k]; 
+
+    /* class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->pk_nl[index_k],junk), */
+    /* 	       psp->error_message, */
+    /* 	       pnl->error_message); */
+
+    /* pnl->pk_nl[index_k]*=cutoff; */
+    /* pnl->p_11[index_k]=pnl->pk_nl[index_k]; */
+    /* pk_linear11[index_k]=pnl->pk_nl[index_k]; */
+    
+    /* class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->p_12_nl[index_k],junk), */
+    /* 	       psp->error_message, */
+    /* 	       pnl->error_message); */
+
+    /* pnl->p_12_nl[index_k]*=cutoff; */
+    /* pnl->p_12[index_k]=pnl->p_12_nl[index_k]; */
+    /* pk_linear12[index_k]=pnl->p_12_nl[index_k]; */
+
+    /* class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->p_22_nl[index_k],junk), */
+    /* 	       psp->error_message, */
+    /* 	       pnl->error_message); */
+
+    /* pnl->p_22_nl[index_k]*=cutoff; */
+    /* pnl->p_22[index_k]=pnl->p_22_nl[index_k]; */
+    /* pk_linear22[index_k]=pnl->p_22_nl[index_k]; */
 
   }
 
