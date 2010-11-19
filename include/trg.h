@@ -43,12 +43,17 @@ struct spectra_nl {
   double * ddp_12;
   double * ddp_22;
 
+  double * z_plot;
+
   int double_escape;
 
   double logstepx_min;
 
   short spectra_nl_verbose;  /**< from 0 to 1: amount of information written in standard output */
   short mode; /**< from 0 to 2: 0 being linear theory, 1 for one loop and 2 for full trg calculation*/
+  short has_bc_spectrum; /**< _TRUE_ or _FALSE_*/
+  
+  short plot_size;
 
   ErrorMsg error_message; /**< zone for writing error messages */
 };

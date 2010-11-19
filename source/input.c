@@ -730,7 +730,13 @@ int input_init(
   /** (f) parameter related to the non-linear spectra computation */
 
   class_read_int("non-linearity mode",pnl->mode);
+  class_read_int("b+c spectrum",pnl->has_bc_spectrum);
   class_read_int("double escape",pnl->double_escape);
+  class_read_int("trg plot size",pnl->plot_size);
+  class_calloc(pnl->z_plot,pnl->plot_size,sizeof(double),pnl->error_message);
+  for(i=0; i<pnl->plot_size; i++){
+    class_read_int("z needed",pnl->z_plot[i]);}
+
   class_read_double("z_ini",pnl->z_ini);
   class_read_int("eta_size",pnl->eta_size);
   class_read_double("k_L",pnl->k_L);
@@ -1068,6 +1074,13 @@ int input_default_params(
   pnl->k_L = 1.e-3;
   pnl->k_min = 1.e-4;
   pnl->logstepx_min = 1.04;
+  pnl->plot_size=5;
+  class_calloc(pnl->z_plot,pnl->plot_size,sizeof(double),errmsg);
+  pnl->z_plot[0]=4;
+  pnl->z_plot[1]=2.33;
+  pnl->z_plot[2]=1.5;
+  pnl->z_plot[3]=1;
+  pnl->z_plot[4]=0;
 
   /** - all verbose parameters */ 
 
