@@ -11,8 +11,8 @@
  * approximation, fsa = free-streaming approximation)
  *
  * CAUTION: must be listed below in chronological order, and cannot be
- * reversible. It is only possible to switch from left to right in the
- * lists below.
+ * reversible. When integrating equations for a given mode, it is only
+ * possible to switch from left to right in the lists below.
  */
 
 //@{
@@ -180,22 +180,6 @@ struct perturbs
 };
 
 /**
- * Structure containing the list of flags describing all possible
- * approximation schemes.
- */
-
-struct perturb_approximations 
-{
-  enum tca_flags tca; /**< flag for tight-coupling approximation */
-  enum fsa_flags fsa; /**< flag for free-streaming approximation */
-
-  int * flag;
-  int index_ap_tca; 
-  int index_ap_fsa;
-  int ap_size;
-};
-
-/**
  * Structure containing the indices and the values of the perturbation
  * variables which are integrated over time (as well as their
  * time-derivatives). For a given wavenumber, the size of these
@@ -233,6 +217,10 @@ struct perturb_vector
   double * y;             /**< vector of perturbations to be integrated */
   double * dy;            /**< time-derivative of the same vector */
 
+  short * used_in_sources; /**< boolean array specifying which
+			      perturbations enter in the calculation of
+			      source functions */
+ 
 };
 
 
@@ -313,7 +301,8 @@ struct perturb_workspace
   //@{
 
   enum interpolation_mode intermode;
-  int last_index_back;   /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
+ 
+ int last_index_back;   /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
   int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
 
   //@}
@@ -322,14 +311,18 @@ struct perturb_workspace
 
   //@{
 
-  struct perturb_approximations * pa;
+  int index_ap_tca; /**< index for tight-coupling approximation */
+  int index_ap_fsa; /**< index for free-streaming approximation */
+  int ap_size;      /**< number of relevant approximations for a given mode */
+
+  int * approx;     /**< array of approximation flags holding at a given time: approx[index_ap] */
 
   //@}
 
 };
 
 /**
- * Structure poiting towards all what the function perturb_derivs
+ * Structure pointing towards all what the function that perturb_derivs
  * needs to know: fixed input parameters and indices contained in the
  * various structures, workspace, etc.
 */ 
@@ -422,7 +415,36 @@ struct perturb_parameters_and_workspace {
 		      struct perturb_workspace * ppw
 		      );
 
-    int perturb_find_approximation_switches();
+    int perturb_find_approximation_number(
+					  struct precision * ppr,
+					  struct background * pba,
+					  struct thermo * pth,
+					  struct perturbs * ppt,
+					  int index_mode,
+					  double k,
+					  struct perturb_workspace * ppw,
+					  double eta_ini,
+					  double eta_end,
+					  int * interval_number,
+					  int * interval_number_of
+					  );
+
+    int perturb_find_approximation_switches(
+					    struct precision * ppr,
+					    struct background * pba,
+					    struct thermo * pth,
+					    struct perturbs * ppt,
+					    int index_mode,
+					    double k,
+					    struct perturb_workspace * ppw,
+					    double eta_ini,
+					    double eta_end,
+					    double precision,
+					    int interval_number,
+					    int * interval_number_of,
+					    double * interval_limit,
+					    int ** interval_approx
+					    );
 
     int perturb_vector_init(
 			    struct precision * ppr,
@@ -434,23 +456,12 @@ struct perturb_parameters_and_workspace {
 			    double k,
 			    double eta,
 			    struct perturb_workspace * ppw,
-			    struct perturb_approximations * pa_old
+			    int * pa_old
 			    );
 
     int perturb_vector_free(
 			    struct perturb_vector * pv
 			    );
-
-    int perturb_compare_approximations(
-				       struct perturb_approximations * pa_previous,
-				       struct perturb_approximations * pa_new,
-				       int * number_of_differences
-				       );
-
-    int perturb_copy_approximations(
-				    struct perturb_approximations * pa_input,
-				    struct perturb_approximations * pa_copy
-				    );
 
     int perturb_initial_conditions(
 				   struct precision * ppr,
@@ -463,13 +474,23 @@ struct perturb_parameters_and_workspace {
 				   struct perturb_workspace * ppw
 				   );
 
-    int perturb_timescale_and_approximations(
-					     double eta,
-					     void * parameters_and_workspace,
-					     double * timescale,
-					     int * num_changing_approximations,
-					     ErrorMsg error_message
-					     );
+    int perturb_approximations(
+			       struct precision * ppr,
+			       struct background * pba,
+			       struct thermo * pth,
+			       struct perturbs * ppt,
+			       int index_mode,
+			       double k,
+			       double eta,
+			       struct perturb_workspace * ppw
+			       );
+
+    int perturb_timescale(
+			  double eta,
+			  void * parameters_and_workspace,
+			  double * timescale,
+			  ErrorMsg error_message
+			  );
 
     int perturb_einstein(
 			 struct precision * ppr,
@@ -500,12 +521,12 @@ struct perturb_parameters_and_workspace {
 			);
 
     int perturb_derivs(
-			double eta,
-			double * y,
-			double * dy,
-			void * parameters_and_workspace,
-			ErrorMsg error_message
-			);
+		       double eta,
+		       double * y,
+		       double * dy,
+		       void * parameters_and_workspace,
+		       ErrorMsg error_message
+		       );
 
 #ifdef __cplusplus
   }

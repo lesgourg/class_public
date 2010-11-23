@@ -89,6 +89,18 @@ typedef char FileName[_FILENAMESIZE_];
     }									\
   } while(0);
 
+/* macro for testing condition and returning error if condition is true;
+   args is a variable list of optional arguments, e.g.: args="x=%d",x 
+   args cannot be empty, if there is nothing to pass use args="" */
+#define class_stop(error_message_output)				\
+  do {									\
+    sprintf(error_message_output,					\
+	    "%s(L:%d) : Stop here as requested",			\
+	    __func__,__LINE__);						\
+    return _FAILURE_;							\
+  } while(0);
+
+
 /* same in parallel region */
 #define class_test_parallel(condition,					\
 		   error_message_output,				\
@@ -385,6 +397,12 @@ struct precision
    */
   double tol_perturb_integration;
 
+  /**
+   * precision with which the code should determine the times eta at
+   * which approximations must be switched on/off (units of Mpc)
+   */
+  double tol_eta_approx;
+ 
   /**
    * when to switch off tight-coupling approximation:
    * first condition: \f$ \eta_g/\eta_H \f$ <

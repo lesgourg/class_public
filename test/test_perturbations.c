@@ -55,8 +55,8 @@ main(int argc, char **argv) {
       for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
 
 	fprintf(output,"%e %e %e\n",
-		pt.eta_sampling[index_eta],
 		pt.k[index_mode][index_k],
+		pt.eta_sampling[index_eta],
 		pt.sources[index_mode]
 		[index_ic * pt.tp_size[index_mode] + index_type]
 		[index_eta * pt.k_size[index_mode] + index_k]

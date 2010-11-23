@@ -856,6 +856,7 @@ int input_init(
   class_read_double("entropy_ini",ppr->entropy_ini);
   class_read_double("gw_ini",ppr->gw_ini);
   class_read_double("perturb_integration_stepsize",ppr->perturb_integration_stepsize);
+  class_read_double("tol_eta_approx",ppr->tol_eta_approx);
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
   class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
@@ -1217,6 +1218,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
 
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
+  ppr->tol_eta_approx=1.e-4;
   ppr->tol_perturb_integration=1.e-3; 
   ppr->perturb_sampling_stepsize=0.1; /* 0.1 */
 
