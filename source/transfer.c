@@ -127,8 +127,6 @@ int transfer_init(
   int index_mode; 
   /* running index for initial conditions */
   int index_ic; 
-  /* running index for wavenumbers */
-  int index_k; 
   /* running index for types */
   int index_tt; 
   /* running index for multipoles */
@@ -420,7 +418,7 @@ int transfer_indices_of_transfers(
 
   /** - define local variables */
 
-  int index_mode,index_eta,index_tt,index_tt_common;
+  int index_mode,index_tt,index_tt_common;
 
   /** define indices for transfer types */
 
@@ -538,7 +536,7 @@ int transfer_get_l_list(
 			int index_mode
 			) {
 
-  int index_l;
+  int index_l=0;
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
@@ -546,7 +544,6 @@ int transfer_get_l_list(
 	       ptr->error_message,
 	       "For scalar transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppt->l_scalar_max,pbs->l[pbs->l_size-1]);
     
-    index_l=0;
     while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppt->l_scalar_max)) {
       index_l++;
     }
@@ -562,8 +559,6 @@ int transfer_get_l_list(
 	       ptr->error_message,
 	       "For tensor transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppt->l_scalar_max,pbs->l[pbs->l_size-1]);
     
-    index_l=0;
-
     /* go to first point in Bessel's l list which is greater than l_max (or only equal to it is l_max_Bessel coincides with l_max) */
     while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppt->l_tensor_max)) {
       index_l++;
@@ -611,9 +606,9 @@ int transfer_get_k_list(
 			int index_mode
 			) {
 
-  double k_min;
-  double k_max_pt;
-  double k_step;
+  double k_min=0;
+  double k_max_pt=0;
+  double k_step=0;
   int index_k;
 
   class_test((eta0-eta_rec) == 0.,
@@ -712,7 +707,7 @@ int transfer_interpolate_sources(
   int index_eta;
 
   /* index running on type of source (not type of transfer) */
-  int index_type;
+  int index_type=0;
 
   /* index running on k values in the interpolated source array */
   int index_k_tr;

@@ -160,7 +160,6 @@ int input_init(
   int int1;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  char string2[_LINE_LENGTH_MAX_];
 
   double Omega_tot;
 

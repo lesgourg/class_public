@@ -4,7 +4,7 @@
 #define __PERTURBATIONS__
 
 #include "thermodynamics.h"
-#include "evolver_rkck.h"
+#include "evolver_ndf15.h"
 
 /**  
  * flags for various approximation schemes (tca = tight-coupling
@@ -217,7 +217,7 @@ struct perturb_vector
   double * y;             /**< vector of perturbations to be integrated */
   double * dy;            /**< time-derivative of the same vector */
 
-  short * used_in_sources; /**< boolean array specifying which
+  int * used_in_sources; /**< boolean array specifying which
 			      perturbations enter in the calculation of
 			      source functions */
  

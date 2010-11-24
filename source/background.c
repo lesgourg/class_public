@@ -194,8 +194,6 @@ int background_eta_of_z(
 
   /** - define local variables */
 
-  /* scale factor */
-  double a; 
   /* necessary for calling array_interpolate(), but never used */
   int last_index; 
 

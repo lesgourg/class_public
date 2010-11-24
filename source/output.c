@@ -437,20 +437,21 @@ int output_pk(
 
   /** - define local variables */
 
-  FILE ** out_ic; /* array of pointers to files with argument 
+  FILE ** out_ic=NULL; /* array of pointers to files with argument 
 		     out_ic[index_ic1_ic2] 
 		     (will contain P(k)'s for each pair of initial conditions) */
   
   FILE * out;     /* (will contain total P(k) summed eventually over initial conditions) */
   
-  double * pk_ic;  /* array with argument 
+  double * pk_ic=NULL;  /* array with argument 
 		      pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] */
 
   double * pk_tot; /* array with argument 
 		      pk_tot[index_k] */
 
   int index_mode;
-  int index_ic1,index_ic2,index_ic1_ic2;
+  int index_ic1,index_ic2;
+  int index_ic1_ic2=0;
   int index_k;
   int index_z;
 
@@ -469,7 +470,7 @@ int output_pk(
 	       "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk[index_z]);
 
     if (pop->z_pk_num == 1) 
-      sprintf(redshift_suffix,"");
+      redshift_suffix[0]='\0';
     else
       sprintf(redshift_suffix,"z%d_",index_z+1);
 
@@ -767,7 +768,7 @@ int output_tk(
 	       "T_i(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk[index_z]);
 
     if (pop->z_pk_num == 1) 
-      sprintf(redshift_suffix,"");
+      redshift_suffix[0]='\0';
     else
       sprintf(redshift_suffix,"z%d_",index_z+1);
 

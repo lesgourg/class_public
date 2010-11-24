@@ -15,8 +15,8 @@ vpath .base build
 
 CC       = gcc
 
-CCFLAG   = -O2 -fopenmp
-LDFLAG   = -O2 -fopenmp
+CCFLAG   = -fast -fopenmp -Wall
+LDFLAG   = -fast -fopenmp -Wall
 #CCFLAG = -O2 -ggdb
 #LDFLAG = -O2 -ggdb
 #CCFLAG = -O2
@@ -30,7 +30,8 @@ INCLUDES = ../include
 %.o:  %.c .base
 	cd $(WRKDIR);$(CC) $(CCFLAG) -I$(INCLUDES) -c ../$< -o $*.o
 
-TOOLS = growTable.o dei_rkck.o evolver_rkck.o arrays.o parser.o
+#TOOLS = growTable.o dei_rkck.o evolver_rkck.o arrays.o parser.o
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_ndf15.o arrays.o parser.o
 
 INPUT = input.o
 

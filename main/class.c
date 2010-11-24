@@ -4,7 +4,7 @@
  
 #include "class.h"
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -99,5 +99,7 @@ main(int argc, char **argv) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }
+
+  return _SUCCESS_;
 
 }

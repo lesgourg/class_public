@@ -129,12 +129,6 @@ int bessel_init(
   double x_max_file;
   double j_cut_file;
 
-  /* useful for reading useless data in bessels.dat file */
-  int x_extra;
-  int l_extra;
-  int * x_size_file;
-  void * junk;
-
   /* bessels.dat file */
   FILE * bessel_file;
   
@@ -666,11 +660,11 @@ int bessel_j(
 
   class_test(l < 0,
 	     pbs->error_message,
-	     "");
+	     " ");
 
   class_test(x < 0,
 	     pbs->error_message,
-	     "");
+	     " ");
 
   fl = (double)l;
 

@@ -195,7 +195,7 @@ int primordial_init(
 
   double k,k_min,k_max;
   int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_k;
-  double lnpk,pk,pk1,pk2;
+  double pk,pk1,pk2;
 
   /** - check that we really need to compute the primordial spectra */
 
@@ -503,7 +503,10 @@ int primordial_analytic_spectrum_init(
 
   int index_mode,index_ic1,index_ic2;
   int index_ic1_ic2,index_ic1_ic1,index_ic2_ic2;
-  double one_amplitude,one_tilt,one_running,one_correlation;
+  double one_amplitude=0.;
+  double one_tilt=0.;
+  double one_running=0.;
+  double one_correlation=0.;
 
   class_alloc(ppm->amplitude,
 	      ppm->md_size*sizeof(double *),

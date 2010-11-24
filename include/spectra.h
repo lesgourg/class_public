@@ -249,11 +249,11 @@ extern "C" {
 		 struct spectra * psp
 		 );
   
-  int spectra_transfers(
-			struct background * pba,
-			struct perturbs * ppt,
-			struct spectra * psp
-			);
+  int spectra_matter_transfers(
+			       struct background * pba,
+			       struct perturbs * ppt,
+			       struct spectra * psp
+			       );
 
 #ifdef __cplusplus
 }

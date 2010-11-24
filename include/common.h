@@ -129,10 +129,12 @@ typedef char FileName[_FILENAMESIZE_];
     pointer=malloc(size);						\
     if (pointer == NULL) {						\
       ErrorMsg Transmit_Error_Message;					\
+      int size_int;							\
+      size_int=size;							\
       sprintf(Transmit_Error_Message,					\
 	      "%s(L:%d) : could not allocate %s with size %d",		\
 	      __func__,__LINE__,					\
-	      #pointer,size);						\
+	      #pointer,size_int);					\
       sprintf(error_message_output,"%s",Transmit_Error_Message);	\
       return _FAILURE_;							\
     }									\
@@ -146,14 +148,19 @@ typedef char FileName[_FILENAMESIZE_];
     if (abort == _FALSE_) {						\
       pointer=malloc(size);						\
       if (pointer == NULL) {						\
+	int size_int;							\
+	size_int=size;							\
 	ErrorMsg Transmit_Error_Message;				\
 	sprintf(Transmit_Error_Message,					\
 		"%s(L:%d) : could not allocate %s with size %d",	\
 		__func__,__LINE__,					\
-		#pointer,size);						\
+		#pointer,size_int);					\
 	sprintf(error_message_output,"%s",Transmit_Error_Message);	\
 	abort=_TRUE_;							\
       }									\
+    }									\
+    else {								\
+      pointer=NULL;							\
     }									\
   } while(0);
 
@@ -166,10 +173,12 @@ typedef char FileName[_FILENAMESIZE_];
     pointer=calloc(number,size);					\
     if (pointer == NULL) {						\
       ErrorMsg Transmit_Error_Message;					\
+      int size_int;							\
+      size_int=number*size;						\
       sprintf(Transmit_Error_Message,					\
 	      "%s(L:%d) : could not allocate %s with size %d",		\
 	      __func__,__LINE__,					\
-	      #pointer,number*size);					\
+	      #pointer,size_int);					\
       sprintf(error_message_output,"%s",Transmit_Error_Message);	\
       return _FAILURE_;							\
     }									\

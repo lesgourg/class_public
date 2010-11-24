@@ -20,6 +20,7 @@ extern "C" {
 		      double x_ini,
 		      double x_end,
 		      double * y, 
+		      int * used_in_output,
 		      int y_size,
 		      void * parameters_and_workspace_for_derivs,
 		      double tolerance, 

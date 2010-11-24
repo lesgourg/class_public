@@ -65,10 +65,15 @@ int array_derive_spline(
 
   double h;
 
-  if (index_dydx == index_y) {
-    sprintf(errmsg,"%s(L:%d) Output column %d must differ from input columns %d",__func__,__LINE__,index_dydx,index_y);
-    return _FAILURE_;
-  }
+  class_test(index_dydx == index_y,
+	     errmsg,
+	     "Output column %d must differ from input columns %d",
+	     index_dydx,
+	     index_y);
+  
+  class_test(n_lines<2,
+	     errmsg,
+	     "no possible derivation with less than two lines");
 
   for (i=0; i<n_lines-1; i++) {
 
@@ -84,6 +89,8 @@ int array_derive_spline(
 
   } 
   
+  h = x_array[n_lines-1] - x_array[n_lines-2];
+
   array[(n_lines-1)*n_columns+index_dydx] = 
     (array[(n_lines-1)*n_columns+index_y] - array[(n_lines-2)*n_columns+index_y])/h
     + h / 6. * (2. * array_splined[(n_lines-1)*n_columns+index_y] + array_splined[(n_lines-2)*n_columns+index_y]);
@@ -92,18 +99,34 @@ int array_derive_spline(
 }
 
 int array_derive_spline_table_line_to_line(
-		 double * x_array,
-		 int n_lines,
-		 double * array,
-		 int n_columns,
-		 int index_y,
-		 int index_ddy,
-		 int index_dy,
-		 ErrorMsg errmsg) {
+					   double * x_array,
+					   int n_lines,
+					   double * array,
+					   int n_columns,
+					   int index_y,
+					   int index_ddy,
+					   int index_dy,
+					   ErrorMsg errmsg) {
   
   int i;
 
   double h;
+  
+  class_test(index_ddy == index_y,
+	     errmsg,
+	     "Output column %d must differ from input columns %d",
+	     index_ddy,
+	     index_y);
+  
+  class_test(index_ddy == index_dy,
+	     errmsg,
+	     "Output column %d must differ from input columns %d",
+	     index_ddy,
+	     index_dy);
+
+  class_test(n_lines<2,
+	     errmsg,
+	     "no possible derivation with less than two lines");
 
   for (i=0; i<n_lines-1; i++) {
 
@@ -119,6 +142,8 @@ int array_derive_spline_table_line_to_line(
 
   } 
   
+  h = x_array[n_lines-1] - x_array[n_lines-2];
+
   array[(n_lines-1)*n_columns+index_dy] = 
     (array[(n_lines-1)*n_columns+index_y] - array[(n_lines-2)*n_columns+index_y])/h
     + h / 6. * (2. * array[(n_lines-1)*n_columns+index_ddy] + array[(n_lines-2)*n_columns+index_ddy]);
@@ -220,14 +245,14 @@ int array_derive2_order2_table_line_to_line(
 }
 
 int array_integrate_spline_table_line_to_line(
-		 double * x_array,
-		 int n_lines,
-		 double * array,
-		 int n_columns,
-		 int index_y,
-		 int index_ddy,
-		 int index_inty,
-		 ErrorMsg errmsg) {
+					      double * x_array,
+					      int n_lines,
+					      double * array,
+					      int n_columns,
+					      int index_y,
+					      int index_ddy,
+					      int index_inty,
+					      ErrorMsg errmsg) {
   
   int i;
 
@@ -267,7 +292,7 @@ int array_derive_two(
   double dx1,dx2,dy1,dy2,weight1,weight2;
 
   if ((index_dydx == index_x) || (index_dydx == index_y)) {
-    sprintf(errmsg,"%s(L:%d) : Output column &d must differ from input columns %d and %d",__func__,__LINE__,index_dydx,index_x,index_y);
+    sprintf(errmsg,"%s(L:%d) : Output column %d must differ from input columns %d and %d",__func__,__LINE__,index_dydx,index_x,index_y);
     return _FAILURE_;
   }
 
@@ -1318,7 +1343,7 @@ int array_integrate(
   double sum;
 
   if ((index_int_y_dx == index_x) || (index_int_y_dx == index_y)) {
-    sprintf(errmsg,"%s(L:%d) : Output column &d must differ from input columns %d and %d",__func__,__LINE__,index_int_y_dx,index_x,index_y);
+    sprintf(errmsg,"%s(L:%d) : Output column %d must differ from input columns %d and %d",__func__,__LINE__,index_int_y_dx,index_x,index_y);
     return _FAILURE_;
   }
 
@@ -1354,7 +1379,7 @@ int array_integrate_ratio(
   double sum;
 
   if ((index_int_y1_over_y2_dx == index_x) || (index_int_y1_over_y2_dx == index_y1) || (index_int_y1_over_y2_dx == index_y2)) {
-    sprintf(errmsg,"%s(L:%d) : Output column &d must differ from input columns %d, %d and %d",__func__,__LINE__,index_int_y1_over_y2_dx,index_x,index_y1,index_y2);
+    sprintf(errmsg,"%s(L:%d) : Output column %d must differ from input columns %d, %d and %d",__func__,__LINE__,index_int_y1_over_y2_dx,index_x,index_y1,index_y2);
     return _FAILURE_;
   }
 
@@ -1639,7 +1664,7 @@ int array_interpolate_spline_one_column(
 					) {
 
 
-  int inf,sup,mid,i;
+  int inf,sup,mid;
   double h,a,b;
   
   inf=0;
@@ -1721,7 +1746,7 @@ int array_interpolate_extrapolate_spline_one_column(
 						    ) {
 
 
-  int inf,sup,mid,i;
+  int inf,sup,mid;
   double h,a,b;
 
   if (x > x_array[x_size-2]) {
@@ -1832,7 +1857,7 @@ int array_interpolate_extrapolate_logspline_loglinear_one_column(
 								 ) {
 
 
-  int inf,sup,mid,i;
+  int inf,sup,mid;
   double h,a,b;
 
   if (x > x_array[x_stop-1]) {
@@ -1935,7 +1960,7 @@ int array_interpolate_growing_closeby(
 		   int result_size, /** from 1 to n_columns */
 		   ErrorMsg errmsg) {
 
-  int inf,sup,mid,i;
+  int inf,sup,i;
   double weight;
 
   inf = *last_index;
@@ -1990,7 +2015,7 @@ int array_interpolate_spline_growing_closeby(
 					     int result_size, /** from 1 to n_columns */
 					     ErrorMsg errmsg) {
 
-  int inf,sup,mid,i;
+  int inf,sup,i;
   double h,a,b;
 
   inf = *last_index;
@@ -2355,14 +2380,14 @@ int array_smooth_trg(double * array,
   double weigth;
   double *coeff;
 
-   smooth=malloc(k_size*sizeof(double));
+  smooth=malloc(k_size*sizeof(double));
   if (smooth == NULL) {
     sprintf(errmsg,"%s(L:%d) Cannot allocate smooth",__func__,__LINE__);
     return _FAILURE_;
   }
-
+  
   class_calloc(coeff,2*radius+1,sizeof(double),errmsg);
-
+  
   switch(radius){
   case 3:
     weigth = 21;
@@ -2449,7 +2474,8 @@ int array_smooth_trg(double * array,
     
 
   default:
-    printf("Non valid radius : please chose between 3 4 5 or 6\n");
+    class_stop("Non valid radius : please chose between 3 4 5 or 6\n");
+    weigth=0;
     break;
   }
 

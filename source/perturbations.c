@@ -163,7 +163,8 @@ int perturb_init(
 
   class_test(ppr->eta_min_over_sampling_min >= 1,
 	     ppt->error_message,
-	     "you have ppr->eta_min_over_sampling_min=%g, should always be < 1 to guarantee that integration starts early enough and that the first value of the source can be trusted"); 
+	     "you have ppr->eta_min_over_sampling_min=%g, should always be < 1 to guarantee that integration starts early enough and that the first value of the source can be trusted",
+	     ppr->eta_min_over_sampling_min); 
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
@@ -328,7 +329,7 @@ int perturb_free(
 		 struct perturbs * ppt
 		 ) {
 
-  int index_mode,index_ic,index_k,index_type;
+  int index_mode,index_ic,index_type;
 
   if (ppt->has_perturbations == _TRUE_) {
 
@@ -392,7 +393,6 @@ int perturb_indices_of_perturbs(
   /** - define local variables */
 
   int index_type, index_mode, index_ic, index_type_common;
-  int k_list_size,k_list_cl_size;
 
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
 
@@ -1040,11 +1040,9 @@ int perturb_workspace_init(
 
   /** - define local variables */
 
-  int index_mt;
+  int index_mt=0;
   int index_st;
   int index_type;
-  int index_eta;
-  int number_of_sources;
   int index_ap;
 
   /** - define indices of metric perturbations obeying to constraint
@@ -1194,7 +1192,6 @@ int perturb_workspace_free (
 			    ) {
 
   int index_type;
-  int index_eta;
 
   free(ppw->pvecback);
   free(ppw->pvecthermo);
@@ -1250,9 +1247,6 @@ int perturb_solve(
 
   /** - define local variables */ 
 
-  /* contains all quantities relevant for the integration algorithm */
-  struct generic_integrator_workspace gi;
-
   /* contains all fixed parameters, indices and workspaces used by the perturb_derivs function */
   struct perturb_parameters_and_workspace ppaw;
 
@@ -1268,20 +1262,12 @@ int perturb_solve(
   /* number of values in the eta_sampling array that should be considered for a given mode */
   int eta_actual_size;
 
-  /* size of each step of integration */
-  double timestep;
-  
   /* running index for the source term vector */
   int index_st;
 
   /* running index over types (temperature, etc) */
   int index_type;
   
-  /* next index in the list of discrete eta values for which sources
-     must be computed (for each type, temperature, polarization,
-     lensing, etc) */
-  int next_index_eta;
-
   /* fourier mode */
   double k;
 
@@ -1465,6 +1451,7 @@ int perturb_solve(
 			       interval_limit[index_interval],
 			       interval_limit[index_interval+1],
 			       ppw->pv->y,
+			       ppw->pv->used_in_sources,
 			       ppw->pv->pt_size,
 			       &ppaw,
 			       ppr->tol_perturb_integration,
@@ -1644,7 +1631,8 @@ int perturb_find_approximation_switches(
   int index_switch;
   int index_switch_tot;
   int num_switch; 
-  double eta_min,lower_bound,upper_bound,mid;
+  double eta_min,lower_bound,upper_bound;
+  double mid=0;
   double * unsorted_eta_switch;
   double next_eta_switch;
   int flag_ini;
@@ -1863,8 +1851,7 @@ int perturb_vector_init(
   struct perturb_vector * ppv;
 
   int index_pt;
-  int l,i;
-  double h_plus_six_eta_prime;
+  int l;
 
   /** - allocate a new perturb_vector structure to which ppw->pv will point at the end of the routine */
 
@@ -2057,7 +2044,7 @@ int perturb_vector_init(
 
   class_calloc(ppv->y,ppv->pt_size,sizeof(double),ppt->error_message);
   class_alloc(ppv->dy,ppv->pt_size*sizeof(double),ppt->error_message);
-  class_alloc(ppv->used_in_sources,ppv->pt_size*sizeof(short),ppt->error_message);
+  class_alloc(ppv->used_in_sources,ppv->pt_size*sizeof(int),ppt->error_message);
 
   /** - specify which perturbations are needed in the evaluation of source terms */
 
@@ -2083,7 +2070,7 @@ int perturb_vector_init(
       ppv->used_in_sources[ppv->index_pt_pol3_g]=_FALSE_;
 
       for (index_pt=ppv->index_pt_pol3_g+1; index_pt <= ppv->index_pt_pol0_g+ppv->l_max_pol_g; index_pt++)
-	ppv->used_in_sources[index_pt];
+	ppv->used_in_sources[index_pt]=_FALSE_;
 
     }
 
@@ -2419,11 +2406,6 @@ int perturb_initial_conditions(struct precision * ppr,
 			       struct perturb_workspace * ppw
 			       ) {
   /** Summary: */
-
-  /** - define local variables */
-
-  /* multipole l */
-  int l;
 
   /** - assuming that everything has already been set to zero, write non-zero initial conditions: */
 
@@ -2884,7 +2866,9 @@ int perturb_einstein(
   double k2,a,a2,a_prime_over_a;
   double delta_rho,delta_theta,delta_shear;
   double delta_g, theta_g, shear_g;
-  double delta_nur, theta_nur, shear_nur;
+  double delta_nur=0.;
+  double theta_nur=0.; 
+  double shear_nur=0.;;
 
   /** - wavenumber and scale factor related quantities */ 
 
@@ -3013,15 +2997,17 @@ int perturb_einstein(
       ppw->pvecmetric[ppw->index_mt_alpha_prime] = 
 	- 4.5 * (a2/k2) * delta_shear + y[ppw->pv->index_pt_eta] - 2.*a_prime_over_a*
 	(ppw->pvecmetric[ppw->index_mt_h_prime] + 6.*ppw->pvecmetric[ppw->index_mt_eta_prime])
-	/ 2./ k2; /* alpha' = (h''+6eta'')/2k2 *
+	/ 2./ k2; /* alpha' = (h''+6eta'')/2k2 */
 
       /* getting phi here is an option */
-      /* phi=y[ppw->pv->index_pt_eta]-0.5 * (a_prime_over_a/k2) * (h_plus_six_eta_prime); */   /* phi from gauge transformation (from synchronous to newtonian) */
+      /* phi=y[ppw->pv->index_pt_eta]-0.5 * (a_prime_over_a/k2) * (h_plus_six_eta_prime); */   
+      /* phi from gauge transformation (from synchronous to newtonian) */
 
     }
   }
 
-  /* nothing to be done for tensors: only one propagating degree of freedom, no constraint equation */
+  /* nothing to be done for tensors: only one propagating degree of
+     freedom, no constraint equation */
 
   return _SUCCESS_;
 
@@ -3610,7 +3596,7 @@ int perturb_derivs(double eta,
   double * pvecmetric;
 
   double theta_g;
-  double shear_g;
+  double shear_g=0.;
 
   /** - rename structure fields (just to avoid heavy notations) */
 

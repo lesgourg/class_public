@@ -457,12 +457,12 @@ int spectra_pk_at_k_and_z(
   int last_index;
   int index_ic1,index_ic2,index_ic1_ic2;
 
-  double * spectrum_at_z;
-  double * spectrum_at_z_ic;
+  double * spectrum_at_z = NULL;
+  double * spectrum_at_z_ic = NULL;
   double * spline;
-  double * pk_primordial_k;
+  double * pk_primordial_k = NULL;
   double kmin;
-  double * pk_primordial_kmin;
+  double * pk_primordial_kmin = NULL;
 
   index_mode = psp->index_md_scalars;
 
@@ -831,9 +831,7 @@ int spectra_tk_at_k_and_z(
   /** - define local variables */
 
   int index_mode;
-  int index_k;
   int last_index;
-  int index_tr;
   double * tks_at_z;
   double * ddtks_at_z;
 
@@ -1454,7 +1452,6 @@ int spectra_compute_cl(
   int index_ct;
   double k;
   double clvalue;
-  int nonzero;
   int index_ic1_ic2;
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
@@ -1712,7 +1709,6 @@ int spectra_pk(
   double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
   int last_index_back;
   double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
-  double Omega_m;
   double source_g_ic1;
   double source_g_ic2;
 

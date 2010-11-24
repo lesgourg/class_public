@@ -8,6 +8,7 @@ int generic_evolver(int (*derivs)(double x,
 		    double x_ini,
 		    double x_end,
 		    double * y, 
+		    int * used_in_output,
 		    int y_size,
 		    void * parameters_and_workspace_for_derivs,
 		    double tolerance, 
@@ -109,7 +110,7 @@ int generic_evolver(int (*derivs)(double x,
 		 error_message,
 		 error_message);
 
-      call_output == _FALSE_;
+      call_output = _FALSE_;
     
       next_index_x++;
       

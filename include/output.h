@@ -77,6 +77,14 @@ extern "C" {
 		struct output * pop
 		);
 
+  int output_tk(
+		struct background * pba,
+		struct perturbs * ppt,
+		struct spectra * psp,
+		struct output * pop
+		);
+
+
   int output_open_cl_file(
 			  struct spectra * psp,
 			  struct output * pop,
@@ -124,6 +132,7 @@ extern "C" {
 			    double * tk,
 			    int tr_size
 			    );
+
 #ifdef __cplusplus
 }
 #endif

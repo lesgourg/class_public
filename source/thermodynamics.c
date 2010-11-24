@@ -105,7 +105,6 @@ int thermodynamics_at_z(
 
   /** - define local variables */
 
-  int i;
   double x0;
 
   /* - the fact that z is in the pre-computed range 0 <= z <= z_initial
@@ -369,18 +368,23 @@ int thermodynamics_init(
 
     if (g > 0.) {
       if (pth->z_visibility_start_sources == 0.) {
-	if (g >= ppr->visibility_threshold_start_sources)
+	if (g >= ppr->visibility_threshold_start_sources) {
 	  pth->z_visibility_start_sources=pth->z_table[index_eta];
+	}
       }
       else {
-	if (pth->z_visibility_max ==0.) 
-	  if (g < g_previous)
+	if (pth->z_visibility_max ==0.) {
+	  if (g < g_previous) {
 	    pth->z_visibility_max=pth->z_table[index_eta+1];
-	  else {
-	    if (pth->z_visibility_free_streaming == 0.)
-	      if ((g < g_previous) && (g <= ppr->visibility_threshold_free_streaming))
-		pth->z_visibility_free_streaming=pth->z_table[index_eta];
 	  }
+	  else {
+	    if (pth->z_visibility_free_streaming == 0.) {
+	      if ((g < g_previous) && (g <= ppr->visibility_threshold_free_streaming)) {
+		pth->z_visibility_free_streaming=pth->z_table[index_eta];
+	      }
+	    }
+	  }
+	}
       }
     }
     
@@ -774,7 +778,7 @@ int thermodynamics_reionization(
 
   /** - define local variables */
 
-  int i,counter;
+  int counter;
   double z_sup,z_mid,z_inf;
   double tau_sup,tau_mid,tau_inf;
 
@@ -1269,9 +1273,10 @@ int thermodynamics_recombination(
   double y[3],dy[3];
 
   /* other recfast variables */
-  double OmegaB,Yp,zinitial,x_H0,x_He0,x0;
+  double OmegaB,Yp,zinitial,x_He0,x0;
+  double x_H0=0.;
   double z,mu_H,n,Lalpha,Lalpha_He,DeltaB,DeltaB_He,mu_T;
-  double zstart,zend,rhs,Trad,Tmat;
+  double zstart,zend,rhs;
   int i,Nz;
 
   /* introduced by JL for smoothing the various steps */
@@ -1641,14 +1646,12 @@ int thermodynamics_derivs_with_recfast(
   double x,n,n_He,Trad,Tmat,x_H,x_He,Hz,dHdz,epsilon;
   double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
   double timeTh,timeH;
-  double sq_0,sq_1,a_PPB,b_PPB,c_PPB,d_PPB;
-
-  double cc3P,tau;
-  int L,L2,LL;
+  double sq_0,sq_1;
 
   /* new in recfast 1.4: */
   double Rdown_trip,Rup_trip,tauHe_s,pHe_s,Doppler,gamma_2Ps,pb,qb,AHcon;
-  double tauHe_t,pHe_t,CfHe_t,CL_PSt,gamma_2Pt;
+  double tauHe_t,pHe_t,CL_PSt,gamma_2Pt;
+  double CfHe_t=0.;
   int Heflag;
 
   struct thermodynamics_parameters_and_workspace * ptpaw;

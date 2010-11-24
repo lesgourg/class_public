@@ -162,6 +162,16 @@ extern "C" {
 				 ErrorMsg errmsg
 				 );
 
+  int array_integrate_spline_table_line_to_line(
+						double * x_array,
+						int n_lines,
+						double * array,
+						int n_columns,
+						int index_y,
+						int index_ddy,
+						int index_inty,
+						ErrorMsg errmsg);
+
   int array_integrate(
 		      double * array,
 		      int n_columns,
@@ -259,6 +269,18 @@ extern "C" {
 					       int result_size, /** from 1 to n_columns */
 					       ErrorMsg errmsg);
 
+  int array_interpolate_two(
+			    double * array_x,
+			    int n_columns_x,
+			    int index_x,   /** from 0 to (n_columns_x-1) */
+			    double * array_y,
+			    int n_columns_y,
+			    int n_lines,  /** must be the same for array_x and array_y */
+			    double x,
+			    double * result,
+			    int result_size, /** from 1 to n_columns_y */
+			    ErrorMsg errmsg);
+  
   int array_interpolate_spline_one_column(
 					  double * x_array,
 					  int x_size,
