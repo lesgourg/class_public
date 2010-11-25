@@ -15,8 +15,10 @@ vpath .base build
 
 CC       = gcc
 
-CCFLAG   = -fast -fopenmp -Wall
-LDFLAG   = -fast -fopenmp -Wall
+CCFLAG   = -O3 -fopenmp -Wall
+LDFLAG   = -O3 -fopenmp -Wall
+#CCFLAG   = -fast -fopenmp -Wall
+#LDFLAG   = -fast -fopenmp -Wall
 #CCFLAG = -O2 -ggdb
 #LDFLAG = -O2 -ggdb
 #CCFLAG = -O2
