@@ -18,7 +18,7 @@ int sp_mat_alloc(sp_mat** A, int ncols, int nrows, int maxnz, ErrorMsg error_mes
 	int ncp =  ncols+1;
 	class_alloc((*A),sizeof(sp_mat),error_message);
 	class_alloc((*A)->Ax,maxnz*sizeof(double),error_message);
-	class_alloc((*A)->Ai,maxnz*sizeof(int),error_message);
+	class_calloc((*A)->Ai,maxnz,sizeof(int),error_message);
 	class_alloc((*A)->Ap,(ncp*sizeof(int)),error_message);
 	(*A)->ncols = ncols;
 	(*A)->nrows = nrows;

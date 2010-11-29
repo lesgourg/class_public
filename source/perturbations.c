@@ -4025,8 +4025,9 @@ int perturb_derivs(double eta,
 
 	l = ppw->pv->l_max_nur; /* l=lmax */
 	dy[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur] = /* last term of ultra-relativistic neutrinos/relics */
-	  k/(2.*l+1)*(l*y[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur-1]-(l+1.)*
-		      ((2.*l+1)/k/eta*y[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur]-y[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur-1]));
+	  k*y[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur-1]
+          -(1.+l)/eta*y[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur];
+
 
       }
     }
