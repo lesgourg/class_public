@@ -2161,13 +2161,14 @@ int perturb_vector_init(
 	  ppw->pv->y[ppw->pv->index_pt_theta_g];
 
 	if (ppr->gauge == newtonian)
-	  ppv->y[ppv->index_pt_shear_g] = (8./3.*ppw->pv->y[ppw->pv->index_pt_theta_g])
-	    /9./ppw->pvecthermo[pth->index_th_dkappa]; /* tight-coupling approximation for sshear_g */;
+	  ppv->y[ppv->index_pt_shear_g] = 
+	    (8./3.*ppw->pv->y[ppw->pv->index_pt_theta_g])
+	    *2./15./ppw->pvecthermo[pth->index_th_dkappa]; /* tight-coupling approximation for sshear_g */;
 	
 	if (ppr->gauge == synchronous)
-	  ppv->y[ppv->index_pt_shear_g] = (8./3.*ppw->pv->y[ppw->pv->index_pt_theta_g] + 
-					   4./3.*(ppw->pvecmetric[ppw->index_mt_h_prime] + 6. * ppw->pvecmetric[ppw->index_mt_eta_prime]))
-	    /9./ppw->pvecthermo[pth->index_th_dkappa]; /* tight-coupling approximation for shear_g */  
+	  ppv->y[ppv->index_pt_shear_g] = 
+	    (8./3.*ppw->pv->y[ppw->pv->index_pt_theta_g] + 4./3.*ppw->pvecmetric[ppw->index_mt_h_prime] + 8. * ppw->pvecmetric[ppw->index_mt_eta_prime])
+	    *2./15./ppw->pvecthermo[pth->index_th_dkappa]; /* tight-coupling approximation for shear_g (Ma & Bertschinger give 1/9 instead of 2/15 becasue they didn't include consistently the contribution of G_gamma0 and G_gamma2, which are of the same order as sigma_g. This was already consistently included in CAMB). */  
 	
 	ppv->y[ppv->index_pt_l3_g] = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*
 	  ppv->y[ppv->index_pt_shear_g]; /* tight-coupling approximation for l=3 */
@@ -3777,7 +3778,7 @@ int perturb_derivs(double eta,
 		 -dy[ppw->pv->index_pt_delta_g]/4.)
 	    )/pvecthermo[pth->index_th_dkappa]/(1.+R);
 
-	shear_g=(8./3.*y[ppw->pv->index_pt_theta_g])/9./pvecthermo[pth->index_th_dkappa]; /* tight-coupling shear_g */
+	shear_g=(8./3.*y[ppw->pv->index_pt_theta_g])*2./15./pvecthermo[pth->index_th_dkappa]; /* tight-coupling shear_g (Ma & Bertschinger give 1/9 instead of 2/15 becasue they didn't include consistently the contribution of G_gamma0 and G_gamma2, which are of the same order as sigma_g. This was already consistently included in CAMB)*/
 
 	dy[ppw->pv->index_pt_theta_b] = /* tight-coupling baryon velocity */
 	  (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
@@ -3808,7 +3809,7 @@ int perturb_derivs(double eta,
 	/* for testing */
 	/*printf("%e %e\n",1./a-1.,pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]);*/
 
-	shear_g=(8./3.*y[ppw->pv->index_pt_theta_g]+4./3.*h_plus_six_eta_prime)/9./pvecthermo[pth->index_th_dkappa]; /* tight-coupling shear_g */ 
+	shear_g=(8./3.*y[ppw->pv->index_pt_theta_g]+4./3.*h_plus_six_eta_prime)*2./15./pvecthermo[pth->index_th_dkappa]; /* tight-coupling shear_g (Ma & Bertschinger give 1/9 instead of 2/15 becasue they didn't include consistently the contribution of G_gamma0 and G_gamma2, which are of the same order as sigma_g. This was already consistently included in CAMB) */ 
 
 	dy[ppw->pv->index_pt_theta_b] = /* tight-coupling baryon velocity */
 	  (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
