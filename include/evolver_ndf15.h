@@ -94,6 +94,11 @@ int generic_evolver(
 	int t_res,
 	int (*output)(double x,double y[],double dy[],int index_x,void * parameters_and_workspace,
 		ErrorMsg error_message),
+	int (*print_variables)(double x,
+			       double y[], 
+			       double dy[],
+			       void * parameters_and_workspace,
+			       ErrorMsg error_message),
 	ErrorMsg error_message);
 
 

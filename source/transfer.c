@@ -168,7 +168,7 @@ int transfer_init(
   /* pointer to one "ptw" per thread */
   struct transfer_workspace ** pptw;
   /* instrumentation times */
-  double tstart, tstop;
+  double tstart, tstop, tspent;
 
 #endif
 
@@ -285,6 +285,10 @@ int transfer_init(
 
 	/** (c) loop over l. For each value of l, compute transfer function. */
 
+	if (ptr->transfer_verbose>1)
+	  printf("In %s: Compute transfer functions for one mode/ic/type:\n",
+		 __func__);
+
 	/* initialize error management flag */
 
 	abort = _FALSE_;
@@ -294,18 +298,20 @@ int transfer_init(
 #pragma omp parallel						\
   shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,		\
 	  interpolated_sources,pptw,abort)			\
-  private (index_l,ptw,tstart,tstop)
+  private (index_l,ptw,tstart,tstop,tspent)
 
 	{
 
 #ifdef _OPENMP
 	  ptw = pptw[omp_get_thread_num()];
-	  tstart = omp_get_wtime();
+	  tspent = 0.;
 #endif
 
 #pragma omp for schedule (dynamic)
 
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
+
+	    tstart = omp_get_wtime();
 
 	    class_call_parallel(transfer_compute_for_each_l(ppr,
 							    ppt,
@@ -322,15 +328,18 @@ int transfer_init(
 				ptr->error_message,
 				ptr->error_message);
 
+	    tstop = omp_get_wtime();
+
+	    tspent += tstop-tstart;
+
 #pragma omp flush(abort)
 
 	  } /* end of loop over l */
 
 #ifdef _OPENMP
-	  tstop = omp_get_wtime();
 	  if (ptr->transfer_verbose>1)
 	    printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
-		   __func__,tstop-tstart,omp_get_thread_num());
+		   __func__,tspent,omp_get_thread_num());
 #endif
 	} /* end of parallel region */
 

@@ -504,22 +504,16 @@ int bessel_j_for_l(
 
   /** - define local variables */
 
-  /* index for x (x=x_min[index_l]+x_step*index_x) */
+  /* index for x and value x=x_min[index_l]+x_step*index_x */
   int index_x;
-  /* value of j_l(x) returned by bessel_j() */
-  double j;
+  double x;
+
+  /* value of j_l(x) and j_{l-1}(x) returned by bessel_j() */
+  double j,jm;
+
   /* for computing x_min */
   double x_min_up;
   double x_min_down;
-
-  /* an array used temporarily: for each l, contains the list of x
-     values in column number column_x, of j_l values in columns_j, of
-     j_l'' values in column ddj */
-  double * j_array;
-  int column_x=0;
-  int column_j=1;
-  int column_ddj=2;
-  int column_num=3;
 
   index_x=0;
   j = 0.;
@@ -589,46 +583,46 @@ int bessel_j_for_l(
 
     pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
 
-    class_alloc(j_array,pbs->x_size[index_l]*column_num*sizeof(double),pbs->error_message);
-    
-    j_array[0*column_num+column_x]=pbs->x_min[index_l];
-    j_array[0*column_num+column_j]=j;
+    class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+    class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+
+    pbs->j[index_l][0] = j;
+
+    class_call(bessel_j(pbs,
+			pbs->l[index_l]-1, /* l-1 */
+			pbs->x_min[index_l], /* x */
+			&jm),  /* j_{l-1}(x) */
+	       pbs->error_message,
+	       pbs->error_message);
+
+    pbs->ddj[index_l][0] = jm-j/pbs->x_min[index_l]/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
 
     /* loop over other non-negligible values */
     for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
 
-      j_array[index_x*column_num+column_x]=pbs->x_min[index_l]+index_x*pbs->x_step;
+      x = pbs->x_min[index_l]+index_x*pbs->x_step;
 
       class_call(bessel_j(pbs,
 			  pbs->l[index_l], /* l */
-			  j_array[index_x*column_num+column_x], /* x */
-			  j_array+index_x*column_num+column_j),  /* j_l(x) */
+			  x, /* x */
+			  &(pbs->j[index_l][index_x])),  /* j_l(x) */
 		 pbs->error_message,
 		 pbs->error_message);
+
+      class_call(bessel_j(pbs,
+			  pbs->l[index_l]-1, /* l-1 */
+			  x, /* x */
+			  &(pbs->ddj[index_l][index_x])),  /* j_{l-1}(x) */
+		 pbs->error_message,
+		 pbs->error_message);
+
+	pbs->ddj[index_l][index_x] -= 
+	  pbs->j[index_l][index_x]/x/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
+	
+
     }
- 
-
-    class_call(array_spline(j_array,
-			    column_num,
-			    pbs->x_size[index_l],
-			    column_x,
-			    column_j,
-			    column_ddj,
-			    _SPLINE_EST_DERIV_,
-			    pbs->error_message),
-	       pbs->error_message,
-	       pbs->error_message);
-
-    class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-    class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-
-    for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) {
-      pbs->j[index_l][index_x] = j_array[index_x*column_num+column_j];
-      pbs->ddj[index_l][index_x] = j_array[index_x*column_num+column_ddj];
-    }
-
-    free(j_array);
   }
+
   return _SUCCESS_;
 }
     

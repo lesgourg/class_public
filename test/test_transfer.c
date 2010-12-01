@@ -65,23 +65,23 @@ main(int argc, char **argv) {
   double k;
   double transfer;
 
-  for (k=1.e-4; k<1.e-1; k*=1.1) {
+/*   for (k=1.e-4; k<1.e-1; k*=1.1) { */
 
-    if (transfer_functions_at_k(&tr,
-				index_mode,
-				index_ic,
-				index_type,
-				index_l,
-				k,
-				&transfer
-				) == _FAILURE_) {
-      printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message);
-      return _FAILURE_;;
-    }
+/*     if (transfer_functions_at_k(&tr, */
+/* 				index_mode, */
+/* 				index_ic, */
+/* 				index_type, */
+/* 				index_l, */
+/* 				k, */
+/* 				&transfer */
+/* 				) == _FAILURE_) { */
+/*       printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message); */
+/*       return _FAILURE_;; */
+/*     } */
     
-    printf("%e %e\n",k,transfer);
+/*     printf("%e %e\n",k,transfer); */
     
-  }
+/*   } */
 
   /* here you can output the full tabulated arrays*/
 
@@ -89,13 +89,20 @@ main(int argc, char **argv) {
 /*   double transfer; */
 
   for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
-
-    transfer=tr.transfer[index_mode]
-      [((index_ic * pt.tp_size[index_mode] + index_type)
-	* tr.l_size[index_mode] + index_l)
-       * tr.k_size[index_mode] + index_k];
     
-    printf("%d %e %e\n",tr.l[index_mode][index_l],tr.k[index_mode][index_k],transfer); 
+    for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
+      
+      transfer=tr.transfer[index_mode]
+	[((index_ic * pt.tp_size[index_mode] + index_type)
+	  * tr.l_size[index_mode] + index_l)
+	 * tr.k_size[index_mode] + index_k];
+      
+      if (transfer != 0.) {
+	printf("%d %e %e\n",tr.l[index_mode][index_l],tr.k[index_mode][index_k],transfer); 
+      }
+    }
+
+    printf("\n");
 
   } 
 

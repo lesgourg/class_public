@@ -26,6 +26,11 @@ int generic_evolver(int (*derivs)(double x,
 				  int index_x,
 				  void * parameters_and_workspace,
 				  ErrorMsg error_message),
+		    int (*print_variables)(double x,
+					   double y[], 
+					   double dy[],
+					   void * parameters_and_workspace,
+					   ErrorMsg error_message),
 		    ErrorMsg error_message) {
 
   int next_index_x;
@@ -33,7 +38,7 @@ int generic_evolver(int (*derivs)(double x,
   struct generic_integrator_workspace gi;
   double * dy;
   short call_output;
- 
+
   class_test(x_ini > x_sampling[x_size-1],
 	     error_message,
 	     "called with x=%e, last x_sampling=%e",x_ini,x_sampling[x_size-1]);
@@ -80,6 +85,15 @@ int generic_evolver(int (*derivs)(double x,
       call_output = _FALSE_;
     }
 
+    if (print_variables != NULL)
+      class_call((*print_variables)(x1,
+				    y,
+				    dy,
+				    parameters_and_workspace_for_derivs,
+				    error_message),
+		 error_message,
+		 error_message);
+
     class_call(generic_integrator(derivs,
 				  x1,
 				  x2,
@@ -120,6 +134,15 @@ int generic_evolver(int (*derivs)(double x,
 
   }
 
+  if (print_variables != NULL)
+    class_call((*print_variables)(x1,
+				  y,
+				  dy,
+				  parameters_and_workspace_for_derivs,
+				  error_message),
+	       error_message,
+	       error_message);
+  
   class_call(cleanup_generic_integrator(&gi),
 	     gi.error_message,
 	     error_message);

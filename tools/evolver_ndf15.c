@@ -79,6 +79,11 @@ int generic_evolver(
 		    int tres,
 		    int (*output)(double x,double y[],double dy[],int index_x,void * parameters_and_workspace,
 				  ErrorMsg error_message),
+		    int (*print_variables)(double x,
+					     double y[], 
+					     double dy[],
+					     void * parameters_and_workspace,
+					   ErrorMsg error_message),
 		    ErrorMsg error_message){
 	
   /* Constants: */
@@ -108,6 +113,10 @@ int generic_evolver(
   /* Misc: */
   int stepstat[6],nfenj,j,ii,jj, numidx, neqp=neq+1;
   int verbose=0;
+
+  class_test(print_variables!=NULL,
+	     error_message,
+	     "for printing variables you should use the rkck evolver. Here, must set print_variables to NULL\n");
 
   /** Allocate memory . */
   class_alloc(f0,sizeof(double)*neqp,error_message);

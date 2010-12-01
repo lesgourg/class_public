@@ -491,6 +491,12 @@ struct precision
 
   //@}
 
+
+
+  /* temporary */
+  
+  int debugging_flag;
+
 };
 
 

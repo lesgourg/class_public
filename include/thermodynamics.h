@@ -71,6 +71,7 @@ struct thermo
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \eta^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_th_dacb2;         /**< derivative of squared baryon sound speed divided by (1+z) \f$ d [c_b^2/(1+z)] / d \eta \f$ */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \eta), used for computing integration step in perturbation module */
   int th_size;                /**< size of thermodynamics vector */ 
 

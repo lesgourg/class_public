@@ -859,7 +859,7 @@ int input_init(
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
   class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
-  class_read_double("tight_coupling_trigger_eta_g_over_eta_",ppr->tight_coupling_trigger_eta_g_over_eta_k);
+  class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
   class_read_double("rad_pert_trigger_k_over_aH",ppr->rad_pert_trigger_k_over_aH);
   class_read_double("rad_pert_trigger_Omega_r",ppr->rad_pert_trigger_Omega_r);
 
@@ -883,6 +883,8 @@ int input_init(
   class_read_double("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
+
+  class_read_int("debugging_flag",ppr->debugging_flag);
 
   /** (i) eventually write all the read parameters in a file */
 

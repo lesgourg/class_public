@@ -127,7 +127,7 @@ int perturb_init(
   /* number of available omp threads */
   int number_of_threads;
   /* instrumentation times */
-  double tstart, tstop;
+  double tstart, tstop, tspent;
   /* pointer to one "ppw" per thread */
   struct perturb_workspace ** pppw;
 #endif
@@ -242,13 +242,13 @@ int perturb_init(
 
 #pragma omp parallel						\
   shared(pppw,ppr,pba,pth,ppt,index_mode,index_ic,abort)	\
-  private(index_k,ppw,tstart,tstop)
+  private(index_k,ppw,tstart,tstop,tspent)
 
       {
 
 #ifdef _OPENMP
 	ppw=pppw[omp_get_thread_num()];
-	tstart = omp_get_wtime();
+	tspent=0.;
 #endif
 	
 #pragma omp for schedule (dynamic)
@@ -258,6 +258,8 @@ int perturb_init(
 	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
 	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);
 	  
+	  tstart = omp_get_wtime();
+
 	  class_call_parallel(perturb_solve(ppr,
 					    pba,
 					    pth,
@@ -269,15 +271,18 @@ int perturb_init(
 			      ppt->error_message,
 			      ppt->error_message);
 
+	  tstop = omp_get_wtime();
+
+	  tspent += tstop-tstart;
+
 #pragma omp flush(abort)
 
 	} /* end of loop over wavenumbers */
 
 #ifdef _OPENMP
-	tstop = omp_get_wtime();
 	if (ppt->perturbations_verbose>1)
 	  printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
-		 __func__,tstop-tstart,omp_get_thread_num());
+		 __func__,tspent,omp_get_thread_num());
 #endif
 
       } /* end of parallel region */
@@ -1461,6 +1466,12 @@ int perturb_solve(
 			       ppt->eta_sampling,
 			       eta_actual_size,
 			       perturb_source_terms,
+			       /* next entry = 'NULL' in standard
+				  runs; = 'perturb_print_variables' if
+				  you want to output perturbations at
+				  each step for testing purposes. */
+			       NULL,
+			       /* perturb_print_variables, */
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -3531,6 +3542,101 @@ int perturb_sources(
 }
 
 /**
+ * When testing the code or a cosmological model, it can be useful to
+ * output perturbations at each step of integration (and not just the
+ * delta's at each source sampling point, which is acheived simply by
+ * asking for matter transfer functions). Then this function can be
+ * passed to the generic_evolver routine.
+ *
+ * By default, instead of passing this function to generic_evolver,
+ * one passes a null pointer. Then this function is just not used.
+ *
+ * @param eta                      Input: conformal time
+ * @param y                        Input: vector of perturbations
+ * @param dy                       Input: vector of its derivatives (already allocated)
+ * @param parameters_and_workspace Input: fixed parameters (e.g. indices)
+ * @param error_message            Output : error message
+ *
+ */
+
+int perturb_print_variables(double eta,
+			    double * y,
+			    double * dy,
+			    void * parameters_and_workspace,
+			    ErrorMsg error_message
+			    ) {
+  
+  struct perturb_parameters_and_workspace * pppaw;
+
+  double k;
+  int index_mode;
+  struct precision * ppr;
+  struct background * pba;
+  struct thermo * pth;
+  struct perturbs * ppt;
+  struct perturb_workspace * ppw;
+  double * pvecback;
+  double * pvecthermo;
+  double * pvecmetric;
+
+  /** - rename structure fields (just to avoid heavy notations) */
+
+  pppaw = parameters_and_workspace;
+  k = pppaw->k;
+
+  /** - print whatever you want for whatever mode of your choice */
+
+  if ((k>0.1) && (k<0.105)) {
+
+    index_mode = pppaw->index_mode;
+    ppr = pppaw->ppr;
+    pba = pppaw->pba;
+    pth = pppaw->pth;
+    ppt = pppaw->ppt;
+    ppw = pppaw->ppw;
+    pvecback = ppw->pvecback;
+    pvecthermo = ppw->pvecthermo;
+    pvecmetric = ppw->pvecmetric;
+    
+    if (ppw->approx[ppw->index_ap_fsa]==(int)fsa_off) {
+      if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
+	fprintf(stdout,"%e %e %e %e %e %e %e\n",
+		eta,
+		y[ppw->pv->index_pt_delta_g],
+		y[ppw->pv->index_pt_theta_g],
+		0.,
+		y[ppw->pv->index_pt_delta_b],
+		y[ppw->pv->index_pt_theta_b],
+		y[ppw->pv->index_pt_eta]);
+      }
+      else {
+	fprintf(stdout,"%e %e %e %e %e %e %e\n",
+		eta,
+		y[ppw->pv->index_pt_delta_g],
+		y[ppw->pv->index_pt_theta_g],
+		y[ppw->pv->index_pt_shear_g],
+		y[ppw->pv->index_pt_delta_b],
+		y[ppw->pv->index_pt_theta_b],
+		y[ppw->pv->index_pt_eta]);
+      }
+    }
+    else {
+      fprintf(stdout,"%e %e %e %e %e %e %e\n",
+	      eta,
+	      0.,
+	      0.,
+	      0.,
+	      y[ppw->pv->index_pt_delta_b],
+	      y[ppw->pv->index_pt_theta_b],
+	      y[ppw->pv->index_pt_eta]);
+    }
+  }
+  
+  return _SUCCESS_;
+
+}
+
+/**
  * Compute derivative of all perturbations to be integrated 
  *
  * For each mode (scalar/vector/tensor) and each wavenumber k, this
@@ -3789,27 +3895,64 @@ int perturb_derivs(double eta,
       }
 
       if (ppr->gauge == synchronous) {
+
 	/* Synchronous gauge : */
-	slip=(2.*R/(1.+R)*a_prime_over_a+pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]) /* tight-coupling (theta_b-theta_g)' */
-	  *(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g])
-	  +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b]
-	    -a_prime_over_a*k2*(y[ppw->pv->index_pt_delta_g]/2.)
-	    +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b]
-		 -dy[ppw->pv->index_pt_delta_g]/4.)
-	    )/pvecthermo[pth->index_th_dkappa]/(1.+R);
 
 	/* tight-coupling (theta_b-theta_g)' */
-	/* 	slip=2.*R/(1.+R)*a_prime_over_a*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
-	/* 	  +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
-	/* 	    -a_prime_over_a*k2*y[ppw->pv->index_pt_delta_g]/2. */
-	/* 	    +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
-	/* 		 -dy[ppw->pv->index_pt_delta_g]/4.) */
-	/* 	    )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
 
-	/* for testing */
-	/*printf("%e %e\n",1./a-1.,pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]);*/
+	/* like Ma & Bertschinger */
+/* 	if (ppr->debugging_flag == 0) { */
 
-	shear_g=(8./3.*y[ppw->pv->index_pt_theta_g]+4./3.*h_plus_six_eta_prime)*2./15./pvecthermo[pth->index_th_dkappa]; /* tight-coupling shear_g (Ma & Bertschinger give 1/9 instead of 2/15 becasue they didn't include consistently the contribution of G_gamma0 and G_gamma2, which are of the same order as sigma_g. This was already consistently included in CAMB) */ 
+	  slip=2.*R/(1.+R)*a_prime_over_a
+	    *(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g])
+	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b]
+	      -a_prime_over_a*k2*y[ppw->pv->index_pt_delta_g]/2.
+	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b]
+		   -dy[ppw->pv->index_pt_delta_g]/4.)
+	      )/pvecthermo[pth->index_th_dkappa]/(1.+R);
+	  
+/* 	} */
+
+	/* relax assumption dkappa~a^-2 (like in CAMB) */
+/* 	if (ppr->debugging_flag == 1) { */
+
+/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
+/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
+/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
+/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
+/* 		   -dy[ppw->pv->index_pt_delta_g]/4.) */
+/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
+
+/* 	} */
+
+	/* also relax assumption cs2~a^-1 */
+/* 	if (ppr->debugging_flag == 2) { */
+
+/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
+/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
+/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
+/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
+/* 		   -dy[ppw->pv->index_pt_delta_g]/4. */
+/* 		   +(pvecthermo[pth->index_th_dacb2]*(1.+z))*y[ppw->pv->index_pt_delta_b]) */
+/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
+	  
+/* 	} */
+
+	shear_g=(8./3.*y[ppw->pv->index_pt_theta_g]+4./3.*h_plus_six_eta_prime)
+	  *2./15./pvecthermo[pth->index_th_dkappa]; /* tight-coupling shear_g (Ma & Bertschinger give 1/9 instead of 2/15 becasue they didn't include consistently the contribution of G_gamma0 and G_gamma2, which are of the same order as sigma_g. This was already consistently included in CAMB) */ 
+	
+/* 	/\* also adding shear *\/ */
+/* 	if (ppr->debugging_flag == 3) { */
+
+/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
+/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
+/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
+/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
+/* 		   -dy[ppw->pv->index_pt_delta_g]/4. */
+/* 		   +(pvecthermo[pth->index_th_dacb2]*(1.+z))*y[ppw->pv->index_pt_delta_b]) */
+/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
+	  
+/* 	} */
 
 	dy[ppw->pv->index_pt_theta_b] = /* tight-coupling baryon velocity */
 	  (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]

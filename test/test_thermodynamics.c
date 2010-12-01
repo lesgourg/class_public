@@ -4,7 +4,7 @@
  
 #include "class.h"
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -51,10 +51,11 @@ main(int argc, char **argv) {
   printf("#9: second derivative of visibility function g'' \n");
   printf("#10: squared baryon temperature\n");
   printf("#11: squared baryon sound speed c_b^2 \n");
-  printf("#12: variation rate \n");
+  printf("#12: derivative of squared baryon sound speed duivided by (1+z) [c_b^2/(1+z)]' \n");
+  printf("#13: variation rate \n");
 
   for (i=0; i < th.tt_size; i++)
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   th.z_table[i],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
@@ -66,6 +67,7 @@ main(int argc, char **argv) {
 	   th.thermodynamics_table[i*th.th_size+th.index_th_ddg],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_Tb],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_dacb2],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_rate]
 	   );
 
@@ -83,7 +85,7 @@ main(int argc, char **argv) {
 
     thermodynamics_at_z(&ba,&th,z,normal,&last_index,pvecback,pvecthermo);
     
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   z,
 	   pvecthermo[th.index_th_xe],
 	   pvecthermo[th.index_th_dkappa],
@@ -95,6 +97,7 @@ main(int argc, char **argv) {
 	   pvecthermo[th.index_th_ddg],
 	   pvecthermo[th.index_th_Tb],
 	   pvecthermo[th.index_th_cb2],
+	   pvecthermo[th.index_th_dacb2],
 	   pvecthermo[th.index_th_rate]
 	   );
     
@@ -111,5 +114,7 @@ main(int argc, char **argv) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }
+
+  return _SUCCESS_;
 
 }

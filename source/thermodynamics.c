@@ -145,6 +145,8 @@ int thermodynamics_at_z(
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
     pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pth->Tcmb * (1.+z) * 4. / 3.;
 
+    pvecthermo[pth->index_th_dacb2] = 0.;
+
     /* in this regime, variation rate = dkappa/deta */
     pvecthermo[pth->index_th_rate] = pvecthermo[pth->index_th_dkappa];
 
@@ -335,6 +337,36 @@ int thermodynamics_init(
 						       pth->index_th_dddkappa,
 						       pth->index_th_g,
 						       pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+
+  /** -> compute c_b^2/(1+z) */
+  for (index_eta=0; index_eta<pth->tt_size; index_eta++)
+    pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dg]= /* use this column temporarily  for storing acb2=cb2/(1+z) */
+      pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_cb2]/(1+pth->z_table[index_eta]);
+  
+  /** -> second derivative with respect to eta aof cb2 (in view of spline interpolation) */
+  class_call(array_spline_table_line_to_line(eta_table,
+					     pth->tt_size,
+					     pth->thermodynamics_table,
+					     pth->th_size,
+					     pth->index_th_dg,  /* use this column temporarily  for storing acb2 */
+					     pth->index_th_ddg, /* use this column temporarily  for storing ddacb2 */
+					     _SPLINE_EST_DERIV_,
+					     pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+
+
+  /** -> first derivative with respect to eta of cb2 (using spline interpolation) */
+  class_call(array_derive_spline_table_line_to_line(eta_table,
+						    pth->tt_size,
+						    pth->thermodynamics_table,
+						    pth->th_size,
+						    pth->index_th_dg, /* use this column temporarily  for storing acb2 */
+						    pth->index_th_ddg, /* use this column temporarily  for storing ddcb2 */
+						    pth->index_th_dacb2,
+						    pth->error_message),
 	     pth->error_message,
 	     pth->error_message);
 
@@ -563,6 +595,8 @@ int thermodynamics_indices(
   pth->index_th_Tb = index;
   index++;
   pth->index_th_cb2 = index;
+  index++;
+  pth->index_th_dacb2 = index;
   index++;
   pth->index_th_rate = index;
   index++;

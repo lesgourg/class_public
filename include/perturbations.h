@@ -520,6 +520,20 @@ struct perturb_parameters_and_workspace {
 			struct perturb_workspace * ppw
 			);
 
+    int perturb_print_variables(double eta,
+				double * y,
+				double * dy,
+				void * parameters_and_workspace,
+				ErrorMsg error_message
+				);
+
+    int perturb_print_variables(double eta,
+				double * y,
+				double * dy,
+				void * parameters_and_workspace,
+				ErrorMsg error_message
+				);
+
     int perturb_derivs(
 		       double eta,
 		       double * y,
