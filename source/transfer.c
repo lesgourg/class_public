@@ -222,31 +222,53 @@ int transfer_init(
   {
 
     /** - initialize all indices in the transfer_workspace structure and allocate its array. Fill the eta column. */
-
+    
     class_alloc_parallel(ptw,sizeof(struct transfer_workspace),ptr->error_message);
-
+    
 #ifdef _OPENMP
     pptw[omp_get_thread_num()] = ptw;
 #endif
-
+    
     index_ti = 0;
-    ptw->index_ti_eta = index_ti;
-    index_ti++;
-    ptw->index_ti_y = index_ti;
-    index_ti++;
-    ptw->index_ti_ddy = index_ti;
-    index_ti++;
-    ptw->ti_size = index_ti;
 
+    if (ppr->transfer_integrate == spline) {
+      ptw->index_ti_eta = index_ti;
+      index_ti++;
+      ptw->index_ti_y = index_ti;
+      index_ti++;
+      ptw->index_ti_ddy = index_ti;
+      index_ti++;
+    }
+    else {
+      ptw->index_ti_deta = index_ti;
+      index_ti++;
+    }
+
+    ptw->ti_size = index_ti;
+      
     class_alloc_parallel(ptw->trans_int,
 			 sizeof(double) * ppt->eta_size * ptw->ti_size,
 			 ptr->error_message);
     
-    for (index_eta=0; index_eta < ppt->eta_size; index_eta++)
-      ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_eta] = ppt->eta_sampling[index_eta];
-    
-  } /* end of parallel region */
+    if (ppr->transfer_integrate == spline) {
+      for (index_eta=0; index_eta < ppt->eta_size; index_eta++)
+	ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_eta] = ppt->eta_sampling[index_eta];
+      
+    }
+    else {
+      ptw->trans_int[ptw->ti_size*0+ptw->index_ti_deta] = 
+	(ppt->eta_sampling[1]-ppt->eta_sampling[0]);
 
+      for (index_eta=1; index_eta < ppt->eta_size-1; index_eta++)
+	ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_deta] = 
+	  (ppt->eta_sampling[index_eta+1]-ppt->eta_sampling[index_eta-1]);
+
+      ptw->trans_int[ptw->ti_size*(ppt->eta_size-1)+ptw->index_ti_deta] = 
+	(ppt->eta_sampling[ppt->eta_size-1]-ppt->eta_sampling[ppt->eta_size-2]);
+    }
+
+  } /* end of parallel region */
+    
   if (abort == _TRUE_) return _FAILURE_;
 
   /** - loop over all indices of the table of transfer functions. 
@@ -285,9 +307,11 @@ int transfer_init(
 
 	/** (c) loop over l. For each value of l, compute transfer function. */
 
+#ifdef _OPENMP
 	if (ptr->transfer_verbose>1)
-	  printf("In %s: Compute transfer functions for one mode/ic/type:\n",
-		 __func__);
+	  printf("In %s: Split transfer function computation between %d threads for one mode/ic/type:\n",
+		 __func__,number_of_threads);
+#endif
 
 	/* initialize error management flag */
 
@@ -311,7 +335,9 @@ int transfer_init(
 
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
 
+#ifdef _OPENMP
 	    tstart = omp_get_wtime();
+#endif
 
 	    class_call_parallel(transfer_compute_for_each_l(ppr,
 							    ppt,
@@ -328,9 +354,11 @@ int transfer_init(
 				ptr->error_message,
 				ptr->error_message);
 
+#ifdef _OPENMP
 	    tstop = omp_get_wtime();
 
 	    tspent += tstop-tstart;
+#endif
 
 #pragma omp flush(abort)
 
@@ -362,6 +390,10 @@ int transfer_init(
     free(ptw->trans_int);
     free(ptw);
   }
+
+#ifdef _OPENMP
+  free(pptw);
+#endif
 
   return _SUCCESS_;
 }
@@ -1000,7 +1032,8 @@ int transfer_compute_for_each_l(
       }
       else {
 	
-	class_call(transfer_integrate(ppt,
+	class_call(transfer_integrate(ppr,
+				      ppt,
 				      pbs,
 				      ptr,
 				      eta0,
@@ -1115,6 +1148,7 @@ int transfer_compute_for_each_l(
  */
 
 int transfer_integrate(
+		       struct precision * ppr,
 		       struct perturbs * ppt,
 		       struct bessels * pbs,
 		       struct transfers * ptr,
@@ -1162,50 +1196,81 @@ int transfer_integrate(
   while ((interpolated_sources[index_k * ppt->eta_size + index_eta_max-1] == 0.)  && (index_eta_max > 2)) 
     index_eta_max--;
 
-  /** (c) loop over points: */
+  /** (c) integrate with spline or trapezoidal method */
 
-  for (index_eta = 0; index_eta <= index_eta_max; index_eta++) {
+  if (ppr->transfer_integrate == spline) {
 
-    class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]),index_l,&bessel),
+    /* loop over points: */
+
+    for (index_eta = 0; index_eta <= index_eta_max; index_eta++) {
+      
+      class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]),index_l,&bessel),
+		 pbs->error_message,
+		 ptr->error_message);
+      
+      ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_y]= 
+	interpolated_sources[index_k * ppt->eta_size + index_eta]*bessel;
+      
+    }
+    
+    /* spline the integrand: */
+    
+    class_call(array_spline(ptw->trans_int,
+			    ptw->ti_size,
+			    index_eta_max+1,
+			    ptw->index_ti_eta,
+			    ptw->index_ti_y,
+			    ptw->index_ti_ddy,
+			    _SPLINE_EST_DERIV_,
+			    ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+    
+    /* integrate: */
+
+    class_call(array_integrate_all_spline(ptw->trans_int,
+					  ptw->ti_size,
+					  index_eta_max+1,
+					  ptw->index_ti_eta,
+					  ptw->index_ti_y,
+					  ptw->index_ti_ddy,
+					  trsf,
+					  ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);	
+    
+    /* correct for last piece of integral (up to point where bessel vanishes) */
+    *trsf += (eta_max_bessel-ppt->eta_sampling[index_eta_max])
+      * ptw->trans_int[ptw->ti_size*index_eta_max+ptw->index_ti_y]/2.;
+
+  }
+  
+  else {
+    
+    class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta_max]),index_l,&bessel),
 	       pbs->error_message,
 	       ptr->error_message);
+    
+    *trsf = 
+      interpolated_sources[index_k * ppt->eta_size + index_eta_max]*bessel
+      *(eta_max_bessel-ppt->eta_sampling[index_eta_max-1]);
 
-    ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_y]= 
-      interpolated_sources[index_k * ppt->eta_size + index_eta]*bessel;
+    for (index_eta=0; index_eta<index_eta_max; index_eta++) {
+
+      class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]),index_l,&bessel),
+		 pbs->error_message,
+		 ptr->error_message);
+      
+      *trsf +=
+	interpolated_sources[index_k * ppt->eta_size + index_eta]*bessel
+	*ptw->trans_int[ptw->ti_size*index_eta+ptw->index_ti_deta];
+    }
+    
+    *trsf *= 0.5;
 
   }
 
-  /** (d) spline the integrand: */
-
-  class_call(array_spline(ptw->trans_int,
-			  ptw->ti_size,
-			  index_eta_max+1,
-			  ptw->index_ti_eta,
-			  ptw->index_ti_y,
-			  ptw->index_ti_ddy,
-			  _SPLINE_EST_DERIV_,
-			  ptr->error_message),
-	     ptr->error_message,
-	     ptr->error_message);
-
-  /** (e) integrate: */
-
-  class_call(array_integrate_all_spline(ptw->trans_int,
-					ptw->ti_size,
-					index_eta_max+1,
-					ptw->index_ti_eta,
-					ptw->index_ti_y,
-					ptw->index_ti_ddy,
-					trsf,
-					ptr->error_message),
-	     ptr->error_message,
-	     ptr->error_message);	
-
-  /** (f) correct for last piece of integral (up to point where bessel vanishes) */
-  *trsf += (eta_max_bessel-ppt->eta_sampling[index_eta_max])
-    * ptw->trans_int[ptw->ti_size*index_eta_max+ptw->index_ti_y]/2.;
-
-  /** (g) extra factors for polarization, lensing, tensors.. */
+  /** (e) extra factors for polarization, lensing, tensors.. */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 

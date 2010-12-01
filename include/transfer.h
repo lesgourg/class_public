@@ -86,21 +86,26 @@ struct transfers {
 /**
  * A workspace for each transfer function computation. 
  *
- * Will contain tabulated values of conformal time, 
- * of the integrand of each transfer function, 
- * and of its second derivative with respect to time, 
- * in view of for spline interpolation:
+ * For spline integration, will contain tabulated values of conformal
+ * time, of the integrand of each transfer function, and of its second
+ * derivative with respect to time.
+ *
+ * For trapezoidal integration, contains the relevant time steps
+ * (storing them in advance allows to save time during the integration
+ * loop)
  */
 
 struct transfer_workspace {
 
   double * trans_int; /* array of argument trans_int[index_eta*ptw->ti_size+index_ti] */
 
-int index_ti_eta; /* index of column for time */
-int index_ti_y;   /* index of column for integrand */
-int index_ti_ddy; /* index of column for second derivative of integrand */
+  int index_ti_eta; /* index of column for time (spline method) */
+  int index_ti_y;   /* index of column for integrand (spline method) */
+  int index_ti_ddy; /* index of column for second derivative of integrand (spline method) */
+  
+  int index_ti_deta; /* index of column for time steps (trapezoidal method) */
 
-int ti_size; /* number of columns in trans_int */
+  int ti_size; /* number of columns in trans_int */
 };
 
 /*************************************************************************************************************/
@@ -189,6 +194,7 @@ extern "C" {
 				  );
 
   int transfer_integrate(
+			 struct precision * ppr,
 			 struct perturbs * ppt,
 			 struct bessels * pbs,
 			 struct transfers * ptr,

@@ -215,6 +215,11 @@ enum transfer_cutting {
   tc_cl /**< transfer cut with Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny (C_l being computed approximately and with flat spectrum)  */ 
 };
 
+/**
+ * list of method for integrating transfer functions
+ */
+enum transfer_integration {spline,trapezoidal};
+
 /** 
  * List of coded gauges.
  *
@@ -480,6 +485,8 @@ struct precision
   double transfer_cut_threshold_cl; /**< threshold used for cutting the transfer function computation at a given \f$ k_{max} \f$ value, if transfer_cut = _TC_CL_ (Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny, C_l being computed approximately and with flat spectrum) */
 
   double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
+
+  enum transfer_integration transfer_integrate;
 
   //@}
 

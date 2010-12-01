@@ -258,7 +258,9 @@ int perturb_init(
 	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
 	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);
 	  
+#ifdef _OPENMP
 	  tstart = omp_get_wtime();
+#endif
 
 	  class_call_parallel(perturb_solve(ppr,
 					    pba,
@@ -271,9 +273,11 @@ int perturb_init(
 			      ppt->error_message,
 			      ppt->error_message);
 
+#ifdef _OPENMP
 	  tstop = omp_get_wtime();
 
 	  tspent += tstop-tstart;
+#endif
 
 #pragma omp flush(abort)
 

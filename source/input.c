@@ -880,9 +880,10 @@ int input_init(
 
   class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
   class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
-  class_read_double("transfer_cut",ppr->transfer_cut);
+  class_read_int("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
+  class_read_int("transfer_integrate",ppr->transfer_integrate);
 
   class_read_int("debugging_flag",ppr->debugging_flag);
 
@@ -1257,6 +1258,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_cut=tc_cl;
   ppr->transfer_cut_threshold_osc=0.01; /* 0.01 */
   ppr->transfer_cut_threshold_cl=2.e-6; /* 2.e-6 */
+
+  ppr->transfer_integrate = trapezoidal;
 
   /**
    * - automatic estimate of machine precision
