@@ -1891,8 +1891,6 @@ int trg_integrate_xy_at_eta(
   double * yy;
   double logstepy;
 
-  int i;
-
   double * h_up;
   double * h_do;
   double * v_le;
@@ -2307,6 +2305,7 @@ int trg_logstep1_k (
   *logstep = 1.11 - 0.09*tanh(300*(k-0.01)); 
 /*  *logstep = 1.02; */
 /*  *logstep = 1.10 - 0.09*tanh(300*(k-0.01)); */ 
+  return _SUCCESS_;
 }
 
 int trg_logstep2_k (
@@ -2316,6 +2315,7 @@ int trg_logstep2_k (
   /* *logstep = 1.11 + 0.09*tanh(0.08*(k-50)); */
   *logstep = 1.02;
 /*   *logstep = 1.01; */
+  return _SUCCESS_;
 }
 
 int trg_init (
@@ -2330,10 +2330,10 @@ int trg_init (
   FILE *nl_spectra;
   char filename[50];
 
+  pnl->has_bc_spectrum = _TRUE_;
+
   double temp; 
   double * junk;
-
-  int index_ic=0; /*or ppt->index_ic; adiabatic=0 */
 
   /** Variables for time control of the computation */
 
@@ -2356,7 +2356,6 @@ int trg_init (
   int index_plus; 
 
   double a_ini;
-  double z_ini;
   double eta_max;
   double exp_eta;
 
@@ -2379,10 +2378,8 @@ int trg_init (
   /** Background quantities */
 
   double * pvecback_nl;
-  double * Omega_m, *Omega_r, * H, *H_prime;
+  double * Omega_m, * Omega_r, * H, *H_prime;
   double * rho_g, *rho_b, *rho_cdm, *rho_nur;
-
-  double rho_bz,rho_cdmz;
 
   /** Thermodynamical quantities */
 
@@ -2560,8 +2557,7 @@ int trg_init (
 
   /** In the case of computing the total spectrum, one needs Omega_r */
 
-  if(pnl->has_bc_spectrum == _FALSE_ ) 
-    class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
 
   class_calloc(rho_g,  pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(rho_nur,pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2655,7 +2651,7 @@ int trg_init (
 	    (Omega_m[index_eta]*(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index])));
       }
       else {
-	Omega_21[index] = -3/2 * (Omega_m[index_eta] + 4/3*Omega_r[index_eta]);
+	Omega_21[index] = -3./2 * (Omega_m[index_eta] + 4./3*Omega_r[index_eta]);
       }
 
       Omega_22[index] = 2 + H_prime[index_eta]/H[index_eta];
@@ -2799,7 +2795,6 @@ int trg_init (
    * over x and n_xy over y.
    *
    ********************/
-  double temp1,temp2,temp3;
 
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> initialisation\n");
@@ -3112,7 +3107,7 @@ int trg_init (
 	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*index_eta; index_k++){ 
 
 	  class_call(
-	      spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z_plot[i],&temp1,junk),
+	      spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z_plot[i],&temp,junk),
 	      psp->error_message,
 	      pnl->error_message);
 
@@ -3120,8 +3115,8 @@ int trg_init (
 	  za=pnl->z[index_eta-1];
 	  zc=pnl->z_plot[i];
 
-	  rho_bz=  1/(zb-za)*( (zc-za)*rho_b[index_eta]   + (zb-zc)*rho_b[index_eta-1]   );
-	  rho_cdmz=1/(zb-za)*( (zc-za)*rho_cdm[index_eta] + (zb-zc)*rho_cdm[index_eta-1] );
+	  /*rho_bz=  1/(zb-za)*( (zc-za)*rho_b[index_eta]   + (zb-zc)*rho_b[index_eta-1]   );*/
+	  /*rho_cdmz=1/(zb-za)*( (zc-za)*rho_cdm[index_eta] + (zb-zc)*rho_cdm[index_eta-1] );*/
 
 
 	  /*if(pnl->has_bc_spectrum == _TRUE_){*/
@@ -3171,7 +3166,7 @@ int trg_init (
 	      ( (zc-za) * pk_linear22[index_k+(pnl->k_size*(index_eta))] + 
 	        (zb-zc) *  pk_linear22[index_k+(pnl->k_size*(index_eta-1))]  )
 	      *exp(-log( (pnl->z_plot[i]+1.) * a_ini / pba->a_today )*2),
-	      pow(pba->h,3)*temp1);
+	      pow(pba->h,3)*temp);
 
 	  for (index_name=0; index_name<name_size; index_name++)
 	    fprintf(nl_spectra,"%e\t",1/(zb-za)*
