@@ -1535,9 +1535,9 @@ int spectra_compute_cl(
 
     /* treat null spectra (C_l^BB of scalars, C_l^pp of tensors, etc. */
 
-    if (((index_ct == psp->index_ct_bb) && (psp->has_bb == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) ||
-	((index_ct == psp->index_ct_pp) && (psp->has_pp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
-	((index_ct == psp->index_ct_tp) && (psp->has_tp == _TRUE_) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
+    if (((psp->has_bb == _TRUE_) && (index_ct == psp->index_ct_bb) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) ||
+	((psp->has_pp == _TRUE_) && (index_ct == psp->index_ct_pp) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
+	((psp->has_tp == _TRUE_) && (index_ct == psp->index_ct_tp) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
 
       psp->cl[index_mode]
 	[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] = 0.;

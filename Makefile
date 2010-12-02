@@ -81,7 +81,12 @@ TEST_TRG = test_trg.o
 
 TEST_KARIM = test_karim.o
 
+TEST_PBC = test_pbc.o
+
 class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(CLASS)
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_pbc: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(TEST_PBC)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_optimize_1D: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(TEST_OPTIMIZE_1D)
