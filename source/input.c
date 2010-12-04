@@ -952,13 +952,13 @@ int input_default_params(
 
   /** - background structure */
       
-  pba->h = 0.7;
+  pba->h = 0.704;
   pba->H0 = pba->h * 1.e5 / _c_;
   pth->Tcmb = 2.726;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-  pba->Omega0_b = 0.05;
-  pba->Omega0_cdm = 0.25;    
+  pba->Omega0_b = 0.02253/0.704/0.704;
+  pba->Omega0_cdm = 0.1122/0.704/0.704;    
   pba->Omega0_k = 0.;
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm;
   pba->Omega0_de = 0.;     
@@ -972,8 +972,8 @@ int input_default_params(
   pth->YHe=0.25;            
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
-  pth->z_reio=10.;
-  pth->tau_reio=0.08;
+  pth->z_reio=10.3;
+  pth->tau_reio=0.085;
 
   /** - perturbation structure */
 
@@ -1006,9 +1006,9 @@ int input_default_params(
   /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
-  ppm->k_pivot = 0.05;
-  ppm->A_s = 2.3e-9;
-  ppm->n_s = 1.;
+  ppm->k_pivot = 0.002;
+  ppm->A_s = 2.42e-9;
+  ppm->n_s = 0.967;
   ppm->alpha_s = 0.;
   ppm->f_bi = 1.;
   ppm->n_bi = 1.;
