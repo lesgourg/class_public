@@ -3,7 +3,7 @@
 #ifndef __OUTPUT__
 #define __OUTPUT__
 
-#include "spectra.h"
+#include "lensing.h"
 
 /**
  * Structure containing various informations on the output format, 

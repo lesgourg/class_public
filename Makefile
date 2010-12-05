@@ -19,8 +19,8 @@ CC       = gcc
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #CCFLAG   = -O3 -fopenmp -Wall -g
 #LDFLAG   = -O3 -fopenmp -Wall -g
-CCFLAG   = -O4 -fopenmp -Wall
-LDFLAG   = -O4 -fopenmp -Wall
+CCFLAG   = -fast -fopenmp -Wall
+LDFLAG   = -fast -fopenmp -Wall
 #CCFLAG = -O2 -ggdb
 #LDFLAG = -O2 -ggdb
 #CCFLAG = -O2
@@ -55,6 +55,8 @@ PRIMORDIAL = primordial.o
 
 SPECTRA = spectra.o
 
+LENSING = lensing.o
+
 OUTPUT = output.o
 
 CLASS = class.o
@@ -83,7 +85,7 @@ TEST_KARIM = test_karim.o
 
 TEST_PBC = test_pbc.o
 
-class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(CLASS)
+class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(CLASS)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_pbc: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(OUTPUT) $(TEST_PBC)

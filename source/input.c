@@ -25,6 +25,7 @@ int input_init_from_arguments(
 			      struct transfers *ptr,
 			      struct primordial *ppm,
 			      struct spectra *psp,
+			      struct lensing *ple,
 			      struct output *pop,
 			      struct spectra_nl * pnl,
 			      ErrorMsg errmsg
@@ -118,6 +119,7 @@ int input_init_from_arguments(
 			ptr,
 			ppm,
 			psp,
+			ple,
 			pop,
 			pnl,
 			errmsg),
@@ -146,6 +148,7 @@ int input_init(
 	       struct transfers *ptr,
 	       struct primordial *ppm,
 	       struct spectra *psp,
+	       struct lensing *ple,
 	       struct output *pop,
 	       struct spectra_nl * pnl,
 	       ErrorMsg errmsg
@@ -181,6 +184,7 @@ int input_init(
 				  ptr,
 				  ppm,
 				  psp,
+				  ple,
 				  pop,
 				  pnl),
 	     errmsg,
@@ -726,6 +730,25 @@ int input_init(
     strcpy(pbs->bessel_file_name,string1);
   }
 
+  class_call(parser_read_string(pfc,
+				"lensing",
+				&(string1),
+				&(flag1),
+				errmsg),
+	     errmsg,
+	     errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    
+    class_test((ppt->has_scalars == _FALSE_) || 
+	       (ppt->has_cls == _FALSE_) || 
+	       (ppt->has_cl_cmb_lensing_potential == _FALSE_),
+	       "You asked for lensed Cls. This is only possible if you also ask for scalar modes, temperature and/or polarization Cls, and lensing potential Cls.",
+	       errmsg);
+    
+    ple->has_lensed_cls = _TRUE_;
+  }
+
   /** (f) parameter related to the non-linear spectra computation */
 
   class_read_int("non-linearity mode",pnl->mode);
@@ -765,6 +788,9 @@ int input_init(
 
   class_read_int("spectra_verbose",
 		 psp->spectra_verbose);
+
+  class_read_int("lensing_verbose",
+		 ple->lensing_verbose);
 
   class_read_int("output_verbose",
 		 pop->output_verbose);
@@ -941,6 +967,7 @@ int input_default_params(
 			 struct transfers *ptr,
 			 struct primordial *ppm,
 			 struct spectra *psp,
+			 struct lensing *ple,
 			 struct output *pop,
 			 struct spectra_nl * pnl
 			 ) {
@@ -1068,6 +1095,10 @@ int input_default_params(
 
   psp->z_max_pk = pop->z_pk[0];
 
+  /** - lensing structure */
+
+  ple->has_lensed_cls = _FALSE_;
+
   /** - spectra_nl structure */ 
 
   pnl->mode = 2;
@@ -1094,6 +1125,7 @@ int input_default_params(
   ptr->transfer_verbose = 0;
   ppm->primordial_verbose = 0;
   psp->spectra_verbose = 0;
+  ple->lensing_verbose = 0;
   pop->output_verbose = 0;
   pnl->spectra_nl_verbose = 0;
 
@@ -1189,7 +1221,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->gauge=synchronous;
 
-  ppr->k_scalar_min=0.3; /* 03.12.10 for chi2plT0.01 */
+  ppr->k_scalar_min=0.05; /* 03.12.10 for chi2plT0.01 */
   /*   ppr->k_scalar_oscillations=7.;   */
   ppr->l_max_over_k_max_scalars = 8500.; /* 03.12.10 for chi2plT0.01 */
   ppr->k_scalar_step_sub=0.01;  /* 03.12.10 for chi2plT0.01 */

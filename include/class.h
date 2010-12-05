@@ -27,6 +27,7 @@
 #include "transfer.h"
 #include "primordial.h"
 #include "spectra.h"
+#include "lensing.h"
 #include "output.h"
 #include "trg.h"
 
