@@ -1121,8 +1121,8 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->a_ini_over_a_today_default = 1.e-13;  /* 1.e-7 unless needs large k_max in P(k) */
-  ppr->back_integration_stepsize = 5.e-2;   /* 0.02 */
-  ppr->tol_background_integration = 1.e-2;  /* 0.002 */
+  ppr->back_integration_stepsize = 7.e-3;   /* 03.12.10 for chi2plT0.01 */
+  ppr->tol_background_integration = 1.e-2;  /* no sizeable impact */
 
   /**
    * - parameters related to the thermodynamics
@@ -1179,7 +1179,7 @@ int input_default_precision ( struct precision * ppr ) {
   /* general */
 
   ppr->visibility_threshold_start_sources=3.5e-7; /* 3.5e-7 optimized 9/09/08  */
-  ppr->visibility_threshold_free_streaming=1.e-5;
+  ppr->visibility_threshold_free_streaming=1.e-5; /* not used */
 
   ppr->thermo_rate_smoothing_radius=50;
 
@@ -1189,12 +1189,16 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->gauge=synchronous;
 
-  ppr->k_scalar_min=0.02; /* 0.3 -> 0.1 */
+  ppr->k_scalar_min=0.3; /* 03.12.10 for chi2plT0.01 */
   /*   ppr->k_scalar_oscillations=7.;   */
-  ppr->l_max_over_k_max_scalars = 7000.; /* 8000.; */
-  ppr->k_scalar_step_sub=0.1;  /* 0.02 -> 0.005 */
-  ppr->k_scalar_step_super=0.005;  /* 0.01 -> 0.005 */
-  ppr->k_scalar_step_transition=0.4;
+  ppr->l_max_over_k_max_scalars = 8500.; /* 03.12.10 for chi2plT0.01 */
+  ppr->k_scalar_step_sub=0.01;  /* 03.12.10 for chi2plT0.01 */
+  ppr->k_scalar_step_super=0.005;  /* 03.12.10 for chi2plT0.01 */
+  ppr->k_scalar_step_transition=0.2; /* 03.12.10 for chi2plT0.01 */
+  /* when optimizing, start by setting step_super=step_sub (then
+     transition is irrelevant). Once this is done, try top increase
+     step_sub for various values of transition. Keep the value of
+     transition allowing for the largest step_sub. */
 
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
@@ -1205,13 +1209,13 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->k_eta_min=1.e-1; /* 4.5e-6 optimized 9/09/08  */
-  ppr->eta_min_over_sampling_min=0.5;
+  ppr->k_eta_min=5.e-2; /* 03.12.10 for chi2plT0.01  */
+  ppr->eta_min_over_sampling_min=0.9; /*03.12.10 for chi2plT0.01 */
   ppr->k_eta_max=10.; /* 600 */
 
-  ppr->l_max_g=10; /* optimized 9/09/08  */
-  ppr->l_max_pol_g=10; /* optimized 9/09/08  */
-  ppr->l_max_nur=25;
+  ppr->l_max_g=10; /* 03.12.10 for chi2plT0.01 */
+  ppr->l_max_pol_g=10; /* 03.12.10 for chi2plT0.01 */
+  ppr->l_max_nur=23; /* 03.12.10 for chi2plT0.01 */
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 
@@ -1220,8 +1224,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
 
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
-  ppr->tol_eta_approx=1.e-4;
-  ppr->tol_perturb_integration=1.e-3; 
+  ppr->tol_eta_approx=5.e-4; /* 03.12.10 for chi2plT0.01 */
+  ppr->tol_perturb_integration=1.e-4; /* 03.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
   ppr->perturb_sampling_stepsize=0.1; /* 0.1 */
 
   ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
@@ -1234,8 +1238,9 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the Bessel functions
    */
 
-  ppr->l_logstep=1.2 /* 1.4*/;
-  ppr->l_linstep=50;
+  ppr->l_logstep=1.026; /* 03.12.10 for chi2plT0.01 */
+  ppr->l_linstep=56; /* 03.12.10 for chi2plT0.01 */
+  /* when optimizing, always compare to case linstep=1 (all l's) */
 
   ppr->bessel_x_step=0.1; /* 1. 1.27 optimized 9/09/08 */
   ppr->bessel_j_cut=1.e-5; /* 8.1e-5 optimized 9/09/08 */

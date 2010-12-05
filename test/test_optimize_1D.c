@@ -29,6 +29,7 @@ int chi2_planck(
 		struct spectra * psp,
 		double ** cl1,
 		double ** cl2,
+		double ** nl,
 		int lmax,
 		double * chi2);
 
@@ -67,13 +68,14 @@ int main(int argc, char **argv) {
   double chi2,chi2_bis;
   double percentage,max_percentage;
   int max_l;
+  int ref_run;
   
   l_max=2500;
 
   parser_init(&fc,3,errmsg);
 
   strcpy(fc.name[0],"output");
-  strcpy(fc.value[0],"tCl,pCl");
+  strcpy(fc.value[0],"tCl");
 
   strcpy(fc.name[1],"l_max_scalars");
   sprintf(fc.value[1],"%d",l_max);
@@ -83,10 +85,17 @@ int main(int argc, char **argv) {
 
 /*******************************************************/
 
-  strcpy(fc.name[2],"back_integration_stepsize");
-  parameter_initial=5.e-2;
+/*   strcpy(fc.name[2],"back_integration_stepsize"); */
+/*   parameter_initial=0.1; */
+/*   parameter_logstep=1.2; */
+/*   param_num=20; */
+
+  strcpy(fc.name[2],"perturb_sampling_stepsize");
+/*   strcpy(fc.name[3],"k_scalar_step_super"); */
+  parameter_initial=0.01;
   parameter_logstep=1.2;
-  param_num=10;
+  param_num=20;
+  ref_run=0;
 
 /*******************************************************/
 
@@ -103,9 +112,13 @@ int main(int argc, char **argv) {
 
   for (i=0; i<param_num; i++) {
 
-    parameter[i] = parameter_initial / exp((double)i*log(parameter_logstep));
+    parameter[i] = parameter_initial * exp((double)i*log(parameter_logstep));
+/*     parameter[i] = parameter_initial -i; */
 
     sprintf(fc.value[2],"%g",parameter[i]);
+ /*    sprintf(fc.value[3],"%g",parameter[i]); */
+ /*    sprintf(fc.value[2],"%d",(int)parameter[i]); */
+
     fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[2]);
 
     if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
@@ -145,21 +158,24 @@ int main(int argc, char **argv) {
 /* 	    parameter[i],chi2,chi2_bis,max_l,max_percentage); */
 /*   } */
 
+/*   for (l=0;l<sp.l_size[0];l++) */
+/*     printf("%d %d\n",l,sp.l[0][l]); */
+
   noise_planck(&th,&sp,noise,l_max);
 
-  for (l=2;l<=l_max;l++) {
-    printf("%d  %e  %e  %e  %e  %e  %e\n",l,
-	   (l*(l+1)/2./_PI_)*cl[0][l][0]*pow(th.Tcmb*1.e6,2),
-	   (l*(l+1)/2./_PI_)*cl[0][l][1]*pow(th.Tcmb*1.e6,2),
-	   (l*(l+1)/2./_PI_)*cl[0][l][2]*pow(th.Tcmb*1.e6,2),
-	   (l*(l+1)/2./_PI_)*noise[l][0]*pow(th.Tcmb*1.e6,2),
-	   (l*(l+1)/2./_PI_)*noise[l][1]*pow(th.Tcmb*1.e6,2),
-	   (l*(l+1)/2./_PI_)*noise[l][2]*pow(th.Tcmb*1.e6,2));
-  }
+/*   for (l=2;l<=l_max;l++) { */
+/*     printf("%d  %e  %e  %e  %e  %e  %e\n",l, */
+/* 	   (l*(l+1)/2./_PI_)*cl[0][l][0]*pow(th.Tcmb*1.e6,2), */
+/* 	   (l*(l+1)/2./_PI_)*cl[0][l][1]*pow(th.Tcmb*1.e6,2), */
+/* 	   (l*(l+1)/2./_PI_)*cl[0][l][2]*pow(th.Tcmb*1.e6,2), */
+/* 	   (l*(l+1)/2./_PI_)*noise[l][0]*pow(th.Tcmb*1.e6,2), */
+/* 	   (l*(l+1)/2./_PI_)*noise[l][1]*pow(th.Tcmb*1.e6,2), */
+/* 	   (l*(l+1)/2./_PI_)*noise[l][2]*pow(th.Tcmb*1.e6,2)); */
+/*   } */
 
-  for (i=0; i<param_num-1; i++) {
+  for (i=0; i<param_num; i++) {
    
-    chi2_planck(&sp,cl[i],cl[param_num-1],l_max,&chi2);
+    chi2_planck(&sp,cl[i],cl[ref_run],noise,l_max,&chi2);
 
     if (chi2>0.01) {
       fprintf(stderr,"parameter=%e BAD: chi2=%2g \n",
@@ -307,28 +323,53 @@ int chi2_planck(
 		struct spectra * psp,
 		double ** cl1, /* treated as 'theoretical spectrum' */
 		double ** cl2, /* treated as 'observed spectrum' */
+		double ** nl,
 		int lmax,
 		double * chi2) {
 
   int l;
   double fsky=0.8;
+  double clTT_th,clEE_th,clTE_th;
+  double clTT_obs,clEE_obs,clTE_obs;
   double det_mixed,det_th,det_obs;
+  double factor;
 
   *chi2=0.;
   for (l=2; l <= lmax; l++) {
+
     if (psp->ct_size == 1) {
-      *chi2 += fsky*(2.*l+1.)*(cl2[l][0]/cl1[l][0]+log(cl1[l][0]/cl2[l][0])-1.);
+
+      *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
+			       (cl1[l][0]+nl[l][0])+
+			       log((cl1[l][0]+nl[l][0])/(cl2[l][0]+nl[l][0]))-1.);
+
+/*       *chi2 += fsky*(2.*l+1.)*((cl2[l][0])/ */
+/* 			       (cl1[l][0])+ */
+/* 			       log((cl1[l][0])/(cl2[l][0]))-1.); */
+
+      
+/*       factor=l*(l+1.)/2./_PI_; */
+/*       printf("%d %e %e %e\n",l,factor*cl1[l][0],factor*cl2[l][0],factor*nl[l][0]); */
+
     }
     else {
-      det_mixed = cl1[l][psp->index_ct_tt]*cl2[l][psp->index_ct_ee]
-	+cl1[l][psp->index_ct_ee]*cl2[l][psp->index_ct_tt]
-	-2.*cl1[l][psp->index_ct_te]*cl2[l][psp->index_ct_te];
-      det_th = cl1[l][psp->index_ct_tt]*cl1[l][psp->index_ct_ee]
-	-cl1[l][psp->index_ct_te]*cl1[l][psp->index_ct_te];
-      det_obs = cl2[l][psp->index_ct_tt]*cl2[l][psp->index_ct_ee]
-	-cl2[l][psp->index_ct_te]*cl2[l][psp->index_ct_te];
+
+      clTT_th = cl1[l][psp->index_ct_tt]+nl[l][psp->index_ct_tt];
+      clEE_th = cl1[l][psp->index_ct_ee]+nl[l][psp->index_ct_ee];
+      clTE_th = cl1[l][psp->index_ct_te];
+      
+      clTT_obs = cl2[l][psp->index_ct_tt]+nl[l][psp->index_ct_tt];
+      clEE_obs = cl2[l][psp->index_ct_ee]+nl[l][psp->index_ct_ee];
+      clTE_obs = cl2[l][psp->index_ct_te];
+
+      det_mixed = 0.5*(clTT_th*clEE_obs+clTT_obs*clEE_th)-clTE_th*clTE_obs;
+
+      det_th = clTT_th*clEE_th-clTE_th*clTE_th;
+
+      det_obs = clTT_obs*clEE_obs-clTE_obs*clTE_obs;
+
+      *chi2 += fsky*(2.*l+1.)*(2.*(det_mixed/det_th-1.)+log(det_th/det_obs));
     }
-    *chi2 += fsky*(2.*l+1.)*(det_mixed/det_th+log(det_th/det_obs)-2.);
   }
 
   return _SUCCESS_;
@@ -382,9 +423,12 @@ int noise_planck(
       }
     }
 
-    nl[l][psp->index_ct_tt] = 1./nl[l][psp->index_ct_tt];
+    if (psp->has_tt) {
+      nl[l][psp->index_ct_tt] = 1./nl[l][psp->index_ct_tt];
+    }
+    if (psp->has_ee) {
     nl[l][psp->index_ct_ee] = 1./nl[l][psp->index_ct_ee];
-
+    }
   }
 
   free(theta);

@@ -955,7 +955,7 @@ int output_one_line_of_cl(
 
   for (index_ct=0; index_ct < ct_size; index_ct++) {
     fprintf(clfile," ");
-    fprintf(clfile,"%e",l*(l+1)/2./_PI_*cl[index_ct]);
+    fprintf(clfile,"%16.10e",l*(l+1)/2./_PI_*cl[index_ct]);
   }
   fprintf(clfile,"\n");	
     
@@ -1010,7 +1010,7 @@ int output_one_line_of_pk(
 			  double one_pk
 			  ) {
 
-  fprintf(tkfile,"%e %e\n",one_k,one_pk);
+  fprintf(tkfile,"%e %16.10e\n",one_k,one_pk);
     
   return _SUCCESS_;
     
@@ -1082,7 +1082,7 @@ int output_one_line_of_tk(
   fprintf(tkfile,"%e",one_k);
     
   for (index_tr=0; index_tr<tr_size; index_tr++)
-    fprintf(tkfile,"  %e",tk[index_tr]);
+    fprintf(tkfile,"  %16.10e",tk[index_tr]);
 
   fprintf(tkfile,"\n");
 

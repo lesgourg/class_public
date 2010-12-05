@@ -4,7 +4,7 @@
 #define __PERTURBATIONS__
 
 #include "thermodynamics.h"
-#include "evolver_ndf15.h"
+#include "evolver_rkck.h"
 
 /**  
  * flags for various approximation schemes (tca = tight-coupling
@@ -163,7 +163,10 @@ struct perturbs
   //@{
 
   double *** sources; /**< Pointer towards the source interpolation table
-			 sources[index_mode][index_ic * ppt->tp_size[index_mode] + index_type][index_k * ppt->eta_size] */
+			 sources[index_mode]
+			 [index_ic * ppt->tp_size[index_mode] + index_type]
+			 [index_eta * ppt->k_size[index_mode] + index_k] */
+
 
   //@}
 
