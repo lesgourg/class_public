@@ -249,7 +249,7 @@ int bessel_init(
 	for (index_l=0; index_l < pbs->l_size; index_l++) {
 
 	  class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-	    
+
 	  class_test(fread(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
 		     pbs->error_message,
 		     "Could not read in bessel file");

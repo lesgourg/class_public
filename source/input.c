@@ -845,7 +845,7 @@ int input_init(
   class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
   class_read_double("k_eta_min",ppr->k_eta_min);
   class_read_double("eta_min_over_sampling_min",ppr->eta_min_over_sampling_min);
-  class_read_double("k_eta_ma",ppr->k_eta_max);
+  class_read_double("k_eta_max",ppr->k_eta_max);
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_nur",ppr->l_max_nur);
@@ -1178,8 +1178,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* general */
 
-  ppr->visibility_threshold_start_sources=3.5e-7; /* 3.5e-7 optimized 9/09/08  */
-  ppr->visibility_threshold_free_streaming=1.e-5; /* not used */
+  ppr->visibility_threshold_start_sources=3.e-6; /* 3.5e-7 optimized 9/09/08  */
+  ppr->visibility_threshold_free_streaming=1.e-5; /* not used currently */
 
   ppr->thermo_rate_smoothing_radius=50;
 
@@ -1210,8 +1210,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_transition=0.2;
 
   ppr->k_eta_min=5.e-2; /* 03.12.10 for chi2plT0.01  */
-  ppr->eta_min_over_sampling_min=0.9; /*03.12.10 for chi2plT0.01 */
-  ppr->k_eta_max=10.; /* 600 */
+  ppr->eta_min_over_sampling_min=0.5; /*03.12.10 for chi2plT0.01 */
+  ppr->k_eta_max=10.; /* not used currently */
 
   ppr->l_max_g=10; /* 03.12.10 for chi2plT0.01 */
   ppr->l_max_pol_g=10; /* 03.12.10 for chi2plT0.01 */
@@ -1226,13 +1226,13 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
   ppr->tol_eta_approx=5.e-4; /* 03.12.10 for chi2plT0.01 */
   ppr->tol_perturb_integration=1.e-4; /* 03.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
-  ppr->perturb_sampling_stepsize=0.1; /* 0.1 */
+  ppr->perturb_sampling_stepsize=0.06; /* 03.12.10 for chi2plT0.01 [0.06 for transfer_integrate=trapezoidal, 0.055 for transfer_integrate = spline] */
 
   ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
   ppr->tight_coupling_trigger_eta_g_over_eta_k=1.5e-2; /*1.5e-2*/
 
-  ppr->rad_pert_trigger_k_over_aH = 40.; /* 40 */
-  ppr->rad_pert_trigger_Omega_r = 0.1; /* 0.1 */
+  ppr->rad_pert_trigger_k_over_aH = 40.; /* 03.12.10 for chi2plT0.01 */
+  ppr->rad_pert_trigger_Omega_r = 0.15; /* 03.12.10 for chi2plT0.01 */
 
   /**
    * - parameter related to the Bessel functions
@@ -1242,10 +1242,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_linstep=56; /* 03.12.10 for chi2plT0.01 */
   /* when optimizing, always compare to case linstep=1 (all l's) */
 
-  ppr->bessel_x_step=0.1; /* 1. 1.27 optimized 9/09/08 */
-  ppr->bessel_j_cut=1.e-5; /* 8.1e-5 optimized 9/09/08 */
-  ppr->bessel_delta_x_min =1.e-4; /* precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
-  ppr->bessel_x_max_over_l_max=2.;
+  ppr->bessel_x_step=0.02; /* 03.12.10 for chi2plT0.01: must be set to 0.02; let it temporarily larger to avoid disk saturation */
+  ppr->bessel_j_cut=5.e-5; /* 03.12.10 for chi2plT0.01 */
+  ppr->bessel_delta_x_min =1.e-4; /* 03.12.10 for chi2plT0.01 */
+  ppr->bessel_x_max_over_l_max=1.8; /* 03.12.10 for chi2plT0.01 */
 
   /**
    * - parameter related to the primordial spectra
@@ -1257,12 +1257,12 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->k_step_trans_scalars=0.15; /* 0.1 sampling step in k space, in units of 2pi/(eta_0-eta_rec), which is the typical period of oscillations of |Delta_l(k)|^2 */
+  ppr->k_step_trans_scalars=0.2; /* 03.12.10 for chi2plT0.01: difficult to optimize, numerical instability below 0.1, need to study this better */
   ppr->k_step_trans_tensors=0.15;
 
-  ppr->transfer_cut=tc_cl;
-  ppr->transfer_cut_threshold_osc=0.01; /* 0.01 */
-  ppr->transfer_cut_threshold_cl=2.e-6; /* 2.e-6 */
+  ppr->transfer_cut=tc_cl; /* 03.12.10 for chi2plT0.01: tc_cl slightly faster (by 20%) for equal precision, but also slightly less robust (better to switch to tc_osc if primordial tilt can depart significantly from one) */
+  ppr->transfer_cut_threshold_osc=0.015; /* 03.12.10 for chi2plT0.01 */
+  ppr->transfer_cut_threshold_cl=8.e-7; /* 03.12.10 for chi2plT0.01 */
 
   ppr->transfer_integrate = trapezoidal;
 

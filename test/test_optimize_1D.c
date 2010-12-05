@@ -18,6 +18,20 @@ int class(
 	  double ** cl,
 	  ErrorMsg errmsg);
 
+int class_assuming_bessels_computed(
+				    struct precision * ppr,
+				    struct background * pba,
+				    struct thermo * pth,
+				    struct perturbs * ppt,
+				    struct bessels * pbs,
+				    struct transfers * ptr,
+				    struct primordial * ppm,
+				    struct spectra * psp,
+				    struct output * pop,
+				    int l_max,
+				    double ** cl,
+				    ErrorMsg errmsg);
+
 int chi2_simple(
 		struct spectra * psp,
 		double ** cl1,
@@ -85,15 +99,10 @@ int main(int argc, char **argv) {
 
 /*******************************************************/
 
-/*   strcpy(fc.name[2],"back_integration_stepsize"); */
-/*   parameter_initial=0.1; */
-/*   parameter_logstep=1.2; */
-/*   param_num=20; */
-
-  strcpy(fc.name[2],"perturb_sampling_stepsize");
-/*   strcpy(fc.name[3],"k_scalar_step_super"); */
-  parameter_initial=0.01;
+  strcpy(fc.name[2],"visibility_threshold_start_sources");
+  parameter_initial=3.e-7;
   parameter_logstep=1.2;
+
   param_num=20;
   ref_run=0;
 
@@ -115,9 +124,21 @@ int main(int argc, char **argv) {
     parameter[i] = parameter_initial * exp((double)i*log(parameter_logstep));
 /*     parameter[i] = parameter_initial -i; */
 
+/*     if (i==0) { */
+/*       sprintf(fc.value[2],"%d",tc_osc); */
+/*       strcpy(fc.name[3],"transfer_cut_threshold_osc"); */
+/*       sprintf(fc.value[3],"%g",0.013); */
+/*     } */
+/*     else  { */
+/*       sprintf(fc.value[2],"%d",tc_cl); */
+/*       strcpy(fc.name[3],"transfer_cut_threshold_cl"); */
+/*       sprintf(fc.value[3],"%g",8.e-7); */
+/*     } */
+
     sprintf(fc.value[2],"%g",parameter[i]);
  /*    sprintf(fc.value[3],"%g",parameter[i]); */
  /*    sprintf(fc.value[2],"%d",(int)parameter[i]); */
+ /*    sprintf(fc.value[2],"%d",1); */
 
     fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[2]);
 
@@ -126,8 +147,18 @@ int main(int argc, char **argv) {
       return _FAILURE_;
     }
 
-    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,cl[i],errmsg);
+    if (i==0) {
+
+      if (bessel_init(&pr,&bs) == _FAILURE_) {
+	printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
+	return _FAILURE_;
+      }
+    }
+
+ /*    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,cl[i],errmsg); */
+    class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,cl[i],errmsg);
     
+
 /*     for (l=2; l <= 2500; l++) */
 /*       printf("%d %e %e %e\n",l, */
     /* 	     (l*(l+1)/2./_PI_)*cl[i][l][0],  */ /* here cl is the dimensionless C_l */ 
@@ -136,6 +167,11 @@ int main(int argc, char **argv) {
       
 /*     printf("\n"); */
     
+  }
+
+  if (bessel_free(&bs) == _FAILURE_)  {
+    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
+    return _FAILURE_;
   }
 
 /*   for (i=0; i<param_num-1; i++) { */
@@ -157,9 +193,6 @@ int main(int argc, char **argv) {
 /*     fprintf(stderr,"parameter=%e chi2=%e (%e) l=%d percentage=%g\n", */
 /* 	    parameter[i],chi2,chi2_bis,max_l,max_percentage); */
 /*   } */
-
-/*   for (l=0;l<sp.l_size[0];l++) */
-/*     printf("%d %d\n",l,sp.l[0][l]); */
 
   noise_planck(&th,&sp,noise,l_max);
 
@@ -273,6 +306,99 @@ int class(
 
   if (bessel_free(pbs) == _FAILURE_)  {
     printf("\n\nError in bessel_free \n=>%s\n",pbs->error_message);
+    return _FAILURE_;
+  }
+
+  if (perturb_free(ppt) == _FAILURE_) {
+    printf("\n\nError in perturb_free \n=>%s\n",ppt->error_message);
+    return _FAILURE_;
+  }
+
+  if (thermodynamics_free(pth) == _FAILURE_) {
+    printf("\n\nError in thermodynamics_free \n=>%s\n",pth->error_message);
+    return _FAILURE_;
+  }
+
+  if (background_free(pba) == _FAILURE_) {
+    printf("\n\nError in background_free \n=>%s\n",pba->error_message);
+    return _FAILURE_;
+  }
+
+  return _SUCCESS_;
+
+}
+
+int class_assuming_bessels_computed(
+				    struct precision * ppr,
+				    struct background * pba,
+				    struct thermo * pth,
+				    struct perturbs * ppt,
+				    struct bessels * pbs,
+				    struct transfers * ptr,
+				    struct primordial * ppm,
+				    struct spectra * psp,
+				    struct output * pop,
+				    int l_max,
+				    double ** cl,
+				    ErrorMsg errmsg) {
+  
+  int l;
+  double ** junk1;
+  double ** junk2;
+
+  if (background_init(ppr,pba) == _FAILURE_) {
+    printf("\n\nError running background_init \n=>%s\n",pba->error_message);
+    return _FAILURE_;
+  }
+    
+  if (thermodynamics_init(ppr,pba,pth) == _FAILURE_) {
+    printf("\n\nError in thermodynamics_init \n=>%s\n",pth->error_message);
+    return _FAILURE_;
+  }
+
+  if (perturb_init(ppr,pba,pth,ppt) == _FAILURE_) {
+    printf("\n\nError in perturb_init \n=>%s\n",ppt->error_message);
+    return _FAILURE_;
+  }
+
+  if (transfer_init(ppr,pba,pth,ppt,pbs,ptr) == _FAILURE_) {
+    printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
+    return _FAILURE_;
+  }
+
+  if (primordial_init(ppr,ppt,ppm) == _FAILURE_) {
+    printf("\n\nError in primordial_init \n=>%s\n",ppm->error_message);
+    return _FAILURE_;
+  }
+
+  if (spectra_init(pba,ppt,ptr,ppm,psp) == _FAILURE_) {
+    printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
+    return _FAILURE_;
+  }
+
+  for (l=2; l <= l_max; l++) {
+
+    if (spectra_cl_at_l(psp,(double)l,cl[l],junk1,junk2) == _FAILURE_) {
+      printf("\n\nError in spectra_cl_at_l \n=>%s\n",psp->error_message);
+      return _FAILURE_;
+    }
+
+  }
+
+  /****** done ******/
+
+  if (spectra_free(psp) == _FAILURE_) {
+    printf("\n\nError in spectra_free \n=>%s\n",psp->error_message);
+    return _FAILURE_;
+  }
+    
+  if (primordial_free(ppm) == _FAILURE_) {
+    printf("\n\nError in primordial_free \n=>%s\n",ppm->error_message);
+    return _FAILURE_;
+  }
+  
+  if (transfer_free(ptr) == _FAILURE_) {
+    printf("\n\nError in transfer_free \n=>%s\n",ptr->error_message);
     return _FAILURE_;
   }
 

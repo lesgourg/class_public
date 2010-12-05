@@ -1331,6 +1331,7 @@ int perturb_solve(
 
   /* eventually stop earlier, when k*eta=k_eta_max, but not before the end of recombination */
   if (ppt->has_lss == _FALSE_) {
+
     if ((ppr->k_eta_max/k < pba->conformal_age) && (ppr->k_eta_max/k > eta_visibility_free_streaming))
       etamax= ppr->k_eta_max/k;
     if ((ppr->k_eta_max/k < eta_visibility_free_streaming) && (eta_visibility_free_streaming < pba->conformal_age))
