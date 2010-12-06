@@ -80,33 +80,94 @@ extern "C" {
 #endif
 
   int lensing_cl_at_l(
-		      struct lensing * ple,
-		      int l,
-		      double * cl_lensed
-		      );
+                      struct lensing * ple,
+                      int l,
+                      double * cl_lensed
+                      );
 
   int lensing_init(
-		   struct perturbs * ppt,
-		   struct spectra * psp,
-		   struct lensing * ple
-		   );
+                   struct perturbs * ppt,
+                   struct spectra * psp,
+                   struct lensing * ple
+                   );
 
   int lensing_free(
-		   struct lensing * ple
-		   );
+                   struct lensing * ple
+                   );
 
   int lensing_indices(
-		      struct perturbs * ppt,
-		      struct spectra * psp,
-		      struct lensing * ple
-		      );
+                      struct perturbs * ppt,
+                      struct spectra * psp,
+                      struct lensing * ple
+                      );
+  
+  int lensing_lensed_cl(
+                        double *ksi, 
+                        double **d00,
+                        double *w8,
+                        int nmu,
+                        struct lensing * ple
+                        );
+  
+  int lensing_X000(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double * sigma2,
+                   double ** X000
+                   );
+    
+  int lensing_Xp000(
+                    double * mu,
+                    int num_mu,
+                    int lmax,
+                    double * sigma2,
+                    double ** Xp000
+                    );
+  
+  int lensing_X220(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double * sigma2,
+                   double ** X220
+                   );
   
   int lensing_d00(
-		  double * beta,
-		  int num_beta,
-		  double ** d00
-		  );
+                  double * mu,
+                  int num_mu,
+                  int lmax,
+                  double ** d00
+                  );
+
+  int lensing_d11(
+                  double * mu,
+                  int num_mu,
+                  int lmax,
+                  double ** d11
+                  );
+
+  int lensing_d1m1(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d1m1
+                   );
+
+  int lensing_d2m2(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d2m2
+                   );
   
+  int lensing_gauss_legendre(
+                             double *mu,
+                             double *w8,
+                             int nmu
+                             );
+    
+    
 #ifdef __cplusplus
 }
 #endif
