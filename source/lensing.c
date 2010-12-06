@@ -107,7 +107,7 @@ int lensing_init(
   /** Last element in mu will be for mu=1, needed for sigma2 
       The rest will be chosen as roots of a Gauss-Legendre quadrature **/
   
-  num_mu=2001;
+  num_mu=3000; /* Must be even ?? CHECK */
    
 
   /** Summary: */
@@ -296,13 +296,16 @@ int lensing_init(
         class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
                    psp->error_message,
                    ple->error_message);
-        res = (2*ll+1)/(4.*_PI_);
+        res = (2*ll+1)/(4.*_PI_)*cl_unlensed[psp->index_ct_tt];
+        /* res *= d00[l][index_mu]; */ /*DEBUG: TO BE REMOVED */
+        
         res *= (X000[l][index_mu]*X000[l][index_mu]*d00[l][index_mu] +
                 Xp000[l][index_mu]*Xp000[l][index_mu]*d1m1[l][index_mu]
                 *Cgl2[index_mu]*8./(ll*(ll+1)) +
                 (Xp000[l][index_mu]*Xp000[l][index_mu]*d00[l][index_mu] +
                  X220[l][index_mu]*X220[l][index_mu]*d2m2[l][index_mu])
                 *Cgl2[index_mu]*Cgl2[index_mu]);
+        
         ksi[index_mu] += res;
       }
     }
@@ -312,7 +315,23 @@ int lensing_init(
              ple->error_message,
              ple->error_message);
   
-
+  
+  /** DEBUG **/
+  
+  FILE *ffp;
+  ffp = fopen("toto.txt","w");
+  for (l=2;l<=ple->l_max;l++) {
+    class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
+               psp->error_message,
+               ple->error_message);    
+    fprintf(ffp,"%d\t%lg\t%lg\n",l,cl_unlensed[psp->index_ct_tt],
+           ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]);
+  }
+  /*
+  for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+    printf("%lg\t%lg\n",mu[index_mu],ksi[index_mu]);
+  }
+   */
   return _SUCCESS_;
 
 }
