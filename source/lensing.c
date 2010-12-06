@@ -66,8 +66,9 @@ int lensing_init(
   /** local variables */
 
   double * mu; /* mu[index_mu]: discretized values of mu
-		    between 0 and pi */
-
+		    between -1 and 1, roots of Legendre polynomial */
+  double * w8; /* Corresponding Gauss-Legendre quadrature weights */
+  
   double ** d00;  /* dmn[index_l][index_mu] */
   double ** d11;
   double ** d2m2; 
@@ -82,6 +83,8 @@ int lensing_init(
   double * Cgl;   /* Cgl[index_mu] */
   double * Cgl2;  /* Cgl2[index_mu] */
   double * sigma2; /* sigma[index_mu] */
+  
+  double * ksi;  /* ksi[index_mu] */
 
   double ** X000;  /* Ximn[index_l][index_mu] */ 
   double ** Xp000;
@@ -104,7 +107,7 @@ int lensing_init(
   /** Last element in mu will be for mu=1, needed for sigma2 
       The rest will be chosen as roots of a Gauss-Legendre quadrature **/
   
-  int num_mu=2001;
+  num_mu=2001;
    
 
   /** Summary: */
@@ -181,19 +184,19 @@ int lensing_init(
 		ple->error_message);  
   }
 
-  class_call(lensing_d00(mu,num_mu,d00),
+  class_call(lensing_d00(mu,num_mu,ple->l_max,d00),
 	     ple->error_message,
 	     ple->error_message);
 
-  class_call(lensing_d11(mu,num_mu,d11),
+  class_call(lensing_d11(mu,num_mu,ple->l_max,d11),
 	     ple->error_message,
 	     ple->error_message);
 
-  class_call(lensing_d1m1(mu,num_mu,d1m1),
+  class_call(lensing_d1m1(mu,num_mu,ple->l_max,d1m1),
 	     ple->error_message,
 	     ple->error_message);
 
-  class_call(lensing_d2m2(mu,num_mu,d2m2),
+  class_call(lensing_d2m2(mu,num_mu,ple->l_max,d2m2),
 	     ple->error_message,
 	     ple->error_message);
 
@@ -230,7 +233,7 @@ int lensing_init(
 	cl_unlensed[psp->index_ct_pp]*d11[l][index_mu];
 
       Cgl2[index_mu] += (2.*l+1.)*l*(l+1.)*
-	cl_unlensed[psp->index_ct_pp]*dm11[l][index_mu];
+	cl_unlensed[psp->index_ct_pp]*d1m1[l][index_mu];
 
     }
 
@@ -240,9 +243,8 @@ int lensing_init(
   }
 
   for (index_mu=0; index_mu<num_mu; index_mu++) {
-
-    sigma2[index_mu] = Cgl[0] - Cgl[index_mu];
-
+    /* Cgl(1.0) - Cgl(mu) */
+    sigma2[index_mu] = Cgl[num_mu-1] - Cgl[index_mu];
   }
 
   /** - compute X000(mu), X'000(mu), X220 and other Ximn */
@@ -269,13 +271,13 @@ int lensing_init(
                 ple->error_message);  
   }
   
-  class_call(lensing_X000(mu,num_mu,sigma2,X000),
+  class_call(lensing_X000(mu,num_mu-1,ple->l_max,sigma2,X000),
              ple->error_message,
              ple->error_message);
-  class_call(lensing_Xp000(mu,num_mu,sigma2,Xp000),
+  class_call(lensing_Xp000(mu,num_mu-1,ple->l_max,sigma2,Xp000),
              ple->error_message,
              ple->error_message);
-  class_call(lensing_X220(mu,num_mu,sigma2,X220),
+  class_call(lensing_X220(mu,num_mu-1,ple->l_max,sigma2,X220),
              ple->error_message,
              ple->error_message);
   
@@ -283,28 +285,30 @@ int lensing_init(
 
   /** - compute ksi, ksi+, ksi-, ksiX */
   class_alloc(ksi,
-              num_mu*sizeof(double),
+              (num_mu-1)*sizeof(double),
               ple->error_message);
-  
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    ksi[index_mu]=0;
-    for (l=2;l<=ple->l_max;l++) {
-      ll = (double) l;
-      class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
-                 psp->error_message,
-                 ple->error_message);
-      res = (2*ll+1)/(4.*_PI_);
-      res *= (X000[l][index_mu]*X000[l][index_mu]*d00[l][index_mu] +
-              Xp000[l][index_mu]*Xp000[l][index_mu]*d1m1[l][index_mu]
-              *Cgl2[index_mu]*8./(ll*(ll+1)) +
-              (Xp000[l][index_mu]*Xp000[l][index_mu]*d00[l][index_mu] +
-               X220[l][index_mu]*X220[l][index_mu]*d2m2[l][index_mu])
-              *Cgl2[index_mu]*Cgl2[index_mu])
-      ksi[index_mu] += res;
+  {
+    double res;
+    for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+      ksi[index_mu]=0;
+      for (l=2;l<=ple->l_max;l++) {
+        ll = (double) l;
+        class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
+                   psp->error_message,
+                   ple->error_message);
+        res = (2*ll+1)/(4.*_PI_);
+        res *= (X000[l][index_mu]*X000[l][index_mu]*d00[l][index_mu] +
+                Xp000[l][index_mu]*Xp000[l][index_mu]*d1m1[l][index_mu]
+                *Cgl2[index_mu]*8./(ll*(ll+1)) +
+                (Xp000[l][index_mu]*Xp000[l][index_mu]*d00[l][index_mu] +
+                 X220[l][index_mu]*X220[l][index_mu]*d2m2[l][index_mu])
+                *Cgl2[index_mu]*Cgl2[index_mu]);
+        ksi[index_mu] += res;
+      }
     }
   }
   /** - compute lensed Cls by integration */
-  class_call(lensing_lensed_cl(ple),
+  class_call(lensing_lensed_cl(ksi,d00,w8,num_mu-1,ple),
              ple->error_message,
              ple->error_message);
   
@@ -401,28 +405,60 @@ int lensing_indices(
   
 }
 
+/**
+ * This routine computes the lensed power spectra by Gaussian quadrature 
+ *
+ * @param ksi  Input       : Lensed correlation function (ksi[index_mu])
+ * @param d00  Input       : Legendre polynomials (d^l_{00}[l][index_mu]) 
+ * @param w8   Input       : Legendre quadrature weights (w8[index_mu])
+ * @param nmu  Input       : Number of quadrature points (0<=index_mu<=nmu)
+ * @param ple  Input/output: Pointer to the lensing structure
+ * @return the error status
+ */
+
+
 int lensing_lensed_cl(
         double *ksi, 
-        double **d00, 
-        lensing * ple
+        double **d00,
+        double *w8,
+        int nmu,
+        struct lensing * ple
         ) {
   
   double cle;
-  cle =0;
-  /* Integration to be replaced by a quadrature rule ... */
-  
+  int l, imu;
+  /** Integration by Gauss-Legendre quadrature **/
+  for(l=2;l<=ple->l_max;l++){
+    cle=0;
+    for (imu=0;imu<nmu;imu++) {
+      cle += ksi[imu]*d00[l][imu]*w8[imu];
+    }
+    ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]=cle*2.0*_PI_;
+  }
+  return _SUCCESS_;
 }
 
+/**
+ * This routine computes the X000 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param X000   Input/output: Result is stored here
+ 
+ **/
 
 int lensing_X000(
         double * mu,
         int num_mu,
+        int lmax,
         double * sigma2,
-        double * X000
+        double ** X000
         ) {
   int index_mu, l;
   double ll;
-  for (l=2;l<=ple->l_max;l++) {
+  for (l=2;l<=lmax;l++) {
     ll = (double) l;
     for (index_mu=0;index_mu<num_mu;index_mu++) {
       X000[l][index_mu]=exp(-ll*(ll+1)*sigma2[index_mu]/4.);
@@ -431,15 +467,27 @@ int lensing_X000(
   return _SUCCESS_;
 }
 
+/**
+ * This routine computes the Xp000 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param Xp000  Input/output: Result is stored here
+ 
+ **/
+
 int lensing_Xp000(
                  double * mu,
                  int num_mu,
+                 int lmax,
                  double * sigma2,
-                 double * Xp000
+                 double ** Xp000
                  ) {
   int index_mu, l;
   double ll;
-  for (l=2;l<=ple->l_max;l++) {
+  for (l=2;l<=lmax;l++) {
     ll = (double) l;
     for (index_mu=0;index_mu<num_mu;index_mu++) {
       Xp000[l][index_mu]=-ll*(ll+1)/4.*exp(-ll*(ll+1)*sigma2[index_mu]/4.);
@@ -448,15 +496,27 @@ int lensing_Xp000(
   return _SUCCESS_;
 }
 
+/**
+ * This routine computes the X220 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param X220   Input/output: Result is stored here
+ 
+ **/
+
 int lensing_X220(
                  double * mu,
                  int num_mu,
+                 int lmax,
                  double * sigma2,
-                 double * X220
+                 double ** X220
                  ) {
   int index_mu, l;
   double ll;
-  for (l=2;l<=ple->l_max;l++) {
+  for (l=2;l<=lmax;l++) {
     ll = (double) l;
     for (index_mu=0;index_mu<num_mu;index_mu++) {
       X220[l][index_mu]=0.25*sqrt((ll+2)*(ll+1)*ll*(ll-1)) 
@@ -466,13 +526,23 @@ int lensing_X220(
   return _SUCCESS_;
 }
 
-/* Wigner d-functions, computed by recurrence */
-/* actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability */
-/* Formulae from Kostelec & Rockmore 2003 */
+/**
+ * This routine computes the d00 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d00    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
 
 int lensing_d00(
 		double * mu,
 		int num_mu,
+        int lmax,
 		double ** d00
 		) {
   double ll, dlm1, dl, dlp1;
@@ -480,10 +550,10 @@ int lensing_d00(
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     dlm1=1.0/sqrt(2.); /* l=0 */
     dl=mu[index_mu] * sqrt(3./2.); /*l=1*/
-    for(l=1;l<ple->l_max;l++){
+    for(l=1;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d00 recurrence, supposed to be more stable */ 
-      dlp1 = sqrt((2*ll+3)/(2*ll+1))*(2*ll+1)/(ll+1)*mu[index+mu]*dl
+      dlp1 = sqrt((2*ll+3)/(2*ll+1))*(2*ll+1)/(ll+1)*mu[index_mu]*dl
       - sqrt((2*ll+3)/(2*ll-1))*ll/(ll+1)*dlm1;
       d00[l+1][index_mu] = dlp1 * sqrt(2./(2*ll+3));
       dlm1 = dl;
@@ -493,9 +563,24 @@ int lensing_d00(
   return _SUCCESS_;
 }
 
+
+/**
+ * This routine computes the d11 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d11    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
 int lensing_d11(
                 double * mu,
                 int num_mu,
+                int lmax,
                 double ** d11
                 ) {
   double ll, dlm1, dl, dlp1;
@@ -504,10 +589,10 @@ int lensing_d11(
     dlm1=(1.0+mu[index_mu])/2. * sqrt(3./2.); /*l=1*/
     dl=(1.0+mu[index_mu])/2.*(2.0*mu[index_mu]-1.0) * sqrt(5./2.); /*l=2*/
     d11[2][index_mu] = dl / sqrt(2./5.);
-    for(l=2;l<ple->l_max;l++){
+    for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d11 recurrence, supposed to be more stable */
-      dlp1 = sqrt((2*ll+3)/(2*ll+1))*(ll+1)*(2*ll+1)/(ll*(ll+2))*(mu[index_mu]-1.0/(ll*(ll+1.)))*dlp1
+      dlp1 = sqrt((2*ll+3)/(2*ll+1))*(ll+1)*(2*ll+1)/(ll*(ll+2))*(mu[index_mu]-1.0/(ll*(ll+1.)))*dl
       - sqrt((2*ll+3)/(2*ll-1))*(ll-1)*(ll+1)/(ll*(ll+2))*(ll+1)/ll*dlm1;
       d11[l+1][index_mu] = dlp1 * sqrt(2./(2*ll+3));
       dlm1 = dl;
@@ -517,9 +602,23 @@ int lensing_d11(
   return _SUCCESS_;
 }
 
+/**
+ * This routine computes the d1m1 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d1m1    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
 int lensing_d1m1(
                 double * mu,
                 int num_mu,
+                int lmax,
                 double ** d1m1
                 ) {
   double ll, dlm1, dl, dlp1;
@@ -528,7 +627,7 @@ int lensing_d1m1(
     dlm1=(1.0-mu[index_mu])/2. * sqrt(3./2.); /*l=1*/
     dl=(1.0-mu[index_mu])/2.*(2.0*mu[index_mu]+1.0) * sqrt(5./2.); /*l=2*/
     d1m1[2][index_mu] = dl / sqrt(2./5.);
-    for(l=2;l<ple->l_max;l++){
+    for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d1m1 recurrence, supposed to be more stable */
       dlp1 = sqrt((2*ll+3)/(2*ll+1))*(ll+1)*(2*ll+1)/(ll*(ll+2))*(mu[index_mu]+1.0/(ll*(ll+1.)))*dl
@@ -541,9 +640,23 @@ int lensing_d1m1(
   return _SUCCESS_;
 }
 
+/**
+ * This routine computes the d2m2 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d2m2    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
 int lensing_d2m2(
                  double * mu,
                  int num_mu,
+                 int lmax,
                  double ** d2m2
                  ) {
   double ll, dlm1, dl, dlp1;
@@ -552,7 +665,7 @@ int lensing_d2m2(
     dlm1=0.; /*l=1*/
     dl=(1.0-mu[index_mu])*(1.0-mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
     d2m2[2][index_mu] = dl / sqrt(2./5.);
-    for(l=2;l<ple->l_max;l++){
+    for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d2m2 recurrence, supposed to be more stable */
       dlp1 = sqrt((2*ll+3)/(2*ll+1))*(ll+1)*(2*ll+1)/((ll-1)*(ll+3))*(mu[index_mu]+4.0/(ll*(ll+1)))*dl
@@ -565,15 +678,51 @@ int lensing_d2m2(
   return _SUCCESS_;
 }
 
-
-/** Gauss-Legendre quadrature formulae,
-    Strongly inspired from Numerical recipes **/
+/**
+ * This routine computes the weights and abscissas of a Gauss-Legendre quadrature
+ *
+ * @param mu     Input/output: Vector of cos(beta) values
+ * @param w8     Input/output: Vector of quadrature weights
+ * @param n      Input       : Number of quadrature points
+ *
+ * From Numerical recipes 
+ **/
 
 int lensing_gauss_legendre(
                            double *mu,
                            double *w8,
-                           int nmu) {
+                           int n) {
   
+  int m,j,i;
+  double z1,z,xm,xl,pp,p3,p2,p1;
+  double x1,x2,EPS;
+  x1 = -1.0;
+  x2 = 1.0;
+  EPS = 1.0e-11;
   
+  m=(n+1)/2;
+  xm=0.5*(x2+x1);
+  xl=0.5*(x2-x1);
+  for (i=1;i<=m;i++) {
+    z=cos(_PI_*(i-0.25)/(n+0.5));
+    do {
+      p1=1.0;
+      p2=0.0;
+      for (j=1;j<=n;j++) {
+        p3=p2;
+        p2=p1;
+        p1=((2.0*j-1.0)*z*p2-(j-1.0)*p3)/j;
+      }
+      pp=n*(z*p1-p2)/(z*z-1.0);
+      z1=z;
+      z=z1-p1/pp;
+    } while (fabs(z-z1) > EPS);
+    mu[i-1]=xm-xl*z;
+    mu[n-i]=xm+xl*z;
+    w8[i-1]=2.0*xl/((1.0-z*z)*pp*pp);
+    w8[n-i]=w8[i-1];
+    
+  }
+  return _SUCCESS_;
 }
 
