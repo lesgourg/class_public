@@ -1,0 +1,114 @@
+/** @file lensing.h Documented includes for spectra module */
+
+#ifndef __LENSING__
+#define __LENSING__
+
+#include "spectra.h"
+
+/**
+ * Structure containing everything about lensed spectra that other modules need to know.
+ *
+ * Once initialized by lensing_init(), contains a table of all lensed
+ * C_l's for the all modes (scalar/tensor), all types (TT, TE...),
+ * and all pairs of initial conditions (adiabatic, isocurvatures...).
+ * FOR THE MOMENT, ASSUME ONLY SCALAR & ADIABATIC
+ */
+
+struct lensing {
+
+  /** @name - input parameters initialized by user in input module
+   *  (all other quantitites are computed in this module, given these
+   *  parameters and the content of the 'precision', 'background' and
+   *  'thermodynamics' structures) */
+  
+  //@{
+
+  short has_lensed_cls; /**< do we need to compute lensed Cl's at all ? */
+
+  //@}
+
+  /** @name - information on number of type of C_l's (TT, TE...) */
+
+  //@{
+
+  int has_tt; /**< do we want lensed C_l^TT ? (T = temperature) */
+  int has_ee; /**< do we want lensed C_l^EE ? (E = E-polarization) */
+  int has_te; /**< do we want lensed C_l^TE ? */
+
+  int index_lt_tt; /**< index for type C_l^TT */
+  int index_lt_ee; /**< index for type C_l^EE */
+  int index_lt_te; /**< index for type C_l^TE */
+
+  int lt_size; /**< number of C_l types requested */
+
+  //@}
+
+  /** @name - table of pre-computed C_l values, and related quantitites */
+
+  //@{
+
+  int l_max;    /**< last multipole */
+
+  double * cl_lensed;   /**< table of anisotropy spectra for each
+			   multipole and types, 
+			   cl[index_l * ple->lt_size + index_lt]; 
+			   index_l=l goes from 0 to l_max, but for index_l=0,1
+			   cl_lensed is set to zero; its size is
+			   (l_max+1)*psp->ct_size */
+
+
+  //@}
+
+  /** @name - technical parameters */
+
+  //@{
+
+  short lensing_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
+
+  ErrorMsg error_message; /**< zone for writing error messages */
+
+  //@}
+};
+
+/*************************************************************************************************************/
+
+/*
+ * Boilerplate for C++ 
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+  int lensing_cl_at_l(
+		      struct lensing * ple,
+		      int l,
+		      double * cl_lensed
+		      );
+
+  int lensing_init(
+		   struct perturbs * ppt,
+		   struct spectra * psp,
+		   struct lensing * ple
+		   );
+
+  int lensing_free(
+		   struct lensing * ple
+		   );
+
+  int lensing_indices(
+		      struct perturbs * ppt,
+		      struct spectra * psp,
+		      struct lensing * ple
+		      );
+  
+  int lensing_d00(
+		  double * beta,
+		  int num_beta,
+		  double ** d00
+		  );
+  
+#ifdef __cplusplus
+}
+#endif
+
+#endif
