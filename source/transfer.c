@@ -845,7 +845,7 @@ int transfer_interpolate_sources(
 
 	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 
-	  /* lensing source =  4 pi W(eta) psi(k,eta) H(eta-eta_rec) 
+	  /* lensing source =  W(eta) psi(k,eta) H(eta-eta_rec) 
 	     with 
 	     psi = (newtonian) gravitationnal potential  
 	     W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
@@ -856,10 +856,9 @@ int transfer_interpolate_sources(
 	  if ((ppt->eta_sampling[index_eta] > eta_rec) && 
 	      ((eta0-ppt->eta_sampling[index_eta]) > 0.)) {
 	    interpolated_sources[index_k_tr*ppt->eta_size+index_eta] *=
-	      4.*_PI_*(2.*
-		       (ppt->eta_sampling[index_eta]-eta_rec)
-		       /(eta0-ppt->eta_sampling[index_eta])
-		       /(eta0-eta_rec));
+	      2.*(ppt->eta_sampling[index_eta]-eta_rec)
+	      /(eta0-ppt->eta_sampling[index_eta])
+	      /(eta0-eta_rec);
 	  }
 	  else {
 	    interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 0;
