@@ -319,6 +319,31 @@ int lensing_init(
              ple->error_message,
              ple->error_message);
   
+  /** Free lots of stuff **/
+  for (l=2; l<=ple->l_unlensed_max; l++) {
+    free(d00[l]);
+    free(d11[l]);
+    free(d1m1[l]);
+    free(d2m2[l]);
+    free(X000[l]);
+    free(Xp000[l]);
+    free(X220[l]);
+  }
+  free(d00);
+  free(d11);
+  free(d1m1);
+  free(d2m2);
+  free(X000);
+  free(Xp000);
+  free(X220);
+  free(ksi);
+  free(Cgl);
+  free(Cgl2);
+  free(mu);
+  free(w8);
+  
+  /** Exits **/
+  
   return _SUCCESS_;
 
 }
@@ -334,24 +359,12 @@ int lensing_init(
  */
 
 int lensing_free(
-		 struct lensing * ple
-		 ) {
-
+                 struct lensing * ple
+                 ) {
+  
   if (ple->has_lensed_cls == _TRUE_) {
 
     free(ple->cl_lensed);
-    /* Wigners and X_ijk terms*/
-    for (l=2; l<=ple->l_unlensed_max; l++) {
-      free(d00[l],d11[l],d1m1[l],d2m2[l]);
-      free(X000[l],Xp000[l],X220[l]);
-    }
-    free(d00,d11,d1m1,d2m2);
-    free(X000,Xp000,X220);
-    /* Correlation functions */
-    free(ksi,Cgl,Cgl2);
-    /* Abscissa and weights */
-    free(mu,w8);
-    
   }
 
   return _SUCCESS_;
