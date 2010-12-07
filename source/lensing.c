@@ -102,13 +102,6 @@ int lensing_init(
   double * cl_unlensed;  /* cl_unlensed[index_ct] */
   double ** junk1, ** junk2;
 
-  /** put here all precision variables; will be stored later in precision structure */
-
-  /** Last element in mu will be for mu=1, needed for sigma2 
-      The rest will be chosen as roots of a Gauss-Legendre quadrature **/
-  
-  num_mu=3000; /* Must be even ?? CHECK */
-   
 
   /** Summary: */
 
@@ -131,6 +124,12 @@ int lensing_init(
 	     ple->error_message,
 	     ple->error_message);
 
+  /** put here all precision variables; will be stored later in precision structure */
+  /** Last element in mu will be for mu=1, needed for sigma2 
+   The rest will be chosen as roots of a Gauss-Legendre quadrature **/
+  
+  num_mu=(ple->l_max+1000); /* Must be even ?? CHECK */
+  num_mu += num_mu%2; /* Force it to be even */ 
   /** - allocate array of mu values, as well as quadrature weights */
 
   class_alloc(mu,
@@ -246,7 +245,7 @@ int lensing_init(
     /* Cgl(1.0) - Cgl(mu) */
     sigma2[index_mu] = Cgl[num_mu-1] - Cgl[index_mu];
   }
-
+  
   /** - compute X000(mu), X'000(mu), X220 and other Ximn */
   class_alloc(X000,
               (ple->l_max+1)*sizeof(double*),
@@ -315,23 +314,6 @@ int lensing_init(
              ple->error_message,
              ple->error_message);
   
-  
-  /** DEBUG **/
-  
-  FILE *ffp;
-  ffp = fopen("toto.txt","w");
-  for (l=2;l<=ple->l_max;l++) {
-    class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
-               psp->error_message,
-               ple->error_message);    
-    fprintf(ffp,"%d\t%lg\t%lg\n",l,cl_unlensed[psp->index_ct_tt],
-           ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]);
-  }
-  /*
-  for (index_mu=0;index_mu<num_mu-1;index_mu++) {
-    printf("%lg\t%lg\n",mu[index_mu],ksi[index_mu]);
-  }
-   */
   return _SUCCESS_;
 
 }
