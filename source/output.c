@@ -14,6 +14,38 @@
 
 #include "output.h"
 
+int output_total_cl_at_l(
+			 struct spectra * psp,
+			 struct lensing * ple,
+			 struct output * pop,
+			 int l,
+			 double * cl
+			 ){
+
+  double ** junk1=NULL;
+  double ** junk2=NULL;
+
+  if (ple->has_lensed_cls == _TRUE_) {
+    class_call(lensing_cl_at_l(ple,
+			       l,
+			       cl),
+	       ple->error_message,
+	       pop->error_message);
+  }
+  else {
+    class_call(spectra_cl_at_l(psp,
+			       l,
+			       cl,
+			       junk1,
+			       junk2),
+	       psp->error_message,
+	       pop->error_message);
+  }
+  
+  return _SUCCESS_;
+  
+}
+
 /** 
  * This routine writes the output in files.
  *

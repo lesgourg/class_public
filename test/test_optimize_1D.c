@@ -13,6 +13,7 @@ int class(
 	  struct transfers * ptr,
 	  struct primordial * ppm,
 	  struct spectra * psp,
+	  struct lensing *ple,
 	  struct output * pop,
 	  int l_max,
 	  double ** cl,
@@ -27,6 +28,7 @@ int class_assuming_bessels_computed(
 				    struct transfers * ptr,
 				    struct primordial * ppm,
 				    struct spectra * psp,
+				    struct lensing *ple,
 				    struct output * pop,
 				    int l_max,
 				    double ** cl,
@@ -64,6 +66,7 @@ int main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
+  struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
   struct spectra_nl nl;       /* for calculation of non-linear spectra */
 
@@ -86,10 +89,10 @@ int main(int argc, char **argv) {
   
   l_max=2500;
 
-  parser_init(&fc,3,errmsg);
+  parser_init(&fc,4,errmsg);
 
   strcpy(fc.name[0],"output");
-  strcpy(fc.value[0],"tCl");
+  strcpy(fc.value[0],"tCl,pCl,lCl");
 
   strcpy(fc.name[1],"l_max_scalars");
   sprintf(fc.value[1],"%d",l_max);
@@ -99,11 +102,14 @@ int main(int argc, char **argv) {
 
 /*******************************************************/
 
-  strcpy(fc.name[2],"visibility_threshold_start_sources");
-  parameter_initial=3.e-7;
-  parameter_logstep=1.2;
+  strcpy(fc.name[2],"lensing");
+  strcpy(fc.value[2],"yes");
 
-  param_num=20;
+  strcpy(fc.name[3],"num_mu_minus_lmax");
+  parameter_initial=1000.;
+  parameter_logstep=0.9;
+
+  param_num=3;
   ref_run=0;
 
 /*******************************************************/
@@ -135,28 +141,29 @@ int main(int argc, char **argv) {
 /*       sprintf(fc.value[3],"%g",8.e-7); */
 /*     } */
 
-    sprintf(fc.value[2],"%g",parameter[i]);
+ /*    sprintf(fc.value[2],"%g",parameter[i]); */
  /*    sprintf(fc.value[3],"%g",parameter[i]); */
- /*    sprintf(fc.value[2],"%d",(int)parameter[i]); */
+    sprintf(fc.value[3],"%d",(int)parameter[i]);
  /*    sprintf(fc.value[2],"%d",1); */
 
-    fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[2]);
+    fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[3]);
 
-    if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
+    if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,&nl,errmsg) == _FAILURE_) {
       printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
       return _FAILURE_;
     }
 
     if (i==0) {
-
+      
       if (bessel_init(&pr,&bs) == _FAILURE_) {
 	printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
 	return _FAILURE_;
       }
     }
 
+
  /*    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,cl[i],errmsg); */
-    class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,cl[i],errmsg);
+    class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,l_max,cl[i],errmsg);
     
 
 /*     for (l=2; l <= 2500; l++) */
@@ -234,6 +241,7 @@ int class(
 	  struct transfers * ptr,
 	  struct primordial * ppm,
 	  struct spectra * psp,
+	  struct lensing *ple,
 	  struct output * pop,
 	  int l_max,
 	  double ** cl,
@@ -278,12 +286,19 @@ int class(
     return _FAILURE_;
   }
 
+  if (lensing_init(ppr,ppt,psp,ple) == _FAILURE_) {
+    printf("\n\nError in lensing_init \n=>%s\n",ple->error_message);
+    return _FAILURE_;
+  }
+
   for (l=2; l <= l_max; l++) {
 
     if (spectra_cl_at_l(psp,(double)l,cl[l],junk1,junk2) == _FAILURE_) {
       printf("\n\nError in spectra_cl_at_l \n=>%s\n",psp->error_message);
       return _FAILURE_;
     }
+
+    fprintf(stdout,"%d\n",cl[l][0]);
 
   }
 
@@ -337,6 +352,7 @@ int class_assuming_bessels_computed(
 				    struct transfers * ptr,
 				    struct primordial * ppm,
 				    struct spectra * psp,
+				    struct lensing * ple,
 				    struct output * pop,
 				    int l_max,
 				    double ** cl,
@@ -376,9 +392,14 @@ int class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
+  if (lensing_init(ppr,ppt,psp,ple) == _FAILURE_) {
+    printf("\n\nError in lensing_init \n=>%s\n",ple->error_message);
+    return _FAILURE_;
+  }
+
   for (l=2; l <= l_max; l++) {
 
-    if (spectra_cl_at_l(psp,(double)l,cl[l],junk1,junk2) == _FAILURE_) {
+    if (output_total_cl_at_l(psp,ple,pop,(double)l,cl[l]) == _FAILURE_) {
       printf("\n\nError in spectra_cl_at_l \n=>%s\n",psp->error_message);
       return _FAILURE_;
     }
@@ -387,6 +408,11 @@ int class_assuming_bessels_computed(
 
   /****** done ******/
 
+  if (lensing_free(ple) == _FAILURE_) {
+    printf("\n\nError in spectra_free \n=>%s\n",ple->error_message);
+    return _FAILURE_;
+  }
+    
   if (spectra_free(psp) == _FAILURE_) {
     printf("\n\nError in spectra_free \n=>%s\n",psp->error_message);
     return _FAILURE_;
@@ -463,7 +489,8 @@ int chi2_planck(
   *chi2=0.;
   for (l=2; l <= lmax; l++) {
 
-    if (psp->ct_size == 1) {
+/*     if (psp->ct_size == 1) { */
+    if (0==0) {
 
       *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
 			       (cl1[l][0]+nl[l][0])+

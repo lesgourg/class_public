@@ -34,10 +34,16 @@ struct lensing {
   int has_tt; /**< do we want lensed C_l^TT ? (T = temperature) */
   int has_ee; /**< do we want lensed C_l^EE ? (E = E-polarization) */
   int has_te; /**< do we want lensed C_l^TE ? */
+  int has_bb; /**< do we want C_l^BB ? (B = B-polarization) */
+  int has_pp; /**< do we want C_l^phi-phi ? (phi = CMB lensing potential) */
+  int has_tp; /**< do we want C_l^T-phi ? */
 
   int index_lt_tt; /**< index for type C_l^TT */
   int index_lt_ee; /**< index for type C_l^EE */
   int index_lt_te; /**< index for type C_l^TE */
+  int index_lt_bb; /**< index for type C_l^BB */
+  int index_lt_pp; /**< index for type C_l^phi-phi */
+  int index_lt_tp; /**< index for type C_l^T-phi */
 
   int lt_size; /**< number of C_l types requested */
 
@@ -47,12 +53,14 @@ struct lensing {
 
   //@{
 
-  int l_max;    /**< last multipole */
+  int l_unlensed_max;    /**< last multipole in all calculations (same as in spectra module)*/
+
+  int l_lensed_max;    /**< last multipole at which lensed spactra are computed */
 
   double * cl_lensed;   /**< table of anisotropy spectra for each
 			   multipole and types, 
 			   cl[index_l * ple->lt_size + index_lt]; 
-			   index_l=l goes from 0 to l_max, but for index_l=0,1
+			   index_l=l goes from 0 to l_lensed_max, but for index_l=0,1
 			   cl_lensed is set to zero; its size is
 			   (l_max+1)*psp->ct_size */
 
@@ -86,6 +94,7 @@ extern "C" {
                       );
 
   int lensing_init(
+		   struct precision * ppr,
                    struct perturbs * ppt,
                    struct spectra * psp,
                    struct lensing * ple
@@ -96,6 +105,7 @@ extern "C" {
                    );
 
   int lensing_indices(
+		      struct precision * ppr,
                       struct perturbs * ppt,
                       struct spectra * psp,
                       struct lensing * ple

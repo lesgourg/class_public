@@ -40,6 +40,10 @@ int lensing_cl_at_l(
 		    ) {
   int index_lt;
 
+  class_test(l > ple->l_lensed_max,
+	     "you asked for lensed Cls at l=%d, they were computed only up to l=%d, you should increase l_max_scalars or decrease the precision parameter delta_l_max",
+	     ple->error_message);
+
   for (index_lt=0; index_lt<ple->lt_size; index_lt++) {
     cl_lensed[index_lt]=ple->cl_lensed[l*ple->lt_size+index_lt];
   }
@@ -58,6 +62,7 @@ int lensing_cl_at_l(
  */
 
 int lensing_init(
+		 struct precision * ppr,
 		 struct perturbs * ppt,
 		 struct spectra * psp,
 		 struct lensing * ple
@@ -100,7 +105,7 @@ int lensing_init(
   int l;
   double ll;
   double * cl_unlensed;  /* cl_unlensed[index_ct] */
-  double ** junk1, ** junk2;
+  double ** junk1=NULL, ** junk2=NULL;
 
 
   /** Summary: */
@@ -120,7 +125,7 @@ int lensing_init(
   /** - initialize indices and allocate some of the arrays in the 
       spectra structure */
   
-  class_call(lensing_indices(ppt,psp,ple),
+  class_call(lensing_indices(ppr,ppt,psp,ple),
 	     ple->error_message,
 	     ple->error_message);
 
@@ -128,7 +133,7 @@ int lensing_init(
   /** Last element in mu will be for mu=1, needed for sigma2 
    The rest will be chosen as roots of a Gauss-Legendre quadrature **/
   
-  num_mu=(ple->l_max+1000); /* Must be even ?? CHECK */
+  num_mu=(ple->l_unlensed_max+ppr->num_mu_minus_lmax); /* Must be even ?? CHECK */
   num_mu += num_mu%2; /* Force it to be even */ 
   /** - allocate array of mu values, as well as quadrature weights */
 
@@ -149,22 +154,22 @@ int lensing_init(
   /** - compute d^l_mm'(mu) */
 
   class_alloc(d00,
-	      (ple->l_max+1)*sizeof(double*),
+	      (ple->l_unlensed_max+1)*sizeof(double*),
 	      ple->error_message);
 
   class_alloc(d11,
-	      (ple->l_max+1)*sizeof(double*),
+	      (ple->l_unlensed_max+1)*sizeof(double*),
 	      ple->error_message);
 	
   class_alloc(d1m1,
-	      (ple->l_max+1)*sizeof(double*),
+	      (ple->l_unlensed_max+1)*sizeof(double*),
 	      ple->error_message);
 	
   class_alloc(d2m2,
-	      (ple->l_max+1)*sizeof(double*),
+	      (ple->l_unlensed_max+1)*sizeof(double*),
 	      ple->error_message);
 	
-  for (l=2; l<=ple->l_max; l++) {
+  for (l=2; l<=ple->l_unlensed_max; l++) {
 
     class_alloc(d00[l],
 		num_mu*sizeof(double),
@@ -183,19 +188,19 @@ int lensing_init(
 		ple->error_message);  
   }
 
-  class_call(lensing_d00(mu,num_mu,ple->l_max,d00),
+  class_call(lensing_d00(mu,num_mu,ple->l_unlensed_max,d00),
 	     ple->error_message,
 	     ple->error_message);
 
-  class_call(lensing_d11(mu,num_mu,ple->l_max,d11),
+  class_call(lensing_d11(mu,num_mu,ple->l_unlensed_max,d11),
 	     ple->error_message,
 	     ple->error_message);
 
-  class_call(lensing_d1m1(mu,num_mu,ple->l_max,d1m1),
+  class_call(lensing_d1m1(mu,num_mu,ple->l_unlensed_max,d1m1),
 	     ple->error_message,
 	     ple->error_message);
 
-  class_call(lensing_d2m2(mu,num_mu,ple->l_max,d2m2),
+  class_call(lensing_d2m2(mu,num_mu,ple->l_unlensed_max,d2m2),
 	     ple->error_message,
 	     ple->error_message);
 
@@ -222,7 +227,7 @@ int lensing_init(
     Cgl[index_mu]=0;
     Cgl2[index_mu]=0;
 
-    for (l=2; l<=ple->l_max; l++) {
+    for (l=2; l<=ple->l_unlensed_max; l++) {
 
       class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
 		 psp->error_message,
@@ -248,16 +253,16 @@ int lensing_init(
   
   /** - compute X000(mu), X'000(mu), X220 and other Ximn */
   class_alloc(X000,
-              (ple->l_max+1)*sizeof(double*),
+              (ple->l_unlensed_max+1)*sizeof(double*),
               ple->error_message);
   class_alloc(Xp000,
-              (ple->l_max+1)*sizeof(double*),
+              (ple->l_unlensed_max+1)*sizeof(double*),
               ple->error_message);
   class_alloc(X220,
-              (ple->l_max+1)*sizeof(double*),
+              (ple->l_unlensed_max+1)*sizeof(double*),
               ple->error_message);
   
-  for (l=2; l<=ple->l_max; l++) {
+  for (l=2; l<=ple->l_unlensed_max; l++) {
     
     class_alloc(X000[l],
                 num_mu*sizeof(double),
@@ -270,13 +275,13 @@ int lensing_init(
                 ple->error_message);  
   }
   
-  class_call(lensing_X000(mu,num_mu-1,ple->l_max,sigma2,X000),
+  class_call(lensing_X000(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
              ple->error_message,
              ple->error_message);
-  class_call(lensing_Xp000(mu,num_mu-1,ple->l_max,sigma2,Xp000),
+  class_call(lensing_Xp000(mu,num_mu-1,ple->l_unlensed_max,sigma2,Xp000),
              ple->error_message,
              ple->error_message);
-  class_call(lensing_X220(mu,num_mu-1,ple->l_max,sigma2,X220),
+  class_call(lensing_X220(mu,num_mu-1,ple->l_unlensed_max,sigma2,X220),
              ple->error_message,
              ple->error_message);
   
@@ -290,7 +295,7 @@ int lensing_init(
     double res;
     for (index_mu=0;index_mu<num_mu-1;index_mu++) {
       ksi[index_mu]=0;
-      for (l=2;l<=ple->l_max;l++) {
+      for (l=2;l<=ple->l_unlensed_max;l++) {
         ll = (double) l;
         class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
                    psp->error_message,
@@ -352,21 +357,21 @@ int lensing_free(
  */
 
 int lensing_indices(
+		    struct precision * ppr,
 		    struct perturbs * ppt,
 		    struct spectra * psp,
 		    struct lensing * ple
 		    ){
   
-  int index_lt;
+  int l;
+  double ** junk1=NULL;
+  double ** junk2=NULL;
   
-  /* types of C_l's relevant for lensing: TT, EE, TE */
-
-  index_lt=0;
-
+  /* indices of all Cl types (lensed and unlensed) */
+  
   if (psp->has_tt == _TRUE_) {
     ple->has_tt = _TRUE_;
-    ple->index_lt_tt=index_lt;      
-    index_lt++;
+    ple->index_lt_tt=psp->index_ct_tt;      
   }
   else {
     ple->has_tt = _FALSE_;
@@ -374,8 +379,7 @@ int lensing_indices(
 
   if (psp->has_ee == _TRUE_) {
     ple->has_ee = _TRUE_;
-    ple->index_lt_ee=index_lt;      
-    index_lt++;
+    ple->index_lt_ee=psp->index_ct_ee;      
   }
   else {
     ple->has_ee = _FALSE_;
@@ -383,29 +387,63 @@ int lensing_indices(
 
   if (psp->has_te == _TRUE_) {
     ple->has_te = _TRUE_;
-    ple->index_lt_te=index_lt;      
-    index_lt++;
+    ple->index_lt_te=psp->index_ct_te;      
   }
   else {
     ple->has_te = _FALSE_;
   }
 
-  ple->lt_size = index_lt;
+  if (psp->has_bb == _TRUE_) {
+    ple->has_bb = _TRUE_;
+    ple->index_lt_bb=psp->index_ct_bb;      
+  }
+  else {
+    ple->has_bb = _FALSE_;
+  }
+
+  if (psp->has_pp == _TRUE_) {
+    ple->has_pp = _TRUE_;
+    ple->index_lt_te=psp->index_ct_pp;      
+  }
+  else {
+    ple->has_pp = _FALSE_;
+  }
+
+  if (psp->has_tp == _TRUE_) {
+    ple->has_tp = _TRUE_;
+    ple->index_lt_tp=psp->index_ct_tp;      
+  }
+  else {
+    ple->has_tp = _FALSE_;
+  }
+
+  ple->lt_size = psp->ct_size;
 
   /* number of multipoles */
 
-  ple->l_max = psp->l_max[ppt->index_md_scalars];
+  ple->l_unlensed_max = psp->l_max[ppt->index_md_scalars];
 
+  ple->l_lensed_max = ple->l_unlensed_max - ppr->delta_l_max;
+  
   /* allocate table where results will be stored */
-
+  
   class_alloc(ple->cl_lensed,
-	      (ple->l_max+1)*ple->lt_size*sizeof(double),
+	      (ple->l_lensed_max+1)*ple->lt_size*sizeof(double),
 	      ple->error_message);
+  
+  /* fill with unlensed cls */
+  for (l=2; l<=ple->l_lensed_max; l++) { 
+    
+    class_call(spectra_cl_at_l(psp,l,&(ple->cl_lensed[l]),junk1,junk2),
+	       psp->error_message,
+	       ple->error_message);
+    
+  }
   
   return _SUCCESS_;
   
 }
-
+  
 /**
  * This routine computes the lensed power spectra by Gaussian quadrature 
  *
@@ -429,7 +467,7 @@ int lensing_lensed_cl(
   double cle;
   int l, imu;
   /** Integration by Gauss-Legendre quadrature **/
-  for(l=2;l<=ple->l_max;l++){
+  for(l=2;l<=ple->l_lensed_max;l++){
     cle=0;
     for (imu=0;imu<nmu;imu++) {
       cle += ksi[imu]*d00[l][imu]*w8[imu];

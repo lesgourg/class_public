@@ -666,19 +666,35 @@ int input_init(
 
   /** (e) parameters for final spectra */
 
-  pbs->l_max=0;
-
   if (ppt->has_cls == _TRUE_) {
 
     if (ppt->has_scalars == _TRUE_) {
       class_read_double("l_max_scalars",ppt->l_scalar_max);
-      pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
     }
 
     if (ppt->has_tensors == _TRUE_) {   
       class_read_double("l_max_tensors",ppt->l_tensor_max);
-      pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
     }
+  }
+
+  class_call(parser_read_string(pfc,
+				"lensing",
+				&(string1),
+				&(flag1),
+				errmsg),
+	     errmsg,
+	     errmsg);
+  
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    
+    class_test((ppt->has_scalars == _FALSE_) || 
+	       (ppt->has_cls == _FALSE_) || 
+	       (ppt->has_cl_cmb_lensing_potential == _FALSE_),
+	       errmsg,
+	       "Lensed Cls only possible if you ask for scalars, temperature and/or polarization Cls, and lensing potential Cls.");
+    
+    ple->has_lensed_cls = _TRUE_;
+    
   }
 
   if (ppt->has_pk_matter == _TRUE_) {
@@ -730,25 +746,6 @@ int input_init(
     strcpy(pbs->bessel_file_name,string1);
   }
 
-  class_call(parser_read_string(pfc,
-				"lensing",
-				&(string1),
-				&(flag1),
-				errmsg),
-	     errmsg,
-	     errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-    
-    class_test((ppt->has_scalars == _FALSE_) || 
-	       (ppt->has_cls == _FALSE_) || 
-	       (ppt->has_cl_cmb_lensing_potential == _FALSE_),
-	       "You asked for lensed Cls. This is only possible if you also ask for scalar modes, temperature and/or polarization Cls, and lensing potential Cls.",
-	       errmsg);
-    
-    ple->has_lensed_cls = _TRUE_;
-  }
-
   /** (f) parameter related to the non-linear spectra computation */
 
   class_read_int("non-linearity mode",pnl->mode);
@@ -797,7 +794,6 @@ int input_init(
 
   class_read_int("spectra_nl_verbose",
 		 pnl->spectra_nl_verbose);
-
   /** (h) all precision parameters */
 
   /** h.1. parameters related to the background */
@@ -911,7 +907,30 @@ int input_init(
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
   class_read_int("transfer_integrate",ppr->transfer_integrate);
 
+  /** h.7. parameter related to lensing */
+
+  class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
+  class_read_int("delta_l_max",ppr->delta_l_max);
+
+  /* for debugging */
+
   class_read_int("debugging_flag",ppr->debugging_flag);
+
+  /* check various l_max */
+
+  pbs->l_max=0;
+
+  if (ppt->has_scalars == _TRUE_) {
+    
+    if (ple->has_lensed_cls == _TRUE_)
+      ppt->l_scalar_max+=ppr->delta_l_max;
+
+    pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
+  }
+
+  if (ppt->has_tensors == _TRUE_) {   
+    pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
+  }
 
   /** (i) eventually write all the read parameters in a file */
 
@@ -1221,7 +1240,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->gauge=synchronous;
 
-  ppr->k_scalar_min=0.05; /* 03.12.10 for chi2plT0.01 */
+  ppr->k_scalar_min=0.01; /* 07.12.10 for chi2plT0.01 */
   /*   ppr->k_scalar_oscillations=7.;   */
   ppr->l_max_over_k_max_scalars = 8500.; /* 03.12.10 for chi2plT0.01 */
   ppr->k_scalar_step_sub=0.01;  /* 03.12.10 for chi2plT0.01 */
@@ -1257,7 +1276,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
   ppr->tol_eta_approx=5.e-4; /* 03.12.10 for chi2plT0.01 */
-  ppr->tol_perturb_integration=1.e-4; /* 03.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
+  ppr->tol_perturb_integration=1.e-6; /* 07.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
   ppr->perturb_sampling_stepsize=0.06; /* 03.12.10 for chi2plT0.01 [0.06 for transfer_integrate=trapezoidal, 0.055 for transfer_integrate = spline] */
 
   ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
@@ -1297,6 +1316,13 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_cut_threshold_cl=8.e-7; /* 03.12.10 for chi2plT0.01 */
 
   ppr->transfer_integrate = trapezoidal;
+
+  /**
+   * - parameter related to lensing
+   */
+
+  ppr->num_mu_minus_lmax=1000;
+  ppr->delta_l_max=300;
 
   /**
    * - automatic estimate of machine precision

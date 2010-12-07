@@ -50,6 +50,14 @@ struct output {
 extern "C" {
 #endif
 
+  int output_total_cl_at_l(
+			   struct spectra * psp,
+			   struct lensing * ple,
+			   struct output * pop,
+			   int l,
+			   double * cl
+			   );
+
   int output_init(
 		  struct background * pba,
 		  struct perturbs * ppt,

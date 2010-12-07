@@ -490,6 +490,15 @@ struct precision
 
   //@}
 
+  /** @name - parameters related to lensing */
+
+  //@{
+
+  int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
+  int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
+
+  //@}
+
   /** @name - zone for writing error messages */
 
   //@{

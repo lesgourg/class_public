@@ -14,12 +14,13 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
+  struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
-   struct spectra_nl nl;       /* for calculation of non-linear spectra */
+  struct spectra_nl nl;       /* for calculation of non-linear spectra */
 
   ErrorMsg errmsg;
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,&nl,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -41,19 +42,20 @@ main(int argc, char **argv) {
 
   /****** here you can output the source functions ******/
 
-  if (pt.has_source_t == _TRUE_) {
+  if (pt.has_source_g == _TRUE_) {
 
     FILE * output;
     int index_k,index_eta;
     int index_mode=pt.index_md_scalars;
-    int index_type=pt.index_tp_t;
+    int index_type=pt.index_tp_g;
     int index_ic=pt.index_ic_ad;
 
     output=fopen("output/source1.dat","w");
 
     for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
+/*     for (index_k=pt.k_size[index_mode]-1; index_k < pt.k_size[index_mode]; index_k++) { */
       for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
-
+	
 	fprintf(output,"%e %e %e\n",
 		pt.k[index_mode][index_k],
 		pt.eta_sampling[index_eta],
@@ -74,15 +76,13 @@ main(int argc, char **argv) {
     int index_k,index_eta;
     int index_mode=pt.index_md_scalars;
 
-    int index_type=pt.index_tp_t;
-
     int index_ic=pt.index_ic_ad;
 
     output=fopen("output/transfers.dat","w");
 
     for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
       for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
-	
+
 	fprintf(output,"%e %e %e %e %e %e\n",
 		pt.eta_sampling[index_eta],
 		pt.k[index_mode][index_k],
