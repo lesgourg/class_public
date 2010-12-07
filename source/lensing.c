@@ -340,6 +340,17 @@ int lensing_free(
   if (ple->has_lensed_cls == _TRUE_) {
 
     free(ple->cl_lensed);
+    /* Wigners and X_ijk terms*/
+    for (l=2; l<=ple->l_unlensed_max; l++) {
+      free(d00[l],d11[l],d1m1[l],d2m2[l]);
+      free(X000[l],Xp000[l],X220[l]);
+    }
+    free(d00,d11,d1m1,d2m2);
+    free(X000,Xp000,X220);
+    /* Correlation functions */
+    free(ksi,Cgl,Cgl2);
+    /* Abscissa and weights */
+    free(mu,w8);
     
   }
 
