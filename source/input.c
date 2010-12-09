@@ -847,7 +847,6 @@ int input_init(
   class_read_double("helium_fullreio_redshift",ppr->helium_fullreio_redshift);
   class_read_double("helium_fullreio_width",ppr->helium_fullreio_width);
 
-  class_read_double("visibility_threshold_start_sources",ppr->visibility_threshold_start_sources);
   class_read_double("visibility_threshold_free_streaming",ppr->visibility_threshold_free_streaming);
   class_read_int("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
 
@@ -865,8 +864,11 @@ int input_init(
   class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
   class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
   class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
-  class_read_double("k_eta_min",ppr->k_eta_min);
-  class_read_double("eta_min_over_sampling_min",ppr->eta_min_over_sampling_min);
+  class_read_double("start_small_k_at_eta_g_over_eta_h",ppr->start_small_k_at_eta_g_over_eta_h);
+  class_read_double("start_large_k_at_eta_g_over_eta_k",ppr->start_large_k_at_eta_g_over_eta_k);
+  class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
+  class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
+  class_read_double("start_sources_at_eta_g_over_eta_h",ppr->start_sources_at_eta_g_over_eta_h);
   class_read_double("k_eta_max",ppr->k_eta_max);
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
@@ -880,8 +882,6 @@ int input_init(
   class_read_double("tol_eta_approx",ppr->tol_eta_approx);
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
-  class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
-  class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
   class_read_double("rad_pert_trigger_k_over_aH",ppr->rad_pert_trigger_k_over_aH);
   class_read_double("rad_pert_trigger_Omega_r",ppr->rad_pert_trigger_Omega_r);
 
@@ -1229,7 +1229,6 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* general */
 
-  ppr->visibility_threshold_start_sources=3.e-6; /* 3.5e-7 optimized 9/09/08  */
   ppr->visibility_threshold_free_streaming=1.e-5; /* not used currently */
 
   ppr->thermo_rate_smoothing_radius=50;
@@ -1260,8 +1259,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->k_eta_min=5.e-2; /* 03.12.10 for chi2plT0.01  */
-  ppr->eta_min_over_sampling_min=0.5; /*03.12.10 for chi2plT0.01 */
+  ppr->start_small_k_at_eta_g_over_eta_h = 1.e-5; /* decrease to start earlier in time */
+  ppr->start_large_k_at_eta_g_over_eta_k = 0.05e-5;  /* decrease to start earlier in time */
+  ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* decrease to start earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
+  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.015; /*1.5e-2*/
+
   ppr->k_eta_max=10.; /* not used currently */
 
   ppr->l_max_g=10; /* 03.12.10 for chi2plT0.01 */
@@ -1278,9 +1281,6 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_eta_approx=5.e-4; /* 03.12.10 for chi2plT0.01 */
   ppr->tol_perturb_integration=1.e-6; /* 07.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
   ppr->perturb_sampling_stepsize=0.06; /* 03.12.10 for chi2plT0.01 [0.06 for transfer_integrate=trapezoidal, 0.055 for transfer_integrate = spline] */
-
-  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
-  ppr->tight_coupling_trigger_eta_g_over_eta_k=1.5e-2; /*1.5e-2*/
 
   ppr->rad_pert_trigger_k_over_aH = 40.; /* 03.12.10 for chi2plT0.01 */
   ppr->rad_pert_trigger_Omega_r = 0.15; /* 03.12.10 for chi2plT0.01 */

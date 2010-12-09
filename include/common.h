@@ -337,12 +337,7 @@ struct precision
   /**
    * critical values of visibility function g: 
    *
-   * (a) when g becomes larger than visibility_threshold_start_sources, start sampling the sources
-   */
-  double visibility_threshold_start_sources;
-
-  /**
-   * (b) when g becomes smaller than
+   * (a) when g becomes smaller than
    * visibility_threshold_free_streaming, try to turn off radiation
    * perturbations (actually this condition is overwritten by another
    * one: Omega_r < rad_pert_trigger_Omega_r; the present variable
@@ -380,9 +375,29 @@ struct precision
   double k_tensor_step_super; /**< step in k space, in units of one period of oscillation at decoupling, for scales above horizon at decoupling (tensor modes) */  
   double k_tensor_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. (tensor modes) */
 
-  double k_eta_min; /**< default value of \f$ k \times \eta \f$ for starting integration of given wavenumber */
+  double start_small_k_at_eta_g_over_eta_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_H \f$. Start when start_largek_at_eta_g_over_eta_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
 
-  double eta_min_over_sampling_min; /**< maximum ratio of eta_min (when perturbations start to be integrated) over the first time at which source are sampled. Value important for the smallest k, otherwise this condition is overwritten by the one on \f$ k \times \eta \f$ */ 
+  double start_large_k_at_eta_g_over_eta_k; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_k \f$. Start when start_largek_at_eta_g_over_eta_k equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
+
+  /**
+   * when to switch off tight-coupling approximation: first condition:
+   * \f$ \eta_g/\eta_H \f$ < tight_coupling_trigger_eta_g_over_eta_h.
+   * Decrease this value to switch off earlier in time.  If this
+   * number is larger than start_sources_at_eta_g_over_eta_h, the code
+   * returns an error, because the source computation requires
+   * tight-coupling to be switched off.
+   */
+  double tight_coupling_trigger_eta_g_over_eta_h;
+
+  /**
+   * when to switch off tight-coupling approximation:
+   * second condition: \f$ \eta_g/\eta_k \equiv k \eta_g \f$ <
+   * tight_coupling_trigger_eta_g_over_eta_k.
+   * Decrease this value to switch off earlier in time.
+   */
+  double tight_coupling_trigger_eta_g_over_eta_k;
+
+  double start_sources_at_eta_g_over_eta_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_H \f$. Start when start_sources_at_eta_g_over_eta_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
   double k_eta_max; /**< maximum value of \f$ k \times \eta \f$ for which the sources should be computed in a pure CMB run*/
 
@@ -412,25 +427,12 @@ struct precision
   double tol_perturb_integration;
 
   /**
-   * precision with which the code should determine the times eta at
-   * which approximations must be switched on/off (units of Mpc)
+   * precision with which the code should determine (by bisection) the
+   * times at which sources start being sampled, and at which
+   * approximations must be switched on/off (units of Mpc)
    */
   double tol_eta_approx;
  
-  /**
-   * when to switch off tight-coupling approximation:
-   * first condition: \f$ \eta_g/\eta_H \f$ <
-   * tight_coupling_trigger_eta_g_over_eta_h 
-   */
-  double tight_coupling_trigger_eta_g_over_eta_h;
-
-  /**
-   * when to switch off tight-coupling approximation:
-   * second condition: \f$ \eta_g/\eta_k \equiv k \eta_g \f$ <
-   * tight_coupling_trigger_eta_g_over_eta_k
-   */
-  double tight_coupling_trigger_eta_g_over_eta_k;
-
   /**
    * when to switch off radiation perturbations, ie when to switch
    * on free-streaming approximation (keep density and theta, set

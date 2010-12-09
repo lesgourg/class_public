@@ -128,11 +128,12 @@ int thermodynamics_at_z(
     /* Calculate d3kappa/deta3 given that [dkappa/deta] proportional to (1+z)^2 */
     pvecthermo[pth->index_th_dddkappa] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
 
-    /* \f$ exp^{-\kappa}, g, g', g'' \f$ can be set to zero: they are used
-       only for computing the source functions in the perturbation
-       module; but source functions only need to be sampled below
-       z_initial (this is guaranteed by the fact that
-       z_visibility_start_sources < z_initial by construction) */
+    /* \f$ exp^{-\kappa}, g, g', g'' \f$ can be set to zero: they are
+       used only for computing the source functions in the
+       perturbation module; but source functions only need to be
+       sampled below z_initial (the condition that
+       z_start_sources<z_initial is checked in the perturbation
+       module) */
     pvecthermo[pth->index_th_exp_m_kappa] = 0.;
     pvecthermo[pth->index_th_g]=0.;
     pvecthermo[pth->index_th_dg]=0.;
@@ -302,6 +303,10 @@ int thermodynamics_init(
 	       pth->error_message);
   }
 
+  /** - store initial value of conformal time in the straucture */
+
+  pth->eta_ini = eta_table[pth->tt_size-1];
+
   /** - fill missing columns (quantities not computed previously but related) */
 
   /** -> second derivative with respect to eta of dkappa (in view of spline interpolation) */
@@ -376,9 +381,6 @@ int thermodynamics_init(
    *      \f$; compute also redshift when (in order of growing \f$ z
    *      \f$): 
    *
-   *      -# \f$ g \f$ cannot be approximated by zero anymore (time
-   *      for switching on source function)
-   *
    *      -# \f$ g \f$ is maximum (recombination time)
    *
    *      -# \f$ g \f$ falls again below some threshold (can be used
@@ -386,7 +388,6 @@ int thermodynamics_init(
    * 
    */
 
-  pth->z_visibility_start_sources=0.;
   pth->z_visibility_free_streaming=0.;
   pth->z_visibility_max=0.;
   g = 0.;
@@ -399,21 +400,14 @@ int thermodynamics_init(
       exp(pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g]);
 
     if (g > 0.) {
-      if (pth->z_visibility_start_sources == 0.) {
-	if (g >= ppr->visibility_threshold_start_sources) {
-	  pth->z_visibility_start_sources=pth->z_table[index_eta];
+      if (pth->z_visibility_max ==0.) {
+	if (g < g_previous) {
+	  pth->z_visibility_max=pth->z_table[index_eta+1];
 	}
-      }
-      else {
-	if (pth->z_visibility_max ==0.) {
-	  if (g < g_previous) {
-	    pth->z_visibility_max=pth->z_table[index_eta+1];
-	  }
-	  else {
-	    if (pth->z_visibility_free_streaming == 0.) {
-	      if ((g < g_previous) && (g <= ppr->visibility_threshold_free_streaming)) {
-		pth->z_visibility_free_streaming=pth->z_table[index_eta];
-	      }
+	else {
+	  if (pth->z_visibility_free_streaming == 0.) {
+	    if ((g < g_previous) && (g <= ppr->visibility_threshold_free_streaming)) {
+	      pth->z_visibility_free_streaming=pth->z_table[index_eta];
 	    }
 	  }
 	}
@@ -470,18 +464,6 @@ int thermodynamics_init(
 	     pth->error_message);
 
   /** - check consistency of the values inferred from the visibility functions */
-
-  class_test(pth->z_visibility_start_sources <= 0.,
-	     pth->error_message,
-	     "source functions cannot be sampled, probably because ppr->visibility_threshold_start_sources=%e is too large and exceeds maximum of g",ppr->visibility_threshold_start_sources);
-
-  class_test(pth->z_visibility_start_sources >= pth->z_table[pth->tt_size-1],
-	     pth->error_message,
-	     "source functions should start being sampled at a larger redshift than z_initial: either ppr->visibility_threshold_start_sources=%e is too small and you are too demanding, or ppr->recfast_z_initial=%e is too small and you start studying recombination too late",ppr->visibility_threshold_start_sources,ppr->recfast_z_initial);
-
-  class_test(pth->z_visibility_max == 0.,
-	     pth->error_message,
-	     "maximum of visibility function is today, hence recombination time could not be found");
 
   class_test(pth->z_visibility_free_streaming > pth->z_visibility_max,
 	     pth->error_message,

@@ -99,19 +99,26 @@ struct thermo
 
   //@{
 
-  double z_visibility_start_sources;  /**< z below which g is non-negligible and sources should be sampled */
   double z_visibility_max;            /**< z at which the visibility reaches its maximum (= recombination time) */
   double z_visibility_free_streaming; /**< z below which g is so small that radiation perturbation can be approximated by free-streaming solution */
 
   //@}
 
 
-  /** @name - conformal time and sound horizon at recombination (used in transfer.c) */
+  /** @name - conformal time and sound horizon at recombination */
 
   //@{
 
   double eta_rec; /**< conformal time at which the visibility reaches its maximum (= recombination time) */
   double rs_rec;  /**< sound horizon at that time */
+
+  //@}
+
+  /** @name - initial conformal time at which thermodynamical variables have been be integrated */
+
+  //@{
+
+  double eta_ini;
 
   //@}
 

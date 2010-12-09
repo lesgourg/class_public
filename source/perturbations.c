@@ -154,17 +154,12 @@ int perturb_init(
 
   if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
-      printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008. Mistake in one of the two codes? To be checked.\n");
+    printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008. Mistake in one of the two codes? To be checked.\n");
   }
 
   if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
-      printf("Warning: so far, C_l^phiphi and C_l^Tphi computed using Limber for all l's, not very precise...\n");
+    printf("Warning: so far, C_l^phiphi and C_l^Tphi computed using Limber for all l's, not very precise...\n");
   }
-
-  class_test(ppr->eta_min_over_sampling_min >= 1,
-	     ppt->error_message,
-	     "you have ppr->eta_min_over_sampling_min=%g, should always be < 1 to guarantee that integration starts early enough and that the first value of the source can be trusted",
-	     ppr->eta_min_over_sampling_min); 
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
@@ -536,7 +531,7 @@ int perturb_indices_of_perturbs(
 		 ppt->error_message,
 		 "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarisation, lensing/gravitational potential, ...). Please adjust your input.");
 
-    /** -- count scalar initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) and assign corresponding indices */
+      /** -- count scalar initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) and assign corresponding indices */
 
       if (ppt->has_ad == _TRUE_) {
 	ppt->index_ic_ad = index_ic;
@@ -653,14 +648,20 @@ int perturb_timesampling_for_sources(
   int index_ic;
   int last_index_back;
   int last_index_thermo;
+  int first_index_back;
+  int first_index_thermo;
 
   double eta;
+  double eta_ini;
+  double eta_lower;
+  double eta_upper;
+  double eta_mid;
+
   double timescale_source;
   double rate_thermo;
   double rate_isw_squared;
   double a_prime_over_a;
   double a_primeprime_over_a;
-  double eta_visibility_start_sources;
   double * pvecback;
   double * pvecthermo;
 
@@ -669,21 +670,117 @@ int perturb_timesampling_for_sources(
   class_alloc(pvecback,pba->bg_size_short*sizeof(double),ppt->error_message);  
   class_alloc(pvecthermo,pth->th_size*sizeof(double),ppt->error_message);
 
-  /** - compute conformal time corresponding to opaque universe
-      (starting point for source sampling) */
-
-  class_call(background_eta_of_z(pba,pth->z_visibility_start_sources,&eta_visibility_start_sources),
-	     pba->error_message,
-	     ppt->error_message);
-
   /** - first, just count the number of sampling points in order to allocate the array containing all values: */
 
-  /** (a) if CMB requested, first sampling point = when the universe stops being opaque; otherwise,
-      start sampling gravitational potential at recombination */
-  if (ppt->has_cmb == _TRUE_)
-    eta = eta_visibility_start_sources;
+  /** (a) if CMB requested, first sampling point = when the universe
+      stops being opaque; otherwise, start sampling gravitational
+      potential at recombination */
+  if (ppt->has_cmb == _TRUE_) {
+
+    /* using bisection, search time eta such that the ratio of thermo
+       to Hubble time scales eta_g/eta_h=aH/kappa' is equal to
+       start_sources_at_eta_g_over_eta_h */
+    
+    eta_lower = pth->eta_ini;
+
+    class_call(background_at_eta(pba,
+				 eta_lower, 
+				 short_info, 
+				 normal, 
+				 &first_index_back, 
+				 pvecback),
+	       pba->error_message,
+	       ppt->error_message);
+    
+    class_call(thermodynamics_at_z(pba,
+				   pth,
+				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+				   normal,
+				   &first_index_thermo,
+				   pvecback,
+				   pvecthermo),
+	       pth->error_message,
+	       ppt->error_message);
+    
+    class_test(pvecback[pba->index_bg_a]*
+	       pvecback[pba->index_bg_H]/
+	       pvecthermo[pth->index_th_dkappa] > 
+	       ppr->start_sources_at_eta_g_over_eta_h,
+	       ppt->error_message,
+	       "your choice of initial time for computing sources is inappropriate: it corresponds to an earlier time than the one at which the integration of thermodynamical variables started (eta=%g). You should increase either 'start_sources_at_eta_g_over_eta_h' or 'recfast_z_initial'\n",
+	       eta_lower);
+    
+    
+    eta_upper = pth->eta_rec;
+    
+    class_call(background_at_eta(pba,
+				 eta_upper, 
+				 short_info, 
+				 normal, 
+				 &first_index_back, 
+				 pvecback),
+	       pba->error_message,
+	       ppt->error_message);
+    
+    class_call(thermodynamics_at_z(pba,
+				   pth,
+				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+				   normal,
+				   &first_index_thermo,
+				   pvecback,
+				   pvecthermo),
+	       pth->error_message,
+	       ppt->error_message);
+
+    class_test(pvecback[pba->index_bg_a]*
+	       pvecback[pba->index_bg_H]/
+	       pvecthermo[pth->index_th_dkappa] <
+	       ppr->start_sources_at_eta_g_over_eta_h,
+	       ppt->error_message,
+	       "your choice of initial time for computing sources is inappropriate: it corresponds to a time after recombination. You should decrease 'start_sources_at_eta_g_over_eta_h'\n");
+    
+    eta_mid = 0.5*(eta_lower + eta_upper);
+    
+    while (eta_upper - eta_lower > ppr->tol_eta_approx) {
+
+      class_call(background_at_eta(pba,
+				   eta_mid, 
+				   short_info, 
+				   normal, 
+				   &first_index_back, 
+				   pvecback),
+		 pba->error_message,
+		 ppt->error_message);
+      
+      class_call(thermodynamics_at_z(pba,
+				     pth,
+				     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+				     normal,
+				     &first_index_thermo,
+				     pvecback,
+				     pvecthermo),
+		 pth->error_message,
+		 ppt->error_message);
+      
+      
+      if (pvecback[pba->index_bg_a]*
+	  pvecback[pba->index_bg_H]/
+	  pvecthermo[pth->index_th_dkappa] > 
+	  ppr->start_sources_at_eta_g_over_eta_h)
+	
+	eta_upper = eta_mid;
+      else
+	eta_lower = eta_mid;
+
+      eta_mid = 0.5*(eta_lower + eta_upper);
+      
+    }
+
+    eta_ini = eta_mid;
+
+  }
   else 
-    eta = pth->eta_rec;
+    eta_ini = pth->eta_rec;
   
   counter = 1;
 
@@ -696,12 +793,16 @@ int perturb_timesampling_for_sources(
       timescale_source = 1/aH; repeat till today.
   */
 
+  last_index_back = first_index_back; 
+  last_index_thermo = first_index_thermo;
+  eta = eta_ini;
+
   while (eta < pba->conformal_age) {
 
     class_call(background_at_eta(pba,
 				 eta, 
 				 short_info, 
-				 normal, 
+				 closeby, 
 				 &last_index_back, 
 				 pvecback),
 	       pba->error_message,
@@ -710,7 +811,7 @@ int perturb_timesampling_for_sources(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   normal,
+				   closeby,
 				   &last_index_thermo,
 				   pvecback,
 				   pvecthermo),
@@ -764,13 +865,9 @@ int perturb_timesampling_for_sources(
   /** - repeat the same steps, now filling the array with each eta value: */
 
   /** (a) first sampling point = when the universe stops being opaque */
-  if (ppt->has_cmb == _TRUE_)
-    eta = eta_visibility_start_sources;
-  else
-    eta = pth->eta_rec;
 
   counter = 0;
-  ppt->eta_sampling[counter]=eta;
+  ppt->eta_sampling[counter]=eta_ini;
 
   /** (b) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where
       timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
@@ -779,12 +876,16 @@ int perturb_timesampling_for_sources(
       - if CMB not requested:
       timescale_source = 1/aH; repeat till today.  */
 
+  last_index_back = first_index_back; 
+  last_index_thermo = first_index_thermo;
+  eta = eta_ini;
+
   while (eta < pba->conformal_age) {
     
     class_call(background_at_eta(pba,
 				 eta, 
 				 short_info, 
-				 normal, 
+				 closeby, 
 				 &last_index_back, 
 				 pvecback),
 	       pba->error_message,
@@ -793,7 +894,7 @@ int perturb_timesampling_for_sources(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   normal,
+				   closeby,
 				   &last_index_thermo,
 				   pvecback,
 				   pvecthermo),
@@ -843,7 +944,7 @@ int perturb_timesampling_for_sources(
   free(pvecthermo);
 
   /** - loop over modes, initial conditions and types. For each of
-        them, allocate array of source functions. */
+      them, allocate array of source functions. */
   
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
@@ -1055,11 +1156,11 @@ int perturb_workspace_init(
   int index_ap;
 
   /** - define indices of metric perturbations obeying to constraint
-        equations (this can be done once and for all, because the
-        vector of metric perturbations is the same whatever the
-        approximation scheme, unlike the vector of quantities to
-        be integrated, which is allocated separately in
-        perturb_vector_init) */
+      equations (this can be done once and for all, because the
+      vector of metric perturbations is the same whatever the
+      approximation scheme, unlike the vector of quantities to
+      be integrated, which is allocated separately in
+      perturb_vector_init) */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
@@ -1077,8 +1178,8 @@ int perturb_workspace_init(
     }
       
     /* synchronous gauge (note that eta is counted in the vector of
-        quantities to be integrated, while here we only consider
-        quantities obeying to constraint equations) */
+       quantities to be integrated, while here we only consider
+       quantities obeying to constraint equations) */
 
     if (ppr->gauge == synchronous) {
       ppw->index_mt_h_prime = index_mt; /* h' */
@@ -1128,16 +1229,16 @@ int perturb_workspace_init(
   ppw->st_size = index_st;
 
   /** - allocate some workspace in which we will store temporarily the
-        values of background, thermodynamics, metric and source
-        quantities at a given time */
+      values of background, thermodynamics, metric and source
+      quantities at a given time */
 
   class_alloc(ppw->pvecback,pba->bg_size_normal*sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecthermo,pth->th_size*sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecmetric,ppw->mt_size*sizeof(double),ppt->error_message);
 
   /** - allocate array of source terms array for the current mode,
-        initial condition and wavenumber:
-        source_term_table[index_type][index_eta*ppw->st_size+index_st] */
+      initial condition and wavenumber:
+      source_term_table[index_type][index_eta*ppw->st_size+index_st] */
 
   class_alloc(ppw->source_term_table,
 	      ppt->tp_size[index_mode] * sizeof(double *),
@@ -1260,7 +1361,7 @@ int perturb_solve(
   struct perturb_parameters_and_workspace ppaw;
 
   /* conformal time */
-  double eta;
+  double eta,eta_lower,eta_upper,eta_mid;
 
   /* maximum value of conformal time for current wavenumber */
   double etamax;
@@ -1303,9 +1404,9 @@ int perturb_solve(
   int index_ap;
 
   /* approximation scheme within previous interval: previous_approx[index_ap] */
-   int * previous_approx;
+  int * previous_approx;
 
-   /** - initialize indices relevant for back/thermo tables search */
+  /** - initialize indices relevant for back/thermo tables search */
   ppw->last_index_back=0;
   ppw->last_index_thermo=0;
   ppw->intermode = normal;
@@ -1348,13 +1449,117 @@ int perturb_solve(
 
   /** - compute minimum value of eta for which sources are calculated for this wavenumber */
 
-  /* by default, (k eta)_min / k */
-  eta = ppr->k_eta_min / k;
-
-  /* force this time to be before the first point defined in the timesampling_for_sources routine */
-  if (eta > ppt->eta_sampling[0]*ppr->eta_min_over_sampling_min)
-    eta = ppt->eta_sampling[0]*ppr->eta_min_over_sampling_min;
+  /* using bisection, search time eta such that the ratio of thermo
+     to Hubble time scales eta_g/eta_h=aH/kappa' is equal to
+     start_sources_at_eta_g_over_eta_h */
   
+  eta_lower = pba->eta_table[0];
+    
+  class_call(background_at_eta(pba,
+			       eta_lower, 
+			       short_info, 
+			       normal, 
+			       &(ppw->last_index_back), 
+			       ppw->pvecback),
+	     pba->error_message,
+	     ppt->error_message);
+  
+  class_call(thermodynamics_at_z(pba,
+				 pth,
+				 1./ppw->pvecback[pba->index_bg_a]-1.,
+				 normal,
+				 &(ppw->last_index_thermo),
+				 ppw->pvecback,
+				 ppw->pvecthermo),
+	     pth->error_message,
+	     ppt->error_message);
+  
+  class_test(ppw->pvecback[pba->index_bg_a]*
+	     ppw->pvecback[pba->index_bg_H]/
+	     ppw->pvecthermo[pth->index_th_dkappa] >
+	     ppr->start_small_k_at_eta_g_over_eta_h,
+	     ppt->error_message,
+	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_eta_g_over_eta_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
+	     ppw->pvecback[pba->index_bg_a]*
+	     ppw->pvecback[pba->index_bg_H]/
+	     ppw->pvecthermo[pth->index_th_dkappa]);
+  
+  class_test(k/ppw->pvecthermo[pth->index_th_dkappa] >
+	     ppr->start_large_k_at_eta_g_over_eta_k,
+	     ppt->error_message,
+	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_eta_g_over_eta_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
+	     ppt->k[index_mode][ppt->k_size[index_mode]-1]/ppw->pvecthermo[pth->index_th_dkappa]);
+  
+  eta_upper = ppt->eta_sampling[0];
+  
+  class_call(background_at_eta(pba,
+			       eta_upper, 
+			       short_info, 
+			       normal, 
+			       &(ppw->last_index_back), 
+			       ppw->pvecback),
+	     pba->error_message,
+	     ppt->error_message);
+  
+  class_call(thermodynamics_at_z(pba,
+				 pth,
+				 1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+				 normal,
+				 &(ppw->last_index_thermo),
+				 ppw->pvecback,
+				 ppw->pvecthermo),
+	     pth->error_message,
+	     ppt->error_message);
+  
+  class_test(ppw->pvecback[pba->index_bg_a]*
+	     ppw->pvecback[pba->index_bg_H]/
+	     ppw->pvecthermo[pth->index_th_dkappa] <
+	     ppr->start_small_k_at_eta_g_over_eta_h,
+	     ppt->error_message,
+	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time after that at which sources must be sampled. You should decrease 'start_small_k_at_eta_g_over_eta_h' (it should be smaller than 'start_sources_at_eta_g_over_eta_h' for CMB computations, or it should define a time smaller than eta_recombination for LSS only)\n");
+  
+  eta_mid = 0.5*(eta_lower + eta_upper);
+    
+  while (eta_upper - eta_lower > ppr->tol_eta_approx) {
+
+    class_call(background_at_eta(pba,
+				 eta_mid, 
+				 short_info, 
+				 normal, 
+				 &(ppw->last_index_back), 
+				 ppw->pvecback),
+	       pba->error_message,
+	       ppt->error_message);
+      
+    class_call(thermodynamics_at_z(pba,
+				   pth,
+				   1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+				   normal,
+				   &(ppw->last_index_thermo),
+				   ppw->pvecback,
+				   ppw->pvecthermo),
+	       pth->error_message,
+	       ppt->error_message);
+    
+      
+    if ((ppw->pvecback[pba->index_bg_a]*
+	 ppw->pvecback[pba->index_bg_H]/
+	 ppw->pvecthermo[pth->index_th_dkappa] <
+	 ppr->start_small_k_at_eta_g_over_eta_h)
+	&&
+	(k/ppw->pvecthermo[pth->index_th_dkappa] < 
+	 ppr->start_large_k_at_eta_g_over_eta_k))
+      
+      eta_lower = eta_mid;
+    else
+      eta_upper = eta_mid;
+    
+    eta_mid = 0.5*(eta_lower + eta_upper);
+    
+  }
+  
+  eta = eta_mid;
+
   /** - find the number of intervals over which approximation scheme is constant */
 
   class_alloc(interval_number_of,ppw->ap_size*sizeof(int),ppt->error_message);
@@ -1703,11 +1908,10 @@ int perturb_find_approximation_switches(
 	  
 	  lower_bound=eta_min;
 	  upper_bound=eta_end;
-	  
+	  mid = 0.5*(lower_bound+upper_bound);
+
 	  while (upper_bound - lower_bound > precision) {
-	    
-	    mid = 0.5*(lower_bound+upper_bound);
-	    
+	  	    
 	    class_call(perturb_approximations(ppr,
 					      pba,
 					      pth,
@@ -1725,6 +1929,8 @@ int perturb_find_approximation_switches(
 	    else {
 	      lower_bound=mid;
 	    }
+
+	    mid = 0.5*(lower_bound+upper_bound);
 
 	  }
 
@@ -2056,7 +2262,7 @@ int perturb_vector_init(
   ppv->pt_size = index_pt;
 
   /** - allocate vectors for storing the values of all these
-        quantities and their time-derivatives at a given time */
+      quantities and their time-derivatives at a given time */
 
   class_calloc(ppv->y,ppv->pt_size,sizeof(double),ppt->error_message);
   class_alloc(ppv->dy,ppv->pt_size*sizeof(double),ppt->error_message);
@@ -2127,7 +2333,7 @@ int perturb_vector_init(
 
     ppw->pv = ppv;
 
-   /** (c) fill the vector ppw->pv->y with appropriate initial conditions */
+    /** (c) fill the vector ppw->pv->y with appropriate initial conditions */
 
     class_call(perturb_initial_conditions(ppr,
 					  pba,
@@ -2206,8 +2412,8 @@ int perturb_vector_init(
 	    ppw->pv->y[ppw->pv->index_pt_delta_cdm];
 	  
 	  if (ppr->gauge == newtonian) {
-	  ppv->y[ppv->index_pt_theta_cdm] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_cdm];
+	    ppv->y[ppv->index_pt_theta_cdm] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_cdm];
 	  }
 	}
 
@@ -2267,8 +2473,8 @@ int perturb_vector_init(
 	    ppw->pv->y[ppw->pv->index_pt_delta_cdm];
 	  
 	  if (ppr->gauge != synchronous) {
-	  ppv->y[ppv->index_pt_theta_cdm] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_cdm];
+	    ppv->y[ppv->index_pt_theta_cdm] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_cdm];
 	  }
 	}
 
@@ -2318,8 +2524,8 @@ int perturb_vector_init(
 	    ppw->pv->y[ppw->pv->index_pt_delta_cdm];
 	  
 	  if (ppr->gauge != synchronous) {
-	  ppv->y[ppv->index_pt_theta_cdm] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_cdm];
+	    ppv->y[ppv->index_pt_theta_cdm] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_cdm];
 	  }
 	}
 
@@ -2657,7 +2863,7 @@ int perturb_approximations(
   eta_k = 1./k;
 
   /** - evaluate background quantities with background_at_eta() and
-        Hubble time scale \f$ \eta_h = a/a' \f$ */
+      Hubble time scale \f$ \eta_h = a/a' \f$ */
 
   class_call(background_at_eta(pba,eta, normal_info, ppw->intermode, &(ppw->last_index_back), ppw->pvecback),
 	     pba->error_message,
@@ -2681,7 +2887,7 @@ int perturb_approximations(
     if ((eta_h/eta_k > ppr->rad_pert_trigger_k_over_aH) && 
 	//      (eta > eta_visibility_free_streaming) && /* optionally this line could be restored, to check that this does not happen before recombination is completed) */
 	(ppw->pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r)) {
-/* 	&& (ppt->has_matter_transfers == _FALSE_)) { add this condition if want to output transfer functions delta_g, delta_nur at very small redshift for very large k... */
+      /* 	&& (ppt->has_matter_transfers == _FALSE_)) { add this condition if want to output transfer functions delta_g, delta_nur at very small redshift for very large k... */
       
       ppw->approx[ppw->index_ap_fsa] = (int)fsa_on;
     }
@@ -2792,7 +2998,7 @@ int perturb_timescale(
   eta_k = 1./pppaw->k;
 
   /** - evaluate background quantities with background_at_eta() and
-        Hubble time scale \f$ \eta_h = a/a' \f$ */
+      Hubble time scale \f$ \eta_h = a/a' \f$ */
 
   class_call(background_at_eta(pba,eta, normal_info, ppw->intermode, &(ppw->last_index_back), pvecback),
 	     pba->error_message,
@@ -2921,10 +3127,10 @@ int perturb_einstein(
 	if (pba->has_nur == _TRUE_) {
 	  delta_nur = 0.;
 	  theta_nur = 0.; /* the free-streaming approximation is much
-			 better if we use an approximation for
-			 theta_nur instead of 0. We will correct for
-			 this effect below, after the computation of
-			 delta_rho. */
+			     better if we use an approximation for
+			     theta_nur instead of 0. We will correct for
+			     this effect below, after the computation of
+			     delta_rho. */
 	  shear_nur = 0.;
 	}
       }
@@ -3297,15 +3503,15 @@ int perturb_source_terms(
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
 
 	  /* testing zone */
-/* 	  if ((k>1.e-3) && (k<2.e-3)) */
-/* 	    printf("%g %g %g %g %g %g\n", */
-/* 		   k, */
-/* 		   pvecback[pba->index_bg_a],    */
-/* 		   a_prime_over_a*y[ppw->pv->index_pt_theta_b], */
-/* 		   pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b], */
-/* 		   k2*y[ppw->pv->index_pt_eta], */
-/* 		   0.5*a_prime_over_a*pvecmetric[ppw->index_mt_h_prime] */
-/* 		   ); */
+	  /* 	  if ((k>1.e-3) && (k<2.e-3)) */
+	  /* 	    printf("%g %g %g %g %g %g\n", */
+	  /* 		   k, */
+	  /* 		   pvecback[pba->index_bg_a],    */
+	  /* 		   a_prime_over_a*y[ppw->pv->index_pt_theta_b], */
+	  /* 		   pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b], */
+	  /* 		   k2*y[ppw->pv->index_pt_eta], */
+	  /* 		   0.5*a_prime_over_a*pvecmetric[ppw->index_mt_h_prime] */
+	  /* 		   ); */
 	 
 
 	}
@@ -3392,7 +3598,7 @@ int perturb_source_terms(
 	if (x > 0.) {
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
 	    (-y[ppw->pv->index_pt_gwdot]*pvecthermo[pth->index_th_exp_m_kappa]
-	    +pvecthermo[pth->index_th_g]*Psi)/x/x;
+	     +pvecthermo[pth->index_th_g]*Psi)/x/x;
 	}
 	else {
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 0.;
@@ -3774,42 +3980,42 @@ int perturb_derivs(double eta,
 
     /* compute metric-related quantities */
     h_plus_six_eta_prime = pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime]
-;
+      ;
 
     /*******************************************************/
 
-     /** (b) if some approximation schemes are turned on, enforce a few y[] values */ 
+    /** (b) if some approximation schemes are turned on, enforce a few y[] values */ 
 
-     /** (b.b) fix by hand photon/neutrino density/velocity/shear when free-streaming approximation is on (exclusive of photon tight-coupling being on) */ 
-/*     if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) { */
+    /** (b.b) fix by hand photon/neutrino density/velocity/shear when free-streaming approximation is on (exclusive of photon tight-coupling being on) */ 
+    /*     if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) { */
 
-       /* analytic free-streaming solution (during matter domination and inside Hubble) */ 
-/*       if (ppr->gauge == newtonian) { */
- 	/* Newtonian gauge : */
+    /* analytic free-streaming solution (during matter domination and inside Hubble) */ 
+    /*       if (ppr->gauge == newtonian) { */
+    /* Newtonian gauge : */
 
-/*       } */
-/*       if (ppr->gauge == synchronous) { */
- 	/* Synchronous gauge : */ 
-/* 	delta_g = -4.*pvecmetric[ppw->index_mt_alpha_prime]; */
-/* 	theta_g = -0.5*pvecmetric[ppw->index_mt_h_prime]; */
-/* 	shear_g = 0.; */
-/* 	if (pba->has_nur == _TRUE_) { */
-/* 	  delta_nur = -4.*pvecmetric[ppw->index_mt_alpha_prime]; */
-/* 	  theta_nur = -0.5*pvecmetric[ppw->index_mt_h_prime]; */
-/* 	  shear_nur = 0.; */
-/* 	} */
-/*       } */
-/*     } */
+    /*       } */
+    /*       if (ppr->gauge == synchronous) { */
+    /* Synchronous gauge : */ 
+    /* 	delta_g = -4.*pvecmetric[ppw->index_mt_alpha_prime]; */
+    /* 	theta_g = -0.5*pvecmetric[ppw->index_mt_h_prime]; */
+    /* 	shear_g = 0.; */
+    /* 	if (pba->has_nur == _TRUE_) { */
+    /* 	  delta_nur = -4.*pvecmetric[ppw->index_mt_alpha_prime]; */
+    /* 	  theta_nur = -0.5*pvecmetric[ppw->index_mt_h_prime]; */
+    /* 	  shear_nur = 0.; */
+    /* 	} */
+    /*       } */
+    /*     } */
 
     /************************************************************/
 
     /* order:  (delta_g)     if (int)fsa_off
-                delta_b
-                theta_b
-	       (theta_g)     if (int)fsa_off
-	      ((shear_g))    if (int)fsa_off and (int)tca_off
-	      ((other's_g))  if (int)fsa_off abd (int)tca_off
-	      other species */
+       delta_b
+       theta_b
+       (theta_g)     if (int)fsa_off
+       ((shear_g))    if (int)fsa_off and (int)tca_off
+       ((other's_g))  if (int)fsa_off abd (int)tca_off
+       other species */
 
 
     /** (c) Photon temperature density (does not depend on tca) */
@@ -3817,8 +4023,8 @@ int perturb_derivs(double eta,
     if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
 
       if (ppr->gauge == newtonian)
-	  dy[ppw->pv->index_pt_delta_g] = /* photon density */
-	    -4./3.*y[ppw->pv->index_pt_theta_g]+4.*pvecmetric[ppw->index_mt_phi_prime];
+	dy[ppw->pv->index_pt_delta_g] = /* photon density */
+	  -4./3.*y[ppw->pv->index_pt_theta_g]+4.*pvecmetric[ppw->index_mt_phi_prime];
 	  
       if (ppr->gauge == synchronous)
 	dy[ppw->pv->index_pt_delta_g] = /* photon density */
@@ -3906,58 +4112,58 @@ int perturb_derivs(double eta,
 	/* tight-coupling (theta_b-theta_g)' */
 
 	/* like Ma & Bertschinger */
-/* 	if (ppr->debugging_flag == 0) { */
+	/* 	if (ppr->debugging_flag == 0) { */
 
-	  slip=2.*R/(1.+R)*a_prime_over_a
-	    *(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g])
-	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b]
-	      -a_prime_over_a*k2*y[ppw->pv->index_pt_delta_g]/2.
-	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b]
-		   -dy[ppw->pv->index_pt_delta_g]/4.)
-	      )/pvecthermo[pth->index_th_dkappa]/(1.+R);
+	slip=2.*R/(1.+R)*a_prime_over_a
+	  *(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g])
+	  +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b]
+	    -a_prime_over_a*k2*y[ppw->pv->index_pt_delta_g]/2.
+	    +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b]
+		 -dy[ppw->pv->index_pt_delta_g]/4.)
+	    )/pvecthermo[pth->index_th_dkappa]/(1.+R);
 	  
-/* 	} */
+	/* 	} */
 
 	/* relax assumption dkappa~a^-2 (like in CAMB) */
-/* 	if (ppr->debugging_flag == 1) { */
+	/* 	if (ppr->debugging_flag == 1) { */
 
-/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
-/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
-/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
-/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
-/* 		   -dy[ppw->pv->index_pt_delta_g]/4.) */
-/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
+	/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
+	/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
+	/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
+	/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
+	/* 		   -dy[ppw->pv->index_pt_delta_g]/4.) */
+	/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
 
-/* 	} */
+	/* 	} */
 
 	/* also relax assumption cs2~a^-1 */
-/* 	if (ppr->debugging_flag == 2) { */
+	/* 	if (ppr->debugging_flag == 2) { */
 
-/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
-/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
-/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
-/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
-/* 		   -dy[ppw->pv->index_pt_delta_g]/4. */
-/* 		   +(pvecthermo[pth->index_th_dacb2]*(1.+z))*y[ppw->pv->index_pt_delta_b]) */
-/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
+	/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
+	/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
+	/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
+	/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
+	/* 		   -dy[ppw->pv->index_pt_delta_g]/4. */
+	/* 		   +(pvecthermo[pth->index_th_dacb2]*(1.+z))*y[ppw->pv->index_pt_delta_b]) */
+	/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
 	  
-/* 	} */
+	/* 	} */
 
 	shear_g=(8./3.*y[ppw->pv->index_pt_theta_g]+4./3.*h_plus_six_eta_prime)
 	  *2./15./pvecthermo[pth->index_th_dkappa]; /* tight-coupling shear_g (Ma & Bertschinger give 1/9 instead of 2/15 becasue they didn't include consistently the contribution of G_gamma0 and G_gamma2, which are of the same order as sigma_g. This was already consistently included in CAMB) */ 
 	
-/* 	/\* also adding shear *\/ */
-/* 	if (ppr->debugging_flag == 3) { */
+	/* 	/\* also adding shear *\/ */
+	/* 	if (ppr->debugging_flag == 3) { */
 
-/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
-/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
-/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
-/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
-/* 		   -dy[ppw->pv->index_pt_delta_g]/4. */
-/* 		   +(pvecthermo[pth->index_th_dacb2]*(1.+z))*y[ppw->pv->index_pt_delta_b]) */
-/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
+	/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
+	/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
+	/* 	      -a_prime_over_a*2.*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b] */
+	/* 	      +k2*(pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b] */
+	/* 		   -dy[ppw->pv->index_pt_delta_g]/4. */
+	/* 		   +(pvecthermo[pth->index_th_dacb2]*(1.+z))*y[ppw->pv->index_pt_delta_b]) */
+	/* 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R); */
 	  
-/* 	} */
+	/* 	} */
 
 	dy[ppw->pv->index_pt_theta_b] = /* tight-coupling baryon velocity */
 	  (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
@@ -4189,20 +4395,20 @@ int perturb_derivs(double eta,
     }
 
 
-      /* for testing, will be useful for improving tight-coupling approximation */
-      /*       if ((index_k == 0) && (eta > 800)) */
-      /* 	printf("%e %e %e %e %e %e %e %e %e %e %e\n", */
-      /* 	       eta, */
-      /* 	       y[ppw->pv->index_pt_delta_g], */
-      /* 	       y[ppw->pv->index_pt_theta_g], */
-      /* 	       y[ppw->pv->index_pt_shear_g], */
-      /* 	       y[ppw->pv->index_pt_l3_g], */
-      /* 	       y[ppw->pv->index_pt_pol0_g], */
-      /* 	       y[ppw->pv->index_pt_pol1_g], */
-      /* 	       y[ppw->pv->index_pt_pol2_g], */
-      /* 	       y[ppw->pv->index_pt_pol3_g], */
-      /* 	       y[ppw->pv->index_pt_delta_b], */
-      /* 	       y[ppw->pv->index_pt_theta_b]); */
+    /* for testing, will be useful for improving tight-coupling approximation */
+    /*       if ((index_k == 0) && (eta > 800)) */
+    /* 	printf("%e %e %e %e %e %e %e %e %e %e %e\n", */
+    /* 	       eta, */
+    /* 	       y[ppw->pv->index_pt_delta_g], */
+    /* 	       y[ppw->pv->index_pt_theta_g], */
+    /* 	       y[ppw->pv->index_pt_shear_g], */
+    /* 	       y[ppw->pv->index_pt_l3_g], */
+    /* 	       y[ppw->pv->index_pt_pol0_g], */
+    /* 	       y[ppw->pv->index_pt_pol1_g], */
+    /* 	       y[ppw->pv->index_pt_pol2_g], */
+    /* 	       y[ppw->pv->index_pt_pol3_g], */
+    /* 	       y[ppw->pv->index_pt_delta_b], */
+    /* 	       y[ppw->pv->index_pt_theta_b]); */
 
   }
 
@@ -4271,23 +4477,23 @@ int perturb_derivs(double eta,
       -(l+1.)/eta*y[ppw->pv->index_pt_pol0_g+l]
       -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
 
-      /* tensor metric perturbation h (gravitational waves) */
+    /* tensor metric perturbation h (gravitational waves) */
     dy[ppw->pv->index_pt_gw] = y[ppw->pv->index_pt_gwdot];     
 
     /* its time-derivative */
     dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-k2*y[ppw->pv->index_pt_gw];
 
-/*     fprintf(stderr, */
-/* 	    "%g %g %g %g %g %g %g\n", */
-/* 	    y[ppw->pv->index_pt_gw], */
-/* 	    y[ppw->pv->index_pt_gwdot], */
-/* 	    y[ppw->pv->index_pt_delta_g], */
-/* 	    y[ppw->pv->index_pt_theta_g], */
-/* 	    y[ppw->pv->index_pt_shear_g], */
-/* 	    y[ppw->pv->index_pt_l3_g], */
-/* 	    y[ppw->pv->index_pt_l3_g+1]); */
+    /*     fprintf(stderr, */
+    /* 	    "%g %g %g %g %g %g %g\n", */
+    /* 	    y[ppw->pv->index_pt_gw], */
+    /* 	    y[ppw->pv->index_pt_gwdot], */
+    /* 	    y[ppw->pv->index_pt_delta_g], */
+    /* 	    y[ppw->pv->index_pt_theta_g], */
+    /* 	    y[ppw->pv->index_pt_shear_g], */
+    /* 	    y[ppw->pv->index_pt_l3_g], */
+    /* 	    y[ppw->pv->index_pt_l3_g+1]); */
 
-/*     class_test(0==1,error_message,"stop here\n"); */
+    /*     class_test(0==1,error_message,"stop here\n"); */
 	    
   }
 
