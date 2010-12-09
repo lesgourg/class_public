@@ -4,7 +4,7 @@
  
 #include "class.h"
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -14,12 +14,13 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
+  struct lensing le;          /* for lensing spectra */
   struct output op;           /* for output files */
   struct spectra_nl nl;       /* for calculation of non-linear spectra */
 
   ErrorMsg errmsg;
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,&nl,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -53,40 +54,42 @@ main(int argc, char **argv) {
 
   printf("Output of transfer functions\n");
 
+  /* 1) select the mode, initial condition, type and multipole of the
+     function you want to plot: */
+
   int index_mode=pt.index_md_scalars;
   int index_ic  =pt.index_ic_ad;
   int index_type=pt.index_tp_t;
-  int index_l=tr.l_size[index_mode]-5;
-  /* int index_l = 30; */
 
-  /* here you can output the transfer functions 
-     at some k's of your choice */
+  /* 2) here is an illustration of how to output the transfer
+     functions at some (k,l)'s of your choice (warning:: this
+     commented part was not tested recently, see first the next
+     part) */
  
-  double k;
-  double transfer;
-
-/*   for (k=1.e-4; k<1.e-1; k*=1.1) { */
-
-/*     if (transfer_functions_at_k(&tr, */
-/* 				index_mode, */
-/* 				index_ic, */
-/* 				index_type, */
-/* 				index_l, */
-/* 				k, */
-/* 				&transfer */
-/* 				) == _FAILURE_) { */
-/*       printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message); */
-/*       return _FAILURE_;; */
-/*     } */
-    
-/*     printf("%e %e\n",k,transfer); */
-    
-/*   } */
-
-  /* here you can output the full tabulated arrays*/
-
-   int index_k; 
+/*   int index_l = 30; */
+/*   double k=0.8; */
 /*   double transfer; */
+
+/*   if (transfer_functions_at_k(&tr, */
+/* 			      index_mode, */
+/* 			      index_ic, */
+/* 			      index_type, */
+/* 			      index_l, */
+/* 			      k, */
+/* 			      &transfer */
+/* 			      ) == _FAILURE_) { */
+/*     printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message); */
+/*     return _FAILURE_; */
+/*   } */
+    
+/*   printf("%e %e\n",k,transfer); */
+    
+
+  /* 3) here you can output the full tabulated arrays for all k and l's*/
+
+  int index_l;
+  int index_k; 
+  double transfer;
 
   for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
     
@@ -101,9 +104,9 @@ main(int argc, char **argv) {
 	printf("%d %e %e\n",tr.l[index_mode][index_l],tr.k[index_mode][index_k],transfer); 
       }
     }
-
+    
     printf("\n");
-
+    
   } 
 
   /************************************************************/
@@ -132,5 +135,7 @@ main(int argc, char **argv) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }
+
+  return _SUCCESS_;
 
 }
