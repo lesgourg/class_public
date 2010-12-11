@@ -171,6 +171,62 @@ extern "C" {
                    double ** d2m2
                    );
   
+  int lensing_d22(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d22
+                   );
+
+  int lensing_d20(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d20
+                   );
+  
+  int lensing_d31(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d3m1
+                   );
+  
+  int lensing_d3m1(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d3m1
+                   );
+  
+  int lensing_d3m3(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d3m3
+                   );
+  
+  int lensing_d40(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d40
+                   );
+  
+  int lensing_d4m2(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d4m2
+                   );
+  
+  int lensing_d4m4(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double ** d4m4
+                   );
+  
   int lensing_gauss_legendre(
                              double *mu,
                              double *w8,
