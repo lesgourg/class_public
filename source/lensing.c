@@ -849,6 +849,410 @@ int lensing_d2m2(
 }
 
 /**
+ * This routine computes the d22 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d22    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d22(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double ** d22
+                 ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac2, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac2,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=2;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)/(2*ll+1))*(ll+1)*(2*ll+1)/((ll-1)*(ll+3));
+    fac2[l] = 4.0/(ll*(ll+1));
+    fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-2)*(ll+2)/((ll-1)*(ll+3))*(ll+1)/ll;
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=1*/
+    dl=(1.0+mu[index_mu])*(1.0+mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
+    d22[index_mu][2] = dl / sqrt(2./5.);
+    for(l=2;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
+      d22[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac2); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the d20 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d20    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d20(
+                double * mu,
+                int num_mu,
+                int lmax,
+                double ** d20
+                ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=2;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1)/((ll-1)*(ll+3)));
+    fac3[l] = sqrt((2*ll+3)*(ll-2)*(ll+2)/((2*ll-1)*(ll-1)*(ll+3)));
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=1*/
+    dl=sqrt(15.)/4.*(1-mu[index_mu]*mu[index_mu]); /*l=2*/
+    d20[index_mu][2] = dl / sqrt(2./5.);
+    for(l=2;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*mu[index_mu]*dl - fac3[l]*dlm1;
+      d20[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the d31 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d31    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d31(
+                double * mu,
+                int num_mu,
+                int lmax,
+                double ** d31
+                ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac2, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac2,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=3;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1)/((ll-2)*(ll+4)*ll*(ll+2))) * (ll+1);
+    fac2[l] = 3.0/(ll*(ll+1));
+    fac3[l] = sqrt((2*ll+3)/(2*ll-1)*(ll-3)*(ll+3)*(ll-1)*(ll+1)/((ll-2)*(ll+4)*ll*(ll+2)))*(ll+1)/ll;
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=2*/
+    dl=sqrt(105./2.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
+    d31[index_mu][3] = dl / sqrt(2./7.);
+    for(l=3;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*(mu[index_mu]-fac2[l])*dl - fac3[l]*dlm1;
+      d31[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac2); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the d3m1 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d3m1   Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d3m1(
+                double * mu,
+                int num_mu,
+                int lmax,
+                double ** d3m1
+                ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac2, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac2,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=3;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1)/((ll-2)*(ll+4)*ll*(ll+2))) * (ll+1);
+    fac2[l] = 3.0/(ll*(ll+1));
+    fac3[l] = sqrt((2*ll+3)/(2*ll-1)*(ll-3)*(ll+3)*(ll-1)*(ll+1)/((ll-2)*(ll+4)*ll*(ll+2)))*(ll+1)/ll;
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=2*/
+    dl=sqrt(105./2.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
+    d3m1[index_mu][3] = dl / sqrt(2./7.);
+    for(l=3;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
+      d3m1[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac2); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the d3m3 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d3m3   Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d3m3(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double ** d3m3
+                 ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac2, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac2,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=3;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1))*(ll+1)/((ll-2)*(ll+4));
+    fac2[l] = 9.0/(ll*(ll+1));
+    fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-3)*(ll+3)*(l+1)/((ll-2)*(ll+4)*ll);
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=2*/
+    dl=sqrt(7./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
+    d3m3[index_mu][3] = dl / sqrt(2./7.);
+    for(l=3;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
+      d3m3[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac2); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the d40 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d40    Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d40(
+                double * mu,
+                int num_mu,
+                int lmax,
+                double ** d40
+                ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=4;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1)/((ll-3)*(ll+5)));
+    fac3[l] = sqrt((2*ll+3)*(ll-4)*(ll+4)/((2*ll-1)*(ll-3)*(ll+5)));
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=3*/
+    dl=sqrt(315.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
+    d40[index_mu][4] = dl / sqrt(2./9.);
+    for(l=4;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*mu[index_mu]*dl - fac3[l]*dlm1;
+      d40[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the d4m2 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d4m2   Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d4m2(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double ** d4m2
+                 ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac2, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac2,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=4;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1)/((ll-3)*(ll+5)*(ll-1)*(ll+3)));
+    fac2[l] = 8./(ll*(ll+1));
+    fac3[l] = sqrt((2*ll+3)*(ll-4)*(ll+4)*(ll-2)*(ll+2)/((2*ll-1)*(ll-3)*(ll+5)*(ll-1)*(ll+3)))*(ll+1)/ll;
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=3*/
+    dl=sqrt(126.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
+    d4m2[index_mu][4] = dl / sqrt(2./9.);
+    for(l=4;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
+      d4m2[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac2); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the d4m4 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param d4m4   Input/output: Result is stored here
+ *
+ * Wigner d-functions, computed by recurrence
+ * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * Formulae from Kostelec & Rockmore 2003
+ **/
+
+int lensing_d4m4(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double ** d4m4
+                 ) {
+  double ll, dlm1, dl, dlp1;
+  int index_mu, l;
+  double *fac1, *fac2, *fac3, *fac4;
+  ErrorMsg erreur;
+  class_alloc(fac1,lmax*sizeof(double),erreur);
+  class_alloc(fac2,lmax*sizeof(double),erreur);
+  class_alloc(fac3,lmax*sizeof(double),erreur);
+  class_alloc(fac4,lmax*sizeof(double),erreur);
+  for (l=4;l<lmax;l++) {
+    ll = (double) l;
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1))*(ll+1)/((ll-3)*(ll+5));
+    fac2[l] = 16./(ll*(ll+1));
+    fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-4)*(ll+4)*(ll+1)/((ll-3)*(ll+5)*ll);
+    fac4[l] = sqrt(2./(2*ll+3));
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    dlm1=0.; /*l=3*/
+    dl=sqrt(9./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
+    d4m4[index_mu][4] = dl / sqrt(2./9.);
+    for(l=4;l<lmax;l++){
+      ll=(double) l;
+      /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
+      dlp1 = fac1[l]*(mu[index_mu]+fac2[l])*dl - fac3[l]*dlm1;
+      d4m4[index_mu][l+1] = dlp1 * fac4[l];
+      dlm1 = dl;
+      dl = dlp1;
+    }
+  }
+  free(fac1); free(fac2); free(fac3); free(fac4);
+  return _SUCCESS_;
+}
+
+/**
  * This routine computes the weights and abscissas of a Gauss-Legendre quadrature
  *
  * @param mu     Input/output: Vector of cos(beta) values
