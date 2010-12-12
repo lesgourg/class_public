@@ -111,13 +111,21 @@ extern "C" {
                       struct lensing * ple
                       );
   
-  int lensing_lensed_cl(
+  int lensing_lensed_cl_tt(
                         double *ksi, 
                         double **d00,
                         double *w8,
                         int nmu,
                         struct lensing * ple
                         );
+  
+  int lensing_lensed_cl_te(
+                           double *ksiX, 
+                           double **d20,
+                           double *w8,
+                           int nmu,
+                           struct lensing * ple
+                           );
   
   int lensing_X000(
                    double * mu,
@@ -141,6 +149,46 @@ extern "C" {
                    int lmax,
                    double * sigma2,
                    double ** X220
+                   );
+  
+  int lensing_X022(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double * sigma2,
+                   double ** X022
+                   );
+
+  int lensing_Xp022(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double * sigma2,
+                   double ** Xp022
+                   );
+  
+  int lensing_X121(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double * sigma2,
+                   double ** X121
+                   );
+  
+  int lensing_X132(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double * sigma2,
+                   double ** X132
+                   );
+  
+  int lensing_X242(
+                   double * mu,
+                   int num_mu,
+                   int lmax,
+                   double * sigma2,
+                   double ** X242
                    );
   
   int lensing_d00(
