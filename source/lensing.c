@@ -81,8 +81,10 @@ int lensing_init(
   double ** d20;  
   double ** d1m1; 
   double ** d31;  
-  double ** d40;  
-  double ** d3m3; 
+  double ** d40; 
+  double ** d3m1;
+  double ** d3m3;
+  double ** d4m2;
   double ** d4m4; 
 
   double * Cgl;   /* Cgl[index_mu] */
@@ -90,6 +92,7 @@ int lensing_init(
   double * sigma2; /* sigma[index_mu] */
   
   double * ksi;  /* ksi[index_mu] */
+  double * ksiX;  /* ksiX[index_mu] */
 
   double ** X000;  /* Ximn[index_mu][index_l] */ 
   double ** Xp000;
@@ -99,13 +102,13 @@ int lensing_init(
   double ** X121; 
   double ** Xp022; 
   double ** X242; 
-  double ** X112; 
 
   int num_mu,index_mu;
   int l;
   double ll;
   double * cl_unlensed;  /* cl_unlensed[index_ct] */
   double * cl_tt; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
+  double * cl_te; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
   double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */  
   double ** junk1=NULL, ** junk2=NULL;
 
@@ -170,6 +173,22 @@ int lensing_init(
   class_alloc(d2m2,
 	      num_mu*sizeof(double*),
 	      ple->error_message);
+  
+  if(ple->has_te==_TRUE_) {
+   
+    printf("hello\n");
+    class_alloc(d20,
+                num_mu*sizeof(double*),
+                ple->error_message);
+    
+    class_alloc(d3m1,
+                num_mu*sizeof(double*),
+                ple->error_message);
+    
+    class_alloc(d4m2,
+                num_mu*sizeof(double*),
+                ple->error_message);
+  }
 	
   for (index_mu=0; index_mu<num_mu; index_mu++) {
 
@@ -189,6 +208,23 @@ int lensing_init(
 		(ple->l_unlensed_max+1)*sizeof(double),
 		ple->error_message);  
   }
+  
+  if (ple->has_te==_TRUE_) {
+    printf("hello\n");
+    for (index_mu=0; index_mu<num_mu; index_mu++) {
+      class_alloc(d20[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+
+      class_alloc(d3m1[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+      
+      class_alloc(d4m2[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+    }
+  }
 
   class_call(lensing_d00(mu,num_mu,ple->l_unlensed_max,d00),
 	     ple->error_message,
@@ -206,6 +242,23 @@ int lensing_init(
 	     ple->error_message,
 	     ple->error_message);
 
+  if (ple->has_te==_TRUE_) {
+    printf("hello\n");
+
+    class_call(lensing_d20(mu,num_mu,ple->l_unlensed_max,d20),
+               ple->error_message,
+               ple->error_message);
+    
+    class_call(lensing_d3m1(mu,num_mu,ple->l_unlensed_max,d3m1),
+               ple->error_message,
+               ple->error_message);
+    
+    class_call(lensing_d4m2(mu,num_mu,ple->l_unlensed_max,d4m2),
+               ple->error_message,
+               ple->error_message);
+    
+  }
+  
   /** - compute Cgl(mu), Cgl2(mu) and sigma2(mu) */
 
   class_alloc(Cgl,
@@ -229,16 +282,24 @@ int lensing_init(
   class_alloc(cl_tt,
 	      (ple->l_unlensed_max+1)*sizeof(double),
 	      ple->error_message);
+  if (ple->has_te==_TRUE_) {
+    class_alloc(cl_te,
+                (ple->l_unlensed_max+1)*sizeof(double),
+                ple->error_message);
+  }
   class_alloc(cl_pp,
 	      (ple->l_unlensed_max+1)*sizeof(double),
 	      ple->error_message);
 
   for (l=2; l<=ple->l_unlensed_max; l++) {
-     class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
-		 psp->error_message,
-		 ple->error_message);
-     cl_tt[l] = cl_unlensed[psp->index_ct_tt];
-     cl_pp[l] = cl_unlensed[psp->index_ct_pp];
+    class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
+               psp->error_message,
+               ple->error_message);
+    cl_tt[l] = cl_unlensed[psp->index_ct_tt];
+    cl_pp[l] = cl_unlensed[psp->index_ct_pp];
+    if (ple->has_te==_TRUE_) {
+      cl_te[l] = cl_unlensed[psp->index_ct_te];
+    }
   }
 
   /** Compute sigma2(mu) and Cgl2(mu) **/
@@ -280,6 +341,25 @@ int lensing_init(
               (num_mu-1)*sizeof(double*),
               ple->error_message);
   
+  if (ple->has_te==_TRUE_) {
+    printf("hello\n");
+    class_alloc(X022,
+                (num_mu-1)*sizeof(double*),
+                ple->error_message);
+    class_alloc(Xp022,
+                (num_mu-1)*sizeof(double*),
+                ple->error_message);
+    class_alloc(X121,
+                (num_mu-1)*sizeof(double*),
+                ple->error_message);
+    class_alloc(X132,
+                (num_mu-1)*sizeof(double*),
+                ple->error_message);
+    class_alloc(X242,
+                (num_mu-1)*sizeof(double*),
+                ple->error_message);
+  }
+  
   for (index_mu=0; index_mu<num_mu-1; index_mu++) {
     
     class_alloc(X000[index_mu],
@@ -293,6 +373,27 @@ int lensing_init(
                 ple->error_message);  
   }
   
+  if (ple->has_te==_TRUE_) {
+    printf("hello\n");
+    for (index_mu=0; index_mu<num_mu-1; index_mu++) {
+      class_alloc(X022[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);  
+      class_alloc(Xp022[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);  
+      class_alloc(X121[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);  
+      class_alloc(X132[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);  
+      class_alloc(X242[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+    }
+  }
+  
   class_call(lensing_X000(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
              ple->error_message,
              ple->error_message);
@@ -303,9 +404,33 @@ int lensing_init(
              ple->error_message,
              ple->error_message);
   
+  if (ple->has_te==_TRUE_) {
+    printf("hello\n");
+    class_call(lensing_X022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+               ple->error_message,
+               ple->error_message);
+    printf("hello\n");
+    class_call(lensing_Xp022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+               ple->error_message,
+               ple->error_message);
+    printf("hello\n");
+    class_call(lensing_X121(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+               ple->error_message,
+               ple->error_message);
+    printf("hello\n");
+    class_call(lensing_X132(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+               ple->error_message,
+               ple->error_message);
+    printf("hello\n");
+    class_call(lensing_X242(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+               ple->error_message,
+               ple->error_message);
+  }
   
 
   /** - compute ksi, ksi+, ksi-, ksiX */
+  
+  /** ksi is for TT **/
   class_alloc(ksi,
               (num_mu-1)*sizeof(double),
               ple->error_message);
@@ -329,21 +454,66 @@ int lensing_init(
       }
     }
   }
+  
+  /** ksiX is for TE **/
+  if (ple->has_te==_TRUE_) {
+    printf("hello\n");
+    class_alloc(ksiX,
+                (num_mu-1)*sizeof(double),
+                ple->error_message);
+    {
+      double res;
+      double *sqllp1;
+      class_alloc(sqllp1,
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+      for (l=2;l<=ple->l_unlensed_max;l++) {
+        ll=(double)l;
+        sqllp1[l] = sqrt(ll*(ll+1));
+      }
+      
+      for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+        ksiX[index_mu]=0;
+        for (l=2;l<=ple->l_unlensed_max;l++) {
+          ll = (double)l;
+          res = (2*ll+1)/(4.*_PI_)*cl_te[l];
+          res *= ( X022[index_mu][l]*X000[index_mu][l]*d20[index_mu][l] +
+                   Cgl2[index_mu]*2.*Xp000[index_mu][l]/sqllp1[l] *
+                   (-X121[index_mu][l]*d11[index_mu][l] + X132[index_mu][l]*d3m1[index_mu][l]) +
+                   0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
+                   ( ( 2.*Xp022[index_mu][l]*Xp000[index_mu][l]+X220[index_mu][l]*X220[index_mu][l] ) *
+                    d20[index_mu][l] + X220[index_mu][l]*X242[index_mu][l]*d4m2[index_mu][l] ) );
+          ksiX[index_mu] += res;
+        }
+      }
+      free(sqllp1);
+    }
+  }
   /** - compute lensed Cls by integration */
-  class_call(lensing_lensed_cl(ksi,d00,w8,num_mu-1,ple),
+  class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
              ple->error_message,
              ple->error_message);
 
+  if (ple->has_te==_TRUE_) {
+    printf("hello\n");
+    class_call(lensing_lensed_cl_te(ksiX,d20,w8,num_mu-1,ple),
+               ple->error_message,
+               ple->error_message);
+  }
+  
   /** DEBUG **/
+  printf("hello\n");
   FILE *fpp;
   fpp=fopen("toto.txt","w");
   for (l=2; l<=ple->l_lensed_max; l++) {
     fprintf(fpp,"%d\t%lg\t%lg\n",l,
-	    cl_tt[l],
-	    ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]);
+            cl_tt[l],
+            ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]);
+        /*cl_te[l],
+        ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]);*/
   }
   fclose(fpp);
-
+  
   /** Free lots of stuff **/
   for (index_mu=0; index_mu<num_mu-1; index_mu++) {
     free(d00[index_mu]);
@@ -519,7 +689,7 @@ int lensing_indices(
  */
 
 
-int lensing_lensed_cl(
+int lensing_lensed_cl_tt(
         double *ksi, 
         double **d00,
         double *w8,
@@ -536,6 +706,39 @@ int lensing_lensed_cl(
       cle += ksi[imu]*d00[imu][l]*w8[imu]; /* loop could be optimized */
     }
     ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]=cle*2.0*_PI_;
+  }
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the lensed power spectra by Gaussian quadrature 
+ *
+ * @param ksiX Input       : Lensed correlation function (ksi[index_mu])
+ * @param d20  Input       : Wigner d-function (d^l_{20}[l][index_mu]) 
+ * @param w8   Input       : Legendre quadrature weights (w8[index_mu])
+ * @param nmu  Input       : Number of quadrature points (0<=index_mu<=nmu)
+ * @param ple  Input/output: Pointer to the lensing structure
+ * @return the error status
+ */
+
+
+int lensing_lensed_cl_te(
+                         double *ksiX, 
+                         double **d20,
+                         double *w8,
+                         int nmu,
+                         struct lensing * ple
+                         ) {
+  
+  double cle;
+  int l, imu;
+  /** Integration by Gauss-Legendre quadrature **/
+  for(l=2;l<=ple->l_lensed_max;l++){
+    cle=0;
+    for (imu=0;imu<nmu;imu++) {
+      cle += ksiX[imu]*d20[imu][l]*w8[imu]; /* loop could be optimized */
+    }
+    ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]=cle*2.0*_PI_;
   }
   return _SUCCESS_;
 }
@@ -561,7 +764,7 @@ int lensing_X000(
   int index_mu, l;
   double ll;
   for (index_mu=0;index_mu<num_mu;index_mu++) {
-    for (l=2;l<=lmax;l++) {
+    for (l=0;l<=lmax;l++) {
       ll = (double) l;
       X000[index_mu][l]=exp(-ll*(ll+1)*sigma2[index_mu]/4.);
     }
@@ -592,12 +795,12 @@ int lensing_Xp000(
   double *fac;
   ErrorMsg erreur;
   class_alloc(fac,(lmax+1)*sizeof(double),erreur);
-  for (l=2;l<=lmax;l++) {
+  for (l=0;l<=lmax;l++) {
     ll = (double) l;
     fac[l]=ll*(ll+1)/4.;
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
-    for (l=2;l<=lmax;l++) {
+    for (l=0;l<=lmax;l++) {
       ll = (double) l;
       Xp000[index_mu][l]=-fac[l]*exp(-fac[l]*sigma2[index_mu]);
     }
@@ -636,9 +839,215 @@ int lensing_X220(
     fac2[l] = ll*(ll+1)/4.;
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    X220[index_mu][0]=0;
+    X220[index_mu][1]=0;
     for (l=2;l<=lmax;l++) {
       ll = (double) l;
       X220[index_mu][l]=fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
+    }
+  }
+  free(fac1); free(fac2);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the X022 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param X022   Input/output: Result is stored here
+ 
+ **/
+
+int lensing_X022(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double * sigma2,
+                 double ** X022
+                 ) {
+  int index_mu, l;
+  double ll;
+  double *fac;
+  ErrorMsg erreur;
+  class_alloc(fac,(lmax+1)*sizeof(double),erreur);
+  for (l=2; l<=lmax; l++) {
+    ll = (double) l;
+    fac[l] = (ll*(ll+1)-4.)/4.;
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    X022[index_mu][0]=0;
+    X022[index_mu][1]=0;
+    for (l=2;l<=lmax;l++) {
+      ll = (double) l;
+      X022[index_mu][l]=exp(-fac[l]*sigma2[index_mu]);
+    }
+  }
+  free(fac);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the Xp022 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param Xp022  Input/output: Result is stored here
+ 
+ **/
+
+int lensing_Xp022(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double * sigma2,
+                 double ** Xp022
+                 ) {
+  int index_mu, l;
+  double ll;
+  double *fac;
+  ErrorMsg erreur;
+  class_alloc(fac,(lmax+1)*sizeof(double),erreur);
+  for (l=2; l<=lmax; l++) {
+    ll = (double) l;
+    fac[l] = (ll*(ll+1)-4.)/4.;
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    Xp022[index_mu][0]=0;
+    Xp022[index_mu][1]=0;
+    for (l=2;l<=lmax;l++) {
+      ll = (double) l;
+      Xp022[index_mu][l]= -fac[l]*exp(-fac[l]*sigma2[index_mu]);
+    }
+  }
+  free(fac);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the X121 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param X121   Input/output: Result is stored here
+ 
+ **/
+
+int lensing_X121(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double * sigma2,
+                 double ** X121
+                 ) {
+  int index_mu, l;
+  double ll;
+  double *fac1, *fac2;
+  ErrorMsg erreur;
+  class_alloc(fac1,(lmax+1)*sizeof(double),erreur);
+  class_alloc(fac2,(lmax+1)*sizeof(double),erreur);
+  for (l=2; l<=lmax; l++) {
+    ll = (double) l;
+    fac1[l] = 0.5*sqrt((ll+2)*(ll-1));
+    fac2[l] = (ll*(ll+1)-8./3.)/4.;
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    X121[index_mu][0]=0;
+    X121[index_mu][1]=0;
+    for (l=2;l<=lmax;l++) {
+      ll = (double) l;
+      X121[index_mu][l]= -fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
+    }
+  }
+  free(fac1); free(fac2);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the X132 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param X132   Input/output: Result is stored here
+ 
+ **/
+
+int lensing_X132(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double * sigma2,
+                 double ** X132
+                 ) {
+  int index_mu, l;
+  double ll;
+  double *fac1, *fac2;
+  ErrorMsg erreur;
+  class_alloc(fac1,(lmax+1)*sizeof(double),erreur);
+  class_alloc(fac2,(lmax+1)*sizeof(double),erreur);
+  for (l=3; l<=lmax; l++) {
+    ll = (double) l;
+    fac1[l] = 0.5*sqrt((ll+3)*(ll-2));
+    fac2[l] = (ll*(ll+1)-20./3.)/4.;
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    X132[index_mu][0]=0;
+    X132[index_mu][1]=0;
+    X132[index_mu][2]=0;
+    for (l=3;l<=lmax;l++) {
+      ll = (double) l;
+      X132[index_mu][l]= -fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
+    }
+  }
+  free(fac1); free(fac2);
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the X242 term
+ *
+ * @param mu     Input       : Vector of cos(beta) values
+ * @param num_mu Input       : Number of cos(beta) values
+ * @param lmax   Input       : maximum multipole
+ * @param sigma2 Input       : Vector of sigma2(mu) values
+ * @param X242   Input/output: Result is stored here
+ 
+ **/
+
+int lensing_X242(
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double * sigma2,
+                 double ** X242
+                 ) {
+  int index_mu, l;
+  double ll;
+  double *fac1, *fac2;
+  ErrorMsg erreur;
+  class_alloc(fac1,(lmax+1)*sizeof(double),erreur);
+  class_alloc(fac2,(lmax+1)*sizeof(double),erreur);
+  for (l=4; l<=lmax; l++) {
+    ll = (double) l;
+    fac1[l] = 0.25*sqrt((ll+4)*(ll+3)*(ll-2.)*(ll-3));
+    fac2[l] = (ll*(ll+1)-10.)/4.;
+  }
+  for (index_mu=0;index_mu<num_mu;index_mu++) {
+    X242[index_mu][0]=0;
+    X242[index_mu][1]=0;
+    X242[index_mu][2]=0;
+    X242[index_mu][3]=0;
+    for (l=4;l<=lmax;l++) {
+      ll = (double) l;
+      X242[index_mu][l]=fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
     }
   }
   free(fac1); free(fac2);
@@ -680,7 +1089,9 @@ int lensing_d00(
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     dlm1=1.0/sqrt(2.); /* l=0 */
+    d00[index_mu][0]=dlm1*sqrt(2.);
     dl=mu[index_mu] * sqrt(3./2.); /*l=1*/
+    d00[index_mu][1]=dl*sqrt(2./3.);
     for(l=1;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d00 recurrence, supposed to be more stable */ 
@@ -730,9 +1141,11 @@ int lensing_d11(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d11[index_mu][0]=0;
     dlm1=(1.0+mu[index_mu])/2. * sqrt(3./2.); /*l=1*/
+    d11[index_mu][1]=dlm1 * sqrt(2./3.);
     dl=(1.0+mu[index_mu])/2.*(2.0*mu[index_mu]-1.0) * sqrt(5./2.); /*l=2*/
-    d11[index_mu][2] = dl / sqrt(2./5.);
+    d11[index_mu][2] = dl * sqrt(2./5.);
     for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d11 recurrence, supposed to be more stable */
@@ -781,9 +1194,11 @@ int lensing_d1m1(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d1m1[index_mu][0]=0;
     dlm1=(1.0-mu[index_mu])/2. * sqrt(3./2.); /*l=1*/
+    d1m1[index_mu][1]=dlm1 * sqrt(2./3.);
     dl=(1.0-mu[index_mu])/2.*(2.0*mu[index_mu]+1.0) * sqrt(5./2.); /*l=2*/
-    d1m1[index_mu][2] = dl / sqrt(2./5.);
+    d1m1[index_mu][2] = dl * sqrt(2./5.);
     for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d1m1 recurrence, supposed to be more stable */
@@ -832,9 +1247,11 @@ int lensing_d2m2(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d2m2[index_mu][0]=0;
     dlm1=0.; /*l=1*/
+    d2m2[index_mu][1]=0;
     dl=(1.0-mu[index_mu])*(1.0-mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
-    d2m2[index_mu][2] = dl / sqrt(2./5.);
+    d2m2[index_mu][2] = dl * sqrt(2./5.);
     for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d2m2 recurrence, supposed to be more stable */
@@ -883,9 +1300,11 @@ int lensing_d22(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d22[index_mu][0]=0;
     dlm1=0.; /*l=1*/
+    d22[index_mu][1]=0;
     dl=(1.0+mu[index_mu])*(1.0+mu[index_mu])/4. * sqrt(5./2.); /*l=2*/
-    d22[index_mu][2] = dl / sqrt(2./5.);
+    d22[index_mu][2] = dl * sqrt(2./5.);
     for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
@@ -932,9 +1351,11 @@ int lensing_d20(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d20[index_mu][0]=0;
     dlm1=0.; /*l=1*/
+    d20[index_mu][1]=0;
     dl=sqrt(15.)/4.*(1-mu[index_mu]*mu[index_mu]); /*l=2*/
-    d20[index_mu][2] = dl / sqrt(2./5.);
+    d20[index_mu][2] = dl * sqrt(2./5.);
     for(l=2;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
@@ -983,9 +1404,12 @@ int lensing_d31(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d31[index_mu][0]=0;
+    d31[index_mu][1]=0;
     dlm1=0.; /*l=2*/
+    d31[index_mu][2]=0;
     dl=sqrt(105./2.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
-    d31[index_mu][3] = dl / sqrt(2./7.);
+    d31[index_mu][3] = dl * sqrt(2./7.);
     for(l=3;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
@@ -1034,9 +1458,12 @@ int lensing_d3m1(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d3m1[index_mu][0]=0;
+    d3m1[index_mu][1]=0;
     dlm1=0.; /*l=2*/
+    d3m1[index_mu][2]=0;
     dl=sqrt(105./2.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
-    d3m1[index_mu][3] = dl / sqrt(2./7.);
+    d3m1[index_mu][3] = dl * sqrt(2./7.);
     for(l=3;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
@@ -1085,9 +1512,12 @@ int lensing_d3m3(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d3m3[index_mu][0]=0;
+    d3m3[index_mu][1]=0;
     dlm1=0.; /*l=2*/
+    d3m3[index_mu][2]=0;
     dl=sqrt(7./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/8.; /*l=3*/
-    d3m3[index_mu][3] = dl / sqrt(2./7.);
+    d3m3[index_mu][3] = dl * sqrt(2./7.);
     for(l=3;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
@@ -1134,9 +1564,13 @@ int lensing_d40(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d40[index_mu][0]=0;
+    d40[index_mu][1]=0;
+    d40[index_mu][2]=0;
     dlm1=0.; /*l=3*/
+    d40[index_mu][3]=0;
     dl=sqrt(315.)*(1+mu[index_mu])*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
-    d40[index_mu][4] = dl / sqrt(2./9.);
+    d40[index_mu][4] = dl * sqrt(2./9.);
     for(l=4;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
@@ -1185,9 +1619,13 @@ int lensing_d4m2(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d4m2[index_mu][0]=0;
+    d4m2[index_mu][1]=0;
+    d4m2[index_mu][2]=0;
     dlm1=0.; /*l=3*/
+    d4m2[index_mu][3]=0;
     dl=sqrt(126.)*(1+mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
-    d4m2[index_mu][4] = dl / sqrt(2./9.);
+    d4m2[index_mu][4] = dl * sqrt(2./9.);
     for(l=4;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
@@ -1236,9 +1674,13 @@ int lensing_d4m4(
     fac4[l] = sqrt(2./(2*ll+3));
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
+    d4m4[index_mu][0]=0;
+    d4m4[index_mu][1]=0;
+    d4m4[index_mu][2]=0;
     dlm1=0.; /*l=3*/
+    d4m4[index_mu][3]=0;
     dl=sqrt(9./2.)*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])*(1-mu[index_mu])/16.; /*l=4*/
-    d4m4[index_mu][4] = dl / sqrt(2./9.);
+    d4m4[index_mu][4] = dl * sqrt(2./9.);
     for(l=4;l<lmax;l++){
       ll=(double) l;
       /* sqrt((2l+1)/2)*d22 recurrence, supposed to be more stable */
