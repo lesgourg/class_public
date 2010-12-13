@@ -384,13 +384,9 @@ int lensing_init(
     if (ple->has_te==_TRUE_) {
       cl_te[l] = cl_unlensed[psp->index_ct_te];
     }
-    if (ple->has_ee==_TRUE_) {
+    if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
       cl_ee[l] = cl_unlensed[psp->index_ct_ee];    
-      if (psp->has_bb==_TRUE_) {
-	cl_bb[l] = cl_unlensed[psp->index_ct_bb];
-      } else { /** Case of scalar modes only **/
-	cl_bb[l] = 0;
-      }
+      cl_bb[l] = cl_unlensed[psp->index_ct_bb];
     }
   }
 
@@ -571,7 +567,7 @@ int lensing_init(
           res = (2*ll+1)/(4.*_PI_)*cl_te[l];
           res *= ( X022[index_mu][l]*X000[index_mu][l]*d20[index_mu][l] +
                    Cgl2[index_mu]*2.*Xp000[index_mu][l]/sqllp1[l] *
-                   (-X121[index_mu][l]*d11[index_mu][l] + X132[index_mu][l]*d3m1[index_mu][l]) +
+                   (X121[index_mu][l]*d11[index_mu][l] + X132[index_mu][l]*d3m1[index_mu][l]) +
                    0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
                    ( ( 2.*Xp022[index_mu][l]*Xp000[index_mu][l]+X220[index_mu][l]*X220[index_mu][l] ) *
                     d20[index_mu][l] + X220[index_mu][l]*X242[index_mu][l]*d4m2[index_mu][l] ) );
@@ -921,12 +917,8 @@ int lensing_lensed_cl_ee_bb(
       clp += ksip[imu]*d22[imu][l]*w8[imu]; /* loop could be optimized */
       clm += ksim[imu]*d2m2[imu][l]*w8[imu]; /* loop could be optimized */
     }
-    if (ple->has_ee==_TRUE_) {
-      ple->cl_lensed[l*ple->lt_size+ple->index_lt_ee]=(clp+clm)*_PI_;
-    }
-    if (ple->has_bb==_TRUE_) {
-      ple->cl_lensed[l*ple->lt_size+ple->index_lt_bb]=(clp-clm)*_PI_;
-    }
+    ple->cl_lensed[l*ple->lt_size+ple->index_lt_ee]=(clp+clm)*_PI_;
+    ple->cl_lensed[l*ple->lt_size+ple->index_lt_bb]=(clp-clm)*_PI_;
   }
   return _SUCCESS_;
 }
@@ -1801,7 +1793,7 @@ int lensing_d4m2(
   class_alloc(fac4,lmax*sizeof(double),erreur);
   for (l=4;l<lmax;l++) {
     ll = (double) l;
-    fac1[l] = sqrt((2*ll+3)*(2*ll+1)/((ll-3)*(ll+5)*(ll-1)*(ll+3)));
+    fac1[l] = sqrt((2*ll+3)*(2*ll+1)/((ll-3)*(ll+5)*(ll-1)*(ll+3))) * (ll+1.);
     fac2[l] = 8./(ll*(ll+1));
     fac3[l] = sqrt((2*ll+3)*(ll-4)*(ll+4)*(ll-2)*(ll+2)/((2*ll-1)*(ll-3)*(ll+5)*(ll-1)*(ll+3)))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
