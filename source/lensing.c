@@ -384,9 +384,13 @@ int lensing_init(
     if (ple->has_te==_TRUE_) {
       cl_te[l] = cl_unlensed[psp->index_ct_te];
     }
-    if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-      cl_ee[l] = cl_unlensed[psp->index_ct_ee];
-      cl_bb[l] = cl_unlensed[psp->index_ct_bb];
+    if (ple->has_ee==_TRUE_) {
+      cl_ee[l] = cl_unlensed[psp->index_ct_ee];    
+      if (psp->has_bb==_TRUE_) {
+	cl_bb[l] = cl_unlensed[psp->index_ct_bb];
+      } else { /** Case of scalar modes only **/
+	cl_bb[l] = 0;
+      }
     }
   }
 
