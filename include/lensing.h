@@ -127,6 +127,16 @@ extern "C" {
                            struct lensing * ple
                            );
   
+  int lensing_lensed_cl_ee_bb(
+			      double *ksip,
+			      double *ksim,
+			      double **d22,
+			      double **d2m2,
+			      double *w8,
+			      int nmu,
+			      struct lensing * ple
+			      );
+
   int lensing_X000(
                    double * mu,
                    int num_mu,

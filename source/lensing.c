@@ -93,6 +93,8 @@ int lensing_init(
   
   double * ksi;  /* ksi[index_mu] */
   double * ksiX;  /* ksiX[index_mu] */
+  double * ksip;  /* ksip[index_mu] */
+  double * ksim;  /* ksim[index_mu] */
 
   double ** X000;  /* Ximn[index_mu][index_l] */ 
   double ** Xp000;
@@ -109,6 +111,8 @@ int lensing_init(
   double * cl_unlensed;  /* cl_unlensed[index_ct] */
   double * cl_tt; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
   double * cl_te; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
+  double * cl_ee; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
+  double * cl_bb; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
   double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */  
   double ** junk1=NULL, ** junk2=NULL;
 
@@ -189,6 +193,29 @@ int lensing_init(
                 num_mu*sizeof(double*),
                 ple->error_message);
   }
+
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+    
+    class_alloc(d22,
+                num_mu*sizeof(double*),
+                ple->error_message);
+
+    class_alloc(d31,
+                num_mu*sizeof(double*),
+                ple->error_message);
+
+    class_alloc(d3m3,
+                num_mu*sizeof(double*),
+                ple->error_message);
+
+    class_alloc(d40,
+                num_mu*sizeof(double*),
+                ple->error_message);
+
+    class_alloc(d4m4,
+                num_mu*sizeof(double*),
+                ple->error_message);
+  }
 	
   for (index_mu=0; index_mu<num_mu; index_mu++) {
 
@@ -226,6 +253,31 @@ int lensing_init(
     }
   }
 
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+
+    for (index_mu=0; index_mu<num_mu; index_mu++) {
+      class_alloc(d22[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+      
+      class_alloc(d31[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+
+      class_alloc(d3m3[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+
+      class_alloc(d40[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+
+      class_alloc(d4m4[index_mu],
+                  (ple->l_unlensed_max+1)*sizeof(double),
+                  ple->error_message);
+    }    
+  } 
+
   class_call(lensing_d00(mu,num_mu,ple->l_unlensed_max,d00),
 	     ple->error_message,
 	     ple->error_message);
@@ -258,6 +310,29 @@ int lensing_init(
                ple->error_message);
     
   }
+
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+    
+    class_call(lensing_d22(mu,num_mu,ple->l_unlensed_max,d22),
+               ple->error_message,
+               ple->error_message);
+
+    class_call(lensing_d31(mu,num_mu,ple->l_unlensed_max,d31),
+               ple->error_message,
+               ple->error_message);
+
+    class_call(lensing_d3m3(mu,num_mu,ple->l_unlensed_max,d3m3),
+               ple->error_message,
+               ple->error_message);
+
+    class_call(lensing_d40(mu,num_mu,ple->l_unlensed_max,d40),
+               ple->error_message,
+               ple->error_message);
+
+    class_call(lensing_d4m4(mu,num_mu,ple->l_unlensed_max,d4m4),
+               ple->error_message,
+               ple->error_message);
+  }
   
   /** - compute Cgl(mu), Cgl2(mu) and sigma2(mu) */
 
@@ -287,6 +362,15 @@ int lensing_init(
                 (ple->l_unlensed_max+1)*sizeof(double),
                 ple->error_message);
   }
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+    class_alloc(cl_ee,
+                (ple->l_unlensed_max+1)*sizeof(double),
+                ple->error_message);
+  
+    class_alloc(cl_bb,
+                (ple->l_unlensed_max+1)*sizeof(double),
+                ple->error_message);  
+  }
   class_alloc(cl_pp,
 	      (ple->l_unlensed_max+1)*sizeof(double),
 	      ple->error_message);
@@ -299,6 +383,10 @@ int lensing_init(
     cl_pp[l] = cl_unlensed[psp->index_ct_pp];
     if (ple->has_te==_TRUE_) {
       cl_te[l] = cl_unlensed[psp->index_ct_te];
+    }
+    if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+      cl_ee[l] = cl_unlensed[psp->index_ct_ee];
+      cl_bb[l] = cl_unlensed[psp->index_ct_bb];
     }
   }
 
@@ -341,7 +429,7 @@ int lensing_init(
               (num_mu-1)*sizeof(double*),
               ple->error_message);
   
-  if (ple->has_te==_TRUE_) {
+  if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
     printf("hello\n");
     class_alloc(X022,
                 (num_mu-1)*sizeof(double*),
@@ -373,7 +461,7 @@ int lensing_init(
                 ple->error_message);  
   }
   
-  if (ple->has_te==_TRUE_) {
+  if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
     printf("hello\n");
     for (index_mu=0; index_mu<num_mu-1; index_mu++) {
       class_alloc(X022[index_mu],
@@ -404,7 +492,7 @@ int lensing_init(
              ple->error_message,
              ple->error_message);
   
-  if (ple->has_te==_TRUE_) {
+  if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
     printf("hello\n");
     class_call(lensing_X022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X022),
                ple->error_message,
@@ -489,6 +577,47 @@ int lensing_init(
       free(sqllp1);
     }
   }
+
+  /** ksip, ksim for EE, BB **/
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+    class_alloc(ksip,
+		(num_mu-1)*sizeof(double),
+		ple->error_message);
+    class_alloc(ksim,
+		(num_mu-1)*sizeof(double),
+		ple->error_message);
+    {
+      double resp, resm;
+      for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+	ksip[index_mu]=0;
+	ksim[index_mu]=0;
+	for (l=2;l<=ple->l_unlensed_max;l++) {
+	  ll = (double) l;
+	  resp = (2*ll+1)/(4.*_PI_)*(cl_ee[l]+cl_bb[l]);
+	  resm = (2*ll+1)/(4.*_PI_)*(cl_ee[l]-cl_bb[l]);
+	  
+	  resp *= ( X022[index_mu][l]*X022[index_mu][l]*d22[index_mu][l] +
+		    2.*Cgl2[index_mu]*X132[index_mu][l]*X121[index_mu][l]*d31[index_mu][l] +
+		    Cgl2[index_mu]*Cgl2[index_mu] *
+		    ( Xp022[index_mu][l]*Xp022[index_mu][l]*d22[index_mu][l] +
+		      X242[index_mu][l]*X220[index_mu][l]*d40[index_mu][l] ) );
+
+	  resm *= ( X022[index_mu][l]*X022[index_mu][l]*d2m2[index_mu][l] +
+		    Cgl2[index_mu] *
+		    ( X121[index_mu][l]*X121[index_mu][l]*d1m1[index_mu][l] +
+		      X132[index_mu][l]*X132[index_mu][l]*d3m3[index_mu][l] ) +
+		    0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
+		    ( 2.*Xp022[index_mu][l]*Xp022[index_mu][l]*d2m2[index_mu][l] +
+		      X220[index_mu][l]*X220[index_mu][l]*d00[index_mu][l] +
+		      X242[index_mu][l]*X242[index_mu][l]*d4m4[index_mu][l] ) );
+
+	  ksip[index_mu] += resp;
+	  ksim[index_mu] += resm;
+	}
+      }
+    }
+  }
+
   /** - compute lensed Cls by integration */
   class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
              ple->error_message,
@@ -501,16 +630,28 @@ int lensing_init(
                ple->error_message);
   }
   
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+
+    class_call(lensing_lensed_cl_ee_bb(ksip,ksim,d22,d2m2,w8,num_mu-1,ple),
+	       ple->error_message,
+	       ple->error_message);
+  } 
+
   /** DEBUG **/
   printf("hello\n");
   FILE *fpp;
   fpp=fopen("toto.txt","w");
   for (l=2; l<=ple->l_lensed_max; l++) {
-    fprintf(fpp,"%d\t%lg\t%lg\t%lg\t%lg\n",l,
+    fprintf(fpp,"%d\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\t%lg\n",l,
             cl_tt[l],
             ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt],
             cl_te[l],
-            ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]);
+            ple->cl_lensed[l*ple->lt_size+ple->index_lt_te],
+	    cl_ee[l],
+	    ple->cl_lensed[l*ple->lt_size+ple->index_lt_ee],
+	    cl_bb[l],
+	    ple->cl_lensed[l*ple->lt_size+ple->index_lt_bb]
+	    );
   }
   fclose(fpp);
   
@@ -713,7 +854,7 @@ int lensing_lensed_cl_tt(
 /**
  * This routine computes the lensed power spectra by Gaussian quadrature 
  *
- * @param ksiX Input       : Lensed correlation function (ksi[index_mu])
+ * @param ksiX Input       : Lensed correlation function (ksiX[index_mu])
  * @param d20  Input       : Wigner d-function (d^l_{20}[l][index_mu]) 
  * @param w8   Input       : Legendre quadrature weights (w8[index_mu])
  * @param nmu  Input       : Number of quadrature points (0<=index_mu<=nmu)
@@ -730,15 +871,58 @@ int lensing_lensed_cl_te(
                          struct lensing * ple
                          ) {
   
-  double cle;
+  double clte;
   int l, imu;
   /** Integration by Gauss-Legendre quadrature **/
   for(l=2;l<=ple->l_lensed_max;l++){
-    cle=0;
+    clte=0;
     for (imu=0;imu<nmu;imu++) {
-      cle += ksiX[imu]*d20[imu][l]*w8[imu]; /* loop could be optimized */
+      clte += ksiX[imu]*d20[imu][l]*w8[imu]; /* loop could be optimized */
     }
-    ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]=cle*2.0*_PI_;
+    ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]=clte*2.0*_PI_;
+  }
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the lensed power spectra by Gaussian quadrature 
+ *
+ * @param ksip Input       : Lensed correlation function (ksi+[index_mu])
+ * @param ksim Input       : Lensed correlation function (ksi-[index_mu])
+ * @param d22  Input       : Wigner d-function (d^l_{22}[l][index_mu]) 
+ * @param d2m2 Input       : Wigner d-function (d^l_{2-2}[l][index_mu]) 
+ * @param w8   Input       : Legendre quadrature weights (w8[index_mu])
+ * @param nmu  Input       : Number of quadrature points (0<=index_mu<=nmu)
+ * @param ple  Input/output: Pointer to the lensing structure
+ * @return the error status
+ */
+
+
+int lensing_lensed_cl_ee_bb(
+			    double *ksip,
+			    double *ksim,
+			    double **d22,
+			    double **d2m2,
+			    double *w8,
+			    int nmu,
+			    struct lensing * ple
+			    ) {
+  
+  double clp, clm;
+  int l, imu;
+  /** Integration by Gauss-Legendre quadrature **/
+  for(l=2;l<=ple->l_lensed_max;l++){
+    clp=0; clm=0; 
+    for (imu=0;imu<nmu;imu++) {
+      clp += ksip[imu]*d22[imu][l]*w8[imu]; /* loop could be optimized */
+      clm += ksim[imu]*d2m2[imu][l]*w8[imu]; /* loop could be optimized */
+    }
+    if (ple->has_ee==_TRUE_) {
+      ple->cl_lensed[l*ple->lt_size+ple->index_lt_ee]=(clp+clm)*_PI_;
+    }
+    if (ple->has_bb==_TRUE_) {
+      ple->cl_lensed[l*ple->lt_size+ple->index_lt_bb]=(clp-clm)*_PI_;
+    }
   }
   return _SUCCESS_;
 }
