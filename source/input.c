@@ -173,6 +173,8 @@ int input_init(
 
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
+  double n_ncdm,rho_ncdm,p_ncdm,drho_dM_ncdm;
+
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /** - set all parameters (input and precision) to default values */
@@ -328,6 +330,108 @@ int input_init(
 
   Omega_tot += pba->Omega0_cdm;
 
+  /* non-cold relics (ncdm) */
+  class_call(parser_read_double(pfc,"M_ncdm1",&param1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"Omega_ncdm1",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+  class_call(parser_read_double(pfc,"omega_ncdm1",&param3,&flag3,errmsg),
+	     errmsg,
+	     errmsg);
+
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+	     errmsg,
+	     "In input file, you can only enter one of m_ncdm1, Omega_ncdm1 or omega__ncdm1, choose one");
+
+  if (((flag1 == _TRUE_) && (param1 > 0.)) ||
+      ((flag2 == _TRUE_) && (param2 > 0.)) ||
+      ((flag3 == _TRUE_) && (param3 > 0.))) {
+
+    if (flag1 == _TRUE_) {
+
+      fprintf(stderr,"initialize ncdm variables\n");
+
+      pba->M_ncdm1 = param1;
+
+      class_call(parser_read_double(pfc,"T_ncdm1",&param2,&flag2,errmsg),
+		 errmsg,
+		 errmsg);
+
+      pba->T_ncdm1 = param2;
+
+      class_call(parser_read_double(pfc,"ksi_ncdm1",&param3,&flag3,errmsg),
+		 errmsg,
+		 errmsg);      
+
+      pba->ksi_ncdm1 = param3;
+      
+      class_call(background_ncdm1_init(pba),
+		 pba->error_message,
+		 errmsg);
+      
+      class_call(background_ncdm1_momenta(pba,0.,&n_ncdm,&rho_ncdm,&p_ncdm,&drho_dM_ncdm),
+		 pba->error_message,
+		 errmsg);
+
+      pba->Omega0_ncdm1 = rho_ncdm/pba->H0/pba->H0;
+
+    }
+
+    if (flag2 == _TRUE_) {
+
+      pba->Omega0_ncdm1 = param2;
+
+      class_call(parser_read_double(pfc,"T_ncdm1",&param1,&flag1,errmsg),
+		 errmsg,
+		 errmsg);
+
+      pba->T_ncdm1 = param1;
+
+      class_call(parser_read_double(pfc,"ksi_ncdm1",&param3,&flag3,errmsg),
+		 errmsg,
+		 errmsg);      
+
+      pba->ksi_ncdm1 = param3;
+
+      class_call(background_ncdm1_init(pba),
+		 pba->error_message,
+		 errmsg);
+
+      class_call(background_ncdm1_M_from_Omega(pba),
+		 pba->error_message,
+		 errmsg);
+    }
+
+    if (flag3 == _TRUE_) {
+
+      pba->Omega0_ncdm1 = param3/pba->h/pba->h;
+
+      class_call(parser_read_double(pfc,"T_ncdm1",&param1,&flag1,errmsg),
+		 errmsg,
+		 errmsg);
+
+      pba->T_ncdm1 = param1;
+
+      class_call(parser_read_double(pfc,"ksi_ncdm1",&param2,&flag2,errmsg),
+		 errmsg,
+		 errmsg);      
+
+      pba->ksi_ncdm1 = param2;
+
+      class_call(background_ncdm1_init(pba),
+		 pba->error_message,
+		 errmsg);
+
+      class_call(background_ncdm1_M_from_Omega(pba),
+		 pba->error_message,
+		 errmsg);
+    }
+
+    Omega_tot += pba->Omega0_ncdm1;
+  }
+
   /* Omega_0_k (curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
 
@@ -343,7 +447,7 @@ int input_init(
 	     "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
   if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {	
-    pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm;
+    pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm1;
   }
   else {
     if (flag1 == _TRUE_) {
@@ -1004,9 +1108,13 @@ int input_default_params(
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pth->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
-  pba->Omega0_cdm = 0.1122/0.704/0.704;    
+  pba->Omega0_cdm = 0.1122/0.704/0.704;
+  pba->Omega0_ncdm1 = 0.;
+  pba->M_ncdm1 = 0.;
+  pba->T_ncdm1 = 1.;
+  pba->ksi_ncdm1 = 0.;
   pba->Omega0_k = 0.;
-  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm;
+  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm1;
   pba->Omega0_de = 0.;     
   pba->a_today = 1.;       
   pba->w_de=-1.;

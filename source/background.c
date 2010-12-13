@@ -263,6 +263,8 @@ int background_functions(
   /* scale factor relative to scale factor today */
   double a_rel;
 
+  double n_ncdm,rho_ncdm,p_ncdm,drho_dM_ncdm;
+
   /** - initialize local variables */
   rho_tot = 0.;
   p_tot = 0.;
@@ -297,6 +299,24 @@ int background_functions(
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_cdm];
+  }
+
+  /* ncdm1 */
+  if (pba->has_ncdm1 == _TRUE_) {
+    class_call(background_ncdm1_momenta(pba,
+					1./a_rel-1.,
+					&n_ncdm,
+					&rho_ncdm,
+					&p_ncdm,
+					&drho_dM_ncdm),
+	       pba->error_message,
+	       pba->error_message);
+
+    pvecback[pba->index_bg_rho_ncdm1] = rho_ncdm;
+    rho_tot += pvecback[pba->index_bg_rho_ncdm1];
+    pvecback[pba->index_bg_p_ncdm1] = p_ncdm;
+    p_tot += pvecback[pba->index_bg_rho_ncdm1];
+    /* add to rho_m or rho_r? TBC */
   }
 
   /* Lambda */
@@ -397,6 +417,9 @@ int background_init(
   Omega0_tot = pba->Omega0_g + pba->Omega0_b;
   if (pba->has_cdm == _TRUE_) {
     Omega0_tot += pba->Omega0_cdm;
+  }
+  if (pba->has_ncdm1 == _TRUE_) {
+    Omega0_tot += pba->Omega0_ncdm1;
   }
   if (pba->has_lambda == _TRUE_) {
     Omega0_tot += pba->Omega0_lambda;
@@ -505,6 +528,17 @@ int background_indices(
   else { 
     pba->has_cdm = _FALSE_;
   }
+
+  /* - ncdm1 */
+  if (pba->Omega0_ncdm1 != 0.) {
+    pba->has_ncdm1 = _TRUE_;
+    /* -> index for rho_cdm1 (ncdm1 density) */
+    pba->index_bg_rho_ncdm1 = index_bg; 
+    index_bg++;
+  }
+  else { 
+    pba->has_ncdm1 = _FALSE_;
+  }
   
   /* - Lambda */
   if (pba->Omega0_lambda != 0.) {
@@ -609,6 +643,44 @@ int background_indices(
 
   return _SUCCESS_;
 
+}
+
+int background_ncdm1_distribution(
+				  struct background *pba,
+				  double q,
+				  double * f0
+				  ) {
+
+  *f0 = pow(pba->T_ncdm1,4)*(1./(exp(q-pba->ksi_ncdm1)+1.) + 1./(exp(q+pba->ksi_ncdm1)+1.)); /* Dermi-Dirac */
+
+  return _SUCCESS_;
+}
+
+int background_ncdm1_init(
+			  struct background *pba
+			  ) {
+  
+  return _SUCCESS_;
+}
+
+  int background_ncdm1_momenta(
+			       struct background * pba,
+			       double z,
+			       double * n,
+			       double * rho,
+			       double * p,
+			       double * drho_dM
+			       ) {
+
+
+
+  return _SUCCESS_;
+}
+
+int background_ncdm1_M_from_Omega(
+				  struct background *pba
+				  ) {
+  return _SUCCESS_;
 }
 
 /** 

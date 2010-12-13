@@ -1130,9 +1130,7 @@ int spectra_indices(
       psp->has_te = _FALSE_;
     }
 
-    /* types of C_l's relevant only for tensors: BB */
-
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_tensors == _TRUE_)) {
+    if (ppt->has_cl_cmb_polarization == _TRUE_) {
       psp->has_bb = _TRUE_;
       psp->index_ct_bb=index_ct;
       index_ct++;
@@ -1140,7 +1138,7 @@ int spectra_indices(
     else {
       psp->has_bb = _FALSE_;
     }
-
+    
     /* types of C_l's relevant only for scalars: phi-phi, T-phi */
     
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {

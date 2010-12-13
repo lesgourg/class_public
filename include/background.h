@@ -63,6 +63,11 @@ struct background
   double w_de; /**< \f$ w_{DE} \f$ : dark energy equation of state */
   double cs2_de; /**< \f$ c^2_{s~DE} \f$ : dark energy sound speed */
   double Omega0_nur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
+  double M_ncdm1;   /* mass of first non-cold relic: m_ncdm1/T_ncdm1 */
+  double T_ncdm1;   /* 1st parameter in p-s-d of first non-cold relic: temperature T_ncdm1/T_gamma */
+  double ksi_ncdm1; /* 2nd parameter in p-s-d of first non-cold relic: temperature ksi_ncdm1/T_ncdm1 */
+  double Omega0_ncdm1;
+
 
   //@}
 
@@ -97,6 +102,10 @@ struct background
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_de;        /**< dark energy fluid with constant w density */
   int index_bg_rho_nur;       /**< relativistic neutrinos/relics density */
+
+  int index_bg_rho_ncdm1;
+  int index_bg_p_ncdm1;
+
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
   int index_bg_rho_crit;      /**< critical density */
   int index_bg_Omega_m;       /**< non-relativistic density fraction (\f$ \Omega_b + \Omega_cdm + \Omega_{\nu nr} \f$) */
@@ -165,8 +174,20 @@ struct background
   short has_dark_energy_fluid; /**< presence of dark energy fluid with constant w? */
   short has_nur;               /**< presence of ultra-relativistic neutrinos/relics? */
 
+  short has_ncdm1;
+
   //@}
 
+  /** @name - arrays related to sampling and integration of ncdm phase-space ditribution function
+   */
+  
+
+  //@{
+
+  double * q_ncdm1;
+  double * w_ncdm1;
+  int q_size_ncdm1;
+  
   /** @name - technical parameters */
 
   //@{
@@ -235,6 +256,29 @@ extern "C" {
   int background_indices(
 			 struct background *pba
 			 );
+
+  int background_ncdm1_distribution(
+				  struct background *pba,
+				  double q,
+				  double * f0
+				  );
+
+  int background_ncdm1_init(
+			    struct background *pba
+			    );
+  
+  int background_ncdm1_momenta(
+			       struct background *pba,
+			       double z,
+			       double * n,
+			       double * rho, /* [8piG/3c2] rho in Mpc^-2 */
+			       double * p,   /* [8piG/3c2] p in Mpc^-2 */
+			       double * drho_dM
+			       );
+
+  int background_ncdm1_M_from_Omega(
+				    struct background *pba
+				    );
 
   int background_solve(
 		       struct precision *ppr,
