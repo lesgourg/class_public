@@ -18,7 +18,7 @@ int sp_mat_alloc(sp_mat** A, int ncols, int nrows, int maxnz, ErrorMsg error_mes
 	int ncp =  ncols+1;
 	class_alloc((*A),sizeof(sp_mat),error_message);
 	class_alloc((*A)->Ax,maxnz*sizeof(double),error_message);
-	class_calloc((*A)->Ai,maxnz,sizeof(int),error_message);
+	class_alloc((*A)->Ai,maxnz*sizeof(int),error_message);
 	class_alloc((*A)->Ap,(ncp*sizeof(int)),error_message);
 	(*A)->ncols = ncols;
 	(*A)->nrows = nrows;
@@ -52,7 +52,10 @@ int sp_num_alloc(sp_num** N, int n, ErrorMsg error_message){
 	class_alloc((*N)->topvec,n*sizeof(int),error_message);
 	class_alloc((*N)->pinv,n*sizeof(int),error_message);
 	class_alloc((*N)->p,n*sizeof(int),error_message);
-	class_alloc((*N)->w,n*sizeof(double),error_message); 
+	/* Has to be n+1 because sp_amd uses it for storage:*/
+	class_alloc((*N)->q,(n+1)*sizeof(int),error_message); 
+	class_alloc((*N)->w,n*sizeof(double),error_message);
+	class_alloc((*N)->wamd,(8*(n+1))*sizeof(int),error_message);	
 	return _SUCCESS_;
 }
 
@@ -64,7 +67,9 @@ int sp_num_free(sp_num *N){
 	free(N->topvec);
 	free(N->pinv);
 	free(N->p);
+	free(N->q);
 	free(N->w);
+	free(N->wamd);
 	free(N);
 	return _SUCCESS_;
 }
@@ -124,8 +129,9 @@ int sp_splsolve(sp_mat *G, sp_mat *B, int k, int*xik, int top, double *x, int *p
 
 int sp_ludcmp(sp_num *N, sp_mat *A, double pivtol){
 	double pivot, *Lx, *Ux, *x, a, t;
-	int *Lp, *Li, *Up, *Ui, *pinv, *pvec, n, ipiv, k, top, p, i, col, lnz, unz;
-	n = A->ncols;
+	int *Lp, *Li, *Up, *Ui, *pinv, *pvec, *q;
+	int n, ipiv, k, top, p, i, col, lnz, unz;
+	n = A->ncols; q = N->q;
 	Li = N->L->Ai; Lp = N->L->Ap; Lx = N->L->Ax;
 	Ui = N->U->Ai; Up = N->U->Ap; Ux = N->U->Ax;
 	lnz = 0; unz = 0;
@@ -138,7 +144,7 @@ int sp_ludcmp(sp_num *N, sp_mat *A, double pivtol){
 		/* Triangular solve: */
 		Lp[k] = lnz;
 		Up[k] = unz;
-		col = k;
+		col = q ? (q[k]) : k;
 		
 		top = reachr(N->L, A, col, N->xi[k], pinv);
 		N->topvec[k] = top;
@@ -192,7 +198,7 @@ int sp_ludcmp(sp_num *N, sp_mat *A, double pivtol){
 
 int sp_lusolve(sp_num *N, double *b, double *x){
 	int p, j, n, *Ap, *Ai;
-	double *Ax;
+	double *Ax, *w;
 	n=N->n;
 	/* permute b and initialize x:*/
 	for (j=0; j<n; j++) x[N->pinv[j]] = b[j];
@@ -212,15 +218,23 @@ int sp_lusolve(sp_num *N, double *b, double *x){
 			x[Ai[p]] -= Ax[p]*x[j];
 		}
 	}
+	if (N->q!=NULL){
+		/* We must permute once more..*/
+		w = N->w;
+		for(j=0;j<n;j++) w[j] = x[j];
+		for(j=0; j<n; j++) x[N->q[j]] = w[j];
+	}
 	return _SUCCESS_;
 }
 
 int sp_refactor(sp_num *N, sp_mat *A){
 	double pivot, *Lx, *Ux, *x;
-	int *Lp, *Li, *Up, *Ui, *pinv, *pvec, n, ipiv, k, top, p, i, col, lnz, unz;
+	int *Lp, *Li, *Up, *Ui, *pinv, *pvec, *q;
+	int n, ipiv, k, top, p, i, col, lnz, unz;
 	n = A->ncols;
 	Li = N->L->Ai; Lp = N->L->Ap; Lx = N->L->Ax;
 	Ui = N->U->Ai; Up = N->U->Ap; Ux = N->U->Ax;
+	q = N->q;
 	lnz = 0; unz = 0;
 	x = N->w; pinv = N->pinv; pvec = N->p;
 	for (i=0; i<n; i++) x[i]=0;
@@ -229,7 +243,7 @@ int sp_refactor(sp_num *N, sp_mat *A){
 		/* Triangular solve: */
 		Lp[k] = lnz;
 		Up[k] = unz;
-		col = k;
+		col = q ? (q[k]) : k;
 		
 		top = N->topvec[k];
 		sp_splsolve(N->L, A, col, N->xi[k], top, x, pinv);
@@ -305,3 +319,306 @@ int column_grouping(sp_mat *G, int *col_g, int *filled){
 	}
 	return groupnum;
 }
+
+int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
+	int *last, *len, *nv, *next, *head, *elen, *degree, *w, *hhead;
+	int d, dk, dext, lemax=0, e, elenk, eln, i, j, k, k1, k2, k3, jlast, ln;
+	int dense, mindeg=0, nvi, nvj, nvk, mark, wnvi, ok, nel=0;
+	int p, p1, p2, p3, p4, pj, pk, pk1, pk2, pn, q, m, cnz;
+	unsigned int h;
+	/*	I assume that the sparse matrix C is symmetrix (C = A + A' in our case) 
+		and that the diagonal elements has been removed. C must be large enough,
+		C->max_nonzero >= (6/5)*(C->Ap[n]) + 2n. Work array W must be 8*(n+1).
+	*/
+	dense = max(16,10*sqrt((double) n));
+	dense = min(n-2,dense);
+	cnz = Cp[n]; 
+	/*	Assign pointers to positions in work array:*/
+	len = W;
+	nv = W+(n+1);
+	next = W+2*(n+1);
+	head = W+3*(n+1);
+	elen = W+4*(n+1);
+	degree = W+5*(n+1);
+	w = W+6*(n+1);
+	hhead = W+7*(n+1);
+	last = P;
+	/* Initialise quotient graph: */
+	for(k=0; k<n; k++) len[k] = Cp[k+1]-Cp[k];
+	len[n] = 0;
+	for(i=0; i<=n; i++){
+		head[i] = -1;
+		last[i] = -1;
+		next[i] = -1;
+		hhead[i] = -1;
+		nv[i] = 1;
+		w[i] = 1;
+		elen[i] = 0;
+		degree[i] = len[i];
+	}
+	mark = sp_wclear(0, 0, w, n);
+	elen[n] = -2;
+	Cp[n] = -1;
+	w[n] = 0;
+	/* Initialize degree lists */
+	for(i=0; i<n; i++){
+		d = degree[i];
+		if(d==0){
+			elen[i] = -2;
+			nel++;
+			Cp[i] = -1;
+			w[i] = 0;
+		}
+		else if(d>dense){
+			nv[i] = 0;
+			elen[i] = -1;
+			nel++;
+			Cp[i] = SPFLIP(n);
+			nv[n]++;
+		}
+		else{
+			if(head[d]!=-1) last[head[d]] = i;
+			next[i] = head[d];
+			head[d] = i;
+		}
+	}
+	while(nel<n){
+		/* Select node ofminimum degree: */
+		for(k=-1; (mindeg<n)&&((k=head[mindeg])==-1); mindeg++);
+		if(next[k]!=-1) last[next[k]]=-1;
+		head[mindeg] = next[k];
+		elenk = elen[k];
+		nvk = nv[k];
+		nel +=nvk;
+		/* Garbage collection */
+		if((elenk>0)&&(cnz+mindeg >=nzmax)){
+			for(j=0; j<n; j++){
+				if((p=Cp[j])>=0){
+					Cp[j] = Ci[p];
+					Ci[p] = SPFLIP(j);
+				}
+			}
+			for(q=0,p=0; p<cnz; ){
+				if((j=SPFLIP(Ci[p++]))>=0){
+					Ci[q] = Cp[j];
+					Cp[j] = q++;
+					for(k3=0; k3<len[j]-1; k3++) Ci[q++] = Ci[p++];
+				}
+			}
+			cnz = q;
+		}
+		/* Construct new element: */
+		dk = 0;
+		nv[k] = -nvk;
+		p = Cp[k];
+		pk1 = (elenk==0) ? p : cnz;
+		pk2 = pk1;
+		for(k1=1; k1<=elenk + 1; k1++){
+			if (k1>elenk){
+				e=k;
+				pj = p;
+				ln = len[k] - elenk;
+			}
+			else{
+				e = Ci[p++];
+				pj = Cp[e];
+				ln = len[e];
+			}
+			for(k2=1; k2<=ln; k2++){
+				i=Ci[pj++];
+				if((nvi=nv[i])<=0) continue;
+				dk += nvi;
+				nv[i] = -nvi;
+				Ci[pk2++] = i;
+				if (next[i]!=-1) last[next[i]] =last[i];
+				if (last[i]!=-1){
+					next[last[i]] = next[i];
+				}
+				else{
+					head[degree[i]] = next[i];
+				}
+			}
+			if(e!=k){
+				Cp[e] = SPFLIP(k);
+				w[e] = 0;
+			}
+		}
+		if (elenk!=0) cnz = pk2;
+		degree[k] = dk;
+		Cp[k] = pk1;
+		len[k] = pk2 - pk1;
+		elen[k] = -2;
+		/* Find set differences: */
+		mark = sp_wclear(mark, lemax, w, n);
+		for(pk=pk1; pk<pk2; pk++){
+			i = Ci[pk];
+			if((eln = elen[i]) <=0) continue;
+			nvi = -nv[i];
+			wnvi = mark - nvi;
+			for(p=Cp[i]; p<=Cp[i] + eln -1; p++){
+				e = Ci[p];
+				if(w[e] >=mark){
+					w[e] -= nvi;
+				}
+				else if(w[e]!=0){
+					w[e] = degree[e] + wnvi;
+				}
+			}
+		}
+		/* Degree update:*/
+		for(pk=pk1; pk<pk2; pk++){
+			i=Ci[pk];
+			p1 = Cp[i];
+			p2 = p1 + elen[i] - 1;
+			pn = p1;
+			for(h=0, d=0, p=p1; p<=p2; p++){
+				e = Ci[p];
+				if(w[e]!=0){
+					dext = w[e] - mark;
+					if (dext>0){
+						d+=dext;
+						Ci[pn++] = e;
+						h +=e;
+					}
+					else{
+						Cp[e] = SPFLIP(k);
+						w[e] = 0;
+					}
+				}
+			}
+			elen[i] = pn-p1+1;
+			p3 = pn;
+			p4 = p1 + len[i];
+			for(p=p2+1; p<p4; p++){
+				j=Ci[p];
+				if((nvj = nv[j]) <= 0) continue;
+				d += nvj;
+				Ci[pn++] = j;
+				h += j;
+			}
+			if (d==0){
+				Cp[i] = SPFLIP(k);
+				nvi = -nv[i];
+				dk -= nvi;
+				nvk += nvi;
+				nel +=nvi;
+				nv[i] = 0;
+				elen[i] = -1;
+			}
+			else{
+				degree[i] = min(degree[i],d);
+				Ci[pn] = Ci[p3];
+				Ci[p3] = Ci[p1];
+				Ci[p1] = k;
+				len[i] = pn -p1 +1;
+				h %= n;
+				next[i] = hhead[h];
+				hhead[h] = i;
+				last[i] = h;
+			}
+		}
+		degree[k] = dk;
+		lemax = max(lemax,dk);
+		mark = sp_wclear(mark+lemax, lemax, w, n);
+		/* Supernode detection: */
+		for(pk=pk1; pk <pk2; pk++){
+			i = Ci[pk];
+			if(nv[i]>=0) continue;
+			h = last[i];
+			i = hhead[h];
+			hhead[h] = -1;
+			for( ;(i!=-1)&&(next[i]!=-1);i = next[i],mark++){
+				ln = len[i];
+				eln = elen[i];
+				for(p=Cp[i] + 1; p<=Cp[i]+ln-1; p++) w[Ci[p]] = mark;
+				jlast = i;
+				for(j=next[i]; j!=-1; ){
+					ok = (len[j]==ln)&&(elen[j] = eln);
+					for(p=Cp[j] +1;ok&&p<=Cp[j]+ln-1; p++){
+						if(w[Ci[p]]!=mark) ok=0;
+					}
+					if (ok){
+						Cp[j] = SPFLIP(i);
+						nv[i] +=nv[j];
+						nv[j] = 0;
+						elen[j] = -1;
+						j = next[j];
+						next[jlast] = j;
+					}
+					else{
+						jlast =j;
+						j = next[j];
+					}
+				}
+			}
+		}
+		/* Finalize new element: */
+		for(p=pk1, pk=pk1; pk<pk2; pk++){
+			i = Ci[pk];
+			if ((nvi = -nv[i]) <=0) continue;
+			nv[i] = nvi;
+			d = degree[i] +dk -nvi;
+			d = min(d, n-nel-nvi);
+			if(head[d]!=-1) last[head[d]] = i;
+			next[i] = head[d];
+			last[i] = -1;
+			head[d] = i;
+			mindeg = min(mindeg,d);
+			degree[i] = d;
+			Ci[p++] = i;
+		}
+		nv[k] = nvk;
+		if((len[k] = p-pk1)==0){
+			Cp[k] = -1;
+			w[k] = 0;
+		}
+		if(elenk!=0) cnz = p;
+	}
+	/* Postordering */
+	for(i=0; i<n; i++) Cp[i] = SPFLIP(Cp[i]);
+	for(j=0; j<=n; j++) head[j] = -1;
+	for(j=n; j>=0; j--){
+		if(nv[j] > 0) continue;
+		next[j] = head[Cp[j]];
+		head[Cp[j]] = j;
+	}
+	for(e=n; e>=0; e--){
+		if(nv[e]<=0) continue;
+		if(Cp[e] !=-1){
+			next[e] = head[Cp[e]];
+			head[Cp[e]] = e;
+		}
+	}
+	for(k=0,i=0; i<=n; i++){
+		if (Cp[i] == -1) k = sp_tdfs(i, k, head, next, P, w);
+	}
+	return _SUCCESS_;
+}
+
+int sp_wclear(int mark, int lemax, int *w, int n){
+	int k;
+	if (mark<2 || (mark+lemax<0)){
+		for(k=0; k<n; k++) if(w[k]!=0) w[k] = 1;
+		mark = 2;
+	}
+	return (mark);
+}
+
+int sp_tdfs(int j, int k, int *head, const int *next, int *post, int *stack){
+	int i, p, top =0;
+	stack[0] = j;
+	while(top>=0){
+		p = stack[top];
+		i = head[p];
+		if (i==-1){
+			top--;
+			post[k++] = p;
+		}
+		else{
+			head[p] = next[i];
+			stack[++top] = i;
+		}
+	}
+	return (k);
+}
+	
