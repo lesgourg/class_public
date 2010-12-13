@@ -140,11 +140,11 @@ int thermodynamics_at_z(
     pvecthermo[pth->index_th_ddg]=0.;
 
     /* Calculate Tb */
-    pvecthermo[pth->index_th_Tb] = pth->Tcmb*(1.+z);
+    pvecthermo[pth->index_th_Tb] = pba->Tcmb*(1.+z);
 
     /* Calculate cb2 (cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)) */
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
-    pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pth->Tcmb * (1.+z) * 4. / 3.;
+    pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->Tcmb * (1.+z) * 4. / 3.;
 
     pvecthermo[pth->index_th_dacb2] = 0.;
 
@@ -243,11 +243,6 @@ int thermodynamics_init(
     printf("Computing thermodynamics\n");
 
   /** - check that input variables make sense */
-
-  /* Tcmb in K */
-  class_test((pth->Tcmb < _TCMB_SMALL_)||(pth->Tcmb > _TCMB_BIG_),
-	     pth->error_message,
-	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pth->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
 
   /* Y_He */
   class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
@@ -1328,7 +1323,7 @@ int thermodynamics_recombination(
   Yp = pth->YHe;
 
   /* Tnow */
-  preco->Tnow = pth->Tcmb;
+  preco->Tnow = pba->Tcmb;
 
   /* z_initial */
   zinitial=ppr->recfast_z_initial;

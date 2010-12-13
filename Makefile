@@ -35,7 +35,7 @@ INCLUDES = ../include
 	cd $(WRKDIR);$(CC) $(CCFLAG) -I$(INCLUDES) -c ../$< -o $*.o
 
 #TOOLS = growTable.o dei_rkck.o evolver_rkck.o arrays.o parser.o
-TOOLS = growTable.o dei_rkck.o sparse.o evolver_ndf15.o arrays.o parser.o
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_ndf15.o arrays.o parser.o quadrature.o
 
 INPUT = input.o
 

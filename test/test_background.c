@@ -4,7 +4,7 @@
  
 #include "class.h"
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -32,9 +32,23 @@ main(int argc, char **argv) {
 
   /****** here you could output the background evolution ******/
 
+  int index_eta;
+
+  for (index_eta=0; index_eta<ba.bt_size; index_eta++) {
+
+    fprintf(stdout,
+	    "%e %e %e\n",
+	    ba.eta_table[index_eta],
+	    1./(1+ba.z_table[index_eta]),
+	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_rho_ncdm1]);
+
+  }
+
   if (background_free(&ba) == _FAILURE_) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }
+
+  return _SUCCESS_;
 
 }

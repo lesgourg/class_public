@@ -47,7 +47,6 @@ struct thermo
   
   //@{
 
-  double Tcmb; /**< \f$ T_{cmb} \f$ : current CMB temperature in Kelvins */
   double YHe;  /**< \f$ Y_{He} \f$ : primordial helium fraction */
 
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
@@ -451,8 +450,6 @@ extern "C" {
 
 //@{
 
-#define _TCMB_BIG_ 2.8     /**< maximal \f$ T_{cmb} \f$ in K */
-#define _TCMB_SMALL_ 2.7   /**< minimal \f$ T_{cmb}  \f$ in K */
 #define _YHE_BIG_ 0.5      /**< maximal \f$ Y_{He} \f$ */
 #define _YHE_SMALL_ 0.01   /**< minimal \f$ Y_{He} \f$ */
 

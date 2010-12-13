@@ -413,6 +413,11 @@ int background_init(
 	     pba->error_message,
 	     "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
 
+  /* Tcmb in K */
+  class_test((pba->Tcmb < _TCMB_SMALL_)||(pba->Tcmb > _TCMB_BIG_),
+	     pba->error_message,
+	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pba->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
+
   /* curvature */
   Omega0_tot = pba->Omega0_g + pba->Omega0_b;
   if (pba->has_cdm == _TRUE_) {
@@ -535,6 +540,8 @@ int background_indices(
     /* -> index for rho_cdm1 (ncdm1 density) */
     pba->index_bg_rho_ncdm1 = index_bg; 
     index_bg++;
+    pba->index_bg_p_ncdm1 = index_bg; 
+    index_bg++;
   }
   else { 
     pba->has_ncdm1 = _FALSE_;
@@ -646,12 +653,26 @@ int background_indices(
 }
 
 int background_ncdm1_distribution(
-				  struct background *pba,
+				  void * pba,
 				  double q,
 				  double * f0
 				  ) {
+  struct background * pba_local;
 
-  *f0 = pow(pba->T_ncdm1,4)*(1./(exp(q-pba->ksi_ncdm1)+1.) + 1./(exp(q+pba->ksi_ncdm1)+1.)); /* Dermi-Dirac */
+  pba_local = pba;
+
+  *f0 = 1./(exp(q-pba_local->ksi_ncdm1)+1.) + 1./(exp(q+pba_local->ksi_ncdm1)+1.); /* Fermi-Dirac */
+
+  return _SUCCESS_;
+}
+
+int background_ncdm1_test_function(
+				   void * pba,
+				   double q,
+				   double * test
+				   ) {
+
+  *test = 1.+q+q*q+q*q*q+q*q*q*q;
 
   return _SUCCESS_;
 }
@@ -660,19 +681,69 @@ int background_ncdm1_init(
 			  struct background *pba
 			  ) {
   
+  class_alloc(pba->q_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
+  class_alloc(pba->w_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
+
+  class_call(get_qsampling(pba->q_ncdm1,
+			   pba->w_ncdm1,
+			   &(pba->q_size_ncdm1),
+			   _QUADRATURE_MAX_,
+			   1.e-6,
+			   background_ncdm1_test_function,
+			   background_ncdm1_distribution,
+			   pba,
+			   pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
+    
+  pba->q_ncdm1=realloc(pba->q_ncdm1,pba->q_size_ncdm1*sizeof(double));
+  pba->w_ncdm1=realloc(pba->w_ncdm1,pba->q_size_ncdm1*sizeof(double));
+
   return _SUCCESS_;
 }
 
-  int background_ncdm1_momenta(
-			       struct background * pba,
-			       double z,
-			       double * n,
-			       double * rho,
-			       double * p,
-			       double * drho_dM
-			       ) {
+int background_ncdm1_momenta(
+			     struct background * pba,
+			     double z,
+			     double * n,
+			     double * rho,
+			     double * p,
+			     double * drho_dM
+			     ) {
+  
+  int index_q;
+  double epsilon;
+  double factor;
+  double q2;
 
+  factor = pow(pba->Tcmb*pba->T_ncdm1*_k_B_*(1.+z),4)*8*_PI_*_G_
+    /3./pow(_h_P_/2./_PI_,3)/pow(_c_,7)*_Mpc_over_m_*_Mpc_over_m_;
+  
+  *n = 0.;
+  *rho = 0.;
+  *p = 0.;
+  *drho_dM = 0.;
 
+  for (index_q=0; index_q<pba->q_size_ncdm1; index_q++) {
+
+    q2 = pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q];
+
+    epsilon = sqrt(q2+pba->M_ncdm1*pba->M_ncdm1/(1.+z)/(1.+z));
+  
+    *n += q2*pba->w_ncdm1[index_q];
+
+    *rho += q2*epsilon*pba->w_ncdm1[index_q];
+    
+    *p += q2*pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q]/3./epsilon*pba->w_ncdm1[index_q];
+
+    *drho_dM += q2*pba->M_ncdm1/(1.+z)/(1.+z)/epsilon*pba->w_ncdm1[index_q];
+
+  }
+
+  *n *= factor;
+  *rho *= factor;
+  *p *= factor;
+  *drho_dM *= factor; 
 
   return _SUCCESS_;
 }

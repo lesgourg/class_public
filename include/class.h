@@ -12,6 +12,7 @@
 #endif
 
 /* tools for class */
+#include "quadrature.h"
 #include "growTable.h"
 #include "arrays.h"
 #include "dei_rkck.h"

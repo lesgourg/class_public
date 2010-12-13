@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "parser.h"
+#include "quadrature.h"
 #include "background.h"
 #include "thermodynamics.h"
 #include "perturbations.h"

@@ -28,6 +28,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
+#define _QUADRATURE_MAX_ 150 /**< maximum allowed number of abssices in quadrature integral estimation */
+
 #define _TOLVAR_ 100. /**< The minimum allowed variation is the machine precision times this number */
 
 #define _HUGE_ 1.e99

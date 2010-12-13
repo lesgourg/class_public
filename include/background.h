@@ -4,6 +4,7 @@
 #define __BACKGROUND__
 
 #include "common.h"
+#include "quadrature.h"
 #include "growTable.h"
 #include "arrays.h"
 #include "dei_rkck.h"
@@ -54,21 +55,28 @@ struct background
   //@{
 
   double H0; /**< \f$ H_0 \f$ : Hubble parameter (in fact, [H_0/c]) in \f$ Mpc^{-1} \f$ */
+
   double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$ : photons */
+  double Tcmb; /**< \f$ T_{cmb} \f$ : current CMB temperature in Kelvins */
+
   double Omega0_b; /**< \f$ \Omega_{0 b} \f$ : baryons */
+
   double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$ : cold dark matter */
+
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$ : cosmological constant */
+
   double Omega0_de; /**< \f$ \Omega_{0 de} \f$ : dark energy fluid with constant \f$ w \f$ */
-  double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
   double w_de; /**< \f$ w_{DE} \f$ : dark energy equation of state */
   double cs2_de; /**< \f$ c^2_{s~DE} \f$ : dark energy sound speed */
+
   double Omega0_nur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
+
   double M_ncdm1;   /* mass of first non-cold relic: m_ncdm1/T_ncdm1 */
   double T_ncdm1;   /* 1st parameter in p-s-d of first non-cold relic: temperature T_ncdm1/T_gamma */
   double ksi_ncdm1; /* 2nd parameter in p-s-d of first non-cold relic: temperature ksi_ncdm1/T_ncdm1 */
   double Omega0_ncdm1;
 
-
+  double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
   //@}
 
   /** @name - related parameters */
@@ -78,6 +86,7 @@ struct background
   double h; /** reduced Hubble parameter */
   double age; /**< age in Gyears */
   double conformal_age; /**< conformal age in Mpc */
+  double m_ncdm1_in_eV;
 
   //@}
 
@@ -258,10 +267,16 @@ extern "C" {
 			 );
 
   int background_ncdm1_distribution(
-				  struct background *pba,
+				  void *pba,
 				  double q,
 				  double * f0
 				  );
+
+  int background_ncdm1_test_function(
+				     void *pba,
+				     double q,
+				     double * test
+				     );
 
   int background_ncdm1_init(
 			    struct background *pba
@@ -323,6 +338,7 @@ extern "C" {
 				       (c=1 units, Julian years of 365.25 days) */
 #define _c_ 2.99792458e8 /**< c in m/s */
 #define _G_ 6.67428e-11 /**< Newton constant in m^3/Kg/s^2 */
+#define _eV_ 1.602176487e-19 /**< 1 eV expressed in J */
 
 /* parameters entering into the Stefan-Boltzmann constant sigma_B */
 #define _k_B_ 1.3806504e-23
@@ -339,6 +355,8 @@ extern "C" {
 
 #define _H0_BIG_ 1./2997.9     /**< maximal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=1.0) \f$ */
 #define _H0_SMALL_ 0.3/2997.9  /**< minimal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=0.3) \f$ */
+#define _TCMB_BIG_ 2.8     /**< maximal \f$ T_{cmb} \f$ in K */
+#define _TCMB_SMALL_ 2.7   /**< minimal \f$ T_{cmb}  \f$ in K */
 #define _TOLERANCE_ON_CURVATURE_ 1.e-5 /**< if \f$ | \Omega_k | \f$ smaller than this, considered as flat */
 
 //@}
