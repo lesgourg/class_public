@@ -180,7 +180,6 @@ int lensing_init(
   
   if(ple->has_te==_TRUE_) {
    
-    printf("hello\n");
     class_alloc(d20,
                 num_mu*sizeof(double*),
                 ple->error_message);
@@ -237,7 +236,6 @@ int lensing_init(
   }
   
   if (ple->has_te==_TRUE_) {
-    printf("hello\n");
     for (index_mu=0; index_mu<num_mu; index_mu++) {
       class_alloc(d20[index_mu],
                   (ple->l_unlensed_max+1)*sizeof(double),
@@ -295,7 +293,6 @@ int lensing_init(
 	     ple->error_message);
 
   if (ple->has_te==_TRUE_) {
-    printf("hello\n");
 
     class_call(lensing_d20(mu,num_mu,ple->l_unlensed_max,d20),
                ple->error_message,
@@ -430,7 +427,7 @@ int lensing_init(
               ple->error_message);
   
   if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    printf("hello\n");
+
     class_alloc(X022,
                 (num_mu-1)*sizeof(double*),
                 ple->error_message);
@@ -462,7 +459,7 @@ int lensing_init(
   }
   
   if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    printf("hello\n");
+
     for (index_mu=0; index_mu<num_mu-1; index_mu++) {
       class_alloc(X022[index_mu],
                   (ple->l_unlensed_max+1)*sizeof(double),
@@ -493,23 +490,23 @@ int lensing_init(
              ple->error_message);
   
   if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    printf("hello\n");
+
     class_call(lensing_X022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X022),
                ple->error_message,
                ple->error_message);
-    printf("hello\n");
+
     class_call(lensing_Xp022(mu,num_mu-1,ple->l_unlensed_max,sigma2,Xp022),
                ple->error_message,
                ple->error_message);
-    printf("hello\n");
+
     class_call(lensing_X121(mu,num_mu-1,ple->l_unlensed_max,sigma2,X121),
                ple->error_message,
                ple->error_message);
-    printf("hello\n");
+
     class_call(lensing_X132(mu,num_mu-1,ple->l_unlensed_max,sigma2,X132),
                ple->error_message,
                ple->error_message);
-    printf("hello\n");
+
     class_call(lensing_X242(mu,num_mu-1,ple->l_unlensed_max,sigma2,X242),
                ple->error_message,
                ple->error_message);
@@ -545,7 +542,6 @@ int lensing_init(
   
   /** ksiX is for TE **/
   if (ple->has_te==_TRUE_) {
-    printf("hello\n");
     class_alloc(ksiX,
                 (num_mu-1)*sizeof(double),
                 ple->error_message);
@@ -624,7 +620,6 @@ int lensing_init(
              ple->error_message);
 
   if (ple->has_te==_TRUE_) {
-    printf("hello\n");
     class_call(lensing_lensed_cl_te(ksiX,d20,w8,num_mu-1,ple),
                ple->error_message,
                ple->error_message);
@@ -638,7 +633,7 @@ int lensing_init(
   } 
 
   /** DEBUG **/
-  printf("hello\n");
+  /*
   FILE *fpp;
   fpp=fopen("toto.txt","w");
   for (l=2; l<=ple->l_lensed_max; l++) {
@@ -654,7 +649,7 @@ int lensing_init(
 	    );
   }
   fclose(fpp);
-  
+  */
   /** Free lots of stuff **/
   for (index_mu=0; index_mu<num_mu-1; index_mu++) {
     free(d00[index_mu]);
