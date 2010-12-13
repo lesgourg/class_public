@@ -406,23 +406,23 @@ int lensing_init(
   
   if (ple->has_te==_TRUE_) {
     printf("hello\n");
-    class_call(lensing_X022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+    class_call(lensing_X022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X022),
                ple->error_message,
                ple->error_message);
     printf("hello\n");
-    class_call(lensing_Xp022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+    class_call(lensing_Xp022(mu,num_mu-1,ple->l_unlensed_max,sigma2,Xp022),
                ple->error_message,
                ple->error_message);
     printf("hello\n");
-    class_call(lensing_X121(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+    class_call(lensing_X121(mu,num_mu-1,ple->l_unlensed_max,sigma2,X121),
                ple->error_message,
                ple->error_message);
     printf("hello\n");
-    class_call(lensing_X132(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+    class_call(lensing_X132(mu,num_mu-1,ple->l_unlensed_max,sigma2,X132),
                ple->error_message,
                ple->error_message);
     printf("hello\n");
-    class_call(lensing_X242(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
+    class_call(lensing_X242(mu,num_mu-1,ple->l_unlensed_max,sigma2,X242),
                ple->error_message,
                ple->error_message);
   }
@@ -506,11 +506,11 @@ int lensing_init(
   FILE *fpp;
   fpp=fopen("toto.txt","w");
   for (l=2; l<=ple->l_lensed_max; l++) {
-    fprintf(fpp,"%d\t%lg\t%lg\n",l,
+    fprintf(fpp,"%d\t%lg\t%lg\t%lg\t%lg\n",l,
             cl_tt[l],
-            ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]);
-        /*cl_te[l],
-        ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]);*/
+            ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt],
+            cl_te[l],
+            ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]);
   }
   fclose(fpp);
   
