@@ -1,7 +1,7 @@
 #ifndef __EVO__
 #define __EVO__
 #include "common.h"
-// #include "perturbations.h"
+#include "perturbations.h"
 #include "sparse.h"
 #define TINY 1e-50
 /**************************************************************/
@@ -21,16 +21,12 @@ struct jacobian{
 	int trust_sparse; /* Number of times a pattern is repeated (actually included) before we trust it. */
 	int has_grouping;
 	int has_pattern;
-	int new_jacobian; /* True if sp_ludcmp has not been run on the current jacobian. */
-	int cnzmax;
 	int *col_group; /* Column grouping. Groups go from 0 to max_group*/
 	int *col_wi; /* Workarray for column grouping*/
 	int max_group; /*Number of columngroups -1 */
 	sp_mat *spJ; /* Stores the matrix we want to decompose */
 	double *xjac; /*Stores the values of the sparse jacobian. (Same pattern as spJ) */
 	sp_num *Numerical; /*Stores the LU decomposition.*/
-	int *Cp; /* Stores the column pointers of the spJ+spJ' sparsity pattern. */
-	int *Ci; /* Stores the row indices of the  spJ+spJ' sparsity pattern. */
 };
 
 struct numjac_workspace{
@@ -63,7 +59,7 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message);
 int uninitialize_jacobian(struct jacobian *jac);
 int initialize_numjac_workspace(struct numjac_workspace * nj_ws,int neq, ErrorMsg error_message);
 int uninitialize_numjac_workspace(struct numjac_workspace * nj_ws);
-int calc_C(struct jacobian *jac);
+/* void relevant_indices(int * interpidx,struct perturb_approximations * init_pa,struct perturb_vector * pv,int neq); */
 int interp_from_dif(double tinterp,double tnew,double *ynew,double h,double **dif,int k, double *yinterp,
      double *ypinterp, double *yppinterp, int* index, int neq, int output);
 int new_linearisation(struct jacobian *jac,double hinvGak,int neq, ErrorMsg error_message);
@@ -98,6 +94,11 @@ int generic_evolver(
 	int t_res,
 	int (*output)(double x,double y[],double dy[],int index_x,void * parameters_and_workspace,
 		ErrorMsg error_message),
+	int (*print_variables)(double x,
+			       double y[], 
+			       double dy[],
+			       void * parameters_and_workspace,
+			       ErrorMsg error_message),
 	ErrorMsg error_message);
 
 

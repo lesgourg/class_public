@@ -27,9 +27,7 @@ typedef struct sparse_numerical{
 	int *topvec;	/*topvec[k] holds the first index in xi[k].*/
 	int *pinv;		/*Inverse row permutation. */
 	int *p;			/*Row permutation. */
-	int *q;			/* Column permutation */
-	int *wamd;		/* Work array for sp_amd */
-	double *w;		/* Work array for sp_lu */
+	double *w;		/* Workarray for sp_lu */
 } sp_num;
 
 
@@ -51,9 +49,7 @@ int sp_ludcmp(sp_num *N, sp_mat *A, double pivtol);
 int sp_lusolve(sp_num *N, double *b, double *x);
 int sp_refactor(sp_num *N, sp_mat *A);
 int column_grouping(sp_mat *G, int *col_g, int *col_wi);
-int sp_amd(int *Cp, int *Ci, int n, int cnzmax, int *P, int *W);
-int sp_wclear(int mark, int lemax, int *w, int n);
-int sp_tdfs(int j, int k, int *head, const int *next, int *post, int *stack);
+
 
 
 #define SPFLIP(i) (-(i)-2)
