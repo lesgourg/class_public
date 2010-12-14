@@ -20,6 +20,9 @@
 enum tca_flags {tca_on, tca_off};
 enum fsa_flags {fsa_off, fsa_on};
 
+enum tca_method {first_order_MB,first_order_CAMB,first_order_full,second_order_CRS};
+
+
 //@}
 
 /**
@@ -288,6 +291,8 @@ struct perturb_workspace
 				 perturbations and their
 				 time-derivatives */
 
+  double tca_shear_g; /**< photon shear in tight-coupling approximation */
+
   //@}
 
   /** @name - table of source terms for each mode, initial condition
@@ -498,6 +503,7 @@ struct perturb_parameters_and_workspace {
     int perturb_einstein(
 			 struct precision * ppr,
 			 struct background * pba,
+			 struct thermo * pth,
 			 struct perturbs * ppt,
 			 int index_mode,
 			 double k,

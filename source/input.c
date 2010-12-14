@@ -1381,7 +1381,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
   ppr->tight_coupling_trigger_eta_g_over_eta_k=0.015; /*1.5e-2*/
   ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* decrease to start earlier in time */
-  ppr->tight_coupling_approximation=0;
+  ppr->tight_coupling_approximation=(int)first_order_MB;
 
   ppr->k_eta_max=10.; /* not used currently */
 

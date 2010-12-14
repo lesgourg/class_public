@@ -34,7 +34,7 @@ int generic_evolver(int (*derivs)(double x,
 		    ErrorMsg error_message) {
 
   int next_index_x;
-  double x1,x2,timestep,timescale;
+  double x1,x2=0.,timestep,timescale;
   struct generic_integrator_workspace gi;
   double * dy;
   short call_output;
@@ -133,6 +133,17 @@ int generic_evolver(int (*derivs)(double x,
     x1 = x2;
 
   }
+
+  /* a last call is useful to ensure that all quantitites
+     y,dy,parameters_and_workspace_for_derivs are updated to the last
+     point in the covered range */
+  class_call((*derivs)(x1,
+		       y,
+		       dy,
+		       parameters_and_workspace_for_derivs,
+		       error_message),
+	     error_message,
+	     error_message);
 
   if (print_variables != NULL)
     class_call((*print_variables)(x1,
