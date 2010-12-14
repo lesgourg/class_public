@@ -4112,7 +4112,7 @@ int perturb_derivs(double eta,
 	/* tight-coupling (theta_b-theta_g)' */
 
 	/* like Ma & Bertschinger */
-	/* 	if (ppr->debugging_flag == 0) { */
+	/* 	if (ppr->tight_coupling_approximation == 0) { */
 
 	slip=2.*R/(1.+R)*a_prime_over_a
 	  *(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g])
@@ -4125,7 +4125,7 @@ int perturb_derivs(double eta,
 	/* 	} */
 
 	/* relax assumption dkappa~a^-2 (like in CAMB) */
-	/* 	if (ppr->debugging_flag == 1) { */
+	/* 	if (ppr->tight_coupling_approximation == 1) { */
 
 	/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
 	/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */
@@ -4137,7 +4137,7 @@ int perturb_derivs(double eta,
 	/* 	} */
 
 	/* also relax assumption cs2~a^-1 */
-	/* 	if (ppr->debugging_flag == 2) { */
+	/* 	if (ppr->tight_coupling_approximation == 2) { */
 
 	/* 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]) */
 	/* 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b] */

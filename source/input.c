@@ -985,6 +985,7 @@ int input_init(
   class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
   class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
   class_read_double("start_sources_at_eta_g_over_eta_h",ppr->start_sources_at_eta_g_over_eta_h);
+  class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation)
   class_read_double("k_eta_max",ppr->k_eta_max);
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
@@ -1028,9 +1029,6 @@ int input_init(
   class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
   class_read_int("delta_l_max",ppr->delta_l_max);
 
-  /* for debugging */
-
-  class_read_int("debugging_flag",ppr->debugging_flag);
 
   /* check various l_max */
 
@@ -1380,9 +1378,10 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->start_small_k_at_eta_g_over_eta_h = 1.e-5; /* decrease to start earlier in time */
   ppr->start_large_k_at_eta_g_over_eta_k = 0.05e-5;  /* decrease to start earlier in time */
-  ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* decrease to start earlier in time */
   ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
   ppr->tight_coupling_trigger_eta_g_over_eta_k=0.015; /*1.5e-2*/
+  ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* decrease to start earlier in time */
+  ppr->tight_coupling_approximation=0;
 
   ppr->k_eta_max=10.; /* not used currently */
 

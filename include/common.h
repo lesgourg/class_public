@@ -401,6 +401,8 @@ struct precision
 
   double start_sources_at_eta_g_over_eta_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_H \f$. Start when start_sources_at_eta_g_over_eta_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
+  int tight_coupling_approximation;
+
   double k_eta_max; /**< maximum value of \f$ k \times \eta \f$ for which the sources should be computed in a pure CMB run*/
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
@@ -510,12 +512,6 @@ struct precision
   ErrorMsg error_message;
 
   //@}
-
-
-
-  /* temporary */
-  
-  int debugging_flag;
 
 };
 
