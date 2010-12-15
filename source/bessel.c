@@ -534,12 +534,12 @@ int bessel_j_for_l(
 	     pbs->error_message,
 	     "in dichotomy, wrong initial guess for x_min_up.");
  
-  while ((x_min_up-x_min_down) > ppr->bessel_delta_x_min) {
+  while ((x_min_up-x_min_down) > ppr->bessel_tol_x_min) {
       
     class_test((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
 	       pbs->error_message,
 	       "(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
-	       (x_min_up-x_min_down),ppr->bessel_delta_x_min);
+	       (x_min_up-x_min_down),ppr->bessel_tol_x_min);
     
     class_call(bessel_j(pbs,
 			pbs->l[index_l], /* l */

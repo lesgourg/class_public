@@ -464,7 +464,7 @@ struct precision
 
   double bessel_x_step; /**< step dx for sampling Bessel functions \f$ j_l(x) \f$ */
   double bessel_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
-  double bessel_delta_x_min;  /**< precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
+  double bessel_tol_x_min;  /**< precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
   double bessel_x_max_over_l_max; /**< x_max is defined as this parameter times largest l in Cls computation */ 
 
   //@}

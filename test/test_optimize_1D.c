@@ -50,6 +50,7 @@ int chi2_planck(
 		double * chi2);
 
 int noise_planck(
+		 struct background * pba,
 		 struct thermo * pth,
 		 struct spectra * psp,
 		 double ** nl,
@@ -92,7 +93,7 @@ int main(int argc, char **argv) {
   parser_init(&fc,4,errmsg);
 
   strcpy(fc.name[0],"output");
-  strcpy(fc.value[0],"tCl,pCl,lCl");
+  strcpy(fc.value[0],"tCl,pCl");
 
   strcpy(fc.name[1],"l_max_scalars");
   sprintf(fc.value[1],"%d",l_max);
@@ -103,13 +104,14 @@ int main(int argc, char **argv) {
 /*******************************************************/
 
   strcpy(fc.name[2],"lensing");
-  strcpy(fc.value[2],"yes");
+  strcpy(fc.value[2],"no");
 
-  strcpy(fc.name[3],"num_mu_minus_lmax");
-  parameter_initial=1000.;
-  parameter_logstep=0.9;
+  strcpy(fc.name[3],"tol_background_integration");
 
-  param_num=3;
+  parameter_initial=1.e-4;
+  parameter_logstep=1.3;
+
+  param_num=13;
   ref_run=0;
 
 /*******************************************************/
@@ -141,9 +143,9 @@ int main(int argc, char **argv) {
 /*       sprintf(fc.value[3],"%g",8.e-7); */
 /*     } */
 
- /*    sprintf(fc.value[2],"%g",parameter[i]); */
- /*    sprintf(fc.value[3],"%g",parameter[i]); */
-    sprintf(fc.value[3],"%d",(int)parameter[i]);
+/*     sprintf(fc.value[2],"%g",parameter[i]); */
+     sprintf(fc.value[3],"%g",parameter[i]);
+ /*    sprintf(fc.value[3],"%d",(int)parameter[i]); */
  /*    sprintf(fc.value[2],"%d",1); */
 
     fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[3]);
@@ -162,7 +164,7 @@ int main(int argc, char **argv) {
     }
 
 
- /*    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,l_max,cl[i],errmsg); */
+ /*    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,l_max,cl[i],errmsg); */
     class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,l_max,cl[i],errmsg);
     
 
@@ -201,7 +203,7 @@ int main(int argc, char **argv) {
 /* 	    parameter[i],chi2,chi2_bis,max_l,max_percentage); */
 /*   } */
 
-  noise_planck(&th,&sp,noise,l_max);
+  noise_planck(&ba,&th,&sp,noise,l_max);
 
 /*   for (l=2;l<=l_max;l++) { */
 /*     printf("%d  %e  %e  %e  %e  %e  %e\n",l, */
@@ -217,7 +219,7 @@ int main(int argc, char **argv) {
    
     chi2_planck(&sp,cl[i],cl[ref_run],noise,l_max,&chi2);
 
-    if (chi2>0.01) {
+    if (chi2>0.1) {
       fprintf(stderr,"parameter=%e BAD: chi2=%2g \n",
 	      parameter[i],chi2);
     }
@@ -293,12 +295,10 @@ int class(
 
   for (l=2; l <= l_max; l++) {
 
-    if (spectra_cl_at_l(psp,(double)l,cl[l],junk1,junk2) == _FAILURE_) {
+    if (output_total_cl_at_l(psp,ple,pop,(double)l,cl[l]) == _FAILURE_) {
       printf("\n\nError in spectra_cl_at_l \n=>%s\n",psp->error_message);
       return _FAILURE_;
     }
-
-    fprintf(stdout,"%d\n",cl[l][0]);
 
   }
 
@@ -530,6 +530,7 @@ int chi2_planck(
 }
 
 int noise_planck(
+		 struct background * pba,
 		 struct thermo * pth,
 		 struct spectra * psp,
 		 double ** nl,
@@ -547,18 +548,18 @@ int noise_planck(
   
   /* 100 GHz*/
   theta[0]=9.5/3437.75;          /* converted from arcmin to radian */
-  deltaT[0]=(6.8e-6/pth->Tcmb);  /* converted from K to dimensionless */
-  deltaP[0]=(10.9e-6/pth->Tcmb); /* converted from K to dimensionless */
+  deltaT[0]=(6.8e-6/pba->Tcmb);  /* converted from K to dimensionless */
+  deltaP[0]=(10.9e-6/pba->Tcmb); /* converted from K to dimensionless */
   
   /* 143 GHz*/
   theta[1]=7.1/3437.75;
-  deltaT[1]=(6.0e-6/pth->Tcmb);
-  deltaP[1]=(11.4e-6/pth->Tcmb);
+  deltaT[1]=(6.0e-6/pba->Tcmb);
+  deltaP[1]=(11.4e-6/pba->Tcmb);
   
   /* 217 GHz*/
   theta[2]=5.0/3437.75;
-  deltaT[2]=(13.1e-6/pth->Tcmb);
-  deltaP[2]=(26.7e-6/pth->Tcmb);
+  deltaT[2]=(13.1e-6/pba->Tcmb);
+  deltaP[2]=(26.7e-6/pba->Tcmb);
 
   for (l=2; l<=lmax; l++) {
 

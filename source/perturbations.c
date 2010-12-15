@@ -3201,20 +3201,20 @@ int perturb_einstein(
     }
 
     /** (c) eventually correct for the free-streaming velocities */
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) {
+/*     if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) { */
 
-      if (ppr->gauge == newtonian) { /*TBD*/ }
+/*       if (ppr->gauge == newtonian) { } */
 
       /* theta_g = theta_nur = -h_prime/2 */
-      if (ppr->gauge == synchronous) {
-	theta_g = -0.5 * ( k2 * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);
-	delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g;
-	if (pba->has_nur == _TRUE_) {
-	  theta_nur = theta_g;
-	  delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*theta_nur;
-	}
-      }
-    }
+ /*      if (ppr->gauge == synchronous) { */
+/* 	theta_g = -0.*0.5 * ( k2 * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a); */
+/* 	delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g; */
+/* 	if (pba->has_nur == _TRUE_) { */
+/* 	  theta_nur = theta_g; */
+/* 	  delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*theta_nur; */
+/* 	} */
+/*       } */
+/*     } */
 
     /** (d) infer metric perturbations from Einstein equations */
 
@@ -4218,14 +4218,14 @@ int perturb_derivs(double eta,
 	    + pvecback[pba->index_bg_rho_b]*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b];
 
 	  if (pba->has_dark_energy_fluid == _TRUE_)
-	    delta_p += pvecback[pba->index_bg_rho_de]*pba->cs2_de*y[ppw->pv->index_pt_delta_de]; 
+	    delta_p += pvecback[pba->index_bg_rho_de]*pba->cs2_de*y[ppw->pv->index_pt_delta_de];
 	    
 	  if (pba->has_nur == _TRUE_)
-	    delta_p += pvecback[pba->index_bg_rho_nur]/3.*y[ppw->pv->index_pt_delta_nur]; 
+	    delta_p += pvecback[pba->index_bg_rho_nur]/3.*y[ppw->pv->index_pt_delta_nur];
 
 	  Delta = 9.*a2*delta_p;
 
-	  /* second-order correction to shear */
+	  /* slip at second-order in tight-coupling */
 	  
 	  slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*theta_bc
 	    +(-a_primeprime_over_a*y[ppw->pv->index_pt_theta_b]
@@ -4234,8 +4234,10 @@ int perturb_derivs(double eta,
 		   -dy[ppw->pv->index_pt_delta_g]/4.
 		   +F_gamma_two_prime_first_order/2.)
 	      )/pvecthermo[pth->index_th_dkappa]/(1.+R)
-	    -2.*R*(3.*a_prime_over_a*a_prime_over_a*pvecthermo[pth->index_th_cb2]+(1.+R)*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)-3.*a_prime_over_a*a_prime_over_a)/(1.+R)/(1.+R)/(1.+R)*theta_bc/pvecthermo[pth->index_th_dkappa]
-	    +(a_primeprime_over_a*a_prime_over_a*((2.-3.*pvecthermo[pth->index_th_cb2])*R-2.)*y[ppw->pv->index_pt_theta_b]/(1.+R)
+	    -2.*R*(3.*a_prime_over_a*a_prime_over_a*pvecthermo[pth->index_th_cb2]+(1.+R)*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)-3.*a_prime_over_a*a_prime_over_a)
+	    /(1.+R)/(1.+R)/(1.+R)*theta_bc/pvecthermo[pth->index_th_dkappa]
+	    +(
+	      a_primeprime_over_a*a_prime_over_a*((2.-3.*pvecthermo[pth->index_th_cb2])*R-2.)*y[ppw->pv->index_pt_theta_b]/(1.+R)
 	      +a_prime_over_a*k2*(1.-3.*pvecthermo[pth->index_th_cb2])*y[ppw->pv->index_pt_theta_b]/3./(1.+R)
 	      +a_primeprime_over_a*k2*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b]/(1.+R)
 	      +k2*k2*(3.*pvecthermo[pth->index_th_cb2]-1.)*pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b]/3./(1.+R)
@@ -4246,12 +4248,13 @@ int perturb_derivs(double eta,
 	      +a_prime_over_a*k2*(2.+(5.-3.*pvecthermo[pth->index_th_cb2])*R)*dy[ppw->pv->index_pt_delta_g]/4./(1.+R)
 	      +a_prime_over_a*(1.-3.*pvecthermo[pth->index_th_cb2])*k2*h_plus_six_eta_prime/3.
 	      +k2*k2*(3.*pvecthermo[pth->index_th_cb2]-1.)*y[ppw->pv->index_pt_eta]/3.
-	      +2.*a_prime_over_a*k2*(3.*pvecthermo[pth->index_th_cb2]-1.)*dy[ppw->pv->index_pt_eta]
-	      +k2*(1.-3.*pvecthermo[pth->index_th_cb2])*Delta/6.)/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/(1.+R)/(1.+R)
+	      +2.*a_prime_over_a*k2*(3.*pvecthermo[pth->index_th_cb2]-1.)*pvecmetric[ppw->index_mt_eta_prime]
+	      +k2*(1.-3.*pvecthermo[pth->index_th_cb2])*Delta/6.
+	      )/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/(1.+R)/(1.+R)
 	    -(4.*a_primeprime_over_a*y[ppw->pv->index_pt_theta_b]-4.*k2*pvecthermo[pth->index_th_cb2]*dy[ppw->pv->index_pt_delta_b]+2.*a_prime_over_a*k2*y[ppw->pv->index_pt_delta_g]+k2*dy[ppw->pv->index_pt_delta_g])/2./(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]
 	    +4.*a_prime_over_a*R/(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]*theta_bc;
 	  
-	  theta_g_prime_first_order = 
+	  theta_g_prime_first_order =
 	    k2*(y[ppw->pv->index_pt_delta_g]/4.-shear_g)
 	    + pvecthermo[pth->index_th_dkappa]*theta_bc;
 

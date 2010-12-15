@@ -1008,7 +1008,7 @@ int input_init(
   class_read_int("l_linstep",ppr->l_linstep);
   class_read_double("bessel_x_step",ppr->bessel_x_step);
   class_read_double("bessel_j_cut",ppr->bessel_j_cut);
-  class_read_double("bessel_delta_x_min",ppr->bessel_delta_x_min);
+  class_read_double("bessel_tol_x_min",ppr->bessel_tol_x_min);
   class_read_double("bessel_x_max_over_l_max",ppr->bessel_x_max_over_l_max);
 
   /** h.5. parameter related to the primordial spectra */
@@ -1288,8 +1288,8 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to the background
    */
 
-  ppr->a_ini_over_a_today_default = 1.e-13;  /* 1.e-7 unless needs large k_max in P(k) */
-  ppr->back_integration_stepsize = 7.e-3;   /* 03.12.10 for chi2plT0.01 */
+  ppr->a_ini_over_a_today_default = 1.e-7;  /* 1.e-7 unless needs large k_max in P(k) */
+  ppr->back_integration_stepsize = 0.1;   /* 03.12.10 for chi2plT0.01 */
   ppr->tol_background_integration = 1.e-2;  /* no sizeable impact */
 
   /**
@@ -1356,12 +1356,11 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->gauge=synchronous;
 
-  ppr->k_scalar_min=0.01; /* 07.12.10 for chi2plT0.01 */
-  /*   ppr->k_scalar_oscillations=7.;   */
-  ppr->l_max_over_k_max_scalars = 8500.; /* 03.12.10 for chi2plT0.01 */
-  ppr->k_scalar_step_sub=0.01;  /* 03.12.10 for chi2plT0.01 */
-  ppr->k_scalar_step_super=0.005;  /* 03.12.10 for chi2plT0.01 */
-  ppr->k_scalar_step_transition=0.2; /* 03.12.10 for chi2plT0.01 */
+  ppr->k_scalar_min=0.01;                /* 14.12.10 for chi2plT0.01  and reasonnable small ls */
+  ppr->l_max_over_k_max_scalars = 8000.; /* 14.12.10 for chi2plT0.1 and reasonnable large ls*/
+  ppr->k_scalar_step_sub=0.08;           /* 14.12.10 for chi2plT0.1 */
+  ppr->k_scalar_step_super=0.005;        /* 14.12.10 for chi2plT0.1 and reasonnable small ls */
+  ppr->k_scalar_step_transition=0.2;     /* 14.12.10 for chi2plT0.1 */
   /* when optimizing, start by setting step_super=step_sub (then
      transition is irrelevant). Once this is done, try top increase
      step_sub for various values of transition. Keep the value of
@@ -1376,18 +1375,18 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->start_small_k_at_eta_g_over_eta_h = 1.e-5; /* decrease to start earlier in time */
-  ppr->start_large_k_at_eta_g_over_eta_k = 0.05e-5;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.006; /* 0.006 */
-  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.015; /*1.5e-2*/
-  ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* decrease to start earlier in time */
-  ppr->tight_coupling_approximation=(int)first_order_MB;
+  ppr->start_small_k_at_eta_g_over_eta_h = 0.006; /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
+  ppr->start_large_k_at_eta_g_over_eta_k = 1.e-5;  /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.008; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.005; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
+  ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* 14.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
+  ppr->tight_coupling_approximation=(int)second_order_CRS;
 
   ppr->k_eta_max=10.; /* not used currently */
 
   ppr->l_max_g=10; /* 03.12.10 for chi2plT0.01 */
   ppr->l_max_pol_g=10; /* 03.12.10 for chi2plT0.01 */
-  ppr->l_max_nur=23; /* 03.12.10 for chi2plT0.01 */
+  ppr->l_max_nur=20; /* 14.12.10 for chi2plT0.1 */
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 
@@ -1396,25 +1395,25 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
 
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
-  ppr->tol_eta_approx=5.e-4; /* 03.12.10 for chi2plT0.01 */
+  ppr->tol_eta_approx=1.e-5; /* 03.12.10 for chi2plT0.01 */
   ppr->tol_perturb_integration=1.e-6; /* 07.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
-  ppr->perturb_sampling_stepsize=0.06; /* 03.12.10 for chi2plT0.01 [0.06 for transfer_integrate=trapezoidal, 0.055 for transfer_integrate = spline] */
+  ppr->perturb_sampling_stepsize=0.08; /* 14.12.10 for chi2plT0.1 */
 
-  ppr->rad_pert_trigger_k_over_aH = 40.; /* 03.12.10 for chi2plT0.01 */
-  ppr->rad_pert_trigger_Omega_r = 0.15; /* 03.12.10 for chi2plT0.01 */
+  ppr->rad_pert_trigger_k_over_aH = 30.; /* 14.12.10 for chi2plT0.1 */
+  ppr->rad_pert_trigger_Omega_r = 0.2; /* 14.12.10 for chi2plT0.1 */
 
   /**
    * - parameter related to the Bessel functions
    */
 
-  ppr->l_logstep=1.026; /* 03.12.10 for chi2plT0.01 */
-  ppr->l_linstep=56; /* 03.12.10 for chi2plT0.01 */
+  ppr->l_logstep=1.035; /* 14.12.10 for chi2plT0.1 */
+  ppr->l_linstep=35; /* 14.12.10 for chi2plT0.1 and reasonnable large ls */
   /* when optimizing, always compare to case linstep=1 (all l's) */
 
-  ppr->bessel_x_step=0.02; /* 03.12.10 for chi2plT0.01: must be set to 0.02; let it temporarily larger to avoid disk saturation */
-  ppr->bessel_j_cut=5.e-5; /* 03.12.10 for chi2plT0.01 */
-  ppr->bessel_delta_x_min =1.e-4; /* 03.12.10 for chi2plT0.01 */
-  ppr->bessel_x_max_over_l_max=1.8; /* 03.12.10 for chi2plT0.01 */
+  ppr->bessel_x_step=0.045; /* 14.12.10 for chi2plT0.1 */
+  ppr->bessel_j_cut=1.5e-4; /* 14.12.10 for chi2plT0.1 */
+  ppr->bessel_tol_x_min =1.e-4; /* 03.12.10 for chi2plT0.01 */
+  ppr->bessel_x_max_over_l_max=2.0; /* 03.12.10 for chi2plT0.01 */
 
   /**
    * - parameter related to the primordial spectra
@@ -1431,7 +1430,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->transfer_cut=tc_cl; /* 03.12.10 for chi2plT0.01: tc_cl slightly faster (by 20%) for equal precision, but also slightly less robust (better to switch to tc_osc if primordial tilt can depart significantly from one) */
   ppr->transfer_cut_threshold_osc=0.015; /* 03.12.10 for chi2plT0.01 */
-  ppr->transfer_cut_threshold_cl=8.e-7; /* 03.12.10 for chi2plT0.01 */
+  ppr->transfer_cut_threshold_cl=2.e-6; /* 14.12.10 for chi2plT0.01 */
 
   ppr->transfer_integrate = trapezoidal;
 
