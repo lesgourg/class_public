@@ -6,7 +6,7 @@ a_ini_over_a_today_default = 1.e-7
 back_integration_stepsize = 7.e-3
 tol_background_integration = 1.e-2
 
-recfast_z_initial=1.e4;
+recfast_z_initial=1.e4
 
 recfast_Nz0=10000
 tol_thermo_integration=1.e-5
@@ -71,7 +71,7 @@ l_max_g=10
 l_max_pol_g=10
 l_max_nur=23
 
-tol_eta_approx=5.e-4
+tol_eta_approx=1.e-5
 tol_perturb_integration=1.e-6
 perturb_sampling_stepsize=0.06
 
@@ -86,10 +86,9 @@ bessel_j_cut=5.e-5
 bessel_delta_x_min =1.e-4
 bessel_x_max_over_l_max=1.8
 
-k_per_decade_primordial = 10.; 
+k_per_decade_primordial = 10.
   
 k_step_trans_scalars=0.2
-k_step_trans_tensors=0.15
 
 transfer_cut=2 #tc_cl
 transfer_cut_threshold_osc=0.015

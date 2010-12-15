@@ -1357,7 +1357,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->gauge=synchronous;
 
   ppr->k_scalar_min=0.01;                /* 14.12.10 for chi2plT0.01  and reasonnable small ls */
-  ppr->l_max_over_k_max_scalars = 8000.; /* 14.12.10 for chi2plT0.1 and reasonnable large ls*/
+  ppr->l_max_over_k_max_scalars = 8500.; /* 14.12.10 for chi2plT0.1 and reasonnable large ls*/
   ppr->k_scalar_step_sub=0.08;           /* 14.12.10 for chi2plT0.1 */
   ppr->k_scalar_step_super=0.005;        /* 14.12.10 for chi2plT0.1 and reasonnable small ls */
   ppr->k_scalar_step_transition=0.2;     /* 14.12.10 for chi2plT0.1 */
@@ -1378,7 +1378,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->start_small_k_at_eta_g_over_eta_h = 0.006; /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
   ppr->start_large_k_at_eta_g_over_eta_k = 1.e-5;  /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
   ppr->tight_coupling_trigger_eta_g_over_eta_h=0.008; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.005; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.05; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
   ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* 14.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)second_order_CRS;
 
@@ -1386,7 +1386,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->l_max_g=10; /* 03.12.10 for chi2plT0.01 */
   ppr->l_max_pol_g=10; /* 03.12.10 for chi2plT0.01 */
-  ppr->l_max_nur=20; /* 14.12.10 for chi2plT0.1 */
+  ppr->l_max_nur=23; /* 14.12.10 for chi2plT0.1 */
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 
@@ -1400,7 +1400,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.08; /* 14.12.10 for chi2plT0.1 */
 
   ppr->rad_pert_trigger_k_over_aH = 30.; /* 14.12.10 for chi2plT0.1 */
-  ppr->rad_pert_trigger_Omega_r = 0.2; /* 14.12.10 for chi2plT0.1 */
+  ppr->rad_pert_trigger_Omega_r = 0.15; /* 14.12.10 for chi2plT0.1 */
 
   /**
    * - parameter related to the Bessel functions
@@ -1413,7 +1413,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->bessel_x_step=0.045; /* 14.12.10 for chi2plT0.1 */
   ppr->bessel_j_cut=1.5e-4; /* 14.12.10 for chi2plT0.1 */
   ppr->bessel_tol_x_min =1.e-4; /* 03.12.10 for chi2plT0.01 */
-  ppr->bessel_x_max_over_l_max=2.0; /* 03.12.10 for chi2plT0.01 */
+  ppr->bessel_x_max_over_l_max=1.8; /* 03.12.10 for chi2plT0.01 */
 
   /**
    * - parameter related to the primordial spectra
