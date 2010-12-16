@@ -924,7 +924,7 @@ int spectra_init(
   }
   else {
     if (psp->spectra_verbose > 0)
-      printf("Computing output spectra\n");
+      printf("Computing unlensed linear spectra\n");
   }
 
   /** - initialize indices and allocate some of the arrays in the 

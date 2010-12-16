@@ -34,7 +34,7 @@ int output_total_cl_at_l(
   }
   else {
     class_call(spectra_cl_at_l(psp,
-			       l,
+			       (double)l,
 			       cl,
 			       junk1,
 			       junk2),
@@ -60,6 +60,7 @@ int output_init(
 		struct background * pba,
 		struct perturbs * ppt,
 		struct spectra * psp,
+		struct lensing * ple,
 		struct output * pop
 		) {
 
@@ -81,7 +82,7 @@ int output_init(
 
   if (ppt->has_cls == _TRUE_) {
 
-    class_call(output_cl(ppt,psp,pop),
+    class_call(output_cl(ppt,psp,ple,pop),
 	       pop->error_message,
 	       pop->error_message);
   }
@@ -117,6 +118,7 @@ int output_init(
 int output_cl(
 	      struct perturbs * ppt,
 	      struct spectra * psp,
+	      struct lensing * ple,
 	      struct output * pop
 	      ) {
 
@@ -133,6 +135,8 @@ int output_cl(
 			 (will contain cl's for each mode, summed eventually over ic's) */
 
   FILE * out;         /* (will contain total cl's, summed eventually over modes and ic's) */
+
+  FILE * out_lensed;         /* (will contain total lensed cl's) */
 
   double ** cl_md_ic; /* array with argument 
 			 cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] */
@@ -193,6 +197,22 @@ int output_cl(
   class_alloc(cl_tot,
 	      psp->ct_size*sizeof(double),
 	      pop->error_message);
+
+
+  if (ple->has_lensed_cls == _TRUE_) {
+    
+    sprintf(file_name,"%s%s",pop->root,"cl_lensed.dat");
+    
+    class_call(output_open_cl_file(psp,
+				   pop,
+				   &out_lensed,
+				   file_name,
+				   "# dimensionless total lensed [l(l+1)/2pi] C_l's",
+				   ple->l_lensed_max
+				   ),
+	       pop->error_message,
+	       pop->error_message);
+  }
 
   if (ppt->md_size > 1) {
 
@@ -388,9 +408,22 @@ int output_cl(
 	       psp->error_message,
 	       pop->error_message);
 
-    class_call(output_one_line_of_cl(out,l,cl_tot,psp->ct_size),
+    class_call(output_one_line_of_cl(out,(double)l,cl_tot,psp->ct_size),
 	       pop->error_message,
 	       pop->error_message);
+
+    if ((ple->has_lensed_cls == _TRUE_) && (l<=ple->l_lensed_max)) {
+
+      class_call(lensing_cl_at_l(ple,
+				 (double)l,
+				 cl_tot),
+		 ple->error_message,
+		 pop->error_message);
+
+      class_call(output_one_line_of_cl(out_lensed,l,cl_tot,psp->ct_size),
+		 pop->error_message,
+		 pop->error_message);
+    }
 
     if (ppt->md_size > 1) {
       for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
@@ -436,6 +469,9 @@ int output_cl(
     }
   }
   fclose(out);
+  if (ple->has_lensed_cls == _TRUE_) {
+    fclose(out_lensed);
+  }
   free(cl_tot);
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
     free(out_md_ic[index_mode]);

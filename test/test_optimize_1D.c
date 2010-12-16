@@ -106,12 +106,12 @@ int main(int argc, char **argv) {
   strcpy(fc.name[2],"lensing");
   strcpy(fc.value[2],"no");
 
-  strcpy(fc.name[3],"tol_background_integration");
+  strcpy(fc.name[3],"transfer_cut_threshold_cl");
 
-  parameter_initial=1.e-4;
+  parameter_initial=1.e-7;
   parameter_logstep=1.3;
 
-  param_num=13;
+  param_num=30;
   ref_run=0;
 
 /*******************************************************/
@@ -130,7 +130,8 @@ int main(int argc, char **argv) {
   for (i=0; i<param_num; i++) {
 
     parameter[i] = parameter_initial * exp((double)i*log(parameter_logstep));
-/*     parameter[i] = parameter_initial -i; */
+
+/*       parameter[i] = parameter_initial -i; */
 
 /*     if (i==0) { */
 /*       sprintf(fc.value[2],"%d",tc_osc); */
@@ -144,8 +145,8 @@ int main(int argc, char **argv) {
 /*     } */
 
 /*     sprintf(fc.value[2],"%g",parameter[i]); */
-     sprintf(fc.value[3],"%g",parameter[i]);
- /*    sprintf(fc.value[3],"%d",(int)parameter[i]); */
+      sprintf(fc.value[3],"%g",parameter[i]);
+/*     sprintf(fc.value[3],"%d",(int)parameter[i]); */
  /*    sprintf(fc.value[2],"%d",1); */
 
     fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[3]);

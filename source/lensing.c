@@ -771,7 +771,7 @@ int lensing_indices(
 
   if (psp->has_pp == _TRUE_) {
     ple->has_pp = _TRUE_;
-    ple->index_lt_te=psp->index_ct_pp;      
+    ple->index_lt_pp=psp->index_ct_pp;      
   }
   else {
     ple->has_pp = _FALSE_;
@@ -1011,7 +1011,7 @@ int lensing_X220(
   for (l=2; l<=lmax; l++) {
     ll = (double) l;
     fac1[l] = 0.25*sqrt((ll+2)*(ll+1)*ll*(ll-1));
-    fac2[l] = ll*(ll+1)/4.;
+    fac2[l] = (ll*(ll+1)-2.)/4.;
   }
   for (index_mu=0;index_mu<num_mu;index_mu++) {
     X220[index_mu][0]=0;

@@ -595,7 +595,7 @@ int perturb_indices_of_perturbs(
 
     }
 
-    /** (c) for each mode, count values of k with perturb_get_k_list_size() */
+    /** (c) for each mode, define k values with perturb_get_k_list() */
 
     class_call(perturb_get_k_list(ppr,
 				  pba,
@@ -1037,7 +1037,11 @@ int perturb_get_k_list(
 
     index_k=0;
     ppt->k[index_mode][index_k] = ppr->k_scalar_min * pba->H0;
+
+/*     printf("%d %e %g\n",index_k,ppt->k[index_mode][index_k],1.); */
+
     index_k++;
+
     while (index_k < ppt->k_size_cl[index_mode]) {
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
@@ -1046,6 +1050,7 @@ int perturb_get_k_list(
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
       ppt->k[index_mode][index_k]=ppt->k[index_mode][index_k-1] + step * k_rec;
+     /*  printf("%d %e %g\n",index_k,ppt->k[index_mode][index_k],1.); */
       index_k++;
     }
 

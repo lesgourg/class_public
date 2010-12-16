@@ -1019,10 +1019,14 @@ int input_init(
 
   class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
   class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
+/*   class_read_int("k_oversampling_scalars",ppr->k_oversampling_scalars); */
+/*   class_read_int("k_oversampling_tensors",ppr->k_oversampling_tensors); */
+
   class_read_int("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
   class_read_int("transfer_integrate",ppr->transfer_integrate);
+  class_read_int("l_switch_limber",ppr->l_switch_limber);
 
   /** h.7. parameter related to lensing */
 
@@ -1428,11 +1432,16 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_step_trans_scalars=0.2; /* 03.12.10 for chi2plT0.01: difficult to optimize, numerical instability below 0.1, need to study this better */
   ppr->k_step_trans_tensors=0.15;
 
+/*   ppr->k_oversampling_scalars=3; */
+/*   ppr->k_oversampling_tensors=1; */
+
   ppr->transfer_cut=tc_cl; /* 03.12.10 for chi2plT0.01: tc_cl slightly faster (by 20%) for equal precision, but also slightly less robust (better to switch to tc_osc if primordial tilt can depart significantly from one) */
   ppr->transfer_cut_threshold_osc=0.015; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=2.e-6; /* 14.12.10 for chi2plT0.01 */
 
   ppr->transfer_integrate = trapezoidal;
+
+  ppr->l_switch_limber=10;
 
   /**
    * - parameter related to lensing

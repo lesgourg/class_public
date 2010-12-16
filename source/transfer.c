@@ -652,6 +652,52 @@ int transfer_get_k_list(
   double k_step=0;
   int index_k;
 
+/*   int oversampling=1,index_k_pt,index_oversampling; */
+
+/*   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) */
+/*     oversampling = ppr->k_oversampling_scalars; */
+
+/*   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) */
+/*     oversampling = ppr->k_oversampling_tensors; */
+
+/*     class_test(oversampling == 0, */
+/* 	       ptr->error_message, */
+/* 	       "stop to avoid division by zero"); */
+
+/*   ptr->k_size[index_mode] = (ppt->k_size_cl[index_mode]-1)*oversampling+1; */
+ 
+/*   class_alloc(ptr->k[index_mode],ptr->k_size[index_mode]*sizeof(double),ptr->error_message); */
+
+/*   fprintf(stderr,"%d %d %d\n",oversampling,ptr->k_size[index_mode],index_mode); */
+
+/*   index_k = 0; */
+
+/*   for (index_k_pt = 0; index_k_pt < ppt->k_size[index_mode]-1; index_k_pt++) { */
+
+/*     for (index_oversampling = 0; index_oversampling < oversampling; index_oversampling++) { */
+
+/*     ptr->k[index_mode][index_k] = ppt->k[index_mode][index_k_pt] */
+/*       +(double)index_oversampling*(ppt->k[index_mode][index_k_pt+1]-ppt->k[index_mode][index_k_pt])/(double)oversampling; */
+
+/*     printf("%d %e %g\n",index_k,ptr->k[index_mode][index_k],0.5); */
+
+/*     class_test(ptr->k[index_mode][index_k] == 0., */
+/* 	       ptr->error_message, */
+/* 	       "stop to avoid division by zero in transfer_init()"); */
+
+/*     index_k++; */
+
+/*     } */
+/*   } */
+
+/*   ptr->k[index_mode][index_k] = ppt->k[index_mode][ppt->k_size[index_mode]-1]; */
+  
+/*   printf("%d %e %g\n",index_k,ptr->k[index_mode][index_k],0.5); */
+
+/*   return _SUCCESS_; */
+
+
+
   class_test((eta0-eta_rec) == 0.,
 	     ptr->error_message,
 	     "stop to avoid division by zero");
@@ -1014,7 +1060,7 @@ int transfer_compute_for_each_l(
       /* criterium for chosing between integration and Limber 
 	 must be implemented here */
 
-      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (ptr->l[index_mode][index_l]>ppr->l_switch_limber)) {
 	
       	class_call(transfer_limber(ppt,
 				   ptr,

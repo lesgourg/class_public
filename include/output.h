@@ -62,12 +62,14 @@ extern "C" {
 		  struct background * pba,
 		  struct perturbs * ppt,
 		  struct spectra * psp,
+		  struct lensing * ple,
 		  struct output * pop
 		  );
 
   int output_cl(
 		struct perturbs * ppt,
 		struct spectra * psp,
+		struct lensing * ple,
 		struct output * pop
 		);
 
