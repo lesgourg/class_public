@@ -112,6 +112,7 @@ int output_init(
  *
  * @param ppt Input : pointer perturbation structure
  * @param psp Input : pointer to spectra structure
+ * @param ple Input : pointer to lensing structure
  * @param pop Input : pointer to output structure
  */
 
@@ -398,7 +399,7 @@ int output_cl(
     }
   }
 
-  /** - third, perfomr loop over l. For each multipole, get all C_l's
+  /** - third, perform loop over l. For each multipole, get all C_l's
       by calling spectra_cl_at_l() and distribute the results to 
       relevant files */
 
