@@ -850,16 +850,15 @@ int input_init(
   class_read_string("root",pnl->root);
 
   class_call(parser_read_string(pfc,
-				"bessels",
+				"bessel file",
 				&(string1),
 				&(flag1),
 				errmsg),
 	     errmsg,
 	     errmsg);
 	     
-  if (flag1 == _TRUE_) {
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
     pbs->bessel_always_recompute = _FALSE_;
-    strcpy(pbs->bessel_file_name,string1);
   }
 
   /** (f) parameter related to the non-linear spectra computation */
@@ -1010,6 +1009,7 @@ int input_init(
   class_read_double("bessel_j_cut",ppr->bessel_j_cut);
   class_read_double("bessel_tol_x_min",ppr->bessel_tol_x_min);
   class_read_double("bessel_x_max_over_l_max",ppr->bessel_x_max_over_l_max);
+  class_read_string("bessel_file_name",ppr->bessel_file_name);
 
   /** h.5. parameter related to the primordial spectra */
 
@@ -1168,7 +1168,6 @@ int input_default_params(
 
   pbs->l_max = max(ppt->l_scalar_max,ppt->l_tensor_max);
   pbs->bessel_always_recompute = _TRUE_;
-  strcpy(pbs->bessel_file_name,"");
 
   /** - primordial structure */
 
@@ -1418,6 +1417,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->bessel_j_cut=1.5e-4; /* 14.12.10 for chi2plT0.1 */
   ppr->bessel_tol_x_min =1.e-4; /* 03.12.10 for chi2plT0.01 */
   ppr->bessel_x_max_over_l_max=1.8; /* 03.12.10 for chi2plT0.01 */
+  sprintf(ppr->bessel_file_name,"bessels.dat");
 
   /**
    * - parameter related to the primordial spectra
@@ -1447,8 +1447,8 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to lensing
    */
 
-  ppr->num_mu_minus_lmax=1000;
-  ppr->delta_l_max=300;
+  ppr->num_mu_minus_lmax=400;
+  ppr->delta_l_max=100;
 
   /**
    * - automatic estimate of machine precision
@@ -1462,6 +1462,14 @@ int input_default_precision ( struct precision * ppr ) {
 
   return _SUCCESS_;
 
+}
+
+int class_version(
+		  char * version
+		  ) {
+  
+  sprintf(version,"%s",_VERSION_);
+  return _SUCCESS_;
 }
 
 /** 

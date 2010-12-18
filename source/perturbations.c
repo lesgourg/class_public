@@ -157,10 +157,6 @@ int perturb_init(
     printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008. Mistake in one of the two codes? To be checked.\n");
   }
 
-  if (ppt->has_cl_cmb_lensing_potential == _TRUE_) {
-    printf("Warning: so far, C_l^phiphi and C_l^Tphi computed using Limber for all l's, not very precise...\n");
-  }
-
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
   class_call(perturb_indices_of_perturbs(ppr,

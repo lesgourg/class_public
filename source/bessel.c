@@ -172,11 +172,11 @@ int bessel_init(
 
   if (pbs->bessel_always_recompute == _FALSE_) {
 
-    bessel_file=fopen(pbs-> bessel_file_name,"r");
+    bessel_file=fopen(ppr->bessel_file_name,"r");
   
     if (bessel_file == NULL) {
       if (pbs->bessels_verbose > 1)
-	printf("File %s did not exist.\n",pbs-> bessel_file_name);
+	printf("File %s did not exist.\n",ppr->bessel_file_name);
     }
     else {
 
@@ -222,7 +222,7 @@ int bessel_init(
 	  (x_max_file == pbs->x_max)) {
 
 	if (pbs->bessels_verbose > 0)
-	  printf("Read bessels in file %s\n",pbs-> bessel_file_name);
+	  printf("Read bessels in file %s\n",ppr->bessel_file_name);
 	
 	class_alloc(pbs->x_min,pbs->l_size*sizeof(double),pbs->error_message);
 	class_alloc(pbs->x_size,pbs->l_size*sizeof(int),pbs->error_message);
@@ -319,11 +319,11 @@ int bessel_init(
   if (pbs->bessel_always_recompute == _FALSE_) {
 
     if (pbs->bessels_verbose > 0)
-      printf(" -> (over)write in file %s\n",pbs-> bessel_file_name);
+      printf(" -> (over)write in file %s\n",ppr->bessel_file_name);
 
     /** (b) write in file */
 
-    bessel_file = fopen(pbs->bessel_file_name,"w");
+    bessel_file = fopen(ppr->bessel_file_name,"w");
 
     fwrite(&(pbs->l_size),sizeof(int),1,bessel_file);
     fwrite(pbs->l,sizeof(int),pbs->l_size,bessel_file);

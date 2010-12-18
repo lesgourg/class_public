@@ -12,6 +12,8 @@
 #ifndef __COMMON__
 #define __COMMON__
 
+#define _VERSION_ "v0.0.0"
+
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
 
@@ -466,6 +468,7 @@ struct precision
   double bessel_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
   double bessel_tol_x_min;  /**< precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
   double bessel_x_max_over_l_max; /**< x_max is defined as this parameter times largest l in Cls computation */ 
+  FileName bessel_file_name; /**< name of file where Bessel functions will evnetually be written or read */
 
   //@}
 

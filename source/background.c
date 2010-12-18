@@ -394,8 +394,10 @@ int background_init(
 
   double Omega0_tot;
 
-  if (pba->background_verbose > 0)
+  if (pba->background_verbose > 0) {
+    printf("Running CLASS version %s\n",_VERSION_);
     printf("Computing background\n");
+  }
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
   class_call(background_indices(pba),

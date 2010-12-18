@@ -26,8 +26,6 @@ struct bessels {
 
   short bessel_always_recompute; /**< if set to true, Bessels are never read from / written in files */
 
-  FileName bessel_file_name; /**< if previous flag set to false, name of file for reading/writing table of Bessels */
-
  //@}
 
   /** @name - parameters defining uniquely the exact content of the Bessel table
