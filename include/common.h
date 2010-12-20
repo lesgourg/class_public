@@ -338,17 +338,6 @@ struct precision
 
   int thermo_rate_smoothing_radius; /**< plays a minor (almost aesthetic) role in the definition of the variation rate of thermodynamical quantities */
 
-  /**
-   * critical values of visibility function g: 
-   *
-   * (a) when g becomes smaller than
-   * visibility_threshold_free_streaming, try to turn off radiation
-   * perturbations (actually this condition is overwritten by another
-   * one: Omega_r < rad_pert_trigger_Omega_r; the present variable
-   * remains just in case one would need it)
-   */
-  double visibility_threshold_free_streaming;
-
   //@}
 
   /** @name - parameters related to the perturbation */
@@ -360,13 +349,13 @@ struct precision
    */
   enum possible_gauges gauge; 
 
-  double k_scalar_min; /**< first mode k_min in units of Hubble radius today */
+  double k_scalar_min_eta0; /**< number defining k_min for the computation of scalar Cl's and P(k)'s (dimensionless): (k_min eta_0), usually chosen much smaller than one */
 
-  double l_max_over_k_max_scalars; /**< number defining k_max (in units of Mpc^-1) for scalars: k_max = l_max times this number (order of magnitude given by few Hubble radius in Mpc, i.e. few times 3000) */
+  double k_scalar_max_eta0_over_l_max; /**< number defining k_max for the computation of scalar Cl's (dimensionless): (k_max eta_0)/l_max, usually chosen around two */
 
   double k_scalar_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
   double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
-  double k_scalar_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. */
+  double k_scalar_step_transition; /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
 
   double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade */
 

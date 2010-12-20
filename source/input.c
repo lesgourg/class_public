@@ -962,14 +962,13 @@ int input_init(
   class_read_double("helium_fullreio_redshift",ppr->helium_fullreio_redshift);
   class_read_double("helium_fullreio_width",ppr->helium_fullreio_width);
 
-  class_read_double("visibility_threshold_free_streaming",ppr->visibility_threshold_free_streaming);
   class_read_int("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
 
   /** h.3. parameters related to the perturbations */
 
   class_read_int("gauge",ppr->gauge);
-  class_read_double("k_scalar_min",ppr->k_scalar_min);
-  class_read_double("l_max_over_k_max_scalars",ppr->l_max_over_k_max_scalars);
+  class_read_double("k_scalar_min_eta0",ppr->k_scalar_min_eta0);
+  class_read_double("k_scalar_max_eta0_over_l_max",ppr->k_scalar_max_eta0_over_l_max);
   class_read_double("k_scalar_step_sub",ppr->k_scalar_step_sub);
   class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
   class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
@@ -1348,8 +1347,6 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* general */
 
-  ppr->visibility_threshold_free_streaming=1.e-5; /* not used currently */
-
   ppr->thermo_rate_smoothing_radius=50;
 
   /**
@@ -1358,8 +1355,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->gauge=synchronous;
 
-  ppr->k_scalar_min=0.01;                /* 14.12.10 for chi2plT0.01  and reasonnable small ls */
-  ppr->l_max_over_k_max_scalars = 8500.; /* 14.12.10 for chi2plT0.1 and reasonnable large ls*/
+  ppr->k_scalar_min_eta0=0.032;                /* 14.12.10 for chi2plT0.01  and reasonnable small ls */
+  ppr->k_scalar_max_eta0_over_l_max=1.65; /* 14.12.10 for chi2plT0.1 and reasonnable large ls*/
   ppr->k_scalar_step_sub=0.08;           /* 14.12.10 for chi2plT0.1 */
   ppr->k_scalar_step_super=0.005;        /* 14.12.10 for chi2plT0.1 and reasonnable small ls */
   ppr->k_scalar_step_transition=0.2;     /* 14.12.10 for chi2plT0.1 */

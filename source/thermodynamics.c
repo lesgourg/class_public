@@ -454,14 +454,30 @@ int thermodynamics_init(
   /** - find maximum of g */
 
   index_eta=pth->tt_size-1;
-  while (pth->z_table[index_eta]>2000.) {
+  while (pth->z_table[index_eta]>_Z_REC_MAX_) {
     index_eta--;
   }
+
+  class_test(pth->thermodynamics_table[(index_eta+1)*pth->th_size+pth->index_th_g] >
+	     pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g],
+	     pth->error_message,
+	     "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
+
   while (pth->thermodynamics_table[(index_eta+1)*pth->th_size+pth->index_th_g] <
 	 pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g]) {
     index_eta--;
   }
-  pth->z_rec=pth->z_table[index_eta+1];
+  
+  /* approximation for maximum of g, using cubic interpolation, assuming equally spaced z's */
+  pth->z_rec=pth->z_table[index_eta+1]+0.5*(pth->z_table[index_eta+1]-pth->z_table[index_eta])*(pth->thermodynamics_table[(index_eta)*pth->th_size+pth->index_th_g]-pth->thermodynamics_table[(index_eta+2)*pth->th_size+pth->index_th_g])/(pth->thermodynamics_table[(index_eta)*pth->th_size+pth->index_th_g]-2.*pth->thermodynamics_table[(index_eta+1)*pth->th_size+pth->index_th_g]+pth->thermodynamics_table[(index_eta+2)*pth->th_size+pth->index_th_g]);
+
+  class_test(pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_,
+	     pth->error_message,
+	     "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
+
+  class_test(pth->z_rec-ppr->smallest_allowed_variation <= _Z_REC_MIN_,
+	     pth->error_message,
+	     "found a recombination redshift smaller or equal to the maximum value imposed in thermodynamics.h, z_rec_min=%g",_Z_REC_MIN_);
 
   /** - find conformal recombination time using background_eta_of_z() **/
 

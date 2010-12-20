@@ -54,8 +54,8 @@ thermo_rate_smoothing_radius=50
 
 gauge=1 #synchronous
 
-k_scalar_min=0.01
-l_max_over_k_max_scalars = 8500.
+k_scalar_min_eta0=0.03
+k_scalar_max_eta0_over_l_max=1.65
 k_scalar_step_sub=0.01
 k_scalar_step_super=0.005
 k_scalar_step_transition=0.2

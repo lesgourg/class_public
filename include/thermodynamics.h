@@ -443,6 +443,8 @@ extern "C" {
 
 #define _YHE_BIG_ 0.5      /**< maximal \f$ Y_{He} \f$ */
 #define _YHE_SMALL_ 0.01   /**< minimal \f$ Y_{He} \f$ */
+#define _Z_REC_MAX_ 2000.
+#define _Z_REC_MIN_ 500.
 
 //@}
 

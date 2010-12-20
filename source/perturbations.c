@@ -993,14 +993,17 @@ int perturb_get_k_list(
 	       ppt->error_message,
 	       "stop to avoid division by zero");
 
-    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresping to sound horizon at recombination */
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
     index_k=0;
-    k = ppr->k_scalar_min * pba->H0;
+    k=ppr->k_scalar_min_eta0/pba->conformal_age;
     index_k=1;
 
-    if (ppt->has_cls == _TRUE_)
-      k_max_cl = ppt->l_scalar_max/ppr->l_max_over_k_max_scalars;
+    if (ppt->has_cls == _TRUE_) {
+      k_max_cl = ppr->k_scalar_max_eta0_over_l_max
+	*ppt->l_scalar_max
+	/pba->conformal_age;
+    }
     else
       k_max_cl = 0.;
 
@@ -1032,7 +1035,7 @@ int perturb_get_k_list(
     /** - repeat the same steps, now filling the array */
 
     index_k=0;
-    ppt->k[index_mode][index_k] = ppr->k_scalar_min * pba->H0;
+    ppt->k[index_mode][index_k] = ppr->k_scalar_min_eta0/pba->conformal_age;;
 
 /*     printf("%d %e %g\n",index_k,ppt->k[index_mode][index_k],1.); */
 
