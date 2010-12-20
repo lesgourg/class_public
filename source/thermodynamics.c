@@ -219,7 +219,7 @@ int thermodynamics_init(
   /* index running over time*/
   int index_eta;
   /* temporary variables related to visibility function */
-  double g, g_previous, eta_visibility_max;
+  double g;
   /* vector of background values for calling background_at_eta() */
   double * pvecback;
   /* index for calling background_at_eta() */
@@ -383,33 +383,12 @@ int thermodynamics_init(
    * 
    */
 
-  pth->z_visibility_free_streaming=0.;
-  pth->z_visibility_max=0.;
-  g = 0.;
-
   /* loop on z (decreasing z, increasing time) */
   for (index_eta=pth->tt_size-1; index_eta>=0; index_eta--) {
 
-    g_previous = g;
+    /** -> compute g */  
     g = pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
       exp(pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g]);
-
-/*     fprintf(stdout,"%e %e\n",pth->z_table[index_eta],g); */
-
-    if (g > 1e-6) {
-      if (pth->z_visibility_max ==0.) {
-	if (g < g_previous) {
-	  pth->z_visibility_max=pth->z_table[index_eta+1];
-	}
-	else {
-	  if (pth->z_visibility_free_streaming == 0.) {
-	    if ((g < g_previous) && (g <= ppr->visibility_threshold_free_streaming)) {
-	      pth->z_visibility_free_streaming=pth->z_table[index_eta];
-	    }
-	  }
-	}
-      }
-    }
     
     /** -> compute exp(-kappa) */    
     pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_exp_m_kappa] = 
@@ -460,26 +439,6 @@ int thermodynamics_init(
 	     pth->error_message,
 	     pth->error_message);
 
-  /** - check consistency of the values inferred from the visibility functions */
-
-  class_test(pth->z_visibility_free_streaming > pth->z_visibility_max,
-	     pth->error_message,
-	     "pth->z_visibility_free_streaming=%e should never be larger than pth->z_visibility_max=%e",pth->z_visibility_free_streaming,pth->z_visibility_max);
-
-  /** - find conformal recombination time using background_eta_of_z() **/
-
-  class_call(background_eta_of_z(pba,pth->z_visibility_max,&eta_visibility_max),
-	     pba->error_message,
-	     pth->error_message);
-
-  pth->eta_rec = eta_visibility_max;
-
-  class_call(background_at_eta(pba,pth->eta_rec, long_info, normal, &last_index_back, pvecback),
-	     pba->error_message,
-	     pth->error_message);
-
-  pth->rs_rec=pvecback[pba->index_bg_rs];
-
   /** - fill tables of second derivatives with respect to z (in view of spline interpolation) */
 
   class_call(array_spline_table_lines(pth->z_table,
@@ -492,10 +451,34 @@ int thermodynamics_init(
 	     pth->error_message,
 	     pth->error_message);
 
+  /** - find maximum of g */
+
+  index_eta=pth->tt_size-1;
+  while (pth->z_table[index_eta]>2000.) {
+    index_eta--;
+  }
+  while (pth->thermodynamics_table[(index_eta+1)*pth->th_size+pth->index_th_g] <
+	 pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g]) {
+    index_eta--;
+  }
+  pth->z_rec=pth->z_table[index_eta+1];
+
+  /** - find conformal recombination time using background_eta_of_z() **/
+
+  class_call(background_eta_of_z(pba,pth->z_rec,&(pth->eta_rec)),
+	     pba->error_message,
+	     pth->error_message);
+
+  class_call(background_at_eta(pba,pth->eta_rec, long_info, normal, &last_index_back, pvecback),
+	     pba->error_message,
+	     pth->error_message);
+
+  pth->rs_rec=pvecback[pba->index_bg_rs];
+
   /** - if verbose flag set to next-to-minimum value, print the main results */
 
   if (pth->thermodynamics_verbose > 0) {
-    printf(" -> recombination at z = %f\n",pth->z_visibility_max);
+    printf(" -> recombination at z = %f\n",pth->z_rec);
     if (pth->reio_parametrization != reio_none) {
       if (pth->reio_z_or_tau==reio_tau)
 	printf(" -> reionization  at z = %f\n",pth->z_reio);

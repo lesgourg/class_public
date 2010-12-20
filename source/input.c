@@ -985,7 +985,6 @@ int input_init(
   class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
   class_read_double("start_sources_at_eta_g_over_eta_h",ppr->start_sources_at_eta_g_over_eta_h);
   class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation)
-  class_read_double("k_eta_max",ppr->k_eta_max);
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_nur",ppr->l_max_nur);
@@ -1384,8 +1383,6 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tight_coupling_trigger_eta_g_over_eta_k=0.05; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
   ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* 14.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)second_order_CRS;
-
-  ppr->k_eta_max=10.; /* not used currently */
 
   ppr->l_max_g=10; /* 03.12.10 for chi2plT0.01 */
   ppr->l_max_pol_g=10; /* 03.12.10 for chi2plT0.01 */

@@ -94,20 +94,11 @@ struct thermo
 
   //@}
 
-  /** @name - critical values of the redshift (used for switching on/off approximations in perturbations.c) */
+  /** @name - redshift, conformal time and sound horizon at recombination */
 
   //@{
 
-  double z_visibility_max;            /**< z at which the visibility reaches its maximum (= recombination time) */
-  double z_visibility_free_streaming; /**< z below which g is so small that radiation perturbation can be approximated by free-streaming solution */
-
-  //@}
-
-
-  /** @name - conformal time and sound horizon at recombination */
-
-  //@{
-
+  double z_rec;   /**< z at which the visibility reaches its maximum (= recombination redshift) */
   double eta_rec; /**< conformal time at which the visibility reaches its maximum (= recombination time) */
   double rs_rec;  /**< sound horizon at that time */
 

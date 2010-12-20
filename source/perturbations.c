@@ -1382,10 +1382,6 @@ int perturb_solve(
   /* fourier mode */
   double k;
 
-  /*  time at which recombination can be considered as over; check
-      that we always integrate at least till this time */
-  double eta_visibility_free_streaming;
-
   /* number of time intervals where the approximation scheme is uniform */
   int interval_number;
 
@@ -1419,12 +1415,6 @@ int perturb_solve(
 	     ppt->error_message,
 	     "stop to avoid division by zero");
 
-  /** - compute conformal time corresponding to end of efficient recombination using background_eta_of_z() */
-
-  class_call(background_eta_of_z(pba,pth->z_visibility_free_streaming,&eta_visibility_free_streaming),
-	     pba->error_message,
-	     ppt->error_message);
-
   /** - compute maximum value of eta for which sources are calculated for this wavenumber */
 
   /* by default, today */
@@ -1432,21 +1422,18 @@ int perturb_solve(
   eta_actual_size = ppt->eta_size;
 
   /* eventually stop earlier, when k*eta=k_eta_max, but not before the end of recombination */
-  if (ppt->has_lss == _FALSE_) {
+/*   if (ppt->has_lss == _FALSE_) { */
 
-    if ((ppr->k_eta_max/k < pba->conformal_age) && (ppr->k_eta_max/k > eta_visibility_free_streaming))
-      etamax= ppr->k_eta_max/k;
-    if ((ppr->k_eta_max/k < eta_visibility_free_streaming) && (eta_visibility_free_streaming < pba->conformal_age))
-      etamax = eta_visibility_free_streaming;
+    /* revisit this issue */
 
-    while (ppt->eta_sampling[eta_actual_size-1] > etamax)
-      eta_actual_size--;
+/*     while (ppt->eta_sampling[eta_actual_size-1] > etamax) */
+/*       eta_actual_size--; */
 
-    class_test(eta_actual_size < 1,
-	       ppt->error_message,
-	       "did not consider this case yet");
+/*     class_test(eta_actual_size < 1, */
+/* 	       ppt->error_message, */
+/* 	       "did not consider this case yet"); */
 
-  }
+/*   } */
 
   /** - compute minimum value of eta for which sources are calculated for this wavenumber */
 
