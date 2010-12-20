@@ -394,7 +394,9 @@ int thermodynamics_init(
     g = pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
       exp(pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_g]);
 
-    if (g > 0.) {
+/*     fprintf(stdout,"%e %e\n",pth->z_table[index_eta],g); */
+
+    if (g > 1e-6) {
       if (pth->z_visibility_max ==0.) {
 	if (g < g_previous) {
 	  pth->z_visibility_max=pth->z_table[index_eta+1];

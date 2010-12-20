@@ -91,7 +91,6 @@ bessel_file_name=bessel_small.dat
 k_per_decade_primordial = 10.
   
 k_step_trans_scalars=0.2
-k_oversampling_scalars=25
 
 transfer_cut=2 #tc_cl
 transfer_cut_threshold_osc=0.015
