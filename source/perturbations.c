@@ -144,6 +144,20 @@ int perturb_init(
       printf("Computing sources\n");
   }
 
+  class_test((ppr->gauge == synchronous) && (pba->has_cdm == _FALSE_),
+	     ppt->error_message,
+	     "In the present synchronous gauge, it is not self-consistent to assume no CDM: the later is used to define the initial timelike hypersurface");
+
+  class_test ((ppr->tight_coupling_approximation < first_order_MB) ||
+	      (ppr->tight_coupling_approximation < second_order_CRS),
+	      ppt->error_message,
+	      "your tight_coupling_approximation is set to %d, out of range defined in perturbations.f",ppr->tight_coupling_approximation);
+
+  class_test ((ppr->free_streaming_approximation < fsa_null) ||
+	      (ppr->free_streaming_approximation < fsa_MD_with_reio),
+	      ppt->error_message,
+	      "your free_streaming_approximation is set to %d, out of range defined in perturbations.f",ppr->free_streaming_approximation);
+  
   class_test(ppt->has_vectors == _TRUE_,
 	     ppt->error_message,
 	     "Vectors not coded yet");
@@ -2488,71 +2502,6 @@ int perturb_vector_init(
 
       }
 
-      /* -- case of switching off free streaming
-	 approximation. Provide correct initial conditions to new set
-	 of variables */
-
-      if ((pa_old[ppw->index_ap_fsa] == (int)fsa_on) && (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off)) {
-
-	if (ppt->perturbations_verbose>2)
-	  fprintf(stdout,"Mode k=%e: switch off free-streaming approximation at eta=%e\n",k,eta);
-
-	if (ppr->gauge == newtonian) {
-	  ppv->y[ppv->index_pt_delta_g] = 0.;
-	  ppv->y[ppv->index_pt_theta_g] = 0.;
-	}
-
-	if (ppr->gauge == synchronous) {
-	  ppv->y[ppv->index_pt_delta_g] = -4.*ppw->pvecmetric[ppw->index_mt_alpha_prime];
-	  ppv->y[ppv->index_pt_theta_g] = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
-	}
-
-	ppv->y[ppv->index_pt_delta_b] =
-	  ppw->pv->y[ppw->pv->index_pt_delta_b];
-	
-	ppv->y[ppv->index_pt_theta_b] =
-	  ppw->pv->y[ppw->pv->index_pt_theta_b];
-
-	if (pba->has_cdm == _TRUE_) {   
-
-	  ppv->y[ppv->index_pt_delta_cdm] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_cdm];
-	  
-	  if (ppr->gauge != synchronous) {
-	    ppv->y[ppv->index_pt_theta_cdm] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_cdm];
-	  }
-	}
-
-	if (pba->has_dark_energy_fluid == _TRUE_) {  
-
-	  ppv->y[ppv->index_pt_delta_de] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_de];
-	  
-	  ppv->y[ppv->index_pt_theta_de] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_de];
-	}
-
-	if (pba->has_nur == _TRUE_) {
-
-	  if (ppr->gauge == newtonian) {
-	    ppv->y[ppv->index_pt_delta_nur] = 0.;
-	    ppv->y[ppv->index_pt_theta_nur] = 0.;
-	  }
-
-	  if (ppr->gauge == synchronous) {
-	    ppv->y[ppv->index_pt_delta_nur] = -4.*ppw->pvecmetric[ppw->index_mt_alpha_prime];
-	    ppv->y[ppv->index_pt_theta_nur] = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
-	  }
-
-	}	
-
-	if (ppr->gauge == synchronous)
-	  ppv->y[ppv->index_pt_eta] =
-	    ppw->pv->y[ppw->pv->index_pt_eta];
-
-      }
-
     }
 
     /** (b) for the tensor mode */
@@ -2891,10 +2840,7 @@ int perturb_approximations(
         one. Otherwise take \f$ \min(\eta_k, \eta_h). \f$ */
 
     if ((eta_h/eta_k > ppr->rad_pert_trigger_k_over_aH) && 
-	//      (eta > eta_visibility_free_streaming) && /* optionally this line could be restored, to check that this does not happen before recombination is completed) */
 	(ppw->pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r)) {
-      /* 	&& (ppt->has_matter_transfers == _FALSE_)) { add this condition if want to output transfer functions delta_g, delta_nur at very small redshift for very large k... */
-      
       ppw->approx[ppw->index_ap_fsa] = (int)fsa_on;
     }
     else {
@@ -3095,7 +3041,10 @@ int perturb_einstein(
 
   double k2,a,a2,a_prime_over_a;
   double delta_rho,delta_theta,delta_shear;
-  double delta_g, theta_g, shear_g;
+  double delta_g=0.;
+  double theta_g=0.; 
+  double shear_g=0.;
+  double theta_b_prime;
   double delta_nur=0.;
   double theta_nur=0.; 
   double shear_nur=0.;
@@ -3126,27 +3075,65 @@ int perturb_einstein(
 	}
       }
       else {
-	delta_g = 0.;
-	theta_g = 0.; /* the free-streaming approximation is much
-			 better if we use an approximation for theta_g
-			 instead of 0. We will correct for this effect
-			 below, after the computation of delta_rho. */
+
+	if (ppr->free_streaming_approximation == fsa_null) {
+	  delta_g = 0.;
+	  theta_g = 0.;
+	  if (pba->has_nur == _TRUE_) {
+	    delta_nur = 0.;
+	    theta_nur = 0.;
+	  }
+	}
+	else if (ppr->free_streaming_approximation == fsa_MD) {
+	  if (ppr->gauge == synchronous) {
+	    delta_g = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
+	    theta_g = a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
+	  }
+	  else if (ppr->gauge == newtonian) {
+	    /* not coded yet */
+	  }
+	  if (pba->has_nur == _TRUE_) {
+	    delta_nur = delta_g;
+	    theta_nur = delta_nur;
+	  }
+	}
+	else if (ppr->free_streaming_approximation == fsa_MD_with_reio) {
+	  if (ppr->gauge==synchronous) {
+	    delta_g = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]
+	      -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_b];
+	    
+	    theta_b_prime=- a_prime_over_a*y[ppw->pv->index_pt_theta_b] 
+	      + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
+	      - 4./3. * ppw->pvecback[pba->index_bg_rho_g]/ppw->pvecback[pba->index_bg_rho_b]*ppw->pvecthermo[pth->index_th_dkappa] * y[ppw->pv->index_pt_theta_b];
+	    
+	    theta_g = a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]
+	      -4./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*y[ppw->pv->index_pt_theta_b]+ppw->pvecthermo[pth->index_th_dkappa]*theta_b_prime);
+	
+	    if (pba->has_nur == _TRUE_) {
+	      delta_nur = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
+	      theta_nur = a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
+	    }
+	  }
+	  else if (ppr->gauge==newtonian) {
+	    /* not coded yet */
+	  }
+	}
+	
+	ppw->fsa_delta_g = delta_g;
+	ppw->fsa_theta_g = theta_g;
 	shear_g = 0.;
+	
 	if (pba->has_nur == _TRUE_) {
-	  delta_nur = 0.;
-	  theta_nur = 0.; /* the free-streaming approximation is much
-			     better if we use an approximation for
-			     theta_nur instead of 0. We will correct for
-			     this effect below, after the computation of
-			     delta_rho. */
-	  shear_nur = 0.;
+	  ppw->fsa_delta_nur = delta_nur;
+	  ppw->fsa_theta_nur = theta_nur;
+	  shear_nur=0.;
 	}
       }
     }
     else {
       delta_g = y[ppw->pv->index_pt_delta_g];
       theta_g = y[ppw->pv->index_pt_theta_g];
-
+      
       shear_g = 0.; /* in the tight-coupling approximation, the
 		       expression of shear_g (at first-order in a
 		       tight-coupling expansion) is a function of h'
@@ -3361,6 +3348,19 @@ int perturb_source_terms(
   /* scalars */
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
+    /** - compute useful background quantities \f$ */ 
+      
+    k2 = k * k;
+    
+    a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
+
+    a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] 
+      + 2. * a_prime_over_a * a_prime_over_a;
+
+    R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
+
+    /** - compute metric perturbations */
+
     class_call(perturb_einstein(ppr,
 				pba,
 				pth,
@@ -3373,8 +3373,10 @@ int perturb_source_terms(
 	       ppt->error_message,
 	       error_message);
 
+    /** - compute quantities depending on approximation schemes */
+
     if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) {
-      delta_g = -4.*pvecmetric[ppw->index_mt_alpha_prime];
+      delta_g = ppw->fsa_delta_g;
       Pi = 0.;
       Pi_prime = 0.;
     }
@@ -3383,19 +3385,6 @@ int perturb_source_terms(
       Pi = y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.*y[ppw->pv->index_pt_shear_g];
       Pi_prime = dy[ppw->pv->index_pt_pol0_g] + dy[ppw->pv->index_pt_pol2_g] + 2.*dy[ppw->pv->index_pt_shear_g];
     }
-
-    /** - compute \f$ k^2 \f$, \f$ \Pi = G_{\gamma 0} + G_{\gamma 2} + F_{\gamma 2} \f$, \f$ e^{- \kappa} \f$ */ 
-      
-    k2 = k * k;
-    
-    a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
-
-    a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] 
-      + 2. * a_prime_over_a * a_prime_over_a;
-
-    R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
-
-    /** - compute \f$ k^2 \f$, \f$ \Pi = G_{\gamma 0} + G_{\gamma 2} + F_{\gamma 2} \f$, \f$ e^{- \kappa} \f$ */ 
 
     /** - for each type and each mode, compute S0, S1, S2 */
     for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
@@ -3538,13 +3527,15 @@ int perturb_source_terms(
 
       /* delta_g */
       if ((ppt->has_source_delta_g == _TRUE_) && (index_type == ppt->index_tp_delta_g)) {
+
 	if (ppw->approx[ppw->index_ap_fsa]==(int)fsa_off) {
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
-	    y[ppw->pv->index_pt_delta_g];
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = y[ppw->pv->index_pt_delta_g];
 	}
 	else {
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 0.;
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->fsa_delta_g;
 	}
+	
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = delta_g;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
@@ -3580,8 +3571,9 @@ int perturb_source_terms(
 	    y[ppw->pv->index_pt_delta_nur];
 	}
 	else {
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 0.;
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->fsa_delta_nur;
 	}
+
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
@@ -3865,8 +3857,8 @@ int perturb_print_variables(double eta,
       fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e\n",
 	      k,
 	      eta,
-	      0.,
-	      0.,
+	      ppw->fsa_delta_g,
+	      ppw->fsa_theta_g,
 	      0.,
 	      0.,
 	      0.,
@@ -4093,11 +4085,7 @@ int perturb_derivs(double eta,
 
       else {
 
-	if (ppr->gauge == newtonian)
-	  theta_g = 0.; /* TBD */
-
-	if (ppr->gauge == synchronous)
-	  theta_g = -0.5*pvecmetric[ppw->index_mt_h_prime];
+	theta_g = ppw->fsa_delta_g;
 
       }
       

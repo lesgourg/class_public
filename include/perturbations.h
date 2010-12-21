@@ -20,8 +20,16 @@
 enum tca_flags {tca_on, tca_off};
 enum fsa_flags {fsa_off, fsa_on};
 
-enum tca_method {first_order_MB,first_order_CAMB,first_order_test,second_order_CRS};
+//@}
 
+/**
+ * labels for the way in which each approximation scheme is implemented
+ */
+
+//@{
+
+enum tca_method {first_order_MB,first_order_CAMB,first_order_test,second_order_CRS};
+enum fsa_method {fsa_null,fsa_MD,fsa_MD_with_reio};
 
 //@}
 
@@ -292,6 +300,10 @@ struct perturb_workspace
 				 time-derivatives */
 
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
+  double fsa_delta_g; /**< photon density in free-streaming approximation */
+  double fsa_theta_g; /**< photon velocity in free-streaming approximation */
+  double fsa_delta_nur; /**< neutrino density in free-streaming approximation */
+  double fsa_theta_nur; /**< neutrino velocity in free-streaming approximation */
 
   //@}
 

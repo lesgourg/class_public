@@ -426,6 +426,8 @@ struct precision
    */
   double tol_eta_approx;
  
+  int free_streaming_approximation;
+
   /**
    * when to switch off radiation perturbations, ie when to switch
    * on free-streaming approximation (keep density and theta, set

@@ -996,6 +996,8 @@ int input_init(
   class_read_double("tol_eta_approx",ppr->tol_eta_approx);
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
+
+  class_read_int("free_streaming_approximation",ppr->free_streaming_approximation)
   class_read_double("rad_pert_trigger_k_over_aH",ppr->rad_pert_trigger_k_over_aH);
   class_read_double("rad_pert_trigger_Omega_r",ppr->rad_pert_trigger_Omega_r);
 
@@ -1396,6 +1398,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_perturb_integration=1.e-6; /* 07.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
   ppr->perturb_sampling_stepsize=0.08; /* 14.12.10 for chi2plT0.1 */
 
+  ppr->free_streaming_approximation = fsa_MD_with_reio;
   ppr->rad_pert_trigger_k_over_aH = 30.; /* 14.12.10 for chi2plT0.1 */
   ppr->rad_pert_trigger_Omega_r = 0.15; /* 14.12.10 for chi2plT0.1 */
 
