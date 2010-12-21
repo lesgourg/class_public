@@ -80,12 +80,11 @@ extern "C" {
 		struct output * pop
 		);
 
-  int output_pk(
-		struct background * pba,
-		struct perturbs * ppt,
-		struct spectra * psp,
-		struct output * pop
-		);
+  int output_pk_nl(
+		   struct background * pba,
+		   struct nonlinear * pnl,
+		   struct output * pop
+		   );
 
   int output_tk(
 		struct background * pba,

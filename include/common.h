@@ -12,7 +12,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v0.0.0"
+#define _VERSION_ "v0.0.1"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -499,6 +499,21 @@ struct precision
 
   int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
   int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
+
+  //@}
+
+
+  /** @name - parameters related to non-linear computations */
+
+  //@{
+
+  int double_escape;
+  short has_bc_spectrum;
+  double z_ini;
+  int eta_size;
+  double k_L;
+  double k_min;
+  double logstepx_min;
 
   //@}
 

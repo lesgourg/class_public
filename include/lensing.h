@@ -3,7 +3,7 @@
 #ifndef __LENSING__
 #define __LENSING__
 
-#include "spectra.h"
+#include "nonlinear.h"
 
 /**
  * Structure containing everything about lensed spectra that other modules need to know.

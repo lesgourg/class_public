@@ -55,13 +55,13 @@ PRIMORDIAL = primordial.o
 
 SPECTRA = spectra.o
 
+NONLINEAR = trg.o nonlinear.o
+
 LENSING = lensing.o
 
 OUTPUT = output.o
 
 CLASS = class.o
-
-TRG = trg.o
 
 TEST_OPTIMIZE_1D = test_optimize_1D.o
 
@@ -85,7 +85,7 @@ TEST_KARIM = test_karim.o
 
 TEST_PBC = test_pbc.o
 
-class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(CLASS)
+class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CLASS)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_pbc: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_PBC)

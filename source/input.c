@@ -25,9 +25,9 @@ int input_init_from_arguments(
 			      struct transfers *ptr,
 			      struct primordial *ppm,
 			      struct spectra *psp,
+			      struct nonlinear * pnl,
 			      struct lensing *ple,
 			      struct output *pop,
-			      struct spectra_nl * pnl,
 			      ErrorMsg errmsg
 			      ) {
 
@@ -119,9 +119,9 @@ int input_init_from_arguments(
 			ptr,
 			ppm,
 			psp,
+			pnl,
 			ple,
 			pop,
-			pnl,
 			errmsg),
 	     errmsg,
 	     errmsg);
@@ -148,9 +148,9 @@ int input_init(
 	       struct transfers *ptr,
 	       struct primordial *ppm,
 	       struct spectra *psp,
+	       struct nonlinear * pnl,
 	       struct lensing *ple,
 	       struct output *pop,
-	       struct spectra_nl * pnl,
 	       ErrorMsg errmsg
 	       ) {
 
@@ -186,9 +186,9 @@ int input_init(
 				  ptr,
 				  ppm,
 				  psp,
+				  pnl,
 				  ple,
-				  pop,
-				  pnl),
+				  pop),
 	     errmsg,
 	     errmsg);
 
@@ -847,7 +847,6 @@ int input_init(
   }
 
   class_read_string("root",pop->root);
-  class_read_string("root",pnl->root);
 
   class_call(parser_read_string(pfc,
 				"bessel file",
@@ -863,20 +862,26 @@ int input_init(
 
   /** (f) parameter related to the non-linear spectra computation */
 
-  class_read_int("non-linearity mode",pnl->mode);
-  class_read_int("b+c spectrum",pnl->has_bc_spectrum);
-  class_read_int("double escape",pnl->double_escape);
-  class_read_int("trg plot size",pnl->plot_size);
-  class_calloc(pnl->z_plot,pnl->plot_size,sizeof(double),pnl->error_message);
-  for(i=0; i<pnl->plot_size; i++){
-    class_read_int("z needed",pnl->z_plot[i]);}
+  class_call(parser_read_string(pfc,
+				"non linear",
+				&(string1),
+				&(flag1),
+				errmsg),
+	     errmsg,
+	     errmsg);
 
-  class_read_double("z_ini",pnl->z_ini);
-  class_read_int("eta_size",pnl->eta_size);
-  class_read_double("k_L",pnl->k_L);
-  class_read_double("k_min",pnl->k_min);
-  class_read_double("logstepx_min",pnl->logstepx_min);
-  pnl->k_max = ppt->k_scalar_kmax_for_pk * pba->h - 1.;
+  if (flag1 == _TRUE_) {
+
+    if ((strstr(string1,"trg") != NULL) || (strstr(string1,"TRG") != NULL)) {
+      pnl->method=nl_trg;
+    }    
+    if ((strstr(string1,"one-loop") != NULL) || (strstr(string1,"oneloop") != NULL)) {
+      pnl->method=nl_trg_one_loop;
+    }
+    if ((strstr(string1,"test linear") != NULL) || (strstr(string1,"test-linear") != NULL)) {
+      pnl->method=nl_trg_linear;
+    }
+  }
 
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
@@ -901,14 +906,15 @@ int input_init(
   class_read_int("spectra_verbose",
 		 psp->spectra_verbose);
 
+  class_read_int("nonlinear_verbose",
+		 pnl->nonlinear_verbose);
+
   class_read_int("lensing_verbose",
 		 ple->lensing_verbose);
 
   class_read_int("output_verbose",
 		 pop->output_verbose);
 
-  class_read_int("spectra_nl_verbose",
-		 pnl->spectra_nl_verbose);
   /** (h) all precision parameters */
 
   /** h.1. parameters related to the background */
@@ -1028,7 +1034,17 @@ int input_init(
   class_read_int("transfer_integrate",ppr->transfer_integrate);
   class_read_int("l_switch_limber",ppr->l_switch_limber);
 
-  /** h.7. parameter related to lensing */
+  /** h.7. parameters related to nonlinear calculations */
+
+  class_read_int("b+c spectrum",ppr->has_bc_spectrum);
+  class_read_int("double escape",ppr->double_escape);
+  class_read_double("z_ini",ppr->z_ini);
+  class_read_int("eta_size",ppr->eta_size);
+  class_read_double("k_L",ppr->k_L);
+  class_read_double("k_min",ppr->k_min);
+  class_read_double("logstepx_min",ppr->logstepx_min);
+
+  /** h.8. parameter related to lensing */
 
   class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
   class_read_int("delta_l_max",ppr->delta_l_max);
@@ -1104,9 +1120,9 @@ int input_default_params(
 			 struct transfers *ptr,
 			 struct primordial *ppm,
 			 struct spectra *psp,
+			 struct nonlinear * pnl,
 			 struct lensing *ple,
-			 struct output *pop,
-			 struct spectra_nl * pnl
+			 struct output *pop
 			 ) {
 
   ErrorMsg errmsg;
@@ -1228,32 +1244,20 @@ int input_default_params(
   class_alloc(pop->z_pk,pop->z_pk_num*sizeof(double),errmsg);
   pop->z_pk[0] = 0.;  
   sprintf(pop->root,"output/");
-  sprintf(pnl->root,"output/");
 
   /** - spectra structure */ 
 
   psp->z_max_pk = pop->z_pk[0];
 
+  /** - nonlinear structure */
+
   /** - lensing structure */
 
   ple->has_lensed_cls = _FALSE_;
 
-  /** - spectra_nl structure */ 
+  /** - nonlinear structure */ 
 
-  pnl->mode = 2;
-  pnl->double_escape=2;
-  pnl->z_ini = 35.;
-  pnl->eta_size = 100.;
-  pnl->k_L = 1.e-3;
-  pnl->k_min = 1.e-4;
-  pnl->logstepx_min = 1.04;
-  pnl->plot_size=5;
-  class_calloc(pnl->z_plot,pnl->plot_size,sizeof(double),errmsg);
-  pnl->z_plot[0]=4;
-  pnl->z_plot[1]=2.33;
-  pnl->z_plot[2]=1.5;
-  pnl->z_plot[3]=1;
-  pnl->z_plot[4]=0;
+  pnl->method = nl_none;
 
   /** - all verbose parameters */ 
 
@@ -1264,9 +1268,9 @@ int input_default_params(
   ptr->transfer_verbose = 0;
   ppm->primordial_verbose = 0;
   psp->spectra_verbose = 0;
+  pnl->nonlinear_verbose = 0;
   ple->lensing_verbose = 0;
   pop->output_verbose = 0;
-  pnl->spectra_nl_verbose = 0;
 
   return _SUCCESS_;
 
@@ -1439,6 +1443,18 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_integrate = trapezoidal;
 
   ppr->l_switch_limber=10;
+
+  /**
+   * - parameters related to trg module
+   */
+
+  ppr->double_escape=2;
+  ppr->has_bc_spectrum=_TRUE_;
+  ppr->z_ini = 35.;
+  ppr->eta_size = 100.;
+  ppr->k_L = 1.e-3;
+  ppr->k_min = 1.e-4;
+  ppr->logstepx_min = 1.04;
 
   /**
    * - parameter related to lensing
