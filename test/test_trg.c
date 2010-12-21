@@ -23,12 +23,13 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct output op;
+  struct lensing le;
   struct spectra sp;          /* for output spectra */
   struct spectra_nl nl;       /* for calculation of non-linear spectra */
 
   ErrorMsg errmsg;
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&op,&nl,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,&nl,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -116,5 +117,6 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  return _SUCCESS_;
 
 }

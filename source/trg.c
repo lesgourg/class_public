@@ -28,7 +28,7 @@
  * - by default, a file is written for every step in time, with all spectra information
  *   and all A's. TO BE MODIFIED to output I's : useful information, even maybe B's ?
  *
- * - the quantities pnl->pk_nl, pnl->p_12_nl, pnl->p_22_nl are written after the call
+ * - the quantities pnl->p_11_nl, pnl->p_12_nl, pnl->p_22_nl are written after the call
  *   of trg_init() 
  **/
 
@@ -240,6 +240,7 @@ int trg_A_arg_trg(
 		      gamma2_pkm*p_22k*p_22m );
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -292,6 +293,7 @@ int trg_A_arg_trg(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -348,6 +350,7 @@ int trg_A_arg_trg(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -406,6 +409,7 @@ int trg_A_arg_trg(
 		      gamma1_pkm*p_22k*p_12m + gamma1_pmk*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -415,10 +419,10 @@ int trg_A_arg_trg(
   case _A21_:
     
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,p,&p_11p),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,m,&p_11m),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -462,6 +466,7 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_12k*p_12m);
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -469,13 +474,13 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A22_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,k,&p_11k),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,p,&p_11p),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,m,&p_11m),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -523,6 +528,7 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_11k*p_22m);
 
      *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -530,13 +536,13 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A23_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,k,&p_11k),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,p,&p_11p),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,m,&p_11m),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -585,6 +591,7 @@ int trg_A_arg_trg(
 
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -592,13 +599,13 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _A3_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,k,&p_11k),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,p,&p_11p),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,m,&p_11m),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -629,6 +636,7 @@ int trg_A_arg_trg(
 
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -636,13 +644,13 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _B0_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,k,&p_11k),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,p,&p_11p),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,m,&p_11m),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -679,6 +687,7 @@ int trg_A_arg_trg(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -686,13 +695,13 @@ int trg_A_arg_trg(
     /****************************************/
 
   case _B11_:
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,k,&p_11k),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,p,&p_11p),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,m,&p_11m),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -733,6 +742,7 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_12k*p_12m);
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -742,13 +752,13 @@ int trg_A_arg_trg(
   case _B12_:
 
 
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,k,&p_11k),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,k,&p_11k),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,p,&p_11p),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,p,&p_11p),
 	       pnl->error_message,
 	       pnl->error_message);
-    class_call(trg_p_ab_at_any_k(pnl,pnl->pk_nl,pnl->ddpk_nl,index_eta,m,&p_11m),
+    class_call(trg_p_ab_at_any_k(pnl,pnl->p_11_nl,pnl->ddp_11_nl,index_eta,m,&p_11m),
 	       pnl->error_message,
 	       pnl->error_message);
     
@@ -801,6 +811,7 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_11k*p_22m);
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
 
     return _SUCCESS_;
@@ -861,6 +872,7 @@ int trg_A_arg_trg(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -921,6 +933,7 @@ int trg_A_arg_trg(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
    *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -965,6 +978,7 @@ int trg_A_arg_trg(
 		      gamma2_pkm*p_22k*p_22m );
 
      *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1081,6 +1095,7 @@ int trg_A_arg_one_loop(
 		      gamma2_pkm*p_22k*p_22m );
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1133,6 +1148,7 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1188,6 +1204,7 @@ int trg_A_arg_one_loop(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1246,6 +1263,7 @@ int trg_A_arg_one_loop(
 		      gamma1_pkm*p_22k*p_12m + gamma1_pmk*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1302,6 +1320,7 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1363,6 +1382,7 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_11k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);    
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1424,6 +1444,7 @@ int trg_A_arg_one_loop(
 		      gamma2_pkm*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1467,6 +1488,7 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1517,6 +1539,7 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1571,6 +1594,7 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1639,6 +1663,7 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_11k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1698,6 +1723,7 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1758,6 +1784,7 @@ int trg_A_arg_one_loop(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1802,6 +1829,7 @@ int trg_A_arg_one_loop(
 		      gamma2_pkm*p_22k*p_22m );
 
     *result *= m*p/2./pow(2*_PI_,3);
+    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -2282,41 +2310,84 @@ int trg_integrate_xy_at_eta(
   
 }
 
-/*******************************
+/**
+ * Logarithmic step in k for the low k values
  *
- * Summary : taking the power spectrum of matter, matter-velocity
- *           and velocity, at a chosen time a_ini when matter dominated
- *           already but before all modes become non linear, it computes the
- *           fully non-linear evolution of these 3 quantities for a range of
- *           eta=log(a/a_ini) up to today.
+ * It simply affects the correct logstep corresponding to a certain value of k.
+ * A hyperbolic tangent has been selected to get a smooth tranisition between 
+ * the two ends of the spectrum, in order to avoid numerical troubles in case 
+ * of a brutal change in step.
  *
- *	       It requires the definition of many quantities (12+12) built
- *	       on the Bispectra of matter and velocity and on the spectra
- *           as well, in order to put the equations in a more
- *           numerically friendly shape, as explained in annex B of the
- *	       Pietroni article (astro-ph 0806.0971v3).
+ * The values are adjusted to fit the default values of steps in eta and of
+ * double escape parameters. Change at your own risk !
  *
- *********************************/
-
+ * @param k 		Input:  current value of the wavenumber
+ * @param logstep	Output: logstep associated with the desired wavenumber
+ */
 int trg_logstep1_k (
 		   double k,
 		   double * logstep) {
 
-  *logstep = 1.11 - 0.09*tanh(300*(k-0.01)); 
-/*  *logstep = 1.02; */
+  *logstep = 1.11 - 0.09*tanh(300*(k-0.01));
+ /**logstep = 1.11 - 0.10*tanh(300*(k-0.01));*/
+ /**logstep = 1.005;*/
 /*  *logstep = 1.10 - 0.09*tanh(300*(k-0.01)); */ 
   return _SUCCESS_;
 }
+
+/**
+ * Logarithmic step in k for the high k values
+ *
+ * It simply affects the correct logstep corresponding to a certain value of k.
+ * A hyperbolic tangent has been selected to get a smooth tranisition between 
+ * the two ends of the spectrum, in order to avoid numerical troubles in case 
+ * of a brutal change in step.
+ *
+ * The values are adjusted to fit the default values of steps in eta and of
+ * double escape parameters. Change at your own risk !
+ *
+ * @param k 		Input:  current value of the wavenumber
+ * @param logstep	Output: logstep associated with the desired wavenumber
+ */
 
 int trg_logstep2_k (
 		    double k,
 		    double * logstep) {
 
   /* *logstep = 1.11 + 0.09*tanh(0.08*(k-50)); */
+  /**logstep = 1.005;*/
   *logstep = 1.02;
-/*   *logstep = 1.01; */
   return _SUCCESS_;
 }
+
+/**
+ * Computes the non-linear spectra for matter (cold dark matter and baryons, so far)
+ * and fills in the spectra_nl structure with pk_nl, p_12_nl, p_22_nl.
+ *
+ *
+ * Since this sub-routine uses a different k table, one should also uses pnl->k to
+ * output the results.
+ *
+ * The program can be told to compute the non linear spectra with (resp.) the 
+ * Time Renormalization Group method, the one-loop method, or the simple linear
+ * method (for testing purposes), by letting the non-linearity mode option 
+ * in a .ini file be (resp.) 2, 1 or 0.
+ *
+ * The starting redshift of the non-linear computation can be selected via the
+ * .ini file as well (CHECK TROUBLES IF THIS VALUE IS CHANGED AND NOT Z_MAX_PK).
+ * It is set by default to z=35.
+ *
+ * It is possible (so far) to compute exactly the cdm + baryon spectra, or the
+ * approximated cdm + baryon via the option b+c spectrum (YET TO BE IMPLEMENTED)
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure (provides H, Omega_m at redshift of interest)
+ * @param pth Input: pointer to thermo structure (provides the baryon sound speed)
+ * @param ppm Input: pointer to primordial structure
+ * @param psp Input: pointer to spectra structure
+ * @param pnl Output: pointer to initialized spectra_nl structure
+ * @return the error status
+ */
 
 int trg_init (
 	      struct precision * ppr, /* input */
@@ -2327,13 +2398,25 @@ int trg_init (
 	      struct spectra_nl * pnl /* output */ 
 	      ) {
 
+  /** Summary: 	the code takes as an input the matter power spectrum at desired starting redshift,
+   * 		and computes its evolution afterwards up to z=0.
+   *
+   * 		For each step in time, it first computes the non-linear quantities called AA in this
+   * 		module, a bunch of 16 non equivalent terms. This is the time-expensive part of the code.
+   * 		Then it computes the spectra at the following step.
+   *
+   * 		To avoid numerical divergences, a method called 'double escape' is applied. It consists
+   * 		in droping every half step some points (defined with the double_escape parameter). This
+   * 		way, every starting numerical instabily may be taken care of). As it is, the values of
+   * 		this parameter, along with eta_step and logstep_k are fixed and balanced to produce an
+   * 		output at z=0 with no divergences. Changes are at your own risks.*/		
+
+  /** THIS IS BOUND TO DISAPPEAR IF AN OUTPUT IS DEFINED ELSEWHERE */
   FILE *nl_spectra;
   char filename[50];
 
+  /** TO IMPLEMENT IN .INI */
   pnl->has_bc_spectrum = _TRUE_;
-
-  double temp; 
-  double * junk;
 
   /** Variables for time control of the computation */
 
@@ -2363,9 +2446,9 @@ int trg_init (
 
   /** Variables of calculation */
 
-  double *pk_linear11;
-  double *pk_linear12;
-  double *pk_linear22;
+  double *p_11_linear;
+  double *p_12_linear;
+  double *p_22_linear;
 
   double * transfer;
 
@@ -2410,6 +2493,11 @@ int trg_init (
 
   int * index_eta_plot;
   int i;
+ 
+  /** Additionnal temporary variables */
+
+  double temp; 
+  double * junk;
 
   /**
    * This code can be optionally compiled with the openmp option for parallel computation.
@@ -2438,7 +2526,7 @@ int trg_init (
 
   class_calloc(pvecback_nl,pba->bg_size,sizeof(double),pnl->error_message);
 
-  /** define initial eta and redshift */
+  /** define initial eta, redshift and size factor */
 
   a_ini = pba->a_today/(pnl->z_ini + 1.);
 
@@ -2453,11 +2541,11 @@ int trg_init (
   /** find total number of k values in the module */
 
   index_k=0;
-  class_calloc(temp_k,2000,sizeof(double),pnl->error_message);
+  class_calloc(temp_k,20000,sizeof(double),pnl->error_message);
   temp_k[0]=pnl->k_min;
 
   while(temp_k[index_k]<1){
-    class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n");
+    class_test(index_k>=20000,pnl->error_message,"Change initial size of temp_k\n");
     class_call(trg_logstep1_k(temp_k[index_k],&logstepk),
 	       pnl->error_message,
 	       pnl->error_message);
@@ -2469,7 +2557,7 @@ int trg_init (
   temp_index_k=index_k;
 
   while(temp_k[index_k]<pnl->k_max){
-    class_test(index_k>=2000,pnl->error_message,"Change initial size of temp_k\n");
+    class_test(index_k>=20000,pnl->error_message,"Change initial size of temp_k\n");
     class_call(trg_logstep2_k(temp_k[index_k],&logstepk),
 	       pnl->error_message,
 	       pnl->error_message);
@@ -2497,7 +2585,7 @@ int trg_init (
  
   /** Definition of the time (z and eta) values */ 
 
-  /* This is to be implemented inside the trg.ini */
+  /* This is to be implemented inside the trg.ini BOUND TO DISAPPEAR */
   pnl->plot_size=5;
   class_calloc(pnl->z_plot,pnl->plot_size,sizeof(double),pnl->error_message);
   pnl->z_plot[0]=4;
@@ -2505,21 +2593,29 @@ int trg_init (
   pnl->z_plot[2]=1.5;
   pnl->z_plot[3]=1;
   pnl->z_plot[4]=0;
+  class_calloc(index_eta_plot,pnl->plot_size,sizeof(int),pnl->error_message);
   /****** ******/
 
   class_calloc(pnl->eta,pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->z,  pnl->eta_size,sizeof(double),pnl->error_message);
   
-  class_calloc(index_eta_plot,pnl->plot_size,sizeof(int),pnl->error_message);
-
-
-  for (index_eta=0; index_eta<pnl->eta_size; index_eta++) {
-    pnl->eta[index_eta] = index_eta*pnl->eta_step;
-    pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1;
-    if(pnl->z[index_eta]<0) pnl->z[index_eta]=0;
+  /* The time pattern is not regularly spaced to minimize the error when integrating over time ,
+   * as it is higher in the late times (during Lambda domination) than in the early times.
+   * It is optimized to work with a eta_size of 101, keep that in mind if you try to change the
+   * values.*/
+   
+  for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {
+    if(index_eta<=10)
+      pnl->eta[index_eta]= index_eta*pnl->eta_step*5.;
+    else
+      pnl->eta[index_eta]= pnl->eta[10]+(index_eta-10)*pnl->eta_step*5./9.;
+    pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;
+    if(pnl->z[index_eta]<0) {
+      pnl->z[index_eta]=0;
+    }
   }
 
-  /* Find the index where to stop for output files */
+  /* Find the index where to stop for output files BOUND TO DISAPPEAR */
 
   for (i=0; i<pnl->plot_size; i++){
     for (index_eta=0; index_eta<pnl->eta_size; index_eta++){
@@ -2527,6 +2623,7 @@ int trg_init (
 	index_eta_plot[i] = index_eta;
     }
   }
+
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> starting calculation at redshift z = %2.2f\n",pnl->z[0]);
 
@@ -2555,9 +2652,9 @@ int trg_init (
 
   class_calloc(Omega_m,pnl->eta_size,sizeof(double),pnl->error_message);
 
-  /** In the case of computing the total spectrum, one needs Omega_r */
-
-  class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
+  /* In the case of computing the total spectrum, one needs Omega_r */
+  if(pnl->has_bc_spectrum == _FALSE_ )
+    class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
 
   class_calloc(rho_g,  pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(rho_nur,pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2582,6 +2679,8 @@ int trg_init (
       Omega_m[index_eta] += pvecback_nl[pba->index_bg_rho_cdm]/pvecback_nl[pba->index_bg_rho_crit];
     }
 
+    /* Omega_r is filled only if the total spectrum is requested */
+
     if(pnl->has_bc_spectrum == _FALSE_ ) {
       Omega_r[index_eta] = pvecback_nl[pba->index_bg_rho_g]/pvecback_nl[pba->index_bg_rho_crit];
       if (pba->has_nur == _TRUE_) {
@@ -2599,7 +2698,7 @@ int trg_init (
     
   }
 
-  /** Definition of the transfert functions for each relevant speciesi, only needed for the b+c spectrum */
+  /** Definition of the transfert functions for each relevant species, only needed for the b+c spectrum */
 
   if(pnl->has_bc_spectrum == _TRUE_) {
     class_calloc(tr_g,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
@@ -2625,10 +2724,15 @@ int trg_init (
 	tr_nur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_nur];
 	tr_b[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_b];
 	tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm];
+
+      /*** TESTING ZONE ***/
+      /*printf("%e\t%e\t%e\t%e\n",pnl->eta[index_eta],pnl->k[index_k],tr_cdm[index_k+pnl->k_size*index_eta],tr_b[index_k+pnl->k_size*index_eta]);*/
       }
+      /*printf("\n\n");*/
     }
   }
 
+  /*return _SUCCESS_;*/
   /** Definition of the matrix elements Omega_11,Omega_12, Omega_22,Omega_12 for each k and eta */
 
   Omega_11 = 1.;
@@ -2646,9 +2750,11 @@ int trg_init (
 	Omega_21[index] = -3./2 * Omega_m[index_eta] * (1. + 
 	    4./3*(rho_g[index_eta]*tr_g[index]+ 
 	      rho_nur[index_eta]*tr_nur[index])
-	    /(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index]) 
-	    - 0.*2./3*pow(H[index_eta],2)*cb2[index_eta]*pow(pnl->k[index_k],2)*rho_b[index_eta]*tr_b[index]/
-	    (Omega_m[index_eta]*(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index])));
+	    /(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index]));
+	/* The sound speed of baryons has been tested to be negligible at all scale - time of interest here. */
+
+	    /*- 2./3*pow(H[index_eta],2)*cb2[index_eta]*pow(pnl->k[index_k],2)*rho_b[index_eta]*tr_b[index]/*/
+	    /*(Omega_m[index_eta]*(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index])));*/
       }
       else {
 	Omega_21[index] = -3./2 * (Omega_m[index_eta] + 4./3*Omega_r[index_eta]);
@@ -2665,40 +2771,49 @@ int trg_init (
     free(tr_cdm);
   }
 
-  /* Definition of P_11=pk_nl, P_12=<delta theta> and P_22=<theta
-     theta>, and initialization at eta[0]=0, k[0] 
+  /**
+   * Definition of P_11, P_12 and P_22, the two points correlators
+   * of the density/density (resp. density/velocity and velocity/velocity),
+   * initialized at eta=0 (by default, z=35).
+   *
+   * The p_ij_nl version are keeping track of the non linear spectra. The p_ij
+   * are only here for the one-loop computation. The p_ij_linear, not stored
+   * in the nl_spectra module, keep trace of the linear evolution of this code.
+   *
+   * With the default parameter choice, the relative difference between the linear 
+   * evolution in this part and the more carefull time integration from CLASS
+   * is no more than 1.6% for the peak height in the spectrum, at z=0.
+   */
 
-     Convention is taken so that all the upcoming matrices are lines
-     at constant eta and column at constant k. So the first line will
-     constitute of the initial condition given by precedent parts of
-     the code, and the time evolution will fill down the rest step by
-     step.
-
-     As a result of the definition in only one line (to avoid
-     splitting the lines of the matrices everywhere physically),
-     proper call for all these matrices is A[index_k +
-     k_size*index_eta] instead of the more intuitive version
-     A[index_k][index_eta].*/
-
-  class_calloc(pnl->pk_nl,  pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->p_11_nl,  pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->p_12_nl,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->p_22_nl,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
-  class_calloc(pnl->p_11,pnl->k_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->p_12,pnl->k_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->p_22,pnl->k_size,sizeof(double),pnl->error_message);
+  if(pnl->mode == 1){
+    class_calloc(pnl->p_11,pnl->k_size,sizeof(double),pnl->error_message);
+    class_calloc(pnl->p_12,pnl->k_size,sizeof(double),pnl->error_message);
+    class_calloc(pnl->p_22,pnl->k_size,sizeof(double),pnl->error_message);
+  }
 
-  class_calloc(pk_linear11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(pk_linear12,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(pk_linear22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(p_11_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(p_12_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(p_22_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+
+  /* There is the possibility to add a cutoff to take into account exponential suppression
+   * of the power spectrum at high k (physical effect given by ???). By default, however,
+   * set on 1. (no cutoff).
+   */
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
     cutoff=1.;
     
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->pk_nl[index_k],junk),
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->p_11_nl[index_k],junk),
                psp->error_message,
                pnl->error_message);
 
+    /* If the option to compute the b+c spectrum is on, the definition of the initial
+     * matter power spectrum is slighlty different.
+     */
     if(pnl->has_bc_spectrum == _TRUE_) {
 
       class_call(spectra_tk_at_k_and_z(pba,psp,pnl->k[index_k],pnl->z[0],transfer),
@@ -2712,29 +2827,28 @@ int trg_init (
 	transfer_bc = (rho_b[0] * transfer_bc + rho_cdm[0] * transfer[psp->index_tr_cdm])/(rho_b[0]+rho_cdm[0]);
       }
 
-      pnl->pk_nl[index_k] *= pow(transfer_bc/transfer_tot,2);
+      pnl->p_11_nl[index_k] *= pow(transfer_bc/transfer_tot*Omega_m[0],2);
 
     }
 
-    pnl->pk_nl[index_k] *=cutoff;
+    pnl->p_11_nl[index_k] *=cutoff;
 
-    pnl->p_11[index_k]    = pnl->pk_nl[index_k];
-    pk_linear11[index_k]  = pnl->pk_nl[index_k];
+    pnl->p_11[index_k]    = pnl->p_11_nl[index_k];
+    p_11_linear[index_k]  = pnl->p_11_nl[index_k];
 
-    pnl->p_12_nl[index_k] = pnl->pk_nl[index_k];
-    pnl->p_12[index_k]    = pnl->pk_nl[index_k];
-    pk_linear12[index_k]  = pnl->pk_nl[index_k];
+    pnl->p_12_nl[index_k] = pnl->p_11_nl[index_k];
+    pnl->p_12[index_k]    = pnl->p_11_nl[index_k];
+    p_12_linear[index_k]  = pnl->p_11_nl[index_k];
 
-    pnl->p_22_nl[index_k] = pnl->pk_nl[index_k];
-    pnl->p_22[index_k]    = pnl->pk_nl[index_k];
-    pk_linear22[index_k]  = pnl->pk_nl[index_k]; 
+    pnl->p_22_nl[index_k] = pnl->p_11_nl[index_k];
+    pnl->p_22[index_k]    = pnl->p_11_nl[index_k];
+    p_22_linear[index_k]  = pnl->p_11_nl[index_k]; 
 
   }
 
+  /** Initialisation and definition of second derivatives */
 
-  /* Initialisation and definition of second derivatives */
-
-  class_calloc(pnl->ddpk_nl,  pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->ddp_11_nl,  pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->ddp_12_nl,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->ddp_22_nl,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
@@ -2743,25 +2857,26 @@ int trg_init (
   class_calloc(pnl->ddp_22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
   class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size,
-					      pnl->pk_nl,
+					      pnl->p_11_nl,
 					      pnl->eta_size,0,
-					      pnl->ddpk_nl,
+					      pnl->ddp_11_nl,
 					      _SPLINE_NATURAL_,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
 
   for (index_k = 0; index_k < pnl->k_size ; index_k++) {
-    pnl->ddp_12_nl[index_k] = pnl->ddpk_nl[index_k];
-    pnl->ddp_22_nl[index_k] = pnl->ddpk_nl[index_k];
+    pnl->ddp_12_nl[index_k] = pnl->ddp_11_nl[index_k];
+    pnl->ddp_22_nl[index_k] = pnl->ddp_11_nl[index_k];
 
-    pnl->ddp_11[index_k] = pnl->ddpk_nl[index_k];
-    pnl->ddp_12[index_k] = pnl->ddpk_nl[index_k];
-    pnl->ddp_22[index_k] = pnl->ddpk_nl[index_k];
+    pnl->ddp_11[index_k] = pnl->ddp_11_nl[index_k];
+    pnl->ddp_12[index_k] = pnl->ddp_11_nl[index_k];
+    pnl->ddp_22[index_k] = pnl->ddp_11_nl[index_k];
   } 
   
    /* Definition of 1_0, 1_11,(here a0, a11,...) etc, and 2_0, 2_11,
-     (here b0,b11,...) etc.. and initialization (directly with calloc
-     for assuming no initial non gaussianity in the spectrum) */
+    * (here b0,b11,...) etc.. and initialization (directly with calloc
+    * for assuming no initial non gaussianity in the spectrum) 
+    */
 
   class_calloc(a0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(a11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2780,8 +2895,9 @@ int trg_init (
   class_calloc(b3 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message); 
 
   /* Definition of the A_121,122's that appear in time-evolution of
-     the 1's and 2's, and initialization with pk_nl, p_12,
-     p_22. Convention is taken for A_121,any = A any and A_222,any = B any */
+   * the 1's and 2's, and initialization with pk_nl, p_12,
+   * p_22. Convention is taken for A_121,any = AA[first indices] and A_222,any = AA[last indices] 
+   */
 
   name_size = _B3_+1;
   class_calloc(AA,name_size,sizeof(double*),pnl->error_message);
@@ -2789,12 +2905,7 @@ int trg_init (
     class_calloc(AA[index_name],pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
 
-  /********************
-   *
-   * Integration at eta=0 with n_xy number of steps for integration
-   * over x and n_xy over y.
-   *
-   ********************/
+  /** First step in time, computing the non-linear quantities AA */
 
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> initialisation\n");
@@ -2840,176 +2951,179 @@ int trg_init (
   }
 
 
-  /********************
-   * Now we calculate the time evolution with a very simple integrator
-   ********************/
+  /** Now we calculate the time evolution with a very simple integrator */
 
-    if (pnl->spectra_nl_verbose > 1){
-      printf(" -> progression:\n");}
+  /* At each step, 
+   * first the new power spectra are computed (and pnl->double_escape points are dropped)
+   * then the AA functions are updated (for 1-loop method, they are just copied from last step) (and pnl->double_escape points are dropped)
+   */
+
+  if (pnl->spectra_nl_verbose > 1){	
+    printf(" -> progression:\n");}
 
   time_1=time(NULL);
  
   for (index_eta=1; index_eta<pnl->eta_size; index_eta++){
     exp_eta=exp(pnl->eta[index_eta-1]);
 
+    if(pnl->k_size-pnl->double_escape*2*index_eta < 2){
+      printf("  --> Wrong choice of parameters\n  --> Stopped at %d, z=%2.2e Try Again\n",index_eta, pnl->z[index_eta]);
+      return _FAILURE_;
+    }
+
     for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*index_eta; index_k++){
 
-      /**********
-       * Computation for every k of the function at the next time step
-       **********/
+      /* Some useful intermediate variables */
 
       fourpi_over_k=4*_PI_/(pnl->k[index_k]);
       index = index_k+pnl->k_size*(index_eta-1);
       index_plus = index_k+pnl->k_size*index_eta;
 
-     
+     /* For each k, compute the power spectra and bispectra (through ai) at the new time */
 
-      pnl->pk_nl[index_plus]= pnl->eta_step *(
-					 -2*Omega_11*pnl->pk_nl[index]
+      pnl->p_11_nl[index_plus]= (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+					 -2*Omega_11*pnl->p_11_nl[index]
 					 -2*Omega_12*pnl->p_12_nl[index]
 					 +exp_eta*4*fourpi_over_k*a22[index] )
-	+ pnl->pk_nl[index];
+	+ pnl->p_11_nl[index];
 
-      pnl->p_22_nl[index_plus] = pnl->eta_step *(
+      pnl->p_22_nl[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					    -2*Omega_22[index]*pnl->p_22_nl[index]
 					    -2*Omega_21[index]*pnl->p_12_nl[index]
 					    +exp_eta*2*fourpi_over_k*b3[index] )
 	+ pnl->p_22_nl[index];
 
-      pnl->p_12_nl[index_plus] = pnl->eta_step *(
+      pnl->p_12_nl[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					    -pnl->p_12_nl[index]*(Omega_11+Omega_22[index])
 					    -Omega_12*pnl->p_22_nl[index]
-					    -Omega_21[index]*pnl->pk_nl[index]
+					    -Omega_21[index]*pnl->p_11_nl[index]
 					    +exp_eta*fourpi_over_k*(2*a13[index]+b21[index]))
 	+ pnl->p_12_nl[index];
 
 
-      a0[index_plus]         = pnl->eta_step *(
+      a0[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -Omega_21[index]*(a11[index]+a12[index]+a13[index])
 					  -3*Omega_22[index]*a0[index]
 					  +2*exp_eta*AA[_A0_][index])
 	+ a0[index];
 
-      a11[index_plus]        = pnl->eta_step *(
+      a11[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -a11[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index]*(a22[index]+a23[index])
 					  +2*exp_eta*AA[_A11_][index])
 	+ a11[index];
 
-      a12[index_plus]        = pnl->eta_step *(
+      a12[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -a12[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_21[index]*(a23[index]+a21[index])
 					  -Omega_12*a0[index]
 					  +2*exp_eta*AA[_A12_][index])
 	+ a12[index];
 
-      a13[index_plus]        = pnl->eta_step *(
+      a13[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -a13[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index]*(a22[index]+a21[index])
 					  +2*exp_eta*AA[_A13_][index])
 	+ a13[index];
 
-      a21[index_plus]        = pnl->eta_step *(
+      a21[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -a21[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a12[index]+a13[index])
 					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A21_][index])
 	+ a21[index];
 
-      a22[index_plus]        = pnl->eta_step *(
+      a22[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -a22[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a13[index]+a11[index])
 					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A22_][index])
 	+ a22[index];
 
-      a23[index_plus]        = pnl->eta_step *(
+      a23[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -a23[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a12[index]+a11[index])
 					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A23_][index])
 	+ a23[index];
 
-      a3[index_plus]         = pnl->eta_step *(
+      a3[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -a3[index]*3*Omega_11
 					  -Omega_12*(a22[index]+a21[index]+a23[index])
 					  +2*exp_eta*AA[_A3_][index])
 	+ a3[index];
 
-      b0[index_plus]         = pnl->eta_step *(
+      b0[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -3*b0[index]*Omega_11
 					  -Omega_12*(b11[index]+2*b12[index])
 					  +2*exp_eta*AA[_B0_][index])
 	+ b0[index];
 
-      b11[index_plus]        = pnl->eta_step *(
+      b11[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -b11[index]*(2*Omega_11+Omega_22[index])
 					  -2*Omega_12*b22[index]
 					  -Omega_21[index]*b0[index]
 					  +2*exp_eta*AA[_B11_][index])
 	+ b11[index];
 
-      b12[index_plus]        = pnl->eta_step *(
+      b12[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -b12[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(b22[index]+b21[index])
 					  -Omega_21[index]*b0[index]
 					  +2*exp_eta*AA[_B12_][index])
 	+ b12[index];
 
-      b21[index_plus]        = pnl->eta_step *(
+      b21[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -b21[index]*(2*Omega_22[index]+Omega_11)
 					  -2*Omega_21[index]*b12[index]
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B21_][index])
 	+ b21[index];
 
-      b22[index_plus]        = pnl->eta_step *(
+      b22[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -b22[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_21[index]*(b12[index]+b11[index])
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B22_][index])
 	+ b22[index];
 
-      b3[index_plus]         = pnl->eta_step *(
+      b3[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
 					  -3*Omega_22[index]*b3[index]
 					  -Omega_21[index]*(b21[index]+2*b22[index])
 					  +2*exp_eta*AA[_B3_][index])
 	+ b3[index];
 	
-      /*********************
-       * Linear part
-       *********************/
-      pk_linear11[index_plus]= pnl->eta_step *(
-					  -2*Omega_11*pk_linear11[index]
-					  -2*Omega_12*pk_linear12[index]
+      /* The linear quantities are followed through this simplified integrator, for reference */
+
+      p_11_linear[index_plus]= (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+					  -2*Omega_11*p_11_linear[index]
+					  -2*Omega_12*p_12_linear[index]
 					  )
-	+ pk_linear11[index];
+	+ p_11_linear[index];
 
-      pk_linear22[index_plus] = pnl->eta_step *(
-					   -2*Omega_22[index]*pk_linear22[index]
-					   -2*Omega_21[index]*pk_linear12[index]
+      p_22_linear[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+					   -2*Omega_22[index]*p_22_linear[index]
+					   -2*Omega_21[index]*p_12_linear[index]
 					   )
-	+ pk_linear22[index];
+	+ p_22_linear[index];
 
-      pk_linear12[index_plus] = pnl->eta_step *(
-					   -pk_linear12[index]*(Omega_11+Omega_22[index])
-					   -Omega_12*pk_linear22[index]
-					   -Omega_21[index]*pk_linear11[index]
+      p_12_linear[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+					   -p_12_linear[index]*(Omega_11+Omega_22[index])
+					   -Omega_12*p_22_linear[index]
+					   -Omega_21[index]*p_11_linear[index]
 					   )
-	+ pk_linear12[index];
+	+ p_12_linear[index];
     }
 
-    /**********
-     * Update of second derivatives for interpolation
-     **********/
+    /** Update of second derivatives for interpolation, only in TRG mode */
 
     if(pnl->mode==2){
       class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*index_eta,
-						  pnl->pk_nl,
+						  pnl->p_11_nl,
 						  pnl->eta_size,index_eta,
-						  pnl->ddpk_nl,
+						  pnl->ddp_11_nl,
 						  _SPLINE_NATURAL_,pnl->error_message),
 		 pnl->error_message,
 		 pnl->error_message);
@@ -3031,11 +3145,7 @@ int trg_init (
 		 pnl->error_message);
     }
 
-    /**********
-     * Update of A's and B's function at the new index_eta which needs
-     * the interpolation of P's
-     * For the one-loop computation, just report the previous values into the new A's
-     **********/
+    /** Update of AA's at the new time (for 1-loop, copy the previous values) */
 
     if(pnl->mode==1){ 
       for (index_name=0; index_name<name_size; index_name++){ 
@@ -3044,7 +3154,7 @@ int trg_init (
       } 
     } 
     
-    if(pnl->mode>1){
+    else if(pnl->mode == 2){
 
       /* initialize error management flag */
       abort = _FALSE_;
@@ -3097,7 +3207,11 @@ int trg_init (
       }
     }
     
-    class_test(isnan(pnl->pk_nl[50+pnl->k_size*index_eta])!=0,pnl->error_message,"Code returns nan!\n");
+    class_test(isnan(pnl->p_11_nl[50+pnl->k_size*index_eta])!=0,pnl->error_message,"Code returns nan!\n");
+
+    /** BOUND TO DISAPPEAR : Plot functions
+     * The spectra are interpolated with a simple linear function to the desired redshift
+     */ 
 
     for(i=0; i < pnl->plot_size; i++){
       if(index_eta == index_eta_plot[i]) {	
@@ -3115,58 +3229,32 @@ int trg_init (
 	  za=pnl->z[index_eta-1];
 	  zc=pnl->z_plot[i];
 
-	  /*rho_bz=  1/(zb-za)*( (zc-za)*rho_b[index_eta]   + (zb-zc)*rho_b[index_eta-1]   );*/
-	  /*rho_cdmz=1/(zb-za)*( (zc-za)*rho_cdm[index_eta] + (zb-zc)*rho_cdm[index_eta-1] );*/
-
-
-	  /*if(pnl->has_bc_spectrum == _TRUE_){*/
-	    /*class_call(spectra_tk_at_k_and_z(pba,psp,pnl->k[index_k],pnl->z_plot[i],transfer),*/
-		/*psp->error_message,*/
-		/*pnl->error_message);*/
-
-	    /*transfer_tot = transfer[psp->index_tr_tot];*/
-
-	    /*transfer_bc = transfer[psp->index_tr_b];*/
-	    /*if (pba->has_cdm == _TRUE_) {*/
-	      /*transfer_bc = (rho_bz * transfer_bc + rho_cdmz * transfer[psp->index_tr_cdm])/(rho_bz+rho_cdmz);*/
-	    /*}*/
-
-	    /*temp1 *= pow(transfer_bc/transfer_tot,2);*/
-
-	  /*}*/
-
-	  fprintf(nl_spectra,"%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t",pnl->k[index_k]/pba->h,
-	      pow(pba->h,3)*
+	  fprintf(nl_spectra,"%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t",pnl->k[index_k],
 	      1/(zb-za)*
-	      ( (zc-za) * pnl->pk_nl[index_k+(pnl->k_size*(index_eta))] + 
-	        (zb-zc) *  pnl->pk_nl[index_k+(pnl->k_size*(index_eta-1))]  )
+	      ( (zc-za) * pnl->p_11_nl[index_k+(pnl->k_size*(index_eta))] + 
+	        (zb-zc) *  pnl->p_11_nl[index_k+(pnl->k_size*(index_eta-1))]  )
 	      *exp(-log( (pnl->z_plot[i]+1.) * a_ini / pba->a_today )*2),
-	      pow(pba->h,3)*
 	      1/(zb-za)*
 	      ( (zc-za) * pnl->p_12_nl[index_k+(pnl->k_size*(index_eta))] + 
 		(zb-zc) *  pnl->p_12_nl[index_k+(pnl->k_size*(index_eta-1))]  )
 	      *exp(-log( (pnl->z_plot[i]+1.) * a_ini / pba->a_today )*2),
-	      pow(pba->h,3)*
 	      1/(zb-za)*
 	      ( (zc-za) * pnl->p_22_nl[index_k+(pnl->k_size*(index_eta))] + 
 		(zb-zc) *  pnl->p_22_nl[index_k+(pnl->k_size*(index_eta-1))]  )
 	      *exp(-log( (pnl->z_plot[i]+1.) * a_ini / pba->a_today )*2),
-	      pow(pba->h,3)*
 	      1/(zb-za)*
-	      ( (zc-za) * pk_linear11[index_k+(pnl->k_size*(index_eta))] + 
-		(zb-zc) *  pk_linear11[index_k+(pnl->k_size*(index_eta-1))]  )
+	      ( (zc-za) * p_11_linear[index_k+(pnl->k_size*(index_eta))] + 
+		(zb-zc) *  p_11_linear[index_k+(pnl->k_size*(index_eta-1))]  )
 	       *exp(-log( (pnl->z_plot[i]+1.) * a_ini / pba->a_today )*2),
-	      pow(pba->h,3)*
 	      1/(zb-za)*
-	      ( (zc-za) * pk_linear12[index_k+(pnl->k_size*(index_eta))] + 
-                (zb-zc) *  pk_linear12[index_k+(pnl->k_size*(index_eta-1))]  )
+	      ( (zc-za) * p_12_linear[index_k+(pnl->k_size*(index_eta))] + 
+                (zb-zc) *  p_12_linear[index_k+(pnl->k_size*(index_eta-1))]  )
 	      *exp(-log( (pnl->z_plot[i]+1.) * a_ini / pba->a_today )*2),
-	      pow(pba->h,3)*
 	      1/(zb-za)*
-	      ( (zc-za) * pk_linear22[index_k+(pnl->k_size*(index_eta))] + 
-	        (zb-zc) *  pk_linear22[index_k+(pnl->k_size*(index_eta-1))]  )
+	      ( (zc-za) * p_22_linear[index_k+(pnl->k_size*(index_eta))] + 
+	        (zb-zc) *  p_22_linear[index_k+(pnl->k_size*(index_eta-1))]  )
 	      *exp(-log( (pnl->z_plot[i]+1.) * a_ini / pba->a_today )*2),
-	      pow(pba->h,3)*temp);
+	      temp);
 
 	  for (index_name=0; index_name<name_size; index_name++)
 	    fprintf(nl_spectra,"%e\t",1/(zb-za)*
@@ -3182,10 +3270,20 @@ int trg_init (
 
   if(pnl->mode>1) printf("Done in %2.f min\n",difftime(time_2,time_1)/60);
 
-  /*
-   * End of computation
-   * Beginning of cleaning
-   */
+  /* TEST ZONE */
+  sprintf(filename,"%s_compar.dat",pnl->root);
+  class_open(nl_spectra,filename,"wr",pnl->error_message);
+  for(index_eta=0; index_eta<pnl->eta_size; index_eta++){
+    class_call(
+	      spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[28],pnl->z[pnl->eta_size-1-index_eta],&temp,junk),
+	      psp->error_message,
+	      pnl->error_message);
+    fprintf(nl_spectra,"%e\t%e\t%e\n",pnl->eta[pnl->eta_size-1-index_eta],temp,p_11_linear[28+pnl->k_size*(pnl->eta_size-1-index_eta)]*exp(pnl->eta[pnl->eta_size-1-index_eta]*2));
+
+  }
+  fclose(nl_spectra);
+
+  /** End of the computation, beginning of cleaning */
 
   for (index_name=0; index_name<name_size; index_name++) 
     free(AA[index_name]);
@@ -3207,9 +3305,9 @@ int trg_init (
   free(a11);
   free(a0);
 
-  free(pk_linear11);
-  free(pk_linear12);
-  free(pk_linear22);
+  free(p_11_linear);
+  free(p_12_linear);
+  free(p_22_linear);
   
   free(Omega_21);
   free(Omega_22);
@@ -3218,15 +3316,27 @@ int trg_init (
    
 }
 
+/**
+ * This routine frees all the memory space allocated by trg_init().
+ *
+ * To be called at the end of each run, when no further use of the nl_functions are needed.
+ *
+ * @param pnl Input : pointer to spectra_nl structure (which fields must be freed).
+ * @return the error status
+ */
+
 int trg_free(
 	     struct spectra_nl * pnl
 	     ){
   
   free(pnl->k);
-  free(pnl->pk_nl);
+  free(pnl->p_11_nl);
   free(pnl->p_12_nl);
   free(pnl->p_22_nl);
-  free(pnl->ddpk_nl);
+  free(pnl->ddp_11_nl);
+  free(pnl->ddp_12_nl);
+  free(pnl->ddp_22_nl);
+  free(pnl->ddp_11);
   free(pnl->ddp_12);
   free(pnl->ddp_22);
   free(pnl->eta);
