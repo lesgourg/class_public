@@ -103,11 +103,6 @@ int output_init(
 	       pop->error_message);
   }
 
-  if (pnl->method > nl_none) {
-
-    /**/
-
-  }
 
   return _SUCCESS_;
 

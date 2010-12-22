@@ -303,7 +303,7 @@ struct perturb_workspace
   double fsa_delta_g; /**< photon density in free-streaming approximation */
   double fsa_theta_g; /**< photon velocity in free-streaming approximation */
   double fsa_delta_nur; /**< neutrino density in free-streaming approximation */
-  double fsa_theta_nur; /**< neutrino velocity in free-streaming approximation */
+  double fsa_theta_nur; /**< neutrinochi2 velocity in free-streaming approximation */
 
   //@}
 
