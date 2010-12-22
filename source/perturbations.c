@@ -154,7 +154,7 @@ int perturb_init(
 	      "your tight_coupling_approximation is set to %d, out of range defined in perturbations.f",ppr->tight_coupling_approximation);
 
   class_test ((ppr->free_streaming_approximation < fsa_null) ||
-	      (ppr->free_streaming_approximation < fsa_MD_with_reio),
+	      (ppr->free_streaming_approximation > fsa_MD_with_reio),
 	      ppt->error_message,
 	      "your free_streaming_approximation is set to %d, out of range defined in perturbations.f",ppr->free_streaming_approximation);
   
@@ -1489,11 +1489,11 @@ int perturb_solve(
 	     ppw->pvecback[pba->index_bg_H]/
 	     ppw->pvecthermo[pth->index_th_dkappa]);
   
-  class_test(k/ppw->pvecthermo[pth->index_th_dkappa] >
-	     ppr->start_large_k_at_eta_g_over_eta_k,
+  class_test(k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] >
+	     ppr->start_large_k_at_eta_h_over_eta_k,
 	     ppt->error_message,
-	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_eta_g_over_eta_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
-	     ppt->k[index_mode][ppt->k_size[index_mode]-1]/ppw->pvecthermo[pth->index_th_dkappa]);
+	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_large_k_at_eta_h_over_eta_k' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
+	     ppt->k[index_mode][ppt->k_size[index_mode]-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
   
   eta_upper = ppt->eta_sampling[0];
   
@@ -1552,9 +1552,9 @@ int perturb_solve(
 	 ppw->pvecthermo[pth->index_th_dkappa] <
 	 ppr->start_small_k_at_eta_g_over_eta_h)
 	&&
-	(k/ppw->pvecthermo[pth->index_th_dkappa] < 
-	 ppr->start_large_k_at_eta_g_over_eta_k))
-      
+	(k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] <
+	 ppr->start_large_k_at_eta_h_over_eta_k))
+
       eta_lower = eta_mid;
     else
       eta_upper = eta_mid;

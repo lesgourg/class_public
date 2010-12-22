@@ -42,19 +42,22 @@ struct nonlinear {
 
   //@{
 
-  double * eta;		/**< table containing eta values used in this module(new time variable defined as log(a/a_ini)) */
   double * z;		/**< table containing z   values used in this module */
-  int eta_size;
+  int z_size;
 
   //@}
 
-  /** @name - tables of non-linear spectra and their derivatives*/
+  /** @name - tables of non-linear spectra and their second derivatives with respect to redshift */
 
   //@{
 
-  double * p_dd;
-  double * p_dt;
-  double * p_tt;
+  double * p_density; /* density-density */
+  double * p_cross; /* density-velocity */
+  double * p_velocity; /* velocity-velocity */
+
+  double * ddp_density;
+  double * ddp_cross;
+  double * ddp_velocity;
 
   /** @name - technical parameters */
 
@@ -78,16 +81,19 @@ extern "C" {
 
   int nonlinear_pk_at_z(
 			struct nonlinear * pnl,
-			enum linear_or_logarithmic mode, 
 			double z,
-			double * output_tot
+			double * pz_density,
+			double * pz_velocity,
+			double * pz_cross
 			);
 
   int nonlinear_pk_at_k_and_z(
 			      struct nonlinear * pnl,
 			      double k,
 			      double z,
-			      double * pk
+			      double * pk_density,
+			      double * pk_velocity,
+			      double * pk_cross
 			      );
 
   int nonlinear_init(

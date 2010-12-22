@@ -370,11 +370,11 @@ struct precision
 
   double start_small_k_at_eta_g_over_eta_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_H \f$. Start when start_largek_at_eta_g_over_eta_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
 
-  double start_large_k_at_eta_g_over_eta_k; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_k \f$. Start when start_largek_at_eta_g_over_eta_k equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
+  double start_large_k_at_eta_h_over_eta_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hibble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \eta_h/\eta_k \f$ wich is roughly equal to (k*eta). Start when this ratio equals start_large_k_at_eta_k_over_eta_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
   /**
    * when to switch off tight-coupling approximation: first condition:
-   * \f$ \eta_g/\eta_H \f$ < tight_coupling_trigger_eta_g_over_eta_h.
+   * \f$ \eta_g/\eta_H \f$ > tight_coupling_trigger_eta_g_over_eta_h.
    * Decrease this value to switch off earlier in time.  If this
    * number is larger than start_sources_at_eta_g_over_eta_h, the code
    * returns an error, because the source computation requires

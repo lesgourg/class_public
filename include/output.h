@@ -62,6 +62,7 @@ extern "C" {
 		  struct background * pba,
 		  struct perturbs * ppt,
 		  struct spectra * psp,
+		  struct nonlinear * pnl,
 		  struct lensing * ple,
 		  struct output * pop
 		  );
@@ -125,6 +126,15 @@ extern "C" {
 			    double one_pk
 			    );
 
+  int output_open_pk_nl_file(
+			     struct nonlinear * pnl,
+			     struct output * pop,
+			     FILE * * pkfile,
+			     FileName filename,
+			     char * first_line,
+			     double z
+			     );
+  
   int output_open_tk_file(
 			  struct background * pba,
 			  struct spectra * psp,

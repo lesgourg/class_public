@@ -875,7 +875,7 @@ int input_init(
     if ((strstr(string1,"trg") != NULL) || (strstr(string1,"TRG") != NULL)) {
       pnl->method=nl_trg;
     }    
-    if ((strstr(string1,"one-loop") != NULL) || (strstr(string1,"oneloop") != NULL)) {
+    if ((strstr(string1,"one-loop") != NULL) || (strstr(string1,"oneloop") != NULL) || (strstr(string1,"one loop") != NULL)) {
       pnl->method=nl_trg_one_loop;
     }
     if ((strstr(string1,"test linear") != NULL) || (strstr(string1,"test-linear") != NULL)) {
@@ -985,7 +985,7 @@ int input_init(
   class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
   class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
   class_read_double("start_small_k_at_eta_g_over_eta_h",ppr->start_small_k_at_eta_g_over_eta_h);
-  class_read_double("start_large_k_at_eta_g_over_eta_k",ppr->start_large_k_at_eta_g_over_eta_k);
+  class_read_double("start_large_k_at_eta_h_over_eta_k",ppr->start_large_k_at_eta_h_over_eta_k);
   class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
   class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
   class_read_double("start_sources_at_eta_g_over_eta_h",ppr->start_sources_at_eta_g_over_eta_h);
@@ -1295,7 +1295,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to the background
    */
 
-  ppr->a_ini_over_a_today_default = 1.e-7;  /* 1.e-7 unless needs large k_max in P(k) */
+  ppr->a_ini_over_a_today_default = 1.e-10;  /* 1.e-7 unless needs large k_max in P(k) */
   ppr->back_integration_stepsize = 0.1;   /* 03.12.10 for chi2plT0.01 */
   ppr->tol_background_integration = 1.e-2;  /* no sizeable impact */
 
@@ -1381,7 +1381,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_transition=0.2;
 
   ppr->start_small_k_at_eta_g_over_eta_h = 0.006; /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
-  ppr->start_large_k_at_eta_g_over_eta_k = 1.e-5;  /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
+  ppr->start_large_k_at_eta_h_over_eta_k = 1.e-1;  /* decrease to start earlier in time */
   ppr->tight_coupling_trigger_eta_g_over_eta_h=0.008; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
   ppr->tight_coupling_trigger_eta_g_over_eta_k=0.05; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
   ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* 14.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */

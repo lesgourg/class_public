@@ -60,6 +60,7 @@ int output_init(
 		struct background * pba,
 		struct perturbs * ppt,
 		struct spectra * psp,
+		struct nonlinear * pnl,
 		struct lensing * ple,
 		struct output * pop
 		) {
@@ -92,6 +93,13 @@ int output_init(
   if (ppt->has_pk_matter == _TRUE_) {
 
     class_call(output_pk(pba,ppt,psp,pop),
+	       pop->error_message,
+	       pop->error_message);
+  }
+
+  if (pnl->method > nl_none) {
+
+    class_call(output_pk_nl(pba,pnl,pop),
 	       pop->error_message,
 	       pop->error_message);
   }
@@ -790,6 +798,114 @@ int output_pk(
 
 }
 
+int output_pk_nl(
+		 struct background * pba,
+		 struct nonlinear * pnl,
+		 struct output * pop
+		 ) {
+
+  int index_z;
+  int index_k;
+  double * pz_density;
+  double * pz_velocity;
+  double * pz_cross;
+  FILE * out_density;
+  FILE * out_velocity;
+  FILE * out_cross;
+  FileName file_name;
+  FileName redshift_suffix;
+
+  class_alloc(pz_density,pnl->k_size*sizeof(double),pnl->error_message);
+  class_alloc(pz_velocity,pnl->k_size*sizeof(double),pnl->error_message);
+  class_alloc(pz_cross,pnl->k_size*sizeof(double),pnl->error_message);
+
+  for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
+
+    class_test((pop->z_pk[index_z] < pnl->z[pnl->z_size-1]) || (pop->z_pk[index_z] > pnl->z[0]),
+	       pop->error_message,
+	       "P_nl(k,z) computed in range %f<z<%f but requested at z=%f. You should probably increase z_ini in precision file.",pnl->z[pnl->z_size-1],pnl->z[0],pop->z_pk[index_z]);
+
+    if (pop->z_pk_num == 1) 
+      redshift_suffix[0]='\0';
+    else
+      sprintf(redshift_suffix,"z%d_",index_z+1);
+
+    /** - second, open only the relevant files, and write a heading in each of them */
+    
+    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_density.dat");
+
+    class_call(output_open_pk_nl_file(pnl,
+				      pop,
+				      &out_density,
+				      file_name,
+				      "(density auto-correlation) ",
+				      pop->z_pk[index_z]
+				      ),
+	       pop->error_message,
+	       pop->error_message);
+
+    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_velocity.dat");
+
+    class_call(output_open_pk_nl_file(pnl,
+				      pop,
+				      &out_velocity,
+				      file_name,
+				      "(velocity auto-correlation) ",
+				      pop->z_pk[index_z]
+				      ),
+	       pop->error_message,
+	       pop->error_message);
+
+    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_cross.dat");
+
+    class_call(output_open_pk_nl_file(pnl,
+				      pop,
+				      &out_cross,
+				      file_name,
+				      "(density-velocity cross-correlation) ",
+				      pop->z_pk[index_z]
+				      ),
+	       pop->error_message,
+	       pop->error_message);
+
+    class_call(nonlinear_pk_at_z(pnl,pop->z_pk[index_z],pz_density,pz_velocity,pz_cross),
+	       pop->error_message,
+	       pop->error_message);
+
+    for (index_k=0; index_k<pnl->k_size;index_k++) {
+
+      class_call(output_one_line_of_pk(out_density,
+				       pnl->k[index_k],
+				       pz_density[index_k]),
+		 pop->error_message,
+		 pop->error_message);
+
+      class_call(output_one_line_of_pk(out_velocity,
+				       pnl->k[index_k],
+				       pz_velocity[index_k]),
+		 pop->error_message,
+		 pop->error_message);
+
+      class_call(output_one_line_of_pk(out_cross,
+				       pnl->k[index_k],
+				       pz_cross[index_k]),
+		 pop->error_message,
+		 pop->error_message);
+      
+    }
+
+    fclose(out_density);
+    fclose(out_velocity);
+    fclose(out_cross);
+ }
+
+  free(pz_density);
+  free(pz_velocity);
+  free(pz_cross);
+
+  return _SUCCESS_;
+}
+
 /** 
  * This routines writes the output in files for matter transfer functions T_i(k)'s.
  * 
@@ -1049,18 +1165,18 @@ int output_one_line_of_cl(
 int output_open_pk_file(
 			struct spectra * psp,
 			struct output * pop,
-			FILE * * tkfile,
+			FILE * * pkfile,
 			FileName filename,
 			char * first_line,
 			double z
 			) {
 
-  class_open(*tkfile,filename,"w",pop->error_message);
+  class_open(*pkfile,filename,"w",pop->error_message);
 
-  fprintf(*tkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0]),exp(psp->ln_k[psp->ln_k_size-1]));
-  fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
-  fprintf(*tkfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
+  fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
+  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0]),exp(psp->ln_k[psp->ln_k_size-1]));
+  fprintf(*pkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+  fprintf(*pkfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
 
   return _SUCCESS_;
 }
@@ -1075,15 +1191,47 @@ int output_open_pk_file(
  */
 
 int output_one_line_of_pk(
-			  FILE * tkfile,
+			  FILE * pkfile,
 			  double one_k,
 			  double one_pk
 			  ) {
 
-  fprintf(tkfile,"%e %16.10e\n",one_k,one_pk);
+  fprintf(pkfile,"%e %16.10e\n",one_k,one_pk);
     
   return _SUCCESS_;
     
+}
+
+/**
+ * This routine opens one file where some P_nl(k)'s will be written, and writes 
+ * a heading with some general information concerning its content.
+ *
+ * @param pnl        Input : pointer to nonlinear structure
+ * @param pop        Input : pointer to output structure
+ * @param tkfile     Output: returned pointer to file pointer
+ * @param filename   Input : name of the file
+ * @param first_line Input : text describing the content (initial conditions, ...)
+ * @param z          Input : redshift of the output
+ * @return the error status
+ */
+
+int output_open_pk_nl_file(
+			   struct nonlinear * pnl,
+			   struct output * pop,
+			   FILE * * pkfile,
+			   FileName filename,
+			   char * first_line,
+			   double z
+			   ) {
+
+  class_open(*pkfile,filename,"w",pop->error_message);
+
+  fprintf(*pkfile,"# Non-linear matter power spectrum P_nl(k) %sat redshift z=%g\n",first_line,z); 
+  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0],pnl->k[pnl->k_size-1]);
+  fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size);
+  fprintf(*pkfile,"# k (h/Mpc)  P_nl (Mpc/h)^3:\n");
+
+  return _SUCCESS_;
 }
 
 /**
