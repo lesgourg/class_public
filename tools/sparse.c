@@ -324,7 +324,7 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 	int *last, *len, *nv, *next, *head, *elen, *degree, *w, *hhead;
 	int d, dk, dext, lemax=0, e, elenk, eln, i, j, k, k1, k2, k3, jlast, ln;
 	int dense, mindeg=0, nvi, nvj, nvk, mark, wnvi, ok, nel=0;
-	int p, p1, p2, p3, p4, pj, pk, pk1, pk2, pn, q, m, cnz;
+	int p, p1, p2, p3, p4, pj, pk, pk1, pk2, pn, q, cnz;
 	unsigned int h;
 	/*	I assume that the sparse matrix C is symmetrix (C = A + A' in our case) 
 		and that the diagonal elements has been removed. C must be large enough,

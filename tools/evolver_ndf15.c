@@ -942,7 +942,7 @@ int numjac(
 	double facmin=pow(eps,0.78),facmax=0.1;
 	int logjpos, pattern_broken;
 	double tmpfac,difmax2=0.,del2,ffscale;
-	int i,j,k,rowmax2;
+	int i,j,rowmax2;
 	double maxval1,maxval2;
 	int colmax,group,row,nz,nz2;
 	double Fdiff_absrm,Fdiff_new;

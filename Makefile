@@ -17,10 +17,10 @@ CC       = gcc
 
 #CCFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
-#CCFLAG   = -O4 -fopenmp -Wall -g
-#LDFLAG   = -O4 -fopenmp -Wall -g
-CCFLAG   = -O4 -fopenmp -Wall
-LDFLAG   = -O4 -fopenmp -Wall
+CCFLAG   = -O4 -fopenmp -Wall -g
+LDFLAG   = -O4 -fopenmp -Wall -g
+#CCFLAG   = -O4 -fopenmp -Wall
+#LDFLAG   = -O4 -fopenmp -Wall
 #CCFLAG = -O2 -ggdb
 #LDFLAG = -O2 -ggdb
 #CCFLAG = -O2
@@ -65,6 +65,8 @@ CLASS = class.o
 
 TEST_OPTIMIZE_1D = test_optimize_1D.o
 
+TEST_OPTIMIZE = test_optimize.o
+
 TEST_LOOPS = test_loops.o
 
 TEST_SPECTRA = test_spectra.o
@@ -92,6 +94,9 @@ test_pbc: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_optimize_1D: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_OPTIMIZE_1D)
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_optimize: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_OPTIMIZE)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_loops: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_LOOPS)
