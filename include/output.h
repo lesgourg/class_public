@@ -6,6 +6,13 @@
 #include "lensing.h"
 
 /**
+ * Maximum number of values of redshift at which the spectra will be
+ * written in output files
+ */
+
+#define _Z_PK_NUM_MAX_ 10
+
+/**
  * Structure containing various informations on the output format, 
  * all of them initialized by user in input module.
  *
@@ -26,7 +33,7 @@ struct output {
   //@{
 
   double z_pk_num;
-  double * z_pk;
+  double z_pk[_Z_PK_NUM_MAX_];
 
   //@}
 

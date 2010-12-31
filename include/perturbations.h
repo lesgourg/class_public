@@ -294,7 +294,6 @@ struct perturb_workspace
   double * pvecback;          /**< background quantitites */
   double * pvecthermo;        /**< thermodynamics quantitites */
   double * pvecmetric;        /**< metric quantitites */
-  double * pvecsource_terms;  /**< source terms */
   struct perturb_vector * pv; /**< pointer to vector of integrated
 				 perturbations and their
 				 time-derivatives */

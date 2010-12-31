@@ -74,6 +74,7 @@ int parser_free(
     free(pfc->name);
     free(pfc->value);
     free(pfc->read);
+    free(pfc->filename);
   }
 
   return _SUCCESS_;

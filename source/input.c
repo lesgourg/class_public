@@ -827,11 +827,16 @@ int input_init(
 	       errmsg);
     
     if (flag1 == _TRUE_) {
-      free(pop->z_pk);
+      class_test(int1 > _Z_PK_NUM_MAX_,
+		 errmsg,
+		 "you want to write some output for %d different values of z, hence you should increase _Z_PK_NUM_MAX_ in include/output.h to at least this number",
+		 int1);
       pop->z_pk_num = int1;
-      pop->z_pk = pointer1;
+      for (i=0; i<int1; i++) {
+	pop->z_pk[i] = pointer1[i];
+      }
     }
-
+    
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
 	       errmsg,
 	       errmsg);
@@ -1125,7 +1130,6 @@ int input_default_params(
 			 struct output *pop
 			 ) {
 
-  ErrorMsg errmsg;
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
@@ -1241,7 +1245,6 @@ int input_default_params(
   /** - output structure */ 
 
   pop->z_pk_num = 1;
-  class_alloc(pop->z_pk,pop->z_pk_num*sizeof(double),errmsg);
   pop->z_pk[0] = 0.;  
   sprintf(pop->root,"output/");
 
