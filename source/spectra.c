@@ -1310,21 +1310,21 @@ int spectra_cls(
 	    tstart = omp_get_wtime();
 #endif
 
-	    class_alloc_parallel(cl_integrand,
-				 ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),
-				 psp->error_message);
+ 	    class_alloc_parallel(cl_integrand,
+ 				 ptr->k_size[index_mode]*cl_integrand_num_columns*sizeof(double),
+ 				 psp->error_message);
 	    
-	    class_alloc_parallel(primordial_pk,
-				 psp->ic_ic_size[index_mode]*sizeof(double),
-				 psp->error_message);
+ 	    class_alloc_parallel(primordial_pk,
+ 				 psp->ic_ic_size[index_mode]*sizeof(double),
+ 				 psp->error_message);
 	    
-	    class_alloc_parallel(transfer_ic1,
-				 ptr->tt_size[index_mode]*sizeof(double),
-				 psp->error_message);
+ 	    class_alloc_parallel(transfer_ic1,
+ 				 ptr->tt_size[index_mode]*sizeof(double),
+ 				 psp->error_message);
 	    
-	    class_alloc_parallel(transfer_ic2,
-				 ptr->tt_size[index_mode]*sizeof(double),
-				 psp->error_message);
+ 	    class_alloc_parallel(transfer_ic2,
+ 				 ptr->tt_size[index_mode]*sizeof(double),
+ 				 psp->error_message);
 
 #pragma omp for schedule (dynamic)
 

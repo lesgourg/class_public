@@ -52,7 +52,7 @@ int bessel_at_x(
 
   /** - if x is too small to be in the interpolation table, return 0 */
 
-  if (x < pbs->x_min[index_l]) {
+  if (x < *(pbs->x_min[index_l])) {
     *j=0;
     return _SUCCESS_;
   }
@@ -68,16 +68,15 @@ int bessel_at_x(
 
     /** (a) find index_x, i.e. the position of x in the table; no complicated algorithm needed, since values are regularly spaced with a known step and known first value */
 
-    index_x = (int)((x-pbs->x_min[index_l])/pbs->x_step);
+    index_x = (int)((x-*(pbs->x_min[index_l]))/pbs->x_step);
 
-    /** (b) find result with the splint algorithm (equivalent to the one in numerical recipies) */
-    h=pbs->x_step;
-    b = ( x - (pbs->x_min[index_l]+pbs->x_step*index_x) )/h;
-    a = 1.-b;
+    /** (b) find result with the splint algorithm (equivalent to the one in numerical recipies, although terms are rearranged differently to minimize number of operations) */
+    a = (*(pbs->x_min[index_l])+pbs->x_step*(index_x+1) - x)/pbs->x_step;
     *j= a * pbs->j[index_l][index_x] 
-      + b * pbs->j[index_l][index_x+1]
-      + ((a*a*a-a) * pbs->ddj[index_l][index_x]
-	 +(b*b*b-b) * pbs->ddj[index_l][index_x+1]) * (h*h)/6.0;
+      + (1.-a) * ( pbs->j[index_l][index_x+1]
+		   - a * ((a+1.) * pbs->ddj[index_l][index_x]
+			  +(2.-a) * pbs->ddj[index_l][index_x+1]) 
+		   * pbs->x_step * pbs->x_step / 6.0);
   }
 
   return _SUCCESS_;
@@ -224,35 +223,38 @@ int bessel_init(
 	if (pbs->bessels_verbose > 0)
 	  printf("Read bessels in file %s\n",ppr->bessel_file_name);
 	
-	class_alloc(pbs->x_min,pbs->l_size*sizeof(double),pbs->error_message);
-	class_alloc(pbs->x_size,pbs->l_size*sizeof(int),pbs->error_message);
-	class_alloc(pbs->j,pbs->l_size*sizeof(double),pbs->error_message);
-	class_alloc(pbs->ddj,pbs->l_size*sizeof(double),pbs->error_message);
-
-	class_test(fread(pbs->x_min,sizeof(double),pbs->l_size,bessel_file) != pbs->l_size,
-		   pbs->error_message,
-		   "Could not read in bessel file");
+	class_alloc(pbs->x_size,pbs->l_size*sizeof(int*),pbs->error_message);
+	class_alloc(pbs->x_min,pbs->l_size*sizeof(double*),pbs->error_message);
+	class_alloc(pbs->buffer,pbs->l_size*sizeof(double*),pbs->error_message);
+	class_alloc(pbs->j,pbs->l_size*sizeof(double*),pbs->error_message);
+	class_alloc(pbs->ddj,pbs->l_size*sizeof(double*),pbs->error_message);
 
 	class_test(fread(pbs->x_size,sizeof(int),pbs->l_size,bessel_file) != pbs->l_size,
 		   pbs->error_message,
 		   "Could not read in bessel file");
 
 	for (index_l=0; index_l < pbs->l_size; index_l++) {
-	    
-	  class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
+
+	  class_alloc(pbs->buffer[index_l],
+		      (1+2*pbs->x_size[index_l])*sizeof(double),
+		      pbs->error_message);
+    
+	  pbs->x_min[index_l] = pbs->buffer[index_l];
+	  pbs->j[index_l] = pbs->buffer[index_l]+1;
+	  pbs->ddj[index_l] = pbs->buffer[index_l]+1+pbs->x_size[index_l];
+	 
+	  class_test(fread(pbs->x_min[index_l],sizeof(double),1,bessel_file) != 1,
+		     pbs->error_message,
+		     "Could not read in bessel file");
 
 	  class_test(fread(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
 		     pbs->error_message,
 		     "Could not read in bessel file");
-	}
-
-	for (index_l=0; index_l < pbs->l_size; index_l++) {
-
-	  class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
 
 	  class_test(fread(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
 		     pbs->error_message,
 		     "Could not read in bessel file");
+
 	}
 
 	fclose(bessel_file);
@@ -271,10 +273,11 @@ int bessel_init(
   if (pbs->bessels_verbose > 0)
     printf("Computing bessels\n");
 
-  class_alloc(pbs->x_min,pbs->l_size*sizeof(double),pbs->error_message);
-  class_alloc(pbs->x_size,pbs->l_size*sizeof(int),pbs->error_message);
-  class_alloc(pbs->j,pbs->l_size*sizeof(double),pbs->error_message);
-  class_alloc(pbs->ddj,pbs->l_size*sizeof(double),pbs->error_message);
+  class_alloc(pbs->x_size,pbs->l_size*sizeof(int*),pbs->error_message);
+  class_alloc(pbs->buffer,pbs->l_size*sizeof(double*),pbs->error_message);
+  class_alloc(pbs->x_min,pbs->l_size*sizeof(double*),pbs->error_message);
+  class_alloc(pbs->j,pbs->l_size*sizeof(double*),pbs->error_message);
+  class_alloc(pbs->ddj,pbs->l_size*sizeof(double*),pbs->error_message);
 
   /* initialize error management flag */
   abort = _FALSE_;
@@ -331,15 +334,11 @@ int bessel_init(
     fwrite(&(pbs->x_max),sizeof(double),1,bessel_file);
     fwrite(&(pbs->j_cut),sizeof(double),1,bessel_file);
 
-    fwrite(pbs->x_min,sizeof(double),pbs->l_size,bessel_file);
-
     fwrite(pbs->x_size,sizeof(int),pbs->l_size,bessel_file);
 
     for (index_l=0; index_l<pbs->l_size; index_l++) {
+      fwrite(pbs->x_min[index_l],sizeof(double),1,bessel_file);
       fwrite(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
-    }
-
-    for (index_l=0; index_l<pbs->l_size; index_l++) {
       fwrite(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
     }
 
@@ -367,12 +366,12 @@ int bessel_free(
   if (pbs->l_max > 0) {
 
     for (index_l = 0; index_l < pbs->l_size; index_l++) {
-      free(pbs->j[index_l]);
-      free(pbs->ddj[index_l]);
+      free(pbs->buffer[index_l]);
     }
+    free(pbs->buffer);
+    free(pbs->x_min);
     free(pbs->j);
     free(pbs->ddj);
-    free(pbs->x_min);
     free(pbs->x_size);
     free(pbs->l);
     
@@ -514,11 +513,12 @@ int bessel_j_for_l(
   /* for computing x_min */
   double x_min_up;
   double x_min_down;
+  double x_min;
 
   index_x=0;
   j = 0.;
 
-  /** - find x_min[index_l] by dichotomy */
+  /** - find x_min[index_l] by bisection */
 
   x_min_up=(double)pbs->l[index_l]+0.5;
   x_min_down=0.;
@@ -532,7 +532,7 @@ int bessel_j_for_l(
   
   class_test(j < pbs->j_cut,
 	     pbs->error_message,
-	     "in dichotomy, wrong initial guess for x_min_up.");
+	     "in bisection, wrong initial guess for x_min_up.");
  
   while ((x_min_up-x_min_down) > ppr->bessel_tol_x_min) {
       
@@ -555,52 +555,59 @@ int bessel_j_for_l(
 
   }
   
-  pbs->x_min[index_l]=x_min_down;
+  x_min = x_min_down;
 
   class_call(bessel_j(pbs,
 		      pbs->l[index_l], /* l */
-		      pbs->x_min[index_l], /* x */
+		      x_min, /* x */
 		      &j),  /* j_l(x) */
 	     pbs->error_message,
 	     pbs->error_message);
 
+  /** - define number of x values to be stored (one if all values of j_l(x) were negligible for this l) */
+  
+  if (x_min >= pbs->x_max)
+    pbs->x_size[index_l] = 1;
+  else
+    pbs->x_size[index_l] = (int)((pbs->x_max-x_min)/pbs->x_step) + 1;
+
+  /** - allocate memory for x_min[index_l], j[index_l], ddj[index_l] in such way that they stand in a contiguous memory location */
+
+  class_alloc(pbs->buffer[index_l],
+	      (1+2*pbs->x_size[index_l])*sizeof(double),
+	      pbs->error_message);
+    
+  pbs->x_min[index_l] = pbs->buffer[index_l];
+  pbs->j[index_l] = pbs->buffer[index_l]+1;
+  pbs->ddj[index_l] = pbs->buffer[index_l]+1+pbs->x_size[index_l];
+  
   /** - case when all values of j_l(x) were negligible for this l*/
 
-  if (pbs->x_min[index_l] >= pbs->x_max) {
-
-    pbs->x_min[index_l] = pbs->x_max;
-    pbs->x_size[index_l] = 1;
-
-    class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-    class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-
-    pbs->j[index_l][0]=0;
-    pbs->ddj[index_l][0]=0;
+  if (x_min >= pbs->x_max) {
+    
+    *(pbs->x_min[index_l]) = pbs->x_max;
+    pbs->j[index_l][0]=0.;
+    pbs->ddj[index_l][0]=0.;
   }
 
   /** -otherwise, write first non-negligible value and then loop over x */
   else {
 
-    pbs->x_size[index_l] = (int)((pbs->x_max-pbs->x_min[index_l])/pbs->x_step) + 1;
-
-    class_alloc(pbs->j[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-    class_alloc(pbs->ddj[index_l],pbs->x_size[index_l]*sizeof(double),pbs->error_message);
-
-    pbs->j[index_l][0] = j;
+    *(pbs->x_min[index_l]) = x_min;
 
     class_call(bessel_j(pbs,
 			pbs->l[index_l]-1, /* l-1 */
-			pbs->x_min[index_l], /* x */
+			x_min, /* x */
 			&jm),  /* j_{l-1}(x) */
 	       pbs->error_message,
 	       pbs->error_message);
-
-    pbs->ddj[index_l][0] = jm-j/pbs->x_min[index_l]/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
+    
+    pbs->ddj[index_l][0] = jm-j/x_min/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
 
     /* loop over other non-negligible values */
     for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
 
-      x = pbs->x_min[index_l]+index_x*pbs->x_step;
+      x = *(pbs->x_min[index_l])+index_x*pbs->x_step;
 
       class_call(bessel_j(pbs,
 			  pbs->l[index_l], /* l */
@@ -616,13 +623,12 @@ int bessel_j_for_l(
 		 pbs->error_message,
 		 pbs->error_message);
 
-	pbs->ddj[index_l][index_x] -= 
-	  pbs->j[index_l][index_x]/x/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
-	
-
+      pbs->ddj[index_l][index_x] -= 
+	pbs->j[index_l][index_x]/x/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
+      
     }
   }
-
+  
   return _SUCCESS_;
 }
     

@@ -1217,12 +1217,14 @@ int transfer_integrate(
 
   /* running value of bessel function */
   double bessel;
+  int index_x;
+  double x,a;
 
   /* index in the source's eta list corresponding to the last point in the overlapping region between sources and bessels */
   int index_eta,index_eta_max;
 
   /** - find maximum value of \f$ \eta \f$ at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  eta_max_bessel = eta0 - pbs->x_min[index_l]/ptr->k[index_mode][index_k]; /* segmentation fault impossible, checked before that k != 0 */
+  eta_max_bessel = eta0 - *(pbs->x_min[index_l])/ptr->k[index_mode][index_k]; /* segmentation fault impossible, checked before that k != 0 */
 
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
   if (eta_max_bessel <= ppt->eta_sampling[0]) {
@@ -1292,9 +1294,23 @@ int transfer_integrate(
   
   else {
     
-    class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta_max]),index_l,&bessel),
-	       pbs->error_message,
-	       ptr->error_message);
+      /* for bessel function interpolation, we could call the subroutine bessel_at_x below; however we perform operations directly here in order to speed up */
+
+/*     class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta_max]),index_l,&bessel), */
+/* 	       pbs->error_message, */
+/* 	       ptr->error_message); */
+    
+    x = ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta_max]);
+
+    index_x = (int)((x-*(pbs->x_min[index_l]))/pbs->x_step);
+    
+    a = (*(pbs->x_min[index_l])+pbs->x_step*(index_x+1) - x)/pbs->x_step;
+    
+    bessel = a * pbs->j[index_l][index_x] 
+      + (1.-a) * ( pbs->j[index_l][index_x+1]
+		   - a * ((a+1.) * pbs->ddj[index_l][index_x]
+			  +(2.-a) * pbs->ddj[index_l][index_x+1]) 
+		   * pbs->x_step * pbs->x_step / 6.0);
     
     *trsf = 
       interpolated_sources[index_k * ppt->eta_size + index_eta_max]*bessel
@@ -1302,9 +1318,23 @@ int transfer_integrate(
 
     for (index_eta=0; index_eta<index_eta_max; index_eta++) {
 
-      class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]),index_l,&bessel),
-		 pbs->error_message,
-		 ptr->error_message);
+      /* for bessel function interpolation, we could call the subroutine bessel_at_x below; however we perform operations directly here in order to speed up */
+
+/*       class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]),index_l,&bessel), */
+/* 		 pbs->error_message, */
+/* 		 ptr->error_message); */
+      
+      x = ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]);
+
+      index_x = (int)((x-*(pbs->x_min[index_l]))/pbs->x_step);
+
+      a = (*(pbs->x_min[index_l])+pbs->x_step*(index_x+1) - x)/pbs->x_step;
+
+      bessel = a * pbs->j[index_l][index_x] 
+	+ (1.-a) * ( pbs->j[index_l][index_x+1]
+		     - a * ((a+1.) * pbs->ddj[index_l][index_x]
+			    +(2.-a) * pbs->ddj[index_l][index_x+1]) 
+		     * pbs->x_step * pbs->x_step / 6.0);
       
       *trsf +=
 	interpolated_sources[index_k * ppt->eta_size + index_eta]*bessel

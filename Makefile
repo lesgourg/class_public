@@ -20,12 +20,12 @@ CC       = gcc
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #CCFLAG   = -O4 -fopenmp -Wall -g
 #LDFLAG   = -O4 -fopenmp -Wall -g
-CCFLAG   = -O4 -fopenmp -Wall
-LDFLAG   = -O4 -fopenmp -Wall
+#CCFLAG   = -O4 -fopenmp -Wall
+#LDFLAG   = -O4 -fopenmp -Wall
 #CCFLAG = -O2 -ggdb
 #LDFLAG = -O2 -ggdb
-#CCFLAG = -O4 -g
-#LDFLAG = -O4 -g
+CCFLAG = -O4 -arch i386 -pg
+LDFLAG = -O4 -arch i386 -pg
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 

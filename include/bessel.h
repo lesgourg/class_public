@@ -47,9 +47,14 @@ struct bessels {
 
   //@{
 
-  double * x_min; /**< x_min[index_l] is the minimum value of x for l[index_l], given j_cut; always a multiple of x_step */
-  int * x_size; /* x_size[index_l] is the number of x values for l[index_l]; hence x_min[index_l]+x_step*(x_size[index_l]-1) = x_max */
+  int * x_size; /**< x_size[index_l] is the number of x values for l[index_l]; hence *x_min[index_l]+x_step*(x_size[index_l]-1) = x_max */
+
+  double ** buffer; /**< buffer[index_l] is a pointer towards a memory zone containing x_min, all j_l(x) and all j_l''(x) for each value of l */
+
+  double ** x_min; /**< x_min[index_l] is a pointer towards the minimum value of x for l[index_l], given j_cut; always a multiple of x_step */
+
   double ** j; /* (j[index_l])[index_x] is \f$ j_l(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
+
   double ** ddj; /* (ddj[index_l])[index_x] \f$ j_l''(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x (in view of spline interpolation) */ 
 
   //@}
