@@ -90,15 +90,24 @@ int main(int argc, char **argv) {
 
   double * param;
 
+  FILE * output;
+  char filename[30];
+  char junk_string[60];
+  int l_read;
+
 /*******************************/
 
-/*   param = &(pr.k_tensor_step_sub); */
+  param = &(pr.rad_pert_trigger_k_over_aH);
 
-  parameter_initial=300.;
-  parameter_logstep=0.9;
+  parameter_initial=30.;
+  parameter_logstep=0.99;
 
   param_num=10;
-  ref_run=0;
+  ref_run=-1;
+
+  /* if ref_run<0, the reference is taken in the following external file: */
+
+  sprintf(filename,"output/ref_cl.dat");
 
 /*******************************************************/
 
@@ -109,84 +118,92 @@ int main(int argc, char **argv) {
 
   l_max = pt.l_scalar_max;
 
-  printf("l_max=%d\n",l_max);
-
-  class_alloc(cl,param_num*sizeof(double**),errmsg);
   class_alloc(parameter,param_num*sizeof(double),errmsg);
-  for (i=0; i<param_num; i++) {
-    class_alloc(cl[i],(l_max+1)*sizeof(double*),errmsg);
-    class_calloc(noise,(l_max+1),sizeof(double*),errmsg);
-    for (l=2; l <= l_max; l++) {
-      class_alloc(cl[i][l],3*sizeof(double),errmsg);
-      class_calloc(noise[l],3,sizeof(double),errmsg);
+
+  class_calloc(noise,(l_max+1),sizeof(double*),errmsg);
+  for (l=2; l <= l_max; l++) {
+    class_calloc(noise[l],3,sizeof(double),errmsg);
+  }
+
+
+  if (ref_run >= param_num) {
+    fprintf(stderr,"ref_run=%d out of allowed range\n",ref_run);
+    return _FAILURE_;
+  }
+
+  else if (ref_run >= 0) {
+    class_alloc(cl,param_num*sizeof(double**),errmsg);
+    for (i=0; i<param_num; i++) {
+      class_alloc(cl[i],(l_max+1)*sizeof(double*),errmsg);
+      for (l=2; l <= l_max; l++) {
+	class_alloc(cl[i][l],3*sizeof(double),errmsg);
+      }
     }
+  }
+
+  else {
+    class_alloc(cl,(param_num+1)*sizeof(double**),errmsg);
+    for (i=0; i<(param_num+1); i++) {
+      class_alloc(cl[i],(l_max+1)*sizeof(double*),errmsg);
+      for (l=2; l <= l_max; l++) {
+        class_alloc(cl[i][l],3*sizeof(double),errmsg);
+      }
+    }
+
+    ref_run = param_num;
+
+    /* read file and fill cl[param_num] */
+    output = fopen(filename,"r");
+    fprintf(stderr,"Read reference in file %s\n",filename);
+    fgets(junk_string,60,output);
+    //    fprintf(stderr,"%s\n",junk_string);
+    fgets(junk_string,60,output);
+    //    fprintf(stderr,"%s\n",junk_string);
+    fgets(junk_string,60,output);
+    //    fprintf(stderr,"%s\n",junk_string);
+    fgets(junk_string,60,output);
+    //    fprintf(stderr,"%s\n",junk_string);
+    float cl_read;
+    for (l=2; l <= l_max; l++) {
+      fscanf(output,"%d",&l_read);
+      //      fprintf(stderr,"%d",l_read);
+      fscanf(output,"%e",&cl_read);
+      //      fprintf(stderr," %e\n",cl_read);
+      cl[ref_run][l][sp.index_ct_tt]=(double)cl_read*2.*_PI_/l/(l+1);
+      //      fprintf(stderr,"%d %e\n",l_read,cl[ref_run][l][sp.index_ct_tt]);
+      if (l_read != l) {
+	printf("l_read != l: %d %d\n",l_read,l);
+      }
+    }
+
+    fclose(output);
+  }
+
+
+  if (bessel_init(&pr,&bs) == _FAILURE_) {
+    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
+    return _FAILURE_;
   }
 
   for (i=0; i<param_num; i++) {
 
     parameter[i] = parameter_initial * exp((double)i*log(parameter_logstep));
-
-/*     *param = parameter[i]; */
     
-/*     if (i==0) { */
-/*       if (bessel_init(&pr,&bs) == _FAILURE_) { */
-/* 	printf("\n\nError in bessel_init \n =>%s\n",bs.error_message); */
-/* 	return _FAILURE_; */
-/*       } */
-/*     } */
+    *param = parameter[i]; 
     
     fprintf(stderr,"#run %d/%d with %g\n",i+1,param_num,parameter[i]);
 
-    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
-/*     class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg); */
-    
-
-/*     for (l=2; l <= 2500; l++) */
-/*       printf("%d %e %e %e\n",l, */
-    /* 	     (l*(l+1)/2./_PI_)*cl[i][l][0],  */ /* here cl is the dimensionless C_l */ 
-    /* 	     (l*(l+1)/2./_PI_)*cl[i][l][1],  */ /* multiply by pow((th.Tcmb*1.e6),2) for muK */ 
-/* 	     (l*(l+1)/2./_PI_)*cl[i][l][2]); */
-      
-/*     printf("\n"); */
+    /*    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg); */
+    class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
     
   }
 
-/*   if (bessel_free(&bs) == _FAILURE_)  { */
-/*     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message); */
-/*     return _FAILURE_; */
-/*   } */
-
-/*   for (i=0; i<param_num-1; i++) { */
-
-/*     chi2=0; */
-/*     max_percentage = 0.; */
-/*     max_l = 0; */
-/*     for (l=2; l <= 2500; l++) { */
-/*       chi2 += pow(((cl[i][l][0]-cl[param_num-1][l][0])/cl[param_num-1][l][0]),2); */
-/*       percentage = fabs(cl[i][l][0]/cl[param_num-1][l][0]-1.)*100.; */
-/*       if (percentage > max_percentage) { */
-/* 	max_percentage = percentage; */
-/* 	max_l = l; */
-/*       } */
-/*     } */
-
-/*     chi2_simple(cl[i],cl[param_num-1],2500,&chi2_bis); */
-
-/*     fprintf(stderr,"parameter=%e chi2=%e (%e) l=%d percentage=%g\n", */
-/* 	    parameter[i],chi2,chi2_bis,max_l,max_percentage); */
-/*   } */
+  if (bessel_free(&bs) == _FAILURE_)  {
+    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
+    return _FAILURE_;
+  }
 
   noise_planck(&ba,&th,&sp,noise,l_max);
-
-/*   for (l=2;l<=l_max;l++) { */
-/*     printf("%d  %e  %e  %e  %e  %e  %e\n",l, */
-/* 	   (l*(l+1)/2./_PI_)*cl[0][l][0]*pow(th.Tcmb*1.e6,2), */
-/* 	   (l*(l+1)/2./_PI_)*cl[0][l][1]*pow(th.Tcmb*1.e6,2), */
-/* 	   (l*(l+1)/2./_PI_)*cl[0][l][2]*pow(th.Tcmb*1.e6,2), */
-/* 	   (l*(l+1)/2./_PI_)*noise[l][0]*pow(th.Tcmb*1.e6,2), */
-/* 	   (l*(l+1)/2./_PI_)*noise[l][1]*pow(th.Tcmb*1.e6,2), */
-/* 	   (l*(l+1)/2./_PI_)*noise[l][2]*pow(th.Tcmb*1.e6,2)); */
-/*   } */
 
   for (i=0; i<param_num; i++) {
    

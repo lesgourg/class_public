@@ -14,17 +14,18 @@ vpath %.o build
 vpath .base build
 
 CC       = gcc
+#CC       = pgcc
 
 #CCFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
-CCFLAG   = -O4 -fopenmp -Wall -g
-LDFLAG   = -O4 -fopenmp -Wall -g
-#CCFLAG   = -O4 -fopenmp -Wall
-#LDFLAG   = -O4 -fopenmp -Wall
+#CCFLAG   = -O4 -fopenmp -Wall -g
+#LDFLAG   = -O4 -fopenmp -Wall -g
+CCFLAG   = -O4 -fopenmp -Wall
+LDFLAG   = -O4 -fopenmp -Wall
 #CCFLAG = -O2 -ggdb
 #LDFLAG = -O2 -ggdb
-#CCFLAG = -O2
-#LDFLAG = -O2
+#CCFLAG = -O4 -g
+#LDFLAG = -O4 -g
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 

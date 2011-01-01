@@ -1097,6 +1097,8 @@ int input_init(
 	fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
     }
     fprintf(param_output,"#\n");
+
+    fclose(param_output);
   }
 
   return _SUCCESS_;
