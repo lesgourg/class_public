@@ -42,7 +42,7 @@ int bessel_at_x(
   /** - define local variables */
 
   int index_x;          /* index in the interpolation table */
-  double a,b,h;         /* quantities for the splint interpolation formula */
+  double a;         /* quantities for the splint interpolation formula */
 
   /** - if index_l is too large to be in the interpolation table, return  an error */
 
@@ -233,7 +233,12 @@ int bessel_init(
 		   pbs->error_message,
 		   "Could not read in bessel file");
 
+	pbs->x_size_max=0;
+
 	for (index_l=0; index_l < pbs->l_size; index_l++) {
+	  
+	  if (pbs->x_size[index_l] > pbs->x_size_max)
+	    pbs->x_size_max=pbs->x_size[index_l];
 
 	  class_alloc(pbs->buffer[index_l],
 		      (1+2*pbs->x_size[index_l])*sizeof(double),
@@ -318,6 +323,11 @@ int bessel_init(
   } /* end of parallel region */
 
   if (abort == _TRUE_) return _FAILURE_;
+
+  pbs->x_size_max=0;
+  for (index_l=0; index_l < pbs->l_size; index_l++)
+    if (pbs->x_size[index_l] > pbs->x_size_max)
+      pbs->x_size_max=pbs->x_size[index_l];
 
   if (pbs->bessel_always_recompute == _FALSE_) {
 

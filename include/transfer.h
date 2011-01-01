@@ -83,30 +83,6 @@ struct transfers {
   //@}
 };
 
-/**
- * A workspace for each transfer function computation. 
- *
- * For spline integration, will contain tabulated values of conformal
- * time, of the integrand of each transfer function, and of its second
- * derivative with respect to time.
- *
- * For trapezoidal integration, contains the relevant time steps
- * (storing them in advance allows to save time during the integration
- * loop)
- */
-
-struct transfer_workspace {
-
-  double * trans_int; /* array of argument trans_int[index_eta*ptw->ti_size+index_ti] */
-
-  int index_ti_eta; /* index of column for time (spline method) */
-  int index_ti_y;   /* index of column for integrand (spline method) */
-  int index_ti_ddy; /* index of column for second derivative of integrand (spline method) */
-  
-  int index_ti_deta; /* index of column for time steps (trapezoidal method) */
-
-  int ti_size; /* number of columns in trans_int */
-};
 
 /*************************************************************************************************************/
 
@@ -181,43 +157,49 @@ extern "C" {
   int transfer_compute_for_each_l(
 				  struct precision * ppr,
 				  struct perturbs * ppt,
-				  struct bessels * pbs,
 				  struct transfers * ptr,
-				  double eta0,
-				  double eta_rec,
 				  int index_mode,
 				  int index_ic,
 				  int index_tt,
 				  int index_l,
-				  double * interpolated_sources,
-				  struct transfer_workspace * ptw
+				  double l,
+				  double x_min_l,
+				  double x_step,
+				  double * eta0_minus_eta,
+				  double * delta_eta,
+				  double * sources,
+				  double * j_l,
+				  double * ddj_l
 				  );
 
   int transfer_integrate(
-			 struct precision * ppr,
 			 struct perturbs * ppt,
-			 struct bessels * pbs,
 			 struct transfers * ptr,
-			 double eta0,
-			 double eta_rec,
 			 int index_mode,
 			 int index_tt,
-			 int index_l,
 			 int index_k,
-			 double * interpolated_sources,
-			 struct transfer_workspace * ptw,
+			 double l,
+			 double k,
+			 double x_min_l,
+			 double x_step,
+			 double * eta0_minus_eta,
+			 double * delta_eta,
+			 double * sources,
+			 double *j_l,
+			 double *ddj_l,
 			 double * trsf
 			 );
     
   int transfer_limber(
 		      struct perturbs * ppt,
 		      struct transfers * ptr,
-		      double eta0,
 		      int index_mode,
 		      int index_tt,
-		      int index_l,
 		      int index_k,
-		      double * interpolated_sources,
+		      double l,
+		      double k,
+		      double * eta0_minus_eta,
+		      double * sources,
 		      double * trsf
 		      );
   
