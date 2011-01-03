@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   param = &(pr.rad_pert_trigger_k_over_aH);
 
   parameter_initial=30.;
-  parameter_logstep=0.99;
+  parameter_logstep=0.999;
 
   param_num=10;
   ref_run=-1;

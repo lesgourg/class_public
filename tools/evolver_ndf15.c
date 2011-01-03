@@ -112,32 +112,71 @@ int generic_evolver(
 	int verbose=0;
 
 	/** Allocate memory . */
-	class_alloc(f0,sizeof(double)*neqp,error_message);
-	class_alloc(wt,sizeof(double)*neqp,error_message);
-	class_alloc(ddfddt,sizeof(double)*neqp,error_message);
-	class_alloc(pred,sizeof(double)*neqp,error_message);
-	class_alloc(y,sizeof(double)*neqp,error_message);
-	class_alloc(invwt,sizeof(double)*neqp,error_message);
-	class_alloc(rhs,sizeof(double)*neqp,error_message);
-	class_alloc(psi,sizeof(double)*neqp,error_message);
-	class_alloc(difkp1,sizeof(double)*neqp,error_message);
-	class_alloc(del,sizeof(double)*neqp,error_message);
-	class_alloc(yinterp,sizeof(double)*neqp,error_message);
-	class_alloc(ypinterp,sizeof(double)*neqp,error_message);
-	class_alloc(yppinterp,sizeof(double)*neqp,error_message);
-	class_alloc(tempvec1,sizeof(double)*neqp,error_message);
-	class_alloc(tempvec2,sizeof(double)*neqp,error_message);
+
+	void * buffer;
+	int buffer_size;
+
+	buffer_size=
+	  15*neqp*sizeof(double)
+	  +neqp*sizeof(int)
+	  +neqp*sizeof(double*)
+	  +(7*neq+1)*sizeof(double);
+
+	class_alloc(buffer,
+		    buffer_size,
+		    error_message);
+
+	f0       =(double*)buffer;
+	wt       =f0+neqp;
+	ddfddt   =wt+neqp;
+	pred     =ddfddt+neqp;
+	y        =pred+neqp;
+	invwt    =y+neqp;
+	rhs      =invwt+neqp;
+	psi      =rhs+neqp;
+	difkp1   =psi+neqp;
+	del      =difkp1+neqp;
+	yinterp  =del+neqp;
+	ypinterp =yinterp+neqp;
+	yppinterp=ypinterp+neqp;
+	tempvec1 =yppinterp+neqp;
+	tempvec2 =tempvec1+neqp;
+
+	interpidx=(int*)(tempvec2+neqp);
+
+	dif      =(double**)(interpidx+neqp);
+	dif[1]   =(double*)(dif+neqp);
+	for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; /* Set row pointers... */
+	dif[0] = NULL;
+	for (ii=0;ii<(7*neq+1);ii++) dif[1][ii]=0.;
+
+/* 	class_alloc(f0,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(wt,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(ddfddt,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(pred,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(y,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(invwt,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(rhs,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(psi,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(difkp1,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(del,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(yinterp,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(ypinterp,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(yppinterp,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(tempvec1,sizeof(double)*neqp,error_message); */
+/* 	class_alloc(tempvec2,sizeof(double)*neqp,error_message); */
 	
-	class_alloc(interpidx,sizeof(int)*neqp,error_message);
+/* 	class_alloc(interpidx,sizeof(int)*neqp,error_message); */
 	
 	/* Allocate vector of pointers to rows of dif:*/
-	class_alloc(dif,sizeof(double*)*neqp,error_message); 
-	class_calloc(dif[1],(7*neq+1),sizeof(double),error_message);
-	dif[0] = NULL;
-	for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; /* Set row pointers... */ 
+/* 	class_alloc(dif,sizeof(double*)*neqp,error_message);  */
+/* 	class_calloc(dif[1],(7*neq+1),sizeof(double),error_message); */
+/* 	dif[0] = NULL; */
+/* 	for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; */ /* Set row pointers... */ 
 	
 	/*Set pointers:*/
 	ynew = y_inout-1; /* This way y_inout is always up to date. */
+
 	/*Initialize the jacobian:*/
 	class_call(initialize_jacobian(&jac,neq,error_message),error_message,error_message);
 	
@@ -587,29 +626,33 @@ int generic_evolver(
 	}
 	
 	/** Deallocate memory */
-	free(f0);
-	free(wt);
-	free(ddfddt);
-	free(pred);
-	free(y);
-	free(invwt);
-	free(rhs);
-	free(psi);
-	free(difkp1);
-	free(del);
-	free(yinterp);
-	free(ypinterp);
-	free(yppinterp);
-	free(tempvec1);
-	free(tempvec2);
 
-	free(interpidx);
-	free(dif[1]);
-	free(dif);
+	free(buffer);
+
+/* 	free(f0); */
+/* 	free(wt); */
+/* 	free(ddfddt); */
+/* 	free(pred); */
+/* 	free(y); */
+/* 	free(invwt); */
+/* 	free(rhs); */
+/* 	free(psi); */
+/* 	free(difkp1); */
+/* 	free(del); */
+/* 	free(yinterp); */
+/* 	free(ypinterp); */
+/* 	free(yppinterp); */
+/* 	free(tempvec1); */
+/* 	free(tempvec2); */
+
+/* 	free(interpidx); */
+/* 	free(dif[1]); */
+/* 	free(dif); */
 	
 	uninitialize_jacobian(&jac);
 	uninitialize_numjac_workspace(&nj_ws);
 	return _SUCCESS_;
+
 } /*End of program*/
 
 /**********************************************************************/
@@ -1257,6 +1300,7 @@ int numjac(
 
 int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
 	int i; 
+
 	if (neq>15){
 		jac->use_sparse = 1;
 	}
@@ -1275,6 +1319,7 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
 	jac->sparse_stuff_initialized=0;
 	
 	/*Setup memory for the pointers of the dense method:*/
+
 	class_alloc(jac->dfdy,sizeof(double*)*(neq+1),error_message); /* Allocate vector of pointers to rows of matrix.*/
 	class_alloc(jac->dfdy[1],sizeof(double)*(neq*neq+1),error_message);
 	jac->dfdy[0] = NULL;
@@ -1285,7 +1330,6 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
 	jac->LU[0] = NULL;
 	for(i=2;i<=neq;i++) jac->LU[i] = jac->LU[i-1]+neq; /* Set row pointers... */ 
 	
-	
 	class_alloc(jac->LUw,sizeof(double)*(neq+1),error_message);
 	class_alloc(jac->jacvec,sizeof(double)*(neq+1),error_message);
 	class_alloc(jac->luidx,sizeof(int)*(neq+1),error_message);
@@ -1293,6 +1337,13 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
 	/*Setup memory for the sparse method, if used: */
 	if (jac->use_sparse){
 		jac->sparse_stuff_initialized = 1;
+
+		jac->xjac=(double*)(jac->luidx+neq+1);
+		jac->col_group=(int*)(jac->xjac+jac->max_nonzero);
+		jac->col_wi=jac->col_group+neq;
+		jac->Cp=jac->col_wi+neq;
+		jac->Ci=jac->Cp+neq+1;
+
 		class_alloc(jac->xjac,sizeof(double)*jac->max_nonzero,error_message);
 		class_alloc(jac->col_group,sizeof(int)*neq,error_message);
 		class_alloc(jac->col_wi,sizeof(int)*neq,error_message);
@@ -1300,9 +1351,11 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
 		class_alloc(jac->Ci,sizeof(int)*jac->cnzmax,error_message);
 		
 		class_call(sp_num_alloc(&jac->Numerical, neq,error_message),
-				 error_message,error_message);
+			   error_message,error_message);
+		
 		class_call(sp_mat_alloc(&jac->spJ, neq, neq, jac->max_nonzero,
 					error_message),error_message,error_message);
+		
 	}
 
 	/* Initialize jacvec to sqrt(eps):*/
@@ -1332,11 +1385,10 @@ int uninitialize_jacobian(struct jacobian *jac){
 	return _SUCCESS_;
 }
 
-
-
 int initialize_numjac_workspace(struct numjac_workspace * nj_ws,int neq, ErrorMsg error_message){
 	int i,neqp=neq+1;
 	/* Allocate vectors and matrices: */
+
 	class_alloc(nj_ws->yscale,sizeof(double)*neqp,error_message);
 	class_alloc(nj_ws->del,sizeof(double)*neqp,error_message);
 	class_alloc(nj_ws->Difmax,sizeof(double)*neqp,error_message);
@@ -1355,6 +1407,7 @@ int initialize_numjac_workspace(struct numjac_workspace * nj_ws,int neq, ErrorMs
 	
 	class_alloc(nj_ws->logj,sizeof(int)*neqp,error_message);
 	class_alloc(nj_ws->Rowmax,sizeof(int)*neqp,error_message);
+
 	/* Done allocating stuff */
 	return _SUCCESS_;
 }

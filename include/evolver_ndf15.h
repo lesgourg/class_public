@@ -59,25 +59,25 @@ struct numjac_workspace{
 extern "C" {
 #endif
 
-int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message);
-int uninitialize_jacobian(struct jacobian *jac);
-int initialize_numjac_workspace(struct numjac_workspace * nj_ws,int neq, ErrorMsg error_message);
-int uninitialize_numjac_workspace(struct numjac_workspace * nj_ws);
-int calc_C(struct jacobian *jac);
-int interp_from_dif(double tinterp,double tnew,double *ynew,double h,double **dif,int k, double *yinterp,
-     double *ypinterp, double *yppinterp, int* index, int neq, int output);
-int new_linearisation(struct jacobian *jac,double hinvGak,int neq, ErrorMsg error_message);
-int adjust_stepsize(double **dif, double abshdivabshlast, int neq,int k);
-void eqvec(double *datavec,double *emptyvec, int n);
-int lubksb(double **a, int n, int *indx, double b[]);
-int ludcmp(double **a, int n, int *indx, double *d, double *vv);
-
-int numjac(int (*derivs)(double x,double * y,double * dy,void * parameters_and_workspace,ErrorMsg error_message),
-              double t, double *y, double *fval, struct jacobian *jac, struct numjac_workspace *nj_ws,
-			  double thresh, int neq, int *nfe,
-              void * parameters_and_workspace_for_derivs, ErrorMsg error_message);
-
-
+  int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message);
+  int uninitialize_jacobian(struct jacobian *jac);
+  int initialize_numjac_workspace(struct numjac_workspace * nj_ws,int neq, ErrorMsg error_message);
+  int uninitialize_numjac_workspace(struct numjac_workspace * nj_ws);
+  int calc_C(struct jacobian *jac);
+  int interp_from_dif(double tinterp,double tnew,double *ynew,double h,double **dif,int k, double *yinterp,
+		      double *ypinterp, double *yppinterp, int* index, int neq, int output);
+  int new_linearisation(struct jacobian *jac,double hinvGak,int neq, ErrorMsg error_message);
+  int adjust_stepsize(double **dif, double abshdivabshlast, int neq,int k);
+  void eqvec(double *datavec,double *emptyvec, int n);
+  int lubksb(double **a, int n, int *indx, double b[]);
+  int ludcmp(double **a, int n, int *indx, double *d, double *vv);
+  
+  int numjac(int (*derivs)(double x,double * y,double * dy,void * parameters_and_workspace,ErrorMsg error_message),
+	     double t, double *y, double *fval, struct jacobian *jac, struct numjac_workspace *nj_ws,
+	     double thresh, int neq, int *nfe,
+	     void * parameters_and_workspace_for_derivs, ErrorMsg error_message);
+  
+  
 int generic_evolver(
 	int (*derivs)(double x,double * y,double * dy,
 		void * parameters_and_workspace, ErrorMsg error_message),

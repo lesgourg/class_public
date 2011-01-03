@@ -149,14 +149,38 @@ int transfer_init(
      interpolated_sources[index_k_tr*ppt->eta_size+index_eta] */
   double * interpolated_sources;
 
+  /* this workspace is a contiguous memory zone containing various
+     fields used by the integration routine */
   double * workspace;
+
+  /* - pointer used to assign adresses to the various workspace fields */
   double * address_in_workspace;
+
+  /* - first workspace field: list of eta0-eta values, eta0_minus_eta[index_eta] */
   double * eta0_minus_eta;
+
+  /* - second workspace field: list of delta_eta values, delta_eta[index_eta] */
   double * delta_eta;
+
+  /* - third workspace field, identical to above interpolated sources:
+     sources[index_k_tr*ppt->eta_size+index_eta] */
   double * sources;
+
+  /* - fourth workspace field, containing just a double: value of x at
+     which bessel functions become non-negligible for a given l (
+     infered from bessel module) */
+  double * x_min_l;
+
+  /* - fifth workspace field containing the list of j_l(x) values */
   double * j_l;
+
+  /* - sixth workspace field containing the list of j_l''(x) values */
   double * ddj_l;
-  double x_size_l;
+
+  /* no more workspace fields */
+
+  /* number of values of x for a given l infered from bessel module */
+  int x_size_l;
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
@@ -171,6 +195,9 @@ int transfer_init(
   int number_of_threads;
   /* instrumentation times */
   double tstart, tstop, tspent;
+
+  /* pointer on one workspace per thread */
+  double ** pw;
 
 #endif
 
@@ -211,28 +238,90 @@ int transfer_init(
   {
     number_of_threads = omp_get_num_threads();
   }
+
+  /* allocate the pointer to one workspace per thread */
+  class_alloc(pw,number_of_threads*sizeof(double*),ptr->error_message);
+
 #endif
 
-  /** - loop over all indices of the table of transfer functions. 
-        For each mode, initial condition and type: */
+  /** - loop over all modes. For each mode: */ 
 
   for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
 
     /** (a) allocate temporary arrays relevant for this mode */
 
+    /** (a.1.) array of sources interpolated at correct values of k */
+
     class_alloc(interpolated_sources,
 		ptr->k_size[index_mode]*ppt->eta_size*sizeof(double),
 		ptr->error_message);
+    
+    /** (a.2.) second derivative of sources in the previous source arrays, useful to
+       obtain the one above */
 
     class_alloc(source_spline,
 		ppt->k_size[index_mode]*ppt->eta_size*sizeof(double),
 		ptr->error_message);
 
+    /** (a.3.) workspace, allocated in a parallel zone since in openmp
+       version there is one workspace per thread */
+    
+    /* initialize error management flag */
+    abort = _FALSE_;
+    
+    /* beginning of parallel region */
+    
+#pragma omp parallel							\
+  shared(ptr,index_mode,ppt,pbs,pw)					\
+  private(workspace,address_in_workspace,eta0_minus_eta,delta_eta,index_eta)
+    {
+      
+      class_alloc_parallel(workspace,
+			   ((2+ptr->k_size[index_mode])*ppt->eta_size
+			    +1+2*pbs->x_size_max)*
+			   sizeof(double),
+			   ptr->error_message);
+	  
+      /* -- define the address of the first two fields in the workspace, eta0_minus_eta and delta_eta */
+
+      address_in_workspace = workspace;
+	  
+      eta0_minus_eta = address_in_workspace;
+      address_in_workspace += ppt->eta_size;
+      
+      delta_eta  = address_in_workspace;
+
+      /* -- fill these two fields since their content does not depend
+	 on ic, type and l */
+
+      for (index_eta=0; index_eta < ppt->eta_size; index_eta++) {
+	eta0_minus_eta[index_eta] = eta0 - ppt->eta_sampling[index_eta];
+      }
+
+      delta_eta[0] = ppt->eta_sampling[1]-ppt->eta_sampling[0];
+      
+      for (index_eta=1; index_eta < ppt->eta_size-1; index_eta++)
+	delta_eta[index_eta] = ppt->eta_sampling[index_eta+1]-ppt->eta_sampling[index_eta-1];
+      
+      delta_eta[ppt->eta_size-1] = ppt->eta_sampling[ppt->eta_size-1]-ppt->eta_sampling[ppt->eta_size-2];
+      
+      /** -- in openmp version, store the address of each workspace in the pw pointer */
+
+#ifdef _OPENMP
+      pw[omp_get_thread_num()] = workspace;
+#endif
+
+    } /* end of parallel region */
+    
+    if (abort == _TRUE_) return _FAILURE_;
+    
+    /** (b) now loop over initial conditions and types: For each of them: */
+
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
 
       for (index_tt = 0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
 	
-        /** (b) interpolate sources to get them at the right values of k 
+        /** (b.1) interpolate sources to get them at the right values of k 
                 using transfer_interpolate_sources() */
 
 	class_call(transfer_interpolate_sources(ppt,
@@ -247,14 +336,18 @@ int transfer_init(
 		   ptr->error_message,
 		   ptr->error_message);
 
-	/** (c) loop over l. For each value of l, compute transfer function. */
+	/** (b.2) store the sources in the workspace and define all
+	    fields in this workspace (in a parallel zone, since in
+	    open mp version there is one workspace per thread). The
+	    (parallelized) loop over l values will take place right
+	    after that in the same parallel zone. */
 
 #ifdef _OPENMP
 	if (ptr->transfer_verbose>1)
 	  printf("In %s: Split transfer function computation between %d threads for one mode/ic/type:\n",
 		 __func__,number_of_threads);
 #endif
-
+	
 	/* initialize error management flag */
 
 	abort = _FALSE_;
@@ -262,24 +355,18 @@ int transfer_init(
 	/* beginning of parallel region */
 
 #pragma omp parallel						\
-  shared (ptr,ppr,ppt,index_mode,index_ic,index_tt,		\
-	  interpolated_sources,abort)			\
-  private (index_l,tstart,tstop,tspent,workspace,address_in_workspace,eta0_minus_eta,delta_eta,sources,j_l,ddj_l,x_size_l)
-
+  shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,		\
+	  interpolated_sources,abort)					\
+  private (index_l,tstart,tstop,tspent,workspace,address_in_workspace,eta0_minus_eta,delta_eta,sources,j_l,ddj_l,x_size_l,x_min_l)
+	
 	{
-
+	  
 #ifdef _OPENMP
 	  tspent = 0.;
+	  workspace = pw[omp_get_thread_num()];
 #endif
 
-	  /* allocate a contiguous memory zone used as workspace by each thread */
-
-	  class_alloc_parallel(workspace,
-			       ((2+ptr->k_size[index_mode])*ppt->eta_size
-				+2*pbs->x_size_max)*
-			       sizeof(double),
-			       ptr->error_message);
-	  
+	  /* define address of each field in the workspace */
 	  address_in_workspace = workspace;
 	  
 	  eta0_minus_eta = address_in_workspace;
@@ -290,27 +377,21 @@ int transfer_init(
 
 	  sources = address_in_workspace;
 	  address_in_workspace += ptr->k_size[index_mode]*ppt->eta_size;
+	  
+	  x_min_l = address_in_workspace;
+	  address_in_workspace += 1;
 
 	  j_l = address_in_workspace;
-	  address_in_workspace += pbs->x_size_max;
 
-	  ddj_l = address_in_workspace;
-	  address_in_workspace += pbs->x_size_max;
+	  /* the address of the last field, ddj_l, will be defined
+	     within the l loop, since it depends on l */
 
-	  for (index_eta=0; index_eta < ppt->eta_size; index_eta++) {
-	    eta0_minus_eta[index_eta] = eta0 - ppt->eta_sampling[index_eta];
-	  }
-
-	  delta_eta[0] = ppt->eta_sampling[1]-ppt->eta_sampling[0];
+	  /* copy the interpolated sources in the workspace */
 	  
-	  for (index_eta=1; index_eta < ppt->eta_size-1; index_eta++)
-	    delta_eta[index_eta] = ppt->eta_sampling[index_eta+1]-ppt->eta_sampling[index_eta-1];
+	  memcpy(sources,
+		 interpolated_sources,
+		 ptr->k_size[index_mode]*ppt->eta_size*sizeof(double));
 	  
-	  delta_eta[ppt->eta_size-1] = ppt->eta_sampling[ppt->eta_size-1]-ppt->eta_sampling[ppt->eta_size-2];
-	  
-	  memcpy(sources,interpolated_sources,ptr->k_size[index_mode]*ppt->eta_size*sizeof(double));
-
-
 #pragma omp for schedule (dynamic)
 
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
@@ -319,11 +400,22 @@ int transfer_init(
 	    tstart = omp_get_wtime();
 #endif
 
+	    /* for this value of l, retrieve the number of x values
+	       from the bessel structure */
 	    x_size_l=pbs->x_size[index_l];
 
-	    memcpy(j_l,pbs->j[index_l],x_size_l*sizeof(double));
-	    memcpy(ddj_l,pbs->ddj[index_l],x_size_l*sizeof(double));
+	    /* copy from the bessel structure all bessel function
+	       related information for this particular value of l:
+	       x_min, the j_l(x)s, the j_l''(x)s. They are all
+	       allocated in a contiguous memory zone, so we can use a
+	       single memcpy. */
+	    memcpy(x_min_l,pbs->x_min[index_l],(1+2*x_size_l)*sizeof(double));
+	
+	    /* now define the address of the ddj_l field (last filed
+	       in the workspace) */
+	    ddj_l = j_l + x_size_l;
 
+	    /* compute the transfer function for this l */
 	    class_call_parallel(transfer_compute_for_each_l(ppr,
 							    ppt,
 							    ptr,
@@ -332,7 +424,7 @@ int transfer_init(
 							    index_tt,
 							    index_l,
 							    (double)ptr->l[index_mode][index_l],
-							    *(pbs->x_min[index_l]),
+							    *x_min_l,
 							    pbs->x_step,
 							    eta0_minus_eta,
 							    delta_eta,
@@ -358,20 +450,30 @@ int transfer_init(
 		   __func__,tspent,omp_get_thread_num());
 #endif
 
-	  free(workspace);
-
 	} /* end of parallel region */
-
+	
 	if (abort == _TRUE_) return _FAILURE_;
-
+	
       } /* end of loop over type */
-
+      
     } /* end of loop over initial condition */
 
     free(interpolated_sources);
     free(source_spline);    
 
   } /* end of loop over mode */
+
+#pragma omp parallel shared(pw) private(workspace)
+  {
+#ifdef _OPENMP
+    workspace = pw[omp_get_thread_num()];
+#endif
+    free(workspace);
+  }
+
+#ifdef _OPENMP
+  free(pw);
+#endif
 
   return _SUCCESS_;
 }
@@ -414,7 +516,7 @@ int transfer_free(
 }
 
 /**
- * This routine defines all indices and allocates alltables 
+ * This routine defines all indices and allocates all tables 
  * in the transfers structure 
  *
  * Compute list of (k, l) values, allocate and fill corresponding
@@ -980,6 +1082,10 @@ int transfer_compute_for_each_l(
   /* value of C_l's fractional variation computed two steps ago, used only for cutting the transfer function computation at some k_max */
   double cl_var_last_last;
 
+  /* quantitites for multiplying some transfer function by a factor */
+  short multiply_by_factor;
+  double extra_factor=1.;
+
   if (ptr->transfer_verbose > 2)
     printf("Compute transfer for l=%d\n",(int)l);
 
@@ -1002,6 +1108,35 @@ int transfer_compute_for_each_l(
     cl_var=1.;
     cl_var_last=1.;
     cl_var_last_last=1.;
+  }
+
+  /** - is there an extra factor in the transfer function,
+      besides the integral over S*j_l(x)? */
+
+  multiply_by_factor=_FALSE_;
+
+  /* for scalar (E-)polarization, multiply by 
+     square root of  (l+2)(l+1)l(l-1) */
+  
+  if ((((ppt->has_scalars == _TRUE_) && 
+	(index_mode == ppt->index_md_scalars)) && 
+       ((ppt->has_cl_cmb_polarization == _TRUE_) && 
+	(index_tt == ptr->index_tt_e)))) {
+    
+    multiply_by_factor=_TRUE_;
+    extra_factor=sqrt((l+2.) * (l+1.) * l * (l-1.));
+  }
+  
+  /* for tensor temperature, multiply by 
+     square root of (l+2)(l+1)l(l-1)/2 */
+  
+  if ((((ppt->has_tensors == _TRUE_) && 
+	(index_mode == ppt->index_md_tensors)) &&
+       ((ppt->has_cl_cmb_temperature == _TRUE_) && 
+	(index_tt == ptr->index_tt_t)))) {
+    
+    multiply_by_factor=_TRUE_;
+    extra_factor=sqrt((l+2.) * (l+1.) * l * (l-1.));
   }
 	      
   /** - loop over k. For each k:
@@ -1043,10 +1178,9 @@ int transfer_compute_for_each_l(
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
 	
-      	class_call(transfer_limber(ppt,
+      	class_call(transfer_limber(ppt->eta_size,
 				   ptr,
 				   index_mode,
-				   index_tt,
 				   index_k,
 				   l,
 				   k,
@@ -1059,10 +1193,7 @@ int transfer_compute_for_each_l(
       }
       else {
 	
-	class_call(transfer_integrate(ppt,
-				      ptr,
-				      index_mode,
-				      index_tt,
+	class_call(transfer_integrate(ppt->eta_size,
 				      index_k,
 				      l,
 				      k,
@@ -1085,6 +1216,9 @@ int transfer_compute_for_each_l(
     else {
       transfer_function = 0.;
     }
+
+    /* eventually multiply by extra factor */
+    if (multiply_by_factor == _TRUE_) transfer_function *= extra_factor;
 
     /* store transfer function in transfer structure */
     ptr->transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt)
@@ -1177,10 +1311,7 @@ int transfer_compute_for_each_l(
  */
 
 int transfer_integrate(
-		       struct perturbs * ppt,
-		       struct transfers * ptr,
-		       int index_mode,
-		       int index_tt,
+		       int eta_size,
 		       int index_k,
 		       double l,
 		       double k,
@@ -1202,9 +1333,10 @@ int transfer_integrate(
   double eta0_minus_eta_min_bessel;
 
   /* running value of bessel function */
-  double bessel;
+/*   double bessel; */
   int index_x;
-  double x,a;
+  double x;
+  double a;
   
   double transfer;
 
@@ -1223,21 +1355,17 @@ int transfer_integrate(
   /** - if there is an overlap: */
 
   /** (a) find index in the source's eta list corresponding to the last point in the overlapping region */ 
-  index_eta_max = ppt->eta_size-1;
+  index_eta_max = eta_size-1;
   while ((eta0_minus_eta[index_eta_max] < eta0_minus_eta_min_bessel) && (index_eta_max > 2))
     index_eta_max--;
 
   /** (b) the source function can vanish at large $\f k \eta \f$. Check if further points can be eliminated. */
-  while ((sources[index_k * ppt->eta_size + index_eta_max-1] == 0.)  && (index_eta_max > 2)) 
+  while ((sources[index_k * eta_size + index_eta_max-1] == 0.)  && (index_eta_max > 2)) 
     index_eta_max--;
 
   /** (c) integrate with trapezoidal method */
     
-  /* for bessel function interpolation, we could call the subroutine bessel_at_x below; however we perform operations directly here in order to speed up the code */
-
-  /*     class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta_max]),index_l,&bessel), */
-  /* 	       pbs->error_message, */
-  /* 	       ptr->error_message); */
+  /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
   
   x = k * eta0_minus_eta[index_eta_max];
 
@@ -1245,22 +1373,17 @@ int transfer_integrate(
   
   a = (x_min_l+x_step*(index_x+1) - x)/x_step;
   
-  bessel = a * j_l[index_x] 
-    + (1.-a) * (j_l[index_x+1]
-		- a * ((a+1.) * ddj_l[index_x]
-		       +(2.-a) * ddj_l[index_x+1]) 
-		* x_step * x_step / 6.0);
-  
-  transfer = sources[index_k * ppt->eta_size + index_eta_max]
-    * bessel * (eta0_minus_eta[index_eta_max-1]-eta0_minus_eta_min_bessel);
+  transfer = sources[index_k * eta_size + index_eta_max] /* source */
+    * (a * j_l[index_x] +                                /* bessel (cubic spline interpolation) */
+       (1.-a) * (j_l[index_x+1]
+		 - a * ((a+1.) * ddj_l[index_x]
+			+(2.-a) * ddj_l[index_x+1]) 
+		 * x_step * x_step / 6.0) ) 
+    * (eta0_minus_eta[index_eta_max-1]-eta0_minus_eta_min_bessel); /* deta */
   
   for (index_eta=0; index_eta<index_eta_max; index_eta++) {
     
-    /* for bessel function interpolation, we could call the subroutine bessel_at_x below; however we perform operations directly here in order to speed up the code */
-    
-    /*       class_call(bessel_at_x(pbs,ptr->k[index_mode][index_k] * (eta0-ppt->eta_sampling[index_eta]),index_l,&bessel), */
-    /* 		 pbs->error_message, */
-    /* 		 ptr->error_message); */
+    /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
     
     x = k * eta0_minus_eta[index_eta];
     
@@ -1268,43 +1391,16 @@ int transfer_integrate(
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
     
-    bessel = a * j_l[index_x] 
-      + (1.-a) * ( j_l[index_x+1]
-		   - a * ((a+1.) * ddj_l[index_x]
-			  +(2.-a) * ddj_l[index_x+1]) 
-		   * x_step * x_step / 6.0);
-    
-    transfer += sources[index_k * ppt->eta_size + index_eta]
-      * bessel * delta_eta[index_eta];
-  }
-    
-  transfer *= 0.5;
-
-  /** (e) extra factors for polarization, lensing, tensors.. */
-
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-    /* for scalar (E-)polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
-
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) {
-
-      transfer *= sqrt((l+2.) * (l+1.) * l * (l-1.)); 
-
-    }
-  }
-
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-
-    /* for tensor temperature, multiply by square root of  (l+2)(l+1)l(l-1)/2 */
-
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) {
-
-      transfer *= sqrt((l+2.) * (l+1.) * l * (l-1.));
-
-    }
+    transfer += sources[index_k * eta_size + index_eta] /* source */
+      * (a * j_l[index_x]                               /* bessel (cubic spline interpolation) */
+	 + (1.-a) * ( j_l[index_x+1]
+		      - a * ((a+1.) * ddj_l[index_x]
+			     +(2.-a) * ddj_l[index_x+1]) 
+		      * x_step * x_step / 6.0)) 
+      * delta_eta[index_eta];                           /* deta */
   }
   
-  *trsf = transfer;
+  *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */
 
   return _SUCCESS_;
 }
@@ -1329,10 +1425,9 @@ int transfer_integrate(
  */
 
 int transfer_limber(
-		    struct perturbs * ppt,
+		    int eta_size,
 		    struct transfers * ptr,
 		    int index_mode,
-		    int index_tt,
 		    int index_k,
 		    double l,
 		    double k,
@@ -1366,34 +1461,16 @@ int transfer_limber(
 						     sources,
 						     ptr->k_size[index_mode],
 						     index_k,
-						     ppt->eta_size,
+						     eta_size,
 						     eta0_minus_eta_limber,
 						     &transfer,
 						     ptr->error_message),
 	     ptr->error_message,
 	     ptr->error_message);
 
-  /** - get transfer = source * sqrt(pi/(2l+1))/k 
-      (times extra factors for polarization, tensors, ...) */
+  /** - get transfer = source * sqrt(pi/(2l+1))/k */
 
   transfer *= sqrt(_PI_/(2.*l+1.))/k;
-
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) {
-
-      /* for scalar polarization, multiply by square root of  (l+2)(l+1)l(l-1) */
-      transfer *= sqrt((l+2.)*(l+1.)*l*(l-1.)); 
-    }
-  }
-    
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-
-    /* for tensor temperature, multiply by square root of  (l+2)(l+1)l(l-1)/2 */
-
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) {
-      transfer *= sqrt((l+2.)*(l+1.)*l*(l-1.)); 
-    }
-  }
   
   *trsf = transfer;
 

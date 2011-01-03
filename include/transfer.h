@@ -173,10 +173,7 @@ extern "C" {
 				  );
 
   int transfer_integrate(
-			 struct perturbs * ppt,
-			 struct transfers * ptr,
-			 int index_mode,
-			 int index_tt,
+			 int eta_size,
 			 int index_k,
 			 double l,
 			 double k,
@@ -191,10 +188,9 @@ extern "C" {
 			 );
     
   int transfer_limber(
-		      struct perturbs * ppt,
+		      int eta_size,
 		      struct transfers * ptr,
 		      int index_mode,
-		      int index_tt,
 		      int index_k,
 		      double l,
 		      double k,

@@ -1249,7 +1249,7 @@ int perturb_workspace_init(
   /** - allocate some workspace in which we will store temporarily the
       values of background, thermodynamics, metric and source
       quantities at a given time */
-
+  
   class_alloc(ppw->pvecback,pba->bg_size_normal*sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecthermo,pth->th_size*sizeof(double),ppt->error_message);
   class_alloc(ppw->pvecmetric,ppw->mt_size*sizeof(double),ppt->error_message);
