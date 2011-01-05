@@ -1688,7 +1688,7 @@ int perturb_solve(
 				  functionality is active only with the
 				  rkck integrator). */
 			       NULL,
-			      /*  perturb_print_variables, */
+			     /*   perturb_print_variables, */
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -2839,8 +2839,8 @@ int perturb_approximations(
         perturbations and keep Hubble time scale as the relevant
         one. Otherwise take \f$ \min(\eta_k, \eta_h). \f$ */
 
-    if ((eta_h/eta_k > ppr->rad_pert_trigger_k_over_aH) && 
-	(ppw->pvecback[pba->index_bg_Omega_r] < ppr->rad_pert_trigger_Omega_r)) {
+    if ((eta_h/eta_k > ppr->free_streaming_trigger_eta_h_over_eta_k) && 
+	(ppw->pvecback[pba->index_bg_Omega_r] < ppr->free_streaming_trigger_Omega_r)) {
       ppw->approx[ppw->index_ap_fsa] = (int)fsa_on;
     }
     else {
@@ -3044,7 +3044,6 @@ int perturb_einstein(
   double delta_g=0.;
   double theta_g=0.; 
   double shear_g=0.;
-  double theta_b_prime;
   double delta_nur=0.;
   double theta_nur=0.; 
   double shear_nur=0.;
@@ -3094,21 +3093,23 @@ int perturb_einstein(
 	  }
 	  if (pba->has_nur == _TRUE_) {
 	    delta_nur = delta_g;
-	    theta_nur = delta_nur;
+	    theta_nur = theta_g;
 	  }
 	}
 	else if (ppr->free_streaming_approximation == fsa_MD_with_reio) {
 	  if (ppr->gauge==synchronous) {
 	    delta_g = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]
-	      -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_b];
-	    
-	    theta_b_prime=- a_prime_over_a*y[ppw->pv->index_pt_theta_b] 
-	      + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
-	      - 4./3. * ppw->pvecback[pba->index_bg_rho_g]/ppw->pvecback[pba->index_bg_rho_b]*ppw->pvecthermo[pth->index_th_dkappa] * y[ppw->pv->index_pt_theta_b];
-	    
+	      -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]-a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]);
+
 	    theta_g = a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]
-	      -4./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*y[ppw->pv->index_pt_theta_b]+ppw->pvecthermo[pth->index_th_dkappa]*theta_b_prime);
-	
+	      -4./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*
+		      (y[ppw->pv->index_pt_theta_b]
+		       -a_prime_over_a*y[ppw->pv->index_pt_delta_cdm])
+		      +ppw->pvecthermo[pth->index_th_dkappa]*
+		      (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
+		       + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
+		       -0.5*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]));
+	    
 	    if (pba->has_nur == _TRUE_) {
 	      delta_nur = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
 	      theta_nur = a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
@@ -3178,23 +3179,7 @@ int perturb_einstein(
       delta_shear = delta_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*shear_nur;
     }
 
-    /** (c) eventually correct for the free-streaming velocities */
-/*     if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) { */
-
-/*       if (ppr->gauge == newtonian) { } */
-
-      /* theta_g = theta_nur = -h_prime/2 */
- /*      if (ppr->gauge == synchronous) { */
-/* 	theta_g = -0.*0.5 * ( k2 * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a); */
-/* 	delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g; */
-/* 	if (pba->has_nur == _TRUE_) { */
-/* 	  theta_nur = theta_g; */
-/* 	  delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*theta_nur; */
-/* 	} */
-/*       } */
-/*     } */
-
-    /** (d) infer metric perturbations from Einstein equations */
+    /** (c) infer metric perturbations from Einstein equations */
 
     /* newtonian gauge */
     if (ppr->gauge == newtonian) {
@@ -3799,6 +3784,7 @@ int perturb_print_variables(double eta,
   double * pvecback;
   double * pvecthermo;
   double * pvecmetric;
+  double a_prime_over_a;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -3807,7 +3793,7 @@ int perturb_print_variables(double eta,
 
   /** - print whatever you want for whatever mode of your choice */
 
-  if ((k>0.1) && (k<0.1001)) {
+  if ((k>0.1) && (k<0.103)) {
 
     index_mode = pppaw->index_mode;
     ppr = pppaw->ppr;
@@ -3821,7 +3807,7 @@ int perturb_print_variables(double eta,
     
     if (ppw->approx[ppw->index_ap_fsa]==(int)fsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
-	fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+	fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
 		k,
 		eta,
 		y[ppw->pv->index_pt_delta_g],
@@ -3834,10 +3820,13 @@ int perturb_print_variables(double eta,
 		0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g,
 		y[ppw->pv->index_pt_delta_b],
 		y[ppw->pv->index_pt_theta_b],
+		y[ppw->pv->index_pt_delta_nur],
+		y[ppw->pv->index_pt_theta_nur],
+		y[ppw->pv->index_pt_shear_nur],
 		y[ppw->pv->index_pt_eta]);
       }
       else {
-	fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+	fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
 		k,
 		eta,
 		y[ppw->pv->index_pt_delta_g],
@@ -3850,11 +3839,19 @@ int perturb_print_variables(double eta,
 		y[ppw->pv->index_pt_pol3_g],
 		y[ppw->pv->index_pt_delta_b],
 		y[ppw->pv->index_pt_theta_b],
+		y[ppw->pv->index_pt_delta_nur],
+		y[ppw->pv->index_pt_theta_nur],
+		y[ppw->pv->index_pt_shear_nur],
 		y[ppw->pv->index_pt_eta]);
       }
     }
     else {
-      fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+
+      return _FAILURE_;
+
+      a_prime_over_a=pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
+
+      fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
 	      k,
 	      eta,
 	      ppw->fsa_delta_g,
@@ -3867,6 +3864,9 @@ int perturb_print_variables(double eta,
 	      0.,
 	      y[ppw->pv->index_pt_delta_b],
 	      y[ppw->pv->index_pt_theta_b],
+	      2./k/k*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm],
+	      a_prime_over_a*y[ppw->pv->index_pt_delta_cdm],
+	      0.,
 	      y[ppw->pv->index_pt_eta]);
     }
   }
@@ -4085,7 +4085,7 @@ int perturb_derivs(double eta,
 
       else {
 
-	theta_g = ppw->fsa_delta_g;
+	theta_g = ppw->fsa_theta_g;
 
       }
       
@@ -4364,6 +4364,30 @@ int perturb_derivs(double eta,
 
       }
     }
+
+    /* photon velocity if free-streaming approximation is on */
+
+/*     else { */
+
+/*       if (ppr->gauge == newtonian) { */
+ 	/* Newtonian gauge : */ 
+    /* 	dy[ppw->pv->index_pt_theta_g] = */
+/* photon velocity */
+/* 	  k2*(ppw->fsa_delta_g/4. */
+/* 	      +pvecmetric[ppw->index_mt_psi]) */
+/* 	  +pvecthermo[pth->index_th_dkappa]* */
+/* 	  (y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g]); */
+/*       } */
+
+/*       if (ppr->gauge == synchronous) { */
+ 	/* Synchronous gauge : */ 
+    /* 	dy[ppw->pv->index_pt_theta_g] = */
+/* photon velocity */
+/* 	  k2*(ppw->fsa_delta_g/4. */
+/* 	      + pvecthermo[pth->index_th_dkappa]* */
+/* 	      (y[ppw->pv->index_pt_theta_b]-y[ppw->pv->index_pt_theta_g])); */
+/*       } */
+/*     } */
 
     /** (f) cdm */
 

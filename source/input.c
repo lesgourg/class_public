@@ -1009,8 +1009,8 @@ int input_init(
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
 
   class_read_int("free_streaming_approximation",ppr->free_streaming_approximation)
-  class_read_double("rad_pert_trigger_k_over_aH",ppr->rad_pert_trigger_k_over_aH);
-  class_read_double("rad_pert_trigger_Omega_r",ppr->rad_pert_trigger_Omega_r);
+  class_read_double("free_streaming_trigger_eta_h_over_eta_k",ppr->free_streaming_trigger_eta_h_over_eta_k);
+  class_read_double("free_streaming_trigger_Omega_r",ppr->free_streaming_trigger_Omega_r);
 
   /** h.4. parameter related to the Bessel functions */
 
@@ -1408,8 +1408,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.08; /* 14.12.10 for chi2plT0.1 */
 
   ppr->free_streaming_approximation = fsa_MD_with_reio;
-  ppr->rad_pert_trigger_k_over_aH = 30.; /* 14.12.10 for chi2plT0.1 */
-  ppr->rad_pert_trigger_Omega_r = 0.15; /* 14.12.10 for chi2plT0.1 */
+  ppr->free_streaming_trigger_eta_h_over_eta_k = 30.; /* 14.12.10 for chi2plT0.1 */
+  ppr->free_streaming_trigger_Omega_r = 0.15; /* 14.12.10 for chi2plT0.1 */
 
   /**
    * - parameter related to the Bessel functions

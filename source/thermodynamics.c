@@ -226,6 +226,8 @@ int thermodynamics_init(
   int last_index_back;
   /* temporary table of values of eta associated with z values in pth->z_table */
   double * eta_table;
+  /* conformal time of reionization */
+  double eta_reio;
   /* structures for storing temporarily information on recombination
      and reionization */
   struct recombination reco;
@@ -496,10 +498,14 @@ int thermodynamics_init(
   if (pth->thermodynamics_verbose > 0) {
     printf(" -> recombination at z = %f\n",pth->z_rec);
     if (pth->reio_parametrization != reio_none) {
-      if (pth->reio_z_or_tau==reio_tau)
+      if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
 	printf(" -> reionization with optical depth = %f\n",pth->tau_reio);
+      class_call(background_eta_of_z(pba,pth->z_reio,&eta_reio),
+		 pba->error_message,
+		 pth->error_message);
+      printf("    corresponding to conformal time = %f Mpc\n",eta_reio);
     }
   }
 
