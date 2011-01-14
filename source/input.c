@@ -1408,8 +1408,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.08; /* 14.12.10 for chi2plT0.1 */
 
   ppr->free_streaming_approximation = fsa_MD_with_reio;
-  ppr->free_streaming_trigger_eta_h_over_eta_k = 30.; /* 14.12.10 for chi2plT0.1 */
-  ppr->free_streaming_trigger_Omega_r = 0.15; /* 14.12.10 for chi2plT0.1 */
+  ppr->free_streaming_trigger_eta_h_over_eta_k = 50.; /* 14.12.10 for chi2plT0.1 */
+  ppr->free_streaming_trigger_Omega_r = 0.1; /* 14.12.10 for chi2plT0.1 */
 
   /**
    * - parameter related to the Bessel functions

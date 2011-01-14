@@ -97,17 +97,17 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-  param = &(pr.rad_pert_trigger_k_over_aH);
+  param = &(pr.free_streaming_trigger_eta_h_over_eta_k);
 
-  parameter_initial=30.;
-  parameter_logstep=0.999;
+  parameter_initial=300.;
+  parameter_logstep=0.8;
 
-  param_num=10;
+  param_num=20;
   ref_run=-1;
 
   /* if ref_run<0, the reference is taken in the following external file: */
 
-  sprintf(filename,"output/ref_cl.dat");
+  sprintf(filename,"output/2000_cl.dat");
 
 /*******************************************************/
 
@@ -171,6 +171,9 @@ int main(int argc, char **argv) {
       //      fprintf(stderr," %e\n",cl_read);
       cl[ref_run][l][sp.index_ct_tt]=(double)cl_read*2.*_PI_/l/(l+1);
       //      fprintf(stderr,"%d %e\n",l_read,cl[ref_run][l][sp.index_ct_tt]);
+      fscanf(output,"%e",&cl_read);
+      fscanf(output,"%e",&cl_read);
+      fscanf(output,"%e",&cl_read);
       if (l_read != l) {
 	printf("l_read != l: %d %d\n",l_read,l);
       }

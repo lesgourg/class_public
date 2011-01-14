@@ -75,8 +75,9 @@ tol_eta_approx=1.e-5
 tol_perturb_integration=1.e-6
 perturb_sampling_stepsize=0.06
 
-rad_pert_trigger_k_over_aH = 30.
-rad_pert_trigger_Omega_r = 0.15
+free_streaming_approximation = 2
+free_streaming_trigger_eta_h_over_eta_k = 50.
+free_streaming_trigger_Omega_r = 0.1
 
 l_logstep=1.026
 l_linstep=56

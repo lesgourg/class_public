@@ -1688,7 +1688,7 @@ int perturb_solve(
 				  functionality is active only with the
 				  rkck integrator). */
 			       NULL,
-			     /*   perturb_print_variables, */
+			       /* perturb_print_variables, */
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -3063,6 +3063,7 @@ int perturb_einstein(
     /** (a) deal with approximation schemes */
     
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
+
       if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
 	delta_g = y[ppw->pv->index_pt_delta_g];
 	theta_g = y[ppw->pv->index_pt_theta_g];
@@ -3100,19 +3101,11 @@ int perturb_einstein(
 	  if (ppr->gauge==synchronous) {
 	    delta_g = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]
 	      -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]-a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]);
+	    theta_g=0.;
 
-	    theta_g = a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]
-	      -4./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*
-		      (y[ppw->pv->index_pt_theta_b]
-		       -a_prime_over_a*y[ppw->pv->index_pt_delta_cdm])
-		      +ppw->pvecthermo[pth->index_th_dkappa]*
-		      (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
-		       + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
-		       -0.5*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]));
-	    
 	    if (pba->has_nur == _TRUE_) {
 	      delta_nur = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
-	      theta_nur = a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
+	      theta_nur=0.;
 	    }
 	  }
 	  else if (ppr->gauge==newtonian) {
@@ -3120,13 +3113,9 @@ int perturb_einstein(
 	  }
 	}
 	
-	ppw->fsa_delta_g = delta_g;
-	ppw->fsa_theta_g = theta_g;
 	shear_g = 0.;
 	
 	if (pba->has_nur == _TRUE_) {
-	  ppw->fsa_delta_nur = delta_nur;
-	  ppw->fsa_theta_nur = theta_nur;
 	  shear_nur=0.;
 	}
       }
@@ -3190,9 +3179,42 @@ int perturb_einstein(
 
     /* synchronous gauge */
     if (ppr->gauge == synchronous) {
-      ppw->pvecmetric[ppw->index_mt_eta_prime] = 1.5 * (a2/k2) * delta_theta;  /* eta' */
+
       ppw->pvecmetric[ppw->index_mt_h_prime] = 
 	( k2 * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
+
+      /* in tight-coupling approximayion, infer velocities */
+      if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) {
+	if (ppr->free_streaming_approximation == fsa_MD_with_reio) {
+	  if (ppr->gauge==synchronous) {
+
+	    ppw->fsa_delta_g = 2./k2*a_prime_over_a*a_prime_over_a*(y[ppw->pv->index_pt_delta_cdm])
+	      -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]+0.5*ppw->pvecmetric[ppw->index_mt_h_prime]);
+
+	    ppw->fsa_theta_g = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime]
+	      -4./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*
+		      (y[ppw->pv->index_pt_theta_b]
+		       +0.5*ppw->pvecmetric[ppw->index_mt_h_prime])
+		      +ppw->pvecthermo[pth->index_th_dkappa]*
+		      (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
+		       + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
+		       -0.5*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]));
+	    
+	    delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->fsa_theta_g;
+	    
+	    if (pba->has_nur == _TRUE_) {
+
+	      ppw->fsa_delta_nur = 2./k2*a_prime_over_a*a_prime_over_a*(y[ppw->pv->index_pt_delta_cdm]);
+
+	      ppw->fsa_theta_nur = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
+	      delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*ppw->fsa_theta_nur;
+	    }
+	  }
+	}
+      }
+
+      ppw->pvecmetric[ppw->index_mt_eta_prime] = 1.5 * (a2/k2) * delta_theta;  /* eta' */
+
 
       /* for the last equation (sourced by the shear), eventually correct for
 	 the first-order tight-coulping value of shear_g */
@@ -3847,8 +3869,6 @@ int perturb_print_variables(double eta,
     }
     else {
 
-      return _FAILURE_;
-
       a_prime_over_a=pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
 
       fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
@@ -3864,8 +3884,8 @@ int perturb_print_variables(double eta,
 	      0.,
 	      y[ppw->pv->index_pt_delta_b],
 	      y[ppw->pv->index_pt_theta_b],
-	      2./k/k*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm],
-	      a_prime_over_a*y[ppw->pv->index_pt_delta_cdm],
+	      ppw->fsa_delta_nur,
+	      ppw->fsa_theta_nur,
 	      0.,
 	      y[ppw->pv->index_pt_eta]);
     }

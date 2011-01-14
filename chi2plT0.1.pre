@@ -56,21 +56,20 @@ gauge=1 #synchronous
 
 k_scalar_min_eta0=0.03
 k_scalar_max_eta0_over_l_max=1.65
-l_max_over_k_max_scalars = 8500.
 k_scalar_step_sub=0.08
 k_scalar_step_super=0.005
 k_scalar_step_transition=0.2
 
 start_small_k_at_eta_g_over_eta_h = 0.006
-start_large_k_at_eta_g_over_eta_k = 1.e-5
+start_large_k_at_eta_h_over_eta_k = 0.1
 tight_coupling_trigger_eta_g_over_eta_h=0.008
 tight_coupling_trigger_eta_g_over_eta_k=0.05
 start_sources_at_eta_g_over_eta_h = 0.01
 tight_coupling_approximation=3 #(int)second_order_CRS;
 
-l_max_g=10
-l_max_pol_g=10
-l_max_nur=23
+l_max_g=12
+l_max_pol_g=12
+l_max_nur=28
 
 perturb_integration_stepsize=1.
 tol_eta_approx=1.e-5
@@ -78,8 +77,8 @@ tol_perturb_integration=1.e-6
 perturb_sampling_stepsize=0.08
 
 free_streaming_approximation = 2
-rad_pert_trigger_k_over_aH = 30.
-rad_pert_trigger_Omega_r = 0.15
+free_streaming_trigger_eta_h_over_eta_k = 50.
+free_streaming_trigger_Omega_r = 0.1
 
 l_logstep=1.035
 l_linstep=35
