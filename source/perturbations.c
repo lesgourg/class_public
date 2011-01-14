@@ -526,6 +526,12 @@ int perturb_indices_of_perturbs(
 	  index_type++;
 	}
 	else ppt->has_source_delta_nur = _FALSE_;
+	if (pba->has_ncdm1 == _TRUE_) {
+	  ppt->has_source_delta_ncdm1 = _TRUE_;
+	  ppt->index_tp_delta_ncdm1 = index_type;
+	  index_type++;
+	}
+	else ppt->has_source_delta_ncdm1 = _FALSE_;
       }
       else {
 	ppt->has_source_delta_g = _FALSE_;
@@ -533,7 +539,8 @@ int perturb_indices_of_perturbs(
 	ppt->has_source_delta_cdm = _FALSE_;
 	ppt->has_source_delta_de = _FALSE_;
 	ppt->has_source_delta_nur = _FALSE_;
-      }
+	ppt->has_source_delta_ncdm1 = _FALSE_;
+       }
 
       ppt->tp_size[index_mode] = index_type;
 
@@ -2205,6 +2212,34 @@ int perturb_vector_init(
      
     }
 
+    /* non-cold dark matter */
+
+    if (pba->has_ncdm1 == _TRUE_) {
+
+      /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
+      class_test(ppr->l_max_ncdm1 < 4,
+		 ppt->error_message,
+		 "ppr->l_max_ncdm1 should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution");
+      
+      ppv->q_size_ncdm1=pba->q_size_ncdm1;
+
+      ppv->index_pt_psi0_ncdm1 = index_pt; /* density of ultra-relativistic neutrinos/relics */
+      index_pt+=ppv->q_size_ncdm1;
+	
+      ppv->index_pt_psi1_ncdm1 = index_pt; /* velocity of ultra-relativistic neutrinos/relics */
+      index_pt+=ppv->q_size_ncdm1;
+	
+      ppv->index_pt_psi2_ncdm1 = index_pt; /* shear of ultra-relativistic neutrinos/relics */
+      index_pt+=ppv->q_size_ncdm1;
+
+      ppv->index_pt_psi3_ncdm1 = index_pt; /* shear of ultra-relativistic neutrinos/relics */
+      index_pt+=ppv->q_size_ncdm1;
+
+      ppv->l_max_ncdm1 = ppr->l_max_ncdm1; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
+      index_pt += (ppv->l_max_ncdm1-3)*ppv->q_size_ncdm1;
+	
+    }
+
     /* metric (only quantitites to be integrated, not those obeying constraint equations) */
  
     if (ppr->gauge == synchronous) {
@@ -2310,6 +2345,14 @@ int perturb_vector_init(
       for (index_pt=ppv->index_pt_l3_nur+1; index_pt <= ppv->index_pt_delta_nur+ppv->l_max_nur; index_pt++)
 	ppv->used_in_sources[index_pt]=_FALSE_;
     
+    }
+    
+    if (pba->has_ncdm1 == _TRUE_) {
+
+      for (index_pt=ppv->index_pt_psi3_ncdm1; 
+	   index_pt < ppv->index_pt_psi3_ncdm1+(ppv->l_max_ncdm1-3)*ppv->q_size_ncdm1; index_pt++)
+	ppv->used_in_sources[index_pt]=_FALSE_;
+      
     }
   }
 
@@ -2455,6 +2498,14 @@ int perturb_vector_init(
 
 	}
 
+	if (pba->has_ncdm1 == _TRUE_) {
+	  
+	  for (index_pt=0; index_pt < (ppv->l_max_ncdm1+1)*ppv->q_size_ncdm1; index_pt++)
+	    ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] = 
+	      ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+
+	}
+
 	if (ppr->gauge == synchronous)
 	  ppv->y[ppv->index_pt_eta] =
 	    ppw->pv->y[ppw->pv->index_pt_eta];
@@ -2576,6 +2627,13 @@ int perturb_initial_conditions(struct precision * ppr,
 
   /** - assuming that everything has already been set to zero, write non-zero initial conditions: */
 
+  double a;
+  double delta_nur,theta_nur,shear_nur,l3_nur;
+  double q,epsilon;
+  int index_q;
+
+  a = ppw->pvecback[pba->index_bg_a];
+
   /** - for scalars */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
@@ -2604,6 +2662,11 @@ int perturb_initial_conditions(struct precision * ppr,
 	rho_nu += ppw->pvecback[pba->index_bg_rho_nur];
       }
       
+      if (pba->has_ncdm1 == _TRUE_) {
+	rho_r += ppw->pvecback[pba->index_bg_rho_ncdm1];
+	rho_nu += ppw->pvecback[pba->index_bg_rho_ncdm1];
+      }
+      
       class_test(rho_r == 0.,
 		 ppt->error_message,
 		 "stop to avoid division by zero");
@@ -2620,7 +2683,7 @@ int perturb_initial_conditions(struct precision * ppr,
       /* omega = Omega_m(t_i) a(t_i) H(t_i) / sqrt(Omega_r(t_i))
 	 = Omega_m(t_0) a(t_0) H(t_0) / sqrt(Omega_r(t_0)) assuming rho_m in a-3 and rho_r in a^-4
 	 = (8piG/3 rho_m(t_i)) a(t_i) / sqrt(8piG/3 rho_r(t_i))  in Mpc-1 */
-      double om = ppw->pvecback[pba->index_bg_a]*rho_m/sqrt(rho_r);
+      double om = a*rho_m/sqrt(rho_r);
 
       /* newtonian gauge */
       if (ppr->gauge == newtonian) {
@@ -2674,17 +2737,48 @@ int perturb_initial_conditions(struct precision * ppr,
 	  ppw->pv->y[ppw->pv->index_pt_theta_de] = 0; /* dark energy velocity (TO BE WRITTEN) */
  	} 
 
+	if ((pba->has_nur == _TRUE_) || (pba->has_ncdm1 == _TRUE_)) {
+	
+	  delta_nur = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
+
+	  theta_nur = (-k*k*k*k*eta*eta*eta*(4.*fracnu+23.)/36./(4.*fracnu+15.)+k*k*k*k*eta*eta*eta*eta*om*(8.*fracnu*fracnu+50.*fracnu+275.)/240./(2.*fracnu+15.)/(4.*fracnu+15.)) * ppr->curvature_ini; /* velocity of ultra-relativistic neutrinos/relics */
+
+	  shear_nur = (2.*k*k*eta*eta/(45.+12.*fracnu)+k*k*eta*eta*eta*om*(4.*fracnu-5.)/6./(2.*fracnu+15.))* ppr->curvature_ini; /* shear of ultra-relativistic neutrinos/relics */
+	  
+	  l3_nur = k*k*k*eta*eta*eta*2./7./(12.*fracnu+45.)* ppr->curvature_ini;
+	}
+
 	if (pba->has_nur == _TRUE_) {
 
-	  ppw->pv->y[ppw->pv->index_pt_delta_nur] = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
+	  ppw->pv->y[ppw->pv->index_pt_delta_nur] = delta_nur;
 
-	  ppw->pv->y[ppw->pv->index_pt_theta_nur] = (-k*k*k*k*eta*eta*eta*(4.*fracnu+23.)/36./(4.*fracnu+15.)+k*k*k*k*eta*eta*eta*eta*om*(8.*fracnu*fracnu+50.*fracnu+275.)/240./(2.*fracnu+15.)/(4.*fracnu+15.)) * ppr->curvature_ini; /* velocity of ultra-relativistic neutrinos/relics */
+	  ppw->pv->y[ppw->pv->index_pt_theta_nur] = theta_nur;
 
-	  ppw->pv->y[ppw->pv->index_pt_shear_nur] = (2.*k*k*eta*eta/(45.+12.*fracnu)+k*k*eta*eta*eta*om*(4.*fracnu-5.)/6./(2.*fracnu+15.))* ppr->curvature_ini; /* shear of ultra-relativistic neutrinos/relics */
-	  ppw->pv->y[ppw->pv->index_pt_l3_nur] = k*k*k*eta*eta*eta*2./7./(12.*fracnu+45.)* ppr->curvature_ini;
+	  ppw->pv->y[ppw->pv->index_pt_shear_nur] = shear_nur;
+
+	  ppw->pv->y[ppw->pv->index_pt_l3_nur] = l3_nur;
 
 	}    
 
+	if (pba->has_ncdm1 == _TRUE_) {
+
+	  for (index_q=0; index_q < ppw->pv->q_size_ncdm1; index_q++) {
+
+	    q = pba->q_ncdm1[index_q];
+
+	    epsilon = sqrt(q*q+a*a*pba->M_ncdm1*pba->M_ncdm1);
+
+	    ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_q] = -0.25 * delta_nur * pba->dlnf0_dlnq_ncdm1[index_q];
+
+	    ppw->pv->y[ppw->pv->index_pt_psi1_ncdm1+index_q] =  -epsilon/3./q/k*theta_nur* pba->dlnf0_dlnq_ncdm1[index_q];
+
+	    ppw->pv->y[ppw->pv->index_pt_psi2_ncdm1+index_q] = -0.5 * shear_nur * pba->dlnf0_dlnq_ncdm1[index_q];
+
+	    ppw->pv->y[ppw->pv->index_pt_psi3_ncdm1+index_q] = 0.*l3_nur * pba->dlnf0_dlnq_ncdm1[index_q]; /* compute correct factor!! */
+
+	  }
+
+	}
 
 	ppw->pv->y[ppw->pv->index_pt_eta] = (1.-(5.+4.*fracnu)/12./(15.+4.*fracnu)*k*k*eta*eta+(16.*fracnu*fracnu+280.*fracnu+325)/120./(2.*fracnu+15.)/(4.*fracnu+15.)*k*k*eta*eta*eta*om)* ppr->curvature_ini; /* metric perturbation eta */
 
@@ -3047,7 +3141,13 @@ int perturb_einstein(
   double delta_nur=0.;
   double theta_nur=0.; 
   double shear_nur=0.;
+  double delta_ncdm1=0.;
+  double theta_ncdm1=0.; 
+  double shear_ncdm1=0.;
   double alpha;
+  double factor;
+  int index_q;
+  double epsilon,q2;
 
   /** - wavenumber and scale factor related quantities */ 
 
@@ -3167,6 +3267,35 @@ int perturb_einstein(
       delta_theta = delta_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*theta_nur;
       delta_shear = delta_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*shear_nur;
     }
+
+    /* non-cold dark matter contribution */
+    if (pba->has_ncdm1 == _TRUE_) {
+
+      factor = pba->factor_ncdm1/pow(a,4);
+
+      for (index_q=0; index_q < ppw->pv->q_size_ncdm1; index_q ++) {
+
+	q2 = pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q];
+	epsilon = sqrt(q2+pba->M_ncdm1*pba->M_ncdm1*a2);
+
+	delta_ncdm1 += q2*pba->w_ncdm1[index_q]*epsilon*y[ppw->pv->index_pt_psi0_ncdm1+index_q];
+	theta_ncdm1 += 0.;
+	shear_ncdm1 += 0.;
+
+      }
+
+      delta_ncdm1 *= factor;
+      theta_ncdm1 *= factor;
+      shear_ncdm1 *= factor;
+
+      ppw->delta_ncdm1 = delta_ncdm1;
+
+      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_ncdm1]*delta_ncdm1;
+      delta_theta = delta_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_ncdm1]*theta_ncdm1;
+      delta_shear = delta_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_ncdm1]*shear_ncdm1;
+    }
+
+
 
     /** (c) infer metric perturbations from Einstein equations */
 
@@ -3581,6 +3710,14 @@ int perturb_source_terms(
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->fsa_delta_nur;
 	}
 
+      /* delta_ncdm1 */
+	if ((ppt->has_source_delta_ncdm1 == _TRUE_) && (index_type == ppt->index_tp_delta_ncdm1)) {
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	    ppw->delta_ncdm1;
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
+	}
+
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
@@ -3937,7 +4074,7 @@ int perturb_derivs(double eta,
   double a,a2,a_prime_over_a,a_primeprime_over_a,z;
 
   /* background density ratios */
-  double R,fracnu;
+  double R;//fracnu;
 
   /* useful terms for tight-coupling approximation */
   double slip=0.,Pi;
@@ -4009,7 +4146,7 @@ int perturb_derivs(double eta,
   a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
   z = 1./a-1.;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
-  fracnu = pvecback[pba->index_bg_rho_nur] / (pvecback[pba->index_bg_rho_g] + pvecback[pba->index_bg_rho_nur]);
+  //fracnu = pvecback[pba->index_bg_rho_nur] / (pvecback[pba->index_bg_rho_g] + pvecback[pba->index_bg_rho_nur]);
 
   /** - for scalar mode: */
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
@@ -4510,6 +4647,11 @@ int perturb_derivs(double eta,
 
 
       }
+    }
+
+    if (pba->has_ncdm1 == _TRUE_) {
+
+
     }
 
     /** (j) metric */

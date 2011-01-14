@@ -64,7 +64,7 @@ int get_qsampling(double *x,
       ILag += y*w[i];
     }
     err = I-ILag;
-    fprintf(stderr,"\n Computing Laguerre, N=%d, I=%g and err=%g.\n",NLag,ILag,err);
+    //fprintf(stderr,"\n Computing Laguerre, N=%d, I=%g and err=%g.\n",NLag,ILag,err);
     if (fabs(err/I)<rtol) break;
     if (NLag == N_max){
       Laguerre_converging = _FALSE_;
@@ -88,7 +88,7 @@ int get_qsampling(double *x,
 	ILag += y*w[i];
       }
       err = I-ILag;
-      fprintf(stderr,"\n NLag=%d, rerr=%g.\n",NLag,fabs(err/I));
+      //fprintf(stderr,"\n NLag=%d, rerr=%g.\n",NLag,fabs(err/I));
       if (fabs(err/I)<rtol){
 	NR = NLag;
       }

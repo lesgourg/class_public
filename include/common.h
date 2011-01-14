@@ -264,6 +264,18 @@ struct precision
    */
   double tol_background_integration;
 
+  /**
+   * parameter controlling relative precision of ncdm mass for given
+   * ncdm current density
+   */
+  double tol_M_ncdm;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution 
+   */
+  double tol_ncdm;
+
   //@}
 
   /** @name - parameters related to the thermodynamics */
@@ -397,6 +409,7 @@ struct precision
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
   int l_max_nur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+  int l_max_ncdm1;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
   int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarisation (tensor), at least 4 */
 

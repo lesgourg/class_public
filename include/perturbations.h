@@ -128,6 +128,7 @@ struct perturbs
   short has_source_delta_cdm; /**< do we need source for delta of cold dark matter? */
   short has_source_delta_de;  /**< do we need source for delta of dark energy? */
   short has_source_delta_nur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_ncdm1; /**< do we need source for delta of first non-cold dark matter species (e.g. massive neutrinos)? */
 
   int index_tp_t; /**< index value for temperature */
   int index_tp_e; /**< index value for E-polarization */
@@ -138,7 +139,7 @@ struct perturbs
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
   int index_tp_delta_de;  /**< index value for delta of dark energy */
   int index_tp_delta_nur; /**< index value for delta of ultra-relativistic neutrinos/relics */
-
+  int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
   int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
 
   //@}
@@ -224,6 +225,13 @@ struct perturb_vector
   int index_pt_shear_nur; /**< shear of ultra-relativistic neutrinos/relics */
   int index_pt_l3_nur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_nur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
+  int index_pt_psi0_ncdm1;
+  int index_pt_psi1_ncdm1;
+  int index_pt_psi2_ncdm1;
+  int index_pt_psi3_ncdm1;
+  int l_max_ncdm1;
+  int q_size_ncdm1;
+
   int index_pt_eta;       /**< synchronous gauge metric perturbation eta*/
   int index_pt_gw;        /**< tensor metric perturbation h (gravitational waves) */
   int index_pt_gwdot;     /**< its time-derivative */
@@ -303,7 +311,8 @@ struct perturb_workspace
   double fsa_delta_g; /**< photon density in free-streaming approximation */
   double fsa_theta_g; /**< photon velocity in free-streaming approximation */
   double fsa_delta_nur; /**< neutrino density in free-streaming approximation */
-  double fsa_theta_nur; /**< neutrinochi2 velocity in free-streaming approximation */
+  double fsa_theta_nur; /**< neutrino velocity in free-streaming approximation */
+  double delta_ncdm1;
 
   //@}
 

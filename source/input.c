@@ -158,8 +158,8 @@ int input_init(
 
   /** - define local variables */
 
-  int flag1,flag2,flag3;
-  double param1,param2,param3;
+  int flag1,flag2,flag3,flag4;
+  double param1,param2,param3,param4;
   int int1;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
@@ -173,7 +173,7 @@ int input_init(
 
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
-  double n_ncdm,rho_ncdm,p_ncdm,drho_dM_ncdm;
+  double rho_ncdm;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -348,99 +348,62 @@ int input_init(
   if (((flag1 == _TRUE_) && (param1 > 0.)) ||
       ((flag2 == _TRUE_) && (param2 > 0.)) ||
       ((flag3 == _TRUE_) && (param3 > 0.))) {
+    
+    class_call(parser_read_double(pfc,"T_ncdm1",&param4,&flag4,errmsg),
+	       errmsg,
+	       errmsg);
+    pba->T_ncdm1 = param4;
+		
+    class_call(parser_read_double(pfc,"ksi_ncdm1",&param4,&flag4,errmsg),
+	       errmsg,
+	       errmsg);      
 
+    pba->ksi_ncdm1 = param4;
+		
+    class_call(background_ncdm1_init(ppr,pba),
+	       pba->error_message,
+	       errmsg);
+		
     if (flag1 == _TRUE_) {
-
-      fprintf(stderr,"initialize ncdm variables\n");
+      //fprintf(stderr,"initialize ncdm variables from M_ncdm1 \n");
 
       pba->M_ncdm1 = param1;
 
-      class_call(parser_read_double(pfc,"T_ncdm1",&param2,&flag2,errmsg),
-		 errmsg,
-		 errmsg);
-
-      pba->T_ncdm1 = param2;
-
-      class_call(parser_read_double(pfc,"ksi_ncdm1",&param3,&flag3,errmsg),
-		 errmsg,
-		 errmsg);      
-
-      pba->ksi_ncdm1 = param3;
-      
-      class_call(background_ncdm1_init(pba),
+      class_call(background_ncdm1_momenta(pba,0.,NULL,&rho_ncdm,NULL,NULL),
 		 pba->error_message,
 		 errmsg);
       
-      class_call(background_ncdm1_momenta(pba,0.,&n_ncdm,&rho_ncdm,&p_ncdm,&drho_dM_ncdm),
-		 pba->error_message,
-		 errmsg);
-
       pba->Omega0_ncdm1 = rho_ncdm/pba->H0/pba->H0;
-
-      fprintf(stderr,"Omega_nu=%g\n",pba->Omega0_ncdm1);
-
+      
+      //fprintf(stderr,"Omega_nu=%g\n",pba->Omega0_ncdm1);
     }
 
     else if (flag2 == _TRUE_) {
-
-      fprintf(stderr,"should NOT go here\n");
-
+      //fprintf(stderr,"initialize ncdm variables from Omega_ncdm1 \n");
+      
       pba->Omega0_ncdm1 = param2;
-
-      class_call(parser_read_double(pfc,"T_ncdm1",&param1,&flag1,errmsg),
-		 errmsg,
-		 errmsg);
-
-      pba->T_ncdm1 = param1;
-
-      class_call(parser_read_double(pfc,"ksi_ncdm1",&param3,&flag3,errmsg),
-		 errmsg,
-		 errmsg);      
-
-      pba->ksi_ncdm1 = param3;
-
-      class_call(background_ncdm1_init(pba),
-		 pba->error_message,
-		 errmsg);
-
-      class_call(background_ncdm1_M_from_Omega(pba),
+      
+      class_call(background_ncdm1_M_from_Omega(ppr,pba),
 		 pba->error_message,
 		 errmsg);
     }
-
+    
     else if (flag3 == _TRUE_) {
-
-      fprintf(stderr,"should NOT go here\n");
-
+      //fprintf(stderr,"initialize ncdm variables from omega_ncdm1 \n");
+      
       pba->Omega0_ncdm1 = param3/pba->h/pba->h;
-
-      class_call(parser_read_double(pfc,"T_ncdm1",&param1,&flag1,errmsg),
-		 errmsg,
-		 errmsg);
-
-      pba->T_ncdm1 = param1;
-
-      class_call(parser_read_double(pfc,"ksi_ncdm1",&param2,&flag2,errmsg),
-		 errmsg,
-		 errmsg);      
-
-      pba->ksi_ncdm1 = param2;
-
-      class_call(background_ncdm1_init(pba),
-		 pba->error_message,
-		 errmsg);
-
-      class_call(background_ncdm1_M_from_Omega(pba),
+      
+      class_call(background_ncdm1_M_from_Omega(ppr,pba),
 		 pba->error_message,
 		 errmsg);
     }
 
     pba->m_ncdm1_in_eV = _k_B_/_eV_*pba->T_ncdm1*pba->M_ncdm1*pba->Tcmb;
 
-    fprintf(stderr,"%e %e\n",
+    fprintf(stderr,"m_nu= %e eV (so m_nu/omega_nu=%e eV)\n",
 	    pba->m_ncdm1_in_eV,
 	    pba->m_ncdm1_in_eV/pba->Omega0_ncdm1/pba->h/pba->h);
-
+    
     Omega_tot += pba->Omega0_ncdm1;
   }
 
@@ -927,6 +890,8 @@ int input_init(
   class_read_double("a_ini_over_a_today_default",ppr->a_ini_over_a_today_default);
   class_read_double("back_integration_stepsize",ppr->back_integration_stepsize);
   class_read_double("tol_background_integration",ppr->tol_background_integration);
+  class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
+  class_read_double("tol_ncdm",ppr->tol_ncdm);
 
   /** h.2. parameters related to the thermodynamics */
 
@@ -998,6 +963,7 @@ int input_init(
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_nur",ppr->l_max_nur);
+  class_read_int("l_max_ncdm1",ppr->l_max_ncdm1);
   class_read_int("l_max_g_ten",ppr->l_max_g_ten);
   class_read_int("l_max_pol_g_ten",ppr->l_max_pol_g_ten);
   class_read_double("curvature_ini",ppr->curvature_ini);
@@ -1303,6 +1269,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->a_ini_over_a_today_default = 1.e-10;  /* 1.e-7 unless needs large k_max in P(k) */
   ppr->back_integration_stepsize = 0.1;   /* 03.12.10 for chi2plT0.01 */
   ppr->tol_background_integration = 1.e-2;  /* no sizeable impact */
+  ppr->tol_M_ncdm = 1.e-7;
+  ppr->tol_ncdm = 1.e-6;
 
   /**
    * - parameters related to the thermodynamics
@@ -1394,7 +1362,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->l_max_g=10; /* 03.12.10 for chi2plT0.01 */
   ppr->l_max_pol_g=10; /* 03.12.10 for chi2plT0.01 */
-  ppr->l_max_nur=23; /* 14.12.10 for chi2plT0.1 */
+  ppr->l_max_nur=28; /* 14.12.10 for chi2plT0.1 */
+  ppr->l_max_ncdm1=28; /* 14.12.10 for chi2plT0.1 */
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 

@@ -195,8 +195,10 @@ struct background
 
   double * q_ncdm1;
   double * w_ncdm1;
+  double * dlnf0_dlnq_ncdm1;
   int q_size_ncdm1;
-  
+  double factor_ncdm1;
+
   /** @name - technical parameters */
 
   //@{
@@ -279,6 +281,7 @@ extern "C" {
 				     );
 
   int background_ncdm1_init(
+			    struct precision *ppr,
 			    struct background *pba
 			    );
   
@@ -292,6 +295,7 @@ extern "C" {
 			       );
 
   int background_ncdm1_M_from_Omega(
+				    struct precision *ppr,
 				    struct background *pba
 				    );
 

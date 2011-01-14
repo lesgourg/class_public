@@ -263,7 +263,7 @@ int background_functions(
   /* scale factor relative to scale factor today */
   double a_rel;
 
-  double n_ncdm,rho_ncdm,p_ncdm,drho_dM_ncdm;
+  double rho_ncdm,p_ncdm;
 
   /** - initialize local variables */
   rho_tot = 0.;
@@ -305,10 +305,10 @@ int background_functions(
   if (pba->has_ncdm1 == _TRUE_) {
     class_call(background_ncdm1_momenta(pba,
 					1./a_rel-1.,
-					&n_ncdm,
+					NULL,
 					&rho_ncdm,
 					&p_ncdm,
-					&drho_dM_ncdm),
+					NULL),
 	       pba->error_message,
 	       pba->error_message);
 
@@ -476,6 +476,12 @@ int background_free(
   free(pba->d2eta_dz2_table);
   free(pba->background_table);
   free(pba->d2background_deta2_table);
+
+  if (pba->has_ncdm1 == _TRUE_) {
+    free(pba->q_ncdm1);
+    free(pba->w_ncdm1);
+    free(pba->dlnf0_dlnq_ncdm1);
+  }
 
   return _SUCCESS_;
 }
@@ -663,7 +669,7 @@ int background_ncdm1_distribution(
 
   pba_local = pba;
 
-  *f0 = 1./(exp(q-pba_local->ksi_ncdm1)+1.) + 1./(exp(q+pba_local->ksi_ncdm1)+1.); /* Fermi-Dirac */
+  *f0 = (1./(exp(q-pba_local->ksi_ncdm1)+1.) + 1./(exp(q+pba_local->ksi_ncdm1)+1.))/pow(2*_PI_,3); /* Fermi-Dirac */
 
   return _SUCCESS_;
 }
@@ -680,9 +686,13 @@ int background_ncdm1_test_function(
 }
 
 int background_ncdm1_init(
+			  struct precision *ppr,
 			  struct background *pba
 			  ) {
   
+  int index_q;
+  double f0right,f0left,lnf0right,lnf0left,dlnq;
+
   class_alloc(pba->q_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
   class_alloc(pba->w_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
 
@@ -690,7 +700,7 @@ int background_ncdm1_init(
 			   pba->w_ncdm1,
 			   &(pba->q_size_ncdm1),
 			   _QUADRATURE_MAX_,
-			   1.e-6,
+			   ppr->tol_ncdm,
 			   background_ncdm1_test_function,
 			   background_ncdm1_distribution,
 			   pba,
@@ -701,10 +711,48 @@ int background_ncdm1_init(
   pba->q_ncdm1=realloc(pba->q_ncdm1,pba->q_size_ncdm1*sizeof(double));
   pba->w_ncdm1=realloc(pba->w_ncdm1,pba->q_size_ncdm1*sizeof(double));
 
+  class_alloc(pba->dlnf0_dlnq_ncdm1,
+	      pba->q_size_ncdm1*sizeof(double),
+	      pba->error_message);
+
+  for (index_q=0; index_q<pba->q_size_ncdm1; index_q++) {
+ 
+    if (index_q==0)
+      dlnq=ppr->tol_ncdm*(log(pba->q_ncdm1[index_q+1])-log(pba->q_ncdm1[index_q]));
+    else
+      dlnq=ppr->tol_ncdm*(log(pba->q_ncdm1[index_q])-log(pba->q_ncdm1[index_q-1]));
+
+    {
+      class_call(background_ncdm1_distribution(pba,
+					       exp(log(pba->q_ncdm1[index_q])+dlnq),
+					       &f0right),
+		 pba->error_message,
+		 pba->error_message);
+      
+      lnf0right=log(f0right);
+      
+      class_call(background_ncdm1_distribution(pba,
+					       exp(log(pba->q_ncdm1[index_q])-dlnq),
+					       &(f0left)),
+		 pba->error_message,
+		 pba->error_message);
+      
+      lnf0left=log(f0left);
+
+    } while (fabs(lnf0right-lnf0left) < _TOLVAR_*ppr->smallest_allowed_variation);
+
+    pba->dlnf0_dlnq_ncdm1[index_q] = (lnf0right-lnf0left)/2./dlnq;
+
+  }
+
+  pba->factor_ncdm1=4*_PI_*pow(pba->Tcmb*pba->T_ncdm1*_k_B_,4)*8*_PI_*_G_
+    /3./pow(_h_P_/2./_PI_,3)/pow(_c_,7)*_Mpc_over_m_*_Mpc_over_m_;
+
   return _SUCCESS_;
 }
 
 int background_ncdm1_momenta(
+			     /* Only calculate for non-NULL pointers: */
 			     struct background * pba,
 			     double z,
 			     double * n,
@@ -712,57 +760,67 @@ int background_ncdm1_momenta(
 			     double * p,
 			     double * drho_dM
 			     ) {
-  
+
   int index_q;
   double epsilon;
   double factor;
   double q2;
 
-  factor = pow(pba->Tcmb*pba->T_ncdm1*_k_B_*(1.+z),4)*8*_PI_*_G_
-    /3./pow(_h_P_/2./_PI_,3)/pow(_c_,7)*_Mpc_over_m_*_Mpc_over_m_;
-  
-  *n = 0.;
-  *rho = 0.;
-  *p = 0.;
-  *drho_dM = 0.;
+  factor = pba->factor_ncdm1*pow(1+z,4);
+
+  if (n!=NULL) *n = 0.;
+  if (rho!=NULL) *rho = 0.;
+  if (p!=NULL) *p = 0.;
+  if (drho_dM!=NULL) *drho_dM = 0.;
 
   for (index_q=0; index_q<pba->q_size_ncdm1; index_q++) {
 
     q2 = pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q];
-
     epsilon = sqrt(q2+pba->M_ncdm1*pba->M_ncdm1/(1.+z)/(1.+z));
-  
-    *n += q2*pba->w_ncdm1[index_q];
 
-    *rho += q2*epsilon*pba->w_ncdm1[index_q];
-    
-    *p += q2*pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q]/3./epsilon*pba->w_ncdm1[index_q];
-
-    *drho_dM += q2*pba->M_ncdm1/(1.+z)/(1.+z)/epsilon*pba->w_ncdm1[index_q];
-
+    if (n!=NULL) *n += q2*pba->w_ncdm1[index_q];
+    if (rho!=NULL) *rho += q2*epsilon*pba->w_ncdm1[index_q];
+    if (p!=NULL) *p += q2*pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q]/3./epsilon*pba->w_ncdm1[index_q];
+    if (drho_dM!=NULL) *drho_dM += q2*pba->M_ncdm1/(1.+z)/(1.+z)/epsilon*pba->w_ncdm1[index_q];
   }
-
-  *n *= factor;
-  *rho *= factor;
-  *p *= factor;
-  *drho_dM *= factor; 
+  if (n!=NULL) *n *= factor;
+  if (rho!=NULL) *rho *= factor;
+  if (p!=NULL) *p *= factor;
+  if (drho_dM!=NULL) *drho_dM *= factor; 
 
   return _SUCCESS_;
 }
 
 int background_ncdm1_M_from_Omega(
+				  struct precision *ppr,
 				  struct background *pba
 				  ) {
-  return _SUCCESS_;
+  double rho0,rho,a0,z0,n,*M,deltaM,drhodM;
+  int iter,maxiter=10,status=_FAILURE_;
+	
+  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm1; /*Remember that rho is defined such that H^2=sum(rho_i) */
+  a0 = pba->a_today;
+  z0 = 1/a0-1.0; 
+  M=&pba->M_ncdm1;
+  *M = 0.0;	/* It doesn't really matter, all we need for our 
+		   guess is n which is independent of M: */
+  background_ncdm1_momenta(pba,z0,&n,NULL,NULL,NULL);
+  /* In the strict NR limit we have rho = n*(aM), giving a zero'th order guess: */
+  *M = rho0/(a0*n); /* This is our guess for M. */
+  for (iter=1; iter<=maxiter; iter++){
+    /* Newton iteration. First get relevant quantities at M: */
+    background_ncdm1_momenta(pba,z0,NULL,&rho,NULL,&drhodM);
+    deltaM = (rho0-rho)/drhodM; /* By definition of the derivative */
+    *M += deltaM; /* Update value of M.. */
+    if (*M<0.0) *M = 0.0; /* Avoid overshooting to negative M value. */
+    if (fabs(deltaM/(*M))<ppr->tol_M_ncdm){
+      /* Accuracy reached.. */
+      status = _SUCCESS_;
+      break;
+    }
+  }
+  return status;
 }
-
-/** 
- * Integrate background, allocate and fill the background interpolation table
- *
- * @param ppr Input : pointer to precision structure
- * @param pba Input/Output : pointer to background structure
- * @return the error status
- */
 
 int background_solve(
 		     struct precision *ppr,
