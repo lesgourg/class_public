@@ -3199,12 +3199,13 @@ int perturb_einstein(
 	}
 	else if (ppr->free_streaming_approximation == fsa_MD_with_reio) {
 	  if (ppr->gauge==synchronous) {
-	    delta_g = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]
-	      -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]-a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]);
+	    delta_g = 0.; /* 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm] */
+	      /* -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]-a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]); */
 	    theta_g=0.;
 
 	    if (pba->has_nur == _TRUE_) {
-	      delta_nur = 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm];
+	      delta_nur = 0.;
+/* 2./k2*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_delta_cdm]; */
 	      theta_nur=0.;
 	    }
 	  }
@@ -3312,12 +3313,12 @@ int perturb_einstein(
       ppw->pvecmetric[ppw->index_mt_h_prime] = 
 	( k2 * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
 
-      /* in tight-coupling approximayion, infer velocities */
+      /* in free-streaming approximation, infer velocities */
       if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) {
 	if (ppr->free_streaming_approximation == fsa_MD_with_reio) {
 	  if (ppr->gauge==synchronous) {
 
-	    ppw->fsa_delta_g = 2./k2*a_prime_over_a*a_prime_over_a*(y[ppw->pv->index_pt_delta_cdm])
+	    ppw->fsa_delta_g = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]-k2*y[ppw->pv->index_pt_eta])
 	      -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]+0.5*ppw->pvecmetric[ppw->index_mt_h_prime]);
 
 	    ppw->fsa_theta_g = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime]
@@ -3333,7 +3334,7 @@ int perturb_einstein(
 	    
 	    if (pba->has_nur == _TRUE_) {
 
-	      ppw->fsa_delta_nur = 2./k2*a_prime_over_a*a_prime_over_a*(y[ppw->pv->index_pt_delta_cdm]);
+	      ppw->fsa_delta_nur = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]-k2*y[ppw->pv->index_pt_eta]);
 
 	      ppw->fsa_theta_nur = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
 	      delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*ppw->fsa_theta_nur;
