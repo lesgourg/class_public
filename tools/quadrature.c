@@ -23,9 +23,9 @@ int get_qsampling(double *x,
      This function combines two completely different strategies: Adaptive Gauss-Kronrod
      quadrature and Laguerres quadrature formula. */
 	
-  int i, NL=5,NR,level,Nadapt,NLag,Nold=0;
+  int i, NL=_MIN_NUMBER_OF_LAGUERRE_POINTS_,NR,level,Nadapt,NLag,Nold=NL;
   int adapt_converging=_TRUE_,Laguerre_converging=_TRUE_;
-  double y,y2,I,Igk,err,ILag,*b,*c;
+  double y,y2,I,Igk,err,ILag,*b,*c,xtemp,wtemp;
   qss_node* root;
   /* Allocate storage for Laguerre coefficients: */
   b = malloc(N_max*sizeof(double));
@@ -112,6 +112,16 @@ int get_qsampling(double *x,
     i = 0;
     get_leaf_x_and_w(root,&i,x,w);
     *N = Nadapt;
+
+    //Fix the sorting of x and w:
+    for (i=0;i<(Nadapt/2); i++){
+      xtemp = x[Nadapt-1-i];
+      wtemp = w[Nadapt-1-i];
+      x[Nadapt-1-i] = x[i];
+      w[Nadapt-1-i] = w[i];
+      x[i] = xtemp;
+      w[i] = wtemp;
+    }
   }
   else if (Laguerre_converging==_TRUE_){
     /* x and w is already populated in this case. */

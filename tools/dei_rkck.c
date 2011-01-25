@@ -124,9 +124,8 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
     h=hnext;
   }
 
-  class_test(0 == 0,
-	     pgi->error_message,
-	     "Too many steps");
+  class_error(pgi->error_message,
+	     "Too many integration steps needed within interval [%g : %g],\n the system of equations is probably buggy or featuring a discontinuity",x1,x2);
 
 }
 

@@ -316,7 +316,10 @@ int background_functions(
     rho_tot += pvecback[pba->index_bg_rho_ncdm1];
     pvecback[pba->index_bg_p_ncdm1] = p_ncdm;
     p_tot += pvecback[pba->index_bg_rho_ncdm1];
-    /* add to rho_m or rho_r? TBC */
+    /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
+    rho_r += 3.* p_ncdm;
+    /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution to rho_ncdm1 */
+    rho_m += rho_ncdm - 3.* p_ncdm;
   }
 
   /* Lambda */
@@ -691,7 +694,7 @@ int background_ncdm1_init(
 			  ) {
   
   int index_q;
-  double f0right,f0left,lnf0right,lnf0left,dlnq;
+  double f0right,f0left,lnf0right,lnf0left,dlnq,dlnq_first;
 
   class_alloc(pba->q_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
   class_alloc(pba->w_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
@@ -717,29 +720,37 @@ int background_ncdm1_init(
 
   for (index_q=0; index_q<pba->q_size_ncdm1; index_q++) {
  
+	/* First guess for dlnq: */
     if (index_q==0)
-      dlnq=ppr->tol_ncdm*(log(pba->q_ncdm1[index_q+1])-log(pba->q_ncdm1[index_q]));
+      dlnq=-ppr->tol_ncdm*log(pba->q_ncdm1[index_q]);
     else
-      dlnq=ppr->tol_ncdm*(log(pba->q_ncdm1[index_q])-log(pba->q_ncdm1[index_q-1]));
-
+      dlnq=ppr->tol_ncdm*(log(pba->q_ncdm1[index_q])-log(pba->q_ncdm1[index_q-1]));  
+	
+	if (dlnq==0.0) dlnq = 1.0/_HUGE_;
+	dlnq_first = dlnq;
     {
       class_call(background_ncdm1_distribution(pba,
 					       exp(log(pba->q_ncdm1[index_q])+dlnq),
 					       &f0right),
 		 pba->error_message,
 		 pba->error_message);
-      
-      lnf0right=log(f0right);
-      
-      class_call(background_ncdm1_distribution(pba,
+
+		 class_call(background_ncdm1_distribution(pba,
 					       exp(log(pba->q_ncdm1[index_q])-dlnq),
 					       &(f0left)),
 		 pba->error_message,
 		 pba->error_message);
-      
-      lnf0left=log(f0left);
 
-    } while (fabs(lnf0right-lnf0left) < _TOLVAR_*ppr->smallest_allowed_variation);
+        if (f0left==0.0) f0left = 1.0/_HUGE_;
+        if (f0right==0.0) f0right = 1.1/_HUGE_;
+
+	 lnf0left=log(f0left);
+      lnf0right=log(f0right);
+
+		dlnq *= 2.0;
+		if (dlnq_first/dlnq<=ppr->tol_ncdm) break;
+		
+    } while (fabs(lnf0right-lnf0left) < 1.0/_HUGE_);//_TOLVAR_*ppr->smallest_allowed_variation);
 
     pba->dlnf0_dlnq_ncdm1[index_q] = (lnf0right-lnf0left)/2./dlnq;
 

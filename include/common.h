@@ -93,6 +93,25 @@ typedef char FileName[_FILENAMESIZE_];
     }									\
   } while(0);
 
+/* macro for returning error message;
+   args is a variable list of optional arguments, e.g.: args="x=%d",x 
+   args cannot be empty, if there is nothing to pass use args="" */
+#define class_error(error_message_output,				\
+		   args...)						\
+  do {									\
+    if (_TRUE_) {							\
+      ErrorMsg Transmit_Error_Message;					\
+      ErrorMsg Optional_arguments;					\
+      sprintf(Transmit_Error_Message,					\
+	      "%s(L:%d) : error",			\
+	      __func__,__LINE__);				\
+      sprintf(Optional_arguments,args);					\
+      sprintf(error_message_output,"%s; %s",				\
+	      Transmit_Error_Message, Optional_arguments);		\
+      return _FAILURE_;							\
+    }									\
+  } while(0);
+
 /* macro for testing condition and returning error if condition is true;
    args is a variable list of optional arguments, e.g.: args="x=%d",x 
    args cannot be empty, if there is nothing to pass use args="" */

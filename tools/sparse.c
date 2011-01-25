@@ -533,7 +533,7 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 				for(p=Cp[i] + 1; p<=Cp[i]+ln-1; p++) w[Ci[p]] = mark;
 				jlast = i;
 				for(j=next[i]; j!=-1; ){
-					ok = (len[j]==ln)&&(elen[j] = eln);
+					ok = (len[j]==ln)&&(elen[j] == eln);
 					for(p=Cp[j] +1;ok&&p<=Cp[j]+ln-1; p++){
 						if(w[Ci[p]]!=mark) ok=0;
 					}
@@ -558,7 +558,7 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 			if ((nvi = -nv[i]) <=0) continue;
 			nv[i] = nvi;
 			d = degree[i] +dk -nvi;
-			d = min(d, n-nel-nvi);
+			d = min(d, (n-nel-nvi));
 			if(head[d]!=-1) last[head[d]] = i;
 			next[i] = head[d];
 			last[i] = -1;

@@ -1,6 +1,8 @@
 #ifndef __QSS__
 #define __QSS__
 
+#define _MIN_NUMBER_OF_LAGUERRE_POINTS_ 5
+
 /******************************************/
 /* Quadrature Sampling Strategy for CLASS */
 /* 10/12 2010                             */

@@ -189,20 +189,24 @@ int generic_evolver(
 		erconst[ii] = alpha[ii]*G[ii] + 1.0/(2.0+ii);
 	}
 
+	/* Set the relevant indices which needs to be found by interpolation. */
+	/* But if we want to print variables for testing purposes, just interpolate everything.. */
 	for(ii=1;ii<=neq;ii++){
 		y[ii] = y_inout[ii-1];
-		interpidx[ii]=used_in_output[ii-1];
+		if (print_variables==NULL){
+			interpidx[ii]=used_in_output[ii-1];
+		}
+		else{
+			interpidx[ii]=1;
+		}
 	}
 	t0 = x_ini;
-	tfinal = x_final; /*<--- change this to reflect final point. */
-	
+	tfinal = x_final;
+
 	/* Some CLASS-specific stuff:*/
 	next=0;
 	while (t_vec[next] < t0) next++;
 	
-	/* Set the relevant indices which needs to be found by interpolation. */
-	/* Let me do this in a short and safe way:*/
-	/* relevant_indices(interpidx+1,&init_pa,ppaw->ppw->pv,neq); */
 	if (verbose > 1){
 		numidx=0;
 		for(ii=1;ii<=neq;ii++){
@@ -450,7 +454,6 @@ int generic_evolver(
 						class_test(absh <= hmin, error_message,
 								 "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]\n",
 								 absh,hmin,t0,tfinal);
-						return _FAILURE_;
 					}
 					else{
 						abshlast = absh;
@@ -482,7 +485,6 @@ int generic_evolver(
 					class_test(absh <= hmin, error_message,
 							 "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]\n",
 							 absh,hmin,t0,tfinal);
-					return _FAILURE_;
 				}
 				abshlast = absh;
 				if (nofailed==_TRUE_){
@@ -540,12 +542,25 @@ int generic_evolver(
 			if (tnew==t_vec[next]){
 				class_call((*output)(t_vec[next],ynew+1,f0+1,next,parameters_and_workspace_for_derivs,error_message),
 					error_message,error_message);
+
+				if (print_variables != NULL){
+				  class_call((*print_variables)(t_vec[next],ynew+1,f0+1,
+								parameters_and_workspace_for_derivs,error_message),
+					     error_message,error_message);
+				}
+
 			}
 			else {
 				/*Interpolate if we have overshot sample values*/
 				interp_from_dif(t_vec[next],tnew,ynew,h,dif,k,yinterp,ypinterp,yppinterp,interpidx,neq,2);				
 				class_call((*output)(t_vec[next],yinterp+1,ypinterp+1,next,parameters_and_workspace_for_derivs,
 					error_message),error_message,error_message);
+
+				if (print_variables != NULL){
+				  class_call((*print_variables)(t_vec[next],ynew+1,f0+1,
+								parameters_and_workspace_for_derivs,error_message),
+					     error_message,error_message);
+				}
 			}
 			next++;
 		}
@@ -872,6 +887,7 @@ int new_linearisation(struct jacobian *jac,double hinvGak,int neq,ErrorMsg error
 			/* Calculate the optimal ordering: */
 			sp_amd(jac->Cp, jac->Ci, neq, jac->cnzmax,
 				jac->Numerical->q,jac->Numerical->wamd);
+			/* if the next line is uncomented, the code uses natural ordering instead of AMD ordering */
 			/*jac->Numerical->q = NULL;*/
 			funcreturn = sp_ludcmp(jac->Numerical, jac->spJ, 1e-3);
 			class_test(funcreturn == _FAILURE_,error_message,
