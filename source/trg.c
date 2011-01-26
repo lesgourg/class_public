@@ -2435,8 +2435,6 @@ int trg_init (
   double eta_max;
   double exp_eta;
 
-  double za,zb,zc;
-
   /** Variables of calculation */
 
   double *p_11_linear;
@@ -2482,15 +2480,16 @@ int trg_init (
   int index_name,name_size;
   double ** AA;
   
-  /** Output variables */
-
-  int * index_eta_plot;
-  int i;
- 
   /** Additionnal temporary variables */
 
   double temp; 
   double * junk;
+
+  /** Meaningless initialisations to remove warnings (some variables are only defined in conditional loops) **/
+
+  logstepk=0;
+  class_calloc(junk,2,sizeof(double),pnl->error_message); // This one would be to use several different IC in spectra_pk_at_k_and_z
+
 
   /**
    * This code can be optionally compiled with the openmp option for parallel computation.
@@ -2624,8 +2623,7 @@ int trg_init (
   class_calloc(Omega_m,pnl->eta_size,sizeof(double),pnl->error_message);
 
   /* In the case of computing the total spectrum, one needs Omega_r */
-  if(pnl->has_bc_spectrum == _FALSE_ )
-    class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
 
   class_calloc(rho_g,  pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(rho_nur,pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2671,14 +2669,14 @@ int trg_init (
 
   /** Definition of the transfert functions for each relevant species, only needed for the b+c spectrum */
 
+  class_calloc(tr_g,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(tr_nur, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(tr_b,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(tr_cdm, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+
+  class_calloc(transfer,psp->tr_size,sizeof(double),pnl->error_message);
+
   if(pnl->has_bc_spectrum == _TRUE_) {
-    class_calloc(tr_g,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-    class_calloc(tr_nur, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-    class_calloc(tr_b,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-    class_calloc(tr_cdm, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-
-    class_calloc(transfer,psp->tr_size,sizeof(double),pnl->error_message);
-
     for (index_eta=0; index_eta < pnl->eta_size; index_eta++){
       for (index_k=0; index_k < pnl->k_size; index_k++){
 	class_call(spectra_tk_at_k_and_z(
@@ -2735,12 +2733,10 @@ int trg_init (
     }
   }
  
-  if(pnl->has_bc_spectrum == _TRUE_) { 
-    free(tr_g);
-    free(tr_nur);
-    free(tr_b);
-    free(tr_cdm);
-  }
+  free(tr_g);
+  free(tr_nur);
+  free(tr_b);
+  free(tr_cdm);
 
   /**
    * Definition of P_11, P_12 and P_22, the two points correlators
@@ -2814,6 +2810,8 @@ int trg_init (
     p_22_linear[index_k]  = pnl->p_11_nl[index_k]; 
 
   }
+
+  free(transfer);
 
   /** Initialisation and definition of second derivatives */
 
@@ -2933,6 +2931,7 @@ int trg_init (
     printf(" -> progression:\n");}
 
   time_1=time(NULL);
+  time_2=time(NULL);
  
   for (index_eta=1; index_eta<pnl->eta_size; index_eta++){
     exp_eta=exp(pnl->eta[index_eta-1]);
