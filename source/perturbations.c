@@ -1694,8 +1694,8 @@ int perturb_solve(
 				  each step for testing purposes (this
 				  functionality is active only with the
 				  rkck integrator). */
-			       /* NULL, */
-			       perturb_print_variables,
+			       NULL,
+			       /* perturb_print_variables, */
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -4105,10 +4105,10 @@ int perturb_derivs(double eta,
   /* useful terms for tight-coupling approximation */
   double slip=0.;
   double Pi;
-  double tau_c,dtau_c;
+  double tau_c=0.,dtau_c=0.;
   double theta_prime,shear_g_prime,theta_prime_prime,h_prime_prime;
   double g0,g0_prime,g0_prime_prime;
-  double F,F_prime,F_prime_prime;
+  double F=0.,F_prime=0.,F_prime_prime=0.;
 
   /* useful term for tensors */
   double Psi;
@@ -4130,9 +4130,9 @@ int perturb_derivs(double eta,
   double * pvecmetric;
 
   /* short-cut notations for the perturbations */
-  double delta_g,theta_g,shear_g=0.;
+  double delta_g=0.,theta_g=0.,shear_g=0.;
   double delta_b,theta_b;
-  double theta_g_prime_first_order,delta_p,Delta;
+  double delta_p,Delta;
   double cb2;
 
   /* For use with non-cold Dark Matter: */
