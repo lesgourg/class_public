@@ -959,7 +959,14 @@ int input_init(
   class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
   class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
   class_read_double("start_sources_at_eta_g_over_eta_h",ppr->start_sources_at_eta_g_over_eta_h);
-  class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation)
+
+  class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation);
+
+  /** derivatives of baryon sound speed only computed if some non-minimal tight-coupling schemes is requested */
+  if ((ppr->tight_coupling_approximation == (int)first_order_CLASS) || (ppr->tight_coupling_approximation == (int)second_order_CLASS)) {
+    pth->compute_cb2_derivatives = _TRUE_;
+  }
+
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_nur",ppr->l_max_nur);
@@ -1129,6 +1136,7 @@ int input_default_params(
   pth->reio_z_or_tau=reio_z;
   pth->z_reio=10.3;
   pth->tau_reio=0.085;
+  pth->compute_cb2_derivatives=_FALSE_;
 
   /** - perturbation structure */
 
@@ -1355,8 +1363,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->start_small_k_at_eta_g_over_eta_h = 0.006; /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
   ppr->start_large_k_at_eta_h_over_eta_k = 1.e-1;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.008; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.05; /* 14.12.10 for chi2plT0.1 */ /* decrease to swith off earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.008; /* 14.12.10 for chi2plT0.1 */ /* decrease to switch off earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.05; /* 14.12.10 for chi2plT0.1 */ /* decrease to switch off earlier in time */
   ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* 14.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)second_order_CRS;
 

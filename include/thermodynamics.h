@@ -53,6 +53,7 @@ struct thermo
   enum reionization_z_or_tau reio_z_or_tau; /**< is the input parameter the reionization redshift or optical depth? */
   double tau_reio; /**< if above set to tau, input value of reionization optical depth */
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
+  short compute_cb2_derivatives; /**< do we want derivatives of baryon sound speed? */
 
   //@}
 
@@ -70,7 +71,8 @@ struct thermo
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \eta^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_th_dacb2;         /**< derivative of squared baryon sound speed divided by (1+z) \f$ d [c_b^2/(1+z)] / d \eta \f$ */
+  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \eta \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
+  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \eta^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \eta), used for computing integration step in perturbation module */
   int th_size;                /**< size of thermodynamics vector */ 
 

@@ -628,16 +628,22 @@ int generic_evolver(
 		eqvec(ynew,y,neq);
 		Jcurrent = _FALSE_;
 	}
-	/* All done... */
+
+	/* a last call is compulsory to ensure that all quantitites in
+	   y,dy,parameters_and_workspace_for_derivs are updated to the
+	   last point in the covered range */
 	class_call(
-		(*derivs)(tnew,ynew+1,f0+1,
-			parameters_and_workspace_for_derivs,error_message),
-		error_message,
-		error_message);
+		   (*derivs)(tnew,
+			     ynew+1,
+			     f0+1,
+			     parameters_and_workspace_for_derivs,error_message),
+		   error_message,
+		   error_message);
+	
 	if (verbose > 0){
-		printf("\n End of evolver. Next=%d, t=%e and tnew=%e.",next,t,tnew);
-		printf("\n Statistics: [%d %d %d %d %d %d] \n",stepstat[0],stepstat[1],
-			stepstat[2],stepstat[3],stepstat[4],stepstat[5]);
+	  printf("\n End of evolver. Next=%d, t=%e and tnew=%e.",next,t,tnew);
+	  printf("\n Statistics: [%d %d %d %d %d %d] \n",stepstat[0],stepstat[1],
+		 stepstat[2],stepstat[3],stepstat[4],stepstat[5]);
 	}
 	
 	/** Deallocate memory */

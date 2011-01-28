@@ -28,7 +28,6 @@
  *   structure of type 'recombination') for each redshfit in a range 0
  *   < z < z_initial.  The sampling in z space is done with a simple
  *   linear step size.
- *
  * - in a second step, the code adds the reionization history,
  *   starting from a redshift z_reio_start. The ionization fraction at
  *   this redshift is read in the previous recombination table in
@@ -146,11 +145,19 @@ int thermodynamics_at_z(
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
     pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->Tcmb * (1.+z) * 4. / 3.;
 
-    pvecthermo[pth->index_th_dacb2] = 0.;
+    /* derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
+    if (pth->compute_cb2_derivatives == _TRUE_) {
 
+      /* since cb2 proportional to (1+z) or 1/a, its derivative wrt conformal time is given by dcb2 = - a H cb2 */ 
+      pvecthermo[pth->index_th_dcb2] = - pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecthermo[pth->index_th_cb2];
+      
+      /* then its second derivative is given by ddcb2 = - a H' cb2 */ 
+      pvecthermo[pth->index_th_ddcb2] = - pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] * pvecthermo[pth->index_th_cb2];
+    }
+    
     /* in this regime, variation rate = dkappa/deta */
     pvecthermo[pth->index_th_rate] = pvecthermo[pth->index_th_dkappa];
-
+    
   }
 
   /** - interpolate in table with array_interpolate_spline() (normal
@@ -341,36 +348,35 @@ int thermodynamics_init(
 						       pth->error_message),
 	     pth->error_message,
 	     pth->error_message);
-
-  /** -> compute c_b^2/(1+z) */
-  for (index_eta=0; index_eta<pth->tt_size; index_eta++)
-    pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dg]= /* use this column temporarily  for storing acb2=cb2/(1+z) */
-      pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_cb2]/(1+pth->z_table[index_eta]);
   
-  /** -> second derivative with respect to eta aof cb2 (in view of spline interpolation) */
-  class_call(array_spline_table_line_to_line(eta_table,
-					     pth->tt_size,
-					     pth->thermodynamics_table,
-					     pth->th_size,
-					     pth->index_th_dg,  /* use this column temporarily  for storing acb2 */
-					     pth->index_th_ddg, /* use this column temporarily  for storing ddacb2 */
-					     _SPLINE_EST_DERIV_,
-					     pth->error_message),
-	     pth->error_message,
-	     pth->error_message);
+  /** -> derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
+  if (pth->compute_cb2_derivatives == _TRUE_) {
 
-
-  /** -> first derivative with respect to eta of cb2 (using spline interpolation) */
-  class_call(array_derive_spline_table_line_to_line(eta_table,
-						    pth->tt_size,
-						    pth->thermodynamics_table,
-						    pth->th_size,
-						    pth->index_th_dg, /* use this column temporarily  for storing acb2 */
-						    pth->index_th_ddg, /* use this column temporarily  for storing ddcb2 */
-						    pth->index_th_dacb2,
-						    pth->error_message),
-	     pth->error_message,
-	     pth->error_message);
+    /** -> second derivative with respect to eta of cb2 */
+    class_call(array_spline_table_line_to_line(eta_table,
+					       pth->tt_size,
+					       pth->thermodynamics_table,
+					       pth->th_size,
+					       pth->index_th_cb2,
+					       pth->index_th_ddcb2,
+					       _SPLINE_EST_DERIV_,
+					       pth->error_message),
+	       pth->error_message,
+	       pth->error_message);
+    
+    
+    /** -> first derivative with respect to eta of cb2 (using spline interpolation) */
+    class_call(array_derive_spline_table_line_to_line(eta_table,
+						      pth->tt_size,
+						      pth->thermodynamics_table,
+						      pth->th_size,
+						      pth->index_th_cb2,
+						      pth->index_th_ddcb2,
+						      pth->index_th_dcb2,
+						      pth->error_message),
+	       pth->error_message,
+	       pth->error_message);
+  }
 
   free(eta_table);
 
@@ -580,8 +586,15 @@ int thermodynamics_indices(
   index++;
   pth->index_th_cb2 = index;
   index++;
-  pth->index_th_dacb2 = index;
-  index++;
+
+  /* derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
+  if (pth->compute_cb2_derivatives == _TRUE_) {
+    pth->index_th_dcb2 = index;
+    index++;
+    pth->index_th_ddcb2 = index;
+    index++;
+  }
+
   pth->index_th_rate = index;
   index++;
 

@@ -85,7 +85,19 @@ int generic_evolver(int (*derivs)(double x,
       call_output = _FALSE_;
     }
 
-    if (print_variables != NULL)
+    if (print_variables != NULL) {
+
+      if (x1 == x_ini) {
+
+	class_call((*derivs)(x1,
+			     y,
+			     dy,
+			     parameters_and_workspace_for_derivs,
+			     error_message),
+		   error_message,
+		   error_message);
+      }
+
       class_call((*print_variables)(x1,
 				    y,
 				    dy,
@@ -93,7 +105,8 @@ int generic_evolver(int (*derivs)(double x,
 				    error_message),
 		 error_message,
 		 error_message);
-
+    }
+    
     class_call(generic_integrator(derivs,
 				  x1,
 				  x2,
@@ -134,7 +147,7 @@ int generic_evolver(int (*derivs)(double x,
 
   }
 
-  /* a last call is useful to ensure that all quantitites
+  /* a last call is compulsory to ensure that all quantitites in
      y,dy,parameters_and_workspace_for_derivs are updated to the last
      point in the covered range */
   class_call((*derivs)(x1,
