@@ -503,6 +503,7 @@ int thermodynamics_init(
 
   if (pth->thermodynamics_verbose > 0) {
     printf(" -> recombination at z = %f\n",pth->z_rec);
+    printf("    corresponding to conformal time = %f Mpc\n",pth->eta_rec);
     if (pth->reio_parametrization != reio_none) {
       if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);

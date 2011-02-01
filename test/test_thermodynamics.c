@@ -42,26 +42,28 @@ int main(int argc, char **argv) {
   int i;
 
   printf("#1: redshift z\n");
-  printf("#2: electron ionization fraction x_e\n");
-  printf("#3: Thomson scattering rate kappa'\n");
-  printf("#4: Thomson scattering rate derivative kappa''\n");
-  printf("#5: Thomson scattering rate derivative kappa'''\n");
-  printf("#6: exponential of optical depth e^-kappa\n");
-  printf("#7: visibility function g = kappa' e^-kappa \n");
-  printf("#8: derivative of visibility function g' \n");
-  printf("#9: second derivative of visibility function g'' \n");
-  printf("#10: squared baryon temperature\n");
-  printf("#11: squared baryon sound speed c_b^2 \n");
-  printf("#12: derivative of squared baryon sound speed wrt conformal time \n");
-  printf("#13: second derivative of squared baryon sound speed wrt conformal time \n");
-  printf("#11: F=tau_c/(1+R)=1/(kappa'*(1+(4/3)rho_g/rho_b)) \n");
-  printf("#12: derivative of F wrt conformal time \n");
-  printf("#13: second derivative of F wrt conformal time \n");
-  printf("#14: variation rate \n");
+  printf("#2: conformal time eta\n");
+  printf("#3: electron ionization fraction x_e\n");
+  printf("#4: Thomson scattering rate kappa'\n");
+  printf("#5: Thomson scattering rate derivative kappa''\n");
+  printf("#6: Thomson scattering rate derivative kappa'''\n");
+  printf("#7: exponential of optical depth e^-kappa\n");
+  printf("#8: visibility function g = kappa' e^-kappa \n");
+  printf("#9: derivative of visibility function g' \n");
+  printf("#10: second derivative of visibility function g'' \n");
+  printf("#11: squared baryon temperature\n");
+  printf("#12: squared baryon sound speed c_b^2 \n");
+  printf("#13: variation rate \n");
 
-  for (i=0; i < th.tt_size; i++)
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+  double eta;
+
+  for (i=0; i < th.tt_size; i++) {
+
+    background_eta_of_z(&ba,th.z_table[i],&eta);
+
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   th.z_table[i],
+	   eta,
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_ddkappa],
@@ -72,16 +74,12 @@ int main(int argc, char **argv) {
 	   th.thermodynamics_table[i*th.th_size+th.index_th_ddg],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_Tb],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_dcb2],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_ddcb2],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_F],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_dF],
-	   th.thermodynamics_table[i*th.th_size+th.index_th_ddF],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_rate]
 	   );
 
+  }
+
   double z;
-  double eta;
   int last_index;
   double pvecback[30];
   double pvecthermo[30];
@@ -94,8 +92,9 @@ int main(int argc, char **argv) {
 
     thermodynamics_at_z(&ba,&th,z,normal,&last_index,pvecback,pvecthermo);
     
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   z,
+	   eta,
 	   pvecthermo[th.index_th_xe],
 	   pvecthermo[th.index_th_dkappa],
 	   pvecthermo[th.index_th_ddkappa],
@@ -106,11 +105,6 @@ int main(int argc, char **argv) {
 	   pvecthermo[th.index_th_ddg],
 	   pvecthermo[th.index_th_Tb],
 	   pvecthermo[th.index_th_cb2],
-	   pvecthermo[th.index_th_dcb2],
-	   pvecthermo[th.index_th_ddcb2],
-	   pvecthermo[th.index_th_F],
-	   pvecthermo[th.index_th_dF],
-	   pvecthermo[th.index_th_ddF],
 	   pvecthermo[th.index_th_rate]
 	   );
     
