@@ -2390,12 +2390,12 @@ int trg_logstep2_k (
  */
 
 int trg_init (
-	      struct precision * ppr, /* input */
-	      struct background * pba, /**< structure containing all background evolution */
+	      struct precision * ppr, 
+	      struct background * pba, 
 	      struct thermo *pth,
 	      struct primordial * ppm,
-	      struct spectra * psp, /**< structure containing list of k, z and P(k,z) values) */
-	      struct spectra_nl * pnl /* output */ 
+	      struct spectra * psp, 
+	      struct spectra_nl * pnl 
 	      ) {
 
   /** Summary: 	the code takes as an input the matter power spectrum at desired starting redshift,
@@ -2618,6 +2618,8 @@ int trg_init (
     cb2[index_eta]=pvecthermo[pth->index_th_cb2];
   }
 
+  free(pvecthermo);
+
   /** Definition of background values */
 
   class_calloc(Omega_m,pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2666,6 +2668,8 @@ int trg_init (
     H_prime[index_eta] =H[index_eta]*(1 + pvecback_nl[pba->index_bg_H_prime] / a_ini * exp(-pnl->eta[index_eta])/pvecback_nl[pba->index_bg_H]/pvecback_nl[pba->index_bg_H]);
     
   }
+  
+  free(pvecback_nl);
 
   /** Definition of the transfert functions for each relevant species, only needed for the b+c spectrum */
 
@@ -2693,11 +2697,7 @@ int trg_init (
 	tr_nur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_nur];
 	tr_b[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_b];
 	tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm];
-
-      /*** TESTING ZONE ***/
-      /*printf("%e\t%e\t%e\t%e\n",pnl->eta[index_eta],pnl->k[index_k],tr_cdm[index_k+pnl->k_size*index_eta],tr_b[index_k+pnl->k_size*index_eta]);*/
       }
-      /*printf("\n\n");*/
     }
   }
 
@@ -2737,6 +2737,8 @@ int trg_init (
   free(tr_nur);
   free(tr_b);
   free(tr_cdm);
+
+  free(cb2);
 
   /**
    * Definition of P_11, P_12 and P_22, the two points correlators
@@ -2812,6 +2814,18 @@ int trg_init (
   }
 
   free(transfer);
+  free(junk);
+
+  free(Omega_m);
+  free(Omega_r);
+  
+  free(rho_g);
+  free(rho_nur);
+  free(rho_b);
+  free(rho_cdm);
+
+  free(H);
+  free(H_prime);
 
   /** Initialisation and definition of second derivatives */
 
@@ -2843,6 +2857,10 @@ int trg_init (
    /* Definition of 1_0, 1_11,(here a0, a11,...) etc, and 2_0, 2_11,
     * (here b0,b11,...) etc.. and initialization (directly with calloc
     * for assuming no initial non gaussianity in the spectrum) 
+    * The convention for 1_0, 1_11, 1_22 is : I_121_222, I_121_122, I_121_121(or the 121, 
+    * 0 means there are no 1's in the second row of indices, 11: there is one 1
+    * and it is at the first place, 22 there are two 1's and the only 2 is at the
+    * second place). The convention for 2_0, etc.. are reversed, i.e. 2_11 means I_222_211.
     */
 
   class_calloc(a0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2937,7 +2955,7 @@ int trg_init (
     exp_eta=exp(pnl->eta[index_eta-1]);
 
     if(pnl->k_size-pnl->double_escape*2*index_eta < 2){
-      printf("  --> Wrong choice of parameters\n  --> Stopped at %d, z=%2.2e Try Again\n",index_eta, pnl->z[index_eta]);
+      printf("  --> Wrong choice of double escape and eta_size parameters\n  --> Stopped at %d, z=%2.2e Try Again\n",index_eta, pnl->z[index_eta]);
       return _FAILURE_;
     }
 
@@ -3250,6 +3268,7 @@ int trg_free(
   free(pnl->ddp_12);
   free(pnl->ddp_22);
   free(pnl->eta);
+  free(pnl->z);
 
   return _SUCCESS_;  
 }
