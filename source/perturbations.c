@@ -2422,11 +2422,9 @@ int perturb_vector_init(
 
       if ((pa_old[ppw->index_ap_tca] == (int)tca_on) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off)) {
 
-
 	if (ppt->perturbations_verbose>2)
 	  fprintf(stdout,"Mode k=%e: switch off tight-coupling approximation at eta=%e\n",k,eta);
 	
-
 	ppv->y[ppv->index_pt_delta_g] =
 	  ppw->pv->y[ppw->pv->index_pt_delta_g];
 
@@ -4202,12 +4200,14 @@ int perturb_derivs(double eta,
     tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
     dtau_c = -pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c; /* its first derivative wrt conformal time */
     F = tau_c/(1+R); /* F = tau_c/(1+R) */
-    if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
-      F_prime = dtau_c/(1+R)+tau_c*a_prime_over_a*R/(1+R)/(1+R); /*F' */
-      F_prime_prime =(- pvecthermo[pth->index_th_dddkappa]*tau_c*tau_c /* F'' */
-		      + 2.*pvecthermo[pth->index_th_ddkappa]*pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c*tau_c)/(1+R)
-	+2.*dtau_c*a_prime_over_a*R/(1+R)/(1+R)
-	+tau_c*((a_primeprime_over_a-2.*a_prime_over_a*a_prime_over_a)+2.*a_prime_over_a*a_prime_over_a*R/(1+R))*R/(1+R)/(1+R);
+    if (ppr->tight_coupling_approximation >= (int)second_order_CLASS) {
+      F_prime = dtau_c/(1+R)+tau_c*a_prime_over_a*R/(1+R)/(1+R); /*F' needed by second_order_CLASS and compromise_CLASS */
+      if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
+	F_prime_prime =(- pvecthermo[pth->index_th_dddkappa]*tau_c*tau_c /* F'' needed by second_order_CLASS only */
+			+ 2.*pvecthermo[pth->index_th_ddkappa]*pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c*tau_c)/(1+R)
+	  +2.*dtau_c*a_prime_over_a*R/(1+R)/(1+R)
+	  +tau_c*((a_primeprime_over_a-2.*a_prime_over_a*a_prime_over_a)+2.*a_prime_over_a*a_prime_over_a*R/(1+R))*R/(1+R)/(1+R);
+      }
     }
   }
 
@@ -4442,7 +4442,7 @@ int perturb_derivs(double eta,
 	  g0_prime_prime = -a_prime_over_a*theta_prime_prime-2.*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_prime
 	    -(2.*a_prime_over_a*a_prime_over_a*a_prime_over_a-3.*a_primeprime_over_a*a_prime_over_a)*theta_b
 	    +k2*(pvecthermo[pth->index_th_ddcb2]*delta_b-2.*pvecthermo[pth->index_th_dcb2]*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])+(1./3.-cb2)*(theta_prime+0.5*h_prime_prime));
-	  
+
 	  /* shear_g_prime at first order in tight-coupling */
 	  shear_g_prime=16./45.*(tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime])
 				 +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
@@ -4467,7 +4467,7 @@ int perturb_derivs(double eta,
 				 +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
 		
 	  /* slip at second order (only leading second-order terms) */
-	  slip = (1.-2.*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*shear_g+shear_g_prime-F*(1./3.-cb2)*theta_prime);
+	  slip = (1.-2.*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*shear_g+shear_g_prime-(1./3.-cb2)*(F*theta_prime+2.*F_prime*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])));
 		
 	  /* second-order correction to shear */
 	  shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime]); 

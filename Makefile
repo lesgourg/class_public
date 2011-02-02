@@ -28,6 +28,8 @@ LDFLAG   = -O4 -fopenmp -Wall
 #LDFLAG = -O2 -ggdb
 #CCFLAG = -O4 -arch i386 -pg
 #LDFLAG = -O4 -arch i386 -pg
+#CCFLAG   = -O4 -Wall
+#LDFLAG   = -O4 -Wall
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 

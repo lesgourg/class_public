@@ -35,6 +35,13 @@ int main(int argc, char **argv) {
 
   for (index_eta=0; index_eta<ba.bt_size; index_eta++) {
 
+/*     fprintf(stdout, */
+/* 	    "%e %e %e %e\n", */
+/* 	    ba.eta_table[index_eta], */
+/* 	    1./(1+ba.z_table[index_eta]), */
+/* 	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_a], */
+/* 	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_H]); */
+
     fprintf(stdout,
 	    "%e %e %e %e\n",
 	    ba.eta_table[index_eta],
