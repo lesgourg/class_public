@@ -308,6 +308,7 @@ struct perturb_workspace
 				 time-derivatives */
 
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
+  double tca_shear_g_prime; /**< photon shear derivative in tight-coupling approximation */
   double fsa_delta_g; /**< photon density in free-streaming approximation */
   double fsa_theta_g; /**< photon velocity in free-streaming approximation */
   double fsa_delta_nur; /**< neutrino density in free-streaming approximation */

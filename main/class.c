@@ -3,6 +3,7 @@
  */
  
 #include "class.h"
+#include <time.h>
 
 int main(int argc, char **argv) {
 
@@ -19,6 +20,9 @@ int main(int argc, char **argv) {
   struct output op;           /* for output files */
   ErrorMsg errmsg;
 
+/*   clock_t start_perturb, end_perturb; */
+/*   double cpu_time_perturb; */
+
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
@@ -34,10 +38,18 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+/*   start_perturb = clock(); */
+
   if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
+
+/*   end_perturb = clock(); */
+
+/*   cpu_time_perturb =  (end_perturb-start_perturb);///CLOCKS_PER_SEC; */
+
+/*   printf("time in perturb=%e",cpu_time_perturb); */
 
   if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);

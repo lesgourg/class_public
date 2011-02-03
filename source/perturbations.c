@@ -3465,9 +3465,9 @@ int perturb_source_terms(
   pvecmetric = ppw->pvecmetric;
   source_term_table = ppw->source_term_table;
 
-  class_test(ppw->approx[ppw->index_ap_tca] == (int)tca_on,
-	     ppt->error_message,
-	     "source calculation assume tight-coupling approximation turned off");
+  /* class_test(ppw->approx[ppw->index_ap_tca] == (int)tca_on, */
+/* 	     ppt->error_message, */
+/* 	     "source calculation assume tight-coupling approximation turned off"); */
 
   x = k * (pba->conformal_age-eta);
 
@@ -3529,8 +3529,15 @@ int perturb_source_terms(
     }
     else {
       delta_g = y[ppw->pv->index_pt_delta_g];
-      Pi = y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.*y[ppw->pv->index_pt_shear_g];
-      Pi_prime = dy[ppw->pv->index_pt_pol0_g] + dy[ppw->pv->index_pt_pol2_g] + 2.*dy[ppw->pv->index_pt_shear_g];
+
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_on) {
+	Pi = 5.*ppw->tca_shear_g; /* (2.5+0.5+2)shear_g */
+	Pi_prime = 5.*ppw->tca_shear_g_prime; /* (2.5+0.5+2)shear_g_prime */
+      }
+      else {
+	Pi = y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.*y[ppw->pv->index_pt_shear_g];
+	Pi_prime = dy[ppw->pv->index_pt_pol0_g] + dy[ppw->pv->index_pt_pol2_g] + 2.*dy[ppw->pv->index_pt_shear_g];
+      }
     }
 
     /** - for each type and each mode, compute S0, S1, S2 */
@@ -4353,15 +4360,15 @@ int perturb_derivs(double eta,
 	   and G_gamma2, which are of the same order as sigma_g. This
 	   was already consistently included in CAMB) */ 
 
+	/* zero order for theta_b' = theta_g' */
+	theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R);
+	
+	/* shear_g_prime at first order in tight-coupling */
+	shear_g_prime=16./45.*(tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime])
+				 +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
+
 	/* 2nd order as in CRS*/
 	if (ppr->tight_coupling_approximation == (int)second_order_CRS) {
-
-	  /* zero order for theta_b' = theta_g' */
-	  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R);
-	  
-	  /* shear_g_prime at first order in tight-coupling */
-	  shear_g_prime=16./45.*(tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime])
-				 +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
 
 	  /* infer h'' using Einstein equation (the only one which is
 	     not coded in perturb_einstein(), since it is never used
@@ -4413,9 +4420,6 @@ int perturb_derivs(double eta,
 	/* 2nd order like in CLASS paper */
 	if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
 
-	  /* zero order for theta_b' = theta_g' */
-	  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R);
-
 	  /* zero order for theta_b'' = theta_g'' */
 	  theta_prime_prime = ((R-1.)*a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b
 			       +k2*(pvecthermo[pth->index_th_dcb2]*delta_b+cb2*dy[ppw->pv->index_pt_delta_b]+a_prime_over_a*R/4.*delta_g-R/4.*dy[ppw->pv->index_pt_delta_g]))/(1.+R);
@@ -4443,10 +4447,6 @@ int perturb_derivs(double eta,
 	    -(2.*a_prime_over_a*a_prime_over_a*a_prime_over_a-3.*a_primeprime_over_a*a_prime_over_a)*theta_b
 	    +k2*(pvecthermo[pth->index_th_ddcb2]*delta_b-2.*pvecthermo[pth->index_th_dcb2]*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])+(1./3.-cb2)*(theta_prime+0.5*h_prime_prime));
 
-	  /* shear_g_prime at first order in tight-coupling */
-	  shear_g_prime=16./45.*(tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime])
-				 +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
-		
 	  /* slip at second order */
 	  slip = (1.-2*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*shear_g+shear_g_prime)
 	    -F*(F_prime_prime*g0+2.*F_prime*g0_prime+F*g0_prime_prime);
@@ -4459,13 +4459,6 @@ int perturb_derivs(double eta,
 	/* add only the most important 2nd order terms */
 	if (ppr->tight_coupling_approximation == (int)compromise_CLASS) {
 	  
-	  /* zero order for theta_b' = theta_g' */
-	  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R);
-	  
-	  /* shear_g_prime at first order in tight-coupling */
-	  shear_g_prime=16./45.*(tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime])
-				 +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
-		
 	  /* slip at second order (only leading second-order terms) */
 	  slip = (1.-2.*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*shear_g+shear_g_prime-(1./3.-cb2)*(F*theta_prime+2.*F_prime*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])));
 		
@@ -4479,6 +4472,7 @@ int perturb_derivs(double eta,
       }
 
       ppw->tca_shear_g = shear_g;
+      ppw->tca_shear_g_prime = shear_g_prime;
 
     }
 

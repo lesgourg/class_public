@@ -2,7 +2,7 @@
 # - computing adiabatic scalar unlensed ClT only (ndf15 integrator with AMD)
 # - for each precision parameter varied individually, Deltachi2(Planck) between high-precision limit and selected value = 1.e-3  
 
-a_ini_over_a_today_default = 1.e-7
+a_ini_over_a_today_default = 1.e-14
 back_integration_stepsize = 7.e-3
 tol_background_integration = 1.e-2
 
@@ -60,12 +60,17 @@ k_scalar_step_sub=0.01
 k_scalar_step_super=0.005
 k_scalar_step_transition=0.2
 
-start_small_k_at_eta_g_over_eta_h = 0.006
-start_large_k_at_eta_g_over_eta_k = 1.e-5
+#start_small_k_at_eta_g_over_eta_h = 0.006
+#start_large_k_at_eta_g_over_eta_k = 1.e-5
+ight_coupling_trigger_eta_g_over_eta_h=0.008
+#tight_coupling_trigger_eta_g_over_eta_k=0.05
+#start_sources_at_eta_g_over_eta_h = 0.01
+start_small_k_at_eta_g_over_eta_h = 0.004
+start_large_k_at_eta_h_over_eta_k = 0.15
 tight_coupling_trigger_eta_g_over_eta_h=0.008
-tight_coupling_trigger_eta_g_over_eta_k=0.05
-start_sources_at_eta_g_over_eta_h = 0.01
-tight_coupling_approximation=3 #(int)second_order_CRS;
+tight_coupling_trigger_eta_g_over_eta_k=0.08
+start_sources_at_eta_g_over_eta_h = 0.009
+tight_coupling_approximation=5 #(int)second_order_CRS;
 
 l_max_g=12
 l_max_pol_g=12
@@ -92,8 +97,8 @@ k_per_decade_primordial = 10.
   
 k_step_trans_scalars=0.2
 
-transfer_cut=2 #tc_cl
-transfer_cut_threshold_osc=0.015
+transfer_cut=1 #tc_osc
+transfer_cut_threshold_osc=0.005
 transfer_cut_threshold_cl=8.e-7
 
 transfer_integrate = 1 #trapezoidal

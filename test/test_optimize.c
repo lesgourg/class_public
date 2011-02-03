@@ -97,17 +97,17 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-  param = &(pr.free_streaming_trigger_eta_h_over_eta_k);
+  param = &(pr.start_small_k_at_eta_g_over_eta_h);
 
-  parameter_initial=300.;
-  parameter_logstep=0.8;
+  parameter_initial=0.001;
+  parameter_logstep=1.2;
 
-  param_num=20;
+  param_num=1;
   ref_run=-1;
 
   /* if ref_run<0, the reference is taken in the following external file: */
 
-  sprintf(filename,"output/2000_cl.dat");
+  sprintf(filename,"output/REFter_cl.dat");
 
 /*******************************************************/
 
@@ -169,10 +169,13 @@ int main(int argc, char **argv) {
       //      fprintf(stderr,"%d",l_read);
       fscanf(output,"%e",&cl_read);
       //      fprintf(stderr," %e\n",cl_read);
-      cl[ref_run][l][sp.index_ct_tt]=(double)cl_read*2.*_PI_/l/(l+1);
+      cl[ref_run][l][0]=(double)cl_read*2.*_PI_/l/(l+1);
       //      fprintf(stderr,"%d %e\n",l_read,cl[ref_run][l][sp.index_ct_tt]);
       fscanf(output,"%e",&cl_read);
+      cl[ref_run][l][1]=(double)cl_read*2.*_PI_/l/(l+1);
       fscanf(output,"%e",&cl_read);
+      cl[ref_run][l][2]=(double)cl_read*2.*_PI_/l/(l+1);
+      //fprintf(stderr," %e %d\n",cl_read,sp.index_ct_te);
       fscanf(output,"%e",&cl_read);
       if (l_read != l) {
 	printf("l_read != l: %d %d\n",l_read,l);
@@ -514,7 +517,7 @@ int chi2_planck(
   for (l=2; l <= lmax; l++) {
 
 /*     if (psp->ct_size == 1) { */
-    if (0==0) {
+    if (0==1) {
 
       *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
 			       (cl1[l][0]+nl[l][0])+
@@ -538,6 +541,8 @@ int chi2_planck(
       clTT_obs = cl2[l][psp->index_ct_tt]+nl[l][psp->index_ct_tt];
       clEE_obs = cl2[l][psp->index_ct_ee]+nl[l][psp->index_ct_ee];
       clTE_obs = cl2[l][psp->index_ct_te];
+
+      printf("%e %e %e %e %e %e\n",clTT_th,clTT_obs,clEE_th,clEE_obs,clTE_th,clTE_obs);
 
       det_mixed = 0.5*(clTT_th*clEE_obs+clTT_obs*clEE_th)-clTE_th*clTE_obs;
 

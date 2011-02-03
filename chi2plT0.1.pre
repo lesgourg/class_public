@@ -2,7 +2,8 @@
 # - computing adiabatic scalar unlensed ClT only (ndf15 integrator with AMD)
 # - for each precision parameter varied individually, Deltachi2(Planck) between high-precision limit and selected value = 1.e-2 (or better in order to prevent DeltaCl at largest and smallest l's to exceed 0.5%) 
 
-a_ini_over_a_today_default = 1.e-7
+#a_ini_over_a_today_default = 1.e-7
+a_ini_over_a_today_default = 1.e-14
 back_integration_stepsize = 0.1
 tol_background_integration = 1.e-2
 
