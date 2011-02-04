@@ -1354,14 +1354,19 @@ int transfer_integrate(
 
   /** - if there is an overlap: */
 
-  /** (a) find index in the source's eta list corresponding to the last point in the overlapping region */ 
+  /** (a) find index in the source's eta list corresponding to the last point in the overlapping region. After this step, index_eta_max can be as small as zero, but not negative. */ 
   index_eta_max = eta_size-1;
-  while ((eta0_minus_eta[index_eta_max] < eta0_minus_eta_min_bessel) && (index_eta_max > 2))
+  while (eta0_minus_eta[index_eta_max] < eta0_minus_eta_min_bessel)
     index_eta_max--;
 
-  /** (b) the source function can vanish at large $\f k \eta \f$. Check if further points can be eliminated. */
-  while ((sources[index_k * eta_size + index_eta_max-1] == 0.)  && (index_eta_max > 2)) 
+  /** (b) the source function can vanish at large $\f \eta \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_eta_max can be as small as zero, but not negative. */
+  while (sources[index_k * eta_size + index_eta_max] == 0.) { 
     index_eta_max--;
+    if (index_eta_max < 0) {
+      *trsf = 0.;
+      return _SUCCESS_;
+    }
+  }
 
   /** (c) integrate with trapezoidal method */
     
@@ -1378,9 +1383,13 @@ int transfer_integrate(
        (1.-a) * (j_l[index_x+1]
 		 - a * ((a+1.) * ddj_l[index_x]
 			+(2.-a) * ddj_l[index_x+1]) 
-		 * x_step * x_step / 6.0) ) 
-    * (eta0_minus_eta[index_eta_max-1]-eta0_minus_eta_min_bessel); /* deta */
+		 * x_step * x_step / 6.0) );
   
+  if (index_eta_max > 0)
+    transfer *= (eta0_minus_eta[index_eta_max-1]-eta0_minus_eta_min_bessel);
+  else
+    transfer *= (eta0_minus_eta[index_eta_max]-eta0_minus_eta_min_bessel);
+
   for (index_eta=0; index_eta<index_eta_max; index_eta++) {
     
     /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */

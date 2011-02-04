@@ -98,4 +98,3 @@ transfer_cut=2 #tc_cl
 transfer_cut_threshold_osc=0.015
 transfer_cut_threshold_cl=2.e-6
 
-transfer_integrate = 1 #trapezoidal

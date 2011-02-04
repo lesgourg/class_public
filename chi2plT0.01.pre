@@ -101,5 +101,3 @@ k_step_trans_scalars=0.2
 transfer_cut=2 #tc_osc
 transfer_cut_threshold_osc=0.005
 transfer_cut_threshold_cl=1.e-7
-
-transfer_integrate = 1 #trapezoidal
