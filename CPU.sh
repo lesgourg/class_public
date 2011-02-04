@@ -85,7 +85,18 @@ if [ "$3" != "" ]
 then
   let z=$3
 else
-  let z=$(more $PWD/$1 | grep redshift | sed 's/# Matter power spectrum P(k) at redshift z=//')
+  if echo "$1" | grep -q "pk_nl_density.dat"
+  then
+    let z=$(more $PWD/$1 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (density auto-correlation) at redshift z=//')
+  elif echo "$1" | grep -q "pk_nl_velocity.dat"
+  then
+    let z=$(more $PWD/$1 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (velocity auto-correlation) at redshift z=//')
+  elif echo "$1" | grep -q "pk_nl_cross.dat"
+  then
+    let z=$(more $PWD/$1 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (density-velocity cross-correlation) at redshift z=//')
+  else
+    let z=$(more $PWD/$1 | grep redshift | sed 's/# Matter power spectrum P(k) at redshift z=//')
+  fi
 fi
 ( echo "set term wxt enhanced"
 echo "set logscale"
@@ -137,8 +148,34 @@ then
   echo "  You are comparing two identical files, merging aborted"
   exit
 fi
-local z1=$(more $1 | grep redshift | sed 's/# Matter power spectrum P(k) at redshift z=//')
-local z2=$(more $2 | grep redshift | set 's/# Matter power spectrum P(k) at redshift z=//')
+local z1=0
+if echo "$1" | grep -q "pk_nl_density.dat"
+then
+  let z1=$(more $PWD/$1 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (density auto-correlation) at redshift z=//')
+elif echo "$1" | grep -q "pk_nl_velocity.dat"
+then
+  let z1=$(more $PWD/$1 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (velocity auto-correlation) at redshift z=//')
+elif echo "$1" | grep -q "pk_nl_cross.dat"
+then
+  let z1=$(more $PWD/$1 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (density-velocity cross-correlation) at redshift z=//')
+else
+  let z1=$(more $PWD/$1 | grep redshift | sed 's/# Matter power spectrum P(k) at redshift z=//')
+fi
+
+local z2=0
+if echo "$2" | grep -q "pk_nl_density.dat"
+then
+  let z2=$(more $PWD/$2 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (density auto-correlation) at redshift z=//')
+elif echo "$2" | grep -q "pk_nl_velocity.dat"
+then
+  let z2=$(more $PWD/$2 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (velocity auto-correlation) at redshift z=//')
+elif echo "$2" | grep -q "pk_nl_cross.dat"
+then
+  let z2=$(more $PWD/$2 | grep redshift | sed 's/# Non-linear matter power spectrum P_nl(k) (density-velocity cross-correlation) at redshift z=//')
+else
+  let z2=$(more $PWD/$2 | grep redshift | sed 's/# Matter power spectrum P(k) at redshift z=//')
+fi
+
 if [ "$z1" != "$z2" ]
 then
   echo "  You are comparing the spectrum at two different redshifts, proceed ? (y or n)"
@@ -279,9 +316,9 @@ then
 	exit
       fi
     fi
-  elif echo "$1" | grep -q "pk.dat"
+  elif echo "$1" | grep -q "pk"
   then
-    if echo "$2" | grep -q "pk.dat"
+    if echo "$2" | grep -q "pk"
     then
       merge_pk $1 $2
       exit
