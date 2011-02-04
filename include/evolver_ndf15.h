@@ -78,7 +78,7 @@ extern "C" {
 	     void * parameters_and_workspace_for_derivs, ErrorMsg error_message);
   
   
-int generic_evolver(
+int evolver_ndf15(
 	int (*derivs)(double x,double * y,double * dy,
 		void * parameters_and_workspace, ErrorMsg error_message),
 	double x_ini,

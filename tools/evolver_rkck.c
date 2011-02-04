@@ -1,6 +1,6 @@
 #include "evolver_rkck.h"
 
-int generic_evolver(int (*derivs)(double x, 
+int evolver_rk(int (*derivs)(double x, 
 				  double * y, 
 				  double * dy, 
 				  void * parameters_and_workspace,

@@ -59,7 +59,7 @@
 //#include "perturbations.h"
 #include "sparse.h"
 
-int generic_evolver(
+int evolver_ndf15(
 				int (*derivs)(double x,double * y,double * dy,
 					void * parameters_and_workspace, ErrorMsg error_message),
 				double x_ini,

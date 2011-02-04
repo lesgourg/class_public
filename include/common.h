@@ -239,9 +239,12 @@ enum transfer_cutting {
 };
 
 /**
- * list of method for integrating transfer functions
+ * list of evolver types for integrating perturbations over time
  */
-enum transfer_integration {spline,trapezoidal};
+enum evolver_type {
+  rk, /* Runge-Kutta integrator */
+  ndf15 /* stiff integrator */
+};
 
 /** 
  * List of coded gauges.
@@ -379,6 +382,8 @@ struct precision
    * gauge in which to perform the calculation
    */
   enum possible_gauges gauge; 
+
+  enum evolver_type evolver; /* which type of evolver for integrating perturbations (Runge-Kutta? Stiff?...) */
 
   double k_scalar_min_eta0; /**< number defining k_min for the computation of scalar Cl's and P(k)'s (dimensionless): (k_min eta_0), usually chosen much smaller than one */
 
@@ -520,8 +525,6 @@ struct precision
   int l_switch_limber;
 
   double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
-
-  enum transfer_integration transfer_integrate;
 
   //@}
 

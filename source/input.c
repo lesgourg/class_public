@@ -942,6 +942,7 @@ int input_init(
   /** h.3. parameters related to the perturbations */
 
   class_read_int("gauge",ppr->gauge);
+  class_read_int("evolver",ppr->evolver);
   class_read_double("k_scalar_min_eta0",ppr->k_scalar_min_eta0);
   class_read_double("k_scalar_max_eta0_over_l_max",ppr->k_scalar_max_eta0_over_l_max);
   class_read_double("k_scalar_step_sub",ppr->k_scalar_step_sub);
@@ -1008,7 +1009,6 @@ int input_init(
   class_read_int("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
-  class_read_int("transfer_integrate",ppr->transfer_integrate);
   class_read_int("l_switch_limber",ppr->l_switch_limber);
 
   /** h.7. parameters related to nonlinear calculations */
@@ -1341,6 +1341,7 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->gauge=synchronous;
+  ppr->evolver = rk;
 
   ppr->k_scalar_min_eta0=0.032;                /* 14.12.10 for chi2plT0.01  and reasonnable small ls */
   ppr->k_scalar_max_eta0_over_l_max=1.65; /* 14.12.10 for chi2plT0.1 and reasonnable large ls*/
@@ -1421,8 +1422,6 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_cut=tc_cl; /* 03.12.10 for chi2plT0.01: tc_cl slightly faster (by 20%) for equal precision, but also slightly less robust (better to switch to tc_osc if primordial tilt can depart significantly from one) */
   ppr->transfer_cut_threshold_osc=0.015; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=2.e-6; /* 14.12.10 for chi2plT0.01 */
-
-  ppr->transfer_integrate = trapezoidal;
 
   ppr->l_switch_limber=10;
 

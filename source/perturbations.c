@@ -1427,6 +1427,12 @@ int perturb_solve(
   /* approximation scheme within previous interval: previous_approx[index_ap] */
   int * previous_approx;
 
+  /* function pointer to ODE evolver and names of possible evolvers */
+
+  extern int evolver_rk();
+  extern int evolver_ndf15(); 	
+  int (*generic_evolver)();
+  
   /** - initialize indices relevant for back/thermo tables search */
   ppw->last_index_back=0;
   ppw->last_index_thermo=0;
@@ -1673,6 +1679,13 @@ int perturb_solve(
 	       ppt->error_message);
 
     /** (d) integrate the perturbations over the current interval. */
+
+  if(ppr->evolver == rk){
+	generic_evolver = evolver_rk;
+  }
+  else{
+  	generic_evolver = evolver_ndf15;
+ }
 
     class_call(generic_evolver(perturb_derivs,
 			       interval_limit[index_interval],
