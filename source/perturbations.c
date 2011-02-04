@@ -3154,7 +3154,7 @@ int perturb_einstein(
   /** - define local variables */
 
   double k2,a,a2,a_prime_over_a;
-  double delta_rho,delta_theta,delta_shear;
+  double delta_rho,rho_plus_p_theta,rho_plus_p_shear;
   double delta_g=0.;
   double theta_g=0.; 
   double shear_g=0.;
@@ -3240,27 +3240,28 @@ int perturb_einstein(
     /* photon and baryon contribution */
     delta_rho = ppw->pvecback[pba->index_bg_rho_g]*delta_g
       + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
-    delta_theta = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g
+    rho_plus_p_theta = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g
       + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
-    delta_shear = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
+    rho_plus_p_shear = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
 
     /* cdm contribution */
     if (pba->has_cdm == _TRUE_) {
-      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];      if (ppr->gauge == newtonian)
-													  delta_theta = delta_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
+      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];      
+      if (ppr->gauge == newtonian)
+	rho_plus_p_theta = rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
     }
     
     /* dark energy fluid contribution */
     if (pba->has_dark_energy_fluid == _TRUE_) { 
       delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_de]*y[ppw->pv->index_pt_delta_de]; 
-      delta_theta = delta_theta + ppw->pvecback[pba->index_bg_rho_de]*y[ppw->pv->index_pt_theta_de];
+      rho_plus_p_theta = rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_de]*y[ppw->pv->index_pt_theta_de];
     } 
 
     /* ultra-relativistic neutrino/relics contribution */
     if (pba->has_nur == _TRUE_) {
       delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_nur]*delta_nur;
-      delta_theta = delta_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*theta_nur;
-      delta_shear = delta_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*shear_nur;
+      rho_plus_p_theta = rho_plus_p_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*theta_nur;
+      rho_plus_p_shear = rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*shear_nur;
     }
 
     /* non-cold dark matter contribution */
@@ -3275,7 +3276,7 @@ int perturb_einstein(
 	epsilon = sqrt(q2+pba->M_ncdm1*pba->M_ncdm1*a2);
 
 	rho_delta_ncdm1 += q2*epsilon*pba->w_ncdm1[index_q]*y[ppw->pv->index_pt_psi0_ncdm1+index_q];
-	rho_plus_p_theta_ncdm1 += k*q2*q*pba->w_ncdm1[index_q]*y[ppw->pv->index_pt_psi1_ncdm1+index_q];
+	rho_plus_p_theta_ncdm1 += q2*q*pba->w_ncdm1[index_q]*y[ppw->pv->index_pt_psi1_ncdm1+index_q];
 	rho_plus_p_shear_ncdm1 += q2*q2/epsilon*pba->w_ncdm1[index_q]*y[ppw->pv->index_pt_psi2_ncdm1+index_q];;
 
       }
@@ -3287,17 +3288,17 @@ int perturb_einstein(
       ppw->delta_ncdm1 = rho_delta_ncdm1/ppw->pvecback[pba->index_bg_rho_ncdm1];
 
       delta_rho = delta_rho + rho_delta_ncdm1;
-      delta_theta = delta_theta + rho_plus_p_theta_ncdm1;
-      delta_shear = delta_shear + rho_plus_p_shear_ncdm1;
+      rho_plus_p_theta = rho_plus_p_theta + rho_plus_p_theta_ncdm1;
+      rho_plus_p_shear = rho_plus_p_shear + rho_plus_p_shear_ncdm1;
     }
 
     /** (c) infer metric perturbations from Einstein equations */
 
     /* newtonian gauge */
     if (ppr->gauge == newtonian) {
-      ppw->pvecmetric[ppw->index_mt_phi] = -1.5 * (a2/k2/k2) * (k2 * delta_rho + 3.*a_prime_over_a * delta_theta); /* phi */
-      ppw->pvecmetric[ppw->index_mt_psi] = ppw->pvecmetric[ppw->index_mt_phi] - 4.5 * (a2/k2) * delta_shear;  /* psi */
-      ppw->pvecmetric[ppw->index_mt_phi_prime] = - a_prime_over_a * ppw->pvecmetric[ppw->index_mt_psi] + 1.5 * (a2/k2) * delta_theta; /* phi' */
+      ppw->pvecmetric[ppw->index_mt_phi] = -1.5 * (a2/k2/k2) * (k2 * delta_rho + 3.*a_prime_over_a * rho_plus_p_theta); /* phi */
+      ppw->pvecmetric[ppw->index_mt_psi] = ppw->pvecmetric[ppw->index_mt_phi] - 4.5 * (a2/k2) * rho_plus_p_shear;  /* psi */
+      ppw->pvecmetric[ppw->index_mt_phi_prime] = - a_prime_over_a * ppw->pvecmetric[ppw->index_mt_psi] + 1.5 * (a2/k2) * rho_plus_p_theta; /* phi' */
     }
 
     /* synchronous gauge */
@@ -3347,14 +3348,14 @@ int perturb_einstein(
 		    +k2*y[ppw->pv->index_pt_eta]));
 	}	    
 
-	delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->fsa_theta_g;
+	rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->fsa_theta_g;
 	if (pba->has_nur == _TRUE_) {
-	  delta_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*ppw->fsa_theta_nur;
+	  rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*ppw->fsa_theta_nur;
 	}
       }
       
       /* second equation involving total velocity */
-      ppw->pvecmetric[ppw->index_mt_eta_prime] = 1.5 * (a2/k2) * delta_theta;  /* eta' */
+      ppw->pvecmetric[ppw->index_mt_eta_prime] = 1.5 * (a2/k2) * rho_plus_p_theta;  /* eta' */
 
       /* intermediate quantity: alpha = (h'+6eta')/2k^2 */
       alpha = (ppw->pvecmetric[ppw->index_mt_h_prime] + 6.*ppw->pvecmetric[ppw->index_mt_eta_prime])/2./k2;
@@ -3365,13 +3366,13 @@ int perturb_einstein(
 	
 	shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_g]+k2*alpha);
 		
-	delta_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
+	rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
 	
       }
       
       /* third equation involving total shear */
       ppw->pvecmetric[ppw->index_mt_alpha_prime] = 
-	- 4.5 * (a2/k2) * delta_shear + y[ppw->pv->index_pt_eta] - 2.*a_prime_over_a*alpha; /* alpha' = (h''+6eta'')/2k2 */
+	- 4.5 * (a2/k2) * rho_plus_p_shear + y[ppw->pv->index_pt_eta] - 2.*a_prime_over_a*alpha; /* alpha' = (h''+6eta'')/2k2 */
 
       /* getting phi here is an option */
       /* phi=y[ppw->pv->index_pt_eta]-0.5 * (a_prime_over_a/k2) * (h_plus_six_eta_prime); */   
@@ -4695,15 +4696,14 @@ int perturb_derivs(double eta,
 			if (ppr->gauge == synchronous) {
 				dy[ppw->pv->index_pt_psi0_ncdm1+index_q] = 
 					-q*k/epsilon*y[ppw->pv->index_pt_psi1_ncdm1+index_q]+
-					pvecmetric[ppw->index_mt_h_prime]*pba->dlnf0_dlnq_ncdm1[index_q]/6.0;
+					pvecmetric[ppw->index_mt_h_prime]*pba->dlnf0_dlnq_ncdm1[index_q]/6.;
 					
-				dy[ppw->pv->index_pt_psi1_ncdm1+index_q] = q*k/(3*epsilon)*
-					(y[ppw->pv->index_pt_psi0_ncdm1+index_q]-2*y[ppw->pv->index_pt_psi2_ncdm1+index_q]);
+				dy[ppw->pv->index_pt_psi1_ncdm1+index_q] = q*k/(3.*epsilon)*
+					(y[ppw->pv->index_pt_psi0_ncdm1+index_q]-2.*y[ppw->pv->index_pt_psi2_ncdm1+index_q]);
 					
-				dy[ppw->pv->index_pt_psi2_ncdm1+index_q] = q*k/(5*epsilon)*
-					(2*y[ppw->pv->index_pt_psi1_ncdm1+index_q]-3*y[ppw->pv->index_pt_psi3_ncdm1+index_q])-
-					h_plus_six_eta_prime/15.0*
-					pba->dlnf0_dlnq_ncdm1[index_q];
+				dy[ppw->pv->index_pt_psi2_ncdm1+index_q] = q*k/(5.*epsilon)*
+					(2*y[ppw->pv->index_pt_psi1_ncdm1+index_q]-3.*y[ppw->pv->index_pt_psi3_ncdm1+index_q])-
+					h_plus_six_eta_prime/15.*pba->dlnf0_dlnq_ncdm1[index_q];
 			}
 
 			if (ppr->gauge == newtonian){
@@ -4722,9 +4722,9 @@ int perturb_derivs(double eta,
 			}
 						
 			for(l=3; l<ppw->pv->l_max_ncdm1; l++){
-				dy[ppw->pv->index_pt_psi0_ncdm1+l*ppw->pv->q_size_ncdm1+index_q] = q*k/((2*l+1)*epsilon)*
+				dy[ppw->pv->index_pt_psi0_ncdm1+l*ppw->pv->q_size_ncdm1+index_q] = q*k/((2.*l+1)*epsilon)*
 				(l*y[ppw->pv->index_pt_psi0_ncdm1+(l-1)*ppw->pv->q_size_ncdm1+index_q]-
-				(l+1)*y[ppw->pv->index_pt_psi0_ncdm1+(l+1)*ppw->pv->q_size_ncdm1+index_q]);
+				(l+1.)*y[ppw->pv->index_pt_psi0_ncdm1+(l+1)*ppw->pv->q_size_ncdm1+index_q]);
 			}
 				
 			dy[ppw->pv->index_pt_psi0_ncdm1+ppw->pv->l_max_ncdm1*ppw->pv->q_size_ncdm1+index_q] = 

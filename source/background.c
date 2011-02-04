@@ -423,6 +423,14 @@ int background_init(
 	     pba->error_message,
 	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pba->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
 
+  if ((pba->background_verbose > 0) && (pba->has_ncdm1 == _TRUE_)) {
+
+    printf("Species ncdm1 has m = %e eV (so [N m] /omega =%e eV)\n",
+	   pba->m_ncdm1_in_eV,
+	   pba->N_ncdm1*pba->m_ncdm1_in_eV/pba->Omega0_ncdm1/pba->h/pba->h);
+
+  }
+
   /* curvature */
   Omega0_tot = pba->Omega0_g + pba->Omega0_b;
   if (pba->has_cdm == _TRUE_) {
@@ -672,7 +680,7 @@ int background_ncdm1_distribution(
 
   pba_local = pba;
 
-  *f0 = (1./(exp(q-pba_local->ksi_ncdm1)+1.) + 1./(exp(q+pba_local->ksi_ncdm1)+1.))/pow(2*_PI_,3); /* Fermi-Dirac */
+  *f0 = pba_local->N_ncdm1*(1./(exp(q-pba_local->ksi_ncdm1)+1.) + 1./(exp(q+pba_local->ksi_ncdm1)+1.))/pow(2*_PI_,3); /* Fermi-Dirac */
 
   return _SUCCESS_;
 }
@@ -752,7 +760,9 @@ int background_ncdm1_init(
 		
     } while (fabs(lnf0right-lnf0left) < 1.0/_HUGE_);//_TOLVAR_*ppr->smallest_allowed_variation);
 
-    pba->dlnf0_dlnq_ncdm1[index_q] = (lnf0right-lnf0left)/2./dlnq;
+    /* pba->dlnf0_dlnq_ncdm1[index_q] = (lnf0right-lnf0left)/2./dlnq; */
+    pba->dlnf0_dlnq_ncdm1[index_q] = - pba->q_ncdm1[index_q]/(1.+exp(-pba->q_ncdm1[index_q]));
+
 
   }
 

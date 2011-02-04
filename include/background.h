@@ -74,6 +74,7 @@ struct background
   double M_ncdm1;   /* mass of first non-cold relic: m_ncdm1/T_ncdm1 */
   double T_ncdm1;   /* 1st parameter in p-s-d of first non-cold relic: temperature T_ncdm1/T_gamma */
   double ksi_ncdm1; /* 2nd parameter in p-s-d of first non-cold relic: temperature ksi_ncdm1/T_ncdm1 */
+  double N_ncdm1; /* degeneracy of ncdm1: 1 for one family of neutrinos (= one neutrino plus its anti-neutrino, total g*=1+1=2 */
   double Omega0_ncdm1;
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */

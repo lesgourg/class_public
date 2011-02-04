@@ -331,7 +331,7 @@ int input_init(
   Omega_tot += pba->Omega0_cdm;
 
   /* non-cold relics (ncdm) */
-  class_call(parser_read_double(pfc,"M_ncdm1",&param1,&flag1,errmsg),
+  class_call(parser_read_double(pfc,"m_ncdm1",&param1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
   class_call(parser_read_double(pfc,"Omega_ncdm1",&param2,&flag2,errmsg),
@@ -354,20 +354,29 @@ int input_init(
 	       errmsg);
     pba->T_ncdm1 = param4;
 		
+    /* pba->T_ncdm1 = pow(4./11,1/3.);  for testing purpose: enforce instantaneous dec value */
+
     class_call(parser_read_double(pfc,"ksi_ncdm1",&param4,&flag4,errmsg),
 	       errmsg,
 	       errmsg);      
 
     pba->ksi_ncdm1 = param4;
+
+    class_call(parser_read_double(pfc,"N_ncdm1",&param4,&flag4,errmsg),
+	       errmsg,
+	       errmsg);      
+
+    pba->N_ncdm1 = param4;
 		
     class_call(background_ncdm1_init(ppr,pba),
 	       pba->error_message,
 	       errmsg);
 		
     if (flag1 == _TRUE_) {
-      //fprintf(stderr,"initialize ncdm variables from M_ncdm1 \n");
-
-      pba->M_ncdm1 = param1;
+      
+      pba->m_ncdm1_in_eV = param1;
+      /* convert to dimensionless mass/temperature */
+      pba->M_ncdm1 = pba->m_ncdm1_in_eV/_k_B_*_eV_/pba->T_ncdm1/pba->Tcmb;
 
       class_call(background_ncdm1_momenta(pba,0.,NULL,&rho_ncdm,NULL,NULL),
 		 pba->error_message,
@@ -375,37 +384,27 @@ int input_init(
       
       pba->Omega0_ncdm1 = rho_ncdm/pba->H0/pba->H0;
       
-      //fprintf(stderr,"Omega_nu=%g\n",pba->Omega0_ncdm1);
     }
 
-    else if (flag2 == _TRUE_) {
-      //fprintf(stderr,"initialize ncdm variables from Omega_ncdm1 \n");
-      
-      pba->Omega0_ncdm1 = param2;
+    else {
+
+      if (flag2 == _TRUE_) {
+	pba->Omega0_ncdm1 = param2;
+      }
+      else if (flag3 == _TRUE_) {
+	pba->Omega0_ncdm1 = param3/pba->h/pba->h;
+      }
       
       class_call(background_ncdm1_M_from_Omega(ppr,pba),
 		 pba->error_message,
 		 errmsg);
+
+      pba->m_ncdm1_in_eV = _k_B_/_eV_*pba->T_ncdm1*pba->M_ncdm1*pba->Tcmb;
     }
     
-    else if (flag3 == _TRUE_) {
-      //fprintf(stderr,"initialize ncdm variables from omega_ncdm1 \n");
-      
-      pba->Omega0_ncdm1 = param3/pba->h/pba->h;
-      
-      class_call(background_ncdm1_M_from_Omega(ppr,pba),
-		 pba->error_message,
-		 errmsg);
-    }
-
-    pba->m_ncdm1_in_eV = _k_B_/_eV_*pba->T_ncdm1*pba->M_ncdm1*pba->Tcmb;
-
-    fprintf(stderr,"m_nu= %e eV (so m_nu/omega_nu=%e eV)\n",
-	    pba->m_ncdm1_in_eV,
-	    pba->m_ncdm1_in_eV/pba->Omega0_ncdm1/pba->h/pba->h);
-    
-    Omega_tot += pba->Omega0_ncdm1;
   }
+
+  Omega_tot += pba->Omega0_ncdm1;
 
   /* Omega_0_k (curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
@@ -1122,6 +1121,7 @@ int input_default_params(
   pba->M_ncdm1 = 0.;
   pba->T_ncdm1 = 1.;
   pba->ksi_ncdm1 = 0.;
+  pba->N_ncdm1 = 1.;
   pba->Omega0_k = 0.;
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm1;
   pba->Omega0_de = 0.;     
@@ -1361,12 +1361,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->start_small_k_at_eta_g_over_eta_h = 0.006; /* 04.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
-  ppr->start_large_k_at_eta_h_over_eta_k = 1.e-1;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.008; /* 14.12.10 for chi2plT0.1 */ /* decrease to switch off earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.05; /* 14.12.10 for chi2plT0.1 */ /* decrease to switch off earlier in time */
-  ppr->start_sources_at_eta_g_over_eta_h = 0.01; /* 14.12.10 for chi2plT0.1 */ /* decrease to start earlier in time */
-  ppr->tight_coupling_approximation=(int)second_order_CRS;
+  ppr->start_small_k_at_eta_g_over_eta_h = 0.001;  /* decrease to start earlier in time */
+  ppr->start_large_k_at_eta_h_over_eta_k = 0.15;  /* decrease to start earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.009; /* decrease to switch off earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.08; /* decrease to switch off earlier in time */
+  ppr->start_sources_at_eta_g_over_eta_h = 0.009; /* decrease to start earlier in time */
+  ppr->tight_coupling_approximation=(int)compromise_CLASS;
 
   ppr->l_max_g=10; 
   ppr->l_max_pol_g=8; 

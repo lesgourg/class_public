@@ -116,7 +116,7 @@ local base_name_2=${2:7:$temp}
 local output="output/"$base_name_1"_"$base_name_2"_cl.dat"
 paste $1 $2 > $PWD/$output
 echo "  File '$output' created: merging successful"
-local field="((\$3/\$8-1.)*100.)"
+local field="((\$2/\$7-1.)*100.)"
 if [ "$3" = "-lin" ] || [ "$3" = "" ]
 then
   plot_cl_lin $output $field 

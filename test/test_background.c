@@ -43,9 +43,10 @@ int main(int argc, char **argv) {
 /* 	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_H]); */
 
     fprintf(stdout,
-	    "%e %e %e %e\n",
+	    "%e %e %e %e %e\n",
 	    ba.eta_table[index_eta],
 	    1./(1+ba.z_table[index_eta]),
+	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_rho_nur],
 	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_rho_ncdm1],
 	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_p_ncdm1]);
 
