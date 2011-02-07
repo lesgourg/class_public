@@ -315,7 +315,7 @@ int background_functions(
     pvecback[pba->index_bg_rho_ncdm1] = rho_ncdm;
     rho_tot += pvecback[pba->index_bg_rho_ncdm1];
     pvecback[pba->index_bg_p_ncdm1] = p_ncdm;
-    p_tot += pvecback[pba->index_bg_rho_ncdm1];
+    p_tot += pvecback[pba->index_bg_p_ncdm1];
     /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
     rho_r += 3.* p_ncdm;
     /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution to rho_ncdm1 */
