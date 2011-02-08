@@ -33,10 +33,10 @@ recfast_z_He_3 = 3500.
 recfast_delta_z_He_3 = 50.
 recfast_x_He0_trigger = 0.995
 recfast_x_He0_trigger2 = 0.995
-recfast_x_He0_trigger_delta = 0.05
+recfast_x_He0_trigger_delta = 0.01
 recfast_x_H0_trigger = 0.995
 recfast_x_H0_trigger2 = 0.995
-recfast_x_H0_trigger_delta = 0.05
+recfast_x_H0_trigger_delta = 0.01
 
 recfast_H_frac=1.e-3
 

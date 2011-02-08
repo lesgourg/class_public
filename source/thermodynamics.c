@@ -413,7 +413,7 @@ int thermodynamics_init(
     pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_ddg] = 
       (pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dddkappa] +
        pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
-       pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_ddkappa] * 2. +
+       pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_ddkappa] * 3. +
        pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
        pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa] *
        pth->thermodynamics_table[index_eta*pth->th_size+pth->index_th_dkappa]) *
@@ -1036,7 +1036,7 @@ int thermodynamics_reionization_sample(
   double z,z_next;
   double xe,xe_next;
   double dkappadz,dkappadz_next;
-  double Tb,Tba2,Yp;
+  double Tb,Tba2,Yp,dTdz,opacity,mu;
   double dkappadeta,dkappadeta_next;
 
   Yp = pth->YHe;
@@ -1109,7 +1109,8 @@ int thermodynamics_reionization_sample(
   dz_max=preco->recombination_table[i*preco->re_size+preco->index_re_z]
     -preco->recombination_table[(i-1)*preco->re_size+preco->index_re_z];
 
-  /** (e) loop over redshift values */
+  /** (e) loop over redshift values in order to find values of z, x_e, kappa' (Tb and cb2 found later by integration). The sampling in z space is found here. */
+
   while (z > 0.) {
 
     /** - try default step */
@@ -1181,13 +1182,6 @@ int thermodynamics_reionization_sample(
     reio_vector[preio->index_re_dkappadz] = dkappadz;
     reio_vector[preio->index_re_dkappadeta] = dkappadz * pvecback[pba->index_bg_H];
 
-    /** - get baryon temperature **/
-    Tb = Tba2*(1+z)*(1+z);
-    reio_vector[preio->index_re_Tb] = Tb;
-    
-    /** - get baryon sound speed */
-    reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
-
     class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
 	       gTable.error_message,
 	       pth->error_message);
@@ -1195,17 +1189,17 @@ int thermodynamics_reionization_sample(
     number_of_redshifts++;
   }
   
-  /** - allocate reionization_table with correct size */
+  /** (f) allocate reionization_table with correct size */
   class_alloc(preio->reionization_table,preio->re_size*number_of_redshifts*sizeof(double),pth->error_message);
 
   preio->rt_size=number_of_redshifts;
 
-  /** - retrieve data stored in the growTable with gt_getPtr() */
+  /** (g) retrieve data stored in the growTable with gt_getPtr() */
   class_call(gt_getPtr(&gTable,(void**)&pData),
 	     gTable.error_message,
 	     pth->error_message);
 
-  /** - copy growTable to reionization_temporary_table (invert order of lines, so that redshift is growing, like in recombination table) */
+  /** (h) copy growTable to reionization_temporary_table (invert order of lines, so that redshift is growing, like in recombination table) */
   for (i=0; i < preio->rt_size; i++) {
     memcopy_result = memcpy(preio->reionization_table+i*preio->re_size,pData+(preio->rt_size-i-1)*preio->re_size,preio->re_size*sizeof(double));
     class_test(memcopy_result != preio->reionization_table+i*preio->re_size,
@@ -1214,12 +1208,46 @@ int thermodynamics_reionization_sample(
 
   }
 
-  /** - free the growTable with gt_free() , free vector of reionization variables */
+  /** (i) free the growTable with gt_free() , free vector of reionization variables */
   class_call(gt_free(&gTable),
 	     gTable.error_message,
 	     pth->error_message);
   
   free(reio_vector);
+
+  /** (j) another loop on z, to integrate equation for Tb and to compute cb2 */
+  for (i=preio->rt_size-1; i >0 ; i--) {
+
+    z = preio->reionization_table[i*preio->re_size+preio->index_re_z];
+
+    class_call(background_functions(pba,1./(1.+z),normal_info,pvecback),
+	       pba->error_message,
+	       pth->error_message);
+    
+    dz = (preio->reionization_table[i*preio->re_size+preio->index_re_z]-preio->reionization_table[(i-1)*preio->re_size+preio->index_re_z]);
+    
+    opacity = (1.+z) * (1.+z) * pth->n_e 
+      * preio->reionization_table[i*preio->re_size+preio->index_re_xe] * _sigma_ * _Mpc_over_m_;
+
+    mu = _m_H_/(1. + (1./_not4_ - 1.) * pth->YHe + preio->reionization_table[i*preio->re_size+preio->index_re_xe] * (1.-pth->YHe));
+
+    /** - derivative of baryon temperature */
+
+    dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
+      -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*(pba->Tcmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
+
+    /** - increment baryon temperature */
+
+    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
+      preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
+
+    /** - get baryon sound speed */
+
+    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] = _k_B_/ ( _c_ * _c_ * mu)
+      * preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]
+      *(1.+(1+z)/3.*dTdz/preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]);
+
+  }
 
   /** - spline \f$ d tau / dz \f$ with respect to z in view of integrating for optical depth */
   class_call(array_spline(preio->reionization_table,
