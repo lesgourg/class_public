@@ -15,6 +15,7 @@ vpath .base build
 
 CC       = gcc
 #CC       = pgcc
+AR        = ar rv
 
 #CCFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
@@ -92,6 +93,9 @@ TEST_KARIM = test_karim.o
 
 TEST_PBC = test_pbc.o
 
+libclass.a: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT)
+	$(AR)  $@ $(addprefix build/,$(notdir $^))
+	
 class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CLASS)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
