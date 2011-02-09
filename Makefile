@@ -93,6 +93,8 @@ TEST_KARIM = test_karim.o
 
 TEST_PBC = test_pbc.o
 
+all: class libclass.a
+	
 libclass.a: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT)
 	$(AR)  $@ $(addprefix build/,$(notdir $^))
 	
