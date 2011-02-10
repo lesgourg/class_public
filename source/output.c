@@ -1102,17 +1102,17 @@ int output_open_cl_file(
   fprintf(*clfile,"#  l ");
 
   if (psp->has_tt == _TRUE_)
-    fprintf(*clfile,"TT           ");
+    fprintf(*clfile,"TT               ");
   if (psp->has_ee == _TRUE_)
-    fprintf(*clfile,"EE           ");
+    fprintf(*clfile,"EE               ");
   if (psp->has_te == _TRUE_)
-    fprintf(*clfile,"TE           "); 
+    fprintf(*clfile,"TE               "); 
   if (psp->has_bb == _TRUE_)
-    fprintf(*clfile,"BB           ");
+    fprintf(*clfile,"BB               ");
   if (psp->has_pp == _TRUE_)
-    fprintf(*clfile,"phiphi       ");
+    fprintf(*clfile,"phiphi           ");
   if (psp->has_tp == _TRUE_)
-    fprintf(*clfile,"Tphi         ");
+    fprintf(*clfile,"Tphi             ");
   fprintf(*clfile,"\n");
 
   return _SUCCESS_;
@@ -1138,6 +1138,13 @@ int output_one_line_of_cl(
   int index_ct;
 
   fprintf(clfile,"%4d",(int)l);
+
+  /* uncomment next lines if want to get deflection spectrum rather
+     than lensing spectrum */
+/*   if (psp->has_pp == _TRUE_) */
+/*     cl[psp->index_ct_pp] *= l*(l+1); */
+/*   if (psp->has_tp == _TRUE_) */
+/*     cl[psp->index_ct_pp] *= sqrt(l*(l+1)); */
 
   for (index_ct=0; index_ct < ct_size; index_ct++) {
     fprintf(clfile," ");
