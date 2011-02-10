@@ -32,6 +32,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _QUADRATURE_MAX_ 150 /**< maximum allowed number of abssices in quadrature integral estimation */
 
+#define _QUADRATURE_MAX_BG_ 500 /**< maximum allowed number of abssices in quadrature integral estimation */
+
 #define _TOLVAR_ 100. /**< The minimum allowed variation is the machine precision times this number */
 
 #define _HUGE_ 1.e99
@@ -294,9 +296,15 @@ struct precision
 
   /**
    * parameter controlling relative precision of integrals over ncdm
-   * phase-space distribution 
+   * phase-space distribution during perturbation calculation
    */
   double tol_ncdm;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution during background evolution
+   */
+  double tol_ncdm_bg;
 
   //@}
 
@@ -433,7 +441,8 @@ struct precision
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
   int l_max_nur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
-  int l_max_ncdm1;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+  int l_max_ncdm_default;
+  int *l_max_ncdm;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
   int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarisation (tensor), at least 4 */
 

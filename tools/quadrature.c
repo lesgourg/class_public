@@ -23,15 +23,17 @@ int get_qsampling(double *x,
      This function combines two completely different strategies: Adaptive Gauss-Kronrod
      quadrature and Laguerres quadrature formula. */
 	
-  int i, NL=2,NR,level,Nadapt,NLag,Nold=NL;
+  int i, NL=2,NR,level,Nadapt,NLag,NLag_max,Nold=NL;
   int adapt_converging=_TRUE_,Laguerre_converging=_TRUE_;
   double y,y2,I,Igk,err,ILag,*b,*c,xtemp,wtemp;
   qss_node* root;
+
   /* Allocate storage for Laguerre coefficients: */
   b = malloc(N_max*sizeof(double));
   c = malloc(N_max*sizeof(double));
   /* First do the adaptive quadrature - this will also give the value of the integral: */
-  root = gk_adapt((*test),(*function), params_for_function, rtol*1e-2, 1, 0.0, 1.0);
+  gk_adapt(&root,(*test),(*function), params_for_function, 
+	rtol*1e-2, 1, 0.0, 1.0,errmsg);
   /* Do a leaf count: */
   leaf_count(root);
   /* I can get the integral now: */
@@ -53,7 +55,8 @@ int get_qsampling(double *x,
      using less than the required maximal number of points.*/
   if (Nadapt > N_max) adapt_converging = 0;
   /* Search for the minimal Laguerre quadrature rule: */
-  for (NLag=NL; NLag<=N_max; NLag = min(N_max,NLag+15)){
+  NLag_max = min(N_max,80);
+  for (NLag=NL; NLag<=NLag_max; NLag = min(NLag_max,NLag+15)){
     /* Evaluate integral: */
     compute_Laguerre(x,w,NLag,0.0,b,c);
     ILag = 0.0;
@@ -66,7 +69,7 @@ int get_qsampling(double *x,
     err = I-ILag;
     //fprintf(stderr,"\n Computing Laguerre, N=%d, I=%g and err=%g.\n",NLag,ILag,err);
     if (fabs(err/I)<rtol) break;
-    if (NLag == N_max){
+    if (NLag == NLag_max){
       Laguerre_converging = _FALSE_;
       break;
     }
@@ -138,7 +141,7 @@ int get_qsampling(double *x,
   burn_tree(root);
   free(b);
   free(c);
-printf("\n Number of qbins: %d.",*N);
+//printf("\n Number of qbins: %d.",*N);
   return _SUCCESS_;
 }
 	
@@ -235,49 +238,52 @@ double get_integral(qss_node *node, int level){
 	
 
 
-qss_node* gk_adapt(
+int gk_adapt(
+		   qss_node** node,
 		   int (*test)(void * params_for_function, double q, double *psi),
 		   int (*function)(void * params_for_function, double q, double *f0),
 		   void * params_for_function,
 		   double tol, 
 		   int treemode, 
 		   double a, 
-		   double b){
+		   double b,
+		   ErrorMsg errmsg){
   /* Do adaptive Gauss-Kronrod quadrature, while building the
      recurrence tree. If treemode!=0, store x-values and weights aswell.
      At first call, a and b should be 0 and 1. */
   double mid;
-  qss_node *node;
 	
   /* Allocate current node: */
-  node = malloc(sizeof(qss_node));
+  class_alloc(*node,sizeof(qss_node),errmsg);
   if (treemode==0){
-    node->x = NULL;
-    node->w = NULL;
+    (*node)->x = NULL;
+    (*node)->w = NULL;
   }
   else{
-    node->x = malloc(15*sizeof(double));
-    node->w = malloc(15*sizeof(double));
+    class_alloc((*node)->x,15*sizeof(double),errmsg);
+    class_alloc((*node)->w,15*sizeof(double),errmsg);
   }
-  node->left = NULL; node->right = NULL;
+  (*node)->left = NULL; (*node)->right = NULL;
 	
-  gk_quad((*test), (*function), params_for_function, node, a, b);
-  if (node->err/node->I < tol){
-    /* Stop recursion and return pointer to node: */
-    return node;
+  gk_quad((*test), (*function), params_for_function, *node, a, b);
+  if ((*node)->err/(*node)->I < tol){
+    /* Stop recursion and return : */
+    return _SUCCESS_;
   }
   else{
     /* Call gk_adapt recursively on children:*/
     mid = 0.5*(a+b);
-    node->left = gk_adapt((*test),(*function), params_for_function, 1.5*tol, treemode, a, mid);
-    node->right = gk_adapt((*test),(*function), params_for_function, 1.5*tol, treemode, mid, b);
+    gk_adapt(&((*node)->left),(*test),(*function), params_for_function, 1.5*tol, 
+	treemode, a, mid, errmsg);
+    gk_adapt(&((*node)->right),(*test),(*function), params_for_function, 1.5*tol, 
+	treemode, mid, b, errmsg);
     /* Update integral and error in this node and return: */
     /* Actually, it is more convenient just to keep the nodes own estimate of the
        integral for our purposes.
-       node->I = node->left->I + node->right->I;
-       node->err = sqrt(pow(node->left->err,2)+pow(node->right->err,2));
+       (*node)->I = (*node)->left->I + (*node)->right->I;
+       (*node)->err = sqrt(pow(node->left->err,2)+pow(node->right->err,2));
     */
-    return node;
+    return _SUCCESS_;
   }
 }
 	

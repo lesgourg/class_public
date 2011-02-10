@@ -71,11 +71,13 @@ struct background
 
   double Omega0_nur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
 
-  double M_ncdm1;   /* mass of first non-cold relic: m_ncdm1/T_ncdm1 */
-  double T_ncdm1;   /* 1st parameter in p-s-d of first non-cold relic: temperature T_ncdm1/T_gamma */
-  double ksi_ncdm1; /* 2nd parameter in p-s-d of first non-cold relic: temperature ksi_ncdm1/T_ncdm1 */
-  double N_ncdm1; /* degeneracy of ncdm1: 1 for one family of neutrinos (= one neutrino plus its anti-neutrino, total g*=1+1=2 */
-  double Omega0_ncdm1;
+  int N_ncdm;      /* Number of distinguishabe ncdm species */
+  double *M_ncdm;  /* vector of masses of non-cold relic: m_ncdm1/T_ncdm1 */
+  double *T_ncdm;   /* list of 1st parameters in p-s-d of non-cold relics: temperature T_ncdm1/T_gamma */
+  double *ksi_ncdm; /* list of 2nd parameters in p-s-d of first non-cold relic: temperature ksi_ncdm1/T_ncdm1 */
+  double *deg_ncdm; /* list of degeneracies of ncdm species: 1 for one family of neutrinos (= one neutrino plus its anti-neutrino, total g*=1+1=2 */
+  double *Omega0_ncdm; /*list of contributions to Omega0_ncdm */
+  double Omega0_ncdm_tot;
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
   //@}
@@ -87,7 +89,7 @@ struct background
   double h; /** reduced Hubble parameter */
   double age; /**< age in Gyears */
   double conformal_age; /**< conformal age in Mpc */
-  double m_ncdm1_in_eV;
+  double *m_ncdm_in_eV;
 
   //@}
 
@@ -183,8 +185,7 @@ struct background
   short has_lambda;            /**< presence of cosmological constant? */
   short has_dark_energy_fluid; /**< presence of dark energy fluid with constant w? */
   short has_nur;               /**< presence of ultra-relativistic neutrinos/relics? */
-
-  short has_ncdm1;
+  short has_ncdm;
 
   //@}
 
@@ -194,11 +195,14 @@ struct background
 
   //@{
 
-  double * q_ncdm1;
-  double * w_ncdm1;
-  double * dlnf0_dlnq_ncdm1;
-  int q_size_ncdm1;
-  double factor_ncdm1;
+  double ** q_ncdm_bg; /* Pointers to vectors of background sampling in q */
+  double ** w_ncdm_bg; /* Pointers to vectors of corresponding weights w */
+  double ** q_ncdm;    /* Pointers to vectors of perturbation sampling in q */
+  double ** w_ncdm;    /* Pointers to vectors of corresponding weights w */
+  double ** dlnf0_dlnq_ncdm; /* Pointers to vectors of logarithmic derivatives of p-d-f */
+  int *q_size_ncdm_bg; /* Size of the q_ncdm_bg arrays */
+  int *q_size_ncdm;    /* Size of the q_ncdm arrays */
+  double *factor_ncdm; /* List of conversion factors for calculating energy density etc.*/
 
   /** @name - technical parameters */
 
@@ -222,6 +226,20 @@ struct background_parameters_and_workspace {
 
   /* workspace */
   double * pvecback;
+
+};
+
+/**
+ * temporary parameters and workspace passed to distribution function 
+ */
+
+struct background_parameters_for_distributions {
+
+  /* structures containing fixed input parameters (indices, ...) */
+  struct background * pba; 
+
+  /* Additional parameters */
+  int n_ncdm; /* Current distribution function */
 
 };
 
@@ -281,23 +299,29 @@ extern "C" {
 				     double * test
 				     );
 
-  int background_ncdm1_init(
+  int background_ncdm_init(
 			    struct precision *ppr,
 			    struct background *pba
 			    );
   
-  int background_ncdm1_momenta(
-			       struct background *pba,
-			       double z,
-			       double * n,
-			       double * rho, /* [8piG/3c2] rho in Mpc^-2 */
-			       double * p,   /* [8piG/3c2] p in Mpc^-2 */
-			       double * drho_dM
-			       );
 
-  int background_ncdm1_M_from_Omega(
+  int background_ncdm_momenta(
+                             double * qvec,
+                             double * wvec,
+                             int qsize,
+                             double M,
+                             double factor,
+                             double z,
+                             double * n,
+		             double * rho, /* [8piG/3c2] rho in Mpc^-2 */
+                             double * p,   /* [8piG/3c2] p in Mpc^-2 */
+                             double * drho_dM
+                             );
+
+  int background_ncdm_M_from_Omega(
 				    struct precision *ppr,
-				    struct background *pba
+				    struct background *pba,
+					int species
 				    );
 
   int background_solve(

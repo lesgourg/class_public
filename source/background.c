@@ -264,6 +264,7 @@ int background_functions(
   double a_rel;
 
   double rho_ncdm,p_ncdm;
+  int n_ncdm;
 
   /** - initialize local variables */
   rho_tot = 0.;
@@ -301,25 +302,34 @@ int background_functions(
     rho_m += pvecback[pba->index_bg_rho_cdm];
   }
 
-  /* ncdm1 */
-  if (pba->has_ncdm1 == _TRUE_) {
-    class_call(background_ncdm1_momenta(pba,
-					1./a_rel-1.,
-					NULL,
-					&rho_ncdm,
-					&p_ncdm,
-					NULL),
+  /* ncdm */
+  if (pba->has_ncdm == _TRUE_) {
+    for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
+	/* Loop over species: */
+    class_call(background_ncdm_momenta(
+			     /* Only calculate for non-NULL pointers: */
+			     pba->q_ncdm_bg[n_ncdm],
+			     pba->w_ncdm_bg[n_ncdm],
+			     pba->q_size_ncdm_bg[n_ncdm],
+			     pba->M_ncdm[n_ncdm],
+			     pba->factor_ncdm[n_ncdm],
+                             1./a_rel-1.,
+			     NULL,
+			     &rho_ncdm,
+			     &p_ncdm,
+			     NULL),
 	       pba->error_message,
 	       pba->error_message);
 
-    pvecback[pba->index_bg_rho_ncdm1] = rho_ncdm;
-    rho_tot += pvecback[pba->index_bg_rho_ncdm1];
-    pvecback[pba->index_bg_p_ncdm1] = p_ncdm;
-    p_tot += pvecback[pba->index_bg_p_ncdm1];
+    pvecback[pba->index_bg_rho_ncdm1+n_ncdm] = rho_ncdm;
+    rho_tot += rho_ncdm;
+    pvecback[pba->index_bg_p_ncdm1+n_ncdm] = p_ncdm;
+    p_tot += p_ncdm;
     /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
     rho_r += 3.* p_ncdm;
     /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution to rho_ncdm1 */
     rho_m += rho_ncdm - 3.* p_ncdm;
+	}
   }
 
   /* Lambda */
@@ -394,7 +404,7 @@ int background_init(
   /** Summary: */
 
   /** - local variables : */
-
+int n_ncdm;	
   double Omega0_tot;
 
   if (pba->background_verbose > 0) {
@@ -423,12 +433,13 @@ int background_init(
 	     pba->error_message,
 	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pba->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
 
-  if ((pba->background_verbose > 0) && (pba->has_ncdm1 == _TRUE_)) {
-
-    printf("Species ncdm1 has m = %e eV (so [N m] /omega =%e eV)\n",
-	   pba->m_ncdm1_in_eV,
-	   pba->N_ncdm1*pba->m_ncdm1_in_eV/pba->Omega0_ncdm1/pba->h/pba->h);
-
+  if ((pba->background_verbose > 0) && (pba->has_ncdm == _TRUE_)) {
+for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+    printf("Non-cold dark matter species with i=%d has m_i = %e eV (so m_i / omega_i =%e eV)\n",
+	   n_ncdm+1,
+	   pba->m_ncdm_in_eV[n_ncdm],
+	   pba->m_ncdm_in_eV[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
+}
   }
 
   /* curvature */
@@ -436,8 +447,8 @@ int background_init(
   if (pba->has_cdm == _TRUE_) {
     Omega0_tot += pba->Omega0_cdm;
   }
-  if (pba->has_ncdm1 == _TRUE_) {
-    Omega0_tot += pba->Omega0_ncdm1;
+  if (pba->has_ncdm == _TRUE_) {
+    Omega0_tot += pba->Omega0_ncdm_tot;
   }
   if (pba->has_lambda == _TRUE_) {
     Omega0_tot += pba->Omega0_lambda;
@@ -481,17 +492,36 @@ int background_init(
 int background_free(
 		    struct background *pba
 		    ) {
-
+  int k;
+  
   free(pba->eta_table);
   free(pba->z_table);
   free(pba->d2eta_dz2_table);
   free(pba->background_table);
   free(pba->d2background_deta2_table);
 
-  if (pba->has_ncdm1 == _TRUE_) {
-    free(pba->q_ncdm1);
-    free(pba->w_ncdm1);
-    free(pba->dlnf0_dlnq_ncdm1);
+  if (pba->has_ncdm == _TRUE_) {
+    for(k=0; k<pba->N_ncdm; k++){
+		free(pba->q_ncdm[k]);
+		free(pba->w_ncdm[k]);
+		free(pba->q_ncdm_bg[k]);
+		free(pba->w_ncdm_bg[k]);
+		free(pba->dlnf0_dlnq_ncdm[k]);
+	}
+	free(pba->q_ncdm);
+	free(pba->w_ncdm);
+	free(pba->q_ncdm_bg);
+	free(pba->w_ncdm_bg);
+	free(pba->dlnf0_dlnq_ncdm);
+	free(pba->q_size_ncdm);
+	free(pba->q_size_ncdm_bg);
+	free(pba->M_ncdm);
+	free(pba->T_ncdm);
+	free(pba->ksi_ncdm);
+	free(pba->deg_ncdm);
+	free(pba->Omega0_ncdm);
+	free(pba->m_ncdm_in_eV);
+	free(pba->factor_ncdm);
   }
 
   return _SUCCESS_;
@@ -554,16 +584,16 @@ int background_indices(
   }
 
   /* - ncdm1 */
-  if (pba->Omega0_ncdm1 != 0.) {
-    pba->has_ncdm1 = _TRUE_;
-    /* -> index for rho_cdm1 (ncdm1 density) */
+  if (pba->Omega0_ncdm_tot != 0.) {
+    pba->has_ncdm = _TRUE_;
+    /* -> index for rho_ncdm1 (ncdm1 density) */
     pba->index_bg_rho_ncdm1 = index_bg; 
-    index_bg++;
+    index_bg +=pba->N_ncdm;
     pba->index_bg_p_ncdm1 = index_bg; 
-    index_bg++;
+    index_bg +=pba->N_ncdm;
   }
   else { 
-    pba->has_ncdm1 = _FALSE_;
+    pba->has_ncdm = _FALSE_;
   }
   
   /* - Lambda */
@@ -672,21 +702,28 @@ int background_indices(
 }
 
 int background_ncdm1_distribution(
-				  void * pba,
+				  void * pbadist,
 				  double q,
 				  double * f0
 				  ) {
-  struct background * pba_local;
+  struct background * pba;
+  struct background_parameters_for_distributions * pbadist_local;
+  int n_ncdm;
+  double ksi,g;
+  
+  pbadist_local = pbadist;
+  pba = pbadist_local->pba;
 
-  pba_local = pba;
-
-  *f0 = pba_local->N_ncdm1*(1./(exp(q-pba_local->ksi_ncdm1)+1.) + 1./(exp(q+pba_local->ksi_ncdm1)+1.))/pow(2*_PI_,3); /* Fermi-Dirac */
+  n_ncdm = pbadist_local->n_ncdm;
+  ksi = pba->ksi_ncdm[n_ncdm];
+  g = pba->deg_ncdm[n_ncdm];
+  *f0 = g/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) + 1./(exp(q+ksi)+1.));
 
   return _SUCCESS_;
 }
 
 int background_ncdm1_test_function(
-				   void * pba,
+				   void * pbadist,
 				   double q,
 				   double * test
 				   ) {
@@ -696,55 +733,91 @@ int background_ncdm1_test_function(
   return _SUCCESS_;
 }
 
-int background_ncdm1_init(
+int background_ncdm_init(
 			  struct precision *ppr,
 			  struct background *pba
 			  ) {
   
-  int index_q;
+  int index_q, k;
   double f0right,f0left,lnf0right,lnf0left,dlnq,dlnq_first;
+  struct background_parameters_for_distributions pbadist;
+  pbadist.pba = pba;
+  /* Allocate pointer arrays: */
+  class_alloc(pba->q_ncdm, sizeof(double*)*pba->N_ncdm,pba->error_message);
+  class_alloc(pba->w_ncdm, sizeof(double*)*pba->N_ncdm,pba->error_message);
+  class_alloc(pba->q_ncdm_bg, sizeof(double*)*pba->N_ncdm,pba->error_message);
+  class_alloc(pba->w_ncdm_bg, sizeof(double*)*pba->N_ncdm,pba->error_message);
+  class_alloc(pba->dlnf0_dlnq_ncdm, sizeof(double*)*pba->N_ncdm,pba->error_message);
 
-  class_alloc(pba->q_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
-  class_alloc(pba->w_ncdm1,_QUADRATURE_MAX_*sizeof(double),pba->error_message);
+  /* Allocate pointers: */
+  class_alloc(pba->q_size_ncdm,sizeof(int)*pba->N_ncdm,pba->error_message);
+  class_alloc(pba->q_size_ncdm_bg,sizeof(int)*pba->N_ncdm,pba->error_message);
+  class_alloc(pba->factor_ncdm,sizeof(double)*pba->N_ncdm,pba->error_message);
 
-  class_call(get_qsampling(pba->q_ncdm1,
-			   pba->w_ncdm1,
-			   &(pba->q_size_ncdm1),
+  for(k=0; k<pba->N_ncdm; k++){
+    pbadist.n_ncdm = k;
+	/* Handle perturbation q sampling: */
+	class_alloc(pba->q_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message);
+	class_alloc(pba->w_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message);
+	
+	/* */
+  class_call(get_qsampling(pba->q_ncdm[k],
+			   pba->w_ncdm[k],
+			   &(pba->q_size_ncdm[k]),
 			   _QUADRATURE_MAX_,
 			   ppr->tol_ncdm,
 			   background_ncdm1_test_function,
 			   background_ncdm1_distribution,
-			   pba,
+			   &pbadist,
 			   pba->error_message),
 	     pba->error_message,
 	     pba->error_message);
-    
-  pba->q_ncdm1=realloc(pba->q_ncdm1,pba->q_size_ncdm1*sizeof(double));
-  pba->w_ncdm1=realloc(pba->w_ncdm1,pba->q_size_ncdm1*sizeof(double));
+	pba->q_ncdm[k]=realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+	pba->w_ncdm[k]=realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+  
+	/* Handle background q_sampling: */
+	class_alloc(pba->q_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
+	class_alloc(pba->w_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
+  
+  class_call(get_qsampling(pba->q_ncdm_bg[k],
+			   pba->w_ncdm_bg[k],
+			   &(pba->q_size_ncdm_bg[k]),
+			   _QUADRATURE_MAX_BG_,
+			   ppr->tol_ncdm_bg,
+			   background_ncdm1_test_function,
+			   background_ncdm1_distribution,
+			   &pbadist,
+			   pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
 
-  class_alloc(pba->dlnf0_dlnq_ncdm1,
-	      pba->q_size_ncdm1*sizeof(double),
+    
+  pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+  pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+
+  class_alloc(pba->dlnf0_dlnq_ncdm[k],
+	      pba->q_size_ncdm[k]*sizeof(double),
 	      pba->error_message);
 
-  for (index_q=0; index_q<pba->q_size_ncdm1; index_q++) {
+  for (index_q=0; index_q<pba->q_size_ncdm[k]; index_q++) {
  
 	/* First guess for dlnq: */
     if (index_q==0)
-      dlnq=-ppr->tol_ncdm*log(pba->q_ncdm1[index_q]);
+      dlnq=-ppr->tol_ncdm*log(pba->q_ncdm[k][index_q]);
     else
-      dlnq=ppr->tol_ncdm*(log(pba->q_ncdm1[index_q])-log(pba->q_ncdm1[index_q-1]));  
+      dlnq=ppr->tol_ncdm*(log(pba->q_ncdm[k][index_q])-log(pba->q_ncdm[k][index_q-1]));  
 	
 	if (dlnq==0.0) dlnq = 1.0/_HUGE_;
 	dlnq_first = dlnq;
     {
-      class_call(background_ncdm1_distribution(pba,
-					       exp(log(pba->q_ncdm1[index_q])+dlnq),
+      class_call(background_ncdm1_distribution(&pbadist,
+					       exp(log(pba->q_ncdm[k][index_q])+dlnq),
 					       &f0right),
 		 pba->error_message,
 		 pba->error_message);
 
-		 class_call(background_ncdm1_distribution(pba,
-					       exp(log(pba->q_ncdm1[index_q])-dlnq),
+		 class_call(background_ncdm1_distribution(&pbadist,
+					       exp(log(pba->q_ncdm[k][index_q])-dlnq),
 					       &(f0left)),
 		 pba->error_message,
 		 pba->error_message);
@@ -760,21 +833,26 @@ int background_ncdm1_init(
 		
     } while (fabs(lnf0right-lnf0left) < 1.0/_HUGE_);//_TOLVAR_*ppr->smallest_allowed_variation);
 
-    /* pba->dlnf0_dlnq_ncdm1[index_q] = (lnf0right-lnf0left)/2./dlnq; */
-    pba->dlnf0_dlnq_ncdm1[index_q] = - pba->q_ncdm1[index_q]/(1.+exp(-pba->q_ncdm1[index_q]));
-
-
+    /* pba->dlnf0_dlnq_ncdm[k][index_q] = (lnf0right-lnf0left)/2./dlnq; */
+    pba->dlnf0_dlnq_ncdm[k][index_q] = - pba->q_ncdm[k][index_q]/(1.+exp(-pba->q_ncdm[k][index_q]));
   }
 
-  pba->factor_ncdm1=4*_PI_*pow(pba->Tcmb*pba->T_ncdm1*_k_B_,4)*8*_PI_*_G_
+  pba->factor_ncdm[k]=4*_PI_*pow(pba->Tcmb*pba->T_ncdm[k]*_k_B_,4)*8*_PI_*_G_
     /3./pow(_h_P_/2./_PI_,3)/pow(_c_,7)*_Mpc_over_m_*_Mpc_over_m_;
+
+ }
+
 
   return _SUCCESS_;
 }
 
-int background_ncdm1_momenta(
+int background_ncdm_momenta(
 			     /* Only calculate for non-NULL pointers: */
-			     struct background * pba,
+			     double * qvec,
+			     double * wvec,
+			     int qsize,
+			     double M,
+			     double factor,
 			     double z,
 			     double * n,
 			     double * rho,
@@ -784,59 +862,85 @@ int background_ncdm1_momenta(
 
   int index_q;
   double epsilon;
-  double factor;
   double q2;
+  double factor2;
 
-  factor = pba->factor_ncdm1*pow(1+z,4);
+  factor2 = factor*pow(1+z,4);
 
   if (n!=NULL) *n = 0.;
   if (rho!=NULL) *rho = 0.;
   if (p!=NULL) *p = 0.;
   if (drho_dM!=NULL) *drho_dM = 0.;
 
-  for (index_q=0; index_q<pba->q_size_ncdm1; index_q++) {
+  for (index_q=0; index_q<qsize; index_q++) {
 
-    q2 = pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q];
-    epsilon = sqrt(q2+pba->M_ncdm1*pba->M_ncdm1/(1.+z)/(1.+z));
+    q2 = qvec[index_q]*qvec[index_q];
+    epsilon = sqrt(q2+M*M/(1.+z)/(1.+z));
 
-    if (n!=NULL) *n += q2*pba->w_ncdm1[index_q];
-    if (rho!=NULL) *rho += q2*epsilon*pba->w_ncdm1[index_q];
-    if (p!=NULL) *p += q2*pba->q_ncdm1[index_q]*pba->q_ncdm1[index_q]/3./epsilon*pba->w_ncdm1[index_q];
-    if (drho_dM!=NULL) *drho_dM += q2*pba->M_ncdm1/(1.+z)/(1.+z)/epsilon*pba->w_ncdm1[index_q];
+    if (n!=NULL) *n += q2*wvec[index_q];
+    if (rho!=NULL) *rho += q2*epsilon*wvec[index_q];
+    if (p!=NULL) *p += q2*q2/3./epsilon*wvec[index_q];
+    if (drho_dM!=NULL) *drho_dM += q2*M/(1.+z)/(1.+z)/epsilon*wvec[index_q];
   }
-  if (n!=NULL) *n *= factor;
-  if (rho!=NULL) *rho *= factor;
-  if (p!=NULL) *p *= factor;
-  if (drho_dM!=NULL) *drho_dM *= factor; 
+  if (n!=NULL) *n *= factor2;
+  if (rho!=NULL) *rho *= factor2;
+  if (p!=NULL) *p *= factor2;
+  if (drho_dM!=NULL) *drho_dM *= factor2; 
 
   return _SUCCESS_;
 }
 
-int background_ncdm1_M_from_Omega(
+int background_ncdm_M_from_Omega(
 				  struct precision *ppr,
-				  struct background *pba
+				  struct background *pba,
+				  int k
 				  ) {
-  double rho0,rho,a0,z0,n,*M,deltaM,drhodM;
+  double rho0,rho,a0,z0,n,M,deltaM,drhodM;
   int iter,maxiter=10,status=_FAILURE_;
 	
-  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm1; /*Remember that rho is defined such that H^2=sum(rho_i) */
+  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[k]; /*Remember that rho is defined such that H^2=sum(rho_i) */
   a0 = pba->a_today;
   z0 = 1/a0-1.0; 
-  M=&pba->M_ncdm1;
-  *M = 0.0;	/* It doesn't really matter, all we need for our 
-		   guess is n which is independent of M: */
-  background_ncdm1_momenta(pba,z0,&n,NULL,NULL,NULL);
+  M = 0.0;
+
+  background_ncdm_momenta(pba->q_ncdm_bg[k],
+			  pba->w_ncdm_bg[k],
+			  pba->q_size_ncdm_bg[k],
+			  M,
+			  pba->factor_ncdm[k],
+              		  z0,
+			  &n,
+			  &rho,
+			  NULL,
+			  NULL);
+
+  /* Is the value of Omega less than a massless species?*/
+  class_test(rho0<rho,pba->error_message,
+	"The value of Omega for the %dth species, %g, is less than for a massless species! It should be atleast %g. Check your input.",
+k,pba->Omega0_ncdm[k],pba->Omega0_ncdm[k]*rho/rho0);
+
   /* In the strict NR limit we have rho = n*(aM), giving a zero'th order guess: */
-  *M = rho0/(a0*n); /* This is our guess for M. */
+  M = rho0/(a0*n); /* This is our guess for M. */
   for (iter=1; iter<=maxiter; iter++){
     /* Newton iteration. First get relevant quantities at M: */
-    background_ncdm1_momenta(pba,z0,NULL,&rho,NULL,&drhodM);
+    background_ncdm_momenta(pba->q_ncdm_bg[k],
+			  pba->w_ncdm_bg[k],
+			  pba->q_size_ncdm_bg[k],
+			  M,
+			  pba->factor_ncdm[k],
+                          z0,
+			  NULL,
+			  &rho,
+			  NULL,
+			  &drhodM);
+
     deltaM = (rho0-rho)/drhodM; /* By definition of the derivative */
-    *M += deltaM; /* Update value of M.. */
-    if (*M<0.0) *M = 0.0; /* Avoid overshooting to negative M value. */
-    if (fabs(deltaM/(*M))<ppr->tol_M_ncdm){
+    M += deltaM; /* Update value of M.. */
+    if (M<0.0) M = 0.0; /* Avoid overshooting to negative M value. */
+    if (fabs(deltaM/M)<ppr->tol_M_ncdm){
       /* Accuracy reached.. */
       status = _SUCCESS_;
+      pba->M_ncdm[k] = M;
       break;
     }
   }

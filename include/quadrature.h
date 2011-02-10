@@ -51,14 +51,16 @@ extern "C" {
   int burn_tree(qss_node *node);
   int leaf_count(qss_node *node);
   double get_integral(qss_node *node, int level);
-  qss_node* gk_adapt(
+  int gk_adapt(
+		     qss_node **node,
 		     int (*test)(void * params_for_function, double q, double *psi),
 		     int (*function)(void * params_for_function, double q, double *f0),
 		     void * params_for_function,
 		     double tol, 
 		     int treemode, 
 		     double a, 
-		     double b);
+		     double b,
+		     ErrorMsg errmsg);
   int compute_Laguerre(double *x, double *w, int N, double alpha, double *b, double *c);
   int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
 	      int (*function)(void * params_for_function, double q, double *f0),

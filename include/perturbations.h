@@ -128,7 +128,7 @@ struct perturbs
   short has_source_delta_cdm; /**< do we need source for delta of cold dark matter? */
   short has_source_delta_de;  /**< do we need source for delta of dark energy? */
   short has_source_delta_nur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
-  short has_source_delta_ncdm1; /**< do we need source for delta of first non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
 
   int index_tp_t; /**< index value for temperature */
   int index_tp_e; /**< index value for E-polarization */
@@ -226,11 +226,9 @@ struct perturb_vector
   int index_pt_l3_nur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_nur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
   int index_pt_psi0_ncdm1;
-  int index_pt_psi1_ncdm1;
-  int index_pt_psi2_ncdm1;
-  int index_pt_psi3_ncdm1;
-  int l_max_ncdm1;
-  int q_size_ncdm1;
+  int N_ncdm;
+  int* l_max_ncdm;
+  int* q_size_ncdm;
 
   int index_pt_eta;       /**< synchronous gauge metric perturbation eta*/
   int index_pt_gw;        /**< tensor metric perturbation h (gravitational waves) */
@@ -313,7 +311,7 @@ struct perturb_workspace
   double fsa_theta_g; /**< photon velocity in free-streaming approximation */
   double fsa_delta_nur; /**< neutrino density in free-streaming approximation */
   double fsa_theta_nur; /**< neutrino velocity in free-streaming approximation */
-  double delta_ncdm1;
+  double * delta_ncdm;
 
   //@}
 

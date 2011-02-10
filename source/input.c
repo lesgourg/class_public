@@ -160,7 +160,9 @@ int input_init(
 
   int flag1,flag2,flag3,flag4;
   double param1,param2,param3,param4;
-  int int1;
+  int N_ncdm,n,entries_read,massdef,*massdef_ncdm;
+  double  *massval_ncdm;
+  int int1;;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
@@ -331,80 +333,122 @@ int input_init(
   Omega_tot += pba->Omega0_cdm;
 
   /* non-cold relics (ncdm) */
-  class_call(parser_read_double(pfc,"m_ncdm1",&param1,&flag1,errmsg),
+  class_call(parser_read_int(pfc,"N_ncdm",&N_ncdm,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
-  class_call(parser_read_double(pfc,"Omega_ncdm1",&param2,&flag2,errmsg),
-	     errmsg,
-	     errmsg);
-  class_call(parser_read_double(pfc,"omega_ncdm1",&param3,&flag3,errmsg),
-	     errmsg,
-	     errmsg);
+  
+  if ((flag1 == _TRUE_) && (N_ncdm > 0)){	
+	pba->N_ncdm = N_ncdm;
+    /* Precision parameters for ncdm has to be read now since they are used here:*/
+     class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
+     class_read_double("tol_ncdm",ppr->tol_ncdm);
 
-  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
-	     errmsg,
-	     "In input file, you can only enter one of m_ncdm1, Omega_ncdm1 or omega__ncdm1, choose one");
-
-  if (((flag1 == _TRUE_) && (param1 > 0.)) ||
-      ((flag2 == _TRUE_) && (param2 > 0.)) ||
-      ((flag3 == _TRUE_) && (param3 > 0.))) {
-    
-    class_call(parser_read_double(pfc,"T_ncdm1",&param4,&flag4,errmsg),
+	class_call(parser_read_double(pfc,"tol_M_ncdm1",&param4,&flag4,errmsg),
 	       errmsg,
 	       errmsg);
-    pba->T_ncdm1 = param4;
-		
-    /* pba->T_ncdm1 = pow(4./11,1/3.);  for testing purpose: enforce instantaneous dec value */
+    if (flag4==_TRUE_) ppr->tol_M_ncdm = param4;
+	
+	/* Read temperatures: */
+	class_call(parser_read_list_of_doubles(pfc,"T_ncdm",
+                                &entries_read,&(pba->T_ncdm),&flag4,errmsg),
+				errmsg,
+				errmsg);
+	class_test(flag4 == _FALSE_,errmsg, "Entry T_ncdm not found!");
+	class_test(entries_read != N_ncdm,errmsg,
+	     "Numer of entries in T_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
+		 entries_read,N_ncdm);
+	
+	/* Read chemical potentials: */
+	class_call(parser_read_list_of_doubles(pfc,"ksi_ncdm",
+                                &entries_read,&(pba->ksi_ncdm),&flag4,errmsg),
+				errmsg,
+				errmsg);
+	class_test(flag4 == _FALSE_,errmsg, "Entry ksi_ncdm not found!");
+	class_test(entries_read != N_ncdm,errmsg,
+	     "Numer of entries in ksi_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
+		 entries_read,N_ncdm);
 
-    class_call(parser_read_double(pfc,"ksi_ncdm1",&param4,&flag4,errmsg),
-	       errmsg,
-	       errmsg);      
-
-    pba->ksi_ncdm1 = param4;
-
-    class_call(parser_read_double(pfc,"N_ncdm1",&param4,&flag4,errmsg),
-	       errmsg,
-	       errmsg);      
-
-    pba->N_ncdm1 = param4;
-		
-    class_call(background_ncdm1_init(ppr,pba),
+	/* Read degeneracy of each ncdm species: */
+	class_call(parser_read_list_of_doubles(pfc,"deg_ncdm",
+                                &entries_read,&(pba->deg_ncdm),&flag4,errmsg),
+				errmsg,
+				errmsg);
+	class_test(flag4 == _FALSE_,errmsg, "Entry deg_ncdm not found!");
+	class_test(entries_read != N_ncdm,errmsg,
+	     "Numer of entries in deg_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
+		 entries_read,N_ncdm);
+		 
+	class_call(background_ncdm_init(ppr,pba),
 	       pba->error_message,
 	       errmsg);
-		
-    if (flag1 == _TRUE_) {
-      
-      pba->m_ncdm1_in_eV = param1;
-      /* convert to dimensionless mass/temperature */
-      pba->M_ncdm1 = pba->m_ncdm1_in_eV/_k_B_*_eV_/pba->T_ncdm1/pba->Tcmb;
-
-      class_call(background_ncdm1_momenta(pba,0.,NULL,&rho_ncdm,NULL,NULL),
-		 pba->error_message,
-		 errmsg);
-      
-      pba->Omega0_ncdm1 = rho_ncdm/pba->H0/pba->H0;
-      
-    }
-
-    else {
-
-      if (flag2 == _TRUE_) {
-	pba->Omega0_ncdm1 = param2;
-      }
-      else if (flag3 == _TRUE_) {
-	pba->Omega0_ncdm1 = param3/pba->h/pba->h;
-      }
-      
-      class_call(background_ncdm1_M_from_Omega(ppr,pba),
-		 pba->error_message,
-		 errmsg);
-
-      pba->m_ncdm1_in_eV = _k_B_/_eV_*pba->T_ncdm1*pba->M_ncdm1*pba->Tcmb;
-    }
-    
+	
+	class_alloc(massdef_ncdm,sizeof(int)*N_ncdm,errmsg);
+	class_alloc(massval_ncdm,sizeof(double)*N_ncdm,errmsg);
+	
+	/* Read type of mass definition: */
+	class_call(parser_read_list_of_integers(pfc,"massdef_ncdm",
+                                &entries_read,&massdef_ncdm,&flag4,errmsg),
+				errmsg,
+				errmsg);
+	class_test(flag4 == _FALSE_,errmsg, "Entry massdef_ncdm not found!");
+	class_test(entries_read != N_ncdm,errmsg,
+	     "Numer of entries in massdef_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
+		 entries_read,N_ncdm);
+	/* Read mass value: */
+	class_call(parser_read_list_of_doubles(pfc,"massval_ncdm",
+                                &entries_read,&massval_ncdm,&flag4,errmsg),
+				errmsg,
+				errmsg);
+	class_test(flag4 == _FALSE_,errmsg, "Entry massval_ncdm not found!");
+	class_test(entries_read != N_ncdm,errmsg,
+	     "Numer of entries in massdef_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
+		 entries_read,N_ncdm);
+	
+	/* Loop over species to determine dimensionless mass or omega: */
+	class_alloc(pba->m_ncdm_in_eV,sizeof(double)*N_ncdm,errmsg);
+	class_alloc(pba->M_ncdm,sizeof(double)*N_ncdm,errmsg);
+	class_alloc(pba->Omega0_ncdm,sizeof(double)*N_ncdm,errmsg);
+	
+	for (n=0; n < N_ncdm; n++){
+		massdef = massdef_ncdm[n];
+		class_test(((massdef!=0)&&(massdef!=1)&&(massdef!=2)),errmsg,
+			"mass_def[%d] has value %d which is not allowed.",n,massdef);
+		if (massdef==0){
+			/* Case of mass in eV: */
+			pba->m_ncdm_in_eV[n] = massval_ncdm[n];
+			pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->Tcmb;
+			class_call(background_ncdm_momenta(pba->q_ncdm_bg[n],
+                              pba->w_ncdm_bg[n],
+                              pba->q_size_ncdm_bg[n],
+                              pba->M_ncdm[n],
+                              pba->factor_ncdm[n],
+                              0.,
+                              NULL,
+                              &rho_ncdm,
+                              NULL,
+                              NULL), 
+ 		              pba->error_message,
+		              errmsg);
+			pba->Omega0_ncdm[n] = rho_ncdm/pba->H0/pba->H0;
+		}
+		else{
+			if (massdef == 1) {
+				pba->Omega0_ncdm[n] = massval_ncdm[n];
+			}
+			else if (massdef == 2) {
+				pba->Omega0_ncdm[n] = massval_ncdm[n]/pba->h/pba->h;
+			}
+			class_call(background_ncdm_M_from_Omega(ppr,pba,n),
+				pba->error_message,
+				errmsg);
+			pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->Tcmb;
+		}
+		pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
+	}
+	free(massval_ncdm);
+	free(massdef_ncdm);
   }
-
-  Omega_tot += pba->Omega0_ncdm1;
+  Omega_tot += pba->Omega0_ncdm_tot;
 
   /* Omega_0_k (curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
@@ -421,7 +465,7 @@ int input_init(
 	     "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
   if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {	
-    pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm1;
+    pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   }
   else {
     if (flag1 == _TRUE_) {
@@ -889,8 +933,6 @@ int input_init(
   class_read_double("a_ini_over_a_today_default",ppr->a_ini_over_a_today_default);
   class_read_double("back_integration_stepsize",ppr->back_integration_stepsize);
   class_read_double("tol_background_integration",ppr->tol_background_integration);
-  class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
-  class_read_double("tol_ncdm",ppr->tol_ncdm);
 
   /** h.2. parameters related to the thermodynamics */
 
@@ -970,7 +1012,18 @@ int input_init(
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_nur",ppr->l_max_nur);
-  class_read_int("l_max_ncdm1",ppr->l_max_ncdm1);
+  class_call(parser_read_list_of_integers(pfc,"l_max_ncdm",
+        &entries_read,&ppr->l_max_ncdm,&flag1,errmsg),errmsg,errmsg);
+  if (flag1 == _TRUE_){
+    class_test(entries_read != N_ncdm,errmsg,
+	     "Numer of entries in l_max_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
+		 entries_read,N_ncdm);
+  }
+  else{
+    //set standard values
+    class_alloc(ppr->l_max_ncdm,sizeof(int)*N_ncdm,errmsg);
+    for(n=0; n<N_ncdm; n++) ppr->l_max_ncdm[n] = ppr->l_max_ncdm_default;
+  }
   class_read_int("l_max_g_ten",ppr->l_max_g_ten);
   class_read_int("l_max_pol_g_ten",ppr->l_max_pol_g_ten);
   class_read_double("curvature_ini",ppr->curvature_ini);
@@ -1117,13 +1170,12 @@ int input_default_params(
   pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
   pba->Omega0_cdm = 0.1122/0.704/0.704;
-  pba->Omega0_ncdm1 = 0.;
-  pba->M_ncdm1 = 0.;
-  pba->T_ncdm1 = 1.;
-  pba->ksi_ncdm1 = 0.;
-  pba->N_ncdm1 = 1.;
+  pba->Omega0_ncdm_tot = 0.;
+  pba->ksi_ncdm = NULL;
+  pba->T_ncdm = NULL;
+  pba->N_ncdm = 0;
   pba->Omega0_k = 0.;
-  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm1;
+  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   pba->Omega0_de = 0.;     
   pba->a_today = 1.;       
   pba->w_de=-1.;
@@ -1279,6 +1331,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_background_integration = 1.e-2;  /* no sizeable impact */
   ppr->tol_M_ncdm = 1.e-7;
   ppr->tol_ncdm = 1.e-6;
+  ppr->tol_ncdm_bg = 1.e-8;
 
   /**
    * - parameters related to the thermodynamics
@@ -1372,7 +1425,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_g=10; 
   ppr->l_max_pol_g=8; 
   ppr->l_max_nur=23; 
-  ppr->l_max_ncdm1=28; 
+  ppr->l_max_ncdm_default=28;
+  ppr->l_max_ncdm = NULL; /* The size of the vector is not known yet. Every entry will be set to ppr->l_max_ncdm_default if no input is detected. */ 
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 

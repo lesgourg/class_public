@@ -82,6 +82,15 @@ int parser_read_list_of_doubles(
 				int * found,
 				ErrorMsg errmsg
 				);
+				
+int parser_read_list_of_integers(
+				struct file_content * pfc,
+				char * name,
+				int * size,
+				int ** pointer_to_list,
+				int * found,
+				ErrorMsg errmsg
+				);
 
 int parser_cat(
 	       struct file_content * pfc1,

@@ -398,6 +398,95 @@ int parser_read_list_of_doubles(
 
 }
 
+int parser_read_list_of_integers(
+				struct file_content * pfc,
+				char * name,
+				int * size,
+				int ** pointer_to_list,
+				int * found,
+				ErrorMsg errmsg
+				) {
+  int index;
+  int i;
+
+  char * string;
+  char * substring;
+  FileArg string_with_one_value;
+
+  int * list;
+
+  /* intialize the 'found' flag to false */
+
+  * found = _FALSE_;
+
+  /* search parameter */
+
+  index=0;
+  while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
+    index++;
+
+  /* if parameter not found, return with 'found' flag still equal to false */
+
+  if (index == pfc->size)
+    return _SUCCESS_;
+
+  /* count number of comas and compute size = number of comas + 1 */
+  i = 0;
+  string = pfc->value[index];
+  do {
+    i ++;
+    substring = strchr(string,',');
+    string = substring+1;
+  } while(substring != NULL);
+
+  *size = i; 
+
+  /* free and re-allocate array of values */
+  class_alloc(list,*size*sizeof(int),errmsg);
+  *pointer_to_list = list;
+
+  /* read one integer between each comas */
+  i = 0;
+  string = pfc->value[index];
+  do {
+    i ++;
+    substring = strchr(string,',');
+    if (substring == NULL) {
+      strcpy(string_with_one_value,string);
+    }
+    else {
+      strncpy(string_with_one_value,string,(substring-string));
+    }
+    class_test(sscanf(string_with_one_value,"%d",&(list[i-1])) != 1,
+	       errmsg,
+	       "could not read %dth value of list of parameters %s in file %s\n",
+	       i,
+	       name,
+	       pfc->filename);
+    string = substring+1;
+  } while(substring != NULL);
+
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
+     associated with this parameter in the file_content structure */ 
+
+  * found = _TRUE_;
+  pfc->read[index] = _TRUE_;
+
+  /* check for multiple entries of the same parameter. If another occurence is found, 
+     return an error. */
+
+  for (i=index+1; i < pfc->size; i++) {
+    class_test(strcmp(pfc->name[i],name) == 0,
+	       errmsg,
+	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+  }
+
+  /* if everything proceeded normally, return with 'found' flag equal to true */
+
+  return _SUCCESS_;
+
+}
+
 int parser_cat(
 	       struct file_content * pfc1,
 	       struct file_content * pfc2,
