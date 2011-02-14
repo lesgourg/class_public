@@ -72,6 +72,83 @@
 #define class_none_of_three(a,b,c)				\
   (a == _FALSE_) && (b == _FALSE_) && (c == _FALSE_)
 
+/* macro for reading parameter values with routines from the parser */
+#define class_read_list_of_doubles_or_default(name,destination,default)	\
+  do {									\
+    class_call(parser_read_list_of_doubles(pfc,name,			\
+	&entries_read,&(destination),&flag1,errmsg),			\
+	       errmsg,							\
+	       errmsg);							\
+    if (flag1 == _TRUE_){						\
+        class_test(entries_read != N_ncdm,errmsg,			\
+             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+		name,entries_read,N_ncdm);				\
+    }else{								\
+	class_alloc(destination,N_ncdm*sizeof(double),errmsg);		\
+	for(n=0; n<N_ncdm; n++) destination[n] = default;		\
+    }									\
+  } while(0);
+
+#define class_read_list_of_doubles_or_default(name,destination,default)	\
+  do {									\
+    class_call(parser_read_list_of_doubles(pfc,name,			\
+	&entries_read,&(destination),&flag1,errmsg),			\
+	       errmsg,							\
+	       errmsg);							\
+    if (flag1 == _TRUE_){						\
+        class_test(entries_read != N_ncdm,errmsg,			\
+             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+		name,entries_read,N_ncdm);				\
+    }else{								\
+	class_alloc(destination,N_ncdm*sizeof(double),errmsg);		\
+	for(n=0; n<N_ncdm; n++) destination[n] = default;		\
+    }									\
+  } while(0);
+
+#define class_read_list_of_integers_or_default(name,destination,default)	\
+  do {									\
+    class_call(parser_read_list_of_integers(pfc,name,			\
+	&entries_read,&(destination),&flag1,errmsg),			\
+	       errmsg,							\
+	       errmsg);							\
+    if (flag1 == _TRUE_){						\
+        class_test(entries_read != N_ncdm,errmsg,			\
+             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+		name,entries_read,N_ncdm);				\
+    }else{								\
+	class_alloc(destination,N_ncdm*sizeof(int),errmsg);		\
+	for(n=0; n<N_ncdm; n++) destination[n] = default;		\
+    }									\
+  } while(0);
+
+
+#define class_read_list_of_doubles(name,destination)			\
+  do {									\
+    class_call(parser_read_list_of_doubles(pfc,name,			\
+	&entries_read,&(destination),&flag1,errmsg),			\
+	       errmsg,							\
+	       errmsg);							\
+    class_test(flag1 == _FALSE_,errmsg,					\
+	"Entry %s is required but not found!",name)			\
+        class_test(entries_read != N_ncdm,errmsg,			\
+             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+		name,entries_read,N_ncdm);				\
+  } while(0);
+
+#define class_read_list_of_integers(name,destination)			\
+  do {									\
+    class_call(parser_read_list_of_integers(pfc,name,			\
+	&entries_read,&(destination),&flag1,errmsg),			\
+	       errmsg,							\
+	       errmsg);							\
+    class_test(flag1 == _FALSE_,errmsg,					\
+	"Entry %s is required but not found!",name)			\
+        class_test(entries_read != N_ncdm,errmsg,			\
+             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+		name,entries_read,N_ncdm);				\
+  } while(0);
+
+
 /**************************************************************/
 
 /*

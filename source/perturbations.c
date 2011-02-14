@@ -864,7 +864,7 @@ int perturb_timesampling_for_sources(
     /* compute inverse rate */
     timescale_source = 1./timescale_source;
 
-    class_test(ppr->perturb_sampling_stepsize*timescale_source < ppr->smallest_allowed_variation,
+    class_test(fabs(ppr->perturb_sampling_stepsize*timescale_source/eta) < ppr->smallest_allowed_variation,
 	       ppt->error_message,
 	       "integration step =%e < machine precision : leads either to numerical error or infinite loop",ppr->perturb_sampling_stepsize*timescale_source);
 
@@ -944,7 +944,7 @@ int perturb_timesampling_for_sources(
     /* compute inverse rate */
     timescale_source = 1./timescale_source;
 
-    class_test(ppr->perturb_sampling_stepsize*timescale_source < ppr->smallest_allowed_variation,
+    class_test(fabs(ppr->perturb_sampling_stepsize*timescale_source/eta) < ppr->smallest_allowed_variation,
 	       ppt->error_message,
 	       "integration step =%e < machine precision : leads either to numerical error or infinite loop",ppr->perturb_sampling_stepsize*timescale_source);
 
@@ -1032,7 +1032,7 @@ int perturb_get_k_list(
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
 
-      class_test(step * k_rec < ppr->smallest_allowed_variation,
+      class_test(step * k_rec / k < ppr->smallest_allowed_variation,
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
 
@@ -1066,7 +1066,7 @@ int perturb_get_k_list(
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
 
-      class_test(step * k_rec < ppr->smallest_allowed_variation,
+      class_test(step * k_rec / ppt->k[index_mode][index_k-1] < ppr->smallest_allowed_variation,
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
       ppt->k[index_mode][index_k]=ppt->k[index_mode][index_k-1] + step * k_rec;
@@ -1107,7 +1107,7 @@ int perturb_get_k_list(
       step = ppr->k_tensor_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
 
-      class_test(step * k_rec < ppr->smallest_allowed_variation,
+      class_test(step * k_rec / k < ppr->smallest_allowed_variation,
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
 
@@ -1130,7 +1130,7 @@ int perturb_get_k_list(
       step = ppr->k_tensor_step_super 
 	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
 
-      class_test(step * k_rec < ppr->smallest_allowed_variation,
+      class_test(step * k_rec / ppt->k[index_mode][index_k-1] < ppr->smallest_allowed_variation,
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
       ppt->k[index_mode][index_k]=ppt->k[index_mode][index_k-1] + step * k_rec;
@@ -1446,6 +1446,8 @@ int perturb_solve(
   /* approximation scheme within previous interval: previous_approx[index_ap] */
   int * previous_approx;
 
+  int n_ncdm,is_early_enough;
+
   /* function pointer to ODE evolver and names of possible evolvers */
 
   extern int evolver_rk();
@@ -1484,12 +1486,10 @@ int perturb_solve(
 
   /*   } */
 
-  /** - compute minimum value of eta for which sources are calculated for this wavenumber */
+  /** - using bisection, compute minimum value of eta for which this
+        wavenumber is integrated */
 
-  /* using bisection, search time eta such that the ratio of thermo
-     to Hubble time scales eta_g/eta_h=aH/kappa' is equal to
-     start_sources_at_eta_g_over_eta_h */
-  
+  /* will be at least the first time in the background table */  
   eta_lower = pba->eta_table[0];
     
   class_call(background_at_eta(pba,
@@ -1511,53 +1511,32 @@ int perturb_solve(
 	     pth->error_message,
 	     ppt->error_message);
   
+  /* check that this initial time is indeed OK given imposed
+     conditions on kappa' and on k/aH */
+
   class_test(ppw->pvecback[pba->index_bg_a]*
 	     ppw->pvecback[pba->index_bg_H]/
 	     ppw->pvecthermo[pth->index_th_dkappa] >
-	     ppr->start_small_k_at_eta_g_over_eta_h,
-	     ppt->error_message,
-	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_eta_g_over_eta_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
+	     ppr->start_small_k_at_eta_g_over_eta_h, ppt->error_message, "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_eta_g_over_eta_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n", 
 	     ppw->pvecback[pba->index_bg_a]*
 	     ppw->pvecback[pba->index_bg_H]/
 	     ppw->pvecthermo[pth->index_th_dkappa]);
   
   class_test(k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] >
 	     ppr->start_large_k_at_eta_h_over_eta_k,
-	     ppt->error_message,
-	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_large_k_at_eta_h_over_eta_k' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
+             ppt->error_message,
+             "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_large_k_at_eta_h_over_eta_k' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
 	     ppt->k[index_mode][ppt->k_size[index_mode]-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
   
+  /* is at most the time at which sources must be sampled */
   eta_upper = ppt->eta_sampling[0];
-  
-  class_call(background_at_eta(pba,
-			       eta_upper, 
-			       short_info, 
-			       normal, 
-			       &(ppw->last_index_back), 
-			       ppw->pvecback),
-	     pba->error_message,
-	     ppt->error_message);
-  
-  class_call(thermodynamics_at_z(pba,
-				 pth,
-				 1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				 normal,
-				 &(ppw->last_index_thermo),
-				 ppw->pvecback,
-				 ppw->pvecthermo),
-	     pth->error_message,
-	     ppt->error_message);
-  
-  class_test(ppw->pvecback[pba->index_bg_a]*
-	     ppw->pvecback[pba->index_bg_H]/
-	     ppw->pvecthermo[pth->index_th_dkappa] <
-	     ppr->start_small_k_at_eta_g_over_eta_h,
-	     ppt->error_message,
-	     "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time after that at which sources must be sampled. You should decrease 'start_small_k_at_eta_g_over_eta_h' (it should be smaller than 'start_sources_at_eta_g_over_eta_h' for CMB computations, or it should define a time smaller than eta_recombination for LSS only)\n");
-  
+
+  /* start bisection */  
   eta_mid = 0.5*(eta_lower + eta_upper);
     
-  while (eta_upper - eta_lower > ppr->tol_eta_approx) {
+  while ((eta_upper - eta_lower)/eta_lower > ppr->tol_eta_approx) {
+
+    is_early_enough = _TRUE_;
 
     class_call(background_at_eta(pba,
 				 eta_mid, 
@@ -1567,26 +1546,39 @@ int perturb_solve(
 				 ppw->pvecback),
 	       pba->error_message,
 	       ppt->error_message);
-      
-    class_call(thermodynamics_at_z(pba,
-				   pth,
-				   1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   normal,
-				   &(ppw->last_index_thermo),
-				   ppw->pvecback,
-				   ppw->pvecthermo),
-	       pth->error_message,
-	       ppt->error_message);
-    
-      
-    if ((ppw->pvecback[pba->index_bg_a]*
-	 ppw->pvecback[pba->index_bg_H]/
-	 ppw->pvecthermo[pth->index_th_dkappa] <
-	 ppr->start_small_k_at_eta_g_over_eta_h)
-	&&
-	(k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] <
-	 ppr->start_large_k_at_eta_h_over_eta_k))
 
+    /* if there are non-cold relics, check that they are relativistic enough */
+    if (pba->has_ncdm == _TRUE_) {
+      for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+	if (fabs(ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]-1./3.) > ppr->tol_ncdm_initial_w)
+	  is_early_enough = _FALSE_;
+      }
+    }
+
+    /* also check that the two conditions on (aH/kappa') and (aH/k) are fulfilled */
+    if (is_early_enough == _TRUE_) {
+
+      class_call(thermodynamics_at_z(pba,
+				     pth,
+				     1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+				     normal,
+				     &(ppw->last_index_thermo),
+				     ppw->pvecback,
+				     ppw->pvecthermo),
+		 pth->error_message,
+		 ppt->error_message);
+    
+      if ((ppw->pvecback[pba->index_bg_a]*
+	   ppw->pvecback[pba->index_bg_H]/
+	   ppw->pvecthermo[pth->index_th_dkappa] >
+	   ppr->start_small_k_at_eta_g_over_eta_h) ||
+	  (k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] >
+	   ppr->start_large_k_at_eta_h_over_eta_k))
+	
+	is_early_enough = _FALSE_;
+    }
+
+    if (is_early_enough == _TRUE_)
       eta_lower = eta_mid;
     else
       eta_upper = eta_mid;
@@ -2121,6 +2113,7 @@ int perturb_vector_init(
   int index_pt;
   int l;
   int n_ncdm,index_q;
+  double rho_ncdm,p_ncdm;
 
   /** - allocate a new perturb_vector structure to which ppw->pv will point at the end of the routine */
 
@@ -2673,8 +2666,19 @@ int perturb_initial_conditions(struct precision * ppr,
   double q,epsilon;
   int index_q,n_ncdm,idx;
 
-  a = ppw->pvecback[pba->index_bg_a];
+  double rho_ncdm,p_ncdm;
 
+  class_call(background_at_eta(pba,
+			       eta, 
+			       normal_info, 
+			       normal, 
+			       &(ppw->last_index_back), 
+			       ppw->pvecback),
+	     pba->error_message,
+	     ppt->error_message);
+  
+  a = ppw->pvecback[pba->index_bg_a];
+  
   /** - for scalars */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
@@ -2822,6 +2826,7 @@ int perturb_initial_conditions(struct precision * ppr,
 	if (pba->has_ncdm == _TRUE_) {
 	idx = ppw->pv->index_pt_psi0_ncdm1;
 	for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+
 	  for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++) {
 	    
 	    q = pba->q_ncdm[n_ncdm][index_q];

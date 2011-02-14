@@ -141,7 +141,7 @@ int get_qsampling(double *x,
   burn_tree(root);
   free(b);
   free(c);
-//printf("\n Number of qbins: %d.",*N);
+
   return _SUCCESS_;
 }
 	

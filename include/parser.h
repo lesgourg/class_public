@@ -92,6 +92,15 @@ int parser_read_list_of_integers(
 				ErrorMsg errmsg
 				);
 
+int parser_read_list_of_strings(
+				struct file_content * pfc,
+				char * name,
+				int * size,
+				char ** pointer_to_list,
+				int * found,
+				ErrorMsg errmsg
+				);
+
 int parser_cat(
 	       struct file_content * pfc1,
 	       struct file_content * pfc2,

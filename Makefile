@@ -13,7 +13,7 @@ vpath %.c source:tools:main:test
 vpath %.o build
 vpath .base build
 
-CC       = gcc
+CC       = gcc4
 #CC       = pgcc
 AR        = ar rv
 

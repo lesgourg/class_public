@@ -12,7 +12,8 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v0.0.1"
+//#define _VERSION_ "v0.0.1"
+#define _VERSION_ "v0.0.2" /**< implementation of ncdm */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -30,9 +31,9 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
-#define _QUADRATURE_MAX_ 150 /**< maximum allowed number of abssices in quadrature integral estimation */
+#define _QUADRATURE_MAX_ 250 /**< maximum allowed number of abssices in quadrature integral estimation */
 
-#define _QUADRATURE_MAX_BG_ 500 /**< maximum allowed number of abssices in quadrature integral estimation */
+#define _QUADRATURE_MAX_BG_ 800 /**< maximum allowed number of abssices in quadrature integral estimation */
 
 #define _TOLVAR_ 100. /**< The minimum allowed variation is the machine precision times this number */
 
@@ -288,6 +289,13 @@ struct precision
    */
   double tol_background_integration;
 
+
+  /**
+   * parameter controlling how deep inside radiation domination must the
+   * initial time be chosen
+   */
+  double tol_initial_Omega_r;
+
   /**
    * parameter controlling relative precision of ncdm mass for given
    * ncdm current density
@@ -305,6 +313,12 @@ struct precision
    * phase-space distribution during background evolution
    */
   double tol_ncdm_bg;
+
+  /**
+   * parameter controlling how relativistic must non-cold relics be at
+   * initial time
+   */
+  double tol_ncdm_initial_w;
 
   //@}
 

@@ -158,11 +158,11 @@ int input_init(
 
   /** - define local variables */
 
-  int flag1,flag2,flag3,flag4;
-  double param1,param2,param3,param4;
-  int N_ncdm,n,entries_read,massdef,*massdef_ncdm;
-  double  *massval_ncdm;
-  int int1;;
+  int flag1,flag2,flag3;
+  double param1,param2,param3;
+  int N_ncdm=0,n,entries_read;
+  int int1,fileentries;
+  double fnu_factor;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
@@ -333,120 +333,117 @@ int input_init(
   Omega_tot += pba->Omega0_cdm;
 
   /* non-cold relics (ncdm) */
-  class_call(parser_read_int(pfc,"N_ncdm",&N_ncdm,&flag1,errmsg),
-	     errmsg,
-	     errmsg);
-  
+  class_read_int("N_ncdm",N_ncdm);
   if ((flag1 == _TRUE_) && (N_ncdm > 0)){	
-	pba->N_ncdm = N_ncdm;
+    pba->N_ncdm = N_ncdm;
     /* Precision parameters for ncdm has to be read now since they are used here:*/
-     class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
-     class_read_double("tol_ncdm",ppr->tol_ncdm);
-
-	class_call(parser_read_double(pfc,"tol_M_ncdm1",&param4,&flag4,errmsg),
-	       errmsg,
-	       errmsg);
-    if (flag4==_TRUE_) ppr->tol_M_ncdm = param4;
+    class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
+    class_read_double("tol_ncdm",ppr->tol_ncdm);
+    class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
 	
-	/* Read temperatures: */
-	class_call(parser_read_list_of_doubles(pfc,"T_ncdm",
-                                &entries_read,&(pba->T_ncdm),&flag4,errmsg),
-				errmsg,
-				errmsg);
-	class_test(flag4 == _FALSE_,errmsg, "Entry T_ncdm not found!");
-	class_test(entries_read != N_ncdm,errmsg,
-	     "Numer of entries in T_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
-		 entries_read,N_ncdm);
-	
-	/* Read chemical potentials: */
-	class_call(parser_read_list_of_doubles(pfc,"ksi_ncdm",
-                                &entries_read,&(pba->ksi_ncdm),&flag4,errmsg),
-				errmsg,
-				errmsg);
-	class_test(flag4 == _FALSE_,errmsg, "Entry ksi_ncdm not found!");
-	class_test(entries_read != N_ncdm,errmsg,
-	     "Numer of entries in ksi_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
-		 entries_read,N_ncdm);
+    /* Read temperatures: */
+    class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default);
 
-	/* Read degeneracy of each ncdm species: */
-	class_call(parser_read_list_of_doubles(pfc,"deg_ncdm",
-                                &entries_read,&(pba->deg_ncdm),&flag4,errmsg),
-				errmsg,
-				errmsg);
-	class_test(flag4 == _FALSE_,errmsg, "Entry deg_ncdm not found!");
-	class_test(entries_read != N_ncdm,errmsg,
-	     "Numer of entries in deg_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
-		 entries_read,N_ncdm);
-		 
-	class_call(background_ncdm_init(ppr,pba),
+    /* Read chemical potentials: */
+    class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default);
+
+    /* Read degeneracy of each ncdm species: */
+    class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default);
+
+    /* Read mass of each ncdm species: */
+    class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0);
+
+    /* Read Omega of each ncdm species: */
+    class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0);
+
+    /* Read omega of each ncdm species: (Use pba->M_ncdm temporarily)*/
+    class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0);
+
+    /* Check for duplicate Omega/omega entries, missing mass definition and 
+       update pba->Omega0_ncdm:*/
+    for(n=0; n<N_ncdm; n++){
+      /* pba->M_ncdm holds value of omega */
+      if (pba->M_ncdm[n]!=0.0){
+	class_test(pba->Omega0_ncdm[n]!=0,errmsg,
+		   "Nonzero values for both Omega and omega for ncdm species %d are specified!",n);
+	pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
+      }
+      if (pba->Omega0_ncdm[n]==0.0){
+	class_test(pba->m_ncdm_in_eV[n]==0.0,errmsg,
+		   "No mass, Omega or omega defined for ncdm species %d.",n);
+      }
+    }
+
+    /* Check if filenames for interpolation tables are given: */
+    class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_);
+	
+    if (flag1==_TRUE_){
+      for(n=0,fileentries=0; n<entries_read; n++){
+	if (pba->got_files[n] == _TRUE_) fileentries++;
+      }
+
+      if (fileentries > 0) {
+
+	/* Okay, read filenames.. */
+	class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",
+					       &entries_read,&(pba->ncdm_psd_files),&flag2,errmsg),
+		   errmsg,
+		   errmsg);
+	class_test(flag2 == _FALSE_,errmsg, 
+		   "Input use_ncdm_files is found, but no filenames found!");
+	class_test(entries_read != fileentries,errmsg,
+		   "Numer of filenames found, %d, does not match number of _TRUE_ values in use_ncdm_files, %d",
+		   entries_read,fileentries);
+      }
+    }
+
+    class_call(background_ncdm_init(ppr,pba),
 	       pba->error_message,
 	       errmsg);
 	
-	class_alloc(massdef_ncdm,sizeof(int)*N_ncdm,errmsg);
-	class_alloc(massval_ncdm,sizeof(double)*N_ncdm,errmsg);
-	
-	/* Read type of mass definition: */
-	class_call(parser_read_list_of_integers(pfc,"massdef_ncdm",
-                                &entries_read,&massdef_ncdm,&flag4,errmsg),
-				errmsg,
-				errmsg);
-	class_test(flag4 == _FALSE_,errmsg, "Entry massdef_ncdm not found!");
-	class_test(entries_read != N_ncdm,errmsg,
-	     "Numer of entries in massdef_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
-		 entries_read,N_ncdm);
-	/* Read mass value: */
-	class_call(parser_read_list_of_doubles(pfc,"massval_ncdm",
-                                &entries_read,&massval_ncdm,&flag4,errmsg),
-				errmsg,
-				errmsg);
-	class_test(flag4 == _FALSE_,errmsg, "Entry massval_ncdm not found!");
-	class_test(entries_read != N_ncdm,errmsg,
-	     "Numer of entries in massdef_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
-		 entries_read,N_ncdm);
-	
-	/* Loop over species to determine dimensionless mass or omega: */
-	class_alloc(pba->m_ncdm_in_eV,sizeof(double)*N_ncdm,errmsg);
-	class_alloc(pba->M_ncdm,sizeof(double)*N_ncdm,errmsg);
-	class_alloc(pba->Omega0_ncdm,sizeof(double)*N_ncdm,errmsg);
-	
-	for (n=0; n < N_ncdm; n++){
-		massdef = massdef_ncdm[n];
-		class_test(((massdef!=0)&&(massdef!=1)&&(massdef!=2)),errmsg,
-			"mass_def[%d] has value %d which is not allowed.",n,massdef);
-		if (massdef==0){
-			/* Case of mass in eV: */
-			pba->m_ncdm_in_eV[n] = massval_ncdm[n];
-			pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->Tcmb;
-			class_call(background_ncdm_momenta(pba->q_ncdm_bg[n],
-                              pba->w_ncdm_bg[n],
-                              pba->q_size_ncdm_bg[n],
-                              pba->M_ncdm[n],
-                              pba->factor_ncdm[n],
-                              0.,
-                              NULL,
-                              &rho_ncdm,
-                              NULL,
-                              NULL), 
- 		              pba->error_message,
-		              errmsg);
-			pba->Omega0_ncdm[n] = rho_ncdm/pba->H0/pba->H0;
-		}
-		else{
-			if (massdef == 1) {
-				pba->Omega0_ncdm[n] = massval_ncdm[n];
-			}
-			else if (massdef == 2) {
-				pba->Omega0_ncdm[n] = massval_ncdm[n]/pba->h/pba->h;
-			}
-			class_call(background_ncdm_M_from_Omega(ppr,pba,n),
-				pba->error_message,
-				errmsg);
-			pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->Tcmb;
-		}
-		pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
+    /* We must calculate M from omega or vice versa if one of them is missing.
+       If both are present, we must update the degeneracy parameter to
+       reflect the implicit normalisation of the distribution function.*/
+    for (n=0; n < N_ncdm; n++){
+      if (pba->m_ncdm_in_eV[n] != 0.0){
+	/* Case of only mass or mass and Omega/omega: */
+	pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->Tcmb;
+	class_call(background_ncdm_momenta(pba->q_ncdm_bg[n],
+					   pba->w_ncdm_bg[n],
+					   pba->q_size_ncdm_bg[n],
+					   pba->M_ncdm[n],
+					   pba->factor_ncdm[n],
+					   0.,
+					   NULL,
+					   &rho_ncdm,
+					   NULL,
+					   NULL), 
+		   pba->error_message,
+		   errmsg);
+	if (pba->Omega0_ncdm[n] == 0.0){
+	  pba->Omega0_ncdm[n] = rho_ncdm/pba->H0/pba->H0;
 	}
-	free(massval_ncdm);
-	free(massdef_ncdm);
+	else{
+	  fnu_factor = (pba->H0*pba->H0*pba->Omega0_ncdm[n]/rho_ncdm);
+	  pba->factor_ncdm[n] *= fnu_factor;
+	  /* dlnf0dlnq is already computed, but it is 
+	     independent of any normalisation of f0.
+	     We don't need the factor anymore, but we
+	     store it nevertheless:*/
+	  pba->deg_ncdm[n] *=fnu_factor;
+	}
+      }
+      else{
+	/* Case of only Omega/omega: */
+	class_call(background_ncdm_M_from_Omega(ppr,pba,n),
+		   pba->error_message,
+		   errmsg);
+	printf("M_ncdm:%g\n",pba->M_ncdm[n]);
+	pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->Tcmb;
+      }
+      pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
+      //printf("Adding %g to total Omega..\n",pba->Omega0_ncdm[n]);
+    }			
   }
   Omega_tot += pba->Omega0_ncdm_tot;
 
@@ -933,6 +930,8 @@ int input_init(
   class_read_double("a_ini_over_a_today_default",ppr->a_ini_over_a_today_default);
   class_read_double("back_integration_stepsize",ppr->back_integration_stepsize);
   class_read_double("tol_background_integration",ppr->tol_background_integration);
+  class_read_double("tol_initial_Omega_r",ppr->tol_initial_Omega_r);
+  class_read_double("tol_ncdm_initial_w",ppr->tol_ncdm_initial_w);
 
   /** h.2. parameters related to the thermodynamics */
 
@@ -1012,18 +1011,23 @@ int input_init(
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_nur",ppr->l_max_nur);
-  class_call(parser_read_list_of_integers(pfc,"l_max_ncdm",
-        &entries_read,&ppr->l_max_ncdm,&flag1,errmsg),errmsg,errmsg);
-  if (flag1 == _TRUE_){
+  if (pba->N_ncdm>0)
+    class_read_list_of_integers_or_default("l_max_ncdm",
+					   ppr->l_max_ncdm,ppr->l_max_ncdm_default);
+  /*
+    class_call(parser_read_list_of_integers(pfc,"l_max_ncdm",
+    &entries_read,&ppr->l_max_ncdm,&flag1,errmsg),errmsg,errmsg);
+    if (flag1 == _TRUE_){
     class_test(entries_read != N_ncdm,errmsg,
-	     "Numer of entries in l_max_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
-		 entries_read,N_ncdm);
-  }
-  else{
+    "Numer of entries in l_max_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
+    entries_read,N_ncdm);
+    }
+    else{
     //set standard values
     class_alloc(ppr->l_max_ncdm,sizeof(int)*N_ncdm,errmsg);
     for(n=0; n<N_ncdm; n++) ppr->l_max_ncdm[n] = ppr->l_max_ncdm_default;
-  }
+    }
+  */
   class_read_int("l_max_g_ten",ppr->l_max_g_ten);
   class_read_int("l_max_pol_g_ten",ppr->l_max_pol_g_ten);
   class_read_double("curvature_ini",ppr->curvature_ini);
@@ -1035,7 +1039,7 @@ int input_init(
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
 
   class_read_int("free_streaming_approximation",ppr->free_streaming_approximation)
-  class_read_double("free_streaming_trigger_eta_h_over_eta_k",ppr->free_streaming_trigger_eta_h_over_eta_k);
+    class_read_double("free_streaming_trigger_eta_h_over_eta_k",ppr->free_streaming_trigger_eta_h_over_eta_k);
   class_read_double("free_streaming_trigger_Omega_r",ppr->free_streaming_trigger_Omega_r);
 
   /** h.4. parameter related to the Bessel functions */
@@ -1056,8 +1060,8 @@ int input_init(
 
   class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
   class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
-/*   class_read_int("k_oversampling_scalars",ppr->k_oversampling_scalars); */
-/*   class_read_int("k_oversampling_tensors",ppr->k_oversampling_tensors); */
+  /*   class_read_int("k_oversampling_scalars",ppr->k_oversampling_scalars); */
+  /*   class_read_int("k_oversampling_tensors",ppr->k_oversampling_tensors); */
 
   class_read_int("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
@@ -1170,10 +1174,15 @@ int input_default_params(
   pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
   pba->Omega0_cdm = 0.1122/0.704/0.704;
-  pba->Omega0_ncdm_tot = 0.;
-  pba->ksi_ncdm = NULL;
-  pba->T_ncdm = NULL;
   pba->N_ncdm = 0;
+  pba->Omega0_ncdm_tot = 0.;
+  pba->ksi_ncdm_default = 0.;
+  pba->ksi_ncdm = NULL;
+  pba->T_ncdm_default = pow(4.0/11.0,1.0/3.0);
+  pba->T_ncdm = NULL;
+  pba->deg_ncdm_default = 1.;
+  pba->deg_ncdm = NULL;
+  
   pba->Omega0_k = 0.;
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   pba->Omega0_de = 0.;     
@@ -1329,9 +1338,11 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->a_ini_over_a_today_default = 1.e-10;  /* 1.e-7 unless needs large k_max in P(k) */
   ppr->back_integration_stepsize = 0.1;   /* 03.12.10 for chi2plT0.01 */
   ppr->tol_background_integration = 1.e-2;  /* no sizeable impact */
+  ppr->tol_initial_Omega_r = 1.e-4;
   ppr->tol_M_ncdm = 1.e-7;
   ppr->tol_ncdm = 1.e-6;
   ppr->tol_ncdm_bg = 1.e-8;
+  ppr->tol_ncdm_initial_w=1.e-3;
 
   /**
    * - parameters related to the thermodynamics
@@ -1435,7 +1446,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
 
   ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
-  ppr->tol_eta_approx=1.e-5; /* 03.12.10 for chi2plT0.01 */
+  ppr->tol_eta_approx=1.e-2; /* 03.12.10 for chi2plT0.01 */
   ppr->tol_perturb_integration=1.e-6; /* 07.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
   ppr->perturb_sampling_stepsize=0.08; /* 14.12.10 for chi2plT0.1 */
 
@@ -1470,8 +1481,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_step_trans_scalars=0.2; /* 03.12.10 for chi2plT0.01: difficult to optimize, numerical instability below 0.1, need to study this better */
   ppr->k_step_trans_tensors=0.15;
 
-/*   ppr->k_oversampling_scalars=3; */
-/*   ppr->k_oversampling_tensors=1; */
+  /*   ppr->k_oversampling_scalars=3; */
+  /*   ppr->k_oversampling_tensors=1; */
 
   ppr->transfer_cut=tc_cl; /* 03.12.10 for chi2plT0.01: tc_cl slightly faster (by 20%) for equal precision, but also slightly less robust (better to switch to tc_osc if primordial tilt can depart significantly from one) */
   ppr->transfer_cut_threshold_osc=0.015; /* 03.12.10 for chi2plT0.01 */

@@ -68,7 +68,7 @@ int evolver_rk(int (*derivs)(double x,
     
     timestep = timestep_over_timescale * timescale;
 
-    class_test(timestep < minimum_variation,
+    class_test(fabs(timestep/x1) < minimum_variation,
 	       error_message,
 	       "integration step =%e < machine precision : leads either to numerical error or infinite loop",timestep);
 
@@ -113,7 +113,7 @@ int evolver_rk(int (*derivs)(double x,
 				  y,
 				  parameters_and_workspace_for_derivs,
 				  tolerance,
-				  minimum_variation,
+				  x1*minimum_variation,
 				  &gi),
 	       gi.error_message,
 	       error_message);

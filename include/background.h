@@ -74,10 +74,16 @@ struct background
   int N_ncdm;      /* Number of distinguishabe ncdm species */
   double *M_ncdm;  /* vector of masses of non-cold relic: m_ncdm1/T_ncdm1 */
   double *T_ncdm;   /* list of 1st parameters in p-s-d of non-cold relics: temperature T_ncdm1/T_gamma */
+  double T_ncdm_default;
   double *ksi_ncdm; /* list of 2nd parameters in p-s-d of first non-cold relic: temperature ksi_ncdm1/T_ncdm1 */
+  double ksi_ncdm_default;
   double *deg_ncdm; /* list of degeneracies of ncdm species: 1 for one family of neutrinos (= one neutrino plus its anti-neutrino, total g*=1+1=2 */
+  double deg_ncdm_default;
   double *Omega0_ncdm; /*list of contributions to Omega0_ncdm */
   double Omega0_ncdm_tot;
+  int *got_files;
+  char *ncdm_psd_files; /*List of filenames for tables of the psd. */
+
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
   //@}
@@ -239,7 +245,17 @@ struct background_parameters_for_distributions {
   struct background * pba; 
 
   /* Additional parameters */
-  int n_ncdm; /* Current distribution function */
+
+  /* Current distribution function */
+  int n_ncdm; 
+
+  /* For interpolation in file: */
+  int tablesize;
+  double *q;
+  double *f0;
+  double *d2f0;
+  int last_index;
+
 
 };
 
@@ -389,5 +405,22 @@ extern "C" {
 #define _TOLERANCE_ON_CURVATURE_ 1.e-5 /**< if \f$ | \Omega_k | \f$ smaller than this, considered as flat */
 
 //@}
+
+/**  
+ * @name Some limits imposed on cosmological parameter values:
+ */
+
+//@{
+
+#define _SCALE_BACK_ 0.1  /**< by how much do we divide initial scale
+			     factor until correct initial condition
+			     fullfilled */
+
+#define _PSD_DERIVATIVE_EXP_MIN_ -30 /**< for ncdm, for accurate computation of dlnf0/dlnq, q step is varied in range specified by these parameters */
+#define _PSD_DERIVATIVE_EXP_MAX_ 2  /**< for ncdm, for accurate computation of dlnf0/dlnq, q step is varied in range specified by these parameters */
+
+
+//@}
+
 
 #endif
