@@ -1049,7 +1049,6 @@ int input_init(
   class_read_double("bessel_x_step",ppr->bessel_x_step);
   class_read_double("bessel_j_cut",ppr->bessel_j_cut);
   class_read_double("bessel_tol_x_min",ppr->bessel_tol_x_min);
-  class_read_double("bessel_x_max_over_l_max",ppr->bessel_x_max_over_l_max);
   class_read_string("bessel_file_name",ppr->bessel_file_name);
 
   /** h.5. parameter related to the primordial spectra */
@@ -1473,7 +1472,6 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->bessel_x_step=0.045; /* 14.12.10 for chi2plT0.1 */
   ppr->bessel_j_cut=1.5e-4; /* 14.12.10 for chi2plT0.1 */
   ppr->bessel_tol_x_min =1.e-4; /* 03.12.10 for chi2plT0.01 */
-  ppr->bessel_x_max_over_l_max=1.8; /* 03.12.10 for chi2plT0.01 */
   sprintf(ppr->bessel_file_name,"bessels.dat");
 
   /**

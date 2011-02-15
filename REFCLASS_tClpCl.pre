@@ -55,7 +55,7 @@ thermo_rate_smoothing_radius=50
 gauge=1 #synchronous
 
 k_scalar_min_eta0=0.003
-k_scalar_max_eta0_over_l_max=5.
+k_scalar_max_eta0_over_l_max=3.
 k_scalar_step_sub=0.01
 k_scalar_step_super=0.0005
 k_scalar_step_transition=0.2
@@ -79,7 +79,7 @@ l_max_ncdm1=28
 
 tol_eta_approx=1.e-5
 tol_perturb_integration=1.e-6
-perturb_sampling_stepsize=0.005
+perturb_sampling_stepsize=0.01
 
 free_streaming_approximation = 2
 free_streaming_trigger_eta_h_over_eta_k = 120.
@@ -95,7 +95,7 @@ bessel_file_name=bessel_large.dat
 
 k_per_decade_primordial = 10.
   
-k_step_trans_scalars=0.1 # 0.04 to smooth oscillations at l<200, but 0.2 reasonnable; smaller -> job killed on superb
+k_step_trans_scalars=0.04 # 0.04 to smooth oscillations at l<200, but 0.2 reasonnable; smaller -> job killed on superb
 
 transfer_cut=2 #0=none,1=osc,2=cl #segfault with zero, watch it!
 transfer_cut_threshold_osc=0.005 # with 0.005, more smooth than when smaller for l>2000 WATCH IT
@@ -103,6 +103,6 @@ transfer_cut_threshold_cl=1.e-8
 
 evolver=0
 
-l_switch_limber = 40.
+l_switch_limber = 10.
 num_mu_minus_lmax = 1000.
 delta_l_max = 2000.

@@ -796,8 +796,32 @@ int perturb_timesampling_for_sources(
     eta_ini = eta_mid;
 
   }
-  else 
+  else {
+
+    /* case when CMB not requested: start at recombination time */
     eta_ini = pth->eta_rec;
+
+    /* set values of first_index_back/thermo */
+    class_call(background_at_eta(pba,
+				 eta_ini, 
+				 short_info, 
+				 normal, 
+				 &first_index_back, 
+				 pvecback),
+	       pba->error_message,
+	       ppt->error_message);
+    
+    class_call(thermodynamics_at_z(pba,
+				   pth,
+				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+				   normal,
+				   &first_index_thermo,
+				   pvecback,
+				   pvecthermo),
+	       pth->error_message,
+	       ppt->error_message);
+  }    
+
   
   counter = 1;
 
