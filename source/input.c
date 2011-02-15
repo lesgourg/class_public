@@ -1077,6 +1077,14 @@ int input_init(
   class_read_double("k_L",ppr->k_L);
   class_read_double("k_min",ppr->k_min);
   class_read_double("logstepx_min",ppr->logstepx_min);
+  class_read_double("logstepk1",ppr->logstepk1);
+  class_read_double("logstepk2",ppr->logstepk2);
+  class_read_double("logstepk3",ppr->logstepk3);
+  class_read_double("logstepk4",ppr->logstepk4);
+  class_read_double("logstepk5",ppr->logstepk5);
+  class_read_double("logstepk6",ppr->logstepk6);
+  class_read_double("logstepk7",ppr->logstepk7);
+  class_read_double("logstepk8",ppr->logstepk8);
 
   /** h.8. parameter related to lensing */
 
@@ -1501,6 +1509,14 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_L = 1.e-3;
   ppr->k_min = 1.e-4;
   ppr->logstepx_min = 1.04;
+  ppr->logstepk1 = 1.11;
+  ppr->logstepk2 = 0.09;
+  ppr->logstepk3 = 1./300.;
+  ppr->logstepk4 = 0.01;
+  ppr->logstepk5 = 1.02;
+  ppr->logstepk6 = 0.;
+  ppr->logstepk7 = 0.;
+  ppr->logstepk8 = 0.;
 
   /**
    * - parameter related to lensing

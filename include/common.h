@@ -572,6 +572,14 @@ struct precision
   double k_L;
   double k_min;
   double logstepx_min;
+  double logstepk1;
+  double logstepk2;
+  double logstepk3;
+  double logstepk4;
+  double logstepk5;
+  double logstepk6;
+  double logstepk7;
+  double logstepk8;
 
   //@}
 
