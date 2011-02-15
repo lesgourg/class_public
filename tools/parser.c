@@ -81,12 +81,12 @@ int parser_free(
 }
 
 int parser_read_line(
-		char * line,
-		int * is_data,
-		char * name,
-		char * value,
-		ErrorMsg errmsg
-		) {
+		     char * line,
+		     int * is_data,
+		     char * name,
+		     char * value,
+		     ErrorMsg errmsg
+		     ) {
 
   char * phash; 
   char * pequal;
@@ -208,12 +208,12 @@ int parser_read_int(
 }
 
 int parser_read_double(
-		    struct file_content * pfc,
-		    char * name,
-		    double * value,
-		    int * found,
-		    ErrorMsg errmsg
-		    ) {
+		       struct file_content * pfc,
+		       char * name,
+		       double * value,
+		       int * found,
+		       ErrorMsg errmsg
+		       ) {
   int index;
   int i;
 
@@ -399,13 +399,13 @@ int parser_read_list_of_doubles(
 }
 
 int parser_read_list_of_integers(
-				struct file_content * pfc,
-				char * name,
-				int * size,
-				int ** pointer_to_list,
-				int * found,
-				ErrorMsg errmsg
-				) {
+				 struct file_content * pfc,
+				 char * name,
+				 int * size,
+				 int ** pointer_to_list,
+				 int * found,
+				 ErrorMsg errmsg
+				 ) {
   int index;
   int i;
 
@@ -546,17 +546,17 @@ int parser_read_list_of_strings(
     else {
       strncpy(string_with_one_value,string,(substring-string));
     }
-	strcpy(list+(i-1)*_ARGUMENT_LENGTH_MAX_,string_with_one_value);
-	//Insert EOL character:
-	*(list+i*_ARGUMENT_LENGTH_MAX_-1) = '\n';
-	string = substring+1;
+    strcpy(list+(i-1)*_ARGUMENT_LENGTH_MAX_,string_with_one_value);
+    //Insert EOL character:
+    *(list+i*_ARGUMENT_LENGTH_MAX_-1) = '\n';
+    string = substring+1;
   } while(substring != NULL);
   /* if parameter read correctly, set 'found' flag to true, as well as the flag 
      associated with this parameter in the file_content structure */ 
   * found = _TRUE_;
   pfc->read[index] = _TRUE_;
   /* check for multiple entries of the same parameter. If another occurence is 
-found, 
+     found, 
      return an error. */
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,

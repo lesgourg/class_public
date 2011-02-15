@@ -33,7 +33,7 @@ int get_qsampling(double *x,
   c = malloc(N_max*sizeof(double));
   /* First do the adaptive quadrature - this will also give the value of the integral: */
   gk_adapt(&root,(*test),(*function), params_for_function, 
-	rtol*1e-2, 1, 0.0, 1.0,errmsg);
+	   rtol*1e-2, 1, 0.0, 1.0,errmsg);
   /* Do a leaf count: */
   leaf_count(root);
   /* I can get the integral now: */
@@ -115,14 +115,14 @@ int get_qsampling(double *x,
     i = 0;
     get_leaf_x_and_w(root,&i,x,w);
     *N = Nadapt;
-	 //Fix the sorting of x and w:
+    //Fix the sorting of x and w:
     for (i=0;i<(Nadapt/2); i++){
-        xtemp = x[Nadapt-1-i];
-        wtemp = w[Nadapt-1-i];
-        x[Nadapt-1-i] = x[i];
-        w[Nadapt-1-i] = w[i];
-        x[i] = xtemp;
-        w[i] = wtemp;
+      xtemp = x[Nadapt-1-i];
+      wtemp = w[Nadapt-1-i];
+      x[Nadapt-1-i] = x[i];
+      w[Nadapt-1-i] = w[i];
+      x[i] = xtemp;
+      w[i] = wtemp;
     }
   }
   else if (Laguerre_converging==_TRUE_){
@@ -239,15 +239,15 @@ double get_integral(qss_node *node, int level){
 
 
 int gk_adapt(
-		   qss_node** node,
-		   int (*test)(void * params_for_function, double q, double *psi),
-		   int (*function)(void * params_for_function, double q, double *f0),
-		   void * params_for_function,
-		   double tol, 
-		   int treemode, 
-		   double a, 
-		   double b,
-		   ErrorMsg errmsg){
+	     qss_node** node,
+	     int (*test)(void * params_for_function, double q, double *psi),
+	     int (*function)(void * params_for_function, double q, double *f0),
+	     void * params_for_function,
+	     double tol, 
+	     int treemode, 
+	     double a, 
+	     double b,
+	     ErrorMsg errmsg){
   /* Do adaptive Gauss-Kronrod quadrature, while building the
      recurrence tree. If treemode!=0, store x-values and weights aswell.
      At first call, a and b should be 0 and 1. */
@@ -274,9 +274,9 @@ int gk_adapt(
     /* Call gk_adapt recursively on children:*/
     mid = 0.5*(a+b);
     gk_adapt(&((*node)->left),(*test),(*function), params_for_function, 1.5*tol, 
-	treemode, a, mid, errmsg);
+	     treemode, a, mid, errmsg);
     gk_adapt(&((*node)->right),(*test),(*function), params_for_function, 1.5*tol, 
-	treemode, mid, b, errmsg);
+	     treemode, mid, b, errmsg);
     /* Update integral and error in this node and return: */
     /* Actually, it is more convenient just to keep the nodes own estimate of the
        integral for our purposes.
@@ -401,8 +401,8 @@ int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
   double x,wg,wk,t,Ik,Ig,y,y2;
 	
   /* 	Loop through abscissas, transform the interval and form the Kronrod
-     15 point estimate of the integral.
-     Every second time we update the Gauss 7 point quadrature estimate. */
+	15 point estimate of the integral.
+	Every second time we update the Gauss 7 point quadrature estimate. */
 		
   Ik=0.0;
   Ig=0.0;

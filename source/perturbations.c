@@ -1487,7 +1487,7 @@ int perturb_solve(
   /*   } */
 
   /** - using bisection, compute minimum value of eta for which this
-        wavenumber is integrated */
+      wavenumber is integrated */
 
   /* will be at least the first time in the background table */  
   eta_lower = pba->eta_table[0];
@@ -1691,12 +1691,12 @@ int perturb_solve(
 
     /** (d) integrate the perturbations over the current interval. */
 
-  if(ppr->evolver == rk){
-	generic_evolver = evolver_rk;
-  }
-  else{
-  	generic_evolver = evolver_ndf15;
- }
+    if(ppr->evolver == rk){
+      generic_evolver = evolver_rk;
+    }
+    else{
+      generic_evolver = evolver_ndf15;
+    }
 
     class_call(generic_evolver(perturb_derivs,
 			       interval_limit[index_interval],
@@ -2113,7 +2113,6 @@ int perturb_vector_init(
   int index_pt;
   int l;
   int n_ncdm,index_q;
-  double rho_ncdm,p_ncdm;
 
   /** - allocate a new perturb_vector structure to which ppw->pv will point at the end of the routine */
 
@@ -2241,17 +2240,17 @@ int perturb_vector_init(
     /* non-cold dark matter */
 
     if (pba->has_ncdm == _TRUE_) {
-	  ppv->index_pt_psi0_ncdm1 = index_pt; /* density of ultra-relativistic neutrinos/relics */
-	  ppv->N_ncdm = pba->N_ncdm;
-	  // Set pointers to relevant arrays:
-	  ppv->q_size_ncdm = pba->q_size_ncdm;
+      ppv->index_pt_psi0_ncdm1 = index_pt; /* density of ultra-relativistic neutrinos/relics */
+      ppv->N_ncdm = pba->N_ncdm;
+      // Set pointers to relevant arrays:
+      ppv->q_size_ncdm = pba->q_size_ncdm;
       ppv->l_max_ncdm = ppr->l_max_ncdm;
       for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
-      /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
-      class_test(ppr->l_max_ncdm[n_ncdm] < 4,
-		 ppt->error_message,
-		 "ppr->l_max_ncdm%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
-		 index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
+	/* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
+	class_test(ppr->l_max_ncdm[n_ncdm] < 4,
+		   ppt->error_message,
+		   "ppr->l_max_ncdm%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
+	index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
       }
     }
 
@@ -2367,13 +2366,13 @@ int perturb_vector_init(
   if (pba->has_ncdm == _TRUE_) {
     index_pt = ppv->index_pt_psi0_ncdm1;
     for(n_ncdm = 0; n_ncdm < ppv-> N_ncdm; n_ncdm++){
-	  for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
-	    for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
-		  if (l>2) ppv->used_in_sources[index_pt]=_FALSE_;
+      for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
+	for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
+	  if (l>2) ppv->used_in_sources[index_pt]=_FALSE_;
           index_pt++;
-		}
-	  }
 	}
+      }
+    }
   }
 
   /** - case of setting initial conditions for a new wavenumber */
@@ -2512,18 +2511,18 @@ int perturb_vector_init(
 	}
 
 	if (pba->has_ncdm == _TRUE_) {
-    index_pt = 0;
-    for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
-	  for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
-	    for(l=0; l<=ppv->l_max_ncdm[n_ncdm];l++){
-		  ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] = 
-	      ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
-		  index_pt++;
-		}
+	  index_pt = 0;
+	  for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+	    for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
+	      for(l=0; l<=ppv->l_max_ncdm[n_ncdm];l++){
+		ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] = 
+		  ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+		index_pt++;
+	      }
+	    }
 	  }
-	 }
-//printf("Matches correct size of ncdm indices? %d\n",index_pt);
-    }
+	  //printf("Matches correct size of ncdm indices? %d\n",index_pt);
+	}
 	
 	if (ppr->gauge == synchronous)
 	  ppv->y[ppv->index_pt_eta] =
@@ -2567,19 +2566,19 @@ int perturb_vector_init(
 	}
 
 	if (pba->has_ncdm == _TRUE_) {
-    index_pt = 0;
-    for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
-	  for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
-	    for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
-		  ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] = 
-	      ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
-		  index_pt++;
-		}
+	  index_pt = 0;
+	  for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+	    for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
+	      for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
+		ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] = 
+		  ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+		index_pt++;
+	      }
+	    }
 	  }
-	 }
- //  printf("Matches(2) correct size of ncdm indices? %d\n",index_pt);
+	  //  printf("Matches(2) correct size of ncdm indices? %d\n",index_pt);
 
-    }
+	}
 	
 	if (ppr->gauge == synchronous)
 	  ppv->y[ppv->index_pt_eta] =
@@ -2666,8 +2665,6 @@ int perturb_initial_conditions(struct precision * ppr,
   double q,epsilon;
   int index_q,n_ncdm,idx;
 
-  double rho_ncdm,p_ncdm;
-
   class_call(background_at_eta(pba,
 			       eta, 
 			       normal_info, 
@@ -2708,10 +2705,10 @@ int perturb_initial_conditions(struct precision * ppr,
       }
       
       if (pba->has_ncdm == _TRUE_) {
-	    for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
-	      rho_r += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
-	      rho_nu += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
-		}
+	for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
+	  rho_r += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
+	  rho_nu += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
+	}
       }
       
       class_test(rho_r == 0.,
@@ -2824,28 +2821,28 @@ int perturb_initial_conditions(struct precision * ppr,
 	}    
 
 	if (pba->has_ncdm == _TRUE_) {
-	idx = ppw->pv->index_pt_psi0_ncdm1;
-	for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+	  idx = ppw->pv->index_pt_psi0_ncdm1;
+	  for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
 
-	  for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++) {
+	    for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++) {
 	    
-	    q = pba->q_ncdm[n_ncdm][index_q];
+	      q = pba->q_ncdm[n_ncdm][index_q];
 
-	    epsilon = sqrt(q*q+a*a*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
+	      epsilon = sqrt(q*q+a*a*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
 
-	    ppw->pv->y[idx] = -0.25 * delta_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	      ppw->pv->y[idx] = -0.25 * delta_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-	    ppw->pv->y[idx+1] =  -epsilon/3./q/k*theta_nur* pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	      ppw->pv->y[idx+1] =  -epsilon/3./q/k*theta_nur* pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-	    ppw->pv->y[idx+2] = -0.5 * shear_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	      ppw->pv->y[idx+2] = -0.5 * shear_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-	    ppw->pv->y[idx+3] = 0.*l3_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q]; /* compute correct factor!! */
+	      ppw->pv->y[idx+3] = 0.*l3_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q]; /* compute correct factor!! */
 		
-		//Jump to next momentum bin:
-		idx += (ppw->pv->l_max_ncdm[n_ncdm]+1);
+	      //Jump to next momentum bin:
+	      idx += (ppw->pv->l_max_ncdm[n_ncdm]+1);
 
+	    }
 	  }
-	}
 	}
 
 	/* metric perturbation eta */
@@ -3316,39 +3313,39 @@ int perturb_einstein(
 
     /* non-cold dark matter contribution */
     if (pba->has_ncdm == _TRUE_) {
-	 idx = ppw->pv->index_pt_psi0_ncdm1;
-     for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-	 rho_delta_ncdm = 0.0;
-	 rho_plus_p_theta_ncdm = 0.0;
-	 rho_plus_p_shear_ncdm = 0.0;
-     factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
+      idx = ppw->pv->index_pt_psi0_ncdm1;
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+	rho_delta_ncdm = 0.0;
+	rho_plus_p_theta_ncdm = 0.0;
+	rho_plus_p_shear_ncdm = 0.0;
+	factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
 	 
-      for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
+	for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
 	    
-	q = pba->q_ncdm[n_ncdm][index_q];
-	q2 = q*q;
-	epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
+	  q = pba->q_ncdm[n_ncdm][index_q];
+	  q2 = q*q;
+	  epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
 
-	rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
-	rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
-	rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];;
+	  rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+	  rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
+	  rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];;
 	
-	//Jump to next momentum bin:
-	idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
+	  //Jump to next momentum bin:
+	  idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
+	}
+
+	rho_delta_ncdm *= factor;
+	rho_plus_p_theta_ncdm *= k*factor;
+	rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
+
+	if (ppt->has_matter_transfers == _TRUE_) {
+	  ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+	}
+
+	delta_rho += rho_delta_ncdm;
+	rho_plus_p_theta += rho_plus_p_theta_ncdm;
+	rho_plus_p_shear += rho_plus_p_shear_ncdm;
       }
-
-      rho_delta_ncdm *= factor;
-      rho_plus_p_theta_ncdm *= k*factor;
-      rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
-
-      if (ppt->has_matter_transfers == _TRUE_) {
-	ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-      }
-
-      delta_rho += rho_delta_ncdm;
-      rho_plus_p_theta += rho_plus_p_theta_ncdm;
-      rho_plus_p_shear += rho_plus_p_shear_ncdm;
-	  }
     }
 
     /** (c) infer metric perturbations from Einstein equations */
@@ -3526,8 +3523,8 @@ int perturb_source_terms(
   source_term_table = ppw->source_term_table;
 
   /* class_test(ppw->approx[ppw->index_ap_tca] == (int)tca_on, */
-/* 	     ppt->error_message, */
-/* 	     "source calculation assume tight-coupling approximation turned off"); */
+  /* 	     ppt->error_message, */
+  /* 	     "source calculation assume tight-coupling approximation turned off"); */
 
   x = k * (pba->conformal_age-eta);
 
@@ -4106,18 +4103,18 @@ int perturb_print_variables(double eta,
     }
   }
   
-/** - print whatever you want for whatever mode of your choice */
-/*   qsiz = ppw->pv->q_size_ncdm1; */
-/*   if(((k>0.004)&&(k<0.005))||((k>0.0148)&&(k<0.0152))){ */
-/*     fprintf(stdout,"%g %g ",pvecback[pba->index_bg_a],k); */
-/*     for(l=0; l<=ppw->pv->l_max_ncdm1; l++){ */
-/*       for(index_q=0; index_q < qsiz; index_q++){ */
-/*       index_q = 3; */
-/*       fprintf(stdout,"%g ",y[ppw->pv->index_pt_psi0_ncdm1+l*qsiz+index_q]); */
-/*       } */
-/*     } */
-/*     fprintf(stdout,"\n"); */
-/*   } */
+  /** - print whatever you want for whatever mode of your choice */
+  /*   qsiz = ppw->pv->q_size_ncdm1; */
+  /*   if(((k>0.004)&&(k<0.005))||((k>0.0148)&&(k<0.0152))){ */
+  /*     fprintf(stdout,"%g %g ",pvecback[pba->index_bg_a],k); */
+  /*     for(l=0; l<=ppw->pv->l_max_ncdm1; l++){ */
+  /*       for(index_q=0; index_q < qsiz; index_q++){ */
+  /*       index_q = 3; */
+  /*       fprintf(stdout,"%g ",y[ppw->pv->index_pt_psi0_ncdm1+l*qsiz+index_q]); */
+  /*       } */
+  /*     } */
+  /*     fprintf(stdout,"\n"); */
+  /*   } */
 
   return _SUCCESS_;
 
@@ -4171,7 +4168,7 @@ int perturb_derivs(double eta,
   double slip=0.;
   double Pi;
   double tau_c=0.,dtau_c=0.;
-  double theta_prime,shear_g_prime,theta_prime_prime,h_prime_prime;
+  double theta_prime,shear_g_prime=0.,theta_prime_prime,h_prime_prime;
   double g0,g0_prime,g0_prime_prime;
   double F=0.,F_prime=0.,F_prime_prime=0.;
 
@@ -4385,9 +4382,9 @@ int perturb_derivs(double eta,
 
 	  slip=2.*R/(1.+R)*a_prime_over_a*(theta_b-theta_g)
 	    +F*(-a_primeprime_over_a*theta_b
-			   +k2*(-a_prime_over_a*delta_g/2.
-				+cb2*dy[ppw->pv->index_pt_delta_b]
-				-dy[ppw->pv->index_pt_delta_g]/4.));
+		+k2*(-a_prime_over_a*delta_g/2.
+		     +cb2*dy[ppw->pv->index_pt_delta_b]
+		     -dy[ppw->pv->index_pt_delta_g]/4.));
 	  
 	}
 
@@ -4396,9 +4393,9 @@ int perturb_derivs(double eta,
 
 	  slip=(dtau_c/tau_c-2.*a_prime_over_a/(1.+R))*(theta_b-theta_g)
 	    +F*(-a_primeprime_over_a*theta_b
-			   +k2*(-a_prime_over_a*delta_g/2.
-				+cb2*dy[ppw->pv->index_pt_delta_b]
-				-dy[ppw->pv->index_pt_delta_g]/4.));
+		+k2*(-a_prime_over_a*delta_g/2.
+		     +cb2*dy[ppw->pv->index_pt_delta_b]
+		     -dy[ppw->pv->index_pt_delta_g]/4.));
 	  
 	}
 
@@ -4407,10 +4404,10 @@ int perturb_derivs(double eta,
 	  
 	  slip=(dtau_c/tau_c-2.*a_prime_over_a/(1.+R))*(theta_b-theta_g)
 	    +F*(-a_primeprime_over_a*theta_b
-			   +k2*(-a_prime_over_a*delta_g/2.
-				+pvecthermo[pth->index_th_dcb2]*y[ppw->pv->index_pt_delta_b]
-				+cb2*dy[ppw->pv->index_pt_delta_b]
-				-dy[ppw->pv->index_pt_delta_g]/4.));
+		+k2*(-a_prime_over_a*delta_g/2.
+		     +pvecthermo[pth->index_th_dcb2]*y[ppw->pv->index_pt_delta_b]
+		     +cb2*dy[ppw->pv->index_pt_delta_b]
+		     -dy[ppw->pv->index_pt_delta_g]/4.));
 	}
 
 	/* shear_g at first order in tight-coupling */
@@ -4425,7 +4422,7 @@ int perturb_derivs(double eta,
 	
 	/* shear_g_prime at first order in tight-coupling */
 	shear_g_prime=16./45.*(tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime])
-				 +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
+			       +dtau_c*(theta_g+0.5*h_plus_six_eta_prime));
 
 	/* 2nd order as in CRS*/
 	if (ppr->tight_coupling_approximation == (int)second_order_CRS) {
@@ -4747,44 +4744,44 @@ int perturb_derivs(double eta,
     /** (h) non-cold dark matter (massive neutrinos, WDM, etc.) */
 
     if (pba->has_ncdm == _TRUE_) {
-		idx = ppw->pv->index_pt_psi0_ncdm1;
-	  for (n_ncdm=0; n_ncdm<ppw->pv->N_ncdm; n_ncdm++){
-		for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++){
-			dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
-			q = pba->q_ncdm[n_ncdm][index_q];
-			epsilon = sqrt(q*q+a2*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
-			qk_div_epsilon = k*q/epsilon;
+      idx = ppw->pv->index_pt_psi0_ncdm1;
+      for (n_ncdm=0; n_ncdm<ppw->pv->N_ncdm; n_ncdm++){
+	for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++){
+	  dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	  q = pba->q_ncdm[n_ncdm][index_q];
+	  epsilon = sqrt(q*q+a2*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
+	  qk_div_epsilon = k*q/epsilon;
 			
-			if (ppr->gauge == synchronous) {
-				dy[idx] = -qk_div_epsilon*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]*dlnf0_dlnq/6.;
+	  if (ppr->gauge == synchronous) {
+	    dy[idx] = -qk_div_epsilon*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]*dlnf0_dlnq/6.;
 					
-				dy[idx+1] = qk_div_epsilon/3.*(y[idx]-2.*y[idx+2]);
+	    dy[idx+1] = qk_div_epsilon/3.*(y[idx]-2.*y[idx+2]);
 					
-				dy[idx+2] = qk_div_epsilon/5.0*(2*y[idx+1]-3.*y[idx+3])-h_plus_six_eta_prime/15.*dlnf0_dlnq;
-			}
-
-			if (ppr->gauge == newtonian){
-				dy[idx] = -qk_div_epsilon*y[idx+1]-pvecmetric[ppw->index_mt_phi_prime]*dlnf0_dlnq;
-				
-				dy[idx+1] = qk_div_epsilon/3.0*(y[idx] - 2*y[idx+2])-
-				epsilon*k/(3*q)*pvecmetric[ppw->index_mt_psi]*dlnf0_dlnq;
-				
-				dy[idx+2] = qk_div_epsilon/5.0*(2*y[idx+1]-3*y[idx+3]);
-				
-			}
-						
-			for(l=3; l<ppw->pv->l_max_ncdm[n_ncdm]; l++){
-				dy[idx+l] = qk_div_epsilon/(2.*l+1.0)*(l*y[idx+(l-1)]-(l+1.)*y[idx+(l+1)]);
-			}
-			
-			// Truncation as in Ma and Bertschinger. We have l = lmax-1;
-			//l is now l_max
-			dy[idx+l] = qk_div_epsilon*y[idx+l-1]-(1.+l)/eta*y[idx+l]; 
-			
-			// Jump to next momentum bin:
-			idx += (ppw->pv->l_max_ncdm[n_ncdm]+1);
-		}
+	    dy[idx+2] = qk_div_epsilon/5.0*(2*y[idx+1]-3.*y[idx+3])-h_plus_six_eta_prime/15.*dlnf0_dlnq;
 	  }
+
+	  if (ppr->gauge == newtonian){
+	    dy[idx] = -qk_div_epsilon*y[idx+1]-pvecmetric[ppw->index_mt_phi_prime]*dlnf0_dlnq;
+				
+	    dy[idx+1] = qk_div_epsilon/3.0*(y[idx] - 2*y[idx+2])-
+	      epsilon*k/(3*q)*pvecmetric[ppw->index_mt_psi]*dlnf0_dlnq;
+				
+	    dy[idx+2] = qk_div_epsilon/5.0*(2*y[idx+1]-3*y[idx+3]);
+				
+	  }
+						
+	  for(l=3; l<ppw->pv->l_max_ncdm[n_ncdm]; l++){
+	    dy[idx+l] = qk_div_epsilon/(2.*l+1.0)*(l*y[idx+(l-1)]-(l+1.)*y[idx+(l+1)]);
+	  }
+			
+	  // Truncation as in Ma and Bertschinger. We have l = lmax-1;
+	  //l is now l_max
+	  dy[idx+l] = qk_div_epsilon*y[idx+l-1]-(1.+l)/eta*y[idx+l]; 
+			
+	  // Jump to next momentum bin:
+	  idx += (ppw->pv->l_max_ncdm[n_ncdm]+1);
+	}
+      }
     }
 
     /** (j) metric */

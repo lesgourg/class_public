@@ -71,7 +71,7 @@ int lensing_init(
   /** local variables */
 
   double * mu; /* mu[index_mu]: discretized values of mu
-		    between -1 and 1, roots of Legendre polynomial */
+		  between -1 and 1, roots of Legendre polynomial */
   double * w8; /* Corresponding Gauss-Legendre quadrature weights */
   
   double ** d00;  /* dmn[index_mu][index_l] */
@@ -142,7 +142,7 @@ int lensing_init(
 
   /** put here all precision variables; will be stored later in precision structure */
   /** Last element in mu will be for mu=1, needed for sigma2 
-   The rest will be chosen as roots of a Gauss-Legendre quadrature **/
+      The rest will be chosen as roots of a Gauss-Legendre quadrature **/
   
   num_mu=(ple->l_unlensed_max+ppr->num_mu_minus_lmax); /* Must be even ?? CHECK */
   num_mu += num_mu%2; /* Force it to be even */ 
@@ -496,7 +496,7 @@ int lensing_init(
               ple->error_message);
   {
     double res;
-#pragma omp parallel for \
+#pragma omp parallel for			\
   private (index_mu,l,ll,res)			\
   schedule (static)
 
@@ -535,7 +535,7 @@ int lensing_init(
         sqllp1[l] = sqrt(ll*(ll+1));
       }
       
-#pragma omp parallel for \
+#pragma omp parallel for			\
   private (index_mu,l,ll,res)			\
   schedule (static)
 
@@ -549,7 +549,7 @@ int lensing_init(
                    (X121[index_mu][l]*d11[index_mu][l] + X132[index_mu][l]*d3m1[index_mu][l]) +
                    0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
                    ( ( 2.*Xp022[index_mu][l]*Xp000[index_mu][l]+X220[index_mu][l]*X220[index_mu][l] ) *
-                    d20[index_mu][l] + X220[index_mu][l]*X242[index_mu][l]*d4m2[index_mu][l] ) );
+		     d20[index_mu][l] + X220[index_mu][l]*X242[index_mu][l]*d4m2[index_mu][l] ) );
           ksiX[index_mu] += res;
         }
       }
@@ -567,8 +567,8 @@ int lensing_init(
 		ple->error_message);
     {
       double resp, resm;
-#pragma omp parallel for \
-  private (index_mu,l,ll,resp,resm)			\
+#pragma omp parallel for			\
+  private (index_mu,l,ll,resp,resm)		\
   schedule (static)
 
       for (index_mu=0;index_mu<num_mu-1;index_mu++) {
@@ -802,18 +802,18 @@ int lensing_indices(
 
 
 int lensing_lensed_cl_tt(
-        double *ksi, 
-        double **d00,
-        double *w8,
-        int nmu,
-        struct lensing * ple
-        ) {
+			 double *ksi, 
+			 double **d00,
+			 double *w8,
+			 int nmu,
+			 struct lensing * ple
+			 ) {
   
   double cle;
   int l, imu;
   /** Integration by Gauss-Legendre quadrature **/
-#pragma omp parallel for \
-  private (imu,l,cle)			\
+#pragma omp parallel for			\
+  private (imu,l,cle)				\
   schedule (static)
   for(l=2;l<=ple->l_lensed_max;l++){
     cle=0;
@@ -848,8 +848,8 @@ int lensing_lensed_cl_te(
   double clte;
   int l, imu;
   /** Integration by Gauss-Legendre quadrature **/
-#pragma omp parallel for \
-  private (imu,l,clte)			\
+#pragma omp parallel for			\
+  private (imu,l,clte)				\
   schedule (static)
   for(l=2;l<=ple->l_lensed_max;l++){
     clte=0;
@@ -888,7 +888,7 @@ int lensing_lensed_cl_ee_bb(
   double clp, clm;
   int l, imu;
   /** Integration by Gauss-Legendre quadrature **/
-#pragma omp parallel for \
+#pragma omp parallel for			\
   private (imu,l,clp,clm)			\
   schedule (static)
   for(l=2;l<=ple->l_lensed_max;l++){
@@ -915,16 +915,16 @@ int lensing_lensed_cl_ee_bb(
  **/
 
 int lensing_X000(
-        double * mu,
-        int num_mu,
-        int lmax,
-        double * sigma2,
-        double ** X000
-        ) {
+		 double * mu,
+		 int num_mu,
+		 int lmax,
+		 double * sigma2,
+		 double ** X000
+		 ) {
   int index_mu, l;
   double ll;
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -948,12 +948,12 @@ int lensing_X000(
  **/
 
 int lensing_Xp000(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double * sigma2,
-                 double ** Xp000
-                 ) {
+		  double * mu,
+		  int num_mu,
+		  int lmax,
+		  double * sigma2,
+		  double ** Xp000
+		  ) {
   int index_mu, l;
   double ll;
   double *fac;
@@ -963,8 +963,8 @@ int lensing_Xp000(
     ll = (double) l;
     fac[l]=ll*(ll+1)/4.;
   }
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1006,8 +1006,8 @@ int lensing_X220(
     fac1[l] = 0.25*sqrt((ll+2)*(ll+1)*ll*(ll-1));
     fac2[l] = (ll*(ll+1)-2.)/4.;
   }
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1049,8 +1049,8 @@ int lensing_X022(
     ll = (double) l;
     fac[l] = (ll*(ll+1)-4.)/4.;
   }
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1077,12 +1077,12 @@ int lensing_X022(
  **/
 
 int lensing_Xp022(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double * sigma2,
-                 double ** Xp022
-                 ) {
+		  double * mu,
+		  int num_mu,
+		  int lmax,
+		  double * sigma2,
+		  double ** Xp022
+		  ) {
   int index_mu, l;
   double ll;
   double *fac;
@@ -1092,8 +1092,8 @@ int lensing_Xp022(
     ll = (double) l;
     fac[l] = (ll*(ll+1)-4.)/4.;
   }
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1137,8 +1137,8 @@ int lensing_X121(
     fac1[l] = 0.5*sqrt((ll+2)*(ll-1));
     fac2[l] = (ll*(ll+1)-8./3.)/4.;
   }
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1182,8 +1182,8 @@ int lensing_X132(
     fac1[l] = 0.5*sqrt((ll+3)*(ll-2));
     fac2[l] = (ll*(ll+1)-20./3.)/4.;
   }
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1228,8 +1228,8 @@ int lensing_X242(
     fac1[l] = 0.25*sqrt((ll+4)*(ll+3)*(ll-2.)*(ll-3));
     fac2[l] = (ll*(ll+1)-10.)/4.;
   }
-#pragma omp parallel for \
-  private (index_mu,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,l,ll)			\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1280,8 +1280,8 @@ int lensing_d00(
     fac3[l] = sqrt(2./(2*ll+3));
   }
 
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1337,8 +1337,8 @@ int lensing_d11(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-1)*(ll+1)/(ll*(ll+2))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1374,11 +1374,11 @@ int lensing_d11(
  **/
 
 int lensing_d1m1(
-                double * mu,
-                int num_mu,
-                int lmax,
-                double ** d1m1
-                ) {
+		 double * mu,
+		 int num_mu,
+		 int lmax,
+		 double ** d1m1
+		 ) {
   double ll, dlm1, dl, dlp1;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
@@ -1394,8 +1394,8 @@ int lensing_d1m1(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-1)*(ll+1)/(ll*(ll+2))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1451,8 +1451,8 @@ int lensing_d2m2(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-2)*(ll+2)/((ll-1)*(ll+3))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1488,11 +1488,11 @@ int lensing_d2m2(
  **/
 
 int lensing_d22(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double ** d22
-                 ) {
+		double * mu,
+		int num_mu,
+		int lmax,
+		double ** d22
+		) {
   double ll, dlm1, dl, dlp1;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
@@ -1508,8 +1508,8 @@ int lensing_d22(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-2)*(ll+2)/((ll-1)*(ll+3))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1563,8 +1563,8 @@ int lensing_d20(
     fac3[l] = sqrt((2*ll+3)*(ll-2)*(ll+2)/((2*ll-1)*(ll-1)*(ll+3)));
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1620,8 +1620,8 @@ int lensing_d31(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1)*(ll-3)*(ll+3)*(ll-1)*(ll+1)/((ll-2)*(ll+4)*ll*(ll+2)))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1658,11 +1658,11 @@ int lensing_d31(
  **/
 
 int lensing_d3m1(
-                double * mu,
-                int num_mu,
-                int lmax,
-                double ** d3m1
-                ) {
+		 double * mu,
+		 int num_mu,
+		 int lmax,
+		 double ** d3m1
+		 ) {
   double ll, dlm1, dl, dlp1;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
@@ -1678,8 +1678,8 @@ int lensing_d3m1(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1)*(ll-3)*(ll+3)*(ll-1)*(ll+1)/((ll-2)*(ll+4)*ll*(ll+2)))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1736,8 +1736,8 @@ int lensing_d3m3(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-3)*(ll+3)*(l+1)/((ll-2)*(ll+4)*ll);
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1792,8 +1792,8 @@ int lensing_d40(
     fac3[l] = sqrt((2*ll+3)*(ll-4)*(ll+4)/((2*ll-1)*(ll-3)*(ll+5)));
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1851,8 +1851,8 @@ int lensing_d4m2(
     fac3[l] = sqrt((2*ll+3)*(ll-4)*(ll+4)*(ll-2)*(ll+2)/((2*ll-1)*(ll-3)*(ll+5)*(ll-1)*(ll+3)))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1910,8 +1910,8 @@ int lensing_d4m4(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-4)*(ll+4)*(ll+1)/((ll-3)*(ll+5)*ll);
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for \
-  private (index_mu,dlm1,dl,dlp1,l,ll) \
+#pragma omp parallel for			\
+  private (index_mu,dlm1,dl,dlp1,l,ll)		\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {

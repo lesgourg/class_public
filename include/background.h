@@ -303,13 +303,13 @@ extern "C" {
 			 struct background *pba
 			 );
 
-  int background_ncdm1_distribution(
+  int background_ncdm_distribution(
 				  void *pba,
 				  double q,
 				  double * f0
 				  );
 
-  int background_ncdm1_test_function(
+  int background_ncdm_test_function(
 				     void *pba,
 				     double q,
 				     double * test
