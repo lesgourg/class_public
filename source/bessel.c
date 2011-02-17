@@ -604,6 +604,7 @@ int bessel_j_for_l(
   else {
 
     *(pbs->x_min[index_l]) = x_min;
+    pbs->j[index_l][0] = j;
 
     class_call(bessel_j(pbs,
 			pbs->l[index_l]-1, /* l-1 */

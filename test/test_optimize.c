@@ -91,7 +91,9 @@ int main(int argc, char **argv) {
   double * param;
 
   FILE * output;
+  GILE * results;
   char filename[30];
+  char results_name[60];
   char junk_string[60];
   int l_read;
 

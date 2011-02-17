@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   double transfer;
 
 /*   for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { */
-  for (index_l=4; index_l<5; index_l++) {
+  for (index_l=13; index_l<13; index_l++) {
     for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
       
       transfer=tr.transfer[index_mode]

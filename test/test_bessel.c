@@ -14,13 +14,12 @@ main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct lensing le;          /* for lensing spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
-  struct spectra_nl nl;       /* for calculation of non-linear spectra */
-
   ErrorMsg errmsg;
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,&nl,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -46,6 +45,14 @@ main(int argc, char **argv) {
   }
 
   /****** here you could output the bessel functions ******/
+
+  int index_l=13;
+  int index_x;
+  for (index_x=0; index_x<bs.x_size[index_l]; index_x++) {
+    printf("%e %e\n",
+	   *(bs.x_min[index_l])+bs.x_step*index_x,
+	   bs.j[index_l][index_x]);
+  }
 
   if (bessel_free(&bs) == _FAILURE_) {
     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
