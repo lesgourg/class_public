@@ -532,11 +532,8 @@ struct precision
 
   //@{
 
-  double k_step_trans_scalars; /**< sampling step in k space, in units of \f$ 2\pi/(\eta_0-\eta_{rec}) \f$, which is the typical period of oscillations of \f$ \Delta_l(k) \f$ */
-  double k_step_trans_tensors; /**< sampling step in k space, in units of \f$ 2\pi/(\eta_0-\eta_{rec}) \f$, which is the typical period of oscillations of \f$ \Delta_l(k) \f$ */
-
-/*   int k_oversampling_scalars; */
-/*   int k_oversampling_tensors; */
+  double k_step_trans_scalars; /**< upper bound on linear sampling step in k space, in units of one period of acoustic oscillation at decoupling (usually chosen to be between k_scalar_step_sub and k_scalar_step_super) */
+  double k_step_trans_tensors; /**< upper bound on linear sampling step in k space, in units of one period of acoustic oscillation at decoupling (usually chosen to be between k_tensor_step_sub and k_tensor_step_super) */
 
   enum transfer_cutting transfer_cut; /**< flag telling how to cut automatically the transfer function computation at a given \f$ k_{max} \f$ value */
 
@@ -546,8 +543,6 @@ struct precision
 
   int l_switch_limber;
 
-  double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
-
   //@}
 
   /** @name - parameters related to lensing */
@@ -556,7 +551,7 @@ struct precision
 
   int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
   int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
-
+  double tol_gauss_legendre; /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
   //@}
 
 
@@ -579,6 +574,14 @@ struct precision
   double logstepk6;
   double logstepk7;
   double logstepk8;
+
+  //@}
+
+  /** @name - general precision parameters */
+
+  //@{
+
+  double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
 
   //@}
 

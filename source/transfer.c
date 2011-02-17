@@ -227,7 +227,7 @@ int transfer_init(
 
   /** - initialize all indices in the transfers structure and 
         allocate all its arrays using transfer_indices_of_transfers() */
-  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,eta0,eta_rec),
+  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,pth->rs_rec),
 	     ptr->error_message,
 	     ptr->error_message);
 
@@ -323,6 +323,10 @@ int transfer_init(
 	
         /** (b.1) interpolate sources to get them at the right values of k 
                 using transfer_interpolate_sources() */
+
+	if (ptr->transfer_verbose>1)
+	  printf("In %s: Interpolate sources for one mode/ic/type.\n",
+		 __func__);
 
 	class_call(transfer_interpolate_sources(ppt,
 						ptr,
@@ -535,6 +539,11 @@ int transfer_free(
  * arrays in the transfers structure. Allocate the array of transfer
  * function tables.
  *
+ * @param ppr Input : pointer to precision structure 
+ * @param ppt Input : pointer to perturbation structure
+ * @param pbs Input : pointer to bessels structure
+ * @param ptr Input/Output: pointer to transfer structure
+ * @param rs_rec  Input : comoving distance to recombination
  * @return the error status
  */
 
@@ -543,8 +552,7 @@ int transfer_indices_of_transfers(
 				  struct perturbs * ppt,
 				  struct bessels * pbs,
 				  struct transfers * ptr,
-				  double eta0,
-				  double eta_rec
+				  double rs_rec
 				  ) {
 
   /** Summary: */
@@ -630,7 +638,7 @@ int transfer_indices_of_transfers(
   for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
 
     /** (a) get k values using transfer_get_k_list() */
-    class_call(transfer_get_k_list(ppr,ppt,ptr,eta0,eta_rec,index_mode),
+    class_call(transfer_get_k_list(ppr,ppt,ptr,rs_rec,index_mode),
 	       ptr->error_message,
 	       ptr->error_message);
 
@@ -717,15 +725,17 @@ int transfer_get_l_list(
 }
 
 /**
- * This routine defines the number and values of wavenumbers k for each mode
- * (different in perturbation module and transfer module: 
- * higher sampling needed here)
+ * This routine defines the number and values of wavenumbers k for
+ * each mode (different in perturbation module and transfer module:
+ * here we impose an upper bound on the linear step. So, typically,
+ * for small k, the sampling is identical to that in the perturbation
+ * module, while at high k it is denser and source functions are
+ * interpolated).
  *
  * @param ppr     Input : pointer to precision structure
  * @param ppt     Input : pointer to perturbation structure
  * @param ptr     Input/Output : pointer to transfers structure containing k's
- * @param eta0    Input : conformal time today
- * @param eta_rec Input : conformal time at recombination
+ * @param rs_rec  Input : comoving distance to recombination
  * @param index_mode Input: index of requested mode (scalar, tensor, etc) 
  * @return the error status
  */
@@ -734,105 +744,104 @@ int transfer_get_k_list(
 			struct precision * ppr,
 			struct perturbs * ppt,
 			struct transfers * ptr,
-			double eta0,
-			double eta_rec,
+			double rs_rec,
 			int index_mode
 			) {
 
-  double k_min=0;
-  double k_max_pt=0;
-  double k_step=0;
-  int index_k;
+  int index_k_pt;
+  int index_k_tr;
+  double k,k_min,k_max,k_step_max=0.;
 
-/*   int oversampling=1,index_k_pt,index_oversampling; */
-
-/*   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) */
-/*     oversampling = ppr->k_oversampling_scalars; */
-
-/*   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) */
-/*     oversampling = ppr->k_oversampling_tensors; */
-
-/*     class_test(oversampling == 0, */
-/* 	       ptr->error_message, */
-/* 	       "stop to avoid division by zero"); */
-
-/*   ptr->k_size[index_mode] = (ppt->k_size_cl[index_mode]-1)*oversampling+1; */
- 
-/*   class_alloc(ptr->k[index_mode],ptr->k_size[index_mode]*sizeof(double),ptr->error_message); */
-
-/*   fprintf(stderr,"%d %d %d\n",oversampling,ptr->k_size[index_mode],index_mode); */
-
-/*   index_k = 0; */
-
-/*   for (index_k_pt = 0; index_k_pt < ppt->k_size[index_mode]-1; index_k_pt++) { */
-
-/*     for (index_oversampling = 0; index_oversampling < oversampling; index_oversampling++) { */
-
-/*     ptr->k[index_mode][index_k] = ppt->k[index_mode][index_k_pt] */
-/*       +(double)index_oversampling*(ppt->k[index_mode][index_k_pt+1]-ppt->k[index_mode][index_k_pt])/(double)oversampling; */
-
-/*     printf("%d %e %g\n",index_k,ptr->k[index_mode][index_k],0.5); */
-
-/*     class_test(ptr->k[index_mode][index_k] == 0., */
-/* 	       ptr->error_message, */
-/* 	       "stop to avoid division by zero in transfer_init()"); */
-
-/*     index_k++; */
-
-/*     } */
-/*   } */
-
-/*   ptr->k[index_mode][index_k] = ppt->k[index_mode][ppt->k_size[index_mode]-1]; */
-  
-/*   printf("%d %e %g\n",index_k,ptr->k[index_mode][index_k],0.5); */
-
-/*   return _SUCCESS_; */
-
-
-
-  class_test((eta0-eta_rec) == 0.,
-	     ptr->error_message,
-	     "stop to avoid division by zero");
+  /* find k_step_max, the maximum value of the step */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-    k_min = ppt->k[ppt->index_md_scalars][0]; /* first value, inferred from perturbations structure */
-
-    k_max_pt = ppt->k[ppt->index_md_scalars][ppt->k_size_cl[ppt->index_md_scalars]-1]; /* last value, inferred from perturbations structure */
- 
-    k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans_scalars; /* step_size, inferred from precision_params structure */
+    k_step_max = 2.*_PI_/rs_rec*ppr->k_step_trans_scalars; /* step_size, inferred from precision_params structure */
 
   }
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-    k_min = ppt->k[ppt->index_md_tensors][0]; /* first value, inferred from perturbations structure */
-
-    k_max_pt = ppt->k[ppt->index_md_tensors][ppt->k_size_cl[ppt->index_md_tensors]-1]; /* last value, inferred from perturbations structure */
-    
-    k_step = 2.*_PI_/(eta0-eta_rec)*ppr->k_step_trans_tensors; /* step_size, inferred from precision_params structure */
+    k_step_max = 2.*_PI_/rs_rec*ppr->k_step_trans_tensors; /* step_size, inferred from precision_params structure */
 
   }
 
-  class_test(k_step == 0.,
+  class_test(k_step_max == 0.,
 	     ptr->error_message,
-	     "stop to avoid division by zero");
+	     "stop to avoid infinite loop");
 
-  ptr->k_size[index_mode] = (int)((k_max_pt-k_min)/k_step) + 1; /* corresponding number of k values */
+  /* first and last value in perturbation module */
 
-  class_alloc(ptr->k[index_mode],ptr->k_size[index_mode]*sizeof(double),ptr->error_message);
+  k_min = ppt->k[index_mode][0]; /* first value, inferred from perturbations structure */
 
-  for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
+  k_max = ppt->k[index_mode][ppt->k_size_cl[index_mode]-1]; /* last value, inferred from perturbations structure */
 
-    ptr->k[index_mode][index_k] = k_min + index_k * k_step;
+  /* first, count the number of necessary values */
 
-    class_test(ptr->k[index_mode][index_k] == 0.,
-	       ptr->error_message,
-	       "stop to avoid division by zero in transfer_init()");
+  index_k_pt = 0;
+  index_k_tr = 0;
 
+  /* - first point */
+
+  k = k_min;
+  index_k_pt++;
+  index_k_tr++;
+
+  /* - points taken from perturbation module if step smkall enough */
+
+  while ((index_k_pt < ppt->k_size[index_mode]) && ((ppt->k[index_mode][index_k_pt] -k) < k_step_max)) {
+      k = ppt->k[index_mode][index_k_pt];
+      index_k_pt++;
+      index_k_tr++;
   }
-  
-  return _SUCCESS_;
+
+  /* - then, points spaced linearily with step k_step_max */
+
+  while (k < k_max) {
+      k += k_step_max;
+      index_k_tr++;
+  }
+
+  /* - get number of points and allocate list */
+
+  if (k > k_max)
+    ptr->k_size[index_mode]=index_k_tr-1;
+  else
+    ptr->k_size[index_mode]=index_k_tr;
+
+  class_alloc(ptr->k[index_mode],
+	      ptr->k_size[index_mode]*sizeof(double),
+	      ptr->error_message);
+
+  /* repeat exactly the same steps, but now filling the list */
+
+  index_k_pt = 0;
+  index_k_tr = 0;
+
+  ptr->k[index_mode][0] = k_min;
+  index_k_pt++;
+  index_k_tr++;
+
+  while ((index_k_pt < ppt->k_size[index_mode]) && ((ppt->k[index_mode][index_k_pt] -k) < k_step_max)) {
+      k = ppt->k[index_mode][index_k_pt];
+      ptr->k[index_mode][index_k_tr] = k;
+      index_k_pt++;
+      index_k_tr++;
+  }
+
+  while ((index_k_tr < ptr->k_size[index_mode]) && (k < k_max)) {
+      k += k_step_max;
+      ptr->k[index_mode][index_k_tr] = k;
+      index_k_tr++;
+  }
+
+  /* consistency check */
+
+  class_test(ptr->k[index_mode][ptr->k_size[index_mode]-1] > k_max,
+	     ptr->error_message,
+	     "bug in k list calculation, k_max larger in transfer than in perturb, should never happen");
+
+  return _SUCCESS_; 
 
 }
 

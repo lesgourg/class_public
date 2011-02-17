@@ -439,3 +439,52 @@ int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
   return _SUCCESS_;
 }
 	
+/**
+ * This routine computes the weights and abscissas of a Gauss-Legendre quadrature between -1 and 1
+ *
+ * @param mu     Input/output: Vector of cos(beta) values
+ * @param w8     Input/output: Vector of quadrature weights
+ * @param n      Input       : Number of quadrature points
+ * @param tol    Input       : tolerance on each mu
+ *
+ * From Numerical recipes 
+ **/
+
+int quadrature_gauss_legendre(
+                           double *mu,
+                           double *w8,
+                           int n,
+			   double tol,
+			   ErrorMsg error_message) {
+  
+  int m,j,i,counter;
+  double z1,z,pp,p3,p2,p1;
+
+  m=(n+1)/2;
+  for (i=1;i<=m;i++) {
+    z=cos(_PI_*((double)i-0.25)/((double)n+0.5));
+    counter=0;
+    do {
+      p1=1.0;
+      p2=0.0;
+      for (j=1;j<=n;j++) {
+        p3=p2;
+        p2=p1;
+        p1=((2.0*j-1.0)*z*p2-(j-1.0)*p3)/j;
+      }
+      pp=n*(z*p1-p2)/(z*z-1.0);
+      z1=z;
+      z=z1-p1/pp;
+      counter++;
+      class_test(counter == _MAX_IT_,
+		 error_message,
+		 "maximum number of iteration reached: increase either _MAX_IT_ or tol\n");
+    } while (fabs(z-z1) > tol);
+    mu[i-1]=-z;
+    mu[n-i]=z;
+    w8[i-1]=2.0/((1.0-z*z)*pp*pp);
+    w8[n-i]=w8[i-1];
+    
+  }
+  return _SUCCESS_;
+}

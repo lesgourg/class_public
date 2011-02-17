@@ -14,13 +14,12 @@ int main(int argc, char **argv) {
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
-  struct lensing le;          /* for lensing spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
-  struct spectra_nl nl;       /* for calculation of non-linear spectra */
-
   ErrorMsg errmsg;
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&le,&op,&nl,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -92,7 +91,7 @@ int main(int argc, char **argv) {
   double transfer;
 
 /*   for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { */
-  for (index_l=140; index_l<141; index_l++) {
+  for (index_l=4; index_l<5; index_l++) {
     for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
       
       transfer=tr.transfer[index_mode]

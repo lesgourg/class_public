@@ -77,6 +77,8 @@ TEST_LOOPS = test_loops.o
 
 TEST_SPECTRA = test_spectra.o
 
+TEST_LENSING = test_lensing.o
+
 TEST_TRANSFER = test_transfer.o
 
 TEST_BESSEL = test_bessel.o
@@ -94,11 +96,14 @@ TEST_KARIM = test_karim.o
 TEST_PBC = test_pbc.o
 
 all: class libclass.a
-	
+
 libclass.a: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT)
 	$(AR)  $@ $(addprefix build/,$(notdir $^))
-	
+
 class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CLASS)
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_lensing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_LENSING)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_pbc: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_PBC)

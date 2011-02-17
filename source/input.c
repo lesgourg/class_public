@@ -1059,9 +1059,6 @@ int input_init(
 
   class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
   class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
-  /*   class_read_int("k_oversampling_scalars",ppr->k_oversampling_scalars); */
-  /*   class_read_int("k_oversampling_tensors",ppr->k_oversampling_tensors); */
-
   class_read_int("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
@@ -1089,6 +1086,7 @@ int input_init(
 
   class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
   class_read_int("delta_l_max",ppr->delta_l_max);
+  class_read_int("tol_gauss_legendre",ppr->tol_gauss_legendre);
 
 
   /* check various l_max */
@@ -1484,12 +1482,8 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->k_step_trans_scalars=0.2; /* 03.12.10 for chi2plT0.01: difficult to optimize, numerical instability below 0.1, need to study this better */
-  ppr->k_step_trans_tensors=0.15;
-
-  /*   ppr->k_oversampling_scalars=3; */
-  /*   ppr->k_oversampling_tensors=1; */
-
+  ppr->k_step_trans_scalars=0.002;
+  ppr->k_step_trans_tensors=0.0015;
   ppr->transfer_cut=tc_cl; /* 03.12.10 for chi2plT0.01: tc_cl slightly faster (by 20%) for equal precision, but also slightly less robust (better to switch to tc_osc if primordial tilt can depart significantly from one) */
   ppr->transfer_cut_threshold_osc=0.015; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=2.e-6; /* 14.12.10 for chi2plT0.01 */
@@ -1532,6 +1526,8 @@ int input_default_precision ( struct precision * ppr ) {
   class_test(ppr->smallest_allowed_variation < 0,
 	     ppr->error_message,
 	     "smallest_allowed_variation = %e < 0",ppr->smallest_allowed_variation);
+
+  ppr->tol_gauss_legendre = ppr->smallest_allowed_variation;
 
   return _SUCCESS_;
 

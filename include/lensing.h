@@ -284,14 +284,7 @@ extern "C" {
                    int lmax,
                    double ** d4m4
                    );
-  
-  int lensing_gauss_legendre(
-                             double *mu,
-                             double *w8,
-                             int nmu
-                             );
-    
-    
+      
 #ifdef __cplusplus
 }
 #endif

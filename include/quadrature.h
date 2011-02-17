@@ -70,7 +70,12 @@ extern "C" {
 	      double b);
   double testfun(double x);
 
-
+int quadrature_gauss_legendre(
+                           double *mu,
+                           double *w8,
+                           int n,
+			   double tol,
+			   ErrorMsg error_message);
 
 
 #ifdef __cplusplus

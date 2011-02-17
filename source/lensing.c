@@ -1,10 +1,12 @@
 /** @file lensing.c Documented lensing module
  *
- * Julien Lesgourgues and Simon Prunet, 6.12.2010    
+ * Simon Prunet and Julien Lesgourgues, 6.12.2010    
  *
  * This module computes the lensed temperature and polarization
  * anisotropy power spectra \f$ C_l^{X}, P(k), ... \f$'s given the
  * unlensed temperature, polarization and lensing potential spectra.
+ *
+ * Follows Challinor and Lewis full-sky method, astro-ph/0502425
  *
  * The following functions can be called from other modules:
  *
@@ -17,7 +19,7 @@
 
 /** 
  * Anisotropy power spectra C_l's for all types, modes and initial conditions.
- * SO FAR: ONLY SCALAR ADIABATIC 
+ * SO FAR: ONLY SCALAR
  *
  * This routine evaluates all the lensed C_l's at a given value of l by
  * picking it in the pre-computed table. When relevant, it also
@@ -148,6 +150,8 @@ int lensing_init(
   num_mu += num_mu%2; /* Force it to be even */ 
   /** - allocate array of mu values, as well as quadrature weights */
 
+  printf("num_mu=%d\n",num_mu);
+
   class_alloc(mu,
               num_mu*sizeof(double),
               ple->error_message);
@@ -158,7 +162,11 @@ int lensing_init(
               (num_mu-1)*sizeof(double),
               ple->error_message);
 
-  class_call(lensing_gauss_legendre(mu,w8,num_mu-1),
+  class_call(quadrature_gauss_legendre(mu,
+				    w8,
+				    num_mu-1,
+				    ppr->tol_gauss_legendre,
+				    ple->error_message),
              ple->error_message,
              ple->error_message); 
 
@@ -1934,52 +1942,3 @@ int lensing_d4m4(
   free(fac1); free(fac2); free(fac3); free(fac4);
   return _SUCCESS_;
 }
-
-/**
- * This routine computes the weights and abscissas of a Gauss-Legendre quadrature
- *
- * @param mu     Input/output: Vector of cos(beta) values
- * @param w8     Input/output: Vector of quadrature weights
- * @param n      Input       : Number of quadrature points
- *
- * From Numerical recipes 
- **/
-
-int lensing_gauss_legendre(
-                           double *mu,
-                           double *w8,
-                           int n) {
-  
-  int m,j,i;
-  double z1,z,xm,xl,pp,p3,p2,p1;
-  double x1,x2,EPS;
-  x1 = -1.0;
-  x2 = 1.0;
-  EPS = 1.0e-11;
-  
-  m=(n+1)/2;
-  xm=0.5*(x2+x1);
-  xl=0.5*(x2-x1);
-  for (i=1;i<=m;i++) {
-    z=cos(_PI_*(i-0.25)/(n+0.5));
-    do {
-      p1=1.0;
-      p2=0.0;
-      for (j=1;j<=n;j++) {
-        p3=p2;
-        p2=p1;
-        p1=((2.0*j-1.0)*z*p2-(j-1.0)*p3)/j;
-      }
-      pp=n*(z*p1-p2)/(z*z-1.0);
-      z1=z;
-      z=z1-p1/pp;
-    } while (fabs(z-z1) > EPS);
-    mu[i-1]=xm-xl*z;
-    mu[n-i]=xm+xl*z;
-    w8[i-1]=2.0*xl/((1.0-z*z)*pp*pp);
-    w8[n-i]=w8[i-1];
-    
-  }
-  return _SUCCESS_;
-}
-
