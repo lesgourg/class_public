@@ -324,7 +324,7 @@ int transfer_init(
         /** (b.1) interpolate sources to get them at the right values of k 
                 using transfer_interpolate_sources() */
 
-	if (ptr->transfer_verbose>1)
+	if (ptr->transfer_verbose>2)
 	  printf("In %s: Interpolate sources for one mode/ic/type.\n",
 		 __func__);
 

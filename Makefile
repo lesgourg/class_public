@@ -19,8 +19,8 @@ AR        = ar rv
 
 #CCFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
-#CCFLAG   = -O4 -Wall
-#LDFLAG   = -O4 -Wall
+#CCFLAG   = -O4 -Wall -pg
+#LDFLAG   = -O4 -Wall -pg
 CCFLAG   = -O4 -fopenmp -Wall
 LDFLAG   = -O4 -fopenmp -Wall
 #CCFLAG   = -fast -fopenmp -Wall

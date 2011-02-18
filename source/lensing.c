@@ -40,7 +40,6 @@ int lensing_cl_at_l(
 		    int l,
 		    double * cl_lensed    /* array with argument cl_lensed[index_ct] (must be already allocated) */
 		    ) {
-  int index_lt;
   int last_index;
 
   class_test(l > ple->l_lensed_max,
@@ -740,7 +739,6 @@ int lensing_indices(
 		    struct lensing * ple
 		    ){
   
-  int l;
   int index_l;
   double ** junk1=NULL;
   double ** junk2=NULL;
@@ -862,12 +860,12 @@ int lensing_lensed_cl_tt(
 			 ) {
   
   double cle;
-  int l, imu;
+  int imu;
   int index_l;
 
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
-  private (imu,l,cle)				\
+  private (imu,index_l,cle)				\
   schedule (static)
 
   for(index_l=0; index_l<ple->l_size; index_l++){
@@ -902,12 +900,12 @@ int lensing_lensed_cl_te(
                          ) {
   
   double clte;
-  int l, imu;
+  int imu;
   int index_l;
 
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
-  private (imu,l,clte)				\
+  private (imu,index_l,clte)				\
   schedule (static)
 
   for(index_l=0; index_l < ple->l_size; index_l++){
@@ -946,12 +944,12 @@ int lensing_lensed_cl_ee_bb(
 			    ) {
   
   double clp, clm;
-  int l, imu;
+  int imu;
   int index_l;
 
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
-  private (imu,l,clp,clm)			\
+  private (imu,index_l,clp,clm)			\
   schedule (static)
 
   for(index_l=0; index_l < ple->l_size; index_l++){
