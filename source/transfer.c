@@ -439,7 +439,7 @@ int transfer_init(
 							    index_ic,
 							    index_tt,
 							    index_l,
-							    (double)ptr->l[index_mode][index_l],
+							    (double)ptr->l[index_l],
 							    *x_min_l,
 							    pbs->x_step,
 							    eta0_minus_eta,
@@ -513,7 +513,6 @@ int transfer_free(
   if (ptr->has_cls == _TRUE_) {
 
     for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
-      free(ptr->l[index_mode]);
       free(ptr->k[index_mode]);
       free(ptr->transfer[index_mode]);
     }  
@@ -617,10 +616,6 @@ int transfer_indices_of_transfers(
 
   class_alloc(ptr->l_size,ptr->md_size * sizeof(int),ptr->error_message);
 
-  /* list of l values for each mode, l[index_mode] */
-
-  class_alloc(ptr->l,ptr->md_size * sizeof(int *),ptr->error_message);
-
   /* number of k values for each mode, k_size[index_mode] */
 
   class_alloc(ptr->k_size,ptr->md_size * sizeof(int),ptr->error_message);
@@ -633,8 +628,13 @@ int transfer_indices_of_transfers(
 
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
+  /** get l values using transfer_get_l_list() */
+  class_call(transfer_get_l_list(ppr,ppt,pbs,ptr),
+	     ptr->error_message,
+	     ptr->error_message);
+  
   /** - loop over modes (scalar, etc). For each mode: */
-
+  
   for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
 
     /** (a) get k values using transfer_get_k_list() */
@@ -642,16 +642,11 @@ int transfer_indices_of_transfers(
 	       ptr->error_message,
 	       ptr->error_message);
 
-    /** (b) get l values using transfer_get_l_list() */
-    class_call(transfer_get_l_list(ppr,ppt,pbs,ptr,index_mode),
-	       ptr->error_message,
-	       ptr->error_message);
-
-    /** (c) allocate arrays of transfer functions, (ptr->transfer[index_mode])[index_ic][index_tt][index_l][index_k] */
+    /** (b) allocate arrays of transfer functions, (ptr->transfer[index_mode])[index_ic][index_tt][index_l][index_k] */
     class_alloc(ptr->transfer[index_mode],
 		ppt->ic_size[index_mode] * ptr->tt_size[index_mode] * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double),
 		ptr->error_message);
-
+    
   }
 
   return _SUCCESS_;
@@ -659,13 +654,12 @@ int transfer_indices_of_transfers(
 }
 
 /**
- * This routine defines the number and values of mutipoles l for each mode.
+ * This routine defines the number and values of mutipoles l for all modes.
  *
  * @param ppr  Input : pointer to precision structure
  * @param ppt  Input : pointer to perturbation structure
  * @param pbs  Input : pointer to bessels structure
  * @param ptr  Input/Output : pointer to transfers structure containing l's
- * @param index_mode Input: index of requested mode (scalar, tensor, etc) 
  * @return the error status
  */
 
@@ -673,53 +667,50 @@ int transfer_get_l_list(
 			struct precision * ppr,
 			struct perturbs * ppt,
 			struct bessels * pbs,
-			struct transfers * ptr,
-			int index_mode
+			struct transfers * ptr
 			) {
 
-  int index_l=0;
+  int index_l;
+  int l_max=0;
+  int index_mode;
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  ptr->l_size_max=0;
 
-    class_test(ppt->l_scalar_max > pbs->l[pbs->l_size-1],
-	       ptr->error_message,
-	       "For scalar transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppt->l_scalar_max,pbs->l[pbs->l_size-1]);
+  for (index_mode=0; index_mode < ppt->md_size; index_mode++) {
+
+    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      l_max = ppt->l_scalar_max;
+    }
     
-    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppt->l_scalar_max)) {
-      index_l++;
-    }
-    if ((index_l == (pbs->l_size-2)) && (pbs->l[pbs->l_size-1] <= ppt->l_scalar_max)) {
-      index_l++;
+    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+      l_max = ppt->l_tensor_max;
     }
 
-  }
-
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-
-    class_test(ppt->l_tensor_max > pbs->l[pbs->l_size-1],
+    class_test(l_max > pbs->l[pbs->l_size-1],
 	       ptr->error_message,
-	       "For tensor transfer functions, asked for l_max=%d greater than in Bessel table where l_max=%d",ppt->l_scalar_max,pbs->l[pbs->l_size-1]);
-    
-    /* go to first point in Bessel's l list which is greater than l_max (or only equal to it is l_max_Bessel coincides with l_max) */
-    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= ppt->l_tensor_max)) {
+	       "For mode %d, asked for l_max=%d greater than in Bessel table where l_max=%d",
+	       index_mode,
+	       l_max,
+	       pbs->l[pbs->l_size-1]);
+
+    index_l=0;
+
+    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= l_max)) {
       index_l++;
     }
-
-    /* if possible, take one more point in the list, in order to ensure a more accurate interpolation with less boundary effects */
-    if (index_l < (pbs->l_size-1)) {
-      index_l++;
-    }
-
-  }
-
-  ptr->l_size[index_mode] = index_l+1;
-     
-  class_alloc(ptr->l[index_mode],ptr->l_size[index_mode]*sizeof(int),ptr->error_message);
   
-  for (index_l=0; index_l < ptr->l_size[index_mode]; index_l++) {
-    ptr->l[index_mode][index_l]=pbs->l[index_l];
-  }
+    ptr->l_size[index_mode] = index_l+1;
 
+    ptr->l_size_max = max(ptr->l_size_max,ptr->l_size[index_mode]);
+
+  }
+     
+  class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
+  
+  for (index_l=0; index_l < ptr->l_size_max; index_l++) {
+    ptr->l[index_l]=pbs->l[index_l];
+  }
+  
   return _SUCCESS_;
 
 }

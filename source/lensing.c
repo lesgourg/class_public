@@ -41,14 +41,24 @@ int lensing_cl_at_l(
 		    double * cl_lensed    /* array with argument cl_lensed[index_ct] (must be already allocated) */
 		    ) {
   int index_lt;
+  int last_index;
 
   class_test(l > ple->l_lensed_max,
 	     "you asked for lensed Cls at l=%d, they were computed only up to l=%d, you should increase l_max_scalars or decrease the precision parameter delta_l_max",
 	     ple->error_message);
 
-  for (index_lt=0; index_lt<ple->lt_size; index_lt++) {
-    cl_lensed[index_lt]=ple->cl_lensed[l*ple->lt_size+index_lt];
-  }
+  class_call(array_interpolate_spline(ple->l,
+				      ple->l_size,
+				      ple->cl_lens,
+				      ple->ddcl_lens,
+				      ple->lt_size,
+				      l,
+				      &last_index,
+				      cl_lensed,
+				      ple->lt_size,
+				      ple->error_message),
+	     ple->error_message,
+	     ple->error_message);
   
   return _SUCCESS_;
 }
@@ -627,6 +637,18 @@ int lensing_init(
 	       ple->error_message);
   } 
 
+  /** - spline computed Cls in view of interpolation */
+
+  class_call(array_spline_table_lines(ple->l,
+				      ple->l_size,
+				      ple->cl_lens,
+				      ple->lt_size,
+				      ple->ddcl_lens,
+				      _SPLINE_EST_DERIV_,
+				      ple->error_message),
+	     ple->error_message,
+	     ple->error_message);
+  
   /** Free lots of stuff **/
   free(buf_dxx);
   free(buf_Xijk);
@@ -692,7 +714,10 @@ int lensing_free(
   
   if (ple->has_lensed_cls == _TRUE_) {
 
-    free(ple->cl_lensed);
+    free(ple->l);
+    free(ple->cl_lens);
+    free(ple->ddcl_lens);
+
   }
 
   return _SUCCESS_;
@@ -716,6 +741,7 @@ int lensing_indices(
 		    ){
   
   int l;
+  int index_l;
   double ** junk1=NULL;
   double ** junk2=NULL;
   
@@ -773,21 +799,39 @@ int lensing_indices(
 
   /* number of multipoles */
 
-  ple->l_unlensed_max = psp->l_max[ppt->index_md_scalars];
+  ple->l_unlensed_max = psp->l_max_tot;
 
   ple->l_lensed_max = ple->l_unlensed_max - ppr->delta_l_max;
   
-  /* allocate table where results will be stored */
-  
-  class_alloc(ple->cl_lensed,
-	      (ple->l_lensed_max+1)*ple->lt_size*sizeof(double),
-	      ple->error_message);
-  
-  /* fill with unlensed cls */
-  /* Should be removed when polarized lensed cls are in place */
-  for (l=2; l<=ple->l_lensed_max; l++) { 
+  for (index_l=0; (index_l < psp->l_size_max) && (psp->l[index_l] <= ple->l_lensed_max); index_l++);
+
+  if (index_l < psp->l_size_max) index_l++; /* one more point in order to be able to interpolate till ple->l_lensed_max */
+
+  ple->l_size = index_l+1;
+
+  class_alloc(ple->l,ple->l_size*sizeof(double),ple->error_message);
+
+  for (index_l=0; index_l < ple->l_size; index_l++) {
     
-    class_call(spectra_cl_at_l(psp,l,&(ple->cl_lensed[l*ple->lt_size]),junk1,junk2),
+    ple->l[index_l] = psp->l[index_l];
+
+  }
+
+  /* allocate table where results will be stored */
+    
+  class_alloc(ple->cl_lens,
+	      ple->l_size*ple->lt_size*sizeof(double),
+	      ple->error_message);
+
+  class_alloc(ple->ddcl_lens,
+	      ple->l_size*ple->lt_size*sizeof(double),
+	      ple->error_message);
+
+  /* fill with unlensed cls */
+
+  for (index_l=0; index_l<ple->l_size; index_l++) {
+
+    class_call(spectra_cl_at_l(psp,ple->l[index_l],&(ple->cl_lens[index_l*ple->lt_size]),junk1,junk2),
 	       psp->error_message,
 	       ple->error_message);
     
@@ -819,17 +863,21 @@ int lensing_lensed_cl_tt(
   
   double cle;
   int l, imu;
+  int index_l;
+
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
   private (imu,l,cle)				\
   schedule (static)
-  for(l=2;l<=ple->l_lensed_max;l++){
+
+  for(index_l=0; index_l<ple->l_size; index_l++){
     cle=0;
     for (imu=0;imu<nmu;imu++) {
-      cle += ksi[imu]*d00[imu][l]*w8[imu]; /* loop could be optimized */
+      cle += ksi[imu]*d00[imu][(int)ple->l[index_l]]*w8[imu]; /* loop could be optimized */
     }
-    ple->cl_lensed[l*ple->lt_size+ple->index_lt_tt]=cle*2.0*_PI_;
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_tt]=cle*2.0*_PI_;
   }
+
   return _SUCCESS_;
 }
 
@@ -855,17 +903,21 @@ int lensing_lensed_cl_te(
   
   double clte;
   int l, imu;
+  int index_l;
+
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
   private (imu,l,clte)				\
   schedule (static)
-  for(l=2;l<=ple->l_lensed_max;l++){
+
+  for(index_l=0; index_l < ple->l_size; index_l++){
     clte=0;
     for (imu=0;imu<nmu;imu++) {
-      clte += ksiX[imu]*d20[imu][l]*w8[imu]; /* loop could be optimized */
+      clte += ksiX[imu]*d20[imu][(int)ple->l[index_l]]*w8[imu]; /* loop could be optimized */
     }
-    ple->cl_lensed[l*ple->lt_size+ple->index_lt_te]=clte*2.0*_PI_;
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_te]=clte*2.0*_PI_;
   }
+
   return _SUCCESS_;
 }
 
@@ -895,19 +947,23 @@ int lensing_lensed_cl_ee_bb(
   
   double clp, clm;
   int l, imu;
+  int index_l;
+
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
   private (imu,l,clp,clm)			\
   schedule (static)
-  for(l=2;l<=ple->l_lensed_max;l++){
+
+  for(index_l=0; index_l < ple->l_size; index_l++){
     clp=0; clm=0; 
     for (imu=0;imu<nmu;imu++) {
-      clp += ksip[imu]*d22[imu][l]*w8[imu]; /* loop could be optimized */
-      clm += ksim[imu]*d2m2[imu][l]*w8[imu]; /* loop could be optimized */
+      clp += ksip[imu]*d22[imu][(int)ple->l[index_l]]*w8[imu]; /* loop could be optimized */
+      clm += ksim[imu]*d2m2[imu][(int)ple->l[index_l]]*w8[imu]; /* loop could be optimized */
     }
-    ple->cl_lensed[l*ple->lt_size+ple->index_lt_ee]=(clp+clm)*_PI_;
-    ple->cl_lensed[l*ple->lt_size+ple->index_lt_bb]=(clp-clm)*_PI_;
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_ee]=(clp+clm)*_PI_;
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_bb]=(clp-clm)*_PI_;
   }
+
   return _SUCCESS_;
 }
 

@@ -556,7 +556,8 @@ int output_pk(
     
     sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk.dat");
 
-    class_call(output_open_pk_file(psp,
+    class_call(output_open_pk_file(pba,
+				   psp,
 				   pop,
 				   &out,
 				   file_name,
@@ -693,7 +694,8 @@ int output_pk(
 
 	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
-	    class_call(output_open_pk_file(psp,
+	    class_call(output_open_pk_file(pba,
+					   psp,
 					   pop,
 					   &(out_ic[index_ic1_ic2]),
 					   file_name,
@@ -756,8 +758,8 @@ int output_pk(
     for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 	
       class_call(output_one_line_of_pk(out,
-				       exp(psp->ln_k[index_k]),
-				       pk_tot[index_k]),
+				       exp(psp->ln_k[index_k])/pba->h,
+				       pk_tot[index_k]*pow(pba->h,3)),
 		 pop->error_message,
 		 pop->error_message);
 
@@ -768,8 +770,8 @@ int output_pk(
 	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
 	    class_call(output_one_line_of_pk(out_ic[index_ic1_ic2],
-					     exp(psp->ln_k[index_k]),
-					     pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2]),
+					     exp(psp->ln_k[index_k])/pba->h,
+					     pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2]*pow(pba->h,3)),
 		       pop->error_message,
 		       pop->error_message);
 	  }
@@ -834,7 +836,8 @@ int output_pk_nl(
     
     sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_density.dat");
 
-    class_call(output_open_pk_nl_file(pnl,
+    class_call(output_open_pk_nl_file(pba,
+				      pnl,
 				      pop,
 				      &out_density,
 				      file_name,
@@ -846,7 +849,8 @@ int output_pk_nl(
 
     sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_velocity.dat");
 
-    class_call(output_open_pk_nl_file(pnl,
+    class_call(output_open_pk_nl_file(pba,
+				      pnl,
 				      pop,
 				      &out_velocity,
 				      file_name,
@@ -858,7 +862,8 @@ int output_pk_nl(
 
     sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_cross.dat");
 
-    class_call(output_open_pk_nl_file(pnl,
+    class_call(output_open_pk_nl_file(pba,
+				      pnl,
 				      pop,
 				      &out_cross,
 				      file_name,
@@ -875,20 +880,20 @@ int output_pk_nl(
     for (index_k=0; index_k<pnl->k_size;index_k++) {
 
       class_call(output_one_line_of_pk(out_density,
-				       pnl->k[index_k],
-				       pz_density[index_k]),
+				       pnl->k[index_k]/pba->h,
+				       pz_density[index_k]*pow(pba->h,3)),
 		 pop->error_message,
 		 pop->error_message);
 
       class_call(output_one_line_of_pk(out_velocity,
-				       pnl->k[index_k],
-				       pz_velocity[index_k]),
+				       pnl->k[index_k]/pba->h,
+				       pz_velocity[index_k]*pow(pba->h,3)),
 		 pop->error_message,
 		 pop->error_message);
 
       class_call(output_one_line_of_pk(out_cross,
-				       pnl->k[index_k],
-				       pz_cross[index_k]),
+				       pnl->k[index_k]/pba->h,
+				       pz_cross[index_k]*pow(pba->h,3)),
 		 pop->error_message,
 		 pop->error_message);
       
@@ -1048,7 +1053,7 @@ int output_tk(
       for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
 
 	class_call(output_one_line_of_tk(out_ic[index_ic],
-					 exp(psp->ln_k[index_k]),
+					 exp(psp->ln_k[index_k])/pba->h,
 					 &(tk[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size]),
 					 psp->tr_size),
 		   pop->error_message,
@@ -1160,6 +1165,7 @@ int output_one_line_of_cl(
  * This routine opens one file where some P(k)'s will be written, and writes 
  * a heading with some general information concerning its content.
  *
+ * @param pba        Input: pointer to background structure (needed for h)
  * @param psp        Input : pointer to spectra structure
  * @param pop        Input : pointer to output structure
  * @param tkfile     Output: returned pointer to file pointer
@@ -1170,6 +1176,7 @@ int output_one_line_of_cl(
  */
 
 int output_open_pk_file(
+			struct background * pba,
 			struct spectra * psp,
 			struct output * pop,
 			FILE * * pkfile,
@@ -1181,7 +1188,9 @@ int output_open_pk_file(
   class_open(*pkfile,filename,"w",pop->error_message);
 
   fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0]),exp(psp->ln_k[psp->ln_k_size-1]));
+  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",
+	  exp(psp->ln_k[0])/pba->h,
+	  exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
   fprintf(*pkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
   fprintf(*pkfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
 
@@ -1213,6 +1222,7 @@ int output_one_line_of_pk(
  * This routine opens one file where some P_nl(k)'s will be written, and writes 
  * a heading with some general information concerning its content.
  *
+ * @param pba        Input: pointer to background structure (needed for h)
  * @param pnl        Input : pointer to nonlinear structure
  * @param pop        Input : pointer to output structure
  * @param tkfile     Output: returned pointer to file pointer
@@ -1223,6 +1233,7 @@ int output_one_line_of_pk(
  */
 
 int output_open_pk_nl_file(
+			   struct background * pba,
 			   struct nonlinear * pnl,
 			   struct output * pop,
 			   FILE * * pkfile,
@@ -1234,7 +1245,7 @@ int output_open_pk_nl_file(
   class_open(*pkfile,filename,"w",pop->error_message);
 
   fprintf(*pkfile,"# Non-linear matter power spectrum P_nl(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0],pnl->k[pnl->k_size-1]);
+  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[pnl->k_size-1]/pba->h);
   fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size);
   fprintf(*pkfile,"# k (h/Mpc)  P_nl (Mpc/h)^3:\n");
 
@@ -1267,10 +1278,13 @@ int output_open_tk_file(
   class_open(*tkfile,filename,"w",pop->error_message);
 
   fprintf(*tkfile,"# Matter transfer functions T_i(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0]),exp(psp->ln_k[psp->ln_k_size-1]));
+  fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
   fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
   fprintf(*tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
   fprintf(*tkfile,"# T_tot stands for (delta rho_tot/rho_tot)(k,z) with eventually rho_Lambda included \n");
+  fprintf(*tkfile,"# (note that this differs from the transfer function output from CAMB, which gives the same\n");
+  fprintf(*tkfile,"#  quantities divided by k^2 with k in Mpc^-1, and does not include rho_Lambda in rho_tot)\n");
+  fprintf(*tkfile,"#\n");
   fprintf(*tkfile,"# k (h/Mpc)   ");
   fprintf(*tkfile,"T_g            ");
   fprintf(*tkfile,"T_b            ");

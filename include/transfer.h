@@ -48,9 +48,11 @@ struct transfers {
 
   //@{
 
-  int * l_size; /**< number of multipole values for each requested mode, l_size[index_mode] */
+  int * l_size;   /**< number of multipole values for each requested mode, l_size[index_mode] */
 
-  int ** l;     /**< list of multipole values for each requested mode, l[index_mode][index_l] */
+  int l_size_max; /**< greatest of all l_size[index_mode] */
+
+  int * l;        /**< list of multipole values l[index_l] */
 
   //@}
 
@@ -128,8 +130,7 @@ extern "C" {
 			  struct precision * ppr,
 			  struct perturbs * ppt,
 			  struct bessels * pbs,
-			  struct transfers * ptr,
-			  int index_mode
+			  struct transfers * ptr
 			  );
 
   int transfer_get_k_list(

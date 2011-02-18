@@ -62,7 +62,7 @@ int spectra_cl_at_l(
     index_mode = 0;
     if ((int)l <= psp->l_max_tot) {
 
-      class_call(array_interpolate_spline(psp->l[index_mode],
+      class_call(array_interpolate_spline(psp->l,
 					  psp->l_size[index_mode],
 					  psp->cl[index_mode],
 					  psp->ddcl[index_mode],
@@ -95,7 +95,7 @@ int spectra_cl_at_l(
 	if (((int)l <= psp->l_max[index_mode]) && 
 	    (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 
-	  class_call(array_interpolate_spline(psp->l[index_mode],
+	  class_call(array_interpolate_spline(psp->l,
 					      psp->l_size[index_mode],
 					      psp->cl[index_mode],
 					      psp->ddcl[index_mode],
@@ -140,7 +140,7 @@ int spectra_cl_at_l(
       if (psp->ic_size[index_mode] == 1) {
 	if ((int)l <= psp->l_max[index_mode]) {
 
-	  class_call(array_interpolate_spline(psp->l[index_mode],
+	  class_call(array_interpolate_spline(psp->l,
 					      psp->l_size[index_mode],
 					      psp->cl[index_mode],
 					      psp->ddcl[index_mode],
@@ -172,7 +172,7 @@ int spectra_cl_at_l(
 	    if (((int)l <= psp->l_max[index_mode]) && 
 		(psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 
-	      class_call(array_interpolate_spline(psp->l[index_mode],
+	      class_call(array_interpolate_spline(psp->l,
 						  psp->l_size[index_mode],
 						  psp->cl[index_mode],
 						  psp->ddcl[index_mode],
@@ -1004,7 +1004,6 @@ int spectra_free(
     if (psp->ct_size > 0) {
     
       for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
-	free(psp->l[index_mode]);
 	free(psp->cl[index_mode]);
 	free(psp->ddcl[index_mode]);
       }
@@ -1242,26 +1241,27 @@ int spectra_cls(
   /** - allocate pointers to arrays where results will be stored */
 
   class_alloc(psp->l_size,sizeof(int)*psp->md_size,psp->error_message);
-  class_alloc(psp->l,sizeof(double *)*psp->md_size,psp->error_message);
   class_alloc(psp->l_max,sizeof(int)*psp->md_size,psp->error_message);
   class_alloc(psp->cl,sizeof(double *)*psp->md_size,psp->error_message);
   class_alloc(psp->ddcl,sizeof(double *)*psp->md_size,psp->error_message);
 
-  psp->l_max_tot=0;
+  psp->l_size_max = ptr->l_size_max;
+  class_alloc(psp->l,sizeof(double)*psp->l_size_max,psp->error_message);
+
+  /** - store values of l */
+  for (index_l=0; index_l < psp->l_size_max; index_l++) {
+    psp->l[index_l] = (double)ptr->l[index_l];
+  }
+
+  psp->l_max_tot = 0;
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */
 
   for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
 
-    /** - a) store values of l */
+    /** - a) store number of l values for this mode */
 
     psp->l_size[index_mode] = ptr->l_size[index_mode];
-
-    class_alloc(psp->l[index_mode],sizeof(double)*psp->l_size[index_mode],psp->error_message);
-
-    for (index_l=0; index_l < psp->l_size[index_mode]; index_l++) {
-      psp->l[index_mode][index_l] = (double)ptr->l[index_mode][index_l];
-    }
 
     /** - b) allocate arrays where results will be stored */
 
@@ -1271,20 +1271,20 @@ int spectra_cls(
 
     /** c) get from input the last multipole for each mode (given as an input) 
 	at which we trust our C_ls; this number 
-	(l[index_mode][l_size[index_mode]-1] can be larger than 
+	l[l_size[index_mode]-1] can be larger than 
 	l_max[index_mode], 
-	in order to ensure better interpolation with no boundary effects).
+	in order to ensure better interpolation with no boundary effects.
 	Compute also the max over all modes */
 
     if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
       psp->l_max[index_mode] = ppt->l_scalar_max;
-      if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
     }
     
     if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
       psp->l_max[index_mode] = ppt->l_tensor_max;
-      if (psp->l_max[index_mode] > psp->l_max_tot) psp->l_max_tot=psp->l_max[index_mode];
     }
+
+    psp->l_max_tot=max(psp->l_max_tot,psp->l_max[index_mode]);
 
     /** d) loop over initial conditions */
 
@@ -1393,7 +1393,7 @@ int spectra_cls(
 	compute second derivative of the array in which they are stored, 
 	in view of spline interpolation. */
 
-    class_call(array_spline_table_lines(psp->l[index_mode],
+    class_call(array_spline_table_lines(psp->l,
 					psp->l_size[index_mode],
 					psp->cl[index_mode],
 					psp->ic_ic_size[index_mode]*psp->ct_size,

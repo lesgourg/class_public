@@ -55,15 +55,17 @@ struct lensing {
 
   int l_unlensed_max;    /**< last multipole in all calculations (same as in spectra module)*/
 
-  int l_lensed_max;    /**< last multipole at which lensed spactra are computed */
+  int l_lensed_max;    /**< last multipole at which lensed spectra are computed */
 
-  double * cl_lensed;   /**< table of anisotropy spectra for each
+  /* interpolable version: */
+
+  int l_size;       /**< number of l values */
+  double * l;       /**< table of multipole values l[index_l] */  
+  double * cl_lens; /**< table of anisotropy spectra for each
 			   multipole and types, 
-			   cl[index_l * ple->lt_size + index_lt]; 
-			   index_l=l goes from 0 to l_lensed_max, but for index_l=0,1
-			   cl_lensed is set to zero; its size is
-			   (l_max+1)*psp->ct_size */
+			   cl[index_l * ple->lt_size + index_lt] */
 
+  double * ddcl_lens; /**< second derivatives for interpolation */
 
   //@}
 

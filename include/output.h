@@ -119,6 +119,7 @@ extern "C" {
 			    );
 
   int output_open_pk_file(
+			  struct background * pba,
 			  struct spectra * psp,
 			  struct output * pop,
 			  FILE * * pkfile,
@@ -134,6 +135,7 @@ extern "C" {
 			    );
 
   int output_open_pk_nl_file(
+			      struct background * pba,
 			     struct nonlinear * pnl,
 			     struct output * pop,
 			     FILE * * pkfile,
