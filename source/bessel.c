@@ -127,6 +127,9 @@ int bessel_init(
   double x_step_file;
   double x_max_file;
   double j_cut_file;
+  int has_dj_file;
+
+  int num_j;
 
   /* bessels.dat file */
   FILE * bessel_file;
@@ -167,6 +170,15 @@ int bessel_init(
 
   pbs->j_cut = ppr->bessel_j_cut;
 
+  /** - do we need to store also j_l'(x) ? */
+
+  if (ppr->transfer_cut == tc_env) {
+    pbs->has_dj = _TRUE_;
+  }
+  else {
+    pbs->has_dj = _FALSE_;
+  }
+
   /** - check if file bessels.dat already exists with the same (l's, x_step, x_max, j_cut). If yes, read it. */
 
   if (pbs->bessel_always_recompute == _FALSE_) {
@@ -203,6 +215,10 @@ int bessel_init(
 		 pbs->error_message,
 		 "Could not read in bessel file");
 
+      class_test(fread(&has_dj_file,sizeof(int),1,bessel_file) != 1,
+		 pbs->error_message,
+		 "Could not read in bessel file");
+
       index_l=0;
 
       if (l_size_file == pbs->l_size) {
@@ -218,8 +234,9 @@ int bessel_init(
       if ((index_l == pbs->l_size) &&
 	  (x_step_file == pbs->x_step) &&
 	  (j_cut_file == pbs->j_cut) &&
-	  (x_max_file == pbs->x_max)) {
-
+	  (x_max_file == pbs->x_max) &&
+	  (has_dj_file == pbs->has_dj)) {
+	
 	if (pbs->bessels_verbose > 0)
 	  printf("Read bessels in file %s\n",ppr->bessel_file_name);
 	
@@ -228,7 +245,9 @@ int bessel_init(
 	class_alloc(pbs->buffer,pbs->l_size*sizeof(double*),pbs->error_message);
 	class_alloc(pbs->j,pbs->l_size*sizeof(double*),pbs->error_message);
 	class_alloc(pbs->ddj,pbs->l_size*sizeof(double*),pbs->error_message);
-
+	if (pbs->has_dj == _TRUE_)
+	  class_alloc(pbs->dj,pbs->l_size*sizeof(double*),pbs->error_message);
+	  
 	class_test(fread(pbs->x_size,sizeof(int),pbs->l_size,bessel_file) != pbs->l_size,
 		   pbs->error_message,
 		   "Could not read in bessel file");
@@ -240,14 +259,23 @@ int bessel_init(
 	  if (pbs->x_size[index_l] > pbs->x_size_max)
 	    pbs->x_size_max=pbs->x_size[index_l];
 
+          if (pbs->has_dj == _TRUE_) {
+	    num_j = 3;
+	  }
+	  else {
+	    num_j = 2;
+	  }
+
 	  class_alloc(pbs->buffer[index_l],
-		      (1+2*pbs->x_size[index_l])*sizeof(double),
+		      (1+num_j*pbs->x_size[index_l])*sizeof(double),
 		      pbs->error_message);
     
 	  pbs->x_min[index_l] = pbs->buffer[index_l];
 	  pbs->j[index_l] = pbs->buffer[index_l]+1;
-	  pbs->ddj[index_l] = pbs->buffer[index_l]+1+pbs->x_size[index_l];
-	 
+	  pbs->ddj[index_l] = pbs->j[index_l]+pbs->x_size[index_l];
+	  if (pbs->has_dj == _TRUE_)
+	    pbs->dj[index_l] = pbs->ddj[index_l]+pbs->x_size[index_l];
+	  
 	  class_test(fread(pbs->x_min[index_l],sizeof(double),1,bessel_file) != 1,
 		     pbs->error_message,
 		     "Could not read in bessel file");
@@ -260,6 +288,11 @@ int bessel_init(
 		     pbs->error_message,
 		     "Could not read in bessel file");
 
+	  if (pbs->has_dj == _TRUE_)
+	    class_test(fread(pbs->dj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
+		       pbs->error_message,
+		       "Could not read in bessel file");
+	    
 	}
 
 	fclose(bessel_file);
@@ -283,6 +316,8 @@ int bessel_init(
   class_alloc(pbs->x_min,pbs->l_size*sizeof(double*),pbs->error_message);
   class_alloc(pbs->j,pbs->l_size*sizeof(double*),pbs->error_message);
   class_alloc(pbs->ddj,pbs->l_size*sizeof(double*),pbs->error_message);
+  if (pbs->has_dj == _TRUE_)
+    class_alloc(pbs->dj,pbs->l_size*sizeof(double*),pbs->error_message);
 
   /* initialize error management flag */
   abort = _FALSE_;
@@ -302,7 +337,6 @@ int bessel_init(
 #pragma omp for schedule (dynamic)
 
     /** (a) loop over l and x values, compute \f$ j_l(x) \f$ for each of them */
-
     for (index_l = 0; index_l < pbs->l_size; index_l++) {
 
       class_call_parallel(bessel_j_for_l(ppr,pbs,index_l),
@@ -343,6 +377,7 @@ int bessel_init(
     fwrite(&(pbs->x_step),sizeof(double),1,bessel_file);
     fwrite(&(pbs->x_max),sizeof(double),1,bessel_file);
     fwrite(&(pbs->j_cut),sizeof(double),1,bessel_file);
+    fwrite(&(pbs->has_dj),sizeof(int),1,bessel_file);
 
     fwrite(pbs->x_size,sizeof(int),pbs->l_size,bessel_file);
 
@@ -350,6 +385,8 @@ int bessel_init(
       fwrite(pbs->x_min[index_l],sizeof(double),1,bessel_file);
       fwrite(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
       fwrite(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
+      if (pbs->has_dj == _TRUE_)
+	fwrite(pbs->dj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
     }
 
     fclose(bessel_file);
@@ -382,6 +419,8 @@ int bessel_free(
     free(pbs->x_min);
     free(pbs->j);
     free(pbs->ddj);
+    if (pbs->has_dj == _TRUE_)
+      free(pbs->dj);
     free(pbs->x_size);
     free(pbs->l);
     
@@ -517,13 +556,15 @@ int bessel_j_for_l(
   int index_x;
   double x;
 
-  /* value of j_l(x) and j_{l-1}(x) returned by bessel_j() */
-  double j,jm;
+  /* value of j_l(x), j_{l-1}(x) returned by bessel_j(); plus j_l'(x) */
+  double j,jm,jprime;
 
   /* for computing x_min */
   double x_min_up;
   double x_min_down;
   double x_min;
+
+  int num_j;
 
   index_x=0;
   j = 0.;
@@ -544,7 +585,7 @@ int bessel_j_for_l(
 	     pbs->error_message,
 	     "in bisection, wrong initial guess for x_min_up.");
  
-  while ((x_min_up-x_min_down) > ppr->bessel_tol_x_min) {
+  while ((x_min_up-x_min_down)/x_min_down > ppr->bessel_tol_x_min) {
       
     class_test((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
 	       pbs->error_message,
@@ -583,14 +624,23 @@ int bessel_j_for_l(
 
   /** - allocate memory for x_min[index_l], j[index_l], ddj[index_l] in such way that they stand in a contiguous memory location */
 
+  if (pbs->has_dj == _TRUE_) {
+    num_j = 3;
+  }
+  else {
+    num_j = 2;
+  }
+
   class_alloc(pbs->buffer[index_l],
-	      (1+2*pbs->x_size[index_l])*sizeof(double),
+	      (1+num_j*pbs->x_size[index_l])*sizeof(double),
 	      pbs->error_message);
     
   pbs->x_min[index_l] = pbs->buffer[index_l];
   pbs->j[index_l] = pbs->buffer[index_l]+1;
-  pbs->ddj[index_l] = pbs->buffer[index_l]+1+pbs->x_size[index_l];
-  
+  pbs->ddj[index_l] = pbs->j[index_l] + pbs->x_size[index_l];
+  if (pbs->has_dj == _TRUE_)
+    pbs->dj[index_l] = pbs->ddj[index_l] + pbs->x_size[index_l];
+
   /** - case when all values of j_l(x) were negligible for this l*/
 
   if (x_min >= pbs->x_max) {
@@ -598,12 +648,15 @@ int bessel_j_for_l(
     *(pbs->x_min[index_l]) = pbs->x_max;
     pbs->j[index_l][0]=0.;
     pbs->ddj[index_l][0]=0.;
+    if (pbs->has_dj == _TRUE_)
+      pbs->dj[index_l][0]=0.;
   }
 
   /** -otherwise, write first non-negligible value and then loop over x */
   else {
 
     *(pbs->x_min[index_l]) = x_min;
+
     pbs->j[index_l][0] = j;
 
     class_call(bessel_j(pbs,
@@ -612,8 +665,14 @@ int bessel_j_for_l(
 			&jm),  /* j_{l-1}(x) */
 	       pbs->error_message,
 	       pbs->error_message);
+
+    jprime = jm - (pbs->l[index_l]+1)*j/x_min; /* j_l'=j_{l-1}-(l+1)j_l/x */
     
-    pbs->ddj[index_l][0] = jm-j/x_min/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
+    pbs->ddj[index_l][0] = - 2./x_min*jprime 
+      + (pbs->l[index_l]*(pbs->l[index_l]+1)/x_min/x_min-1.)*j; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
+
+    if (pbs->has_dj == _TRUE_)
+      pbs->dj[index_l][0] = jprime; 
 
     /* loop over other non-negligible values */
     for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
@@ -623,20 +682,27 @@ int bessel_j_for_l(
       class_call(bessel_j(pbs,
 			  pbs->l[index_l], /* l */
 			  x, /* x */
-			  &(pbs->j[index_l][index_x])),  /* j_l(x) */
+			  &j),  /* j_l(x) */
 		 pbs->error_message,
 		 pbs->error_message);
 
       class_call(bessel_j(pbs,
 			  pbs->l[index_l]-1, /* l-1 */
 			  x, /* x */
-			  &(pbs->ddj[index_l][index_x])),  /* j_{l-1}(x) */
+			  &jm),  /* j_{l-1}(x) */
 		 pbs->error_message,
 		 pbs->error_message);
 
-      pbs->ddj[index_l][index_x] -= 
-	pbs->j[index_l][index_x]/x/(pbs->l[index_l]+1); /*j_l'=j_{l-1}-j_l/x/(l+1) */
-      
+      jprime = jm - (pbs->l[index_l]+1)*j/x; /* j_l'=j_{l-1}-(l+1)j_l/x */
+    
+      pbs->j[index_l][index_x] = j;
+
+      pbs->ddj[index_l][index_x] = - 2./x*jprime 
+	+ (pbs->l[index_l]*(pbs->l[index_l]+1)/x/x-1.)*j; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
+
+      if (pbs->has_dj == _TRUE_)
+	pbs->dj[index_l][index_x] = jprime; 
+
     }
   }
   

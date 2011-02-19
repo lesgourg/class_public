@@ -14,6 +14,7 @@
 
 //#define _VERSION_ "v0.0.1"
 #define _VERSION_ "v0.0.2" /**< implementation of ncdm */
+#define _VERSION_ "v0.0.3" /**< stable version, results thoroughly compared with CAMB */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -238,7 +239,8 @@ typedef char FileName[_FILENAMESIZE_];
 enum transfer_cutting {
   tc_none, /**< no transfer cut: for given l, compute transfer functions over full k range (long and usually useless) */ 
   tc_osc, /**< transfer cut with oscillation method: for given l, compute transfer functions until k_max such that oscillations of \f$ \Delta_l(k) \f$ are tiny relatively to largest oscillation */ 
-  tc_cl /**< transfer cut with Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny (C_l being computed approximately and with flat spectrum)  */ 
+  tc_cl, /**< transfer cut with Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny (C_l being computed approximately and with flat spectrum)  */ 
+  tc_env /**< under development */
 };
 
 /**

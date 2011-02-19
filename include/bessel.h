@@ -40,6 +40,7 @@ struct bessels {
   double x_step; /**< step dx for sampling Bessel functions */
   double x_max; /**< maximum value of x (always multiple of x-step) */
   double j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region x << l) */
+  int has_dj;   /**< set to true means j_l'(x) also need to be stored */
 
  //@}
 
@@ -58,6 +59,8 @@ struct bessels {
   double ** j; /* (j[index_l])[index_x] is \f$ j_l(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
 
   double ** ddj; /* (ddj[index_l])[index_x] \f$ j_l''(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x (in view of spline interpolation) */ 
+
+  double ** dj; /* (dj[index_l])[index_x] is \f$ j_l'(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
 
   //@}
 

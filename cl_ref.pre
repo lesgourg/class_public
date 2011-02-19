@@ -89,7 +89,7 @@ l_logstep=1.026
 l_linstep=25
 
 bessel_x_step=0.005
-bessel_j_cut=5.e-10  # WATCH IT!
+bessel_j_cut=5.e-10
 bessel_delta_x_min =1.e-4
 bessel_file_name=bessel_large.dat
 

@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 
   int index_mode=pt.index_md_scalars;
   int index_ic  =pt.index_ic_ad;
-  int index_type=tr.index_tt_lcmb;
+  int index_type=tr.index_tt_t;
 
   /* 2) here is an illustration of how to output the transfer
      functions at some (k,l)'s of your choice (warning:: this
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   double transfer;
 
 /*   for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { */
-  for (index_l=13; index_l<13; index_l++) {
+  for (index_l=30; index_l<31; index_l++) {
     for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
       
       transfer=tr.transfer[index_mode]
@@ -99,9 +99,29 @@ int main(int argc, char **argv) {
 	  * tr.l_size[index_mode] + index_l)
 	 * tr.k_size[index_mode] + index_k];
       
-      if (transfer != 0.) {
-	printf("%d %e %e\n",tr.l[index_mode][index_l],tr.k[index_mode][index_k],transfer); 
-      }
+      //      if (transfer != 0.) {
+	printf("%d %e %e",tr.l[index_l],tr.k[index_mode][index_k],transfer); 
+	//}
+
+      transfer=tr.transfer[index_mode]
+	[((index_ic * tr.tt_size[index_mode] + index_type)
+	  * tr.l_size[index_mode] + index_l+1)
+	 * tr.k_size[index_mode] + index_k];
+      
+      //if (transfer != 0.) {
+	printf(" %d %e",tr.l[index_l+1],transfer); 
+	//}
+
+
+      transfer=tr.transfer[index_mode]
+	[((index_ic * tr.tt_size[index_mode] + index_type)
+	  * tr.l_size[index_mode] + index_l+2)
+	 * tr.k_size[index_mode] + index_k];
+      
+      //if (transfer != 0.) {
+	printf(" %d %e\n",tr.l[index_l+2],transfer); 
+	//}
+
     }
     
     printf("\n");
