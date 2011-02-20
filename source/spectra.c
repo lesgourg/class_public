@@ -1707,8 +1707,8 @@ int spectra_pk(
   double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
   int last_index_back;
   double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
-  double source_g_ic1;
-  double source_g_ic2;
+  double source_ic1;
+  double source_ic2;
 
   /** - check the presence of scalar modes */
 
@@ -1753,13 +1753,24 @@ int spectra_pk(
 	 so, primordial curvature correlator: 
 	 <R R> = (2pi^2) k^-3 P_R(k) 
 	 so, gravitational potential correlator:
-	 <phi phi> = (2pi^2) k^-3 (source_phi)^2 P_R(k) 
-	 so, matter power spectrum (using Poisson):
+	 <phi phi> = (2pi^2) k^-3 (source_phi)^2 P_R(k)
+
+	 Matter power spectrum can be computed in two ways:
+
+	 1) from source function = delta_tot (default)
+	 P(k) = <delta_m delta_m>
+	 = Omega_m^-2 <delta_tot delta_tot> 
+	 = Omega_m^-2 (source_delta_tot)^2 <R R>
+	 = (2pi^2) k^-3 Omega_m^-2 (source_delta_tot)^2 P_R(k)
+	 
+	 2) from source function = gravitational potential (using Poisson):
 	 P(k) = <delta_m delta_m>
 	 = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi>
 	 = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R> 
 	 = 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R> 
 
+	 CLASS now uses the first way.
+ 
 	 For isocurvature or cross adiabatic-isocurvature parts, 
 	 replace one or two 'R' by 'S_i's */
 
@@ -1768,16 +1779,22 @@ int spectra_pk(
 	
 	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]);
 	
-	source_g_ic1 = ppt->sources[index_mode]
-	  [index_ic1 * ppt->tp_size[index_mode] + ppt->index_tp_g]
+	source_ic1 = ppt->sources[index_mode]
+	  [index_ic1 * ppt->tp_size[index_mode] + ppt->index_tp_delta_tot]
 	  [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	
 	psp->ln_pk[(index_eta * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] =
-	  log(8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)
+	  log(2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
 	      /pow(pvecback_sp_long[pba->index_bg_Omega_m],2)
-	      *exp(psp->ln_k[index_k])
-	      /pow(pvecback_sp_long[pba->index_bg_a],4)
-	      *exp(primordial_pk[index_ic1_ic2])*source_g_ic1*source_g_ic1);
+	      *source_ic1*source_ic1
+	      *exp(primordial_pk[index_ic1_ic2]));
+
+/* 	psp->ln_pk[(index_eta * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] = */
+/* 	  log(8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4) */
+/* 	      /pow(pvecback_sp_long[pba->index_bg_Omega_m],2) */
+/* 	      *exp(psp->ln_k[index_k]) */
+/* 	      /pow(pvecback_sp_long[pba->index_bg_a],4) */
+/* 	      *exp(primordial_pk[index_ic1_ic2])*source_g_ic1*source_g_ic1); */
       }
 
       /* part non-diagonal in initial conditions */
@@ -1788,16 +1805,22 @@ int spectra_pk(
 
 	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
-	    source_g_ic1 = ppt->sources[index_mode]
-	      [index_ic1 * ppt->tp_size[index_mode] + ppt->index_tp_g]
+	    source_ic1 = ppt->sources[index_mode]
+	      [index_ic1 * ppt->tp_size[index_mode] + ppt->index_tp_delta_tot]
 	      [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	    	      
-	    source_g_ic2 = ppt->sources[index_mode]
-	      [index_ic2 * ppt->tp_size[index_mode] + ppt->index_tp_g]
+	    source_ic2 = ppt->sources[index_mode]
+	      [index_ic2 * ppt->tp_size[index_mode] + ppt->index_tp_delta_tot]
 	      [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	      
 	    psp->ln_pk[(index_eta * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] =
-	      primordial_pk[index_ic1_ic2]*sign(source_g_ic1)*sign(source_g_ic2);
+	      2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
+	      /pow(pvecback_sp_long[pba->index_bg_Omega_m],2)
+	      *source_ic1*source_ic2
+	      *exp(primordial_pk[index_ic1_ic2]);
+
+/* 	    psp->ln_pk[(index_eta * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] = */
+/* 	      primordial_pk[index_ic1_ic2]*sign(source_g_ic1)*sign(source_g_ic2); */
 		    
 	  }
 	  else {

@@ -500,7 +500,7 @@ int perturb_indices_of_perturbs(
       else
 	ppt->has_source_g = _FALSE_;
 
-      if (ppt->has_cl_cmb_lensing_potential == _TRUE_) { 
+      if (ppt->has_pk_matter == _TRUE_) { 
 	ppt->has_lss = _TRUE_;
         ppt->has_source_delta_tot = _TRUE_;
 	ppt->index_tp_delta_tot = index_type; 
