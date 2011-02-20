@@ -491,7 +491,7 @@ int perturb_indices_of_perturbs(
 
       /** -- count source types specific to scalars (gravitational potential, ...) and assign corresponding indices */
 
-      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_pk_matter == _TRUE_)) { 
+      if (ppt->has_cl_cmb_lensing_potential == _TRUE_) { 
 	ppt->has_lss = _TRUE_;
         ppt->has_source_g = _TRUE_;
 	ppt->index_tp_g = index_type; 
@@ -499,6 +499,15 @@ int perturb_indices_of_perturbs(
       }
       else
 	ppt->has_source_g = _FALSE_;
+
+      if (ppt->has_cl_cmb_lensing_potential == _TRUE_) { 
+	ppt->has_lss = _TRUE_;
+        ppt->has_source_delta_tot = _TRUE_;
+	ppt->index_tp_delta_tot = index_type; 
+	index_type++;
+      }
+      else
+	ppt->has_source_delta_tot = _FALSE_;
 
       if (ppt->has_matter_transfers == _TRUE_) {
 	ppt->has_lss = _TRUE_;
@@ -3372,6 +3381,12 @@ int perturb_einstein(
       }
     }
 
+    /* store delta_tot (for corresponding source function) */
+
+    if (ppt->has_source_delta_tot == _TRUE_) {
+      ppw->delta_tot = delta_rho/ppw->pvecback[pba->index_bg_H]/ppw->pvecback[pba->index_bg_H];
+    }
+
     /** (c) infer metric perturbations from Einstein equations */
 
     /* newtonian gauge */
@@ -3757,6 +3772,16 @@ int perturb_source_terms(
 	 
 
 	}
+
+      }
+
+      /* total matter overdensity */
+
+      if ((ppt->has_source_delta_tot == _TRUE_) && (index_type == ppt->index_tp_delta_tot)) {
+
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->delta_tot;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
 
       }
 

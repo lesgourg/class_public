@@ -123,6 +123,7 @@ struct perturbs
   short has_source_e;  /**< do we need source for CMB E-polarisation? */
   short has_source_b;  /**< do we need source for CMB B-polarisation? */
   short has_source_g;  /**< do we need source for gravitationnal potential? */
+  short has_source_delta_tot; /**< do we need source for delta total? */ 
   short has_source_delta_g;   /**< do we need source for delta of gammas? */
   short has_source_delta_b;   /**< do we need source for delta of baryons? */
   short has_source_delta_cdm; /**< do we need source for delta of cold dark matter? */
@@ -134,6 +135,7 @@ struct perturbs
   int index_tp_e; /**< index value for E-polarization */
   int index_tp_b; /**< index value for B-polarization */
   int index_tp_g; /**< index value for gravitationnal potential */
+  int index_tp_delta_tot; /**< index value for delta tot */
   int index_tp_delta_g;   /**< index value for delta of gammas */
   int index_tp_delta_b;   /**< index value for delta of baryons */
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
@@ -312,6 +314,8 @@ struct perturb_workspace
   double fsa_delta_nur; /**< neutrino density in free-streaming approximation */
   double fsa_theta_nur; /**< neutrino velocity in free-streaming approximation */
   double * delta_ncdm;
+
+  double delta_tot;
 
   //@}
 

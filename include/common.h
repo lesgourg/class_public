@@ -13,7 +13,7 @@
 #define __COMMON__
 
 //#define _VERSION_ "v0.0.1"
-#define _VERSION_ "v0.0.2" /**< implementation of ncdm */
+//#define _VERSION_ "v0.0.2" /**< implementation of ncdm */
 #define _VERSION_ "v0.0.3" /**< stable version, results thoroughly compared with CAMB */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
