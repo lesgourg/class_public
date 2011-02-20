@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   double transfer;
 
 /*   for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { */
-  for (index_l=30; index_l<31; index_l++) {
+  for (index_l=1; index_l<0; index_l++) {
     for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
       
       transfer=tr.transfer[index_mode]
@@ -100,26 +100,7 @@ int main(int argc, char **argv) {
 	 * tr.k_size[index_mode] + index_k];
       
       //      if (transfer != 0.) {
-	printf("%d %e %e",tr.l[index_l],tr.k[index_mode][index_k],transfer); 
-	//}
-
-      transfer=tr.transfer[index_mode]
-	[((index_ic * tr.tt_size[index_mode] + index_type)
-	  * tr.l_size[index_mode] + index_l+1)
-	 * tr.k_size[index_mode] + index_k];
-      
-      //if (transfer != 0.) {
-	printf(" %d %e",tr.l[index_l+1],transfer); 
-	//}
-
-
-      transfer=tr.transfer[index_mode]
-	[((index_ic * tr.tt_size[index_mode] + index_type)
-	  * tr.l_size[index_mode] + index_l+2)
-	 * tr.k_size[index_mode] + index_k];
-      
-      //if (transfer != 0.) {
-	printf(" %d %e\n",tr.l[index_l+2],transfer); 
+	printf("%d %e %e\n",tr.l[index_l],tr.k[index_mode][index_k],transfer); 
 	//}
 
     }

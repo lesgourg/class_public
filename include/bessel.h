@@ -62,6 +62,8 @@ struct bessels {
 
   double ** dj; /* (dj[index_l])[index_x] is \f$ j_l'(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
 
+  double ** dddj; /* (dddj[index_l])[index_x] \f$ j_l'''(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x (in view of spline interpolation) */
+
   //@}
 
   /** @name - technical parameters */

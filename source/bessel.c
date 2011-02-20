@@ -245,9 +245,11 @@ int bessel_init(
 	class_alloc(pbs->buffer,pbs->l_size*sizeof(double*),pbs->error_message);
 	class_alloc(pbs->j,pbs->l_size*sizeof(double*),pbs->error_message);
 	class_alloc(pbs->ddj,pbs->l_size*sizeof(double*),pbs->error_message);
-	if (pbs->has_dj == _TRUE_)
+	if (pbs->has_dj == _TRUE_) {
 	  class_alloc(pbs->dj,pbs->l_size*sizeof(double*),pbs->error_message);
-	  
+	  class_alloc(pbs->dddj,pbs->l_size*sizeof(double*),pbs->error_message);
+	}
+
 	class_test(fread(pbs->x_size,sizeof(int),pbs->l_size,bessel_file) != pbs->l_size,
 		   pbs->error_message,
 		   "Could not read in bessel file");
@@ -260,7 +262,7 @@ int bessel_init(
 	    pbs->x_size_max=pbs->x_size[index_l];
 
           if (pbs->has_dj == _TRUE_) {
-	    num_j = 3;
+	    num_j = 4;
 	  }
 	  else {
 	    num_j = 2;
@@ -273,9 +275,11 @@ int bessel_init(
 	  pbs->x_min[index_l] = pbs->buffer[index_l];
 	  pbs->j[index_l] = pbs->buffer[index_l]+1;
 	  pbs->ddj[index_l] = pbs->j[index_l]+pbs->x_size[index_l];
-	  if (pbs->has_dj == _TRUE_)
+	  if (pbs->has_dj == _TRUE_) {
 	    pbs->dj[index_l] = pbs->ddj[index_l]+pbs->x_size[index_l];
-	  
+	    pbs->dddj[index_l] = pbs->dj[index_l]+pbs->x_size[index_l];
+	  }
+
 	  class_test(fread(pbs->x_min[index_l],sizeof(double),1,bessel_file) != 1,
 		     pbs->error_message,
 		     "Could not read in bessel file");
@@ -288,11 +292,17 @@ int bessel_init(
 		     pbs->error_message,
 		     "Could not read in bessel file");
 
-	  if (pbs->has_dj == _TRUE_)
+	  if (pbs->has_dj == _TRUE_) {
+
 	    class_test(fread(pbs->dj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
 		       pbs->error_message,
 		       "Could not read in bessel file");
+
+	    class_test(fread(pbs->dddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
+		       pbs->error_message,
+		       "Could not read in bessel file");
 	    
+	  }
 	}
 
 	fclose(bessel_file);
@@ -316,8 +326,10 @@ int bessel_init(
   class_alloc(pbs->x_min,pbs->l_size*sizeof(double*),pbs->error_message);
   class_alloc(pbs->j,pbs->l_size*sizeof(double*),pbs->error_message);
   class_alloc(pbs->ddj,pbs->l_size*sizeof(double*),pbs->error_message);
-  if (pbs->has_dj == _TRUE_)
+  if (pbs->has_dj == _TRUE_) {
     class_alloc(pbs->dj,pbs->l_size*sizeof(double*),pbs->error_message);
+    class_alloc(pbs->dddj,pbs->l_size*sizeof(double*),pbs->error_message);
+  }
 
   /* initialize error management flag */
   abort = _FALSE_;
@@ -385,8 +397,10 @@ int bessel_init(
       fwrite(pbs->x_min[index_l],sizeof(double),1,bessel_file);
       fwrite(pbs->j[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
       fwrite(pbs->ddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
-      if (pbs->has_dj == _TRUE_)
+      if (pbs->has_dj == _TRUE_) {
 	fwrite(pbs->dj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
+	fwrite(pbs->dddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file);
+      }
     }
 
     fclose(bessel_file);
@@ -419,8 +433,10 @@ int bessel_free(
     free(pbs->x_min);
     free(pbs->j);
     free(pbs->ddj);
-    if (pbs->has_dj == _TRUE_)
+    if (pbs->has_dj == _TRUE_) {
       free(pbs->dj);
+      free(pbs->dddj);
+    }
     free(pbs->x_size);
     free(pbs->l);
     
@@ -625,7 +641,7 @@ int bessel_j_for_l(
   /** - allocate memory for x_min[index_l], j[index_l], ddj[index_l] in such way that they stand in a contiguous memory location */
 
   if (pbs->has_dj == _TRUE_) {
-    num_j = 3;
+    num_j = 4;
   }
   else {
     num_j = 2;
@@ -638,8 +654,10 @@ int bessel_j_for_l(
   pbs->x_min[index_l] = pbs->buffer[index_l];
   pbs->j[index_l] = pbs->buffer[index_l]+1;
   pbs->ddj[index_l] = pbs->j[index_l] + pbs->x_size[index_l];
-  if (pbs->has_dj == _TRUE_)
+  if (pbs->has_dj == _TRUE_) {
     pbs->dj[index_l] = pbs->ddj[index_l] + pbs->x_size[index_l];
+    pbs->dddj[index_l] = pbs->dj[index_l] + pbs->x_size[index_l];
+  }
 
   /** - case when all values of j_l(x) were negligible for this l*/
 
@@ -648,8 +666,10 @@ int bessel_j_for_l(
     *(pbs->x_min[index_l]) = pbs->x_max;
     pbs->j[index_l][0]=0.;
     pbs->ddj[index_l][0]=0.;
-    if (pbs->has_dj == _TRUE_)
+    if (pbs->has_dj == _TRUE_) {
       pbs->dj[index_l][0]=0.;
+      pbs->dddj[index_l][0]=0.;
+    }
   }
 
   /** -otherwise, write first non-negligible value and then loop over x */
@@ -671,8 +691,14 @@ int bessel_j_for_l(
     pbs->ddj[index_l][0] = - 2./x_min*jprime 
       + (pbs->l[index_l]*(pbs->l[index_l]+1)/x_min/x_min-1.)*j; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
 
-    if (pbs->has_dj == _TRUE_)
+    if (pbs->has_dj == _TRUE_) {
+
       pbs->dj[index_l][0] = jprime; 
+
+      pbs->dddj[index_l][0] = - 2./x_min*pbs->ddj[index_l][0]
+	+ ((pbs->l[index_l]*(pbs->l[index_l]+1)+2)/x_min/x_min-1.)*jprime
+	- 2.*pbs->l[index_l]*(pbs->l[index_l]+1)/x_min/x_min/x_min*j;
+    }
 
     /* loop over other non-negligible values */
     for (index_x=1; index_x < pbs->x_size[index_l]; index_x++) {
@@ -700,9 +726,14 @@ int bessel_j_for_l(
       pbs->ddj[index_l][index_x] = - 2./x*jprime 
 	+ (pbs->l[index_l]*(pbs->l[index_l]+1)/x/x-1.)*j; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
 
-      if (pbs->has_dj == _TRUE_)
+      if (pbs->has_dj == _TRUE_) {
+
 	pbs->dj[index_l][index_x] = jprime; 
 
+	pbs->dddj[index_l][index_x] = - 2./x*pbs->ddj[index_l][index_x]
+	  + ((pbs->l[index_l]*(pbs->l[index_l]+1)+2)/x/x-1.)*jprime
+	  - 2.*pbs->l[index_l]*(pbs->l[index_l]+1)/x/x/x*j;
+      }
     }
   }
   

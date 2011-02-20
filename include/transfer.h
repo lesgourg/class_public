@@ -168,7 +168,9 @@ extern "C" {
 				  double * delta_eta,
 				  double * sources,
 				  double * j_l,
-				  double * ddj_l
+				  double * ddj_l,
+				  double * dj_l,
+				  double * dddj_l
 				  );
 
   int transfer_integrate(
@@ -198,6 +200,23 @@ extern "C" {
 		      double * trsf
 		      );
   
+  int transfer_envelop(
+		       int eta_size,
+		       int index_k,
+		       double l,
+		       double k,
+		       double x_min_l,
+		       double x_step,
+		       double * eta0_minus_eta,
+		       double * delta_eta,
+		       double * sources,
+		       double *j_l,
+		       double *ddj_l,
+		       double *dj_l,
+		       double *dddj_l,
+		       double * trsf
+		       );
+
 #ifdef __cplusplus
 }
 #endif

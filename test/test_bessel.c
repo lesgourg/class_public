@@ -52,8 +52,9 @@ main(int argc, char **argv) {
     printf("%e %e %e\n",
 	   *(bs.x_min[index_l])+bs.x_step*index_x,
 	   bs.j[index_l][index_x],
-	   //bs.dj[index_l][index_x],
-	   bs.ddj[index_l][index_x]);
+	   bs.dj[index_l][index_x],
+	   //bs.ddj[index_l][index_x],
+	   //bs.dddj[index_l][index_x]);
   }
 
   if (bessel_free(&bs) == _FAILURE_) {

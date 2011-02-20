@@ -177,10 +177,20 @@ int transfer_init(
   /* - sixth workspace field containing the list of j_l''(x) values */
   double * ddj_l;
 
+  /* - optiomal: seventh workspace field containing the list of j_l(x) values */
+  double * dj_l;
+
+  /* - optional: eigth workspace field containing the list of j_l''(x) values */
+  double * dddj_l;
+
   /* no more workspace fields */
 
   /* number of values of x for a given l infered from bessel module */
   int x_size_l;
+
+  /** - number of functions stored in bessel structure: at least j_l,
+      j_l'', plus eventually j_l', j_l''' */
+  int num_j;
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
@@ -231,6 +241,14 @@ int transfer_init(
 	     ptr->error_message,
 	     ptr->error_message);
 
+  /** - how many functions stored in bessel structure: just j_l, j_l'', or also j_l', j_l''' ? */
+  if (ppr->transfer_cut == tc_env) {
+    num_j = 4;
+  }
+  else {
+    num_j = 2;
+  }
+
   /* find number of threads */
 
 #ifdef _OPENMP
@@ -278,7 +296,7 @@ int transfer_init(
       
       class_alloc_parallel(workspace,
 			   ((2+ptr->k_size[index_mode])*ppt->eta_size
-			    +1+2*pbs->x_size_max)*
+			    +1+num_j*pbs->x_size_max)*
 			   sizeof(double),
 			   ptr->error_message);
 	  
@@ -358,9 +376,9 @@ int transfer_init(
 
 	/* beginning of parallel region */
 
-#pragma omp parallel						\
-  shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,		\
-	  interpolated_sources,abort)					\
+#pragma omp parallel							\
+  shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
+	  interpolated_sources,abort,num_j)				\
   private (index_l,tstart,tstop,tspent,workspace,address_in_workspace,eta0_minus_eta,delta_eta,sources,j_l,ddj_l,x_size_l,x_min_l)
 	
 	{
@@ -387,8 +405,8 @@ int transfer_init(
 
 	  j_l = address_in_workspace;
 
-	  /* the address of the last field, ddj_l, will be defined
-	     within the l loop, since it depends on l */
+	  /* the address of the next fields, ddj_l, etc., will be defined
+	     within the l loop, since they depend on l */
 
 	  /* copy the interpolated sources in the workspace */
 	  
@@ -413,11 +431,16 @@ int transfer_init(
 	       x_min, the j_l(x)s, the j_l''(x)s. They are all
 	       allocated in a contiguous memory zone, so we can use a
 	       single memcpy. */
-	    memcpy(x_min_l,pbs->x_min[index_l],(1+2*x_size_l)*sizeof(double));
+	    memcpy(x_min_l,pbs->x_min[index_l],(1+num_j*x_size_l)*sizeof(double));
 	
-	    /* now define the address of the ddj_l field (last filed
-	       in the workspace) */
+	    /* now define the address of the ddj_l field (and
+	       eventually additional fields in the workspace) */
 	    ddj_l = j_l + x_size_l;
+
+	    if (ppr->transfer_cut == tc_env) {
+	      dj_l = ddj_l + x_size_l;
+	      dddj_l = dj_l + x_size_l;
+	    }
 
 	    /* check that the computation will never need values of
 	       j_l(x) with x > x_max (should never happen, since x_max
@@ -446,7 +469,9 @@ int transfer_init(
 							    delta_eta,
 							    sources,
 							    j_l,
-							    ddj_l),
+							    ddj_l,
+							    dj_l,
+							    dddj_l),
 				ptr->error_message,
 				ptr->error_message);
 
@@ -1056,7 +1081,9 @@ int transfer_compute_for_each_l(
 				double * delta_eta,
 				double * sources,
 				double * j_l,
-				double * ddj_l
+				double * ddj_l,
+				double * dj_l,
+				double * dddj_l
 				){
 
   /** Summary: */
@@ -1205,7 +1232,11 @@ int transfer_compute_for_each_l(
       }
       else {
 	
-	class_call(transfer_integrate(ppt->eta_size,
+	if ((ppr->transfer_cut == tc_env) &&
+	    (((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) || 
+	     ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_t)))) {
+	  
+	  class_call(transfer_envelop(ppt->eta_size,
 				      index_k,
 				      l,
 				      k,
@@ -1216,12 +1247,30 @@ int transfer_compute_for_each_l(
 				      sources,
 				      j_l,
 				      ddj_l,
+				      dj_l,
+				      dddj_l,
 				      &transfer_function),
-		   ptr->error_message,
-		   ptr->error_message);
-	
-      }
+		     ptr->error_message,
+		     ptr->error_message);
+	}
+	else {
 
+	  class_call(transfer_integrate(ppt->eta_size,
+					index_k,
+					l,
+					k,
+					x_min_l,
+					x_step,
+					eta0_minus_eta,
+					delta_eta,
+					sources,
+					j_l,
+					ddj_l,
+					&transfer_function),
+		     ptr->error_message,
+		     ptr->error_message);
+	}
+      }
     }
 
     /* above k_max: set transfer function to zero */
@@ -1497,4 +1546,155 @@ int transfer_limber(
 
   return _SUCCESS_;
   
+}
+
+/**
+ * This routine computes the envelop of transfer functions \f$
+ * \Delta_l^{X} (k) \f$) for each mode, initial condition, type,
+ * multipole l and wavenumber k, by convolving the source function
+ * (passed in input in the array interpolated_sources) with Bessel
+ * functions (passed in input in the bessels structure).
+ *
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param pbs                   Input : pointer to bessels structure 
+ * @param ptr                   Input : pointer to transfers structure
+ * @param eta0                  Input : conformal time today
+ * @param eta_rec               Input : conformal time at recombination
+ * @param index_mode            Input : index of mode
+ * @param index_tt              Input : index of type
+ * @param index_l               Input : index of multipole
+ * @param index_k               Input : index of wavenumber
+ * @param interpolated_sources  Input: array of interpolated sources
+ * @param ptw                   Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation) 
+ * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
+ * @return the error status
+ */
+
+int transfer_envelop(
+		     int eta_size,
+		     int index_k,
+		     double l,
+		     double k,
+		     double x_min_l,
+		     double x_step,
+		     double * eta0_minus_eta,
+		     double * delta_eta,
+		     double * sources,
+		     double *j_l,
+		     double *ddj_l,
+		     double *dj_l,
+		     double *dddj_l,
+		     double * trsf
+		     ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  /* minimum value of \f$ (\eta0-\eta) \f$ at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
+  double eta0_minus_eta_min_bessel;
+
+  /* running value of bessel function */
+/*   double bessel; */
+  int index_x;
+  double x;
+  double a;
+  
+  double transfer, transfer_shifted, source_times_deta;
+
+  /* index in the source's eta list corresponding to the last point in the overlapping region between sources and bessels */
+  int index_eta,index_eta_max;
+
+  /** - find minimum value of (eta0-eta) at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
+  eta0_minus_eta_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
+
+  /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
+  if (eta0_minus_eta_min_bessel >= eta0_minus_eta[0]) {
+    *trsf = 0.;
+    return _SUCCESS_;
+  }
+
+  /** - if there is an overlap: */
+
+  /** (a) find index in the source's eta list corresponding to the last point in the overlapping region. After this step, index_eta_max can be as small as zero, but not negative. */ 
+  index_eta_max = eta_size-1;
+  while (eta0_minus_eta[index_eta_max] < eta0_minus_eta_min_bessel)
+    index_eta_max--;
+
+  /** (b) the source function can vanish at large $\f \eta \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_eta_max can be as small as zero, but not negative. */
+  while (sources[index_k * eta_size + index_eta_max] == 0.) { 
+    index_eta_max--;
+    if (index_eta_max < 0) {
+      *trsf = 0.;
+      return _SUCCESS_;
+    }
+  }
+
+  /** (c) integrate with trapezoidal method */
+    
+  /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
+  
+  x = k * eta0_minus_eta[index_eta_max];
+
+  index_x = (int)((x-x_min_l)/x_step);
+  
+  a = (x_min_l+x_step*(index_x+1) - x)/x_step;
+
+  source_times_deta = sources[index_k * eta_size + index_eta_max];
+  
+  if (index_eta_max > 0) {
+    source_times_deta *= (eta0_minus_eta[index_eta_max-1]-eta0_minus_eta_min_bessel);
+   }
+  else {
+    source_times_deta *= (eta0_minus_eta[index_eta_max]-eta0_minus_eta_min_bessel);
+  }
+
+  /* source times j_l (cubic spline interpolation) */
+  transfer = source_times_deta
+    * (a * j_l[index_x] +
+       (1.-a) * (j_l[index_x+1]
+		 - a * ((a+1.) * ddj_l[index_x]
+			+(2.-a) * ddj_l[index_x+1]) 
+		 * x_step * x_step / 6.0) );
+  
+  /* source times j_l' (cubic spline interpolation) */
+  transfer_shifted = source_times_deta
+    * (a * dj_l[index_x] +
+       (1.-a) * (dj_l[index_x+1]
+		 - a * ((a+1.) * dddj_l[index_x]
+			+(2.-a) * dddj_l[index_x+1]) 
+		 * x_step * x_step / 6.0) );
+  
+  for (index_eta=0; index_eta<index_eta_max; index_eta++) {
+    
+    /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
+    
+    x = k * eta0_minus_eta[index_eta];
+    
+    index_x = (int)((x-x_min_l)/x_step);
+    
+    a = (x_min_l+x_step*(index_x+1) - x)/x_step;
+    
+  source_times_deta = sources[index_k * eta_size + index_eta] * delta_eta[index_eta];
+    
+  /* source times j_l (cubic spline interpolation) */
+  transfer += source_times_deta * 
+    (a * j_l[index_x] +
+     (1.-a) * (j_l[index_x+1]
+	       - a * ((a+1.) * ddj_l[index_x]
+		      +(2.-a) * ddj_l[index_x+1]) 
+	       * x_step * x_step / 6.0));
+  
+  /* source times j_l' (cubic spline interpolation) */
+  transfer_shifted += source_times_deta
+    * (a * dj_l[index_x] +
+       (1.-a) * (dj_l[index_x+1]
+		 - a * ((a+1.) * dddj_l[index_x]
+			+(2.-a) * dddj_l[index_x+1]) 
+		 * x_step * x_step / 6.0));
+  }
+  
+  *trsf = 0.5*sqrt(transfer*transfer + 1.3*transfer_shifted*transfer_shifted); /* correct for factor 1/2 from trapezoidal rule */
+
+  return _SUCCESS_;
 }
