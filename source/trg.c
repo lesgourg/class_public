@@ -2325,10 +2325,12 @@ int trg_integrate_xy_at_eta(
  * @param logstep	Output: logstep associated with the desired wavenumber
  */
 int trg_logstep1_k (
+		   struct precision * ppr,
 		   double k,
 		   double * logstep) {
 
-  *logstep = 1.11 - 0.09*tanh(300*(k-0.01));
+ *logstep = ppr->logstepk1 - ppr->logstepk2*tanh((k-ppr->logstepk4)*ppr->logstepk3);
+  /**logstep = 1.11 - 0.09*tanh(300*(k-0.01));*/
  /**logstep = 1.11 - 0.10*tanh(300*(k-0.01));*/
  /**logstep = 1.005;*/
 /*  *logstep = 1.10 - 0.09*tanh(300*(k-0.01)); */ 
@@ -2351,12 +2353,14 @@ int trg_logstep1_k (
  */
 
 int trg_logstep2_k (
+		    struct precision * ppr,
 		    double k,
 		    double * logstep) {
-
+  *logstep = ppr->logstepk5 - ppr->logstepk6*tanh((k-ppr->logstepk8)*ppr->logstepk7);
   /* *logstep = 1.11 + 0.09*tanh(0.08*(k-50)); */
   /**logstep = 1.005;*/
-  *logstep = 1.02;
+  /* default is *logstep = 1.02 - 0*tanh((k-0)*0);*/
+
   return _SUCCESS_;
 }
 
@@ -2538,7 +2542,7 @@ int trg_init (
 
   while(temp_k[index_k]<1){
     class_test(index_k>=20000,pnl->error_message,"Change initial size of temp_k\n");
-    class_call(trg_logstep1_k(temp_k[index_k],&logstepk),
+    class_call(trg_logstep1_k(ppr,temp_k[index_k],&logstepk),
 	       pnl->error_message,
 	       pnl->error_message);
     index_k++;
@@ -2550,7 +2554,7 @@ int trg_init (
 
   while(temp_k[index_k]<pnl->k_max){
     class_test(index_k>=20000,pnl->error_message,"Change initial size of temp_k\n");
-    class_call(trg_logstep2_k(temp_k[index_k],&logstepk),
+    class_call(trg_logstep2_k(ppr,temp_k[index_k],&logstepk),
 	       pnl->error_message,
 	       pnl->error_message);
     index_k++;

@@ -1503,7 +1503,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->logstepx_min = 1.04;
   ppr->logstepk1 = 1.11;
   ppr->logstepk2 = 0.09;
-  ppr->logstepk3 = 1./300.;
+  ppr->logstepk3 = 300.;
   ppr->logstepk4 = 0.01;
   ppr->logstepk5 = 1.02;
   ppr->logstepk6 = 0.;

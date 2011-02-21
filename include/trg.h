@@ -201,10 +201,15 @@ extern "C" {
 			      double * result
 			      );
 
-  int trg_logstep_k( 
-		    struct background *pba,
-		    struct spectra_nl * pnl);
+  int trg_logstep1_k( 
+		    struct precision * ppr,
+		    double k,
+		    double * logstep);
 
+  int trg_logstep2_k( 
+		    struct precision * ppr,
+		    double k,
+		    double * logstep);
 
   int trg_init(
 	       struct precision *ppr,

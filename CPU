@@ -1,0 +1,274 @@
+#! /usr/bin/python
+
+from scipy import *
+import os,sys,string,io,subprocess
+import argparse
+
+parser = argparse.ArgumentParser(description='CPU, a CLASS Plotting Utility, specify wether you want to superimpose, divide or interpolate different files, and behold!')
+parser.add_argument('files',metavar='Files',type=str, nargs='*',help='the relative path of the desired file to plot\nfrom the root directory of CLASS')
+parser.add_argument('-d, --divide',dest='merging',action='store_const',const='blend_against',default='blend_together',help='divide the spectra from different files. The k-values must be strictly identical (default: plot every graph on the same plot)')
+parser.add_argument('-i, --interpolate',dest='interp',action='store_true',default=False,help='interpolate the spectra on each set of k-values if different. Use to compare two (or more) graphs with different k-values')
+parser.add_argument('-t',metavar='pk, cl_lin,etc...',help='specify the file type (whether pk or cl (if not specified, cl==cl_lin, other choices are cl_log and cl_ll for log linear), only needed if your file name does not already contain one of these keywords...')
+parser.add_argument('-c, --cleaning',metavar='path',nargs='?',dest='cleaning',const=True,default=False,help='remove all .plt files in the current directory (if none specified) : keep your folders clean !')
+
+# Remove all .plt files generated in output/
+def clean(path):
+  pattern='.plt'
+  path=path+"/"
+  print 'Cleaning {0} directory from .plt files ...'.format(path)
+  for each in os.listdir(path):
+    if each.rfind(pattern)!=-1:
+      name= "{0}{1}".format(path,each)
+      print '  deleting {0}'.format(name)
+      os.remove(name)
+  print '  ==> Done'
+
+# Errors###########################
+def error_format():
+  print "  Hum... have you really provided a .dat file ?"
+  print "  We apologise for the inconvenience, but CPU is exiting now"
+  exit()
+
+def error_type():
+  print "  Spectrum type unrecognized or unsupported yet, sorry!"
+  print "  We apologise for the inconvenience"
+  exit()
+
+def error_number_of_files():
+  print "  You specified a wrong number of files for the operation you demanded, maybe you want to divide more than one file, for instance ?"
+  print "  We apologise for the inconvenience"
+  exit()
+####################################
+
+def headers_plot_file(spectrum_type,names,plot_line):
+  tmp=open(names[0],"r")
+  if spectrum_type=='cl_lin':
+    if plot_line is True:
+      plot_string="plot "
+      for name in names:
+	plot_string+="'{0}' w l,".format(name)
+      plot_string=plot_string.rstrip(",")
+      plot_string+="\n"
+    else:
+      plot_string=''
+    return "set term 'wxt' enhanced\nset xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key right\nset title 'CMB multipoles computed with precision, etc'\n"+plot_string
+  elif spectrum_type=='cl_log':
+    for line in tmp:
+      if line.rfind('multipoles')!=-1:
+	lmax= line.split(None)[-1]
+	break
+    if plot_line is True:
+      plot_string="plot "
+      for name in names:
+	plot_string+="'{0}' w l,".format(name)
+      plot_string=plot_string.rstrip(",")
+      plot_string+="\n"
+    else:
+      plot_string=''
+    return "set term 'wxt' enhanced\nset logscale x\nset xr [:{0}]\n".format(lmax)+"set xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key left\nset title 'CMB multipoles computed with precision, etc'\n"+plot_string
+  elif spectrum_type=='cl_ll':
+    for line in tmp:
+      if line.rfind('multipoles')!=-1:
+	lmax= line.split()[-1]
+	break
+    if plot_line is True:
+      plot_string="plot "
+      for name in names:
+	plot_string=plot_string+"'{0}' u (sqrt($1)):2 w l,".format(name)
+      plot_string=plot_string.rstrip(",")
+      plot_string=plot_string+"\n"
+    else:
+      plot_string=''
+    return "set term 'wxt' enhanced\nset xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key right\nset title 'CMB multipoles computed with precision, etc'\nset xtics ('2' (sqrt(2)),'100' (sqrt(100)), '500' (sqrt(500)), '1000' (sqrt(1000)), '1500' (sqrt(1500)), '2000' (sqrt(2000)),'2500' (sqrt(2500)))"+"\nset xr [sqrt(2):sqrt({0})]\n".format(lmax)+plot_string
+  elif spectrum_type=='pk':
+    if plot_line is True:
+      plot_string="plot "
+      for name in names:
+	plot_string+="'{0}' w l,".format(name)
+      plot_string=plot_string.rstrip(",")
+      plot_string+="\n"
+    else:
+      plot_string=''
+    for line in tmp:
+      if line.rfind('redshift')!=-1:
+	z= line.split()[-1]
+    return "set term 'wxt' enhanced\nset logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z=\n"+plot_string
+  else:
+    return None
+  tmp.close()
+
+# Print all asked files one next to the other (default operation if files with different k values
+def blend_together(names,spectrum_type):
+  gnuplot_file=names[0].replace(".dat",".plt")
+  if gnuplot_file==names[0]:
+    error_format()
+  print '  creating {0}'.format(gnuplot_file)
+  plotfile = open(gnuplot_file, "w")
+  plotfile.write(headers_plot_file(spectrum_type, names,True))
+  plotfile.close()
+  _plot(gnuplot_file)
+
+# Print all asked files with respect to the same k (or anything) values, all y-data being divided by the y data of the first file.
+# Only valid if the k values are exactly the same (values and number of values).
+def blend_against(names,spectrum_type):
+  gnuplot_file=names[0].replace(".dat",".plt")
+  data_file=names[0].replace(".dat","_divided.dat")
+  if gnuplot_file==names[0]:
+    error_format()
+  print '  creating {0} and {1}'.format(gnuplot_file,data_file)
+  string=['' for rows in range(10000)]
+  imax=0
+  datafile=open(data_file,"w")
+  for name in names:
+    i=0
+    tmp=open(name,"r")
+    for line in tmp:
+      if ((line.find('#')==-1) and (line.rfind('000000')==-1)):
+	string[i]=string[i]+line.rstrip("\n")+"\t"
+	if i>imax:
+	  imax=i
+	i+=1
+    tmp.close()
+  for i in range(imax):
+    datafile.write(string[i]+"\n")
+  plotfile = open(gnuplot_file,"w")
+  plotfile.write(headers_plot_file(spectrum_type,names,False))
+  plot_string='unset logscale\nplot '
+  x_base=1
+  field_base=2
+  field=2
+  size=len(names)
+  for i in range(size):	
+    field+=2
+    plot_string+="'{0}' u {1}:(${2}/${3}) w l,".format(data_file,x_base,field,field_base)
+  plot_string=plot_string.rstrip(',')
+  plot_string+="\n"
+  plotfile.write(plot_string)
+  plotfile.close()
+  datafile.close()
+  _plot(gnuplot_file)
+
+# If k values are different, an interpolation is done and outputs a data file. For a two files case:
+# File 1 contains ( k1 | P1(k1) ), File 2 ( k2 | P2(k2) ). The data file created will contain:
+# k1 | P1(k1)        | P2(k1)_interp
+#(blank space for gnuplot using index 0, etc) 
+# k2 | P1(k2)_interp | P2(k2)
+def blend_against_interp(names,spectrum_type):
+  gnuplot_file=names[0].replace(".dat",".plt")
+  data_file=names[0].replace(".dat","_interp.dat")
+  if gnuplot_file==names[0]:
+    error_format()
+  print '  creating {0} and {1}'.format(gnuplot_file,data_file)
+  plotfile = open(gnuplot_file,"w")
+  l=0
+  jmax=[0 for col in range(10)]
+  lmax=0
+  kmax=10000000
+  kmin=0
+  spam = [[[0 for col in range(10)] for row in range(10000)] for depth in range(2)]
+  for name in names:
+    currentfile = open(name,"r")
+    print '  reading {0}..'.format(name)
+    j=0
+    for line in currentfile:
+      if string.find(line, '#')==-1:
+	line=line.split()
+	spam[0][j][l]=float(line[0])
+	spam[1][j][l]=float(line[1])
+	j+=1
+    if j>jmax[l]:
+      jmax[l]=j
+    if spam[0][j-1][l]<kmax:
+      kmax=spam[0][jmax[l]-1][l]
+    if spam[0][0][l]>kmin:
+      kmin=spam[0][0][l]
+    l+=1
+    currentfile.close()
+  lmax=l
+  lower_bound=[0 for col in range(10)]
+  upper_bound=[0 for col in range(10)]
+  #determining the upper and lower bound for each file, to only do interpolation
+  for l in range (lmax):
+    for j in range (jmax[l]):
+      if spam[0][j][l]<=kmin:
+	lower_bound[l]=j+1
+      if spam[0][j][l]<=kmax:
+	upper_bound[l]=j-1
+  print '  -> done'
+  #creating the new data file
+  datafile = open(data_file,"w")
+  for l in range (lmax):
+    for j in range(lower_bound[l],upper_bound[l]):
+      data_string=''
+      for ll in range(lmax):
+	if ll!=l:
+	  jj=0
+	  while spam[0][jj][ll]<spam[0][j][l]:
+	    y_0=spam[1][jj][ll]
+	    y_1=spam[1][jj+1][ll]
+	    x_0=spam[0][jj][ll]
+	    x_1=spam[0][jj+1][ll]
+	    jj+=1
+	  slope=float((y_1 - y_0)/(x_1-x_0))
+	  interpolated=y_0+slope * math.fabs(x_0-spam[0][j][l])
+	else:
+	  interpolated=spam[1][j][ll]
+	data_string=data_string+str(interpolated)+"\t"
+      datafile.write(str(spam[0][j][l])+"\t"+data_string+"\n")
+    datafile.write("\n\n")
+  datafile.close()
+
+
+  plotfile = open(gnuplot_file,"w")
+  plotfile.write(headers_plot_file(spectrum_type,names,False))
+  plot_string="plot "
+  for l in range(lmax):
+    plot_string+="'{0}' u 1:{1} w l,".format(data_file,l+2)
+  plot_string=plot_string.rstrip(",")
+  plot_string=plot_string+"\n"
+  plotfile.write(plot_string)
+
+  plotfile.close()
+  _plot(gnuplot_file)
+
+# Launch (interactive ?) session of gnuplot with generated .plt file
+def _plot(gnuplot_file):
+  os.system("gnuplot -p '{0}'".format(gnuplot_file))
+  exit()  
+
+
+#######################################################
+################## MAIN PART ##########################
+#######################################################
+
+print '~~~ CPU, a CLASS Plotting Utility ~~~'
+args = parser.parse_args()
+if args.cleaning is not False:
+  if args.cleaning is not True:
+    clean(args.cleaning)
+  else:
+    clean(os.getcwd())
+  exit()
+if len(args.files)==0:
+  parser.print_usage()
+  exit()
+if ((args.files[0].rfind('cl')!=-1) and (args.t is None)):
+  spectrum_type='cl_lin'
+elif args.files[0].rfind('pk')!=-1:
+  spectrum_type='pk'
+elif args.t is not None:
+  spectrum_type=args.t
+else:
+  error_type()
+if args.interp is False:
+  if args.merging=='blend_together':
+    blend_together(args.files,spectrum_type)
+  else:
+    if len(args.files)<2:
+      error_number_of_files()
+    else:
+      blend_against(args.files,spectrum_type)
+else:
+  print '**interpolating (please wait)'
+  blend_against_interp(args.files,spectrum_type)
+exit()
