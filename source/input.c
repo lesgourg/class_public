@@ -1450,7 +1450,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_integration_stepsize=0.5;
 
   ppr->tol_eta_approx=1.e-5;
-  ppr->tol_perturb_integration=1.e-6;
+  ppr->tol_perturb_integration=1.e-4;
   ppr->perturb_sampling_stepsize=0.04;
 
   ppr->free_streaming_approximation = fsa_MD_with_reio;
