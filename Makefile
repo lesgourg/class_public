@@ -21,6 +21,8 @@ AR        = ar rv
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #CCFLAG   = -O4 -Wall -pg
 #LDFLAG   = -O4 -Wall -pg
+#CCFLAG   = -O4 -Wall -ggdb
+#LDFLAG   = -O4 -Wall -ggdb
 CCFLAG   = -O4 -fopenmp -Wall
 LDFLAG   = -O4 -fopenmp -Wall
 #CCFLAG   = -fast -fopenmp -Wall
@@ -63,7 +65,7 @@ SPECTRA = spectra.o
 
 NONLINEAR = trg.o nonlinear.o
 
-LENSING = lensing.o
+LENSING = lensing_new.o
 
 OUTPUT = output.o
 

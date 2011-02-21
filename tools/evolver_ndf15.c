@@ -148,7 +148,12 @@ int evolver_ndf15(
   dif[1]   =(double*)(dif+neqp);
   for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; /* Set row pointers... */
   dif[0] = NULL;
-  for (ii=0;ii<(7*neq+1);ii++) dif[1][ii]=0.;
+  /* for (ii=0;ii<(7*neq+1);ii++) dif[1][ii]=0.; */
+  for (j=1; j<=neq; j++) {
+    for (ii=1;ii<=7;ii++) {
+      dif[j][ii]=0.;
+    }
+  }
 
   /* 	class_alloc(f0,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(wt,sizeof(double)*neqp,error_message); */
@@ -159,7 +164,7 @@ int evolver_ndf15(
   /* 	class_alloc(rhs,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(psi,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(difkp1,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(del,sizeof(double)*neqp,error_message); */
+  /* 	class_alloc(del,sizeof(double)*neqp,error_message); */ 
   /* 	class_alloc(yinterp,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(ypinterp,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(yppinterp,sizeof(double)*neqp,error_message); */

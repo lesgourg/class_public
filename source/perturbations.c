@@ -1381,7 +1381,6 @@ int perturb_workspace_free (
   }
   free(ppw->source_term_table);
   free(ppw->approx);
-  free(ppw);
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     if (ppt->has_matter_transfers == _TRUE_) {
@@ -1389,6 +1388,7 @@ int perturb_workspace_free (
     }
   }
 
+  free(ppw);
 
   return _SUCCESS_;
 }
@@ -2065,11 +2065,11 @@ int perturb_find_approximation_switches(
 
 	if ((interval_approx[index_switch-1][ppw->index_ap_tca]==(int)tca_on) && 
 	    (interval_approx[index_switch][ppw->index_ap_tca]==(int)tca_off))
-	  fprintf(stdout,"Mode k=%e: switch off tight-coupling approximation at eta=%e\n",k,interval_limit[index_switch]);
+	  fprintf(stdout,"Mode k=%e: will switch off tight-coupling approximation at eta=%e\n",k,interval_limit[index_switch]);
 
 	if ((interval_approx[index_switch-1][ppw->index_ap_fsa]==(int)fsa_off) && 
 	    (interval_approx[index_switch][ppw->index_ap_fsa]==(int)fsa_on))
-	  fprintf(stdout,"Mode k=%e: switch on free-streaming  approximation at eta=%e\n",k,interval_limit[index_switch]);
+	  fprintf(stdout,"Mode k=%e: will switch on free-streaming  approximation at eta=%e\n",k,interval_limit[index_switch]);
 
       }
 
