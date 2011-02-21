@@ -1340,9 +1340,10 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to the background
    */
 
-  ppr->a_ini_over_a_today_default = 1.e-10;  /* 1.e-7 unless needs large k_max in P(k) */
-  ppr->back_integration_stepsize = 0.1;   /* 03.12.10 for chi2plT0.01 */
-  ppr->tol_background_integration = 1.e-2;  /* no sizeable impact */
+  ppr->a_ini_over_a_today_default = 1.e-14;
+  ppr->back_integration_stepsize = 7.e-3;
+  ppr->tol_background_integration = 1.e-2;
+
   ppr->tol_initial_Omega_r = 1.e-4;
   ppr->tol_M_ncdm = 1.e-7;
   ppr->tol_ncdm = 1.e-6;
@@ -1357,8 +1358,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->recfast_z_initial=1.e4;
 
-  ppr->recfast_Nz0=10000;                  /* found to be OK on 3.09.10 */
-  ppr->tol_thermo_integration=1.e-5;       /* found to be OK on 3.09.10 */
+  ppr->recfast_Nz0=100000;
+  ppr->tol_thermo_integration=1.e-5;
 
   ppr->recfast_Heswitch=6;                 /* from recfast 1.4 */
   ppr->recfast_fudge_He=0.86;              /* from recfast 1.4 */
@@ -1391,7 +1392,7 @@ int input_default_precision ( struct precision * ppr ) {
   /* for reionization */
 
   ppr->reionization_z_start_max = 50.;
-  ppr->reionization_sampling=1.e-2; /*1.e-2*/
+  ppr->reionization_sampling=1.e-2; 
   ppr->reionization_optical_depth_tol=1.e-2;
   ppr->reionization_exponent=1.5;
 
@@ -1410,17 +1411,13 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->gauge=synchronous;
-  ppr->evolver = rk;
+  ppr->evolver = ndf15;
 
-  ppr->k_scalar_min_eta0=0.032;                /* 14.12.10 for chi2plT0.01  and reasonnable small ls */
-  ppr->k_scalar_max_eta0_over_l_max=1.65; /* 14.12.10 for chi2plT0.1 and reasonnable large ls*/
-  ppr->k_scalar_step_sub=0.08;           /* 14.12.10 for chi2plT0.1 */
-  ppr->k_scalar_step_super=0.005;        /* 14.12.10 for chi2plT0.1 and reasonnable small ls */
+  ppr->k_scalar_min_eta0=0.05;
+  ppr->k_scalar_max_eta0_over_l_max=2.;
+  ppr->k_scalar_step_sub=0.1;
+  ppr->k_scalar_step_super=0.002;
   ppr->k_scalar_step_transition=0.2;     /* 14.12.10 for chi2plT0.1 */
-  /* when optimizing, start by setting step_super=step_sub (then
-     transition is irrelevant). Once this is done, try top increase
-     step_sub for various values of transition. Keep the value of
-     transition allowing for the largest step_sub. */
 
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
@@ -1431,17 +1428,17 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->start_small_k_at_eta_g_over_eta_h = 0.001;  /* decrease to start earlier in time */
+  ppr->start_small_k_at_eta_g_over_eta_h = 0.0004;  /* decrease to start earlier in time */
   ppr->start_large_k_at_eta_h_over_eta_k = 0.15;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.009; /* decrease to switch off earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.08; /* decrease to switch off earlier in time */
-  ppr->start_sources_at_eta_g_over_eta_h = 0.009; /* decrease to start earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.005; /* decrease to switch off earlier in time */
+  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.008; /* decrease to switch off earlier in time */
+  ppr->start_sources_at_eta_g_over_eta_h = 0.006; /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)compromise_CLASS;
 
-  ppr->l_max_g=10; 
-  ppr->l_max_pol_g=8; 
-  ppr->l_max_nur=23; 
-  ppr->l_max_ncdm_default=28;
+  ppr->l_max_g=18; 
+  ppr->l_max_pol_g=18; 
+  ppr->l_max_nur=20; 
+  ppr->l_max_ncdm_default=20;
   ppr->l_max_ncdm = NULL; /* The size of the vector is not known yet. Every entry will be set to ppr->l_max_ncdm_default if no input is detected. */ 
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
@@ -1450,26 +1447,26 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->entropy_ini=1.;   /* initial entropy; used to fix isocurvature initial conditions; must remain fixed to one as long as the primordial isocurvature spectrum stands for an entropy power spectrum */
   ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
 
-  ppr->perturb_integration_stepsize=0.5; /* 0.5 */ 
-  ppr->tol_eta_approx=1.e-2; /* 03.12.10 for chi2plT0.01 */
-  ppr->tol_perturb_integration=1.e-6; /* 07.12.10 for chi2plT0.01: 1.e-4 for ndf15 */
-  ppr->perturb_sampling_stepsize=0.08; /* 14.12.10 for chi2plT0.1 */
+  ppr->perturb_integration_stepsize=0.5;
+
+  ppr->tol_eta_approx=1.e-5;
+  ppr->tol_perturb_integration=1.e-6;
+  ppr->perturb_sampling_stepsize=0.04;
 
   ppr->free_streaming_approximation = fsa_MD_with_reio;
-  ppr->free_streaming_trigger_eta_h_over_eta_k = 65.; 
+  ppr->free_streaming_trigger_eta_h_over_eta_k = 60.; 
   ppr->free_streaming_trigger_Omega_r = 0.1; 
 
   /**
    * - parameter related to the Bessel functions
    */
 
-  ppr->l_logstep=1.035; /* 14.12.10 for chi2plT0.1 */
-  ppr->l_linstep=35; /* 14.12.10 for chi2plT0.1 and reasonnable large ls */
-  /* when optimizing, always compare to case linstep=1 (all l's) */
+  ppr->l_logstep=1.04;
+  ppr->l_linstep=35;
 
-  ppr->bessel_x_step=0.045; /* 14.12.10 for chi2plT0.1 */
-  ppr->bessel_j_cut=1.5e-4; /* 14.12.10 for chi2plT0.1 */
-  ppr->bessel_tol_x_min =1.e-4; /* 03.12.10 for chi2plT0.01 */
+  ppr->bessel_x_step=0.7;
+  ppr->bessel_j_cut=1.e-5;
+  ppr->bessel_tol_x_min =1.e-6;
   sprintf(ppr->bessel_file_name,"bessels.dat");
 
   /**
@@ -1482,13 +1479,13 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->k_step_trans_scalars=0.002;
+  ppr->k_step_trans_scalars=0.004;
   ppr->k_step_trans_tensors=0.0015;
-  ppr->transfer_cut=tc_cl; /* 03.12.10 for chi2plT0.01: tc_cl slightly faster (by 20%) for equal precision, but also slightly less robust (better to switch to tc_osc if primordial tilt can depart significantly from one) */
-  ppr->transfer_cut_threshold_osc=0.015; /* 03.12.10 for chi2plT0.01 */
-  ppr->transfer_cut_threshold_cl=2.e-6; /* 14.12.10 for chi2plT0.01 */
+  ppr->transfer_cut=tc_osc;
+  ppr->transfer_cut_threshold_osc=0.005; /* 03.12.10 for chi2plT0.01 */
+  ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */
 
-  ppr->l_switch_limber=10;
+  ppr->l_switch_limber=40;
 
   /**
    * - parameters related to trg module
@@ -1514,8 +1511,8 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to lensing
    */
 
-  ppr->num_mu_minus_lmax=400;
-  ppr->delta_l_max=100;
+  ppr->num_mu_minus_lmax=600;
+  ppr->delta_l_max=500;
 
   /**
    * - automatic estimate of machine precision

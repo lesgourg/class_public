@@ -414,8 +414,6 @@ int lensing_init(
     sigma2[index_mu] = Cgl[num_mu-1] - Cgl[index_mu];
   }
   
-  fprintf(stderr,"get here\n");
-
   /** - compute ksi, ksi+, ksi-, ksiX */
 
   /** ksi is for TT **/
