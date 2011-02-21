@@ -108,15 +108,15 @@ int lensing_init(
   double * ksip;  /* ksip[index_mu] */
   double * ksim;  /* ksim[index_mu] */
 
-  double ** X000;  /* Ximn[index_mu][index_l] */ 
-  double ** Xp000;
-  double ** X220; 
-  double ** X022; 
-  double ** X132; 
-  double ** X121; 
-  double ** Xp022; 
-  double ** X242;
-  double * buf_Xijk;
+  double fac,fac1;
+  double X_000;
+  double X_p000;
+  double X_220;
+  double X_022;
+  double X_p022;
+  double X_121;
+  double X_132;
+  double X_242;
 
   int num_mu,index_mu,icount;
   int l;
@@ -129,6 +129,8 @@ int lensing_init(
   double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */  
   double ** junk1=NULL, ** junk2=NULL;
 
+  double res,resX;
+  double resp, resm;
 
   /** Summary: */
 
@@ -172,10 +174,10 @@ int lensing_init(
               ple->error_message);
 
   class_call(quadrature_gauss_legendre(mu,
-				    w8,
-				    num_mu-1,
-				    ppr->tol_gauss_legendre,
-				    ple->error_message),
+				       w8,
+				       num_mu-1,
+				       ppr->tol_gauss_legendre,
+				       ple->error_message),
              ple->error_message,
              ple->error_message); 
 
@@ -412,212 +414,123 @@ int lensing_init(
     sigma2[index_mu] = Cgl[num_mu-1] - Cgl[index_mu];
   }
   
-  /** - compute X000(mu), X'000(mu), X220 and other Ximn */
-  /** Zero separation is not used from now on, hence num_mu-1 **/
-  icount=0;
-  class_alloc(X000,
-              (num_mu-1)*sizeof(double*),
-              ple->error_message);
-  class_alloc(Xp000,
-              (num_mu-1)*sizeof(double*),
-              ple->error_message);
-  class_alloc(X220,
-              (num_mu-1)*sizeof(double*),
-              ple->error_message);
-  icount += 3*(num_mu-1)*(ple->l_unlensed_max+1);
-
-  if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-
-    class_alloc(X022,
-                (num_mu-1)*sizeof(double*),
-                ple->error_message);
-    class_alloc(Xp022,
-                (num_mu-1)*sizeof(double*),
-                ple->error_message);
-    class_alloc(X121,
-                (num_mu-1)*sizeof(double*),
-                ple->error_message);
-    class_alloc(X132,
-                (num_mu-1)*sizeof(double*),
-                ple->error_message);
-    class_alloc(X242,
-                (num_mu-1)*sizeof(double*),
-                ple->error_message);
-    icount += 5*(num_mu-1)*(ple->l_unlensed_max+1);
-  }
-  
-  /* Allocate buffer */
-  class_alloc(buf_Xijk,
-	      icount * sizeof(double),
-	      ple->error_message);
-  icount=0;
-  for (index_mu=0; index_mu<num_mu-1; index_mu++) {
-
-    X000[index_mu] = &(buf_Xijk[icount+index_mu                * (ple->l_unlensed_max+1)]);
-    Xp000[index_mu]= &(buf_Xijk[icount+(index_mu+num_mu-1)     * (ple->l_unlensed_max+1)]);
-    X220[index_mu] = &(buf_Xijk[icount+(index_mu+2*(num_mu-1)) * (ple->l_unlensed_max+1)]);
-  }
-  icount += 3*(num_mu-1)*(ple->l_unlensed_max+1);
-  
-  if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-
-    for (index_mu=0; index_mu<num_mu-1; index_mu++) {
-
-      X022[index_mu] = &(buf_Xijk[icount+index_mu                * (ple->l_unlensed_max+1)]);
-      Xp022[index_mu]= &(buf_Xijk[icount+(index_mu+num_mu-1)     * (ple->l_unlensed_max+1)]);
-      X121[index_mu] = &(buf_Xijk[icount+(index_mu+2*(num_mu-1)) * (ple->l_unlensed_max+1)]);
-      X132[index_mu] = &(buf_Xijk[icount+(index_mu+3*(num_mu-1)) * (ple->l_unlensed_max+1)]);
-      X242[index_mu] = &(buf_Xijk[icount+(index_mu+4*(num_mu-1)) * (ple->l_unlensed_max+1)]);
-    }
-  }
-  
-  class_call(lensing_X000(mu,num_mu-1,ple->l_unlensed_max,sigma2,X000),
-             ple->error_message,
-             ple->error_message);
-  class_call(lensing_Xp000(mu,num_mu-1,ple->l_unlensed_max,sigma2,Xp000),
-             ple->error_message,
-             ple->error_message);
-  class_call(lensing_X220(mu,num_mu-1,ple->l_unlensed_max,sigma2,X220),
-             ple->error_message,
-             ple->error_message);
-  
-  if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-
-    class_call(lensing_X022(mu,num_mu-1,ple->l_unlensed_max,sigma2,X022),
-               ple->error_message,
-               ple->error_message);
-
-    class_call(lensing_Xp022(mu,num_mu-1,ple->l_unlensed_max,sigma2,Xp022),
-               ple->error_message,
-               ple->error_message);
-
-    class_call(lensing_X121(mu,num_mu-1,ple->l_unlensed_max,sigma2,X121),
-               ple->error_message,
-               ple->error_message);
-
-    class_call(lensing_X132(mu,num_mu-1,ple->l_unlensed_max,sigma2,X132),
-               ple->error_message,
-               ple->error_message);
-
-    class_call(lensing_X242(mu,num_mu-1,ple->l_unlensed_max,sigma2,X242),
-               ple->error_message,
-               ple->error_message);
-  }
-  
+  fprintf(stderr,"get here\n");
 
   /** - compute ksi, ksi+, ksi-, ksiX */
-  
-  /** ksi is for TT **/
-  class_alloc(ksi,
-              (num_mu-1)*sizeof(double),
-              ple->error_message);
-  {
-    double res;
-#pragma omp parallel for			\
-  private (index_mu,l,ll,res)			\
-  schedule (static)
 
-    for (index_mu=0;index_mu<num_mu-1;index_mu++) {
-      ksi[index_mu]=0;
-      for (l=2;l<=ple->l_unlensed_max;l++) {
-        ll = (double) l;
-        res = (2*ll+1)/(4.*_PI_)*cl_tt[l];
-        /* res *= d00[l][index_mu]; */ /*DEBUG: TO BE REMOVED */
-        
-        res *= (X000[index_mu][l]*X000[index_mu][l]*d00[index_mu][l] +
-                Xp000[index_mu][l]*Xp000[index_mu][l]*d1m1[index_mu][l]
-                *Cgl2[index_mu]*8./(ll*(ll+1)) +
-                (Xp000[index_mu][l]*Xp000[index_mu][l]*d00[index_mu][l] +
-                 X220[index_mu][l]*X220[index_mu][l]*d2m2[index_mu][l])
-                *Cgl2[index_mu]*Cgl2[index_mu]);
-        
-        ksi[index_mu] += res;
-      }
-    }
+  /** ksi is for TT **/
+  if (ple->has_tt==_TRUE_) {
+    
+    class_calloc(ksi,
+		 (num_mu-1),
+		 sizeof(double),
+		 ple->error_message);
   }
   
   /** ksiX is for TE **/
   if (ple->has_te==_TRUE_) {
-    class_alloc(ksiX,
-                (num_mu-1)*sizeof(double),
-                ple->error_message);
-    {
-      double res;
-      double *sqllp1;
-      class_alloc(sqllp1,
-                  (ple->l_unlensed_max+1)*sizeof(double),
-                  ple->error_message);
-      for (l=2;l<=ple->l_unlensed_max;l++) {
-        ll=(double)l;
-        sqllp1[l] = sqrt(ll*(ll+1));
-      }
-      
-#pragma omp parallel for			\
-  private (index_mu,l,ll,res)			\
-  schedule (static)
-
-      for (index_mu=0;index_mu<num_mu-1;index_mu++) {
-        ksiX[index_mu]=0;
-        for (l=2;l<=ple->l_unlensed_max;l++) {
-          ll = (double)l;
-          res = (2*ll+1)/(4.*_PI_)*cl_te[l];
-          res *= ( X022[index_mu][l]*X000[index_mu][l]*d20[index_mu][l] +
-                   Cgl2[index_mu]*2.*Xp000[index_mu][l]/sqllp1[l] *
-                   (X121[index_mu][l]*d11[index_mu][l] + X132[index_mu][l]*d3m1[index_mu][l]) +
-                   0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
-                   ( ( 2.*Xp022[index_mu][l]*Xp000[index_mu][l]+X220[index_mu][l]*X220[index_mu][l] ) *
-		     d20[index_mu][l] + X220[index_mu][l]*X242[index_mu][l]*d4m2[index_mu][l] ) );
-          ksiX[index_mu] += res;
-        }
-      }
-      free(sqllp1);
-    }
+    
+    class_calloc(ksiX,
+		 (num_mu-1),
+		 sizeof(double),
+		 ple->error_message);
   }
 
   /** ksip, ksim for EE, BB **/
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    class_alloc(ksip,
-		(num_mu-1)*sizeof(double),
-		ple->error_message);
-    class_alloc(ksim,
-		(num_mu-1)*sizeof(double),
-		ple->error_message);
-    {
-      double resp, resm;
-#pragma omp parallel for			\
-  private (index_mu,l,ll,resp,resm)		\
+    
+    class_calloc(ksip,
+		 (num_mu-1),
+		 sizeof(double),
+		 ple->error_message);
+    
+    class_calloc(ksim,
+		 (num_mu-1),
+		 sizeof(double),
+		 ple->error_message); 
+  }
+
+  {
+    
+#pragma omp parallel for						\
+  private (index_mu,l,ll,res,resX,resp,resm,				\
+	   fac,fac1,X_000,X_p000,X_220,X_022,X_p022,X_121,X_132,X_242)	\
   schedule (static)
+    
+    for (index_mu=0;index_mu<num_mu-1;index_mu++) {
 
-      for (index_mu=0;index_mu<num_mu-1;index_mu++) {
-	ksip[index_mu]=0;
-	ksim[index_mu]=0;
-	for (l=2;l<=ple->l_unlensed_max;l++) {
-	  ll = (double) l;
-	  resp = (2*ll+1)/(4.*_PI_)*(cl_ee[l]+cl_bb[l]);
-	  resm = (2*ll+1)/(4.*_PI_)*(cl_ee[l]-cl_bb[l]);
+      for (l=2;l<=ple->l_unlensed_max;l++) {
+
+	ll = (double)l;
+
+	fac = ll*(ll+1)/4.;
+	fac1 = (2*ll+1)/(4.*_PI_);
+
+	X_000 = exp(-fac*sigma2[index_mu]);
+	X_p000 = -fac*X_000;
+	X_220 = 0.25*sqrt((ll+2)*(ll+1)*ll*(ll-1)) * exp(-(fac-0.5)*sigma2[index_mu]);
+
+	X_022 = exp(-(fac-1.)*sigma2[index_mu]);
+	X_p022 = (fac-1.)*X_022;
+	X_121 = - 0.5*sqrt((ll+2)*(ll-1)) * exp(-(fac-2./3.)*sigma2[index_mu]);
+	X_132 = - 0.5*sqrt((ll+3)*(ll-2)) * exp(-(fac-5./3.)*sigma2[index_mu]);
+	X_242 = 0.25*sqrt((ll+4)*(ll+3)*(ll-2.)*(ll-3))  * exp(-(fac-5./2.)*sigma2[index_mu]);
+	
+	if (ple->has_tt==_TRUE_) {
 	  
-	  resp *= ( X022[index_mu][l]*X022[index_mu][l]*d22[index_mu][l] +
-		    2.*Cgl2[index_mu]*X132[index_mu][l]*X121[index_mu][l]*d31[index_mu][l] +
+	  res = fac1*cl_tt[l];
+	  
+	  res *= (X_000*X_000*d00[index_mu][l] +
+		  X_p000*X_p000*d1m1[index_mu][l]
+		  *Cgl2[index_mu]*8./(ll*(ll+1)) +
+		  (X_p000*X_p000*d00[index_mu][l] +
+		   X_220*X_220*d2m2[index_mu][l])
+		  *Cgl2[index_mu]*Cgl2[index_mu]);
+	  
+	  ksi[index_mu] += res;
+	}
+	
+	if (ple->has_te==_TRUE_) {
+	    
+	  resX = fac1*cl_te[l];
+	  
+	  resX *= ( X_022*X_000*d20[index_mu][l] +
+                   Cgl2[index_mu]*2.*X_p000/sqrt(ll*(ll+1)) *
+                   (X_121*d11[index_mu][l] + X_132*d3m1[index_mu][l]) +
+                   0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
+                   ( ( 2.*X_p022*X_p000+X_220*X_220 ) *
+		     d20[index_mu][l] + X_220*X_242*d4m2[index_mu][l] ) );
+
+	  ksiX[index_mu] += resX;
+	}
+	  
+	if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+	
+	  resp = fac1*(cl_ee[l]+cl_bb[l]);
+	  resm = fac1*(cl_ee[l]-cl_bb[l]);
+	    
+	  resp *= ( X_022*X_022*d22[index_mu][l] +
+		    2.*Cgl2[index_mu]*X_132*X_121*d31[index_mu][l] +
 		    Cgl2[index_mu]*Cgl2[index_mu] *
-		    ( Xp022[index_mu][l]*Xp022[index_mu][l]*d22[index_mu][l] +
-		      X242[index_mu][l]*X220[index_mu][l]*d40[index_mu][l] ) );
-
-	  resm *= ( X022[index_mu][l]*X022[index_mu][l]*d2m2[index_mu][l] +
+		    ( X_p022*X_p022*d22[index_mu][l] +
+		      X_242*X_220*d40[index_mu][l] ) );
+	    
+	  resm *= ( X_022*X_022*d2m2[index_mu][l] +
 		    Cgl2[index_mu] *
-		    ( X121[index_mu][l]*X121[index_mu][l]*d1m1[index_mu][l] +
-		      X132[index_mu][l]*X132[index_mu][l]*d3m3[index_mu][l] ) +
+		    ( X_121*X_121*d1m1[index_mu][l] +
+		      X_132*X_132*d3m3[index_mu][l] ) +
 		    0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
-		    ( 2.*Xp022[index_mu][l]*Xp022[index_mu][l]*d2m2[index_mu][l] +
-		      X220[index_mu][l]*X220[index_mu][l]*d00[index_mu][l] +
-		      X242[index_mu][l]*X242[index_mu][l]*d4m4[index_mu][l] ) );
-
+		    ( 2.*X_p022*X_p022*d2m2[index_mu][l] +
+		      X_220*X_220*d00[index_mu][l] +
+		      X_242*X_242*d4m4[index_mu][l] ) );
+	    
 	  ksip[index_mu] += resp;
 	  ksim[index_mu] += resm;
 	}
       }
     }
   }
-
+  
   /** - compute lensed Cls by integration */
   class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
              ple->error_message,
@@ -650,7 +563,6 @@ int lensing_init(
   
   /** Free lots of stuff **/
   free(buf_dxx);
-  free(buf_Xijk);
 
   free(d00);
   free(d11);
@@ -667,18 +579,6 @@ int lensing_init(
     free(d3m3);
     free(d40);
     free(d4m4);
-  }
-  
-  free(X000);
-  free(Xp000);
-  free(X220);
-  
-  if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-    free(X022);
-    free(Xp022);
-    free(X121);
-    free(X132);
-    free(X242);
   }
   
   free(ksi);
@@ -865,7 +765,7 @@ int lensing_lensed_cl_tt(
 
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
-  private (imu,index_l,cle)				\
+  private (imu,index_l,cle)			\
   schedule (static)
 
   for(index_l=0; index_l<ple->l_size; index_l++){
@@ -905,7 +805,7 @@ int lensing_lensed_cl_te(
 
   /** Integration by Gauss-Legendre quadrature **/
 #pragma omp parallel for			\
-  private (imu,index_l,clte)				\
+  private (imu,index_l,clte)			\
   schedule (static)
 
   for(index_l=0; index_l < ple->l_size; index_l++){
@@ -962,349 +862,6 @@ int lensing_lensed_cl_ee_bb(
     ple->cl_lens[index_l*ple->lt_size+ple->index_lt_bb]=(clp-clm)*_PI_;
   }
 
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the X000 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param X000   Input/output: Result is stored here
- 
- **/
-
-int lensing_X000(
-		 double * mu,
-		 int num_mu,
-		 int lmax,
-		 double * sigma2,
-		 double ** X000
-		 ) {
-  int index_mu, l;
-  double ll;
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    for (l=0;l<=lmax;l++) {
-      ll = (double) l;
-      X000[index_mu][l]=exp(-ll*(ll+1)*sigma2[index_mu]/4.);
-    }
-  }
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the Xp000 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param Xp000  Input/output: Result is stored here
- 
- **/
-
-int lensing_Xp000(
-		  double * mu,
-		  int num_mu,
-		  int lmax,
-		  double * sigma2,
-		  double ** Xp000
-		  ) {
-  int index_mu, l;
-  double ll;
-  double *fac;
-  ErrorMsg erreur;
-  class_alloc(fac,(lmax+1)*sizeof(double),erreur);
-  for (l=0;l<=lmax;l++) {
-    ll = (double) l;
-    fac[l]=ll*(ll+1)/4.;
-  }
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    for (l=0;l<=lmax;l++) {
-      ll = (double) l;
-      Xp000[index_mu][l]=-fac[l]*exp(-fac[l]*sigma2[index_mu]);
-    }
-  }
-  free(fac);
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the X220 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param X220   Input/output: Result is stored here
- 
- **/
-
-int lensing_X220(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double * sigma2,
-                 double ** X220
-                 ) {
-  int index_mu, l;
-  double ll;
-  double *fac1, *fac2;
-  ErrorMsg erreur;
-  class_alloc(fac1,(lmax+1)*sizeof(double),erreur);
-  class_alloc(fac2,(lmax+1)*sizeof(double),erreur);
-  for (l=2; l<=lmax; l++) {
-    ll = (double) l;
-    fac1[l] = 0.25*sqrt((ll+2)*(ll+1)*ll*(ll-1));
-    fac2[l] = (ll*(ll+1)-2.)/4.;
-  }
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    X220[index_mu][0]=0;
-    X220[index_mu][1]=0;
-    for (l=2;l<=lmax;l++) {
-      ll = (double) l;
-      X220[index_mu][l]=fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
-    }
-  }
-  free(fac1); free(fac2);
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the X022 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param X022   Input/output: Result is stored here
- 
- **/
-
-int lensing_X022(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double * sigma2,
-                 double ** X022
-                 ) {
-  int index_mu, l;
-  double ll;
-  double *fac;
-  ErrorMsg erreur;
-  class_alloc(fac,(lmax+1)*sizeof(double),erreur);
-  for (l=2; l<=lmax; l++) {
-    ll = (double) l;
-    fac[l] = (ll*(ll+1)-4.)/4.;
-  }
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    X022[index_mu][0]=0;
-    X022[index_mu][1]=0;
-    for (l=2;l<=lmax;l++) {
-      ll = (double) l;
-      X022[index_mu][l]=exp(-fac[l]*sigma2[index_mu]);
-    }
-  }
-  free(fac);
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the Xp022 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param Xp022  Input/output: Result is stored here
- 
- **/
-
-int lensing_Xp022(
-		  double * mu,
-		  int num_mu,
-		  int lmax,
-		  double * sigma2,
-		  double ** Xp022
-		  ) {
-  int index_mu, l;
-  double ll;
-  double *fac;
-  ErrorMsg erreur;
-  class_alloc(fac,(lmax+1)*sizeof(double),erreur);
-  for (l=2; l<=lmax; l++) {
-    ll = (double) l;
-    fac[l] = (ll*(ll+1)-4.)/4.;
-  }
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    Xp022[index_mu][0]=0;
-    Xp022[index_mu][1]=0;
-    for (l=2;l<=lmax;l++) {
-      ll = (double) l;
-      Xp022[index_mu][l]= -fac[l]*exp(-fac[l]*sigma2[index_mu]);
-    }
-  }
-  free(fac);
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the X121 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param X121   Input/output: Result is stored here
- 
- **/
-
-int lensing_X121(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double * sigma2,
-                 double ** X121
-                 ) {
-  int index_mu, l;
-  double ll;
-  double *fac1, *fac2;
-  ErrorMsg erreur;
-  class_alloc(fac1,(lmax+1)*sizeof(double),erreur);
-  class_alloc(fac2,(lmax+1)*sizeof(double),erreur);
-  for (l=2; l<=lmax; l++) {
-    ll = (double) l;
-    fac1[l] = 0.5*sqrt((ll+2)*(ll-1));
-    fac2[l] = (ll*(ll+1)-8./3.)/4.;
-  }
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    X121[index_mu][0]=0;
-    X121[index_mu][1]=0;
-    for (l=2;l<=lmax;l++) {
-      ll = (double) l;
-      X121[index_mu][l]= -fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
-    }
-  }
-  free(fac1); free(fac2);
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the X132 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param X132   Input/output: Result is stored here
- 
- **/
-
-int lensing_X132(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double * sigma2,
-                 double ** X132
-                 ) {
-  int index_mu, l;
-  double ll;
-  double *fac1, *fac2;
-  ErrorMsg erreur;
-  class_alloc(fac1,(lmax+1)*sizeof(double),erreur);
-  class_alloc(fac2,(lmax+1)*sizeof(double),erreur);
-  for (l=3; l<=lmax; l++) {
-    ll = (double) l;
-    fac1[l] = 0.5*sqrt((ll+3)*(ll-2));
-    fac2[l] = (ll*(ll+1)-20./3.)/4.;
-  }
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    X132[index_mu][0]=0;
-    X132[index_mu][1]=0;
-    X132[index_mu][2]=0;
-    for (l=3;l<=lmax;l++) {
-      ll = (double) l;
-      X132[index_mu][l]= -fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
-    }
-  }
-  free(fac1); free(fac2);
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the X242 term
- *
- * @param mu     Input       : Vector of cos(beta) values
- * @param num_mu Input       : Number of cos(beta) values
- * @param lmax   Input       : maximum multipole
- * @param sigma2 Input       : Vector of sigma2(mu) values
- * @param X242   Input/output: Result is stored here
- 
- **/
-
-int lensing_X242(
-                 double * mu,
-                 int num_mu,
-                 int lmax,
-                 double * sigma2,
-                 double ** X242
-                 ) {
-  int index_mu, l;
-  double ll;
-  double *fac1, *fac2;
-  ErrorMsg erreur;
-  class_alloc(fac1,(lmax+1)*sizeof(double),erreur);
-  class_alloc(fac2,(lmax+1)*sizeof(double),erreur);
-  for (l=4; l<=lmax; l++) {
-    ll = (double) l;
-    fac1[l] = 0.25*sqrt((ll+4)*(ll+3)*(ll-2.)*(ll-3));
-    fac2[l] = (ll*(ll+1)-10.)/4.;
-  }
-#pragma omp parallel for			\
-  private (index_mu,l,ll)			\
-  schedule (static)
-
-  for (index_mu=0;index_mu<num_mu;index_mu++) {
-    X242[index_mu][0]=0;
-    X242[index_mu][1]=0;
-    X242[index_mu][2]=0;
-    X242[index_mu][3]=0;
-    for (l=4;l<=lmax;l++) {
-      ll = (double) l;
-      X242[index_mu][l]=fac1[l] * exp(-fac2[l]*sigma2[index_mu]);
-    }
-  }
-  free(fac1); free(fac2);
   return _SUCCESS_;
 }
 

@@ -65,7 +65,7 @@ SPECTRA = spectra.o
 
 NONLINEAR = trg.o nonlinear.o
 
-LENSING = lensing_new.o
+LENSING = lensing.o
 
 OUTPUT = output.o
 
