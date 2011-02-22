@@ -2513,11 +2513,11 @@ int trg_init (
 
   if (pnl->spectra_nl_verbose > 0){
     if(pnl->mode==0)
-      printf("Testing trg.c module with linear spectra computation\n");
+      printf(" -> testing trg.c module with linear computation\n");
     if(pnl->mode==1)
-      printf("Computing non-linear spectra with one-loop method\n");
+      printf(" -> using with one-loop method\n");
     if(pnl->mode==2)
-      printf("Computing non-linear spectra with TRG method\n");
+      printf(" -> using with TRG method\n");
   }
 
   class_calloc(pvecback_nl,pba->bg_size,sizeof(double),pnl->error_message);

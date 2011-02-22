@@ -187,7 +187,7 @@ int nonlinear_init(
   }
   else {
     if (pnl->nonlinear_verbose > 0)
-      printf("Compute non-linear matter power spectrum using trg module.\n");
+      printf("Computing non-linear matter power spectrum using trg module\n");
 
     struct spectra_nl trg;
 
@@ -214,7 +214,7 @@ int nonlinear_init(
 	       trg.error_message,
 	       pnl->error_message);
 
-      fprintf(stderr,"done with trg_init\n");
+      fprintf(stderr," -> done with trg_init\n");
 
     /* copy non-linear spectrum in pnl */
 

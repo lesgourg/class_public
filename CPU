@@ -171,7 +171,7 @@ def blend_against_interp(names,spectrum_type):
     print '  reading {0}..'.format(name)
     j=0
     for line in currentfile:
-      if string.find(line, '#')==-1:
+      if ((line.find('#')==-1) and (line.rfind('000000')==-1)):
 	line=line.split()
 	spam[0][j][l]=float(line[0])
 	spam[1][j][l]=float(line[1])
@@ -221,9 +221,11 @@ def blend_against_interp(names,spectrum_type):
 
   plotfile = open(gnuplot_file,"w")
   plotfile.write(headers_plot_file(spectrum_type,names,False))
+  plotfile.write("unset logscale\n")
+  plotfile.write("set xr [0:{0}]\n".format(kmax))
   plot_string="plot "
-  for l in range(lmax):
-    plot_string+="'{0}' u 1:{1} w l,".format(data_file,l+2)
+  for l in range(lmax-1):
+    plot_string+="'{0}' u 1:(${1}/$2-1) w l,".format(data_file,l+3)
   plot_string=plot_string.rstrip(",")
   plot_string=plot_string+"\n"
   plotfile.write(plot_string)
