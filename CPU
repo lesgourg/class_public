@@ -1,6 +1,8 @@
 #! /usr/bin/python
 
 from scipy import *
+from scipy import interpolate
+import numpy as np
 import os,sys,string,io,subprocess
 import argparse
 
@@ -13,15 +15,21 @@ parser.add_argument('-c, --cleaning',metavar='path',nargs='?',dest='cleaning',co
 
 # Remove all .plt files generated in output/
 def clean(path):
-  pattern='.plt'
-  path=path+"/"
+  pattern1,pattern2,pattern3='.plt','_interp.dat','_divided.dat'
+  if path.rfind("/")==-1:
+    path+="/"
   print 'Cleaning {0} directory from .plt files ...'.format(path)
+  i=0 
   for each in os.listdir(path):
-    if each.rfind(pattern)!=-1:
+    if ( (each.rfind(pattern1)!=-1) or (each.rfind(pattern2)!=-1) or (each.rfind(pattern3)!=-1) ):
       name= "{0}{1}".format(path,each)
       print '  deleting {0}'.format(name)
       os.remove(name)
-  print '  ==> Done'
+      i+=1
+  if i==0:
+    print ' ==> Already as clean as possible'
+  else:
+    print '  ==> Done'
 
 # Errors###########################
 def error_format():
@@ -91,8 +99,9 @@ def headers_plot_file(spectrum_type,names,plot_line):
       plot_string=''
     for line in tmp:
       if line.rfind('redshift')!=-1:
-	z= line.split()[-1]
-    return "set term 'wxt' enhanced\nset logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z=\n"+plot_string
+	z= line.split("=")[1]
+	break
+    return "set term 'wxt' enhanced\nset logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z={0}\n".format(z)+plot_string
   else:
     return None
   tmp.close()
@@ -165,7 +174,7 @@ def blend_against_interp(names,spectrum_type):
   lmax=0
   kmax=10000000
   kmin=0
-  spam = [[[0 for col in range(10)] for row in range(10000)] for depth in range(2)]
+  spam = np.array([[[0 for col in range(10)] for row in range(10000)] for depth in range(2)],dtype=float)
   for name in names:
     currentfile = open(name,"r")
     print '  reading {0}..'.format(name)
@@ -173,15 +182,15 @@ def blend_against_interp(names,spectrum_type):
     for line in currentfile:
       if ((line.find('#')==-1) and (line.rfind('000000')==-1)):
 	line=line.split()
-	spam[0][j][l]=float(line[0])
-	spam[1][j][l]=float(line[1])
+	spam[0,j,l]=float(line[0])
+	spam[1,j,l]=float(line[1])
 	j+=1
     if j>jmax[l]:
       jmax[l]=j
-    if spam[0][j-1][l]<kmax:
-      kmax=spam[0][jmax[l]-1][l]
-    if spam[0][0][l]>kmin:
-      kmin=spam[0][0][l]
+    if spam[0,j-1,l]<kmax:
+      kmax=spam[0,jmax[l]-1,l]
+    if spam[0,0,l]>kmin:
+      kmin=spam[0,0,l]
     l+=1
     currentfile.close()
   lmax=l
@@ -190,34 +199,30 @@ def blend_against_interp(names,spectrum_type):
   #determining the upper and lower bound for each file, to only do interpolation
   for l in range (lmax):
     for j in range (jmax[l]):
-      if spam[0][j][l]<=kmin:
+      if spam[0,j,l]<=kmin:
 	lower_bound[l]=j+1
-      if spam[0][j][l]<=kmax:
+      if spam[0,j,l]<=kmax:
 	upper_bound[l]=j-1
   print '  -> done'
   #creating the new data file
+  curves=[np.array for row in range(lmax)]
+  interpolated=[np.array for row in range(lmax)]
+  for l in range (lmax):
+    curves[l]=interpolate.splrep(spam[0,:upper_bound[l],l],spam[1,:upper_bound[l],l])
   datafile = open(data_file,"w")
   for l in range (lmax):
-    for j in range(lower_bound[l],upper_bound[l]):
+    for ll in range(lmax):
+      if ll==l:
+	interpolated[ll]=spam[1,lower_bound[l]:upper_bound[l],l]
+      else:	  
+        interpolated[ll]=interpolate.splev(spam[0,lower_bound[l]:upper_bound[l],l],curves[ll],der=0)
+    for j in range(upper_bound[l]-lower_bound[l]):
       data_string=''
       for ll in range(lmax):
-	if ll!=l:
-	  jj=0
-	  while spam[0][jj][ll]<spam[0][j][l]:
-	    y_0=spam[1][jj][ll]
-	    y_1=spam[1][jj+1][ll]
-	    x_0=spam[0][jj][ll]
-	    x_1=spam[0][jj+1][ll]
-	    jj+=1
-	  slope=float((y_1 - y_0)/(x_1-x_0))
-	  interpolated=y_0+slope * math.fabs(x_0-spam[0][j][l])
-	else:
-	  interpolated=spam[1][j][ll]
-	data_string=data_string+str(interpolated)+"\t"
-      datafile.write(str(spam[0][j][l])+"\t"+data_string+"\n")
+	data_string=data_string+str((interpolated[ll])[j])+"\t"
+      datafile.write(str(spam[0,j,l])+"\t"+data_string+"\n")
     datafile.write("\n\n")
   datafile.close()
-
 
   plotfile = open(gnuplot_file,"w")
   plotfile.write(headers_plot_file(spectrum_type,names,False))
