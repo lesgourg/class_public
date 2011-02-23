@@ -261,6 +261,18 @@ enum possible_gauges {
   synchronous /**< synchronous gauge with \f$ \theta_{cdm} = 0 \f$ by convention */
 };
 
+/** 
+ * List of ways in which matter power spectrum P(k) can be defined.
+ * The standard definition is the first one (delta_m_squared) but
+ * alternative definitions can be usfeul in some projects.
+ * 
+ */
+enum pk_def {
+  delta_m_squared, /**< normal definition (delta_m includes all non-relativistic species at late times) */
+  delta_tot_squared, /**< delta_tot includes all species contributions to (delta rho), and only non-relativistic contributions to rho */
+  delta_bc_squared, /**< delta_bc includes contribution of baryons and cdm only to (delta rho) and to rho */
+  delta_tot_from_poisson_squared /**< use delta_tot inferred from gravitational potential through Poisson equation */
+};
 
 /**
  * All precision parameters. 
@@ -408,6 +420,8 @@ struct precision
   enum possible_gauges gauge; 
 
   enum evolver_type evolver; /* which type of evolver for integrating perturbations (Runge-Kutta? Stiff?...) */
+
+  enum pk_def pk_definition;
 
   double k_scalar_min_eta0; /**< number defining k_min for the computation of scalar Cl's and P(k)'s (dimensionless): (k_min eta_0), usually chosen much smaller than one */
 

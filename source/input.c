@@ -984,6 +984,7 @@ int input_init(
 
   class_read_int("gauge",ppr->gauge);
   class_read_int("evolver",ppr->evolver);
+  class_read_int("pk_definition",ppr->pk_definition);
   class_read_double("k_scalar_min_eta0",ppr->k_scalar_min_eta0);
   class_read_double("k_scalar_max_eta0_over_l_max",ppr->k_scalar_max_eta0_over_l_max);
   class_read_double("k_scalar_step_sub",ppr->k_scalar_step_sub);
@@ -1412,6 +1413,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->gauge=synchronous;
   ppr->evolver = ndf15;
+  ppr->pk_definition = delta_m_squared;
 
   ppr->k_scalar_min_eta0=0.05;
   ppr->k_scalar_max_eta0_over_l_max=2.;

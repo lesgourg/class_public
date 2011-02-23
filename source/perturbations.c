@@ -491,24 +491,25 @@ int perturb_indices_of_perturbs(
 
       /** -- count source types specific to scalars (gravitational potential, ...) and assign corresponding indices */
 
-      if (ppt->has_cl_cmb_lensing_potential == _TRUE_) { 
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
+	  ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition == delta_tot_from_poisson_squared))) { 
 	ppt->has_lss = _TRUE_;
-        ppt->has_source_g = _TRUE_;
+	ppt->has_source_g = _TRUE_;
 	ppt->index_tp_g = index_type; 
 	index_type++;
       }
       else
 	ppt->has_source_g = _FALSE_;
 
-      if (ppt->has_pk_matter == _TRUE_) { 
+      if ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition != delta_tot_from_poisson_squared)) {
 	ppt->has_lss = _TRUE_;
-        ppt->has_source_delta_tot = _TRUE_;
-	ppt->index_tp_delta_tot = index_type; 
+        ppt->has_source_delta_pk = _TRUE_;
+	ppt->index_tp_delta_pk = index_type; 
 	index_type++;
       }
       else
-	ppt->has_source_delta_tot = _FALSE_;
-
+	ppt->has_source_delta_pk = _FALSE_;
+      
       if (ppt->has_matter_transfers == _TRUE_) {
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_delta_g = _TRUE_;
@@ -3248,6 +3249,7 @@ int perturb_einstein(
   double factor;
   int index_q,n_ncdm,idx;
   double epsilon,q,q2;
+  double rho_pk,delta_rho_pk;
 
   /** - wavenumber and scale factor related quantities */ 
 
@@ -3371,7 +3373,7 @@ int perturb_einstein(
 	rho_plus_p_theta_ncdm *= k*factor;
 	rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
 
-	if (ppt->has_matter_transfers == _TRUE_) {
+	if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 	  ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
 	}
 
@@ -3381,11 +3383,69 @@ int perturb_einstein(
       }
     }
 
-    /* store delta_tot (for corresponding source function) */
+    /* store delta_pk (for corresponding source function) Since the
+     matter power spectrum is usually defined in such way to include
+     only non-relativistic components, the sum over each species
+     contribution to delta_rho_pk and rho_pk must be done
+     'manually'. Only if the P(k) is defined from the total matter
+     overdensity we can use the delta_rho computed above.  */
 
-    if (ppt->has_source_delta_tot == _TRUE_) {
-      ppw->delta_tot = delta_rho/ppw->pvecback[pba->index_bg_H]/ppw->pvecback[pba->index_bg_H];
+    if (ppt->has_source_delta_pk == _TRUE_) {
+
+      /* do the sum over species contribution to delta_pk */
+
+      if ((ppr->pk_definition == delta_m_squared) ||
+	  (ppr->pk_definition == delta_bc_squared)){
+
+	/* include baryons and cold dark matter */
+
+	delta_rho_pk = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
+	rho_pk = ppw->pvecback[pba->index_bg_rho_b];
+
+	if (pba->has_cdm == _TRUE_) {
+	  delta_rho_pk += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];      
+	  rho_pk += ppw->pvecback[pba->index_bg_rho_cdm];
+	}
+	 
+	/* include any other species non-relativistic today (like ncdm
+	   species) */
+
+	if (ppr->pk_definition == delta_m_squared) {
+ 
+	  if (pba->has_ncdm == _TRUE_) {
+
+	    for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+
+	      delta_rho_pk += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]*ppw->delta_ncdm[n_ncdm];
+	      rho_pk += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+	    }
+	  }
+	}
+
+	/* infer delta_pk */
+
+	ppw->delta_pk = delta_rho_pk/rho_pk;
+      }
+      
+      /* alternative: take directly into account all species in
+	 delta_rho, and matter species in rho (final result differs
+	 from delta_m_squared only for modes close to Hubble scale) */
+
+      if (ppr->pk_definition == delta_tot_squared) {
+
+	rho_pk = ppw->pvecback[pba->index_bg_rho_b];
+	if (pba->has_cdm == _TRUE_)
+	  rho_pk += ppw->pvecback[pba->index_bg_rho_cdm];
+	if (pba->has_ncdm == _TRUE_) {
+	  for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+	    rho_pk += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+	  }
+	}
+	ppw->delta_pk = delta_rho/rho_pk;
+      }
+      
     }
+
 
     /** (c) infer metric perturbations from Einstein equations */
 
@@ -3777,9 +3837,9 @@ int perturb_source_terms(
 
       /* total matter overdensity */
 
-      if ((ppt->has_source_delta_tot == _TRUE_) && (index_type == ppt->index_tp_delta_tot)) {
+      if ((ppt->has_source_delta_pk == _TRUE_) && (index_type == ppt->index_tp_delta_pk)) {
 
-	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->delta_tot;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->delta_pk;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
 
