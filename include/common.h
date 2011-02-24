@@ -516,9 +516,9 @@ struct precision
    * when to switch off radiation perturbations, ie when to switch
    * on free-streaming approximation (keep density and theta, set
    * shear and higher momenta of ultrarelativistic particles to zero):
-   * second condition: \f$ \Omega_r \f$ < free_streaming_trigger_Omega_r
-   */
-  double free_streaming_trigger_Omega_r;
+   * second condition: 
+   */ 
+  double free_streaming_trigger_eta_g_over_eta_h;
 
   //@}
 

@@ -1041,7 +1041,7 @@ int input_init(
 
   class_read_int("free_streaming_approximation",ppr->free_streaming_approximation)
     class_read_double("free_streaming_trigger_eta_h_over_eta_k",ppr->free_streaming_trigger_eta_h_over_eta_k);
-  class_read_double("free_streaming_trigger_Omega_r",ppr->free_streaming_trigger_Omega_r);
+  class_read_double("free_streaming_trigger_eta_g_over_eta_h",ppr->free_streaming_trigger_eta_g_over_eta_h);
 
   /** h.4. parameter related to the Bessel functions */
 
@@ -1094,16 +1094,19 @@ int input_init(
 
   pbs->l_max=0;
 
-  if (ppt->has_scalars == _TRUE_) {
+  if (ppt->has_cls == _TRUE_) {
+
+    if (ppt->has_scalars == _TRUE_) {
+      
+      if (ple->has_lensed_cls == _TRUE_)
+	ppt->l_scalar_max+=ppr->delta_l_max;
+      
+      pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
+    }
     
-    if (ple->has_lensed_cls == _TRUE_)
-      ppt->l_scalar_max+=ppr->delta_l_max;
-
-    pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
-  }
-
-  if (ppt->has_tensors == _TRUE_) {   
-    pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
+    if (ppt->has_tensors == _TRUE_) {   
+      pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
+    }
   }
 
   /** (i) eventually write all the read parameters in a file */
@@ -1457,8 +1460,9 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->free_streaming_approximation = fsa_MD_with_reio;
   ppr->free_streaming_trigger_eta_h_over_eta_k = 60.; 
-  ppr->free_streaming_trigger_Omega_r = 0.1; 
-
+/*   ppr->free_streaming_trigger_Omega_r = 0.1;  */
+  ppr->free_streaming_trigger_eta_g_over_eta_h = 60.;
+ 
   /**
    * - parameter related to the Bessel functions
    */

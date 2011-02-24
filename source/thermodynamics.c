@@ -242,6 +242,8 @@ int thermodynamics_init(
   struct recombination * preco;
   struct reionization * preio;
 
+  double eta;
+
   /** - initialize pointers, allocate background vector */
 
   preco=&reco;
@@ -380,16 +382,7 @@ int thermodynamics_init(
 
   free(eta_table);
 
-  /** -> compute visibility : \f$ g= (d \kappa/d \eta) e^{- \kappa}
-   *      \f$; compute also redshift when (in order of growing \f$ z
-   *      \f$): 
-   *
-   *      -# \f$ g \f$ is maximum (recombination time)
-   *
-   *      -# \f$ g \f$ falls again below some threshold (can be used
-   *      for switching on free-streaming approximation)
-   * 
-   */
+  /** -> compute visibility : \f$ g= (d \kappa/d \eta) e^{- \kappa} */
 
   /* loop on z (decreasing z, increasing time) */
   for (index_eta=pth->tt_size-1; index_eta>=0; index_eta--) {
@@ -499,6 +492,38 @@ int thermodynamics_init(
 
   pth->rs_rec=pvecback[pba->index_bg_rs];
 
+  /** - find time (always after recombination) at which tau_c/tau_h
+        falls below some threshold, defining eta_free_streaming */
+
+  class_call(background_eta_of_z(pba,pth->z_table[index_eta],&eta),
+	     pba->error_message,
+	     pth->error_message);
+
+  class_call(background_at_eta(pba,eta, short_info, normal, &last_index_back, pvecback),
+	     pba->error_message,
+	     pth->error_message);
+  
+  while (pvecback[pba->index_bg_a]*
+	 pvecback[pba->index_bg_H]/
+	 pth->thermodynamics_table[(index_eta)*pth->th_size+pth->index_th_dkappa] 
+	 < ppr->free_streaming_trigger_eta_g_over_eta_h) {
+
+    index_eta--;
+    
+    class_call(background_eta_of_z(pba,pth->z_table[index_eta],&eta),
+	       pba->error_message,
+	       pth->error_message);
+    
+    class_call(background_at_eta(pba,eta, short_info, normal, &last_index_back, pvecback),
+	       pba->error_message,
+	       pth->error_message);
+    
+  }
+
+  pth->eta_free_streaming = eta;
+
+  fprintf(stderr,"gete here with %g\n",eta);
+
   /** - if verbose flag set to next-to-minimum value, print the main results */
 
   if (pth->thermodynamics_verbose > 0) {
@@ -513,6 +538,10 @@ int thermodynamics_init(
 		 pba->error_message,
 		 pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",eta_reio);
+    }
+    if (pth->thermodynamics_verbose > 1) {
+      printf(" -> free-streaming approximation can be turned on as soon as eta=%g Mpc\n",
+	     pth->eta_free_streaming);
     }
   }
 
@@ -1149,6 +1178,7 @@ int thermodynamics_reionization_sample(
 		 "integration step =%e < machine precision : leads either to numerical error or infinite loop",dz);
 
       z_next=z-dz;
+      if (z_next < 0.) z_next=0.;
 
       class_call(thermodynamics_reionization_function(z_next,pth,preio,&xe_next),
 		 pth->error_message,

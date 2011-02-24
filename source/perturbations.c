@@ -154,7 +154,7 @@ int perturb_init(
 	      "your tight_coupling_approximation is set to %d, out of range defined in perturbations.f",ppr->tight_coupling_approximation);
 
   class_test ((ppr->free_streaming_approximation < fsa_null) ||
-	      (ppr->free_streaming_approximation > fsa_MD_with_reio),
+	      (ppr->free_streaming_approximation > fsa_none),
 	      ppt->error_message,
 	      "your free_streaming_approximation is set to %d, out of range defined in perturbations.f",ppr->free_streaming_approximation);
   
@@ -2571,7 +2571,7 @@ int perturb_vector_init(
       if ((pa_old[ppw->index_ap_fsa] == (int)fsa_off) && (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on)) {
 
 	if (ppt->perturbations_verbose>2)
-	  fprintf(stdout,"Mode k=%e: switch on free-streaming  approximation at eta=%e\n",k,eta);
+	  fprintf(stdout,"Mode k=%e: switch on free-streaming  approximation at eta=%e with Omega_r=%g\n",k,eta,ppw->pvecback[pba->index_bg_Omega_r]);
 
 	ppv->y[ppv->index_pt_delta_b] =
 	  ppw->pv->y[ppw->pv->index_pt_delta_b];
@@ -3029,20 +3029,7 @@ int perturb_approximations(
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     
-    /** (a) if \f$ k \gg aH \f$ and \f$ \Omega_r \ll 1 \f$ and
-        efficient recombination finished, switch off radiation
-        perturbations and keep Hubble time scale as the relevant
-        one. Otherwise take \f$ \min(\eta_k, \eta_h). \f$ */
-
-    if ((eta_h/eta_k > ppr->free_streaming_trigger_eta_h_over_eta_k) && 
-	(ppw->pvecback[pba->index_bg_Omega_r] < ppr->free_streaming_trigger_Omega_r)) {
-      ppw->approx[ppw->index_ap_fsa] = (int)fsa_on;
-    }
-    else {
-      ppw->approx[ppw->index_ap_fsa] = (int)fsa_off;
-    }
-
-    /** (b) evaluate thermodynamical quantities with thermodynamics_at_z() */
+    /** (a) evaluate thermodynamical quantities with thermodynamics_at_z() */
 
     class_call(thermodynamics_at_z(pba,
 				   pth,
@@ -3054,28 +3041,44 @@ int perturb_approximations(
 	       pth->error_message,
 	       ppt->error_message);
     
-    /** (b.1.) if \f$ \kappa'=0 \f$, recombination is finished; check that tight-coupling approximation is off */
+    /** (b.1) if \f$ \kappa'=0 \f$, recombination is finished; tight-coupling approximation must be off */
 
     if (ppw->pvecthermo[pth->index_th_dkappa] == 0.) {
+
       ppw->approx[ppw->index_ap_tca] = (int)tca_off;
+      
     }
 
-    /** (b.2.) if \f$ \kappa' \neq 0 \f$, recombination is not finished: */
+    /** (b.2) if \f$ \kappa' \neq 0 \f$, recombination is not finished: check tight-coupling approximation */
 
     else {
 
       /** (b.2.a) compute recombination time scale for photons, \f$ \eta_{\gamma} = 1/ \kappa' \f$ */
       eta_g = 1./ppw->pvecthermo[pth->index_th_dkappa];
 
-      /** (b.2.b) if \f$ \eta_g \ll max(\eta_h, \eta_k) \f$, turn on the tight-coupling approximation for photons; otherwise turn off  and define relevant time scale as min time scale between \f$ \eta_k \f$, \f$ \eta_h \f$ and \f$ \eta_g \f$ */
-      if ((eta_g/eta_h < ppr->tight_coupling_trigger_eta_g_over_eta_h) 
-	  && (eta_g/eta_k < ppr->tight_coupling_trigger_eta_g_over_eta_k)) {
+      /** (b.2.b) check whether tight-coupling approximation should be on */
+      if ((eta_g/eta_h < ppr->tight_coupling_trigger_eta_g_over_eta_h) &&
+	  (eta_g/eta_k < ppr->tight_coupling_trigger_eta_g_over_eta_k)) {
 	ppw->approx[ppw->index_ap_tca] = (int)tca_on;
       }
       else {
 	ppw->approx[ppw->index_ap_tca] = (int)tca_off;
       }
+
     }
+
+    /* (c) free-streaming approximation */
+
+    if ((eta_h/eta_k > ppr->free_streaming_trigger_eta_h_over_eta_k) &&
+	(eta > pth->eta_free_streaming) &&
+	(ppr->free_streaming_approximation != fsa_none)) {
+
+      ppw->approx[ppw->index_ap_fsa] = (int)fsa_on;
+    }
+    else {
+      ppw->approx[ppw->index_ap_fsa] = (int)fsa_off;
+    }
+    
   }
 
   return _SUCCESS_;

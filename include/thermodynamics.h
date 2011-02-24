@@ -106,6 +106,14 @@ struct thermo
 
   //@}
 
+  /** @name - redshift, conformal time and sound horizon at recombination */
+
+  //@{
+
+  double eta_free_streaming;   /**< minimum value of eta at which sfree-streaming approximation can be switched on */
+
+  //@}
+
   /** @name - initial conformal time at which thermodynamical variables have been be integrated */
 
   //@{
