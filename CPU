@@ -101,6 +101,8 @@ def headers_plot_file(spectrum_type,names,plot_line):
       if line.rfind('redshift')!=-1:
 	z= line.split("=")[1]
 	break
+      else:
+	z= 'I have no idea'
     return "set term 'wxt' enhanced\nset logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z={0}\n".format(z)+plot_string
   else:
     return None
@@ -185,11 +187,10 @@ def blend_against_interp(names,spectrum_type):
 	spam[0,j,l]=float(line[0])
 	spam[1,j,l]=float(line[1])
 	j+=1
-    if j>jmax[l]:
-      jmax[l]=j
-    if spam[0,j-1,l]<kmax:
+    jmax[l]=j
+    if spam[0,jmax[l]-1,l]<=kmax:
       kmax=spam[0,jmax[l]-1,l]
-    if spam[0,0,l]>kmin:
+    if spam[0,0,l]>=kmin:
       kmin=spam[0,0,l]
     l+=1
     currentfile.close()
@@ -199,28 +200,37 @@ def blend_against_interp(names,spectrum_type):
   #determining the upper and lower bound for each file, to only do interpolation
   for l in range (lmax):
     for j in range (jmax[l]):
-      if spam[0,j,l]<=kmin:
+      if ((spam[0,j,l]<kmin) and (spam[0,j+1,l]>=kmin)):
 	lower_bound[l]=j+1
-      if spam[0,j,l]<=kmax:
-	upper_bound[l]=j-1
+      if (spam[0,j,l]<=kmax):
+	upper_bound[l]=j
   print '  -> done'
+  print spam[0,lower_bound[0],0],spam[0,upper_bound[0],0]
+  print spam[0,lower_bound[1],1],spam[0,upper_bound[1],1]
+  print kmin,kmax
+
   #creating the new data file
   curves=[np.array for row in range(lmax)]
   interpolated=[np.array for row in range(lmax)]
   for l in range (lmax):
-    curves[l]=interpolate.splrep(spam[0,:upper_bound[l],l],spam[1,:upper_bound[l],l])
+    x=spam[0,lower_bound[l]:upper_bound[l],l]
+    y=spam[1,lower_bound[l]:upper_bound[l],l]
+    curves[l]=interpolate.splrep(x,y)
+
   datafile = open(data_file,"w")
   for l in range (lmax):
     for ll in range(lmax):
       if ll==l:
 	interpolated[ll]=spam[1,lower_bound[l]:upper_bound[l],l]
       else:	  
-        interpolated[ll]=interpolate.splev(spam[0,lower_bound[l]:upper_bound[l],l],curves[ll],der=0)
+	x2=spam[0,lower_bound[l]:upper_bound[l],l]
+        interpolated[ll]=interpolate.splev(x2,curves[ll],der=0)
+	print len(interpolated[ll]), upper_bound[l]-lower_bound[l]
     for j in range(upper_bound[l]-lower_bound[l]):
       data_string=''
       for ll in range(lmax):
 	data_string=data_string+str((interpolated[ll])[j])+"\t"
-      datafile.write(str(spam[0,j,l])+"\t"+data_string+"\n")
+      datafile.write(str(spam[0,j+lower_bound[l],l])+"\t"+data_string+"\n")
     datafile.write("\n\n")
   datafile.close()
 
