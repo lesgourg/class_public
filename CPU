@@ -96,14 +96,15 @@ def headers_plot_file(spectrum_type,names,plot_line):
       plot_string=plot_string.rstrip(",")
       plot_string+="\n"
     else:
-      plot_string=''
+      plot_string=""
     for line in tmp:
       if line.rfind('redshift')!=-1:
 	z= line.split("=")[1]
+	z= z.rstrip("\n")
 	break
       else:
 	z= 'I have no idea'
-    return "set term 'wxt' enhanced\nset logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z={0}\n".format(z)+plot_string
+    return "set term 'wxt' enhanced\nset logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z={0}'\n".format(z)+plot_string
   else:
     return None
   tmp.close()
@@ -205,9 +206,6 @@ def blend_against_interp(names,spectrum_type):
       if (spam[0,j,l]<=kmax):
 	upper_bound[l]=j
   print '  -> done'
-  print spam[0,lower_bound[0],0],spam[0,upper_bound[0],0]
-  print spam[0,lower_bound[1],1],spam[0,upper_bound[1],1]
-  print kmin,kmax
 
   #creating the new data file
   curves=[np.array for row in range(lmax)]
@@ -225,19 +223,20 @@ def blend_against_interp(names,spectrum_type):
       else:	  
 	x2=spam[0,lower_bound[l]:upper_bound[l],l]
         interpolated[ll]=interpolate.splev(x2,curves[ll],der=0)
-	print len(interpolated[ll]), upper_bound[l]-lower_bound[l]
-    for j in range(upper_bound[l]-lower_bound[l]):
+    for j in range(upper_bound[l]-lower_bound[l]-2):
       data_string=''
       for ll in range(lmax):
 	data_string=data_string+str((interpolated[ll])[j])+"\t"
-      datafile.write(str(spam[0,j+lower_bound[l],l])+"\t"+data_string+"\n")
+      datafile.write(str(spam[0,j+lower_bound[l]+1,l])+"\t"+data_string+"\n")
     datafile.write("\n\n")
   datafile.close()
 
   plotfile = open(gnuplot_file,"w")
   plotfile.write(headers_plot_file(spectrum_type,names,False))
-  plotfile.write("unset logscale\n")
-  plotfile.write("set xr [0:{0}]\n".format(kmax))
+  plotfile.write("unset logscale \n")
+  plotfile.write("set logscale x\n")
+  plotfile.write("set xr [{0}:{1}]\n".format(kmin,kmax))
+  plotfile.write("set yr [-0.001:0.005]\n")
   plot_string="plot "
   for l in range(lmax-1):
     plot_string+="'{0}' u 1:(${1}/$2-1) w l,".format(data_file,l+3)
