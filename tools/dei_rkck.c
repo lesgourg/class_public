@@ -114,10 +114,10 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
       for (i=0;i<pgi->n;i++) ystart[i]=pgi->y[i];
       return _SUCCESS_;
     }
-    class_test(fabs(hnext)/x1 <= hmin,
+    class_test(fabs(hnext/x1) <= hmin,
 	       pgi->error_message,
 	       "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]",
-	       fabs(hnext)/x1, 
+	       fabs(hnext/x1), 
 	       hmin,
 	       x1,
 	       x2);

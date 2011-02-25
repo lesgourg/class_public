@@ -96,8 +96,6 @@ transfer_cut=1 #0=none,1=osc,2=cl #segfault with zero, watch it!
 transfer_cut_threshold_osc=0.005 # with 0.005, more smooth than when smaller for l>2000 WATCH IT
 transfer_cut_threshold_cl=1.e-8 # not robust if tilted or if one Delta_l(k) oscillation tangents zero
 
-evolver=1
-
 l_switch_limber = 10.
 num_mu_minus_lmax = 750.
 delta_l_max = 750.

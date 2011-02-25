@@ -70,7 +70,7 @@ int evolver_rk(int (*derivs)(double x,
 
     class_test(fabs(timestep/x1) < minimum_variation,
 	       error_message,
-	       "integration step =%e < machine precision : leads either to numerical error or infinite loop",timestep);
+	       "integration step =%e < machine precision : leads either to numerical error or infinite loop",fabs(timestep/x1));
 
     if (x1 + 2.* timestep < x_sampling[next_index_x]) {
       x2 = x1 + timestep;

@@ -1344,7 +1344,7 @@ int perturb_workspace_init(
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-    if (ppt->has_matter_transfers == _TRUE_) {
+    if ((ppt->has_matter_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 
       class_alloc(ppw->delta_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
 
@@ -3896,15 +3896,14 @@ int perturb_source_terms(
 	else {
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->fsa_delta_nur;
 	}
-
-	/* delta_ncdm1 */
-	if ((ppt->has_source_delta_ncdm == _TRUE_) && (index_type >= ppt->index_tp_delta_ncdm1) && (index_type < ppt->index_tp_delta_ncdm1+pba->N_ncdm)) {
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
-	    ppw->delta_ncdm[index_type - ppt->index_tp_delta_ncdm1];
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
-	}
-
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
+      }
+      
+      /* delta_ncdm1 */
+      if ((ppt->has_source_delta_ncdm == _TRUE_) && (index_type >= ppt->index_tp_delta_ncdm1) && (index_type < ppt->index_tp_delta_ncdm1+pba->N_ncdm)) {
+	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
+	  ppw->delta_ncdm[index_type - ppt->index_tp_delta_ncdm1];
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }

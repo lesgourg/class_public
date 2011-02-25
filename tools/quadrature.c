@@ -10,6 +10,8 @@ int get_qsampling(double *x,
 		  int *N, 
 		  int N_max, 
 		  double rtol,
+		  double *qvec,
+		  int qsiz,
 		  int (*test)(void * params_for_function, double q, double *psi),
 		  int (*function)(void * params_for_function, double q, double *f0),
 		  void * params_for_function,
@@ -23,40 +25,159 @@ int get_qsampling(double *x,
      This function combines two completely different strategies: Adaptive Gauss-Kronrod
      quadrature and Laguerres quadrature formula. */
 	
-  int i, NL=2,NR,level,Nadapt,NLag,NLag_max,Nold=NL;
-  int adapt_converging=_TRUE_,Laguerre_converging=_TRUE_;
-  double y,y2,I,Igk,err,ILag,*b,*c,xtemp,wtemp;
-  qss_node* root;
+  int i, NL=2,NR,level,Nadapt=0,NLag,NLag_max,Nold=NL;
+  int adapt_converging=_FALSE_,Laguerre_converging=_FALSE_,combined_converging=_FALSE_;
+  int combined2_converging=_FALSE_;
+  double y,y1,y2,I,Igk,err,ILag,*b,*c;
+  qss_node *root,*root_comb;
+  double I_comb,I_atzero,I_atinf,I_comb2;
+  int N_comb=0,N_comb_lag=16,N_comb_leg=4;
+  double a_comb,b_comb,c_comb;
+  double q_leg[4],w_leg[4];
+  double q_lag[N_comb_lag],w_lag[N_comb_lag];
+  char method_chosen[40];
+  double qmin=0., qmax=0., qmaxm1=0.;
+  double *wcomb2=NULL,delq;
 
+  int zeroskip=0;
+
+  /* Set roots and weights for Gauss-Legendre 4 point rule: */
+  q_leg[3] = sqrt((3.0+2.0*sqrt(6.0/5.0))/7.0);
+  q_leg[2] = sqrt((3.0-2.0*sqrt(6.0/5.0))/7.0);
+  q_leg[1] = -q_leg[2];
+  q_leg[0] = -q_leg[3];
+  w_leg[3] = (18.0-sqrt(30.0))/36.0;
+  w_leg[2] = (18.0+sqrt(30.0))/36.0;
+  w_leg[1] = w_leg[2];
+  w_leg[0] = w_leg[3];
+  
   /* Allocate storage for Laguerre coefficients: */
-  b = malloc(N_max*sizeof(double));
-  c = malloc(N_max*sizeof(double));
+  class_alloc(b,N_max*sizeof(double),errmsg);
+  class_alloc(c,N_max*sizeof(double),errmsg);
   /* First do the adaptive quadrature - this will also give the value of the integral: */
   gk_adapt(&root,(*test),(*function), params_for_function, 
-	   rtol*1e-2, 1, 0.0, 1.0,errmsg);
+	   rtol*1e-4, 1, 0.0, 1.0, _TRUE_, errmsg);
+  /* If a vector of q values has been passed, use it: */
+  if ((qvec!=NULL)&&(qsiz>1)){
+    qmin = qvec[0];
+    qmax = qvec[qsiz-1];
+    qmaxm1 = qvec[qsiz-2];
+  }
+  else{
+    qvec = NULL;
+  }
+
   /* Do a leaf count: */
   leaf_count(root);
   /* I can get the integral now: */
   I = get_integral(root, 1);
+  //printf("I = %le |%le\n",I,I-1.0);
+
   /* Starting from the top, move down in levels until tolerance is met: */
   for(level=root->leaf_childs; level>=1; level--){
     Igk = get_integral(root,level);
     err = I-Igk;
     if (fabs(err/Igk)<rtol) break;
   }
-  /* Reduce tree to the found level:*/
-  reduce_tree(root,level);
-  /* Count the new leafs: */
-  leaf_count(root);
-  /* I know know how many function evaluations is 
-     required by the adaptively sampled grid:*/
-  Nadapt = 15*root->leaf_childs;
-  /* The adaptive routine could not recieve required precision 
-     using less than the required maximal number of points.*/
-  if (Nadapt > N_max) adapt_converging = 0;
+  if (level>0){
+    /* Reduce tree to the found level:*/
+    reduce_tree(root,level);
+    /* Count the new leafs: */
+    leaf_count(root);
+    /* I know know how many function evaluations is 
+       required by the adaptively sampled grid:*/
+    Nadapt = 15*root->leaf_childs;
+    /* The adaptive routine could not recieve required precision 
+       using less than the required maximal number of points.*/
+    if (Nadapt <= N_max) adapt_converging = _TRUE_;
+  }
+  
+  
+  /* Combined adaptive quadrature and Laguerre rescaled quadrature: */
+  if(qvec!=NULL){
+    /* Evaluate [0;qmin] using 4 point Gauss-Legendre rule: */
+    (*function)(params_for_function,qmin,&y2);
+    for(i=0,I_atzero=0.0; i<N_comb_leg; i++){
+      q_leg[i] = 0.5*qmin*(1.0+q_leg[i]);
+      w_leg[i] = w_leg[i]*0.5*qmin*y2;
+      (*test)(params_for_function,q_leg[i],&y);
+      I_atzero +=w_leg[i]*y;
+    }
+
+    /* Find asymptotic extrapolation:*/
+    (*function)(params_for_function,qmaxm1,&y1);
+    (*function)(params_for_function,qmax,&y2);
+
+    b_comb = (y1/y2-1.0)/(qmax-qmaxm1);
+    b_comb = max(b_comb,1e-100);
+    c_comb = -b_comb*qmax;
+    a_comb = y2*exp(b_comb*qmax);
+    // printf("f(q) = %g*exp(-%g*q) \n",a_comb,b_comb);
+    //(*function)(params_for_function,100,&y2);
+    //printf("f(100) = %e ?= %e\n",y2,a_comb*exp(-b_comb*100));
+
+    /* Evaluate tail using 6 point Laguerre: */
+    compute_Laguerre(q_lag,w_lag,N_comb_lag,0.0,b,c);
+    for (i=0,I_atinf=0.0; i<N_comb_lag; i++){
+      w_lag[i] *= exp(-q_lag[i]);
+      q_lag[i] = qmax + q_lag[i]/b_comb;
+      w_lag[i] = a_comb/b_comb*exp(-b_comb*qmax)*w_lag[i];
+      (*test)(params_for_function,q_lag[i],&y);
+      I_atinf +=w_lag[i]*y;
+    }
+   
+    /* Do the adaptive quadrature - this will also give the main part of the integral: */
+    gk_adapt(&root_comb,(*test),(*function), params_for_function, 
+	     rtol*1e-2, 1, qmin, qmax, _FALSE_, errmsg);
+    /* Do a leaf count: */
+    leaf_count(root_comb);
+    /* Starting from the top, move down in levels until tolerance is met: */
+    for(level=root_comb->leaf_childs; level>=1; level--){
+      I_comb = get_integral(root_comb,level);
+      //printf("%le + %le + %le = %le | %le\n",
+      //     I_atzero,I_atinf,I_comb,I_comb+I_atinf+I_atzero,I_comb+I_atinf+I_atzero-1.0);
+      I_comb +=(I_atinf+I_atzero);
+      err = I-I_comb;
+      if (fabs(err/I_comb)<rtol) break;
+    }
+    /* Reduce tree to the found level:*/
+    if (level>0){
+      reduce_tree(root_comb,level);
+      /* Count the new leafs: */
+      leaf_count(root_comb);
+      N_comb = 15*root_comb->leaf_childs+N_comb_lag+N_comb_leg;
+      if (N_comb <= N_max) combined_converging = _TRUE_; 
+    }
+
+    /* Do the second combined quadrature: Same as above, but with trapezoidal rule 
+       using the given q grid:  */
+    class_alloc(wcomb2,qsiz*sizeof(double),errmsg);
+    I_comb2 = 0.0;
+    for(i=0; i<qsiz; i++){
+      if(i==0){
+	delq = qvec[1]-qvec[0];
+      }
+      else if(i==qsiz-1){
+	delq = qvec[qsiz-1]-qvec[qsiz-2];
+      }
+      else{
+	delq = qvec[i+1]-qvec[i-1];
+      }
+      (*function)(params_for_function,qvec[i],&y2);
+      wcomb2[i] = 0.5*y2*delq;
+      (*test)(params_for_function,qvec[i],&y);
+      I_comb2 +=wcomb2[i]*y;
+    }
+    I_comb2 +=(I_atzero+I_atinf);
+    err = I - I_comb2;
+    if(fabs(err/I)<rtol) combined2_converging= _TRUE_;
+    //printf("I_comb2 = %e, rerr = %e\n",I_comb2,fabs(err/I));
+  }
+
+
   /* Search for the minimal Laguerre quadrature rule: */
   NLag_max = min(N_max,80);
-  for (NLag=NL; NLag<=NLag_max; NLag = min(NLag_max,NLag+15)){
+  for (NLag=NL; NLag<=NLag_max; NLag = min(NLag_max,NLag+10)){
     /* Evaluate integral: */
     compute_Laguerre(x,w,NLag,0.0,b,c);
     ILag = 0.0;
@@ -68,13 +189,14 @@ int get_qsampling(double *x,
     }
     err = I-ILag;
     //fprintf(stderr,"\n Computing Laguerre, N=%d, I=%g and err=%g.\n",NLag,ILag,err);
-    if (fabs(err/I)<rtol) break;
-    if (NLag == NLag_max){
-      Laguerre_converging = _FALSE_;
+    if (fabs(err/I)<rtol){
+      Laguerre_converging = _TRUE_;
       break;
     }
     Nold = NLag;
+    if (Nold == NLag_max) break;
   }
+
   if (Laguerre_converging == _TRUE_){
     /* We must refine NLag: */
     NL = Nold;
@@ -100,45 +222,78 @@ int get_qsampling(double *x,
       }
     }
   }
-	
+
   /* Choose best method if both works: */
-  if ((adapt_converging==_TRUE_)&&(Laguerre_converging==_TRUE_)){
-    if (Nadapt<=NLag){
-      Laguerre_converging = _FALSE_;
-    }
-    else{
+  *N = N_max;
+  //Laguerre_converging = _FALSE_;
+  if (adapt_converging == _TRUE_) {
+    *N = Nadapt;
+  }
+  if (combined_converging == _TRUE_){
+    if(N_comb <= *N){
+      *N = N_comb;
       adapt_converging = _FALSE_;
     }
-  }
-  if (adapt_converging==_TRUE_){
-    /* Gather weights and xvalues from tree: */
-    i = 0;
-    get_leaf_x_and_w(root,&i,x,w);
-    *N = Nadapt;
-    //Fix the sorting of x and w:
-    for (i=0;i<(Nadapt/2); i++){
-      xtemp = x[Nadapt-1-i];
-      wtemp = w[Nadapt-1-i];
-      x[Nadapt-1-i] = x[i];
-      w[Nadapt-1-i] = w[i];
-      x[i] = xtemp;
-      w[i] = wtemp;
+    else{
+      combined_converging = _FALSE_;
     }
   }
+  if (Laguerre_converging == _TRUE_){
+    if (NLag <= *N){
+      *N = NLag;
+      combined_converging = _FALSE_;
+      adapt_converging = _FALSE_;
+    }
+    else{
+      Laguerre_converging = _FALSE_;
+    }
+  }
+  //printf("N_adapt=%d, N_combined=%d at level=%d, Nlag=%d\n",Nadapt,N_comb,level,NLag);
+  if (adapt_converging==_TRUE_){
+    sprintf(method_chosen,"Adaptive Gauss-Kronrod Quadrature");
+    /* Gather weights and xvalues from tree: */
+    i = Nadapt-1;
+    get_leaf_x_and_w(root,&i,x,w,_TRUE_);
+  }
   else if (Laguerre_converging==_TRUE_){
+    sprintf(method_chosen,"Gauss-Laguerre Quadrature");
     /* x and w is already populated in this case. */
-    *N = NLag;
+  }
+  else if (combined_converging == _TRUE_){
+    sprintf(method_chosen,"Combined Quadrature");
+    for(i=0; i<N_comb_leg; i++){
+      x[i] = q_leg[i];
+      w[i] = w_leg[i];
+    }
+    i = N_comb_leg;
+    get_leaf_x_and_w(root_comb,&i,x,w,_FALSE_);
+    //printf("from %d to %d\n",N_comb_leg,i);
+
+    for(i=0; i<N_comb_lag; i++){
+      x[N_comb-N_comb_lag+i] = q_lag[i];
+      w[N_comb-N_comb_lag+i] = w_lag[i];
+    }
   }
   else{
     /* Failed to converge! */
-    /* status = _FAILURE_; */
-    class_test(0==0,
-	       errmsg,
-	       "Fails to converge! Check that your distribution function is not weird, then increase _QUADRATURE_MAX_ or decrease tol_ncdm_integration");
-
+    class_error(errmsg,
+		"get_qsampling fails to obtain a relative tolerance of %g as required using atmost %d points. If the PSD is interpolated from a file, try increasing the resolution and the q-interval (qmin;qmax) if possible, or decrease tol_ncdm/tol_ncdm_bg. As a last resort, increase _QUADRATURE_MAX_/_QUADRATURE_MAX_BG_.",rtol,N_max);
   }
+  /* Trim weights to avoid zero weights: */
+  for(i=0; i<*N; i++){
+    for( ;(i<*N)&&(w[i+zeroskip]==0.0); zeroskip++,(*N)--)
+      x[i] = x[i+zeroskip];
+    w[i] = w[i+zeroskip];
+  }
+
+  //printf("Chosen sampling: %s, with %d points.\n",method_chosen,*N);	
+  //for(i=0; i<*N; i++) printf("(q,w) = (%g,%g)\n",x[i],w[i]);
   /* Deallocate tree: */
   burn_tree(root);
+  if(qvec!=NULL){
+    burn_tree(root_comb);
+    free(wcomb2);
+  }
   free(b);
   free(c);
 
@@ -147,7 +302,7 @@ int get_qsampling(double *x,
 	
 	
 
-int get_leaf_x_and_w(qss_node *node, int *ind, double *x, double *w){
+int get_leaf_x_and_w(qss_node *node, int *ind, double *x, double *w,int isindefinite){
   /* x and w should be exactly 15*root_node->leafchilds, and a leaf count should have
      been performed. Or perhaps I just use the fact that a leaf won't have children.
      Nah, let me use the leaf-count then. */
@@ -156,13 +311,18 @@ int get_leaf_x_and_w(qss_node *node, int *ind, double *x, double *w){
     for(k=0;k<15;k++){
       x[*ind] = node->x[k];
       w[*ind] = node->w[k];
-      (*ind)++;
+      if (isindefinite == _TRUE_){
+	(*ind)--;
+      }
+      else{
+	(*ind)++;
+      }
     }
   }
   else{
     /* Do recursive call: */
-    get_leaf_x_and_w(node->left,ind,x,w);
-    get_leaf_x_and_w(node->right,ind,x,w);
+    get_leaf_x_and_w(node->left,ind,x,w,isindefinite);
+    get_leaf_x_and_w(node->right,ind,x,w,isindefinite);
   }
   return _SUCCESS_;
 }
@@ -247,10 +407,11 @@ int gk_adapt(
 	     int treemode, 
 	     double a, 
 	     double b,
+	     int isindefinite,
 	     ErrorMsg errmsg){
   /* Do adaptive Gauss-Kronrod quadrature, while building the
      recurrence tree. If treemode!=0, store x-values and weights aswell.
-     At first call, a and b should be 0 and 1. */
+     At first call, a and b should be 0 and 1 if isdefinite==_TRUE_. */
   double mid;
 	
   /* Allocate current node: */
@@ -265,7 +426,7 @@ int gk_adapt(
   }
   (*node)->left = NULL; (*node)->right = NULL;
 	
-  gk_quad((*test), (*function), params_for_function, *node, a, b);
+  gk_quad((*test), (*function), params_for_function, *node, a, b, isindefinite);
   if ((*node)->err/(*node)->I < tol){
     /* Stop recursion and return : */
     return _SUCCESS_;
@@ -274,9 +435,9 @@ int gk_adapt(
     /* Call gk_adapt recursively on children:*/
     mid = 0.5*(a+b);
     gk_adapt(&((*node)->left),(*test),(*function), params_for_function, 1.5*tol, 
-	     treemode, a, mid, errmsg);
+	     treemode, a, mid, isindefinite, errmsg);
     gk_adapt(&((*node)->right),(*test),(*function), params_for_function, 1.5*tol, 
-	     treemode, mid, b, errmsg);
+	     treemode, mid, b, isindefinite, errmsg);
     /* Update integral and error in this node and return: */
     /* Actually, it is more convenient just to keep the nodes own estimate of the
        integral for our purposes.
@@ -359,7 +520,8 @@ int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
 	    void * params_for_function,
 	    qss_node* node, 
 	    double a, 
-	    double b){
+	    double b,
+	    int isindefinite){
   const double z_k[15]={-0.991455371120813,
 			-0.949107912342759,
 			-0.864864423359769,
@@ -401,8 +563,8 @@ int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
   double x,wg,wk,t,Ik,Ig,y,y2;
 	
   /* 	Loop through abscissas, transform the interval and form the Kronrod
-	15 point estimate of the integral.
-	Every second time we update the Gauss 7 point quadrature estimate. */
+     15 point estimate of the integral.
+     Every second time we update the Gauss 7 point quadrature estimate. */
 		
   Ik=0.0;
   Ig=0.0;
@@ -411,10 +573,15 @@ int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
     t = 0.5*(a*(1-z_k[i])+b*(1+z_k[i]));
     /* Modify weight such that it reflects the linear transformation above: */
     wk = 0.5*(b-a)*w_k[i];
-    /* Transform t into x in interval between 0 and inf: */
-    x = 1.0/t-1.0;
-    /* Modify weight accordingly: */
-    wk = wk/(t*t);
+    if (isindefinite==_TRUE_){
+      /* Transform t into x in interval between 0 and inf: */
+      x = 1.0/t-1.0;
+      /* Modify weight accordingly: */
+      wk = wk/(t*t);
+    }
+    else{
+      x = t;
+    }
     (*test)(params_for_function,x,&y);
     (*function)(params_for_function,x,&y2);
     wk *= y2;
@@ -428,8 +595,10 @@ int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
       j = (i-1)/2;
       /* Transform weight according to linear transformation: */
       wg = 0.5*(b-a)*w_g[j];
-      /* Transform weight according to non-linear transformation x = 1/t -1: */
-      wg = wg/(t*t);
+      if (isindefinite == _TRUE_){
+        /* Transform weight according to non-linear transformation x = 1/t -1: */
+        wg = wg/(t*t);
+      }
       /* Update integral: */
       Ig +=wg*y*y2;
     }
@@ -451,11 +620,11 @@ int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
  **/
 
 int quadrature_gauss_legendre(
-                           double *mu,
-                           double *w8,
-                           int n,
-			   double tol,
-			   ErrorMsg error_message) {
+			      double *mu,
+			      double *w8,
+			      int n,
+			      double tol,
+			      ErrorMsg error_message) {
   
   int m,j,i,counter;
   double z1,z,pp,p3,p2,p1;

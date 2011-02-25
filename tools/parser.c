@@ -367,6 +367,7 @@ int parser_read_list_of_doubles(
     }
     else {
       strncpy(string_with_one_value,string,(substring-string));
+      string_with_one_value[substring-string]='\0';
     }
     class_test(sscanf(string_with_one_value,"%lg",&(list[i-1])) != 1,
 	       errmsg,
@@ -456,6 +457,7 @@ int parser_read_list_of_integers(
     }
     else {
       strncpy(string_with_one_value,string,(substring-string));
+      string_with_one_value[substring-string]='\0';
     }
     class_test(sscanf(string_with_one_value,"%d",&(list[i-1])) != 1,
 	       errmsg,
@@ -545,6 +547,7 @@ int parser_read_list_of_strings(
     }
     else {
       strncpy(string_with_one_value,string,(substring-string));
+      string_with_one_value[substring-string]='\0';
     }
     strcpy(list+(i-1)*_ARGUMENT_LENGTH_MAX_,string_with_one_value);
     //Insert EOL character:

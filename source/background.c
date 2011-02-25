@@ -425,6 +425,8 @@ int background_init(
 	       pba->q_size_ncdm_bg[n_ncdm],
 	       pba->q_size_ncdm[n_ncdm]);
       }
+      if (ppr->evolver == rk)
+	printf(" -> WARNING: you are using the ndf15 integrator, with ncdm species it is recommended to use the Runge-Kutta one (write evolver=0 in one of your input files)\n");
     }
   }
 
@@ -720,10 +722,10 @@ int background_indices(
 }
 
 int background_ncdm_distribution(
-				  void * pbadist,
-				  double q,
-				  double * f0
-				  ) {
+				 void * pbadist,
+				 double q,
+				 double * f0
+				 ) {
   struct background * pba;
   struct background_parameters_for_distributions * pbadist_local;
   int n_ncdm,lastidx;
@@ -779,12 +781,19 @@ int background_ncdm_distribution(
 }
 
 int background_ncdm_test_function(
-				   void * pbadist,
-				   double q,
-				   double * test
-				   ) {
+				  void * pbadist,
+				  double q,
+				  double * test
+				  ) {
+  double zeta3=1.2020569031595942853997381615114499907649862923404988817922;
+  double zeta5=1.0369277551433699263313654864570341680570809195019128119741;
+  double a=1.0/log(2), b=12.0/(_PI_*_PI_), c=2.0/(3.0*zeta3);
+  double d=120.0/(7.0*pow(_PI_,4)), e=2.0/(45.0*zeta5);
 
-  *test = 1.+q+q*q+q*q*q+q*q*q*q;
+
+
+
+  *test = pow(2.0*_PI_,3)/10.0*(a+b*q+c*q*q+d*q*q*q+e*q*q*q*q);
 
   return _SUCCESS_;
 }
@@ -815,6 +824,8 @@ int background_ncdm_init(
 
   for(k=0, filenum=0; k<pba->N_ncdm; k++){
     pbadist.n_ncdm = k;
+    pbadist.q = NULL;
+    pbadist.tablesize = 0;
     /*Do we need to read in a file to interpolate the distribution function? */
     if ((pba->got_files!=NULL)&&(pba->got_files[k]==_TRUE_)){
       psdfile = fopen(pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_,"r");
@@ -859,6 +870,8 @@ int background_ncdm_init(
 			     &(pba->q_size_ncdm[k]),
 			     _QUADRATURE_MAX_,
 			     ppr->tol_ncdm,
+			     pbadist.q,
+			     pbadist.tablesize,
 			     background_ncdm_test_function,
 			     background_ncdm_distribution,
 			     &pbadist,
@@ -883,6 +896,8 @@ int background_ncdm_init(
 			     &(pba->q_size_ncdm_bg[k]),
 			     _QUADRATURE_MAX_BG_,
 			     ppr->tol_ncdm_bg,
+			     pbadist.q,
+			     pbadist.tablesize,
 			     background_ncdm_test_function,
 			     background_ncdm_distribution,
 			     &pbadist,
@@ -1142,7 +1157,7 @@ int background_solve(
 
     class_test((eta_end-eta_start)/eta_start < ppr->smallest_allowed_variation,
 	       pba->error_message,
-	       "integration step =%e < machine precision : leads either to numerical error or infinite loop",eta_end-eta_start);
+	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(eta_end-eta_start)/eta_start);
 
     /* -> save data in growTable */
     class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),

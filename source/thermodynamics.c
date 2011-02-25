@@ -522,8 +522,6 @@ int thermodynamics_init(
 
   pth->eta_free_streaming = eta;
 
-  fprintf(stderr,"gete here with %g\n",eta);
-
   /** - if verbose flag set to next-to-minimum value, print the main results */
 
   if (pth->thermodynamics_verbose > 0) {
