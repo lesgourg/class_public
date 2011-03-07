@@ -505,20 +505,31 @@ struct precision
   int free_streaming_approximation;
 
   /**
-   * when to switch off radiation perturbations, ie when to switch
-   * on free-streaming approximation (keep density and theta, set
-   * shear and higher momenta of ultrarelativistic particles to zero):
+   * when to switch off photon perturbations, ie when to switch
+   * on photon free-streaming approximation (keep density and theta, set
+   * shear and higher momenta to zero):
    * first condition: \f$ k/aH \f$ > free_streaming_trigger_eta_h_over_eta_k
    */
   double free_streaming_trigger_eta_h_over_eta_k;
 
   /**
-   * when to switch off radiation perturbations, ie when to switch
-   * on free-streaming approximation (keep density and theta, set
-   * shear and higher momenta of ultrarelativistic particles to zero):
+   * when to switch off photon perturbations, ie when to switch
+   * on photon free-streaming approximation (keep density and theta, set
+   * shear and higher momenta to zero):
    * second condition: 
    */ 
   double free_streaming_trigger_eta_g_over_eta_h;
+
+  int nur_free_streaming_approximation;
+
+  /**
+   * when to switch off nur (massless neutrinos / ultra-relativistic
+   * relics) perturbations, ie when to switch on nur free-streaming
+   * approximation (keep theta, set delta, shear and higher
+   * momenta of ultrarelativistic particles to zero): unique condition:
+   * \f$ k/aH \f$ > free_streaming_trigger_eta_h_over_eta_k
+   */
+  double nur_free_streaming_trigger_eta_h_over_eta_k;
 
   //@}
 

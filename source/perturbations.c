@@ -153,11 +153,19 @@ int perturb_init(
 	      ppt->error_message,
 	      "your tight_coupling_approximation is set to %d, out of range defined in perturbations.f",ppr->tight_coupling_approximation);
 
-  class_test ((ppr->free_streaming_approximation < fsa_null) ||
-	      (ppr->free_streaming_approximation > fsa_none),
+  class_test ((ppr->free_streaming_approximation < gfa_null) ||
+	      (ppr->free_streaming_approximation > gfa_none),
 	      ppt->error_message,
 	      "your free_streaming_approximation is set to %d, out of range defined in perturbations.f",ppr->free_streaming_approximation);
   
+  if (pba->has_nur == _TRUE_) {
+
+    class_test ((ppr->nur_free_streaming_approximation < nfa_normal) ||
+		(ppr->nur_free_streaming_approximation > nfa_none),
+		ppt->error_message,
+		"your nur_free_streaming_approximation is set to %d, out of range defined in perturbations.f",ppr->nur_free_streaming_approximation);
+  }
+
   class_test(ppt->has_vectors == _TRUE_,
 	     ppt->error_message,
 	     "Vectors not coded yet");
@@ -1319,9 +1327,13 @@ int perturb_workspace_init(
     ppw->index_ap_tca=index_ap;
     index_ap++;
 
-    ppw->index_ap_fsa=index_ap;
+    ppw->index_ap_gfa=index_ap;
     index_ap++;
 
+    if (pba->has_nur == _TRUE_) {
+      ppw->index_ap_nfa=index_ap;
+      index_ap++;
+    }
   }
 
   ppw->ap_size=index_ap;
@@ -1336,8 +1348,10 @@ int perturb_workspace_init(
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     ppw->approx[ppw->index_ap_tca]=(int)tca_on;
-    ppw->approx[ppw->index_ap_fsa]=(int)fsa_off;
-
+    ppw->approx[ppw->index_ap_gfa]=(int)gfa_off;
+    if (pba->has_nur == _TRUE_) {
+      ppw->approx[ppw->index_ap_nfa]=(int)nfa_off;
+    }
   }
 
   /** - allocate fields where some of the perturbations are stored */
@@ -2068,14 +2082,19 @@ int perturb_find_approximation_switches(
 	    (interval_approx[index_switch][ppw->index_ap_tca]==(int)tca_off))
 	  fprintf(stdout,"Mode k=%e: will switch off tight-coupling approximation at eta=%e\n",k,interval_limit[index_switch]);
 
-	if ((interval_approx[index_switch-1][ppw->index_ap_fsa]==(int)fsa_off) && 
-	    (interval_approx[index_switch][ppw->index_ap_fsa]==(int)fsa_on))
-	  fprintf(stdout,"Mode k=%e: will switch on free-streaming  approximation at eta=%e\n",k,interval_limit[index_switch]);
+	if ((interval_approx[index_switch-1][ppw->index_ap_gfa]==(int)gfa_off) && 
+	    (interval_approx[index_switch][ppw->index_ap_gfa]==(int)gfa_on))
+	  fprintf(stdout,"Mode k=%e: will switch on photon free-streaming  approximation at eta=%e\n",k,interval_limit[index_switch]);
 
+	if (pba->has_nur == _TRUE_) {
+	  if ((interval_approx[index_switch-1][ppw->index_ap_nfa]==(int)nfa_off) && 
+	      (interval_approx[index_switch][ppw->index_ap_nfa]==(int)nfa_on)) {
+	    fprintf(stdout,"Mode k=%e: will switch on nur free-streaming  approximation at eta=%e\n",k,interval_limit[index_switch]);
+	  }
+	}
       }
-
     }
-
+    
     free(unsorted_eta_switch);
 
   }
@@ -2168,7 +2187,7 @@ int perturb_vector_init(
 	       ppt->error_message,
 	       "ppr->l_max_pol_g should be at least 4");
 
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) { /* if free-streaming approximation is off */
+    if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) { /* if free-streaming approximation is off */
 
       /* photons */
 
@@ -2240,13 +2259,13 @@ int perturb_vector_init(
       index_pt++;
       
     }
-    
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) { /* if free-streaming approximation is off */
 
-      /* ultra relativistic neutrinos */
+    /* ultra relativistic neutrinos */
 
-      if (pba->has_nur == _TRUE_) {
+    if (pba->has_nur == _TRUE_) {
 
+      if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) { /* if free-streaming approximation is off */
+	
 	/* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
 	class_test(ppr->l_max_nur < 4,
 		   ppt->error_message,
@@ -2368,7 +2387,7 @@ int perturb_vector_init(
      omitting perturbations in this list will not change the
      results!) */
 
-  if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
+  if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) {
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
@@ -2386,15 +2405,19 @@ int perturb_vector_init(
 
     }
 
-    if (pba->has_nur == _TRUE_) {
+  }
+
+  if (pba->has_nur == _TRUE_) {
+
+    if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
 
       ppv->used_in_sources[ppv->index_pt_l3_nur]=_FALSE_;
 
       for (index_pt=ppv->index_pt_l3_nur+1; index_pt <= ppv->index_pt_delta_nur+ppv->l_max_nur; index_pt++)
 	ppv->used_in_sources[index_pt]=_FALSE_;
-    
+      
     }
-
+    
   }
     
   if (pba->has_ncdm == _TRUE_) {
@@ -2421,16 +2444,25 @@ int perturb_vector_init(
       /** (a) check that current approximation scheme is consistent
 	  with initial conditions */
 
-      class_test(ppw->approx[ppw->index_ap_fsa] == (int)fsa_on,
+      class_test(ppw->approx[ppw->index_ap_gfa] == (int)gfa_on,
 		 ppt->error_message,
-		 "scalar initial conditions assume free-streaming approximation turned off");
+		 "scalar initial conditions assume photon free-streaming approximation turned off");
+      
+
+      if (pba->has_nur == _TRUE_) {
+
+	class_test(ppw->approx[ppw->index_ap_nfa] == (int)nfa_on,
+		   ppt->error_message,
+		   "scalar initial conditions assume nur free-streaming approximation turned off");
+	
+      }
       
       class_test(ppw->approx[ppw->index_ap_tca] == (int)tca_off,
 		 ppt->error_message,
 		 "scalar initial conditions assume tight-coupling approximation turned on");
       
     }
-
+    
     /** (b) let ppw->pv points towards the perturb_vector structure
 	that we just created */
 
@@ -2564,14 +2596,135 @@ int perturb_vector_init(
 
       }
 
-      /* -- case of switching on free streaming
+      /* -- case of switching on photon free streaming
 	 approximation. Provide correct initial conditions to new set
 	 of variables */
 
-      if ((pa_old[ppw->index_ap_fsa] == (int)fsa_off) && (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on)) {
+      if ((pa_old[ppw->index_ap_gfa] == (int)gfa_off) && (ppw->approx[ppw->index_ap_gfa] == (int)gfa_on)) {
 
 	if (ppt->perturbations_verbose>2)
-	  fprintf(stdout,"Mode k=%e: switch on free-streaming  approximation at eta=%e with Omega_r=%g\n",k,eta,ppw->pvecback[pba->index_bg_Omega_r]);
+	  fprintf(stdout,"Mode k=%e: switch on photon free-streaming  approximation at eta=%e with Omega_r=%g\n",k,eta,ppw->pvecback[pba->index_bg_Omega_r]);
+
+	ppv->y[ppv->index_pt_delta_b] =
+	  ppw->pv->y[ppw->pv->index_pt_delta_b];
+	
+	ppv->y[ppv->index_pt_theta_b] =
+	  ppw->pv->y[ppw->pv->index_pt_theta_b];
+
+	if (pba->has_cdm == _TRUE_) {   
+
+	  ppv->y[ppv->index_pt_delta_cdm] =
+	    ppw->pv->y[ppw->pv->index_pt_delta_cdm];
+	  
+	  if (ppr->gauge != synchronous) {
+	    ppv->y[ppv->index_pt_theta_cdm] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_cdm];
+	  }
+	}
+
+	if (pba->has_dark_energy_fluid == _TRUE_) {  
+
+	  ppv->y[ppv->index_pt_delta_de] =
+	    ppw->pv->y[ppw->pv->index_pt_delta_de];
+	  
+	  ppv->y[ppv->index_pt_theta_de] =
+	    ppw->pv->y[ppw->pv->index_pt_theta_de];
+	}
+
+	if (pba->has_nur == _TRUE_) {
+
+	  if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
+
+	    ppv->y[ppv->index_pt_delta_nur] =
+	      ppw->pv->y[ppw->pv->index_pt_delta_nur];
+	    
+	    ppv->y[ppv->index_pt_theta_nur] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_nur];
+	    
+	    ppv->y[ppv->index_pt_shear_nur] =
+	      ppw->pv->y[ppw->pv->index_pt_shear_nur];
+	    
+	    ppv->y[ppv->index_pt_l3_nur] =
+	      ppw->pv->y[ppw->pv->index_pt_l3_nur];
+	    
+	    for (l=4; l <= ppv->l_max_nur; l++)
+	      ppv->y[ppv->index_pt_delta_nur+l] = 
+		ppw->pv->y[ppw->pv->index_pt_delta_nur+l];
+	  }
+	}
+
+	if (pba->has_ncdm == _TRUE_) {
+	  index_pt = 0;
+	  for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+	    for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
+	      for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
+		ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] = 
+		  ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+		index_pt++;
+	      }
+	    }
+	  }
+	  //  printf("Matches(2) correct size of ncdm indices? %d\n",index_pt);
+
+	}
+	
+	if (ppr->gauge == synchronous)
+	  ppv->y[ppv->index_pt_eta] =
+	    ppw->pv->y[ppw->pv->index_pt_eta];
+
+      }
+
+      /* -- case of switching on nur free streaming
+	 approximation. Provide correct initial conditions to new set
+	 of variables */
+
+      if ((pa_old[ppw->index_ap_nfa] == (int)nfa_off) && (ppw->approx[ppw->index_ap_nfa] == (int)nfa_on)) {
+
+	if (ppt->perturbations_verbose>2)
+	  fprintf(stdout,"Mode k=%e: switch on nur free-streaming  approximation at eta=%e\n",k,eta);
+
+	if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) {
+
+	  ppv->y[ppv->index_pt_delta_g] =
+	    ppw->pv->y[ppw->pv->index_pt_delta_g];
+
+	  ppv->y[ppv->index_pt_theta_g] =
+	    ppw->pv->y[ppw->pv->index_pt_theta_g];
+	}
+
+	if ((ppw->approx[ppw->index_ap_tca] == (int)tca_off) && (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off)) {
+
+	  ppv->y[ppv->index_pt_shear_g] =
+	    ppw->pv->y[ppw->pv->index_pt_shear_g];
+
+	  ppv->y[ppv->index_pt_l3_g] =
+	    ppw->pv->y[ppw->pv->index_pt_l3_g];
+
+	  for (l = 4; l <= ppw->pv->l_max_g; l++) { 
+
+	    ppv->y[ppv->index_pt_delta_g+l] =
+	      ppw->pv->y[ppw->pv->index_pt_delta_g+l];
+	  }
+	  	  
+	  ppv->y[ppv->index_pt_pol0_g] =
+	    ppw->pv->y[ppw->pv->index_pt_pol0_g];
+
+	  ppv->y[ppv->index_pt_pol1_g] =
+	    ppw->pv->y[ppw->pv->index_pt_pol1_g];
+
+	  ppv->y[ppv->index_pt_pol2_g] =
+	    ppw->pv->y[ppw->pv->index_pt_pol2_g];
+
+	  ppv->y[ppv->index_pt_pol3_g] =
+	    ppw->pv->y[ppw->pv->index_pt_pol3_g];
+
+	  for (l = 4; l <= ppw->pv->l_max_pol_g; l++) { 
+
+	    ppv->y[ppv->index_pt_pol0_g+l] =
+	      ppw->pv->y[ppw->pv->index_pt_pol0_g+l];
+	  }
+
+	}
 
 	ppv->y[ppv->index_pt_delta_b] =
 	  ppw->pv->y[ppw->pv->index_pt_delta_b];
@@ -3067,18 +3220,29 @@ int perturb_approximations(
 
     }
 
-    /* (c) free-streaming approximation */
+    /* (c) free-streaming approximations */
 
     if ((eta_h/eta_k > ppr->free_streaming_trigger_eta_h_over_eta_k) &&
 	(eta > pth->eta_free_streaming) &&
-	(ppr->free_streaming_approximation != fsa_none)) {
+	(ppr->free_streaming_approximation != gfa_none)) {
 
-      ppw->approx[ppw->index_ap_fsa] = (int)fsa_on;
+      ppw->approx[ppw->index_ap_gfa] = (int)gfa_on;
     }
     else {
-      ppw->approx[ppw->index_ap_fsa] = (int)fsa_off;
+      ppw->approx[ppw->index_ap_gfa] = (int)gfa_off;
     }
-    
+   
+    if (pba->has_nur == _TRUE_) {
+
+      if ((eta_h/eta_k > ppr->nur_free_streaming_trigger_eta_h_over_eta_k) &&
+	  (ppr->nur_free_streaming_approximation != nfa_none)) {
+	
+	ppw->approx[ppw->index_ap_nfa] = (int)nfa_on;
+      }
+      else {
+	ppw->approx[ppw->index_ap_nfa] = (int)nfa_off;
+      }  
+    }
   }
 
   return _SUCCESS_;
@@ -3166,7 +3330,7 @@ int perturb_timescale(
 
     *timescale = eta_h;
 
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off)
+    if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off)
       *timescale = min(eta_k,*timescale);
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
@@ -3267,38 +3431,31 @@ int perturb_einstein(
 
     /** (a) deal with approximation schemes */
     
+    /** (a.1) photons */
+
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
-      if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
+      if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) {
 
-	/** (a.1) no approximation */
+	/** (a.1.1) no approximation */
 
 	delta_g = y[ppw->pv->index_pt_delta_g];
 	theta_g = y[ppw->pv->index_pt_theta_g];
 	shear_g = y[ppw->pv->index_pt_shear_g];
-	if (pba->has_nur == _TRUE_) {
-	  delta_nur = y[ppw->pv->index_pt_delta_nur];
-	  theta_nur = y[ppw->pv->index_pt_theta_nur];
-	  shear_nur = y[ppw->pv->index_pt_shear_nur];
-	}
+
       }
       else {
 
-	/** (a.2) free streaming approximation */
+	/** (a.1.2) free streaming approximation */
 
 	delta_g = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
 	theta_g = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
 	shear_g = 0.; /* shear always neglected in free streaming approximatio */
-	if (pba->has_nur == _TRUE_) {
-	  delta_nur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
-	  theta_nur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
-	  shear_nur = 0.; /* shear always neglected in free streaming approximatio */
-	}
       }
     }
     else {
 
-      /** (a.3) tight coupling approximation */
+      /** (a.1.3) tight coupling approximation */
 
       delta_g = y[ppw->pv->index_pt_delta_g];
       theta_g = y[ppw->pv->index_pt_theta_g];
@@ -3312,12 +3469,26 @@ int perturb_einstein(
 		       to the right first-order value below, just
 		       before using the Einstein equation for the
 		       shear. */
+    }
+
+    /** (a.2) nur */
+
+    if (pba->has_nur == _TRUE_) {
       
-      if (pba->has_nur == _TRUE_) {
+      if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) {
+	
 	delta_nur = y[ppw->pv->index_pt_delta_nur];
 	theta_nur = y[ppw->pv->index_pt_theta_nur];
 	shear_nur = y[ppw->pv->index_pt_shear_nur];
+
       }
+      else {
+	
+	delta_nur = 0.; /* delta always neglected in nur free streaming approximatio */
+	theta_nur = 0.; /* actual theta imposed after evaluation of 1st einstein equation */
+	shear_nur = 0.; /* shear always neglected in nur free streaming approximatio */
+      }
+
     }
 
     /** (b) compute the total density, velocity and shear perturbations */
@@ -3468,34 +3639,26 @@ int perturb_einstein(
 
       /* eventually, infer free-streaming approximation for gamma and
 	 nur, correct the total velocity */
-      if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) {
 
-	if (ppr->free_streaming_approximation == fsa_null) {
-	  ppw->fsa_delta_g = 0.;
-	  ppw->fsa_theta_g = 0.;
-	  if (pba->has_nur == _TRUE_) {
-	    ppw->fsa_delta_nur = 0.;
-	    ppw->fsa_theta_nur = 0.;
-	  }
+      if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_on) {
+
+	if (ppr->free_streaming_approximation == gfa_null) {
+	  ppw->gfa_delta_g = 0.;
+	  ppw->gfa_theta_g = 0.;
 	}
 	else {
 	  
-	  ppw->fsa_delta_g = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
+	  ppw->gfa_delta_g = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
 				    -k2*y[ppw->pv->index_pt_eta]);
-	  ppw->fsa_theta_g = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
-	  
-	  if (pba->has_nur == _TRUE_) {
-	    ppw->fsa_delta_nur = ppw->fsa_delta_g;
-	    ppw->fsa_theta_nur = ppw->fsa_theta_g;
-	  }
+	  ppw->gfa_theta_g = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
 	}
 	    
-	if (ppr->free_streaming_approximation == fsa_MD_with_reio) {
+	if (ppr->free_streaming_approximation == gfa_MD_with_reio) {
 	  
-	  ppw->fsa_delta_g += 
+	  ppw->gfa_delta_g += 
 	    -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]+0.5*ppw->pvecmetric[ppw->index_mt_h_prime]);
 	  
-	  ppw->fsa_theta_g += 
+	  ppw->gfa_theta_g += 
 	    3./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*
 		   (y[ppw->pv->index_pt_theta_b]
 		    +0.5*ppw->pvecmetric[ppw->index_mt_h_prime])
@@ -3506,12 +3669,24 @@ int perturb_einstein(
 		    +k2*y[ppw->pv->index_pt_eta]));
 	}	    
 
-	rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->fsa_theta_g;
-	if (pba->has_nur == _TRUE_) {
-	  rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*ppw->fsa_theta_nur;
-	}
+	rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->gfa_theta_g;
       }
       
+      if (pba->has_nur == _TRUE_) {
+
+	if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_on) {
+
+	  
+	  ppw->nfa_delta_nur = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
+				      -k2*y[ppw->pv->index_pt_eta]); /* this expression makes sense only during matter / lambda domination; however we use it only for outputing the nur transfer function, so this is OK */
+
+	  ppw->nfa_theta_nur = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
+
+	  rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*ppw->nfa_theta_nur;
+
+	}
+      }
+
       /* second equation involving total velocity */
       ppw->pvecmetric[ppw->index_mt_eta_prime] = 1.5 * (a2/k2) * rho_plus_p_theta;  /* eta' */
 
@@ -3681,8 +3856,8 @@ int perturb_source_terms(
 
     /** - compute quantities depending on approximation schemes */
 
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) {
-      delta_g = ppw->fsa_delta_g;
+    if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_on) {
+      delta_g = ppw->gfa_delta_g;
       Pi = 0.;
       Pi_prime = 0.;
     }
@@ -3851,11 +4026,11 @@ int perturb_source_terms(
       /* delta_g */
       if ((ppt->has_source_delta_g == _TRUE_) && (index_type == ppt->index_tp_delta_g)) {
 
-	if (ppw->approx[ppw->index_ap_fsa]==(int)fsa_off) {
+	if (ppw->approx[ppw->index_ap_gfa]==(int)gfa_off) {
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = y[ppw->pv->index_pt_delta_g];
 	}
 	else {
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->fsa_delta_g;
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->gfa_delta_g;
 	}
 	
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = delta_g;
@@ -3889,12 +4064,12 @@ int perturb_source_terms(
 
       /* delta_nur */
       if ((ppt->has_source_delta_nur == _TRUE_) && (index_type == ppt->index_tp_delta_nur)) {
-	if (ppw->approx[ppw->index_ap_fsa]==(int)fsa_off) {
+	if (ppw->approx[ppw->index_ap_nfa]==(int)nfa_off) {
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
 	    y[ppw->pv->index_pt_delta_nur];
 	}
 	else {
-	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->fsa_delta_nur;
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = ppw->nfa_delta_nur;
 	}
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
@@ -4129,7 +4304,6 @@ int perturb_print_variables(double eta,
   double * pvecback;
   double * pvecthermo;
   double * pvecmetric;
-  double a_prime_over_a;
   //  int l,index_q,qsiz;
 
   /** - rename structure fields (just to avoid heavy notations) */
@@ -4148,70 +4322,77 @@ int perturb_print_variables(double eta,
 
   /** - print whatever you want for whatever mode of your choice */
 
-  if ((k>0.1) && (k<0.103)) {
+  double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
+  double delta_nur,theta_nur,shear_nur;
+
+  if ((k>5.) && (k<7.)) {
+
+    if (ppw->approx[ppw->index_ap_gfa]==(int)gfa_off) {
+      delta_g = y[ppw->pv->index_pt_delta_g];
+      theta_g = y[ppw->pv->index_pt_theta_g];
+    }
+    else {
+      delta_g = ppw->gfa_delta_g;
+      theta_g = ppw->gfa_theta_g;
+    }
     
-    if (ppw->approx[ppw->index_ap_fsa]==(int)fsa_off) {
+    if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
-	fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
-		k,
-		eta,
-		y[ppw->pv->index_pt_delta_g],
-		y[ppw->pv->index_pt_theta_g],
-		ppw->tca_shear_g,
-		6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g,
-		2.5*ppw->tca_shear_g,
-		7./12.*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g,
-		0.5*ppw->tca_shear_g,
-		0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g,
-		y[ppw->pv->index_pt_delta_b],
-		y[ppw->pv->index_pt_theta_b],
-		y[ppw->pv->index_pt_delta_nur],
-		y[ppw->pv->index_pt_theta_nur],
-		y[ppw->pv->index_pt_shear_nur],
-		y[ppw->pv->index_pt_eta]);
+	shear_g = ppw->tca_shear_g;
+	l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+	pol0_g = 2.5*ppw->tca_shear_g;
+	pol1_g = 7./12.*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+	pol2_g = 0.5*ppw->tca_shear_g;
+	pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
       }
       else {
-	fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
-		k,
-		eta,
-		y[ppw->pv->index_pt_delta_g],
-		y[ppw->pv->index_pt_theta_g],
-		y[ppw->pv->index_pt_shear_g],
-		y[ppw->pv->index_pt_l3_g],
-		y[ppw->pv->index_pt_pol0_g],
-		y[ppw->pv->index_pt_pol1_g],
-		y[ppw->pv->index_pt_pol2_g],
-		y[ppw->pv->index_pt_pol3_g],
-		y[ppw->pv->index_pt_delta_b],
-		y[ppw->pv->index_pt_theta_b],
-		y[ppw->pv->index_pt_delta_nur],
-		y[ppw->pv->index_pt_theta_nur],
-		y[ppw->pv->index_pt_shear_nur],
-		y[ppw->pv->index_pt_eta]);
+	shear_g = y[ppw->pv->index_pt_shear_g];
+	l3_g = y[ppw->pv->index_pt_l3_g];
+	pol0_g = y[ppw->pv->index_pt_pol0_g];
+	pol1_g = y[ppw->pv->index_pt_pol1_g];
+	pol2_g = y[ppw->pv->index_pt_pol2_g];
+	pol3_g = y[ppw->pv->index_pt_pol3_g];
       }
     }
     else {
-
-      a_prime_over_a=pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
-
-      fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
-	      k,
-	      eta,
-	      ppw->fsa_delta_g,
-	      ppw->fsa_theta_g,
-	      0.,
-	      0.,
-	      0.,
-	      0.,
-	      0.,
-	      0.,
-	      y[ppw->pv->index_pt_delta_b],
-	      y[ppw->pv->index_pt_theta_b],
-	      ppw->fsa_delta_nur,
-	      ppw->fsa_theta_nur,
-	      0.,
-	      y[ppw->pv->index_pt_eta]);
+      shear_g = 0;
+      l3_g = 0;
+      pol0_g = 0;
+      pol1_g = 0;
+      pol2_g = 0;
+      pol3_g = 0.;
     }
+    
+    if (ppw->approx[ppw->index_ap_nfa]==(int)nfa_off) {
+      delta_nur = y[ppw->pv->index_pt_delta_nur];
+      theta_nur = y[ppw->pv->index_pt_theta_nur];
+      shear_nur = y[ppw->pv->index_pt_shear_nur];
+    }
+    else {
+      delta_nur = ppw->nfa_delta_nur;
+      theta_nur = ppw->nfa_theta_nur;
+      shear_nur = 0.;
+    }
+
+    fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+	    k,
+	    eta,
+	    delta_g,
+	    theta_g,
+	    shear_g,
+	    l3_g,
+	    pol0_g,
+	    pol1_g,
+	    pol2_g,
+	    pol3_g,
+	    y[ppw->pv->index_pt_delta_b],
+	    y[ppw->pv->index_pt_theta_b],
+	    delta_nur,
+	    theta_nur,
+	    shear_nur,
+	    y[ppw->pv->index_pt_eta],
+	    pvecmetric[ppw->index_mt_h_prime]);
+
   }
   
   /** - print whatever you want for whatever mode of your choice */
@@ -4359,7 +4540,7 @@ int perturb_derivs(double eta,
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
   
   /* short-cut notations for the perturbations */
-  if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
+  if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) {
     delta_g = y[ppw->pv->index_pt_delta_g];
     theta_g = y[ppw->pv->index_pt_theta_g];
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
@@ -4405,15 +4586,15 @@ int perturb_derivs(double eta,
     /* compute metric-related quantities */
     h_plus_six_eta_prime = pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime];
 
-    /** (b) if some approximation schemes are turned on, enforce a few y[] values compited in perturb_einstein */
+    /** (b) if some approximation schemes are turned on, enforce a few y[] values computed in perturb_einstein */
 
     /* free-streaming photon velocity */
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_on) 
-      theta_g = ppw->fsa_theta_g;
+    if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_on) 
+      theta_g = ppw->gfa_theta_g;
 
     /** (c) Photon temperature density (does not depend on tca) */
 
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
+    if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) {
 
       if (ppr->gauge == newtonian)
 	dy[ppw->pv->index_pt_delta_g] = /* photon density */
@@ -4646,7 +4827,7 @@ int perturb_derivs(double eta,
 
     /** (e) Photon temperature higher momenta and photon polarisation (depend on tight-coupling approximation) : */
 
-    if (ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
+    if (ppw->approx[ppw->index_ap_gfa] == (int)gfa_off) {
 
       /** (e.1) if photon tight-coupling is off: */ 
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
@@ -4798,9 +4979,9 @@ int perturb_derivs(double eta,
     
     /** (h) ultra-relativistic neutrino/relics density, velocity, shear, etc. */
     
-    if(ppw->approx[ppw->index_ap_fsa] == (int)fsa_off) {
+    if (pba->has_nur == _TRUE_) {
 
-      if (pba->has_nur == _TRUE_) {
+      if(ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
       
 	if (ppr->gauge == newtonian) {
 
