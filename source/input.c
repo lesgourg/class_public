@@ -1046,6 +1046,11 @@ int input_init(
   class_read_int("nur_free_streaming_approximation",ppr->nur_free_streaming_approximation);
   class_read_double("nur_free_streaming_trigger_eta_h_over_eta_k",ppr->nur_free_streaming_trigger_eta_h_over_eta_k);
 
+  class_test(ppr->nur_free_streaming_trigger_eta_h_over_eta_k==ppr->free_streaming_trigger_eta_h_over_eta_k,
+	     errmsg,
+	     "please choose different values for precision parameters nur_free_streaming_trigger_eta_h_over_eta_k and free_streaming_trigger_eta_h_over_eta_k, in order to avoid switching two approximation schemes at the same time");
+    
+
   /** h.4. parameter related to the Bessel functions */
 
   class_read_double("l_logstep",ppr->l_logstep);

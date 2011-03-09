@@ -75,6 +75,8 @@ TEST_OPTIMIZE_1D = test_optimize_1D.o
 
 TEST_OPTIMIZE = test_optimize.o
 
+CHI2 = chi2.o
+
 TEST_LOOPS = test_loops.o
 
 TEST_SPECTRA = test_spectra.o
@@ -115,6 +117,9 @@ test_optimize_1D: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(B
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_optimize: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_OPTIMIZE)
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+chi2: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CHI2)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_loops: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_LOOPS)

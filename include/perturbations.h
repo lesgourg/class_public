@@ -271,8 +271,9 @@ struct perturb_workspace
   int index_mt_phi;         /**< phi in longitudinal gauge */
   int index_mt_psi;         /**< psi in longitudinal gauge */
   int index_mt_phi_prime;   /**< (d phi/d conf.time) in longitudinal gauge */
-  int index_mt_h_prime;     /**< (d h/d conf.time) in synchronous gauge */
-  int index_mt_eta_prime;   /**< (d \f$ \eta \f$/d conf.time) in synchronous gauge */
+  int index_mt_h_prime;     /**< h' (wrt conf. time) in synchronous gauge */
+  int index_mt_h_prime_prime; /**< h'' (wrt conf. time) in synchronous gauge */
+  int index_mt_eta_prime;   /**< eta' (wrt conf. time) in synchronous gauge */
   int index_mt_alpha_prime; /**< (d \f$ \alpha \f$/d conf.time) in synchronous gauge, where \f$ \alpha = (h' + 6 \eta') / (2 k^2) \f$ */
   int mt_size;              /**< size of metric perturbation vector */
 
@@ -315,8 +316,7 @@ struct perturb_workspace
   double tca_shear_g_prime; /**< photon shear derivative in tight-coupling approximation */
   double gfa_delta_g; /**< photon density in free-streaming approximation */
   double gfa_theta_g; /**< photon velocity in free-streaming approximation */
-  double nfa_delta_nur; /**< neutrino density in free-streaming approximation */  
-  double nfa_theta_nur; /**< neutrino velocity in free-streaming approximation */
+
   double * delta_ncdm;
 
   double delta_pk;
