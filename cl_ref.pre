@@ -60,11 +60,6 @@ k_scalar_step_sub=0.015
 k_scalar_step_super=0.0001 # was 0.0005
 k_scalar_step_transition=0.2 # was 0.2
 
-#start_small_k_at_eta_g_over_eta_h = 0.006
-#start_large_k_at_eta_g_over_eta_k = 1.e-5
-#tight_coupling_trigger_eta_g_over_eta_h=0.008
-#tight_coupling_trigger_eta_g_over_eta_k=0.05
-#start_sources_at_eta_g_over_eta_h = 0.01
 start_small_k_at_eta_g_over_eta_h = 0.0004
 start_large_k_at_eta_h_over_eta_k = 0.15
 tight_coupling_trigger_eta_g_over_eta_h=0.005
@@ -74,7 +69,7 @@ tight_coupling_approximation=5 #(int)second_order_CRS;
 
 l_max_g=25
 l_max_pol_g=25
-l_max_nur=35
+l_max_nur=30
 l_max_ncdm1=28
 
 tol_eta_approx=1.e-5
