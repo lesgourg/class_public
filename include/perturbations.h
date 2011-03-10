@@ -10,8 +10,8 @@
 /**  
  * flags for various approximation schemes 
  * (tca = tight-coupling approximation, 
- *  gfa = photon free-streaming approximation, 
- *  nfa = massless neutrinos / ultra-relativistic relics free-streaming approximation)
+ *  rsa = radiation streaming approximation, 
+ *  nfa = massless neutrinos / ultra-relativistic relics fluid approximation)
  *
  * CAUTION: must be listed below in chronological order, and cannot be
  * reversible. When integrating equations for a given mode, it is only
@@ -21,7 +21,7 @@
 //@{
 
 enum tca_flags {tca_on, tca_off};
-enum gfa_flags {gfa_off, gfa_on};
+enum rsa_flags {rsa_off, rsa_on};
 enum nfa_flags {nfa_off, nfa_on};
 
 //@}
@@ -33,7 +33,7 @@ enum nfa_flags {nfa_off, nfa_on};
 //@{
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
-enum gfa_method {gfa_null,gfa_MD,gfa_MD_with_reio,gfa_none};
+enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
 enum nfa_method {nfa_normal,nfa_none};
 
 //@}
@@ -314,10 +314,10 @@ struct perturb_workspace
 
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
   double tca_shear_g_prime; /**< photon shear derivative in tight-coupling approximation */
-  double gfa_delta_g; /**< photon density in free-streaming approximation */
-  double gfa_theta_g; /**< photon velocity in free-streaming approximation */
-  double gfa_delta_nur; /**< photon density in free-streaming approximation */
-  double gfa_theta_nur; /**< photon velocity in free-streaming approximation */
+  double rsa_delta_g; /**< photon density in radiation streaming approximation */
+  double rsa_theta_g; /**< photon velocity in radiation streaming approximation */
+  double rsa_delta_nur; /**< photon density in radiation streaming approximation */
+  double rsa_theta_nur; /**< photon velocity in radiation streaming approximation */
 
   double * delta_ncdm;
 
@@ -350,8 +350,8 @@ struct perturb_workspace
   //@{
 
   int index_ap_tca; /**< index for tight-coupling approximation */
-  int index_ap_gfa; /**< index for photon free-streaming approximation */
-  int index_ap_nfa; /**< index for nur free-streaming approximation */
+  int index_ap_rsa; /**< index for radiation streaming approximation */
+  int index_ap_nfa; /**< index for nur fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
 
   int * approx;     /**< array of approximation flags holding at a given time: approx[index_ap] */

@@ -1039,16 +1039,16 @@ int input_init(
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
 
-  class_read_int("free_streaming_approximation",ppr->free_streaming_approximation);
-  class_read_double("free_streaming_trigger_eta_h_over_eta_k",ppr->free_streaming_trigger_eta_h_over_eta_k);
-  class_read_double("free_streaming_trigger_eta_g_over_eta_h",ppr->free_streaming_trigger_eta_g_over_eta_h);
+  class_read_int("radiation_streaming_approximation",ppr->radiation_streaming_approximation);
+  class_read_double("radiation_streaming_trigger_eta_h_over_eta_k",ppr->radiation_streaming_trigger_eta_h_over_eta_k);
+  class_read_double("radiation_streaming_trigger_eta_g_over_eta_h",ppr->radiation_streaming_trigger_eta_g_over_eta_h);
 
-  class_read_int("nur_free_streaming_approximation",ppr->nur_free_streaming_approximation);
-  class_read_double("nur_free_streaming_trigger_eta_h_over_eta_k",ppr->nur_free_streaming_trigger_eta_h_over_eta_k);
+  class_read_int("nur_fluid_approximation",ppr->nur_fluid_approximation);
+  class_read_double("nur_fluid_trigger_eta_h_over_eta_k",ppr->nur_fluid_trigger_eta_h_over_eta_k);
 
-  class_test(ppr->nur_free_streaming_trigger_eta_h_over_eta_k==ppr->free_streaming_trigger_eta_h_over_eta_k,
+  class_test(ppr->nur_fluid_trigger_eta_h_over_eta_k==ppr->radiation_streaming_trigger_eta_h_over_eta_k,
 	     errmsg,
-	     "please choose different values for precision parameters nur_free_streaming_trigger_eta_h_over_eta_k and free_streaming_trigger_eta_h_over_eta_k, in order to avoid switching two approximation schemes at the same time");
+	     "please choose different values for precision parameters nur_fluid_trigger_eta_h_over_eta_k and radiation_streaming_trigger_eta_h_over_eta_k, in order to avoid switching two approximation schemes at the same time");
     
 
   /** h.4. parameter related to the Bessel functions */
@@ -1466,13 +1466,13 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_perturb_integration=1.e-4;
   ppr->perturb_sampling_stepsize=0.04;
 
-  ppr->free_streaming_approximation = gfa_MD_with_reio;
-  ppr->free_streaming_trigger_eta_h_over_eta_k = 60.; 
-/*   ppr->free_streaming_trigger_Omega_r = 0.1;  */
-  ppr->free_streaming_trigger_eta_g_over_eta_h = 60.;
+  ppr->radiation_streaming_approximation = rsa_MD_with_reio;
+  ppr->radiation_streaming_trigger_eta_h_over_eta_k = 60.; 
+/*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
+  ppr->radiation_streaming_trigger_eta_g_over_eta_h = 60.;
  
-  ppr->nur_free_streaming_approximation = nfa_normal;
-  ppr->nur_free_streaming_trigger_eta_h_over_eta_k = 20.; 
+  ppr->nur_fluid_approximation = nfa_normal;
+  ppr->nur_fluid_trigger_eta_h_over_eta_k = 20.; 
 
   /**
    * - parameter related to the Bessel functions

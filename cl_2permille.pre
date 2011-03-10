@@ -69,16 +69,19 @@ tight_coupling_approximation=5 #(int)second_order_CRS;
 
 l_max_g=17
 l_max_pol_g=17
-l_max_nur=20
+l_max_nur=10
 l_max_ncdm1=28
 
 tol_eta_approx=1.e-5
 tol_perturb_integration=1.e-4
 perturb_sampling_stepsize=0.04
 
-free_streaming_approximation = 2
-free_streaming_trigger_eta_h_over_eta_k = 60.
-free_streaming_trigger_Omega_r = 0.1
+radiation_streaming_approximation = 2
+radiation_streaming_trigger_eta_h_over_eta_k = 60.
+radiation_streaming_trigger_eta_g_over_eta_h = 80.
+
+nur_fluid_approximation = 0
+nur_fluid_trigger_eta_h_over_eta_k = 12.
 
 l_logstep=1.045
 l_linstep=50
@@ -96,7 +99,7 @@ transfer_cut=1 #0=none,1=osc,2=cl #segfault with zero, watch it!
 transfer_cut_threshold_osc=0.005 # with 0.005, more smooth than when smaller for l>2000 WATCH IT
 transfer_cut_threshold_cl=1.e-8 # not robust if tilted or if one Delta_l(k) oscillation tangents zero
 
-evolver=1
+evolver=0
 
 l_switch_limber = 15.
 num_mu_minus_lmax = 800.

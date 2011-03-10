@@ -926,11 +926,17 @@ int background_ncdm_init(
   
       //Loop to find appropriate dq:
       for(tolexp=_PSD_DERIVATIVE_EXP_MIN_; tolexp<_PSD_DERIVATIVE_EXP_MAX_; tolexp++){
-	if (index_q == 0)
-	  dq = min((0.5-ppr->smallest_allowed_variation)*q,2*exp(tolexp)*(pba->q_ncdm[k][index_q+1]-q));
-	else
-	  dq = exp(tolexp)*(pba->q_ncdm[k][index_q+1]-pba->q_ncdm[k][index_q-1]);
    
+        if (index_q == 0){
+          dq = min((0.5-ppr->smallest_allowed_variation)*q,2*exp(tolexp)*(pba->q_ncdm[k][index_q+1]-q));
+        }       
+        else if (index_q == pba->q_size_ncdm[k]-1){
+          dq = exp(tolexp)*2.0*(pba->q_ncdm[k][index_q]-pba->q_ncdm[k][index_q-1]);
+        }       
+        else{
+          dq = exp(tolexp)*(pba->q_ncdm[k][index_q+1]-pba->q_ncdm[k][index_q-1]);
+        }
+
 	class_call(background_ncdm_distribution(&pbadist,q-2*dq,&f0m2),
 		   pba->error_message,pba->error_message);
 	class_call(background_ncdm_distribution(&pbadist,q+2*dq,&f0p2),
