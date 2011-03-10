@@ -83,7 +83,10 @@ perturb_sampling_stepsize=0.01
 
 free_streaming_approximation = 2
 free_streaming_trigger_eta_h_over_eta_k = 120.
-free_streaming_trigger_Omega_r = 0.07
+free_streaming_trigger_eta_g_over_eta_h = 200.
+
+nur_free_streaming_approximation = 0
+nur_free_streaming_trigger_eta_h_over_eta_k = 50.
 
 l_logstep=1.026
 l_linstep=25
