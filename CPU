@@ -226,7 +226,7 @@ def blend_against_interp(names,spectrum_type):
     for j in range(upper_bound[l]-lower_bound[l]-2):
       data_string=''
       for ll in range(lmax):
-	data_string=data_string+str((interpolated[ll])[j])+"\t"
+	data_string=data_string+str((interpolated[ll])[j+1])+"\t"
       datafile.write(str(spam[0,j+lower_bound[l]+1,l])+"\t"+data_string+"\n")
     datafile.write("\n\n")
   datafile.close()
