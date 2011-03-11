@@ -21,10 +21,10 @@ AR        = ar rv
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #CCFLAG   = -O4 -Wall -pg
 #LDFLAG   = -O4 -Wall -pg
-#CCFLAG   = -O0 -Wall -ggdb
-#LDFLAG   = -O0 -Wall -ggdb
-CCFLAG   = -O4 -fopenmp -Wall
-LDFLAG   = -O4 -fopenmp -Wall
+CCFLAG   = -O0 -Wall -ggdb
+LDFLAG   = -O0 -Wall -ggdb
+#CCFLAG   = -O4 -fopenmp -Wall
+#LDFLAG   = -O4 -fopenmp -Wall
 #CCFLAG   = -fast -fopenmp -Wall
 #LDFLAG   = -fast -fopenmp -Wall
 #CCFLAG = -O0 -ggdb -g -Wall

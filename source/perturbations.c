@@ -2422,19 +2422,17 @@ int perturb_vector_init(
       
       ppv->used_in_sources[ppv->index_pt_shear_nur]=_FALSE_;
 
+      if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
+	
+	ppv->used_in_sources[ppv->index_pt_l3_nur]=_FALSE_;
+	
+	for (index_pt=ppv->index_pt_l3_nur+1; index_pt <= ppv->index_pt_delta_nur+ppv->l_max_nur; index_pt++)
+	  ppv->used_in_sources[index_pt]=_FALSE_;
+	
+      }
     }
-
-    if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
-
-      ppv->used_in_sources[ppv->index_pt_l3_nur]=_FALSE_;
-
-      for (index_pt=ppv->index_pt_l3_nur+1; index_pt <= ppv->index_pt_delta_nur+ppv->l_max_nur; index_pt++)
-	ppv->used_in_sources[index_pt]=_FALSE_;
-      
-    }
-    
   }
-    
+  
   if (pba->has_ncdm == _TRUE_) {
     index_pt = ppv->index_pt_psi0_ncdm1;
     for(n_ncdm = 0; n_ncdm < ppv-> N_ncdm; n_ncdm++){
