@@ -2612,14 +2612,14 @@ int perturb_vector_init(
 
       }
 
-      /* -- case of switching on photon free streaming
+      /* -- case of switching on radiation streaming
 	 approximation. Provide correct initial conditions to new set
 	 of variables */
 
       if ((pa_old[ppw->index_ap_rsa] == (int)rsa_off) && (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on)) {
 
 	if (ppt->perturbations_verbose>2)
-	  fprintf(stdout,"Mode k=%e: switch on radiation streaming  approximation at eta=%e with Omega_r=%g\n",k,eta,ppw->pvecback[pba->index_bg_Omega_r]);
+	  fprintf(stdout,"Mode k=%e: switch on radiation streaming approximation at eta=%e with Omega_r=%g\n",k,eta,ppw->pvecback[pba->index_bg_Omega_r]);
 
 	ppv->y[ppv->index_pt_delta_b] =
 	  ppw->pv->y[ppw->pv->index_pt_delta_b];
@@ -2668,14 +2668,14 @@ int perturb_vector_init(
 
       }
 
-      /* -- case of switching on nur free streaming
+      /* -- case of switching on nur fluid
 	 approximation. Provide correct initial conditions to new set
 	 of variables */
 
       if ((pa_old[ppw->index_ap_nfa] == (int)nfa_off) && (ppw->approx[ppw->index_ap_nfa] == (int)nfa_on)) {
 
 	if (ppt->perturbations_verbose>2)
-	  fprintf(stdout,"Mode k=%e: switch on nur free-streaming  approximation at eta=%e\n",k,eta);
+	  fprintf(stdout,"Mode k=%e: switch on nur fluid approximation at eta=%e\n",k,eta);
 
 	if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
@@ -3572,7 +3572,7 @@ int perturb_einstein(
       }
     }
 
-    /* store delta_pk (for corresponding source function) Since the
+    /* store delta_pk (for corresponding source function). Since the
        matter power spectrum is usually defined in such way to include
        only non-relativistic components, the sum over each species
        contribution to delta_rho_pk and rho_pk must be done
@@ -3581,7 +3581,7 @@ int perturb_einstein(
 
     if (ppt->has_source_delta_pk == _TRUE_) {
 
-      /* do the sum over species contribution to delta_pk */
+      /* do the sum over species contributing to delta_pk */
 
       if ((ppr->pk_definition == delta_m_squared) ||
 	  (ppr->pk_definition == delta_bc_squared)){

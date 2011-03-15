@@ -121,6 +121,7 @@ struct spectra {
   int index_tr_cdm; /**< index of cold dark matter transfer function */
   int index_tr_de;  /**< index of dark energy fluid transfer function */
   int index_tr_nur; /**< index of ultra-relativistic neutrinos/relics transfer function */
+  int index_tr_ncdm1; /**< index of first species of non-cold dark matter (massive neutrinos, ...) */
   int index_tr_tot; /**< index of total matter transfer function */
   int tr_size;      /**< total number of species in transfer functions */
 

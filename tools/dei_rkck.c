@@ -153,7 +153,7 @@ int rkqs(double *x, double htry, double eps,
     xnew=(*x)+h;
     class_test(xnew == *x,
 	       pgi->error_message,
-	       "stepsize underflow");
+	       "stepsize underflow at x=%e",xnew);
   }
   if (errmax > _ERRCON_) *hnext=_SAFETY_*h*pow(errmax,_PGROW_);
   else *hnext=5.0*h;

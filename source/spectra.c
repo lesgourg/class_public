@@ -1183,6 +1183,10 @@ int spectra_indices(
       psp->index_tr_nur = index_tr;
       index_tr++;
     }
+    if (pba->has_ncdm == _TRUE_) {
+      psp->index_tr_ncdm1 = index_tr;
+      index_tr+=pba->N_ncdm;
+    }
     psp->index_tr_tot = index_tr;
     index_tr++;
     psp->tr_size = index_tr;
@@ -1909,6 +1913,7 @@ int spectra_matter_transfers(
   double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
   double delta_i,rho_i;
   double delta_rho_tot,rho_tot;
+  int n_ncdm;
 
   /** - check the presence of scalar modes */
 
@@ -2028,6 +2033,26 @@ int spectra_matter_transfers(
 	  
 	  rho_tot += rho_i;
 
+	}
+
+	/* T_ncdm_i(k,eta) */
+
+	if (pba->has_ncdm == _TRUE_) {
+
+	  for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+
+	    delta_i = ppt->sources[index_mode]
+	      [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_ncdm1+n_ncdm]
+	      [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
+	  
+	    rho_i = pvecback_sp_long[pba->index_bg_rho_ncdm1+n_ncdm];
+	  
+	    psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_ncdm1+n_ncdm] = delta_i;
+	  
+	    delta_rho_tot += rho_i * delta_i;
+	    
+	    rho_tot += rho_i;
+	  }
 	}
 
 	/* include homogeneous component in rho_tot */
