@@ -14,7 +14,8 @@
 
 //#define _VERSION_ "v0.0.1"
 //#define _VERSION_ "v0.0.2" /**< implementation of ncdm */
-#define _VERSION_ "v0.0.3" /**< stable version, results thoroughly compared with CAMB */
+//#define _VERSION_ "v0.0.3" /**< stable version, results thoroughly compared with CAMB */
+#define _VERSION_ "v0.0.4" /**< includes new massless neutrino fluid approximation, leading to increased speed/precision mainly for P(k)  */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */

@@ -132,6 +132,12 @@ int lensing_init(
   double res,resX;
   double resp, resm;
 
+  double * sqrt1;
+  double * sqrt2;
+  double * sqrt3;
+  double * sqrt4;
+  double * sqrt5;
+
   /** Summary: */
 
   /** - check that we really want to compute at least one spectrum */
@@ -241,6 +247,8 @@ int lensing_init(
     icount += 5*num_mu*(ple->l_unlensed_max+1);
   }
 
+  icount += 5*(ple->l_unlensed_max+1); /* for arrays sqrt1[l] to sqrt5[l] */
+
   /** Allocate main contiguous buffer **/
   class_alloc(buf_dxx,
 	      icount * sizeof(double),
@@ -274,7 +282,19 @@ int lensing_init(
       d40[index_mu] = &(buf_dxx[icount+(index_mu+3*num_mu) * (ple->l_unlensed_max+1)]);
       d4m4[index_mu]= &(buf_dxx[icount+(index_mu+4*num_mu) * (ple->l_unlensed_max+1)]);
     }    
+    icount += 5*num_mu*(ple->l_unlensed_max+1); 
   } 
+
+  sqrt1 = &(buf_dxx[icount]);
+  icount += ple->l_unlensed_max+1;
+  sqrt2 = &(buf_dxx[icount]);
+  icount += ple->l_unlensed_max+1;
+  sqrt3 = &(buf_dxx[icount]);
+  icount += ple->l_unlensed_max+1;
+  sqrt4 = &(buf_dxx[icount]);
+  icount += ple->l_unlensed_max+1;
+  sqrt5 = &(buf_dxx[icount]);
+  icount += ple->l_unlensed_max+1;
 
   class_call(lensing_d00(mu,num_mu,ple->l_unlensed_max,d00),
 	     ple->error_message,
@@ -448,6 +468,16 @@ int lensing_init(
 		 ple->error_message); 
   }
 
+  for (l=2;l<=ple->l_unlensed_max;l++) {
+
+    ll = (double)l;
+    sqrt1[l]=sqrt((ll+2)*(ll+1)*ll*(ll-1));
+    sqrt2[l]=sqrt((ll+2)*(ll-1));
+    sqrt3[l]=sqrt((ll+3)*(ll-2));
+    sqrt4[l]=sqrt((ll+4)*(ll+3)*(ll-2.)*(ll-3));
+    sqrt5[l]=sqrt(ll*(ll+1));
+  }
+
   {
     
 #pragma omp parallel for						\
@@ -466,13 +496,13 @@ int lensing_init(
 
 	X_000 = exp(-fac*sigma2[index_mu]);
 	X_p000 = -fac*X_000;
-	X_220 = 0.25*sqrt((ll+2)*(ll+1)*ll*(ll-1)) * exp(-(fac-0.5)*sigma2[index_mu]);
+	X_220 = 0.25*sqrt1[l] * exp(-(fac-0.5)*sigma2[index_mu]);
 
 	X_022 = exp(-(fac-1.)*sigma2[index_mu]);
 	X_p022 = (fac-1.)*X_022;
-	X_121 = - 0.5*sqrt((ll+2)*(ll-1)) * exp(-(fac-2./3.)*sigma2[index_mu]);
-	X_132 = - 0.5*sqrt((ll+3)*(ll-2)) * exp(-(fac-5./3.)*sigma2[index_mu]);
-	X_242 = 0.25*sqrt((ll+4)*(ll+3)*(ll-2.)*(ll-3))  * exp(-(fac-5./2.)*sigma2[index_mu]);
+	X_121 = - 0.5*sqrt2[l] * exp(-(fac-2./3.)*sigma2[index_mu]);
+	X_132 = - 0.5*sqrt3[l] * exp(-(fac-5./3.)*sigma2[index_mu]);
+	X_242 = 0.25*sqrt4[l]  * exp(-(fac-5./2.)*sigma2[index_mu]);
 	
 	if (ple->has_tt==_TRUE_) {
 	  
@@ -493,7 +523,7 @@ int lensing_init(
 	  resX = fac1*cl_te[l];
 	  
 	  resX *= ( X_022*X_000*d20[index_mu][l] +
-                   Cgl2[index_mu]*2.*X_p000/sqrt(ll*(ll+1)) *
+                   Cgl2[index_mu]*2.*X_p000/sqrt5[l] *
                    (X_121*d11[index_mu][l] + X_132*d3m1[index_mu][l]) +
                    0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
                    ( ( 2.*X_p022*X_p000+X_220*X_220 ) *

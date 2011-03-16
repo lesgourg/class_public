@@ -1770,7 +1770,7 @@ int perturb_solve(
 				  points if you use the runge-kutta
 				  integrator, set evolver=rk) */
 			       NULL,
-			       /* perturb_print_variables, */
+			    /*    perturb_print_variables, */
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -2282,17 +2282,15 @@ int perturb_vector_init(
 	
 	ppv->index_pt_shear_nur = index_pt; /* shear of ultra-relativistic neutrinos/relics */
 	index_pt++;
-	
-      }
 
-      if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) { /* if neutrino free-streaming approximation is off */
+	if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) { /* if neutrino free-streaming approximation is off */
 	
-	ppv->index_pt_l3_nur = index_pt; /* l=3 of ultra-relativistic neutrinos/relics */
-	index_pt++;
+	  ppv->index_pt_l3_nur = index_pt; /* l=3 of ultra-relativistic neutrinos/relics */
+	  index_pt++;
 	
-	ppv->l_max_nur = ppr->l_max_nur; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	index_pt += (ppv->l_max_nur-3);
-	
+	  ppv->l_max_nur = ppr->l_max_nur; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
+	  index_pt += (ppv->l_max_nur-3);
+	}
       }
       
     }
@@ -4342,7 +4340,7 @@ int perturb_print_variables(double eta,
   double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
   double delta_nur=0.,theta_nur=0.,shear_nur=0.;
 
-  if ((k>=6.9) && (k<70.)) {
+  if ((k>=0.0140) && (k<0.0141)) {
 
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
       delta_g = y[ppw->pv->index_pt_delta_g];
@@ -4353,7 +4351,7 @@ int perturb_print_variables(double eta,
       theta_g = ppw->rsa_theta_g;
     }
     
-    if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
+    if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
 	shear_g = ppw->tca_shear_g;
 	l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;

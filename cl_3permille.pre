@@ -81,7 +81,8 @@ radiation_streaming_trigger_eta_h_over_eta_k = 50.
 radiation_streaming_trigger_eta_g_over_eta_h = 80.
 
 nur_fluid_approximation = 0
-nur_fluid_trigger_eta_h_over_eta_k = 12.
+#nur_fluid_trigger_eta_h_over_eta_k = 12.
+nur_fluid_trigger_eta_h_over_eta_k = 200.
 
 l_logstep=1.045
 l_linstep=55
@@ -103,4 +104,4 @@ l_switch_limber = 10.
 num_mu_minus_lmax = 750.
 delta_l_max = 750.
 
-evolver = 0
+evolver = 1
