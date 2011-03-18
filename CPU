@@ -1,10 +1,13 @@
 #!/software/base/python-2.7.1-gnu/bin/python
+##! /software/base/python-2.7.1-gnu/bin/python
 
 from scipy import *
 from scipy import interpolate
 import numpy as np
 import os,sys,string,io,subprocess
 import argparse
+
+
 
 parser = argparse.ArgumentParser(description='CPU, a CLASS Plotting Utility, specify wether you want to superimpose, divide or interpolate different files, and behold!')
 parser.add_argument('files',metavar='Files',type=str, nargs='*',help='the relative path of the desired file to plot\nfrom the root directory of CLASS')
