@@ -2474,7 +2474,7 @@ int array_smooth_trg(double * array,
     
 
   default:
-    class_stop("Non valid radius : please chose between 3 4 5 or 6\n");
+    class_stop(errmsg,"Non valid radius %d: please chose between 3 4 5 or 6\n",radius);
     weigth=0;
     break;
   }

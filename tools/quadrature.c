@@ -276,7 +276,7 @@ int get_qsampling(double *x,
   }
   else{
     /* Failed to converge! */
-    class_error(errmsg,
+    class_stop(errmsg,
 		"get_qsampling fails to obtain a relative tolerance of %g as required using atmost %d points. If the PSD is interpolated from a file, try increasing the resolution and the q-interval (qmin;qmax) if possible, or decrease tol_ncdm/tol_ncdm_bg. As a last resort, increase _QUADRATURE_MAX_/_QUADRATURE_MAX_BG_.",rtol,N_max);
   }
   /* Trim weights to avoid zero weights: */
