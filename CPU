@@ -1,5 +1,5 @@
 #!/software/base/python-2.7.1-gnu/bin/python
-##! /software/base/python-2.7.1-gnu/bin/python
+##! /usr/bin/python
 
 from scipy import *
 from scipy import interpolate

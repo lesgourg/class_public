@@ -2431,6 +2431,7 @@ int trg_init (
   /** Time (t or eta) quantities */
 
   int index_eta;
+  int index_cut;
 
   int index;  
   int index_plus; 
@@ -2588,15 +2589,17 @@ int trg_init (
    * values.*/
    
   for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {
-    if(index_eta<=10)
+    index_cut = (int)((pnl->eta_size-1)*0.1);
+    if(index_eta<=index_cut)
       pnl->eta[index_eta]= index_eta*pnl->eta_step*5.;
     else
-      pnl->eta[index_eta]= pnl->eta[10]+(index_eta-10)*pnl->eta_step*5./9.;
+      pnl->eta[index_eta]= pnl->eta[index_cut]+(index_eta-index_cut)*pnl->eta_step*5./9.;
+ /*    pnl->eta[index_eta]= index_eta*pnl->eta_step; */
     pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;
-    if(pnl->z[index_eta]<0) {
+     if(pnl->z[index_eta]<0) {
       pnl->z[index_eta]=0;
     }
-  }
+   }
 
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> starting calculation at redshift z = %2.2f\n",pnl->z[0]);
