@@ -449,10 +449,11 @@ int transfer_init(
 
 	    class_test_parallel((int)((eta0_minus_eta[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1 >= x_size_l,
 				ptr->error_message,
-				"Increase x_max in bessel functions! The computation needs index_x up to %d while x_size[%d]=%d\n",
+				"Increase x_max in bessel functions! The computation needs index_x up to %d while x_size[%d]=%d for x=%e\n",
 				(int)((eta0_minus_eta[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1,
 				index_l,
-				x_size_l);
+				x_size_l,
+				eta0_minus_eta[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1]);
 
 	    /* compute the transfer function for this l */
 	    class_call_parallel(transfer_compute_for_each_l(ppr,

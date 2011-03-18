@@ -4084,8 +4084,14 @@ int perturb_source_terms(
 
       /* delta_nur */
       if ((ppt->has_source_delta_nur == _TRUE_) && (index_type == ppt->index_tp_delta_nur)) {
-	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] = 
-	  y[ppw->pv->index_pt_delta_nur];
+	if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] =
+	    y[ppw->pv->index_pt_delta_nur];
+	}
+	else {
+	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] =
+	    ppw->rsa_delta_nur;
+	}
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }

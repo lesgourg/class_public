@@ -167,8 +167,6 @@ int lensing_init(
   num_mu += num_mu%2; /* Force it to be even */ 
   /** - allocate array of mu values, as well as quadrature weights */
 
-  printf("num_mu=%d\n",num_mu);
-
   class_alloc(mu,
               num_mu*sizeof(double),
               ple->error_message);

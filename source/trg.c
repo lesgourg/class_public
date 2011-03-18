@@ -2656,12 +2656,12 @@ int trg_init (
 
     /* Omega_r is filled only if the total spectrum is requested */
 
-    if(pnl->has_bc_spectrum == _FALSE_ ) {
-      Omega_r[index_eta] = pvecback_nl[pba->index_bg_rho_g]/pvecback_nl[pba->index_bg_rho_crit];
-      if (pba->has_nur == _TRUE_) {
-	Omega_r[index_eta] += pvecback_nl[pba->index_bg_rho_nur]/pvecback_nl[pba->index_bg_rho_crit];
-      }
-    }
+ /*    if(pnl->has_bc_spectrum == _FALSE_ ) { */
+   /*    Omega_r[index_eta] = pvecback_nl[pba->index_bg_rho_g]/pvecback_nl[pba->index_bg_rho_crit]; */
+/*       if (pba->has_nur == _TRUE_) { */
+/* 	Omega_r[index_eta] += pvecback_nl[pba->index_bg_rho_nur]/pvecback_nl[pba->index_bg_rho_crit]; */
+/*       } */
+ /*    } */
 
     rho_g[index_eta]   = pvecback_nl[pba->index_bg_rho_g];
     rho_nur[index_eta] = pvecback_nl[pba->index_bg_rho_nur];
@@ -2684,7 +2684,7 @@ int trg_init (
 
   class_calloc(transfer,psp->tr_size,sizeof(double),pnl->error_message);
 
-  if(pnl->has_bc_spectrum == _TRUE_) {
+/*   if(pnl->has_bc_spectrum == _TRUE_) { */
     for (index_eta=0; index_eta < pnl->eta_size; index_eta++){
       for (index_k=0; index_k < pnl->k_size; index_k++){
 	class_call(spectra_tk_at_k_and_z(
@@ -2703,7 +2703,7 @@ int trg_init (
 	tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm];
       }
     }
-  }
+/*   } */
 
   /*return _SUCCESS_;*/
   /** Definition of the matrix elements Omega_11,Omega_12, Omega_22,Omega_12 for each k and eta */
@@ -2719,7 +2719,7 @@ int trg_init (
       
       index=index_k+pnl->k_size*index_eta;
 
-      if(pnl->has_bc_spectrum == _TRUE_ ) {
+    /*   if(pnl->has_bc_spectrum == _TRUE_ ) { */
 	Omega_21[index] = -3./2 * Omega_m[index_eta] * (1. + 
 	    4./3*(rho_g[index_eta]*tr_g[index]+ 
 	      rho_nur[index_eta]*tr_nur[index])
@@ -2728,10 +2728,10 @@ int trg_init (
 
 	    /*- 2./3*pow(H[index_eta],2)*cb2[index_eta]*pow(pnl->k[index_k],2)*rho_b[index_eta]*tr_b[index]/*/
 	    /*(Omega_m[index_eta]*(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index])));*/
-      }
-      else {
-	Omega_21[index] = -3./2 * (Omega_m[index_eta] + 4./3*Omega_r[index_eta]);
-      }
+   /*    } */
+/*       else { */
+/* 	Omega_21[index] = -3./2 * (Omega_m[index_eta] + 4./3*Omega_r[index_eta]); */
+/*       } */
 
       Omega_22[index] = 2 + H_prime[index_eta]/H[index_eta];
     }
@@ -2785,22 +2785,22 @@ int trg_init (
     /* If the option to compute the b+c spectrum is on, the definition of the initial
      * matter power spectrum is slighlty different.
      */
-    if(pnl->has_bc_spectrum == _TRUE_) {
+    /* if(pnl->has_bc_spectrum == _TRUE_) { */
 
-      class_call(spectra_tk_at_k_and_z(pba,psp,pnl->k[index_k],pnl->z[0],transfer),
-	  psp->error_message,
-	  pnl->error_message);
+/*       class_call(spectra_tk_at_k_and_z(pba,psp,pnl->k[index_k],pnl->z[0],transfer), */
+/* 	  psp->error_message, */
+/* 	  pnl->error_message); */
 
-      transfer_tot = transfer[psp->index_tr_tot];
+/*       transfer_tot = transfer[psp->index_tr_tot]; */
 
-      transfer_bc = transfer[psp->index_tr_b];
-      if (pba->has_cdm == _TRUE_) {
-	transfer_bc = (rho_b[0] * transfer_bc + rho_cdm[0] * transfer[psp->index_tr_cdm])/(rho_b[0]+rho_cdm[0]);
-      }
+/*       transfer_bc = transfer[psp->index_tr_b]; */
+/*       if (pba->has_cdm == _TRUE_) { */
+/* 	transfer_bc = (rho_b[0] * transfer_bc + rho_cdm[0] * transfer[psp->index_tr_cdm])/(rho_b[0]+rho_cdm[0]); */
+/*       } */
 
-      pnl->p_11_nl[index_k] *= pow(transfer_bc/transfer_tot*Omega_m[0],2);
+/*       pnl->p_11_nl[index_k] *= pow(transfer_bc/transfer_tot*Omega_m[0],2); */
 
-    }
+/*     } */
 
     pnl->p_11_nl[index_k] *=cutoff;
 
