@@ -1770,7 +1770,7 @@ int perturb_solve(
 				  points if you use the runge-kutta
 				  integrator, set evolver=rk) */
 			       NULL,
-			    /*    perturb_print_variables, */
+			       /* perturb_print_variables, */
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -4340,7 +4340,7 @@ int perturb_print_variables(double eta,
   double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
   double delta_nur=0.,theta_nur=0.,shear_nur=0.;
 
-  if ((k>=0.0140) && (k<0.0141)) {
+  if ((k>=6.9) && (k<7.1)) {
 
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
       delta_g = y[ppw->pv->index_pt_delta_g];
@@ -4391,7 +4391,7 @@ int perturb_print_variables(double eta,
       }
     }
 
-    fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+    fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
 	    k,
 	    eta,
 	    delta_g,
@@ -4408,6 +4408,7 @@ int perturb_print_variables(double eta,
 	    theta_nur,
 	    shear_nur,
 	    y[ppw->pv->index_pt_eta],
+	    pvecmetric[ppw->index_mt_eta_prime],
 	    pvecmetric[ppw->index_mt_h_prime]);
 
   }
@@ -5035,7 +5036,8 @@ int perturb_derivs(double eta,
 	  
 	  if (ppr->gauge == synchronous) {
 	    dy[ppw->pv->index_pt_shear_nur] = /* shear of ultra-relativistic neutrinos/relics in fluid approach */
-	      -3.*a_prime_over_a*y[ppw->pv->index_pt_shear_nur]
+	      //-3.*a_prime_over_a*y[ppw->pv->index_pt_shear_nur]
+	      -3./eta*y[ppw->pv->index_pt_shear_nur]
 	      +2./3.*y[ppw->pv->index_pt_theta_nur]
 	      +1./3.*(pvecmetric[ppw->index_mt_h_prime]+6.*pvecmetric[ppw->index_mt_eta_prime]);
 	  }

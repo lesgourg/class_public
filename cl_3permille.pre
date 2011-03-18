@@ -88,8 +88,8 @@ l_linstep=55
 
 bessel_x_step=0.6
 bessel_j_cut=1.e-5
-bessel_delta_x_min =1.e-4
-bessel_file_name=bessel.dat
+bessel_tol_x_min =1.e-4
+bessel_file_name=bessels.dat
 
 k_per_decade_primordial = 10.
   
@@ -99,8 +99,8 @@ transfer_cut=1 #0=none,1=osc,2=cl #segfault with zero, watch it!
 transfer_cut_threshold_osc=0.005 # with 0.005, more smooth than when smaller for l>2000 WATCH IT
 transfer_cut_threshold_cl=1.e-8 # not robust if tilted or if one Delta_l(k) oscillation tangents zero
 
-l_switch_limber = 10.
-num_mu_minus_lmax = 750.
-delta_l_max = 750.
+l_switch_limber = 10
+num_mu_minus_lmax = 750
+delta_l_max = 750
 
-evolver = 1
+evolver = 0
