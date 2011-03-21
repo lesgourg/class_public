@@ -23,6 +23,7 @@
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
 enum nfa_flags {nfa_off, nfa_on};
+enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 //@}
 
@@ -34,7 +35,8 @@ enum nfa_flags {nfa_off, nfa_on};
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
-enum nfa_method {nfa_normal,nfa_none};
+enum nfa_method {nfa_mb,nfa_hu,nfa_sk,nfa_none};
+enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_sk,ncdmfa_none};
 
 //@}
 

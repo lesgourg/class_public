@@ -1471,8 +1471,11 @@ int input_default_precision ( struct precision * ppr ) {
 /*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
   ppr->radiation_streaming_trigger_eta_g_over_eta_h = 80.;
  
-  ppr->nur_fluid_approximation = nfa_normal;
+  ppr->nur_fluid_approximation = nfa_mb;
   ppr->nur_fluid_trigger_eta_h_over_eta_k = 12.; 
+
+  ppr->ncdm_fluid_approximation = ncdmfa_none;
+  ppr->ncdm_fluid_trigger_eta_h_over_eta_k = 12.; 
 
   /**
    * - parameter related to the Bessel functions

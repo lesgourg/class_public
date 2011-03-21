@@ -3,7 +3,7 @@
  * Julien Lesgourgues, 23.09.2010    
  *
  * Deals with the perturbation evolution.
- * This module has two purposes: 
+ * This mdule has two purposes: 
  *
  * - at the beginning, to initialize the perturbations, i.e. to
  * integrate the perturbation equations, and store temporarily the terms
@@ -160,7 +160,7 @@ int perturb_init(
   
   if (pba->has_nur == _TRUE_) {
 
-    class_test ((ppr->nur_fluid_approximation < nfa_normal) ||
+    class_test ((ppr->nur_fluid_approximation < nfa_mb) ||
 		(ppr->nur_fluid_approximation > nfa_none),
 		ppt->error_message,
 		"your nur_fluid_approximation is set to %d, out of range defined in perturbations.f",ppr->nur_fluid_approximation);
@@ -3419,6 +3419,7 @@ int perturb_einstein(
   double rho_delta_ncdm=0.;
   double rho_plus_p_theta_ncdm=0.; 
   double rho_plus_p_shear_ncdm=0.;
+  double delta_p_ncdm=0.;
   double alpha;
   double factor;
   int index_q,n_ncdm,idx;
@@ -3540,6 +3541,7 @@ int perturb_einstein(
 	rho_delta_ncdm = 0.0;
 	rho_plus_p_theta_ncdm = 0.0;
 	rho_plus_p_shear_ncdm = 0.0;
+	delta_p_ncdm = 0.0;
 	factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
 	 
 	for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
@@ -3550,8 +3552,9 @@ int perturb_einstein(
 
 	  rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
 	  rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
-	  rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];;
-	
+	  rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
+	  delta_p_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+
 	  //Jump to next momentum bin:
 	  idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
 	}
@@ -3559,6 +3562,7 @@ int perturb_einstein(
 	rho_delta_ncdm *= factor;
 	rho_plus_p_theta_ncdm *= k*factor;
 	rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
+	delta_p_ncdm *= factor/3.;
 
 	if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 	  ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
@@ -3567,6 +3571,7 @@ int perturb_einstein(
 	delta_rho += rho_delta_ncdm;
 	rho_plus_p_theta += rho_plus_p_theta_ncdm;
 	rho_plus_p_shear += rho_plus_p_shear_ncdm;
+	delta_p += delta_p_ncdm;
       }
     }
 
@@ -5041,11 +5046,31 @@ int perturb_derivs(double eta,
 	  if (ppr->gauge == newtonian) { }
 	  
 	  if (ppr->gauge == synchronous) {
-	    dy[ppw->pv->index_pt_shear_nur] = /* shear of ultra-relativistic neutrinos/relics in fluid approach */
-	      //-3.*a_prime_over_a*y[ppw->pv->index_pt_shear_nur]
-	      -3./eta*y[ppw->pv->index_pt_shear_nur]
-	      +2./3.*y[ppw->pv->index_pt_theta_nur]
-	      +1./3.*(pvecmetric[ppw->index_mt_h_prime]+6.*pvecmetric[ppw->index_mt_eta_prime]);
+
+	    /* shear of ultra-relativistic neutrinos/relics in fluid approach */
+	    if (ppr->nur_fluid_approximation == nfa_mb) {
+	      
+	      dy[ppw->pv->index_pt_shear_nur] =
+		-3./eta*y[ppw->pv->index_pt_shear_nur]
+		+2./3.*y[ppw->pv->index_pt_theta_nur]
+		+1./3.*(pvecmetric[ppw->index_mt_h_prime]+6.*pvecmetric[ppw->index_mt_eta_prime]);
+	      
+	    }
+
+	    if (ppr->nur_fluid_approximation == nfa_hu) {
+
+	      dy[ppw->pv->index_pt_shear_nur] =
+		-3.*a_prime_over_a*y[ppw->pv->index_pt_shear_nur]
+		+2./3.*y[ppw->pv->index_pt_theta_nur]
+		+1./3.*(pvecmetric[ppw->index_mt_h_prime]+6.*pvecmetric[ppw->index_mt_eta_prime]);
+	      
+	    }
+
+	    if (ppr->nur_fluid_approximation == nfa_sk) {
+
+	      dy[ppw->pv->index_pt_shear_nur] = 0.; /*TBC */
+	      
+	    }
 	  }
 	}
       }

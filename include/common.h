@@ -513,12 +513,17 @@ struct precision
 
   /**
    * when to switch off nur (massless neutrinos / ultra-relativistic
-   * relics) perturbations, ie when to switch on nur free-streaming
-   * approximation (keep theta, set delta, shear and higher
-   * momenta of ultrarelativistic particles to zero): unique condition:
-   * \f$ k/aH \f$ > nur_fluid_trigger_eta_h_over_eta_k
+   * relics) fluid approximation 
    */
   double nur_fluid_trigger_eta_h_over_eta_k;
+
+  int ncdm_fluid_approximation;
+
+  /**
+   * when to switch off ncdm (massive neutrinos / non-cold
+   * relics) fluid approximation 
+   */
+  double ncdm_fluid_trigger_eta_h_over_eta_k;
 
   //@}
 
