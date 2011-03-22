@@ -14,6 +14,7 @@ parser.add_argument('files',metavar='Files',type=str, nargs='*',help='the relati
 parser.add_argument('-d, --divide',dest='merging',action='store_const',const='blend_against',default='blend_together',help='divide the spectra from different files. The k-values must be strictly identical (default: plot every graph on the same plot)')
 parser.add_argument('-i, --interpolate',dest='interp',action='store_true',default=False,help='interpolate the spectra on each set of k-values if different. Use to compare two (or more) graphs with different k-values')
 parser.add_argument('-t',metavar='pk, cl_lin,etc...',help='specify the file type (whether pk or cl (if not specified, cl==cl_lin, other choices are cl_log and cl_ll for log linear), only needed if your file name does not already contain one of these keywords...')
+parser.add_argument('-x, --x11',metavar='gnuplot terminal',dest='term',action='store_const',const='x11',default='wxt',help='if your version of gnuplot does not support the wxt terminal, it will pick instead the x11 one, for crappier displays')
 parser.add_argument('-c, --cleaning',metavar='path',nargs='?',dest='cleaning',const=True,default=False,help='remove all .plt files in the current directory (if none specified) : keep your folders clean !')
 
 # Remove all .plt files generated in output/
@@ -51,7 +52,7 @@ def error_number_of_files():
   exit()
 ####################################
 
-def headers_plot_file(spectrum_type,names,plot_line):
+def headers_plot_file(spectrum_type,names,plot_line,term):
   tmp=open(names[0],"r")
   if spectrum_type=='cl_lin':
     if plot_line is True:
@@ -62,7 +63,7 @@ def headers_plot_file(spectrum_type,names,plot_line):
       plot_string+="\n"
     else:
       plot_string=''
-    return "set term 'wxt' enhanced\nset xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key right\nset title 'CMB multipoles computed with precision, etc'\n"+plot_string
+    return "set term '{0}' enhanced\n".format(term)+"set xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key right\nset title 'CMB multipoles computed with precision, etc'\n"+plot_string
   elif spectrum_type=='cl_log':
     for line in tmp:
       if line.rfind('multipoles')!=-1:
@@ -76,7 +77,7 @@ def headers_plot_file(spectrum_type,names,plot_line):
       plot_string+="\n"
     else:
       plot_string=''
-    return "set term 'wxt' enhanced\nset logscale x\nset xr [:{0}]\n".format(lmax)+"set xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key left\nset title 'CMB multipoles computed with precision, etc'\n"+plot_string
+    return "set term '{0}' enhanced\n".format(term)+"set logscale x\nset xr [:{0}]\n".format(lmax)+"set xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key left\nset title 'CMB multipoles computed with precision, etc'\n"+plot_string
   elif spectrum_type=='cl_ll':
     for line in tmp:
       if line.rfind('multipoles')!=-1:
@@ -90,7 +91,7 @@ def headers_plot_file(spectrum_type,names,plot_line):
       plot_string=plot_string+"\n"
     else:
       plot_string=''
-    return "set term 'wxt' enhanced\nset xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key right\nset title 'CMB multipoles computed with precision, etc'\nset xtics ('2' (sqrt(2)),'100' (sqrt(100)), '500' (sqrt(500)), '1000' (sqrt(1000)), '1500' (sqrt(1500)), '2000' (sqrt(2000)),'2500' (sqrt(2500)))"+"\nset xr [sqrt(2):sqrt({0})]\n".format(lmax)+plot_string
+    return "set term '{0}' enhanced\n".format(term)+"set xlabel 'l'\nset ylabel 'l(l+1)C_l / 2{/Symbol p}'\nset key right\nset title 'CMB multipoles computed with precision, etc'\nset xtics ('2' (sqrt(2)),'100' (sqrt(100)), '500' (sqrt(500)), '1000' (sqrt(1000)), '1500' (sqrt(1500)), '2000' (sqrt(2000)),'2500' (sqrt(2500)))"+"\nset xr [sqrt(2):sqrt({0})]\n".format(lmax)+plot_string
   elif spectrum_type=='pk':
     if plot_line is True:
       plot_string="plot "
@@ -107,25 +108,25 @@ def headers_plot_file(spectrum_type,names,plot_line):
 	break
       else:
 	z= 'I have no idea'
-    return "set term 'wxt' enhanced\nset logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z={0}'\n".format(z)+plot_string
+    return "set term '{0}' enhanced\n".format(term)+"set logscale\nset xlabel 'k (h/Mpc)'\nset ylabel 'P_k (Mpc/h)^3'\nset key right\nset title 'Power spectrum at z={0}'\n".format(z)+plot_string
   else:
     return None
   tmp.close()
 
 # Print all asked files one next to the other (default operation if files with different k values
-def blend_together(names,spectrum_type):
+def blend_together(names,spectrum_type,term):
   gnuplot_file=names[0].replace(".dat",".plt")
   if gnuplot_file==names[0]:
     error_format()
   print '  creating {0}'.format(gnuplot_file)
   plotfile = open(gnuplot_file, "w")
-  plotfile.write(headers_plot_file(spectrum_type, names,True))
+  plotfile.write(headers_plot_file(spectrum_type, names,True,term))
   plotfile.close()
   _plot(gnuplot_file)
 
 # Print all asked files with respect to the same k (or anything) values, all y-data being divided by the y data of the first file.
 # Only valid if the k values are exactly the same (values and number of values).
-def blend_against(names,spectrum_type):
+def blend_against(names,spectrum_type,term):
   gnuplot_file=names[0].replace(".dat",".plt")
   data_file=names[0].replace(".dat","_divided.dat")
   if gnuplot_file==names[0]:
@@ -147,7 +148,7 @@ def blend_against(names,spectrum_type):
   for i in range(imax):
     datafile.write(string[i]+"\n")
   plotfile = open(gnuplot_file,"w")
-  plotfile.write(headers_plot_file(spectrum_type,names,False))
+  plotfile.write(headers_plot_file(spectrum_type,names,False,term))
   plot_string='unset logscale\nplot '
   x_base=1
   field_base=2
@@ -168,7 +169,7 @@ def blend_against(names,spectrum_type):
 # k1 | P1(k1)        | P2(k1)_interp
 #(blank space for gnuplot using index 0, etc) 
 # k2 | P1(k2)_interp | P2(k2)
-def blend_against_interp(names,spectrum_type):
+def blend_against_interp(names,spectrum_type,term):
   gnuplot_file=names[0].replace(".dat",".plt")
   data_file=names[0].replace(".dat","_interp.dat")
   if gnuplot_file==names[0]:
@@ -235,7 +236,7 @@ def blend_against_interp(names,spectrum_type):
   datafile.close()
 
   plotfile = open(gnuplot_file,"w")
-  plotfile.write(headers_plot_file(spectrum_type,names,False))
+  plotfile.write(headers_plot_file(spectrum_type,names,False,term))
   plotfile.write("unset logscale \n")
   plotfile.write("set logscale x\n")
   plotfile.write("set xr [{0}:{1}]\n".format(kmin,kmax))
@@ -281,13 +282,13 @@ else:
   error_type()
 if args.interp is False:
   if args.merging=='blend_together':
-    blend_together(args.files,spectrum_type)
+    blend_together(args.files,spectrum_type,args.term)
   else:
     if len(args.files)<2:
       error_number_of_files()
     else:
-      blend_against(args.files,spectrum_type)
+      blend_against(args.files,spectrum_type,args.term)
 else:
   print '**interpolating (please wait)'
-  blend_against_interp(args.files,spectrum_type)
+  blend_against_interp(args.files,spectrum_type,args.term)
 exit()
