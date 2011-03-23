@@ -5066,9 +5066,12 @@ int perturb_derivs(double eta,
 	      
 	    }
 
-	    if (ppr->nur_fluid_approximation == nfa_sk) {
+	    if (ppr->nur_fluid_approximation == nfa_CLASS) {
 
-	      dy[ppw->pv->index_pt_shear_nur] = 0.; /*TBC */
+	      dy[ppw->pv->index_pt_shear_nur] = 
+		-3./eta*y[ppw->pv->index_pt_shear_nur]
+		+2./3.*y[ppw->pv->index_pt_theta_nur]
+		+1./3.*pvecmetric[ppw->index_mt_h_prime];
 	      
 	    }
 	  }
