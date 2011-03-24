@@ -29,7 +29,7 @@ parser.add_argument('-p, --print',
   help='print the graph directly in a .png file')
 parser.add_argument('-r, --repeat',
   dest='repeat',action='store_true',default=False,
-  help='repeat the step for all redshifts with same base name')
+  help='repeat the step for all redshifts with same base name, whatever the desired action')
 parser.add_argument('-c, --cleaning',metavar='path',
   nargs='?',dest='cleaning',const=True,default=False,
   help='remove all .plt files in the current directory (if none specified) : keep your folders clean !')
@@ -82,10 +82,12 @@ def headers_plot_file(spectrum_type,names,plot_line,term):
     print_string=""
   
   # for interpolation: index choice option
-  if args.interp is not False:
+  if plot_line is True:
     if args.interp is not True:
-      print args.interp
-      index_string=" index {0} ".format(args.interp)
+      if args.interp is not False:
+	index_string=" index {0} ".format(args.interp)
+      else:
+	index_string=" "
     else:
       index_string=" "
 
@@ -272,9 +274,9 @@ def blend_against_interp(names,spectrum_type,term):
 
   # if index chosen
   if args.interp is not True:
-    index_string=" index {0}".format(args.interp)
+    index_string_interp=" index {0}".format(args.interp)
   else:
-    index_string=""
+    index_string_interp=""
   plotfile = open(gnuplot_file,"w")
   plotfile.write(headers_plot_file(spectrum_type,names,False,term))
   plotfile.write("unset logscale \n")
@@ -283,7 +285,7 @@ def blend_against_interp(names,spectrum_type,term):
   #plotfile.write("set yr [-0.001:0.005]\n")
   plot_string="plot "
   for l in range(lmax-1):
-    plot_string+="'{0}' {1} u 1:(${2}/$2-1) w l,".format(data_file,index_string,l+3)
+    plot_string+="'{0}' {1} u 1:(${2}/$2-1) w l,".format(data_file,index_string_interp,l+3)
   plot_string=plot_string.rstrip(",")
   plot_string=plot_string+"\n"
   plotfile.write(plot_string)
@@ -294,7 +296,6 @@ def blend_against_interp(names,spectrum_type,term):
 # Launch (interactive ?) session of gnuplot with generated .plt file
 def _plot(gnuplot_file):
   os.system("gnuplot -p '{0}'".format(gnuplot_file))
-  exit()  
 
 
 #######################################################
@@ -327,22 +328,45 @@ elif args.t is not None:
 else:
   error_type()
 
-#if args.repeat is True:
-  #path=os.getcwd()
-  #args.file=
-  #for each in os.listdir(os.getcwd()):
-
-
-if args.interp is False:
-  if args.merging=='blend_together':
-    blend_together(args.files,spectrum_type,args.term)
-  else:
-    if len(args.files)<2:
-      error_number_of_files()
-    else:
-      blend_against(args.files,spectrum_type,args.term)
+# repeater
+temp_path=args.files[0].split("/")
+if len(temp_path)> 1:
+  path=temp_path[-2]
 else:
-  print '**interpolating (please wait)'
-  blend_against_interp(args.files,spectrum_type,args.term)
+  path=os.getcwd()
+root_name=temp_path[-1].split("z")[-2]
+list_file=['' for i in range(len(args.files)*10)]
+for any in range (0,len(args.files)):
+  extension_name=args.files[any].split("/")[-1].split("_")[-1]
+  i=0
+  for each in os.listdir(path):
+    if (("z" in each) and (each.split("z")[-2]==root_name) and (each.split("_")[-1]==extension_name)):
+      if len(temp_path)>1:
+	list_file[any+len(args.files)*i]=temp_path[-2]+"/"+each
+      else:
+	list_file[any+len(args.files)*i]=each
+      i+=1
+if args.repeat is True:
+  repeat_len=i-1
+else:
+  repeat_len=0
+
+
+# actual computation
+for i in range(0,repeat_len+1):
+  local_files=['' for k in range(len(args.files))]
+  for j in range(0,len(args.files)):
+    local_files[j]=list_file[j+len(args.files)*i]
+  if args.interp is False:
+    if args.merging=='blend_together':
+      blend_together(local_files,spectrum_type,args.term)
+    else:
+      if len(local_files)<2:
+	error_number_of_files()
+      else:
+	blend_against(local_files,spectrum_type,args.term)
+  else:
+    print '**interpolating (please wait)'
+    blend_against_interp(local_files,spectrum_type,args.term)
   
 exit()
