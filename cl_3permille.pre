@@ -69,7 +69,7 @@ tight_coupling_approximation=5 #(int)second_order_CRS;
 
 l_max_g=16
 l_max_pol_g=16
-l_max_nur=10
+l_max_nur=12
 l_max_ncdm1=28
 
 tol_eta_approx=1.e-5
@@ -80,8 +80,8 @@ radiation_streaming_approximation = 2
 radiation_streaming_trigger_eta_h_over_eta_k = 50.
 radiation_streaming_trigger_eta_g_over_eta_h = 80.
 
-nur_fluid_approximation = 0
-nur_fluid_trigger_eta_h_over_eta_k = 12.
+nur_fluid_approximation = 2
+nur_fluid_trigger_eta_h_over_eta_k = 16.
 
 l_logstep=1.045
 l_linstep=55

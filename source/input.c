@@ -1450,7 +1450,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->l_max_g=16; 
   ppr->l_max_pol_g=16; 
-  ppr->l_max_nur=10; 
+  ppr->l_max_nur=12; 
   ppr->l_max_ncdm_default=20;
   ppr->l_max_ncdm = NULL; /* The size of the vector is not known yet. Every entry will be set to ppr->l_max_ncdm_default if no input is detected. */ 
   ppr->l_max_g_ten=5;
@@ -1471,8 +1471,8 @@ int input_default_precision ( struct precision * ppr ) {
 /*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
   ppr->radiation_streaming_trigger_eta_g_over_eta_h = 80.;
  
-  ppr->nur_fluid_approximation = nfa_mb;
-  ppr->nur_fluid_trigger_eta_h_over_eta_k = 12.; 
+  ppr->nur_fluid_approximation = nfa_CLASS;
+  ppr->nur_fluid_trigger_eta_h_over_eta_k = 16.; 
 
   ppr->ncdm_fluid_approximation = ncdmfa_none;
   ppr->ncdm_fluid_trigger_eta_h_over_eta_k = 12.; 
