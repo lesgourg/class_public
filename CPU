@@ -334,21 +334,26 @@ if len(temp_path)> 1:
   path=temp_path[-2]
 else:
   path=os.getcwd()
-root_name=temp_path[-1].split("z")[-2]
 list_file=['' for i in range(len(args.files)*10)]
-for any in range (0,len(args.files)):
-  extension_name=args.files[any].split("/")[-1].split("_")[-1]
-  i=0
-  for each in os.listdir(path):
-    if (("z" in each) and (each.split("z")[-2]==root_name) and (each.split("_")[-1]==extension_name)):
-      if len(temp_path)>1:
-	list_file[any+len(args.files)*i]=temp_path[-2]+"/"+each
-      else:
-	list_file[any+len(args.files)*i]=each
-      i+=1
-if args.repeat is True:
-  repeat_len=i-1
+if temp_path[-1].rfind("z")!=-1:
+  root_name=temp_path[-1].split("z")[-2]
+  for any in range (0,len(args.files)):
+    extension_name=args.files[any].split("/")[-1].split("_")[-1]
+    i=0
+    for each in os.listdir(path):
+      if (("z" in each) and (each.split("z")[-2]==root_name) and (each.split("_")[-1]==extension_name)):
+	if len(temp_path)>1:
+	  list_file[any+len(args.files)*i]=temp_path[-2]+"/"+each
+	else:
+	  list_file[any+len(args.files)*i]=each
+	i+=1
+  if args.repeat is True:
+    repeat_len=i-1
+  else:
+    repeat_len=0
 else:
+  for any in range(0,len(args.files)):
+    list_file[any]=args.files[any]
   repeat_len=0
 
 
