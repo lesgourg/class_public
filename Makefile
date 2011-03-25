@@ -23,16 +23,16 @@ AR        = ar rv
 #LDFLAG   = -O4 -Wall -pg
 #CCFLAG   = -O0 -Wall -ggdb
 #LDFLAG   = -O0 -Wall -ggdb
-CCFLAG   = -O4 -fopenmp -Wall
-LDFLAG   = -O4 -fopenmp -Wall
+CCFLAG   = -O4 -Wall -fopenmp
+LDFLAG   = -O4 -Wall -fopenmp
 #CCFLAG   = -fast -fopenmp -Wall
 #LDFLAG   = -fast -fopenmp -Wall
 #CCFLAG = -O0 -ggdb -g -Wall
 #LDFLAG = -O0 -ggdb -g -Wall
 #CCFLAG = -O4 -arch i386 -pg
 #LDFLAG = -O4 -arch i386 -pg
-#CCFLAG   = -O4 -Wall
-#LDFLAG   = -O4 -Wall
+#CCFLAG   = -O2 -Wall -g
+#LDFLAG   = -O2 -Wall -g
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 

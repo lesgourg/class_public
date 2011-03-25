@@ -123,6 +123,7 @@ struct background
 
   int index_bg_rho_ncdm1;
   int index_bg_p_ncdm1;
+  int index_bg_pseudo_p_ncdm1;
 
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
   int index_bg_rho_crit;      /**< critical density */
@@ -331,7 +332,8 @@ extern "C" {
                              double * n,
 		             double * rho, /* [8piG/3c2] rho in Mpc^-2 */
                              double * p,   /* [8piG/3c2] p in Mpc^-2 */
-                             double * drho_dM
+                             double * drho_dM,
+			     double * pseudo_p
                              );
 
   int background_ncdm_M_from_Omega(

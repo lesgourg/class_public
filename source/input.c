@@ -417,6 +417,7 @@ int input_init(
 					   NULL,
 					   &rho_ncdm,
 					   NULL,
+					   NULL,
 					   NULL), 
 		   pba->error_message,
 		   errmsg);
@@ -1044,7 +1045,9 @@ int input_init(
   class_read_double("radiation_streaming_trigger_eta_g_over_eta_h",ppr->radiation_streaming_trigger_eta_g_over_eta_h);
 
   class_read_int("nur_fluid_approximation",ppr->nur_fluid_approximation);
+  class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
   class_read_double("nur_fluid_trigger_eta_h_over_eta_k",ppr->nur_fluid_trigger_eta_h_over_eta_k);
+  class_read_double("ncdm_fluid_trigger_eta_h_over_eta_k",ppr->ncdm_fluid_trigger_eta_h_over_eta_k);
 
   class_test(ppr->nur_fluid_trigger_eta_h_over_eta_k==ppr->radiation_streaming_trigger_eta_h_over_eta_k,
 	     errmsg,

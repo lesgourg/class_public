@@ -263,7 +263,7 @@ int background_functions(
   /* scale factor relative to scale factor today */
   double a_rel;
 
-  double rho_ncdm,p_ncdm;
+  double rho_ncdm,p_ncdm,pseudo_p_ncdm;
   int n_ncdm;
 
   /** - initialize local variables */
@@ -317,7 +317,8 @@ int background_functions(
 					 NULL,
 					 &rho_ncdm,
 					 &p_ncdm,
-					 NULL),
+					 NULL,
+					 &pseudo_p_ncdm),
 		 pba->error_message,
 		 pba->error_message);
 
@@ -325,6 +326,7 @@ int background_functions(
       rho_tot += rho_ncdm;
       pvecback[pba->index_bg_p_ncdm1+n_ncdm] = p_ncdm;
       p_tot += p_ncdm;
+      pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
       /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
       rho_r += 3.* p_ncdm;
       /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution to rho_ncdm1 */
@@ -610,6 +612,8 @@ int background_indices(
     pba->index_bg_rho_ncdm1 = index_bg; 
     index_bg +=pba->N_ncdm;
     pba->index_bg_p_ncdm1 = index_bg; 
+    index_bg +=pba->N_ncdm;
+    pba->index_bg_pseudo_p_ncdm1 = index_bg;
     index_bg +=pba->N_ncdm;
   }
   else { 
@@ -986,7 +990,8 @@ int background_ncdm_momenta(
 			    double * n,
 			    double * rho,
 			    double * p,
-			    double * drho_dM
+			    double * drho_dM,
+			    double * pseudo_p
 			    ) {
 
   int index_q;
@@ -1000,6 +1005,7 @@ int background_ncdm_momenta(
   if (rho!=NULL) *rho = 0.;
   if (p!=NULL) *p = 0.;
   if (drho_dM!=NULL) *drho_dM = 0.;
+  if (pseudo_p!=NULL) *pseudo_p = 0.;
 
   for (index_q=0; index_q<qsize; index_q++) {
 
@@ -1010,11 +1016,13 @@ int background_ncdm_momenta(
     if (rho!=NULL) *rho += q2*epsilon*wvec[index_q];
     if (p!=NULL) *p += q2*q2/3./epsilon*wvec[index_q];
     if (drho_dM!=NULL) *drho_dM += q2*M/(1.+z)/(1.+z)/epsilon*wvec[index_q];
+    if (pseudo_p!=NULL) *pseudo_p += pow(q2/epsilon,3)/3.0*wvec[index_q]; 
   }
   if (n!=NULL) *n *= factor2;
   if (rho!=NULL) *rho *= factor2;
   if (p!=NULL) *p *= factor2;
   if (drho_dM!=NULL) *drho_dM *= factor2; 
+  if (pseudo_p!=NULL) *pseudo_p *=factor2;
 
   return _SUCCESS_;
 }
@@ -1039,6 +1047,7 @@ int background_ncdm_M_from_Omega(
 			  &n,
 			  &rho,
 			  NULL,
+			  NULL,
 			  NULL);
 
   /* Is the value of Omega less than a massless species?*/
@@ -1060,7 +1069,8 @@ int background_ncdm_M_from_Omega(
 			    NULL,
 			    &rho,
 			    NULL,
-			    &drhodM);
+			    &drhodM,
+			    NULL);
 
     deltaM = (rho0-rho)/drhodM; /* By definition of the derivative */
     if ((M+deltaM)<0.0) deltaM = -M/2.0; /* Avoid overshooting to negative M value. */

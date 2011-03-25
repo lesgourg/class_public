@@ -36,7 +36,7 @@ enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
 enum nfa_method {nfa_mb,nfa_hu,nfa_CLASS,nfa_none};
-enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_sk,ncdmfa_none};
+enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 
 //@}
 
@@ -322,6 +322,8 @@ struct perturb_workspace
   double rsa_theta_nur; /**< photon velocity in radiation streaming approximation */
 
   double * delta_ncdm;
+  double theta_ncdm1;
+  double shear_ncdm1;
 
   double delta_pk;
 
@@ -353,7 +355,8 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_nfa; /**< index for nur fluid approximation */
+  int index_ap_nfa; /**< index for nur fluid approximation */  
+  int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
 
   int * approx;     /**< array of approximation flags holding at a given time: approx[index_ap] */
