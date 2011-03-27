@@ -1030,7 +1030,7 @@ int output_tk(
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 	for (index_tr=0; index_tr<psp->tr_size; index_tr++) {
 	  for (index_ic=0; index_ic<psp->ic_size[index_mode]; index_ic++) {
-	    tk[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr];
+	    tk[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(((psp->ln_eta_size-1)*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr];
 	  }
 	}
       }
