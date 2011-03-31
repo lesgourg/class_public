@@ -2450,8 +2450,6 @@ int trg_init (
 
   double * tr_g, *tr_b, *tr_cdm, *tr_nur;
 
-  double transfer_tot,transfer_bc;
-
   double cutoff;
 
   /** Background quantities */
@@ -2778,10 +2776,24 @@ int trg_init (
    * set on 1. (no cutoff).
    */
 
+  /* To determine precisely blabla
+   */
+  double dtau=0.0001; /*conformal age of the universe is 14000 */
+  double dz_p=-dtau*pba->a_today*H[0]/a_ini;
+
+  double delta_minus,delta_plus,theta;
   for(index_k=0; index_k<pnl->k_size; index_k++){
     cutoff=1.;
 
     class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->p_11_nl[index_k],junk),
+               psp->error_message,
+               pnl->error_message);
+
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0]+dz_p,&delta_plus,junk),
+               psp->error_message,
+               pnl->error_message);
+
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0]-dz_p,&delta_minus,junk),
                psp->error_message,
                pnl->error_message);
 
@@ -2805,19 +2817,20 @@ int trg_init (
 
 /*     } */
 
-    pnl->p_11_nl[index_k] *=cutoff;
+    /*pnl->p_11_nl[index_k] *=cutoff;*/
 
     pnl->p_11[index_k]    = pnl->p_11_nl[index_k];
     p_11_linear[index_k]  = pnl->p_11_nl[index_k];
 
-    pnl->p_12_nl[index_k] = pnl->p_11_nl[index_k];
-    pnl->p_12[index_k]    = pnl->p_11_nl[index_k];
-    p_12_linear[index_k]  = pnl->p_11_nl[index_k];
+    theta=(sqrt(delta_plus)-sqrt(delta_minus))/(2*dz_p); /* theta is actually - theta */
 
-    pnl->p_22_nl[index_k] = pnl->p_11_nl[index_k];
-    pnl->p_22[index_k]    = pnl->p_11_nl[index_k];
-    p_22_linear[index_k]  = pnl->p_11_nl[index_k]; 
+    pnl->p_12_nl[index_k] = sqrt(pnl->p_11_nl[index_k])*sqrt(pow(theta/H[0]*a_ini,2));
+    pnl->p_12[index_k]    = pnl->p_12_nl[index_k];
+    p_12_linear[index_k]  = pnl->p_12_nl[index_k];
 
+    pnl->p_22_nl[index_k] = pow(theta/H[0]*a_ini,2);
+    pnl->p_22[index_k]    = pnl->p_22_nl[index_k];
+    p_22_linear[index_k]  = pnl->p_22_nl[index_k];
   }
 
   free(transfer);
@@ -2837,12 +2850,12 @@ int trg_init (
   /** Initialisation and definition of second derivatives */
 
   class_calloc(pnl->ddp_11_nl,  pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->ddp_12_nl,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->ddp_22_nl,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->ddp_12_nl,  pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->ddp_22_nl,  pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
-  class_calloc(pnl->ddp_11,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->ddp_12,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->ddp_22,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->ddp_11,     pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->ddp_12,     pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->ddp_22,     pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
   class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size,
 					      pnl->p_11_nl,
@@ -2851,16 +2864,28 @@ int trg_init (
 					      _SPLINE_NATURAL_,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
+  
+  class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size,
+					      pnl->p_12_nl,
+					      pnl->eta_size,0,
+					      pnl->ddp_12_nl,
+					      _SPLINE_NATURAL_,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
+
+  class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size,
+					      pnl->p_22_nl,
+					      pnl->eta_size,0,
+					      pnl->ddp_22_nl,
+					      _SPLINE_NATURAL_,pnl->error_message),
+	     pnl->error_message,
+	     pnl->error_message);
 
   for (index_k = 0; index_k < pnl->k_size ; index_k++) {
-    pnl->ddp_12_nl[index_k] = pnl->ddp_11_nl[index_k];
-    pnl->ddp_22_nl[index_k] = pnl->ddp_11_nl[index_k];
-
     pnl->ddp_11[index_k] = pnl->ddp_11_nl[index_k];
     pnl->ddp_12[index_k] = pnl->ddp_11_nl[index_k];
     pnl->ddp_22[index_k] = pnl->ddp_11_nl[index_k];
   } 
-  
    /* Definition of 1_0, 1_11,(here a0, a11,...) etc, and 2_0, 2_11,
     * (here b0,b11,...) etc.. and initialization (directly with calloc
     * for assuming no initial non gaussianity in the spectrum) 
@@ -3192,8 +3217,7 @@ int trg_init (
 
     if(pnl->spectra_nl_verbose>1)
       printf("    %2.1f%% done\n",100.*index_eta/(pnl->eta_size-1.));
-    
-    
+
     time_2=time(NULL);
     if(pnl->spectra_nl_verbose>0){
       if(index_eta==9 && pnl->mode > 1){
@@ -3206,9 +3230,43 @@ int trg_init (
 
   }
 
-  if(pnl->mode>1) printf("Done in %2.f min\n",difftime(time_2,time_1)/60);
+  if(pnl->spectra_nl_verbose>1) printf("Done in %2.f min\n",difftime(time_2,time_1)/60);
 
   /** End of the computation, beginning of cleaning */
+
+  /***** TEST ZONE *****/
+  /*double r0,r1,r2,r3,r4,r5;*/
+
+  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta++){*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[0],pnl->z[index_eta],&r0,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[100],pnl->z[index_eta],&r1,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[200],pnl->z[index_eta],&r2,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[300],pnl->z[index_eta],&r3,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[400],pnl->z[index_eta],&r4,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size-1],pnl->z[index_eta],&r5,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+
+    /*printf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g\n",pnl->z[index_eta],pnl->eta[index_eta],*/
+	/*pnl->p_11_nl[0+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r0,*/
+	/*pnl->p_11_nl[100+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r1,*/
+	/*pnl->p_11_nl[200+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r2,*/
+	/*pnl->p_11_nl[300+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r3,*/
+	/*pnl->p_11_nl[400+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r4,*/
+	/*pnl->p_11_nl[pnl->k_size-1+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r5);*/
+  /*}*/
+
+  /***** END OF TEST ZONE *****/
 
   for (index_name=0; index_name<name_size; index_name++) 
     free(AA[index_name]);
