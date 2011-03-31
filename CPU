@@ -335,7 +335,7 @@ if len(temp_path)> 1:
 else:
   path=os.getcwd()
 list_file=['' for i in range(len(args.files)*10)]
-if temp_path[-1].rfind("z")!=-1:
+if (temp_path[-1].rfind("z")!=-1 and args.repeat is True):
   root_name=temp_path[-1].split("z")[-2]
   for any in range (0,len(args.files)):
     extension_name=args.files[any].split("/")[-1].split("_")[-1]
