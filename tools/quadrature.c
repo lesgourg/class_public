@@ -12,6 +12,10 @@ int get_qsampling(double *x,
 		  double rtol,
 		  double *qvec,
 		  int qsiz,
+		  double *Avec,
+		  double *qcvec,
+		  double *sigmavec,
+		  int N_peaks,
 		  int (*test)(void * params_for_function, double q, double *psi),
 		  int (*function)(void * params_for_function, double q, double *f0),
 		  void * params_for_function,
@@ -27,7 +31,7 @@ int get_qsampling(double *x,
 	
   int i, NL=2,NR,level,Nadapt=0,NLag,NLag_max,Nold=NL;
   int adapt_converging=_FALSE_,Laguerre_converging=_FALSE_,combined_converging=_FALSE_;
-  int combined2_converging=_FALSE_;
+  int combined2_converging=_FALSE_,Hermite_converging;
   double y,y1,y2,I,Igk,err,ILag,*b,*c;
   qss_node *root,*root_comb;
   double I_comb,I_atzero,I_atinf,I_comb2;
@@ -38,7 +42,9 @@ int get_qsampling(double *x,
   char method_chosen[40];
   double qmin=0., qmax=0., qmaxm1=0.;
   double *wcomb2=NULL,delq;
-
+  double Itot=0.0;
+  double *qpeaks,*wpeaks,sigma2,IH,peakparam[3],width;
+  int NH,peak;
   int zeroskip=0;
 
   /* Set roots and weights for Gauss-Legendre 4 point rule: */
@@ -54,9 +60,6 @@ int get_qsampling(double *x,
   /* Allocate storage for Laguerre coefficients: */
   class_alloc(b,N_max*sizeof(double),errmsg);
   class_alloc(c,N_max*sizeof(double),errmsg);
-  /* First do the adaptive quadrature - this will also give the value of the integral: */
-  gk_adapt(&root,(*test),(*function), params_for_function, 
-	   rtol*1e-4, 1, 0.0, 1.0, _TRUE_, errmsg);
   /* If a vector of q values has been passed, use it: */
   if ((qvec!=NULL)&&(qsiz>1)){
     qmin = qvec[0];
@@ -66,18 +69,27 @@ int get_qsampling(double *x,
   else{
     qvec = NULL;
   }
-
+  /* If we have peaks, estimate integral of the peaks: */
+  for (i=0; i<N_peaks; i++){
+    (*test)(params_for_function,qcvec[i],&y);
+    Itot += Avec[i]/(4.0*_PI_*qcvec[i]*qcvec[i])*y;
+  }
+ 
+  /* First do the adaptive quadrature - this will also give the value of the integral: */
+  gk_adapt(&root,(*test),(*function), params_for_function, 
+	   rtol*1e-4, 1, 0.0, 1.0, _TRUE_, errmsg);
   /* Do a leaf count: */
   leaf_count(root);
   /* I can get the integral now: */
   I = get_integral(root, 1);
-  //printf("I = %le |%le\n",I,I-1.0);
+  //printf("I = %le |%le, used points: %d\n",I,I-1.0,15*root->leaf_childs);
+  Itot += I;
 
   /* Starting from the top, move down in levels until tolerance is met: */
   for(level=root->leaf_childs; level>=1; level--){
     Igk = get_integral(root,level);
     err = I-Igk;
-    if (fabs(err/Igk)<rtol) break;
+    if (fabs(err/Itot)<rtol) break;
   }
   if (level>0){
     /* Reduce tree to the found level:*/
@@ -117,7 +129,7 @@ int get_qsampling(double *x,
     //printf("f(100) = %e ?= %e\n",y2,a_comb*exp(-b_comb*100));
 
     /* Evaluate tail using 6 point Laguerre: */
-    compute_Laguerre(q_lag,w_lag,N_comb_lag,0.0,b,c);
+    compute_Laguerre(q_lag,w_lag,N_comb_lag,0.0,b,c,_TRUE_);
     for (i=0,I_atinf=0.0; i<N_comb_lag; i++){
       w_lag[i] *= exp(-q_lag[i]);
       q_lag[i] = qmax + q_lag[i]/b_comb;
@@ -138,7 +150,7 @@ int get_qsampling(double *x,
       //     I_atzero,I_atinf,I_comb,I_comb+I_atinf+I_atzero,I_comb+I_atinf+I_atzero-1.0);
       I_comb +=(I_atinf+I_atzero);
       err = I-I_comb;
-      if (fabs(err/I_comb)<rtol) break;
+      if (fabs(err/Itot)<rtol) break;
     }
     /* Reduce tree to the found level:*/
     if (level>0){
@@ -170,7 +182,7 @@ int get_qsampling(double *x,
     }
     I_comb2 +=(I_atzero+I_atinf);
     err = I - I_comb2;
-    if(fabs(err/I)<rtol) combined2_converging= _TRUE_;
+    if(fabs(err/Itot)<rtol) combined2_converging= _TRUE_;
     //printf("I_comb2 = %e, rerr = %e\n",I_comb2,fabs(err/I));
   }
 
@@ -179,7 +191,7 @@ int get_qsampling(double *x,
   NLag_max = min(N_max,80);
   for (NLag=NL; NLag<=NLag_max; NLag = min(NLag_max,NLag+10)){
     /* Evaluate integral: */
-    compute_Laguerre(x,w,NLag,0.0,b,c);
+    compute_Laguerre(x,w,NLag,0.0,b,c,_TRUE_);
     ILag = 0.0;
     for (i=0; i<NLag; i++){
       (*test)(params_for_function,x[i],&y);
@@ -204,7 +216,7 @@ int get_qsampling(double *x,
     while ((NR-NL)>1) {
       NLag = (NL+NR)/2;
       /* Evaluate integral: */
-      compute_Laguerre(x,w,NLag,0.0,b,c);
+      compute_Laguerre(x,w,NLag,0.0,b,c,_TRUE_);
       ILag = 0.0;
       for (i=0; i<NLag; i++){
 	(*test)(params_for_function,x[i],&y);
@@ -214,7 +226,7 @@ int get_qsampling(double *x,
       }
       err = I-ILag;
       //fprintf(stderr,"\n NLag=%d, rerr=%g.\n",NLag,fabs(err/I));
-      if (fabs(err/I)<rtol){
+      if (fabs(err/Itot)<rtol){
 	NR = NLag;
       }
       else{
@@ -280,11 +292,12 @@ int get_qsampling(double *x,
 		"get_qsampling fails to obtain a relative tolerance of %g as required using atmost %d points. If the PSD is interpolated from a file, try increasing the resolution and the q-interval (qmin;qmax) if possible, or decrease tol_ncdm/tol_ncdm_bg. As a last resort, increase _QUADRATURE_MAX_/_QUADRATURE_MAX_BG_.",rtol,N_max);
   }
   /* Trim weights to avoid zero weights: */
-  for(i=0; i<*N; i++){
-    for( ;(i<*N)&&(w[i+zeroskip]==0.0); zeroskip++,(*N)--)
-      x[i] = x[i+zeroskip];
+  for(i=0,zeroskip=0; i<*N; i++){
+    for( ;(i<*N)&&(w[i+zeroskip]==0.0); zeroskip++,(*N)--);
+    x[i] = x[i+zeroskip];
     w[i] = w[i+zeroskip];
   }
+
 
   //printf("Chosen sampling: %s, with %d points.\n",method_chosen,*N);	
   //for(i=0; i<*N; i++) printf("(q,w) = (%g,%g)\n",x[i],w[i]);
@@ -294,14 +307,189 @@ int get_qsampling(double *x,
     burn_tree(root_comb);
     free(wcomb2);
   }
+
+  /* Now, treat the peaks, if any: */
+  if (N_peaks > 0){
+    class_alloc(qpeaks,N_max*sizeof(double),errmsg);
+    class_alloc(wpeaks,N_max*sizeof(double),errmsg);
+    width = 2.0-0.2106*log(1e-4*rtol); //0.2106*
+
+    for (peak=0; peak<N_peaks; peak++){
+      sigma2 = sigmavec[peak]*sigmavec[peak];
+      peakparam[0] = Avec[peak];
+      peakparam[1] = qcvec[peak];
+      peakparam[2] = sigmavec[peak];
+      
+      /* Adaptive quadrature on peak: */
+      gk_adapt(&root,
+	       (*test),
+	       gaussian_peak, 
+	       peakparam,
+	       rtol*1e-4, 
+	       1, 
+	       max(0.0,qcvec[peak]-width*sigmavec[peak]), 
+	       qcvec[peak]+width*sigmavec[peak], 
+	       _FALSE_, 
+	       errmsg);
+      /* Do a leaf count: */
+      leaf_count(root);
+      /* I can get the integral now: */
+      I = get_integral(root, 1);
+      //printf("Ipeaks = %le used points: %d\n",I,15*root->leaf_childs);
+
+      /* Starting from the top, move down in levels until tolerance is met: */
+      for(level=root->leaf_childs; level>=1; level--){
+	Igk = get_integral(root,level);
+	err = I-Igk;
+	if (fabs(err/Itot)<rtol) break;
+      }
+      if (level>0){
+	/* Reduce tree to the found level:*/
+	reduce_tree(root,level);
+	/* Count the new leafs: */
+	leaf_count(root);
+	/* I know know how many function evaluations is 
+	   required by the adaptively sampled grid:*/
+	Nadapt = 15*root->leaf_childs;
+      }
+      if (Nadapt>(N_max-*N))
+	adapt_converging = _FALSE_;
+      else
+	adapt_converging = _TRUE_;
+      /** Try to use Gauss-Hermite integration: int(g(x)*exp(-x^2),-inf,inf). 
+	  We implicitly multiply g(x) by a stepfunction such that g(q)=0 for q<0 by 
+	  removing the relevant nodes and weights, if any. If qc, the center of the peak, 
+	  is close to 0, Gauss-Hermite integration can't converge, and we should revert 
+	  to the Gauss-Kronrod scheme. */
+      
+      for (NH=2,Hermite_converging=_FALSE_; NH<min(N_max-*N,Nadapt-1); NH += 2){
+	compute_Hermite(qpeaks,wpeaks,NH,0,b,c);
+	IH = 0.0;
+	for (i=0; i<NH; i++){
+	  /* Do the transformation of the integral:*/
+	  qpeaks[i] = qcvec[peak]+sqrt(2.0*sigma2)*qpeaks[i];
+	  /* If we have x[i]<=0.0, kill the weights:  */
+	  if (qpeaks[i]<=0.0){
+	    wpeaks[i] = 0.0;
+	  }
+	  else{
+	    wpeaks[i] *=Avec[peak]/(4.0*_PI_*sqrt(_PI_)*qpeaks[i]*qpeaks[i]);
+	    //printf("Weight = %g\n",wpeaks[i]);
+	    (*test)(params_for_function,qpeaks[i],&y);
+	    IH += wpeaks[i]*y;
+	  }
+	}
+	err = I-IH;
+	//printf("I=%g, IH=%g using %d points. err/I = %g.\n",I,IH,NH,fabs(err/Itot));
+	if (fabs(err/Itot)<rtol){
+	  Hermite_converging = _TRUE_;
+	  break;
+	}
+      }
+
+      //Hermite_converging = _FALSE_;
+      /* Are we converging?  */
+      class_test((Hermite_converging==_FALSE_)&&(adapt_converging==_FALSE_),errmsg,
+		 "Integration of peak number %d failed to converge using the remaining %d points. A very narrow peak very close to q=0 could be the explanation, but the most likely reason is that the three parameters defining the peak, A=%g, sigma=%g and qc=%g simply doesn't make sense.",
+		 peak+1,N_max-*N,Avec[peak],sigmavec[peak],qcvec[peak]);
+      if ((Hermite_converging == _TRUE_)&&(adapt_converging == _TRUE_)){
+	/* Make sure that there is only one converging: */	
+	if (NH<Nadapt)
+	  adapt_converging = _FALSE_;
+	else
+	  Hermite_converging = _FALSE_;
+      }
+
+      if (Hermite_converging == _TRUE_){
+	/* Move points to ouput vector: */
+	for(i=0; i<NH; i++){
+	  x[*N] = qpeaks[i];
+	  w[*N] = wpeaks[i];
+	  (*N)++;
+	} 
+      }
+      else if (adapt_converging == _TRUE_){
+	/* Gather weights and xvalues and put them in vector from *N 
+	   to *N + Nadapt-1. N is increased by the routine: */
+	get_leaf_x_and_w(root,N,x,w,_FALSE_);
+      }
+      
+    }
+    /* We must now trim and sort the x vector:  */
+    for(i=0,zeroskip=0; i<*N; i++){
+      for( ;(i<*N)&&(w[i+zeroskip]==0.0); zeroskip++,(*N)--);
+      
+      x[i] = x[i+zeroskip];
+      w[i] = w[i+zeroskip];
+    }
+    sort_x_and_w(x,w,qpeaks,wpeaks,0,*N-1);
+    /* Add weights of identical roots:  */
+    for(i=1,zeroskip=0; i<*N; i++){
+      for( ;(i<*N)&&(x[i+zeroskip]==x[i+zeroskip-1]); zeroskip++,(*N)--){
+	w[i-1] += w[i+zeroskip];
+      }
+      x[i] = x[i+zeroskip];
+      w[i] = w[i+zeroskip];
+    }
+    free(qpeaks);
+    free(wpeaks);
+  }
+
   free(b);
   free(c);
-
+  
   return _SUCCESS_;
 }
-	
-	
 
+int gaussian_peak(void * params_for_function, double q, double *f0){
+  double *param, A, sigma, qc;
+  param = params_for_function;
+  A = param[0];
+  qc = param[1];
+  sigma = param[2];
+
+  *f0 = 1.0/(4*_PI_*q*q)*A/sqrt(2.0*_PI_*sigma*sigma)*exp(-pow(q-qc,2)/(2.0*sigma*sigma));
+  return _SUCCESS_;
+}
+
+int sort_x_and_w(double *x, double *w, double *workx, double *workw, int startidx, int endidx){
+  int i,top=endidx,bot=startidx;
+  double pivot;
+  /* End recursion if only one element left in array: */
+  if ((endidx-startidx)<1){
+    return _SUCCESS_;
+  }   
+  else{
+    /*Copy x and w to workarray: */
+    for (i=startidx; i<=endidx; i++){
+      workx[i] = x[i];
+      workw[i] = w[i];
+    }
+    pivot = x[endidx];
+    //printf("pivot chosen: x[%d] = %g\n",endidx,pivot);
+    for (i=startidx; i<endidx; i++){
+      if (workx[i]<=pivot){
+	//printf("<--%g  ",workx[i]);
+	x[bot] = workx[i];
+	w[bot++] = workw[i];
+      }
+      else{
+	//printf("  %g-->",workx[i]);
+	x[top] = workx[i];
+	w[top--] = workw[i];
+      }
+    }
+    //printf("\n top=%d, bot=%d, left=%d, right=%d\n",top,bot,startidx,endidx);
+    x[top] = pivot;
+    w[top] = workw[endidx];
+    /* Recursive call: */
+    sort_x_and_w(x,w,workx,workw,startidx,bot-1);
+    sort_x_and_w(x,w,workx,workw,top+1,endidx);
+    return _SUCCESS_;
+  }
+  
+}
+	
 int get_leaf_x_and_w(qss_node *node, int *ind, double *x, double *w,int isindefinite){
   /* x and w should be exactly 15*root_node->leafchilds, and a leaf count should have
      been performed. Or perhaps I just use the fact that a leaf won't have children.
@@ -413,7 +601,6 @@ int gk_adapt(
      recurrence tree. If treemode!=0, store x-values and weights aswell.
      At first call, a and b should be 0 and 1 if isdefinite==_TRUE_. */
   double mid;
-	
   /* Allocate current node: */
   class_alloc(*node,sizeof(qss_node),errmsg);
   if (treemode==0){
@@ -427,15 +614,17 @@ int gk_adapt(
   (*node)->left = NULL; (*node)->right = NULL;
 	
   gk_quad((*test), (*function), params_for_function, *node, a, b, isindefinite);
-  if ((*node)->err/(*node)->I < tol){
-    /* Stop recursion and return : */
+  if ((fabs((*node)->err/(*node)->I) < tol)||(tol>=1.0)){
+    /* Stop recursion and return. tol>=1.0 in case of I=0 infinite recursion */
     return _SUCCESS_;
   }
   else{
     /* Call gk_adapt recursively on children:*/
     mid = 0.5*(a+b);
+    //printf("<-%g,%g,%g,%g",mid,tol,(*node)->err,(*node)->I);	
     gk_adapt(&((*node)->left),(*test),(*function), params_for_function, 1.5*tol, 
 	     treemode, a, mid, isindefinite, errmsg);
+    //printf("%g->",mid);
     gk_adapt(&((*node)->right),(*test),(*function), params_for_function, 1.5*tol, 
 	     treemode, mid, b, isindefinite, errmsg);
     /* Update integral and error in this node and return: */
@@ -447,10 +636,40 @@ int gk_adapt(
     return _SUCCESS_;
   }
 }
+
+int compute_Hermite(double *x, double *w, int N, int alpha, double *b, double *c){
+  int NLag,i;
+  double alpha_Lag;
+  
+  NLag = N/2;
+  /* In case N is uneven, zero the N'th weight:*/
+  w[N-1] = 0.0;
+  alpha_Lag = (alpha-1.0)/2.0;
+
+  /* Compute the positive roots and weights (up to some simple manipulation): */
+  compute_Laguerre(x+NLag,w+NLag,NLag,alpha_Lag,b,c,_FALSE_);
+
+  /* Do manipulations:*/
+  for(i=NLag; i<2*NLag; i++){
+    x[i] = sqrt(x[i]);
+    w[i] *=0.5;
+  }
+  
+  /* Set the negative roots and weights:*/
+  for(i=0; i<NLag; i++){
+    x[i] = -x[2*NLag-i-1];
+    w[i] = w[2*NLag-i-1];
+    if (alpha%2!=0){
+      w[i] = -w[i];
+    }
+  }
+  return _SUCCESS_;
+}
+ 
 	
-int compute_Laguerre(double *x, double *w, int N, double alpha, double *b, double *c){
+int compute_Laguerre(double *x, double *w, int N, double alpha, double *b, double *c,int totalweight){
   int i,j,iter,maxiter=10;
-  double prod,cc,x0=0.,r1,r2,ratio,d,logprod,logcc;
+  double prod,x0=0.,r1,r2,ratio,d,logprod,logcc;
   double p0,p1,p2,dp0,dp1,dp2;
   double eps=1e-14;
   /* Initialise recursion coefficients: */
@@ -463,7 +682,7 @@ int compute_Laguerre(double *x, double *w, int N, double alpha, double *b, doubl
   for(i=1; i<N; i++) logprod +=log(c[i]);
   prod = exp(logprod);
   logcc = lgamma(alpha+1)+logprod;
-  cc = exp(logcc);
+
   /* Loop over roots: */
   for (i=0; i<N; i++){
     /* Estimate root: */
@@ -502,17 +721,18 @@ int compute_Laguerre(double *x, double *w, int N, double alpha, double *b, doubl
     }
     /* Okay, write root and weight: */
     x[i] = x0;
-    /*		w[i] = (cc/dp2)/p1;		*/
-    w[i] = exp(x0+logcc-log(dp2*p1));
-    /*printf("\n logcc=%g, logdp2=%g, 
-      logp1=%g.",logcc,log(dp2),log(p1));
-      printf("\n cc=%g, dp2=%g, p1=%g, prod=%g,tg(1)=%g",
-      cc,dp2,p1,prod,tgamma(1.0));*/
+
+    if (totalweight == _TRUE_)
+      w[i] = exp(x0+logcc-log(dp2*p1));
+    else
+       w[i] = exp(logcc-log(dp2*p1));
   }
 
   return _SUCCESS_;
 
 }
+
+
 
 
 int gk_quad(int (*test)(void * params_for_function, double q, double *psi),

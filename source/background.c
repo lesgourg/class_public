@@ -407,27 +407,41 @@ int background_init(
 
   /** - local variables : */
   int n_ncdm;	
-  double Omega0_tot;
+  double Omega0_tot,rho_ncdm_rel,rho_nu_rel;
   int filenum=0;
 
   if (pba->background_verbose > 0) {
     printf("Running CLASS version %s\n",_VERSION_);
     printf("Computing background\n");
-
+    
     if (pba->N_ncdm > 0) {
       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
-
+	
 	if (pba->got_files[n_ncdm] == _TRUE_) {
 	  printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
 	  filenum++;
 	}
-
-	printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration\n",
+	background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
+				pba->w_ncdm_bg[n_ncdm],
+				pba->q_size_ncdm_bg[n_ncdm],
+				0.,
+				pba->factor_ncdm[n_ncdm],
+				0.,
+				NULL,
+				&rho_ncdm_rel,
+				NULL,
+				NULL,
+				NULL);
+	rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
+	  pow(_Mpc_over_m_,2)*pow(pba->Tcmb*_k_B_,4);
+	
+	printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives N_eff = %g\n",
 	       n_ncdm+1,
 	       pba->q_size_ncdm_bg[n_ncdm],
-	       pba->q_size_ncdm[n_ncdm]);
+	       pba->q_size_ncdm[n_ncdm],
+	       rho_ncdm_rel/rho_nu_rel);
       }
-      if (ppr->evolver == rk)
+      if (ppr->evolver != rk)
 	printf(" -> WARNING: you are using the ndf15 integrator, with ncdm species it is recommended to use the Runge-Kutta one (write evolver=0 in one of your input files)\n");
     }
   }
@@ -438,7 +452,7 @@ int background_init(
 	     pba->error_message);
   
   /** - control that cosmological parameter values make sense */
-
+  
   /* H0 in Mpc^{-1} */
   class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
 	     pba->error_message,
@@ -544,6 +558,11 @@ int background_free(
     free(pba->factor_ncdm);
     if(pba->got_files!=NULL) free(pba->got_files);
     if(pba->ncdm_psd_files!=NULL)  free(pba->ncdm_psd_files);
+    if(pba->ncdm_psd_parameters!=NULL)  free(pba->ncdm_psd_parameters);
+    free(pba->ncdm_peaks);
+    if (pba->ncdm_peaks_A !=NULL) free(pba->ncdm_peaks_A);
+    if (pba->ncdm_peaks_sigma !=NULL) free(pba->ncdm_peaks_sigma);
+    if (pba->ncdm_peaks_qc !=NULL) free(pba->ncdm_peaks_qc);
   }
 
   return _SUCCESS_;
@@ -733,18 +752,24 @@ int background_ncdm_distribution(
   struct background * pba;
   struct background_parameters_for_distributions * pbadist_local;
   int n_ncdm,lastidx;
-  double ksi,g;
+  double ksi;
   double qlast,dqlast,f0last,df0last;
-  
+  double *param;
+  /** Variables corresponing to entries in param: */
+  double square_s12,square_s23,square_s13;
+  double mixing_matrix[3][3];
+  int i;
+
   pbadist_local = pbadist;
   pba = pbadist_local->pba;
+  param = pba->ncdm_psd_parameters;
 
   n_ncdm = pbadist_local->n_ncdm;
   ksi = pba->ksi_ncdm[n_ncdm];
-  g = pba->deg_ncdm[n_ncdm];
+  
   
   /* Do we interpolate or use analytical formula below?  */
-  if ((pba->got_files!=NULL)&&(pba->got_files[n_ncdm]==_TRUE_)){
+  if (pba->got_files[n_ncdm]==_TRUE_) {
     lastidx = pbadist_local->tablesize-1;
     if(q<pbadist_local->q[0]){
       //Handle q->0 case:
@@ -774,11 +799,44 @@ int background_ncdm_distribution(
 					  pba->error_message),
 		 pba->error_message,     pba->error_message);
     }
-    *f0 = *f0 *g;
   }
   else{
-    //FD distribution:
-    *f0 = g/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
+    /** Enter an analytic expression for the p.s.d. here. Use for instance 
+	if (n_ncdm==2) to enter something different for the third species. 
+	(n_ncdm = 0 refers to the first species.)*/
+    
+         /** If we are using psd parameters, make sure that they have been read:*/
+    class_test(param == NULL,
+	       pba->error_message,
+	       "Analytic expression wants to use 'ncdm_psd_parameters', but they have not been entered!");
+    square_s12=param[0];
+    square_s23=param[1];
+    square_s13=param[2];
+    
+    
+    mixing_matrix[0][0]=pow(fabs(sqrt((1-square_s12)*(1-square_s13))),2);
+    mixing_matrix[0][1]=pow(fabs(sqrt(square_s12*(1-square_s13))),2);
+    mixing_matrix[0][2]=fabs(square_s13);
+    mixing_matrix[1][0]=pow(fabs(sqrt((1-square_s12)*square_s13*square_s23)+sqrt(square_s12*(1-square_s23))),2);
+    mixing_matrix[1][1]=pow(fabs(sqrt(square_s12*square_s23*square_s13)-sqrt((1-square_s12)*(1-square_s23))),2);
+    mixing_matrix[1][2]=pow(fabs(sqrt(square_s23*(1-square_s13))),2);
+    mixing_matrix[2][0]=pow(fabs(sqrt(square_s12*square_s23)-sqrt((1-square_s12)*square_s13*(1-square_s23))),2);
+    mixing_matrix[2][1]=pow(sqrt((1-square_s12)*square_s23)+sqrt(square_s12*square_s13*(1-square_s23)),2);
+    mixing_matrix[2][2]=pow(fabs(sqrt((1-square_s13)*(1-square_s23))),2);
+
+    if (n_ncdm < 3){ 
+      *f0=0.0;
+      for(i=0;i<3;i++){
+	
+	*f0 += mixing_matrix[i][n_ncdm]*1.0/pow(2*_PI_,3)*(1./(exp(q-pba->ksi_ncdm[i])+1.) +1./(exp(q+pba->ksi_ncdm[i])+1.));
+	
+      }
+    }
+    
+    else{
+      //FD distribution:
+      *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
+    }
   }
 
   return _SUCCESS_;
@@ -791,13 +849,11 @@ int background_ncdm_test_function(
 				  ) {
   double zeta3=1.2020569031595942853997381615114499907649862923404988817922;
   double zeta5=1.0369277551433699263313654864570341680570809195019128119741;
-  double a=1.0/log(2), b=12.0/(_PI_*_PI_), c=2.0/(3.0*zeta3);
-  double d=120.0/(7.0*pow(_PI_,4)), e=2.0/(45.0*zeta5);
-
-
-
-
-  *test = pow(2.0*_PI_,3)/10.0*(a+b*q+c*q*q+d*q*q*q+e*q*q*q*q);
+  double c=2.0/(3.0*zeta3), d=120.0/(7.0*pow(_PI_,4)), e=2.0/(45.0*zeta5);
+  
+  /** Using a + bq creates problems for otherwise acceptable distributions 
+      which diverges as 1/r or 1/r^2 for r->0 */
+  *test = pow(2.0*_PI_,3)/6.0*(c*q*q-d*q*q*q-e*q*q*q*q);
 
   return _SUCCESS_;
 }
@@ -811,6 +867,12 @@ int background_ncdm_init(
   double f0m2,f0m1,f0,f0p1,f0p2,dq,q,df0dq,tmp1,tmp2;
   struct background_parameters_for_distributions pbadist;
   FILE *psdfile;
+  double *peaks_A, *peaks_sigma, *peaks_qc, Xi, dXidq, ygauss;
+  int peak;
+  /* Set local pointers to beginning of arrays:  */
+  peaks_A = pba->ncdm_peaks_A;
+  peaks_sigma = pba->ncdm_peaks_sigma;
+  peaks_qc = pba->ncdm_peaks_qc;
 
   pbadist.pba = pba;
 
@@ -876,6 +938,10 @@ int background_ncdm_init(
 			     ppr->tol_ncdm,
 			     pbadist.q,
 			     pbadist.tablesize,
+			     peaks_A,
+			     peaks_qc,
+			     peaks_sigma,
+			     pba->ncdm_peaks[k],
 			     background_ncdm_test_function,
 			     background_ncdm_distribution,
 			     &pbadist,
@@ -902,6 +968,10 @@ int background_ncdm_init(
 			     ppr->tol_ncdm_bg,
 			     pbadist.q,
 			     pbadist.tablesize,
+			     peaks_A,
+			     peaks_qc,
+			     peaks_sigma,
+			     pba->ncdm_peaks[k],
 			     background_ncdm_test_function,
 			     background_ncdm_distribution,
 			     &pbadist,
@@ -957,14 +1027,43 @@ int background_ncdm_init(
       df0dq = (+f0m2-8*f0m1+8*f0p1-f0p2)/12.0/dq;
       //printf("df0dq[%g] = %g. dlf=%g ?= %g. f0 =%g.\n",q,df0dq,q/f0*df0dq,
       //-q/(1.0+exp(-q)),f0);
-      //Avoid underflow in extreme tail:
-      if (fabs(f0)==0.)
-	pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
-      else
-   	pba->dlnf0_dlnq_ncdm[k][index_q] = q/f0*df0dq;
+      if (pba->ncdm_peaks[k] == 0){
+	//Avoid underflow in extreme tail:
+	if (fabs(f0)==0.)
+	  pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
+	else
+	  pba->dlnf0_dlnq_ncdm[k][index_q] = q/f0*df0dq;
+      }
+      else{
+	/* We have peaks, so we must be carefull to treat the logarithmic 
+	   derivative correct. Let f be the background distribution and Xi 
+	   the peaks. We have F = f + Xi, so dlogFdlogq = 1/(f+Xi)*(dfdq+dXidq) */
+	for (peak=0,Xi=0.0,dXidq=0.0; peak<pba->ncdm_peaks[k]; peak++){
+	  ygauss = peaks_A[peak]/sqrt(2.0*_PI_)/peaks_sigma[peak]*
+	    exp(-pow((q-peaks_qc[peak])/sqrt(2.0)/peaks_sigma[peak],2.0));
+	  Xi += ygauss;
+	  dXidq += ygauss*(peaks_qc[peak]-q)/peaks_sigma[peak]/peaks_sigma[peak];
+	}
+	Xi *= 1.0/(4.0*_PI_*q*q);	
+	dXidq *= 1.0/(4.0*_PI_*q*q);
+	/* Add first term from Leibniz rule:  */
+	dXidq -= 2.0*Xi/q;
+	if ((f0+Xi)==0.0){
+	  pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
+	}	  
+	else{
+	  pba->dlnf0_dlnq_ncdm[k][index_q] = q/(f0+Xi)*(df0dq+dXidq);
+	}
+	
+      }
     }
+    
+    /* Increase peaks pointers:  */
+    peaks_A +=pba->ncdm_peaks[k];
+    peaks_qc +=pba->ncdm_peaks[k];
+    peaks_sigma +=pba->ncdm_peaks[k];
 
-    pba->factor_ncdm[k]=4*_PI_*pow(pba->Tcmb*pba->T_ncdm[k]*_k_B_,4)*8*_PI_*_G_
+    pba->factor_ncdm[k]=pba->deg_ncdm[k]*4*_PI_*pow(pba->Tcmb*pba->T_ncdm[k]*_k_B_,4)*8*_PI_*_G_
       /3./pow(_h_P_/2./_PI_,3)/pow(_c_,7)*_Mpc_over_m_*_Mpc_over_m_;
 
     /* If allocated, deallocate interpolation table:  */
@@ -974,7 +1073,7 @@ int background_ncdm_init(
       free(pbadist.d2f0);
     }
   }
-
+  
 
   return _SUCCESS_;
 }
@@ -1018,7 +1117,7 @@ int background_ncdm_momenta(
     if (drho_dM!=NULL) *drho_dM += q2*M/(1.+z)/(1.+z)/epsilon*wvec[index_q];
     if (pseudo_p!=NULL) *pseudo_p += pow(q2/epsilon,3)/3.0*wvec[index_q]; 
   }
-  if (n!=NULL) *n *= factor2;
+  if (n!=NULL) *n *= factor2*(1.+z);
   if (rho!=NULL) *rho *= factor2;
   if (p!=NULL) *p *= factor2;
   if (drho_dM!=NULL) *drho_dM *= factor2; 

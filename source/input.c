@@ -161,7 +161,7 @@ int input_init(
   int flag1,flag2,flag3;
   double param1,param2,param3;
   int N_ncdm=0,n,entries_read;
-  int int1,fileentries;
+  int int1,fileentries,numpeaks;
   double fnu_factor;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
@@ -342,22 +342,22 @@ int input_init(
     class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
 	
     /* Read temperatures: */
-    class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default);
+    class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
 
     /* Read chemical potentials: */
-    class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default);
+    class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default,N_ncdm);
 
     /* Read degeneracy of each ncdm species: */
-    class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default);
+    class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default,N_ncdm);
 
     /* Read mass of each ncdm species: */
-    class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0);
+    class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0,N_ncdm);
 
     /* Read Omega of each ncdm species: */
-    class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0);
+    class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0,N_ncdm);
 
     /* Read omega of each ncdm species: (Use pba->M_ncdm temporarily)*/
-    class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0);
+    class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0,N_ncdm);
 
     /* Check for duplicate Omega/omega entries, missing mass definition and 
        update pba->Omega0_ncdm:*/
@@ -375,10 +375,10 @@ int input_init(
     }
 
     /* Check if filenames for interpolation tables are given: */
-    class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_);
+    class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
 	
     if (flag1==_TRUE_){
-      for(n=0,fileentries=0; n<entries_read; n++){
+      for(n=0,fileentries=0; n<N_ncdm; n++){
 	if (pba->got_files[n] == _TRUE_) fileentries++;
       }
 
@@ -395,6 +395,23 @@ int input_init(
 		   "Numer of filenames found, %d, does not match number of _TRUE_ values in use_ncdm_files, %d",
 		   entries_read,fileentries);
       }
+    }
+/* Read (optional) p.s.d.-parameters:*/
+    parser_read_list_of_doubles(pfc,
+				"ncdm_psd_parameters",
+				&entries_read,
+				&(pba->ncdm_psd_parameters),
+				&flag2,
+				errmsg);
+
+    /* Do we have peaks specified? */
+    class_read_list_of_integers_or_default("ncdm_peaks",pba->ncdm_peaks,0,N_ncdm);
+    for (numpeaks=0,n=0; n<N_ncdm; n++) numpeaks += pba->ncdm_peaks[n];
+    if (numpeaks > 0){
+      /* Read the information of the Gaussian peak:  */
+      class_read_list_of_doubles("ncdm_peaks_A",pba->ncdm_peaks_A,numpeaks);
+      class_read_list_of_doubles("ncdm_peaks_sigma",pba->ncdm_peaks_sigma,numpeaks);
+      class_read_list_of_doubles("ncdm_peaks_qc",pba->ncdm_peaks_qc,numpeaks);
     }
 
     class_call(background_ncdm_init(ppr,pba),
@@ -839,6 +856,7 @@ int input_init(
       for (i=0; i<int1; i++) {
 	pop->z_pk[i] = pointer1[i];
       }
+      free(pointer1);
     }
     
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
@@ -1015,7 +1033,7 @@ int input_init(
   class_read_int("l_max_nur",ppr->l_max_nur);
   if (pba->N_ncdm>0)
     class_read_list_of_integers_or_default("l_max_ncdm",
-					   ppr->l_max_ncdm,ppr->l_max_ncdm_default);
+					   ppr->l_max_ncdm,ppr->l_max_ncdm_default,N_ncdm);
   /*
     class_call(parser_read_list_of_integers(pfc,"l_max_ncdm",
     &entries_read,&ppr->l_max_ncdm,&flag1,errmsg),errmsg,errmsg);
@@ -1202,7 +1220,12 @@ int input_default_params(
   pba->T_ncdm = NULL;
   pba->deg_ncdm_default = 1.;
   pba->deg_ncdm = NULL;
-  
+  pba->ncdm_psd_parameters = NULL;
+  pba->ncdm_peaks = NULL;
+  pba->ncdm_peaks_A = NULL;
+  pba->ncdm_peaks_sigma = NULL;
+  pba->ncdm_peaks_qc = NULL;
+
   pba->Omega0_k = 0.;
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   pba->Omega0_de = 0.;     

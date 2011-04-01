@@ -83,7 +83,11 @@ struct background
   double Omega0_ncdm_tot;
   int *got_files;
   char *ncdm_psd_files; /*List of filenames for tables of the psd. */
-
+  double *ncdm_psd_parameters; /*List of parameters for specifying/modifying ncdm p.s.d.'s. */
+  int *ncdm_peaks;  /* List of number of peaks in each distribution.*/
+  double *ncdm_peaks_A;  /* Amplitudes of Gaussian peaks.  */
+  double *ncdm_peaks_sigma; /* Standard deviations of Gaussian peaks.*/
+  double *ncdm_peaks_qc;  /* Positions of Gaussian peaks.  */
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
   //@}
