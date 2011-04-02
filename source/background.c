@@ -349,11 +349,11 @@ int background_functions(
   }
 
   /* relativistic neutrinos (and all relativistic relics) */
-  if (pba->has_nur == _TRUE_) {
-    pvecback[pba->index_bg_rho_nur] = pba->Omega0_nur * pow(pba->H0,2) / pow(a_rel,4);
-    rho_tot += pvecback[pba->index_bg_rho_nur];
-    p_tot += (1./3.) * pvecback[pba->index_bg_rho_nur];
-    rho_r += pvecback[pba->index_bg_rho_nur];
+  if (pba->has_ur == _TRUE_) {
+    pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a_rel,4);
+    rho_tot += pvecback[pba->index_bg_rho_ur];
+    p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
+    rho_r += pvecback[pba->index_bg_rho_ur];
   }
 
   /** - compute expansion rate H from Friedmann equation */
@@ -490,8 +490,8 @@ int background_init(
   if (pba->has_dark_energy_fluid == _TRUE_) {
     Omega0_tot += pba->Omega0_de;
   }
-  if (pba->has_nur == _TRUE_) {
-    Omega0_tot += pba->Omega0_nur;
+  if (pba->has_ur == _TRUE_) {
+    Omega0_tot += pba->Omega0_ur;
   }
   class_test(fabs(Omega0_tot-1.) > _TOLERANCE_ON_CURVATURE_,
 	     pba->error_message,
@@ -662,14 +662,14 @@ int background_indices(
   }
   
   /* - relativistic neutrinos (and any relativistic relics) */
-  if (pba->Omega0_nur != 0.) {
-    pba->has_nur = _TRUE_;
-    /* -> index for rho_nur (relativistic neutrino/relics density) */
-    pba->index_bg_rho_nur = index_bg; 
+  if (pba->Omega0_ur != 0.) {
+    pba->has_ur = _TRUE_;
+    /* -> index for rho_ur (relativistic neutrino/relics density) */
+    pba->index_bg_rho_ur = index_bg; 
     index_bg++;
   }
   else {
-    pba->has_nur = _FALSE_;
+    pba->has_ur = _FALSE_;
   }
 
   /* - index for Omega_r (relativistic density fraction) */

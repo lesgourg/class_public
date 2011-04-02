@@ -69,7 +69,7 @@ struct background
   double w_de; /**< \f$ w_{DE} \f$ : dark energy equation of state */
   double cs2_de; /**< \f$ c^2_{s~DE} \f$ : dark energy sound speed */
 
-  double Omega0_nur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
+  double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
 
   int N_ncdm;      /* Number of distinguishabe ncdm species */
   double *M_ncdm;  /* vector of masses of non-cold relic: m_ncdm1/T_ncdm1 */
@@ -123,7 +123,7 @@ struct background
   int index_bg_rho_cdm;       /**< cdm density */
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_de;        /**< dark energy fluid with constant w density */
-  int index_bg_rho_nur;       /**< relativistic neutrinos/relics density */
+  int index_bg_rho_ur;       /**< relativistic neutrinos/relics density */
 
   int index_bg_rho_ncdm1;
   int index_bg_p_ncdm1;
@@ -195,7 +195,7 @@ struct background
   short has_cdm;               /**< presence of cdm? */
   short has_lambda;            /**< presence of cosmological constant? */
   short has_dark_energy_fluid; /**< presence of dark energy fluid with constant w? */
-  short has_nur;               /**< presence of ultra-relativistic neutrinos/relics? */
+  short has_ur;               /**< presence of ultra-relativistic neutrinos/relics? */
   short has_ncdm;
 
   //@}

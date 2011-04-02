@@ -1179,8 +1179,8 @@ int spectra_indices(
       psp->index_tr_de = index_tr;
       index_tr++;
     }
-    if (pba->has_nur == _TRUE_) {
-      psp->index_tr_nur = index_tr;
+    if (pba->has_ur == _TRUE_) {
+      psp->index_tr_ur = index_tr;
       index_tr++;
     }
     if (pba->has_ncdm == _TRUE_) {
@@ -2017,17 +2017,17 @@ int spectra_matter_transfers(
 
 	}
 
-	/* T_nur(k,eta) */
+	/* T_ur(k,eta) */
 
-	if (pba->has_nur == _TRUE_) {
+	if (pba->has_ur == _TRUE_) {
 	
 	  delta_i = ppt->sources[index_mode]
-	    [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_nur]
+	    [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_ur]
 	    [(index_eta-psp->ln_eta_size+ppt->eta_size) * ppt->k_size[index_mode] + index_k];
 	  
-	  rho_i = pvecback_sp_long[pba->index_bg_rho_nur];
+	  rho_i = pvecback_sp_long[pba->index_bg_rho_ur];
 	  
-	  psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_nur] = delta_i;
+	  psp->matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_ur] = delta_i;
 	  
 	  delta_rho_tot += rho_i * delta_i;
 	  

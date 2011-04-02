@@ -15,7 +15,8 @@
 //#define _VERSION_ "v0.0.1"
 //#define _VERSION_ "v0.0.2" /**< implementation of ncdm */
 //#define _VERSION_ "v0.0.3" /**< stable version, results thoroughly compared with CAMB */
-#define _VERSION_ "v0.0.4" /**< includes new massless neutrino fluid approximation, leading to increased speed/precision mainly for P(k)  */
+//#define _VERSION_ "v0.0.4" /**< includes new massless neutrino fluid approximation, leading to increased speed/precision mainly for P(k)  */
+#define _VERSION_ "v0.0.5" /**< includes ncdm approximation and functionalities */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -459,7 +460,7 @@ struct precision
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
-  int l_max_nur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+  int l_max_ur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_ncdm_default;
   int *l_max_ncdm;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
@@ -509,13 +510,13 @@ struct precision
    */ 
   double radiation_streaming_trigger_eta_g_over_eta_h;
 
-  int nur_fluid_approximation;
+  int ur_fluid_approximation;
 
   /**
-   * when to switch off nur (massless neutrinos / ultra-relativistic
+   * when to switch off ur (massless neutrinos / ultra-relativistic
    * relics) fluid approximation 
    */
-  double nur_fluid_trigger_eta_h_over_eta_k;
+  double ur_fluid_trigger_eta_h_over_eta_k;
 
   int ncdm_fluid_approximation;
 

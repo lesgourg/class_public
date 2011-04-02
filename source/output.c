@@ -1292,8 +1292,8 @@ int output_open_tk_file(
     fprintf(*tkfile,"T_cdm          ");
   if (pba->has_dark_energy_fluid == _TRUE_)
     fprintf(*tkfile,"T_de           ");
-  if (pba->has_nur == _TRUE_)
-    fprintf(*tkfile,"T_nur          ");
+  if (pba->has_ur == _TRUE_)
+    fprintf(*tkfile,"T_ur          ");
   fprintf(*tkfile,"T_tot\n");
   
   return _SUCCESS_;

@@ -158,12 +158,12 @@ int perturb_init(
 	      ppt->error_message,
 	      "your radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->radiation_streaming_approximation);
   
-  if (pba->has_nur == _TRUE_) {
+  if (pba->has_ur == _TRUE_) {
 
-    class_test ((ppr->nur_fluid_approximation < nfa_mb) ||
-		(ppr->nur_fluid_approximation > nfa_none),
+    class_test ((ppr->ur_fluid_approximation < nfa_mb) ||
+		(ppr->ur_fluid_approximation > nfa_none),
 		ppt->error_message,
-		"your nur_fluid_approximation is set to %d, out of range defined in perturbations.h",ppr->nur_fluid_approximation);
+		"your ur_fluid_approximation is set to %d, out of range defined in perturbations.h",ppr->ur_fluid_approximation);
   }
 
   if (pba->has_ncdm == _TRUE_) {
@@ -546,12 +546,12 @@ int perturb_indices_of_perturbs(
 	  index_type++;
 	}
 	else ppt->has_source_delta_de = _FALSE_;
-	if (pba->has_nur == _TRUE_) {
-	  ppt->has_source_delta_nur = _TRUE_;
-	  ppt->index_tp_delta_nur = index_type;
+	if (pba->has_ur == _TRUE_) {
+	  ppt->has_source_delta_ur = _TRUE_;
+	  ppt->index_tp_delta_ur = index_type;
 	  index_type++;
 	}
-	else ppt->has_source_delta_nur = _FALSE_;
+	else ppt->has_source_delta_ur = _FALSE_;
 	if (pba->has_ncdm == _TRUE_) {
 	  ppt->has_source_delta_ncdm = _TRUE_;
 	  ppt->index_tp_delta_ncdm1 = index_type;
@@ -564,7 +564,7 @@ int perturb_indices_of_perturbs(
 	ppt->has_source_delta_b = _FALSE_;
 	ppt->has_source_delta_cdm = _FALSE_;
 	ppt->has_source_delta_de = _FALSE_;
-	ppt->has_source_delta_nur = _FALSE_;
+	ppt->has_source_delta_ur = _FALSE_;
 	ppt->has_source_delta_ncdm = _FALSE_;
       }
 
@@ -1340,7 +1340,7 @@ int perturb_workspace_init(
     ppw->index_ap_rsa=index_ap;
     index_ap++;
 
-    if (pba->has_nur == _TRUE_) {
+    if (pba->has_ur == _TRUE_) {
       ppw->index_ap_nfa=index_ap;
       index_ap++;
     }
@@ -1364,7 +1364,7 @@ int perturb_workspace_init(
 
     ppw->approx[ppw->index_ap_tca]=(int)tca_on;
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
-    if (pba->has_nur == _TRUE_) {
+    if (pba->has_ur == _TRUE_) {
       ppw->approx[ppw->index_ap_nfa]=(int)nfa_off;
     }
     if (pba->has_ncdm == _TRUE_) {
@@ -1797,8 +1797,8 @@ int perturb_solve(
 				  purposes (you'll get many more
 				  points if you use the runge-kutta
 				  integrator, set evolver=rk) */
-			       NULL,
-			       //perturb_print_variables,
+			       //NULL,
+			       perturb_print_variables,
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -2117,10 +2117,10 @@ int perturb_find_approximation_switches(
 	    (interval_approx[index_switch][ppw->index_ap_rsa]==(int)rsa_on))
 	  fprintf(stdout,"Mode k=%e: will switch on radiation streaming approximation at eta=%e\n",k,interval_limit[index_switch]);
 
-	if (pba->has_nur == _TRUE_) {
+	if (pba->has_ur == _TRUE_) {
 	  if ((interval_approx[index_switch-1][ppw->index_ap_nfa]==(int)nfa_off) && 
 	      (interval_approx[index_switch][ppw->index_ap_nfa]==(int)nfa_on)) {
-	    fprintf(stdout,"Mode k=%e: will switch on nur fluid approximation at eta=%e\n",k,interval_limit[index_switch]);
+	    fprintf(stdout,"Mode k=%e: will switch on ur fluid approximation at eta=%e\n",k,interval_limit[index_switch]);
 	  }
 	}
 	if (pba->has_ncdm == _TRUE_) {
@@ -2300,31 +2300,31 @@ int perturb_vector_init(
 
     /* ultra relativistic neutrinos */
 
-    if (pba->has_nur == _TRUE_) {
+    if (pba->has_ur == _TRUE_) {
 
       /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
-      class_test(ppr->l_max_nur < 4,
+      class_test(ppr->l_max_ur < 4,
 		 ppt->error_message,
-		 "ppr->l_max_nur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
+		 "ppr->l_max_ur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
       
       if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
 
-	ppv->index_pt_delta_nur = index_pt; /* density of ultra-relativistic neutrinos/relics */
+	ppv->index_pt_delta_ur = index_pt; /* density of ultra-relativistic neutrinos/relics */
 	index_pt++;
 	
-	ppv->index_pt_theta_nur = index_pt; /* velocity of ultra-relativistic neutrinos/relics */
+	ppv->index_pt_theta_ur = index_pt; /* velocity of ultra-relativistic neutrinos/relics */
 	index_pt++;
 	
-	ppv->index_pt_shear_nur = index_pt; /* shear of ultra-relativistic neutrinos/relics */
+	ppv->index_pt_shear_ur = index_pt; /* shear of ultra-relativistic neutrinos/relics */
 	index_pt++;
 
 	if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) { /* if neutrino free-streaming approximation is off */
 	
-	  ppv->index_pt_l3_nur = index_pt; /* l=3 of ultra-relativistic neutrinos/relics */
+	  ppv->index_pt_l3_ur = index_pt; /* l=3 of ultra-relativistic neutrinos/relics */
 	  index_pt++;
 	
-	  ppv->l_max_nur = ppr->l_max_nur; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	  index_pt += (ppv->l_max_nur-3);
+	  ppv->l_max_ur = ppr->l_max_ur; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
+	  index_pt += (ppv->l_max_ur-3);
 	}
       }
       
@@ -2464,19 +2464,19 @@ int perturb_vector_init(
 
   }
 
-  if (pba->has_nur == _TRUE_) {
+  if (pba->has_ur == _TRUE_) {
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
-      ppv->used_in_sources[ppv->index_pt_theta_nur]=_FALSE_;
+      ppv->used_in_sources[ppv->index_pt_theta_ur]=_FALSE_;
       
-      ppv->used_in_sources[ppv->index_pt_shear_nur]=_FALSE_;
+      ppv->used_in_sources[ppv->index_pt_shear_ur]=_FALSE_;
 
       if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
 	
-	ppv->used_in_sources[ppv->index_pt_l3_nur]=_FALSE_;
+	ppv->used_in_sources[ppv->index_pt_l3_ur]=_FALSE_;
 	
-	for (index_pt=ppv->index_pt_l3_nur+1; index_pt <= ppv->index_pt_delta_nur+ppv->l_max_nur; index_pt++)
+	for (index_pt=ppv->index_pt_l3_ur+1; index_pt <= ppv->index_pt_delta_ur+ppv->l_max_ur; index_pt++)
 	  ppv->used_in_sources[index_pt]=_FALSE_;
 	
       }
@@ -2516,11 +2516,11 @@ int perturb_vector_init(
 		 "scalar initial conditions assume radiation streaming approximation turned off");
       
 
-      if (pba->has_nur == _TRUE_) {
+      if (pba->has_ur == _TRUE_) {
 
 	class_test(ppw->approx[ppw->index_ap_nfa] == (int)nfa_on,
 		   ppt->error_message,
-		   "scalar initial conditions assume nur fluid approximation turned off");
+		   "scalar initial conditions assume ur fluid approximation turned off");
 	
       }
       
@@ -2631,25 +2631,25 @@ int perturb_vector_init(
 	    ppw->pv->y[ppw->pv->index_pt_theta_de];
 	}
 
-	if (pba->has_nur == _TRUE_) {
+	if (pba->has_ur == _TRUE_) {
 
-	  ppv->y[ppv->index_pt_delta_nur] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_nur];
+	  ppv->y[ppv->index_pt_delta_ur] =
+	    ppw->pv->y[ppw->pv->index_pt_delta_ur];
 	    
-	  ppv->y[ppv->index_pt_theta_nur] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_nur];
+	  ppv->y[ppv->index_pt_theta_ur] =
+	    ppw->pv->y[ppw->pv->index_pt_theta_ur];
 
-	  ppv->y[ppv->index_pt_shear_nur] =
-	    ppw->pv->y[ppw->pv->index_pt_shear_nur];
+	  ppv->y[ppv->index_pt_shear_ur] =
+	    ppw->pv->y[ppw->pv->index_pt_shear_ur];
 	    
 	  if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
 
-	    ppv->y[ppv->index_pt_l3_nur] =
-	      ppw->pv->y[ppw->pv->index_pt_l3_nur];
+	    ppv->y[ppv->index_pt_l3_ur] =
+	      ppw->pv->y[ppw->pv->index_pt_l3_ur];
 
-	    for (l=4; l <= ppv->l_max_nur; l++)
-	      ppv->y[ppv->index_pt_delta_nur+l] = 
-		ppw->pv->y[ppw->pv->index_pt_delta_nur+l];
+	    for (l=4; l <= ppv->l_max_ur; l++)
+	      ppv->y[ppv->index_pt_delta_ur+l] = 
+		ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
 
 	  }
 	}
@@ -2731,16 +2731,16 @@ int perturb_vector_init(
 
       }
 
-      /* -- case of switching on nur fluid
+      /* -- case of switching on ur fluid
 	 approximation. Provide correct initial conditions to new set
 	 of variables */
 
-      if (pba->has_nur == _TRUE_) {
+      if (pba->has_ur == _TRUE_) {
 
 	if ((pa_old[ppw->index_ap_nfa] == (int)nfa_off) && (ppw->approx[ppw->index_ap_nfa] == (int)nfa_on)) {
 
 	  if (ppt->perturbations_verbose>2)
-	    fprintf(stdout,"Mode k=%e: switch on nur fluid approximation at eta=%e\n",k,eta);
+	    fprintf(stdout,"Mode k=%e: switch on ur fluid approximation at eta=%e\n",k,eta);
 
 	  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
@@ -2813,14 +2813,14 @@ int perturb_vector_init(
 
 	  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
-	    ppv->y[ppv->index_pt_delta_nur] =
-	      ppw->pv->y[ppw->pv->index_pt_delta_nur];
+	    ppv->y[ppv->index_pt_delta_ur] =
+	      ppw->pv->y[ppw->pv->index_pt_delta_ur];
 	    
-	    ppv->y[ppv->index_pt_theta_nur] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_nur];
+	    ppv->y[ppv->index_pt_theta_ur] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_ur];
 	    
-	    ppv->y[ppv->index_pt_shear_nur] =
-	      ppw->pv->y[ppw->pv->index_pt_shear_nur];
+	    ppv->y[ppv->index_pt_shear_ur] =
+	      ppw->pv->y[ppw->pv->index_pt_shear_ur];
 	  }
 
 	  if (pba->has_ncdm == _TRUE_) {
@@ -2928,28 +2928,28 @@ int perturb_vector_init(
 	      ppw->pv->y[ppw->pv->index_pt_theta_de];
 	  }
 	  
-	  if (pba->has_nur == _TRUE_) {
+	  if (pba->has_ur == _TRUE_) {
 
 	    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 	      
 	      
-	      ppv->y[ppv->index_pt_delta_nur] =
-		ppw->pv->y[ppw->pv->index_pt_delta_nur];
+	      ppv->y[ppv->index_pt_delta_ur] =
+		ppw->pv->y[ppw->pv->index_pt_delta_ur];
 	      
-	      ppv->y[ppv->index_pt_theta_nur] =
-		ppw->pv->y[ppw->pv->index_pt_theta_nur];
+	      ppv->y[ppv->index_pt_theta_ur] =
+		ppw->pv->y[ppw->pv->index_pt_theta_ur];
 	      
-	      ppv->y[ppv->index_pt_shear_nur] =
-		ppw->pv->y[ppw->pv->index_pt_shear_nur];
+	      ppv->y[ppv->index_pt_shear_ur] =
+		ppw->pv->y[ppw->pv->index_pt_shear_ur];
 	      
 	      if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
 		
-		ppv->y[ppv->index_pt_l3_nur] =
-		  ppw->pv->y[ppw->pv->index_pt_l3_nur];
+		ppv->y[ppv->index_pt_l3_ur] =
+		  ppw->pv->y[ppw->pv->index_pt_l3_ur];
 		
-		for (l=4; l <= ppv->l_max_nur; l++)
-		  ppv->y[ppv->index_pt_delta_nur+l] = 
-		    ppw->pv->y[ppw->pv->index_pt_delta_nur+l];
+		for (l=4; l <= ppv->l_max_ur; l++)
+		  ppv->y[ppv->index_pt_delta_ur+l] = 
+		    ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
 		
 	      }
 	    }
@@ -3073,7 +3073,7 @@ int perturb_initial_conditions(struct precision * ppr,
   /** - assuming that everything has already been set to zero, write non-zero initial conditions: */
 
   double a;
-  double delta_nur,theta_nur,shear_nur,l3_nur;
+  double delta_ur,theta_ur,shear_ur,l3_ur;
   double q,epsilon;
   int index_q,n_ncdm,idx;
 
@@ -3111,9 +3111,9 @@ int perturb_initial_conditions(struct precision * ppr,
 	rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
       }
 
-      if (pba->has_nur == _TRUE_) {
-	rho_r += ppw->pvecback[pba->index_bg_rho_nur];
-	rho_nu += ppw->pvecback[pba->index_bg_rho_nur];
+      if (pba->has_ur == _TRUE_) {
+	rho_r += ppw->pvecback[pba->index_bg_rho_ur];
+	rho_nu += ppw->pvecback[pba->index_bg_rho_ur];
       }
       
       if (pba->has_ncdm == _TRUE_) {
@@ -3167,10 +3167,10 @@ int perturb_initial_conditions(struct precision * ppr,
  	  ppw->pv->y[ppw->pv->index_pt_theta_de] = 0.; /* dark energy velocity (TO BE WRITTEN) */
  	} 
 	
-	if (pba->has_nur == _TRUE_) {
-	  ppw->pv->y[ppw->pv->index_pt_delta_nur] = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
-	  ppw->pv->y[ppw->pv->index_pt_theta_nur] = alpha*k*k - pow(k*eta,3.)*k/36. * (23.+4.*fracnu)/(15.+4.*fracnu); /* velocity of ultra-relativistic neutrinos/relics */
-	  ppw->pv->y[ppw->pv->index_pt_shear_nur] = k*k*eta*eta*2./3./(12.+fracnu); /* shear of ultra-relativistic neutrinos/relics */
+	if (pba->has_ur == _TRUE_) {
+	  ppw->pv->y[ppw->pv->index_pt_delta_ur] = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
+	  ppw->pv->y[ppw->pv->index_pt_theta_ur] = alpha*k*k - pow(k*eta,3.)*k/36. * (23.+4.*fracnu)/(15.+4.*fracnu); /* velocity of ultra-relativistic neutrinos/relics */
+	  ppw->pv->y[ppw->pv->index_pt_shear_ur] = k*k*eta*eta*2./3./(12.+fracnu); /* shear of ultra-relativistic neutrinos/relics */
 	}
 
       }
@@ -3181,7 +3181,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
 	/* valid at leading order in (k*eta), and order zero in tight-coupling */
 	/* identical to first order terms in CRS, excpet for normalization (when ppr->curvature_ini=1, eta=1: leads to factor 1/2 difference between CRS formulas with beta1=0) */
-        /* identical to CAMB when om set to zero in theta_g, theta_nur, shear_nur, eta */
+        /* identical to CAMB when om set to zero in theta_g, theta_ur, shear_ur, eta */
 
 	/* photon density */
 	ppw->pv->y[ppw->pv->index_pt_delta_g] = - keta_two/3. * (1.-om*eta/5.) 
@@ -3207,28 +3207,28 @@ int perturb_initial_conditions(struct precision * ppr,
  	} 
 
 	/* relativistic relics */
-	if ((pba->has_nur == _TRUE_) || (pba->has_ncdm == _TRUE_)) {
+	if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_)) {
 	
-	  delta_nur = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
+	  delta_ur = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
 
-	  theta_nur = - k*keta_three/36./(4.*fracnu+15.) * (4.*fracnu+23.-3.*(8.*fracnu*fracnu+50.*fracnu+275.)/20./(2.*fracnu+15.)*eta*om) 
+	  theta_ur = - k*keta_three/36./(4.*fracnu+15.) * (4.*fracnu+23.-3.*(8.*fracnu*fracnu+50.*fracnu+275.)/20./(2.*fracnu+15.)*eta*om) 
 	    * ppr->curvature_ini; /* velocity of ultra-relativistic neutrinos/relics */
 
-	  shear_nur = 2.*keta_two/(45.+12.*fracnu) * (1.+(4.*fracnu-5.)/4./(2.*fracnu+15.)*eta*om)
+	  shear_ur = 2.*keta_two/(45.+12.*fracnu) * (1.+(4.*fracnu-5.)/4./(2.*fracnu+15.)*eta*om)
 	    * ppr->curvature_ini; /* shear of ultra-relativistic neutrinos/relics */
 	  
-	  l3_nur = keta_three*2./7./(12.*fracnu+45.)* ppr->curvature_ini;
+	  l3_ur = keta_three*2./7./(12.*fracnu+45.)* ppr->curvature_ini;
 	}
 
-	if (pba->has_nur == _TRUE_) {
+	if (pba->has_ur == _TRUE_) {
 
-	  ppw->pv->y[ppw->pv->index_pt_delta_nur] = delta_nur;
+	  ppw->pv->y[ppw->pv->index_pt_delta_ur] = delta_ur;
 
-	  ppw->pv->y[ppw->pv->index_pt_theta_nur] = theta_nur;
+	  ppw->pv->y[ppw->pv->index_pt_theta_ur] = theta_ur;
 
-	  ppw->pv->y[ppw->pv->index_pt_shear_nur] = shear_nur;
+	  ppw->pv->y[ppw->pv->index_pt_shear_ur] = shear_ur;
 
-	  ppw->pv->y[ppw->pv->index_pt_l3_nur] = l3_nur;
+	  ppw->pv->y[ppw->pv->index_pt_l3_ur] = l3_ur;
 
 	}    
 
@@ -3242,13 +3242,13 @@ int perturb_initial_conditions(struct precision * ppr,
 
 	      epsilon = sqrt(q*q+a*a*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
 
-	      ppw->pv->y[idx] = -0.25 * delta_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	      ppw->pv->y[idx] = -0.25 * delta_ur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-	      ppw->pv->y[idx+1] =  -epsilon/3./q/k*theta_nur* pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	      ppw->pv->y[idx+1] =  -epsilon/3./q/k*theta_ur* pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-	      ppw->pv->y[idx+2] = -0.5 * shear_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	      ppw->pv->y[idx+2] = -0.5 * shear_ur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 
-	      ppw->pv->y[idx+3] = -0.25 * l3_nur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+	      ppw->pv->y[idx+3] = -0.25 * l3_ur * pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
 		
 	      //Jump to next momentum bin:
 	      idx += (ppw->pv->l_max_ncdm[n_ncdm]+1);
@@ -3289,11 +3289,11 @@ int perturb_initial_conditions(struct precision * ppr,
 
     if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
 
-      class_test(pba->has_nur == _FALSE_,
+      class_test(pba->has_ur == _FALSE_,
 		 ppt->error_message,
 		 "not consistent to ask for NID in absence of neutrinos!");
 
-      ppw->pv->y[ppw->pv->index_pt_delta_nur] = ppr->entropy_ini;
+      ppw->pv->y[ppw->pv->index_pt_delta_ur] = ppr->entropy_ini;
 
     }
      
@@ -3301,11 +3301,11 @@ int perturb_initial_conditions(struct precision * ppr,
 
     if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
 
-      class_test(pba->has_nur == _FALSE_,
+      class_test(pba->has_ur == _FALSE_,
 		 ppt->error_message,
 		 "not consistent to ask for NIV in absence of neutrinos!");
 
-      ppw->pv->y[ppw->pv->index_pt_theta_nur] = k*ppr->entropy_ini;
+      ppw->pv->y[ppw->pv->index_pt_theta_ur] = k*ppr->entropy_ini;
 
     }
 
@@ -3457,10 +3457,10 @@ int perturb_approximations(
       ppw->approx[ppw->index_ap_rsa] = (int)rsa_off;
     }
    
-    if (pba->has_nur == _TRUE_) {
+    if (pba->has_ur == _TRUE_) {
 
-      if ((eta_h/eta_k > ppr->nur_fluid_trigger_eta_h_over_eta_k) &&
-	  (ppr->nur_fluid_approximation != nfa_none)) {
+      if ((eta_h/eta_k > ppr->ur_fluid_trigger_eta_h_over_eta_k) &&
+	  (ppr->ur_fluid_approximation != nfa_none)) {
 	
 	ppw->approx[ppw->index_ap_nfa] = (int)nfa_on;
       }
@@ -3643,9 +3643,9 @@ int perturb_einstein(
   double delta_g=0.;
   double theta_g=0.; 
   double shear_g=0.;
-  double delta_nur=0.;
-  double theta_nur=0.; 
-  double shear_nur=0.; 
+  double delta_ur=0.;
+  double theta_ur=0.; 
+  double shear_ur=0.; 
   double rho_delta_ncdm=0.;
   double rho_plus_p_theta_ncdm=0.; 
   double rho_plus_p_shear_ncdm=0.;
@@ -3710,23 +3710,23 @@ int perturb_einstein(
 		       shear. */
     }
 
-    /** (a.2) nur */
+    /** (a.2) ur */
 
-    if (pba->has_nur == _TRUE_) {
+    if (pba->has_ur == _TRUE_) {
 
       if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
-	delta_nur = y[ppw->pv->index_pt_delta_nur];
-	theta_nur = y[ppw->pv->index_pt_theta_nur];
-	shear_nur = y[ppw->pv->index_pt_shear_nur];
+	delta_ur = y[ppw->pv->index_pt_delta_ur];
+	theta_ur = y[ppw->pv->index_pt_theta_ur];
+	shear_ur = y[ppw->pv->index_pt_shear_ur];
 
       }
 
       else {
 
-	delta_nur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
-	theta_nur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
-	shear_nur = 0.; /* shear always neglected in free streaming approximatio */
+	delta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
+	theta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
+	shear_ur = 0.; /* shear always neglected in free streaming approximatio */
 
       }
 
@@ -3758,11 +3758,11 @@ int perturb_einstein(
     } 
 
     /* ultra-relativistic neutrino/relics contribution */
-    if (pba->has_nur == _TRUE_) {
-      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_nur]*delta_nur;
-      rho_plus_p_theta = rho_plus_p_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*theta_nur;
-      rho_plus_p_shear = rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*shear_nur;
-      delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_nur]*delta_nur;
+    if (pba->has_ur == _TRUE_) {
+      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
+      rho_plus_p_theta = rho_plus_p_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*theta_ur;
+      rho_plus_p_shear = rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*shear_ur;
+      delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
     }
 
     /* non-cold dark matter contribution */
@@ -3951,19 +3951,19 @@ int perturb_einstein(
 
 	rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
-	if (pba->has_nur == _TRUE_) {
+	if (pba->has_ur == _TRUE_) {
 
 	  if (ppr->radiation_streaming_approximation == rsa_null) {
-	    ppw->rsa_delta_nur = 0.;
-	    ppw->rsa_theta_nur = 0.;
+	    ppw->rsa_delta_ur = 0.;
+	    ppw->rsa_theta_ur = 0.;
 	  }
 	  else {
-	    ppw->rsa_delta_nur = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
+	    ppw->rsa_delta_ur = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
 					-k2*y[ppw->pv->index_pt_eta]);
-	    ppw->rsa_theta_nur = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
+	    ppw->rsa_theta_ur = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
 	  }
 
-	  rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_nur]*ppw->rsa_theta_nur;
+	  rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
 
 	}
       }
@@ -4349,15 +4349,15 @@ int perturb_source_terms(
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
 
-      /* delta_nur */
-      if ((ppt->has_source_delta_nur == _TRUE_) && (index_type == ppt->index_tp_delta_nur)) {
+      /* delta_ur */
+      if ((ppt->has_source_delta_ur == _TRUE_) && (index_type == ppt->index_tp_delta_ur)) {
 	if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] =
-	    y[ppw->pv->index_pt_delta_nur];
+	    y[ppw->pv->index_pt_delta_ur];
 	}
 	else {
 	  source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_S0] =
-	    ppw->rsa_delta_nur;
+	    ppw->rsa_delta_ur;
 	}
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_eta * ppw->st_size + ppw->index_st_ddS2] = 0.;
@@ -4611,30 +4611,30 @@ int perturb_print_variables(double eta,
   /** - print whatever you want for whatever mode of your choice */
 
   double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
-  double delta_nur=0.,theta_nur=0.,shear_nur=0.;
+  double delta_ur=0.,theta_ur=0.,shear_ur=0.;
   //double delta_ncdm=0.,theta_ncdm=0.,shear_ncdm=0.;
 
-  if (pba->has_nur == _TRUE_) {
+  if (pba->has_ur == _TRUE_) {
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
-      delta_nur = y[ppw->pv->index_pt_delta_nur];
-      theta_nur = y[ppw->pv->index_pt_theta_nur];
-      shear_nur = y[ppw->pv->index_pt_shear_nur];
+      delta_ur = y[ppw->pv->index_pt_delta_ur];
+      theta_ur = y[ppw->pv->index_pt_theta_ur];
+      shear_ur = y[ppw->pv->index_pt_shear_ur];
     }
     else {
-      delta_nur = ppw->rsa_delta_nur;
-      theta_nur = ppw->rsa_theta_nur;
-      shear_nur = 0.;
+      delta_ur = ppw->rsa_delta_ur;
+      theta_ur = ppw->rsa_theta_ur;
+      shear_ur = 0.;
     }
   }
   
   /*  if((k>0.1)&&(k<0.12)){ */
   /*     printf("%g %g %g %g %g %g %g %g\n",k,eta, */
   /* 	   ppw->delta_ncdm[0],ppw->theta_ncdm1,ppw->shear_ncdm1, */
-  /* 	   delta_nur,theta_nur,shear_nur); */
+  /* 	   delta_ur,theta_ur,shear_ur); */
   /*   } */
   
 
-  if ((k>=0.1) && (k<0.104)) {
+  if ((k>=0.069) && (k<0.071)) {
 
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
       delta_g = y[ppw->pv->index_pt_delta_g];
@@ -4672,16 +4672,16 @@ int perturb_print_variables(double eta,
       pol3_g = 0.;
     }
     
-    if (pba->has_nur == _TRUE_) {
+    if (pba->has_ur == _TRUE_) {
       if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
-	delta_nur = y[ppw->pv->index_pt_delta_nur];
-	theta_nur = y[ppw->pv->index_pt_theta_nur];
-	shear_nur = y[ppw->pv->index_pt_shear_nur];
+	delta_ur = y[ppw->pv->index_pt_delta_ur];
+	theta_ur = y[ppw->pv->index_pt_theta_ur];
+	shear_ur = y[ppw->pv->index_pt_shear_ur];
       }
       else {
-	delta_nur = ppw->rsa_delta_nur;
-	theta_nur = ppw->rsa_theta_nur;
-	shear_nur = 0.;
+	delta_ur = ppw->rsa_delta_ur;
+	theta_ur = ppw->rsa_theta_ur;
+	shear_ur = 0.;
       }
     }
 
@@ -4698,9 +4698,9 @@ int perturb_print_variables(double eta,
 	    pol3_g,
 	    y[ppw->pv->index_pt_delta_b],
 	    y[ppw->pv->index_pt_theta_b],
-	    delta_nur,
-	    theta_nur,
-	    shear_nur,
+	    delta_ur,
+	    theta_ur,
+	    shear_ur,
 	    ppw->delta_ncdm[0],
 	    ppw->theta_ncdm1,
 	    ppw->shear_ncdm1,
@@ -5272,60 +5272,60 @@ int perturb_derivs(double eta,
     
     /** (h) ultra-relativistic neutrino/relics density, velocity, shear, etc. */
     
-    if (pba->has_nur == _TRUE_) {
+    if (pba->has_ur == _TRUE_) {
       
       if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
 	if (ppr->gauge == newtonian) {
 	  
 	  /* Newtonian gauge : */
-	  dy[ppw->pv->index_pt_delta_nur] = /* density of ultra-relativistic neutrinos/relics */
-	    -4./3.*y[ppw->pv->index_pt_theta_nur] + 4.*pvecmetric[ppw->index_mt_phi_prime];
+	  dy[ppw->pv->index_pt_delta_ur] = /* density of ultra-relativistic neutrinos/relics */
+	    -4./3.*y[ppw->pv->index_pt_theta_ur] + 4.*pvecmetric[ppw->index_mt_phi_prime];
 	  
-	  dy[ppw->pv->index_pt_theta_nur] = /* velocity of ultra-relativistic neutrinos/relics */
-	    k2*(y[ppw->pv->index_pt_delta_nur]/4.
-		-y[ppw->pv->index_pt_shear_nur]+pvecmetric[ppw->index_mt_psi]);
+	  dy[ppw->pv->index_pt_theta_ur] = /* velocity of ultra-relativistic neutrinos/relics */
+	    k2*(y[ppw->pv->index_pt_delta_ur]/4.
+		-y[ppw->pv->index_pt_shear_ur]+pvecmetric[ppw->index_mt_psi]);
 	}
 	
 	if (ppr->gauge == synchronous) {
 	  
 	  /* Synchronous gauge : */
-	  dy[ppw->pv->index_pt_delta_nur] = /* density of ultra-relativistic neutrinos/relics */
-	    -4./3.*y[ppw->pv->index_pt_theta_nur] - 2./3.*pvecmetric[ppw->index_mt_h_prime];
+	  dy[ppw->pv->index_pt_delta_ur] = /* density of ultra-relativistic neutrinos/relics */
+	    -4./3.*y[ppw->pv->index_pt_theta_ur] - 2./3.*pvecmetric[ppw->index_mt_h_prime];
 	  
-	  dy[ppw->pv->index_pt_theta_nur] = /* velocity of ultra-relativistic neutrinos/relics */
-	    k2*(y[ppw->pv->index_pt_delta_nur]/4.
-		-y[ppw->pv->index_pt_shear_nur]);
+	  dy[ppw->pv->index_pt_theta_ur] = /* velocity of ultra-relativistic neutrinos/relics */
+	    k2*(y[ppw->pv->index_pt_delta_ur]/4.
+		-y[ppw->pv->index_pt_shear_ur]);
 	}
       
 	if(ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
 	  
 	  if (ppr->gauge == newtonian) {
-	    dy[ppw->pv->index_pt_shear_nur] = /* shear of ultra-relativistic neutrinos/relics */
-	      0.5*(8./15.*y[ppw->pv->index_pt_theta_nur]
-		   -3./5.*k*y[ppw->pv->index_pt_shear_nur+1]);
+	    dy[ppw->pv->index_pt_shear_ur] = /* shear of ultra-relativistic neutrinos/relics */
+	      0.5*(8./15.*y[ppw->pv->index_pt_theta_ur]
+		   -3./5.*k*y[ppw->pv->index_pt_shear_ur+1]);
 	  }
 	  
 	  if (ppr->gauge == synchronous) {
-	    dy[ppw->pv->index_pt_shear_nur] = /* shear of ultra-relativistic neutrinos/relics */
-	      0.5*(8./15.*y[ppw->pv->index_pt_theta_nur]
-		   -3./5.*k*y[ppw->pv->index_pt_shear_nur+1]
+	    dy[ppw->pv->index_pt_shear_ur] = /* shear of ultra-relativistic neutrinos/relics */
+	      0.5*(8./15.*y[ppw->pv->index_pt_theta_ur]
+		   -3./5.*k*y[ppw->pv->index_pt_shear_ur+1]
 		   +4./15.*pvecmetric[ppw->index_mt_h_prime]+8./5.*pvecmetric[ppw->index_mt_eta_prime]);
 	  }
 	  
 	  l = 3;
-	  dy[ppw->pv->index_pt_l3_nur] = /* l=3 of ultra-relativistic neutrinos/relics (special case because F_gamma2=2*shear !!) */
-	    k/(2.*l+1.)*(l*2.*y[ppw->pv->index_pt_shear_nur]-(l+1.)*y[ppw->pv->index_pt_l3_nur+1]);
+	  dy[ppw->pv->index_pt_l3_ur] = /* l=3 of ultra-relativistic neutrinos/relics (special case because F_gamma2=2*shear !!) */
+	    k/(2.*l+1.)*(l*2.*y[ppw->pv->index_pt_shear_ur]-(l+1.)*y[ppw->pv->index_pt_l3_ur+1]);
 	  
-	  for (l = 4; l < ppw->pv->l_max_nur; l++) {
-	    dy[ppw->pv->index_pt_delta_nur+l] = /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	      k/(2.*l+1)*(l*y[ppw->pv->index_pt_delta_nur+l-1]-(l+1.)*y[ppw->pv->index_pt_delta_nur+l+1]);
+	  for (l = 4; l < ppw->pv->l_max_ur; l++) {
+	    dy[ppw->pv->index_pt_delta_ur+l] = /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
+	      k/(2.*l+1)*(l*y[ppw->pv->index_pt_delta_ur+l-1]-(l+1.)*y[ppw->pv->index_pt_delta_ur+l+1]);
 	  }
 	  
-	  l = ppw->pv->l_max_nur; /* l=lmax */
-	  dy[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur] = /* last term of ultra-relativistic neutrinos/relics */
-	    k*y[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur-1]
-	    -(1.+l)/eta*y[ppw->pv->index_pt_delta_nur+ppw->pv->l_max_nur];
+	  l = ppw->pv->l_max_ur; /* l=lmax */
+	  dy[ppw->pv->index_pt_delta_ur+ppw->pv->l_max_ur] = /* last term of ultra-relativistic neutrinos/relics */
+	    k*y[ppw->pv->index_pt_delta_ur+ppw->pv->l_max_ur-1]
+	    -(1.+l)/eta*y[ppw->pv->index_pt_delta_ur+ppw->pv->l_max_ur];
 	  
 	}
 	
@@ -5336,29 +5336,29 @@ int perturb_derivs(double eta,
 	  if (ppr->gauge == synchronous) {
 
 	    /* shear of ultra-relativistic neutrinos/relics in fluid approach */
-	    if (ppr->nur_fluid_approximation == nfa_mb) {
+	    if (ppr->ur_fluid_approximation == nfa_mb) {
 	      
-	      dy[ppw->pv->index_pt_shear_nur] =
-		-3./eta*y[ppw->pv->index_pt_shear_nur]
-		+2./3.*y[ppw->pv->index_pt_theta_nur]
+	      dy[ppw->pv->index_pt_shear_ur] =
+		-3./eta*y[ppw->pv->index_pt_shear_ur]
+		+2./3.*y[ppw->pv->index_pt_theta_ur]
 		+1./3.*(pvecmetric[ppw->index_mt_h_prime]+6.*pvecmetric[ppw->index_mt_eta_prime]);
 	      
 	    }
 
-	    if (ppr->nur_fluid_approximation == nfa_hu) {
+	    if (ppr->ur_fluid_approximation == nfa_hu) {
 
-	      dy[ppw->pv->index_pt_shear_nur] =
-		-3.*a_prime_over_a*y[ppw->pv->index_pt_shear_nur]
-		+2./3.*y[ppw->pv->index_pt_theta_nur]
+	      dy[ppw->pv->index_pt_shear_ur] =
+		-3.*a_prime_over_a*y[ppw->pv->index_pt_shear_ur]
+		+2./3.*y[ppw->pv->index_pt_theta_ur]
 		+1./3.*(pvecmetric[ppw->index_mt_h_prime]+6.*pvecmetric[ppw->index_mt_eta_prime]);
 	      
 	    }
 
-	    if (ppr->nur_fluid_approximation == nfa_CLASS) {
+	    if (ppr->ur_fluid_approximation == nfa_CLASS) {
 
-	      dy[ppw->pv->index_pt_shear_nur] = 
-		-3./eta*y[ppw->pv->index_pt_shear_nur]
-		+2./3.*y[ppw->pv->index_pt_theta_nur]
+	      dy[ppw->pv->index_pt_shear_ur] = 
+		-3./eta*y[ppw->pv->index_pt_shear_ur]
+		+2./3.*y[ppw->pv->index_pt_theta_ur]
 		+1./3.*pvecmetric[ppw->index_mt_h_prime];
 	      
 	    }

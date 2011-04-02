@@ -283,37 +283,37 @@ int input_init(
 
   Omega_tot += pba->Omega0_b;
 
-  /* Omega_0_nur (ultra-relativistic species / massless neutrino) */
+  /* Omega_0_ur (ultra-relativistic species / massless neutrino) */
   class_call(parser_read_double(pfc,"N_eff",&param1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
-  class_call(parser_read_double(pfc,"Omega_nur",&param2,&flag2,errmsg),
+  class_call(parser_read_double(pfc,"Omega_ur",&param2,&flag2,errmsg),
 	     errmsg,
 	     errmsg);
-  class_call(parser_read_double(pfc,"omega_nur",&param3,&flag3,errmsg),
+  class_call(parser_read_double(pfc,"omega_ur",&param3,&flag3,errmsg),
 	     errmsg,
 	     errmsg);
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
 	     errmsg,
-	     "In input file, you can only enter one of N_eff, Omega_nur or omega_nur, choose one");
+	     "In input file, you can only enter one of N_eff, Omega_ur or omega_ur, choose one");
 
   if (class_none_of_three(flag1,flag2,flag3)) {
-    pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+    pba->Omega0_ur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   }
   else {
 
     if (flag1 == _TRUE_) {
-      pba->Omega0_nur = param1*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+      pba->Omega0_ur = param1*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
     }
     if (flag2 == _TRUE_) {
-      pba->Omega0_nur = param2;
+      pba->Omega0_ur = param2;
     }
     if (flag3 == _TRUE_) {
-      pba->Omega0_nur = param3/pba->h/pba->h;
+      pba->Omega0_ur = param3/pba->h/pba->h;
     }
   }
 
-  Omega_tot += pba->Omega0_nur;
+  Omega_tot += pba->Omega0_ur;
 
   /* Omega_0_cdm (CDM) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
@@ -480,7 +480,7 @@ int input_init(
 	     "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
   if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {	
-    pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+    pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   }
   else {
     if (flag1 == _TRUE_) {
@@ -1030,7 +1030,7 @@ int input_init(
 
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
-  class_read_int("l_max_nur",ppr->l_max_nur);
+  class_read_int("l_max_ur",ppr->l_max_ur);
   if (pba->N_ncdm>0)
     class_read_list_of_integers_or_default("l_max_ncdm",
 					   ppr->l_max_ncdm,ppr->l_max_ncdm_default,N_ncdm);
@@ -1062,14 +1062,14 @@ int input_init(
   class_read_double("radiation_streaming_trigger_eta_h_over_eta_k",ppr->radiation_streaming_trigger_eta_h_over_eta_k);
   class_read_double("radiation_streaming_trigger_eta_g_over_eta_h",ppr->radiation_streaming_trigger_eta_g_over_eta_h);
 
-  class_read_int("nur_fluid_approximation",ppr->nur_fluid_approximation);
+  class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
-  class_read_double("nur_fluid_trigger_eta_h_over_eta_k",ppr->nur_fluid_trigger_eta_h_over_eta_k);
+  class_read_double("ur_fluid_trigger_eta_h_over_eta_k",ppr->ur_fluid_trigger_eta_h_over_eta_k);
   class_read_double("ncdm_fluid_trigger_eta_h_over_eta_k",ppr->ncdm_fluid_trigger_eta_h_over_eta_k);
 
-  class_test(ppr->nur_fluid_trigger_eta_h_over_eta_k==ppr->radiation_streaming_trigger_eta_h_over_eta_k,
+  class_test(ppr->ur_fluid_trigger_eta_h_over_eta_k==ppr->radiation_streaming_trigger_eta_h_over_eta_k,
 	     errmsg,
-	     "please choose different values for precision parameters nur_fluid_trigger_eta_h_over_eta_k and radiation_streaming_trigger_eta_h_over_eta_k, in order to avoid switching two approximation schemes at the same time");
+	     "please choose different values for precision parameters ur_fluid_trigger_eta_h_over_eta_k and radiation_streaming_trigger_eta_h_over_eta_k, in order to avoid switching two approximation schemes at the same time");
     
 
   /** h.4. parameter related to the Bessel functions */
@@ -1209,7 +1209,7 @@ int input_default_params(
   pba->H0 = pba->h * 1.e5 / _c_;
   pba->Tcmb = 2.726;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
-  pba->Omega0_nur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+  pba->Omega0_ur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
   pba->Omega0_cdm = 0.1122/0.704/0.704;
   pba->N_ncdm = 0;
@@ -1227,7 +1227,7 @@ int input_default_params(
   pba->ncdm_peaks_qc = NULL;
 
   pba->Omega0_k = 0.;
-  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_nur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   pba->Omega0_de = 0.;     
   pba->a_today = 1.;       
   pba->w_de=-1.;
@@ -1476,7 +1476,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->l_max_g=16; 
   ppr->l_max_pol_g=16; 
-  ppr->l_max_nur=12; 
+  ppr->l_max_ur=12; 
   ppr->l_max_ncdm_default=20;
   ppr->l_max_ncdm = NULL; /* The size of the vector is not known yet. Every entry will be set to ppr->l_max_ncdm_default if no input is detected. */ 
   ppr->l_max_g_ten=5;
@@ -1497,8 +1497,8 @@ int input_default_precision ( struct precision * ppr ) {
 /*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
   ppr->radiation_streaming_trigger_eta_g_over_eta_h = 80.;
  
-  ppr->nur_fluid_approximation = nfa_CLASS;
-  ppr->nur_fluid_trigger_eta_h_over_eta_k = 16.; 
+  ppr->ur_fluid_approximation = nfa_CLASS;
+  ppr->ur_fluid_trigger_eta_h_over_eta_k = 16.; 
 
   ppr->ncdm_fluid_approximation = ncdmfa_none;
   ppr->ncdm_fluid_trigger_eta_h_over_eta_k = 12.; 

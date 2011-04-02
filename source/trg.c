@@ -32,7 +32,6 @@
  *   of trg_init() 
  **/
 
-#include "precision.h"
 #include "background.h"
 #include "thermodynamics.h"
 #include "perturbations.h"
@@ -2448,7 +2447,7 @@ int trg_init (
 
   double * transfer;
 
-  double * tr_g, *tr_b, *tr_cdm, *tr_nur;
+  double * tr_g, *tr_b, *tr_cdm, *tr_ur;
 
   double cutoff;
 
@@ -2456,7 +2455,7 @@ int trg_init (
 
   double * pvecback_nl;
   double * Omega_m, * Omega_r, * H, *H_prime;
-  double * rho_g, *rho_b, *rho_cdm, *rho_nur;
+  double * rho_g, *rho_b, *rho_cdm, *rho_ur;
 
   /** Thermodynamical quantities */
 
@@ -2633,7 +2632,7 @@ int trg_init (
   class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
 
   class_calloc(rho_g,  pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(rho_nur,pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(rho_ur,pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(rho_b,  pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(rho_cdm,pnl->eta_size,sizeof(double),pnl->error_message);
 
@@ -2659,13 +2658,13 @@ int trg_init (
 
  /*    if(pnl->has_bc_spectrum == _FALSE_ ) { */
    /*    Omega_r[index_eta] = pvecback_nl[pba->index_bg_rho_g]/pvecback_nl[pba->index_bg_rho_crit]; */
-/*       if (pba->has_nur == _TRUE_) { */
-/* 	Omega_r[index_eta] += pvecback_nl[pba->index_bg_rho_nur]/pvecback_nl[pba->index_bg_rho_crit]; */
+/*       if (pba->has_ur == _TRUE_) { */
+/* 	Omega_r[index_eta] += pvecback_nl[pba->index_bg_rho_ur]/pvecback_nl[pba->index_bg_rho_crit]; */
 /*       } */
  /*    } */
 
     rho_g[index_eta]   = pvecback_nl[pba->index_bg_rho_g];
-    rho_nur[index_eta] = pvecback_nl[pba->index_bg_rho_nur];
+    rho_ur[index_eta] = pvecback_nl[pba->index_bg_rho_ur];
     rho_b[index_eta]   = pvecback_nl[pba->index_bg_rho_b];
     rho_cdm[index_eta] = pvecback_nl[pba->index_bg_rho_cdm];
     
@@ -2679,7 +2678,7 @@ int trg_init (
   /** Definition of the transfert functions for each relevant species, only needed for the b+c spectrum */
 
   class_calloc(tr_g,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-  class_calloc(tr_nur, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(tr_ur, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
   class_calloc(tr_b,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
   class_calloc(tr_cdm, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
 
@@ -2699,7 +2698,7 @@ int trg_init (
 	    pnl->error_message);
 
 	tr_g[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_g];
-	tr_nur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_nur];
+	tr_ur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_ur];
 	tr_b[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_b];
 	tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm];
       }
@@ -2723,7 +2722,7 @@ int trg_init (
     /*   if(pnl->has_bc_spectrum == _TRUE_ ) { */
 	Omega_21[index] = -3./2 * Omega_m[index_eta] * (1. + 
 	    4./3*(rho_g[index_eta]*tr_g[index]+ 
-	      rho_nur[index_eta]*tr_nur[index])
+	      rho_ur[index_eta]*tr_ur[index])
 	    /(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index]));
 	/* The sound speed of baryons has been tested to be negligible at all scale - time of interest here. */
 
@@ -2739,7 +2738,7 @@ int trg_init (
   }
  
   free(tr_g);
-  free(tr_nur);
+  free(tr_ur);
   free(tr_b);
   free(tr_cdm);
 
@@ -2840,7 +2839,7 @@ int trg_init (
   free(Omega_r);
   
   free(rho_g);
-  free(rho_nur);
+  free(rho_ur);
   free(rho_b);
   free(rho_cdm);
 

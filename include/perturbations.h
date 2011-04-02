@@ -134,7 +134,7 @@ struct perturbs
   short has_source_delta_b;   /**< do we need source for delta of baryons? */
   short has_source_delta_cdm; /**< do we need source for delta of cold dark matter? */
   short has_source_delta_de;  /**< do we need source for delta of dark energy? */
-  short has_source_delta_nur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
 
   int index_tp_t; /**< index value for temperature */
@@ -146,7 +146,7 @@ struct perturbs
   int index_tp_delta_b;   /**< index value for delta of baryons */
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
   int index_tp_delta_de;  /**< index value for delta of dark energy */
-  int index_tp_delta_nur; /**< index value for delta of ultra-relativistic neutrinos/relics */
+  int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
   int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
 
@@ -228,11 +228,11 @@ struct perturb_vector
   int index_pt_theta_cdm; /**< cdm velocity */
   int index_pt_delta_de;  /**< dark energy density */
   int index_pt_theta_de;  /**< dark energy velocity */
-  int index_pt_delta_nur; /**< density of ultra-relativistic neutrinos/relics */
-  int index_pt_theta_nur; /**< velocity of ultra-relativistic neutrinos/relics */
-  int index_pt_shear_nur; /**< shear of ultra-relativistic neutrinos/relics */
-  int index_pt_l3_nur;    /**< l=3 of ultra-relativistic neutrinos/relics */
-  int l_max_nur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
+  int index_pt_delta_ur; /**< density of ultra-relativistic neutrinos/relics */
+  int index_pt_theta_ur; /**< velocity of ultra-relativistic neutrinos/relics */
+  int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
+  int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
+  int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
   int index_pt_psi0_ncdm1;
   int N_ncdm;
   int* l_max_ncdm;
@@ -318,8 +318,8 @@ struct perturb_workspace
   double tca_shear_g_prime; /**< photon shear derivative in tight-coupling approximation */
   double rsa_delta_g; /**< photon density in radiation streaming approximation */
   double rsa_theta_g; /**< photon velocity in radiation streaming approximation */
-  double rsa_delta_nur; /**< photon density in radiation streaming approximation */
-  double rsa_theta_nur; /**< photon velocity in radiation streaming approximation */
+  double rsa_delta_ur; /**< photon density in radiation streaming approximation */
+  double rsa_theta_ur; /**< photon velocity in radiation streaming approximation */
 
   double * delta_ncdm;
   double theta_ncdm1;
@@ -355,7 +355,7 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_nfa; /**< index for nur fluid approximation */  
+  int index_ap_nfa; /**< index for ur fluid approximation */  
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
 
