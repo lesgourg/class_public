@@ -2430,7 +2430,7 @@ int trg_init (
   /** Time (t or eta) quantities */
 
   int index_eta;
-  int index_cut;
+  /*int index_cut;*/
 
   int index;  
   int index_plus; 
@@ -2529,6 +2529,9 @@ int trg_init (
   eta_max = log(pba->a_today/a_ini);
 
   /** define size and step for integration in eta, at any time now, a = a_ini * exp(eta) and z=exp(eta)-1 */
+  
+  //for the PCA integrator
+  pnl->eta_size*=2;
 
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
 
@@ -2585,18 +2588,27 @@ int trg_init (
    * It is optimized to work with a eta_size of 101, keep that in mind if you try to change the
    * values.*/
    
-  for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {
-    index_cut = (int)((pnl->eta_size-1)*0.1);
-    if(index_eta<=index_cut)
-      pnl->eta[index_eta]= index_eta*pnl->eta_step*5.;
-    else
-      pnl->eta[index_eta]= pnl->eta[index_cut]+(index_eta-index_cut)*pnl->eta_step*5./9.;
- /*    pnl->eta[index_eta]= index_eta*pnl->eta_step; */
-    pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;
-     if(pnl->z[index_eta]<0) {
+  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {*/
+    /*index_cut = (int)((pnl->eta_size-1)*0.1);*/
+    /*if(index_eta<=index_cut)*/
+      /*pnl->eta[index_eta]= index_eta*pnl->eta_step*5.;*/
+    /*else*/
+      /*pnl->eta[index_eta]= pnl->eta[index_cut]+(index_eta-index_cut)*pnl->eta_step*5./9.;*/
+ /*[>    pnl->eta[index_eta]= index_eta*pnl->eta_step; <]*/
+    /*pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;*/
+     /*if(pnl->z[index_eta]<0) {*/
+      /*pnl->z[index_eta]=0;*/
+    /*}*/
+   /*}*/
+
+  for(index_eta=0;index_eta<pnl->eta_size; index_eta++){
+    pnl->eta[index_eta]=index_eta*pnl->eta_step;
+    pnl->z[index_eta]= exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;
+    if(pnl->z[index_eta]<0){
       pnl->z[index_eta]=0;
     }
-   }
+  }
+
 
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> starting calculation at redshift z = %2.2f\n",pnl->z[0]);
@@ -2975,6 +2987,9 @@ int trg_init (
    * first the new power spectra are computed (and pnl->double_escape points are dropped)
    * then the AA functions are updated (for 1-loop method, they are just copied from last step) (and pnl->double_escape points are dropped)
    */
+  
+  double time_step;
+  int index_int;
 
   if (pnl->spectra_nl_verbose > 1){	
     printf(" -> progression:\n");}
@@ -2982,37 +2997,38 @@ int trg_init (
   time_1=time(NULL);
   time_2=time(NULL);
  
-  for (index_eta=1; index_eta<pnl->eta_size; index_eta++){
-    exp_eta=exp(pnl->eta[index_eta-1]);
+  for (index_eta=2; index_eta<pnl->eta_size; index_eta+=2){
+    exp_eta=exp(pnl->eta[index_eta-2]);
+    time_step=pnl->eta[index_eta-1]-pnl->eta[index_eta-2];
 
-    if(pnl->k_size-pnl->double_escape*2*index_eta < 2){
+    if(pnl->k_size-pnl->double_escape*2*(index_eta)/2 < 2){
       printf("  --> Wrong choice of double escape and eta_size parameters\n  --> Stopped at %d, z=%2.2e Try Again\n",index_eta, pnl->z[index_eta]);
       return _FAILURE_;
     }
 
-    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*index_eta; index_k++){
+    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/2; index_k++){
 
       /* Some useful intermediate variables */
 
       fourpi_over_k=4*_PI_/(pnl->k[index_k]);
-      index = index_k+pnl->k_size*(index_eta-1);
-      index_plus = index_k+pnl->k_size*index_eta;
+      index = index_k+pnl->k_size*(index_eta-2);
+      index_plus = index_k+pnl->k_size*(index_eta-1);
 
      /* For each k, compute the power spectra and bispectra (through ai) at the new time */
 
-      pnl->p_11_nl[index_plus]= (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      pnl->p_11_nl[index_plus]= (time_step) *(
 					 -2*Omega_11*pnl->p_11_nl[index]
 					 -2*Omega_12*pnl->p_12_nl[index]
 					 +exp_eta*4*fourpi_over_k*a22[index] )
 	+ pnl->p_11_nl[index];
 
-      pnl->p_22_nl[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      pnl->p_22_nl[index_plus] = (time_step) *(
 					    -2*Omega_22[index]*pnl->p_22_nl[index]
 					    -2*Omega_21[index]*pnl->p_12_nl[index]
 					    +exp_eta*2*fourpi_over_k*b3[index] )
 	+ pnl->p_22_nl[index];
 
-      pnl->p_12_nl[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      pnl->p_12_nl[index_plus] = (time_step) *(
 					    -pnl->p_12_nl[index]*(Omega_11+Omega_22[index])
 					    -Omega_12*pnl->p_22_nl[index]
 					    -Omega_21[index]*pnl->p_11_nl[index]
@@ -3020,95 +3036,95 @@ int trg_init (
 	+ pnl->p_12_nl[index];
 
 
-      a0[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a0[index_plus]         = (time_step) *(
 					  -Omega_21[index]*(a11[index]+a12[index]+a13[index])
 					  -3*Omega_22[index]*a0[index]
 					  +2*exp_eta*AA[_A0_][index])
 	+ a0[index];
 
-      a11[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a11[index_plus]        = (time_step) *(
 					  -a11[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index]*(a22[index]+a23[index])
 					  +2*exp_eta*AA[_A11_][index])
 	+ a11[index];
 
-      a12[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a12[index_plus]        = (time_step) *(
 					  -a12[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_21[index]*(a23[index]+a21[index])
 					  -Omega_12*a0[index]
 					  +2*exp_eta*AA[_A12_][index])
 	+ a12[index];
 
-      a13[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a13[index_plus]        = (time_step) *(
 					  -a13[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_12*a0[index]
 					  -Omega_21[index]*(a22[index]+a21[index])
 					  +2*exp_eta*AA[_A13_][index])
 	+ a13[index];
 
-      a21[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a21[index_plus]        = (time_step) *(
 					  -a21[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a12[index]+a13[index])
 					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A21_][index])
 	+ a21[index];
 
-      a22[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a22[index_plus]        = (time_step) *(
 					  -a22[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a13[index]+a11[index])
 					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A22_][index])
 	+ a22[index];
 
-      a23[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a23[index_plus]        = (time_step) *(
 					  -a23[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(a12[index]+a11[index])
 					  -Omega_21[index]*a3[index]
 					  +2*exp_eta*AA[_A23_][index])
 	+ a23[index];
 
-      a3[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      a3[index_plus]         = (time_step) *(
 					  -a3[index]*3*Omega_11
 					  -Omega_12*(a22[index]+a21[index]+a23[index])
 					  +2*exp_eta*AA[_A3_][index])
 	+ a3[index];
 
-      b0[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      b0[index_plus]         = (time_step) *(
 					  -3*b0[index]*Omega_11
 					  -Omega_12*(b11[index]+2*b12[index])
 					  +2*exp_eta*AA[_B0_][index])
 	+ b0[index];
 
-      b11[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      b11[index_plus]        = (time_step) *(
 					  -b11[index]*(2*Omega_11+Omega_22[index])
 					  -2*Omega_12*b22[index]
 					  -Omega_21[index]*b0[index]
 					  +2*exp_eta*AA[_B11_][index])
 	+ b11[index];
 
-      b12[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      b12[index_plus]        = (time_step) *(
 					  -b12[index]*(2*Omega_11+Omega_22[index])
 					  -Omega_12*(b22[index]+b21[index])
 					  -Omega_21[index]*b0[index]
 					  +2*exp_eta*AA[_B12_][index])
 	+ b12[index];
 
-      b21[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      b21[index_plus]        = (time_step) *(
 					  -b21[index]*(2*Omega_22[index]+Omega_11)
 					  -2*Omega_21[index]*b12[index]
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B21_][index])
 	+ b21[index];
 
-      b22[index_plus]        = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      b22[index_plus]        = (time_step) *(
 					  -b22[index]*(2*Omega_22[index]+Omega_11)
 					  -Omega_21[index]*(b12[index]+b11[index])
 					  -Omega_12*b3[index]
 					  +2*exp_eta*AA[_B22_][index])
 	+ b22[index];
 
-      b3[index_plus]         = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      b3[index_plus]         = (time_step) *(
 					  -3*Omega_22[index]*b3[index]
 					  -Omega_21[index]*(b21[index]+2*b22[index])
 					  +2*exp_eta*AA[_B3_][index])
@@ -3116,19 +3132,19 @@ int trg_init (
 	
       /* The linear quantities are followed through this simplified integrator, for reference */
 
-      p_11_linear[index_plus]= (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      p_11_linear[index_plus]= (time_step) *(
 					  -2*Omega_11*p_11_linear[index]
 					  -2*Omega_12*p_12_linear[index]
 					  )
 	+ p_11_linear[index];
 
-      p_22_linear[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      p_22_linear[index_plus] = (time_step) *(
 					   -2*Omega_22[index]*p_22_linear[index]
 					   -2*Omega_21[index]*p_12_linear[index]
 					   )
 	+ p_22_linear[index];
 
-      p_12_linear[index_plus] = (pnl->eta[index_eta]-pnl->eta[index_eta-1]) *(
+      p_12_linear[index_plus] = (time_step) *(
 					   -p_12_linear[index]*(Omega_11+Omega_22[index])
 					   -Omega_12*p_22_linear[index]
 					   -Omega_21[index]*p_11_linear[index]
@@ -3139,7 +3155,7 @@ int trg_init (
     /** Update of second derivatives for interpolation, only in TRG mode */
 
     if(pnl->mode==2){
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*index_eta,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
 						  pnl->p_11_nl,
 						  pnl->eta_size,index_eta,
 						  pnl->ddp_11_nl,
@@ -3147,7 +3163,7 @@ int trg_init (
 		 pnl->error_message,
 		 pnl->error_message);
 
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*index_eta,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
 						  pnl->p_12_nl,
 						  pnl->eta_size,index_eta,
 						  pnl->ddp_12_nl,
@@ -3155,7 +3171,7 @@ int trg_init (
 		 pnl->error_message,
 		 pnl->error_message);
 
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*index_eta,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
 						  pnl->p_22_nl,
 						  pnl->eta_size,index_eta,
 						  pnl->ddp_22_nl,
@@ -3166,12 +3182,241 @@ int trg_init (
 
     /** Update of AA's at the new time (for 1-loop, copy the previous values) */
 
-    if(pnl->mode==1){ 
-      for (index_name=0; index_name<name_size; index_name++){ 
-	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*index_eta; index_k++){ 
-	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)];} 
-      } 
-    } 
+    if(pnl->mode==1){
+      for (index_name=0; index_name<name_size; index_name++){
+	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*index_eta; index_k++){
+	  AA[index_name][index_k+pnl->k_size*(index_eta-1)]=AA[index_name][index_k+pnl->k_size*(index_eta-2)];}
+      }
+    }
+    
+    else if(pnl->mode == 2){
+
+      /* initialize error management flag */
+      abort = _FALSE_;
+
+      /*** beginning of parallel region ***/
+
+#pragma omp parallel							\
+      shared(name_size,abort,pba,ppm,psp,pnl,index_eta,AA)		\
+      private(tstart,index_name,tstop)
+
+      {
+
+#ifdef _OPENMP
+	tstart = omp_get_wtime();
+#endif
+
+#pragma omp for schedule (dynamic)
+	for (index_name=0; index_name<name_size; index_name++) {
+
+#pragma omp flush(abort)
+
+	  class_call_parallel(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,index_name,index_eta,AA[index_name]),
+	      pnl->error_message,
+	      pnl->error_message);
+	}
+
+
+#ifdef _OPENMP
+	tstop = omp_get_wtime();
+	if ((pnl->spectra_nl_verbose > 2) && (pnl->mode > 1))
+	  printf("In %s: time spent in parallel region (loop over names) = %e s for thread %d\n",
+	      __func__,tstop-tstart,omp_get_thread_num());
+#endif
+
+      } /* end of parallel region */
+
+      if (abort == _TRUE_) return _FAILURE_;
+
+    }
+
+    //CORRECTOR
+    exp_eta=exp(pnl->eta[index_eta-1]);
+    time_step=pnl->eta[index_eta]-pnl->eta[index_eta-2];
+
+    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/2; index_k++){
+
+      /* Some useful intermediate variables */
+
+      fourpi_over_k=4*_PI_/(pnl->k[index_k]);
+      index_int= index_k+pnl->k_size*(index_eta-2);
+      index = index_k+pnl->k_size*(index_eta-1);
+      index_plus = index_k+pnl->k_size*index_eta;
+
+     /* For each k, compute the power spectra and bispectra (through ai) at the new time */
+
+      pnl->p_11_nl[index_plus]= (time_step) *(
+					 -2*Omega_11*pnl->p_11_nl[index]
+					 -2*Omega_12*pnl->p_12_nl[index]
+					 +exp_eta*4*fourpi_over_k*a22[index] )
+	+ pnl->p_11_nl[index_int];
+
+      pnl->p_22_nl[index_plus] = (time_step) *(
+					    -2*Omega_22[index]*pnl->p_22_nl[index]
+					    -2*Omega_21[index]*pnl->p_12_nl[index]
+					    +exp_eta*2*fourpi_over_k*b3[index] )
+	+ pnl->p_22_nl[index_int];
+
+      pnl->p_12_nl[index_plus] = (time_step) *(
+					    -pnl->p_12_nl[index]*(Omega_11+Omega_22[index])
+					    -Omega_12*pnl->p_22_nl[index]
+					    -Omega_21[index]*pnl->p_11_nl[index]
+					    +exp_eta*fourpi_over_k*(2*a13[index]+b21[index]))
+	+ pnl->p_12_nl[index_int];
+
+
+      a0[index_plus]         = (time_step) *(
+					  -Omega_21[index]*(a11[index]+a12[index]+a13[index])
+					  -3*Omega_22[index]*a0[index]
+					  +2*exp_eta*AA[_A0_][index])
+	+ a0[index_int];
+
+      a11[index_plus]        = (time_step) *(
+					  -a11[index]*(2*Omega_22[index]+Omega_11)
+					  -Omega_12*a0[index]
+					  -Omega_21[index]*(a22[index]+a23[index])
+					  +2*exp_eta*AA[_A11_][index])
+	+ a11[index_int];
+
+      a12[index_plus]        = (time_step) *(
+					  -a12[index]*(2*Omega_22[index]+Omega_11)
+					  -Omega_21[index]*(a23[index]+a21[index])
+					  -Omega_12*a0[index]
+					  +2*exp_eta*AA[_A12_][index])
+	+ a12[index_int];
+
+      a13[index_plus]        = (time_step) *(
+					  -a13[index]*(2*Omega_22[index]+Omega_11)
+					  -Omega_12*a0[index]
+					  -Omega_21[index]*(a22[index]+a21[index])
+					  +2*exp_eta*AA[_A13_][index])
+	+ a13[index_int];
+
+      a21[index_plus]        = (time_step) *(
+					  -a21[index]*(2*Omega_11+Omega_22[index])
+					  -Omega_12*(a12[index]+a13[index])
+					  -Omega_21[index]*a3[index]
+					  +2*exp_eta*AA[_A21_][index])
+	+ a21[index_int];
+
+      a22[index_plus]        = (time_step) *(
+					  -a22[index]*(2*Omega_11+Omega_22[index])
+					  -Omega_12*(a13[index]+a11[index])
+					  -Omega_21[index]*a3[index]
+					  +2*exp_eta*AA[_A22_][index])
+	+ a22[index_int];
+
+      a23[index_plus]        = (time_step) *(
+					  -a23[index]*(2*Omega_11+Omega_22[index])
+					  -Omega_12*(a12[index]+a11[index])
+					  -Omega_21[index]*a3[index]
+					  +2*exp_eta*AA[_A23_][index])
+	+ a23[index_int];
+
+      a3[index_plus]         = (time_step) *(
+					  -a3[index]*3*Omega_11
+					  -Omega_12*(a22[index]+a21[index]+a23[index])
+					  +2*exp_eta*AA[_A3_][index])
+	+ a3[index_int];
+
+      b0[index_plus]         = (time_step) *(
+					  -3*b0[index]*Omega_11
+					  -Omega_12*(b11[index]+2*b12[index])
+					  +2*exp_eta*AA[_B0_][index])
+	+ b0[index_int];
+
+      b11[index_plus]        = (time_step) *(
+					  -b11[index]*(2*Omega_11+Omega_22[index])
+					  -2*Omega_12*b22[index]
+					  -Omega_21[index]*b0[index]
+					  +2*exp_eta*AA[_B11_][index])
+	+ b11[index_int];
+
+      b12[index_plus]        = (time_step) *(
+					  -b12[index]*(2*Omega_11+Omega_22[index])
+					  -Omega_12*(b22[index]+b21[index])
+					  -Omega_21[index]*b0[index]
+					  +2*exp_eta*AA[_B12_][index])
+	+ b12[index_int];
+
+      b21[index_plus]        = (time_step) *(
+					  -b21[index]*(2*Omega_22[index]+Omega_11)
+					  -2*Omega_21[index]*b12[index]
+					  -Omega_12*b3[index]
+					  +2*exp_eta*AA[_B21_][index])
+	+ b21[index_int];
+
+      b22[index_plus]        = (time_step) *(
+					  -b22[index]*(2*Omega_22[index]+Omega_11)
+					  -Omega_21[index]*(b12[index]+b11[index])
+					  -Omega_12*b3[index]
+					  +2*exp_eta*AA[_B22_][index])
+	+ b22[index_int];
+
+      b3[index_plus]         = (time_step) *(
+					  -3*Omega_22[index]*b3[index]
+					  -Omega_21[index]*(b21[index]+2*b22[index])
+					  +2*exp_eta*AA[_B3_][index])
+	+ b3[index_int];
+	
+      /* The linear quantities are followed through this simplified integrator, for reference */
+
+      p_11_linear[index_plus]= (time_step) *(
+					  -2*Omega_11*p_11_linear[index]
+					  -2*Omega_12*p_12_linear[index]
+					  )
+	+ p_11_linear[index_int];
+
+      p_22_linear[index_plus] = (time_step) *(
+					   -2*Omega_22[index]*p_22_linear[index]
+					   -2*Omega_21[index]*p_12_linear[index]
+					   )
+	+ p_22_linear[index_int];
+
+      p_12_linear[index_plus] = (time_step) *(
+					   -p_12_linear[index]*(Omega_11+Omega_22[index])
+					   -Omega_12*p_22_linear[index]
+					   -Omega_21[index]*p_11_linear[index]
+					   )
+	+ p_12_linear[index_int];
+    }
+
+    /** Update of second derivatives for interpolation, only in TRG mode */
+
+    if(pnl->mode==2){
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+						  pnl->p_11_nl,
+						  pnl->eta_size,index_eta,
+						  pnl->ddp_11_nl,
+						  _SPLINE_NATURAL_,pnl->error_message),
+		 pnl->error_message,
+		 pnl->error_message);
+
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+						  pnl->p_12_nl,
+						  pnl->eta_size,index_eta,
+						  pnl->ddp_12_nl,
+						  _SPLINE_NATURAL_,pnl->error_message),
+		 pnl->error_message,
+		 pnl->error_message);
+
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+						  pnl->p_22_nl,
+						  pnl->eta_size,index_eta,
+						  pnl->ddp_22_nl,
+						  _SPLINE_NATURAL_,pnl->error_message),
+		 pnl->error_message,
+		 pnl->error_message);
+    }
+
+    /** Update of AA's at the new time (for 1-loop, copy the previous values) */
+
+    if(pnl->mode==1){
+      for (index_name=0; index_name<name_size; index_name++){
+	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*index_eta; index_k++){
+	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)];}
+      }
+    }
     
     else if(pnl->mode == 2){
 
@@ -3229,6 +3474,15 @@ int trg_init (
 
   }
 
+  /*******
+   * Try to implement a Predictor Corrector Algo to improve the convergence on the time-integrator.
+   * Idea is:
+   * Suppose a simplified equation d_eta P = A(t,P)
+   * Suppose known at t0 P0 and A(t0,P0)
+   * Then computes P0+1/2=P0+tau/2*A(t0,P0)
+   * then P1=P0+tau*A(t0+1/2,P0+1/2)
+   ******/
+
   if(pnl->spectra_nl_verbose>1) printf("Done in %2.f min\n",difftime(time_2,time_1)/60);
 
   /** End of the computation, beginning of cleaning */
@@ -3236,7 +3490,7 @@ int trg_init (
   /***** TEST ZONE *****/
   /*double r0,r1,r2,r3,r4,r5;*/
 
-  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta++){*/
+  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){*/
     /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[0],pnl->z[index_eta],&r0,junk),*/
 	/*psp->error_message,*/
 	/*pnl->error_message);*/
