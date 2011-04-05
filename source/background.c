@@ -805,38 +805,39 @@ int background_ncdm_distribution(
 	if (n_ncdm==2) to enter something different for the third species. 
 	(n_ncdm = 0 refers to the first species.)*/
     
-         /** If we are using psd parameters, make sure that they have been read:*/
-    class_test(param == NULL,
-	       pba->error_message,
-	       "Analytic expression wants to use 'ncdm_psd_parameters', but they have not been entered!");
-    square_s12=param[0];
-    square_s23=param[1];
-    square_s13=param[2];
+/*     if (n_ncdm < 3){  */
+      
+      /** If we are using psd parameters, make sure that they have been read:*/
+/*       class_test(param == NULL, */
+/* 		 pba->error_message, */
+/* 		 "Analytic expression wants to use 'ncdm_psd_parameters', but they have not been entered!"); */
+/*       square_s12=param[0]; */
+/*       square_s23=param[1]; */
+/*       square_s13=param[2]; */
     
     
-    mixing_matrix[0][0]=pow(fabs(sqrt((1-square_s12)*(1-square_s13))),2);
-    mixing_matrix[0][1]=pow(fabs(sqrt(square_s12*(1-square_s13))),2);
-    mixing_matrix[0][2]=fabs(square_s13);
-    mixing_matrix[1][0]=pow(fabs(sqrt((1-square_s12)*square_s13*square_s23)+sqrt(square_s12*(1-square_s23))),2);
-    mixing_matrix[1][1]=pow(fabs(sqrt(square_s12*square_s23*square_s13)-sqrt((1-square_s12)*(1-square_s23))),2);
-    mixing_matrix[1][2]=pow(fabs(sqrt(square_s23*(1-square_s13))),2);
-    mixing_matrix[2][0]=pow(fabs(sqrt(square_s12*square_s23)-sqrt((1-square_s12)*square_s13*(1-square_s23))),2);
-    mixing_matrix[2][1]=pow(sqrt((1-square_s12)*square_s23)+sqrt(square_s12*square_s13*(1-square_s23)),2);
-    mixing_matrix[2][2]=pow(fabs(sqrt((1-square_s13)*(1-square_s23))),2);
+/*       mixing_matrix[0][0]=pow(fabs(sqrt((1-square_s12)*(1-square_s13))),2); */
+/*       mixing_matrix[0][1]=pow(fabs(sqrt(square_s12*(1-square_s13))),2); */
+/*       mixing_matrix[0][2]=fabs(square_s13); */
+/*       mixing_matrix[1][0]=pow(fabs(sqrt((1-square_s12)*square_s13*square_s23)+sqrt(square_s12*(1-square_s23))),2); */
+/*       mixing_matrix[1][1]=pow(fabs(sqrt(square_s12*square_s23*square_s13)-sqrt((1-square_s12)*(1-square_s23))),2); */
+/*       mixing_matrix[1][2]=pow(fabs(sqrt(square_s23*(1-square_s13))),2); */
+/*       mixing_matrix[2][0]=pow(fabs(sqrt(square_s12*square_s23)-sqrt((1-square_s12)*square_s13*(1-square_s23))),2); */
+/*       mixing_matrix[2][1]=pow(sqrt((1-square_s12)*square_s23)+sqrt(square_s12*square_s13*(1-square_s23)),2); */
+/*       mixing_matrix[2][2]=pow(fabs(sqrt((1-square_s13)*(1-square_s23))),2); */
 
-    if (n_ncdm < 3){ 
-      *f0=0.0;
-      for(i=0;i<3;i++){
+/*       *f0=0.0; */
+/*       for(i=0;i<3;i++){ */
 	
-	*f0 += mixing_matrix[i][n_ncdm]*1.0/pow(2*_PI_,3)*(1./(exp(q-pba->ksi_ncdm[i])+1.) +1./(exp(q+pba->ksi_ncdm[i])+1.));
+/* 	*f0 += mixing_matrix[i][n_ncdm]*1.0/pow(2*_PI_,3)*(1./(exp(q-pba->ksi_ncdm[i])+1.) +1./(exp(q+pba->ksi_ncdm[i])+1.)); */
 	
-      }
-    }
+/*       } */
+/*     } */
     
-    else{
+/*     else{ */
       //FD distribution:
       *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
-    }
+/*     } */
   }
 
   return _SUCCESS_;

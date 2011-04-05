@@ -91,25 +91,25 @@ int main(int argc, char **argv) {
   double * param;
 
   FILE * output;
-  GILE * results;
-  char filename[30];
+  FILE * results;
+  char filename[60];
   char results_name[60];
-  char junk_string[60];
+  char junk_string[120];
   int l_read;
 
 /*******************************/
 
-  param = &(pr.start_small_k_at_eta_g_over_eta_h);
+  param = &(pr.k_scalar_k_per_decade_for_pk);
 
-  parameter_initial=0.001;
+  parameter_initial=10.;
   parameter_logstep=1.2;
 
-  param_num=1;
+  param_num=2;
   ref_run=-1;
 
   /* if ref_run<0, the reference is taken in the following external file: */
 
-  sprintf(filename,"output/REFter_cl.dat");
+  sprintf(filename,"output/cl_ref_cl_lensed.dat");
 
 /*******************************************************/
 
@@ -118,13 +118,14 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  l_max = pt.l_scalar_max;
+  //l_max = pt.l_scalar_max;
+  l_max=3000;
 
   class_alloc(parameter,param_num*sizeof(double),errmsg);
 
   class_calloc(noise,(l_max+1),sizeof(double*),errmsg);
   for (l=2; l <= l_max; l++) {
-    class_calloc(noise[l],3,sizeof(double),errmsg);
+    class_calloc(noise[l],2,sizeof(double),errmsg);
   }
 
 
@@ -138,7 +139,7 @@ int main(int argc, char **argv) {
     for (i=0; i<param_num; i++) {
       class_alloc(cl[i],(l_max+1)*sizeof(double*),errmsg);
       for (l=2; l <= l_max; l++) {
-	class_alloc(cl[i][l],3*sizeof(double),errmsg);
+	class_alloc(cl[i][l],6*sizeof(double),errmsg);
       }
     }
   }
@@ -148,7 +149,7 @@ int main(int argc, char **argv) {
     for (i=0; i<(param_num+1); i++) {
       class_alloc(cl[i],(l_max+1)*sizeof(double*),errmsg);
       for (l=2; l <= l_max; l++) {
-        class_alloc(cl[i][l],3*sizeof(double),errmsg);
+        class_alloc(cl[i][l],6*sizeof(double),errmsg);
       }
     }
 
@@ -157,27 +158,34 @@ int main(int argc, char **argv) {
     /* read file and fill cl[param_num] */
     output = fopen(filename,"r");
     fprintf(stderr,"Read reference in file %s\n",filename);
-    fgets(junk_string,60,output);
+    fgets(junk_string,120,output);
     //    fprintf(stderr,"%s\n",junk_string);
-    fgets(junk_string,60,output);
+    fgets(junk_string,120,output);
     //    fprintf(stderr,"%s\n",junk_string);
-    fgets(junk_string,60,output);
+    fgets(junk_string,120,output);
     //    fprintf(stderr,"%s\n",junk_string);
-    fgets(junk_string,60,output);
+    fgets(junk_string,120,output);
     //    fprintf(stderr,"%s\n",junk_string);
     float cl_read;
     for (l=2; l <= l_max; l++) {
       fscanf(output,"%d",&l_read);
-      //      fprintf(stderr,"%d",l_read);
+      //fprintf(stderr,"%d",l_read);
+
       fscanf(output,"%e",&cl_read);
-      //      fprintf(stderr," %e\n",cl_read);
+      //fprintf(stderr," %e",cl_read);
       cl[ref_run][l][0]=(double)cl_read*2.*_PI_/l/(l+1);
-      //      fprintf(stderr,"%d %e\n",l_read,cl[ref_run][l][sp.index_ct_tt]);
+      //fprintf(stderr,"%d %e\n",l_read,cl[ref_run][l][sp.index_ct_tt]);
+
       fscanf(output,"%e",&cl_read);
+      //fprintf(stderr," %e",cl_read);
       cl[ref_run][l][1]=(double)cl_read*2.*_PI_/l/(l+1);
+
       fscanf(output,"%e",&cl_read);
       cl[ref_run][l][2]=(double)cl_read*2.*_PI_/l/(l+1);
-      //fprintf(stderr," %e %d\n",cl_read,sp.index_ct_te);
+      //fprintf(stderr," %e\n",cl_read);
+
+      fscanf(output,"%e",&cl_read);
+      fscanf(output,"%e",&cl_read);
       fscanf(output,"%e",&cl_read);
       if (l_read != l) {
 	printf("l_read != l: %d %d\n",l_read,l);
@@ -197,11 +205,11 @@ int main(int argc, char **argv) {
 
     parameter[i] = parameter_initial * exp((double)i*log(parameter_logstep));
     
-    *param = parameter[i]; 
-    
-    fprintf(stderr,"#run %d/%d with %g\n",i+1,param_num,parameter[i]);
+    *param = parameter[i];
 
-    /*    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg); */
+    fprintf(stderr,"#run %d/%d with %g=%g\n",i+1,param_num,parameter[i],*param);
+
+    //class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
     class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
     
   }
@@ -417,8 +425,6 @@ int class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  printf("storing cl's\n");
-
   for (l=2; l <= l_max; l++) {
 
     if (output_total_cl_at_l(psp,ple,pop,(double)l,cl[l]) == _FAILURE_) {
@@ -426,9 +432,9 @@ int class_assuming_bessels_computed(
       return _FAILURE_;
     }
 
-  }
+    //fprintf(stderr,"%d %e %e %e\n",l,cl[l][0],cl[l][1],cl[l][2]);
 
-  printf("freeing structures\n");
+  }
 
   /****** done ******/
 
@@ -519,11 +525,15 @@ int chi2_planck(
   for (l=2; l <= lmax; l++) {
 
 /*     if (psp->ct_size == 1) { */
-    if (0==1) {
+    if (0==0) {
 
       *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
 			       (cl1[l][0]+nl[l][0])+
 			       log((cl1[l][0]+nl[l][0])/(cl2[l][0]+nl[l][0]))-1.);
+
+      //fprintf(stderr,"%d %e %e %e\n",l,cl1[l][0],cl1[l][1],cl1[l][2]);
+      //fprintf(stderr,"%d %e %e %e\n",l,cl2[l][0],cl2[l][1],cl2[l][2]);
+      //fprintf(stderr,"%d %e %e\n",l,nl[l][0],nl[l][1]);
 
 /*       *chi2 += fsky*(2.*l+1.)*((cl2[l][0])/ */
 /* 			       (cl1[l][0])+ */
@@ -597,23 +607,26 @@ int noise_planck(
     for (channel=0; channel<num_channel; channel++) {
 
       if (psp->has_tt) {
-	nl[l][psp->index_ct_tt] +=
+	nl[l][0] +=
 	  pow((exp(-l*(l+1.)*theta[channel]*theta[channel]/16./log(2.))
 	       /theta[channel]/deltaT[channel]),2);
       }
       if (psp->has_ee) {
-	nl[l][psp->index_ct_ee] +=
+	nl[l][1] +=
 	  pow((exp(-l*(l+1.)*theta[channel]*theta[channel]/16./log(2.))
 	       /theta[channel]/deltaP[channel]),2);
       }
     }
 
     if (psp->has_tt) {
-      nl[l][psp->index_ct_tt] = 1./nl[l][psp->index_ct_tt];
+      nl[l][0] = 1./nl[l][0];
     }
     if (psp->has_ee) {
-    nl[l][psp->index_ct_ee] = 1./nl[l][psp->index_ct_ee];
+    nl[l][1] = 1./nl[l][1];
     }
+
+    //fprintf(stderr,"%d %e %e\n",l,nl[l][0],nl[l][1]);
+
   }
 
   free(theta);

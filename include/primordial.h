@@ -228,4 +228,16 @@ extern "C" {
 }
 #endif
 
+/**************************************************************/
+
+/**  
+ * @name Some limits imposed on parameter values:
+ */
+
+//@{
+
+#define _K_PER_DECADE_PRIMORDIAL_MIN_ 1.
+
+//@}
+
 #endif

@@ -1797,8 +1797,8 @@ int perturb_solve(
 				  purposes (you'll get many more
 				  points if you use the runge-kutta
 				  integrator, set evolver=rk) */
-			       //NULL,
-			       perturb_print_variables,
+			       NULL,
+			       //perturb_print_variables,
 			       ppt->error_message),
 	       ppt->error_message,
 	       ppt->error_message);
@@ -4808,7 +4808,7 @@ int perturb_derivs(double eta,
   /* For use with non-cold Dark Matter: */
   int index_q,n_ncdm,idx;
   double q,epsilon,dlnf0_dlnq,qk_div_epsilon;
-  double rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm,w_ncdm,cg2_ncdm,cvis2_ncdm;
+  double rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm,w_ncdm,ca2_ncdm,ceff2_ncdm=0.,cvis2_ncdm=0.;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -5378,39 +5378,64 @@ int perturb_derivs(double eta,
 	  p_ncdm_bg = ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
 	  pseudo_p_ncdm = ppw->pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm];
 
+	  /* w is p/rho */
 	  w_ncdm = p_ncdm_bg/rho_ncdm_bg;
-	  cg2_ncdm = w_ncdm*(1.0-1.0/(3.0+3.0*w_ncdm)*(3.0*w_ncdm-2.0+pseudo_p_ncdm/p_ncdm_bg));
-	  cvis2_ncdm = w_ncdm;
+
+	  /* c_a is the adiabatic sound speed */
+	  ca2_ncdm = w_ncdm/3.0/(1.0+w_ncdm)*(5.0-pseudo_p_ncdm/p_ncdm_bg);
+
+	  /* c_eff is (delta p / delta rho) in the gauge under
+	     consideration (not in the gauge comoving with the
+	     fluid) */
+	  
+	  /* c_vis is introduced in order to close the system */
 	  
 	  if (ppr->gauge == newtonian) { 
 	  
 	  }
 	  if (ppr->gauge == synchronous) {
 	    
+	    /* different ansatz for sound speed c)_eff and viscosity speed c_vis */
+	    if (ppr->ncdm_fluid_approximation == ncdmfa_mb) {
+	       ceff2_ncdm = ca2_ncdm;
+	       cvis2_ncdm = 3.*w_ncdm*ca2_ncdm;
+	    }
+	    if (ppr->ncdm_fluid_approximation == ncdmfa_hu) {
+	       ceff2_ncdm = ca2_ncdm;
+	       cvis2_ncdm = w_ncdm;
+	    }
+	    if (ppr->ncdm_fluid_approximation == ncdmfa_CLASS) {
+	       ceff2_ncdm = ca2_ncdm;
+	       cvis2_ncdm = 3.*w_ncdm*ca2_ncdm;
+	    }
+
+	    /* exact continuity equation */
 	    dy[idx] = -(1.0+w_ncdm)*(y[idx+1]+0.5*pvecmetric[ppw->index_mt_h_prime])-
-	      3.0*a_prime_over_a*(cg2_ncdm-w_ncdm)*y[idx];
+	      3.0*a_prime_over_a*(ceff2_ncdm-w_ncdm)*y[idx];
 	    
-	    dy[idx+1] = -a_prime_over_a*(1.0-3.0*cg2_ncdm)*y[idx+1]+
-	      cg2_ncdm/(1.0+w_ncdm)*k2*y[idx]-k2*y[idx+2];
+	    /* exact euler equation */
+	    dy[idx+1] = -a_prime_over_a*(1.0-3.0*ca2_ncdm)*y[idx+1]+
+	      ceff2_ncdm/(1.0+w_ncdm)*k2*y[idx]-k2*y[idx+2];
 	 
+	    /* different ansatz for approximate shear derivative */
 	    if (ppr->ncdm_fluid_approximation == ncdmfa_mb) {
 
-	      dy[idx+2] = -3.0/eta*cg2_ncdm/w_ncdm*y[idx+2]+4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*
-		(2.0*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]+6.0*pvecmetric[ppw->index_mt_eta_prime]);
+	      dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./eta)*y[idx+2]
+		+4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(2.0*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]+6.0*pvecmetric[ppw->index_mt_eta_prime]);
 	    
 	    }
 	
 	    if (ppr->ncdm_fluid_approximation == ncdmfa_hu) {
 
-	      dy[idx+2] = -3.0*a_prime_over_a*cg2_ncdm/w_ncdm*y[idx+2]+4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*
-		(2.0*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]+6.0*pvecmetric[ppw->index_mt_eta_prime]);
+	      dy[idx+2] = -3.0*a_prime_over_a*ca2_ncdm/w_ncdm*y[idx+2]
+		+4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(2.0*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]+6.0*pvecmetric[ppw->index_mt_eta_prime]);
 	    
 	    }
 	    
 	    if (ppr->ncdm_fluid_approximation == ncdmfa_CLASS) {
 
-	      dy[idx+2] = -3.0/eta*cg2_ncdm/w_ncdm*y[idx+2]+4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*
-		(2.0*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]);
+	      dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./eta)*y[idx+2]
+		+4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(2.0*y[idx+1]+pvecmetric[ppw->index_mt_h_prime]);
 	    
 	    }
 	  }

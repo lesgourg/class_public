@@ -236,6 +236,11 @@ int primordial_init(
 	     ppm->error_message,
 	     "k_per_decade_primordial negative or null: stop to avoid segmentation fault");
 
+  class_test(ppr->k_per_decade_primordial <= _K_PER_DECADE_PRIMORDIAL_MIN_,
+	     ppm->error_message,
+	     "k_per_decade_primordial = %e: you ask for such a sparse sampling of the primordial spectrum that this is probably a mistake",
+	     ppr->k_per_decade_primordial);
+
   /** - allocate and fill values of lnk's */
 
   class_call(primordial_get_lnk_list(ppm,
