@@ -62,13 +62,13 @@ k_scalar_step_super=0.0001 # was 0.0005
 k_scalar_step_transition=0.2 # was 0.2
 
 start_small_k_at_eta_g_over_eta_h = 0.0004
-start_large_k_at_eta_h_over_eta_k = 0.15
+start_large_k_at_eta_h_over_eta_k = 0.05 # changed from 0.15 to 0.05 on 6.04.11
 tight_coupling_trigger_eta_g_over_eta_h=0.005
 tight_coupling_trigger_eta_g_over_eta_k=0.008
 start_sources_at_eta_g_over_eta_h = 0.006
 tight_coupling_approximation=5 #(int)second_order_CRS;
 
-l_max_g=25
+l_max_g=50 # changed from 25 to 50 on 6.04.11
 l_max_pol_g=25
 l_max_ur=50
 l_max_ncdm=50

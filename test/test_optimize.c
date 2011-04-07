@@ -99,12 +99,12 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-  param = &(pr.k_scalar_k_per_decade_for_pk);
+  param = &(pr.tol_perturb_integration);
 
-  parameter_initial=10.;
-  parameter_logstep=1.2;
+  parameter_initial=1.e-2;
+  parameter_logstep=sqrt(10.);
 
-  param_num=2;
+  param_num=1;
   ref_run=-1;
 
   /* if ref_run<0, the reference is taken in the following external file: */
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
 
     /* read file and fill cl[param_num] */
     output = fopen(filename,"r");
-    fprintf(stderr,"Read reference in file %s\n",filename);
+    fprintf(stderr,"Read reference Cls in file %s\n",filename);
     fgets(junk_string,120,output);
     //    fprintf(stderr,"%s\n",junk_string);
     fgets(junk_string,120,output);
@@ -193,13 +193,14 @@ int main(int argc, char **argv) {
     }
 
     fclose(output);
+
   }
 
 
-  if (bessel_init(&pr,&bs) == _FAILURE_) {
-    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
+  /* if (bessel_init(&pr,&bs) == _FAILURE_) { */
+/*     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message); */
+/*     return _FAILURE_; */
+/*   } */
 
   for (i=0; i<param_num; i++) {
 
@@ -207,17 +208,17 @@ int main(int argc, char **argv) {
     
     *param = parameter[i];
 
-    fprintf(stderr,"#run %d/%d with %g=%g\n",i+1,param_num,parameter[i],*param);
+    fprintf(stderr,"#run %d/%d with %g\n",i+1,param_num,*param);
 
-    //class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
-    class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
+    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
+    //class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
     
   }
 
-  if (bessel_free(&bs) == _FAILURE_)  {
-    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
+  /* if (bessel_free(&bs) == _FAILURE_)  { */
+/*     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message); */
+/*     return _FAILURE_; */
+/*   } */
 
   noise_planck(&ba,&th,&sp,noise,l_max);
 
@@ -225,8 +226,8 @@ int main(int argc, char **argv) {
    
     chi2_planck(&sp,cl[i],cl[ref_run],noise,l_max,&chi2);
 
-    if (chi2>0.1) {
-      fprintf(stderr,"parameter=%e BAD: chi2=%2g \n",
+    if (chi2>1.) {
+      fprintf(stderr,"parameter=%e BAD: chi2=%e \n",
 	      parameter[i],chi2);
     }
     else {
@@ -525,7 +526,7 @@ int chi2_planck(
   for (l=2; l <= lmax; l++) {
 
 /*     if (psp->ct_size == 1) { */
-    if (0==0) {
+    if (0==1) {
 
       *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
 			       (cl1[l][0]+nl[l][0])+
@@ -554,7 +555,7 @@ int chi2_planck(
       clEE_obs = cl2[l][psp->index_ct_ee]+nl[l][psp->index_ct_ee];
       clTE_obs = cl2[l][psp->index_ct_te];
 
-      printf("%e %e %e %e %e %e\n",clTT_th,clTT_obs,clEE_th,clEE_obs,clTE_th,clTE_obs);
+      //printf("%e %e %e %e %e %e\n",clTT_th,clTT_obs,clEE_th,clEE_obs,clTE_th,clTE_obs);
 
       det_mixed = 0.5*(clTT_th*clEE_obs+clTT_obs*clEE_th)-clTE_th*clTE_obs;
 
