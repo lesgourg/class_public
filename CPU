@@ -69,15 +69,20 @@ def error_number_of_files():
   exit()
 ####################################
 
+def printstring(names):
+  print_file=names[0].rstrip(".dat")
+  print_file+=".eps"
+  print_string="set term 'postscript'\nset output '{0}'\nreplot".format(print_file)
+  print '{0} has been generated'.format(print_file)
+  return print_string
+
+
 def headers_plot_file(spectrum_type,names,plot_line,term):
   tmp=open(names[0],"r")
 
   # printing option
-  if args.printfile is True:
-    print_file=names[0].rstrip(".dat")
-    print_file+=".eps"
-    print_string="set term 'postscript'\nset output '{0}'\nreplot".format(print_file)
-    print '{0} has been generated'.format(print_file)
+  if ((args.printfile is True) and (plot_line is not False)):
+    print_string=printstring(names)
   else:
     print_string=""
   
@@ -289,6 +294,9 @@ def blend_against_interp(names,spectrum_type,term):
   plot_string=plot_string.rstrip(",")
   plot_string=plot_string+"\n"
   plotfile.write(plot_string)
+
+  if (args.printfile is True):
+    plotfile.write(printstring(names))
 
   plotfile.close()
   _plot(gnuplot_file)
