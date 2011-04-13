@@ -99,10 +99,10 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-  param = &(pr.tol_perturb_integration);
+  param = &(pr.reionization_start_factor);
 
-  parameter_initial=1.e-2;
-  parameter_logstep=sqrt(10.);
+  parameter_initial=8.;
+  parameter_logstep=2.;
 
   param_num=1;
   ref_run=-1;

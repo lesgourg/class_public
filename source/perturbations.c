@@ -2448,16 +2448,18 @@ int perturb_vector_init(
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
-      ppv->used_in_sources[ppv->index_pt_l3_g]=_FALSE_;
+      /* we don't need temperature multipoles above l=2 (but they are
+	 defined only when rsa and tca are off) */
 
-      for (index_pt=ppv->index_pt_l3_g+1; index_pt <= ppv->index_pt_delta_g+ppv->l_max_g; index_pt++)
+      for (index_pt=ppv->index_pt_l3_g; index_pt <= ppv->index_pt_delta_g+ppv->l_max_g; index_pt++)
 	ppv->used_in_sources[index_pt]=_FALSE_;
+
+     /* for polarisation, we only need l=0,2 (but l =1,3, ... are
+	defined only when rsa and tca are off) */
 
       ppv->used_in_sources[ppv->index_pt_pol1_g]=_FALSE_;
 
-      ppv->used_in_sources[ppv->index_pt_pol3_g]=_FALSE_;
-
-      for (index_pt=ppv->index_pt_pol3_g+1; index_pt <= ppv->index_pt_pol0_g+ppv->l_max_pol_g; index_pt++)
+      for (index_pt=ppv->index_pt_pol3_g; index_pt <= ppv->index_pt_pol0_g+ppv->l_max_pol_g; index_pt++)
 	ppv->used_in_sources[index_pt]=_FALSE_;
 
     }
@@ -2468,15 +2470,12 @@ int perturb_vector_init(
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
-      ppv->used_in_sources[ppv->index_pt_theta_ur]=_FALSE_;
-      
-      ppv->used_in_sources[ppv->index_pt_shear_ur]=_FALSE_;
-
       if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
-	
-	ppv->used_in_sources[ppv->index_pt_l3_ur]=_FALSE_;
-	
-	for (index_pt=ppv->index_pt_l3_ur+1; index_pt <= ppv->index_pt_delta_ur+ppv->l_max_ur; index_pt++)
+		
+      /* we don't need ur multipoles above l=2 (but they are
+	 defined only when rsa and nfa are off) */
+
+	for (index_pt=ppv->index_pt_l3_ur; index_pt <= ppv->index_pt_delta_ur+ppv->l_max_ur; index_pt++)
 	  ppv->used_in_sources[index_pt]=_FALSE_;
 	
       }
@@ -2485,18 +2484,18 @@ int perturb_vector_init(
   
   if (pba->has_ncdm == _TRUE_) {
 
-    //if (ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_off){
+    /* we don't need ncdm multipoles above l=2 (but they are
+       defined only when ncdmfa is off) */
+
     index_pt = ppv->index_pt_psi0_ncdm1;
     for(n_ncdm = 0; n_ncdm < ppv-> N_ncdm; n_ncdm++){
       for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
 	for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
-	  if (l>0) ppv->used_in_sources[index_pt]=_FALSE_;
+	  if (l>2) ppv->used_in_sources[index_pt]=_FALSE_;
 	  index_pt++;
 	}
       }
     }
-    //}
-
   }
 
   /** - case of setting initial conditions for a new wavenumber */
