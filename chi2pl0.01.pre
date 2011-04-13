@@ -5,7 +5,7 @@
 a_ini_over_a_today_default = 1.e-14
 back_integration_stepsize = 7.e-3
 tol_background_integration = 1.e-2
-tol_ncdm_bg = 1.e-8
+tol_ncdm_bg = 1.e-10
 
 recfast_z_initial=1.e4
 
@@ -87,7 +87,7 @@ ur_fluid_trigger_eta_h_over_eta_k = 30.
 ncdm_fluid_approximation = 3
 ncdm_fluid_trigger_eta_h_over_eta_k = 50.
 
-tol_ncdm = 1.e-6
+tol_ncdm = 1.e-10
 
 l_logstep=1.08
 l_linstep=25
