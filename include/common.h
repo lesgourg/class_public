@@ -283,8 +283,8 @@ struct precision
   double a_ini_over_a_today_default; 
 
   /** 
-   * default step d eta in background integration, in units of 
-   * conformal Hubble time (\f$ d eta \f$ = back_integration_stepsize / aH )
+   * default step d tau in background integration, in units of 
+   * conformal Hubble time (\f$ d tau \f$ = back_integration_stepsize / aH )
    */
   double back_integration_stepsize; 
 
@@ -413,9 +413,9 @@ struct precision
 
   enum pk_def pk_definition;
 
-  double k_scalar_min_eta0; /**< number defining k_min for the computation of scalar Cl's and P(k)'s (dimensionless): (k_min eta_0), usually chosen much smaller than one */
+  double k_scalar_min_tau0; /**< number defining k_min for the computation of scalar Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
-  double k_scalar_max_eta0_over_l_max; /**< number defining k_max for the computation of scalar Cl's (dimensionless): (k_max eta_0)/l_max, usually chosen around two */
+  double k_scalar_max_tau0_over_l_max; /**< number defining k_max for the computation of scalar Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
 
   double k_scalar_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
   double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
@@ -432,29 +432,29 @@ struct precision
   double k_tensor_step_super; /**< step in k space, in units of one period of oscillation at decoupling, for scales above horizon at decoupling (tensor modes) */  
   double k_tensor_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. (tensor modes) */
 
-  double start_small_k_at_eta_g_over_eta_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_H \f$. Start when start_largek_at_eta_g_over_eta_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
+  double start_small_k_at_tau_g_over_tau_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_g/\tau_H \f$. Start when start_largek_at_tau_g_over_tau_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
 
-  double start_large_k_at_eta_h_over_eta_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hibble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \eta_h/\eta_k \f$ wich is roughly equal to (k*eta). Start when this ratio equals start_large_k_at_eta_k_over_eta_h. Decrease this value to start integrating the wavenumbers earlier in time. */
+  double start_large_k_at_tau_h_over_tau_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hibble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ wich is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
   /**
    * when to switch off tight-coupling approximation: first condition:
-   * \f$ \eta_g/\eta_H \f$ > tight_coupling_trigger_eta_g_over_eta_h.
+   * \f$ \tau_g/\tau_H \f$ > tight_coupling_trigger_tau_g_over_tau_h.
    * Decrease this value to switch off earlier in time.  If this
-   * number is larger than start_sources_at_eta_g_over_eta_h, the code
+   * number is larger than start_sources_at_tau_g_over_tau_h, the code
    * returns an error, because the source computation requires
    * tight-coupling to be switched off.
    */
-  double tight_coupling_trigger_eta_g_over_eta_h;
+  double tight_coupling_trigger_tau_g_over_tau_h;
 
   /**
    * when to switch off tight-coupling approximation:
-   * second condition: \f$ \eta_g/\eta_k \equiv k \eta_g \f$ <
-   * tight_coupling_trigger_eta_g_over_eta_k.
+   * second condition: \f$ \tau_g/\tau_k \equiv k \tau_g \f$ <
+   * tight_coupling_trigger_tau_g_over_tau_k.
    * Decrease this value to switch off earlier in time.
    */
-  double tight_coupling_trigger_eta_g_over_eta_k;
+  double tight_coupling_trigger_tau_g_over_tau_k;
 
-  double start_sources_at_eta_g_over_eta_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \eta_g/\eta_H \f$. Start when start_sources_at_eta_g_over_eta_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
+  double start_sources_at_tau_g_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_g/\tau_H \f$. Start when start_sources_at_tau_g_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
   int tight_coupling_approximation;
 
@@ -471,12 +471,12 @@ struct precision
   double gw_ini;      /**< initial condition for tensor metric perturbation h */
 
   /** 
-   * default step \f$ d \eta \f$ in perturbation integration, in units of the timescale involved in the equations (usally, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$) 
+   * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usally, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$) 
    */
   double perturb_integration_stepsize;
 
   /** 
-   * default step \f$ d \eta \f$ for sampling the source function, in units of the timescale involved in the sources: \f$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} \f$
+   * default step \f$ d \tau \f$ for sampling the source function, in units of the timescale involved in the sources: \f$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} \f$
    */
   double perturb_sampling_stepsize;
 
@@ -490,17 +490,17 @@ struct precision
    * times at which sources start being sampled, and at which
    * approximations must be switched on/off (units of Mpc)
    */
-  double tol_eta_approx;
+  double tol_tau_approx;
  
   int radiation_streaming_approximation;
 
   /**
    * when to switch off photon perturbations, ie when to switch
-   * on photon free-streaming approximation (keep density and theta, set
+   * on photon free-streaming approximation (keep density and thtau, set
    * shear and higher momenta to zero):
-   * first condition: \f$ k/aH \f$ > radiation_streaming_trigger_eta_h_over_eta_k
+   * first condition: \f$ k/aH \f$ > radiation_streaming_trigger_tau_h_over_tau_k
    */
-  double radiation_streaming_trigger_eta_h_over_eta_k;
+  double radiation_streaming_trigger_tau_h_over_tau_k;
 
   /**
    * when to switch off photon perturbations, ie when to switch
@@ -508,7 +508,7 @@ struct precision
    * shear and higher momenta to zero):
    * second condition: 
    */ 
-  double radiation_streaming_trigger_eta_g_over_eta_h;
+  double radiation_streaming_trigger_tau_g_over_tau_h;
 
   int ur_fluid_approximation;
 
@@ -516,7 +516,7 @@ struct precision
    * when to switch off ur (massless neutrinos / ultra-relativistic
    * relics) fluid approximation 
    */
-  double ur_fluid_trigger_eta_h_over_eta_k;
+  double ur_fluid_trigger_tau_h_over_tau_k;
 
   int ncdm_fluid_approximation;
 
@@ -524,7 +524,7 @@ struct precision
    * when to switch off ncdm (massive neutrinos / non-cold
    * relics) fluid approximation 
    */
-  double ncdm_fluid_trigger_eta_h_over_eta_k;
+  double ncdm_fluid_trigger_tau_h_over_tau_k;
 
   //@}
 

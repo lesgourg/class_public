@@ -43,7 +43,7 @@ enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 /**
  * Structure containing everything about perturbations that other
  * modules need to know, in particular tabuled values of the source
- * functions \f$ S(k, \eta) \f$ for all requested modes
+ * functions \f$ S(k, \tau) \f$ for all requested modes
  * (scalar/vector/tensor), initial conditions, types (temperature,
  * E-polarization, B-polarisation, lensing potential, etc), multipole
  * l and wavenumber k.
@@ -173,9 +173,9 @@ struct perturbs
 
   //@{
 
-  int eta_size;          /**< eta_size = number of values */
+  int tau_size;          /**< tau_size = number of values */
 
-  double * eta_sampling; /**< eta_sampling[index_eta] = list of eta values */
+  double * tau_sampling; /**< tau_sampling[index_tau] = list of tau values */
 
   //@}
 
@@ -186,7 +186,7 @@ struct perturbs
   double *** sources; /**< Pointer towards the source interpolation table
 			 sources[index_mode]
 			 [index_ic * ppt->tp_size[index_mode] + index_type]
-			 [index_eta * ppt->k_size[index_mode] + index_k] */
+			 [index_tau * ppt->k_size[index_mode] + index_k] */
 
 
   //@}
@@ -290,7 +290,7 @@ struct perturb_workspace
 
   //@{
 
-  int index_st_eta;    /**< conformal time */
+  int index_st_tau;    /**< conformal time */
   int index_st_S0;     /**< first piece S0 */
   int index_st_S1;     /**< second piece S1 */
   int index_st_S2;     /**< third piece S2 */
@@ -330,7 +330,7 @@ struct perturb_workspace
   //@}
 
   /** @name - table of source terms for each mode, initial condition
-      and wavenumber: source_term_table[index_type][index_eta*ppw->st_size+index_st] */
+      and wavenumber: source_term_table[index_type][index_tau*ppw->st_size+index_st] */
 
   //@{
 
@@ -344,7 +344,7 @@ struct perturb_workspace
 
   enum interpolation_mode intermode;
  
- int last_index_back;   /**< the background interpolation function background_at_eta() keeps memory of the last point called through this index */
+ int last_index_back;   /**< the background interpolation function background_at_tau() keeps memory of the last point called through this index */
   int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
 
   //@}
@@ -392,13 +392,13 @@ struct perturb_parameters_and_workspace {
   extern "C" {
 #endif
 
-    int perturb_sources_at_eta(
+    int perturb_sources_at_tau(
 			       struct perturbs * ppt,
 			       int index_mode,
 			       int index_ic,
 			       int index_k,
 			       int index_type,
-			       double eta,
+			       double tau,
 			       double * pvecsources
 			       );
 
@@ -467,8 +467,8 @@ struct perturb_parameters_and_workspace {
 					  int index_mode,
 					  double k,
 					  struct perturb_workspace * ppw,
-					  double eta_ini,
-					  double eta_end,
+					  double tau_ini,
+					  double tau_end,
 					  int * interval_number,
 					  int * interval_number_of
 					  );
@@ -481,8 +481,8 @@ struct perturb_parameters_and_workspace {
 					    int index_mode,
 					    double k,
 					    struct perturb_workspace * ppw,
-					    double eta_ini,
-					    double eta_end,
+					    double tau_ini,
+					    double tau_end,
 					    double precision,
 					    int interval_number,
 					    int * interval_number_of,
@@ -498,7 +498,7 @@ struct perturb_parameters_and_workspace {
 			    int index_mode,
 			    int index_ic,
 			    double k,
-			    double eta,
+			    double tau,
 			    struct perturb_workspace * ppw,
 			    int * pa_old
 			    );
@@ -514,7 +514,7 @@ struct perturb_parameters_and_workspace {
 				   int index_mode,
 				   int index_ic,
 				   double k,
-				   double eta,
+				   double tau,
 				   struct perturb_workspace * ppw
 				   );
 
@@ -525,12 +525,12 @@ struct perturb_parameters_and_workspace {
 			       struct perturbs * ppt,
 			       int index_mode,
 			       double k,
-			       double eta,
+			       double tau,
 			       struct perturb_workspace * ppw
 			       );
 
     int perturb_timescale(
-			  double eta,
+			  double tau,
 			  void * parameters_and_workspace,
 			  double * timescale,
 			  ErrorMsg error_message
@@ -543,16 +543,16 @@ struct perturb_parameters_and_workspace {
 			 struct perturbs * ppt,
 			 int index_mode,
 			 double k,
-			 double eta,
+			 double tau,
 			 double * y,
 			 struct perturb_workspace * ppw
 			 );
 
     int perturb_source_terms(
-			     double eta,
+			     double tau,
 			     double * pvecperturbations,
 			     double * pvecderivs,
-			     int index_eta,
+			     int index_tau,
 			     void * parameters_and_workspace,
 			     ErrorMsg error_message
 			     );
@@ -565,14 +565,14 @@ struct perturb_parameters_and_workspace {
 			struct perturb_workspace * ppw
 			);
 
-    int perturb_print_variables(double eta,
+    int perturb_print_variables(double tau,
 				double * y,
 				double * dy,
 				void * parameters_and_workspace,
 				ErrorMsg error_message
 				);
 
-    int perturb_print_variables(double eta,
+    int perturb_print_variables(double tau,
 				double * y,
 				double * dy,
 				void * parameters_and_workspace,
@@ -580,7 +580,7 @@ struct perturb_parameters_and_workspace {
 				);
 
     int perturb_derivs(
-		       double eta,
+		       double tau,
 		       double * y,
 		       double * dy,
 		       void * parameters_and_workspace,

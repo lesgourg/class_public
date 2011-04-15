@@ -166,7 +166,7 @@ int bessel_init(
 	     pbs->error_message,
 	     "x_step=%e, stop to avoid segmentation fault",pbs->x_step);
 
-  pbs->x_max = ((int)(pbs->l_max * ppr->k_scalar_max_eta0_over_l_max * 1.01 / pbs->x_step)+1)*pbs->x_step;
+  pbs->x_max = ((int)(pbs->l_max * ppr->k_scalar_max_tau0_over_l_max * 1.01 / pbs->x_step)+1)*pbs->x_step;
 
   pbs->j_cut = ppr->bessel_j_cut;
 

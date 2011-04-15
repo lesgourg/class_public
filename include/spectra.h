@@ -88,12 +88,12 @@ struct spectra {
   int ln_k_size;    /**< number ln(k) values */
   double * ln_k;    /**< list of ln(k) values ln_k[index_k] */
 
-  int ln_eta_size;  /**< number ln(eta) values (only one if z_max_pk = 0) */
-  double * ln_eta;  /**< list of ln(eta) values ln_eta[index_eta] */
+  int ln_tau_size;  /**< number ln(tau) values (only one if z_max_pk = 0) */
+  double * ln_tau;  /**< list of ln(tau) values ln_tau[index_tau] */
 
   double * ln_pk;   /**< Matter power spectrum.
 		      depends on indices index_mode, index_ic1, index_ic2, index_k as:
-		      ln_pk[(index_eta * psp->k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2]
+		      ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2]
 		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
 		      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
 		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
@@ -106,7 +106,7 @@ struct spectra {
 		      this non-diagonal element is independent on k, and equal to +1 or -1.
 		   */
 
-  double * ddln_pk; /**< second derivative of above array with respect to log(eta), for spline interpolation. So: 
+  double * ddln_pk; /**< second derivative of above array with respect to log(tau), for spline interpolation. So: 
 		      - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
 		      good since this function is usually smooth.
 		      - for non-diagonal coefficients, we spline  
@@ -126,10 +126,10 @@ struct spectra {
   int tr_size;      /**< total number of species in transfer functions */
 
   double * matter_transfer;   /**< Matter transfer functions.  
-	Depends on indices index_mode,index_eta,index_ic,index_k, index_tr as:
-        matter_transfer[((index_eta*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr]
+	Depends on indices index_mode,index_tau,index_ic,index_k, index_tr as:
+        matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr]
 		       */
-  double * ddmatter_transfer; /**< second derivative of above array with respect to log(eta), for spline interpolation. */
+  double * ddmatter_transfer; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
   
 
   //@}
@@ -239,7 +239,7 @@ extern "C" {
 			 double * transfer_ic2
 			 );
   
-  int spectra_k_and_eta(
+  int spectra_k_and_tau(
 			struct background * pba,
 			struct perturbs * ppt,
 			struct spectra * psp

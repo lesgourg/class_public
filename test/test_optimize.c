@@ -99,17 +99,26 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-  param = &(pr.k_tensor_step_sub);
+<<<<<<< .mine
+  param = &(pr.k_scalar_k_per_decade_for_pk);
+=======
+  param = &(pr.reionization_start_factor);
+>>>>>>> .r4583
 
-  parameter_initial=1.e-6;
-  parameter_logstep=3.16;
+<<<<<<< .mine
+  parameter_initial=10.;
+  parameter_logstep=1.2;
+=======
+  parameter_initial=8.;
+  parameter_logstep=2.;
+>>>>>>> .r4583
 
-  param_num=1;
+  param_num=2;
   ref_run=-1;
 
   /* if ref_run<0, the reference is taken in the following external file: */
 
-  sprintf(filename,"output/cl_ref_mnu2_cl_lensed.dat");
+  sprintf(filename,"output/cl_ref_cl_lensed.dat");
 
 /*******************************************************/
 
@@ -157,8 +166,13 @@ int main(int argc, char **argv) {
 
     /* read file and fill cl[param_num] */
     output = fopen(filename,"r");
+<<<<<<< .mine
+    fprintf(stderr,"Read reference in file %s\n",filename);
+    fgets(junk_string,120,output);
+=======
     fprintf(stderr,"Read reference Cls in file %s\n",filename);
     fgets(junk_string,120,output);
+>>>>>>> .r4583
     //    fprintf(stderr,"%s\n",junk_string);
     fgets(junk_string,120,output);
     //    fprintf(stderr,"%s\n",junk_string);
@@ -197,10 +211,10 @@ int main(int argc, char **argv) {
   }
 
 
-  if (bessel_init(&pr,&bs) == _FAILURE_) {
-    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
+  /* if (bessel_init(&pr,&bs) == _FAILURE_) { */
+/*     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message); */
+/*     return _FAILURE_; */
+/*   } */
 
   for (i=0; i<param_num; i++) {
 
@@ -208,18 +222,24 @@ int main(int argc, char **argv) {
     
     *param = parameter[i];
 
-    fprintf(stderr,"#run %d/%d with %g\n",i+1,param_num,*param);
+<<<<<<< .mine
+    fprintf(stderr,"#run %d/%d with %g=%g\n",i+1,param_num,parameter[i],*param);
 
     //class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
     class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
-    free(pr.l_max_ncdm);
+=======
+    fprintf(stderr,"#run %d/%d with %g\n",i+1,param_num,*param);
 
+    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
+    //class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
+>>>>>>> .r4583
+    
   }
 
-  if (bessel_free(&bs) == _FAILURE_)  {
-    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
+  /* if (bessel_free(&bs) == _FAILURE_)  { */
+/*     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message); */
+/*     return _FAILURE_; */
+/*   } */
 
   noise_planck(&ba,&th,&sp,noise,l_max);
 
@@ -527,7 +547,7 @@ int chi2_planck(
   for (l=2; l <= lmax; l++) {
 
 /*     if (psp->ct_size == 1) { */
-    if (0==1) {
+    if (0==0) {
 
       *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
 			       (cl1[l][0]+nl[l][0])+

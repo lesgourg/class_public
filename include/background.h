@@ -21,7 +21,7 @@ enum format_info {
 };
 
 /**
- * List of possible interpolation modes when calling the background_at_eta() interpolation function
+ * List of possible interpolation modes when calling the background_at_tau() interpolation function
  */
 
 enum interpolation_mode {
@@ -147,9 +147,9 @@ struct background
   //@{
 
   int bt_size; /**< number of lines (i.e. time-steps) in the array */
-  double * eta_table; /**< vector eta_table[index_eta] with values of \f$ \eta \f$ (conformal time) */
-  double * z_table; /**< vector z_table[index_eta] with values of \f$ z \f$ (redshift) */
-  double * background_table; /**< table background_table[index_eta*pba->bg_size+pba->index_bg] with all other quantities (array of size bg_size*bt_size) **/
+  double * tau_table; /**< vector tau_table[index_tau] with values of \f$ \tau \f$ (conformal time) */
+  double * z_table; /**< vector z_table[index_tau] with values of \f$ z \f$ (redshift) */
+  double * background_table; /**< table background_table[index_tau*pba->bg_size+pba->index_bg] with all other quantities (array of size bg_size*bt_size) **/
 
   //@}
 
@@ -157,8 +157,8 @@ struct background
 
   //@{
 
-  double * d2eta_dz2_table; /**< vector d2eta_dz2_table[index_eta] with values of \f$ d^2 \eta / dz^2 \f$ (conformal time) */
-  double * d2background_deta2_table; /**< table d2background_deta2_table[index_eta*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\eta^2 \f$ (conformal time) */
+  double * d2tau_dz2_table; /**< vector d2tau_dz2_table[index_tau] with values of \f$ d^2 \tau / dz^2 \f$ (conformal time) */
+  double * d2background_dtau2_table; /**< table d2background_dtau2_table[index_tau*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\tau^2 \f$ (conformal time) */
 
   //@}
 
@@ -177,7 +177,7 @@ struct background
   int index_bi_a;    /**< scale factor */
   int index_bi_time; /**< proper (cosmological) time in Mpc */
   int index_bi_rs;   /**< sound horizon */
-  int index_bi_eta;  /**< conformal time in Mpc */
+  int index_bi_tau;  /**< conformal time in Mpc */
   int bi_size;       /**< size of vector of background quantities to be integrated */
 
   //@}
@@ -273,9 +273,9 @@ struct background_parameters_for_distributions {
 extern "C" {
 #endif
 
-  int background_at_eta(
+  int background_at_tau(
 			struct background *pba,
-			double eta,
+			double tau,
 			enum format_info return_format,
 			enum interpolation_mode intermode,
 			int * last_index,
@@ -289,10 +289,10 @@ extern "C" {
 			   double * pvecback
 			   );
 
-  int background_eta_of_z(
+  int background_tau_of_z(
 			  struct background *pba,
 			  double z,
-			  double * eta
+			  double * tau
 			  );
 
   int background_init(

@@ -144,8 +144,8 @@ extern "C" {
   int transfer_interpolate_sources(
 				   struct perturbs * ppt,
 				   struct transfers * ptr,
-				   double eta0,
-				   double eta_rec,
+				   double tau0,
+				   double tau_rec,
 				   int current_index_mode,
 				   int current_index_ic,
 				   int current_index_type,
@@ -164,8 +164,8 @@ extern "C" {
 				  double l,
 				  double x_min_l,
 				  double x_step,
-				  double * eta0_minus_eta,
-				  double * delta_eta,
+				  double * tau0_minus_tau,
+				  double * delta_tau,
 				  double * sources,
 				  double * j_l,
 				  double * ddj_l,
@@ -174,14 +174,14 @@ extern "C" {
 				  );
 
   int transfer_integrate(
-			 int eta_size,
+			 int tau_size,
 			 int index_k,
 			 double l,
 			 double k,
 			 double x_min_l,
 			 double x_step,
-			 double * eta0_minus_eta,
-			 double * delta_eta,
+			 double * tau0_minus_tau,
+			 double * delta_tau,
 			 double * sources,
 			 double *j_l,
 			 double *ddj_l,
@@ -189,26 +189,26 @@ extern "C" {
 			 );
     
   int transfer_limber(
-		      int eta_size,
+		      int tau_size,
 		      struct transfers * ptr,
 		      int index_mode,
 		      int index_k,
 		      double l,
 		      double k,
-		      double * eta0_minus_eta,
+		      double * tau0_minus_tau,
 		      double * sources,
 		      double * trsf
 		      );
   
   int transfer_envelop(
-		       int eta_size,
+		       int tau_size,
 		       int index_k,
 		       double l,
 		       double k,
 		       double x_min_l,
 		       double x_step,
-		       double * eta0_minus_eta,
-		       double * delta_eta,
+		       double * tau0_minus_tau,
+		       double * delta_tau,
 		       double * sources,
 		       double *j_l,
 		       double *ddj_l,

@@ -62,18 +62,18 @@ struct thermo
   //@{
 
   int index_th_xe;            /**< ionization fraction \f$ x_e \f$ */
-  int index_th_dkappa;        /**< Thomson scattering rate \f$ d \kappa / d \eta\f$ (units 1/Mpc) */
-  int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \eta^2 \f$ */
-  int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \eta^3 \f$ */
+  int index_th_dkappa;        /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
+  int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */
+  int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \tau^3 \f$ */
   int index_th_exp_m_kappa;  /**< \f$ exp^{-\kappa} \f$ */
-  int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \eta) * exp^{-\kappa} \f$ */
-  int index_th_dg;            /**< visibility function derivative \f$ (d g / d \eta) \f$ */
-  int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \eta^2) \f$ */
+  int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
+  int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
+  int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \eta \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
-  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \eta^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
-  int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \eta), used for computing integration step in perturbation module */
+  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
+  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
+  int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \tau), used for computing integration step in perturbation module */
   int th_size;                /**< size of thermodynamics vector */ 
 
   //@}
@@ -101,7 +101,7 @@ struct thermo
   //@{
 
   double z_rec;   /**< z at which the visibility reaches its maximum (= recombination redshift) */
-  double eta_rec; /**< conformal time at which the visibility reaches its maximum (= recombination time) */
+  double tau_rec; /**< conformal time at which the visibility reaches its maximum (= recombination time) */
   double rs_rec;  /**< sound horizon at that time */
 
   //@}
@@ -110,7 +110,7 @@ struct thermo
 
   //@{
 
-  double eta_free_streaming;   /**< minimum value of eta at which sfree-streaming approximation can be switched on */
+  double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
   //@}
 
@@ -118,7 +118,7 @@ struct thermo
 
   //@{
 
-  double eta_ini;
+  double tau_ini;
 
   //@}
 
@@ -159,7 +159,7 @@ struct recombination {
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
   int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_re_dkappadeta; /**< Thomson scattering rate \f$ d \kappa / d \eta\f$ (units 1/Mpc) */
+  int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
   int re_size;             /**< size of this vector */
 
   //@}
@@ -218,7 +218,7 @@ struct reionization {
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
   int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_re_dkappadeta; /**< Thomson scattering rate \f$ d \kappa / d \eta\f$ (units 1/Mpc) */
+  int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
   int index_re_dkappadz;   /**< Thomson scattering rate with respect to redshift \f$ d \kappa / d z\f$ (units 1/Mpc) */
   int index_re_d3kappadz3; /**< second derivative of previous quantity with respect to redshift */
   int re_size;             /**< size of this vector */

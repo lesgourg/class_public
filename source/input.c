@@ -1004,8 +1004,8 @@ int input_init(
   class_read_int("gauge",ppr->gauge);
   class_read_int("evolver",ppr->evolver);
   class_read_int("pk_definition",ppr->pk_definition);
-  class_read_double("k_scalar_min_eta0",ppr->k_scalar_min_eta0);
-  class_read_double("k_scalar_max_eta0_over_l_max",ppr->k_scalar_max_eta0_over_l_max);
+  class_read_double("k_scalar_min_tau0",ppr->k_scalar_min_tau0);
+  class_read_double("k_scalar_max_tau0_over_l_max",ppr->k_scalar_max_tau0_over_l_max);
   class_read_double("k_scalar_step_sub",ppr->k_scalar_step_sub);
   class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
   class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
@@ -1015,11 +1015,11 @@ int input_init(
   class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
   class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
   class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
-  class_read_double("start_small_k_at_eta_g_over_eta_h",ppr->start_small_k_at_eta_g_over_eta_h);
-  class_read_double("start_large_k_at_eta_h_over_eta_k",ppr->start_large_k_at_eta_h_over_eta_k);
-  class_read_double("tight_coupling_trigger_eta_g_over_eta_h",ppr->tight_coupling_trigger_eta_g_over_eta_h);
-  class_read_double("tight_coupling_trigger_eta_g_over_eta_k",ppr->tight_coupling_trigger_eta_g_over_eta_k);
-  class_read_double("start_sources_at_eta_g_over_eta_h",ppr->start_sources_at_eta_g_over_eta_h);
+  class_read_double("start_small_k_at_tau_g_over_tau_h",ppr->start_small_k_at_tau_g_over_tau_h);
+  class_read_double("start_large_k_at_tau_h_over_tau_k",ppr->start_large_k_at_tau_h_over_tau_k);
+  class_read_double("tight_coupling_trigger_tau_g_over_tau_h",ppr->tight_coupling_trigger_tau_g_over_tau_h);
+  class_read_double("tight_coupling_trigger_tau_g_over_tau_k",ppr->tight_coupling_trigger_tau_g_over_tau_k);
+  class_read_double("start_sources_at_tau_g_over_tau_h",ppr->start_sources_at_tau_g_over_tau_h);
 
   class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation);
 
@@ -1054,22 +1054,22 @@ int input_init(
   class_read_double("entropy_ini",ppr->entropy_ini);
   class_read_double("gw_ini",ppr->gw_ini);
   class_read_double("perturb_integration_stepsize",ppr->perturb_integration_stepsize);
-  class_read_double("tol_eta_approx",ppr->tol_eta_approx);
+  class_read_double("tol_tau_approx",ppr->tol_tau_approx);
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
 
   class_read_int("radiation_streaming_approximation",ppr->radiation_streaming_approximation);
-  class_read_double("radiation_streaming_trigger_eta_h_over_eta_k",ppr->radiation_streaming_trigger_eta_h_over_eta_k);
-  class_read_double("radiation_streaming_trigger_eta_g_over_eta_h",ppr->radiation_streaming_trigger_eta_g_over_eta_h);
+  class_read_double("radiation_streaming_trigger_tau_h_over_tau_k",ppr->radiation_streaming_trigger_tau_h_over_tau_k);
+  class_read_double("radiation_streaming_trigger_tau_g_over_tau_h",ppr->radiation_streaming_trigger_tau_g_over_tau_h);
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
-  class_read_double("ur_fluid_trigger_eta_h_over_eta_k",ppr->ur_fluid_trigger_eta_h_over_eta_k);
-  class_read_double("ncdm_fluid_trigger_eta_h_over_eta_k",ppr->ncdm_fluid_trigger_eta_h_over_eta_k);
+  class_read_double("ur_fluid_trigger_tau_h_over_tau_k",ppr->ur_fluid_trigger_tau_h_over_tau_k);
+  class_read_double("ncdm_fluid_trigger_tau_h_over_tau_k",ppr->ncdm_fluid_trigger_tau_h_over_tau_k);
 
-  class_test(ppr->ur_fluid_trigger_eta_h_over_eta_k==ppr->radiation_streaming_trigger_eta_h_over_eta_k,
+  class_test(ppr->ur_fluid_trigger_tau_h_over_tau_k==ppr->radiation_streaming_trigger_tau_h_over_tau_k,
 	     errmsg,
-	     "please choose different values for precision parameters ur_fluid_trigger_eta_h_over_eta_k and radiation_streaming_trigger_eta_h_over_eta_k, in order to avoid switching two approximation schemes at the same time");
+	     "please choose different values for precision parameters ur_fluid_trigger_tau_h_over_tau_k and radiation_streaming_trigger_tau_h_over_tau_k, in order to avoid switching two approximation schemes at the same time");
     
 
   /** h.4. parameter related to the Bessel functions */
@@ -1452,8 +1452,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->evolver = rk;
   ppr->pk_definition = delta_m_squared;
 
-  ppr->k_scalar_min_eta0=0.05;
-  ppr->k_scalar_max_eta0_over_l_max=2.;
+  ppr->k_scalar_min_tau0=0.05;
+  ppr->k_scalar_max_tau0_over_l_max=2.;
   ppr->k_scalar_step_sub=0.12;
   ppr->k_scalar_step_super=0.002;
   ppr->k_scalar_step_transition=0.2;     /* 14.12.10 for chi2plT0.1 */
@@ -1467,11 +1467,11 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->start_small_k_at_eta_g_over_eta_h = 0.0004;  /* decrease to start earlier in time */
-  ppr->start_large_k_at_eta_h_over_eta_k = 0.15;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_h=0.01; /* decrease to switch off earlier in time */
-  ppr->tight_coupling_trigger_eta_g_over_eta_k=0.01; /* decrease to switch off earlier in time */
-  ppr->start_sources_at_eta_g_over_eta_h = 0.006; /* decrease to start earlier in time */
+  ppr->start_small_k_at_tau_g_over_tau_h = 0.0004;  /* decrease to start earlier in time */
+  ppr->start_large_k_at_tau_h_over_tau_k = 0.15;  /* decrease to start earlier in time */
+  ppr->tight_coupling_trigger_tau_g_over_tau_h=0.01; /* decrease to switch off earlier in time */
+  ppr->tight_coupling_trigger_tau_g_over_tau_k=0.01; /* decrease to switch off earlier in time */
+  ppr->start_sources_at_tau_g_over_tau_h = 0.006; /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)compromise_CLASS;
 
   ppr->l_max_g=16; 
@@ -1488,20 +1488,20 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->perturb_integration_stepsize=0.5;
 
-  ppr->tol_eta_approx=1.e-5;
+  ppr->tol_tau_approx=1.e-5;
   ppr->tol_perturb_integration=1.e-3;
   ppr->perturb_sampling_stepsize=0.05;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
-  ppr->radiation_streaming_trigger_eta_h_over_eta_k = 50.; 
+  ppr->radiation_streaming_trigger_tau_h_over_tau_k = 50.; 
 /*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
-  ppr->radiation_streaming_trigger_eta_g_over_eta_h = 80.;
+  ppr->radiation_streaming_trigger_tau_g_over_tau_h = 80.;
  
   ppr->ur_fluid_approximation = nfa_CLASS;
-  ppr->ur_fluid_trigger_eta_h_over_eta_k = 16.; 
+  ppr->ur_fluid_trigger_tau_h_over_tau_k = 16.; 
 
   ppr->ncdm_fluid_approximation = ncdmfa_none;
-  ppr->ncdm_fluid_trigger_eta_h_over_eta_k = 12.; 
+  ppr->ncdm_fluid_trigger_tau_h_over_tau_k = 12.; 
 
   /**
    * - parameter related to the Bessel functions

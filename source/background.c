@@ -42,24 +42,24 @@
  *    to background_functions().
  *
  * - the result is stored in the form of a big table in the background
- *    structure. There is one column for conformal time 'eta'; one or
+ *    structure. There is one column for conformal time 'tau'; one or
  *    more for quantitites {B}; then several columns for quantities {A}
  *    and {C}.
  *
  * Later in the code, if we know the variables {B} and need some
  * quantity {A}, the quickest and most procise way is to call directly
  * background_functions() (for instance, in simple models, if we want
- * H at a given value of the scale factor). If we know 'eta' and want
- * any other qunatity, we can call background_at_eta(), which
+ * H at a given value of the scale factor). If we know 'tau' and want
+ * any other qunatity, we can call background_at_tau(), which
  * interpolates in the table and returns all values. Finally it can be
- * useful to get 'eta' for a given redshift 'z': this can be done with
- * background_eta_of_z(). So, in principle, if we know z, calling
- * background_eta_of_z() and then background_at_eta() will provide
+ * useful to get 'tau' for a given redshift 'z': this can be done with
+ * background_tau_of_z(). So, in principle, if we know z, calling
+ * background_tau_of_z() and then background_at_tau() will provide
  * roughly the same information as calling directly
  * background_functions() with a=a_0/(1+z).
  *
  *
- * In order to save time, background_at_eta() can be called in three
+ * In order to save time, background_at_tau() can be called in three
  * modes: short_info, normal_info, long_info (returning only essential
  * quantities, or useful quantitites, or rarely useful
  * quantities). Each line in the interpolation table is a vector which
@@ -74,20 +74,20 @@
  * In summary, the following functions can be called from other modules:
  *
  * -# background_init() at the beginning  
- * -# background_at_eta(), background_functions(), background_eta_of_z() at any later time
+ * -# background_at_tau(), background_functions(), background_tau_of_z() at any later time
  * -# background_free() at the end, when no more calls to the previous functions are needed
  */
 
 #include "background.h"
 
 /**
- * Background quantities at given conformal time eta.
+ * Background quantities at given conformal time tau.
  *
  * Evaluates all background quantities at a given value of
  * conformal time by reading the pre-computed table ant interpolating.
  *
  * @param pba           Input: pointer to background structure (containing pre-computed table)
- * @param eta           Input: value of conformal time
+ * @param tau           Input: value of conformal time
  * @param return_format Input: format of output vector (short, normal, long)
  * @param intermode     Input: interpolation mode (normal or closeby)
  * @param last_index    Input/Ouput: index of the previous/current point in the interpolation array (input only for closeby mode, output for both) 
@@ -95,9 +95,9 @@
  * @return the error status
  */
 
-int background_at_eta(
+int background_at_tau(
 		      struct background *pba,
-		      double eta,
+		      double tau,
 		      enum format_info return_format,
 		      enum interpolation_mode intermode,
 		      int * last_index,
@@ -111,15 +111,15 @@ int background_at_eta(
   /* size of output vector, controlled by input parameter return_format */
   int pvecback_size;
 
-  /** - check that eta is in the pre-computed range */
+  /** - check that tau is in the pre-computed range */
 
-  class_test(eta < pba->eta_table[0],
+  class_test(tau < pba->tau_table[0],
 	     pba->error_message,
-	     "out of range: eta=%e < eta_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",eta,pba->eta_table[0]);
+	     "out of range: tau=%e < tau_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",tau,pba->tau_table[0]);
 
-  class_test(eta > pba->eta_table[pba->bt_size-1],
+  class_test(tau > pba->tau_table[pba->bt_size-1],
 	     pba->error_message,
-	     "out of range: eta=%e > eta_max=%e\n",eta,pba->eta_table[pba->bt_size-1]);
+	     "out of range: tau=%e > tau_max=%e\n",tau,pba->tau_table[pba->bt_size-1]);
 
   /** - deduce length of returned vector from format mode */ 
 
@@ -141,12 +141,12 @@ int background_at_eta(
 
   if (intermode == normal) {
     class_call(array_interpolate_spline(
-					pba->eta_table,
+					pba->tau_table,
 					pba->bt_size,
 					pba->background_table,
-					pba->d2background_deta2_table,
+					pba->d2background_dtau2_table,
 					pba->bg_size,
-					eta,
+					tau,
 					last_index,
 					pvecback,
 					pvecback_size,
@@ -156,12 +156,12 @@ int background_at_eta(
   }
   if (intermode == closeby) {
     class_call(array_interpolate_spline_growing_closeby(
-							pba->eta_table,
+							pba->tau_table,
 							pba->bt_size,
 							pba->background_table,
-							pba->d2background_deta2_table,
+							pba->d2background_dtau2_table,
 							pba->bg_size,
-							eta,
+							tau,
 							last_index,
 							pvecback,
 							pvecback_size,
@@ -176,18 +176,18 @@ int background_at_eta(
 /** 
  * Conformal time at given redhsift.
  *
- * Returns eta(z) by interpolation from pre-computed table.
+ * Returns tau(z) by interpolation from pre-computed table.
  *
  * @param pba Input: pointer to background structure
  * @param z   Input: redshift
- * @param eta Output: conformal time
+ * @param tau Output: conformal time
  * @return the error status
  */
 
-int background_eta_of_z(
+int background_tau_of_z(
 			struct background *pba,
 			double z,
-			double * eta
+			double * tau
 			) {
 
   /** Summary: */
@@ -210,12 +210,12 @@ int background_eta_of_z(
   class_call(array_interpolate_spline(
 				      pba->z_table,
 				      pba->bt_size, 
-				      pba->eta_table,
-				      pba->d2eta_dz2_table,
+				      pba->tau_table,
+				      pba->d2tau_dz2_table,
 				      1,
 				      z,
 				      &last_index,
-				      eta,
+				      tau,
 				      1,
 				      pba->error_message),
 	     pba->error_message,
@@ -528,11 +528,11 @@ int background_free(
 		    ) {
   int k;
   
-  free(pba->eta_table);
+  free(pba->tau_table);
   free(pba->z_table);
-  free(pba->d2eta_dz2_table);
+  free(pba->d2tau_dz2_table);
   free(pba->background_table);
-  free(pba->d2background_deta2_table);
+  free(pba->d2background_dtau2_table);
 
   if (pba->has_ncdm == _TRUE_) {
     for(k=0; k<pba->N_ncdm; k++){
@@ -728,17 +728,17 @@ int background_indices(
   index_bi++;
 
   /* -> index for conformal time in vector of variables to integrate */
-  pba->index_bi_eta = index_bi; 
+  pba->index_bi_tau = index_bi; 
   index_bi++;
 
   /* -> end of indices in the vector of variables to integrate */
   pba->bi_size = index_bi;
 
-  /* index_bi_eta must be the last index, because eta is part of this vector for the purpose of being stored, */
-  /* but it is not a quantity to be integrated (since integration is over eta itself) */      
-  class_test(pba->index_bi_eta != index_bi-1,
+  /* index_bi_tau must be the last index, because tau is part of this vector for the purpose of being stored, */
+  /* but it is not a quantity to be integrated (since integration is over tau itself) */      
+  class_test(pba->index_bi_tau != index_bi-1,
 	     pba->error_message,
-	     "background integration requires index_bi_eta to be the last of all index_bi's");
+	     "background integration requires index_bi_tau to be the last of all index_bi's");
 
   return _SUCCESS_;
 
@@ -1206,9 +1206,9 @@ int background_solve(
   /* needed for growing table */
   void * memcopy_result;
   /* initial conformal time */
-  double eta_start;
+  double tau_start;
   /* final conformal time */
-  double eta_end;
+  double tau_end;
   /* an index running over bi indices */
   int i;
   /* vector of quantities to be integrated */
@@ -1228,7 +1228,7 @@ int background_solve(
   /** - initialize generic integrator with initialize_generic_integrator() */ 
 
   /* Size of vector to integrate is (pba->bi_size-1) rather than
-   * (pba->bi_size), since eta is not integrated.
+   * (pba->bi_size), since tau is not integrated.
    */
   class_call(initialize_generic_integrator((pba->bi_size-1),&gi),
 	     gi.error_message,
@@ -1239,9 +1239,9 @@ int background_solve(
 	     pba->error_message,
 	     pba->error_message);
 
-  /* here eta_end is in fact the initial time (in the next loop
-     eta_start = eta_end) */
-  eta_end=pvecback_integration[pba->index_bi_eta];
+  /* here tau_end is in fact the initial time (in the next loop
+     tau_start = tau_end) */
+  tau_end=pvecback_integration[pba->index_bi_tau];
 
   /** - create a growTable with gt_init() */
   class_call(gt_init(&gTable),
@@ -1251,11 +1251,11 @@ int background_solve(
   /* initialize the counter for the number of steps */
   pba->bt_size=0;
 
-  /** - loop over integration steps : call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of eta */
+  /** - loop over integration steps : call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of tau */
 
   while (pvecback_integration[pba->index_bi_a] < pba->a_today) {
 
-    eta_start = eta_end;
+    tau_start = tau_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
     class_call(background_functions(pba,pvecback_integration[pba->index_bi_a], short_info, pvecback),
@@ -1263,17 +1263,17 @@ int background_solve(
 	       pba->error_message);
 
     if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
-      eta_end = eta_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]); 
+      tau_end = tau_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]); 
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
     else {
-      eta_end = eta_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);  
+      tau_end = tau_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);  
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
 
-    class_test((eta_end-eta_start)/eta_start < ppr->smallest_allowed_variation,
+    class_test((tau_end-tau_start)/tau_start < ppr->smallest_allowed_variation,
 	       pba->error_message,
-	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(eta_end-eta_start)/eta_start);
+	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(tau_end-tau_start)/tau_start);
 
     /* -> save data in growTable */
     class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),
@@ -1283,8 +1283,8 @@ int background_solve(
 
     /* -> perform one step */
     class_call(generic_integrator(background_derivs,
-				  eta_start,
-				  eta_end,
+				  tau_start,
+				  tau_end,
 				  pvecback_integration,
 				  &bpaw,
 				  ppr->tol_background_integration,
@@ -1293,8 +1293,8 @@ int background_solve(
 	       gi.error_message,
 	       pba->error_message);
     
-    /* -> store value of eta */
-    pvecback_integration[pba->index_bi_eta]=eta_end;
+    /* -> store value of tau */
+    pvecback_integration[pba->index_bi_tau]=tau_end;
 
   }
 
@@ -1339,25 +1339,25 @@ int background_solve(
   /* -> age in Gyears */
   pba->age = pvecback_integration[pba->index_bi_time]/_Gyr_over_Mpc_;
   /* -> conformal age in Mpc */
-  pba->conformal_age = pvecback_integration[pba->index_bi_eta];
+  pba->conformal_age = pvecback_integration[pba->index_bi_tau];
 
   /** - allocate background tables */
-  class_alloc(pba->eta_table,pba->bt_size * sizeof(double),pba->error_message);
+  class_alloc(pba->tau_table,pba->bt_size * sizeof(double),pba->error_message);
 
   class_alloc(pba->z_table,pba->bt_size * sizeof(double),pba->error_message);
 
-  class_alloc(pba->d2eta_dz2_table,pba->bt_size * sizeof(double),pba->error_message);
+  class_alloc(pba->d2tau_dz2_table,pba->bt_size * sizeof(double),pba->error_message);
 
   class_alloc(pba->background_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
 
-  class_alloc(pba->d2background_deta2_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
+  class_alloc(pba->d2background_dtau2_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
   
   /** - In a loop over lines, fill background table using the result of the integration plus background_functions() */
   for (i=0; i < pba->bt_size; i++) {
     
     /* -> establish correspondance between the integrated variable and the bg variables */
 
-    pba->eta_table[i] = pData[i*pba->bi_size+pba->index_bi_eta];
+    pba->tau_table[i] = pData[i*pba->bi_size+pba->index_bi_tau];
 
     class_test(pData[i*pba->bi_size+pba->index_bi_a] <= 0.,
 	       pba->error_message,
@@ -1366,7 +1366,7 @@ int background_solve(
     pba->z_table[i] = pba->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
 
     pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
-    pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_eta];
+    pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_tau];
     pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities */
@@ -1391,19 +1391,19 @@ int background_solve(
   /** - fill tables of second derivatives (in view of spline interpolation) */
   class_call(array_spline_table_lines(pba->z_table,
 				      pba->bt_size,
-				      pba->eta_table,
+				      pba->tau_table,
 				      1,
-				      pba->d2eta_dz2_table,
+				      pba->d2tau_dz2_table,
 				      _SPLINE_EST_DERIV_,
 				      pba->error_message),
 	     pba->error_message,
 	     pba->error_message);
 
-  class_call(array_spline_table_lines(pba->eta_table,
+  class_call(array_spline_table_lines(pba->tau_table,
 				      pba->bt_size,
 				      pba->background_table,
 				      pba->bg_size,
-				      pba->d2background_deta2_table,
+				      pba->d2background_dtau2_table,
 				      _SPLINE_EST_DERIV_,
 				      pba->error_message),
 	     pba->error_message,
@@ -1495,14 +1495,14 @@ int background_initial_conditions(
   pvecback_integration[pba->index_bi_time] = 1./(2.* pvecback[pba->index_bg_H]);
 
   /** - compute initial conformal time, assuming radiation-dominated
-      universe since Big Bang and therefore \f$ \eta=1/(aH) \f$
+      universe since Big Bang and therefore \f$ \tau=1/(aH) \f$
       (good approximation for most purposes) */
-  pvecback_integration[pba->index_bi_eta] = 1./(a * pvecback[pba->index_bg_H]);
+  pvecback_integration[pba->index_bi_tau] = 1./(a * pvecback[pba->index_bg_H]);
 
 
 
   /** - compute initial sound horizon, assuming c_s=1/sqrt(3) initially */
-  pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_eta]/sqrt(3.);
+  pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
 
   return _SUCCESS_;
 
@@ -1526,14 +1526,14 @@ int background_initial_conditions(
  * usual to pba->error_message, but to a generic error_message passed
  * in the list of arguments.
  *
- * @param eta                      Input : conformal time
+ * @param tau                      Input : conformal time
  * @param y                        Input : vector of variable
  * @param dy                       Output : its derivative (already allocated)
  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
  * @param error_message            Output : error message
  */
 int background_derivs(
-		      double eta,
+		      double tau,
 		      double* y, /* vector with argument y[index_bi] (must be already allocated with size pba->bi_size) */
 		      double* dy, /* vector with argument dy[index_bi]
 				     (must be already allocated with

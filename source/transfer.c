@@ -93,7 +93,7 @@ int transfer_functions_at_k(
  *   etc), compute the transfer function \f$ \Delta_l^{X} (k) \f$
  *   following the following steps:
  &
- * -# interpolate sources \f$ S(k, \eta) \f$ to get them at the right 
+ * -# interpolate sources \f$ S(k, \tau) \f$ to get them at the right 
  *    values of k using transfer_interpolate_sources()
  *
  * -# for each l, compute the transfer function by convolving the 
@@ -132,21 +132,21 @@ int transfer_init(
   /* running index for multipoles */
   int index_l; 
   /* running index for conformal time */
-  int index_eta;
+  int index_tau;
 
   /* conformal time today */
-  double eta0;
+  double tau0;
   /* conformal time at recombination */
-  double eta_rec;
+  double tau_rec;
 
-  /* array of source derivatives S''(k,eta) 
-     (second derivative with respect to k, not eta!), 
+  /* array of source derivatives S''(k,tau) 
+     (second derivative with respect to k, not tau!), 
      used to interpolate sources at the right values of k,
-     source_spline[index_eta*ppt->k_size[index_mode]+index_k] */
+     source_spline[index_tau*ppt->k_size[index_mode]+index_k] */
   double * source_spline;
 
   /* table of source functions interpolated at the right values of k, 
-     interpolated_sources[index_k_tr*ppt->eta_size+index_eta] */
+     interpolated_sources[index_k_tr*ppt->tau_size+index_tau] */
   double * interpolated_sources;
 
   /* this workspace is a contiguous memory zone containing various
@@ -156,14 +156,14 @@ int transfer_init(
   /* - pointer used to assign adresses to the various workspace fields */
   double * address_in_workspace;
 
-  /* - first workspace field: list of eta0-eta values, eta0_minus_eta[index_eta] */
-  double * eta0_minus_eta;
+  /* - first workspace field: list of tau0-tau values, tau0_minus_tau[index_tau] */
+  double * tau0_minus_tau;
 
-  /* - second workspace field: list of delta_eta values, delta_eta[index_eta] */
-  double * delta_eta;
+  /* - second workspace field: list of delta_tau values, delta_tau[index_tau] */
+  double * delta_tau;
 
   /* - third workspace field, identical to above interpolated sources:
-     sources[index_k_tr*ppt->eta_size+index_eta] */
+     sources[index_k_tr*ppt->tau_size+index_tau] */
   double * sources;
 
   /* - fourth workspace field, containing just a double: value of x at
@@ -232,8 +232,8 @@ int transfer_init(
   /** - get conformal age / recombination time 
         from background / thermodynamics structures 
 	(only place where these structures are used in this module) */
-  eta0 = pba->conformal_age;
-  eta_rec = pth->eta_rec;
+  tau0 = pba->conformal_age;
+  tau_rec = pth->tau_rec;
 
   /** - initialize all indices in the transfers structure and 
         allocate all its arrays using transfer_indices_of_transfers() */
@@ -271,14 +271,14 @@ int transfer_init(
     /** (a.1.) array of sources interpolated at correct values of k */
 
     class_alloc(interpolated_sources,
-		ptr->k_size[index_mode]*ppt->eta_size*sizeof(double),
+		ptr->k_size[index_mode]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
     
     /** (a.2.) second derivative of sources in the previous source arrays, useful to
        obtain the one above */
 
     class_alloc(source_spline,
-		ppt->k_size[index_mode]*ppt->eta_size*sizeof(double),
+		ppt->k_size[index_mode]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
 
     /** (a.3.) workspace, allocated in a parallel zone since in openmp
@@ -291,37 +291,37 @@ int transfer_init(
     
 #pragma omp parallel							\
   shared(ptr,index_mode,ppt,pbs,pw)					\
-  private(workspace,address_in_workspace,eta0_minus_eta,delta_eta,index_eta)
+  private(workspace,address_in_workspace,tau0_minus_tau,delta_tau,index_tau)
     {
       
       class_alloc_parallel(workspace,
-			   ((2+ptr->k_size[index_mode])*ppt->eta_size
+			   ((2+ptr->k_size[index_mode])*ppt->tau_size
 			    +1+num_j*pbs->x_size_max)*
 			   sizeof(double),
 			   ptr->error_message);
 	  
-      /* -- define the address of the first two fields in the workspace, eta0_minus_eta and delta_eta */
+      /* -- define the address of the first two fields in the workspace, tau0_minus_tau and delta_tau */
 
       address_in_workspace = workspace;
 	  
-      eta0_minus_eta = address_in_workspace;
-      address_in_workspace += ppt->eta_size;
+      tau0_minus_tau = address_in_workspace;
+      address_in_workspace += ppt->tau_size;
       
-      delta_eta  = address_in_workspace;
+      delta_tau  = address_in_workspace;
 
       /* -- fill these two fields since their content does not depend
 	 on ic, type and l */
 
-      for (index_eta=0; index_eta < ppt->eta_size; index_eta++) {
-	eta0_minus_eta[index_eta] = eta0 - ppt->eta_sampling[index_eta];
+      for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
+	tau0_minus_tau[index_tau] = tau0 - ppt->tau_sampling[index_tau];
       }
 
-      delta_eta[0] = ppt->eta_sampling[1]-ppt->eta_sampling[0];
+      delta_tau[0] = ppt->tau_sampling[1]-ppt->tau_sampling[0];
       
-      for (index_eta=1; index_eta < ppt->eta_size-1; index_eta++)
-	delta_eta[index_eta] = ppt->eta_sampling[index_eta+1]-ppt->eta_sampling[index_eta-1];
+      for (index_tau=1; index_tau < ppt->tau_size-1; index_tau++)
+	delta_tau[index_tau] = ppt->tau_sampling[index_tau+1]-ppt->tau_sampling[index_tau-1];
       
-      delta_eta[ppt->eta_size-1] = ppt->eta_sampling[ppt->eta_size-1]-ppt->eta_sampling[ppt->eta_size-2];
+      delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
       
       /** -- in openmp version, store the address of each workspace in the pw pointer */
 
@@ -348,8 +348,8 @@ int transfer_init(
 
 	class_call(transfer_interpolate_sources(ppt,
 						ptr,
-						eta0,
-						eta_rec,
+						tau0,
+						tau_rec,
 						index_mode,
 						index_ic,
 						index_tt,
@@ -379,7 +379,7 @@ int transfer_init(
 #pragma omp parallel							\
   shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
 	  interpolated_sources,abort,num_j)				\
-  private (index_l,tstart,tstop,tspent,workspace,address_in_workspace,eta0_minus_eta,delta_eta,sources,j_l,ddj_l,x_size_l,x_min_l)
+  private (index_l,tstart,tstop,tspent,workspace,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l)
 	
 	{
 	  
@@ -391,14 +391,14 @@ int transfer_init(
 	  /* define address of each field in the workspace */
 	  address_in_workspace = workspace;
 	  
-	  eta0_minus_eta = address_in_workspace;
-	  address_in_workspace += ppt->eta_size;
+	  tau0_minus_tau = address_in_workspace;
+	  address_in_workspace += ppt->tau_size;
 	  
-	  delta_eta  = address_in_workspace;
-	  address_in_workspace += ppt->eta_size;
+	  delta_tau  = address_in_workspace;
+	  address_in_workspace += ppt->tau_size;
 
 	  sources = address_in_workspace;
-	  address_in_workspace += ptr->k_size[index_mode]*ppt->eta_size;
+	  address_in_workspace += ptr->k_size[index_mode]*ppt->tau_size;
 	  
 	  x_min_l = address_in_workspace;
 	  address_in_workspace += 1;
@@ -412,7 +412,7 @@ int transfer_init(
 	  
 	  memcpy(sources,
 		 interpolated_sources,
-		 ptr->k_size[index_mode]*ppt->eta_size*sizeof(double));
+		 ptr->k_size[index_mode]*ppt->tau_size*sizeof(double));
 	  
 #pragma omp for schedule (dynamic)
 
@@ -444,16 +444,16 @@ int transfer_init(
 
 	    /* check that the computation will never need values of
 	       j_l(x) with x > x_max (should never happen, since x_max
-	       is chosen to be greater than eta0*k_max in bessel
+	       is chosen to be greater than tau0*k_max in bessel
 	       module) */
 
-	    class_test_parallel((int)((eta0_minus_eta[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1 >= x_size_l,
+	    class_test_parallel((int)((tau0_minus_tau[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1 >= x_size_l,
 				ptr->error_message,
 				"Increase x_max in bessel functions! The computation needs index_x up to %d while x_size[%d]=%d for x=%e\n",
-				(int)((eta0_minus_eta[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1,
+				(int)((tau0_minus_tau[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1,
 				index_l,
 				x_size_l,
-				eta0_minus_eta[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1]);
+				tau0_minus_tau[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1]);
 
 	    /* compute the transfer function for this l */
 	    class_call_parallel(transfer_compute_for_each_l(ppr,
@@ -466,8 +466,8 @@ int transfer_init(
 							    (double)ptr->l[index_l],
 							    *x_min_l,
 							    pbs->x_step,
-							    eta0_minus_eta,
-							    delta_eta,
+							    tau0_minus_tau,
+							    delta_tau,
 							    sources,
 							    j_l,
 							    ddj_l,
@@ -863,7 +863,7 @@ int transfer_get_k_list(
 }
 
 /**
- * This routine interpolates sources \f$ S(k, \eta) \f$ for each mode, 
+ * This routine interpolates sources \f$ S(k, \tau) \f$ for each mode, 
  * initial condition and type, to get them at the right values of k,
  * using the spline interpolation method. 
  *
@@ -879,8 +879,8 @@ int transfer_get_k_list(
  * 
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
- * @param eta0                  Input : conformal time today
- * @param eta_rec               Input : conformal time at recombination
+ * @param tau0                  Input : conformal time today
+ * @param tau_rec               Input : conformal time at recombination
  * @param index_mode            Input : index of mode
  * @param index_ic              Input : index of initial condition
  * @param index_tt              Input : index of type of transfer
@@ -892,13 +892,13 @@ int transfer_get_k_list(
 int transfer_interpolate_sources(
 				 struct perturbs * ppt,
 				 struct transfers * ptr,
-				 double eta0,
-				 double eta_rec,
+				 double tau0,
+				 double tau_rec,
 				 int index_mode,
 				 int index_ic,
 				 int index_tt,
-				 double * source_spline, /* array with argument source_spline[index_eta*ppt->k_size[index_mode]+index_k] (must be allocated) */
-				 double * interpolated_sources /* array with argument interpolated_sources[index_k_tr*ppt->eta_size+index_eta] (must be allocated) */
+				 double * source_spline, /* array with argument source_spline[index_tau*ppt->k_size[index_mode]+index_k] (must be allocated) */
+				 double * interpolated_sources /* array with argument interpolated_sources[index_k_tr*ppt->tau_size+index_tau] (must be allocated) */
 				 ) {
 
   /** Summary: */
@@ -909,7 +909,7 @@ int transfer_interpolate_sources(
   int index_k;
 
   /* index running on time */
-  int index_eta;
+  int index_tau;
 
   /* index running on type of source (not type of transfer) */
   int index_type=0;
@@ -955,7 +955,7 @@ int transfer_interpolate_sources(
   class_call(array_spline_table_columns(ppt->k[index_mode],
 					ppt->k_size[index_mode],
 					ppt->sources[index_mode][index_ic * ppt->tp_size[index_mode] + index_type],
-					ppt->eta_size,
+					ppt->tau_size,
 					source_spline,
 					_SPLINE_EST_DERIV_,
 					ptr->error_message),
@@ -988,19 +988,19 @@ int transfer_interpolate_sources(
     b = (ptr->k[index_mode][index_k_tr] - ppt->k[index_mode][index_k])/h;
     a = 1.-b;
     
-    for (index_eta = 0; index_eta < ppt->eta_size; index_eta++) {
+    for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
 
       /**   a) interpolate for each value of conformal time */
 
-      interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 
+      interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
 	a * ppt->sources[index_mode]
 	[index_ic * ppt->tp_size[index_mode] + index_type]
-	[index_eta*ppt->k_size[index_mode]+index_k]
+	[index_tau*ppt->k_size[index_mode]+index_k]
 	+ b * ppt->sources[index_mode]
 	[index_ic * ppt->tp_size[index_mode] + index_type]
-	[index_eta*ppt->k_size[index_mode]+index_k+1]
-	+ ((a*a*a-a) * source_spline[index_eta*ppt->k_size[index_mode]+index_k]
-	   +(b*b*b-b) * source_spline[index_eta*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
+	[index_tau*ppt->k_size[index_mode]+index_k+1]
+	+ ((a*a*a-a) * source_spline[index_tau*ppt->k_size[index_mode]+index_k]
+	   +(b*b*b-b) * source_spline[index_tau*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
 
       /**   b) case of cmb lensing: multiply gravitational potential 
                by appropriate window function */
@@ -1009,23 +1009,23 @@ int transfer_interpolate_sources(
 
 	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 
-	  /* lensing source =  W(eta) psi(k,eta) H(eta-eta_rec) 
+	  /* lensing source =  W(tau) psi(k,tau) H(tau-tau_rec) 
 	     with 
 	     psi = (newtonian) gravitationnal potential  
-	     W = 2(eta-eta_rec)/(eta_0-eta)/(eta_0-eta_rec) 
+	     W = 2(tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
 	     H(x) = Heaviside
-	     (in eta = eta_0, set source = 0 to avoid division by zero;
+	     (in tau = tau_0, set source = 0 to avoid division by zero;
               regulated anyway by Bessel).
 	  */
-	  if ((ppt->eta_sampling[index_eta] > eta_rec) && 
-	      ((eta0-ppt->eta_sampling[index_eta]) > 0.)) {
-	    interpolated_sources[index_k_tr*ppt->eta_size+index_eta] *=
-	      2.*(ppt->eta_sampling[index_eta]-eta_rec)
-	      /(eta0-ppt->eta_sampling[index_eta])
-	      /(eta0-eta_rec);
+	  if ((ppt->tau_sampling[index_tau] > tau_rec) && 
+	      ((tau0-ppt->tau_sampling[index_tau]) > 0.)) {
+	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *=
+	      2.*(ppt->tau_sampling[index_tau]-tau_rec)
+	      /(tau0-ppt->tau_sampling[index_tau])
+	      /(tau0-tau_rec);
 	  }
 	  else {
-	    interpolated_sources[index_k_tr*ppt->eta_size+index_eta] = 0;
+	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 0;
 	  }
 	}
       }
@@ -1044,7 +1044,7 @@ int transfer_interpolate_sources(
  * For a given value of k, the transfer function is infered from 
  * the source function (passed in input in the array interpolated_sources)
  * and from Bessel functions (passed in input in the bessels structure),
- * either by convolving them along eta, or by a Limber appoximation.
+ * either by convolving them along tau, or by a Limber appoximation.
  * This elementary task is distributed either to transfer_integrate()
  * or to transfer_limber(). The task of this routine is mainly to
  * loop over k values, and to decide at which k_max the calculation can
@@ -1056,8 +1056,8 @@ int transfer_interpolate_sources(
  * @param ppt                   Input : pointer to perturbation structure
  * @param pbs                   Input : pointer to bessels structure 
  * @param ptr                   Input/output : pointer to transfers structure (result stored there)
- * @param eta0                  Input : conformal time today
- * @param eta_rec               Input : conformal time at recombination
+ * @param tau0                  Input : conformal time today
+ * @param tau_rec               Input : conformal time at recombination
  * @param index_mode            Input : index of mode
  * @param index_ic              Input : index of initial condition
  * @param index_tt              Input : index of type of transfer
@@ -1078,8 +1078,8 @@ int transfer_compute_for_each_l(
 				double l,
 				double x_min_l,
 				double x_step,
-				double * eta0_minus_eta,
-				double * delta_eta,
+				double * tau0_minus_tau,
+				double * delta_tau,
 				double * sources,
 				double * j_l,
 				double * ddj_l,
@@ -1103,7 +1103,7 @@ int transfer_compute_for_each_l(
   double global_min;
   /* last local maximum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
   double last_local_max;
-  /* last local minimum of \f$ S(k, \eta) j_l(k [\eta_0 - \eta]) \f$ as a function of k, used for cutting the integral */
+  /* last local minimum of \f$ S(k, \tau) j_l(k [\tau_0 - \tau]) \f$ as a function of k, used for cutting the integral */
   double last_local_min;
   /* value of transfer function */
   double transfer_function;
@@ -1218,13 +1218,13 @@ int transfer_compute_for_each_l(
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
 	
-      	class_call(transfer_limber(ppt->eta_size,
+      	class_call(transfer_limber(ppt->tau_size,
 				   ptr,
 				   index_mode,
 				   index_k,
 				   l,
 				   k,
-				   eta0_minus_eta,
+				   tau0_minus_tau,
 				   sources,
 				   &transfer_function),
 		   ptr->error_message,
@@ -1237,14 +1237,14 @@ int transfer_compute_for_each_l(
 	    (((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) || 
 	     ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_t)))) {
 	  
-	  class_call(transfer_envelop(ppt->eta_size,
+	  class_call(transfer_envelop(ppt->tau_size,
 				      index_k,
 				      l,
 				      k,
 				      x_min_l,
 				      x_step,
-				      eta0_minus_eta,
-				      delta_eta,
+				      tau0_minus_tau,
+				      delta_tau,
 				      sources,
 				      j_l,
 				      ddj_l,
@@ -1256,14 +1256,14 @@ int transfer_compute_for_each_l(
 	}
 	else {
 
-	  class_call(transfer_integrate(ppt->eta_size,
+	  class_call(transfer_integrate(ppt->tau_size,
 					index_k,
 					l,
 					k,
 					x_min_l,
 					x_step,
-					eta0_minus_eta,
-					delta_eta,
+					tau0_minus_tau,
+					delta_tau,
 					sources,
 					j_l,
 					ddj_l,
@@ -1360,8 +1360,8 @@ int transfer_compute_for_each_l(
  * @param ppt                   Input : pointer to perturbation structure
  * @param pbs                   Input : pointer to bessels structure 
  * @param ptr                   Input : pointer to transfers structure
- * @param eta0                  Input : conformal time today
- * @param eta_rec               Input : conformal time at recombination
+ * @param tau0                  Input : conformal time today
+ * @param tau_rec               Input : conformal time at recombination
  * @param index_mode            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
@@ -1373,14 +1373,14 @@ int transfer_compute_for_each_l(
  */
 
 int transfer_integrate(
-		       int eta_size,
+		       int tau_size,
 		       int index_k,
 		       double l,
 		       double k,
 		       double x_min_l,
 		       double x_step,
-		       double * eta0_minus_eta,
-		       double * delta_eta,
+		       double * tau0_minus_tau,
+		       double * delta_tau,
 		       double * sources,
 		       double *j_l,
 		       double *ddj_l,
@@ -1391,8 +1391,8 @@ int transfer_integrate(
 
   /** - define local variables */
 
-  /* minimum value of \f$ (\eta0-\eta) \f$ at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  double eta0_minus_eta_min_bessel;
+  /* minimum value of \f$ (\tau0-\tau) \f$ at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
+  double tau0_minus_tau_min_bessel;
 
   /* running value of bessel function */
 /*   double bessel; */
@@ -1402,29 +1402,29 @@ int transfer_integrate(
   
   double transfer;
 
-  /* index in the source's eta list corresponding to the last point in the overlapping region between sources and bessels */
-  int index_eta,index_eta_max;
+  /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
+  int index_tau,index_tau_max;
 
-  /** - find minimum value of (eta0-eta) at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  eta0_minus_eta_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
+  /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
+  tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
 
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
-  if (eta0_minus_eta_min_bessel >= eta0_minus_eta[0]) {
+  if (tau0_minus_tau_min_bessel >= tau0_minus_tau[0]) {
     *trsf = 0.;
     return _SUCCESS_;
   }
 
   /** - if there is an overlap: */
 
-  /** (a) find index in the source's eta list corresponding to the last point in the overlapping region. After this step, index_eta_max can be as small as zero, but not negative. */ 
-  index_eta_max = eta_size-1;
-  while (eta0_minus_eta[index_eta_max] < eta0_minus_eta_min_bessel)
-    index_eta_max--;
+  /** (a) find index in the source's tau list corresponding to the last point in the overlapping region. After this step, index_tau_max can be as small as zero, but not negative. */ 
+  index_tau_max = tau_size-1;
+  while (tau0_minus_tau[index_tau_max] < tau0_minus_tau_min_bessel)
+    index_tau_max--;
 
-  /** (b) the source function can vanish at large $\f \eta \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_eta_max can be as small as zero, but not negative. */
-  while (sources[index_k * eta_size + index_eta_max] == 0.) { 
-    index_eta_max--;
-    if (index_eta_max < 0) {
+  /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
+  while (sources[index_k * tau_size + index_tau_max] == 0.) { 
+    index_tau_max--;
+    if (index_tau_max < 0) {
       *trsf = 0.;
       return _SUCCESS_;
     }
@@ -1434,41 +1434,41 @@ int transfer_integrate(
     
   /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
   
-  x = k * eta0_minus_eta[index_eta_max];
+  x = k * tau0_minus_tau[index_tau_max];
 
   index_x = (int)((x-x_min_l)/x_step);
   
   a = (x_min_l+x_step*(index_x+1) - x)/x_step;
   
-  transfer = sources[index_k * eta_size + index_eta_max] /* source */
+  transfer = sources[index_k * tau_size + index_tau_max] /* source */
     * (a * j_l[index_x] +                                /* bessel (cubic spline interpolation) */
        (1.-a) * (j_l[index_x+1]
 		 - a * ((a+1.) * ddj_l[index_x]
 			+(2.-a) * ddj_l[index_x+1]) 
 		 * x_step * x_step / 6.0) );
   
-  if (index_eta_max > 0)
-    transfer *= (eta0_minus_eta[index_eta_max-1]-eta0_minus_eta_min_bessel);
+  if (index_tau_max > 0)
+    transfer *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
   else
-    transfer *= (eta0_minus_eta[index_eta_max]-eta0_minus_eta_min_bessel);
+    transfer *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
 
-  for (index_eta=0; index_eta<index_eta_max; index_eta++) {
+  for (index_tau=0; index_tau<index_tau_max; index_tau++) {
     
     /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
     
-    x = k * eta0_minus_eta[index_eta];
+    x = k * tau0_minus_tau[index_tau];
     
     index_x = (int)((x-x_min_l)/x_step);
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
     
-    transfer += sources[index_k * eta_size + index_eta] /* source */
+    transfer += sources[index_k * tau_size + index_tau] /* source */
       * (a * j_l[index_x]                               /* bessel (cubic spline interpolation) */
 	 + (1.-a) * ( j_l[index_x+1]
 		      - a * ((a+1.) * ddj_l[index_x]
 			     +(2.-a) * ddj_l[index_x+1]) 
 		      * x_step * x_step / 6.0)) 
-      * delta_eta[index_eta];                           /* deta */
+      * delta_tau[index_tau];                           /* dtau */
   }
   
   *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */
@@ -1481,11 +1481,11 @@ int transfer_integrate(
  * for each mode, initial condition, type, multipole l and wavenumber k,
  * by using the Limber approximation, i.e by evaluating the source function 
  * (passed in input in the array interpolated_sources) at a single value of
- * eta (the Bessel function being approximated as a Dirac distribution)
+ * tau (the Bessel function being approximated as a Dirac distribution)
  *
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
- * @param eta0                  Input : conformal time today
+ * @param tau0                  Input : conformal time today
  * @param index_mode            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
@@ -1496,14 +1496,14 @@ int transfer_integrate(
  */
 
 int transfer_limber(
-		    int eta_size,
+		    int tau_size,
 		    struct transfers * ptr,
 		    int index_mode,
 		    int index_k,
 		    double l,
 		    double k,
-		    double * eta0_minus_eta,
-		    double * sources, /* array with argument interpolated_sources[index_k_tr*ppt->eta_size+index_eta] */
+		    double * tau0_minus_tau,
+		    double * sources, /* array with argument interpolated_sources[index_k_tr*ppt->tau_size+index_tau] */
 		    double * trsf
 		    ){
 
@@ -1512,28 +1512,28 @@ int transfer_limber(
   /** - define local variables */
 
   /* conformal time at which source must be computed */
-  double eta0_minus_eta_limber;
+  double tau0_minus_tau_limber;
   double transfer;
 
-  /** - get k, l and infer eta such that k(eta0-eta)=l+1/2; 
-      check that eta is in appropriate range */
+  /** - get k, l and infer tau such that k(tau0-tau)=l+1/2; 
+      check that tau is in appropriate range */
 
-  eta0_minus_eta_limber = (l+0.5)/k;
+  tau0_minus_tau_limber = (l+0.5)/k;
 
-  if (eta0_minus_eta_limber > eta0_minus_eta[0]) {
+  if (tau0_minus_tau_limber > tau0_minus_tau[0]) {
     *trsf = 0.;
     return _SUCCESS_;
   }
 
-  /** - get source at this value eta */
+  /** - get source at this value tau */
 
   class_call(array_interpolate_two_arrays_one_column(
-						     eta0_minus_eta,
+						     tau0_minus_tau,
 						     sources,
 						     ptr->k_size[index_mode],
 						     index_k,
-						     eta_size,
-						     eta0_minus_eta_limber,
+						     tau_size,
+						     tau0_minus_tau_limber,
 						     &transfer,
 						     ptr->error_message),
 	     ptr->error_message,
@@ -1559,8 +1559,8 @@ int transfer_limber(
  * @param ppt                   Input : pointer to perturbation structure
  * @param pbs                   Input : pointer to bessels structure 
  * @param ptr                   Input : pointer to transfers structure
- * @param eta0                  Input : conformal time today
- * @param eta_rec               Input : conformal time at recombination
+ * @param tau0                  Input : conformal time today
+ * @param tau_rec               Input : conformal time at recombination
  * @param index_mode            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
@@ -1572,14 +1572,14 @@ int transfer_limber(
  */
 
 int transfer_envelop(
-		     int eta_size,
+		     int tau_size,
 		     int index_k,
 		     double l,
 		     double k,
 		     double x_min_l,
 		     double x_step,
-		     double * eta0_minus_eta,
-		     double * delta_eta,
+		     double * tau0_minus_tau,
+		     double * delta_tau,
 		     double * sources,
 		     double *j_l,
 		     double *ddj_l,
@@ -1592,8 +1592,8 @@ int transfer_envelop(
 
   /** - define local variables */
 
-  /* minimum value of \f$ (\eta0-\eta) \f$ at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  double eta0_minus_eta_min_bessel;
+  /* minimum value of \f$ (\tau0-\tau) \f$ at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
+  double tau0_minus_tau_min_bessel;
 
   /* running value of bessel function */
 /*   double bessel; */
@@ -1601,31 +1601,31 @@ int transfer_envelop(
   double x;
   double a;
   
-  double transfer, transfer_shifted, source_times_deta;
+  double transfer, transfer_shifted, source_times_dtau;
 
-  /* index in the source's eta list corresponding to the last point in the overlapping region between sources and bessels */
-  int index_eta,index_eta_max;
+  /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
+  int index_tau,index_tau_max;
 
-  /** - find minimum value of (eta0-eta) at which \f$ j_l(k[\eta_0-\eta]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  eta0_minus_eta_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
+  /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
+  tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
 
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
-  if (eta0_minus_eta_min_bessel >= eta0_minus_eta[0]) {
+  if (tau0_minus_tau_min_bessel >= tau0_minus_tau[0]) {
     *trsf = 0.;
     return _SUCCESS_;
   }
 
   /** - if there is an overlap: */
 
-  /** (a) find index in the source's eta list corresponding to the last point in the overlapping region. After this step, index_eta_max can be as small as zero, but not negative. */ 
-  index_eta_max = eta_size-1;
-  while (eta0_minus_eta[index_eta_max] < eta0_minus_eta_min_bessel)
-    index_eta_max--;
+  /** (a) find index in the source's tau list corresponding to the last point in the overlapping region. After this step, index_tau_max can be as small as zero, but not negative. */ 
+  index_tau_max = tau_size-1;
+  while (tau0_minus_tau[index_tau_max] < tau0_minus_tau_min_bessel)
+    index_tau_max--;
 
-  /** (b) the source function can vanish at large $\f \eta \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_eta_max can be as small as zero, but not negative. */
-  while (sources[index_k * eta_size + index_eta_max] == 0.) { 
-    index_eta_max--;
-    if (index_eta_max < 0) {
+  /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
+  while (sources[index_k * tau_size + index_tau_max] == 0.) { 
+    index_tau_max--;
+    if (index_tau_max < 0) {
       *trsf = 0.;
       return _SUCCESS_;
     }
@@ -1635,23 +1635,23 @@ int transfer_envelop(
     
   /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
   
-  x = k * eta0_minus_eta[index_eta_max];
+  x = k * tau0_minus_tau[index_tau_max];
 
   index_x = (int)((x-x_min_l)/x_step);
   
   a = (x_min_l+x_step*(index_x+1) - x)/x_step;
 
-  source_times_deta = sources[index_k * eta_size + index_eta_max];
+  source_times_dtau = sources[index_k * tau_size + index_tau_max];
   
-  if (index_eta_max > 0) {
-    source_times_deta *= (eta0_minus_eta[index_eta_max-1]-eta0_minus_eta_min_bessel);
+  if (index_tau_max > 0) {
+    source_times_dtau *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
    }
   else {
-    source_times_deta *= (eta0_minus_eta[index_eta_max]-eta0_minus_eta_min_bessel);
+    source_times_dtau *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
   }
 
   /* source times j_l (cubic spline interpolation) */
-  transfer = source_times_deta
+  transfer = source_times_dtau
     * (a * j_l[index_x] +
        (1.-a) * (j_l[index_x+1]
 		 - a * ((a+1.) * ddj_l[index_x]
@@ -1659,27 +1659,27 @@ int transfer_envelop(
 		 * x_step * x_step / 6.0) );
   
   /* source times j_l' (cubic spline interpolation) */
-  transfer_shifted = source_times_deta
+  transfer_shifted = source_times_dtau
     * (a * dj_l[index_x] +
        (1.-a) * (dj_l[index_x+1]
 		 - a * ((a+1.) * dddj_l[index_x]
 			+(2.-a) * dddj_l[index_x+1]) 
 		 * x_step * x_step / 6.0) );
   
-  for (index_eta=0; index_eta<index_eta_max; index_eta++) {
+  for (index_tau=0; index_tau<index_tau_max; index_tau++) {
     
     /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
     
-    x = k * eta0_minus_eta[index_eta];
+    x = k * tau0_minus_tau[index_tau];
     
     index_x = (int)((x-x_min_l)/x_step);
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
     
-  source_times_deta = sources[index_k * eta_size + index_eta] * delta_eta[index_eta];
+  source_times_dtau = sources[index_k * tau_size + index_tau] * delta_tau[index_tau];
     
   /* source times j_l (cubic spline interpolation) */
-  transfer += source_times_deta * 
+  transfer += source_times_dtau * 
     (a * j_l[index_x] +
      (1.-a) * (j_l[index_x+1]
 	       - a * ((a+1.) * ddj_l[index_x]
@@ -1687,7 +1687,7 @@ int transfer_envelop(
 	       * x_step * x_step / 6.0));
   
   /* source times j_l' (cubic spline interpolation) */
-  transfer_shifted += source_times_deta
+  transfer_shifted += source_times_dtau
     * (a * dj_l[index_x] +
        (1.-a) * (dj_l[index_x+1]
 		 - a * ((a+1.) * dddj_l[index_x]

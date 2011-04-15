@@ -709,7 +709,7 @@ int output_pk(
       }
     }
   
-    /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of eta. */
+    /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
   
     /* if z_pk = 0, no interpolation needed */
 
@@ -718,13 +718,13 @@ int output_pk(
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
 	if (psp->ic_size[index_mode] == 1) {
-	  pk_tot[index_k] = exp(psp->ln_pk[(psp->ln_eta_size-1) * psp->ln_k_size + index_k]);
+	  pk_tot[index_k] = exp(psp->ln_pk[(psp->ln_tau_size-1) * psp->ln_k_size + index_k]);
 	}
 	else {
 	  pk_tot[index_k] = 0.;
 	  for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode]);
-	    pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] = exp(psp->ln_pk[((psp->ln_eta_size-1) * psp->ln_k_size + index_k) * psp->ic_ic_size[index_mode] + index_ic1_ic2]);
+	    pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] = exp(psp->ln_pk[((psp->ln_tau_size-1) * psp->ln_k_size + index_k) * psp->ic_ic_size[index_mode] + index_ic1_ic2]);
 	    pk_tot[index_k] += pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2];
 	  }
 	  for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
@@ -1021,7 +1021,7 @@ int output_tk(
       
     }
   
-    /** - third, compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of eta. */
+    /** - third, compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
   
     /* if z_pk = 0, no interpolation needed */
 
@@ -1030,7 +1030,7 @@ int output_tk(
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 	for (index_tr=0; index_tr<psp->tr_size; index_tr++) {
 	  for (index_ic=0; index_ic<psp->ic_size[index_mode]; index_ic++) {
-	    tk[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(((psp->ln_eta_size-1)*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr];
+	    tk[(index_k * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(((psp->ln_tau_size-1)*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr];
 	  }
 	}
       }
