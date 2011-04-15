@@ -721,8 +721,8 @@ int perturb_timesampling_for_sources(
   if (ppt->has_cmb == _TRUE_) {
 
     /* using bisection, search time tau such that the ratio of thermo
-       to Hubble time scales tau_g/tau_h=aH/kappa' is equal to
-       start_sources_at_tau_g_over_tau_h */
+       to Hubble time scales tau_c/tau_h=aH/kappa' is equal to
+       start_sources_at_tau_c_over_tau_h */
     
     tau_lower = pth->tau_ini;
 
@@ -748,9 +748,9 @@ int perturb_timesampling_for_sources(
     class_test(pvecback[pba->index_bg_a]*
 	       pvecback[pba->index_bg_H]/
 	       pvecthermo[pth->index_th_dkappa] > 
-	       ppr->start_sources_at_tau_g_over_tau_h,
+	       ppr->start_sources_at_tau_c_over_tau_h,
 	       ppt->error_message,
-	       "your choice of initial time for computing sources is inappropriate: it corresponds to an earlier time than the one at which the integration of thermodynamical variables started (tau=%g). You should increase either 'start_sources_at_tau_g_over_tau_h' or 'recfast_z_initial'\n",
+	       "your choice of initial time for computing sources is inappropriate: it corresponds to an earlier time than the one at which the integration of thermodynamical variables started (tau=%g). You should increase either 'start_sources_at_tau_c_over_tau_h' or 'recfast_z_initial'\n",
 	       tau_lower);
     
     
@@ -778,9 +778,9 @@ int perturb_timesampling_for_sources(
     class_test(pvecback[pba->index_bg_a]*
 	       pvecback[pba->index_bg_H]/
 	       pvecthermo[pth->index_th_dkappa] <
-	       ppr->start_sources_at_tau_g_over_tau_h,
+	       ppr->start_sources_at_tau_c_over_tau_h,
 	       ppt->error_message,
-	       "your choice of initial time for computing sources is inappropriate: it corresponds to a time after recombination. You should decrease 'start_sources_at_tau_g_over_tau_h'\n");
+	       "your choice of initial time for computing sources is inappropriate: it corresponds to a time after recombination. You should decrease 'start_sources_at_tau_c_over_tau_h'\n");
     
     tau_mid = 0.5*(tau_lower + tau_upper);
     
@@ -809,7 +809,7 @@ int perturb_timesampling_for_sources(
       if (pvecback[pba->index_bg_a]*
 	  pvecback[pba->index_bg_H]/
 	  pvecthermo[pth->index_th_dkappa] > 
-	  ppr->start_sources_at_tau_g_over_tau_h)
+	  ppr->start_sources_at_tau_c_over_tau_h)
 	
 	tau_upper = tau_mid;
       else
@@ -1583,7 +1583,7 @@ int perturb_solve(
   class_test(ppw->pvecback[pba->index_bg_a]*
 	     ppw->pvecback[pba->index_bg_H]/
 	     ppw->pvecthermo[pth->index_th_dkappa] >
-	     ppr->start_small_k_at_tau_g_over_tau_h, ppt->error_message, "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_tau_g_over_tau_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n", 
+	     ppr->start_small_k_at_tau_c_over_tau_h, ppt->error_message, "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_tau_c_over_tau_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n", 
 	     ppw->pvecback[pba->index_bg_a]*
 	     ppw->pvecback[pba->index_bg_H]/
 	     ppw->pvecthermo[pth->index_th_dkappa]);
@@ -1649,7 +1649,7 @@ int perturb_solve(
       if ((ppw->pvecback[pba->index_bg_a]*
 	   ppw->pvecback[pba->index_bg_H]/
 	   ppw->pvecthermo[pth->index_th_dkappa] >
-	   ppr->start_small_k_at_tau_g_over_tau_h) ||
+	   ppr->start_small_k_at_tau_c_over_tau_h) ||
 	  (k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] >
 	   ppr->start_large_k_at_tau_h_over_tau_k))
 	
@@ -3330,19 +3330,19 @@ int perturb_initial_conditions(struct precision * ppr,
  * - check whether tight-coupling approximation is needed.
  * - check whether radiation (photons, massless neutrinos...) perturbations are needed.
  * - choose step of integration: step = ppr->perturb_integration_stepsize * min_time_scale, where min_time_scale = smallest time scale involved in the equations. There are three time scales to compare:
- * -# that of recombination, \f$ \tau_g = 1/\kappa' \f$
+ * -# that of recombination, \f$ \tau_c = 1/\kappa' \f$
  * -# Hubble time scale, \f$ \tau_h = a/a' \f$
  * -# Fourier mode, \f$ \tau_k = 1/k \f$
  *
- * So, in general, min_time_scale = \f$ \min(\tau_g, \tau_b, \tau_h, \tau_k) \f$.
+ * So, in general, min_time_scale = \f$ \min(\tau_c, \tau_b, \tau_h, \tau_k) \f$.
  *
- * However, if \f$ \tau_g \ll \tau_h \f$ and \f$ \tau_g
+ * However, if \f$ \tau_c \ll \tau_h \f$ and \f$ \tau_c
  * \ll \tau_k \f$, we can use the tight-coupling regime for photons
  * and write equations in such way that the time scale \f$
- * \tau_g \f$ becomes irrelevant (no effective mass term in \f$
- * 1/\tau_g \f$).  Then, the smallest
+ * \tau_c \f$ becomes irrelevant (no effective mass term in \f$
+ * 1/\tau_c \f$).  Then, the smallest
  * scale in the equations is only \f$ \min(\tau_h, \tau_k) \f$.
- * In practise, it is sufficient to use only the condition \f$ \tau_g \ll \tau_h \f$.
+ * In practise, it is sufficient to use only the condition \f$ \tau_c \ll \tau_h \f$.
  * 
  * Also, if \f$ \rho_{matter} \gg \rho_{radiation} \f$ and \f$ k \gg
  * aH \f$, we can switch off radiation perturbations (i.e. switch on
@@ -3379,7 +3379,7 @@ int perturb_approximations(
   /* (b) time scale of expansion, \f$ \tau_h = a/a' \f$ */
   double tau_h;
   /* (c) time scale of recombination, \f$ \tau_{\gamma} = 1/\kappa' \f$ */
-  double tau_g;
+  double tau_c;
 
   /** - compute Fourier mode time scale = \f$ \tau_k = 1/k \f$ */
 
@@ -3431,11 +3431,11 @@ int perturb_approximations(
     else {
 
       /** (b.2.a) compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
-      tau_g = 1./ppw->pvecthermo[pth->index_th_dkappa];
+      tau_c = 1./ppw->pvecthermo[pth->index_th_dkappa];
 
       /** (b.2.b) check whether tight-coupling approximation should be on */
-      if ((tau_g/tau_h < ppr->tight_coupling_trigger_tau_g_over_tau_h) &&
-	  (tau_g/tau_k < ppr->tight_coupling_trigger_tau_g_over_tau_k)) {
+      if ((tau_c/tau_h < ppr->tight_coupling_trigger_tau_c_over_tau_h) &&
+	  (tau_c/tau_k < ppr->tight_coupling_trigger_tau_c_over_tau_k)) {
 	ppw->approx[ppw->index_ap_tca] = (int)tca_on;
       }
       else {
@@ -3518,7 +3518,7 @@ int perturb_timescale(
   /* (b) time scale of expansion, \f$ \tau_h = a/a' \f$ */
   double tau_h;
   /* (c) time scale of recombination, \f$ \tau_{\gamma} = 1/\kappa' \f$ */
-  double tau_g;
+  double tau_c;
 
   /* various pointers allowing to extract the fields of the
      parameter_and_workspace input structure */
@@ -3585,9 +3585,9 @@ int perturb_timescale(
 
 	/** (b.2.a) compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
 
-	tau_g = 1./pvecthermo[pth->index_th_dkappa];
+	tau_c = 1./pvecthermo[pth->index_th_dkappa];
 
-	*timescale = min(tau_g,*timescale);
+	*timescale = min(tau_c,*timescale);
 
       }
     }
@@ -5101,7 +5101,7 @@ int perturb_derivs(double tau,
 	if (ppr->tight_coupling_approximation == (int)compromise_CLASS) {
 	  
 	  /* slip at second order (only leading second-order terms) */
-	  slip = (1.-2.*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*shear_g+shear_g_prime-(1./3.-cb2)*(F*theta_prime+2.*F_prime*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])));
+	  slip = (1.-2.*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*shear_g+shear_g_prime-(1./3.-cb2)*(F*theta_prime+2.*F_prime*theta_b));
 		
 	  /* second-order correction to shear */
 	  shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime]); 

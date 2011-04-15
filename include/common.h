@@ -432,29 +432,29 @@ struct precision
   double k_tensor_step_super; /**< step in k space, in units of one period of oscillation at decoupling, for scales above horizon at decoupling (tensor modes) */  
   double k_tensor_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. (tensor modes) */
 
-  double start_small_k_at_tau_g_over_tau_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_g/\tau_H \f$. Start when start_largek_at_tau_g_over_tau_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
+  double start_small_k_at_tau_c_over_tau_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_largek_at_tau_c_over_tau_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
 
   double start_large_k_at_tau_h_over_tau_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hibble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ wich is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
   /**
    * when to switch off tight-coupling approximation: first condition:
-   * \f$ \tau_g/\tau_H \f$ > tight_coupling_trigger_tau_g_over_tau_h.
+   * \f$ \tau_c/\tau_H \f$ > tight_coupling_trigger_tau_c_over_tau_h.
    * Decrease this value to switch off earlier in time.  If this
-   * number is larger than start_sources_at_tau_g_over_tau_h, the code
+   * number is larger than start_sources_at_tau_c_over_tau_h, the code
    * returns an error, because the source computation requires
    * tight-coupling to be switched off.
    */
-  double tight_coupling_trigger_tau_g_over_tau_h;
+  double tight_coupling_trigger_tau_c_over_tau_h;
 
   /**
    * when to switch off tight-coupling approximation:
-   * second condition: \f$ \tau_g/\tau_k \equiv k \tau_g \f$ <
-   * tight_coupling_trigger_tau_g_over_tau_k.
+   * second condition: \f$ \tau_c/\tau_k \equiv k \tau_c \f$ <
+   * tight_coupling_trigger_tau_c_over_tau_k.
    * Decrease this value to switch off earlier in time.
    */
-  double tight_coupling_trigger_tau_g_over_tau_k;
+  double tight_coupling_trigger_tau_c_over_tau_k;
 
-  double start_sources_at_tau_g_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_g/\tau_H \f$. Start when start_sources_at_tau_g_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
+  double start_sources_at_tau_c_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
   int tight_coupling_approximation;
 
@@ -508,7 +508,7 @@ struct precision
    * shear and higher momenta to zero):
    * second condition: 
    */ 
-  double radiation_streaming_trigger_tau_g_over_tau_h;
+  double radiation_streaming_trigger_tau_c_over_tau_h;
 
   int ur_fluid_approximation;
 

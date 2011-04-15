@@ -2728,8 +2728,8 @@ int trg_init (
   class_calloc(Omega_21, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
   class_calloc(Omega_22, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
 
-  /*has_simple_omega = _TRUE_;*/
-  has_simple_omega = _FALSE_;
+  has_simple_omega = _TRUE_;
+  /*has_simple_omega = _FALSE_;*/
 
   for(index_eta=0; index_eta < pnl->eta_size; index_eta++) {
     for(index_k=0; index_k < pnl->k_size; index_k++) {

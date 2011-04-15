@@ -506,7 +506,7 @@ int thermodynamics_init(
   while (pvecback[pba->index_bg_a]*
 	 pvecback[pba->index_bg_H]/
 	 pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dkappa] 
-	 < ppr->radiation_streaming_trigger_tau_g_over_tau_h) {
+	 < ppr->radiation_streaming_trigger_tau_c_over_tau_h) {
 
     index_tau--;
     

@@ -1015,11 +1015,11 @@ int input_init(
   class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
   class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
   class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
-  class_read_double("start_small_k_at_tau_g_over_tau_h",ppr->start_small_k_at_tau_g_over_tau_h);
+  class_read_double("start_small_k_at_tau_c_over_tau_h",ppr->start_small_k_at_tau_c_over_tau_h);
   class_read_double("start_large_k_at_tau_h_over_tau_k",ppr->start_large_k_at_tau_h_over_tau_k);
-  class_read_double("tight_coupling_trigger_tau_g_over_tau_h",ppr->tight_coupling_trigger_tau_g_over_tau_h);
-  class_read_double("tight_coupling_trigger_tau_g_over_tau_k",ppr->tight_coupling_trigger_tau_g_over_tau_k);
-  class_read_double("start_sources_at_tau_g_over_tau_h",ppr->start_sources_at_tau_g_over_tau_h);
+  class_read_double("tight_coupling_trigger_tau_c_over_tau_h",ppr->tight_coupling_trigger_tau_c_over_tau_h);
+  class_read_double("tight_coupling_trigger_tau_c_over_tau_k",ppr->tight_coupling_trigger_tau_c_over_tau_k);
+  class_read_double("start_sources_at_tau_c_over_tau_h",ppr->start_sources_at_tau_c_over_tau_h);
 
   class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation);
 
@@ -1060,7 +1060,7 @@ int input_init(
 
   class_read_int("radiation_streaming_approximation",ppr->radiation_streaming_approximation);
   class_read_double("radiation_streaming_trigger_tau_h_over_tau_k",ppr->radiation_streaming_trigger_tau_h_over_tau_k);
-  class_read_double("radiation_streaming_trigger_tau_g_over_tau_h",ppr->radiation_streaming_trigger_tau_g_over_tau_h);
+  class_read_double("radiation_streaming_trigger_tau_c_over_tau_h",ppr->radiation_streaming_trigger_tau_c_over_tau_h);
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
@@ -1467,11 +1467,11 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->start_small_k_at_tau_g_over_tau_h = 0.0004;  /* decrease to start earlier in time */
+  ppr->start_small_k_at_tau_c_over_tau_h = 0.0004;  /* decrease to start earlier in time */
   ppr->start_large_k_at_tau_h_over_tau_k = 0.15;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_tau_g_over_tau_h=0.01; /* decrease to switch off earlier in time */
-  ppr->tight_coupling_trigger_tau_g_over_tau_k=0.01; /* decrease to switch off earlier in time */
-  ppr->start_sources_at_tau_g_over_tau_h = 0.006; /* decrease to start earlier in time */
+  ppr->tight_coupling_trigger_tau_c_over_tau_h=0.01; /* decrease to switch off earlier in time */
+  ppr->tight_coupling_trigger_tau_c_over_tau_k=0.01; /* decrease to switch off earlier in time */
+  ppr->start_sources_at_tau_c_over_tau_h = 0.006; /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)compromise_CLASS;
 
   ppr->l_max_g=16; 
@@ -1495,7 +1495,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_h_over_tau_k = 50.; 
 /*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
-  ppr->radiation_streaming_trigger_tau_g_over_tau_h = 80.;
+  ppr->radiation_streaming_trigger_tau_c_over_tau_h = 80.;
  
   ppr->ur_fluid_approximation = nfa_CLASS;
   ppr->ur_fluid_trigger_tau_h_over_tau_k = 16.; 
