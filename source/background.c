@@ -341,11 +341,11 @@ int background_functions(
     p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
 
-  /* dark energy fluid with constant w */
-  if (pba->has_dark_energy_fluid == _TRUE_) {
-    pvecback[pba->index_bg_rho_de] = pba->Omega0_de * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w_de));
-    rho_tot += pvecback[pba->index_bg_rho_de];
-    p_tot += pba->w_de * pvecback[pba->index_bg_rho_de];
+  /* fluid with constant w and cs2 */
+  if (pba->has_fld == _TRUE_) {
+    pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w_fld));
+    rho_tot += pvecback[pba->index_bg_rho_fld];
+    p_tot += pba->w_fld * pvecback[pba->index_bg_rho_fld];
   }
 
   /* relativistic neutrinos (and all relativistic relics) */
@@ -487,8 +487,8 @@ int background_init(
   if (pba->has_lambda == _TRUE_) {
     Omega0_tot += pba->Omega0_lambda;
   }
-  if (pba->has_dark_energy_fluid == _TRUE_) {
-    Omega0_tot += pba->Omega0_de;
+  if (pba->has_fld == _TRUE_) {
+    Omega0_tot += pba->Omega0_fld;
   }
   if (pba->has_ur == _TRUE_) {
     Omega0_tot += pba->Omega0_ur;
@@ -650,15 +650,15 @@ int background_indices(
     pba->has_lambda = _FALSE_;
   }
   
-  /* - Dark energy fluid */
-  if (pba->Omega0_de != 0.) {
-    pba->has_dark_energy_fluid = _TRUE_;
-    /* -> index for rho_de (dark energy density) */
-    pba->index_bg_rho_de = index_bg; 
+  /* - fluid */
+  if (pba->Omega0_fld != 0.) {
+    pba->has_fld = _TRUE_;
+    /* -> index for rho_fld (dark energy density) */
+    pba->index_bg_rho_fld = index_bg; 
     index_bg++;
   }
   else {
-    pba->has_dark_energy_fluid = _FALSE_;
+    pba->has_fld = _FALSE_;
   }
   
   /* - relativistic neutrinos (and any relativistic relics) */

@@ -133,7 +133,7 @@ struct perturbs
   short has_source_delta_g;   /**< do we need source for delta of gammas? */
   short has_source_delta_b;   /**< do we need source for delta of baryons? */
   short has_source_delta_cdm; /**< do we need source for delta of cold dark matter? */
-  short has_source_delta_de;  /**< do we need source for delta of dark energy? */
+  short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
 
@@ -145,7 +145,7 @@ struct perturbs
   int index_tp_delta_g;   /**< index value for delta of gammas */
   int index_tp_delta_b;   /**< index value for delta of baryons */
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
-  int index_tp_delta_de;  /**< index value for delta of dark energy */
+  int index_tp_delta_fld;  /**< index value for delta of dark energy */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
   int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
@@ -226,8 +226,8 @@ struct perturb_vector
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
   int index_pt_theta_cdm; /**< cdm velocity */
-  int index_pt_delta_de;  /**< dark energy density */
-  int index_pt_theta_de;  /**< dark energy velocity */
+  int index_pt_delta_fld;  /**< dark energy density */
+  int index_pt_theta_fld;  /**< dark energy velocity */
   int index_pt_delta_ur; /**< density of ultra-relativistic neutrinos/relics */
   int index_pt_theta_ur; /**< velocity of ultra-relativistic neutrinos/relics */
   int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */

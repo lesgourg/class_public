@@ -55,17 +55,17 @@ thermo_rate_smoothing_radius=50
 
 gauge=1 #synchronous
 
-k_scalar_min_eta0=0.05
-k_scalar_max_eta0_over_l_max=2.6
+k_scalar_min_tau0=0.05
+k_scalar_max_tau0_over_l_max=2.6
 k_scalar_step_sub=0.12
 k_scalar_step_super=0.002 # was 0.0005
 k_scalar_step_transition=0.2 # was 0.2
 
-start_small_k_at_eta_g_over_eta_h = 0.0004
-start_large_k_at_eta_h_over_eta_k = 0.15
-tight_coupling_trigger_eta_g_over_eta_h=0.01
-tight_coupling_trigger_eta_g_over_eta_k=0.01
-start_sources_at_eta_g_over_eta_h = 0.006
+start_small_k_at_tau_c_over_tau_h = 0.0004
+start_large_k_at_tau_h_over_tau_k = 0.15
+tight_coupling_trigger_tau_c_over_tau_h=0.01
+tight_coupling_trigger_tau_c_over_tau_k=0.01
+start_sources_at_tau_c_over_tau_h = 0.006
 tight_coupling_approximation=5 #(int)second_order_CRS;
 
 l_max_g=16
@@ -73,19 +73,19 @@ l_max_pol_g=16
 l_max_ur=12
 l_max_ncdm=12
 
-tol_eta_approx=1.e-5
+tol_tau_approx=1.e-5
 tol_perturb_integration=1.e-3
 perturb_sampling_stepsize=0.05
 
 radiation_streaming_approximation = 2
-radiation_streaming_trigger_eta_h_over_eta_k = 50.
-radiation_streaming_trigger_eta_g_over_eta_h = 80.
+radiation_streaming_trigger_tau_h_over_tau_k = 50.
+radiation_streaming_trigger_tau_c_over_tau_h = 80.
 
 ur_fluid_approximation = 2
-ur_fluid_trigger_eta_h_over_eta_k = 16.
+ur_fluid_trigger_tau_h_over_tau_k = 16.
 
 ncdm_fluid_approximation = 2
-ncdm_fluid_trigger_eta_h_over_eta_k = 17.
+ncdm_fluid_trigger_tau_h_over_tau_k = 17.
 
 tol_ncdm=1.e-3
 

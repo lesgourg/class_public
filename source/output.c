@@ -1290,7 +1290,7 @@ int output_open_tk_file(
   fprintf(*tkfile,"T_b            ");
   if (pba->has_cdm == _TRUE_)
     fprintf(*tkfile,"T_cdm          ");
-  if (pba->has_dark_energy_fluid == _TRUE_)
+  if (pba->has_fld == _TRUE_)
     fprintf(*tkfile,"T_de           ");
   if (pba->has_ur == _TRUE_)
     fprintf(*tkfile,"T_ur          ");

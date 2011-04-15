@@ -540,12 +540,12 @@ int perturb_indices_of_perturbs(
 	  index_type++;
 	}
 	else ppt->has_source_delta_cdm = _FALSE_;
-	if (pba->has_dark_energy_fluid == _TRUE_) {
-	  ppt->has_source_delta_de = _TRUE_;
-	  ppt->index_tp_delta_de = index_type;
+	if (pba->has_fld == _TRUE_) {
+	  ppt->has_source_delta_fld = _TRUE_;
+	  ppt->index_tp_delta_fld = index_type;
 	  index_type++;
 	}
-	else ppt->has_source_delta_de = _FALSE_;
+	else ppt->has_source_delta_fld = _FALSE_;
 	if (pba->has_ur == _TRUE_) {
 	  ppt->has_source_delta_ur = _TRUE_;
 	  ppt->index_tp_delta_ur = index_type;
@@ -563,7 +563,7 @@ int perturb_indices_of_perturbs(
 	ppt->has_source_delta_g = _FALSE_;
 	ppt->has_source_delta_b = _FALSE_;
 	ppt->has_source_delta_cdm = _FALSE_;
-	ppt->has_source_delta_de = _FALSE_;
+	ppt->has_source_delta_fld = _FALSE_;
 	ppt->has_source_delta_ur = _FALSE_;
 	ppt->has_source_delta_ncdm = _FALSE_;
       }
@@ -2286,14 +2286,14 @@ int perturb_vector_init(
  
     }
 
-    /* dark energy */    
+    /* fluid */    
 
-    if (pba->has_dark_energy_fluid == _TRUE_) {       
+    if (pba->has_fld == _TRUE_) {       
       
-      ppv->index_pt_delta_de = index_pt; /* dark energy density */
+      ppv->index_pt_delta_fld = index_pt; /* fluid density */
       index_pt++;
 
-      ppv->index_pt_theta_de = index_pt; /* dark energy velocity */
+      ppv->index_pt_theta_fld = index_pt; /* fluid velocity */
       index_pt++;
       
     }
@@ -2621,13 +2621,13 @@ int perturb_vector_init(
 	  }
 	}
 
-	if (pba->has_dark_energy_fluid == _TRUE_) {  
+	if (pba->has_fld == _TRUE_) {  
 
-	  ppv->y[ppv->index_pt_delta_de] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_de];
+	  ppv->y[ppv->index_pt_delta_fld] =
+	    ppw->pv->y[ppw->pv->index_pt_delta_fld];
 	  
-	  ppv->y[ppv->index_pt_theta_de] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_de];
+	  ppv->y[ppv->index_pt_theta_fld] =
+	    ppw->pv->y[ppw->pv->index_pt_theta_fld];
 	}
 
 	if (pba->has_ur == _TRUE_) {
@@ -2700,13 +2700,13 @@ int perturb_vector_init(
 	  }
 	}
 
-	if (pba->has_dark_energy_fluid == _TRUE_) {  
+	if (pba->has_fld == _TRUE_) {  
 
-	  ppv->y[ppv->index_pt_delta_de] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_de];
+	  ppv->y[ppv->index_pt_delta_fld] =
+	    ppw->pv->y[ppw->pv->index_pt_delta_fld];
 	  
-	  ppv->y[ppv->index_pt_theta_de] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_de];
+	  ppv->y[ppv->index_pt_theta_fld] =
+	    ppw->pv->y[ppw->pv->index_pt_theta_fld];
 	}
 
 	if (pba->has_ncdm == _TRUE_) {
@@ -2801,13 +2801,13 @@ int perturb_vector_init(
 	    }
 	  }
 
-	  if (pba->has_dark_energy_fluid == _TRUE_) {  
+	  if (pba->has_fld == _TRUE_) {  
 
-	    ppv->y[ppv->index_pt_delta_de] =
-	      ppw->pv->y[ppw->pv->index_pt_delta_de];
+	    ppv->y[ppv->index_pt_delta_fld] =
+	      ppw->pv->y[ppw->pv->index_pt_delta_fld];
 	  
-	    ppv->y[ppv->index_pt_theta_de] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_de];
+	    ppv->y[ppv->index_pt_theta_fld] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_fld];
 	  }
 
 	  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
@@ -2918,13 +2918,13 @@ int perturb_vector_init(
 	    }
 	  }
 	  
-	  if (pba->has_dark_energy_fluid == _TRUE_) {  
+	  if (pba->has_fld == _TRUE_) {  
 	    
-	    ppv->y[ppv->index_pt_delta_de] =
-	      ppw->pv->y[ppw->pv->index_pt_delta_de];
+	    ppv->y[ppv->index_pt_delta_fld] =
+	      ppw->pv->y[ppw->pv->index_pt_delta_fld];
 	    
-	    ppv->y[ppv->index_pt_theta_de] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_de];
+	    ppv->y[ppv->index_pt_theta_fld] =
+	      ppw->pv->y[ppw->pv->index_pt_theta_fld];
 	  }
 	  
 	  if (pba->has_ur == _TRUE_) {
@@ -3161,9 +3161,9 @@ int perturb_initial_conditions(struct precision * ppr,
 	  ppw->pv->y[ppw->pv->index_pt_theta_cdm] = alpha*k*k; /* cdm velocity */
 	}
 	
- 	if (pba->has_dark_energy_fluid == _TRUE_) {        
- 	  ppw->pv->y[ppw->pv->index_pt_delta_de] = 0.; /* dark energy density (TO BE WRITTEN) */
- 	  ppw->pv->y[ppw->pv->index_pt_theta_de] = 0.; /* dark energy velocity (TO BE WRITTEN) */
+ 	if (pba->has_fld == _TRUE_) {        
+ 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = 0.; /* fluid density (TO BE WRITTEN) */
+ 	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = 0.; /* fluid velocity (TO BE WRITTEN) */
  	} 
 	
 	if (pba->has_ur == _TRUE_) {
@@ -3199,10 +3199,10 @@ int perturb_initial_conditions(struct precision * ppr,
           /* by convention, cdm velocity velocity vanishes in this implementation of the synchronous gauge */
 	}
 
-	/* cdm density */
- 	if (pba->has_dark_energy_fluid == _TRUE_) {        
- 	  ppw->pv->y[ppw->pv->index_pt_delta_de] = 0; /* dark energy density (TO BE WRITTEN) */
-	  ppw->pv->y[ppw->pv->index_pt_theta_de] = 0; /* dark energy velocity (TO BE WRITTEN) */
+	/* fluid density */
+ 	if (pba->has_fld == _TRUE_) {        
+ 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = 0; /* fluid density (TO BE WRITTEN) */
+	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = 0; /* fluid velocity (TO BE WRITTEN) */
  	} 
 
 	/* relativistic relics */
@@ -3749,11 +3749,11 @@ int perturb_einstein(
 	rho_plus_p_theta = rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
     }
     
-    /* dark energy fluid contribution */
-    if (pba->has_dark_energy_fluid == _TRUE_) { 
-      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_de]*y[ppw->pv->index_pt_delta_de]; 
-      rho_plus_p_theta = rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_de]*y[ppw->pv->index_pt_theta_de];
-      delta_p = delta_p + pba->cs2_de * ppw->pvecback[pba->index_bg_rho_de]*y[ppw->pv->index_pt_delta_de]; 
+    /* fluid contribution */
+    if (pba->has_fld == _TRUE_) { 
+      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld]; 
+      rho_plus_p_theta = rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+      delta_p = delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld]; 
     } 
 
     /* ultra-relativistic neutrino/relics contribution */
@@ -4340,10 +4340,10 @@ int perturb_source_terms(
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
 
-      /* delta_de */
-      if ((ppt->has_source_delta_de == _TRUE_) && (index_type == ppt->index_tp_delta_de)) {
+      /* delta_fld */
+      if ((ppt->has_source_delta_fld == _TRUE_) && (index_type == ppt->index_tp_delta_fld)) {
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
-	  y[ppw->pv->index_pt_delta_de]; 
+	  y[ppw->pv->index_pt_delta_fld]; 
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
@@ -5242,29 +5242,29 @@ int perturb_derivs(double tau,
 
     }
     
-    /** (g) dark energy fluid */
+    /** (g) fluid */
     
-    if (pba->has_dark_energy_fluid == _TRUE_) {  
+    if (pba->has_fld == _TRUE_) {  
 
       double ache_prime = a_prime_over_a;
       double cs2 = 1.;
 
       if (ppr->gauge == newtonian) {
 	/* Newtonian gauge : */
-	dy[ppw->pv->index_pt_delta_de] = /* dark energy density */
-	  (-3*(1+ pba->w_de )*ache_prime-3*pvecback[pba->index_bg_H]*(cs2- pba->w_de )*(y[ppw->pv->index_pt_delta_de]/pvecback[pba->index_bg_rho_de]+3*pvecback[pba->index_bg_H]*(1+ pba->w_de )*y[ppw->pv->index_pt_theta_de]/k)-(1+ pba->w_de )*k*y[ppw->pv->index_pt_theta_de])/pvecback[pba->index_bg_rho_de]; // 0;
+	dy[ppw->pv->index_pt_delta_fld] = /* fluid density */
+	  (-3*(1+ pba->w_fld )*ache_prime-3*pvecback[pba->index_bg_H]*(cs2- pba->w_fld )*(y[ppw->pv->index_pt_delta_fld]/pvecback[pba->index_bg_rho_fld]+3*pvecback[pba->index_bg_H]*(1+ pba->w_fld )*y[ppw->pv->index_pt_theta_fld]/k)-(1+ pba->w_fld )*k*y[ppw->pv->index_pt_theta_fld])/pvecback[pba->index_bg_rho_fld]; // 0;
 
-	dy[ppw->pv->index_pt_theta_de] = /* dark energy velocity */
-	  (k*cs2*y[ppw->pv->index_pt_delta_de])/(pvecback[pba->index_bg_rho_de]*(1+ pba->w_de ))-pvecback[pba->index_bg_H]*(1-3*cs2)*y[ppw->pv->index_pt_theta_de]+k*pvecmetric[ppw->index_mt_psi]; // 0;
+	dy[ppw->pv->index_pt_theta_fld] = /* fluid velocity */
+	  (k*cs2*y[ppw->pv->index_pt_delta_fld])/(pvecback[pba->index_bg_rho_fld]*(1+ pba->w_fld ))-pvecback[pba->index_bg_H]*(1-3*cs2)*y[ppw->pv->index_pt_theta_fld]+k*pvecmetric[ppw->index_mt_psi]; // 0;
       }
 
       if (ppr->gauge == synchronous) {
 	/* Synchronous gauge : */
-	dy[ppw->pv->index_pt_delta_de] = /* dark energy density */
-	  (-3*(1+ pba->w_de )*ache_prime-3*pvecback[pba->index_bg_H]*(cs2- pba->w_de )*(y[ppw->pv->index_pt_delta_de]/pvecback[pba->index_bg_rho_de]+3*pvecback[pba->index_bg_H]*(1+ pba->w_de )*y[ppw->pv->index_pt_theta_de]/k)-(1+ pba->w_de )*k*y[ppw->pv->index_pt_theta_de])/pvecback[pba->index_bg_rho_de]; // 0;
+	dy[ppw->pv->index_pt_delta_fld] = /* fluid density */
+	  (-3*(1+ pba->w_fld )*ache_prime-3*pvecback[pba->index_bg_H]*(cs2- pba->w_fld )*(y[ppw->pv->index_pt_delta_fld]/pvecback[pba->index_bg_rho_fld]+3*pvecback[pba->index_bg_H]*(1+ pba->w_fld )*y[ppw->pv->index_pt_theta_fld]/k)-(1+ pba->w_fld )*k*y[ppw->pv->index_pt_theta_fld])/pvecback[pba->index_bg_rho_fld]; // 0;
 
-	dy[ppw->pv->index_pt_theta_de] = /* dark energy velocity */
-	  (k*cs2*y[ppw->pv->index_pt_delta_de])/(pvecback[pba->index_bg_rho_de]*(1+ pba->w_de ))-pvecback[pba->index_bg_H]*(1-3*cs2)*y[ppw->pv->index_pt_theta_de]; // 0;
+	dy[ppw->pv->index_pt_theta_fld] = /* fluid velocity */
+	  (k*cs2*y[ppw->pv->index_pt_delta_fld])/(pvecback[pba->index_bg_rho_fld]*(1+ pba->w_fld ))-pvecback[pba->index_bg_H]*(1-3*cs2)*y[ppw->pv->index_pt_theta_fld]; // 0;
       }
       
     }  
@@ -5598,7 +5598,7 @@ int perturb_derivs(double tau,
   /*     printf("gamma : %e %e %e %e %e %e \n",dy[0],dy[1],dy[2],dy[3],dy[4],dy[5]); */
   /*     printf("b     : %e %e \n",dy[6],dy[7]); */
   /*     printf("cdm   : %e \n",dy[8]); */
-  /*     printf("dark energy : %e %e \n",dy[9],dy[10]); */
+  /*     printf("fluid : %e %e \n",dy[9],dy[10]); */
   /*     printf("nu    : %e %e %e %e %e %e \n",dy[10],dy[11],dy[12],dy[13],dy[14],dy[15]); */
   /*     printf("eta   : %e \n",dy[16]); */
   /*     printf("h     : %e \n",pvecmetric[ppw->index_mt_h_prime]); */

@@ -171,7 +171,9 @@ int input_init(
   int i;
 
   FILE * param_output;
+  FILE * param_unused;
   char param_output_name[_LINE_LENGTH_MAX_];
+  char param_unused_name[_LINE_LENGTH_MAX_];
 
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
@@ -468,7 +470,7 @@ int input_init(
   /* Omega_0_k (curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
 
-  /* Omega_0_lambda (cosmological constant), Omega0_de (dark energy fluid) */
+  /* Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid) */
   class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
@@ -485,15 +487,15 @@ int input_init(
   else {
     if (flag1 == _TRUE_) {
       pba->Omega0_lambda= param1;
-      pba->Omega0_de = 1. + pba->Omega0_k - param1 - Omega_tot;
+      pba->Omega0_fld = 1. + pba->Omega0_k - param1 - Omega_tot;
     }
     if (flag2 == _TRUE_) {
       pba->Omega0_lambda= 1. + pba->Omega0_k - param2 - Omega_tot;
-      pba->Omega0_de = param2;
+      pba->Omega0_fld = param2;
     }
   }
 
-  class_test(pba->Omega0_de != 0.,
+  class_test(pba->Omega0_fld != 0.,
 	     errmsg,
 	     "Dark energy fluid not tested yet");
   
@@ -1147,25 +1149,32 @@ int input_init(
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
     sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
+    sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
 
     class_open(param_output,param_output_name,"w",errmsg);
+    class_open(param_unused,param_unused_name,"w",errmsg);
 
     fprintf(param_output,"# List of input/precision parameters actually read\n");
     fprintf(param_output,"# (all other parameters set to default values)\n");
     fprintf(param_output,"#\n");
     fprintf(param_output,"# This file, written by CLASS, can be used as the input file\n");
-    fprintf(param_output,"# of another run provided that it has a suffix xxx.ini or xxx.pre;\n");
-    fprintf(param_output,"# in the next run you can change this name with the\n");
-    fprintf(param_output,"# parameters = ... entry of your input file.\n");
+    fprintf(param_output,"# of another run\n");
     fprintf(param_output,"#\n");
+
+    fprintf(param_unused,"# List of input/precision parameters passed\n");
+    fprintf(param_unused,"# but not used (just for info)\n");
+    fprintf(param_unused,"#\n");
 
     for (i=0; i<pfc->size; i++) {
       if (pfc->read[i] == _TRUE_)
 	fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
+      else
+	fprintf(param_unused,"%s = %s\n",pfc->name[i],pfc->value[i]);
     }
     fprintf(param_output,"#\n");
 
     fclose(param_output);
+    fclose(param_unused);
   }
 
   return _SUCCESS_;
@@ -1228,10 +1237,10 @@ int input_default_params(
 
   pba->Omega0_k = 0.;
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
-  pba->Omega0_de = 0.;     
+  pba->Omega0_fld = 0.;     
   pba->a_today = 1.;       
-  pba->w_de=-1.;
-  pba->cs2_de=1.;
+  pba->w_fld=-1.;
+  pba->cs2_fld=1.;
 
   /** - thermodynamics structure */
 

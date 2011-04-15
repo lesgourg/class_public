@@ -1175,7 +1175,7 @@ int spectra_indices(
       psp->index_tr_cdm = index_tr;
       index_tr++;
     }
-    if (pba->has_dark_energy_fluid == _TRUE_) {
+    if (pba->has_fld == _TRUE_) {
       psp->index_tr_de = index_tr;
       index_tr++;
     }
@@ -1999,15 +1999,15 @@ int spectra_matter_transfers(
 	  
 	}
 	
-	/* T_de(k,tau) */
+	/* T_fld(k,tau) */
 
-	if (pba->has_dark_energy_fluid == _TRUE_) {
+	if (pba->has_fld == _TRUE_) {
 
 	  delta_i = ppt->sources[index_mode]
-	    [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_de]
+	    [index_ic * ppt->tp_size[index_mode] + ppt->index_tp_delta_fld]
 	    [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_mode] + index_k];
 
-	  rho_i = pvecback_sp_long[pba->index_bg_rho_de];
+	  rho_i = pvecback_sp_long[pba->index_bg_rho_fld];
 	  
 	  psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + psp->index_tr_de] = delta_i;
 	  

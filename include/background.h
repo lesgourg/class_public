@@ -65,9 +65,9 @@ struct background
 
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$ : cosmological constant */
 
-  double Omega0_de; /**< \f$ \Omega_{0 de} \f$ : dark energy fluid with constant \f$ w \f$ */
-  double w_de; /**< \f$ w_{DE} \f$ : dark energy equation of state */
-  double cs2_de; /**< \f$ c^2_{s~DE} \f$ : dark energy sound speed */
+  double Omega0_fld; /**< \f$ \Omega_{0 de} \f$ : fluid with constant \f$ w \f$  and \f$ c_s^2 \f$ */
+  double w_fld; /**< \f$ w_{DE} \f$ : fluid equation of state */
+  double cs2_fld; /**< \f$ c^2_{s~DE} \f$ : fluid sound speed */
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
 
@@ -122,7 +122,7 @@ struct background
   int index_bg_rho_b;         /**< baryon density */
   int index_bg_rho_cdm;       /**< cdm density */
   int index_bg_rho_lambda;    /**< cosmological constant density */
-  int index_bg_rho_de;        /**< dark energy fluid with constant w density */
+  int index_bg_rho_fld;        /**< fluid with constant w density */
   int index_bg_rho_ur;       /**< relativistic neutrinos/relics density */
 
   int index_bg_rho_ncdm1;
@@ -192,10 +192,10 @@ struct background
 
   //@{
 
-  short has_cdm;               /**< presence of cdm? */
-  short has_lambda;            /**< presence of cosmological constant? */
-  short has_dark_energy_fluid; /**< presence of dark energy fluid with constant w? */
-  short has_ur;               /**< presence of ultra-relativistic neutrinos/relics? */
+  short has_cdm;       /**< presence of cdm? */
+  short has_lambda;    /**< presence of cosmological constant? */
+  short has_fld;       /**< presence of fluid with constant w and cs2? */
+  short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
   short has_ncdm;
 
   //@}
