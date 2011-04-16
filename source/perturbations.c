@@ -274,8 +274,9 @@ int perturb_init(
 	
 #pragma omp for schedule (dynamic)
 
-	for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
-	  
+	//for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
+	for (index_k = ppt->k_size[index_mode]-1; index_k >=0; index_k--) {  
+
 	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
 	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);
 	  
@@ -3232,8 +3233,8 @@ int perturb_initial_conditions(struct precision * ppr,
 
 	/* fluid density */
  	if (pba->has_fld == _TRUE_) {        
- 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = 0; /* fluid density (TO BE WRITTEN) */
-	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = 0; /* fluid velocity (TO BE WRITTEN) */
+ 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+pba->w_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*pba->w_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
+	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*pba->w_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
  	} 
 
 	/* relativistic relics */
@@ -5279,25 +5280,25 @@ int perturb_derivs(double tau,
     
     if (pba->has_fld == _TRUE_) {  
 
-      double ache_prime = a_prime_over_a;
-      double cs2 = 1.;
-
       if (ppr->gauge == newtonian) {
 	/* Newtonian gauge : */
 	dy[ppw->pv->index_pt_delta_fld] = /* fluid density */
-	  (-3*(1+ pba->w_fld )*ache_prime-3*pvecback[pba->index_bg_H]*(cs2- pba->w_fld )*(y[ppw->pv->index_pt_delta_fld]/pvecback[pba->index_bg_rho_fld]+3*pvecback[pba->index_bg_H]*(1+ pba->w_fld )*y[ppw->pv->index_pt_theta_fld]/k)-(1+ pba->w_fld )*k*y[ppw->pv->index_pt_theta_fld])/pvecback[pba->index_bg_rho_fld]; // 0;
+	  (-3*(1+ pba->w_fld )*a_prime_over_a-3*pvecback[pba->index_bg_H]*(pba->cs2_fld- pba->w_fld )*(y[ppw->pv->index_pt_delta_fld]/pvecback[pba->index_bg_rho_fld]+3*pvecback[pba->index_bg_H]*(1+ pba->w_fld )*y[ppw->pv->index_pt_theta_fld]/k)-(1+ pba->w_fld )*k*y[ppw->pv->index_pt_theta_fld])/pvecback[pba->index_bg_rho_fld]; // 0;
 
 	dy[ppw->pv->index_pt_theta_fld] = /* fluid velocity */
-	  (k*cs2*y[ppw->pv->index_pt_delta_fld])/(pvecback[pba->index_bg_rho_fld]*(1+ pba->w_fld ))-pvecback[pba->index_bg_H]*(1-3*cs2)*y[ppw->pv->index_pt_theta_fld]+k*pvecmetric[ppw->index_mt_psi]; // 0;
+	  (k*pba->cs2_fld*y[ppw->pv->index_pt_delta_fld])/(pvecback[pba->index_bg_rho_fld]*(1+ pba->w_fld ))-pvecback[pba->index_bg_H]*(1-3*pba->cs2_fld)*y[ppw->pv->index_pt_theta_fld]+k*pvecmetric[ppw->index_mt_psi]; // 0;
       }
 
       if (ppr->gauge == synchronous) {
 	/* Synchronous gauge : */
 	dy[ppw->pv->index_pt_delta_fld] = /* fluid density */
-	  (-3*(1+ pba->w_fld )*ache_prime-3*pvecback[pba->index_bg_H]*(cs2- pba->w_fld )*(y[ppw->pv->index_pt_delta_fld]/pvecback[pba->index_bg_rho_fld]+3*pvecback[pba->index_bg_H]*(1+ pba->w_fld )*y[ppw->pv->index_pt_theta_fld]/k)-(1+ pba->w_fld )*k*y[ppw->pv->index_pt_theta_fld])/pvecback[pba->index_bg_rho_fld]; // 0;
+	  -(1+ pba->w_fld )*(y[ppw->pv->index_pt_theta_fld]+0.5*pvecmetric[ppw->index_mt_h_prime])
+	  -3.*(pba->cs2_fld-pba->w_fld)*a_prime_over_a*y[ppw->pv->index_pt_delta_fld]
+	  -9.*(1+ pba->w_fld )*(pba->cs2_fld-pba->w_fld)*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]/k2;
 
 	dy[ppw->pv->index_pt_theta_fld] = /* fluid velocity */
-	  (k*cs2*y[ppw->pv->index_pt_delta_fld])/(pvecback[pba->index_bg_rho_fld]*(1+ pba->w_fld ))-pvecback[pba->index_bg_H]*(1-3*cs2)*y[ppw->pv->index_pt_theta_fld]; // 0;
+	  -(1.-3.*pba->cs2_fld)*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]
+	  +pba->cs2_fld*k2/(1.+pba->w_fld)*y[ppw->pv->index_pt_delta_fld];
       }
       
     }  

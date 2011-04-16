@@ -464,7 +464,7 @@ int input_init(
   class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
-  class_call(parser_read_double(pfc,"Omega_de",&param2,&flag2,errmsg),
+  class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
 	     errmsg,
 	     errmsg);
   class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
@@ -485,10 +485,18 @@ int input_init(
     }
   }
 
-  class_test(pba->Omega0_fld != 0.,
-	     errmsg,
-	     "Dark energy fluid not tested yet");
-  
+  if (pba->Omega0_fld != 0.) {
+    class_read_double("w_fld",pba->w_fld);
+    class_read_double("cs2_fld",pba->cs2_fld);
+
+    class_test(pba->w_fld<=0.,
+	       errmsg,
+	       "Your choice w_fld=%g is not valid, it will lead to instabilities or division by zero\n",
+	       pba->w_fld);
+	       
+
+  }
+
   class_test(pba->Omega0_k != 0.,
 	     errmsg,
 	     "Open/close case not written yet");
