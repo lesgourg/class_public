@@ -94,7 +94,7 @@ l_linstep=40
 
 bessel_x_step=0.3
 bessel_j_cut=1.e-5
-bessel_delta_x_min =1.e-4
+bessel_tol_x_min =1.e-4
 bessel_file_name=bessel.dat
 
 k_per_decade_primordial = 10.

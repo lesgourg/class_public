@@ -105,7 +105,6 @@
     }									\
   } while(0);
 
-
 #define class_read_list_of_doubles(name,destination,siz)			\
   do {									\
     class_call(parser_read_list_of_doubles(pfc,name,			\

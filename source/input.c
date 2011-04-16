@@ -1034,22 +1034,7 @@ int input_init(
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_ur",ppr->l_max_ur);
   if (pba->N_ncdm>0)
-    class_read_list_of_integers_or_default("l_max_ncdm",
-					   ppr->l_max_ncdm,ppr->l_max_ncdm_default,N_ncdm);
-  /*
-    class_call(parser_read_list_of_integers(pfc,"l_max_ncdm",
-    &entries_read,&ppr->l_max_ncdm,&flag1,errmsg),errmsg,errmsg);
-    if (flag1 == _TRUE_){
-    class_test(entries_read != N_ncdm,errmsg,
-    "Numer of entries in l_max_ncdm, %d, does not match number of indistinguishable ncdm species, %d",
-    entries_read,N_ncdm);
-    }
-    else{
-    //set standard values
-    class_alloc(ppr->l_max_ncdm,sizeof(int)*N_ncdm,errmsg);
-    for(n=0; n<N_ncdm; n++) ppr->l_max_ncdm[n] = ppr->l_max_ncdm_default;
-    }
-  */
+    class_read_int("l_max_ncdm",ppr->l_max_ncdm);
   class_read_int("l_max_g_ten",ppr->l_max_g_ten);
   class_read_int("l_max_pol_g_ten",ppr->l_max_pol_g_ten);
   class_read_double("curvature_ini",ppr->curvature_ini);
@@ -1072,8 +1057,19 @@ int input_init(
   class_test(ppr->ur_fluid_trigger_tau_h_over_tau_k==ppr->radiation_streaming_trigger_tau_h_over_tau_k,
 	     errmsg,
 	     "please choose different values for precision parameters ur_fluid_trigger_tau_h_over_tau_k and radiation_streaming_trigger_tau_h_over_tau_k, in order to avoid switching two approximation schemes at the same time");
-    
 
+  if (pba->N_ncdm>0) {
+
+    class_test(ppr->ncdm_fluid_trigger_tau_h_over_tau_k==ppr->radiation_streaming_trigger_tau_h_over_tau_k,
+	       errmsg,
+	       "please choose different values for precision parameters ncdm_fluid_trigger_tau_h_over_tau_k and radiation_streaming_trigger_tau_h_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+    
+    class_test(ppr->ncdm_fluid_trigger_tau_h_over_tau_k==ppr->ur_fluid_trigger_tau_h_over_tau_k,
+	       errmsg,
+	       "please choose different values for precision parameters ncdm_fluid_trigger_tau_h_over_tau_k and ur_fluid_trigger_tau_h_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+    
+  }
+  
   /** h.4. parameter related to the Bessel functions */
 
   class_read_double("l_logstep",ppr->l_logstep);
@@ -1486,8 +1482,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_g=16; 
   ppr->l_max_pol_g=16; 
   ppr->l_max_ur=12; 
-  ppr->l_max_ncdm_default=20;
-  ppr->l_max_ncdm = NULL; /* The size of the vector is not known yet. Every entry will be set to ppr->l_max_ncdm_default if no input is detected. */ 
+  ppr->l_max_ncdm=20;
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 

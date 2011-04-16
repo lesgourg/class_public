@@ -441,8 +441,6 @@ int background_init(
 	       pba->q_size_ncdm[n_ncdm],
 	       rho_ncdm_rel/rho_nu_rel);
       }
-      if (ppr->evolver != rk)
-	printf(" -> WARNING: you are using the ndf15 integrator, with ncdm species it is recommended to use the Runge-Kutta one (write evolver=0 in one of your input files)\n");
     }
   }
 

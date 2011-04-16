@@ -2342,11 +2342,11 @@ int perturb_vector_init(
 	// Set value of ppv->l_max_ncdm:
 	if(ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_off){
 	  /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
-	  class_test(ppr->l_max_ncdm[n_ncdm] < 4,
+	  class_test(ppr->l_max_ncdm < 4,
 		     ppt->error_message,
-		     "ppr->l_max_ncdm%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
+		     "ppr->l_max_ncdm=%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
 	  //Copy value from precision parameter:
-	  ppv->l_max_ncdm[n_ncdm] = ppr->l_max_ncdm[n_ncdm];
+	  ppv->l_max_ncdm[n_ncdm] = ppr->l_max_ncdm;
 	  ppv->q_size_ncdm[n_ncdm] = pba->q_size_ncdm[n_ncdm];
 	}
 	else{

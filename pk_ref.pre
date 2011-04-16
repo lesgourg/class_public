@@ -60,11 +60,11 @@ k_scalar_step_sub=0.015
 k_scalar_step_super=0.0001 # was 0.0005
 k_scalar_step_transition=0.2 # was 0.2
 
-start_small_k_at_tau_g_over_tau_h = 0.0004
+start_small_k_at_tau_c_over_tau_h = 0.0004
 start_large_k_at_tau_h_over_tau_k = 0.001
-tight_coupling_trigger_tau_g_over_tau_h=0.005
-tight_coupling_trigger_tau_g_over_tau_k=0.001
-start_sources_at_tau_g_over_tau_h = 0.006
+tight_coupling_trigger_tau_c_over_tau_h=0.005
+tight_coupling_trigger_tau_c_over_tau_k=0.001
+start_sources_at_tau_c_over_tau_h = 0.006
 tight_coupling_approximation=5 #(int)second_order_CRS;
 
 l_max_g=25
@@ -78,7 +78,7 @@ perturb_sampling_stepsize=0.01
 
 radiation_streaming_approximation = 2
 radiation_streaming_trigger_tau_h_over_tau_k = 120.
-radiation_streaming_trigger_tau_g_over_tau_h = 200.
+radiation_streaming_trigger_tau_c_over_tau_h = 200.
 
 ur_fluid_approximation = 2
 ur_fluid_trigger_tau_h_over_tau_k = 200.
@@ -88,7 +88,7 @@ l_linstep=25
 
 bessel_x_step=0.005
 bessel_j_cut=5.e-10
-bessel_delta_x_min =1.e-4
+bessel_tol_x_min =1.e-4
 bessel_file_name=bessel_large.dat
 
 k_per_decade_primordial = 10.
