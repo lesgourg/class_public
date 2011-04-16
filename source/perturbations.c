@@ -1413,7 +1413,8 @@ int perturb_workspace_free (
     free(ppw->source_term_table[index_type]);
   }
   free(ppw->source_term_table);
-  free(ppw->approx);
+  if (ppw->ap_size > 0)
+    free(ppw->approx);
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     if (ppt->has_matter_transfers == _TRUE_) {
@@ -2209,6 +2210,11 @@ int perturb_vector_init(
 
   class_alloc(ppv,sizeof(struct perturb_vector),ppt->error_message);
 
+  /** - initialize pointers to NULL (they will be allocated later if
+    needed), relevant for perturb_vector_free() */
+  ppv->l_max_ncdm = NULL;
+  ppv->q_size_ncdm = NULL;
+
   /** - defines all indices in this new vector (depends on approximation scheme, described by the input structure ppw->pa) */
 
   index_pt = 0;
@@ -2356,12 +2362,6 @@ int perturb_vector_init(
 	}
 	index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
       }
-    }
-    else{
-      /**Set ppv->l_max_ncdm pointer to NULL to signal that it has not been 
-	 allocated, relevant for perturb_vector_free() */
-      ppv->l_max_ncdm = NULL;
-      ppv->q_size_ncdm = NULL;
     }
 
     /* metric (only quantitites to be integrated, not those obeying constraint equations) */
@@ -3503,6 +3503,8 @@ int perturb_approximations(
       }  
     }
   }
+
+  /* no approximation implemented so far for tensors */
 
   return _SUCCESS_;
 }

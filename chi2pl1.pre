@@ -61,6 +61,12 @@ k_scalar_step_sub=0.05
 k_scalar_step_super=0.0025 #
 k_scalar_step_transition=0.2 # was 0.2
 
+k_tensor_min=0.5
+l_max_over_k_max_tensors = 2000
+k_tensor_step_sub=0.05
+k_tensor_step_super=0.0025
+k_tensor_step_transition=0.2
+
 start_small_k_at_tau_c_over_tau_h = 0.0015
 start_large_k_at_tau_h_over_tau_k = 0.07
 tight_coupling_trigger_tau_c_over_tau_h=0.015
@@ -92,7 +98,7 @@ tol_ncdm = 1.e-3
 l_logstep=1.3
 l_linstep=40
 
-bessel_x_step=0.5 #0.3:3e-4; 0.4:3e-3; 0.5:2e-2
+bessel_x_step=0.5 
 bessel_j_cut=1.e-5
 bessel_tol_x_min =1.e-4
 bessel_file_name=bessel.dat
@@ -100,6 +106,7 @@ bessel_file_name=bessel.dat
 k_per_decade_primordial = 10.
   
 k_step_trans_scalars=0.004 #can be 0.004 for chi2=0.1 and 1, not higher
+k_step_trans_tensors=0.004
 
 transfer_cut=1 #0=none,1=osc,2=cl #segfault with zero, watch it!
 transfer_cut_threshold_osc=0.007 # 6 for 0.1, 8 for 1

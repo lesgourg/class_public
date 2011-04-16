@@ -67,7 +67,10 @@ struct background
 
   double Omega0_fld; /**< \f$ \Omega_{0 de} \f$ : fluid with constant \f$ w \f$  and \f$ c_s^2 \f$ */
   double w_fld; /**< \f$ w_{DE} \f$ : fluid equation of state */
-  double cs2_fld; /**< \f$ c^2_{s~DE} \f$ : fluid sound speed */
+  double cs2_fld; /**< \f$ c^2_{s~DE} \f$ : sound speed of the fluid
+		     in the frame comoving with the fluid (so, this is
+		     not [delta p/delta rho] in the synchronous or
+		     newtonian gauge!!!) */
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
 
