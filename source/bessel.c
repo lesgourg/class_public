@@ -62,7 +62,7 @@ int bessel_at_x(
 
     class_test(x > pbs->x_max,
 	       pbs->error_message,
-	       "x=%e>x_max=%e; increase bessel_x_max_over_l_max in precision structure.",x,pbs->x_max);
+	       "x=%e>x_max=%e in bessel structure",x,pbs->x_max);
 
     /** - otherwise, interpolation is needed: */
 
@@ -158,15 +158,15 @@ int bessel_init(
 	     pbs->error_message,
 	     pbs->error_message);
 
-  /** - infer x_step, x_max and j_cut from precision parameters and from l_max */
-
-  pbs->x_step = ppr->bessel_x_step;  
+  /** - check x_step, x_max and j_cut from precision parameters and from l_max */
 
   class_test(pbs->x_step <= 0.,
 	     pbs->error_message,
 	     "x_step=%e, stop to avoid segmentation fault",pbs->x_step);
 
-  pbs->x_max = ((int)(pbs->l_max * ppr->k_scalar_max_tau0_over_l_max * 1.01 / pbs->x_step)+1)*pbs->x_step;
+  class_test(pbs->x_max <= 0.,
+	     pbs->error_message,
+	     "x_max=%e, stop to avoid segmentation fault",pbs->x_max);
 
   pbs->j_cut = ppr->bessel_j_cut;
 

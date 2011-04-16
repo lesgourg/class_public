@@ -1002,8 +1002,8 @@ int input_init(
   class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
   class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
   class_read_double("k_scalar_k_per_decade_for_pk",ppr->k_scalar_k_per_decade_for_pk);
-  class_read_double("k_tensor_min",ppr->k_tensor_min);
-  class_read_double("l_max_over_k_max_tensors",ppr->l_max_over_k_max_tensors);
+  class_read_double("k_tensor_min_tau0",ppr->k_tensor_min_tau0);
+  class_read_double("k_tensor_max_tau0_over_l_max",ppr->k_tensor_max_tau0_over_l_max);
   class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
   class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
   class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
@@ -1110,6 +1110,7 @@ int input_init(
   /* check various l_max */
 
   pbs->l_max=0;
+  pbs->x_max=0;
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -1119,12 +1120,21 @@ int input_init(
 	ppt->l_scalar_max+=ppr->delta_l_max;
       
       pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
+
+      pbs->x_max=max(ppt->l_scalar_max*ppr->k_scalar_max_tau0_over_l_max,pbs->x_max);
+
     }
     
     if (ppt->has_tensors == _TRUE_) {   
       pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
+
+      pbs->x_max=max(ppt->l_tensor_max*ppr->k_tensor_max_tau0_over_l_max,pbs->x_max);
     }
   }
+
+  pbs->x_step = ppr->bessel_x_step;
+
+  pbs->x_max = ((int)(pbs->x_max * 1.01 / pbs->x_step)+1)*pbs->x_step;
 
   /** (i) eventually write all the read parameters in a file */
 
@@ -1447,15 +1457,14 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_scalar_max_tau0_over_l_max=2.;
   ppr->k_scalar_step_sub=0.12;
   ppr->k_scalar_step_super=0.002;
-  ppr->k_scalar_step_transition=0.2;     /* 14.12.10 for chi2plT0.1 */
+  ppr->k_scalar_step_transition=0.2;
 
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
-  ppr->k_tensor_min=0.1; /* 0.3 -> 0.1 */
-  /*  ppr->k_tensor_oscillations=3.5;   */
-  ppr->l_max_over_k_max_tensors = 6300.;
-  ppr->k_tensor_step_sub=0.01;  /* 0.02 -> 0.005 */
-  ppr->k_tensor_step_super=0.0002;  /* 0.01 -> 0.005 */
+  ppr->k_tensor_min_tau0=0.05;
+  ppr->k_tensor_max_tau0_over_l_max = 2.;
+  ppr->k_tensor_step_sub=0.12;
+  ppr->k_tensor_step_super=0.002;
   ppr->k_tensor_step_transition=0.2;
 
   ppr->start_small_k_at_tau_c_over_tau_h = 0.0004;  /* decrease to start earlier in time */
@@ -1516,7 +1525,7 @@ int input_default_precision ( struct precision * ppr ) {
    */
   
   ppr->k_step_trans_scalars=0.005;
-  ppr->k_step_trans_tensors=0.0015;
+  ppr->k_step_trans_tensors=0.005;
   ppr->transfer_cut=tc_osc;
   ppr->transfer_cut_threshold_osc=0.005; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */

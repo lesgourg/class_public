@@ -1150,10 +1150,18 @@ int perturb_get_k_list(
 					 (roughly, sqrt(3) bigger than sound horizon) */
 
     index_k=0;
-    k = ppr->k_tensor_min * pba->H0;
+    k = ppr->k_tensor_min_tau0/pba->conformal_age;
     index_k=1;
 
-    while (k < ppt->l_tensor_max/ppr->l_max_over_k_max_tensors) {
+    if (ppt->has_cls == _TRUE_) {
+      k_max_cl = ppr->k_tensor_max_tau0_over_l_max
+	*ppt->l_tensor_max
+	/pba->conformal_age;
+    }
+    else
+      k_max_cl = 0.;
+
+    while (k < k_max_cl) {
       step = ppr->k_tensor_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
 
@@ -1174,7 +1182,7 @@ int perturb_get_k_list(
     /** - repeat the same steps, now filling the array */
 
     index_k=0;
-    ppt->k[index_mode][index_k] = ppr->k_tensor_min * pba->H0;
+    ppt->k[index_mode][index_k] = ppr->k_tensor_min_tau0/pba->conformal_age;
     index_k++;
     while (index_k < ppt->k_size_cl[index_mode]) {
       step = ppr->k_tensor_step_super 

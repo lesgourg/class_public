@@ -363,7 +363,8 @@ int spectra_pk_at_z(
 
       class_test(output_tot[index_k] <= 0.,
 		 psp->error_message,
-		 "for k=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_total results negative",exp(psp->ln_k[index_k]));
+		 "for k=%e, z=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_total=%e results negative",
+		 exp(psp->ln_k[index_k]),z,output_tot[index_k]);
 
     }
   }
@@ -388,6 +389,7 @@ int spectra_pk_at_z(
 	}
 	for (index_ic1=0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	  for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+
 	    output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])] =
 	      output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode])]
 	      *sqrt(output_ic[index_k * psp->ic_ic_size[index_mode] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_mode])] *
@@ -1830,13 +1832,7 @@ int spectra_pk(
 	      source_ic2 = ppt->sources[index_mode]
 		[index_ic2 * ppt->tp_size[index_mode] + ppt->index_tp_delta_pk]
 		[(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_mode] + index_k];
-	      
-	      psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] =
-		2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
-	      /pow(pvecback_sp_long[pba->index_bg_Omega_m],2)
-		*source_ic1*source_ic2
-		*exp(primordial_pk[index_ic1_ic2]);
-	      
+	      	      
 	    }
 	    else {
 	      
@@ -1847,10 +1843,12 @@ int spectra_pk(
 	      source_ic2 = ppt->sources[index_mode]
 		[index_ic2 * ppt->tp_size[index_mode] + ppt->index_tp_g]
 		[(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_mode] + index_k]; 
-	      
-	      psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] =
-		primordial_pk[index_ic1_ic2]*sign(source_ic1)*sign(source_ic2);
+	    
 	    }
+
+	    psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] = 
+	      primordial_pk[index_ic1_ic2]*sign(source_ic1)*sign(source_ic2);
+	    
 	  }
 	  else {
 	    psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2] = 0.;

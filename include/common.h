@@ -423,10 +423,9 @@ struct precision
 
   double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade */
 
+  double k_tensor_min_tau0; /**< number defining k_min for the computation of tensor Cl's (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
-  double k_tensor_min; /**< first mode k_min in units of Hubble radius today (tensor modes) */
-
-  double l_max_over_k_max_tensors; /**< number defining k_max (in units of Mpc^-1) for tensors: k_max = l_max times this number (order of magnitude given by few Hubble radius in Mpc, i.e. few times 3000) */
+  double k_tensor_max_tau0_over_l_max; /**< number defining k_max for the computation of tensor Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
 
   double k_tensor_step_sub; /**< step in k space, in units of one period of oscillation at decoupling, for scales inside horizon at decoupling (tensor modes) */
   double k_tensor_step_super; /**< step in k space, in units of one period of oscillation at decoupling, for scales above horizon at decoupling (tensor modes) */  

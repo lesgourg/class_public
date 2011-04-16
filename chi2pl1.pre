@@ -61,8 +61,8 @@ k_scalar_step_sub=0.05
 k_scalar_step_super=0.0025 #
 k_scalar_step_transition=0.2 # was 0.2
 
-k_tensor_min=0.5
-l_max_over_k_max_tensors = 2000
+k_tensor_min_tau0=1.4
+k_tensor_max_tau0_over_l_max=1.5
 k_tensor_step_sub=0.05
 k_tensor_step_super=0.0025
 k_tensor_step_transition=0.2

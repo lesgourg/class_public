@@ -24,6 +24,10 @@ struct bessels {
 
   int l_max; /**< last l value */
 
+  double x_max; /**< maximum value of x (always multiple of x-step) */
+
+  double x_step; /**< step dx for sampling Bessel functions */
+
   short bessel_always_recompute; /**< if set to true, Bessels are never read from / written in files */
 
  //@}
@@ -37,8 +41,6 @@ struct bessels {
   int l_size; /**< number of multipole values */
   int * l; /**< list of multipole values, l[index_l] */
 
-  double x_step; /**< step dx for sampling Bessel functions */
-  double x_max; /**< maximum value of x (always multiple of x-step) */
   double j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region x << l) */
   int has_dj;   /**< set to true means j_l'(x) also need to be stored */
 
