@@ -1,8 +1,10 @@
 /** @file class.c 
- * Julien Lesgourgues, 18.04.2010    
+ * Julien Lesgourgues, 17.04.2011    
  */
  
 #include "class.h"
+
+/* this main runs only the background part */
 
 int main(int argc, char **argv) {
 
@@ -17,7 +19,7 @@ int main(int argc, char **argv) {
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
-  ErrorMsg errmsg;
+  ErrorMsg errmsg;            /* for error messages */
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -29,28 +31,23 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  /****** here you could output the background evolution ******/
+  /****** here you can output the evolution of any background
+	  quanitity you are interested in ******/
 
   int index_eta;
 
   for (index_eta=0; index_eta<ba.bt_size; index_eta++) {
 
-/*     fprintf(stdout, */
-/* 	    "%e %e %e %e\n", */
-/* 	    ba.eta_table[index_eta], */
-/* 	    1./(1+ba.z_table[index_eta]), */
-/* 	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_a], */
-/* 	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_H]); */
-
     fprintf(stdout,
-	    "%e %e %e %e %e\n",
-	    ba.eta_table[index_eta],
-	    1./(1+ba.z_table[index_eta]),
-	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_rho_nur],
-	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_rho_ncdm1],
-	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_p_ncdm1]);
+	    "tau=%e z=%e a=%e H=%e\n",
+	    ba.tau_table[index_eta],
+	    ba.z_table[index_eta],
+	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_a],
+	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_H]);
 
   }
+
+  /****** all calculations done, now free the structures ******/
 
   if (background_free(&ba) == _FAILURE_) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);

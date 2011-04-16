@@ -650,15 +650,28 @@ int lensing_init(
     free(d4m4);
   }
   
-  free(ksi);
+  if (ple->has_tt==_TRUE_)
+    free(ksi);
+  if (ple->has_te==_TRUE_)
+    free(ksiX);
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_)
+    free(ksip);
+  free(ksim);
   free(Cgl);
   free(Cgl2);
+  free(sigma2);
 
   free(mu);
   free(w8);
 
   free(cl_unlensed);
   free(cl_tt);
+  if (ple->has_te==_TRUE_)
+    free(cl_te);
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+    free(cl_ee);
+    free(cl_bb);
+  }
   free(cl_pp);
   /** Exits **/
   

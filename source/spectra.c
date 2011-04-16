@@ -898,6 +898,7 @@ int spectra_tk_at_k_and_z(
  * This routine initializes the spectra structure (in particular, 
  * computes table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
  * 
+ * @param ppr Input : pointer to precision structure
  * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
  * @param ppt Input : pointer to perturbation structure
  * @param ptr Input : pointer to transfer structure
@@ -907,6 +908,7 @@ int spectra_tk_at_k_and_z(
  */
 
 int spectra_init(
+		 struct precision * ppr,
 		 struct background * pba,
 		 struct perturbs * ppt,
 		 struct transfers * ptr,
@@ -1880,7 +1882,117 @@ int spectra_pk(
   free (primordial_pk);
   free (pvecback_sp_long);
   
+  /* compute sigma8 (mean variance today in sphere of radius 8/h Mpc */
+
+  class_call(spectra_sigma(pba,ppm,psp,8./pba->h,0.,&(psp->sigma8)),
+	     psp->error_message,
+	     psp->error_message);
+
+  if (psp->spectra_verbose>0)
+    fprintf(stdout," -> sigma8=%g (computed till k = %g h/Mpc)\n",
+	    psp->sigma8,
+	    exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+
   return _SUCCESS_;
+}
+
+/** 
+ * This routine computes sigma8 given P(k) (only if k_max is large
+ * enough)
+ *
+ * @param pba   Input: pointer to background structure
+ * @param ppm   Input: pointer to primordial structure
+ * @param psp   Input: pointer to spectra structure 
+ * @param z     Input: redhsift
+ * @param R     Input: radius in Mpc
+ * @param sigma Output: variance in a sphere of radius R (dimensionless)
+ */
+
+int spectra_sigma(
+		  struct background * pba,
+		  struct primordial * ppm,
+		  struct spectra * psp,
+		  double R,
+		  double z,
+		  double * sigma
+		  ) {
+
+  double pk;
+  double * pk_ic = NULL;
+  
+  double * array_for_sigma;
+  int index_num;
+  int index_k;
+  int index_y;
+  int index_ddy;
+  int i;
+
+  double k,W,x;
+  double last_piece;
+
+  if (psp->ic_ic_size[psp->index_md_scalars]>1)
+    class_alloc(pk_ic,
+		psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
+		psp->error_message);
+  
+  i=0;
+  index_k=i;
+  i++;
+  index_y=i;
+  i++;
+  index_ddy=i;
+  i++;
+  index_num=i;
+
+  class_alloc(array_for_sigma,
+	      psp->ln_k_size*index_num*sizeof(double),
+	      psp->error_message);
+  
+  for (i=0;i<psp->ln_k_size;i++) {
+    k=exp(psp->ln_k[i]);
+    x=k*R;  
+    W=3./x/x/x*(sin(x)-x*cos(x));
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic),
+	       psp->error_message,
+	       psp->error_message);
+    array_for_sigma[i*index_num+index_k]=k;
+    array_for_sigma[i*index_num+index_y]=k*k*pk*W*W;
+  }
+  
+  last_piece=(array_for_sigma[psp->ln_k_size]-array_for_sigma[psp->ln_k_size-1])
+    *(array_for_sigma[psp->ln_k_size]+array_for_sigma[psp->ln_k_size-1])/2.;
+
+  class_call(array_spline(array_for_sigma,
+			  index_num,
+			  psp->ln_k_size,
+			  index_k,
+			  index_y,
+			  index_ddy,
+			  _SPLINE_EST_DERIV_,
+			  psp->error_message),
+	     psp->error_message,
+	     psp->error_message);
+  
+  class_call(array_integrate_all_spline(array_for_sigma,
+					index_num,
+					psp->ln_k_size,
+					index_k,
+					index_y,
+					index_ddy,
+					sigma,
+					psp->error_message),
+	     psp->error_message,
+	     psp->error_message);
+
+  free(array_for_sigma);
+  
+  if (psp->ic_ic_size[psp->index_md_scalars]>1)
+    free(pk_ic);
+
+  *sigma /= (2.*_PI_*_PI_);
+
+  return _SUCCESS_;
+
 }
 
 /**

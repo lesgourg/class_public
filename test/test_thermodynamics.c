@@ -1,7 +1,9 @@
 /** @file class.c 
- * Julien Lesgourgues, 18.04.2010    
+ * Julien Lesgourgues, 17.04.2011    
  */
  
+/* th main runs only the background and thermodynamics parts */
+
 #include "class.h"
 
 int main(int argc, char **argv) {
@@ -17,8 +19,7 @@ int main(int argc, char **argv) {
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed sepctra */
   struct output op;           /* for output files */
-
-  ErrorMsg errmsg;
+  ErrorMsg errmsg;            /* for error message */
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -40,9 +41,14 @@ int main(int argc, char **argv) {
   /********************************************/
   
   int i;
+  double tau;
+  double z;
+  int last_index;
+  double pvecback[30];
+  double pvecthermo[30];
 
   printf("#1: redshift z\n");
-  printf("#2: conformal time eta\n");
+  printf("#2: conformal time tau\n");
   printf("#3: electron ionization fraction x_e\n");
   printf("#4: Thomson scattering rate kappa'\n");
   printf("#5: Thomson scattering rate derivative kappa''\n");
@@ -55,15 +61,15 @@ int main(int argc, char **argv) {
   printf("#12: squared baryon sound speed c_b^2 \n");
   printf("#13: variation rate \n");
 
-  double eta;
+  /* first, quantities stored in table */
 
   for (i=0; i < th.tt_size; i++) {
 
-    background_eta_of_z(&ba,th.z_table[i],&eta);
+    background_tau_of_z(&ba,th.z_table[i],&tau);
 
     printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   th.z_table[i],
-	   eta,
+	   tau,
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_dkappa],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_ddkappa],
@@ -79,22 +85,21 @@ int main(int argc, char **argv) {
 
   }
 
-  double z;
-  int last_index;
-  double pvecback[30];
-  double pvecthermo[30];
+  /* the function thermodynamics_at_z knows how to extrapolate at
+     redshifts above the maximum redshift in the table. Here we add to
+     the previous output a few more points at higher redshift. */
 
   for (z = th.z_table[th.tt_size-1]; z < 1000*th.z_table[th.tt_size-1]; z *= 2.) {
 
-    background_eta_of_z(&ba,z,&eta);
+    background_tau_of_z(&ba,z,&tau);
     
-    background_at_eta(&ba,eta,normal_info,normal,&last_index,pvecback);
+    background_at_tau(&ba,tau,normal_info,normal,&last_index,pvecback);
 
     thermodynamics_at_z(&ba,&th,z,normal,&last_index,pvecback,pvecthermo);
     
     printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   z,
-	   eta,
+	   tau,
 	   pvecthermo[th.index_th_xe],
 	   pvecthermo[th.index_th_dkappa],
 	   pvecthermo[th.index_th_ddkappa],
@@ -110,7 +115,7 @@ int main(int argc, char **argv) {
     
   }
 
-  /********************************************/
+  /****** all calculations done, now free the structures ******/
 
   if (thermodynamics_free(&th) == _FAILURE_) {
     printf("\n\nError in thermodynamics_free \n=>%s\n",th.error_message);

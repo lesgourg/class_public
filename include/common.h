@@ -565,16 +565,6 @@ struct precision
 
   //@}
 
-  /** @name - parameters related to lensing */
-
-  //@{
-
-  int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
-  int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
-  double tol_gauss_legendre; /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
-  //@}
-
-
   /** @name - parameters related to non-linear computations */
 
   //@{
@@ -595,6 +585,15 @@ struct precision
   double logstepk7;
   double logstepk8;
 
+  //@}
+
+  /** @name - parameters related to lensing */
+
+  //@{
+
+  int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
+  int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
+  double tol_gauss_legendre; /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
   //@}
 
   /** @name - general precision parameters */

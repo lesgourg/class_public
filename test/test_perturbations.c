@@ -1,10 +1,12 @@
 /** @file class.c 
- * Julien Lesgourgues, 18.04.2010    
+ * Julien Lesgourgues, 17.04.2011    
  */
+
+/* this main runs only the background, thermodynamics and perturbation part */
 
 #include "class.h"
 
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
 
   struct precision pr;        /* for precision parameters */
   struct background ba;       /* for cosmological background */
@@ -17,8 +19,7 @@ main(int argc, char **argv) {
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
-
-  ErrorMsg errmsg;
+  ErrorMsg errmsg;            /* for error messages */
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -40,73 +41,42 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  /****** here you can output the source functions ******/
+  /*********************************************************************/
+  /*  here you can output the source function S(k,tau) of your choice  */
+  /*********************************************************************/
 
-  if (pt.has_source_g == _TRUE_) {
+  FILE * output;
+  int index_k,index_tau;
 
-    FILE * output;
-    int index_k,index_eta;
-    int index_mode=pt.index_md_scalars;
-    int index_type=pt.index_tp_g;
-    int index_ic=pt.index_ic_ad;
+  /* choose a mode (scalar, tensor, ...) */
+  int index_mode=pt.index_md_scalars; 
 
-    output=fopen("output/source1.dat","w");
+  /* choose a type (temperature, polarization, grav. pot., ...) */
+  int index_type=pt.index_tp_g;
 
-    for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
-/*     for (index_k=pt.k_size[index_mode]-1; index_k < pt.k_size[index_mode]; index_k++) { */
-      for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
-	
-	fprintf(output,"%e %e %e\n",
-		pt.k[index_mode][index_k],
-		pt.eta_sampling[index_eta],
-		pt.sources[index_mode]
-		[index_ic * pt.tp_size[index_mode] + index_type]
-		[index_eta * pt.k_size[index_mode] + index_k]
-		);
-      }
-      fprintf(output,"\n");
+  /* choose an initial condition (ad, bi, cdi, nid, niv, ...) */
+  int index_ic=pt.index_ic_ad;
+
+  output=fopen("output/source.dat","w");
+  fprintf(output,"#   k       tau       S\n");
+
+  for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
+    for (index_tau=0; index_tau < pt.tau_size; index_tau++) { 
+      
+      fprintf(output,"%e %e %e\n",
+	      pt.k[index_mode][index_k],
+	      pt.tau_sampling[index_tau],
+	      pt.sources[index_mode]
+	      [index_ic * pt.tp_size[index_mode] + index_type]
+	      [index_tau * pt.k_size[index_mode] + index_k]
+	      );
     }
-    
-    fclose(output);
+    fprintf(output,"\n");
   }
+  
+  fclose(output);
 
-  if (pt.has_matter_transfers == _TRUE_) {
-
-    FILE * output;
-    int index_k,index_eta;
-    int index_mode=pt.index_md_scalars;
-
-    int index_ic=pt.index_ic_ad;
-
-    output=fopen("output/transfers.dat","w");
-
-    for (index_eta=0; index_eta < pt.eta_size; index_eta++) { 
-      for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {
-
-	fprintf(output,"%e %e %e %e %e %e\n",
-		pt.eta_sampling[index_eta],
-		pt.k[index_mode][index_k],
-		pt.sources[index_mode]
-		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_g]
-		[index_eta * pt.k_size[index_mode] + index_k],
-		pt.sources[index_mode]
-		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_b]
-		[index_eta * pt.k_size[index_mode] + index_k],
-		pt.sources[index_mode]
-		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_cdm]
-		[index_eta * pt.k_size[index_mode] + index_k],
-		pt.sources[index_mode]
-		[index_ic * pt.tp_size[index_mode] + pt.index_tp_delta_nur]
-		[index_eta * pt.k_size[index_mode] + index_k]
-		);
-      }
-      fprintf(output,"\n");
-    }
-    
-    fclose(output);
-  }
-
-  /******************************************************/
+  /****** all calculations done, now free the structures ******/
 
   if (perturb_free(&pt) == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);

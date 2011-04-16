@@ -182,6 +182,9 @@ int perturb_init(
     printf("Warning: so far, isocurvature initial conditions not tested as thougoughly as adiabatic ones\n");
   }
 
+  if (ppt->has_tensors == _TRUE_)
+    printf("Warning: so far, tensor modes not tested as thougoughly as scalar ones\n");
+
   if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
     printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008.\n");
@@ -2606,6 +2609,41 @@ int perturb_vector_init(
 		 ppt->error_message,
 		 "at tau=%g: the tight-coupling approximation can be switched off, not on",tau);
 
+      /** -- some variables (b, cdm, fld, ...) are not affected by
+             any approximation. They need to be reconducted whatever
+             the approximation switching is. We treat them here. Below
+             we will treat other variables case by case. */
+
+      ppv->y[ppv->index_pt_delta_b] =
+	ppw->pv->y[ppw->pv->index_pt_delta_b];
+      
+      ppv->y[ppv->index_pt_theta_b] =
+	ppw->pv->y[ppw->pv->index_pt_theta_b];
+      
+      if (pba->has_cdm == _TRUE_) {   
+	
+	ppv->y[ppv->index_pt_delta_cdm] =
+	  ppw->pv->y[ppw->pv->index_pt_delta_cdm];
+	
+	if (ppr->gauge == newtonian) {
+	  ppv->y[ppv->index_pt_theta_cdm] =
+	    ppw->pv->y[ppw->pv->index_pt_theta_cdm];
+	}
+      }
+      
+      if (pba->has_fld == _TRUE_) {  
+	
+	ppv->y[ppv->index_pt_delta_fld] =
+	  ppw->pv->y[ppw->pv->index_pt_delta_fld];
+	
+	ppv->y[ppv->index_pt_theta_fld] =
+	  ppw->pv->y[ppw->pv->index_pt_theta_fld];
+      }
+      
+      if (ppr->gauge == synchronous)
+	ppv->y[ppv->index_pt_eta] =
+	  ppw->pv->y[ppw->pv->index_pt_eta];
+
       /* -- case of switching off tight coupling
 	 approximation. Provide correct initial conditions to new set
 	 of variables */
@@ -2636,32 +2674,6 @@ int perturb_vector_init(
 	ppv->y[ppv->index_pt_pol2_g] = 0.5*ppv->y[ppv->index_pt_shear_g]; /* first-order tight-coupling approximation for polarization, l=2 */
 	ppv->y[ppv->index_pt_pol3_g] = 0.25*ppv->y[ppv->index_pt_l3_g];   /* second-order tight-coupling approximation for polarization, l=3 */
 	
-	ppv->y[ppv->index_pt_delta_b] =
-	  ppw->pv->y[ppw->pv->index_pt_delta_b];
-	
-	ppv->y[ppv->index_pt_theta_b] =
-	  ppw->pv->y[ppw->pv->index_pt_theta_b];
-
-	if (pba->has_cdm == _TRUE_) {   
-
-	  ppv->y[ppv->index_pt_delta_cdm] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_cdm];
-	  
-	  if (ppr->gauge == newtonian) {
-	    ppv->y[ppv->index_pt_theta_cdm] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_cdm];
-	  }
-	}
-
-	if (pba->has_fld == _TRUE_) {  
-
-	  ppv->y[ppv->index_pt_delta_fld] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_fld];
-	  
-	  ppv->y[ppv->index_pt_theta_fld] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_fld];
-	}
-
 	if (pba->has_ur == _TRUE_) {
 
 	  ppv->y[ppv->index_pt_delta_ur] =
@@ -2697,13 +2709,7 @@ int perturb_vector_init(
 	      }
 	    }
 	  }
-	  //printf("Matches correct size of ncdm indices? %d\n",index_pt);
 	}
-	
-	if (ppr->gauge == synchronous)
-	  ppv->y[ppv->index_pt_eta] =
-	    ppw->pv->y[ppw->pv->index_pt_eta];
-
       }
 
       /* -- case of switching on radiation streaming
@@ -2714,32 +2720,6 @@ int perturb_vector_init(
 
 	if (ppt->perturbations_verbose>2)
 	  fprintf(stdout,"Mode k=%e: switch on radiation streaming approximation at tau=%e with Omega_r=%g\n",k,tau,ppw->pvecback[pba->index_bg_Omega_r]);
-
-	ppv->y[ppv->index_pt_delta_b] =
-	  ppw->pv->y[ppw->pv->index_pt_delta_b];
-	
-	ppv->y[ppv->index_pt_theta_b] =
-	  ppw->pv->y[ppw->pv->index_pt_theta_b];
-
-	if (pba->has_cdm == _TRUE_) {   
-
-	  ppv->y[ppv->index_pt_delta_cdm] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_cdm];
-	  
-	  if (ppr->gauge != synchronous) {
-	    ppv->y[ppv->index_pt_theta_cdm] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_cdm];
-	  }
-	}
-
-	if (pba->has_fld == _TRUE_) {  
-
-	  ppv->y[ppv->index_pt_delta_fld] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_fld];
-	  
-	  ppv->y[ppv->index_pt_theta_fld] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_fld];
-	}
 
 	if (pba->has_ncdm == _TRUE_) {
 	  index_pt = 0;
@@ -2752,14 +2732,7 @@ int perturb_vector_init(
 	      }
 	    }
 	  }
-	  //  printf("Matches(2) correct size of ncdm indices? %d\n",index_pt);
-
-	}
-	
-	if (ppr->gauge == synchronous)
-	  ppv->y[ppv->index_pt_eta] =
-	    ppw->pv->y[ppw->pv->index_pt_eta];
-
+	}	
       }
 
       /* -- case of switching on ur fluid
@@ -2816,32 +2789,6 @@ int perturb_vector_init(
 
 	  }
 
-	  ppv->y[ppv->index_pt_delta_b] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_b];
-	
-	  ppv->y[ppv->index_pt_theta_b] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_b];
-
-	  if (pba->has_cdm == _TRUE_) {   
-
-	    ppv->y[ppv->index_pt_delta_cdm] =
-	      ppw->pv->y[ppw->pv->index_pt_delta_cdm];
-	  
-	    if (ppr->gauge != synchronous) {
-	      ppv->y[ppv->index_pt_theta_cdm] =
-		ppw->pv->y[ppw->pv->index_pt_theta_cdm];
-	    }
-	  }
-
-	  if (pba->has_fld == _TRUE_) {  
-
-	    ppv->y[ppv->index_pt_delta_fld] =
-	      ppw->pv->y[ppw->pv->index_pt_delta_fld];
-	  
-	    ppv->y[ppv->index_pt_theta_fld] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_fld];
-	  }
-
 	  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
 	    ppv->y[ppv->index_pt_delta_ur] =
@@ -2867,16 +2814,8 @@ int perturb_vector_init(
 		}
 	      }
 	    }
-	    //  printf("Matches(2) correct size of ncdm indices? %d\n",index_pt);
-
 	  }
-	
-	  if (ppr->gauge == synchronous)
-	    ppv->y[ppv->index_pt_eta] =
-	      ppw->pv->y[ppw->pv->index_pt_eta];
-
 	}
-
       }
 
       /* -- case of switching on ncdm fluid
@@ -2931,32 +2870,6 @@ int perturb_vector_init(
 		ppw->pv->y[ppw->pv->index_pt_pol0_g+l];
 	    }
 	    
-	  }
-	  
-	  ppv->y[ppv->index_pt_delta_b] =
-	    ppw->pv->y[ppw->pv->index_pt_delta_b];
-	  
-	  ppv->y[ppv->index_pt_theta_b] =
-	    ppw->pv->y[ppw->pv->index_pt_theta_b];
-	  
-	  if (pba->has_cdm == _TRUE_) {   
-	    
-	    ppv->y[ppv->index_pt_delta_cdm] =
-	      ppw->pv->y[ppw->pv->index_pt_delta_cdm];
-	    
-	    if (ppr->gauge != synchronous) {
-	      ppv->y[ppv->index_pt_theta_cdm] =
-		ppw->pv->y[ppw->pv->index_pt_theta_cdm];
-	    }
-	  }
-	  
-	  if (pba->has_fld == _TRUE_) {  
-	    
-	    ppv->y[ppv->index_pt_delta_fld] =
-	      ppw->pv->y[ppw->pv->index_pt_delta_fld];
-	    
-	    ppv->y[ppv->index_pt_theta_fld] =
-	      ppw->pv->y[ppw->pv->index_pt_theta_fld];
 	  }
 	  
 	  if (pba->has_ur == _TRUE_) {
@@ -3022,10 +2935,6 @@ int perturb_vector_init(
 	    ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*n_ncdm+2] *=2.0/3.0*factor/rho_plus_p_ncdm;
 	  }
 	}
-	  
-	if (ppr->gauge == synchronous)
-	  ppv->y[ppv->index_pt_eta] =
-	    ppw->pv->y[ppw->pv->index_pt_eta];
       }
     }
 

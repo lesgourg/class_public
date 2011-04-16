@@ -1,10 +1,9 @@
 /** @file class.c 
- * Julien Lesgourgues, 17.04.2011    
+ * Julien Lesgourgues, 20.04.2010    
  */
  
-/* this main only runs the modules up to the transfer one */
-
 #include "class.h"
+#include <time.h>
 
 int main(int argc, char **argv) {
 
@@ -19,7 +18,10 @@ int main(int argc, char **argv) {
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
-  ErrorMsg errmsg;            /* for error messages */
+  ErrorMsg errmsg;
+
+  // clock_t start_perturb, end_perturb; 
+  // double cpu_time_perturb; 
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -36,10 +38,18 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  // start_perturb = clock(); 
+
   if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
+
+  // end_perturb = clock(); 
+
+  // cpu_time_perturb =  (end_perturb-start_perturb)/CLOCKS_PER_SEC; 
+
+  // printf("time in perturb=%4.3f s\n",cpu_time_perturb); 
 
   if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
@@ -51,67 +61,59 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  /****** output the transfer functions ******/
-
-  printf("Output of transfer functions (l, k, Delta)\n");
-
-  /* 1) select the mode, initial condition, type and multipole of the
-     function you want to plot: */
-
-  int index_mode=pt.index_md_scalars;
-  int index_ic  =pt.index_ic_ad;
-  int index_type=tr.index_tt_t;
-
-  /* 2) here is an illustration of how to output the transfer
-     functions at some (k,l)'s of your choice */
- 
-  int index_l = 0;
-  double k=3.6e-6;
-  double transfer;
-
-  if (transfer_functions_at_k(&tr,
-			      index_mode,
-			      index_ic,
-			      index_type,
-			      index_l,
-			      k,
-			      &transfer
-			      ) == _FAILURE_) {
-    printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message);
+  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
+    printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }
-    
-  printf("%d %e %e\n",tr.l[index_l],k,transfer);
-    
-  /* 3) here you can output the full tabulated arrays for all k and l's*/
 
-  int index_k;
+  if (spectra_init(&pr,&ba,&pt,&tr,&pm,&sp) == _FAILURE_) {
+    printf("\n\nError in spectra_init \n=>%s\n",sp.error_message);
+    return _FAILURE_;
+  }
 
-  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-    for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
-      
-      transfer=tr.transfer[index_mode]
-	[((index_ic * tr.tt_size[index_mode] + index_type)
-	  * tr.l_size[index_mode] + index_l)
-	 * tr.k_size[index_mode] + index_k];
-      
-      if (transfer != 0.) {
-	printf("%d %e %e\n",tr.l[index_l],tr.k[index_mode][index_k],transfer); 
-      }
-    }
-    
-    printf("\n");
-    
-  } 
+  if (nonlinear_init(&pr,&ba,&th,&pm,&sp,&nl) == _FAILURE_) {
+    printf("\n\nError in nonlinear_init \n=>%s\n",nl.error_message);
+    return _FAILURE_;
+  }
 
-  /****** all calculations done, now free the structures ******/
+  if (lensing_init(&pr,&pt,&sp,&le) == _FAILURE_) {
+    printf("\n\nError in lensing_init \n=>%s\n",le.error_message);
+    return _FAILURE_;
+  }
+
+  if (output_init(&ba,&pt,&sp,&nl,&le,&op) == _FAILURE_) {
+    printf("\n\nError in output_init \n=>%s\n",op.error_message);
+    return _FAILURE_;
+  }
+
+  /****** done ******/
+
+  if (lensing_free(&le) == _FAILURE_) {
+    printf("\n\nError in lensing_free \n=>%s\n",le.error_message);
+    return _FAILURE_;
+  }
+
+  if (nonlinear_free(&nl) == _FAILURE_) {
+    printf("\n\nError in nonlinear_free \n=>%s\n",nl.error_message);
+    return _FAILURE_;
+  }
+
+  if (spectra_free(&sp) == _FAILURE_) {
+    printf("\n\nError in spectra_free \n=>%s\n",sp.error_message);
+    return _FAILURE_;
+  }
+
+  if (primordial_free(&pm) == _FAILURE_) {
+    printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);
+    return _FAILURE_;
+  }
 
   if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
 
-  if (bessel_free(&bs) == _FAILURE_) {
+  if (bessel_free(&bs) == _FAILURE_)  {
     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }

@@ -116,6 +116,8 @@ struct spectra {
 		      or nearly constant, and with arbitrary sign.
 		   */
   
+  double sigma8;    /**< sigma8 parameter */
+
   int index_tr_g;   /**< index of gamma transfer function */
   int index_tr_b;   /**< index of baryon transfer function */
   int index_tr_cdm; /**< index of cold dark matter transfer function */
@@ -197,6 +199,7 @@ extern "C" {
 			    );
 
   int spectra_init(
+		   struct precision * ppr,
 		   struct background * pba,
 		   struct perturbs * ppt,
 		   struct transfers * ptr,
@@ -252,6 +255,15 @@ extern "C" {
 		 struct spectra * psp
 		 );
   
+  int spectra_sigma(
+		    struct background * pba,
+		    struct primordial * ppm,
+		    struct spectra * psp,
+		    double R,
+		    double z,
+		    double *sigma 
+		    );
+
   int spectra_matter_transfers(
 			       struct background * pba,
 			       struct perturbs * ppt,

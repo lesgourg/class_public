@@ -1,9 +1,8 @@
 /** @file class.c 
- * Julien Lesgourgues, 20.04.2010    
+ * Julien Lesgourgues, 17.04.2011    
  */
  
 #include "class.h"
-#include <time.h>
 
 int main(int argc, char **argv) {
 
@@ -18,10 +17,7 @@ int main(int argc, char **argv) {
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
-  ErrorMsg errmsg;
-
-  // clock_t start_perturb, end_perturb; 
-  // double cpu_time_perturb; 
+  ErrorMsg errmsg;            /* for error messages */
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -38,18 +34,10 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  // start_perturb = clock(); 
-
   if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
-
-  // end_perturb = clock(); 
-
-  // cpu_time_perturb =  (end_perturb-start_perturb)/CLOCKS_PER_SEC; 
-
-  // printf("time in perturb=%4.3f s\n",cpu_time_perturb); 
 
   if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
@@ -66,7 +54,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (spectra_init(&ba,&pt,&tr,&pm,&sp) == _FAILURE_) {
+  if (spectra_init(&pr,&ba,&pt,&tr,&pm,&sp) == _FAILURE_) {
     printf("\n\nError in spectra_init \n=>%s\n",sp.error_message);
     return _FAILURE_;
   }
@@ -86,7 +74,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  /****** done ******/
+  /****** all calculations done, now free the structures ******/
 
   if (lensing_free(&le) == _FAILURE_) {
     printf("\n\nError in lensing_free \n=>%s\n",le.error_message);

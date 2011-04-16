@@ -199,6 +199,9 @@ int transfer_init(
      parallel region. */
   int abort;
 
+  /* pointer on one workspace per thread */
+  double ** pw;
+
 #ifdef _OPENMP
 
   /* number of available omp threads */

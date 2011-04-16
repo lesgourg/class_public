@@ -204,9 +204,6 @@ int input_init(
       and interpret each of them, and tune accordingly the relevant
       input parameters */
 
-  if (pfc->size == 0) 
-    return _SUCCESS_;
-
   /** (a) background parameters */
 
   /* h (dimensionless) and [H0/c] in Mpc^{-1} = h / 2999.7 */
@@ -1234,6 +1231,7 @@ int input_default_params(
   pba->deg_ncdm_default = 1.;
   pba->deg_ncdm = NULL;
   pba->ncdm_psd_parameters = NULL;
+  pba->ncdm_psd_files = NULL;
 
   pba->Omega0_k = 0.;
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
