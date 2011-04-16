@@ -22,8 +22,13 @@ int output_total_cl_at_l(
 			 double * cl
 			 ){
 
-  double ** junk1=NULL;
-  double ** junk2=NULL;
+  double ** cl_md_ic; /* array with argument 
+			 cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] */
+
+  double ** cl_md;    /* array with argument 
+			 cl_md[index_mode][index_ct] */
+
+  int index_mode;
 
   if (ple->has_lensed_cls == _TRUE_) {
     class_call(lensing_cl_at_l(ple,
@@ -33,13 +38,51 @@ int output_total_cl_at_l(
 	       pop->error_message);
   }
   else {
+
+    class_alloc(cl_md_ic,
+		psp->md_size*sizeof(double *),
+		pop->error_message);
+    
+    class_alloc(cl_md,
+		psp->md_size*sizeof(double *),
+		pop->error_message);
+    
+    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+
+      if (psp->md_size > 1)
+	
+	class_alloc(cl_md[index_mode],  
+		    psp->ct_size*sizeof(double),
+		    ple->error_message);	
+      
+      if (psp->ic_size[index_mode] > 1)
+	
+	class_alloc(cl_md_ic[index_mode],
+		    psp->ic_ic_size[index_mode]*psp->ct_size*sizeof(double),
+		    ple->error_message);
+    }
+    
     class_call(spectra_cl_at_l(psp,
 			       (double)l,
 			       cl,
-			       junk1,
-			       junk2),
+			       cl_md,
+			       cl_md_ic),
 	       psp->error_message,
 	       pop->error_message);
+
+    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+      
+      if (psp->md_size > 1) 
+	free(cl_md[index_mode]);  
+      
+      if (psp->ic_size[index_mode] > 1)
+	free(cl_md_ic[index_mode]);
+      
+    }
+    
+    free(cl_md_ic);
+    free(cl_md);
+    
   }
   
   return _SUCCESS_;

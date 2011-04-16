@@ -179,12 +179,12 @@ int perturb_init(
 	     "Vectors not coded yet");
 
   if ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_) || (ppt->has_niv == _TRUE_)) {
-    printf("Warning: so far, isocurvature initial condition only implemented at first order in (k tau), not very precise...\n");
+    printf("Warning: so far, isocurvature initial conditions not tested as thougoughly as adiabatic ones\n");
   }
 
   if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
-    printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008. Mistake in one of the two codes? To be checked.\n");
+    printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008.\n");
   }
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */

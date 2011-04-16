@@ -108,7 +108,6 @@ extern "C" {
     
   int lensing_indices(
 		      struct precision * ppr,
-                      struct perturbs * ppt,
                       struct spectra * psp,
                       struct lensing * ple
                       );

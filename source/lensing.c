@@ -66,7 +66,7 @@ int lensing_cl_at_l(
  * This routine initializes the lensing structure (in particular, 
  * computes table of lensed anisotropy spectra \f$ C_l^{X} \f$)
  * 
- * @param ppt Input : pointer to perturbation structure
+ * @param ppt Input : pointer to perturbation structure (just in case, not used in current version...)
  * @param psp Input : pointer to spectra structure
  * @param ple Output: pointer to initialized lensing structure
  * @return the error status
@@ -126,8 +126,7 @@ int lensing_init(
   double * cl_te; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
   double * cl_ee; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
   double * cl_bb; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */  
-  double ** junk1=NULL, ** junk2=NULL;
+  double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */
 
   double res,resX;
   double resp, resm;
@@ -137,6 +136,14 @@ int lensing_init(
   double * sqrt3;
   double * sqrt4;
   double * sqrt5;
+
+  double ** cl_md_ic; /* array with argument 
+			 cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] */
+
+  double ** cl_md;    /* array with argument 
+			 cl_md[index_mode][index_ct] */
+
+  int index_mode;
 
   /** Summary: */
 
@@ -153,9 +160,9 @@ int lensing_init(
   }
   
   /** - initialize indices and allocate some of the arrays in the 
-      spectra structure */
+      lensing structure */
   
-  class_call(lensing_indices(ppr,ppt,psp,ple),
+  class_call(lensing_indices(ppr,psp,ple),
 	     ple->error_message,
 	     ple->error_message);
 
@@ -390,20 +397,56 @@ int lensing_init(
 	      (ple->l_unlensed_max+1)*sizeof(double),
 	      ple->error_message);
 
+  class_alloc(cl_md_ic,
+	      psp->md_size*sizeof(double *),
+	      ple->error_message);
+
+  class_alloc(cl_md,
+	      psp->md_size*sizeof(double *),
+	      ple->error_message);
+
+  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+
+    if (psp->md_size > 1)
+
+      class_alloc(cl_md[index_mode],  
+		  psp->ct_size*sizeof(double),
+		  ple->error_message);	
+
+    if (psp->ic_size[index_mode] > 1)
+
+      class_alloc(cl_md_ic[index_mode],
+		  psp->ic_ic_size[index_mode]*psp->ct_size*sizeof(double),
+		  ple->error_message);
+  }
+
   for (l=2; l<=ple->l_unlensed_max; l++) {
-    class_call(spectra_cl_at_l(psp,l,cl_unlensed,junk1,junk2),
+    class_call(spectra_cl_at_l(psp,l,cl_unlensed,cl_md,cl_md_ic),
                psp->error_message,
                ple->error_message);
-    cl_tt[l] = cl_unlensed[psp->index_ct_tt];
-    cl_pp[l] = cl_unlensed[psp->index_ct_pp];
+    cl_tt[l] = cl_unlensed[ple->index_lt_tt];
+    cl_pp[l] = cl_unlensed[ple->index_lt_pp];
     if (ple->has_te==_TRUE_) {
-      cl_te[l] = cl_unlensed[psp->index_ct_te];
+      cl_te[l] = cl_unlensed[ple->index_lt_te];
     }
     if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-      cl_ee[l] = cl_unlensed[psp->index_ct_ee];    
-      cl_bb[l] = cl_unlensed[psp->index_ct_bb];
+      cl_ee[l] = cl_unlensed[ple->index_lt_ee];
+      cl_bb[l] = cl_unlensed[ple->index_lt_bb];
     }
   }
+
+  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+
+    if (psp->md_size > 1) 
+      free(cl_md[index_mode]);  
+
+    if (psp->ic_size[index_mode] > 1)
+      free(cl_md_ic[index_mode]);
+
+  }
+
+  free(cl_md_ic);
+  free(cl_md);
 
   /** Compute sigma2(mu) and Cgl2(mu) **/
 
@@ -652,7 +695,6 @@ int lensing_free(
 /**
  * This routine defines indices and allocates tables in the lensing structure 
  *
- * @param ppt  Input       : pointer to perturbation structure
  * @param psp  Input       : pointer to spectra structure 
  * @param ple  Input/output: pointer to lensing structure 
  * @return the error status
@@ -660,15 +702,20 @@ int lensing_free(
 
 int lensing_indices(
 		    struct precision * ppr,
-		    struct perturbs * ppt,
 		    struct spectra * psp,
 		    struct lensing * ple
 		    ){
   
   int index_l;
-  double ** junk1=NULL;
-  double ** junk2=NULL;
   
+  double ** cl_md_ic; /* array with argument 
+			 cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] */
+
+  double ** cl_md;    /* array with argument 
+			 cl_md[index_mode][index_ct] */
+
+  int index_mode;
+
   /* indices of all Cl types (lensed and unlensed) */
   
   if (psp->has_tt == _TRUE_) {
@@ -753,13 +800,49 @@ int lensing_indices(
 
   /* fill with unlensed cls */
 
-  for (index_l=0; index_l<ple->l_size; index_l++) {
+  class_alloc(cl_md_ic,
+	      psp->md_size*sizeof(double *),
+	      ple->error_message);
 
-    class_call(spectra_cl_at_l(psp,ple->l[index_l],&(ple->cl_lens[index_l*ple->lt_size]),junk1,junk2),
+  class_alloc(cl_md,
+	      psp->md_size*sizeof(double *),
+	      ple->error_message);
+
+  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+
+    if (psp->md_size > 1)
+
+      class_alloc(cl_md[index_mode],  
+		  psp->ct_size*sizeof(double),
+		  ple->error_message);	
+
+    if (psp->ic_size[index_mode] > 1)
+
+      class_alloc(cl_md_ic[index_mode],
+		  psp->ic_ic_size[index_mode]*psp->ct_size*sizeof(double),
+		  ple->error_message);
+  }
+  
+  for (index_l=0; index_l<ple->l_size; index_l++) {
+    
+    class_call(spectra_cl_at_l(psp,ple->l[index_l],&(ple->cl_lens[index_l*ple->lt_size]),cl_md,cl_md_ic),
 	       psp->error_message,
 	       ple->error_message);
     
   }
+
+  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+
+    if (psp->md_size > 1) 
+      free(cl_md[index_mode]);  
+
+    if (psp->ic_size[index_mode] > 1)
+      free(cl_md_ic[index_mode]);
+
+  }
+
+  free(cl_md_ic);
+  free(cl_md);
 
   return _SUCCESS_;
   
