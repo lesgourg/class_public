@@ -2444,58 +2444,81 @@ int perturb_vector_init(
      omitting perturbations in this list will not change the
      results!) */
 
-  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
-
-    if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
-
-      /* we don't need temperature multipoles above l=2 (but they are
-	 defined only when rsa and tca are off) */
-
-      for (index_pt=ppv->index_pt_l3_g; index_pt <= ppv->index_pt_delta_g+ppv->l_max_g; index_pt++)
-	ppv->used_in_sources[index_pt]=_FALSE_;
-
-     /* for polarisation, we only need l=0,2 (but l =1,3, ... are
-	defined only when rsa and tca are off) */
-
-      ppv->used_in_sources[ppv->index_pt_pol1_g]=_FALSE_;
-
-      for (index_pt=ppv->index_pt_pol3_g; index_pt <= ppv->index_pt_pol0_g+ppv->l_max_pol_g; index_pt++)
-	ppv->used_in_sources[index_pt]=_FALSE_;
-
-    }
-
-  }
-
-  if (pba->has_ur == _TRUE_) {
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
-
-      if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
-		
-      /* we don't need ur multipoles above l=2 (but they are
-	 defined only when rsa and nfa are off) */
-
-	for (index_pt=ppv->index_pt_l3_ur; index_pt <= ppv->index_pt_delta_ur+ppv->l_max_ur; index_pt++)
+      
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
+	
+	/* we don't need temperature multipoles above l=2 (but they are
+	   defined only when rsa and tca are off) */
+	
+	for (index_pt=ppv->index_pt_l3_g; index_pt <= ppv->index_pt_delta_g+ppv->l_max_g; index_pt++)
+	  ppv->used_in_sources[index_pt]=_FALSE_;
+	
+	/* for polarisation, we only need l=0,2 (but l =1,3, ... are
+	   defined only when rsa and tca are off) */
+	
+	ppv->used_in_sources[ppv->index_pt_pol1_g]=_FALSE_;
+	
+	for (index_pt=ppv->index_pt_pol3_g; index_pt <= ppv->index_pt_pol0_g+ppv->l_max_pol_g; index_pt++)
 	  ppv->used_in_sources[index_pt]=_FALSE_;
 	
       }
+      
     }
-  }
-  
-  if (pba->has_ncdm == _TRUE_) {
 
-    /* we don't need ncdm multipoles above l=2 (but they are
-       defined only when ncdmfa is off) */
-
-    index_pt = ppv->index_pt_psi0_ncdm1;
-    for(n_ncdm = 0; n_ncdm < ppv-> N_ncdm; n_ncdm++){
-      for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
-	for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
-	  if (l>2) ppv->used_in_sources[index_pt]=_FALSE_;
-	  index_pt++;
+    if (pba->has_ur == _TRUE_) {
+      
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+	
+	if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
+	  
+	  /* we don't need ur multipoles above l=2 (but they are
+	     defined only when rsa and nfa are off) */
+	  
+	  for (index_pt=ppv->index_pt_l3_ur; index_pt <= ppv->index_pt_delta_ur+ppv->l_max_ur; index_pt++)
+	    ppv->used_in_sources[index_pt]=_FALSE_;
+	  
 	}
       }
     }
+    
+    if (pba->has_ncdm == _TRUE_) {
+      
+      /* we don't need ncdm multipoles above l=2 (but they are
+	 defined only when ncdmfa is off) */
+      
+      index_pt = ppv->index_pt_psi0_ncdm1;
+      for(n_ncdm = 0; n_ncdm < ppv-> N_ncdm; n_ncdm++){
+	for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){ 
+	  for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
+	    if (l>2) ppv->used_in_sources[index_pt]=_FALSE_;
+	    index_pt++;
+	  }
+	}
+      }
+    }
+  }
+
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+
+    /* we don't need temperature multipoles above except l=0,2,4 */
+	
+    ppv->used_in_sources[ppv->index_pt_theta_g]=_FALSE_;
+    ppv->used_in_sources[ppv->index_pt_l3_g]=_FALSE_;
+
+    for (index_pt=ppv->index_pt_delta_g+5; index_pt <= ppv->index_pt_delta_g+ppv->l_max_g; index_pt++) 
+      ppv->used_in_sources[index_pt]=_FALSE_;
+	
+    /* same for polarisation, we only need l=0,2,4 */
+	
+    ppv->used_in_sources[ppv->index_pt_pol1_g]=_FALSE_;
+    ppv->used_in_sources[ppv->index_pt_pol3_g]=_FALSE_;
+	
+    for (index_pt=ppv->index_pt_pol0_g+5; index_pt <= ppv->index_pt_pol0_g+ppv->l_max_pol_g; index_pt++)
+      ppv->used_in_sources[index_pt]=_FALSE_;
+    
   }
 
   /** - case of setting initial conditions for a new wavenumber */
@@ -4855,36 +4878,36 @@ int perturb_derivs(double tau,
   z = 1./a-1.;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
   
-  /* short-cut notations for the perturbations */
-  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
-    delta_g = y[ppw->pv->index_pt_delta_g];
-    theta_g = y[ppw->pv->index_pt_theta_g];
-    if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
-      shear_g = y[ppw->pv->index_pt_shear_g];
-    }
-  }
-  delta_b = y[ppw->pv->index_pt_delta_b];
-  theta_b = y[ppw->pv->index_pt_theta_b];
-  cb2 = pvecthermo[pth->index_th_cb2];
-
-  /* short-cut notations used only in tight-coupling approximation */
-  if (ppw->approx[ppw->index_ap_tca] == (int)tca_on) {
-    tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
-    dtau_c = -pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c; /* its first derivative wrt conformal time */
-    F = tau_c/(1+R); /* F = tau_c/(1+R) */
-    if (ppr->tight_coupling_approximation >= (int)second_order_CLASS) {
-      F_prime = dtau_c/(1+R)+tau_c*a_prime_over_a*R/(1+R)/(1+R); /*F' needed by second_order_CLASS and compromise_CLASS */
-      if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
-	F_prime_prime =(- pvecthermo[pth->index_th_dddkappa]*tau_c*tau_c /* F'' needed by second_order_CLASS only */
-			+ 2.*pvecthermo[pth->index_th_ddkappa]*pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c*tau_c)/(1+R)
-	  +2.*dtau_c*a_prime_over_a*R/(1+R)/(1+R)
-	  +tau_c*((a_primeprime_over_a-2.*a_prime_over_a*a_prime_over_a)+2.*a_prime_over_a*a_prime_over_a*R/(1+R))*R/(1+R)/(1+R);
-      }
-    }
-  }
-
   /** - for scalar mode: */
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+    /* short-cut notations for the scalar perturbations */
+    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+      delta_g = y[ppw->pv->index_pt_delta_g];
+      theta_g = y[ppw->pv->index_pt_theta_g];
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
+	shear_g = y[ppw->pv->index_pt_shear_g];
+      }
+    }
+    delta_b = y[ppw->pv->index_pt_delta_b];
+    theta_b = y[ppw->pv->index_pt_theta_b];
+    cb2 = pvecthermo[pth->index_th_cb2];
+    
+    /* short-cut notations used only in tight-coupling approximation */
+    if (ppw->approx[ppw->index_ap_tca] == (int)tca_on) {
+      tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
+      dtau_c = -pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c; /* its first derivative wrt conformal time */
+      F = tau_c/(1+R); /* F = tau_c/(1+R) */
+      if (ppr->tight_coupling_approximation >= (int)second_order_CLASS) {
+	F_prime = dtau_c/(1+R)+tau_c*a_prime_over_a*R/(1+R)/(1+R); /*F' needed by second_order_CLASS and compromise_CLASS */
+	if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
+	  F_prime_prime =(- pvecthermo[pth->index_th_dddkappa]*tau_c*tau_c /* F'' needed by second_order_CLASS only */
+			  + 2.*pvecthermo[pth->index_th_ddkappa]*pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c*tau_c)/(1+R)
+	    +2.*dtau_c*a_prime_over_a*R/(1+R)/(1+R)
+	    +tau_c*((a_primeprime_over_a-2.*a_prime_over_a*a_prime_over_a)+2.*a_prime_over_a*a_prime_over_a*R/(1+R))*R/(1+R)/(1+R);
+	}
+      }
+    }
 
     /** (a) get metric perturbations with perturb_einstein() */
     class_call(perturb_einstein(ppr,
@@ -5513,6 +5536,11 @@ int perturb_derivs(double tau,
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
       
+    /* short-cut notations for the tensor perturbations */
+    delta_g = y[ppw->pv->index_pt_delta_g];
+    theta_g = y[ppw->pv->index_pt_theta_g];
+    shear_g = y[ppw->pv->index_pt_shear_g];
+    
     Psi = 
       delta_g/40.
       +2.*shear_g/35.
