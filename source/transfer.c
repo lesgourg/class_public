@@ -149,9 +149,8 @@ int transfer_init(
      interpolated_sources[index_k_tr*ppt->tau_size+index_tau] */
   double * interpolated_sources;
 
-  /* this workspace is a contiguous memory zone containing various
+  /* we deal with workspaces which a contiguous memory zone containing various
      fields used by the integration routine */
-  double * workspace;
 
   /* - pointer used to assign adresses to the various workspace fields */
   double * address_in_workspace;
@@ -177,13 +176,22 @@ int transfer_init(
   /* - sixth workspace field containing the list of j_l''(x) values */
   double * ddj_l;
 
-  /* - optiomal: seventh workspace field containing the list of j_l(x) values */
+  /* - optional: seventh workspace field containing the list of j_l(x) values */
   double * dj_l;
 
   /* - optional: eigth workspace field containing the list of j_l''(x) values */
   double * dddj_l;
 
   /* no more workspace fields */
+
+  /* pointer on one workspace per thread (only one if no openmp) */
+  double ** pw;
+
+  /* number of available omp threads (remains always one if no openmp) */
+  int number_of_threads=1;
+
+  /* index of each thread (reminas always zero if no openmp) */
+  int thread=0;
 
   /* number of values of x for a given l infered from bessel module */
   int x_size_l;
@@ -199,18 +207,10 @@ int transfer_init(
      parallel region. */
   int abort;
 
-  /* pointer on one workspace per thread */
-  double ** pw;
-
 #ifdef _OPENMP
 
-  /* number of available omp threads */
-  int number_of_threads;
   /* instrumentation times */
-  double tstart, tstop, tspent;
-
-  /* pointer on one workspace per thread */
-  double ** pw;
+  double tstart, tstop, tspent=0;
 
 #endif
 
@@ -294,18 +294,23 @@ int transfer_init(
     
 #pragma omp parallel							\
   shared(ptr,index_mode,ppt,pbs,pw)					\
-  private(workspace,address_in_workspace,tau0_minus_tau,delta_tau,index_tau)
+  private(thread,address_in_workspace,tau0_minus_tau,delta_tau,index_tau)
     {
       
-      class_alloc_parallel(workspace,
+#ifdef _OPENMP
+      thread = omp_get_thread_num();
+#endif
+
+
+      class_alloc_parallel(pw[thread],
 			   ((2+ptr->k_size[index_mode])*ppt->tau_size
 			    +1+num_j*pbs->x_size_max)*
 			   sizeof(double),
 			   ptr->error_message);
-	  
+      
       /* -- define the address of the first two fields in the workspace, tau0_minus_tau and delta_tau */
 
-      address_in_workspace = workspace;
+      address_in_workspace = pw[thread];
 	  
       tau0_minus_tau = address_in_workspace;
       address_in_workspace += ppt->tau_size;
@@ -326,12 +331,6 @@ int transfer_init(
       
       delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
       
-      /** -- in openmp version, store the address of each workspace in the pw pointer */
-
-#ifdef _OPENMP
-      pw[omp_get_thread_num()] = workspace;
-#endif
-
     } /* end of parallel region */
     
     if (abort == _TRUE_) return _FAILURE_;
@@ -382,17 +381,16 @@ int transfer_init(
 #pragma omp parallel							\
   shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
 	  interpolated_sources,abort,num_j)				\
-  private (index_l,tstart,tstop,tspent,workspace,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l)
+  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l)
 	
 	{
 	  
 #ifdef _OPENMP
-	  tspent = 0.;
-	  workspace = pw[omp_get_thread_num()];
+	  thread = omp_get_thread_num();
 #endif
 
 	  /* define address of each field in the workspace */
-	  address_in_workspace = workspace;
+	  address_in_workspace = pw[thread];
 	  
 	  tau0_minus_tau = address_in_workspace;
 	  address_in_workspace += ppt->tau_size;
@@ -508,12 +506,12 @@ int transfer_init(
 
   } /* end of loop over mode */
 
-#pragma omp parallel shared(pw) private(workspace)
+#pragma omp parallel shared(pw) private(thread)
   {
 #ifdef _OPENMP
-    workspace = pw[omp_get_thread_num()];
+    thread = omp_get_thread_num();
 #endif
-    free(workspace);
+    free(pw[thread]);
   }
 
 #ifdef _OPENMP
