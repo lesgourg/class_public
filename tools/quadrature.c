@@ -12,10 +12,6 @@ int get_qsampling(double *x,
 		  double rtol,
 		  double *qvec,
 		  int qsiz,
-		  double *Avec,
-		  double *qcvec,
-		  double *sigmavec,
-		  int N_peaks,
 		  int (*test)(void * params_for_function, double q, double *psi),
 		  int (*function)(void * params_for_function, double q, double *f0),
 		  void * params_for_function,
@@ -31,7 +27,7 @@ int get_qsampling(double *x,
 	
   int i, NL=2,NR,level,Nadapt=0,NLag,NLag_max,Nold=NL;
   int adapt_converging=_FALSE_,Laguerre_converging=_FALSE_,combined_converging=_FALSE_;
-  int combined2_converging=_FALSE_,Hermite_converging;
+  int combined2_converging=_FALSE_;
   double y,y1,y2,I,Igk,err,ILag,*b,*c;
   qss_node *root,*root_comb;
   double I_comb,I_atzero,I_atinf,I_comb2;
@@ -43,8 +39,6 @@ int get_qsampling(double *x,
   double qmin=0., qmax=0., qmaxm1=0.;
   double *wcomb2=NULL,delq;
   double Itot=0.0;
-  double *qpeaks,*wpeaks,sigma2,IH,peakparam[3],width;
-  int NH,peak;
   int zeroskip=0;
 
   /* Set roots and weights for Gauss-Legendre 4 point rule: */
@@ -68,11 +62,6 @@ int get_qsampling(double *x,
   }
   else{
     qvec = NULL;
-  }
-  /* If we have peaks, estimate integral of the peaks: */
-  for (i=0; i<N_peaks; i++){
-    (*test)(params_for_function,qcvec[i],&y);
-    Itot += Avec[i]/(4.0*_PI_*qcvec[i]*qcvec[i])*y;
   }
  
   /* First do the adaptive quadrature - this will also give the value of the integral: */
@@ -308,147 +297,9 @@ int get_qsampling(double *x,
     free(wcomb2);
   }
 
-  /* Now, treat the peaks, if any: */
-  if (N_peaks > 0){
-    class_alloc(qpeaks,N_max*sizeof(double),errmsg);
-    class_alloc(wpeaks,N_max*sizeof(double),errmsg);
-    width = 2.0-0.2106*log(1e-4*rtol); //0.2106*
-
-    for (peak=0; peak<N_peaks; peak++){
-      sigma2 = sigmavec[peak]*sigmavec[peak];
-      peakparam[0] = Avec[peak];
-      peakparam[1] = qcvec[peak];
-      peakparam[2] = sigmavec[peak];
-      
-      /* Adaptive quadrature on peak: */
-      gk_adapt(&root,
-	       (*test),
-	       gaussian_peak, 
-	       peakparam,
-	       rtol*1e-4, 
-	       1, 
-	       max(0.0,qcvec[peak]-width*sigmavec[peak]), 
-	       qcvec[peak]+width*sigmavec[peak], 
-	       _FALSE_, 
-	       errmsg);
-      /* Do a leaf count: */
-      leaf_count(root);
-      /* I can get the integral now: */
-      I = get_integral(root, 1);
-      //printf("Ipeaks = %le used points: %d\n",I,15*root->leaf_childs);
-
-      /* Starting from the top, move down in levels until tolerance is met: */
-      for(level=root->leaf_childs; level>=1; level--){
-	Igk = get_integral(root,level);
-	err = I-Igk;
-	if (fabs(err/Itot)<rtol) break;
-      }
-      if (level>0){
-	/* Reduce tree to the found level:*/
-	reduce_tree(root,level);
-	/* Count the new leafs: */
-	leaf_count(root);
-	/* I know know how many function evaluations is 
-	   required by the adaptively sampled grid:*/
-	Nadapt = 15*root->leaf_childs;
-      }
-      if (Nadapt>(N_max-*N))
-	adapt_converging = _FALSE_;
-      else
-	adapt_converging = _TRUE_;
-      /** Try to use Gauss-Hermite integration: int(g(x)*exp(-x^2),-inf,inf). 
-	  We implicitly multiply g(x) by a stepfunction such that g(q)=0 for q<0 by 
-	  removing the relevant nodes and weights, if any. If qc, the center of the peak, 
-	  is close to 0, Gauss-Hermite integration can't converge, and we should revert 
-	  to the Gauss-Kronrod scheme. */
-      
-      for (NH=2,Hermite_converging=_FALSE_; NH<min(N_max-*N,Nadapt-1); NH += 2){
-	compute_Hermite(qpeaks,wpeaks,NH,0,b,c);
-	IH = 0.0;
-	for (i=0; i<NH; i++){
-	  /* Do the transformation of the integral:*/
-	  qpeaks[i] = qcvec[peak]+sqrt(2.0*sigma2)*qpeaks[i];
-	  /* If we have x[i]<=0.0, kill the weights:  */
-	  if (qpeaks[i]<=0.0){
-	    wpeaks[i] = 0.0;
-	  }
-	  else{
-	    wpeaks[i] *=Avec[peak]/(4.0*_PI_*sqrt(_PI_)*qpeaks[i]*qpeaks[i]);
-	    //printf("Weight = %g\n",wpeaks[i]);
-	    (*test)(params_for_function,qpeaks[i],&y);
-	    IH += wpeaks[i]*y;
-	  }
-	}
-	err = I-IH;
-	//printf("I=%g, IH=%g using %d points. err/I = %g.\n",I,IH,NH,fabs(err/Itot));
-	if (fabs(err/Itot)<rtol){
-	  Hermite_converging = _TRUE_;
-	  break;
-	}
-      }
-
-      //Hermite_converging = _FALSE_;
-      /* Are we converging?  */
-      class_test((Hermite_converging==_FALSE_)&&(adapt_converging==_FALSE_),errmsg,
-		 "Integration of peak number %d failed to converge using the remaining %d points. A very narrow peak very close to q=0 could be the explanation, but the most likely reason is that the three parameters defining the peak, A=%g, sigma=%g and qc=%g simply doesn't make sense.",
-		 peak+1,N_max-*N,Avec[peak],sigmavec[peak],qcvec[peak]);
-      if ((Hermite_converging == _TRUE_)&&(adapt_converging == _TRUE_)){
-	/* Make sure that there is only one converging: */	
-	if (NH<Nadapt)
-	  adapt_converging = _FALSE_;
-	else
-	  Hermite_converging = _FALSE_;
-      }
-
-      if (Hermite_converging == _TRUE_){
-	/* Move points to ouput vector: */
-	for(i=0; i<NH; i++){
-	  x[*N] = qpeaks[i];
-	  w[*N] = wpeaks[i];
-	  (*N)++;
-	} 
-      }
-      else if (adapt_converging == _TRUE_){
-	/* Gather weights and xvalues and put them in vector from *N 
-	   to *N + Nadapt-1. N is increased by the routine: */
-	get_leaf_x_and_w(root,N,x,w,_FALSE_);
-      }
-      
-    }
-    /* We must now trim and sort the x vector:  */
-    for(i=0,zeroskip=0; i<*N; i++){
-      for( ;(i<*N)&&(w[i+zeroskip]==0.0); zeroskip++,(*N)--);
-      
-      x[i] = x[i+zeroskip];
-      w[i] = w[i+zeroskip];
-    }
-    sort_x_and_w(x,w,qpeaks,wpeaks,0,*N-1);
-    /* Add weights of identical roots:  */
-    for(i=1,zeroskip=0; i<*N; i++){
-      for( ;(i<*N)&&(x[i+zeroskip]==x[i+zeroskip-1]); zeroskip++,(*N)--){
-	w[i-1] += w[i+zeroskip];
-      }
-      x[i] = x[i+zeroskip];
-      w[i] = w[i+zeroskip];
-    }
-    free(qpeaks);
-    free(wpeaks);
-  }
-
   free(b);
   free(c);
   
-  return _SUCCESS_;
-}
-
-int gaussian_peak(void * params_for_function, double q, double *f0){
-  double *param, A, sigma, qc;
-  param = params_for_function;
-  A = param[0];
-  qc = param[1];
-  sigma = param[2];
-
-  *f0 = 1.0/(4*_PI_*q*q)*A/sqrt(2.0*_PI_*sigma*sigma)*exp(-pow(q-qc,2)/(2.0*sigma*sigma));
   return _SUCCESS_;
 }
 

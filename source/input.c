@@ -161,7 +161,7 @@ int input_init(
   int flag1,flag2,flag3;
   double param1,param2,param3;
   int N_ncdm=0,n,entries_read;
-  int int1,fileentries,numpeaks;
+  int int1,fileentries;
   double fnu_factor;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
@@ -405,16 +405,6 @@ int input_init(
 				&(pba->ncdm_psd_parameters),
 				&flag2,
 				errmsg);
-
-    /* Do we have peaks specified? */
-    class_read_list_of_integers_or_default("ncdm_peaks",pba->ncdm_peaks,0,N_ncdm);
-    for (numpeaks=0,n=0; n<N_ncdm; n++) numpeaks += pba->ncdm_peaks[n];
-    if (numpeaks > 0){
-      /* Read the information of the Gaussian peak:  */
-      class_read_list_of_doubles("ncdm_peaks_A",pba->ncdm_peaks_A,numpeaks);
-      class_read_list_of_doubles("ncdm_peaks_sigma",pba->ncdm_peaks_sigma,numpeaks);
-      class_read_list_of_doubles("ncdm_peaks_qc",pba->ncdm_peaks_qc,numpeaks);
-    }
 
     class_call(background_ncdm_init(ppr,pba),
 	       pba->error_message,
@@ -1226,10 +1216,6 @@ int input_default_params(
   pba->deg_ncdm_default = 1.;
   pba->deg_ncdm = NULL;
   pba->ncdm_psd_parameters = NULL;
-  pba->ncdm_peaks = NULL;
-  pba->ncdm_peaks_A = NULL;
-  pba->ncdm_peaks_sigma = NULL;
-  pba->ncdm_peaks_qc = NULL;
 
   pba->Omega0_k = 0.;
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;

@@ -35,16 +35,11 @@ typedef struct adaptive_integration_tree_node{
 			int N_max, double rtol,
 			double *qvec,
 			int qsiz,
-			double *Avec,
-			double *qcvec,
-			double *sigmavec,
-			int N_peaks,
 			int (*test)(void * params_for_function, double q, double *psi),
 			int (*function)(void * params_for_function, double q, double *f0),
 			void * params_for_function,
 			ErrorMsg errmsg);
 
-      int gaussian_peak(void * params_for_function, double q, double *f0);
       int sort_x_and_w(double *x, double *w, double *workx, double *workw, int startidx, int endidx);
       int get_leaf_x_and_w(qss_node *node, int *ind, double *x, double *w,int isindefinite);
       int reduce_tree(qss_node *node, int level);

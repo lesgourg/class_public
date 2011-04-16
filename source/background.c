@@ -557,10 +557,6 @@ int background_free(
     if(pba->got_files!=NULL) free(pba->got_files);
     if(pba->ncdm_psd_files!=NULL)  free(pba->ncdm_psd_files);
     if(pba->ncdm_psd_parameters!=NULL)  free(pba->ncdm_psd_parameters);
-    free(pba->ncdm_peaks);
-    if (pba->ncdm_peaks_A !=NULL) free(pba->ncdm_peaks_A);
-    if (pba->ncdm_peaks_sigma !=NULL) free(pba->ncdm_peaks_sigma);
-    if (pba->ncdm_peaks_qc !=NULL) free(pba->ncdm_peaks_qc);
   }
 
   return _SUCCESS_;
@@ -754,9 +750,9 @@ int background_ncdm_distribution(
   double qlast,dqlast,f0last,df0last;
   double *param;
   /** Variables corresponing to entries in param: */
-  double square_s12,square_s23,square_s13;
-  double mixing_matrix[3][3];
-  int i;
+  //double square_s12,square_s23,square_s13;
+  //double mixing_matrix[3][3];
+  //int i;
 
   pbadist_local = pbadist;
   pba = pbadist_local->pba;
@@ -866,13 +862,7 @@ int background_ncdm_init(
   double f0m2,f0m1,f0,f0p1,f0p2,dq,q,df0dq,tmp1,tmp2;
   struct background_parameters_for_distributions pbadist;
   FILE *psdfile;
-  double *peaks_A, *peaks_sigma, *peaks_qc, Xi, dXidq, ygauss;
-  int peak;
-  /* Set local pointers to beginning of arrays:  */
-  peaks_A = pba->ncdm_peaks_A;
-  peaks_sigma = pba->ncdm_peaks_sigma;
-  peaks_qc = pba->ncdm_peaks_qc;
-
+  
   pbadist.pba = pba;
 
   /* Allocate pointer arrays: */
@@ -937,10 +927,6 @@ int background_ncdm_init(
 			     ppr->tol_ncdm,
 			     pbadist.q,
 			     pbadist.tablesize,
-			     peaks_A,
-			     peaks_qc,
-			     peaks_sigma,
-			     pba->ncdm_peaks[k],
 			     background_ncdm_test_function,
 			     background_ncdm_distribution,
 			     &pbadist,
@@ -967,10 +953,6 @@ int background_ncdm_init(
 			     ppr->tol_ncdm_bg,
 			     pbadist.q,
 			     pbadist.tablesize,
-			     peaks_A,
-			     peaks_qc,
-			     peaks_sigma,
-			     pba->ncdm_peaks[k],
 			     background_ncdm_test_function,
 			     background_ncdm_distribution,
 			     &pbadist,
@@ -1025,43 +1007,13 @@ int background_ncdm_init(
       //5 point estimate of the derivative:    
       df0dq = (+f0m2-8*f0m1+8*f0p1-f0p2)/12.0/dq;
       //printf("df0dq[%g] = %g. dlf=%g ?= %g. f0 =%g.\n",q,df0dq,q/f0*df0dq,
-      //-q/(1.0+exp(-q)),f0);
-      if (pba->ncdm_peaks[k] == 0){
-	//Avoid underflow in extreme tail:
-	if (fabs(f0)==0.)
-	  pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
-	else
-	  pba->dlnf0_dlnq_ncdm[k][index_q] = q/f0*df0dq;
-      }
-      else{
-	/* We have peaks, so we must be carefull to treat the logarithmic 
-	   derivative correct. Let f be the background distribution and Xi 
-	   the peaks. We have F = f + Xi, so dlogFdlogq = 1/(f+Xi)*(dfdq+dXidq) */
-	for (peak=0,Xi=0.0,dXidq=0.0; peak<pba->ncdm_peaks[k]; peak++){
-	  ygauss = peaks_A[peak]/sqrt(2.0*_PI_)/peaks_sigma[peak]*
-	    exp(-pow((q-peaks_qc[peak])/sqrt(2.0)/peaks_sigma[peak],2.0));
-	  Xi += ygauss;
-	  dXidq += ygauss*(peaks_qc[peak]-q)/peaks_sigma[peak]/peaks_sigma[peak];
-	}
-	Xi *= 1.0/(4.0*_PI_*q*q);	
-	dXidq *= 1.0/(4.0*_PI_*q*q);
-	/* Add first term from Leibniz rule:  */
-	dXidq -= 2.0*Xi/q;
-	if ((f0+Xi)==0.0){
-	  pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
-	}	  
-	else{
-	  pba->dlnf0_dlnq_ncdm[k][index_q] = q/(f0+Xi)*(df0dq+dXidq);
-	}
-	
-      }
+      //Avoid underflow in extreme tail:
+      if (fabs(f0)==0.)
+	pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
+      else
+	pba->dlnf0_dlnq_ncdm[k][index_q] = q/f0*df0dq;
     }
     
-    /* Increase peaks pointers:  */
-    peaks_A +=pba->ncdm_peaks[k];
-    peaks_qc +=pba->ncdm_peaks[k];
-    peaks_sigma +=pba->ncdm_peaks[k];
-
     pba->factor_ncdm[k]=pba->deg_ncdm[k]*4*_PI_*pow(pba->Tcmb*pba->T_ncdm[k]*_k_B_,4)*8*_PI_*_G_
       /3./pow(_h_P_/2./_PI_,3)/pow(_c_,7)*_Mpc_over_m_*_Mpc_over_m_;
 
