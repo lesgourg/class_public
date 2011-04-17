@@ -113,8 +113,12 @@ int perturb_init(
   int index_ic; 
   /* running index for wavenumbers */
   int index_k; 
-  /* struct perturb_workspace pw; */
-  struct perturb_workspace * ppw;
+  /* pointer to one struct perturb_workspace per thread (one if no openmp) */
+  struct perturb_workspace ** pppw;
+  /* number of threads (always one if no openmp) */
+  int number_of_threads=1;
+  /* index of the thread (always 0 if no openmp) */
+  int thread=0;
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
@@ -124,12 +128,8 @@ int perturb_init(
   int abort;
 
 #ifdef _OPENMP
-  /* number of available omp threads */
-  int number_of_threads;
   /* instrumentation times */
   double tstart, tstop, tspent;
-  /* pointer to one "ppw" per thread */
-  struct perturb_workspace ** pppw;
 #endif
 
   /** - preliminary checks */
@@ -217,9 +217,9 @@ int perturb_init(
   {
     number_of_threads = omp_get_num_threads();
   }
-  class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
-  
 #endif
+
+  class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */
 
@@ -229,19 +229,17 @@ int perturb_init(
 
 #pragma omp parallel				\
   shared(pppw,ppr,pba,pth,ppt,index_mode,abort)	\
-  private(ppw)
+  private(thread)
 
     {
 
-      /** create a workspace (one per thread in multi-thread case) */
-
-      class_alloc_parallel(ppw,sizeof(struct perturb_workspace),ppt->error_message);
-
-
 #ifdef _OPENMP
-      pppw[omp_get_thread_num()]=ppw;
+      thread=omp_get_thread_num();
 #endif
 
+      /** create a workspace (one per thread in multi-thread case) */
+
+      class_alloc_parallel(pppw[thread],sizeof(struct perturb_workspace),ppt->error_message);
 
       /** (a) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
 
@@ -250,7 +248,7 @@ int perturb_init(
 						 pth,
 						 ppt,
 						 index_mode,
-					 	 ppw),
+					 	 pppw[thread]),
 			  ppt->error_message,
 			  ppt->error_message);
 
@@ -266,12 +264,12 @@ int perturb_init(
 
 #pragma omp parallel						\
   shared(pppw,ppr,pba,pth,ppt,index_mode,index_ic,abort)	\
-  private(index_k,ppw,tstart,tstop,tspent)
+  private(index_k,thread,tstart,tstop,tspent)
 
       {
 
 #ifdef _OPENMP
-	ppw=pppw[omp_get_thread_num()];
+	thread=omp_get_thread_num();
 	tspent=0.;
 #endif
 	
@@ -294,7 +292,7 @@ int perturb_init(
 					    index_mode,
 					    index_ic,
 					    index_k,
-					    ppw),
+					    pppw[thread]),
 			      ppt->error_message,
 			      ppt->error_message);
 
@@ -324,15 +322,15 @@ int perturb_init(
 
 #pragma omp parallel				\
   shared(pppw,ppt,index_mode,abort)		\
-  private(ppw)
+  private(thread)
 
     {
 
 #ifdef _OPENMP
-      ppw=pppw[omp_get_thread_num()];
+      thread=omp_get_thread_num();
 #endif
       
-      class_call_parallel(perturb_workspace_free(ppt,index_mode,ppw),
+      class_call_parallel(perturb_workspace_free(ppt,index_mode,pppw[thread]),
 			  ppt->error_message,
 			  ppt->error_message);
 
@@ -342,9 +340,7 @@ int perturb_init(
 
   } /* end loop over modes */    
 
-#ifdef _OPENMP
   free(pppw);
-#endif
 
   return _SUCCESS_;
 }
