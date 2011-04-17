@@ -11,7 +11,7 @@
  * flags for various approximation schemes 
  * (tca = tight-coupling approximation, 
  *  rsa = radiation streaming approximation, 
- *  nfa = massless neutrinos / ultra-relativistic relics fluid approximation)
+ *  ufa = massless neutrinos / ultra-relativistic relics fluid approximation)
  *
  * CAUTION: must be listed below in chronological order, and cannot be
  * reversible. When integrating equations for a given mode, it is only
@@ -22,7 +22,7 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
-enum nfa_flags {nfa_off, nfa_on};
+enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 //@}
@@ -35,7 +35,7 @@ enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
-enum nfa_method {nfa_mb,nfa_hu,nfa_CLASS,nfa_none};
+enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 
 //@}
@@ -355,7 +355,7 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_nfa; /**< index for ur fluid approximation */  
+  int index_ap_ufa; /**< index for ur fluid approximation */  
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
 

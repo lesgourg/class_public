@@ -7,6 +7,7 @@
  * The following function can be called from other modules or from the main:
  *
  * -# output_init() (must be called after spectra_init())
+ * -# output_total_cl_at_l() (can be called even before output_init())
  *
  * No memory needs to be deallocated after that, 
  * hence there is no output_free() routine like in other modules.

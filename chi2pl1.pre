@@ -90,7 +90,7 @@ radiation_streaming_trigger_tau_c_over_tau_h = 10.
 ur_fluid_approximation = 2
 ur_fluid_trigger_tau_h_over_tau_k = 15.
 
-ncdm_fluid_approximation = 3
+ncdm_fluid_approximation = 2
 ncdm_fluid_trigger_tau_h_over_tau_k = 16.
 
 tol_ncdm = 1.e-3

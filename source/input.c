@@ -1502,7 +1502,7 @@ int input_default_precision ( struct precision * ppr ) {
 /*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
   ppr->radiation_streaming_trigger_tau_c_over_tau_h = 80.;
  
-  ppr->ur_fluid_approximation = nfa_CLASS;
+  ppr->ur_fluid_approximation = ufa_CLASS;
   ppr->ur_fluid_trigger_tau_h_over_tau_k = 16.; 
 
   ppr->ncdm_fluid_approximation = ncdmfa_none;

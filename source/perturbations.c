@@ -160,8 +160,8 @@ int perturb_init(
   
   if (pba->has_ur == _TRUE_) {
 
-    class_test ((ppr->ur_fluid_approximation < nfa_mb) ||
-		(ppr->ur_fluid_approximation > nfa_none),
+    class_test ((ppr->ur_fluid_approximation < ufa_mb) ||
+		(ppr->ur_fluid_approximation > ufa_none),
 		ppt->error_message,
 		"your ur_fluid_approximation is set to %d, out of range defined in perturbations.h",ppr->ur_fluid_approximation);
   }
@@ -1353,7 +1353,7 @@ int perturb_workspace_init(
     index_ap++;
 
     if (pba->has_ur == _TRUE_) {
-      ppw->index_ap_nfa=index_ap;
+      ppw->index_ap_ufa=index_ap;
       index_ap++;
     }
 
@@ -1377,7 +1377,7 @@ int perturb_workspace_init(
     ppw->approx[ppw->index_ap_tca]=(int)tca_on;
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
     if (pba->has_ur == _TRUE_) {
-      ppw->approx[ppw->index_ap_nfa]=(int)nfa_off;
+      ppw->approx[ppw->index_ap_ufa]=(int)ufa_off;
     }
     if (pba->has_ncdm == _TRUE_) {
       ppw->approx[ppw->index_ap_ncdmfa]=(int)ncdmfa_off;
@@ -2131,8 +2131,8 @@ int perturb_find_approximation_switches(
 	  fprintf(stdout,"Mode k=%e: will switch on radiation streaming approximation at tau=%e\n",k,interval_limit[index_switch]);
 
 	if (pba->has_ur == _TRUE_) {
-	  if ((interval_approx[index_switch-1][ppw->index_ap_nfa]==(int)nfa_off) && 
-	      (interval_approx[index_switch][ppw->index_ap_nfa]==(int)nfa_on)) {
+	  if ((interval_approx[index_switch-1][ppw->index_ap_ufa]==(int)ufa_off) && 
+	      (interval_approx[index_switch][ppw->index_ap_ufa]==(int)ufa_on)) {
 	    fprintf(stdout,"Mode k=%e: will switch on ur fluid approximation at tau=%e\n",k,interval_limit[index_switch]);
 	  }
 	}
@@ -2336,7 +2336,7 @@ int perturb_vector_init(
 	ppv->index_pt_shear_ur = index_pt; /* shear of ultra-relativistic neutrinos/relics */
 	index_pt++;
 
-	if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) { /* if neutrino free-streaming approximation is off */
+	if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) { /* if neutrino free-streaming approximation is off */
 	
 	  ppv->index_pt_l3_ur = index_pt; /* l=3 of ultra-relativistic neutrinos/relics */
 	  index_pt++;
@@ -2484,10 +2484,10 @@ int perturb_vector_init(
       
       if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 	
-	if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
+	if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
 	  
 	  /* we don't need ur multipoles above l=2 (but they are
-	     defined only when rsa and nfa are off) */
+	     defined only when rsa and ufa are off) */
 	  
 	  for (index_pt=ppv->index_pt_l3_ur; index_pt <= ppv->index_pt_delta_ur+ppv->l_max_ur; index_pt++)
 	    ppv->used_in_sources[index_pt]=_FALSE_;
@@ -2552,7 +2552,7 @@ int perturb_vector_init(
 
       if (pba->has_ur == _TRUE_) {
 
-	class_test(ppw->approx[ppw->index_ap_nfa] == (int)nfa_on,
+	class_test(ppw->approx[ppw->index_ap_ufa] == (int)ufa_on,
 		   ppt->error_message,
 		   "scalar initial conditions assume ur fluid approximation turned off");
 	
@@ -2685,7 +2685,7 @@ int perturb_vector_init(
 	  ppv->y[ppv->index_pt_shear_ur] =
 	    ppw->pv->y[ppw->pv->index_pt_shear_ur];
 	    
-	  if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
+	  if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
 
 	    ppv->y[ppv->index_pt_l3_ur] =
 	      ppw->pv->y[ppw->pv->index_pt_l3_ur];
@@ -2741,7 +2741,7 @@ int perturb_vector_init(
 
       if (pba->has_ur == _TRUE_) {
 
-	if ((pa_old[ppw->index_ap_nfa] == (int)nfa_off) && (ppw->approx[ppw->index_ap_nfa] == (int)nfa_on)) {
+	if ((pa_old[ppw->index_ap_ufa] == (int)ufa_off) && (ppw->approx[ppw->index_ap_ufa] == (int)ufa_on)) {
 
 	  if (ppt->perturbations_verbose>2)
 	    fprintf(stdout,"Mode k=%e: switch on ur fluid approximation at tau=%e\n",k,tau);
@@ -2886,7 +2886,7 @@ int perturb_vector_init(
 	      ppv->y[ppv->index_pt_shear_ur] =
 		ppw->pv->y[ppw->pv->index_pt_shear_ur];
 	      
-	      if (ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
+	      if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
 		
 		ppv->y[ppv->index_pt_l3_ur] =
 		  ppw->pv->y[ppw->pv->index_pt_l3_ur];
@@ -3400,12 +3400,12 @@ int perturb_approximations(
     if (pba->has_ur == _TRUE_) {
 
       if ((tau_h/tau_k > ppr->ur_fluid_trigger_tau_h_over_tau_k) &&
-	  (ppr->ur_fluid_approximation != nfa_none)) {
+	  (ppr->ur_fluid_approximation != ufa_none)) {
 	
-	ppw->approx[ppw->index_ap_nfa] = (int)nfa_on;
+	ppw->approx[ppw->index_ap_ufa] = (int)ufa_on;
       }
       else {
-	ppw->approx[ppw->index_ap_nfa] = (int)nfa_off;
+	ppw->approx[ppw->index_ap_ufa] = (int)ufa_off;
       }  
     }
 
@@ -5240,7 +5240,7 @@ int perturb_derivs(double tau,
 		-y[ppw->pv->index_pt_shear_ur]);
 	}
       
-	if(ppw->approx[ppw->index_ap_nfa] == (int)nfa_off) {
+	if(ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
 	  
 	  if (ppr->gauge == newtonian) {
 	    dy[ppw->pv->index_pt_shear_ur] = /* shear of ultra-relativistic neutrinos/relics */
@@ -5278,7 +5278,7 @@ int perturb_derivs(double tau,
 	  if (ppr->gauge == synchronous) {
 
 	    /* shear of ultra-relativistic neutrinos/relics in fluid approach */
-	    if (ppr->ur_fluid_approximation == nfa_mb) {
+	    if (ppr->ur_fluid_approximation == ufa_mb) {
 	      
 	      dy[ppw->pv->index_pt_shear_ur] =
 		-3./tau*y[ppw->pv->index_pt_shear_ur]
@@ -5287,7 +5287,7 @@ int perturb_derivs(double tau,
 	      
 	    }
 
-	    if (ppr->ur_fluid_approximation == nfa_hu) {
+	    if (ppr->ur_fluid_approximation == ufa_hu) {
 
 	      dy[ppw->pv->index_pt_shear_ur] =
 		-3.*a_prime_over_a*y[ppw->pv->index_pt_shear_ur]
@@ -5296,7 +5296,7 @@ int perturb_derivs(double tau,
 	      
 	    }
 
-	    if (ppr->ur_fluid_approximation == nfa_CLASS) {
+	    if (ppr->ur_fluid_approximation == ufa_CLASS) {
 
 	      dy[ppw->pv->index_pt_shear_ur] = 
 		-3./tau*y[ppw->pv->index_pt_shear_ur]
