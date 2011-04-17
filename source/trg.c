@@ -2484,8 +2484,6 @@ int trg_init (
   
   /** Additionnal temporary variables */
 
-  short has_simple_omega;
-
   double temp; 
   double * junk;
 
@@ -2728,32 +2726,12 @@ int trg_init (
   class_calloc(Omega_21, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
   class_calloc(Omega_22, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
 
-  has_simple_omega = _TRUE_;
-  /*has_simple_omega = _FALSE_;*/
-
   for(index_eta=0; index_eta < pnl->eta_size; index_eta++) {
     for(index_k=0; index_k < pnl->k_size; index_k++) {
       
       index=index_k+pnl->k_size*index_eta;
 
-      if (has_simple_omega == _TRUE_) {
-	Omega_21[index] = -3./2 * Omega_m[index_eta];
-      }
-      else {
-    /*   if(pnl->has_bc_spectrum == _TRUE_ ) { */
-	Omega_21[index] = -3./2 * Omega_m[index_eta] * (1. + 
-	    (rho_g[index_eta]*tr_g[index]+ 
-	      rho_ur[index_eta]*tr_ur[index])
-	    /(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index]));
-	/* The sound speed of baryons has been tested to be negligible at all scale - time of interest here. */
-
-	    /*- 2./3*pow(H[index_eta],2)*cb2[index_eta]*pow(pnl->k[index_k],2)*rho_b[index_eta]*tr_b[index]/*/
-	    /*(Omega_m[index_eta]*(rho_b[index_eta]*tr_b[index]+rho_cdm[index_eta]*tr_cdm[index])));*/
-   /*    } */
-/*       else { */
-/* 	Omega_21[index] = -3./2 * (Omega_m[index_eta] + 4./3*Omega_r[index_eta]); */
-/*       } */
-      }
+      Omega_21[index] = -3./2 * Omega_m[index_eta];
       Omega_22[index] = 2 + H_prime[index_eta]/H[index_eta];
     }
   }
