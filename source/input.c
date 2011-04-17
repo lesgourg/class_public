@@ -486,7 +486,7 @@ int input_init(
     class_read_double("w_fld",pba->w_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
 
-    class_test(pba->w_fld<=0.,
+    class_test(pba->w_fld<=-1.,
 	       errmsg,
 	       "Your choice w_fld=%g is not valid, it will lead to instabilities or division by zero\n",
 	       pba->w_fld);
@@ -1391,7 +1391,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->tol_initial_Omega_r = 1.e-4;
   ppr->tol_M_ncdm = 1.e-7;
-  ppr->tol_ncdm = 1.e-6;
+  ppr->tol_ncdm = 1.e-3;
   ppr->tol_ncdm_bg = 1.e-5;
   ppr->tol_ncdm_initial_w=1.e-3;
 
