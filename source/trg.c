@@ -2531,7 +2531,7 @@ int trg_init (
   /** define size and step for integration in eta, at any time now, a = a_ini * exp(eta) and z=exp(eta)-1 */
   
   //for the PCA integrator
-  pnl->eta_size*=2;
+  /*pnl->eta_size=pnl->eta_size*2 - 1;*/
 
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
 
@@ -3461,50 +3461,25 @@ int trg_init (
 
   }
 
-  /*******
-   * Try to implement a Predictor Corrector Algo to improve the convergence on the time-integrator.
-   * Idea is:
-   * Suppose a simplified equation d_eta P = A(t,P)
-   * Suppose known at t0 P0 and A(t0,P0)
-   * Then computes P0+1/2=P0+tau/2*A(t0,P0)
-   * then P1=P0+tau*A(t0+1/2,P0+1/2)
-   ******/
-
   if(pnl->spectra_nl_verbose>1) printf("Done in %2.f min\n",difftime(time_2,time_1)/60);
 
   /** End of the computation, beginning of cleaning */
 
   /***** TEST ZONE *****/
-  /*double r0,r1,r2,r3,r4,r5;*/
+  double r0,r1;
 
-  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[0],pnl->z[index_eta],&r0,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[100],pnl->z[index_eta],&r1,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[200],pnl->z[index_eta],&r2,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[300],pnl->z[index_eta],&r3,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[400],pnl->z[index_eta],&r4,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size-1],pnl->z[index_eta],&r5,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
+  for(index_k=0; index_k<pnl->k_size; index_k+=1){
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-1],&r0,junk),
+	psp->error_message,
+	pnl->error_message);
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-2],&r1,junk),
+	psp->error_message,
+	pnl->error_message);
 
-    /*printf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g\n",pnl->z[index_eta],pnl->eta[index_eta],*/
-	/*pnl->p_11_nl[0+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r0,*/
-	/*pnl->p_11_nl[100+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r1,*/
-	/*pnl->p_11_nl[200+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r2,*/
-	/*pnl->p_11_nl[300+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r3,*/
-	/*pnl->p_11_nl[400+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r4,*/
-	/*pnl->p_11_nl[pnl->k_size-1+pnl->k_size*index_eta]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r5);*/
-  /*}*/
+    printf("%g %g %g %g %g\n",pnl->k[index_k],
+	pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-1)]*exp(-log( (pnl->z[pnl->eta_size-1]+1.) * a_ini / pba->a_today )*2),r0,
+	pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-2)]*exp(-log( (pnl->z[pnl->eta_size-2]+1.) * a_ini / pba->a_today )*2),r1);
+  }
 
   /***** END OF TEST ZONE *****/
 
