@@ -277,8 +277,8 @@ int perturb_init(
 	
 #pragma omp for schedule (dynamic)
 
-	//for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
-	for (index_k = ppt->k_size[index_mode]-1; index_k >=0; index_k--) {  
+	for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
+	  //for (index_k = ppt->k_size[index_mode]-1; index_k >=0; index_k--) {  
 
 	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
 	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);

@@ -25,8 +25,8 @@ AR        = ar rv
 #LDFLAG   = -O0 -Wall -ggdb
 CCFLAG   = -O4 -Wall -fopenmp
 LDFLAG   = -O4 -Wall -fopenmp
-#CCFLAG = -O4
-#LDFLAG = -O4
+#LCCFLAG = -O0
+#LDFLAG = -O0
 #CCFLAG   = -fast -fopenmp -Wall
 #LDFLAG   = -fast -fopenmp -Wall
 #CCFLAG = -O0 -ggdb -g -Wall
@@ -124,7 +124,7 @@ test_optimize: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESS
 chi2: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CHI2)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
-test_loops: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_LOOPS)
+test_loops: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_LOOPS)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_trg: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(TRG) $(TEST_TRG)

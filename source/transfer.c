@@ -210,7 +210,7 @@ int transfer_init(
 #ifdef _OPENMP
 
   /* instrumentation times */
-  double tstart, tstop, tspent=0;
+  double tstart, tstop, tspent;
 
 #endif
 
@@ -260,10 +260,10 @@ int transfer_init(
     number_of_threads = omp_get_num_threads();
   }
 
+#endif
+
   /* allocate the pointer to one workspace per thread */
   class_alloc(pw,number_of_threads*sizeof(double*),ptr->error_message);
-
-#endif
 
   /** - loop over all modes. For each mode: */ 
 
@@ -387,6 +387,7 @@ int transfer_init(
 	  
 #ifdef _OPENMP
 	  thread = omp_get_thread_num();
+	  tspent = 0.;
 #endif
 
 	  /* define address of each field in the workspace */
@@ -514,9 +515,7 @@ int transfer_init(
     free(pw[thread]);
   }
 
-#ifdef _OPENMP
   free(pw);
-#endif
 
   return _SUCCESS_;
 }
