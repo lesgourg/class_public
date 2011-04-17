@@ -1,6 +1,7 @@
 /** @file background.c Documented background module
  *
- * Julien Lesgourgues, 27.08.2010    
+ * Julien Lesgourgues, 17.04.2011
+ * routines related to ncdm written by T. Tram in 2011    
  *
  * Deals with the cosmological background evolution.
  * This module has two purposes: 
@@ -262,8 +263,9 @@ int background_functions(
   double rho_m;
   /* scale factor relative to scale factor today */
   double a_rel;
-
+  /* background ncdm quantities */
   double rho_ncdm,p_ncdm,pseudo_p_ncdm;
+  /* index for n_ncdm species */
   int n_ncdm;
 
   /** - initialize local variables */
@@ -304,10 +306,13 @@ int background_functions(
 
   /* ncdm */
   if (pba->has_ncdm == _TRUE_) {
+
+    /* Loop over species: */
     for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
-      /* Loop over species: */
+      
+      /* function returning background ncdm[n_ncdm] quantities (only
+	 those for which non-NULL pointers are passed) */
       class_call(background_ncdm_momenta(
-					 /* Only calculate for non-NULL pointers: */
 					 pba->q_ncdm_bg[n_ncdm],
 					 pba->w_ncdm_bg[n_ncdm],
 					 pba->q_size_ncdm_bg[n_ncdm],
@@ -321,15 +326,18 @@ int background_functions(
 					 &pseudo_p_ncdm),
 		 pba->error_message,
 		 pba->error_message);
-
+      
       pvecback[pba->index_bg_rho_ncdm1+n_ncdm] = rho_ncdm;
       rho_tot += rho_ncdm;
       pvecback[pba->index_bg_p_ncdm1+n_ncdm] = p_ncdm;
       p_tot += p_ncdm;
       pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
+
       /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
       rho_r += 3.* p_ncdm;
-      /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution to rho_ncdm1 */
+
+      /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution 
+	 to rho_ncdm1 */
       rho_m += rho_ncdm - 3.* p_ncdm;
     }
   }
@@ -356,7 +364,10 @@ int background_functions(
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
 
-  /** - compute expansion rate H from Friedmann equation */
+  /** - compute expansion rate H from Friedmann equation: this is the
+      unique place where the Friedmann equation is assumed. Remember
+      that densities are all expressed in units of [3c^2/8piG], ie
+      rho_class = [8 pi G rho_physical / 3 c^2] */
   pvecback[pba->index_bg_H] = sqrt(rho_tot);
 
   /** - compute derivative of H with respect to conformal time */
@@ -374,9 +385,7 @@ int background_functions(
 	       pba->error_message,
 	       "rho_tot = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
 
-    /** - compute Omega's */
-
-    /** - compute relativistic density to total density ratio */
+    /** - compute Omega_m */
     pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
     
     /* one can put other variables here */
@@ -410,17 +419,24 @@ int background_init(
   double Omega0_tot,rho_ncdm_rel,rho_nu_rel;
   int filenum=0;
 
+  /** - in verbose mode, provide some information */
   if (pba->background_verbose > 0) {
     printf("Running CLASS version %s\n",_VERSION_);
     printf("Computing background\n");
     
-    if (pba->N_ncdm > 0) {
+    /* below we want to inform the user about ncdm species*/
+    if (pba->N_ncdm > 0) { 
+
+      /* loop over ncdm species */
       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
 	
+        /* inform if p-s-d read in files */
 	if (pba->got_files[n_ncdm] == _TRUE_) {
 	  printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
 	  filenum++;
 	}
+
+        /* call this function to get rho_ncdm */
 	background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
 				pba->w_ncdm_bg[n_ncdm],
 				pba->q_size_ncdm_bg[n_ncdm],
@@ -432,6 +448,14 @@ int background_init(
 				NULL,
 				NULL,
 				NULL);
+
+        /* inform user of the contribution of each species to
+	   radiation density (in relativistic limit): should be
+	   between 1.01 and 1.02 for each active neutrino species;
+	   evaluated as rho_ncdm/rho_nu_rel where rho_nu_rel is the
+	   density of one neutrino in the instantaneous decoupling
+	   limit, i.e. assuming T_nu=(4/11)^1/3 T_gamma (this comes
+	   from the definition of N_eff) */
 	rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
 	  pow(_Mpc_over_m_,2)*pow(pba->Tcmb*_k_B_,4);
 	
@@ -465,6 +489,9 @@ int background_init(
 	     pba->error_message,
 	     "Tcmb=%g out of bounds (%g<Tcmb<%g)",pba->Tcmb,_TCMB_SMALL_,_TCMB_BIG_);
 
+  /* in verbose mode, inform the user about the value of the ncdm
+     masses in eV and about the ratio [m/omega_ncdm] in eV (the usual
+     93 point something)*/
   if ((pba->background_verbose > 0) && (pba->has_ncdm == _TRUE_)) {
     for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
       printf(" -> non-cold dark matter species with i=%d has m_i = %e eV (so m_i / omega_i =%e eV)\n",
@@ -474,7 +501,7 @@ int background_init(
     }
   }
 
-  /* curvature */
+  /* compute Omega0_tot and check curvature */
   Omega0_tot = pba->Omega0_g + pba->Omega0_b;
   if (pba->has_cdm == _TRUE_) {
     Omega0_tot += pba->Omega0_cdm;
@@ -493,9 +520,9 @@ int background_init(
   }
   class_test(fabs(Omega0_tot-1.) > _TOLERANCE_ON_CURVATURE_,
 	     pba->error_message,
-	     "non zero spatial curvature not available (Omega0 = %g)",Omega0_tot);
+	     "You input implies a non zero spatial curvature (Omega0 = %g), this is not available in CLASS %s, sorry!",Omega0_tot,_VERSION_);
 
-  /* other quantities which would lead to segmentation fault if zero */
+  /* check other quantities which would lead to segmentation fault if zero */
   class_test(pba->a_today <= 0,
 	     pba->error_message,
 	     "input a_today = %e instead of strictly positive",pba->a_today);
@@ -504,7 +531,8 @@ int background_init(
 	     pba->error_message,
 	     "_Gyr_over_Mpc = %e instead of strictly positive",_Gyr_over_Mpc_);
 
-  /** - integrate background, allocate and fill the background table with background_solve()*/
+  /** - this function integrates the background over time, allocates
+      and fills the background table */
   class_call(background_solve(ppr,pba),
 	     pba->error_message,
 	     pba->error_message);
@@ -607,10 +635,9 @@ int background_indices(
   pba->index_bg_rho_b = index_bg; 
   index_bg++;
 
-  /* - cdm */
+  /* - index and flag for rho_cdm */
   if (pba->Omega0_cdm != 0.) {
     pba->has_cdm = _TRUE_;
-    /* -> index for rho_cdm (cdm density) */
     pba->index_bg_rho_cdm = index_bg; 
     index_bg++;
   }
@@ -618,10 +645,11 @@ int background_indices(
     pba->has_cdm = _FALSE_;
   }
 
-  /* - ncdm1 */
+  /* - indices and flag for ncdm */
   if (pba->Omega0_ncdm_tot != 0.) {
     pba->has_ncdm = _TRUE_;
-    /* -> index for rho_ncdm1 (ncdm1 density) */
+    /* -> we only define the indices for ncdm1 (density, pressure,
+          pseudo-pressure), the other ncdm indices are contiguous */
     pba->index_bg_rho_ncdm1 = index_bg; 
     index_bg +=pba->N_ncdm;
     pba->index_bg_p_ncdm1 = index_bg; 
@@ -633,7 +661,7 @@ int background_indices(
     pba->has_ncdm = _FALSE_;
   }
   
-  /* - Lambda */
+  /* - index and flag for Lambda */
   if (pba->Omega0_lambda != 0.) {
     pba->has_lambda = _TRUE_;
     /* -> index for rho_Lambda (Lambda density) */
@@ -644,10 +672,9 @@ int background_indices(
     pba->has_lambda = _FALSE_;
   }
   
-  /* - fluid */
+  /* - index and flag for fluid */
   if (pba->Omega0_fld != 0.) {
     pba->has_fld = _TRUE_;
-    /* -> index for rho_fld (dark energy density) */
     pba->index_bg_rho_fld = index_bg; 
     index_bg++;
   }
@@ -655,10 +682,9 @@ int background_indices(
     pba->has_fld = _FALSE_;
   }
   
-  /* - relativistic neutrinos (and any relativistic relics) */
+  /* - index and flag for ultra-relativistic neutrinos/species */
   if (pba->Omega0_ur != 0.) {
     pba->has_ur = _TRUE_;
-    /* -> index for rho_ur (relativistic neutrino/relics density) */
     pba->index_bg_rho_ur = index_bg; 
     index_bg++;
   }
@@ -738,6 +764,16 @@ int background_indices(
 
 }
 
+/**
+ * This is the routine where the distribution function f0(q) of each
+ * ncdm species is specified (it is the only place to modify if you
+ * need a partlar f0(q))
+ *
+ * @param pbadist Input:  structure containing all parameters defining f0(q)
+ * @param q       Input:  momentum
+ * @param f0      Output: phase-space distribution
+ */
+
 int background_ncdm_distribution(
 				 void * pbadist,
 				 double q,
@@ -754,16 +790,18 @@ int background_ncdm_distribution(
   //double mixing_matrix[3][3];
   //int i;
 
-  pbadist_local = pbadist;
-  pba = pbadist_local->pba;
-  param = pba->ncdm_psd_parameters;
+  /** - extract from the input structure pbadist all the relevant information */
+  pbadist_local = pbadist;          /* restore actual format of pbadist */
+  pba = pbadist_local->pba;         /* extract the background structure from it */
+  param = pba->ncdm_psd_parameters; /* extract the optional parameter list from it */
+  n_ncdm = pbadist_local->n_ncdm;   /* extract index of ncdm species under consideration */
+  ksi = pba->ksi_ncdm[n_ncdm];      /* extract chemical potential */
+    
+  /** - shall we interpolate in file, or shall we use analytical formula below? */
 
-  n_ncdm = pbadist_local->n_ncdm;
-  ksi = pba->ksi_ncdm[n_ncdm];
-  
-  
-  /* Do we interpolate or use analytical formula below?  */
+  /** -> deal first with the case of interpolating in files */
   if (pba->got_files[n_ncdm]==_TRUE_) {
+
     lastidx = pbadist_local->tablesize-1;
     if(q<pbadist_local->q[0]){
       //Handle q->0 case:
@@ -794,57 +832,94 @@ int background_ncdm_distribution(
 		 pba->error_message,     pba->error_message);
     }
   }
+
+  /** -> deal now with case of reading analytical function */
   else{
-    /** Enter an analytic expression for the p.s.d. here. Use for instance 
-	if (n_ncdm==2) to enter something different for the third species. 
-	(n_ncdm = 0 refers to the first species.)*/
+    /** 
+	Enter here your analytic expression(s) for the p.s.d.'s. If
+	you need different p.s.d.'s for different species, put each
+	p.s.d inside a condition, like for instance: if (n_ncdm==2) {
+	*f0=...}.  Remember that n_ncdm = 0 refers to the first
+	species. 
+    */
+
+    /**************************************************/
+    /*    FERMI-DIRAC INCLUDING CHEMICAL POTENTIALS   */
+    /**************************************************/    
+         
+    *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
+
+    /**************************************************/
+
+    /** This form is only appropriate for approximate studies, since in
+	reality the chemical potential are associated with flavor
+	eigenstates, not mass eigenstates. It is easy to take this into
+	account by introducing the mixing angles. In the later part
+	(not read by the code) we illustrate how to do this */
     
-/*     if (n_ncdm < 3){  */
+    if (_FALSE_) {
+
+      /* We must use the list of extra parameters read in input, stored in the
+	 ncdm_psd_parameter list, extracted above from the structure
+	 and now called param[..] */
+
+      /* check that this list has been read */
+      class_test(param == NULL,
+    		 pba->error_message,
+    		 "Analytic expression wants to use 'ncdm_psd_parameters', but they have not been entered!");
+
+      /* extract values from the list (in this example, mixing angles) */
+      double square_s12=param[0];
+      double square_s23=param[1];
+      double square_s13=param[2];
+
+      /* infer mixing matrix */
+      double mixing_matrix[3][3];
+      int i;
+
+      mixing_matrix[0][0]=pow(fabs(sqrt((1-square_s12)*(1-square_s13))),2);
+      mixing_matrix[0][1]=pow(fabs(sqrt(square_s12*(1-square_s13))),2);
+      mixing_matrix[0][2]=fabs(square_s13);
+      mixing_matrix[1][0]=pow(fabs(sqrt((1-square_s12)*square_s13*square_s23)+sqrt(square_s12*(1-square_s23))),2);
+      mixing_matrix[1][1]=pow(fabs(sqrt(square_s12*square_s23*square_s13)-sqrt((1-square_s12)*(1-square_s23))),2);
+      mixing_matrix[1][2]=pow(fabs(sqrt(square_s23*(1-square_s13))),2);
+      mixing_matrix[2][0]=pow(fabs(sqrt(square_s12*square_s23)-sqrt((1-square_s12)*square_s13*(1-square_s23))),2);
+      mixing_matrix[2][1]=pow(sqrt((1-square_s12)*square_s23)+sqrt(square_s12*square_s13*(1-square_s23)),2);
+      mixing_matrix[2][2]=pow(fabs(sqrt((1-square_s13)*(1-square_s23))),2);
       
-      /** If we are using psd parameters, make sure that they have been read:*/
-/*       class_test(param == NULL, */
-/* 		 pba->error_message, */
-/* 		 "Analytic expression wants to use 'ncdm_psd_parameters', but they have not been entered!"); */
-/*       square_s12=param[0]; */
-/*       square_s23=param[1]; */
-/*       square_s13=param[2]; */
-    
-    
-/*       mixing_matrix[0][0]=pow(fabs(sqrt((1-square_s12)*(1-square_s13))),2); */
-/*       mixing_matrix[0][1]=pow(fabs(sqrt(square_s12*(1-square_s13))),2); */
-/*       mixing_matrix[0][2]=fabs(square_s13); */
-/*       mixing_matrix[1][0]=pow(fabs(sqrt((1-square_s12)*square_s13*square_s23)+sqrt(square_s12*(1-square_s23))),2); */
-/*       mixing_matrix[1][1]=pow(fabs(sqrt(square_s12*square_s23*square_s13)-sqrt((1-square_s12)*(1-square_s23))),2); */
-/*       mixing_matrix[1][2]=pow(fabs(sqrt(square_s23*(1-square_s13))),2); */
-/*       mixing_matrix[2][0]=pow(fabs(sqrt(square_s12*square_s23)-sqrt((1-square_s12)*square_s13*(1-square_s23))),2); */
-/*       mixing_matrix[2][1]=pow(sqrt((1-square_s12)*square_s23)+sqrt(square_s12*square_s13*(1-square_s23)),2); */
-/*       mixing_matrix[2][2]=pow(fabs(sqrt((1-square_s13)*(1-square_s23))),2); */
-
-/*       *f0=0.0; */
-/*       for(i=0;i<3;i++){ */
+      /* loop over flavor eigenstates and compute psd of mass eigenstates */
+      *f0=0.0;
+      for(i=0;i<3;i++){
 	
-/* 	*f0 += mixing_matrix[i][n_ncdm]*1.0/pow(2*_PI_,3)*(1./(exp(q-pba->ksi_ncdm[i])+1.) +1./(exp(q+pba->ksi_ncdm[i])+1.)); */
+    	*f0 += mixing_matrix[i][n_ncdm]*1.0/pow(2*_PI_,3)*(1./(exp(q-pba->ksi_ncdm[i])+1.) +1./(exp(q+pba->ksi_ncdm[i])+1.));
 	
-/*       } */
-/*     } */
-    
-/*     else{ */
-      //FD distribution:
-      *f0 = 1.0/pow(2*_PI_,3)*(1./(exp(q-ksi)+1.) +1./(exp(q+ksi)+1.));
-/*     } */
-  }
-
+      }
+    } /* end of region not used, but shown as an example */
+  }   
+  
   return _SUCCESS_;
 }
+
+/**
+ * This function is only used for the purpose of finding optimal
+ * quadrature weigths. The logic is: if we can convolve accurately
+ * f0(q) with this function, then we can convolve it accuractely with
+ * any other relevant function. 
+ *
+ * @param pbadist Input:  structure containing all parameters defining f0(q)
+ * @param q       Input:  momentum
+ * @param f0      Output: phase-space distribution 
+ */
 
 int background_ncdm_test_function(
 				  void * pbadist,
 				  double q,
 				  double * test
 				  ) {
-  double zeta3=1.2020569031595942853997381615114499907649862923404988817922;
-  double zeta5=1.0369277551433699263313654864570341680570809195019128119741;
-  double c=2.0/(3.0*zeta3), d=120.0/(7.0*pow(_PI_,4)), e=2.0/(45.0*zeta5);
+
+  double c = 2.0/(3.0*_zeta3_);
+  double d = 120.0/(7.0*pow(_PI_,4));
+  double e = 2.0/(45.0*_zeta5_);
   
   /** Using a + bq creates problems for otherwise acceptable distributions 
       which diverges as 1/r or 1/r^2 for r->0 */
@@ -852,6 +927,14 @@ int background_ncdm_test_function(
 
   return _SUCCESS_;
 }
+
+/**
+ * This function finds optimal quadrature weights for each ncdm
+ * species
+ *
+ * @param ppr Input: precision structure
+ * @param pba Input/Output: background structure 
+ */
 
 int background_ncdm_init(
 			 struct precision *ppr,
@@ -964,6 +1047,8 @@ int background_ncdm_init(
     pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
     pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
 
+    /** - in verbose mode, inform user of number of sampled momenta
+          for background quantities */
     if (pba->background_verbose > 0)
       printf("ncdm species i=%d sampled with %d points for purpose of background integration\n",
 	     k+1,
@@ -1029,6 +1114,26 @@ int background_ncdm_init(
   return _SUCCESS_;
 }
 
+/**
+ * For a given ncdm sepcies: given the quadrature weights, the mass
+ * and the redshift, find background quantities by a quick weighted
+ * sum over.  Input parameters passed as NULL pointers are not
+ * evaluated for speed-up
+ *
+ * @param qvec     Input: smapled momenta
+ * @param wvec     Input: quadrature weigths
+ * @param qsize    Input: number of momenta/weigths
+ * @param M        Input: mass
+ * @param factor   Input: normalization factor for the p.s.d.
+ * @param z        Input: redhsift
+ * @param n        Output: number density
+ * @param rho      Output: energy density
+ * @param p        Output: pressure
+ * @param drho_dM  Output: derivative used in next function
+ * @param pseudo_p Ouput: pseudo-pressure used in perturbation module for fluid approx
+ *
+ */
+
 int background_ncdm_momenta(
 			    /* Only calculate for non-NULL pointers: */
 			    double * qvec,
@@ -1038,10 +1143,10 @@ int background_ncdm_momenta(
 			    double factor,
 			    double z,
 			    double * n,
-			    double * rho,
-			    double * p,
-			    double * drho_dM,
-			    double * pseudo_p
+			    double * rho, // density
+			    double * p,   // pressure
+			    double * drho_dM,  // d rho / d M used in next function
+			    double * pseudo_p  // pseudo-p used in ncdm fluid approx
 			    ) {
 
   int index_q;
@@ -1049,25 +1154,34 @@ int background_ncdm_momenta(
   double q2;
   double factor2;
 
+  /** - rescale normalization at given redshift */
   factor2 = factor*pow(1+z,4);
 
+  /** - initialize quantities */
   if (n!=NULL) *n = 0.;
   if (rho!=NULL) *rho = 0.;
   if (p!=NULL) *p = 0.;
   if (drho_dM!=NULL) *drho_dM = 0.;
   if (pseudo_p!=NULL) *pseudo_p = 0.;
 
+  /** - loop over momenta */
   for (index_q=0; index_q<qsize; index_q++) {
 
+    /* squared momentum */
     q2 = qvec[index_q]*qvec[index_q];
+
+    /* energy */
     epsilon = sqrt(q2+M*M/(1.+z)/(1.+z));
 
+    /* integrand of the various quantities */
     if (n!=NULL) *n += q2*wvec[index_q];
     if (rho!=NULL) *rho += q2*epsilon*wvec[index_q];
     if (p!=NULL) *p += q2*q2/3./epsilon*wvec[index_q];
     if (drho_dM!=NULL) *drho_dM += q2*M/(1.+z)/(1.+z)/epsilon*wvec[index_q];
     if (pseudo_p!=NULL) *pseudo_p += pow(q2/epsilon,3)/3.0*wvec[index_q]; 
   }
+
+  /** - ajust normalization */
   if (n!=NULL) *n *= factor2*(1.+z);
   if (rho!=NULL) *rho *= factor2;
   if (p!=NULL) *p *= factor2;
@@ -1077,22 +1191,31 @@ int background_ncdm_momenta(
   return _SUCCESS_;
 }
 
+/**
+ * When the user passed in input the density fraction Omeha_ncdm or
+ * omega_ncdm but not the mass, infer the mass with Newton iteration method.
+ *
+ * @param ppr    Input: precision structure
+ * @param pba    Input/Output: background structure 
+ * @param n_ncdm Input: index of ncdm species
+ */
+
 int background_ncdm_M_from_Omega(
 				 struct precision *ppr,
 				 struct background *pba,
-				 int k
+				 int n_ncdm
 				 ) {
   double rho0,rho,n,M,deltaM,drhodM;
   int iter,maxiter=50;
 	
-  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[k]; /*Remember that rho is defined such that H^2=sum(rho_i) */
+  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm]; /*Remember that rho is defined such that H^2=sum(rho_i) */
   M = 0.0;
 
-  background_ncdm_momenta(pba->q_ncdm_bg[k],
-			  pba->w_ncdm_bg[k],
-			  pba->q_size_ncdm_bg[k],
+  background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
+			  pba->w_ncdm_bg[n_ncdm],
+			  pba->q_size_ncdm_bg[n_ncdm],
 			  M,
-			  pba->factor_ncdm[k],
+			  pba->factor_ncdm[n_ncdm],
               		  0.,
 			  &n,
 			  &rho,
@@ -1103,18 +1226,18 @@ int background_ncdm_M_from_Omega(
   /* Is the value of Omega less than a massless species?*/
   class_test(rho0<rho,pba->error_message,
 	     "The value of Omega for the %dth species, %g, is less than for a massless species! It should be atleast %g. Check your input.",
-	     k,pba->Omega0_ncdm[k],pba->Omega0_ncdm[k]*rho/rho0);
+	     n_ncdm,pba->Omega0_ncdm[n_ncdm],pba->Omega0_ncdm[n_ncdm]*rho/rho0);
 
   /* In the strict NR limit we have rho = n*(M) today, giving a zero'th order guess: */
   M = rho0/n; /* This is our guess for M. */
   for (iter=1; iter<=maxiter; iter++){
-    //    printf("iter=%d, M=%g, drhodM=%g, err:%g.\n",iter,M,drhodM,deltaM/M);
+
     /* Newton iteration. First get relevant quantities at M: */
-    background_ncdm_momenta(pba->q_ncdm_bg[k],
-			    pba->w_ncdm_bg[k],
-			    pba->q_size_ncdm_bg[k],
+    background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
+			    pba->w_ncdm_bg[n_ncdm],
+			    pba->q_size_ncdm_bg[n_ncdm],
 			    M,
-			    pba->factor_ncdm[k],
+			    pba->factor_ncdm[n_ncdm],
 			    0.,
 			    NULL,
 			    &rho,
@@ -1127,7 +1250,7 @@ int background_ncdm_M_from_Omega(
     M += deltaM; /* Update value of M.. */
     if (fabs(deltaM/M)<ppr->tol_M_ncdm){
       /* Accuracy reached.. */
-      pba->M_ncdm[k] = M;
+      pba->M_ncdm[n_ncdm] = M;
       break;
     }
   }
@@ -1135,6 +1258,14 @@ int background_ncdm_M_from_Omega(
 	     "Newton iteration could not converge on a mass for some reason.");
   return _SUCCESS_;
 }
+
+/** 
+ *  This function integrates the background over time, allocates and
+ *  fills the background table
+ *
+ * @param ppr Input: precision structure
+ * @param pba Input/Output: background structure 
+ */
 
 int background_solve(
 		     struct precision *ppr,
@@ -1425,7 +1556,9 @@ int background_initial_conditions(
        integrating their perturbations starting from correct initial
        conditions */
     if (pba->has_ncdm == _TRUE_) {
+
       for (n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++) {
+
 	if (fabs(pvecback[pba->index_bg_p_ncdm1+n_ncdm]/pvecback[pba->index_bg_rho_ncdm1+n_ncdm]-1./3.) > ppr->tol_ncdm_initial_w)
 	  is_early_enough = _FALSE_;					     
       }

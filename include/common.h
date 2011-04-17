@@ -12,7 +12,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v0.1"
+#define _VERSION_ "v1.0"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */

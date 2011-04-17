@@ -183,7 +183,7 @@ int perturb_init(
   }
 
   if (ppt->has_tensors == _TRUE_)
-    printf("Warning: so far, tensor modes not tested as thougoughly as scalar ones\n");
+    printf("Warning: don't trust polarized tensors from version %s, we are still otpimizing them\n",_VERSION_);
 
   if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
@@ -275,8 +275,9 @@ int perturb_init(
 	
 #pragma omp for schedule (dynamic)
 
-	for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
-	  //for (index_k = ppt->k_size[index_mode]-1; index_k >=0; index_k--) {  
+        /* integrating background is slightly more optimal for parallel runs */
+	//for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
+	for (index_k = ppt->k_size[index_mode]-1; index_k >=0; index_k--) {  
 
 	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
 	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);

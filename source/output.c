@@ -120,7 +120,7 @@ int output_init(
   }
   else {
     if (pop->output_verbose > 0)
-      printf("Writing in output files \n");
+      printf("Writing output files in %s... \n",pop->root);
   }
 
   /** - deal with all anisotropy power spectra C_l's */

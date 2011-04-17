@@ -1392,7 +1392,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_initial_Omega_r = 1.e-4;
   ppr->tol_M_ncdm = 1.e-7;
   ppr->tol_ncdm = 1.e-6;
-  ppr->tol_ncdm_bg = 1.e-8;
+  ppr->tol_ncdm_bg = 1.e-5;
   ppr->tol_ncdm_initial_w=1.e-3;
 
   /**
@@ -1403,8 +1403,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->recfast_z_initial=1.e4;
 
-  ppr->recfast_Nz0=100000;
-  ppr->tol_thermo_integration=1.e-5;
+  ppr->recfast_Nz0=20000;
+  ppr->tol_thermo_integration=1.e-2;
 
   ppr->recfast_Heswitch=6;                 /* from recfast 1.4 */
   ppr->recfast_fudge_He=0.86;              /* from recfast 1.4 */
@@ -1456,36 +1456,36 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->gauge=synchronous;
-  ppr->evolver = rk;
+  ppr->evolver = ndf15;
   ppr->pk_definition = delta_m_squared;
 
-  ppr->k_scalar_min_tau0=0.05;
+  ppr->k_scalar_min_tau0=1.;
   ppr->k_scalar_max_tau0_over_l_max=2.;
-  ppr->k_scalar_step_sub=0.12;
-  ppr->k_scalar_step_super=0.002;
+  ppr->k_scalar_step_sub=0.05;
+  ppr->k_scalar_step_super=0.0025;
   ppr->k_scalar_step_transition=0.2;
 
   ppr->k_scalar_k_per_decade_for_pk=10.;
 
-  ppr->k_tensor_min_tau0=0.05;
+  ppr->k_tensor_min_tau0=1.4;
   ppr->k_tensor_max_tau0_over_l_max = 2.;
-  ppr->k_tensor_step_sub=0.12;
-  ppr->k_tensor_step_super=0.002;
+  ppr->k_tensor_step_sub=0.05;
+  ppr->k_tensor_step_super=0.0025;
   ppr->k_tensor_step_transition=0.2;
 
-  ppr->start_small_k_at_tau_c_over_tau_h = 0.0004;  /* decrease to start earlier in time */
-  ppr->start_large_k_at_tau_h_over_tau_k = 0.15;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_tau_c_over_tau_h=0.01; /* decrease to switch off earlier in time */
+  ppr->start_small_k_at_tau_c_over_tau_h = 0.0015;  /* decrease to start earlier in time */
+  ppr->start_large_k_at_tau_h_over_tau_k = 0.07;  /* decrease to start earlier in time */
+  ppr->tight_coupling_trigger_tau_c_over_tau_h=0.015; /* decrease to switch off earlier in time */
   ppr->tight_coupling_trigger_tau_c_over_tau_k=0.01; /* decrease to switch off earlier in time */
-  ppr->start_sources_at_tau_c_over_tau_h = 0.006; /* decrease to start earlier in time */
+  ppr->start_sources_at_tau_c_over_tau_h = 0.008; /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)compromise_CLASS;
 
-  ppr->l_max_g=16; 
-  ppr->l_max_pol_g=16; 
+  ppr->l_max_g=10; 
+  ppr->l_max_pol_g=8; 
   ppr->l_max_ur=12; 
-  ppr->l_max_ncdm=20;
-  ppr->l_max_g_ten=5;
-  ppr->l_max_pol_g_ten=5;
+  ppr->l_max_ncdm=12;
+  ppr->l_max_g_ten=20;
+  ppr->l_max_pol_g_ten=20;
 
   ppr->curvature_ini=1.; /* initial curvature; used to fix adiabatic initial conditions; must remain fixed to one as long as the primordial adiabatic spectrum stands for the curvature power spectrum */
   ppr->entropy_ini=1.;   /* initial entropy; used to fix isocurvature initial conditions; must remain fixed to one as long as the primordial isocurvature spectrum stands for an entropy power spectrum */
@@ -1494,28 +1494,27 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_integration_stepsize=0.5;
 
   ppr->tol_tau_approx=1.e-5;
-  ppr->tol_perturb_integration=1.e-3;
-  ppr->perturb_sampling_stepsize=0.05;
+  ppr->tol_perturb_integration=1.e-5;
+  ppr->perturb_sampling_stepsize=0.08;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
-  ppr->radiation_streaming_trigger_tau_h_over_tau_k = 50.; 
-/*   ppr->radiation_streaming_trigger_Omega_r = 0.1;  */
-  ppr->radiation_streaming_trigger_tau_c_over_tau_h = 80.;
+  ppr->radiation_streaming_trigger_tau_h_over_tau_k = 30.; 
+  ppr->radiation_streaming_trigger_tau_c_over_tau_h = 10.;
  
   ppr->ur_fluid_approximation = ufa_CLASS;
-  ppr->ur_fluid_trigger_tau_h_over_tau_k = 16.; 
+  ppr->ur_fluid_trigger_tau_h_over_tau_k = 15.; 
 
-  ppr->ncdm_fluid_approximation = ncdmfa_none;
-  ppr->ncdm_fluid_trigger_tau_h_over_tau_k = 12.; 
+  ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
+  ppr->ncdm_fluid_trigger_tau_h_over_tau_k = 16.; 
 
   /**
    * - parameter related to the Bessel functions
    */
 
-  ppr->l_logstep=1.045;
-  ppr->l_linstep=55;
+  ppr->l_logstep=1.3;
+  ppr->l_linstep=40;
 
-  ppr->bessel_x_step=0.6;
+  ppr->bessel_x_step=0.5;
   ppr->bessel_j_cut=1.e-5;
   ppr->bessel_tol_x_min =1.e-4;
   sprintf(ppr->bessel_file_name,"bessels.dat");
@@ -1530,13 +1529,13 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->k_step_trans_scalars=0.005;
-  ppr->k_step_trans_tensors=0.005;
+  ppr->k_step_trans_scalars=0.004;
+  ppr->k_step_trans_tensors=0.004;
   ppr->transfer_cut=tc_osc;
-  ppr->transfer_cut_threshold_osc=0.005; /* 03.12.10 for chi2plT0.01 */
+  ppr->transfer_cut_threshold_osc=0.007; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */
 
-  ppr->l_switch_limber=10;
+  ppr->l_switch_limber=40;
 
   /**
    * - parameters related to trg module
@@ -1562,8 +1561,8 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to lensing
    */
 
-  ppr->num_mu_minus_lmax=500;
-  ppr->delta_l_max=500;
+  ppr->num_mu_minus_lmax=70;
+  ppr->delta_l_max=250;
 
   /**
    * - automatic estimate of machine precision
