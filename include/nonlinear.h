@@ -34,7 +34,7 @@ struct nonlinear {
   //@{
 
   double * k;		/**< table containing the values of k used in this module */
-  int k_size; 		/**< total number of k values */
+  int * k_size; 	/**< k_size[index_z] total number of k values at a given redshift z[index_z] */
 
   //@}
 
@@ -84,7 +84,8 @@ extern "C" {
 			double z,
 			double * pz_density,
 			double * pz_velocity,
-			double * pz_cross
+			double * pz_cross,
+			int * k_size_at_z
 			);
 
   int nonlinear_pk_at_k_and_z(
@@ -93,7 +94,8 @@ extern "C" {
 			      double z,
 			      double * pk_density,
 			      double * pk_velocity,
-			      double * pk_cross
+			      double * pk_cross,
+			      int * k_size_at_z
 			      );
 
   int nonlinear_init(

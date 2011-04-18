@@ -860,10 +860,11 @@ int output_pk_nl(
   FILE * out_cross;
   FileName file_name;
   FileName redshift_suffix;
+  int k_size_at_z;
 
-  class_alloc(pz_density,pnl->k_size*sizeof(double),pnl->error_message);
-  class_alloc(pz_velocity,pnl->k_size*sizeof(double),pnl->error_message);
-  class_alloc(pz_cross,pnl->k_size*sizeof(double),pnl->error_message);
+  class_alloc(pz_density,pnl->k_size[0]*sizeof(double),pnl->error_message);
+  class_alloc(pz_velocity,pnl->k_size[0]*sizeof(double),pnl->error_message);
+  class_alloc(pz_cross,pnl->k_size[0]*sizeof(double),pnl->error_message);
 
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
@@ -878,6 +879,10 @@ int output_pk_nl(
 
     /** - second, open only the relevant files, and write a heading in each of them */
     
+    class_call(nonlinear_pk_at_z(pnl,pop->z_pk[index_z],pz_density,pz_velocity,pz_cross,&k_size_at_z),
+	       pop->error_message,
+	       pop->error_message);
+
     sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_density.dat");
 
     class_call(output_open_pk_nl_file(pba,
@@ -917,11 +922,7 @@ int output_pk_nl(
 	       pop->error_message,
 	       pop->error_message);
 
-    class_call(nonlinear_pk_at_z(pnl,pop->z_pk[index_z],pz_density,pz_velocity,pz_cross),
-	       pop->error_message,
-	       pop->error_message);
-
-    for (index_k=0; index_k<pnl->k_size;index_k++) {
+    for (index_k=0; index_k<k_size_at_z;index_k++) {
 
       class_call(output_one_line_of_pk(out_density,
 				       pnl->k[index_k]/pba->h,
@@ -1289,8 +1290,8 @@ int output_open_pk_nl_file(
   class_open(*pkfile,filename,"w",pop->error_message);
 
   fprintf(*pkfile,"# Non-linear matter power spectrum P_nl(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[pnl->k_size-1]/pba->h);
-  fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size);
+  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[pnl->k_size[0]-1]/pba->h);
+  fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size[0]);
   fprintf(*pkfile,"# k (h/Mpc)  P_nl (Mpc/h)^3:\n");
 
   return _SUCCESS_;
