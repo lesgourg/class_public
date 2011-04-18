@@ -2988,12 +2988,12 @@ int trg_init (
     exp_eta=exp(pnl->eta[index_eta-2]);
     time_step=pnl->eta[index_eta-1]-pnl->eta[index_eta-2];
 
-    if(pnl->k_size-pnl->double_escape*2*(index_eta)/2 < 2){
+    if(pnl->k_size-pnl->double_escape*2*(index_eta)/1 < 2){
       printf("  --> Wrong choice of double escape and eta_size parameters\n  --> Stopped at %d, z=%2.2e Try Again\n",index_eta, pnl->z[index_eta]);
       return _FAILURE_;
     }
 
-    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/2; index_k++){
+    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta-1)/1; index_k++){
 
       /* Some useful intermediate variables */
 
@@ -3142,25 +3142,25 @@ int trg_init (
     /** Update of second derivatives for interpolation, only in TRG mode */
 
     if(pnl->mode==2){
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/1,
 						  pnl->p_11_nl,
-						  pnl->eta_size,index_eta,
+						  pnl->eta_size,index_eta-1,
 						  pnl->ddp_11_nl,
 						  _SPLINE_NATURAL_,pnl->error_message),
 		 pnl->error_message,
 		 pnl->error_message);
 
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/1,
 						  pnl->p_12_nl,
-						  pnl->eta_size,index_eta,
+						  pnl->eta_size,index_eta-1,
 						  pnl->ddp_12_nl,
 						  _SPLINE_NATURAL_,pnl->error_message),
 		 pnl->error_message,
 		 pnl->error_message);
 
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/1,
 						  pnl->p_22_nl,
-						  pnl->eta_size,index_eta,
+						  pnl->eta_size,index_eta-1,
 						  pnl->ddp_22_nl,
 						  _SPLINE_NATURAL_,pnl->error_message),
 		 pnl->error_message,
@@ -3171,7 +3171,7 @@ int trg_init (
 
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
-	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*index_eta; index_k++){
+	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/1; index_k++){
 	  AA[index_name][index_k+pnl->k_size*(index_eta-1)]=AA[index_name][index_k+pnl->k_size*(index_eta-2)];}
       }
     }
@@ -3198,7 +3198,7 @@ int trg_init (
 
 #pragma omp flush(abort)
 
-	  class_call_parallel(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,index_name,index_eta,AA[index_name]),
+	  class_call_parallel(trg_integrate_xy_at_eta(pba,ppm,psp,pnl,index_name,index_eta-1,AA[index_name]),
 	      pnl->error_message,
 	      pnl->error_message);
 	}
@@ -3221,7 +3221,7 @@ int trg_init (
     exp_eta=exp(pnl->eta[index_eta-1]);
     time_step=pnl->eta[index_eta]-pnl->eta[index_eta-2];
 
-    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/2; index_k++){
+    for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/1; index_k++){
 
       /* Some useful intermediate variables */
 
@@ -3371,7 +3371,7 @@ int trg_init (
     /** Update of second derivatives for interpolation, only in TRG mode */
 
     if(pnl->mode==2){
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/1,
 						  pnl->p_11_nl,
 						  pnl->eta_size,index_eta,
 						  pnl->ddp_11_nl,
@@ -3379,7 +3379,7 @@ int trg_init (
 		 pnl->error_message,
 		 pnl->error_message);
 
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/1,
 						  pnl->p_12_nl,
 						  pnl->eta_size,index_eta,
 						  pnl->ddp_12_nl,
@@ -3387,7 +3387,7 @@ int trg_init (
 		 pnl->error_message,
 		 pnl->error_message);
 
-      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/2,
+      class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size-pnl->double_escape*2*(index_eta)/1,
 						  pnl->p_22_nl,
 						  pnl->eta_size,index_eta,
 						  pnl->ddp_22_nl,
@@ -3400,7 +3400,7 @@ int trg_init (
 
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
-	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*index_eta; index_k++){
+	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/1; index_k++){
 	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)];}
       }
     }
@@ -3466,20 +3466,20 @@ int trg_init (
   /** End of the computation, beginning of cleaning */
 
   /***** TEST ZONE *****/
-  double r0,r1;
+  /*double r0,r1;*/
 
-  for(index_k=0; index_k<pnl->k_size; index_k+=1){
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-1],&r0,junk),
-	psp->error_message,
-	pnl->error_message);
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-2],&r1,junk),
-	psp->error_message,
-	pnl->error_message);
+  /*for(index_k=0; index_k<pnl->k_size; index_k+=1){*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-1],&r0,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-2],&r1,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
 
-    printf("%g %g %g %g %g\n",pnl->k[index_k],
-	pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-1)]*exp(-log( (pnl->z[pnl->eta_size-1]+1.) * a_ini / pba->a_today )*2),r0,
-	pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-2)]*exp(-log( (pnl->z[pnl->eta_size-2]+1.) * a_ini / pba->a_today )*2),r1);
-  }
+    /*printf("%g %g %g %g %g\n",pnl->k[index_k],*/
+	/*pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-1)]*exp(-log( (pnl->z[pnl->eta_size-1]+1.) * a_ini / pba->a_today )*2),r0,*/
+	/*pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-2)]*exp(-log( (pnl->z[pnl->eta_size-2]+1.) * a_ini / pba->a_today )*2),r1);*/
+  /*}*/
 
   /***** END OF TEST ZONE *****/
 
