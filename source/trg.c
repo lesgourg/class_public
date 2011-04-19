@@ -239,7 +239,6 @@ int trg_A_arg_trg(
 		      gamma2_pkm*p_22k*p_22m );
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -292,7 +291,6 @@ int trg_A_arg_trg(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -349,7 +347,6 @@ int trg_A_arg_trg(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -408,7 +405,6 @@ int trg_A_arg_trg(
 		      gamma1_pkm*p_22k*p_12m + gamma1_pmk*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -465,7 +461,6 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_12k*p_12m);
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -527,7 +522,6 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_11k*p_22m);
 
      *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -590,7 +584,6 @@ int trg_A_arg_trg(
 
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -635,7 +628,6 @@ int trg_A_arg_trg(
 
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -686,7 +678,6 @@ int trg_A_arg_trg(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -741,7 +732,6 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_12k*p_12m);
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -810,7 +800,6 @@ int trg_A_arg_trg(
 		      gamma1_pmk*p_11k*p_22m);
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
 
     return _SUCCESS_;
@@ -871,7 +860,6 @@ int trg_A_arg_trg(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -932,7 +920,6 @@ int trg_A_arg_trg(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
    *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -977,7 +964,6 @@ int trg_A_arg_trg(
 		      gamma2_pkm*p_22k*p_22m );
 
      *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1094,7 +1080,6 @@ int trg_A_arg_one_loop(
 		      gamma2_pkm*p_22k*p_22m );
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1147,7 +1132,6 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1203,7 +1187,6 @@ int trg_A_arg_one_loop(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1262,7 +1245,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pkm*p_22k*p_12m + gamma1_pmk*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1319,7 +1301,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1381,7 +1362,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_11k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);    
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1443,7 +1423,6 @@ int trg_A_arg_one_loop(
 		      gamma2_pkm*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1487,7 +1466,6 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1538,7 +1516,6 @@ int trg_A_arg_one_loop(
 				       gamma1_mkp*p_12k*p_11p + gamma1_mpk*p_11k*p_12p);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1593,7 +1570,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_12k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1662,7 +1638,6 @@ int trg_A_arg_one_loop(
 		      gamma1_pmk*p_11k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1722,7 +1697,6 @@ int trg_A_arg_one_loop(
 		      gamma2_mpk*p_22p*p_12k + gamma2_pkm*p_12k*p_22m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1783,7 +1757,6 @@ int trg_A_arg_one_loop(
 		      gamma1_mkp*p_12p*p_22k + gamma2_pkm*p_22k*p_12m);
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
@@ -1828,7 +1801,6 @@ int trg_A_arg_one_loop(
 		      gamma2_pkm*p_22k*p_22m );
 
     *result *= m*p/2./pow(2*_PI_,3);
-    *result *= 0.7*0.7;
 
     return _SUCCESS_;
     break;
