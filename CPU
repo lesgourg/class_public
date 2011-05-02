@@ -1,5 +1,27 @@
-##!/software/base/python-2.7.1-gnu/bin/python
-#! /usr/bin/python2.4
+###################################################################
+#
+# CPU, a CLASS Plotting Utility
+# v1.0
+# Benjamin Audren, 02.05.2011
+# 
+# This is a small program aimed to gain time when comparing two spectra,
+# i.e. from CAMB and CLASS, or a non-linear spectrum to a linear one.
+# It is designed to be used in a command line fashion, not being restricted
+# to your CLASS directory, though it recognized mainly CLASS output format.
+#
+# Far from perfect, or complete, it could use any suggestion for enhancing it,
+# just to avoid losing time on useless matters for others.
+#
+# Example of use:
+#
+# To superimpose two different spectra and see their global shape :
+#   python CPU output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat 
+# 
+# To precisely compare the non-linear contribution of one-loop w.r.t. to TRG method:
+#   python CPU -i output/lcdm_1l_z1_pk.dat output/lcdm_1l_z1_pk_nl_density.dat output/lcdm_trg_pk_nl_density.dat
+#
+# The documentation available with --help should cover any question.
+###################################################################
 
 from scipy import *
 from scipy import interpolate
@@ -7,7 +29,7 @@ import numpy as np
 import os,sys,string,io,subprocess
 import argparse
 
-
+# parser for input arguments 
 
 parser = argparse.ArgumentParser(description='CPU, a CLASS Plotting Utility, specify wether you want to superimpose, divide or interpolate different files, and behold!')
 parser.add_argument('files',	metavar='Files',
@@ -34,7 +56,9 @@ parser.add_argument('-c, --cleaning',metavar='path',
   nargs='?',dest='cleaning',const=True,default=False,
   help='remove all .plt files in the current directory (if none specified) : keep your folders clean !')
 
-# Remove all .plt files generated in output/
+# Remove all .plt, interp and divided files generated in output/ 
+# By default, will clean current directory.
+
 def clean(path):
   pattern1,pattern2,pattern3='.plt','_interp.dat','_divided.dat'
   path+="/"
@@ -52,7 +76,7 @@ def clean(path):
   else:
     print '  ==> Done'
 
-# Errors###########################
+# Errors ###########################
 def error_format():
   print "  Hum... have you really provided a .dat file ?"
   print "  We apologise for the inconvenience, but CPU is exiting now"
@@ -60,14 +84,17 @@ def error_format():
 
 def error_type():
   print "  Spectrum type unrecognized or unsupported yet, sorry!"
+  print "  Please try the -t command in addition to your previous call"
   print "  We apologise for the inconvenience"
   exit()
 
 def error_number_of_files():
-  print "  You specified a wrong number of files for the operation you demanded, maybe you want to divide more than one file, for instance ?"
+  print "  You specified a wrong number of files for the operation you demanded, maybe you do not want to divide only one file, for instance ?"
   print "  We apologise for the inconvenience"
   exit()
 ####################################
+
+# Subfunction called to write on the gnuplot script file the proper file names.
 
 def printstring(names):
   print_file=names[0].rstrip(".dat")
@@ -76,6 +103,7 @@ def printstring(names):
   print '{0} has been generated'.format(print_file)
   return print_string
 
+# Subfunction called to write the most of the gnuplot script file according to options.
 
 def headers_plot_file(spectrum_type,names,plot_line,term):
   tmp=open(names[0],"r")
@@ -155,7 +183,7 @@ def headers_plot_file(spectrum_type,names,plot_line,term):
     return None
   tmp.close()
 
-# Print all asked files one next to the other (default operation if files with different k values
+# Print all asked files one next to the other (default operation if files with different k values)
 def blend_together(names,spectrum_type,term):
   gnuplot_file=names[0].replace(".dat",".plt")
   if gnuplot_file==names[0]:
@@ -301,7 +329,7 @@ def blend_against_interp(names,spectrum_type,term):
   plotfile.close()
   _plot(gnuplot_file)
 
-# Launch (interactive ?) session of gnuplot with generated .plt file
+# Launch session of gnuplot with generated gnuplot script file
 def _plot(gnuplot_file):
   os.system("gnuplot -p '{0}'".format(gnuplot_file))
 

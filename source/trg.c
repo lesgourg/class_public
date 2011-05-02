@@ -1,35 +1,38 @@
 /** @file trg.c Documented Time Renormalization Group module
  *
- * Benjamin Audren, 10.11.2010
+ * Benjamin Audren, 02.05.2011
  *
  * Computes the non linear matter spectra P_k with Time
- * Renormalization Group method given the linear power spectrum at
- * z_ini. No initial non-gaussianity assumed. The matter density perturbation
- * is here understood as the barycenter of the baryon density and cdm density.
- * Hereafter, 'matter' is used in this sense.
+ * Renormalization Group method or one-loop given the linear power
+ * spectrum at z_ini. No initial non-gaussianity assumed. The matter
+ * density perturbation is here understood as the barycenter of the
+ * baryon density and cdm density.  Hereafter, 'matter' is used in
+ * this sense.  To select the mode of execution, please change the
+ * value of the "non linear" parameter in your .ini file, respectively
+ * to 'trg' or 'one-loop'. For testing purpose, you might want to use
+ * the value 'test-linear', which will then output the linear spectra
+ * out the equations.
  *
  * The logic is the following :
  *
- * - in a first step, recover all relevant information from all other modules,
- *   namely from background (all \rho's and \Omega), thermodynamics
- *   (sound speed of baryons) and spectra (the initial matter power 
- *   spectrum and transfer functions for every needed k).
- *
+ * - in a first step, recover all relevant information from all other modules.
+ *   
  * - in a second step, initialize all relevant quantities, i.e. the matter power 
  *   spectra and the I's variables (that contain the matter bispectra).
  *
  * - in a third step, compute the A variables (complicated functions of the matter 
  *   power spectra), at first time.
  *
- * - the final step consists in a loop, where the matter power spectra and I's are
- *   computed step by step in time, by integrating the system of equation. With
- *   the new spectra, the code computes the new A's, and continues the loop.
+ * - the final step consists in a loop, where the matter power spectra
+ *   and I's are computed step by step in time, by integrating the
+ *   system of equation with the predictor corrector algorithm
+ *   described in the released paper. With the new spectra, the code
+ *   computes the new A's, and continues the loop.
  *
- * - by default, a file is written for every step in time, with all spectra information
- *   and all A's. TO BE MODIFIED to output I's : useful information, even maybe B's ?
- *
- * - the quantities pnl->p_11_nl, pnl->p_12_nl, pnl->p_22_nl are written after the call
- *   of trg_init() 
+ * - the three quantities pnl->p_11_nl, pnl->p_12_nl, pnl->p_22_nl
+ *   corresponding to, resp, the density, velocity and cross
+ *   correlation are written after the call of trg_init() in the
+ *   nonlinear.c module, ready for plotting or further use.
  **/
 
 #include "background.h"
@@ -2552,27 +2555,17 @@ int trg_init (
  
   free(temp_k);
  
+  /** Define time-related values. First check wheter eta_size is odd:
+      otherwise the pattern of integration with the predictor
+      corrector algorithm is not well behaved */
+
+  class_test((pnl->eta_size==pnl->eta_size % 2),
+	     pnl->error_message,
+	     "Please use an odd number for eta_size in trg.c module\n");
+
   class_calloc(pnl->eta,pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->z,  pnl->eta_size,sizeof(double),pnl->error_message);
   
-  /* The time pattern is not regularly spaced to minimize the error when integrating over time ,
-   * as it is higher in the late times (during Lambda domination) than in the early times.
-   * It is optimized to work with a eta_size of 101, keep that in mind if you try to change the
-   * values.*/
-   
-  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta++) {*/
-    /*index_cut = (int)((pnl->eta_size-1)*0.1);*/
-    /*if(index_eta<=index_cut)*/
-      /*pnl->eta[index_eta]= index_eta*pnl->eta_step*5.;*/
-    /*else*/
-      /*pnl->eta[index_eta]= pnl->eta[index_cut]+(index_eta-index_cut)*pnl->eta_step*5./9.;*/
- /*[>    pnl->eta[index_eta]= index_eta*pnl->eta_step; <]*/
-    /*pnl->z[index_eta]   = exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;*/
-     /*if(pnl->z[index_eta]<0) {*/
-      /*pnl->z[index_eta]=0;*/
-    /*}*/
-   /*}*/
-
   for(index_eta=0;index_eta<pnl->eta_size; index_eta++){
     pnl->eta[index_eta]=index_eta*pnl->eta_step;
     pnl->z[index_eta]= exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;
@@ -3438,20 +3431,23 @@ int trg_init (
   /** End of the computation, beginning of cleaning */
 
   /***** TEST ZONE *****/
-  /*double r0,r1;*/
+  double r0,r1,r2;
 
-  /*for(index_k=0; index_k<pnl->k_size; index_k+=1){*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-1],&r0,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[pnl->eta_size-2],&r1,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
+  for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[100],pnl->z[index_eta],&r0,junk),
+	psp->error_message,
+	pnl->error_message);
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size-500],pnl->z[index_eta],&r1,junk),
+	psp->error_message,
+	pnl->error_message);
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size/2],pnl->z[index_eta],&r2,junk),
+	psp->error_message,
+	pnl->error_message);
 
-    /*printf("%g %g %g %g %g\n",pnl->k[index_k],*/
-	/*pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-1)]*exp(-log( (pnl->z[pnl->eta_size-1]+1.) * a_ini / pba->a_today )*2),r0,*/
-	/*pnl->p_11_nl[index_k+pnl->k_size*(pnl->eta_size-2)]*exp(-log( (pnl->z[pnl->eta_size-2]+1.) * a_ini / pba->a_today )*2),r1);*/
-  /*}*/
+    printf("%g %g %g %g %g %g %g %g\n",pnl->eta[index_eta],pnl->z[index_eta],
+	pnl->p_11_nl[100+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r0,
+	pnl->p_11_nl[pnl->k_size-500+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r1,
+	pnl->p_11_nl[pnl->k_size/2+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r2); }
 
   /***** END OF TEST ZONE *****/
 
