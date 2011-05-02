@@ -5019,7 +5019,7 @@ int perturb_derivs(double tau,
 
 	  /* zero order for theta_b'' = theta_g'' */
 	  theta_prime_prime = ((R-1.)*a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b
-			       +k2*(pvecthermo[pth->index_th_dcb2]*delta_b+cb2*dy[ppw->pv->index_pt_delta_b]+a_prime_over_a*R/4.*delta_g-R/4.*dy[ppw->pv->index_pt_delta_g]))/(1.+R);
+			       +k2*(pvecthermo[pth->index_th_dcb2]*delta_b+cb2*dy[ppw->pv->index_pt_delta_b]-a_prime_over_a*R/4.*delta_g+R/4.*dy[ppw->pv->index_pt_delta_g]))/(1.+R);
 
 	  /* zero-order quantities g0, g0', go'' */
 	  g0 = -a_prime_over_a*theta_b + k2*(cb2*delta_b-delta_g/4.);

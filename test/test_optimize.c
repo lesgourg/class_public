@@ -99,21 +99,12 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-<<<<<<< .mine
   param = &(pr.k_scalar_k_per_decade_for_pk);
-=======
-  param = &(pr.reionization_start_factor);
->>>>>>> .r4583
 
-<<<<<<< .mine
   parameter_initial=10.;
   parameter_logstep=1.2;
-=======
-  parameter_initial=8.;
-  parameter_logstep=2.;
->>>>>>> .r4583
 
-  param_num=2;
+  param_num=1;
   ref_run=-1;
 
   /* if ref_run<0, the reference is taken in the following external file: */
@@ -166,13 +157,8 @@ int main(int argc, char **argv) {
 
     /* read file and fill cl[param_num] */
     output = fopen(filename,"r");
-<<<<<<< .mine
-    fprintf(stderr,"Read reference in file %s\n",filename);
-    fgets(junk_string,120,output);
-=======
     fprintf(stderr,"Read reference Cls in file %s\n",filename);
     fgets(junk_string,120,output);
->>>>>>> .r4583
     //    fprintf(stderr,"%s\n",junk_string);
     fgets(junk_string,120,output);
     //    fprintf(stderr,"%s\n",junk_string);
@@ -211,10 +197,10 @@ int main(int argc, char **argv) {
   }
 
 
-  /* if (bessel_init(&pr,&bs) == _FAILURE_) { */
-/*     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message); */
-/*     return _FAILURE_; */
-/*   } */
+  if (bessel_init(&pr,&bs) == _FAILURE_) {
+    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
+    return _FAILURE_;
+  }
 
   for (i=0; i<param_num; i++) {
 
@@ -222,24 +208,17 @@ int main(int argc, char **argv) {
     
     *param = parameter[i];
 
-<<<<<<< .mine
     fprintf(stderr,"#run %d/%d with %g=%g\n",i+1,param_num,parameter[i],*param);
 
     //class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
     class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
-=======
-    fprintf(stderr,"#run %d/%d with %g\n",i+1,param_num,*param);
-
-    class(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
-    //class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl[i],errmsg);
->>>>>>> .r4583
     
   }
 
-  /* if (bessel_free(&bs) == _FAILURE_)  { */
-/*     printf("\n\nError in bessel_free \n=>%s\n",bs.error_message); */
-/*     return _FAILURE_; */
-/*   } */
+  if (bessel_free(&bs) == _FAILURE_)  {
+    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
+    return _FAILURE_;
+  }
 
   noise_planck(&ba,&th,&sp,noise,l_max);
 
@@ -312,7 +291,7 @@ int class(
     return _FAILURE_;
   }
 
-  if (spectra_init(pba,ppt,ptr,ppm,psp) == _FAILURE_) {
+  if (spectra_init(ppr,pba,ppt,ptr,ppm,psp) == _FAILURE_) {
     printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
     return _FAILURE_;
   }
@@ -432,7 +411,7 @@ int class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  if (spectra_init(pba,ppt,ptr,ppm,psp) == _FAILURE_) {
+  if (spectra_init(ppr,pba,ppt,ptr,ppm,psp) == _FAILURE_) {
     printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
     return _FAILURE_;
   }
