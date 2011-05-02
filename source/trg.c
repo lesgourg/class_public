@@ -2420,10 +2420,6 @@ int trg_init (
   double *p_12_linear;
   double *p_22_linear;
 
-  double * transfer;
-
-  double * tr_g, *tr_b, *tr_cdm, *tr_ur;
-
   double cutoff;
 
   /** Background quantities */
@@ -2432,12 +2428,6 @@ int trg_init (
   double * Omega_m, * Omega_r, * H, *H_prime;
   double * rho_g, *rho_b, *rho_cdm, *rho_ur;
   double * growth_factor;
-
-  /** Thermodynamical quantities */
-
-  double * cb2;
-  double * pvecthermo;
-  int last_index;
 
   /**
    * Definition of the matrix Omega that mixes terms together,
@@ -2507,9 +2497,6 @@ int trg_init (
 
   /** define size and step for integration in eta, at any time now, a = a_ini * exp(eta) and z=exp(eta)-1 */
   
-  //for the PCA integrator
-  /*pnl->eta_size=pnl->eta_size*2 - 1;*/
-
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
 
   /** find total number of k values in the module */
@@ -2580,29 +2567,6 @@ int trg_init (
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> starting calculation at redshift z = %2.2f\n",pnl->z[0]);
 
-  /** Definition of thermodynamical values */
-
-  class_calloc(pvecthermo,pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(cb2,       pnl->eta_size,sizeof(double),pnl->error_message);
-
-  for(index_eta=0; index_eta < pnl->eta_size; index_eta++){
-    class_call(thermodynamics_at_z(
-				   pba,
-	                           pth,
-	                           pnl->z[index_eta],
-	                           normal, 
-	                           &last_index,
-	                           pvecback_nl,
-	                           pvecthermo
-	                           ),
-	       pth->error_message,
-	       pnl->error_message);
-
-    cb2[index_eta]=pvecthermo[pth->index_th_cb2];
-  }
-
-  free(pvecthermo);
-
   /** Definition of background values */
 
   class_calloc(Omega_m,pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2633,15 +2597,6 @@ int trg_init (
       Omega_m[index_eta] += pvecback_nl[pba->index_bg_rho_cdm]/pvecback_nl[pba->index_bg_rho_crit];
     }
 
-    /* Omega_r is filled only if the total spectrum is requested */
-
- /*    if(pnl->has_bc_spectrum == _FALSE_ ) { */
-   /*    Omega_r[index_eta] = pvecback_nl[pba->index_bg_rho_g]/pvecback_nl[pba->index_bg_rho_crit]; */
-/*       if (pba->has_ur == _TRUE_) { */
-/* 	Omega_r[index_eta] += pvecback_nl[pba->index_bg_rho_ur]/pvecback_nl[pba->index_bg_rho_crit]; */
-/*       } */
- /*    } */
-
     rho_g[index_eta]   = pvecback_nl[pba->index_bg_rho_g];
     rho_ur[index_eta] = pvecback_nl[pba->index_bg_rho_ur];
     rho_b[index_eta]   = pvecback_nl[pba->index_bg_rho_b];
@@ -2654,37 +2609,6 @@ int trg_init (
   
   free(pvecback_nl);
 
-  /** Definition of the transfert functions for each relevant species, only needed for the b+c spectrum */
-
-  class_calloc(tr_g,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-  class_calloc(tr_ur, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-  class_calloc(tr_b,   pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-  class_calloc(tr_cdm, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
-
-  class_calloc(transfer,psp->tr_size,sizeof(double),pnl->error_message);
-
-/*   if(pnl->has_bc_spectrum == _TRUE_) { */
-/*     for (index_eta=0; index_eta < pnl->eta_size; index_eta++){ */
-/*       for (index_k=0; index_k < pnl->k_size; index_k++){ */
-/* 	class_call(spectra_tk_at_k_and_z( */
-/* 	      pba, */
-/* 	      psp, */
-/* 	      pnl->k[index_k], */
-/* 	      pnl->z[index_eta], */
-/* 	      transfer */
-/* 	      ), */
-/* 	    psp->error_message, */
-/* 	    pnl->error_message); */
-
-/* 	tr_g[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_g]; */
-/* 	tr_ur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_ur]; */
-/* 	tr_b[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_b]; */
-/* 	tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm]; */
-/*       } */
-/*     } */
-/*   } */
-
-  /*return _SUCCESS_;*/
   /** Definition of the matrix elements Omega_11,Omega_12, Omega_22,Omega_12 for each k and eta */
 
   Omega_11 = 1.;
@@ -2718,16 +2642,11 @@ int trg_init (
                psp->error_message,
                pnl->error_message);
 
-      growth_factor[index_eta]=pk/pk_ini;
+      growth_factor[index_eta]=sqrt(pk/pk_ini)*(1+pnl->z[index_eta])/(1+pnl->z[0]);
+      printf("%e\n",growth_factor[index_eta]);
 
   }
 
-/*   free(tr_g); */
-/*   free(tr_ur); */
-/*   free(tr_b); */
-/*   free(tr_cdm); */
-
-  free(cb2);
 
   /**
    * Definition of P_11, P_12 and P_22, the two points correlators
@@ -2781,27 +2700,6 @@ int trg_init (
                psp->error_message,
                pnl->error_message);
 
-    /* If the option to compute the b+c spectrum is on, the definition of the initial
-     * matter power spectrum is slighlty different.
-     */
-    /* if(pnl->has_bc_spectrum == _TRUE_) { */
-
-/*       class_call(spectra_tk_at_k_and_z(pba,psp,pnl->k[index_k],pnl->z[0],transfer), */
-/* 	  psp->error_message, */
-/* 	  pnl->error_message); */
-
-/*       transfer_tot = transfer[psp->index_tr_tot]; */
-
-/*       transfer_bc = transfer[psp->index_tr_b]; */
-/*       if (pba->has_cdm == _TRUE_) { */
-/* 	transfer_bc = (rho_b[0] * transfer_bc + rho_cdm[0] * transfer[psp->index_tr_cdm])/(rho_b[0]+rho_cdm[0]); */
-/*       } */
-
-/*       pnl->p_11_nl[index_k] *= pow(transfer_bc/transfer_tot*Omega_m[0],2); */
-
-/*     } */
-
-    /*pnl->p_11_nl[index_k] *=cutoff;*/
 
     pnl->p_11[index_k]    = pnl->p_11_nl[index_k];
     p_11_linear[index_k]  = pnl->p_11_nl[index_k];
@@ -2817,7 +2715,6 @@ int trg_init (
     p_22_linear[index_k]  = pnl->p_22_nl[index_k];
   }
 
-  free(transfer);
   free(junk);
 
   free(Omega_m);
