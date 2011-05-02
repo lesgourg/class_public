@@ -49,7 +49,7 @@ struct spectra_nl {
   double k_max;		/**< maximum value of k where the spectra is computed, infered from spectra module */
   int k_size; 		/**< total number of k values */
   int index_k_L;  	/**< for index_k=0, ...,(index_k_L-1), use linear theory only */
-
+  double k_growth_factor;  /**< value used to define linear growth factor */
   //@}
 
   /** @name - tables of time values, and related quantities */

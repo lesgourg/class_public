@@ -1104,6 +1104,7 @@ int input_init(
   class_read_double("logstepk6",ppr->logstepk6);
   class_read_double("logstepk7",ppr->logstepk7);
   class_read_double("logstepk8",ppr->logstepk8);
+  class_read_double("k_growth_factor",ppr->k_growth_factor);
 
   /** h.8. parameter related to lensing */
 
@@ -1556,6 +1557,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->logstepk6 = 0.;
   ppr->logstepk7 = 0.;
   ppr->logstepk8 = 0.;
+  ppr->k_growth_factor = 0.1;
 
   /**
    * - parameter related to lensing

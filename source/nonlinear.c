@@ -216,6 +216,7 @@ int nonlinear_init(
     trg.k_L = ppr->k_L;
     trg.k_min = ppr->k_min;
     trg.logstepx_min = ppr->logstepx_min;
+    trg.k_growth_factor = ppr->k_growth_factor;
 
     trg.spectra_nl_verbose = pnl->nonlinear_verbose;
 

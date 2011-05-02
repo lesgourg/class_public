@@ -580,6 +580,7 @@ struct precision
   double logstepk6;
   double logstepk7;
   double logstepk8;
+  double k_growth_factor;
 
   //@}
 

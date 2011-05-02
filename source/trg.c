@@ -2431,6 +2431,7 @@ int trg_init (
   double * pvecback_nl;
   double * Omega_m, * Omega_r, * H, *H_prime;
   double * rho_g, *rho_b, *rho_cdm, *rho_ur;
+  double * growth_factor;
 
   /** Thermodynamical quantities */
 
@@ -2461,6 +2462,7 @@ int trg_init (
 
   double temp; 
   double * junk;
+  double pk,pk_ini;
 
   /** Meaningless initialisations to remove warnings (some variables are only defined in conditional loops) **/
 
@@ -2662,24 +2664,24 @@ int trg_init (
   class_calloc(transfer,psp->tr_size,sizeof(double),pnl->error_message);
 
 /*   if(pnl->has_bc_spectrum == _TRUE_) { */
-    for (index_eta=0; index_eta < pnl->eta_size; index_eta++){
-      for (index_k=0; index_k < pnl->k_size; index_k++){
-	class_call(spectra_tk_at_k_and_z(
-	      pba,
-	      psp,
-	      pnl->k[index_k],
-	      pnl->z[index_eta],
-	      transfer
-	      ),
-	    psp->error_message,
-	    pnl->error_message);
+/*     for (index_eta=0; index_eta < pnl->eta_size; index_eta++){ */
+/*       for (index_k=0; index_k < pnl->k_size; index_k++){ */
+/* 	class_call(spectra_tk_at_k_and_z( */
+/* 	      pba, */
+/* 	      psp, */
+/* 	      pnl->k[index_k], */
+/* 	      pnl->z[index_eta], */
+/* 	      transfer */
+/* 	      ), */
+/* 	    psp->error_message, */
+/* 	    pnl->error_message); */
 
-	tr_g[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_g];
-	tr_ur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_ur];
-	tr_b[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_b];
-	tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm];
-      }
-    }
+/* 	tr_g[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_g]; */
+/* 	tr_ur[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_ur]; */
+/* 	tr_b[index_k+pnl->k_size*index_eta]   = transfer[psp->index_tr_b]; */
+/* 	tr_cdm[index_k+pnl->k_size*index_eta] = transfer[psp->index_tr_cdm]; */
+/*       } */
+/*     } */
 /*   } */
 
   /*return _SUCCESS_;*/
@@ -2700,11 +2702,30 @@ int trg_init (
       Omega_22[index] = 2 + H_prime[index_eta]/H[index_eta];
     }
   }
+
+
+  class_calloc(growth_factor,pnl->eta_size,sizeof(double),pnl->error_message);
  
-  free(tr_g);
-  free(tr_ur);
-  free(tr_b);
-  free(tr_cdm);
+  class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k_growth_factor,pnl->z[0],&pk_ini,junk),
+	     psp->error_message,
+	     pnl->error_message);
+
+  growth_factor[0] = 1.;
+
+  for(index_eta=1; index_eta < pnl->eta_size; index_eta++) {
+
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k_growth_factor,pnl->z[index_eta],&pk,junk),
+               psp->error_message,
+               pnl->error_message);
+
+      growth_factor[index_eta]=pk/pk_ini;
+
+  }
+
+/*   free(tr_g); */
+/*   free(tr_ur); */
+/*   free(tr_b); */
+/*   free(tr_cdm); */
 
   free(cb2);
 
@@ -3137,7 +3158,7 @@ int trg_init (
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
 	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/1; index_k++){
-	  AA[index_name][index_k+pnl->k_size*(index_eta-1)]=AA[index_name][index_k+pnl->k_size*(index_eta-2)];}
+	  AA[index_name][index_k+pnl->k_size*(index_eta-1)]=pow(growth_factor[index_eta-1],4)*AA[index_name][index_k];}
       }
     }
     
@@ -3366,7 +3387,7 @@ int trg_init (
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
 	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/1; index_k++){
-	  AA[index_name][index_k+pnl->k_size*index_eta]=AA[index_name][index_k+pnl->k_size*(index_eta-1)];}
+	  AA[index_name][index_k+pnl->k_size*index_eta]=pow(growth_factor[index_eta],4)*AA[index_name][index_k];}
       }
     }
     
