@@ -1984,6 +1984,7 @@ int perturb_find_approximation_switches(
   double * unsorted_tau_switch;
   double next_tau_switch;
   int flag_ini;
+  int num_switching_at_given_time;
 
   /** - write in output arrays the initial time and approximation */
 
@@ -2114,8 +2115,36 @@ int perturb_find_approximation_switches(
 		 ppt->error_message,
 		 ppt->error_message);
       
-      for (index_ap=0; index_ap<ppw->ap_size; index_ap++)
+      for (index_ap=0; index_ap<ppw->ap_size; index_ap++) {
 	interval_approx[index_switch][index_ap]=ppw->approx[index_ap];
+
+        /* check here that approximation does not go backward (remember
+	   that by definition the value of an approximation can only
+	   increase) */
+	class_test(interval_approx[index_switch][index_ap] < interval_approx[index_switch-1][index_ap],
+		   ppt->error_message,
+		   "The approximation with label %d is not defined correctly: it goes backward (from %d to %d) for k=%e and between tau=%e and %e; this cannot be handled\n",
+		   index_ap,
+		   interval_approx[index_switch-1][index_ap],
+		   interval_approx[index_switch][index_ap],
+		   k,
+		   0.5*(interval_limit[index_switch-1]+interval_limit[index_switch]),
+		   0.5*(interval_limit[index_switch]+interval_limit[index_switch+1])
+		   );
+      }
+
+      /* check here that more than one approximation is not switched on at a given time */
+      num_switching_at_given_time=0;
+      for (index_ap=0; index_ap<ppw->ap_size; index_ap++) {
+	if (interval_approx[index_switch][index_ap] != interval_approx[index_switch-1][index_ap])
+	  num_switching_at_given_time++;
+      }
+      class_test(num_switching_at_given_time != 1,
+		 ppt->error_message,
+		 "for k=%e, at tau=%g, you switch %d approximations at the same time, this cannot be handled. Usually happens in two cases: triggers for different approximations coincide, or one approx is reversible\n",
+		 k,
+		 interval_limit[index_switch],
+		 num_switching_at_given_time);
 
       if (ppt->perturbations_verbose>2) {
 
@@ -2144,6 +2173,17 @@ int perturb_find_approximation_switches(
     
     free(unsorted_tau_switch);
 
+    class_call(perturb_approximations(ppr,
+				      pba,
+				      pth,
+				      ppt,
+				      index_mode,
+				      k,
+				      tau_end,
+				      ppw),
+	       
+	       ppt->error_message,
+	       ppt->error_message);
   }
 
   return _SUCCESS_;
@@ -3384,7 +3424,7 @@ int perturb_approximations(
 
     /* (c) free-streaming approximations */
 
-    if ((tau_h/tau_k > ppr->radiation_streaming_trigger_tau_h_over_tau_k) &&
+    if ((tau/tau_k > ppr->radiation_streaming_trigger_tau_over_tau_k) &&
 	(tau > pth->tau_free_streaming) &&
 	(ppr->radiation_streaming_approximation != rsa_none)) {
 
@@ -3396,7 +3436,7 @@ int perturb_approximations(
    
     if (pba->has_ur == _TRUE_) {
 
-      if ((tau_h/tau_k > ppr->ur_fluid_trigger_tau_h_over_tau_k) &&
+      if ((tau/tau_k > ppr->ur_fluid_trigger_tau_over_tau_k) &&
 	  (ppr->ur_fluid_approximation != ufa_none)) {
 	
 	ppw->approx[ppw->index_ap_ufa] = (int)ufa_on;
@@ -3408,7 +3448,7 @@ int perturb_approximations(
 
     if (pba->has_ncdm == _TRUE_) {
 
-      if ((tau_h/tau_k > ppr->ncdm_fluid_trigger_tau_h_over_tau_k) &&
+      if ((tau/tau_k > ppr->ncdm_fluid_trigger_tau_over_tau_k) &&
 	  (ppr->ncdm_fluid_approximation != ncdmfa_none)) {
 	
 	ppw->approx[ppw->index_ap_ncdmfa] = (int)ncdmfa_on;

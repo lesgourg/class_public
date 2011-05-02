@@ -492,29 +492,19 @@ int thermodynamics_init(
 
   pth->rs_rec=pvecback[pba->index_bg_rs];
 
-  /** - find time (always after recombination) at which tau_c/tau_h
+  /** - find time (always after recombination) at which tau_c/tau
         falls below some threshold, defining tau_free_streaming */
 
   class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
 	     pba->error_message,
 	     pth->error_message);
-
-  class_call(background_at_tau(pba,tau, short_info, normal, &last_index_back, pvecback),
-	     pba->error_message,
-	     pth->error_message);
   
-  while (pvecback[pba->index_bg_a]*
-	 pvecback[pba->index_bg_H]/
-	 pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dkappa] 
-	 < ppr->radiation_streaming_trigger_tau_c_over_tau_h) {
+  while (1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dkappa]/tau 
+	 < ppr->radiation_streaming_trigger_tau_c_over_tau) {
 
     index_tau--;
     
     class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
-	       pba->error_message,
-	       pth->error_message);
-    
-    class_call(background_at_tau(pba,tau, short_info, normal, &last_index_back, pvecback),
 	       pba->error_message,
 	       pth->error_message);
     

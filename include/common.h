@@ -492,9 +492,9 @@ struct precision
    * when to switch off photon perturbations, ie when to switch
    * on photon free-streaming approximation (keep density and thtau, set
    * shear and higher momenta to zero):
-   * first condition: \f$ k/aH \f$ > radiation_streaming_trigger_tau_h_over_tau_k
+   * first condition: \f$ k \tau \f$ > radiation_streaming_trigger_tau_h_over_tau_k
    */
-  double radiation_streaming_trigger_tau_h_over_tau_k;
+  double radiation_streaming_trigger_tau_over_tau_k;
 
   /**
    * when to switch off photon perturbations, ie when to switch
@@ -502,7 +502,7 @@ struct precision
    * shear and higher momenta to zero):
    * second condition: 
    */ 
-  double radiation_streaming_trigger_tau_c_over_tau_h;
+  double radiation_streaming_trigger_tau_c_over_tau;
 
   int ur_fluid_approximation;
 
@@ -510,7 +510,7 @@ struct precision
    * when to switch off ur (massless neutrinos / ultra-relativistic
    * relics) fluid approximation 
    */
-  double ur_fluid_trigger_tau_h_over_tau_k;
+  double ur_fluid_trigger_tau_over_tau_k;
 
   int ncdm_fluid_approximation;
 
@@ -518,7 +518,7 @@ struct precision
    * when to switch off ncdm (massive neutrinos / non-cold
    * relics) fluid approximation 
    */
-  double ncdm_fluid_trigger_tau_h_over_tau_k;
+  double ncdm_fluid_trigger_tau_over_tau_k;
 
   //@}
 

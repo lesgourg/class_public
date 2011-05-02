@@ -1041,27 +1041,27 @@ int input_init(
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
 
   class_read_int("radiation_streaming_approximation",ppr->radiation_streaming_approximation);
-  class_read_double("radiation_streaming_trigger_tau_h_over_tau_k",ppr->radiation_streaming_trigger_tau_h_over_tau_k);
-  class_read_double("radiation_streaming_trigger_tau_c_over_tau_h",ppr->radiation_streaming_trigger_tau_c_over_tau_h);
+  class_read_double("radiation_streaming_trigger_tau_over_tau_k",ppr->radiation_streaming_trigger_tau_over_tau_k);
+  class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
-  class_read_double("ur_fluid_trigger_tau_h_over_tau_k",ppr->ur_fluid_trigger_tau_h_over_tau_k);
-  class_read_double("ncdm_fluid_trigger_tau_h_over_tau_k",ppr->ncdm_fluid_trigger_tau_h_over_tau_k);
+  class_read_double("ur_fluid_trigger_tau_over_tau_k",ppr->ur_fluid_trigger_tau_over_tau_k);
+  class_read_double("ncdm_fluid_trigger_tau_over_tau_k",ppr->ncdm_fluid_trigger_tau_over_tau_k);
 
-  class_test(ppr->ur_fluid_trigger_tau_h_over_tau_k==ppr->radiation_streaming_trigger_tau_h_over_tau_k,
+  class_test(ppr->ur_fluid_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
 	     errmsg,
-	     "please choose different values for precision parameters ur_fluid_trigger_tau_h_over_tau_k and radiation_streaming_trigger_tau_h_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+	     "please choose different values for precision parameters ur_fluid_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   if (pba->N_ncdm>0) {
 
-    class_test(ppr->ncdm_fluid_trigger_tau_h_over_tau_k==ppr->radiation_streaming_trigger_tau_h_over_tau_k,
+    class_test(ppr->ncdm_fluid_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
 	       errmsg,
-	       "please choose different values for precision parameters ncdm_fluid_trigger_tau_h_over_tau_k and radiation_streaming_trigger_tau_h_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+	       "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
     
-    class_test(ppr->ncdm_fluid_trigger_tau_h_over_tau_k==ppr->ur_fluid_trigger_tau_h_over_tau_k,
+    class_test(ppr->ncdm_fluid_trigger_tau_over_tau_k==ppr->ur_fluid_trigger_tau_over_tau_k,
 	       errmsg,
-	       "please choose different values for precision parameters ncdm_fluid_trigger_tau_h_over_tau_k and ur_fluid_trigger_tau_h_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+	       "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
     
   }
   
@@ -1498,14 +1498,14 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.08;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
-  ppr->radiation_streaming_trigger_tau_h_over_tau_k = 30.; 
-  ppr->radiation_streaming_trigger_tau_c_over_tau_h = 10.;
+  ppr->radiation_streaming_trigger_tau_over_tau_k = 30.; 
+  ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
  
   ppr->ur_fluid_approximation = ufa_CLASS;
-  ppr->ur_fluid_trigger_tau_h_over_tau_k = 15.; 
+  ppr->ur_fluid_trigger_tau_over_tau_k = 15.; 
 
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
-  ppr->ncdm_fluid_trigger_tau_h_over_tau_k = 16.; 
+  ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.; 
 
   /**
    * - parameter related to the Bessel functions
