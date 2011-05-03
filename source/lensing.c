@@ -654,9 +654,10 @@ int lensing_init(
     free(ksi);
   if (ple->has_te==_TRUE_)
     free(ksiX);
-  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_)
+  if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
     free(ksip);
-  free(ksim);
+    free(ksim);
+  }
   free(Cgl);
   free(Cgl2);
   free(sigma2);
