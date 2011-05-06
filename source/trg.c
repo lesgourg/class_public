@@ -2417,8 +2417,7 @@ int trg_init (
   /** Background quantities */
 
   double * pvecback_nl;
-  double * Omega_m, * Omega_r, * H, *H_prime;
-  double * rho_g, *rho_b, *rho_cdm, *rho_ur;
+  double * Omega_m, * H, *H_prime;
   double * growth_factor;
 
   /**
@@ -2562,15 +2561,6 @@ int trg_init (
   /** Definition of background values */
 
   class_calloc(Omega_m,pnl->eta_size,sizeof(double),pnl->error_message);
-
-  /* In the case of computing the total spectrum, one needs Omega_r */
-  class_calloc(Omega_r,pnl->eta_size,sizeof(double),pnl->error_message);
-
-  class_calloc(rho_g,  pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(rho_ur,pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(rho_b,  pnl->eta_size,sizeof(double),pnl->error_message);
-  class_calloc(rho_cdm,pnl->eta_size,sizeof(double),pnl->error_message);
-
   class_calloc(H,      pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(H_prime,pnl->eta_size,sizeof(double),pnl->error_message);
 
@@ -2591,10 +2581,6 @@ int trg_init (
     /*}*/
 
     printf("%g %g\n",Omega_m[index_eta],pnl->z[index_eta]);
-    rho_g[index_eta]   = pvecback_nl[pba->index_bg_rho_g];
-    rho_ur[index_eta] = pvecback_nl[pba->index_bg_rho_ur];
-    rho_b[index_eta]   = pvecback_nl[pba->index_bg_rho_b];
-    rho_cdm[index_eta] = pvecback_nl[pba->index_bg_rho_cdm];
     
     H[index_eta] = pvecback_nl[pba->index_bg_H] * a_ini * exp(pnl->eta[index_eta]);
     H_prime[index_eta] =H[index_eta]*(1 + pvecback_nl[pba->index_bg_H_prime] / a_ini * exp(-pnl->eta[index_eta])/pvecback_nl[pba->index_bg_H]/pvecback_nl[pba->index_bg_H]);
@@ -2678,7 +2664,7 @@ int trg_init (
   double dtau=0.0001; /*conformal age of the universe is 14000 */
   double dz_p=-dtau*pba->a_today*H[0]/a_ini;
 
-  double delta_minus,delta_plus,theta;
+  double delta_minus,delta_plus,d_delta_m_over_dz;
   for(index_k=0; index_k<pnl->k_size; index_k++){
     cutoff=1.;
 
@@ -2698,13 +2684,13 @@ int trg_init (
     pnl->p_11[index_k]    = pnl->p_11_nl[index_k];
     p_11_linear[index_k]  = pnl->p_11_nl[index_k];
 
-    theta=(sqrt(delta_plus)-sqrt(delta_minus))/(2*dz_p); /* theta is actually (-theta) */
+    d_delta_m_over_dz=(sqrt(delta_plus)-sqrt(delta_minus))/(2*dz_p); /* theta is actually (-theta) */
 
-    pnl->p_12_nl[index_k] = sqrt(pnl->p_11_nl[index_k])*sqrt(pow(theta/H[0]*a_ini,2));
+    pnl->p_12_nl[index_k] = -sqrt(pnl->p_11_nl[index_k])*d_delta_m_over_dz*pba->a_today/a_ini;
     pnl->p_12[index_k]    = pnl->p_12_nl[index_k];
     p_12_linear[index_k]  = pnl->p_12_nl[index_k];
 
-    pnl->p_22_nl[index_k] = pow(theta/H[0]*a_ini,2);
+    pnl->p_22_nl[index_k] = pow(d_delta_m_over_dz*pba->a_today/a_ini,2);
     pnl->p_22[index_k]    = pnl->p_22_nl[index_k];
     p_22_linear[index_k]  = pnl->p_22_nl[index_k];
   }
@@ -2712,13 +2698,7 @@ int trg_init (
   free(junk);
 
   free(Omega_m);
-  free(Omega_r);
   
-  free(rho_g);
-  free(rho_ur);
-  free(rho_b);
-  free(rho_cdm);
-
   free(H_prime);
 
   /** Initialisation and definition of second derivatives */
