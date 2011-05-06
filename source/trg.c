@@ -2304,10 +2304,6 @@ int trg_logstep1_k (
 		   double * logstep) {
 
  *logstep = ppr->logstepk1 - ppr->logstepk2*tanh((k-ppr->logstepk4)*ppr->logstepk3);
-  /**logstep = 1.11 - 0.09*tanh(300*(k-0.01));*/
- /**logstep = 1.11 - 0.10*tanh(300*(k-0.01));*/
- /**logstep = 1.005;*/
-/*  *logstep = 1.10 - 0.09*tanh(300*(k-0.01)); */ 
   return _SUCCESS_;
 }
 
@@ -2331,10 +2327,6 @@ int trg_logstep2_k (
 		    double k,
 		    double * logstep) {
   *logstep = ppr->logstepk5 - ppr->logstepk6*tanh((k-ppr->logstepk8)*ppr->logstepk7);
-  /* *logstep = 1.11 + 0.09*tanh(0.08*(k-50)); */
-  /**logstep = 1.005;*/
-  /* default is *logstep = 1.02 - 0*tanh((k-0)*0);*/
-
   return _SUCCESS_;
 }
 
@@ -2592,11 +2584,13 @@ int trg_init (
 	       pba->error_message,
 	       pnl->error_message);
     
-    Omega_m[index_eta] = pvecback_nl[pba->index_bg_rho_b]/pvecback_nl[pba->index_bg_rho_crit];
-    if (pba->has_cdm == _TRUE_) {
-      Omega_m[index_eta] += pvecback_nl[pba->index_bg_rho_cdm]/pvecback_nl[pba->index_bg_rho_crit];
-    }
+    Omega_m[index_eta] = pvecback_nl[pba->index_bg_Omega_m];
+    /*Omega_m[index_eta] = pvecback_nl[pba->index_bg_rho_b]/pvecback_nl[pba->index_bg_rho_crit];*/
+    /*if (pba->has_cdm == _TRUE_) {*/
+      /*Omega_m[index_eta] += pvecback_nl[pba->index_bg_rho_cdm]/pvecback_nl[pba->index_bg_rho_crit];*/
+    /*}*/
 
+    printf("%g %g\n",Omega_m[index_eta],pnl->z[index_eta]);
     rho_g[index_eta]   = pvecback_nl[pba->index_bg_rho_g];
     rho_ur[index_eta] = pvecback_nl[pba->index_bg_rho_ur];
     rho_b[index_eta]   = pvecback_nl[pba->index_bg_rho_b];
@@ -2704,7 +2698,7 @@ int trg_init (
     pnl->p_11[index_k]    = pnl->p_11_nl[index_k];
     p_11_linear[index_k]  = pnl->p_11_nl[index_k];
 
-    theta=(sqrt(delta_plus)-sqrt(delta_minus))/(2*dz_p); /* theta is actually - theta */
+    theta=(sqrt(delta_plus)-sqrt(delta_minus))/(2*dz_p); /* theta is actually (-theta) */
 
     pnl->p_12_nl[index_k] = sqrt(pnl->p_11_nl[index_k])*sqrt(pow(theta/H[0]*a_ini,2));
     pnl->p_12[index_k]    = pnl->p_12_nl[index_k];
@@ -2725,7 +2719,6 @@ int trg_init (
   free(rho_b);
   free(rho_cdm);
 
-  free(H);
   free(H_prime);
 
   /** Initialisation and definition of second derivatives */
@@ -3349,25 +3342,46 @@ int trg_init (
   /** End of the computation, beginning of cleaning */
 
   /***** TEST ZONE *****/
-  double r0,r1,r2;
+  /*double r0,r1,r2;*/
 
-  for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[100],pnl->z[index_eta],&r0,junk),
-	psp->error_message,
-	pnl->error_message);
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size-500],pnl->z[index_eta],&r1,junk),
-	psp->error_message,
-	pnl->error_message);
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size/2],pnl->z[index_eta],&r2,junk),
-	psp->error_message,
-	pnl->error_message);
+  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[100],pnl->z[index_eta],&r0,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size-500],pnl->z[index_eta],&r1,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
+    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size/2],pnl->z[index_eta],&r2,junk),*/
+	/*psp->error_message,*/
+	/*pnl->error_message);*/
 
-    printf("%g %g %g %g %g %g %g %g\n",pnl->eta[index_eta],pnl->z[index_eta],
-	pnl->p_11_nl[100+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r0,
-	pnl->p_11_nl[pnl->k_size-500+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r1,
-	pnl->p_11_nl[pnl->k_size/2+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r2); }
+    /*printf("%g %g %g %g %g %g %g %g\n",pnl->eta[index_eta],pnl->z[index_eta],*/
+	/*pnl->p_11_nl[100+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r0,*/
+	/*pnl->p_11_nl[pnl->k_size-500+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r1,*/
+	/*pnl->p_11_nl[pnl->k_size/2+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r2); }*/
 
   /***** END OF TEST ZONE *****/
+
+  /***** TEMPORARY CORRECTION ****/
+  /*double r0;*/
+  
+  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){*/
+    /*for(index_k=0; index_k<pnl->k_size-2*pnl->double_escape*index_eta; index_k++){*/
+      /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[index_eta],&r0,junk),*/
+	  /*psp->error_message,*/
+	  /*pnl->error_message);*/
+      /*r0=r0/exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2);*/
+
+
+      /*pnl->p_11_nl[index_k+pnl->k_size*index_eta]+= r0 - p_11_linear[index_k+pnl->k_size*index_eta];*/
+      /*p_11_linear[index_k+pnl->k_size*index_eta]=  r0;*/
+      /*p_12_linear[index_k+pnl->k_size*index_eta]+=r0-p_12_linear[index_k+pnl->k_size*index_eta];*/
+      /*p_22_linear[index_k+pnl->k_size*index_eta]+=r0-p_22_linear[index_k+pnl->k_size*index_eta];*/
+
+    /*}*/
+  /*}*/
+
+  /***** END OF TEMP *****/
 
   for (index_name=0; index_name<name_size; index_name++) 
     free(AA[index_name]);
@@ -3400,11 +3414,13 @@ int trg_init (
     for(index_k=0; index_k < pnl->k_size-pnl->double_escape*index_eta; index_k++) {
 
       pnl->p_11_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2);
-      pnl->p_12_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2);
-      pnl->p_22_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2);
+      pnl->p_12_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2)*H[index_eta];
+      pnl->p_22_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2)*pow(H[index_eta],2);
 
     }
   }
+
+  free(H);
 
   return _SUCCESS_;
    
