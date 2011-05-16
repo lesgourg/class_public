@@ -99,9 +99,9 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-  param = &(pr.k_scalar_k_per_decade_for_pk);
+  param = &(pr.tight_coupling_trigger_tau_c_over_tau_k);
 
-  parameter_initial=10.;
+  parameter_initial=0.09;
   parameter_logstep=1.2;
 
   param_num=1;
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
    
     chi2_planck(&sp,cl[i],cl[ref_run],noise,l_max,&chi2);
 
-    if (chi2>1.) {
+    if (chi2>10.) {
       fprintf(stderr,"parameter=%e BAD: chi2=%e \n",
 	      parameter[i],chi2);
     }
