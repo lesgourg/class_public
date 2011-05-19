@@ -873,6 +873,35 @@ int input_init(
   class_read_string("root",pop->root);
 
   class_call(parser_read_string(pfc,
+				"headers",
+				&(string1),
+				&(flag1),
+				errmsg),
+	     errmsg,
+	     errmsg);
+	     
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") == NULL) && (strstr(string1,"Y") == NULL))) {
+    pop->write_header = _FALSE_;
+  }
+
+  class_call(parser_read_string(pfc,"format",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+
+  if (flag1 == _TRUE_) {
+
+      if ((strstr(string1,"class") != NULL) || (strstr(string1,"CLASS") != NULL))
+	pop->output_format = class;
+      else {
+	if ((strstr(string1,"camb") != NULL) || (strstr(string1,"CAMB") != NULL))
+	  pop->output_format = camb;
+	else
+	  class_stop(errmsg,	       
+		     "You wrote: format=%s. Could not identify any of the possible formats ('class', 'CLASS', 'camb', 'CAMB')",string1);	  
+      }
+  }
+  
+  class_call(parser_read_string(pfc,
 				"bessel file",
 				&(string1),
 				&(flag1),
@@ -1335,6 +1364,8 @@ int input_default_params(
   pop->z_pk_num = 1;
   pop->z_pk[0] = 0.;  
   sprintf(pop->root,"output/");
+  pop->write_header = _TRUE_;
+  pop->output_format = class;
 
   /** - spectra structure */ 
 
