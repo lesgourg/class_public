@@ -1009,10 +1009,10 @@ int transfer_interpolate_sources(
 
 	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 
-	  /* lensing source =  W(tau) psi(k,tau) H(tau-tau_rec) 
+	  /* lensing source =  - 2 W(tau) psi(k,tau) H(tau-tau_rec) 
 	     with 
 	     psi = (newtonian) gravitationnal potential  
-	     W = 2(tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
+	     W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
 	     H(x) = Heaviside
 	     (in tau = tau_0, set source = 0 to avoid division by zero;
               regulated anyway by Bessel).
@@ -1020,7 +1020,7 @@ int transfer_interpolate_sources(
 	  if ((ppt->tau_sampling[index_tau] > tau_rec) && 
 	      ((tau0-ppt->tau_sampling[index_tau]) > 0.)) {
 	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *=
-	      2.*(ppt->tau_sampling[index_tau]-tau_rec)
+	      -2.*(ppt->tau_sampling[index_tau]-tau_rec)
 	      /(tau0-ppt->tau_sampling[index_tau])
 	      /(tau0-tau_rec);
 	  }
