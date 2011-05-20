@@ -1543,7 +1543,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the Bessel functions
    */
 
-  ppr->l_logstep=1.3;
+  ppr->l_logstep=1.15;
   ppr->l_linstep=40;
 
   ppr->bessel_x_step=0.5;
@@ -1567,7 +1567,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_cut_threshold_osc=0.007; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */
 
-  ppr->l_switch_limber=40;
+  ppr->l_switch_limber=10;
 
   /**
    * - parameters related to trg module

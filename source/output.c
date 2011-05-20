@@ -127,7 +127,7 @@ int output_init(
 
   if (ppt->has_cls == _TRUE_) {
 
-    class_call(output_cl(ppt,psp,ple,pop),
+    class_call(output_cl(pba,ppt,psp,ple,pop),
 	       pop->error_message,
 	       pop->error_message);
   }
@@ -163,6 +163,7 @@ int output_init(
 /** 
  * This routines writes the output in files for anisotropy power spectra C_l's.
  *
+ * @param pba Input: pointer to background structure (needed for Tcmb)
  * @param ppt Input : pointer perturbation structure
  * @param psp Input : pointer to spectra structure
  * @param ple Input : pointer to lensing structure
@@ -170,6 +171,7 @@ int output_init(
  */
 
 int output_cl(
+	      struct background * pba,
 	      struct perturbs * ppt,
 	      struct spectra * psp,
 	      struct lensing * ple,
@@ -242,7 +244,7 @@ int output_cl(
 				 pop,
 				 &out,
 				 file_name,
-				 "# dimensionless total [l(l+1)/2pi] C_l's",
+				 "total [l(l+1)/2pi] C_l's",
 				 psp->l_max_tot
 				 ),
 	     pop->error_message,
@@ -261,7 +263,7 @@ int output_cl(
 				   pop,
 				   &out_lensed,
 				   file_name,
-				   "# dimensionless total lensed [l(l+1)/2pi] C_l's",
+				   "total lensed [l(l+1)/2pi] C_l's",
 				   ple->l_lensed_max
 				   ),
 	       pop->error_message,
@@ -275,14 +277,14 @@ int output_cl(
       if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
 	  
 	sprintf(file_name,"%s%s",pop->root,"cls.dat");
-	strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l's for scalar mode");
+	strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar mode");
 
       }
 
       if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
 	  	  
 	sprintf(file_name,"%s%s",pop->root,"clt.dat");
-	strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l's for tensor mode");
+	strcpy(first_line,"[l(l+1)/2pi] C_l's for tensor mode");
 
       }
 	
@@ -317,105 +319,105 @@ int output_cl(
 		(index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_ad.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar adiabatic (AD) mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar adiabatic (AD) mode");
 	    }
 
 	    if ((ppt->has_bi) && 
 		(index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_bi.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar baryon isocurvature (BI) mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar baryon isocurvature (BI) mode");
 	    }
 	      
 	    if ((ppt->has_cdi) && 
 		(index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_cdi)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_cdi.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar CDM isocurvature (CDI) mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar CDM isocurvature (CDI) mode");
 	    }
 
 	    if ((ppt->has_nid) && 
 		(index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_nid.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar neutrino density isocurvature (NID) mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar neutrino density isocurvature (NID) mode");
 	    }
 
 	    if ((ppt->has_niv) && 
 		(index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_niv)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_niv.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar neutrino velocity isocurvature (NIV) mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar neutrino velocity isocurvature (NIV) mode");
 	    }
 
 	    if ((ppt->has_ad) && 
 		(ppt->has_bi) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_ad_bi.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross ADxBI mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxBI mode");
 	    }
 	      
 	    if ((ppt->has_ad) && (ppt->has_cdi) && 
 		(index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_ad_cdi.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross ADxCDI mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxCDI mode");
 	    }
 
 	    if ((ppt->has_ad) && (ppt->has_nid) && 
 		(index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_ad_nid.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross ADxNID mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxNID mode");
 	    }
 
 	    if ((ppt->has_ad) && (ppt->has_niv) && 
 		(index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_ad_niv.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross ADxNIV mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxNIV mode");
 	    }
 
 	    if ((ppt->has_bi) && (ppt->has_cdi) && 
 		(index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_bi_cdi.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross BIxCDI mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxCDI mode");
 	    }
 
 	    if ((ppt->has_bi) && (ppt->has_nid) && 
 		(index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_bi_nid.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross BIxNID mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxNID mode");
 	    }
 
 	    if ((ppt->has_bi) && (ppt->has_niv) && 
 		(index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_bi_niv.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross BIxNIV mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxNIV mode");
 	    }
 
 	    if ((ppt->has_cdi) && (ppt->has_nid) && 
 		(index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_cdi_nid.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross CDIxNID mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxNID mode");
 	    }
 
 	    if ((ppt->has_cdi) && (ppt->has_niv) && 
 		(index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_cdi_niv.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross CDIxNIV mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxNIV mode");
 	    }
 
 	    if ((ppt->has_nid) && (ppt->has_niv) && 
 		(index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
 
 	      sprintf(file_name,"%s%s",pop->root,"cls_nid_niv.dat");
-	      strcpy(first_line,"# dimensionless [l(l+1)/2pi] C_l for scalar cross NIDxNIV mode");
+	      strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross NIDxNIV mode");
 	    }
 
 	  }
@@ -462,7 +464,7 @@ int output_cl(
 	       psp->error_message,
 	       pop->error_message);
 
-    class_call(output_one_line_of_cl(out,(double)l,cl_tot,psp->ct_size),
+    class_call(output_one_line_of_cl(pba,psp,pop,out,(double)l,cl_tot,psp->ct_size),
 	       pop->error_message,
 	       pop->error_message);
 
@@ -474,7 +476,7 @@ int output_cl(
 		 ple->error_message,
 		 pop->error_message);
 
-      class_call(output_one_line_of_cl(out_lensed,l,cl_tot,psp->ct_size),
+      class_call(output_one_line_of_cl(pba,psp,pop,out_lensed,l,cl_tot,psp->ct_size),
 		 pop->error_message,
 		 pop->error_message);
     }
@@ -483,7 +485,7 @@ int output_cl(
       for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 	if (l <= psp->l_max[index_mode]) {
 
-	  class_call(output_one_line_of_cl(out_md[index_mode],l,cl_md[index_mode],psp->ct_size),
+	  class_call(output_one_line_of_cl(pba,psp,pop,out_md[index_mode],l,cl_md[index_mode],psp->ct_size),
 		     pop->error_message,
 		     pop->error_message);
 	}
@@ -495,7 +497,7 @@ int output_cl(
 	for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_mode]; index_ic1_ic2++) {
 	  if (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
 
-	    class_call(output_one_line_of_cl(out_md_ic[index_mode][index_ic1_ic2],l,&(cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size]),psp->ct_size),
+	    class_call(output_one_line_of_cl(pba,psp,pop,out_md_ic[index_mode][index_ic1_ic2],l,&(cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size]),psp->ct_size),
 		       pop->error_message,
 		       pop->error_message);
 	  }
@@ -1184,24 +1186,59 @@ int output_open_cl_file(
 
   class_open(*clfile,filename,"w",pop->error_message);
 
-  fprintf(*clfile,"%s\n",first_line); 
-  fprintf(*clfile,"# for l=2 to %d,\n",lmax);
-  fprintf(*clfile,"# i.e. number of multipoles equal to %d\n",lmax-1);
-  fprintf(*clfile,"#  l ");
+  if (pop->write_header == _TRUE_) {
 
-  if (psp->has_tt == _TRUE_)
-    fprintf(*clfile,"TT               ");
-  if (psp->has_ee == _TRUE_)
-    fprintf(*clfile,"EE               ");
-  if (psp->has_te == _TRUE_)
-    fprintf(*clfile,"TE               "); 
-  if (psp->has_bb == _TRUE_)
-    fprintf(*clfile,"BB               ");
-  if (psp->has_pp == _TRUE_)
-    fprintf(*clfile,"phiphi           ");
-  if (psp->has_tp == _TRUE_)
-    fprintf(*clfile,"Tphi             ");
-  fprintf(*clfile,"\n");
+    if (pop->output_format == class) {
+      fprintf(*clfile,"# dimensionless %s\n",first_line);
+    }
+    if (pop->output_format == camb) {
+      fprintf(*clfile,"# %s (units: [microK]^2)\n",first_line);
+    }
+ 
+    fprintf(*clfile,"# for l=2 to %d, i.e. number of multipoles equal to %d\n",lmax,lmax-1);
+    fprintf(*clfile,"#\n");
+
+    if (pop->output_format == class) {
+    fprintf(*clfile,"# -> if you prefer output in CAMB/HealPix/LensPix units/order, set 'format' to 'camb' in input file\n");
+    }
+
+    fprintf(*clfile,"# -> if you don't want to see such a header, set 'headers' to 'no' in input file\n");
+    fprintf(*clfile,"#\n");
+    fprintf(*clfile,"#  l ");
+   
+    if (pop->output_format == class) {
+      if (psp->has_tt == _TRUE_)
+	fprintf(*clfile,"TT               ");
+      if (psp->has_ee == _TRUE_)
+	fprintf(*clfile,"EE               ");
+      if (psp->has_te == _TRUE_)
+	fprintf(*clfile,"TE               "); 
+      if (psp->has_bb == _TRUE_)
+	fprintf(*clfile,"BB               ");
+      if (psp->has_pp == _TRUE_)
+	fprintf(*clfile,"phiphi           ");
+      if (psp->has_tp == _TRUE_)
+	fprintf(*clfile,"Tphi             ");
+      fprintf(*clfile,"\n");
+    }
+
+    if (pop->output_format == camb) {
+      if (psp->has_tt == _TRUE_)
+	fprintf(*clfile,"TT               ");
+      if (psp->has_ee == _TRUE_)
+	fprintf(*clfile,"EE               ");
+      if (psp->has_bb == _TRUE_)
+	fprintf(*clfile,"BB               ");
+      if (psp->has_te == _TRUE_)
+	fprintf(*clfile,"TE               "); 
+      if (psp->has_pp == _TRUE_)
+	fprintf(*clfile,"dd               ");
+      if (psp->has_tp == _TRUE_)
+	fprintf(*clfile,"dT               ");
+      fprintf(*clfile,"\n");
+
+    }
+  }    
 
   return _SUCCESS_;
 
@@ -1210,6 +1247,9 @@ int output_open_cl_file(
 /**
  * This routine write one line with l and all C_l's for all types (TT, TE...)
  *
+ * @param pba        Input: pointer to background structure (needed for Tcmb)
+ * @param psp        Input : pointer to spectra structure
+ * @param pop        Input : pointer to output structure
  * @param clfile  Input : file pointer
  * @param l       Input : multipole
  * @param cl      Input : C_l's for all types
@@ -1218,28 +1258,46 @@ int output_open_cl_file(
  */
 
 int output_one_line_of_cl(
+			  struct background * pba,
+			  struct spectra * psp,
+			  struct output * pop,
 			  FILE * clfile,
 			  double l,
 			  double * cl, /* array with argument cl[index_ct] */
 			  int ct_size
 			  ) {
   int index_ct;
+  double factor;
+
+  factor = l*(l+1)/2./_PI_;
 
   fprintf(clfile,"%4d",(int)l);
 
-  /* uncomment next lines if want to get deflection spectrum rather
-     than lensing spectrum */
-/*   if (psp->has_pp == _TRUE_) */
-/*     cl[psp->index_ct_pp] *= l*(l+1); */
-/*   if (psp->has_tp == _TRUE_) */
-/*     cl[psp->index_ct_pp] *= sqrt(l*(l+1)); */
+  if (pop->output_format == class) {
 
-  for (index_ct=0; index_ct < ct_size; index_ct++) {
-    fprintf(clfile," ");
-    fprintf(clfile,"%16.10e",l*(l+1)/2./_PI_*cl[index_ct]);
+    for (index_ct=0; index_ct < ct_size; index_ct++) {
+      fprintf(clfile," %16.10e",factor*cl[index_ct]);
+    }
+    fprintf(clfile,"\n");	
+  }    
+
+  if (pop->output_format == camb) {
+
+    if (psp->has_tt == _TRUE_)
+      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_tt]);
+    if (psp->has_ee == _TRUE_)
+      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_ee]);
+    if (psp->has_bb == _TRUE_)
+      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_bb]);
+    if (psp->has_te == _TRUE_)
+      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_te]);
+    if (psp->has_pp == _TRUE_)
+      fprintf(clfile," %16.10e",l*(l+1)*factor*cl[psp->index_ct_pp]);
+    if (psp->has_tp == _TRUE_)
+      fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->Tcmb*1.e6*cl[psp->index_ct_tp]);
+    fprintf(clfile,"\n");
   }
-  fprintf(clfile,"\n");	
-    
+
   return _SUCCESS_;
     
 }
@@ -1270,12 +1328,14 @@ int output_open_pk_file(
 
   class_open(*pkfile,filename,"w",pop->error_message);
 
-  fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",
-	  exp(psp->ln_k[0])/pba->h,
-	  exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
-  fprintf(*pkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
-  fprintf(*pkfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
+  if (pop->write_header == _TRUE_) {
+    fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z); 
+    fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",
+	    exp(psp->ln_k[0])/pba->h,
+	    exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+    fprintf(*pkfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
+  }
 
   return _SUCCESS_;
 }
@@ -1327,10 +1387,12 @@ int output_open_pk_nl_file(
 
   class_open(*pkfile,filename,"w",pop->error_message);
 
-  fprintf(*pkfile,"# Non-linear matter power spectrum P_nl(k) %sat redshift z=%g\n",first_line,z); 
-  fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[pnl->k_size[0]-1]/pba->h);
-  fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size[0]);
-  fprintf(*pkfile,"# k (h/Mpc)  P_nl (Mpc/h)^3:\n");
+  if (pop->write_header == _TRUE_) {
+    fprintf(*pkfile,"# Non-linear matter power spectrum P_nl(k) %sat redshift z=%g\n",first_line,z); 
+    fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[pnl->k_size[0]-1]/pba->h);
+    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size[0]);
+    fprintf(*pkfile,"# k (h/Mpc)  P_nl (Mpc/h)^3:\n");
+  }
 
   return _SUCCESS_;
 }

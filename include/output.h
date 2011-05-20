@@ -91,6 +91,7 @@ extern "C" {
 		  );
 
   int output_cl(
+		struct background * pba,
 		struct perturbs * ppt,
 		struct spectra * psp,
 		struct lensing * ple,
@@ -128,6 +129,9 @@ extern "C" {
 			  );
 
   int output_one_line_of_cl(
+			    struct background * pba,
+			    struct spectra * psp,
+			    struct output * pop,
 			    FILE * clfile,
 			    double l,
 			    double * cl,
