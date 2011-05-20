@@ -1897,7 +1897,7 @@ int spectra_pk(
 }
 
 /** 
- * This routine computes sigma8 given P(k) (only if k_max is large
+ * This routine computes sigma(R) given P(k) (does not check that k_max is large
  * enough)
  *
  * @param pba   Input: pointer to background structure
@@ -1928,7 +1928,6 @@ int spectra_sigma(
   int i;
 
   double k,W,x;
-  double last_piece;
 
   if (psp->ic_ic_size[psp->index_md_scalars]>1)
     class_alloc(pk_ic,
@@ -1958,9 +1957,6 @@ int spectra_sigma(
     array_for_sigma[i*index_num+index_k]=k;
     array_for_sigma[i*index_num+index_y]=k*k*pk*W*W;
   }
-  
-  last_piece=(array_for_sigma[psp->ln_k_size]-array_for_sigma[psp->ln_k_size-1])
-    *(array_for_sigma[psp->ln_k_size]+array_for_sigma[psp->ln_k_size-1])/2.;
 
   class_call(array_spline(array_for_sigma,
 			  index_num,
@@ -1989,7 +1985,7 @@ int spectra_sigma(
   if (psp->ic_ic_size[psp->index_md_scalars]>1)
     free(pk_ic);
 
-  *sigma /= (2.*_PI_*_PI_);
+  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
 
   return _SUCCESS_;
 
