@@ -77,7 +77,7 @@ TEST_OPTIMIZE_1D = test_optimize_1D.o
 
 TEST_OPTIMIZE = test_optimize.o
 
-CHI2 = chi2_camb.o
+CHI2 = chi2.o
 
 TEST_TIMING = test_timing.o
 
