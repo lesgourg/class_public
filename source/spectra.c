@@ -953,7 +953,7 @@ int spectra_init(
 
   /** - deal with P(k,tau) and T_i(k,tau) */
 
-  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_pk_matter == _TRUE_)) {
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_matter_transfers == _TRUE_)) {
 
     class_call(spectra_k_and_tau(pba,ppt,psp),
 	       psp->error_message,
@@ -1160,6 +1160,17 @@ int spectra_indices(
     }
     else {
       psp->has_tp = _FALSE_;
+    }
+
+    psp->ct_size = index_ct;
+
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+      psp->has_ep = _TRUE_;
+      psp->index_ct_ep=index_ct;
+      index_ct++;
+    }
+    else {
+      psp->has_ep = _FALSE_;
     }
 
     psp->ct_size = index_ct;
@@ -1535,6 +1546,13 @@ int spectra_compute_cl(
 	       transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_t])
 	* 4. * _PI_ / k;
 
+    if ((psp->has_ep == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars))
+      cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ep]=
+	primordial_pk[index_ic1_ic2]
+	* 0.5*(transfer_ic1[ptr->index_tt_e] * transfer_ic2[ptr->index_tt_lcmb] +
+	       transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_e])
+	* 4. * _PI_ / k;
+
   }
   
   for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
@@ -1543,7 +1561,8 @@ int spectra_compute_cl(
 
     if (((psp->has_bb == _TRUE_) && (index_ct == psp->index_ct_bb) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) ||
 	((psp->has_pp == _TRUE_) && (index_ct == psp->index_ct_pp) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
-	((psp->has_tp == _TRUE_) && (index_ct == psp->index_ct_tp) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
+	((psp->has_tp == _TRUE_) && (index_ct == psp->index_ct_tp) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
+	((psp->has_ep == _TRUE_) && (index_ct == psp->index_ct_ep) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
 
       psp->cl[index_mode]
 	[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] = 0.;
@@ -2161,14 +2180,14 @@ int spectra_matter_transfers(
 	  }
 	}
 
-	/* include homogeneous component in rho_tot */
+	/* could include homogeneous component in rho_tot if uncommented (leave commented to match CMBFAST/CAMB definition) */
 
-	if (pba->has_lambda == _TRUE_) {
+/* 	if (pba->has_lambda == _TRUE_) { */
 
-	  rho_i = pvecback_sp_long[pba->index_bg_rho_lambda];
+/* 	  rho_i = pvecback_sp_long[pba->index_bg_rho_lambda]; */
 
-	  rho_tot += rho_i;
-	}
+/* 	  rho_tot += rho_i; */
+/* 	} */
 
 	/* T_tot(k,tau) */
 

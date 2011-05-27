@@ -49,6 +49,7 @@ struct spectra {
   int has_bb; /**< do we want C_l^BB ? (B = B-polarization) */
   int has_pp; /**< do we want C_l^phi-phi ? (phi = CMB lensing potential) */
   int has_tp; /**< do we want C_l^T-phi ? */
+  int has_ep; /**< do we want C_l^E-phi ? */
 
   int index_ct_tt; /**< index for type C_l^TT */
   int index_ct_ee; /**< index for type C_l^EE */
@@ -56,6 +57,7 @@ struct spectra {
   int index_ct_bb; /**< index for type C_l^BB */
   int index_ct_pp; /**< index for type C_l^phi-phi */
   int index_ct_tp; /**< index for type C_l^T-phi */
+  int index_ct_ep; /**< index for type C_l^E-phi */
 
   int ct_size; /**< number of C_l types requested */
 

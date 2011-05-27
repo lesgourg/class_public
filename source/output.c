@@ -993,6 +993,7 @@ int output_tk(
   int index_k;
   int index_z;
   int index_tr;
+  int n_ncdm;
 
   FileName file_name;
   FileName redshift_suffix;
@@ -1099,9 +1100,9 @@ int output_tk(
 
     /** - fourth, write in files */
 
-    if (pba->has_cdm == _TRUE_)
+    if (pop->output_format == camb)
       class_alloc(tk_cmbfast,
-		  4*sizeof(double),
+		  6*sizeof(double),
 		  pop->error_message);
 
     for (index_k=0; index_k<psp->ln_k_size; index_k++) {
@@ -1131,11 +1132,20 @@ int output_tk(
 	    tk_cmbfast[3]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_ur]/exp(2.*psp->ln_k[index_k]);
 	  else
 	    tk_cmbfast[3]=0.;
+	  if (pba->has_ncdm == _TRUE_) {
+	    tk_cmbfast[4]=0.;
+	    for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+	      tk_cmbfast[4]+=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_ncdm1+n_ncdm]/exp(2.*psp->ln_k[index_k]);
+	    }
+	  }
+	  else
+	    tk_cmbfast[4]=0.;
+	  tk_cmbfast[5]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_tot]/exp(2.*psp->ln_k[index_k]);
 
 	  class_call(output_one_line_of_tk(out_ic[index_ic],
 					   exp(psp->ln_k[index_k])/pba->h,
 					   tk_cmbfast,
-					   4),
+					   6),
 		     pop->error_message,
 		     pop->error_message);
 
@@ -1145,7 +1155,7 @@ int output_tk(
 
     /** - fifth, free memory and close files */
 
-    if (pba->has_cdm == _TRUE_)
+    if (pop->output_format == camb)
       free(tk_cmbfast);
 
     free(tk);
@@ -1219,6 +1229,8 @@ int output_open_cl_file(
 	fprintf(*clfile,"phiphi           ");
       if (psp->has_tp == _TRUE_)
 	fprintf(*clfile,"Tphi             ");
+      if (psp->has_ep == _TRUE_)
+	fprintf(*clfile,"Ephi             ");
       fprintf(*clfile,"\n");
     }
 
@@ -1235,6 +1247,8 @@ int output_open_cl_file(
 	fprintf(*clfile,"dd               ");
       if (psp->has_tp == _TRUE_)
 	fprintf(*clfile,"dT               ");
+      if (psp->has_ep == _TRUE_)
+	fprintf(*clfile,"dE               ");
       fprintf(*clfile,"\n");
 
     }
@@ -1295,6 +1309,8 @@ int output_one_line_of_cl(
       fprintf(clfile," %16.10e",l*(l+1)*factor*cl[psp->index_ct_pp]);
     if (psp->has_tp == _TRUE_)
       fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->Tcmb*1.e6*cl[psp->index_ct_tp]);
+    if (psp->has_ep == _TRUE_)
+      fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->Tcmb*1.e6*cl[psp->index_ct_ep]);
     fprintf(clfile,"\n");
   }
 
@@ -1420,33 +1436,36 @@ int output_open_tk_file(
 			double z
 			) {
 
+  int n_ncdm;
+
   class_open(*tkfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
 
     if (pop->output_format == class) {
 
-      fprintf(stderr,"%g\n",exp(psp->ln_k[0]));
-      fprintf(stderr,"%g\n",pba->h);
-      fprintf(stderr,"%g\n",exp(psp->ln_k[psp->ln_k_size-1]));
-
       fprintf(*tkfile,"# Matter transfer functions T_i(k) %sat redshift z=%g\n",first_line,z); 
       fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
       fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
       fprintf(*tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
-      fprintf(*tkfile,"# T_tot stands for (delta rho_tot/rho_tot)(k,z) with eventually rho_Lambda included \n");
-      fprintf(*tkfile,"# (note that this differs from the transfer function output from CAMB, which gives the same\n");
-      fprintf(*tkfile,"#  quantities divided by k^2 with k in Mpc^-1, and does not include rho_Lambda in rho_tot)\n");
+      fprintf(*tkfile,"# T_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
+      fprintf(*tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
+      fprintf(*tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
       fprintf(*tkfile,"#\n");
-      fprintf(*tkfile,"# k (h/Mpc)   ");
-      fprintf(*tkfile,"T_g            ");
-      fprintf(*tkfile,"T_b            ");
+      fprintf(*tkfile,"# k (h/Mpc)       ");
+      fprintf(*tkfile,"T_g                ");
+      fprintf(*tkfile,"T_b                ");
       if (pba->has_cdm == _TRUE_)
-	fprintf(*tkfile,"T_cdm          ");
+	fprintf(*tkfile,"T_cdm              ");
       if (pba->has_fld == _TRUE_)
-	fprintf(*tkfile,"T_de           ");
+	fprintf(*tkfile,"T_de               ");
       if (pba->has_ur == _TRUE_)
-	fprintf(*tkfile,"T_ur          ");
+	fprintf(*tkfile,"T_ur               ");
+      if (pba->has_ncdm == _TRUE_) {
+	for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+	  fprintf(*tkfile,"T_ncdm[%d]          ",n_ncdm);
+	}
+      }
       fprintf(*tkfile,"T_tot\n");
   
     }
@@ -1459,12 +1478,14 @@ int output_open_tk_file(
       fprintf(*tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
       fprintf(*tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
       fprintf(*tkfile,"#\n");
-      fprintf(*tkfile,"# k (h/Mpc)   ");
-      fprintf(*tkfile,"-T_cdm/k2      ");
-      fprintf(*tkfile,"-T_b/k2        ");
-      fprintf(*tkfile,"-T_g/k2        ");
-      fprintf(*tkfile,"-T_ur/k2       ");
-      fprintf(*tkfile,"#\n");
+      fprintf(*tkfile,"# k (h/Mpc)       ");
+      fprintf(*tkfile,"-T_cdm/k2         ");
+      fprintf(*tkfile,"-T_b/k2           ");
+      fprintf(*tkfile,"-T_g/k2           ");
+      fprintf(*tkfile,"-T_ur/k2          ");
+      fprintf(*tkfile,"-T_ncdm_tot/k2    ");
+      fprintf(*tkfile,"-T_tot/k2         ");
+      fprintf(*tkfile,"\n");
 	
     }
 
@@ -1492,7 +1513,7 @@ int output_one_line_of_tk(
 
   int index_tr;
 
-  fprintf(tkfile,"%e",one_k);
+  fprintf(tkfile,"%16.10e",one_k);
 
   for (index_tr=0; index_tr<tr_size; index_tr++)
     fprintf(tkfile,"  %16.10e",tk[index_tr]);
