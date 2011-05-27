@@ -137,6 +137,22 @@ extern "C" {
 			      int nmu,
 			      struct lensing * ple
 			      );
+  int lensing_addback_cl_tt(
+			    struct lensing *ple,
+			    double *cl_tt
+			    );
+
+  int lensing_addback_cl_te(
+			    struct lensing *ple,
+			    double *cl_te
+			    );
+
+  int lensing_addback_cl_ee_bb(
+			    struct lensing *ple,
+			    double *cl_ee,
+			    double *cl_bb
+			    );
+
 
   int lensing_X000(
                    double * mu,

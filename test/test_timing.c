@@ -20,13 +20,19 @@ int main(int argc, char **argv) {
   struct output op;           /* for output files */
   ErrorMsg errmsg;
 
-  clock_t start_perturb, end_perturb; 
+  double start_perturb, end_perturb; 
   double cpu_time_perturb; 
+  double start_other, end_other; 
+  double cpu_time_other; 
+  double start_lensing, end_lensing; 
+  double cpu_time_lensing; 
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
+
+  start_other = omp_get_wtime();
 
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);
@@ -38,16 +44,16 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  start_perturb = clock(); 
+  start_perturb = omp_get_wtime(); 
 
   if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
 
-  end_perturb = clock(); 
+  end_perturb = omp_get_wtime(); 
 
-  cpu_time_perturb =  (end_perturb-start_perturb)/(double)CLOCKS_PER_SEC; 
+  cpu_time_perturb =  (end_perturb-start_perturb);
 
   printf("time in perturb=%4.3f s\n",cpu_time_perturb); 
 
@@ -76,10 +82,21 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  end_other = omp_get_wtime();
+  start_lensing = end_other;
+
   if (lensing_init(&pr,&pt,&sp,&le) == _FAILURE_) {
     printf("\n\nError in lensing_init \n=>%s\n",le.error_message);
     return _FAILURE_;
   }
+
+  end_lensing = omp_get_wtime();
+
+  cpu_time_other =  (end_other-start_other);
+  cpu_time_lensing =  (end_lensing-start_lensing);
+  printf("time in other   = %4.3f s\n",cpu_time_other); 
+  printf("time in lensing = %4.3f s\n",cpu_time_lensing); 
+  
 
   if (output_init(&ba,&pt,&sp,&nl,&le,&op) == _FAILURE_) {
     printf("\n\nError in output_init \n=>%s\n",op.error_message);

@@ -16,6 +16,7 @@
  */
 
 #include "lensing.h"
+#include <time.h>
 
 /** 
  * Anisotropy power spectra C_l's for all types, modes and initial conditions.
@@ -84,7 +85,8 @@ int lensing_init(
   double * mu; /* mu[index_mu]: discretized values of mu
 		  between -1 and 1, roots of Legendre polynomial */
   double * w8; /* Corresponding Gauss-Legendre quadrature weights */
-  
+  double theta,delta_theta;
+
   double ** d00;  /* dmn[index_mu][index_l] */
   double ** d11;
   double ** d2m2; 
@@ -128,8 +130,8 @@ int lensing_init(
   double * cl_bb; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
   double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */
 
-  double res,resX;
-  double resp, resm;
+  double res,resX,lens;
+  double resp, resm, lensp, lensm;
 
   double * sqrt1;
   double * sqrt2;
@@ -144,6 +146,11 @@ int lensing_init(
 			 cl_md[index_mode][index_ct] */
 
   int index_mode;
+
+  /* Timing */
+  //double debut, fin;
+  //double cpu_time;
+  int accurate_lensing_integral=1;
 
   /** Summary: */
 
@@ -170,8 +177,13 @@ int lensing_init(
   /** Last element in mu will be for mu=1, needed for sigma2 
       The rest will be chosen as roots of a Gauss-Legendre quadrature **/
   
-  num_mu=(ple->l_unlensed_max+ppr->num_mu_minus_lmax); /* Must be even ?? CHECK */
-  num_mu += num_mu%2; /* Force it to be even */ 
+  if (accurate_lensing_integral == _TRUE_) {
+    num_mu=(ple->l_unlensed_max+ppr->num_mu_minus_lmax); /* Must be even ?? CHECK */
+    num_mu += num_mu%2; /* Force it to be even */
+  } else {
+    /* Integrate correlation function difference on [0,pi/16] */
+    num_mu = (ple->l_unlensed_max * 2 )/16;
+  }
   /** - allocate array of mu values, as well as quadrature weights */
 
   class_alloc(mu,
@@ -184,13 +196,28 @@ int lensing_init(
               (num_mu-1)*sizeof(double),
               ple->error_message);
 
-  class_call(quadrature_gauss_legendre(mu,
-				       w8,
-				       num_mu-1,
-				       ppr->tol_gauss_legendre,
-				       ple->error_message),
-             ple->error_message,
-             ple->error_message); 
+  if (accurate_lensing_integral == _TRUE_) {
+    //debut = omp_get_wtime();
+    class_call(quadrature_gauss_legendre(mu,
+					 w8,
+					 num_mu-1,
+					 ppr->tol_gauss_legendre,
+					 ple->error_message),
+	       ple->error_message,
+	       ple->error_message); 
+    //fin = omp_get_wtime();
+    //cpu_time = (fin-debut);
+    //printf("time in quadrature_gauss_legendre=%4.3f s\n",cpu_time); 
+
+  } else { /* Crude integration on [0,pi/16]: Riemann sum on theta */
+
+    delta_theta = _PI_/16. / (double)(num_mu-1);
+    for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+      theta = (index_mu+1)*delta_theta;
+      mu[index_mu] = cos(theta);
+      w8[index_mu] = sin(theta)*delta_theta; /* We integrate on mu */
+    }
+  }
 
   /** - compute d^l_mm'(mu) */
 
@@ -301,6 +328,7 @@ int lensing_init(
   sqrt5 = &(buf_dxx[icount]);
   icount += ple->l_unlensed_max+1;
 
+  //debut = omp_get_wtime();
   class_call(lensing_d00(mu,num_mu,ple->l_unlensed_max,d00),
 	     ple->error_message,
 	     ple->error_message);
@@ -316,6 +344,10 @@ int lensing_init(
   class_call(lensing_d2m2(mu,num_mu,ple->l_unlensed_max,d2m2),
 	     ple->error_message,
 	     ple->error_message);
+  //fin = omp_get_wtime();
+  //cpu_time = (fin-debut);
+  //printf("time in lensing_dxx=%4.3f s\n",cpu_time); 
+
 
   if (ple->has_te==_TRUE_) {
 
@@ -450,6 +482,10 @@ int lensing_init(
 
   /** Compute sigma2(mu) and Cgl2(mu) **/
 
+  //debut = omp_get_wtime();
+#pragma omp parallel for \
+  private (index_mu,l) \
+  schedule (static)
   for (index_mu=0; index_mu<num_mu; index_mu++) {
 
     Cgl[index_mu]=0;
@@ -474,7 +510,11 @@ int lensing_init(
     /* Cgl(1.0) - Cgl(mu) */
     sigma2[index_mu] = Cgl[num_mu-1] - Cgl[index_mu];
   }
-  
+  //fin = omp_get_wtime();
+  //cpu_time = (fin-debut);
+  //printf("time in Cgl,Cgl2,sigma2=%4.3f s\n",cpu_time); 
+
+
   /** - compute ksi, ksi+, ksi-, ksiX */
 
   /** ksi is for TT **/
@@ -519,96 +559,145 @@ int lensing_init(
     sqrt5[l]=sqrt(ll*(ll+1));
   }
 
-  {
-    
+
+  //debut = omp_get_wtime();
 #pragma omp parallel for						\
   private (index_mu,l,ll,res,resX,resp,resm,				\
 	   fac,fac1,X_000,X_p000,X_220,X_022,X_p022,X_121,X_132,X_242)	\
   schedule (static)
     
-    for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+  for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+    
+    for (l=2;l<=ple->l_unlensed_max;l++) {
 
-      for (l=2;l<=ple->l_unlensed_max;l++) {
+      ll = (double)l;
+      
+      fac = ll*(ll+1)/4.;
+      fac1 = (2*ll+1)/(4.*_PI_);
+      
+      /* In the following we will keep terms of the form (sigma2)^k*(Cgl2)^m 
+	 with k+m <= 2 */
 
-	ll = (double)l;
-
-	fac = ll*(ll+1)/4.;
-	fac1 = (2*ll+1)/(4.*_PI_);
-
-	X_000 = exp(-fac*sigma2[index_mu]);
-	X_p000 = -fac*X_000;
-	X_220 = 0.25*sqrt1[l] * exp(-(fac-0.5)*sigma2[index_mu]);
-
-	X_022 = exp(-(fac-1.)*sigma2[index_mu]);
+      X_000 = exp(-fac*sigma2[index_mu]);
+      X_p000 = -fac*X_000;
+      /* X_220 = 0.25*sqrt1[l] * exp(-(fac-0.5)*sigma2[index_mu]); */
+      X_220 = 0.25*sqrt1[l] * X_000; /* Order 0 */
+      
+      if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+	/* X_022 = exp(-(fac-1.)*sigma2[index_mu]); */
+	X_022 = X_000 * (1+sigma2[index_mu]*(1+0.5*sigma2[index_mu])); /* Order 2 */
 	X_p022 = (fac-1.)*X_022;
-	X_121 = - 0.5*sqrt2[l] * exp(-(fac-2./3.)*sigma2[index_mu]);
-	X_132 = - 0.5*sqrt3[l] * exp(-(fac-5./3.)*sigma2[index_mu]);
-	X_242 = 0.25*sqrt4[l]  * exp(-(fac-5./2.)*sigma2[index_mu]);
-	
-	if (ple->has_tt==_TRUE_) {
-	  
-	  res = fac1*cl_tt[l];
-	  
-	  res *= (X_000*X_000*d00[index_mu][l] +
-		  X_p000*X_p000*d1m1[index_mu][l]
-		  *Cgl2[index_mu]*8./(ll*(ll+1)) +
-		  (X_p000*X_p000*d00[index_mu][l] +
-		   X_220*X_220*d2m2[index_mu][l])
-		  *Cgl2[index_mu]*Cgl2[index_mu]);
-	  
-	  ksi[index_mu] += res;
-	}
-	
-	if (ple->has_te==_TRUE_) {
-	    
-	  resX = fac1*cl_te[l];
-	  
-	  resX *= ( X_022*X_000*d20[index_mu][l] +
-                   Cgl2[index_mu]*2.*X_p000/sqrt5[l] *
-                   (X_121*d11[index_mu][l] + X_132*d3m1[index_mu][l]) +
-                   0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
-                   ( ( 2.*X_p022*X_p000+X_220*X_220 ) *
-		     d20[index_mu][l] + X_220*X_242*d4m2[index_mu][l] ) );
-
-	  ksiX[index_mu] += resX;
-	}
-	  
+	/* X_242 = 0.25*sqrt4[l]  * exp(-(fac-5./2.)*sigma2[index_mu]); */
+	X_242 = 0.25*sqrt4[l] * X_000; /* Order 0 */
 	if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-	
-	  resp = fac1*(cl_ee[l]+cl_bb[l]);
-	  resm = fac1*(cl_ee[l]-cl_bb[l]);
-	    
-	  resp *= ( X_022*X_022*d22[index_mu][l] +
-		    2.*Cgl2[index_mu]*X_132*X_121*d31[index_mu][l] +
-		    Cgl2[index_mu]*Cgl2[index_mu] *
-		    ( X_p022*X_p022*d22[index_mu][l] +
-		      X_242*X_220*d40[index_mu][l] ) );
-	    
-	  resm *= ( X_022*X_022*d2m2[index_mu][l] +
-		    Cgl2[index_mu] *
-		    ( X_121*X_121*d1m1[index_mu][l] +
-		      X_132*X_132*d3m3[index_mu][l] ) +
-		    0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
-		    ( 2.*X_p022*X_p022*d2m2[index_mu][l] +
-		      X_220*X_220*d00[index_mu][l] +
-		      X_242*X_242*d4m4[index_mu][l] ) );
-	    
-	  ksip[index_mu] += resp;
-	  ksim[index_mu] += resm;
+	  
+	  /* X_121 = - 0.5*sqrt2[l] * exp(-(fac-2./3.)*sigma2[index_mu]);
+	     X_132 = - 0.5*sqrt3[l] * exp(-(fac-5./3.)*sigma2[index_mu]); */
+	  X_121 = -0.5*sqrt2[l] * X_000 * (1+2./3.*sigma2[index_mu]); /* Order 1 */
+	  X_132 = -0.5*sqrt3[l] * X_000 * (1+5./3.*sigma2[index_mu]); /* Order 1 */
 	}
+      }
+      
+
+      if (ple->has_tt==_TRUE_) {
+	
+	res = fac1*cl_tt[l];
+	
+	lens = (X_000*X_000*d00[index_mu][l] +
+		X_p000*X_p000*d1m1[index_mu][l]
+		*Cgl2[index_mu]*8./(ll*(ll+1)) +
+		(X_p000*X_p000*d00[index_mu][l] +
+		 X_220*X_220*d2m2[index_mu][l])
+		*Cgl2[index_mu]*Cgl2[index_mu]);
+	if (accurate_lensing_integral == _FALSE_) {
+	  /* Remove unlensed correlation function */
+	  lens -= d00[index_mu][l];
+	}
+	res *= lens;
+	ksi[index_mu] += res;
+      }
+      
+      if (ple->has_te==_TRUE_) {
+	
+	resX = fac1*cl_te[l];
+	
+	
+	lens = ( X_022*X_000*d20[index_mu][l] +
+		  Cgl2[index_mu]*2.*X_p000/sqrt5[l] *
+		  (X_121*d11[index_mu][l] + X_132*d3m1[index_mu][l]) +
+                   0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
+		  ( ( 2.*X_p022*X_p000+X_220*X_220 ) *
+		    d20[index_mu][l] + X_220*X_242*d4m2[index_mu][l] ) );
+	if (accurate_lensing_integral == _FALSE_) {
+	  lens -= d20[index_mu][l];
+	}
+	resX *= lens;
+	ksiX[index_mu] += resX;
+      }
+      
+      if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+	  
+	resp = fac1*(cl_ee[l]+cl_bb[l]);
+	resm = fac1*(cl_ee[l]-cl_bb[l]);
+	    
+	lensp = ( X_022*X_022*d22[index_mu][l] +
+		  2.*Cgl2[index_mu]*X_132*X_121*d31[index_mu][l] +
+		  Cgl2[index_mu]*Cgl2[index_mu] *
+		  ( X_p022*X_p022*d22[index_mu][l] +
+		    X_242*X_220*d40[index_mu][l] ) );
+	
+	lensm = ( X_022*X_022*d2m2[index_mu][l] +
+		  Cgl2[index_mu] *
+		  ( X_121*X_121*d1m1[index_mu][l] +
+		    X_132*X_132*d3m3[index_mu][l] ) +
+		  0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
+		  ( 2.*X_p022*X_p022*d2m2[index_mu][l] +
+		    X_220*X_220*d00[index_mu][l] +
+		    X_242*X_242*d4m4[index_mu][l] ) );
+	if (accurate_lensing_integral == _FALSE_) {
+	  lensp -= d22[index_mu][l];
+	  lensm -= d2m2[index_mu][l];
+	}
+	resp *= lensp;
+	resm *= lensm;
+	ksip[index_mu] += resp;
+	ksim[index_mu] += resm;
       }
     }
   }
-  
+  //fin = omp_get_wtime();
+  //cpu_time = (fin-debut);
+  //printf("time in ksi=%4.3f s\n",cpu_time); 
+
+  /* Dump ksi for inspection */
+  { FILE*fp;
+    fp=fopen("toto.dat","w");
+    for (index_mu=0;index_mu<num_mu-1;index_mu++) {
+      fprintf(fp,"%f\t%g\n",mu[index_mu],ksi[index_mu]);
+    }
+    fclose(fp);
+  }
+
   /** - compute lensed Cls by integration */
+  //debut = omp_get_wtime();
   class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
              ple->error_message,
              ple->error_message);
+  if (accurate_lensing_integral == _FALSE_) {
+    class_call(lensing_addback_cl_tt(ple,cl_tt),
+	       ple->error_message,
+	       ple->error_message);
+  }
 
   if (ple->has_te==_TRUE_) {
     class_call(lensing_lensed_cl_te(ksiX,d20,w8,num_mu-1,ple),
                ple->error_message,
                ple->error_message);
+    if (accurate_lensing_integral == _FALSE_) {
+      class_call(lensing_addback_cl_te(ple,cl_te),
+		 ple->error_message,
+		 ple->error_message);
+    }
   }
   
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
@@ -616,7 +705,15 @@ int lensing_init(
     class_call(lensing_lensed_cl_ee_bb(ksip,ksim,d22,d2m2,w8,num_mu-1,ple),
 	       ple->error_message,
 	       ple->error_message);
+    if (accurate_lensing_integral == _FALSE_) {
+      class_call(lensing_addback_cl_ee_bb(ple,cl_ee,cl_bb),
+		 ple->error_message,
+		 ple->error_message);
+    }
   } 
+  //fin=omp_get_wtime();
+  //cpu_time = (fin-debut);
+  //printf("time in final lensing computation=%4.3f s\n",cpu_time); 
 
   /** - spline computed Cls in view of interpolation */
 
@@ -903,6 +1000,29 @@ int lensing_lensed_cl_tt(
 }
 
 /**
+ * This routine adds back the unlensed cl_tt power spectrum
+ * Used in case of fast (and BB inaccurate) integration of 
+ * correlation functions.
+ *
+ * @param ple   Input/output: Pointer to the lensing structure
+ * @param cl_tt Input       : Array of unlensed power spectrum
+ * @return the error status
+ */
+
+int lensing_addback_cl_tt(
+			  struct lensing * ple,
+			  double *cl_tt) {
+  int index_l, l;
+
+  for (index_l=0; index_l<ple->l_size; index_l++) {
+    l = (int)ple->l[index_l];
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_tt] += cl_tt[l];
+  }
+  return _SUCCESS_;
+
+}
+
+/**
  * This routine computes the lensed power spectra by Gaussian quadrature 
  *
  * @param ksiX Input       : Lensed correlation function (ksiX[index_mu])
@@ -940,6 +1060,29 @@ int lensing_lensed_cl_te(
   }
 
   return _SUCCESS_;
+}
+
+/**
+ * This routine adds back the unlensed cl_te power spectrum
+ * Used in case of fast (and BB inaccurate) integration of 
+ * correlation functions.
+ *
+ * @param ple   Input/output: Pointer to the lensing structure
+ * @param cl_te Input       : Array of unlensed power spectrum
+ * @return the error status
+ */
+
+int lensing_addback_cl_te(
+			  struct lensing * ple,
+			  double *cl_te) {
+  int index_l, l;
+
+  for (index_l=0; index_l<ple->l_size; index_l++) {
+    l = (int)ple->l[index_l];
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_te] += cl_te[l];
+  }
+  return _SUCCESS_;
+
 }
 
 /**
@@ -986,6 +1129,33 @@ int lensing_lensed_cl_ee_bb(
   }
 
   return _SUCCESS_;
+}
+
+/**
+ * This routine adds back the unlensed cl_ee, cl_bb power spectra
+ * Used in case of fast (and BB inaccurate) integration of 
+ * correlation functions.
+ *
+ * @param ple   Input/output: Pointer to the lensing structure
+ * @param cl_ee Input       : Array of unlensed power spectrum
+ * @param cl_bb Input       : Array of unlensed power spectrum
+ * @return the error status
+ */
+
+int lensing_addback_cl_ee_bb(
+			     struct lensing * ple,
+			     double * cl_ee,
+			     double * cl_bb) {
+
+  int index_l, l;
+
+  for (index_l=0; index_l<ple->l_size; index_l++) {
+    l = (int)ple->l[index_l];
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_ee] += cl_ee[l];
+    ple->cl_lens[index_l*ple->lt_size+ple->index_lt_bb] += cl_bb[l];
+  }
+  return _SUCCESS_;
+
 }
 
 /**
