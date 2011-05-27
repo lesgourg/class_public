@@ -50,9 +50,21 @@ struct thermo
   double YHe;  /**< \f$ Y_{He} \f$ : primordial helium fraction */
 
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
+
   enum reionization_z_or_tau reio_z_or_tau; /**< is the input parameter the reionization redshift or optical depth? */
+
   double tau_reio; /**< if above set to tau, input value of reionization optical depth */
+
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
+
+  double reionization_width; /**< width of H reionization */
+
+  double reionization_exponent; /**< shape of H reionization */
+
+  double helium_fullreio_redshift; /**< redshift for of helium reionization */
+
+  double helium_fullreio_width; /**< width of helium reionization */
+
   short compute_cb2_derivatives; /**< do we want derivatives of baryon sound speed? */
 
   //@}

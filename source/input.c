@@ -546,6 +546,12 @@ int input_init(
       pth->tau_reio=param2;
       pth->reio_z_or_tau=reio_tau;
     }
+
+    class_read_double("reionization_exponent",pth->reionization_exponent);
+    class_read_double("reionization_width",pth->reionization_width);
+    class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
+    class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
+
   }
 
   /** (c) define which perturbations and sources should be computed, and down to which scale */
@@ -1017,11 +1023,7 @@ int input_init(
   class_read_double("reionization_z_start_max",ppr->reionization_z_start_max);
   class_read_double("reionization_sampling",ppr->reionization_sampling);
   class_read_double("reionization_optical_depth_tol",ppr->reionization_optical_depth_tol);
-  class_read_double("reionization_exponent",ppr->reionization_exponent);
-  class_read_double("reionization_width",ppr->reionization_width);
   class_read_double("reionization_start_factor",ppr->reionization_start_factor);
-  class_read_double("helium_fullreio_redshift",ppr->helium_fullreio_redshift);
-  class_read_double("helium_fullreio_width",ppr->helium_fullreio_width);
 
   class_read_int("thermo_rate_smoothing_radius",ppr->thermo_rate_smoothing_radius);
 
@@ -1277,6 +1279,11 @@ int input_default_params(
   pth->reio_z_or_tau=reio_z;
   pth->z_reio=10.3;
   pth->tau_reio=0.085;
+  pth->reionization_exponent=1.5;
+  pth->reionization_width=1.5;
+  pth->helium_fullreio_redshift=3.5;
+  pth->helium_fullreio_width=0.5;
+
   pth->compute_cb2_derivatives=_FALSE_;
 
   /** - perturbation structure */
@@ -1471,13 +1478,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->reionization_z_start_max = 50.;
   ppr->reionization_sampling=1.e-2; 
   ppr->reionization_optical_depth_tol=1.e-2;
-  ppr->reionization_exponent=1.5;
-
-  ppr->reionization_width=0.5;  /* could be converted as 'input parameters' */
-
   ppr->reionization_start_factor=8.;
-  ppr->helium_fullreio_redshift=3.5;
-  ppr->helium_fullreio_width=0.5;
 
   /* general */
 
@@ -1530,7 +1531,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.08;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
-  ppr->radiation_streaming_trigger_tau_over_tau_k = 30.; 
+  ppr->radiation_streaming_trigger_tau_over_tau_k = 80.; 
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
  
   ppr->ur_fluid_approximation = ufa_CLASS;

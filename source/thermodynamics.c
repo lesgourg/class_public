@@ -842,11 +842,11 @@ int thermodynamics_reionization(
     /** - set values of these parameters, excepted those depending on the reionization redshift */
 
     preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
-    preio->reionization_parameters[preio->index_reio_exponent] = ppr->reionization_exponent; /* reio_exponent */
-    preio->reionization_parameters[preio->index_reio_width] = ppr->reionization_width;    /* reio_width */
+    preio->reionization_parameters[preio->index_reio_exponent] = pth->reionization_exponent; /* reio_exponent */
+    preio->reionization_parameters[preio->index_reio_width] = pth->reionization_width;    /* reio_width */
     preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, checked before that denominator is non-zero) */
-    preio->reionization_parameters[preio->index_helium_fullreio_redshift] = ppr->helium_fullreio_redshift; /* helium_fullreio_redshift */
-    preio->reionization_parameters[preio->index_helium_fullreio_width] = ppr->helium_fullreio_width;    /* helium_fullreio_width */
+    preio->reionization_parameters[preio->index_helium_fullreio_redshift] = pth->helium_fullreio_redshift; /* helium_fullreio_redshift */
+    preio->reionization_parameters[preio->index_helium_fullreio_width] = pth->helium_fullreio_width;    /* helium_fullreio_width */
 
     class_test(preio->reionization_parameters[preio->index_reio_exponent]==0,
 	       pth->error_message,
@@ -867,14 +867,14 @@ int thermodynamics_reionization(
       /* reionization redshift */
       preio->reionization_parameters[preio->index_reio_redshift] = pth->z_reio; 
       /* infer starting redshift for hydrogen */
-      preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*ppr->reionization_width;
+      preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
       /* if starting redshift for helium is larger, take that one
 	 (does not happen in realistic models) */
       if (preio->reionization_parameters[preio->index_reio_start] < 
-	  ppr->helium_fullreio_redshift+ppr->reionization_start_factor*ppr->helium_fullreio_width)
+	  pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width)
 
 	preio->reionization_parameters[preio->index_reio_start] =
-	  ppr->helium_fullreio_redshift+ppr->reionization_start_factor*ppr->helium_fullreio_width;
+	  pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
 	
       class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
 		 pth->error_message,
@@ -904,7 +904,7 @@ int thermodynamics_reionization(
 
       /* upper value */
 
-      z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*ppr->reionization_width;
+      z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
       class_test(z_sup < 0.,
 		 pth->error_message,
 		 "parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max");
@@ -947,14 +947,14 @@ int thermodynamics_reionization(
 	/* reionization redshift */
 	preio->reionization_parameters[preio->index_reio_redshift] = z_mid;
 	/* infer starting redshift for hygrogen */
-	preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*ppr->reionization_width;
+	preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
       /* if starting redshift for helium is larger, take that one
 	 (does not happen in realistic models) */
 	if (preio->reionization_parameters[preio->index_reio_start] < 
-	    ppr->helium_fullreio_redshift+ppr->reionization_start_factor*ppr->helium_fullreio_width)
+	    pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width)
 	  
 	  preio->reionization_parameters[preio->index_reio_start] =
-	    ppr->helium_fullreio_redshift+ppr->reionization_start_factor*ppr->helium_fullreio_width;
+	    pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
 	
 	class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
 		   pth->error_message,

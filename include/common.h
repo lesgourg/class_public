@@ -384,11 +384,7 @@ struct precision
   double reionization_z_start_max; /**< maximum redshift at which reionization should start. If not, return an error. */
   double reionization_sampling; /**< control stepsize in z during reionization */
   double reionization_optical_depth_tol; /**< fractional error on optical_depth */
-  double reionization_exponent; /**< parameter for CAMB-like parametrization */
-  double reionization_width; /**< parameter for CAMB-like parametrization */
   double reionization_start_factor; /**< parameter for CAMB-like parametrization */
-  double helium_fullreio_redshift; /**< parameter for CAMB-like parametrization */
-  double helium_fullreio_width; /**< parameter for CAMB-like parametrization */
    
   /** - general */
 
