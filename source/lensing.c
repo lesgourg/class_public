@@ -562,7 +562,7 @@ int lensing_init(
 
   //debut = omp_get_wtime();
 #pragma omp parallel for						\
-  private (index_mu,l,ll,res,resX,resp,resm,				\
+  private (index_mu,l,ll,res,resX,resp,resm,lens,lensp,lensm,		\
 	   fac,fac1,X_000,X_p000,X_220,X_022,X_p022,X_121,X_132,X_242)	\
   schedule (static)
     
