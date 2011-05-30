@@ -150,7 +150,6 @@ int lensing_init(
   /* Timing */
   //double debut, fin;
   //double cpu_time;
-  int accurate_lensing_integral=1;
 
   /** Summary: */
 
@@ -177,7 +176,7 @@ int lensing_init(
   /** Last element in mu will be for mu=1, needed for sigma2 
       The rest will be chosen as roots of a Gauss-Legendre quadrature **/
   
-  if (accurate_lensing_integral == _TRUE_) {
+  if (ppr->accurate_lensing == _TRUE_) {
     num_mu=(ple->l_unlensed_max+ppr->num_mu_minus_lmax); /* Must be even ?? CHECK */
     num_mu += num_mu%2; /* Force it to be even */
   } else {
@@ -196,7 +195,7 @@ int lensing_init(
               (num_mu-1)*sizeof(double),
               ple->error_message);
 
-  if (accurate_lensing_integral == _TRUE_) {
+  if (ppr->accurate_lensing == _TRUE_) {
     //debut = omp_get_wtime();
     class_call(quadrature_gauss_legendre(mu,
 					 w8,
@@ -609,7 +608,7 @@ int lensing_init(
 		(X_p000*X_p000*d00[index_mu][l] +
 		 X_220*X_220*d2m2[index_mu][l])
 		*Cgl2[index_mu]*Cgl2[index_mu]);
-	if (accurate_lensing_integral == _FALSE_) {
+	if (ppr->accurate_lensing == _FALSE_) {
 	  /* Remove unlensed correlation function */
 	  lens -= d00[index_mu][l];
 	}
@@ -628,7 +627,7 @@ int lensing_init(
                    0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
 		  ( ( 2.*X_p022*X_p000+X_220*X_220 ) *
 		    d20[index_mu][l] + X_220*X_242*d4m2[index_mu][l] ) );
-	if (accurate_lensing_integral == _FALSE_) {
+	if (ppr->accurate_lensing == _FALSE_) {
 	  lens -= d20[index_mu][l];
 	}
 	resX *= lens;
@@ -654,7 +653,7 @@ int lensing_init(
 		  ( 2.*X_p022*X_p022*d2m2[index_mu][l] +
 		    X_220*X_220*d00[index_mu][l] +
 		    X_242*X_242*d4m4[index_mu][l] ) );
-	if (accurate_lensing_integral == _FALSE_) {
+	if (ppr->accurate_lensing == _FALSE_) {
 	  lensp -= d22[index_mu][l];
 	  lensm -= d2m2[index_mu][l];
 	}
@@ -669,21 +668,13 @@ int lensing_init(
   //cpu_time = (fin-debut);
   //printf("time in ksi=%4.3f s\n",cpu_time); 
 
-  /* Dump ksi for inspection */
-  { FILE*fp;
-    fp=fopen("toto.dat","w");
-    for (index_mu=0;index_mu<num_mu-1;index_mu++) {
-      fprintf(fp,"%f\t%g\n",mu[index_mu],ksi[index_mu]);
-    }
-    fclose(fp);
-  }
 
   /** - compute lensed Cls by integration */
   //debut = omp_get_wtime();
   class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
              ple->error_message,
              ple->error_message);
-  if (accurate_lensing_integral == _FALSE_) {
+  if (ppr->accurate_lensing == _FALSE_) {
     class_call(lensing_addback_cl_tt(ple,cl_tt),
 	       ple->error_message,
 	       ple->error_message);
@@ -693,7 +684,7 @@ int lensing_init(
     class_call(lensing_lensed_cl_te(ksiX,d20,w8,num_mu-1,ple),
                ple->error_message,
                ple->error_message);
-    if (accurate_lensing_integral == _FALSE_) {
+    if (ppr->accurate_lensing == _FALSE_) {
       class_call(lensing_addback_cl_te(ple,cl_te),
 		 ple->error_message,
 		 ple->error_message);
@@ -705,7 +696,7 @@ int lensing_init(
     class_call(lensing_lensed_cl_ee_bb(ksip,ksim,d22,d2m2,w8,num_mu-1,ple),
 	       ple->error_message,
 	       ple->error_message);
-    if (accurate_lensing_integral == _FALSE_) {
+    if (ppr->accurate_lensing == _FALSE_) {
       class_call(lensing_addback_cl_ee_bb(ple,cl_ee,cl_bb),
 		 ple->error_message,
 		 ple->error_message);

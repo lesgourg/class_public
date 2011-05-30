@@ -1139,10 +1139,12 @@ int input_init(
 
   /** h.8. parameter related to lensing */
 
-  class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
+  class_read_int("accurate_lensing",ppr->accurate_lensing);
   class_read_int("delta_l_max",ppr->delta_l_max);
-  class_read_int("tol_gauss_legendre",ppr->tol_gauss_legendre);
-
+  if (ppr->accurate_lensing == _TRUE_) {
+    class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
+    class_read_int("tol_gauss_legendre",ppr->tol_gauss_legendre);
+  }
 
   /* check various l_max */
 

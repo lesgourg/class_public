@@ -140,6 +140,7 @@ int main(int argc, char **argv) {
     fscanf(output,"%e",&cl_read);
     fscanf(output,"%e",&cl_read);
     fscanf(output,"%e",&cl_read);
+    fscanf(output,"%e",&cl_read);
     if (l_read != l) {
       printf("l_read != l: %d %d\n",l_read,l);
     }
