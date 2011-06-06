@@ -84,17 +84,11 @@ struct spectra_nl {
 
   //@}
 
-  /** BOUND TO DISAPPEAR */
-
-  double * z_plot;
-
-  short plot_size;
-
   /** @name - technical parameters */
 
   //@{
 
-  short spectra_nl_verbose;  	/**< from 0 to 1: amount of information written in standard output */
+  short spectra_nl_verbose;  	/**< from 0: amount of information written in standard output */
 
   ErrorMsg error_message; 	/**< zone for writing error messages */
 
@@ -186,11 +180,11 @@ extern "C" {
 		double * result, 
 		char * errmsg);
 
-  /**************
+  /** 
    * Function that performs the integration with a simple trapeze
    * method over x and y with number of steps n_xy of any
    * A0..., B0..., at any chosen time eta=eta[index_eta]
-   **************/
+   */
 
   int trg_integrate_xy_at_eta(
 			      struct background * pba,
@@ -228,9 +222,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
-/**** below some define commands ***/
-
-#define _STOP_INT_ 1.e-1
 
 #endif

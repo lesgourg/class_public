@@ -1,6 +1,6 @@
 /** @file trg.c Documented Time Renormalization Group module
  *
- * Benjamin Audren, 02.05.2011
+ * Benjamin Audren, 06.06.2011
  *
  * Computes the non linear matter spectra P_k with Time
  * Renormalization Group method or one-loop given the linear power
@@ -11,7 +11,7 @@
  * value of the "non linear" parameter in your .ini file, respectively
  * to 'trg' or 'one-loop'. For testing purpose, you might want to use
  * the value 'test-linear', which will then output the linear spectra
- * out the equations.
+ * out of the equations.
  *
  * The logic is the following :
  *
@@ -1905,11 +1905,12 @@ int trg_integrate_xy_at_eta(
   double sum,area;
   double increment_sum,increment_area;
 
-  /** - set a value for the upper bound in x */
+  /** - set a value for the upper bound in x, hard-coded. */
 
   k_max=3000.;
 
-  /** - enter the loop over k-values still under the 'double_escape' condition */
+  /** - enter the loop over k-values still under the 'double_escape'
+        condition */
 
   for(index_k=0; index_k<pnl->k_size-pnl->double_escape*(2*index_eta+1); index_k++){
 
@@ -1917,13 +1918,17 @@ int trg_integrate_xy_at_eta(
 
     /** - define the steps on x and y */
 
-    /* for large k's, one must reduce the steps to be accurate enough */
+    /* for large k's, one must reduce the steps to be accurate
+       enough. These are precision parameters hard-coded, maybe there
+       is some execution time to save here, but not much. */
 
     logstepx=min(1.1,1+0.01/pow(k,1));
     
-    /* however, a pnl->logstepx_min is defined to restrain the computing time. This is the key element controling the speed
-       of the computation. For information, with eta_size=100, pnl->logstepx_min = 1.07 : 40 minutes, pnl->logstepx_min = 1.008:
-       4 hours. Can be changed in trg.ini */
+    /* however, a pnl->logstepx_min is defined to restrain the
+       computing time. This is the key element controling the speed of
+       the computation. For information, with eta_size=100,
+       pnl->logstepx_min = 1.07 : 70 minutes, pnl->logstepx_min =
+       1.02: 4 hours. Can be changed in trg.ini */
 
     if(logstepx< pnl->logstepx_min)  logstepx= pnl->logstepx_min; 
 
@@ -1931,8 +1936,9 @@ int trg_integrate_xy_at_eta(
 
     /** A) deal with the case k < k_linear. Can be changed in trg.ini */
 
-    /* for sufficiently small k's, the modes are supposed to stay linear at all time during the evolution,
-       their A function is thus equal to zero */
+    /* for sufficiently small k's, the modes are supposed to stay
+       linear at all time during the evolution, their A function is
+       thus equal to zero */
     if(index_k<pnl->index_k_L){ 
 
       result[index_k+pnl->k_size*index_eta]=0.;
@@ -2284,16 +2290,16 @@ int trg_integrate_xy_at_eta(
   
 }
 
-/**
+/** 
  * Logarithmic step in k for the low k values
  *
- * It simply affects the correct logstep corresponding to a certain value of k.
- * A hyperbolic tangent has been selected to get a smooth tranisition between 
- * the two ends of the spectrum, in order to avoid numerical troubles in case 
- * of a brutal change in step.
+ * It simply affects the correct logstep corresponding to a certain
+ * value of k.  A hyperbolic tangent has been selected to get a smooth
+ * tranisition between the two ends of the spectrum, in order to avoid
+ * numerical troubles in case of a brutal change in step.
  *
- * The values are adjusted to fit the default values of steps in eta and of
- * double escape parameters. Change at your own risk !
+ * The values are adjusted to fit the default values of steps in eta
+ * and of double escape parameters. Change at your own risk !
  *
  * @param k 		Input:  current value of the wavenumber
  * @param logstep	Output: logstep associated with the desired wavenumber
@@ -2307,16 +2313,16 @@ int trg_logstep1_k (
   return _SUCCESS_;
 }
 
-/**
+/** 
  * Logarithmic step in k for the high k values
  *
- * It simply affects the correct logstep corresponding to a certain value of k.
- * A hyperbolic tangent has been selected to get a smooth tranisition between 
- * the two ends of the spectrum, in order to avoid numerical troubles in case 
- * of a brutal change in step.
+ * It simply affects the correct logstep corresponding to a certain
+ * value of k.  A hyperbolic tangent has been selected to get a smooth
+ * tranisition between the two ends of the spectrum, in order to avoid
+ * numerical troubles in case of a brutal change in step.
  *
- * The values are adjusted to fit the default values of steps in eta and of
- * double escape parameters. Change at your own risk !
+ * The values are adjusted to fit the default values of steps in eta
+ * and of double escape parameters. Change at your own risk !
  *
  * @param k 		Input:  current value of the wavenumber
  * @param logstep	Output: logstep associated with the desired wavenumber
@@ -2330,25 +2336,27 @@ int trg_logstep2_k (
   return _SUCCESS_;
 }
 
-/**
- * Computes the non-linear spectra for matter (cold dark matter and baryons, so far)
- * and fills in the spectra_nl structure with pk_nl, p_12_nl, p_22_nl.
+/** 
+ * Computes the non-linear spectra for matter (cold dark matter and
+ * baryons, so far) and fills in the spectra_nl structure with pk_nl,
+ * p_12_nl, p_22_nl.
  *
  *
- * Since this sub-routine uses a different k table, one should also uses pnl->k to
- * output the results.
+ * Since this sub-routine uses a different k table, one should also
+ * uses pnl->k to output the results.
  *
- * The program can be told to compute the non linear spectra with (resp.) the 
- * Time Renormalization Group method, the one-loop method, or the simple linear
- * method (for testing purposes), by letting the non-linearity mode option 
- * in a .ini file be (resp.) 2, 1 or 0.
+ * The program can be told to compute the non linear spectra with
+ * (resp.) the Time Renormalization Group method, the one-loop method,
+ * or the simple linear method (for testing purposes), by letting the
+ * non-linearity mode option in a .ini file be (resp.) 2, 1 or 0.
  *
- * The starting redshift of the non-linear computation can be selected via the
- * .ini file as well (CHECK TROUBLES IF THIS VALUE IS CHANGED AND NOT Z_MAX_PK).
- * It is set by default to z=35.
+ * The starting redshift of the non-linear computation can be selected
+ * via the .ini file as well (CHECK TROUBLES IF THIS VALUE IS CHANGED
+ * AND NOT Z_MAX_PK).  It is set by default to z=35.
  *
- * It is possible (so far) to compute exactly the cdm + baryon spectra, or the
- * approximated cdm + baryon via the option b+c spectrum (YET TO BE IMPLEMENTED)
+ * It is possible (so far) to compute exactly the cdm + baryon
+ * spectra, or the approximated cdm + baryon via the option b+c
+ * spectrum (YET TO BE IMPLEMENTED)
  *
  * @param ppr Input: pointer to precision structure
  * @param pba Input: pointer to background structure (provides H, Omega_m at redshift of interest)
@@ -2420,7 +2428,7 @@ int trg_init (
   double * Omega_m, * H, *H_prime;
   double * growth_factor;
 
-  /**
+  /** 
    * Definition of the matrix Omega that mixes terms together,
    * two are k indepedant and two dependant
    */
@@ -2428,7 +2436,7 @@ int trg_init (
   double Omega_11,Omega_12;
   double *Omega_21,*Omega_22;
 
-  /**
+  /** 
    * Definition of the variables 1 ijk,lmn and 2 ijk,lmn that
    * replace the Bispectra variables, and of the A's.
    */
@@ -2451,7 +2459,7 @@ int trg_init (
   class_calloc(junk,2,sizeof(double),pnl->error_message); // This one would be to use several different IC in spectra_pk_at_k_and_z
 
 
-  /**
+  /** 
    * This code can be optionally compiled with the openmp option for parallel computation.
    *
    * Inside parallel regions, the use of the command "return" is forbidden.
@@ -2554,6 +2562,10 @@ int trg_init (
     }
   }
 
+  class_test((pnl->z[0]>psp->z_max_pk),
+	     pnl->error_message,
+	     "\nStarting redshift for non-linear is %2.1f > maximum computed redshift %2.1f\nYou probably want to increase z_max_pk\n",
+	     pnl->z[0],psp->z_max_pk);
 
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> starting calculation at redshift z = %2.2f\n",pnl->z[0]);
@@ -2575,12 +2587,6 @@ int trg_init (
 	       pnl->error_message);
     
     Omega_m[index_eta] = pvecback_nl[pba->index_bg_Omega_m];
-    /*Omega_m[index_eta] = pvecback_nl[pba->index_bg_rho_b]/pvecback_nl[pba->index_bg_rho_crit];*/
-    /*if (pba->has_cdm == _TRUE_) {*/
-      /*Omega_m[index_eta] += pvecback_nl[pba->index_bg_rho_cdm]/pvecback_nl[pba->index_bg_rho_crit];*/
-    /*}*/
-
-    printf("%g %g\n",Omega_m[index_eta],pnl->z[index_eta]);
     
     H[index_eta] = pvecback_nl[pba->index_bg_H] * a_ini * exp(pnl->eta[index_eta]);
     H_prime[index_eta] =H[index_eta]*(1 + pvecback_nl[pba->index_bg_H_prime] / a_ini * exp(-pnl->eta[index_eta])/pvecback_nl[pba->index_bg_H]/pvecback_nl[pba->index_bg_H]);
@@ -2607,6 +2613,10 @@ int trg_init (
     }
   }
 
+  /** Implementing the E1L method (see paper). We recover the computed
+      growth_factor, normalized to unity at starting redshift, and for
+      a k_growth_factor chosen in the .ini. The dependence in
+      k_growth_factor has been tested to be negligible. */
 
   class_calloc(growth_factor,pnl->eta_size,sizeof(double),pnl->error_message);
  
@@ -2622,13 +2632,12 @@ int trg_init (
                psp->error_message,
                pnl->error_message);
 
+    /* Putting this following value to 1 for each eta would recover the U1L method */
       growth_factor[index_eta]=sqrt(pk/pk_ini)*(1+pnl->z[index_eta])/(1+pnl->z[0]);
-      printf("%e\n",growth_factor[index_eta]);
-
   }
 
 
-  /**
+  /** 
    * Definition of P_11, P_12 and P_22, the two points correlators
    * of the density/density (resp. density/velocity and velocity/velocity),
    * initialized at eta=0 (by default, z=35).
@@ -2654,18 +2663,25 @@ int trg_init (
   class_calloc(p_12_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(p_22_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
-  /* There is the possibility to add a cutoff to take into account exponential suppression
-   * of the power spectrum at high k (physical effect given by ???). By default, however,
-   * set on 1. (no cutoff).
+  /* There is the possibility to add a cutoff to take into account
+   * exponential suppression of the power spectrum at high k. By
+   * default, however, set on 1. (no cutoff).
    */
 
-  /* To determine precisely blabla
+  /* To determine precisely the velocity at initial time, the code
+     evaluates the time derivative of the density (relation true for
+     linear perturbation theory) using the following local variables.
    */
+
   double dtau=0.0001; /*conformal age of the universe is 14000 */
   double dz_p=-dtau*pba->a_today*H[0]/a_ini;
-
   double delta_minus,delta_plus,d_delta_m_over_dz;
+
   for(index_k=0; index_k<pnl->k_size; index_k++){
+    /* There is the possibility to add a cutoff to take into account
+     * exponential suppression of the power spectrum at high k. By
+     * default, however, set on 1. (no cutoff).
+     */
     cutoff=1.;
 
     class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->p_11_nl[index_k],junk),
@@ -2684,7 +2700,7 @@ int trg_init (
     pnl->p_11[index_k]    = pnl->p_11_nl[index_k];
     p_11_linear[index_k]  = pnl->p_11_nl[index_k];
 
-    d_delta_m_over_dz=(sqrt(delta_plus)-sqrt(delta_minus))/(2*dz_p); /* theta is actually (-theta) */
+    d_delta_m_over_dz=(sqrt(delta_plus)-sqrt(delta_minus))/(2*dz_p);
 
     pnl->p_12_nl[index_k] = -sqrt(pnl->p_11_nl[index_k])*d_delta_m_over_dz*pba->a_today/a_ini;
     pnl->p_12[index_k]    = pnl->p_12_nl[index_k];
@@ -2695,10 +2711,9 @@ int trg_init (
     p_22_linear[index_k]  = pnl->p_22_nl[index_k];
   }
 
-  free(junk);
 
+  free(junk);
   free(Omega_m);
-  
   free(H_prime);
 
   /** Initialisation and definition of second derivatives */
@@ -2737,16 +2752,22 @@ int trg_init (
 
   for (index_k = 0; index_k < pnl->k_size ; index_k++) {
     pnl->ddp_11[index_k] = pnl->ddp_11_nl[index_k];
-    pnl->ddp_12[index_k] = pnl->ddp_11_nl[index_k];
-    pnl->ddp_22[index_k] = pnl->ddp_11_nl[index_k];
+    pnl->ddp_12[index_k] = pnl->ddp_12_nl[index_k];
+    pnl->ddp_22[index_k] = pnl->ddp_22_nl[index_k];
   } 
    /* Definition of 1_0, 1_11,(here a0, a11,...) etc, and 2_0, 2_11,
     * (here b0,b11,...) etc.. and initialization (directly with calloc
-    * for assuming no initial non gaussianity in the spectrum) 
-    * The convention for 1_0, 1_11, 1_22 is : I_121_222, I_121_122, I_121_121(or the 121, 
-    * 0 means there are no 1's in the second row of indices, 11: there is one 1
-    * and it is at the first place, 22 there are two 1's and the only 2 is at the
-    * second place). The convention for 2_0, etc.. are reversed, i.e. 2_11 means I_222_211.
+    * for assuming no initial non gaussianity in the spectrum) The
+    * convention for 1_0, 1_11, 1_22 is : I_121_222, I_121_122,
+    * I_121_121, in more details: 
+    * 0 : there is no 1 in the second row of indices, 
+    * 11: there is one 1 in the second row of indices, and it is at the first place, 
+    * 22: there are two 1's and the only 2 is at the second place.  
+
+    * The convention for 2_0, etc.. are reversed, i.e. 2_11 means
+    * I_222_211. Though not very clear at first, I found no clearer
+    * and faster way to designate all this cumbersome indices, and in
+    * the end, it is not so bad.
     */
 
   class_calloc(a0 ,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
@@ -2824,11 +2845,17 @@ int trg_init (
   free(pnl->p_12);
   free(pnl->p_22);
 
-  /** Now we calculate the time evolution with a very simple integrator */
+  /** Now we calculate the time evolution with a predictor corrector
+      algorithm. */
 
-  /* At each step, 
-   * first the new power spectra are computed (and pnl->double_escape points are dropped)
-   * then the AA functions are updated (for 1-loop method, they are just copied from last step) (and pnl->double_escape points are dropped)
+  /* At each step, first the new power spectra are computed on a half
+   * time step (and pnl->double_escape points are dropped) then the AA
+   * functions are updated (for 1-loop method, they are just copied
+   * from last step) (and pnl->double_escape points are dropped).
+   * Then, the new power spectra are evaluated in the whole time step
+   * using quantities computed on the half time step, and the new AA
+   * functions are updated. The pnl->double_escape procedure also
+   * takes place during this time.
    */
   
   double time_step;
@@ -3023,7 +3050,8 @@ int trg_init (
 		 pnl->error_message);
     }
 
-    /** Update of AA's at the new time (for 1-loop, copy the previous values) */
+    /** Update of AA's at the new time (for 1-loop, copy the previous
+	values, taking into account the growth factor) */
 
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
@@ -3252,7 +3280,8 @@ int trg_init (
 		 pnl->error_message);
     }
 
-    /** Update of AA's at the new time (for 1-loop, copy the previous values) */
+    /** Update of AA's at the new time (for 1-loop, copy the previous
+	values, taking into account the growth factor) */
 
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
@@ -3321,48 +3350,6 @@ int trg_init (
 
   /** End of the computation, beginning of cleaning */
 
-  /***** TEST ZONE *****/
-  /*double r0,r1,r2;*/
-
-  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[100],pnl->z[index_eta],&r0,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size-500],pnl->z[index_eta],&r1,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-    /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[pnl->k_size/2],pnl->z[index_eta],&r2,junk),*/
-	/*psp->error_message,*/
-	/*pnl->error_message);*/
-
-    /*printf("%g %g %g %g %g %g %g %g\n",pnl->eta[index_eta],pnl->z[index_eta],*/
-	/*pnl->p_11_nl[100+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r0,*/
-	/*pnl->p_11_nl[pnl->k_size-500+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r1,*/
-	/*pnl->p_11_nl[pnl->k_size/2+pnl->k_size*(index_eta)]*exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2),r2); }*/
-
-  /***** END OF TEST ZONE *****/
-
-  /***** TEMPORARY CORRECTION ****/
-  /*double r0;*/
-  
-  /*for(index_eta=0; index_eta<pnl->eta_size; index_eta+=2){*/
-    /*for(index_k=0; index_k<pnl->k_size-2*pnl->double_escape*index_eta; index_k++){*/
-      /*class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[index_eta],&r0,junk),*/
-	  /*psp->error_message,*/
-	  /*pnl->error_message);*/
-      /*r0=r0/exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2);*/
-
-
-      /*pnl->p_11_nl[index_k+pnl->k_size*index_eta]+= r0 - p_11_linear[index_k+pnl->k_size*index_eta];*/
-      /*p_11_linear[index_k+pnl->k_size*index_eta]=  r0;*/
-      /*p_12_linear[index_k+pnl->k_size*index_eta]+=r0-p_12_linear[index_k+pnl->k_size*index_eta];*/
-      /*p_22_linear[index_k+pnl->k_size*index_eta]+=r0-p_22_linear[index_k+pnl->k_size*index_eta];*/
-
-    /*}*/
-  /*}*/
-
-  /***** END OF TEMP *****/
-
   for (index_name=0; index_name<name_size; index_name++) 
     free(AA[index_name]);
   free(AA);
@@ -3390,12 +3377,14 @@ int trg_init (
   free(Omega_21);
   free(Omega_22);
 
+  /** Pk_nl values are transformed back into real power spectrum
+      values, transforming back from the phi doublet notation. */
   for(index_eta=0; index_eta < pnl->eta_size; index_eta++) {
     for(index_k=0; index_k < pnl->k_size-pnl->double_escape*index_eta; index_k++) {
 
       pnl->p_11_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2);
-      pnl->p_12_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2)*H[index_eta];
-      pnl->p_22_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2)*pow(H[index_eta],2);
+      pnl->p_12_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2)*sqrt(H[index_eta]);
+      pnl->p_22_nl[index_k+pnl->k_size*index_eta]*=exp(-log( (pnl->z[index_eta]+1.) * a_ini / pba->a_today )*2)*H[index_eta];
 
     }
   }
@@ -3406,7 +3395,7 @@ int trg_init (
    
 }
 
-/**
+/** 
  * This routine frees all the memory space allocated by trg_init().
  *
  * To be called at the end of each run, when no further use of the nl_functions are needed.

@@ -1,26 +1,26 @@
 ###################################################################
 #
-# CPU, a CLASS Plotting Utility
-# v1.0
-# Benjamin Audren, 02.05.2011
-# 
-# This is a small program aimed to gain time when comparing two spectra,
-# i.e. from CAMB and CLASS, or a non-linear spectrum to a linear one.
-# It is designed to be used in a command line fashion, not being restricted
-# to your CLASS directory, though it recognized mainly CLASS output format.
+# CPU, a CLASS Plotting Utility 
+# v1.0 
+# Benjamin Audren, 02.05.2011 
 #
-# Far from perfect, or complete, it could use any suggestion for enhancing it,
-# just to avoid losing time on useless matters for others.
-#
-# Example of use:
-#
-# To superimpose two different spectra and see their global shape :
-#   python CPU output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat 
-# 
-# To precisely compare the non-linear contribution of one-loop w.r.t. to TRG method:
-#   python CPU -i output/lcdm_1l_z1_pk.dat output/lcdm_1l_z1_pk_nl_density.dat output/lcdm_trg_pk_nl_density.dat
-#
-# The documentation available with --help should cover any question.
+# This is a small python program aimed to gain time when comparing two
+# spectra, i.e. from CAMB and CLASS, or a non-linear spectrum to a
+# linear one.  It is designed to be used in a command line fashion, not
+# being restricted to your CLASS directory, though it recognized mainly
+# CLASS output format.  Far from perfect, or complete, it could use any
+# suggestion for enhancing it, just to avoid losing time on useless
+# matters for others.  Be warned that, when comparing with other
+# format, the following is assumed: there are no empty line (especially
+# at the end of file). Gnuplot comment lines (starting with a # are
+# allowed). This issue will cause a non-very descriptive error in CPU,
+# any suggestion for testing it is welcome.  Example of use: To
+# superimpose two different spectra and see their global shape : python
+# CPU output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat To precisely compare
+# the non-linear contribution of one-loop w.r.t. to TRG method: python
+# CPU -i output/lcdm_1l_z1_pk.dat output/lcdm_1l_z1_pk_nl_density.dat
+# output/lcdm_trg_pk_nl_density.dat The documentation available with
+# --help should cover any question.
 ###################################################################
 
 from scipy import *
@@ -98,8 +98,8 @@ def error_number_of_files():
 
 def printstring(names):
   print_file=names[0].rstrip(".dat")
-  print_file+=".eps"
-  print_string="set term 'postscript'\nset output '{0}'\nreplot".format(print_file)
+  print_file+=".ps"
+  print_string="set term 'po' enhanced color\nset output '{0}'\nreplot".format(print_file)
   print '{0} has been generated'.format(print_file)
   return print_string
 
