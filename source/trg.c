@@ -2405,7 +2405,6 @@ int trg_init (
   /** Time (t or eta) quantities */
 
   int index_eta;
-  /*int index_cut;*/
 
   int index;  
   int index_plus; 
@@ -2422,11 +2421,19 @@ int trg_init (
 
   double cutoff;
 
+  double time_step;
+  int index_int;
+
   /** Background quantities */
 
   double * pvecback_nl;
   double * Omega_m, * H, *H_prime;
   double * growth_factor;
+  double * corrected_growth_factor;
+
+  int a,b;
+  double gprime;
+  double aprime;
 
   /** 
    * Definition of the matrix Omega that mixes terms together,
@@ -2452,6 +2459,10 @@ int trg_init (
   double temp; 
   double * junk;
   double pk,pk_ini;
+
+  double dtau;
+  double dz_p;
+  double delta_minus,delta_plus,d_delta_m_over_dz;
 
   /** Meaningless initialisations to remove warnings (some variables are only defined in conditional loops) **/
 
@@ -2619,12 +2630,14 @@ int trg_init (
       k_growth_factor has been tested to be negligible. */
 
   class_calloc(growth_factor,pnl->eta_size,sizeof(double),pnl->error_message);
+  class_calloc(corrected_growth_factor,pnl->eta_size,sizeof(double),pnl->error_message);
  
   class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k_growth_factor,pnl->z[0],&pk_ini,junk),
 	     psp->error_message,
 	     pnl->error_message);
 
   growth_factor[0] = 1.;
+  corrected_growth_factor[0] = 1.;
 
   for(index_eta=1; index_eta < pnl->eta_size; index_eta++) {
 
@@ -2634,6 +2647,11 @@ int trg_init (
 
     /* Putting this following value to 1 for each eta would recover the U1L method */
       growth_factor[index_eta]=sqrt(pk/pk_ini)*(1+pnl->z[index_eta])/(1+pnl->z[0]);
+
+      gprime=(growth_factor[index_eta]-growth_factor[index_eta-1]);
+      aprime=-1./pow(1+pnl->z[index_eta],2)*(pnl->z[index_eta]-pnl->z[index_eta-1]);
+
+      corrected_growth_factor[index_eta]=growth_factor[index_eta]+1./(1+pnl->z[index_eta])*gprime/aprime;
   }
 
 
@@ -2673,15 +2691,16 @@ int trg_init (
      linear perturbation theory) using the following local variables.
    */
 
-  double dtau=0.0001; /*conformal age of the universe is 14000 */
-  double dz_p=-dtau*pba->a_today*H[0]/a_ini;
-  double delta_minus,delta_plus,d_delta_m_over_dz;
+  dtau=0.0001; /*conformal age of the universe is 14000 */
+  dz_p=-dtau*pba->a_today*H[0]/a_ini;
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
+
     /* There is the possibility to add a cutoff to take into account
      * exponential suppression of the power spectrum at high k. By
      * default, however, set on 1. (no cutoff).
      */
+
     cutoff=1.;
 
     class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->p_11_nl[index_k],junk),
@@ -2858,9 +2877,6 @@ int trg_init (
    * takes place during this time.
    */
   
-  double time_step;
-  int index_int;
-
   if (pnl->spectra_nl_verbose > 1){	
     printf(" -> progression:\n");}
 
@@ -3050,16 +3066,33 @@ int trg_init (
 		 pnl->error_message);
     }
 
-    /** Update of AA's at the new time (for 1-loop, copy the previous
-	values, taking into account the growth factor) */
+    /** Update of AA's at the new time 
+     */
+    
+    /* For Evolved-1-Loop, copy the previous values, taking into
+     * account the correct powers of growth factor g for density, and
+     * f=g+ag'/a' for velocity perturbation) */
 
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
+	if(index_name==0)
+	  a=0;
+	else if(index_name==1||index_name==2||index_name==3||index_name==11||index_name==12)
+	  a=1;
+	else if(index_name==4||index_name==5||index_name==6||index_name==9||index_name==10)
+	  a=2;
+	else if(index_name==7||index_name==8)
+	  a=3;
+	else
+	  a=4;
+	b=4-a;
 	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/1; index_k++){
-	  AA[index_name][index_k+pnl->k_size*(index_eta-1)]=pow(growth_factor[index_eta-1],4)*AA[index_name][index_k];}
+	  AA[index_name][index_k+pnl->k_size*(index_eta-1)]=pow(growth_factor[index_eta-1],a)*pow(corrected_growth_factor[index_eta-1],b)*AA[index_name][index_k];}
       }
     }
-    
+
+    /* For TRG, simply recomputes the AA values entirely */
+
     else if(pnl->mode == 2){
 
       /* initialize error management flag */
@@ -3283,13 +3316,28 @@ int trg_init (
     /** Update of AA's at the new time (for 1-loop, copy the previous
 	values, taking into account the growth factor) */
 
+    /* For Evolved-1-Loop, copy the previous values, taking into
+     * account the correct powers of growth factor g for density, and
+     * f=g+ag'/a' for velocity perturbation) */
+
     if(pnl->mode==1){
       for (index_name=0; index_name<name_size; index_name++){
+	if(index_name==0)
+	  a=0;
+	else if(index_name==1||index_name==2||index_name==3||index_name==11||index_name==12)
+	  a=1;
+	else if(index_name==4||index_name==5||index_name==6||index_name==9||index_name==10)
+	  a=2;
+	else if(index_name==7||index_name==8)
+	  a=3;
+	else
+	  a=4;
+	b=4-a;
 	for(index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta)/1; index_k++){
-	  AA[index_name][index_k+pnl->k_size*index_eta]=pow(growth_factor[index_eta],4)*AA[index_name][index_k];}
+	  AA[index_name][index_k+pnl->k_size*index_eta]=pow(growth_factor[index_eta-1],a)*pow(corrected_growth_factor[index_eta-1],b)*AA[index_name][index_k];}
       }
     }
-    
+
     else if(pnl->mode == 2){
 
       /* initialize error management flag */
@@ -3377,8 +3425,12 @@ int trg_init (
   free(Omega_21);
   free(Omega_22);
 
+  free(growth_factor);
+  free(corrected_growth_factor);
+
   /** Pk_nl values are transformed back into real power spectrum
-      values, transforming back from the phi doublet notation. */
+      values, from the phi doublet notation. */
+
   for(index_eta=0; index_eta < pnl->eta_size; index_eta++) {
     for(index_k=0; index_k < pnl->k_size-pnl->double_escape*index_eta; index_k++) {
 

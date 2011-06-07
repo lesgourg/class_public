@@ -31,7 +31,6 @@ struct spectra_nl {
 
   short mode; 		 	/**< from 0 to 2: 0 being linear theory, 1 for one loop and 2 for full trg calculation*/
   short has_bc_spectrum; 	/**< _TRUE_ or _FALSE_*/
-  //short has_simple_omega;       [>*< _TRUE_ or _FALSE_<]
   int double_escape;		/**< Usual value is 2 (which means the code drops 2 points every half-step), you might want to increase it a bit if you have a finner k-grid */
   double z_ini;			/**< Starting value of the redshift for the non-linear computation */
   int eta_size;			/**< Number of steps in time, to change in agreement with the precision, and the escape parameter */
@@ -104,6 +103,10 @@ struct spectra_nl {
 extern "C" {
 #endif
 
+  /** 
+   * List of names for the different AA terms.
+   */
+
   enum name_A{
     _A0_,
     _A11_,
@@ -163,28 +166,6 @@ extern "C" {
 			 double m, 
 			 double * result 
 			 );
-
-  /********************
-   * Choice between one loop or trg during integration
-   * in order to avoid repetitions
-   ********************/
-
-  int trg_A_arg(
-		struct spectra_nl *pnl,
-		enum name_A name,
-		double k, 
-		double p, 
-		double m, 
-		int index_eta,
-		int index_k,
-		double * result, 
-		char * errmsg);
-
-  /** 
-   * Function that performs the integration with a simple trapeze
-   * method over x and y with number of steps n_xy of any
-   * A0..., B0..., at any chosen time eta=eta[index_eta]
-   */
 
   int trg_integrate_xy_at_eta(
 			      struct background * pba,
