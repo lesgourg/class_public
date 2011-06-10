@@ -897,10 +897,10 @@ int input_init(
   if (flag1 == _TRUE_) {
 
       if ((strstr(string1,"class") != NULL) || (strstr(string1,"CLASS") != NULL))
-	pop->output_format = class;
+	pop->output_format = class_format;
       else {
 	if ((strstr(string1,"camb") != NULL) || (strstr(string1,"CAMB") != NULL))
-	  pop->output_format = camb;
+	  pop->output_format = camb_format;
 	else
 	  class_stop(errmsg,	       
 		     "You wrote: format=%s. Could not identify any of the possible formats ('class', 'CLASS', 'camb', 'CAMB')",string1);	  
@@ -1374,7 +1374,7 @@ int input_default_params(
   pop->z_pk[0] = 0.;  
   sprintf(pop->root,"output/");
   pop->write_header = _TRUE_;
-  pop->output_format = class;
+  pop->output_format = class_format;
 
   /** - spectra structure */ 
 
@@ -1533,7 +1533,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.08;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
-  ppr->radiation_streaming_trigger_tau_over_tau_k = 80.; 
+  ppr->radiation_streaming_trigger_tau_over_tau_k = 45.; 
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
  
   ppr->ur_fluid_approximation = ufa_CLASS;
@@ -1597,6 +1597,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to lensing
    */
 
+  ppr->accurate_lensing=_FALSE_;
   ppr->num_mu_minus_lmax=70;
   ppr->delta_l_max=250;
 

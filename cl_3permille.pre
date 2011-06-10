@@ -5,7 +5,7 @@
 a_ini_over_a_today_default = 1.e-14
 back_integration_stepsize = 7.e-3
 tol_background_integration = 1.e-2
-tol_ncdm_bg = 1.e-5
+tol_ncdm_bg = 1.e-4
 
 recfast_z_initial=1.e4
 
@@ -72,14 +72,14 @@ tol_perturb_integration=1.e-3
 perturb_sampling_stepsize=0.05
 
 radiation_streaming_approximation = 2
-radiation_streaming_trigger_tau_over_tau_k = 50.
-radiation_streaming_trigger_tau_c_over_tau = 80.
+radiation_streaming_trigger_tau_over_tau_k = 100.
+radiation_streaming_trigger_tau_c_over_tau = 40.
 
 ur_fluid_approximation = 2
-ur_fluid_trigger_tau_over_tau_k = 16.
+ur_fluid_trigger_tau_over_tau_k = 18.
 
 ncdm_fluid_approximation = 2
-ncdm_fluid_trigger_tau_over_tau_k = 17.
+ncdm_fluid_trigger_tau_over_tau_k = 1000.
 
 tol_ncdm=1.e-3
 

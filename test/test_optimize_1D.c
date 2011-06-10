@@ -491,7 +491,7 @@ int chi2_planck(
   for (l=2; l <= lmax; l++) {
 
 /*     if (psp->ct_size == 1) { */
-    if (0==0) {
+    if (0==1) {
 
       *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
 			       (cl1[l][0]+nl[l][0])+

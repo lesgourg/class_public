@@ -72,14 +72,14 @@ tol_perturb_integration=1.e-4
 perturb_sampling_stepsize=0.02
 
 radiation_streaming_approximation = 2
-radiation_streaming_trigger_tau_over_tau_k = 60.
-radiation_streaming_trigger_tau_c_over_tau = 80.
+radiation_streaming_trigger_tau_over_tau_k = 120.
+radiation_streaming_trigger_tau_c_over_tau = 40.
 
 ur_fluid_approximation = 2
 ur_fluid_trigger_tau_over_tau_k = 18.
 
 ncdm_fluid_approximation = 2
-ncdm_fluid_trigger_tau_over_tau_k = 18.
+ncdm_fluid_trigger_tau_over_tau_k = 1000.
 
 tol_ncdm = 1.e-4
 

@@ -71,13 +71,13 @@ tight_coupling_approximation=5 #(int)second_order_CRS;
 l_max_g=10
 l_max_pol_g=6
 l_max_ur=12
-l_max_ncdm=12
+l_max_ncdm=6
 l_max_g_ten=20
 l_max_pol_g_ten=20
 
 tol_tau_approx=1.e-3
 tol_perturb_integration=5.e-4 #1.e-2 for evolver rk (0)
-perturb_sampling_stepsize=0.17 # much more for 0.1
+perturb_sampling_stepsize=0.2 # much more for 0.1
 
 radiation_streaming_approximation = 2
 radiation_streaming_trigger_tau_over_tau_k = 30.
@@ -87,14 +87,14 @@ ur_fluid_approximation = 2
 ur_fluid_trigger_tau_over_tau_k = 15.
 
 ncdm_fluid_approximation = 2
-ncdm_fluid_trigger_tau_over_tau_k = 16.
+ncdm_fluid_trigger_tau_over_tau_k = 12.
 
-tol_ncdm = 1.e-3
+tol_ncdm = 1.e-2
 
 l_logstep=1.3
 l_linstep=50
 
-bessel_x_step=0.8 
+bessel_x_step=0.8
 bessel_j_cut=1.e-5
 bessel_tol_x_min =1.e-4
 bessel_file_name=bessel.dat
@@ -105,7 +105,7 @@ k_step_trans_scalars=0.0045 #can be 0.004 for chi2=0.1 and 1, not higher
 k_step_trans_tensors=0.004
 
 transfer_cut=1 #0=none,1=osc,2=cl #segfault with zero, watch it!
-transfer_cut_threshold_osc=0.03 # 6 for 0.1, 8 for 1
+transfer_cut_threshold_osc=0.01 # 6 for 0.1, 8 for 1
 transfer_cut_threshold_cl=1.e-8 # not robust if tilted or if one Delta_l(k) oscillation tangents zero
 
 evolver=1

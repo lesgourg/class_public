@@ -257,7 +257,7 @@ def blend_against_interp(names,spectrum_type,term):
     print '  reading {0}..'.format(name)
     j=0
     for line in currentfile:
-      if ((line.find('#')==-1) and (line.rfind('000000')==-1)):
+      if (line.find('#')==-1):
 	line=line.split()
 	spam[0,j,l]=float(line[0])
 	spam[1,j,l]=float(line[1])

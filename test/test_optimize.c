@@ -99,12 +99,14 @@ int main(int argc, char **argv) {
 
 /*******************************/
 
-  param = &(pr.tight_coupling_trigger_tau_c_over_tau_k);
+  param = &(pr.perturb_sampling_stepsize);
+  //param = &(pr.radiation_streaming_trigger_tau_over_tau_k);
+  //param = &(pr.radiation_streaming_trigger_tau_c_over_tau);
 
-  parameter_initial=0.09;
-  parameter_logstep=1.2;
+  parameter_initial=0.15;
+  parameter_logstep=1.1;
 
-  param_num=1;
+  param_num=10;
   ref_run=-1;
 
   /* if ref_run<0, the reference is taken in the following external file: */
@@ -526,7 +528,7 @@ int chi2_planck(
   for (l=2; l <= lmax; l++) {
 
 /*     if (psp->ct_size == 1) { */
-    if (0==0) {
+    if (0==1) {
 
       *chi2 += fsky*(2.*l+1.)*((cl2[l][0]+nl[l][0])/
 			       (cl1[l][0]+nl[l][0])+

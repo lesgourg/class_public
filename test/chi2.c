@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     noise[l]=calloc(3,sizeof(double));
   }
 
-  sprintf(filename,"output/cl_ref_cl_lensed.dat");
+  sprintf(filename,"output/m0_cl_ref_cl.dat");
 
   /* read file and fill cl[param_num] */
   output = fopen(filename,"r");
@@ -79,6 +79,9 @@ int main(int argc, char **argv) {
   //    fprintf(stderr,"%s\n",junk_string);
   fgets(junk_string,200,output);
   //    fprintf(stderr,"%s\n",junk_string);
+  fgets(junk_string,200,output);
+  fgets(junk_string,200,output);
+  fgets(junk_string,200,output);
   fgets(junk_string,200,output);
   //    fprintf(stderr,"%s\n",junk_string);
   //fgets(junk_string,200,output);
@@ -98,8 +101,9 @@ int main(int argc, char **argv) {
     cl[0][l][2]=(double)cl_read*2.*_PI_/l/(l+1);
     //fprintf(stderr," %e %d\n",cl_read,sp.index_ct_te);
     fscanf(output,"%e",&cl_read);
-    fscanf(output,"%e",&cl_read);
-    fscanf(output,"%e",&cl_read);
+    //fscanf(output,"%e",&cl_read);
+    //fscanf(output,"%e",&cl_read);
+    //fscanf(output,"%e",&cl_read);
     if (l_read != l) {
       printf("l_read != l: %d %d\n",l_read,l);
     }
@@ -107,7 +111,7 @@ int main(int argc, char **argv) {
   
   fclose(output);
     
-  sprintf(filename,"output/test_cl_lensed.dat");
+  sprintf(filename,"output/m0_permille_cl.dat");
   
   /* read file and fill cl[param_num] */
   output = fopen(filename,"r");
@@ -138,8 +142,9 @@ int main(int argc, char **argv) {
     cl[1][l][2]=(double)cl_read*2.*_PI_/l/(l+1);
     //fprintf(stderr," %e %d\n",cl_read,sp.index_ct_te);
     fscanf(output,"%e",&cl_read);
-    fscanf(output,"%e",&cl_read);
-    fscanf(output,"%e",&cl_read);
+    //fscanf(output,"%e",&cl_read);
+    //fscanf(output,"%e",&cl_read);
+    //fscanf(output,"%e",&cl_read);
     fscanf(output,"%e",&cl_read);
     if (l_read != l) {
       printf("l_read != l: %d %d\n",l_read,l);

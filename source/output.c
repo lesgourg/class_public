@@ -1100,7 +1100,7 @@ int output_tk(
 
     /** - fourth, write in files */
 
-    if (pop->output_format == camb)
+    if (pop->output_format == camb_format)
       class_alloc(tk_cmbfast,
 		  6*sizeof(double),
 		  pop->error_message);
@@ -1108,7 +1108,7 @@ int output_tk(
     for (index_k=0; index_k<psp->ln_k_size; index_k++) {
       for (index_ic = 0; index_ic < psp->ic_size[index_mode]; index_ic++) {
 
-	if (pop->output_format == class) {
+	if (pop->output_format == class_format) {
 	  
 	  class_call(output_one_line_of_tk(out_ic[index_ic],
 					   exp(psp->ln_k[index_k])/pba->h,
@@ -1118,7 +1118,7 @@ int output_tk(
 		     pop->error_message);
 
 	}
-	else if (pop->output_format == camb) {
+	else if (pop->output_format == camb_format) {
 
 	  /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
 
@@ -1155,7 +1155,7 @@ int output_tk(
 
     /** - fifth, free memory and close files */
 
-    if (pop->output_format == camb)
+    if (pop->output_format == camb_format)
       free(tk_cmbfast);
 
     free(tk);
@@ -1198,17 +1198,17 @@ int output_open_cl_file(
 
   if (pop->write_header == _TRUE_) {
 
-    if (pop->output_format == class) {
+    if (pop->output_format == class_format) {
       fprintf(*clfile,"# dimensionless %s\n",first_line);
     }
-    if (pop->output_format == camb) {
+    if (pop->output_format == camb_format) {
       fprintf(*clfile,"# %s (units: [microK]^2)\n",first_line);
     }
  
     fprintf(*clfile,"# for l=2 to %d, i.e. number of multipoles equal to %d\n",lmax,lmax-1);
     fprintf(*clfile,"#\n");
 
-    if (pop->output_format == class) {
+    if (pop->output_format == class_format) {
     fprintf(*clfile,"# -> if you prefer output in CAMB/HealPix/LensPix units/order, set 'format' to 'camb' in input file\n");
     }
 
@@ -1216,7 +1216,7 @@ int output_open_cl_file(
     fprintf(*clfile,"#\n");
     fprintf(*clfile,"#  l ");
    
-    if (pop->output_format == class) {
+    if (pop->output_format == class_format) {
       if (psp->has_tt == _TRUE_)
 	fprintf(*clfile,"TT               ");
       if (psp->has_ee == _TRUE_)
@@ -1234,7 +1234,7 @@ int output_open_cl_file(
       fprintf(*clfile,"\n");
     }
 
-    if (pop->output_format == camb) {
+    if (pop->output_format == camb_format) {
       if (psp->has_tt == _TRUE_)
 	fprintf(*clfile,"TT               ");
       if (psp->has_ee == _TRUE_)
@@ -1287,7 +1287,7 @@ int output_one_line_of_cl(
 
   fprintf(clfile,"%4d",(int)l);
 
-  if (pop->output_format == class) {
+  if (pop->output_format == class_format) {
 
     for (index_ct=0; index_ct < ct_size; index_ct++) {
       fprintf(clfile," %16.10e",factor*cl[index_ct]);
@@ -1295,7 +1295,7 @@ int output_one_line_of_cl(
     fprintf(clfile,"\n");	
   }    
 
-  if (pop->output_format == camb) {
+  if (pop->output_format == camb_format) {
 
     if (psp->has_tt == _TRUE_)
       fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_tt]);
@@ -1442,7 +1442,7 @@ int output_open_tk_file(
 
   if (pop->write_header == _TRUE_) {
 
-    if (pop->output_format == class) {
+    if (pop->output_format == class_format) {
 
       fprintf(*tkfile,"# Matter transfer functions T_i(k) %sat redshift z=%g\n",first_line,z); 
       fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
@@ -1470,7 +1470,7 @@ int output_open_tk_file(
   
     }
 
-    else if (pop->output_format == camb) {
+    else if (pop->output_format == camb_format) {
 
       fprintf(*tkfile,"# Rescaled matter transfer functions [-T_i(k)/k^2] %sat redshift z=%g\n",first_line,z);
       fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);

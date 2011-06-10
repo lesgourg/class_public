@@ -4592,6 +4592,7 @@ int perturb_print_variables(double tau,
   double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.;
   //double delta_ncdm=0.,theta_ncdm=0.,shear_ncdm=0.;
+  double phi,psi;
 
   if (pba->has_ur == _TRUE_) {
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
@@ -4613,7 +4614,8 @@ int perturb_print_variables(double tau,
   /*   } */
   
 
-  if ((k>=0.069) && (k<0.071)) {
+  //  if ((k>=0.069) && (k<0.071)) {
+  if (k<1.5e-7) {
 
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
       delta_g = y[ppw->pv->index_pt_delta_g];
@@ -4664,7 +4666,12 @@ int perturb_print_variables(double tau,
       }
     }
 
-    fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+    /* gravitational potential */
+    psi = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a] * (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2./k/k + pvecmetric[ppw->index_mt_alpha_prime]);
+
+    phi = y[ppw->pv->index_pt_eta]-pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]/2./k/k*(pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime]);
+
+    fprintf(stdout,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
 	    k,
 	    tau,
 	    delta_g,
@@ -4685,7 +4692,9 @@ int perturb_print_variables(double tau,
 	    ppw->shear_ncdm1,
 	    y[ppw->pv->index_pt_eta],
 	    pvecmetric[ppw->index_mt_eta_prime],
-	    pvecmetric[ppw->index_mt_h_prime]);
+	    pvecmetric[ppw->index_mt_h_prime],
+	    psi,
+	    phi);
 
   }
  

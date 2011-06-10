@@ -5,7 +5,7 @@
 a_ini_over_a_today_default = 1.e-14
 back_integration_stepsize = 7.e-3
 tol_background_integration = 1.e-2
-tol_ncdm_bg = 1.e-8
+tol_ncdm_bg = 1.e-10
 
 recfast_z_initial=1.e4
 
@@ -79,9 +79,9 @@ ur_fluid_approximation = 2
 ur_fluid_trigger_tau_over_tau_k = 50.
 
 ncdm_fluid_approximation = 3
-ncdm_fluid_trigger_tau_over_tau_k = 50.
+ncdm_fluid_trigger_tau_over_tau_k = 51.
 
-tol_ncdm = 1.e-6
+tol_ncdm = 1.e-10
 
 l_logstep=1.026
 l_linstep=25
@@ -102,5 +102,6 @@ transfer_cut_threshold_cl=1.e-8 # not robust if tilted or if one Delta_l(k) osci
 evolver=0
 
 l_switch_limber = 40.
+accurate_lensing=1;
 num_mu_minus_lmax = 1000.
 delta_l_max = 1000.

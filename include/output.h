@@ -16,7 +16,7 @@
  * Different ways to present output files
  */
 
-enum file_format {class,camb};
+enum file_format {class_format,camb_format};
 
 /**
  * Structure containing various informations on the output format, 

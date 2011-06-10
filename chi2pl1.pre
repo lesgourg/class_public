@@ -80,7 +80,7 @@ tol_perturb_integration=5.e-4 #1.e-2 for evolver rk (0)
 perturb_sampling_stepsize=0.15 # much more for 0.1
 
 radiation_streaming_approximation = 2
-radiation_streaming_trigger_tau_over_tau_k = 80.
+radiation_streaming_trigger_tau_over_tau_k = 45.
 radiation_streaming_trigger_tau_c_over_tau = 5.
 
 ur_fluid_approximation = 2
