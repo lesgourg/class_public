@@ -1071,7 +1071,7 @@ int perturb_get_k_list(
     k=ppr->k_scalar_min_tau0/pba->conformal_age;
     index_k=1;
 
-    if (ppt->has_cls == _TRUE_) {
+    if ((ppt->has_cls == _TRUE_) || (ppt->has_well_resolved_BAOs == _TRUE_)){
       k_max_cl = ppr->k_scalar_max_tau0_over_l_max
 	*ppt->l_scalar_max
 	/pba->conformal_age;

@@ -2490,16 +2490,18 @@ int trg_init (
     if(pnl->mode==0)
       printf(" -> testing trg.c module with linear computation\n");
     if(pnl->mode==1)
-      printf(" -> using with one-loop method\n");
+      printf(" -> using one-loop method\n");
     if(pnl->mode==2)
-      printf(" -> using with TRG method\n");
+      printf(" -> using TRG method\n");
   }
 
-  if (pnl->mode>0) {
-    class_test(pnl->k_max<1000*pba->h,
-	       pnl->error_message,
-	       "The trg module has been optimized for a value P_k_max_h/Mpc greater or equal to 1000, please increase this value in the input file\n");
-  }
+  class_test(pba->has_ncdm == _TRUE_,
+	     pnl->error_message,
+	     "module trg.c not yet generalized to cases with non-cold relics");
+
+  class_test(pba->has_fld == _TRUE_,
+	     pnl->error_message,
+	     "module trg.c not yet generalized to cases with dark energy");
 
   class_calloc(pvecback_nl,pba->bg_size,sizeof(double),pnl->error_message);
 

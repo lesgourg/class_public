@@ -99,6 +99,7 @@ extern "C" {
 		   struct precision * ppr,
                    struct perturbs * ppt,
                    struct spectra * psp,
+		   struct nonlinear * pnl,
                    struct lensing * ple
                    );
 

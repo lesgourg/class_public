@@ -947,9 +947,11 @@ int input_init(
 
     if ((strstr(string1,"trg") != NULL) || (strstr(string1,"TRG") != NULL)) {
       pnl->method=nl_trg;
+      ppt->has_well_resolved_BAOs=_TRUE_;
     }    
     if ((strstr(string1,"one-loop") != NULL) || (strstr(string1,"oneloop") != NULL) || (strstr(string1,"one loop") != NULL)) {
       pnl->method=nl_trg_one_loop;
+      ppt->has_well_resolved_BAOs=_TRUE_;
     }
     if ((strstr(string1,"test linear") != NULL) || (strstr(string1,"test-linear") != NULL)) {
       pnl->method=nl_trg_linear;
@@ -1149,7 +1151,23 @@ int input_init(
   class_read_double("logstepk7",ppr->logstepk7);
   class_read_double("logstepk8",ppr->logstepk8);
   class_read_double("k_growth_factor",ppr->k_growth_factor);
+  class_read_double("k_scalar_max_for_pk_nl",ppr->k_scalar_max_for_pk_nl);
 
+  if ((pnl->method==nl_trg_one_loop) ||
+      (pnl->method==nl_trg)) {
+
+    /* when using the trg module, the following parameters need to
+       be changed */
+
+    ppt->k_scalar_kmax_for_pk 
+      = max(
+	    ppt->k_scalar_kmax_for_pk,
+	    ppr->k_scalar_max_for_pk_nl*pba->h);
+
+    psp->z_max_pk = ppr->z_ini+1.;
+
+  }
+  
   /** h.8. parameter related to lensing */
 
   class_read_int("accurate_lensing",ppr->accurate_lensing);
@@ -1308,6 +1326,7 @@ int input_default_params(
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
   ppt->has_matter_transfers = _FALSE_;
+  ppt->has_well_resolved_BAOs=_FALSE_;
 
   ppt->has_ad=_TRUE_;  
   ppt->has_bi=_FALSE_;
@@ -1591,7 +1610,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->double_escape=2;
   ppr->z_ini = 35.;
-  ppr->eta_size = 100.;
+  ppr->eta_size = 101;
   ppr->k_L = 1.e-3;
   ppr->k_min = 1.e-4;
   ppr->logstepx_min = 1.04;
@@ -1604,6 +1623,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->logstepk7 = 0.;
   ppr->logstepk8 = 0.;
   ppr->k_growth_factor = 0.1;
+  ppr->k_scalar_max_for_pk_nl = 1000.;
 
   /**
    * - parameter related to lensing

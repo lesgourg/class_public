@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
   end_other = omp_get_wtime();
   start_lensing = end_other;
 
-  if (lensing_init(&pr,&pt,&sp,&le) == _FAILURE_) {
+  if (lensing_init(&pr,&pt,&sp,&nl,&le) == _FAILURE_) {
     printf("\n\nError in lensing_init \n=>%s\n",le.error_message);
     return _FAILURE_;
   }

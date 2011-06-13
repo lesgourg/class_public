@@ -69,6 +69,7 @@ int lensing_cl_at_l(
  * 
  * @param ppt Input : pointer to perturbation structure (just in case, not used in current version...)
  * @param psp Input : pointer to spectra structure
+ * @param pnl Input : pointer to nonlinear structure
  * @param ple Output: pointer to initialized lensing structure
  * @return the error status
  */
@@ -77,6 +78,7 @@ int lensing_init(
 		 struct precision * ppr,
 		 struct perturbs * ppt,
 		 struct spectra * psp,
+		 struct nonlinear * pnl,
 		 struct lensing * ple
 		 ) {
 
@@ -569,9 +571,9 @@ int lensing_init(
   private (index_mu,l,ll,res,resX,resp,resm,lens,lensp,lensm,		\
 	   fac,fac1,X_000,X_p000,X_220,X_022,X_p022,X_121,X_132,X_242)	\
   schedule (static)
-    
+
   for (index_mu=0;index_mu<num_mu-1;index_mu++) {
-    
+
     for (l=2;l<=ple->l_unlensed_max;l++) {
 
       ll = (double)l;

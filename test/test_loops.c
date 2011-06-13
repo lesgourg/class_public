@@ -202,7 +202,7 @@ int class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  if (lensing_init(ppr,ppt,psp,ple) == _FAILURE_) {
+  if (lensing_init(ppr,ppt,psp,pnl,ple) == _FAILURE_) {
     printf("\n\nError in lensing_init \n=>%s\n",ple->error_message);
     return _FAILURE_;
   }
