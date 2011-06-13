@@ -102,6 +102,6 @@ transfer_cut_threshold_cl=1.e-8 # not robust if tilted or if one Delta_l(k) osci
 evolver=0
 
 l_switch_limber = 40.
-accurate_lensing=1;
+accurate_lensing=1
 num_mu_minus_lmax = 1000.
 delta_l_max = 1000.

@@ -161,8 +161,13 @@ int lensing_init(
     return _SUCCESS_;
   }
   else {
-    if (ple->lensing_verbose > 0)
-      printf("Computing lensed spectra\n");
+    if (ple->lensing_verbose > 0) {
+      printf("Computing lensed spectra ");
+      if (ppr->accurate_lensing==_TRUE_)
+	printf("(accurate mode)\n");
+      else
+	printf("(fast mode)\n");
+    }
   }
   
   /** - initialize indices and allocate some of the arrays in the 
