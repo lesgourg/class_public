@@ -81,7 +81,7 @@ struct perturbs
 
   int l_scalar_max; /**< maximum l value for scalars C_ls */
   int l_tensor_max; /**< maximum l value for tensors C_ls */
-  double k_scalar_kmax_for_pk; /**< maximum value of k in h/Mpc in P(k) (if scalar C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
+  double k_scalar_kmax_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if scalar C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
 
   //@}
 

@@ -839,7 +839,21 @@ int input_init(
 
   if (ppt->has_pk_matter == _TRUE_) {
 
-    class_read_double("P_k_max",ppt->k_scalar_kmax_for_pk);
+    class_call(parser_read_double(pfc,"P_k_max_h/Mpc",&param1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+    class_call(parser_read_double(pfc,"P_k_max_1/Mpc",&param2,&flag2,errmsg),
+	       errmsg,
+	       errmsg);
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+	       errmsg,
+	       "In input file, you cannot enter both P_k_max_h/Mpc and P_k_max_1/Mpc, choose one");
+    if (flag1 == _TRUE_) {
+      ppt->k_scalar_kmax_for_pk=param2*pba->h;
+    }
+    if (flag2 == _TRUE_) {
+      ppt->k_scalar_kmax_for_pk=param2;
+    }
 
     class_call(parser_read_list_of_doubles(pfc,
 					   "z_pk",
@@ -1120,7 +1134,6 @@ int input_init(
 
   /** h.7. parameters related to nonlinear calculations */
 
-  class_read_int("b+c spectrum",ppr->has_bc_spectrum);
   class_read_int("double escape",ppr->double_escape);
   class_read_double("z_ini",ppr->z_ini);
   class_read_int("eta_size",ppr->eta_size);
@@ -1577,7 +1590,6 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->double_escape=2;
-  ppr->has_bc_spectrum=_TRUE_;
   ppr->z_ini = 35.;
   ppr->eta_size = 100.;
   ppr->k_L = 1.e-3;

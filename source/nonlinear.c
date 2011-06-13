@@ -210,7 +210,6 @@ int nonlinear_init(
     trg.k_max = exp(psp->ln_k[psp->ln_k_size-1]) * pba->h - 1.;
 
     trg.double_escape = ppr->double_escape;
-    trg.has_bc_spectrum = ppr->has_bc_spectrum;
     trg.z_ini = ppr->z_ini;
     trg.eta_size = ppr->eta_size;
     trg.k_L = ppr->k_L;

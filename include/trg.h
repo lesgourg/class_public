@@ -14,14 +14,6 @@
  */
 struct spectra_nl {
 
-   /** @name - root for all file names (BOUND TO DISAPPEAR) */
-
-  //@{
-
-  FileName root;
-
-  //@}
-  
   /** @name - input parameters initialized by user in input module
       (all other quantities are computed in this module , given these parameters
       and the content of the 'precision', 'background', 'thermo', 
@@ -30,7 +22,6 @@ struct spectra_nl {
   //@{
 
   short mode; 		 	/**< from 0 to 2: 0 being linear theory, 1 for one loop and 2 for full trg calculation*/
-  short has_bc_spectrum; 	/**< _TRUE_ or _FALSE_*/
   int double_escape;		/**< Usual value is 2 (which means the code drops 2 points every half-step), you might want to increase it a bit if you have a finner k-grid */
   double z_ini;			/**< Starting value of the redshift for the non-linear computation */
   int eta_size;			/**< Number of steps in time, to change in agreement with the precision, and the escape parameter */

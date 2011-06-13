@@ -2495,6 +2495,12 @@ int trg_init (
       printf(" -> using with TRG method\n");
   }
 
+  if (pnl->mode>0) {
+    class_test(pnl->k_max<1000*pba->h,
+	       pnl->error_message,
+	       "The trg module has been optimized for a value P_k_max_h/Mpc greater or equal to 1000, please increase this value in the input file\n");
+  }
+
   class_calloc(pvecback_nl,pba->bg_size,sizeof(double),pnl->error_message);
 
   /** define initial eta, redshift and size factor */
@@ -2568,7 +2574,7 @@ int trg_init (
   for(index_eta=0;index_eta<pnl->eta_size; index_eta++){
     pnl->eta[index_eta]=index_eta*pnl->eta_step;
     pnl->z[index_eta]= exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;
-    if(pnl->z[index_eta]<0){
+    if(index_eta==pnl->eta_size-1){
       pnl->z[index_eta]=0;
     }
   }

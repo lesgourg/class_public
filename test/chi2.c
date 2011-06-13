@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     noise[l]=calloc(3,sizeof(double));
   }
 
-  sprintf(filename,"output/chi2pl1_cl_lensed.dat");
+  sprintf(filename,"output/chi2pl0.1_cl_lensed.dat");
 
   /* read file and fill cl[param_num] */
   output = fopen(filename,"r");
