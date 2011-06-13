@@ -156,12 +156,13 @@ extern "C" {
 
   int output_open_pk_nl_file(
 			      struct background * pba,
-			     struct nonlinear * pnl,
-			     struct output * pop,
-			     FILE * * pkfile,
-			     FileName filename,
-			     char * first_line,
-			     double z
+			      struct nonlinear * pnl,
+			      struct output * pop,
+			      FILE * * pkfile,
+			      FileName filename,
+			      char * first_line,
+			      double z,
+			      int k_size
 			     );
   
   int output_open_tk_file(

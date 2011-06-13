@@ -958,6 +958,10 @@ int input_init(
     }
   }
 
+  class_test((pnl->method>nl_none) && (ppt->has_pk_matter==_FALSE_),
+	     errmsg,
+	     "it is not consistent to ask for non-linear power spectrum but not for linear one: you should include mPk in the 'output' entry");
+
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",

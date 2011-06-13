@@ -893,7 +893,8 @@ int output_pk_nl(
 				      &out_density,
 				      file_name,
 				      "(density auto-correlation) ",
-				      pop->z_pk[index_z]
+				      pop->z_pk[index_z],
+				      k_size_at_z
 				      ),
 	       pop->error_message,
 	       pop->error_message);
@@ -906,7 +907,8 @@ int output_pk_nl(
 				      &out_velocity,
 				      file_name,
 				      "(velocity auto-correlation) ",
-				      pop->z_pk[index_z]
+				      pop->z_pk[index_z],
+				      k_size_at_z
 				      ),
 	       pop->error_message,
 	       pop->error_message);
@@ -919,7 +921,8 @@ int output_pk_nl(
 				      &out_cross,
 				      file_name,
 				      "(density-velocity cross-correlation) ",
-				      pop->z_pk[index_z]
+				      pop->z_pk[index_z],
+				      k_size_at_z
 				      ),
 	       pop->error_message,
 	       pop->error_message);
@@ -1388,6 +1391,7 @@ int output_one_line_of_pk(
  * @param filename   Input : name of the file
  * @param first_line Input : text describing the content (initial conditions, ...)
  * @param z          Input : redshift of the output
+ * @param k_size     Input : number of k values
  * @return the error status
  */
 
@@ -1398,15 +1402,16 @@ int output_open_pk_nl_file(
 			   FILE * * pkfile,
 			   FileName filename,
 			   char * first_line,
-			   double z
+			   double z,
+			   int k_size
 			   ) {
 
   class_open(*pkfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(*pkfile,"# Non-linear matter power spectrum P_nl(k) %sat redshift z=%g\n",first_line,z); 
-    fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[pnl->k_size[0]-1]/pba->h);
-    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size[0]);
+    fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[k_size-1]/pba->h);
+    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",k_size);
     fprintf(*pkfile,"# k (h/Mpc)  P_nl (Mpc/h)^3:\n");
   }
 
