@@ -849,7 +849,7 @@ int input_init(
 	       errmsg,
 	       "In input file, you cannot enter both P_k_max_h/Mpc and P_k_max_1/Mpc, choose one");
     if (flag1 == _TRUE_) {
-      ppt->k_scalar_kmax_for_pk=param2*pba->h;
+      ppt->k_scalar_kmax_for_pk=param1*pba->h;
     }
     if (flag2 == _TRUE_) {
       ppt->k_scalar_kmax_for_pk=param2;
