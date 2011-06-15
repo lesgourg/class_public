@@ -45,7 +45,7 @@ int lensing_cl_at_l(
 
   class_test(l > ple->l_lensed_max,
 	     ple->error_message,
-	     "you asked for lensed Cls at l=%d, they were computed only up to l=%d, you should increase l_max_scalars or decrease the precision parameter delta_l_max");
+	     "you asked for lensed Cls at l=%d, they were computed only up to l=%d, you should increase l_max_scalars or decrease the precision parameter delta_l_max",l,ple->l_lensed_max);
 
   class_call(array_interpolate_spline(ple->l,
 				      ple->l_size,
