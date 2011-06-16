@@ -1,8 +1,8 @@
 ###################################################################
 #
 # CPU, a CLASS Plotting Utility 
-# v1.0 
-# Benjamin Audren, 02.05.2011 
+# v1.1 
+# Benjamin Audren, 16.06.2011 
 #
 # This is a small python program aimed to gain time when comparing two
 # spectra, i.e. from CAMB and CLASS, or a non-linear spectrum to a
@@ -31,7 +31,11 @@ import argparse
 
 # parser for input arguments 
 
-parser = argparse.ArgumentParser(description='CPU, a CLASS Plotting Utility, specify wether you want to superimpose, divide or interpolate different files, and behold!')
+parser = argparse.ArgumentParser(description='CPU, a CLASS Plotting Utility, specify wether you want to superimpose, divide or interpolate different files, and behold!',
+  epilog='''A standard usage would be, for instance :
+    python CPU output/test_1l_pk.dat output/test_1l_pk_nl_density.dat -i 0
+    python CPU output/wmap_cl.dat output/planck_cl.dat''',
+formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('files',	metavar='Files',
   type=str, nargs='*',
   help='the relative path of the desired file to plot\nfrom the root directory of CLASS')
