@@ -3732,7 +3732,7 @@ int perturb_einstein(
     /* fluid contribution */
     if (pba->has_fld == _TRUE_) { 
       delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld]; 
-      rho_plus_p_theta = rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+      rho_plus_p_theta = rho_plus_p_theta + (1.+pba->w_fld)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
       delta_p = delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld]; 
     } 
 
