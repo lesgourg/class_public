@@ -1,7 +1,7 @@
 ###################################################################
 #
 # CPU, a CLASS Plotting Utility 
-# v1.1 
+# v1.2 
 # Benjamin Audren, 16.06.2011 
 #
 # This is a small python program aimed to gain time when comparing two
@@ -335,7 +335,7 @@ def blend_against_interp(names,spectrum_type,term):
 
 # Launch session of gnuplot with generated gnuplot script file
 def _plot(gnuplot_file):
-  os.system("gnuplot -p '{0}'".format(gnuplot_file))
+  os.system("gnuplot -persist '{0}'".format(gnuplot_file))
 
 
 #######################################################
