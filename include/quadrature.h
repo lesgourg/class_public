@@ -75,6 +75,24 @@ typedef struct adaptive_integration_tree_node{
 				    double tol,
 				    ErrorMsg error_message);
 
+      int quadrature_gauss_legendre_2D(
+				       int n,
+				       double * x,
+				       double * y,
+				       double * w, 
+				       ErrorMsg error_message);
+
+      int quadrature_in_rectangle(
+				  double xl,
+				  double xr,
+				  double yl,
+				  double yr,
+				  int n,
+				  double * x,
+				  double * y,
+				  double * w, 
+				  ErrorMsg error_message);
+
 
 #ifdef __cplusplus
     }

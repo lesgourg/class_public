@@ -728,3 +728,30 @@ int quadrature_gauss_legendre(
   }
   return _SUCCESS_;
 }
+
+int quadrature_gauss_legendre_2D(
+				 int n,
+				 double * x,
+				 double * y,
+				 double * w,
+				 ErrorMsg error_message) {
+
+  
+  return _SUCCESS_;
+
+}
+
+int quadrature_in_rectangle(
+			    double xl,
+			    double xr,
+			    double yl,
+			    double yr,
+			    int n,
+			    double * x,
+			    double * y,
+			    double * w, 
+			    ErrorMsg error_message) {
+
+  return _SUCCESS_;
+
+}
