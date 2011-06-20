@@ -87,10 +87,10 @@ typedef struct adaptive_integration_tree_node{
 				  double xr,
 				  double yl,
 				  double yr,
-				  int n,
-				  double * x,
-				  double * y,
-				  double * w, 
+				  int *n,
+				  double ** x,
+				  double ** y,
+				  double ** w, 
 				  ErrorMsg error_message);
 
 

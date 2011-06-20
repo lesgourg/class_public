@@ -746,10 +746,10 @@ int quadrature_in_rectangle(
 			    double xr,
 			    double yl,
 			    double yr,
-			    int n,
-			    double * x,
-			    double * y,
-			    double * w, 
+			    int *n,
+			    double ** x,
+			    double ** y,
+			    double ** w, 
 			    ErrorMsg error_message) {
 
   return _SUCCESS_;
