@@ -74,6 +74,22 @@ struct spectra_nl {
 
   //@}
 
+  /** @name - tables of non-linear bispectra*/
+
+  //@{
+
+  double * b_111_nl;
+  double * b_121_nl;
+  double * b_122_nl;
+  double * b_222_nl;
+
+  double * b_111;
+  double * b_121;
+  double * b_122;
+  double * b_222;
+
+  //@}
+
   /** @name - technical parameters */
 
   //@{
@@ -95,24 +111,14 @@ extern "C" {
 #endif
 
   /** 
-   * List of names for the different AA terms.
+   * List of names for the different bispectra terms.
    */
 
-  enum name_A{
-    _A0_,
-    _A11_,
-    _A12_,
-    _A13_,
-    _A21_,
-    _A22_,
-    _A23_,
-    _A3_,
-    _B0_,
-    _B11_,
-    _B12_,
-    _B21_,
-    _B22_,
-    _B3_
+  enum name_B{
+    _111_,
+    _121_,
+    _122_,
+    _222_
   };
 
   int trg_gamma_121(
@@ -141,7 +147,7 @@ extern "C" {
 
   int trg_A_arg_trg(
 		struct spectra_nl *pnl,
-		enum name_A name, 
+		enum name_B name, 
 		double k, 
 		double p, 
 		double m, 
@@ -151,7 +157,7 @@ extern "C" {
 
   int trg_A_arg_one_loop(
 			 struct spectra_nl * pnl,
-			 enum name_A name, 
+			 enum name_B name, 
 			 double k, 
 			 double p, 
 			 double m, 
@@ -163,7 +169,7 @@ extern "C" {
 			      struct primordial * ppm,
 			      struct spectra * psp,
 			      struct spectra_nl * pnl,
-			      enum name_A name,
+			      enum name_B name,
 			      int index_eta,
 			      double * result
 			      );
