@@ -38,6 +38,7 @@ struct spectra_nl {
   double * k;		/**< table containing the values of k used in this module */
   double k_max;		/**< maximum value of k where the spectra is computed, infered from spectra module */
   int k_size; 		/**< total number of k values */
+  int xy_size; 		/**< total number of (x,y) values on the integral domain */
   int index_k_L;  	/**< for index_k=0, ...,(index_k_L-1), use linear theory only */
   double k_growth_factor;  /**< value used to define linear growth factor */
   //@}
@@ -119,6 +120,12 @@ extern "C" {
     _121_,
     _122_,
     _222_
+  };
+
+  enum name_I{
+    _11_,
+    _12_,
+    _22_
   };
 
   int trg_gamma_121(
