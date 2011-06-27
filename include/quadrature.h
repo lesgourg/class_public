@@ -93,6 +93,16 @@ typedef struct adaptive_integration_tree_node{
 				  double ** w, 
 				  ErrorMsg error_message);
 
+      int cubature_order_eleven(
+				double xl,
+				double xr,
+				double yl,
+				double yr,
+				double *x,
+				double *y,
+				double *w,
+				ErrorMsg error_message);
+
 
 #ifdef __cplusplus
     }

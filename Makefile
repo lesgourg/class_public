@@ -103,6 +103,8 @@ TEST_KARIM = test_karim.o
 
 TEST_PBC = test_pbc.o
 
+TEST_2D_QUADRATURE = test_2D_quadrature.o
+
 CUSTOM_LENSING = custom_lensing.o
 
 all: class libclass.a
@@ -156,6 +158,9 @@ test_background: $(TOOLS) $(INPUT) $(BACKGROUND) $(TEST_BACKGROUND)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_karim: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_KARIM)
+	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_2D_quadrature: $(TOOLS) $(TEST_2D_QUADRATURE)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 custom_lensing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CUSTOM_LENSING)

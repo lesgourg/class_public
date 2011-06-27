@@ -729,18 +729,6 @@ int quadrature_gauss_legendre(
   return _SUCCESS_;
 }
 
-int quadrature_gauss_legendre_2D(
-				 int n,
-				 double * x,
-				 double * y,
-				 double * w,
-				 ErrorMsg error_message) {
-
-  
-  return _SUCCESS_;
-
-}
-
 int quadrature_in_rectangle(
 			    double xl,
 			    double xr,
@@ -752,6 +740,103 @@ int quadrature_in_rectangle(
 			    double ** w, 
 			    ErrorMsg error_message) {
 
-  return _SUCCESS_;
+    
+  int xl_tile,xr_tile,yl_tile,yr_tile;
+  int N;
 
+  N=24;
+  xl_tile = xl;
+  xr_tile = xr;
+  yl_tile = yl;
+  yr_tile = yr;
+
+  *n = N;
+  
+  
+  class_alloc(*x,sizeof(double)*N,error_message);
+  class_alloc(*y,sizeof(double)*N,error_message);
+  class_alloc(*w,sizeof(double)*N,error_message);
+  class_call(cubature_order_eleven(xl_tile,
+				   xr_tile,
+				   yl_tile,
+				   yr_tile,
+				   *x+0,
+				   *y+0,
+				   *w+0,
+				   error_message),
+	     error_message,
+	     error_message);
+  
+
+  return _SUCCESS_;
 }
+
+
+
+int cubature_order_eleven(
+			  double xl,
+			  double xr,
+			  double yl,
+			  double yr,
+			  double *x,
+			  double *y,
+			  double *w,
+			  ErrorMsg error_message){
+ 
+  double wi[6]={0.48020763350723814563e-01, 
+		0.66071329164550595674e-01,
+		0.97386777358668164196e-01, 
+		0.21173634999894860050e+00,
+		0.22562606172886338740e+00,
+		0.35115871839824543766e+00};
+  double xi[6]={0.98263922354085547295e+00, 
+		0.82577583590296393730e+00,
+		0.18858613871864195460e+00,
+		0.81252054830481310049e+00,
+		0.52532025036454776234e+00,
+		0.41658071912022368274e-01};
+  double yi[6]={0.69807610454956756478e+00, 
+		0.93948638281673690721e+00, 
+		0.95353952820153201585e+00, 
+		0.31562343291525419599e+00, 
+		0.71200191307533630655e+00,
+		0.42484724884866925062e+00};
+  
+  int idx,i;
+  double a1,a2,b1,b2;
+    
+  a1 = 2./(xr-xl);
+  a2 = 2./(yr-yl);
+  b1 = 1.-2*xr/(xr-xl);
+  b2 = 1.-2*yr/(yr-yl);
+
+  for (i=0,idx=0; i<6; i++,idx++){
+    // Upper right corner:
+    x[idx] = (xi[i]-b1)/a1;
+    y[idx] = (yi[i]-b2)/a2;
+    w[idx] = wi[i]/a1/a2;
+  }
+  for (i=0,idx=6; i<6; i++,idx++){
+    // Upper left corner:
+    x[idx] = (-yi[i]-b1)/a1;
+    y[idx] = (xi[i]-b2)/a2;
+    w[idx] = wi[i]/a1/a2;
+  }
+  for (i=0,idx=12; i<6; i++,idx++){
+    // Lower left corner:
+    x[idx] = (-xi[i]-b1)/a1;
+    y[idx] = (-yi[i]-b2)/a2;
+    w[idx] = wi[i]/a1/a2;
+  }
+  for (i=0,idx=18; i<6; i++,idx++){
+    // Lower right corner:
+    x[idx] = (yi[i]-b1)/a1;
+    y[idx] = (-xi[i]-b2)/a2;
+    w[idx] = wi[i]/a1/a2;
+  }
+  
+  
+
+  return _SUCCESS_;
+}
+
