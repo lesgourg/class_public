@@ -349,11 +349,13 @@ int background_functions(
     p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
 
-  /* fluid with constant w and cs2 */
+  /* fluid with w=w0+wa(1-a/a0) and constant cs2 */
   if (pba->has_fld == _TRUE_) {
-    pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w_fld));
+    pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) 
+      / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld))
+      * exp(3.*pba->wa_fld*(a_rel-1.));
     rho_tot += pvecback[pba->index_bg_rho_fld];
-    p_tot += pba->w_fld * pvecback[pba->index_bg_rho_fld];
+    p_tot += (pba->w0_fld+pba->wa_fld*(1.-a_rel)) * pvecback[pba->index_bg_rho_fld];
   }
 
   /* relativistic neutrinos (and all relativistic relics) */

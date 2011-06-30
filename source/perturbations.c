@@ -3177,10 +3177,11 @@ int perturb_initial_conditions(struct precision * ppr,
           /* by convention, cdm velocity velocity vanishes in this implementation of the synchronous gauge */
 	}
 
-	/* fluid density */
- 	if (pba->has_fld == _TRUE_) {        
- 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+pba->w_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*pba->w_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
-	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*pba->w_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
+	/* fluid density (assumes wa=0, if this is not the case the
+	   fluid will catch anyway the attractor solution) */
+ 	if (pba->has_fld == _TRUE_) {
+ 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+pba->w0_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*pba->w0_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
+	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*pba->w0_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
  	} 
 
 	/* relativistic relics */
@@ -3635,6 +3636,7 @@ int perturb_einstein(
   int index_q,n_ncdm,idx;
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_pk,delta_rho_pk;
+  double w;
 
   /** - wavenumber and scale factor related quantities */ 
 
@@ -3730,9 +3732,12 @@ int perturb_einstein(
     }
     
     /* fluid contribution */
-    if (pba->has_fld == _TRUE_) { 
-      delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld]; 
-      rho_plus_p_theta = rho_plus_p_theta + (1.+pba->w_fld)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+    if (pba->has_fld == _TRUE_) {
+      
+      w = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+ 
+      delta_rho += ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld]; 
+      rho_plus_p_theta += (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
       delta_p = delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld]; 
     } 
 
@@ -4755,7 +4760,7 @@ int perturb_derivs(double tau,
   double k2;  
 
   /* scale factor and related quantities */ 
-  double a,a2,a_prime_over_a,a_primeprime_over_a,z;
+  double a,a2,a_prime_over_a,a_primeprime_over_a,z,w,w_prime;
 
   /* background density ratios */
   double R;//fracnu;
@@ -4791,7 +4796,7 @@ int perturb_derivs(double tau,
   double delta_g=0.,theta_g=0.,shear_g=0.;
   double delta_b,theta_b;
   double Delta;
-  double cb2;
+  double cb2,cs2,ca2;
 
   /* For use with non-cold Dark Matter: */
   int index_q,n_ncdm,idx;
@@ -4841,7 +4846,7 @@ int perturb_derivs(double tau,
   a2 = a * a;
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
   a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
-  z = 1./a-1.;
+  z = pba->a_today-1.;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
   
   /** - for scalar mode: */
@@ -5235,25 +5240,34 @@ int perturb_derivs(double tau,
     
     if (pba->has_fld == _TRUE_) {  
 
+      w = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+      w_prime = - pba->wa_fld * a / pba->a_today * a_prime_over_a;
+      ca2 = w - w_prime / 3. / (1.+w) / a_prime_over_a;
+      cs2 = pba->cs2_fld;
+
       if (ppr->gauge == newtonian) {
 	/* Newtonian gauge : */
 	dy[ppw->pv->index_pt_delta_fld] = /* fluid density */
-	  (-3*(1+ pba->w_fld )*a_prime_over_a-3*pvecback[pba->index_bg_H]*(pba->cs2_fld- pba->w_fld )*(y[ppw->pv->index_pt_delta_fld]/pvecback[pba->index_bg_rho_fld]+3*pvecback[pba->index_bg_H]*(1+ pba->w_fld )*y[ppw->pv->index_pt_theta_fld]/k)-(1+ pba->w_fld )*k*y[ppw->pv->index_pt_theta_fld])/pvecback[pba->index_bg_rho_fld]; // 0;
-
+	  -(1+w)*(y[ppw->pv->index_pt_theta_fld]-3.*pvecmetric[ppw->index_mt_phi_prime])
+	  -3.*(cs2-w)*a_prime_over_a*y[ppw->pv->index_pt_delta_fld]
+	  -9.*(1+w)*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]/k2;
+	
 	dy[ppw->pv->index_pt_theta_fld] = /* fluid velocity */
-	  (k*pba->cs2_fld*y[ppw->pv->index_pt_delta_fld])/(pvecback[pba->index_bg_rho_fld]*(1+ pba->w_fld ))-pvecback[pba->index_bg_H]*(1-3*pba->cs2_fld)*y[ppw->pv->index_pt_theta_fld]+k*pvecmetric[ppw->index_mt_psi]; // 0;
+	  -(1.-3.*cs2)*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]
+	  +cs2*k2/(1.+w)*y[ppw->pv->index_pt_delta_fld]
+	  +k2*pvecmetric[ppw->index_mt_psi];
       }
-
+      
       if (ppr->gauge == synchronous) {
 	/* Synchronous gauge : */
 	dy[ppw->pv->index_pt_delta_fld] = /* fluid density */
-	  -(1+ pba->w_fld )*(y[ppw->pv->index_pt_theta_fld]+0.5*pvecmetric[ppw->index_mt_h_prime])
-	  -3.*(pba->cs2_fld-pba->w_fld)*a_prime_over_a*y[ppw->pv->index_pt_delta_fld]
-	  -9.*(1+ pba->w_fld )*(pba->cs2_fld-pba->w_fld)*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]/k2;
+	  -(1+w)*(y[ppw->pv->index_pt_theta_fld]+0.5*pvecmetric[ppw->index_mt_h_prime])
+	  -3.*(cs2-w)*a_prime_over_a*y[ppw->pv->index_pt_delta_fld]
+	  -9.*(1+w)*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]/k2;
 
 	dy[ppw->pv->index_pt_theta_fld] = /* fluid velocity */
-	  -(1.-3.*pba->cs2_fld)*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]
-	  +pba->cs2_fld*k2/(1.+pba->w_fld)*y[ppw->pv->index_pt_delta_fld];
+	  -(1.-3.*cs2)*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]
+	  +cs2*k2/(1.+w)*y[ppw->pv->index_pt_delta_fld];
       }
       
     }  

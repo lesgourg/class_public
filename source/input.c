@@ -483,13 +483,19 @@ int input_init(
   }
 
   if (pba->Omega0_fld != 0.) {
-    class_read_double("w_fld",pba->w_fld);
+    class_read_double("w0_fld",pba->w0_fld);
+    class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
 
-    class_test(pba->w_fld<=-1.,
+    class_test(pba->w0_fld<=-1.,
 	       errmsg,
 	       "Your choice w_fld=%g is not valid, it will lead to instabilities or division by zero\n",
-	       pba->w_fld);
+	       pba->w0_fld);
+	       
+    class_test(pba->w0_fld+pba->w0_fld>=1./3.,
+	       errmsg,
+	       "Your choice for w0_fld+wa_fld=%g is suspicious, ther would not be radiation domination at early times\n",
+	       pba->w0_fld+pba->wa_fld);
 	       
 
   }
@@ -1306,7 +1312,8 @@ int input_default_params(
   pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   pba->Omega0_fld = 0.;     
   pba->a_today = 1.;       
-  pba->w_fld=-1.;
+  pba->w0_fld=-1.;
+  pba->wa_fld=0.;
   pba->cs2_fld=1.;
 
   /** - thermodynamics structure */
