@@ -1749,24 +1749,16 @@ int array_interpolate_extrapolate_spline_one_column(
   int inf,sup,mid;
   double h,a,b;
 
-  if (x > x_array[x_size-2]) {
+  if (x > x_array[x_size-2] || x < x_array[0]) {
 
-    /*interpolate/extrapolate linearly ln(y) as a function of ln(x)*/
+    /*interpolate/extrapolate linearly y as a function of x*/
 
-    class_test(y_array[index_y * x_size + (x_size-1)] <= 0.,
-	       errmsg,
-	       "inter/extra-polating log(y) impossible since y<=0");
-
-    class_test(y_array[index_y * x_size + (x_size-2)] <= 0.,
-	       errmsg,
-	       "inter/extra-polating log(y) impossible since y<=0");
-
-    h = log(x_array[x_size-1]) - log(x_array[x_size-2]);
-    b = (log(x)-log(x_array[x_size-2]))/h;
+    h = x_array[x_size-1] - x_array[x_size-2];
+    b = (x-x_array[x_size-2])/h;
     a = 1-b;
     
-    *y = exp(a * log(y_array[index_y * x_size + (x_size-2)]) +
-	     b * log(y_array[index_y * x_size + (x_size-1)]));
+    *y = a * y_array[index_y * x_size + (x_size-2)] +
+	     b * y_array[index_y * x_size + (x_size-1)];
 
 
   }

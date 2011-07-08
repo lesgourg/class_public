@@ -82,11 +82,15 @@ struct spectra_nl {
   double * b_111_nl;
   double * b_121_nl;
   double * b_122_nl;
+  double * b_221_nl;
+  double * b_211_nl;
   double * b_222_nl;
 
   double * b_111;
   double * b_121;
   double * b_122;
+  double * b_221;
+  double * b_211;
   double * b_222;
 
   //@}
@@ -118,7 +122,9 @@ extern "C" {
   enum name_B{
     _111_,
     _121_,
+    _211_,
     _122_,
+    _221_,
     _222_
   };
 
@@ -152,7 +158,7 @@ extern "C" {
 			double * result
 			);
 
-  int trg_A_arg_trg(
+  int trg_G_arg(
 		struct spectra_nl *pnl,
 		enum name_B name, 
 		double k, 
@@ -162,21 +168,24 @@ extern "C" {
 		double * result 
 		);
 
-  int trg_A_arg_one_loop(
-			 struct spectra_nl * pnl,
-			 enum name_B name, 
-			 double k, 
-			 double p, 
-			 double m, 
-			 double * result 
-			 );
+  int trg_I_arg(
+      struct spectra_nl * pnl,
+      enum name_I name, 
+      double k, 
+      double p, 
+      double m, 
+      int i,
+      int index_k,
+      int index_eta,
+      double * result 
+      );
 
   int trg_integrate_xy_at_eta(
 			      struct background * pba,
 			      struct primordial * ppm,
 			      struct spectra * psp,
 			      struct spectra_nl * pnl,
-			      enum name_B name,
+			      enum name_I name,
 			      int index_eta,
 			      double * result
 			      );

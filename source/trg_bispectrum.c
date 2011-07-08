@@ -265,6 +265,46 @@ int trg_G_terms(
 
     /****************************************/
 
+    case _211_:
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,p,&p_11p),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_11,pnl->ddp_11,0,q,&p_11q),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,q,&p_12q),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k),
+	  pnl->error_message,
+	  pnl->error_message);
+
+
+      class_call(trg_gamma_222(k,q,p,&gamma2_kqp,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      trg_gamma_121(k,q,p,&gamma1_qpk);
+      trg_gamma_121(k,p,q,&gamma1_qkp);
+      trg_gamma_121(p,k,q,&gamma1_pkq);
+      trg_gamma_121(p,q,k,&gamma1_pqk);
+
+      *result = gamma2_kqp*p_12q*p_12p +
+       	gamma1_qpk*p_12p*p_12k + gamma1_qkp*p_11p*p_22k +
+	gamma1_pkq*p_22k*p_11q + gamma1_pqk*p_12k*p_12q;
+
+      return _SUCCESS_;
+      break;
+
+    /****************************************/
     case _122_:
 
       class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k),
@@ -304,6 +344,44 @@ int trg_G_terms(
 
     /****************************************/
 
+    case _221_:
+
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,k,&p_12k),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,q,&p_12q),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_12,pnl->ddp_12,0,p,&p_12p),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,q,&p_22q),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,p,&p_22p),
+	  pnl->error_message,
+	  pnl->error_message);
+
+
+      class_call(trg_gamma_222(q,p,k,&gamma2_qpk,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      class_call(trg_gamma_222(p,k,q,&gamma2_pkq,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      trg_gamma_121(k,q,p,&gamma1_kqp);
+      trg_gamma_121(k,p,q,&gamma1_kpq);
+
+      *result = gamma1_kqp*p_22q*p_12p + gamma1_kpq*p_12q*p_22p + 
+	gamma2_qpk*p_22p*p_12k + gamma2_pkq*p_12k*p_22q;
+
+      return _SUCCESS_;
+      break;
+
+    /****************************************/
     case _222_:
 
       class_call(trg_p_ab_at_any_k(pnl,pnl->p_22,pnl->ddp_22,0,k,&p_22k),
@@ -364,27 +442,24 @@ int trg_G_terms(
  * @return the error status
  */
 
-int trg_B_arg(
+int trg_I_arg(
     struct spectra_nl * pnl,
-    enum name_B name, 
+    enum name_I name, 
     double k, 
     double p, 
     double m, 
+    int i,
+    int index_k,
+    int index_eta,
     double * result 
     ){
 
-  /*[>* - define local variables <]*/
+  /** - define local variables */
 
-  /*[> shorter names for the spectra <]*/
+  /* shorter names for the interaction functions */
 
-  /*double p_11k,p_11m,p_11p;*/
-  /*double p_12k,p_12m,p_12p;*/
-  /*double p_22k,p_22m,p_22p;*/
-
-  /*[> shorter names for the interaction functions <]*/
-
-  /*double gamma1_kpm,gamma1_pkm,gamma1_mkp,gamma1_mpk,gamma1_pmk,gamma1_kmp;*/
-  /*double gamma2_kpm,gamma2_pkm,gamma2_mkp,gamma2_mpk,gamma2_pmk,gamma2_kmp;*/
+  double gamma1_kpm,gamma1_pkm,gamma1_mkp,gamma1_mpk,gamma1_pmk,gamma1_kmp;
+  double gamma2_kpm,gamma2_pkm,gamma2_mkp,gamma2_mpk,gamma2_pmk,gamma2_kmp;
 
   /*[>* - take care of the cases where one of the argument is below k_min <]*/
 
@@ -403,12 +478,55 @@ int trg_B_arg(
 
 
   switch(name){
-    case _111_:
+    case _11_:
+
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+
+      *result=2.*gamma1_kpm*pnl->b_121_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*i)]+
+	2.*gamma1_kmp*pnl->b_121_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*2*i)];
       return _SUCCESS_;
       break;
 
       /****************************************/
 
+    case _12_:
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      trg_gamma_121(k,p,m,&gamma1_kpm);
+      trg_gamma_121(k,m,p,&gamma1_kmp);
+
+      *result=gamma1_kpm*pnl->b_221_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*i)]+
+	gamma1_kmp*pnl->b_221_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*2*i)]+
+	gamma2_kpm*pnl->b_122_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*i)]+
+	gamma2_kmp*pnl->b_122_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*2*i)];
+
+      return _SUCCESS_;
+      break;
+
+      /****************************************/
+
+    case _22_:
+
+      class_call(trg_gamma_222(k,p,m,&gamma2_kpm,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      class_call(trg_gamma_222(k,m,p,&gamma2_kmp,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+      *result=gamma2_kpm*pnl->b_222_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*i)]+
+	gamma2_kmp*pnl->b_222_nl[index_k+pnl->k_size*(index_eta+pnl->eta_size*2*i)];
+      return _SUCCESS_;
+      break;
+
+      /****************************************/
     default:
       sprintf(pnl->error_message,"%s(L:%d): non valid argument in integrals A of I, %d is not defined\n",__func__,__LINE__,name);
       return _FAILURE_;
@@ -471,7 +589,7 @@ int trg_integrate_xy_at_eta(
 			    struct primordial * ppm,
 			    struct spectra * psp,
 			    struct spectra_nl * pnl,
-			    enum name_B name,
+			    enum name_I name,
 			    int index_eta,
 			    double * result
 			    ){
@@ -482,28 +600,17 @@ int trg_integrate_xy_at_eta(
   double k;
   double k_max;
 
-  int x_size,index_x;
-  double x;
-  double * xx;
-  double logstepx;
-    
-  int y_size,index_y;
-  double y;
-  double * yy;
-  double logstepy;
+  double arg;
 
-  double * h_up;
-  double * h_do;
-  double * v_le;
-  double * v_ri;
-  
-  int il;
+  double xl,xr,yl,yr;
+  double p,m;
 
-  double * partial_sum;
-  double * partial_area;
-  double sum,area;
-  double increment_sum,increment_area;
+  double *w;
+  double *x;
+  double *y;
 
+  int n;
+  int i;
   /** - set a value for the upper bound in x, hard-coded. */
 
   k_max=3000.;
@@ -512,318 +619,37 @@ int trg_integrate_xy_at_eta(
         condition */
 
   for(index_k=0; index_k<pnl->k_size-pnl->double_escape*(2*index_eta+1); index_k++){
-
     k=pnl->k[index_k];
 
-    /** - define the steps on x and y */
+    /** determine boundary of the integral to perform over xy */
 
-    /* for large k's, one must reduce the steps to be accurate
-       enough. These are precision parameters hard-coded, maybe there
-       is some execution time to save here, but not much. */
+    xl=k/sqrt(2.);
+    xr=k_max;
+    yl=0.;
+    yr=k/sqrt(2.);
 
-    logstepx=min(1.1,1+0.01/pow(k,1));
-    
-    /* however, a pnl->logstepx_min is defined to restrain the
-       computing time. This is the key element controling the speed of
-       the computation. For information, with eta_size=100,
-       pnl->logstepx_min = 1.07 : 70 minutes, pnl->logstepx_min =
-       1.02: 4 hours. Can be changed in trg.ini */
+    /** implement quadrature integral. The result will be the weighted sum of the bispectra 
+     * evaluated in carefully chosen points */
 
-    if(logstepx< pnl->logstepx_min)  logstepx= pnl->logstepx_min; 
+    n=24;
 
-    logstepy=logstepx;
+    class_call(quadrature_in_rectangle(xl,xr,yl,yr,&n,&x,&y,&w,pnl->error_message),
+	pnl->error_message,
+	pnl->error_message);
 
-    /** A) deal with the case k < k_linear. Can be changed in trg.ini */
+    for(i=0;i<n;i++){
 
-    /* for sufficiently small k's, the modes are supposed to stay
-       linear at all time during the evolution, their A function is
-       thus equal to zero */
-    if(index_k<pnl->index_k_L){ 
+      p=(x[i]+y[i])/sqrt(2.);
+      m=(x[i]-y[i])/sqrt(2.);
 
-      result[index_k+pnl->k_size*index_eta]=0.;
+      class_call(trg_I_arg(pnl,name,k,p,m,i,index_k,index_eta,&arg),
+	  pnl->error_message,
+	  pnl->error_message);
 
+      *result+=((x[i])*(x[i])-y[i]*y[i])/2.*arg*w[i];
     }
-
-    /** B) deal with the case k > k_linear : full calculation */
-
-    else{
-
-       /* define the integration domain over x */
-
-      x_size = (int)(log(2.*k_max/k)/log(logstepx)) + 2;
-
-      class_calloc(xx,x_size,sizeof(double),pnl->error_message);
-
-      class_calloc(h_up,x_size,sizeof(double),pnl->error_message);
-      class_calloc(h_do,x_size,sizeof(double),pnl->error_message);
-
-      index_x = 0; 
-
-      /* affect the values of x */
-
-      do {
-	
-	class_test(index_x >= x_size,
-		   pnl->error_message," ");
-
-	xx[index_x] = k/sqrt(2.)*pow(logstepx,index_x); 
-
-	if (xx[index_x] >= k_max*sqrt(2.)) xx[index_x] = k_max*sqrt(2.); /* correct the last value */
-
-	index_x ++;
-
-      } while (xx[index_x-1] < k_max*sqrt(2.));
-
-      x_size = index_x; /* to enforce it and avoid problems */
-
-
-
-      /* define the integration domain over y */
-
-      y_size = (int)(log(2.)/log(logstepy)) + 2;
-
-      class_calloc(yy,y_size,sizeof(double),pnl->error_message);
-
-      class_calloc(v_le,y_size,sizeof(double),pnl->error_message);
-      class_calloc(v_ri,y_size,sizeof(double),pnl->error_message);
- 
-      class_calloc(partial_sum,y_size-1,sizeof(double),pnl->error_message);
-      class_calloc(partial_area,y_size-1,sizeof(double),pnl->error_message);
-
-      index_y = 0;
-
-      /* affect the values of y */
-
-      do {
-
-	class_test(index_y >= y_size,
-		   pnl->error_message," ");
-
-	yy[index_y] = k*sqrt(2.) - k/sqrt(2.)*pow(logstepy,index_y); 
-
-	if (yy[index_y] < 0.) yy[index_y] = 0.; /* correct the last value */
-
-	index_y ++;
-	
-      } while (yy[index_y-1] > 0.);
-
-      y_size = index_y; /* to enforce it and avoid problems */
-
-      /*
-       *compute first h and v lines
-       */
-
-      h_do[0]=0.;
-      v_ri[0]=h_do[0];
-
-      for (index_x=1; index_x < x_size; index_x ++) {
-
-	x=xx[index_x];
-	y=yy[0];
-
-	if (x <= sqrt(2.)*k_max) {
-	  class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&h_do[index_x]),
-	      pnl->error_message,
-	      pnl->error_message);
-
-	      
-	}
-	else {
-	  h_do[index_x]=0.;
-	}
-	
-      }
-
-      for (index_y=1; index_y < y_size; index_y ++) {
-
-	x=xx[0];
-	y=yy[index_y];
-	
-	class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&v_ri[index_y]),
-	    pnl->error_message,
-	    pnl->error_message);
-
-      }
-
-      sum = 0.;
-      area = 0.;
-
-      /********************* loop over L-shaped regions **********************/
-
-      for (il=0; il < y_size-1; il++) {
-
-	/* move previous bottom-line to up-line, and previous right-line to left-line 
-	   (remember that some point may have not been calculated, 
-	   in this case the end of the lines is filled with zeros */
-
-	for (index_x=il; index_x < x_size; index_x ++)
-	  h_up[index_x] = h_do[index_x];
-
-	for (index_y=il; index_y < y_size; index_y ++)
-	  v_le[index_y] = v_ri[index_y];
-
-	/* one new point on the diagonal, integral of cell on diagonal */
-
-	x=xx[il+1];
-	y=yy[il+1];
-	class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&h_do[il+1]),
-	    pnl->error_message,
-	    pnl->error_message);
-
-	v_ri[il+1]= h_do[il+1];
-
-	increment_sum = (xx[il+1]-xx[il])*(yy[il]-yy[il+1])*0.25*(h_up[il]+h_up[il+1]+v_le[il+1]+v_ri[il+1]);
-	increment_area = (xx[il+1]-xx[il])*(yy[il]-yy[il+1]);
-
-	partial_sum[il] = increment_sum;
-	partial_area[il] = increment_area;
-
-	/**************** new points on the horizontal and diagonal, within the square ******************/
-
-	for (index_x=il+1; index_x < y_size-1; index_x ++) {
-
-	  /* the point h_up[index_x+1] may have not been calculated at the previous stage; check and calculate */
-
-	  if (h_up[index_x+1] == 0.) {
-
-	    x=xx[index_x+1];
-	    y=yy[il];
-	    
-	    if (x <= sqrt(2)*k_max) {
-	      class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&h_up[index_x+1]),
-		  pnl->error_message,
-		  pnl->error_message);
-	    } 
-	    else {
-	      h_up[index_x+1]=0.;
-	    }
-	    
-	  }
-
-	  /* the point h_do[index_x+1] is new; calculate */
-
-	  x=xx[index_x+1];
-	  y=yy[il+1];
-
-	  if (x <= sqrt(2)*k_max) {
-	    class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&h_do[index_x+1]),
-		pnl->error_message,
-		pnl->error_message);
-	  } 
-	  else {
-	    h_do[index_x+1]=0.;
-	  }
-
-	  /* the point v_le[index_x+1] may have not been calculated at the previous stage; check and calculate */
-
-	  if (v_le[index_x+1] == 0.) {
-	    
-	    x=xx[il];
-	    y=yy[index_x+1];
-
-	    class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&v_le[index_x+1]),
-		pnl->error_message,
-		pnl->error_message);
-	    
-	  }
-
-	  /* the point v_ri[index_x+1] is new; calculate */
-
-	  x=xx[il+1];
-	  y=yy[index_x+1];
-
-	  class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&v_ri[index_x+1]),
-	      pnl->error_message,
-	      pnl->error_message);
-	  /* now integrate on the two new cells */
-
-	  increment_sum = (xx[il+1]-xx[il])*(yy[index_x]-yy[index_x+1])*0.25*
-	    (v_le[index_x]+v_le[index_x+1]+v_ri[index_x]+v_ri[index_x+1])
-	    + (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1])*0.25*
-	    (h_up[index_x]+h_up[index_x+1]+h_do[index_x]+h_do[index_x+1]);
-
-	  increment_area = (xx[il+1]-xx[il])*(yy[index_x]-yy[index_x+1]) 
-	    + (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1]);
-
-	  partial_sum[il] += increment_sum;
-	  partial_area[il] += increment_area;
-
-	}
-
-	/***************** new points on the horizontal, beyond the square *******************/
-
-	for (index_x=y_size-1; index_x < x_size-1; index_x ++) {
-
-	  /* the point h_up[index_x+1] may have not been calculated at the previous stage; check and calculate */
-
-	  if (h_up[index_x+1] == 0.) {
-
-	    x=xx[index_x+1];
-	    y=yy[il];
-
-	    if (x <= sqrt(2)*k_max) {
-	      class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&h_up[index_x+1]),
-		  pnl->error_message,
-		  pnl->error_message);
-	    } 
-	    else {
-	      h_up[index_x+1]=0.;
-	    }
-
-	  }
-
-	  /* the point h_do[index_x+1] is new; calculate */
-
-	  x=xx[index_x+1];
-	  y=yy[il+1];
-
-	  if (x <= sqrt(2)*k_max) {
-	    class_call(trg_B_arg(pnl,name,k,(x+y)/sqrt(2.),(x-y)/sqrt(2.),&h_do[index_x+1]),
-		pnl->error_message,
-		pnl->error_message);
-	  } 
-	  else {
-	    h_do[index_x+1]=0.;
-	  }
-
-	  /* now integrate on the new cell */
-
-	  increment_sum = (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1])*0.25*
-	    (h_up[index_x]+h_up[index_x+1]+h_do[index_x]+h_do[index_x+1]);
-
-	  increment_area = (xx[index_x+1]-xx[index_x])*(yy[il]-yy[il+1]);
-
-	  partial_sum[il] += increment_sum;
-	  partial_area[il] += increment_area;
-
-	}
-
-	/* update the total sum with the new L-shaped region */
-
-	sum += partial_sum[il];
-	area += partial_area[il];
-	
-      }
-
-      result[index_k+pnl->k_size*index_eta]=sum;
-
-      free(xx);
-      free(h_up);
-      free(h_do);
-      free(yy);
-      free(v_le);
-      free(v_ri);
-      free(partial_sum);
-      free(partial_area);
-    
-    }
-    
-   
-
   }
-
   return _SUCCESS_;
-  
 }
 
 /** 
@@ -984,7 +810,7 @@ int trg_init (
    */
 
   int index_name,name_size;
-  double **I;
+  double **G;
   
   /** Additionnal temporary variables */
 
@@ -996,16 +822,14 @@ int trg_init (
   double dz_p;
   double delta_minus,delta_plus,d_delta_m_over_dz;
 
-  /** xy integration */
+  int i,n;
+  n=24;
 
-  double * x;
-  double * y;
-  double * w;
+  int index_b,index_b_plus;
 
-  int n;
-
-  double xl,xr,yl,yr;
-
+  double *x,*y,*w;
+  double xl,xr,yl,yr,k_max;
+  k_max=3000;
   /** Meaningless initialisations to remove warnings (some variables are only defined in conditional loops) **/
 
   logstepk=0;
@@ -1174,6 +998,15 @@ int trg_init (
     }
   }
 
+  /* Implementation of interpolation for Omega matrices elements.*/
+
+  double *ddOmega_21,*ddOmega_22;
+
+  class_calloc(ddOmega_21, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+  class_calloc(ddOmega_22, pnl->eta_size*pnl->k_size,sizeof(double),pnl->error_message);
+
+
+
   /** Implementing the E1L method (see paper). We recover the computed
       growth_factor, normalized to unity at starting redshift, and for
       a k_growth_factor chosen in the .ini. The dependence in
@@ -1332,7 +1165,7 @@ int trg_init (
    * initialization can take place now.
    */
 
-  pnl->xy_size=50; // would be xy_size=ppr->n;
+  pnl->xy_size=24; // would be xy_size=ppr->n;
 
   /**
    * Definition of B_111,B_121,B_122,B_222, the four independent three points
@@ -1340,23 +1173,30 @@ int trg_init (
    * z=35)
    */
 
-  class_calloc(pnl->b_111_nl,pnl->k_size*pnl->eta_size*pnl->xy_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->b_121_nl,pnl->k_size*pnl->eta_size*pnl->xy_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->b_122_nl,pnl->k_size*pnl->eta_size*pnl->xy_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->b_222_nl,pnl->k_size*pnl->eta_size*pnl->xy_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_111_nl,pnl->k_size*pnl->eta_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_121_nl,pnl->k_size*pnl->eta_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_211_nl,pnl->k_size*pnl->eta_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_122_nl,pnl->k_size*pnl->eta_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_221_nl,pnl->k_size*pnl->eta_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_222_nl,pnl->k_size*pnl->eta_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
 
-  class_calloc(pnl->b_111,pnl->k_size*pnl->xy_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->b_121,pnl->k_size*pnl->xy_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->b_122,pnl->k_size*pnl->xy_size,sizeof(double),pnl->error_message);
-  class_calloc(pnl->b_222,pnl->k_size*pnl->xy_size,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_111,pnl->k_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_121,pnl->k_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_122,pnl->k_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
+  class_calloc(pnl->b_222,pnl->k_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
 
 
-  name_size = _22_+1;
-  class_calloc(I,name_size,sizeof(double*),pnl->error_message);
+  name_size = _222_+1;
+  class_calloc(G,name_size,sizeof(double*),pnl->error_message);
   for (index_name=0; index_name<name_size; index_name++)
-    class_calloc(I[index_name],pnl->k_size*pnl->eta_size*pnl->xy_size,sizeof(double),pnl->error_message);
+    class_calloc(G[index_name],pnl->k_size*pnl->eta_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
 
-
+  int name_size_I;
+  double **I;
+  name_size_I = _22_+1;
+  class_calloc(I,name_size_I,sizeof(double*),pnl->error_message);
+  for (index_name=0; index_name<name_size_I; index_name++)
+    class_calloc(I[index_name],pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
   /** Initialization of bispectra 
    */
@@ -1377,7 +1217,7 @@ int trg_init (
     /*** beginning of parallel region ***/
 
 #pragma omp parallel							\
-  shared(name_size,abort,pba,ppm,psp,pnl,I)				\
+  shared(name_size_I,abort,pba,ppm,psp,pnl,I)				\
   private(tstart,index_name,tstop)
     
     {
@@ -1387,7 +1227,7 @@ int trg_init (
 #endif
 
 #pragma omp for schedule (dynamic)
-      for (index_name=0; index_name<name_size; index_name++) {
+      for (index_name=0; index_name<name_size_I; index_name++) {
 
 #pragma omp flush(abort)
 
@@ -1441,6 +1281,10 @@ int trg_init (
       return _FAILURE_;
     }
 
+    double p,q;
+    double omega_21_p,omega_21_q,omega_22_p,omega_22_q;
+    int index_2b;
+
     for (index_k=0; index_k<pnl->k_size-pnl->double_escape*2*(index_eta-1)/1; index_k++){
 
       /* Some useful intermediate variables */
@@ -1470,7 +1314,77 @@ int trg_init (
 					    +exp_eta*fourpi_over_k*I[_12_][0])
 	+ pnl->p_12_nl[index];
 
-	
+      
+      for(i=0;i<2*n;i++){
+
+	index_b = index_k+pnl->k_size*(index_eta-2+pnl->eta_size*i);
+	if(i<n){
+	  index_2b = index_k+pnl->k_size*(index_eta-2+pnl->eta_size*(i+n));
+	}
+	else
+	  index_2b = index_k+pnl->k_size*(index_eta-2+pnl->eta_size*(i-n));
+	index_b_plus = index_k+pnl->k_size*(index_eta-1+pnl->eta_size*i);
+	xl=pnl->k[index_k]/sqrt(2.);
+	xr=k_max;
+	yl=0.;
+	yr=pnl->k[index_k]/sqrt(2.);
+
+	class_call(quadrature_in_rectangle(xl,xr,yl,yr,&n,&x,&y,&w,pnl->error_message),
+	    pnl->error_message,
+	    pnl->error_message);
+
+	p=(x[i]-y[i])/sqrt(2.);
+	q=(x[i]+y[i])/sqrt(2.);
+
+	for(index_name=0;index_name<name_size;index_name++){
+	  class_call(trg_G_terms(pnl,index_name,pnl->k[index_k],q,p,index_eta,G[index_name]),
+	      pnl->error_message,
+	      pnl->error_message);
+	}
+
+	class_call(array_interpolate_extrapolate_spline_one_column(pnl->k,pnl->k_size,Omega_21,pnl->eta_size,
+	      index_eta,ddOmega_21,p,&omega_21_p,pnl->error_message),
+	    pnl->error_message,
+	    pnl->error_message);
+
+	class_call(array_interpolate_extrapolate_spline_one_column(pnl->k,pnl->k_size,Omega_21,pnl->eta_size,
+	      index_eta,ddOmega_21,q,&omega_21_q,pnl->error_message),
+	    pnl->error_message,
+	    pnl->error_message);
+
+	class_call(array_interpolate_extrapolate_spline_one_column(pnl->k,pnl->k_size,Omega_22,pnl->eta_size,
+	      index_eta,ddOmega_22,p,&omega_22_p,pnl->error_message),
+	    pnl->error_message,
+	    pnl->error_message);
+
+	class_call(array_interpolate_extrapolate_spline_one_column(pnl->k,pnl->k_size,Omega_22,pnl->eta_size,
+	      index_eta,ddOmega_22,q,&omega_22_q,pnl->error_message),
+	    pnl->error_message,
+	    pnl->error_message);
+
+	pnl->b_111_nl[index_b_plus] = (time_step) *(
+	    -pnl->b_111_nl[index_b]*(3.*Omega_11 ) - pnl->b_211_nl[index_b]*Omega_12 - (pnl->b_121_nl[index_b]+pnl->b_121_nl[index_2b])*Omega_12 + 2*exp_eta*G[_111_][index_b]) + pnl->b_111_nl[index_b];
+
+	pnl->b_121_nl[index_b_plus] = (time_step) *( -pnl->b_121_nl[index_b]*(Omega_11+omega_22_q+omega_22_p)-pnl->b_222_nl[index_b]*Omega_12
+	    -pnl->b_121_nl[index_b]*omega_21_p - pnl->b_121_nl[index_2b]*omega_21_q + 2.*exp_eta*G[_121_][index_b]) + pnl->b_121_nl[index_b];
+
+	pnl->b_211_nl[index_b_plus] = (time_step) *( -pnl->b_211_nl[index_b]*(Omega_22[index] + 2.*Omega_11)-pnl->b_111_nl[index_b]*Omega_21[index]
+	    -pnl->b_221_nl[index_b]*Omega_12 - pnl->b_221_nl[index_2b]*Omega_12 + 2.*exp_eta*G[_211_][index_b]) + pnl->b_211_nl[index_b];
+
+	pnl->b_122_nl[index_b_plus] = (time_step) *(
+	    -pnl->b_122_nl[index_b]*(Omega_11+omega_22_q+omega_22_p) - pnl->b_222_nl[index_b]*Omega_12-pnl->b_121_nl[index_b]*omega_21_p
+	    -pnl->b_121_nl[index_2b]*omega_21_q + 2.*exp_eta*G[_122_][index_b]) + pnl->b_122_nl[index_b];
+
+	pnl->b_221_nl[index_b_plus] = (time_step) *(
+	    -pnl->b_221_nl[index_b]*(Omega_22[index]+omega_22_q+Omega_12) - pnl->b_121_nl[index_b]*Omega_21[index]-pnl->b_211_nl[index_b]*omega_21_q
+	    -pnl->b_222_nl[index_b]*Omega_12 + 2.*exp_eta*G[_221_][index_b]) + pnl->b_221_nl[index_b];
+
+	pnl->b_222_nl[index_b_plus] = (time_step) *(
+	    -pnl->b_222_nl[index_b]*(Omega_21[index]+omega_22_q+omega_22_p)-pnl->b_122_nl[index_b]*Omega_21[index]-pnl->b_221_nl[index_2b]*omega_21_q
+	    -pnl->b_221_nl[index_b]*omega_21_p + 2.*exp_eta*G[_222_][index_b]) + pnl->b_222_nl[index_b];
+	   
+      }
+
       /* The linear quantities are followed through this simplified integrator, for reference */
 
       p_11_linear[index_plus]= (time_step) *(
@@ -1765,6 +1679,9 @@ int trg_init (
   
   free(Omega_21);
   free(Omega_22);
+
+  free(ddOmega_21);
+  free(ddOmega_22);
 
   free(growth_factor);
   free(corrected_growth_factor);
