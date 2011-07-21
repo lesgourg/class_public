@@ -564,6 +564,7 @@ struct perturb_parameters_and_workspace {
 			     );
 
     int perturb_sources(
+			struct precision * ppr,
 			struct perturbs * ppt,
 			int index_mode,
 			int index_ic,

@@ -1841,7 +1841,8 @@ int perturb_solve(
 
   /** - infer source functions from source terms using perturb_sources() */
 
-  class_call(perturb_sources(ppt,
+  class_call(perturb_sources(ppr,
+			     ppt,
 			     index_mode,
 			     index_ic,
 			     index_k,
@@ -3124,6 +3125,8 @@ int perturb_initial_conditions(struct precision * ppr,
       /* newtonian gauge */
       if (ppr->gauge == newtonian) {
 
+	fprintf(stderr,"newtonian initial conditions\n");
+
 	class_test(tau == 0.,
 		   ppt->error_message,
 		   "stop to avoid division by zero");
@@ -3149,6 +3152,8 @@ int perturb_initial_conditions(struct precision * ppr,
 	  ppw->pv->y[ppw->pv->index_pt_theta_ur] = alpha*k*k - pow(k*tau,3.)*k/36. * (23.+4.*fracnu)/(15.+4.*fracnu); /* velocity of ultra-relativistic neutrinos/relics */
 	  ppw->pv->y[ppw->pv->index_pt_shear_ur] = k*k*tau*tau*2./3./(12.+fracnu); /* shear of ultra-relativistic neutrinos/relics */
 	}
+
+	fprintf(stderr,"end newtonian initial conditions\n");
 
       }
 
@@ -3180,8 +3185,11 @@ int perturb_initial_conditions(struct precision * ppr,
 	/* fluid density (assumes wa=0, if this is not the case the
 	   fluid will catch anyway the attractor solution) */
  	if (pba->has_fld == _TRUE_) {
- 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+pba->w0_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*pba->w0_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
-	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*pba->w0_fld+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
+
+ 	  ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+pba->w0_fld+pba->wa_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*(pba->w0_fld+pba->wa_fld)+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
+
+	  ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*(pba->w0_fld+pba->wa_fld)+3.*pba->cs2_fld) * ppr->curvature_ini; /* from 1004.5509 */
+
  	} 
 
 	/* relativistic relics */
@@ -4038,6 +4046,7 @@ int perturb_source_terms(
   double Pi,Pi_prime,Psi,Psi_prime;
   double x;
   int index_type;
+  int index_st;
 
   struct perturb_parameters_and_workspace * pppaw;
   struct precision * ppr;
@@ -4148,7 +4157,14 @@ int perturb_source_terms(
     /** - for each type and each mode, compute S0, S1, S2 */
     for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
 
+      /* store value of time */
+
       source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_tau] = tau;
+
+      /* initially, set all sources to zero */
+
+      for (index_st = 0; index_st < ppw->st_size; index_st++)
+	source_term_table[index_type][index_tau * ppw->st_size + index_st] = 0.;
 
       /* scalar temperature */
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
@@ -4160,18 +4176,35 @@ int perturb_source_terms(
 	  if (ppr->gauge == newtonian) {
 
 	    /* S0 */
+            /* Note: the actual S0 should be [exp_m_kappa phi' + g (
+	       delta_g/4 + Pi/16)]. However we pick up an extra term
+	       [(g' theta_b + g theta_b')/k2] which actually comes
+	       from S1', see the note below explaining why this is more practical */
 	    source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] =
 	      pvecthermo[pth->index_th_exp_m_kappa] * pvecmetric[ppw->index_mt_phi_prime]
-	      + pvecthermo[pth->index_th_g] / 4. * (delta_g + Pi / 4.);
+	      + pvecthermo[pth->index_th_g] /4. * (delta_g + Pi / 4.)
+	      + (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] +
+		 pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b]) / k2;
 	    
 	    /* S1 */
+	    /* Note: the actual S1 should be [exp_m_kappa psi + g
+	       theta_b / k2].  It is easy to get here the derivative
+	       of the second term, [(g' theta_b + g theta_b')/k2], but
+	       not to get that of the first term, [g psi + exp_m_kappa
+	       psi'].  Hence we code [S1 = exp_m_kappa psi], and we
+	       will compute dS1 with finite differences, while [(g'
+	       theta_b + g theta_b')/k2] has bben moved inside S0 */
 	    source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S1] =
-	      pvecthermo[pth->index_th_exp_m_kappa] * pvecmetric[ppw->index_mt_psi]
-	      + pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k2;
+	      pvecthermo[pth->index_th_exp_m_kappa] * pvecmetric[ppw->index_mt_psi];
 
 	    /* S2 */
-	    source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S2] =
-	      3./16. * pvecthermo[pth->index_th_g] * Pi / k2;
+	    /* source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S2] = */
+	    /* 3./16. * pvecthermo[pth->index_th_g] * Pi / k2; */
+
+	    /* dS2 */
+	    source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] =
+	      3./16. * pvecthermo[pth->index_th_dg] * Pi / k2
+	      + 3./16. * pvecthermo[pth->index_th_g] * Pi_prime / k2;
 
 	  }
 
@@ -4224,14 +4257,6 @@ int perturb_source_terms(
 
 	  }
 	}
-
-	else {
-
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 0.;
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] = 0.;
-
-	}
       }
 
       /* scalar polarization */
@@ -4242,12 +4267,6 @@ int perturb_source_terms(
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] =
 	    + 3./16. * pvecthermo[pth->index_th_g] * Pi /x/x;  
 	}
-	else {
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 0.;
-	}
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
-
       }
 
       /* gravitational potential */
@@ -4256,17 +4275,13 @@ int perturb_source_terms(
 	/* newtonian gauge */
 	if (ppr->gauge == newtonian) {
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
-	    pvecmetric[ppw->index_mt_phi];
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
+	    pvecmetric[ppw->index_mt_psi];
 	}
 
 	/* synchronous gauge */
 	if (ppr->gauge == synchronous) {
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	    (a_prime_over_a * (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2./k2 + pvecmetric[ppw->index_mt_alpha_prime]);
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
 
 	  /* testing zone */
 	  /* 	  if ((k>1.e-3) && (k<2.e-3)) */
@@ -4289,8 +4304,6 @@ int perturb_source_terms(
       if ((ppt->has_source_delta_pk == _TRUE_) && (index_type == ppt->index_tp_delta_pk)) {
 
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = ppw->delta_pk;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
 
       }
 
@@ -4305,32 +4318,24 @@ int perturb_source_terms(
 	}
 	
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = delta_g;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
 
       /* delta_baryon */
       if ((ppt->has_source_delta_b == _TRUE_) && (index_type == ppt->index_tp_delta_b)) {
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	  y[ppw->pv->index_pt_delta_b]; 
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
 
       /* delta_cdm */
       if ((ppt->has_source_delta_cdm == _TRUE_) && (index_type == ppt->index_tp_delta_cdm)) {
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	  y[ppw->pv->index_pt_delta_cdm]; 
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
 
       /* delta_fld */
       if ((ppt->has_source_delta_fld == _TRUE_) && (index_type == ppt->index_tp_delta_fld)) {
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	  y[ppw->pv->index_pt_delta_fld]; 
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
 
       /* delta_ur */
@@ -4343,16 +4348,12 @@ int perturb_source_terms(
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] =
 	    ppw->rsa_delta_ur;
 	}
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
       
       /* delta_ncdm1 */
       if ((ppt->has_source_delta_ncdm == _TRUE_) && (index_type >= ppt->index_tp_delta_ncdm1) && (index_type < ppt->index_tp_delta_ncdm1+pba->N_ncdm)) {
 	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	  ppw->delta_ncdm[index_type - ppt->index_tp_delta_ncdm1];
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
     }
   }
@@ -4387,13 +4388,6 @@ int perturb_source_terms(
 	    (-y[ppw->pv->index_pt_gwdot]*pvecthermo[pth->index_th_exp_m_kappa]
 	     +pvecthermo[pth->index_th_g]*Psi)/x/x;
 	}
-	else {
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 0.;
-	}
-
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
-
       }
 
       /* tensor polarization */
@@ -4409,15 +4403,6 @@ int perturb_source_terms(
 	    -(pvecthermo[pth->index_th_g]*Psi_prime+pvecthermo[pth->index_th_dg]*Psi)/k/k;
 
 	}
-
-	else {
-
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 0.;
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] = 0.;
-
-	}
-
       }
 
       if ((ppt->has_source_b == _TRUE_) && (index_type == ppt->index_tp_b)) {
@@ -4427,13 +4412,6 @@ int perturb_source_terms(
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	    -pvecthermo[pth->index_th_g]*(4.*Psi/x+2.*Psi_prime/k)-2.*pvecthermo[pth->index_th_dg]*Psi/k;
 	}
-	
-	else {
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 0.;
-	}
-	
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.;
-	source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2] = 0.;
       }
     }
   }
@@ -4459,6 +4437,7 @@ int perturb_source_terms(
  */
 
 int perturb_sources(
+		    struct precision * ppr,
 		    struct perturbs * ppt,
 		    int index_mode,
 		    int index_ic,
@@ -4473,7 +4452,33 @@ int perturb_sources(
 
   for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
 
-    /** - for scalar temperature, infer \f$ S_2'' \f$ from \f$ S_2' \f$ at each time with array_derive1_order2_table_line_to_line() */
+    /** - for scalar temperature and in Newtonian gauge only, infer \f$ S_1' \f$ from \f$ S_1 \f$ at each time with array_derive1_order2_table_line_to_line() */
+
+    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
+	if (ppr->gauge == newtonian) {
+
+	  /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
+	  index_tau = ppt->tau_size-1;
+	  while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S1] == 0.) && (index_tau > 0))
+	    index_tau--;
+	
+	  /* numerical derivative */
+	  class_call(array_derive1_order2_table_line_to_line(
+							     ppt->tau_sampling,
+							     index_tau+1,
+							     ppw->source_term_table[index_type],
+							     ppw->st_size,
+							     ppw->index_st_S1,
+							     ppw->index_st_dS1,
+							     ppt->error_message),
+		     ppt->error_message,
+		     ppt->error_message);
+	}
+      }
+    }
+
+    /** - for scalar temperature and in all gauges, infer \f$ S_2'' \f$ from \f$ S_2' \f$ at each time with array_derive1_order2_table_line_to_line() */
 
     if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
@@ -5333,11 +5338,41 @@ int perturb_derivs(double tau,
 	
 	else {
 	  
-	  if (ppr->gauge == newtonian) { }
+	  if (ppr->gauge == newtonian) { 
+
+	    /* shear of ultra-relativistic neutrinos/relics in fluid approach */
+
+	    if (ppr->ur_fluid_approximation == ufa_mb) {
+	      
+	      dy[ppw->pv->index_pt_shear_ur] =
+		-3./tau*y[ppw->pv->index_pt_shear_ur]
+		+2./3.*y[ppw->pv->index_pt_theta_ur];
+	      
+	    }
+
+	    if (ppr->ur_fluid_approximation == ufa_hu) {
+
+	      dy[ppw->pv->index_pt_shear_ur] =
+		-3.*a_prime_over_a*y[ppw->pv->index_pt_shear_ur]
+		+2./3.*y[ppw->pv->index_pt_theta_ur];
+	      
+	    }
+
+	    if (ppr->ur_fluid_approximation == ufa_CLASS) {
+
+	      dy[ppw->pv->index_pt_shear_ur] = 
+		-3./tau*y[ppw->pv->index_pt_shear_ur]
+		+2./3.*y[ppw->pv->index_pt_theta_ur]; /** TBC in newtonian!!! */
+
+	      
+	    }
+
+	  }
 	  
 	  if (ppr->gauge == synchronous) {
 
 	    /* shear of ultra-relativistic neutrinos/relics in fluid approach */
+
 	    if (ppr->ur_fluid_approximation == ufa_mb) {
 	      
 	      dy[ppw->pv->index_pt_shear_ur] =
@@ -5394,6 +5429,8 @@ int perturb_derivs(double tau,
 	  
 	  if (ppr->gauge == newtonian) { 
 	  
+	    fprintf(stderr,"newtonian version to be written\n");
+
 	  }
 	  if (ppr->gauge == synchronous) {
 	    
