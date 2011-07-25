@@ -91,9 +91,9 @@ cdef extern from "class.h":
   int perturb_init(void*,void*,void*,void*)
   int transfer_init(void*,void*,void*,void*,void*,void*)
   int primordial_init(void*,void*,void*)
-  int spectra_init(void*,void*,void*,void*,void*)
+  int spectra_init(void*,void*,void*,void*,void*,void*)
   int nonlinear_init(void*,void*,void*,void*,void*,void*)
-  int lensing_init(void*,void*,void*,void*)
+  int lensing_init(void*,void*,void*,void*,void*)
   
   int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
   int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
@@ -352,7 +352,7 @@ cdef class Class:
       self.ncp.add("primordial") 
       
     if "spectra" in lvl:
-      if spectra_init(&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
+      if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
         raise ClassError(self.th.error_message)
       self.ncp.add("spectra")       
@@ -364,7 +364,7 @@ cdef class Class:
       self.ncp.add("nonlinear") 
        
     if "lensing" in lvl:
-      if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.le)) == _FAILURE_:
+      if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.nl),&(self.le)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
         raise ClassError(self.th.error_message)
       self.ncp.add("lensing") 
