@@ -741,7 +741,7 @@ int quadrature_in_rectangle(
 			    ErrorMsg error_message) {
 
     
-  int xl_tile,xr_tile,yl_tile,yr_tile;
+  double xl_tile,xr_tile,yl_tile,yr_tile;
   int N;
 
   N=24;

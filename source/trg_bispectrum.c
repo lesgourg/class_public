@@ -829,6 +829,7 @@ int trg_init (
 
   double *x,*y,*w;
   double xl,xr,yl,yr,k_max;
+  double pl,pr,ql,qr;
   k_max=3000;
   /** Meaningless initialisations to remove warnings (some variables are only defined in conditional loops) **/
 
@@ -1185,7 +1186,6 @@ int trg_init (
   class_calloc(pnl->b_122,pnl->k_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
   class_calloc(pnl->b_222,pnl->k_size*pnl->xy_size*2,sizeof(double),pnl->error_message);
 
-
   name_size = _222_+1;
   class_calloc(G,name_size,sizeof(double*),pnl->error_message);
   for (index_name=0; index_name<name_size; index_name++)
@@ -1324,17 +1324,20 @@ int trg_init (
 	else
 	  index_2b = index_k+pnl->k_size*(index_eta-2+pnl->eta_size*(i-n));
 	index_b_plus = index_k+pnl->k_size*(index_eta-1+pnl->eta_size*i);
+	printf("%d %d %d %d\n",pnl->k_size*pnl->eta_size*pnl->xy_size*2,index_b,index_2b,index_b_plus);
 	xl=pnl->k[index_k]/sqrt(2.);
 	xr=k_max;
 	yl=0.;
 	yr=pnl->k[index_k]/sqrt(2.);
 
-	class_call(quadrature_in_rectangle(xl,xr,yl,yr,&n,&x,&y,&w,pnl->error_message),
+	pl=(xl-yl)/sqrt(2.);
+	pr=(xr-yr)/sqrt(2.);
+	ql=(xl+yl)/sqrt(2.);
+	qr=(xr+yr)/sqrt(2.);
+
+	class_call(quadrature_in_rectangle(pl,pr,ql,qr,&n,&p,&q,&w,pnl->error_message),
 	    pnl->error_message,
 	    pnl->error_message);
-
-	p=(x[i]-y[i])/sqrt(2.);
-	q=(x[i]+y[i])/sqrt(2.);
 
 	for(index_name=0;index_name<name_size;index_name++){
 	  class_call(trg_G_terms(pnl,index_name,pnl->k[index_k],q,p,index_eta,G[index_name]),

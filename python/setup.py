@@ -16,6 +16,6 @@ setup(
     ext_modules = [Extension("classy", ["classy.pyx"],
                              include_dirs = [nm.get_include(),"../include"],
                              libraries=["class"],library_dirs=["../"],
-                             extra_link_args=["-fopenmp"],
+                             extra_link_args=["-fopenmp "],
                              )],
 )
