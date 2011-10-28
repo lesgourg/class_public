@@ -588,7 +588,13 @@ int lensing_init(
       X_p000 = -fac*X_000;
       /* X_220 = 0.25*sqrt1[l] * exp(-(fac-0.5)*sigma2[index_mu]); */
       X_220 = 0.25*sqrt1[l] * X_000; /* Order 0 */
-      
+      /* next 5 lines useless, but avoid compilator warning 'may be used uninitialized' */
+      X_242=0.;
+      X_132=0.;
+      X_121=0.;
+      X_p022=0.;
+      X_022=0.;
+
       if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
 	/* X_022 = exp(-(fac-1.)*sigma2[index_mu]); */
 	X_022 = X_000 * (1+sigma2[index_mu]*(1+0.5*sigma2[index_mu])); /* Order 2 */
