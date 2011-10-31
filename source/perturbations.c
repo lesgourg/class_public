@@ -4665,7 +4665,8 @@ int perturb_print_variables(double tau,
   /* 	   delta_ur,theta_ur,shear_ur); */
   /*   } */
   
-  if ((k>=0.001) && (k<0.0011)) {
+  if((k>0.1)&&(k<0.102)){
+    //if ((k>=0.001) && (k<0.0011)) {
     //if ((k>=0.069) && (k<0.071)) {
     //if (k<1.5e-7) {
 
@@ -4865,7 +4866,7 @@ int perturb_derivs(double tau,
   double delta_b,theta_b;
   double Delta;
   double cb2,cs2,ca2;
-  double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.;
+  double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.,metric_ufa_class=0.;
 
   /* for use with fluid (fld): */
   double w,w_prime;
@@ -4976,14 +4977,18 @@ int perturb_derivs(double tau,
 	Each shear derivative equation contains a source term metric_shear equal to
 	metric_shear = (h_prime+6eta_prime)/2 in synchronous gauge, 0 in newtonian gauge
 
-	metric_shear_prime is the derivative of metric_shear */
+	metric_shear_prime is the derivative of metric_shear 
+
+	In the ufa_class approximation, the leading-order source term is (h_prime/2) in synchronous gauge, 
+	(-3 (phi_prime+psi_prime)) in newtonian gauge: we approximate the later by (-6 phi_prime) */ 
 
     if (ppr->gauge == synchronous) {
 
       metric_continuity = pvecmetric[ppw->index_mt_h_prime]/2.;
       metric_euler = 0.;
-      metric_shear = (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2.; /* = k2*alpha */
-      metric_shear_prime = k2*pvecmetric[ppw->index_mt_alpha_prime]; /* time derivative of previous line */
+      metric_shear = (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2.;
+      metric_shear_prime = k2*pvecmetric[ppw->index_mt_alpha_prime];
+      metric_ufa_class = pvecmetric[ppw->index_mt_h_prime]/2.;
     }
 
     if (ppr->gauge == newtonian) {
@@ -4992,6 +4997,7 @@ int perturb_derivs(double tau,
       metric_euler = k2*pvecmetric[ppw->index_mt_psi];
       metric_shear = 0.;
       metric_shear_prime = 0.;
+      metric_ufa_class = -6.*pvecmetric[ppw->index_mt_phi_prime];
     }
 
     /** (e) if some approximation schemes are turned on, enforce a few y[] values computed in perturb_einstein */
@@ -5068,7 +5074,7 @@ int perturb_derivs(double tau,
       }
 
       /** -----> intermediate quantities for 2nd order tca: shear_g at first order in tight-coupling */
-      shear_g=8./45.*tau_c*2.*(theta_g+metric_shear);
+      shear_g=16./45.*tau_c*(theta_g+metric_shear);
       /* (Ma & Bertschinger give (1/9)*(4/3) instead of (2/15)*(4/3)
 	 because they didn't include the contribution of G_gamma0
 	 and G_gamma2, which are of the same order as sigma_g. This
@@ -5078,8 +5084,7 @@ int perturb_derivs(double tau,
       theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R) + metric_euler;
 	
       /** -----> intermediate quantities for 2nd order tca: shear_g_prime at first order in tight-coupling */
-      shear_g_prime=16./45.*(tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime])
-			     +dtau_c*(theta_g+metric_shear));
+      shear_g_prime=16./45.*(tau_c*(theta_prime+metric_shear_prime)+dtau_c*(theta_g+metric_shear));
 
       /** -----> 2nd order as in CRS*/
       if (ppr->tight_coupling_approximation == (int)second_order_CRS) {
@@ -5174,10 +5179,11 @@ int perturb_derivs(double tau,
 
 	/* second-order correction to shear */
 	shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+metric_shear_prime);
-	
-	/* tight-coupling baryon velocity */
-	dy[ppw->pv->index_pt_theta_b] = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R*(delta_g/4.-shear_g))+R*slip)/(1.+R)+metric_euler;
+
       }
+	
+      /* tight-coupling baryon velocity */
+      dy[ppw->pv->index_pt_theta_b] = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R*(delta_g/4.-shear_g))+R*slip)/(1.+R)+metric_euler;
 
       /** ---> store tight-coupling values of photon shear and its derivative */
 
@@ -5387,7 +5393,7 @@ int perturb_derivs(double tau,
 
 	    dy[ppw->pv->index_pt_shear_ur] = 
 	      -3./tau*y[ppw->pv->index_pt_shear_ur]
-	      +2./3.*(y[ppw->pv->index_pt_theta_ur]+metric_continuity);/* check factor: 2 for newtonian? */ 
+	      +2./3.*(y[ppw->pv->index_pt_theta_ur]+metric_ufa_class);
 
 	  }
 	}
@@ -5413,7 +5419,7 @@ int perturb_derivs(double tau,
 	  rho_ncdm_bg = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]; /* background density */
 	  p_ncdm_bg = ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]; /* background pressure */
 	  pseudo_p_ncdm = ppw->pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm]; /* pseudo-pressure (see CLASS IV paper) */
-	  w_ncdm = p_ncdm_bg/rho_ncdm_bg; /* eauqtion of state parameter */
+	  w_ncdm = p_ncdm_bg/rho_ncdm_bg; /* eqaution of state parameter */
 	  ca2_ncdm = w_ncdm/3.0/(1.0+w_ncdm)*(5.0-pseudo_p_ncdm/p_ncdm_bg); /* adiabatic sound speed */
 
 	  /* c_eff is (delta p / delta rho) in the gauge under
@@ -5445,28 +5451,28 @@ int perturb_derivs(double tau,
 
 	  dy[idx+1] = -a_prime_over_a*(1.0-3.0*ca2_ncdm)*y[idx+1]+
 	    ceff2_ncdm/(1.0+w_ncdm)*k2*y[idx]-k2*y[idx+2]
-	    + metric_shear;
+	    + metric_euler;
 	  
 	  /** -----> different ansatz for approximate shear derivative */
 
 	  if (ppr->ncdm_fluid_approximation == ncdmfa_mb) {
 	    
 	    dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./tau)*y[idx+2]
-	      +4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(y[idx+1]+metric_shear);
+	      +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(y[idx+1]+metric_shear);
 	    
 	  }
 	  
 	  if (ppr->ncdm_fluid_approximation == ncdmfa_hu) {
 	    
 	    dy[idx+2] = -3.0*a_prime_over_a*ca2_ncdm/w_ncdm*y[idx+2]
-	      +4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(y[idx+1]+metric_shear);
+	      +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(y[idx+1]+metric_shear);
 	    
 	  }
 	    
 	  if (ppr->ncdm_fluid_approximation == ncdmfa_CLASS) {
 	    
 	    dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./tau)*y[idx+2]
-	      +4.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(y[idx+1]+metric_continuity);
+	      +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*(y[idx+1]+metric_ufa_class);
 
 	  }
 
