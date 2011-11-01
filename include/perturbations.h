@@ -328,8 +328,8 @@ struct perturb_workspace
   double rsa_theta_ur; /**< photon velocity in radiation streaming approximation */
 
   double * delta_ncdm;
-  double theta_ncdm1;
-  double shear_ncdm1;
+  double * theta_ncdm;
+  double * shear_ncdm;
 
   double delta_pk;
 

@@ -1383,6 +1383,8 @@ int perturb_workspace_init(
     if ((ppt->has_matter_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 
       class_alloc(ppw->delta_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
+      class_alloc(ppw->theta_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
+      class_alloc(ppw->shear_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
 
     }
 
@@ -1421,8 +1423,10 @@ int perturb_workspace_free (
     free(ppw->approx);
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-    if (ppt->has_matter_transfers == _TRUE_) {
+    if ((ppt->has_matter_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
       free(ppw->delta_ncdm);
+      free(ppw->theta_ncdm);
+      free(ppw->shear_ncdm);
     }
   }
 
@@ -3804,8 +3808,8 @@ int perturb_einstein(
 	  cg2_ncdm = w_ncdm*(1.0-1.0/(3.0+3.0*w_ncdm)*(3.0*w_ncdm-2.0+pseudo_p_ncdm/p_ncdm_bg));
 	  if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 	    ppw->delta_ncdm[n_ncdm] = y[idx];
-	    ppw->theta_ncdm1 = y[ppw->pv->index_pt_psi0_ncdm1+1];
-	    ppw->shear_ncdm1 = y[ppw->pv->index_pt_psi0_ncdm1+2];
+	    ppw->theta_ncdm[n_ncdm] = y[idx+1];
+	    ppw->shear_ncdm[n_ncdm] = y[idx+2];
 	  }
 
 	  delta_rho += rho_ncdm_bg*y[idx];
@@ -3846,10 +3850,10 @@ int perturb_einstein(
 
 	  if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 	    ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-	    ppw->theta_ncdm1 = rho_plus_p_theta_ncdm/
-	      (ppw->pvecback[pba->index_bg_rho_ncdm1]+ppw->pvecback[pba->index_bg_p_ncdm1]);
-	    ppw->shear_ncdm1 = rho_plus_p_shear_ncdm/
-	      (ppw->pvecback[pba->index_bg_rho_ncdm1]+ppw->pvecback[pba->index_bg_p_ncdm1]);
+	    ppw->theta_ncdm[n_ncdm] = rho_plus_p_theta_ncdm/
+	      (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+	    ppw->shear_ncdm[n_ncdm] = rho_plus_p_shear_ncdm/
+	      (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
 	  }
 
 	  delta_rho += rho_delta_ncdm;
@@ -4065,10 +4069,6 @@ int perturb_einstein(
       /* fourth equation involving total shear */
       ppw->pvecmetric[ppw->index_mt_alpha_prime] = 
 	- 4.5 * (a2/k2) * rho_plus_p_shear + y[ppw->pv->index_pt_eta] - 2.*a_prime_over_a*alpha; /* alpha' = (h''+6eta'')/2k2 */
-
-      /* getting phi here is an option */
-      /* phi=y[ppw->pv->index_pt_eta]-0.5 * (a_prime_over_a/k2) * (h_plus_six_eta_prime); */   
-      /* phi from gauge transformation (from synchronous to newtonian) */
 
     }
   }
@@ -4624,6 +4624,10 @@ int perturb_print_variables(double tau,
   double * pvecthermo;
   double * pvecmetric;
   
+  double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
+  double delta_ur=0.,theta_ur=0.,shear_ur=0.;
+  int n_ncdm;
+  double phi=0.,psi=0.;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -4640,11 +4644,6 @@ int perturb_print_variables(double tau,
   pvecmetric = ppw->pvecmetric;
 
   /** - print whatever you want for whatever mode of your choice */
-
-  double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
-  double delta_ur=0.,theta_ur=0.,shear_ur=0.;
-  //double delta_ncdm=0.,theta_ncdm=0.,shear_ncdm=0.;
-  double phi=0.,psi=0.;
 
   if (pba->has_ur == _TRUE_) {
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
@@ -4750,12 +4749,13 @@ int perturb_print_variables(double tau,
 
     }
 
-    if (pba->has_ncdm == _TRUE_) {
-
-      fprintf(stdout,"%e   %e   %e   ",
-	      ppw->delta_ncdm[0],
-	      ppw->theta_ncdm1,
-	      ppw->shear_ncdm1);
+    if ((pba->has_ncdm == _TRUE_) && ((ppt->has_matter_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_))) {
+	for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+	  fprintf(stdout,"%e   %e   %e   ",
+		  ppw->delta_ncdm[n_ncdm],
+		  ppw->theta_ncdm[n_ncdm],
+		  ppw->shear_ncdm[n_ncdm]);
+	}
     }
 
     if (ppr->gauge == synchronous) {

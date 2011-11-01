@@ -823,24 +823,21 @@ int input_init(
     }
   }
 
-  class_call(parser_read_string(pfc,
-				"lensing",
-				&(string1),
-				&(flag1),
-				errmsg),
-	     errmsg,
-	     errmsg);
-  
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+  if ((ppt->has_scalars == _TRUE_) && 
+      (ppt->has_cls == _TRUE_) && 
+      (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
     
-    class_test((ppt->has_scalars == _FALSE_) || 
-	       (ppt->has_cls == _FALSE_) || 
-	       (ppt->has_cl_cmb_lensing_potential == _FALSE_),
+    class_call(parser_read_string(pfc,
+				  "lensing",
+				  &(string1),
+				  &(flag1),
+				  errmsg),
 	       errmsg,
-	       "Lensed Cls only possible if you ask for scalars, temperature and/or polarization Cls, and lensing potential Cls.");
+	       errmsg);
     
-    ple->has_lensed_cls = _TRUE_;
-    
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+      ple->has_lensed_cls = _TRUE_;
+    }
   }
 
   if (ppt->has_pk_matter == _TRUE_) {
