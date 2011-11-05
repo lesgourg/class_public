@@ -29,16 +29,15 @@
 /** 
  * Source function \f$ S^{X} (k, \tau) \f$ at a given conformal time tau.
  *
- * Evaluate all source functions at given conformal time tau by reading
+ * Evaluate source functions at given conformal time tau by reading
  * the pre-computed table and interpolating.
  *
  * @param ppt        Input : pointer to perturbation structure containing interpolation tables
  * @param index_mode Input : index of requested mode
  * @param index_ic   Input : index of requested initial condition
- * @param index_k    Input : index of requested wavenumber
  * @param index_type Input : index of requested source function type
  * @param tau        Input : any value of conformal time
- * @param psource    Output: vector (assumed to be already allocated) of source functions
+ * @param psource    Output: vector (already allocated) of source function as a function of k
  * @return the error status
  */
 
@@ -46,29 +45,28 @@ int perturb_sources_at_tau(
 			   struct perturbs * ppt,
 			   int index_mode,
 			   int index_ic,
-			   int index_k,
 			   int index_type,
 			   double tau,
 			   double * psource
 			   ) {
 
+
   /** Summary: */
 
   /** - interpolate in pre-computed table contained in ppt */
-  class_call(array_interpolate_two(&(ppt->sources[index_mode]
-				     [index_ic * ppt->tp_size[index_mode] + index_type]
-				     [index_k * ppt->tau_size]),
+  class_call(array_interpolate_two(ppt->tau_sampling,
 				   1,
 				   0,
-				   ppt->tau_sampling,
-				   1,
+				   ppt->sources[index_mode][index_ic*ppt->tp_size[index_mode]+index_type],
+                                   ppt->k_size[index_mode],
 				   ppt->tau_size,
-				   tau,
-				   psource,
-				   1,
-				   ppt->error_message),
-	     ppt->error_message,
-	     ppt->error_message);
+                                   tau,
+                                   psource,
+                                   ppt->k_size[index_mode],
+                                   ppt->error_message),
+             ppt->error_message,
+             ppt->error_message);
+
 
   return _SUCCESS_;
 }
@@ -182,9 +180,12 @@ int perturb_init(
     printf("Warning: integrating the ncdm equations in the newtonian gauge requires more precision than in the synchronous one. You should set tol_ncdm to a smaller value than usual, and the Cls for l<50 wil not be accurate. Currently, you have tol_ncdm set to %e; for indication, 1.e-5 is necessary for sub-percent precision for l>50\n",ppr->tol_ncdm);
   } 
 	     
-
   if (ppt->has_niv == _TRUE_) {
     printf("Warning: niv initial conditions should be rechecked\n");
+  }
+
+  if ((ppt->gauge == newtonian) && ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_))) {
+    printf("Warning: isocurvature modes are more stable and accurate in synchronous gauge. Take results with care\n");
   }
 
   if (ppt->has_tensors == _TRUE_)
@@ -3058,7 +3059,7 @@ int perturb_initial_conditions(struct precision * ppr,
   /** - declare local variables */
 
   double a,a_prime_over_a;
-  double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,alpha;
+  double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha;
   double q,epsilon;
   int index_q,n_ncdm,idx;
   double rho_r,rho_m,rho_nu,rho_m_over_rho_r;
@@ -3134,8 +3135,8 @@ int perturb_initial_conditions(struct precision * ppr,
     fracb = ppw->pvecback[pba->index_bg_rho_b]/rho_m;
 
     /* f_cdm = Omega_cdm(t_i) / Omega_m(t_i) */
-    fraccdm = ppw->pvecback[pba->index_bg_rho_cdm]/rho_m;
-    
+    fraccdm = 1.-fracb;
+
     /* Omega_m(t_i) / Omega_r(t_i) */
     rho_m_over_rho_r = rho_m/rho_r;
 
@@ -3354,7 +3355,14 @@ int perturb_initial_conditions(struct precision * ppr,
 	 obtain it from the first two Einstein equations with the simplification
 	 delta_g=delta_b and delta_cdm=0 */
 
-      alpha = (eta + 3./2.*a_prime_over_a*a_prime_over_a/(1.+rho_m_over_rho_r)/k/k*((fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*ppw->pv->y[ppw->pv->index_pt_delta_cdm])) + 3.*a_prime_over_a/k/k*((4./3.*fracg+rho_m_over_rho_r*fracb)*ppw->pv->y[ppw->pv->index_pt_theta_g]+4./3.*fracnu*theta_ur)))/a_prime_over_a;
+      if (pba->has_cdm == _TRUE_) {
+	delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_cdm];
+      }
+      else {
+	delta_cdm=0.;
+      }
+
+      alpha = (eta + 3./2.*a_prime_over_a*a_prime_over_a/(1.+rho_m_over_rho_r)/k/k*((fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*delta_cdm)) + 3.*a_prime_over_a/k/k*((4./3.*fracg+rho_m_over_rho_r*fracb)*ppw->pv->y[ppw->pv->index_pt_theta_g]+4./3.*fracnu*theta_ur)))/a_prime_over_a;
 
 
       ppw->pv->y[ppw->pv->index_pt_delta_g] -= 4.*a_prime_over_a*alpha;

@@ -93,4 +93,6 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  return _SUCCESS_;
+
 }

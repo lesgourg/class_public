@@ -423,7 +423,6 @@ struct perturb_parameters_and_workspace {
 			       struct perturbs * ppt,
 			       int index_mode,
 			       int index_ic,
-			       int index_k,
 			       int index_type,
 			       double tau,
 			       double * pvecsources
