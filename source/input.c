@@ -673,6 +673,21 @@ int input_init(
 
     }
 
+    class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+    
+    if (flag1 == _TRUE_) {
+      
+      if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
+	ppt->gauge = 0;
+      }
+      
+      if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
+	ppt->gauge = 1;
+      }
+    }
+    
   }
 
   /** (d) define the primordial spectrum */
@@ -1053,7 +1068,6 @@ int input_init(
 
   /** h.3. parameters related to the perturbations */
 
-  class_read_int("gauge",ppr->gauge);
   class_read_int("evolver",ppr->evolver);
   class_read_int("pk_definition",ppr->pk_definition);
   class_read_double("k_scalar_min_tau0",ppr->k_scalar_min_tau0);
@@ -1351,6 +1365,8 @@ int input_default_params(
   ppt->l_tensor_max=500;
   ppt->k_scalar_kmax_for_pk=0.1;
 
+  ppt->gauge=0;
+
   /** - bessels structure */
 
   pbs->l_max = max(ppt->l_scalar_max,ppt->l_tensor_max);
@@ -1531,7 +1547,6 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to the perturbations
    */
 
-  ppr->gauge=synchronous;
   ppr->evolver = ndf15;
   ppr->pk_definition = delta_m_squared;
 

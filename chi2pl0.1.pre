@@ -47,8 +47,6 @@ reionization_start_factor=8.
 
 thermo_rate_smoothing_radius=50
 
-gauge=1 #synchronous
-
 k_scalar_min_tau0=0.7 # 2 for 0.1
 k_scalar_max_tau0_over_l_max=2.
 k_scalar_step_sub=0.04

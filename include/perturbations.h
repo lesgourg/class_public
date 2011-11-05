@@ -40,6 +40,19 @@ enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 
 //@}
 
+/** 
+ * List of coded gauges. More gauges can in principle be defined. 
+ */
+
+//@{
+
+enum possible_gauges {
+  newtonian, /**< newtonian (or longitudinal) gauge */
+  synchronous /**< synchronous gauge with \f$ \theta_{cdm} = 0 \f$ by convention */
+};
+
+//@}
+
 /**
  * Structure containing everything about perturbations that other
  * modules need to know, in particular tabuled values of the source
@@ -97,6 +110,14 @@ struct perturbs
 
   short has_cmb; /**< do we need CMB-related sources (temperature, polarization) ? */
   short has_lss; /**< do we need LSS-related sources (lensing potential, ...) ? */
+
+  //@}
+
+  /** @name - gauge in which to perform the calculation */
+
+  //@{
+
+  enum possible_gauges gauge; 
 
   //@}
 

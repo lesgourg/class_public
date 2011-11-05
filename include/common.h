@@ -239,16 +239,6 @@ enum evolver_type {
 };
 
 /** 
- * List of coded gauges.
- *
- * More gauges can in principle be defined and coded. 
- */
-enum possible_gauges {
-  newtonian, /**< newtonian (or longitudinal) gauge */
-  synchronous /**< synchronous gauge with \f$ \theta_{cdm} = 0 \f$ by convention */
-};
-
-/** 
  * List of ways in which matter power spectrum P(k) can be defined.
  * The standard definition is the first one (delta_m_squared) but
  * alternative definitions can be usfeul in some projects.
@@ -396,11 +386,6 @@ struct precision
   /** @name - parameters related to the perturbation */
 
   //@{
-
-  /**
-   * gauge in which to perform the calculation
-   */
-  enum possible_gauges gauge; 
 
   enum evolver_type evolver; /* which type of evolver for integrating perturbations (Runge-Kutta? Stiff?...) */
 

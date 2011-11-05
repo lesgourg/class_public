@@ -144,7 +144,7 @@ int perturb_init(
       printf("Computing sources\n");
   }
 
-  class_test((ppr->gauge == synchronous) && (pba->has_cdm == _FALSE_),
+  class_test((ppt->gauge == synchronous) && (pba->has_cdm == _FALSE_),
 	     ppt->error_message,
 	     "In the synchronous gauge, it is not self-consistent to assume no CDM: the later is used to define the initial timelike hypersurface. You can either add a negligible amount of CDM or switch to neatonian gauge");
 
@@ -178,7 +178,7 @@ int perturb_init(
 	     ppt->error_message,
 	     "Vectors not coded yet");
 
-  if ((ppr->gauge == newtonian) && (pba->has_ncdm == _TRUE_)) {
+  if ((ppt->gauge == newtonian) && (pba->has_ncdm == _TRUE_)) {
     printf("Warning: integrating the ncdm equations in the newtonian gauge requires more precision than in the synchronous one. You should set tol_ncdm to a smaller value than usual, and the Cls for l<50 wil not be accurate. Currently, you have tol_ncdm set to %e; for indication, 1.e-5 is necessary for sub-percent precision for l>50\n",ppr->tol_ncdm);
   } 
 	     
@@ -1255,7 +1255,7 @@ int perturb_workspace_init(
 
     /* newtonian gauge */
 
-    if (ppr->gauge == newtonian) {
+    if (ppt->gauge == newtonian) {
       ppw->index_mt_phi = index_mt; /* phi */
       index_mt++;
       ppw->index_mt_psi = index_mt; /* psi */
@@ -1268,7 +1268,7 @@ int perturb_workspace_init(
        quantities to be integrated, while here we only consider
        quantities obeying to constraint equations) */
 
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
       ppw->index_mt_h_prime = index_mt; /* h' */
       index_mt++;
       ppw->index_mt_h_prime_prime = index_mt; /* h'' */
@@ -2339,7 +2339,7 @@ int perturb_vector_init(
       ppv->index_pt_delta_cdm = index_pt; /* cdm density */
       index_pt++;
 
-      if (ppr->gauge == newtonian) {
+      if (ppt->gauge == newtonian) {
 	ppv->index_pt_theta_cdm = index_pt; /* cdm velocity */
 	index_pt++;
       }
@@ -2420,7 +2420,7 @@ int perturb_vector_init(
 
     /* metric (only quantitites to be integrated, not those obeying constraint equations) */
  
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
       ppv->index_pt_eta = index_pt; /* metric perturbation eta of synchronous gauge */
       index_pt++;
     }
@@ -2667,7 +2667,7 @@ int perturb_vector_init(
 	ppv->y[ppv->index_pt_delta_cdm] =
 	  ppw->pv->y[ppw->pv->index_pt_delta_cdm];
 	
-	if (ppr->gauge == newtonian) {
+	if (ppt->gauge == newtonian) {
 	  ppv->y[ppv->index_pt_theta_cdm] =
 	    ppw->pv->y[ppw->pv->index_pt_theta_cdm];
 	}
@@ -2682,7 +2682,7 @@ int perturb_vector_init(
 	  ppw->pv->y[ppw->pv->index_pt_theta_fld];
       }
       
-      if (ppr->gauge == synchronous)
+      if (ppt->gauge == synchronous)
 	ppv->y[ppv->index_pt_eta] =
 	  ppw->pv->y[ppw->pv->index_pt_eta];
 
@@ -3340,7 +3340,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
     /** (c) If the needed gauge is really the synchronous gauge, we need to affect the previously computed value of eta to the actual variable eta */ 
     
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
       
       ppw->pv->y[ppw->pv->index_pt_eta] = eta;
     }
@@ -3348,7 +3348,7 @@ int perturb_initial_conditions(struct precision * ppr,
     
     /** (d) If the needed gauge is the newtonian gauge, we must compute alpha and then perform a gauge transformation for each variable */
     
-    if (ppr->gauge == newtonian) {
+    if (ppt->gauge == newtonian) {
 
       /* alpha is like in Ma & Bertschinger: (h'+6 eta')/(2k^2). We
 	 obtain it from the first two Einstein equations with the simplification
@@ -3815,7 +3815,7 @@ int perturb_einstein(
       theta_g = y[ppw->pv->index_pt_theta_g];
       
       /* first-order tight-coupling approximation for photon shear */
-      if (ppr->gauge == newtonian) {
+      if (ppt->gauge == newtonian) {
 	shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_g];
       }
       else {
@@ -3867,7 +3867,7 @@ int perturb_einstein(
     /* cdm contribution */
     if (pba->has_cdm == _TRUE_) {
       delta_rho = delta_rho + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];      
-      if (ppr->gauge == newtonian)
+      if (ppt->gauge == newtonian)
    	rho_plus_p_theta = rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
     }
     
@@ -4028,7 +4028,7 @@ int perturb_einstein(
     /** (c) infer metric perturbations from Einstein equations */
 
     /* newtonian gauge */
-    if (ppr->gauge == newtonian) {
+    if (ppt->gauge == newtonian) {
 
       /* equation for phi */
       ppw->pvecmetric[ppw->index_mt_phi] = -1.5 * (a2/k2/k2) * (k2 * delta_rho + 3.*a_prime_over_a * rho_plus_p_theta);
@@ -4083,7 +4083,7 @@ int perturb_einstein(
     }
 
     /* synchronous gauge */
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
 
       /* first equation involving total density fluctuation */
       ppw->pvecmetric[ppw->index_mt_h_prime] = 
@@ -4349,7 +4349,7 @@ int perturb_source_terms(
 	if (pvecthermo[pth->index_th_g] != 0.) {
 
 	  /* newtonian gauge */
-	  if (ppr->gauge == newtonian) {
+	  if (ppt->gauge == newtonian) {
 
 	    /* S0 */
             /* Note: the actual S0 should be [exp_m_kappa phi' + g (
@@ -4381,7 +4381,7 @@ int perturb_source_terms(
 	  }
 
 	  /* synchronous gauge */
-	  if (ppr->gauge == synchronous) {
+	  if (ppt->gauge == synchronous) {
 
 	    /* S0 */
 	    source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] =
@@ -4419,13 +4419,13 @@ int perturb_source_terms(
       if ((ppt->has_source_g == _TRUE_) && (index_type == ppt->index_tp_g)) {
       
 	/* newtonian gauge */
-	if (ppr->gauge == newtonian) {
+	if (ppt->gauge == newtonian) {
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	    pvecmetric[ppw->index_mt_psi];
 	}
 
 	/* synchronous gauge */
-	if (ppr->gauge == synchronous) {
+	if (ppt->gauge == synchronous) {
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
 	    (a_prime_over_a * (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2./k2 + pvecmetric[ppw->index_mt_alpha_prime]);
 
@@ -4592,7 +4592,7 @@ int perturb_sources(
 
 	/** --> in Newtonian gauge only, infer S_1' from S_1 at each time */
 	
-	if (ppr->gauge == newtonian) {
+	if (ppt->gauge == newtonian) {
 	  
 	  /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
 	  index_tau = ppt->tau_size-1;
@@ -4815,7 +4815,7 @@ int perturb_print_variables(double tau,
     }
 
     /* gravitational potential */
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
 
       psi = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a] * (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2./k/k + pvecmetric[ppw->index_mt_alpha_prime]);
       
@@ -4854,7 +4854,7 @@ int perturb_print_variables(double tau,
 	}
     }
 
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
 
       fprintf(stdout,"%e   %e", 
 	      //	      y[ppw->pv->index_pt_eta],
@@ -4864,7 +4864,7 @@ int perturb_print_variables(double tau,
 	      phi);
     }
 
-    if (ppr->gauge == newtonian) {
+    if (ppt->gauge == newtonian) {
 
       fprintf(stdout,"%e   %e", 
 	      pvecmetric[ppw->index_mt_psi],
@@ -5078,7 +5078,7 @@ int perturb_derivs(double tau,
 	In the ufa_class approximation, the leading-order source term is (h_prime/2) in synchronous gauge, 
 	(-3 (phi_prime+psi_prime)) in newtonian gauge: we approximate the later by (-6 phi_prime) */ 
 
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
 
       metric_continuity = pvecmetric[ppw->index_mt_h_prime]/2.;
       metric_euler = 0.;
@@ -5087,7 +5087,7 @@ int perturb_derivs(double tau,
       metric_ufa_class = pvecmetric[ppw->index_mt_h_prime]/2.;
     }
 
-    if (ppr->gauge == newtonian) {
+    if (ppt->gauge == newtonian) {
 
       metric_continuity = -3.*pvecmetric[ppw->index_mt_phi_prime];
       metric_euler = k2*pvecmetric[ppw->index_mt_psi];
@@ -5185,14 +5185,14 @@ int perturb_derivs(double tau,
       /** -----> 2nd order as in CRS*/
       if (ppr->tight_coupling_approximation == (int)second_order_CRS) {
 
-	if (ppr->gauge == newtonian) {
+	if (ppt->gauge == newtonian) {
 
 	  class_stop(error_message,
 		     "the second_order_CRS approach to tight-coupling is coded in synchronous gauge, not newtonian: change gauge or try another tight-coupling scheme");
 	  
 	}
 
-	if (ppr->gauge == synchronous) {
+	if (ppt->gauge == synchronous) {
 
 	  /* infer Delta from h'' using Einstein equation */
 	  
@@ -5237,14 +5237,14 @@ int perturb_derivs(double tau,
       /** -----> 2nd order like in CLASS paper */
       if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
 	
-	if (ppr->gauge == newtonian) {
+	if (ppt->gauge == newtonian) {
 
 	  class_stop(error_message,
 		     "the second_order_CLASS approach to tight-coupling is coded in synchronous gauge, not newtonian: change gauge or try another tight-coupling scheme");
 	  
 	}
 
-	if (ppr->gauge == synchronous) {
+	if (ppt->gauge == synchronous) {
 
 	  /* zero order for theta_b'' = theta_g'' */
 	  theta_prime_prime = ((R-1.)*a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b
@@ -5384,7 +5384,7 @@ int perturb_derivs(double tau,
 
       /** ---> newtonian gauge: cdm density and velocity */
 
-      if (ppr->gauge == newtonian) {
+      if (ppt->gauge == newtonian) {
 	dy[ppw->pv->index_pt_delta_cdm] = -(y[ppw->pv->index_pt_theta_cdm]+metric_continuity); /* cdm density */
 
 	dy[ppw->pv->index_pt_theta_cdm] = - a_prime_over_a*y[ppw->pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
@@ -5392,7 +5392,7 @@ int perturb_derivs(double tau,
 
       /** ---> synchronous gauge: cdm density only (velocity set to zero by definition of the gauge) */
 
-      if (ppr->gauge == synchronous) {
+      if (ppt->gauge == synchronous) {
 	dy[ppw->pv->index_pt_delta_cdm] = -metric_continuity; /* cdm density */
       }
 
@@ -5632,7 +5632,7 @@ int perturb_derivs(double tau,
 
     /** --> eta of synchronous gauge */
 
-    if (ppr->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
 
       dy[ppw->pv->index_pt_eta] = pvecmetric[ppw->index_mt_eta_prime];
 
