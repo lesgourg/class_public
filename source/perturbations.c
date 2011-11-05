@@ -178,8 +178,13 @@ int perturb_init(
 	     ppt->error_message,
 	     "Vectors not coded yet");
 
-  if ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_) || (ppt->has_niv == _TRUE_)) {
-    printf("Warning: so far, isocurvature initial conditions not tested as thougoughly as adiabatic ones\n");
+  if ((ppr->gauge == newtonian) && (pba->has_ncdm == _TRUE_)) {
+    printf("Warning: integrating the ncdm equations in the newtonian gauge requires more precision than in the synchronous one. You should set tol_ncdm to a smaller value than usual, and the Cls for l<50 wil not be accurate. Currently, you have tol_ncdm set to %e; for indication, 1.e-5 is necessary for sub-percent precision for l>50\n",ppr->tol_ncdm);
+  } 
+	     
+
+  if (ppt->has_niv == _TRUE_) {
+    printf("Warning: niv initial conditions should be rechecked\n");
   }
 
   if (ppt->has_tensors == _TRUE_)
@@ -3057,15 +3062,17 @@ int perturb_initial_conditions(struct precision * ppr,
   double q,epsilon;
   int index_q,n_ncdm,idx;
   double rho_r,rho_m,rho_nu,rho_m_over_rho_r;
-  double fracnu,fracb,om;
+  double fracnu,fracg,fracb,fraccdm,om;
   double ktau_two,ktau_three;
   
   /** - for scalars */
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
     
-    /** (a) compute relevant background quantities: compute rho_r, rho_m, rho_nu
-	(= all relativistic except photons), and their ratio */
+    /** (a) compute relevant background quantities: compute rho_r,
+	rho_m, rho_nu (= all relativistic except photons), and their
+	ratio. Use 'long_info' since for isocurvature mode the
+	critical density will be useful. */
     
     class_call(background_at_tau(pba,
 				 tau, 
@@ -3119,9 +3126,15 @@ int perturb_initial_conditions(struct precision * ppr,
     
     /* f_nu = Omega_nu(t_i) / Omega_r(t_i) */
     fracnu = rho_nu/rho_r;
+
+    /* f_g = Omega_g(t_i) / Omega_r(t_i) */
+    fracg = ppw->pvecback[pba->index_bg_rho_g]/rho_r;
     
     /* f_b = Omega_b(t_i) / Omega_m(t_i) */
     fracb = ppw->pvecback[pba->index_bg_rho_b]/rho_m;
+
+    /* f_cdm = Omega_cdm(t_i) / Omega_m(t_i) */
+    fraccdm = ppw->pvecback[pba->index_bg_rho_cdm]/rho_m;
     
     /* Omega_m(t_i) / Omega_r(t_i) */
     rho_m_over_rho_r = rho_m/rho_r;
@@ -3200,6 +3213,15 @@ int perturb_initial_conditions(struct precision * ppr,
       eta = ppr->curvature_ini * (1.-ktau_two/12./(15.+4.*fracnu)*(5.+4.*fracnu - (16.*fracnu*fracnu+280.*fracnu+325)/10./(2.*fracnu+15.)*tau*om));
       
     }
+
+    /* isocurvature initial conditions taken from Bucher, Moodely,
+       Turok 99, with just a different normalization convention for
+       tau and the scale factor. [k tau] from BMT99 is left invariant
+       because it is the ratio [k/aH]. But [Omega_i,0 tau] from BMT99
+       must be replaced by [frac_i*om*tau/4]. Some doubts remain about
+       the niv formulas, wich should be recheked at some point. We
+       also checked that for bi,cdi,nid, everything coincides exactly
+       with the CAMB formulas. */
     
     /** (b.2) Cold dark matter Isocurvature */ 
     
@@ -3209,16 +3231,52 @@ int perturb_initial_conditions(struct precision * ppr,
 		 ppt->error_message,
 		 "not consistent to ask for CDI in absence of CDM!");
       
-      ppw->pv->y[ppw->pv->index_pt_delta_cdm] = ppr->entropy_ini;
+      ppw->pv->y[ppw->pv->index_pt_delta_g] = ppr->entropy_ini*fraccdm*om*tau*(-2./3.+om*tau/4.);
+      ppw->pv->y[ppw->pv->index_pt_theta_g] = -ppr->entropy_ini*fraccdm*om*ktau_two/12.;
+
+      ppw->pv->y[ppw->pv->index_pt_delta_b] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g];
+      ppw->pv->y[ppw->pv->index_pt_theta_b] = ppw->pv->y[ppw->pv->index_pt_theta_g];
+
+      ppw->pv->y[ppw->pv->index_pt_delta_cdm] = ppr->entropy_ini+3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g];
+
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_)) {
+	
+	delta_ur = ppw->pv->y[ppw->pv->index_pt_delta_g];
+	theta_ur = ppw->pv->y[ppw->pv->index_pt_theta_g];
+	shear_ur = -ppr->entropy_ini*fraccdm*ktau_two*tau*om/6./(2.*fracnu+15.);
+
+      }
+
+      eta = -ppr->entropy_ini*fraccdm*om*tau*(1./6.-om*tau/16.);
       
     }
     
     /** (b.3) Baryon Isocurvature */ 
     
     if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
-      
-      ppw->pv->y[ppw->pv->index_pt_delta_b] = ppr->entropy_ini;
-      
+
+      ppw->pv->y[ppw->pv->index_pt_delta_g] = ppr->entropy_ini*fracb*om*tau*(-2./3.+om*tau/4.);
+      ppw->pv->y[ppw->pv->index_pt_theta_g] = -ppr->entropy_ini*fracb*om*ktau_two/12.;
+
+      ppw->pv->y[ppw->pv->index_pt_delta_b] = ppr->entropy_ini+3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g];
+      ppw->pv->y[ppw->pv->index_pt_theta_b] = ppw->pv->y[ppw->pv->index_pt_theta_g];
+
+      if (pba->has_cdm == _TRUE_) {
+
+	ppw->pv->y[ppw->pv->index_pt_delta_cdm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g];
+
+      }
+
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_)) {
+	
+	delta_ur = ppw->pv->y[ppw->pv->index_pt_delta_g];
+	theta_ur = ppw->pv->y[ppw->pv->index_pt_theta_g];
+	shear_ur = -ppr->entropy_ini*fracb*ktau_two*tau*om/6./(2.*fracnu+15.);
+
+      }
+
+      eta = -ppr->entropy_ini*fracb*om*tau*(1./6.-om*tau/16.);
+
     }
     
     /** (b.4) Neutrino density Isocurvature */ 
@@ -3229,10 +3287,26 @@ int perturb_initial_conditions(struct precision * ppr,
 		 ppt->error_message,
 		 "not consistent to ask for NID in absence of ur or ncdm species!");
       
-      delta_ur = ppr->entropy_ini;
+      ppw->pv->y[ppw->pv->index_pt_delta_g] = ppr->entropy_ini*fracnu/fracg*(-1.+ktau_two/6.);
+      ppw->pv->y[ppw->pv->index_pt_theta_g] = -ppr->entropy_ini*fracnu/fracg*k*k*tau*(1./4.-fracb/fracg*3./16.*om*tau);
+
+      ppw->pv->y[ppw->pv->index_pt_delta_b] = ppr->entropy_ini*fracnu/fracg/8.*ktau_two;
+      ppw->pv->y[ppw->pv->index_pt_theta_b] = ppw->pv->y[ppw->pv->index_pt_theta_g];
+
+      if (pba->has_cdm == _TRUE_) {
+
+	ppw->pv->y[ppw->pv->index_pt_delta_cdm] = -ppr->entropy_ini*fracnu*fracb/fracg/80.*ktau_two*om*tau;
+
+      }
+	
+      delta_ur = ppr->entropy_ini*(1.-ktau_two/6.);
+      theta_ur = ppr->entropy_ini*k*k*tau/4.;
+      shear_ur = ppr->entropy_ini*ktau_two/(4.*fracnu+15.)/2.;
+
+      eta = -ppr->entropy_ini*fracnu/(4.*fracnu+15.)/6.*ktau_two;
       
     }
-    
+
     /** (b.5) Neutrino velocity Isocurvature */ 
     
     if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
@@ -3241,10 +3315,29 @@ int perturb_initial_conditions(struct precision * ppr,
 		 ppt->error_message,
 		 "not consistent to ask for NIV in absence of ur or ncdm species!");
       
-      theta_ur = k*ppr->entropy_ini;
+      ppw->pv->y[ppw->pv->index_pt_delta_g] = ppr->entropy_ini*k*tau*fracnu/fracg*
+	(1. - 3./16.*fracb*(2.+fracg)/fracg*om*tau); /* small diff wrt camb */
+
+      ppw->pv->y[ppw->pv->index_pt_theta_g] = ppr->entropy_ini*fracnu/fracg*3./4.*k*
+	(-1.+3./4.*fracb/fracg*om*tau+3./16.*om*om*tau*tau*fracb/fracg/fracg*(fracg-3.*fracb)+ktau_two/6.); 
+
+      ppw->pv->y[ppw->pv->index_pt_delta_b] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* small diff wrt camb */
+      ppw->pv->y[ppw->pv->index_pt_theta_b] = ppw->pv->y[ppw->pv->index_pt_theta_g];
+
+      if (pba->has_cdm == _TRUE_) {
+
+	ppw->pv->y[ppw->pv->index_pt_delta_cdm] = -ppr->entropy_ini*9./64.*fracnu*fracb/fracg*k*tau*om*tau;
+
+      }
+
+      delta_ur = -ppr->entropy_ini*k*tau*(1.+3./16.*fracb*fracnu/fracg*om*tau);  /* small diff wrt camb */
+      theta_ur = ppr->entropy_ini*3./4.*k*(1. - 1./6.*ktau_two*(4.*fracnu+9.)/(4.*fracnu+5.));
+      shear_ur = ppr->entropy_ini/(4.*fracnu+15.)*k*tau*(1. + 3.*om*tau*fracnu/(4.*fracnu+15.)); /* small diff wrt camb */
+
+      eta = ppr->entropy_ini*fracnu*k*tau*(-1./(4.*fracnu+5.) + (-3./64.*fracb/fracg+15./4./(4.*fracnu+15.)/(4.*fracnu+5.)*om*tau)); /* small diff wrt camb */
       
     }
-    
+
     /** (c) If the needed gauge is really the synchronous gauge, we need to affect the previously computed value of eta to the actual variable eta */ 
     
     if (ppr->gauge == synchronous) {
@@ -3257,30 +3350,34 @@ int perturb_initial_conditions(struct precision * ppr,
     
     if (ppr->gauge == newtonian) {
 
-      /* alpha is like in Ma & Bertschinger: (h'+6 eta')/(2k^2) */
-      alpha = (eta + 1.5*a_prime_over_a*a_prime_over_a*(3.*a_prime_over_a*((4./3.*(1.-fracnu)+rho_m_over_rho_r*fracb)*ppw->pv->y[ppw->pv->index_pt_theta_g]+4./3.*fracnu*theta_ur)/k/k+(1.+0.75*rho_m_over_rho_r)*ppw->pv->y[ppw->pv->index_pt_delta_g])/k/k/(1.+rho_m_over_rho_r))/a_prime_over_a;
+      /* alpha is like in Ma & Bertschinger: (h'+6 eta')/(2k^2). We
+	 obtain it from the first two Einstein equations with the simplification
+	 delta_g=delta_b and delta_cdm=0 */
 
-      ppw->pv->y[ppw->pv->index_pt_delta_g] -= 4.*a_prime_over_a*alpha; /* gauge transformation */
-      ppw->pv->y[ppw->pv->index_pt_theta_g] += k*k*alpha; /* gauge transformation */
+      alpha = (eta + 3./2.*a_prime_over_a*a_prime_over_a/(1.+rho_m_over_rho_r)/k/k*((fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*ppw->pv->y[ppw->pv->index_pt_delta_cdm])) + 3.*a_prime_over_a/k/k*((4./3.*fracg+rho_m_over_rho_r*fracb)*ppw->pv->y[ppw->pv->index_pt_theta_g]+4./3.*fracnu*theta_ur)))/a_prime_over_a;
 
-      ppw->pv->y[ppw->pv->index_pt_delta_b] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* more precise than explicit gauge transformation */
-      ppw->pv->y[ppw->pv->index_pt_theta_b] = ppw->pv->y[ppw->pv->index_pt_theta_g];  /* more precise than explicit gauge transformation */
+
+      ppw->pv->y[ppw->pv->index_pt_delta_g] -= 4.*a_prime_over_a*alpha;
+      ppw->pv->y[ppw->pv->index_pt_theta_g] += k*k*alpha;
+
+      ppw->pv->y[ppw->pv->index_pt_delta_b] -= 3.*a_prime_over_a*alpha;
+      ppw->pv->y[ppw->pv->index_pt_theta_b] += k*k*alpha;
 
       if (pba->has_cdm == _TRUE_) {
-	ppw->pv->y[ppw->pv->index_pt_delta_cdm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g];  /* more precise than explicit gauge transformation */
-	ppw->pv->y[ppw->pv->index_pt_theta_cdm] = k*k*alpha; /* gauge transformation */
+	ppw->pv->y[ppw->pv->index_pt_delta_cdm] -= 3.*a_prime_over_a*alpha;
+	ppw->pv->y[ppw->pv->index_pt_theta_cdm] = k*k*alpha;
       }
 
       /* fluid */
       if (pba->has_fld == _TRUE_) {
-	ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+pba->w0_fld+pba->wa_fld)*a_prime_over_a*alpha; /* gauge transformation */
-	ppw->pv->y[ppw->pv->index_pt_theta_fld] += k*k*alpha; /* gauge transformation */
+	ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+pba->w0_fld+pba->wa_fld)*a_prime_over_a*alpha;
+	ppw->pv->y[ppw->pv->index_pt_theta_fld] += k*k*alpha;
       } 
 	
       if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_)) {
 	  
-	delta_ur = ppw->pv->y[ppw->pv->index_pt_delta_g];  /* more precise than explicit gauge transformation */
-	theta_ur += k*k*alpha; /* gauge transformation */
+	delta_ur -= 4.*a_prime_over_a*alpha;
+	theta_ur += k*k*alpha;
 	/* shear and l3 are gauge invariant */
       }
 
@@ -3324,8 +3421,7 @@ int perturb_initial_conditions(struct precision * ppr,
 	}
       }
     }
-
-  } 
+  }
 
   /** - for tensors */
 
@@ -4500,7 +4596,7 @@ int perturb_sources(
 	  
 	  /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
 	  index_tau = ppt->tau_size-1;
-	  while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S1] == 0.) && (index_tau > 0))
+	  while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S1] == 0.) && (index_tau > 3))
 	    index_tau--;
 	
 	  /* numerical derivative */
@@ -4523,7 +4619,7 @@ int perturb_sources(
 
 	    /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
 	    index_tau = ppt->tau_size-1;
-	    while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] == 0.) && (index_tau > 0))
+	    while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] == 0.) && (index_tau > 3))
 	      index_tau--;
 	    
 	    /* numerical derivative */

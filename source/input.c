@@ -698,9 +698,10 @@ int input_init(
 
     if (ppt->has_scalars == _TRUE_) {
       
+      class_read_double("A_s",ppm->A_s);
+
       if (ppt->has_ad == _TRUE_) {
 
-	class_read_double("A_s",ppm->A_s);
 	class_read_double("n_s",ppm->n_s);
 	class_read_double("alpha_s",ppm->alpha_s);
 

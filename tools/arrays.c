@@ -160,10 +160,14 @@ int array_derive1_order2_table_line_to_line(
 				       int index_dy,
 				       ErrorMsg errmsg) {
 
-  int i;
+  int i=1;
   double dxp,dxm,dyp,dym;
 
-  i=1;
+  if (n_lines < 2) {
+    sprintf(errmsg,"%s(L:%d) routine called with n_lines=%d, should be at least 2",__func__,__LINE__,n_lines);
+    return _FAILURE_;
+  }
+
   dxp = x_array[2] - x_array[1];
   dxm = x_array[0] - x_array[1];
   dyp = *(array+2*n_columns+index_y) - *(array+1*n_columns+index_y);
