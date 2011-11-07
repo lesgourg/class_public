@@ -2879,8 +2879,6 @@ int trg_init (
 
   if(pnl->ic==nl_pt){
 
-    fprintf(stderr,"Setting ic to PT\n");
-
     for (index_k=0; index_k<pnl->k_size; index_k++){
       a0[index_k] = 2.*AA[_A0_][index_k];
       a11[index_k]= 2.*AA[_A11_][index_k];
@@ -2899,10 +2897,6 @@ int trg_init (
       b3[index_k] = 2.*AA[_B3_][index_k];
     }
   }
-  else {
-    fprintf(stderr,"Setting ic to linear\n");
-  }
-
 
   /** Now we calculate the time evolution with a predictor corrector
       algorithm. */
