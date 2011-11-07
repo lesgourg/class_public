@@ -5,6 +5,13 @@
 #ifndef __SPECTRA_NL__
 #define __SPECTRA_NL__
 
+/** 
+ * possible initial conditions (so far, refers to the TRG method only:
+ * these TRG initial conditions are explained in arXiv:1106.2607)
+ */
+
+enum non_linear_ic {nl_lin,nl_pt};
+
 /**
  * Structure containing all the non-linear information.
  *
@@ -28,6 +35,7 @@ struct spectra_nl {
   double k_min;			/**< Minimal k (in h/Mpc ? CHECK) where the spectra is computed. k_max is infered from the spectra module */
   double k_L;			/**< k value (in h/MPC ? CHECK) under which we consider the spectra to stay linear for all computed redshifts */
   double logstepx_min;		/**< Set the precision of the xy integrator */
+  enum non_linear_ic ic;        /**< set initial conditions to linear or PT (see arXiv:1106.2607) */
 
   //@}
   
