@@ -1,0 +1,105 @@
+Readme file for CLASS - the Cosmic Linear Anisotropy Solving System
+
+By Julien Lesgourgues, with several major inputs from other people
+including Benjamin Audren, Thomas Tram, Simon Prunet, etc.
+
+For download and information, see http://class-code.net
+
+------------------------------------------------------------------
+
+COMPILING CLASS AND GETTING STARTED
+
+(the information below can also be found on the webpage, just below
+the download button)
+
+After downloading the code, unpack the archive (tar -zxvf
+class_v*.tar.gz), go to the class directory (cd class/) and compile
+(make class). If the first compilation attempt fails, you may need to
+open the Makefile and adapt the name of the compiler (default: gcc),
+of the optization flag (default: -O4) and of the OpenMP flag (default:
+-fopenmp; this flag is facultative, you are free to compile without
+OpenMP if you don't want parallel execution; note that you need the
+version 4.2 or higher of gcc to be able to compile with -fopenmp).
+
+Adapt your input parameters in the file explanatory.ini and run with:
+
+./class explanatory.ini
+
+Or, even better, make a copy of explanatory.ini into another file, for
+instance test.ini, and remove everything in test.ini that you judge
+useless for your own purpose: in that way you can keep explanatory.ini
+as a reference file, and play with a more concise and friendly input
+file. You can then run with
+
+./class test.ini.
+
+If you want to play with the precision/speed of the code, you can use
+one of the provided precision files (e.g. cl_permille.pre) or modify
+one of them, and run with two input files, for instance:
+
+./class test.ini cl_permille.pre
+
+The following precision files are less accurate/faster than the default
+settings:
+
+chi2pl10.pre (fastest setting)
+chi2pl1.pre
+
+The following ones are more accurate/slower than the default settings
+(ordered below from lowest to highest accuracy):
+
+chi2pl0.1.pre
+cl_3permille.pre
+cl_2permille.pre
+cl_permille.pre
+cl_ref.pre 
+pk_ref.pre
+
+A simplified documentation can be found in the paper ``CLASS I:
+Overview'', arXiv:1104.2932 [astro-ph.IM]. On top of that, if you wish
+to modify the code, you will find lots of comments directly into the
+files (and the amount of such comments will increase with the version
+number). A more complete documentation may become available some day
+if enough users ask for it...
+
+---------------------------------------------------------------------
+
+PLOTTING UTILITY
+
+Since version 1.3, the package includes a convenient plotting script
+called class-plot, written by Benjamin Audren. It can plot the Cl's or
+P(k) for one or two models, as well as their ratio or percentage
+difference. A convenient feature is that percentage differences can be
+shown even when two spectra are not sampled in the same points, as it
+is often the case when comparing matter power spectra P(k) for various
+models - in that case the script uses some interpolation scheme. The
+type of spectrum (C_l or P(k)) is detected automatically (provided
+that the file name endings are set by CLASS in the standard way), and
+axes are labelled accordingly.
+
+class-script is written in python, but you don't need to know anything
+about python for using it, for you it will just be a simple command to
+use on your terminal. However it will only work on systems with a
+recent enough version of python including the 'scipy' package
+(scientific python), and a recent enough version of gnuplot. You may
+need to install some of them by yourself. These are standard free
+facilities easy to download from the web. You don't need to compile
+anything, if scipy and gnuplot are installed on your computer, the
+class-plot command will work immediately.
+
+You can plot a spectrum produced by CLASS (or by another code) and
+stored e.g. in the file output/xxx.dat with:
+
+> python class-plot output/xxx.dat
+
+or two different spectra with:
+
+> python class-plot output/xxx.dat output/yyy.dat 
+
+You can get a list of all available options by typing
+
+> python class-plot --help
+
+These options allow you to choose between linear and log scale, to
+plot ratios or relative differences between two files, to send the
+output in a postscript file instead of the screen, etc.
