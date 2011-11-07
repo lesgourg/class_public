@@ -1,8 +1,8 @@
 ###################################################################
 #
 # CPU, a CLASS Plotting Utility 
-# v1.2 
-# Benjamin Audren, 16.06.2011 
+# v1.3 
+# Benjamin Audren, 07.11.2011 
 #
 # This is a small python program aimed to gain time when comparing two
 # spectra, i.e. from CAMB and CLASS, or a non-linear spectrum to a
@@ -47,6 +47,8 @@ parser.add_argument('-i, --interpolate',metavar='index',
   help='interpolate the spectra on each set of k-values if different. Use to compare two (or more) graphs with different k-values. If nothing more is specified, it will plot both index in gnuplot. Otherwise, just add -i 0 to plot only the first one.')
 parser.add_argument('-t',	metavar='pk, cl_lin,etc...',
   help='specify the file type (whether pk or cl (if not specified, cl==cl_lin, other choices are cl_log and cl_ll for log linear), only needed if your file name does not already contain one of these keywords...')
+parser.add_argument('-colnum',metavar='2, 3, ...',
+  help='specify the column you want to plot. By default, column is 2: you are plotting TT spectrum')
 parser.add_argument('-x, --x11',metavar='gnuplot terminal',
   dest='term',action='store_const',const='x11',default='wxt',
   help='if your version of gnuplot does not support the wxt terminal, it will pick instead the x11 one, for crappier displays')
@@ -128,11 +130,16 @@ def headers_plot_file(spectrum_type,names,plot_line,term):
     else:
       index_string=" "
 
+  # if args colnum not specified, put it to 2,
+  if args.colnum is None:
+    args.colnum=2
+
+
   if spectrum_type=='cl_lin':
     if plot_line is True:
       plot_string="plot "
       for name in names:
-	plot_string+="'{0}'".format(name)+"{0}w l,".format(index_string)
+	plot_string+="'{0}'".format(name)+"{0}u 1:{1} w l,".format(index_string,args.colnum)
       plot_string=plot_string.rstrip(",")
       plot_string+="\n"
     else:
@@ -146,7 +153,7 @@ def headers_plot_file(spectrum_type,names,plot_line,term):
     if plot_line is True:
       plot_string="plot "
       for name in names:
-	plot_string+="'{0}'".format(name)+"{0}w l,".format(index_string)
+	plot_string+="'{0}'".format(name)+"{0}u 1:{1} w l,".format(index_string,args.colnum)
       plot_string=plot_string.rstrip(",")
       plot_string+="\n"
     else:
@@ -160,7 +167,7 @@ def headers_plot_file(spectrum_type,names,plot_line,term):
     if plot_line is True:
       plot_string="plot "
       for name in names:
-	plot_string+="'{0}'".format(name)+"{0}w l,".format(index_string)
+	plot_string+="'{0}'".format(name)+"{0}u 1:{1} w l,".format(index_string,args.colnum)
       plot_string=plot_string.rstrip(",")
       plot_string=plot_string+"\n"
     else:
