@@ -8,6 +8,13 @@
 
 enum non_linear_method {nl_none,nl_trg_linear,nl_trg_one_loop,nl_trg};
 
+/** 
+ * possible initial conditions (so far, refers to the TRG method only:
+ * these TRG initial conditions are explained in arXiv:1106.2607)
+ */
+
+enum non_linear_ic {nl_lin,nl_pt};
+
 /**
  * Structure containing all information on non-linear spectra.
  *
@@ -26,7 +33,8 @@ struct nonlinear {
   //@{
 
   enum non_linear_method method;
-  
+  enum non_linear_ic ic;
+
   //@}
 
   /** @name - table of k values, and related quantities */

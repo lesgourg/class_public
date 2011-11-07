@@ -981,6 +981,21 @@ int input_init(
 	     errmsg,
 	     "it is not consistent to ask for non-linear power spectrum but not for linear one: you should include mPk in the 'output' entry");
 
+  if (pnl->method==nl_trg) {
+
+    class_call(parser_read_string(pfc,
+				  "non linear ic",
+				  &(string1),
+				  &(flag1),
+				  errmsg),
+	       errmsg,
+	       errmsg);
+    
+    if ((strstr(string1,"linear") != NULL) || (strstr(string1,"lin") != NULL)) {
+      pnl->ic=nl_lin;
+    }
+  }
+
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
@@ -1446,6 +1461,7 @@ int input_default_params(
   /** - nonlinear structure */ 
 
   pnl->method = nl_none;
+  pnl->ic = nl_pt;
 
   /** - all verbose parameters */ 
 
