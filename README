@@ -66,18 +66,18 @@ if enough users ask for it...
 
 PLOTTING UTILITY
 
-Since version 1.3, the package includes a convenient plotting script
-called class-plot, written by Benjamin Audren. It can plot the Cl's or
-P(k) for one or two models, as well as their ratio or percentage
-difference. A convenient feature is that percentage differences can be
-shown even when two spectra are not sampled in the same points, as it
-is often the case when comparing matter power spectra P(k) for various
-models - in that case the script uses some interpolation scheme. The
-type of spectrum (C_l or P(k)) is detected automatically (provided
-that the file name endings are set by CLASS in the standard way), and
-axes are labelled accordingly.
+Since version 1.2, the package includes a convenient plotting script
+called CPU (Class Plotting Utility), written by Benjamin Audren. It
+can plot the Cl's or P(k) for one or two models, as well as their
+ratio or percentage difference. A convenient feature is that
+percentage differences can be shown even when two spectra are not
+sampled in the same points, as it is often the case when comparing
+matter power spectra P(k) for various models - in that case the script
+uses some interpolation scheme. The type of spectrum (C_l or P(k)) is
+detected automatically (provided that the file name endings are set by
+CLASS in the standard way), and axes are labelled accordingly.
 
-class-script is written in python, but you don't need to know anything
+CPU is written in python, but you don't need to know anything
 about python for using it, for you it will just be a simple command to
 use on your terminal. However it will only work on systems with a
 recent enough version of python including the 'scipy' package
@@ -85,21 +85,25 @@ recent enough version of python including the 'scipy' package
 need to install some of them by yourself. These are standard free
 facilities easy to download from the web. You don't need to compile
 anything, if scipy and gnuplot are installed on your computer, the
-class-plot command will work immediately.
+CPU command will work immediately.
 
 You can plot a spectrum produced by CLASS (or by another code) and
 stored e.g. in the file output/xxx.dat with:
 
-> python class-plot output/xxx.dat
+> python CPU output/xxx.dat
 
 or two different spectra with:
 
-> python class-plot output/xxx.dat output/yyy.dat 
+> python CPU output/xxx.dat output/yyy.dat 
 
 You can get a list of all available options by typing
 
-> python class-plot --help
+> python CPU --help
 
 These options allow you to choose between linear and log scale, to
 plot ratios or relative differences between two files, to send the
 output in a postscript file instead of the screen, etc.
+
+If you put the path to class plot in the list of default paths, or if
+you creat an alias, you may be able to type directly the command
+'CPU' instead of 'python CPU'.

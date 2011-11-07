@@ -177,15 +177,15 @@ int perturb_init(
 	     "Vectors not coded yet");
 
   if ((ppt->gauge == newtonian) && (pba->has_ncdm == _TRUE_)) {
-    printf("Warning: integrating the ncdm equations in the newtonian gauge requires more precision than in the synchronous one. You should set tol_ncdm to a smaller value than usual, and the Cls for l<50 wil not be accurate. Currently, you have tol_ncdm set to %e; for indication, 1.e-5 is necessary for sub-percent precision for l>50\n",ppr->tol_ncdm);
+    printf("Warning: integrating the ncdm equations in the newtonian gauge requires more precision than in the synchronous one. You should set tol_ncdm to a smaller value than usual, and the Cls for l<50 wil not be accurate. Currently, you have tol_ncdm set to %e; for indication, 1.e-5 is necessary for sub-percent precision for l>50.\n",ppr->tol_ncdm);
   } 
 	     
   if (ppt->has_niv == _TRUE_) {
-    printf("Warning: niv initial conditions should be rechecked\n");
+    printf("Warning: the niv initial conditions in CLASS (and also in CAMB) should still be double-checked: if you want to do it and send feedback, you are welcome!\n");
   }
 
   if ((ppt->gauge == newtonian) && ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_))) {
-    printf("Warning: isocurvature modes are more stable and accurate in synchronous gauge. Take results with care\n");
+    printf("Warning: isocurvature modes are more stable and accurate in the synchronous gauge. Take these results with care.\n");
   }
 
   if (ppt->has_tensors == _TRUE_)
