@@ -2872,6 +2872,31 @@ int trg_init (
   free(pnl->p_12);
   free(pnl->p_22);
 
+  /** Correct setup of initial conditions
+      There are two choices, the default is setting-up with 1-loop initial bispectrum,
+      with the parameter trg_inicond = pt,
+      or with gaussian initial condtion, with trg_inicond = lin */
+
+  if(pnl->ic==nl_pt){
+    for (index_k=0; index_k<pnl->k_size; index_k++){
+      a0[index_k] = 2.*AA[_A0_][index_k];
+      a11[index_k]= 2.*AA[_A11_][index_k];
+      a12[index_k]= 2.*AA[_A12_][index_k];
+      a13[index_k]= 2.*AA[_A13_][index_k];
+      a21[index_k]= 2.*AA[_A21_][index_k];
+      a22[index_k]= 2.*AA[_A22_][index_k];
+      a23[index_k]= 2.*AA[_A23_][index_k];
+      a3[index_k] = 2.*AA[_A3_][index_k];
+
+      b0[index_k] = 2.*AA[_B0_][index_k];
+      b11[index_k]= 2.*AA[_B11_][index_k];
+      b12[index_k]= 2.*AA[_B12_][index_k];
+      b21[index_k]= 2.*AA[_B21_][index_k];
+      b22[index_k]= 2.*AA[_B22_][index_k];
+      b3[index_k] = 2.*AA[_B3_][index_k];
+    }
+  }
+
   /** Now we calculate the time evolution with a predictor corrector
       algorithm. */
 
