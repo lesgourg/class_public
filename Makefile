@@ -6,7 +6,7 @@ WRKDIR = $(MDIR)/build
 #PMCLIB = $(MDIR)/../../../pmclib
 
 .base:
-	if ! [ -a $(WRKDIR) ]; then mkdir $(WRKDIR) ; mkdir $(WRKDIR)/lib; fi;
+	if ! [ -e $(WRKDIR) ]; then mkdir $(WRKDIR) ; mkdir $(WRKDIR)/lib; fi;
 	touch build/.base
 
 vpath %.c source:tools:main:test

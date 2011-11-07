@@ -19,7 +19,10 @@ open the Makefile and adapt the name of the compiler (default: gcc),
 of the optization flag (default: -O4) and of the OpenMP flag (default:
 -fopenmp; this flag is facultative, you are free to compile without
 OpenMP if you don't want parallel execution; note that you need the
-version 4.2 or higher of gcc to be able to compile with -fopenmp).
+version 4.2 or higher of gcc to be able to compile with -fopenmp; some
+users of Mac OS 10.7 even reported that they needed gcc-4.5 or
+gcc-mp-4.3 in order to compile the CLASS libraries, but this is anyway
+an advancesd step that you probably don't need).
 
 Adapt your input parameters in the file explanatory.ini and run with:
 
