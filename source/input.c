@@ -1380,7 +1380,7 @@ int input_default_params(
   ppt->l_tensor_max=500;
   ppt->k_scalar_kmax_for_pk=0.1;
 
-  ppt->gauge=0;
+  ppt->gauge=1;
 
   /** - bessels structure */
 
