@@ -368,8 +368,13 @@ int input_init(
 	pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
       }
       if (pba->Omega0_ncdm[n]==0.0){
-	class_test(pba->m_ncdm_in_eV[n]==0.0,errmsg,
-		   "No mass, Omega or omega defined for ncdm species %d.",n);
+	/* this is the right place for passing the default value of
+	   the mass (all parameters must have a default value; most of
+	   them are defined in input_default_params{}, but the ncdm mass
+	   is a bit special and there is no better place for setting its
+	   default value). We put an aribitrary value m << 10^-3 eV,
+	   i.e. the ultra-relativistic limit.*/
+	pba->m_ncdm_in_eV[n]=1.e-5;
       }
     }
 
