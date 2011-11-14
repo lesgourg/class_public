@@ -367,7 +367,7 @@ int input_init(
 		   "Nonzero values for both Omega and omega for ncdm species %d are specified!",n);
 	pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
       }
-      if (pba->Omega0_ncdm[n]==0.0){
+      if ((pba->Omega0_ncdm[n]==0.0) && (pba->m_ncdm_in_eV[n]==0.0)) {
 	/* this is the right place for passing the default value of
 	   the mass (all parameters must have a default value; most of
 	   them are defined in input_default_params{}, but the ncdm mass
