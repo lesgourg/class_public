@@ -5,6 +5,7 @@
 #include "math.h"
 #include "string.h"
 #include "float.h"
+#include "svnversion.h"
 #ifdef _OPENMP
 #include "omp.h"
 #endif
@@ -13,7 +14,6 @@
 #define __COMMON__
 
 #define _VERSION_ "v1.3"
-#define _SVN_VERSION_ "4871"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */

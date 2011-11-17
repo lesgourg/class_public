@@ -1264,9 +1264,9 @@ int input_init(
 
     fprintf(param_output,"# List of input/precision parameters actually read\n");
     fprintf(param_output,"# (all other parameters set to default values)\n");
+    fprintf(param_output,"# Obtained with CLASS %s (for developpers: svn version %s)\n",_VERSION_,_SVN_VERSION_);
     fprintf(param_output,"#\n");
-    fprintf(param_output,"# This file, written by CLASS, can be used as the input file\n");
-    fprintf(param_output,"# of another run\n");
+    fprintf(param_output,"# This file can be used as the input file of another run\n");
     fprintf(param_output,"#\n");
 
     fprintf(param_unused,"# List of input/precision parameters passed\n");
