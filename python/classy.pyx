@@ -16,6 +16,7 @@ cdef extern from "class.h":
 
   cdef struct background  :
     ErrorMsg error_message 
+    double h
     double age
     
   cdef struct thermo:
@@ -427,15 +428,15 @@ cdef class Class:
     cdef nm.ndarray cl
     cdef double lcl[8]
     
-    if nofail:
-      self._pars_check("output","tCl",True,True)
-      self._pars_check("output","lCl",True,True)
-      self._pars_check("lensing","yes",False,True)
+    #if nofail:
+      #self._pars_check("output","tCl",True,True)
+      #self._pars_check("output","lCl",True,True)
+      #self._pars_check("lensing","yes",False,True)
 
-    self._compute(["input"])
-    if self.le.has_lensed_cls==0:
-      raise ClassError("No lensing effect computed")
-    self._compute(["lensing"])
+    #self._compute(["input"])
+    #if self.le.has_lensed_cls==0:
+      #raise ClassError("No lensing effect computed")
+    #self._compute(["lensing"])
     lmaxR = self.le.l_lensed_max
     
     if lmax==-1:
@@ -498,3 +499,5 @@ cdef class Class:
     self._compute(["background"])
     return self.ba.age
     
+  def _h(self):
+    return self.ba.h
