@@ -1705,7 +1705,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.08;
 
   ppr->selection_cut_at_sigma=3.;
-  ppr->selection_resolution=1.;
+  ppr->selection_resolution=10.;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.; 

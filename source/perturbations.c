@@ -925,7 +925,7 @@ int perturb_timesampling_for_sources(
       a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a]
 	+ 2. * a_prime_over_a * a_prime_over_a;
       rate_isw_squared = fabs(2.*a_primeprime_over_a-a_prime_over_a*a_prime_over_a);
-	
+
       /* compute rate */
       timescale_source = sqrt(rate_thermo*rate_thermo+rate_isw_squared);
     }
@@ -936,6 +936,11 @@ int perturb_timesampling_for_sources(
       timescale_source = a_prime_over_a;
     }
 
+    /* variation rate of selection function */
+    if (tau >= ppt->selection_tau_min)
+      timescale_source = sqrt(timescale_source*timescale_source + 
+			      1./ppt->selection_delta_tau/ppt->selection_delta_tau);
+    
     /* check it is non-zero */
     class_test(timescale_source == 0.,
 	       ppt->error_message,
@@ -968,7 +973,7 @@ int perturb_timesampling_for_sources(
 
   /** (b) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where
       timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
-      timescale_source2 = \f$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} \f$ (to smaple correctly the late ISW effect; and 
+      timescale_source2 = \f$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} \f$ (to sample correctly the late ISW effect; and 
       timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today
       - if CMB not requested:
       timescale_source = 1/aH; repeat till today.  */
@@ -1016,10 +1021,16 @@ int perturb_timesampling_for_sources(
       a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
       timescale_source = a_prime_over_a;
     }
+
     /* check it is non-zero */
     class_test(timescale_source == 0.,
 	       ppt->error_message,
 	       "null evolution rate, integration is diverging");
+
+    /* variation rate of selection function */
+    if (tau >= ppt->selection_tau_min)
+      timescale_source = sqrt(timescale_source*timescale_source + 
+			      1./ppt->selection_delta_tau/ppt->selection_delta_tau);
 
     /* compute inverse rate */
     timescale_source = 1./timescale_source;
