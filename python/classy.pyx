@@ -457,7 +457,7 @@ cdef class Class:
       for md from 0<=md<4:
         cl[md,ell] = lcl[md]
       
-    self._struct_cleanup(self.ncp)
+    #self._struct_cleanup(self.ncp)
     return cl
     
   def pk_l (self,double z=0,k=None,nofail=False):
