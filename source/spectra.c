@@ -964,6 +964,14 @@ int spectra_init(
       class_call(spectra_pk(pba,ppt,ppm,psp),
 		 psp->error_message,
 		 psp->error_message);
+
+      /* if (ppt->has_Limber_density_cls == _TRUE_) { */
+
+      /* 	class_call(spectra_Limber_density_cls(pba,ppt,ppm,psp), */
+      /* 		   psp->error_message, */
+      /* 		   psp->error_message); */
+      /* } */
+      
     }
     else {
       psp->ln_pk=NULL;
@@ -1142,7 +1150,7 @@ int spectra_indices(
       psp->has_bb = _FALSE_;
     }
     
-    /* types of C_l's relevant only for scalars: phi-phi, T-phi */
+    /* types of C_l's relevant only for scalars: phi-phi, T-phi, E-phi, d-d, T-d */
     
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_pp = _TRUE_;
@@ -1173,8 +1181,27 @@ int spectra_indices(
       psp->has_ep = _FALSE_;
     }
 
-    psp->ct_size = index_ct;
+    if ((ppt->has_cl_density == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+      psp->has_dd = _TRUE_;
+      psp->index_ct_dd=index_ct;
+      psp->d_size=ppt->selection_num;
+      index_ct+=psp->d_size*psp->d_size;
+    }
+    else {
+      psp->has_dd = _FALSE_;
+      psp->d_size=0;
+    }
 
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_density == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+      psp->has_td = _TRUE_;
+      psp->index_ct_td=index_ct;
+      index_ct+=psp->d_size;
+    }
+    else {
+      psp->has_td = _FALSE_;
+    }
+
+    psp->ct_size = index_ct;
   }
 
   if (ppt->has_matter_transfers == _TRUE_) {
@@ -1467,6 +1494,7 @@ int spectra_compute_cl(
   int index_k;
   int index_tt;
   int index_ct;
+  int index_d1,index_d2;
   double k;
   double clvalue;
   int index_ic1_ic2;
@@ -1553,6 +1581,27 @@ int spectra_compute_cl(
 	       transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_e])
 	* 4. * _PI_ / k;
 
+    if ((psp->has_dd == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      for (index_d1=0; index_d1<psp->d_size; index_d1++) {
+	for (index_d2=0; index_d2<psp->d_size; index_d2++) {
+	  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_dd+index_d1+psp->d_size*index_d2]=
+	    primordial_pk[index_ic1_ic2]
+	    * transfer_ic1[ptr->index_tt_density+index_d1]
+	    * transfer_ic2[ptr->index_tt_density+index_d2]
+	  * 4. * _PI_ / k;
+	}
+      }
+    }
+    
+    if ((psp->has_td == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      for (index_d1=0; index_d1<psp->d_size; index_d1++) {
+	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_td+index_d1]=
+	  primordial_pk[index_ic1_ic2]
+	  * 0.5*(transfer_ic1[ptr->index_tt_t] * transfer_ic2[ptr->index_tt_density+index_d1] +
+		 transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2[ptr->index_tt_t])
+	  * 4. * _PI_ / k;
+      }
+    }
   }
   
   for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
@@ -1562,7 +1611,9 @@ int spectra_compute_cl(
     if (((psp->has_bb == _TRUE_) && (index_ct == psp->index_ct_bb) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) ||
 	((psp->has_pp == _TRUE_) && (index_ct == psp->index_ct_pp) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
 	((psp->has_tp == _TRUE_) && (index_ct == psp->index_ct_tp) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
-	((psp->has_ep == _TRUE_) && (index_ct == psp->index_ct_ep) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
+	((psp->has_ep == _TRUE_) && (index_ct == psp->index_ct_ep) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
+	((psp->has_dd == _TRUE_) && (index_ct == psp->index_ct_dd) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) ||
+	((psp->has_td == _TRUE_) && (index_ct == psp->index_ct_td) && (ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))) {
 
       psp->cl[index_mode]
 	[(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] = 0.;
@@ -2220,3 +2271,125 @@ int spectra_matter_transfers(
 
   return _SUCCESS_;
 }
+
+/* int spectra_Limber_density_cls( */
+/* 	       struct background * pba, */
+/* 	       struct perturbs * ppt, */
+/* 	       struct primordial * ppm, */
+/* 	       struct spectra * psp */
+/* 	       ) { */
+
+/*   /\** Summary: *\/ */
+
+/*   /\** - define local variables *\/ */
+
+/*   int index_mode; */
+/*   int index_tau; */
+/*   int index_l; */
+/*   int last_index_back; */
+/*   double * pvecback_sp_long; /\* array with argument pvecback_sp_long[pba->index_bg] *\/ */
+/*   double tau,a,z,r,l,k,H,junk; */
+/*   double pk_plus,pk_minus,z_plus,z_min; */
+/*   double dPova2,Omega0_m; */
+
+/*   /\** - do only for scalar modes *\/ */
+
+/*   index_mode = psp->index_md_scalars; */
+
+/*   /\** - do only for pure initial conditions (mized ones could be coded later) *\/ */
+
+/*   class_test(psp->ic_size[index_mode] > 1, */
+/* 	     psp->error_message, */
+/* 	     "density Cl's in Limber approximation coded only for pure initial conditions (e.g. adiabatic), not mixtures of isocurvature modes"); */
+
+/*   /\** - allocate *\/ */
+
+/*   class_alloc(psp->LddCl, */
+/* 	      psp->ln_tau_size*psp->l_size[index_mode]*sizeof(double), */
+/* 	      psp->error_message); */
+
+/*   if (ppt->has_cl_cmb_temperature) { */
+
+/*     class_alloc(psp->LTdCl, */
+/* 		psp->ln_tau_size*psp->l_size[index_mode]*sizeof(double), */
+/* 		psp->error_message); */
+
+/*   } */
+
+/*   /\** - loop over tau *\/ */
+
+/*   for (index_tau=0 ; index_tau < psp->ln_tau_size; index_tau++) { */
+
+/*     tau=exp(psp->ln_tau[index_tau]); */
+
+/*     class_call(background_at_tau(pba, */
+/* 				 tau,  */
+/* 				 long_info,  */
+/* 				 normal,  */
+/* 				 &last_index_back,  */
+/* 				 pvecback_sp_long), */
+/* 	       pba->error_message, */
+/* 	       psp->error_message); */
+
+/*     a=pvecback_sp_long[pba->index_bg_a]; */
+/*     z=pba->a_today/a-1.; */
+/*     r=pvecback_sp_long[pba->index_bg_conf_distance]; */
+
+/*     for (index_l=0; index_l < psp->l_size[index_mode]; index_l++) { */
+
+/*       l=psp->l[index_l]; */
+/*       k=(l+0.5)/r; */
+
+/*       class_call(spectra_pk_at_z(pba, */
+/* 				 ppm, */
+/* 				 psp, */
+/* 				 k, */
+/* 				 z, */
+/* 				 &pk, */
+/* 				 &junk), */
+/* 		 psp->error_message, */
+/* 		 psp->error_message); */
+
+/*       psp->LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] = pk/r/r; */
+
+/*       if (ppt->has_cl_cmb_temperature) { */
+
+/* 	z_plus=min(z*(1.+ppr->pk_dz_over_z),z_max_pk); */
+/* 	z_minus=min(z*(1-ppr->pk_dz_over_z),0.); */
+
+/* 	class_call(spectra_pk_at_z(pba, */
+/* 				 ppm, */
+/* 				 psp, */
+/* 				 k, */
+/* 				 z_plus, */
+/* 				 &pk_plus, */
+/* 				 &junk), */
+/* 		 psp->error_message, */
+/* 		 psp->error_message); */
+
+/* 	class_call(spectra_pk_at_z(pba, */
+/* 				 ppm, */
+/* 				 psp, */
+/* 				 k, */
+/* 				 z_minus, */
+/* 				 &pk_minus, */
+/* 				 &junk), */
+/* 		 psp->error_message, */
+/* 		 psp->error_message); */
+
+/* 	dPova2=(pk_plus*(1.+z_plus)*(1.+z_plus)-pk_minus*(1.+z_minus)*(1.+z_minus))/(z_plus-z_minus); */
+
+/* 	H = pvecback_sp_long[pba->index_bg_H]; */
+
+/* 	Omega0_m=pba->Omega0_b; */
+/* 	if (pba->has_cdm == _TRUE_) Omega0_m += pba->Omega0_cdm; */
+/*         if (pba->has_fld == _TRUE_) Omega0_m += pba->Omega0_fld; */
+/*         if (pba->has_ncdm == _TRUE_) Omega0_m += pba->Omega0_ncdm_tot; */
+
+/* 	psp->LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] = 3.*pba->H0*pba->H0*pba->Omega0_m/2./(l+0.5)/(l+0.5)*H/(1+z)*dPova2; */
+
+/*       } */
+/*     } */
+/*   } */
+/*   return _SUCCESS_; */
+/* } */

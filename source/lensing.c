@@ -881,6 +881,22 @@ int lensing_indices(
     ple->has_tp = _FALSE_;
   }
 
+  if (psp->has_dd == _TRUE_) {
+    ple->has_dd = _TRUE_;
+    ple->index_lt_dd=psp->index_ct_dd;      
+  }
+  else {
+    ple->has_dd = _FALSE_;
+  }
+
+  if (psp->has_td == _TRUE_) {
+    ple->has_td = _TRUE_;
+    ple->index_lt_td=psp->index_ct_td;      
+  }
+  else {
+    ple->has_td = _FALSE_;
+  }
+
   ple->lt_size = psp->ct_size;
 
   /* number of multipoles */

@@ -53,6 +53,16 @@ enum possible_gauges {
 
 //@}
 
+//@{
+
+/**
+ * maximumu number and types of selection function (for bins of matter density or cosmic shear)
+ */
+#define _SELECTION_NUM_MAX_ 10
+enum selection_type {gaussian};
+
+//@}
+
 /**
  * Structure containing everything about perturbations that other
  * modules need to know, in particular tabuled values of the source
@@ -89,6 +99,7 @@ struct perturbs
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
+  short has_cl_density;               /**< do we need Cl's for matter density? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
   short has_matter_transfers;         /**< do we need to output individual matter transfer functions? */
   short has_well_resolved_BAOs;       /**< do we need a good sampling
@@ -101,6 +112,12 @@ struct perturbs
   int l_scalar_max; /**< maximum l value for scalars C_ls */
   int l_tensor_max; /**< maximum l value for tensors C_ls */
   double k_scalar_kmax_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if scalar C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
+
+  int selection_num;                            /**< number of selection functions 
+						     (i.e. bins) for matter density Cls */
+  enum selection_type selection;                /**< type of selection functions */
+  double selection_mean[_SELECTION_NUM_MAX_]; /**< centers of selection functions */
+  double selection_width[_SELECTION_NUM_MAX_];  /**< widths of selection functions */
 
   //@}
 
@@ -203,6 +220,9 @@ struct perturbs
   int tau_size;          /**< tau_size = number of values */
 
   double * tau_sampling; /**< tau_sampling[index_tau] = list of tau values */
+
+  double selection_tau_min; /**< used in presence of selection functions (for matter density, cosmic shear...) */
+  double selection_delta_tau; /**< used in presence of selection functions (for matter density, cosmic shear...) */
 
   //@}
 

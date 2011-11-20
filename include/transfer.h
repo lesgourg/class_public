@@ -35,10 +35,11 @@ struct transfers {
 
   int md_size;       /**< number of modes included in computation */
 
-  int index_tt_t;    /**< index for transfer type = temperature */
-  int index_tt_e;    /**< index for transfer type = E-polarization */
-  int index_tt_b;    /**< index for transfer type = B-polarization */
-  int index_tt_lcmb; /**< index for transfer type = CMB lensing */
+  int index_tt_t;      /**< index for transfer type = temperature */
+  int index_tt_e;      /**< index for transfer type = E-polarization */
+  int index_tt_b;      /**< index for transfer type = B-polarization */
+  int index_tt_lcmb;   /**< index for transfer type = CMB lensing */
+  int index_tt_density; /**< index for first bin of transfer type = matter density */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_mode] for each mode */
 
@@ -142,6 +143,7 @@ extern "C" {
 			  );
 
   int transfer_interpolate_sources(
+				   struct background * pba,
 				   struct perturbs * ppt,
 				   struct transfers * ptr,
 				   double tau0,

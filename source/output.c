@@ -1197,6 +1197,8 @@ int output_open_cl_file(
 			int lmax
 			) {
 
+  int index_d1,index_d2;
+
   class_open(*clfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
@@ -1225,7 +1227,7 @@ int output_open_cl_file(
       if (psp->has_ee == _TRUE_)
 	fprintf(*clfile,"EE               ");
       if (psp->has_te == _TRUE_)
-	fprintf(*clfile,"TE               "); 
+	fprintf(*clfile,"TE                "); 
       if (psp->has_bb == _TRUE_)
 	fprintf(*clfile,"BB               ");
       if (psp->has_pp == _TRUE_)
@@ -1234,6 +1236,13 @@ int output_open_cl_file(
 	fprintf(*clfile,"Tphi             ");
       if (psp->has_ep == _TRUE_)
 	fprintf(*clfile,"Ephi             ");
+      if (psp->has_dd == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  for (index_d2=0; index_d2<psp->d_size; index_d2++)
+	    fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
+      if (psp->has_td == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  fprintf(*clfile,"T-dens[%d]        ",index_d1+1);
       fprintf(*clfile,"\n");
     }
 
@@ -1245,13 +1254,20 @@ int output_open_cl_file(
       if (psp->has_bb == _TRUE_)
 	fprintf(*clfile,"BB               ");
       if (psp->has_te == _TRUE_)
-	fprintf(*clfile,"TE               "); 
+	fprintf(*clfile,"TE                "); 
       if (psp->has_pp == _TRUE_)
 	fprintf(*clfile,"dd               ");
       if (psp->has_tp == _TRUE_)
 	fprintf(*clfile,"dT               ");
       if (psp->has_ep == _TRUE_)
 	fprintf(*clfile,"dE               ");
+      if (psp->has_dd == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  for (index_d2=0; index_d2<psp->d_size; index_d2++)
+	    fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
+      if (psp->has_td == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  fprintf(*clfile,"T-dens[%d]        ",index_d1+1);
       fprintf(*clfile,"\n");
 
     }
@@ -1314,6 +1330,12 @@ int output_one_line_of_cl(
       fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->Tcmb*1.e6*cl[psp->index_ct_tp]);
     if (psp->has_ep == _TRUE_)
       fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->Tcmb*1.e6*cl[psp->index_ct_ep]);
+    if (psp->has_dd == _TRUE_)
+      for (index_ct=0; index_ct<psp->d_size*psp->d_size; index_ct++) 
+	fprintf(clfile," %16.10e",factor*cl[psp->index_ct_dd+index_ct]);
+    if (psp->has_td == _TRUE_)
+      for (index_ct=0; index_ct<psp->d_size; index_ct++) 
+	fprintf(clfile," %16.10e",factor*cl[psp->index_ct_td+index_ct]);
     fprintf(clfile,"\n");
   }
 

@@ -594,6 +594,12 @@ int input_init(
       ppt->has_cls = _TRUE_;
     }
 
+    if ((strstr(string1,"dCl") != NULL) || (strstr(string1,"DCl") != NULL) || (strstr(string1,"DCL") != NULL)) {
+      ppt->has_cl_density=_TRUE_;
+      ppt->has_perturbations = _TRUE_;
+      ppt->has_cls = _TRUE_;
+    }
+
     if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL)) {
       ppt->has_pk_matter=_TRUE_; 
       ppt->has_perturbations = _TRUE_;  
@@ -914,6 +920,87 @@ int input_init(
     }
   }
 
+  /* deal with selection functions */
+  if(ppt->has_cl_density == _TRUE_) {
+    
+    class_call(parser_read_string(pfc,
+				  "selection",
+				  &(string1),
+				  &(flag1),
+				  errmsg),
+	       errmsg,
+	       errmsg);
+    
+    if (flag1 == _TRUE_) {
+      if (strstr(string1,"gaussian") != NULL)
+	ppt->selection=gaussian; 
+      else
+	class_stop("In selection function input: type %s is unclear",string1);
+    }
+    
+    class_call(parser_read_list_of_doubles(pfc,
+					   "selection_mean",
+					   &(int1),
+					   &(pointer1),
+					   &flag1,
+					   errmsg),
+	       errmsg,
+	       errmsg);
+    
+    if ((flag1 == _TRUE_) && (int1>0)) {
+
+      class_test(int1 > _SELECTION_NUM_MAX_,
+		 errmsg,
+		 "you want to compute density Cl's for %d different bins, hence you should increase _SELECTION_NUM_MAX_ in include/transfer.h to at least this number",
+		 int1);
+
+      ppt->selection_num = int1;
+      for (i=0; i<int1; i++) {
+	class_test((pointer1[i] < 0.) || (pointer1[i] > 1000.),
+		   errmsg,
+		   "input of selection functions: you asked for a mean redshift equal to %e, sounds odd",
+		   pointer1[i]);
+	ppt->selection_mean[i] = pointer1[i];
+      }
+      free(pointer1);
+      /* first set all widths to default; correct eventually later */
+      for (i=1; i<int1; i++) {
+	class_test(ppt->selection_mean[i]<=ppt->selection_mean[i-1],
+		   errmsg,
+		   "input of selection functions: the list of mean redshifts must be passed in growing order; you entered %e before %e",ppt->selection_mean[i-1],ppt->selection_mean[i]);
+	ppt->selection_width[i] = ppt->selection_width[0];
+      }
+
+      class_call(parser_read_list_of_doubles(pfc,
+					     "selection_width",
+					     &(int1),
+					     &(pointer1),
+					     &flag1,
+					     errmsg),
+	       errmsg,
+	       errmsg);
+    
+      if ((flag1 == _TRUE_) && (int1>0)) {
+	
+	if (int1==1) {
+	  for (i=0; i<ppt->selection_num; i++) {
+	    ppt->selection_width[i] = pointer1[0];
+	  }	
+	}
+	else if (int1==ppt->selection_num) {
+	  for (i=0; i<int1; i++) {
+	    ppt->selection_width[i] = pointer1[i];
+	  }	
+	}
+	else {
+	  class_stop(ptr->error_message,
+		     "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin witdths",
+		     ppt->selection_num,int1,ppt->selection_num);
+	}
+      }
+    }
+  }
+  
   class_read_string("root",pop->root);
 
   class_call(parser_read_string(pfc,
@@ -1367,6 +1454,7 @@ int input_default_params(
   ppt->has_cl_cmb_temperature = _FALSE_;
   ppt->has_cl_cmb_polarization = _FALSE_;
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
+  ppt->has_cl_density = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
   ppt->has_matter_transfers = _FALSE_;
   ppt->has_well_resolved_BAOs=_FALSE_;
@@ -1444,6 +1532,13 @@ int input_default_params(
   ppm->r = 1.;
   ppm->n_t = 0.;
   ppm->alpha_t = 0.;
+
+  /** - transfer structure */
+
+  ppt->selection_num=1;
+  ppt->selection=gaussian;
+  ppt->selection_mean[0]=1.;
+  ppt->selection_width[0]=0.1;
 
   /** - output structure */ 
 
@@ -1609,6 +1704,9 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_perturb_integration=1.e-5;
   ppr->perturb_sampling_stepsize=0.08;
 
+  ppr->selection_cut_at_sigma=3.;
+  ppr->selection_resolution=1.;
+
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.; 
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
@@ -1648,6 +1746,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */
 
   ppr->l_switch_limber=10;
+
+  /**
+   * - parameters related to spectra module
+   */
+
+  /* nothing */
 
   /**
    * - parameters related to trg module

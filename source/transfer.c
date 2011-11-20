@@ -348,7 +348,8 @@ int transfer_init(
 	  printf("In %s: Interpolate sources for one mode/ic/type.\n",
 		 __func__);
 
-	class_call(transfer_interpolate_sources(ppt,
+	class_call(transfer_interpolate_sources(pba,
+						ppt,
 						ptr,
 						tau0,
 						tau_rec,
@@ -617,6 +618,11 @@ int transfer_indices_of_transfers(
       index_tt++;
     }
 
+    if (ppt->has_cl_density == _TRUE_) {
+      ptr->index_tt_density = index_tt;
+      index_tt+=ppt->selection_num;
+    }
+
     ptr->tt_size[ppt->index_md_scalars]=index_tt;
 
   }
@@ -877,6 +883,7 @@ int transfer_get_k_list(
  * by one or several window functions, transforming it into one or 
  * several lensing source functions.
  * 
+ * @param pba                   Input : pointer to background structure
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
  * @param tau0                  Input : conformal time today
@@ -890,6 +897,7 @@ int transfer_get_k_list(
  */
 
 int transfer_interpolate_sources(
+				 struct background * pba,
 				 struct perturbs * ppt,
 				 struct transfers * ptr,
 				 double tau0,
@@ -920,6 +928,13 @@ int transfer_interpolate_sources(
   /* variables used for spline interpolation algorithm */
   double h, a, b;
 
+  /* for calling background_at_eta */
+  int last_index;
+  double * pvecback = NULL;
+  
+  double tau,scale_factor,z,k,W=0.;
+  int bin;
+
   /** - which source are we considering? 
         Define correspondence between transfer types and source types */
 
@@ -933,7 +948,11 @@ int transfer_interpolate_sources(
 
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) 
       index_type=ppt->index_tp_g;
-    
+
+    if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
+      index_type=ppt->index_tp_g;
+      class_alloc(pvecback,pba->bg_size*sizeof(double),ppt->error_message); 
+    }
   }
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
@@ -948,7 +967,7 @@ int transfer_interpolate_sources(
       index_type=ppt->index_tp_b;
 
   }
-	  
+
   /** - find second derivative of original sources with respect to k
         in view of spline interpolation */
 
@@ -1002,7 +1021,7 @@ int transfer_interpolate_sources(
 	+ ((a*a*a-a) * source_spline[index_tau*ppt->k_size[index_mode]+index_k]
 	   +(b*b*b-b) * source_spline[index_tau*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
 
-      /**   b) case of cmb lensing: multiply gravitational potential 
+      /**   b) case of cmb lensing and matter density: multiply gravitational potential 
                by appropriate window function */
 
       if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
@@ -1017,12 +1036,58 @@ int transfer_interpolate_sources(
 	     (in tau = tau_0, set source = 0 to avoid division by zero;
               regulated anyway by Bessel).
 	  */
-	  if ((ppt->tau_sampling[index_tau] > tau_rec) && 
-	      ((tau0-ppt->tau_sampling[index_tau]) > 0.)) {
+	  
+	  tau = ppt->tau_sampling[index_tau];
+
+	  if ((tau > tau_rec) && ((tau0-tau) > 0.)) {
 	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *=
-	      -2.*(ppt->tau_sampling[index_tau]-tau_rec)
-	      /(tau0-ppt->tau_sampling[index_tau])
+	      -2.*(tau-tau_rec)
+	      /(tau0-tau)
 	      /(tau0-tau_rec);
+	  }
+	  else {
+	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 0;
+	  }
+	}
+
+	if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
+
+	  /* matter density source =  - (dz/dtau) W(z) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
+	                           =  - W(z) * 2/(3 Omega_m(tau) H(tau)) * (k/a)^2 psi(k,tau)
+	     with 
+	     psi = (newtonian) gravitationnal potential  
+	     W(z) = redshift space selection function 
+	     (in tau = tau_0, set source = 0 to avoid division by zero;
+              regulated anyway by Bessel).
+	  */
+
+	  tau = ppt->tau_sampling[index_tau];
+
+	  if ((tau > ppt->selection_tau_min) && ((tau0-tau) > 0.)) {
+
+	    class_call(background_at_tau(pba,
+					 tau,
+					 long_info,
+					 normal,
+					 &last_index,
+					 pvecback),
+		       pba->error_message,
+		       ptr->error_message);
+
+	    scale_factor = pvecback[pba->index_bg_a];
+	    z = pba->a_today/scale_factor-1.;
+	    k=ptr->k[index_mode][index_k_tr];
+
+	    bin=index_tt-ptr->index_tt_density;
+
+	    if (ppt->selection==gaussian) {
+	      
+	      W = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
+	      
+	    }
+
+	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *=
+	      W*2./3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]*pow(k/scale_factor,2);
 	  }
 	  else {
 	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 0;
@@ -1030,6 +1095,10 @@ int transfer_interpolate_sources(
 	}
       }
     }
+  }
+
+  if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
+    free(pvecback);
   }
 
   return _SUCCESS_;

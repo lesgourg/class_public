@@ -50,6 +50,8 @@ struct spectra {
   int has_pp; /**< do we want C_l^phi-phi ? (phi = CMB lensing potential) */
   int has_tp; /**< do we want C_l^T-phi ? */
   int has_ep; /**< do we want C_l^E-phi ? */
+  int has_dd; /**< do we want C_l^dd ? */
+  int has_td; /**< do we want C_l^Td ? */
 
   int index_ct_tt; /**< index for type C_l^TT */
   int index_ct_ee; /**< index for type C_l^EE */
@@ -58,6 +60,10 @@ struct spectra {
   int index_ct_pp; /**< index for type C_l^phi-phi */
   int index_ct_tp; /**< index for type C_l^T-phi */
   int index_ct_ep; /**< index for type C_l^E-phi */
+  int index_ct_dd; /**< first index for type C_l^dd (d_size*d_size values) */
+  int index_ct_td; /**< first index for type C_l^Td (d_size values) */
+
+  int d_size;
 
   int ct_size; /**< number of C_l types requested */
 
@@ -135,6 +141,9 @@ struct spectra {
 		       */
   double * ddmatter_transfer; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
   
+  /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations betzeen various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
+
+  /* double * LTdCl; /\**< cross (temperature * density) Cl's in the Limber plus thin shell approximation; depends on index_tau,index_l as: LTdCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
 
   //@}
 
@@ -271,6 +280,13 @@ extern "C" {
 			       struct perturbs * ppt,
 			       struct spectra * psp
 			       );
+
+  /* int spectra_Limber_density_cls( */
+  /* 			       struct background * pba, */
+  /* 			       struct perturbs * ppt, */
+  /* 			       struct primordial * ppm, */
+  /* 			       struct spectra * psp */
+  /* 			       ); */
 
 #ifdef __cplusplus
 }

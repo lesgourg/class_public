@@ -205,6 +205,28 @@ int perturb_init(
 	     ppt->error_message,
 	     ppt->error_message);
 
+  /** - if selection function are used (e.g. for matter density
+        transfer functions), compute confromal time below which they
+        can all be neglected */
+
+  class_call(background_tau_of_z(pba,
+				 ppt->selection_mean[ppt->selection_num-1]+ppt->selection_width[ppt->selection_num-1]*ppr->selection_cut_at_sigma,
+				 &(ppt->selection_tau_min)),
+	     pba->error_message,
+	     ppt->error_message);
+
+  class_call(background_tau_of_z(pba,
+				 ppt->selection_width[0]/ppr->selection_resolution,
+				 &(ppt->selection_delta_tau)),
+	     pba->error_message,
+	     ppt->error_message);
+
+  ppt->selection_delta_tau=pba->conformal_age-ppt->selection_delta_tau;
+
+  class_test(ppt->selection_delta_tau<=0,
+	     ppt->error_message,
+	     "delta tau=%e, should be positive",ppt->selection_delta_tau);
+
   /** - define the common time sampling for all sources using perturb_timesampling_for_sources() */
 
   class_call(perturb_timesampling_for_sources(ppr,
@@ -515,7 +537,8 @@ int perturb_indices_of_perturbs(
       /** -- count source types specific to scalars (gravitational potential, ...) and assign corresponding indices */
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
-	  ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition == delta_tot_from_poisson_squared))) { 
+	  ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition == delta_tot_from_poisson_squared)) ||
+	  (ppt->has_cl_density == _TRUE_)) { 
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_g = _TRUE_;
 	ppt->index_tp_g = index_type; 

@@ -140,6 +140,9 @@ struct background
   int index_bg_a;             /**< scale factor */
   int index_bg_H;             /**< Hubble parameter in Mpc^{-1} */
   int index_bg_H_prime;       /**< its derivative w.r.t. conformal time */
+
+  /* end of vector in short format, now quantitites in normal format */
+
   int index_bg_rho_g;         /**< photon density */
   int index_bg_rho_b;         /**< baryon density */
   int index_bg_rho_cdm;       /**< cdm density */
@@ -152,6 +155,9 @@ struct background
   int index_bg_pseudo_p_ncdm1;/**< another statistical momentum useful in ncdma approximation */
 
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
+
+  /* end of vector in normal format, now quantitites in long format */
+
   int index_bg_rho_crit;      /**< critical density */
   int index_bg_Omega_m;       /**< non-relativistic density fraction (\f$ \Omega_b + \Omega_cdm + \Omega_{\nu nr} \f$) */
   int index_bg_conf_distance; /**< conformal distance (from us) */
