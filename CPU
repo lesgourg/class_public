@@ -139,7 +139,7 @@ def headers_plot_file(spectrum_type,names,plot_line,term):
     if plot_line is True:
       plot_string="plot "
       for name in names:
-	plot_string+="'{0}'".format(name)+"{0}u 1:3 w l,".format(index_string)
+	plot_string+="'{0}'".format(name)+"{0}u 1:{1} w l,".format(index_string,args.colnum)
       plot_string=plot_string.rstrip(",")
       plot_string+="\n"
     else:
@@ -167,7 +167,7 @@ def headers_plot_file(spectrum_type,names,plot_line,term):
     if plot_line is True:
       plot_string="plot "
       for name in names:
-	plot_string+="'{0}'".format(name)+"{0}u 1:(sqrt(${1})) w l,".format(index_string,args.colnum)
+	plot_string+="'{0}'".format(name)+"{0}u (sqrt($1)):{1} w l,".format(index_string,args.colnum)
       plot_string=plot_string.rstrip(",")
       plot_string=plot_string+"\n"
     else:
