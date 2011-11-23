@@ -73,6 +73,7 @@
  */
 
 #include "thermodynamics.h"
+#include "hyrec.h"
 
 /** 
  * Thermodynamics quantities at given redshift z. 
@@ -517,6 +518,9 @@ int thermodynamics_init(
   if (pth->thermodynamics_verbose > 0) {
     printf(" -> recombination at z = %f\n",pth->z_rec);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
+    if (pth->recombination == hyrec) {
+      printf("    (computed with HyRec version %s, by Y. Ali-Haïmoud & C. Hirata)\n",HYREC_VERSION);
+    }
     if (pth->reio_parametrization != reio_none) {
       if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);
@@ -1153,7 +1157,7 @@ int thermodynamics_reionization_sample(
 
     class_test((dkappadz == 0.) || (dkappadtau == 0.),
 	       pth->error_message,
-	       "dkappadz=%e, dkappadtau=%e, stop to avoid division by zero",dkappadz,dkappadtau);
+	       "stop to avoid division by zero");
 
     /** - reduce step if necessary */
     while (((fabs(dkappadz_next-dkappadz)/dkappadz) > ppr->reionization_sampling) || 
@@ -1296,12 +1300,270 @@ int thermodynamics_reionization_sample(
 }
 
 /** 
+ * Integrate thermodynamics with your favorite recombination code.
+ *
+ */
+
+int thermodynamics_recombination(
+				 struct precision * ppr,
+				 struct background * pba,
+				 struct thermo * pth,
+				 struct recombination * preco,
+				 double * pvecback
+				 ) {
+
+  if (pth->recombination==hyrec) {
+
+      class_call(thermodynamics_recombination_with_hyrec(ppr,pba,pth,preco,pvecback),
+	     pth->error_message,
+	     pth->error_message);
+
+  }
+  
+  if (pth->recombination==recfast) {
+
+    class_call(thermodynamics_recombination_with_recfast(ppr,pba,pth,preco,pvecback),
+	       pth->error_message,
+	       pth->error_message);
+
+  }
+
+  return _SUCCESS_;
+
+}
+
+/** 
+ * Integrate thermodynamics with HyRec.
+ *
+ * Integrate thermodynamics with HyRec, allocate and fill the part
+ * of the thermodynamics interpolation table (the rest is filled in
+ * thermodynamics_init()). Called once by
+ * thermodynamics_recombination(), from thermodynamics_init().
+ *
+ *************************************************************************************************
+ *                 HYREC: Hydrogen and Helium Recombination Code                                 *
+ *         Written by Yacine Ali-Haimoud and Chris Hirata (Caltech)                              *
+ ************************************************************************************************* 
+ *
+ * @param ppr      Input: pointer to precision structure
+ * @param pba      Input: pointer to background structure
+ * @param pth      Input: pointer to thermodynamics structure
+ * @param preco    Ouput: pointer to recombination structure
+ * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
+ *
+ */
+
+int thermodynamics_recombination_with_hyrec(
+					    struct precision * ppr,
+					    struct background * pba,
+					    struct thermo * pth,
+					    struct recombination * preco,
+					    double * pvecback
+					    ) {
+
+  REC_COSMOPARAMS param;
+  HRATEEFF rate_table;
+  TWO_PHOTON_PARAMS twog_params;
+  double *xe_output, *Tm_output;
+  int i;
+  
+  double z, xe, Tm, Hz;
+  int Nz;  
+
+  FILE *fA;
+  FILE *fR;
+
+  unsigned j, l;
+  
+  unsigned b;
+  double L2s1s_current;
+
+  /* Build effective rate table */
+  rate_table.logTR_tab = create_1D_array(NTR);
+  rate_table.TM_TR_tab = create_1D_array(NTM);
+  rate_table.logAlpha_tab[0] = create_2D_array(NTM, NTR);
+  rate_table.logAlpha_tab[1] = create_2D_array(NTM, NTR);
+  rate_table.logR2p2s_tab = create_1D_array(NTR);
+
+  /* read_rates(&rate_table); */
+
+  class_open(fA,"hyrec/Alpha_inf.dat", "r",pth->error_message);
+  class_open(fR,"hyrec/R_inf.dat", "r",pth->error_message);
+
+  maketab(log(TR_MIN), log(TR_MAX), NTR, rate_table.logTR_tab);
+  maketab(TM_TR_MIN, TM_TR_MAX, NTM, rate_table.TM_TR_tab);
+  rate_table.DlogTR = rate_table.logTR_tab[1] - rate_table.logTR_tab[0];
+  rate_table.DTM_TR = rate_table.TM_TR_tab[1] - rate_table.TM_TR_tab[0];  
+  
+  for (i = 0; i < NTR; i++) {  
+    for (j = 0; j < NTM; j++) {  
+      for (l = 0; l <= 1; l++) {
+	fscanf(fA, "%le", &(rate_table.logAlpha_tab[l][j][i]));
+	rate_table.logAlpha_tab[l][j][i] = log(rate_table.logAlpha_tab[l][j][i]);
+      }
+    }
+    
+    fscanf(fR, "%le", &(rate_table.logR2p2s_tab[i]));
+    rate_table.logR2p2s_tab[i] = log(rate_table.logR2p2s_tab[i]);
+    
+  }
+  fclose(fA);
+  fclose(fR);
+ 
+  /* Read two-photon rate tables */
+  /* read_twog_params(&twog_params); */
+  
+  class_open(fA,"hyrec/two_photon_tables.dat", "r",pth->error_message);  
+
+  for (b = 0; b < NVIRT; b++) { 
+      fscanf(fA, "%le", &(twog_params.Eb_tab[b]));
+      fscanf(fA, "%le", &(twog_params.A1s_tab[b]));
+      fscanf(fA, "%le", &(twog_params.A2s_tab[b]));
+      fscanf(fA, "%le", &(twog_params.A3s3d_tab[b]));
+      fscanf(fA, "%le", &(twog_params.A4s4d_tab[b]));
+   }  
+
+   fclose(fA); 
+
+   /* Normalize 2s--1s differential decay rate to L2s1s (can be set by user in hydrogen.h) */
+   L2s1s_current = 0.;
+   for (b = 0; b < NSUBLYA; b++) L2s1s_current += twog_params.A2s_tab[b];
+   for (b = 0; b < NSUBLYA; b++) twog_params.A2s_tab[b] *= L2s1s/L2s1s_current;
+
+  /* Switches for the various effects considered in Hirata (2008) and diffusion:
+      Effect A: correct 2s-->1s rate, with stimulated decays and absorptions of non-thermal photons
+      Effect B: Sub-Lyman-alpha two-photon decays
+      Effect C: Super-Lyman-alpha two-photon decays 
+      Effect D: Raman scattering */
+     
+   #if (EFFECT_A == 0)  
+     for (b = 0; b < NSUBLYA; b++) twog_params.A2s_tab[b] = 0;
+   #endif
+   #if (EFFECT_B == 0)
+     for (b = 0; b < NSUBLYA; b++) twog_params.A3s3d_tab[b] = twog_params.A4s4d_tab[b] = 0; 
+   #endif
+   #if (EFFECT_C == 0) 
+      for (b = NSUBLYA; b < NVIRT; b++) twog_params.A3s3d_tab[b] = twog_params.A4s4d_tab[b] = 0;
+   #endif
+   #if (EFFECT_D == 0)
+      for (b = NSUBLYA; b < NVIRT; b++) twog_params.A2s_tab[b] = 0;
+      for (b = NSUBLYB; b < NVIRT; b++) twog_params.A3s3d_tab[b] = 0;
+   #endif 
+   #if (DIFFUSION == 0)
+      for (b = 0; b < NVIRT; b++) twog_params.A1s_tab[b] = 0;
+   #endif
+
+  /* Get cosmological parameters */
+  /* rec_get_cosmoparam(stdin, stderr, &param); */
+  param.T0 = pba->Tcmb;
+  param.obh2 = pba->Omega0_b*pba->h*pba->h;
+  param.omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
+  param.okh2 = pba->Omega0_k*pba->h*pba->h;
+  param.odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
+  param.w0 = pba->w0_fld;
+  param.wa = pba->wa_fld;
+  param.Y = pth->YHe;
+  param.Nnueff = pba->Omega0_ur/(7./8.*pow(4./11.,4./3.)*pba->Omega0_g);
+  param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hudrogen today in m-3 */
+  param.fHe = param.Y/(1-param.Y)/3.97153;              /* abundance of helium by number */
+  
+  /* Redshift range */
+  //param.zstart = 8000.;
+  //param.zend = 20.;
+  param.zstart = ppr->recfast_z_initial;
+  param.zend = 0.;
+  param.dlna = 8.49e-5;
+  param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);  
+
+  /* Compute the recombination history */
+  xe_output = (double*)malloc((size_t)(param.nz*sizeof(double)));
+  Tm_output = (double*)malloc((size_t)(param.nz*sizeof(double)));
+  
+  rec_build_history(&param, &rate_table, &twog_params, xe_output, Tm_output);
+  
+  /* Interpolate at the desired output redshifts */
+  /* for(iz=0; iz<nz; iz++) { */
+  /*   z = param.zstart + dz * iz;    /\* print output every dz *\/ */
+  /*   xe = rec_interp1d(-log(1.+param.zstart), param.dlna, xe_output, param.nz, -log(1.+z)); */
+  /*   Tm = rec_interp1d(-log(1.+param.zstart), param.dlna, Tm_output, param.nz, -log(1.+z)); */
+  /*   printf("%7.2lf %15.13lf %15.13lf\n", z, xe, Tm/param.T0/(1.+z)); */
+  /* } */
+
+  Nz=ppr->recfast_Nz0;
+
+  /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
+  preco->rt_size = Nz;
+  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
+  /* preco->H0 is H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
+  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
+  preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-pth->YHe)/(8.*_PI_*_G_*_m_H_);
+  pth->n_e=preco->Nnow;
+
+  for(i=0; i <Nz; i++) {
+
+    z = param.zstart * (1. - (double)(i+1) / (double)Nz);
+
+    xe = rec_interp1d(-log(1.+param.zstart), param.dlna, xe_output, param.nz, -log(1.+z));
+    Tm = rec_interp1d(-log(1.+param.zstart), param.dlna, Tm_output, param.nz, -log(1.+z));
+
+    class_call(background_functions(pba,pba->a_today/(1.+z),short_info,pvecback),
+	       pba->error_message,
+	       pth->error_message);
+  
+    /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
+    Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+
+
+    /** -> store the results in the table */
+    /* results are obtained in order of decreasing z, and stored in order of growing z */
+
+    /* redshift */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=z;
+
+    /* ionization fraction */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe)=xe;
+
+    /* Tb */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=Tm;
+    
+    /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) 
+       with (1+z)dlnTb/dz= - [dlnTb/dlna] */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->Tcmb*(1.+z), Hz, param.fHe) / Tm / 3.);
+
+    /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
+      = (1.+z) * (1.+z) * preco->Nnow * xe * _sigma_ * _Mpc_over_m_;
+    
+    /* fprintf(stdout,"%e %e %e %e %e\n", */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z), */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe), */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb), */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2), */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau) */
+    /* 	    ); */
+
+  }
+  
+  /* Cleanup */
+  free((char*)xe_output);
+  free((char*)Tm_output);
+  free(rate_table.logTR_tab);
+  free(rate_table.TM_TR_tab);
+  free_2D_array(rate_table.logAlpha_tab[0], NTM);
+  free_2D_array(rate_table.logAlpha_tab[1], NTM);
+  free(rate_table.logR2p2s_tab);
+  
+  return _SUCCESS_;
+}
+
+/** 
  * Integrate thermodynamics with RECFAST.
  *
  * Integrate thermodynamics with RECFAST, allocate and fill the part
  * of the thermodynamics interpolation table (the rest is filled in
  * thermodynamics_init()). Called once by
- * thermodynamics_init().
+ * thermodynamics_recombination, from thermodynamics_init().
  *
  *******************************************************************************
  * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium,   *
@@ -1331,17 +1593,21 @@ int thermodynamics_reionization_sample(
  * Version 1.5: includes extra fitting function from
  *              Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
  *
- * @param Input/Ouput: pointer to recombination structure
+ * @param ppr      Input: pointer to precision structure
+ * @param pba      Input: pointer to background structure
+ * @param pth      Input: pointer to thermodynamics structure
+ * @param preco    Ouput: pointer to recombination structure
+ * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
  * @return the error status
  */
 
-int thermodynamics_recombination(
-				 struct precision * ppr,
-				 struct background * pba,
-				 struct thermo * pth,
-				 struct recombination * preco,
-				 double * pvecback
-				 ) {
+int thermodynamics_recombination_with_recfast(
+					      struct precision * ppr,
+					      struct background * pba,
+					      struct thermo * pth,
+					      struct recombination * preco,
+					      double * pvecback
+					      ) {
 
   /** Summary: */
 
@@ -1670,6 +1936,15 @@ int thermodynamics_recombination(
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
     
+    /* fprintf(stdout,"%e %e %e %e %e %e\n", */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z), */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe), */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb), */
+    /* 	    (1.+zend) * dy[2], */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2), */
+    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau) */
+    /* 	    ); */
+
   }
 
   /** - cleanup generic integrator with cleanup_generic_integrator() */

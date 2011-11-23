@@ -4,6 +4,18 @@
 #define __THERMODYNAMICS__
 
 #include "background.h"
+//#include "arrays.h"
+//#include "helium.h"
+//#include "hydrogen.h"
+
+/**
+ * List of possible recombination algorithms.
+ */
+
+enum recombination_algorithm {
+  recfast, 
+  hyrec
+};
 
 /**
  * List of possible reionization schemes.
@@ -48,6 +60,8 @@ struct thermo
   //@{
 
   double YHe;  /**< \f$ Y_{He} \f$ : primordial helium fraction */
+
+  enum recombination_algorithm recombination; /**< reionization code */
 
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
 
@@ -376,6 +390,22 @@ extern "C" {
 				   struct recombination * prec,
 				   double * pvecback
 				   );
+
+  int thermodynamics_recombination_with_hyrec(
+						struct precision * ppr,
+						struct background * pba,
+						struct thermo * pth,
+						struct recombination * prec,
+						double * pvecback
+						);
+
+  int thermodynamics_recombination_with_recfast(
+						struct precision * ppr,
+						struct background * pba,
+						struct thermo * pth,
+						struct recombination * prec,
+						double * pvecback
+						);
 
   int thermodynamics_derivs_with_recfast(
 					 double z,

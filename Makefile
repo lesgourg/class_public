@@ -23,10 +23,12 @@ AR        = ar rv
 #LDFLAG   = -O4 -Wall -pg
 #CCFLAG   = -O0 -Wall -ggdb
 #LDFLAG   = -O0 -Wall -ggdb
-#CCFLAG   = -O4 -Wall -fopenmp
-#LDFLAG   = -O4 -Wall -fopenmp
-CCFLAG   = -O4 -Wall -fopenmp -fPIC
-LDFLAG   = -O4 -Wall -fopenmp -fPIC
+CCFLAG   = -O4 -Wall -fopenmp #-I../HyRec_Jan2011 -L../HyRec_Jan2011 -lhyrec 
+#../HyRec_Jan2011/libhyrec.a
+LDFLAG   = -O4 -Wall -fopenmp -Lhyrec -lhyrec #HyRec_Jan2011/libhyrec.a
+#-L/HyRec_Jan2011/ -lhyrec
+#CCFLAG   = -O4 -Wall -fopenmp -fPIC
+#LDFLAG   = -O4 -Wall -fopenmp -fPIC
 #LCCFLAG = -O0
 #LDFLAG = -O0
 #CCFLAG   = -fast -fopenmp -Wall
@@ -40,11 +42,10 @@ LDFLAG   = -O4 -Wall -fopenmp -fPIC
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 
-INCLUDES = ../include
-#-I../../../../pmclib/include/pmclib/tools -I../../../../pmclib/include
+INCLUDES = -I../include -I../hyrec #-L../hyrec -lhyrec
 
 %.o:  %.c .base
-	cd $(WRKDIR);$(CC) $(CCFLAG) -I$(INCLUDES) -c ../$< -o $*.o
+	cd $(WRKDIR);$(CC) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
 #TOOLS = growTable.o dei_rkck.o evolver_rkck.o arrays.o parser.o quadrature.o
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o

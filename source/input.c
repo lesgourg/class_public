@@ -517,6 +517,19 @@ int input_init(
   /* scale factor today (arbitrary) */
   class_read_double("YHe",pth->YHe);
 
+  /* recombination parameters */
+  class_call(parser_read_string(pfc,"recombination",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+
+  if (flag1 == _TRUE_) {
+
+    if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)) {
+      pth->recombination = hyrec;  
+    }
+
+  }
+
   /* reionization parametrization */
   class_call(parser_read_string(pfc,"reio_parametrization",&string1,&flag1,errmsg),
 	     errmsg,
@@ -1437,7 +1450,8 @@ int input_default_params(
 
   /** - thermodynamics structure */
 
-  pth->YHe=0.25;            
+  pth->YHe=0.25;
+  pth->recombination=recfast;
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
   pth->z_reio=10.3;
