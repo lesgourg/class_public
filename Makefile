@@ -23,10 +23,8 @@ AR        = ar rv
 #LDFLAG   = -O4 -Wall -pg
 #CCFLAG   = -O0 -Wall -ggdb
 #LDFLAG   = -O0 -Wall -ggdb
-CCFLAG   = -O4 -Wall -fopenmp #-I../HyRec_Jan2011 -L../HyRec_Jan2011 -lhyrec 
-#../HyRec_Jan2011/libhyrec.a
-LDFLAG   = -O4 -Wall -fopenmp -Lhyrec -lhyrec #HyRec_Jan2011/libhyrec.a
-#-L/HyRec_Jan2011/ -lhyrec
+CCFLAG   = -O4 -Wall -fopenmp 
+LDFLAG   = -O4 -Wall -fopenmp -Lhyrec -lhyrec
 #CCFLAG   = -O4 -Wall -fopenmp -fPIC
 #LDFLAG   = -O4 -Wall -fopenmp -fPIC
 #LCCFLAG = -O0
@@ -42,13 +40,15 @@ LDFLAG   = -O4 -Wall -fopenmp -Lhyrec -lhyrec #HyRec_Jan2011/libhyrec.a
 
 #-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
 
-INCLUDES = -I../include -I../hyrec #-L../hyrec -lhyrec
+INCLUDES = -I../include -I../hyrec
+HYRECL = -Lhyrec -lhyrec
 
 %.o:  %.c .base
 	cd $(WRKDIR);$(CC) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
-#TOOLS = growTable.o dei_rkck.o evolver_rkck.o arrays.o parser.o quadrature.o
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o
+
+SOURCE = input.o background.o thermodynamics.o perturbations.o bessel.o transfer.o primordial.o spectra.o trg.o nonlinear.o lensing.o
 
 INPUT = input.o
 
@@ -110,13 +110,18 @@ TEST_2D_QUADRATURE = test_2D_quadrature.o
 
 CUSTOM_LENSING = custom_lensing.o
 
+
+
 all: class libclass.a
 
-libclass.a: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT)
-	$(AR)  $@ $(addprefix build/,$(notdir $^))
+libclass.a: $(TOOLS) $(SOURCE)
+	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE))
 
-class: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CLASS)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+libhyrec.a: 
+	cd hyrec && make --file=Makefile libhyrec.a 
+
+class: libhyrec.a $(TOOLS) $(SOURCE) $(OUTPUT) $(CLASS)
+	$(CC) $(LDFLAG) $(HYRECL) -o class $(addprefix build/,$(TOOLS) $(SOURCE) $(OUTPUT) $(CLASS)) -lm
 
 test_timing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_TIMING)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm

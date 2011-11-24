@@ -1179,6 +1179,10 @@ int input_init(
   class_read_double("recfast_x_H0_trigger_delta",ppr->recfast_x_H0_trigger_delta);
   class_read_double("recfast_H_frac",ppr->recfast_H_frac);
 
+  class_read_string("Alpha_inf hyrec file",ppr->hyrec_Alpha_inf_file);
+  class_read_string("R_inf hyrec file",ppr->hyrec_R_inf_file);
+  class_read_string("two_photon_tables hyrec file",ppr->hyrec_two_photon_tables_file);
+
   class_read_double("reionization_z_start_max",ppr->reionization_z_start_max);
   class_read_double("reionization_sampling",ppr->reionization_sampling);
   class_read_double("reionization_optical_depth_tol",ppr->reionization_optical_depth_tol);
@@ -1661,6 +1665,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->recfast_x_H0_trigger_delta = 0.05;  /* found to be OK on 3.09.10 */ 
 
   ppr->recfast_H_frac=1.e-3;               /* from recfast 1.4 */
+
+  sprintf(ppr->hyrec_Alpha_inf_file,"hyrec/Alpha_inf.dat");
+  sprintf(ppr->hyrec_R_inf_file,"hyrec/R_inf.dat");
+  sprintf(ppr->hyrec_two_photon_tables_file,"hyrec/two_photon_tables.dat");
 
   /* for reionization */
 

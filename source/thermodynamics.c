@@ -1365,96 +1365,16 @@ int thermodynamics_recombination_with_hyrec(
   HRATEEFF rate_table;
   TWO_PHOTON_PARAMS twog_params;
   double *xe_output, *Tm_output;
-  int i;
-  
+  int i,j,l,Nz,b;
   double z, xe, Tm, Hz;
-  int Nz;  
-
   FILE *fA;
   FILE *fR;
-
-  unsigned j, l;
-  
-  unsigned b;
   double L2s1s_current;
-
-  /* Build effective rate table */
-  rate_table.logTR_tab = create_1D_array(NTR);
-  rate_table.TM_TR_tab = create_1D_array(NTM);
-  rate_table.logAlpha_tab[0] = create_2D_array(NTM, NTR);
-  rate_table.logAlpha_tab[1] = create_2D_array(NTM, NTR);
-  rate_table.logR2p2s_tab = create_1D_array(NTR);
-
-  /* read_rates(&rate_table); */
-
-  class_open(fA,"hyrec/Alpha_inf.dat", "r",pth->error_message);
-  class_open(fR,"hyrec/R_inf.dat", "r",pth->error_message);
-
-  maketab(log(TR_MIN), log(TR_MAX), NTR, rate_table.logTR_tab);
-  maketab(TM_TR_MIN, TM_TR_MAX, NTM, rate_table.TM_TR_tab);
-  rate_table.DlogTR = rate_table.logTR_tab[1] - rate_table.logTR_tab[0];
-  rate_table.DTM_TR = rate_table.TM_TR_tab[1] - rate_table.TM_TR_tab[0];  
+  void * buffer;
+  int buf_size;
   
-  for (i = 0; i < NTR; i++) {  
-    for (j = 0; j < NTM; j++) {  
-      for (l = 0; l <= 1; l++) {
-	fscanf(fA, "%le", &(rate_table.logAlpha_tab[l][j][i]));
-	rate_table.logAlpha_tab[l][j][i] = log(rate_table.logAlpha_tab[l][j][i]);
-      }
-    }
-    
-    fscanf(fR, "%le", &(rate_table.logR2p2s_tab[i]));
-    rate_table.logR2p2s_tab[i] = log(rate_table.logR2p2s_tab[i]);
-    
-  }
-  fclose(fA);
-  fclose(fR);
- 
-  /* Read two-photon rate tables */
-  /* read_twog_params(&twog_params); */
+  /** - Fill hyrec parameter structure */
   
-  class_open(fA,"hyrec/two_photon_tables.dat", "r",pth->error_message);  
-
-  for (b = 0; b < NVIRT; b++) { 
-      fscanf(fA, "%le", &(twog_params.Eb_tab[b]));
-      fscanf(fA, "%le", &(twog_params.A1s_tab[b]));
-      fscanf(fA, "%le", &(twog_params.A2s_tab[b]));
-      fscanf(fA, "%le", &(twog_params.A3s3d_tab[b]));
-      fscanf(fA, "%le", &(twog_params.A4s4d_tab[b]));
-   }  
-
-   fclose(fA); 
-
-   /* Normalize 2s--1s differential decay rate to L2s1s (can be set by user in hydrogen.h) */
-   L2s1s_current = 0.;
-   for (b = 0; b < NSUBLYA; b++) L2s1s_current += twog_params.A2s_tab[b];
-   for (b = 0; b < NSUBLYA; b++) twog_params.A2s_tab[b] *= L2s1s/L2s1s_current;
-
-  /* Switches for the various effects considered in Hirata (2008) and diffusion:
-      Effect A: correct 2s-->1s rate, with stimulated decays and absorptions of non-thermal photons
-      Effect B: Sub-Lyman-alpha two-photon decays
-      Effect C: Super-Lyman-alpha two-photon decays 
-      Effect D: Raman scattering */
-     
-   #if (EFFECT_A == 0)  
-     for (b = 0; b < NSUBLYA; b++) twog_params.A2s_tab[b] = 0;
-   #endif
-   #if (EFFECT_B == 0)
-     for (b = 0; b < NSUBLYA; b++) twog_params.A3s3d_tab[b] = twog_params.A4s4d_tab[b] = 0; 
-   #endif
-   #if (EFFECT_C == 0) 
-      for (b = NSUBLYA; b < NVIRT; b++) twog_params.A3s3d_tab[b] = twog_params.A4s4d_tab[b] = 0;
-   #endif
-   #if (EFFECT_D == 0)
-      for (b = NSUBLYA; b < NVIRT; b++) twog_params.A2s_tab[b] = 0;
-      for (b = NSUBLYB; b < NVIRT; b++) twog_params.A3s3d_tab[b] = 0;
-   #endif 
-   #if (DIFFUSION == 0)
-      for (b = 0; b < NVIRT; b++) twog_params.A1s_tab[b] = 0;
-   #endif
-
-  /* Get cosmological parameters */
-  /* rec_get_cosmoparam(stdin, stderr, &param); */
   param.T0 = pba->Tcmb;
   param.obh2 = pba->Omega0_b*pba->h*pba->h;
   param.omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
@@ -1466,46 +1386,152 @@ int thermodynamics_recombination_with_hyrec(
   param.Nnueff = pba->Omega0_ur/(7./8.*pow(4./11.,4./3.)*pba->Omega0_g);
   param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hudrogen today in m-3 */
   param.fHe = param.Y/(1-param.Y)/3.97153;              /* abundance of helium by number */
-  
-  /* Redshift range */
-  //param.zstart = 8000.;
-  //param.zend = 20.;
-  param.zstart = ppr->recfast_z_initial;
+  param.zstart = ppr->recfast_z_initial; /* Redshift range */
   param.zend = 0.;
   param.dlna = 8.49e-5;
   param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);  
 
-  /* Compute the recombination history */
-  xe_output = (double*)malloc((size_t)(param.nz*sizeof(double)));
-  Tm_output = (double*)malloc((size_t)(param.nz*sizeof(double)));
-  
-  rec_build_history(&param, &rate_table, &twog_params, xe_output, Tm_output);
-  
-  /* Interpolate at the desired output redshifts */
-  /* for(iz=0; iz<nz; iz++) { */
-  /*   z = param.zstart + dz * iz;    /\* print output every dz *\/ */
-  /*   xe = rec_interp1d(-log(1.+param.zstart), param.dlna, xe_output, param.nz, -log(1.+z)); */
-  /*   Tm = rec_interp1d(-log(1.+param.zstart), param.dlna, Tm_output, param.nz, -log(1.+z)); */
-  /*   printf("%7.2lf %15.13lf %15.13lf\n", z, xe, Tm/param.T0/(1.+z)); */
-  /* } */
+  /** - Build effective rate tables */
 
+  /* allocate contiguous memory zone */
+
+  buf_size = (2*NTR+NTM+2*NTR*NTM+2*param.nz)*sizeof(double) + 2*sizeof(double*);
+
+  class_alloc(buffer,
+	      buf_size,
+	      pth->error_message);
+  
+  /* distribute addresses for each table */
+
+  rate_table.logTR_tab = (double*)buffer;
+  rate_table.TM_TR_tab = (double*)(rate_table.logTR_tab + NTR);
+  rate_table.logAlpha_tab[0] = (double**)(rate_table.TM_TR_tab+NTM);
+  rate_table.logAlpha_tab[1] = (double**)(rate_table.logAlpha_tab[0]+NTM);
+  rate_table.logAlpha_tab[0][0] = (double*)(rate_table.logAlpha_tab[1]+NTM);
+  for (j=1;j<NTM;j++) {
+    rate_table.logAlpha_tab[0][j] = (double*)(rate_table.logAlpha_tab[0][j-1]+NTR);
+  }
+  rate_table.logAlpha_tab[1][0] = (double*)(rate_table.logAlpha_tab[0][NTM-1]+NTR);
+  for (j=1;j<NTM;j++) {
+    rate_table.logAlpha_tab[1][j] = (double*)(rate_table.logAlpha_tab[1][j-1]+NTR);
+  }
+  rate_table.logR2p2s_tab = (double*)(rate_table.logAlpha_tab[1][NTM-1]+NTR);
+
+  xe_output = (double*)(rate_table.logR2p2s_tab+NTR);
+  Tm_output = (double*)(rate_table.logR2p2s_tab+param.nz);
+
+  /* store sampled values of temperatures */
+
+  for (i = 0; i < NTR; i++)
+    rate_table.logTR_tab[i] = log(TR_MIN) + i * (log(TR_MAX)-log(TR_MIN))/(NTR-1.);
+  for (i = 0; i < NTM; i++)
+    rate_table.TM_TR_tab[i] = TM_TR_MIN + i * (TM_TR_MAX-TM_TR_MIN)/(NTM-1.);
+
+  rate_table.DlogTR = rate_table.logTR_tab[1] - rate_table.logTR_tab[0];
+  rate_table.DTM_TR = rate_table.TM_TR_tab[1] - rate_table.TM_TR_tab[0];  
+
+  /* read in file */
+
+  class_open(fA,ppr->hyrec_Alpha_inf_file, "r",pth->error_message);
+  class_open(fR,ppr->hyrec_R_inf_file, "r",pth->error_message);
+  
+  for (i = 0; i < NTR; i++) {  
+    for (j = 0; j < NTM; j++) {  
+      for (l = 0; l <= 1; l++) {
+	if (fscanf(fA, "%le", &(rate_table.logAlpha_tab[l][j][i])) != 1)
+	  class_stop(pth->error_message,"Error reading hyrec data file %s",ppr->hyrec_Alpha_inf_file);
+	rate_table.logAlpha_tab[l][j][i] = log(rate_table.logAlpha_tab[l][j][i]);
+      }
+    }
+    
+    if (fscanf(fR, "%le", &(rate_table.logR2p2s_tab[i])) !=1)
+      class_stop(pth->error_message,"Error reading hyrec data file %s",ppr->hyrec_R_inf_file);
+    rate_table.logR2p2s_tab[i] = log(rate_table.logR2p2s_tab[i]);
+    
+  }
+  fclose(fA);
+  fclose(fR);
+ 
+  /* Read two-photon rate tables */
+ 
+  class_open(fA,ppr->hyrec_two_photon_tables_file, "r",pth->error_message);  
+
+  for (b = 0; b < NVIRT; b++) { 
+    if ((fscanf(fA, "%le", &(twog_params.Eb_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A1s_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A2s_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A3s3d_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A4s4d_tab[b])) != 1))
+      class_stop(pth->error_message,"Error reading hyrec data file %s",ppr->hyrec_two_photon_tables_file);
+   }  
+
+   fclose(fA); 
+
+   /** - Normalize 2s--1s differential decay rate to L2s1s (can be set by user in hydrogen.h) */
+   L2s1s_current = 0.;
+   for (b = 0; b < NSUBLYA; b++) L2s1s_current += twog_params.A2s_tab[b];
+   for (b = 0; b < NSUBLYA; b++) twog_params.A2s_tab[b] *= L2s1s/L2s1s_current;
+
+   /*  In CLASS, we have neutralized the switches for the various
+       effects considered in Hirata (2008), keeping the full
+       calculation as a default; but you could restore their
+       functionality by copying a few lines from hyrec/hyrec.c to
+       here */
+
+   /** - Compute the recombination history by calling a function in hyrec (no CLASS-like error management here) */
+ 
+   if (pth->thermodynamics_verbose > 0)
+     printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
+ 
+   rec_build_history(&param, &rate_table, &twog_params, xe_output, Tm_output);
+
+   if (pth->thermodynamics_verbose > 0)
+     printf("    by Y. Ali-Haïmoud & C. Hirata\n");
+
+  /** - fill a few parameters in preco and pth */
+  
   Nz=ppr->recfast_Nz0;
 
-  /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
   preco->rt_size = Nz;
-  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
-  /* preco->H0 is H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
-  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
+  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_; 
+  /* preco->H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
   preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-pth->YHe)/(8.*_PI_*_G_*_m_H_);
+
   pth->n_e=preco->Nnow;
+
+  /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
+
+  
+  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
 
   for(i=0; i <Nz; i++) {
 
+    /** -> get redshift, corresponding results from hyrec, and background quantities */
+
     z = param.zstart * (1. - (double)(i+1) / (double)Nz);
 
-    xe = rec_interp1d(-log(1.+param.zstart), param.dlna, xe_output, param.nz, -log(1.+z));
-    Tm = rec_interp1d(-log(1.+param.zstart), param.dlna, Tm_output, param.nz, -log(1.+z));
+    /* get (xe,Tm) by interpolating in pre-computed tables */
 
+    class_call(array_interpolate_cubic_equal(-log(1.+param.zstart), 
+					     param.dlna, 
+					     xe_output, 
+					     param.nz, 
+					     -log(1.+z),
+					     &xe,
+					     pth->error_message),
+	       pth->error_message,
+	       pth->error_message);
+ 
+    class_call(array_interpolate_cubic_equal(-log(1.+param.zstart), 
+					     param.dlna, 
+					     Tm_output, 
+					     param.nz, 
+					     -log(1.+z),
+					     &Tm,
+					     pth->error_message),
+	       pth->error_message,
+	       pth->error_message);
+    
     class_call(background_functions(pba,pba->a_today/(1.+z),short_info,pvecback),
 	       pba->error_message,
 	       pth->error_message);
@@ -1513,8 +1539,8 @@ int thermodynamics_recombination_with_hyrec(
     /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
     Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
 
-
     /** -> store the results in the table */
+
     /* results are obtained in order of decreasing z, and stored in order of growing z */
 
     /* redshift */
@@ -1535,24 +1561,11 @@ int thermodynamics_recombination_with_hyrec(
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+z) * (1.+z) * preco->Nnow * xe * _sigma_ * _Mpc_over_m_;
     
-    /* fprintf(stdout,"%e %e %e %e %e\n", */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z), */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe), */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb), */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2), */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau) */
-    /* 	    ); */
-
   }
   
   /* Cleanup */
-  free((char*)xe_output);
-  free((char*)Tm_output);
-  free(rate_table.logTR_tab);
-  free(rate_table.TM_TR_tab);
-  free_2D_array(rate_table.logAlpha_tab[0], NTM);
-  free_2D_array(rate_table.logAlpha_tab[1], NTM);
-  free(rate_table.logR2p2s_tab);
+
+  free(buffer);
   
   return _SUCCESS_;
 }

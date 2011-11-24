@@ -370,6 +370,10 @@ struct precision
   double recfast_H_frac;              /**< governs time at which full equation of evolution 
 					   for Tmat is used */
 
+  FileName hyrec_Alpha_inf_file;
+  FileName hyrec_R_inf_file;
+  FileName hyrec_two_photon_tables_file;
+
   /** - for reionization */
 
   double reionization_z_start_max; /**< maximum redshift at which reionization should start. If not, return an error. */

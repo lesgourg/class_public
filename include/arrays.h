@@ -341,6 +341,15 @@ extern "C" {
 			    double * result,
 			    ErrorMsg errmsg);
 
+  int array_interpolate_cubic_equal(
+				    double x0, 
+				    double dx, 
+				    double *yarray, 
+				    int Nx, 
+				  double x,
+				    double * result,
+				    ErrorMsg errmsg);
+    
   int array_smooth(double * array,
 		   int n_columns,
 		   int n_lines,

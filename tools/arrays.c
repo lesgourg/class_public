@@ -2334,6 +2334,44 @@ int array_interpolate_equal(
 
 }
 
+/**
+ * cubic interpolation of array with equally space abscisses 
+ */
+
+int array_interpolate_cubic_equal(
+				  double x0, 
+				  double dx, 
+				  double *yarray, 
+				  int Nx, 
+				  double x,
+				  double * result,
+				  ErrorMsg errmsg) {
+
+  int i;
+  double frac;
+
+  class_test((dx > 0 && (x<x0 || x>x0+dx*(Nx-1))),
+	     errmsg,
+	     "x=%e out of range [%e %e]",x,x0,x0+dx*(Nx-1));
+
+  class_test((dx < 0 && (x>x0 || x<x0+dx*(Nx-1))),
+	     errmsg,
+	     "x=%e out of range [%e %e]",x,x0+dx*(Nx-1),x0);
+
+  i = (int)floor((x-x0)/dx);
+  if (i<1) i=1;
+  if (i>Nx-3) i=Nx-3;
+  frac = (x-x0)/dx-i;
+  yarray += i-1;
+
+  *result=-yarray[0]*frac*(1.-frac)*(2.-frac)/6.
+    +yarray[1]*(1.+frac)*(1.-frac)*(2.-frac)/2.
+    +yarray[2]*(1.+frac)*frac*(2.-frac)/2.
+    +yarray[3]*(1.+frac)*frac*(frac-1.)/6.;
+
+  return _SUCCESS_;
+}
+
 /** 
  * Called by transfer_solve().
  */
