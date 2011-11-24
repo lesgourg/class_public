@@ -13,7 +13,7 @@ clean:
 	rm *.o
 
 hyrec: $(HYREC_SRC) $(HYREC_EXE)
-	$(CC) $(LDFLAG) $(HYREC_SRC) $(HYREC_EXE) -o hyrec
+	$(CC) $(LDFLAG) -o hyrec $(HYREC_SRC) $(HYREC_EXE) -lm
 
 libhyrec.a: $(HYREC_SRC)
 	$(AR) $@ $(HYREC_SRC)

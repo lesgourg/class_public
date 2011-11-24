@@ -23,8 +23,8 @@ AR        = ar rv
 #LDFLAG   = -O4 -Wall -pg
 #CCFLAG   = -O0 -Wall -ggdb
 #LDFLAG   = -O0 -Wall -ggdb
-CCFLAG   = -O4 -Wall -fopenmp 
-LDFLAG   = -O4 -Wall -fopenmp -Lhyrec -lhyrec
+CCFLAG   = -O4 -Wall -fopenmp
+LDFLAG   = -O4 -Wall -fopenmp
 #CCFLAG   = -O4 -Wall -fopenmp -fPIC
 #LDFLAG   = -O4 -Wall -fopenmp -fPIC
 #LCCFLAG = -O0
@@ -121,7 +121,7 @@ libhyrec.a:
 	cd hyrec && make --file=Makefile libhyrec.a 
 
 class: libhyrec.a $(TOOLS) $(SOURCE) $(OUTPUT) $(CLASS)
-	$(CC) $(LDFLAG) $(HYRECL) -o class $(addprefix build/,$(TOOLS) $(SOURCE) $(OUTPUT) $(CLASS)) -lm
+	$(CC) $(LDFLAG) -o class $(addprefix build/,$(TOOLS) $(SOURCE) $(OUTPUT) $(CLASS)) $(HYRECL) -lm
 
 test_timing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_TIMING)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
