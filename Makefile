@@ -1,9 +1,8 @@
 #Some Makefile for CLASS.
-#Julien Lesgourgues, 18.04.2010
+#Julien Lesgourgues, 28.11.2011
 
 MDIR := $(shell pwd)
 WRKDIR = $(MDIR)/build
-#PMCLIB = $(MDIR)/../../../pmclib
 
 .base:
 	if ! [ -e $(WRKDIR) ]; then mkdir $(WRKDIR) ; mkdir $(WRKDIR)/lib; fi;
@@ -13,36 +12,54 @@ vpath %.c source:tools:main:test
 vpath %.o build
 vpath .base build
 
+########################################################
+###### LINES TO ADAPT TO YOUR PLATEFORM ################
+########################################################
+
+# your C compiler:
 CC       = gcc
 #CC       = pgcc
-AR        = ar rv 
 
+# your tool for creating static libraries:
+AR        = ar rv
 
-#CCFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
-#LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
-#CCFLAG   = -O4 -Wall -pg
-#LDFLAG   = -O4 -Wall -pg
-#CCFLAG   = -O0 -Wall -ggdb
-#LDFLAG   = -O0 -Wall -ggdb
-CCFLAG   = -O4 -Wall -fopenmp
-LDFLAG   = -O4 -Wall -fopenmp
-#CCFLAG   = -O4 -Wall -fopenmp -fPIC
-#LDFLAG   = -O4 -Wall -fopenmp -fPIC
-#LCCFLAG = -O0
-#LDFLAG = -O0
-#CCFLAG   = -fast -fopenmp -Wall
-#LDFLAG   = -fast -fopenmp -Wall
-#CCFLAG = -O0 -ggdb -g -Wall
-#LDFLAG = -O0 -ggdb -g -Wall
-#CCFLAG = -O4 -arch i386 -pg
-#LDFLAG = -O4 -arch i386 -pg
-#CCFLAG   = -O2 -Wall -g
-#LDFLAG   = -O2 -Wall -g
+# your optimization flag
+OPTFLAG = -O4
+#OPTFLAG = -fast
 
+# your openmp flag (comment for compiling without openmp)
+OMPFLAG   = -fopenmp
+#OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
+
+# all other compilation flags
+CCFLAG = -fPIC
+LDFLAG = -fPIC
+
+# leave blank to compile without HyRec, or put path to HyRec directory 
+# (with no slash at the end: e.g. hyrec or ../hyrec)
+HYREC = hyrec
+
+########################################################
+###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
+########################################################
+
+# where to find include files *.h
 INCLUDES = -I../include
 
+# automatically add external programs if needed. First, initialize to blank.
+EXTERNAL =
+
+# eventually update flags for including HyRec
+ifneq ($(HYREC),)
+vpath %.c $(HYREC)
+CCFLAG += -DHYREC
+#LDFLAGS += -DHYREC
+INCLUDES += -I../hyrec
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o 
+endif
+
 %.o:  %.c .base
-	cd $(WRKDIR);$(CC) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
+	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o
 
@@ -74,23 +91,9 @@ OUTPUT = output.o
 
 CLASS = class.o
 
-TEST_OPTIMIZE_1D = test_optimize_1D.o
-
-TEST_OPTIMIZE = test_optimize.o
-
-CHI2 = chi2.o
-
-TEST_TIMING = test_timing.o
-
 TEST_LOOPS = test_loops.o
 
-TEST_SPECTRA = test_spectra.o
-
-TEST_LENSING = test_lensing.o
-
 TEST_TRANSFER = test_transfer.o
-
-TEST_BESSEL = test_bessel.o
 
 TEST_PERTURBATIONS = test_perturbations.o
 
@@ -98,90 +101,29 @@ TEST_THERMODYNAMICS = test_thermodynamics.o
 
 TEST_BACKGROUND = test_background.o
 
-TEST_TRG = test_trg.o
-
-TEST_KARIM = test_karim.o
-
-TEST_PBC = test_pbc.o
-
-TEST_2D_QUADRATURE = test_2D_quadrature.o
-
-CUSTOM_LENSING = custom_lensing.o
-
-# add external programs if needed. First, initialize to blank.
-EXTERNAL =
-
-# Leave blank to compile without HyRec; or put path to HyRec dictory (with no slash at the end: e.g. hyrec or ../hyrec)
-HYREC = hyrec
-
-ifneq ($(HYREC),)
-vpath %.c $(HYREC)
-CCFLAG += -DHYREC
-#LDFLAGS += -DHYREC
-INCLUDES += -I../hyrec
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o 
-endif
-
-#HYREC_SRC = hyrectools.o helium.o hydrogen.o history.o
-
 all: class libclass.a
 
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(LDFLAG) -o class $(addprefix build/,$(TOOLS) $(SOURCE) $(EXTERNAL)$(OUTPUT) $(CLASS)) -lm
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
 
-test_timing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_TIMING)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
-test_lensing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_LENSING)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+test_transfer: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(EXTERNAL) $(TEST_TRANSFER)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
-test_pbc: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_PBC)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+test_perturbations: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(EXTERNAL) $(TEST_PERTURBATIONS)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
-test_optimize_1D: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_OPTIMIZE_1D)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_optimize: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_OPTIMIZE)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-chi2: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CHI2)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_loops: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_LOOPS)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_trg: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(TRG) $(TEST_TRG)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_spectra: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(TEST_SPECTRA)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_transfer: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(TEST_TRANSFER)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_bessel: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TEST_BESSEL)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_perturbations: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(TEST_PERTURBATIONS)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_thermodynamics: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(TEST_THERMODYNAMICS)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+test_thermodynamics: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(EXTERNAL) $(TEST_THERMODYNAMICS)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_background: $(TOOLS) $(INPUT) $(BACKGROUND) $(TEST_BACKGROUND)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_karim: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(LENSING) $(OUTPUT) $(TEST_KARIM)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_2D_quadrature: $(TOOLS) $(TEST_2D_QUADRATURE)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
-
-custom_lensing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(CUSTOM_LENSING)
-	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 clean: .base
 	rm -rf $(WRKDIR);
+
