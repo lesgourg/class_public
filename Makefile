@@ -17,6 +17,7 @@ CC       = gcc
 #CC       = pgcc
 AR        = ar rv 
 
+
 #CCFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #LDFLAG   = -fast -mp -mp=nonuma -mp=allcores -g
 #CCFLAG   = -O4 -Wall -pg
@@ -38,10 +39,7 @@ LDFLAG   = -O4 -Wall -fopenmp
 #CCFLAG   = -O2 -Wall -g
 #LDFLAG   = -O2 -Wall -g
 
-#-L$(PMCLIB)/lib -lerrorio -lreadConf -lgsl -lgslcblas -llua
-
-INCLUDES = -I../include -I../hyrec
-HYRECL = -Lhyrec -lhyrec
+INCLUDES = -I../include
 
 %.o:  %.c .base
 	cd $(WRKDIR);$(CC) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
@@ -110,18 +108,29 @@ TEST_2D_QUADRATURE = test_2D_quadrature.o
 
 CUSTOM_LENSING = custom_lensing.o
 
+# add external programs if needed. First, initialize to blank.
+EXTERNAL =
 
+# Leave blank to compile without HyRec; or put path to HyRec dictory (with no slash at the end: e.g. hyrec or ../hyrec)
+HYREC = hyrec
+
+ifneq ($(HYREC),)
+vpath %.c $(HYREC)
+CCFLAG += -DHYREC
+#LDFLAGS += -DHYREC
+INCLUDES += -I../hyrec
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o 
+endif
+
+#HYREC_SRC = hyrectools.o helium.o hydrogen.o history.o
 
 all: class libclass.a
 
-libclass.a: $(TOOLS) $(SOURCE)
-	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE))
+libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
+	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
-libhyrec.a: 
-	cd hyrec && make --file=Makefile libhyrec.a 
-
-class: libhyrec.a $(TOOLS) $(SOURCE) $(OUTPUT) $(CLASS)
-	$(CC) $(LDFLAG) -o class $(addprefix build/,$(TOOLS) $(SOURCE) $(OUTPUT) $(CLASS)) $(HYRECL) -lm
+class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
+	$(CC) $(LDFLAG) -o class $(addprefix build/,$(TOOLS) $(SOURCE) $(EXTERNAL)$(OUTPUT) $(CLASS)) -lm
 
 test_timing: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(BESSEL) $(TRANSFER) $(PRIMORDIAL) $(SPECTRA) $(NONLINEAR) $(LENSING) $(OUTPUT) $(TEST_TIMING)
 	$(CC) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm

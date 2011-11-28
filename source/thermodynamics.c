@@ -73,7 +73,10 @@
  */
 
 #include "thermodynamics.h"
+
+#ifdef HYREC
 #include "hyrec.h"
+#endif
 
 /** 
  * Thermodynamics quantities at given redshift z. 
@@ -518,9 +521,6 @@ int thermodynamics_init(
   if (pth->thermodynamics_verbose > 0) {
     printf(" -> recombination at z = %f\n",pth->z_rec);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
-    if (pth->recombination == hyrec) {
-      printf("    (computed with HyRec version %s, by Y. Ali-Haïmoud & C. Hirata)\n",HYREC_VERSION);
-    }
     if (pth->reio_parametrization != reio_none) {
       if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);
@@ -1361,6 +1361,8 @@ int thermodynamics_recombination_with_hyrec(
 					    double * pvecback
 					    ) {
 
+#ifdef HYREC
+
   REC_COSMOPARAMS param;
   HRATEEFF rate_table;
   TWO_PHOTON_PARAMS twog_params;
@@ -1372,7 +1374,7 @@ int thermodynamics_recombination_with_hyrec(
   double L2s1s_current;
   void * buffer;
   int buf_size;
-  
+
   /** - Fill hyrec parameter structure */
   
   param.T0 = pba->Tcmb;
@@ -1567,6 +1569,13 @@ int thermodynamics_recombination_with_hyrec(
 
   free(buffer);
   
+#else
+
+  class_stop(pth->error_message,
+	     "you compiled without including the HyRec code, and now whish to use it. Either set the input parameter 'recombination' to something else than 'HyRec', or recompile after setting in the Makefile the appropriate path HYREC=... ");
+
+#endif
+
   return _SUCCESS_;
 }
 
