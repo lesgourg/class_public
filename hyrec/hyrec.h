@@ -8,7 +8,7 @@
 
 #define HYREC_VERSION "Nov2011"
 
-#include "arrays.h"
+#include "hyrectools.h"
 #include "helium.h"
 #include "hydrogen.h"
 #include "history.h"

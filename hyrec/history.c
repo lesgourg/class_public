@@ -16,7 +16,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "arrays.h"
+#include "hyrectools.h"
 #include "helium.h"
 #include "hydrogen.h"
 #include "history.h"

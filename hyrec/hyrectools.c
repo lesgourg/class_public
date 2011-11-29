@@ -1,4 +1,4 @@
-/******************************* ARRAYS.C ********************************
+/*************************** HYRECTOOLS.C ********************************
 Multidimensional array creation and freeing functions.
 Also, function to make linear arrays and interpolation routines.
 
@@ -9,7 +9,7 @@ Version: January 2011 (unchanged from November 2010 version)
 #include <stdlib.h>
 #include <math.h>
       
-#include "arrays.h"
+#include "hyrectools.h"
 
 /************************************************************************** 
 Creates a [n1] array. 

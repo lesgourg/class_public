@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "arrays.h"
+#include "hyrectools.h"
 #include "hydrogen.h"
 
 

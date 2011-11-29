@@ -720,6 +720,14 @@ int background_indices(
   pba->index_bg_conf_distance = index_bg; 
   index_bg++;
 
+  /* -> angular diameter distance */
+  pba->index_bg_ang_distance = index_bg; 
+  index_bg++;
+
+  /* -> luminosity distance */
+  pba->index_bg_lum_distance = index_bg; 
+  index_bg++;
+
   /* -> proper time (for age of the Universe) */
   pba->index_bg_time = index_bg; 
   index_bg++;
@@ -1450,6 +1458,8 @@ int background_solve(
 
     pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
     pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_tau];
+    pvecback[pba->index_bg_ang_distance] = pba->a_today*pvecback[pba->index_bg_conf_distance]/(1.+pba->z_table[i]);
+    pvecback[pba->index_bg_lum_distance] = pba->a_today*pvecback[pba->index_bg_conf_distance]*(1.+pba->z_table[i]);
     pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities */
