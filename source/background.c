@@ -99,7 +99,7 @@
 int background_at_tau(
 		      struct background *pba,
 		      double tau,
-		      enum format_info return_format,
+		      short return_format,
 		      enum interpolation_mode intermode,
 		      int * last_index,
 		      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
@@ -124,11 +124,11 @@ int background_at_tau(
 
   /** - deduce length of returned vector from format mode */ 
 
-  if (return_format == normal_info) {
+  if (return_format == pba->normal_info) {
     pvecback_size=pba->bg_size_normal;
   }
   else {
-    if (return_format == short_info) {
+    if (return_format == pba->short_info) {
       pvecback_size=pba->bg_size_short;
     }
     else { 
@@ -245,7 +245,7 @@ int background_tau_of_z(
 int background_functions(
 			 struct background *pba,
 			 double a, /* in extended models there could be more than one argument: phi, phidot of quintessence; temperature of some particles; etc. */
-			 enum format_info return_format,
+			 short return_format,
 			 double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
 			 ) {
   
@@ -379,7 +379,7 @@ int background_functions(
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
 
   /** - compute other quantities in the exhaustive, redundent format: */
-  if (return_format == long_info) {
+  if (return_format == pba->long_info) {
     
     /** - compute critical density */
     pvecback[pba->index_bg_rho_crit] = rho_tot;
@@ -769,6 +769,12 @@ int background_indices(
   class_test(pba->index_bi_tau != index_bi-1,
 	     pba->error_message,
 	     "background integration requires index_bi_tau to be the last of all index_bi's");
+
+  /* flags for calling the interpolation routine */
+
+  pba->short_info=0;
+  pba->normal_info=1;
+  pba->long_info=2;
 
   return _SUCCESS_;
 
@@ -1349,7 +1355,7 @@ int background_solve(
     tau_start = tau_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
-    class_call(background_functions(pba,pvecback_integration[pba->index_bi_a], short_info, pvecback),
+    class_call(background_functions(pba,pvecback_integration[pba->index_bi_a], pba->short_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
 
@@ -1463,7 +1469,7 @@ int background_solve(
     pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities */
-    class_call(background_functions(pba,pData[i*pba->bi_size+pba->index_bi_a], long_info, pvecback),
+    class_call(background_functions(pba,pData[i*pba->bi_size+pba->index_bi_a], pba->long_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
     
@@ -1553,7 +1559,7 @@ int background_initial_conditions(
     a *= _SCALE_BACK_;
 
     /** - compute initial H with background_functions() */
-    class_call(background_functions(pba,a, normal_info, pvecback),
+    class_call(background_functions(pba,a, pba->normal_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
 
@@ -1650,7 +1656,7 @@ int background_derivs(
   pvecback = pbpaw->pvecback;
 
   /** - Calculates functions of /f$ a /f$ with background_functions() */
-  class_call(background_functions((struct background *)pba,y[pba->index_bi_a], normal_info, pvecback),
+  class_call(background_functions((struct background *)pba,y[pba->index_bi_a], pba->normal_info, pvecback),
 	     pba->error_message,
 	     error_message);
 

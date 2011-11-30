@@ -11,16 +11,6 @@
 #include "parser.h"
 
 /**
- * List of possible formats for the vector of background quantities.
- */
-
-enum format_info {
-  short_info,  /**< compact format (when only a, H, H' should be returned) */
-  normal_info, /**< normal format (needed when integrating over perturbations: same plus rho_i's and Omega_r) */
-  long_info    /**< exhaustive format (same plus proper time, sound horizon, Omega_m, etc.) */ 
-};
-
-/**
  * List of possible interpolation modes when calling the background_at_tau() interpolation function
  */
 
@@ -246,6 +236,22 @@ struct background
   int * q_size_ncdm;    /* Size of the q_ncdm arrays */
   double * factor_ncdm; /* List of normalization factors for calculating energy density etc.*/
 
+  //@}
+
+  /** 
+   *@name - some flags needed for callign background functions
+   */
+  
+  short short_info;  /**< flag for calling background_at_eta and return little information */
+  short normal_info; /**< flag for calling background_at_eta and return medium information */
+  short long_info;   /**< flag for calling background_at_eta and return all information */
+
+  //@{
+
+
+
+  //@}
+
   /** @name - technical parameters */
 
   //@{
@@ -306,7 +312,7 @@ extern "C" {
   int background_at_tau(
 			struct background *pba,
 			double tau,
-			enum format_info return_format,
+			short return_format,
 			enum interpolation_mode intermode,
 			int * last_index,
 			double * pvecback
@@ -315,7 +321,7 @@ extern "C" {
   int background_functions(
 			   struct background *pba,
 			   double a,
-			   enum format_info return_format,
+			   short return_format,
 			   double * pvecback
 			   );
 

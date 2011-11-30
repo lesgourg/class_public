@@ -2599,7 +2599,7 @@ int trg_init (
     class_call(background_functions(
 				    pba,
 				    a_ini*exp(pnl->eta[index_eta]),
-				    long_info,
+				    pba->long_info,
 				    pvecback_nl
 				    ),
 	       pba->error_message,

@@ -490,7 +490,7 @@ int thermodynamics_init(
 	     pba->error_message,
 	     pth->error_message);
 
-  class_call(background_at_tau(pba,pth->tau_rec, long_info, normal, &last_index_back, pvecback),
+  class_call(background_at_tau(pba,pth->tau_rec, pba->long_info, normal, &last_index_back, pvecback),
 	     pba->error_message,
 	     pth->error_message);
 
@@ -1094,7 +1094,7 @@ int thermodynamics_reionization_sample(
   reio_vector[preio->index_re_xe] = xe;
 
   /** - get \f$ d kappa / d z = (d kappa / d tau) * (d tau / d z) = - (d kappa / d tau) / H \f$ */
-  class_call(background_functions(pba,1./(1.+z),short_info,pvecback),
+  class_call(background_functions(pba,1./(1.+z),pba->short_info,pvecback),
 	     pba->error_message,
 	     pth->error_message);
 
@@ -1143,7 +1143,7 @@ int thermodynamics_reionization_sample(
 	       pth->error_message,
 	       pth->error_message);
 
-    class_call(background_functions(pba,1./(1.+z_next),short_info,pvecback),
+    class_call(background_functions(pba,1./(1.+z_next),pba->short_info,pvecback),
 	       pba->error_message,
 	       pth->error_message);
 
@@ -1176,7 +1176,7 @@ int thermodynamics_reionization_sample(
 		 pth->error_message,
 		 pth->error_message);
 
-      class_call(background_functions(pba,1./(1.+z_next),short_info,pvecback),
+      class_call(background_functions(pba,1./(1.+z_next),pba->short_info,pvecback),
 		 pba->error_message,
 		 pth->error_message);
 
@@ -1242,7 +1242,7 @@ int thermodynamics_reionization_sample(
 
     z = preio->reionization_table[i*preio->re_size+preio->index_re_z];
 
-    class_call(background_functions(pba,1./(1.+z),normal_info,pvecback),
+    class_call(background_functions(pba,1./(1.+z),pba->normal_info,pvecback),
 	       pba->error_message,
 	       pth->error_message);
     
@@ -1534,7 +1534,7 @@ int thermodynamics_recombination_with_hyrec(
 	       pth->error_message,
 	       pth->error_message);
     
-    class_call(background_functions(pba,pba->a_today/(1.+z),short_info,pvecback),
+    class_call(background_functions(pba,pba->a_today/(1.+z),pba->short_info,pvecback),
 	       pba->error_message,
 	       pth->error_message);
   
@@ -2050,7 +2050,7 @@ int thermodynamics_derivs_with_recfast(
   n_He = preco->fHe * n;
   Trad = preco->Tnow * (1.+z);
 
-  class_call(background_functions(pba,1./(1.+z),short_info,pvecback),
+  class_call(background_functions(pba,1./(1.+z),pba->short_info,pvecback),
 	     pba->error_message,
 	     error_message);
   

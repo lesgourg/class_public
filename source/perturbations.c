@@ -758,7 +758,7 @@ int perturb_timesampling_for_sources(
 
     class_call(background_at_tau(pba,
 				 tau_lower, 
-				 short_info, 
+				 pba->short_info, 
 				 normal, 
 				 &first_index_back, 
 				 pvecback),
@@ -788,7 +788,7 @@ int perturb_timesampling_for_sources(
     
     class_call(background_at_tau(pba,
 				 tau_upper, 
-				 short_info, 
+				 pba->short_info, 
 				 normal, 
 				 &first_index_back, 
 				 pvecback),
@@ -818,7 +818,7 @@ int perturb_timesampling_for_sources(
 
       class_call(background_at_tau(pba,
 				   tau_mid, 
-				   short_info, 
+				   pba->short_info, 
 				   normal, 
 				   &first_index_back, 
 				   pvecback),
@@ -860,7 +860,7 @@ int perturb_timesampling_for_sources(
     /* set values of first_index_back/thermo */
     class_call(background_at_tau(pba,
 				 tau_ini, 
-				 short_info, 
+				 pba->short_info, 
 				 normal, 
 				 &first_index_back, 
 				 pvecback),
@@ -898,7 +898,7 @@ int perturb_timesampling_for_sources(
 
     class_call(background_at_tau(pba,
 				 tau, 
-				 short_info, 
+				 pba->short_info, 
 				 closeby, 
 				 &last_index_back, 
 				 pvecback),
@@ -986,7 +986,7 @@ int perturb_timesampling_for_sources(
     
     class_call(background_at_tau(pba,
 				 tau, 
-				 short_info, 
+				 pba->short_info, 
 				 closeby, 
 				 &last_index_back, 
 				 pvecback),
@@ -1609,7 +1609,7 @@ int perturb_solve(
     
   class_call(background_at_tau(pba,
 			       tau_lower, 
-			       normal_info, 
+			       pba->normal_info, 
 			       normal, 
 			       &(ppw->last_index_back), 
 			       ppw->pvecback),
@@ -1667,7 +1667,7 @@ int perturb_solve(
 
     class_call(background_at_tau(pba,
 				 tau_mid, 
-				 normal_info, 
+				 pba->normal_info, 
 				 normal, 
 				 &(ppw->last_index_back), 
 				 ppw->pvecback),
@@ -3106,12 +3106,11 @@ int perturb_initial_conditions(struct precision * ppr,
     
     /** (a) compute relevant background quantities: compute rho_r,
 	rho_m, rho_nu (= all relativistic except photons), and their
-	ratio. Use 'long_info' since for isocurvature mode the
-	critical density will be useful. */
+	ratio. */
     
     class_call(background_at_tau(pba,
 				 tau, 
-				 normal_info, 
+				 pba->normal_info, 
 				 normal, 
 				 &(ppw->last_index_back), 
 				 ppw->pvecback),
@@ -3547,7 +3546,7 @@ int perturb_approximations(
   /** - evaluate background quantities with background_at_tau() and
       Hubble time scale \f$ \tau_h = a/a' \f$ */
 
-  class_call(background_at_tau(pba,tau, normal_info, ppw->intermode, &(ppw->last_index_back), ppw->pvecback),
+  class_call(background_at_tau(pba,tau, pba->normal_info, ppw->intermode, &(ppw->last_index_back), ppw->pvecback),
 	     pba->error_message,
 	     ppt->error_message);
 
@@ -3707,7 +3706,7 @@ int perturb_timescale(
   /** - evaluate background quantities with background_at_tau() and
       Hubble time scale \f$ \tau_h = a/a' \f$ */
 
-  class_call(background_at_tau(pba,tau, normal_info, ppw->intermode, &(ppw->last_index_back), pvecback),
+  class_call(background_at_tau(pba,tau, pba->normal_info, ppw->intermode, &(ppw->last_index_back), pvecback),
 	     pba->error_message,
 	     error_message);
 
@@ -4307,7 +4306,7 @@ int perturb_source_terms(
 
   class_call(background_at_tau(pba,
 			       tau, 
-			       normal_info, 
+			       pba->normal_info, 
 			       closeby, 
 			       &(ppw->last_index_back), 
 			       pvecback),
@@ -5035,7 +5034,7 @@ int perturb_derivs(double tau,
 
   class_call(background_at_tau(pba,
 			       tau, 
-			       normal_info, 
+			       pba->normal_info, 
 			       closeby, 
 			       &(ppw->last_index_back), 
 			       pvecback),

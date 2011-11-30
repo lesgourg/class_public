@@ -1067,7 +1067,7 @@ int transfer_interpolate_sources(
 
 	    class_call(background_at_tau(pba,
 					 tau,
-					 long_info,
+					 pba->long_info,
 					 normal,
 					 &last_index,
 					 pvecback),
