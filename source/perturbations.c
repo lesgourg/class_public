@@ -759,7 +759,7 @@ int perturb_timesampling_for_sources(
     class_call(background_at_tau(pba,
 				 tau_lower, 
 				 pba->short_info, 
-				 normal, 
+				 pba->inter_normal, 
 				 &first_index_back, 
 				 pvecback),
 	       pba->error_message,
@@ -768,7 +768,7 @@ int perturb_timesampling_for_sources(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   normal,
+				   pth->inter_normal,
 				   &first_index_thermo,
 				   pvecback,
 				   pvecthermo),
@@ -789,7 +789,7 @@ int perturb_timesampling_for_sources(
     class_call(background_at_tau(pba,
 				 tau_upper, 
 				 pba->short_info, 
-				 normal, 
+				 pba->inter_normal, 
 				 &first_index_back, 
 				 pvecback),
 	       pba->error_message,
@@ -798,7 +798,7 @@ int perturb_timesampling_for_sources(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   normal,
+				   pth->inter_normal,
 				   &first_index_thermo,
 				   pvecback,
 				   pvecthermo),
@@ -819,7 +819,7 @@ int perturb_timesampling_for_sources(
       class_call(background_at_tau(pba,
 				   tau_mid, 
 				   pba->short_info, 
-				   normal, 
+				   pba->inter_normal, 
 				   &first_index_back, 
 				   pvecback),
 		 pba->error_message,
@@ -828,7 +828,7 @@ int perturb_timesampling_for_sources(
       class_call(thermodynamics_at_z(pba,
 				     pth,
 				     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				     normal,
+				     pth->inter_normal,
 				     &first_index_thermo,
 				     pvecback,
 				     pvecthermo),
@@ -861,7 +861,7 @@ int perturb_timesampling_for_sources(
     class_call(background_at_tau(pba,
 				 tau_ini, 
 				 pba->short_info, 
-				 normal, 
+				 pba->inter_normal, 
 				 &first_index_back, 
 				 pvecback),
 	       pba->error_message,
@@ -870,7 +870,7 @@ int perturb_timesampling_for_sources(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   normal,
+				   pth->inter_normal,
 				   &first_index_thermo,
 				   pvecback,
 				   pvecthermo),
@@ -899,7 +899,7 @@ int perturb_timesampling_for_sources(
     class_call(background_at_tau(pba,
 				 tau, 
 				 pba->short_info, 
-				 closeby, 
+				 pba->inter_closeby, 
 				 &last_index_back, 
 				 pvecback),
 	       pba->error_message,
@@ -908,7 +908,7 @@ int perturb_timesampling_for_sources(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   closeby,
+				   pth->inter_closeby,
 				   &last_index_thermo,
 				   pvecback,
 				   pvecthermo),
@@ -987,7 +987,7 @@ int perturb_timesampling_for_sources(
     class_call(background_at_tau(pba,
 				 tau, 
 				 pba->short_info, 
-				 closeby, 
+				 pba->inter_closeby, 
 				 &last_index_back, 
 				 pvecback),
 	       pba->error_message,
@@ -996,7 +996,7 @@ int perturb_timesampling_for_sources(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   closeby,
+				   pth->inter_closeby,
 				   &last_index_thermo,
 				   pvecback,
 				   pvecthermo),
@@ -1572,7 +1572,7 @@ int perturb_solve(
   /** - initialize indices relevant for back/thermo tables search */
   ppw->last_index_back=0;
   ppw->last_index_thermo=0;
-  ppw->intermode = normal;
+  ppw->inter_mode = pba->inter_normal;
 
   /** - get wavenumber value */
   k = (ppt->k[index_mode])[index_k];
@@ -1610,7 +1610,7 @@ int perturb_solve(
   class_call(background_at_tau(pba,
 			       tau_lower, 
 			       pba->normal_info, 
-			       normal, 
+			       pba->inter_normal, 
 			       &(ppw->last_index_back), 
 			       ppw->pvecback),
 	     pba->error_message,
@@ -1619,7 +1619,7 @@ int perturb_solve(
   class_call(thermodynamics_at_z(pba,
 				 pth,
 				 1./ppw->pvecback[pba->index_bg_a]-1.,
-				 normal,
+				 pth->inter_normal,
 				 &(ppw->last_index_thermo),
 				 ppw->pvecback,
 				 ppw->pvecthermo),
@@ -1668,7 +1668,7 @@ int perturb_solve(
     class_call(background_at_tau(pba,
 				 tau_mid, 
 				 pba->normal_info, 
-				 normal, 
+				 pba->inter_normal, 
 				 &(ppw->last_index_back), 
 				 ppw->pvecback),
 	       pba->error_message,
@@ -1688,7 +1688,7 @@ int perturb_solve(
       class_call(thermodynamics_at_z(pba,
 				     pth,
 				     1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				     normal,
+				     pth->inter_normal,
 				     &(ppw->last_index_thermo),
 				     ppw->pvecback,
 				     ppw->pvecthermo),
@@ -1720,7 +1720,7 @@ int perturb_solve(
 
   class_alloc(interval_number_of,ppw->ap_size*sizeof(int),ppt->error_message);
 
-  ppw->intermode = normal;
+  ppw->inter_mode = pba->inter_normal;
 
   class_call(perturb_find_approximation_number(ppr,
 					       pba,
@@ -1772,7 +1772,7 @@ int perturb_solve(
   ppaw.index_mode = index_mode;
   ppaw.k = k;
   ppaw.ppw = ppw;
-  ppaw.ppw->intermode = closeby;
+  ppaw.ppw->inter_mode = pba->inter_closeby;
 
   /** - loop over intervals over which approximatiomn scheme is uniform. For each interval: */
 
@@ -3111,7 +3111,7 @@ int perturb_initial_conditions(struct precision * ppr,
     class_call(background_at_tau(pba,
 				 tau, 
 				 pba->normal_info, 
-				 normal, 
+				 pba->inter_normal, 
 				 &(ppw->last_index_back), 
 				 ppw->pvecback),
 	       pba->error_message,
@@ -3546,7 +3546,7 @@ int perturb_approximations(
   /** - evaluate background quantities with background_at_tau() and
       Hubble time scale \f$ \tau_h = a/a' \f$ */
 
-  class_call(background_at_tau(pba,tau, pba->normal_info, ppw->intermode, &(ppw->last_index_back), ppw->pvecback),
+  class_call(background_at_tau(pba,tau, pba->normal_info, ppw->inter_mode, &(ppw->last_index_back), ppw->pvecback),
 	     pba->error_message,
 	     ppt->error_message);
 
@@ -3565,7 +3565,7 @@ int perturb_approximations(
     class_call(thermodynamics_at_z(pba,
 				   pth,
 				   1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				   ppw->intermode,
+				   ppw->inter_mode,
 				   &(ppw->last_index_thermo),
 				   ppw->pvecback,
 				   ppw->pvecthermo),
@@ -3706,7 +3706,7 @@ int perturb_timescale(
   /** - evaluate background quantities with background_at_tau() and
       Hubble time scale \f$ \tau_h = a/a' \f$ */
 
-  class_call(background_at_tau(pba,tau, pba->normal_info, ppw->intermode, &(ppw->last_index_back), pvecback),
+  class_call(background_at_tau(pba,tau, pba->normal_info, ppw->inter_mode, &(ppw->last_index_back), pvecback),
 	     pba->error_message,
 	     error_message);
 
@@ -3730,7 +3730,7 @@ int perturb_timescale(
       class_call(thermodynamics_at_z(pba,
 				     pth,
 				     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				     ppw->intermode,
+				     ppw->inter_mode,
 				     &(ppw->last_index_thermo),
 				     pvecback,
 				     pvecthermo),
@@ -4307,7 +4307,7 @@ int perturb_source_terms(
   class_call(background_at_tau(pba,
 			       tau, 
 			       pba->normal_info, 
-			       closeby, 
+			       pba->inter_closeby, 
 			       &(ppw->last_index_back), 
 			       pvecback),
 	     pba->error_message,
@@ -4316,7 +4316,7 @@ int perturb_source_terms(
   class_call(thermodynamics_at_z(pba,
 				 pth,
 				 1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				 closeby,
+				 pth->inter_closeby,
 				 &(ppw->last_index_thermo),
 				 pvecback,
 				 pvecthermo),
@@ -5035,7 +5035,7 @@ int perturb_derivs(double tau,
   class_call(background_at_tau(pba,
 			       tau, 
 			       pba->normal_info, 
-			       closeby, 
+			       pba->inter_closeby, 
 			       &(ppw->last_index_back), 
 			       pvecback),
 	     pba->error_message,
@@ -5044,7 +5044,7 @@ int perturb_derivs(double tau,
   class_call(thermodynamics_at_z(pba,
 				 pth,
 				 1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-				 closeby,
+				 pth->inter_closeby,
 				 &(ppw->last_index_thermo),
 				 pvecback,
 				 pvecthermo),

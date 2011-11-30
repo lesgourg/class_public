@@ -11,15 +11,6 @@
 #include "parser.h"
 
 /**
- * List of possible interpolation modes when calling the background_at_tau() interpolation function
- */
-
-enum interpolation_mode {
-  normal,   /**< default mode, OK for any situation */
-  closeby /**< when the interpolation variable is arranged in growing order, and the new interpolation point is presumably close to the previous one */ 
-};
-
-/**
  * All background parameters and evolution that other modules need to know.
  *
  * Once initialized by the backgound_init(), contains all necessary
@@ -239,16 +230,17 @@ struct background
   //@}
 
   /** 
-   *@name - some flags needed for callign background functions
+   *@name - some flags needed for calling background functions
    */
   
+  //@{
+
   short short_info;  /**< flag for calling background_at_eta and return little information */
   short normal_info; /**< flag for calling background_at_eta and return medium information */
   short long_info;   /**< flag for calling background_at_eta and return all information */
 
-  //@{
-
-
+  short inter_normal;  /**< flag for calling background_at_eta and find position in interpolation table normally */
+  short inter_closeby; /**< flag for calling background_at_eta and find position in interpolation table starting from previous position in previous call */
 
   //@}
 
@@ -313,7 +305,7 @@ extern "C" {
 			struct background *pba,
 			double tau,
 			short return_format,
-			enum interpolation_mode intermode,
+			short inter_mode,
 			int * last_index,
 			double * pvecback
 			);

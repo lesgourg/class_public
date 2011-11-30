@@ -100,7 +100,7 @@ int background_at_tau(
 		      struct background *pba,
 		      double tau,
 		      short return_format,
-		      enum interpolation_mode intermode,
+		      short intermode,
 		      int * last_index,
 		      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
 		      ) {
@@ -140,7 +140,7 @@ int background_at_tau(
       or array_interpolate_growing_closeby() (depending on
       interpolation mode) */
 
-  if (intermode == normal) {
+  if (intermode == pba->inter_normal) {
     class_call(array_interpolate_spline(
 					pba->tau_table,
 					pba->bt_size,
@@ -155,7 +155,7 @@ int background_at_tau(
 	       pba->error_message,
 	       pba->error_message);
   }
-  if (intermode == closeby) {
+  if (intermode == pba->inter_closeby) {
     class_call(array_interpolate_spline_growing_closeby(
 							pba->tau_table,
 							pba->bt_size,
@@ -775,6 +775,9 @@ int background_indices(
   pba->short_info=0;
   pba->normal_info=1;
   pba->long_info=2;
+
+  pba->inter_normal=0;
+  pba->inter_closeby=1;
 
   return _SUCCESS_;
 

@@ -1814,7 +1814,7 @@ int spectra_pk(
        exp(psp->ln_tau[index_tau]) but we would then loose 
        precision in the exp(log(x)) operation) */
 				 pba->long_info, 
-				 normal, 
+				 pba->inter_normal, 
 				 &last_index_back, 
 				 pvecback_sp_long),
 	       pba->error_message,
@@ -2116,7 +2116,7 @@ int spectra_matter_transfers(
        exp(psp->ln_tau[index_tau]) but we would then loose 
        precision in the exp(log(x)) operation) */
 				 pba->long_info, 
-				 normal, 
+				 pba->inter_normal, 
 				 &last_index_back, 
 				 pvecback_sp_long),
 	       pba->error_message,

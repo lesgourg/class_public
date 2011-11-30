@@ -98,7 +98,7 @@ int thermodynamics_at_z(
 			struct background * pba,
 			struct thermo * pth,
 			double z,
-			enum interpolation_mode intermode,
+			short inter_mode,
 			int * last_index,
 			double * pvecback,
 			double * pvecthermo
@@ -170,7 +170,7 @@ int thermodynamics_at_z(
 
   else {
 
-    if (intermode == normal) {
+    if (inter_mode == pth->inter_normal) {
       
       class_call(array_interpolate_spline(
 					  pth->z_table,
@@ -188,7 +188,7 @@ int thermodynamics_at_z(
       
     }
     
-    else {
+    if (inter_mode == pth->inter_closeby) {
       
       class_call(array_interpolate_spline_growing_closeby(
 							  pth->z_table,
@@ -490,7 +490,7 @@ int thermodynamics_init(
 	     pba->error_message,
 	     pth->error_message);
 
-  class_call(background_at_tau(pba,pth->tau_rec, pba->long_info, normal, &last_index_back, pvecback),
+  class_call(background_at_tau(pba,pth->tau_rec, pba->long_info, pba->inter_normal, &last_index_back, pvecback),
 	     pba->error_message,
 	     pth->error_message);
 
@@ -690,6 +690,11 @@ int thermodynamics_indices(
     preio->reio_num_params = index;
 
   }
+
+  /* flags for calling the interpolation routine */
+
+  pth->inter_normal=0;
+  pth->inter_closeby=1;
 
   return _SUCCESS_;
 }

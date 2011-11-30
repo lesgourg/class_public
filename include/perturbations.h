@@ -389,9 +389,9 @@ struct perturb_workspace
 
   //@{
 
-  enum interpolation_mode intermode;
+  short inter_mode;
  
- int last_index_back;   /**< the background interpolation function background_at_tau() keeps memory of the last point called through this index */
+  int last_index_back;   /**< the background interpolation function background_at_tau() keeps memory of the last point called through this index */
   int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
 
   //@}

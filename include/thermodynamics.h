@@ -156,6 +156,17 @@ struct thermo
 
   //@}
 
+  /** 
+   *@name - some flags needed for thermodynamics functions
+   */
+  
+  //@{
+
+  short inter_normal;  /**< flag for calling thermodynamics_at_z and find position in interpolation table normally */
+  short inter_closeby; /**< flag for calling thermodynamics_at_z and find position in interpolation table starting from previous position in previous call */
+
+  //@}
+
   /** @name - technical parameters */
 
   //@{
@@ -330,7 +341,7 @@ extern "C" {
 			  struct background * pba,
 			  struct thermo * pth,
 			  double z,
-			  enum interpolation_mode intermode,
+			  short inter_mode,
 			  int * last_index,
 			  double * pvecback,
 			  double * pvecthermo
