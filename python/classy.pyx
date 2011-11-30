@@ -520,5 +520,5 @@ cdef class Class:
     if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
       raise ClassError(self.ba.error_message)
 
-    self.angular_distance = pvecback[self.ba.index_bg_ang_distance]
-    return self.angular_distance
+    return  pvecback[self.ba.index_bg_ang_distance]
+    #return self.angular_distance
