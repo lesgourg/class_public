@@ -1,4 +1,5 @@
 import numpy as nm
+import os
 cimport numpy as nm
 from libc.stdlib cimport *
 from libc.stdio cimport *
@@ -16,6 +17,10 @@ cdef extern from "class.h":
 
   cdef struct background  :
     ErrorMsg error_message 
+    int bg_size
+    int index_bg_ang_distance
+    short long_info
+    short inter_normal
     double h
     double age
     
@@ -58,9 +63,7 @@ cdef extern from "class.h":
    FileArg * name
    FileArg * value
    short * read
-   
-  
-  
+
   void lensing_free(        void*)
   void spectra_free(        void*)
   void primordial_free(     void*)
@@ -96,6 +99,8 @@ cdef extern from "class.h":
   int nonlinear_init(void*,void*,void*,void*,void*,void*)
   int lensing_init(void*,void*,void*,void*,void*)
   
+  int background_tau_of_z(void* pba, double z,double* tau)
+  int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
   int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
   int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
   int spectra_pk_at_z(
@@ -157,7 +162,7 @@ cdef class Class:
     dumc = "NOFILE"
     sprintf(self.fc.filename,"%s",dumc)
     self.ncp = set()
-    if default: self.set_default()
+    #if default: self.set_default()
     
   def set(self,*pars,**kars):
     if len(pars)==1:
@@ -178,21 +183,21 @@ cdef class Class:
       if self.fc.read[i]==0:
         del(self._pars[self.fc.name[i]])
   
-  def set_default(self):
-    self._pars = {
-                  "output":"tCl mPk",
-                  "background_verbose" : 1,
-                  "thermodynamics_verbose" : 1,
-                  "perturbations_verbose" : 1,
-                  "bessels_verbose" : 1,
-                  "transfer_verbose" : 1,
-                  "primordial_verbose" : 1,
-                  "spectra_verbose" : 1,
-                  "nonlinear_verbose" : 1,
-                  "lensing_verbose" : 1,
-                  "output_verbose": 1,
-                  }
-    self.ready=False
+  #def set_default(self):
+    #self._pars = {
+                  ##"output":"",
+                  ##"background_verbose" : 0,
+                  ##"thermodynamics_verbose" : 0,
+                  ##"perturbations_verbose" : 0,
+                  ##"bessels_verbose" : 0,
+                  ##"transfer_verbose" : 0,
+                  ##"primordial_verbose" : 0,
+                  ##"spectra_verbose" : 0,
+                  ##"nonlinear_verbose" : 0,
+                  ##"lensing_verbose" : 0,
+                  ##"output_verbose": 0,
+                  #}
+    #self.ready=False
 
   
   def _fillparfile(self):
@@ -501,3 +506,19 @@ cdef class Class:
     
   def _h(self):
     return self.ba.h
+
+  def _angular_distance(self, double z):
+    cdef double tau
+    cdef int last_index #junk
+    cdef double * pvecback
+
+    pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+    if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    self.angular_distance = pvecback[self.ba.index_bg_ang_distance]
+    return self.angular_distance
