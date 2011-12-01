@@ -225,7 +225,7 @@ int input_init(
     pba->h = param2;
   }
 
-  /* Omega_0_g (photons) and Tcmb */
+  /* Omega_0_g (photons) and T_cmb */
   class_call(parser_read_double(pfc,"T_cmb",&param1,&flag1,errmsg),
 	     errmsg,
 	     errmsg);
@@ -237,10 +237,10 @@ int input_init(
 	     errmsg);
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
 	     errmsg,
-	     "In input file, you can only enter one of Tcmb, Omega_g or omega_g, choose one");
+	     "In input file, you can only enter one of T_cmb, Omega_g or omega_g, choose one");
 
   if (class_none_of_three(flag1,flag2,flag3)) {
-    pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+    pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   }
   else {
 
@@ -249,17 +249,17 @@ int input_init(
       /* rho_g = (4 sigma_B / c) T^4 */
       /* rho_c0 = 3 c^2 H0^2 / (8 pi G) */ 
       pba->Omega0_g = (4.*sigma_B/_c_*pow(param1,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
-      pba->Tcmb=param1;
+      pba->T_cmb=param1;
     }
 
     if (flag2 == _TRUE_) {
       pba->Omega0_g = param2;
-      pba->Tcmb=pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*sigma_B/_c_),0.25);
+      pba->T_cmb=pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*sigma_B/_c_),0.25);
     }
 
     if (flag3 == _TRUE_) {
       pba->Omega0_g = param3/pba->h/pba->h;
-      pba->Tcmb = pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*sigma_B/_c_),0.25);
+      pba->T_cmb = pow(pba->Omega0_g * (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_) / (4.*sigma_B/_c_),0.25);
     }
   }
 
@@ -418,7 +418,7 @@ int input_init(
     for (n=0; n < N_ncdm; n++){
       if (pba->m_ncdm_in_eV[n] != 0.0){
 	/* Case of only mass or mass and Omega/omega: */
-	pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->Tcmb;
+	pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->T_cmb;
 	class_call(background_ncdm_momenta(pba->q_ncdm_bg[n],
 					   pba->w_ncdm_bg[n],
 					   pba->q_size_ncdm_bg[n],
@@ -451,7 +451,7 @@ int input_init(
 		   pba->error_message,
 		   errmsg);
 	printf("M_ncdm:%g\n",pba->M_ncdm[n]);
-	pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->Tcmb;
+	pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->T_cmb;
       }
       pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
       //printf("Adding %g to total Omega..\n",pba->Omega0_ncdm[n]);
@@ -1428,8 +1428,8 @@ int input_default_params(
       
   pba->h = 0.704;
   pba->H0 = pba->h * 1.e5 / _c_;
-  pba->Tcmb = 2.726;
-  pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->Tcmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+  pba->T_cmb = 2.726;
+  pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
   pba->Omega0_cdm = 0.1122/0.704/0.704;

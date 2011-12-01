@@ -163,7 +163,7 @@ int output_init(
 /** 
  * This routines writes the output in files for anisotropy power spectra C_l's.
  *
- * @param pba Input: pointer to background structure (needed for Tcmb)
+ * @param pba Input: pointer to background structure (needed for T_cmb)
  * @param ppt Input : pointer perturbation structure
  * @param psp Input : pointer to spectra structure
  * @param ple Input : pointer to lensing structure
@@ -1280,7 +1280,7 @@ int output_open_cl_file(
 /**
  * This routine write one line with l and all C_l's for all types (TT, TE...)
  *
- * @param pba        Input: pointer to background structure (needed for Tcmb)
+ * @param pba        Input: pointer to background structure (needed for T_cmb)
  * @param psp        Input : pointer to spectra structure
  * @param pop        Input : pointer to output structure
  * @param clfile  Input : file pointer
@@ -1317,19 +1317,19 @@ int output_one_line_of_cl(
   if (pop->output_format == camb_format) {
 
     if (psp->has_tt == _TRUE_)
-      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_tt]);
+      fprintf(clfile," %16.10e",factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_tt]);
     if (psp->has_ee == _TRUE_)
-      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_ee]);
+      fprintf(clfile," %16.10e",factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_ee]);
     if (psp->has_bb == _TRUE_)
-      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_bb]);
+      fprintf(clfile," %16.10e",factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_bb]);
     if (psp->has_te == _TRUE_)
-      fprintf(clfile," %16.10e",factor*pow(pba->Tcmb*1.e6,2)*cl[psp->index_ct_te]);
+      fprintf(clfile," %16.10e",factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_te]);
     if (psp->has_pp == _TRUE_)
       fprintf(clfile," %16.10e",l*(l+1)*factor*cl[psp->index_ct_pp]);
     if (psp->has_tp == _TRUE_)
-      fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->Tcmb*1.e6*cl[psp->index_ct_tp]);
+      fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_tp]);
     if (psp->has_ep == _TRUE_)
-      fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->Tcmb*1.e6*cl[psp->index_ct_ep]);
+      fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_ep]);
     if (psp->has_dd == _TRUE_)
       for (index_ct=0; index_ct<psp->d_size*psp->d_size; index_ct++) 
 	fprintf(clfile," %16.10e",factor*cl[psp->index_ct_dd+index_ct]);

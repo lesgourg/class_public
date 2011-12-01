@@ -39,7 +39,7 @@ struct background
 
   double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$ : photons */
 
-  double Tcmb; /**< \f$ T_{cmb} \f$ : current CMB temperature in Kelvins */
+  double T_cmb; /**< \f$ T_{cmb} \f$ : current CMB temperature in Kelvins */
 
   double Omega0_b; /**< \f$ \Omega_{0 b} \f$ : baryons */
 
