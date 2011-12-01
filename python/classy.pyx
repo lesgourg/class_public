@@ -21,6 +21,7 @@ cdef extern from "class.h":
     int index_bg_ang_distance
     short long_info
     short inter_normal
+    double T_cmb
     double h
     double age
     
@@ -521,4 +522,6 @@ cdef class Class:
       raise ClassError(self.ba.error_message)
 
     return  pvecback[self.ba.index_bg_ang_distance]
-    #return self.angular_distance
+
+  def _T_cmb(self):
+    return self.ba.T_cmb
