@@ -24,7 +24,7 @@
 #define _ERRORMSGSIZE_ 2048 /**< generic error messages are cut beyond this number of characters */
 typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is such a field in each structure) */
 
-#define _FILENAMESIZE_ 40 /**< size of the string read in each line of the file (extra characters not taken into account) */
+#define _FILENAMESIZE_ 256 /**< size of the string read in each line of the file (extra characters not taken into account) */
 typedef char FileName[_FILENAMESIZE_];
 
 #define _PI_ 3.1415926535897932384626433832795e0 /**< The number pi */
