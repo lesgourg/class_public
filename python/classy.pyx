@@ -325,54 +325,63 @@ cdef class Class:
     if "background" in lvl:
       if background_init(&(self.pr),&(self.ba)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.ba.error_message)
         raise ClassError(self.ba.error_message)
       self.ncp.add("background") 
     
     if "thermodynamics" in lvl:
       if thermodynamics_init(&(self.pr),&(self.ba),&(self.th)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.th.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("thermodynamics") 
   
     if "perturb" in lvl:
       if perturb_init(&(self.pr),&(self.ba),&(self.th),&(self.pt)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.pt.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("perturb") 
       
     if "bessel" in lvl:
       if bessel_init(&(self.pr),&(self.bs)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.bs.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("bessel") 
       
     if "transfer" in lvl:
       if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.bs),&(self.tr)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.tr.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("transfer") 
       
     if "primordial" in lvl:
       if primordial_init(&(self.pr),&(self.pt),&(self.pm)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.pm.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("primordial") 
       
     if "spectra" in lvl:
       if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.sp.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("spectra")       
 
     if "nonlinear" in lvl:
       if (nonlinear_init(&self.pr,&self.ba,&self.th,&self.pm,&self.sp,&self.nl) == _FAILURE_):
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.nl.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("nonlinear") 
        
     if "lensing" in lvl:
       if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.nl),&(self.le)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
+        fprintf(stderr,"%s\n",self.le.error_message)
         raise ClassError(self.th.error_message)
       self.ncp.add("lensing") 
       
