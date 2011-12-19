@@ -51,6 +51,10 @@ cdef extern from "class.h":
     ErrorMsg error_message 
 
   cdef struct lensing                  :
+    int index_lt_tt
+    int index_lt_te
+    int index_lt_ee
+    int index_lt_bb
     int has_lensed_cls
     int l_lensed_max
     ErrorMsg error_message 
@@ -440,9 +444,10 @@ cdef class Class:
 
   def lensed_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
-    cdef nm.ndarray cl
-    cdef double lcl[8]
+    #cdef nm.ndarray cl
+    cdef double lcl[4]
     
+
     #if nofail:
       #self._pars_check("output","tCl",True,True)
       #self._pars_check("output","lCl",True,True)
@@ -463,16 +468,19 @@ cdef class Class:
       else:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
     
-    cl = nm.ndarray([4,lmax+1], dtype=nm.double)
-    cl[:2]=0
-    lcl[0]=lcl[1]=lcl[2]=lcl[3] = 0
+    cl = {}
+    for elem in ['tt','te','ee','bb']:
+      cl[elem] = nm.ndarray(lmax+1, dtype=nm.double)
+      cl[elem][:2]=0
+      #lcl[0]=lcl[1]=lcl[2]=lcl[3] = 0
     for ell from 2<=ell<lmax+1:
       if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
         raise ClassError(self.le.error_message) 
-      for md from 0<=md<4:
-        cl[md,ell] = lcl[md]
-      
-    #self._struct_cleanup(self.ncp)
+      cl['tt'][ell] = lcl[self.le.index_lt_tt]
+      cl['te'][ell] = lcl[self.le.index_lt_te]
+      cl['ee'][ell] = lcl[self.le.index_lt_ee]
+      cl['bb'][ell] = lcl[self.le.index_lt_bb]
+
     return cl
     
   def pk_l (self,double z=0,k=None,nofail=False):
@@ -509,6 +517,22 @@ cdef class Class:
         pk[i] = mpk
       
       return nm.array((k,pk))
+
+  def return_index(self):
+    #cdef int tt
+    #cdef int te
+    #cdef int ee
+    #cdef int bb
+    #cdef int tb
+    #cdef int eb
+    index = {}
+
+    index['tt'] = self.le.index_lt_tt
+    index['te'] = self.le.index_lt_te
+    index['ee'] = self.le.index_lt_ee
+    index['bb'] = self.le.index_lt_bb
+
+    return index
         
   def _age(self):
     self._compute(["background"])
