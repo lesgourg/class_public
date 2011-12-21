@@ -363,6 +363,12 @@ extern "C" {
 			     struct reionization * preio
 			     );
 
+  int thermodynamics_helium_from_bbn(
+				     struct precision * ppr,
+				     struct background * pba,
+				     struct thermo * pth
+				     );
+
   int thermodynamics_reionization_function(
 					   double z,
 					   struct thermo * pth,
@@ -438,6 +444,16 @@ extern "C" {
 #endif
 
 /**************************************************************/
+
+/**
+ * @name some flags
+ */
+
+//@{
+
+#define _BBN_ -1
+
+//@}
 
 /**  
  * @name Some basic constants needed by RECFAST:

@@ -317,6 +317,10 @@ struct precision
 
   //@{
 
+  /** - for bbn */
+
+  FileName sBBN_file;
+
   /** - for recombination */
 
   /* initial and final redshifts in recfast */

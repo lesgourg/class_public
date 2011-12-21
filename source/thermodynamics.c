@@ -255,14 +255,26 @@ int thermodynamics_init(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
 
   if (pth->thermodynamics_verbose > 0)
-    printf("Computing thermodynamics\n");
+    printf("Computing thermodynamics");
 
   /** - check that input variables make sense */
 
   /* Y_He */
+  if (pth->YHe == _BBN_) {
+    class_call(thermodynamics_helium_from_bbn(ppr,pba,pth),
+	       pth->error_message,
+	       pth->error_message);
+    if (pth->thermodynamics_verbose > 0)
+      printf(" with Y_He=%.4f\n",pth->YHe);
+  }
+  else {
+    if (pth->thermodynamics_verbose > 0)
+      printf("\n");
+  }
+
   class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
-	     pth->error_message,
-	     "Y_He=%g out of bounds (%g<Y_He<%g)",pth->YHe,_YHE_SMALL_,_YHE_BIG_);
+	      pth->error_message,
+	      "Y_He=%g out of bounds (%g<Y_He<%g)",pth->YHe,_YHE_SMALL_,_YHE_BIG_);
 
   /* tests in order to prevent segmentation fault in the following */
   class_test(_not4_ == 0.,
@@ -698,6 +710,175 @@ int thermodynamics_indices(
 
   return _SUCCESS_;
 }
+
+/** 
+ * Infer the primordial helium fraction from standard BBN, as a
+ * function of the baryon density and expansion rate during BBN.
+ *
+ * This module is simpler then the one used in arXiv:0712.2826 because
+ * it neglects the impact of a possible significant chemical
+ * potentials for electron neutrinos. The full code with xi_nu_e could
+ * be introduced here later.
+ * 
+ * @param ppr Input : pointer to precision structure
+ * @param pba Input : pointer to background structure
+ * @param pth Input/Output : pointer to initialized thermo structure
+ * @return the error status
+ */
+int thermodynamics_helium_from_bbn(
+				     struct precision * ppr,
+				     struct background * pba,
+				     struct thermo * pth
+				   ) {
+
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+
+  int num_omegab=0;
+  int num_deltaN=0;
+
+  double * omegab;
+  double * deltaN;
+  double * YHe;
+  double * ddYHe;
+  double * YHe_at_deltaN;
+  double * ddYHe_at_deltaN;
+
+  int array_line,i;
+  double Neff;
+  int last_index;
+
+  /* the following file is assumed to contain (apart from comments and blank lines):
+     - the two numbers (num_omegab, num_deltaN) = number of values of BBN free paramters
+     - three columns (omegab, deltaN, YHe) where omegab = Omega0_b h^2 and deltaN = Neff-3.046 by definition
+     - omegab and deltaN are assumed to be arranged as:
+          omegab1 deltaN1 YHe
+	  omegab2 deltaN1 YHe
+                 .....
+	  omegab1 delatN2 YHe
+	  omegab2 deltaN2 YHe
+                 .....
+  */
+
+  class_open(fA,ppr->sBBN_file, "r",pth->error_message);
+
+  /* go through each line */
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+    
+    /* eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* check that the line is neiyher blank neither a comment. In
+       ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %,
+       etc.) */  
+    if (left[0] > 39) {
+
+      /* if the line contains data, we must interprete it. If
+	 (num_omegab, num_deltaN)=(0,0), the current line must contain
+	 their values. Otherwise, it must contain (omegab, delatN,
+	 YHe). */
+      if ((num_omegab==0) && (num_deltaN==0)) {
+	
+	/* read (num_omegab, num_deltaN), infer size of arrays and allocate them */
+	class_test(sscanf(line,"%d %d",&num_omegab,&num_deltaN) != 2,
+		   pth->error_message,
+		   "could not read value of parameters (num_omegab,num_deltaN) in file %s\n",ppr->sBBN_file);
+
+	class_alloc(omegab,num_omegab*sizeof(double),pth->error_message);
+	class_alloc(deltaN,num_deltaN*sizeof(double),pth->error_message);
+	class_alloc(YHe,num_omegab*num_deltaN*sizeof(double),pth->error_message);
+	class_alloc(ddYHe,num_omegab*num_deltaN*sizeof(double),pth->error_message);
+	class_alloc(YHe_at_deltaN,num_omegab*sizeof(double),pth->error_message);
+	class_alloc(ddYHe_at_deltaN,num_omegab*sizeof(double),pth->error_message);
+        array_line=0;
+
+      }
+      else {
+
+	/* read (omegab, deltaN, YHe) */
+	class_test(sscanf(line,"%lg %lg %lg",
+			  &(omegab[array_line%num_omegab]),
+			  &(deltaN[array_line/num_omegab]),
+			  &(YHe[array_line])
+			  ) != 3,
+		   pth->error_message,
+		   "could not read value of parameters (omegab,deltaN,YHe) in file %s\n",ppr->sBBN_file);
+	array_line ++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* spline in one dimension (along deltaN) */
+  class_call(array_spline_table_lines(deltaN,
+				      num_deltaN,
+				      YHe,
+				      num_omegab,    
+				      ddYHe,
+				      _SPLINE_NATURAL_,
+				      pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+
+  /* interpolate in one dimension (along deltaN) */
+  Neff=pba->Omega0_ur/(7./8.*pow(4./11.,4./3.)*pba->Omega0_g);
+
+  class_call(array_interpolate_spline(deltaN,
+				      num_deltaN,
+				      YHe,
+				      ddYHe,
+				      num_omegab,
+				      Neff-3.046,
+				      &last_index,
+				      YHe_at_deltaN,
+				      num_omegab,
+				      pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+
+  /* spline in remaining dimension (along omegab) */
+  class_call(array_spline_table_lines(omegab,
+				      num_omegab,
+				      YHe_at_deltaN,
+				      1,    
+				      ddYHe_at_deltaN,
+				      _SPLINE_NATURAL_,
+				      pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+
+  /* interpolate in remaining dimension (along omegab) */
+  class_call(array_interpolate_spline(omegab,
+				      num_omegab,
+				      YHe_at_deltaN,
+				      ddYHe_at_deltaN,
+				      1,
+				      pba->Omega0_b*pba->h*pba->h,
+				      &last_index,
+				      &(pth->YHe),
+				      1,
+				      pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+
+  /* deallocate arrays */
+  free(omegab);
+  free(deltaN);
+  free(YHe);
+  free(ddYHe);
+  free(YHe_at_deltaN);
+  free(ddYHe_at_deltaN);
+
+  return _SUCCESS_;
+
+}
+
 
 /**
  * This subroutine contains the reionization function \f$ X_e(z) \f$

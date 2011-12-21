@@ -514,8 +514,21 @@ int input_init(
 
   /** (b) assign values to thermodynamics cosmological parameters */
 
-  /* scale factor today (arbitrary) */
-  class_read_double("YHe",pth->YHe);
+  /* primordial helium fraction */
+  class_call(parser_read_string(pfc,"YHe",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+
+  if (flag1 == _TRUE_) {
+    
+    if ((strstr(string1,"BBN") != NULL) || (strstr(string1,"bbn") != NULL)) {
+      pth->YHe = _BBN_;  
+    }
+    else {
+      class_read_double("YHe",pth->YHe);
+    }
+    
+  }
 
   /* recombination parameters */
   class_call(parser_read_string(pfc,"recombination",&string1,&flag1,errmsg),
@@ -1145,6 +1158,8 @@ int input_init(
 
   /** h.2. parameters related to the thermodynamics */
 
+  class_read_string("sBBN file",ppr->sBBN_file);
+
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
@@ -1454,7 +1469,7 @@ int input_default_params(
 
   /** - thermodynamics structure */
 
-  pth->YHe=0.25;
+  pth->YHe=_BBN_;
   pth->recombination=recfast;
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
@@ -1630,6 +1645,9 @@ int input_default_precision ( struct precision * ppr ) {
   /**
    * - parameters related to the thermodynamics
    */
+
+  /* for bbn */
+  sprintf(ppr->sBBN_file,"bbn/sBBN.dat");
 
   /* for recombination */
 
