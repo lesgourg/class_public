@@ -257,7 +257,7 @@ int thermodynamics_init(
   if (pth->thermodynamics_verbose > 0)
     printf("Computing thermodynamics");
 
-  /** - check that input variables make sense */
+  /** - compute and check primordial Helium fraction  */
 
   /* Y_He */
   if (pth->YHe == _BBN_) {
@@ -746,8 +746,11 @@ int thermodynamics_helium_from_bbn(
   double * ddYHe_at_deltaN;
 
   int array_line,i;
-  double Neff;
+  double DeltaNeff;
   int last_index;
+
+  /* compute Delta N_eff as defined in bbn file, i.e. Delta N_eff=0 means N_eff=3.046 */
+  DeltaNeff = pba->Neff - 3.046;
 
   /* the following file is assumed to contain (apart from comments and blank lines):
      - the two numbers (num_omegab, num_deltaN) = number of values of BBN free paramters
@@ -827,14 +830,12 @@ int thermodynamics_helium_from_bbn(
 	     pth->error_message);
 
   /* interpolate in one dimension (along deltaN) */
-  Neff=pba->Omega0_ur/(7./8.*pow(4./11.,4./3.)*pba->Omega0_g);
-
   class_call(array_interpolate_spline(deltaN,
 				      num_deltaN,
 				      YHe,
 				      ddYHe,
 				      num_omegab,
-				      Neff-3.046,
+				      DeltaNeff,
 				      &last_index,
 				      YHe_at_deltaN,
 				      num_omegab,
@@ -1571,7 +1572,7 @@ int thermodynamics_recombination_with_hyrec(
   param.w0 = pba->w0_fld;
   param.wa = pba->wa_fld;
   param.Y = pth->YHe;
-  param.Nnueff = pba->Omega0_ur/(7./8.*pow(4./11.,4./3.)*pba->Omega0_g);
+  param.Nnueff = pba->Neff;
   param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hudrogen today in m-3 */
   param.fHe = param.Y/(1-param.Y)/3.97153;              /* abundance of helium by number */
   param.zstart = ppr->recfast_z_initial; /* Redshift range */

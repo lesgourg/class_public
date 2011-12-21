@@ -103,6 +103,7 @@ struct background
   double age; /**< age in Gyears */
   double conformal_age; /**< conformal age in Mpc */
   double * m_ncdm_in_eV; /**< list of ncdm masses in eV (infered from M_ncdm and other parameters above) */
+  double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
 
   //@}
 

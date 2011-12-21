@@ -1511,6 +1511,19 @@ int background_solve(
 	     pba->error_message,
 	     pba->error_message);
 
+  /** - compute remaining "related parameters" */
+
+  /** -> so-called "effective neutrino number", computed at earliest
+         time in interpolation table. This should be seen as a
+         definition: Neff is the equivalent number of
+         instantaneously-decoupled neutrinos accounting for the
+         radiation density, beyond photons */
+  pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
+	       *pba->background_table[pba->index_bg_rho_crit]
+	       -pba->background_table[pba->index_bg_rho_g])
+    /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
+
+  /** - done */
   if (pba->background_verbose > 0) {
     printf(" -> age = %f Gyr\n",pba->age);
     printf(" -> conformal age = %f Mpc\n",pba->conformal_age);    
