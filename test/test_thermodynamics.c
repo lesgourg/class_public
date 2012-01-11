@@ -93,9 +93,9 @@ int main(int argc, char **argv) {
 
     background_tau_of_z(&ba,z,&tau);
     
-    background_at_tau(&ba,tau,normal_info,normal,&last_index,pvecback);
+    background_at_tau(&ba,tau,ba.normal_info,ba.inter_normal,&last_index,pvecback);
 
-    thermodynamics_at_z(&ba,&th,z,normal,&last_index,pvecback,pvecthermo);
+    thermodynamics_at_z(&ba,&th,z,th.inter_normal,&last_index,pvecback,pvecthermo);
     
     printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   z,

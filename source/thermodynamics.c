@@ -507,6 +507,8 @@ int thermodynamics_init(
 	     pth->error_message);
 
   pth->rs_rec=pvecback[pba->index_bg_rs];
+  pth->ds_rec=pth->rs_rec*pba->a_today/(1.+pth->z_rec);
+  pth->da_rec=pvecback[pba->index_bg_ang_distance];
 
   /** - find time (always after recombination) at which tau_c/tau
         falls below some threshold, defining tau_free_streaming */
@@ -533,6 +535,8 @@ int thermodynamics_init(
   if (pth->thermodynamics_verbose > 0) {
     printf(" -> recombination at z = %f\n",pth->z_rec);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
+    printf("    with sound horizon = %f Mpc\n",pth->ds_rec);
+    printf("    and angular diameter distance = %f Mpc\n",pth->da_rec);
     if (pth->reio_parametrization != reio_none) {
       if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);

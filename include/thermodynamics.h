@@ -128,7 +128,9 @@ struct thermo
 
   double z_rec;   /**< z at which the visibility reaches its maximum (= recombination redshift) */
   double tau_rec; /**< conformal time at which the visibility reaches its maximum (= recombination time) */
-  double rs_rec;  /**< sound horizon at that time */
+  double rs_rec;  /**< comoving sound horizon at recombination */
+  double ds_rec;  /**< physical sound horizon at recombination */
+  double da_rec;  /**< angular diameter distance to recombination */
 
   //@}
 
