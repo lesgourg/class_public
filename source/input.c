@@ -856,11 +856,37 @@ int input_init(
     if (ppt->has_tensors == _TRUE_) {
     
       class_read_double("r",ppm->r);
-      class_read_double("n_t",ppm->n_t);
-      class_read_double("alpha_t",ppm->alpha_t);
 
+      class_call(parser_read_string(pfc,"n_t",&string1,&flag1,errmsg),
+		 errmsg,
+		 errmsg);
+
+      if (flag1 == _TRUE_) {
+    
+	if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
+	  ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);  
+	}
+	else {
+	  class_read_double("n_t",ppm->n_t);
+	}
+    
+      }
+
+      class_call(parser_read_string(pfc,"alpha_t",&string1,&flag1,errmsg),
+		 errmsg,
+		 errmsg);
+
+      if (flag1 == _TRUE_) {
+    
+	if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
+	  ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);  
+	}
+	else {
+	  class_read_double("alpha_t",ppm->alpha_t);
+	}
+    
+      }
     }
-
   }
 
   /** (e) parameters for final spectra */
@@ -1563,8 +1589,8 @@ int input_default_params(
   ppm->n_nid_niv = 0.;
   ppm->alpha_nid_niv = 0.;
   ppm->r = 1.;
-  ppm->n_t = 0.;
-  ppm->alpha_t = 0.;
+  ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
+  ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
 
   /** - transfer structure */
 

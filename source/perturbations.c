@@ -4374,14 +4374,14 @@ int perturb_source_terms(
     /** - for each type and each mode, compute S0, S1, S2 */
     for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
 
-      /* store value of time */
-
-      source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_tau] = tau;
-
       /* initially, set all sources to zero */
 
       for (index_st = 0; index_st < ppw->st_size; index_st++)
 	source_term_table[index_type][index_tau * ppw->st_size + index_st] = 0.;
+
+      /* store value of time */
+
+      source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_tau] = tau;
 
       /* scalar temperature */
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
@@ -4552,6 +4552,12 @@ int perturb_source_terms(
     /** - for each type and each mode, compute S0, S1, S2 */
     for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
 
+      /* initially, set all sources to zero */
+
+      for (index_st = 0; index_st < ppw->st_size; index_st++)
+	source_term_table[index_type][index_tau * ppw->st_size + index_st] = 0.;
+
+      /* time */
       source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_tau] = tau;
 
       /* tensor temperature */
