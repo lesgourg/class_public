@@ -130,7 +130,9 @@ cdef extern from "class.h":
             logarithmic
             
 class ClassError(Exception):
-  pass
+  def __init__(self,error_message):
+    print error_message
+    raise NameError
 
 cdef class Class:
   cdef precision pr
