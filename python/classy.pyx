@@ -80,6 +80,8 @@ cdef extern from "class.h":
   void nonlinear_free(void*)
   
   cdef int _FAILURE_
+  cdef int _FALSE_
+  cdef int _TRUE_
   
   int bessel_init(void*,void*)
   int input_init(void*,
@@ -130,9 +132,12 @@ cdef extern from "class.h":
             logarithmic
             
 class ClassError(Exception):
-  def __init__(self,error_message):
+  def __init__(self,error_message,init=False):
     print error_message
-    raise NameError
+    if init:
+      raise AttributeError
+    else:
+      raise NameError
 
 cdef class Class:
   cdef precision pr
@@ -236,6 +241,7 @@ cdef class Class:
       dumcp = str(self._pars[kk])
       dumc = dumcp
       sprintf(self.fc.value[i],"%s",dumc)
+      self.fc.read[i] = _FALSE_
       i+=1
       
       
@@ -327,6 +333,10 @@ cdef class Class:
       if ierr==_FAILURE_:
         raise ClassError(errmsg)
       self.ncp.add("input")      
+
+      for i in range(self.fc.size):
+        if self.fc.read[i] == _FALSE_:
+          raise ClassError("Class did not read input parameter %s\n" % self.fc.name[i],init=True)
     
     if "background" in lvl:
       if background_init(&(self.pr),&(self.ba)) == _FAILURE_:
