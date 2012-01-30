@@ -1108,6 +1108,9 @@ int input_init(
 
   if (flag1 == _TRUE_) {
 
+    if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
+      pnl->method=nl_halofit;
+    }
     if ((strstr(string1,"trg") != NULL) || (strstr(string1,"TRG") != NULL)) {
       pnl->method=nl_trg;
       ppt->has_well_resolved_BAOs=_TRUE_;
@@ -1323,6 +1326,7 @@ int input_init(
 
   /** h.7. parameters related to nonlinear calculations */
 
+  class_read_double("halofit_dz",ppr->halofit_dz);
   class_read_int("double escape",ppr->double_escape);
   class_read_double("z_ini",ppr->z_ini);
   class_read_int("eta_size",ppr->eta_size);
@@ -1823,6 +1827,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to trg module
    */
 
+  ppr->halofit_dz=0.1;
   ppr->double_escape=2;
   ppr->z_ini = 35.;
   ppr->eta_size = 101;

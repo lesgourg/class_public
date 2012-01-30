@@ -6,7 +6,7 @@
 #ifndef __NONLINEAR__
 #define __NONLINEAR__
 
-enum non_linear_method {nl_none,nl_trg_linear,nl_trg_one_loop,nl_trg};
+enum non_linear_method {nl_none,nl_halofit,nl_trg_linear,nl_trg_one_loop,nl_trg};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -111,6 +111,15 @@ extern "C" {
   int nonlinear_free(
 	       struct nonlinear *pnl
 	       );
+
+  int nonlinear_halofit(
+			struct precision *ppr,
+			struct background *pba,
+			struct primordial *ppm,
+			struct spectra *psp,
+			struct nonlinear *pnl
+			);
+
   
 #ifdef __cplusplus
 }

@@ -865,14 +865,17 @@ int output_pk_nl(
   int k_size_at_z;
 
   class_alloc(pz_density,pnl->k_size[0]*sizeof(double),pnl->error_message);
-  class_alloc(pz_velocity,pnl->k_size[0]*sizeof(double),pnl->error_message);
-  class_alloc(pz_cross,pnl->k_size[0]*sizeof(double),pnl->error_message);
+
+  if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
+    class_alloc(pz_velocity,pnl->k_size[0]*sizeof(double),pnl->error_message);
+    class_alloc(pz_cross,pnl->k_size[0]*sizeof(double),pnl->error_message);
+  }
 
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
     class_test((pop->z_pk[index_z] < pnl->z[pnl->z_size-1]) || (pop->z_pk[index_z] > pnl->z[0]),
 	       pop->error_message,
-	       "P_nl(k,z) computed in range %f<z<%f but requested at z=%f. You should probably increase z_ini in precision file.",pnl->z[pnl->z_size-1],pnl->z[0],pop->z_pk[index_z]);
+	       "P_nl(k,z) computed in range %f<=z<=%f but requested at z=%f. You should probably increase z_ini in precision file.",pnl->z[pnl->z_size-1],pnl->z[0],pop->z_pk[index_z]);
 
     if (pop->z_pk_num == 1) 
       redshift_suffix[0]='\0';
@@ -885,47 +888,67 @@ int output_pk_nl(
 	       pop->error_message,
 	       pop->error_message);
 
-    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_density.dat");
+    if (pnl->method == nl_halofit) {
 
-    class_call(output_open_pk_nl_file(pba,
-				      pnl,
-				      pop,
-				      &out_density,
-				      file_name,
-				      "(density auto-correlation) ",
-				      pop->z_pk[index_z],
-				      k_size_at_z
-				      ),
-	       pop->error_message,
-	       pop->error_message);
+      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl.dat");
 
-    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_velocity.dat");
+      class_call(output_open_pk_nl_file(pba,
+					pnl,
+					pop,
+					&out_density,
+					file_name,
+					"(using HALOFIT) ",
+					pop->z_pk[index_z],
+					k_size_at_z
+					),
+		 pop->error_message,
+		 pop->error_message);
+    }
 
-    class_call(output_open_pk_nl_file(pba,
-				      pnl,
-				      pop,
-				      &out_velocity,
-				      file_name,
-				      "(velocity auto-correlation) ",
-				      pop->z_pk[index_z],
-				      k_size_at_z
-				      ),
-	       pop->error_message,
-	       pop->error_message);
+    if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
 
-    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_cross.dat");
+      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_density.dat");
 
-    class_call(output_open_pk_nl_file(pba,
-				      pnl,
-				      pop,
-				      &out_cross,
-				      file_name,
-				      "(density-velocity cross-correlation) ",
-				      pop->z_pk[index_z],
-				      k_size_at_z
-				      ),
-	       pop->error_message,
-	       pop->error_message);
+      class_call(output_open_pk_nl_file(pba,
+					pnl,
+					pop,
+					&out_density,
+					file_name,
+					"(density auto-correlation) ",
+					pop->z_pk[index_z],
+					k_size_at_z
+					),
+		 pop->error_message,
+		 pop->error_message);
+
+      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_velocity.dat");
+
+      class_call(output_open_pk_nl_file(pba,
+					pnl,
+					pop,
+					&out_velocity,
+					file_name,
+					"(velocity auto-correlation) ",
+					pop->z_pk[index_z],
+					k_size_at_z
+					),
+		 pop->error_message,
+		 pop->error_message);
+      
+      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_cross.dat");
+      
+      class_call(output_open_pk_nl_file(pba,
+					pnl,
+					pop,
+					&out_cross,
+					file_name,
+					"(density-velocity cross-correlation) ",
+					pop->z_pk[index_z],
+					k_size_at_z
+					),
+		 pop->error_message,
+		 pop->error_message);
+    }
 
     for (index_k=0; index_k<k_size_at_z;index_k++) {
 
@@ -935,28 +958,35 @@ int output_pk_nl(
 		 pop->error_message,
 		 pop->error_message);
 
-      class_call(output_one_line_of_pk(out_velocity,
-				       pnl->k[index_k]/pba->h,
-				       pz_velocity[index_k]*pow(pba->h,3)),
-		 pop->error_message,
-		 pop->error_message);
+      if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
 
-      class_call(output_one_line_of_pk(out_cross,
-				       pnl->k[index_k]/pba->h,
-				       pz_cross[index_k]*pow(pba->h,3)),
-		 pop->error_message,
-		 pop->error_message);
-      
+	class_call(output_one_line_of_pk(out_velocity,
+					 pnl->k[index_k]/pba->h,
+					 pz_velocity[index_k]*pow(pba->h,3)),
+		   pop->error_message,
+		   pop->error_message);
+	
+	class_call(output_one_line_of_pk(out_cross,
+					 pnl->k[index_k]/pba->h,
+					 pz_cross[index_k]*pow(pba->h,3)),
+		   pop->error_message,
+		   pop->error_message);
+      }
     }
 
     fclose(out_density);
-    fclose(out_velocity);
-    fclose(out_cross);
+
+    if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {          
+      fclose(out_velocity);
+      fclose(out_cross);
+    }
  }
 
   free(pz_density);
-  free(pz_velocity);
-  free(pz_cross);
+  if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
+    free(pz_velocity);
+    free(pz_cross);
+  }
 
   return _SUCCESS_;
 }

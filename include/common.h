@@ -566,6 +566,17 @@ struct precision
 
   //@{
 
+  /** parameters relevant for HALOFIT computation */
+
+  double halofit_dz; /* spacing in redshift space defining values of z
+			at which HALOFIT will be used. Intermediate
+			values will be obtained by
+			interpolation. Decrease for more precise
+			interpolations, at the expense of increasing
+			time spent in nonlinear_init() */ 
+
+  /** parameters relevant for TRG computation */
+
   int double_escape;      /* number of points to drop at every
 			     half-step of the computation (double
 			     espace mechanism) */
