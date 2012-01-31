@@ -81,7 +81,7 @@
 	       errmsg);							\
     if (flag1 == _TRUE_){						\
         class_test(entries_read != siz,errmsg,			\
-             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+             "Number of entries in %s, %d, does not match expected number, %d.", \
 		name,entries_read,siz);				\
     }else{								\
 	class_alloc(destination,siz*sizeof(double),errmsg);		\
@@ -97,7 +97,7 @@
 	       errmsg);							\
     if (flag1 == _TRUE_){						\
         class_test(entries_read != siz,errmsg,			\
-             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+             "Number of entries in %s, %d, does not match expected number, %d.", \
 		name,entries_read,siz);				\
     }else{								\
 	class_alloc(destination,siz*sizeof(int),errmsg);		\
@@ -114,7 +114,7 @@
     class_test(flag1 == _FALSE_,errmsg,					\
 	"Entry %s is required but not found!",name)			\
         class_test(entries_read != siz,errmsg,			\
-             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+             "Number of entries in %s, %d, does not match expected number, %d.", \
 		name,entries_read,siz);				\
   } while(0);
 
@@ -127,7 +127,7 @@
     class_test(flag1 == _FALSE_,errmsg,					\
 	"Entry %s is required but not found!",name)			\
         class_test(entries_read != siz,errmsg,			\
-             "Number of entries in %s, %d, does not match number of indistinguishable ncdm species, %d.", \
+             "Number of entries in %s, %d, does not match expected number, %d.", \
 		name,entries_read,siz);				\
   } while(0);
 

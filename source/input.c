@@ -553,15 +553,19 @@ int input_init(
     if (strcmp(string1,"reio_none") == 0) {
       pth->reio_parametrization=reio_none;
       flag2=_TRUE_;
-      printf("Warning: you are computing a model without reionization (why not...)\n");
     }
     if (strcmp(string1,"reio_camb") == 0) {
       pth->reio_parametrization=reio_camb;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_bins_tanh") == 0) {
+      pth->reio_parametrization=reio_bins_tanh;
+      flag2=_TRUE_;
+    }
+
     class_test(flag2==_FALSE_,
 	       errmsg,
-	       "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', ...");
+	       "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', ...");
   }
 
   /* reionization parameters if reio_parametrization=reio_camb */
@@ -589,6 +593,14 @@ int input_init(
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
 
+  }
+
+  /* reionization parameters if reio_parametrization=reio_bins_tanh */
+  if (pth->reio_parametrization == reio_bins_tanh) {
+    class_read_int("binned_reio_num",pth->binned_reio_num);
+    class_read_list_of_doubles("binned_reio_z",pth->binned_reio_z,pth->binned_reio_num);
+    class_read_list_of_doubles("binned_reio_xe",pth->binned_reio_xe,pth->binned_reio_num);
+    class_read_double("binned_reio_step_sharpness",pth->binned_reio_step_sharpness);
   }
 
   /** (c) define which perturbations and sources should be computed, and down to which scale */
@@ -1509,6 +1521,11 @@ int input_default_params(
   pth->reionization_width=1.5;
   pth->helium_fullreio_redshift=3.5;
   pth->helium_fullreio_width=0.5;
+
+  pth->binned_reio_num=0;
+  pth->binned_reio_z=NULL;
+  pth->binned_reio_xe=NULL;
+  pth->binned_reio_step_sharpness = 0.3;
 
   pth->compute_cb2_derivatives=_FALSE_;
 

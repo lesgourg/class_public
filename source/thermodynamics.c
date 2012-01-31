@@ -3,7 +3,7 @@
  * Julien Lesgourgues, 6.09.2010    
  *
  * Deals with the thermodynamical evolution.
- * This module has two purposes: 
+ * This module has two purposes:
  *
  * - at the beginning, to initialize the thermodynamics, i.e. to
  *   integrate the thermodynamical equations, and store all
@@ -537,7 +537,7 @@ int thermodynamics_init(
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
     printf("    with sound horizon = %f Mpc\n",pth->ds_rec);
     printf("    and angular diameter distance = %f Mpc\n",pth->da_rec);
-    if (pth->reio_parametrization != reio_none) {
+    if (pth->reio_parametrization == reio_camb) {
       if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
@@ -546,6 +546,9 @@ int thermodynamics_init(
 		 pba->error_message,
 		 pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
+    }
+    if (pth->reio_parametrization == reio_bins_tanh) {
+      printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
     }
     if (pth->thermodynamics_verbose > 1) {
       printf(" -> free-streaming approximation can be turned on as soon as tau=%g Mpc\n",
@@ -679,22 +682,23 @@ int thermodynamics_indices(
 
   /* same with parameters of the function x_e(z) */
   
+  index=0;
+
+  preio->index_reio_start = index;
+  index++;
+
   /* case where x_e(z) taken like in CAMB (other cases can be added) */ 
   if (pth->reio_parametrization == reio_camb) {
 
-    index=0;
-
     preio->index_reio_redshift = index;
-    index++;
-    preio->index_reio_start = index;
-    index++;
-    preio->index_reio_xe_before = index;
-    index++;
-    preio->index_reio_xe_after = index;
     index++;
     preio->index_reio_exponent = index;
     index++;
     preio->index_reio_width = index;
+    index++;
+    preio->index_reio_xe_before = index;
+    index++;
+    preio->index_reio_xe_after = index;
     index++;
     preio->index_helium_fullreio_fraction = index;
     index++;
@@ -703,9 +707,28 @@ int thermodynamics_indices(
     preio->index_helium_fullreio_width = index;
     index++;
 
-    preio->reio_num_params = index;
-
   }
+
+  /* case where x_e(z) is binned */ 
+  if (pth->reio_parametrization == reio_bins_tanh) {
+
+    /* the code will not only copy here the "bin centers" passed in
+       input. It will add an initial and final value for (z,xe). So
+       this array has a dimension bigger than the bin center array */
+
+    preio->reio_num_z=pth->binned_reio_num+2; /** add two values: beginning and end of reio */
+
+    preio->index_reio_first_z = index;
+    index+= preio->reio_num_z;
+    preio->index_reio_first_xe = index;
+    index+= preio->reio_num_z; 
+    preio->index_reio_step_sharpness = index;
+    index++; 
+
+    preio->reio_num_params = index;
+  }
+
+  preio->reio_num_params = index;
 
   /* flags for calling the interpolation routine */
 
@@ -907,6 +930,7 @@ int thermodynamics_reionization_function(
 
   /** - define local variables */
   double argument;
+  int i;
 
   /** - implementation of ionization function similar to the one in CAMB */
 
@@ -945,6 +969,41 @@ int thermodynamics_reionization_function(
       *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction] 
 	* (tanh(argument)+1.)/2.;
 
+    }
+
+    return _SUCCESS_;
+
+  }
+
+ /** - implementation of binned ionization function similar to astro-ph/0606552 */
+
+  if (pth->reio_parametrization == reio_bins_tanh) {
+
+    /** -> case z > z_reio_start */
+
+    if (z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]) {
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1];
+    }
+
+    else if (z < preio->reionization_parameters[preio->index_reio_first_z]) {
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe];
+    }
+
+    else {
+
+      i = 0;
+      while (preio->reionization_parameters[preio->index_reio_first_z+i+1]<z) i++;
+
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+	+0.5*(tanh((2.*(z-preio->reionization_parameters[preio->index_reio_first_z+i])
+	/(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+	  -preio->reionization_parameters[preio->index_reio_first_z+i])-1.)
+		   /preio->reionization_parameters[preio->index_reio_step_sharpness])
+	      /tanh(1./preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
+	*(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+	  -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+
+      
     }
 
     return _SUCCESS_;
@@ -1025,14 +1084,15 @@ int thermodynamics_reionization(
   int counter;
   double z_sup,z_mid,z_inf;
   double tau_sup,tau_mid,tau_inf;
+  int bin;
+
+  /** - allocate the vector of parameters defining the function \f$ X_e(z) \f$ */
+
+  class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message); 
 
   /** (a) if reionization implemented like in CAMB */
 
   if (pth->reio_parametrization == reio_camb) {
-
-    /** - allocate the vector of parameters defining the function \f$ X_e(z) \f$ */
-
-    class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message); 
     
     /** - set values of these parameters, excepted those depending on the reionization redshift */
 
@@ -1198,6 +1258,87 @@ int thermodynamics_reionization(
 
     return _SUCCESS_;
 
+  }
+
+  if (pth->reio_parametrization == reio_bins_tanh) {
+
+    /* this algorithm requires at least two bin centers (i.e. at least
+       4 values in the (z,xe) array, counting the edges). */
+    class_test(pth->binned_reio_num<2,
+	       pth->error_message,
+	       "current implementation of binned reio requires at least two bin centers");
+
+    /* check that this input can be interpreted by the code */
+    for (bin=1; bin<pth->binned_reio_num; bin++) {
+      class_test(pth->binned_reio_z[bin]<pth->binned_reio_z[bin],
+		 pth->error_message,
+		 "value of reionization bin centers z_i expected to be passed in growing order");
+    }
+
+    /* the code will not only copy here the "bin centers" passed in
+       input. It will add an initial and final value for (z,xe).   
+       First, fill all entries except the first and the last */
+
+    for (bin=1; bin<preio->reio_num_z-1; bin++) {
+      preio->reionization_parameters[preio->index_reio_first_z+bin] = pth->binned_reio_z[bin-1]; 
+      preio->reionization_parameters[preio->index_reio_first_xe+bin] = pth->binned_reio_xe[bin-1]; 
+    }
+
+
+    /* find largest value of z in the array. We choose to define it as
+       z_(i_max) + (the distance between z_(i_max) and z_(i_max-1)). E.g. if
+       the bins are in 10,12,14, the largest z will be 16. */
+    preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] = 
+      2.*preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
+      -preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-3];
+
+    /* copy this value in reio_start */
+    preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1];
+
+    /* check it's not too big */
+    class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
+	       pth->error_message,
+	       "starting redshift for reionization = %e, reionization_z_start_max = %e, you must change the binning or increase reionization_z_start_max",
+	       preio->reionization_parameters[preio->index_reio_start],
+	       ppr->reionization_z_start_max);
+    
+    /* find smallest value of z in the array. We choose
+       to define it as z_0 - (the distance between z_1 and z_0). E.g. if
+       the bins are in 10,12,14, the stop redshift will be 8. */
+
+    preio->reionization_parameters[preio->index_reio_first_z] = 
+      2.*preio->reionization_parameters[preio->index_reio_first_z+1]
+      -preio->reionization_parameters[preio->index_reio_first_z+2];
+
+    /* check it's not too small */
+    class_test(preio->reionization_parameters[preio->index_reio_first_z] < 0,
+	       pth->error_message,
+	       "final redshift for reionization = %e, you must change the binning or redefine the way in which the code extrapolates below the first value of z_i",preio->reionization_parameters[preio->index_reio_first_z]);
+
+    /* infer xe before reio */
+    class_call(thermodynamics_get_xe_before_reionization(ppr,
+							 pth,
+							 preco,
+							 preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1],
+							 &(preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1])),
+	       pth->error_message,
+	       pth->error_message);
+
+    /* infer xe after reio */
+    preio->reionization_parameters[preio->index_reio_first_xe] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
+
+    /* pass step sharpness parameter */
+    preio->reionization_parameters[preio->index_reio_step_sharpness] = pth->binned_reio_step_sharpness;
+
+    /* fill reionization table */
+    class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
+	       pth->error_message,
+	       pth->error_message);
+    
+    pth->tau_reio=preio->reionization_optical_depth;
+    
+    return _SUCCESS_;
+    
   }
 
   class_test(0 == 0,

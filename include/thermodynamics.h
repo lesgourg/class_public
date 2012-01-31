@@ -23,7 +23,8 @@ enum recombination_algorithm {
 
 enum reionization_parametrization {
   reio_none, /**< no reionization */
-  reio_camb  /**< reionization parameterized like in CAMB */
+  reio_camb,  /**< reionization parameterized like in CAMB */
+  reio_bins_tanh  /**< binned reionization history with tanh inteprolation between bins */ 
 };
 
 /**
@@ -71,6 +72,10 @@ struct thermo
 
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
 
+  short compute_cb2_derivatives; /**< do we want to include in computation derivatives of baryon sound speed? */
+
+  /** parameters for reio_camb */
+
   double reionization_width; /**< width of H reionization */
 
   double reionization_exponent; /**< shape of H reionization */
@@ -79,7 +84,15 @@ struct thermo
 
   double helium_fullreio_width; /**< width of helium reionization */
 
-  short compute_cb2_derivatives; /**< do we want derivatives of baryon sound speed? */
+  /** parameters for reio_bins_tanh */
+
+  int binned_reio_num; /**< with how many bins de we want to describe reionization? */
+
+  double * binned_reio_z; /**< central z value for each bin */
+
+  double * binned_reio_xe; /**< imposed x_e(z) value at center of each bin */
+
+  double binned_reio_step_sharpness; /**< sharpness of tanh() step interpolating between binned values */
 
   //@}
 
@@ -285,15 +298,27 @@ struct reionization {
 
   //@{
 
+  /** parameters used by reio_camb */
+
   int index_reio_redshift;  /**< hydrogen reionization redshift */
-  int index_reio_start;     /**< redshift above which hydrogen reionization neglected */
-  int index_reio_xe_before; /**< ionization fraction at redshift 'reio_start' */
-  int index_reio_xe_after;  /**< ionization fraction after full reionization */
   int index_reio_exponent;  /**< an exponent used in the function x_e(z) in the reio_camb scheme */
   int index_reio_width;     /**< a width defining the duration of hydrogen reionization in the reio_camb scheme */
+  int index_reio_xe_before; /**< ionization fraction at redshift 'reio_start' */
+  int index_reio_xe_after;  /**< ionization fraction after full reionization */
   int index_helium_fullreio_fraction; /**< helium full reionization fraction infered from primordial helium fraction */
   int index_helium_fullreio_redshift; /**< helium full reionization redshift */
   int index_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
+
+  /** parameters used by reio_bins_tanh */
+
+  int reio_num_z;
+  int index_reio_first_z;
+  int index_reio_first_xe;
+  int index_reio_step_sharpness;
+
+  /** parameters used by all schemes */
+
+  int index_reio_start;     /**< redshift above which hydrogen reionization neglected */
 
   //@}
 
