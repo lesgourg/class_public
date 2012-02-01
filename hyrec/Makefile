@@ -6,7 +6,7 @@ LDFLAG = -O3
 %.o: %.c 
 	$(CC) $(CCFLAG) -c $*.c -o $*.o
 
-HYREC_SRC = arrays.o helium.o hydrogen.o history.o 
+HYREC_SRC = hyrectools.o helium.o hydrogen.o history.o 
 HYREC_EXE = hyrec.o 
 
 clean: 
