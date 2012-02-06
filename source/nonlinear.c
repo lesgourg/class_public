@@ -17,52 +17,72 @@ int nonlinear_pk_at_z(
 
   int last_index;
   int index_z;
+  int index_k;
 
   class_test(pnl->method == nl_none,
 	     pnl->error_message,
 	     "No non-linear spectra requested. You cannot call the function non_linear_pk_at_z()");
 
-  class_call(array_interpolate_spline(pnl->z,
-				      pnl->z_size,
-				      pnl->p_density,
-				      pnl->ddp_density,
-				      pnl->k_size[0],
-				      z,
-				      &last_index,
-				      pz_density,
-				      pnl->k_size[0],
-				      pnl->error_message),
-	     pnl->error_message,
-	     pnl->error_message);
+  if (pnl->z_size == 1) {
 
-  if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
+    class_test(z !=0,
+	       pnl->error_message,
+	       "if you want the non-linear pk at z=%g, you must set the input parameter z_max_pk to at least this value",z);
+   
+    for (index_k=0; index_k<pnl->k_size[0]; index_k++) {
+
+      pz_density[index_k] = pnl->p_density[index_k];
+      if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
+	pz_velocity[index_k] = pnl->p_velocity[index_k];
+	pz_cross[index_k] = pnl->p_cross[index_k];
+      }
+    }
+  }
+
+  else {
 
     class_call(array_interpolate_spline(pnl->z,
 					pnl->z_size,
-					pnl->p_velocity,
-					pnl->ddp_velocity,
+					pnl->p_density,
+					pnl->ddp_density,
 					pnl->k_size[0],
 					z,
 					&last_index,
-					pz_velocity,
+					pz_density,
 					pnl->k_size[0],
 					pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
     
-    class_call(array_interpolate_spline(pnl->z,
-					pnl->z_size,
-					pnl->p_cross,
-					pnl->ddp_cross,
-					pnl->k_size[0],
-					z,
-					&last_index,
-					pz_cross,
-					pnl->k_size[0],
-					pnl->error_message),
-	       pnl->error_message,
-	       pnl->error_message);
-
+    if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
+      
+      class_call(array_interpolate_spline(pnl->z,
+					  pnl->z_size,
+					  pnl->p_velocity,
+					  pnl->ddp_velocity,
+					  pnl->k_size[0],
+					  z,
+					  &last_index,
+					  pz_velocity,
+					  pnl->k_size[0],
+					  pnl->error_message),
+		 pnl->error_message,
+		 pnl->error_message);
+      
+      class_call(array_interpolate_spline(pnl->z,
+					  pnl->z_size,
+					  pnl->p_cross,
+					  pnl->ddp_cross,
+					  pnl->k_size[0],
+					  z,
+					  &last_index,
+					  pz_cross,
+					  pnl->k_size[0],
+					  pnl->error_message),
+		 pnl->error_message,
+		 pnl->error_message);
+      
+    }
   }
 
   for (index_z=0; pnl->z[index_z] > z; index_z++);
@@ -234,7 +254,7 @@ int nonlinear_init(
 		pnl->error_message);
 
     if (pnl->z_size == 1) {
-      pnl->z[0]=0;
+      pnl->z[0]=0.;
     }
     else {
       for (index_z=0; index_z < pnl->z_size; index_z++) {
@@ -297,7 +317,9 @@ int nonlinear_init(
     }
 
     free(pk_tot);
-    free(pk_ic);
+    if (psp->ic_size[psp->index_md_scalars] > 1) {
+      free(pk_ic);
+    }
 
     /** - apply non-linear corrections */
 
@@ -307,21 +329,23 @@ int nonlinear_init(
 
     /** - take second derivative w.r.t z in view of spline inteprolation */
 
-    class_alloc(pnl->ddp_density,
-		pnl->k_size[0]*pnl->z_size*sizeof(double),
-		pnl->error_message);
+    if (pnl->z_size > 1) {
 
-    class_call(array_spline_table_lines(pnl->z,
-					pnl->z_size,
-					pnl->p_density,
-					pnl->k_size[0],
-					pnl->ddp_density,
-					_SPLINE_EST_DERIV_,
-					pnl->error_message),
-	       pnl->error_message,
-	       pnl->error_message);
-    
-    fprintf(stderr,"salut\n");
+      class_alloc(pnl->ddp_density,
+		  pnl->k_size[0]*pnl->z_size*sizeof(double),
+		  pnl->error_message);
+
+      class_call(array_spline_table_lines(pnl->z,
+					  pnl->z_size,
+					  pnl->p_density,
+					  pnl->k_size[0],
+					  pnl->ddp_density,
+					  _SPLINE_EST_DERIV_,
+					  pnl->error_message),
+		 pnl->error_message,
+		 pnl->error_message);
+      
+    }
   }
 
   /** (c) for TRG non-linear spectrum */
@@ -508,6 +532,7 @@ int nonlinear_free(
   if (pnl->method > nl_none) {
 
     free(pnl->k);
+    free(pnl->k_size);
     free(pnl->z);
     free(pnl->p_density);
     free(pnl->ddp_density);
@@ -532,8 +557,7 @@ int nonlinear_halofit(
 		      struct nonlinear *pnl
 		      ) {
 
-  double k_min_nonlinear = 0.005*pba->h;
-  double omega_m,omega_lambda,fnu,omega0_m;
+  double Omega_m,Omega_v,fnu,Omega0_m;
 
   /** determine non linear ratios (from pk) **/
 
@@ -550,9 +574,8 @@ int nonlinear_halofit(
   double * nl_ratio;
   double * pvecback;
 
-  int nint = 3000;
   int last_index;
-  int i;
+  int i,counter;
   double sum1,sum2,sum3,t,x,w1,w2,w3;
   double fac,r,anorm;
   double * junk;
@@ -560,41 +583,94 @@ int nonlinear_halofit(
 
   double *integrand_array;
 
-  double x2;
+  double x2,R;
 
-  class_calloc(pvecback,pba->bg_size,sizeof(double),pnl->error_message);
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
-  omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot)*pba->h*pba->h;
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot);
   fnu      = pba->Omega0_ncdm_tot/(pba->Omega0_b + pba->Omega0_cdm);
 
+  class_alloc(integrand_array,pnl->k_size[0]*7*sizeof(double),pnl->error_message);
 
+  for (index_k=0; index_k < pnl->k_size[0]; index_k++) {
+    integrand_array[index_k*7 + 0] = pnl->k[index_k];
+  }
 
   for (index_z=0; index_z < pnl->z_size; index_z++) {
-    class_calloc(integrand_array,pnl->k_size[index_z]*7,sizeof(double),pnl->error_message);
 
     class_call(background_tau_of_z(pba,pnl->z[index_z],&tau),pba->error_message,pnl->error_message);
     class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
 	pba->error_message,
 	pnl->error_message);
 
-    omega_m = pvecback[pba->index_bg_Omega_m]*pba->h*pba->h;
-    omega_lambda = (1-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r])*pba->h*pba->h;
+    Omega_m = pvecback[pba->index_bg_Omega_m];
+    Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
+
+    /* minimum value of R such that the integral giving sigma_R is converged */
+    R=sqrt(-log(ppr->halofit_sigma_precision))/pnl->k[pnl->k_size[0]-1];
+
+    /* corresponding value of sigma_R */
+    sum1=0.;
+    for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
+      x2 = pow(pnl->k[index_k]*R,2);
+      integrand_array[index_k*7 + 1] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*exp(-x2);
+    }
+    /* fill in second derivatives */
+    class_call(array_spline(integrand_array,7,pnl->k_size[index_z],0,1,2,_SPLINE_EST_DERIV_,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+    /* integrate */
+    class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size[index_z],0,1,2,&sum1,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+    sigma  = sqrt(sum1);
+
+    class_test(sigma < 1.,
+	       pnl->error_message,
+	       "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
+	       pnl->k[pnl->k_size[0]-1],
+	       pnl->z[index_z]);  
+
+    xlogr1 = log(R)/log(10.);
+
+    /* maximum value of R in the bisection algorithm leading to the determination of R_nl */
+    R=1./ppr->halofit_min_k_nonlinear;
     
-    xlogr1 = -2.0;
-    xlogr2 =  3.5;
+    /* corresponding value of sigma_R */
+    sum1=0.;
+    for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
+      x2 = pow(pnl->k[index_k]*R,2);
+      integrand_array[index_k*7 + 1] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*exp(-x2);
+    }
+    /* fill in second derivatives */
+    class_call(array_spline(integrand_array,7,pnl->k_size[index_z],0,1,2,_SPLINE_EST_DERIV_,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+    /* integrate */
+    class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size[index_z],0,1,2,&sum1,pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+    sigma  = sqrt(sum1);
 
+    class_test(sigma > 1.,
+	       pnl->error_message,
+	       "Your input value for the precision parameter halofit_min_k_nonlinear=%e is too large, the non-linear wavenumber k_nl must be smaller than that",
+	       ppr->halofit_min_k_nonlinear);
 
-    int ii;
-    ii = 0;
+    xlogr2 = log(R)/log(10.);
+
+    counter = 0;
     do {
       rmid = pow(10,(xlogr2+xlogr1)/2.0);
+      counter ++;
+
+      /* in original halofit, this is the function wint() */
       sum1=0.;
       sum2=0.;
       sum3=0.;
       anorm = 1./(2*pow(_PI_,2));
       for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
 	x2 = pnl->k[index_k]*pnl->k[index_k]*rmid*rmid;
-	integrand_array[index_k*7 + 0] = pnl->k[index_k];
 	integrand_array[index_k*7 + 1] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*exp(-x2);
 	integrand_array[index_k*7 + 3] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*2.*x2*exp(-x2);
 	integrand_array[index_k*7 + 5] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*4.*x2*(1.-x2)*exp(-x2);
@@ -624,7 +700,8 @@ int nonlinear_halofit(
       sigma  = sqrt(sum1);
       d1 = -sum2/sum1;
       d2 = -sum2*sum2/sum1/sum1 - sum3/sum1;
-
+      /* in original halofit, this is the end of the function wint() */
+ 
       diff = sigma - 1.0;
       /*fprintf(stderr,"xlogr1 = %g, xlogr2 = %g, rmid = %g, diff: =%g, abs(diff) = %g\n",xlogr1,xlogr2,log10(rmid),diff,fabs(diff));*/
       if (diff>0.001){
@@ -635,29 +712,35 @@ int nonlinear_halofit(
 	xlogr2 = log10(rmid);
 	/*fprintf(stderr,"going down, new xlogr2=%g\n",xlogr2);*/
       }
-      if (xlogr2 < -1.9999) {
-	break;
-      }
+
+      class_test(counter > _MAX_IT_,
+		 pnl->error_message,
+		 "could not converge within maximum allowed number of iterations");
+
     } while (fabs(diff) > 0.001);
+
     rknl  = 1./rmid;
-    rneff = -3-d1;
+    rneff = -3.-d1;
     rncur = -d2;
 
     for (index_k = 0; index_k < pnl->k_size[index_z]; index_k++){
-
+      
       rk = pnl->k[index_k];
-      pk_lin = pnl->p_density[index_z*pnl->k_size[index_z]+index_k];
-
-      if (rk > k_min_nonlinear) {
-
+      
+      if (rk > ppr->halofit_min_k_nonlinear) {
+	
+	pk_lin = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],3)*anorm;
+	
+	/* in original halofit, this is the beginning of the function halofit() */
+	
 	/*SPB11: Standard halofit underestimates the power on the smallest
-	 * scales by a factor of two. Add an extra correction from the
-	 * simulations in Bird, Viel,Haehnelt 2011 which partially accounts for
-	 * this.*/
-
+	   * scales by a factor of two. Add an extra correction from the
+	   * simulations in Bird, Viel,Haehnelt 2011 which partially accounts for
+	   * this.*/
+	
 	extragam = 0.3159 -0.0765*rneff -0.8350*rncur;
 	gam=extragam+0.86485+0.2989*rneff+0.1631*rncur;
-
+	
 	a=1.4861+1.83693*rneff+1.67618*rneff*rneff+0.7940*rneff*rneff*rneff+0.1670756*rneff*rneff*rneff*rneff-0.620695*rncur;
 	a=pow(10,a);
 	b=pow(10,(0.9463+0.9466*rneff+0.3084*rneff*rneff-0.940*rncur));
@@ -666,33 +749,37 @@ int nonlinear_halofit(
 	xnu   = pow(10,(0.95897+1.2857*rneff));
 	alpha = 1.38848+0.3701*rneff-0.1452*rneff*rneff;
 	beta  = 0.8291+0.9854*rneff+0.3400*pow(rneff,2)+fnu*(-6.4868+1.4373*pow(rn,2));
-	if(fabs(1-omega_m)>0.01) { /*then omega evolution */
-	   f1a=pow(omega_m,(-0.0732));
-	   f2a=pow(omega_m,(-0.1423));
-	   f3a=pow(omega_m,(0.0725));
-	   f1b=pow(omega_m,(-0.0307));
-	   f2b=pow(omega_m,(-0.0585));
-	   f3b=pow(omega_m,(0.0743));     
-	   frac=omega_lambda/(1.-omega_m); 
-	   f1=frac*f1b + (1-frac)*f1a;
-	   f2=frac*f2b + (1-frac)*f2a;
-	   f3=frac*f3b + (1-frac)*f3a;
+	if(fabs(1-Omega_m)>0.01) { /*then omega evolution */
+	  f1a=pow(Omega_m,(-0.0732));
+	  f2a=pow(Omega_m,(-0.1423));
+	  f3a=pow(Omega_m,(0.0725));
+	  f1b=pow(Omega_m,(-0.0307));
+	  f2b=pow(Omega_m,(-0.0585));
+	  f3b=pow(Omega_m,(0.0743));     
+	  frac=Omega_v/(1.-Omega_m); 
+	  f1=frac*f1b + (1-frac)*f1a;
+	  f2=frac*f2b + (1-frac)*f2a;
+	  f3=frac*f3b + (1-frac)*f3a;
 	}
 	else {
-	   f1=1.0;
-	   f2=1.;
-	   f3=1.;
+	  f1=1.;
+	  f2=1.;
+	  f3=1.;
 	}
-
+	
 	y=(rk/rknl);
 	pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
-	pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(2.080-12.39*(omega0_m-0.3))/(1+1.201e-03*pow(y,3)));
+	pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(2.080-12.39*(Omega0_m-0.3))/(1+1.201e-03*pow(y,3)));
 	pk_linaa=pk_lin*(1+fnu*26.29*pow(rk,2)/(1+1.5*pow(rk,2)));
 	pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
-
-	pnl->p_density[index_z*pnl->k_size[index_z]+index_k] = pk_quasi+pk_halo;
+	
+	pnl->p_density[index_z*pnl->k_size[index_z]+index_k] = (pk_halo+pk_quasi)/pow(pnl->k[index_k],3)/anorm;
+	
+	/* in original halofit, this is the end of the function halofit() */
       }
     }
-  }
+  }						
+  free(pvecback);
+  free(integrand_array);
   return _SUCCESS_;
 }

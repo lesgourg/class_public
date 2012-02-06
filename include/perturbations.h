@@ -102,12 +102,6 @@ struct perturbs
   short has_cl_density;               /**< do we need Cl's for matter density? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
   short has_matter_transfers;         /**< do we need to output individual matter transfer functions? */
-  short has_well_resolved_BAOs;       /**< do we need a good sampling
-					 of perturbations on BAO
-					 scales? (namely, the same one
-					 as for the CMB spectra, even
-					 if these are not
-					 requested) */
 
   int l_scalar_max; /**< maximum l value for scalars C_ls */
   int l_tensor_max; /**< maximum l value for tensors C_ls */

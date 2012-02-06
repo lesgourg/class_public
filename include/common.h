@@ -407,7 +407,13 @@ struct precision
   double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
   double k_scalar_step_transition; /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
 
-  double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade */
+  double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade outside the BAO region*/
+
+  double k_scalar_k_per_decade_for_bao; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade inside the BAO region (for finer sampling)*/
+
+  double k_scalar_bao_center; /**< in ln(k) space, the central value of the BAO region where sampling is finer is defined as k_rec times this number (recommended: 3, i.e. finest sampling near 3rd BAO peak) */
+
+  double k_scalar_bao_width; /**< in ln(k) space, width of the BAO region where sampling is finer: this number gives roughly the number of BAO oscillations well resolved on both sides of the central value (recommended: 4, i.e. finest sampling from before first up to 3+4=7th peak) */
 
   double k_tensor_min_tau0; /**< number defining k_min for the computation of tensor Cl's (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
@@ -574,6 +580,16 @@ struct precision
 			interpolation. Decrease for more precise
 			interpolations, at the expense of increasing
 			time spent in nonlinear_init() */ 
+
+  double halofit_min_k_nonlinear; /* value of k in 1/Mpc above
+				     which non-linear corrections will
+				     be computed */
+
+  double halofit_sigma_precision; /* a smaller value will lead to a
+				      more precise halofit result at
+				      the highest requested redshift,
+				      at the expense of requiring a
+				      larger k_max */
 
   /** parameters relevant for TRG computation */
 

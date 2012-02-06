@@ -1125,11 +1125,9 @@ int input_init(
     }
     if ((strstr(string1,"trg") != NULL) || (strstr(string1,"TRG") != NULL)) {
       pnl->method=nl_trg;
-      ppt->has_well_resolved_BAOs=_TRUE_;
     }    
     if ((strstr(string1,"one-loop") != NULL) || (strstr(string1,"oneloop") != NULL) || (strstr(string1,"one loop") != NULL)) {
       pnl->method=nl_trg_one_loop;
-      ppt->has_well_resolved_BAOs=_TRUE_;
     }
     if ((strstr(string1,"test linear") != NULL) || (strstr(string1,"test-linear") != NULL)) {
       pnl->method=nl_trg_linear;
@@ -1256,6 +1254,9 @@ int input_init(
   class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
   class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
   class_read_double("k_scalar_k_per_decade_for_pk",ppr->k_scalar_k_per_decade_for_pk);
+  class_read_double("k_scalar_k_per_decade_for_bao",ppr->k_scalar_k_per_decade_for_bao);
+  class_read_double("k_scalar_bao_center",ppr->k_scalar_bao_center);
+  class_read_double("k_scalar_bao_width",ppr->k_scalar_bao_width);
   class_read_double("k_tensor_min_tau0",ppr->k_tensor_min_tau0);
   class_read_double("k_tensor_max_tau0_over_l_max",ppr->k_tensor_max_tau0_over_l_max);
   class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
@@ -1339,6 +1340,9 @@ int input_init(
   /** h.7. parameters related to nonlinear calculations */
 
   class_read_double("halofit_dz",ppr->halofit_dz);
+  class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
+  class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
+
   class_read_int("double escape",ppr->double_escape);
   class_read_double("z_ini",ppr->z_ini);
   class_read_int("eta_size",ppr->eta_size);
@@ -1537,7 +1541,6 @@ int input_default_params(
   ppt->has_cl_density = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
   ppt->has_matter_transfers = _FALSE_;
-  ppt->has_well_resolved_BAOs=_FALSE_;
 
   ppt->has_ad=_TRUE_;  
   ppt->has_bi=_FALSE_;
@@ -1760,6 +1763,9 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_scalar_step_transition=0.2;
 
   ppr->k_scalar_k_per_decade_for_pk=10.;
+  ppr->k_scalar_k_per_decade_for_bao=70.;
+  ppr->k_scalar_bao_center=3.;
+  ppr->k_scalar_bao_width=4.;
 
   ppr->k_tensor_min_tau0=1.4;
   ppr->k_tensor_max_tau0_over_l_max = 2.;
@@ -1845,6 +1851,8 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->halofit_dz=0.1;
+  ppr->halofit_min_k_nonlinear=0.0035;
+  ppr->halofit_sigma_precision=0.05;
   ppr->double_escape=2;
   ppr->z_ini = 35.;
   ppr->eta_size = 101;

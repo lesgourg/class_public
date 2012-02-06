@@ -1111,7 +1111,7 @@ int perturb_get_k_list(
     k=ppr->k_scalar_min_tau0/pba->conformal_age;
     index_k=1;
 
-    if ((ppt->has_cls == _TRUE_) || (ppt->has_well_resolved_BAOs == _TRUE_)){
+    if (ppt->has_cls == _TRUE_) {
       k_max_cl = ppr->k_scalar_max_tau0_over_l_max
 	*ppt->l_scalar_max
 	/pba->conformal_age;
@@ -1134,10 +1134,13 @@ int perturb_get_k_list(
     ppt->k_size_cl[index_mode] = index_k;
 
     if (ppt->has_pk_matter == _TRUE_) {
-      if (k < ppt->k_scalar_kmax_for_pk) {
+      while (k < ppt->k_scalar_kmax_for_pk) {
 
-	index_k += (int)((log(ppt->k_scalar_kmax_for_pk/k)/log(10.))*ppr->k_scalar_k_per_decade_for_pk)+1;
-	
+	k *= pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
+			 +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
+			 *(1.-tanh(pow((log(k)-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+
+	index_k++;
       }
     }
     ppt->k_size[index_mode] = index_k;
@@ -1147,7 +1150,7 @@ int perturb_get_k_list(
     /** - repeat the same steps, now filling the array */
 
     index_k=0;
-    ppt->k[index_mode][index_k] = ppr->k_scalar_min_tau0/pba->conformal_age;;
+    ppt->k[index_mode][index_k] = ppr->k_scalar_min_tau0/pba->conformal_age;
 
     /*     printf("%d %e %g\n",index_k,ppt->k[index_mode][index_k],1.); */
 
@@ -1168,7 +1171,10 @@ int perturb_get_k_list(
     while (index_k < ppt->k_size[index_mode]) {
       
       ppt->k[index_mode][index_k] = ppt->k[index_mode][index_k-1] 
-	* exp(log(ppt->k_scalar_kmax_for_pk/ppt->k[index_mode][ppt->k_size_cl[index_mode]-1])/(ppt->k_size[index_mode]-ppt->k_size_cl[index_mode]));
+	*pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
+		     +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
+		     *(1.-tanh(pow((log(ppt->k[index_mode][index_k-1])-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+
       index_k++;
 
     }
