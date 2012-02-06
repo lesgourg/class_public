@@ -321,6 +321,7 @@ int nonlinear_init(
 	       pnl->error_message,
 	       pnl->error_message);
     
+    fprintf(stderr,"salut\n");
   }
 
   /** (c) for TRG non-linear spectrum */
@@ -531,17 +532,167 @@ int nonlinear_halofit(
 		      struct nonlinear *pnl
 		      ) {
 
-  int index_z;
-  int index_k;
+  double k_min_nonlinear = 0.005*pba->h;
+  double omega_m,omega_lambda,fnu,omega0_m;
+
+  /** determine non linear ratios (from pk) **/
+
+  int index_z,index_k;
+  double pk_lin,pk_quasi,pk_halo,pk_nl,rk;
+  double sigma,rknl,rneff,rncur,d1,d2;
+  double diff,xlogr1,xlogr2,rmid;
+
+  double extragam,gam,a,b,c,xmu,xnu,alpha,beta,f1,f2,f3;
+  double rn,pk_linaa;
+  double y;
+  double f1a,f2a,f3a,f1b,f2b,f3b,frac;
+
+  double * nl_ratio;
+  double * pvecback;
+
+  int nint = 3000;
+  int last_index;
+  int i;
+  double sum1,sum2,sum3,t,x,w1,w2,w3;
+  double fac,r,anorm;
+  double * junk;
+  double tau;
+
+  double *integrand_array;
+
+  double x2;
+
+  class_calloc(pvecback,pba->bg_size,sizeof(double),pnl->error_message);
+
+  omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot)*pba->h*pba->h;
+  fnu      = pba->Omega0_ncdm_tot/(pba->Omega0_b + pba->Omega0_cdm);
+
+
 
   for (index_z=0; index_z < pnl->z_size; index_z++) {
-    for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
-      
-      /** formule fantaisiste a remplacer par le vrai HALOFIT !! */
-      pnl->p_density[index_z*pnl->k_size[index_z]+index_k] *= (1.+pow(pnl->k[index_k]/0.1,2));
-      
-    }      
+    class_calloc(integrand_array,pnl->k_size[index_z]*7,sizeof(double),pnl->error_message);
+
+    class_call(background_tau_of_z(pba,pnl->z[index_z],&tau),pba->error_message,pnl->error_message);
+    class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+	pba->error_message,
+	pnl->error_message);
+
+    omega_m = pvecback[pba->index_bg_Omega_m]*pba->h*pba->h;
+    omega_lambda = (1-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r])*pba->h*pba->h;
+    
+    xlogr1 = -2.0;
+    xlogr2 =  3.5;
+
+
+    int ii;
+    ii = 0;
+    do {
+      rmid = pow(10,(xlogr2+xlogr1)/2.0);
+      sum1=0.;
+      sum2=0.;
+      sum3=0.;
+      anorm = 1./(2*pow(_PI_,2));
+      for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
+	x2 = pnl->k[index_k]*pnl->k[index_k]*rmid*rmid;
+	integrand_array[index_k*7 + 0] = pnl->k[index_k];
+	integrand_array[index_k*7 + 1] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*exp(-x2);
+	integrand_array[index_k*7 + 3] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*2.*x2*exp(-x2);
+	integrand_array[index_k*7 + 5] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*4.*x2*(1.-x2)*exp(-x2);
+      }
+      /* fill in second derivatives */
+      class_call(array_spline(integrand_array,7,pnl->k_size[index_z],0,1,2,_SPLINE_EST_DERIV_,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(array_spline(integrand_array,7,pnl->k_size[index_z],0,3,4,_SPLINE_EST_DERIV_,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(array_spline(integrand_array,7,pnl->k_size[index_z],0,5,6,_SPLINE_EST_DERIV_,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      /* integrate */
+      class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size[index_z],0,1,2,&sum1,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size[index_z],0,3,4,&sum2,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+      class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size[index_z],0,5,6,&sum3,pnl->error_message),
+	  pnl->error_message,
+	  pnl->error_message);
+
+      sigma  = sqrt(sum1);
+      d1 = -sum2/sum1;
+      d2 = -sum2*sum2/sum1/sum1 - sum3/sum1;
+
+      diff = sigma - 1.0;
+      /*fprintf(stderr,"xlogr1 = %g, xlogr2 = %g, rmid = %g, diff: =%g, abs(diff) = %g\n",xlogr1,xlogr2,log10(rmid),diff,fabs(diff));*/
+      if (diff>0.001){
+	xlogr1=log10(rmid);
+	/*fprintf(stderr,"going up  , new xlogr1=%g\n",xlogr1);*/
+      }
+      else if (diff < -0.001) {
+	xlogr2 = log10(rmid);
+	/*fprintf(stderr,"going down, new xlogr2=%g\n",xlogr2);*/
+      }
+      if (xlogr2 < -1.9999) {
+	break;
+      }
+    } while (fabs(diff) > 0.001);
+    rknl  = 1./rmid;
+    rneff = -3-d1;
+    rncur = -d2;
+
+    for (index_k = 0; index_k < pnl->k_size[index_z]; index_k++){
+
+      rk = pnl->k[index_k];
+      pk_lin = pnl->p_density[index_z*pnl->k_size[index_z]+index_k];
+
+      if (rk > k_min_nonlinear) {
+
+	/*SPB11: Standard halofit underestimates the power on the smallest
+	 * scales by a factor of two. Add an extra correction from the
+	 * simulations in Bird, Viel,Haehnelt 2011 which partially accounts for
+	 * this.*/
+
+	extragam = 0.3159 -0.0765*rneff -0.8350*rncur;
+	gam=extragam+0.86485+0.2989*rneff+0.1631*rncur;
+
+	a=1.4861+1.83693*rneff+1.67618*rneff*rneff+0.7940*rneff*rneff*rneff+0.1670756*rneff*rneff*rneff*rneff-0.620695*rncur;
+	a=pow(10,a);
+	b=pow(10,(0.9463+0.9466*rneff+0.3084*rneff*rneff-0.940*rncur));
+	c=pow(10,(-0.2807+0.6669*rneff+0.3214*rneff*rneff-0.0793*rncur));
+	xmu   = pow(10,(-3.54419+0.19086*rneff));
+	xnu   = pow(10,(0.95897+1.2857*rneff));
+	alpha = 1.38848+0.3701*rneff-0.1452*rneff*rneff;
+	beta  = 0.8291+0.9854*rneff+0.3400*pow(rneff,2)+fnu*(-6.4868+1.4373*pow(rn,2));
+	if(fabs(1-omega_m)>0.01) { /*then omega evolution */
+	   f1a=pow(omega_m,(-0.0732));
+	   f2a=pow(omega_m,(-0.1423));
+	   f3a=pow(omega_m,(0.0725));
+	   f1b=pow(omega_m,(-0.0307));
+	   f2b=pow(omega_m,(-0.0585));
+	   f3b=pow(omega_m,(0.0743));     
+	   frac=omega_lambda/(1.-omega_m); 
+	   f1=frac*f1b + (1-frac)*f1a;
+	   f2=frac*f2b + (1-frac)*f2a;
+	   f3=frac*f3b + (1-frac)*f3a;
+	}
+	else {
+	   f1=1.0;
+	   f2=1.;
+	   f3=1.;
+	}
+
+	y=(rk/rknl);
+	pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
+	pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(2.080-12.39*(omega0_m-0.3))/(1+1.201e-03*pow(y,3)));
+	pk_linaa=pk_lin*(1+fnu*26.29*pow(rk,2)/(1+1.5*pow(rk,2)));
+	pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
+
+	pnl->p_density[index_z*pnl->k_size[index_z]+index_k] = pk_quasi+pk_halo;
+      }
+    }
   }
-  
   return _SUCCESS_;
 }
