@@ -1285,7 +1285,7 @@ int transfer_compute_for_each_l(
       /* criterium for chosing between integration and Limber 
 	 must be implemented here */
 
-      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
+      if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars) && (ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
 	
       	class_call(transfer_limber(ppt->tau_size,
 				   ptr,

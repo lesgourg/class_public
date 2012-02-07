@@ -4541,19 +4541,23 @@ int perturb_source_terms(
   /* tensors */
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-    Psi=y[ppw->pv->index_pt_delta_g]/40.
-      +y[ppw->pv->index_pt_shear_g]*2./35.
-      +y[ppw->pv->index_pt_delta_g+4]/210.
-      -y[ppw->pv->index_pt_pol0_g]*3./5. 
-      +y[ppw->pv->index_pt_pol2_g]*6./35.
-      -y[ppw->pv->index_pt_pol0_g+4]/210.;
 
-    Psi_prime=dy[ppw->pv->index_pt_delta_g]/40.
-      +dy[ppw->pv->index_pt_shear_g]*2./35.
-      +dy[ppw->pv->index_pt_delta_g+4]/210.
-      -dy[ppw->pv->index_pt_pol0_g]*3./5.  
-      +dy[ppw->pv->index_pt_pol2_g]*6./35. 
-      -dy[ppw->pv->index_pt_pol0_g+4]/210.;
+    /* Psi, identical to eq.(7) in Seljak &
+       Zaldarriaga Astrophys.J. 469 (1996) 437-444 */
+
+    Psi=(y[ppw->pv->index_pt_delta_g]/10.
+	 +y[ppw->pv->index_pt_shear_g]*2./35.
+	 +y[ppw->pv->index_pt_delta_g+4]/210.
+	 -y[ppw->pv->index_pt_pol0_g]*3./5.
+	 +y[ppw->pv->index_pt_pol2_g]*6./35.
+	 -y[ppw->pv->index_pt_pol0_g+4]/210.)/4.;
+
+    Psi_prime=(dy[ppw->pv->index_pt_delta_g]/10.
+	       +dy[ppw->pv->index_pt_shear_g]*2./35.
+	       +dy[ppw->pv->index_pt_delta_g+4]/210.
+	       -dy[ppw->pv->index_pt_pol0_g]*3./5.
+	       +dy[ppw->pv->index_pt_pol2_g]*6./35.
+	       -dy[ppw->pv->index_pt_pol0_g+4]/210.)/4.;
 
     /** - for each type and each mode, compute S0, S1, S2 */
     for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
@@ -4579,23 +4583,42 @@ int perturb_source_terms(
       /* tensor polarization */
       if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
 
+        /* our calculation: */
 	if (x > 0.) {
 
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
+	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] =
 	    (1.-2./x/x)*pvecthermo[pth->index_th_g]*Psi;
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 
+	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] =
 	    -4./x*(pvecthermo[pth->index_th_g]*(Psi/x+Psi_prime/k)+pvecthermo[pth->index_th_dg]*Psi/k);
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] = 
+	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] =
 	    -(pvecthermo[pth->index_th_g]*Psi_prime+pvecthermo[pth->index_th_dg]*Psi)/k/k;
 
 	}
+
+	/* result from eq. (30) in PRD 55 1830, which does not work,
+	   suggesting that there is a typo in that reference */
+
+	/* if (x > 0.) { */
+
+	/*   source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = */
+	/*     pvecthermo[pth->index_th_g]*((1.+2./x/x)*Psi-1./k/x*Psi_prime) */
+	/*     +pvecthermo[pth->index_th_dg]*(Psi_prime/k/k-4.*Psi/k/x); */
+
+	/*   source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.; */
+
+	/*   source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] =  */
+	/*     -(pvecthermo[pth->index_th_g]*Psi_prime+2.*pvecthermo[pth->index_th_dg]*Psi)/k/k; */
+
+	/* } */
+
+
       }
 
       if ((ppt->has_source_b == _TRUE_) && (index_type == ppt->index_tp_b)) {
 
 	if (x > 0.) {
 	
-	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = 
+	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] =
 	    -pvecthermo[pth->index_th_g]*(4.*Psi/x+2.*Psi_prime/k)-2.*pvecthermo[pth->index_th_dg]*Psi/k;
 	}
       }
@@ -4995,7 +5018,7 @@ int perturb_derivs(double tau,
   double F=0.,F_prime=0.,F_prime_prime=0.;
 
   /* useful term for tensors */
-  double Psi;
+  double fourPsi;
 
   /* short-cut names for the fields of the input structure */
   struct perturb_parameters_and_workspace * pppaw;
@@ -5702,26 +5725,38 @@ int perturb_derivs(double tau,
     theta_g = y[ppw->pv->index_pt_theta_g];
     shear_g = y[ppw->pv->index_pt_shear_g];
     
-    Psi = 
-      delta_g/40.
-      +2.*shear_g/35.
-      +y[ppw->pv->index_pt_delta_g+4]/210.
-      -3.*y[ppw->pv->index_pt_pol0_g]/5. 
-      +6.*y[ppw->pv->index_pt_pol2_g]/35.
-      -y[ppw->pv->index_pt_pol0_g+4]/210.;
 
-    /* photon density (4*F_0) */
+    /* (4Psi), where Psi is identical to eq.(7) in Seljak &
+       Zaldarriaga Astrophys.J. 469 (1996) 437-444 */
+    fourPsi =
+      1./10.*delta_g
+      +2./35.*shear_g
+      +1./210.*y[ppw->pv->index_pt_delta_g+4]
+      -3./5.*y[ppw->pv->index_pt_pol0_g]
+      +6./35.*y[ppw->pv->index_pt_pol2_g]
+      -1./210.*y[ppw->pv->index_pt_pol0_g+4];
+
+    /* (4Psi), where Psi is identical to eq.(23) in Seljak &
+       Zaldarriaga PRD55 (1997) 1830 */
+    /* fourPsi = (delta_g/10. */
+    /* 	   +2./7.*shear_g */
+    /* 	   +3./70.*y[ppw->pv->index_pt_delta_g+4] */
+    /* 	   -3./5.*y[ppw->pv->index_pt_pol0_g] */
+    /* 	   +6./7.*y[ppw->pv->index_pt_pol2_g] */
+    /* 	   -3./70.*y[ppw->pv->index_pt_pol0_g+4]); */
+
+    /* photon density (F_0=4*DeltaT_0) */
     dy[ppw->pv->index_pt_delta_g] = 
       -4./3.*theta_g
       -4.*y[ppw->pv->index_pt_gwdot]
-      -pvecthermo[pth->index_th_dkappa]*(delta_g-4.*Psi);
+      -pvecthermo[pth->index_th_dkappa]*(delta_g-fourPsi);
 
-    /* photon velocity ((3k/4)*F_1) */
+    /* photon velocity ((3k/4)*F_1=3k*DeltaT_1) */
     dy[ppw->pv->index_pt_theta_g] = 
       k2*(delta_g/4.-shear_g)
       -pvecthermo[pth->index_th_dkappa]*theta_g;
 
-    /* photon shear (0.5*F_2) */
+    /* photon shear (F_2/2 = 2 DeltaT_2) */
     dy[ppw->pv->index_pt_shear_g] =	
       0.5*(8./15.*theta_g
 	   -3./5.*k*y[ppw->pv->index_pt_shear_g+1])
@@ -5745,10 +5780,10 @@ int perturb_derivs(double tau,
       -(1.+l)/tau*y[ppw->pv->index_pt_delta_g+l]
       - pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_delta_g+l];
 
-    /* photon polarization, l=0 */
+    /* photon polarization, l=0 (G_0=4DeltaP_0)*/
     dy[ppw->pv->index_pt_pol0_g] = 
       -k*y[ppw->pv->index_pt_pol0_g+1]
-      -pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_pol0_g]+Psi); 
+      -pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_pol0_g]+fourPsi); 
     
     /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
     for (l=1; l < ppw->pv->l_max_pol_g; l++)
@@ -5768,6 +5803,11 @@ int perturb_derivs(double tau,
 
     /* its time-derivative */
     dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-k2*y[ppw->pv->index_pt_gw];
+      
+    /* neglected photon shear sourcing: */
+    /* - 1.5 * a2 * 4./3.*pvecback[pba->index_bg_rho_g]*shear_g; */
+    /* neutrino shear also neglected */
+
   }
 
   return _SUCCESS_;

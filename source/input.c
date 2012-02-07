@@ -1769,7 +1769,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->k_tensor_min_tau0=1.4;
   ppr->k_tensor_max_tau0_over_l_max = 2.;
-  ppr->k_tensor_step_sub=0.05;
+  ppr->k_tensor_step_sub=0.1;
   ppr->k_tensor_step_super=0.0025;
   ppr->k_tensor_step_transition=0.2;
 
@@ -1784,8 +1784,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_pol_g=8; 
   ppr->l_max_ur=12; 
   ppr->l_max_ncdm=12;
-  ppr->l_max_g_ten=20;
-  ppr->l_max_pol_g_ten=20;
+  ppr->l_max_g_ten=5;
+  ppr->l_max_pol_g_ten=5;
 
   ppr->curvature_ini=1.; /* initial curvature; used to fix adiabatic initial conditions; must remain fixed to one as long as the primordial adiabatic spectrum stands for the curvature power spectrum */
   ppr->entropy_ini=1.;   /* initial entropy; used to fix isocurvature initial conditions; must remain fixed to one as long as the primordial isocurvature spectrum stands for an entropy power spectrum */
