@@ -54,20 +54,20 @@ int perturb_sources_at_tau(
   /** Summary: */
 
   /** - interpolate in pre-computed table contained in ppt */
-  class_call(array_interpolate_two(ppt->tau_sampling,
-				   1,
-				   0,
-				   ppt->sources[index_mode][index_ic*ppt->tp_size[index_mode]+index_type],
-                                   ppt->k_size[index_mode],
-				   ppt->tau_size,
-                                   tau,
-                                   psource,
-                                   ppt->k_size[index_mode],
-                                   ppt->error_message),
+  class_call(array_interpolate_two_bis(ppt->tau_sampling,
+				       1,
+				       0,
+				       ppt->sources[index_mode][index_ic*ppt->tp_size[index_mode]+index_type],
+				       ppt->k_size[index_mode],
+				       ppt->tau_size,
+				       tau,
+				       psource,
+				       ppt->k_size[index_mode],
+				       ppt->error_message),
              ppt->error_message,
              ppt->error_message);
-
-
+  
+  
   return _SUCCESS_;
 }
 
@@ -193,7 +193,7 @@ int perturb_init(
 
   if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
-    printf("Warning: unresolved difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
+    printf("Warning: unexplained difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
   }
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */

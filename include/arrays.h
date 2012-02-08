@@ -281,6 +281,18 @@ extern "C" {
 			    int result_size, /** from 1 to n_columns_y */
 			    ErrorMsg errmsg);
   
+  int array_interpolate_two_bis(
+				double * array_x,
+				int n_columns_x,
+				int index_x,   /** from 0 to (n_columns_x-1) */
+				double * array_y,
+				int n_columns_y,
+				int n_lines,  /** must be the same for array_x and array_y */
+				double x,
+				double * result,
+				int result_size, /** from 1 to n_columns_y */
+				ErrorMsg errmsg);
+  
   int array_interpolate_spline_one_column(
 					  double * x_array,
 					  int x_size,
