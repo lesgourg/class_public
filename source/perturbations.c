@@ -189,11 +189,11 @@ int perturb_init(
   }
 
   if (ppt->has_tensors == _TRUE_)
-    printf("Warning: don't trust polarized tensors from version %s, we are still otpimizing them\n",_VERSION_);
+    printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n",_VERSION_);
 
-  if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_cmb_polarization == _TRUE_) &&
+  if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
-    printf("Warning: our C_l^TE for tensors has a minus sign with respect to CAMB 2008.\n");
+    printf("Warning: unresolved difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
   }
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
@@ -4753,6 +4753,12 @@ int perturb_source_terms(
       /* time */
       source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_tau] = tau;
 
+	/* source terms taken from eq. (30) in PRD 55 1830, but
+	   recomputed to correct for typos (several errors in factors
+	   and signs in the printed formulas). Identical to
+	   expressions in cmbfast. Different formalism than in camb,
+	   but results match each other. */
+
       /* tensor temperature */
       if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
 
@@ -4763,40 +4769,22 @@ int perturb_source_terms(
 	}
       }
 
-      /* tensor polarization */
+      /* tensor E-polarization */
       if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
 
-        /* our calculation: */
 	if (x > 0.) {
 
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] =
-	    (1.-2./x/x)*pvecthermo[pth->index_th_g]*Psi;
+	    -(1.-2./x/x)*pvecthermo[pth->index_th_g]*Psi;
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] =
-	    -4./x*(pvecthermo[pth->index_th_g]*(Psi/x+Psi_prime/k)+pvecthermo[pth->index_th_dg]*Psi/k);
+	    4./x*(pvecthermo[pth->index_th_g]*(Psi/x+Psi_prime/k)+pvecthermo[pth->index_th_dg]*Psi/k);
 	  source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] =
-	    -(pvecthermo[pth->index_th_g]*Psi_prime+pvecthermo[pth->index_th_dg]*Psi)/k/k;
+	    (pvecthermo[pth->index_th_g]*Psi_prime+pvecthermo[pth->index_th_dg]*Psi)/k/k;
 
 	}
-
-	/* result from eq. (30) in PRD 55 1830, which does not work,
-	   suggesting that there is a typo in that reference */
-
-	/* if (x > 0.) { */
-
-	/*   source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0] = */
-	/*     pvecthermo[pth->index_th_g]*((1.+2./x/x)*Psi-1./k/x*Psi_prime) */
-	/*     +pvecthermo[pth->index_th_dg]*(Psi_prime/k/k-4.*Psi/k/x); */
-
-	/*   source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1] = 0.; */
-
-	/*   source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] =  */
-	/*     -(pvecthermo[pth->index_th_g]*Psi_prime+2.*pvecthermo[pth->index_th_dg]*Psi)/k/k; */
-
-	/* } */
-
-
       }
 
+      /* tensor B-polarization */
       if ((ppt->has_source_b == _TRUE_) && (index_type == ppt->index_tp_b)) {
 
 	if (x > 0.) {
