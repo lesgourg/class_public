@@ -996,10 +996,12 @@ int input_init(
 	       errmsg);
     
     if (flag1 == _TRUE_) {
-      if (strstr(string1,"gaussian") != NULL)
+      if (strstr(string1,"gaussian") != NULL) {
 	ppt->selection=gaussian; 
-      else
+      }
+      else {
 	class_stop("In selection function input: type %s is unclear",string1);
+      }
     }
     
     class_call(parser_read_list_of_doubles(pfc,
@@ -1289,6 +1291,8 @@ int input_init(
   class_read_double("tol_tau_approx",ppr->tol_tau_approx);
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
+  class_read_double("selection_cut_at_sigma",ppr->selection_cut_at_sigma);
+  class_read_double("selection_resolution",ppr->selection_resolution);
 
   class_read_int("radiation_streaming_approximation",ppr->radiation_streaming_approximation);
   class_read_double("radiation_streaming_trigger_tau_over_tau_k",ppr->radiation_streaming_trigger_tau_over_tau_k);
@@ -1797,8 +1801,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_perturb_integration=1.e-4;
   ppr->perturb_sampling_stepsize=0.08;
 
-  ppr->selection_cut_at_sigma=3.;
-  ppr->selection_resolution=10.;
+  ppr->selection_cut_at_sigma=5.;
+  ppr->selection_resolution=4.;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.; 

@@ -1080,11 +1080,7 @@ int transfer_interpolate_sources(
 
 	    bin=index_tt-ptr->index_tt_density;
 
-	    if (ppt->selection==gaussian) {
-	      
-	      W = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
-	      
-	    }
+	    W = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
 
 	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *=
 	      W*2./3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]*pow(k/scale_factor,2);
@@ -1523,6 +1519,8 @@ int transfer_integrate(
 
   for (index_tau=0; index_tau<index_tau_max; index_tau++) {
     
+    //if ((k*delta_tau[index_tau] < 2.*_PI_) && (sources[index_k * tau_size + index_tau] != 0)){
+
     /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
     
     x = k * tau0_minus_tau[index_tau];
@@ -1538,6 +1536,8 @@ int transfer_integrate(
 			     +(2.-a) * ddj_l[index_x+1]) 
 		      * x_step * x_step / 6.0)) 
       * delta_tau[index_tau];                           /* dtau */
+
+    //}
   }
   
   *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */

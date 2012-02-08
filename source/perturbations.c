@@ -206,27 +206,31 @@ int perturb_init(
 	     ppt->error_message);
 
   /** - if selection function are used (e.g. for matter density
-        transfer functions), compute confromal time below which they
+        transfer functions), compute conformal time below which they
         can all be neglected */
 
-  class_call(background_tau_of_z(pba,
-				 ppt->selection_mean[ppt->selection_num-1]+ppt->selection_width[ppt->selection_num-1]*ppr->selection_cut_at_sigma,
-				 &(ppt->selection_tau_min)),
-	     pba->error_message,
-	     ppt->error_message);
+  if (ppt->has_cl_density == _TRUE_) {
 
-  class_call(background_tau_of_z(pba,
-				 ppt->selection_width[0]/ppr->selection_resolution,
-				 &(ppt->selection_delta_tau)),
-	     pba->error_message,
-	     ppt->error_message);
-
-  ppt->selection_delta_tau=pba->conformal_age-ppt->selection_delta_tau;
-
-  class_test(ppt->selection_delta_tau<=0,
-	     ppt->error_message,
-	     "delta tau=%e, should be positive",ppt->selection_delta_tau);
-
+    class_call(background_tau_of_z(pba,
+				   ppt->selection_mean[ppt->selection_num-1]+ppt->selection_width[ppt->selection_num-1]*ppr->selection_cut_at_sigma,
+				   &(ppt->selection_tau_min)),
+	       pba->error_message,
+	       ppt->error_message);
+        
+    class_call(background_tau_of_z(pba,
+				   ppt->selection_width[0]/ppr->selection_resolution,
+				   &(ppt->selection_delta_tau)),
+	       pba->error_message,
+	       ppt->error_message);
+    
+    ppt->selection_delta_tau=pba->conformal_age-ppt->selection_delta_tau;
+    
+    class_test(ppt->selection_delta_tau<=0,
+	       ppt->error_message,
+	       "delta tau=%e, should be positive",ppt->selection_delta_tau);
+    
+  }
+  
   /** - define the common time sampling for all sources using perturb_timesampling_for_sources() */
 
   class_call(perturb_timesampling_for_sources(ppr,
@@ -937,10 +941,12 @@ int perturb_timesampling_for_sources(
     }
 
     /* variation rate of selection function */
-    if (tau >= ppt->selection_tau_min)
-      timescale_source = sqrt(timescale_source*timescale_source + 
-			      1./ppt->selection_delta_tau/ppt->selection_delta_tau);
-    
+    if (ppt->has_cl_density == _TRUE_) {
+      if (tau >= ppt->selection_tau_min)
+	timescale_source = sqrt(timescale_source*timescale_source + 
+				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
+    }
+
     /* check it is non-zero */
     class_test(timescale_source == 0.,
 	       ppt->error_message,
@@ -1028,9 +1034,11 @@ int perturb_timesampling_for_sources(
 	       "null evolution rate, integration is diverging");
 
     /* variation rate of selection function */
-    if (tau >= ppt->selection_tau_min)
-      timescale_source = sqrt(timescale_source*timescale_source + 
-			      1./ppt->selection_delta_tau/ppt->selection_delta_tau);
+    if (ppt->has_cl_density == _TRUE_) {
+      if (tau >= ppt->selection_tau_min)
+	timescale_source = sqrt(timescale_source*timescale_source + 
+				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
+    }
 
     /* compute inverse rate */
     timescale_source = 1./timescale_source;
