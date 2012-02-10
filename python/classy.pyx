@@ -1,3 +1,15 @@
+#########################################
+# CLASS wrapper in python, 
+# v1.0, 10/02/2012
+#
+# Originally written by Karim Benabed
+# Modified heavily by Julien Lesgourgues, Benjamin Audren
+#
+# Note: be careful of the possible mix-up between Class and class. The first
+# will always refer to the cosmological code, the second, always to the python
+# object
+#########################################
+
 import numpy as nm
 import os
 cimport numpy as nm
@@ -6,6 +18,13 @@ from libc.stdio cimport *
 from libc.string cimport *
 cimport cython 
 
+# Bunch of declarations from C to python. The idea here is to define only the
+# quantities that will be used, for input, output or intermediate manipulation,
+# by the python wrapper. For instance, in the precision structure, the only
+# item used here is its error message. That is why nothing more is defined from
+# this structure. The rest is internal in Class.
+# If, for whatever reason, you need an other, existing parameter from Class,
+# remember to add it inside this cdef.
 cdef extern from "class.h":
   
   ctypedef char FileArg[40]
@@ -131,6 +150,13 @@ cdef extern from "class.h":
             linear
             logarithmic
             
+
+# Implement a specific Exception (this might not be optimally designed, nor
+# even acceptable for python standards. It, however, do the job).
+# The idea is to raise either an AttributeError if the problem happened while
+# reading the parameters (in the normal Class, this would just return a line in
+# the unused_parameters file), or a NameError in other cases. This allows
+# MontePython to handle things differently.
 class ClassError(Exception):
   def __init__(self,error_message,init=False):
     print error_message
@@ -139,7 +165,11 @@ class ClassError(Exception):
     else:
       raise NameError
 
+# The actual Class wrapping, the only class we will call from MontePython
+# (indeed the only one we will import, with the command:
+# from classy import Class
 cdef class Class:
+  # List of used structures
   cdef precision pr
   cdef   background ba
   cdef   thermo th
@@ -153,10 +183,14 @@ cdef class Class:
   cdef   nonlinear nl
   cdef   file_content fc
   
-  cdef object ready
-  cdef object _pars
-  cdef object ncp
+  cdef object ready # Flag
+  cdef object _pars # Dictionary of the parameters
+  cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
   
+  # Defining two new properties to recover, respectively, the parameters used
+  # or the age (set after computation). Follow this syntax if you want to
+  # access other quantities. Alternatively, you can also define a method, and
+  # call it (see _T_cmb method, at the very bottom).
   property pars:
     def __get__(self):
       return self._pars
@@ -164,6 +198,7 @@ cdef class Class:
     def __get__(self):
       return self._age()
       
+
   def __init__(self,default=False):
     cdef char* dumc
     self.ready = False
@@ -174,8 +209,8 @@ cdef class Class:
     dumc = "NOFILE"
     sprintf(self.fc.filename,"%s",dumc)
     self.ncp = set()
-    #if default: self.set_default()
     
+  # Set up the dictionary
   def set(self,*pars,**kars):
     if len(pars)==1:
       self._pars.update(dict(pars[0]))
@@ -195,23 +230,8 @@ cdef class Class:
       if self.fc.read[i]==0:
         del(self._pars[self.fc.name[i]])
   
-  #def set_default(self):
-    #self._pars = {
-                  ##"output":"",
-                  ##"background_verbose" : 0,
-                  ##"thermodynamics_verbose" : 0,
-                  ##"perturbations_verbose" : 0,
-                  ##"bessels_verbose" : 0,
-                  ##"transfer_verbose" : 0,
-                  ##"primordial_verbose" : 0,
-                  ##"spectra_verbose" : 0,
-                  ##"nonlinear_verbose" : 0,
-                  ##"lensing_verbose" : 0,
-                  ##"output_verbose": 0,
-                  #}
-    #self.ready=False
-
-  
+  # Create an equivalent of the parameter file. Non specified values will be
+  # taken at their default (in Class) 
   def _fillparfile(self):
     cdef char* dumc
     
@@ -226,13 +246,10 @@ cdef class Class:
     self.fc.value = <FileArg*> malloc(sizeof(FileArg)*len(self._pars))
     assert(self.fc.value!=NULL)
 
-    
     self.fc.read = <short*> malloc(sizeof(short)*len(self._pars))
     assert(self.fc.read!=NULL)
 
-
     # fill parameter file
-    
     i = 0
     for kk in self._pars:
 
@@ -244,37 +261,28 @@ cdef class Class:
       self.fc.read[i] = _FALSE_
       i+=1
       
-      
+  # Called at the end of a run, to free memory
   def _struct_cleanup(self,ncp):
-    #print "clean",ncp
     if "lensing" in ncp:
-      #print "lensing"
       lensing_free(&self.le)
     if "nonlinear" in ncp:
-      #print "nonlinear"
       nonlinear_free (&self.nl)
     if "spectra" in ncp:
-      #print "spectra"
       spectra_free(&self.sp)
     if "primordial" in ncp:
-      #print "primordial"
       primordial_free(&self.pm)
     if "transfer" in ncp:
-      #print "transfer"
       transfer_free(&self.tr)
     if "perturb" in ncp:
-      #print "perturb"
       perturb_free(&self.pt)
     if "thermodynamics" in ncp:
-      #print "thermodynamics"
       thermodynamics_free(&self.th)
     if "background" in ncp:
-      #print "background"
       background_free(&self.ba)
     if "bessel" in ncp:
-      #print "bessel"
       bessel_free(&self.bs)
 
+  # Ensure the full module dependency
   def _check_task_dependency(self,ilvl):
     lvl = ilvl.copy()
     #print "before",lvl
@@ -295,9 +303,34 @@ cdef class Class:
       lvl.add("background")
     if len(lvl)!=0 :
       lvl.add("input")
-    #print "after",lvl
     return lvl
     
+  def _pars_check(self,key,value,contains=False,add=""):
+    val = ""
+    if key in self._pars:
+      val = self._pars[key]
+      if contains:
+        if value in val:
+          return True
+      else:
+        if value==val:
+          return True
+    if add:
+      sep = " "
+      if isinstance(add,str):
+        sep = add
+    
+      if contains and val:
+          self.set({key:val+sep+value})
+      else:
+        self.set({key:value})
+      return True
+    return False
+    
+  # Main function, computes (call _init methods for all desired modules). This
+  # is called in MontePython, and this ensures that the Class instance of this
+  # class contains all the relevant quantities. Then, one can deduce Pk, Cl,
+  # etc...
   def _compute(self,lvl=("lensing")):
     cdef ErrorMsg errmsg
     cdef int ierr
@@ -401,49 +434,28 @@ cdef class Class:
         raise ClassError(self.th.error_message)
       self.ncp.add("lensing") 
       
+    # At this point, the cosmological instance contains everything needed. The
+    # following functions are only to output the desired numbers
     return
 
-  def _pars_check(self,key,value,contains=False,add=""):
-    val = ""
-    if key in self._pars:
-      val = self._pars[key]
-      if contains:
-        if value in val:
-          return True
-      else:
-        if value==val:
-          return True
-    if add:
-      sep = " "
-      if isinstance(add,str):
-        sep = add
-    
-      if contains and val:
-          self.set({key:val+sep+value})
-      else:
-        self.set({key:value})
-      return True
-    return False
-    
   def raw_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
     cdef nm.ndarray cl
     cdef double lcl[4]
     
-    if nofail:
-      self._pars_check("output","tCl",True,True)
-    
-    self._compute(["input"])
     lmaxR = self.sp.l_max_tot
     if lmax==-1:
       lmax=lmaxR
     if lmax>lmaxR:
       if nofail:
         self._pars_check("l_max_scalar",lmax)
+        self._compute(["lensing"])
       else:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
     self._compute(["spectra"])
     
+
+    # TODO: modify this function as in lensed_cl
     cl = nm.ndarray([4,lmax+1], dtype=nm.double)
     cl[:2]=0
     lcl[0]=lcl[1]=lcl[2]=lcl[3] = 0
@@ -454,21 +466,10 @@ cdef class Class:
         cl[md,ell] = lcl[md]
     return cl
 
+  # Only tested and working function
   def lensed_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
-    #cdef nm.ndarray cl
     cdef double lcl[4]
-    
-
-    #if nofail:
-      #self._pars_check("output","tCl",True,True)
-      #self._pars_check("output","lCl",True,True)
-      #self._pars_check("lensing","yes",False,True)
-
-    #self._compute(["input"])
-    #if self.le.has_lensed_cls==0:
-      #raise ClassError("No lensing effect computed")
-    #self._compute(["lensing"])
     lmaxR = self.le.l_lensed_max
     
     if lmax==-1:
@@ -495,19 +496,11 @@ cdef class Class:
 
     return cl
     
+  # Not working function
   def pk_l (self,double z=0,k=None,nofail=False):
     cdef nm.ndarray _k
     cdef nm.ndarray pk
     cdef double mpk,mk
-    
-    if nofail:
-      self._pars_check("output","mPk",True,True)
-      self._pars_check("z_pk",str(z),True,",")
-      
-    self._compute(["input"])
-    if self.pt.has_pk_matter==0:
-      raise ClassError("no pK computed")
-    self._compute(["spectra"])
 
     if k==None:
       _k = nm.ndarray([self.sp.ln_k_size], dtype=nm.double)
@@ -530,20 +523,13 @@ cdef class Class:
       
       return nm.array((k,pk))
 
+  # Avoids using hardcoded numbers for tt, te, ... indexes in the tables.
   def return_index(self):
-    #cdef int tt
-    #cdef int te
-    #cdef int ee
-    #cdef int bb
-    #cdef int tb
-    #cdef int eb
     index = {}
-
     index['tt'] = self.le.index_lt_tt
     index['te'] = self.le.index_lt_te
     index['ee'] = self.le.index_lt_ee
     index['bb'] = self.le.index_lt_bb
-
     return index
         
   def _age(self):
