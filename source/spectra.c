@@ -1185,7 +1185,7 @@ int spectra_indices(
       psp->has_dd = _TRUE_;
       psp->index_ct_dd=index_ct;
       psp->d_size=ppt->selection_num;
-      index_ct+=psp->d_size*psp->d_size;
+      index_ct+=(psp->d_size*(psp->d_size+1))/2;
     }
     else {
       psp->has_dd = _FALSE_;
@@ -1582,13 +1582,15 @@ int spectra_compute_cl(
 	* 4. * _PI_ / k;
 
     if ((psp->has_dd == _TRUE_) && (ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      index_ct=0;
       for (index_d1=0; index_d1<psp->d_size; index_d1++) {
-	for (index_d2=0; index_d2<psp->d_size; index_d2++) {
-	  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_dd+index_d1+psp->d_size*index_d2]=
+	for (index_d2=index_d1; index_d2<psp->d_size; index_d2++) {
+	  cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_dd+index_ct]=
 	    primordial_pk[index_ic1_ic2]
 	    * transfer_ic1[ptr->index_tt_density+index_d1]
 	    * transfer_ic2[ptr->index_tt_density+index_d2]
 	  * 4. * _PI_ / k;
+	  index_ct++;
 	}
       }
     }
