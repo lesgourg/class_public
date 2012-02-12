@@ -59,7 +59,7 @@ enum possible_gauges {
  * maximumu number and types of selection function (for bins of matter density or cosmic shear)
  */
 #define _SELECTION_NUM_MAX_ 50
-enum selection_type {gaussian};
+enum selection_type {gaussian,tophat};
 
 //@}
 
@@ -220,13 +220,13 @@ struct perturbs
 
   double selection_delta_tau; /**< used in presence of selection functions (for matter density, cosmic shear...) */
 
-  double selection_norm[_SELECTION_NUM_MAX_]; /**< value of: int W(z(tau)) dtau, computed by the code and then used to renormalize to one */
-  double selection_tau_min[_SELECTION_NUM_MAX_]; /**< value of conformal time below which W(tau) is considered to vanish for each bin */
-  double selection_tau_max[_SELECTION_NUM_MAX_]; /**< value of conformal time above which W(tau) is considered to vanish for each bin */
-  double selection_tau[_SELECTION_NUM_MAX_]; /**< value of conformal time at the center of each bin */
-  double selection_tau0_minus_tau_min[_SELECTION_NUM_MAX_]; /**< value of tau0 minus conformal time above which W(tau) is considered to vanish for each bin */
-  double selection_tau0_minus_tau_max[_SELECTION_NUM_MAX_]; /**< value of tau0 minus conformal time below which W(tau) is considered to vanish for each bin */
-  double selection_tau0_minus_tau[_SELECTION_NUM_MAX_]; /**< value of tau0 minus conformal time at the center of each bin */
+  double * selection_tau_min; /**< value of conformal time below which W(tau) is considered to vanish for each bin */
+  double * selection_tau_max; /**< value of conformal time above which W(tau) is considered to vanish for each bin */
+  double * selection_tau; /**< value of conformal time at the center of each bin */
+  double * selection_tau0_minus_tau_min; /**< value of tau0 minus conformal time above which W(tau) is considered to vanish for each bin */
+  double * selection_tau0_minus_tau_max; /**< value of tau0 minus conformal time below which W(tau) is considered to vanish for each bin */
+  double * selection_tau0_minus_tau; /**< value of tau0 minus conformal time at the center of each bin */
+  double * selection_function; /** selection function W(tau), normalized to \int W(tau) dtau=1, stored in selection_function[bin*ppt->tau_size+index_tau] */ 
 
   //@}
 
@@ -639,6 +639,11 @@ struct perturb_parameters_and_workspace {
 		       );
 
     int perturb_selection_initialize(
+				     struct precision * ppr,
+				     struct background * pba,
+				     struct perturbs * ppt);
+
+    int perturb_selection_compute(
 				     struct precision * ppr,
 				     struct background * pba,
 				     struct perturbs * ppt);

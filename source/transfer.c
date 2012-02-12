@@ -928,9 +928,11 @@ int transfer_interpolate_sources(
   /* for calling background_at_eta */
   int last_index;
   double * pvecback = NULL;
-  
-  double tau,scale_factor,z,k,W=0.;
+
+  /* bin for computation of cl_density */  
   int bin;
+
+  double tau;
 
   /** - which source are we considering? 
         Define correspondence between transfer types and source types */
@@ -1062,8 +1064,7 @@ int transfer_interpolate_sources(
 
 	  bin=index_tt-ptr->index_tt_density;
 
-	  if ((tau >= ppt->selection_tau_min[bin]) && 
-	      (tau <= ppt->selection_tau_max[bin])) {
+	  if ((tau >= ppt->selection_tau_min[bin]) && (tau <= ppt->selection_tau_max[bin])) {
 	    
 	    class_call(background_at_tau(pba,
 					 tau,
@@ -1074,14 +1075,9 @@ int transfer_interpolate_sources(
 		       pba->error_message,
 		       ptr->error_message);
 	    
-	    scale_factor = pvecback[pba->index_bg_a];
-	    z = pba->a_today/scale_factor-1.;
-	    k=ptr->k[index_mode][index_k_tr];
-
-	    W = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
-
-	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *=
-	      W*2./3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]*pow(k/scale_factor,2);
+	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *= 
+	      ppt->selection_function[bin*ppt->tau_size+index_tau]
+	      *2./3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]*pow(ptr->k[index_mode][index_k_tr]/pvecback[pba->index_bg_a],2);
 	  }
 	  else {
 	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 0;

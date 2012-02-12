@@ -226,6 +226,17 @@ int perturb_init(
 	     ppt->error_message);
 
 
+  /** - if selection function are used (e.g. for matter density
+      transfer functions), compute them explicitely as a function of tau */
+  
+  if (ppt->has_cl_density == _TRUE_) {
+    
+    class_call(perturb_selection_compute(ppr,pba,ppt),
+	       ppt->error_message,
+	       ppt->error_message);
+    
+  }
+
   /** - create an array of workspaces in multi-thread case */
 
 #ifdef _OPENMP
@@ -412,6 +423,18 @@ int perturb_free(
     free(ppt->k);
 
     free(ppt->sources);
+
+    if (ppt->has_cl_density == _TRUE_) {
+
+      free(ppt->selection_tau_min);
+      free(ppt->selection_tau_max);
+      free(ppt->selection_tau);
+      free(ppt->selection_tau0_minus_tau_min);
+      free(ppt->selection_tau0_minus_tau_max);
+      free(ppt->selection_tau0_minus_tau);
+      free(ppt->selection_function);
+
+    }
 
   }
 
@@ -6006,6 +6029,13 @@ int perturb_selection_initialize(
   int bin;
   double z,tau1,tau2;
 
+  class_alloc(ppt->selection_tau_min,ppt->selection_num*sizeof(double),ppt->error_message);
+  class_alloc(ppt->selection_tau_max,ppt->selection_num*sizeof(double),ppt->error_message);
+  class_alloc(ppt->selection_tau,ppt->selection_num*sizeof(double),ppt->error_message);
+  class_alloc(ppt->selection_tau0_minus_tau_min,ppt->selection_num*sizeof(double),ppt->error_message);
+  class_alloc(ppt->selection_tau0_minus_tau_max,ppt->selection_num*sizeof(double),ppt->error_message);
+  class_alloc(ppt->selection_tau0_minus_tau,ppt->selection_num*sizeof(double),ppt->error_message);
+
   ppt->selection_min_of_tau_min=pba->conformal_age;
   ppt->selection_max_of_tau_max=0.;
   ppt->selection_delta_tau =pba->conformal_age;
@@ -6022,7 +6052,12 @@ int perturb_selection_initialize(
       
     ppt->selection_tau0_minus_tau[bin] = pba->conformal_age - ppt->selection_tau[bin];
 
-    z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
+    if (ppt->selection==gaussian) {
+      z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
+    }
+    else {
+      z = ppt->selection_mean[bin]+ppt->selection_width[bin];
+    }
 
     class_call(background_tau_of_z(pba,
 				   z,
@@ -6035,8 +6070,13 @@ int perturb_selection_initialize(
     if (ppt->selection_tau_min[bin] < ppt->selection_min_of_tau_min)
       ppt->selection_min_of_tau_min = ppt->selection_tau_min[bin];
     
-    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
-    
+    if (ppt->selection==gaussian) {
+      z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
+    }
+    else {
+      z = max(ppt->selection_mean[bin]-ppt->selection_width[bin],0.);
+    }
+
     class_call(background_tau_of_z(pba,
 				   z,
 				   &(ppt->selection_tau_max[bin])),
@@ -6068,6 +6108,103 @@ int perturb_selection_initialize(
   class_test(ppt->selection_delta_tau<=0,
 	     ppt->error_message,
 	     "delta tau=%e, should be positive",ppt->selection_delta_tau);
+
+  return _SUCCESS_;
+}
+
+int perturb_selection_compute(
+			      struct precision * ppr,
+			      struct background * pba,
+			      struct perturbs * ppt) {
+  
+  int index_tau,bin,last_index;
+  double * pvecback;
+  double * tau0_minus_tau;
+  double * delta_tau;
+  double tau,z,norm;
+
+  class_calloc(ppt->selection_function,ppt->selection_num*ppt->tau_size,sizeof(double),ppt->error_message);
+
+  class_alloc(pvecback,pba->bg_size_short*sizeof(double),ppt->error_message);  
+
+  for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
+    
+    tau = ppt->tau_sampling[index_tau];
+    
+    if ((tau >= ppt->selection_min_of_tau_min) && (tau <= ppt->selection_max_of_tau_max)) {
+
+      class_call(background_at_tau(pba,
+				   tau,
+				   pba->short_info,
+				   pba->inter_normal,
+				   &last_index,
+				   pvecback),
+		 pba->error_message,
+		 ppt->error_message);
+      
+      z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+            
+      for (bin=0; bin<ppt->selection_num; bin++) {
+
+	if ((tau >= ppt->selection_tau_min[bin]) && 
+	    (tau <= ppt->selection_tau_max[bin])) {
+	  
+	  if (ppt->selection==gaussian) {
+	    ppt->selection_function[bin*ppt->tau_size+index_tau] = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
+	  }
+	  else {
+	    ppt->selection_function[bin*ppt->tau_size+index_tau] = 0.5/ppt->selection_width[bin];
+	  }
+
+	}
+      }
+    }
+  }
+
+  free(pvecback);
+
+  class_alloc(tau0_minus_tau,ppt->tau_size*sizeof(double),ppt->error_message);
+  class_alloc(delta_tau,ppt->tau_size*sizeof(double),ppt->error_message);
+
+  for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
+    tau0_minus_tau[index_tau] = pba->conformal_age - ppt->tau_sampling[index_tau];
+  }
+  
+  delta_tau[0] = ppt->tau_sampling[1]-ppt->tau_sampling[0];
+  
+  for (index_tau=1; index_tau < ppt->tau_size-1; index_tau++) {
+    delta_tau[index_tau] = ppt->tau_sampling[index_tau+1]-ppt->tau_sampling[index_tau-1];
+  }
+
+  delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
+
+  for (bin=0; bin<ppt->selection_num; bin++) {
+  
+    norm = 0.;
+
+    for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
+      norm += ppt->selection_function[bin*ppt->tau_size+index_tau]*delta_tau[index_tau];
+    }
+
+    for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
+      ppt->selection_function[bin*ppt->tau_size+index_tau]/=norm;
+    }
+
+  }
+
+  free(tau0_minus_tau);
+  free(delta_tau);
+
+  /* for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) { */
+  /*   fprintf(stdout,"%e %e %e %e %e %e\n", */
+  /* 	    ppt->tau_sampling[index_tau], */
+  /* 	    ppt->selection_function[0*ppt->tau_size+index_tau], */
+  /* 	    ppt->selection_function[1*ppt->tau_size+index_tau], */
+  /* 	    ppt->selection_function[2*ppt->tau_size+index_tau], */
+  /* 	    ppt->selection_function[3*ppt->tau_size+index_tau], */
+  /* 	    ppt->selection_function[4*ppt->tau_size+index_tau]); */
+    
+  /* } */
 
   return _SUCCESS_;
 }

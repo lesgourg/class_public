@@ -999,6 +999,9 @@ int input_init(
       if (strstr(string1,"gaussian") != NULL) {
 	ppt->selection=gaussian; 
       }
+      else if (strstr(string1,"tophat") != NULL) {
+	ppt->selection=tophat; 
+      }
       else {
 	class_stop("In selection function input: type %s is unclear",string1);
       }
