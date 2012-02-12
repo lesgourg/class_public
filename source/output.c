@@ -1268,7 +1268,7 @@ int output_open_cl_file(
 	fprintf(*clfile,"Ephi             ");
       if (psp->has_dd == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
-	  for (index_d2=0; index_d2<psp->d_size; index_d2++)
+	  for (index_d2=index_d1; index_d2<psp->d_size; index_d2++)
 	    fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
       if (psp->has_td == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
@@ -1293,7 +1293,7 @@ int output_open_cl_file(
 	fprintf(*clfile,"dE               ");
       if (psp->has_dd == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
-	  for (index_d2=0; index_d2<psp->d_size; index_d2++)
+	  for (index_d2=index_d1; index_d2<psp->d_size; index_d2++)
 	    fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
       if (psp->has_td == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)

@@ -482,9 +482,12 @@ struct precision
    */
   double tol_tau_approx;
 
-  double selection_cut_at_sigma; /**< in sigma units, where to cut the selection function of the largest redshift bin */ 
-  double selection_resolution; /**< how many sample of eta do we want within one sigma of the selection function? */
- 
+  /** in sigma units, where to cut gaussian selection functions */
+  double selection_cut_at_sigma;
+  
+  /** when to use the Limber approximation for density cl's */
+  double l_switch_limber_for_cl_density_over_z;
+
   int radiation_streaming_approximation;
 
   /**
@@ -556,7 +559,8 @@ struct precision
 
   double transfer_cut_threshold_cl; /**< threshold used for cutting the transfer function computation at a given \f$ k_{max} \f$ value, if transfer_cut = _TC_CL_ (Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny, C_l being computed approximately and with flat spectrum) */
 
-  int l_switch_limber;
+  /** when to use the Limber approximation for project gravitational potential cl's */
+  double l_switch_limber;
 
   //@}
 

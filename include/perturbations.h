@@ -215,8 +215,18 @@ struct perturbs
 
   double * tau_sampling; /**< tau_sampling[index_tau] = list of tau values */
 
-  double selection_tau_min; /**< used in presence of selection functions (for matter density, cosmic shear...) */
+  double selection_min_of_tau_min; /**< used in presence of selection functions (for matter density, cosmic shear...) */
+  double selection_max_of_tau_max; /**< used in presence of selection functions (for matter density, cosmic shear...) */
+
   double selection_delta_tau; /**< used in presence of selection functions (for matter density, cosmic shear...) */
+
+  double selection_norm[_SELECTION_NUM_MAX_]; /**< value of: int W(z(tau)) dtau, computed by the code and then used to renormalize to one */
+  double selection_tau_min[_SELECTION_NUM_MAX_]; /**< value of conformal time below which W(tau) is considered to vanish for each bin */
+  double selection_tau_max[_SELECTION_NUM_MAX_]; /**< value of conformal time above which W(tau) is considered to vanish for each bin */
+  double selection_tau[_SELECTION_NUM_MAX_]; /**< value of conformal time at the center of each bin */
+  double selection_tau0_minus_tau_min[_SELECTION_NUM_MAX_]; /**< value of tau0 minus conformal time above which W(tau) is considered to vanish for each bin */
+  double selection_tau0_minus_tau_max[_SELECTION_NUM_MAX_]; /**< value of tau0 minus conformal time below which W(tau) is considered to vanish for each bin */
+  double selection_tau0_minus_tau[_SELECTION_NUM_MAX_]; /**< value of tau0 minus conformal time at the center of each bin */
 
   //@}
 
@@ -628,6 +638,11 @@ struct perturb_parameters_and_workspace {
 		       ErrorMsg error_message
 		       );
 
+    int perturb_selection_initialize(
+				     struct precision * ppr,
+				     struct background * pba,
+				     struct perturbs * ppt);
+    
 #ifdef __cplusplus
   }
 #endif

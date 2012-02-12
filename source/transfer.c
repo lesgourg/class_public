@@ -200,6 +200,10 @@ int transfer_init(
       j_l'', plus eventually j_l', j_l''' */
   int num_j;
 
+  /** - for a given l, maximum value of k such that we can convolve
+        the source with Bessel functions j_l(x) without reaching x_max */
+  double k_max_bessel;
+
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
@@ -293,7 +297,7 @@ int transfer_init(
     /* beginning of parallel region */
     
 #pragma omp parallel							\
-  shared(ptr,index_mode,ppt,pbs,pw)					\
+  shared(ptr,index_mode,ppt,pbs,pw,tau0)					\
   private(thread,address_in_workspace,tau0_minus_tau,delta_tau,index_tau)
     {
       
@@ -382,7 +386,7 @@ int transfer_init(
 #pragma omp parallel							\
   shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
 	  interpolated_sources,abort,num_j)				\
-  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l)
+  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel)
 	
 	{
 	  
@@ -445,18 +449,10 @@ int transfer_init(
 	      dddj_l = dj_l + x_size_l;
 	    }
 
-	    /* check that the computation will never need values of
-	       j_l(x) with x > x_max (should never happen, since x_max
-	       is chosen to be greater than tau0*k_max in bessel
-	       module) */
-
-	    class_test_parallel((int)((tau0_minus_tau[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1 >= x_size_l,
-				ptr->error_message,
-				"Increase x_max in bessel functions! The computation needs index_x up to %d while x_size[%d]=%d for x=%e\n",
-				(int)((tau0_minus_tau[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1] - (*x_min_l))/pbs->x_step)+1,
-				index_l,
-				x_size_l,
-				tau0_minus_tau[0] * ptr->k[index_mode][ptr->k_size[index_mode]-1]);
+	    /* for a given l, maximum value of k such that we can convolve
+	       the source with Bessel functions j_l(x) without reaching x_max */
+	    
+	    k_max_bessel = ((*x_min_l)+(x_size_l-1)*pbs->x_step)/tau0_minus_tau[0];
 
 	    /* compute the transfer function for this l */
 	    class_call_parallel(transfer_compute_for_each_l(ppr,
@@ -475,7 +471,8 @@ int transfer_init(
 							    j_l,
 							    ddj_l,
 							    dj_l,
-							    dddj_l),
+							    dddj_l,
+							    k_max_bessel),
 				ptr->error_message,
 				ptr->error_message);
 
@@ -1063,8 +1060,11 @@ int transfer_interpolate_sources(
 
 	  tau = ppt->tau_sampling[index_tau];
 
-	  if ((tau > ppt->selection_tau_min) && ((tau0-tau) > 0.)) {
+	  bin=index_tt-ptr->index_tt_density;
 
+	  if ((tau >= ppt->selection_tau_min[bin]) && 
+	      (tau <= ppt->selection_tau_max[bin])) {
+	    
 	    class_call(background_at_tau(pba,
 					 tau,
 					 pba->long_info,
@@ -1073,12 +1073,10 @@ int transfer_interpolate_sources(
 					 pvecback),
 		       pba->error_message,
 		       ptr->error_message);
-
+	    
 	    scale_factor = pvecback[pba->index_bg_a];
 	    z = pba->a_today/scale_factor-1.;
 	    k=ptr->k[index_mode][index_k_tr];
-
-	    bin=index_tt-ptr->index_tt_density;
 
 	    W = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
 
@@ -1149,7 +1147,8 @@ int transfer_compute_for_each_l(
 				double * j_l,
 				double * ddj_l,
 				double * dj_l,
-				double * dddj_l
+				double * dddj_l,
+				double k_max_bessel
 				){
 
   /** Summary: */
@@ -1190,6 +1189,9 @@ int transfer_compute_for_each_l(
   /* quantitites for multiplying some transfer function by a factor */
   short multiply_by_factor;
   double extra_factor=1.;
+
+  /* whether to use the Limber approximation */
+  short use_limber;
 
   if (ptr->transfer_verbose > 2)
     printf("Compute transfer for l=%d\n",(int)l);
@@ -1280,9 +1282,27 @@ int transfer_compute_for_each_l(
 
       /* criterium for chosing between integration and Limber 
 	 must be implemented here */
+      
+      use_limber = _FALSE_;
 
-      if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars) && (ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
+      if (k>k_max_bessel) {
+	use_limber = _TRUE_;
+      }
+      else {
 	
+	if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+	  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber))
+	    use_limber = _TRUE_;
+
+	  if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density]))
+	    use_limber = _TRUE_;
+
+	}
+      }
+
+      if (use_limber == _TRUE_) {
+
       	class_call(transfer_limber(ppt->tau_size,
 				   ptr,
 				   index_mode,
@@ -1519,8 +1539,6 @@ int transfer_integrate(
 
   for (index_tau=0; index_tau<index_tau_max; index_tau++) {
     
-    //if ((k*delta_tau[index_tau] < 2.*_PI_) && (sources[index_k * tau_size + index_tau] != 0)){
-
     /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
     
     x = k * tau0_minus_tau[index_tau];
@@ -1536,8 +1554,6 @@ int transfer_integrate(
 			     +(2.-a) * ddj_l[index_x+1]) 
 		      * x_step * x_step / 6.0)) 
       * delta_tau[index_tau];                           /* dtau */
-
-    //}
   }
   
   *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */

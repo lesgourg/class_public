@@ -172,7 +172,8 @@ extern "C" {
 				  double * j_l,
 				  double * ddj_l,
 				  double * dj_l,
-				  double * dddj_l
+				  double * dddj_l,
+				  double k_max_bessel
 				  );
 
   int transfer_integrate(

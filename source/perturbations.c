@@ -21,7 +21,7 @@
  *
  * -# perturb_init() at the beginning (but after background_init() and thermodynamics_init())  
  * -# perturb_sources_at_tau() at any later time
- * -# perturb_free() at the end, when no more calls to perturb_sources_at_tau() are needed
+ * -# perturb_free() at the end, hen no more calls to perturb_sources_at_tau() are needed
  */
 
 #include "perturbations.h"
@@ -206,28 +206,13 @@ int perturb_init(
 	     ppt->error_message);
 
   /** - if selection function are used (e.g. for matter density
-        transfer functions), compute conformal time below which they
-        can all be neglected */
-
+      transfer functions), compute associated characteristic times */
+  
   if (ppt->has_cl_density == _TRUE_) {
-
-    class_call(background_tau_of_z(pba,
-				   ppt->selection_mean[ppt->selection_num-1]+ppt->selection_width[ppt->selection_num-1]*ppr->selection_cut_at_sigma,
-				   &(ppt->selection_tau_min)),
-	       pba->error_message,
-	       ppt->error_message);
-        
-    class_call(background_tau_of_z(pba,
-				   ppt->selection_width[0]/ppr->selection_resolution,
-				   &(ppt->selection_delta_tau)),
-	       pba->error_message,
-	       ppt->error_message);
     
-    ppt->selection_delta_tau=pba->conformal_age-ppt->selection_delta_tau;
-    
-    class_test(ppt->selection_delta_tau<=0,
+    class_call(perturb_selection_initialize(ppr,pba,ppt),
 	       ppt->error_message,
-	       "delta tau=%e, should be positive",ppt->selection_delta_tau);
+	       ppt->error_message);
     
   }
   
@@ -942,7 +927,7 @@ int perturb_timesampling_for_sources(
 
     /* variation rate of selection function */
     if (ppt->has_cl_density == _TRUE_) {
-      if (tau >= ppt->selection_tau_min)
+      if ((tau >= ppt->selection_min_of_tau_min) && (tau <= ppt->selection_max_of_tau_max))
 	timescale_source = sqrt(timescale_source*timescale_source + 
 				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
     }
@@ -1035,7 +1020,7 @@ int perturb_timesampling_for_sources(
 
     /* variation rate of selection function */
     if (ppt->has_cl_density == _TRUE_) {
-      if (tau >= ppt->selection_tau_min)
+      if ((tau >= ppt->selection_min_of_tau_min) && (tau <= ppt->selection_max_of_tau_max))
 	timescale_source = sqrt(timescale_source*timescale_source + 
 				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
     }
@@ -1097,7 +1082,7 @@ int perturb_get_k_list(
 		       int index_mode
 		       ) {
   int index_k;
-  double k,k_next,k_rec,step,k_max_cl;
+  double k,k_next,k_rec,step,k_max_cl,tau1;
 
   /** Summary: */
 
@@ -1120,9 +1105,33 @@ int perturb_get_k_list(
     index_k=1;
 
     if (ppt->has_cls == _TRUE_) {
+
+      /* choose a k_max_cl corresponding to a wavelength on the last
+	 scattering surface seen today under an angle smaller than pi/lmax:
+	 this is equivalent to k_max_cl*tau0 > l_max */
+      
       k_max_cl = ppr->k_scalar_max_tau0_over_l_max
 	*ppt->l_scalar_max
 	/pba->conformal_age;
+
+      /* if we need density Cl, we must impose a stronger condition:
+	 the wavelength on the shell corresponding to the center of
+	 smallest redshift bin must be seen under an angle smaller
+	 than pi/lmax. So we must mutiply our previous k_max_cl by the
+	 ratio tau0/(tau0-tau[center of smallest redhsift bin]) */
+
+      if (ppt->has_cl_density == _TRUE_) {
+
+	class_call(background_tau_of_z(pba,
+				       ppt->selection_mean[0],
+				       &tau1),
+		   pba->error_message,
+		   ppt->error_message);
+
+	k_max_cl *= pba->conformal_age/(pba->conformal_age-tau1);
+	
+      }
+
     }
     else
       k_max_cl = 0.;
@@ -5990,4 +5999,75 @@ int perturb_derivs(double tau,
 }
 
 
+int perturb_selection_initialize(
+				 struct precision * ppr,
+				 struct background * pba,
+				 struct perturbs * ppt) {
+  int bin;
+  double z,tau1,tau2;
 
+  ppt->selection_min_of_tau_min=pba->conformal_age;
+  ppt->selection_max_of_tau_max=0.;
+  ppt->selection_delta_tau =pba->conformal_age;
+
+  for (bin=0; bin<ppt->selection_num; bin++) {
+
+    z = ppt->selection_mean[bin];
+
+    class_call(background_tau_of_z(pba,
+				   z,
+				   &(ppt->selection_tau[bin])),
+	       pba->error_message,
+	       ppt->error_message);
+      
+    ppt->selection_tau0_minus_tau[bin] = pba->conformal_age - ppt->selection_tau[bin];
+
+    z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
+
+    class_call(background_tau_of_z(pba,
+				   z,
+				   &(ppt->selection_tau_min[bin])),
+	       pba->error_message,
+	       ppt->error_message);
+    
+    ppt->selection_tau0_minus_tau_max[bin] = pba->conformal_age - ppt->selection_tau_min[bin];
+
+    if (ppt->selection_tau_min[bin] < ppt->selection_min_of_tau_min)
+      ppt->selection_min_of_tau_min = ppt->selection_tau_min[bin];
+    
+    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
+    
+    class_call(background_tau_of_z(pba,
+				   z,
+				   &(ppt->selection_tau_max[bin])),
+	       pba->error_message,
+	       ppt->error_message);
+    
+    ppt->selection_tau0_minus_tau_min[bin] = pba->conformal_age - ppt->selection_tau_max[bin];
+
+    if (ppt->selection_tau_max[bin] > ppt->selection_max_of_tau_max)
+      ppt->selection_max_of_tau_max = ppt->selection_tau_max[bin];
+
+    /* compute step size for sampling sources (must get enough samples
+       to catch variation of source in the narrow range in which the
+       selection function is non-zero) */
+ 
+    if ((ppt->selection_tau[bin]-ppt->selection_tau_min[bin]) < ppt->selection_delta_tau)
+      ppt->selection_delta_tau = (ppt->selection_tau[bin]-ppt->selection_tau_min[bin]);
+
+  }
+
+  /* check that selection_delta_tau is sufficiently small so that, in
+     the convolution with bessel function, two consecutive points
+     would not cause a variation of j_l(x) by more than one period,
+     even for the largest k mode */
+
+  ppt->selection_delta_tau=min(ppt->selection_delta_tau,
+			       2*_PI_*pba->conformal_age/ppt->l_scalar_max/ppr->k_scalar_max_tau0_over_l_max);
+
+  class_test(ppt->selection_delta_tau<=0,
+	     ppt->error_message,
+	     "delta tau=%e, should be positive",ppt->selection_delta_tau);
+
+  return _SUCCESS_;
+}
