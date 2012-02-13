@@ -1,0 +1,15 @@
+To use this python wrapper for class, you should first compile class with 'make all', not just 'make class': this is important in order to create libraries. Be sure that you did not remove the -fPIC compiling flag in the Makefile, important for compatibility between OpenMP and the python wrapper.
+
+Check that the command 'python' points towards a version of python > 2.7 but < 3.0. Then, execute:
+
+> python setup.py build
+> pyhton setup.py install --user
+
+(it's really 'user', not your own user name).
+
+You can check that these steps worked by typing
+
+> python
+>>> from classy import Class
+
+If python does not complain, the Class module has been correctly installed in your python distribution. You can now import it and use its functions from your python codes.  
