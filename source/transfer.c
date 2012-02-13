@@ -1051,11 +1051,12 @@ int transfer_interpolate_sources(
 
 	if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
 
-	  /* matter density source =  - (dz/dtau) W(z) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
-	                           =  - W(z) * 2/(3 Omega_m(tau) H(tau)) * (k/a)^2 psi(k,tau)
+	  /* matter density source =  - [- (dz/dtau) W(z)] * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
+	                           =  - W(tau) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
 	     with 
 	     psi = (newtonian) gravitationnal potential  
-	     W(z) = redshift space selection function 
+	     W(z) = redshift space selection function = dN/dz
+             W(tau) = same wrt conformal time = dN/dtau
 	     (in tau = tau_0, set source = 0 to avoid division by zero;
               regulated anyway by Bessel).
 	  */
@@ -1076,8 +1077,8 @@ int transfer_interpolate_sources(
 		       ptr->error_message);
 	    
 	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *= 
-	      ppt->selection_function[bin*ppt->tau_size+index_tau]
-	      *2./3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]*pow(ptr->k[index_mode][index_k_tr]/pvecback[pba->index_bg_a],2);
+	      - ppt->selection_function[bin*ppt->tau_size+index_tau]
+	      *2./3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]*pow(ptr->k[index_mode][index_k_tr]/pvecback[pba->index_bg_a],2);
 	  }
 	  else {
 	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 0;
@@ -1550,6 +1551,7 @@ int transfer_integrate(
 			     +(2.-a) * ddj_l[index_x+1]) 
 		      * x_step * x_step / 6.0)) 
       * delta_tau[index_tau];                           /* dtau */
+
   }
   
   *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */

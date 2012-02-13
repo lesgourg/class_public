@@ -223,9 +223,6 @@ struct perturbs
   double * selection_tau_min; /**< value of conformal time below which W(tau) is considered to vanish for each bin */
   double * selection_tau_max; /**< value of conformal time above which W(tau) is considered to vanish for each bin */
   double * selection_tau; /**< value of conformal time at the center of each bin */
-  double * selection_tau0_minus_tau_min; /**< value of tau0 minus conformal time above which W(tau) is considered to vanish for each bin */
-  double * selection_tau0_minus_tau_max; /**< value of tau0 minus conformal time below which W(tau) is considered to vanish for each bin */
-  double * selection_tau0_minus_tau; /**< value of tau0 minus conformal time at the center of each bin */
   double * selection_function; /** selection function W(tau), normalized to \int W(tau) dtau=1, stored in selection_function[bin*ppt->tau_size+index_tau] */ 
 
   //@}

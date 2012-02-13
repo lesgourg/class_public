@@ -216,7 +216,8 @@ int perturb_init(
     
   }
   
-  /** - define the common time sampling for all sources using perturb_timesampling_for_sources() */
+  /** - define the common time sampling for all sources using
+        perturb_timesampling_for_sources() */
 
   class_call(perturb_timesampling_for_sources(ppr,
 					      pba,
@@ -227,7 +228,9 @@ int perturb_init(
 
 
   /** - if selection function are used (e.g. for matter density
-      transfer functions), compute them explicitely as a function of tau */
+      transfer functions), compute them explicitely as a function of
+      tau (and normalize them correctly)
+  */
   
   if (ppt->has_cl_density == _TRUE_) {
     
@@ -429,9 +432,6 @@ int perturb_free(
       free(ppt->selection_tau_min);
       free(ppt->selection_tau_max);
       free(ppt->selection_tau);
-      free(ppt->selection_tau0_minus_tau_min);
-      free(ppt->selection_tau0_minus_tau_max);
-      free(ppt->selection_tau0_minus_tau);
       free(ppt->selection_function);
 
     }
@@ -948,9 +948,9 @@ int perturb_timesampling_for_sources(
       timescale_source = a_prime_over_a;
     }
 
-    /* variation rate of selection function */
+    /* variation rate in range where selection function is non-zero */
     if (ppt->has_cl_density == _TRUE_) {
-      if ((tau >= ppt->selection_min_of_tau_min) && (tau <= ppt->selection_max_of_tau_max))
+      if ((tau >= ppt->selection_min_of_tau_min-ppr->perturb_sampling_stepsize/timescale_source) && (tau <= ppt->selection_max_of_tau_max+ppr->perturb_sampling_stepsize/timescale_source))
 	timescale_source = sqrt(timescale_source*timescale_source + 
 				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
     }
@@ -1041,9 +1041,9 @@ int perturb_timesampling_for_sources(
 	       ppt->error_message,
 	       "null evolution rate, integration is diverging");
 
-    /* variation rate of selection function */
+    /* variation rate in range where selection function is non-zero */
     if (ppt->has_cl_density == _TRUE_) {
-      if ((tau >= ppt->selection_min_of_tau_min) && (tau <= ppt->selection_max_of_tau_max))
+      if ((tau >= ppt->selection_min_of_tau_min-ppr->perturb_sampling_stepsize/timescale_source) && (tau <= ppt->selection_max_of_tau_max+ppr->perturb_sampling_stepsize/timescale_source))
 	timescale_source = sqrt(timescale_source*timescale_source + 
 				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
     }
@@ -1141,7 +1141,11 @@ int perturb_get_k_list(
 	 the wavelength on the shell corresponding to the center of
 	 smallest redshift bin must be seen under an angle smaller
 	 than pi/lmax. So we must mutiply our previous k_max_cl by the
-	 ratio tau0/(tau0-tau[center of smallest redhsift bin]) */
+	 ratio tau0/(tau0-tau[center of smallest redhsift bin]). Note
+	 that we could do the same with the lensing potential if we
+	 needed a very precise C_l^phi-phi at large l. We don't do it
+	 by default, because the lensed ClT, ClE would be marginally
+	 affected. */
 
       if (ppt->has_cl_density == _TRUE_) {
 
@@ -6021,6 +6025,9 @@ int perturb_derivs(double tau,
   return _SUCCESS_;
 }
 
+/* if selection function are needed (e.g. for computing the matter
+   density transfer function), compute some useful chatacteristic
+   times associated to them. */
 
 int perturb_selection_initialize(
 				 struct precision * ppr,
@@ -6029,18 +6036,22 @@ int perturb_selection_initialize(
   int bin;
   double z,tau1,tau2;
 
+  /* for each bin, compute tau at the center of the bin and at its
+     edges. Compute also the smallest tau_min and the largest tau_max
+     (outside the range [min_of_tau_min, max_of_tau_max], we know that
+     all selection functions are null) */
+
   class_alloc(ppt->selection_tau_min,ppt->selection_num*sizeof(double),ppt->error_message);
   class_alloc(ppt->selection_tau_max,ppt->selection_num*sizeof(double),ppt->error_message);
   class_alloc(ppt->selection_tau,ppt->selection_num*sizeof(double),ppt->error_message);
-  class_alloc(ppt->selection_tau0_minus_tau_min,ppt->selection_num*sizeof(double),ppt->error_message);
-  class_alloc(ppt->selection_tau0_minus_tau_max,ppt->selection_num*sizeof(double),ppt->error_message);
-  class_alloc(ppt->selection_tau0_minus_tau,ppt->selection_num*sizeof(double),ppt->error_message);
 
   ppt->selection_min_of_tau_min=pba->conformal_age;
   ppt->selection_max_of_tau_max=0.;
   ppt->selection_delta_tau =pba->conformal_age;
 
   for (bin=0; bin<ppt->selection_num; bin++) {
+
+    /* bin center */
 
     z = ppt->selection_mean[bin];
 
@@ -6050,7 +6061,7 @@ int perturb_selection_initialize(
 	       pba->error_message,
 	       ppt->error_message);
       
-    ppt->selection_tau0_minus_tau[bin] = pba->conformal_age - ppt->selection_tau[bin];
+    /* lower edge of bin */
 
     if (ppt->selection==gaussian) {
       z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
@@ -6065,11 +6076,11 @@ int perturb_selection_initialize(
 	       pba->error_message,
 	       ppt->error_message);
     
-    ppt->selection_tau0_minus_tau_max[bin] = pba->conformal_age - ppt->selection_tau_min[bin];
-
     if (ppt->selection_tau_min[bin] < ppt->selection_min_of_tau_min)
       ppt->selection_min_of_tau_min = ppt->selection_tau_min[bin];
     
+    /* higher edge of bin */
+ 
     if (ppt->selection==gaussian) {
       z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
     }
@@ -6083,8 +6094,6 @@ int perturb_selection_initialize(
 	       pba->error_message,
 	       ppt->error_message);
     
-    ppt->selection_tau0_minus_tau_min[bin] = pba->conformal_age - ppt->selection_tau_max[bin];
-
     if (ppt->selection_tau_max[bin] > ppt->selection_max_of_tau_max)
       ppt->selection_max_of_tau_max = ppt->selection_tau_max[bin];
 
@@ -6111,6 +6120,14 @@ int perturb_selection_initialize(
 
   return _SUCCESS_;
 }
+
+/* Selection function are passed as W(z) = dN/dz (number of objects in
+   thin redhsift shell). Here we convert them to W(tau)= dN/dtau = -
+   (dz/dtau) W(z(tau)) = H(z(tau)) W(z(tau)). They are normalized to
+   \int dz W(z) = \int dtau W(taU) = 1. If selection function are
+   needed (e.g. for computing the matter density transfer function),
+   this function computes them explicitely as a function of tau, and
+   normalizes them to \int dtau W(tau) = 1. */
 
 int perturb_selection_compute(
 			      struct precision * ppr,
@@ -6143,17 +6160,22 @@ int perturb_selection_compute(
 		 ppt->error_message);
       
       z = pba->a_today/pvecback[pba->index_bg_a]-1.;
-            
+
       for (bin=0; bin<ppt->selection_num; bin++) {
 
 	if ((tau >= ppt->selection_tau_min[bin]) && 
 	    (tau <= ppt->selection_tau_max[bin])) {
 	  
+	  /* compute W(tau), given W(z) and tau(z) */ 
+
+          /* gaussian case */
 	  if (ppt->selection==gaussian) {
-	    ppt->selection_function[bin*ppt->tau_size+index_tau] = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
+	    ppt->selection_function[bin*ppt->tau_size+index_tau] = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_)*pvecback[pba->index_bg_H];
 	  }
+
+          /* top-hat case, still under developement */
 	  else {
-	    ppt->selection_function[bin*ppt->tau_size+index_tau] = 0.5/ppt->selection_width[bin];
+	    ppt->selection_function[bin*ppt->tau_size+index_tau] = 0.5/ppt->selection_width[bin]*pvecback[pba->index_bg_H];
 	  }
 
 	}
@@ -6165,6 +6187,8 @@ int perturb_selection_compute(
 
   class_alloc(tau0_minus_tau,ppt->tau_size*sizeof(double),ppt->error_message);
   class_alloc(delta_tau,ppt->tau_size*sizeof(double),ppt->error_message);
+
+  /* prepare integration over tau */
 
   for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
     tau0_minus_tau[index_tau] = pba->conformal_age - ppt->tau_sampling[index_tau];
@@ -6178,13 +6202,20 @@ int perturb_selection_compute(
 
   delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
 
+
   for (bin=0; bin<ppt->selection_num; bin++) {
+
+    /* integrate to get norm=\int W(tau) dtau */
   
     norm = 0.;
 
     for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
       norm += ppt->selection_function[bin*ppt->tau_size+index_tau]*delta_tau[index_tau];
     }
+
+    norm /= 2.; /* correct for factor 1/2 from trapezoidal rule */
+
+    /* divide W by norm so that \int W(tau) dtau = 1 */
 
     for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
       ppt->selection_function[bin*ppt->tau_size+index_tau]/=norm;
@@ -6195,16 +6226,11 @@ int perturb_selection_compute(
   free(tau0_minus_tau);
   free(delta_tau);
 
-  /* for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) { */
-  /*   fprintf(stdout,"%e %e %e %e %e %e\n", */
-  /* 	    ppt->tau_sampling[index_tau], */
-  /* 	    ppt->selection_function[0*ppt->tau_size+index_tau], */
-  /* 	    ppt->selection_function[1*ppt->tau_size+index_tau], */
-  /* 	    ppt->selection_function[2*ppt->tau_size+index_tau], */
-  /* 	    ppt->selection_function[3*ppt->tau_size+index_tau], */
-  /* 	    ppt->selection_function[4*ppt->tau_size+index_tau]); */
-    
-  /* } */
+  if (ppt->selection==tophat) {
+    if (ppt->perturbations_verbose>2)  
+      fprintf(stdout,"Warning: the case of top-hat selection functions is still under developement, we recommend to use gaussian ones (input selection = gaussian)\n");
+    ppr->l_switch_limber_for_cl_density_over_z *= 25.;
+  }
 
   return _SUCCESS_;
 }
