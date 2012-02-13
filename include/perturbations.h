@@ -287,6 +287,7 @@ struct perturb_vector
   int* q_size_ncdm;
 
   int index_pt_eta;       /**< synchronous gauge metric perturbation eta*/
+  int index_pt_phi;
   int index_pt_gw;        /**< tensor metric perturbation h (gravitational waves) */
   int index_pt_gwdot;     /**< its time-derivative */
   int pt_size;            /**< size of perturbation vector */

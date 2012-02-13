@@ -175,17 +175,9 @@ int perturb_init(
   class_test(ppt->has_vectors == _TRUE_,
 	     ppt->error_message,
 	     "Vectors not coded yet");
-
-  if ((ppt->gauge == newtonian) && (pba->has_ncdm == _TRUE_)) {
-    printf("Warning: integrating the ncdm equations in the newtonian gauge requires more precision than in the synchronous one. You should set tol_ncdm to a smaller value than usual, and the Cls for l<50 wil not be accurate. Currently, you have tol_ncdm set to %e; for indication, 1.e-5 is necessary for sub-percent precision for l>50.\n",ppr->tol_ncdm);
-  } 
 	     
   if (ppt->has_niv == _TRUE_) {
     printf("Warning: the niv initial conditions in CLASS (and also in CAMB) should still be double-checked: if you want to do it and send feedback, you are welcome!\n");
-  }
-
-  if ((ppt->gauge == newtonian) && ((ppt->has_bi == _TRUE_) || (ppt->has_cdi == _TRUE_) || (ppt->has_nid == _TRUE_))) {
-    printf("Warning: isocurvature modes are more stable and accurate in the synchronous gauge. Take these results with care.\n");
   }
 
   if (ppt->has_tensors == _TRUE_)
@@ -193,7 +185,7 @@ int perturb_init(
 
   if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_)) {
-    printf("Warning: unexplained difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
+    printf("Warning: yet unexplained difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
   }
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
@@ -2538,6 +2530,18 @@ int perturb_vector_init(
       ppv->index_pt_eta = index_pt; /* metric perturbation eta of synchronous gauge */
       index_pt++;
     }
+
+    if (ppt->gauge == newtonian) {
+      ppv->index_pt_phi = index_pt; /* metric perturbation phi of
+				       newtonian gauge ( we could fix
+				       it using Einstein equations as
+				       a constraint equation for phi,
+				       but integration is numerically
+				       more stable if we actually
+				       evolve phi) */
+      index_pt++;
+    }
+
   }
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
@@ -2824,6 +2828,10 @@ int perturb_vector_init(
       if (ppt->gauge == synchronous)
 	ppv->y[ppv->index_pt_eta] =
 	  ppw->pv->y[ppw->pv->index_pt_eta];
+
+      if (ppt->gauge == newtonian)
+      	ppv->y[ppv->index_pt_phi] =
+      	  ppw->pv->y[ppw->pv->index_pt_phi];
 
       /* -- case of switching off tight coupling
 	 approximation. Provide correct initial conditions to new set
@@ -3541,6 +3549,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
       alpha = (eta + 3./2.*a_prime_over_a*a_prime_over_a/(1.+rho_m_over_rho_r)/k/k*((fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*delta_cdm)) + 3.*a_prime_over_a/k/k*((4./3.*fracg+rho_m_over_rho_r*fracb)*ppw->pv->y[ppw->pv->index_pt_theta_g]+4./3.*fracnu*theta_ur)))/a_prime_over_a;
 
+      ppw->pv->y[ppw->pv->index_pt_phi] = eta - a_prime_over_a*alpha;
 
       ppw->pv->y[ppw->pv->index_pt_delta_g] -= 4.*a_prime_over_a*alpha;
       ppw->pv->y[ppw->pv->index_pt_theta_g] += k*k*alpha;
@@ -4287,14 +4296,20 @@ int perturb_einstein(
     /* newtonian gauge */
     if (ppt->gauge == newtonian) {
 
-      /* equation for phi */
-      ppw->pvecmetric[ppw->index_mt_phi] = -1.5 * (a2/k2/k2) * (k2 * delta_rho + 3.*a_prime_over_a * rho_plus_p_theta);
+      /* in principle we could get phi from the constrain equation:
+	 
+	 ppw->pvecmetric[ppw->index_mt_phi] = -1.5 * (a2/k2/k2) * (k2 * delta_rho + 3.*a_prime_over_a * rho_plus_p_theta); 
+
+	 This was the case in class v1.3. However the integration is
+	 more stable is we treat phi as a dynamical variable
+	 y[ppw->pv->index_pt_phi], which derivative is given by the
+	 second equation below (credits to Guido Walter Pettinari). */
 
       /* equation for psi */
-      ppw->pvecmetric[ppw->index_mt_psi] = - 1.5 * (a2/k2) * ((delta_rho + 3.*a_prime_over_a/k2 * rho_plus_p_theta) + 3. * rho_plus_p_shear);
+      ppw->pvecmetric[ppw->index_mt_psi] = y[ppw->pv->index_pt_phi] - 4.5 * (a2/k2) * rho_plus_p_shear;;
 
-      /* equation for phi' */
-      ppw->pvecmetric[ppw->index_mt_phi_prime] = 1.5 * (a2/k2) * (a_prime_over_a * (delta_rho+3.*rho_plus_p_shear)+(1.+3.*a_prime_over_a*a_prime_over_a/k2)*rho_plus_p_theta);
+      /* equation for phi */
+      ppw->pvecmetric[ppw->index_mt_phi_prime] = -a_prime_over_a*(y[ppw->pv->index_pt_phi] - 4.5 * (a2/k2) * rho_plus_p_shear) + 1.5 * (a2/k2) * rho_plus_p_theta;
 
       /* eventually, infer radiation streaming approximation for gamma and nur */
 
@@ -4306,8 +4321,9 @@ int perturb_einstein(
 	}
 	else {
 	  
-	  ppw->rsa_delta_g = -4.*ppw->pvecmetric[ppw->index_mt_phi];
-
+	  //ppw->rsa_delta_g = -4.*ppw->pvecmetric[ppw->index_mt_phi];
+	  ppw->rsa_delta_g = -4.*y[ppw->pv->index_pt_phi];       
+	  
 	  ppw->rsa_theta_g = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
 	}
 	    
@@ -4321,7 +4337,8 @@ int perturb_einstein(
 		   +ppw->pvecthermo[pth->index_th_dkappa]*
 		   (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
 		    +ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
-		    +k2*ppw->pvecmetric[ppw->index_mt_phi]));
+		    //+k2*ppw->pvecmetric[ppw->index_mt_phi]));
+		    +k2*y[ppw->pv->index_pt_phi]));
 	}	    
 
 	if (pba->has_ur == _TRUE_) {
@@ -4331,8 +4348,9 @@ int perturb_einstein(
 	    ppw->rsa_theta_ur = 0.;
 	  }
 	  else {
-	    ppw->rsa_delta_ur = -4.*ppw->pvecmetric[ppw->index_mt_phi];
-				
+	    //ppw->rsa_delta_ur = -4.*ppw->pvecmetric[ppw->index_mt_phi];
+	    ppw->rsa_delta_ur = -4.*y[ppw->pv->index_pt_phi];
+
 	    ppw->rsa_theta_ur = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
 	  }
 	}
@@ -5929,6 +5947,12 @@ int perturb_derivs(double tau,
 
     }
 
+    if (ppt->gauge == newtonian) {
+
+      dy[ppw->pv->index_pt_phi] = pvecmetric[ppw->index_mt_phi_prime];
+      
+    }
+    
   }
 
   /** - tensor mode */
