@@ -1,6 +1,6 @@
 #########################################
 # CLASS wrapper in python, 
-# v1.0, 10/02/2012
+# 13/02/2012
 #
 # Originally written by Karim Benabed
 # Modified by Benjamin Audren, Julien Lesgourgues
