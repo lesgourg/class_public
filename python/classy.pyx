@@ -3,7 +3,7 @@
 # v1.0, 10/02/2012
 #
 # Originally written by Karim Benabed
-# Modified heavily by Julien Lesgourgues, Benjamin Audren
+# Modified by Benjamin Audren, Julien Lesgourgues
 #
 # Note: be careful of the possible mix-up between Class and class. The first
 # will always refer to the cosmological code, the second, always to the python
