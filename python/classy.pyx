@@ -38,6 +38,8 @@ cdef extern from "class.h":
     ErrorMsg error_message 
     int bg_size
     int index_bg_ang_distance
+    int index_bg_conf_distance
+    int index_bg_H
     short long_info
     short inter_normal
     double T_cmb
@@ -496,32 +498,83 @@ cdef class Class:
 
     return cl
     
-  # Not working function
-  def pk_l (self,double z=0,k=None,nofail=False):
-    cdef nm.ndarray _k
-    cdef nm.ndarray pk
-    cdef double mpk,mk
+  def z_of_r (self,z_array):
+    #cdef double * r
+    #cdef double * dzdr
+    cdef double tau
+    cdef int last_index #junk
+    cdef double * pvecback
+    #for elem in ['tt','ta']:
+      #print elem
+      #fprintf(stderr,'z is %s\n',elem)
+    #r    = <double*> calloc(len(z_array),sizeof(double))
+    #dzdr = <double*> calloc(len(z_array),sizeof(double))
 
-    if k==None:
-      _k = nm.ndarray([self.sp.ln_k_size], dtype=nm.double)
-      memcpy(nm.PyArray_DATA(_k),self.sp.ln_k,sizeof(double)*self.sp.ln_k_size)
-      k = nm.exp(_k)
-      pk = nm.ndarray([self.sp.ln_k_size], dtype=nm.double)
+    #for i in range(len(z_array)):
+      #z[i] = z_array[i]
+    #print z_array
+    #print z
+    r = nm.zeros(len(z_array),'float64')
+    dzdr = nm.zeros(len(z_array),'float64')
+
+    pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+    i = 0
+    for redshift in z_array:
+      if background_tau_of_z(&self.ba,redshift,&tau)==_FAILURE_:
+        raise ClassError(self.ba.error_message)
+
+      if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+        raise ClassError(self.ba.error_message)
+
+      # In the first column, store r
+      r[i] = pvecback[self.ba.index_bg_conf_distance]
+      # And in the second, dz/dr = H
+      dzdr[i] = pvecback[self.ba.index_bg_H]
+
+      i += 1
+
+    return r[:],dzdr[:]
+
+  # Gives the pk for a given (k,z)
+  def _pk(self,k,z):
+    cdef double kk
+    cdef double zz
+    cdef double pk
+    cdef double * junk
+
+    kk = k
+    zz = z
+    #if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,junk)==_FAILURE_:
+      #raise ClassError(self.sp.error_message)
+    if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,kk,zz,&pk,NULL)==_FAILURE_:
+      raise ClassError(self.sp.error_message)
+    return pk
+  #def pk_l (self,double z=0,k=None,nofail=False):
+    #cdef nm.ndarray _k
+    #cdef nm.ndarray pk
+    #cdef double mpk,mk
+
+    #if k==None:
+      #_k = nm.ndarray([self.sp.ln_k_size], dtype=nm.double)
+      #memcpy(nm.PyArray_DATA(_k),self.sp.ln_k,sizeof(double)*self.sp.ln_k_size)
+      #k = nm.exp(_k)
+      #pk = nm.ndarray([self.sp.ln_k_size], dtype=nm.double)
     
-      if spectra_pk_at_z(&self.ba,&self.sp,linear,z,<double*>nm.PyArray_DATA(pk),NULL)==_FAILURE_:
-        raise ClassError(self.sp.error_message)
-      return nm.array((k,pk))
+      #if spectra_pk_at_z(&self.ba,&self.sp,linear,z,<double*>nm.PyArray_DATA(pk),NULL)==_FAILURE_:
+        #raise ClassError(self.sp.error_message)
+      #return nm.array((k,pk))
     
-    else:
-      pk = nm.ndarray([len(k)], dtype=nm.double)
+    #else:
+      #pk = nm.ndarray([len(k)], dtype=nm.double)
       
-      for i from 0<=i<len(k):
-        mk = k[i]
-        if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,mk,z,&mpk,NULL)==_FAILURE_:
-          raise ClassError(self.sp.error_message)
-        pk[i] = mpk
+      #for i from 0<=i<len(k):
+        #mk = k[i]
+        #if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,mk,z,&mpk,NULL)==_FAILURE_:
+          #raise ClassError(self.sp.error_message)
+        #pk[i] = mpk
       
-      return nm.array((k,pk))
+      #return nm.array((k,pk))
 
   # Avoids using hardcoded numbers for tt, te, ... indexes in the tables.
   def return_index(self):
