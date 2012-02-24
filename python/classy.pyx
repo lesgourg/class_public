@@ -45,6 +45,8 @@ cdef extern from "class.h":
     double T_cmb
     double h
     double age
+    double Omega0_b
+    double Omega0_cdm
     
   cdef struct thermo:
     ErrorMsg error_message 
@@ -545,36 +547,9 @@ cdef class Class:
 
     kk = k
     zz = z
-    #if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,junk)==_FAILURE_:
-      #raise ClassError(self.sp.error_message)
     if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,kk,zz,&pk,NULL)==_FAILURE_:
       raise ClassError(self.sp.error_message)
     return pk
-  #def pk_l (self,double z=0,k=None,nofail=False):
-    #cdef nm.ndarray _k
-    #cdef nm.ndarray pk
-    #cdef double mpk,mk
-
-    #if k==None:
-      #_k = nm.ndarray([self.sp.ln_k_size], dtype=nm.double)
-      #memcpy(nm.PyArray_DATA(_k),self.sp.ln_k,sizeof(double)*self.sp.ln_k_size)
-      #k = nm.exp(_k)
-      #pk = nm.ndarray([self.sp.ln_k_size], dtype=nm.double)
-    
-      #if spectra_pk_at_z(&self.ba,&self.sp,linear,z,<double*>nm.PyArray_DATA(pk),NULL)==_FAILURE_:
-        #raise ClassError(self.sp.error_message)
-      #return nm.array((k,pk))
-    
-    #else:
-      #pk = nm.ndarray([len(k)], dtype=nm.double)
-      
-      #for i from 0<=i<len(k):
-        #mk = k[i]
-        #if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,mk,z,&mpk,NULL)==_FAILURE_:
-          #raise ClassError(self.sp.error_message)
-        #pk[i] = mpk
-      
-      #return nm.array((k,pk))
 
   # Avoids using hardcoded numbers for tt, te, ... indexes in the tables.
   def return_index(self):
@@ -609,3 +584,6 @@ cdef class Class:
 
   def _T_cmb(self):
     return self.ba.T_cmb
+
+  def _Omega0_m(self):
+    return self.ba.Omega0_b+self.ba.Omega0_cdm
