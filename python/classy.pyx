@@ -501,22 +501,10 @@ cdef class Class:
     return cl
     
   def z_of_r (self,z_array):
-    #cdef double * r
-    #cdef double * dzdr
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
-    #for elem in ['tt','ta']:
-      #print elem
-      #fprintf(stderr,'z is %s\n',elem)
-    #r    = <double*> calloc(len(z_array),sizeof(double))
-    #dzdr = <double*> calloc(len(z_array),sizeof(double))
-
-    #for i in range(len(z_array)):
-      #z[i] = z_array[i]
-    #print z_array
-    #print z
-    r = nm.zeros(len(z_array),'float64')
+    r    = nm.zeros(len(z_array),'float64')
     dzdr = nm.zeros(len(z_array),'float64')
 
     pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
@@ -529,9 +517,9 @@ cdef class Class:
       if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
         raise ClassError(self.ba.error_message)
 
-      # In the first column, store r
+      # store r
       r[i] = pvecback[self.ba.index_bg_conf_distance]
-      # And in the second, dz/dr = H
+      # store dz/dr = H
       dzdr[i] = pvecback[self.ba.index_bg_H]
 
       i += 1
@@ -567,20 +555,26 @@ cdef class Class:
   def _h(self):
     return self.ba.h
 
-  def _angular_distance(self, double z):
+  def _angular_distance(self, z_array):
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
+    D_A = nm.zeros(len(z_array),'float64')
 
     pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-    if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-      raise ClassError(self.ba.error_message)
+    i = 0
+    for redshift in z_array:
+      if background_tau_of_z(&self.ba,redshift,&tau)==_FAILURE_:
+        raise ClassError(self.ba.error_message)
 
-    if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-      raise ClassError(self.ba.error_message)
+      if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+        raise ClassError(self.ba.error_message)
 
-    return  pvecback[self.ba.index_bg_ang_distance]
+      D_A[i] = pvecback[self.ba.index_bg_ang_distance]
+      i += 1
+      
+    return D_A
 
   def _T_cmb(self):
     return self.ba.T_cmb
