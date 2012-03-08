@@ -557,14 +557,14 @@ int spectra_pk_at_k_and_z(
 	    /kmin/pk_primordial_kmin[index_ic1_ic2];
 	}
       }
+
+      free(spectrum_at_z);
+      if (psp->ic_size[index_mode] > 1)
+	free(spectrum_at_z_ic);
+      free(pk_primordial_k);
+      free(pk_primordial_kmin);
+      
     }
-
-    free(spectrum_at_z);
-    if (psp->ic_size[index_mode] > 1)
-      free(spectrum_at_z_ic);
-    free(pk_primordial_k);
-    free(pk_primordial_kmin);
-
   }
 
   /** - deal with case kmin <= k <= kmax */
