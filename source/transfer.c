@@ -503,15 +503,15 @@ int transfer_init(
     free(interpolated_sources);
     free(source_spline);    
 
-  } /* end of loop over mode */
-
 #pragma omp parallel shared(pw) private(thread)
-  {
+    {
 #ifdef _OPENMP
-    thread = omp_get_thread_num();
+      thread = omp_get_thread_num();
 #endif
-    free(pw[thread]);
-  }
+      free(pw[thread]);
+    }
+    
+  } /* end of loop over mode */
 
   free(pw);
 
