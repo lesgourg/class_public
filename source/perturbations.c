@@ -176,15 +176,15 @@ int perturb_init(
 	     ppt->error_message,
 	     "Vectors not coded yet");
 	     
-  if ((ppt->has_niv == _TRUE_) && (ppt->perturbation_verbose > 0)) {
+  if ((ppt->has_niv == _TRUE_) && (ppt->perturbations_verbose > 0)) {
     printf("Warning: the niv initial conditions in CLASS (and also in CAMB) should still be double-checked: if you want to do it and send feedback, you are welcome!\n");
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (ppt->perturbation_verbose > 0))
+  if ((ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0))
     printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n",_VERSION_);
 
   if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
-      (ppt->has_tensors == _TRUE_) && (ppt->perturbation_verbose > 0)) {
+      (ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0)) {
     printf("Warning: yet unexplained difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
   }
 
