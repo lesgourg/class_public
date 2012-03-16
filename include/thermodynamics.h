@@ -72,6 +72,8 @@ struct thermo
 
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
 
+  double p_annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+
   short compute_cb2_derivatives; /**< do we want to include in computation derivatives of baryon sound speed? */
 
   /** parameters for reio_camb */
@@ -247,7 +249,9 @@ struct recombination {
   double CB1;
   double CB1_He1;
   double CB1_He2;
-  double H0; 
+  double H0;
+  double p_annihilation;   /** for CDM annihilation */
+  double rho_dm_c_squared; /** in (Omega_cdm * rho_c * c)^2 in units of (Kg/m^2/s)^2 */
 
   //@}
 

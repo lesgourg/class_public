@@ -603,6 +603,9 @@ int input_init(
     class_read_double("binned_reio_step_sharpness",pth->binned_reio_step_sharpness);
   }
 
+  /* energy injection parameter fro CDM annihilation */
+  class_read_double("p_annihilation",pth->p_annihilation);
+
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
   ppt->has_perturbations = _FALSE_;
@@ -1538,6 +1541,8 @@ int input_default_params(
   pth->binned_reio_z=NULL;
   pth->binned_reio_xe=NULL;
   pth->binned_reio_step_sharpness = 0.3;
+
+  pth->p_annihilation = 0.;
 
   pth->compute_cb2_derivatives=_FALSE_;
 
