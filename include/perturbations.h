@@ -101,7 +101,9 @@ struct perturbs
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
   short has_cl_density;               /**< do we need Cl's for matter density? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
-  short has_matter_transfers;         /**< do we need to output individual matter transfer functions? */
+  short has_matter_transfers;         /**< do we need to output individual matter density transfer functions? */
+
+  short has_velocity_transfers;         /**< do we need to output individual matter velocity transfer functions? */
 
   int l_scalar_max; /**< maximum l value for scalars C_ls */
   int l_tensor_max; /**< maximum l value for tensors C_ls */
@@ -174,6 +176,12 @@ struct perturbs
   short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_theta_g;   /**< do we need source for theta of gammas? */
+  short has_source_theta_b;   /**< do we need source for theta of baryons? */
+  short has_source_theta_cdm; /**< do we need source for theta of cold dark matter? */
+  short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
+  short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
 
   int index_tp_t; /**< index value for temperature */
   int index_tp_e; /**< index value for E-polarization */
@@ -186,6 +194,12 @@ struct perturbs
   int index_tp_delta_fld;  /**< index value for delta of dark energy */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
+  int index_tp_theta_g;   /**< index value for theta of gammas */
+  int index_tp_theta_b;   /**< index value for theta of baryons */
+  int index_tp_theta_cdm; /**< index value for theta of cold dark matter */
+  int index_tp_theta_fld;  /**< index value for theta of dark energy */
+  int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
+  int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
   int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
 
   //@}

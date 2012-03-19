@@ -651,6 +651,11 @@ int input_init(
       ppt->has_perturbations = _TRUE_;  
     }
 
+    if ((strstr(string1,"vTk") != NULL) || (strstr(string1,"VTk") != NULL) || (strstr(string1,"VTK") != NULL)) {
+      ppt->has_velocity_transfers=_TRUE_; 
+      ppt->has_perturbations = _TRUE_;  
+    }
+
   }
 
   if (ppt->has_perturbations == _TRUE_) { 
@@ -1554,6 +1559,7 @@ int input_default_params(
   ppt->has_cl_density = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
   ppt->has_matter_transfers = _FALSE_;
+  ppt->has_velocity_transfers = _FALSE_;
 
   ppt->has_ad=_TRUE_;  
   ppt->has_bi=_FALSE_;
@@ -1755,7 +1761,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->reionization_z_start_max = 50.;
   ppr->reionization_sampling=1.e-2; 
-  ppr->reionization_optical_depth_tol=1.e-2;
+  ppr->reionization_optical_depth_tol=1.e-4;
   ppr->reionization_start_factor=8.;
 
   /* general */
