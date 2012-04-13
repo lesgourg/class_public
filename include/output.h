@@ -167,6 +167,7 @@ extern "C" {
   
   int output_open_tk_file(
 			  struct background * pba,
+			  struct perturbs * ppt,
 			  struct spectra * psp,
 			  struct output * pop,
 			  FILE * * tkfile,

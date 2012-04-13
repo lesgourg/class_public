@@ -560,7 +560,7 @@ int perturb_indices_of_perturbs(
       else
 	ppt->has_source_delta_pk = _FALSE_;
       
-      if (ppt->has_matter_transfers == _TRUE_) {
+      if (ppt->has_density_transfers == _TRUE_) {
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_delta_g = _TRUE_;
 	ppt->index_tp_delta_g = index_type;
@@ -610,7 +610,7 @@ int perturb_indices_of_perturbs(
 	ppt->has_source_theta_b = _TRUE_;
 	ppt->index_tp_theta_b = index_type;
 	index_type++;
-	if (pba->has_cdm == _TRUE_) {
+	if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)) {
 	  ppt->has_source_theta_cdm = _TRUE_;
 	  ppt->index_tp_theta_cdm = index_type;
 	  index_type++;
@@ -1728,7 +1728,7 @@ int perturb_workspace_init(
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-    if ((ppt->has_matter_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
+    if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 
       class_alloc(ppw->delta_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
       class_alloc(ppw->theta_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
@@ -1771,7 +1771,7 @@ int perturb_workspace_free (
     free(ppw->approx);
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-    if ((ppt->has_matter_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
+    if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
       free(ppw->delta_ncdm);
       free(ppw->theta_ncdm);
       free(ppw->shear_ncdm);
@@ -5447,7 +5447,7 @@ int perturb_print_variables(double tau,
 
     }
 
-    if ((pba->has_ncdm == _TRUE_) && ((ppt->has_matter_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_))) {
+    if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_))) {
 	for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
 	  fprintf(stdout,"%e   %e   %e   ",
 		  ppw->delta_ncdm[n_ncdm],

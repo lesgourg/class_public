@@ -648,8 +648,9 @@ int input_init(
       ppt->has_perturbations = _TRUE_;  
     }
 
-    if ((strstr(string1,"mTk") != NULL) || (strstr(string1,"MTk") != NULL) || (strstr(string1,"MTK") != NULL)) {
-      ppt->has_matter_transfers=_TRUE_; 
+    if ((strstr(string1,"mTk") != NULL) || (strstr(string1,"MTk") != NULL) || (strstr(string1,"MTK") != NULL) ||
+        (strstr(string1,"dTk") != NULL) || (strstr(string1,"DTk") != NULL) || (strstr(string1,"DTK") != NULL)) {
+      ppt->has_density_transfers=_TRUE_; 
       ppt->has_perturbations = _TRUE_;  
     }
 
@@ -1561,7 +1562,7 @@ int input_default_params(
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
   ppt->has_cl_density = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
-  ppt->has_matter_transfers = _FALSE_;
+  ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
 
   ppt->has_ad=_TRUE_;  

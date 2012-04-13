@@ -148,7 +148,7 @@ int output_init(
 	       pop->error_message);
   }
 
-  if (ppt->has_matter_transfers == _TRUE_) {
+  if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
     class_call(output_tk(pba,ppt,psp,pop),
 	       pop->error_message,
@@ -1034,6 +1034,17 @@ int output_tk(
     
   index_mode=ppt->index_md_scalars;
 
+  if (pop->output_format == camb_format) {
+
+    class_test(pba->N_ncdm>1,
+	       pop->error_message,
+	       "you wish to output the transfer functions in CMBFAST/CAMB format but you have more than one non-cold dark matter (ncdm) species. The two are not compatible (since CMBFAST/CAMB only have one ncdm species): switch to CLASS output format or keep only on ncdm species");
+    
+    class_test(ppt->has_velocity_transfers == _TRUE_,
+	       pop->error_message,
+	       "you wish to output the transfer functions in CMBFAST/CAMB format, but you requested velocity transfer functions. The two are not compatible (since CMBFAST/CAMB do not compute velocity transfer functions): switch to CLASS output format, or ask only for density transfer function");
+  }
+
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
     /** - first, check that requested redshift z_pk is consistent */
@@ -1093,6 +1104,7 @@ int output_tk(
       }
 
       class_call(output_open_tk_file(pba,
+				     ppt,
 				     psp,
 				     pop,
 				     &(out_ic[index_ic]),
@@ -1156,24 +1168,20 @@ int output_tk(
 	  /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
 
 	  if (pba->has_cdm == _TRUE_)
-	    tk_cmbfast[0]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_cdm]/exp(2.*psp->ln_k[index_k]);
+	    tk_cmbfast[0]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_delta_cdm]/exp(2.*psp->ln_k[index_k]);
 	  else
 	    tk_cmbfast[0]= 0.;
-	  tk_cmbfast[1]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_b]/exp(2.*psp->ln_k[index_k]);
-	  tk_cmbfast[2]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_g]/exp(2.*psp->ln_k[index_k]);
+	  tk_cmbfast[1]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_delta_b]/exp(2.*psp->ln_k[index_k]);
+	  tk_cmbfast[2]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_delta_g]/exp(2.*psp->ln_k[index_k]);
 	  if (pba->has_ur == _TRUE_)
-	    tk_cmbfast[3]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_ur]/exp(2.*psp->ln_k[index_k]);
+	    tk_cmbfast[3]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_delta_ur]/exp(2.*psp->ln_k[index_k]);
 	  else
 	    tk_cmbfast[3]=0.;
-	  if (pba->has_ncdm == _TRUE_) {
-	    tk_cmbfast[4]=0.;
-	    for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-	      tk_cmbfast[4]+=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_ncdm1+n_ncdm]/exp(2.*psp->ln_k[index_k]);
-	    }
-	  }
+	  if (pba->has_ncdm == _TRUE_)
+	    tk_cmbfast[4]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_delta_ncdm1]/exp(2.*psp->ln_k[index_k]);
 	  else
 	    tk_cmbfast[4]=0.;
-	  tk_cmbfast[5]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_tot]/exp(2.*psp->ln_k[index_k]);
+	  tk_cmbfast[5]=-tk[(index_k*psp->ic_size[index_mode]+index_ic)*psp->tr_size+psp->index_tr_delta_tot]/exp(2.*psp->ln_k[index_k]);
 
 	  class_call(output_one_line_of_tk(out_ic[index_ic],
 					   exp(psp->ln_k[index_k])/pba->h,
@@ -1484,6 +1492,7 @@ int output_open_pk_nl_file(
 
 int output_open_tk_file(
 			struct background * pba,
+			struct perturbs * ppt,
 			struct spectra * psp,
 			struct output * pop,
 			FILE * * tkfile,
@@ -1500,30 +1509,54 @@ int output_open_tk_file(
 
     if (pop->output_format == class_format) {
 
-      fprintf(*tkfile,"# Matter transfer functions T_i(k) %sat redshift z=%g\n",first_line,z); 
+      fprintf(*tkfile,"# Transfer functions T_i(k) %sat redshift z=%g\n",first_line,z); 
       fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
       fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
-      fprintf(*tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
-      fprintf(*tkfile,"# T_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
-      fprintf(*tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
-      fprintf(*tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
+      if (ppt->has_density_transfers == _TRUE_) {
+	fprintf(*tkfile,"# d_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+	fprintf(*tkfile,"# d_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
+	fprintf(*tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
+	fprintf(*tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
+      }
+      if (ppt->has_velocity_transfers == _TRUE_) {
+	fprintf(*tkfile,"# t_i   stands for theta_i(k,z) with above normalization \n");
+	fprintf(*tkfile,"# t_tot stands for (sum_i [rho_i+p_i] theta_i)/(sum_i [rho_i+p_i]))(k,z)\n");
+      }
       fprintf(*tkfile,"#\n");
       fprintf(*tkfile,"# k (h/Mpc)       ");
-      fprintf(*tkfile,"T_g                ");
-      fprintf(*tkfile,"T_b                ");
-      if (pba->has_cdm == _TRUE_)
-	fprintf(*tkfile,"T_cdm              ");
-      if (pba->has_fld == _TRUE_)
-	fprintf(*tkfile,"T_de               ");
-      if (pba->has_ur == _TRUE_)
-	fprintf(*tkfile,"T_ur               ");
-      if (pba->has_ncdm == _TRUE_) {
-	for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-	  fprintf(*tkfile,"T_ncdm[%d]          ",n_ncdm);
+      if (ppt->has_density_transfers == _TRUE_) {
+	fprintf(*tkfile,"d_g                ");
+	fprintf(*tkfile,"d_b                ");
+	if (pba->has_cdm == _TRUE_)
+	  fprintf(*tkfile,"d_cdm              ");
+	if (pba->has_fld == _TRUE_)
+	  fprintf(*tkfile,"d_de               ");
+	if (pba->has_ur == _TRUE_)
+	  fprintf(*tkfile,"d_ur               ");
+	if (pba->has_ncdm == _TRUE_) {
+	  for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+	    fprintf(*tkfile,"d_ncdm[%d]          ",n_ncdm);
+	  }
 	}
+	fprintf(*tkfile,"d_tot              ");
       }
-      fprintf(*tkfile,"T_tot\n");
-  
+      if (ppt->has_velocity_transfers == _TRUE_) {
+	fprintf(*tkfile,"t_g                ");
+	fprintf(*tkfile,"t_b                ");
+	if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
+	  fprintf(*tkfile,"t_cdm              ");
+	if (pba->has_fld == _TRUE_)
+	  fprintf(*tkfile,"t_de               ");
+	if (pba->has_ur == _TRUE_)
+	  fprintf(*tkfile,"t_ur               ");
+	if (pba->has_ncdm == _TRUE_) {
+	  for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+	    fprintf(*tkfile,"t_ncdm[%d]          ",n_ncdm);
+	  }
+	}
+	fprintf(*tkfile,"t_tot              ");
+      }
+      fprintf(*tkfile,"\n");
     }
 
     else if (pop->output_format == camb_format) {
@@ -1539,7 +1572,7 @@ int output_open_tk_file(
       fprintf(*tkfile,"-T_b/k2           ");
       fprintf(*tkfile,"-T_g/k2           ");
       fprintf(*tkfile,"-T_ur/k2          ");
-      fprintf(*tkfile,"-T_ncdm_tot/k2    ");
+      fprintf(*tkfile,"-T_ncdm/k2        ");
       fprintf(*tkfile,"-T_tot/k2         ");
       fprintf(*tkfile,"\n");
 	

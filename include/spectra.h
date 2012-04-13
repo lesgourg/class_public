@@ -126,14 +126,21 @@ struct spectra {
   
   double sigma8;    /**< sigma8 parameter */
 
-  int index_tr_g;   /**< index of gamma transfer function */
-  int index_tr_b;   /**< index of baryon transfer function */
-  int index_tr_cdm; /**< index of cold dark matter transfer function */
-  int index_tr_de;  /**< index of dark energy fluid transfer function */
-  int index_tr_ur; /**< index of ultra-relativistic neutrinos/relics transfer function */
-  int index_tr_ncdm1; /**< index of first species of non-cold dark matter (massive neutrinos, ...) */
-  int index_tr_tot; /**< index of total matter transfer function */
-  int tr_size;      /**< total number of species in transfer functions */
+  int index_tr_delta_g;        /**< index of gamma density transfer function */
+  int index_tr_delta_b;        /**< index of baryon density transfer function */
+  int index_tr_delta_cdm;      /**< index of cold dark matter density transfer function */
+  int index_tr_delta_fld;      /**< index of dark energy fluid density transfer function */
+  int index_tr_delta_ur;       /**< index of ultra-relativistic neutrinos/relics density transfer function */
+  int index_tr_delta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) density transfer function */
+  int index_tr_delta_tot;      /**< index of total matter density transfer function */
+  int index_tr_theta_g;        /**< index of gamma velocity transfer function */
+  int index_tr_theta_b;        /**< index of baryon velocity transfer function */
+  int index_tr_theta_cdm;      /**< index of cold dark matter velocity transfer function */
+  int index_tr_theta_fld;      /**< index of dark energy fluid velocity transfer function */
+  int index_tr_theta_ur;       /**< index of ultra-relativistic neutrinos/relics velocity transfer function */
+  int index_tr_theta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) velocity transfer function */
+  int index_tr_theta_tot;      /**< index of total matter velocity transfer function */
+  int tr_size;                 /**< total number of species in transfer functions */
 
   double * matter_transfer;   /**< Matter transfer functions.  
 	Depends on indices index_mode,index_tau,index_ic,index_k, index_tr as:
