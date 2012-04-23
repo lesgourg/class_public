@@ -45,6 +45,7 @@ double get_chi2( double * param){
   double YHe_value=param[0];
   fprintf(stderr,"YHe:%e\n",param[0]);
   sprintf(fc.value[4],"%g",YHe_value);
+  fprintf(stderr,"here, h = %e, omega_c = %e, omega_b = %e\n",fc.value[5],fc.value[6],fc.value[7]);
   if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
@@ -85,8 +86,8 @@ void amoeba(double **p,double y[],int ndim,double ftol, double (*funk)(double []
 	} 
 	else if (y[i] > y[inhi] && i != ihi) inhi=i;
       }
-      rtol=2.0*fabs(y[ihi]-y[ilo])/(fabs(y[ihi])+fabs(y[ilo])+TINy); //Compute the fractional range from highest to lowest and return if satisfactory.
-      fprintf(stderr,"--> y[ihi]:%e y[ilo]:%e rtol %e\n",y[ihi],y[ilo],rtol);
+      rtol=fabs(y[ihi]-y[ilo]); //Compute the fractional range from highest to lowest and return if satisfactory.
+      /*fprintf(stderr,"--> y[ihi]:%e y[ilo]:%e rtol %e\n",y[ihi],y[ilo],rtol);*/
 	if (rtol < ftol) { //If returning, put best point and value in slot 1.
 	  SWAP(y[0],y[ilo]);
 	  for (i=0;i<ndim;i++) 
@@ -100,22 +101,23 @@ void amoeba(double **p,double y[],int ndim,double ftol, double (*funk)(double []
       ytry=amotry(p,y,psum,ndim,funk,ihi,-1.0);
       if (ytry <= y[ilo]){
 	//Gives a result better than the best point, so try an additional extrapolation by a factor 2.
-	fprintf(stderr,"is better, going twice as far\n");
+	/*fprintf(stderr,"is better, going twice as far\n");*/
 	ytry=amotry(p,y,psum,ndim,funk,ihi,2.0);}
       else if (ytry >= y[inhi]) {
-	fprintf(stderr,"is worse, trying half\n");
+	/*fprintf(stderr,"is worse, trying half\n");*/
 	//The reflected point is worse than the second-highest, so look for an intermediate lower point, i.e., do a one-dimensional contraction.
 	ysave=y[ihi];
 	ytry=amotry(p,y,psum,ndim,funk,ihi,0.5);
 	if (ytry >= ysave) { //Can’t seem to get rid of that high point. Better 
 	  for (k=0;k<mpts;k++) { //contract around the lowest (best) point.
-	    fprintf(stderr,"ilo:%d, k:%d\n",ilo,k);
+	    /*fprintf(stderr,"ilo:%d, k:%d\n",ilo,k);*/
 	    if (k != ilo) {
 	      for (j=0;j<ndim;j++){
-		fprintf(stderr,"---- %g %g -- %g --\n",p[k][j],p[ilo][j],psum[0]);
+		/*fprintf(stderr,"---- %g %g -- %g --\n",p[k][j],p[ilo][j],psum[0]);*/
 		sum = 0.5*(p[k][j]+p[ilo][j]);
 		p[k][j] = sum;
-		fprintf(stderr,"---- %g -----\n",p[k][j]);}
+		/*fprintf(stderr,"---- %g -----\n",p[k][j]);}*/
+	    }
 	      /*y[k]=(*funk)(psum);*/
 	      y[k]=(*funk)(&sum);
 	    }
@@ -230,7 +232,7 @@ int main(int argc, char **argv) {
   strcpy(fc.name[2],"lensing");
   strcpy(fc.value[2],"no");
 
-  strcpy(fc.name[3],"Neff");
+  strcpy(fc.name[3],"N_eff");
   strcpy(fc.name[4],"YHe");
 
   strcpy(fc.name[5],"h");
@@ -287,7 +289,7 @@ int main(int argc, char **argv) {
 
   class_alloc(parameter,param_num*sizeof(double),errmsg);
 
-  double ftol = 0.001;
+  double ftol = 0.01;
   int ihi;
 
   // Create values for parameter to vary
@@ -325,7 +327,7 @@ int main(int argc, char **argv) {
     sprintf(fc.value[3],"%g",parameter[i]);
     /*sprintf(fc.value[5],"%g",h*sqrt(alpha));*/
     sprintf(fc.value[6],"%g",(omega_cdm+omega_b)*alpha-omega_b);
-    sprintf(fc.value[7],"%g",omega_b);
+    /*sprintf(fc.value[7],"%g",omega_b);*/
 
     fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[3]);
 
@@ -379,6 +381,7 @@ int class_assuming_bessels_computed(
     printf("\n\nError running background_init \n=>%s\n",pba->error_message);
     return _FAILURE_;
   }
+  fprintf(stderr,"h = %e, omga_c = %e, omega_b = %e, Omega_Lambda = %e, Omega_ur = %e, z_eq = %e\n",pba->h,pba->Omega0_cdm*pba->h*pba->h,pba->Omega0_b*pba->h*pba->h,pba->Omega0_lambda,pba->Omega0_ur,(pba->Omega0_b+pba->Omega0_cdm)/(pba->Omega0_g+pba->Omega0_ur));
     
   if (thermodynamics_init(ppr,pba,pth) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",pth->error_message);
