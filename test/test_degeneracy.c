@@ -10,7 +10,7 @@
     for (sum=0.0,i=0;i<mpts;i++) sum += p[i][j];\
     psum[j] = sum;}
 #define SWAP(a,b) {swap=(a);(a)=(b);(b)=swap;}
-#define _NPARAMS_ 1
+#define _NPARAMS_ 3
 #define l_max 2500
 
 struct precision pr;        /* for precision parameters */
@@ -42,10 +42,12 @@ double get_chi2( double * param){
   }
   double chi2;
   int i;
-  double YHe_value=param[0];
-  fprintf(stderr,"YHe:%e\n",param[0]);
-  sprintf(fc.value[4],"%g",YHe_value);
-  fprintf(stderr,"here, h = %e, omega_c = %e, omega_b = %e\n",fc.value[5],fc.value[6],fc.value[7]);
+  fprintf(stderr,"YHe:%e, h:%e, omega_cdm:%e\n",param[0],param[1],param[2]);
+  sprintf(fc.value[4],"%g",param[0]);
+  fprintf(stderr,"fc value for h is %g\n",param[1]);
+  sprintf(fc.value[5],"%g",param[1]);
+  sprintf(fc.value[6],"%g",param[2]);
+  /*fprintf(stderr,"here, h = %e, omega_c = %e, omega_b = %e\n",fc.value[5],fc.value[6],fc.value[7]);*/
   if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
@@ -154,7 +156,7 @@ double amotry(double **p, double y[], double psum[], int ndim, double (*funk)(do
   for (j=0;j<ndim;j++){
     ptry[j]=psum[j]*fac1-p[ihi][j]*fac2;}
   ytry=(*funk)(ptry); //Evaluate the function at the trial point.
-  fprintf(stderr,"for YHe:%e, y:%e\n",ptry[0],ytry);
+  /*fprintf(stderr,"for YHe:%e, y:%e\n",ptry[0],ytry);*/
   if (ytry < y[ihi]) { //If it’s better than the highest, then replace the highest.
     y[ihi]=ytry;
     for (j=0;j<ndim;j++) {
@@ -245,8 +247,8 @@ int main(int argc, char **argv) {
   parameter_initial=3.046;
   parameter_step=0.02;
 
-  param_num=101;
-  ref_run=50;
+  param_num=11;
+  ref_run=5;
 
 /*******************************************************/
   // Varied parameters with Neff: omega_c and h
@@ -319,21 +321,42 @@ int main(int argc, char **argv) {
   // Looping on all values of parameter
   for (i=0; i<param_num; i++) {
 
-    alpha =(1.+0.2271*parameter[i])/(1.+0.2271*parameter[ref_run]);
+    /*alpha =(1.+0.2271*parameter[i])/(1.+0.2271*parameter[ref_run]);*/
     //initialisation of the minimization in 1d
-    p[0][0] = starting_values[0];
-    p[1][0] = starting_values[1];
+    /*p[0][0] = starting_values[0];*/
+    /*p[1][0] = starting_values[1];*/
+
+    //initialisation of the minimization in 3d
+    // YHe
+    p[0][0] = 0.24;
+    p[1][0] = 0.245;
+    p[2][0] = 0.255;
+    p[3][0] = 0.26;
+
+    // h
+    p[0][1] = 0.68;
+    p[1][1] = 0.685;
+    p[2][1] = 0.695;
+    p[3][1] = 0.70;
+
+    // omega_cdm
+    p[0][2] = 0.111;
+    p[1][2] = 0.1115;
+    p[2][2] = 0.1125;
+    p[3][2] = 0.113;
 
     sprintf(fc.value[3],"%g",parameter[i]);
     /*sprintf(fc.value[5],"%g",h*sqrt(alpha));*/
-    sprintf(fc.value[6],"%g",(omega_cdm+omega_b)*alpha-omega_b);
+    /*sprintf(fc.value[6],"%g",(omega_cdm+omega_b)*alpha-omega_b);*/
     /*sprintf(fc.value[7],"%g",omega_b);*/
 
     fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[3]);
 
     // Initialization of the simplex method, compute ndim+1 points.
     for (k=0; k<ndim+1; k++){
-      sprintf(fc.value[4],"%g",starting_values[k]);
+      sprintf(fc.value[4],"%g",p[k][0]);
+      sprintf(fc.value[5],"%g",p[k][1]);
+      sprintf(fc.value[6],"%g",p[k][2]);
       if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
 	printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
 	return _FAILURE_;
@@ -376,6 +399,7 @@ int class_assuming_bessels_computed(
   int l;
   double ** junk1;
   double ** junk2;
+  fprintf(stderr,"h is %e\n",fc.value[5]);
 
   if (background_init(ppr,pba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",pba->error_message);
