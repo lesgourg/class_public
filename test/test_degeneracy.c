@@ -4,13 +4,13 @@
 #include "class.h"
 #include <math.h> 
 #define TINy 1.0e-1
-#define NMAX 5000
+#define NMAX 500
 #define GET_PSUM \
   for (j=0;j<ndim;j++){\
     for (sum=0.0,i=0;i<mpts;i++) sum += p[i][j];\
     psum[j] = sum;}
 #define SWAP(a,b) {swap=(a);(a)=(b);(b)=swap;}
-#define _NPARAMS_ 3
+#define _NPARAMS_ 5
 #define l_max 2500
 
 struct precision pr;        /* for precision parameters */
@@ -42,12 +42,14 @@ double get_chi2( double * param){
   }
   double chi2;
   int i;
-  fprintf(stderr,"YHe:%e, h:%e, omega_cdm:%e\n",param[0],param[1],param[2]);
+  /*fprintf(stderr,"YHe:%e, h:%e, omega_cdm:%e\n",param[0],param[1],param[2]);*/
   sprintf(fc.value[4],"%g",param[0]);
-  fprintf(stderr,"fc value for h is %g\n",param[1]);
+  /*fprintf(stderr,"fc value for h is %g\n",param[1]);*/
   sprintf(fc.value[5],"%g",param[1]);
   sprintf(fc.value[6],"%g",param[2]);
-  /*fprintf(stderr,"here, h = %e, omega_c = %e, omega_b = %e\n",fc.value[5],fc.value[6],fc.value[7]);*/
+  sprintf(fc.value[8],"%g",param[3]);
+  sprintf(fc.value[9],"%g",param[4]);
+  /*fprintf(stderr,"here, h = %s, omega_c = %s, omega_b = %s\n",fc.value[5],fc.value[6],fc.value[7]);*/
   if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
@@ -62,6 +64,7 @@ double get_chi2( double * param){
   }
   free(cl);
 
+  /*fprintf(stderr,"YHe:%e, h:%e, omega_cdm:%e, chi2:%e\n",param[0],param[1],param[2],chi2);*/
   return chi2;
 }
 
@@ -89,7 +92,7 @@ void amoeba(double **p,double y[],int ndim,double ftol, double (*funk)(double []
 	else if (y[i] > y[inhi] && i != ihi) inhi=i;
       }
       rtol=fabs(y[ihi]-y[ilo]); //Compute the fractional range from highest to lowest and return if satisfactory.
-      /*fprintf(stderr,"--> y[ihi]:%e y[ilo]:%e rtol %e\n",y[ihi],y[ilo],rtol);*/
+      /*fprintf(stderr,"--> y[ihi]:%e y[ilo]:%e rtol %e\n\n",y[ihi],y[ilo],rtol);*/
 	if (rtol < ftol) { //If returning, put best point and value in slot 1.
 	  SWAP(y[0],y[ilo]);
 	  for (i=0;i<ndim;i++) 
@@ -116,12 +119,12 @@ void amoeba(double **p,double y[],int ndim,double ftol, double (*funk)(double []
 	    if (k != ilo) {
 	      for (j=0;j<ndim;j++){
 		/*fprintf(stderr,"---- %g %g -- %g --\n",p[k][j],p[ilo][j],psum[0]);*/
-		sum = 0.5*(p[k][j]+p[ilo][j]);
-		p[k][j] = sum;
-		/*fprintf(stderr,"---- %g -----\n",p[k][j]);}*/
-	    }
-	      /*y[k]=(*funk)(psum);*/
-	      y[k]=(*funk)(&sum);
+		psum[j] = 0.5*(p[k][j]+p[ilo][j]);
+		/*fprintf(stderr,"-SUM IS--- %g \n",sum);*/
+		p[k][j] = psum[j];
+		/*fprintf(stderr,"---- %g -----\n",p[k][j]);*/
+	      }
+	      y[k]=(*funk)(psum);
 	    }
 	  }
 	  nfunk += ndim; 
@@ -218,7 +221,7 @@ int main(int argc, char **argv) {
 
   int ref_run;
   
-  parser_init(&fc,8,errmsg);
+  parser_init(&fc,10,errmsg);
 
   strcpy(fc.name[0],"output");
   strcpy(fc.value[0],"tCl,pCl");
@@ -240,25 +243,33 @@ int main(int argc, char **argv) {
   strcpy(fc.name[5],"h");
   strcpy(fc.name[6],"omega_cdm");
   strcpy(fc.name[7],"omega_b");
+  strcpy(fc.name[8],"n_s");
+  strcpy(fc.name[9],"A_s");
 
 
 /*******************************************************/
   // Fixed parameter: Neff
   parameter_initial=3.046;
-  parameter_step=0.02;
+  parameter_step=0.05;
 
-  param_num=11;
-  ref_run=5;
+  param_num=41;
+  ref_run=20;
 
 /*******************************************************/
   // Varied parameters with Neff: omega_c and h
   double omega_cdm;
   double omega_b; 
   double h;
+  double YHe;
+  double A_s;
+  double n_s;
 
   omega_cdm = 0.112;
   omega_b   = 0.027;
   h = 0.69;
+  YHe = 0.25;
+  n_s = 0.967;
+  A_s = 2.3e-9;
 
 /*******************************************************/
   // Minimisation of the chi2 over YHe
@@ -302,10 +313,12 @@ int main(int argc, char **argv) {
 
   // Create reference run
   sprintf(fc.value[3],"%g",parameter[ref_run]);
+  sprintf(fc.value[4],"%g",YHe);
   sprintf(fc.value[5],"%g",h);
   sprintf(fc.value[6],"%g",omega_cdm);
   sprintf(fc.value[7],"%g",omega_b);
-  sprintf(fc.value[4],"%g",0.25);
+  sprintf(fc.value[8],"%g",n_s);
+  sprintf(fc.value[9],"%g",A_s);
 
   if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -322,28 +335,50 @@ int main(int argc, char **argv) {
   for (i=0; i<param_num; i++) {
 
     /*alpha =(1.+0.2271*parameter[i])/(1.+0.2271*parameter[ref_run]);*/
-    //initialisation of the minimization in 1d
+    /*//initialisation of the minimization in 1d*/
     /*p[0][0] = starting_values[0];*/
     /*p[1][0] = starting_values[1];*/
 
-    //initialisation of the minimization in 3d
+    //initialisation of the minimization in 5d
     // YHe
-    p[0][0] = 0.24;
-    p[1][0] = 0.245;
-    p[2][0] = 0.255;
-    p[3][0] = 0.26;
+    p[0][0] = 0.25;
+    p[1][0] = 0.26;
+    p[2][0] = 0.25;
+    p[3][0] = 0.25;
+    p[4][0] = 0.25;
+    p[5][0] = 0.25;
 
     // h
     p[0][1] = 0.68;
-    p[1][1] = 0.685;
-    p[2][1] = 0.695;
-    p[3][1] = 0.70;
+    p[1][1] = 0.68;
+    p[2][1] = 0.69;
+    p[3][1] = 0.68;
+    p[4][1] = 0.68;
+    p[5][1] = 0.68;
 
     // omega_cdm
-    p[0][2] = 0.111;
-    p[1][2] = 0.1115;
-    p[2][2] = 0.1125;
-    p[3][2] = 0.113;
+    p[0][2] = 0.11;
+    p[1][2] = 0.11;
+    p[2][2] = 0.11;
+    p[3][2] = 0.115;
+    p[4][2] = 0.11;
+    p[5][2] = 0.11;
+
+    // ns
+    p[0][3] = 0.968;
+    p[1][3] = 0.968;
+    p[2][3] = 0.968;
+    p[3][3] = 0.968;
+    p[4][3] = 0.97;
+    p[5][3] = 0.968;
+
+    // As
+    p[0][4] = 2.25e-9;
+    p[1][4] = 2.25e-9;
+    p[2][4] = 2.25e-9;
+    p[3][4] = 2.25e-9;
+    p[4][4] = 2.25e-9;
+    p[5][4] = 2.35e-9;
 
     sprintf(fc.value[3],"%g",parameter[i]);
     /*sprintf(fc.value[5],"%g",h*sqrt(alpha));*/
@@ -357,8 +392,10 @@ int main(int argc, char **argv) {
       sprintf(fc.value[4],"%g",p[k][0]);
       sprintf(fc.value[5],"%g",p[k][1]);
       sprintf(fc.value[6],"%g",p[k][2]);
+      sprintf(fc.value[8],"%g",p[k][3]);
+      sprintf(fc.value[9],"%g",p[k][4]);
       if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
-	printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+	printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
 	return _FAILURE_;
       }
 
@@ -368,7 +405,17 @@ int main(int argc, char **argv) {
 
     }
     amoeba(p,chi2,ndim,ftol,get_chi2);
-    fprintf(stdout,"%e %e %e %e\n",parameter[i],p[0][0],p[1][0],chi2[0]);
+    fprintf(stdout,"%e %e %e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0]+p[4][0]+p[5][0])/6.,
+	(p[0][1]+p[1][1]+p[2][1]+p[3][1]+p[4][1]+p[5][1])/6.,
+	(p[0][2]+p[1][2]+p[2][2]+p[3][2]+p[4][1]+p[5][1])/6.,
+	(p[0][3]+p[1][3]+p[2][3]+p[3][3]+p[4][3]+p[5][3])/6.,
+	(p[0][4]+p[1][4]+p[2][4]+p[3][4]+p[4][4]+p[5][4])/6.,
+	chi2[0]);
+    /*fprintf(stdout,"%e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0])/4.,*/
+	/*(p[0][1]+p[1][1]+p[2][1]+p[3][1])/4.,*/
+	/*(p[0][2]+p[1][2]+p[2][2]+p[3][2])/4.,*/
+	/*chi2[0]);*/
+    /*fprintf(stdout,"%e %e\n",parameter[i],chi2[0]);*/
 
   }
   if (bessel_free(&bs) == _FAILURE_)  {
@@ -399,13 +446,13 @@ int class_assuming_bessels_computed(
   int l;
   double ** junk1;
   double ** junk2;
-  fprintf(stderr,"h is %e\n",fc.value[5]);
+  /*fprintf(stderr,"h is %e\n",fc.value[5]);*/
 
   if (background_init(ppr,pba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",pba->error_message);
     return _FAILURE_;
   }
-  fprintf(stderr,"h = %e, omga_c = %e, omega_b = %e, Omega_Lambda = %e, Omega_ur = %e, z_eq = %e\n",pba->h,pba->Omega0_cdm*pba->h*pba->h,pba->Omega0_b*pba->h*pba->h,pba->Omega0_lambda,pba->Omega0_ur,(pba->Omega0_b+pba->Omega0_cdm)/(pba->Omega0_g+pba->Omega0_ur));
+  /*fprintf(stderr,"h = %e, omga_c = %e, omega_b = %e, Omega_Lambda = %e, Omega_ur = %e, z_eq = %e\n",pba->h,pba->Omega0_cdm*pba->h*pba->h,pba->Omega0_b*pba->h*pba->h,pba->Omega0_lambda,pba->Omega0_ur,(pba->Omega0_b+pba->Omega0_cdm)/(pba->Omega0_g+pba->Omega0_ur));*/
     
   if (thermodynamics_init(ppr,pba,pth) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",pth->error_message);
