@@ -4,14 +4,14 @@
 #include "class.h"
 #include <math.h> 
 #define TINy 1.0e-1
-#define NMAX 500
+#define NMAX 5000
 #define GET_PSUM \
   for (j=0;j<ndim;j++){\
     for (sum=0.0,i=0;i<mpts;i++) sum += p[i][j];\
     psum[j] = sum;}
 #define SWAP(a,b) {swap=(a);(a)=(b);(b)=swap;}
-#define _NPARAMS_ 5
-#define l_max 2500
+#define _NPARAMS_ 1
+#define l_max 2000
 
 struct precision pr;        /* for precision parameters */
 struct background ba;       /* for cosmological background */
@@ -36,7 +36,7 @@ double get_chi2( double * param){
 
   double **cl;
   int l;
-  cl = calloc((l_max-1),sizeof(double*));
+  cl = calloc((l_max+1),sizeof(double*));
   for (l=2; l <= l_max; l++) {
     cl[l] = calloc(3,sizeof(double));
   }
@@ -45,10 +45,10 @@ double get_chi2( double * param){
   /*fprintf(stderr,"YHe:%e, h:%e, omega_cdm:%e\n",param[0],param[1],param[2]);*/
   sprintf(fc.value[4],"%g",param[0]);
   /*fprintf(stderr,"fc value for h is %g\n",param[1]);*/
-  sprintf(fc.value[5],"%g",param[1]);
-  sprintf(fc.value[6],"%g",param[2]);
-  sprintf(fc.value[8],"%g",param[3]);
-  sprintf(fc.value[9],"%g",param[4]);
+  /*sprintf(fc.value[5],"%g",param[1]);*/
+  /*sprintf(fc.value[6],"%g",param[2]);*/
+  /*sprintf(fc.value[8],"%g",param[3]);*/
+  /*sprintf(fc.value[9],"%g",param[4]);*/
   /*fprintf(stderr,"here, h = %s, omega_c = %s, omega_b = %s\n",fc.value[5],fc.value[6],fc.value[7]);*/
   if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
 
   int ref_run;
   
-  parser_init(&fc,10,errmsg);
+  parser_init(&fc,11,errmsg);
 
   strcpy(fc.name[0],"output");
   strcpy(fc.value[0],"tCl,pCl");
@@ -245,12 +245,14 @@ int main(int argc, char **argv) {
   strcpy(fc.name[7],"omega_b");
   strcpy(fc.name[8],"n_s");
   strcpy(fc.name[9],"A_s");
+  strcpy(fc.name[10],"recombination");
+  strcpy(fc.value[10],"RECFAST");
 
 
 /*******************************************************/
   // Fixed parameter: Neff
   parameter_initial=3.046;
-  parameter_step=0.05;
+  parameter_step=0.02;
 
   param_num=41;
   ref_run=20;
@@ -290,9 +292,9 @@ int main(int argc, char **argv) {
   starting_values[1] = 0.255;
 /*******************************************************/
 
-  class_calloc(cl,(l_max-1),sizeof(double*),errmsg);
-  class_calloc(cl_ref,(l_max-1),sizeof(double*),errmsg);
-  class_calloc(noise,(l_max-1),sizeof(double*),errmsg);
+  class_calloc(cl,(l_max+1),sizeof(double*),errmsg);
+  class_calloc(cl_ref,(l_max+1),sizeof(double*),errmsg);
+  class_calloc(noise,(l_max+1),sizeof(double*),errmsg);
   for (l=2; l <= l_max; l++) {
     class_calloc(noise[l],3,sizeof(double),errmsg);
     class_calloc(cl[l],3,sizeof(double),errmsg);
@@ -343,42 +345,42 @@ int main(int argc, char **argv) {
     // YHe
     p[0][0] = 0.25;
     p[1][0] = 0.26;
-    p[2][0] = 0.25;
-    p[3][0] = 0.25;
-    p[4][0] = 0.25;
-    p[5][0] = 0.25;
+    /*p[2][0] = 0.25;*/
+    /*p[3][0] = 0.25;*/
+    /*p[4][0] = 0.25;*/
+    /*p[5][0] = 0.25;*/
 
-    // h
-    p[0][1] = 0.68;
-    p[1][1] = 0.68;
-    p[2][1] = 0.69;
-    p[3][1] = 0.68;
-    p[4][1] = 0.68;
-    p[5][1] = 0.68;
+    /*// h*/
+    /*p[0][1] = 0.68;*/
+    /*p[1][1] = 0.68;*/
+    /*p[2][1] = 0.69;*/
+    /*p[3][1] = 0.68;*/
+    /*p[4][1] = 0.68;*/
+    /*p[5][1] = 0.68;*/
 
-    // omega_cdm
-    p[0][2] = 0.11;
-    p[1][2] = 0.11;
-    p[2][2] = 0.11;
-    p[3][2] = 0.115;
-    p[4][2] = 0.11;
-    p[5][2] = 0.11;
+    /*// omega_cdm*/
+    /*p[0][2] = 0.11;*/
+    /*p[1][2] = 0.11;*/
+    /*p[2][2] = 0.11;*/
+    /*p[3][2] = 0.115;*/
+    /*p[4][2] = 0.11;*/
+    /*p[5][2] = 0.11;*/
 
-    // ns
-    p[0][3] = 0.968;
-    p[1][3] = 0.968;
-    p[2][3] = 0.968;
-    p[3][3] = 0.968;
-    p[4][3] = 0.97;
-    p[5][3] = 0.968;
+    /*// ns*/
+    /*p[0][3] = 0.968;*/
+    /*p[1][3] = 0.968;*/
+    /*p[2][3] = 0.968;*/
+    /*p[3][3] = 0.968;*/
+    /*p[4][3] = 0.97;*/
+    /*p[5][3] = 0.968;*/
 
-    // As
-    p[0][4] = 2.25e-9;
-    p[1][4] = 2.25e-9;
-    p[2][4] = 2.25e-9;
-    p[3][4] = 2.25e-9;
-    p[4][4] = 2.25e-9;
-    p[5][4] = 2.35e-9;
+    /*// As*/
+    /*p[0][4] = 2.25e-9;*/
+    /*p[1][4] = 2.25e-9;*/
+    /*p[2][4] = 2.25e-9;*/
+    /*p[3][4] = 2.25e-9;*/
+    /*p[4][4] = 2.25e-9;*/
+    /*p[5][4] = 2.35e-9;*/
 
     sprintf(fc.value[3],"%g",parameter[i]);
     /*sprintf(fc.value[5],"%g",h*sqrt(alpha));*/
@@ -390,10 +392,10 @@ int main(int argc, char **argv) {
     // Initialization of the simplex method, compute ndim+1 points.
     for (k=0; k<ndim+1; k++){
       sprintf(fc.value[4],"%g",p[k][0]);
-      sprintf(fc.value[5],"%g",p[k][1]);
-      sprintf(fc.value[6],"%g",p[k][2]);
-      sprintf(fc.value[8],"%g",p[k][3]);
-      sprintf(fc.value[9],"%g",p[k][4]);
+      /*sprintf(fc.value[5],"%g",p[k][1]);*/
+      /*sprintf(fc.value[6],"%g",p[k][2]);*/
+      /*sprintf(fc.value[8],"%g",p[k][3]);*/
+      /*sprintf(fc.value[9],"%g",p[k][4]);*/
       if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
 	printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
 	return _FAILURE_;
@@ -405,17 +407,17 @@ int main(int argc, char **argv) {
 
     }
     amoeba(p,chi2,ndim,ftol,get_chi2);
-    fprintf(stdout,"%e %e %e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0]+p[4][0]+p[5][0])/6.,
-	(p[0][1]+p[1][1]+p[2][1]+p[3][1]+p[4][1]+p[5][1])/6.,
-	(p[0][2]+p[1][2]+p[2][2]+p[3][2]+p[4][1]+p[5][1])/6.,
-	(p[0][3]+p[1][3]+p[2][3]+p[3][3]+p[4][3]+p[5][3])/6.,
-	(p[0][4]+p[1][4]+p[2][4]+p[3][4]+p[4][4]+p[5][4])/6.,
-	chi2[0]);
+    /*fprintf(stdout,"%e %e %e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0]+p[4][0]+p[5][0])/6.,*/
+	/*(p[0][1]+p[1][1]+p[2][1]+p[3][1]+p[4][1]+p[5][1])/6.,*/
+	/*(p[0][2]+p[1][2]+p[2][2]+p[3][2]+p[4][1]+p[5][1])/6.,*/
+	/*(p[0][3]+p[1][3]+p[2][3]+p[3][3]+p[4][3]+p[5][3])/6.,*/
+	/*(p[0][4]+p[1][4]+p[2][4]+p[3][4]+p[4][4]+p[5][4])/6.,*/
+	/*chi2[0]);*/
     /*fprintf(stdout,"%e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0])/4.,*/
 	/*(p[0][1]+p[1][1]+p[2][1]+p[3][1])/4.,*/
 	/*(p[0][2]+p[1][2]+p[2][2]+p[3][2])/4.,*/
 	/*chi2[0]);*/
-    /*fprintf(stdout,"%e %e\n",parameter[i],chi2[0]);*/
+    fprintf(stdout,"%e %e %e\n",parameter[i],(p[0][0]+p[1][0])/2.,chi2[0]);
 
   }
   if (bessel_free(&bs) == _FAILURE_)  {
@@ -574,7 +576,7 @@ int chi2_planck(
 		double * chi2) {
 
   int l;
-  double fsky=0.8;
+  double fsky=0.65;
   double clTT_th,clEE_th,clTE_th;
   double clTT_obs,clEE_obs,clTE_obs;
   double det_mixed,det_th,det_obs;
