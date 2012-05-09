@@ -3,14 +3,15 @@
  */
 #include "class.h"
 #include <math.h> 
+#include <time.h>
 #define TINy 1.0e-1
-#define NMAX 5000
+#define NMAX 100000
 #define GET_PSUM \
   for (j=0;j<ndim;j++){\
     for (sum=0.0,i=0;i<mpts;i++) sum += p[i][j];\
     psum[j] = sum;}
 #define SWAP(a,b) {swap=(a);(a)=(b);(b)=swap;}
-#define _NPARAMS_ 1
+#define _NPARAMS_ 5
 #define l_max 2000
 
 struct precision pr;        /* for precision parameters */
@@ -38,31 +39,30 @@ double get_chi2( double * param){
   int l;
   cl = calloc((l_max+1),sizeof(double*));
   for (l=2; l <= l_max; l++) {
-    cl[l] = calloc(3,sizeof(double));
+    cl[l] = calloc(4,sizeof(double));
   }
   double chi2;
   int i;
   /*fprintf(stderr,"YHe:%e, h:%e, omega_cdm:%e\n",param[0],param[1],param[2]);*/
   sprintf(fc.value[4],"%g",param[0]);
   /*fprintf(stderr,"fc value for h is %g\n",param[1]);*/
-  /*sprintf(fc.value[5],"%g",param[1]);*/
-  /*sprintf(fc.value[6],"%g",param[2]);*/
-  /*sprintf(fc.value[8],"%g",param[3]);*/
-  /*sprintf(fc.value[9],"%g",param[4]);*/
-  /*fprintf(stderr,"here, h = %s, omega_c = %s, omega_b = %s\n",fc.value[5],fc.value[6],fc.value[7]);*/
+  sprintf(fc.value[5],"%g",param[1]);
+  sprintf(fc.value[6],"%g",param[2]);
+  sprintf(fc.value[8],"%g",param[3]);
+  sprintf(fc.value[9],"%g",param[4]);
   if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
 
   class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,cl,errmsg);
-  noise_planck(&ba,&th,&sp,noise);
   chi2_planck(&sp,cl,cl_ref,noise,&chi2);
   
   for (l=2; l <= l_max; l++) {
     free(cl[l]);
   }
   free(cl);
+  /*fprintf(stderr,"here, YHe = %s, h = %s, omega_c = %s, n_s = %s, A_s = %s, chi2 = %e\n",fc.value[4],fc.value[5],fc.value[6],fc.value[8],fc.value[9],chi2);*/
 
   /*fprintf(stderr,"YHe:%e, h:%e, omega_cdm:%e, chi2:%e\n",param[0],param[1],param[2],chi2);*/
   return chi2;
@@ -75,8 +75,7 @@ void amoeba(double **p,double y[],int ndim,double ftol, double (*funk)(double []
   int k;
   double rtol,sum,swap,ysave,ytry,*psum;
   psum = calloc(ndim,sizeof(double));
-  int nfunk;
-  nfunk=0;
+  int nfunk=0;
   GET_PSUM
   for (;;) {
       ilo=0;
@@ -208,7 +207,8 @@ int noise_planck(
 int main(int argc, char **argv) {
 
 
-  int i,l,k;
+  int i,l,j,k;
+  double storage;
 
   double parameter_initial,parameter_step;
   double * parameter;
@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
   double **p;
   double * starting_values;
   int ndim = _NPARAMS_;
-  class_calloc(starting_values,ndim+1,sizeof(double*),errmsg);
+  class_calloc(starting_values,ndim+1,sizeof(double),errmsg);
   class_calloc(p,ndim+1,sizeof(double*),errmsg);
   for (i=0;i<=ndim;i++){
     class_calloc(p[i],ndim,sizeof(double),errmsg);}
@@ -296,15 +296,15 @@ int main(int argc, char **argv) {
   class_calloc(cl_ref,(l_max+1),sizeof(double*),errmsg);
   class_calloc(noise,(l_max+1),sizeof(double*),errmsg);
   for (l=2; l <= l_max; l++) {
-    class_calloc(noise[l],3,sizeof(double),errmsg);
-    class_calloc(cl[l],3,sizeof(double),errmsg);
-    class_calloc(cl_ref[l],3,sizeof(double),errmsg);
+    class_calloc(noise[l],4,sizeof(double),errmsg);
+    class_calloc(cl[l],4,sizeof(double),errmsg);
+    class_calloc(cl_ref[l],4,sizeof(double),errmsg);
   }
   class_calloc(chi2,ndim+1,sizeof(double),errmsg);
 
   class_alloc(parameter,param_num*sizeof(double),errmsg);
 
-  double ftol = 0.01;
+  double ftol = 0.1;
   int ihi;
 
   // Create values for parameter to vary
@@ -326,108 +326,119 @@ int main(int argc, char **argv) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
-  if (bessel_init(&pr,&bs) == _FAILURE_) {
-    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
+  noise_planck(&ba,&th,&sp,noise);
   class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,cl_ref,errmsg);
   double alpha;
+  double random_number;
 
   // Looping on all values of parameter
   for (i=0; i<param_num; i++) {
 
     /*alpha =(1.+0.2271*parameter[i])/(1.+0.2271*parameter[ref_run]);*/
-    /*//initialisation of the minimization in 1d*/
+    //initialisation of the minimization in 1d
     /*p[0][0] = starting_values[0];*/
     /*p[1][0] = starting_values[1];*/
 
-    //initialisation of the minimization in 5d
-    // YHe
-    p[0][0] = 0.25;
-    p[1][0] = 0.26;
-    /*p[2][0] = 0.25;*/
-    /*p[3][0] = 0.25;*/
-    /*p[4][0] = 0.25;*/
-    /*p[5][0] = 0.25;*/
-
-    /*// h*/
-    /*p[0][1] = 0.68;*/
-    /*p[1][1] = 0.68;*/
-    /*p[2][1] = 0.69;*/
-    /*p[3][1] = 0.68;*/
-    /*p[4][1] = 0.68;*/
-    /*p[5][1] = 0.68;*/
-
-    /*// omega_cdm*/
-    /*p[0][2] = 0.11;*/
-    /*p[1][2] = 0.11;*/
-    /*p[2][2] = 0.11;*/
-    /*p[3][2] = 0.115;*/
-    /*p[4][2] = 0.11;*/
-    /*p[5][2] = 0.11;*/
-
-    /*// ns*/
-    /*p[0][3] = 0.968;*/
-    /*p[1][3] = 0.968;*/
-    /*p[2][3] = 0.968;*/
-    /*p[3][3] = 0.968;*/
-    /*p[4][3] = 0.97;*/
-    /*p[5][3] = 0.968;*/
-
-    /*// As*/
-    /*p[0][4] = 2.25e-9;*/
-    /*p[1][4] = 2.25e-9;*/
-    /*p[2][4] = 2.25e-9;*/
-    /*p[3][4] = 2.25e-9;*/
-    /*p[4][4] = 2.25e-9;*/
-    /*p[5][4] = 2.35e-9;*/
-
+    srand(time(NULL));
     sprintf(fc.value[3],"%g",parameter[i]);
-    /*sprintf(fc.value[5],"%g",h*sqrt(alpha));*/
-    /*sprintf(fc.value[6],"%g",(omega_cdm+omega_b)*alpha-omega_b);*/
-    /*sprintf(fc.value[7],"%g",omega_b);*/
-
     fprintf(stderr,"#run %d/%d with %s\n",i+1,param_num,fc.value[3]);
+    for (j=0; j<=4; j++){
+      random_number = random()*0.1/RAND_MAX; 
+      //initialisation of the minimization in 5d
+      // YHe
+      p[0][0] = 0.245*(1.-random_number);
+      p[1][0] = 0.255*(1.+random_number);
+      p[2][0] = 0.245*(1.-random_number);
+      p[3][0] = 0.245*(1.-random_number);
+      p[4][0] = 0.245*(1.-random_number);
+      p[5][0] = 0.245*(1.-random_number);
 
-    // Initialization of the simplex method, compute ndim+1 points.
-    for (k=0; k<ndim+1; k++){
-      sprintf(fc.value[4],"%g",p[k][0]);
-      /*sprintf(fc.value[5],"%g",p[k][1]);*/
-      /*sprintf(fc.value[6],"%g",p[k][2]);*/
-      /*sprintf(fc.value[8],"%g",p[k][3]);*/
-      /*sprintf(fc.value[9],"%g",p[k][4]);*/
-      if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
-	printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
-	return _FAILURE_;
+      // h
+      p[0][1] = 0.68*(1.-random_number);
+      p[1][1] = 0.68*(1.-random_number);
+      p[2][1] = 0.70*(1.+random_number);
+      p[3][1] = 0.68*(1.-random_number);
+      p[4][1] = 0.68*(1.-random_number);
+      p[5][1] = 0.68*(1.-random_number);
+
+      // omega_cdm
+      p[0][2] = 0.11*(1.-random_number);
+      p[1][2] = 0.11*(1.-random_number);
+      p[2][2] = 0.11*(1.-random_number);
+      p[3][2] = 0.115*(1.+random_number);
+      p[4][2] = 0.11*(1.-random_number);
+      p[5][2] = 0.11*(1.-random_number);
+
+      // ns
+      p[0][3] = 0.965*(1.-random_number);
+      p[1][3] = 0.965*(1.-random_number);
+      p[2][3] = 0.965*(1.-random_number);
+      p[3][3] = 0.965*(1.-random_number);
+      p[4][3] = 0.97*(1.+random_number);
+      p[5][3] = 0.965*(1.-random_number);
+
+      // As
+      p[0][4] = 2.25e-9*(1.-random_number);
+      p[1][4] = 2.25e-9*(1.-random_number);
+      p[2][4] = 2.25e-9*(1.-random_number);
+      p[3][4] = 2.25e-9*(1.-random_number);
+      p[4][4] = 2.25e-9*(1.-random_number);
+      p[5][4] = 2.35e-9*(1.+random_number);
+
+      /*sprintf(fc.value[5],"%g",h*sqrt(alpha));*/
+      /*sprintf(fc.value[6],"%g",(omega_cdm+omega_b)*alpha-omega_b);*/
+      /*sprintf(fc.value[7],"%g",omega_b);*/
+
+
+      // Initialization of the simplex method, compute ndim+1 points.
+      for (k=0; k<ndim+1; k++){
+	sprintf(fc.value[4],"%g",p[k][0]);
+	sprintf(fc.value[5],"%g",p[k][1]);
+	sprintf(fc.value[6],"%g",p[k][2]);
+	sprintf(fc.value[8],"%g",p[k][3]);
+	sprintf(fc.value[9],"%g",p[k][4]);
+	if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
+	  printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
+	  return _FAILURE_;
+	}
+
+	class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,cl,errmsg);
+	chi2_planck(&sp,cl,cl_ref,noise,&chi2[k]);
+
       }
-
-      class_assuming_bessels_computed(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,cl,errmsg);
-      noise_planck(&ba,&th,&sp,noise);
-      chi2_planck(&sp,cl,cl_ref,noise,&chi2[k]);
-
+      amoeba(p,chi2,ndim,ftol,get_chi2);
+      if (j==0){
+	storage = (chi2[0]+chi2[1]+chi2[2]+chi2[3]+chi2[4]+chi2[5])/6.;
+      }
+      fprintf(stderr,"run %d, chi2:%f\n",j,(chi2[0]+chi2[1]+chi2[2]+chi2[3]+chi2[4]+chi2[5])/6.);
+      if ((chi2[0]+chi2[1]+chi2[2]+chi2[3]+chi2[4]+chi2[5])/6. < storage){
+	storage = (chi2[0]+chi2[1]+chi2[2]+chi2[3]+chi2[4]+chi2[5])/6.;
+      }
+      if (j==4){
+	fprintf(stderr,"final chi2: %f\n",storage);
+      }
+	// Initialization of the simplex method, compute ndim+1 points.
     }
-    amoeba(p,chi2,ndim,ftol,get_chi2);
-    /*fprintf(stdout,"%e %e %e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0]+p[4][0]+p[5][0])/6.,*/
-	/*(p[0][1]+p[1][1]+p[2][1]+p[3][1]+p[4][1]+p[5][1])/6.,*/
-	/*(p[0][2]+p[1][2]+p[2][2]+p[3][2]+p[4][1]+p[5][1])/6.,*/
-	/*(p[0][3]+p[1][3]+p[2][3]+p[3][3]+p[4][3]+p[5][3])/6.,*/
-	/*(p[0][4]+p[1][4]+p[2][4]+p[3][4]+p[4][4]+p[5][4])/6.,*/
-	/*chi2[0]);*/
+    
+
+    
+
+    
+    fprintf(stdout,"%e %e %e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0]+p[4][0]+p[5][0])/6.,
+	(p[0][1]+p[1][1]+p[2][1]+p[3][1]+p[4][1]+p[5][1])/6.,
+	(p[0][2]+p[1][2]+p[2][2]+p[3][2]+p[4][1]+p[5][1])/6.,
+	(p[0][3]+p[1][3]+p[2][3]+p[3][3]+p[4][3]+p[5][3])/6.,
+	(p[0][4]+p[1][4]+p[2][4]+p[3][4]+p[4][4]+p[5][4])/6.,
+	storage);
+  }
     /*fprintf(stdout,"%e %e %e %e %e\n",parameter[i],(p[0][0]+p[1][0]+p[2][0]+p[3][0])/4.,*/
 	/*(p[0][1]+p[1][1]+p[2][1]+p[3][1])/4.,*/
 	/*(p[0][2]+p[1][2]+p[2][2]+p[3][2])/4.,*/
 	/*chi2[0]);*/
-    fprintf(stdout,"%e %e %e\n",parameter[i],(p[0][0]+p[1][0])/2.,chi2[0]);
+    /*fprintf(stdout,"%e %e %e\n",parameter[i],(p[0][0]+p[1][0])/2.,chi2[0]);*/
+    return _SUCCESS_;
 
   }
-  if (bessel_free(&bs) == _FAILURE_)  {
-    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
-
-  return _SUCCESS_;
-
-}
 
 
 int class_assuming_bessels_computed(
@@ -448,7 +459,6 @@ int class_assuming_bessels_computed(
   int l;
   double ** junk1;
   double ** junk2;
-  /*fprintf(stderr,"h is %e\n",fc.value[5]);*/
 
   if (background_init(ppr,pba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",pba->error_message);
@@ -463,6 +473,11 @@ int class_assuming_bessels_computed(
 
   if (perturb_init(ppr,pba,pth,ppt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",ppt->error_message);
+    return _FAILURE_;
+  }
+
+  if (bessel_init(&pr,&bs) == _FAILURE_) {
+    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }
 
@@ -495,9 +510,9 @@ int class_assuming_bessels_computed(
 
     if (output_total_cl_at_l(psp,ple,pop,(double)l,cl[l]) == _FAILURE_) {
       printf("\n\nError in spectra_cl_at_l \n=>%s\n",psp->error_message);
-      return _FAILURE_;
+      return _FAILURE_;}
     }
-  }
+  
 
   /****** done ******/
 
@@ -523,6 +538,11 @@ int class_assuming_bessels_computed(
   
   if (transfer_free(ptr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",ptr->error_message);
+    return _FAILURE_;
+  }
+
+  if (bessel_free(&bs) == _FAILURE_)  {
+    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }
 
@@ -618,7 +638,6 @@ int chi2_planck(
       det_obs = clTT_obs*clEE_obs-clTE_obs*clTE_obs;
 
       *chi2 += fsky*(2.*l+1.)*(2.*(det_mixed/det_th-1.)+log(det_th/det_obs));
-      /*fprintf(stdout,"%e %e %e %e %e %e %e\n",clTT_th,clEE_th,clTE_th,clTT_obs,clEE_obs,clTE_obs,det_mixed);*/
     }
   }
 
