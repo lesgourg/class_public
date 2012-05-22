@@ -557,24 +557,21 @@ cdef class Class:
   def _h(self):
     return self.ba.h
 
-  def _angular_distance(self, z_array):
+  def _angular_distance(self, z):
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
-    D_A = nm.zeros(len(z_array),'float64')
+    #D_A = nm.zeros(nm.shape(z_array)[0],'float64')
 
     pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-    i = 0
-    for redshift in z_array:
-      if background_tau_of_z(&self.ba,redshift,&tau)==_FAILURE_:
-        raise ClassError(self.ba.error_message)
+    if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
 
-      if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-        raise ClassError(self.ba.error_message)
+    if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
 
-      D_A[i] = pvecback[self.ba.index_bg_ang_distance]
-      i += 1
+    D_A = pvecback[self.ba.index_bg_ang_distance]
 
     free(pvecback)
       
