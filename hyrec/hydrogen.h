@@ -34,8 +34,8 @@ double cube(double x);
 /*********** PEEBLES + POST-SAHA + RECFAST ***************/ 
 
 double alphaB_PPB(double TM);
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double p_ann, double p_dec);
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double p_ann, double p_dec);
+double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double energy_rate);
+double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double energy_rate);
 
 /************* EFFECTIVE MULTI LEVEL ATOM *******************/
 
@@ -64,7 +64,7 @@ HRATEEFF;
 void read_rates(HRATEEFF *rate_table);
 void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR,double z, 
                        HRATEEFF *rate_table);
-double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR,double z,double p_ann, double p_dec, HRATEEFF *rate_table);
+double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR,double z,double energy_rate, HRATEEFF *rate_table);
 
 /************ TWO-PHOTON PROCESSES AND DIFFUSION  ************/
 
@@ -108,10 +108,10 @@ void fplus_from_fminus(double fplus[NVIRT], double fplus_Ly[], double **logfminu
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
                                 HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                                 double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[], unsigned iz, double z,
-								double p_ann, double p_dec);
+								double energy_rate);
 double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                     double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-                    unsigned iz, double z, double *Dxe, int model, double p_ann, double p_dec);
+                    unsigned iz, double z, double *Dxe, int model, double energy_rate);
 void update_fminus_Saha(double **logfminus_hist, double *logfminus_Ly_hist[],
                         double xe, double TR, double nH, TWO_PHOTON_PARAMS *twog,
 			double zstart, double dlna, unsigned iz, double z, int func_select);

@@ -1475,6 +1475,23 @@ int background_solve(
     class_call(background_functions(pba,pData[i*pba->bi_size+pba->index_bi_a], pba->long_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
+
+    /* -> if requested, compute halo function from Press-Schechter model */
+
+    if (0==1) {
+
+      class_call(background_halos(pba,
+				  pba->z_table[i],
+				  1.e-3,
+				  1.e3,
+				  10.,
+				  pvecback[pba->index_bg_Omega_m]*
+				  pvecback[pba->index_bg_rho_crit],
+				  &(pvecback[pba->index_bg_halo_function])),
+		 pba->error_message,
+		 pba->error_message);
+				  
+    }
     
     /* -> write in the table */
     memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
@@ -1687,6 +1704,171 @@ int background_derivs(
 	     "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
   dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));
+
+  return _SUCCESS_;
+
+}
+
+int background_approximate_Pk(
+			      struct background *pba,
+			      double z,
+			      double k,
+			      double * Pk
+			      ) {
+
+  *Pk = k;
+
+  return _SUCCESS_;
+
+}
+
+int background_halos(
+		     struct background *pba,
+		     double z,
+		     double M_min,
+		     double fc,
+		     double zf,
+		     double rho_m,
+		     double * halo_function
+		     ) {
+
+  double * halo_array;
+  int M_size=100;
+  int index_halo_array_M=0;
+  int index_halo_array_integrand=1;
+  int index_halo_array_spline=2;
+  int halo_array_size=3;
+  int index_M;
+
+  double M,R;
+  double k,x;
+  double Pk;
+  double W,W_bis;
+  double sigma_square;
+  double dlninvsig_dlnM;
+  double seth_thormen;
+
+  double * sigma_array;
+  int k_size=100;
+  int index_sigma_array_k=0;
+  int index_sigma_array_integrand=1;
+  int index_sigma_array_spline=2;
+  int index_sigma_array_integrand_bis=3;
+  int index_sigma_array_spline_bis=4;
+  int sigma_array_size=5;
+  int index_k;
+
+  class_alloc(halo_array,
+	      M_size*halo_array_size*sizeof(double),
+	      pba->error_message);
+
+  class_alloc(sigma_array,
+	      k_size*sigma_array_size*sizeof(double),
+	      pba->error_message);
+  
+  for (index_M=0; index_M<M_size; index_M++) {
+
+    M = M_min*exp(log(2.)*index_M);
+
+    R = exp(log(3.*M/4./_PI_/rho_m)/3.)/(1.+z);
+
+    for (index_k=0; index_k<k_size; index_k++) {
+    
+      k = R*exp(log(2.)*(index_k-50));
+      x = k*R;
+      
+      class_call(background_approximate_Pk(pba,z,k,&Pk),
+		 pba->error_message,
+		 pba->error_message);
+      
+      W=3./pow(x,3)*(sin(x)-x*cos(x));
+      W_bis = 3./pow(x,3)*(-6./x*(sin(x)-x*cos(x))+2.*x*sin(x));
+     
+      sigma_array[index_sigma_array_k] = k;
+      sigma_array[index_sigma_array_integrand] = Pk*W*W*k*k;
+      sigma_array[index_sigma_array_integrand_bis] = Pk*W*W_bis*k*k;
+      
+    }
+    
+    class_call(array_spline(sigma_array,
+			    sigma_array_size,
+			    k_size,
+			    index_sigma_array_k,
+			    index_sigma_array_integrand,
+			    index_sigma_array_spline,
+			    _SPLINE_NATURAL_,
+			    pba->error_message),
+	       pba->error_message,
+	       pba->error_message);
+    
+    class_call(array_integrate_all_spline(sigma_array,
+					  sigma_array_size,
+					  k_size,
+					  index_sigma_array_k,
+					  index_sigma_array_integrand,
+					  index_sigma_array_spline,
+					  &sigma_square,
+					  pba->error_message),
+	       pba->error_message,
+	       pba->error_message);
+
+    class_call(array_spline(sigma_array,
+			    sigma_array_size,
+			    k_size,
+			    index_sigma_array_k,
+			    index_sigma_array_integrand_bis,
+			    index_sigma_array_spline_bis,
+			    _SPLINE_NATURAL_,
+			    pba->error_message),
+	       pba->error_message,
+	       pba->error_message);
+    
+    class_call(array_integrate_all_spline(sigma_array,
+					  sigma_array_size,
+					  k_size,
+					  index_sigma_array_k,
+					  index_sigma_array_integrand_bis,
+					  index_sigma_array_spline_bis,
+					  &dlninvsig_dlnM,
+					  pba->error_message),
+	       pba->error_message,
+	       pba->error_message);
+
+
+    seth_thormen = 0.75*1.686/sqrt(sigma_square)*(1.+exp(0.3*log(sigma_square/0.75/1.686)))*exp(0.75*pow(1.686,2)/sigma_square);
+   
+    halo_array[index_halo_array_M] = M;
+    halo_array[index_halo_array_integrand] = dlninvsig_dlnM*seth_thormen;
+
+  }
+
+
+  class_call(array_spline(halo_array,
+			  halo_array_size,
+			  M_size,
+			  index_halo_array_M,
+			  index_halo_array_integrand,
+			  index_halo_array_spline,
+			  _SPLINE_NATURAL_,
+			  pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
+  
+  class_call(array_integrate_all_spline(halo_array,
+					halo_array_size,
+					M_size,
+					index_halo_array_M,
+					index_halo_array_integrand,
+					index_halo_array_spline,
+					halo_function,
+					pba->error_message),
+	     pba->error_message,
+	     pba->error_message);
+
+  free(halo_array);
+  free(sigma_array);
+
+  *halo_function *= 200./3.*pow(1.+zf,3)*fc;
 
   return _SUCCESS_;
 

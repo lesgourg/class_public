@@ -93,6 +93,11 @@ struct background
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
 
+  short has_halos; /**< Do we want to estimate halo function using Press-Schechter model? */
+  double halos_M_min;
+  double halos_fc;
+  double halos_zf;
+
   //@}
 
   /** @name - related parameters */
@@ -147,6 +152,7 @@ struct background
   int index_bg_lum_distance;  /**< luminosity distance */
   int index_bg_time;          /**< proper (cosmological) time */
   int index_bg_rs;            /**< comoving sound horizon */
+  int index_bg_halo_function; /**< if requested, halo function from Press-Schechter model */
 
   int bg_size_short;  /**< size of background vector in the "short format" */
   int bg_size_normal; /**< size of background vector in the "normal format" */
@@ -395,6 +401,23 @@ extern "C" {
 			 ErrorMsg error_message
 			 );
       
+  int background_approximate_Pk(
+				struct background *pba,
+				double z,
+				double k,
+				double * Pk
+				);
+
+  int background_halos(
+		       struct background *pba,
+		       double z,
+		       double M_min,
+		       double fc,
+		       double zf,
+		       double rho_m,
+		       double * halo_function
+		       );
+
 #ifdef __cplusplus
 }
 #endif

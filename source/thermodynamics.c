@@ -280,6 +280,9 @@ int thermodynamics_init(
   class_test((pth->p_annihilation<0),
 	     pth->error_message,
 	     "CDM annihilation parameter cannot be negative");
+  class_test((pth->alpha>0),
+	     pth->error_message,
+	     "Redshift dependent CDM annihilation parameter cannot be positive");
   class_test((pth->p_annihilation>0)&&(pba->has_cdm==_FALSE_),
 	     pth->error_message,
 	     "CDM annihilation effects require the presence of CDM!");
@@ -919,6 +922,54 @@ int thermodynamics_helium_from_bbn(
   free(ddYHe);
   free(YHe_at_deltaN);
   free(ddYHe_at_deltaN);
+
+  return _SUCCESS_;
+
+}
+
+/** 
+ * In case of non-minimal cosmology, this function determines the
+ * energy injection rate as a function of redshift. This energy
+ * injection may come e.g. from dark matter annihilation or decay.
+ * 
+ * @param ppr Input : pointer to precision structure
+ * @param pba Input : pointer to background structure
+ * @param preco Input : pointer to recombination structure
+ * @param z Input : redshift 
+ * @param energy_rate Output : energy density injection rate 
+ * @return the error status
+ */
+
+int thermodynamics_energy_injection(
+				      struct precision * ppr,
+				      struct background * pba,
+				      struct recombination * preco,
+				      double z,
+				      double * energy_rate
+				    ) {
+
+
+  double p_annihilation_at_z;
+  double coeff;
+  coeff=1.932e-10; //pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*pba->Omega0_cdm;
+
+
+  /*redshift-dependent annihilation parameter*/
+	
+  if (z>2500) {
+    p_annihilation_at_z=preco->p_annihilation*exp(-preco->alpha*0.838490285049671);
+  }
+  else if(z>30){
+    p_annihilation_at_z=preco->p_annihilation*exp(preco->alpha*(log((1+z)/2501)*log((1+z)/2501)-0.838490285049671));
+    //coeff=log(1001/2501)*log(1001/2501)
+  }
+  else{
+    p_annihilation_at_z=preco->p_annihilation*exp(preco->alpha*(log(31./2501)*log(31./2501)-0.838490285049671));
+  }
+
+  * energy_rate = preco->rho_dm_c_squared*pow((1.+z),6)*p_annihilation_at_z+coeff*pow((1+z),3)*preco->p_decay;
+
+  //fprintf(stderr,"%e\n",sqrt(preco->rho_dm_c_squared)/(pba->Omega0_b+pba->Omega0_cdm)/pba->h/pba->h);
 
   return _SUCCESS_;
 
@@ -1722,6 +1773,7 @@ int thermodynamics_recombination_with_hyrec(
   double L2s1s_current;
   void * buffer;
   int buf_size;
+  double energy_rate;
 
   /** - Fill hyrec parameter structure */
   
@@ -1741,6 +1793,7 @@ int thermodynamics_recombination_with_hyrec(
   param.dlna = 8.49e-5;
   param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
   param.p_ann= pth->p_annihilation;
+  param.alpha= pth->alpha;
   param.p_dec= pth->p_decay;
 
   /** - Build effective rate tables */
@@ -1888,6 +1941,10 @@ int thermodynamics_recombination_with_hyrec(
 	       pba->error_message,
 	       pth->error_message);
   
+    class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate),
+	       pth->error_message,
+	       pth->error_message);
+
     /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
     Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
 
@@ -1907,7 +1964,7 @@ int thermodynamics_recombination_with_hyrec(
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) 
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe,(1.-xe) ,z, pth->p_annihilation, pth->p_decay) / Tm / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, z, energy_rate) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -2059,7 +2116,8 @@ int thermodynamics_recombination_with_recfast(
 
   /* CDM annihilation parameters */
   preco->p_annihilation = pth->p_annihilation;
-	preco->p_decay=pth->p_decay;
+  preco->alpha = pth->alpha;
+  preco->p_decay=pth->p_decay;
   preco->rho_dm_c_squared = pow(pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*pba->Omega0_cdm,2);
 
   /* quantities related to constants defined in thermodynamics.h */
@@ -2393,11 +2451,7 @@ int thermodynamics_derivs_with_recfast(
   /* used for CDM annihilation */
   double C;
   double C_He;
-	
-	double coeff;
-	coeff=1.932e-10; //pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*pba->Omega0_cdm;
-
-	
+  double energy_rate;
  
   ptpaw = parameters_and_workspace;
   ppr = ptpaw->ppr;
@@ -2418,6 +2472,10 @@ int thermodynamics_derivs_with_recfast(
 	     pba->error_message,
 	     error_message);
   
+  class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate),
+	     error_message,
+	     error_message);
+
   /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
 
@@ -2504,18 +2562,13 @@ int thermodynamics_derivs_with_recfast(
     /* equations modified to take into account energy injection form CDM annihilation */
     if (x_H > ppr->recfast_x_H0_trigger2) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z))
-		-(preco->rho_dm_c_squared*pow((1.+z),6)*preco->p_annihilation+coeff*pow((1+z),3)*preco->p_decay)*(1.-x)/(3*n)/(13.6*_eV_*Hz*(1.+z)); /* energy injection (neglect helium) */
-	//-(1.-preco->fHe)*preco->rho_dm_c_squared*(1.-x)/(3*n)*pow((1.+z),6)*preco->p_annihilation/(13.6*_eV_*Hz*(1.+z)); /* energy injection */
+		-energy_rate*(1.-x)/(3*n)/(13.6*_eV_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 		
     }
     else {
       C=(1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)))
-	-(preco->rho_dm_c_squared*pow((1.+z),6)*preco->p_annihilation+coeff*pow((1+z),3)*preco->p_decay)*(1.-x)/(3*n)*(C/(13.6*_eV_)+(1.-C)/(10.2*_eV_))/(Hz*(1.+z)); /* energy injection (neglect helium) */
-     // -(1.-preco->fHe)*preco->rho_dm_c_squared*(1.-x)/(3*n)*pow((1.+z),6)*preco->p_annihilation*(C/(13.6*_eV_)+(1.-C)/(3.39*_eV_))/(Hz*(1.+z)); /* energy injection */
-		
-			
-		
+	-energy_rate*(1.-x)/(3*n)*(C/(13.6*_eV_)+(1.-C)/(10.2*_eV_))/(Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 		
     }
   }
@@ -2534,8 +2587,7 @@ int thermodynamics_derivs_with_recfast(
 
     dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat)) 
 	     *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))
-      /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
-    //-(preco->fHe)*preco->rho_dm_c_squared*(1.-x_He)/(3*n_He)*pow((1.+z),6)*preco->p_annihilation*(C_He/(24.587*_eV_)+(1.-C_He)/(3.768*_eV_))/(Hz*(1.+z)); /* energy injection */
+      /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz)); /* in case of energy injection due to DM, we neglect the contribution to helium ionization */
 
     /* following is from recfast 1.4 */
     /* this correction is not self-consistent when there is CDM annihilation, and leads to nan's  at small redshift (unimportant when reionization takes over before that redshift) */
@@ -2562,11 +2614,9 @@ int thermodynamics_derivs_with_recfast(
   else {
     /* equations modified to take into account energy injection form CDM annihilation */
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
-    -2./(3.*_k_B_)*(preco->rho_dm_c_squared*pow((1.+z),6)*preco->p_annihilation+coeff*pow((1+z),3)*preco->p_decay)*(1.+2.*x)/(3*n)/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
+    -2./(3.*_k_B_)*energy_rate*(1.+2.*x)/(3*n)/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
   }
-	
-	/*fprintf(stderr, "1+z=%e TM/TR=%e\n",
-			z,Tmat/Trad);*/
+
   return _SUCCESS_;
 }      
 

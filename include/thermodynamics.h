@@ -74,6 +74,8 @@ struct thermo
 
   double p_annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
 	
+  double alpha;
+
   double p_decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   short compute_cb2_derivatives; /**< do we want to include in computation derivatives of baryon sound speed? */
@@ -253,6 +255,7 @@ struct recombination {
   double CB1_He2;
   double H0;
   double p_annihilation;   /** for CDM annihilation */
+  double alpha;
   double p_decay;
   double rho_dm_c_squared; /** in (Omega_cdm * rho_c * c)^2 in units of (Kg/m^2/s)^2 */
 
@@ -403,6 +406,14 @@ extern "C" {
 				     struct thermo * pth
 				     );
 
+  int thermodynamics_energy_injection(
+				      struct precision * ppr,
+				      struct background * pba,
+				      struct recombination * preco,
+				      double z,
+				      double * energy_rate
+				      );
+  
   int thermodynamics_reionization_function(
 					   double z,
 					   struct thermo * pth,

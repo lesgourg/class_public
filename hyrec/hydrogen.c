@@ -39,15 +39,13 @@ double alphaB_PPB(double TM) {
 Peebles recombination rate
 ***************************************************************************************************/
 
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double p_ann, double p_dec) {
+double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double energy_rate) {
 
   double RLya, alphaB, four_betaB, C;
-	double coeff;
-	double coeff2;
+
 	double eV;
 	
-	coeff=5.036242e-37; //in kg^2 m^{-4} s^{-2}
-	coeff2=1.932e-10; //pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*pba->Omega0_cdm;
+
 	eV=1.60217646e-19; //in J
 
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
@@ -56,9 +54,8 @@ double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR
 
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);  
 	
- 
-	return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
-	+(1.-xe)/(3.*nH*1e6)*(coeff*pow((1.+z),6)*p_ann+coeff2*pow((1+z),3)*p_dec)*(C/(EI*eV)+(1.-C)/(E21*eV))/H;
+  return ((-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
+	+(1.-xe)/(3.*nH*1e6)*energy_rate*(C/(EI*eV)+(1.-C)/(E21*eV))/H);
 
 
 }
@@ -68,29 +65,23 @@ RecFast recombination rate (Seager et al 1999, 2000): effective three-level atom
 with a fudge factor F = 1.14
 ****************************************************************************************************/
 
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double p_ann, double p_dec) {
+double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double energy_rate) {
 
   double RLya, alphaB, four_betaB, C;
 	
-	double coeff;
-	double coeff2;
-	double eV;
+  double eV;
 		
-	coeff=5.036242e-37; //in kg^2 m^{-4} s^{-2}
-	coeff2=1.932e-10; //pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*pba->Omega0_cdm;
-	eV=1.60217646e-19; //in J eV^{-1}
-	
+  eV=1.60217646e-19; //in J eV^{-1}
 
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
   alphaB = 1.14 * alphaB_PPB(TM);
   four_betaB  = 3.016103031869581e21 *TR*sqrt(TR) *exp(-0.25*EI/TR) *alphaB; 
-
+  
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);  
-	
-	
-	return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
-	+(1.-xe)/(3.*nH*1e6)*(coeff*pow((1.+z),6)*p_ann+coeff2*pow((1+z),3)*p_dec)*(C/(EI*eV)+(1.-C)/(E21*eV))/H;
-
+  
+  return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
+    +(1.-xe)/(3.*nH*1e6)*energy_rate*(C/(EI*eV)+(1.-C)/(E21*eV))/H;
+  
 }
 
 /**********************************************************************************************
@@ -216,7 +207,7 @@ Inputs: xe, nH in cm^{-3}, H in s^{-1}, TM, TR in eV. Output: dxe/dlna
 ************************************************************************************************/
 
 double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, 
-						double z, double p_ann, double p_dec, HRATEEFF *rate_table){
+						double z, double energy_rate, HRATEEFF *rate_table){
 
    double Alpha[2];
    double Beta[2];
@@ -227,17 +218,11 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
    double x2[2];   
    double x1s_db;
 	
-	double coeff;
-	double coeff2;
-	double eV;
+   double eV;
 	
-	coeff=5.036242e-37; //in kg^2 m^{-4} s^{-2}
-	coeff2=1.932e-10; //pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*pba->Omega0_cdm;
-	eV=1.60217646e-19; //in J eV^{-1}
-	
-	double C_2s;
-	double C_2p;
-	double C;
+   eV=1.60217646e-19; //in J eV^{-1}
+
+   double C_2p;
  
    interpolate_rates(Alpha, Beta, &R2p2s, TR, TM / TR,z, rate_table);
        
@@ -260,16 +245,12 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
    x2[0] = (matrix[1][1] * RHS[0] - matrix[0][1] * RHS[1])/det;
    x2[1] = (matrix[0][0] * RHS[1] - matrix[1][0] * RHS[0])/det;
 
-	C_2s=(L2s1s+3.*R2p2s*RLya/matrix[1][1])/(matrix[0][0]-3.*R2p2s*R2p2s/matrix[1][1]);
-	C_2p=(RLya+R2p2s*L2s1s/matrix[0][0])/(matrix[1][1]-R2p2s*3.*R2p2s/matrix[0][0]);
-	
-	C=(x2[0]*C_2s+x2[1]*C_2p)/(x2[0]+x2[1]);
+   C_2p=(RLya+R2p2s*L2s1s/matrix[0][0])/(matrix[1][1]-R2p2s*3.*R2p2s/matrix[0][0]);
 	
 		
+   return  (x1s_db*(L2s1s + 3.*RLya) -x2[0]*L2s1s -x2[1]*RLya)/Hubble
+     +(1.-xe)/(3.*nH*1e6)*energy_rate*(C_2p/(EI*eV)+(1.-C_2p)/(E21*eV))/Hubble;
 	
-	return  (x1s_db*(L2s1s + 3.*RLya) -x2[0]*L2s1s -x2[1]*RLya)/Hubble
-			+(1.-xe)/(3.*nH*1e6)*(coeff*pow((1.+z),6)*p_ann+coeff2*pow((1+z),3)*p_dec)*(C/(EI*eV)+(1.-C)/(E21*eV))/Hubble;
-
    
 }
 
@@ -671,7 +652,7 @@ fminus[0..iz-1] is known. Update fminus[iz]
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
                                 HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                                 double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-                                unsigned iz, double z, double p_ann, double p_dec){
+                                unsigned iz, double z, double energy_rate){
    
    double xr[2];
    double xv[NVIRT];
@@ -689,20 +670,13 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
    double Dtau[NVIRT]; 
    double Alpha[2], Beta[2];
 	
-	double coeff;
-	double coeff2;
 	double eV;
 	double RLya;
 	double R2p2s;
 	
-	coeff=5.036242e-37; //in kg^2 m^{-4} s^{-2}
-	coeff2=1.932e-10; //pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*pba->Omega0_cdm;
-	
 	eV=1.60217646e-19; //in J eV^{-1}
 	
-	double C_2s;
 	double C_2p;
-	double C;
 	
 
    for (i = 0; i < 2; i++) Trv[i] = create_1D_array(NVIRT);
@@ -729,18 +703,14 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
 	matrix[0][0] = Beta[0] + 3.*R2p2s + L2s1s;
 	matrix[1][1] = Beta[1] + R2p2s + RLya;
 	
-	C_2s=(L2s1s+3.*R2p2s*RLya/matrix[1][1])/(matrix[0][0]-3.*R2p2s*R2p2s/matrix[1][1]);
 	C_2p=(RLya+R2p2s*L2s1s/matrix[0][0])/(matrix[1][1]-R2p2s*3.*R2p2s/matrix[0][0]);
-	
-	C=(C_2s*xr[0]+C_2p*xr[1])/(xr[0]+xr[1]);
-	
 	
 	
 	/*************************************************************/
  
    /* Obtain xe_dot */
    xedot = -nH*xe*xe*(Alpha[0]+Alpha[1]) + xr[0]*Beta[0] + xr[1]*Beta[1]
-	+(1.-xe)/(3.*nH*1e6)*(coeff*pow((1.+z),6)*p_ann+coeff2*pow((1+z),3)*p_dec)*(C/(EI*eV)+(1.-C)/(E21*eV));  
+	+(1.-xe)/(3.*nH*1e6)*energy_rate*(C_2p/(EI*eV)+(1.-C_2p)/(E21*eV));
 	
 	   
    /* Update fminuses */
@@ -779,7 +749,7 @@ ADDED JANUARY 2011
    
 double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                            double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-		    unsigned iz, double z, double *Dxe, int model, double p_ann, double p_dec){
+		    unsigned iz, double z, double *Dxe, int model, double energy_rate){
 
     double s, xeSaha, dxeSaha_dlna, Ddxedlna_Dxe, dxedlna;
 	
@@ -788,29 +758,29 @@ double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHO
     dxeSaha_dlna = -(EI/T - 1.5)/(2.*xeSaha + s)*xeSaha*xeSaha;             /* Analytic derivative of above expression */  
 
     if (model == 0) {         /* Peebles model */
-        Ddxedlna_Dxe = (rec_HPeebles_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, z, p_ann, p_dec)
-		      - rec_HPeebles_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, z, p_ann, p_dec))/0.02/(1.-xeSaha); 
+      Ddxedlna_Dxe = (rec_HPeebles_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, z, energy_rate)
+		      - rec_HPeebles_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, z, energy_rate))/0.02/(1.-xeSaha); 
     } 
     else if (model == 1)  {   /* "Recfast" model */
-        Ddxedlna_Dxe = (rec_HRecFast_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, z, p_ann, p_dec)
-		      - rec_HRecFast_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, z, p_ann, p_dec))/0.02/(1.-xeSaha); 
+        Ddxedlna_Dxe = (rec_HRecFast_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, z, energy_rate)
+		      - rec_HRecFast_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, z, energy_rate))/0.02/(1.-xeSaha); 
     }
     else if (model == 2) { /* EMLA model with 2s and 2p decays only, no radiative transfer */
-        Ddxedlna_Dxe = (rec_HMLA_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, z ,p_ann, p_dec, rate_table)
-		      - rec_HMLA_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, z ,p_ann, p_dec, rate_table))/0.02/(1.-xeSaha); 
+        Ddxedlna_Dxe = (rec_HMLA_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, z ,energy_rate, rate_table)
+		      - rec_HMLA_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, z ,energy_rate, rate_table))/0.02/(1.-xeSaha); 
     }
     else {    /* Default mode, with radiative transfer */
         Ddxedlna_Dxe = (rec_HMLA_2photon_dxedlna(xeSaha+0.01*(1.-xeSaha),nH, H, T, T,
-                         rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, p_ann, p_dec)
+                         rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate)
                       - rec_HMLA_2photon_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T,
-	                 rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, p_ann, p_dec))/0.02/(1.-xeSaha);
+	                 rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate))/0.02/(1.-xeSaha);
     }
 
     *Dxe = dxeSaha_dlna/Ddxedlna_Dxe;
 
      /* Compute derivative again just so the fminuses are properly updated */
     dxedlna = rec_HMLA_2photon_dxedlna(xeSaha + *Dxe, nH, H, T, T,
-                   rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, p_ann, p_dec);  
+                   rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate);  
 
     return xeSaha + *Dxe;
 

@@ -605,6 +605,7 @@ int input_init(
 
   /* energy injection parameter from CDM annihilation */
   class_read_double("p_annihilation",pth->p_annihilation);
+  class_read_double("alpha",pth->alpha);
   /* decaying parameter from CDM decay*/
   class_read_double("p_decay",pth->p_decay);
 
@@ -1551,6 +1552,7 @@ int input_default_params(
   pth->binned_reio_step_sharpness = 0.3;
 
   pth->p_annihilation = 0.;
+  pth->alpha=0.;
   pth->p_decay = 0.;
 
   pth->compute_cb2_derivatives=_FALSE_;

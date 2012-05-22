@@ -44,13 +44,14 @@ typedef struct {
    long nz;                     /* total number of redshift steps */
 
    double p_ann;		/* annihilation parameter from DM */
+   double alpha;
    double p_dec;		/* decay parameter from DM*/
 } REC_COSMOPARAMS;
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param);
 double rec_HubbleConstant(REC_COSMOPARAMS *param, double z);
-double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double z, double p_ann, double p_dec);
-double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe , double nH, double z, double p_ann, double p_dec);
+double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double z, double energy_rate);
+double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe , double nH, double z, double energy_rate);
 void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *xe_out,
                       HRATEEFF *rate_table, int func_select, unsigned iz, TWO_PHOTON_PARAMS *twog_params,
 		      double **logfminus_hist, double *logfminus_Ly_hist[], 
@@ -63,3 +64,4 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
 void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog_params,
                        double *xe_output, double *Tm_output);
 
+double energy_injection_rate(REC_COSMOPARAMS *param, double z);
