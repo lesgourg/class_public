@@ -62,7 +62,7 @@ struct thermo
 
   double YHe;  /**< \f$ Y_{He} \f$ : primordial helium fraction */
 
-  enum recombination_algorithm recombination; /**< reionization code */
+  enum recombination_algorithm recombination; /**< recombination code */
 
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
 
@@ -71,12 +71,6 @@ struct thermo
   double tau_reio; /**< if above set to tau, input value of reionization optical depth */
 
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
-
-  double p_annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-	
-  double alpha;
-
-  double p_decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   short compute_cb2_derivatives; /**< do we want to include in computation derivatives of baryon sound speed? */
 
@@ -99,6 +93,35 @@ struct thermo
   double * binned_reio_xe; /**< imposed x_e(z) value at center of each bin */
 
   double binned_reio_step_sharpness; /**< sharpness of tanh() step interpolating between binned values */
+
+  /** parameters for energy injection */
+
+  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  
+  double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+
+  double annihilation_variation; /** if this parameter is non-zero,
+				     the function F(z)=(f <sigma*v> /
+				     m_cdm)(z) will be a parabola in
+				     log-log scale between zmin and
+				     zmax, with a curvature given by
+				     annihlation_variation (must ne
+				     negative), and with a maximum in
+				     zmax; it will be constant outside
+				     this range */
+
+  double annihilation_z; /** if annihilation_variation is non-zero,
+			     this is the value of z at which the
+			     parameter annihilation is defined, i.e.
+			     F(annihilation_z)=annihilation */
+  
+  double annihilation_zmax; /** if annihilation_variation is non-zero,
+				redhsift above which annihilation rate
+				is maximal */
+
+  double annihilation_zmin; /** if annihilation_variation is non-zero,
+				redhsift below which annihilation rate
+				is constant */
 
   //@}
 
@@ -254,10 +277,35 @@ struct recombination {
   double CB1_He1;
   double CB1_He2;
   double H0;
-  double p_annihilation;   /** for CDM annihilation */
-  double alpha;
-  double p_decay;
-  double rho_dm_c_squared; /** in (Omega_cdm * rho_c * c)^2 in units of (Kg/m^2/s)^2 */
+
+  /** parameters for energy injection */
+
+  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  
+  double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+
+  double annihilation_variation; /** if this parameter is non-zero,
+				     the function F(z)=(f <sigma*v> /
+				     m_cdm)(z) will be a parabola in
+				     log-log scale between zmin and
+				     zmax, with a curvature given by
+				     annihlation_variation (must ne
+				     negative), and with a maximum in
+				     zmax; it will be constant outside
+				     this range */
+
+  double annihilation_z; /** if annihilation_variation is non-zero,
+			     this is the value of z at which the
+			     parameter annihilation is defined, i.e.
+			     F(annihilation_z)=annihilation */
+  
+  double annihilation_zmax; /** if annihilation_variation is non-zero,
+				redhsift above which annihilation rate
+				is maximal */
+
+  double annihilation_zmin; /** if annihilation_variation is non-zero,
+				redhsift below which annihilation rate
+				is constant */
 
   //@}
 
