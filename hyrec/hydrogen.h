@@ -34,8 +34,8 @@ double cube(double x);
 /*********** PEEBLES + POST-SAHA + RECFAST ***************/ 
 
 double alphaB_PPB(double TM);
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double energy_rate);
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double z, double energy_rate);
+double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate);
+double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate);
 
 /************* EFFECTIVE MULTI LEVEL ATOM *******************/
 
@@ -62,9 +62,8 @@ typedef struct {
 HRATEEFF;
 
 void read_rates(HRATEEFF *rate_table);
-void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR,double z, 
-                       HRATEEFF *rate_table);
-double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR,double z,double energy_rate, HRATEEFF *rate_table);
+void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR, HRATEEFF *rate_table);
+double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, HRATEEFF *rate_table);
 
 /************ TWO-PHOTON PROCESSES AND DIFFUSION  ************/
 

@@ -43,15 +43,41 @@ typedef struct {
    double zstart, zend, dlna;   /* initial and final redshift and step size in log a */
    long nz;                     /* total number of redshift steps */
 
-   double p_ann;		/* annihilation parameter from DM */
-   double alpha;
-   double p_dec;		/* decay parameter from DM*/
+   /** parameters for energy injection */
+
+   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  
+   double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+
+   double annihilation_variation; /** if this parameter is non-zero,
+				     the function F(z)=(f <sigma*v> /
+				     m_cdm)(z) will be a parabola in
+				     log-log scale between zmin and
+				     zmax, with a curvature given by
+				     annihlation_variation (must ne
+				     negative), and with a maximum in
+				     zmax; it will be constant outside
+				     this range */
+
+   double annihilation_z; /** if annihilation_variation is non-zero,
+			     this is the value of z at which the
+			     parameter annihilation is defined, i.e.
+			     F(annihilation_z)=annihilation */
+  
+   double annihilation_zmax; /** if annihilation_variation is non-zero,
+				redhsift above which annihilation rate
+				is maximal */
+
+   double annihilation_zmin; /** if annihilation_variation is non-zero,
+				redhsift below which annihilation rate
+				is constant */
+
 } REC_COSMOPARAMS;
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param);
 double rec_HubbleConstant(REC_COSMOPARAMS *param, double z);
-double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double z, double energy_rate);
-double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe , double nH, double z, double energy_rate);
+double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate);
+double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe , double nH, double energy_rate);
 void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *xe_out,
                       HRATEEFF *rate_table, int func_select, unsigned iz, TWO_PHOTON_PARAMS *twog_params,
 		      double **logfminus_hist, double *logfminus_Ly_hist[], 

@@ -1815,9 +1815,12 @@ int thermodynamics_recombination_with_hyrec(
   param.zend = 0.;
   param.dlna = 8.49e-5;
   param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
-  param.p_ann= pth->annihilation;
-  param.alpha= pth->annihilation_variation;
-  param.p_dec= pth->decay;
+  param.annihilation = pth->annihilation;
+  param.decay = pth->decay;
+  param.annihilation_variation = pth->annihilation_variation;
+  param.annihilation_z = pth->annihilation_z;
+  param.annihilation_zmax = pth->annihilation_zmax;
+  param.annihilation_zmin = pth->annihilation_zmin;
 
   /** - Build effective rate tables */
 
@@ -1987,7 +1990,7 @@ int thermodynamics_recombination_with_hyrec(
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) 
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, z, energy_rate) / Tm / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_rate) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)

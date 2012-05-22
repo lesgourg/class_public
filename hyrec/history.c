@@ -98,35 +98,22 @@ double rec_HubbleConstant(REC_COSMOPARAMS *param, double z) {
 Matter temperature -- 1st order steady state, from Hirata 2008 
 ******************************************************************************************/
 
-double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double z, double energy_rate) {
+double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate) {
 	
-	double eV;
-	double k_b;
-	
-	eV=1.60217653e-19; //in J eV^{-1}
-	k_b=1.3806503e-23; //in m^2 kg s^{-2} K
-
-	return(Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
-	       +1/(4.91466895548409e-22*pow(Tr,4)*xe)*2./(3.*k_b)*(1.+2.*xe)/(3.*nH*1e6)
-	       *energy_rate);
-	
-   /* Coefficient = 8 sigma_T a_r / (3 m_e c) */
+  return Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
+    +2./3./kBoltz*(1.+2.*xe)/(3.*nH)*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
+  
+  /* Coefficient = 8 sigma_T a_r / (3 m_e c) */
 }
 
 /****************************************************************************************** 
 Matter temperature evolution derivative 
 ******************************************************************************************/
 
-double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe, double nH, double z, double energy_rate) {
+double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe, double nH, double energy_rate) {
 	
-	double k_b;
-	
-	k_b=1.3806503e-23; //in m^2 kg s^{-2} K
-	
-	return(-2.*Tm + 4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+fHe)*(Tr-Tm)/H
-	       +2./(3.*k_b)*(1.+2.*xe)/(3*nH*1e6)*energy_rate/(1.+xe+fHe)/H);
-
-   /* Coefficient = 8 sigma_T a_r / (3 m_e c) */
+  return -2.*Tm + 4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+fHe)*(Tr-Tm)/H
+    +2./3./kBoltz*(1.+2.*xe)/(3*nH)*energy_rate/(1.+xe+fHe)/H;
 }
 
 /**********************************************************************************************
@@ -144,22 +131,22 @@ void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *x
     Tr = param->T0 * (ainv=1.+z1);
     nH = param->nH0 * ainv*ainv*ainv;
     H = rec_HubbleConstant(param, z1); 
-    Tm = rec_Tmss(xe_in, Tr, H, param->fHe,nH*1e-6, z1, energy_injection_rate(param,z1)); 
+    Tm = rec_Tmss(xe_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1)); 
    
     #if (MODEL == PEEBLES)
         dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-                                           rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz,z1, energy_injection_rate(param,z1));
+                                           rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1));
     #elif (MODEL == RECFAST)
         dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-                                           rec_HRecFast_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz,z1, energy_injection_rate(param,z1));
+                                           rec_HRecFast_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1));
     #elif (MODEL == EMLA2s2p)
         dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-                                           rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, z1, energy_injection_rate(param,z1), rate_table);
+                                           rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table);
     #else
         dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
 	  func_select==FUNC_H2G  ? rec_HMLA_2photon_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, rate_table, twog_params, 
 							    param->zstart, param->dlna, logfminus_hist, logfminus_Ly_hist, iz, z1, energy_injection_rate(param,z1))
-	  :rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz,z1, energy_injection_rate(param,z1), rate_table);
+	  :rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table);
     #endif                    
                       
     *xe_out = xe_in + param->dlna * (1.25 * dxedlna - 0.25 * (*dxedlna_prev2)); 
@@ -190,23 +177,23 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
   
     #if (MODEL == PEEBLES)
          dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-                                            rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, z1, energy_injection_rate(param,z1));
+                                            rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1));
     #elif (MODEL == RECFAST)
          dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-                                            rec_HRecFast_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, z1, energy_injection_rate(param,z1));
+                                            rec_HRecFast_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1));
     #elif (MODEL == EMLA2s2p)
          dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-                                            rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz,z1, energy_injection_rate(param,z1), rate_table);
+                                            rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table);
     #else
          dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
                    func_select==FUNC_H2G  ? rec_HMLA_2photon_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, rate_table, twog_params, 
                                                                      param->zstart, param->dlna, logfminus_hist, logfminus_Ly_hist, iz, z1,
 																	 energy_injection_rate(param,z1)):        
-	           func_select==FUNC_HMLA ? rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz,z1, energy_injection_rate(param,z1), rate_table)
-                                           :rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, z1, energy_injection_rate(param,z1)); /* used for z < 20 only */
+	           func_select==FUNC_HMLA ? rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table)
+                                           :rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1)); /* used for z < 20 only */
     #endif    
 
-	 dTmdlna = rec_dTmdlna(xe_in, Tm_in, Tr, H, param->fHe,nH*1e-6,z1, energy_injection_rate(param,z1));
+	 dTmdlna = rec_dTmdlna(xe_in, Tm_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1));
                                           
     *xe_out = xe_in + param->dlna * (1.25 * dxedlna - 0.25 * (*dxedlna_prev2)); 
     *Tm_out = Tm_in + param->dlna * (1.25 * dTmdlna - 0.25 * (*dTmdlna_prev2));
@@ -279,7 +266,7 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
 		     logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &z_prev2, &dxedlna_prev2); 
       
       z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.; 
-      Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe,param->nH0*cube(1.+z), z_prev2 , energy_injection_rate(param,z)); 
+      Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe, param->nH0*cube(1.+z), energy_injection_rate(param,z)); 
 
       /* Starting to populate the photon occupation number with thermal values */
       update_fminus_Saha(logfminus_hist, logfminus_Ly_hist, xe_output[iz], param->T0*(1.+z)*kBoltz, 
@@ -297,7 +284,7 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
       H = rec_HubbleConstant(param,z);
       xe_output[iz] =  xe_PostSahaH(param->nH0*cube(1.+z)*1e-6, H, kBoltz*param->T0*(1.+z), rate_table, twog_params,
 				    param->zstart, param->dlna, logfminus_hist, logfminus_Ly_hist, iz, z, &Delta_xe, MODEL, energy_injection_rate(param,z)); 
-      Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), H, param->fHe, param->nH0*cube(1.+z), z_prev2 , energy_injection_rate(param,z));
+      Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), H, param->fHe, param->nH0*cube(1.+z), energy_injection_rate(param,z));
     }   
   
     /******* Segment where we follow the hydrogen recombination evolution with two-photon processes
@@ -314,16 +301,16 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
        rec_get_xe_next1(param, z, xe_output[iz-1], xe_output+iz, rate_table, FUNC_H2G, iz-1, twog_params,
                	      logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &z_prev2, &dxedlna_prev2); 
        z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.; 
-       Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe, param->nH0*cube(1.+z)*1e-6, z_prev2, energy_injection_rate(param,z)); 
+       Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe, param->nH0*cube(1.+z)*1e-6, energy_injection_rate(param,z)); 
     }
      
    /******* Segment where we follow the hydrogen recombination evolution with two-photon processes
             AND Tm evolution ******/
 
     dTmdlna_prev2 = rec_dTmdlna(xe_output[iz-3], Tm_output[iz-3], param->T0*(1.+z_prev2), 
-                                rec_HubbleConstant(param, z_prev2), param->fHe, param->nH0*cube(1.+z), z_prev2, energy_injection_rate(param,z_prev2));
+                                rec_HubbleConstant(param, z_prev2), param->fHe, param->nH0*cube(1.+z_prev2), energy_injection_rate(param,z_prev2));
     dTmdlna_prev  = rec_dTmdlna(xe_output[iz-2], Tm_output[iz-2], param->T0*(1.+z_prev), 
-                                rec_HubbleConstant(param, z_prev), param->fHe, param->nH0*cube(1.+z), z_prev, energy_injection_rate(param,z_prev));      
+                                rec_HubbleConstant(param, z_prev), param->fHe, param->nH0*cube(1.+z_prev), energy_injection_rate(param,z_prev));      
 
     for(; iz<param->nz && z > 700.; iz++) { 
         
@@ -366,24 +353,31 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
 double energy_injection_rate(REC_COSMOPARAMS *param, 
 			     double z) {
 
-  double p_annihilation_at_z;
-  double coeff;
-  coeff=1.932e-10; //pow(0.71*1.e5/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*pba->Omega0_cdm;
-
+  double annihilation_at_z;
+  double rho_cdm_today;
 
   /*redshift-dependent annihilation parameter*/
 	
-  if (z>2500) {
-    p_annihilation_at_z=param->p_ann*exp(-param->alpha*0.838490285049671);
+  if (z>param->annihilation_zmax) {
+
+    annihilation_at_z = param->annihilation*
+      exp(-param->annihilation_variation*pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2));
   }
-  else if(z>30){
-    p_annihilation_at_z=param->p_ann*exp(param->alpha*(log((1+z)/2501)*log((1+z)/2501)-0.838490285049671));
-    //coeff=log(1001/2501)*log(1001/2501)
+  else if (z>param->annihilation_zmin) {
+
+    annihilation_at_z = param->annihilation*
+      exp(param->annihilation_variation*(-pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2)
+					 +pow(log((z+1.)/(param->annihilation_zmax+1.)),2)));
   }
-  else{
-    p_annihilation_at_z=param->p_ann*exp(param->alpha*(log(31./2501)*log(31./2501)-0.838490285049671));
+  else {
+
+    annihilation_at_z = param->annihilation*
+      exp(param->annihilation_variation*(-pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2)
+					 +pow(log((param->annihilation_zmin+1.)/(param->annihilation_zmax+1.)),2)));
   }
 
-  return pow(param->omh2*4.827652e-18,2)*pow((1.+z),6)*p_annihilation_at_z+coeff*pow((1+z),3)*param->p_dec;  
+  rho_cdm_today = param->omh2*1.610331371312e-26; /* energy density in J/m^3 */
+
+  return (pow(rho_cdm_today,2)*pow((1.+z),6)*annihilation_at_z+rho_cdm_today*pow((1+z),3)*param->decay)*2.99792458e8*2.99792458e8/1.e6/1.60217653e-19;
 
 }
