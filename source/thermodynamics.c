@@ -990,9 +990,10 @@ int thermodynamics_energy_injection(
 					 +pow(log((preco->annihilation_zmin+1.)/(preco->annihilation_zmax+1.)),2)));
   }
 
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm; /* energy density in J/m^3 */
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
 
-  * energy_rate = (pow(rho_cdm_today,2)*pow((1.+z),6)*annihilation_at_z+rho_cdm_today*pow((1+z),3)*preco->decay)*_c_*_c_;
+  * energy_rate = pow(rho_cdm_today,2)*pow((1.+z),6)*annihilation_at_z/_c_/_c_+rho_cdm_today*pow((1+z),3)*preco->decay; 
+  /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
 
   return _SUCCESS_;
 

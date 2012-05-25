@@ -1435,7 +1435,19 @@ int input_init(
 
   pbs->x_max = ((int)(pbs->x_max * 1.01 / pbs->x_step)+1)*pbs->x_step;
 
-  /** (i) eventually write all the read parameters in a file */
+  /** (i) shall we wrtie background quantitites in a file? */
+
+  class_call(parser_read_string(pfc,"write background",&string1,&flag1,errmsg),
+	     errmsg,
+	     errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    pop->write_background = _TRUE_;
+
+  }
+
+  /** (j) eventually write all the read parameters in a file */
 
   class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
 	     errmsg,
@@ -1660,6 +1672,7 @@ int input_default_params(
   sprintf(pop->root,"output/");
   pop->write_header = _TRUE_;
   pop->output_format = class_format;
+  pop->write_background = _FALSE_;
 
   /** - spectra structure */ 
 

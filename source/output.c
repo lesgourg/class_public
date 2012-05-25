@@ -111,11 +111,11 @@ int output_init(
 
   /** Summary: */
 
-  /** - check that we really want to output at least one spectrum */
+  /** - check that we really want to output at least one file */
 
-  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_)) {
+  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (pnl->method == nl_none) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_)) {
     if (pop->output_verbose > 0)
-      printf("No spectra requested. Output module skipped.\n");
+      printf("No output files requested. Output module skipped.\n");
     return _SUCCESS_;
   }
   else {
@@ -148,6 +148,8 @@ int output_init(
 	       pop->error_message);
   }
 
+  /** - deal with density and matter power spectra */
+
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
     class_call(output_tk(pba,ppt,psp,pop),
@@ -155,6 +157,15 @@ int output_init(
 	       pop->error_message);
   }
 
+  /** - deal with background quantitites */
+
+  if (pop->write_background == _TRUE_) {
+
+    class_call(output_background(pba,pop),
+	       pop->error_message,
+	       pop->error_message);
+
+  }
 
   return _SUCCESS_;
 
@@ -1212,6 +1223,40 @@ int output_tk(
   
 }
 
+int output_background(
+		      struct background * pba,
+		      struct output * pop
+		      ) {
+
+  FILE * out;
+  FileName file_name;
+  int index_eta;
+
+  sprintf(file_name,"%s%s",pop->root,"background.dat");
+
+  class_call(output_open_background_file(pba,
+					 pop,
+					 &out,
+					 file_name
+					 ),
+	     pop->error_message,
+	     pop->error_message);
+
+  for (index_eta=0; index_eta<pba->bt_size; index_eta++) {
+
+    class_call(output_one_line_of_background(pba,
+					     out,
+					     &(pba->background_table[index_eta*pba->bg_size])
+					     ),
+	     pop->error_message,
+	     pop->error_message);
+    
+  }
+  
+  return _SUCCESS_;
+
+}
+
 /**
  * This routine opens one file where some C_l's will be written, and writes 
  * a heading with some general information concerning its content.
@@ -1608,6 +1653,104 @@ int output_one_line_of_tk(
     fprintf(tkfile,"  %16.10e",tk[index_tr]);
   
   fprintf(tkfile,"\n");
+  
+  return _SUCCESS_;
+  
+}
+
+/**
+ * This routine opens one file where some background quantitites will be written, and writes 
+ * a heading with some general information concerning its content.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pop        Input : pointer to output structure
+ * @param backfile   Output: returned pointer to file pointer
+ * @param filename   Input : name of the file
+ * @return the error status
+ */
+
+int output_open_background_file(
+			struct background * pba,
+			struct output * pop,
+			FILE * * backfile,
+			FileName filename
+			) {
+
+  int n;
+
+  class_open(*backfile,filename,"w",pop->error_message);
+
+  if (pop->write_header == _TRUE_) {
+    fprintf(*backfile,"# Table of selected background quantitites\n"); 
+    fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n"); 
+    fprintf(*backfile,"                        z");
+    fprintf(*backfile,"        proper time [Gyr]");
+    fprintf(*backfile," conformal time * c [Mpc]");
+    fprintf(*backfile,"            H / c [1/Mpc]");
+    fprintf(*backfile,"       comov. dist. [Mpc]");
+    fprintf(*backfile,"   ang. diam. dist. [Mpc]");
+    fprintf(*backfile,"   luminosity dist. [Mpc]");
+    fprintf(*backfile," comov. sound hori. [Mpc]");
+    fprintf(*backfile,"  (8piG/3) rho_g [Mpc^-2]");
+    fprintf(*backfile,"       (.) rho_b [Mpc^-2]");
+    if (pba->Omega0_cdm != 0.)
+      fprintf(*backfile,"     (.) rho_cdm [Mpc^-2]");
+    if (pba->Omega0_ncdm_tot != 0.)
+      for (n=0; n<pba->N_ncdm; n++)
+	fprintf(*backfile," (.) rho_ncdm[%d] [Mpc^-2]",n);
+    if (pba->Omega0_lambda != 0.)
+      fprintf(*backfile,"  (.) rho_Lambda [Mpc^-2]");
+    if (pba->Omega0_fld != 0.)
+      fprintf(*backfile,"     (.) rho_fld [Mpc^-2]");
+    if (pba->Omega0_ur != 0.)
+      fprintf(*backfile,"      (.) rho_ur [Mpc^-2]");
+    fprintf(*backfile,"    (.) rho_crit [Mpc^-2]");
+    fprintf(*backfile,"\n");
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * This routine writes one line with background quantitites
+ *
+ * @param pba        Input: pointer to background structure
+ * @param backfile   Input : file pointer
+ * @param pvecback   Input : vector of background quantitites
+ * @return the error status
+ */
+
+int output_one_line_of_background(
+				  struct background * pba,
+				  FILE * backfile,
+				  double * pvecback
+				  ) {
+  
+  int n;
+
+  fprintf(backfile,"%25.12e",pba->a_today/pvecback[pba->index_bg_a]-1.);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_time]/_Gyr_over_Mpc_);
+  fprintf(backfile,"%25.12e",pba->conformal_age-pvecback[pba->index_bg_conf_distance]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_H]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_conf_distance]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_ang_distance]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_lum_distance]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rs]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_g]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_b]);
+  if (pba->Omega0_cdm != 0.)
+    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_cdm]);
+  if (pba->Omega0_ncdm_tot != 0.)
+    for (n=0; n<pba->N_ncdm; n++)
+      fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_ncdm1+n]);
+  if (pba->Omega0_lambda != 0.)
+    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_lambda]);
+  if (pba->Omega0_fld != 0.)
+    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_fld]);
+  if (pba->Omega0_ur != 0.)
+    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_ur]);
+  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_crit]);
+  fprintf(backfile,"\n");
   
   return _SUCCESS_;
   

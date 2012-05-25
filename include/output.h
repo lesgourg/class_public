@@ -43,13 +43,15 @@ struct output {
 
   //@}
 
-   /** @name - root for all file names */
+   /** @name - extra information on output */
 
   //@{
 
   short write_header;
-
+  
   enum file_format output_format;
+
+  short write_background;
 
   //@}
 
@@ -118,6 +120,10 @@ extern "C" {
 		struct output * pop
 		);
 
+  int output_background(
+		struct background * pba,
+		struct output * pop
+		);
 
   int output_open_cl_file(
 			  struct spectra * psp,
@@ -182,6 +188,21 @@ extern "C" {
 			    double * tk,
 			    int tr_size
 			    );
+
+  int output_open_background_file(
+				  struct background * pba,
+				  struct output * pop,
+				  FILE * * backfile,
+				  FileName filename
+				  );
+
+  int output_one_line_of_background(
+				    struct background * pba,
+				    FILE * backfile,
+				    double * pvecback
+				    );
+
+
 
 #ifdef __cplusplus
 }
