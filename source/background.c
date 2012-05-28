@@ -1367,7 +1367,7 @@ int background_solve(
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
     else {
-      tau_end = tau_start + (1./pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);  
+      tau_end = tau_start + (pba->a_today/pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);  
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
 

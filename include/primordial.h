@@ -20,6 +20,12 @@ enum linear_or_logarithmic {
   logarithmic
 };
 
+/** enum defining the type of inflation potential function V(phi) */
+
+enum potential_shape {
+  polynomial
+};
+
 /**
  * Structure containing everything about primordial spectra that other modules need to know.
  *
@@ -105,6 +111,17 @@ struct primordial {
   double n_nid_niv; /**< NIDxNIV cross-correlation tilt */
   double alpha_nid_niv; /**< NIDxNIV cross-correlation running */
 
+  /** - parameters describing the case primordial_spec_type = inflation_V */
+
+  enum potential_shape potential;
+
+  double phi_pivot;
+  double V0;
+  double V1;
+  double V2;
+  double V3;
+  double V4;
+
   //@}
 
   /** @name - pre-computed table of primordial spectra, and related quantities */
@@ -152,11 +169,33 @@ struct primordial {
 
   //@}
 
+  //@{
+
   /** @name - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
 
   double ** amplitude; /**< all amplitudes in matrix form: amplitude[index_mode][index_ic1_ic2] */
   double ** tilt;      /**< all tilts in matrix form: tilt[index_mode][index_ic1_ic2] */
   double ** running;   /**< all runnings in matrix form: running[index_mode][index_ic1_ic2] */
+
+  //@}
+
+  //@{
+
+  /** @name - parameters desctibing the case primordial_spec_type = inflation_V */
+
+  int index_in_a;
+  int index_in_phi;
+  int index_in_dphi;
+  int index_in_ksi_re;
+  int index_in_ksi_im;
+  int index_in_dksi_re;
+  int index_in_dksi_im;
+  int index_in_ah_re;
+  int index_in_ah_im;
+  int index_in_dah_re;
+  int index_in_dah_im;
+  int in_bg_size;
+  int in_size;
 
   //@}
 
@@ -171,6 +210,24 @@ struct primordial {
   ErrorMsg error_message; /**< zone for writing error messages */
 
 };
+
+struct primordial_inflation_parameters_and_workspace {
+
+  struct primordial * ppm;
+  double V;
+  double dV;
+  double ddV;
+  double a2V;
+  double a2dV;
+  double aH;
+  double N;
+  double a2ddV;
+  double zpp_over_z;
+  double app_over_a;
+  double k;
+
+};
+
 
 /*************************************************************************************************************/
 
@@ -223,6 +280,88 @@ extern "C" {
 				   double k,
 				   double * pk
 				   );
+
+  int primordial_inflation_potential(
+				   struct primordial * ppm,
+				   double phi,
+				   double * V,
+				   double * dV,
+				   double * ddV
+				     );
+
+  int primordial_inflation_indices(
+				  struct primordial * ppm
+				  );
+
+  int primordial_inflation_solve_inflation(
+					   struct perturbs * ppt,
+					   struct primordial * ppm,
+					   struct precision * ppr
+					   );
+
+  int primordial_inflation_spectra(
+				   struct perturbs * ppt,
+				   struct primordial * ppm,
+				   struct precision * ppr,
+				   double * y_ini,
+				   double * y,
+				   double * dy
+				   );
+
+  int primordial_inflation_one_k(
+				 struct primordial * ppm,
+				 struct precision * ppr,
+				 double k,
+				 double * y,
+				 double * dy,
+				 double * curvature,
+				 double * tensor
+				 );
+
+  int primordial_inflation_find_attractor(
+					  struct primordial * ppm,
+					  struct precision * ppr,
+					  double phi_0,
+					  double precision,
+					  double * y,
+					  double * dy,
+					  double * H_0,
+					  double * dphidt_0
+					  );
+
+  int primordial_inflation_evolve_background(
+					     struct primordial * ppm,
+					     struct precision * ppr,
+					     double * y,
+					     double * dy,
+					     double phi_stop);
+
+  int primordial_inflation_reach_aH(
+				    struct primordial * ppm,
+				    struct precision * ppr,
+				    double * y,
+				    double * dy,
+				    double aH_stop
+				    );
+
+  int primordial_inflation_check_potential(
+					   struct primordial * ppm,
+					   double phi
+					   );
+
+  int primordial_inflation_get_epsilon(
+				       struct primordial * ppm,
+				       double phi,
+				       double * epsilon
+				       );
+
+  int primordial_inflation_derivs(
+				  double tau,
+				  double * y,
+				  double * dy,
+				  void * parameters_and_workspace,
+				  ErrorMsg error_message
+				  );
 
 #ifdef __cplusplus
 }

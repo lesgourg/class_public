@@ -765,14 +765,18 @@ int input_init(
       ppm->primordial_spec_type = analytic_Pk;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"inflation_V") == 0) {
+      ppm->primordial_spec_type = inflation_V;
+      flag2=_TRUE_;
+    }
     class_test(flag2==_FALSE_,
 	       errmsg,
-	       "could not identify primordial spectrum type, check that it is one of 'analytic_pk', ...");
+	       "could not identify primordial spectrum type, check that it is one of 'analytic_pk', 'inflation_V'...");
   }
 
-  if (ppm->primordial_spec_type == analytic_Pk) {
+  class_read_double("k_pivot",ppm->k_pivot);
 
-    class_read_double("k_pivot",ppm->k_pivot);
+  if (ppm->primordial_spec_type == analytic_Pk) {
 
     if (ppt->has_scalars == _TRUE_) {
       
@@ -913,6 +917,22 @@ int input_init(
     
       }
     }
+  }
+
+  if (ppm->primordial_spec_type == inflation_V) {
+
+    class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+    /** only polynomial coded so far: no need to interpret string1 **/		 
+
+    class_read_double("phi_pivot",ppm->phi_pivot);
+    class_read_double("V0",ppm->V0);
+    class_read_double("V1",ppm->V1);
+    class_read_double("V2",ppm->V2);
+    class_read_double("V3",ppm->V3);
+    class_read_double("V4",ppm->V4);
+
   }
 
   /** (e) parameters for final spectra */
@@ -1349,6 +1369,17 @@ int input_init(
   /** h.5. parameter related to the primordial spectra */
 
   class_read_double("k_per_decade_primordial",ppr->k_per_decade_primordial);
+  class_read_double("primordial_inflation_ratio_min",ppr->primordial_inflation_ratio_min);
+  class_read_double("primordial_inflation_ratio_max",ppr->primordial_inflation_ratio_max);
+  class_read_int("primordial_inflation_phi_ini_maxit",ppr->primordial_inflation_phi_ini_maxit);
+  class_read_double("primordial_inflation_pt_stepsize",ppr->primordial_inflation_pt_stepsize);
+  class_read_double("primordial_inflation_bg_stepsize",ppr->primordial_inflation_bg_stepsize);
+  class_read_double("primordial_inflation_tol_integration",ppr->primordial_inflation_tol_integration);
+  class_read_double("primordial_inflation_attractor_precision_pivot",ppr->primordial_inflation_attractor_precision_pivot);
+  class_read_double("primordial_inflation_attractor_precision_initial",ppr->primordial_inflation_attractor_precision_initial);
+  class_read_int("primordial_inflation_attractor_maxit",ppr->primordial_inflation_attractor_maxit);
+  class_read_double("primordial_inflation_jump_initial",ppr->primordial_inflation_jump_initial);
+  class_read_double("primordial_inflation_tol_curvature",ppr->primordial_inflation_tol_curvature);
 
   /** h.6. parameter related to the transfer functions */
 
@@ -1657,6 +1688,13 @@ int input_default_params(
   ppm->r = 1.;
   ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
   ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
+  ppm->potential=polynomial;
+  ppm->phi_pivot=0.;
+  ppm->V0=0.5e-5;
+  ppm->V1=-0.1e-5;
+  ppm->V2=0.5e-6;
+  ppm->V3=0.;
+  ppm->V4=0.;
 
   /** - transfer structure */
 
@@ -1870,6 +1908,18 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->k_per_decade_primordial = 10.; 
+
+  ppr->primordial_inflation_ratio_min=100.;
+  ppr->primordial_inflation_ratio_max=1/50.;
+  ppr->primordial_inflation_phi_ini_maxit=10000;
+  ppr->primordial_inflation_pt_stepsize=0.01;
+  ppr->primordial_inflation_bg_stepsize=0.005;
+  ppr->primordial_inflation_tol_integration=1.e-3;
+  ppr->primordial_inflation_attractor_precision_pivot=0.001;
+  ppr->primordial_inflation_attractor_precision_initial=0.1;
+  ppr->primordial_inflation_attractor_maxit=10000;
+  ppr->primordial_inflation_jump_initial=1.2;
+  ppr->primordial_inflation_tol_curvature=1.e-3;
 
   /**
    * - parameter related to the transfer functions

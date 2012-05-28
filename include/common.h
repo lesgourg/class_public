@@ -544,6 +544,18 @@ struct precision
 
   double k_per_decade_primordial; /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
+  double primordial_inflation_ratio_min;
+  double primordial_inflation_ratio_max;
+  int primordial_inflation_phi_ini_maxit;
+  double primordial_inflation_pt_stepsize;
+  double primordial_inflation_bg_stepsize;
+  double primordial_inflation_tol_integration;
+  double primordial_inflation_attractor_precision_pivot;
+  double primordial_inflation_attractor_precision_initial;
+  int primordial_inflation_attractor_maxit;
+  double primordial_inflation_jump_initial;
+  double primordial_inflation_tol_curvature;
+
   //@}
 
   /** @name - parameters related to the transfer function */
