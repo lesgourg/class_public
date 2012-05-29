@@ -178,6 +178,7 @@ int input_init(
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
   double rho_ncdm;
+  double R0,R1,R2,R3,R4;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -927,11 +928,45 @@ int input_init(
     /** only polynomial coded so far: no need to interpret string1 **/		 
 
     class_read_double("phi_pivot",ppm->phi_pivot);
-    class_read_double("V0",ppm->V0);
-    class_read_double("V1",ppm->V1);
-    class_read_double("V2",ppm->V2);
-    class_read_double("V3",ppm->V3);
-    class_read_double("V4",ppm->V4);
+
+    class_call(parser_read_string(pfc,"R0",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+    
+    if (flag1 == _TRUE_) {
+
+      R0=0.;
+      R1=0.;
+      R2=0.;
+      R3=0.;
+      R4=0.;
+
+      class_read_double("R0",R0);
+      class_read_double("R1",R1);
+      class_read_double("R2",R2);
+      class_read_double("R3",R3);
+      class_read_double("R4",R4);
+
+      class_test(R0 <= 0.,
+		 errmsg,
+                 "inconsistent parametrisation of polynomial inflation potential");
+      class_test(R1 <= 0.,
+		 errmsg,
+                 "inconsistent parametrisation of polynomial inflation potential");
+
+      ppm->V0 = R0*R1*3./128./_PI_;
+      ppm->V1 = -sqrt(R1)*ppm->V0;
+      ppm->V2 = R2*ppm->V0;
+      ppm->V3 = R3*ppm->V0*ppm->V0/ppm->V1;
+      ppm->V4 = R4*ppm->V0/R1;
+    }
+    else {
+      class_read_double("V0",ppm->V0);
+      class_read_double("V1",ppm->V1);
+      class_read_double("V2",ppm->V2);
+      class_read_double("V3",ppm->V3);
+      class_read_double("V4",ppm->V4);
+    }
 
   }
 
