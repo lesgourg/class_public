@@ -582,3 +582,12 @@ cdef class Class:
 
   def _Omega0_m(self):
     return self.ba.Omega0_b+self.ba.Omega0_cdm
+  
+  def get_current_derived_parameters(self,data):
+    for elem in data.derived_parameters_list:
+      if elem == 'sigma_8':
+        data.derived_parameters[elem]['current'] = 0.1
+      if elem == 'tau_reio':
+        data.derived_parameters[elem]['current'] = 0.01
+    return
+
