@@ -50,6 +50,9 @@ cdef extern from "class.h":
     
   cdef struct thermo:
     ErrorMsg error_message 
+    double tau_reio
+    double z_reio
+    double YHe
 
   cdef struct perturbs      :
     ErrorMsg error_message 
@@ -63,12 +66,19 @@ cdef extern from "class.h":
 
   cdef struct primordial            :
     ErrorMsg error_message 
+    double A_s
+    double n_s
+    double alpha_s
+    double r
+    double n_t
+    double alpha_t	   
 
   cdef struct spectra              :
     ErrorMsg error_message 
     int l_max_tot
     int ln_k_size
     double* ln_k
+    double sigma8
 
   cdef struct output                :
     ErrorMsg error_message 
@@ -585,9 +595,25 @@ cdef class Class:
   
   def get_current_derived_parameters(self,data):
     for elem in data.derived_parameters_list:
-      if elem == 'sigma_8':
-        data.derived_parameters[elem]['current'] = 0.1
+      if elem == 'sigma8':
+        data.derived_parameters[elem]['current'] = self.sp.sigma8
       if elem == 'tau_reio':
-        data.derived_parameters[elem]['current'] = 0.01
+        data.derived_parameters[elem]['current'] = self.th.tau_reio
+      if elem == 'z_reio':
+        data.derived_parameters[elem]['current'] = self.th.z_reio
+      if elem == 'YHe':
+        data.derived_parameters[elem]['current'] = self.th.YHe
+      if elem == 'A_s':
+        data.derived_parameters[elem]['current'] = self.pm.A_s	
+      if elem == 'n_s':
+        data.derived_parameters[elem]['current'] = self.pm.n_s	
+      if elem == 'alpha_s':
+        data.derived_parameters[elem]['current'] = self.pm.alpha_s	
+      if elem == 'r':
+        data.derived_parameters[elem]['current'] = self.pm.r	
+      if elem == 'n_t':
+        data.derived_parameters[elem]['current'] = self.pm.n_t	
+      if elem == 'alpha_t':
+        data.derived_parameters[elem]['current'] = self.pm.alpha_t	
     return
 
