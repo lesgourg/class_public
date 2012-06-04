@@ -3,7 +3,7 @@ To use this python wrapper for class, you should first compile class with 'make 
 Check that the command 'python' points towards a version of python > 2.7 but < 3.0. Then, execute:
 
 > python setup.py build
-> pyhton setup.py install --user
+> python setup.py install --user
 
 (it's really 'user', not your own user name).
 

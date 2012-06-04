@@ -929,7 +929,7 @@ int input_init(
 
     class_read_double("phi_pivot",ppm->phi_pivot);
 
-    class_call(parser_read_string(pfc,"R0",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"R_0",&string1,&flag1,errmsg),
 	       errmsg,
 	       errmsg);
     
@@ -941,11 +941,11 @@ int input_init(
       R3=0.;
       R4=0.;
 
-      class_read_double("R0",R0);
-      class_read_double("R1",R1);
-      class_read_double("R2",R2);
-      class_read_double("R3",R3);
-      class_read_double("R4",R4);
+      class_read_double("R_0",R0);
+      class_read_double("R_1",R1);
+      class_read_double("R_2",R2);
+      class_read_double("R_3",R3);
+      class_read_double("R_4",R4);
 
       class_test(R0 <= 0.,
 		 errmsg,
@@ -961,11 +961,11 @@ int input_init(
       ppm->V4 = R4*ppm->V0/R1;
     }
     else {
-      class_read_double("V0",ppm->V0);
-      class_read_double("V1",ppm->V1);
-      class_read_double("V2",ppm->V2);
-      class_read_double("V3",ppm->V3);
-      class_read_double("V4",ppm->V4);
+      class_read_double("V_0",ppm->V0);
+      class_read_double("V_1",ppm->V1);
+      class_read_double("V_2",ppm->V2);
+      class_read_double("V_3",ppm->V3);
+      class_read_double("V_4",ppm->V4);
     }
 
   }
@@ -1725,9 +1725,9 @@ int input_default_params(
   ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
   ppm->potential=polynomial;
   ppm->phi_pivot=0.;
-  ppm->V0=0.5e-5;
-  ppm->V1=-0.1e-5;
-  ppm->V2=0.5e-6;
+  ppm->V0=1.25e-13;
+  ppm->V1=-1.12e-14;
+  ppm->V2=-6.95e-14;
   ppm->V3=0.;
   ppm->V4=0.;
 

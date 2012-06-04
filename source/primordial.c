@@ -196,6 +196,7 @@ int primordial_init(
   double k,k_min,k_max;
   int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_k;
   double pk,pk1,pk2;
+  double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus;
 
   /** - check that we really need to compute the primordial spectra */
 
@@ -361,6 +362,7 @@ int primordial_init(
     class_call(primordial_inflation_solve_inflation(ppt,ppm,ppr),
 	       ppm->error_message,
 	       ppm->error_message);
+
   }
 
   else {
@@ -387,6 +389,86 @@ int primordial_init(
     
   }
   
+  /** derive spectral parameters from numerically computed spectra
+      (not used by the rest of the code, but useful to keep in memory for several types of investigations) */
+  
+  if (ppm->primordial_spec_type != analytic_Pk) {
+
+    dlnk = log(10.)/ppr->k_per_decade_primordial;
+
+    if (ppt->has_scalars == _TRUE_) {
+
+      class_call(primordial_spectrum_at_k(ppm,
+					  ppt->index_md_scalars,
+					  logarithmic,
+					  log(ppm->k_pivot),
+					  &lnpk_pivot),
+		 ppm->error_message,
+		 ppm->error_message);
+
+      class_call(primordial_spectrum_at_k(ppm,
+					  ppt->index_md_scalars,
+					  logarithmic,
+					  log(ppm->k_pivot)+dlnk,
+
+					  &lnpk_plus),
+		 ppm->error_message,
+		 ppm->error_message);
+
+      class_call(primordial_spectrum_at_k(ppm,
+					  ppt->index_md_scalars,
+					  logarithmic,
+					  log(ppm->k_pivot)-dlnk,
+					  &lnpk_minus),
+		 ppm->error_message,
+		 ppm->error_message);
+
+      ppm->A_s = exp(lnpk_pivot);
+      ppm->n_s = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
+      ppm->alpha_s = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
+
+      if (ppm->primordial_verbose > 0)
+	printf(" -> A_s=%g  n_s=%g  alpha_s=%g\n",ppm->A_s,ppm->n_s,ppm->alpha_s);
+
+    }
+
+    if (ppt->has_tensors == _TRUE_) {
+
+      class_call(primordial_spectrum_at_k(ppm,
+					  ppt->index_md_tensors,
+					  logarithmic,
+					  log(ppm->k_pivot),
+					  &lnpk_pivot),
+		 ppm->error_message,
+		 ppm->error_message);
+
+      class_call(primordial_spectrum_at_k(ppm,
+					  ppt->index_md_tensors,
+					  logarithmic,
+					  log(ppm->k_pivot)+dlnk,
+					  &lnpk_plus),
+		 ppm->error_message,
+		 ppm->error_message);
+
+      class_call(primordial_spectrum_at_k(ppm,
+					  ppt->index_md_tensors,
+					  logarithmic,
+					  log(ppm->k_pivot)-dlnk,
+					  &lnpk_minus),
+		 ppm->error_message,
+		 ppm->error_message);
+
+      ppm->r = exp(lnpk_pivot)/ppm->A_s;
+      ppm->n_t = (lnpk_plus-lnpk_minus)/(2.*dlnk);
+      ppm->alpha_t = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
+
+      if (ppm->primordial_verbose > 0)
+	printf(" -> r=%g  n_r=%g  alpha_r=%g\n",ppm->r,ppm->n_t,ppm->alpha_t);
+
+    }
+
+  }
+
   return _SUCCESS_;
   
 }
