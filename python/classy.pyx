@@ -594,26 +594,27 @@ cdef class Class:
     return self.ba.Omega0_b+self.ba.Omega0_cdm
   
   def get_current_derived_parameters(self,data):
-    for elem in data.derived_parameters_list:
+    for elem in data.get_mcmc_parameters(['derived']):
       if elem == 'sigma8':
-        data.derived_parameters[elem]['current'] = self.sp.sigma8
+        data.mcmc_parameters[elem]['current'] = self.sp.sigma8
+        print self.sp.sigma8
       if elem == 'tau_reio':
-        data.derived_parameters[elem]['current'] = self.th.tau_reio
+        data.mcmc_parameters[elem]['current'] = self.th.tau_reio
       if elem == 'z_reio':
-        data.derived_parameters[elem]['current'] = self.th.z_reio
+        data.mcmc_parameters[elem]['current'] = self.th.z_reio
       if elem == 'YHe':
-        data.derived_parameters[elem]['current'] = self.th.YHe
+        data.mcmc_parameters[elem]['current'] = self.th.YHe
       if elem == 'A_s':
-        data.derived_parameters[elem]['current'] = self.pm.A_s	
+        data.mcmc_parameters[elem]['current'] = self.pm.A_s	
       if elem == 'n_s':
-        data.derived_parameters[elem]['current'] = self.pm.n_s	
+        data.mcmc_parameters[elem]['current'] = self.pm.n_s	
       if elem == 'alpha_s':
-        data.derived_parameters[elem]['current'] = self.pm.alpha_s	
+        data.mcmc_parameters[elem]['current'] = self.pm.alpha_s	
       if elem == 'r':
-        data.derived_parameters[elem]['current'] = self.pm.r	
+        data.mcmc_parameters[elem]['current'] = self.pm.r	
       if elem == 'n_t':
-        data.derived_parameters[elem]['current'] = self.pm.n_t	
+        data.mcmc_parameters[elem]['current'] = self.pm.n_t	
       if elem == 'alpha_t':
-        data.derived_parameters[elem]['current'] = self.pm.alpha_t	
+        data.mcmc_parameters[elem]['current'] = self.pm.alpha_t	
     return
 
