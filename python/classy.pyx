@@ -136,7 +136,7 @@ cdef extern from "class.h":
   int transfer_init(void*,void*,void*,void*,void*,void*)
   int primordial_init(void*,void*,void*)
   int spectra_init(void*,void*,void*,void*,void*,void*)
-  int nonlinear_init(void*,void*,void*,void*,void*,void*)
+  int nonlinear_init(void*,void*,void*,void*,void*,void*,void*,void*,void*)
   int lensing_init(void*,void*,void*,void*,void*)
   
   int background_tau_of_z(void* pba, double z,double* tau)
@@ -435,7 +435,7 @@ cdef class Class:
       self.ncp.add("spectra")       
 
     if "nonlinear" in lvl:
-      if (nonlinear_init(&self.pr,&self.ba,&self.th,&self.pm,&self.sp,&self.nl) == _FAILURE_):
+      if (nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.bs,&self.tr,&self.pm,&self.sp,&self.nl) == _FAILURE_):
         self._struct_cleanup(self.ncp)
         #fprintf(stderr,"%s\n",self.nl.error_message)
         raise ClassError(self.nl.error_message)
