@@ -10,14 +10,16 @@
 # object
 #########################################
 
-import numpy as nm
+import numpy as np
 import os
-cimport numpy as nm
+cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
 from libc.string cimport *
 cimport cython 
 
+ctypedef np.float_t DTYPE_t
+ctypedef np.int_t DTYPE_i
 # Bunch of declarations from C to python. The idea here is to define only the
 # quantities that will be used, for input, output or intermediate manipulation,
 # by the python wrapper. For instance, in the precision structure, the only
@@ -454,7 +456,7 @@ cdef class Class:
 
   def raw_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
-    cdef nm.ndarray cl
+    cdef np.ndarray cl
     cdef double lcl[4]
     
     lmaxR = self.sp.l_max_tot
@@ -470,7 +472,7 @@ cdef class Class:
     
 
     # TODO: modify this function as in lensed_cl
-    cl = nm.ndarray([4,lmax+1], dtype=nm.double)
+    cl = np.ndarray([4,lmax+1], dtype=np.double)
     cl[:2]=0
     lcl[0]=lcl[1]=lcl[2]=lcl[3] = 0
     for ell from 2<=ell<lmax+1:
@@ -497,7 +499,7 @@ cdef class Class:
     
     cl = {}
     for elem in ['tt','te','ee','bb']:
-      cl[elem] = nm.ndarray(lmax+1, dtype=nm.double)
+      cl[elem] = np.ndarray(lmax+1, dtype=np.double)
       cl[elem][:2]=0
       #lcl[0]=lcl[1]=lcl[2]=lcl[3] = 0
     for ell from 2<=ell<lmax+1:
@@ -514,8 +516,8 @@ cdef class Class:
     cdef double tau=0.0
     cdef int last_index=0 #junk
     cdef double * pvecback
-    r    = nm.zeros(len(z_array),'float64')
-    dzdr = nm.zeros(len(z_array),'float64')
+    r    = np.zeros(len(z_array),'float64')
+    dzdr = np.zeros(len(z_array),'float64')
 
     pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
@@ -538,19 +540,33 @@ cdef class Class:
     return r[:],dzdr[:]
 
   # Gives the pk for a given (k,z)
-  def _pk(self,k,z):
-    cdef double kk
-    cdef double zz
+  def _pk(self,double k,double z):
     cdef double pk
-    #cdef double * junk
 
-    kk = k
-    zz = z
-    if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,kk,zz,&pk,NULL)==_FAILURE_:
+    if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
       raise ClassError(self.sp.error_message)
+    
     #free(junk)
     return pk
 
+  def _get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
+    #cdef np.ndarray[DTYPE_t, ndim = 3] k_int = k
+    #cdef np.ndarray[DTYPE_t, ndim = 1] z_int = z
+    #cdef np.ndarray k_int
+    #cdef np.ndarray z_int
+
+    #k_int = np.zeros((k_size,z_size,mu_size),'float64')
+    #z_int = np.zeros((z_size),'float64')
+    #k_int = k
+    #z_int = z
+    cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
+    cdef int index_k, index_z, index_mu
+
+    for index_k in xrange(k_size):
+      for index_z in xrange(z_size):
+        for index_mu in xrange(mu_size):
+          pk[index_k,index_z,index_mu] = self._pk(k[index_k,index_z,index_mu],z[index_z])
+    return pk
   # Avoids using hardcoded numbers for tt, te, ... indexes in the tables.
   def return_index(self):
     index = {}
@@ -571,7 +587,7 @@ cdef class Class:
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
-    #D_A = nm.zeros(nm.shape(z_array)[0],'float64')
+    #D_A = np.zeros(np.shape(z_array)[0],'float64')
 
     pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
