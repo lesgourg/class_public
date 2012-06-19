@@ -595,6 +595,7 @@ cdef class Class:
     return self.ba.Omega0_b+self.ba.Omega0_cdm
 
   def _sigma8(self):
+    self._compute(["spectra"])
     return self.sp.sigma8   
 
   def _angular_distance(self, z):
