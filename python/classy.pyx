@@ -74,6 +74,11 @@ cdef extern from "class.h":
     double r
     double n_t
     double alpha_t	   
+    double V0
+    double V1
+    double V2
+    double V3
+    double V4
 
   cdef struct spectra              :
     ErrorMsg error_message 
@@ -632,5 +637,15 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.pm.n_t	
       if elem == 'alpha_t':
         data.mcmc_parameters[elem]['current'] = self.pm.alpha_t	
+      if elem == 'V_0':
+        data.derived_parameters[elem]['current'] = self.pm.V0
+      if elem == 'V_1':
+        data.derived_parameters[elem]['current'] = self.pm.V1
+      if elem == 'V_2':
+        data.derived_parameters[elem]['current'] = self.pm.V2
+      if elem == 'V_3':
+        data.derived_parameters[elem]['current'] = self.pm.V3
+      if elem == 'V_4':
+        data.derived_parameters[elem]['current'] = self.pm.V4
     return
 
