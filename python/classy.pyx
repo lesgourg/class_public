@@ -591,10 +591,10 @@ cdef class Class:
   def _n_s(self):
     return self.pm.n_s  
 
-  def _Omega_m():
+  def _Omega_m(self):
     return self.ba.Omega0_b+self.ba.Omega0_cdm
 
-  def _sigma8():
+  def _sigma8(self):
     return self.sp.sigma8   
 
   def _angular_distance(self, z):
