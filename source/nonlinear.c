@@ -538,7 +538,8 @@ int nonlinear_free(
     free(pnl->k_size);
     free(pnl->z);
     free(pnl->p_density);
-    free(pnl->ddp_density);
+    if (pnl->z_size > 1)
+      free(pnl->ddp_density);
 
     if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
       free(pnl->p_cross);
@@ -725,6 +726,9 @@ int nonlinear_halofit(
     rknl  = 1./rmid;
     rneff = -3.-d1;
     rncur = -d2;
+
+    pnl->k_nl_in_inverse_Mpc = rknl;
+    pnl->k_nl_in_h_over_Mpc = rknl/pba->h;
 
     for (index_k = 0; index_k < pnl->k_size[index_z]; index_k++){
       

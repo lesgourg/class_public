@@ -30,6 +30,15 @@ struct nonlinear {
 
   //@}
 
+  //@{
+
+  /** @name - inferred non-linear wavember */
+
+  double k_nl_in_inverse_Mpc;
+  double k_nl_in_h_over_Mpc;
+
+  //@}
+
   /** @name - table of k values, and related quantities */
 
   //@{
@@ -59,6 +68,8 @@ struct nonlinear {
   double * ddp_density;
   double * ddp_cross;
   double * ddp_velocity;
+
+  //@}
 
   /** @name - technical parameters */
 
