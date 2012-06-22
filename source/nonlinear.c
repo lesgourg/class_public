@@ -212,6 +212,39 @@ int nonlinear_pk_at_k_and_z(
   return _SUCCESS_;
 }
 
+int nonlinear_k_nl_at_z(
+			struct nonlinear * pnl,
+			double z,
+			double * k_nl
+			) {
+
+  int last_index;
+
+  class_test(z>pnl->z[0],
+	     pnl->error_message,
+	     "you want to interpolate at z=%g greater than zmax=%g\n",z,pnl->z[0]);
+	     
+  if (pnl->z_size == 1) {
+    *k_nl = pnl->k_nl[0];
+  }
+  else {
+    class_call(array_interpolate_two(pnl->z,
+				     1,
+				     0,
+				     pnl->k_nl,
+				     1,
+				     pnl->z_size,
+				     z,
+				     k_nl,
+				     1,
+				     pnl->error_message),
+	       pnl->error_message,
+	       pnl->error_message);
+  }
+  
+  return _SUCCESS_;
+}
+
 int nonlinear_init(
 		   struct precision *ppr,
 		   struct background *pba,
@@ -253,6 +286,10 @@ int nonlinear_init(
     pnl->z_size = (int)(psp->z_max_pk/ppr->halofit_dz)+1;
 
     class_alloc(pnl->z,
+		pnl->z_size*sizeof(double),
+		pnl->error_message);
+
+    class_alloc(pnl->k_nl,
 		pnl->z_size*sizeof(double),
 		pnl->error_message);
 
@@ -537,9 +574,11 @@ int nonlinear_free(
     free(pnl->k);
     free(pnl->k_size);
     free(pnl->z);
+    free(pnl->k_nl);
     free(pnl->p_density);
-    if (pnl->z_size > 1)
+    if (pnl->z_size > 1) {
       free(pnl->ddp_density);
+    }
 
     if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
       free(pnl->p_cross);
@@ -727,8 +766,7 @@ int nonlinear_halofit(
     rneff = -3.-d1;
     rncur = -d2;
 
-    pnl->k_nl_in_inverse_Mpc = rknl;
-    pnl->k_nl_in_h_over_Mpc = rknl/pba->h;
+    pnl->k_nl[index_z] = rknl;
 
     for (index_k = 0; index_k < pnl->k_size[index_z]; index_k++){
       

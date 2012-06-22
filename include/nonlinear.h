@@ -30,15 +30,6 @@ struct nonlinear {
 
   //@}
 
-  //@{
-
-  /** @name - inferred non-linear wavember */
-
-  double k_nl_in_inverse_Mpc;
-  double k_nl_in_h_over_Mpc;
-
-  //@}
-
   /** @name - table of k values, and related quantities */
 
   //@{
@@ -52,8 +43,10 @@ struct nonlinear {
 
   //@{
 
-  double * z;		/**< table containing z   values used in this module */
+  double * z;		/**< table containing z values used in this module */
   int z_size;
+
+  double * k_nl;        /**< table of non-linear wavenumber at each redshift */
 
   //@}
 
@@ -109,6 +102,12 @@ extern "C" {
 			      double * pk_cross,
 			      int * k_size_at_z
 			      );
+
+  int nonlinear_k_nl_at_z(
+			  struct nonlinear * pnl,
+			  double z,
+			  double * k_nl
+			);
 
   int nonlinear_init(
 		     struct precision *ppr,
