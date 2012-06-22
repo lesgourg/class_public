@@ -49,6 +49,7 @@ cdef extern from "class.h":
     double age
     double Omega0_b
     double Omega0_cdm
+    double Omega0_ncdm_tot
     
   cdef struct thermo:
     ErrorMsg error_message 
@@ -167,6 +168,7 @@ cdef extern from "class.h":
 			    double z,
 			    double * pk,
 			    double * pk_ic)
+  int nonlinear_k_nl_at_z(void* pnl, double z,double* k_nl)
   cdef enum linear_or_logarithmic :
             linear
             logarithmic
@@ -218,6 +220,12 @@ cdef class Class:
   property age:
     def __get__(self):
       return self._age()
+  property Omega_m:
+    def __get__(self):
+      return self._Omega_m()
+  property Omega_nu:
+    def __get__(self):
+      return self.ba.Omega0_ncdm_tot
       
 
   def __init__(self,default=False):
@@ -659,3 +667,14 @@ cdef class Class:
         data.derived_parameters[elem]['current'] = self.pm.V4
     return
 
+  def nonlinear_scale(self,np.ndarray[DTYPE_t,ndim=1] z,int z_size):
+    cdef int index_z
+    cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
+    #cdef double *k_nl
+
+    #k_nl = <double*> calloc(z_size,sizeof(double))
+    for index_z in range(z_size):
+      if nonlinear_k_nl_at_z(&self.nl,z[index_z],&k_nl[index_z]) == _FAILURE_:
+        raise ClassError(self.nl.error_message)
+
+    return k_nl
