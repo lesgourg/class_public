@@ -563,6 +563,10 @@ int input_init(
       pth->reio_parametrization=reio_bins_tanh;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_half_tanh") == 0) {
+      pth->reio_parametrization=reio_half_tanh;
+      flag2=_TRUE_;
+    }
 
     class_test(flag2==_FALSE_,
 	       errmsg,
@@ -570,7 +574,7 @@ int input_init(
   }
 
   /* reionization parameters if reio_parametrization=reio_camb */
-  if (pth->reio_parametrization == reio_camb) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)){
     class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
 	       errmsg,
 	       errmsg);
@@ -611,6 +615,8 @@ int input_init(
   class_read_double("annihilation_z",pth->annihilation_z);
   class_read_double("annihilation_zmax",pth->annihilation_zmax);
   class_read_double("annihilation_zmin",pth->annihilation_zmin);
+  class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
+  class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
 
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
@@ -1637,6 +1643,8 @@ int input_default_params(
   pth->annihilation_z = 1000.;
   pth->annihilation_zmax = 2500.;
   pth->annihilation_zmin = 30.;
+  pth->annihilation_f_halo = 0.;
+  pth->annihilation_z_halo = 30.;
 
   pth->compute_cb2_derivatives=_FALSE_;
 

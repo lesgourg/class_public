@@ -24,7 +24,8 @@ enum recombination_algorithm {
 enum reionization_parametrization {
   reio_none, /**< no reionization */
   reio_camb,  /**< reionization parameterized like in CAMB */
-  reio_bins_tanh  /**< binned reionization history with tanh inteprolation between bins */ 
+  reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */ 
+  reio_half_tanh  /**< half a tanh, intead of the full tanh */
 };
 
 /**
@@ -122,6 +123,9 @@ struct thermo
   double annihilation_zmin; /** if annihilation_variation is non-zero,
 				redhsift below which annihilation rate
 				is constant */
+
+  double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
+  double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
 
   //@}
 
@@ -306,6 +310,9 @@ struct recombination {
   double annihilation_zmin; /** if annihilation_variation is non-zero,
 				redhsift below which annihilation rate
 				is constant */
+
+  double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
+  double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
 
   //@}
 

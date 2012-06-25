@@ -302,6 +302,14 @@ int thermodynamics_init(
 	     pth->error_message,
 	     "CDM annihilation effects require the presence of CDM!");
 
+  class_test((pth->annihilation_f_halo<0),
+	     pth->error_message,
+	     "Parameter for DM annihilation in halos cannot be negative");
+  
+  class_test((pth->annihilation_z_halo<0),
+	     pth->error_message,
+	     "Parameter for DM annihilation in halos cannot be negative");
+  
   if (pth->thermodynamics_verbose > 0)
     if ((pth->annihilation >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
       printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
@@ -575,7 +583,7 @@ int thermodynamics_init(
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
     printf("    with sound horizon = %f Mpc\n",pth->ds_rec);
     printf("    and angular diameter distance = %f Mpc\n",pth->da_rec);
-    if (pth->reio_parametrization == reio_camb) {
+    if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
       if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
@@ -726,7 +734,7 @@ int thermodynamics_indices(
   index++;
 
   /* case where x_e(z) taken like in CAMB (other cases can be added) */ 
-  if (pth->reio_parametrization == reio_camb) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
 
     preio->index_reio_redshift = index;
     index++;
@@ -992,7 +1000,9 @@ int thermodynamics_energy_injection(
 
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
 
-  * energy_rate = pow(rho_cdm_today,2)*pow((1.+z),6)*annihilation_at_z/_c_/_c_+rho_cdm_today*pow((1+z),3)*preco->decay; 
+  * energy_rate = pow(rho_cdm_today,2)/_c_/_c_*(pow((1.+z),6)*annihilation_at_z
+						+preco->annihilation_f_halo*pow((1+z),4)*exp(-(1+z)*(1+z)/preco->annihilation_z_halo/preco->annihilation_z_halo))
+    +rho_cdm_today*pow((1+z),3)*preco->decay; 
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
 
   return _SUCCESS_;
@@ -1026,12 +1036,14 @@ int thermodynamics_reionization_function(
 
   /** - implementation of ionization function similar to the one in CAMB */
 
-  if (pth->reio_parametrization == reio_camb) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
 
     /** -> case z > z_reio_start */
 
     if (z > preio->reionization_parameters[preio->index_reio_start]) {
+
       *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+
     }
 
     else {
@@ -1048,19 +1060,28 @@ int thermodynamics_reionization_function(
 	/preio->reionization_parameters[preio->index_reio_width]; 
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
       
-      *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
-	     -preio->reionization_parameters[preio->index_reio_xe_before])
-	*(tanh(argument)+1.)/2.
-	+preio->reionization_parameters[preio->index_reio_xe_before];
-      
+      if (pth->reio_parametrization == reio_camb) {
+	*xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+	       -preio->reionization_parameters[preio->index_reio_xe_before])
+	  *(tanh(argument)+1.)/2.
+	  +preio->reionization_parameters[preio->index_reio_xe_before];
+      }
+      else {
+	*xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+	       -preio->reionization_parameters[preio->index_reio_xe_before])
+	  *tanh(argument)
+	  +preio->reionization_parameters[preio->index_reio_xe_before];
+      }
+
       /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
 
-      argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
-	/preio->reionization_parameters[preio->index_helium_fullreio_width];
-      /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-      *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction] 
-	* (tanh(argument)+1.)/2.;
-
+      if (pth->reio_parametrization == reio_camb) {
+	  argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
+	    /preio->reionization_parameters[preio->index_helium_fullreio_width];
+	  /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+	  *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction] 
+	    * (tanh(argument)+1.)/2.;
+      }
     }
 
     return _SUCCESS_;
@@ -1101,7 +1122,7 @@ int thermodynamics_reionization_function(
     return _SUCCESS_;
 
   }
-
+  
   class_test(0 == 0,
 	     pth->error_message,
 	     "value of reio_parametrization=%d unclear",pth->reio_parametrization);
@@ -1184,11 +1205,16 @@ int thermodynamics_reionization(
 
   /** (a) if reionization implemented like in CAMB */
 
-  if (pth->reio_parametrization == reio_camb) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
     
     /** - set values of these parameters, excepted those depending on the reionization redshift */
 
-    preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
+    if (pth->reio_parametrization == reio_camb) {
+      preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
+    }
+    if (pth->reio_parametrization == reio_half_tanh) {
+      preio->reionization_parameters[preio->index_reio_xe_after] = 1. + 2*pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + fully ionized He */
+    }
     preio->reionization_parameters[preio->index_reio_exponent] = pth->reionization_exponent; /* reio_exponent */
     preio->reionization_parameters[preio->index_reio_width] = pth->reionization_width;    /* reio_width */
     preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, checked before that denominator is non-zero) */
@@ -1213,15 +1239,26 @@ int thermodynamics_reionization(
       
       /* reionization redshift */
       preio->reionization_parameters[preio->index_reio_redshift] = pth->z_reio; 
-      /* infer starting redshift for hydrogen */
-      preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
-      /* if starting redshift for helium is larger, take that one
-	 (does not happen in realistic models) */
-      if (preio->reionization_parameters[preio->index_reio_start] < 
-	  pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width)
 
-	preio->reionization_parameters[preio->index_reio_start] =
-	  pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
+      /* infer starting redshift for hydrogen */
+
+      if (pth->reio_parametrization == reio_camb) {
+
+	preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
+
+	/* if starting redshift for helium is larger, take that one
+	   (does not happen in realistic models) */
+	if (preio->reionization_parameters[preio->index_reio_start] < 
+	    pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width)
+	  
+	  preio->reionization_parameters[preio->index_reio_start] =
+	    pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
+	
+      }
+      else {
+
+	preio->reionization_parameters[preio->index_reio_start] = pth->z_reio;
+      }
 	
       class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
 		 pth->error_message,
@@ -1822,6 +1859,8 @@ int thermodynamics_recombination_with_hyrec(
   param.annihilation_z = pth->annihilation_z;
   param.annihilation_zmax = pth->annihilation_zmax;
   param.annihilation_zmin = pth->annihilation_zmin;
+  param.annihilation_f_halo = pth->annihilation_f_halo;
+  param.annihilation_z_halo = pth->annihilation_z_halo;
 
   /** - Build effective rate tables */
 
@@ -2148,6 +2187,8 @@ int thermodynamics_recombination_with_recfast(
   preco->annihilation_zmax = pth->annihilation_zmax;
   preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay = pth->decay;
+  preco->annihilation_f_halo = pth->annihilation_f_halo;
+  preco->annihilation_z_halo = pth->annihilation_z_halo;
 
   /* quantities related to constants defined in thermodynamics.h */
   n = preco->Nnow * pow((1.+z),3);

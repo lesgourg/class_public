@@ -17,7 +17,7 @@
 #define FULL      3    /* All radiative transfer effects included. Additional switches in header file hydrogen.h */
 
 /** here is the switch **/
-#define MODEL FULL     /* default setting: FULL */
+#define MODEL RECFAST     /* default setting: FULL */
 
 /***** Switches for derivative d(xe)/dt *****/
 
@@ -71,6 +71,9 @@ typedef struct {
    double annihilation_zmin; /** if annihilation_variation is non-zero,
 				redhsift below which annihilation rate
 				is constant */
+
+   double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
+   double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
 
 } REC_COSMOPARAMS;
 

@@ -378,7 +378,9 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
 
   rho_cdm_today = param->omh2*1.44729366e-9; /* energy density in Kg/m^3 */
 
-  return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*annihilation_at_z+rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
+  return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*(pow((1.+z),6)*annihilation_at_z
+							  +param->annihilation_f_halo*pow((1+z),4)*exp(-(1+z)*(1+z)/param->annihilation_z_halo/param->annihilation_z_halo))
+	  +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
   /* energy density rate in eV/cm^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   /* note that the injection rate used by recfast, defined in therodynamics.c, is in J/m^3/s. Here we multiplied by 1/1.e6/1.60217653e-19 to convert to eV and cm. */
 
