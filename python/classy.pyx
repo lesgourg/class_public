@@ -53,6 +53,9 @@ cdef extern from "class.h":
     
   cdef struct thermo:
     ErrorMsg error_message 
+    int th_size
+    int index_th_xe
+    short inter_normal
     double tau_reio
     double z_reio
     double YHe
@@ -149,6 +152,7 @@ cdef extern from "class.h":
   
   int background_tau_of_z(void* pba, double z,double* tau)
   int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
+  int thermodynamics_at_z(void * pba, void * pth, double z, short inter_mode, int * last_index, double *pvecback, double *pvecthermo)
   int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
   int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
   int spectra_pk_at_z(
@@ -625,6 +629,31 @@ cdef class Class:
     free(pvecback)
       
     return D_A
+
+  def _ionization_fraction(self, z):
+    cdef double tau
+    cdef int last_index #junk
+    cdef double * pvecback
+    cdef double * pvecthermo
+
+    pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+    pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
+
+    if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
+      raise ClassError(self.th.error_message)
+
+    xe = pvecthermo[self.th.index_th_xe] 
+
+    free(pvecback)
+    free(pvecthermo)
+
+    return xe
 
   def _T_cmb(self):
     return self.ba.T_cmb
