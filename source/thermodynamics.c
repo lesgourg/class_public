@@ -977,6 +977,8 @@ int thermodynamics_energy_injection(
 
   double annihilation_at_z;
   double rho_cdm_today;
+  double u_min;
+  double erfc;
 
   /*redshift-dependent annihilation parameter*/
 	
@@ -1000,8 +1002,12 @@ int thermodynamics_energy_injection(
 
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
 
-  * energy_rate = pow(rho_cdm_today,2)/_c_/_c_*(pow((1.+z),6)*annihilation_at_z
-						+preco->annihilation_f_halo*pow((1+z),4)*exp(-(1+z)*(1+z)/preco->annihilation_z_halo/preco->annihilation_z_halo))
+  u_min = (1+z)/(1+preco->annihilation_z_halo);
+
+  erfc = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
+
+  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
+    (pow((1.+z),3)*annihilation_at_z+preco->annihilation_f_halo*erfc)
     +rho_cdm_today*pow((1+z),3)*preco->decay; 
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
 
@@ -1213,7 +1219,8 @@ int thermodynamics_reionization(
       preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
     }
     if (pth->reio_parametrization == reio_half_tanh) {
-      preio->reionization_parameters[preio->index_reio_xe_after] = 1. + 2*pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + fully ionized He */
+      preio->reionization_parameters[preio->index_reio_xe_after] = 1.; /* xe_after_reio: neglect He ionization */
+      //+ 2*pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + fully ionized He */
     }
     preio->reionization_parameters[preio->index_reio_exponent] = pth->reionization_exponent; /* reio_exponent */
     preio->reionization_parameters[preio->index_reio_width] = pth->reionization_width;    /* reio_width */
