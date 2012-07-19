@@ -50,7 +50,7 @@ double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);  
   
   return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
-    +(1.-xe)/(3.*nH)*energy_rate*(C/EI+(1.-C)/E21)/H;
+    +(1.-xe)/(3.*nH)*energy_rate*(1./EI+(1.-C)/E21)/H;
 
 }
 
@@ -70,7 +70,7 @@ double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);  
   
   return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
-    +(1.-xe)/(3.*nH)*energy_rate*(C/EI+(1.-C)/E21)/H;
+    +(1.-xe)/(3.*nH)*energy_rate*(1./EI+(1.-C)/E21)/H;
   
 }
 
@@ -229,7 +229,7 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
    C_2p=(RLya+R2p2s*L2s1s/matrix[0][0])/(matrix[1][1]-R2p2s*3.*R2p2s/matrix[0][0]);
 		
    return  (x1s_db*(L2s1s + 3.*RLya) -x2[0]*L2s1s -x2[1]*RLya)/Hubble
-     +(1.-xe)/(3.*nH)*energy_rate*(C_2p/EI+(1.-C_2p)/E21)/Hubble;
+     +(1.-xe)/(3.*nH)*energy_rate*(1./EI+(1.-C_2p)/E21)/Hubble;
    
 }
 
@@ -685,7 +685,7 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
  
    /* Obtain xe_dot */
    xedot = -nH*xe*xe*(Alpha[0]+Alpha[1]) + xr[0]*Beta[0] + xr[1]*Beta[1]
-	+(1.-xe)/(3.*nH)*energy_rate*(C_2p/EI+(1.-C_2p)/E21);
+	+(1.-xe)/(3.*nH)*energy_rate*(1./EI+(1.-C_2p)/E21);
 	
 	   
    /* Update fminuses */
