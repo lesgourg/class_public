@@ -1896,7 +1896,7 @@ int thermodynamics_recombination_with_hyrec(
   rate_table.logR2p2s_tab = (double*)(rate_table.logAlpha_tab[1][NTM-1]+NTR);
 
   xe_output = (double*)(rate_table.logR2p2s_tab+NTR);
-  Tm_output = (double*)(rate_table.logR2p2s_tab+param.nz);
+  Tm_output = (double*)(xe_output+param.nz);
 
   /* store sampled values of temperatures */
 
@@ -1966,9 +1966,9 @@ int thermodynamics_recombination_with_hyrec(
    if (pth->thermodynamics_verbose > 0)
      printf("    by Y. Ali-Haïmoud & C. Hirata\n");
 
-  /** - fill a few parameters in preco and pth */
+   /** - fill a few parameters in preco and pth */
   
-  Nz=ppr->recfast_Nz0;
+   Nz=ppr->recfast_Nz0;
 
   preco->rt_size = Nz;
   preco->H0 = pba->H0 * _c_ / _Mpc_over_m_; 
@@ -1979,7 +1979,6 @@ int thermodynamics_recombination_with_hyrec(
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
 
-  
   class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
 
   for(i=0; i <Nz; i++) {
