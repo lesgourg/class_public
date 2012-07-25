@@ -281,6 +281,7 @@ struct recombination {
   double CB1_He1;
   double CB1_He2;
   double H0;
+  double YHe;
 
   /** parameters for energy injection */
 
@@ -461,12 +462,22 @@ extern "C" {
 				     struct thermo * pth
 				     );
 
+  int thermodynamics_onthespot_energy_injection(
+				      struct precision * ppr,
+				      struct background * pba,
+				      struct recombination * preco,
+				      double z,
+				      double * energy_rate,
+				      ErrorMsg error_message
+				      );
+  
   int thermodynamics_energy_injection(
 				      struct precision * ppr,
 				      struct background * pba,
 				      struct recombination * preco,
 				      double z,
-				      double * energy_rate
+				      double * energy_rate,
+				      ErrorMsg error_message
 				      );
   
   int thermodynamics_reionization_function(

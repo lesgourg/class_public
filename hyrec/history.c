@@ -350,7 +350,7 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
 
 }
 
-double energy_injection_rate(REC_COSMOPARAMS *param, 
+double onthespot_injection_rate(REC_COSMOPARAMS *param, 
 			     double z) {
 
   double annihilation_at_z;
@@ -389,5 +389,52 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
     +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
   /* energy density rate in eV/cm^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   /* note that the injection rate used by recfast, defined in therodynamics.c, is in J/m^3/s. Here we multiplied by 1/1.e6/1.60217653e-19 to convert to eV and cm. */
+
+}
+
+double energy_injection_rate(REC_COSMOPARAMS *param, 
+					double z) {
+
+  double zp,dz;
+  double integrand,first_integrand;
+  int i;
+  double factor,result;
+  //double moment;
+
+  /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
+  factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
+
+  /* integral over z'(=zp) with step dz */
+  dz=1.;
+
+  /* first point in trapezoidal integral */
+  zp = z;
+  first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp);
+  result = 0.5*dz*first_integrand;
+  //moment = 0.;
+
+  /* other points in trapezoidal integral */
+  do {
+
+    zp += dz;
+    integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp);
+    result += dz*integrand;
+    //moment += dz*integrand*(zp-z);
+
+  } while (integrand/first_integrand > 0.02);
+
+  /* correction corresponding to 1st order effective rate, comment it to stick to the 0th order */
+  //result /= (1.-moment/pow(1+z,5.5)/(3.2407792896393e-18 * sqrt(param->omh2))/(param->nH0/1.e6)/3./EI);
+
+  fprintf(stdout,"%e  %e  %e\n",
+	  1.+z,
+	  result/pow(1.+z,6)*1.602176487e-19*1.e6,
+	  onthespot_injection_rate(param,z)/pow(1.+z,6)*1.602176487e-19*1.e6);
+  //moment/pow(1+z,5.5)/(3.2407792896393e-18 * sqrt(param->omh2))/(param->nH0/1.e6)/3./EI);
+
+  //result = onthespot_injection_rate(param,z);
+
+  /* effective energy density rate in eV/cm^3/s  */
+  return result;		 
 
 }

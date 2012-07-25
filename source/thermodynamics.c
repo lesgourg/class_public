@@ -955,26 +955,28 @@ int thermodynamics_helium_from_bbn(
 
 /** 
  * In case of non-minimal cosmology, this function determines the
- * energy injection rate as a function of redshift. This energy
- * injection may come e.g. from dark matter annihilation or decay.
+ * energy rate injected in the IGM at a given redhsift z (= on-the-spot
+ * annihilation). This energy injection may come e.g. from dark matter
+ * annihilation or decay.
  * 
  * @param ppr Input : pointer to precision structure
  * @param pba Input : pointer to background structure
  * @param preco Input : pointer to recombination structure
  * @param z Input : redshift 
  * @param energy_rate Output : energy density injection rate 
+ * @param error_message Output: error message
  * @return the error status
  */
 
-int thermodynamics_energy_injection(
-				      struct precision * ppr,
-				      struct background * pba,
-				      struct recombination * preco,
-				      double z,
-				      double * energy_rate
-				    ) {
-
-
+int thermodynamics_onthespot_energy_injection(
+					      struct precision * ppr,
+					      struct background * pba,
+					      struct recombination * preco,
+					      double z,
+					      double * energy_rate,
+					      ErrorMsg error_message
+					      ) {
+    
   double annihilation_at_z;
   double rho_cdm_today;
   double u_min;
@@ -1015,6 +1017,86 @@ int thermodynamics_energy_injection(
 
 } 
 
+/** 
+ * In case of non-minimal cosmology, this function determines the
+ * effective energy rate absorbed by the IGM at a given redhsift
+ * (beyond the on-the-spot annihilation). This energy injection may
+ * come e.g. from dark matter annihilation or decay.
+ * 
+ * @param ppr Input : pointer to precision structure
+ * @param pba Input : pointer to background structure
+ * @param preco Input : pointer to recombination structure
+ * @param z Input : redshift 
+ * @param energy_rate Output : energy density injection rate 
+ * @param error_message Output: error message
+ * @return the error status
+ */
+
+int thermodynamics_energy_injection(
+				      struct precision * ppr,
+				      struct background * pba,
+				      struct recombination * preco,
+				      double z,
+				      double * energy_rate,
+				      ErrorMsg error_message
+				    ) {
+
+  double zp,dz;
+  double integrand,first_integrand;
+  int i;
+  double factor,result;
+  double nH0;
+  //double moment; 
+  double onthespot;
+
+  /* number of hydrogen nuclei today in m**-3 */
+  nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+
+  /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
+  factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+
+  /* integral over z'(=zp) with step dz */
+  dz=1.;
+
+  /* first point in trapezoidal integral */
+  zp = z;
+  class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+	     error_message,
+	     error_message);
+  first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+  result = 0.5*dz*first_integrand;
+  //moment = 0.;
+
+  /* other points in trapezoidal integral */
+  do {
+
+    zp += dz;
+    class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+	       error_message,
+	       error_message);
+    integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+    result += dz*integrand;
+    //moment += dz*integrand*(zp-z);
+
+  } while (integrand/first_integrand > 0.02);
+
+  /*class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
+	     error_message,
+	     error_message);*/
+
+  /* correction corresponding to 1st order effective rate, comment it to stick to the 0th order */
+  //result /= 1.-moment/3./(1.+z)/(nH0*pow(1+z,3))/(pba->H0 / _Mpc_over_m_ * _c_ * sqrt(pba->Omega0_b+pba->Omega0_cdm) * pow(1+z,1.5))/(_L_H_ion_*_h_P_*_c_);
+
+  /*fprintf(stdout,"%e  %e  %e  %e\n",
+          1.+z,
+	  result/pow(1.+z,6),
+	  onthespot/pow(1.+z,6),
+	  moment/3./(1.+z)/(nH0*pow(1+z,3))/(pba->H0 / _Mpc_over_m_ * _c_ * sqrt(pba->Omega0_b+pba->Omega0_cdm) * pow(1+z,1.5))/(_L_H_ion_*_h_P_*_c_));*/
+
+  /* effective energy density rate in J/m^3/s  */
+  *energy_rate = result;
+
+}
 
 /**
  * This subroutine contains the reionization function \f$ X_e(z) \f$
@@ -2013,7 +2095,7 @@ int thermodynamics_recombination_with_hyrec(
 	       pba->error_message,
 	       pth->error_message);
   
-    class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate),
+    class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
 	       pth->error_message,
 	       pth->error_message);
 
@@ -2154,7 +2236,7 @@ int thermodynamics_recombination_with_recfast(
   OmegaB = pba->Omega0_b;
 
   /* Yp */
-  Yp = pth->YHe;
+  preco->YHe = pth->YHe;
 
   /* Tnow */
   preco->Tnow = pba->T_cmb;
@@ -2180,9 +2262,9 @@ int thermodynamics_recombination_with_recfast(
 
   /* related quantities */ 
   z=zinitial;
-  mu_H = 1./(1.-Yp);
-  mu_T = _not4_ /(_not4_ - (_not4_-1.)*Yp); /* recfast 1.4*/
-  preco->fHe = Yp/(_not4_ *(1.-Yp)); /* recfast 1.4 */
+  mu_H = 1./(1.-preco->YHe);
+  mu_T = _not4_ /(_not4_ - (_not4_-1.)*preco->YHe); /* recfast 1.4*/
+  preco->fHe = preco->YHe/(_not4_ *(1.-preco->YHe)); /* recfast 1.4 */
   preco->Nnow = 3.*preco->H0*preco->H0*OmegaB/(8.*_PI_*_G_*mu_H*_m_H_);
   pth->n_e = preco->Nnow;
 
@@ -2441,7 +2523,7 @@ int thermodynamics_recombination_with_recfast(
 
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + x0 * (1.-Yp)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x0 * (1.-preco->YHe)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -2548,7 +2630,7 @@ int thermodynamics_derivs_with_recfast(
 	     pba->error_message,
 	     error_message);
   
-  class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate),
+  class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
 	     error_message,
 	     error_message);
 
@@ -2645,7 +2727,7 @@ int thermodynamics_derivs_with_recfast(
       C=(1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)))
 	-energy_rate*(1.-x)/(3*n)*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
-		
+
     }
   }
 
