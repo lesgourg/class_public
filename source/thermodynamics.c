@@ -1046,7 +1046,6 @@ int thermodynamics_energy_injection(
   int i;
   double factor,result;
   double nH0;
-  //double moment; 
   double onthespot;
 
   /* number of hydrogen nuclei today in m**-3 */
@@ -1065,7 +1064,6 @@ int thermodynamics_energy_injection(
 	     error_message);
   first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
   result = 0.5*dz*first_integrand;
-  //moment = 0.;
 
   /* other points in trapezoidal integral */
   do {
@@ -1076,22 +1074,24 @@ int thermodynamics_energy_injection(
 	       error_message);
     integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
     result += dz*integrand;
-    //moment += dz*integrand*(zp-z);
 
   } while (integrand/first_integrand > 0.02);
 
-  /*class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
-	     error_message,
-	     error_message);*/
+  /* by uncommenting these lines you can compute the on-the-spot energy rate, and eventually overseed the true result with the approximate one */
+  /*
+    class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
+    error_message,
+    error_message);
+    result = onthespot;
+  */
 
-  /* correction corresponding to 1st order effective rate, comment it to stick to the 0th order */
-  //result /= 1.-moment/3./(1.+z)/(nH0*pow(1+z,3))/(pba->H0 / _Mpc_over_m_ * _c_ * sqrt(pba->Omega0_b+pba->Omega0_cdm) * pow(1+z,1.5))/(_L_H_ion_*_h_P_*_c_);
-
-  /*fprintf(stdout,"%e  %e  %e  %e\n",
-          1.+z,
-	  result/pow(1.+z,6),
-	  onthespot/pow(1.+z,6),
-	  moment/3./(1.+z)/(nH0*pow(1+z,3))/(pba->H0 / _Mpc_over_m_ * _c_ * sqrt(pba->Omega0_b+pba->Omega0_cdm) * pow(1+z,1.5))/(_L_H_ion_*_h_P_*_c_));*/
+  /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
+  /*
+    fprintf(stdout,"%e  %e  %e \n",
+    1.+z,
+    result/pow(1.+z,6),
+    onthespot/pow(1.+z,6));
+  */
 
   /* effective energy density rate in J/m^3/s  */
   *energy_rate = result;

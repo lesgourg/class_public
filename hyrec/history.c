@@ -399,7 +399,6 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
   double integrand,first_integrand;
   int i;
   double factor,result;
-  //double moment;
 
   /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
   factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
@@ -411,7 +410,6 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
   zp = z;
   first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp);
   result = 0.5*dz*first_integrand;
-  //moment = 0.;
 
   /* other points in trapezoidal integral */
   do {
@@ -423,16 +421,18 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
 
   } while (integrand/first_integrand > 0.02);
 
-  /* correction corresponding to 1st order effective rate, comment it to stick to the 0th order */
-  //result /= (1.-moment/pow(1+z,5.5)/(3.2407792896393e-18 * sqrt(param->omh2))/(param->nH0/1.e6)/3./EI);
+  /* test lines for printing energy rate rescaled by (1=z)^6 in J/m^3/s w/o approximation */
+  /*
+    fprintf(stdout,"%e  %e  %e\n",
+    1.+z,
+    result/pow(1.+z,6)*1.602176487e-19*1.e6,
+    onthespot_injection_rate(param,z)/pow(1.+z,6)*1.602176487e-19*1.e6);
+  */
 
-  fprintf(stdout,"%e  %e  %e\n",
-	  1.+z,
-	  result/pow(1.+z,6)*1.602176487e-19*1.e6,
-	  onthespot_injection_rate(param,z)/pow(1.+z,6)*1.602176487e-19*1.e6);
-  //moment/pow(1+z,5.5)/(3.2407792896393e-18 * sqrt(param->omh2))/(param->nH0/1.e6)/3./EI);
-
-  //result = onthespot_injection_rate(param,z);
+  /* by uncommenting this line you enforce the on-the-spot approximation */
+  /*
+    result = onthespot_injection_rate(param,z);
+  */
 
   /* effective energy density rate in eV/cm^3/s  */
   return result;		 
