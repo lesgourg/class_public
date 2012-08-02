@@ -222,18 +222,17 @@ extern "C" {
 			       int result_size, /** from 1 to n_columns */
 			       ErrorMsg errmsg);
 	
-  int array_interpolate_logspline(
-				  double * x_array,
-				  int n_lines,
-				  double * array,
-				  double * array_logsplined,
-				  int n_columns,
-				  double x,
-				  int * last_index,
-				  double * result,
-				  int result_size, /** from 1 to n_columns */
-				  ErrorMsg errmsg);
-	
+  int array_interpolate_linear(
+			       double * x_array,
+			       int n_lines,
+			       double * array,
+			       int n_columns,
+			       double x,
+			       int * last_index,
+			       double * result,
+			       int result_size, /** from 1 to n_columns */
+			       ErrorMsg errmsg);
+
   int array_interpolate_growing_closeby(
 					double * array,
 					int n_columns,

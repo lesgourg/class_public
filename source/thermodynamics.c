@@ -171,7 +171,7 @@ int thermodynamics_at_z(
   else {
 
     if (inter_mode == pth->inter_normal) {
-      
+
       class_call(array_interpolate_spline(
 					  pth->z_table,
 					  pth->tt_size,
@@ -185,7 +185,6 @@ int thermodynamics_at_z(
 					  pth->error_message),
 		 pth->error_message,
 		 pth->error_message);
-      
     }
     
     if (inter_mode == pth->inter_closeby) {
@@ -1048,53 +1047,62 @@ int thermodynamics_energy_injection(
   double nH0;
   double onthespot;
 
-  /* number of hydrogen nuclei today in m**-3 */
-  nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+  if (preco->annihilation > 0) {
 
-  /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-  factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+    /* number of hydrogen nuclei today in m**-3 */
+    nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
 
-  /* integral over z'(=zp) with step dz */
-  dz=1.;
+    /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
+    factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
 
-  /* first point in trapezoidal integral */
-  zp = z;
-  class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-	     error_message,
-	     error_message);
-  first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
-  result = 0.5*dz*first_integrand;
+    /* integral over z'(=zp) with step dz */
+    dz=1.;
 
-  /* other points in trapezoidal integral */
-  do {
-
-    zp += dz;
+    /* first point in trapezoidal integral */
+    zp = z;
     class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
 	       error_message,
 	       error_message);
-    integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
-    result += dz*integrand;
+    first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+    result = 0.5*dz*first_integrand;
+    
+    /* other points in trapezoidal integral */
+    do {
+      
+      zp += dz;
+      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+		 error_message,
+		 error_message);
+      integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+      result += dz*integrand;
+      
+    } while (integrand/first_integrand > 0.02);
+    
+    /* by uncommenting these lines you can compute the on-the-spot energy rate, and eventually overseed the true result with the approximate one */
+    /*
+      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
+      error_message,
+      error_message);
+      result = onthespot;
+    */
+    
+    /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
+    /*
+      fprintf(stdout,"%e  %e  %e \n",
+      1.+z,
+      result/pow(1.+z,6),
+      onthespot/pow(1.+z,6));
+    */
 
-  } while (integrand/first_integrand > 0.02);
+    /* effective energy density rate in J/m^3/s  */                                          
+    *energy_rate = result;   
 
-  /* by uncommenting these lines you can compute the on-the-spot energy rate, and eventually overseed the true result with the approximate one */
-  /*
-    class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
-    error_message,
-    error_message);
-    result = onthespot;
-  */
+  }
+  else {
+    *energy_rate = 0.;
+  }
 
-  /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
-  /*
-    fprintf(stdout,"%e  %e  %e \n",
-    1.+z,
-    result/pow(1.+z,6),
-    onthespot/pow(1.+z,6));
-  */
-
-  /* effective energy density rate in J/m^3/s  */
-  *energy_rate = result;
+  return _SUCCESS_;
 
 }
 
@@ -1955,7 +1963,7 @@ int thermodynamics_recombination_with_hyrec(
 
   /* allocate contiguous memory zone */
 
-  buf_size = (2*NTR+NTM+2*NTR*NTM+2*param.nz)*sizeof(double) + 2*sizeof(double*);
+  buf_size = (2*NTR+NTM+2*NTR*NTM+2*param.nz)*sizeof(double) + 2*NTM*sizeof(double*);
 
   class_alloc(buffer,
 	      buf_size,
@@ -2095,9 +2103,10 @@ int thermodynamics_recombination_with_hyrec(
 	       pba->error_message,
 	       pth->error_message);
   
-    class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
+    /*   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
 	       pth->error_message,
 	       pth->error_message);
+    */
 
     /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
     Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
@@ -2118,7 +2127,7 @@ int thermodynamics_recombination_with_hyrec(
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) 
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_rate) / Tm / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)

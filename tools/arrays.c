@@ -1566,6 +1566,87 @@ int array_interpolate_spline(
   return _SUCCESS_;
 }
 
+ /**
+  * interpolate to get y_i(x), when x and y_i are in different arrays
+  *
+  * Called by background_at_eta(); background_eta_of_z(); background_solve(); thermodynamics_at_z().
+  */
+int array_interpolate_linear(
+			     double * x_array,
+			     int n_lines,
+			     double * array,
+			     int n_columns,
+			     double x,
+			     int * last_index,
+			     double * result,
+			     int result_size, /** from 1 to n_columns */
+			     ErrorMsg errmsg) {
+
+  int inf,sup,mid,i;
+  double h,a,b;
+  
+  inf=0;
+  sup=n_lines-1;
+  
+  if (x_array[inf] < x_array[sup]){
+
+    if (x < x_array[inf]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[inf]);
+      return _FAILURE_;
+    }
+
+    if (x > x_array[sup]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[sup]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x < x_array[mid]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  else {
+
+    if (x < x_array[sup]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,x_array[sup]);
+      return _FAILURE_;
+    }
+
+    if (x > x_array[inf]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,x_array[inf]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x > x_array[mid]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  *last_index = inf;
+
+  h = x_array[sup] - x_array[inf];
+  b = (x-x_array[inf])/h;
+  a = 1-b;
+
+  for (i=0; i<result_size; i++)
+    *(result+i) = 
+      a * *(array+inf*n_columns+i) +
+      b * *(array+sup*n_columns+i);
+
+  return _SUCCESS_;
+}
+
+
 /**
  * interpolate to get y_i(x), when x and y_i are in different arrays
  *
