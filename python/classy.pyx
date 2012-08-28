@@ -55,6 +55,7 @@ cdef extern from "class.h":
     ErrorMsg error_message 
     int th_size
     int index_th_xe
+    int index_th_Tb
     short inter_normal
     double tau_reio
     double z_reio
@@ -655,6 +656,31 @@ cdef class Class:
 
     return xe
 
+  def _baryon_temperature(self, z):
+    cdef double tau
+    cdef int last_index #junk
+    cdef double * pvecback
+    cdef double * pvecthermo
+
+    pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+    pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
+
+    if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
+      raise ClassError(self.th.error_message)
+
+    Tb = pvecthermo[self.th.index_th_Tb] 
+
+    free(pvecback)
+    free(pvecthermo)
+
+    return Tb
+
   def _T_cmb(self):
     return self.ba.T_cmb
 
@@ -665,7 +691,6 @@ cdef class Class:
     for elem in data.get_mcmc_parameters(['derived']):
       if elem == 'sigma8':
         data.mcmc_parameters[elem]['current'] = self.sp.sigma8
-        print self.sp.sigma8
       if elem == 'tau_reio':
         data.mcmc_parameters[elem]['current'] = self.th.tau_reio
       if elem == 'z_reio':
