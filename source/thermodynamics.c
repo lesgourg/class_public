@@ -170,13 +170,13 @@ int thermodynamics_at_z(
 
   else {
 
-    if (inter_mode == pth->inter_normal) {
-
-      class_call(array_interpolate_spline(
+    /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
+    if ((pth->reio_parametrization == reio_half_tanh) && (z < 2*pth->z_reio)) {
+      
+      class_call(array_interpolate_linear(
 					  pth->z_table,
 					  pth->tt_size,
 					  pth->thermodynamics_table,
-					  pth->d2thermodynamics_dz2_table,
 					  pth->th_size,
 					  z,
 					  last_index,
@@ -186,22 +186,44 @@ int thermodynamics_at_z(
 		 pth->error_message,
 		 pth->error_message);
     }
+
+    /* in the "normal" case, use spline interpolation */
+    else {
+
+      if (inter_mode == pth->inter_normal) {
+
+	class_call(array_interpolate_spline(
+					    pth->z_table,
+					    pth->tt_size,
+					    pth->thermodynamics_table,
+					    pth->d2thermodynamics_dz2_table,
+					    pth->th_size,
+					    z,
+					    last_index,
+					    pvecthermo,
+					    pth->th_size,
+					    pth->error_message),
+		   pth->error_message,
+		   pth->error_message);
+      }
     
-    if (inter_mode == pth->inter_closeby) {
-      
-      class_call(array_interpolate_spline_growing_closeby(
-							  pth->z_table,
-							  pth->tt_size,
-							  pth->thermodynamics_table,
-							  pth->d2thermodynamics_dz2_table,
-							  pth->th_size,
-							  z,
-							  last_index,
-							  pvecthermo,
-							  pth->th_size,
-							  pth->error_message),
-		 pth->error_message,
-		 pth->error_message);
+      if (inter_mode == pth->inter_closeby) {
+
+	class_call(array_interpolate_spline_growing_closeby(
+							    pth->z_table,
+							    pth->tt_size,
+							    pth->thermodynamics_table,
+							    pth->d2thermodynamics_dz2_table,
+							    pth->th_size,
+							    z,
+							    last_index,
+							    pvecthermo,
+							    pth->th_size,
+							    pth->error_message),
+		   pth->error_message,
+		   pth->error_message);
+	
+      }
     }
   }
   return _SUCCESS_;
@@ -1617,6 +1639,7 @@ int thermodynamics_reionization_sample(
   double dkappadz,dkappadz_next;
   double Tb,Tba2,Yp,dTdz,opacity,mu;
   double dkappadtau,dkappadtau_next;
+  double energy_rate;
 
   Yp = pth->YHe;
 
@@ -1813,8 +1836,16 @@ int thermodynamics_reionization_sample(
 
     /** - derivative of baryon temperature */
 
+    class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
+	       pth->error_message,
+	       pth->error_message);
+
     dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
-      -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*(pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
+      -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
+      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H]
+      -2./(3.*_k_B_)*energy_rate*(1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])
+      /(3*preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
+      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
 
     /** - increment baryon temperature */
 
@@ -2063,8 +2094,17 @@ int thermodynamics_recombination_with_hyrec(
   preco->rt_size = Nz;
   preco->H0 = pba->H0 * _c_ / _Mpc_over_m_; 
   /* preco->H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
-  preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-pth->YHe)/(8.*_PI_*_G_*_m_H_);
-
+  preco->YHe = pth->YHe;
+  preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-preco->YHe)/(8.*_PI_*_G_*_m_H_);
+  /* energy injection parameters */
+  preco->annihilation = pth->annihilation;
+  preco->annihilation_variation = pth->annihilation_variation;
+  preco->annihilation_z = pth->annihilation_z;
+  preco->annihilation_zmax = pth->annihilation_zmax;
+  preco->annihilation_zmin = pth->annihilation_zmin;
+  preco->decay = pth->decay;
+  preco->annihilation_f_halo = pth->annihilation_f_halo;
+  preco->annihilation_z_halo = pth->annihilation_z_halo;
   pth->n_e=preco->Nnow;
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
@@ -2776,7 +2816,6 @@ int thermodynamics_derivs_with_recfast(
     epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x);
     dy[2] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*((dy[0]+preco->fHe*dy[1])/x)
       - epsilon* dHdz/Hz + 3.*epsilon/(1.+z);
-    
   }
   else {
     /* equations modified to take into account energy injection from dark matter */
