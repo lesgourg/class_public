@@ -78,7 +78,7 @@ cdef extern from "class.h":
     double alpha_s
     double r
     double n_t
-    double alpha_t	   
+    double alpha_t   
     double V0
     double V1
     double V2
@@ -105,6 +105,7 @@ cdef extern from "class.h":
     ErrorMsg error_message 
 
   cdef struct nonlinear                    :
+    int method
     ErrorMsg error_message 
 
   cdef struct file_content:
@@ -157,23 +158,42 @@ cdef extern from "class.h":
   int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
   int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
   int spectra_pk_at_z(
-		      void * pba,
-		      void * psp,
-		      int mode, 
-		      double z,
-		      double * output_tot,
-		      double * output_ic
-		      )
+      void * pba,
+      void * psp,
+      int mode, 
+      double z,
+      double * output_tot,
+      double * output_ic
+      )
 
   int spectra_pk_at_k_and_z(
-			    void* pba,
-			    void * ppm,
-			    void * psp,
-			    double k,
-			    double z,
-			    double * pk,
-			    double * pk_ic)
+    void* pba,
+    void * ppm,
+    void * psp,
+    double k,
+    double z,
+    double * pk,
+    double * pk_ic)
+
+  int nonlinear_pk_at_z(
+    void * pnl,
+    double z,
+    double * pz_density,
+    double * pz_velocity,
+    double * pz_cross,
+    int * k_size_at_z)
+
+  int nonlinear_pk_at_k_and_z(
+    void * pnl,
+    double k,
+    double z,
+    double * pz_density,
+    double * pz_velocity,
+    double * pz_cross,
+    int * k_size_at_z)
+
   int nonlinear_k_nl_at_z(void* pnl, double z,double* k_nl)
+
   cdef enum linear_or_logarithmic :
             linear
             logarithmic
@@ -231,7 +251,9 @@ cdef class Class:
   property Omega_nu:
     def __get__(self):
       return self.ba.Omega0_ncdm_tot
-      
+  property nonlinear_method:
+    def __get__(self):
+      return self.nl.method  
 
   def __init__(self,default=False):
     cdef char* dumc
@@ -560,10 +582,16 @@ cdef class Class:
   # Gives the pk for a given (k,z)
   def _pk(self,double k,double z):
     cdef double pk
+    cdef double pk_velo
+    cdef double pk_cross
+    cdef int dummy
 
-    if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
-      raise ClassError(self.sp.error_message)
-    
+    if (self.nl.method == 0):
+       if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
+         raise ClassError(self.sp.error_message)
+    else:
+       if nonlinear_pk_at_k_and_z(&self.nl,k,z,&pk,&pk_velo,&pk_cross,&dummy)==_FAILURE_:
+          raise ClassError(self.nl.error_message)
     #free(junk)
     return pk
 
@@ -698,17 +726,17 @@ cdef class Class:
       if elem == 'YHe':
         data.mcmc_parameters[elem]['current'] = self.th.YHe
       if elem == 'A_s':
-        data.mcmc_parameters[elem]['current'] = self.pm.A_s	
+        data.mcmc_parameters[elem]['current'] = self.pm.A_s
       if elem == 'n_s':
-        data.mcmc_parameters[elem]['current'] = self.pm.n_s	
+        data.mcmc_parameters[elem]['current'] = self.pm.n_s
       if elem == 'alpha_s':
-        data.mcmc_parameters[elem]['current'] = self.pm.alpha_s	
+        data.mcmc_parameters[elem]['current'] = self.pm.alpha_s
       if elem == 'r':
-        data.mcmc_parameters[elem]['current'] = self.pm.r	
+        data.mcmc_parameters[elem]['current'] = self.pm.r
       if elem == 'n_t':
-        data.mcmc_parameters[elem]['current'] = self.pm.n_t	
+        data.mcmc_parameters[elem]['current'] = self.pm.n_t
       if elem == 'alpha_t':
-        data.mcmc_parameters[elem]['current'] = self.pm.alpha_t	
+        data.mcmc_parameters[elem]['current'] = self.pm.alpha_t
       if elem == 'V_0':
         data.derived_parameters[elem]['current'] = self.pm.V0
       if elem == 'V_1':
