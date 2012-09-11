@@ -839,6 +839,7 @@ int transfer_get_k_list(
   index_k_tr = 0;
 
   ptr->k[index_mode][0] = k_min;
+  k = k_min;
   index_k_pt++;
   index_k_tr++;
 
