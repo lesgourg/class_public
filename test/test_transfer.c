@@ -65,8 +65,9 @@ int main(int argc, char **argv) {
   /* 2) here is an illustration of how to output the transfer
      functions at some (k,l)'s of your choice */
  
+  /*
   int index_l = 0;
-  double k=3.6e-6;
+  double k=3.6e-4;
   double transfer;
 
   if (transfer_functions_at_k(&tr,
@@ -80,14 +81,17 @@ int main(int argc, char **argv) {
     printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
-    
+
   printf("%d %e %e\n",tr.l[index_l],k,transfer);
-    
+   
+  */
+ 
   /* 3) here you can output the full tabulated arrays for all k and l's*/
 
   int index_k;
 
-  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
+  //  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
+  for (index_l=10; index_l<11; index_l++) { 
     for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
       
       transfer=tr.transfer[index_mode]
