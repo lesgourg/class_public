@@ -12,6 +12,7 @@
 
 import numpy as np
 import os
+from math import exp
 cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
@@ -750,6 +751,8 @@ cdef class Class:
         data.derived_parameters[elem]['current'] = self.pm.V3
       if elem == 'V_4':
         data.derived_parameters[elem]['current'] = self.pm.V4
+      if elem == 'exp_m_2_tau_As':
+        data.derived_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
     return
 
   def nonlinear_scale(self,np.ndarray[DTYPE_t,ndim=1] z,int z_size):
