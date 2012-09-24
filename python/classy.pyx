@@ -59,6 +59,7 @@ cdef extern from "class.h":
     short inter_normal
     double tau_reio
     double z_reio
+    double da_rec
     double YHe
 
   cdef struct perturbs      :
@@ -723,6 +724,8 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.th.tau_reio
       if elem == 'z_reio':
         data.mcmc_parameters[elem]['current'] = self.th.z_reio
+      if elem == 'da_rec':
+        data.mcmc_parameters[elem]['current'] = self.th.da_rec
       if elem == 'YHe':
         data.mcmc_parameters[elem]['current'] = self.th.YHe
       if elem == 'A_s':
