@@ -742,17 +742,17 @@ cdef class Class:
       if elem == 'alpha_t':
         data.mcmc_parameters[elem]['current'] = self.pm.alpha_t
       if elem == 'V_0':
-        data.derived_parameters[elem]['current'] = self.pm.V0
+        data.mcmc_parameters[elem]['current'] = self.pm.V0
       if elem == 'V_1':
-        data.derived_parameters[elem]['current'] = self.pm.V1
+        data.mcmc_parameters[elem]['current'] = self.pm.V1
       if elem == 'V_2':
-        data.derived_parameters[elem]['current'] = self.pm.V2
+        data.mcmc_parameters[elem]['current'] = self.pm.V2
       if elem == 'V_3':
-        data.derived_parameters[elem]['current'] = self.pm.V3
+        data.mcmc_parameters[elem]['current'] = self.pm.V3
       if elem == 'V_4':
-        data.derived_parameters[elem]['current'] = self.pm.V4
+        data.mcmc_parameters[elem]['current'] = self.pm.V4
       if elem == 'exp_m_2_tau_As':
-        data.derived_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
+        data.mcmc_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
     return
 
   def nonlinear_scale(self,np.ndarray[DTYPE_t,ndim=1] z,int z_size):
