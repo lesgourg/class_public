@@ -48,10 +48,15 @@ cdef extern from "class.h":
     double T_cmb
     double h
     double age
+    double conformal_age
+    double * m_ncdm_in_eV
+    double Neff
     double Omega0_b
     double Omega0_cdm
     double Omega0_ncdm_tot
-    
+    double Omega0_lambda
+    double Omega0_fld    
+
   cdef struct thermo:
     ErrorMsg error_message 
     int th_size
@@ -60,6 +65,10 @@ cdef extern from "class.h":
     short inter_normal
     double tau_reio
     double z_reio
+    double z_rec
+    double tau_rec
+    double rs_rec
+    double ds_rec
     double da_rec
     double YHe
 
@@ -719,16 +728,48 @@ cdef class Class:
   
   def get_current_derived_parameters(self,data):
     for elem in data.get_mcmc_parameters(['derived']):
-      if elem == 'sigma8':
-        data.mcmc_parameters[elem]['current'] = self.sp.sigma8
+      if elem == 'h':
+        data.mcmc_parameters[elem]['current'] = self.ba.h
+      if elem == 'Omega0_lambda' or elem == 'Omega_Lambda':
+        data.mcmc_parameters[elem]['current'] = self.ba.Omega0_lambda
+      if elem == 'Omega0_fld':
+        data.mcmc_parameters[elem]['current'] = self.ba.Omega0_fld
+      if elem == 'age':
+        data.mcmc_parameters[elem]['current'] = self.ba.age
+      if elem == 'conformal_age':
+        data.mcmc_parameters[elem]['current'] = self.ba.conformal_age
+      if elem == 'm_ncdm_in_eV':
+        data.mcmc_parameters[elem]['current'] = self.ba.m_ncdm_in_eV[0]
+      if elem == 'Neff':
+        data.mcmc_parameters[elem]['current'] = self.ba.Neff
       if elem == 'tau_reio':
         data.mcmc_parameters[elem]['current'] = self.th.tau_reio
       if elem == 'z_reio':
         data.mcmc_parameters[elem]['current'] = self.th.z_reio
+      if elem == 'z_rec':
+        data.mcmc_parameters[elem]['current'] = self.th.z_rec
+      if elem == 'tau_rec':
+        data.mcmc_parameters[elem]['current'] = self.th.tau_rec
+      if elem == 'rs_rec':
+        data.mcmc_parameters[elem]['current'] = self.th.rs_rec
+      if elem == 'rs_rec_h':
+        data.mcmc_parameters[elem]['current'] = self.th.rs_rec*self.ba.h
+      if elem == 'ds_rec':
+        data.mcmc_parameters[elem]['current'] = self.th.ds_rec
+      if elem == 'ds_rec_h':
+        data.mcmc_parameters[elem]['current'] = self.th.ds_rec*self.ba.h
+      if elem == 'ra_rec':
+        data.mcmc_parameters[elem]['current'] = self.th.da_rec*(1.+self.th.z_rec)
+      if elem == 'ra_rec_h':
+        data.mcmc_parameters[elem]['current'] = self.th.da_rec*(1.+self.th.z_rec)*self.ba.h
       if elem == 'da_rec':
         data.mcmc_parameters[elem]['current'] = self.th.da_rec
+      if elem == 'da_rec_h':
+        data.mcmc_parameters[elem]['current'] = self.th.da_rec*self.ba.h
       if elem == 'YHe':
         data.mcmc_parameters[elem]['current'] = self.th.YHe
+      if elem == 'ne':
+        data.mcmc_parameters[elem]['current'] = self.th.ne
       if elem == 'A_s':
         data.mcmc_parameters[elem]['current'] = self.pm.A_s
       if elem == 'n_s':
@@ -753,6 +794,8 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.pm.V4
       if elem == 'exp_m_2_tau_As':
         data.mcmc_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
+      if elem == 'sigma8':
+        data.mcmc_parameters[elem]['current'] = self.sp.sigma8
     return
 
   def nonlinear_scale(self,np.ndarray[DTYPE_t,ndim=1] z,int z_size):
