@@ -12,7 +12,7 @@
 
 import numpy as np
 import os
-from math import exp
+from math import exp,log
 cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
@@ -772,7 +772,7 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.th.ne
       if elem == 'A_s':
         data.mcmc_parameters[elem]['current'] = self.pm.A_s
-     if elem == 'ln10^{10}A_s':
+      if elem == 'ln10^{10}A_s':
         data.mcmc_parameters[elem]['current'] = log(1.e10*self.pm.A_s)
       if elem == 'n_s':
         data.mcmc_parameters[elem]['current'] = self.pm.n_s
