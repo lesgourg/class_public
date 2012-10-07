@@ -772,6 +772,8 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.th.ne
       if elem == 'A_s':
         data.mcmc_parameters[elem]['current'] = self.pm.A_s
+     if elem == 'ln10^{10}A_s':
+        data.mcmc_parameters[elem]['current'] = log(1.e10*self.pm.A_s)
       if elem == 'n_s':
         data.mcmc_parameters[elem]['current'] = self.pm.n_s
       if elem == 'alpha_s':
