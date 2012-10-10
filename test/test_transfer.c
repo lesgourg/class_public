@@ -89,6 +89,8 @@ int main(int argc, char **argv) {
   /* 3) here you can output the full tabulated arrays for all k and l's*/
 
   int index_k;
+  int index_l;
+  double transfer;
 
   //  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
   for (index_l=10; index_l<11; index_l++) { 

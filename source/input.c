@@ -1835,11 +1835,11 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->recfast_Hswitch = _TRUE_;           /* from recfast 1.5 */
   ppr->recfast_fudge_H = 1.14;             /* from recfast 1.4 */
-  ppr->recfast_delta_fudge_H = -0.035;     /* from recfast 1.5 */
+  ppr->recfast_delta_fudge_H = -0.015;     /* from recfast 1.5.2 */
   ppr->recfast_AGauss1 = -0.14;            /* from recfast 1.5 */ 
-  ppr->recfast_AGauss2 =  0.05;            /* from recfast 1.5 */
+  ppr->recfast_AGauss2 =  0.079;           /* from recfast 1.5.2 */
   ppr->recfast_zGauss1 =  7.28;            /* from recfast 1.5 */
-  ppr->recfast_zGauss2 =  6.75;            /* from recfast 1.5 */
+  ppr->recfast_zGauss2 =  6.73;            /* from recfast 1.5.2 */
   ppr->recfast_wGauss1 =  0.18;            /* from recfast 1.5 */
   ppr->recfast_wGauss2 =  0.33;            /* from recfast 1.5 */
 

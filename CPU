@@ -50,7 +50,7 @@ parser.add_argument('-t',	metavar='pk, cl_lin,etc...',
 parser.add_argument('-colnum',metavar='2, 3, ...',
   help='specify the column you want to plot. By default, column is 2: you are plotting TT spectrum')
 parser.add_argument('-x, --x11',metavar='gnuplot terminal',
-  dest='term',action='store_const',const='x11',default='aqua',
+  dest='term',action='store_const',const='x11',default='x11',
   help='if your version of gnuplot does not support the aqua terminal, it will pick instead the x11 one, for crappier displays')
 parser.add_argument('-p, --print',	
   dest='printfile',action='store_true',default=False,
