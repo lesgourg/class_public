@@ -740,6 +740,8 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.ba.conformal_age
       if elem == 'm_ncdm_in_eV':
         data.mcmc_parameters[elem]['current'] = self.ba.m_ncdm_in_eV[0]
+      if elem == 'm_ncdm_tot':
+        data.mcmc_parameters[elem]['current'] = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h/93.14
       if elem == 'Neff':
         data.mcmc_parameters[elem]['current'] = self.ba.Neff
       if elem == 'tau_reio':
