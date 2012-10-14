@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 
   int index_mode=pt.index_md_scalars;
   int index_ic  =pt.index_ic_ad;
-  int index_type=tr.index_tt_t;
+  int index_type=tr.index_tt_density;
 
   /* 2) here is an illustration of how to output the transfer
      functions at some (k,l)'s of your choice */
@@ -92,8 +92,8 @@ int main(int argc, char **argv) {
   int index_l;
   double transfer;
 
-  //  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-  for (index_l=10; index_l<11; index_l++) { 
+  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
+    //for (index_l=10; index_l<11; index_l++) { 
     for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
       
       transfer=tr.transfer[index_mode]
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
       }
     }
     
-    printf("\n");
+    printf("\n\n");
     
   } 
 

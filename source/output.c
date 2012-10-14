@@ -1320,7 +1320,7 @@ int output_open_cl_file(
 	fprintf(*clfile,"Ephi             ");
       if (psp->has_dd == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
-	  for (index_d2=index_d1; index_d2<psp->d_size; index_d2++)
+	  for (index_d2=index_d1; index_d2<=min(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
 	    fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
       if (psp->has_td == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
@@ -1345,7 +1345,7 @@ int output_open_cl_file(
 	fprintf(*clfile,"dE               ");
       if (psp->has_dd == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
-	  for (index_d2=index_d1; index_d2<psp->d_size; index_d2++)
+	  for (index_d2=index_d1; index_d2<=min(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
 	    fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
       if (psp->has_td == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
@@ -1413,7 +1413,7 @@ int output_one_line_of_cl(
     if (psp->has_ep == _TRUE_)
       fprintf(clfile," %16.10e",sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_ep]);
     if (psp->has_dd == _TRUE_)
-      for (index_ct=0; index_ct<psp->d_size*psp->d_size; index_ct++) 
+      for (index_ct=0; index_ct<(psp->d_size*(psp->d_size+1) - (psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; index_ct++) 
 	fprintf(clfile," %16.10e",factor*cl[psp->index_ct_dd+index_ct]);
     if (psp->has_td == _TRUE_)
       for (index_ct=0; index_ct<psp->d_size; index_ct++) 

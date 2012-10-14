@@ -1137,14 +1137,22 @@ int input_init(
 	  }	
 	}
 	else {
-	  class_stop(ptr->error_message,
+	  class_stop(errmsg,
 		     "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin witdths",
 		     ppt->selection_num,int1,ppt->selection_num);
 	}
       }
     }
-  }
   
+    if (ppt->selection_num>1) {
+      class_read_int("non_diagonal",psp->non_diag);
+      if ((psp->non_diag<0) || (psp->non_diag>=ppt->selection_num))
+	class_stop(errmsg,
+		   "Input for non_diagonal is %d, while it is expected to be between 0 and %d\n",
+		   psp->non_diag,ppt->selection_num-1);
+    }
+  }
+
   class_read_string("root",pop->root);
 
   class_call(parser_read_string(pfc,
@@ -1758,6 +1766,7 @@ int input_default_params(
   /** - spectra structure */ 
 
   psp->z_max_pk = pop->z_pk[0];
+  psp->non_diag=0;
 
   /** - nonlinear structure */
 
