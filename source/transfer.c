@@ -149,8 +149,9 @@ int transfer_init(
      interpolated_sources[index_k_tr*ppt->tau_size+index_tau] */
   double * interpolated_sources;
 
-  /* we deal with workspaces which a contiguous memory zone containing various
-     fields used by the integration routine */
+  /* we deal with workspaces, i.e. with contiguous memory zones (one
+     per thread) containing various fields used by the integration
+     routine */
 
   /* - pointer used to assign adresses to the various workspace fields */
   double * address_in_workspace;
@@ -201,8 +202,15 @@ int transfer_init(
   int num_j;
 
   /** - for a given l, maximum value of k such that we can convolve
-        the source with Bessel functions j_l(x) without reaching x_max */
+      the source with Bessel functions j_l(x) without reaching x_max */
   double k_max_bessel;
+
+  /** - array with the correspondance between the index of sources in
+        the perturbation module and in the transfer module */
+  int * tp_of_tt;
+
+  /* a value of index_type */
+  int previous_type;
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
@@ -237,13 +245,13 @@ int transfer_init(
   ptr->md_size = ppt->md_size;
 
   /** - get conformal age / recombination time 
-        from background / thermodynamics structures 
-	(only place where these structures are used in this module) */
+      from background / thermodynamics structures 
+      (only place where these structures are used in this module) */
   tau0 = pba->conformal_age;
   tau_rec = pth->tau_rec;
 
   /** - initialize all indices in the transfers structure and 
-        allocate all its arrays using transfer_indices_of_transfers() */
+      allocate all its arrays using transfer_indices_of_transfers() */
   class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,pth->rs_rec),
 	     ptr->error_message,
 	     ptr->error_message);
@@ -275,21 +283,29 @@ int transfer_init(
 
     /** (a) allocate temporary arrays relevant for this mode */
 
+    /** (a.0.) find correspondence between sources in the perturbation and transfer modules */
+
+    class_alloc(tp_of_tt,ptr->tt_size[index_mode]*sizeof(int),ptr->error_message);
+
+    class_call(transfer_get_source_correspondence(ppt,ptr,index_mode,tp_of_tt),
+	       ptr->error_message,
+	       ptr->error_message);
+
     /** (a.1.) array of sources interpolated at correct values of k */
 
     class_alloc(interpolated_sources,
 		ptr->k_size[index_mode]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
-    
+     
     /** (a.2.) second derivative of sources in the previous source arrays, useful to
-       obtain the one above */
+	obtain the one above */
 
     class_alloc(source_spline,
 		ppt->k_size[index_mode]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
 
     /** (a.3.) workspace, allocated in a parallel zone since in openmp
-       version there is one workspace per thread */
+	version there is one workspace per thread */
     
     /* initialize error management flag */
     abort = _FALSE_;
@@ -297,7 +313,7 @@ int transfer_init(
     /* beginning of parallel region */
     
 #pragma omp parallel							\
-  shared(ptr,index_mode,ppt,pbs,pw,tau0)					\
+  shared(ptr,index_mode,ppt,pbs,pw,tau0)				\
   private(thread,address_in_workspace,tau0_minus_tau,delta_tau,index_tau)
     {
       
@@ -342,28 +358,34 @@ int transfer_init(
     /** (b) now loop over initial conditions and types: For each of them: */
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+      
+      /* initialize the previous type index */
+      previous_type=-1;
 
       for (index_tt = 0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
+
+        /* (b.1) check if we must now deal with a new source with a
+	   new index ppt->index_type. If yes, interpolate it at the
+	   right values of k. */
+
+	if (tp_of_tt[index_tt] != previous_type) {
+	  
+	  if (ptr->transfer_verbose>2)
+	    printf("In %s: Interpolate source for one mode/ic/type.\n",
+		   __func__);
+	  
+	  class_call(transfer_interpolate_sources(ppt,
+						  ptr,
+						  index_mode,
+						  index_ic,
+						  tp_of_tt[index_tt],
+						  source_spline,
+						  interpolated_sources),
+		     ptr->error_message,
+		     ptr->error_message);
+	}
 	
-        /** (b.1) interpolate sources to get them at the right values of k 
-                using transfer_interpolate_sources() */
-
-	if (ptr->transfer_verbose>2)
-	  printf("In %s: Interpolate sources for one mode/ic/type.\n",
-		 __func__);
-
-	class_call(transfer_interpolate_sources(pba,
-						ppt,
-						ptr,
-						tau0,
-						tau_rec,
-						index_mode,
-						index_ic,
-						index_tt,
-						source_spline,
-						interpolated_sources),
-		   ptr->error_message,
-		   ptr->error_message);
+	previous_type = tp_of_tt[index_tt];
 
 	/** (b.2) store the sources in the workspace and define all
 	    fields in this workspace (in a parallel zone, since in
@@ -385,7 +407,7 @@ int transfer_init(
 
 #pragma omp parallel							\
   shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
-	  interpolated_sources,abort,num_j)				\
+	  interpolated_sources,abort,num_j,tau0,tau_rec) \
   private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel)
 	
 	{
@@ -416,11 +438,31 @@ int transfer_init(
 	     within the l loop, since they depend on l */
 
 	  /* copy the interpolated sources in the workspace */
-	  
+
 	  memcpy(sources,
 		 interpolated_sources,
 		 ptr->k_size[index_mode]*ppt->tau_size*sizeof(double));
+
+	  /* eventually, rescale the source by a window function (or
+	     any function of the background and of k) */
 	  
+	  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+	    if (((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) || ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))) {
+	      
+	      class_call_parallel(transfer_rescale_source(pba,
+							  ppt,
+							  ptr,
+							  tau0,
+							  tau_rec,
+							  index_mode,
+							  index_ic,
+							  index_tt,
+							  sources),
+				  ptr->error_message,
+				  ptr->error_message);
+	    }
+	  }
+
 #pragma omp for schedule (dynamic)
 
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
@@ -502,6 +544,7 @@ int transfer_init(
 
     free(interpolated_sources);
     free(source_spline);    
+    free(tp_of_tt);
 
 #pragma omp parallel shared(pw) private(thread)
     {
@@ -638,7 +681,7 @@ int transfer_indices_of_transfers(
     ptr->tt_size[ppt->index_md_tensors]=index_tt;
 
   }
-
+  
   /** - allocate arrays of (k, l) values and transfer functions */
 
   /* number of l values for each mode, l_size[index_mode] */
@@ -810,16 +853,16 @@ int transfer_get_k_list(
   /* - points taken from perturbation module if step smkall enough */
 
   while ((index_k_pt < ppt->k_size[index_mode]) && ((ppt->k[index_mode][index_k_pt] -k) < k_step_max)) {
-      k = ppt->k[index_mode][index_k_pt];
-      index_k_pt++;
-      index_k_tr++;
+    k = ppt->k[index_mode][index_k_pt];
+    index_k_pt++;
+    index_k_tr++;
   }
 
   /* - then, points spaced linearily with step k_step_max */
 
   while (k < k_max) {
-      k += k_step_max;
-      index_k_tr++;
+    k += k_step_max;
+    index_k_tr++;
   }
 
   /* - get number of points and allocate list */
@@ -844,16 +887,16 @@ int transfer_get_k_list(
   index_k_tr++;
 
   while ((index_k_pt < ppt->k_size[index_mode]) && ((ppt->k[index_mode][index_k_pt] -k) < k_step_max)) {
-      k = ppt->k[index_mode][index_k_pt];
-      ptr->k[index_mode][index_k_tr] = k;
-      index_k_pt++;
-      index_k_tr++;
+    k = ppt->k[index_mode][index_k_pt];
+    ptr->k[index_mode][index_k_tr] = k;
+    index_k_pt++;
+    index_k_tr++;
   }
 
   while ((index_k_tr < ptr->k_size[index_mode]) && (k < k_max)) {
-      k += k_step_max;
-      ptr->k[index_mode][index_k_tr] = k;
-      index_k_tr++;
+    k += k_step_max;
+    ptr->k[index_mode][index_k_tr] = k;
+    index_k_tr++;
   }
 
   /* consistency check */
@@ -867,42 +910,87 @@ int transfer_get_k_list(
 }
 
 /**
- * This routine interpolates sources \f$ S(k, \tau) \f$ for each mode, 
- * initial condition and type, to get them at the right values of k,
- * using the spline interpolation method. 
+ * This routine defines the correspondence between the sources in the
+ * perturbation and transfer module.
  *
- * Important: some physics enters here. This is indeed the most
- * efficient place for mutiplying the sources by some factors
- * in order to transform the 'raw source functions' with a given
- * 'source types' into an 'observable source funtion' with a given
- * 'transfer type'.
+ * @param ppt  Input : pointer to perturbation structure
+ * @param ptr  Input : pointer to transfers structure containing l's
+ * @param index_mode : Input: index of mode (scalar, tensor...)
+ * @param tp_of_tt : Input/Output: array with the correspondance (allocated before, filled here)
+ * @return the error status
+ */
+
+int transfer_get_source_correspondence(
+				       struct perturbs * ppt,
+				       struct transfers * ptr,
+				       int index_mode,
+				       int * tp_of_tt
+				       ) {
+
+  /* running index on transfer types */
+  int index_tt;
+
+  /** - which source are we considering? Define correspondence
+      between transfer types and source types */
+  
+  for (index_tt=0; index_tt<ptr->tt_size[index_mode]; index_tt++) {
+    
+    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
+	tp_of_tt[index_tt]=ppt->index_tp_t;
+      
+      if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) 
+	tp_of_tt[index_tt]=ppt->index_tp_e;
+      
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) 
+	tp_of_tt[index_tt]=ppt->index_tp_g;
+      
+      if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
+	tp_of_tt[index_tt]=ppt->index_tp_g;
+      
+    }
+    
+    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+      
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
+	tp_of_tt[index_tt]=ppt->index_tp_t;
+      
+      if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) 
+	tp_of_tt[index_tt]=ppt->index_tp_e;
+      
+      if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b))
+	tp_of_tt[index_tt]=ppt->index_tp_b;
+    }
+
+  }
+  
+  return _SUCCESS_;
+  
+}
+
+
+/**
+ * This routine interpolates sources \f$ S(k, \tau) \f$ for each mode,
+ * initial condition and type (of perturbation module), to get them at
+ * the right values of k, using the spline interpolation method.
  *
- * E.g.: here we can multiply the gravitational potential source 
- * by one or several window functions, transforming it into one or 
- * several lensing source functions.
- * 
- * @param pba                   Input : pointer to background structure
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
- * @param tau0                  Input : conformal time today
- * @param tau_rec               Input : conformal time at recombination
  * @param index_mode            Input : index of mode
  * @param index_ic              Input : index of initial condition
- * @param index_tt              Input : index of type of transfer
+ * @param index_type            Input : index of type of source (in perturbation module)
  * @param source_spline         Output: array of second derivative of sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
  * @param interpolated_sources  Output: array of interpolated sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
  * @return the error status
  */
 
 int transfer_interpolate_sources(
-				 struct background * pba,
 				 struct perturbs * ppt,
 				 struct transfers * ptr,
-				 double tau0,
-				 double tau_rec,
 				 int index_mode,
 				 int index_ic,
-				 int index_tt,
+				 int index_type,
 				 double * source_spline, /* array with argument source_spline[index_tau*ppt->k_size[index_mode]+index_k] (must be allocated) */
 				 double * interpolated_sources /* array with argument interpolated_sources[index_k_tr*ppt->tau_size+index_tau] (must be allocated) */
 				 ) {
@@ -917,59 +1005,14 @@ int transfer_interpolate_sources(
   /* index running on time */
   int index_tau;
 
-  /* index running on type of source (not type of transfer) */
-  int index_type=0;
-
   /* index running on k values in the interpolated source array */
   int index_k_tr;
 
   /* variables used for spline interpolation algorithm */
   double h, a, b;
 
-  /* for calling background_at_eta */
-  int last_index;
-  double * pvecback = NULL;
-
-  /* bin for computation of cl_density */  
-  int bin;
-
-  double tau;
-
-  /** - which source are we considering? 
-        Define correspondence between transfer types and source types */
-
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
-      index_type=ppt->index_tp_t;
-
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) 
-      index_type=ppt->index_tp_e;
-
-    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) 
-      index_type=ppt->index_tp_g;
-
-    if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
-      index_type=ppt->index_tp_g;
-      class_alloc(pvecback,pba->bg_size*sizeof(double),ppt->error_message); 
-    }
-  }
-
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-
-    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
-      index_type=ppt->index_tp_t;
-
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)) 
-      index_type=ppt->index_tp_e;
-
-    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b))
-      index_type=ppt->index_tp_b;
-
-  }
-
   /** - find second derivative of original sources with respect to k
-        in view of spline interpolation */
+      in view of spline interpolation */
 
   class_call(array_spline_table_columns(ppt->k[index_mode],
 					ppt->k_size[index_mode],
@@ -982,35 +1025,29 @@ int transfer_interpolate_sources(
 	     ptr->error_message);
 
   /** - interpolate at each k value using the usual 
-        spline interpolation algorithm. 
-        Eventually mutiply the result by a factor accounting for the 
-        difference between 'raw source functions' in the perturbation module
-        and 'observable source functions' in the transfer module
-        (e.g. gravitational potential source -> lensing source) */
-
+      spline interpolation algorithm. */
+  
   index_k = 0;
   h = ppt->k[index_mode][index_k+1] - ppt->k[index_mode][index_k];
-
+  
   for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
-
+    
     while (((index_k+1) < ppt->k_size[index_mode]) &&
 	   (ppt->k[index_mode][index_k+1] < 
 	    ptr->k[index_mode][index_k_tr])) {
       index_k++;
       h = ppt->k[index_mode][index_k+1] - ppt->k[index_mode][index_k];
     }
-
+    
     class_test(h==0.,
 	       ptr->error_message,
 	       "stop to avoid division by zero");
-
+    
     b = (ptr->k[index_mode][index_k_tr] - ppt->k[index_mode][index_k])/h;
     a = 1.-b;
     
     for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
-
-      /**   a) interpolate for each value of conformal time */
-
+      
       interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
 	a * ppt->sources[index_mode]
 	[index_ic * ppt->tp_size[index_mode] + index_type]
@@ -1020,81 +1057,155 @@ int transfer_interpolate_sources(
 	[index_tau*ppt->k_size[index_mode]+index_k+1]
 	+ ((a*a*a-a) * source_spline[index_tau*ppt->k_size[index_mode]+index_k]
 	   +(b*b*b-b) * source_spline[index_tau*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
-
-      /**   b) case of cmb lensing and matter density: multiply gravitational potential 
-               by appropriate window function */
-
-      if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
-
-	  /* lensing source =  - 2 W(tau) psi(k,tau) H(tau-tau_rec) 
-	     with 
-	     psi = (newtonian) gravitationnal potential  
-	     W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
-	     H(x) = Heaviside
-	     (in tau = tau_0, set source = 0 to avoid division by zero;
-              regulated anyway by Bessel).
-	  */
-	  
-	  tau = ppt->tau_sampling[index_tau];
-
-	  if ((tau > tau_rec) && ((tau0-tau) > 0.)) {
-	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *=
-	      -2.*(tau-tau_rec)
-	      /(tau0-tau)
-	      /(tau0-tau_rec);
-	  }
-	  else {
-	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 0;
-	  }
-	}
-
-	if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
-
-	  /* matter density source =  - [- (dz/dtau) W(z)] * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
-	                           =  - W(tau) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
-	     with 
-	     psi = (newtonian) gravitationnal potential  
-	     W(z) = redshift space selection function = dN/dz
-             W(tau) = same wrt conformal time = dN/dtau
-	     (in tau = tau_0, set source = 0 to avoid division by zero;
-              regulated anyway by Bessel).
-	  */
-
-	  tau = ppt->tau_sampling[index_tau];
-
-	  bin=index_tt-ptr->index_tt_density;
-
-	  if ((tau >= ppt->selection_tau_min[bin]) && (tau <= ppt->selection_tau_max[bin])) {
-	    
-	    class_call(background_at_tau(pba,
-					 tau,
-					 pba->long_info,
-					 pba->inter_normal,
-					 &last_index,
-					 pvecback),
-		       pba->error_message,
-		       ptr->error_message);
-	    
-	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] *= 
-	      - ppt->selection_function[bin*ppt->tau_size+index_tau]
-	      *2./3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]*pow(ptr->k[index_mode][index_k_tr]/pvecback[pba->index_bg_a],2);
-	  }
-	  else {
-	    interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 0;
-	  }
-	}
-      }
+      
     }
   }
 
-  if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
-    free(pvecback);
-  }
-
   return _SUCCESS_;
+  
+}
 
+/**
+ * This routine is the place where to mutiply the sources by some
+ * factors in order to transform the 'raw source functions' with a
+ * given 'source types' into an 'observable source funtion' with a
+ * given 'transfer type'.
+ *
+ * E.g.: here we can multiply the gravitational potential source 
+ * by one or several window functions, transforming it into one or 
+ * several lensing source functions.
+ * 
+ * @param pba                   Input : pointer to background structure
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param tau0                  Input : conformal time today
+ * @param tau_rec               Input : conformal time at recombination
+ * @param index_mode            Input : index of mode
+ * @param index_ic              Input : index of initial condition
+ * @param index_tt              Input : index of type of transfer
+ * @param sources               Inpiut/Output: source to rescale
+ * @return the error status
+ */
+
+int transfer_rescale_source(
+			    struct background * pba,
+			    struct perturbs * ppt,
+			    struct transfers * ptr,
+			    double tau0,
+			    double tau_rec,
+			    int index_mode,
+			    int index_ic,
+			    int index_tt,
+			    double * source
+			    ) {
+
+  /** Summary: */
+  
+  /** - define local variables */
+
+  /* index running on time */
+  int index_tau;
+
+  /* index running on k values in the interpolated source array */
+  int index_k_tr;
+
+  /* for calling background_at_eta */
+  int last_index;
+  double * pvecback = NULL;
+
+  /* bin for computation of cl_density */  
+  int bin;
+
+  /* conformal time */
+  double tau;
+
+  /* rescaling factor depending on the background at a given time */
+  double rescaling;
+
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
+      
+      for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
+
+	/* lensing source =  - 2 W(tau) psi(k,tau) H(tau-tau_rec) 
+	   with 
+	   psi = (newtonian) gravitationnal potential  
+	   W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
+	   H(x) = Heaviside
+	   (in tau = tau_0, set source = 0 to avoid division by zero;
+	   regulated anyway by Bessel).
+	*/
+
+	tau = ppt->tau_sampling[index_tau];
+	
+	if ((tau > tau_rec) && ((tau0-tau) > 0.)) {
+	  
+	  rescaling = -2.*(tau-tau_rec)/(tau0-tau)/(tau0-tau_rec);
+	  
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) 
+	    source[index_k_tr*ppt->tau_size+index_tau] *= rescaling;
+	  
+	}
+	else {
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) 
+	    source[index_k_tr*ppt->tau_size+index_tau] = 0.;
+	}
+      }
+    }
+    
+    if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
+      
+      class_alloc(pvecback,pba->bg_size*sizeof(double),ppt->error_message); 
+      
+      for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
+	
+	/* matter density source =  - [- (dz/dtau) W(z)] * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
+	   =  - W(tau) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
+	   with 
+	   psi = (newtonian) gravitationnal potential  
+	   W(z) = redshift space selection function = dN/dz
+	   W(tau) = same wrt conformal time = dN/dtau
+	   (in tau = tau_0, set source = 0 to avoid division by zero;
+	   regulated anyway by Bessel).
+	*/
+
+	tau = ppt->tau_sampling[index_tau];
+	
+	bin=index_tt-ptr->index_tt_density;
+	
+	if ((tau >= ppt->selection_tau_min[bin]) && (tau <= ppt->selection_tau_max[bin])) {
+	  
+	  class_call(background_at_tau(pba,
+				       tau,
+				       pba->long_info,
+				       pba->inter_normal,
+				       &last_index,
+				       pvecback),
+		     pba->error_message,
+		     ptr->error_message);
+	  
+	  rescaling = ppt->selection_function[bin*ppt->tau_size+index_tau]
+	    *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
+	    /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
+	  
+	  
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++)
+	    source[index_k_tr*ppt->tau_size+index_tau] *= rescaling*pow(ptr->k[index_mode][index_k_tr],2);
+	  
+	}
+	else {
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++)
+	    source[index_k_tr*ppt->tau_size+index_tau] = 0.;
+	}
+      }
+      
+      free(pvecback);
+    }
+  }
+    
+  return _SUCCESS_;
+    
 }
 
 /**
@@ -1245,15 +1356,15 @@ int transfer_compute_for_each_l(
   }
 	      
   /** - loop over k. For each k:
-        (a) if the option of stopping the transfer function computation 
-            at some k_max is not selected or if we are below k_max, 
-            compute \f$ \Delta_l(k) \f$ either with transfer_integrate() 
-            or with transfer_limber(); store the result in the table
-            in transfers structure;
-        (b) if it is selected and we are above k_max, set the transfer function 
-            to zero; 
-        (c) if it is selected and we are below k_max, check wether k_max is 
-            being reached. 
+      (a) if the option of stopping the transfer function computation 
+      at some k_max is not selected or if we are below k_max, 
+      compute \f$ \Delta_l(k) \f$ either with transfer_integrate() 
+      or with transfer_limber(); store the result in the table
+      in transfers structure;
+      (b) if it is selected and we are above k_max, set the transfer function 
+      to zero; 
+      (c) if it is selected and we are below k_max, check wether k_max is 
+      being reached. 
   */
 
   for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
@@ -1301,7 +1412,7 @@ int transfer_compute_for_each_l(
 
       if (use_limber == _TRUE_) {
 
-      	class_call(transfer_limber(ppt->tau_size,
+	class_call(transfer_limber(ppt->tau_size,
 				   ptr,
 				   index_mode,
 				   index_k,
@@ -1478,7 +1589,7 @@ int transfer_integrate(
   double tau0_minus_tau_min_bessel;
 
   /* running value of bessel function */
-/*   double bessel; */
+  /*   double bessel; */
   int index_x;
   double x;
   double a;
@@ -1680,7 +1791,7 @@ int transfer_envelop(
   double tau0_minus_tau_min_bessel;
 
   /* running value of bessel function */
-/*   double bessel; */
+  /*   double bessel; */
   int index_x;
   double x;
   double a;
@@ -1729,7 +1840,7 @@ int transfer_envelop(
   
   if (index_tau_max > 0) {
     source_times_dtau *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
-   }
+  }
   else {
     source_times_dtau *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
   }
@@ -1760,23 +1871,23 @@ int transfer_envelop(
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
     
-  source_times_dtau = sources[index_k * tau_size + index_tau] * delta_tau[index_tau];
+    source_times_dtau = sources[index_k * tau_size + index_tau] * delta_tau[index_tau];
     
-  /* source times j_l (cubic spline interpolation) */
-  transfer += source_times_dtau * 
-    (a * j_l[index_x] +
-     (1.-a) * (j_l[index_x+1]
-	       - a * ((a+1.) * ddj_l[index_x]
-		      +(2.-a) * ddj_l[index_x+1]) 
-	       * x_step * x_step / 6.0));
-  
-  /* source times j_l' (cubic spline interpolation) */
-  transfer_shifted += source_times_dtau
-    * (a * dj_l[index_x] +
-       (1.-a) * (dj_l[index_x+1]
-		 - a * ((a+1.) * dddj_l[index_x]
-			+(2.-a) * dddj_l[index_x+1]) 
+    /* source times j_l (cubic spline interpolation) */
+    transfer += source_times_dtau * 
+      (a * j_l[index_x] +
+       (1.-a) * (j_l[index_x+1]
+		 - a * ((a+1.) * ddj_l[index_x]
+			+(2.-a) * ddj_l[index_x+1]) 
 		 * x_step * x_step / 6.0));
+  
+    /* source times j_l' (cubic spline interpolation) */
+    transfer_shifted += source_times_dtau
+      * (a * dj_l[index_x] +
+	 (1.-a) * (dj_l[index_x+1]
+		   - a * ((a+1.) * dddj_l[index_x]
+			  +(2.-a) * dddj_l[index_x+1]) 
+		   * x_step * x_step / 6.0));
   }
   
   *trsf = 0.5*sqrt(transfer*transfer + 1.3*transfer_shifted*transfer_shifted); /* correct for factor 1/2 from trapezoidal rule */

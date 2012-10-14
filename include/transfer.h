@@ -142,18 +142,34 @@ extern "C" {
 			  int index_mode
 			  );
 
+  int transfer_get_source_correspondence(
+					 struct perturbs * ppt,
+					 struct transfers * ptr,
+					 int index_mode,
+					 int * tp_of_tt
+				   );
+
   int transfer_interpolate_sources(
-				   struct background * pba,
 				   struct perturbs * ppt,
 				   struct transfers * ptr,
-				   double tau0,
-				   double tau_rec,
-				   int current_index_mode,
-				   int current_index_ic,
-				   int current_index_type,
+				   int index_mode,
+				   int index_ic,
+				   int index_type,
 				   double * source_spline,
 				   double * interpolated_sources
 				   );
+
+  int transfer_rescale_source(
+			      struct background * pba,
+			      struct perturbs * ppt,
+			      struct transfers * ptr,
+			      double tau0,
+			      double tau_rec,
+			      int index_mode,
+			      int index_ic,
+			      int index_type,
+			      double * sources
+			      );
 
   int transfer_compute_for_each_l(
 				  struct precision * ppr,
