@@ -879,6 +879,17 @@ int primordial_analytic_spectrum(
   
 }
 
+/**
+ * This routine encodes the inflaton scalar potential 
+ *
+ * @param ppm            Input: pointer to primordial structure 
+ * @param phi            Input: background inflaton field value in units of Mp
+ * @param V              Output: inflaton potential in units of MP^4
+ * @param dV             Output: first derivative of inflaton potential wrt the field
+ * @param ddV            Output: second derivative of inflaton potential wrt the field
+ * @return the error status
+ */
+
 int primordial_inflation_potential(
 				   struct primordial * ppm,
 				   double phi,
@@ -887,6 +898,7 @@ int primordial_inflation_potential(
 				   double * ddV
 				   ) {
 
+  /* V(phi)=polynomial in (phi-phi*) */
   if (ppm->potential == polynomial) {
 
     *V   = ppm->V0+(phi-ppm->phi_pivot)*ppm->V1+pow((phi-ppm->phi_pivot),2)/2.*ppm->V2+pow((phi-ppm->phi_pivot),3)/6.*ppm->V3+pow((phi-ppm->phi_pivot),4)/24.*ppm->V4;
@@ -895,9 +907,26 @@ int primordial_inflation_potential(
   
   }
 
+  /* V(phi) = Lambda^4(1+cos(phi/f)) = V0 (1+cos(phi/V1)) */
+  if (ppm->potential == natural) {
+
+    *V   = ppm->V0*(1.+cos(phi/ppm->V1));
+    *dV  = -ppm->V0/ppm->V1*sin(phi/ppm->V1);
+    *ddV = -ppm->V0/ppm->V1/ppm->V1*cos(phi/ppm->V1);
+
+  }
+
+  /* code here other shapes */
+
   return _SUCCESS_;
 }
 
+/**
+ * This routine defines indices used by the inflation simulator 
+ *
+ * @param ppm  Input/output: pointer to primordial structure 
+ * @return the error status
+ */
 int primordial_inflation_indices(
 				 struct primordial * ppm
 				 ) {
@@ -906,6 +935,7 @@ int primordial_inflation_indices(
 
   index_in = 0;
 
+  /* indices for background quantitites */
   ppm->index_in_a = index_in;
   index_in ++;
   ppm->index_in_phi = index_in;
@@ -913,8 +943,10 @@ int primordial_inflation_indices(
   ppm->index_in_dphi = index_in;
   index_in ++;
 
+  /* size of background vector */
   ppm->in_bg_size = index_in;
 
+  /* indices for perturbations */
   ppm->index_in_ksi_re = index_in;
   index_in ++;
   ppm->index_in_ksi_im = index_in;
@@ -932,10 +964,23 @@ int primordial_inflation_indices(
   ppm->index_in_dah_im = index_in;
   index_in ++;
 
+  /* size of perturbation vector */
   ppm->in_size = index_in;
 
   return _SUCCESS_;
 }
+
+/**
+ * Main routine of inflation simulator. Its goal is to check the
+ * background evolution before and after the pivot value
+ * phi=phi_pivot, and then, if this evolution is suitable, to call the
+ * routine primordial_inflation_spectra().
+ *
+ * @param ppt  Input: pointer to perturbation structure 
+ * @param ppm  Input/output: pointer to primordial structure
+ * @param ppr  Input: pointer to precision structure  
+ * @return the error status
+ */
 
 int primordial_inflation_solve_inflation(
 					 struct perturbs * ppt,
@@ -962,14 +1007,19 @@ int primordial_inflation_solve_inflation(
   //  fprintf(stdout,"Expected slow-roll n_s: %g\n",1.-6./16./_PI_*pow(ppm->V1/ppm->V0,2)+2./8./_PI_*(ppm->V2/ppm->V0));
   //  fprintf(stdout,"Expected slow-roll n_t: %g\n",-2./16./_PI_*pow(ppm->V1/ppm->V0,2));
 
+  /* allocate vectors for background/perturbed quantitites */
   class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(y_ini,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
 
+  /* check positivity and negative slope of potential in field pivot value */
   class_call(primordial_inflation_check_potential(ppm,ppm->phi_pivot),
 	     ppm->error_message,
 	     ppm->error_message);
 
+  /* find value of phi_dot and H for field's pivot value, assuming slow-roll
+     attractor solution has been reached. If no solution, code will
+     stop there. */
   class_call(primordial_inflation_find_attractor(ppm,
 						 ppr,
 						 ppm->phi_pivot,
@@ -981,8 +1031,14 @@ int primordial_inflation_solve_inflation(
 	     ppm->error_message,
 	     ppm->error_message);
 
+  /* find a_pivot, value of scale factor when k_pivot crosses horizon while phi=phi_pivot */
   a_pivot = ppm->k_pivot/H_pivot;
   
+  /* integrate background solution starting from phi_pivot and until
+     k_max>>aH. This ensure that the inflationary model considered
+     here is valid and that the primordial spectrum can be
+     computed. Otherwise, if slow-roll brakes too early, model is not
+     suitable and run stops. */ 
   k_max = exp(ppm->lnk[ppm->lnk_size-1]);
   y[ppm->index_in_a] = a_pivot;
   y[ppm->index_in_phi] = ppm->phi_pivot;
@@ -991,6 +1047,10 @@ int primordial_inflation_solve_inflation(
 	     ppm->error_message,
 	     ppm->error_message);
 
+  /* we need to do the opposite: to check that there is an initial
+     time such that k_min << (aH)_ini. One such time is found by
+     iterations. If no solution exist (no long-enough slow-roll period
+     before the pivot scale), the run stops. */
   aH_ini = exp(ppm->lnk[0])/ppr->primordial_inflation_ratio_min;
 	       
   a_try = a_pivot;
@@ -1035,10 +1095,14 @@ int primordial_inflation_solve_inflation(
 
   }
 
+  /* we found an initial time labeled 'try' with a_try < a_ini, and
+     such that an inflationary attractor solution exists. We
+     initialize background quantitites at this time. */
   y_ini[ppm->index_in_a] = a_try;
   y_ini[ppm->index_in_phi] = phi_try;
   y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
 
+  /* statting from this time, we run the routine which takes care of computing the primordial spectrum. */
   class_call(primordial_inflation_spectra(ppt,ppm,ppr,y_ini,y,dy),
 	     ppm->error_message,
 	     ppm->error_message);
@@ -1049,6 +1113,21 @@ int primordial_inflation_solve_inflation(
 
   return _SUCCESS_;
 };
+
+/**
+ * Routine coordinating the computation of the primordial
+ * spectrum. For each wavenumber it calls primordial_inflation_one_k() to
+ * integrate the perturbation equations, and then it stores the result
+ * for the scalar/tensor spectra.
+ *
+ * @param ppt   Input: pointer to perturbation structure 
+ * @param ppm   Input/output: pointer to primordial structure
+ * @param ppr   Input: pointer to precision structure  
+ * @param y_ini Input: initial conditions for the vector of background/perturbations, already allocated and filled
+ * @param y     Input: running vector of background/perturbations, already allocated
+ * @param dy    Input: running vector of background/perturbation derivatives, already allocated
+ * @return the error status
+ */
 
 int primordial_inflation_spectra(
 				 struct perturbs * ppt,
@@ -1063,32 +1142,39 @@ int primordial_inflation_spectra(
   double V,dV,ddV;
   double curvature,tensors;
 
+  /* check positivity and negative slope of potential in initial field value */
   class_call(primordial_inflation_check_potential(ppm,y_ini[ppm->index_in_phi]),
 	     ppm->error_message,
 	     ppm->error_message);
 
+  /* get scalar potential in initial field value */
   class_call(primordial_inflation_potential(ppm,y_ini[ppm->index_in_phi],&V,&dV,&ddV),
 	     ppm->error_message,
 	     ppm->error_message);
   
+  /* get initial aH from Friedmann equation */
   aH = sqrt((8*_PI_/3.)*(0.5*y_ini[ppm->index_in_dphi]*y_ini[ppm->index_in_dphi]+y_ini[ppm->index_in_a]*y_ini[ppm->index_in_a]*V));
 
   class_test(aH >= exp(ppm->lnk[0])/ppr->primordial_inflation_ratio_min,
 	     ppm->error_message,
 	     "at initial time, a_k_min > a*H*ratio_min");
   
+  /* loop over Fourier wavenumbers */
   for (index_k=0; index_k < ppm->lnk_size; index_k++) {
 
     k = exp(ppm->lnk[index_k]);
 
+    /* initialize the background part of the running vector */ 
     y[ppm->index_in_a] = y_ini[ppm->index_in_a];
     y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
     y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
+    /* evolve the background until the relevant initial time for integrating perturbations */
     class_call(primordial_inflation_reach_aH(ppm,ppr,y,dy,k/ppr->primordial_inflation_ratio_min),
 	       ppm->error_message,
 	       ppm->error_message);
 
+    /* evolve the background/perturbation equations from this time and until some time fater Horizon crossing */
     class_call(primordial_inflation_one_k(ppm,ppr,k,y,dy,&curvature,&tensors),
 	       ppm->error_message,
 	       ppm->error_message);	     
@@ -1101,12 +1187,12 @@ int primordial_inflation_spectra(
 	       ppm->error_message,
 	       "negative tensor spectrum");
 
+    /* store the obtained result for curvatute and tensor perturbations */
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
     ppm->is_non_zero[ppt->index_md_scalars][0] = _TRUE_;
     ppm->is_non_zero[ppt->index_md_tensors][0] = _TRUE_;
-
-
+   
     /* fprintf(stderr,"%e %e %e\n", */
     /* 	    ppm->lnk[index_k], */
     /* 	    ppm->lnpk[ppt->index_md_scalars][index_k], */
@@ -1117,6 +1203,20 @@ int primordial_inflation_spectra(
   return _SUCCESS_;
 
 }
+
+/**
+ * Routine integrating the background plus perturbation equations for
+ * or each wavenumber, and returning the scalr and tensor spectrum.
+ *
+ * @param ppm   Input: pointer to primordial structure
+ * @param ppr   Input: pointer to precision structure  
+ * @param k     Input: Fourier wavenumber
+ * @param y     Input: running vector of background/perturbations, already allocated and initialized
+ * @param dy    Input: running vector of background/perturbation derivatives, already allocated
+ * @param curvature  Output: curvature perturbation    
+ * @param tensor     Output: tensor perturbation    
+ * @return the error status
+ */
 
 int primordial_inflation_one_k(
 			       struct primordial * ppm,
@@ -1138,6 +1238,8 @@ int primordial_inflation_one_k(
   struct primordial_inflation_parameters_and_workspace pipaw;
   struct generic_integrator_workspace gi;
 
+  /* initialize the generic integrator (same integrator already used
+     in background, thermodynamics and perturbation modules) */
   pipaw.ppm = ppm;
   pipaw.N = ppm->in_size;
   pipaw.k = k;
@@ -1146,6 +1248,7 @@ int primordial_inflation_one_k(
 	     gi.error_message,
 	     ppm->error_message);
 
+  /* initial conditions for the perturbations, Bunch-Davies vacuum */
   y[ppm->index_in_ksi_re]=1./sqrt(2.*k);
   y[ppm->index_in_ksi_im]=0.;
   y[ppm->index_in_dksi_re]=0.;
@@ -1156,9 +1259,15 @@ int primordial_inflation_one_k(
   y[ppm->index_in_dah_re]=0.;
   y[ppm->index_in_dah_im]=-k*y[ppm->index_in_ah_re];
 
+  /* intialize variable used for deciding when to stop the calculation (= when the curvature remains stable) */
   curvature_new=1.e10;
+
+  /* intialize conformal time to arbitrary value (here, only variations
+     of tau matter: the equations that we integrate do not depend
+     explicitely on time) */ 
   tau_end = 0;
 
+  /* compute derivative of initial vector and infer first value of adaptative time-step */
   class_call(primordial_inflation_derivs(tau_end,
 					 y,
 					 dy,
@@ -1169,12 +1278,15 @@ int primordial_inflation_one_k(
     
   dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/max(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
 
+  /* lopp over time */
   do {
     
+    /* new time interval [tau_start, tau_end] over which equations will be integrated */
     tau_start = tau_end;
     
     tau_end = tau_start + dtau;
       
+    /* evolve the system */
     class_call(generic_integrator(primordial_inflation_derivs,
 				  tau_start,
 				  tau_end,
@@ -1186,6 +1298,7 @@ int primordial_inflation_one_k(
 	       gi.error_message,
 	       ppm->error_message);
 
+    /* compute derivatives at tau_end, useful to infer new time step and spectra */
     class_call(primordial_inflation_derivs(tau_end,
 					   y,
 					   dy,
@@ -1194,26 +1307,35 @@ int primordial_inflation_one_k(
 	       ppm->error_message,
 	       ppm->error_message);
     
+    /* new time step */
     dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/max(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
 
+    /* new aH */
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
 
+    /* store previous value of curvature (at tau_start) */
     curvature_old =  curvature_new;
 
+    /* new curvature */
     z = y[ppm->index_in_a]*y[ppm->index_in_dphi]/aH;
     ksi2 = y[ppm->index_in_ksi_re]*y[ppm->index_in_ksi_re]+y[ppm->index_in_ksi_im]*y[ppm->index_in_ksi_im];
     curvature_new = k*k*k/2./_PI_/_PI_*ksi2/z/z;
 
+    /* variation of curvature with time (dimensionless) */
     dlnPdN = (curvature_new-curvature_old)/dtau*y[ppm->index_in_a]/dy[ppm->index_in_a]/curvature_new;
 
+    /* stop when (k >> aH) AND curvature is stable */  
   } while ((k/aH >= ppr->primordial_inflation_ratio_max) || (fabs(dlnPdN) > ppr->primordial_inflation_tol_curvature));
 
-
+  /* clean the generic integrator */
   class_call(cleanup_generic_integrator(&gi),
 	     gi.error_message,
 	     ppm->error_message);
 
+  /* store final value of curvature for this wavenumber */
   *curvature = curvature_new;
+
+  /* stor final value of tensor perturbation for this wavenumber */
   ah2 = y[ppm->index_in_ah_re]*y[ppm->index_in_ah_re]+y[ppm->index_in_ah_im]*y[ppm->index_in_ah_im];
   *tensor = 32.*k*k*k/_PI_*ah2/y[ppm->index_in_a]/y[ppm->index_in_a];
 
@@ -1221,6 +1343,22 @@ int primordial_inflation_one_k(
 
   return _SUCCESS_;
 }
+
+/**
+ * Routine searching for the inflationary attractor solution, by
+ * iterations, with a given tolerance. If no solution found within
+ * tolerance, returns error message.
+ *
+ * @param ppm       Input: pointer to primordial structure
+ * @param ppr       Input: pointer to precision structure  
+ * @param phi_0     Input: field value at which we wish to find the solution
+ * @param precision Input: tolerance on output values (if too large, an attractor will always considered to be found)
+ * @param y         Input: running vector of background variables, already allocated and initialized
+ * @param dy        Input: running vector of background derivatives, already allocated
+ * @param H0        Output: Hubble value at phi_0 for attractor solution    
+ * @param dphidt_0  Output: field derivative value at phi_0 for attractor solution  
+ * @return the error status
+ */
 
 int primordial_inflation_find_attractor(
 					struct primordial * ppm,
@@ -1251,10 +1389,6 @@ int primordial_inflation_find_attractor(
 
   while (fabs(dphidt_0new/dphidt_0old-1.) >= precision) {
 
-    //fprintf(stderr,"-> %d %e %e %e %e\n",
-    //    counter,dphidt_0new,dphidt_0old,fabs(dphidt_0new/dphidt_0old-1.),precision);
-	    
-
     counter ++;
     class_test(counter >= ppr->primordial_inflation_attractor_maxit,
 	       ppm->error_message,
@@ -1280,19 +1414,12 @@ int primordial_inflation_find_attractor(
     y[ppm->index_in_a]=a;
     y[ppm->index_in_phi]=phi;
     y[ppm->index_in_dphi]=a*dphidt;
-    
-    //fprintf(stderr,"-> trying to evolve from %g to %g\n",
-    //	    phi,phi_0);
 
     class_call(primordial_inflation_evolve_background(ppm,ppr,y,dy,phi_0),
 	       ppm->error_message,
 	       ppm->error_message);
 
-    //    fprintf(stderr,"-> done\n");
-
     dphidt_0new = y[ppm->index_in_dphi]/y[ppm->index_in_a];
-
-    // fprintf(stderr,"-> now %g\n",fabs(dphidt_0new/dphidt_0old-1.));
 
   }
 
@@ -1303,6 +1430,19 @@ int primordial_inflation_find_attractor(
 
   return _SUCCESS_;
 }
+
+/**
+ * Routine integrating background equations only, from initial field
+ * value (stored in y) to final value (passed as phi_stop). In output,
+ * y contrains the final background values.
+ *
+ * @param ppm       Input: pointer to primordial structure
+ * @param ppr       Input: pointer to precision structure  
+ * @param y         Input/output: running vector of background variables, already allocated and initialized
+ * @param dy        Input: running vector of background derivatives, already allocated
+ * @param phi_stop  Input: final field value 
+ * @return the error status
+ */
 
 int primordial_inflation_evolve_background(
 					   struct primordial * ppm,
@@ -1413,6 +1553,19 @@ int primordial_inflation_evolve_background(
   return _SUCCESS_;
 }
 
+/**
+ * Routine integrating background equations only, from initial AH
+ * value (stored in y) to final value (passed as aH_stop). In output,
+ * y contrains the final background values.
+ *
+ * @param ppm       Input: pointer to primordial structure
+ * @param ppr       Input: pointer to precision structure  
+ * @param y         Input/output: running vector of background variables, already allocated and initialized
+ * @param dy        Input: running vector of background derivatives, already allocated
+ * @param aH_stop  Input: final aH value 
+ * @return the error status
+ */
+
 int primordial_inflation_reach_aH(
 				  struct primordial * ppm,
 				  struct precision * ppr,
@@ -1485,6 +1638,18 @@ int primordial_inflation_reach_aH(
   return _SUCCESS_;
 }
 
+/**
+ * Routine checking positivity and negative slope of potential. The
+ * negative slope is an arbitrary choice. Currently the code can only
+ * deal with monotonic variations of the inflaton during inflation. So
+ * the slope had to be always negative or always positive... we took
+ * the first option.
+ *
+ * @param ppm       Input: pointer to primordial structure
+ * @param phi       Input: field value where to perform the check 
+ * @return the error status
+ */
+
 int primordial_inflation_check_potential(
 					 struct primordial * ppm,
 					 double phi
@@ -1509,6 +1674,15 @@ int primordial_inflation_check_potential(
   return _SUCCESS_;
 }
 
+/**
+ * Routine computing the first slow-roll parameter epsilon
+ *
+ * @param ppm       Input: pointer to primordial structure
+ * @param phi       Input: field value where to compute epsilon
+ * @param epsilon   Ouput: result
+ * @return the error status
+ */
+
 int primordial_inflation_get_epsilon(
 				     struct primordial * ppm,
 				     double phi,
@@ -1528,6 +1702,20 @@ int primordial_inflation_get_epsilon(
   return _SUCCESS_;
 
 }
+
+/**
+ * Routine creturning derivative of system of background/perturbation
+ * variables. Like other routines used by the generic integrator
+ * (background_derivs, thermodynamics_derivs, perturb_derivs), this
+ * routine has a generci list of arguments, and a slightly different error management, with the error
+ * message returned directly in an ErrMsg field.
+ *
+ * @param tau                      Input: time (not used explicitely inside the routine, but requested by the generic integrator)
+ * @param y                        Input/output: running vector of background variables, already allocated and initialized
+ * @param dy                       Input: running vector of background derivatives, already allocated
+ * @param parameters_and_workspace Input: all necessary input variables apart from y
+ * @return the error status
+ */
 
 int primordial_inflation_derivs(
 				double tau,

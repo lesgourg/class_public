@@ -23,7 +23,8 @@ enum linear_or_logarithmic {
 /** enum defining the type of inflation potential function V(phi) */
 
 enum potential_shape {
-  polynomial
+  polynomial,
+  natural
 };
 
 /**
@@ -181,21 +182,22 @@ struct primordial {
 
   //@{
 
-  /** @name - parameters desctibing the case primordial_spec_type = inflation_V */
+  /** @name - for the inflation simulator, indices in vector of
+      background/perturbation */
 
-  int index_in_a;
-  int index_in_phi;
-  int index_in_dphi;
-  int index_in_ksi_re;
-  int index_in_ksi_im;
-  int index_in_dksi_re;
-  int index_in_dksi_im;
-  int index_in_ah_re;
-  int index_in_ah_im;
-  int index_in_dah_re;
-  int index_in_dah_im;
-  int in_bg_size;
-  int in_size;
+  int index_in_a;       /**< scale factor */
+  int index_in_phi;     /**< inflaton vev */
+  int index_in_dphi;    /**< its time derivative */
+  int index_in_ksi_re;  /**< Mukhanov variable (real part) */
+  int index_in_ksi_im;  /**< Mukhanov variable (imaginary part) */
+  int index_in_dksi_re; /**< Mukhanov variable (real part, time derivative) */
+  int index_in_dksi_im; /**< Mukhanov variable (imaginary part, time derivative) */
+  int index_in_ah_re;   /**< tensor perturbation (real part) */
+  int index_in_ah_im;   /**< tensor perturbation (imaginary part) */
+  int index_in_dah_re;  /**< tensor perturbation (real part, time derivative) */
+  int index_in_dah_im;  /**< tensor perturbation (imaginary part, time derivative) */
+  int in_bg_size;       /**< size of vector of background quantitites only */
+  int in_size;          /**< full size of vector */
 
   //@}
 
