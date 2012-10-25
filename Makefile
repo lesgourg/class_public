@@ -107,6 +107,19 @@ TEST_SIGMA = test_sigma.o
 
 TEST_STEPHANE = test_stephane.o
 
+C_TOOLS =  $(addprefix tools/, $(addsuffix .c,$(basename $(TOOLS))))
+C_SOURCE = $(addprefix source/, $(addsuffix .c,$(basename $(SOURCE) $(OUTPUT))))
+C_TEST = $(addprefix test/, $(addsuffix .c,$(basename $(TEST_DEGENERACY) $(TEST_LOOPS) $(TEST_TRANSFER) $(TEST_PERTURBATIONS) $(TEST_THERMODYNAMICS))))
+C_MAIN = $(addprefix main/, $(addsuffix .c,$(basename $(CLASS))))
+C_ALL = $(C_MAIN) $(C_TOOLS) $(C_SOURCE)
+H_ALL = $(addprefix include/, common.h svnversion.h $(addsuffix .h, $(basename $(notdir $(C_ALL)))))
+PRE_ALL = chi2pl0.01.pre chi2pl0.1.pre chi2pl10.pre chi2pl1.pre chi2plT0.01lensed.pre chi2plT0.01.pre chi2plT0.1lensed.pre chi2plT0.1.pre cl_2permille.pre cl_3permille.pre cl_permille.pre cl_ref.pre clt_permille.pre pk_ref.pre REFCLASS.pre REFCLASS_tClpCl.pre
+INI_ALL = concise.ini explanatory.ini lcdm.ini trg.ini
+MISC_FILES = Makefile CPU psd_FD_single.dat README bbn/sBBN.dat
+PYTHON = python/classy.pyx python/setup.py
+
+
+
 all: class libclass.a
 
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
@@ -139,6 +152,8 @@ test_thermodynamics: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(EXTERNAL) $(TES
 test_background: $(TOOLS) $(INPUT) $(BACKGROUND) $(TEST_BACKGROUND)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
+tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON)
+	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON)
+
 clean: .base
 	rm -rf $(WRKDIR);
-
