@@ -730,76 +730,78 @@ cdef class Class:
     for elem in data.get_mcmc_parameters(['derived']):
       if elem == 'h':
         data.mcmc_parameters[elem]['current'] = self.ba.h
-      if elem == 'Omega0_lambda' or elem == 'Omega_Lambda':
+      elif elem == 'Omega0_lambda' or elem == 'Omega_Lambda':
         data.mcmc_parameters[elem]['current'] = self.ba.Omega0_lambda
-      if elem == 'Omega0_fld':
+      elif elem == 'Omega0_fld':
         data.mcmc_parameters[elem]['current'] = self.ba.Omega0_fld
-      if elem == 'age':
+      elif elem == 'age':
         data.mcmc_parameters[elem]['current'] = self.ba.age
-      if elem == 'conformal_age':
+      elif elem == 'conformal_age':
         data.mcmc_parameters[elem]['current'] = self.ba.conformal_age
-      if elem == 'm_ncdm_in_eV':
+      elif elem == 'm_ncdm_in_eV':
         data.mcmc_parameters[elem]['current'] = self.ba.m_ncdm_in_eV[0]
-      if elem == 'm_ncdm_tot':
+      elif elem == 'm_ncdm_tot':
         data.mcmc_parameters[elem]['current'] = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
-      if elem == 'Neff':
+      elif elem == 'Neff':
         data.mcmc_parameters[elem]['current'] = self.ba.Neff
-      if elem == 'tau_reio':
+      elif elem == 'tau_reio':
         data.mcmc_parameters[elem]['current'] = self.th.tau_reio
-      if elem == 'z_reio':
+      elif elem == 'z_reio':
         data.mcmc_parameters[elem]['current'] = self.th.z_reio
-      if elem == 'z_rec':
+      elif elem == 'z_rec':
         data.mcmc_parameters[elem]['current'] = self.th.z_rec
-      if elem == 'tau_rec':
+      elif elem == 'tau_rec':
         data.mcmc_parameters[elem]['current'] = self.th.tau_rec
-      if elem == 'rs_rec':
+      elif elem == 'rs_rec':
         data.mcmc_parameters[elem]['current'] = self.th.rs_rec
-      if elem == 'rs_rec_h':
+      elif elem == 'rs_rec_h':
         data.mcmc_parameters[elem]['current'] = self.th.rs_rec*self.ba.h
-      if elem == 'ds_rec':
+      elif elem == 'ds_rec':
         data.mcmc_parameters[elem]['current'] = self.th.ds_rec
-      if elem == 'ds_rec_h':
+      elif elem == 'ds_rec_h':
         data.mcmc_parameters[elem]['current'] = self.th.ds_rec*self.ba.h
-      if elem == 'ra_rec':
+      elif elem == 'ra_rec':
         data.mcmc_parameters[elem]['current'] = self.th.da_rec*(1.+self.th.z_rec)
-      if elem == 'ra_rec_h':
+      elif elem == 'ra_rec_h':
         data.mcmc_parameters[elem]['current'] = self.th.da_rec*(1.+self.th.z_rec)*self.ba.h
-      if elem == 'da_rec':
+      elif elem == 'da_rec':
         data.mcmc_parameters[elem]['current'] = self.th.da_rec
-      if elem == 'da_rec_h':
+      elif elem == 'da_rec_h':
         data.mcmc_parameters[elem]['current'] = self.th.da_rec*self.ba.h
-      if elem == 'YHe':
+      elif elem == 'YHe':
         data.mcmc_parameters[elem]['current'] = self.th.YHe
-      if elem == 'ne':
+      elif elem == 'ne':
         data.mcmc_parameters[elem]['current'] = self.th.ne
-      if elem == 'A_s':
+      elif elem == 'A_s':
         data.mcmc_parameters[elem]['current'] = self.pm.A_s
-      if elem == 'ln10^{10}A_s':
+      elif elem == 'ln10^{10}A_s':
         data.mcmc_parameters[elem]['current'] = log(1.e10*self.pm.A_s)
-      if elem == 'n_s':
+      elif elem == 'n_s':
         data.mcmc_parameters[elem]['current'] = self.pm.n_s
-      if elem == 'alpha_s':
+      elif elem == 'alpha_s':
         data.mcmc_parameters[elem]['current'] = self.pm.alpha_s
-      if elem == 'r':
+      elif elem == 'r':
         data.mcmc_parameters[elem]['current'] = self.pm.r
-      if elem == 'n_t':
+      elif elem == 'n_t':
         data.mcmc_parameters[elem]['current'] = self.pm.n_t
-      if elem == 'alpha_t':
+      elif elem == 'alpha_t':
         data.mcmc_parameters[elem]['current'] = self.pm.alpha_t
-      if elem == 'V_0':
+      elif elem == 'V_0':
         data.mcmc_parameters[elem]['current'] = self.pm.V0
-      if elem == 'V_1':
+      elif elem == 'V_1':
         data.mcmc_parameters[elem]['current'] = self.pm.V1
-      if elem == 'V_2':
+      elif elem == 'V_2':
         data.mcmc_parameters[elem]['current'] = self.pm.V2
-      if elem == 'V_3':
+      elif elem == 'V_3':
         data.mcmc_parameters[elem]['current'] = self.pm.V3
-      if elem == 'V_4':
+      elif elem == 'V_4':
         data.mcmc_parameters[elem]['current'] = self.pm.V4
-      if elem == 'exp_m_2_tau_As':
+      elif elem == 'exp_m_2_tau_As':
         data.mcmc_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
-      if elem == 'sigma8':
+      elif elem == 'sigma8':
         data.mcmc_parameters[elem]['current'] = self.sp.sigma8
+      else:
+        raise ClassError("%s was not recognized as a derived parameter" % elem)
     return
 
   def nonlinear_scale(self,np.ndarray[DTYPE_t,ndim=1] z,int z_size):
