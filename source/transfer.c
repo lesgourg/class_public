@@ -162,19 +162,22 @@ int transfer_init(
   /* - second workspace field: list of delta_tau values, delta_tau[index_tau] */
   double * delta_tau;
 
-  /* - third workspace field, identical to above interpolated sources:
+  /* - third workspace field, containing just a double: number of time values */
+  double * tau_size;
+
+  /* - fourth workspace field, identical to above interpolated sources:
      sources[index_k_tr*ppt->tau_size+index_tau] */
   double * sources;
 
-  /* - fourth workspace field, containing just a double: value of x at
+  /* - fifth workspace field, containing just a double: value of x at
      which bessel functions become non-negligible for a given l (
      infered from bessel module) */
   double * x_min_l;
 
-  /* - fifth workspace field containing the list of j_l(x) values */
+  /* - sixth workspace field containing the list of j_l(x) values */
   double * j_l;
 
-  /* - sixth workspace field containing the list of j_l''(x) values */
+  /* - seventh workspace field containing the list of j_l''(x) values */
   double * ddj_l;
 
   /* - optional: seventh workspace field containing the list of j_l(x) values */
@@ -206,7 +209,7 @@ int transfer_init(
   double k_max_bessel;
 
   /** - array with the correspondance between the index of sources in
-        the perturbation module and in the transfer module */
+      the perturbation module and in the transfer module */
   int * tp_of_tt;
 
   /* a value of index_type */
@@ -312,9 +315,9 @@ int transfer_init(
     
     /* beginning of parallel region */
     
-#pragma omp parallel							\
-  shared(ptr,index_mode,ppt,pbs,pw,tau0)				\
-  private(thread,address_in_workspace,tau0_minus_tau,delta_tau,index_tau)
+#pragma omp parallel				\
+  shared(ptr,index_mode,ppt,pbs,pw)		\
+  private(thread)
     {
       
 #ifdef _OPENMP
@@ -324,33 +327,10 @@ int transfer_init(
 
       class_alloc_parallel(pw[thread],
 			   ((2+ptr->k_size[index_mode])*ppt->tau_size
-			    +1+num_j*pbs->x_size_max)*
+			    +2+num_j*pbs->x_size_max)*
 			   sizeof(double),
 			   ptr->error_message);
-      
-      /* -- define the address of the first two fields in the workspace, tau0_minus_tau and delta_tau */
-
-      address_in_workspace = pw[thread];
-	  
-      tau0_minus_tau = address_in_workspace;
-      address_in_workspace += ppt->tau_size;
-      
-      delta_tau  = address_in_workspace;
-
-      /* -- fill these two fields since their content does not depend
-	 on ic, type and l */
-
-      for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
-	tau0_minus_tau[index_tau] = tau0 - ppt->tau_sampling[index_tau];
-      }
-
-      delta_tau[0] = ppt->tau_sampling[1]-ppt->tau_sampling[0];
-      
-      for (index_tau=1; index_tau < ppt->tau_size-1; index_tau++)
-	delta_tau[index_tau] = ppt->tau_sampling[index_tau+1]-ppt->tau_sampling[index_tau-1];
-      
-      delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
-      
+            
     } /* end of parallel region */
     
     if (abort == _TRUE_) return _FAILURE_;
@@ -407,8 +387,8 @@ int transfer_init(
 
 #pragma omp parallel							\
   shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
-	  interpolated_sources,abort,num_j,tau0,tau_rec) \
-  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel)
+	  interpolated_sources,abort,num_j,tau0,tau_rec)		\
+  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel,index_tau)
 	
 	{
 	  
@@ -416,7 +396,7 @@ int transfer_init(
 	  thread = omp_get_thread_num();
 	  tspent = 0.;
 #endif
-
+	  
 	  /* define address of each field in the workspace */
 	  address_in_workspace = pw[thread];
 	  
@@ -425,43 +405,72 @@ int transfer_init(
 	  
 	  delta_tau  = address_in_workspace;
 	  address_in_workspace += ppt->tau_size;
+	  
+	  tau_size = address_in_workspace;
+	  address_in_workspace += 1;
 
 	  sources = address_in_workspace;
 	  address_in_workspace += ptr->k_size[index_mode]*ppt->tau_size;
 	  
 	  x_min_l = address_in_workspace;
 	  address_in_workspace += 1;
-
+	  
 	  j_l = address_in_workspace;
-
+      
 	  /* the address of the next fields, ddj_l, etc., will be defined
 	     within the l loop, since they depend on l */
 
 	  /* copy the interpolated sources in the workspace */
 
-	  memcpy(sources,
-		 interpolated_sources,
-		 ptr->k_size[index_mode]*ppt->tau_size*sizeof(double));
-
-	  /* eventually, rescale the source by a window function (or
-	     any function of the background and of k) */
+	  class_call_parallel(transfer_redefine_source(ppr,
+						       pba,
+						       ppt,
+						       ptr,
+						       interpolated_sources,
+						       tau_rec,
+						       index_mode,
+						       index_ic,
+						       index_tt,
+						       sources,
+						       tau0_minus_tau,
+						       delta_tau,
+						       tau_size),
+			      ptr->error_message,
+			      ptr->error_message);
 	  
-	  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+	  /*
+	    memcpy(sources,
+	    interpolated_sources,
+	    ptr->k_size[index_mode]*ppt->tau_size*sizeof(double));
+
+	    for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
+	    tau0_minus_tau[index_tau] = tau0 - ppt->tau_sampling[index_tau];
+	    }
+	  
+	    delta_tau[0] = ppt->tau_sampling[1]-ppt->tau_sampling[0];
+	  
+	    for (index_tau=1; index_tau < ppt->tau_size-1; index_tau++)
+	    delta_tau[index_tau] = ppt->tau_sampling[index_tau+1]-ppt->tau_sampling[index_tau-1];
+	  
+	    delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
+	  
+	    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 	    if (((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) || ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))) {
 	      
-	      class_call_parallel(transfer_rescale_source(pba,
-							  ppt,
-							  ptr,
-							  tau0,
-							  tau_rec,
-							  index_mode,
-							  index_ic,
-							  index_tt,
-							  sources),
-				  ptr->error_message,
-				  ptr->error_message);
+	    class_call_parallel(transfer_rescale_source(pba,
+	    ppt,
+	    ptr,
+	    tau0,
+	    tau_rec,
+	    index_mode,
+	    index_ic,
+	    index_tt,
+	    sources),
+	    ptr->error_message,
+	    ptr->error_message);
 	    }
-	  }
+	    }
+	  */
 
 #pragma omp for schedule (dynamic)
 
@@ -509,6 +518,7 @@ int transfer_init(
 							    pbs->x_step,
 							    tau0_minus_tau,
 							    delta_tau,
+							    (int)(*tau_size),
 							    sources,
 							    j_l,
 							    ddj_l,
@@ -1208,6 +1218,284 @@ int transfer_rescale_source(
     
 }
 
+int transfer_redefine_source(
+			     struct precision * ppr,
+			     struct background * pba,
+			     struct perturbs * ppt,
+			     struct transfers * ptr,
+			     double * interpolated_sources,
+			     double tau_rec,
+			     int index_mode,
+			     int index_ic,
+			     int index_tt,
+			     double * sources,
+			     double * tau0_minus_tau,
+			     double * delta_tau,
+			     double * tau_size_double
+			     )  {
+
+  /** Summary: */
+  
+  /** - define local variables */
+
+  /* index running on time */
+  int index_tau;
+
+  /* index running on k values in the interpolated source array */
+  int index_k_tr;
+
+  /* for calling background_at_eta */
+  int last_index;
+  double * pvecback = NULL;
+
+  /* bin for computation of cl_density */  
+  int bin;
+
+  /* conformal time */
+  double tau, tau0;
+
+  /* rescaling factor depending on the background at a given time */
+  double rescaling;
+
+  int tau_size;
+  int index_tau_min;
+
+  short plain_copy;
+
+  double z;
+  double selection;
+
+  /* which cases require some mutiplication by window function and/or resampling */
+
+  plain_copy = _TRUE_;
+  
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
+      plain_copy = _FALSE_;
+  
+    if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
+      plain_copy = _FALSE_;
+  }
+
+  /* copy the interpolated sources in the workspace */
+
+  tau0 = pba->conformal_age;
+
+  if (plain_copy == _TRUE_) {
+
+    tau_size = ppt->tau_size;
+
+    memcpy(sources,
+	   interpolated_sources,
+	   ptr->k_size[index_mode]*ppt->tau_size*sizeof(double));
+        
+    for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
+      tau0_minus_tau[index_tau] = tau0 - ppt->tau_sampling[index_tau];
+    }
+    
+    delta_tau[0] = ppt->tau_sampling[1]-ppt->tau_sampling[0];
+    
+    for (index_tau=1; index_tau < ppt->tau_size-1; index_tau++)
+      delta_tau[index_tau] = ppt->tau_sampling[index_tau+1]-ppt->tau_sampling[index_tau-1];
+    
+    delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
+    
+    *tau_size_double = (double)tau_size;
+
+  }
+  else {
+
+    /* eventually, rescale the source by a window function (or
+       any function of the background and of k) */
+    
+    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
+      
+	index_tau_min=0;
+	while (ppt->tau_sampling[index_tau_min]<=tau_rec) index_tau_min++;
+
+	tau_size = ppt->tau_size-index_tau_min;
+
+	for (index_tau = index_tau_min; index_tau < ppt->tau_size; index_tau++) {
+
+	  /* lensing source =  - 2 W(tau) psi(k,tau) H(tau-tau_rec) 
+	     with 
+	     psi = (newtonian) gravitationnal potential  
+	     W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
+	     H(x) = Heaviside
+	     (in tau = tau_0, set source = 0 to avoid division by zero;
+	     regulated anyway by Bessel).
+	  */
+
+	  tau = ppt->tau_sampling[index_tau];
+		  
+	  if (index_tau == ppt->tau_size-1) {
+	    rescaling=0.;
+	  }
+	  else {
+	    rescaling = -2.*(tau-tau_rec)/(tau0-tau)/(tau0-tau_rec);
+	  }
+	  
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) { 
+	    sources[index_k_tr*tau_size+(index_tau-index_tau_min)]=interpolated_sources[index_k_tr*ppt->tau_size+index_tau]*rescaling;
+	  }
+	  
+	  tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
+	  
+	}
+
+	delta_tau[0] = ppt->tau_sampling[index_tau_min+1]-ppt->tau_sampling[index_tau_min];
+    
+	for (index_tau=1; index_tau < tau_size-1; index_tau++)
+	  delta_tau[index_tau] = ppt->tau_sampling[index_tau_min+index_tau+1]-ppt->tau_sampling[index_tau_min+index_tau-1];
+	
+	delta_tau[tau_size-1] = ppt->tau_sampling[index_tau_min+ppt->tau_size-1]-ppt->tau_sampling[index_tau_min+ppt->tau_size-2];
+
+	*tau_size_double = (double)tau_size;
+    
+      }
+    
+      if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
+      
+	class_call(transfer_selection_sampling(ppr,
+					       pba,
+					       ppt,
+					       ptr,
+					       index_tt-ptr->index_tt_density,
+					       tau0_minus_tau,
+					       &tau_size),
+		   ptr->error_message,
+		   ptr->error_message);
+
+	delta_tau[0] = tau0_minus_tau[0]-tau0_minus_tau[1];
+	
+	for (index_tau=1; index_tau < tau_size-1; index_tau++)
+	  delta_tau[index_tau] = tau0_minus_tau[index_tau-1]-tau0_minus_tau[index_tau+1];
+	
+	delta_tau[tau_size-1] = tau0_minus_tau[tau_size-2]-tau0_minus_tau[tau_size-1];
+	
+	*tau_size_double = (double)tau_size;
+
+	class_call(transfer_source_resample(ppt,
+					    ptr,
+					    index_mode,
+					    pba->conformal_age,
+					    interpolated_sources,
+					    tau0_minus_tau,
+					    tau_size,
+					    sources),
+		   ptr->error_message,
+		   ptr->error_message);
+
+	double * selection;
+	double norm;
+
+	bin=index_tt-ptr->index_tt_density;
+
+	class_alloc(selection,
+		    tau_size*sizeof(double),
+		    ptr->error_message);
+
+	class_alloc(pvecback,pba->bg_size*sizeof(double),ppt->error_message); 
+      
+	for (index_tau = 0; index_tau < tau_size; index_tau++) {
+
+	  tau = pba->conformal_age - tau0_minus_tau[index_tau];
+
+	  class_call(background_at_tau(pba,
+				       tau,
+				       pba->long_info,
+				       pba->inter_normal,
+				       &last_index,
+				       pvecback),
+		     pba->error_message,
+		     ptr->error_message);
+	  
+	  z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+
+	  class_call(transfer_selection_function(ppt,
+						 bin,
+						 z,
+						 selection+index_tau),
+		     ptr->error_message,
+		     ptr->error_message);
+
+	  selection[index_tau] *= pvecback[pba->index_bg_H];
+	  
+	}
+
+	norm = 0.;
+	
+	for (index_tau = 0; index_tau <tau_size; index_tau++) {
+	  norm += selection[index_tau]*delta_tau[index_tau];
+	}
+
+	norm /= 2.; /* correct for factor 1/2 from trapezoidal rule */
+
+	/* divide W by norm so that \int W(tau) dtau = 1 */
+
+	for (index_tau = 0; index_tau < tau_size; index_tau++) {
+	  selection[index_tau]/=norm;
+	}
+
+	for (index_tau = 0; index_tau < tau_size; index_tau++) {
+	
+	  /* matter density source =  - [- (dz/dtau) W(z)] * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
+	     =  - W(tau) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
+	     with 
+	     psi = (newtonian) gravitationnal potential  
+	     W(z) = redshift space selection function = dN/dz
+	     W(tau) = same wrt conformal time = dN/dtau
+	     (in tau = tau_0, set source = 0 to avoid division by zero;
+	     regulated anyway by Bessel).
+	  */
+
+	  tau = pba->conformal_age - tau0_minus_tau[index_tau];
+	
+	  //bin=index_tt-ptr->index_tt_density;
+		  
+	  class_call(background_at_tau(pba,
+				       tau,
+				       pba->long_info,
+				       pba->inter_normal,
+				       &last_index,
+				       pvecback),
+		     pba->error_message,
+		     ptr->error_message);
+	  
+	  /*
+	  z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+
+	  class_call(transfer_selection_function(ppt,
+						 bin,
+						 z,
+						 &selection),
+		     ptr->error_message,
+		     ptr->error_message);
+
+	  selection *= pvecback[pba->index_bg_H];
+	  */
+
+	  rescaling = selection[index_tau]
+	    *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
+	    /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
+	  
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++)
+	    sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_mode][index_k_tr],2);
+
+	}
+	free(pvecback);
+	free(selection);
+      }
+    }
+  }
+  return _SUCCESS_;
+    
+}
+
+
 /**
  * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
  * as a function of wavenumber k for each mode, initial condition,
@@ -1252,6 +1540,7 @@ int transfer_compute_for_each_l(
 				double x_step,
 				double * tau0_minus_tau,
 				double * delta_tau,
+				int tau_size,
 				double * sources,
 				double * j_l,
 				double * ddj_l,
@@ -1412,7 +1701,7 @@ int transfer_compute_for_each_l(
 
       if (use_limber == _TRUE_) {
 
-	class_call(transfer_limber(ppt->tau_size,
+	class_call(transfer_limber(tau_size,
 				   ptr,
 				   index_mode,
 				   index_k,
@@ -1431,7 +1720,7 @@ int transfer_compute_for_each_l(
 	    (((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) || 
 	     ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_t)))) {
 	  
-	  class_call(transfer_envelop(ppt->tau_size,
+	  class_call(transfer_envelop(tau_size,
 				      index_k,
 				      l,
 				      k,
@@ -1450,7 +1739,7 @@ int transfer_compute_for_each_l(
 	}
 	else {
 
-	  class_call(transfer_integrate(ppt->tau_size,
+	  class_call(transfer_integrate(tau_size,
 					index_k,
 					l,
 					k,
@@ -1891,6 +2180,124 @@ int transfer_envelop(
   }
   
   *trsf = 0.5*sqrt(transfer*transfer + 1.3*transfer_shifted*transfer_shifted); /* correct for factor 1/2 from trapezoidal rule */
+
+  return _SUCCESS_;
+}
+
+int transfer_selection_sampling(
+				struct precision * ppr,
+				struct background * pba,
+				struct perturbs * ppt,
+				struct transfers * ptr,
+				int bin,
+				double * tau0_minus_tau,
+				int * tau_size) {
+  
+  int index_tau;
+  double z;
+  double tau_min;
+  double tau_max;
+  
+  /* lower edge of bin */
+  
+  if (ppt->selection==gaussian) {
+    z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
+  }
+  else {
+    z = ppt->selection_mean[bin]+ppt->selection_width[bin];
+  }
+  
+  class_call(background_tau_of_z(pba,
+				 z,
+				 &tau_min),
+	     pba->error_message,
+	     ppt->error_message);
+  
+  /* higher edge of bin */
+  
+  if (ppt->selection==gaussian) {
+    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
+  }
+  else {
+    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin],0.);
+  }
+  
+  class_call(background_tau_of_z(pba,
+				 z,
+				 &tau_max),
+	     pba->error_message,
+	     ppt->error_message);
+  
+  *tau_size = 500;
+  
+  for (index_tau=0;index_tau<*tau_size;index_tau++) {
+
+    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)*tau_size-1.)*(tau_max-tau_min);
+  }
+
+  return _SUCCESS_;
+  
+}
+   
+
+int transfer_source_resample(
+			     struct perturbs * ppt,
+			     struct transfers * ptr,
+			     int index_mode,
+			     double tau0,
+			     double * interpolated_sources,
+			     double * tau0_minus_tau,
+			     int tau_size,
+			     double * sources) {
+
+  int index_tau;
+  int index_k_tr;
+  double * source_at_tau;
+
+  class_alloc(source_at_tau,
+	      ptr->k_size[index_mode]*sizeof(double),
+	      ptr->error_message);
+
+  for (index_tau=0;index_tau<tau_size;index_tau++) {
+
+    class_call(array_interpolate_two(ppt->tau_sampling,
+				     1,
+				     0,
+				     interpolated_sources, //interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
+				     ptr->k_size[index_mode],
+				     ppt->tau_size,
+				     tau0-tau0_minus_tau[index_tau],
+				     source_at_tau,
+				     ptr->k_size[index_mode],
+				     ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+
+    for (index_k_tr=0;index_k_tr<ptr->k_size[index_mode];index_k_tr++) {
+      sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
+    }
+  } 
+
+  free(source_at_tau);
+
+  return _SUCCESS_;
+
+}
+
+int transfer_selection_function(struct perturbs * ppt,
+				int bin,
+				double z,
+				double * selection) {
+
+  /* gaussian case */
+  if (ppt->selection==gaussian) {
+    *selection = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
+  }
+  
+  /* top-hat case, still under developement */
+  else {
+    *selection = 0.5/ppt->selection_width[bin];
+  }
 
   return _SUCCESS_;
 }
