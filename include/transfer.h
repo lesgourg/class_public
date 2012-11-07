@@ -159,6 +159,7 @@ extern "C" {
 				   double * interpolated_sources
 				   );
 
+  /*
   int transfer_rescale_source(
 			      struct background * pba,
 			      struct perturbs * ppt,
@@ -170,22 +171,33 @@ extern "C" {
 			      int index_type,
 			      double * sources
 			      );
+  */
 
-  int transfer_redefine_source(
-			       struct precision * ppr,
-			       struct background * pba,
-			       struct perturbs * ppt,
-			       struct transfers * ptr,
-			       double * interpolated_sources,
-			       double tau_rec,
-			       int index_mode,
-			       int index_ic,
-			       int index_type,
-			       double * sources,
-			       double * tau0_minus_tau,
-			       double * delta_tau,
-			       double * tau_size
-			       );
+  int transfer_sources(
+		       struct precision * ppr,
+		       struct background * pba,
+		       struct perturbs * ppt,
+		       struct transfers * ptr,
+		       double * interpolated_sources,
+		       double tau_rec,
+		       int index_mode,
+		       int index_ic,
+		       int index_type,
+		       double * sources,
+		       double * tau0_minus_tau,
+		       double * delta_tau,
+		       double * tau_size
+		       );
+  
+  int transfer_integration_time_steps(
+				      double * tau0_minus_tau,
+				      int tau_size,
+				      double * delta_tau
+				      );
+
+  int transfer_selection_normalize(double * selection,
+				   double * delta_tau,
+				   int tau_size);
 
   int transfer_compute_for_each_l(
 				  struct precision * ppr,

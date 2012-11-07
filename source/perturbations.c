@@ -200,6 +200,7 @@ int perturb_init(
   /** - if selection function are used (e.g. for matter density
       transfer functions), compute associated characteristic times */
   
+  /*
   if (ppt->has_cl_density == _TRUE_) {
     
     class_call(perturb_selection_initialize(ppr,pba,ppt),
@@ -207,7 +208,8 @@ int perturb_init(
 	       ppt->error_message);
     
   }
-  
+  */  
+
   /** - define the common time sampling for all sources using
         perturb_timesampling_for_sources() */
 
@@ -224,6 +226,7 @@ int perturb_init(
       tau (and normalize them correctly)
   */
   
+  /*
   if (ppt->has_cl_density == _TRUE_) {
     
     class_call(perturb_selection_compute(ppr,pba,ppt),
@@ -231,6 +234,7 @@ int perturb_init(
 	       ppt->error_message);
     
   }
+  */
 
   /** - create an array of workspaces in multi-thread case */
 
@@ -419,6 +423,7 @@ int perturb_free(
 
     free(ppt->sources);
 
+    /*
     if (ppt->has_cl_density == _TRUE_) {
 
       free(ppt->selection_tau_min);
@@ -427,6 +432,7 @@ int perturb_free(
       free(ppt->selection_function);
 
     }
+    */
 
   }
 
@@ -983,11 +989,13 @@ int perturb_timesampling_for_sources(
     }
 
     /* variation rate in range where selection function is non-zero */
+    /*
     if (ppt->has_cl_density == _TRUE_) {
       if ((tau >= ppt->selection_min_of_tau_min-ppr->perturb_sampling_stepsize/timescale_source) && (tau <= ppt->selection_max_of_tau_max+ppr->perturb_sampling_stepsize/timescale_source))
 	timescale_source = sqrt(timescale_source*timescale_source + 
 				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
     }
+    */
 
     /* check it is non-zero */
     class_test(timescale_source == 0.,
@@ -1076,11 +1084,13 @@ int perturb_timesampling_for_sources(
 	       "null evolution rate, integration is diverging");
 
     /* variation rate in range where selection function is non-zero */
+    /*
     if (ppt->has_cl_density == _TRUE_) {
       if ((tau >= ppt->selection_min_of_tau_min-ppr->perturb_sampling_stepsize/timescale_source) && (tau <= ppt->selection_max_of_tau_max+ppr->perturb_sampling_stepsize/timescale_source))
 	timescale_source = sqrt(timescale_source*timescale_source + 
 				1./ppt->selection_delta_tau/ppt->selection_delta_tau);
     }
+    */
 
     /* compute inverse rate */
     timescale_source = 1./timescale_source;
@@ -1424,6 +1434,7 @@ int perturb_selection_initialize(
   return _SUCCESS_;
 }
 
+
 /* Selection function are passed as W(z) = dN/dz (number of objects in
    thin redhsift shell). Here we convert them to W(tau)= dN/dtau = -
    (dz/dtau) W(z(tau)) = H(z(tau)) W(z(tau)). They are normalized to
@@ -1431,6 +1442,7 @@ int perturb_selection_initialize(
    needed (e.g. for computing the matter density transfer function),
    this function computes them explicitely as a function of tau, and
    normalizes them to \int dtau W(tau) = 1. */
+
 
 int perturb_selection_compute(
 			      struct precision * ppr,
@@ -1537,6 +1549,7 @@ int perturb_selection_compute(
 
   return _SUCCESS_;
 }
+
 
 /**
  * Initialize a perturb_workspace structure. All fields are allocated
