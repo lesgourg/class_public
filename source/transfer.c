@@ -420,10 +420,15 @@ int transfer_init(
 	  /* the address of the next fields, ddj_l, etc., will be defined
 	     within the l loop, since they depend on l */
 
-	  /* the code makes a distinction between "perturbation sources" (e.g. gravitational potential) and "transfer sources" (e.g. total density fluctuations, obtained through the Poisson equation, and observed with a given selection function).
+	  /* the code makes a distinction between "perturbation
+	     sources" (e.g. gravitational potential) and "transfer
+	     sources" (e.g. total density fluctuations, obtained
+	     through the Poisson equation, and observed with a given
+	     selection function).
 
-	     It infers here the transfer source our of the interpolated
-	     perturbation source, and copy them in the workspace. */
+	     The next routine computes the transfer source given the
+	     interpolated perturbation source, and copies it in the
+	     workspace. */
 
 
 	  class_call_parallel(transfer_sources(ppr,
@@ -433,7 +438,6 @@ int transfer_init(
 					       interpolated_sources,
 					       tau_rec,
 					       index_mode,
-					       index_ic,
 					       index_tt,
 					       sources,
 					       tau0_minus_tau,
@@ -830,7 +834,7 @@ int transfer_get_k_list(
   index_k_pt++;
   index_k_tr++;
 
-  /* - points taken from perturbation module if step smkall enough */
+  /* - points taken from perturbation module if step small enough */
 
   while ((index_k_pt < ppt->k_size[index_mode]) && ((ppt->k[index_mode][index_k_pt] -k) < k_step_max)) {
     k = ppt->k[index_mode][index_k_pt];
@@ -1046,147 +1050,28 @@ int transfer_interpolate_sources(
 }
 
 /**
- * This routine is the place where to mutiply the sources by some
- * factors in order to transform the 'raw source functions' with a
- * given 'source types' into an 'observable source funtion' with a
- * given 'transfer type'.
+ * the code makes a distinction between "perturbation sources"
+ * (e.g. gravitational potential) and "transfer sources" (e.g. total
+ * density fluctuations, obtained through the Poisson equation, and
+ * observed with a given selection function).
  *
- * E.g.: here we can multiply the gravitational potential source 
- * by one or several window functions, transforming it into one or 
- * several lensing source functions.
- * 
+ * This routine computes the transfer source given the interpolated
+ * perturbation source, and copies it in the workspace.
+ *
+ * @param ppr                   Input : pointer to precision structure
  * @param pba                   Input : pointer to background structure
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
- * @param tau0                  Input : conformal time today
- * @param tau_rec               Input : conformal time at recombination
+ * @param interpolated_sources  Input : interpolated perturbation source
+ * @param tau_rec               Input : recombination time
  * @param index_mode            Input : index of mode
- * @param index_ic              Input : index of initial condition
- * @param index_tt              Input : index of type of transfer
- * @param sources               Inpiut/Output: source to rescale
+ * @param index_tt              Input : index of type of (transfer) source
+ * @param sources               Output: transfer source
+ * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
+ * @param delta_tau             Output: corresponding values dtau, used later for trapezoidal integration
+ * @param tau_size_double       Output: pointer to size of previous two arrays, converted to double
  * @return the error status
  */
-
-int transfer_rescale_source(
-			    struct background * pba,
-			    struct perturbs * ppt,
-			    struct transfers * ptr,
-			    double tau0,
-			    double tau_rec,
-			    int index_mode,
-			    int index_ic,
-			    int index_tt,
-			    double * source
-			    ) {
-
-  /** Summary: */
-  
-  /** - define local variables */
-
-  /* index running on time */
-  int index_tau;
-
-  /* index running on k values in the interpolated source array */
-  int index_k_tr;
-
-  /* for calling background_at_eta */
-  int last_index;
-  double * pvecback = NULL;
-
-  /* bin for computation of cl_density */  
-  int bin;
-
-  /* conformal time */
-  double tau;
-
-  /* rescaling factor depending on the background at a given time */
-  double rescaling;
-
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
-      
-      for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
-
-	/* lensing source =  - 2 W(tau) psi(k,tau) H(tau-tau_rec) 
-	   with 
-	   psi = (newtonian) gravitationnal potential  
-	   W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
-	   H(x) = Heaviside
-	   (in tau = tau_0, set source = 0 to avoid division by zero;
-	   regulated anyway by Bessel).
-	*/
-
-	tau = ppt->tau_sampling[index_tau];
-	
-	if ((tau > tau_rec) && ((tau0-tau) > 0.)) {
-	  
-	  rescaling = -2.*(tau-tau_rec)/(tau0-tau)/(tau0-tau_rec);
-	  
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) 
-	    source[index_k_tr*ppt->tau_size+index_tau] *= rescaling;
-	  
-	}
-	else {
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) 
-	    source[index_k_tr*ppt->tau_size+index_tau] = 0.;
-	}
-      }
-    }
-    
-    if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
-      
-      class_alloc(pvecback,pba->bg_size*sizeof(double),ppt->error_message); 
-      
-      for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
-	
-	/* matter density source =  - [- (dz/dtau) W(z)] * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
-	   =  - W(tau) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
-	   with 
-	   psi = (newtonian) gravitationnal potential  
-	   W(z) = redshift space selection function = dN/dz
-	   W(tau) = same wrt conformal time = dN/dtau
-	   (in tau = tau_0, set source = 0 to avoid division by zero;
-	   regulated anyway by Bessel).
-	*/
-
-	tau = ppt->tau_sampling[index_tau];
-	
-	bin=index_tt-ptr->index_tt_density;
-	
-	if ((tau >= ppt->selection_tau_min[bin]) && (tau <= ppt->selection_tau_max[bin])) {
-	  
-	  class_call(background_at_tau(pba,
-				       tau,
-				       pba->long_info,
-				       pba->inter_normal,
-				       &last_index,
-				       pvecback),
-		     pba->error_message,
-		     ptr->error_message);
-	  
-	  rescaling = ppt->selection_function[bin*ppt->tau_size+index_tau]
-	    *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
-	    /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
-	  
-	  
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++)
-	    source[index_k_tr*ppt->tau_size+index_tau] *= rescaling*pow(ptr->k[index_mode][index_k_tr],2);
-	  
-	}
-	else {
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++)
-	    source[index_k_tr*ppt->tau_size+index_tau] = 0.;
-	}
-      }
-      
-      free(pvecback);
-    }
-  }
-    
-  return _SUCCESS_;
-    
-}
 
 int transfer_sources(
 		     struct precision * ppr,
@@ -1196,7 +1081,6 @@ int transfer_sources(
 		     double * interpolated_sources,
 		     double tau_rec,
 		     int index_mode,
-		     int index_ic,
 		     int index_tt,
 		     double * sources,
 		     double * tau0_minus_tau,
@@ -1214,12 +1098,18 @@ int transfer_sources(
   /* index running on k values in the interpolated source array */
   int index_k_tr;
 
+  /* bin for computation of cl_density */  
+  int bin;
+
+  /* number of tau values */
+  int tau_size;
+
+  /* minimum tau index kept in transfer sources */
+  int index_tau_min;
+
   /* for calling background_at_eta */
   int last_index;
   double * pvecback = NULL;
-
-  /* bin for computation of cl_density */  
-  int bin;
 
   /* conformal time */
   double tau, tau0;
@@ -1227,12 +1117,10 @@ int transfer_sources(
   /* rescaling factor depending on the background at a given time */
   double rescaling;
 
-  int tau_size;
-  int index_tau_min;
-
+  /* flag: is there any difference between the perturbation and transfer source? */
   short redefine_source;
 
-  double z;
+  /* array of selection function values at different times */
   double * selection;
 
   /* in which cases are perturbation and transfer sources are different?
@@ -1244,34 +1132,42 @@ int transfer_sources(
   
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
+    /* cmb lensing potential */
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
       redefine_source = _TRUE_;
   
+    /* density Cl's */
     if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
       redefine_source = _TRUE_;
   }
 
-  /* copy the interpolated sources in the workspace */
-
+  /* conformal time today */
   tau0 = pba->conformal_age;
 
+  /* case where we need to redefine by a window function (or any
+       function of the background and of k) */
   if (redefine_source == _TRUE_) {
-
-    /* eventually, rescale the source by a window function (or
-       any function of the background and of k) */
     
     if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
+      /* lensing source: throw away times before recombuination, and multiply psi by window function */
+
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
       
+        /* find times before recombination, that will be thrown away */
 	index_tau_min=0;
 	while (ppt->tau_sampling[index_tau_min]<=tau_rec) index_tau_min++;
 
+        /* infer number of time steps after removing early times */
 	tau_size = ppt->tau_size-index_tau_min;
 
+        /* loop over time and rescale */
 	for (index_tau = index_tau_min; index_tau < ppt->tau_size; index_tau++) {
 
-	  /* lensing source =  - 2 W(tau) psi(k,tau) H(tau-tau_rec) 
+	  /* conformal time */
+	  tau = ppt->tau_sampling[index_tau];
+
+	  /* lensing source =  - 2 W(tau) psi(k,tau) Heaviside(tau-tau_rec) 
 	     with 
 	     psi = (newtonian) gravitationnal potential  
 	     W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec) 
@@ -1279,8 +1175,6 @@ int transfer_sources(
 	     (in tau = tau_0, set source = 0 to avoid division by zero;
 	     regulated anyway by Bessel).
 	  */
-
-	  tau = ppt->tau_sampling[index_tau];
 		  
 	  if (index_tau == ppt->tau_size-1) {
 	    rescaling=0.;
@@ -1289,89 +1183,85 @@ int transfer_sources(
 	    rescaling = -2.*(tau-tau_rec)/(tau0-tau)/(tau0-tau_rec);
 	  }
 	  
+          /* copy from input array to output array */
 	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) { 
-	    sources[index_k_tr*tau_size+(index_tau-index_tau_min)]=interpolated_sources[index_k_tr*ppt->tau_size+index_tau]*rescaling;
+	    sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
+	      interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
+	      * rescaling;
 	  }
 	  
+          /* store value of (tau0-tau) */
 	  tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
 	  
 	}
 
-	class_call(transfer_integration_time_steps(tau0_minus_tau,
+        /* infer values of delta_tau from values of (tau0-tau) */
+	class_call(transfer_integration_time_steps(ptr,
+						   tau0_minus_tau,
 						   tau_size,
 						   delta_tau),
 		   ptr->error_message,
 		   ptr->error_message);
 	
-	/*
-	delta_tau[0] = tau0_minus_tau[0]-tau0_minus_tau[1];
-	
-	for (index_tau=1; index_tau < tau_size-1; index_tau++)
-	  delta_tau[index_tau] = tau0_minus_tau[index_tau-1]-tau0_minus_tau[index_tau+1];
-	
-	delta_tau[tau_size-1] = tau0_minus_tau[tau_size-2]-tau0_minus_tau[tau_size-1];
-	*/
-
-	/*
-	delta_tau[0] = ppt->tau_sampling[index_tau_min+1]-ppt->tau_sampling[index_tau_min];
-    
-	for (index_tau=1; index_tau < tau_size-1; index_tau++)
-	  delta_tau[index_tau] = ppt->tau_sampling[index_tau_min+index_tau+1]-ppt->tau_sampling[index_tau_min+index_tau-1];
-	
-	delta_tau[tau_size-1] = ppt->tau_sampling[index_tau_min+tau_size-1]-ppt->tau_sampling[index_tau_min+tau_size-2];
-	*/
-
-	//*tau_size_double = (double)tau_size;
-    
       }
     
+      /* density source: redefine the tima sampling, multiply by
+	 coefficient of Poisson equation, and multiply by selection
+	 function */
+
       if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
       
+        /* bin number associated to particular redshift bin and selection function */
 	bin=index_tt-ptr->index_tt_density;
 
-	class_call(transfer_selection_sampling(ppr,
-					       pba,
-					       ppt,
-					       ptr,
-					       index_tt-ptr->index_tt_density,
-					       tau0_minus_tau,
-					       &tau_size),
-		   ptr->error_message,
-		   ptr->error_message);
+        /* allocate temporary arrays for storing sources and for calling background */
+	class_alloc(selection,tau_size*sizeof(double),ptr->error_message);
+	class_alloc(pvecback,pba->bg_size*sizeof(double),ptr->error_message); 
 
-	/*
-	delta_tau[0] = tau0_minus_tau[0]-tau0_minus_tau[1];
-	
-	for (index_tau=1; index_tau < tau_size-1; index_tau++)
-	  delta_tau[index_tau] = tau0_minus_tau[index_tau-1]-tau0_minus_tau[index_tau+1];
-	
-	delta_tau[tau_size-1] = tau0_minus_tau[tau_size-2]-tau0_minus_tau[tau_size-1];
-	*/	
-
-	//*tau_size_double = (double)tau_size;
-
-	class_call(transfer_source_resample(ppt,
+        /* redefine the time sampling and resample the source at those times */
+	class_call(transfer_source_resample(ppr,
+					    pba,
+					    ppt,
 					    ptr,
+					    bin,
+					    tau0_minus_tau,
+					    &tau_size,
 					    index_mode,
 					    tau0,
 					    interpolated_sources,
-					    tau0_minus_tau,
-					    tau_size,
 					    sources),
 		   ptr->error_message,
 		   ptr->error_message);
 
-	//	double * selection;
-	// double norm;
+	/* infer values of delta_tau from values of (tau0-tau) */
+	class_call(transfer_integration_time_steps(ptr,
+						   tau0_minus_tau,
+						   tau_size,
+						   delta_tau),
+		   ptr->error_message,
+		   ptr->error_message);
 
-	class_alloc(selection,tau_size*sizeof(double),ptr->error_message);
+	/* compute values of selection function at sampled values of tau */
+	class_call(transfer_selection_compute(pba,
+					      ppt,
+					      ptr,
+					      selection,
+					      tau0_minus_tau,
+					      delta_tau,
+					      tau_size,
+					      pvecback,
+					      tau0,
+					      bin),
+		   ptr->error_message,
+		   ptr->error_message);
 
-	class_alloc(pvecback,pba->bg_size*sizeof(double),ptr->error_message); 
-      
+	/* loop over time and rescale */
 	for (index_tau = 0; index_tau < tau_size; index_tau++) {
-
+	
+	  /* conformal time */
 	  tau = tau0 - tau0_minus_tau[index_tau];
 
+	  /* corresponding background quantities */
 	  class_call(background_at_tau(pba,
 				       tau,
 				       pba->long_info,
@@ -1380,34 +1270,7 @@ int transfer_sources(
 				       pvecback),
 		     pba->error_message,
 		     ptr->error_message);
-	  
-	  z = pba->a_today/pvecback[pba->index_bg_a]-1.;
 
-	  class_call(transfer_selection_function(ppt,
-						 bin,
-						 z,
-						 &(selection[index_tau])),
-		     ptr->error_message,
-		     ptr->error_message);
-
-	  selection[index_tau] *= pvecback[pba->index_bg_H];
-	  
-	}
-
-	class_call(transfer_integration_time_steps(tau0_minus_tau,
-						   tau_size,
-						   delta_tau),
-		   ptr->error_message,
-		   ptr->error_message);
-	
-	class_call(transfer_selection_normalize(selection,
-						delta_tau,
-						tau_size),
-		   ptr->error_message,
-		   ptr->error_message);
-
-	for (index_tau = 0; index_tau < tau_size; index_tau++) {
-	
 	  /* matter density source =  - [- (dz/dtau) W(z)] * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
 	     =  - W(tau) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
 	     with 
@@ -1418,32 +1281,6 @@ int transfer_sources(
 	     regulated anyway by Bessel).
 	  */
 
-	  tau = tau0 - tau0_minus_tau[index_tau];
-	
-	  //bin=index_tt-ptr->index_tt_density;
-		  
-	  class_call(background_at_tau(pba,
-				       tau,
-				       pba->long_info,
-				       pba->inter_normal,
-				       &last_index,
-				       pvecback),
-		     pba->error_message,
-		     ptr->error_message);
-	  
-	  /*
-	  z = pba->a_today/pvecback[pba->index_bg_a]-1.;
-
-	  class_call(transfer_selection_function(ppt,
-						 bin,
-						 z,
-						 &selection),
-		     ptr->error_message,
-		     ptr->error_message);
-
-	  selection *= pvecback[pba->index_bg_H];
-	  */
-
 	  rescaling = selection[index_tau]
 	    *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
 	    /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
@@ -1452,51 +1289,42 @@ int transfer_sources(
 	    sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_mode][index_k_tr],2);
 
 	}
+
+	/* deallocate temporary arrays */
 	free(pvecback);
 	free(selection);
       }
     }
   }
+
+  /* case where we do not need to redefine */
+
   else {
+
+    /* number of sm apled time values */
     tau_size = ppt->tau_size;
     
+    /* plain copy from input array to output array */
     memcpy(sources,
 	   interpolated_sources,
 	   ptr->k_size[index_mode]*ppt->tau_size*sizeof(double));
         
+    /* store values of (tau0-tau) */
     for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
       tau0_minus_tau[index_tau] = tau0 - ppt->tau_sampling[index_tau];
     }
 
-    class_call(transfer_integration_time_steps(tau0_minus_tau,
+    /* infer values of delta_tau from values of (tau0-tau) */
+    class_call(transfer_integration_time_steps(ptr,
+					       tau0_minus_tau,
 					       tau_size,
 					       delta_tau),
 	       ptr->error_message,
 	       ptr->error_message);
-
-    /*    
-    delta_tau[0] = tau0_minus_tau[0]-tau0_minus_tau[1];
-    
-    for (index_tau=1; index_tau < tau_size-1; index_tau++)
-      delta_tau[index_tau] = tau0_minus_tau[index_tau-1]-tau0_minus_tau[index_tau+1];
-    
-    delta_tau[tau_size-1] = tau0_minus_tau[tau_size-2]-tau0_minus_tau[tau_size-1];
-    */
-
-    /*
-    delta_tau[0] = ppt->tau_sampling[1]-ppt->tau_sampling[0];
-    
-    for (index_tau=1; index_tau < ppt->tau_size-1; index_tau++)
-      delta_tau[index_tau] = ppt->tau_sampling[index_tau+1]-ppt->tau_sampling[index_tau-1];
-    
-    delta_tau[ppt->tau_size-1] = ppt->tau_sampling[ppt->tau_size-1]-ppt->tau_sampling[ppt->tau_size-2];
-    */
-
-    //*tau_size_double = (double)tau_size;
-
   }
   
-  /* return tau_size for storing it in workspace (the workspace wants a double) */
+  /* return tau_size value that will be stored in the workspace (the
+     workspace wants a double) */
 
   *tau_size_double = (double)tau_size;
 
@@ -1504,43 +1332,310 @@ int transfer_sources(
     
 }
 
-  /* infer delta_tau array from tau0_minus_tau array (will be used for
-     a fast trapezoidal integration */
+/**
+ * infer delta_tau array from tau0_minus_tau array (will be used in
+ * transfer_integrate for a fast trapezoidal integration
+ *
+ * @param ptr                   Input: pointer to transfers structure
+ * @param tau0_minus_tau        Input: values of (tau0-tau) at which source are sample
+ * @param tau_size              Input: size of previous array
+ * @param delta_tau             Output: corresponding values delta_tau
+ * @return the error status
+ */
 
 int transfer_integration_time_steps(
+				    struct transfers * ptr,
 				    double * tau0_minus_tau,
 				    int tau_size,
 				    double * delta_tau
-				    ){
+				    ) {
 
+  /* running index on time */
   int index_tau;
 
+  /* first value */
   delta_tau[0] = tau0_minus_tau[0]-tau0_minus_tau[1];
   
+  /* intermediate values */
   for (index_tau=1; index_tau < tau_size-1; index_tau++)
     delta_tau[index_tau] = tau0_minus_tau[index_tau-1]-tau0_minus_tau[index_tau+1];
   
+  /* last value */
   delta_tau[tau_size-1] = tau0_minus_tau[tau_size-2]-tau0_minus_tau[tau_size-1];
   
   return _SUCCESS_;
   
 }
 
-int transfer_selection_normalize(double * selection,
-				 double * delta_tau,
-				 int tau_size) {
+/**
+ * arbitrarily normalized selection function dN/dz(z,bin)
+ *
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param bin                   Input : redshift bin number
+ * @param z                     Input : one value of redshift
+ * @param selection             Output: pointer to selection function
+ * @return the error status
+ */
 
-  double norm = 0.;
+int transfer_selection_function(
+				struct perturbs * ppt,
+				struct transfers * ptr,
+				int bin,
+				double z,
+				double * selection) {
+
+  /* gaussian case (the function is anyway normalized later
+     automatically, but could not resist to normalize it already
+     here) */
+  if (ppt->selection==gaussian) {
+    *selection = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))
+      /ppt->selection_width[bin]/sqrt(2.*_PI_);
+  }
+  
+  /* top-hat case, still under developement */
+  else {
+    *selection = 0.5/ppt->selection_width[bin];
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * for sources that need to be mutiplied by a selection function,
+ * redefine a finer time sampling in a small range, and resamble the
+ * perturbation sources at the new value by linear interpolation
+ *
+ * @param ppr                   Input : pointer to precision structure
+ * @param pba                   Input : pointer to background structure
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param bin                   Input : redshift bin number
+ * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
+ * @param tau_size              Output: pointer to size of previous array
+ * @param index_mode            Input : index of mode
+ * @param tau0                  Input : time today
+ * @param interpolated_sources  Input : interpolated perturbation source
+ * @param sources               Output: resampled transfer source
+ * @return the error status
+ */
+
+int transfer_source_resample(
+			     struct precision * ppr,
+			     struct background * pba,
+			     struct perturbs * ppt,
+			     struct transfers * ptr,
+			     int bin,
+			     double * tau0_minus_tau,
+			     int * tau_size,
+			     int index_mode,
+			     double tau0,
+			     double * interpolated_sources,
+			     double * sources) {
+  
+  /* running index on time */
   int index_tau;
 
+  /* running index on wavenumbers */
+  int index_k_tr;
+
+  /* a value of redshift */
+  double z;
+
+  /* minimum and maximal value of time in new sampled interval */
+  double tau_min,tau_max;
+
+  /* array of values of source */
+  double * source_at_tau;
+
+  /* lower edge of time interval for this bin */
+  
+  if (ppt->selection==gaussian) {
+    z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
+  }
+  else {
+    z = ppt->selection_mean[bin]+ppt->selection_width[bin];
+  }
+  
+  class_call(background_tau_of_z(pba,
+				 z,
+				 &tau_min),
+	     pba->error_message,
+	     ppt->error_message);
+  
+  /* higher edge of time interval for this bin */
+  
+  if (ppt->selection==gaussian) {
+    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
+  }
+  else {
+    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin],0.);
+  }
+  
+  class_call(background_tau_of_z(pba,
+				 z,
+				 &tau_max),
+	     pba->error_message,
+	     ppt->error_message);
+
+  /******************* UNDER DEVELOPMENT *****************/
+  /* new time sampling */
+  
+  int selection_resolution = 50;
+
+  double delta_tau = (tau_max-tau_min)/(double)selection_resolution;
+
+  delta_tau = min(delta_tau, 
+		  0.5*2*_PI_*tau0/ppt->l_scalar_max/ppr->k_scalar_max_tau0_over_l_max);
+
+  // no! must replace by min(delta_tau,1/ptr->k[index_mode][ptr->k_size[index_mode]-1])
+
+  *tau_size = (int)((tau_max-tau_min)/delta_tau);
+  
+  *tau_size = min(*tau_size,ppt->tau_size);
+
+  class_test(*tau_size > ppt->tau_size,
+	     ptr->error_message,
+	     "the selection function needs to be resolved with %d points, while the maximum is %d\n",
+	     *tau_size,
+	     ppt->tau_size);
+
+  fprintf(stderr,"%d\n",*tau_size);
+
+  /* check that selection_delta_tau is sufficiently small so that, in
+     the convolution with bessel function, two consecutive points
+     would not cause a variation of j_l(x) by more than one period,
+     even for the largest k mode */
+  /*
+  ppt->selection_delta_tau=min(ppt->selection_delta_tau,
+			       2*_PI_*pba->conformal_age/ppt->l_scalar_max/ppr->k_scalar_max_tau0_over_l_max);
+  */
+  /************************************************************************/
+
+  /* define new sampled values of (tau0-tau) with even spacing */
+  for (index_tau=0;index_tau<*tau_size;index_tau++) {
+    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)*tau_size-1.)*(tau_max-tau_min);
+  }
+
+  /* array of source values for a given time and for all k's */
+  class_alloc(source_at_tau,
+	      ptr->k_size[index_mode]*sizeof(double),
+	      ptr->error_message);
+
+  /* interpolate the sources linearily at the new time values */
+  for (index_tau=0;index_tau<*tau_size;index_tau++) {
+
+    class_call(array_interpolate_two(ppt->tau_sampling,
+				     1,
+				     0,
+				     interpolated_sources, 
+				     // this array is indexed as interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
+				     ptr->k_size[index_mode],
+				     ppt->tau_size,
+				     tau0-tau0_minus_tau[index_tau],
+				     source_at_tau,
+				     ptr->k_size[index_mode],
+				     ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+
+    /* for each k, copy the new values in the output sources array */
+    for (index_k_tr=0;index_k_tr<ptr->k_size[index_mode];index_k_tr++) {
+      sources[index_k_tr * *tau_size + index_tau] = source_at_tau[index_k_tr];
+    }
+  } 
+
+  /* deallocate the temporary array */
+  free(source_at_tau);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * compute and normalise selection function for a set of time values 
+ *
+ *
+ * @param pba                   Input : pointer to background structure
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param selection             Output: normalized selection function
+ * @param tau0_minus_tau        Input : values of (tau0-tau) at which source are sample
+ * @param delta_tau             Input : corresponding values dtau, used for trapezoidal integration
+ * @param tau_size              Input : size of previous two arrays
+ * @param pvecback              Input : allocated array of background values
+ * @param tau_0                 Input : time today
+ * @param bin                   Input : redshift bin number
+ * @return the error status
+ */
+
+int transfer_selection_compute(
+			       struct background * pba,
+			       struct perturbs * ppt,
+			       struct transfers * ptr,
+			       double * selection,
+			       double * tau0_minus_tau,
+			       double * delta_tau,
+			       int tau_size,
+			       double * pvecback,
+			       double tau0,
+			       int bin) {
+
+  /* running index over time */
+  int index_tau;
+
+  /* running value of time */
+  double tau;
+
+  /* used for normalizing the selection to one */
+  double norm = 0.;
+
+  /* used for calling background_at_tau() */
+  int last_index;
+
+  /* runnign value of redshift */
+  double z;
+
+  /* loop over time */
+  for (index_tau = 0; index_tau < tau_size; index_tau++) {
+    
+    /* running value of time */
+    tau = tau0 - tau0_minus_tau[index_tau];
+    
+    /* get background quantitites at this time */
+    class_call(background_at_tau(pba,
+				 tau,
+				 pba->long_info,
+				 pba->inter_normal,
+				 &last_index,
+				 pvecback),
+	       pba->error_message,
+	       ptr->error_message);
+    
+    /* infer redhsift */
+    z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+
+    /* get corresponding dN/dz(z,bin) */
+    class_call(transfer_selection_function(ppt,
+					   ptr,
+					   bin,
+					   z,
+					   &(selection[index_tau])),
+	       ptr->error_message,
+	       ptr->error_message);
+    
+    /* get corresponding dN/dtau = dN/dz * dz/dtau = dN/dz * H */
+    selection[index_tau] *= pvecback[pba->index_bg_H];
+    
+  }
+
+  /* compute norm = \int W(tau) dtau */
   for (index_tau = 0; index_tau <tau_size; index_tau++) {
     norm += selection[index_tau]*delta_tau[index_tau];
   }
-  
-  norm /= 2.; /* correct for factor 1/2 from trapezoidal rule */
+    norm /= 2.; /* correct for factor 1/2 from trapezoidal rule */
   
   /* divide W by norm so that \int W(tau) dtau = 1 */
-  
   for (index_tau = 0; index_tau < tau_size; index_tau++) {
     selection[index_tau]/=norm;
   }
@@ -1730,26 +1825,17 @@ int transfer_compute_for_each_l(
     /* below k_max: compute transfer function */
     if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
 
-      /* criterium for chosing between integration and Limber 
-	 must be implemented here */
-      
-      use_limber = _FALSE_;
-
-      if (k>k_max_bessel) {
-	use_limber = _TRUE_;
-      }
-      else {
-	
-	if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-	  if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber))
-	    use_limber = _TRUE_;
-
-	  if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density]))
-	    use_limber = _TRUE_;
-
-	}
-      }
+      class_call(transfer_use_limber(ppr,
+				     ppt,
+				     ptr,
+				     k_max_bessel,
+				     index_mode,
+				     index_tt,
+				     k,
+				     l,
+				     &use_limber),
+		 ptr->error_message,
+		 ptr->error_message);
 
       if (use_limber == _TRUE_) {
 
@@ -1884,6 +1970,43 @@ int transfer_compute_for_each_l(
   return _SUCCESS_;
 
 }
+
+int transfer_use_limber(
+			struct precision * ppr,
+			struct perturbs * ppt,
+			struct transfers * ptr,
+			double k_max_bessel,
+			int index_mode,
+			int index_tt,
+			double k,
+			double l,
+			short * use_limber) {
+
+
+  /* criterium for chosing between integration and Limber 
+     must be implemented here */
+  
+  *use_limber = _FALSE_;
+  
+  if (k>k_max_bessel) {
+    *use_limber = _TRUE_;
+  }
+  else {
+    
+    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      
+      if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber))
+	*use_limber = _TRUE_;
+      
+      if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density]))
+	*use_limber = _TRUE_;
+      
+    }
+  }
+
+  return _SUCCESS_;
+}
+      
 
 /**
  * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
@@ -2232,124 +2355,6 @@ int transfer_envelop(
   }
   
   *trsf = 0.5*sqrt(transfer*transfer + 1.3*transfer_shifted*transfer_shifted); /* correct for factor 1/2 from trapezoidal rule */
-
-  return _SUCCESS_;
-}
-
-int transfer_selection_sampling(
-				struct precision * ppr,
-				struct background * pba,
-				struct perturbs * ppt,
-				struct transfers * ptr,
-				int bin,
-				double * tau0_minus_tau,
-				int * tau_size) {
-  
-  int index_tau;
-  double z;
-  double tau_min;
-  double tau_max;
-  
-  /* lower edge of bin */
-  
-  if (ppt->selection==gaussian) {
-    z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
-  }
-  else {
-    z = ppt->selection_mean[bin]+ppt->selection_width[bin];
-  }
-  
-  class_call(background_tau_of_z(pba,
-				 z,
-				 &tau_min),
-	     pba->error_message,
-	     ppt->error_message);
-  
-  /* higher edge of bin */
-  
-  if (ppt->selection==gaussian) {
-    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
-  }
-  else {
-    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin],0.);
-  }
-  
-  class_call(background_tau_of_z(pba,
-				 z,
-				 &tau_max),
-	     pba->error_message,
-	     ppt->error_message);
-  
-  *tau_size = 500;
-  
-  for (index_tau=0;index_tau<*tau_size;index_tau++) {
-
-    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)*tau_size-1.)*(tau_max-tau_min);
-  }
-
-  return _SUCCESS_;
-  
-}
-   
-
-int transfer_source_resample(
-			     struct perturbs * ppt,
-			     struct transfers * ptr,
-			     int index_mode,
-			     double tau0,
-			     double * interpolated_sources,
-			     double * tau0_minus_tau,
-			     int tau_size,
-			     double * sources) {
-
-  int index_tau;
-  int index_k_tr;
-  double * source_at_tau;
-
-  class_alloc(source_at_tau,
-	      ptr->k_size[index_mode]*sizeof(double),
-	      ptr->error_message);
-
-  for (index_tau=0;index_tau<tau_size;index_tau++) {
-
-    class_call(array_interpolate_two(ppt->tau_sampling,
-				     1,
-				     0,
-				     interpolated_sources, //interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-				     ptr->k_size[index_mode],
-				     ppt->tau_size,
-				     tau0-tau0_minus_tau[index_tau],
-				     source_at_tau,
-				     ptr->k_size[index_mode],
-				     ptr->error_message),
-	       ptr->error_message,
-	       ptr->error_message);
-
-    for (index_k_tr=0;index_k_tr<ptr->k_size[index_mode];index_k_tr++) {
-      sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
-    }
-  } 
-
-  free(source_at_tau);
-
-  return _SUCCESS_;
-
-}
-
-int transfer_selection_function(struct perturbs * ppt,
-				int bin,
-				double z,
-				double * selection) {
-
-  /* gaussian case */
-  if (ppt->selection==gaussian) {
-    *selection = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))/ppt->selection_width[bin]/sqrt(2.*_PI_);
-  }
-  
-  /* top-hat case, still under developement */
-  else {
-    *selection = 0.5/ppt->selection_width[bin];
-  }
 
   return _SUCCESS_;
 }

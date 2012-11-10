@@ -159,20 +159,6 @@ extern "C" {
 				   double * interpolated_sources
 				   );
 
-  /*
-  int transfer_rescale_source(
-			      struct background * pba,
-			      struct perturbs * ppt,
-			      struct transfers * ptr,
-			      double tau0,
-			      double tau_rec,
-			      int index_mode,
-			      int index_ic,
-			      int index_type,
-			      double * sources
-			      );
-  */
-
   int transfer_sources(
 		       struct precision * ppr,
 		       struct background * pba,
@@ -181,23 +167,51 @@ extern "C" {
 		       double * interpolated_sources,
 		       double tau_rec,
 		       int index_mode,
-		       int index_ic,
-		       int index_type,
+		       int index_tt,
 		       double * sources,
 		       double * tau0_minus_tau,
 		       double * delta_tau,
-		       double * tau_size
+		       double * tau_size_double
 		       );
-  
+
   int transfer_integration_time_steps(
+				      struct transfers * ptr,
 				      double * tau0_minus_tau,
 				      int tau_size,
 				      double * delta_tau
 				      );
 
-  int transfer_selection_normalize(double * selection,
-				   double * delta_tau,
-				   int tau_size);
+  int transfer_selection_function(
+				  struct perturbs * ppt,
+				  struct transfers * ptr,
+				  int bin,
+				  double z,
+				  double * selection);
+
+  int transfer_source_resample(
+			       struct precision * ppr,
+			       struct background * pba,
+			       struct perturbs * ppt,
+			       struct transfers * ptr,
+			       int bin,
+			       double * tau0_minus_tau,
+			       int * tau_size,
+			       int index_mode,
+			       double tau0,
+			       double * interpolated_sources,
+			       double * sources);
+
+  int transfer_selection_compute(
+				 struct background * pba,
+				 struct perturbs * ppt,
+				 struct transfers * ptr,
+				 double * selection,
+				 double * tau0_minus_tau,
+				 double * delta_tau,
+				 int tau_size,
+				 double * pvecback,
+				 double tau0,
+				 int bin);
 
   int transfer_compute_for_each_l(
 				  struct precision * ppr,
@@ -264,31 +278,6 @@ extern "C" {
 		       double *dddj_l,
 		       double * trsf
 		       );
-  
-  int transfer_selection_sampling(
-				  struct precision * ppr,
-				  struct background * pba,
-				  struct perturbs * ppt,
-				  struct transfers * ptr,
-				  int bin,
-				  double * tau0_minus_tau,
-				  int * tau_size);
-
-  int transfer_source_resample(
-			       struct perturbs * ppt,
-			       struct transfers * ptr,
-			       int index_mode,
-			       double tau0,
-			       double * interpolated_sources,
-			       double * tau0_minus_tau,
-			       int tau_size,
-			       double * sources);
-
-  int transfer_selection_function(
-				  struct perturbs * ppt,
-				  int bin,
-				  double z,
-				  double * selection);
   
 #ifdef __cplusplus
 }
