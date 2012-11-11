@@ -139,6 +139,11 @@ int transfer_init(
   /* conformal time at recombination */
   double tau_rec;
 
+  /* number of sampling times for each transfer sources */
+  int tau_size_tt;
+  /* maximum number of sampling times for transfer sources */
+  int tau_size_max;
+
   /* array of source derivatives S''(k,tau) 
      (second derivative with respect to k, not tau!), 
      used to interpolate sources at the right values of k,
@@ -294,18 +299,40 @@ int transfer_init(
 	       ptr->error_message,
 	       ptr->error_message);
 
-    /** (a.1.) array of sources interpolated at correct values of k */
+    /** (a.1.) arrays that will contain the sources interpolated at
+	correct values of k, and their second derivatives with respect
+	to k (for spline interpolation) */
 
     class_alloc(interpolated_sources,
 		ptr->k_size[index_mode]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
      
-    /** (a.2.) second derivative of sources in the previous source arrays, useful to
-	obtain the one above */
-
     class_alloc(source_spline,
 		ppt->k_size[index_mode]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
+
+    /** (a.2.) maximum number of sampled times in the transfer
+	sources: needs to be known here, in order to allocate a large
+	enough workspace */
+
+    tau_size_max = 0;
+    
+    for (index_tt = 0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
+
+      class_call(transfer_source_tau_size(ppr,
+					  pba,
+					  ppt,
+					  ptr,
+					  tau_rec,
+					  tau0,
+					  index_mode,
+					  index_tt,
+					  &tau_size_tt),
+		 ptr->error_message,
+		 ptr->error_message);
+      
+      tau_size_max = max(tau_size_max,tau_size_tt);
+    }
 
     /** (a.3.) workspace, allocated in a parallel zone since in openmp
 	version there is one workspace per thread */
@@ -326,7 +353,7 @@ int transfer_init(
 
 
       class_alloc_parallel(pw[thread],
-			   ((2+ptr->k_size[index_mode])*ppt->tau_size
+			   ((2+ptr->k_size[index_mode])*tau_size_max
 			    +2+num_j*pbs->x_size_max)*
 			   sizeof(double),
 			   ptr->error_message);
@@ -387,8 +414,8 @@ int transfer_init(
 
 #pragma omp parallel							\
   shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
-	  interpolated_sources,abort,num_j,tau0,tau_rec)		\
-  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel,index_tau)
+	  interpolated_sources,abort,num_j,tau0,tau_rec,tau_size_max)	\
+  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel,index_tau,tau_size)
 	
 	{
 	  
@@ -401,16 +428,16 @@ int transfer_init(
 	  address_in_workspace = pw[thread];
 	  
 	  tau0_minus_tau = address_in_workspace;
-	  address_in_workspace += ppt->tau_size;
+	  address_in_workspace += tau_size_max;
 	  
 	  delta_tau  = address_in_workspace;
-	  address_in_workspace += ppt->tau_size;
+	  address_in_workspace += tau_size_max;
 	  
 	  tau_size = address_in_workspace;
 	  address_in_workspace += 1;
 
 	  sources = address_in_workspace;
-	  address_in_workspace += ptr->k_size[index_mode]*ppt->tau_size;
+	  address_in_workspace += ptr->k_size[index_mode]*tau_size_max;
 	  
 	  x_min_l = address_in_workspace;
 	  address_in_workspace += 1;
@@ -445,7 +472,7 @@ int transfer_init(
 					       tau_size),
 			      ptr->error_message,
 			      ptr->error_message);
-	  
+
 #pragma omp for schedule (dynamic)
 
 	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
@@ -953,6 +980,102 @@ int transfer_get_source_correspondence(
   
 }
 
+/**
+ * the code makes a distinction between "perturbation sources"
+ * (e.g. gravitational potential) and "transfer sources" (e.g. total
+ * density fluctuations, obtained through the Poisson equation, and
+ * observed with a given selection function).
+ *
+ * This routine computes the number of sampled time values for each type
+ * of transfer sources.
+ *
+ * @param ppr                   Input : pointer to precision structure
+ * @param pba                   Input : pointer to background structure
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param tau_rec               Input : recombination time
+ * @param tau0                  Input : time today
+ * @param index_mode            Input : index of the mode (scalar, tensor)
+ * @param index_tt              Input : index of transfer type
+ * @param tau_size              Output: pointer to number of smapled times
+ * @return the error status
+ */
+
+int transfer_source_tau_size(
+			     struct precision * ppr,
+			     struct background * pba,
+			     struct perturbs * ppt,
+			     struct transfers * ptr,
+			     double tau_rec,
+			     double tau0,
+			     int index_mode,
+			     int index_tt,
+			     int * tau_size) {
+
+  /* values of conformal time */
+  double tau_min,tau_mean,tau_max;
+  
+  /* minimum value of index_tt */
+  int index_tau_min;
+  
+  /* value of l at which limber approximation is switched on */
+  int l_limber;
+  
+  /* scalar mode */
+  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+    /* scalar temperature */
+    if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t))
+      *tau_size = ppt->tau_size;
+
+    /* scalar polarisation */
+    if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
+      *tau_size = ppt->tau_size;
+
+    /* cmb lensing potential */
+    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
+
+      /* find times before recombination, that will be thrown away */
+      index_tau_min=0;
+      while (ppt->tau_sampling[index_tau_min]<=tau_rec) index_tau_min++;
+      
+      /* infer number of time steps after removing early times */
+      *tau_size = ppt->tau_size-index_tau_min;
+    }
+
+    /* density Cl's */
+    if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
+
+      /* check that selection function well sampled */
+      *tau_size = 50; //TBA
+      
+      /* time interval for this bin */
+      class_call(transfer_selection_times(ppr,
+					  pba,
+					  ppt,
+					  ptr,
+					  index_tt-ptr->index_tt_density,
+					  &tau_min,
+					  &tau_mean,
+					  &tau_max),
+		 ptr->error_message,
+		 ptr->error_message);
+      
+      l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density];
+    
+      *tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber)/0.1)); //TBA
+    }
+  }
+
+  /* tensor mode */
+  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+
+    /* for all tensor types */
+    *tau_size = ppt->tau_size;
+  }
+
+  return _SUCCESS_;
+}
 
 /**
  * This routine interpolates sources \f$ S(k, \tau) \f$ for each mode,
@@ -1148,18 +1271,26 @@ int transfer_sources(
        function of the background and of k) */
   if (redefine_source == _TRUE_) {
     
+    class_call(transfer_source_tau_size(ppr,
+					pba,
+					ppt,
+					ptr,
+					tau_rec,
+					tau0,
+					index_mode,
+					index_tt,
+					&tau_size),
+	       ptr->error_message,
+	       ptr->error_message);
+
     if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
       /* lensing source: throw away times before recombuination, and multiply psi by window function */
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
       
-        /* find times before recombination, that will be thrown away */
-	index_tau_min=0;
-	while (ppt->tau_sampling[index_tau_min]<=tau_rec) index_tau_min++;
-
-        /* infer number of time steps after removing early times */
-	tau_size = ppt->tau_size-index_tau_min;
+        /* first time step after removing early times */
+	index_tau_min =  ppt->tau_size - tau_size;
 
         /* loop over time and rescale */
 	for (index_tau = index_tau_min; index_tau < ppt->tau_size; index_tau++) {
@@ -1225,7 +1356,7 @@ int transfer_sources(
 					    ptr,
 					    bin,
 					    tau0_minus_tau,
-					    &tau_size,
+					    tau_size,
 					    index_mode,
 					    tau0,
 					    interpolated_sources,
@@ -1301,7 +1432,7 @@ int transfer_sources(
 
   else {
 
-    /* number of sm apled time values */
+    /* number of sampled time values */
     tau_size = ppt->tau_size;
     
     /* plain copy from input array to output array */
@@ -1427,7 +1558,7 @@ int transfer_source_resample(
 			     struct transfers * ptr,
 			     int bin,
 			     double * tau0_minus_tau,
-			     int * tau_size,
+			     int tau_size,
 			     int index_mode,
 			     double tau0,
 			     double * interpolated_sources,
@@ -1443,78 +1574,29 @@ int transfer_source_resample(
   double z;
 
   /* minimum and maximal value of time in new sampled interval */
-  double tau_min,tau_max;
+  double tau_min,tau_mean,tau_max;
 
   /* array of values of source */
   double * source_at_tau;
 
-  /* lower edge of time interval for this bin */
-  
-  if (ppt->selection==gaussian) {
-    z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
-  }
-  else {
-    z = ppt->selection_mean[bin]+ppt->selection_width[bin];
-  }
-  
-  class_call(background_tau_of_z(pba,
-				 z,
-				 &tau_min),
-	     pba->error_message,
-	     ppt->error_message);
-  
-  /* higher edge of time interval for this bin */
-  
-  if (ppt->selection==gaussian) {
-    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
-  }
-  else {
-    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin],0.);
-  }
-  
-  class_call(background_tau_of_z(pba,
-				 z,
-				 &tau_max),
-	     pba->error_message,
-	     ppt->error_message);
+  /* value of l at which limber approximation is switched on */
+  int l_limber;
 
-  /******************* UNDER DEVELOPMENT *****************/
-  /* new time sampling */
-  
-  int selection_resolution = 50;
-
-  double delta_tau = (tau_max-tau_min)/(double)selection_resolution;
-
-  delta_tau = min(delta_tau, 
-		  0.5*2*_PI_*tau0/ppt->l_scalar_max/ppr->k_scalar_max_tau0_over_l_max);
-
-  // no! must replace by min(delta_tau,1/ptr->k[index_mode][ptr->k_size[index_mode]-1])
-
-  *tau_size = (int)((tau_max-tau_min)/delta_tau);
-  
-  *tau_size = min(*tau_size,ppt->tau_size);
-
-  class_test(*tau_size > ppt->tau_size,
+  /* time interval for this bin */
+  class_call(transfer_selection_times(ppr,
+				      pba,
+				      ppt,
+				      ptr,
+				      bin,
+				      &tau_min,
+				      &tau_mean,
+				      &tau_max),
 	     ptr->error_message,
-	     "the selection function needs to be resolved with %d points, while the maximum is %d\n",
-	     *tau_size,
-	     ppt->tau_size);
-
-  fprintf(stderr,"%d\n",*tau_size);
-
-  /* check that selection_delta_tau is sufficiently small so that, in
-     the convolution with bessel function, two consecutive points
-     would not cause a variation of j_l(x) by more than one period,
-     even for the largest k mode */
-  /*
-  ppt->selection_delta_tau=min(ppt->selection_delta_tau,
-			       2*_PI_*pba->conformal_age/ppt->l_scalar_max/ppr->k_scalar_max_tau0_over_l_max);
-  */
-  /************************************************************************/
+	     ptr->error_message);
 
   /* define new sampled values of (tau0-tau) with even spacing */
-  for (index_tau=0;index_tau<*tau_size;index_tau++) {
-    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)*tau_size-1.)*(tau_max-tau_min);
+  for (index_tau=0; index_tau<tau_size; index_tau++) {
+    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau_max-tau_min);
   }
 
   /* array of source values for a given time and for all k's */
@@ -1523,7 +1605,7 @@ int transfer_source_resample(
 	      ptr->error_message);
 
   /* interpolate the sources linearily at the new time values */
-  for (index_tau=0;index_tau<*tau_size;index_tau++) {
+  for (index_tau=0; index_tau<tau_size; index_tau++) {
 
     class_call(array_interpolate_two(ppt->tau_sampling,
 				     1,
@@ -1541,12 +1623,85 @@ int transfer_source_resample(
 
     /* for each k, copy the new values in the output sources array */
     for (index_k_tr=0;index_k_tr<ptr->k_size[index_mode];index_k_tr++) {
-      sources[index_k_tr * *tau_size + index_tau] = source_at_tau[index_k_tr];
+      sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
     }
   } 
 
   /* deallocate the temporary array */
   free(source_at_tau);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * for each selection function, compute the min, mean and max values
+ * of conformal time 9associated to the min, mean and max values of
+ * redshift specified by the user)
+ *
+ * @param ppr                   Input : pointer to precision structure
+ * @param pba                   Input : pointer to background structure
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param bin                   Input : redshift bin number
+ * @param tau_min               Output: smallest time in the selection interval
+ * @param tau_mean              Output: time corresponding to z_mean
+ * @param tau_max               Output: largest time in the selection interval
+ * @return the error status
+ */
+
+int transfer_selection_times(
+			     struct precision * ppr,
+			     struct background * pba,
+			     struct perturbs * ppt,
+			     struct transfers * ptr,
+			     int bin,
+			     double * tau_min,
+			     double * tau_mean,
+			     double * tau_max) {
+
+  /* a value of redshift */
+  double z;
+
+  /* lower edge of time interval for this bin */
+  
+  if (ppt->selection==gaussian) {
+    z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
+  }
+  else {
+    z = ppt->selection_mean[bin]+ppt->selection_width[bin];
+  }
+  
+  class_call(background_tau_of_z(pba,
+				 z,
+				 tau_min),
+	     pba->error_message,
+	     ppt->error_message);
+  
+  /* higher edge of time interval for this bin */
+  
+  if (ppt->selection==gaussian) {
+    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
+  }
+  else {
+    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin],0.);
+  }
+  
+  class_call(background_tau_of_z(pba,
+				 z,
+				 tau_max),
+	     pba->error_message,
+	     ppt->error_message);
+
+  /* central value of time interval for this bin */
+  
+  z = max(ppt->selection_mean[bin],0.);
+
+  class_call(background_tau_of_z(pba,
+				 z,
+				 tau_mean),
+	     pba->error_message,
+	     ppt->error_message);
 
   return _SUCCESS_;
 

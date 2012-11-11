@@ -147,7 +147,19 @@ extern "C" {
 					 struct transfers * ptr,
 					 int index_mode,
 					 int * tp_of_tt
-				   );
+					 );
+  
+  int transfer_source_tau_size(
+			       struct precision * ppr,
+			       struct background * pba,
+			       struct perturbs * ppt,
+			       struct transfers * ptr,
+			       double tau_rec,
+			       double tau0,
+			       int index_mode,
+			       int index_tt,
+			       int * tau_size
+			       );
 
   int transfer_interpolate_sources(
 				   struct perturbs * ppt,
@@ -195,12 +207,22 @@ extern "C" {
 			       struct transfers * ptr,
 			       int bin,
 			       double * tau0_minus_tau,
-			       int * tau_size,
+			       int tau_size,
 			       int index_mode,
 			       double tau0,
 			       double * interpolated_sources,
 			       double * sources);
 
+  int transfer_selection_times(
+			       struct precision * ppr,
+			       struct background * pba,
+			       struct perturbs * ppt,
+			       struct transfers * ptr,
+			       int bin,
+			       double * tau_min,
+			       double * tau_mean,
+			       double * tau_max);
+  
   int transfer_selection_compute(
 				 struct background * pba,
 				 struct perturbs * ppt,
