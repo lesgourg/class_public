@@ -208,7 +208,7 @@ int ClassEngine::class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  if (nonlinear_init(ppr,pba,pth,ppm,psp,pnl) == _FAILURE_) {
+  if (nonlinear_init(ppr,pba,pth,ppt,pbs,ptr,ppm,psp,pnl) == _FAILURE_) {
     printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
     spectra_free(&sp);
     primordial_free(&pm);

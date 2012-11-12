@@ -278,46 +278,49 @@ int sp_refactor(sp_num *N, sp_mat *A){
 }
 
 int column_grouping(sp_mat *G, int *col_g, int *filled){
-	int curcol,testcol,groupnum,fitted,neq;
-	int i, *Ap, *Ai;
-	
-	neq = G->ncols;	Ai = G->Ai; Ap = G->Ap;
-	for(i=0;i<neq;i++) col_g[i]=-1;
+  int testcol,groupnum,fitted,neq;
+  int i, *Ap, *Ai,done;
+
+  neq = G->ncols;
+  Ai = G->Ai; Ap = G->Ap;
+  for(i=0;i<neq;i++)
+    col_g[i]=-1;
   
-	groupnum=-1;
-	for(curcol=0;curcol<neq;curcol++){
-		/*Loop through columns..*/
-		if (col_g[curcol]==-1){
-			/* If current column is not in a group,
-			go to next(first) group and assign groupnum to current column: */
-			groupnum++;
-			col_g[curcol] = groupnum;
-			/* put fillness vector equal to current column */
-			for(i=0;i<neq;i++) filled[i]=0;
-			for(i=Ap[curcol];i<Ap[curcol+1];i++) filled[Ai[i]] = 1; /* A bit convoluted, but it should do it..*/
-			/* Try to fit any of the ungrouped columns into this group: */
-			for (testcol=(curcol+1);testcol<neq;testcol++){
-				if (col_g[testcol]==-1){
-					/* loop over row numbers in testcol. If a row number is already filled, break and go to next column.*/
-					fitted = 1;
-					for(i=Ap[testcol];i<Ap[testcol+1];i++){
-						if (filled[Ai[i]] == 1){
-							/* We have hit an existing entry */
-							fitted=0;
-							break;
-						}
-					}
-					if (fitted){
-						/* Membership accepted..*/
-						col_g[testcol] = groupnum;
-						/* Add to filled.. */
-						for(i=Ap[testcol];i<Ap[testcol+1];i++) filled[Ai[i]]=1;
-					}
-				}
-			}
-		}
+  for(groupnum=0; groupnum<neq; groupnum++){
+    //Reset filled vector:
+    for (i=0; i<neq; i++){
+      filled[i] = 0;
+    } 
+    //Try to assign remaining columns to current group:
+    done = _TRUE_;
+    for (testcol=0; testcol<neq; testcol++){
+      if (col_g[testcol]!=-1){
+	continue;
+      }
+      done = _FALSE_;
+      //Is current testcol in conflict with the groups filling vector?
+      fitted = _TRUE_;
+      for (i=Ap[testcol]; i<Ap[testcol+1]; i++){
+	if (filled[Ai[i]] != 0){
+	  fitted = _FALSE_;
+	  break;
 	}
-	return groupnum;
+      }
+      if (fitted == _TRUE_){
+	//Test succesfull
+	col_g[testcol] = groupnum;
+	for (i=Ap[testcol]; i<Ap[testcol+1]; i++){
+	  filled[Ai[i]] = 1;
+	}
+      }
+    }
+    if (done == _TRUE_){
+      //No columns remaining.
+      //No column belongs to current groupnum.
+      break;
+    }
+  }
+  return (groupnum-1);
 }
 
 int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){

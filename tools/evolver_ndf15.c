@@ -889,7 +889,7 @@ int new_linearisation(struct jacobian *jac,double hinvGak,int neq,ErrorMsg error
       }
     }
     /* Matrix constructed... */
-    if((jac->new_jacobian==_TRUE_)&&(jac->repeated_pattern<1)){
+    if(jac->new_jacobian==_TRUE_){
       /*I have a new pattern, and I have not done a LU decomposition 
 	since the last jacobian calculation, so	I need to do a full 
 	sparse LU-decomposition: */
