@@ -100,6 +100,11 @@ cdef extern from "class.h":
     ErrorMsg error_message 
     int l_max_tot
     int ln_k_size
+    int ct_size
+    int index_ct_tt
+    int index_ct_te
+    int index_ct_ee
+    int index_ct_bb
     double* ln_k
     double sigma8
 
@@ -507,8 +512,7 @@ cdef class Class:
 
   def raw_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
-    cdef np.ndarray cl
-    cdef double lcl[4]
+    cdef double *lcl = <double*> calloc(self.sp.ct_size,sizeof(double))
     
     lmaxR = self.sp.l_max_tot
     if lmax==-1:
@@ -519,24 +523,25 @@ cdef class Class:
         self._compute(["lensing"])
       else:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
-    self._compute(["spectra"])
-    
 
-    # TODO: modify this function as in lensed_cl
-    cl = np.ndarray([4,lmax+1], dtype=np.double)
-    cl[:2]=0
-    lcl[0]=lcl[1]=lcl[2]=lcl[3] = 0
+    cl = {}
+    for elem in ['tt','te','ee','bb']:
+      cl[elem] = np.ndarray(lmax+1, dtype=np.double)
+      cl[elem][:2]=0
     for ell from 2<=ell<lmax+1:
       if spectra_cl_at_l(&self.sp,ell,lcl,NULL,NULL) == _FAILURE_:
         raise ClassError(self.sp.error_message) 
-      for md from 0<=md<4:
-        cl[md,ell] = lcl[md]
+      cl['tt'][ell] = lcl[self.sp.index_ct_tt]
+      cl['te'][ell] = lcl[self.sp.index_ct_te]
+      cl['ee'][ell] = lcl[self.sp.index_ct_ee]
+      cl['bb'][ell] = lcl[self.sp.index_ct_bb]
+
+    free(lcl)  
     return cl
 
-  # Only tested and working function
   def lensed_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
-    cdef double lcl[4]
+    cdef double *lcl = <double*> calloc(self.sp.ct_size,sizeof(double))
     lmaxR = self.le.l_lensed_max
     
     if lmax==-1:
@@ -552,7 +557,6 @@ cdef class Class:
     for elem in ['tt','te','ee','bb']:
       cl[elem] = np.ndarray(lmax+1, dtype=np.double)
       cl[elem][:2]=0
-      #lcl[0]=lcl[1]=lcl[2]=lcl[3] = 0
     for ell from 2<=ell<lmax+1:
       if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
         raise ClassError(self.le.error_message) 
@@ -561,6 +565,7 @@ cdef class Class:
       cl['ee'][ell] = lcl[self.le.index_lt_ee]
       cl['bb'][ell] = lcl[self.le.index_lt_bb]
 
+    free(lcl)  
     return cl
     
   def z_of_r (self,z_array):
