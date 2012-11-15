@@ -493,17 +493,7 @@ struct perturb_parameters_and_workspace {
 			   struct thermo * pth,
 			   struct perturbs * ppt,
 			   int index_mode);
-    /*
-    int perturb_selection_initialize(
-				     struct precision * ppr,
-				     struct background * pba,
-				     struct perturbs * ppt);
 
-    int perturb_selection_compute(
-				     struct precision * ppr,
-				     struct background * pba,
-				     struct perturbs * ppt);
-    */
     int perturb_workspace_init(
 			       struct precision * ppr,
 			       struct background * pba,

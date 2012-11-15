@@ -1063,11 +1063,7 @@ int transfer_source_tau_size(
       
       l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density];
     
-      fprintf(stderr,"Limber for l>%d\n",l_limber);
-
       *tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
-
-      fprintf(stderr,"%d\n",*tau_size);
 
     }
   }
