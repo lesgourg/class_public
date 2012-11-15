@@ -482,12 +482,9 @@ struct precision
    */
   double tol_tau_approx;
 
-  /** in sigma units, where to cut gaussian selection functions */
-  double selection_cut_at_sigma;
-  
-  /** when to use the Limber approximation for density cl's */
-  double l_switch_limber_for_cl_density_over_z;
-
+  /**
+   * method for switching off photon perturbations
+   */
   int radiation_streaming_approximation;
 
   /**
@@ -573,6 +570,18 @@ struct precision
 
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;
+
+  /** when to use the Limber approximation for density cl's (relative to central redshift of each bin) */
+  double l_switch_limber_for_cl_density_over_z;
+
+  /** in sigma units, where to cut gaussian selection functions */
+  double selection_cut_at_sigma;
+  
+  /** controls sampling of integral over time when selection functions vary quicker than Bessel functions. Increase for better sampling. */
+  double selection_sampling; 
+
+  /** controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling */
+  double selection_sampling_bessel;
 
   //@}
 

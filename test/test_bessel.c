@@ -24,6 +24,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  /*
   if (background_init(&pr,&ba) == _FAILURE_) {
     printf("\n\nError running background_init \n=>%s\n",ba.error_message);
     return _FAILURE_;
@@ -38,6 +39,7 @@ main(int argc, char **argv) {
     printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
     return _FAILURE_;
   }
+  */
 
   if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
@@ -46,14 +48,15 @@ main(int argc, char **argv) {
 
   /****** here you could output the bessel functions ******/
 
-  int index_l=0;
+  int index_l=10;
   int index_x;
   for (index_x=0; index_x<bs.x_size[index_l]; index_x++) {
-    printf("%e %e %e\n",
+    printf("%d %e %e %e\n",
+	   bs.l[index_l],
 	   *(bs.x_min[index_l])+bs.x_step*index_x,
 	   bs.j[index_l][index_x],
-	   bs.dj[index_l][index_x],
-	   //bs.ddj[index_l][index_x],
+	   bs.ddj[index_l][index_x]);
+	   //bs.dj[index_l][index_x],
 	   //bs.dddj[index_l][index_x]);
   }
 
@@ -62,6 +65,7 @@ main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  /*
   if (perturb_free(&pt) == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);
     return _FAILURE_;
@@ -76,5 +80,6 @@ main(int argc, char **argv) {
     printf("\n\nError in background_free \n=>%s\n",ba.error_message);
     return _FAILURE_;
   }
+  */
 
 }

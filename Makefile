@@ -103,6 +103,8 @@ TEST_THERMODYNAMICS = test_thermodynamics.o
 
 TEST_BACKGROUND = test_background.o
 
+TEST_BESSEL = test_bessel.o
+
 TEST_SIGMA = test_sigma.o
 
 TEST_STEPHANE = test_stephane.o
@@ -150,6 +152,9 @@ test_thermodynamics: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(EXTERNAL) $(TES
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_background: $(TOOLS) $(INPUT) $(BACKGROUND) $(TEST_BACKGROUND)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_bessel:  $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_BESSEL)	
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON)

@@ -1047,7 +1047,7 @@ int transfer_source_tau_size(
     if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
 
       /* check that selection function well sampled */
-      *tau_size = 50; //TBA
+      *tau_size = (int)ppr->selection_sampling;
       
       /* time interval for this bin */
       class_call(transfer_selection_times(ppr,
@@ -1063,7 +1063,12 @@ int transfer_source_tau_size(
       
       l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density];
     
-      *tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber)/0.1)); //TBA
+      fprintf(stderr,"Limber for l>%d\n",l_limber);
+
+      *tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
+
+      fprintf(stderr,"%d\n",*tau_size);
+
     }
   }
 
@@ -1892,13 +1897,35 @@ int transfer_compute_for_each_l(
 
   /* whether to use the Limber approximation */
   short use_limber;
+  
+  /* whether to use a cutting scheme */
+  enum transfer_cutting use_cut;
 
   if (ptr->transfer_verbose > 2)
     printf("Compute transfer for l=%d\n",(int)l);
 
+  /** use cutting scheme for CMB **/
+  use_cut = tc_none;
+
+  if ((((ppt->has_scalars == _TRUE_) && 
+	(index_mode == ppt->index_md_scalars)) && 
+       ((ppt->has_cl_cmb_temperature == _TRUE_) && 
+	(index_tt == ptr->index_tt_t))))
+    use_cut = ppr->transfer_cut;
+
+  if ((((ppt->has_scalars == _TRUE_) && 
+	(index_mode == ppt->index_md_scalars)) && 
+       ((ppt->has_cl_cmb_polarization == _TRUE_) && 
+	(index_tt == ptr->index_tt_e))))
+    use_cut = ppr->transfer_cut;
+
+  if ((ppt->has_tensors == _TRUE_) && 
+      (index_mode == ppt->index_md_tensors))
+    use_cut = ppr->transfer_cut;
+
   /** - if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
 	      
-  if (ppr->transfer_cut == tc_osc) {
+  if (use_cut == tc_osc) {
     cut_transfer = _FALSE_;
     global_max=0.;
     global_min=0.;
@@ -1909,7 +1936,7 @@ int transfer_compute_for_each_l(
     transfer_last_last=0;
   }
 	      
-  if (ppr->transfer_cut == tc_cl) {
+  if (use_cut == tc_cl) {
     cut_transfer = _FALSE_;
     cl=0.;
     cl_var=1.;
@@ -1966,19 +1993,19 @@ int transfer_compute_for_each_l(
       printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,k,index_tt);
 		
     /* update previous transfer values in the tc_osc method */
-    if (ppr->transfer_cut == tc_osc) {
+    if (use_cut == tc_osc) {
       transfer_last_last = transfer_last;
       transfer_last = transfer_function;
     }
 		
     /* update previous relative pseudo-C_l variation in the tc_cl method */
-    if (ppr->transfer_cut == tc_cl) {
+    if (use_cut == tc_cl) {
       cl_var_last_last = cl_var_last;
       cl_var_last = cl_var;
     }
 		
     /* below k_max: compute transfer function */
-    if ((ppr->transfer_cut == tc_none) || (cut_transfer == _FALSE_)) {
+    if ((use_cut == tc_none) || (cut_transfer == _FALSE_)) {
 
       class_call(transfer_use_limber(ppr,
 				     ppt,
@@ -2009,7 +2036,7 @@ int transfer_compute_for_each_l(
       }
       else {
 	
-	if ((ppr->transfer_cut == tc_env) &&
+	if ((use_cut == tc_env) &&
 	    (((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) || 
 	     ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_t)))) {
 	  
@@ -2066,7 +2093,7 @@ int transfer_compute_for_each_l(
     
     /* in the tc_osc case, update various quantities and 
        check wether k_max is reached */
-    if ((ppr->transfer_cut == tc_osc) && (index_k>=2)) {
+    if ((use_cut == tc_osc) && (index_k>=2)) {
       
       /* detect local/global maximum of \f$ \Delta_l(k) \f$; 
 	 if detected, check the criteria for reaching k_max */
@@ -2095,7 +2122,7 @@ int transfer_compute_for_each_l(
     }
 		
     /* in the tc_cl case, update various quantities and check wether k_max is reached */
-    if ((ppr->transfer_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
+    if ((use_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
 		  
       /* rough estimate of the contribution of the last step to pseudo-C_l, 
 	 assuming flat primordial spectrum */
@@ -2161,7 +2188,6 @@ int transfer_use_limber(
 
   return _SUCCESS_;
 }
-      
 
 /**
  * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
@@ -2245,7 +2271,51 @@ int transfer_integrate(
 
   /** (c) integrate with trapezoidal method */
     
-  /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
+  /* Note on the trapezoidal method used here:
+ 
+     Take a function y(x) sampled in n points [x_0, ..., x_{n-1}].
+     The integral Sigma=int_{x_0}^{x_{n-1}} y(x) dx can be written as:
+     
+     sigma = sum_0^{n-2} [0.5 * (y_i+y_{i+1}) * (x_{i+1}-x_i)]
+           = 0.5 * sum_0^{n-1} [y_i * delta_i]
+     
+     with delta_0     = x_1 - x_0
+          delta_i     = x_{i+1} - x_{i-1}
+	  delta_{n-1} = x_{n-1} - x_{n-2}
+
+     We will use the second expression (we have already defined
+     delta_tau as the above delta_i).
+
+     Suppose that we want to truncate the integral at some x_trunc <
+     x_{n-1}, knowing that y(x_trunc)=0. We are in this case, with
+     x-trunc corresponding to x_min of the bessel function. Let i_max
+     be the last index such that y is non-zero: 
+
+     x_{i_max} < x_trunc < x_{i_max+1}.
+
+     We must adapt the formula above, with the last point being
+     x_trunc, and knowing that y(x_trunc)=0:
+
+     sigma = 0.5 * sum_0^{i_trunc-1} [y_i * delta_i]
+           + 0.5 * y_{i_trunc} * (x_trunc - x_{i_max-1}) 
+	   + 0.      
+	   
+     Below we willuse exactly this expression, strating form the last term 
+     [y_{i_trunc} * (x_trunc - x_{i_max-1})],
+     then adding all the terms
+      [y_i * delta_i],
+      and finally multiplying by 0.5
+
+      There is just one exception to the formula: the case when
+      x_0<x_trunc<x_1, so that i_max=0. Then
+      
+      sigma = 0.5 * x_0 * (x_trunc-x_0)
+
+      This exception is taken into account below.
+   	   
+  */
+
+  /* Edge of the integral */
   
   x = k * tau0_minus_tau[index_tau_max];
 
@@ -2253,21 +2323,55 @@ int transfer_integrate(
   
   a = (x_min_l+x_step*(index_x+1) - x)/x_step;
   
+  /*
+  if (l==2. && index_k==60) {
+        printf("%e %e %e %e %e %e %e %e %e %e\n",
+	   k,
+	   tau0_minus_tau[index_tau_max],
+	   sources[index_k * tau_size + index_tau_max],
+	   (a*j_l[index_x]+(1.-a) *( j_l[index_x+1]
+				     - a * ((a+1.) * ddj_l[index_x]
+					 
+   +(2.-a) * ddj_l[index_x+1]) 
+				     * x_step * x_step / 6.0)),
+	   (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel),
+	   a,
+	   j_l[index_x],
+	   j_l[index_x+1],
+	   ddj_l[index_x],
+	   ddj_l[index_x+1]
+	   );
+  }
+  */
+
   transfer = sources[index_k * tau_size + index_tau_max] /* source */
-    * (a * j_l[index_x] +                                /* bessel (cubic spline interpolation) */
+    * (a * j_l[index_x] +                                /* bessel */
        (1.-a) * (j_l[index_x+1]
 		 - a * ((a+1.) * ddj_l[index_x]
 			+(2.-a) * ddj_l[index_x+1]) 
 		 * x_step * x_step / 6.0) );
-  
-  if (index_tau_max > 0)
-    transfer *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
-  else
-    transfer *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
+
+  /* (for bessel function cubic spline interpolation, we could have called the
+     subroutine bessel_at_x; however we perform operations directly here
+     in order to speed up the code) */
+
+  // case with no truncation: normal edge:
+  if (index_tau_max == tau_size-1) {
+    transfer *=  delta_tau[index_tau_max];
+  }
+  // case with truncation at tau0_minus_tau_min_bessel:
+  else {
+    if (index_tau_max > 0)
+      // case with several points in the integral
+      transfer *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
+    else
+      // case with only one non-zero point y(x_0) in the integral
+      transfer *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
+  }
+
+  /* rest of the integral */
 
   for (index_tau=0; index_tau<index_tau_max; index_tau++) {
-    
-    /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
     
     x = k * tau0_minus_tau[index_tau];
     
@@ -2275,14 +2379,39 @@ int transfer_integrate(
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
     
+    /*
+    if (l==2. && index_k==60) {
+      printf("%e %e %e %e %e %e %e %e %e %e\n",
+	     k,
+	     tau0_minus_tau[index_tau],
+	     sources[index_k * tau_size + index_tau],
+	     (a*j_l[index_x]+(1.-a) *( j_l[index_x+1]
+				       - a * ((a+1.) * ddj_l[index_x]
+					      
+					      +(2.-a) * ddj_l[index_x+1]) 
+				       * x_step * x_step / 6.0)),
+	     delta_tau[index_tau],
+	     a,
+	     j_l[index_x],
+	     j_l[index_x+1],
+	     ddj_l[index_x],
+	     ddj_l[index_x+1]
+	     );
+    }
+    */
+
     transfer += sources[index_k * tau_size + index_tau] /* source */
-      * (a * j_l[index_x]                               /* bessel (cubic spline interpolation) */
+      * (a * j_l[index_x]                               /* bessel */
 	 + (1.-a) * ( j_l[index_x+1]
 		      - a * ((a+1.) * ddj_l[index_x]
 			     +(2.-a) * ddj_l[index_x+1]) 
 		      * x_step * x_step / 6.0)) 
       * delta_tau[index_tau];                           /* dtau */
 
+    /* (for bessel function cubic spline interpolation, we could have called the
+       subroutine bessel_at_x; however we perform operations directly here
+       in order to speed up the code) */
+    
   }
   
   *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */
@@ -2327,20 +2456,45 @@ int transfer_limber(
 
   /* conformal time at which source must be computed */
   double tau0_minus_tau_limber;
-  double transfer;
+  int index_tau;
+
+  /* interpolated source and its derivatives at this value */
+  double S, dS, ddS;
 
   /** - get k, l and infer tau such that k(tau0-tau)=l+1/2; 
       check that tau is in appropriate range */
 
   tau0_minus_tau_limber = (l+0.5)/k;
 
-  if (tau0_minus_tau_limber > tau0_minus_tau[0]) {
+  if ((tau0_minus_tau_limber > tau0_minus_tau[0]) || 
+      (tau0_minus_tau_limber < tau0_minus_tau[tau_size-1])) {
     *trsf = 0.;
     return _SUCCESS_;
   }
 
-  /** - get source at this value tau */
+  /** - find  bracketing indices */
+  index_tau=0;
+  while ((tau0_minus_tau[index_tau] > tau0_minus_tau_limber) && (index_tau<tau_size-2))
+    index_tau++;
 
+  /** - interpolate by fitting a polynomial of order two; get source
+        and its first two derivatives */
+  class_call(array_interpolate_parabola(tau0_minus_tau[index_tau-1],
+					tau0_minus_tau[index_tau],
+					tau0_minus_tau[index_tau+1],
+					tau0_minus_tau_limber,
+					sources[index_k*tau_size+index_tau-1],
+					sources[index_k*tau_size+index_tau],
+					sources[index_k*tau_size+index_tau+1],
+					&S,
+					&dS,
+					&ddS,
+					ptr->error_message),
+	     ptr->error_message,
+	     ptr->error_message);
+
+  /** - less precise approach: simple limear interpolation */
+  /*
   class_call(array_interpolate_two_arrays_one_column(
 						     tau0_minus_tau,
 						     sources,
@@ -2348,16 +2502,98 @@ int transfer_limber(
 						     index_k,
 						     tau_size,
 						     tau0_minus_tau_limber,
-						     &transfer,
+						     &S,
 						     ptr->error_message),
 	     ptr->error_message,
 	     ptr->error_message);
+  */
 
   /** - get transfer = source * sqrt(pi/(2l+1))/k */
 
-  transfer *= sqrt(_PI_/(2.*l+1.))/k;
+  *trsf = sqrt(_PI_/(2.*l+1.))/k*S;
+
+  return _SUCCESS_;
   
-  *trsf = transfer;
+}
+
+/**
+ * This routine computes the transfer functions \f$ \Delta_l^{X} (k)
+ * \f$) for each mode, initial condition, type, multipole l and
+ * wavenumber k, by using the Limber approximation at ordet two, i.e
+ * as a function of the source function and its first two derivatives
+ * at a single value of tau
+ *
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param tau0                  Input : conformal time today
+ * @param index_mode            Input : index of mode
+ * @param index_tt              Input : index of type
+ * @param index_l               Input : index of multipole
+ * @param index_k               Input : index of wavenumber
+ * @param interpolated_sources  Input: array of interpolated sources
+ * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
+ * @return the error status
+ */
+
+int transfer_limber2(
+		    int tau_size,
+		    struct transfers * ptr,
+		    int index_mode,
+		    int index_k,
+		    double l,
+		    double k,
+		    double * tau0_minus_tau,
+		    double * sources, 
+		    double * trsf
+		    ){
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  /* conformal time at which source must be computed */
+  double tau0_minus_tau_limber;
+  int index_tau;
+
+  /* interpolated source and its derivatives */
+  double S, dS, ddS;
+
+  /** - get k, l and infer tau such that k(tau0-tau)=l+1/2; 
+      check that tau is in appropriate range */
+
+  tau0_minus_tau_limber = (l+0.5)/k;
+
+  if ((tau0_minus_tau_limber > tau0_minus_tau[0]) || 
+      (tau0_minus_tau_limber < tau0_minus_tau[tau_size-1])) {
+    *trsf = 0.;
+    return _SUCCESS_;
+  }
+
+  /** - find  bracketing indices */
+  index_tau=0;
+  while ((tau0_minus_tau[index_tau] > tau0_minus_tau_limber) && (index_tau<tau_size-2))
+    index_tau++;
+
+  /** - interpolate by fitting a polynomial of order two; get source
+        and its first two derivatives */
+  class_call(array_interpolate_parabola(tau0_minus_tau[index_tau-1],
+					tau0_minus_tau[index_tau],
+					tau0_minus_tau[index_tau+1],
+					tau0_minus_tau_limber,
+					sources[index_k*tau_size+index_tau-1],
+					sources[index_k*tau_size+index_tau],
+					sources[index_k*tau_size+index_tau+1],
+					&S,
+					&dS,
+					&ddS,
+					ptr->error_message),
+	     ptr->error_message,
+	     ptr->error_message);
+	     
+
+  /** - get transfer from 2nd order Limber approx (infered from 0809.5112 [astro-ph]) */
+
+  *trsf = sqrt(_PI_/(2.*l+1.))/k*((1.-3./2./(2.*l+1.)/(2.*l+1.))*S+dS/k/(2.*l+1.)-0.5*ddS/k/k);
 
   return _SUCCESS_;
   

@@ -284,6 +284,18 @@ extern "C" {
 		      double * trsf
 		      );
   
+  int transfer_limber2(
+		       int tau_size,
+		       struct transfers * ptr,
+		       int index_mode,
+		       int index_k,
+		       double l,
+		       double k,
+		       double * tau0_minus_tau,
+		       double * sources,
+		       double * trsf
+		       );
+  
   int transfer_envelop(
 		       int tau_size,
 		       int index_k,

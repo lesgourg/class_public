@@ -1378,9 +1378,6 @@ int input_init(
   class_read_double("tol_perturb_integration",ppr->tol_perturb_integration);
   class_read_double("perturb_sampling_stepsize",ppr->perturb_sampling_stepsize);
 
-  class_read_double("selection_cut_at_sigma",ppr->selection_cut_at_sigma);
-  class_read_double("l_switch_limber_for_cl_density_over_z",ppr->l_switch_limber_for_cl_density_over_z);
-
   class_read_int("radiation_streaming_approximation",ppr->radiation_streaming_approximation);
   class_read_double("radiation_streaming_trigger_tau_over_tau_k",ppr->radiation_streaming_trigger_tau_over_tau_k);
   class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
@@ -1438,6 +1435,10 @@ int input_init(
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
   class_read_double("l_switch_limber",ppr->l_switch_limber);
+  class_read_double("l_switch_limber_for_cl_density_over_z",ppr->l_switch_limber_for_cl_density_over_z);
+  class_read_double("selection_cut_at_sigma",ppr->selection_cut_at_sigma);
+  class_read_double("selection_sampling",ppr->selection_sampling);
+  class_read_double("selection_sampling_bessel",ppr->selection_sampling_bessel);
 
   /** h.7. parameters related to nonlinear calculations */
 
@@ -1930,9 +1931,6 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_perturb_integration=1.e-4;
   ppr->perturb_sampling_stepsize=0.08;
 
-  ppr->selection_cut_at_sigma=5.;
-  ppr->l_switch_limber_for_cl_density_over_z=40.;
-
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.; 
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
@@ -1984,6 +1982,11 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */
 
   ppr->l_switch_limber=10.;
+  ppr->l_switch_limber_for_cl_density_over_z=30.;
+
+  ppr->selection_cut_at_sigma=5.;
+  ppr->selection_sampling=50;
+  ppr->selection_sampling_bessel=20;
 
   /**
    * - parameters related to spectra module

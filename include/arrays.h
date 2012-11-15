@@ -361,6 +361,18 @@ extern "C" {
 				    double * result,
 				    ErrorMsg errmsg);
     
+  int array_interpolate_parabola(double x1,
+				 double x2,
+				 double x3,
+				 double x,
+				 double y1,
+				 double y2,
+				 double y3,
+				 double * y,
+				 double * dy,
+				 double * ddy,
+				 ErrorMsg errmsg);
+
   int array_smooth(double * array,
 		   int n_columns,
 		   int n_lines,

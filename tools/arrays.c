@@ -2526,6 +2526,47 @@ int array_interpolate_cubic_equal(
   return _SUCCESS_;
 }
 
+int array_interpolate_parabola(double x1,
+			       double x2,
+			       double x3,
+			       double x,
+			       double y1,
+			       double y2,
+			       double y3,
+			       double * y,
+			       double * dy,
+			       double * ddy,
+			       ErrorMsg errmsg) {
+  
+  double a,b,c;
+  
+  /*
+    a x_i**2 + b x_i + c = y_i
+    
+    a (x1**2-x2**2) + b (x1-x2) = y1-y2
+    a (x3**2-x2**2) + b (x3-x2) = y3-y2
+    
+    a (x1**2-x2**2)(x3**2-x2**2) + b (x1-x2)(x3**2-x2**2) = (y1-y2)(x3**2-x2**2)
+    a (x3**2-x2**2)(x1**2-x2**2) + b (x3-x2)(x1**2-x2**2) = (y3-y2)(x1**2-x2**2)
+    
+    b = [(y1-y2)(x3**2-x2**2) - (y3-y2)(x1**2-x2**2)]/(x1-x2)(x3-x2)(x3-x1)
+    
+  */
+  
+  b = ((y1-y2)*(x3-x2)*(x3+x2) - (y3-y2)*(x1-x2)*(x1+x2))/(x1-x2)/(x3-x2)/(x3-x1);
+  
+  a = (y1-y2-b*(x1-x2))/(x1-x2)/(x1+x2);
+  
+  c = y2 - b*x2 - a*x2*x2;
+  
+  *y = a*x*x + b*x + c;
+  *dy = 2.*a*x + b;
+  *ddy = 2.*a;
+  
+  return _SUCCESS_;
+  
+}
+
 /** 
  * Called by transfer_solve().
  */
