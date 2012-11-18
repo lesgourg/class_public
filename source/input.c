@@ -1439,6 +1439,7 @@ int input_init(
   class_read_double("selection_cut_at_sigma",ppr->selection_cut_at_sigma);
   class_read_double("selection_sampling",ppr->selection_sampling);
   class_read_double("selection_sampling_bessel",ppr->selection_sampling_bessel);
+  class_read_double("selection_tophat_edge",ppr->selection_tophat_edge);
 
   /** h.7. parameters related to nonlinear calculations */
 
@@ -1987,6 +1988,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->selection_cut_at_sigma=5.;
   ppr->selection_sampling=50;
   ppr->selection_sampling_bessel=20;
+  ppr->selection_tophat_edge=0.1;
 
   /**
    * - parameters related to spectra module

@@ -583,6 +583,9 @@ struct precision
   /** controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling */
   double selection_sampling_bessel;
 
+  /** controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
+  double selection_tophat_edge;
+
   //@}
 
   /** @name - parameters related to spectra */

@@ -194,6 +194,7 @@ extern "C" {
 				      );
 
   int transfer_selection_function(
+				  struct precision * ppr,
 				  struct perturbs * ppt,
 				  struct transfers * ptr,
 				  int bin,
@@ -224,6 +225,7 @@ extern "C" {
 			       double * tau_max);
   
   int transfer_selection_compute(
+				 struct precision * ppr,
 				 struct background * pba,
 				 struct perturbs * ppt,
 				 struct transfers * ptr,

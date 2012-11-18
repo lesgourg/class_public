@@ -1374,7 +1374,8 @@ int transfer_sources(
 		   ptr->error_message);
 
 	/* compute values of selection function at sampled values of tau */
-	class_call(transfer_selection_compute(pba,
+	class_call(transfer_selection_compute(ppr,
+					      pba,
 					      ppt,
 					      ptr,
 					      selection,
@@ -1511,24 +1512,56 @@ int transfer_integration_time_steps(
  */
 
 int transfer_selection_function(
+				struct precision * ppr,
 				struct perturbs * ppt,
 				struct transfers * ptr,
 				int bin,
 				double z,
 				double * selection) {
 
+  double x;
+
+  /* difference between z and the bin center (we can take the absolute
+     value as long as all selection functions are symmetric around
+     x=0) */
+  x=fabs(z-ppt->selection_mean[bin]);
+
   /* gaussian case (the function is anyway normalized later
      automatically, but could not resist to normalize it already
      here) */
   if (ppt->selection==gaussian) {
-    *selection = exp(-0.5*pow((z-ppt->selection_mean[bin])/ppt->selection_width[bin],2))
+
+    *selection = exp(-0.5*pow(x/ppt->selection_width[bin],2))
       /ppt->selection_width[bin]/sqrt(2.*_PI_);
+
+    return _SUCCESS_;
   }
   
-  /* top-hat case, still under developement */
-  else {
-    *selection = 0.5/ppt->selection_width[bin];
+  /* top-hat case, with smoothed edges. The problem with sharp edges
+     is that the final result will be affected by random
+     noise. Indeed, the values of k at which the transfer functions
+     Delta_l(k) are sampled will never coicide with the actual edges
+     of the true transfer function (computed with or even without the
+     Limber approximation). Hence the integral Cl=\int dk
+     Delta_l(k)**2 (...) will be unprecise and will fluctuate randomly
+     with the resolution along k. With smooth edges, the problemeis
+     sloved, and the final Cls become mildly dependent on the
+     resolution along k. */
+  if (ppt->selection==tophat) {
+    
+    /* selection function, centered on z=mean (i.e. on x=0), equal to
+       one around x=0, with tanh step centered on x=width, of width
+       delta x = 0.1*width
+    */
+    *selection=(1.-tanh((x-ppt->selection_width[bin])/(ppr->selection_tophat_edge*ppt->selection_width[bin])))/2.;
+  
+    return _SUCCESS_;
   }
+
+  /* get here only if selection type was recognized */
+
+  class_stop(ptr->error_message,
+	     "invalid choice of selection function");
 
   return _SUCCESS_;
 }
@@ -1669,8 +1702,8 @@ int transfer_selection_times(
   if (ppt->selection==gaussian) {
     z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
   }
-  else {
-    z = ppt->selection_mean[bin]+ppt->selection_width[bin];
+  if (ppt->selection==tophat) {
+    z = ppt->selection_mean[bin]+(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[bin];
   }
   
   class_call(background_tau_of_z(pba,
@@ -1684,8 +1717,8 @@ int transfer_selection_times(
   if (ppt->selection==gaussian) {
     z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
   }
-  else {
-    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin],0.);
+  if (ppt->selection==tophat) {
+    z = max(ppt->selection_mean[bin]-(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[bin],0.);
   }
   
   class_call(background_tau_of_z(pba,
@@ -1726,6 +1759,7 @@ int transfer_selection_times(
  */
 
 int transfer_selection_compute(
+			       struct precision * ppr,
 			       struct background * pba,
 			       struct perturbs * ppt,
 			       struct transfers * ptr,
@@ -1772,7 +1806,8 @@ int transfer_selection_compute(
     z = pba->a_today/pvecback[pba->index_bg_a]-1.;
 
     /* get corresponding dN/dz(z,bin) */
-    class_call(transfer_selection_function(ppt,
+    class_call(transfer_selection_function(ppr,
+					   ppt,
 					   ptr,
 					   bin,
 					   z,
@@ -2318,9 +2353,9 @@ int transfer_integrate(
   index_x = (int)((x-x_min_l)/x_step);
   
   a = (x_min_l+x_step*(index_x+1) - x)/x_step;
-  
-  /*
-  if (l==2. && index_k==60) {
+
+  /*  
+  if (l==10. && index_k==60) {
         printf("%e %e %e %e %e %e %e %e %e %e\n",
 	   k,
 	   tau0_minus_tau[index_tau_max],
@@ -2374,8 +2409,8 @@ int transfer_integrate(
     index_x = (int)((x-x_min_l)/x_step);
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
-    
-    /*
+
+    /*    
     if (l==2. && index_k==60) {
       printf("%e %e %e %e %e %e %e %e %e %e\n",
 	     k,
