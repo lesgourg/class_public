@@ -1004,6 +1004,11 @@ int input_init(
     if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
       ple->has_lensed_cls = _TRUE_;
     }
+
+    class_read_double("lcmb_rescale",ptr->lcmb_rescale);
+    class_read_double("lcmb_tilt",ptr->lcmb_tilt);
+    class_read_double("lcmb_pivot",ptr->lcmb_pivot);
+
   }
 
   if (ppt->has_pk_matter == _TRUE_) {
@@ -1755,6 +1760,9 @@ int input_default_params(
   ppt->selection=gaussian;
   ppt->selection_mean[0]=1.;
   ppt->selection_width[0]=0.1;
+  ptr->lcmb_rescale=1.;
+  ptr->lcmb_pivot=0.1;
+  ptr->lcmb_tilt=0.;
 
   /** - output structure */ 
 
@@ -1775,7 +1783,7 @@ int input_default_params(
   /** - lensing structure */
 
   ple->has_lensed_cls = _FALSE_;
-
+ 
   /** - nonlinear structure */ 
 
   pnl->method = nl_none;

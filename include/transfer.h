@@ -21,6 +21,23 @@
 
 struct transfers {
 
+  /** @name - input parameters initialized by user in input module
+   *  (all other quantitites are computed in this module, given these
+   *  parameters and the content of previous structures) */
+  
+  //@{
+
+  double lcmb_rescale; /**< normally set to one, can be used
+			  excelptionally to rescale by hand the CMB
+			  lensing potential */
+  double lcmb_tilt;    /**< normally set to zero, can be used
+			  excelptionally to tilt by hand the CMB
+			  lensing potential */
+  double lcmb_pivot;   /**< if lcmb_tilt non-zero, corresponding pivot
+			  scale */
+
+  //@}
+
   /** @name - flag stating whether we need transfer functions at all */
 
   //@{

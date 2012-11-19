@@ -1319,7 +1319,8 @@ int transfer_sources(
 	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) { 
 	    sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
 	      interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-	      * rescaling;
+	      * rescaling
+	      * pow(ptr->k[index_mode][index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
 	  }
 	  
           /* store value of (tau0-tau) */
