@@ -70,6 +70,10 @@ cdef extern from "class.h":
     double rs_rec
     double ds_rec
     double da_rec
+    double z_d
+    double tau_d
+    double ds_d
+    double rs_d
     double YHe
 
   cdef struct perturbs      :
@@ -655,6 +659,10 @@ cdef class Class:
     self._compute(["spectra"])
     return self.sp.sigma8   
 
+  def _rs_drag(self):
+    self._compute(["thermodynamics"])
+    return self.th.rs_d
+
   def _angular_distance(self, z):
     cdef double tau
     cdef int last_index #junk
@@ -674,6 +682,25 @@ cdef class Class:
     free(pvecback)
       
     return D_A
+
+  def _Hubble(self, z):
+    cdef double tau
+    cdef int last_index #junk
+    cdef double * pvecback
+
+    pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+    if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+      raise ClassError(self.ba.error_message)
+
+    H = pvecback[self.ba.index_bg_H]
+
+    free(pvecback)
+      
+    return H
 
   def _ionization_fraction(self, z):
     cdef double tau
@@ -773,6 +800,18 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.th.da_rec
       elif elem == 'da_rec_h':
         data.mcmc_parameters[elem]['current'] = self.th.da_rec*self.ba.h
+      elif elem == 'z_d':
+        data.mcmc_parameters[elem]['current'] = self.th.z_d
+      elif elem == 'tau_d':
+        data.mcmc_parameters[elem]['current'] = self.th.tau_d
+      elif elem == 'ds_d':
+        data.mcmc_parameters[elem]['current'] = self.th.ds_d
+      elif elem == 'ds_d_h':
+        data.mcmc_parameters[elem]['current'] = self.th.ds_d*self.ba.h
+      elif elem == 'rs_d':
+        data.mcmc_parameters[elem]['current'] = self.th.rs_d
+      elif elem == 'rs_d_h':
+        data.mcmc_parameters[elem]['current'] = self.th.rs_d*self.ba.h
       elif elem == 'YHe':
         data.mcmc_parameters[elem]['current'] = self.th.YHe
       elif elem == 'ne':

@@ -59,7 +59,8 @@ int main(int argc, char **argv) {
   printf("#10: second derivative of visibility function g'' \n");
   printf("#11: squared baryon temperature\n");
   printf("#12: squared baryon sound speed c_b^2 \n");
-  printf("#13: variation rate \n");
+  printf("#13: baryon drag optical depth tau_d \n");
+  printf("#14: variation rate \n");
 
   /* first, quantities stored in table */
 
@@ -67,7 +68,7 @@ int main(int argc, char **argv) {
 
     background_tau_of_z(&ba,th.z_table[i],&tau);
 
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   th.z_table[i],
 	   tau,
 	   th.thermodynamics_table[i*th.th_size+th.index_th_xe],
@@ -80,6 +81,7 @@ int main(int argc, char **argv) {
 	   th.thermodynamics_table[i*th.th_size+th.index_th_ddg],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_Tb],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_cb2],
+	   th.thermodynamics_table[i*th.th_size+th.index_th_tau_d],
 	   th.thermodynamics_table[i*th.th_size+th.index_th_rate]
 	   );
 
@@ -97,7 +99,7 @@ int main(int argc, char **argv) {
 
     thermodynamics_at_z(&ba,&th,z,th.inter_normal,&last_index,pvecback,pvecthermo);
     
-    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
+    printf("%.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n",
 	   z,
 	   tau,
 	   pvecthermo[th.index_th_xe],
@@ -110,6 +112,7 @@ int main(int argc, char **argv) {
 	   pvecthermo[th.index_th_ddg],
 	   pvecthermo[th.index_th_Tb],
 	   pvecthermo[th.index_th_cb2],
+	   pvecthermo[th.index_th_tau_d],
 	   pvecthermo[th.index_th_rate]
 	   );
     

@@ -135,6 +135,7 @@ struct thermo
 
   int index_th_xe;            /**< ionization fraction \f$ x_e \f$ */
   int index_th_dkappa;        /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
+  int index_th_tau_d;         /**< Baryon drag optical depth */
   int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */
   int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \tau^3 \f$ */
   int index_th_exp_m_kappa;  /**< \f$ exp^{-\kappa} \f$ */
@@ -144,7 +145,7 @@ struct thermo
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
-  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
+  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */ 
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \tau), used for computing integration step in perturbation module */
   int th_size;                /**< size of thermodynamics vector */ 
 
@@ -177,6 +178,10 @@ struct thermo
   double rs_rec;  /**< comoving sound horizon at recombination */
   double ds_rec;  /**< physical sound horizon at recombination */
   double da_rec;  /**< angular diameter distance to recombination */
+  double z_d;     /**< baryon drag redshift */
+  double tau_d;   /**< baryon drag time */
+  double ds_d;    /**< physical sound horizon at baryon drag */
+  double rs_d;    /**< comoving sound horizon at baryon drag */
 
   //@}
 

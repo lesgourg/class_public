@@ -125,6 +125,9 @@ int thermodynamics_at_z(
     /* Calculate dkappa/dtau (dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T in units of 1/Mpc) */
     pvecthermo[pth->index_th_dkappa] = (1.+z) * (1.+z) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
 
+    /* tau_d scales like (1+z)**2 */
+    pvecthermo[pth->index_th_tau_d] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_d]*pow((1+z)/(1.+pth->z_table[pth->tt_size-1]),2);
+
     /* Calculate d2kappa/dtau2 = dz/dtau d/dz[dkappa/dtau] given that [dkappa/dtau] proportional to (1+z)^2 and dz/dtau = -H */
     pvecthermo[pth->index_th_ddkappa] = -pvecback[pba->index_bg_H] * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
 
@@ -398,6 +401,51 @@ int thermodynamics_init(
 
   /** - fill missing columns (quantities not computed previously but related) */
 
+  /** -> baryon drag interaction rate time minus one, -[R * kappa'], stored temporarily in column ddkappa */
+  for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
+
+    class_call(background_functions(pba,
+				    1./(1.+pth->z_table[index_tau]),
+				    pba->short_info,
+				    pvecback),
+	       pba->error_message,
+	       pth->error_message);
+    
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
+      -4./3.*pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b]
+      *pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa];
+    
+  }
+
+  /** -> second derivative of this rate, -[R * kappa']'', stored temporarily in column dddkappa */
+  class_call(array_spline_table_line_to_line(tau_table,
+					     pth->tt_size,
+					     pth->thermodynamics_table,
+					     pth->th_size,
+					     pth->index_th_ddkappa,
+					     pth->index_th_dddkappa,
+					     _SPLINE_EST_DERIV_,
+					     pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+  
+  /** -> compute tau_d = [int_{tau_today}^{tau} dtau -dkappa_d/dtau] */ 
+  class_call(array_integrate_spline_table_line_to_line(tau_table,
+						       pth->tt_size,
+						       pth->thermodynamics_table,
+						       pth->th_size,
+						       pth->index_th_ddkappa,
+						       pth->index_th_dddkappa,
+						       pth->index_th_tau_d,
+						       pth->error_message),
+	     pth->error_message,
+	     pth->error_message);
+  
+  /* the temporary quantities stored in columns ddkappa and dddkappa
+     will not be used anymore, they will be overwritten below by the
+     true ddkappa and dddkappa */
+
+
   /** -> second derivative with respect to tau of dkappa (in view of spline interpolation) */
   class_call(array_spline_table_line_to_line(tau_table,
 					     pth->tt_size,
@@ -512,7 +560,7 @@ int thermodynamics_init(
 
   }
 
-  /** -> smooth the rate (dtauils of smoothing unimportant: only the
+  /** -> smooth the rate (details of smoothing unimportant: only the
          order of magnitude of the rate matters) */ 
   class_call(array_smooth(pth->thermodynamics_table,
 			  pth->th_size,
@@ -597,6 +645,29 @@ int thermodynamics_init(
 
   pth->tau_free_streaming = tau;
 
+  /** - find baryon drag time (when tau_d crosses one, using linear
+        interpolation) and sound horizon at that time */
+
+  index_tau=0;
+  while (pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.)
+    index_tau++;
+
+  pth->z_d = pth->z_table[index_tau-1]+
+    (1.-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_d])
+    /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_d])
+    *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
+
+  class_call(background_tau_of_z(pba,pth->z_d,&(pth->tau_d)),
+	     pba->error_message,
+	     pth->error_message);
+
+  class_call(background_at_tau(pba,pth->tau_d, pba->long_info, pba->inter_normal, &last_index_back, pvecback),
+	     pba->error_message,
+	     pth->error_message);
+
+  pth->rs_d=pvecback[pba->index_bg_rs];
+  pth->ds_d=pth->rs_d*pba->a_today/(1.+pth->z_d);
+
   /** - if verbose flag set to next-to-minimum value, print the main results */
 
   if (pth->thermodynamics_verbose > 0) {
@@ -604,6 +675,9 @@ int thermodynamics_init(
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
     printf("    with sound horizon = %f Mpc\n",pth->ds_rec);
     printf("    and angular diameter distance = %f Mpc\n",pth->da_rec);
+    printf(" -> baryon drag stops at z = %f\n",pth->z_d);
+    printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
+    printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
     if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
       if (pth->reio_z_or_tau==reio_tau) 
 	printf(" -> reionization  at z = %f\n",pth->z_reio);
@@ -677,6 +751,8 @@ int thermodynamics_indices(
   pth->index_th_xe = index;
   index++;
   pth->index_th_dkappa = index;
+  index++;
+  pth->index_th_tau_d = index;
   index++;
   pth->index_th_ddkappa = index;
   index++;
