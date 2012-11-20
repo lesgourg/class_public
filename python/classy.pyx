@@ -667,7 +667,6 @@ cdef class Class:
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
-    #D_A = np.zeros(np.shape(z_array)[0],'float64')
 
     pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
