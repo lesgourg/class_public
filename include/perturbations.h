@@ -99,9 +99,10 @@ struct perturbs
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
+  short has_cl_lensing_potential;     /**< do we need Cl's for galaxy lensing potential? */ 
   short has_cl_density;               /**< do we need Cl's for matter density? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
-  short has_density_transfers;         /**< do we need to output individual matter density transfer functions? */
+  short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
 
   int l_scalar_max; /**< maximum l value for scalars C_ls */

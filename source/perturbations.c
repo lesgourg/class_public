@@ -507,7 +507,8 @@ int perturb_indices_of_perturbs(
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
 	  ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition == delta_tot_from_poisson_squared)) ||
-	  (ppt->has_cl_density == _TRUE_)) { 
+	  (ppt->has_cl_density == _TRUE_) ||
+	  (ppt->has_cl_lensing_potential)) { 
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_g = _TRUE_;
 	ppt->index_tp_g = index_type; 
@@ -1132,7 +1133,7 @@ int perturb_get_k_list(
 	 by default, because the lensed ClT, ClE would be marginally
 	 affected. */
 
-      if (ppt->has_cl_density == _TRUE_) {
+      if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
 	class_call(background_tau_of_z(pba,
 				       ppt->selection_mean[0],
@@ -1140,10 +1141,10 @@ int perturb_get_k_list(
 		   pba->error_message,
 		   ppt->error_message);
 
-	k_max_cl *= pba->conformal_age/(pba->conformal_age-tau1);
-	
-      }
+	if ((ppt->has_cl_density == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_))
+	  k_max_cl *= pba->conformal_age/(pba->conformal_age-tau1);
 
+      }
     }
     else
       k_max_cl = 0.;

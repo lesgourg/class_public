@@ -57,6 +57,7 @@ struct transfers {
   int index_tt_b;      /**< index for transfer type = B-polarization */
   int index_tt_lcmb;   /**< index for transfer type = CMB lensing */
   int index_tt_density; /**< index for first bin of transfer type = matter density */
+  int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_mode] for each mode */
 
@@ -218,6 +219,15 @@ extern "C" {
 				  double z,
 				  double * selection);
 
+  int transfer_selection_sampling(
+				  struct precision * ppr,
+				  struct background * pba,
+				  struct perturbs * ppt,
+				  struct transfers * ptr,
+				  int bin,
+				  double * tau0_minus_tau,
+				  int tau_size);
+  
   int transfer_source_resample(
 			       struct precision * ppr,
 			       struct background * pba,

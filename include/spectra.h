@@ -59,6 +59,8 @@ struct spectra {
   int has_ep; /**< do we want C_l^E-phi ? */
   int has_dd; /**< do we want C_l^dd ? */
   int has_td; /**< do we want C_l^Td ? */
+  int has_ll; /**< do we want C_l^l-l ? (l = galaxy lensing potential) */
+  int has_tl; /**< do we want C_l^T-l ? */
 
   int index_ct_tt; /**< index for type C_l^TT */
   int index_ct_ee; /**< index for type C_l^EE */
@@ -69,6 +71,8 @@ struct spectra {
   int index_ct_ep; /**< index for type C_l^E-phi */
   int index_ct_dd; /**< first index for type C_l^dd (d_size*d_size values) */
   int index_ct_td; /**< first index for type C_l^Td (d_size values) */
+  int index_ct_ll; /**< first index for type C_l^ll (d_size*d_size values) */
+  int index_ct_tl; /**< first index for type C_l^Tl (d_size values) */
 
   int d_size;
 
@@ -295,15 +299,9 @@ extern "C" {
 			       struct spectra * psp
 			       );
 
-  /* int spectra_Limber_density_cls( */
-  /* 			       struct background * pba, */
-  /* 			       struct perturbs * ppt, */
-  /* 			       struct primordial * ppm, */
-  /* 			       struct spectra * psp */
-  /* 			       ); */
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+

@@ -1325,6 +1325,13 @@ int output_open_cl_file(
       if (psp->has_td == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
 	  fprintf(*clfile,"T-dens[%d]        ",index_d1+1);
+      if (psp->has_ll == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  for (index_d2=index_d1; index_d2<=min(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
+	    fprintf(*clfile,"lens[%d]-lens[%d]  ",index_d1+1,index_d2+1);
+      if (psp->has_tl == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  fprintf(*clfile,"T-lens[%d]        ",index_d1+1);
       fprintf(*clfile,"\n");
     }
 
@@ -1350,6 +1357,13 @@ int output_open_cl_file(
       if (psp->has_td == _TRUE_)
 	for (index_d1=0; index_d1<psp->d_size; index_d1++)
 	  fprintf(*clfile,"T-dens[%d]        ",index_d1+1);
+      if (psp->has_ll == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  for (index_d2=index_d1; index_d2<=min(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
+	    fprintf(*clfile,"lens[%d]-lens[%d]  ",index_d1+1,index_d2+1);
+      if (psp->has_tl == _TRUE_)
+	for (index_d1=0; index_d1<psp->d_size; index_d1++)
+	  fprintf(*clfile,"T-lens[%d]        ",index_d1+1);
       fprintf(*clfile,"\n");
 
     }
@@ -1418,6 +1432,12 @@ int output_one_line_of_cl(
     if (psp->has_td == _TRUE_)
       for (index_ct=0; index_ct<psp->d_size; index_ct++) 
 	fprintf(clfile," %16.10e",factor*cl[psp->index_ct_td+index_ct]);
+    if (psp->has_ll == _TRUE_)
+      for (index_ct=0; index_ct<(psp->d_size*(psp->d_size+1) - (psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; index_ct++) 
+	fprintf(clfile," %16.10e",factor*cl[psp->index_ct_ll+index_ct]);
+    if (psp->has_tl == _TRUE_)
+      for (index_ct=0; index_ct<psp->d_size; index_ct++) 
+	fprintf(clfile," %16.10e",factor*cl[psp->index_ct_tl+index_ct]);
     fprintf(clfile,"\n");
   }
 
