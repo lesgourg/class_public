@@ -451,7 +451,7 @@ int input_init(
 	class_call(background_ncdm_M_from_Omega(ppr,pba,n),
 		   pba->error_message,
 		   errmsg);
-	printf("M_ncdm:%g\n",pba->M_ncdm[n]);
+	//printf("M_ncdm:%g\n",pba->M_ncdm[n]);
 	pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->T_cmb;
       }
       pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
