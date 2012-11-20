@@ -1046,9 +1046,6 @@ int transfer_source_tau_size(
     /* density Cl's */
     if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num)) {
 
-      /* check that selection function well sampled */
-      *tau_size = (int)ppr->selection_sampling;
-      
       /* time interval for this bin */
       class_call(transfer_selection_times(ppr,
 					  pba,
@@ -1060,11 +1057,24 @@ int transfer_source_tau_size(
 					  &tau_max),
 		 ptr->error_message,
 		 ptr->error_message);
-      
-      l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density];
-    
-      *tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
 
+      /* case selection=dirac */
+      if (tau_min == tau_max) {
+	*tau_size = 1;
+      }
+      /* other cases (gaussian, top-hat...) */
+      else {
+	/* check that selection function well sampled */
+	*tau_size = (int)ppr->selection_sampling;
+      
+	/* value of l at which the code switches to Limber approximation
+	   (necessary for next step) */
+	l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density];
+	      
+	/* check that bessel well sampled, if not define finer sampling
+	   overwriting the previous one */
+	*tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
+      }
     }
   }
 
@@ -1488,16 +1498,25 @@ int transfer_integration_time_steps(
   /* running index on time */
   int index_tau;
 
-  /* first value */
-  delta_tau[0] = tau0_minus_tau[0]-tau0_minus_tau[1];
-  
-  /* intermediate values */
-  for (index_tau=1; index_tau < tau_size-1; index_tau++)
-    delta_tau[index_tau] = tau0_minus_tau[index_tau-1]-tau0_minus_tau[index_tau+1];
-  
-  /* last value */
-  delta_tau[tau_size-1] = tau0_minus_tau[tau_size-2]-tau0_minus_tau[tau_size-1];
-  
+  /* case selection = dirac */
+  if (tau_size == 1) {
+    delta_tau[0] = 1;
+  }
+  /* other cases */
+  else {
+
+    /* first value */
+    delta_tau[0] = tau0_minus_tau[0]-tau0_minus_tau[1];
+    
+    /* intermediate values */
+    for (index_tau=1; index_tau < tau_size-1; index_tau++)
+      delta_tau[index_tau] = tau0_minus_tau[index_tau-1]-tau0_minus_tau[index_tau+1];
+    
+    /* last value */
+    delta_tau[tau_size-1] = tau0_minus_tau[tau_size-2]-tau0_minus_tau[tau_size-1];
+    
+  }
+
   return _SUCCESS_;
   
 }
@@ -1557,6 +1576,11 @@ int transfer_selection_function(
     */
     *selection=(1.-tanh((x-ppt->selection_width[bin])/(ppr->selection_tophat_edge*ppt->selection_width[bin])))/2.;
   
+    return _SUCCESS_;
+  }
+
+  if (ppt->selection==dirac) {
+    *selection=1;
     return _SUCCESS_;
   }
 
@@ -1630,9 +1654,16 @@ int transfer_source_resample(
 	     ptr->error_message,
 	     ptr->error_message);
 
-  /* define new sampled values of (tau0-tau) with even spacing */
-  for (index_tau=0; index_tau<tau_size; index_tau++) {
-    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau_max-tau_min);
+  /* case selection == dirac */
+  if (tau_min == tau_max) {
+    tau0_minus_tau[0] = pba->conformal_age - tau_mean;
+  }
+  /* for other cases (gaussian, tophat...) define new sampled values
+     of (tau0-tau) with even spacing */
+  else {
+    for (index_tau=0; index_tau<tau_size; index_tau++) {
+      tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau_max-tau_min);
+    }
   }
 
   /* array of source values for a given time and for all k's */
@@ -1707,6 +1738,9 @@ int transfer_selection_times(
   if (ppt->selection==tophat) {
     z = ppt->selection_mean[bin]+(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[bin];
   }
+  if (ppt->selection==dirac) {
+    z = ppt->selection_mean[bin];
+  }
   
   class_call(background_tau_of_z(pba,
 				 z,
@@ -1722,7 +1756,10 @@ int transfer_selection_times(
   if (ppt->selection==tophat) {
     z = max(ppt->selection_mean[bin]-(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[bin],0.);
   }
-  
+  if (ppt->selection==dirac) {
+    z = ppt->selection_mean[bin];
+  }  
+
   class_call(background_tau_of_z(pba,
 				 z,
 				 tau_max),
@@ -2202,7 +2239,7 @@ int transfer_use_limber(
      must be implemented here */
   
   *use_limber = _FALSE_;
-  
+
   if (k>k_max_bessel) {
     *use_limber = _TRUE_;
   }
@@ -2214,7 +2251,9 @@ int transfer_use_limber(
 	*use_limber = _TRUE_;
       
       if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density]))
-	*use_limber = _TRUE_;
+
+	if (ppt->selection != dirac)
+	  *use_limber = _TRUE_;
       
     }
   }
@@ -2287,6 +2326,28 @@ int transfer_integrate(
   }
 
   /** - if there is an overlap: */
+
+  /** -> trivial case: the source is a Dirac function and is sampled in only one point */
+  if (tau_size == 1) {
+
+    x = k * tau0_minus_tau[0];
+
+    index_x = (int)((x-x_min_l)/x_step);
+  
+    a = (x_min_l+x_step*(index_x+1) - x)/x_step;
+
+    *trsf = sources[index_k]                         /* source */
+      * (a * j_l[index_x]                               /* bessel */
+	 + (1.-a) * ( j_l[index_x+1]
+		      - a * ((a+1.) * ddj_l[index_x]
+			     +(2.-a) * ddj_l[index_x+1]) 
+		      * x_step * x_step / 6.0)); 
+
+    return _SUCCESS_;  
+    
+  }
+
+  /** -> other cases */
 
   /** (a) find index in the source's tau list corresponding to the last point in the overlapping region. After this step, index_tau_max can be as small as zero, but not negative. */ 
   index_tau_max = tau_size-1;

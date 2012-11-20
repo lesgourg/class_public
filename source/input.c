@@ -653,6 +653,12 @@ int input_init(
       ppt->has_cls = _TRUE_;
     }
 
+    if ((strstr(string1,"pCl") != NULL) || (strstr(string1,"PCl") != NULL) || (strstr(string1,"PCL") != NULL)) {
+      ppt->has_cl_lensing_potential=_TRUE_;
+      ppt->has_perturbations = _TRUE_;
+      ppt->has_cls = _TRUE_;
+    }
+
     if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL)) {
       ppt->has_pk_matter=_TRUE_; 
       ppt->has_perturbations = _TRUE_;  
@@ -1081,6 +1087,9 @@ int input_init(
       }
       else if (strstr(string1,"tophat") != NULL) {
 	ppt->selection=tophat; 
+      }
+      else if (strstr(string1,"dirac") != NULL) {
+	ppt->selection=dirac; 
       }
       else {
 	class_stop("In selection function input: type %s is unclear",string1);
