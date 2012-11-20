@@ -228,6 +228,16 @@ extern "C" {
 				  double * tau0_minus_tau,
 				  int tau_size);
   
+  int transfer_lensing_sampling(
+				  struct precision * ppr,
+				  struct background * pba,
+				  struct perturbs * ppt,
+				  struct transfers * ptr,
+				  int bin,
+				  double tau0,
+				  double * tau0_minus_tau,
+				  int tau_size);
+  
   int transfer_source_resample(
 			       struct precision * ppr,
 			       struct background * pba,

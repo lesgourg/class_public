@@ -1081,7 +1081,13 @@ int transfer_source_tau_size(
 	l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density];
 	      
 	/* check that bessel well sampled, if not define finer sampling
-	   overwriting the previous one */
+	   overwriting the previous one.
+	   One Bessel oscillations corresponds to [Delta tau]=2pi/k.
+	   This is minimal for largest relevant k_max, 
+	   namely k_max=l_limber/(tau0-tau_mean).
+	   We need to cut the interval (tau_max-tau_min) in pieces of size
+           [Delta tau]=2pi/k_max. This gives the number below.
+	*/
 	*tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
       }
     }
@@ -1101,12 +1107,23 @@ int transfer_source_tau_size(
 		 ptr->error_message,
 		 ptr->error_message);
 
-      /* find times before tau_min, that will be thrown away */
-      index_tau_min=0;
-      while (ppt->tau_sampling[index_tau_min]<=tau_min) index_tau_min++;
+      /* check that selection function well sampled */
+      *tau_size = (int)ppr->selection_sampling;
       
-      /* infer number of time steps after removing early times */
-      *tau_size = ppt->tau_size-index_tau_min;
+      /* value of l at which the code switches to Limber approximation
+	 (necessary for next step) */
+      l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_lensing];
+      
+      /* check that bessel well sampled, if not define finer sampling
+	 overwriting the previous one.
+	 One Bessel oscillations corresponds to [Delta tau]=2pi/k.
+	 This is minimal for largest relevant k_max, 
+	 namely k_max=l_limber/((tau0-tau_mean)/2).
+	 We need to cut the interval (tau_0-tau_min) in pieces of size
+	 [Delta tau]=2pi/k_max. This gives the number below. 
+      */
+      *tau_size=max(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel);
+
     }
   }
 
@@ -1556,14 +1573,44 @@ int transfer_sources(
 		   ptr->error_message,
 		   ptr->error_message);
 
-	/* first time step after removing early times */
-	index_tau_min =  ppt->tau_size - tau_size;
+        /* redefine the time sampling */
+	class_call(transfer_lensing_sampling(ppr,
+					     pba,
+					     ppt,
+					     ptr,
+					     bin,
+					     tau0, 
+					     tau0_minus_tau,
+					     tau_size),
+		   ptr->error_message,
+		   ptr->error_message);
+	
+        /* resample the source at those times */
+	class_call(transfer_source_resample(ppr,
+					    pba,
+					    ppt,
+					    ptr,
+					    bin,
+					    tau0_minus_tau,
+					    tau_size,
+					    index_mode,
+					    tau0,
+					    interpolated_sources,
+					    sources),
+		   ptr->error_message,
+		   ptr->error_message);
+
+	/* infer values of delta_tau from values of (tau0-tau) */
+	class_call(transfer_integration_time_steps(ptr,
+						   tau0_minus_tau,
+						   tau_size,
+						   delta_tau),
+		   ptr->error_message,
+		   ptr->error_message);
 
         /* loop over time and rescale */
-	for (index_tau = index_tau_min; index_tau < ppt->tau_size; index_tau++) {
+	for (index_tau = 0; index_tau < tau_size; index_tau++) {
 
-	  /* conformal time */
-	  tau = ppt->tau_sampling[index_tau];
 	  /* lensing source =  - 2 W(tau) psi(k,tau) Heaviside(tau-tau_rec) 
 	     with 
 	     psi = (newtonian) gravitationnal potential  
@@ -1573,7 +1620,7 @@ int transfer_sources(
 	     regulated anyway by Bessel).
 	  */
 		  
-	  if (index_tau == ppt->tau_size-1) {
+	  if (index_tau == tau_size-1) {
 	    rescaling=0.;
 	  }
 	  else {
@@ -1585,8 +1632,8 @@ int transfer_sources(
 		 index_tau_sources++) {
 	      
 	      rescaling +=  
-		-2.*(tau-tau0+tau0_minus_tau_lensing_sources[index_tau_sources])
-		/(tau0-tau)
+		-2.*(tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau])
+		/tau0_minus_tau[index_tau]
 		/tau0_minus_tau_lensing_sources[index_tau_sources]
 		* selection[index_tau_sources]
 		* delta_tau_lensing_sources[index_tau_sources];
@@ -1598,23 +1645,10 @@ int transfer_sources(
 	  
           /* copy from input array to output array */
 	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) { 
-	    sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
-	      interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-	      * rescaling;
+	    sources[index_k_tr*tau_size+index_tau] *= rescaling;
 	  }
 	  
-          /* store value of (tau0-tau) */
-	  tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
-	  
 	}
-	
-        /* infer values of delta_tau from values of (tau0-tau) */
-	class_call(transfer_integration_time_steps(ptr,
-						   tau0_minus_tau,
-						   tau_size,
-						   delta_tau),
-		   ptr->error_message,
-		   ptr->error_message);
 
 	/* deallocate temporary arrays */
 	free(pvecback);
@@ -1831,6 +1865,42 @@ int transfer_selection_sampling(
     for (index_tau=0; index_tau<tau_size; index_tau++) {
       tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau_max-tau_min);
     }
+  }
+
+  return _SUCCESS_;
+
+}
+
+int transfer_lensing_sampling(
+				struct precision * ppr,
+				struct background * pba,
+				struct perturbs * ppt,
+				struct transfers * ptr,
+				int bin,
+				double tau0,
+				double * tau0_minus_tau,
+				int tau_size) {
+  
+  /* running index on time */
+  int index_tau;
+
+  /* minimum and maximal value of time in new sampled interval */
+  double tau_min,tau_mean,tau_max;
+
+  /* time interval for this bin */
+  class_call(transfer_selection_times(ppr,
+				      pba,
+				      ppt,
+				      ptr,
+				      bin,
+				      &tau_min,
+				      &tau_mean,
+				      &tau_max),
+	     ptr->error_message,
+	     ptr->error_message);
+
+  for (index_tau=0; index_tau<tau_size; index_tau++) {
+    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau0-tau_min);
   }
 
   return _SUCCESS_;
@@ -2476,7 +2546,10 @@ int transfer_use_limber(
 
 	if (ppt->selection != dirac)
 	  *use_limber = _TRUE_;
-      
+
+      if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_lensing]))
+	*use_limber = _TRUE_;
+	
     }
   }
 
