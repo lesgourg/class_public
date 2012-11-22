@@ -457,7 +457,6 @@ int transfer_init(
 	     interpolated perturbation source, and copies it in the
 	     workspace. */
 
-
 	  class_call_parallel(transfer_sources(ppr,
 					       pba,
 					       ppt,
@@ -1092,7 +1091,9 @@ int transfer_source_tau_size(
       }
     }
 
-    /* galaxy lensing Cl's */
+    /* galaxy lensing Cl's, differs from density Cl's since the source
+       function will spead from the selection function region up to
+       tau0 */
     if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num)) {
 
       /* time interval for this bin */
@@ -1315,6 +1316,9 @@ int transfer_sources(
   /* index running on time in previous two arrays */
   int index_tau_sources;
 
+  /* number of time values in previous two arrays */
+  int tau_sources_size;
+
   /* in which cases are perturbation and transfer sources are different?
      I.e., in which case do we need to mutiply the sources by some
      background and/or window function, and eventually to resample it,
@@ -1504,10 +1508,24 @@ int transfer_sources(
 	    *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
 	    /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
 	  
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++)
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
 	    sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_mode][index_k_tr],2);
-
+	  }
 	}
+
+	/*
+	if (bin == 2) {
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
+	    for (index_tau = 0; index_tau < tau_size; index_tau++) {
+	      fprintf(stdout,"%e %e %e\n",
+		      tau0-tau0_minus_tau[index_tau],
+		      ptr->k[index_mode][index_k_tr],
+		      sources[index_k_tr*tau_size+index_tau]);
+	    }
+	    fprintf(stdout,"\n\n");
+	  }
+	}
+	*/
 
 	/* deallocate temporary arrays */
 	free(pvecback);
@@ -1523,41 +1541,50 @@ int transfer_sources(
 	bin=index_tt-ptr->index_tt_lensing;
 
         /* allocate temporary arrays for storing sources and for calling background */
-	class_alloc(selection,
-		    ppr->selection_sampling*sizeof(double),
-		    ptr->error_message);
-
 	class_alloc(pvecback,
 		    pba->bg_size*sizeof(double),
 		    ptr->error_message); 
 
+	/* dirac case */
+	if (ppt->selection == dirac) {
+	  tau_sources_size=1;
+	}
+	/* other cases (gaussian, tophat...) */
+	else {
+	  tau_sources_size=ppr->selection_sampling;
+	}
+
+	class_alloc(selection,
+		    tau_sources_size*sizeof(double),
+		    ptr->error_message);	  
+	
 	class_alloc(tau0_minus_tau_lensing_sources,
-		    ppr->selection_sampling*sizeof(double),
+		    tau_sources_size*sizeof(double),
 		    ptr->error_message);
-
+	
 	class_alloc(delta_tau_lensing_sources,
-		    ppr->selection_sampling*sizeof(double),
+		    tau_sources_size*sizeof(double),
 		    ptr->error_message);
-
-        /* time sampling for source selection function */
+	
+	/* time sampling for source selection function */
 	class_call(transfer_selection_sampling(ppr,
 					       pba,
 					       ppt,
 					       ptr,
 					       bin,
 					       tau0_minus_tau_lensing_sources,
-					       ppr->selection_sampling),
+					       tau_sources_size),
 		   ptr->error_message,
 		   ptr->error_message);
-
+	
 	/* infer values of delta_tau from values of (tau0-tau) */
 	class_call(transfer_integration_time_steps(ptr,
 						   tau0_minus_tau_lensing_sources,
-						   ppr->selection_sampling,
+						   tau_sources_size,
 						   delta_tau_lensing_sources),
 		   ptr->error_message,
 		   ptr->error_message);
-
+	
 	/* compute values of selection function at sampled values of tau */
 	class_call(transfer_selection_compute(ppr,
 					      pba,
@@ -1566,14 +1593,14 @@ int transfer_sources(
 					      selection,
 					      tau0_minus_tau_lensing_sources,
 					      delta_tau_lensing_sources,
-					      ppr->selection_sampling,
+					      tau_sources_size,
 					      pvecback,
 					      tau0,
 					      bin),
 		   ptr->error_message,
 		   ptr->error_message);
 
-        /* redefine the time sampling */
+	/* redefine the time sampling */
 	class_call(transfer_lensing_sampling(ppr,
 					     pba,
 					     ppt,
@@ -1628,17 +1655,21 @@ int transfer_sources(
 	    rescaling = 0.;
 
 	    for (index_tau_sources=0; 
-		 index_tau_sources < ppr->selection_sampling; 
+		 index_tau_sources < tau_sources_size; 
 		 index_tau_sources++) {
-	      
-	      rescaling +=  
-		-2.*(tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau])
-		/tau0_minus_tau[index_tau]
-		/tau0_minus_tau_lensing_sources[index_tau_sources]
-		* selection[index_tau_sources]
-		* delta_tau_lensing_sources[index_tau_sources];
+	     
+	      /* condition for excluding from the sum the sources located in z=zero */
+	      if ((tau0_minus_tau_lensing_sources[index_tau_sources] > 0.) && (tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau] > 0.)) {
+
+		rescaling +=  
+		  -2.*(tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau])
+		  /tau0_minus_tau[index_tau]
+		  /tau0_minus_tau_lensing_sources[index_tau_sources]
+		  * selection[index_tau_sources]
+		  * delta_tau_lensing_sources[index_tau_sources];
+	      }
 	    }
-	    
+	      
 	    rescaling /= 2.;
 
 	  }
@@ -1718,7 +1749,7 @@ int transfer_integration_time_steps(
 
   /* case selection = dirac */
   if (tau_size == 1) {
-    delta_tau[0] = 1;
+    delta_tau[0] = 2.; // factor 2 corrects for dibision by two occuring by convention in all our trapezoidal integrations 
   }
   /* other cases */
   else {
@@ -1760,6 +1791,14 @@ int transfer_selection_function(
 
   double x;
 
+  /* trivial dirac case */
+  if (ppt->selection==dirac) {
+
+    *selection=1.;
+
+    return _SUCCESS_;
+  }
+
   /* difference between z and the bin center (we can take the absolute
      value as long as all selection functions are symmetric around
      x=0) */
@@ -1797,13 +1836,7 @@ int transfer_selection_function(
     return _SUCCESS_;
   }
 
-  if (ppt->selection==dirac) {
-    *selection=1;
-    return _SUCCESS_;
-  }
-
   /* get here only if selection type was recognized */
-
   class_stop(ptr->error_message,
 	     "invalid choice of selection function");
 
@@ -1857,6 +1890,9 @@ int transfer_selection_sampling(
 
   /* case selection == dirac */
   if (tau_min == tau_max) {
+    class_test(tau_size !=1,
+	       ptr->error_message,
+	       "for Dirac selection function tau_size should be 1, not %d",tau_size); 
     tau0_minus_tau[0] = pba->conformal_age - tau_mean;
   }
   /* for other cases (gaussian, tophat...) define new sampled values
@@ -1870,6 +1906,25 @@ int transfer_selection_sampling(
   return _SUCCESS_;
 
 }
+
+/**
+ * for lensing sources that need to be convolved with a selection
+ * function, redefine the sampling within the range extending from the
+ * tau_min of the selection function up to tau0
+ *
+ * @param ppr                   Input : pointer to precision structure
+ * @param pba                   Input : pointer to background structure
+ * @param ppt                   Input : pointer to perturbation structure
+ * @param ptr                   Input : pointer to transfers structure
+ * @param bin                   Input : redshift bin number
+ * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
+ * @param tau_size              Output: pointer to size of previous array
+ * @param index_mode            Input : index of mode
+ * @param tau0                  Input : time today
+ * @param interpolated_sources  Input : interpolated perturbation source
+ * @param sources               Output: resampled transfer source
+ * @return the error status
+ */
 
 int transfer_lensing_sampling(
 				struct precision * ppr,
@@ -1955,9 +2010,6 @@ int transfer_source_resample(
   /* array of values of source */
   double * source_at_tau;
 
-  /* value of l at which limber approximation is switched on */
-  int l_limber;
-
   /* array of source values for a given time and for all k's */
   class_alloc(source_at_tau,
 	      ptr->k_size[index_mode]*sizeof(double),
@@ -1995,7 +2047,7 @@ int transfer_source_resample(
 
 /**
  * for each selection function, compute the min, mean and max values
- * of conformal time 9associated to the min, mean and max values of
+ * of conformal time (associated to the min, mean and max values of
  * redshift specified by the user)
  *
  * @param ppr                   Input : pointer to precision structure
@@ -2109,7 +2161,7 @@ int transfer_selection_compute(
   double tau;
 
   /* used for normalizing the selection to one */
-  double norm = 0.;
+  double norm;
 
   /* used for calling background_at_tau() */
   int last_index;
@@ -2152,10 +2204,11 @@ int transfer_selection_compute(
   }
 
   /* compute norm = \int W(tau) dtau */
+  norm = 0;
   for (index_tau = 0; index_tau <tau_size; index_tau++) {
     norm += selection[index_tau]*delta_tau[index_tau];
   }
-    norm /= 2.; /* correct for factor 1/2 from trapezoidal rule */
+  norm /= 2.; /* correct for factor 1/2 from trapezoidal rule */
   
   /* divide W by norm so that \int W(tau) dtau = 1 */
   for (index_tau = 0; index_tau < tau_size; index_tau++) {
