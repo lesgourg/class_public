@@ -653,7 +653,7 @@ int input_init(
       ppt->has_cls = _TRUE_;
     }
 
-    if ((strstr(string1,"pCl") != NULL) || (strstr(string1,"PCl") != NULL) || (strstr(string1,"PCL") != NULL)) {
+    if ((strstr(string1,"sCl") != NULL) || (strstr(string1,"SCl") != NULL) || (strstr(string1,"SCL") != NULL)) {
       ppt->has_cl_lensing_potential=_TRUE_;
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;

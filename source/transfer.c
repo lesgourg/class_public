@@ -2914,45 +2914,62 @@ int transfer_limber(
     return _SUCCESS_;
   }
 
-  /** - find  bracketing indices */
-  index_tau=0;
+  /** - find  bracketing indices. 
+      index_tau must be at least 1 (so that index_tau-1 is at least 0) 
+      and at most tau_size-2 (so that index_tau+1 is at most tau_size-1). 
+  */
+  index_tau=1;
   while ((tau0_minus_tau[index_tau] > tau0_minus_tau_limber) && (index_tau<tau_size-2))
     index_tau++;
-
+  
   /** - interpolate by fitting a polynomial of order two; get source
-        and its first two derivatives */
-  class_call(array_interpolate_parabola(tau0_minus_tau[index_tau-1],
-					tau0_minus_tau[index_tau],
-					tau0_minus_tau[index_tau+1],
-					tau0_minus_tau_limber,
-					sources[index_k*tau_size+index_tau-1],
-					sources[index_k*tau_size+index_tau],
-					sources[index_k*tau_size+index_tau+1],
-					&S,
-					&dS,
-					&ddS,
-					ptr->error_message),
-	     ptr->error_message,
-	     ptr->error_message);
+      and its first two derivatives. Note that we are not
+      interpolating S, but the product S*(tau0-tau). Indeed this
+      product is regular in tau=tau0, while S alone diverges for
+      lensing. */
 
-  /** - less precise approach: simple limear interpolation */
-  /*
-  class_call(array_interpolate_two_arrays_one_column(
-						     tau0_minus_tau,
-						     sources,
-						     ptr->k_size[index_mode],
-						     index_k,
-						     tau_size,
-						     tau0_minus_tau_limber,
-						     &S,
-						     ptr->error_message),
-	     ptr->error_message,
-	     ptr->error_message);
+  /* the case where the last of the three point is the edge (tau0=tau) must be treated separately, see below */
+  if (index_tau < tau_size-2) { 
+
+    class_call(array_interpolate_parabola(tau0_minus_tau[index_tau-1],
+					  tau0_minus_tau[index_tau],
+					  tau0_minus_tau[index_tau+1],
+					  tau0_minus_tau_limber,
+					  sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
+					  sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
+					  sources[index_k*tau_size+index_tau+1]*tau0_minus_tau[index_tau+1],
+					  &S,
+					  &dS,
+					  &ddS,
+					  ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+
+  }
+
+  /* in this case, we have stored a zero for sources[index_k*tau_size+index_tau+1]. But we can use in very good approximation the fact that S*(tau0-tau) is constant near tau=tau0 and replace sources[index_k*tau_size+index_tau+1]*tau0_minus_tau[index_tau+1] by sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau] */
+  else {
+
+    class_call(array_interpolate_parabola(tau0_minus_tau[index_tau-1],
+					  tau0_minus_tau[index_tau],
+					  tau0_minus_tau[index_tau+1],
+					  tau0_minus_tau_limber,
+					  sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
+					  sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
+					  sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
+					  &S,
+					  &dS,
+					  &ddS,
+					  ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+  }
+
+  /** - get transfer = source * sqrt(pi/(2l+1))/k 
+      = source*[tau0-tau] * sqrt(pi/(2l+1))/(l+1/2) 
   */
 
-  /** - get transfer = source * sqrt(pi/(2l+1))/k */
-
-  *trsf = sqrt(_PI_/(2.*l+1.))/k*S;
+  *trsf = sqrt(_PI_/(2.*l+1.))*S/(l+0.5);
 
   return _SUCCESS_;
   
