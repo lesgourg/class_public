@@ -1993,8 +1993,8 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->k_step_trans_scalars=0.004;
-  ppr->k_step_trans_tensors=0.004;
+  ppr->k_step_trans_scalars=0.4;
+  ppr->k_step_trans_tensors=0.4;
   ppr->transfer_cut=tc_osc;
   ppr->transfer_cut_threshold_osc=0.007; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */

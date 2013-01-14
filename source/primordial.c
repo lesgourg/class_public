@@ -197,6 +197,7 @@ int primordial_init(
   int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_k;
   double pk,pk1,pk2;
   double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus;
+  double cos_delta_k;
 
   /** - check that we really need to compute the primordial spectra */
 
@@ -317,7 +318,14 @@ int primordial_init(
 			   ppm->error_message,
 			   ppm->error_message);	
 
-		ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = pk/sqrt(pk1*pk2);
+		cos_delta_k = pk/sqrt(pk1*pk2);
+		
+		class_test((cos_delta_k < -1.) || (cos_delta_k > 1.),
+			   ppm->error_message,
+			   "correlation angle between IC's takes unphysical values");
+		
+		ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = cos_delta_k;
+
 	      }
 	    }
 	    else {

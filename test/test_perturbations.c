@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
   int index_mode=pt.index_md_scalars; 
 
   /* choose a type (temperature, polarization, grav. pot., ...) */
-  int index_type=pt.index_tp_t;
+  int index_type=pt.index_tp_g;
 
   /* choose an initial condition (ad, bi, cdi, nid, niv, ...) */
   int index_ic=pt.index_ic_ad;

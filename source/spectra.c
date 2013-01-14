@@ -1189,6 +1189,12 @@ int spectra_indices(
       psp->has_dd = _FALSE_;
     }
 
+    /* the computation of C_l^Td would require a very good sampling of
+       transfer functions over a wide range, and a huge computation
+       time. In the current version, we prefer to switch it off, rather
+       than either slowing down the code considerably, or producing
+       very inaccurate spectra. 
+
     if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_density == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_td = _TRUE_;
       psp->index_ct_td=index_ct;
@@ -1197,6 +1203,8 @@ int spectra_indices(
     else {
       psp->has_td = _FALSE_;
     }
+    */
+    psp->has_td = _FALSE_;  
 
     if ((ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_ll = _TRUE_;
@@ -1207,6 +1215,12 @@ int spectra_indices(
       psp->has_ll = _FALSE_;
     }
 
+    /* the computation of C_l^Tl would require a very good sampling of
+       transfer functions over a wide range, and a huge computation
+       time. In the current version, we prefer to switch it off, rather
+       than either slowing down the code considerably, or producing
+       very inaccurate spectra. 
+
     if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_tl = _TRUE_;
       psp->index_ct_tl=index_ct;
@@ -1215,6 +1229,9 @@ int spectra_indices(
     else {
       psp->has_tl = _FALSE_;
     }
+    */
+
+    psp->has_tl = _FALSE_;
 
     psp->ct_size = index_ct;
   }

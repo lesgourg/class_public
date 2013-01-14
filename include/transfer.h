@@ -142,7 +142,7 @@ extern "C" {
 				    struct perturbs * ppt,
 				    struct bessels * pbs,
 				    struct transfers * ptr,
-				    double rs_rec
+				    double tau0
 				    );
 
   int transfer_get_l_list(
@@ -156,7 +156,7 @@ extern "C" {
 			  struct precision * ppr,
 			  struct perturbs * ppt,
 			  struct transfers * ptr,
-			  double rs_rec,
+			  double tau0,
 			  int index_mode
 			  );
 

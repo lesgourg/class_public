@@ -390,6 +390,8 @@ int perturb_free(
 
     free(ppt->k_size_cl);
 
+    free(ppt->k_size_cmb);
+
     free(ppt->k);
 
     free(ppt->sources);
@@ -457,6 +459,7 @@ int perturb_indices_of_perturbs(
 
   class_alloc(ppt->k_size,ppt->md_size * sizeof(int),ppt->error_message);
   class_alloc(ppt->k_size_cl,ppt->md_size * sizeof(int),ppt->error_message);
+  class_alloc(ppt->k_size_cmb,ppt->md_size * sizeof(int),ppt->error_message);
 
   /** - allocate array of lists of wavenumbers for each mode, ppt->k[index_mode] */
 
@@ -1091,7 +1094,10 @@ int perturb_get_k_list(
 		       int index_mode
 		       ) {
   int index_k;
-  double k,k_next,k_rec,step,k_max_cl,tau1;
+  double k,k_next,k_rec,step,tau1;
+  double k_max_cmb=0.;
+  double k_max_cl=0.;
+  double k_max=0.;
 
   /** Summary: */
 
@@ -1109,70 +1115,85 @@ int perturb_get_k_list(
 
     k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
-    index_k=0;
-    k=ppr->k_scalar_min_tau0/pba->conformal_age;
-    index_k=1;
-
     if (ppt->has_cls == _TRUE_) {
 
-      /* choose a k_max_cl corresponding to a wavelength on the last
+      /* choose a k_max_cmb corresponding to a wavelength on the last
 	 scattering surface seen today under an angle smaller than pi/lmax:
 	 this is equivalent to k_max_cl*tau0 > l_max */
       
-      k_max_cl = ppr->k_scalar_max_tau0_over_l_max
-	*ppt->l_scalar_max
-	/pba->conformal_age;
+      k_max_cmb = ppr->k_scalar_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age;
+      k_max_cl  = k_max_cmb;
+      k_max     = k_max_cmb;
 
-      /* if we need density Cl, we must impose a stronger condition:
-	 the wavelength on the shell corresponding to the center of
-	 smallest redshift bin must be seen under an angle smaller
-	 than pi/lmax. So we must mutiply our previous k_max_cl by the
-	 ratio tau0/(tau0-tau[center of smallest redhsift bin]). Note
-	 that we could do the same with the lensing potential if we
-	 needed a very precise C_l^phi-phi at large l. We don't do it
-	 by default, because the lensed ClT, ClE would be marginally
-	 affected. */
-
+      /* if we need density/lensing Cl's, we must impose a stronger condition,
+	 such that the minimum wavelength on the shell corresponding
+	 to the center of smallest redshift bin is seen under an
+	 angle smaller than pi/lmax. So we must mutiply our previous
+	 k_max_cl by the ratio tau0/(tau0-tau[center of smallest
+	 redhsift bin]). Note that we could do the same with the
+	 lensing potential if we needed a very precise C_l^phi-phi at
+	 large l. We don't do it by default, because the lensed ClT,
+	 ClE would be marginally affected. */
+      
       if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
-
+	
 	class_call(background_tau_of_z(pba,
 				       ppt->selection_mean[0],
 				       &tau1),
 		   pba->error_message,
 		   ppt->error_message);
-
-	if ((ppt->has_cl_density == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_))
-	  k_max_cl *= pba->conformal_age/(pba->conformal_age-tau1);
-
+	
+	k_max_cl = max(k_max_cl,ppr->k_scalar_max_tau0_over_l_max*ppt->l_scalar_max/(pba->conformal_age-tau1));
+	k_max    = k_max_cl;
       }
     }
-    else
-      k_max_cl = 0.;
 
-    while (k < k_max_cl) {
+    if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
+      k_max = max(k_max,ppt->k_scalar_kmax_for_pk);
+
+    /* find indices corresponding to k_max_cmb, k_max_cl, k_max_full */
+
+    index_k=0;
+    
+    /* first value */
+    k=ppr->k_scalar_min_tau0/pba->conformal_age;
+    index_k++;
+   
+    while (k < k_max_cmb) {
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
-
+      
       class_test(step * k_rec / k < ppr->smallest_allowed_variation,
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
-
+     
       k_next=k + step * k_rec;
       index_k++;
       k=k_next;
     }
+
+    ppt->k_size_cmb[index_mode] = index_k;
+    
+    while (k < k_max_cl) {
+
+      k *= pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
+		       +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
+		       *(1.-tanh(pow((log(k)-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+      
+      index_k++;
+    }
+
     ppt->k_size_cl[index_mode] = index_k;
 
-    if (ppt->has_pk_matter == _TRUE_) {
-      while (k < ppt->k_scalar_kmax_for_pk) {
+    while (k < k_max) {
 
-	k *= pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
-			 +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
-			 *(1.-tanh(pow((log(k)-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
-
-	index_k++;
-      }
+      k *= pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
+		       +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
+		       *(1.-tanh(pow((log(k)-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+      
+      index_k++;
     }
+
     ppt->k_size[index_mode] = index_k;
 
     class_alloc(ppt->k[index_mode],ppt->k_size[index_mode]*sizeof(double),ppt->error_message);
@@ -1180,13 +1201,12 @@ int perturb_get_k_list(
     /** - repeat the same steps, now filling the array */
 
     index_k=0;
+
+    /* first value */
     ppt->k[index_mode][index_k] = ppr->k_scalar_min_tau0/pba->conformal_age;
-
-    /*     printf("%d %e %g\n",index_k,ppt->k[index_mode][index_k],1.); */
-
     index_k++;
 
-    while (index_k < ppt->k_size_cl[index_mode]) {
+    while (index_k < ppt->k_size_cmb[index_mode]) {
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
 
@@ -1194,7 +1214,7 @@ int perturb_get_k_list(
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
       ppt->k[index_mode][index_k]=ppt->k[index_mode][index_k-1] + step * k_rec;
-      /*  printf("%d %e %g\n",index_k,ppt->k[index_mode][index_k],1.); */
+
       index_k++;
     }
 
@@ -1231,14 +1251,12 @@ int perturb_get_k_list(
     index_k=1;
 
     if (ppt->has_cls == _TRUE_) {
-      k_max_cl = ppr->k_tensor_max_tau0_over_l_max
+      k_max_cmb = ppr->k_tensor_max_tau0_over_l_max
 	*ppt->l_tensor_max
 	/pba->conformal_age;
     }
-    else
-      k_max_cl = 0.;
 
-    while (k < k_max_cl) {
+    while (k < k_max_cmb) {
       step = ppr->k_tensor_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
 
@@ -1251,6 +1269,7 @@ int perturb_get_k_list(
       k=k_next;
     }
 
+    ppt->k_size_cmb[index_mode] = index_k;
     ppt->k_size_cl[index_mode] = index_k;
     ppt->k_size[index_mode] = index_k;
 

@@ -260,7 +260,7 @@ int transfer_init(
 
   /** - initialize all indices in the transfers structure and 
       allocate all its arrays using transfer_indices_of_transfers() */
-  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,pth->rs_rec),
+  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,tau0),
 	     ptr->error_message,
 	     ptr->error_message);
 
@@ -628,7 +628,7 @@ int transfer_indices_of_transfers(
 				  struct perturbs * ppt,
 				  struct bessels * pbs,
 				  struct transfers * ptr,
-				  double rs_rec
+				  double tau0
 				  ) {
 
   /** Summary: */
@@ -725,7 +725,7 @@ int transfer_indices_of_transfers(
   for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
 
     /** (a) get k values using transfer_get_k_list() */
-    class_call(transfer_get_k_list(ppr,ppt,ptr,rs_rec,index_mode),
+    class_call(transfer_get_k_list(ppr,ppt,ptr,tau0,index_mode),
 	       ptr->error_message,
 	       ptr->error_message);
 
@@ -822,7 +822,7 @@ int transfer_get_k_list(
 			struct precision * ppr,
 			struct perturbs * ppt,
 			struct transfers * ptr,
-			double rs_rec,
+			double tau0,
 			int index_mode
 			) {
 
@@ -834,13 +834,13 @@ int transfer_get_k_list(
 
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-    k_step_max = 2.*_PI_/rs_rec*ppr->k_step_trans_scalars; /* step_size, inferred from precision_params structure */
+    k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_scalars;
 
   }
 
   if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-    k_step_max = 2.*_PI_/rs_rec*ppr->k_step_trans_tensors; /* step_size, inferred from precision_params structure */
+    k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_tensors;
 
   }
 

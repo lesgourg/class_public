@@ -208,13 +208,17 @@ struct perturbs
   
   //@{
 
-  int * k_size;     /**< k_size[index_mode] = number of values */
+  int * k_size_cmb;  /**< k_size_cmb[index_mode] number of k values used
+			for CMB calculations, requiring a fine
+			sampling in k-space */
 
-  int * k_size_cl;  /**< k_size_cl[index_mode] number of values to
-		       take into account in transfer functions for
-		       harmonic spectra C_l's (could be smaller than
-		       k_size, e.g. for scalars if extra points needed
-		       in P(k)) */
+  int * k_size_cl;  /**< k_size_cl[index_mode] number of k values used
+		       for non-CMB Cl calculations, requering a coarse
+		       sampling in k-space. */
+
+  int * k_size;     /**< k_size[index_mode] = total number of k
+		       values, including those needed for P(k) but not
+		       for Cl's */
 
   double ** k;      /**< k[index_mode][index_k] = list of values */
 
