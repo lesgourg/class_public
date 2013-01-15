@@ -42,6 +42,7 @@ int lensing_cl_at_l(
 		    double * cl_lensed    /* array with argument cl_lensed[index_ct] (must be already allocated) */
 		    ) {
   int last_index;
+  int index_lt;
 
   class_test(l > ple->l_lensed_max,
 	     ple->error_message,
@@ -60,6 +61,11 @@ int lensing_cl_at_l(
 	     ple->error_message,
 	     ple->error_message);
   
+  /* set to zero for the types such that l<l_max */
+  for (index_lt=0; index_lt<ple->lt_size; index_lt++) 
+    if ((int)l > ple->l_max_lt[index_lt])
+      cl_lensed[index_lt]=0.;
+
   return _SUCCESS_;
 }
 
@@ -800,6 +806,7 @@ int lensing_free(
     free(ple->l);
     free(ple->cl_lens);
     free(ple->ddcl_lens);
+    free(ple->l_max_lt);
 
   }
 
@@ -830,6 +837,7 @@ int lensing_indices(
 			 cl_md[index_mode][index_ct] */
 
   int index_mode;
+  int index_lt;
 
   /* indices of all Cl types (lensed and unlensed) */
   
@@ -895,6 +903,22 @@ int lensing_indices(
   }
   else {
     ple->has_td = _FALSE_;
+  }
+
+  if (psp->has_ll == _TRUE_) {
+    ple->has_ll = _TRUE_;
+    ple->index_lt_ll=psp->index_ct_ll;      
+  }
+  else {
+    ple->has_ll = _FALSE_;
+  }
+
+  if (psp->has_tl == _TRUE_) {
+    ple->has_tl = _TRUE_;
+    ple->index_lt_tl=psp->index_ct_tl;      
+  }
+  else {
+    ple->has_tl = _FALSE_;
   }
 
   ple->lt_size = psp->ct_size;
@@ -975,6 +999,14 @@ int lensing_indices(
   free(cl_md_ic);
   free(cl_md);
 
+  class_alloc(ple->l_max_lt,ple->lt_size*sizeof(double),ple->error_message);
+  for (index_lt = 0; index_lt < ple->lt_size; index_lt++) {
+    ple->l_max_lt[index_lt]=0.;
+    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+      ple->l_max_lt[index_lt]=max(ple->l_max_lt[index_lt],psp->l_max_ct[index_mode][index_lt]);
+    }
+  }
+  
   return _SUCCESS_;
   
 }

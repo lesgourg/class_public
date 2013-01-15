@@ -39,6 +39,8 @@ struct lensing {
   int has_tp; /**< do we want C_l^T-phi ? */
   int has_dd; /**< do we want C_l^d-d ? (d = matter density) */
   int has_td; /**< do we want C_l^T-d ? */
+  int has_ll; /**< do we want C_l^l-l ? (l = lensing potential) */
+  int has_tl; /**< do we want C_l^T-l ? */
 
   int index_lt_tt; /**< index for type C_l^TT */
   int index_lt_ee; /**< index for type C_l^EE */
@@ -48,6 +50,8 @@ struct lensing {
   int index_lt_tp; /**< index for type C_l^T-phi */
   int index_lt_dd; /**< index for type C_l^d-d */
   int index_lt_td; /**< index for type C_l^T-d */
+  int index_lt_ll; /**< index for type C_l^d-d */
+  int index_lt_tl; /**< index for type C_l^T-d */
 
   int lt_size; /**< number of C_l types requested */
 
@@ -64,6 +68,10 @@ struct lensing {
   /* interpolable version: */
 
   int l_size;       /**< number of l values */
+
+  int * l_max_lt;    /**< last multipole (given as an input) at which
+		    we want to output C_ls for a given mode and type */
+
   double * l;       /**< table of multipole values l[index_l] */  
   double * cl_lens; /**< table of anisotropy spectra for each
 			   multipole and types, 

@@ -178,38 +178,57 @@ int spectra_cl_at_l(
 	   Fill cl_md_ic[index_mode] and sum it to get cl_md[index_mode] */
 
       if (psp->ic_size[index_mode] > 1) {
-	for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
-	  cl_md[index_mode][index_ct]=0.;
-	for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
-	  for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
-	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
-	    if (((int)l <= psp->l[psp->l_size[index_mode]-1]) && 
-		(psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 
-	      class_call(array_interpolate_spline(psp->l,
-						  psp->l_size[index_mode],
-						  psp->cl[index_mode],
-						  psp->ddcl[index_mode],
-						  psp->ic_ic_size[index_mode]*psp->ct_size,
-						  l,
-						  &last_index,
-						  cl_md_ic[index_mode],
-						  psp->ic_ic_size[index_mode]*psp->ct_size,
-						  psp->error_message),
-			 psp->error_message,
-			 psp->error_message);
+	if ((int)l <= psp->l[psp->l_size[index_mode]-1]) {
 
-	      for (index_ct=0; index_ct<psp->ct_size; index_ct++)
-		if ((int)l > psp->l_max_ct[index_mode][index_ct])
+	  /* interpolate all ic and ct */
+	  class_call(array_interpolate_spline(psp->l,
+					      psp->l_size[index_mode],
+					      psp->cl[index_mode],
+					      psp->ddcl[index_mode],
+					      psp->ic_ic_size[index_mode]*psp->ct_size,
+					      l,
+					      &last_index,
+					      cl_md_ic[index_mode],
+					      psp->ic_ic_size[index_mode]*psp->ct_size,
+					      psp->error_message),
+		     psp->error_message,
+		     psp->error_message);
+	  
+	  /* set to zero some of the components */
+	  for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	    for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	      for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+		
+		if (((int)l > psp->l_max_ct[index_mode][index_ct]) || (psp->is_non_zero[index_mode][index_ic1_ic2] == _FALSE_))
 		  cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
+	      }
 	    }
-	    else {
-	      for (index_ct=0; index_ct<psp->ct_size; index_ct++)
+	  }
+	}
+	/* if l was too big, set anyway all components to zero */
+	else {
+	  for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	    for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	      for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 		cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
+	      }
 	    }
+	  }
+	}
 
-	    /* compute cl_md[index_mode] by summing over cl_md_ic[index_mode] */
-	    for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+	/* sum up all ic for each mode */
+
+	for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+
+	  cl_md[index_mode][index_ct]=0.;
+
+	  for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
+	    for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
+	      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
+	    
 	      if (index_ic1 == index_ic2)
 		cl_md[index_mode][index_ct]+=cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct];
 	      else
@@ -219,15 +238,15 @@ int spectra_cl_at_l(
 	}
       }
 
-  /** C.3) add contribution of cl_md[index_mode] to cl_tot */
+      /** C.3) add contribution of cl_md[index_mode] to cl_tot */
 
       for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
 	cl_tot[index_ct]+=cl_md[index_mode][index_ct];
     }
   }
-
+  
   return _SUCCESS_;
-
+  
 }
 
 /** 

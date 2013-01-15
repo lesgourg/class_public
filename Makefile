@@ -17,7 +17,7 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc -ggdb
+CC       = gcc -Wall
 #CC       = pgcc
 
 # your tool for creating static libraries:
