@@ -1096,7 +1096,7 @@ int input_init(
 	ppt->selection=dirac; 
       }
       else {
-	class_stop("In selection function input: type %s is unclear",string1);
+	class_stop(errmsg,"In selection function input: type %s is unclear",string1);
       }
     }
     

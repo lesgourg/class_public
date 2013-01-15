@@ -1253,74 +1253,74 @@ int spectra_indices(
     psp->has_tl = _FALSE_;
 
     psp->ct_size = index_ct;
-  }
 
-  /* infer from input quantities the l_max for each mode and type,
-   l_max_ct[index_mode][index_type].  Maximize it over index_ct, and
-   then over index_mode. */
+    /* infer from input quantities the l_max for each mode and type,
+       l_max_ct[index_mode][index_type].  Maximize it over index_ct, and
+       then over index_mode. */
+    
+    class_alloc(psp->l_max,sizeof(int*)*psp->md_size,psp->error_message);
+    class_alloc(psp->l_max_ct,sizeof(int*)*psp->md_size,psp->error_message);
+    for (index_mode=0; index_mode<psp->md_size; index_mode++) {
+      class_calloc(psp->l_max_ct[index_mode],psp->ct_size,sizeof(int),psp->error_message);
+    }
+    
+    if (ppt->has_scalars) {
+      
+      /* spectra computed up to l_scalar_max */
 
-  class_alloc(psp->l_max,sizeof(int*)*psp->md_size,psp->error_message);
-  class_alloc(psp->l_max_ct,sizeof(int*)*psp->md_size,psp->error_message);
-  for (index_mode=0; index_mode<psp->md_size; index_mode++) {
-    class_calloc(psp->l_max_ct[index_mode],psp->ct_size,sizeof(int),psp->error_message);
-  }
-
-  if (ppt->has_scalars) {
-
-    /* spectra computed up to l_scalar_max */
-
-    if (psp->has_tt) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_tt] = ppt->l_scalar_max;
-    if (psp->has_ee) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_ee] = ppt->l_scalar_max;
-    if (psp->has_te) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_te] = ppt->l_scalar_max;
-    if (psp->has_pp) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_pp] = ppt->l_scalar_max;
-    if (psp->has_tp) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_tp] = ppt->l_scalar_max;
-    if (psp->has_ep) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_ep] = ppt->l_scalar_max;
-
-    /* spectra computed up to l_lss_max */
-
-    if (psp->has_dd)
-      for (index_ct=psp->index_ct_dd; 
-	   index_ct<psp->index_ct_dd+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; 
+      if (psp->has_tt) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_tt] = ppt->l_scalar_max;
+      if (psp->has_ee) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_ee] = ppt->l_scalar_max;
+      if (psp->has_te) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_te] = ppt->l_scalar_max;
+      if (psp->has_pp) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_pp] = ppt->l_scalar_max;
+      if (psp->has_tp) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_tp] = ppt->l_scalar_max;
+      if (psp->has_ep) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_ep] = ppt->l_scalar_max;
+      
+      /* spectra computed up to l_lss_max */
+      
+      if (psp->has_dd)
+	for (index_ct=psp->index_ct_dd; 
+	     index_ct<psp->index_ct_dd+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; 
+	     index_ct++)
+	  psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
+      
+      if (psp->has_td) 
+	for (index_ct=psp->index_ct_td; 
+	     index_ct<psp->index_ct_td+psp->d_size; 
 	   index_ct++)
-	psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
-
-    if (psp->has_td) 
-      for (index_ct=psp->index_ct_td; 
-	   index_ct<psp->index_ct_td+psp->d_size; 
-	   index_ct++)
-	psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
-
-    if (psp->has_ll) 
-      for (index_ct=psp->index_ct_ll; 
-	   index_ct<psp->index_ct_ll+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; 
-	   index_ct++)
-	psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
-
-    if (psp->has_tl)
-      for (index_ct=psp->index_ct_tl; 
-	   index_ct<psp->index_ct_tl+psp->d_size; 
-	   index_ct++)
-	psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
-  }
-  if (ppt->has_tensors) {
-
-    /* spectra computed up to l_tensor_max */
-
+	  psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
+      
+      if (psp->has_ll) 
+	for (index_ct=psp->index_ct_ll; 
+	     index_ct<psp->index_ct_ll+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; 
+	     index_ct++)
+	  psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
+      
+      if (psp->has_tl)
+	for (index_ct=psp->index_ct_tl; 
+	     index_ct<psp->index_ct_tl+psp->d_size; 
+	     index_ct++)
+	  psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
+    }
+    if (ppt->has_tensors) {
+      
+      /* spectra computed up to l_tensor_max */
+      
     if (psp->has_tt) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_tt] = ppt->l_tensor_max;
     if (psp->has_ee) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_ee] = ppt->l_tensor_max;
     if (psp->has_te) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_te] = ppt->l_tensor_max;
     if (psp->has_bb) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_bb] = ppt->l_tensor_max;
+    }
+
+    /* maximizations */
+    psp->l_max_tot = 0.;
+    for (index_mode=0; index_mode < psp->md_size; index_mode++) {
+      psp->l_max[index_mode] = 0.;
+      for (index_ct=0.; index_ct<psp->ct_size; index_ct++)
+	psp->l_max[index_mode] = max(psp->l_max[index_mode],psp->l_max_ct[index_mode][index_ct]);
+      psp->l_max_tot = max(psp->l_max_tot,psp->l_max[index_mode]); 
+    }
   }
 
-  /* maximizations */
-  psp->l_max_tot = 0.;
-  for (index_mode=0; index_mode < psp->md_size; index_mode++) {
-    psp->l_max[index_mode] = 0.;
-    for (index_ct=0.; index_ct<psp->ct_size; index_ct++)
-      psp->l_max[index_mode] = max(psp->l_max[index_mode],psp->l_max_ct[index_mode][index_ct]);
-    psp->l_max_tot = max(psp->l_max_tot,psp->l_max[index_mode]); 
-  }
-  
   /* indices for species associated with a matter transfer function in Fourier space */
 
   index_tr=0;
