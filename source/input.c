@@ -1686,6 +1686,7 @@ int input_default_params(
   ppt->has_cl_cmb_polarization = _FALSE_;
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
   ppt->has_cl_density = _FALSE_;
+  ppt->has_cl_lensing_potential = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
