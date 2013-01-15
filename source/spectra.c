@@ -938,7 +938,10 @@ int spectra_init(
 
   /** - check that we really want to compute at least one spectrum */
 
-  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_)) {
+  if ((ppt->has_cls == _FALSE_) && 
+      (ppt->has_pk_matter == _FALSE_) &&
+      (ppt->has_density_transfers == _FALSE_) &&
+      (ppt->has_velocity_transfers == _FALSE_)) {
     psp->md_size = 0;
     if (psp->spectra_verbose > 0)
       printf("No spectra requested. Spectra module skipped.\n");
