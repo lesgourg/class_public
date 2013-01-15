@@ -908,14 +908,14 @@ int thermodynamics_helium_from_bbn(
   int num_omegab=0;
   int num_deltaN=0;
 
-  double * omegab;
-  double * deltaN;
-  double * YHe;
-  double * ddYHe;
-  double * YHe_at_deltaN;
-  double * ddYHe_at_deltaN;
+  double * omegab=NULL;
+  double * deltaN=NULL;
+  double * YHe=NULL;
+  double * ddYHe=NULL;
+  double * YHe_at_deltaN=NULL;
+  double * ddYHe_at_deltaN=NULL;
 
-  int array_line,i;
+  int array_line=0;
   double DeltaNeff;
   int last_index;
 
@@ -1140,7 +1140,6 @@ int thermodynamics_energy_injection(
 
   double zp,dz;
   double integrand,first_integrand;
-  int i;
   double factor,result;
   double nH0;
   double onthespot;
@@ -2038,7 +2037,6 @@ int thermodynamics_recombination_with_hyrec(
   double L2s1s_current;
   void * buffer;
   int buf_size;
-  double energy_rate;
 
   /** - Fill hyrec parameter structure */
   
@@ -2325,7 +2323,7 @@ int thermodynamics_recombination_with_recfast(
   double y[3],dy[3];
 
   /* other recfast variables */
-  double OmegaB,Yp,zinitial,x_He0,x0;
+  double OmegaB,zinitial,x_He0,x0;
   double x_H0=0.;
   double z,mu_H,n,Lalpha,Lalpha_He,DeltaB,DeltaB_He,mu_T;
   double zstart,zend,rhs;

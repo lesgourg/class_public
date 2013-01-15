@@ -181,7 +181,7 @@ int perturb_init(
   }
 
   if ((ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0))
-    printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n",_VERSION_);
+    printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n");
 
   if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
       (ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0)) {

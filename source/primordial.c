@@ -1004,7 +1004,6 @@ int primordial_inflation_solve_inflation(
   double phi_try;
   double dphidt_pivot,dphidt_try;
   double aH_ini;
-  double k_min;
   double k_max;
   int counter;
   double V,dV,ddV;
@@ -1385,7 +1384,7 @@ int primordial_inflation_find_attractor(
   double dphidt,dphidt_0new,dphidt_0old,phi;
   int counter;
 
-  class_call(primordial_inflation_potential(ppm,phi,&V_0,&dV_0,&ddV_0),
+  class_call(primordial_inflation_potential(ppm,phi_0,&V_0,&dV_0,&ddV_0),
 	     ppm->error_message,
 	     ppm->error_message);
 

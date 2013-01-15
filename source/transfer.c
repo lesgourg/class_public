@@ -131,8 +131,6 @@ int transfer_init(
   int index_tt; 
   /* running index for multipoles */
   int index_l; 
-  /* running index for conformal time */
-  int index_tau;
 
   /* conformal time today */
   double tau0;
@@ -415,7 +413,7 @@ int transfer_init(
 #pragma omp parallel							\
   shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
 	  interpolated_sources,abort,num_j,tau0,tau_rec,tau_size_max)	\
-  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel,index_tau,tau_size)
+  private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel,tau_size)
 	
 	{
 	  
@@ -2034,12 +2032,6 @@ int transfer_source_resample(
   /* running index on wavenumbers */
   int index_k_tr;
 
-  /* a value of redshift */
-  double z;
-
-  /* minimum and maximal value of time in new sampled interval */
-  double tau_min,tau_mean,tau_max;
-
   /* array of values of source */
   double * source_at_tau;
 
@@ -2105,7 +2097,7 @@ int transfer_selection_times(
 			     double * tau_max) {
 
   /* a value of redshift */
-  double z;
+  double z=0.;
 
   /* lower edge of time interval for this bin */
   

@@ -1238,24 +1238,24 @@ int input_init(
     if ((strstr(string1,"test linear") != NULL) || (strstr(string1,"test-linear") != NULL)) {
       pnl->method=nl_trg_linear;
     }
-  }
 
-  class_test((pnl->method>nl_none) && (ppt->has_pk_matter==_FALSE_),
-	     errmsg,
-	     "it is not consistent to ask for non-linear power spectrum but not for linear one: you should include mPk in the 'output' entry");
-
-  if (pnl->method==nl_trg) {
-
-    class_call(parser_read_string(pfc,
-				  "non linear ic",
-				  &(string1),
-				  &(flag1),
-				  errmsg),
+    class_test((pnl->method>nl_none) && (ppt->has_pk_matter==_FALSE_),
 	       errmsg,
-	       errmsg);
-    
-    if ((strstr(string1,"linear") != NULL) || (strstr(string1,"lin") != NULL)) {
-      pnl->ic=nl_lin;
+	       "it is not consistent to ask for non-linear power spectrum but not for linear one: you should include mPk in the 'output' entry");
+        
+    if (pnl->method==nl_trg) {
+      
+      class_call(parser_read_string(pfc,
+				    "non linear ic",
+				    &(string1),
+				    &(flag1),
+				    errmsg),
+		 errmsg,
+		 errmsg);
+      
+      if ((strstr(string1,"linear") != NULL) || (strstr(string1,"lin") != NULL)) {
+	pnl->ic=nl_lin;
+      }
     }
   }
 

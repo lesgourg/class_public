@@ -6,6 +6,8 @@
 #ifndef __NONLINEAR__
 #define __NONLINEAR__
 
+#define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
+
 enum non_linear_method {nl_none,nl_halofit,nl_trg_linear,nl_trg_one_loop,nl_trg};
 
 /**

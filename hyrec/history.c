@@ -397,7 +397,6 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
 
   double zp,dz;
   double integrand,first_integrand;
-  int i;
   double factor,result;
 
   if (param->annihilation > 0.) {

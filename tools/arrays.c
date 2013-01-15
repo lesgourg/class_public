@@ -2722,6 +2722,7 @@ int array_smooth_trg(double * array,
     array[i+k_size*index_eta] = smooth[i];
 
   free(smooth);
+  free(coeff);
 
   return _SUCCESS_;
 

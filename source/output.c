@@ -866,8 +866,8 @@ int output_pk_nl(
   int index_z;
   int index_k;
   double * pz_density;
-  double * pz_velocity;
-  double * pz_cross;
+  double * pz_velocity=NULL;
+  double * pz_cross=NULL;
   FILE * out_density;
   FILE * out_velocity;
   FILE * out_cross;
@@ -1037,7 +1037,6 @@ int output_tk(
   int index_k;
   int index_z;
   int index_tr;
-  int n_ncdm;
 
   FileName file_name;
   FileName redshift_suffix;

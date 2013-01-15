@@ -298,6 +298,18 @@ extern "C" {
 				  double k_max_bessel
 				  );
 
+  int transfer_use_limber(
+			  struct precision * ppr,
+			  struct perturbs * ppt,
+			  struct transfers * ptr,
+			  double k_max_bessel,
+			  int index_mode,
+			  int index_tt,
+			  double k,
+			  double l,
+			  short * use_limber
+			  );
+
   int transfer_integrate(
 			 int tau_size,
 			 int index_k,

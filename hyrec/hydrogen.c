@@ -652,7 +652,6 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
    double RLya;
    double R2p2s;
    double C_2p;
-	
 
    for (i = 0; i < 2; i++) Trv[i] = create_1D_array(NVIRT);
    for (i = 0; i < 2; i++) Tvr[i] = create_1D_array(NVIRT);
@@ -675,6 +674,8 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
    /* Dark matter annihilation*/
    RLya = 4.662899067555897e15 *H /nH/(1.-xe);   /*8 PI H/(3 nH x1s lambda_Lya^3) */
 	
+   interpolate_rates(Alpha, Beta, &R2p2s, TR, TM / TR, rate_table);
+
    matrix[0][0] = Beta[0] + 3.*R2p2s + L2s1s;
    matrix[1][1] = Beta[1] + R2p2s + RLya;
    

@@ -102,11 +102,11 @@ int nonlinear_pk_at_k_and_z(
 			    ) {
   
   double * pz_density;
-  double * pz_velocity;
-  double * pz_cross;
+  double * pz_velocity=NULL;
+  double * pz_cross=NULL;
   double * ddpz_density;
-  double * ddpz_velocity;
-  double * ddpz_cross;
+  double * ddpz_velocity=NULL;
+  double * ddpz_cross=NULL;
   int last_index;
 
   class_test(pnl->method == nl_none,
@@ -218,8 +218,6 @@ int nonlinear_k_nl_at_z(
 			double * k_nl
 			) {
 
-  int last_index;
-
   class_test(z>pnl->z[0],
 	     pnl->error_message,
 	     "you want to interpolate at z=%g greater than zmax=%g\n",z,pnl->z[0]);
@@ -261,12 +259,12 @@ int nonlinear_init(
   int last_density;
   int last_cross;
   int last_velocity;
-  double z;
   double * pk_ic=NULL;  /* array with argument 
 		      pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] */
 
   double * pk_tot; /* array with argument 
 		      pk_tot[index_k] */
+  int index_ncdm;
 
   /** (a) if non non-linear corrections requested */
 
@@ -280,6 +278,13 @@ int nonlinear_init(
   else if (pnl->method == nl_halofit) {
     if (pnl->nonlinear_verbose > 0)
       printf("Computing non-linear matter power spectrum with Halofit (including update by Bird et al 2011)\n");
+
+    if (pba->has_ncdm) {
+      for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
+	if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
+	  fprintf(stdout,"Warning: Halofit is proved to work for CDM, and also with a small HDM component thanks to Bird et al.'s update. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
+      }
+    }
 
     /** - define values of z */
 
@@ -605,23 +610,21 @@ int nonlinear_halofit(
   /** determine non linear ratios (from pk) **/
 
   int index_z,index_k;
-  double pk_lin,pk_quasi,pk_halo,pk_nl,rk;
+  double pk_lin,pk_quasi,pk_halo,rk;
   double sigma,rknl,rneff,rncur,d1,d2;
   double diff,xlogr1,xlogr2,rmid;
 
   double extragam,gam,a,b,c,xmu,xnu,alpha,beta,f1,f2,f3;
-  double rn,pk_linaa;
+  double pk_linaa;
   double y;
   double f1a,f2a,f3a,f1b,f2b,f3b,frac;
 
-  double * nl_ratio;
   double * pvecback;
 
   int last_index;
-  int i,counter;
-  double sum1,sum2,sum3,t,x,w1,w2,w3;
-  double fac,r,anorm;
-  double * junk;
+  int counter;
+  double sum1,sum2,sum3;
+  double anorm;
   double tau;
 
   double *integrand_array;
@@ -632,6 +635,7 @@ int nonlinear_halofit(
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot);
   fnu      = pba->Omega0_ncdm_tot/(pba->Omega0_b + pba->Omega0_cdm+pba->Omega0_ncdm_tot);
+  anorm    = 1./(2*pow(_PI_,2));
 
   class_alloc(integrand_array,pnl->k_size[0]*7*sizeof(double),pnl->error_message);
 
@@ -711,7 +715,7 @@ int nonlinear_halofit(
       sum1=0.;
       sum2=0.;
       sum3=0.;
-      anorm = 1./(2*pow(_PI_,2));
+
       for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
 	x2 = pnl->k[index_k]*pnl->k[index_k]*rmid*rmid;
 	integrand_array[index_k*7 + 1] = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],2)*anorm*exp(-x2);
@@ -793,7 +797,7 @@ int nonlinear_halofit(
 	xmu   = pow(10,(-3.54419+0.19086*rneff));
 	xnu   = pow(10,(0.95897+1.2857*rneff));
 	alpha = 1.38848+0.3701*rneff-0.1452*rneff*rneff;
-	beta  = 0.8291+0.9854*rneff+0.3400*pow(rneff,2)+fnu*(-6.4868+1.4373*pow(rn,2));
+	beta  = 0.8291+0.9854*rneff+0.3400*pow(rneff,2)+fnu*(-6.4868+1.4373*pow(rneff,2));
 	if(fabs(1-Omega_m)>0.01) { /*then omega evolution */
 	  f1a=pow(Omega_m,(-0.0732));
 	  f2a=pow(Omega_m,(-0.1423));

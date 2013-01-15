@@ -19,10 +19,13 @@
 //CLASS
 #include"class.h"
 
+#include"Engine.hh"
 //STD
 #include<string>
 #include<vector>
 #include<utility>
+#include<ostream>
+
 using std::string;
 
 //general utility to convert safely numerical types to string
@@ -38,6 +41,9 @@ std::string str(const char* x);
 //class to encapsulate CLASS parameters from any type (numerical or string)
 class ClassParams{
 public:
+
+  ClassParams(){};
+  ClassParams( const ClassParams& o):pars(o.pars){};
 
   //use this to add a CLASS variable
   template<typename T> unsigned add(const string& key,const T& val){
@@ -56,34 +62,50 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////
-class ClassEngine
+class ClassEngine : public Engine
 {
 
   friend class ClassParams;
-public:
-  enum cltype {TT,EE,TE,BB,PP,TP,EP}; //P stands for phi (lensing potential)
 
+public:
   //constructors
   ClassEngine(const ClassParams& pars);
+  //with a class .pre file
+  ClassEngine(const ClassParams& pars,const string & precision_file);
   
 
   // destructor
   ~ClassEngine();
 
-  //modfiers: _FAILURE_ return if CLASS pb:
+  //modfiers: _FAILURE_ returned if CLASS pb:
   int updateParValues(const std::vector<double>& par);
 
-  //get value at l ( 2<l<lmax): in units = l*(l+1)*cl/(2pi) in (micro-K)^2
+
+  //get value at l ( 2<l<lmax): in units = (micro-K)^2
   //don't call if FAILURE returned previously
-  double getCl(ClassEngine::cltype t,const long &l);
+  //throws std::execption if pb
+
+  double getCl(Engine::cltype t,const long &l);  
+  void getCls(const std::vector<unsigned>& lVec, //input 
+	      std::vector<double>& cltt, 
+	      std::vector<double>& clte, 
+	      std::vector<double>& clee, 
+	      std::vector<double>& clbb);
+
   
+  bool getLensing(const std::vector<unsigned>& lVec, //input 
+	      std::vector<double>& clphiphi, 
+	      std::vector<double>& cltphi, 
+	      std::vector<double>& clephi);
+
 
   //may need that
   inline int numCls() const {return sp.ct_size;};
-  inline double T_cmb() const {return ba.T_cmb;}
+  inline double Tcmb() const {return ba.T_cmb;}
 
   //print content of file_content
   void printFC();
+  void writeCls(std::ostream &o,int lmax);
 
 
 private:
