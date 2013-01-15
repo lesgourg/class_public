@@ -590,13 +590,13 @@ int transfer_free(
   if (ptr->has_cls == _TRUE_) {
 
     for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
-      free(ptr->l_size_eff[index_mode]);
+      free(ptr->l_size_tt[index_mode]);
       free(ptr->k[index_mode]);
       free(ptr->transfer[index_mode]);
     }  
    
     free(ptr->tt_size);
-    free(ptr->l_size_eff);
+    free(ptr->l_size_tt);
     free(ptr->l_size);
     free(ptr->l);
     free(ptr->k_size);
@@ -701,14 +701,16 @@ int transfer_indices_of_transfers(
   
   /** - allocate arrays of (k, l) values and transfer functions */
 
-  /* number of l values for each mode, l_size[index_mode] */
+  /* number of l values for each mode and type,
+     l_size_tt[index_mode][index_tt], and maximized for each mode,
+     l_size[index_mode] */
 
   class_alloc(ptr->l_size,ptr->md_size * sizeof(int),ptr->error_message);
 
-  class_alloc(ptr->l_size_eff,ptr->md_size * sizeof(int *),ptr->error_message);
+  class_alloc(ptr->l_size_tt,ptr->md_size * sizeof(int *),ptr->error_message);
 
   for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
-    class_alloc(ptr->l_size_eff[index_mode],ptr->tt_size[ppt->index_md_tensors] * sizeof(int),ptr->error_message);
+    class_alloc(ptr->l_size_tt[index_mode],ptr->tt_size[index_mode] * sizeof(int),ptr->error_message);
   }
 
   /* number of k values for each mode, k_size[index_mode] */
@@ -770,79 +772,62 @@ int transfer_get_l_list(
   int index_mode;
   int index_tt;
 
-  ptr->l_size_max=0;
+  /* allocate and fill l array (taken directly from Bessel module) */
 
-  for (index_mode=0; index_mode < ppt->md_size; index_mode++) {
+  ptr->l_size_max = pbs->l_size;
 
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-
-      l_max=0;
-
-      if (ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential)
-	l_max=max(ppt->l_scalar_max,l_max);
-
-      if (ppt->has_cl_lensing_potential || ppt->has_cl_density)
-	l_max=max(ppt->l_lss_max,l_max);
-
-    }
-    
-    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-      l_max = ppt->l_tensor_max;
-    }
-
-    class_test(l_max > pbs->l[pbs->l_size-1],
-	       ptr->error_message,
-	       "For mode %d, asked for l_max=%d greater than in Bessel table where l_max=%d",
-	       index_mode,
-	       l_max,
-	       pbs->l[pbs->l_size-1]);
-
-    index_l=0;
-
-    while((index_l < pbs->l_size-1) && (pbs->l[index_l] <= l_max)) {
-      index_l++;
-    }
-  
-    ptr->l_size[index_mode] = index_l+1;
-
-    ptr->l_size_max = max(ptr->l_size_max,ptr->l_size[index_mode]);
-
-  }
-     
   class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
   
-  for (index_l=0; index_l < ptr->l_size_max; index_l++) {
+  for (index_l=0; index_l < ptr->l_size_max; index_l++)
     ptr->l[index_l]=pbs->l[index_l];
-  }
+
+  /* for each mode and type, find relevant size of l array,
+     l_size_tt[index_mode][index_tt] (since for some modes and types
+     l_max can be smaller). Also, maximize this size for each mode to
+     find l_size[index_mode]. */
 
   for (index_mode=0; index_mode < ppt->md_size; index_mode++) {
 
-    if ((ppt->has_scalars && (index_mode == ppt->index_md_scalars)) &&
-	(ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential) &&
-	(ppt->has_cl_lensing_potential || ppt->has_cl_density) &&
-	(ppt->l_scalar_max != ppt->l_lss_max)) {
-      
-      for (index_tt=0;index_tt<ptr->tt_size[index_mode];index_tt++) {
+    ptr->l_size[index_mode] = 0;
+
+    for (index_tt=0;index_tt<ptr->tt_size[index_mode];index_tt++) {
+
+      if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+
+	if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t))
+	  l_max=ppt->l_scalar_max;
+
+	if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
+	  l_max=ppt->l_scalar_max;
+
+	if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
+	  l_max=ppt->l_scalar_max;
+
+	if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
+	  l_max=ppt->l_lss_max;
 	
-	if ((ppt->has_cl_cmb_temperature && (index_tt == ptr->index_tt_t)) ||
-	    (ppt->has_cl_cmb_polarization && (index_tt == ptr->index_tt_e)) ||
-	    (ppt->has_cl_cmb_lensing_potential && (index_tt == ptr->index_tt_lcmb))) {
-	  
-	  index_l=0;
-	  while(ptr->l[index_l] < ppt->l_scalar_max) index_l++;
-	  ptr->l_size_eff[index_mode][index_tt]=index_l+1;
-	}
-	else {
-	  index_l=0;
-	  while (ptr->l[index_l] < ppt->l_lss_max) index_l++;
-	  ptr->l_size_eff[index_mode][index_tt]=index_l+1;
-	}
+	if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
+	  l_max=ppt->l_lss_max;
+	
       }
-    }
-    else {
-      for (index_tt=0;index_tt<ptr->tt_size[index_mode];index_tt++) {
-	ptr->l_size_eff[index_mode][index_tt] = ptr->l_size[index_mode];
-      }
+      
+      if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))
+	l_max = ppt->l_tensor_max;
+
+      class_test(l_max > ptr->l[ptr->l_size_max-1],
+		 ptr->error_message,
+		 "For mode %d, type %d, asked for l_max=%d greater than in Bessel table where l_max=%d",
+		 index_mode,
+		 index_tt,
+		 l_max,
+		 ptr->l[ptr->l_size_max-1]);
+
+      index_l=0;
+      while (ptr->l[index_l] < l_max) index_l++;
+      ptr->l_size_tt[index_mode][index_tt]=index_l+1;
+
+      ptr->l_size[index_mode] = max(ptr->l_size[index_mode],ptr->l_size_tt[index_mode][index_tt]);
+
     }
   }
    
@@ -2364,7 +2349,7 @@ int transfer_compute_for_each_l(
   /* whether to use a cutting scheme */
   enum transfer_cutting use_cut;
 
-  if (index_l >= ptr->l_size_eff[index_mode][index_tt]) { 
+  if (index_l >= ptr->l_size_tt[index_mode][index_tt]) { 
 
     for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
       ptr->transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt)

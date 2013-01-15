@@ -559,8 +559,8 @@ struct precision
 
   //@{
 
-  double k_step_trans_scalars; /**< upper bound on linear sampling step in k space, in units of one period of acoustic oscillation at decoupling (usually chosen to be between k_scalar_step_sub and k_scalar_step_super) */
-  double k_step_trans_tensors; /**< upper bound on linear sampling step in k space, in units of one period of acoustic oscillation at decoupling (usually chosen to be between k_tensor_step_sub and k_tensor_step_super) */
+  double k_step_trans_scalars; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
+  double k_step_trans_tensors; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
 
   enum transfer_cutting transfer_cut; /**< flag telling how to cut automatically the transfer function computation at a given \f$ k_{max} \f$ value */
 

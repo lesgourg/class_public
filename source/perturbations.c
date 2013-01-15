@@ -273,7 +273,7 @@ int perturb_init(
 	
 #pragma omp for schedule (dynamic)
 
-        /* integrating background is slightly more optimal for parallel runs */
+        /* integrating backwards is slightly more optimal for parallel runs */
 	//for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
 	for (index_k = ppt->k_size[index_mode]-1; index_k >=0; index_k--) {  
 
@@ -1117,6 +1117,8 @@ int perturb_get_k_list(
 
     if (ppt->has_cls == _TRUE_) {
 
+      /* find k_max_cmb: */
+
       /* choose a k_max_cmb corresponding to a wavelength on the last
 	 scattering surface seen today under an angle smaller than pi/lmax:
 	 this is equivalent to k_max_cl*tau0 > l_max */
@@ -1124,6 +1126,8 @@ int perturb_get_k_list(
       k_max_cmb = ppr->k_scalar_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age;
       k_max_cl  = k_max_cmb;
       k_max     = k_max_cmb;
+
+      /* find k_max_cl: */
 
       /* if we need density/lensing Cl's, we must impose a stronger condition,
 	 such that the minimum wavelength on the shell corresponding
@@ -1148,10 +1152,12 @@ int perturb_get_k_list(
       }
     }
 
+    /* find k_max: */
+
     if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
       k_max = max(k_max,ppt->k_scalar_kmax_for_pk);
 
-    /* find indices corresponding to k_max_cmb, k_max_cl, k_max_full */
+    /* now, find indices corresponding to k_max_cmb, k_max_cl, k_max_full */
 
     index_k=0;
     
@@ -1159,6 +1165,8 @@ int perturb_get_k_list(
     k=ppr->k_scalar_min_tau0/pba->conformal_age;
     index_k++;
    
+    /* values until k_max_cmb */
+
     while (k < k_max_cmb) {
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
@@ -1174,6 +1182,8 @@ int perturb_get_k_list(
 
     ppt->k_size_cmb[index_mode] = index_k;
     
+    /* values until k_max_cl */
+
     while (k < k_max_cl) {
 
       k *= pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
@@ -1184,6 +1194,8 @@ int perturb_get_k_list(
     }
 
     ppt->k_size_cl[index_mode] = index_k;
+
+    /* values until k_max */
 
     while (k < k_max) {
 
@@ -1206,6 +1218,8 @@ int perturb_get_k_list(
     ppt->k[index_mode][index_k] = ppr->k_scalar_min_tau0/pba->conformal_age;
     index_k++;
 
+    /* values until k_max_cmb */
+
     while (index_k < ppt->k_size_cmb[index_mode]) {
       step = ppr->k_scalar_step_super 
 	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
@@ -1217,6 +1231,8 @@ int perturb_get_k_list(
 
       index_k++;
     }
+
+    /* all in one, values until k_max_cmb and k_max */
 
     while (index_k < ppt->k_size[index_mode]) {
       
