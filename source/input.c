@@ -1021,7 +1021,7 @@ int input_init(
 
   }
 
-  if ((ppt->has_pk_matter == _TRUE_) || (has_density_transfers == _TRUE_) || (has_velocity_transfers == _TRUE_)) {
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
     class_call(parser_read_double(pfc,"P_k_max_h/Mpc",&param1,&flag1,errmsg),
 	       errmsg,
@@ -1075,7 +1075,7 @@ int input_init(
   }
 
   /* deal with selection functions */
-  if ((ppt->has_cl_density == _TRUE_) || (has_cl_lensing_potential == _TRUE_)) {
+  if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
     
     class_call(parser_read_string(pfc,
 				  "selection",
@@ -1159,6 +1159,7 @@ int input_init(
 		     "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin witdths",
 		     ppt->selection_num,int1,ppt->selection_num);
 	}
+	free(pointer1);
       }
     }
   

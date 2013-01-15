@@ -824,6 +824,11 @@ int transfer_get_l_list(
       while (ptr->l[index_l] < l_max) index_l++;
       ptr->l_size_tt[index_mode][index_tt]=index_l+1;
 
+      if (ptr->l_size_tt[index_mode][index_tt] < ptr->l_size_max)
+	ptr->l_size_tt[index_mode][index_tt]++;
+      if (ptr->l_size_tt[index_mode][index_tt] < ptr->l_size_max)
+	ptr->l_size_tt[index_mode][index_tt]++;
+
       ptr->l_size[index_mode] = max(ptr->l_size[index_mode],ptr->l_size_tt[index_mode][index_tt]);
 
     }
