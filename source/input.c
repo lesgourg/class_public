@@ -987,7 +987,11 @@ int input_init(
   if (ppt->has_cls == _TRUE_) {
 
     if (ppt->has_scalars == _TRUE_) {
-      class_read_double("l_max_scalars",ppt->l_scalar_max);
+      if (ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential) 
+	class_read_double("l_max_scalars",ppt->l_scalar_max);
+
+      if (ppt->has_cl_lensing_potential || ppt->has_cl_density)
+	class_read_double("l_max_lss",ppt->l_lss_max);
     }
 
     if (ppt->has_tensors == _TRUE_) {   
@@ -996,7 +1000,7 @@ int input_init(
   }
 
   if ((ppt->has_scalars == _TRUE_) && 
-      (ppt->has_cls == _TRUE_) && 
+      ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) && 
       (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
     
     class_call(parser_read_string(pfc,
@@ -1501,6 +1505,8 @@ int input_init(
     class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
     class_read_int("tol_gauss_legendre",ppr->tol_gauss_legendre);
   }
+  if (ple->has_lensed_cls == _TRUE_)
+    ppt->l_scalar_max+=ppr->delta_l_max;
 
   /* check various l_max */
 
@@ -1511,19 +1517,20 @@ int input_init(
 
     if (ppt->has_scalars == _TRUE_) {
       
-      if (ple->has_lensed_cls == _TRUE_)
-	ppt->l_scalar_max+=ppr->delta_l_max;
-      
-      pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
+      if (ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential)
+	pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
 
-      pbs->x_max=max(ppt->l_scalar_max*ppr->k_scalar_max_tau0_over_l_max,pbs->x_max);
+      if (ppt->has_cl_lensing_potential || ppt->has_cl_density)
+	pbs->l_max=max(ppt->l_lss_max,pbs->l_max);
+
+      pbs->x_max=max(pbs->l_max*ppr->k_scalar_max_tau0_over_l_max,pbs->x_max);
       
     }
     
     if (ppt->has_tensors == _TRUE_) {   
       pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
 
-      pbs->x_max=max(ppt->l_tensor_max*ppr->k_tensor_max_tau0_over_l_max,pbs->x_max);
+      pbs->x_max=max(pbs->l_max*ppr->k_tensor_max_tau0_over_l_max,pbs->x_max);
     }
   }
 
@@ -1694,13 +1701,14 @@ int input_default_params(
 
   ppt->l_scalar_max=2500;
   ppt->l_tensor_max=500;
+  ppt->l_lss_max=300;
   ppt->k_scalar_kmax_for_pk=0.1;
 
   ppt->gauge=1;
 
   /** - bessels structure */
 
-  pbs->l_max = max(ppt->l_scalar_max,ppt->l_tensor_max);
+  pbs->l_max = max(max(ppt->l_scalar_max,ppt->l_tensor_max),ppt->l_lss_max);
   pbs->bessel_always_recompute = _TRUE_;
 
   /** - primordial structure */

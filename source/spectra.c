@@ -60,8 +60,9 @@ int spectra_cl_at_l(
 
   if ((psp->md_size == 1) && (psp->ic_size[0] == 1)) {
     index_mode = 0;
-    if ((int)l <= psp->l_max_tot) {
+    if ((int)l <= psp->l[psp->l_size[index_mode]-1]) {
 
+      /* interpolate at l */
       class_call(array_interpolate_spline(psp->l,
 					  psp->l_size[index_mode],
 					  psp->cl[index_mode],
@@ -74,6 +75,11 @@ int spectra_cl_at_l(
 					  psp->error_message),
 		 psp->error_message,
 		 psp->error_message);
+      
+      /* set to zero for the types such that l<l_max */
+      for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
+	if ((int)l > psp->l_max_ct[index_mode][index_ct])
+	  cl_tot[index_ct]=0.;
     }
     else {
       for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
@@ -92,7 +98,7 @@ int spectra_cl_at_l(
     for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
 	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
-	if (((int)l <= psp->l_max[index_mode]) && 
+	if (((int)l <= psp->l[psp->l_size[index_mode]-1]) && 
 	    (psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 
 	  class_call(array_interpolate_spline(psp->l,
@@ -107,6 +113,10 @@ int spectra_cl_at_l(
 					      psp->error_message),
 		     psp->error_message,
 		     psp->error_message);
+
+	  for (index_ct=0; index_ct<psp->ct_size; index_ct++)
+	    if ((int)l > psp->l_max_ct[index_mode][index_ct])
+	      cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
 	}
 	else {
 	  for (index_ct=0; index_ct<psp->ct_size; index_ct++)
@@ -138,7 +148,7 @@ int spectra_cl_at_l(
 	   Fill cl_md[index_mode]. */
 
       if (psp->ic_size[index_mode] == 1) {
-	if ((int)l <= psp->l_max[index_mode]) {
+	if ((int)l <= psp->l[psp->l_size[index_mode]-1]) {
 
 	  class_call(array_interpolate_spline(psp->l,
 					      psp->l_size[index_mode],
@@ -152,6 +162,10 @@ int spectra_cl_at_l(
 					      psp->error_message),
 		     psp->error_message,
 		     psp->error_message);
+
+	  for (index_ct=0; index_ct<psp->ct_size; index_ct++)
+	    if ((int)l > psp->l_max_ct[index_mode][index_ct])
+	      cl_md[index_mode][index_ct]=0.;
 	}
 	else {
 	  for (index_ct=0; index_ct<psp->ct_size; index_ct++) 
@@ -169,7 +183,7 @@ int spectra_cl_at_l(
 	for (index_ic1 = 0; index_ic1 < psp->ic_size[index_mode]; index_ic1++) {
 	  for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_mode]; index_ic2++) {
 	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_mode]);
-	    if (((int)l <= psp->l_max[index_mode]) && 
+	    if (((int)l <= psp->l[psp->l_size[index_mode]-1]) && 
 		(psp->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_)) {
 
 	      class_call(array_interpolate_spline(psp->l,
@@ -184,6 +198,10 @@ int spectra_cl_at_l(
 						  psp->error_message),
 			 psp->error_message,
 			 psp->error_message);
+
+	      for (index_ct=0; index_ct<psp->ct_size; index_ct++)
+		if ((int)l > psp->l_max_ct[index_mode][index_ct])
+		  cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct]=0.;
 	    }
 	    else {
 	      for (index_ct=0; index_ct<psp->ct_size; index_ct++)
@@ -1009,11 +1027,13 @@ int spectra_free(
     if (psp->ct_size > 0) {
     
       for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+	free(psp->l_max_ct[index_mode]);
 	free(psp->cl[index_mode]);
 	free(psp->ddcl[index_mode]);
       }
       free(psp->l);
       free(psp->l_size);
+      free(psp->l_max_ct);
       free(psp->l_max);
       free(psp->cl);
       free(psp->ddcl);
@@ -1108,7 +1128,7 @@ int spectra_indices(
 
     if (ppt->has_cl_cmb_temperature == _TRUE_) {
       psp->has_tt = _TRUE_;
-      psp->index_ct_tt=index_ct;      
+      psp->index_ct_tt=index_ct;
       index_ct++;
     }
     else {
@@ -1204,7 +1224,7 @@ int spectra_indices(
       psp->has_td = _FALSE_;
     }
     */
-    psp->has_td = _FALSE_;  
+    psp->has_td = _FALSE_;
 
     if ((ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_ll = _TRUE_;
@@ -1230,15 +1250,80 @@ int spectra_indices(
       psp->has_tl = _FALSE_;
     }
     */
-
     psp->has_tl = _FALSE_;
 
     psp->ct_size = index_ct;
   }
 
-  index_tr=0;
+  /* infer from input quantities the l_max for each mode and type,
+   l_max_ct[index_mode][index_type].  Maximize it over index_ct, and
+   then over index_mode. */
 
+  class_alloc(psp->l_max,sizeof(int*)*psp->md_size,psp->error_message);
+  class_alloc(psp->l_max_ct,sizeof(int*)*psp->md_size,psp->error_message);
+  for (index_mode=0; index_mode<psp->md_size; index_mode++) {
+    class_calloc(psp->l_max_ct[index_mode],psp->ct_size,sizeof(int),psp->error_message);
+  }
+
+  if (ppt->has_scalars) {
+
+    /* spectra computed up to l_scalar_max */
+
+    if (psp->has_tt) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_tt] = ppt->l_scalar_max;
+    if (psp->has_ee) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_ee] = ppt->l_scalar_max;
+    if (psp->has_te) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_te] = ppt->l_scalar_max;
+    if (psp->has_pp) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_pp] = ppt->l_scalar_max;
+    if (psp->has_tp) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_tp] = ppt->l_scalar_max;
+    if (psp->has_ep) psp->l_max_ct[ppt->index_md_scalars][psp->index_ct_ep] = ppt->l_scalar_max;
+
+    /* spectra computed up to l_lss_max */
+
+    if (psp->has_dd)
+      for (index_ct=psp->index_ct_dd; 
+	   index_ct<psp->index_ct_dd+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; 
+	   index_ct++)
+	psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
+
+    if (psp->has_td) 
+      for (index_ct=psp->index_ct_td; 
+	   index_ct<psp->index_ct_td+psp->d_size; 
+	   index_ct++)
+	psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
+
+    if (psp->has_ll) 
+      for (index_ct=psp->index_ct_ll; 
+	   index_ct<psp->index_ct_ll+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; 
+	   index_ct++)
+	psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
+
+    if (psp->has_tl)
+      for (index_ct=psp->index_ct_tl; 
+	   index_ct<psp->index_ct_tl+psp->d_size; 
+	   index_ct++)
+	psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
+  }
+  if (ppt->has_tensors) {
+
+    /* spectra computed up to l_tensor_max */
+
+    if (psp->has_tt) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_tt] = ppt->l_tensor_max;
+    if (psp->has_ee) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_ee] = ppt->l_tensor_max;
+    if (psp->has_te) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_te] = ppt->l_tensor_max;
+    if (psp->has_bb) psp->l_max_ct[ppt->index_md_tensors][psp->index_ct_bb] = ppt->l_tensor_max;
+  }
+
+  /* maximizations */
+  psp->l_max_tot = 0.;
+  for (index_mode=0; index_mode < psp->md_size; index_mode++) {
+    psp->l_max[index_mode] = 0.;
+    for (index_ct=0.; index_ct<psp->ct_size; index_ct++)
+      psp->l_max[index_mode] = max(psp->l_max[index_mode],psp->l_max_ct[index_mode][index_ct]);
+    psp->l_max_tot = max(psp->l_max_tot,psp->l_max[index_mode]); 
+  }
+  
   /* indices for species associated with a matter transfer function in Fourier space */
+
+  index_tr=0;
 
   if (ppt->has_source_delta_g == _TRUE_) {
     psp->index_tr_delta_g = index_tr;
@@ -1354,7 +1439,6 @@ int spectra_cls(
   /** - allocate pointers to arrays where results will be stored */
 
   class_alloc(psp->l_size,sizeof(int)*psp->md_size,psp->error_message);
-  class_alloc(psp->l_max,sizeof(int)*psp->md_size,psp->error_message);
   class_alloc(psp->cl,sizeof(double *)*psp->md_size,psp->error_message);
   class_alloc(psp->ddcl,sizeof(double *)*psp->md_size,psp->error_message);
 
@@ -1365,8 +1449,6 @@ int spectra_cls(
   for (index_l=0; index_l < psp->l_size_max; index_l++) {
     psp->l[index_l] = (double)ptr->l[index_l];
   }
-
-  psp->l_max_tot = 0;
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */
 
@@ -1381,23 +1463,6 @@ int spectra_cls(
     class_alloc(psp->cl[index_mode],sizeof(double)*psp->l_size[index_mode]*psp->ct_size*psp->ic_ic_size[index_mode],psp->error_message);
     class_alloc(psp->ddcl[index_mode],sizeof(double)*psp->l_size[index_mode]*psp->ct_size*psp->ic_ic_size[index_mode],psp->error_message);
     cl_integrand_num_columns = 1+psp->ct_size*2; /* one for k, ct_size for each type, ct_size for each second derivative of each type */
-
-    /** c) get from input the last multipole for each mode (given as an input) 
-	at which we trust our C_ls; this number 
-	l[l_size[index_mode]-1] can be larger than 
-	l_max[index_mode], 
-	in order to ensure better interpolation with no boundary effects.
-	Compute also the max over all modes */
-
-    if ((ppt->has_scalars) && (index_mode == ppt->index_md_scalars)) {
-      psp->l_max[index_mode] = ppt->l_scalar_max;
-    }
-    
-    if ((ppt->has_tensors) && (index_mode == ppt->index_md_tensors)) {
-      psp->l_max[index_mode] = ppt->l_tensor_max;
-    }
-
-    psp->l_max_tot=max(psp->l_max_tot,psp->l_max[index_mode]);
 
     /** d) loop over initial conditions */
 

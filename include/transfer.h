@@ -67,6 +67,8 @@ struct transfers {
 
   //@{
 
+  int ** l_size_eff;  /**< number of multipole values for which we effectively compute the transfer function,l_size[index_mode][index_tt] */ 
+
   int * l_size;   /**< number of multipole values for each requested mode, l_size[index_mode] */
 
   int l_size_max; /**< greatest of all l_size[index_mode] */

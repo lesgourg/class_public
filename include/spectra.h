@@ -69,9 +69,9 @@ struct spectra {
   int index_ct_pp; /**< index for type C_l^phi-phi */
   int index_ct_tp; /**< index for type C_l^T-phi */
   int index_ct_ep; /**< index for type C_l^E-phi */
-  int index_ct_dd; /**< first index for type C_l^dd (d_size*d_size values) */
+  int index_ct_dd; /**< first index for type C_l^dd ((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_td; /**< first index for type C_l^Td (d_size values) */
-  int index_ct_ll; /**< first index for type C_l^ll (d_size*d_size values) */
+  int index_ct_ll; /**< first index for type C_l^ll ((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type C_l^Tl (d_size values) */
 
   int d_size;
@@ -85,13 +85,29 @@ struct spectra {
   //@{
 
   int * l_size;   /**< number of multipole values for each requested mode, l_size[index_mode] */
+
   int l_size_max; /**< greatest of all l_size[index_mode] */
+
   double * l;    /**< list of multipole values l[index_l] */
 
-  int * l_max;    /**< last multipole (given as an input) at which we trust our C_ls;
-		    l[index_mode][l_size[index_mode]-1] can be larger than l_max[index_mode], 
-		    in order to ensure a better interpolation with no boundary effects */
-  int l_max_tot;  /**< greatest of all l_max[index_mode] */
+
+  int ** l_max_ct;    /**< last multipole (given as an input) at which
+		    we want to output C_ls for a given mode and type;
+		    l[index_mode][l_size[index_mode]-1] can be larger
+		    than l_max[index_mode], in order to ensure a
+		    better interpolation with no boundary effects */
+
+  int * l_max;    /**< last multipole (given as an input) at which
+		    we want to output C_ls for a given mode (maximized over types);
+		    l[index_mode][l_size[index_mode]-1] can be larger
+		    than l_max[index_mode], in order to ensure a
+		    better interpolation with no boundary effects */
+
+  int l_max_tot; /**< last multipole (given as an input) at which
+		    we want to output C_ls (maximized over modes and types);
+		    l[index_mode][l_size[index_mode]-1] can be larger
+		    than l_max[index_mode], in order to ensure a
+		    better interpolation with no boundary effects */
 
   double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_mode][(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */ 

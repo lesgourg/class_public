@@ -1143,7 +1143,7 @@ int perturb_get_k_list(
 		   pba->error_message,
 		   ppt->error_message);
 	
-	k_max_cl = max(k_max_cl,ppr->k_scalar_max_tau0_over_l_max*ppt->l_scalar_max/(pba->conformal_age-tau1));
+	k_max_cl = max(k_max_cl,ppr->k_scalar_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1));
 	k_max    = k_max_cl;
       }
     }

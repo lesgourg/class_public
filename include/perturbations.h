@@ -105,8 +105,9 @@ struct perturbs
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
 
-  int l_scalar_max; /**< maximum l value for scalars C_ls */
-  int l_tensor_max; /**< maximum l value for tensors C_ls */
+  int l_scalar_max; /**< maximum l value for CMB scalars C_ls */
+  int l_tensor_max; /**< maximum l value for CMB tensors C_ls */
+  int l_lss_max; /**< maximum l value for LSS C_ls (density and lensing potential in  bins) */
   double k_scalar_kmax_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if scalar C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
 
   int selection_num;                            /**< number of selection functions 

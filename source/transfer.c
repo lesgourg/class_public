@@ -590,11 +590,13 @@ int transfer_free(
   if (ptr->has_cls == _TRUE_) {
 
     for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
+      free(ptr->l_size_eff[index_mode]);
       free(ptr->k[index_mode]);
       free(ptr->transfer[index_mode]);
     }  
    
     free(ptr->tt_size);
+    free(ptr->l_size_eff);
     free(ptr->l_size);
     free(ptr->l);
     free(ptr->k_size);
@@ -703,6 +705,12 @@ int transfer_indices_of_transfers(
 
   class_alloc(ptr->l_size,ptr->md_size * sizeof(int),ptr->error_message);
 
+  class_alloc(ptr->l_size_eff,ptr->md_size * sizeof(int *),ptr->error_message);
+
+  for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
+    class_alloc(ptr->l_size_eff[index_mode],ptr->tt_size[ppt->index_md_tensors] * sizeof(int),ptr->error_message);
+  }
+
   /* number of k values for each mode, k_size[index_mode] */
 
   class_alloc(ptr->k_size,ptr->md_size * sizeof(int),ptr->error_message);
@@ -760,13 +768,22 @@ int transfer_get_l_list(
   int index_l;
   int l_max=0;
   int index_mode;
+  int index_tt;
 
   ptr->l_size_max=0;
 
   for (index_mode=0; index_mode < ppt->md_size; index_mode++) {
 
     if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-      l_max = ppt->l_scalar_max;
+
+      l_max=0;
+
+      if (ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential)
+	l_max=max(ppt->l_scalar_max,l_max);
+
+      if (ppt->has_cl_lensing_potential || ppt->has_cl_density)
+	l_max=max(ppt->l_lss_max,l_max);
+
     }
     
     if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
@@ -797,7 +814,38 @@ int transfer_get_l_list(
   for (index_l=0; index_l < ptr->l_size_max; index_l++) {
     ptr->l[index_l]=pbs->l[index_l];
   }
-  
+
+  for (index_mode=0; index_mode < ppt->md_size; index_mode++) {
+
+    if ((ppt->has_scalars && (index_mode == ppt->index_md_scalars)) &&
+	(ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential) &&
+	(ppt->has_cl_lensing_potential || ppt->has_cl_density) &&
+	(ppt->l_scalar_max != ppt->l_lss_max)) {
+      
+      for (index_tt=0;index_tt<ptr->tt_size[index_mode];index_tt++) {
+	
+	if ((ppt->has_cl_cmb_temperature && (index_tt == ptr->index_tt_t)) ||
+	    (ppt->has_cl_cmb_polarization && (index_tt == ptr->index_tt_e)) ||
+	    (ppt->has_cl_cmb_lensing_potential && (index_tt == ptr->index_tt_lcmb))) {
+	  
+	  index_l=0;
+	  while(ptr->l[index_l] < ppt->l_scalar_max) index_l++;
+	  ptr->l_size_eff[index_mode][index_tt]=index_l+1;
+	}
+	else {
+	  index_l=0;
+	  while (ptr->l[index_l] < ppt->l_lss_max) index_l++;
+	  ptr->l_size_eff[index_mode][index_tt]=index_l+1;
+	}
+      }
+    }
+    else {
+      for (index_tt=0;index_tt<ptr->tt_size[index_mode];index_tt++) {
+	ptr->l_size_eff[index_mode][index_tt] = ptr->l_size[index_mode];
+      }
+    }
+  }
+   
   return _SUCCESS_;
 
 }
@@ -1346,7 +1394,7 @@ int transfer_sources(
   tau0 = pba->conformal_age;
 
   /* case where we need to redefine by a window function (or any
-       function of the background and of k) */
+     function of the background and of k) */
   if (redefine_source == _TRUE_) {
     
     class_call(transfer_source_tau_size(ppr,
@@ -1514,17 +1562,17 @@ int transfer_sources(
 	}
 
 	/*
-	if (bin == 2) {
+	  if (bin == 2) {
 	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
-	    for (index_tau = 0; index_tau < tau_size; index_tau++) {
-	      fprintf(stdout,"%e %e %e\n",
-		      tau0-tau0_minus_tau[index_tau],
-		      ptr->k[index_mode][index_k_tr],
-		      sources[index_k_tr*tau_size+index_tau]);
-	    }
-	    fprintf(stdout,"\n\n");
+	  for (index_tau = 0; index_tau < tau_size; index_tau++) {
+	  fprintf(stdout,"%e %e %e\n",
+	  tau0-tau0_minus_tau[index_tau],
+	  ptr->k[index_mode][index_k_tr],
+	  sources[index_k_tr*tau_size+index_tau]);
 	  }
-	}
+	  fprintf(stdout,"\n\n");
+	  }
+	  }
 	*/
 
 	/* deallocate temporary arrays */
@@ -1927,14 +1975,14 @@ int transfer_selection_sampling(
  */
 
 int transfer_lensing_sampling(
-				struct precision * ppr,
-				struct background * pba,
-				struct perturbs * ppt,
-				struct transfers * ptr,
-				int bin,
-				double tau0,
-				double * tau0_minus_tau,
-				int tau_size) {
+			      struct precision * ppr,
+			      struct background * pba,
+			      struct perturbs * ppt,
+			      struct transfers * ptr,
+			      int bin,
+			      double tau0,
+			      double * tau0_minus_tau,
+			      int tau_size) {
   
   /* running index on time */
   int index_tau;
@@ -2315,6 +2363,16 @@ int transfer_compute_for_each_l(
   
   /* whether to use a cutting scheme */
   enum transfer_cutting use_cut;
+
+  if (index_l >= ptr->l_size_eff[index_mode][index_tt]) { 
+
+    for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
+      ptr->transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt)
+				 * ptr->l_size[index_mode] + index_l)
+				* ptr->k_size[index_mode] + index_k] = 0.;
+    }
+    return _SUCCESS_;
+  }
 
   if (ptr->transfer_verbose > 2)
     printf("Compute transfer for l=%d\n",(int)l);
@@ -2719,11 +2777,11 @@ int transfer_integrate(
      The integral Sigma=int_{x_0}^{x_{n-1}} y(x) dx can be written as:
      
      sigma = sum_0^{n-2} [0.5 * (y_i+y_{i+1}) * (x_{i+1}-x_i)]
-           = 0.5 * sum_0^{n-1} [y_i * delta_i]
+     = 0.5 * sum_0^{n-1} [y_i * delta_i]
      
      with delta_0     = x_1 - x_0
-          delta_i     = x_{i+1} - x_{i-1}
-	  delta_{n-1} = x_{n-1} - x_{n-2}
+     delta_i     = x_{i+1} - x_{i-1}
+     delta_{n-1} = x_{n-1} - x_{n-2}
 
      We will use the second expression (we have already defined
      delta_tau as the above delta_i).
@@ -2739,21 +2797,21 @@ int transfer_integrate(
      x_trunc, and knowing that y(x_trunc)=0:
 
      sigma = 0.5 * sum_0^{i_trunc-1} [y_i * delta_i]
-           + 0.5 * y_{i_trunc} * (x_trunc - x_{i_max-1}) 
-	   + 0.      
+     + 0.5 * y_{i_trunc} * (x_trunc - x_{i_max-1}) 
+     + 0.      
 	   
      Below we willuse exactly this expression, strating form the last term 
      [y_{i_trunc} * (x_trunc - x_{i_max-1})],
      then adding all the terms
-      [y_i * delta_i],
-      and finally multiplying by 0.5
+     [y_i * delta_i],
+     and finally multiplying by 0.5
 
-      There is just one exception to the formula: the case when
-      x_0<x_trunc<x_1, so that i_max=0. Then
+     There is just one exception to the formula: the case when
+     x_0<x_trunc<x_1, so that i_max=0. Then
       
-      sigma = 0.5 * x_0 * (x_trunc-x_0)
+     sigma = 0.5 * x_0 * (x_trunc-x_0)
 
-      This exception is taken into account below.
+     This exception is taken into account below.
    	   
   */
 
@@ -2766,24 +2824,24 @@ int transfer_integrate(
   a = (x_min_l+x_step*(index_x+1) - x)/x_step;
 
   /*  
-  if (l==10. && index_k==60) {
-        printf("%e %e %e %e %e %e %e %e %e %e\n",
-	   k,
-	   tau0_minus_tau[index_tau_max],
-	   sources[index_k * tau_size + index_tau_max],
-	   (a*j_l[index_x]+(1.-a) *( j_l[index_x+1]
-				     - a * ((a+1.) * ddj_l[index_x]
+      if (l==10. && index_k==60) {
+      printf("%e %e %e %e %e %e %e %e %e %e\n",
+      k,
+      tau0_minus_tau[index_tau_max],
+      sources[index_k * tau_size + index_tau_max],
+      (a*j_l[index_x]+(1.-a) *( j_l[index_x+1]
+      - a * ((a+1.) * ddj_l[index_x]
 					 
-   +(2.-a) * ddj_l[index_x+1]) 
-				     * x_step * x_step / 6.0)),
-	   (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel),
-	   a,
-	   j_l[index_x],
-	   j_l[index_x+1],
-	   ddj_l[index_x],
-	   ddj_l[index_x+1]
-	   );
-  }
+      +(2.-a) * ddj_l[index_x+1]) 
+      * x_step * x_step / 6.0)),
+      (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel),
+      a,
+      j_l[index_x],
+      j_l[index_x+1],
+      ddj_l[index_x],
+      ddj_l[index_x+1]
+      );
+      }
   */
 
   transfer = sources[index_k * tau_size + index_tau_max] /* source */
@@ -2822,24 +2880,24 @@ int transfer_integrate(
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
 
     /*    
-    if (l==2. && index_k==60) {
-      printf("%e %e %e %e %e %e %e %e %e %e\n",
-	     k,
-	     tau0_minus_tau[index_tau],
-	     sources[index_k * tau_size + index_tau],
-	     (a*j_l[index_x]+(1.-a) *( j_l[index_x+1]
-				       - a * ((a+1.) * ddj_l[index_x]
+	  if (l==2. && index_k==60) {
+	  printf("%e %e %e %e %e %e %e %e %e %e\n",
+	  k,
+	  tau0_minus_tau[index_tau],
+	  sources[index_k * tau_size + index_tau],
+	  (a*j_l[index_x]+(1.-a) *( j_l[index_x+1]
+	  - a * ((a+1.) * ddj_l[index_x]
 					      
-					      +(2.-a) * ddj_l[index_x+1]) 
-				       * x_step * x_step / 6.0)),
-	     delta_tau[index_tau],
-	     a,
-	     j_l[index_x],
-	     j_l[index_x+1],
-	     ddj_l[index_x],
-	     ddj_l[index_x+1]
-	     );
-    }
+	  +(2.-a) * ddj_l[index_x+1]) 
+	  * x_step * x_step / 6.0)),
+	  delta_tau[index_tau],
+	  a,
+	  j_l[index_x],
+	  j_l[index_x+1],
+	  ddj_l[index_x],
+	  ddj_l[index_x+1]
+	  );
+	  }
     */
 
     transfer += sources[index_k * tau_size + index_tau] /* source */
@@ -2862,23 +2920,23 @@ int transfer_integrate(
 }
 
 /**
- * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
- * for each mode, initial condition, type, multipole l and wavenumber k,
- * by using the Limber approximation, i.e by evaluating the source function 
- * (passed in input in the array interpolated_sources) at a single value of
- * tau (the Bessel function being approximated as a Dirac distribution)
- *
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param tau0                  Input : conformal time today
- * @param index_mode            Input : index of mode
- * @param index_tt              Input : index of type
- * @param index_l               Input : index of multipole
- * @param index_k               Input : index of wavenumber
- * @param interpolated_sources  Input: array of interpolated sources
- * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
- * @return the error status
- */
+* This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
+* for each mode, initial condition, type, multipole l and wavenumber k,
+  * by using the Limber approximation, i.e by evaluating the source function 
+* (passed in input in the array interpolated_sources) at a single value of
+* tau (the Bessel function being approximated as a Dirac distribution)
+*
+* @param ppt                   Input : pointer to perturbation structure
+* @param ptr                   Input : pointer to transfers structure
+* @param tau0                  Input : conformal time today
+* @param index_mode            Input : index of mode
+* @param index_tt              Input : index of type
+* @param index_l               Input : index of multipole
+* @param index_k               Input : index of wavenumber
+* @param interpolated_sources  Input: array of interpolated sources
+* @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
+* @return the error status
+*/
 
 int transfer_limber(
 		    int tau_size,
@@ -2995,16 +3053,16 @@ int transfer_limber(
  */
 
 int transfer_limber2(
-		    int tau_size,
-		    struct transfers * ptr,
-		    int index_mode,
-		    int index_k,
-		    double l,
-		    double k,
-		    double * tau0_minus_tau,
-		    double * sources, 
-		    double * trsf
-		    ){
+		     int tau_size,
+		     struct transfers * ptr,
+		     int index_mode,
+		     int index_k,
+		     double l,
+		     double k,
+		     double * tau0_minus_tau,
+		     double * sources, 
+		     double * trsf
+		     ){
 
   /** Summary: */
 
@@ -3034,7 +3092,7 @@ int transfer_limber2(
     index_tau++;
 
   /** - interpolate by fitting a polynomial of order two; get source
-        and its first two derivatives */
+      and its first two derivatives */
   class_call(array_interpolate_parabola(tau0_minus_tau[index_tau-1],
 					tau0_minus_tau[index_tau],
 					tau0_minus_tau[index_tau+1],
