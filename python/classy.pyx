@@ -262,6 +262,9 @@ cdef class Class:
   property pars:
     def __get__(self):
       return self._pars
+  property state:
+    def __get__(self):
+      return self.ready
   property age:
     def __get__(self):
       return self._age()
