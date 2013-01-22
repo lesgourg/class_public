@@ -7,6 +7,10 @@
 #include "evolver_ndf15.h"
 #include "evolver_rkck.h"
 
+#define _scalars_ (ppt->has_scalars && (index_md == ppt->index_md_scalars))
+#define _vectors_ (ppt->has_vectors && (index_md == ppt->index_md_vectors))
+#define _tensors_ (ppt->has_tensors && (index_md == ppt->index_md_tensors))
+
 /**  
  * flags for various approximation schemes 
  * (tca = tight-coupling approximation, 
@@ -158,7 +162,7 @@ struct perturbs
   int index_ic_niv; /**< index value for neutrino velocity isocurvature */
   int index_ic_ten; /**< index value for unique possibility for tensors */
 
-  int * ic_size;       /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+  int * ic_size;       /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
 
   //@}
 
@@ -201,7 +205,7 @@ struct perturbs
   int index_tp_theta_fld;  /**< index value for theta of dark energy */
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
-  int * tp_size; /**< number of types tp_size[index_mode] included in computation for each mode */
+  int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
   //@}
 
@@ -209,19 +213,19 @@ struct perturbs
   
   //@{
 
-  int * k_size_cmb;  /**< k_size_cmb[index_mode] number of k values used
+  int * k_size_cmb;  /**< k_size_cmb[index_md] number of k values used
 			for CMB calculations, requiring a fine
 			sampling in k-space */
 
-  int * k_size_cl;  /**< k_size_cl[index_mode] number of k values used
+  int * k_size_cl;  /**< k_size_cl[index_md] number of k values used
 		       for non-CMB Cl calculations, requering a coarse
 		       sampling in k-space. */
 
-  int * k_size;     /**< k_size[index_mode] = total number of k
+  int * k_size;     /**< k_size[index_md] = total number of k
 		       values, including those needed for P(k) but not
 		       for Cl's */
 
-  double ** k;      /**< k[index_mode][index_k] = list of values */
+  double ** k;      /**< k[index_md][index_k] = list of values */
 
   //@}
 
@@ -251,9 +255,9 @@ struct perturbs
   //@{
 
   double *** sources; /**< Pointer towards the source interpolation table
-			 sources[index_mode]
-			 [index_ic * ppt->tp_size[index_mode] + index_type]
-			 [index_tau * ppt->k_size[index_mode] + index_k] */
+			 sources[index_md]
+			 [index_ic * ppt->tp_size[index_md] + index_type]
+			 [index_tau * ppt->k_size[index_md] + index_k] */
 
 
   //@}
@@ -445,7 +449,7 @@ struct perturb_parameters_and_workspace {
   struct background * pba;        /**< pointer to the background structure */
   struct thermo * pth;            /**< pointer to the thermodynamics structure */
   struct perturbs * ppt;          /**< pointer to the precision structure */
-  int index_mode;                 /**< index of mode (scalar/.../vector/tensor) */
+  int index_md;                 /**< index of mode (scalar/.../vector/tensor) */
   double k;
   struct perturb_workspace * ppw; /**< worspace defined above */
   
@@ -462,7 +466,7 @@ struct perturb_parameters_and_workspace {
 
     int perturb_sources_at_tau(
 			       struct perturbs * ppt,
-			       int index_mode,
+			       int index_md,
 			       int index_ic,
 			       int index_type,
 			       double tau,
@@ -498,20 +502,20 @@ struct perturb_parameters_and_workspace {
 			   struct background * pba,
 			   struct thermo * pth,
 			   struct perturbs * ppt,
-			   int index_mode);
+			   int index_md);
 
     int perturb_workspace_init(
 			       struct precision * ppr,
 			       struct background * pba,
 			       struct thermo * pth,
 			       struct perturbs * ppt,
-			       int index_mode,
+			       int index_md,
 			       struct perturb_workspace * ppw
 			       );
 
     int perturb_workspace_free(
 			       struct perturbs * ppt,
-			       int index_mode,
+			       int index_md,
 			       struct perturb_workspace * ppw
 			       );
 
@@ -520,7 +524,7 @@ struct perturb_parameters_and_workspace {
 		      struct background * pba,
 		      struct thermo * pth,
 		      struct perturbs * ppt,
-		      int index_mode,
+		      int index_md,
 		      int index_ic,
 		      int index_k,
 		      struct perturb_workspace * ppw
@@ -531,7 +535,7 @@ struct perturb_parameters_and_workspace {
 					  struct background * pba,
 					  struct thermo * pth,
 					  struct perturbs * ppt,
-					  int index_mode,
+					  int index_md,
 					  double k,
 					  struct perturb_workspace * ppw,
 					  double tau_ini,
@@ -545,7 +549,7 @@ struct perturb_parameters_and_workspace {
 					    struct background * pba,
 					    struct thermo * pth,
 					    struct perturbs * ppt,
-					    int index_mode,
+					    int index_md,
 					    double k,
 					    struct perturb_workspace * ppw,
 					    double tau_ini,
@@ -562,7 +566,7 @@ struct perturb_parameters_and_workspace {
 			    struct background * pba,
 			    struct thermo * pth,
 			    struct perturbs * ppt,
-			    int index_mode,
+			    int index_md,
 			    int index_ic,
 			    double k,
 			    double tau,
@@ -578,7 +582,7 @@ struct perturb_parameters_and_workspace {
 				   struct precision * ppr,
 				   struct background * pba,
 				   struct perturbs * ppt,
-				   int index_mode,
+				   int index_md,
 				   int index_ic,
 				   double k,
 				   double tau,
@@ -590,7 +594,7 @@ struct perturb_parameters_and_workspace {
 			       struct background * pba,
 			       struct thermo * pth,
 			       struct perturbs * ppt,
-			       int index_mode,
+			       int index_md,
 			       double k,
 			       double tau,
 			       struct perturb_workspace * ppw
@@ -608,7 +612,7 @@ struct perturb_parameters_and_workspace {
 			 struct background * pba,
 			 struct thermo * pth,
 			 struct perturbs * ppt,
-			 int index_mode,
+			 int index_md,
 			 double k,
 			 double tau,
 			 double * y,
@@ -627,7 +631,7 @@ struct perturb_parameters_and_workspace {
     int perturb_sources(
 			struct precision * ppr,
 			struct perturbs * ppt,
-			int index_mode,
+			int index_md,
 			int index_ic,
 			int index_k,
 			struct perturb_workspace * ppw

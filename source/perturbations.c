@@ -33,7 +33,7 @@
  * the pre-computed table and interpolating.
  *
  * @param ppt        Input : pointer to perturbation structure containing interpolation tables
- * @param index_mode Input : index of requested mode
+ * @param index_md Input : index of requested mode
  * @param index_ic   Input : index of requested initial condition
  * @param index_type Input : index of requested source function type
  * @param tau        Input : any value of conformal time
@@ -43,7 +43,7 @@
 
 int perturb_sources_at_tau(
 			   struct perturbs * ppt,
-			   int index_mode,
+			   int index_md,
 			   int index_ic,
 			   int index_type,
 			   double tau,
@@ -57,12 +57,12 @@ int perturb_sources_at_tau(
   class_call(array_interpolate_two_bis(ppt->tau_sampling,
 				       1,
 				       0,
-				       ppt->sources[index_mode][index_ic*ppt->tp_size[index_mode]+index_type],
-				       ppt->k_size[index_mode],
+				       ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
+				       ppt->k_size[index_md],
 				       ppt->tau_size,
 				       tau,
 				       psource,
-				       ppt->k_size[index_mode],
+				       ppt->k_size[index_md],
 				       ppt->error_message),
              ppt->error_message,
              ppt->error_message);
@@ -106,7 +106,7 @@ int perturb_init(
   /** - define local variables */
 
   /* running index for modes */
-  int index_mode; 
+  int index_md; 
   /* running index for initial conditions */
   int index_ic; 
   /* running index for wavenumbers */
@@ -221,12 +221,12 @@ int perturb_init(
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+  for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
     abort = _FALSE_;
 
 #pragma omp parallel				\
-  shared(pppw,ppr,pba,pth,ppt,index_mode,abort)	\
+  shared(pppw,ppr,pba,pth,ppt,index_md,abort)	\
   private(thread)
 
     {
@@ -245,7 +245,7 @@ int perturb_init(
 						 pba,
 						 pth,
 						 ppt,
-						 index_mode,
+						 index_md,
 					 	 pppw[thread]),
 			  ppt->error_message,
 			  ppt->error_message);
@@ -256,12 +256,12 @@ int perturb_init(
 
     /** (c) loop over initial conditions and wavenumbers; for each of them, evolve perturbations and compute source functions with perturb_solve() */
 
-    for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
       abort = _FALSE_;
 
 #pragma omp parallel						\
-  shared(pppw,ppr,pba,pth,ppt,index_mode,index_ic,abort)	\
+  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort)	\
   private(index_k,thread,tstart,tstop,tspent)
 
       {
@@ -274,11 +274,11 @@ int perturb_init(
 #pragma omp for schedule (dynamic)
 
         /* integrating backwards is slightly more optimal for parallel runs */
-	//for (index_k = 0; index_k < ppt->k_size[index_mode]; index_k++) {
-	for (index_k = ppt->k_size[index_mode]-1; index_k >=0; index_k--) {  
+	//for (index_k = 0; index_k < ppt->k_size[index_md]; index_k++) {
+	for (index_k = ppt->k_size[index_md]-1; index_k >=0; index_k--) {  
 
 	  if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
-	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_mode])[index_k]);
+	    printf("evolving mode k=%e /Mpc\n",(ppt->k[index_md])[index_k]);
 	  
 #ifdef _OPENMP
 	  tstart = omp_get_wtime();
@@ -288,7 +288,7 @@ int perturb_init(
 					    pba,
 					    pth,
 					    ppt,
-					    index_mode,
+					    index_md,
 					    index_ic,
 					    index_k,
 					    pppw[thread]),
@@ -320,7 +320,7 @@ int perturb_init(
     abort = _FALSE_;
 
 #pragma omp parallel				\
-  shared(pppw,ppt,index_mode,abort)		\
+  shared(pppw,ppt,index_md,abort)		\
   private(thread)
 
     {
@@ -329,7 +329,7 @@ int perturb_init(
       thread=omp_get_thread_num();
 #endif
       
-      class_call_parallel(perturb_workspace_free(ppt,index_mode,pppw[thread]),
+      class_call_parallel(perturb_workspace_free(ppt,index_md,pppw[thread]),
 			  ppt->error_message,
 			  ppt->error_message);
 
@@ -358,25 +358,25 @@ int perturb_free(
 		 struct perturbs * ppt
 		 ) {
 
-  int index_mode,index_ic,index_type;
+  int index_md,index_ic,index_type;
 
   if (ppt->has_perturbations == _TRUE_) {
 
-    for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+    for (index_md = 0; index_md < ppt->md_size; index_md++) {
     
-      for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+      for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-	for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+	for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
-	  free(ppt->sources[index_mode][index_ic*ppt->tp_size[index_mode]+index_type]);
+	  free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type]);
 
 	}
 
       }
 
-      free(ppt->k[index_mode]);
+      free(ppt->k[index_md]);
 
-      free(ppt->sources[index_mode]);
+      free(ppt->sources[index_md]);
 
     }
     
@@ -422,39 +422,39 @@ int perturb_indices_of_perturbs(
 
   /** - define local variables */
 
-  int index_type, index_mode, index_ic, index_type_common;
+  int index_type, index_md, index_ic, index_type_common;
 
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
 
-  index_mode = 0;
-  class_define_index(ppt->index_md_scalars,ppt->has_scalars,index_mode,1);
-  class_define_index(ppt->index_md_vectors,ppt->has_vectors,index_mode,1);
-  class_define_index(ppt->index_md_tensors,ppt->has_tensors,index_mode,1);
-  ppt->md_size = index_mode;
+  index_md = 0;
+  class_define_index(ppt->index_md_scalars,ppt->has_scalars,index_md,1);
+  class_define_index(ppt->index_md_vectors,ppt->has_vectors,index_md,1);
+  class_define_index(ppt->index_md_tensors,ppt->has_tensors,index_md,1);
+  ppt->md_size = index_md;
 
-  class_test(index_mode == 0,
+  class_test(index_md == 0,
 	     ppt->error_message,
 	     "you should have at least one out of {scalars, vectors, tensors} !!!");
 
-  /** - allocate array of number of types for each mode, ppt->tp_size[index_mode] */
+  /** - allocate array of number of types for each mode, ppt->tp_size[index_md] */
 
   class_alloc(ppt->tp_size,ppt->md_size*sizeof(int),ppt->error_message);
 
-  /** - allocate array of number of initial conditions for each mode, ppt->ic_size[index_mode] */
+  /** - allocate array of number of initial conditions for each mode, ppt->ic_size[index_md] */
 
   class_alloc(ppt->ic_size,ppt->md_size*sizeof(int),ppt->error_message);
 
-  /** - allocate array of number of wavenumbers for each mode, ppt->k_size[index_mode] */
+  /** - allocate array of number of wavenumbers for each mode, ppt->k_size[index_md] */
 
   class_alloc(ppt->k_size,ppt->md_size * sizeof(int),ppt->error_message);
   class_alloc(ppt->k_size_cl,ppt->md_size * sizeof(int),ppt->error_message);
   class_alloc(ppt->k_size_cmb,ppt->md_size * sizeof(int),ppt->error_message);
 
-  /** - allocate array of lists of wavenumbers for each mode, ppt->k[index_mode] */
+  /** - allocate array of lists of wavenumbers for each mode, ppt->k[index_md] */
 
   class_alloc(ppt->k,ppt->md_size * sizeof(double *),ppt->error_message);
 
-  /** - allocate array of arrays of source functions for each mode, ppt->source[index_mode] */
+  /** - allocate array of arrays of source functions for each mode, ppt->source[index_md] */
 
   class_alloc(ppt->sources,ppt->md_size * sizeof(double *),ppt->error_message);
 
@@ -501,11 +501,11 @@ int perturb_indices_of_perturbs(
 
   /** - loop over modes. Initialize flags and indices which are specific to each mode. */
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
+  for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
     /** (a) scalars */
 
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if _scalars_ {
 
       /** - source flags and indices, for sources that are specific to scalars */
 
@@ -565,7 +565,7 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
       class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
       class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
-      ppt->tp_size[index_mode] = index_type;
+      ppt->tp_size[index_md] = index_type;
 
       class_test(index_type == 0,
 		 ppt->error_message,
@@ -579,22 +579,22 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_ic_cdi,ppt->has_cdi,index_ic,1);
       class_define_index(ppt->index_ic_nid,ppt->has_nid,index_ic,1);
       class_define_index(ppt->index_ic_niv,ppt->has_niv,index_ic,1);
-      ppt->ic_size[index_mode] = index_ic;
+      ppt->ic_size[index_md] = index_ic;
 
       class_test(index_ic == 0,
 		 ppt->error_message,
 		 "you should have at least one adiabatic or isocurvature initial condition...} !!!");
 
     }
-    
-    if ((ppt->has_vectors == _TRUE_) && (index_mode == ppt->index_md_vectors)) {
+ 
+    if _vectors_ {
+	//    if ((ppt->has_vectors == _TRUE_) && (index_md == ppt->index_md_vectors)) {
 
       /* vectors not treated yet */
     }
 
     /** (b) tensors */
-
-    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+    if _tensors_ {
 
       /** - source flags and indices, for sources that are specific to tensors */
 
@@ -605,7 +605,7 @@ int perturb_indices_of_perturbs(
 
       index_type = index_type_common;
       class_define_index(ppt->index_tp_b,ppt->has_source_b,index_type,1);
-      ppt->tp_size[index_mode] = index_type;
+      ppt->tp_size[index_md] = index_type;
 
       class_test(index_type == 0,
 		 ppt->error_message,
@@ -615,7 +615,7 @@ int perturb_indices_of_perturbs(
 
       index_ic = 0;
       class_define_index(ppt->index_ic_ten,_TRUE_,index_ic,1);
-      ppt->ic_size[index_mode] = index_ic;
+      ppt->ic_size[index_md] = index_ic;
 
     }
 
@@ -625,14 +625,14 @@ int perturb_indices_of_perturbs(
 				  pba,
 				  pth,
 				  ppt,
-				  index_mode),
+				  index_md),
 	       ppt->error_message,
 	       ppt->error_message);
 
-    /** (d) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_mode])[index_ic][index_type] */
+    /** (d) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_md])[index_ic][index_type] */
     
-    class_alloc(ppt->sources[index_mode],
-		ppt->ic_size[index_mode] * ppt->tp_size[index_mode] * sizeof(double *),
+    class_alloc(ppt->sources[index_md],
+		ppt->ic_size[index_md] * ppt->tp_size[index_md] * sizeof(double *),
 		ppt->error_message);
 
   }
@@ -667,7 +667,7 @@ int perturb_timesampling_for_sources(
   /** - define local variables */
 
   int counter;
-  int index_mode;
+  int index_md;
   int index_type;
   int index_ic;
   int last_index_back;
@@ -995,12 +995,12 @@ int perturb_timesampling_for_sources(
   /** - loop over modes, initial conditions and types. For each of
       them, allocate array of source functions. */
   
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
-    for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
-      for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+  for (index_md = 0; index_md < ppt->md_size; index_md++) {
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+      for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
-	class_alloc(ppt->sources[index_mode][index_ic*ppt->tp_size[index_mode]+index_type],
-		    ppt->k_size[index_mode] * ppt->tau_size * sizeof(double),
+	class_alloc(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
+		    ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
 		    ppt->error_message);
 
       }
@@ -1018,7 +1018,7 @@ int perturb_timesampling_for_sources(
  * @param pba        Input : pointer to background strucutre
  * @param pth        Input : pointer to thermodynamics structure
  * @param ppt        Input : pointer to perturbation structure
- * @param index_mode Input: index describing the mode (scalar, tensor, etc.)
+ * @param index_md Input: index describing the mode (scalar, tensor, etc.)
  * @return the error status
  */
 
@@ -1027,7 +1027,7 @@ int perturb_get_k_list(
 		       struct background * pba,
 		       struct thermo * pth,
 		       struct perturbs * ppt,
-		       int index_mode
+		       int index_md
 		       ) {
   int index_k;
   double k,k_next,k_rec,step,tau1;
@@ -1039,7 +1039,7 @@ int perturb_get_k_list(
 
   /** - get number of wavenumbers for scalar mode */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     class_test(ppr->k_scalar_step_transition == 0.,
 	       ppt->error_message,
@@ -1116,7 +1116,7 @@ int perturb_get_k_list(
       k=k_next;
     }
 
-    ppt->k_size_cmb[index_mode] = index_k;
+    ppt->k_size_cmb[index_md] = index_k;
     
     /* values until k_max_cl */
 
@@ -1129,7 +1129,7 @@ int perturb_get_k_list(
       index_k++;
     }
 
-    ppt->k_size_cl[index_mode] = index_k;
+    ppt->k_size_cl[index_md] = index_k;
 
     /* values until k_max */
 
@@ -1142,40 +1142,40 @@ int perturb_get_k_list(
       index_k++;
     }
 
-    ppt->k_size[index_mode] = index_k;
+    ppt->k_size[index_md] = index_k;
 
-    class_alloc(ppt->k[index_mode],ppt->k_size[index_mode]*sizeof(double),ppt->error_message);
+    class_alloc(ppt->k[index_md],ppt->k_size[index_md]*sizeof(double),ppt->error_message);
 
     /** - repeat the same steps, now filling the array */
 
     index_k=0;
 
     /* first value */
-    ppt->k[index_mode][index_k] = ppr->k_scalar_min_tau0/pba->conformal_age;
+    ppt->k[index_md][index_k] = ppr->k_scalar_min_tau0/pba->conformal_age;
     index_k++;
 
     /* values until k_max_cmb */
 
-    while (index_k < ppt->k_size_cmb[index_mode]) {
+    while (index_k < ppt->k_size_cmb[index_md]) {
       step = ppr->k_scalar_step_super 
-	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
+	+ 0.5 * (tanh((ppt->k[index_md][index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
 
-      class_test(step * k_rec / ppt->k[index_mode][index_k-1] < ppr->smallest_allowed_variation,
+      class_test(step * k_rec / ppt->k[index_md][index_k-1] < ppr->smallest_allowed_variation,
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
-      ppt->k[index_mode][index_k]=ppt->k[index_mode][index_k-1] + step * k_rec;
+      ppt->k[index_md][index_k]=ppt->k[index_md][index_k-1] + step * k_rec;
 
       index_k++;
     }
 
     /* all in one, values until k_max_cmb and k_max */
 
-    while (index_k < ppt->k_size[index_mode]) {
+    while (index_k < ppt->k_size[index_md]) {
       
-      ppt->k[index_mode][index_k] = ppt->k[index_mode][index_k-1] 
+      ppt->k[index_md][index_k] = ppt->k[index_md][index_k-1] 
 	*pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
 		     +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
-		     *(1.-tanh(pow((log(ppt->k[index_mode][index_k-1])-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+		     *(1.-tanh(pow((log(ppt->k[index_md][index_k-1])-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
 
       index_k++;
 
@@ -1184,8 +1184,7 @@ int perturb_get_k_list(
   }
 
   /** - get number of wavenumbers for tensor mode */
-
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     class_test(ppr->k_tensor_step_transition == 0.,
 	       ppt->error_message,
@@ -1221,25 +1220,25 @@ int perturb_get_k_list(
       k=k_next;
     }
 
-    ppt->k_size_cmb[index_mode] = index_k;
-    ppt->k_size_cl[index_mode] = index_k;
-    ppt->k_size[index_mode] = index_k;
+    ppt->k_size_cmb[index_md] = index_k;
+    ppt->k_size_cl[index_md] = index_k;
+    ppt->k_size[index_md] = index_k;
 
-    class_alloc(ppt->k[index_mode],ppt->k_size[index_mode]*sizeof(double),ppt->error_message);
+    class_alloc(ppt->k[index_md],ppt->k_size[index_md]*sizeof(double),ppt->error_message);
 
     /** - repeat the same steps, now filling the array */
 
     index_k=0;
-    ppt->k[index_mode][index_k] = ppr->k_tensor_min_tau0/pba->conformal_age;
+    ppt->k[index_md][index_k] = ppr->k_tensor_min_tau0/pba->conformal_age;
     index_k++;
-    while (index_k < ppt->k_size_cl[index_mode]) {
+    while (index_k < ppt->k_size_cl[index_md]) {
       step = ppr->k_tensor_step_super 
-	+ 0.5 * (tanh((ppt->k[index_mode][index_k-1]-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
+	+ 0.5 * (tanh((ppt->k[index_md][index_k-1]-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
 
-      class_test(step * k_rec / ppt->k[index_mode][index_k-1] < ppr->smallest_allowed_variation,
+      class_test(step * k_rec / ppt->k[index_md][index_k-1] < ppr->smallest_allowed_variation,
 		 ppt->error_message,
 		 "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
-      ppt->k[index_mode][index_k]=ppt->k[index_mode][index_k-1] + step * k_rec;
+      ppt->k[index_md][index_k]=ppt->k[index_md][index_k-1] + step * k_rec;
       index_k++;
     }
 
@@ -1263,7 +1262,7 @@ int perturb_get_k_list(
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_mode Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md Input: index of mode under consideration (scalar/.../tensor)
  * @param ppw        Input/Output: pointer to perturb_workspace structure which fields are allocated or filled here
  * @return the error status
  */
@@ -1273,7 +1272,7 @@ int perturb_workspace_init(
 			   struct background * pba,
 			   struct thermo * pth,
 			   struct perturbs * ppt,
-			   int index_mode,
+			   int index_md,
 			   struct perturb_workspace * ppw
 			   ) {
 
@@ -1293,7 +1292,7 @@ int perturb_workspace_init(
       be integrated, which is allocated separately in
       perturb_vector_init) */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     /* newtonian gauge */
 
@@ -1347,10 +1346,10 @@ int perturb_workspace_init(
       source_term_table[index_type][index_tau*ppw->st_size+index_st] */
 
   class_alloc(ppw->source_term_table,
-	      ppt->tp_size[index_mode] * sizeof(double *),
+	      ppt->tp_size[index_md] * sizeof(double *),
 	      ppt->error_message);
 
-  for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+  for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
     class_alloc(ppw->source_term_table[index_type], 
 		ppt->tau_size*ppw->st_size*sizeof(double),
 		ppt->error_message);
@@ -1362,7 +1361,7 @@ int perturb_workspace_init(
   class_define_index(ppw->index_ap_tca,_TRUE_,index_ap,1);
   class_define_index(ppw->index_ap_rsa,_TRUE_,index_ap,1);
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     class_define_index(ppw->index_ap_ufa,pba->has_ur,index_ap,1);
     class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
@@ -1378,7 +1377,7 @@ int perturb_workspace_init(
       values (correct values are overwritten in
       pertub_find_approximation_switches) */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     ppw->approx[ppw->index_ap_tca]=(int)tca_on;
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
@@ -1390,7 +1389,7 @@ int perturb_workspace_init(
     }
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     ppw->approx[ppw->index_ap_tca]=(int)tca_on;
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
@@ -1398,7 +1397,7 @@ int perturb_workspace_init(
 
   /** - allocate fields where some of the perturbations are stored */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
 
@@ -1419,14 +1418,14 @@ int perturb_workspace_init(
  * perturb_vector_free).
  *
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_mode Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md Input: index of mode under consideration (scalar/.../tensor)
  * @param ppw        Input: pointer to perturb_workspace structure to be freed
  * @return the error status
  */
 
 int perturb_workspace_free (
 			    struct perturbs * ppt,
-			    int index_mode,
+			    int index_md,
 			    struct perturb_workspace * ppw
 			    ) {
 
@@ -1435,14 +1434,15 @@ int perturb_workspace_free (
   free(ppw->pvecback);
   free(ppw->pvecthermo);
   free(ppw->pvecmetric);
-  for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+  for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
     free(ppw->source_term_table[index_type]);
   }
   free(ppw->source_term_table);
   if (ppw->ap_size > 0)
     free(ppw->approx);
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
+
     if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
       free(ppw->delta_ncdm);
       free(ppw->theta_ncdm);
@@ -1474,7 +1474,7 @@ int perturb_workspace_free (
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param ppt        Input/Output: pointer to the perturbation structure (output source functions S(k,tau) written here)
- * @param index_mode Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md Input: index of mode under consideration (scalar/.../tensor)
  * @param index_ic   Input: index of initial condition under consideration (ad, iso...)
  * @param index_k    Input: index of wavenumber
  * @param ppw        Input: pointer to perturb_workspace structure containing index values and workspaces
@@ -1486,7 +1486,7 @@ int perturb_solve(
 		  struct background * pba,
 		  struct thermo * pth,
 		  struct perturbs * ppt,
-		  int index_mode,
+		  int index_md,
 		  int index_ic,
 		  int index_k,
 		  struct perturb_workspace * ppw
@@ -1555,7 +1555,7 @@ int perturb_solve(
   ppw->inter_mode = pba->inter_normal;
 
   /** - get wavenumber value */
-  k = (ppt->k[index_mode])[index_k];
+  k = (ppt->k[index_md])[index_k];
 
   class_test(k == 0.,
 	     ppt->error_message,
@@ -1621,7 +1621,7 @@ int perturb_solve(
 	     ppr->start_large_k_at_tau_h_over_tau_k,
              ppt->error_message,
              "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_large_k_at_tau_h_over_tau_k' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
-	     ppt->k[index_mode][ppt->k_size[index_mode]-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
+	     ppt->k[index_md][ppt->k_size[index_md]-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
   
   if (pba->has_ncdm == _TRUE_) {
     for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
@@ -1706,7 +1706,7 @@ int perturb_solve(
 					       pba,
 					       pth,
 					       ppt,
-					       index_mode,
+					       index_md,
 					       k,
 					       ppw,
 					       tau,
@@ -1727,7 +1727,7 @@ int perturb_solve(
 						 pba,
 						 pth,
 						 ppt,
-						 index_mode,
+						 index_md,
 						 k,
 						 ppw,
 						 tau,
@@ -1749,7 +1749,7 @@ int perturb_solve(
   ppaw.pba = pba;
   ppaw.pth = pth;
   ppaw.ppt = ppt;
-  ppaw.index_mode = index_mode;
+  ppaw.index_md = index_md;
   ppaw.k = k;
   ppaw.ppw = ppw;
   ppaw.ppw->inter_mode = pba->inter_closeby;
@@ -1787,7 +1787,7 @@ int perturb_solve(
 				   pba,
 				   pth,
 				   ppt,
-				   index_mode,
+				   index_md,
 				   index_ic,
 				   k,
 				   interval_limit[index_interval],
@@ -1838,7 +1838,7 @@ int perturb_solve(
       then last integrated time tau_max and tau_today. */
 
   for (index_tau = tau_actual_size; index_tau < ppt->tau_size; index_tau++) {
-    for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+    for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
       for (index_st = 0; index_st < ppw->st_size; index_st++) {
 	ppw->source_term_table[index_type][index_tau*ppw->st_size+index_st] = 0.;
       }
@@ -1862,7 +1862,7 @@ int perturb_solve(
 
   class_call(perturb_sources(ppr,
 			     ppt,
-			     index_mode,
+			     index_md,
 			     index_ic,
 			     index_k,
 			     ppw),
@@ -1881,7 +1881,7 @@ int perturb_solve(
  * @param pba                Input: pointer to background structure
  * @param pth                Input: pointer to the thermodynamics structure
  * @param ppt                Input: pointer to the perturbation structure
- * @param index_mode         Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md         Input: index of mode under consideration (scalar/.../tensor)
  * @param index_k            Input: index of wavenumber
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
@@ -1896,7 +1896,7 @@ int perturb_find_approximation_number(
 				      struct background * pba,
 				      struct thermo * pth,
 				      struct perturbs * ppt,
-				      int index_mode,
+				      int index_md,
 				      double k,
 				      struct perturb_workspace * ppw,
 				      double tau_ini,
@@ -1923,7 +1923,7 @@ int perturb_find_approximation_number(
 				      pba,
 				      pth,
 				      ppt,
-				      index_mode,
+				      index_md,
 				      k,
 				      tau_ini,
 				      ppw),
@@ -1936,7 +1936,7 @@ int perturb_find_approximation_number(
 				      pba,
 				      pth,
 				      ppt,
-				      index_mode,
+				      index_md,
 				      k,
 				      tau_end,
 				      ppw),
@@ -1966,7 +1966,7 @@ int perturb_find_approximation_number(
  * @param pba                Input: pointer to background structure
  * @param pth                Input: pointer to the thermodynamics structure
  * @param ppt                Input: pointer to the perturbation structure
- * @param index_mode         Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md         Input: index of mode under consideration (scalar/.../tensor)
  * @param index_k            Input: index of wavenumber
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
@@ -1983,7 +1983,7 @@ int perturb_find_approximation_switches(
 					struct background * pba,
 					struct thermo * pth,
 					struct perturbs * ppt,
-					int index_mode,
+					int index_md,
 					double k,
 					struct perturb_workspace * ppw,
 					double tau_ini,
@@ -2014,7 +2014,7 @@ int perturb_find_approximation_switches(
 				    pba,
 				    pth,
 				    ppt,
-				    index_mode,
+				    index_md,
 				    k,
 				    tau_ini,
 				    ppw),
@@ -2064,7 +2064,7 @@ int perturb_find_approximation_switches(
 					      pba,
 					      pth,
 					      ppt,
-					      index_mode,
+					      index_md,
 					      k,
 					      mid,
 					      ppw),
@@ -2127,7 +2127,7 @@ int perturb_find_approximation_switches(
 					pba,
 					pth,
 					ppt,
-					index_mode,
+					index_md,
 					k,
 					0.5*(interval_limit[index_switch]+interval_limit[index_switch+1]),
 					ppw),
@@ -2168,7 +2168,7 @@ int perturb_find_approximation_switches(
 
       if (ppt->perturbations_verbose>2) {
 
-	if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+	if _scalars_ {
 
 	  if ((interval_approx[index_switch-1][ppw->index_ap_tca]==(int)tca_on) && 
 	      (interval_approx[index_switch][ppw->index_ap_tca]==(int)tca_off))
@@ -2192,7 +2192,7 @@ int perturb_find_approximation_switches(
 	  }
 	}
 
-	if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+	if _tensors_ {
 
 	  if ((interval_approx[index_switch-1][ppw->index_ap_tca]==(int)tca_on) && 
 	      (interval_approx[index_switch][ppw->index_ap_tca]==(int)tca_off))
@@ -2212,7 +2212,7 @@ int perturb_find_approximation_switches(
 				      pba,
 				      pth,
 				      ppt,
-				      index_mode,
+				      index_md,
 				      k,
 				      tau_end,
 				      ppw),
@@ -2257,7 +2257,7 @@ int perturb_find_approximation_switches(
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_mode Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md Input: index of mode under consideration (scalar/.../tensor)
  * @param index_ic   Input: index of initial condition under consideration (ad, iso...)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
@@ -2271,7 +2271,7 @@ int perturb_vector_init(
 			struct background * pba,
 			struct thermo * pth,
 			struct perturbs * ppt,
-			int index_mode,
+			int index_md,
 			int index_ic,
 			double k,
 			double tau,
@@ -2303,7 +2303,7 @@ int perturb_vector_init(
 
   index_pt = 0;
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     /* reject inconsistent values of the number of mutipoles in photon temperature hierachy */
     class_test(ppr->l_max_g < 4,
@@ -2419,7 +2419,7 @@ int perturb_vector_init(
 
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     /* reject inconsistent values of the number of mutipoles in photon temperature hierachy */
     class_test(ppr->l_max_g_ten < 4,
@@ -2477,7 +2477,7 @@ int perturb_vector_init(
      omitting perturbations in this list will not change the
      results!) */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       
@@ -2534,7 +2534,7 @@ int perturb_vector_init(
     }
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
@@ -2569,7 +2569,7 @@ int perturb_vector_init(
     if (ppt->perturbations_verbose>2)
       fprintf(stdout,"Mode k=%e: initializing vector at tau=%e\n",k,tau);
 
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if _scalars_ {
 
       /** (a) check that current approximation scheme is consistent
 	  with initial conditions */
@@ -2601,7 +2601,7 @@ int perturb_vector_init(
       
     }
     
-    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+    if _tensors_ {
       
       class_test(ppw->approx[ppw->index_ap_tca] == (int)tca_off,
 		 ppt->error_message,
@@ -2623,7 +2623,7 @@ int perturb_vector_init(
     class_call(perturb_initial_conditions(ppr,
 					  pba,
 					  ppt,
-					  index_mode,
+					  index_md,
 					  index_ic,
 					  k,
 					  tau,
@@ -2639,7 +2639,7 @@ int perturb_vector_init(
 
     /** (a) for the scalar mode: */
 
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if _scalars_ {
 
       /** -- check that the change of approximation scheme makes
 	  sense (note: before calling this routine there is already a
@@ -2985,7 +2985,7 @@ int perturb_vector_init(
 
     /** (b) for the tensor mode */
 
-    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+    if _tensors_ {
 
       /** -- check that the change of approximation scheme makes
 	  sense (note: before calling this routine there is already a
@@ -3079,7 +3079,7 @@ int perturb_vector_free(
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_mode Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md Input: index of mode under consideration (scalar/.../tensor)
  * @param index_ic   Input: index of initial condition under consideration (ad, iso...)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
@@ -3090,7 +3090,7 @@ int perturb_vector_free(
 int perturb_initial_conditions(struct precision * ppr,
 			       struct background * pba,
 			       struct perturbs * ppt,
-			       int index_mode,
+			       int index_md,
 			       int index_ic,
 			       double k,
 			       double tau,
@@ -3110,7 +3110,7 @@ int perturb_initial_conditions(struct precision * ppr,
   
   /** - for scalars */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
     
     /** (a) compute relevant background quantities: compute rho_r,
 	rho_m, rho_nu (= all relativistic except photons), and their
@@ -3475,7 +3475,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
   /** - for tensors */
 
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     if (index_ic == ppt->index_ic_ten) {
       ppw->pv->y[ppw->pv->index_pt_gw] = ppr->gw_ini;
@@ -3516,7 +3516,7 @@ int perturb_initial_conditions(struct precision * ppr,
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to thermodynamics structure
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_mode Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md Input: index of mode under consideration (scalar/.../tensor)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
  * @param ppw        Input/Output: in output contains the approximation to be used at this time
@@ -3528,7 +3528,7 @@ int perturb_approximations(
 			   struct background * pba,
 			   struct thermo * pth,
 			   struct perturbs * ppt,
-			   int index_mode,
+			   int index_md,
 			   double k,
 			   double tau,
 			   struct perturb_workspace * ppw
@@ -3567,7 +3567,7 @@ int perturb_approximations(
 
   /** - for scalars modes: */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
     
     /** (a) evaluate thermodynamical quantities with thermodynamics_at_z() */
 
@@ -3646,7 +3646,7 @@ int perturb_approximations(
 
   /** - for tensor modes: */
 
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
     
     /** (a) evaluate thermodynamical quantities with thermodynamics_at_z() */
 
@@ -3777,7 +3777,7 @@ int perturb_timescale(
 
   /** - for scalars modes: */
 
-  if ((ppt->has_scalars == _TRUE_) && (pppaw->index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (pppaw->index_md == ppt->index_md_scalars)) {
 
     *timescale = tau_h;
 
@@ -3811,7 +3811,7 @@ int perturb_timescale(
 
   /** - for tensor modes: */
 
-  if ((ppt->has_tensors == _TRUE_) && (pppaw->index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (pppaw->index_md == ppt->index_md_tensors)) {
 
     *timescale = min(tau_h,tau_k);
 
@@ -3851,7 +3851,7 @@ int perturb_timescale(
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_mode Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md Input: index of mode under consideration (scalar/.../tensor)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
  * @param y          Input: vector of perturbations (those integrated over time) (already allocated)
@@ -3864,7 +3864,7 @@ int perturb_einstein(
 		     struct background * pba,
 		     struct thermo * pth,
 		     struct perturbs * ppt,
-		     int index_mode,
+		     int index_md,
 		     double k,
 		     double tau,
 		     double * y,
@@ -3903,7 +3903,7 @@ int perturb_einstein(
 
   /** - for scalar modes: */  
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     /** (a) deal with approximation schemes */
     
@@ -4360,7 +4360,7 @@ int perturb_source_terms(
   struct background * pba;
   struct thermo * pth;
   struct perturbs * ppt;
-  int index_mode;
+  int index_md;
   double k;
   struct perturb_workspace * ppw;
   double * pvecback;
@@ -4377,7 +4377,7 @@ int perturb_source_terms(
   pba = pppaw->pba;
   pth = pppaw->pth;
   ppt = pppaw->ppt;
-  index_mode = pppaw->index_mode;
+  index_md = pppaw->index_md;
   k = pppaw->k;
   ppw = pppaw->ppw;
 
@@ -4414,7 +4414,7 @@ int perturb_source_terms(
 	     error_message);
 
   /* scalars */
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     /** - compute useful background quantities \f$ */ 
       
@@ -4433,7 +4433,7 @@ int perturb_source_terms(
 				pba,
 				pth,
 				ppt,
-				index_mode,
+				index_md,
 				k,
 				tau,
 				y,
@@ -4462,7 +4462,7 @@ int perturb_source_terms(
     }
 
     /** - for each type and each mode, compute S0, S1, S2 */
-    for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+    for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
       /* initially, set all sources to zero */
 
@@ -4664,7 +4664,7 @@ int perturb_source_terms(
   }
 
   /* tensors */
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
@@ -4702,7 +4702,7 @@ int perturb_source_terms(
 	  
 
     /** - for each type and each mode, compute S0, S1, S2 */
-    for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+    for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
       /* initially, set all sources to zero */
 
@@ -4768,7 +4768,7 @@ int perturb_source_terms(
  * S_2'' \f$ by numerical differentiation
  *
  * @param ppt        Input : pointer to perturbation structure containing interpolation tables
- * @param index_mode Input : index of requested mode
+ * @param index_md Input : index of requested mode
  * @param index_ic   Input : index of requested initial condition
  * @param index_k    Input : index of requested wavenumber
  * @param ppw        Input/Output : pointer to workspace (contains source terms in input, sources in output)
@@ -4778,7 +4778,7 @@ int perturb_source_terms(
 int perturb_sources(
 		    struct precision * ppr,
 		    struct perturbs * ppt,
-		    int index_mode,
+		    int index_md,
 		    int index_ic,
 		    int index_k,
 		    struct perturb_workspace * ppw
@@ -4789,71 +4789,18 @@ int perturb_sources(
 
   int index_tau,index_type;
 
-  for (index_type = 0; index_type < ppt->tp_size[index_mode]; index_type++) {
+  for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
     /** - scalar temperature */
+    if (_scalars_ && (ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
 
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-      if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
-
-	/** --> in Newtonian gauge only, infer S_1' from S_1 at each time */
+      /** --> in Newtonian gauge only, infer S_1' from S_1 at each time */
+      
+      if (ppt->gauge == newtonian) {
 	
-	if (ppt->gauge == newtonian) {
-	  
-	  /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
-	  index_tau = ppt->tau_size-1;
-	  while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S1] == 0.) && (index_tau > 3))
-	    index_tau--;
-	
-	  /* numerical derivative */
-	  class_call(array_derive1_order2_table_line_to_line(
-							     ppt->tau_sampling,
-							     index_tau+1,
-							     ppw->source_term_table[index_type],
-							     ppw->st_size,
-							     ppw->index_st_S1,
-							     ppw->index_st_dS1,
-							     ppt->error_message),
-		     ppt->error_message,
-		     ppt->error_message);
-	}
-
-	/** --> in all gauges, infer S_2'' from S_2' at each time */
-
-	if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
-	  if ((ppt->has_source_t == _TRUE_) && (index_type == ppt->index_tp_t)) {
-
-	    /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
-	    index_tau = ppt->tau_size-1;
-	    while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] == 0.) && (index_tau > 3))
-	      index_tau--;
-	    
-	    /* numerical derivative */
-	    class_call(array_derive1_order2_table_line_to_line(
-							       ppt->tau_sampling,
-							       index_tau+1,
-							       ppw->source_term_table[index_type],
-							       ppw->st_size,
-							       ppw->index_st_dS2,
-							       ppw->index_st_ddS2,
-							       ppt->error_message),
-		       ppt->error_message,
-		       ppt->error_message);
-	  }
-	}
-      }
-    }
-
-    /** - tensor E-polarization */
-
-    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-      if ((ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
-
-	/** --> infer S_2'' from S_2' at each time */
-
 	/* before computing numerical derivatives, slice out the end of the table if filled with zeros */
 	index_tau = ppt->tau_size-1;
-	while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] == 0.) && (index_tau > 0))
+	while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S1] == 0.) && (index_tau > 3))
 	  index_tau--;
 	
 	/* numerical derivative */
@@ -4862,21 +4809,63 @@ int perturb_sources(
 							   index_tau+1,
 							   ppw->source_term_table[index_type],
 							   ppw->st_size,
-							   ppw->index_st_dS2,
-							   ppw->index_st_ddS2,
+							   ppw->index_st_S1,
+							   ppw->index_st_dS1,
 							   ppt->error_message),
 		   ppt->error_message,
 		   ppt->error_message);
       }
+
+      /** --> in all gauges, infer S_2'' from S_2' at each time */
+      
+      /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
+      index_tau = ppt->tau_size-1;
+      while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] == 0.) && (index_tau > 3))
+	index_tau--;
+      
+      /* numerical derivative */
+      class_call(array_derive1_order2_table_line_to_line(
+							 ppt->tau_sampling,
+							 index_tau+1,
+							 ppw->source_term_table[index_type],
+							 ppw->st_size,
+							 ppw->index_st_dS2,
+							 ppw->index_st_ddS2,
+							 ppt->error_message),
+		 ppt->error_message,
+		 ppt->error_message);
     }
 
-    /** - for each time, sum up S = S_0 + S_1' + S_2'' and store in array ((sources[index_mode])[index_ic][index_type])[index_tau][index_k] */
+    /** - tensor E-polarization */
+    if (_tensors_ && (ppt->has_source_e == _TRUE_) && (index_type == ppt->index_tp_e)) {
+
+      /** --> infer S_2'' from S_2' at each time */
+      
+      /* before computing numerical derivatives, slice out the end of the table if filled with zeros */
+      index_tau = ppt->tau_size-1;
+      while ((ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS2] == 0.) && (index_tau > 0))
+	index_tau--;
+      
+      /* numerical derivative */
+      class_call(array_derive1_order2_table_line_to_line(
+							 ppt->tau_sampling,
+							 index_tau+1,
+							 ppw->source_term_table[index_type],
+							 ppw->st_size,
+							 ppw->index_st_dS2,
+							 ppw->index_st_ddS2,
+							 ppt->error_message),
+		 ppt->error_message,
+		 ppt->error_message);
+    }
+
+    /** - for each time, sum up S = S_0 + S_1' + S_2'' and store in array ((sources[index_md])[index_ic][index_type])[index_tau][index_k] */
 
     for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
 
-      ppt->sources[index_mode]
-	[index_ic * ppt->tp_size[index_mode] + index_type]
-	[index_tau * ppt->k_size[index_mode] + index_k] = 
+      ppt->sources[index_md]
+	[index_ic * ppt->tp_size[index_md] + index_type]
+	[index_tau * ppt->k_size[index_md] + index_k] = 
 	ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_S0]
 	+ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_dS1]
 	+ppw->source_term_table[index_type][index_tau * ppw->st_size + ppw->index_st_ddS2];
@@ -4916,7 +4905,7 @@ int perturb_print_variables(double tau,
   struct perturb_parameters_and_workspace * pppaw;
 
   double k;
-  int index_mode;
+  int index_md;
   struct precision * ppr;
   struct background * pba;
   struct thermo * pth;
@@ -4935,7 +4924,7 @@ int perturb_print_variables(double tau,
 
   pppaw = parameters_and_workspace;
   k = pppaw->k;
-  index_mode = pppaw->index_mode;
+  index_md = pppaw->index_md;
   ppr = pppaw->ppr;
   pba = pppaw->pba;
   pth = pppaw->pth;
@@ -5153,7 +5142,7 @@ int perturb_derivs(double tau,
   /* short-cut names for the fields of the input structure */
   struct perturb_parameters_and_workspace * pppaw;
   double k,k2;
-  int index_mode;
+  int index_md;
   struct precision * ppr;
   struct background * pba;
   struct thermo * pth;
@@ -5184,7 +5173,7 @@ int perturb_derivs(double tau,
 
   k = pppaw->k;
   k2=k*k;
-  index_mode = pppaw->index_mode;
+  index_md = pppaw->index_md;
   ppr = pppaw->ppr;
   pba = pppaw->pba;
   pth = pppaw->pth;
@@ -5225,7 +5214,7 @@ int perturb_derivs(double tau,
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
   
   /** - for scalar mode: */
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     /** (a) define short-cut notations for the scalar perturbations */
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
@@ -5260,7 +5249,7 @@ int perturb_derivs(double tau,
 				pba,
 				pth,
 				ppt,
-				index_mode,
+				index_md,
 				k,
 				tau,
 				y,
@@ -5853,8 +5842,7 @@ int perturb_derivs(double tau,
   }
 
   /** - tensor mode */
-
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if _tensors_ {
       
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
