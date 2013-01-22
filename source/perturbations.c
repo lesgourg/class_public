@@ -427,20 +427,9 @@ int perturb_indices_of_perturbs(
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
 
   index_mode = 0;
-
-  if (ppt->has_scalars == _TRUE_) {
-    ppt->index_md_scalars = index_mode;
-    index_mode++;      
-  }
-  if (ppt->has_vectors == _TRUE_) {
-    ppt->index_md_vectors = index_mode;
-    index_mode++;      
-  }
-  if (ppt->has_tensors == _TRUE_) {
-    ppt->index_md_tensors = index_mode;
-    index_mode++;      
-  }
-
+  class_define_index(ppt->index_md_scalars,ppt->has_scalars,index_mode,1);
+  class_define_index(ppt->index_md_vectors,ppt->has_vectors,index_mode,1);
+  class_define_index(ppt->index_md_tensors,ppt->has_tensors,index_mode,1);
   ppt->md_size = index_mode;
 
   class_test(index_mode == 0,
@@ -469,44 +458,56 @@ int perturb_indices_of_perturbs(
 
   class_alloc(ppt->sources,ppt->md_size * sizeof(double *),ppt->error_message);
 
-  /** - count source types that all modes have in common (temperature, polarization, ...), and assign corresponding indices */
+  /** initialization all flags to false (will eventually be set to true later) */
 
-  index_type = 0;
-  ppt->has_cmb = _FALSE_; /* initialization (will eventually be set to true later) */
-  ppt->has_lss = _FALSE_; /* initialization (will eventually be set to true later) */
+  ppt->has_cmb = _FALSE_;
+  ppt->has_lss = _FALSE_;
+
+  ppt->has_source_t = _FALSE_;
+  ppt->has_source_e = _FALSE_;
+  ppt->has_source_b = _FALSE_;
+  ppt->has_source_g = _FALSE_;
+  ppt->has_source_delta_pk = _FALSE_;
+  ppt->has_source_delta_g = _FALSE_;
+  ppt->has_source_delta_b = _FALSE_;
+  ppt->has_source_delta_cdm = _FALSE_;
+  ppt->has_source_delta_fld = _FALSE_;
+  ppt->has_source_delta_ur = _FALSE_;
+  ppt->has_source_delta_ncdm = _FALSE_;
+  ppt->has_source_theta_g = _FALSE_;
+  ppt->has_source_theta_b = _FALSE_;
+  ppt->has_source_theta_cdm = _FALSE_;
+  ppt->has_source_theta_fld = _FALSE_;
+  ppt->has_source_theta_ur = _FALSE_;
+  ppt->has_source_theta_ncdm = _FALSE_;
+
+  /** - source flags and indices, for sources that all modes have in
+        common (temperature, polarization, ...) */
 
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
     ppt->has_source_t = _TRUE_;
     ppt->has_cmb = _TRUE_;
-    ppt->index_tp_t = index_type; 
-    index_type++;
   }
-  else 
-    ppt->has_source_t = _FALSE_;
 
   if (ppt->has_cl_cmb_polarization == _TRUE_) {
     ppt->has_source_e = _TRUE_;
     ppt->has_cmb = _TRUE_;
-    ppt->index_tp_e = index_type; 
-    index_type++;
   }
-  else
-    ppt->has_source_e = _FALSE_;
 
+  index_type = 0;
+  class_define_index(ppt->index_tp_t,ppt->has_source_t,index_type,1);
+  class_define_index(ppt->index_tp_e,ppt->has_source_e,index_type,1);
   index_type_common = index_type;
 
   /** - loop over modes. Initialize flags and indices which are specific to each mode. */
 
   for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
 
-    index_ic = 0;
-    index_type = index_type_common;
-
     /** (a) scalars */
 
     if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-      /** -- count source types specific to scalars (gravitational potential, ...) and assign corresponding indices */
+      /** - source flags and indices, for sources that are specific to scalars */
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
 	  ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition == delta_tot_from_poisson_squared)) ||
@@ -514,105 +515,56 @@ int perturb_indices_of_perturbs(
 	  (ppt->has_cl_lensing_potential)) { 
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_g = _TRUE_;
-	ppt->index_tp_g = index_type; 
-	index_type++;
       }
-      else
-	ppt->has_source_g = _FALSE_;
 
       if ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition != delta_tot_from_poisson_squared)) {
 	ppt->has_lss = _TRUE_;
         ppt->has_source_delta_pk = _TRUE_;
-	ppt->index_tp_delta_pk = index_type; 
-	index_type++;
       }
-      else
-	ppt->has_source_delta_pk = _FALSE_;
       
       if (ppt->has_density_transfers == _TRUE_) {
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_delta_g = _TRUE_;
-	ppt->index_tp_delta_g = index_type;
-	index_type++;
 	ppt->has_source_delta_b = _TRUE_;
-	ppt->index_tp_delta_b = index_type;
-	index_type++;
-	if (pba->has_cdm == _TRUE_) {
+	if (pba->has_cdm == _TRUE_)
 	  ppt->has_source_delta_cdm = _TRUE_;
-	  ppt->index_tp_delta_cdm = index_type;
-	  index_type++;
-	}
-	else ppt->has_source_delta_cdm = _FALSE_;
-	if (pba->has_fld == _TRUE_) {
+	if (pba->has_fld == _TRUE_)
 	  ppt->has_source_delta_fld = _TRUE_;
-	  ppt->index_tp_delta_fld = index_type;
-	  index_type++;
-	}
-	else ppt->has_source_delta_fld = _FALSE_;
-	if (pba->has_ur == _TRUE_) {
+	if (pba->has_ur == _TRUE_)
 	  ppt->has_source_delta_ur = _TRUE_;
-	  ppt->index_tp_delta_ur = index_type;
-	  index_type++;
-	}
-	else ppt->has_source_delta_ur = _FALSE_;
-	if (pba->has_ncdm == _TRUE_) {
+	if (pba->has_ncdm == _TRUE_)
 	  ppt->has_source_delta_ncdm = _TRUE_;
-	  ppt->index_tp_delta_ncdm1 = index_type;
-	  index_type+=pba->N_ncdm;
-	}
-	else ppt->has_source_delta_ncdm = _FALSE_;
-      }
-      else {
-	ppt->has_source_delta_g = _FALSE_;
-	ppt->has_source_delta_b = _FALSE_;
-	ppt->has_source_delta_cdm = _FALSE_;
-	ppt->has_source_delta_fld = _FALSE_;
-	ppt->has_source_delta_ur = _FALSE_;
-	ppt->has_source_delta_ncdm = _FALSE_;
       }
 
       if (ppt->has_velocity_transfers == _TRUE_) {
 	ppt->has_lss = _TRUE_;
 	ppt->has_source_theta_g = _TRUE_;
-	ppt->index_tp_theta_g = index_type;
-	index_type++;
 	ppt->has_source_theta_b = _TRUE_;
-	ppt->index_tp_theta_b = index_type;
-	index_type++;
-	if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)) {
+	if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
 	  ppt->has_source_theta_cdm = _TRUE_;
-	  ppt->index_tp_theta_cdm = index_type;
-	  index_type++;
-	}
-	else ppt->has_source_theta_cdm = _FALSE_;
-	if (pba->has_fld == _TRUE_) {
+	if (pba->has_fld == _TRUE_)
 	  ppt->has_source_theta_fld = _TRUE_;
-	  ppt->index_tp_theta_fld = index_type;
-	  index_type++;
-	}
-	else ppt->has_source_theta_fld = _FALSE_;
-	if (pba->has_ur == _TRUE_) {
+	if (pba->has_ur == _TRUE_)
 	  ppt->has_source_theta_ur = _TRUE_;
-	  ppt->index_tp_theta_ur = index_type;
-	  index_type++;
-	}
-	else ppt->has_source_theta_ur = _FALSE_;
-	if (pba->has_ncdm == _TRUE_) {
+	if (pba->has_ncdm == _TRUE_)
 	  ppt->has_source_theta_ncdm = _TRUE_;
-	  ppt->index_tp_theta_ncdm1 = index_type;
-	  index_type+=pba->N_ncdm;
-	}
-	else ppt->has_source_theta_ncdm = _FALSE_;
-      }
-      else {
-	ppt->has_source_theta_g = _FALSE_;
-	ppt->has_source_theta_b = _FALSE_;
-	ppt->has_source_theta_cdm = _FALSE_;
-	ppt->has_source_theta_fld = _FALSE_;
-	ppt->has_source_theta_ur = _FALSE_;
-	ppt->has_source_theta_ncdm = _FALSE_;
       }
 
+      index_type = index_type_common;
+      class_define_index(ppt->index_tp_g,          ppt->has_source_g,         index_type,1);
+      class_define_index(ppt->index_tp_delta_pk,   ppt->has_source_delta_pk,  index_type,1);
+      class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
+      class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_type,1);
+      class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
+      class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
+      class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
+      class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
+      class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_type,1);
+      class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
+      class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
+      class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
       ppt->tp_size[index_mode] = index_type;
 
       class_test(index_type == 0,
@@ -621,26 +573,12 @@ int perturb_indices_of_perturbs(
 
       /** -- count scalar initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) and assign corresponding indices */
 
-      if (ppt->has_ad == _TRUE_) {
-	ppt->index_ic_ad = index_ic;
-	index_ic++;
-      }
-      if (ppt->has_bi == _TRUE_) {
-	ppt->index_ic_bi = index_ic;
-	index_ic++;
-      }
-      if (ppt->has_cdi == _TRUE_) {
-	ppt->index_ic_cdi = index_ic;
-	index_ic++;
-      }
-      if (ppt->has_nid == _TRUE_) {
-	ppt->index_ic_nid = index_ic;
-	index_ic++;
-      }
-      if (ppt->has_niv == _TRUE_) {
-	ppt->index_ic_niv = index_ic;
-	index_ic++;
-      }
+      index_ic = 0;
+      class_define_index(ppt->index_ic_ad, ppt->has_ad, index_ic,1);
+      class_define_index(ppt->index_ic_bi, ppt->has_bi, index_ic,1);
+      class_define_index(ppt->index_ic_cdi,ppt->has_cdi,index_ic,1);
+      class_define_index(ppt->index_ic_nid,ppt->has_nid,index_ic,1);
+      class_define_index(ppt->index_ic_niv,ppt->has_niv,index_ic,1);
       ppt->ic_size[index_mode] = index_ic;
 
       class_test(index_ic == 0,
@@ -658,17 +596,15 @@ int perturb_indices_of_perturbs(
 
     if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
 
-      /** -- count source types specific to tensors (B-polarization, ...) and assign corresponding indices */
+      /** - source flags and indices, for sources that are specific to tensors */
 
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
 	ppt->has_source_b = _TRUE_;
 	ppt->has_cmb = _TRUE_;
-	ppt->index_tp_b = index_type; 
-	index_type++;
       }
-      else
-	ppt->has_source_b = _FALSE_;
 
+      index_type = index_type_common;
+      class_define_index(ppt->index_tp_b,ppt->has_source_b,index_type,1);
       ppt->tp_size[index_mode] = index_type;
 
       class_test(index_type == 0,
@@ -677,8 +613,8 @@ int perturb_indices_of_perturbs(
 
       /** -- only one initial condition for tensors*/
 
-      ppt->index_ic_ten = index_ic;
-      index_ic++;
+      index_ic = 0;
+      class_define_index(ppt->index_ic_ten,_TRUE_,index_ic,1);
       ppt->ic_size[index_mode] = index_ic;
 
     }
@@ -1362,12 +1298,9 @@ int perturb_workspace_init(
     /* newtonian gauge */
 
     if (ppt->gauge == newtonian) {
-      ppw->index_mt_phi = index_mt; /* phi */
-      index_mt++;
-      ppw->index_mt_psi = index_mt; /* psi */
-      index_mt++;
-      ppw->index_mt_phi_prime = index_mt; /* phi' */
-      index_mt++;
+      class_define_index(ppw->index_mt_phi,_TRUE_,index_mt,1); /* phi */
+      class_define_index(ppw->index_mt_psi,_TRUE_,index_mt,1); /* psi */
+      class_define_index(ppw->index_mt_phi_prime,_TRUE_,index_mt,1); /* phi' */
     }
       
     /* synchronous gauge (note that eta is counted in the vector of
@@ -1375,14 +1308,10 @@ int perturb_workspace_init(
        quantities obeying to constraint equations) */
 
     if (ppt->gauge == synchronous) {
-      ppw->index_mt_h_prime = index_mt; /* h' */
-      index_mt++;
-      ppw->index_mt_h_prime_prime = index_mt; /* h'' */
-      index_mt++;
-      ppw->index_mt_eta_prime = index_mt; /* tau' */
-      index_mt++;
-      ppw->index_mt_alpha_prime = index_mt; /* alpha' (with alpha = (h' + 6 tau') / (2 k**2) ) */
-      index_mt++;
+      class_define_index(ppw->index_mt_h_prime,_TRUE_,index_mt,1); /* h' */
+      class_define_index(ppw->index_mt_h_prime_prime,_TRUE_,index_mt,1); /* h'' */
+      class_define_index(ppw->index_mt_eta_prime,_TRUE_,index_mt,1); /* tau' */
+      class_define_index(ppw->index_mt_alpha_prime,_TRUE_,index_mt,1); /* alpha' (with alpha = (h' + 6 tau') / (2 k**2) ) */
 
     }     
 
@@ -1396,28 +1325,13 @@ int perturb_workspace_init(
   /** - define indices in the vector of source terms */
 
   index_st = 0;
-
-  ppw->index_st_tau = index_st;
-  index_st++;
-
-  ppw->index_st_S0 = index_st;
-  index_st++;
-
-  ppw->index_st_S1 = index_st;
-  index_st++;
-
-  ppw->index_st_S2 = index_st;
-  index_st++;
-
-  ppw->index_st_dS1 = index_st;
-  index_st++;
-
-  ppw->index_st_dS2 = index_st;
-  index_st++;
-
-  ppw->index_st_ddS2 = index_st;
-  index_st++;
-
+  class_define_index(ppw->index_st_tau, _TRUE_,index_st,1);
+  class_define_index(ppw->index_st_S0,  _TRUE_,index_st,1);
+  class_define_index(ppw->index_st_S1,  _TRUE_,index_st,1);
+  class_define_index(ppw->index_st_S2,  _TRUE_,index_st,1);
+  class_define_index(ppw->index_st_dS1, _TRUE_,index_st,1);
+  class_define_index(ppw->index_st_dS2, _TRUE_,index_st,1);
+  class_define_index(ppw->index_st_ddS2,_TRUE_,index_st,1);
   ppw->st_size = index_st;
 
   /** - allocate some workspace in which we will store temporarily the
@@ -1445,32 +1359,13 @@ int perturb_workspace_init(
   /** - count number of approximation, initialize their indices, and allocate their flags */
   index_ap=0;
 
+  class_define_index(ppw->index_ap_tca,_TRUE_,index_ap,1);
+  class_define_index(ppw->index_ap_rsa,_TRUE_,index_ap,1);
+
   if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
 
-    ppw->index_ap_tca=index_ap;
-    index_ap++;
-
-    ppw->index_ap_rsa=index_ap;
-    index_ap++;
-
-    if (pba->has_ur == _TRUE_) {
-      ppw->index_ap_ufa=index_ap;
-      index_ap++;
-    }
-
-    if (pba->has_ncdm == _TRUE_) {
-      ppw->index_ap_ncdmfa=index_ap;
-      index_ap++;
-    }
-  }
-
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
-
-    ppw->index_ap_tca=index_ap;
-    index_ap++;
-
-    ppw->index_ap_rsa=index_ap;
-    index_ap++;
+    class_define_index(ppw->index_ap_ufa,pba->has_ur,index_ap,1);
+    class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
 
   }
 
@@ -2420,109 +2315,67 @@ int perturb_vector_init(
 	       ppt->error_message,
 	       "ppr->l_max_pol_g should be at least 4");
 
+    /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
+    if (pba->has_ur == _TRUE_) {
+      class_test(ppr->l_max_ur < 4,
+		 ppt->error_message,
+		 "ppr->l_max_ur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
+    }
+
+    /* photons */
+
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
 
-      /* photons */
+      /* temperature */
 
-      ppv->index_pt_delta_g = index_pt; /* photon density */
-      index_pt++;
+      ppv->l_max_g = ppr->l_max_g;
 
-      ppv->index_pt_theta_g = index_pt; /* photon velocity */
-      index_pt++;
+      class_define_index(ppv->index_pt_delta_g,_TRUE_,index_pt,1); /* photon density */
+      class_define_index(ppv->index_pt_theta_g,_TRUE_,index_pt,1); /* photon velocity */
 
-      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
-	ppv->index_pt_shear_g = index_pt; /* photon shear */
-	index_pt++;
+	class_define_index(ppv->index_pt_shear_g,_TRUE_,index_pt,1); /* photon shear */
+	class_define_index(ppv->index_pt_l3_g,_TRUE_,index_pt,ppv->l_max_g-2); /* higher momenta */
 
-	ppv->index_pt_l3_g = index_pt; /* photon l=3 */
-	index_pt++;
+	/* polarization */
 
-	ppv->l_max_g = ppr->l_max_g; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	index_pt += (ppv->l_max_g-3);
+	ppv->l_max_pol_g = ppr->l_max_pol_g;
 
-	ppv->index_pt_pol0_g = index_pt; /* photon polarization, l=0 */
-	index_pt++;
-
-	ppv->index_pt_pol1_g = index_pt; /* photon polarization, l=1 */
-	index_pt++;
-
-	ppv->index_pt_pol2_g = index_pt; /* photon polarization, l=2 */
-	index_pt++;
-
-	ppv->index_pt_pol3_g = index_pt; /* photon polarization, l=3 */
-	index_pt++;
-
-	ppv->l_max_pol_g = ppr->l_max_pol_g; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	index_pt += (ppv->l_max_pol_g-3); 
-
+	class_define_index(ppv->index_pt_pol0_g,_TRUE_,index_pt,1);
+	class_define_index(ppv->index_pt_pol1_g,_TRUE_,index_pt,1);
+	class_define_index(ppv->index_pt_pol2_g,_TRUE_,index_pt,1);
+	class_define_index(ppv->index_pt_pol3_g,_TRUE_,index_pt,ppv->l_max_pol_g-2);
       }
     }
 
     /* baryons */
 
-    ppv->index_pt_delta_b = index_pt;  /* baryon density */
-    index_pt++;
+    class_define_index(ppv->index_pt_delta_b,_TRUE_,index_pt,1); /* baryon density */
+    class_define_index(ppv->index_pt_theta_b,_TRUE_,index_pt,1); /* baryon velocity */
     
-    ppv->index_pt_theta_b = index_pt;  /* baryon velocity */
-    index_pt++;
-
     /* cdm */
 
-    if (pba->has_cdm == _TRUE_) {       
-
-      ppv->index_pt_delta_cdm = index_pt; /* cdm density */
-      index_pt++;
-
-      if (ppt->gauge == newtonian) {
-	ppv->index_pt_theta_cdm = index_pt; /* cdm velocity */
-	index_pt++;
-      }
- 
-    }
+    class_define_index(ppv->index_pt_delta_cdm,pba->has_cdm,index_pt,1); /* cdm density */
+    class_define_index(ppv->index_pt_delta_cdm,pba->has_cdm && (ppt->gauge == newtonian),index_pt,1); /* cdm velocity */
 
     /* fluid */    
 
-    if (pba->has_fld == _TRUE_) {       
-      
-      ppv->index_pt_delta_fld = index_pt; /* fluid density */
-      index_pt++;
-
-      ppv->index_pt_theta_fld = index_pt; /* fluid velocity */
-      index_pt++;
-      
-    }
+    class_define_index(ppv->index_pt_delta_fld,pba->has_fld,index_pt,1); /* fluid density */
+    class_define_index(ppv->index_pt_theta_fld,pba->has_fld,index_pt,1); /* fluid velocity */
 
     /* ultra relativistic neutrinos */
 
-    if (pba->has_ur == _TRUE_) {
+    if (pba->has_ur && (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off)) {
 
-      /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
-      class_test(ppr->l_max_ur < 4,
-		 ppt->error_message,
-		 "ppr->l_max_ur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
-      
-      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
+      class_define_index(ppv->index_pt_delta_ur,_TRUE_,index_pt,1); /* density of ultra-relativistic neutrinos/relics */
+      class_define_index(ppv->index_pt_theta_ur,_TRUE_,index_pt,1); /* velocity of ultra-relativistic neutrinos/relics */
+      class_define_index(ppv->index_pt_shear_ur,_TRUE_,index_pt,1); /* shear of ultra-relativistic neutrinos/relics */
 
-	ppv->index_pt_delta_ur = index_pt; /* density of ultra-relativistic neutrinos/relics */
-	index_pt++;
-	
-	ppv->index_pt_theta_ur = index_pt; /* velocity of ultra-relativistic neutrinos/relics */
-	index_pt++;
-	
-	ppv->index_pt_shear_ur = index_pt; /* shear of ultra-relativistic neutrinos/relics */
-	index_pt++;
-
-	if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) { /* if neutrino free-streaming approximation is off */
-	
-	  ppv->index_pt_l3_ur = index_pt; /* l=3 of ultra-relativistic neutrinos/relics */
-	  index_pt++;
-	
-	  ppv->l_max_ur = ppr->l_max_ur; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
-	  index_pt += (ppv->l_max_ur-3);
-	}
+      if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
+	ppv->l_max_ur = ppr->l_max_ur;
+	class_define_index(ppv->index_pt_l3_ur,_TRUE_,index_pt,ppv->l_max_ur-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
       }
-      
     }
 
     /* non-cold dark matter */
@@ -2555,21 +2408,14 @@ int perturb_vector_init(
 
     /* metric (only quantitites to be integrated, not those obeying constraint equations) */
  
-    if (ppt->gauge == synchronous) {
-      ppv->index_pt_eta = index_pt; /* metric perturbation eta of synchronous gauge */
-      index_pt++;
-    }
+    /* metric perturbation eta of synchronous gauge */
+    class_define_index(ppv->index_pt_eta,ppt->gauge == synchronous,index_pt,1);
 
-    if (ppt->gauge == newtonian) {
-      ppv->index_pt_phi = index_pt; /* metric perturbation phi of
-				       newtonian gauge ( we could fix
-				       it using Einstein equations as
-				       a constraint equation for phi,
-				       but integration is numerically
-				       more stable if we actually
-				       evolve phi) */
-      index_pt++;
-    }
+    /* metric perturbation phi of newtonian gauge ( we could fix it
+       using Einstein equations as a constraint equation for phi, but
+       integration is numerically more stable if we actually evolve
+       phi) */
+    class_define_index(ppv->index_pt_phi,ppt->gauge == newtonian,index_pt,1); 
 
   }
 
@@ -2587,47 +2433,28 @@ int perturb_vector_init(
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
-   
-	ppv->index_pt_delta_g = index_pt; /* photon density */
-	index_pt++;
 
-	ppv->index_pt_theta_g = index_pt; /* photon velocity */
-	index_pt++;
+	ppv->l_max_g = ppr->l_max_g_ten;
+
+	class_define_index(ppv->index_pt_delta_g,_TRUE_,index_pt,1); /* photon density */
+	class_define_index(ppv->index_pt_theta_g,_TRUE_,index_pt,1); /* photon velocity */  
+	class_define_index(ppv->index_pt_shear_g,_TRUE_,index_pt,1); /* photon shear */
+	class_define_index(ppv->index_pt_l3_g,_TRUE_,index_pt,ppv->l_max_g-2); /* photon l=3 */
 	
-	ppv->index_pt_shear_g = index_pt; /* photon shear */
-	index_pt++;
+	ppv->l_max_pol_g = ppr->l_max_pol_g_ten;
 	
-	ppv->index_pt_l3_g = index_pt; /* photon l=3 */
-	index_pt++;
-	
-	ppv->l_max_g = ppr->l_max_g_ten; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2) */
-	index_pt += (ppv->l_max_g-3);
-	
-	ppv->index_pt_pol0_g = index_pt; /* photon polarization, l=0 */
-	index_pt++;
-	
-	ppv->index_pt_pol1_g = index_pt; /* photon polarization, l=1 */
-	index_pt++;
-	
-	ppv->index_pt_pol2_g = index_pt; /* photon polarization, l=2 */
-	index_pt++;
-	
-	ppv->index_pt_pol3_g = index_pt; /* photon polarization, l=3 */
-	index_pt++;
-	
-	ppv->l_max_pol_g = ppr->l_max_pol_g_ten; /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2) */
-	index_pt += (ppv->l_max_pol_g-3); 
+	class_define_index(ppv->index_pt_pol0_g,_TRUE_,index_pt,1); /* photon polarization, l=0 */
+	class_define_index(ppv->index_pt_pol1_g,_TRUE_,index_pt,1); /* photon polarization, l=1 */
+	class_define_index(ppv->index_pt_pol2_g,_TRUE_,index_pt,1); /* photon polarization, l=2 */
+	class_define_index(ppv->index_pt_pol3_g,_TRUE_,index_pt,ppv->l_max_pol_g-2); /* photon polarization, l=3 */
       }
     }
 
     /** (b) metric perturbation h is a propagating degree of freedom, so h and hdot are included
 	in the vector of ordinary perturbations, no in that of metric perturbations */
 
-    ppv->index_pt_gw = index_pt;     /* tensor metric perturbation h (gravitational waves) */
-    index_pt++;
-
-    ppv->index_pt_gwdot = index_pt; /* its time-derivative */
-    index_pt++;
+    class_define_index(ppv->index_pt_gw,_TRUE_,index_pt,1);     /* tensor metric perturbation h (gravitational waves) */
+    class_define_index(ppv->index_pt_gwdot,_TRUE_,index_pt,1);  /* its time-derivative */
 
   }
 

@@ -216,6 +216,18 @@ typedef char FileName[_FILENAMESIZE_];
     }									\
   } while(0);
 
+/* macro for defining indices (usually one, sometimes a block) */
+#define class_define_index(index,					\
+                           condition,					\
+                           running_index,                               \
+                           number_of_indices)                           \
+  do {									\
+    if (condition) {							\
+      index = running_index;						\
+      running_index += number_of_indices;				\
+    }									\
+  } while(0);								\
+
 /** parameters related to the precision of the code and to the method of calculation */
 
 /** 

@@ -204,11 +204,11 @@ struct background
 
   //@{
 
-  short has_cdm;       /**< presence of cdm? */
+  short has_cdm;       /**< presence of cold dark matter? */
+  short has_ncdm;      /**< presence of non-cold dark matter? */
   short has_lambda;    /**< presence of cosmological constant? */
   short has_fld;       /**< presence of fluid with constant w and cs2? */
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
-  short has_ncdm;
 
   //@}
 

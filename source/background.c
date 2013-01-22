@@ -612,91 +612,70 @@ int background_indices(
   /* a running index for the vector of background quantities to be integrated */
   int index_bi;
 
-  /** - intialization of all indices and flags */
+  /** - initialize all flags: which species are present? */
+
+  pba->has_cdm = _FALSE_;
+  pba->has_ncdm = _FALSE_;
+  pba->has_lambda = _FALSE_;
+  pba->has_fld = _FALSE_;
+  pba->has_ur = _FALSE_;
+
+  if (pba->Omega0_cdm != 0.)
+    pba->has_cdm = _TRUE_;
+
+  if (pba->Omega0_ncdm_tot != 0.)
+    pba->has_ncdm = _TRUE_;  
+
+  if (pba->Omega0_lambda != 0.)
+    pba->has_lambda = _TRUE_;
+
+  if (pba->Omega0_fld != 0.)
+    pba->has_fld = _TRUE_;
+
+  if (pba->Omega0_ur != 0.)
+    pba->has_ur = _TRUE_;
+
+  /** - intialization of all indices */
+
   index_bg=0;
-  index_bi=0;
 
   /* index for scale factor */
-  pba->index_bg_a = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_a,_TRUE_,index_bg,1);
 
   /* - indices for H and its conformal-time-derivative */
-  pba->index_bg_H = index_bg; 
-  index_bg++;
-  pba->index_bg_H_prime = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_H,_TRUE_,index_bg,1); 
+  class_define_index(pba->index_bg_H_prime,_TRUE_,index_bg,1); 
 
   /* - end of indices in the short vector of background values */
   pba->bg_size_short = index_bg;
 
   /* - index for rho_g (photon density) */
-  pba->index_bg_rho_g = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_rho_g,_TRUE_,index_bg,1); 
 
   /* - index for rho_b (baryon density) */
-  pba->index_bg_rho_b = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_rho_b,_TRUE_,index_bg,1); 
 
-  /* - index and flag for rho_cdm */
-  if (pba->Omega0_cdm != 0.) {
-    pba->has_cdm = _TRUE_;
-    pba->index_bg_rho_cdm = index_bg; 
-    index_bg++;
-  }
-  else { 
-    pba->has_cdm = _FALSE_;
-  }
+  /* - index for rho_cdm */
+  class_define_index(pba->index_bg_rho_cdm,pba->has_cdm,index_bg,1); 
 
-  /* - indices and flag for ncdm */
-  if (pba->Omega0_ncdm_tot != 0.) {
-    pba->has_ncdm = _TRUE_;
-    /* -> we only define the indices for ncdm1 (density, pressure,
-          pseudo-pressure), the other ncdm indices are contiguous */
-    pba->index_bg_rho_ncdm1 = index_bg; 
-    index_bg +=pba->N_ncdm;
-    pba->index_bg_p_ncdm1 = index_bg; 
-    index_bg +=pba->N_ncdm;
-    pba->index_bg_pseudo_p_ncdm1 = index_bg;
-    index_bg +=pba->N_ncdm;
-  }
-  else { 
-    pba->has_ncdm = _FALSE_;
-  }
+  /* - indices for ncdm. We only define the indices for ncdm1
+          (density, pressure, pseudo-pressure), the other ncdm indices
+          are contiguous */
+  class_define_index(pba->index_bg_rho_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm); 
+  class_define_index(pba->index_bg_p_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm); 
+  class_define_index(pba->index_bg_pseudo_p_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm); 
   
-  /* - index and flag for Lambda */
-  if (pba->Omega0_lambda != 0.) {
-    pba->has_lambda = _TRUE_;
-    /* -> index for rho_Lambda (Lambda density) */
-    pba->index_bg_rho_lambda = index_bg; 
-    index_bg++;
-  }
-  else {
-    pba->has_lambda = _FALSE_;
-  }
+  /* - index for Lambda */
+  class_define_index(pba->index_bg_rho_lambda,pba->has_lambda,index_bg,1); 
+    
+  /* - index for fluid */
+  class_define_index(pba->index_bg_rho_fld,pba->has_fld,index_bg,1); 
   
-  /* - index and flag for fluid */
-  if (pba->Omega0_fld != 0.) {
-    pba->has_fld = _TRUE_;
-    pba->index_bg_rho_fld = index_bg; 
-    index_bg++;
-  }
-  else {
-    pba->has_fld = _FALSE_;
-  }
-  
-  /* - index and flag for ultra-relativistic neutrinos/species */
-  if (pba->Omega0_ur != 0.) {
-    pba->has_ur = _TRUE_;
-    pba->index_bg_rho_ur = index_bg; 
-    index_bg++;
-  }
-  else {
-    pba->has_ur = _FALSE_;
-  }
+  /* - index for ultra-relativistic neutrinos/species */
+  class_define_index(pba->index_bg_rho_ur,pba->has_ur,index_bg,1); 
 
   /* - index for Omega_r (relativistic density fraction) */
-  pba->index_bg_Omega_r = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_Omega_r,_TRUE_,index_bg,1); 
 
   /* - put here additional ingredients that you want to appear in the
      normal vector */
@@ -709,32 +688,25 @@ int background_indices(
   /* - indices in the long version : */
 
   /* -> critical density */
-  pba->index_bg_rho_crit = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_rho_crit,_TRUE_,index_bg,1); 
   
-  /* - index for Omega_ (non-relativistic density fraction) */
-  pba->index_bg_Omega_m = index_bg; 
-  index_bg++;
+  /* - index for Omega_m (non-relativistic density fraction) */
+  class_define_index(pba->index_bg_Omega_m,_TRUE_,index_bg,1); 
 
   /* -> conformal distance */
-  pba->index_bg_conf_distance = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_conf_distance,_TRUE_,index_bg,1); 
 
   /* -> angular diameter distance */
-  pba->index_bg_ang_distance = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_ang_distance,_TRUE_,index_bg,1);
 
   /* -> luminosity distance */
-  pba->index_bg_lum_distance = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_lum_distance,_TRUE_,index_bg,1);
 
   /* -> proper time (for age of the Universe) */
-  pba->index_bg_time = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_time,_TRUE_,index_bg,1);
 
   /* -> conformal sound horizon */
-  pba->index_bg_rs = index_bg; 
-  index_bg++;
+  class_define_index(pba->index_bg_rs,_TRUE_,index_bg,1);
 
   /* -> put here additional quantities describing background */
   /*    */
@@ -745,21 +717,19 @@ int background_indices(
 
   /* - now, indices in vector of variables to integrate */
 
+  index_bi=0;
+
   /* -> scale factor */
-  pba->index_bi_a = index_bi; 
-  index_bi++;
+  class_define_index(pba->index_bi_a,_TRUE_,index_bi,1);
 
   /* -> proper time (for age of the Universe) */
-  pba->index_bi_time = index_bi; 
-  index_bi++;
+  class_define_index(pba->index_bi_time,_TRUE_,index_bi,1);
 
   /* -> sound horizon */
-  pba->index_bi_rs = index_bi; 
-  index_bi++;
+  class_define_index(pba->index_bi_rs,_TRUE_,index_bi,1);
 
   /* -> index for conformal time in vector of variables to integrate */
-  pba->index_bi_tau = index_bi; 
-  index_bi++;
+  class_define_index(pba->index_bi_tau,_TRUE_,index_bi,1);
 
   /* -> end of indices in the vector of variables to integrate */
   pba->bi_size = index_bi;
