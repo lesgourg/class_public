@@ -3893,6 +3893,7 @@ int perturb_einstein(
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_pk,delta_rho_pk;
   double w;
+  double K;
 
   /** - wavenumber and scale factor related quantities */ 
 
@@ -3900,6 +3901,7 @@ int perturb_einstein(
   a = ppw->pvecback[pba->index_bg_a];
   a2 = a * a;
   a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
+  K = pba->Omega0_k*pow(pba->a_today/a*pba->H0,2);
 
   /** - for scalar modes: */  
 
@@ -4218,7 +4220,7 @@ int perturb_einstein(
 
       /* first equation involving total density fluctuation */
       ppw->pvecmetric[ppw->index_mt_h_prime] = 
-	( k2 * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
+	( (k2-K) * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
 
       /* eventually, infer radiation streaming approximation for gamma and nur, and
 	 correct the total velocity */
@@ -4272,12 +4274,12 @@ int perturb_einstein(
       }
       
       /* second equation involving total velocity */
-      ppw->pvecmetric[ppw->index_mt_eta_prime] = 1.5 * (a2/k2) * rho_plus_p_theta;  /* eta' */
+      ppw->pvecmetric[ppw->index_mt_eta_prime] = (1.5 * (a2/k2) * rho_plus_p_theta + 3.*K/k2*ppw->pvecmetric[ppw->index_mt_h_prime])/(1.-3.*K/k2);  /* eta' */
 
       /* third equation involving total pressure */
       ppw->pvecmetric[ppw->index_mt_h_prime_prime] = 
 	-2.*a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
-	+2.*k2*y[ppw->pv->index_pt_eta]
+	+2.*(k2-3.*K)*y[ppw->pv->index_pt_eta]
 	-9.*a2*delta_p;
 
       /* intermediate quantity: alpha = (h'+6eta')/2k^2 */
@@ -5167,6 +5169,8 @@ int perturb_derivs(double tau,
   double q,epsilon,dlnf0_dlnq,qk_div_epsilon;
   double rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm,w_ncdm,ca2_ncdm,ceff2_ncdm=0.,cvis2_ncdm=0.;
 
+  double K,beta,b1,b2,b3,bl;
+
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
   pppaw = parameters_and_workspace;
@@ -5212,7 +5216,13 @@ int perturb_derivs(double tau,
   a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
   z = pba->a_today-1.;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
-  
+
+  K = pba->Omega0_k*pow(pba->a_today/a*pba->H0,2);
+  beta = sqrt(k2+K);
+  b1=sqrt(1.-K/(k2+K));
+  b2=sqrt(1.-4.*K/(k2+K));
+  b3=sqrt(1.-9.*K/(k2+K));
+
   /** - for scalar mode: */
   if _scalars_ {
 
@@ -5496,7 +5506,7 @@ int perturb_derivs(double tau,
 	/** -----> photon temperature velocity */ 
 
 	dy[ppw->pv->index_pt_theta_g] =
-	  k2*(delta_g/4.-shear_g)
+	  k*beta*(b1*delta_g/4.-b2*shear_g)
 	  + metric_euler
 	  +pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
 
@@ -5923,7 +5933,7 @@ int perturb_derivs(double tau,
     dy[ppw->pv->index_pt_gw] = y[ppw->pv->index_pt_gwdot];     
       
     /* its time-derivative */
-    dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-k2*y[ppw->pv->index_pt_gw];
+    dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-(k2+2.*K)*y[ppw->pv->index_pt_gw];
     
     /* neglected photon shear sourcing: */
     /* - 1.5 * a2 * 4./3.*pvecback[pba->index_bg_rho_g]*shear_g; */

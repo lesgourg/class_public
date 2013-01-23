@@ -10,6 +10,8 @@
 #include "dei_rkck.h"
 #include "parser.h"
 
+enum spatial_curvature {flat,open,closed};
+
 /**
  * All background parameters and evolution that other modules need to know.
  *

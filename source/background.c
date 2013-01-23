@@ -370,10 +370,10 @@ int background_functions(
       unique place where the Friedmann equation is assumed. Remember
       that densities are all expressed in units of [3c^2/8piG], ie
       rho_class = [8 pi G rho_physical / 3 c^2] */
-  pvecback[pba->index_bg_H] = sqrt(rho_tot);
+  pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->Omega0_k/a_rel/a_rel*pba->H0*pba->H0);
 
   /** - compute derivative of H with respect to conformal time */
-  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a;
+  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->Omega0_k/a_rel*pba->a_today*pba->H0*pba->H0;
 
   /** - compute relativistic density to total density ratio */
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
@@ -382,10 +382,10 @@ int background_functions(
   if (return_format == pba->long_info) {
     
     /** - compute critical density */
-    pvecback[pba->index_bg_rho_crit] = rho_tot;
+    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->Omega0_k/a_rel/a_rel*pba->H0*pba->H0;
     class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
 	       pba->error_message,
-	       "rho_tot = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
+	       "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
 
     /** - compute Omega_m */
     pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
@@ -520,9 +520,6 @@ int background_init(
   if (pba->has_ur == _TRUE_) {
     Omega0_tot += pba->Omega0_ur;
   }
-  class_test(fabs(Omega0_tot-1.) > _TOLERANCE_ON_CURVATURE_,
-	     pba->error_message,
-	     "You input implies a non zero spatial curvature (Omega0 = %g), this is not available in CLASS %s, sorry!",Omega0_tot,_VERSION_);
 
   /* check other quantities which would lead to segmentation fault if zero */
   class_test(pba->a_today <= 0,

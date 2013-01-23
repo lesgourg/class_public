@@ -644,13 +644,6 @@ struct perturb_parameters_and_workspace {
 				ErrorMsg error_message
 				);
 
-    int perturb_print_variables(double tau,
-				double * y,
-				double * dy,
-				void * parameters_and_workspace,
-				ErrorMsg error_message
-				);
-
     int perturb_derivs(
 		       double tau,
 		       double * y,

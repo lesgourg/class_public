@@ -506,10 +506,6 @@ int input_init(
 
   }
 
-  class_test(pba->Omega0_k != 0.,
-	     errmsg,
-	     "Open/close case not written yet");
-
   /* scale factor today (arbitrary) */
   class_read_double("a_today",pba->a_today);
 

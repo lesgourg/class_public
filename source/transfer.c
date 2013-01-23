@@ -2514,7 +2514,8 @@ int transfer_compute_for_each_l(
 	}
 	else {
 
-	  class_call(transfer_integrate(tau_size,
+	  class_call(transfer_integrate(ptr,
+					tau_size,
 					index_k,
 					l,
 					k,
@@ -2672,6 +2673,7 @@ int transfer_use_limber(
  */
 
 int transfer_integrate(
+		       struct transfers * ptr,
 		       int tau_size,
 		       int index_k,
 		       double l,
@@ -2703,6 +2705,8 @@ int transfer_integrate(
 
   /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
   int index_tau,index_tau_max;
+
+  double Phi;
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
@@ -2893,6 +2897,21 @@ int transfer_integrate(
     /* (for bessel function cubic spline interpolation, we could have called the
        subroutine bessel_at_x; however we perform operations directly here
        in order to speed up the code) */
+
+    /*
+    class_call(transfer_hyperspherical(
+				       //ppr,
+				       ptr,
+				       //closed,
+				       open,
+				       (int)l,
+				       //(int)min((k*10000),l-1.),
+				       k,
+				       x,
+				       &Phi),
+	       ptr->error_message,
+	       ptr->error_message);
+    */
     
   }
   
@@ -3247,4 +3266,62 @@ int transfer_envelop(
   *trsf = 0.5*sqrt(transfer*transfer + 1.3*transfer_shifted*transfer_shifted); /* correct for factor 1/2 from trapezoidal rule */
 
   return _SUCCESS_;
+}
+
+int transfer_hyperspherical(
+			    //struct precision * ppr,
+			    struct transfers * ptr,
+			    enum spatial_curvature curvature,
+			    int l,
+			    double beta,
+			    double y, 
+			    double * Phi) {
+
+  short use_WKB = _FALSE_;
+  int K;
+
+  if (curvature==open) 
+    K=-1; 
+  else if (curvature==closed) 
+    K=1; 
+  else
+    class_stop(ptr->error_message,
+	       "this function should be called only for open or closed cases");
+
+  if ((curvature == closed) && ((beta-l)<10)) {
+    class_call(HypersphericalClosedGegenbauer(l,(int)beta,y,Phi,ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+    return _SUCCESS_;
+  }
+  
+  if (l<=9) {
+    class_call(HypersphericalExplicit(K,l,beta,y,Phi,ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+    return _SUCCESS_;
+  }
+
+  if (use_WKB == _TRUE_) {
+    class_call(HypersphericalWKB(K,l,beta,y,Phi,ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+    return _SUCCESS_;
+  }
+      
+  if (K==1) {
+    class_call(HypersphericalClosedGegenbauer(l,(int)beta,y,Phi,ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+    return _SUCCESS_;
+  }
+
+  if (K==-1) {
+    class_call(HypersphericalOpenRecurrence(l,beta,y,Phi,ptr->error_message),
+	       ptr->error_message,
+	       ptr->error_message);
+    return _SUCCESS_;
+  }
+
+  return _FAILURE_;
 }
