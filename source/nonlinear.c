@@ -260,7 +260,7 @@ int nonlinear_init(
   int last_cross;
   int last_velocity;
   double * pk_ic=NULL;  /* array with argument 
-		      pk_ic[index_k * psp->ic_ic_size[index_mode] + index_ic1_ic2] */
+		      pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] */
 
   double * pk_tot; /* array with argument 
 		      pk_tot[index_k] */

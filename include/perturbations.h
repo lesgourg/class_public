@@ -7,9 +7,9 @@
 #include "evolver_ndf15.h"
 #include "evolver_rkck.h"
 
-#define _scalars_ (ppt->has_scalars && (index_md == ppt->index_md_scalars))
-#define _vectors_ (ppt->has_vectors && (index_md == ppt->index_md_vectors))
-#define _tensors_ (ppt->has_tensors && (index_md == ppt->index_md_tensors))
+#define _scalars_ ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars))
+#define _vectors_ ((ppt->has_vectors == _TRUE_) && (index_md == ppt->index_md_vectors))
+#define _tensors_ ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors))
 
 /**  
  * flags for various approximation schemes 

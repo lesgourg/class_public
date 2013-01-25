@@ -148,12 +148,12 @@ int lensing_init(
   double * sqrt5;
 
   double ** cl_md_ic; /* array with argument 
-			 cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] */
+			 cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
 
   double ** cl_md;    /* array with argument 
-			 cl_md[index_mode][index_ct] */
+			 cl_md[index_md][index_ct] */
 
-  int index_mode;
+  int index_md;
 
   /* Timing */
   //double debut, fin;
@@ -449,18 +449,18 @@ int lensing_init(
 	      psp->md_size*sizeof(double *),
 	      ple->error_message);
 
-  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+  for (index_md = 0; index_md < psp->md_size; index_md++) {
 
     if (psp->md_size > 1)
 
-      class_alloc(cl_md[index_mode],  
+      class_alloc(cl_md[index_md],  
 		  psp->ct_size*sizeof(double),
 		  ple->error_message);	
 
-    if (psp->ic_size[index_mode] > 1)
+    if (psp->ic_size[index_md] > 1)
 
-      class_alloc(cl_md_ic[index_mode],
-		  psp->ic_ic_size[index_mode]*psp->ct_size*sizeof(double),
+      class_alloc(cl_md_ic[index_md],
+		  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
 		  ple->error_message);
   }
 
@@ -479,13 +479,13 @@ int lensing_init(
     }
   }
 
-  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+  for (index_md = 0; index_md < psp->md_size; index_md++) {
 
     if (psp->md_size > 1) 
-      free(cl_md[index_mode]);  
+      free(cl_md[index_md]);  
 
-    if (psp->ic_size[index_mode] > 1)
-      free(cl_md_ic[index_mode]);
+    if (psp->ic_size[index_md] > 1)
+      free(cl_md_ic[index_md]);
 
   }
 
@@ -831,12 +831,12 @@ int lensing_indices(
   int index_l;
   
   double ** cl_md_ic; /* array with argument 
-			 cl_md_ic[index_mode][index_ic1_ic2*psp->ct_size+index_ct] */
+			 cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
 
   double ** cl_md;    /* array with argument 
-			 cl_md[index_mode][index_ct] */
+			 cl_md[index_md][index_ct] */
 
-  int index_mode;
+  int index_md;
   int index_lt;
 
   /* indices of all Cl types (lensed and unlensed) */
@@ -963,18 +963,18 @@ int lensing_indices(
 	      psp->md_size*sizeof(double *),
 	      ple->error_message);
 
-  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+  for (index_md = 0; index_md < psp->md_size; index_md++) {
 
     if (psp->md_size > 1)
 
-      class_alloc(cl_md[index_mode],  
+      class_alloc(cl_md[index_md],  
 		  psp->ct_size*sizeof(double),
 		  ple->error_message);	
 
-    if (psp->ic_size[index_mode] > 1)
+    if (psp->ic_size[index_md] > 1)
 
-      class_alloc(cl_md_ic[index_mode],
-		  psp->ic_ic_size[index_mode]*psp->ct_size*sizeof(double),
+      class_alloc(cl_md_ic[index_md],
+		  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
 		  ple->error_message);
   }
   
@@ -986,13 +986,13 @@ int lensing_indices(
     
   }
 
-  for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
+  for (index_md = 0; index_md < psp->md_size; index_md++) {
 
     if (psp->md_size > 1) 
-      free(cl_md[index_mode]);  
+      free(cl_md[index_md]);  
 
-    if (psp->ic_size[index_mode] > 1)
-      free(cl_md_ic[index_mode]);
+    if (psp->ic_size[index_md] > 1)
+      free(cl_md_ic[index_md]);
 
   }
 
@@ -1002,8 +1002,8 @@ int lensing_indices(
   class_alloc(ple->l_max_lt,ple->lt_size*sizeof(double),ple->error_message);
   for (index_lt = 0; index_lt < ple->lt_size; index_lt++) {
     ple->l_max_lt[index_lt]=0.;
-    for (index_mode = 0; index_mode < psp->md_size; index_mode++) {
-      ple->l_max_lt[index_lt]=max(ple->l_max_lt[index_lt],psp->l_max_ct[index_mode][index_lt]);
+    for (index_md = 0; index_md < psp->md_size; index_md++) {
+      ple->l_max_lt[index_lt]=max(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][index_lt]);
     }
   }
   

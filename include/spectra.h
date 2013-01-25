@@ -40,9 +40,9 @@ struct spectra {
  
   int md_size;           /**< number of modes (scalar, tensor, ...) included in computation */
 
-  int * ic_size;         /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
-  int * ic_ic_size;      /**< for a given mode, ic_ic_size[index_mode] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_mode] */
-  short * * is_non_zero; /**< for a given mode, is_non_zero[index_mode][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
+  int * ic_size;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
+  int * ic_ic_size;      /**< for a given mode, ic_ic_size[index_md] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_md] */
+  short * * is_non_zero; /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
   
   //@}
 
@@ -84,32 +84,32 @@ struct spectra {
 
   //@{
 
-  int * l_size;   /**< number of multipole values for each requested mode, l_size[index_mode] */
+  int * l_size;   /**< number of multipole values for each requested mode, l_size[index_md] */
 
-  int l_size_max; /**< greatest of all l_size[index_mode] */
+  int l_size_max; /**< greatest of all l_size[index_md] */
 
   double * l;    /**< list of multipole values l[index_l] */
 
 
   int ** l_max_ct;    /**< last multipole (given as an input) at which
 		    we want to output C_ls for a given mode and type;
-		    l[index_mode][l_size[index_mode]-1] can be larger
-		    than l_max[index_mode], in order to ensure a
+		    l[index_md][l_size[index_md]-1] can be larger
+		    than l_max[index_md], in order to ensure a
 		    better interpolation with no boundary effects */
 
   int * l_max;    /**< last multipole (given as an input) at which
 		    we want to output C_ls for a given mode (maximized over types);
-		    l[index_mode][l_size[index_mode]-1] can be larger
-		    than l_max[index_mode], in order to ensure a
+		    l[index_md][l_size[index_md]-1] can be larger
+		    than l_max[index_md], in order to ensure a
 		    better interpolation with no boundary effects */
 
   int l_max_tot; /**< last multipole (given as an input) at which
 		    we want to output C_ls (maximized over modes and types);
-		    l[index_mode][l_size[index_mode]-1] can be larger
-		    than l_max[index_mode], in order to ensure a
+		    l[index_md][l_size[index_md]-1] can be larger
+		    than l_max[index_md], in order to ensure a
 		    better interpolation with no boundary effects */
 
-  double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_mode][(index_l * psp->ic_ic_size[index_mode] + index_ic1_ic2) * psp->ct_size + index_ct] */
+  double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */ 
 
   //@}
@@ -127,8 +127,8 @@ struct spectra {
   double * ln_tau;  /**< list of ln(tau) values ln_tau[index_tau] */
 
   double * ln_pk;   /**< Matter power spectrum.
-		      depends on indices index_mode, index_ic1, index_ic2, index_k as:
-		      ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_mode] + index_ic1_ic2]
+		      depends on indices index_md, index_ic1, index_ic2, index_k as:
+		      ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
 		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
 		      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
 		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
@@ -170,8 +170,8 @@ struct spectra {
   int tr_size;                 /**< total number of species in transfer functions */
 
   double * matter_transfer;   /**< Matter transfer functions.  
-	Depends on indices index_mode,index_tau,index_ic,index_k, index_tr as:
-        matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_mode] + index_ic) * psp->tr_size + index_tr]
+	Depends on indices index_md,index_tau,index_ic,index_k, index_tr as:
+        matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr]
 		       */
   double * ddmatter_transfer; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
   
@@ -276,7 +276,7 @@ extern "C" {
 			 struct transfers * ptr,
 			 struct primordial * ppm,
 			 struct spectra * psp,
-			 int index_mode,
+			 int index_md,
 			 int index_ic1,
 			 int index_ic2,
 			 int index_l,

@@ -60,7 +60,7 @@ struct transfers {
   int index_tt_density; /**< index for first bin of transfer type = matter density */
   int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
 
-  int * tt_size;     /**< number of requested transfer types tt_size[index_mode] for each mode */
+  int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
 
   //@}
 
@@ -68,11 +68,11 @@ struct transfers {
 
   //@{
 
-  int ** l_size_tt;  /**< number of multipole values for which we effectively compute the transfer function,l_size[index_mode][index_tt] */ 
+  int ** l_size_tt;  /**< number of multipole values for which we effectively compute the transfer function,l_size[index_md][index_tt] */ 
 
-  int * l_size;   /**< number of multipole values for each requested mode, l_size[index_mode] */
+  int * l_size;   /**< number of multipole values for each requested mode, l_size[index_md] */
 
-  int l_size_max; /**< greatest of all l_size[index_mode] */
+  int l_size_max; /**< greatest of all l_size[index_md] */
 
   int * l;        /**< list of multipole values l[index_l] */
 
@@ -82,9 +82,9 @@ struct transfers {
 
   //@{
 
-  int * k_size; /**< number of wavenumber values for each requested mode, k_size[index_mode] */
+  int * k_size; /**< number of wavenumber values for each requested mode, k_size[index_md] */
 
-  double ** k;  /**< list of wavenumber values for each requested mode, k[index_mode][index_k] */
+  double ** k;  /**< list of wavenumber values for each requested mode, k[index_md][index_k] */
 
   //@}
 
@@ -92,7 +92,7 @@ struct transfers {
 
   //@{
 
-  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt) * ptr->l_size[index_mode] + index_l) * ptr->k_size[index_mode] + index_k] */
+  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size[index_md] + index_k] */
 
   //@}
 
@@ -119,7 +119,7 @@ extern "C" {
 
   int transfer_functions_at_k(
 			      struct transfers * ptr,
-			      int index_mode,
+			      int index_md,
 			      int index_ic,
 			      int index_type,
 			      int index_l,
@@ -160,13 +160,13 @@ extern "C" {
 			  struct perturbs * ppt,
 			  struct transfers * ptr,
 			  double tau0,
-			  int index_mode
+			  int index_md
 			  );
 
   int transfer_get_source_correspondence(
 					 struct perturbs * ppt,
 					 struct transfers * ptr,
-					 int index_mode,
+					 int index_md,
 					 int * tp_of_tt
 					 );
   
@@ -177,7 +177,7 @@ extern "C" {
 			       struct transfers * ptr,
 			       double tau_rec,
 			       double tau0,
-			       int index_mode,
+			       int index_md,
 			       int index_tt,
 			       int * tau_size
 			       );
@@ -185,7 +185,7 @@ extern "C" {
   int transfer_interpolate_sources(
 				   struct perturbs * ppt,
 				   struct transfers * ptr,
-				   int index_mode,
+				   int index_md,
 				   int index_ic,
 				   int index_type,
 				   double * source_spline,
@@ -199,7 +199,7 @@ extern "C" {
 		       struct transfers * ptr,
 		       double * interpolated_sources,
 		       double tau_rec,
-		       int index_mode,
+		       int index_md,
 		       int index_tt,
 		       double * sources,
 		       double * tau0_minus_tau,
@@ -249,7 +249,7 @@ extern "C" {
 			       int bin,
 			       double * tau0_minus_tau,
 			       int tau_size,
-			       int index_mode,
+			       int index_md,
 			       double tau0,
 			       double * interpolated_sources,
 			       double * sources);
@@ -281,7 +281,7 @@ extern "C" {
 				  struct precision * ppr,
 				  struct perturbs * ppt,
 				  struct transfers * ptr,
-				  int index_mode,
+				  int index_md,
 				  int index_ic,
 				  int index_tt,
 				  int index_l,
@@ -304,7 +304,7 @@ extern "C" {
 			  struct perturbs * ppt,
 			  struct transfers * ptr,
 			  double k_max_bessel,
-			  int index_mode,
+			  int index_md,
 			  int index_tt,
 			  double k,
 			  double l,
@@ -330,7 +330,7 @@ extern "C" {
   int transfer_limber(
 		      int tau_size,
 		      struct transfers * ptr,
-		      int index_mode,
+		      int index_md,
 		      int index_k,
 		      double l,
 		      double k,
@@ -342,7 +342,7 @@ extern "C" {
   int transfer_limber2(
 		       int tau_size,
 		       struct transfers * ptr,
-		       int index_mode,
+		       int index_md,
 		       int index_k,
 		       double l,
 		       double k,

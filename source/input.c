@@ -983,10 +983,12 @@ int input_init(
   if (ppt->has_cls == _TRUE_) {
 
     if (ppt->has_scalars == _TRUE_) {
-      if (ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential) 
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) || 
+	  (ppt->has_cl_cmb_polarization == _TRUE_) || 
+	  (ppt->has_cl_cmb_lensing_potential == _TRUE_)) 
 	class_read_double("l_max_scalars",ppt->l_scalar_max);
 
-      if (ppt->has_cl_lensing_potential || ppt->has_cl_density)
+      if ((ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_density == _TRUE_))
 	class_read_double("l_max_lss",ppt->l_lss_max);
     }
 
@@ -1514,10 +1516,13 @@ int input_init(
 
     if (ppt->has_scalars == _TRUE_) {
       
-      if (ppt->has_cl_cmb_temperature || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_lensing_potential)
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) || 
+	  (ppt->has_cl_cmb_polarization == _TRUE_) || 
+	  (ppt->has_cl_cmb_lensing_potential == _TRUE_))
 	pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
 
-      if (ppt->has_cl_lensing_potential || ppt->has_cl_density)
+      if ((ppt->has_cl_lensing_potential == _TRUE_) || 
+	  (ppt->has_cl_density == _TRUE_))
 	pbs->l_max=max(ppt->l_lss_max,pbs->l_max);
 
       pbs->x_max=max(pbs->l_max*ppr->k_scalar_max_tau0_over_l_max,pbs->x_max);

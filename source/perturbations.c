@@ -588,7 +588,6 @@ int perturb_indices_of_perturbs(
     }
  
     if _vectors_ {
-	//    if ((ppt->has_vectors == _TRUE_) && (index_md == ppt->index_md_vectors)) {
 
       /* vectors not treated yet */
     }

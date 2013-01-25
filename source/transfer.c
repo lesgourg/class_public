@@ -40,7 +40,7 @@
  * provided that transfer_init() has been called before, and
  * transfer_free() has not been called yet.
  *
- * @param index_mode Input: index of requested mode
+ * @param index_md Input: index of requested mode
  * @param index_ic   Input: index of requested initial condition
  * @param index_tt   Input: index of requested type
  * @param index_l    Input: index of requested multipole
@@ -50,7 +50,7 @@
  */
 int transfer_functions_at_k(
 			    struct transfers * ptr,
-			    int index_mode,
+			    int index_md,
 			    int index_ic,
 			    int index_tt,
 			    int index_l,
@@ -61,14 +61,14 @@ int transfer_functions_at_k(
 
   /** - interpolate in pre-computed table using array_interpolate_two() */
   class_call(array_interpolate_two(
-				   ptr->k[index_mode],
+				   ptr->k[index_md],
 				   1,
 				   0,
-				   ptr->transfer[index_mode]
-				   +((index_ic * ptr->tt_size[index_mode] + index_tt) * ptr->l_size[index_mode] + index_l)
-				   * ptr->k_size[index_mode],
+				   ptr->transfer[index_md]
+				   +((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l)
+				   * ptr->k_size[index_md],
 				   1,
-				   ptr->k_size[index_mode],
+				   ptr->k_size[index_md],
 				   k,
 				   transfer_function,
 				   1,
@@ -99,7 +99,7 @@ int transfer_functions_at_k(
  * -# for each l, compute the transfer function by convolving the 
  *    sources with the Bessel functions using transfer_compute_for_each_l()
  *    (this step is parallelized). Store result in the transfer table 
- *    transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt) * ptr->l_size[index_mode] + index_l) * ptr->k_size[index_mode] + index_k]
+ *    transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size[index_md] + index_k]
  *
  * @param ppr Input : pointer to precision structure 
  * @param pba Input : pointer to background structure 
@@ -124,7 +124,7 @@ int transfer_init(
   /** - define local variables */
 
   /* running index for modes */
-  int index_mode; 
+  int index_md; 
   /* running index for initial conditions */
   int index_ic; 
   /* running index for types */
@@ -145,7 +145,7 @@ int transfer_init(
   /* array of source derivatives S''(k,tau) 
      (second derivative with respect to k, not tau!), 
      used to interpolate sources at the right values of k,
-     source_spline[index_tau*ppt->k_size[index_mode]+index_k] */
+     source_spline[index_tau*ppt->k_size[index_md]+index_k] */
   double * source_spline;
 
   /* table of source functions interpolated at the right values of k, 
@@ -285,15 +285,15 @@ int transfer_init(
 
   /** - loop over all modes. For each mode: */ 
 
-  for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
+  for (index_md = 0; index_md < ptr->md_size; index_md++) {
 
     /** (a) allocate temporary arrays relevant for this mode */
 
     /** (a.0.) find correspondence between sources in the perturbation and transfer modules */
 
-    class_alloc(tp_of_tt,ptr->tt_size[index_mode]*sizeof(int),ptr->error_message);
+    class_alloc(tp_of_tt,ptr->tt_size[index_md]*sizeof(int),ptr->error_message);
 
-    class_call(transfer_get_source_correspondence(ppt,ptr,index_mode,tp_of_tt),
+    class_call(transfer_get_source_correspondence(ppt,ptr,index_md,tp_of_tt),
 	       ptr->error_message,
 	       ptr->error_message);
 
@@ -302,11 +302,11 @@ int transfer_init(
 	to k (for spline interpolation) */
 
     class_alloc(interpolated_sources,
-		ptr->k_size[index_mode]*ppt->tau_size*sizeof(double),
+		ptr->k_size[index_md]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
      
     class_alloc(source_spline,
-		ppt->k_size[index_mode]*ppt->tau_size*sizeof(double),
+		ppt->k_size[index_md]*ppt->tau_size*sizeof(double),
 		ptr->error_message);
 
     /** (a.2.) maximum number of sampled times in the transfer
@@ -315,7 +315,7 @@ int transfer_init(
 
     tau_size_max = 0;
     
-    for (index_tt = 0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
+    for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
 
       class_call(transfer_source_tau_size(ppr,
 					  pba,
@@ -323,7 +323,7 @@ int transfer_init(
 					  ptr,
 					  tau_rec,
 					  tau0,
-					  index_mode,
+					  index_md,
 					  index_tt,
 					  &tau_size_tt),
 		 ptr->error_message,
@@ -341,7 +341,7 @@ int transfer_init(
     /* beginning of parallel region */
     
 #pragma omp parallel				\
-  shared(ptr,index_mode,ppt,pbs,pw)		\
+  shared(ptr,index_md,ppt,pbs,pw)		\
   private(thread)
     {
       
@@ -351,7 +351,7 @@ int transfer_init(
 
 
       class_alloc_parallel(pw[thread],
-			   ((2+ptr->k_size[index_mode])*tau_size_max
+			   ((2+ptr->k_size[index_md])*tau_size_max
 			    +2+num_j*pbs->x_size_max)*
 			   sizeof(double),
 			   ptr->error_message);
@@ -362,12 +362,12 @@ int transfer_init(
     
     /** (b) now loop over initial conditions and types: For each of them: */
 
-    for (index_ic = 0; index_ic < ppt->ic_size[index_mode]; index_ic++) {
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
       
       /* initialize the previous type index */
       previous_type=-1;
 
-      for (index_tt = 0; index_tt < ptr->tt_size[index_mode]; index_tt++) {
+      for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
 
         /* (b.1) check if we must now deal with a new source with a
 	   new index ppt->index_type. If yes, interpolate it at the
@@ -381,7 +381,7 @@ int transfer_init(
 	  
 	  class_call(transfer_interpolate_sources(ppt,
 						  ptr,
-						  index_mode,
+						  index_md,
 						  index_ic,
 						  tp_of_tt[index_tt],
 						  source_spline,
@@ -411,7 +411,7 @@ int transfer_init(
 	/* beginning of parallel region */
 
 #pragma omp parallel							\
-  shared (pw,ptr,ppr,ppt,index_mode,index_ic,index_tt,			\
+  shared (pw,ptr,ppr,ppt,index_md,index_ic,index_tt,			\
 	  interpolated_sources,abort,num_j,tau0,tau_rec,tau_size_max)	\
   private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,x_size_l,x_min_l,k_max_bessel,tau_size)
 	
@@ -435,7 +435,7 @@ int transfer_init(
 	  address_in_workspace += 1;
 
 	  sources = address_in_workspace;
-	  address_in_workspace += ptr->k_size[index_mode]*tau_size_max;
+	  address_in_workspace += ptr->k_size[index_md]*tau_size_max;
 	  
 	  x_min_l = address_in_workspace;
 	  address_in_workspace += 1;
@@ -461,7 +461,7 @@ int transfer_init(
 					       ptr,
 					       interpolated_sources,
 					       tau_rec,
-					       index_mode,
+					       index_md,
 					       index_tt,
 					       sources,
 					       tau0_minus_tau,
@@ -472,7 +472,7 @@ int transfer_init(
 
 #pragma omp for schedule (dynamic)
 
-	  for (index_l = 0; index_l < ptr->l_size[index_mode]; index_l++) {
+	  for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
 
 #ifdef _OPENMP
 	    tstart = omp_get_wtime();
@@ -507,7 +507,7 @@ int transfer_init(
 	    class_call_parallel(transfer_compute_for_each_l(ppr,
 							    ppt,
 							    ptr,
-							    index_mode,
+							    index_md,
 							    index_ic,
 							    index_tt,
 							    index_l,
@@ -583,14 +583,14 @@ int transfer_free(
 		  struct transfers * ptr
 		  ) {
 
-  int index_mode;
+  int index_md;
 
   if (ptr->has_cls == _TRUE_) {
 
-    for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
-      free(ptr->l_size_tt[index_mode]);
-      free(ptr->k[index_mode]);
-      free(ptr->transfer[index_mode]);
+    for (index_md = 0; index_md < ptr->md_size; index_md++) {
+      free(ptr->l_size_tt[index_md]);
+      free(ptr->k[index_md]);
+      free(ptr->transfer[index_md]);
     }  
    
     free(ptr->tt_size);
@@ -635,7 +635,7 @@ int transfer_indices_of_transfers(
 
   /** - define local variables */
 
-  int index_mode,index_tt,index_tt_common;
+  int index_md,index_tt,index_tt_common;
 
   /** define indices for transfer types */
 
@@ -700,26 +700,26 @@ int transfer_indices_of_transfers(
   /** - allocate arrays of (k, l) values and transfer functions */
 
   /* number of l values for each mode and type,
-     l_size_tt[index_mode][index_tt], and maximized for each mode,
-     l_size[index_mode] */
+     l_size_tt[index_md][index_tt], and maximized for each mode,
+     l_size[index_md] */
 
   class_alloc(ptr->l_size,ptr->md_size * sizeof(int),ptr->error_message);
 
   class_alloc(ptr->l_size_tt,ptr->md_size * sizeof(int *),ptr->error_message);
 
-  for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
-    class_alloc(ptr->l_size_tt[index_mode],ptr->tt_size[index_mode] * sizeof(int),ptr->error_message);
+  for (index_md = 0; index_md < ptr->md_size; index_md++) {
+    class_alloc(ptr->l_size_tt[index_md],ptr->tt_size[index_md] * sizeof(int),ptr->error_message);
   }
 
-  /* number of k values for each mode, k_size[index_mode] */
+  /* number of k values for each mode, k_size[index_md] */
 
   class_alloc(ptr->k_size,ptr->md_size * sizeof(int),ptr->error_message);
 
-  /* list of k values for each mode, k[index_mode] */
+  /* list of k values for each mode, k[index_md] */
 
   class_alloc(ptr->k,ptr->md_size * sizeof(double *),ptr->error_message);
 
-  /* array (of array) of transfer functions for each mode, transfer[index_mode] */
+  /* array (of array) of transfer functions for each mode, transfer[index_md] */
 
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
@@ -730,16 +730,16 @@ int transfer_indices_of_transfers(
   
   /** - loop over modes (scalar, etc). For each mode: */
   
-  for (index_mode = 0; index_mode < ptr->md_size; index_mode++) {
+  for (index_md = 0; index_md < ptr->md_size; index_md++) {
 
     /** (a) get k values using transfer_get_k_list() */
-    class_call(transfer_get_k_list(ppr,ppt,ptr,tau0,index_mode),
+    class_call(transfer_get_k_list(ppr,ppt,ptr,tau0,index_md),
 	       ptr->error_message,
 	       ptr->error_message);
 
-    /** (b) allocate arrays of transfer functions, (ptr->transfer[index_mode])[index_ic][index_tt][index_l][index_k] */
-    class_alloc(ptr->transfer[index_mode],
-		ppt->ic_size[index_mode] * ptr->tt_size[index_mode] * ptr->l_size[index_mode] * ptr->k_size[index_mode] * sizeof(double),
+    /** (b) allocate arrays of transfer functions, (ptr->transfer[index_md])[index_ic][index_tt][index_l][index_k] */
+    class_alloc(ptr->transfer[index_md],
+		ppt->ic_size[index_md] * ptr->tt_size[index_md] * ptr->l_size[index_md] * ptr->k_size[index_md] * sizeof(double),
 		ptr->error_message);
     
   }
@@ -767,7 +767,7 @@ int transfer_get_l_list(
 
   int index_l;
   int l_max=0;
-  int index_mode;
+  int index_md;
   int index_tt;
 
   /* allocate and fill l array (taken directly from Bessel module) */
@@ -780,17 +780,17 @@ int transfer_get_l_list(
     ptr->l[index_l]=pbs->l[index_l];
 
   /* for each mode and type, find relevant size of l array,
-     l_size_tt[index_mode][index_tt] (since for some modes and types
+     l_size_tt[index_md][index_tt] (since for some modes and types
      l_max can be smaller). Also, maximize this size for each mode to
-     find l_size[index_mode]. */
+     find l_size[index_md]. */
 
-  for (index_mode=0; index_mode < ppt->md_size; index_mode++) {
+  for (index_md=0; index_md < ppt->md_size; index_md++) {
 
-    ptr->l_size[index_mode] = 0;
+    ptr->l_size[index_md] = 0;
 
-    for (index_tt=0;index_tt<ptr->tt_size[index_mode];index_tt++) {
+    for (index_tt=0;index_tt<ptr->tt_size[index_md];index_tt++) {
 
-      if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
 
 	if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t))
 	  l_max=ppt->l_scalar_max;
@@ -809,27 +809,27 @@ int transfer_get_l_list(
 	
       }
       
-      if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors))
+      if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors))
 	l_max = ppt->l_tensor_max;
 
       class_test(l_max > ptr->l[ptr->l_size_max-1],
 		 ptr->error_message,
 		 "For mode %d, type %d, asked for l_max=%d greater than in Bessel table where l_max=%d",
-		 index_mode,
+		 index_md,
 		 index_tt,
 		 l_max,
 		 ptr->l[ptr->l_size_max-1]);
 
       index_l=0;
       while (ptr->l[index_l] < l_max) index_l++;
-      ptr->l_size_tt[index_mode][index_tt]=index_l+1;
+      ptr->l_size_tt[index_md][index_tt]=index_l+1;
 
-      if (ptr->l_size_tt[index_mode][index_tt] < ptr->l_size_max)
-	ptr->l_size_tt[index_mode][index_tt]++;
-      if (ptr->l_size_tt[index_mode][index_tt] < ptr->l_size_max)
-	ptr->l_size_tt[index_mode][index_tt]++;
+      if (ptr->l_size_tt[index_md][index_tt] < ptr->l_size_max)
+	ptr->l_size_tt[index_md][index_tt]++;
+      if (ptr->l_size_tt[index_md][index_tt] < ptr->l_size_max)
+	ptr->l_size_tt[index_md][index_tt]++;
 
-      ptr->l_size[index_mode] = max(ptr->l_size[index_mode],ptr->l_size_tt[index_mode][index_tt]);
+      ptr->l_size[index_md] = max(ptr->l_size[index_md],ptr->l_size_tt[index_md][index_tt]);
 
     }
   }
@@ -850,7 +850,7 @@ int transfer_get_l_list(
  * @param ppt     Input : pointer to perturbation structure
  * @param ptr     Input/Output : pointer to transfers structure containing k's
  * @param rs_rec  Input : comoving distance to recombination
- * @param index_mode Input: index of requested mode (scalar, tensor, etc) 
+ * @param index_md Input: index of requested mode (scalar, tensor, etc) 
  * @return the error status
  */
 
@@ -859,7 +859,7 @@ int transfer_get_k_list(
 			struct perturbs * ppt,
 			struct transfers * ptr,
 			double tau0,
-			int index_mode
+			int index_md
 			) {
 
   int index_k_pt;
@@ -868,13 +868,13 @@ int transfer_get_k_list(
 
   /* find k_step_max, the maximum value of the step */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
 
     k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_scalars;
 
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors)) {
 
     k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_tensors;
 
@@ -886,9 +886,9 @@ int transfer_get_k_list(
 
   /* first and last value in perturbation module */
 
-  k_min = ppt->k[index_mode][0]; /* first value, inferred from perturbations structure */
+  k_min = ppt->k[index_md][0]; /* first value, inferred from perturbations structure */
 
-  k_max = ppt->k[index_mode][ppt->k_size_cl[index_mode]-1]; /* last value, inferred from perturbations structure */
+  k_max = ppt->k[index_md][ppt->k_size_cl[index_md]-1]; /* last value, inferred from perturbations structure */
 
   /* first, count the number of necessary values */
 
@@ -903,8 +903,8 @@ int transfer_get_k_list(
 
   /* - points taken from perturbation module if step small enough */
 
-  while ((index_k_pt < ppt->k_size[index_mode]) && ((ppt->k[index_mode][index_k_pt] -k) < k_step_max)) {
-    k = ppt->k[index_mode][index_k_pt];
+  while ((index_k_pt < ppt->k_size[index_md]) && ((ppt->k[index_md][index_k_pt] -k) < k_step_max)) {
+    k = ppt->k[index_md][index_k_pt];
     index_k_pt++;
     index_k_tr++;
   }
@@ -919,12 +919,12 @@ int transfer_get_k_list(
   /* - get number of points and allocate list */
 
   if (k > k_max)
-    ptr->k_size[index_mode]=index_k_tr-1;
+    ptr->k_size[index_md]=index_k_tr-1;
   else
-    ptr->k_size[index_mode]=index_k_tr;
+    ptr->k_size[index_md]=index_k_tr;
 
-  class_alloc(ptr->k[index_mode],
-	      ptr->k_size[index_mode]*sizeof(double),
+  class_alloc(ptr->k[index_md],
+	      ptr->k_size[index_md]*sizeof(double),
 	      ptr->error_message);
 
   /* repeat exactly the same steps, but now filling the list */
@@ -932,27 +932,27 @@ int transfer_get_k_list(
   index_k_pt = 0;
   index_k_tr = 0;
 
-  ptr->k[index_mode][0] = k_min;
+  ptr->k[index_md][0] = k_min;
   k = k_min;
   index_k_pt++;
   index_k_tr++;
 
-  while ((index_k_pt < ppt->k_size[index_mode]) && ((ppt->k[index_mode][index_k_pt] -k) < k_step_max)) {
-    k = ppt->k[index_mode][index_k_pt];
-    ptr->k[index_mode][index_k_tr] = k;
+  while ((index_k_pt < ppt->k_size[index_md]) && ((ppt->k[index_md][index_k_pt] -k) < k_step_max)) {
+    k = ppt->k[index_md][index_k_pt];
+    ptr->k[index_md][index_k_tr] = k;
     index_k_pt++;
     index_k_tr++;
   }
 
-  while ((index_k_tr < ptr->k_size[index_mode]) && (k < k_max)) {
+  while ((index_k_tr < ptr->k_size[index_md]) && (k < k_max)) {
     k += k_step_max;
-    ptr->k[index_mode][index_k_tr] = k;
+    ptr->k[index_md][index_k_tr] = k;
     index_k_tr++;
   }
 
   /* consistency check */
 
-  class_test(ptr->k[index_mode][ptr->k_size[index_mode]-1] > k_max,
+  class_test(ptr->k[index_md][ptr->k_size[index_md]-1] > k_max,
 	     ptr->error_message,
 	     "bug in k list calculation, k_max larger in transfer than in perturb, should never happen");
 
@@ -966,7 +966,7 @@ int transfer_get_k_list(
  *
  * @param ppt  Input : pointer to perturbation structure
  * @param ptr  Input : pointer to transfers structure containing l's
- * @param index_mode : Input: index of mode (scalar, tensor...)
+ * @param index_md : Input: index of mode (scalar, tensor...)
  * @param tp_of_tt : Input/Output: array with the correspondance (allocated before, filled here)
  * @return the error status
  */
@@ -974,7 +974,7 @@ int transfer_get_k_list(
 int transfer_get_source_correspondence(
 				       struct perturbs * ppt,
 				       struct transfers * ptr,
-				       int index_mode,
+				       int index_md,
 				       int * tp_of_tt
 				       ) {
 
@@ -984,9 +984,9 @@ int transfer_get_source_correspondence(
   /** - which source are we considering? Define correspondence
       between transfer types and source types */
   
-  for (index_tt=0; index_tt<ptr->tt_size[index_mode]; index_tt++) {
+  for (index_tt=0; index_tt<ptr->tt_size[index_md]; index_tt++) {
     
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
       
       if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
 	tp_of_tt[index_tt]=ppt->index_tp_t;
@@ -1005,7 +1005,7 @@ int transfer_get_source_correspondence(
       
     }
     
-    if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+    if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors)) {
       
       if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
 	tp_of_tt[index_tt]=ppt->index_tp_t;
@@ -1038,7 +1038,7 @@ int transfer_get_source_correspondence(
  * @param ptr                   Input : pointer to transfers structure
  * @param tau_rec               Input : recombination time
  * @param tau0                  Input : time today
- * @param index_mode            Input : index of the mode (scalar, tensor)
+ * @param index_md            Input : index of the mode (scalar, tensor)
  * @param index_tt              Input : index of transfer type
  * @param tau_size              Output: pointer to number of smapled times
  * @return the error status
@@ -1051,7 +1051,7 @@ int transfer_source_tau_size(
 			     struct transfers * ptr,
 			     double tau_rec,
 			     double tau0,
-			     int index_mode,
+			     int index_md,
 			     int index_tt,
 			     int * tau_size) {
 
@@ -1065,7 +1065,7 @@ int transfer_source_tau_size(
   int l_limber;
   
   /* scalar mode */
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
 
     /* scalar temperature */
     if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t))
@@ -1165,7 +1165,7 @@ int transfer_source_tau_size(
   }
 
   /* tensor mode */
-  if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+  if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors)) {
 
     /* for all tensor types */
     *tau_size = ppt->tau_size;
@@ -1181,7 +1181,7 @@ int transfer_source_tau_size(
  *
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param index_ic              Input : index of initial condition
  * @param index_type            Input : index of type of source (in perturbation module)
  * @param source_spline         Output: array of second derivative of sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
@@ -1192,10 +1192,10 @@ int transfer_source_tau_size(
 int transfer_interpolate_sources(
 				 struct perturbs * ppt,
 				 struct transfers * ptr,
-				 int index_mode,
+				 int index_md,
 				 int index_ic,
 				 int index_type,
-				 double * source_spline, /* array with argument source_spline[index_tau*ppt->k_size[index_mode]+index_k] (must be allocated) */
+				 double * source_spline, /* array with argument source_spline[index_tau*ppt->k_size[index_md]+index_k] (must be allocated) */
 				 double * interpolated_sources /* array with argument interpolated_sources[index_k_tr*ppt->tau_size+index_tau] (must be allocated) */
 				 ) {
 
@@ -1218,9 +1218,9 @@ int transfer_interpolate_sources(
   /** - find second derivative of original sources with respect to k
       in view of spline interpolation */
 
-  class_call(array_spline_table_columns(ppt->k[index_mode],
-					ppt->k_size[index_mode],
-					ppt->sources[index_mode][index_ic * ppt->tp_size[index_mode] + index_type],
+  class_call(array_spline_table_columns(ppt->k[index_md],
+					ppt->k_size[index_md],
+					ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_type],
 					ppt->tau_size,
 					source_spline,
 					_SPLINE_EST_DERIV_,
@@ -1232,35 +1232,35 @@ int transfer_interpolate_sources(
       spline interpolation algorithm. */
   
   index_k = 0;
-  h = ppt->k[index_mode][index_k+1] - ppt->k[index_mode][index_k];
+  h = ppt->k[index_md][index_k+1] - ppt->k[index_md][index_k];
   
-  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
+  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) {
     
-    while (((index_k+1) < ppt->k_size[index_mode]) &&
-	   (ppt->k[index_mode][index_k+1] < 
-	    ptr->k[index_mode][index_k_tr])) {
+    while (((index_k+1) < ppt->k_size[index_md]) &&
+	   (ppt->k[index_md][index_k+1] < 
+	    ptr->k[index_md][index_k_tr])) {
       index_k++;
-      h = ppt->k[index_mode][index_k+1] - ppt->k[index_mode][index_k];
+      h = ppt->k[index_md][index_k+1] - ppt->k[index_md][index_k];
     }
     
     class_test(h==0.,
 	       ptr->error_message,
 	       "stop to avoid division by zero");
     
-    b = (ptr->k[index_mode][index_k_tr] - ppt->k[index_mode][index_k])/h;
+    b = (ptr->k[index_md][index_k_tr] - ppt->k[index_md][index_k])/h;
     a = 1.-b;
     
     for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
       
       interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
-	a * ppt->sources[index_mode]
-	[index_ic * ppt->tp_size[index_mode] + index_type]
-	[index_tau*ppt->k_size[index_mode]+index_k]
-	+ b * ppt->sources[index_mode]
-	[index_ic * ppt->tp_size[index_mode] + index_type]
-	[index_tau*ppt->k_size[index_mode]+index_k+1]
-	+ ((a*a*a-a) * source_spline[index_tau*ppt->k_size[index_mode]+index_k]
-	   +(b*b*b-b) * source_spline[index_tau*ppt->k_size[index_mode]+index_k+1])*h*h/6.0;
+	a * ppt->sources[index_md]
+	[index_ic * ppt->tp_size[index_md] + index_type]
+	[index_tau*ppt->k_size[index_md]+index_k]
+	+ b * ppt->sources[index_md]
+	[index_ic * ppt->tp_size[index_md] + index_type]
+	[index_tau*ppt->k_size[index_md]+index_k+1]
+	+ ((a*a*a-a) * source_spline[index_tau*ppt->k_size[index_md]+index_k]
+	   +(b*b*b-b) * source_spline[index_tau*ppt->k_size[index_md]+index_k+1])*h*h/6.0;
       
     }
   }
@@ -1284,7 +1284,7 @@ int transfer_interpolate_sources(
  * @param ptr                   Input : pointer to transfers structure
  * @param interpolated_sources  Input : interpolated perturbation source
  * @param tau_rec               Input : recombination time
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param index_tt              Input : index of type of (transfer) source
  * @param sources               Output: transfer source
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
@@ -1300,7 +1300,7 @@ int transfer_sources(
 		     struct transfers * ptr,
 		     double * interpolated_sources,
 		     double tau_rec,
-		     int index_mode,
+		     int index_md,
 		     int index_tt,
 		     double * sources,
 		     double * tau0_minus_tau,
@@ -1362,7 +1362,7 @@ int transfer_sources(
 
   redefine_source = _FALSE_;
   
-  if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+  if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
 
     /* cmb lensing potential */
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
@@ -1391,13 +1391,13 @@ int transfer_sources(
 					ptr,
 					tau_rec,
 					tau0,
-					index_mode,
+					index_md,
 					index_tt,
 					&tau_size),
 	       ptr->error_message,
 	       ptr->error_message);
 
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
 
       /* lensing source: throw away times before recombuination, and multiply psi by window function */
 
@@ -1429,12 +1429,12 @@ int transfer_sources(
 	  }
 	  
           /* copy from input array to output array */
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) { 
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) { 
 	    sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
 	      interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
 	      * rescaling
 	      * ptr->lcmb_rescale
-	      * pow(ptr->k[index_mode][index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
+	      * pow(ptr->k[index_md][index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
 	  }
 	  
           /* store value of (tau0-tau) */
@@ -1484,7 +1484,7 @@ int transfer_sources(
 					    bin,
 					    tau0_minus_tau,
 					    tau_size,
-					    index_mode,
+					    index_md,
 					    tau0,
 					    interpolated_sources,
 					    sources),
@@ -1544,18 +1544,18 @@ int transfer_sources(
 	    *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
 	    /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
 	  
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
-	    sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_mode][index_k_tr],2);
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) {
+	    sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_md][index_k_tr],2);
 	  }
 	}
 
 	/*
 	  if (bin == 2) {
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) {
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) {
 	  for (index_tau = 0; index_tau < tau_size; index_tau++) {
 	  fprintf(stdout,"%e %e %e\n",
 	  tau0-tau0_minus_tau[index_tau],
-	  ptr->k[index_mode][index_k_tr],
+	  ptr->k[index_md][index_k_tr],
 	  sources[index_k_tr*tau_size+index_tau]);
 	  }
 	  fprintf(stdout,"\n\n");
@@ -1656,7 +1656,7 @@ int transfer_sources(
 					    bin,
 					    tau0_minus_tau,
 					    tau_size,
-					    index_mode,
+					    index_md,
 					    tau0,
 					    interpolated_sources,
 					    sources),
@@ -1711,7 +1711,7 @@ int transfer_sources(
 	  }
 	  
           /* copy from input array to output array */
-	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_mode]; index_k_tr++) { 
+	  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) { 
 	    sources[index_k_tr*tau_size+index_tau] *= rescaling;
 	  }
 	  
@@ -1737,7 +1737,7 @@ int transfer_sources(
     /* plain copy from input array to output array */
     memcpy(sources,
 	   interpolated_sources,
-	   ptr->k_size[index_mode]*ppt->tau_size*sizeof(double));
+	   ptr->k_size[index_md]*ppt->tau_size*sizeof(double));
         
     /* store values of (tau0-tau) */
     for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
@@ -1890,7 +1890,7 @@ int transfer_selection_function(
  * @param bin                   Input : redshift bin number
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param tau_size              Output: pointer to size of previous array
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param tau0                  Input : time today
  * @param interpolated_sources  Input : interpolated perturbation source
  * @param sources               Output: resampled transfer source
@@ -1955,7 +1955,7 @@ int transfer_selection_sampling(
  * @param bin                   Input : redshift bin number
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param tau_size              Output: pointer to size of previous array
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param tau0                  Input : time today
  * @param interpolated_sources  Input : interpolated perturbation source
  * @param sources               Output: resampled transfer source
@@ -2011,7 +2011,7 @@ int transfer_lensing_sampling(
  * @param bin                   Input : redshift bin number
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param tau_size              Output: pointer to size of previous array
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param tau0                  Input : time today
  * @param interpolated_sources  Input : interpolated perturbation source
  * @param sources               Output: resampled transfer source
@@ -2026,7 +2026,7 @@ int transfer_source_resample(
 			     int bin,
 			     double * tau0_minus_tau,
 			     int tau_size,
-			     int index_mode,
+			     int index_md,
 			     double tau0,
 			     double * interpolated_sources,
 			     double * sources) {
@@ -2042,7 +2042,7 @@ int transfer_source_resample(
 
   /* array of source values for a given time and for all k's */
   class_alloc(source_at_tau,
-	      ptr->k_size[index_mode]*sizeof(double),
+	      ptr->k_size[index_md]*sizeof(double),
 	      ptr->error_message);
 
   /* interpolate the sources linearily at the new time values */
@@ -2053,17 +2053,17 @@ int transfer_source_resample(
 				     0,
 				     interpolated_sources, 
 				     // this array is indexed as interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-				     ptr->k_size[index_mode],
+				     ptr->k_size[index_md],
 				     ppt->tau_size,
 				     tau0-tau0_minus_tau[index_tau],
 				     source_at_tau,
-				     ptr->k_size[index_mode],
+				     ptr->k_size[index_md],
 				     ptr->error_message),
 	       ptr->error_message,
 	       ptr->error_message);
 
     /* for each k, copy the new values in the output sources array */
-    for (index_k_tr=0;index_k_tr<ptr->k_size[index_mode];index_k_tr++) {
+    for (index_k_tr=0;index_k_tr<ptr->k_size[index_md];index_k_tr++) {
       sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
     }
   } 
@@ -2270,7 +2270,7 @@ int transfer_selection_compute(
  * @param ptr                   Input/output : pointer to transfers structure (result stored there)
  * @param tau0                  Input : conformal time today
  * @param tau_rec               Input : conformal time at recombination
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param index_ic              Input : index of initial condition
  * @param index_tt              Input : index of type of transfer
  * @param index_l               Input : index of multipole
@@ -2283,7 +2283,7 @@ int transfer_compute_for_each_l(
 				struct precision * ppr,
 				struct perturbs * ppt,
 				struct transfers * ptr,
-				int index_mode,
+				int index_md,
 				int index_ic,
 				int index_tt,
 				int index_l,
@@ -2346,12 +2346,12 @@ int transfer_compute_for_each_l(
   /* whether to use a cutting scheme */
   enum transfer_cutting use_cut;
 
-  if (index_l >= ptr->l_size_tt[index_mode][index_tt]) { 
+  if (index_l >= ptr->l_size_tt[index_md][index_tt]) { 
 
-    for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
-      ptr->transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt)
-				 * ptr->l_size[index_mode] + index_l)
-				* ptr->k_size[index_mode] + index_k] = 0.;
+    for (index_k = 0; index_k < ptr->k_size[index_md]; index_k++) {
+      ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
+				 * ptr->l_size[index_md] + index_l)
+				* ptr->k_size[index_md] + index_k] = 0.;
     }
     return _SUCCESS_;
   }
@@ -2363,19 +2363,19 @@ int transfer_compute_for_each_l(
   use_cut = tc_none;
 
   if ((((ppt->has_scalars == _TRUE_) && 
-	(index_mode == ppt->index_md_scalars)) && 
+	(index_md == ppt->index_md_scalars)) && 
        ((ppt->has_cl_cmb_temperature == _TRUE_) && 
 	(index_tt == ptr->index_tt_t))))
     use_cut = ppr->transfer_cut;
 
   if ((((ppt->has_scalars == _TRUE_) && 
-	(index_mode == ppt->index_md_scalars)) && 
+	(index_md == ppt->index_md_scalars)) && 
        ((ppt->has_cl_cmb_polarization == _TRUE_) && 
 	(index_tt == ptr->index_tt_e))))
     use_cut = ppr->transfer_cut;
 
   if ((ppt->has_tensors == _TRUE_) && 
-      (index_mode == ppt->index_md_tensors))
+      (index_md == ppt->index_md_tensors))
     use_cut = ppr->transfer_cut;
 
   /** - if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
@@ -2408,7 +2408,7 @@ int transfer_compute_for_each_l(
      square root of  (l+2)(l+1)l(l-1) */
   
   if ((((ppt->has_scalars == _TRUE_) && 
-	(index_mode == ppt->index_md_scalars)) && 
+	(index_md == ppt->index_md_scalars)) && 
        ((ppt->has_cl_cmb_polarization == _TRUE_) && 
 	(index_tt == ptr->index_tt_e)))) {
     
@@ -2420,7 +2420,7 @@ int transfer_compute_for_each_l(
      square root of (l+2)(l+1)l(l-1)/2 */
   
   if ((((ppt->has_tensors == _TRUE_) && 
-	(index_mode == ppt->index_md_tensors)) &&
+	(index_md == ppt->index_md_tensors)) &&
        ((ppt->has_cl_cmb_temperature == _TRUE_) && 
 	(index_tt == ptr->index_tt_t)))) {
     
@@ -2440,9 +2440,9 @@ int transfer_compute_for_each_l(
       being reached. 
   */
 
-  for (index_k = 0; index_k < ptr->k_size[index_mode]; index_k++) {
+  for (index_k = 0; index_k < ptr->k_size[index_md]; index_k++) {
 
-    k = ptr->k[index_mode][index_k];
+    k = ptr->k[index_md][index_k];
 
     if (ptr->transfer_verbose > 3)
       printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,k,index_tt);
@@ -2466,7 +2466,7 @@ int transfer_compute_for_each_l(
 				     ppt,
 				     ptr,
 				     k_max_bessel,
-				     index_mode,
+				     index_md,
 				     index_tt,
 				     k,
 				     l,
@@ -2478,7 +2478,7 @@ int transfer_compute_for_each_l(
 
 	class_call(transfer_limber(tau_size,
 				   ptr,
-				   index_mode,
+				   index_md,
 				   index_k,
 				   l,
 				   k,
@@ -2542,9 +2542,9 @@ int transfer_compute_for_each_l(
     if (multiply_by_factor == _TRUE_) transfer_function *= extra_factor;
 
     /* store transfer function in transfer structure */
-    ptr->transfer[index_mode][((index_ic * ptr->tt_size[index_mode] + index_tt)
-			       * ptr->l_size[index_mode] + index_l)
-			      * ptr->k_size[index_mode] + index_k]
+    ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
+			       * ptr->l_size[index_md] + index_l)
+			      * ptr->k_size[index_md] + index_k]
       = transfer_function;
     
     /* in the tc_osc case, update various quantities and 
@@ -2578,11 +2578,11 @@ int transfer_compute_for_each_l(
     }
 		
     /* in the tc_cl case, update various quantities and check wether k_max is reached */
-    if ((use_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_mode]-1) && (transfer_function != 0.)) {
+    if ((use_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_md]-1) && (transfer_function != 0.)) {
 		  
       /* rough estimate of the contribution of the last step to pseudo-C_l, 
 	 assuming flat primordial spectrum */
-      delta_cl = transfer_function * transfer_function / k * 0.5 * (ptr->k[index_mode][index_k+1] - ptr->k[index_mode][index_k-1]);
+      delta_cl = transfer_function * transfer_function / k * 0.5 * (ptr->k[index_md][index_k+1] - ptr->k[index_md][index_k-1]);
       
       /* update pseudo-C_l */
       cl += delta_cl;
@@ -2614,7 +2614,7 @@ int transfer_use_limber(
 			struct perturbs * ppt,
 			struct transfers * ptr,
 			double k_max_bessel,
-			int index_mode,
+			int index_md,
 			int index_tt,
 			double k,
 			double l,
@@ -2631,7 +2631,7 @@ int transfer_use_limber(
   }
   else {
     
-    if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+    if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
       
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber))
 	*use_limber = _TRUE_;
@@ -2662,7 +2662,7 @@ int transfer_use_limber(
  * @param ptr                   Input : pointer to transfers structure
  * @param tau0                  Input : conformal time today
  * @param tau_rec               Input : conformal time at recombination
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
  * @param index_k               Input : index of wavenumber
@@ -2930,7 +2930,7 @@ int transfer_integrate(
 * @param ppt                   Input : pointer to perturbation structure
 * @param ptr                   Input : pointer to transfers structure
 * @param tau0                  Input : conformal time today
-* @param index_mode            Input : index of mode
+* @param index_md            Input : index of mode
 * @param index_tt              Input : index of type
 * @param index_l               Input : index of multipole
 * @param index_k               Input : index of wavenumber
@@ -2942,7 +2942,7 @@ int transfer_integrate(
 int transfer_limber(
 		    int tau_size,
 		    struct transfers * ptr,
-		    int index_mode,
+		    int index_md,
 		    int index_k,
 		    double l,
 		    double k,
@@ -3044,7 +3044,7 @@ int transfer_limber(
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
  * @param tau0                  Input : conformal time today
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
  * @param index_k               Input : index of wavenumber
@@ -3056,7 +3056,7 @@ int transfer_limber(
 int transfer_limber2(
 		     int tau_size,
 		     struct transfers * ptr,
-		     int index_mode,
+		     int index_md,
 		     int index_k,
 		     double l,
 		     double k,
@@ -3129,7 +3129,7 @@ int transfer_limber2(
  * @param ptr                   Input : pointer to transfers structure
  * @param tau0                  Input : conformal time today
  * @param tau_rec               Input : conformal time at recombination
- * @param index_mode            Input : index of mode
+ * @param index_md            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
  * @param index_k               Input : index of wavenumber

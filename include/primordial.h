@@ -131,16 +131,16 @@ struct primordial {
 
   int md_size;      /**< number of modes included in computation */
 
-  int * ic_size;    /**< for a given mode, ic_size[index_mode] = number of initial conditions included in computation */
+  int * ic_size;    /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
 
-  int * ic_ic_size; /**< number of ordered pairs of (index_ic1, index_ic2); this number is just N(N+1)/2  where N = ic_size[index_mode] */
+  int * ic_ic_size; /**< number of ordered pairs of (index_ic1, index_ic2); this number is just N(N+1)/2  where N = ic_size[index_md] */
 
   int lnk_size;    /**< number of ln(k) values */
 
   double * lnk;    /**< list of ln(k) values lnk[index_k] */
 
-  double ** lnpk;  /**< depends on indices index_mode, index_ic1, index_ic2, index_k as:
-		      lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2]
+  double ** lnpk;  /**< depends on indices index_md, index_ic1, index_ic2, index_k as:
+		      lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]
 		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
                       the primordial spectrum is symmetric in (index_ic1, index_ic2)).
 		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
@@ -163,7 +163,7 @@ struct primordial {
 			 or nearly constant, and with arbitrary sign.
 		    */
 
-  short ** is_non_zero; /**< is_non_zero[index_mode][index_ic1_ic2] set to false if pair
+  short ** is_non_zero; /**< is_non_zero[index_md][index_ic1_ic2] set to false if pair
 			    (index_ic1, index_ic2) is uncorrelated 
 			    (ensures more precision and saves time with respect to the option
 			    of simply setting P(k)_(index_ic1, index_ic2) to zero) */
@@ -174,9 +174,9 @@ struct primordial {
 
   /** @name - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
 
-  double ** amplitude; /**< all amplitudes in matrix form: amplitude[index_mode][index_ic1_ic2] */
-  double ** tilt;      /**< all tilts in matrix form: tilt[index_mode][index_ic1_ic2] */
-  double ** running;   /**< all runnings in matrix form: running[index_mode][index_ic1_ic2] */
+  double ** amplitude; /**< all amplitudes in matrix form: amplitude[index_md][index_ic1_ic2] */
+  double ** tilt;      /**< all tilts in matrix form: tilt[index_md][index_ic1_ic2] */
+  double ** running;   /**< all runnings in matrix form: running[index_md][index_ic1_ic2] */
 
   //@}
 
@@ -242,7 +242,7 @@ extern "C" {
 
   int primordial_spectrum_at_k(
 			       struct primordial * ppm,
-			       int index_mode,
+			       int index_md,
 			       enum linear_or_logarithmic mode, 
 			       double k,
 			       double * pk
@@ -277,7 +277,7 @@ extern "C" {
 
   int primordial_analytic_spectrum(
 				   struct primordial * ppm,
-				   int index_mode,
+				   int index_md,
 				   int index_ic1_ic2,
 				   double k,
 				   double * pk

@@ -42,7 +42,7 @@
  * been called yet.
  *
  * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum 
- * @param index_mode Input: index of mode (scalar, tensor, ...) 
+ * @param index_md Input: index of mode (scalar, tensor, ...) 
  * @param mode       Input: linear or logarithmic
  * @param k          Input: wavenumber in 1/Mpc (linear mode) or its logarithm (logarithmic mode)
  * @param pk         Ouput: for each pair of initial conditions, primordial spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
@@ -51,7 +51,7 @@
 
 int primordial_spectrum_at_k(
 			     struct primordial * ppm,
-			     int index_mode,
+			     int index_md,
 			     enum linear_or_logarithmic mode, 
 			     double input,  
 			     double * output /* array with argument output[index_ic1_ic2] (must be already allocated) */
@@ -88,15 +88,15 @@ int primordial_spectrum_at_k(
 
     /* direct computation */
 
-    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-      for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
+    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+      for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
 	
-	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
 
-	if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
 	  class_call(primordial_analytic_spectrum(ppm,
-						  index_mode,
+						  index_md,
 						  index_ic1_ic2,
 						  exp(lnk),
 						  &(output[index_ic1_ic2])),
@@ -113,16 +113,16 @@ int primordial_spectrum_at_k(
 
     if (mode == logarithmic) {
 
-      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
 	output[index_ic1_ic2] = log(output[index_ic1_ic2]);
       }
-      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-	for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
-	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
-	  if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
-	    output[index_ic1_ic2] /= sqrt(output[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode])]*
-					  output[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode])]);
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+	for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
+	  if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+	    output[index_ic1_ic2] /= sqrt(output[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md])]*
+					  output[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md])]);
 	  }
 	}
       }
@@ -136,13 +136,13 @@ int primordial_spectrum_at_k(
     class_call(array_interpolate_spline(
 					ppm->lnk,
 					ppm->lnk_size,
-					ppm->lnpk[index_mode],
-					ppm->ddlnpk[index_mode],
-					ppm->ic_ic_size[index_mode],
+					ppm->lnpk[index_md],
+					ppm->ddlnpk[index_md],
+					ppm->ic_ic_size[index_md],
 					lnk,
 					&last_index,
 					output,
-					ppm->ic_ic_size[index_mode],
+					ppm->ic_ic_size[index_md],
 					ppm->error_message),
 	       ppm->error_message,
 	       ppm->error_message);
@@ -151,16 +151,16 @@ int primordial_spectrum_at_k(
 
     if (mode == linear) {
 
-      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
 	output[index_ic1_ic2]=exp(output[index_ic1_ic2]);
       }
-      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-	for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
-	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
-	  if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
-	    output[index_ic1_ic2] *= sqrt(output[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode])]*
-					  output[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode])]);
+      for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+	for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
+	  index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
+	  if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+	    output[index_ic1_ic2] *= sqrt(output[index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md])]*
+					  output[index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md])]);
 	  }
 	  else {
 	    output[index_ic1_ic2] = 0.;
@@ -194,7 +194,7 @@ int primordial_init(
   /** - define local variables */
 
   double k,k_min,k_max;
-  int index_mode,index_ic1,index_ic2,index_ic1_ic2,index_k;
+  int index_md,index_ic1,index_ic2,index_ic1_ic2,index_k;
   double pk,pk1,pk2;
   double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus;
   double cos_delta_k;
@@ -217,9 +217,9 @@ int primordial_init(
   k_min=_HUGE_; /* huge initial value before scanning all modes */
   k_max=0.;     /* zero initial value before scanning all modes */
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
-    k_min = min(k_min,ppt->k[index_mode][0]); /* first value, inferred from perturbations structure */
-    k_max = max(k_max,ppt->k[index_mode][ppt->k_size[index_mode]-1]); /* last value, inferred from perturbations structure */
+  for (index_md = 0; index_md < ppt->md_size; index_md++) {
+    k_min = min(k_min,ppt->k[index_md][0]); /* first value, inferred from perturbations structure */
+    k_max = max(k_max,ppt->k[index_md][ppt->k_size[index_md]-1]); /* last value, inferred from perturbations structure */
   }
   
   class_test(k_min <= 0.,
@@ -276,16 +276,16 @@ int primordial_init(
 
       k=exp(ppm->lnk[index_k]);
 
-      for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {
-	for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-	  for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
+      for (index_md = 0; index_md < ppt->md_size; index_md++) {
+	for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+	  for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
 
-	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
+	    index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
 
-	    if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
+	    if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
 	      class_call(primordial_analytic_spectrum(ppm,
-						      index_mode,
+						      index_md,
 						      index_ic1_ic2,
 						      k,
 						      &pk),
@@ -296,23 +296,23 @@ int primordial_init(
 
 		/* diagonal coefficients: ln[P(k)] */
 
-		ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = log(pk);
+		ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = log(pk);
 	      }
 	      else {
 
 		/* non-diagonal coefficients: cosDelta(k) = P(k)_12/sqrt[P(k)_1 P(k)_2] */
 
 		class_call(primordial_analytic_spectrum(ppm,
-							index_mode,
-							index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]),
+							index_md,
+							index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]),
 							k,
 							&pk1),
 			   ppm->error_message,
 			   ppm->error_message);			     
 
 		class_call(primordial_analytic_spectrum(ppm,
-							index_mode,
-							index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode]),
+							index_md,
+							index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md]),
 							k,
 							&pk2),
 			   ppm->error_message,
@@ -324,7 +324,7 @@ int primordial_init(
 			   ppm->error_message,
 			   "correlation angle between IC's takes unphysical values");
 		
-		ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = cos_delta_k;
+		ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = cos_delta_k;
 
 	      }
 	    }
@@ -332,7 +332,7 @@ int primordial_init(
 	      
 	      /* non-diagonal coefficients when ic's are uncorrelated */
 
-	      ppm->lnpk[index_mode][index_k*ppm->ic_ic_size[index_mode]+index_ic1_ic2] = 0.;
+	      ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 0.;
 	    }
 	  }
 	}
@@ -383,13 +383,13 @@ int primordial_init(
 
   /** - compute second derivative of each lnpk versus lnk  with spline, in view of interpolation */
 
-  for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
+  for (index_md = 0; index_md < ppm->md_size; index_md++) {
 
     class_call(array_spline_table_lines(ppm->lnk,
 					ppm->lnk_size,
-					ppm->lnpk[index_mode],
-					ppm->ic_ic_size[index_mode],
-					ppm->ddlnpk[index_mode],
+					ppm->lnpk[index_md],
+					ppm->ic_ic_size[index_md],
+					ppm->ddlnpk[index_md],
 					_SPLINE_EST_DERIV_,
 					ppm->error_message),
 	       ppm->error_message,
@@ -494,25 +494,25 @@ int primordial_free(
 		    struct primordial * ppm
 		    ) {
 
-  int index_mode;
+  int index_md;
 
   if (ppm->lnk_size > 0) {
 
     if (ppm->primordial_spec_type == analytic_Pk) {
-      for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
-	free(ppm->amplitude[index_mode]);
-	free(ppm->tilt[index_mode]);
-	free(ppm->running[index_mode]);
+      for (index_md = 0; index_md < ppm->md_size; index_md++) {
+	free(ppm->amplitude[index_md]);
+	free(ppm->tilt[index_md]);
+	free(ppm->running[index_md]);
       }
       free(ppm->amplitude);
       free(ppm->tilt);
       free(ppm->running);
     }
 
-    for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
-      free(ppm->lnpk[index_mode]);
-      free(ppm->ddlnpk[index_mode]);
-      free(ppm->is_non_zero[index_mode]);
+    for (index_md = 0; index_md < ppm->md_size; index_md++) {
+      free(ppm->lnpk[index_md]);
+      free(ppm->ddlnpk[index_md]);
+      free(ppm->is_non_zero[index_md]);
     }
 
     free(ppm->lnpk);
@@ -541,7 +541,7 @@ int primordial_indices(
 		       struct primordial * ppm
 		       ) {
 
-  int index_mode;
+  int index_md;
 
   ppm->md_size = ppt->md_size;
 
@@ -555,22 +555,22 @@ int primordial_indices(
 
   class_alloc(ppm->is_non_zero,ppm->md_size*sizeof(short *),ppm->error_message);
 
-  for (index_mode = 0; index_mode < ppt->md_size; index_mode++) {		     
+  for (index_md = 0; index_md < ppt->md_size; index_md++) {		     
 
-    ppm->ic_size[index_mode] = ppt->ic_size[index_mode];
+    ppm->ic_size[index_md] = ppt->ic_size[index_md];
 
-    ppm->ic_ic_size[index_mode] = (ppm->ic_size[index_mode]*(ppm->ic_size[index_mode]+1))/2;
+    ppm->ic_ic_size[index_md] = (ppm->ic_size[index_md]*(ppm->ic_size[index_md]+1))/2;
 
-    class_alloc(ppm->lnpk[index_mode],
-		ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),
+    class_alloc(ppm->lnpk[index_md],
+		ppm->lnk_size*ppm->ic_ic_size[index_md]*sizeof(double),
 		ppm->error_message);
 
-    class_alloc(ppm->ddlnpk[index_mode],
-		ppm->lnk_size*ppm->ic_ic_size[index_mode]*sizeof(double),
+    class_alloc(ppm->ddlnpk[index_md],
+		ppm->lnk_size*ppm->ic_ic_size[index_md]*sizeof(double),
 		ppm->error_message);
 
-    class_alloc(ppm->is_non_zero[index_mode],
-		ppm->ic_ic_size[index_mode]*sizeof(short),
+    class_alloc(ppm->is_non_zero[index_md],
+		ppm->ic_ic_size[index_md]*sizeof(short),
 		ppm->error_message);
     
 
@@ -631,7 +631,7 @@ int primordial_analytic_spectrum_init(
 				      struct primordial * ppm
 				      ) {
 
-  int index_mode,index_ic1,index_ic2;
+  int index_md,index_ic1,index_ic2;
   int index_ic1_ic2,index_ic1_ic1,index_ic2_ic2;
   double one_amplitude=0.;
   double one_tilt=0.;
@@ -650,29 +650,29 @@ int primordial_analytic_spectrum_init(
 	      ppm->md_size*sizeof(double *),
 	      ppm->error_message);
 
-  for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
+  for (index_md = 0; index_md < ppm->md_size; index_md++) {
 
-    class_alloc(ppm->amplitude[index_mode],
-		ppm->ic_ic_size[index_mode]*sizeof(double),
+    class_alloc(ppm->amplitude[index_md],
+		ppm->ic_ic_size[index_md]*sizeof(double),
 		ppm->error_message);
 
-    class_alloc(ppm->tilt[index_mode],
-		ppm->ic_ic_size[index_mode]*sizeof(double),
+    class_alloc(ppm->tilt[index_md],
+		ppm->ic_ic_size[index_md]*sizeof(double),
 		ppm->error_message);
 
-    class_alloc(ppm->running[index_mode],
-		ppm->ic_ic_size[index_mode]*sizeof(double),
+    class_alloc(ppm->running[index_md],
+		ppm->ic_ic_size[index_md]*sizeof(double),
 		ppm->error_message);
 
   }
       
-  for (index_mode = 0; index_mode < ppm->md_size; index_mode++) {
+  for (index_md = 0; index_md < ppm->md_size; index_md++) {
 
     /* digonal coefficients */
     
-    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
+    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
 
-      if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+      if _scalars_ {
 
 	if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
 	  one_amplitude = ppm->A_s;
@@ -705,7 +705,7 @@ int primordial_analytic_spectrum_init(
 	}
       }
 
-      if ((ppt->has_tensors == _TRUE_) && (index_mode == ppt->index_md_tensors)) {
+      if _tensors_ {
 
 	if (index_ic1 == ppt->index_ic_ten) {
 	  one_amplitude = ppm->A_s*ppm->r;
@@ -716,23 +716,23 @@ int primordial_analytic_spectrum_init(
 
       class_test(one_amplitude <= 0.,
 		 ppm->error_message,
-		 "inconsistent input for primordial amplitude: %g for index_mode=%d, index_ic=%d\n",
-		 one_amplitude,index_mode,index_ic1);
+		 "inconsistent input for primordial amplitude: %g for index_md=%d, index_ic=%d\n",
+		 one_amplitude,index_md,index_ic1);
 
-      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
+      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
       
-      ppm->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
-      ppm->amplitude[index_mode][index_ic1_ic2] = one_amplitude;
-      ppm->tilt[index_mode][index_ic1_ic2] = one_tilt;
-      ppm->running[index_mode][index_ic1_ic2] = one_running;
+      ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
+      ppm->amplitude[index_md][index_ic1_ic2] = one_amplitude;
+      ppm->tilt[index_md][index_ic1_ic2] = one_tilt;
+      ppm->running[index_md][index_ic1_ic2] = one_running;
     }
 
     /* non-diagonal coefficients */
 
-    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_mode]; index_ic1++) {
-      for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_mode]; index_ic2++) {
+    for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+      for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
      
-	if ((ppt->has_scalars == _TRUE_) && (index_mode == ppt->index_md_scalars)) {
+	if _scalars_ {
  
 	  if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) && 
 	      (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
@@ -820,29 +820,29 @@ int primordial_analytic_spectrum_init(
 		   ppm->error_message,
 		   "inconsistent input for isocurvature cross-correlation\n");
 
-	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_mode]);
-	index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_mode]);
-	index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_mode]);
+	index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
+	index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
+	index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,ppm->ic_size[index_md]);
 
 	if (one_correlation == 0.) {
-	  ppm->is_non_zero[index_mode][index_ic1_ic2] = _FALSE_;
-	  ppm->amplitude[index_mode][index_ic1_ic2] = 0.;
-	  ppm->tilt[index_mode][index_ic1_ic2] = 0.;
-	  ppm->running[index_mode][index_ic1_ic2] = 0.;
+	  ppm->is_non_zero[index_md][index_ic1_ic2] = _FALSE_;
+	  ppm->amplitude[index_md][index_ic1_ic2] = 0.;
+	  ppm->tilt[index_md][index_ic1_ic2] = 0.;
+	  ppm->running[index_md][index_ic1_ic2] = 0.;
 	}
 	else {
-	  ppm->is_non_zero[index_mode][index_ic1_ic2] = _TRUE_;
-	  ppm->amplitude[index_mode][index_ic1_ic2] = 
-	    sqrt(ppm->amplitude[index_mode][index_ic1_ic1]*
-		 ppm->amplitude[index_mode][index_ic2_ic2])*
+	  ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
+	  ppm->amplitude[index_md][index_ic1_ic2] = 
+	    sqrt(ppm->amplitude[index_md][index_ic1_ic1]*
+		 ppm->amplitude[index_md][index_ic2_ic2])*
 	    one_correlation;
-	  ppm->tilt[index_mode][index_ic1_ic2] = 
-	    0.5*(ppm->tilt[index_mode][index_ic1_ic1]
-		 +ppm->tilt[index_mode][index_ic2_ic2])
+	  ppm->tilt[index_md][index_ic1_ic2] = 
+	    0.5*(ppm->tilt[index_md][index_ic1_ic1]
+		 +ppm->tilt[index_md][index_ic2_ic2])
 	    + one_tilt;
-	  ppm->running[index_mode][index_ic1_ic2] = 
-	    0.5*(ppm->running[index_mode][index_ic1_ic1]
-		 +ppm->running[index_mode][index_ic2_ic2])
+	  ppm->running[index_md][index_ic1_ic2] = 
+	    0.5*(ppm->running[index_md][index_ic1_ic1]
+		 +ppm->running[index_md][index_ic2_ic2])
 	    + one_running;
 	}
       }
@@ -859,7 +859,7 @@ int primordial_analytic_spectrum_init(
  * pair of initial conditions, and wavenumber.
  *
  * @param ppm            Input/output: pointer to primordial structure 
- * @param index_mode     Input: index of mode (scalar, tensor, ...) 
+ * @param index_md     Input: index of mode (scalar, tensor, ...) 
  * @param index_ic1_ic2  Input: pair of initial conditions (ic1, ic2)
  * @param k              Input: wavenumber in same units as pivot scale, i.e. in 1/Mpc 
  * @param pk             Output: primordial power spectrum A (k/k_pivot)^(n+...)
@@ -868,16 +868,16 @@ int primordial_analytic_spectrum_init(
 
 int primordial_analytic_spectrum(
 				 struct primordial * ppm,
-				 int index_mode,
+				 int index_md,
 				 int index_ic1_ic2,
 				 double k,
 				 double * pk
 				 ) {  
   
-  if (ppm->is_non_zero[index_mode][index_ic1_ic2] == _TRUE_) {
-    *pk = ppm->amplitude[index_mode][index_ic1_ic2]
-      *exp((ppm->tilt[index_mode][index_ic1_ic2]-1.)*log(k/ppm->k_pivot)
-	   + 0.5 * ppm->running[index_mode][index_ic1_ic2] * pow(log(k/ppm->k_pivot), 2.));
+  if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+    *pk = ppm->amplitude[index_md][index_ic1_ic2]
+      *exp((ppm->tilt[index_md][index_ic1_ic2]-1.)*log(k/ppm->k_pivot)
+	   + 0.5 * ppm->running[index_md][index_ic1_ic2] * pow(log(k/ppm->k_pivot), 2.));
   }
   else {
     *pk = 0.;
