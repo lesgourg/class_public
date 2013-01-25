@@ -318,6 +318,7 @@ int primordial_init(
 			   ppm->error_message,
 			   ppm->error_message);	
 
+		/*
 		cos_delta_k = pk/sqrt(pk1*pk2);
 		
 		class_test((cos_delta_k < -1.) || (cos_delta_k > 1.),
@@ -325,6 +326,17 @@ int primordial_init(
 			   "correlation angle between IC's takes unphysical values");
 		
 		ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = cos_delta_k;
+		*/
+
+		/* enforce definite positive correlation matrix */
+
+		if (pk > sqrt(pk1*pk2))
+		  ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 1.;
+		else if (pk < -sqrt(pk1*pk2))
+		  ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = -1.;
+		else 
+		  ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = pk/sqrt(pk1*pk2);
+
 
 	      }
 	    }

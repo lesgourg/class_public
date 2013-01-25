@@ -18,6 +18,60 @@
 
 #include "spectra.h"
 
+int spectra_bandpower(struct spectra * psp,
+	      int l1,
+	      int l2,
+	      double * TT_II,
+	      double * TT_RI,
+              double * TT_RR
+	      ) {
+
+  int l;
+  int index_mode;
+  double * cl_tot;
+  double ** cl_md;
+  double ** cl_md_ic;
+  
+  class_alloc(cl_tot,psp->ct_size*sizeof(double),psp->error_message);
+  class_alloc(cl_md,psp->md_size*sizeof(double),psp->error_message);
+  class_alloc(cl_md_ic,psp->md_size*sizeof(double),psp->error_message);
+  for (index_mode=0;index_mode<psp->md_size; index_mode++) {
+    class_alloc(cl_md[index_mode],psp->ct_size*sizeof(double),psp->error_message);
+    class_alloc(cl_md_ic[index_mode],psp->ct_size*psp->ic_ic_size[index_mode]*sizeof(double),psp->error_message);
+  }
+
+  *TT_RR=0.;
+  *TT_RI=0.;
+  *TT_II=0.;
+
+  for (l=l1; l<=l2; l++) {
+
+    class_call(spectra_cl_at_l(psp,
+			       (double)l,
+			       cl_tot,
+			       cl_md,
+			       cl_md_ic),
+	       psp->error_message,
+	       psp->error_message);
+    
+    *TT_RR += (double)l*(double)(l+1)*cl_md_ic[psp->index_md_scalars][index_symmetric_matrix(0,0,psp->ic_size[psp->index_md_scalars])*psp->ct_size+psp->index_ct_tt];
+    *TT_RI += (double)l*(double)(l+1)*cl_md_ic[psp->index_md_scalars][index_symmetric_matrix(0,1,psp->ic_size[psp->index_md_scalars])*psp->ct_size+psp->index_ct_tt]*2.;
+    *TT_II += (double)l*(double)(l+1)*cl_md_ic[psp->index_md_scalars][index_symmetric_matrix(1,1,psp->ic_size[psp->index_md_scalars])*psp->ct_size+psp->index_ct_tt];
+
+  }
+
+  for (index_mode=0;index_mode<psp->md_size; index_mode++) {
+    free(cl_md[index_mode]);
+    free(cl_md_ic[index_mode]);
+  }
+  free(cl_tot);
+  free(cl_md);
+  free(cl_md_ic);
+
+  return _SUCCESS_;
+
+}
+
 /** 
  * Anisotropy power spectra C_l's for all types, modes and initial conditions. 
  *
@@ -1023,6 +1077,101 @@ int spectra_init(
   }
   else {
     psp->ln_k_size=0;
+  }
+
+  double TT_II,TT_RI,TT_RR;
+
+  if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars]>1)) {
+
+    class_call(spectra_bandpower(psp,2,200,&TT_II,&TT_RI,&TT_RR),
+	       psp->error_message,
+	       psp->error_message);
+
+    class_test(TT_II+TT_RI+TT_RR==0.,
+	       psp->error_message,
+	       "should never happen");
+    psp->alpha_II_2_200=TT_II/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RI_2_200=TT_RI/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RR_2_200=TT_RR/(TT_II+TT_RI+TT_RR);
+
+    class_call(spectra_bandpower(psp,201,2500,&TT_II,&TT_RI,&TT_RR),
+	       psp->error_message,
+	       psp->error_message);
+
+    class_test(TT_II+TT_RI+TT_RR==0.,
+	       psp->error_message,
+	       "should never happen");
+    psp->alpha_II_201_2500=TT_II/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RI_201_2500=TT_RI/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RR_201_2500=TT_RR/(TT_II+TT_RI+TT_RR);
+
+    class_call(spectra_bandpower(psp,2,20,&TT_II,&TT_RI,&TT_RR),
+	       psp->error_message,
+	       psp->error_message);
+
+    class_test(TT_II+TT_RI+TT_RR==0.,
+	       psp->error_message,
+	       "should never happen");
+    psp->alpha_II_2_20=TT_II/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
+
+    if (ppt->has_cdi==_TRUE_) {
+
+      psp->alpha_kp=ppm->f_cdi*ppm->f_cdi
+	/(1.+ppm->f_cdi*ppm->f_cdi);
+
+      psp->alpha_k1=ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.002/ppm->k_pivot))
+	/(1.+ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.002/ppm->k_pivot)));
+
+      psp->alpha_k2=ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.1/ppm->k_pivot))
+	/(1.+ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.1/ppm->k_pivot)));
+    }
+
+    if (ppt->has_nid==_TRUE_) {
+
+      psp->alpha_kp=ppm->f_nid*ppm->f_nid
+	/(1.+ppm->f_nid*ppm->f_nid);
+
+      psp->alpha_k1=ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.002/ppm->k_pivot))
+	/(1.+ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.002/ppm->k_pivot)));
+
+      psp->alpha_k2=ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.1/ppm->k_pivot))
+	/(1.+ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.1/ppm->k_pivot)));
+    }
+
+    if (ppt->has_niv==_TRUE_) {
+
+      psp->alpha_kp=ppm->f_niv*ppm->f_niv
+	/(1.+ppm->f_niv*ppm->f_niv);
+
+      psp->alpha_k1=ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.002/ppm->k_pivot))
+	/(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.002/ppm->k_pivot)));
+
+      psp->alpha_k2=ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot))
+	/(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot)));
+    }
+
+    /*
+    fprintf(stderr,"%f  %f  %f  %f\n",
+	    psp->alpha_II_2_200,
+	    psp->alpha_RI_2_200,
+	    psp->alpha_RR_2_200,
+	    psp->alpha_II_2_200+psp->alpha_RI_2_200+psp->alpha_RR_2_200);
+
+   fprintf(stderr,"%f  %f  %f  %f\n",
+	    psp->alpha_II_201_2500,
+	    psp->alpha_RI_201_2500,
+	    psp->alpha_RR_201_2500,
+	    psp->alpha_II_201_2500+psp->alpha_RI_201_2500+psp->alpha_RR_201_2500);
+
+   fprintf(stderr,"%f  %f  %f  %f\n",
+	    psp->alpha_II_2_20,
+	    psp->alpha_RI_2_20,
+	    psp->alpha_RR_2_20,
+	    psp->alpha_II_2_20+psp->alpha_RI_2_20+psp->alpha_RR_2_20);
+    */
+
   }
 
   return _SUCCESS_;

@@ -9,6 +9,7 @@
 
 enum primordial_spectrum_type {
   analytic_Pk,
+  two_scales,
   inflation_V,
   inflation_H
 };

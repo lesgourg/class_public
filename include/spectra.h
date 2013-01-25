@@ -112,6 +112,22 @@ struct spectra {
   double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */ 
 
+  double alpha_II_2_200;
+  double alpha_RI_2_200;
+  double alpha_RR_2_200;
+
+  double alpha_II_201_2500;
+  double alpha_RI_201_2500;
+  double alpha_RR_201_2500;
+
+  double alpha_II_2_20;
+  double alpha_RI_2_20;
+  double alpha_RR_2_20;
+
+  double alpha_kp;
+  double alpha_k1;
+  double alpha_k2;
+
   //@}
 
   /** @name - table of pre-computed matter power spectrum P(k) values, and related quantitites */
@@ -200,6 +216,14 @@ struct spectra {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+  int spectra_bandpower(struct spectra * psp,
+			int l1,
+			int l2,
+			double * TT_II,
+			double * TT_RI,
+              double * TT_RR
+			);
 
   int spectra_cl_at_l(
 		      struct spectra * psp,

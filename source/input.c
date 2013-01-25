@@ -165,6 +165,15 @@ int input_init(
   double fnu_factor;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
+  double k1=0.;
+  double k2=0.;
+  double prr1=0.;
+  double prr2=0.;
+  double pii1=0.;
+  double pii2=0.;
+  double pri1=0.;
+  double pri2=0.;
+  double n_iso,f_iso,n_cor,c_cor;
 
   double Omega_tot;
 
@@ -774,6 +783,10 @@ int input_init(
       ppm->primordial_spec_type = analytic_Pk;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"two_scales") == 0) {
+      ppm->primordial_spec_type = two_scales;
+      flag2=_TRUE_;
+    }
     if (strcmp(string1,"inflation_V") == 0) {
       ppm->primordial_spec_type = inflation_V;
       flag2=_TRUE_;
@@ -785,11 +798,146 @@ int input_init(
 
   class_read_double("k_pivot",ppm->k_pivot);
 
-  if (ppm->primordial_spec_type == analytic_Pk) {
+  if (ppm->primordial_spec_type == two_scales) {
+
+    class_read_double("k1",k1);
+    class_read_double("k2",k2);
+    class_test(k1<=0.,errmsg,"enter strictly positive scale k1");
+    class_test(k2<=0.,errmsg,"enter strictly positive scale k2");
+	
+    if (ppt->has_scalars == _TRUE_) {
+
+      class_read_double("P_{RR}^1",prr1);
+      class_read_double("P_{RR}^2",prr2);
+      class_test(prr1<=0.,errmsg,"enter strictly positive scale P_{RR}^1");
+      class_test(prr2<=0.,errmsg,"enter strictly positive scale P_{RR}^2");
+
+      ppm->n_s = log(prr2/prr1)/log(k2/k1)+1.;
+      ppm->A_s = prr1*exp((ppm->n_s-1.)*log(ppm->k_pivot/k1));
+
+      if ((ppt->has_bi == _TRUE_) ||
+	  (ppt->has_cdi == _TRUE_) ||
+	  (ppt->has_nid == _TRUE_) ||
+	  (ppt->has_niv == _TRUE_)) {
+
+	class_read_double("P_{II}^1",pii1);
+	class_read_double("P_{II}^2",pii2);
+	class_read_double("P_{RI}^1",pri1);
+	class_read_double("|P_{RI}^2|",pri2);
+	
+	class_test(pii1 <= 0.,
+		   errmsg,
+		   "since you request iso modes, you should have P_{ii}^1 strictly positive");
+	class_test(pii2 < 0.,
+		   errmsg,
+		   "since you request iso modes, you should have P_{ii}^2 positive or eventually null");
+	class_test(pri2 < 0.,
+                   errmsg,
+                   "by definition, you should have |P_{ri}^2| positive or eventually null");
+
+	flag1 == _FALSE_;
+
+	class_call(parser_read_string(pfc,"special iso",&string1,&flag1,errmsg),
+		   errmsg,
+		   errmsg);
+	
+	/* axion case, only one iso parameter: piir1  */
+	if ((flag1 == _TRUE_) && (strstr(string1,"axion") != NULL)) {
+	  n_iso = 1.;
+	  n_cor = 0.;
+	  c_cor = 0.;
+	}
+	/* curvaton case, only one iso parameter: piir1  */
+	else if ((flag1 == _TRUE_) && (strstr(string1,"anticurvaton") != NULL)) {
+	  n_iso = ppm->n_s;
+	  n_cor = 0.;
+	  c_cor = 1.;
+	}
+	/* inverted-correlation-curvaton case, only one iso parameter: piir1  */
+	else if ((flag1 == _TRUE_) && (strstr(string1,"curvaton") != NULL)) {
+	  n_iso = ppm->n_s;
+	  n_cor = 0.;
+	  c_cor = -1.;
+	}
+	/* general case, but if pii2 or pri2=0 the code interprets it
+	   as a request for n_iso=n_ad or n_cor=0 respectively */
+	else {
+	  if (pii2 == 0.) {
+	    n_iso = ppm->n_s;
+	  }
+	  else {
+	    class_test((pii1==0.) || (pii2 == 0.) || (pii1*pii2<0.),errmsg,"should NEVER happen"); 
+	    n_iso = log(pii2/pii1)/log(k2/k1)+1.;
+	  }
+	  class_test(pri1==0,errmsg,"the general isocurvature case requires a non-zero P_{RI}^1");
+	  if (pri2 == 0.) {
+            n_cor = 0.;
+          }
+          else {
+	    class_test((pri1==0.) || (pri2 <= 0.) || (pii1*pii2<0),errmsg,"should NEVER happen");
+	    n_cor = log(pri2/fabs(pri1))/log(k2/k1)-0.5*(ppm->n_s+n_iso-2.);
+	  }
+	  class_test((pii1*prr1<=0.),errmsg,"should NEVER happen");
+	  class_test(fabs(pri1)/sqrt(pii1*prr1)>1,errmsg,"too large ad-iso cross-correlation in k1");
+	  class_test(fabs(pri1)/sqrt(pii1*prr1)*exp(n_cor*log(k2/k1))>1,errmsg,"too large ad-iso cross-correlation in k2");
+	  c_cor = pri1/sqrt(pii1*prr1)*exp(n_cor*log(ppm->k_pivot/k1));
+	}
+	/* formula for f_iso valid in all cases */
+	class_test((pii1==0.) || (prr1 == 0.) || (pii1*prr1<0.),errmsg,"should NEVER happen");
+	f_iso = sqrt(pii1/prr1)*exp((n_iso-ppm->n_s)*log(ppm->k_pivot/k1));
+
+      }
+    }
+
+    if (ppt->has_bi == _TRUE_) {
+      ppm->f_bi = f_iso;
+      ppm->n_bi = n_iso;
+      ppm->c_ad_bi = c_cor;
+      ppm->n_ad_bi = n_cor;
+    }
+
+    if (ppt->has_cdi == _TRUE_) {
+      ppm->f_cdi = f_iso;
+      ppm->n_cdi = n_iso;
+      ppm->c_ad_cdi = c_cor;
+      ppm->n_ad_cdi = n_cor;
+    }
+
+    if (ppt->has_nid == _TRUE_) {
+      ppm->f_nid = f_iso;
+      ppm->n_nid = n_iso;
+      ppm->c_ad_nid = c_cor;
+      ppm->n_ad_nid = n_cor;
+    }
+
+    if (ppt->has_niv == _TRUE_) {
+      ppm->f_niv = f_iso;
+      ppm->n_niv = n_iso;
+      ppm->c_ad_niv = c_cor;
+      ppm->n_ad_niv = n_cor;
+    }
+
+    ppm->primordial_spec_type = analytic_Pk;
+
+  }
+
+  else if (ppm->primordial_spec_type == analytic_Pk) {
 
     if (ppt->has_scalars == _TRUE_) {
       
-      class_read_double("A_s",ppm->A_s);
+      class_call(parser_read_double(pfc,"A_s",&param1,&flag1,errmsg),
+		 errmsg,
+		 errmsg);
+      class_call(parser_read_double(pfc,"ln10^{10}A_s",&param2,&flag2,errmsg),
+	     errmsg,
+	     errmsg);
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+		 errmsg,
+		 "In input file, you cannot enter both A_s and ln10^{10}A_s, choose one");
+      if (flag1 == _TRUE_)
+	ppm->A_s = param1;
+      else
+	ppm->A_s = exp(param2)*1.e-10;
 
       if (ppt->has_ad == _TRUE_) {
 
@@ -928,7 +1076,7 @@ int input_init(
     }
   }
 
-  if (ppm->primordial_spec_type == inflation_V) {
+  else if (ppm->primordial_spec_type == inflation_V) {
 
     class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),
 	       errmsg,

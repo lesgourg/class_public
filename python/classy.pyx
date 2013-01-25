@@ -88,6 +88,7 @@ cdef extern from "class.h":
 
   cdef struct primordial            :
     ErrorMsg error_message 
+    double k_pivot
     double A_s
     double n_s
     double alpha_s
@@ -99,6 +100,18 @@ cdef extern from "class.h":
     double V2
     double V3
     double V4
+    double f_cdi
+    double n_cdi
+    double c_ad_cdi
+    double n_ad_cdi
+    double f_nid
+    double n_nid
+    double c_ad_nid
+    double n_ad_nid
+    double f_niv
+    double n_niv
+    double c_ad_niv
+    double n_ad_niv
 
   cdef struct spectra              :
     ErrorMsg error_message 
@@ -111,6 +124,18 @@ cdef extern from "class.h":
     int index_ct_bb
     double* ln_k
     double sigma8
+    double alpha_II_2_200
+    double alpha_RI_2_200
+    double alpha_RR_2_200
+    double alpha_II_201_2500
+    double alpha_RI_201_2500
+    double alpha_RR_201_2500
+    double alpha_II_2_20
+    double alpha_RI_2_20
+    double alpha_RR_2_20
+    double alpha_kp
+    double alpha_k1
+    double alpha_k2
 
   cdef struct output                :
     ErrorMsg error_message 
@@ -342,6 +367,8 @@ cdef class Class:
       
   # Called at the end of a run, to free memory
   def _struct_cleanup(self,ncp):
+    if self.ready == _FALSE_:
+       return
     if "lensing" in ncp:
       lensing_free(&self.le)
     if "nonlinear" in ncp:
@@ -419,7 +446,8 @@ cdef class Class:
     
     if self.ready and self.ncp.issuperset(lvl):
       return
-    self.ready = True
+
+    self.ready = False
     
     self._fillparfile()
       
@@ -512,7 +540,9 @@ cdef class Class:
         #fprintf(stderr,"%s\n",self.le.error_message)
         raise ClassError(self.le.error_message)
       self.ncp.add("lensing") 
-      
+ 
+    self.ready = True
+     
     # At this point, the cosmological instance contains everything needed. The
     # following functions are only to output the desired numbers
     return
@@ -548,7 +578,8 @@ cdef class Class:
 
   def lensed_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
-    cdef double *lcl = <double*> calloc(self.sp.ct_size,sizeof(double))
+#    cdef double *lcl = <double*> calloc(self.sp.ct_size,sizeof(double))
+   cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
     lmaxR = self.le.l_lensed_max
     
     if lmax==-1:
@@ -844,6 +875,38 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.pm.V4
       elif elem == 'exp_m_2_tau_As':
         data.mcmc_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
+#      elif elem == 'P_{RR}^1':
+#        data.mcmc_parameters[elem]['current'] = self.pm.A_s*exp(self.pm.n_s*log(0.002/self.pm.k_pivot))
+#      elif elem == 'P_{RR}^2':
+#        data.mcmc_parameters[elem]['current'] = self.pm.A_s*exp(self.pm.n_s*log(0.1/self.pm.k_pivot))
+#      elif elem == 'P_{II}^2':
+#        data.mcmc_parameters[elem]['current'] = self.pm.A_s*self.pm.f_nid*self.pm.f_nid*exp(self.pm.n_nid*log(0.1/self.pm.k_pivot))
+#      elif elem == 'P_{RI}^2':
+#        data.mcmc_parameters[elem]['current'] = self.pm.A_s*self.pm.f_nid*self.pm.c_ad_nid*exp((self.pm.n_ad_nid+0.5*(self.pm.n_s+self.pm.n_nid))*log(0.1/self.pm.k_pivot))
+      elif elem == 'alpha_kp':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_kp
+      elif elem == 'alpha_k1':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_k1
+      elif elem == 'alpha_k2':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_k2
+      elif elem == 'alpha_II_2_200':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_2_200
+      elif elem == 'alpha_RI_2_200':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_2_200
+      elif elem == 'alpha_RR_2_200':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_2_200
+      elif elem == 'alpha_II_2_20':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_2_20
+      elif elem == 'alpha_RI_2_20':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_2_20
+      elif elem == 'alpha_RR_2_20':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_2_20
+      elif elem == 'alpha_II_201_2500':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_201_2500
+      elif elem == 'alpha_RI_201_2500':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_201_2500
+      elif elem == 'alpha_RR_201_2500':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_201_2500
       elif elem == 'sigma8':
         data.mcmc_parameters[elem]['current'] = self.sp.sigma8
       else:

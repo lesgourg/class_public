@@ -15,7 +15,7 @@ setup(
     cmdclass = {'build_ext': build_ext},
     ext_modules = [Extension("classy", ["classy.pyx"],
                              include_dirs = [nm.get_include(),"../include"],
-                             libraries=["class"],library_dirs=["../","/opt/local/lib/gcc44/"],
+                             libraries=["class"],library_dirs=["../","/opt/local/lib/gcc44/","/usr/local/python/python-2.6/lib/"],
 			     extra_link_args=['-lgomp'],
                              )],
 )
