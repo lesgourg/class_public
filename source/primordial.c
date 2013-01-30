@@ -318,6 +318,7 @@ int primordial_init(
 			   ppm->error_message,
 			   ppm->error_message);	
 
+		/* either return an error if correlation is too large... */
 		/*
 		cos_delta_k = pk/sqrt(pk1*pk2);
 		
@@ -328,7 +329,7 @@ int primordial_init(
 		ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = cos_delta_k;
 		*/
 
-		/* enforce definite positive correlation matrix */
+		/* ... or enforce definite positive correlation matrix */
 
 		if (pk > sqrt(pk1*pk2))
 		  ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 1.;

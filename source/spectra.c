@@ -27,7 +27,7 @@ int spectra_bandpower(struct spectra * psp,
 	      ) {
 
   int l;
-  int index_mode;
+  int index_md;
   double * cl_tot;
   double ** cl_md;
   double ** cl_md_ic;
@@ -35,9 +35,9 @@ int spectra_bandpower(struct spectra * psp,
   class_alloc(cl_tot,psp->ct_size*sizeof(double),psp->error_message);
   class_alloc(cl_md,psp->md_size*sizeof(double),psp->error_message);
   class_alloc(cl_md_ic,psp->md_size*sizeof(double),psp->error_message);
-  for (index_mode=0;index_mode<psp->md_size; index_mode++) {
-    class_alloc(cl_md[index_mode],psp->ct_size*sizeof(double),psp->error_message);
-    class_alloc(cl_md_ic[index_mode],psp->ct_size*psp->ic_ic_size[index_mode]*sizeof(double),psp->error_message);
+  for (index_md=0;index_md<psp->md_size; index_md++) {
+    class_alloc(cl_md[index_md],psp->ct_size*sizeof(double),psp->error_message);
+    class_alloc(cl_md_ic[index_md],psp->ct_size*psp->ic_ic_size[index_md]*sizeof(double),psp->error_message);
   }
 
   *TT_RR=0.;
@@ -60,9 +60,9 @@ int spectra_bandpower(struct spectra * psp,
 
   }
 
-  for (index_mode=0;index_mode<psp->md_size; index_mode++) {
-    free(cl_md[index_mode]);
-    free(cl_md_ic[index_mode]);
+  for (index_md=0;index_md<psp->md_size; index_md++) {
+    free(cl_md[index_md]);
+    free(cl_md_ic[index_md]);
   }
   free(cl_tot);
   free(cl_md);

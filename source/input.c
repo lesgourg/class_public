@@ -173,7 +173,10 @@ int input_init(
   double pii2=0.;
   double pri1=0.;
   double pri2=0.;
-  double n_iso,f_iso,n_cor,c_cor;
+  double n_iso=0.;
+  double f_iso=0.;
+  double n_cor=0.;
+  double c_cor=0.;
 
   double Omega_tot;
 
@@ -835,7 +838,7 @@ int input_init(
                    errmsg,
                    "by definition, you should have |P_{ri}^2| positive or eventually null");
 
-	flag1 == _FALSE_;
+	flag1 = _FALSE_;
 
 	class_call(parser_read_string(pfc,"special iso",&string1,&flag1,errmsg),
 		   errmsg,

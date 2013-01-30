@@ -5168,7 +5168,7 @@ int perturb_derivs(double tau,
   double q,epsilon,dlnf0_dlnq,qk_div_epsilon;
   double rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm,w_ncdm,ca2_ncdm,ceff2_ncdm=0.,cvis2_ncdm=0.;
 
-  double K,beta,b1,b2,b3,bl;
+  double K,K_over_q_square,q_over_k;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -5217,14 +5217,13 @@ int perturb_derivs(double tau,
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
 
   K = pba->Omega0_k*pow(pba->a_today/a*pba->H0,2);
-  beta = sqrt(k2+K);
-  b1=sqrt(1.-K/(k2+K));
-  b2=sqrt(1.-4.*K/(k2+K));
-  b3=sqrt(1.-9.*K/(k2+K));
 
   /** - for scalar mode: */
   if _scalars_ {
 
+    K_over_q_square = K*K/(k2+K);
+    q_over_k = sqrt(k2+K)/k;
+    
     /** (a) define short-cut notations for the scalar perturbations */
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       delta_g = y[ppw->pv->index_pt_delta_g];
@@ -5312,7 +5311,7 @@ int perturb_derivs(double tau,
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
-      dy[ppw->pv->index_pt_delta_g] = -4./3.*(theta_g+metric_continuity); 
+      dy[ppw->pv->index_pt_delta_g] = -4./3.*(q_over_k*sqrt(1.+K_over_q_square)*theta_g+metric_continuity); 
 
     }
 
@@ -5505,7 +5504,7 @@ int perturb_derivs(double tau,
 	/** -----> photon temperature velocity */ 
 
 	dy[ppw->pv->index_pt_theta_g] =
-	  k*beta*(b1*delta_g/4.-b2*shear_g)
+	  k*(delta_g/4.-shear_g)
 	  + metric_euler
 	  +pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
 
@@ -5519,13 +5518,15 @@ int perturb_derivs(double tau,
 
 	l = 3;
 	dy[ppw->pv->index_pt_l3_g] =
-	  k/(2.*l+1.)*(l*2.*shear_g-(l+1.)*y[ppw->pv->index_pt_l3_g+1])
+	  q_over_k*k/(2.*l+1.)*(l*sqrt(1.+4.*K_over_q_square)*2.*shear_g-(l+1.)*sqrt(1.+(l+1.)*(l+1.)*K_over_q_square)*y[ppw->pv->index_pt_l3_g+1])
 	  - pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_l3_g];
 
 	/** -----> photon temperature l>3 */ 
 	for (l = 4; l < ppw->pv->l_max_g; l++) { 
+
 	  dy[ppw->pv->index_pt_delta_g+l] =
-	    k/(2.*l+1)*(l*y[ppw->pv->index_pt_delta_g+l-1]-(l+1.)*y[ppw->pv->index_pt_delta_g+l+1])
+	    q_over_k*k/(2.*l+1)*(l*sqrt(1.+l*l*K_over_q_square)*y[ppw->pv->index_pt_delta_g+l-1]
+			-(l+1.)*sqrt(1.+(l+1.)*(l+1.)*K_over_q_square)*y[ppw->pv->index_pt_delta_g+l+1])
 	    - pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_delta_g+l];
 	}
 

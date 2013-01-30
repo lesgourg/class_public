@@ -790,7 +790,7 @@ int transfer_get_l_list(
 
     for (index_tt=0;index_tt<ptr->tt_size[index_md];index_tt++) {
 
-      if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
+      if _scalars_ {
 
 	if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t))
 	  l_max=ppt->l_scalar_max;
@@ -809,7 +809,7 @@ int transfer_get_l_list(
 	
       }
       
-      if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors))
+      if _tensors_
 	l_max = ppt->l_tensor_max;
 
       class_test(l_max > ptr->l[ptr->l_size_max-1],
@@ -868,13 +868,13 @@ int transfer_get_k_list(
 
   /* find k_step_max, the maximum value of the step */
 
-  if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_scalars;
 
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_tensors;
 
@@ -986,7 +986,7 @@ int transfer_get_source_correspondence(
   
   for (index_tt=0; index_tt<ptr->tt_size[index_md]; index_tt++) {
     
-    if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
+    if _scalars_ {
       
       if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
 	tp_of_tt[index_tt]=ppt->index_tp_t;
@@ -1005,7 +1005,7 @@ int transfer_get_source_correspondence(
       
     }
     
-    if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors)) {
+    if _tensors_ {
       
       if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)) 
 	tp_of_tt[index_tt]=ppt->index_tp_t;
@@ -1065,7 +1065,7 @@ int transfer_source_tau_size(
   int l_limber;
   
   /* scalar mode */
-  if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     /* scalar temperature */
     if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t))
@@ -1165,7 +1165,7 @@ int transfer_source_tau_size(
   }
 
   /* tensor mode */
-  if ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors)) {
+  if _tensors_ {
 
     /* for all tensor types */
     *tau_size = ppt->tau_size;
@@ -1362,7 +1362,7 @@ int transfer_sources(
 
   redefine_source = _FALSE_;
   
-  if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
+  if _scalars_ {
 
     /* cmb lensing potential */
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
@@ -1397,7 +1397,7 @@ int transfer_sources(
 	       ptr->error_message,
 	       ptr->error_message);
 
-    if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
+    if _scalars_ {
 
       /* lensing source: throw away times before recombuination, and multiply psi by window function */
 
@@ -2362,20 +2362,13 @@ int transfer_compute_for_each_l(
   /** use cutting scheme for CMB **/
   use_cut = tc_none;
 
-  if ((((ppt->has_scalars == _TRUE_) && 
-	(index_md == ppt->index_md_scalars)) && 
-       ((ppt->has_cl_cmb_temperature == _TRUE_) && 
-	(index_tt == ptr->index_tt_t))))
+  if (_scalars_ && ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t)))
     use_cut = ppr->transfer_cut;
 
-  if ((((ppt->has_scalars == _TRUE_) && 
-	(index_md == ppt->index_md_scalars)) && 
-       ((ppt->has_cl_cmb_polarization == _TRUE_) && 
-	(index_tt == ptr->index_tt_e))))
+  if (_scalars_ && ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)))
     use_cut = ppr->transfer_cut;
 
-  if ((ppt->has_tensors == _TRUE_) && 
-      (index_md == ppt->index_md_tensors))
+  if _tensors_
     use_cut = ppr->transfer_cut;
 
   /** - if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
@@ -2407,10 +2400,7 @@ int transfer_compute_for_each_l(
   /* for scalar (E-)polarization, multiply by 
      square root of  (l+2)(l+1)l(l-1) */
   
-  if ((((ppt->has_scalars == _TRUE_) && 
-	(index_md == ppt->index_md_scalars)) && 
-       ((ppt->has_cl_cmb_polarization == _TRUE_) && 
-	(index_tt == ptr->index_tt_e)))) {
+  if (_scalars_ && ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))) {
     
     multiply_by_factor=_TRUE_;
     extra_factor=sqrt((l+2.) * (l+1.) * l * (l-1.));
@@ -2419,10 +2409,7 @@ int transfer_compute_for_each_l(
   /* for tensor temperature, multiply by 
      square root of (l+2)(l+1)l(l-1)/2 */
   
-  if ((((ppt->has_tensors == _TRUE_) && 
-	(index_md == ppt->index_md_tensors)) &&
-       ((ppt->has_cl_cmb_temperature == _TRUE_) && 
-	(index_tt == ptr->index_tt_t)))) {
+  if (_tensors_ && ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t))) {
     
     multiply_by_factor=_TRUE_;
     extra_factor=sqrt((l+2.) * (l+1.) * l * (l-1.));
@@ -2631,7 +2618,7 @@ int transfer_use_limber(
   }
   else {
     
-    if ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars)) {
+    if _scalars_ {
       
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber))
 	*use_limber = _TRUE_;
@@ -2706,7 +2693,7 @@ int transfer_integrate(
   /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
   int index_tau,index_tau_max;
 
-  double Phi;
+  //double Phi;
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
