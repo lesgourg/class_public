@@ -197,7 +197,9 @@ int primordial_init(
   int index_md,index_ic1,index_ic2,index_ic1_ic2,index_k;
   double pk,pk1,pk2;
   double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus;
-  double cos_delta_k;
+  /* uncomment if you use optional test below
+     (for correlated isocurvature modes) */
+  //double cos_delta_k;
 
   /** - check that we really need to compute the primordial spectra */
 
@@ -267,10 +269,11 @@ int primordial_init(
     if (ppm->primordial_verbose > 0)
       printf(" (analytic spectrum)\n");
 
-    class_call(primordial_analytic_spectrum_init(ppt,
-						 ppm),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_call_except(primordial_analytic_spectrum_init(ppt,
+							ppm),
+		      ppm->error_message,
+		      ppm->error_message,
+		      primordial_free(ppm));
     
     for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
 
@@ -321,10 +324,10 @@ int primordial_init(
 		/* either return an error if correlation is too large... */
 		/*
 		cos_delta_k = pk/sqrt(pk1*pk2);
-		
-		class_test((cos_delta_k < -1.) || (cos_delta_k > 1.),
-			   ppm->error_message,
-			   "correlation angle between IC's takes unphysical values");
+		class_test_except((cos_delta_k < -1.) || (cos_delta_k > 1.),
+		ppm->error_message,
+		primordial_free(ppm),
+		"correlation angle between IC's takes unphysical values");
 		
 		ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = cos_delta_k;
 		*/
@@ -380,9 +383,10 @@ int primordial_init(
     if (ppm->primordial_verbose > 0)
       printf(" (simulating inflation)\n");
 
-    class_call(primordial_inflation_solve_inflation(ppt,ppm,ppr),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_call_except(primordial_inflation_solve_inflation(ppt,ppm,ppr),
+		      ppm->error_message,
+		      ppm->error_message,
+		      primordial_free(ppm));
 
   }
 
@@ -1033,24 +1037,26 @@ int primordial_inflation_solve_inflation(
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
 
   /* check positivity and negative slope of potential in field pivot value */
-  class_call(primordial_inflation_check_potential(ppm,ppm->phi_pivot),
-	     ppm->error_message,
-	     ppm->error_message);
-
+  class_call_except(primordial_inflation_check_potential(ppm,ppm->phi_pivot),
+		    ppm->error_message,
+		    ppm->error_message,
+		    free(y);free(y_ini);free(dy));
+  
   /* find value of phi_dot and H for field's pivot value, assuming slow-roll
      attractor solution has been reached. If no solution, code will
      stop there. */
-  class_call(primordial_inflation_find_attractor(ppm,
-						 ppr,
-						 ppm->phi_pivot,
-						 ppr->primordial_inflation_attractor_precision_pivot,
-						 y,
-						 dy,
-						 &H_pivot,
-						 &dphidt_pivot),
-	     ppm->error_message,
-	     ppm->error_message);
-
+  class_call_except(primordial_inflation_find_attractor(ppm,
+							ppr,
+							ppm->phi_pivot,
+							ppr->primordial_inflation_attractor_precision_pivot,
+							y,
+							dy,
+							&H_pivot,
+							&dphidt_pivot),
+		    ppm->error_message,
+		    ppm->error_message,
+		    free(y);free(y_ini);free(dy));
+  
   /* find a_pivot, value of scale factor when k_pivot crosses horizon while phi=phi_pivot */
   a_pivot = ppm->k_pivot/H_pivot;
   
@@ -1063,10 +1069,15 @@ int primordial_inflation_solve_inflation(
   y[ppm->index_in_a] = a_pivot;
   y[ppm->index_in_phi] = ppm->phi_pivot;
   y[ppm->index_in_dphi] = a_pivot*dphidt_pivot;
-  class_call(primordial_inflation_reach_aH(ppm,ppr,y,dy,k_max/ppr->primordial_inflation_ratio_max),
-	     ppm->error_message,
-	     ppm->error_message);
-
+  class_call_except(primordial_inflation_reach_aH(ppm,
+						  ppr,
+						  y,
+						  dy,
+						  k_max/ppr->primordial_inflation_ratio_max),
+		    ppm->error_message,
+		    ppm->error_message,
+		    free(y);free(y_ini);free(dy));
+  
   /* we need to do the opposite: to check that there is an initial
      time such that k_min << (aH)_ini. One such time is found by
      iterations. If no solution exist (no long-enough slow-roll period
@@ -1081,38 +1092,47 @@ int primordial_inflation_solve_inflation(
   while ((a_try*H_try) >= aH_ini) {
 
     counter ++;
-    class_test(counter >= ppr->primordial_inflation_phi_ini_maxit,
-	       ppm->error_message,
-	       "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
-	       counter);
 
-    class_call(primordial_inflation_potential(ppm,phi_try,&V,&dV,&ddV),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_test_except(counter >= ppr->primordial_inflation_phi_ini_maxit,
+		      ppm->error_message,
+		      free(y);free(y_ini);free(dy),
+		      "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
+		      counter);
+
+    class_call_except(primordial_inflation_potential(ppm,phi_try,&V,&dV,&ddV),
+		      ppm->error_message,
+		      ppm->error_message,
+		      free(y);free(y_ini);free(dy));
 
     phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*dV/V/8./_PI_;
     
-    class_call(primordial_inflation_find_attractor(ppm,
-						   ppr,
-						   phi_try,
-						   ppr->primordial_inflation_attractor_precision_initial,
-						   y,
-						   dy,
-						   &H_try,
-						   &dphidt_try),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_call_except(primordial_inflation_find_attractor(ppm,
+							  ppr,
+							  phi_try,
+							  ppr->primordial_inflation_attractor_precision_initial,
+							  y,
+							  dy,
+							  &H_try,
+							  &dphidt_try),
+		      ppm->error_message,
+		      ppm->error_message,
+		      free(y);free(y_ini);free(dy));
 
     y[ppm->index_in_a] = 1.;
     y[ppm->index_in_phi] = phi_try;
     y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try;
 
-    class_call(primordial_inflation_evolve_background(ppm,ppr,y,dy,ppm->phi_pivot),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_call_except(primordial_inflation_evolve_background(ppm,
+							     ppr,
+							     y,
+							     dy,
+							     ppm->phi_pivot),
+		      ppm->error_message,
+		      ppm->error_message,
+		      free(y);free(y_ini);free(dy));
 
     a_try = a_pivot/y[ppm->index_in_a];
-
+    
   }
 
   /* we found an initial time labeled 'try' with a_try < a_ini, and
@@ -1123,16 +1143,22 @@ int primordial_inflation_solve_inflation(
   y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
 
   /* statting from this time, we run the routine which takes care of computing the primordial spectrum. */
-  class_call(primordial_inflation_spectra(ppt,ppm,ppr,y_ini,y,dy),
-	     ppm->error_message,
-	     ppm->error_message);
-
+  class_call_except(primordial_inflation_spectra(ppt,
+						 ppm,
+						 ppr,
+						 y_ini,
+						 y,
+						 dy),
+		    ppm->error_message,
+		    ppm->error_message,
+		    free(y);free(y_ini);free(dy));
+  
   free(y);
   free(y_ini);
   free(dy);
 
   return _SUCCESS_;
-};
+}
 
 /**
  * Routine coordinating the computation of the primordial

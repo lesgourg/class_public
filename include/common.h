@@ -59,6 +59,21 @@ typedef char FileName[_FILENAMESIZE_];
     }									\
   } while(0);
 
+/* macro for calling function and returning error if it failed */
+#define class_call_except(function,					\
+			  error_message_from_function,			\
+			  error_message_output,				\
+			  list_of_commands_without_commas)		\
+  do {									\
+    if (function == _FAILURE_) {					\
+      ErrorMsg Transmit_Error_Message;					\
+      sprintf(Transmit_Error_Message,"%s(L:%d) : error in %s;\n=>%s",	\
+	      __func__,__LINE__,#function,error_message_from_function);	\
+      sprintf(error_message_output,"%s",Transmit_Error_Message);	\
+      list_of_commands_without_commas;					\
+      return _FAILURE_;							\
+    }									\
+  } while(0);
 
 /* same in parallel region */
 #define class_call_parallel(function,					\
@@ -95,6 +110,29 @@ typedef char FileName[_FILENAMESIZE_];
       return _FAILURE_;							\
     }									\
   } while(0);
+
+/* macro for testing condition and returning error if condition is true;
+   args is a variable list of optional arguments, e.g.: args="x=%d",x 
+   args cannot be empty, if there is nothing to pass use args="" */
+#define class_test_except(condition,					\
+			  error_message_output,				\
+			  list_of_commands_without_commas,		\
+			  args...)					\
+  do {									\
+    if (condition) {							\
+      ErrorMsg Transmit_Error_Message;					\
+      ErrorMsg Optional_arguments;					\
+      sprintf(Transmit_Error_Message,					\
+	      "%s(L:%d) : condition (%s) is true",			\
+	      __func__,__LINE__,#condition);				\
+      sprintf(Optional_arguments,args);					\
+      sprintf(error_message_output,"%s; %s",				\
+	      Transmit_Error_Message, Optional_arguments);		\
+      list_of_commands_without_commas;					\
+      return _FAILURE_;							\
+    }									\
+  } while(0);
+
 
 /* macro for returning error message;
    args is a variable list of optional arguments, e.g.: args="x=%d",x 
