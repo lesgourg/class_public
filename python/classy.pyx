@@ -145,6 +145,7 @@ cdef extern from "class.h":
     int index_lt_te
     int index_lt_ee
     int index_lt_bb
+    int lt_size
     int has_lensed_cls
     int l_lensed_max
     ErrorMsg error_message 
@@ -578,8 +579,7 @@ cdef class Class:
 
   def lensed_cl(self, lmax=-1,nofail=False):
     cdef int lmaxR 
-#    cdef double *lcl = <double*> calloc(self.sp.ct_size,sizeof(double))
-   cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
+    cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
     lmaxR = self.le.l_lensed_max
     
     if lmax==-1:
@@ -873,6 +873,20 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.pm.V3
       elif elem == 'V_4':
         data.mcmc_parameters[elem]['current'] = self.pm.V4
+      elif elem == 'epsilon_V':
+        eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
+        eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
+        data.mcmc_parameters[elem]['current'] = eps1*((1.-eps1/3.+eps2/6.)/(1.-eps1/3.))**2
+      elif elem == 'eta_V':
+        eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
+        eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
+        eps23 = 1./8.*(self.pm.r**2/8.+(self.pm.n_s-1.)*self.pm.r-8.*self.pm.alpha_s)
+        data.mcmc_parameters[elem]['current'] = (2.*eps1-eps2/2.-2./3.*eps1**2+5./6.*eps1*eps2-eps2**2/12.-eps23/6.)/(1.-eps1/3.)
+      elif elem == 'ksi_V^2':
+        eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
+        eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
+        eps23 = 1./8.*(self.pm.r**2/8.+(self.pm.n_s-1.)*self.pm.r-8.*self.pm.alpha_s)
+        data.mcmc_parameters[elem]['current'] = 2.*(1.-eps1/3.+eps2/6.)*(2.*eps1**2-3./2.*eps1*eps2+eps23/4.)/(1.-eps1/3.)**2
       elif elem == 'exp_m_2_tau_As':
         data.mcmc_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
 #      elif elem == 'P_{RR}^1':

@@ -898,41 +898,41 @@ int input_init(
 	  class_test((pii1*prr1<=0.),errmsg,"should NEVER happen");
 	  class_test(fabs(pri1)/sqrt(pii1*prr1)>1,errmsg,"too large ad-iso cross-correlation in k1");
 	  class_test(fabs(pri1)/sqrt(pii1*prr1)*exp(n_cor*log(k2/k1))>1,errmsg,"too large ad-iso cross-correlation in k2");
-	  c_cor = pri1/sqrt(pii1*prr1)*exp(n_cor*log(ppm->k_pivot/k1));
+	  c_cor = -pri1/sqrt(pii1*prr1)*exp(n_cor*log(ppm->k_pivot/k1));
 	}
 	/* formula for f_iso valid in all cases */
 	class_test((pii1==0.) || (prr1 == 0.) || (pii1*prr1<0.),errmsg,"should NEVER happen");
 	f_iso = sqrt(pii1/prr1)*exp((n_iso-ppm->n_s)*log(ppm->k_pivot/k1));
 
       }
-    }
 
-    if (ppt->has_bi == _TRUE_) {
-      ppm->f_bi = f_iso;
-      ppm->n_bi = n_iso;
-      ppm->c_ad_bi = c_cor;
-      ppm->n_ad_bi = n_cor;
-    }
-
-    if (ppt->has_cdi == _TRUE_) {
-      ppm->f_cdi = f_iso;
-      ppm->n_cdi = n_iso;
-      ppm->c_ad_cdi = c_cor;
-      ppm->n_ad_cdi = n_cor;
-    }
-
-    if (ppt->has_nid == _TRUE_) {
-      ppm->f_nid = f_iso;
-      ppm->n_nid = n_iso;
-      ppm->c_ad_nid = c_cor;
-      ppm->n_ad_nid = n_cor;
-    }
-
-    if (ppt->has_niv == _TRUE_) {
-      ppm->f_niv = f_iso;
-      ppm->n_niv = n_iso;
-      ppm->c_ad_niv = c_cor;
-      ppm->n_ad_niv = n_cor;
+      if (ppt->has_bi == _TRUE_) {
+	ppm->f_bi = f_iso;
+	ppm->n_bi = n_iso;
+	ppm->c_ad_bi = c_cor;
+	ppm->n_ad_bi = n_cor;
+      }
+      
+      if (ppt->has_cdi == _TRUE_) {
+	ppm->f_cdi = f_iso;
+	ppm->n_cdi = n_iso;
+	ppm->c_ad_cdi = c_cor;
+	ppm->n_ad_cdi = n_cor;
+      }
+      
+      if (ppt->has_nid == _TRUE_) {
+	ppm->f_nid = f_iso;
+	ppm->n_nid = n_iso;
+	ppm->c_ad_nid = c_cor;
+	ppm->n_ad_nid = n_cor;
+      }
+      
+      if (ppt->has_niv == _TRUE_) {
+	ppm->f_niv = f_iso;
+	ppm->n_niv = n_iso;
+	ppm->c_ad_niv = c_cor;
+	ppm->n_ad_niv = n_cor;
+      }
     }
 
     ppm->primordial_spec_type = analytic_Pk;
