@@ -626,6 +626,21 @@ int input_init(
   class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
 
+  class_call(parser_read_string(pfc,
+				"on the spot",
+				&(string1),
+				&(flag1),
+				errmsg),
+	     errmsg,
+	     errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    pth->has_on_the_spot = _TRUE_;
+  }
+  else {
+    pth->has_on_the_spot = _FALSE_;
+  }
+
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
   ppt->has_perturbations = _FALSE_;
@@ -1829,6 +1844,7 @@ int input_default_params(
   pth->annihilation_zmin = 30.;
   pth->annihilation_f_halo = 0.;
   pth->annihilation_z_halo = 30.;
+  pth->has_on_the_spot = _TRUE_;
 
   pth->compute_cb2_derivatives=_FALSE_;
 

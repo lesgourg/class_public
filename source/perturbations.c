@@ -5504,7 +5504,7 @@ int perturb_derivs(double tau,
 	/** -----> photon temperature velocity */ 
 
 	dy[ppw->pv->index_pt_theta_g] =
-	  k*(delta_g/4.-shear_g)
+	  k2*(delta_g/4.-shear_g)
 	  + metric_euler
 	  +pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
 

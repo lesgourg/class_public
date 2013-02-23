@@ -99,6 +99,8 @@ struct thermo
 
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
   
+  short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
+
   double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   double annihilation_variation; /** if this parameter is non-zero,
@@ -292,6 +294,8 @@ struct recombination {
 
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
   
+  short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
+
   double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   double annihilation_variation; /** if this parameter is non-zero,

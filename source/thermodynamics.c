@@ -1146,42 +1146,48 @@ int thermodynamics_energy_injection(
 
   if (preco->annihilation > 0) {
 
-    /* number of hydrogen nuclei today in m**-3 */
-    nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+    if (preco->has_on_the_spot == _FALSE_) {
 
-    /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-    factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+      /* number of hydrogen nuclei today in m**-3 */
+      nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
 
-    /* integral over z'(=zp) with step dz */
-    dz=1.;
+      /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
+      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
 
-    /* first point in trapezoidal integral */
-    zp = z;
-    class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-	       error_message,
-	       error_message);
-    first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
-    result = 0.5*dz*first_integrand;
-    
-    /* other points in trapezoidal integral */
-    do {
-      
-      zp += dz;
+      /* integral over z'(=zp) with step dz */
+      dz=1.;
+
+      /* first point in trapezoidal integral */
+      zp = z;
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
 		 error_message,
 		 error_message);
-      integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
-      result += dz*integrand;
-      
-    } while (integrand/first_integrand > 0.02);
+      first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+      result = 0.5*dz*first_integrand;
     
-    /* by uncommenting these lines you can compute the on-the-spot energy rate, and eventually overseed the true result with the approximate one */
-    /*
+      /* other points in trapezoidal integral */
+      do {
+	
+	zp += dz;
+	class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+		   error_message,
+		   error_message);
+	integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+	result += dz*integrand;
+	
+      } while (integrand/first_integrand > 0.02);
+
+      /* uncomment these lines if you also want to compute the on-the-spot for comparison */
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
-      error_message,
-      error_message);
-      result = onthespot;
-    */
+                 error_message,
+                 error_message);
+
+    }
+    else {
+      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
+		 error_message,
+		 error_message);
+    }
     
     /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
     /*
@@ -2172,6 +2178,7 @@ int thermodynamics_recombination_with_hyrec(
   preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-preco->YHe)/(8.*_PI_*_G_*_m_H_);
   /* energy injection parameters */
   preco->annihilation = pth->annihilation;
+  preco->has_on_the_spot = pth->has_on_the_spot;
   preco->annihilation_variation = pth->annihilation_variation;
   preco->annihilation_z = pth->annihilation_z;
   preco->annihilation_zmax = pth->annihilation_zmax;
@@ -2393,6 +2400,7 @@ int thermodynamics_recombination_with_recfast(
 
   /* energy injection parameters */
   preco->annihilation = pth->annihilation;
+  preco->has_on_the_spot = pth->has_on_the_spot;
   preco->annihilation_variation = pth->annihilation_variation;
   preco->annihilation_z = pth->annihilation_z;
   preco->annihilation_zmax = pth->annihilation_zmax;
