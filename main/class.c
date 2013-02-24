@@ -39,6 +39,11 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
+  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
+    printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
+    return _FAILURE_;
+  }
+
   if (bessel_init(&pr,&bs) == _FAILURE_) {
     printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
@@ -46,11 +51,6 @@ int main(int argc, char **argv) {
 
   if (transfer_init(&pr,&ba,&th,&pt,&bs,&tr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
-    return _FAILURE_;
-  }
-
-  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
-    printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }
 

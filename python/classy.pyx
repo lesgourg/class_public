@@ -163,8 +163,8 @@ cdef extern from "class.h":
 
   void lensing_free(        void*)
   void spectra_free(        void*)
-  void primordial_free(     void*)
   void transfer_free(       void*)
+  void primordial_free(     void*)
   void perturb_free(        void*)
   void thermodynamics_free( void*)
   void background_free(     void*)
@@ -192,8 +192,8 @@ cdef extern from "class.h":
   int background_init(void*,void*)
   int thermodynamics_init(void*,void*,void*)
   int perturb_init(void*,void*,void*,void*)
-  int transfer_init(void*,void*,void*,void*,void*,void*)
   int primordial_init(void*,void*,void*)
+  int transfer_init(void*,void*,void*,void*,void*,void*)
   int spectra_init(void*,void*,void*,void*,void*,void*)
   int nonlinear_init(void*,void*,void*,void*,void*,void*,void*,void*,void*)
   int lensing_init(void*,void*,void*,void*,void*)
@@ -269,8 +269,8 @@ cdef class Class:
   cdef   thermo th
   cdef   perturbs pt 
   cdef   bessels bs
-  cdef   transfers tr
   cdef   primordial pm
+  cdef   transfers tr
   cdef   spectra sp
   cdef   output op
   cdef   lensing le
@@ -376,10 +376,10 @@ cdef class Class:
       nonlinear_free (&self.nl)
     if "spectra" in ncp:
       spectra_free(&self.sp)
-    if "primordial" in ncp:
-      primordial_free(&self.pm)
     if "transfer" in ncp:
       transfer_free(&self.tr)
+    if "primordial" in ncp:
+      primordial_free(&self.pm)
     if "perturb" in ncp:
       perturb_free(&self.pt)
     if "thermodynamics" in ncp:
@@ -398,11 +398,11 @@ cdef class Class:
     if "nonlinear" in lvl:
       lvl.add("spectra")
     if "spectra" in lvl:
-      lvl.add("primordial")
-    if "primordial" in lvl:
       lvl.add("transfer")
     if "transfer" in lvl:
       lvl.add("bessel")
+      lvl.add("primordial")
+    if "primordial" in lvl:
       lvl.add("perturb")
     if "perturb" in lvl:
       lvl.add("thermodynamics")
@@ -500,6 +500,13 @@ cdef class Class:
         raise ClassError(self.pt.error_message)
       self.ncp.add("perturb") 
       
+    if "primordial" in lvl:
+      if primordial_init(&(self.pr),&(self.pt),&(self.pm)) == _FAILURE_:
+        self._struct_cleanup(self.ncp)
+        #fprintf(stderr,"%s\n",self.pm.error_message)
+        raise ClassError(self.pm.error_message)
+      self.ncp.add("primordial") 
+
     if "bessel" in lvl:
       if bessel_init(&(self.pr),&(self.bs)) == _FAILURE_:
         self._struct_cleanup(self.ncp)
@@ -513,13 +520,6 @@ cdef class Class:
         #fprintf(stderr,"%s\n",self.tr.error_message)
         raise ClassError(self.tr.error_message)
       self.ncp.add("transfer") 
-      
-    if "primordial" in lvl:
-      if primordial_init(&(self.pr),&(self.pt),&(self.pm)) == _FAILURE_:
-        self._struct_cleanup(self.ncp)
-        #fprintf(stderr,"%s\n",self.pm.error_message)
-        raise ClassError(self.pm.error_message)
-      self.ncp.add("primordial") 
       
     if "spectra" in lvl:
       if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
