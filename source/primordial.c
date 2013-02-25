@@ -1535,53 +1535,60 @@ int primordial_inflation_evolve_background(
 
   while (y[ppm->index_in_phi] <= (phi_stop-y[ppm->index_in_dphi]*dtau)) {
     
-    class_call(primordial_inflation_check_potential(ppm,
-						    y[ppm->index_in_phi]),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_call_except(primordial_inflation_check_potential(ppm,
+							   y[ppm->index_in_phi]),
+		      ppm->error_message,
+		      ppm->error_message,
+		      cleanup_generic_integrator(&gi));
 
     tau_start = tau_end;
 
-    class_call(primordial_inflation_derivs(tau_start,
-					   y,
-					   dy,
-					   &pipaw,
-					   ppm->error_message),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_call_except(primordial_inflation_derivs(tau_start,
+						  y,
+						  dy,
+						  &pipaw,
+						  ppm->error_message),
+		      ppm->error_message,
+		      ppm->error_message,
+		      cleanup_generic_integrator(&gi));
       
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
     dtau = ppr->primordial_inflation_bg_stepsize*min(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
     tau_end = tau_start + dtau;
 
-    class_test(dtau/tau_start < ppr->smallest_allowed_variation,
-	       ppm->error_message,
-	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",dtau/tau_start);
+    class_test_except(dtau/tau_start < ppr->smallest_allowed_variation,
+		      ppm->error_message,
+		      cleanup_generic_integrator(&gi),
+		      "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",
+		      dtau/tau_start);
 
-    class_call(generic_integrator(primordial_inflation_derivs,
-				  tau_start,
-				  tau_end,
-				  y,
-				  &pipaw,
-				  ppr->primordial_inflation_tol_integration,
-				  ppr->smallest_allowed_variation,
-				  &gi),
-	       gi.error_message,
-	       ppm->error_message);
+    class_call_except(generic_integrator(primordial_inflation_derivs,
+					 tau_start,
+					 tau_end,
+					 y,
+					 &pipaw,
+					 ppr->primordial_inflation_tol_integration,
+					 ppr->smallest_allowed_variation,
+					 &gi),
+		      gi.error_message,
+		      ppm->error_message,
+		      cleanup_generic_integrator(&gi));
 
     epsilon_old = epsilon;
 
-    class_call(primordial_inflation_get_epsilon(ppm,
-						y[ppm->index_in_dphi],
-						&epsilon),
-	       ppm->error_message,
-	       ppm->error_message);
+    class_call_except(primordial_inflation_get_epsilon(ppm,
+						       y[ppm->index_in_dphi],
+						       &epsilon),
+		      ppm->error_message,
+		      ppm->error_message,
+		      cleanup_generic_integrator(&gi));
 
-    class_test((epsilon > 1) && (epsilon_old <= 1),
-	       ppm->error_message,
-	       "Inflaton evolution crosses the border from epsilon<1 to epsilon>1 at phi=%g. Inflation disrupted during the observable e-folds",
-	       y[ppm->index_in_dphi]);
+    class_test_except((epsilon > 1) && (epsilon_old <= 1),
+		      ppm->error_message,
+		      cleanup_generic_integrator(&gi), 
+		      "Inflaton evolution crosses the border from epsilon<1 to epsilon>1 at phi=%g. Inflation disrupted during the observable e-folds",
+		      y[ppm->index_in_dphi]);
 
 
 
