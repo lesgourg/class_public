@@ -1324,14 +1324,18 @@ int primordial_inflation_one_k(
     
   dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/max(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
 
-  /* lopp over time */
+  /* loop over time */
   do {
     
     /* new time interval [tau_start, tau_end] over which equations will be integrated */
     tau_start = tau_end;
     
     tau_end = tau_start + dtau;
-      
+    
+    class_test(dtau/tau_start < ppr->smallest_allowed_variation,
+	       ppm->error_message,
+	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",dtau/tau_start);
+  
     /* evolve the system */
     class_call(generic_integrator(primordial_inflation_derivs,
 				  tau_start,
@@ -1551,6 +1555,10 @@ int primordial_inflation_evolve_background(
 
     tau_end = tau_start + dtau;
 
+    class_test(dtau/tau_start < ppr->smallest_allowed_variation,
+	       ppm->error_message,
+	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",dtau/tau_start);
+
     class_call(generic_integrator(primordial_inflation_derivs,
 				  tau_start,
 				  tau_end,
@@ -1663,6 +1671,10 @@ int primordial_inflation_reach_aH(
     dtau = ppr->primordial_inflation_bg_stepsize*min(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
     tau_end = tau_start + dtau;
+
+    class_test(dtau/tau_start < ppr->smallest_allowed_variation,
+	       ppm->error_message,
+	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",dtau/tau_start);
 
     class_call(generic_integrator(primordial_inflation_derivs,
 				  tau_start,
