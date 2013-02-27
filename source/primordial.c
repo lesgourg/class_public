@@ -1042,6 +1042,9 @@ int primordial_inflation_solve_inflation(
 		    ppm->error_message,
 		    free(y);free(y_ini);free(dy));
   
+  if (ppm->primordial_verbose > 1)
+    printf(" (search attractor at pivot)\n");
+
   /* find value of phi_dot and H for field's pivot value, assuming slow-roll
      attractor solution has been reached. If no solution, code will
      stop there. */
@@ -1069,6 +1072,10 @@ int primordial_inflation_solve_inflation(
   y[ppm->index_in_a] = a_pivot;
   y[ppm->index_in_phi] = ppm->phi_pivot;
   y[ppm->index_in_dphi] = a_pivot*dphidt_pivot;
+
+  if (ppm->primordial_verbose > 1)
+    printf(" (check inflation duration after pivot)\n");
+
   class_call_except(primordial_inflation_reach_aH(ppm,
 						  ppr,
 						  y,
@@ -1089,6 +1096,9 @@ int primordial_inflation_solve_inflation(
   phi_try = ppm->phi_pivot;
   counter = 0;
 
+  if (ppm->primordial_verbose > 1)
+    printf(" (check inflation duration before pivot, with phi_pivot=%e)\n",phi_try);
+
   while ((a_try*H_try) >= aH_ini) {
 
     counter ++;
@@ -1105,7 +1115,9 @@ int primordial_inflation_solve_inflation(
 		      free(y);free(y_ini);free(dy));
 
     phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*dV/V/8./_PI_;
-    
+
+      printf(" (--> search attractor at phi_try=%e)\n",phi_try);
+
     class_call_except(primordial_inflation_find_attractor(ppm,
 							  ppr,
 							  phi_try,
@@ -1122,6 +1134,9 @@ int primordial_inflation_solve_inflation(
     y[ppm->index_in_phi] = phi_try;
     y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try;
 
+    if (ppm->primordial_verbose > 1)
+      printf(" (--> compute e-folds from phi_try=%e to phi_pivot=%e with dphi/dt_try=%e)\n",phi_try,ppm->phi_pivot,dphidt_try);
+
     class_call_except(primordial_inflation_evolve_background(ppm,
 							     ppr,
 							     y,
@@ -1133,6 +1148,9 @@ int primordial_inflation_solve_inflation(
 
     a_try = a_pivot/y[ppm->index_in_a];
     
+    if (ppm->primordial_verbose > 1)
+      printf(" (--> found %f e-folds\n",-log(a_try));
+
   }
 
   /* we found an initial time labeled 'try' with a_try < a_ini, and
@@ -1141,6 +1159,9 @@ int primordial_inflation_solve_inflation(
   y_ini[ppm->index_in_a] = a_try;
   y_ini[ppm->index_in_phi] = phi_try;
   y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
+
+  if (ppm->primordial_verbose > 1)
+    printf(" (compute spectrum)\n");
 
   /* statting from this time, we run the routine which takes care of computing the primordial spectrum. */
   class_call_except(primordial_inflation_spectra(ppt,
@@ -1515,7 +1536,7 @@ int primordial_inflation_evolve_background(
 	     ppm->error_message);
 
   class_call(primordial_inflation_get_epsilon(ppm,
-					      y[ppm->index_in_dphi],
+					      y[ppm->index_in_phi],
 					      &epsilon),
 	     ppm->error_message,
 	     ppm->error_message);
@@ -1578,7 +1599,7 @@ int primordial_inflation_evolve_background(
     epsilon_old = epsilon;
 
     class_call_except(primordial_inflation_get_epsilon(ppm,
-						       y[ppm->index_in_dphi],
+						       y[ppm->index_in_phi],
 						       &epsilon),
 		      ppm->error_message,
 		      ppm->error_message,
@@ -1588,7 +1609,7 @@ int primordial_inflation_evolve_background(
 		      ppm->error_message,
 		      cleanup_generic_integrator(&gi), 
 		      "Inflaton evolution crosses the border from epsilon<1 to epsilon>1 at phi=%g. Inflation disrupted during the observable e-folds",
-		      y[ppm->index_in_dphi]);
+		      y[ppm->index_in_phi]);
 
 
 
