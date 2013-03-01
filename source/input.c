@@ -902,7 +902,7 @@ int input_init(
 	}
 	/* formula for f_iso valid in all cases */
 	class_test((pii1==0.) || (prr1 == 0.) || (pii1*prr1<0.),errmsg,"should NEVER happen");
-	f_iso = sqrt(pii1/prr1)*exp((n_iso-ppm->n_s)*log(ppm->k_pivot/k1));
+	f_iso = sqrt(pii1/prr1)*exp(0.5*(n_iso-ppm->n_s)*log(ppm->k_pivot/k1));
 
       }
 
