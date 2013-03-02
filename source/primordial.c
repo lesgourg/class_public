@@ -1174,6 +1174,31 @@ int primordial_inflation_solve_inflation(
 		    ppm->error_message,
 		    free(y);free(y_ini);free(dy));
   
+  /* before ending, we want to compute and store the values of phi correspondig to k=aH for k_min and k_max */
+
+  y[ppm->index_in_a] = y_ini[ppm->index_in_a];
+  y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
+  y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
+
+  class_call_except(primordial_inflation_reach_aH(ppm,ppr,y,dy,exp(ppm->lnk[0])),
+                    ppm->error_message,
+                    ppm->error_message,
+                    free(y);free(y_ini);free(dy));
+
+  ppm->phi_min=y[ppm->index_in_phi];
+
+  class_call_except(primordial_inflation_reach_aH(ppm,ppr,y,dy,exp(ppm->lnk[ppm->lnk_size])),
+                    ppm->error_message,
+                    ppm->error_message,
+                    free(y);free(y_ini);free(dy));
+
+  ppm->phi_max=y[ppm->index_in_phi];
+
+  if (ppm->primordial_verbose > 1)
+    printf(" (observable power spectrum goes from %e to %e)\n",ppm->phi_min,ppm->phi_max);
+
+  /* we are done, we can de-allocate */
+
   free(y);
   free(y_ini);
   free(dy);

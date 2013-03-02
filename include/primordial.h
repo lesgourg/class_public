@@ -200,6 +200,15 @@ struct primordial {
   int in_bg_size;       /**< size of vector of background quantitites only */
   int in_size;          /**< full size of vector */
 
+  //@}                                                                                                                                                        
+
+  /** @name - derived parameters */
+
+  //@{  
+
+  double phi_min;        /**< in inflationary module, value of phi when k_min=aH */
+  double phi_max;        /**< in inflationary module, value of phi when k_max=aH */
+
   //@}
 
   /** @name - technical parameters */

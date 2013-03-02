@@ -112,6 +112,8 @@ cdef extern from "class.h":
     double n_niv
     double c_ad_niv
     double n_ad_niv
+    double phi_min
+    double phi_max
 
   cdef struct spectra              :
     ErrorMsg error_message 
@@ -889,6 +891,10 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = 2.*(1.-eps1/3.+eps2/6.)*(2.*eps1**2-3./2.*eps1*eps2+eps23/4.)/(1.-eps1/3.)**2
       elif elem == 'exp_m_2_tau_As':
         data.mcmc_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
+      elif elem == 'phi_min':
+        data.mcmc_parameters[elem]['current'] = self.pm.phi_min
+      elif elem == 'phi_max':
+        data.mcmc_parameters[elem]['current'] = self.pm.phi_max
 #      elif elem == 'P_{RR}^1':
 #        data.mcmc_parameters[elem]['current'] = self.pm.A_s*exp(self.pm.n_s*log(0.002/self.pm.k_pivot))
 #      elif elem == 'P_{RR}^2':
