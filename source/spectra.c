@@ -1116,6 +1116,17 @@ int spectra_init(
     psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
 
+    class_call(spectra_bandpower(psp,2,2500,&TT_II,&TT_RI,&TT_RR),
+               psp->error_message,
+               psp->error_message);
+
+    class_test(TT_II+TT_RI+TT_RR==0.,
+	       psp->error_message,
+               "should never happen");
+    psp->alpha_II_2_2500=TT_II/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RI_2_2500=TT_RI/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RR_2_2500=TT_RR/(TT_II+TT_RI+TT_RR);
+
     if (ppt->has_cdi==_TRUE_) {
 
       psp->alpha_kp=ppm->f_cdi*ppm->f_cdi

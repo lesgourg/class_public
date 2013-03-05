@@ -124,6 +124,10 @@ struct spectra {
   double alpha_RI_2_20;
   double alpha_RR_2_20;
 
+  double alpha_II_2_2500;
+  double alpha_RI_2_2500;
+  double alpha_RR_2_2500;
+
   double alpha_kp;
   double alpha_k1;
   double alpha_k2;

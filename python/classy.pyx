@@ -135,6 +135,9 @@ cdef extern from "class.h":
     double alpha_II_2_20
     double alpha_RI_2_20
     double alpha_RR_2_20
+    double alpha_II_2_2500
+    double alpha_RI_2_2500
+    double alpha_RR_2_2500
     double alpha_kp
     double alpha_k1
     double alpha_k2
@@ -927,6 +930,12 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_201_2500
       elif elem == 'alpha_RR_201_2500':
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_201_2500
+      elif elem == 'alpha_II_2_2500':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_2_2500
+      elif elem == 'alpha_RI_2_2500':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_2_2500
+      elif elem == 'alpha_RR_2_2500':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_2_2500
       elif elem == 'sigma8':
         data.mcmc_parameters[elem]['current'] = self.sp.sigma8
       else:
