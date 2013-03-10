@@ -126,15 +126,15 @@ cdef extern from "class.h":
     int index_ct_bb
     double* ln_k
     double sigma8
-    double alpha_II_2_200
-    double alpha_RI_2_200
-    double alpha_RR_2_200
-    double alpha_II_201_2500
-    double alpha_RI_201_2500
-    double alpha_RR_201_2500
     double alpha_II_2_20
     double alpha_RI_2_20
     double alpha_RR_2_20
+    double alpha_II_21_200
+    double alpha_RI_21_200
+    double alpha_RR_21_200
+    double alpha_II_201_2500
+    double alpha_RI_201_2500
+    double alpha_RR_201_2500
     double alpha_II_2_2500
     double alpha_RI_2_2500
     double alpha_RR_2_2500
@@ -912,18 +912,18 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_k1
       elif elem == 'alpha_k2':
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_k2
-      elif elem == 'alpha_II_2_200':
-        data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_2_200
-      elif elem == 'alpha_RI_2_200':
-        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_2_200
-      elif elem == 'alpha_RR_2_200':
-        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_2_200
       elif elem == 'alpha_II_2_20':
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_2_20
       elif elem == 'alpha_RI_2_20':
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_2_20
       elif elem == 'alpha_RR_2_20':
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_2_20
+      elif elem == 'alpha_II_21_200':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_21_200
+      elif elem == 'alpha_RI_21_200':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_21_200
+      elif elem == 'alpha_RR_21_200':
+        data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_21_200
       elif elem == 'alpha_II_201_2500':
         data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_201_2500
       elif elem == 'alpha_RI_201_2500':

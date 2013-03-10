@@ -112,17 +112,17 @@ struct spectra {
   double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */ 
 
-  double alpha_II_2_200;
-  double alpha_RI_2_200;
-  double alpha_RR_2_200;
+  double alpha_II_2_20;
+  double alpha_RI_2_20;
+  double alpha_RR_2_20;
+
+  double alpha_II_21_200;
+  double alpha_RI_21_200;
+  double alpha_RR_21_200;
 
   double alpha_II_201_2500;
   double alpha_RI_201_2500;
   double alpha_RR_201_2500;
-
-  double alpha_II_2_20;
-  double alpha_RI_2_20;
-  double alpha_RR_2_20;
 
   double alpha_II_2_2500;
   double alpha_RI_2_2500;

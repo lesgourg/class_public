@@ -1083,16 +1083,27 @@ int spectra_init(
 
   if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars]>1)) {
 
-    class_call(spectra_bandpower(psp,2,200,&TT_II,&TT_RI,&TT_RR),
+    class_call(spectra_bandpower(psp,2,20,&TT_II,&TT_RI,&TT_RR),
 	       psp->error_message,
 	       psp->error_message);
 
     class_test(TT_II+TT_RI+TT_RR==0.,
 	       psp->error_message,
 	       "should never happen");
-    psp->alpha_II_2_200=TT_II/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RI_2_200=TT_RI/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RR_2_200=TT_RR/(TT_II+TT_RI+TT_RR);
+    psp->alpha_II_2_20=TT_II/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
+
+    class_call(spectra_bandpower(psp,21,200,&TT_II,&TT_RI,&TT_RR),
+	       psp->error_message,
+               psp->error_message);
+
+    class_test(TT_II+TT_RI+TT_RR==0.,
+               psp->error_message,
+               "should never happen");
+    psp->alpha_II_21_200=TT_II/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RI_21_200=TT_RI/(TT_II+TT_RI+TT_RR);
+    psp->alpha_RR_21_200=TT_RR/(TT_II+TT_RI+TT_RR);
 
     class_call(spectra_bandpower(psp,201,2500,&TT_II,&TT_RI,&TT_RR),
 	       psp->error_message,
@@ -1105,24 +1116,13 @@ int spectra_init(
     psp->alpha_RI_201_2500=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_201_2500=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    class_call(spectra_bandpower(psp,2,20,&TT_II,&TT_RI,&TT_RR),
+    class_call(spectra_bandpower(psp,2,2500,&TT_II,&TT_RI,&TT_RR),
 	       psp->error_message,
 	       psp->error_message);
 
     class_test(TT_II+TT_RI+TT_RR==0.,
 	       psp->error_message,
 	       "should never happen");
-    psp->alpha_II_2_20=TT_II/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
-
-    class_call(spectra_bandpower(psp,2,2500,&TT_II,&TT_RI,&TT_RR),
-               psp->error_message,
-               psp->error_message);
-
-    class_test(TT_II+TT_RI+TT_RR==0.,
-	       psp->error_message,
-               "should never happen");
     psp->alpha_II_2_2500=TT_II/(TT_II+TT_RI+TT_RR);
     psp->alpha_RI_2_2500=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_2_2500=TT_RR/(TT_II+TT_RI+TT_RR);
