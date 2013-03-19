@@ -92,6 +92,7 @@ cdef extern from "class.h":
     double A_s
     double n_s
     double alpha_s
+    double beta_s
     double r
     double n_t
     double alpha_t   
@@ -862,6 +863,8 @@ cdef class Class:
         data.mcmc_parameters[elem]['current'] = self.pm.n_s
       elif elem == 'alpha_s':
         data.mcmc_parameters[elem]['current'] = self.pm.alpha_s
+      elif elem == 'beta_s':
+        data.mcmc_parameters[elem]['current'] = self.pm.beta_s
       elif elem == 'r':
         data.mcmc_parameters[elem]['current'] = self.pm.r
       elif elem == 'n_t':

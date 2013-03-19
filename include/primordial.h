@@ -52,6 +52,7 @@ struct primordial {
   double A_s;  /**< usual scalar amplitude = curvature power spectrum at pivot scale */
   double n_s;  /**< usual scalar tilt = [curvature power spectrum tilt at pivot scale -1] */
   double alpha_s; /**< usual scalar running */
+  double beta_s;  /**< running of running */
 
   double r;    /**< usual tensor to scalar ratio of power spectra, r=A_T/A_S=P_h/P_R */
   double n_t;  /**< usual tensor tilt = [GW power spectrum tilt at pivot scale] */

@@ -196,7 +196,7 @@ int primordial_init(
   double k,k_min,k_max;
   int index_md,index_ic1,index_ic2,index_ic1_ic2,index_k;
   double pk,pk1,pk2;
-  double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus;
+  double dlnk,lnpk_pivot,lnpk_minus,lnpk_plus,lnpk_minusminus,lnpk_plusplus;
   /* uncomment if you use optional test below
      (for correlated isocurvature modes) */
   //double cos_delta_k;
@@ -451,6 +451,44 @@ int primordial_init(
       ppm->A_s = exp(lnpk_pivot);
       ppm->n_s = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
       ppm->alpha_s = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
+      
+      /** expression for n_s comes from:
+
+      ns_2 = (lnpk_plus-lnpk_pivot)/(dlnk)+1.    
+      ns_1 = (lnpk_pivot-lnpk_minus)/(dlnk)+1.
+      alpha_s = dns/dlnk
+              = (ns_2-ns_1)/dlnk
+              = (lnpk_plus-lnpk_pivot-lnpk_pivot+lnpk_minus)/(dlnk)/(dlnk)
+
+      **/
+
+      class_call(primordial_spectrum_at_k(ppm,
+                                          ppt->index_md_scalars,
+                                          logarithmic,
+                                          log(ppm->k_pivot)+2.*dlnk,
+                                          
+                                          &lnpk_plusplus),
+                 ppm->error_message,
+                 ppm->error_message);
+
+      class_call(primordial_spectrum_at_k(ppm,
+                                          ppt->index_md_scalars,
+                                          logarithmic,
+                                          log(ppm->k_pivot)-2.*dlnk,
+                                          &lnpk_minusminus),
+         ppm->error_message,
+         ppm->error_message);
+
+      /** expression for beta_s: 
+
+      ppm->beta_s = (alpha_plus-alpha_minus)/dlnk
+                  = (lnpk_plusplus-2.*lnpk_plus+lnpk_pivot - (lnpk_pivot-2.*lnpk_minus+lnpk_minusminus)/pow(dlnk,3);
+
+      This simplifies into:
+
+      **/
+
+      ppm->beta_s = (lnpk_plusplus-2.*lnpk_plus+2.*lnpk_minus-lnpk_minusminus)/pow(dlnk,3);  
 
       if (ppm->primordial_verbose > 0)
 	printf(" -> A_s=%g  n_s=%g  alpha_s=%g\n",ppm->A_s,ppm->n_s,ppm->alpha_s);
