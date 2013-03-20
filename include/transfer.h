@@ -3,7 +3,6 @@
 #ifndef __TRANSFER__
 #define __TRANSFER__
 
-#include "hyperspherical.h"
 #include "bessel.h"
 #include "perturbations.h"
 
@@ -367,15 +366,6 @@ extern "C" {
 		       double *dddj_l,
 		       double * trsf
 		       );
-
-  int transfer_hyperspherical(
-			      //struct precision * ppr,
-			      struct transfers * ptr,
-			      enum spatial_curvature curvature,
-			      int l,
-			      double beta,
-			      double y, 
-			      double * Phi);
     
 #ifdef __cplusplus
 }

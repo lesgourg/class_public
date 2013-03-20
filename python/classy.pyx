@@ -125,6 +125,8 @@ cdef extern from "class.h":
     int index_ct_te
     int index_ct_ee
     int index_ct_bb
+    int index_ct_pp
+    int index_ct_tp
     double* ln_k
     double sigma8
     double alpha_II_2_20
@@ -151,6 +153,8 @@ cdef extern from "class.h":
     int index_lt_te
     int index_lt_ee
     int index_lt_bb
+    int index_lt_pp
+    int index_lt_tp
     int lt_size
     int has_lensed_cls
     int l_lensed_max
@@ -569,7 +573,7 @@ cdef class Class:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
 
     cl = {}
-    for elem in ['tt','te','ee','bb']:
+    for elem in ['tt','te','ee','bb','pp','tp']:
       cl[elem] = np.ndarray(lmax+1, dtype=np.double)
       cl[elem][:2]=0
     for ell from 2<=ell<lmax+1:
@@ -579,6 +583,8 @@ cdef class Class:
       cl['te'][ell] = lcl[self.sp.index_ct_te]
       cl['ee'][ell] = lcl[self.sp.index_ct_ee]
       cl['bb'][ell] = lcl[self.sp.index_ct_bb]
+      cl['pp'][ell] = lcl[self.sp.index_ct_pp]
+      cl['tp'][ell] = lcl[self.sp.index_ct_tp]
 
     free(lcl)  
     return cl
@@ -598,7 +604,7 @@ cdef class Class:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
     
     cl = {}
-    for elem in ['tt','te','ee','bb']:
+    for elem in ['tt','te','ee','bb','pp','tp']:
       cl[elem] = np.ndarray(lmax+1, dtype=np.double)
       cl[elem][:2]=0
     for ell from 2<=ell<lmax+1:
@@ -608,6 +614,8 @@ cdef class Class:
       cl['te'][ell] = lcl[self.le.index_lt_te]
       cl['ee'][ell] = lcl[self.le.index_lt_ee]
       cl['bb'][ell] = lcl[self.le.index_lt_bb]
+      cl['pp'][ell] = lcl[self.le.index_lt_pp]
+      cl['tp'][ell] = lcl[self.le.index_lt_tp]
 
     free(lcl)  
     return cl
@@ -680,6 +688,8 @@ cdef class Class:
     index['te'] = self.le.index_lt_te
     index['ee'] = self.le.index_lt_ee
     index['bb'] = self.le.index_lt_bb
+    index['pp'] = self.le.index_lt_pp
+    index['tp'] = self.le.index_lt_tp
     return index
         
   def _age(self):

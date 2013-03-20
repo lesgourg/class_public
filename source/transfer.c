@@ -2852,27 +2852,6 @@ int transfer_integrate(
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
 
-    /*    
-	  if (l==2. && index_k==60) {
-	  printf("%e %e %e %e %e %e %e %e %e %e\n",
-	  k,
-	  tau0_minus_tau[index_tau],
-	  sources[index_k * tau_size + index_tau],
-	  (a*j_l[index_x]+(1.-a) *( j_l[index_x+1]
-	  - a * ((a+1.) * ddj_l[index_x]
-					      
-	  +(2.-a) * ddj_l[index_x+1]) 
-	  * x_step * x_step / 6.0)),
-	  delta_tau[index_tau],
-	  a,
-	  j_l[index_x],
-	  j_l[index_x+1],
-	  ddj_l[index_x],
-	  ddj_l[index_x+1]
-	  );
-	  }
-    */
-
     transfer += sources[index_k * tau_size + index_tau] /* source */
       * (a * j_l[index_x]                               /* bessel */
 	 + (1.-a) * ( j_l[index_x+1]
@@ -2884,21 +2863,6 @@ int transfer_integrate(
     /* (for bessel function cubic spline interpolation, we could have called the
        subroutine bessel_at_x; however we perform operations directly here
        in order to speed up the code) */
-
-    /*
-    class_call(transfer_hyperspherical(
-				       //ppr,
-				       ptr,
-				       //closed,
-				       open,
-				       (int)l,
-				       //(int)min((k*10000),l-1.),
-				       k,
-				       x,
-				       &Phi),
-	       ptr->error_message,
-	       ptr->error_message);
-    */
     
   }
   
@@ -3255,60 +3219,3 @@ int transfer_envelop(
   return _SUCCESS_;
 }
 
-int transfer_hyperspherical(
-			    //struct precision * ppr,
-			    struct transfers * ptr,
-			    enum spatial_curvature curvature,
-			    int l,
-			    double beta,
-			    double y, 
-			    double * Phi) {
-
-  short use_WKB = _FALSE_;
-  int K;
-
-  if (curvature==open) 
-    K=-1; 
-  else if (curvature==closed) 
-    K=1; 
-  else
-    class_stop(ptr->error_message,
-	       "this function should be called only for open or closed cases");
-
-  if ((curvature == closed) && ((beta-l)<10)) {
-    class_call(HypersphericalClosedGegenbauer(l,(int)beta,y,Phi,ptr->error_message),
-	       ptr->error_message,
-	       ptr->error_message);
-    return _SUCCESS_;
-  }
-  
-  if (l<=9) {
-    class_call(HypersphericalExplicit(K,l,beta,y,Phi,ptr->error_message),
-	       ptr->error_message,
-	       ptr->error_message);
-    return _SUCCESS_;
-  }
-
-  if (use_WKB == _TRUE_) {
-    class_call(HypersphericalWKB(K,l,beta,y,Phi,ptr->error_message),
-	       ptr->error_message,
-	       ptr->error_message);
-    return _SUCCESS_;
-  }
-      
-  if (K==1) {
-    class_call(HypersphericalClosedGegenbauer(l,(int)beta,y,Phi,ptr->error_message),
-	       ptr->error_message,
-	       ptr->error_message);
-    return _SUCCESS_;
-  }
-
-  if (K==-1) {
-    class_call(HypersphericalOpenRecurrence(l,beta,y,Phi,ptr->error_message),
-	       ptr->error_message,
-	       ptr->error_message);
-    return _SUCCESS_;
-  }
-
-  return _FAILURE_;
-}
