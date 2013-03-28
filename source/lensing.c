@@ -37,29 +37,29 @@
  */
 
 int lensing_cl_at_l(
-		    struct lensing * ple,
-		    int l,
-		    double * cl_lensed    /* array with argument cl_lensed[index_ct] (must be already allocated) */
-		    ) {
+                    struct lensing * ple,
+                    int l,
+                    double * cl_lensed    /* array with argument cl_lensed[index_ct] (must be already allocated) */
+                    ) {
   int last_index;
   int index_lt;
 
   class_test(l > ple->l_lensed_max,
-	     ple->error_message,
-	     "you asked for lensed Cls at l=%d, they were computed only up to l=%d, you should increase l_max_scalars or decrease the precision parameter delta_l_max",l,ple->l_lensed_max);
+             ple->error_message,
+             "you asked for lensed Cls at l=%d, they were computed only up to l=%d, you should increase l_max_scalars or decrease the precision parameter delta_l_max",l,ple->l_lensed_max);
 
   class_call(array_interpolate_spline(ple->l,
-				      ple->l_size,
-				      ple->cl_lens,
-				      ple->ddcl_lens,
-				      ple->lt_size,
-				      l,
-				      &last_index,
-				      cl_lensed,
-				      ple->lt_size,
-				      ple->error_message),
-	     ple->error_message,
-	     ple->error_message);
+                                      ple->l_size,
+                                      ple->cl_lens,
+                                      ple->ddcl_lens,
+                                      ple->lt_size,
+                                      l,
+                                      &last_index,
+                                      cl_lensed,
+                                      ple->lt_size,
+                                      ple->error_message),
+             ple->error_message,
+             ple->error_message);
   
   /* set to zero for the types such that l<l_max */
   for (index_lt=0; index_lt<ple->lt_size; index_lt++) 
@@ -81,17 +81,17 @@ int lensing_cl_at_l(
  */
 
 int lensing_init(
-		 struct precision * ppr,
-		 struct perturbs * ppt,
-		 struct spectra * psp,
-		 struct nonlinear * pnl,
-		 struct lensing * ple
-		 ) {
+                 struct precision * ppr,
+                 struct perturbs * ppt,
+                 struct spectra * psp,
+                 struct nonlinear * pnl,
+                 struct lensing * ple
+                 ) {
 
   /** local variables */
 
   double * mu; /* mu[index_mu]: discretized values of mu
-		  between -1 and 1, roots of Legendre polynomial */
+                  between -1 and 1, roots of Legendre polynomial */
   double * w8; /* Corresponding Gauss-Legendre quadrature weights */
   double theta,delta_theta;
 
@@ -148,10 +148,10 @@ int lensing_init(
   double * sqrt5;
 
   double ** cl_md_ic; /* array with argument 
-			 cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
 
   double ** cl_md;    /* array with argument 
-			 cl_md[index_md][index_ct] */
+                         cl_md[index_md][index_ct] */
 
   int index_md;
 
@@ -172,9 +172,9 @@ int lensing_init(
     if (ple->lensing_verbose > 0) {
       printf("Computing lensed spectra ");
       if (ppr->accurate_lensing==_TRUE_)
-	printf("(accurate mode)\n");
+        printf("(accurate mode)\n");
       else
-	printf("(fast mode)\n");
+        printf("(fast mode)\n");
     }
   }
   
@@ -182,8 +182,8 @@ int lensing_init(
       lensing structure */
   
   class_call(lensing_indices(ppr,psp,ple),
-	     ple->error_message,
-	     ple->error_message);
+             ple->error_message,
+             ple->error_message);
 
   /** put here all precision variables; will be stored later in precision structure */
   /** Last element in mu will be for mu=1, needed for sigma2 
@@ -211,12 +211,12 @@ int lensing_init(
   if (ppr->accurate_lensing == _TRUE_) {
     //debut = omp_get_wtime();
     class_call(quadrature_gauss_legendre(mu,
-					 w8,
-					 num_mu-1,
-					 ppr->tol_gauss_legendre,
-					 ple->error_message),
-	       ple->error_message,
-	       ple->error_message); 
+                                         w8,
+                                         num_mu-1,
+                                         ppr->tol_gauss_legendre,
+                                         ple->error_message),
+               ple->error_message,
+               ple->error_message); 
     //fin = omp_get_wtime();
     //cpu_time = (fin-debut);
     //printf("time in quadrature_gauss_legendre=%4.3f s\n",cpu_time); 
@@ -235,20 +235,20 @@ int lensing_init(
 
   icount = 0;
   class_alloc(d00,
-	      num_mu*sizeof(double*),
-	      ple->error_message);
+              num_mu*sizeof(double*),
+              ple->error_message);
 
   class_alloc(d11,
-	      num_mu*sizeof(double*),
-	      ple->error_message);
+              num_mu*sizeof(double*),
+              ple->error_message);
 	
   class_alloc(d1m1,
-	      num_mu*sizeof(double*),
-	      ple->error_message);
+              num_mu*sizeof(double*),
+              ple->error_message);
 	
   class_alloc(d2m2,
-	      num_mu*sizeof(double*),
-	      ple->error_message);
+              num_mu*sizeof(double*),
+              ple->error_message);
   icount += 4*num_mu*(ple->l_unlensed_max+1);
 
   if(ple->has_te==_TRUE_) {
@@ -295,8 +295,8 @@ int lensing_init(
 
   /** Allocate main contiguous buffer **/
   class_alloc(buf_dxx,
-	      icount * sizeof(double),
-	      ple->error_message);
+              icount * sizeof(double),
+              ple->error_message);
 
   icount = 0;
   for (index_mu=0; index_mu<num_mu; index_mu++) {
@@ -342,20 +342,20 @@ int lensing_init(
 
   //debut = omp_get_wtime();
   class_call(lensing_d00(mu,num_mu,ple->l_unlensed_max,d00),
-	     ple->error_message,
-	     ple->error_message);
+             ple->error_message,
+             ple->error_message);
 
   class_call(lensing_d11(mu,num_mu,ple->l_unlensed_max,d11),
-	     ple->error_message,
-	     ple->error_message);
+             ple->error_message,
+             ple->error_message);
 
   class_call(lensing_d1m1(mu,num_mu,ple->l_unlensed_max,d1m1),
-	     ple->error_message,
-	     ple->error_message);
+             ple->error_message,
+             ple->error_message);
 
   class_call(lensing_d2m2(mu,num_mu,ple->l_unlensed_max,d2m2),
-	     ple->error_message,
-	     ple->error_message);
+             ple->error_message,
+             ple->error_message);
   //fin = omp_get_wtime();
   //cpu_time = (fin-debut);
   //printf("time in lensing_dxx=%4.3f s\n",cpu_time); 
@@ -403,26 +403,26 @@ int lensing_init(
   /** - compute Cgl(mu), Cgl2(mu) and sigma2(mu) */
 
   class_alloc(Cgl,
-	      num_mu*sizeof(double),
-	      ple->error_message);
+              num_mu*sizeof(double),
+              ple->error_message);
 
   class_alloc(Cgl2,
-	      num_mu*sizeof(double),
-	      ple->error_message);
+              num_mu*sizeof(double),
+              ple->error_message);
 
   class_alloc(sigma2,
-	      (num_mu-1)*sizeof(double), /* Zero separation is omitted */
-	      ple->error_message);
+              (num_mu-1)*sizeof(double), /* Zero separation is omitted */
+              ple->error_message);
 
   class_alloc(cl_unlensed,
-	      psp->ct_size*sizeof(double),
-	      ple->error_message);
+              psp->ct_size*sizeof(double),
+              ple->error_message);
 
 
   /** Locally store unlensed temperature cl_tt and potential cl_pp spectra **/
   class_alloc(cl_tt,
-	      (ple->l_unlensed_max+1)*sizeof(double),
-	      ple->error_message);
+              (ple->l_unlensed_max+1)*sizeof(double),
+              ple->error_message);
   if (ple->has_te==_TRUE_) {
     class_alloc(cl_te,
                 (ple->l_unlensed_max+1)*sizeof(double),
@@ -438,30 +438,30 @@ int lensing_init(
                 ple->error_message);  
   }
   class_alloc(cl_pp,
-	      (ple->l_unlensed_max+1)*sizeof(double),
-	      ple->error_message);
+              (ple->l_unlensed_max+1)*sizeof(double),
+              ple->error_message);
 
   class_alloc(cl_md_ic,
-	      psp->md_size*sizeof(double *),
-	      ple->error_message);
+              psp->md_size*sizeof(double *),
+              ple->error_message);
 
   class_alloc(cl_md,
-	      psp->md_size*sizeof(double *),
-	      ple->error_message);
+              psp->md_size*sizeof(double *),
+              ple->error_message);
 
   for (index_md = 0; index_md < psp->md_size; index_md++) {
 
     if (psp->md_size > 1)
 
       class_alloc(cl_md[index_md],  
-		  psp->ct_size*sizeof(double),
-		  ple->error_message);	
+                  psp->ct_size*sizeof(double),
+                  ple->error_message);	
 
     if (psp->ic_size[index_md] > 1)
 
       class_alloc(cl_md_ic[index_md],
-		  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
-		  ple->error_message);
+                  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
+                  ple->error_message);
   }
 
   for (l=2; l<=ple->l_unlensed_max; l++) {
@@ -495,8 +495,8 @@ int lensing_init(
   /** Compute sigma2(mu) and Cgl2(mu) **/
 
   //debut = omp_get_wtime();
-#pragma omp parallel for \
-  private (index_mu,l) \
+#pragma omp parallel for                        \
+  private (index_mu,l)                          \
   schedule (static)
   for (index_mu=0; index_mu<num_mu; index_mu++) {
 
@@ -506,10 +506,10 @@ int lensing_init(
     for (l=2; l<=ple->l_unlensed_max; l++) {
 
       Cgl[index_mu] += (2.*l+1.)*l*(l+1.)*
-	cl_pp[l]*d11[index_mu][l];
+        cl_pp[l]*d11[index_mu][l];
 
       Cgl2[index_mu] += (2.*l+1.)*l*(l+1.)*
-	cl_pp[l]*d1m1[index_mu][l];
+        cl_pp[l]*d1m1[index_mu][l];
 
     }
 
@@ -533,32 +533,32 @@ int lensing_init(
   if (ple->has_tt==_TRUE_) {
     
     class_calloc(ksi,
-		 (num_mu-1),
-		 sizeof(double),
-		 ple->error_message);
+                 (num_mu-1),
+                 sizeof(double),
+                 ple->error_message);
   }
   
   /** ksiX is for TE **/
   if (ple->has_te==_TRUE_) {
     
     class_calloc(ksiX,
-		 (num_mu-1),
-		 sizeof(double),
-		 ple->error_message);
+                 (num_mu-1),
+                 sizeof(double),
+                 ple->error_message);
   }
 
   /** ksip, ksim for EE, BB **/
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
     
     class_calloc(ksip,
-		 (num_mu-1),
-		 sizeof(double),
-		 ple->error_message);
+                 (num_mu-1),
+                 sizeof(double),
+                 ple->error_message);
     
     class_calloc(ksim,
-		 (num_mu-1),
-		 sizeof(double),
-		 ple->error_message); 
+                 (num_mu-1),
+                 sizeof(double),
+                 ple->error_message); 
   }
 
   for (l=2;l<=ple->l_unlensed_max;l++) {
@@ -573,9 +573,9 @@ int lensing_init(
 
 
   //debut = omp_get_wtime();
-#pragma omp parallel for						\
-  private (index_mu,l,ll,res,resX,resp,resm,lens,lensp,lensm,		\
-	   fac,fac1,X_000,X_p000,X_220,X_022,X_p022,X_121,X_132,X_242)	\
+#pragma omp parallel for                                                \
+  private (index_mu,l,ll,res,resX,resp,resm,lens,lensp,lensm,           \
+           fac,fac1,X_000,X_p000,X_220,X_022,X_p022,X_121,X_132,X_242)	\
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu-1;index_mu++) {
@@ -588,7 +588,7 @@ int lensing_init(
       fac1 = (2*ll+1)/(4.*_PI_);
       
       /* In the following we will keep terms of the form (sigma2)^k*(Cgl2)^m 
-	 with k+m <= 2 */
+         with k+m <= 2 */
 
       X_000 = exp(-fac*sigma2[index_mu]);
       X_p000 = -fac*X_000;
@@ -602,84 +602,84 @@ int lensing_init(
       X_022=0.;
 
       if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
-	/* X_022 = exp(-(fac-1.)*sigma2[index_mu]); */
-	X_022 = X_000 * (1+sigma2[index_mu]*(1+0.5*sigma2[index_mu])); /* Order 2 */
-	X_p022 = (fac-1.)*X_022;
-	/* X_242 = 0.25*sqrt4[l]  * exp(-(fac-5./2.)*sigma2[index_mu]); */
-	X_242 = 0.25*sqrt4[l] * X_000; /* Order 0 */
-	if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
+        /* X_022 = exp(-(fac-1.)*sigma2[index_mu]); */
+        X_022 = X_000 * (1+sigma2[index_mu]*(1+0.5*sigma2[index_mu])); /* Order 2 */
+        X_p022 = (fac-1.)*X_022;
+        /* X_242 = 0.25*sqrt4[l]  * exp(-(fac-5./2.)*sigma2[index_mu]); */
+        X_242 = 0.25*sqrt4[l] * X_000; /* Order 0 */
+        if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
 	  
-	  /* X_121 = - 0.5*sqrt2[l] * exp(-(fac-2./3.)*sigma2[index_mu]);
-	     X_132 = - 0.5*sqrt3[l] * exp(-(fac-5./3.)*sigma2[index_mu]); */
-	  X_121 = -0.5*sqrt2[l] * X_000 * (1+2./3.*sigma2[index_mu]); /* Order 1 */
-	  X_132 = -0.5*sqrt3[l] * X_000 * (1+5./3.*sigma2[index_mu]); /* Order 1 */
-	}
+          /* X_121 = - 0.5*sqrt2[l] * exp(-(fac-2./3.)*sigma2[index_mu]);
+             X_132 = - 0.5*sqrt3[l] * exp(-(fac-5./3.)*sigma2[index_mu]); */
+          X_121 = -0.5*sqrt2[l] * X_000 * (1+2./3.*sigma2[index_mu]); /* Order 1 */
+          X_132 = -0.5*sqrt3[l] * X_000 * (1+5./3.*sigma2[index_mu]); /* Order 1 */
+        }
       }
       
 
       if (ple->has_tt==_TRUE_) {
 	
-	res = fac1*cl_tt[l];
+        res = fac1*cl_tt[l];
 	
-	lens = (X_000*X_000*d00[index_mu][l] +
-		X_p000*X_p000*d1m1[index_mu][l]
-		*Cgl2[index_mu]*8./(ll*(ll+1)) +
-		(X_p000*X_p000*d00[index_mu][l] +
-		 X_220*X_220*d2m2[index_mu][l])
-		*Cgl2[index_mu]*Cgl2[index_mu]);
-	if (ppr->accurate_lensing == _FALSE_) {
-	  /* Remove unlensed correlation function */
-	  lens -= d00[index_mu][l];
-	}
-	res *= lens;
-	ksi[index_mu] += res;
+        lens = (X_000*X_000*d00[index_mu][l] +
+                X_p000*X_p000*d1m1[index_mu][l]
+                *Cgl2[index_mu]*8./(ll*(ll+1)) +
+                (X_p000*X_p000*d00[index_mu][l] +
+                 X_220*X_220*d2m2[index_mu][l])
+                *Cgl2[index_mu]*Cgl2[index_mu]);
+        if (ppr->accurate_lensing == _FALSE_) {
+          /* Remove unlensed correlation function */
+          lens -= d00[index_mu][l];
+        }
+        res *= lens;
+        ksi[index_mu] += res;
       }
       
       if (ple->has_te==_TRUE_) {
 	
-	resX = fac1*cl_te[l];
+        resX = fac1*cl_te[l];
 	
 	
-	lens = ( X_022*X_000*d20[index_mu][l] +
-		  Cgl2[index_mu]*2.*X_p000/sqrt5[l] *
-		  (X_121*d11[index_mu][l] + X_132*d3m1[index_mu][l]) +
-                   0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
-		  ( ( 2.*X_p022*X_p000+X_220*X_220 ) *
-		    d20[index_mu][l] + X_220*X_242*d4m2[index_mu][l] ) );
-	if (ppr->accurate_lensing == _FALSE_) {
-	  lens -= d20[index_mu][l];
-	}
-	resX *= lens;
-	ksiX[index_mu] += resX;
+        lens = ( X_022*X_000*d20[index_mu][l] +
+                 Cgl2[index_mu]*2.*X_p000/sqrt5[l] *
+                 (X_121*d11[index_mu][l] + X_132*d3m1[index_mu][l]) +
+                 0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
+                 ( ( 2.*X_p022*X_p000+X_220*X_220 ) *
+                   d20[index_mu][l] + X_220*X_242*d4m2[index_mu][l] ) );
+        if (ppr->accurate_lensing == _FALSE_) {
+          lens -= d20[index_mu][l];
+        }
+        resX *= lens;
+        ksiX[index_mu] += resX;
       }
       
       if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
 	  
-	resp = fac1*(cl_ee[l]+cl_bb[l]);
-	resm = fac1*(cl_ee[l]-cl_bb[l]);
+        resp = fac1*(cl_ee[l]+cl_bb[l]);
+        resm = fac1*(cl_ee[l]-cl_bb[l]);
 	    
-	lensp = ( X_022*X_022*d22[index_mu][l] +
-		  2.*Cgl2[index_mu]*X_132*X_121*d31[index_mu][l] +
-		  Cgl2[index_mu]*Cgl2[index_mu] *
-		  ( X_p022*X_p022*d22[index_mu][l] +
-		    X_242*X_220*d40[index_mu][l] ) );
+        lensp = ( X_022*X_022*d22[index_mu][l] +
+                  2.*Cgl2[index_mu]*X_132*X_121*d31[index_mu][l] +
+                  Cgl2[index_mu]*Cgl2[index_mu] *
+                  ( X_p022*X_p022*d22[index_mu][l] +
+                    X_242*X_220*d40[index_mu][l] ) );
 	
-	lensm = ( X_022*X_022*d2m2[index_mu][l] +
-		  Cgl2[index_mu] *
-		  ( X_121*X_121*d1m1[index_mu][l] +
-		    X_132*X_132*d3m3[index_mu][l] ) +
-		  0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
-		  ( 2.*X_p022*X_p022*d2m2[index_mu][l] +
-		    X_220*X_220*d00[index_mu][l] +
-		    X_242*X_242*d4m4[index_mu][l] ) );
-	if (ppr->accurate_lensing == _FALSE_) {
-	  lensp -= d22[index_mu][l];
-	  lensm -= d2m2[index_mu][l];
-	}
-	resp *= lensp;
-	resm *= lensm;
-	ksip[index_mu] += resp;
-	ksim[index_mu] += resm;
+        lensm = ( X_022*X_022*d2m2[index_mu][l] +
+                  Cgl2[index_mu] *
+                  ( X_121*X_121*d1m1[index_mu][l] +
+                    X_132*X_132*d3m3[index_mu][l] ) +
+                  0.5 * Cgl2[index_mu] * Cgl2[index_mu] *
+                  ( 2.*X_p022*X_p022*d2m2[index_mu][l] +
+                    X_220*X_220*d00[index_mu][l] +
+                    X_242*X_242*d4m4[index_mu][l] ) );
+        if (ppr->accurate_lensing == _FALSE_) {
+          lensp -= d22[index_mu][l];
+          lensm -= d2m2[index_mu][l];
+        }
+        resp *= lensp;
+        resm *= lensm;
+        ksip[index_mu] += resp;
+        ksim[index_mu] += resm;
       }
     }
   }
@@ -695,8 +695,8 @@ int lensing_init(
              ple->error_message);
   if (ppr->accurate_lensing == _FALSE_) {
     class_call(lensing_addback_cl_tt(ple,cl_tt),
-	       ple->error_message,
-	       ple->error_message);
+               ple->error_message,
+               ple->error_message);
   }
 
   if (ple->has_te==_TRUE_) {
@@ -705,20 +705,20 @@ int lensing_init(
                ple->error_message);
     if (ppr->accurate_lensing == _FALSE_) {
       class_call(lensing_addback_cl_te(ple,cl_te),
-		 ple->error_message,
-		 ple->error_message);
+                 ple->error_message,
+                 ple->error_message);
     }
   }
   
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
 
     class_call(lensing_lensed_cl_ee_bb(ksip,ksim,d22,d2m2,w8,num_mu-1,ple),
-	       ple->error_message,
-	       ple->error_message);
+               ple->error_message,
+               ple->error_message);
     if (ppr->accurate_lensing == _FALSE_) {
       class_call(lensing_addback_cl_ee_bb(ple,cl_ee,cl_bb),
-		 ple->error_message,
-		 ple->error_message);
+                 ple->error_message,
+                 ple->error_message);
     }
   } 
   //fin=omp_get_wtime();
@@ -728,14 +728,14 @@ int lensing_init(
   /** - spline computed Cls in view of interpolation */
 
   class_call(array_spline_table_lines(ple->l,
-				      ple->l_size,
-				      ple->cl_lens,
-				      ple->lt_size,
-				      ple->ddcl_lens,
-				      _SPLINE_EST_DERIV_,
-				      ple->error_message),
-	     ple->error_message,
-	     ple->error_message);
+                                      ple->l_size,
+                                      ple->cl_lens,
+                                      ple->lt_size,
+                                      ple->ddcl_lens,
+                                      _SPLINE_EST_DERIV_,
+                                      ple->error_message),
+             ple->error_message,
+             ple->error_message);
   
   /** Free lots of stuff **/
   free(buf_dxx);
@@ -823,18 +823,18 @@ int lensing_free(
  */
 
 int lensing_indices(
-		    struct precision * ppr,
-		    struct spectra * psp,
-		    struct lensing * ple
-		    ){
+                    struct precision * ppr,
+                    struct spectra * psp,
+                    struct lensing * ple
+                    ){
   
   int index_l;
   
   double ** cl_md_ic; /* array with argument 
-			 cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
 
   double ** cl_md;    /* array with argument 
-			 cl_md[index_md][index_ct] */
+                         cl_md[index_md][index_ct] */
 
   int index_md;
   int index_lt;
@@ -867,7 +867,7 @@ int lensing_indices(
 
   if (psp->has_bb == _TRUE_) {
     ple->has_bb = _TRUE_;
-    ple->index_lt_bb=psp->index_ct_bb;      
+    ple->index_lt_bb=psp->index_ct_bb;
   }
   else {
     ple->has_bb = _FALSE_;
@@ -946,43 +946,43 @@ int lensing_indices(
   /* allocate table where results will be stored */
     
   class_alloc(ple->cl_lens,
-	      ple->l_size*ple->lt_size*sizeof(double),
-	      ple->error_message);
+              ple->l_size*ple->lt_size*sizeof(double),
+              ple->error_message);
 
   class_alloc(ple->ddcl_lens,
-	      ple->l_size*ple->lt_size*sizeof(double),
-	      ple->error_message);
+              ple->l_size*ple->lt_size*sizeof(double),
+              ple->error_message);
 
   /* fill with unlensed cls */
 
   class_alloc(cl_md_ic,
-	      psp->md_size*sizeof(double *),
-	      ple->error_message);
+              psp->md_size*sizeof(double *),
+              ple->error_message);
 
   class_alloc(cl_md,
-	      psp->md_size*sizeof(double *),
-	      ple->error_message);
+              psp->md_size*sizeof(double *),
+              ple->error_message);
 
   for (index_md = 0; index_md < psp->md_size; index_md++) {
 
     if (psp->md_size > 1)
 
       class_alloc(cl_md[index_md],  
-		  psp->ct_size*sizeof(double),
-		  ple->error_message);	
+                  psp->ct_size*sizeof(double),
+                  ple->error_message);	
 
     if (psp->ic_size[index_md] > 1)
 
       class_alloc(cl_md_ic[index_md],
-		  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
-		  ple->error_message);
+                  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
+                  ple->error_message);
   }
   
   for (index_l=0; index_l<ple->l_size; index_l++) {
     
     class_call(spectra_cl_at_l(psp,ple->l[index_l],&(ple->cl_lens[index_l*ple->lt_size]),cl_md,cl_md_ic),
-	       psp->error_message,
-	       ple->error_message);
+               psp->error_message,
+               ple->error_message);
     
   }
 
@@ -999,14 +999,26 @@ int lensing_indices(
   free(cl_md_ic);
   free(cl_md);
 
+  /* we want to output Cl_lensed up to the same l_max as Cl_unlensed
+     (even if a number delta_l_max of extra values of l have been used
+     internally for more accurate results). Notable exception to the
+     above rule: ClBB_lensed(saclars) must be outputed at least up to the same l_max as
+     ClEE_unlensed(scalars) (since ClBB_unlensed is null for scalars)
+*/
+
   class_alloc(ple->l_max_lt,ple->lt_size*sizeof(double),ple->error_message);
   for (index_lt = 0; index_lt < ple->lt_size; index_lt++) {
     ple->l_max_lt[index_lt]=0.;
     for (index_md = 0; index_md < psp->md_size; index_md++) {
       ple->l_max_lt[index_lt]=max(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][index_lt]);
+
+      if ((ple->has_bb == _TRUE_) && (ple->has_ee == _TRUE_) && (index_lt == ple->index_lt_bb)) {
+        ple->l_max_lt[index_lt]=max(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][ple->index_lt_ee]);
+      }
+
     }
   }
-  
+
   return _SUCCESS_;
   
 }
@@ -1024,20 +1036,20 @@ int lensing_indices(
 
 
 int lensing_lensed_cl_tt(
-			 double *ksi, 
-			 double **d00,
-			 double *w8,
-			 int nmu,
-			 struct lensing * ple
-			 ) {
+                         double *ksi, 
+                         double **d00,
+                         double *w8,
+                         int nmu,
+                         struct lensing * ple
+                         ) {
   
   double cle;
   int imu;
   int index_l;
 
   /** Integration by Gauss-Legendre quadrature **/
-#pragma omp parallel for			\
-  private (imu,index_l,cle)			\
+#pragma omp parallel for                        \
+  private (imu,index_l,cle)                     \
   schedule (static)
 
   for(index_l=0; index_l<ple->l_size; index_l++){
@@ -1062,8 +1074,8 @@ int lensing_lensed_cl_tt(
  */
 
 int lensing_addback_cl_tt(
-			  struct lensing * ple,
-			  double *cl_tt) {
+                          struct lensing * ple,
+                          double *cl_tt) {
   int index_l, l;
 
   for (index_l=0; index_l<ple->l_size; index_l++) {
@@ -1099,8 +1111,8 @@ int lensing_lensed_cl_te(
   int index_l;
 
   /** Integration by Gauss-Legendre quadrature **/
-#pragma omp parallel for			\
-  private (imu,index_l,clte)			\
+#pragma omp parallel for                        \
+  private (imu,index_l,clte)                    \
   schedule (static)
 
   for(index_l=0; index_l < ple->l_size; index_l++){
@@ -1125,8 +1137,8 @@ int lensing_lensed_cl_te(
  */
 
 int lensing_addback_cl_te(
-			  struct lensing * ple,
-			  double *cl_te) {
+                          struct lensing * ple,
+                          double *cl_te) {
   int index_l, l;
 
   for (index_l=0; index_l<ple->l_size; index_l++) {
@@ -1152,22 +1164,22 @@ int lensing_addback_cl_te(
 
 
 int lensing_lensed_cl_ee_bb(
-			    double *ksip,
-			    double *ksim,
-			    double **d22,
-			    double **d2m2,
-			    double *w8,
-			    int nmu,
-			    struct lensing * ple
-			    ) {
+                            double *ksip,
+                            double *ksim,
+                            double **d22,
+                            double **d2m2,
+                            double *w8,
+                            int nmu,
+                            struct lensing * ple
+                            ) {
   
   double clp, clm;
   int imu;
   int index_l;
 
   /** Integration by Gauss-Legendre quadrature **/
-#pragma omp parallel for			\
-  private (imu,index_l,clp,clm)			\
+#pragma omp parallel for                        \
+  private (imu,index_l,clp,clm)                 \
   schedule (static)
 
   for(index_l=0; index_l < ple->l_size; index_l++){
@@ -1195,9 +1207,9 @@ int lensing_lensed_cl_ee_bb(
  */
 
 int lensing_addback_cl_ee_bb(
-			     struct lensing * ple,
-			     double * cl_ee,
-			     double * cl_bb) {
+                             struct lensing * ple,
+                             double * cl_ee,
+                             double * cl_bb) {
 
   int index_l, l;
 
@@ -1224,11 +1236,11 @@ int lensing_addback_cl_ee_bb(
  **/
 
 int lensing_d00(
-		double * mu,
-		int num_mu,
-		int lmax,
-		double ** d00
-		) {
+                double * mu,
+                int num_mu,
+                int lmax,
+                double ** d00
+                ) {
   double ll, dlm1, dl, dlp1;
   int index_mu, l;
   double *fac1, *fac2, *fac3;
@@ -1244,8 +1256,8 @@ int lensing_d00(
     fac3[l] = sqrt(2./(2*ll+3));
   }
 
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1301,8 +1313,8 @@ int lensing_d11(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-1)*(ll+1)/(ll*(ll+2))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1338,11 +1350,11 @@ int lensing_d11(
  **/
 
 int lensing_d1m1(
-		 double * mu,
-		 int num_mu,
-		 int lmax,
-		 double ** d1m1
-		 ) {
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double ** d1m1
+                 ) {
   double ll, dlm1, dl, dlp1;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
@@ -1358,8 +1370,8 @@ int lensing_d1m1(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-1)*(ll+1)/(ll*(ll+2))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1415,8 +1427,8 @@ int lensing_d2m2(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-2)*(ll+2)/((ll-1)*(ll+3))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1452,11 +1464,11 @@ int lensing_d2m2(
  **/
 
 int lensing_d22(
-		double * mu,
-		int num_mu,
-		int lmax,
-		double ** d22
-		) {
+                double * mu,
+                int num_mu,
+                int lmax,
+                double ** d22
+                ) {
   double ll, dlm1, dl, dlp1;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
@@ -1472,8 +1484,8 @@ int lensing_d22(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-2)*(ll+2)/((ll-1)*(ll+3))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1527,8 +1539,8 @@ int lensing_d20(
     fac3[l] = sqrt((2*ll+3)*(ll-2)*(ll+2)/((2*ll-1)*(ll-1)*(ll+3)));
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1584,8 +1596,8 @@ int lensing_d31(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1)*(ll-3)*(ll+3)*(ll-1)*(ll+1)/((ll-2)*(ll+4)*ll*(ll+2)))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1622,11 +1634,11 @@ int lensing_d31(
  **/
 
 int lensing_d3m1(
-		 double * mu,
-		 int num_mu,
-		 int lmax,
-		 double ** d3m1
-		 ) {
+                 double * mu,
+                 int num_mu,
+                 int lmax,
+                 double ** d3m1
+                 ) {
   double ll, dlm1, dl, dlp1;
   int index_mu, l;
   double *fac1, *fac2, *fac3, *fac4;
@@ -1642,8 +1654,8 @@ int lensing_d3m1(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1)*(ll-3)*(ll+3)*(ll-1)*(ll+1)/((ll-2)*(ll+4)*ll*(ll+2)))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1700,8 +1712,8 @@ int lensing_d3m3(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-3)*(ll+3)*(l+1)/((ll-2)*(ll+4)*ll);
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1756,8 +1768,8 @@ int lensing_d40(
     fac3[l] = sqrt((2*ll+3)*(ll-4)*(ll+4)/((2*ll-1)*(ll-3)*(ll+5)));
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1815,8 +1827,8 @@ int lensing_d4m2(
     fac3[l] = sqrt((2*ll+3)*(ll-4)*(ll+4)*(ll-2)*(ll+2)/((2*ll-1)*(ll-3)*(ll+5)*(ll-1)*(ll+3)))*(ll+1)/ll;
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
@@ -1874,8 +1886,8 @@ int lensing_d4m4(
     fac3[l] = sqrt((2*ll+3)/(2*ll-1))*(ll-4)*(ll+4)*(ll+1)/((ll-3)*(ll+5)*ll);
     fac4[l] = sqrt(2./(2*ll+3));
   }
-#pragma omp parallel for			\
-  private (index_mu,dlm1,dl,dlp1,l,ll)		\
+#pragma omp parallel for                        \
+  private (index_mu,dlm1,dl,dlp1,l,ll)          \
   schedule (static)
 
   for (index_mu=0;index_mu<num_mu;index_mu++) {
