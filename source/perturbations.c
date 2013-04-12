@@ -25,6 +25,7 @@
  */
 
 #include "perturbations.h"
+  
 
 /** 
  * Source function \f$ S^{X} (k, \tau) \f$ at a given conformal time tau.
@@ -124,6 +125,8 @@ int perturb_init(
      to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
      parallel region. */
   int abort;
+
+  size_t sz;
 
 #ifdef _OPENMP
   /* instrumentation times */
@@ -225,7 +228,8 @@ int perturb_init(
 
     abort = _FALSE_;
 
-#pragma omp parallel                            \
+  sz = sizeof(struct perturb_workspace);
+#pragma omp parallel				\
   shared(pppw,ppr,pba,pth,ppt,index_md,abort)	\
   private(thread)
 
@@ -237,7 +241,7 @@ int perturb_init(
 
       /** create a workspace (one per thread in multi-thread case) */
 
-      class_alloc_parallel(pppw[thread],sizeof(struct perturb_workspace),ppt->error_message);
+      class_alloc_parallel(pppw[thread],sz,ppt->error_message);
 
       /** (a) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
 

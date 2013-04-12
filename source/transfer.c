@@ -487,7 +487,7 @@ int transfer_init(
 	       x_min, the j_l(x)s, the j_l''(x)s. They are all
 	       allocated in a contiguous memory zone, so we can use a
 	       single memcpy. */
-	    memcpy(x_min_l,pbs->x_min[index_l],(1+num_j*x_size_l)*sizeof(double));
+	    class_protect_memcpy(x_min_l,pbs->x_min[index_l],(1+num_j*x_size_l)*sizeof(double));
 	
 	    /* now define the address of the ddj_l field (and
 	       eventually additional fields in the workspace) */

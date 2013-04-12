@@ -6,6 +6,8 @@
 #include "string.h"
 #include "float.h"
 #include "svnversion.h"
+#include <stdarg.h>
+
 #ifdef _OPENMP
 #include "omp.h"
 #endif
@@ -45,226 +47,152 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? (i2+N*i1-(i1*(i1+1))/2) : (i1+N*i2-(i2*(i2+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without loosing or double-counting any information */
 
-/* macro for calling function and returning error if it failed */
-#define class_call(function,						\
-		   error_message_from_function,				\
-		   error_message_output)				\
-  do {									\
-    if (function == _FAILURE_) {					\
-      ErrorMsg Transmit_Error_Message;					\
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in %s;\n=>%s",	\
-	      __func__,__LINE__,#function,error_message_from_function);	\
-      sprintf(error_message_output,"%s",Transmit_Error_Message);	\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
+// needed because of weird openmp bug on macosx lion...
+void class_protect_sprintf(char* dest, char* tpl,...);
+void* class_protect_memcpy(void* dest, void* from, size_t sz);
+
+
+#define class_build_error_string(dest,tmpl,...) {                                                                \
+  class_protect_sprintf(dest,"%s(L:%d) :%s",__func__,__LINE__,tmpl,__VA_ARGS__);                                 \
+}
+
+// Error reporting macros
+
+// Call 
+#define class_call_message(err_out,extra,err_mess)                                                               \
+  class_build_error_string(err_out,"error in %s;\n=>%s",extra,err_mess);
 
 /* macro for calling function and returning error if it failed */
-#define class_call_except(function,					\
-			  error_message_from_function,			\
-			  error_message_output,				\
-			  list_of_commands_without_commas)		\
-  do {									\
-    if (function == _FAILURE_) {					\
-      ErrorMsg Transmit_Error_Message;					\
-      sprintf(Transmit_Error_Message,"%s(L:%d) : error in %s;\n=>%s",	\
-	      __func__,__LINE__,#function,error_message_from_function);	\
-      sprintf(error_message_output,"%s",Transmit_Error_Message);	\
-      list_of_commands_without_commas;					\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
+#define class_call_except(function, error_message_from_function, error_message_output,list_of_commands) {        \
+  if (function == _FAILURE_) {                                                                                   \
+    class_call_message(error_message_output,#function,error_message_from_function);                              \
+    list_of_commands;                                                                                            \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
+
+/* macro for calling function and returning error if it failed */
+#define class_call(function, error_message_from_function, error_message_output)                                  \
+  class_call_except(function, error_message_from_function,error_message_output,)
 
 /* same in parallel region */
-#define class_call_parallel(function,					\
-			    error_message_from_function,		\
-			    error_message_output)			\
-  do {									\
-    if (abort == _FALSE_) {						\
-      if (function == _FAILURE_) {					\
-	ErrorMsg Transmit_Error_Message;				\
-	sprintf(Transmit_Error_Message,"%s(L:%d) : error in %s;\n=>%s",	\
-		__func__,__LINE__,#function,error_message_from_function); \
-	sprintf(error_message_output,"%s",Transmit_Error_Message);	\
-	abort=_TRUE_;							\
-      }									\
-    }									\
-  } while(0);
+#define class_call_parallel(function, error_message_from_function, error_message_output) {                       \
+  if (abort == _FALSE_) {                                                                                        \
+    if (function == _FAILURE_) {                                                                                 \
+      class_call_message(error_message_output,#function,error_message_from_function);                            \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+}
+
+
+
+
+// Alloc 
+#define class_alloc_message(err_out,extra,sz)                                                                    \
+  class_build_error_string(err_out,"could not allocate %s with size %d",extra,sz);
+
+/* macro for allocating memory and returning error if it failed */
+#define class_alloc(pointer, size, error_message_output)  {                                                      \
+  pointer=malloc(size);                                                                                          \
+  if (pointer == NULL) {                                                                                         \
+    int size_int;                                                                                                \
+    size_int = size;                                                                                             \
+    class_alloc_message(error_message_output,#pointer, size_int);                                                \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+} 
+
+/* same inside parallel structure */
+#define class_alloc_parallel(pointer, size, error_message_output)  {                                             \
+  pointer=NULL;                                                                                                  \
+  if (abort == _FALSE_) {                                                                                        \
+    pointer=malloc(size);                                                                                        \
+    if (pointer == NULL) {                                                                                       \
+      int size_int;                                                                                              \
+      size_int = size;                                                                                           \
+      class_alloc_message(error_message_output,#pointer, size_int);                                              \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+} 
+
+/* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
+#define class_calloc(pointer, init,size, error_message_output)  {                                                \
+  pointer=calloc(init,size);                                                                                     \
+  if (pointer == NULL) {                                                                                         \
+    int size_int;                                                                                                \
+    size_int = size;                                                                                             \
+    class_alloc_message(error_message_output,#pointer, size_int);                                                \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+} 
+
+// Testing
+
+#define class_test_message(err_out,extra,args...) {                                                              \
+  ErrorMsg Optional_arguments;                                                                                   \
+  class_protect_sprintf(Optional_arguments,args);                                                                \
+  class_build_error_string(err_out,"condition (%s) is true; %s",extra,Optional_arguments);                       \
+}
 
 /* macro for testing condition and returning error if condition is true;
    args is a variable list of optional arguments, e.g.: args="x=%d",x 
    args cannot be empty, if there is nothing to pass use args="" */
-#define class_test(condition,						\
-		   error_message_output,				\
-		   args...)						\
-  do {									\
-    if (condition) {							\
-      ErrorMsg Transmit_Error_Message;					\
-      ErrorMsg Optional_arguments;					\
-      sprintf(Transmit_Error_Message,					\
-	      "%s(L:%d) : condition (%s) is true",			\
-	      __func__,__LINE__,#condition);				\
-      sprintf(Optional_arguments,args);					\
-      sprintf(error_message_output,"%s; %s",				\
-	      Transmit_Error_Message, Optional_arguments);		\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
+#define class_test_except(condition, error_message_output,list_of_commands, args...) {                           \
+  if (condition) {                                                                                               \
+    class_test_message(error_message_output,#condition, args);                                                   \
+    list_of_commands;                                                                                            \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
 
-/* macro for testing condition and returning error if condition is true;
-   args is a variable list of optional arguments, e.g.: args="x=%d",x 
-   args cannot be empty, if there is nothing to pass use args="" */
-#define class_test_except(condition,					\
-			  error_message_output,				\
-			  list_of_commands_without_commas,		\
-			  args...)					\
-  do {									\
-    if (condition) {							\
-      ErrorMsg Transmit_Error_Message;					\
-      ErrorMsg Optional_arguments;					\
-      sprintf(Transmit_Error_Message,					\
-	      "%s(L:%d) : condition (%s) is true",			\
-	      __func__,__LINE__,#condition);				\
-      sprintf(Optional_arguments,args);					\
-      sprintf(error_message_output,"%s; %s",				\
-	      Transmit_Error_Message, Optional_arguments);		\
-      list_of_commands_without_commas;					\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
+#define class_test(condition, error_message_output, args...) {                                                   \
+  if (condition) {                                                                                               \
+    class_test_message(error_message_output,#condition, args);                                                   \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
 
+#define class_test_parallel(condition, error_message_output, args...) {                                          \
+  if (abort == _FALSE_) {                                                                                        \
+    if (condition) {                                                                                             \
+      class_test_message(error_message_output,#condition, args);                                                 \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+}
 
 /* macro for returning error message;
    args is a variable list of optional arguments, e.g.: args="x=%d",x 
    args cannot be empty, if there is nothing to pass use args="" */
-#define class_stop(error_message_output,				\
-		   args...)						\
-  do {									\
-    if (_TRUE_) {							\
-      ErrorMsg Transmit_Error_Message;					\
-      ErrorMsg Optional_arguments;					\
-      sprintf(Transmit_Error_Message,					\
-	      "%s(L:%d) : error",					\
-	      __func__,__LINE__);					\
-      sprintf(Optional_arguments,args);					\
-      sprintf(error_message_output,"%s; %s",				\
-	      Transmit_Error_Message, Optional_arguments);		\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
+#define class_stop(error_message_output,args...) {                                                               \
+  ErrorMsg Optional_arguments;                                                                                   \
+  class_protect_sprintf(Optional_arguments,args);                                                                \
+  class_build_error_string(error_message_output,"error; %s",Optional_arguments);                                 \
+  return _FAILURE_;                                                                                              \
+}
 
-/* same in parallel region */
-#define class_test_parallel(condition,					\
-		   error_message_output,				\
-		   args...)						\
-  do {									\
-    if (abort == _FALSE_) {						\
-      if (condition) {							\
-	ErrorMsg Transmit_Error_Message;				\
-	ErrorMsg Optional_arguments;					\
-	sprintf(Transmit_Error_Message,					\
-		"%s(L:%d) : condition (%s) is true",			\
-		__func__,__LINE__,#condition);				\
-	sprintf(Optional_arguments,args);				\
-	sprintf(error_message_output,"%s; %s",				\
-		Transmit_Error_Message, Optional_arguments);		\
-	abort=_TRUE_;							\
-      }									\
-    }									\
-  } while(0);
-
-/* macro for allocating memory and returning error if it failed */
-#define class_alloc(pointer,						\
-		    size,						\
-		    error_message_output)				\
-  do {									\
-    pointer=malloc(size);						\
-    if (pointer == NULL) {						\
-      ErrorMsg Transmit_Error_Message;					\
-      int size_int;							\
-      size_int=size;							\
-      sprintf(Transmit_Error_Message,					\
-	      "%s(L:%d) : could not allocate %s with size %d",		\
-	      __func__,__LINE__,					\
-	      #pointer,size_int);					\
-      sprintf(error_message_output,"%s",Transmit_Error_Message);	\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
-
-/* same inside parallel structure */
-#define class_alloc_parallel(pointer,					\
-		    size,						\
-		    error_message_output)				\
-  do {									\
-    if (abort == _FALSE_) {						\
-      pointer=malloc(size);						\
-      if (pointer == NULL) {						\
-	int size_int;							\
-	size_int=size;							\
-	ErrorMsg Transmit_Error_Message;				\
-	sprintf(Transmit_Error_Message,					\
-		"%s(L:%d) : could not allocate %s with size %d",	\
-		__func__,__LINE__,					\
-		#pointer,size_int);					\
-	sprintf(error_message_output,"%s",Transmit_Error_Message);	\
-	abort=_TRUE_;							\
-      }									\
-    }									\
-    else {								\
-      pointer=NULL;							\
-    }									\
-  } while(0);
-
-/* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
-#define class_calloc(pointer,						\
-		     number,						\
-		     size,						\
-		     error_message_output)				\
-  do {									\
-    pointer=calloc(number,size);					\
-    if (pointer == NULL) {						\
-      ErrorMsg Transmit_Error_Message;					\
-      int size_int;							\
-      size_int=number*size;						\
-      sprintf(Transmit_Error_Message,					\
-	      "%s(L:%d) : could not allocate %s with size %d",		\
-	      __func__,__LINE__,					\
-	      #pointer,size_int);					\
-      sprintf(error_message_output,"%s",Transmit_Error_Message);	\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
-
+// IO
 /* macro for opening file and returning error if it failed */
-#define class_open(pointer,						\
-		   filename,						\
-  	           mode,						\
-		   error_message_output)				\
-  do {									\
-    pointer=fopen(filename,mode);					\
-    if (pointer == NULL) {						\
-      ErrorMsg Transmit_Error_Message;					\
-      sprintf(Transmit_Error_Message,					\
-	      "%s(L:%d) : could not open %s with name %s and mode %s",	\
-	      __func__,__LINE__,					\
-	      #pointer,filename,#mode);					\
-      sprintf(error_message_output,"%s",Transmit_Error_Message);	\
-      return _FAILURE_;							\
-    }									\
-  } while(0);
+#define class_open(pointer, filename,	mode, error_output) {                                                      \
+  pointer=fopen(filename,mode);                                                                                  \
+  if (pointer == NULL) {                                                                                         \
+    class_build_error_string(error_output,"could not open %s with name %s and mode %s",#pointer,filename,#mode); \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
 
 /* macro for defining indices (usually one, sometimes a block) */
-#define class_define_index(index,					\
-                           condition,					\
-                           running_index,                               \
-                           number_of_indices)                           \
-  do {									\
-    if (condition) {							\
-      index = running_index;						\
-      running_index += number_of_indices;				\
-    }									\
-  } while(0);								\
+#define class_define_index(index,                                                                                \
+                           condition,                                                                            \
+                           running_index,                                                                        \
+                           number_of_indices) {                                                                  \
+  if (condition) {                                                                                               \
+    index = running_index;                                                                                       \
+    running_index += number_of_indices;                                                                          \
+  }                                                                                                              \
+}
 
 /** parameters related to the precision of the code and to the method of calculation */
 
