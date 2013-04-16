@@ -49,17 +49,20 @@ typedef char FileName[_FILENAMESIZE_];
 
 // needed because of weird openmp bug on macosx lion...
 void class_protect_sprintf(char* dest, char* tpl,...);
+void class_protect_fprintf(FILE* dest, char* tpl,...);
 void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
-  class_protect_sprintf(dest,"%s(L:%d) :%s",__func__,__LINE__,tmpl,__VA_ARGS__);                                 \
+  ErrorMsg FMsg;                                                                                                 \
+  class_protect_sprintf(FMsg,tmpl,__VA_ARGS__);                                                                  \
+  class_protect_sprintf(dest,"%s(L:%d) :%s",__func__,__LINE__,FMsg);                                             \
 }
 
 // Error reporting macros
 
 // Call 
-#define class_call_message(err_out,extra,err_mess)                                                               \
+#define class_call_message(err_out,extra,err_mess)   \
   class_build_error_string(err_out,"error in %s;\n=>%s",extra,err_mess);
 
 /* macro for calling function and returning error if it failed */

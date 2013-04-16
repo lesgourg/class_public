@@ -314,6 +314,12 @@ cdef class Class:
     def __get__(self):
       return self.nl.method  
 
+  def set_default(self):
+    _pars = {
+                  "output":"tCl mPk",
+                  }
+    self.set(**_pars)
+    
   def __init__(self,default=False):
     cdef char* dumc
     self.ready = False
@@ -324,7 +330,8 @@ cdef class Class:
     dumc = "NOFILE"
     sprintf(self.fc.filename,"%s",dumc)
     self.ncp = set()
-    
+    if default: self.set_default()
+
   # Set up the dictionary
   def set(self,*pars,**kars):
     if len(pars)==1:
@@ -567,7 +574,7 @@ cdef class Class:
       lmax=lmaxR
     if lmax>lmaxR:
       if nofail:
-        self._pars_check("l_max_scalar",lmax)
+        self._pars_check("l_max_scalars",lmax)
         self._compute(["lensing"])
       else:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
@@ -598,7 +605,7 @@ cdef class Class:
       lmax=lmaxR
     if lmax>lmaxR:
       if nofail:
-        self._pars_check("l_max_scalar",lmax)
+        self._pars_check("l_max_scalars",lmax)
         self._compute(["lensing"])
       else:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
