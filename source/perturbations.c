@@ -126,6 +126,7 @@ int perturb_init(
      parallel region. */
   int abort;
 
+  /* unsigned integer that will be set to the size of the workspace */
   size_t sz;
 
 #ifdef _OPENMP
@@ -228,8 +229,9 @@ int perturb_init(
 
     abort = _FALSE_;
 
-  sz = sizeof(struct perturb_workspace);
-#pragma omp parallel				\
+    sz = sizeof(struct perturb_workspace);
+
+#pragma omp parallel                            \
   shared(pppw,ppr,pba,pth,ppt,index_md,abort)	\
   private(thread)
 

@@ -34,16 +34,16 @@ int main(int argc, char **argv) {
   /****** here you can output the evolution of any background
 	  quanitity you are interested in ******/
 
-  int index_eta;
+  int index_tau;
 
-  for (index_eta=0; index_eta<ba.bt_size; index_eta++) {
+  for (index_tau=0; index_tau<ba.bt_size; index_tau++) {
 
     fprintf(stdout,
 	    "tau=%e z=%e a=%e H=%e\n",
-	    ba.tau_table[index_eta],
-	    ba.z_table[index_eta],
-	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_a],
-	    ba.background_table[index_eta*ba.bg_size+ba.index_bg_H]);
+	    ba.tau_table[index_tau],
+	    ba.z_table[index_tau],
+	    ba.background_table[index_tau*ba.bg_size+ba.index_bg_a],
+	    ba.background_table[index_tau*ba.bg_size+ba.index_bg_H]);
 
   }
 

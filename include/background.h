@@ -150,6 +150,9 @@ struct background
   int index_bg_time;          /**< proper (cosmological) time */
   int index_bg_rs;            /**< comoving sound horizon */
 
+  int index_bg_D;             /**< density growth factor in dust universe, D = H \int [da/(aH)^3] (arbitrary normalization) */
+  int index_bg_f;             /**< velocity growth factor in dust universe, [dlnD]/[dln a] */               
+
   int bg_size_short;  /**< size of background vector in the "short format" */
   int bg_size_normal; /**< size of background vector in the "normal format" */
   int bg_size;        /**< size of background vector in the "long format" */
@@ -188,11 +191,12 @@ struct background
 
   //@{
 
-  int index_bi_a;    /**< scale factor */
-  int index_bi_time; /**< proper (cosmological) time in Mpc */
-  int index_bi_rs;   /**< sound horizon */
-  int index_bi_tau;  /**< conformal time in Mpc */
-  int bi_size;       /**< size of vector of background quantities to be integrated */
+  int index_bi_a;       /**< scale factor */
+  int index_bi_time;    /**< proper (cosmological) time in Mpc */
+  int index_bi_rs;      /**< sound horizon */
+  int index_bi_tau;     /**< conformal time in Mpc */
+  int index_bi_growth;  /**< integral over [da/(aH)^3]=[dtau/(aH^2)], useful for growth factor */
+  int bi_size;       
 
   //@}
 

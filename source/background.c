@@ -705,6 +705,12 @@ int background_indices(
   /* -> conformal sound horizon */
   class_define_index(pba->index_bg_rs,_TRUE_,index_bg,1);
 
+  /* -> density growth factor in dust universe */
+  class_define_index(pba->index_bg_D,_TRUE_,index_bg,1);
+
+  /* -> velocity growth factor in dust universe */
+  class_define_index(pba->index_bg_f,_TRUE_,index_bg,1);
+
   /* -> put here additional quantities describing background */
   /*    */
   /*    */
@@ -724,6 +730,9 @@ int background_indices(
 
   /* -> sound horizon */
   class_define_index(pba->index_bi_rs,_TRUE_,index_bi,1);
+
+  /* -> integral for growth factor */
+  class_define_index(pba->index_bi_growth,_TRUE_,index_bi,1);
 
   /* -> index for conformal time in vector of variables to integrate */
   class_define_index(pba->index_bi_tau,_TRUE_,index_bi,1);
@@ -1438,11 +1447,19 @@ int background_solve(
     pvecback[pba->index_bg_lum_distance] = pba->a_today*pvecback[pba->index_bg_conf_distance]*(1.+pba->z_table[i]);
     pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
-    /* -> compute all other quantities */
+    /* -> compute all other quantities depending only on a*/
     class_call(background_functions(pba,pData[i*pba->bi_size+pba->index_bi_a], pba->long_info, pvecback),
 	       pba->error_message,
 	       pba->error_message);
     
+    /* -> compute growth functions (valid in dust universe) */
+
+    /* D = H \int [da/(aH)^3] = H \int [dtau/(aH^2)] = H * growth */
+    pvecback[pba->index_bg_D] = pvecback[pba->index_bg_H]*pData[i*pba->bi_size+pba->index_bi_growth];
+
+    /* f = [dlnD]/[dln a] = 1/(aH) [dlnD]/[dtau] = H'/(aH^2) + 1/(a^2 H^3 growth) */
+    pvecback[pba->index_bg_f] = pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H] + 1./(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pData[i*pba->bi_size+pba->index_bi_growth]); 
+
     /* -> write in the table */
     memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
 
@@ -1583,10 +1600,13 @@ int background_initial_conditions(
       (good approximation for most purposes) */
   pvecback_integration[pba->index_bi_tau] = 1./(a * pvecback[pba->index_bg_H]);
 
-
-
   /** - compute initial sound horizon, assuming c_s=1/sqrt(3) initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
+
+  /** - compute initial value of the integral over dtau/(aH^2),
+        assumed to be proportional to a^4 during RD, but with arbitrary
+        normalization */
+  pvecback_integration[pba->index_bi_growth] = 1./(4.*a*a*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]);
 
   return _SUCCESS_;
 
@@ -1653,7 +1673,11 @@ int background_derivs(
 	     error_message,
 	     "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
+  /** - calculate rs' = c_s */
   dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));
+
+  /** calculate growth' = 1/(aH^2) */
+  dy[pba->index_bi_growth] = 1./(y[pba->index_bi_a] * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_H]);
 
   return _SUCCESS_;
 
