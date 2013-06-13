@@ -28,13 +28,13 @@ struct transfers {
   //@{
 
   double lcmb_rescale; /**< normally set to one, can be used
-			  excelptionally to rescale by hand the CMB
-			  lensing potential */
+                          excelptionally to rescale by hand the CMB
+                          lensing potential */
   double lcmb_tilt;    /**< normally set to zero, can be used
-			  excelptionally to tilt by hand the CMB
-			  lensing potential */
+                          excelptionally to tilt by hand the CMB
+                          lensing potential */
   double lcmb_pivot;   /**< if lcmb_tilt non-zero, corresponding pivot
-			  scale */
+                          scale */
 
   //@}
 
@@ -52,7 +52,9 @@ struct transfers {
 
   int md_size;       /**< number of modes included in computation */
 
-  int index_tt_t;      /**< index for transfer type = temperature */
+  int index_tt_t0;      /**< index for transfer type = temperature (j=0 term) */
+  int index_tt_t1;      /**< index for transfer type = temperature (j=1 term) */
+  int index_tt_t2;      /**< index for transfer type = temperature (j=2 term) */
   int index_tt_e;      /**< index for transfer type = E-polarization */
   int index_tt_b;      /**< index for transfer type = B-polarization */
   int index_tt_lcmb;   /**< index for transfer type = CMB lensing */
@@ -67,7 +69,7 @@ struct transfers {
 
   //@{
 
-  int ** l_size_tt;  /**< number of multipole values for which we effectively compute the transfer function,l_size[index_md][index_tt] */ 
+  int ** l_size_tt;  /**< number of multipole values for which we effectively compute the transfer function,l_size_tt[index_md][index_tt] */ 
 
   int * l_size;   /**< number of multipole values for each requested mode, l_size[index_md] */
 
@@ -106,6 +108,21 @@ struct transfers {
   //@}
 };
 
+struct bessels_k {
+
+  int l_size;
+  double x_step;
+
+  double * x_min;
+  int * x_size;
+
+  int md_size;
+  int * tt_size;
+
+  double *** bessel_k;  /**< bessel_k[index_md][index_tt][index_l*x_size[index_l]+index_x] */
+
+};
+
 
 /*************************************************************************************************************/
 
@@ -117,256 +134,284 @@ extern "C" {
 #endif
 
   int transfer_functions_at_k(
-			      struct transfers * ptr,
-			      int index_md,
-			      int index_ic,
-			      int index_type,
-			      int index_l,
-			      double k,
-			      double * ptransfer_local
-			      );
+                              struct transfers * ptr,
+                              int index_md,
+                              int index_ic,
+                              int index_type,
+                              int index_l,
+                              double k,
+                              double * ptransfer_local
+                              );
 
   int transfer_init(
-		    struct precision * ppr,
-		    struct background * pba,
-		    struct thermo * pth,
-		    struct perturbs * ppt,
-		    struct bessels * pbs,
-		    struct transfers * ptr
-		    );
+                    struct precision * ppr,
+                    struct background * pba,
+                    struct thermo * pth,
+                    struct perturbs * ppt,
+                    struct bessels * pbs,
+                    struct transfers * ptr
+                    );
     
   int transfer_free(
-		    struct transfers * ptr
-		    );
+                    struct transfers * ptr
+                    );
 
   int transfer_indices_of_transfers(
-				    struct precision * ppr,
-				    struct perturbs * ppt,
-				    struct bessels * pbs,
-				    struct transfers * ptr,
-				    double tau0
-				    );
+                                    struct precision * ppr,
+                                    struct perturbs * ppt,
+                                    struct bessels * pbs,
+                                    struct transfers * ptr,
+                                    double tau0
+                                    );
 
   int transfer_get_l_list(
-			  struct precision * ppr,
-			  struct perturbs * ppt,
-			  struct bessels * pbs,
-			  struct transfers * ptr
-			  );
+                          struct precision * ppr,
+                          struct perturbs * ppt,
+                          struct bessels * pbs,
+                          struct transfers * ptr
+                          );
 
   int transfer_get_k_list(
-			  struct precision * ppr,
-			  struct perturbs * ppt,
-			  struct transfers * ptr,
-			  double tau0,
-			  int index_md
-			  );
+                          struct precision * ppr,
+                          struct perturbs * ppt,
+                          struct transfers * ptr,
+                          double tau0,
+                          int index_md
+                          );
 
   int transfer_get_source_correspondence(
-					 struct perturbs * ppt,
-					 struct transfers * ptr,
-					 int index_md,
-					 int * tp_of_tt
-					 );
+                                         struct perturbs * ppt,
+                                         struct transfers * ptr,
+                                         int index_md,
+                                         int * tp_of_tt
+                                         );
   
   int transfer_source_tau_size(
-			       struct precision * ppr,
-			       struct background * pba,
-			       struct perturbs * ppt,
-			       struct transfers * ptr,
-			       double tau_rec,
-			       double tau0,
-			       int index_md,
-			       int index_tt,
-			       int * tau_size
-			       );
+                               struct precision * ppr,
+                               struct background * pba,
+                               struct perturbs * ppt,
+                               struct transfers * ptr,
+                               double tau_rec,
+                               double tau0,
+                               int index_md,
+                               int index_tt,
+                               int * tau_size
+                               );
 
   int transfer_interpolate_sources(
-				   struct perturbs * ppt,
-				   struct transfers * ptr,
-				   int index_md,
-				   int index_ic,
-				   int index_type,
-				   double * source_spline,
-				   double * interpolated_sources
-				   );
+                                   struct perturbs * ppt,
+                                   struct transfers * ptr,
+                                   int index_md,
+                                   int index_ic,
+                                   int index_type,
+                                   double * source_spline,
+                                   double * interpolated_sources
+                                   );
 
   int transfer_sources(
-		       struct precision * ppr,
-		       struct background * pba,
-		       struct perturbs * ppt,
-		       struct transfers * ptr,
-		       double * interpolated_sources,
-		       double tau_rec,
-		       int index_md,
-		       int index_tt,
-		       double * sources,
-		       double * tau0_minus_tau,
-		       double * delta_tau,
-		       double * tau_size_double
-		       );
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct perturbs * ppt,
+                       struct transfers * ptr,
+                       double * interpolated_sources,
+                       double tau_rec,
+                       int index_md,
+                       int index_tt,
+                       double * sources,
+                       double * tau0_minus_tau,
+                       double * delta_tau,
+                       double * tau_size_double
+                       );
 
   int transfer_integration_time_steps(
-				      struct transfers * ptr,
-				      double * tau0_minus_tau,
-				      int tau_size,
-				      double * delta_tau
-				      );
+                                      struct transfers * ptr,
+                                      double * tau0_minus_tau,
+                                      int tau_size,
+                                      double * delta_tau
+                                      );
 
   int transfer_selection_function(
-				  struct precision * ppr,
-				  struct perturbs * ppt,
-				  struct transfers * ptr,
-				  int bin,
-				  double z,
-				  double * selection);
+                                  struct precision * ppr,
+                                  struct perturbs * ppt,
+                                  struct transfers * ptr,
+                                  int bin,
+                                  double z,
+                                  double * selection);
 
   int transfer_selection_sampling(
-				  struct precision * ppr,
-				  struct background * pba,
-				  struct perturbs * ppt,
-				  struct transfers * ptr,
-				  int bin,
-				  double * tau0_minus_tau,
-				  int tau_size);
+                                  struct precision * ppr,
+                                  struct background * pba,
+                                  struct perturbs * ppt,
+                                  struct transfers * ptr,
+                                  int bin,
+                                  double * tau0_minus_tau,
+                                  int tau_size);
   
   int transfer_lensing_sampling(
-				  struct precision * ppr,
-				  struct background * pba,
-				  struct perturbs * ppt,
-				  struct transfers * ptr,
-				  int bin,
-				  double tau0,
-				  double * tau0_minus_tau,
-				  int tau_size);
+                                struct precision * ppr,
+                                struct background * pba,
+                                struct perturbs * ppt,
+                                struct transfers * ptr,
+                                int bin,
+                                double tau0,
+                                double * tau0_minus_tau,
+                                int tau_size);
   
   int transfer_source_resample(
-			       struct precision * ppr,
-			       struct background * pba,
-			       struct perturbs * ppt,
-			       struct transfers * ptr,
-			       int bin,
-			       double * tau0_minus_tau,
-			       int tau_size,
-			       int index_md,
-			       double tau0,
-			       double * interpolated_sources,
-			       double * sources);
+                               struct precision * ppr,
+                               struct background * pba,
+                               struct perturbs * ppt,
+                               struct transfers * ptr,
+                               int bin,
+                               double * tau0_minus_tau,
+                               int tau_size,
+                               int index_md,
+                               double tau0,
+                               double * interpolated_sources,
+                               double * sources);
 
   int transfer_selection_times(
-			       struct precision * ppr,
-			       struct background * pba,
-			       struct perturbs * ppt,
-			       struct transfers * ptr,
-			       int bin,
-			       double * tau_min,
-			       double * tau_mean,
-			       double * tau_max);
+                               struct precision * ppr,
+                               struct background * pba,
+                               struct perturbs * ppt,
+                               struct transfers * ptr,
+                               int bin,
+                               double * tau_min,
+                               double * tau_mean,
+                               double * tau_max);
   
   int transfer_selection_compute(
-				 struct precision * ppr,
-				 struct background * pba,
-				 struct perturbs * ppt,
-				 struct transfers * ptr,
-				 double * selection,
-				 double * tau0_minus_tau,
-				 double * delta_tau,
-				 int tau_size,
-				 double * pvecback,
-				 double tau0,
-				 int bin);
+                                 struct precision * ppr,
+                                 struct background * pba,
+                                 struct perturbs * ppt,
+                                 struct transfers * ptr,
+                                 double * selection,
+                                 double * tau0_minus_tau,
+                                 double * delta_tau,
+                                 int tau_size,
+                                 double * pvecback,
+                                 double tau0,
+                                 int bin);
 
   int transfer_compute_for_each_l(
-				  struct precision * ppr,
-				  struct perturbs * ppt,
-				  struct transfers * ptr,
-				  int index_md,
-				  int index_ic,
-				  int index_tt,
-				  int index_l,
-				  double l,
-				  double x_min_l,
-				  double x_step,
-				  double * tau0_minus_tau,
-				  double * delta_tau,
-				  int tau_size,
-				  double * sources,
-				  double * j_l,
-				  double * ddj_l,
-				  double * dj_l,
-				  double * dddj_l,
-				  double k_max_bessel
-				  );
+                                  struct precision * ppr,
+                                  struct perturbs * ppt,
+                                  struct transfers * ptr,
+                                  int index_md,
+                                  int index_ic,
+                                  int index_tt,
+                                  int index_l,
+                                  double l,
+                                  double x_min_l,
+                                  double x_step,
+                                  double * tau0_minus_tau,
+                                  double * delta_tau,
+                                  int tau_size,
+                                  double * sources,
+                                  double * j_l,
+                                  double * ddj_l,
+                                  double * dj_l,
+                                  double * dddj_l,
+                                  double k_max_bessel
+                                  );
 
   int transfer_use_limber(
-			  struct precision * ppr,
-			  struct perturbs * ppt,
-			  struct transfers * ptr,
-			  double k_max_bessel,
-			  int index_md,
-			  int index_tt,
-			  double k,
-			  double l,
-			  short * use_limber
-			  );
+                          struct precision * ppr,
+                          struct perturbs * ppt,
+                          struct transfers * ptr,
+                          double k_max_bessel,
+                          int index_md,
+                          int index_tt,
+                          double k,
+                          double l,
+                          short * use_limber
+                          );
 
   int transfer_integrate(
-			 struct transfers * ptr,
-			 int tau_size,
-			 int index_k,
-			 double l,
-			 double k,
-			 double x_min_l,
-			 double x_step,
-			 double * tau0_minus_tau,
-			 double * delta_tau,
-			 double * sources,
-			 double *j_l,
-			 double *ddj_l,
-			 double * trsf
-			 );
+                         struct perturbs * ppt,
+                         struct transfers * ptr,
+                         int tau_size,
+                         int index_k,
+                         int index_md,
+                         int index_tt,
+                         double l,
+                         double k,
+                         double x_min_l,
+                         double x_step,
+                         double * tau0_minus_tau,
+                         double * delta_tau,
+                         double * sources,
+                         double *j_l,
+                         double *ddj_l,
+                         double *dj_l,
+                         double *dddj_l,
+                         double * trsf
+                         );
     
   int transfer_limber(
-		      int tau_size,
-		      struct transfers * ptr,
-		      int index_md,
-		      int index_k,
-		      double l,
-		      double k,
-		      double * tau0_minus_tau,
-		      double * sources,
-		      double * trsf
-		      );
+                      int tau_size,
+                      struct transfers * ptr,
+                      int index_md,
+                      int index_k,
+                      double l,
+                      double k,
+                      double * tau0_minus_tau,
+                      double * sources,
+                      double * trsf
+                      );
   
   int transfer_limber2(
-		       int tau_size,
-		       struct transfers * ptr,
-		       int index_md,
-		       int index_k,
-		       double l,
-		       double k,
-		       double * tau0_minus_tau,
-		       double * sources,
-		       double * trsf
-		       );
+                       int tau_size,
+                       struct transfers * ptr,
+                       int index_md,
+                       int index_k,
+                       double l,
+                       double k,
+                       double * tau0_minus_tau,
+                       double * sources,
+                       double * trsf
+                       );
   
   int transfer_envelop(
-		       int tau_size,
-		       int index_k,
-		       double l,
-		       double k,
-		       double x_min_l,
-		       double x_step,
-		       double * tau0_minus_tau,
-		       double * delta_tau,
-		       double * sources,
-		       double *j_l,
-		       double *ddj_l,
-		       double *dj_l,
-		       double *dddj_l,
-		       double * trsf
-		       );
+                       int tau_size,
+                       int index_k,
+                       double l,
+                       double k,
+                       double x_min_l,
+                       double x_step,
+                       double * tau0_minus_tau,
+                       double * delta_tau,
+                       double * sources,
+                       double *j_l,
+                       double *ddj_l,
+                       double *dj_l,
+                       double *dddj_l,
+                       double * trsf
+                       );
     
+  int transfer_one_bessel(
+                          struct perturbs * ppt,
+                          struct transfers * ptr,
+                          double b,
+                          double db,
+                          int index_md,
+                          int index_tt,
+                          double x,
+                          double l,
+                          double * bessel
+                          );
+
+  int transfer_bessel_flat(
+                           struct bessels * pbs,
+                           struct perturbs * ppt,
+                           struct transfers * ptr,
+                           struct bessels_k * pbkl
+                           );
+
+  int transfer_bessel_flat_free(
+                                struct bessels_k * pbkl
+                                );
+
 #ifdef __cplusplus
 }
 #endif

@@ -52,12 +52,12 @@ int main(int argc, char **argv) {
   int index_mode=pt.index_md_scalars; 
 
   /* choose a type (temperature, polarization, grav. pot., ...) */
-  int index_type=pt.index_tp_g;
+  int index_type=pt.index_tp_t0;
 
   /* choose an initial condition (ad, bi, cdi, nid, niv, ...) */
   int index_ic=pt.index_ic_ad;
 
-  output=fopen("output/source.dat","w");
+  output=fopen("output/source2.dat","w");
   fprintf(output,"#   k       tau       S\n");
 
   for (index_k=0; index_k < pt.k_size[index_mode]; index_k++) {

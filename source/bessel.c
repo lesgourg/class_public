@@ -179,6 +179,9 @@ int bessel_init(
     pbs->has_dj = _FALSE_;
   }
 
+  // added for new version
+  pbs->has_dj = _TRUE_;
+
   /** - check if file bessels.dat already exists with the same (l's, x_step, x_max, j_cut). If yes, read it. */
 
   if (pbs->bessel_always_recompute == _FALSE_) {

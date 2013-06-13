@@ -91,19 +91,29 @@ int main(int argc, char **argv) {
 
   int index_k;
   int index_l;
-  double transfer;
+  double transfer1,transfer2,transfer3;
 
-  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-    //for (index_l=20; index_l<21; index_l++) { 
+  //for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
+   for (index_l=30; index_l<31; index_l++) { 
     for (index_k=0; index_k<tr.k_size[index_mode]; index_k++) { 
       
-      transfer=tr.transfer[index_mode]
-	[((index_ic * tr.tt_size[index_mode] + index_type)
+      transfer1=tr.transfer[index_mode]
+	[((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0)
+	  * tr.l_size[index_mode] + index_l)
+	 * tr.k_size[index_mode] + index_k];
+
+      transfer2=tr.transfer[index_mode]
+	[((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1)
+	  * tr.l_size[index_mode] + index_l)
+	 * tr.k_size[index_mode] + index_k];
+
+      transfer3=tr.transfer[index_mode]
+	[((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2)
 	  * tr.l_size[index_mode] + index_l)
 	 * tr.k_size[index_mode] + index_k];
       
-      if (transfer != 0.) {
-	printf("%d %e %e\n",tr.l[index_l],tr.k[index_mode][index_k],transfer); 
+      if ((transfer1 != 0.) || (transfer2 != 0.) || (transfer3 != 0.)) {
+        printf("%d %e %e %e %e\n",tr.l[index_l],tr.k[index_mode][index_k],transfer1,transfer2,transfer3); 
       }
     }
     

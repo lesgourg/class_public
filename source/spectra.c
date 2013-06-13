@@ -1812,6 +1812,8 @@ int spectra_compute_cl(
   double k;
   double clvalue;
   int index_ic1_ic2;
+  double transfer_ic1_temp=0.;
+  double transfer_ic2_temp=0.;
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
 
@@ -1830,41 +1832,69 @@ int spectra_compute_cl(
     for (index_tt=0; index_tt < ptr->tt_size[index_md]; index_tt++) {
 		  
       transfer_ic1[index_tt] = 
-	ptr->transfer[index_md]
-	[((index_ic1 * ptr->tt_size[index_md] + index_tt)
-	  * ptr->l_size[index_md] + index_l)
-	 * ptr->k_size[index_md] + index_k];
+        ptr->transfer[index_md]
+        [((index_ic1 * ptr->tt_size[index_md] + index_tt)
+          * ptr->l_size[index_md] + index_l)
+         * ptr->k_size[index_md] + index_k];
       
       if (index_ic1 == index_ic2) {
-	transfer_ic2[index_tt] = transfer_ic1[index_tt];
+        transfer_ic2[index_tt] = transfer_ic1[index_tt];
       }
       else {
-	transfer_ic2[index_tt] = ptr->transfer[index_md]
-	  [((index_ic2 * ptr->tt_size[index_md] + index_tt)
-	    * ptr->l_size[index_md] + index_l)
-	   * ptr->k_size[index_md] + index_k];
+        transfer_ic2[index_tt] = ptr->transfer[index_md]
+          [((index_ic2 * ptr->tt_size[index_md] + index_tt)
+            * ptr->l_size[index_md] + index_l)
+           * ptr->k_size[index_md] + index_k];
       }
     }
 
+    /* define combinations of transfer functions */
+
+    if (ppt->has_cl_cmb_temperature == _TRUE_) {
+
+      if _scalars_ {
+
+          transfer_ic1_temp = transfer_ic1[ptr->index_tt_t0] + transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
+          transfer_ic2_temp = transfer_ic2[ptr->index_tt_t0] + transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
+          
+        }
+
+      if _vectors_ {
+
+          transfer_ic1_temp = transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
+          transfer_ic2_temp = transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
+          
+        }
+
+      if _tensors_ {
+          
+          transfer_ic1_temp = transfer_ic1[ptr->index_tt_t2];
+          transfer_ic2_temp = transfer_ic2[ptr->index_tt_t2];
+          
+        }
+    }
+
+    /* integrand of Cl's */
+
     if (psp->has_tt == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tt]=
-	primordial_pk[index_ic1_ic2]
-	* transfer_ic1[ptr->index_tt_t]
-	* transfer_ic2[ptr->index_tt_t]
-	* 4. * _PI_ / k;
+        primordial_pk[index_ic1_ic2]
+        * transfer_ic1_temp
+        * transfer_ic2_temp
+        * 4. * _PI_ / k;
 		  
     if (psp->has_ee == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_ee]=
-	primordial_pk[index_ic1_ic2]
-	* transfer_ic1[ptr->index_tt_e]
-	* transfer_ic2[ptr->index_tt_e]
-	* 4. * _PI_ / k;
-
+        primordial_pk[index_ic1_ic2]
+        * transfer_ic1[ptr->index_tt_e]
+        * transfer_ic2[ptr->index_tt_e]
+        * 4. * _PI_ / k;
+    
     if (psp->has_te == _TRUE_)
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_te]=
 	primordial_pk[index_ic1_ic2]
-	* 0.5*(transfer_ic1[ptr->index_tt_t] * transfer_ic2[ptr->index_tt_e] +
-	       transfer_ic1[ptr->index_tt_e] * transfer_ic2[ptr->index_tt_t])
+	* 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_e] +
+	       transfer_ic1[ptr->index_tt_e] * transfer_ic2_temp)
 	* 4. * _PI_ / k;
     
     if (_tensors_ && (psp->has_bb == _TRUE_))
@@ -1884,8 +1914,8 @@ int spectra_compute_cl(
     if (_scalars_ && (psp->has_tp == _TRUE_))
       cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tp]=
 	primordial_pk[index_ic1_ic2]
-	* 0.5*(transfer_ic1[ptr->index_tt_t] * transfer_ic2[ptr->index_tt_lcmb] +
-	       transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_t])
+	* 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_lcmb] +
+	       transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2_temp)
 	* 4. * _PI_ / k;
 
     if (_scalars_ && (psp->has_ep == _TRUE_))
@@ -1913,8 +1943,8 @@ int spectra_compute_cl(
       for (index_d1=0; index_d1<psp->d_size; index_d1++) {
 	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_td+index_d1]=
 	  primordial_pk[index_ic1_ic2]
-	  * 0.5*(transfer_ic1[ptr->index_tt_t] * transfer_ic2[ptr->index_tt_density+index_d1] +
-		 transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2[ptr->index_tt_t])
+	  * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_density+index_d1] +
+		 transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2_temp)
 	  * 4. * _PI_ / k;
       }
     }
@@ -1937,8 +1967,8 @@ int spectra_compute_cl(
       for (index_d1=0; index_d1<psp->d_size; index_d1++) {
 	cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct_tl+index_d1]=
 	  primordial_pk[index_ic1_ic2]
-	  * 0.5*(transfer_ic1[ptr->index_tt_t] * transfer_ic2[ptr->index_tt_lensing+index_d1] +
-		 transfer_ic1[ptr->index_tt_lensing+index_d1] * transfer_ic2[ptr->index_tt_t])
+	  * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_lensing+index_d1] +
+		 transfer_ic1[ptr->index_tt_lensing+index_d1] * transfer_ic2_temp)
 	  * 4. * _PI_ / k;
       }
     }
