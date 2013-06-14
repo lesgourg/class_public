@@ -2766,7 +2766,7 @@ int transfer_integrate(
   /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
   int index_tau,index_tau_max;
 
-  double j,dj,ddj,bessel;
+  double j,dj,bessel;
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
