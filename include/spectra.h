@@ -27,14 +27,14 @@ struct spectra {
   
 
   int non_diag; /**< sets the number of cross-correlation spectra
-		   that you want to calculate: 0 means only
-		   auto-correlation, 1 means only adjacent bins,
-		   and number of bins minus one means all
-		   correlations */
+                   that you want to calculate: 0 means only
+                   auto-correlation, 1 means only adjacent bins,
+                   and number of bins minus one means all
+                   correlations */
   
   //@}
 
-   /** @name - information on number of modes and pairs of initial conditions */
+  /** @name - information on number of modes and pairs of initial conditions */
 
   //@{
  
@@ -57,8 +57,9 @@ struct spectra {
   int has_pp; /**< do we want C_l^phi-phi ? (phi = CMB lensing potential) */
   int has_tp; /**< do we want C_l^T-phi ? */
   int has_ep; /**< do we want C_l^E-phi ? */
-  int has_dd; /**< do we want C_l^dd ? */
+  int has_dd; /**< do we want C_l^dd ? (d = density) */
   int has_td; /**< do we want C_l^Td ? */
+  int has_pd; /**< do we want C_l^phi-d ? */
   int has_ll; /**< do we want C_l^l-l ? (l = galaxy lensing potential) */
   int has_tl; /**< do we want C_l^T-l ? */
 
@@ -71,6 +72,7 @@ struct spectra {
   int index_ct_ep; /**< index for type C_l^E-phi */
   int index_ct_dd; /**< first index for type C_l^dd ((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_td; /**< first index for type C_l^Td (d_size values) */
+  int index_ct_pd; /**< first index for type C_l^pd (d_size values) */
   int index_ct_ll; /**< first index for type C_l^ll ((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type C_l^Tl (d_size values) */
 
@@ -92,22 +94,22 @@ struct spectra {
 
 
   int ** l_max_ct;    /**< last multipole (given as an input) at which
-		    we want to output C_ls for a given mode and type;
-		    l[index_md][l_size[index_md]-1] can be larger
-		    than l_max[index_md], in order to ensure a
-		    better interpolation with no boundary effects */
+                         we want to output C_ls for a given mode and type;
+                         l[index_md][l_size[index_md]-1] can be larger
+                         than l_max[index_md], in order to ensure a
+                         better interpolation with no boundary effects */
 
   int * l_max;    /**< last multipole (given as an input) at which
-		    we want to output C_ls for a given mode (maximized over types);
-		    l[index_md][l_size[index_md]-1] can be larger
-		    than l_max[index_md], in order to ensure a
-		    better interpolation with no boundary effects */
+                     we want to output C_ls for a given mode (maximized over types);
+                     l[index_md][l_size[index_md]-1] can be larger
+                     than l_max[index_md], in order to ensure a
+                     better interpolation with no boundary effects */
 
   int l_max_tot; /**< last multipole (given as an input) at which
-		    we want to output C_ls (maximized over modes and types);
-		    l[index_md][l_size[index_md]-1] can be larger
-		    than l_max[index_md], in order to ensure a
-		    better interpolation with no boundary effects */
+                    we want to output C_ls (maximized over modes and types);
+                    l[index_md][l_size[index_md]-1] can be larger
+                    than l_max[index_md], in order to ensure a
+                    better interpolation with no boundary effects */
 
   double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */ 
@@ -147,29 +149,29 @@ struct spectra {
   double * ln_tau;  /**< list of ln(tau) values ln_tau[index_tau] */
 
   double * ln_pk;   /**< Matter power spectrum.
-		      depends on indices index_md, index_ic1, index_ic2, index_k as:
-		      ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
-		      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
-		      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
-		      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
-		      ln[P(k)] where P(k) is positive by construction.
-		      - for non-diagonal elements this arrays contains the k-dependent 
-		      cosine of the correlation angle, namely
-		      P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-		      This choice is convenient since the sign of the non-diagonal cross-correlation 
-		      is arbitrary. For fully correlated or anti-correlated initial conditions,
-		      this non-diagonal element is independent on k, and equal to +1 or -1.
-		   */
+                       depends on indices index_md, index_ic1, index_ic2, index_k as:
+                       ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
+                       where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
+                       the primordial spectrum is symmetric in (index_ic1, index_ic2)).
+                       - for diagonal elements (index_ic1 = index_ic2) this arrays contains
+                       ln[P(k)] where P(k) is positive by construction.
+                       - for non-diagonal elements this arrays contains the k-dependent 
+                       cosine of the correlation angle, namely
+                       P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+                       This choice is convenient since the sign of the non-diagonal cross-correlation 
+                       is arbitrary. For fully correlated or anti-correlated initial conditions,
+                       this non-diagonal element is independent on k, and equal to +1 or -1.
+                    */
 
   double * ddln_pk; /**< second derivative of above array with respect to log(tau), for spline interpolation. So: 
-		      - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
-		      good since this function is usually smooth.
-		      - for non-diagonal coefficients, we spline  
-		      P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-		      vs. ln(k), which is fine since this quantity is often assumed to be
-		      constant (e.g for fully correlated/anticorrelated initial conditions)
-		      or nearly constant, and with arbitrary sign.
-		   */
+                       - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
+                       good since this function is usually smooth.
+                       - for non-diagonal coefficients, we spline  
+                       P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+                       vs. ln(k), which is fine since this quantity is often assumed to be
+                       constant (e.g for fully correlated/anticorrelated initial conditions)
+                       or nearly constant, and with arbitrary sign.
+                    */
   
   double sigma8;    /**< sigma8 parameter */
 
@@ -190,9 +192,9 @@ struct spectra {
   int tr_size;                 /**< total number of species in transfer functions */
 
   double * matter_transfer;   /**< Matter transfer functions.  
-	Depends on indices index_md,index_tau,index_ic,index_k, index_tr as:
-        matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr]
-		       */
+                                 Depends on indices index_md,index_tau,index_ic,index_k, index_tr as:
+                                 matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr]
+                              */
   double * ddmatter_transfer; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
   
   /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations betzeen various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
@@ -222,126 +224,126 @@ extern "C" {
 #endif
 
   int spectra_bandpower(struct spectra * psp,
-			int l1,
-			int l2,
-			double * TT_II,
-			double * TT_RI,
-              double * TT_RR
-			);
+                        int l1,
+                        int l2,
+                        double * TT_II,
+                        double * TT_RI,
+                        double * TT_RR
+                        );
 
   int spectra_cl_at_l(
-		      struct spectra * psp,
-		      double l,
-		      double * cl,
-		      double * * cl_md,
-		      double * * cl_md_ic
-		      );
+                      struct spectra * psp,
+                      double l,
+                      double * cl,
+                      double * * cl_md,
+                      double * * cl_md_ic
+                      );
 
   int spectra_pk_at_z(
-		      struct background * pba,
-		      struct spectra * psp,
-		      enum linear_or_logarithmic mode, 
-		      double z,
-		      double * output_tot,
-		      double * output_ic
-		      );
+                      struct background * pba,
+                      struct spectra * psp,
+                      enum linear_or_logarithmic mode, 
+                      double z,
+                      double * output_tot,
+                      double * output_ic
+                      );
 
   int spectra_pk_at_k_and_z(
-			    struct background * pba,
-			    struct primordial * ppm,
-			    struct spectra * psp,
-			    double k,
-			    double z,
-			    double * pk,
-			    double * pk_ic
-			    );
+                            struct background * pba,
+                            struct primordial * ppm,
+                            struct spectra * psp,
+                            double k,
+                            double z,
+                            double * pk,
+                            double * pk_ic
+                            );
 
   int spectra_tk_at_z(
-		      struct background * pba,
-		      struct spectra * psp,
-		      double z,
-		      double * output
-		      );
+                      struct background * pba,
+                      struct spectra * psp,
+                      double z,
+                      double * output
+                      );
 
   int spectra_tk_at_k_and_z(
-			    struct background * pba,
-			    struct spectra * psp,
-			    double k,
-			    double z,
-			    double * output
-			    );
+                            struct background * pba,
+                            struct spectra * psp,
+                            double k,
+                            double z,
+                            double * output
+                            );
 
   int spectra_init(
-		   struct precision * ppr,
-		   struct background * pba,
-		   struct perturbs * ppt,
-		   struct transfers * ptr,
-		   struct primordial * ppm,
-		   struct spectra * psp
-		   );
+                   struct precision * ppr,
+                   struct background * pba,
+                   struct perturbs * ppt,
+                   struct transfers * ptr,
+                   struct primordial * ppm,
+                   struct spectra * psp
+                   );
 
   int spectra_free(
-		   struct spectra * psp
-		   );
+                   struct spectra * psp
+                   );
 
   int spectra_indices(
-		      struct background * pba,
-		      struct perturbs * ppt,
-		      struct transfers * ptr,
-		      struct primordial * ppm,
-		      struct spectra * psp
-		      );
+                      struct background * pba,
+                      struct perturbs * ppt,
+                      struct transfers * ptr,
+                      struct primordial * ppm,
+                      struct spectra * psp
+                      );
 
   int spectra_cls(
-		  struct perturbs * ppt,
-		  struct transfers * ptr,
-		  struct primordial * ppm,
-		  struct spectra * psp
-		  );
+                  struct perturbs * ppt,
+                  struct transfers * ptr,
+                  struct primordial * ppm,
+                  struct spectra * psp
+                  );
 
   int spectra_compute_cl(
-			 struct perturbs * ppt,
-			 struct transfers * ptr,
-			 struct primordial * ppm,
-			 struct spectra * psp,
-			 int index_md,
-			 int index_ic1,
-			 int index_ic2,
-			 int index_l,
-			 int cl_integrand_num_columns,
-			 double * cl_integrand,
-			 double * primordial_pk,
-			 double * transfer_ic1,
-			 double * transfer_ic2
-			 );
+                         struct perturbs * ppt,
+                         struct transfers * ptr,
+                         struct primordial * ppm,
+                         struct spectra * psp,
+                         int index_md,
+                         int index_ic1,
+                         int index_ic2,
+                         int index_l,
+                         int cl_integrand_num_columns,
+                         double * cl_integrand,
+                         double * primordial_pk,
+                         double * transfer_ic1,
+                         double * transfer_ic2
+                         );
   
   int spectra_k_and_tau(
-			struct background * pba,
-			struct perturbs * ppt,
-			struct spectra * psp
-			);
+                        struct background * pba,
+                        struct perturbs * ppt,
+                        struct spectra * psp
+                        );
 
   int spectra_pk(
-		 struct background * pba,
-		 struct perturbs * ppt,
-		 struct primordial * ppm,
-		 struct spectra * psp
-		 );
+                 struct background * pba,
+                 struct perturbs * ppt,
+                 struct primordial * ppm,
+                 struct spectra * psp
+                 );
   
   int spectra_sigma(
-		    struct background * pba,
-		    struct primordial * ppm,
-		    struct spectra * psp,
-		    double R,
-		    double z,
-		    double *sigma 
-		    );
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct spectra * psp,
+                    double R,
+                    double z,
+                    double *sigma 
+                    );
 
   int spectra_matter_transfers(
-			       struct background * pba,
-			       struct perturbs * ppt,
-			       struct spectra * psp
-			       );
+                               struct background * pba,
+                               struct perturbs * ppt,
+                               struct spectra * psp
+                               );
 
 #ifdef __cplusplus
 }
