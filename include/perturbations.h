@@ -11,7 +11,7 @@
 #define _vectors_ ((ppt->has_vectors == _TRUE_) && (index_md == ppt->index_md_vectors))
 #define _tensors_ ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors))
 
-#define _set_source_(index) ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index][index_tau * ppt->k_size[index_md] + index_k]
+#define _set_source_(index) ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index][index_tau * ppt->k_size + index_k]
         
 /**  
  * flags for various approximation schemes 
@@ -114,7 +114,7 @@ struct perturbs
   int l_scalar_max; /**< maximum l value for CMB scalars C_ls */
   int l_tensor_max; /**< maximum l value for CMB tensors C_ls */
   int l_lss_max; /**< maximum l value for LSS C_ls (density and lensing potential in  bins) */
-  double k_scalar_kmax_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if scalar C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
+  double k_max_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
 
   int selection_num;                            /**< number of selection functions 
                                                    (i.e. bins) for matter density Cls */
@@ -219,19 +219,19 @@ struct perturbs
   
   //@{
 
-  int * k_size_cmb;  /**< k_size_cmb[index_md] number of k values used
+  int k_size_cmb;  /**< k_size_cmb[index_md] number of k values used
                         for CMB calculations, requiring a fine
                         sampling in k-space */
 
-  int * k_size_cl;  /**< k_size_cl[index_md] number of k values used
+  int k_size_cl;  /**< k_size_cl[index_md] number of k values used
                        for non-CMB Cl calculations, requering a coarse
                        sampling in k-space. */
 
-  int * k_size;     /**< k_size[index_md] = total number of k
+  int k_size;     /**< k_size[index_md] = total number of k
                        values, including those needed for P(k) but not
                        for Cl's */
 
-  double ** k;      /**< k[index_md][index_k] = list of values */
+  double * k;      /**< k[index_k] = list of values */
 
   //@}
 
@@ -480,8 +480,8 @@ extern "C" {
                          struct precision * ppr,
                          struct background * pba,
                          struct thermo * pth,
-                         struct perturbs * ppt,
-                         int index_md);
+                         struct perturbs * ppt
+                         );
 
   int perturb_workspace_init(
                              struct precision * ppr,

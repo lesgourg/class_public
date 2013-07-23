@@ -380,29 +380,21 @@ struct precision
 
   enum pk_def pk_definition;
 
-  double k_scalar_min_tau0; /**< number defining k_min for the computation of scalar Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
+  double k_min_tau0; /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
-  double k_scalar_max_tau0_over_l_max; /**< number defining k_max for the computation of scalar Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
+  double k_max_tau0_over_l_max; /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
 
-  double k_scalar_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
-  double k_scalar_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
-  double k_scalar_step_transition; /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
+  double k_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
+  double k_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
+  double k_step_transition; /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
 
-  double k_scalar_k_per_decade_for_pk; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade outside the BAO region*/
+  double k_per_decade_for_pk; /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade outside the BAO region*/
 
-  double k_scalar_k_per_decade_for_bao; /**< if values needed between kmax inferred from k_scalar_oscillations and k_scalar_kmax_for_pk, this gives the number of k per decade inside the BAO region (for finer sampling)*/
+  double k_per_decade_for_bao; /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade inside the BAO region (for finer sampling)*/
 
-  double k_scalar_bao_center; /**< in ln(k) space, the central value of the BAO region where sampling is finer is defined as k_rec times this number (recommended: 3, i.e. finest sampling near 3rd BAO peak) */
+  double k_bao_center; /**< in ln(k) space, the central value of the BAO region where sampling is finer is defined as k_rec times this number (recommended: 3, i.e. finest sampling near 3rd BAO peak) */
 
-  double k_scalar_bao_width; /**< in ln(k) space, width of the BAO region where sampling is finer: this number gives roughly the number of BAO oscillations well resolved on both sides of the central value (recommended: 4, i.e. finest sampling from before first up to 3+4=7th peak) */
-
-  double k_tensor_min_tau0; /**< number defining k_min for the computation of tensor Cl's (dimensionless): (k_min tau_0), usually chosen much smaller than one */
-
-  double k_tensor_max_tau0_over_l_max; /**< number defining k_max for the computation of tensor Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
-
-  double k_tensor_step_sub; /**< step in k space, in units of one period of oscillation at decoupling, for scales inside horizon at decoupling (tensor modes) */
-  double k_tensor_step_super; /**< step in k space, in units of one period of oscillation at decoupling, for scales above horizon at decoupling (tensor modes) */  
-  double k_tensor_step_transition; /**< dimensionless number regulaing the transition fro _sub step to _super step. Decrease for more precision. (tensor modes) */
+  double k_bao_width; /**< in ln(k) space, width of the BAO region where sampling is finer: this number gives roughly the number of BAO oscillations well resolved on both sides of the central value (recommended: 4, i.e. finest sampling from before first up to 3+4=7th peak) */
 
   double start_small_k_at_tau_c_over_tau_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_largek_at_tau_c_over_tau_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
 
@@ -540,8 +532,7 @@ struct precision
 
   //@{
 
-  double k_step_trans_scalars; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
-  double k_step_trans_tensors; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
+  double k_step_trans; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
 
   enum transfer_cutting transfer_cut; /**< flag telling how to cut automatically the transfer function computation at a given \f$ k_{max} \f$ value */
 

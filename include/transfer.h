@@ -83,9 +83,9 @@ struct transfers {
 
   //@{
 
-  int * k_size; /**< number of wavenumber values for each requested mode, k_size[index_md] */
+  int k_size; /**< number of wavenumber values */
 
-  double ** k;  /**< list of wavenumber values for each requested mode, k[index_md][index_k] */
+  double * k;  /**< list of wavenumber values for each requested mode, k[index_k] */
 
   //@}
 
@@ -93,7 +93,7 @@ struct transfers {
 
   //@{
 
-  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size[index_md] + index_k] */
+  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size + index_k] */
 
   //@}
 
@@ -175,8 +175,7 @@ extern "C" {
                           struct precision * ppr,
                           struct perturbs * ppt,
                           struct transfers * ptr,
-                          double tau0,
-                          int index_md
+                          double tau0
                           );
 
   int transfer_get_source_correspondence(

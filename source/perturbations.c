@@ -59,11 +59,11 @@ int perturb_sources_at_tau(
                                        1,
                                        0,
                                        ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
-                                       ppt->k_size[index_md],
+                                       ppt->k_size,
                                        ppt->tau_size,
                                        tau,
                                        psource,
-                                       ppt->k_size[index_md],
+                                       ppt->k_size,
                                        ppt->error_message),
              ppt->error_message,
              ppt->error_message);
@@ -280,11 +280,11 @@ int perturb_init(
 #pragma omp for schedule (dynamic)
 
         /* integrating backwards is slightly more optimal for parallel runs */
-        //for (index_k = 0; index_k < ppt->k_size[index_md]; index_k++) {
-        for (index_k = ppt->k_size[index_md]-1; index_k >=0; index_k--) {  
+        //for (index_k = 0; index_k < ppt->k_size; index_k++) {
+        for (index_k = ppt->k_size-1; index_k >=0; index_k--) {  
 
           if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
-            printf("evolving mode k=%e /Mpc\n",(ppt->k[index_md])[index_k]);
+            printf("evolving mode k=%e /Mpc\n",ppt->k[index_k]);
 	  
 #ifdef _OPENMP
           tstart = omp_get_wtime();
@@ -380,8 +380,6 @@ int perturb_free(
 
       }
 
-      free(ppt->k[index_md]);
-
       free(ppt->sources[index_md]);
 
     }
@@ -391,12 +389,6 @@ int perturb_free(
     free(ppt->tp_size);
 
     free(ppt->ic_size);
-
-    free(ppt->k_size);
-
-    free(ppt->k_size_cl);
-
-    free(ppt->k_size_cmb);
 
     free(ppt->k);
 
@@ -453,16 +445,6 @@ int perturb_indices_of_perturbs(
 
   class_alloc(ppt->ic_size,ppt->md_size*sizeof(int),ppt->error_message);
 
-  /** - allocate array of number of wavenumbers for each mode, ppt->k_size[index_md] */
-
-  class_alloc(ppt->k_size,ppt->md_size * sizeof(int),ppt->error_message);
-  class_alloc(ppt->k_size_cl,ppt->md_size * sizeof(int),ppt->error_message);
-  class_alloc(ppt->k_size_cmb,ppt->md_size * sizeof(int),ppt->error_message);
-
-  /** - allocate array of lists of wavenumbers for each mode, ppt->k[index_md] */
-
-  class_alloc(ppt->k,ppt->md_size * sizeof(double *),ppt->error_message);
-
   /** - allocate array of arrays of source functions for each mode, ppt->source[index_md] */
 
   class_alloc(ppt->sources,ppt->md_size * sizeof(double *),ppt->error_message);
@@ -510,6 +492,15 @@ int perturb_indices_of_perturbs(
   class_define_index(ppt->index_tp_p,ppt->has_source_p,index_type,1);
   index_type_common = index_type;
 
+  /** define k values with perturb_get_k_list() */
+  
+  class_call(perturb_get_k_list(ppr,
+                                pba,
+                                pth,
+                                ppt),
+             ppt->error_message,
+             ppt->error_message);
+  
   /** - loop over modes. Initialize flags and indices which are specific to each mode. */
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
@@ -641,17 +632,7 @@ int perturb_indices_of_perturbs(
 
       }
 
-    /** (c) for each mode, define k values with perturb_get_k_list() */
-
-    class_call(perturb_get_k_list(ppr,
-                                  pba,
-                                  pth,
-                                  ppt,
-                                  index_md),
-               ppt->error_message,
-               ppt->error_message);
-
-    /** (d) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_md])[index_ic][index_type] */
+    /** (c) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_md])[index_ic][index_type] */
     
     class_alloc(ppt->sources[index_md],
                 ppt->ic_size[index_md] * ppt->tp_size[index_md] * sizeof(double *),
@@ -1022,7 +1003,7 @@ int perturb_timesampling_for_sources(
       for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
         class_alloc(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
-                    ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
+                    ppt->k_size * ppt->tau_size * sizeof(double),
                     ppt->error_message);
 
       }
@@ -1048,8 +1029,7 @@ int perturb_get_k_list(
                        struct precision * ppr,
                        struct background * pba,
                        struct thermo * pth,
-                       struct perturbs * ppt,
-                       int index_md
+                       struct perturbs * ppt
                        ) {
   int index_k;
   double k,k_next,k_rec,step,tau1;
@@ -1061,212 +1041,145 @@ int perturb_get_k_list(
 
   /** - get number of wavenumbers for scalar mode */
 
-  if _scalars_ {
-
-      class_test(ppr->k_scalar_step_transition == 0.,
-                 ppt->error_message,
-                 "stop to avoid division by zero");
+  class_test(ppr->k_step_transition == 0.,
+             ppt->error_message,
+             "stop to avoid division by zero");
     
-      class_test(pth->rs_rec == 0.,
-                 ppt->error_message,
-                 "stop to avoid division by zero");
+  class_test(pth->rs_rec == 0.,
+             ppt->error_message,
+             "stop to avoid division by zero");
 
-      k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+  k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
-      if (ppt->has_cls == _TRUE_) {
+  if (ppt->has_cls == _TRUE_) {
 
-        /* find k_max_cmb: */
+    /* find k_max_cmb: */
 
-        /* choose a k_max_cmb corresponding to a wavelength on the last
-           scattering surface seen today under an angle smaller than pi/lmax:
-           this is equivalent to k_max_cl*tau0 > l_max */
+    /* choose a k_max_cmb corresponding to a wavelength on the last
+       scattering surface seen today under an angle smaller than pi/lmax:
+       this is equivalent to k_max_cl*tau0 > l_max */
       
-        k_max_cmb = ppr->k_scalar_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age;
-        k_max_cl  = k_max_cmb;
-        k_max     = k_max_cmb;
+    k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age;
+    k_max_cl  = k_max_cmb;
+    k_max     = k_max_cmb;
 
-        /* find k_max_cl: */
+    /* find k_max_cl: */
 
-        /* if we need density/lensing Cl's, we must impose a stronger condition,
-           such that the minimum wavelength on the shell corresponding
-           to the center of smallest redshift bin is seen under an
-           angle smaller than pi/lmax. So we must mutiply our previous
-           k_max_cl by the ratio tau0/(tau0-tau[center of smallest
-           redhsift bin]). Note that we could do the same with the
-           lensing potential if we needed a very precise C_l^phi-phi at
-           large l. We don't do it by default, because the lensed ClT,
-           ClE would be marginally affected. */
+    /* if we need density/lensing Cl's, we must impose a stronger condition,
+       such that the minimum wavelength on the shell corresponding
+       to the center of smallest redshift bin is seen under an
+       angle smaller than pi/lmax. So we must mutiply our previous
+       k_max_cl by the ratio tau0/(tau0-tau[center of smallest
+       redhsift bin]). Note that we could do the same with the
+       lensing potential if we needed a very precise C_l^phi-phi at
+       large l. We don't do it by default, because the lensed ClT,
+       ClE would be marginally affected. */
       
-        if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
+    if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 	
-          class_call(background_tau_of_z(pba,
-                                         ppt->selection_mean[0],
-                                         &tau1),
-                     pba->error_message,
-                     ppt->error_message);
+      class_call(background_tau_of_z(pba,
+                                     ppt->selection_mean[0],
+                                     &tau1),
+                 pba->error_message,
+                 ppt->error_message);
 	
-          k_max_cl = max(k_max_cl,ppr->k_scalar_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1));
-          k_max    = k_max_cl;
-        }
-      }
+      k_max_cl = max(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1));
+      k_max    = k_max_cl;
+    }
+  }
 
-      /* find k_max: */
+  /* find k_max: */
 
-      if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
-        k_max = max(k_max,ppt->k_scalar_kmax_for_pk);
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
+    k_max = max(k_max,ppt->k_max_for_pk);
 
-      /* now, find indices corresponding to k_max_cmb, k_max_cl, k_max_full */
+  /* now, find indices corresponding to k_max_cmb, k_max_cl, k_max_full */
 
-      index_k=0;
+  index_k=0;
     
-      /* first value */
-      k=ppr->k_scalar_min_tau0/pba->conformal_age;
-      index_k++;
+  /* first value */
+  k=ppr->k_min_tau0/pba->conformal_age;
+  index_k++;
    
-      /* values until k_max_cmb */
+  /* values until k_max_cmb */
 
-      while (k < k_max_cmb) {
-        step = ppr->k_scalar_step_super 
-          + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
+  while (k < k_max_cmb) {
+    step = ppr->k_step_super 
+      + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.) * (ppr->k_step_sub-ppr->k_step_super);
       
-        class_test(step * k_rec / k < ppr->smallest_allowed_variation,
-                   ppt->error_message,
-                   "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
+    class_test(step * k_rec / k < ppr->smallest_allowed_variation,
+               ppt->error_message,
+               "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
      
-        k_next=k + step * k_rec;
-        index_k++;
-        k=k_next;
-      }
+    k_next=k + step * k_rec;
+    index_k++;
+    k=k_next;
+  }
 
-      ppt->k_size_cmb[index_md] = index_k;
+  ppt->k_size_cmb = index_k;
     
-      /* values until k_max_cl */
+  /* values until k_max_cl */
 
-      while (k < k_max_cl) {
+  while (k < k_max_cl) {
 
-        k *= pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
-                         +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
-                         *(1.-tanh(pow((log(k)-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+    k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                     +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                     *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
       
-        index_k++;
-      }
+    index_k++;
+  }
 
-      ppt->k_size_cl[index_md] = index_k;
+  ppt->k_size_cl = index_k;
 
-      /* values until k_max */
+  /* values until k_max */
 
-      while (k < k_max) {
+  while (k < k_max) {
 
-        k *= pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
-                         +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
-                         *(1.-tanh(pow((log(k)-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+    k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                     +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                     *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
       
-        index_k++;
-      }
+    index_k++;
+  }
 
-      ppt->k_size[index_md] = index_k;
+  ppt->k_size = index_k;
 
-      class_alloc(ppt->k[index_md],ppt->k_size[index_md]*sizeof(double),ppt->error_message);
+  class_alloc(ppt->k,ppt->k_size*sizeof(double),ppt->error_message);
 
-      /** - repeat the same steps, now filling the array */
+  /** - repeat the same steps, now filling the array */
 
-      index_k=0;
+  index_k=0;
 
-      /* first value */
-      ppt->k[index_md][index_k] = ppr->k_scalar_min_tau0/pba->conformal_age;
-      index_k++;
+  /* first value */
+  ppt->k[index_k] = ppr->k_min_tau0/pba->conformal_age;
+  index_k++;
 
-      /* values until k_max_cmb */
+  /* values until k_max_cmb */
 
-      while (index_k < ppt->k_size_cmb[index_md]) {
-        step = ppr->k_scalar_step_super 
-          + 0.5 * (tanh((ppt->k[index_md][index_k-1]-k_rec)/k_rec/ppr->k_scalar_step_transition)+1.) * (ppr->k_scalar_step_sub-ppr->k_scalar_step_super);
+  while (index_k < ppt->k_size_cmb) {
+    step = ppr->k_step_super 
+      + 0.5 * (tanh((ppt->k[index_k-1]-k_rec)/k_rec/ppr->k_step_transition)+1.) * (ppr->k_step_sub-ppr->k_step_super);
 
-        class_test(step * k_rec / ppt->k[index_md][index_k-1] < ppr->smallest_allowed_variation,
-                   ppt->error_message,
-                   "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
-        ppt->k[index_md][index_k]=ppt->k[index_md][index_k-1] + step * k_rec;
+    class_test(step * k_rec / ppt->k[index_k-1] < ppr->smallest_allowed_variation,
+               ppt->error_message,
+               "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
+    ppt->k[index_k]=ppt->k[index_k-1] + step * k_rec;
 
-        index_k++;
-      }
+    index_k++;
+  }
 
-      /* all in one, values until k_max_cmb and k_max */
+  /* all in one, values until k_max_cmb and k_max */
 
-      while (index_k < ppt->k_size[index_md]) {
+  while (index_k < ppt->k_size) {
       
-        ppt->k[index_md][index_k] = ppt->k[index_md][index_k-1] 
-          *pow(10.,1./(ppr->k_scalar_k_per_decade_for_pk
-                       +(ppr->k_scalar_k_per_decade_for_bao-ppr->k_scalar_k_per_decade_for_pk)
-                       *(1.-tanh(pow((log(ppt->k[index_md][index_k-1])-log(ppr->k_scalar_bao_center*k_rec))/log(ppr->k_scalar_bao_width),4)))));
+    ppt->k[index_k] = ppt->k[index_k-1] 
+      *pow(10.,1./(ppr->k_per_decade_for_pk
+                   +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                   *(1.-tanh(pow((log(ppt->k[index_k-1])-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
 
-        index_k++;
+    index_k++;
 
-      }
-
-    }
-
-  /** - get number of wavenumbers for tensor mode */
-  if _tensors_ {
-
-      class_test(ppr->k_tensor_step_transition == 0.,
-                 ppt->error_message,
-                 "stop to avoid division by zero");
-
-      class_test(pth->rs_rec == 0.,
-                 ppt->error_message,
-                 "stop to avoid division by zero");
-
-      k_rec = 2. * _PI_ / pth->tau_rec; /* comoving scale corresping to causal horizon at recombination 
-                                           (roughly, sqrt(3) bigger than sound horizon) */
-
-      index_k=0;
-      k = ppr->k_tensor_min_tau0/pba->conformal_age;
-      index_k=1;
-
-      if (ppt->has_cls == _TRUE_) {
-        k_max_cmb = ppr->k_tensor_max_tau0_over_l_max
-          *ppt->l_tensor_max
-          /pba->conformal_age;
-      }
-
-      while (k < k_max_cmb) {
-        step = ppr->k_tensor_step_super 
-          + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
-
-        class_test(step * k_rec / k < ppr->smallest_allowed_variation,
-                   ppt->error_message,
-                   "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
-
-        k_next=k + step * k_rec;
-        index_k++;
-        k=k_next;
-      }
-
-      ppt->k_size_cmb[index_md] = index_k;
-      ppt->k_size_cl[index_md] = index_k;
-      ppt->k_size[index_md] = index_k;
-
-      class_alloc(ppt->k[index_md],ppt->k_size[index_md]*sizeof(double),ppt->error_message);
-
-      /** - repeat the same steps, now filling the array */
-
-      index_k=0;
-      ppt->k[index_md][index_k] = ppr->k_tensor_min_tau0/pba->conformal_age;
-      index_k++;
-      while (index_k < ppt->k_size_cl[index_md]) {
-        step = ppr->k_tensor_step_super 
-          + 0.5 * (tanh((ppt->k[index_md][index_k-1]-k_rec)/k_rec/ppr->k_tensor_step_transition)+1.) * (ppr->k_tensor_step_sub-ppr->k_tensor_step_super);
-
-        class_test(step * k_rec / ppt->k[index_md][index_k-1] < ppr->smallest_allowed_variation,
-                   ppt->error_message,
-                   "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
-        ppt->k[index_md][index_k]=ppt->k[index_md][index_k-1] + step * k_rec;
-        index_k++;
-      }
-
-    }
-
-  /* vectors not coded yet */
+  }
 
   return _SUCCESS_;
 
@@ -1538,7 +1451,7 @@ int perturb_solve(
   ppw->inter_mode = pba->inter_normal;
 
   /** - get wavenumber value */
-  k = (ppt->k[index_md])[index_k];
+  k = ppt->k[index_k];
 
   class_test(k == 0.,
              ppt->error_message,
@@ -1604,7 +1517,7 @@ int perturb_solve(
              ppr->start_large_k_at_tau_h_over_tau_k,
              ppt->error_message,
              "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_large_k_at_tau_h_over_tau_k' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
-             ppt->k[index_md][ppt->k_size[index_md]-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
+             ppt->k[ppt->k_size-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
   
   if (pba->has_ncdm == _TRUE_) {
     for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
@@ -1826,7 +1739,7 @@ int perturb_solve(
     for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
       ppt->sources[index_md]
         [index_ic * ppt->tp_size[index_md] + index_type]
-        [index_tau * ppt->k_size[index_md] + index_k] = 0.;
+        [index_tau * ppt->k_size + index_k] = 0.;
     }
   }
 
@@ -4486,46 +4399,46 @@ int perturb_sources(
 
         /* what should you write if you wanted EVERYTHING BUT the ISW contribution? */
         /*   
-                  if (ppt->gauge == newtonian) {
-                  _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi]);
-                  _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
-                  _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
-                  }
-                  if (ppt->gauge == synchronous) {
-                    _set_source_(ppt->index_tp_t0) =
-                  pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime]);
-                    _set_source_(ppt->index_tp_t1) =
-                  pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k);
-                  _set_source_(ppt->index_tp_t2) =
-                  pvecthermo[pth->index_th_g] * P;
-                  }
+             if (ppt->gauge == newtonian) {
+             _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi]);
+             _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
+             _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
+             }
+             if (ppt->gauge == synchronous) {
+             _set_source_(ppt->index_tp_t0) =
+             pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime]);
+             _set_source_(ppt->index_tp_t1) =
+             pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k);
+             _set_source_(ppt->index_tp_t2) =
+             pvecthermo[pth->index_th_g] * P;
+             }
         */
 
         /* for testing purposes */
         /*
-        _set_source_(ppt->index_tp_t0) = 0.;
-        _set_source_(ppt->index_tp_t1) = 0.;
-        _set_source_(ppt->index_tp_t2) = 0.;
+          _set_source_(ppt->index_tp_t0) = 0.;
+          _set_source_(ppt->index_tp_t1) = 0.;
+          _set_source_(ppt->index_tp_t2) = 0.;
 
-        _set_source_(ppt->index_tp_t0) = (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
-        _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b]/k;
+          _set_source_(ppt->index_tp_t0) = (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
+          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b]/k;
         */
 
         /*
-        if (ppt->gauge == synchronous) {
+          if (ppt->gauge == synchronous) {
           _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + P/2. + pvecmetric[ppw->index_mt_alpha_prime]);
-            + (pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b])/ k / k;
+          + (pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b])/ k / k;
           _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
           _set_source_(ppt->index_tp_t2) = 0.; pvecthermo[pth->index_th_g] * P;
 
-        }
+          }
         */
         /*
-        if (ppt->gauge == newtonian) {
+          if (ppt->gauge == newtonian) {
           _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi]);
           _set_source_(ppt->index_tp_t1) = 0.;
           _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
-        }
+          }
         */
 
       }
@@ -4801,21 +4714,21 @@ int perturb_print_variables(double tau,
 
       /* density and velocity perturbations (comment out if you wish to keep synchronous variables) */
       /*
-      delta_g -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
-      theta_g += k*k*pvecmetric[ppw->index_mt_alpha];
+        delta_g -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        theta_g += k*k*pvecmetric[ppw->index_mt_alpha];
 
-      delta_b -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
-      theta_b += k*k*pvecmetric[ppw->index_mt_alpha];
+        delta_b -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        theta_b += k*k*pvecmetric[ppw->index_mt_alpha];
 
-      if (pba->has_ur == _TRUE_) {
+        if (pba->has_ur == _TRUE_) {
         delta_ur -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
         theta_ur += k*k*pvecmetric[ppw->index_mt_alpha];
-      }
+        }
 
-      if (pba->has_cdm == _TRUE_) {
+        if (pba->has_cdm == _TRUE_) {
         delta_cdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
         theta_cdm += k*k*pvecmetric[ppw->index_mt_alpha];
-      }
+        }
       */
 
     }

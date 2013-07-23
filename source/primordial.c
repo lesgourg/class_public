@@ -220,8 +220,8 @@ int primordial_init(
   k_max=0.;     /* zero initial value before scanning all modes */
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
-    k_min = min(k_min,ppt->k[index_md][0]); /* first value, inferred from perturbations structure */
-    k_max = max(k_max,ppt->k[index_md][ppt->k_size[index_md]-1]); /* last value, inferred from perturbations structure */
+    k_min = min(k_min,ppt->k[0]); /* first value, inferred from perturbations structure */
+    k_max = max(k_max,ppt->k[ppt->k_size-1]); /* last value, inferred from perturbations structure */
   }
   
   class_test(k_min <= 0.,

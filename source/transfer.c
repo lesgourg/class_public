@@ -61,14 +61,14 @@ int transfer_functions_at_k(
 
   /** - interpolate in pre-computed table using array_interpolate_two() */
   class_call(array_interpolate_two(
-                                   ptr->k[index_md],
+                                   ptr->k,
                                    1,
                                    0,
                                    ptr->transfer[index_md]
                                    +((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l)
-                                   * ptr->k_size[index_md],
+                                   * ptr->k_size,
                                    1,
-                                   ptr->k_size[index_md],
+                                   ptr->k_size,
                                    k,
                                    transfer_function,
                                    1,
@@ -99,7 +99,7 @@ int transfer_functions_at_k(
  * -# for each l, compute the transfer function by convolving the 
  *    sources with the Bessel functions using transfer_compute_for_each_l()
  *    (this step is parallelized). Store result in the transfer table 
- *    transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size[index_md] + index_k]
+ *    transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size + index_k]
  *
  * @param ppr Input : pointer to precision structure 
  * @param pba Input : pointer to background structure 
@@ -286,6 +286,8 @@ int transfer_init(
   /* allocate the pointer to one workspace per thread */
   class_alloc(pw,number_of_threads*sizeof(double*),ptr->error_message);
 
+  /** - NEW: loop over all wavenumbers. For each wavenumber: */
+
   /** - loop over all modes. For each mode: */ 
 
   for (index_md = 0; index_md < ptr->md_size; index_md++) {
@@ -305,11 +307,11 @@ int transfer_init(
         to k (for spline interpolation) */
 
     class_alloc(interpolated_sources,
-                ptr->k_size[index_md]*ppt->tau_size*sizeof(double),
+                ptr->k_size*ppt->tau_size*sizeof(double),
                 ptr->error_message);
      
     class_alloc(source_spline,
-                ppt->k_size[index_md]*ppt->tau_size*sizeof(double),
+                ppt->k_size*ppt->tau_size*sizeof(double),
                 ptr->error_message);
 
     /** (a.2.) maximum number of sampled times in the transfer
@@ -354,7 +356,7 @@ int transfer_init(
 
 
       class_alloc_parallel(pw[thread],
-                           ((2+ptr->k_size[index_md])*tau_size_max
+                           ((2+ptr->k_size)*tau_size_max
                             +2+num_j*pbs->x_size_max)*
                            sizeof(double),
                            ptr->error_message);
@@ -438,7 +440,7 @@ int transfer_init(
           address_in_workspace += 1;
 
           sources = address_in_workspace;
-          address_in_workspace += ptr->k_size[index_md]*tau_size_max;
+          address_in_workspace += ptr->k_size*tau_size_max;
 	  
           x_min_l = address_in_workspace;
           address_in_workspace += 1;
@@ -592,7 +594,6 @@ int transfer_free(
 
     for (index_md = 0; index_md < ptr->md_size; index_md++) {
       free(ptr->l_size_tt[index_md]);
-      free(ptr->k[index_md]);
       free(ptr->transfer[index_md]);
     }  
    
@@ -600,7 +601,6 @@ int transfer_free(
     free(ptr->l_size_tt);
     free(ptr->l_size);
     free(ptr->l);
-    free(ptr->k_size);
     free(ptr->k);
     free(ptr->transfer);
     
@@ -741,14 +741,6 @@ int transfer_indices_of_transfers(
     class_alloc(ptr->l_size_tt[index_md],ptr->tt_size[index_md] * sizeof(int),ptr->error_message);
   }
 
-  /* number of k values for each mode, k_size[index_md] */
-
-  class_alloc(ptr->k_size,ptr->md_size * sizeof(int),ptr->error_message);
-
-  /* list of k values for each mode, k[index_md] */
-
-  class_alloc(ptr->k,ptr->md_size * sizeof(double *),ptr->error_message);
-
   /* array (of array) of transfer functions for each mode, transfer[index_md] */
 
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
@@ -758,18 +750,18 @@ int transfer_indices_of_transfers(
              ptr->error_message,
              ptr->error_message);
   
+  /** get k values using transfer_get_k_list() */
+  class_call(transfer_get_k_list(ppr,ppt,ptr,tau0),
+             ptr->error_message,
+             ptr->error_message);
+
   /** - loop over modes (scalar, etc). For each mode: */
   
   for (index_md = 0; index_md < ptr->md_size; index_md++) {
 
-    /** (a) get k values using transfer_get_k_list() */
-    class_call(transfer_get_k_list(ppr,ppt,ptr,tau0,index_md),
-               ptr->error_message,
-               ptr->error_message);
-
-    /** (b) allocate arrays of transfer functions, (ptr->transfer[index_md])[index_ic][index_tt][index_l][index_k] */
+    /** allocate arrays of transfer functions, (ptr->transfer[index_md])[index_ic][index_tt][index_l][index_k] */
     class_alloc(ptr->transfer[index_md],
-                ppt->ic_size[index_md] * ptr->tt_size[index_md] * ptr->l_size[index_md] * ptr->k_size[index_md] * sizeof(double),
+                ppt->ic_size[index_md] * ptr->tt_size[index_md] * ptr->l_size[index_md] * ptr->k_size * sizeof(double),
                 ptr->error_message);
     
   }
@@ -889,8 +881,7 @@ int transfer_get_k_list(
                         struct precision * ppr,
                         struct perturbs * ppt,
                         struct transfers * ptr,
-                        double tau0,
-                        int index_md
+                        double tau0
                         ) {
 
   int index_k_pt;
@@ -899,17 +890,7 @@ int transfer_get_k_list(
 
   /* find k_step_max, the maximum value of the step */
 
-  if _scalars_ {
-
-      k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_scalars;
-
-    }
-
-  if _tensors_ {
-
-      k_step_max = 2.*_PI_/tau0*ppr->k_step_trans_tensors;
-
-    }
+  k_step_max = 2.*_PI_/tau0*ppr->k_step_trans;
 
   class_test(k_step_max == 0.,
              ptr->error_message,
@@ -917,9 +898,9 @@ int transfer_get_k_list(
 
   /* first and last value in perturbation module */
 
-  k_min = ppt->k[index_md][0]; /* first value, inferred from perturbations structure */
+  k_min = ppt->k[0]; /* first value, inferred from perturbations structure */
 
-  k_max = ppt->k[index_md][ppt->k_size_cl[index_md]-1]; /* last value, inferred from perturbations structure */
+  k_max = ppt->k[ppt->k_size_cl-1]; /* last value, inferred from perturbations structure */
 
   /* first, count the number of necessary values */
 
@@ -934,8 +915,8 @@ int transfer_get_k_list(
 
   /* - points taken from perturbation module if step small enough */
 
-  while ((index_k_pt < ppt->k_size[index_md]) && ((ppt->k[index_md][index_k_pt] -k) < k_step_max)) {
-    k = ppt->k[index_md][index_k_pt];
+  while ((index_k_pt < ppt->k_size) && ((ppt->k[index_k_pt] -k) < k_step_max)) {
+    k = ppt->k[index_k_pt];
     index_k_pt++;
     index_k_tr++;
   }
@@ -950,12 +931,12 @@ int transfer_get_k_list(
   /* - get number of points and allocate list */
 
   if (k > k_max)
-    ptr->k_size[index_md]=index_k_tr-1;
+    ptr->k_size=index_k_tr-1;
   else
-    ptr->k_size[index_md]=index_k_tr;
+    ptr->k_size=index_k_tr;
 
-  class_alloc(ptr->k[index_md],
-              ptr->k_size[index_md]*sizeof(double),
+  class_alloc(ptr->k,
+              ptr->k_size*sizeof(double),
               ptr->error_message);
 
   /* repeat exactly the same steps, but now filling the list */
@@ -963,27 +944,27 @@ int transfer_get_k_list(
   index_k_pt = 0;
   index_k_tr = 0;
 
-  ptr->k[index_md][0] = k_min;
+  ptr->k[0] = k_min;
   k = k_min;
   index_k_pt++;
   index_k_tr++;
 
-  while ((index_k_pt < ppt->k_size[index_md]) && ((ppt->k[index_md][index_k_pt] -k) < k_step_max)) {
-    k = ppt->k[index_md][index_k_pt];
-    ptr->k[index_md][index_k_tr] = k;
+  while ((index_k_pt < ppt->k_size) && ((ppt->k[index_k_pt] -k) < k_step_max)) {
+    k = ppt->k[index_k_pt];
+    ptr->k[index_k_tr] = k;
     index_k_pt++;
     index_k_tr++;
   }
 
-  while ((index_k_tr < ptr->k_size[index_md]) && (k < k_max)) {
+  while ((index_k_tr < ptr->k_size) && (k < k_max)) {
     k += k_step_max;
-    ptr->k[index_md][index_k_tr] = k;
+    ptr->k[index_k_tr] = k;
     index_k_tr++;
   }
 
   /* consistency check */
 
-  class_test(ptr->k[index_md][ptr->k_size[index_md]-1] > k_max,
+  class_test(ptr->k[ptr->k_size-1] > k_max,
              ptr->error_message,
              "bug in k list calculation, k_max larger in transfer than in perturb, should never happen");
 
@@ -1271,8 +1252,8 @@ int transfer_interpolate_sources(
   /** - find second derivative of original sources with respect to k
       in view of spline interpolation */
 
-  class_call(array_spline_table_columns(ppt->k[index_md],
-                                        ppt->k_size[index_md],
+  class_call(array_spline_table_columns(ppt->k,
+                                        ppt->k_size,
                                         ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_type],
                                         ppt->tau_size,
                                         source_spline,
@@ -1285,22 +1266,22 @@ int transfer_interpolate_sources(
       spline interpolation algorithm. */
   
   index_k = 0;
-  h = ppt->k[index_md][index_k+1] - ppt->k[index_md][index_k];
+  h = ppt->k[index_k+1] - ppt->k[index_k];
   
-  for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) {
+  for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
     
-    while (((index_k+1) < ppt->k_size[index_md]) &&
-           (ppt->k[index_md][index_k+1] < 
-            ptr->k[index_md][index_k_tr])) {
+    while (((index_k+1) < ppt->k_size) &&
+           (ppt->k[index_k+1] < 
+            ptr->k[index_k_tr])) {
       index_k++;
-      h = ppt->k[index_md][index_k+1] - ppt->k[index_md][index_k];
+      h = ppt->k[index_k+1] - ppt->k[index_k];
     }
     
     class_test(h==0.,
                ptr->error_message,
                "stop to avoid division by zero");
     
-    b = (ptr->k[index_md][index_k_tr] - ppt->k[index_md][index_k])/h;
+    b = (ptr->k[index_k_tr] - ppt->k[index_k])/h;
     a = 1.-b;
     
     for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
@@ -1308,12 +1289,12 @@ int transfer_interpolate_sources(
       interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
         a * ppt->sources[index_md]
         [index_ic * ppt->tp_size[index_md] + index_type]
-        [index_tau*ppt->k_size[index_md]+index_k]
+        [index_tau*ppt->k_size+index_k]
         + b * ppt->sources[index_md]
         [index_ic * ppt->tp_size[index_md] + index_type]
-        [index_tau*ppt->k_size[index_md]+index_k+1]
-        + ((a*a*a-a) * source_spline[index_tau*ppt->k_size[index_md]+index_k]
-           +(b*b*b-b) * source_spline[index_tau*ppt->k_size[index_md]+index_k+1])*h*h/6.0;
+        [index_tau*ppt->k_size+index_k+1]
+        + ((a*a*a-a) * source_spline[index_tau*ppt->k_size+index_k]
+           +(b*b*b-b) * source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
       
     }
   }
@@ -1482,12 +1463,12 @@ int transfer_sources(
             }
 	  
             /* copy from input array to output array */
-            for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) { 
+            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
               sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
                 interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
                 * rescaling
                 * ptr->lcmb_rescale
-                * pow(ptr->k[index_md][index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
+                * pow(ptr->k[index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
             }
 	  
             /* store value of (tau0-tau) */
@@ -1597,18 +1578,18 @@ int transfer_sources(
               *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
               /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
 	  
-            for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) {
-              sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_md][index_k_tr],2);
+            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
+              sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
             }
           }
 
           /*
             if (bin == 2) {
-            for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) {
+            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
             for (index_tau = 0; index_tau < tau_size; index_tau++) {
             fprintf(stdout,"%e %e %e\n",
             tau0-tau0_minus_tau[index_tau],
-            ptr->k[index_md][index_k_tr],
+            ptr->k[index_k_tr],
             sources[index_k_tr*tau_size+index_tau]);
             }
             fprintf(stdout,"\n\n");
@@ -1764,7 +1745,7 @@ int transfer_sources(
             }
 	  
             /* copy from input array to output array */
-            for (index_k_tr = 0; index_k_tr < ptr->k_size[index_md]; index_k_tr++) { 
+            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
               sources[index_k_tr*tau_size+index_tau] *= rescaling;
             }
 	  
@@ -1790,7 +1771,7 @@ int transfer_sources(
     /* plain copy from input array to output array */
     memcpy(sources,
            interpolated_sources,
-           ptr->k_size[index_md]*ppt->tau_size*sizeof(double));
+           ptr->k_size*ppt->tau_size*sizeof(double));
         
     /* store values of (tau0-tau) */
     for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
@@ -2095,7 +2076,7 @@ int transfer_source_resample(
 
   /* array of source values for a given time and for all k's */
   class_alloc(source_at_tau,
-              ptr->k_size[index_md]*sizeof(double),
+              ptr->k_size*sizeof(double),
               ptr->error_message);
 
   /* interpolate the sources linearily at the new time values */
@@ -2106,17 +2087,17 @@ int transfer_source_resample(
                                      0,
                                      interpolated_sources, 
                                      // this array is indexed as interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-                                     ptr->k_size[index_md],
+                                     ptr->k_size,
                                      ppt->tau_size,
                                      tau0-tau0_minus_tau[index_tau],
                                      source_at_tau,
-                                     ptr->k_size[index_md],
+                                     ptr->k_size,
                                      ptr->error_message),
                ptr->error_message,
                ptr->error_message);
 
     /* for each k, copy the new values in the output sources array */
-    for (index_k_tr=0;index_k_tr<ptr->k_size[index_md];index_k_tr++) {
+    for (index_k_tr=0;index_k_tr<ptr->k_size;index_k_tr++) {
       sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
     }
   } 
@@ -2401,10 +2382,10 @@ int transfer_compute_for_each_l(
 
   if (index_l >= ptr->l_size_tt[index_md][index_tt]) { 
 
-    for (index_k = 0; index_k < ptr->k_size[index_md]; index_k++) {
+    for (index_k = 0; index_k < ptr->k_size; index_k++) {
       ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                                * ptr->l_size[index_md] + index_l)
-                              * ptr->k_size[index_md] + index_k] = 0.;
+                              * ptr->k_size + index_k] = 0.;
     }
     return _SUCCESS_;
   }
@@ -2481,9 +2462,9 @@ int transfer_compute_for_each_l(
       being reached. 
   */
 
-  for (index_k = 0; index_k < ptr->k_size[index_md]; index_k++) {
+  for (index_k = 0; index_k < ptr->k_size; index_k++) {
 
-    k = ptr->k[index_md][index_k];
+    k = ptr->k[index_k];
 
     if (ptr->transfer_verbose > 3)
       printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,k,index_tt);
@@ -2591,7 +2572,7 @@ int transfer_compute_for_each_l(
     /* store transfer function in transfer structure */
     ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                              * ptr->l_size[index_md] + index_l)
-                            * ptr->k_size[index_md] + index_k]
+                            * ptr->k_size + index_k]
       = transfer_function;
     
     // new
@@ -2633,11 +2614,11 @@ int transfer_compute_for_each_l(
     }
 		
     /* in the tc_cl case, update various quantities and check wether k_max is reached */
-    if ((use_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size[index_md]-1) && (transfer_function != 0.)) {
+    if ((use_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size-1) && (transfer_function != 0.)) {
 		  
       /* rough estimate of the contribution of the last step to pseudo-C_l, 
          assuming flat primordial spectrum */
-      delta_cl = transfer_function * transfer_function / k * 0.5 * (ptr->k[index_md][index_k+1] - ptr->k[index_md][index_k-1]);
+      delta_cl = transfer_function * transfer_function / k * 0.5 * (ptr->k[index_k+1] - ptr->k[index_k-1]);
       
       /* update pseudo-C_l */
       cl += delta_cl;

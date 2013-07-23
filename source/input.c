@@ -1197,10 +1197,10 @@ int input_init(
                errmsg,
                "In input file, you cannot enter both P_k_max_h/Mpc and P_k_max_1/Mpc, choose one");
     if (flag1 == _TRUE_) {
-      ppt->k_scalar_kmax_for_pk=param1*pba->h;
+      ppt->k_max_for_pk=param1*pba->h;
     }
     if (flag2 == _TRUE_) {
-      ppt->k_scalar_kmax_for_pk=param2;
+      ppt->k_max_for_pk=param2;
     }
 
     class_call(parser_read_list_of_doubles(pfc,
@@ -1519,20 +1519,27 @@ int input_init(
 
   class_read_int("evolver",ppr->evolver);
   class_read_int("pk_definition",ppr->pk_definition);
-  class_read_double("k_scalar_min_tau0",ppr->k_scalar_min_tau0);
-  class_read_double("k_scalar_max_tau0_over_l_max",ppr->k_scalar_max_tau0_over_l_max);
-  class_read_double("k_scalar_step_sub",ppr->k_scalar_step_sub);
-  class_read_double("k_scalar_step_super",ppr->k_scalar_step_super);
-  class_read_double("k_scalar_step_transition",ppr->k_scalar_step_transition);
-  class_read_double("k_scalar_k_per_decade_for_pk",ppr->k_scalar_k_per_decade_for_pk);
-  class_read_double("k_scalar_k_per_decade_for_bao",ppr->k_scalar_k_per_decade_for_bao);
-  class_read_double("k_scalar_bao_center",ppr->k_scalar_bao_center);
-  class_read_double("k_scalar_bao_width",ppr->k_scalar_bao_width);
-  class_read_double("k_tensor_min_tau0",ppr->k_tensor_min_tau0);
-  class_read_double("k_tensor_max_tau0_over_l_max",ppr->k_tensor_max_tau0_over_l_max);
-  class_read_double("k_tensor_step_sub",ppr->k_tensor_step_sub);
-  class_read_double("k_tensor_step_super",ppr->k_tensor_step_super);
-  class_read_double("k_tensor_step_transition",ppr->k_tensor_step_transition);
+
+  class_read_double("k_scalar_min_tau0",ppr->k_min_tau0); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_max_tau0_over_l_max",ppr->k_max_tau0_over_l_max); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_step_sub",ppr->k_step_sub); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_step_super",ppr->k_step_super); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_step_transition",ppr->k_step_transition); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_k_per_decade_for_pk",ppr->k_per_decade_for_pk); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_k_per_decade_for_bao",ppr->k_per_decade_for_bao); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_bao_center",ppr->k_bao_center); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_bao_width",ppr->k_bao_width); // obsolete precision parameter: read for compatibility with old precision files
+
+  class_read_double("k_min_tau0",ppr->k_min_tau0);
+  class_read_double("k_max_tau0_over_l_max",ppr->k_max_tau0_over_l_max);
+  class_read_double("k_step_sub",ppr->k_step_sub);
+  class_read_double("k_step_super",ppr->k_step_super);
+  class_read_double("k_step_transition",ppr->k_step_transition);
+  class_read_double("k_per_decade_for_pk",ppr->k_per_decade_for_pk);
+  class_read_double("k_per_decade_for_bao",ppr->k_per_decade_for_bao);
+  class_read_double("k_bao_center",ppr->k_bao_center);
+  class_read_double("k_bao_width",ppr->k_bao_width);
+
   class_read_double("start_small_k_at_tau_c_over_tau_h",ppr->start_small_k_at_tau_c_over_tau_h);
   class_read_double("start_large_k_at_tau_h_over_tau_k",ppr->start_large_k_at_tau_h_over_tau_k);
   class_read_double("tight_coupling_trigger_tau_c_over_tau_h",ppr->tight_coupling_trigger_tau_c_over_tau_h);
@@ -1612,8 +1619,9 @@ int input_init(
 
   /** h.6. parameter related to the transfer functions */
 
-  class_read_double("k_step_trans_scalars",ppr->k_step_trans_scalars);
-  class_read_double("k_step_trans_tensors",ppr->k_step_trans_tensors);
+  class_read_double("k_step_trans_scalars",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_step_trans_tensors",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_step_trans",ppr->k_step_trans);
   class_read_int("transfer_cut",ppr->transfer_cut);
   class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
   class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
@@ -1653,9 +1661,9 @@ int input_init(
     /* when using the trg module, the following parameters need to
        be changed */
 
-    ppt->k_scalar_kmax_for_pk 
+    ppt->k_max_for_pk 
       = max(
-            ppt->k_scalar_kmax_for_pk,
+            ppt->k_max_for_pk,
             ppr->k_scalar_max_for_pk_nl*pba->h);
 
     psp->z_max_pk = ppr->z_ini+1.;
@@ -1691,14 +1699,14 @@ int input_init(
           (ppt->has_cl_density == _TRUE_))
         pbs->l_max=max(ppt->l_lss_max,pbs->l_max);
 
-      pbs->x_max=max(pbs->l_max*ppr->k_scalar_max_tau0_over_l_max,pbs->x_max);
+      pbs->x_max=max(pbs->l_max*ppr->k_max_tau0_over_l_max,pbs->x_max);
       
     }
     
     if (ppt->has_tensors == _TRUE_) {   
       pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
 
-      pbs->x_max=max(pbs->l_max*ppr->k_tensor_max_tau0_over_l_max,pbs->x_max);
+      pbs->x_max=max(pbs->l_max*ppr->k_max_tau0_over_l_max,pbs->x_max);
     }
   }
 
@@ -1872,7 +1880,7 @@ int input_default_params(
   ppt->l_scalar_max=2500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
-  ppt->k_scalar_kmax_for_pk=0.1;
+  ppt->k_max_for_pk=0.1;
 
   ppt->gauge=1;
 
@@ -2086,22 +2094,15 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->evolver = ndf15;
   ppr->pk_definition = delta_m_squared;
 
-  ppr->k_scalar_min_tau0=0.1;
-  ppr->k_scalar_max_tau0_over_l_max=2.;
-  ppr->k_scalar_step_sub=0.05;
-  ppr->k_scalar_step_super=0.002;
-  ppr->k_scalar_step_transition=0.2;
-
-  ppr->k_scalar_k_per_decade_for_pk=10.;
-  ppr->k_scalar_k_per_decade_for_bao=70.;
-  ppr->k_scalar_bao_center=3.;
-  ppr->k_scalar_bao_width=4.;
-
-  ppr->k_tensor_min_tau0=1.4;
-  ppr->k_tensor_max_tau0_over_l_max = 2.;
-  ppr->k_tensor_step_sub=0.1;
-  ppr->k_tensor_step_super=0.0025;
-  ppr->k_tensor_step_transition=0.2;
+  ppr->k_min_tau0=0.1;
+  ppr->k_max_tau0_over_l_max=2.;
+  ppr->k_step_sub=0.05;
+  ppr->k_step_super=0.002;
+  ppr->k_step_transition=0.2;
+  ppr->k_per_decade_for_pk=10.;
+  ppr->k_per_decade_for_bao=70.;
+  ppr->k_bao_center=3.;
+  ppr->k_bao_width=4.;
 
   ppr->start_small_k_at_tau_c_over_tau_h = 0.0015;  /* decrease to start earlier in time */
   ppr->start_large_k_at_tau_h_over_tau_k = 0.07;  /* decrease to start earlier in time */
@@ -2171,8 +2172,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->k_step_trans_scalars=0.4;
-  ppr->k_step_trans_tensors=0.4;
+  ppr->k_step_trans=0.4;
   ppr->transfer_cut=tc_osc;
   ppr->transfer_cut_threshold_osc=0.007; /* 03.12.10 for chi2plT0.01 */
   ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */
