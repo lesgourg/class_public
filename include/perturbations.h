@@ -263,7 +263,7 @@ struct perturbs
   double *** sources; /**< Pointer towards the source interpolation table
                          sources[index_md]
                          [index_ic * ppt->tp_size[index_md] + index_type]
-                         [index_tau * ppt->k_size[index_md] + index_k] */
+                         [index_tau * ppt->k_size + index_k] */
 
 
   //@}

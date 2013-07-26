@@ -123,12 +123,16 @@ int transfer_init(
 
   /** - define local variables */
 
+  /* running index for wavenumbers */
+  int index_k_tr;
   /* running index for modes */
   int index_md; 
   /* running index for initial conditions */
   int index_ic; 
-  /* running index for types */
+  /* running index for transfer types */
   int index_tt; 
+  /* running index for perturbation types */
+  int index_tp; 
   /* running index for multipoles */
   int index_l; 
 
@@ -146,7 +150,7 @@ int transfer_init(
      (second derivative with respect to k, not tau!), 
      used to interpolate sources at the right values of k,
      source_spline[index_tau*ppt->k_size[index_md]+index_k] */
-  double * source_spline;
+  //double * source_spline;
 
   /* table of source functions interpolated at the right values of k, 
      interpolated_sources[index_k_tr*ppt->tau_size+index_tau] */
@@ -169,7 +173,7 @@ int transfer_init(
   double * tau_size;
 
   /* - fourth workspace field, identical to above interpolated sources:
-     sources[index_k_tr*ppt->tau_size+index_tau] */
+     sources[index_tau] */
   double * sources;
 
   /* - fifth workspace field, containing just a double: value of x at
@@ -286,288 +290,347 @@ int transfer_init(
   /* allocate the pointer to one workspace per thread */
   class_alloc(pw,number_of_threads*sizeof(double*),ptr->error_message);
 
-  /** - NEW: loop over all wavenumbers. For each wavenumber: */
+  /** - NEW: spline all the sources at the same time */
 
-  /** - loop over all modes. For each mode: */ 
+  double *** sources_spline;
+
+  class_alloc(sources_spline,
+              ptr->md_size*sizeof(double*),
+              ptr->error_message);
 
   for (index_md = 0; index_md < ptr->md_size; index_md++) {
 
-    /** (a) allocate temporary arrays relevant for this mode */
-
-    /** (a.0.) find correspondence between sources in the perturbation and transfer modules */
-
-    class_alloc(tp_of_tt,ptr->tt_size[index_md]*sizeof(int),ptr->error_message);
-
-    class_call(transfer_get_source_correspondence(ppt,ptr,index_md,tp_of_tt),
-               ptr->error_message,
-               ptr->error_message);
-
-    /** (a.1.) arrays that will contain the sources interpolated at
-        correct values of k, and their second derivatives with respect
-        to k (for spline interpolation) */
-
-    class_alloc(interpolated_sources,
-                ptr->k_size*ppt->tau_size*sizeof(double),
-                ptr->error_message);
-     
-    class_alloc(source_spline,
-                ppt->k_size*ppt->tau_size*sizeof(double),
+    class_alloc(sources_spline[index_md],
+                ppt->ic_size[index_md]*ppt->tp_size[index_md]*sizeof(double*),
                 ptr->error_message);
 
-    /** (a.2.) maximum number of sampled times in the transfer
-        sources: needs to be known here, in order to allocate a large
-        enough workspace */
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+      
+      for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+      
+        class_alloc(sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                    ppt->k_size*ppt->tau_size*sizeof(double),
+                    ptr->error_message);
 
-    tau_size_max = 0;
-    
-    for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+        class_call(array_spline_table_columns(ppt->k,
+                                              ppt->k_size,
+                                              ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                              ppt->tau_size,
+                                              sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                              _SPLINE_EST_DERIV_,
+                                              ptr->error_message),
+                   ptr->error_message,
+                   ptr->error_message);
+        
+      }
+    }
+  }
 
-      class_call(transfer_source_tau_size(ppr,
-                                          pba,
-                                          ppt,
-                                          ptr,
-                                          tau_rec,
-                                          tau0,
-                                          index_md,
-                                          index_tt,
-                                          &tau_size_tt),
+  /** - NEW: loop over all wavenumbers. For each wavenumber: */
+  for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
+
+    /** - loop over all modes. For each mode: */ 
+
+    for (index_md = 0; index_md < ptr->md_size; index_md++) {
+
+      /** (a) allocate temporary arrays relevant for this mode */
+
+      /** (a.0.) find correspondence between sources in the perturbation and transfer modules */
+
+      class_alloc(tp_of_tt,ptr->tt_size[index_md]*sizeof(int),ptr->error_message);
+
+      class_call(transfer_get_source_correspondence(ppt,ptr,index_md,tp_of_tt),
                  ptr->error_message,
                  ptr->error_message);
-      
-      tau_size_max = max(tau_size_max,tau_size_tt);
-    }
 
-    /** (a.3.) workspace, allocated in a parallel zone since in openmp
-        version there is one workspace per thread */
+      /** (a.1.) arrays that will contain the sources interpolated at
+          correct values of k, and their second derivatives with respect
+          to k (for spline interpolation) */
+      /*
+      class_alloc(interpolated_sources,
+                  ptr->k_size*ppt->tau_size*sizeof(double),
+                  ptr->error_message);
+     
+      class_alloc(source_spline,
+                  ppt->k_size*ppt->tau_size*sizeof(double),
+                  ptr->error_message);
+      */
+      class_alloc(interpolated_sources,
+                  ppt->tau_size*sizeof(double),
+                  ptr->error_message);
+
+      /** (a.2.) maximum number of sampled times in the transfer
+          sources: needs to be known here, in order to allocate a large
+          enough workspace */
+
+      tau_size_max = 0;
     
-    /* initialize error management flag */
-    abort = _FALSE_;
+      for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+
+        class_call(transfer_source_tau_size(ppr,
+                                            pba,
+                                            ppt,
+                                            ptr,
+                                            tau_rec,
+                                            tau0,
+                                            index_md,
+                                            index_tt,
+                                            &tau_size_tt),
+                   ptr->error_message,
+                   ptr->error_message);
+      
+        tau_size_max = max(tau_size_max,tau_size_tt);
+      }
+
+      /** (a.3.) workspace, allocated in a parallel zone since in openmp
+          version there is one workspace per thread */
     
-    /* beginning of parallel region */
+      /* initialize error management flag */
+      abort = _FALSE_;
+    
+      /* beginning of parallel region */
     
 #pragma omp parallel                            \
   shared(ptr,index_md,ppt,pbs,pw)               \
   private(thread)
-    {
+      {
       
 #ifdef _OPENMP
-      thread = omp_get_thread_num();
+        thread = omp_get_thread_num();
 #endif
 
 
-      class_alloc_parallel(pw[thread],
-                           ((2+ptr->k_size)*tau_size_max
-                            +2+num_j*pbs->x_size_max)*
-                           sizeof(double),
-                           ptr->error_message);
+        class_alloc_parallel(pw[thread],
+                             //((2+ptr->k_size)*tau_size_max
+                             (3*tau_size_max
+                              +2+num_j*pbs->x_size_max)*
+                             sizeof(double),
+                             ptr->error_message);
             
-    } /* end of parallel region */
+      } /* end of parallel region */
     
-    if (abort == _TRUE_) return _FAILURE_;
+      if (abort == _TRUE_) return _FAILURE_;
     
-    /** (b) now loop over initial conditions and types: For each of them: */
+      /** (b) now loop over initial conditions and types: For each of them: */
 
-    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+      for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
       
-      /* initialize the previous type index */
-      previous_type=-1;
+        /* initialize the previous type index */
+        previous_type=-1;
 
-      for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+        for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
 
-        /* (b.1) check if we must now deal with a new source with a
-           new index ppt->index_type. If yes, interpolate it at the
-           right values of k. */
+          /* (b.1) check if we must now deal with a new source with a
+             new index ppt->index_type. If yes, interpolate it at the
+             right values of k. */
 
-        if (tp_of_tt[index_tt] != previous_type) {
+          if (tp_of_tt[index_tt] != previous_type) {
 	  
-          if (ptr->transfer_verbose>2)
-            printf("In %s: Interpolate source for one mode/ic/type.\n",
-                   __func__);
+            if (ptr->transfer_verbose>2)
+              printf("In %s: Interpolate source for one mode/ic/type.\n",
+                     __func__);
 	  
-          class_call(transfer_interpolate_sources(ppt,
-                                                  ptr,
-                                                  index_md,
-                                                  index_ic,
-                                                  tp_of_tt[index_tt],
-                                                  source_spline,
-                                                  interpolated_sources),
-                     ptr->error_message,
-                     ptr->error_message);
-        }
+            class_call(transfer_interpolate_sources(ppt,
+                                                    ptr,
+                                                    index_k_tr,
+                                                    index_md,
+                                                    index_ic,
+                                                    tp_of_tt[index_tt],
+                                                    sources_spline[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_tt]],
+                                                    interpolated_sources),
+                       ptr->error_message,
+                       ptr->error_message);
+          }
 	
-        previous_type = tp_of_tt[index_tt];
+          previous_type = tp_of_tt[index_tt];
 
-        /** (b.2) store the sources in the workspace and define all
-            fields in this workspace (in a parallel zone, since in
-            open mp version there is one workspace per thread). The
-            (parallelized) loop over l values will take place right
-            after that in the same parallel zone. */
+          /** (b.2) store the sources in the workspace and define all
+              fields in this workspace (in a parallel zone, since in
+              open mp version there is one workspace per thread). The
+              (parallelized) loop over l values will take place right
+              after that in the same parallel zone. */
 
 #ifdef _OPENMP
-        if (ptr->transfer_verbose>1)
-          printf("In %s: Split transfer function computation between %d threads for one mode/ic/type:\n",
-                 __func__,number_of_threads);
+          if (ptr->transfer_verbose>1)
+            printf("In %s: Split transfer function computation between %d threads for one mode/ic/type:\n",
+                   __func__,number_of_threads);
 #endif
 	
-        /* initialize error management flag */
+          /* initialize error management flag */
 
-        abort = _FALSE_;
+          abort = _FALSE_;
 
-        /* beginning of parallel region */
+          /* beginning of parallel region */
 
 #pragma omp parallel                                                    \
   shared (pw,ptr,ppr,ppt,index_md,index_ic,index_tt,                    \
           interpolated_sources,abort,num_j,tau0,tau_rec,tau_size_max)	\
   private (thread,index_l,tstart,tstop,tspent,address_in_workspace,tau0_minus_tau,delta_tau,sources,j_l,ddj_l,dj_l,dddj_l,x_size_l,x_min_l,k_max_bessel,tau_size)
 	
-        {
+          {
 	  
 #ifdef _OPENMP
-          thread = omp_get_thread_num();
-          tspent = 0.;
+            thread = omp_get_thread_num();
+            tspent = 0.;
 #endif
 	  
-          /* define address of each field in the workspace */
-          address_in_workspace = pw[thread];
+            /* define address of each field in the workspace */
+            address_in_workspace = pw[thread];
 	  
-          tau0_minus_tau = address_in_workspace;
-          address_in_workspace += tau_size_max;
+            tau0_minus_tau = address_in_workspace;
+            address_in_workspace += tau_size_max;
 	  
-          delta_tau  = address_in_workspace;
-          address_in_workspace += tau_size_max;
+            delta_tau  = address_in_workspace;
+            address_in_workspace += tau_size_max;
 	  
-          tau_size = address_in_workspace;
-          address_in_workspace += 1;
+            tau_size = address_in_workspace;
+            address_in_workspace += 1;
 
-          sources = address_in_workspace;
-          address_in_workspace += ptr->k_size*tau_size_max;
+            sources = address_in_workspace;
+            //address_in_workspace += ptr->k_size*tau_size_max;
+            address_in_workspace += tau_size_max;
+
+            x_min_l = address_in_workspace;
+            address_in_workspace += 1;
 	  
-          x_min_l = address_in_workspace;
-          address_in_workspace += 1;
-	  
-          j_l = address_in_workspace;
+            j_l = address_in_workspace;
       
-          /* the address of the next fields, ddj_l, etc., will be defined
-             within the l loop, since they depend on l */
+            /* the address of the next fields, ddj_l, etc., will be defined
+               within the l loop, since they depend on l */
 
-          /* the code makes a distinction between "perturbation
-             sources" (e.g. gravitational potential) and "transfer
-             sources" (e.g. total density fluctuations, obtained
-             through the Poisson equation, and observed with a given
-             selection function).
+            /* the code makes a distinction between "perturbation
+               sources" (e.g. gravitational potential) and "transfer
+               sources" (e.g. total density fluctuations, obtained
+               through the Poisson equation, and observed with a given
+               selection function).
 
-             The next routine computes the transfer source given the
-             interpolated perturbation source, and copies it in the
-             workspace. */
+               The next routine computes the transfer source given the
+               interpolated perturbation source, and copies it in the
+               workspace. */
 
-          class_call_parallel(transfer_sources(ppr,
-                                               pba,
-                                               ppt,
-                                               ptr,
-                                               interpolated_sources,
-                                               tau_rec,
-                                               index_md,
-                                               index_tt,
-                                               sources,
-                                               tau0_minus_tau,
-                                               delta_tau,
-                                               tau_size),
-                              ptr->error_message,
-                              ptr->error_message);
-
-#pragma omp for schedule (dynamic)
-
-          for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
-
-#ifdef _OPENMP
-            tstart = omp_get_wtime();
-#endif
-
-            /* for this value of l, retrieve the number of x values
-               from the bessel structure */
-            x_size_l=pbs->x_size[index_l];
-
-            /* copy from the bessel structure all bessel function
-               related information for this particular value of l:
-               x_min, the j_l(x)s, the j_l''(x)s. They are all
-               allocated in a contiguous memory zone, so we can use a
-               single memcpy. */
-            class_protect_memcpy(x_min_l,pbs->x_min[index_l],(1+num_j*x_size_l)*sizeof(double));
-	
-            /* now define the address of the ddj_l field (and
-               eventually additional fields in the workspace) */
-            ddj_l = j_l + x_size_l;
-
-            //if (ppr->transfer_cut == tc_env) {
-            dj_l = ddj_l + x_size_l;
-            dddj_l = dj_l + x_size_l;
-            //}
-
-            /* for a given l, maximum value of k such that we can convolve
-               the source with Bessel functions j_l(x) without reaching x_max */
-	    
-            k_max_bessel = ((*x_min_l)+(x_size_l-1)*pbs->x_step)/tau0_minus_tau[0];
-
-            /* compute the transfer function for this l */
-            class_call_parallel(transfer_compute_for_each_l(ppr,
-                                                            ppt,
-                                                            ptr,
-                                                            index_md,
-                                                            index_ic,
-                                                            index_tt,
-                                                            index_l,
-                                                            (double)ptr->l[index_l],
-                                                            *x_min_l,
-                                                            pbs->x_step,
-                                                            tau0_minus_tau,
-                                                            delta_tau,
-                                                            (int)(*tau_size),
-                                                            sources,
-                                                            j_l,
-                                                            ddj_l,
-                                                            dj_l,
-                                                            dddj_l,
-                                                            k_max_bessel),
+            class_call_parallel(transfer_sources(ppr,
+                                                 pba,
+                                                 ppt,
+                                                 ptr,
+                                                 interpolated_sources,
+                                                 tau_rec,
+                                                 index_k_tr,
+                                                 index_md,
+                                                 index_tt,
+                                                 sources,
+                                                 tau0_minus_tau,
+                                                 delta_tau,
+                                                 tau_size),
                                 ptr->error_message,
                                 ptr->error_message);
 
-#ifdef _OPENMP
-            tstop = omp_get_wtime();
+#pragma omp for schedule (dynamic)
 
-            tspent += tstop-tstart;
+            for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
+
+#ifdef _OPENMP
+              tstart = omp_get_wtime();
+#endif
+
+              /* for this value of l, retrieve the number of x values
+                 from the bessel structure */
+              x_size_l=pbs->x_size[index_l];
+
+              /* copy from the bessel structure all bessel function
+                 related information for this particular value of l:
+                 x_min, the j_l(x)s, the j_l''(x)s. They are all
+                 allocated in a contiguous memory zone, so we can use a
+                 single memcpy. */
+              class_protect_memcpy(x_min_l,pbs->x_min[index_l],(1+num_j*x_size_l)*sizeof(double));
+	
+              /* now define the address of the ddj_l field (and
+                 eventually additional fields in the workspace) */
+              ddj_l = j_l + x_size_l;
+
+              //if (ppr->transfer_cut == tc_env) {
+              dj_l = ddj_l + x_size_l;
+              dddj_l = dj_l + x_size_l;
+              //}
+
+              /* for a given l, maximum value of k such that we can convolve
+                 the source with Bessel functions j_l(x) without reaching x_max */
+	    
+              k_max_bessel = ((*x_min_l)+(x_size_l-1)*pbs->x_step)/tau0_minus_tau[0];
+
+              /* compute the transfer function for this l */
+              class_call_parallel(transfer_compute_for_each_l(ppr,
+                                                              ppt,
+                                                              ptr,
+                                                              index_k_tr,
+                                                              index_md,
+                                                              index_ic,
+                                                              index_tt,
+                                                              index_l,
+                                                              (double)ptr->l[index_l],
+                                                              *x_min_l,
+                                                              pbs->x_step,
+                                                              tau0_minus_tau,
+                                                              delta_tau,
+                                                              (int)(*tau_size),
+                                                              sources,
+                                                              j_l,
+                                                              ddj_l,
+                                                              dj_l,
+                                                              dddj_l,
+                                                              k_max_bessel),
+                                  ptr->error_message,
+                                  ptr->error_message);
+
+#ifdef _OPENMP
+              tstop = omp_get_wtime();
+
+              tspent += tstop-tstart;
 #endif
 
 #pragma omp flush(abort)
 
-          } /* end of loop over l */
+            } /* end of loop over l */
 
 #ifdef _OPENMP
-          if (ptr->transfer_verbose>1)
-            printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
-                   __func__,tspent,omp_get_thread_num());
+            if (ptr->transfer_verbose>1)
+              printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
+                     __func__,tspent,omp_get_thread_num());
 #endif
 
-        } /* end of parallel region */
+          } /* end of parallel region */
 	
-        if (abort == _TRUE_) return _FAILURE_;
+          if (abort == _TRUE_) return _FAILURE_;
 	
-      } /* end of loop over type */
+        } /* end of loop over type */
       
-    } /* end of loop over initial condition */
+      } /* end of loop over initial condition */
 
-    free(interpolated_sources);
-    free(source_spline);    
-    free(tp_of_tt);
+      free(interpolated_sources);
+      //free(source_spline);    
+      free(tp_of_tt);
 
 #pragma omp parallel shared(pw) private(thread)
-    {
+      {
 #ifdef _OPENMP
-      thread = omp_get_thread_num();
+        thread = omp_get_thread_num();
 #endif
-      free(pw[thread]);
-    }
+        free(pw[thread]);
+      }
     
-  } /* end of loop over mode */
+    } /* end of loop over mode */
+
+  } /* end of loop over wavenumber */
+
+  /* free allocated arrays */
+  for (index_md = 0; index_md < ptr->md_size; index_md++) {
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+      for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+        free(sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp]);
+      }
+    }
+    free(sources_spline[index_md]);
+  }
+  free(sources_spline);
 
   free(pw);
 
@@ -1226,6 +1289,7 @@ int transfer_source_tau_size(
 int transfer_interpolate_sources(
                                  struct perturbs * ppt,
                                  struct transfers * ptr,
+                                 int index_k_tr,
                                  int index_md,
                                  int index_ic,
                                  int index_type,
@@ -1244,14 +1308,14 @@ int transfer_interpolate_sources(
   int index_tau;
 
   /* index running on k values in the interpolated source array */
-  int index_k_tr;
+  //int index_k_tr;
 
   /* variables used for spline interpolation algorithm */
   double h, a, b;
 
   /** - find second derivative of original sources with respect to k
       in view of spline interpolation */
-
+  /*
   class_call(array_spline_table_columns(ppt->k,
                                         ppt->k_size,
                                         ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_type],
@@ -1261,6 +1325,7 @@ int transfer_interpolate_sources(
                                         ptr->error_message),
              ptr->error_message,
              ptr->error_message);
+  */
 
   /** - interpolate at each k value using the usual 
       spline interpolation algorithm. */
@@ -1268,7 +1333,7 @@ int transfer_interpolate_sources(
   index_k = 0;
   h = ppt->k[index_k+1] - ppt->k[index_k];
   
-  for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
+  //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
     
     while (((index_k+1) < ppt->k_size) &&
            (ppt->k[index_k+1] < 
@@ -1286,7 +1351,8 @@ int transfer_interpolate_sources(
     
     for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
       
-      interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
+      //interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
+      interpolated_sources[index_tau] = 
         a * ppt->sources[index_md]
         [index_ic * ppt->tp_size[index_md] + index_type]
         [index_tau*ppt->k_size+index_k]
@@ -1297,7 +1363,7 @@ int transfer_interpolate_sources(
            +(b*b*b-b) * source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
       
     }
-  }
+    //}
 
   return _SUCCESS_;
   
@@ -1334,6 +1400,7 @@ int transfer_sources(
                      struct transfers * ptr,
                      double * interpolated_sources,
                      double tau_rec,
+                     int index_k_tr,
                      int index_md,
                      int index_tt,
                      double * sources,
@@ -1350,7 +1417,7 @@ int transfer_sources(
   int index_tau;
 
   /* index running on k values in the interpolated source array */
-  int index_k_tr;
+  //int index_k_tr;
 
   /* bin for computation of cl_density */  
   int bin;
@@ -1463,13 +1530,15 @@ int transfer_sources(
             }
 	  
             /* copy from input array to output array */
-            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
-              sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
-                interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-                * rescaling
-                * ptr->lcmb_rescale
-                * pow(ptr->k[index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
-            }
+            //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
+            //sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
+            //interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
+            sources[index_tau-index_tau_min] = 
+              interpolated_sources[index_tau]
+              * rescaling
+              * ptr->lcmb_rescale
+              * pow(ptr->k[index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
+              //}
 	  
             /* store value of (tau0-tau) */
             tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
@@ -1578,9 +1647,10 @@ int transfer_sources(
               *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
               /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
 	  
-            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
-              sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
-            }
+            //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
+            //sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
+            //}
+            sources[index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
           }
 
           /*
@@ -1745,9 +1815,10 @@ int transfer_sources(
             }
 	  
             /* copy from input array to output array */
-            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
-              sources[index_k_tr*tau_size+index_tau] *= rescaling;
-            }
+            //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
+            //sources[index_k_tr*tau_size+index_tau] *= rescaling;
+            //}
+            sources[index_tau] *= rescaling;
 	  
           }
 
@@ -1771,7 +1842,8 @@ int transfer_sources(
     /* plain copy from input array to output array */
     memcpy(sources,
            interpolated_sources,
-           ptr->k_size*ppt->tau_size*sizeof(double));
+           //ptr->k_size*ppt->tau_size*sizeof(double));
+           ppt->tau_size*sizeof(double));
         
     /* store values of (tau0-tau) */
     for (index_tau=0; index_tau < ppt->tau_size; index_tau++) {
@@ -2076,7 +2148,8 @@ int transfer_source_resample(
 
   /* array of source values for a given time and for all k's */
   class_alloc(source_at_tau,
-              ptr->k_size*sizeof(double),
+              //ptr->k_size*sizeof(double),
+              sizeof(double),
               ptr->error_message);
 
   /* interpolate the sources linearily at the new time values */
@@ -2087,19 +2160,22 @@ int transfer_source_resample(
                                      0,
                                      interpolated_sources, 
                                      // this array is indexed as interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-                                     ptr->k_size,
+                                     //ptr->k_size,
+                                     1,
                                      ppt->tau_size,
                                      tau0-tau0_minus_tau[index_tau],
                                      source_at_tau,
-                                     ptr->k_size,
+                                     //ptr->k_size,
+                                     1,
                                      ptr->error_message),
                ptr->error_message,
                ptr->error_message);
 
     /* for each k, copy the new values in the output sources array */
-    for (index_k_tr=0;index_k_tr<ptr->k_size;index_k_tr++) {
-      sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
-    }
+    //for (index_k_tr=0;index_k_tr<ptr->k_size;index_k_tr++) {
+    //sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
+    //}
+    sources[index_tau] = source_at_tau[0];
   } 
 
   /* deallocate the temporary array */
@@ -2317,6 +2393,7 @@ int transfer_compute_for_each_l(
                                 struct precision * ppr,
                                 struct perturbs * ppt,
                                 struct transfers * ptr,
+                                int index_k,
                                 int index_md,
                                 int index_ic,
                                 int index_tt,
@@ -2340,7 +2417,7 @@ int transfer_compute_for_each_l(
   /** - define local variables */
 
   /* running index for wavenumbers */	
-  int index_k;
+  //int index_k;
   /* current wavenumber value */
   double k;
   /* flag: for a given l, should the transfer functions stop being computed at next value of k? */
@@ -2462,7 +2539,7 @@ int transfer_compute_for_each_l(
       being reached. 
   */
 
-  for (index_k = 0; index_k < ptr->k_size; index_k++) {
+  //for (index_k = 0; index_k < ptr->k_size; index_k++) {
 
     k = ptr->k[index_k];
 
@@ -2480,7 +2557,7 @@ int transfer_compute_for_each_l(
       cl_var_last_last = cl_var_last;
       cl_var_last = cl_var;
     }
-		
+
     /* below k_max: compute transfer function */
     if ((use_cut == tc_none) || (cut_transfer == _FALSE_)) {
 
@@ -2557,6 +2634,7 @@ int transfer_compute_for_each_l(
                                         &transfer_function),
                      ptr->error_message,
                      ptr->error_message);
+
         }
       }
     }
@@ -2639,7 +2717,7 @@ int transfer_compute_for_each_l(
       }
     }
 
-  } /* end of loop over k */
+    //} /* end of loop over k */
 
   return _SUCCESS_;
 
@@ -2794,7 +2872,8 @@ int transfer_integrate(
                ptr->error_message,
                ptr->error_message);
 
-    *trsf = sources[index_k] * bessel;
+    //*trsf = sources[index_k] * bessel;
+    *trsf = sources[0] * bessel;
 
     return _SUCCESS_;  
     
@@ -2808,7 +2887,8 @@ int transfer_integrate(
     index_tau_max--;
 
   /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
-  while (sources[index_k * tau_size + index_tau_max] == 0.) { 
+  //while (sources[index_k * tau_size + index_tau_max] == 0.) { 
+  while (sources[index_tau_max] == 0.) { 
     index_tau_max--;
     if (index_tau_max < 0) {
       *trsf = 0.;
@@ -2897,7 +2977,8 @@ int transfer_integrate(
              ptr->error_message,
              ptr->error_message);
 
-  transfer = sources[index_k * tau_size + index_tau_max] * bessel;
+  //transfer = sources[index_k * tau_size + index_tau_max] * bessel;
+  transfer = sources[index_tau_max] * bessel;
 
   /* (for bessel function cubic spline interpolation, we could have called the
      subroutine bessel_at_x; however we perform operations directly here
@@ -2953,7 +3034,8 @@ int transfer_integrate(
                ptr->error_message,
                ptr->error_message);
 
-    transfer += sources[index_k * tau_size + index_tau] * bessel * delta_tau[index_tau];
+    //transfer += sources[index_k * tau_size + index_tau] * bessel * delta_tau[index_tau];
+    transfer += sources[index_tau] * bessel * delta_tau[index_tau];
 
     /* (for bessel function cubic spline interpolation, we could have called the
        subroutine bessel_at_x; however we perform operations directly here
@@ -3040,9 +3122,12 @@ int transfer_limber(
                                           tau0_minus_tau[index_tau],
                                           tau0_minus_tau[index_tau+1],
                                           tau0_minus_tau_limber,
-                                          sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
-                                          sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
-                                          sources[index_k*tau_size+index_tau+1]*tau0_minus_tau[index_tau+1],
+                                          //sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
+                                          //sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
+                                          //sources[index_k*tau_size+index_tau+1]*tau0_minus_tau[index_tau+1],
+                                          sources[index_tau-1]*tau0_minus_tau[index_tau-1],
+                                          sources[index_tau]*tau0_minus_tau[index_tau],
+                                          sources[index_tau+1]*tau0_minus_tau[index_tau+1],
                                           &S,
                                           &dS,
                                           &ddS,
@@ -3059,9 +3144,12 @@ int transfer_limber(
                                           tau0_minus_tau[index_tau],
                                           tau0_minus_tau[index_tau+1],
                                           tau0_minus_tau_limber,
-                                          sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
-                                          sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
-                                          sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
+                                          //sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
+                                          //sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
+                                          //sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
+                                          sources[index_tau-1]*tau0_minus_tau[index_tau-1],
+                                          sources[index_tau]*tau0_minus_tau[index_tau],
+                                          sources[index_tau]*tau0_minus_tau[index_tau],
                                           &S,
                                           &dS,
                                           &ddS,
@@ -3144,9 +3232,12 @@ int transfer_limber2(
                                         tau0_minus_tau[index_tau],
                                         tau0_minus_tau[index_tau+1],
                                         tau0_minus_tau_limber,
-                                        sources[index_k*tau_size+index_tau-1],
-                                        sources[index_k*tau_size+index_tau],
-                                        sources[index_k*tau_size+index_tau+1],
+                                        //sources[index_k*tau_size+index_tau-1],
+                                        //sources[index_k*tau_size+index_tau],
+                                        //sources[index_k*tau_size+index_tau+1],
+                                        sources[index_tau-1],
+                                        sources[index_tau],
+                                        sources[index_tau+1],
                                         &S,
                                         &dS,
                                         &ddS,
@@ -3240,7 +3331,8 @@ int transfer_envelop(
     index_tau_max--;
 
   /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
-  while (sources[index_k * tau_size + index_tau_max] == 0.) { 
+  //while (sources[index_k * tau_size + index_tau_max] == 0.) { 
+  while (sources[index_tau_max] == 0.) { 
     index_tau_max--;
     if (index_tau_max < 0) {
       *trsf = 0.;
@@ -3258,7 +3350,8 @@ int transfer_envelop(
   
   a = (x_min_l+x_step*(index_x+1) - x)/x_step;
 
-  source_times_dtau = sources[index_k * tau_size + index_tau_max];
+  //source_times_dtau = sources[index_k * tau_size + index_tau_max];
+  source_times_dtau = sources[index_tau_max];
   
   if (index_tau_max > 0) {
     source_times_dtau *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
@@ -3293,7 +3386,8 @@ int transfer_envelop(
     
     a = (x_min_l+x_step*(index_x+1) - x)/x_step;
     
-    source_times_dtau = sources[index_k * tau_size + index_tau] * delta_tau[index_tau];
+    //source_times_dtau = sources[index_k * tau_size + index_tau] * delta_tau[index_tau];
+    source_times_dtau = sources[index_tau] * delta_tau[index_tau];
     
     /* source times j_l (cubic spline interpolation) */
     transfer += source_times_dtau * 

@@ -28,7 +28,7 @@ AR        = ar rv
 OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
-OMPFLAG   = -fopenmp
+#OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
 
 # all other compilation flags

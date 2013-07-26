@@ -200,6 +200,7 @@ extern "C" {
   int transfer_interpolate_sources(
                                    struct perturbs * ppt,
                                    struct transfers * ptr,
+                                   int index_k_tr,
                                    int index_md,
                                    int index_ic,
                                    int index_type,
@@ -214,6 +215,7 @@ extern "C" {
                        struct transfers * ptr,
                        double * interpolated_sources,
                        double tau_rec,
+                       int index_k_tr,
                        int index_md,
                        int index_tt,
                        double * sources,
@@ -296,6 +298,7 @@ extern "C" {
                                   struct precision * ppr,
                                   struct perturbs * ppt,
                                   struct transfers * ptr,
+                                  int index_k,
                                   int index_md,
                                   int index_ic,
                                   int index_tt,
