@@ -182,7 +182,7 @@ extern "C" {
                                          struct perturbs * ppt,
                                          struct transfers * ptr,
                                          int index_md,
-                                         int * tp_of_tt
+                                         int ** tp_of_tt
                                          );
   
   int transfer_source_tau_size(
@@ -197,6 +197,20 @@ extern "C" {
                                int * tau_size
                                );
 
+  int transfer_compute_for_each_k(
+                                  struct precision * ppr,
+                                  struct background * pba,
+                                  struct perturbs * ppt,
+                                  struct bessels * pbs,
+                                  struct transfers * ptr,
+                                  int ** tp_of_tt,
+                                  int index_k_tr,
+                                  int tau_size_max,
+                                  double tau_rec,
+                                  double *** sources_spline,
+                                  double * workspace
+                                  );
+ 
   int transfer_interpolate_sources(
                                    struct perturbs * ppt,
                                    struct transfers * ptr,
