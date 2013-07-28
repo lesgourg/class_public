@@ -97,13 +97,13 @@
  */
 
 int background_at_tau(
-		      struct background *pba,
-		      double tau,
-		      short return_format,
-		      short intermode,
-		      int * last_index,
-		      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
-		      ) {
+                      struct background *pba,
+                      double tau,
+                      short return_format,
+                      short intermode,
+                      int * last_index,
+                      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
+                      ) {
 
   /** Summary: */
 
@@ -115,12 +115,12 @@ int background_at_tau(
   /** - check that tau is in the pre-computed range */
 
   class_test(tau < pba->tau_table[0],
-	     pba->error_message,
-	     "out of range: tau=%e < tau_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",tau,pba->tau_table[0]);
+             pba->error_message,
+             "out of range: tau=%e < tau_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",tau,pba->tau_table[0]);
 
   class_test(tau > pba->tau_table[pba->bt_size-1],
-	     pba->error_message,
-	     "out of range: tau=%e > tau_max=%e\n",tau,pba->tau_table[pba->bt_size-1]);
+             pba->error_message,
+             "out of range: tau=%e > tau_max=%e\n",tau,pba->tau_table[pba->bt_size-1]);
 
   /** - deduce length of returned vector from format mode */ 
 
@@ -142,33 +142,33 @@ int background_at_tau(
 
   if (intermode == pba->inter_normal) {
     class_call(array_interpolate_spline(
-					pba->tau_table,
-					pba->bt_size,
-					pba->background_table,
-					pba->d2background_dtau2_table,
-					pba->bg_size,
-					tau,
-					last_index,
-					pvecback,
-					pvecback_size,
-					pba->error_message),
-	       pba->error_message,
-	       pba->error_message);
+                                        pba->tau_table,
+                                        pba->bt_size,
+                                        pba->background_table,
+                                        pba->d2background_dtau2_table,
+                                        pba->bg_size,
+                                        tau,
+                                        last_index,
+                                        pvecback,
+                                        pvecback_size,
+                                        pba->error_message),
+               pba->error_message,
+               pba->error_message);
   }
   if (intermode == pba->inter_closeby) {
     class_call(array_interpolate_spline_growing_closeby(
-							pba->tau_table,
-							pba->bt_size,
-							pba->background_table,
-							pba->d2background_dtau2_table,
-							pba->bg_size,
-							tau,
-							last_index,
-							pvecback,
-							pvecback_size,
-							pba->error_message),
-	       pba->error_message,
-	       pba->error_message);
+                                                        pba->tau_table,
+                                                        pba->bt_size,
+                                                        pba->background_table,
+                                                        pba->d2background_dtau2_table,
+                                                        pba->bg_size,
+                                                        tau,
+                                                        last_index,
+                                                        pvecback,
+                                                        pvecback_size,
+                                                        pba->error_message),
+               pba->error_message,
+               pba->error_message);
   }
 
   return _SUCCESS_;
@@ -186,10 +186,10 @@ int background_at_tau(
  */
 
 int background_tau_of_z(
-			struct background *pba,
-			double z,
-			double * tau
-			) {
+                        struct background *pba,
+                        double z,
+                        double * tau
+                        ) {
 
   /** Summary: */
 
@@ -200,27 +200,27 @@ int background_tau_of_z(
 
   /** - check that \f$ z \f$ is in the pre-computed range */
   class_test(z < pba->z_table[pba->bt_size-1],
-	     pba->error_message,
-	     "out of range: z=%e < z_min=%e\n",z,pba->z_table[pba->bt_size-1]);
+             pba->error_message,
+             "out of range: z=%e < z_min=%e\n",z,pba->z_table[pba->bt_size-1]);
 
   class_test(z > pba->z_table[0],
-	     pba->error_message,
-	     "out of range: a=%e > a_max=%e\n",z,pba->z_table[0]);
+             pba->error_message,
+             "out of range: a=%e > a_max=%e\n",z,pba->z_table[0]);
 
   /** - interpolate from pre-computed table with array_interpolate() */
   class_call(array_interpolate_spline(
-				      pba->z_table,
-				      pba->bt_size, 
-				      pba->tau_table,
-				      pba->d2tau_dz2_table,
-				      1,
-				      z,
-				      &last_index,
-				      tau,
-				      1,
-				      pba->error_message),
-	     pba->error_message,
-	     pba->error_message);
+                                      pba->z_table,
+                                      pba->bt_size, 
+                                      pba->tau_table,
+                                      pba->d2tau_dz2_table,
+                                      1,
+                                      z,
+                                      &last_index,
+                                      tau,
+                                      1,
+                                      pba->error_message),
+             pba->error_message,
+             pba->error_message);
 
   return _SUCCESS_;
 }
@@ -243,11 +243,11 @@ int background_tau_of_z(
  */
 
 int background_functions(
-			 struct background *pba,
-			 double a, /* in extended models there could be more than one argument: phi, phidot of quintessence; temperature of some particles; etc. */
-			 short return_format,
-			 double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
-			 ) {
+                         struct background *pba,
+                         double a, /* in extended models there could be more than one argument: phi, phidot of quintessence; temperature of some particles; etc. */
+                         short return_format,
+                         double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
+                         ) {
   
   /** Summary: */
 
@@ -276,8 +276,8 @@ int background_functions(
   a_rel = a / pba->a_today;
 
   class_test(a_rel <= 0.,
-	     pba->error_message,
-	     "a = %e instead of strictly positive",a_rel);
+             pba->error_message,
+             "a = %e instead of strictly positive",a_rel);
 
   /** - pass value of a to output */
   pvecback[pba->index_bg_a] = a;
@@ -311,21 +311,21 @@ int background_functions(
     for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
       
       /* function returning background ncdm[n_ncdm] quantities (only
-	 those for which non-NULL pointers are passed) */
+         those for which non-NULL pointers are passed) */
       class_call(background_ncdm_momenta(
-					 pba->q_ncdm_bg[n_ncdm],
-					 pba->w_ncdm_bg[n_ncdm],
-					 pba->q_size_ncdm_bg[n_ncdm],
-					 pba->M_ncdm[n_ncdm],
-					 pba->factor_ncdm[n_ncdm],
-					 1./a_rel-1.,
-					 NULL,
-					 &rho_ncdm,
-					 &p_ncdm,
-					 NULL,
-					 &pseudo_p_ncdm),
-		 pba->error_message,
-		 pba->error_message);
+                                         pba->q_ncdm_bg[n_ncdm],
+                                         pba->w_ncdm_bg[n_ncdm],
+                                         pba->q_size_ncdm_bg[n_ncdm],
+                                         pba->M_ncdm[n_ncdm],
+                                         pba->factor_ncdm[n_ncdm],
+                                         1./a_rel-1.,
+                                         NULL,
+                                         &rho_ncdm,
+                                         &p_ncdm,
+                                         NULL,
+                                         &pseudo_p_ncdm),
+                 pba->error_message,
+                 pba->error_message);
       
       pvecback[pba->index_bg_rho_ncdm1+n_ncdm] = rho_ncdm;
       rho_tot += rho_ncdm;
@@ -337,7 +337,7 @@ int background_functions(
       rho_r += 3.* p_ncdm;
 
       /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution 
-	 to rho_ncdm1 */
+         to rho_ncdm1 */
       rho_m += rho_ncdm - 3.* p_ncdm;
     }
   }
@@ -384,8 +384,8 @@ int background_functions(
     /** - compute critical density */
     pvecback[pba->index_bg_rho_crit] = rho_tot-pba->Omega0_k/a_rel/a_rel*pba->H0*pba->H0;
     class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
-	       pba->error_message,
-	       "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
+               pba->error_message,
+               "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
 
     /** - compute Omega_m */
     pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
@@ -410,9 +410,9 @@ int background_functions(
  */
 
 int background_init(
-		    struct precision * ppr,
-		    struct background * pba
-		    ) {
+                    struct precision * ppr,
+                    struct background * pba
+                    ) {
 
   /** Summary: */
 
@@ -433,63 +433,63 @@ int background_init(
       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
 	
         /* inform if p-s-d read in files */
-	if (pba->got_files[n_ncdm] == _TRUE_) {
-	  printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
-	  filenum++;
-	}
+        if (pba->got_files[n_ncdm] == _TRUE_) {
+          printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
+          filenum++;
+        }
 
         /* call this function to get rho_ncdm */
-	background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
-				pba->w_ncdm_bg[n_ncdm],
-				pba->q_size_ncdm_bg[n_ncdm],
-				0.,
-				pba->factor_ncdm[n_ncdm],
-				0.,
-				NULL,
-				&rho_ncdm_rel,
-				NULL,
-				NULL,
-				NULL);
+        background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
+                                pba->w_ncdm_bg[n_ncdm],
+                                pba->q_size_ncdm_bg[n_ncdm],
+                                0.,
+                                pba->factor_ncdm[n_ncdm],
+                                0.,
+                                NULL,
+                                &rho_ncdm_rel,
+                                NULL,
+                                NULL,
+                                NULL);
 
         /* inform user of the contribution of each species to
-	   radiation density (in relativistic limit): should be
-	   between 1.01 and 1.02 for each active neutrino species;
-	   evaluated as rho_ncdm/rho_nu_rel where rho_nu_rel is the
-	   density of one neutrino in the instantaneous decoupling
-	   limit, i.e. assuming T_nu=(4/11)^1/3 T_gamma (this comes
-	   from the definition of N_eff) */
-	rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
-	  pow(_Mpc_over_m_,2)*pow(pba->T_cmb*_k_B_,4);
+           radiation density (in relativistic limit): should be
+           between 1.01 and 1.02 for each active neutrino species;
+           evaluated as rho_ncdm/rho_nu_rel where rho_nu_rel is the
+           density of one neutrino in the instantaneous decoupling
+           limit, i.e. assuming T_nu=(4/11)^1/3 T_gamma (this comes
+           from the definition of N_eff) */
+        rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
+          pow(_Mpc_over_m_,2)*pow(pba->T_cmb*_k_B_,4);
 	
-	printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives N_eff = %g\n",
-	       n_ncdm+1,
-	       pba->q_size_ncdm_bg[n_ncdm],
-	       pba->q_size_ncdm[n_ncdm],
-	       rho_ncdm_rel/rho_nu_rel);
+        printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives N_eff = %g\n",
+               n_ncdm+1,
+               pba->q_size_ncdm_bg[n_ncdm],
+               pba->q_size_ncdm[n_ncdm],
+               rho_ncdm_rel/rho_nu_rel);
       }
     }
   }
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
   class_call(background_indices(pba),
-	     pba->error_message,
-	     pba->error_message);
+             pba->error_message,
+             pba->error_message);
   
   /** - control that cosmological parameter values make sense */
   
   /* H0 in Mpc^{-1} */
   class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
-	     pba->error_message,
-	     "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
+             pba->error_message,
+             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
 
   class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
-	     pba->error_message,
-	     "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
+             pba->error_message,
+             "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
 
   /* T_cmb in K */
   class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
-	     pba->error_message,
-	     "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);
+             pba->error_message,
+             "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);
 
   /* in verbose mode, inform the user about the value of the ncdm
      masses in eV and about the ratio [m/omega_ncdm] in eV (the usual
@@ -497,9 +497,9 @@ int background_init(
   if ((pba->background_verbose > 0) && (pba->has_ncdm == _TRUE_)) {
     for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
       printf(" -> non-cold dark matter species with i=%d has m_i = %e eV (so m_i / omega_i =%e eV)\n",
-	     n_ncdm+1,
-	     pba->m_ncdm_in_eV[n_ncdm],
-	     pba->m_ncdm_in_eV[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
+             n_ncdm+1,
+             pba->m_ncdm_in_eV[n_ncdm],
+             pba->m_ncdm_in_eV[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
     }
   }
 
@@ -523,18 +523,18 @@ int background_init(
 
   /* check other quantities which would lead to segmentation fault if zero */
   class_test(pba->a_today <= 0,
-	     pba->error_message,
-	     "input a_today = %e instead of strictly positive",pba->a_today);
+             pba->error_message,
+             "input a_today = %e instead of strictly positive",pba->a_today);
 
   class_test(_Gyr_over_Mpc_ <= 0,
-	     pba->error_message,
-	     "_Gyr_over_Mpc = %e instead of strictly positive",_Gyr_over_Mpc_);
+             pba->error_message,
+             "_Gyr_over_Mpc = %e instead of strictly positive",_Gyr_over_Mpc_);
 
   /** - this function integrates the background over time, allocates
       and fills the background table */
   class_call(background_solve(ppr,pba),
-	     pba->error_message,
-	     pba->error_message);
+             pba->error_message,
+             pba->error_message);
 
   return _SUCCESS_;
 
@@ -549,8 +549,8 @@ int background_init(
  */
 
 int background_free(
-		    struct background *pba
-		    ) {
+                    struct background *pba
+                    ) {
   int k;
   
   free(pba->tau_table);
@@ -597,8 +597,8 @@ int background_free(
  */
 
 int background_indices(
-		       struct background *pba
-		       ) {
+                       struct background *pba
+                       ) {
 
   /** Summary: */
 
@@ -656,8 +656,8 @@ int background_indices(
   class_define_index(pba->index_bg_rho_cdm,pba->has_cdm,index_bg,1); 
 
   /* - indices for ncdm. We only define the indices for ncdm1
-          (density, pressure, pseudo-pressure), the other ncdm indices
-          are contiguous */
+     (density, pressure, pseudo-pressure), the other ncdm indices
+     are contiguous */
   class_define_index(pba->index_bg_rho_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm); 
   class_define_index(pba->index_bg_p_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm); 
   class_define_index(pba->index_bg_pseudo_p_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm); 
@@ -743,8 +743,8 @@ int background_indices(
   /* index_bi_tau must be the last index, because tau is part of this vector for the purpose of being stored, */
   /* but it is not a quantity to be integrated (since integration is over tau itself) */      
   class_test(pba->index_bi_tau != index_bi-1,
-	     pba->error_message,
-	     "background integration requires index_bi_tau to be the last of all index_bi's");
+             pba->error_message,
+             "background integration requires index_bi_tau to be the last of all index_bi's");
 
   /* flags for calling the interpolation routine */
 
@@ -770,10 +770,10 @@ int background_indices(
  */
 
 int background_ncdm_distribution(
-				 void * pbadist,
-				 double q,
-				 double * f0
-				 ) {
+                                 void * pbadist,
+                                 double q,
+                                 double * f0
+                                 ) {
   struct background * pba;
   struct background_parameters_for_distributions * pbadist_local;
   int n_ncdm,lastidx;
@@ -814,28 +814,28 @@ int background_ncdm_distribution(
     else{
       //Do interpolation:
       class_call(array_interpolate_spline(
-					  pbadist_local->q,
-					  pbadist_local->tablesize,
-					  pbadist_local->f0,
-					  pbadist_local->d2f0,
-					  1,
-					  q,
-					  &pbadist_local->last_index,
-					  f0,
-					  1,
-					  pba->error_message),
-		 pba->error_message,     pba->error_message);
+                                          pbadist_local->q,
+                                          pbadist_local->tablesize,
+                                          pbadist_local->f0,
+                                          pbadist_local->d2f0,
+                                          1,
+                                          q,
+                                          &pbadist_local->last_index,
+                                          f0,
+                                          1,
+                                          pba->error_message),
+                 pba->error_message,     pba->error_message);
     }
   }
 
   /** -> deal now with case of reading analytical function */
   else{
     /** 
-	Enter here your analytic expression(s) for the p.s.d.'s. If
-	you need different p.s.d.'s for different species, put each
-	p.s.d inside a condition, like for instance: if (n_ncdm==2) {
-	*f0=...}.  Remember that n_ncdm = 0 refers to the first
-	species. 
+        Enter here your analytic expression(s) for the p.s.d.'s. If
+        you need different p.s.d.'s for different species, put each
+        p.s.d inside a condition, like for instance: if (n_ncdm==2) {
+        *f0=...}.  Remember that n_ncdm = 0 refers to the first
+        species. 
     */
 
     /**************************************************/
@@ -847,21 +847,21 @@ int background_ncdm_distribution(
     /**************************************************/
 
     /** This form is only appropriate for approximate studies, since in
-	reality the chemical potential are associated with flavor
-	eigenstates, not mass eigenstates. It is easy to take this into
-	account by introducing the mixing angles. In the later part
-	(not read by the code) we illustrate how to do this */
+        reality the chemical potential are associated with flavor
+        eigenstates, not mass eigenstates. It is easy to take this into
+        account by introducing the mixing angles. In the later part
+        (not read by the code) we illustrate how to do this */
     
     if (_FALSE_) {
 
       /* We must use the list of extra parameters read in input, stored in the
-	 ncdm_psd_parameter list, extracted above from the structure
-	 and now called param[..] */
+         ncdm_psd_parameter list, extracted above from the structure
+         and now called param[..] */
 
       /* check that this list has been read */
       class_test(param == NULL,
-    		 pba->error_message,
-    		 "Analytic expression wants to use 'ncdm_psd_parameters', but they have not been entered!");
+                 pba->error_message,
+                 "Analytic expression wants to use 'ncdm_psd_parameters', but they have not been entered!");
 
       /* extract values from the list (in this example, mixing angles) */
       double square_s12=param[0];
@@ -907,10 +907,10 @@ int background_ncdm_distribution(
  */
 
 int background_ncdm_test_function(
-				  void * pbadist,
-				  double q,
-				  double * test
-				  ) {
+                                  void * pbadist,
+                                  double q,
+                                  double * test
+                                  ) {
 
   double c = 2.0/(3.0*_zeta3_);
   double d = 120.0/(7.0*pow(_PI_,4));
@@ -932,9 +932,9 @@ int background_ncdm_test_function(
  */
 
 int background_ncdm_init(
-			 struct precision *ppr,
-			 struct background *pba
-			 ) {
+                         struct precision *ppr,
+                         struct background *pba
+                         ) {
   
   int index_q, k,tolexp,row,status,filenum;
   double f0m2,f0m1,f0,f0p1,f0p2,dq,q,df0dq,tmp1,tmp2;
@@ -963,10 +963,10 @@ int background_ncdm_init(
     if ((pba->got_files!=NULL)&&(pba->got_files[k]==_TRUE_)){
       psdfile = fopen(pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_,"r");
       class_test(psdfile == NULL,pba->error_message,
-		 "Could not open file %s!",pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
+                 "Could not open file %s!",pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
       // Find size of table:
       for (row=0,status=2; status==2; row++){
-	status = fscanf(psdfile,"%lf %lf",&tmp1,&tmp2);
+        status = fscanf(psdfile,"%lf %lf",&tmp1,&tmp2);
       }
       rewind(psdfile);
       pbadist.tablesize = row-1;
@@ -976,21 +976,21 @@ int background_ncdm_init(
       class_alloc(pbadist.f0,sizeof(double)*pbadist.tablesize,pba->error_message);
       class_alloc(pbadist.d2f0,sizeof(double)*pbadist.tablesize,pba->error_message);
       for (row=0; row<pbadist.tablesize; row++){
-	status = fscanf(psdfile,"%lf %lf",
-			&pbadist.q[row],&pbadist.f0[row]);
-	//		printf("(q,f0) = (%g,%g)\n",pbadist.q[row],pbadist.f0[row]);
+        status = fscanf(psdfile,"%lf %lf",
+                        &pbadist.q[row],&pbadist.f0[row]);
+        //		printf("(q,f0) = (%g,%g)\n",pbadist.q[row],pbadist.f0[row]);
       }
       fclose(psdfile);
       /* Call spline interpolation: */
       class_call(array_spline_table_lines(pbadist.q,
-					  pbadist.tablesize,
-					  pbadist.f0,
-					  1,
-					  pbadist.d2f0,
-					  _SPLINE_EST_DERIV_,
-					  pba->error_message), 
-		 pba->error_message,
-		 pba->error_message);
+                                          pbadist.tablesize,
+                                          pbadist.f0,
+                                          1,
+                                          pbadist.d2f0,
+                                          _SPLINE_EST_DERIV_,
+                                          pba->error_message), 
+                 pba->error_message,
+                 pba->error_message);
       filenum++;
     }
 
@@ -999,65 +999,65 @@ int background_ncdm_init(
     class_alloc(pba->w_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message); 	
 
     class_call(get_qsampling(pba->q_ncdm[k],
-			     pba->w_ncdm[k],
-			     &(pba->q_size_ncdm[k]),
-			     _QUADRATURE_MAX_,
-			     ppr->tol_ncdm,
-			     pbadist.q,
-			     pbadist.tablesize,
-			     background_ncdm_test_function,
-			     background_ncdm_distribution,
-			     &pbadist,
-			     pba->error_message),
-	       pba->error_message,
-	       pba->error_message);
+                             pba->w_ncdm[k],
+                             &(pba->q_size_ncdm[k]),
+                             _QUADRATURE_MAX_,
+                             ppr->tol_ncdm,
+                             pbadist.q,
+                             pbadist.tablesize,
+                             background_ncdm_test_function,
+                             background_ncdm_distribution,
+                             &pbadist,
+                             pba->error_message),
+               pba->error_message,
+               pba->error_message);
     pba->q_ncdm[k]=realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
     pba->w_ncdm[k]=realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
   
 
     if (pba->background_verbose > 0)
       printf("ncdm species i=%d sampled with %d points for purpose of perturbation integration\n",
-	     k+1,
-	     pba->q_size_ncdm[k]);
+             k+1,
+             pba->q_size_ncdm[k]);
 
     /* Handle background q_sampling: */
     class_alloc(pba->q_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
     class_alloc(pba->w_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
 
     class_call(get_qsampling(pba->q_ncdm_bg[k],
-			     pba->w_ncdm_bg[k],
-			     &(pba->q_size_ncdm_bg[k]),
-			     _QUADRATURE_MAX_BG_,
-			     ppr->tol_ncdm_bg,
-			     pbadist.q,
-			     pbadist.tablesize,
-			     background_ncdm_test_function,
-			     background_ncdm_distribution,
-			     &pbadist,
-			     pba->error_message),
-	       pba->error_message,
-	       pba->error_message);
+                             pba->w_ncdm_bg[k],
+                             &(pba->q_size_ncdm_bg[k]),
+                             _QUADRATURE_MAX_BG_,
+                             ppr->tol_ncdm_bg,
+                             pbadist.q,
+                             pbadist.tablesize,
+                             background_ncdm_test_function,
+                             background_ncdm_distribution,
+                             &pbadist,
+                             pba->error_message),
+               pba->error_message,
+               pba->error_message);
 
     
     pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
     pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
 
     /** - in verbose mode, inform user of number of sampled momenta
-          for background quantities */
+        for background quantities */
     if (pba->background_verbose > 0)
       printf("ncdm species i=%d sampled with %d points for purpose of background integration\n",
-	     k+1,
-	     pba->q_size_ncdm_bg[k]);
+             k+1,
+             pba->q_size_ncdm_bg[k]);
 
     class_alloc(pba->dlnf0_dlnq_ncdm[k],
-		pba->q_size_ncdm[k]*sizeof(double),
-		pba->error_message);
+                pba->q_size_ncdm[k]*sizeof(double),
+                pba->error_message);
 
 
     for (index_q=0; index_q<pba->q_size_ncdm[k]; index_q++) {
       q = pba->q_ncdm[k][index_q];
       class_call(background_ncdm_distribution(&pbadist,q,&f0),
-		 pba->error_message,pba->error_message);
+                 pba->error_message,pba->error_message);
   
       //Loop to find appropriate dq:
       for(tolexp=_PSD_DERIVATIVE_EXP_MIN_; tolexp<_PSD_DERIVATIVE_EXP_MAX_; tolexp++){
@@ -1072,26 +1072,26 @@ int background_ncdm_init(
           dq = exp(tolexp)*(pba->q_ncdm[k][index_q+1]-pba->q_ncdm[k][index_q-1]);
         }
 
-	class_call(background_ncdm_distribution(&pbadist,q-2*dq,&f0m2),
-		   pba->error_message,pba->error_message);
-	class_call(background_ncdm_distribution(&pbadist,q+2*dq,&f0p2),
-		   pba->error_message,pba->error_message);
+        class_call(background_ncdm_distribution(&pbadist,q-2*dq,&f0m2),
+                   pba->error_message,pba->error_message);
+        class_call(background_ncdm_distribution(&pbadist,q+2*dq,&f0p2),
+                   pba->error_message,pba->error_message);
 
-	if (fabs((f0p2-f0m2)/f0)>sqrt(ppr->smallest_allowed_variation)) break;
+        if (fabs((f0p2-f0m2)/f0)>sqrt(ppr->smallest_allowed_variation)) break;
       }
 
       class_call(background_ncdm_distribution(&pbadist,q-dq,&f0m1),
-		 pba->error_message,pba->error_message);
+                 pba->error_message,pba->error_message);
       class_call(background_ncdm_distribution(&pbadist,q+dq,&f0p1),
-		 pba->error_message,pba->error_message);
+                 pba->error_message,pba->error_message);
       //5 point estimate of the derivative:    
       df0dq = (+f0m2-8*f0m1+8*f0p1-f0p2)/12.0/dq;
       //printf("df0dq[%g] = %g. dlf=%g ?= %g. f0 =%g.\n",q,df0dq,q/f0*df0dq,
       //Avoid underflow in extreme tail:
       if (fabs(f0)==0.)
-	pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
+        pba->dlnf0_dlnq_ncdm[k][index_q] = -q; /* valid for whatever f0 with exponential tail in exp(-q) */
       else
-	pba->dlnf0_dlnq_ncdm[k][index_q] = q/f0*df0dq;
+        pba->dlnf0_dlnq_ncdm[k][index_q] = q/f0*df0dq;
     }
     
     pba->factor_ncdm[k]=pba->deg_ncdm[k]*4*_PI_*pow(pba->T_cmb*pba->T_ncdm[k]*_k_B_,4)*8*_PI_*_G_
@@ -1130,19 +1130,19 @@ int background_ncdm_init(
  */
 
 int background_ncdm_momenta(
-			    /* Only calculate for non-NULL pointers: */
-			    double * qvec,
-			    double * wvec,
-			    int qsize,
-			    double M,
-			    double factor,
-			    double z,
-			    double * n,
-			    double * rho, // density
-			    double * p,   // pressure
-			    double * drho_dM,  // d rho / d M used in next function
-			    double * pseudo_p  // pseudo-p used in ncdm fluid approx
-			    ) {
+                            /* Only calculate for non-NULL pointers: */
+                            double * qvec,
+                            double * wvec,
+                            int qsize,
+                            double M,
+                            double factor,
+                            double z,
+                            double * n,
+                            double * rho, // density
+                            double * p,   // pressure
+                            double * drho_dM,  // d rho / d M used in next function
+                            double * pseudo_p  // pseudo-p used in ncdm fluid approx
+                            ) {
 
   int index_q;
   double epsilon;
@@ -1196,10 +1196,10 @@ int background_ncdm_momenta(
  */
 
 int background_ncdm_M_from_Omega(
-				 struct precision *ppr,
-				 struct background *pba,
-				 int n_ncdm
-				 ) {
+                                 struct precision *ppr,
+                                 struct background *pba,
+                                 int n_ncdm
+                                 ) {
   double rho0,rho,n,M,deltaM,drhodM;
   int iter,maxiter=50;
 	
@@ -1207,21 +1207,21 @@ int background_ncdm_M_from_Omega(
   M = 0.0;
 
   background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
-			  pba->w_ncdm_bg[n_ncdm],
-			  pba->q_size_ncdm_bg[n_ncdm],
-			  M,
-			  pba->factor_ncdm[n_ncdm],
-              		  0.,
-			  &n,
-			  &rho,
-			  NULL,
-			  NULL,
-			  NULL);
+                          pba->w_ncdm_bg[n_ncdm],
+                          pba->q_size_ncdm_bg[n_ncdm],
+                          M,
+                          pba->factor_ncdm[n_ncdm],
+                          0.,
+                          &n,
+                          &rho,
+                          NULL,
+                          NULL,
+                          NULL);
 
   /* Is the value of Omega less than a massless species?*/
   class_test(rho0<rho,pba->error_message,
-	     "The value of Omega for the %dth species, %g, is less than for a massless species! It should be atleast %g. Check your input.",
-	     n_ncdm,pba->Omega0_ncdm[n_ncdm],pba->Omega0_ncdm[n_ncdm]*rho/rho0);
+             "The value of Omega for the %dth species, %g, is less than for a massless species! It should be atleast %g. Check your input.",
+             n_ncdm,pba->Omega0_ncdm[n_ncdm],pba->Omega0_ncdm[n_ncdm]*rho/rho0);
 
   /* In the strict NR limit we have rho = n*(M) today, giving a zero'th order guess: */
   M = rho0/n; /* This is our guess for M. */
@@ -1229,16 +1229,16 @@ int background_ncdm_M_from_Omega(
 
     /* Newton iteration. First get relevant quantities at M: */
     background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
-			    pba->w_ncdm_bg[n_ncdm],
-			    pba->q_size_ncdm_bg[n_ncdm],
-			    M,
-			    pba->factor_ncdm[n_ncdm],
-			    0.,
-			    NULL,
-			    &rho,
-			    NULL,
-			    &drhodM,
-			    NULL);
+                            pba->w_ncdm_bg[n_ncdm],
+                            pba->q_size_ncdm_bg[n_ncdm],
+                            M,
+                            pba->factor_ncdm[n_ncdm],
+                            0.,
+                            NULL,
+                            &rho,
+                            NULL,
+                            &drhodM,
+                            NULL);
 
     deltaM = (rho0-rho)/drhodM; /* By definition of the derivative */
     if ((M+deltaM)<0.0) deltaM = -M/2.0; /* Avoid overshooting to negative M value. */
@@ -1250,7 +1250,7 @@ int background_ncdm_M_from_Omega(
     }
   }
   class_test(iter>=maxiter,pba->error_message,
-	     "Newton iteration could not converge on a mass for some reason.");
+             "Newton iteration could not converge on a mass for some reason.");
   return _SUCCESS_;
 }
 
@@ -1263,9 +1263,9 @@ int background_ncdm_M_from_Omega(
  */
 
 int background_solve(
-		     struct precision *ppr,
-		     struct background *pba
-		     ) {
+                     struct precision *ppr,
+                     struct background *pba
+                     ) {
 
   /** Summary: */
 
@@ -1307,13 +1307,13 @@ int background_solve(
    * (pba->bi_size), since tau is not integrated.
    */
   class_call(initialize_generic_integrator((pba->bi_size-1),&gi),
-	     gi.error_message,
-	     pba->error_message);
+             gi.error_message,
+             pba->error_message);
 
   /** - impose initial conditions with background_initial_conditions() */
   class_call(background_initial_conditions(ppr,pba,pvecback,pvecback_integration),
-	     pba->error_message,
-	     pba->error_message);
+             pba->error_message,
+             pba->error_message);
 
   /* here tau_end is in fact the initial time (in the next loop
      tau_start = tau_end) */
@@ -1321,8 +1321,8 @@ int background_solve(
 
   /** - create a growTable with gt_init() */
   class_call(gt_init(&gTable),
-	     gTable.error_message,
-	     pba->error_message);
+             gTable.error_message,
+             pba->error_message);
   
   /* initialize the counter for the number of steps */
   pba->bt_size=0;
@@ -1335,8 +1335,8 @@ int background_solve(
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
     class_call(background_functions(pba,pvecback_integration[pba->index_bi_a], pba->short_info, pvecback),
-	       pba->error_message,
-	       pba->error_message);
+               pba->error_message,
+               pba->error_message);
 
     if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
       tau_end = tau_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]); 
@@ -1348,26 +1348,26 @@ int background_solve(
     }
 
     class_test((tau_end-tau_start)/tau_start < ppr->smallest_allowed_variation,
-	       pba->error_message,
-	       "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(tau_end-tau_start)/tau_start);
+               pba->error_message,
+               "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(tau_end-tau_start)/tau_start);
 
     /* -> save data in growTable */
     class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),
-	       gTable.error_message,
-	       pba->error_message);
+               gTable.error_message,
+               pba->error_message);
     pba->bt_size++;
 
     /* -> perform one step */
     class_call(generic_integrator(background_derivs,
-				  tau_start,
-				  tau_end,
-				  pvecback_integration,
-				  &bpaw,
-				  ppr->tol_background_integration,
-				  ppr->smallest_allowed_variation,
-				  &gi),
-	       gi.error_message,
-	       pba->error_message);
+                                  tau_start,
+                                  tau_end,
+                                  pvecback_integration,
+                                  &bpaw,
+                                  ppr->tol_background_integration,
+                                  ppr->smallest_allowed_variation,
+                                  &gi),
+               gi.error_message,
+               pba->error_message);
     
     /* -> store value of tau */
     pvecback_integration[pba->index_bi_tau]=tau_end;
@@ -1376,8 +1376,8 @@ int background_solve(
 
   /** - save last data in growTable with gt_add() */
   class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),
-	     gTable.error_message,
-	     pba->error_message);
+             gTable.error_message,
+             pba->error_message);
   pba->bt_size++;
 
 
@@ -1385,27 +1385,27 @@ int background_solve(
 
   /** - clean up generic integrator with cleanup_generic_integrator() */
   class_call(cleanup_generic_integrator(&gi),
-	     gi.error_message,
-	     pba->error_message);
+             gi.error_message,
+             pba->error_message);
 
   /** - retrieve data stored in the growTable with gt_getPtr() */
   class_call(gt_getPtr(&gTable,(void**)&pData),
-	     gTable.error_message,
-	     pba->error_message);
+             gTable.error_message,
+             pba->error_message);
 
   /** - interpolate to get quantities precisely today with array_interpolate() */
   class_call(array_interpolate(
-			       pData,
-			       pba->bi_size,
-			       pba->bt_size,
-			       pba->index_bi_a, 
-			       pba->a_today,
-			       &last_index,
-			       pvecback_integration,
-			       pba->bi_size,
-			       pba->error_message),
-	     pba->error_message,
-	     pba->error_message);
+                               pData,
+                               pba->bi_size,
+                               pba->bt_size,
+                               pba->index_bi_a, 
+                               pba->a_today,
+                               &last_index,
+                               pvecback_integration,
+                               pba->bi_size,
+                               pba->error_message),
+             pba->error_message,
+             pba->error_message);
 
   /* substitute last line with quantities today */
   for (i=0; i<pba->bi_size; i++) 
@@ -1436,8 +1436,8 @@ int background_solve(
     pba->tau_table[i] = pData[i*pba->bi_size+pba->index_bi_tau];
 
     class_test(pData[i*pba->bi_size+pba->index_bi_a] <= 0.,
-	       pba->error_message,
-	       "a = %e instead of strictly positiv",pData[i*pba->bi_size+pba->index_bi_a]);
+               pba->error_message,
+               "a = %e instead of strictly positiv",pData[i*pba->bi_size+pba->index_bi_a]);
 
     pba->z_table[i] = pba->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
 
@@ -1449,8 +1449,8 @@ int background_solve(
 
     /* -> compute all other quantities depending only on a*/
     class_call(background_functions(pba,pData[i*pba->bi_size+pba->index_bi_a], pba->long_info, pvecback),
-	       pba->error_message,
-	       pba->error_message);
+               pba->error_message,
+               pba->error_message);
     
     /* -> compute growth functions (valid in dust universe) */
 
@@ -1464,47 +1464,47 @@ int background_solve(
     memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
 
     class_test(memcopy_result != pba->background_table + i*pba->bg_size,
-	       pba->error_message,
-	       "cannot copy data back to pba->background_table");
+               pba->error_message,
+               "cannot copy data back to pba->background_table");
   }
 
   /** - free the growTable with gt_free() */
 
   class_call(gt_free(&gTable),
-	     gTable.error_message,
-	     pba->error_message);
+             gTable.error_message,
+             pba->error_message);
   
   /** - fill tables of second derivatives (in view of spline interpolation) */
   class_call(array_spline_table_lines(pba->z_table,
-				      pba->bt_size,
-				      pba->tau_table,
-				      1,
-				      pba->d2tau_dz2_table,
-				      _SPLINE_EST_DERIV_,
-				      pba->error_message),
-	     pba->error_message,
-	     pba->error_message);
+                                      pba->bt_size,
+                                      pba->tau_table,
+                                      1,
+                                      pba->d2tau_dz2_table,
+                                      _SPLINE_EST_DERIV_,
+                                      pba->error_message),
+             pba->error_message,
+             pba->error_message);
 
   class_call(array_spline_table_lines(pba->tau_table,
-				      pba->bt_size,
-				      pba->background_table,
-				      pba->bg_size,
-				      pba->d2background_dtau2_table,
-				      _SPLINE_EST_DERIV_,
-				      pba->error_message),
-	     pba->error_message,
-	     pba->error_message);
+                                      pba->bt_size,
+                                      pba->background_table,
+                                      pba->bg_size,
+                                      pba->d2background_dtau2_table,
+                                      _SPLINE_EST_DERIV_,
+                                      pba->error_message),
+             pba->error_message,
+             pba->error_message);
 
   /** - compute remaining "related parameters" */
 
   /** -> so-called "effective neutrino number", computed at earliest
-         time in interpolation table. This should be seen as a
-         definition: Neff is the equivalent number of
-         instantaneously-decoupled neutrinos accounting for the
-         radiation density, beyond photons */
+      time in interpolation table. This should be seen as a
+      definition: Neff is the equivalent number of
+      instantaneously-decoupled neutrinos accounting for the
+      radiation density, beyond photons */
   pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
-	       *pba->background_table[pba->index_bg_rho_crit]
-	       -pba->background_table[pba->index_bg_rho_g])
+               *pba->background_table[pba->index_bg_rho_crit]
+               -pba->background_table[pba->index_bg_rho_g])
     /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
 
   /** - done */
@@ -1531,11 +1531,11 @@ int background_solve(
  */
 
 int background_initial_conditions(
-				  struct precision *ppr,
-				  struct background *pba,
-				  double * pvecback, /* vector with argument pvecback[index_bg] (must be already allocated, normal format is sufficient) */
-				  double * pvecback_integration /* vector with argument pvecback_integration[index_bi] (must be already allocated with size pba->bi_size) */
-				  ) {
+                                  struct precision *ppr,
+                                  struct background *pba,
+                                  double * pvecback, /* vector with argument pvecback[index_bg] (must be already allocated, normal format is sufficient) */
+                                  double * pvecback_integration /* vector with argument pvecback_integration[index_bi] (must be already allocated with size pba->bi_size) */
+                                  ) {
 
   /** Summary: */
 
@@ -1560,8 +1560,8 @@ int background_initial_conditions(
 
     /** - compute initial H with background_functions() */
     class_call(background_functions(pba,a, pba->normal_info, pvecback),
-	       pba->error_message,
-	       pba->error_message);
+               pba->error_message,
+               pba->error_message);
 
     is_early_enough = _TRUE_;
 
@@ -1577,8 +1577,8 @@ int background_initial_conditions(
 
       for (n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++) {
 
-	if (fabs(pvecback[pba->index_bg_p_ncdm1+n_ncdm]/pvecback[pba->index_bg_rho_ncdm1+n_ncdm]-1./3.) > ppr->tol_ncdm_initial_w)
-	  is_early_enough = _FALSE_;					     
+        if (fabs(pvecback[pba->index_bg_p_ncdm1+n_ncdm]/pvecback[pba->index_bg_rho_ncdm1+n_ncdm]-1./3.) > ppr->tol_ncdm_initial_w)
+          is_early_enough = _FALSE_;					     
       }
     }
   }
@@ -1590,8 +1590,8 @@ int background_initial_conditions(
       approximation for most purposes) */
 
   class_test(pvecback[pba->index_bg_H] <= 0.,
-	     pba->error_message,
-	     "H = %e instead of strictly positive",pvecback[pba->index_bg_H]);
+             pba->error_message,
+             "H = %e instead of strictly positive",pvecback[pba->index_bg_H]);
 
   pvecback_integration[pba->index_bi_time] = 1./(2.* pvecback[pba->index_bg_H]);
 
@@ -1604,8 +1604,8 @@ int background_initial_conditions(
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
 
   /** - compute initial value of the integral over dtau/(aH^2),
-        assumed to be proportional to a^4 during RD, but with arbitrary
-        normalization */
+      assumed to be proportional to a^4 during RD, but with arbitrary
+      normalization */
   pvecback_integration[pba->index_bi_growth] = 1./(4.*a*a*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]);
 
   return _SUCCESS_;
@@ -1637,14 +1637,14 @@ int background_initial_conditions(
  * @param error_message            Output : error message
  */
 int background_derivs(
-		      double tau,
-		      double* y, /* vector with argument y[index_bi] (must be already allocated with size pba->bi_size) */
-		      double* dy, /* vector with argument dy[index_bi]
-				     (must be already allocated with
-				     size pba->bi_size) */
-		      void * parameters_and_workspace,
-		      ErrorMsg error_message
-		      ) {
+                      double tau,
+                      double* y, /* vector with argument y[index_bi] (must be already allocated with size pba->bi_size) */
+                      double* dy, /* vector with argument dy[index_bi]
+                                     (must be already allocated with
+                                     size pba->bi_size) */
+                      void * parameters_and_workspace,
+                      ErrorMsg error_message
+                      ) {
 
   /** Summary: */
 
@@ -1660,8 +1660,8 @@ int background_derivs(
 
   /** - Calculates functions of /f$ a /f$ with background_functions() */
   class_call(background_functions((struct background *)pba,y[pba->index_bi_a], pba->normal_info, pvecback),
-	     pba->error_message,
-	     error_message);
+             pba->error_message,
+             error_message);
 
   /** - calculate /f$ a'=a^2 H /f$ */
   dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
@@ -1670,8 +1670,8 @@ int background_derivs(
   dy[pba->index_bi_time] = y[pba->index_bi_a];
 
   class_test(pvecback[pba->index_bg_rho_g] <= 0.,
-	     error_message,
-	     "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
+             error_message,
+             "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
   /** - calculate rs' = c_s */
   dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));

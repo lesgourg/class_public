@@ -403,6 +403,18 @@ extern "C" {
                        double * trsf
                        );
       
+  int transfer_can_be_neglected(
+                                 struct precision * ppr,
+                                 struct background * pba,
+                                 struct perturbs * ppt,
+                                 struct transfers * ptr,
+                                 int index_md,
+                                 int index_ic,
+                                 int index_tt,
+                                 double k,
+                                 double l,
+                                 short * neglect);
+
   int transfer_one_bessel(
                           struct perturbs * ppt,
                           struct transfers * ptr,

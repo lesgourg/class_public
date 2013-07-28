@@ -1177,6 +1177,10 @@ int transfer_compute_for_each_k(
   /* a value of index_type */
   int previous_type;
 
+  double l;
+
+  short neglect;
+
   /** store the sources in the workspace and define all
       fields in this workspace */
         
@@ -1260,29 +1264,53 @@ int transfer_compute_for_each_k(
 
         for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
           
-          /* for a given l, maximum value of k such that we can convolve
-             the source with Bessel functions j_l(x) without reaching x_max */
-          
-          k_max_bessel = (pbk->x_min[index_l]+(pbk->x_size[index_l]-1)*pbk->x_step)/tau0_minus_tau[0];
-          
-          /* compute the transfer function for this l */
-          class_call(transfer_compute_for_each_l(ppr,
-                                                 ppt,
-                                                 pbk,
-                                                 ptr,
-                                                 index_k_tr,
-                                                 index_md,
-                                                 index_ic,
-                                                 index_tt,
-                                                 index_l,
-                                                 (double)ptr->l[index_l],
-                                                 tau0_minus_tau,
-                                                 delta_tau,
-                                                 (int)(*tau_size),
-                                                 sources,
-                                                 k_max_bessel),
+          l = (double)ptr->l[index_l];
+
+          class_call(transfer_can_be_neglected(ppr,
+                                               pba,
+                                               ppt,
+                                               ptr,
+                                               index_md,
+                                               index_ic,
+                                               index_tt,
+                                               ptr->k[index_k_tr],
+                                               l,
+                                               &neglect),
                      ptr->error_message,
                      ptr->error_message);
+
+          if (neglect == _TRUE_) {
+
+            ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
+                                     * ptr->l_size[index_md] + index_l)
+                                    * ptr->k_size + index_k_tr] = 0.;
+          }
+          else {
+
+            /* for a given l, maximum value of k such that we can convolve
+               the source with Bessel functions j_l(x) without reaching x_max */
+            
+            k_max_bessel = (pbk->x_min[index_l]+(pbk->x_size[index_l]-1)*pbk->x_step)/tau0_minus_tau[0];
+            
+            /* compute the transfer function for this l */
+            class_call(transfer_compute_for_each_l(ppr,
+                                                   ppt,
+                                                   pbk,
+                                                   ptr,
+                                                   index_k_tr,
+                                                   index_md,
+                                                   index_ic,
+                                                   index_tt,
+                                                   index_l,
+                                                   l,
+                                                   tau0_minus_tau,
+                                                   delta_tau,
+                                                   (int)(*tau_size),
+                                                   sources,
+                                                   k_max_bessel),
+                       ptr->error_message,
+                       ptr->error_message);
+          }
 
         } /* end of loop over l */
 
@@ -1332,9 +1360,6 @@ int transfer_interpolate_sources(
   /* index running on time */
   int index_tau;
 
-  /* index running on k values in the interpolated source array */
-  //int index_k_tr;
-
   /* variables used for spline interpolation algorithm */
   double h, a, b;
 
@@ -1357,8 +1382,6 @@ int transfer_interpolate_sources(
   
   index_k = 0;
   h = ppt->k[index_k+1] - ppt->k[index_k];
-  
-  //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
     
   while (((index_k+1) < ppt->k_size) &&
          (ppt->k[index_k+1] < 
@@ -1376,7 +1399,6 @@ int transfer_interpolate_sources(
     
   for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
       
-    //interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
     interpolated_sources[index_tau] = 
       a * ppt->sources[index_md]
       [index_ic * ppt->tp_size[index_md] + index_type]
@@ -1388,7 +1410,6 @@ int transfer_interpolate_sources(
          +(b*b*b-b) * source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
       
   }
-  //}
 
   return _SUCCESS_;
   
@@ -1440,9 +1461,6 @@ int transfer_sources(
 
   /* index running on time */
   int index_tau;
-
-  /* index running on k values in the interpolated source array */
-  //int index_k_tr;
 
   /* bin for computation of cl_density */  
   int bin;
@@ -1555,15 +1573,11 @@ int transfer_sources(
             }
 	  
             /* copy from input array to output array */
-            //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
-            //sources[index_k_tr*tau_size+(index_tau-index_tau_min)] = 
-            //interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
             sources[index_tau-index_tau_min] = 
               interpolated_sources[index_tau]
               * rescaling
               * ptr->lcmb_rescale
               * pow(ptr->k[index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
-            //}
 	  
             /* store value of (tau0-tau) */
             tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
@@ -1672,25 +1686,8 @@ int transfer_sources(
               *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
               /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
 	  
-            //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
-            //sources[index_k_tr*tau_size+index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
-            //}
             sources[index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
           }
-
-          /*
-            if (bin == 2) {
-            for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
-            for (index_tau = 0; index_tau < tau_size; index_tau++) {
-            fprintf(stdout,"%e %e %e\n",
-            tau0-tau0_minus_tau[index_tau],
-            ptr->k[index_k_tr],
-            sources[index_k_tr*tau_size+index_tau]);
-            }
-            fprintf(stdout,"\n\n");
-            }
-            }
-          */
 
           /* deallocate temporary arrays */
           free(pvecback);
@@ -1840,9 +1837,6 @@ int transfer_sources(
             }
 	  
             /* copy from input array to output array */
-            //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) { 
-            //sources[index_k_tr*tau_size+index_tau] *= rescaling;
-            //}
             sources[index_tau] *= rescaling;
 	  
           }
@@ -1867,7 +1861,6 @@ int transfer_sources(
     /* plain copy from input array to output array */
     memcpy(sources,
            interpolated_sources,
-           //ptr->k_size*ppt->tau_size*sizeof(double));
            ppt->tau_size*sizeof(double));
         
     /* store values of (tau0-tau) */
@@ -2170,7 +2163,6 @@ int transfer_source_resample(
 
   /* array of source values for a given time and for all k's */
   class_alloc(source_at_tau,
-              //ptr->k_size*sizeof(double),
               sizeof(double),
               ptr->error_message);
 
@@ -2181,22 +2173,16 @@ int transfer_source_resample(
                                      1,
                                      0,
                                      interpolated_sources, 
-                                     // this array is indexed as interpolated_sources[index_k_tr*ppt->tau_size+index_tau]
-                                     //ptr->k_size,
                                      1,
                                      ppt->tau_size,
                                      tau0-tau0_minus_tau[index_tau],
                                      source_at_tau,
-                                     //ptr->k_size,
                                      1,
                                      ptr->error_message),
                ptr->error_message,
                ptr->error_message);
 
-    /* for each k, copy the new values in the output sources array */
-    //for (index_k_tr=0;index_k_tr<ptr->k_size;index_k_tr++) {
-    //sources[index_k_tr * tau_size + index_tau] = source_at_tau[index_k_tr];
-    //}
+    /* copy the new values in the output sources array */
     sources[index_tau] = source_at_tau[0];
   } 
 
@@ -2879,9 +2865,6 @@ int transfer_limber(
                                           tau0_minus_tau[index_tau],
                                           tau0_minus_tau[index_tau+1],
                                           tau0_minus_tau_limber,
-                                          //sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
-                                          //sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
-                                          //sources[index_k*tau_size+index_tau+1]*tau0_minus_tau[index_tau+1],
                                           sources[index_tau-1]*tau0_minus_tau[index_tau-1],
                                           sources[index_tau]*tau0_minus_tau[index_tau],
                                           sources[index_tau+1]*tau0_minus_tau[index_tau+1],
@@ -2901,9 +2884,6 @@ int transfer_limber(
                                           tau0_minus_tau[index_tau],
                                           tau0_minus_tau[index_tau+1],
                                           tau0_minus_tau_limber,
-                                          //sources[index_k*tau_size+index_tau-1]*tau0_minus_tau[index_tau-1],
-                                          //sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
-                                          //sources[index_k*tau_size+index_tau]*tau0_minus_tau[index_tau],
                                           sources[index_tau-1]*tau0_minus_tau[index_tau-1],
                                           sources[index_tau]*tau0_minus_tau[index_tau],
                                           sources[index_tau]*tau0_minus_tau[index_tau],
@@ -2989,9 +2969,6 @@ int transfer_limber2(
                                         tau0_minus_tau[index_tau],
                                         tau0_minus_tau[index_tau+1],
                                         tau0_minus_tau_limber,
-                                        //sources[index_k*tau_size+index_tau-1],
-                                        //sources[index_k*tau_size+index_tau],
-                                        //sources[index_k*tau_size+index_tau+1],
                                         sources[index_tau-1],
                                         sources[index_tau],
                                         sources[index_tau+1],
@@ -3011,6 +2988,28 @@ int transfer_limber2(
   
 }
 
+ int transfer_can_be_neglected(
+                               struct precision * ppr,
+                               struct background * pba,
+                               struct perturbs * ppt,
+                               struct transfers * ptr,
+                               int index_md,
+                               int index_ic,
+                               int index_tt,
+                               double k,
+                               double l,
+                               short * neglect) {
+
+   *neglect = _FALSE_;
+
+   /* implement here some conditions, e.g.:
+      if (k*l>ppr->trans_kl_max) *neglect = _TRUE_;
+   */      
+
+   return _SUCCESS_;
+
+ }
+
 int transfer_one_bessel(
                         struct perturbs * ppt,
                         struct transfers * ptr,
@@ -3027,7 +3026,7 @@ int transfer_one_bessel(
 
   ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
 
-  /* default= bessel function j_l */
+  /* default = bessel function j_l */
   *bessel = b;
 
   /* other specific cases */
