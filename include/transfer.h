@@ -162,6 +162,18 @@ extern "C" {
                                     double tau0
                                     );
 
+  int transfer_perturbation_source_spline(
+                                          struct perturbs * ppt,
+                                          struct transfers * ptr,
+                                          double *** sources_spline
+                                          );
+
+  int transfer_perturbation_source_spline_free(
+                                               struct perturbs * ppt,
+                                               struct transfers * ptr,
+                                               double *** sources_spline
+                                               );
+
   int transfer_get_l_list(
                           struct precision * ppr,
                           struct perturbs * ppt,
@@ -179,10 +191,24 @@ extern "C" {
   int transfer_get_source_correspondence(
                                          struct perturbs * ppt,
                                          struct transfers * ptr,
-                                         int index_md,
                                          int ** tp_of_tt
                                          );
-  
+
+  int transfer_free_source_correspondence(
+                                          struct transfers * ptr,
+                                          int ** tp_of_tt
+                                          );
+
+  int transfer_source_tau_size_max(
+                                   struct precision * ppr,
+                                   struct background * pba,
+                                   struct perturbs * ppt,
+                                   struct transfers * ptr,
+                                   double tau_rec,
+                                   double tau0,
+                                   int * tau_size_max
+                                   );
+
   int transfer_source_tau_size(
                                struct precision * ppr,
                                struct background * pba,
@@ -199,7 +225,6 @@ extern "C" {
                                   struct precision * ppr,
                                   struct background * pba,
                                   struct perturbs * ppt,
-                                  struct bessels * pbs,
                                   struct bessels_for_one_k * pbk,
                                   struct transfers * ptr,
                                   int ** tp_of_tt,
