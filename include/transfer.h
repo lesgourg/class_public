@@ -108,18 +108,16 @@ struct transfers {
   //@}
 };
 
-struct bessels_k {
+struct bessels_for_one_k {
 
+  short filled;
   int l_size;
   double x_step;
-
   double * x_min;
   int * x_size;
+  int order_size;
 
-  int md_size;
-  int * tt_size;
-
-  double *** bessel_k;  /**< bessel_k[index_md][index_tt][index_l*x_size[index_l]+index_x] */
+  double ** bessel_k;  /**< bessel_k[index_l][order*pbk->x_size[index_l]+index_x] */
 
 };
 
@@ -202,6 +200,7 @@ extern "C" {
                                   struct background * pba,
                                   struct perturbs * ppt,
                                   struct bessels * pbs,
+                                  struct bessels_for_one_k * pbk,
                                   struct transfers * ptr,
                                   int ** tp_of_tt,
                                   int index_k_tr,
@@ -311,6 +310,7 @@ extern "C" {
   int transfer_compute_for_each_l(
                                   struct precision * ppr,
                                   struct perturbs * ppt,
+                                  struct bessels_for_one_k * pbk,
                                   struct transfers * ptr,
                                   int index_k,
                                   int index_md,
@@ -318,16 +318,10 @@ extern "C" {
                                   int index_tt,
                                   int index_l,
                                   double l,
-                                  double x_min_l,
-                                  double x_step,
                                   double * tau0_minus_tau,
                                   double * delta_tau,
                                   int tau_size,
                                   double * sources,
-                                  double * j_l,
-                                  double * ddj_l,
-                                  double * dj_l,
-                                  double * dddj_l,
                                   double k_max_bessel
                                   );
 
@@ -345,22 +339,18 @@ extern "C" {
 
   int transfer_integrate(
                          struct perturbs * ppt,
+                         struct bessels_for_one_k * pbk,
                          struct transfers * ptr,
                          int tau_size,
                          int index_k,
                          int index_md,
                          int index_tt,
                          double l,
+                         int index_l,
                          double k,
-                         double x_min_l,
-                         double x_step,
                          double * tau0_minus_tau,
                          double * delta_tau,
                          double * sources,
-                         double *j_l,
-                         double *ddj_l,
-                         double *dj_l,
-                         double *dddj_l,
                          double * trsf
                          );
     
@@ -387,24 +377,7 @@ extern "C" {
                        double * sources,
                        double * trsf
                        );
-  
-  int transfer_envelop(
-                       int tau_size,
-                       int index_k,
-                       double l,
-                       double k,
-                       double x_min_l,
-                       double x_step,
-                       double * tau0_minus_tau,
-                       double * delta_tau,
-                       double * sources,
-                       double *j_l,
-                       double *ddj_l,
-                       double *dj_l,
-                       double *dddj_l,
-                       double * trsf
-                       );
-    
+      
   int transfer_one_bessel(
                           struct perturbs * ppt,
                           struct transfers * ptr,
@@ -417,16 +390,25 @@ extern "C" {
                           double * bessel
                           );
 
-  int transfer_bessel_flat(
+  int transfer_bessel_fill(
                            struct bessels * pbs,
-                           struct perturbs * ppt,
                            struct transfers * ptr,
-                           struct bessels_k * pbkl
+                           double curvature,
+                           int index_k_tr,
+                           struct bessels_for_one_k * pbk
                            );
 
-  int transfer_bessel_flat_free(
-                                struct bessels_k * pbkl
-                                );
+  int transfer_bessel_free(
+                           struct bessels_for_one_k * pbk
+                           );
+
+  int transfer_bessel_interpolate(
+                                  struct bessels_for_one_k * pbk,
+                                  int index_l,
+                                  double x,
+                                  double * j,
+                                  double * dj
+                                  );
 
 #ifdef __cplusplus
 }

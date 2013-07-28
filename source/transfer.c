@@ -170,6 +170,9 @@ int transfer_init(
   */
   int ** tp_of_tt;
 
+  double curvature=0.;
+  struct bessels_for_one_k bk;
+
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
@@ -279,28 +282,28 @@ int transfer_init(
                ptr->error_message,
                ptr->error_message);
 
-      /** (a.2.) maximum number of sampled times in the transfer
-          sources: needs to be known here, in order to allocate a large
-          enough workspace */
+    /** (a.2.) maximum number of sampled times in the transfer
+        sources: needs to be known here, in order to allocate a large
+        enough workspace */
 
-      tau_size_max = 0;
+    tau_size_max = 0;
     
-      for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+    for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
 
-        class_call(transfer_source_tau_size(ppr,
-                                            pba,
-                                            ppt,
-                                            ptr,
-                                            tau_rec,
-                                            tau0,
-                                            index_md,
-                                            index_tt,
-                                            &tau_size_tt),
-                   ptr->error_message,
-                   ptr->error_message);
+      class_call(transfer_source_tau_size(ppr,
+                                          pba,
+                                          ppt,
+                                          ptr,
+                                          tau_rec,
+                                          tau0,
+                                          index_md,
+                                          index_tt,
+                                          &tau_size_tt),
+                 ptr->error_message,
+                 ptr->error_message);
       
-        tau_size_max = max(tau_size_max,tau_size_tt);
-      }
+      tau_size_max = max(tau_size_max,tau_size_tt);
+    }
 
   }
 
@@ -313,8 +316,8 @@ int transfer_init(
   /* beginning of parallel region */
   
 #pragma omp parallel                                                    \
-  shared(pw,tau_size_max,num_j,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline) \
-  private(thread,index_k_tr,tstart,tstop,tspent)
+  shared(pw,tau_size_max,num_j,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,curvature) \
+  private(thread,index_k_tr,tstart,tstop,tspent,bk)
   {
     
 #ifdef _OPENMP
@@ -328,21 +331,50 @@ int transfer_init(
                           +2+num_j*pbs->x_size_max)*
                          sizeof(double),
                          ptr->error_message);
-
-  /** - loop over all wavenumbers. For each wavenumber: */
-
+    
+    /* for models with zero curvature: fill bessel structure here (before k loop) */
+    if (curvature == 0.) {
+      
+      class_call_parallel(transfer_bessel_fill(pbs,
+                                               ptr,
+                                               curvature,
+                                               0, // for zero curvature, bessels independent of k, pass k[0]
+                                               &bk),
+                          ptr->error_message,
+                          ptr->error_message);
+      
+    }
+    
+    /** - loop over all wavenumbers. For each wavenumber: */
+    
 #pragma omp for schedule (dynamic)
-
+    
     for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
-
+      
 #ifdef _OPENMP
       tstart = omp_get_wtime();
 #endif
-
+      
+      /* for models with curvature: fill bessel structure here (inside k loop) */
+      if (curvature != 0.) {
+        
+        class_call_parallel(transfer_bessel_fill(pbs,
+                                                 ptr,
+                                                 curvature,
+                                                 index_k_tr,
+                                                 &bk),
+                            ptr->error_message,
+                            ptr->error_message);
+        
+      }
+      
+#pragma omp flush(abort)
+      
       class_call_parallel(transfer_compute_for_each_k(ppr,
                                                       pba,
                                                       ppt,
                                                       pbs,
+                                                      &bk,
                                                       ptr,
                                                       tp_of_tt,
                                                       index_k_tr,
@@ -353,19 +385,39 @@ int transfer_init(
                           ptr->error_message,
                           ptr->error_message);
       
+#pragma omp flush(abort)
+      
+      /* for models with curvature: free bessel structure here (inside k loop) */
+      if (curvature != 0.) {
+        
+        class_call_parallel(transfer_bessel_free(&bk),
+                            ptr->error_message,
+                            ptr->error_message);
+        
+      }
+      
 #ifdef _OPENMP
       tstop = omp_get_wtime();
-
+      
       tspent += tstop-tstart;
 #endif
-
+      
 #pragma omp flush(abort)
-
+      
     } /* end of loop over wavenumber */
-
+    
     /* free allocated arrays */
 
     free(pw[thread]);
+
+    /* for models with zero curvature: free bessel structure here (inside k loop) */
+    if (curvature == 0.) {
+        
+      class_call_parallel(transfer_bessel_free(&bk),
+                          ptr->error_message,
+                          ptr->error_message);
+      
+    }
 
 #ifdef _OPENMP
     if (ptr->transfer_verbose>1)
@@ -1033,6 +1085,7 @@ int transfer_compute_for_each_k(
                                 struct background * pba,
                                 struct perturbs * ppt,
                                 struct bessels * pbs,
+                                struct bessels_for_one_k * pbk,
                                 struct transfers * ptr,
                                 int ** tp_of_tt,
                                 int index_k_tr,
@@ -1104,40 +1157,40 @@ int transfer_compute_for_each_k(
   /* a value of index_type */
   int previous_type;
 
-  int num_j = 4;
+  //int num_j = 4;
 
-   /** (b.2) store the sources in the workspace and define all
-       fields in this workspace (in a parallel zone, since in
-       open mp version there is one workspace per thread). The
-       (parallelized) loop over l values will take place right
-       after that in the same parallel zone. */
+  /** (b.2) store the sources in the workspace and define all
+      fields in this workspace (in a parallel zone, since in
+      open mp version there is one workspace per thread). The
+      (parallelized) loop over l values will take place right
+      after that in the same parallel zone. */
         
-   /* define address of each field in the workspace */
-   address_in_workspace = workspace;
+  /* define address of each field in the workspace */
+  address_in_workspace = workspace;
         
-   interpolated_sources = address_in_workspace;
-   address_in_workspace += ppt->tau_size;
+  interpolated_sources = address_in_workspace;
+  address_in_workspace += ppt->tau_size;
    
-   tau0_minus_tau = address_in_workspace;
-   address_in_workspace += tau_size_max;
+  tau0_minus_tau = address_in_workspace;
+  address_in_workspace += tau_size_max;
    
-   delta_tau  = address_in_workspace;
-   address_in_workspace += tau_size_max;
+  delta_tau  = address_in_workspace;
+  address_in_workspace += tau_size_max;
    
-   tau_size = address_in_workspace;
-   address_in_workspace += 1;
+  tau_size = address_in_workspace;
+  address_in_workspace += 1;
    
-   sources = address_in_workspace;
-   //address_in_workspace += ptr->k_size*tau_size_max;
-   address_in_workspace += tau_size_max;
+  sources = address_in_workspace;
+  //address_in_workspace += ptr->k_size*tau_size_max;
+  address_in_workspace += tau_size_max;
    
-   x_min_l = address_in_workspace;
-   address_in_workspace += 1;
+  x_min_l = address_in_workspace;
+  address_in_workspace += 1;
    
-   j_l = address_in_workspace;
+  j_l = address_in_workspace;
         
-   /* the address of the next fields, ddj_l, etc., will be defined
-      within the l loop, since they depend on l */
+  /* the address of the next fields, ddj_l, etc., will be defined
+     within the l loop, since they depend on l */
 
   /** - loop over all modes. For each mode: */ 
     
@@ -1200,30 +1253,15 @@ int transfer_compute_for_each_k(
 
         for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
           
-          /* copy from the bessel structure all bessel function
-             related information for this particular value of l:
-             x_min, the j_l(x)s, the j_l''(x)s. They are all
-             allocated in a contiguous memory zone, so we can use a
-             single memcpy. */
-          class_protect_memcpy(x_min_l,pbs->x_min[index_l],(1+num_j*pbs->x_size[index_l])*sizeof(double));
-          
-          /* now define the address of the ddj_l field (and
-             eventually additional fields in the workspace) */
-          ddj_l = j_l + pbs->x_size[index_l];
-          
-          //if (ppr->transfer_cut == tc_env) {
-          dj_l = ddj_l + pbs->x_size[index_l];
-          dddj_l = dj_l + pbs->x_size[index_l];
-          //}
-
           /* for a given l, maximum value of k such that we can convolve
              the source with Bessel functions j_l(x) without reaching x_max */
           
-          k_max_bessel = ((*x_min_l)+(pbs->x_size[index_l]-1)*pbs->x_step)/tau0_minus_tau[0];
+          k_max_bessel = ((*x_min_l)+(pbk->x_size[index_l]-1)*pbk->x_step)/tau0_minus_tau[0];
           
           /* compute the transfer function for this l */
           class_call(transfer_compute_for_each_l(ppr,
                                                  ppt,
+                                                 pbk,
                                                  ptr,
                                                  index_k_tr,
                                                  index_md,
@@ -1231,16 +1269,10 @@ int transfer_compute_for_each_k(
                                                  index_tt,
                                                  index_l,
                                                  (double)ptr->l[index_l],
-                                                 *x_min_l,
-                                                 pbs->x_step,
                                                  tau0_minus_tau,
                                                  delta_tau,
                                                  (int)(*tau_size),
                                                  sources,
-                                                 j_l,
-                                                 ddj_l,
-                                                 dj_l,
-                                                 dddj_l,
                                                  k_max_bessel),
                      ptr->error_message,
                      ptr->error_message);
@@ -1302,15 +1334,15 @@ int transfer_interpolate_sources(
   /** - find second derivative of original sources with respect to k
       in view of spline interpolation */
   /*
-  class_call(array_spline_table_columns(ppt->k,
-                                        ppt->k_size,
-                                        ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_type],
-                                        ppt->tau_size,
-                                        source_spline,
-                                        _SPLINE_EST_DERIV_,
-                                        ptr->error_message),
-             ptr->error_message,
-             ptr->error_message);
+    class_call(array_spline_table_columns(ppt->k,
+    ppt->k_size,
+    ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_type],
+    ppt->tau_size,
+    source_spline,
+    _SPLINE_EST_DERIV_,
+    ptr->error_message),
+    ptr->error_message,
+    ptr->error_message);
   */
 
   /** - interpolate at each k value using the usual 
@@ -1321,35 +1353,35 @@ int transfer_interpolate_sources(
   
   //for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
     
-    while (((index_k+1) < ppt->k_size) &&
-           (ppt->k[index_k+1] < 
-            ptr->k[index_k_tr])) {
-      index_k++;
-      h = ppt->k[index_k+1] - ppt->k[index_k];
-    }
+  while (((index_k+1) < ppt->k_size) &&
+         (ppt->k[index_k+1] < 
+          ptr->k[index_k_tr])) {
+    index_k++;
+    h = ppt->k[index_k+1] - ppt->k[index_k];
+  }
     
-    class_test(h==0.,
-               ptr->error_message,
-               "stop to avoid division by zero");
+  class_test(h==0.,
+             ptr->error_message,
+             "stop to avoid division by zero");
     
-    b = (ptr->k[index_k_tr] - ppt->k[index_k])/h;
-    a = 1.-b;
+  b = (ptr->k[index_k_tr] - ppt->k[index_k])/h;
+  a = 1.-b;
     
-    for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
+  for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
       
-      //interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
-      interpolated_sources[index_tau] = 
-        a * ppt->sources[index_md]
-        [index_ic * ppt->tp_size[index_md] + index_type]
-        [index_tau*ppt->k_size+index_k]
-        + b * ppt->sources[index_md]
-        [index_ic * ppt->tp_size[index_md] + index_type]
-        [index_tau*ppt->k_size+index_k+1]
-        + ((a*a*a-a) * source_spline[index_tau*ppt->k_size+index_k]
-           +(b*b*b-b) * source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
+    //interpolated_sources[index_k_tr*ppt->tau_size+index_tau] = 
+    interpolated_sources[index_tau] = 
+      a * ppt->sources[index_md]
+      [index_ic * ppt->tp_size[index_md] + index_type]
+      [index_tau*ppt->k_size+index_k]
+      + b * ppt->sources[index_md]
+      [index_ic * ppt->tp_size[index_md] + index_type]
+      [index_tau*ppt->k_size+index_k+1]
+      + ((a*a*a-a) * source_spline[index_tau*ppt->k_size+index_k]
+         +(b*b*b-b) * source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
       
-    }
-    //}
+  }
+  //}
 
   return _SUCCESS_;
   
@@ -1524,7 +1556,7 @@ int transfer_sources(
               * rescaling
               * ptr->lcmb_rescale
               * pow(ptr->k[index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
-              //}
+            //}
 	  
             /* store value of (tau0-tau) */
             tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
@@ -2375,6 +2407,7 @@ int transfer_selection_compute(
 int transfer_compute_for_each_l(
                                 struct precision * ppr,
                                 struct perturbs * ppt,
+                                struct bessels_for_one_k * pbk,
                                 struct transfers * ptr,
                                 int index_k,
                                 int index_md,
@@ -2382,16 +2415,10 @@ int transfer_compute_for_each_l(
                                 int index_tt,
                                 int index_l,
                                 double l,
-                                double x_min_l,
-                                double x_step,
                                 double * tau0_minus_tau,
                                 double * delta_tau,
                                 int tau_size,
                                 double * sources,
-                                double * j_l,
-                                double * ddj_l,
-                                double * dj_l,
-                                double * dddj_l,
                                 double k_max_bessel
                                 ){
 
@@ -2399,309 +2426,85 @@ int transfer_compute_for_each_l(
 
   /** - define local variables */
 
-  /* running index for wavenumbers */	
-  //int index_k;
   /* current wavenumber value */
   double k;
-  /* flag: for a given l, should the transfer functions stop being computed at next value of k? */
-  short cut_transfer;
-  /* global maximum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
-  double global_max;
-  /* global minimum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
-  double global_min;
-  /* last local maximum of \f$ \Delta_l(k) \f$ as a function of k, used for stopping computation */
-  double last_local_max;
-  /* last local minimum of \f$ S(k, \tau) j_l(k [\tau_0 - \tau]) \f$ as a function of k, used for cutting the integral */
-  double last_local_min;
+
   /* value of transfer function */
   double transfer_function;
-  /* in loop over k, last computed value of transfer function \f$ \Delta_l(k) \f$ */
-  double transfer_last;
-  /* in loop over k, value of transfer function \f$ \Delta_l(k) \f$ computed two steps before */
-  double transfer_last_last;
-  /* rough estimate of C_l, used only for cutting the transfer function computation at some k_max */
-  double cl;
-  /* rough estimate of C_l's variation, used only for cutting the transfer function computation at some k_max */
-  double delta_cl;
-  /* rough estimate of C_l's fractional variation, used only for cutting the transfer function computation at some k_max */
-  double cl_var;
-  /* last computed value of C_l's fractional variation, used only for cutting the transfer function computation at some k_max */
-  double cl_var_last;
-  /* value of C_l's fractional variation computed two steps ago, used only for cutting the transfer function computation at some k_max */
-  double cl_var_last_last;
-
-  /* quantitites for multiplying some transfer function by a factor */
-  //short multiply_by_factor;
-  //double extra_factor=1.;
 
   /* whether to use the Limber approximation */
   short use_limber;
   
-  /* whether to use a cutting scheme */
-  enum transfer_cutting use_cut;
-
+  /* return zero tranbsfer function if l is above l_max */ 
   if (index_l >= ptr->l_size_tt[index_md][index_tt]) { 
-
-    for (index_k = 0; index_k < ptr->k_size; index_k++) {
-      ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
-                               * ptr->l_size[index_md] + index_l)
-                              * ptr->k_size + index_k] = 0.;
-    }
-    return _SUCCESS_;
-  }
-
-  if (ptr->transfer_verbose > 2)
-    printf("Compute transfer for l=%d\n",(int)l);
-
-  /** use cutting scheme for CMB **/
-  use_cut = tc_none;
-
-  if (_scalars_ && ((ppt->has_cl_cmb_temperature == _TRUE_) && 
-                    ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2))))
-    use_cut = ppr->transfer_cut;
-
-  if (_scalars_ && ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)))
-    use_cut = ppr->transfer_cut;
-
-  if _tensors_
-    use_cut = ppr->transfer_cut;
-
-  /** - if the option of stopping the transfer function computation at some k_max is selected, initialize relevant quantities */
-	      
-  if (use_cut == tc_osc) {
-    cut_transfer = _FALSE_;
-    global_max=0.;
-    global_min=0.;
-    last_local_max=0.;
-    last_local_min=0.;
-    transfer_function=0.;
-    transfer_last=0.;
-    transfer_last_last=0;
-  }
-	      
-  if (use_cut == tc_cl) {
-    cut_transfer = _FALSE_;
-    cl=0.;
-    cl_var=1.;
-    cl_var_last=1.;
-    cl_var_last_last=1.;
-  }
-
-  /** - is there an extra factor in the transfer function,
-      besides the integral over S*j_l(x)? */
-
-  //multiply_by_factor=_FALSE_;
-
-  /* for scalar (E-)polarization, multiply by 
-     square root of  (l+2)(l+1)l(l-1) */
-  /*
-    if (_scalars_ && ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))) {
     
-    multiply_by_factor=_TRUE_;
-    extra_factor=sqrt((l+2.) * (l+1.) * l * (l-1.));
-    }
-  */
-  /* for tensor temperature, multiply by 
-     square root of (l+2)(l+1)l(l-1)/2 */
-  /*
-    if (_tensors_ && ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2))) {
-    
-    multiply_by_factor=_TRUE_;
-    extra_factor=sqrt((l+2.) * (l+1.) * l * (l-1.));
-    }
-  */      
-  /** - loop over k. For each k:
-      (a) if the option of stopping the transfer function computation 
-      at some k_max is not selected or if we are below k_max, 
-      compute \f$ \Delta_l(k) \f$ either with transfer_integrate() 
-      or with transfer_limber(); store the result in the table
-      in transfers structure;
-      (b) if it is selected and we are above k_max, set the transfer function 
-      to zero; 
-      (c) if it is selected and we are below k_max, check wether k_max is 
-      being reached. 
-  */
-
-  //for (index_k = 0; index_k < ptr->k_size; index_k++) {
-
-    k = ptr->k[index_k];
-
-    if (ptr->transfer_verbose > 3)
-      printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,k,index_tt);
-		
-    /* update previous transfer values in the tc_osc method */
-    if (use_cut == tc_osc) {
-      transfer_last_last = transfer_last;
-      transfer_last = transfer_function;
-    }
-		
-    /* update previous relative pseudo-C_l variation in the tc_cl method */
-    if (use_cut == tc_cl) {
-      cl_var_last_last = cl_var_last;
-      cl_var_last = cl_var;
-    }
-
-    /* below k_max: compute transfer function */
-    if ((use_cut == tc_none) || (cut_transfer == _FALSE_)) {
-
-      class_call(transfer_use_limber(ppr,
-                                     ppt,
-                                     ptr,
-                                     k_max_bessel,
-                                     index_md,
-                                     index_tt,
-                                     k,
-                                     l,
-                                     &use_limber),
-                 ptr->error_message,
-                 ptr->error_message);
-
-      if (use_limber == _TRUE_) {
-
-        class_call(transfer_limber(tau_size,
-                                   ptr,
-                                   index_md,
-                                   index_k,
-                                   l,
-                                   k,
-                                   tau0_minus_tau,
-                                   sources,
-                                   &transfer_function),
-                   ptr->error_message,
-                   ptr->error_message); 
-
-      }
-      else {
-	
-        if ((use_cut == tc_env) &&
-            (((ppt->has_cl_cmb_temperature == _TRUE_) && 
-              ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2))) || 
-             ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e)))) {
-	  
-          class_call(transfer_envelop(tau_size,
-                                      index_k,
-                                      l,
-                                      k,
-                                      x_min_l,
-                                      x_step,
-                                      tau0_minus_tau,
-                                      delta_tau,
-                                      sources,
-                                      j_l,
-                                      ddj_l,
-                                      dj_l,
-                                      dddj_l,
-                                      &transfer_function),
-                     ptr->error_message,
-                     ptr->error_message);
-        }
-        else {
-
-          class_call(transfer_integrate(ppt,
-                                        ptr,
-                                        tau_size,
-                                        index_k,
-                                        index_md,
-                                        index_tt,
-                                        l,
-                                        k,
-                                        x_min_l,
-                                        x_step,
-                                        tau0_minus_tau,
-                                        delta_tau,
-                                        sources,
-                                        j_l,
-                                        ddj_l,
-                                        dj_l,
-                                        dddj_l,       
-                                        &transfer_function),
-                     ptr->error_message,
-                     ptr->error_message);
-
-        }
-      }
-    }
-
-    /* above k_max: set transfer function to zero */
-    else {
-      transfer_function = 0.;
-    }
-
-    /* eventually multiply by extra factor */
-    //if (multiply_by_factor == _TRUE_) transfer_function *= extra_factor;
-
-    /* store transfer function in transfer structure */
     ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                              * ptr->l_size[index_md] + index_l)
-                            * ptr->k_size + index_k]
-      = transfer_function;
-    
-    // new
-    //fprintf(stderr,"%e %e %e\n",k,delta_tau[tau_size-1]);
-    /*
-      if (k*delta_tau[tau_size-1] > 5.)
-      cut_transfer = _TRUE_;
-    */
-    
+                            * ptr->k_size + index_k] = 0.;
+    return _SUCCESS_;
+  }
+  
+  if (ptr->transfer_verbose > 2)
+    printf("Compute transfer for l=%d\n",(int)l);
+  
+  k = ptr->k[index_k];
 
-    /* in the tc_osc case, update various quantities and 
-       check wether k_max is reached */
-    if ((use_cut == tc_osc) && (index_k>=2)) {
-      
-      /* detect local/global maximum of \f$ \Delta_l(k) \f$; 
-         if detected, check the criteria for reaching k_max */
-      if ((transfer_last > 0.) && (transfer_function < transfer_last) && (transfer_last > transfer_last_last)) {
-        last_local_max = transfer_last;
-        if (last_local_max > global_max) {
-          global_max = last_local_max;
-        }
-        if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
-          cut_transfer = _TRUE_;
-        }
-	
-      }
-		  
-      /* detect local/global minimum of \f$ \Delta_l(k) \f$; 
-         if detected, check the criteria for reaching k_max */ 
-      if ((transfer_last < 0.) && (transfer_function > transfer_last) && (transfer_last < transfer_last_last)) {
-        last_local_min = transfer_last;
-        if (last_local_min < global_min) {
-          global_min = last_local_min;
-        }
-        if ((last_local_max-last_local_min) < ppr->transfer_cut_threshold_osc * (global_max-global_min)) {
-          cut_transfer = _TRUE_;
-        }
-      }
-    }
+  if (ptr->transfer_verbose > 3)
+    printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,k,index_tt);
 		
-    /* in the tc_cl case, update various quantities and check wether k_max is reached */
-    if ((use_cut == tc_cl) && (index_k>=2) && (index_k<ptr->k_size-1) && (transfer_function != 0.)) {
-		  
-      /* rough estimate of the contribution of the last step to pseudo-C_l, 
-         assuming flat primordial spectrum */
-      delta_cl = transfer_function * transfer_function / k * 0.5 * (ptr->k[index_k+1] - ptr->k[index_k-1]);
-      
-      /* update pseudo-C_l */
-      cl += delta_cl;
-      
-      class_test(cl == 0.,
-                 ptr->error_message,
-                 "stop to avoid division by zero");
+  class_call(transfer_use_limber(ppr,
+                                 ppt,
+                                 ptr,
+                                 k_max_bessel,
+                                 index_md,
+                                 index_tt,
+                                 k,
+                                 l,
+                                 &use_limber),
+             ptr->error_message,
+             ptr->error_message);
+  
+  if (use_limber == _TRUE_) {
+    
+    class_call(transfer_limber(tau_size,
+                               ptr,
+                               index_md,
+                               index_k,
+                               l,
+                               k,
+                               tau0_minus_tau,
+                               sources,
+                               &transfer_function),
+               ptr->error_message,
+               ptr->error_message); 
+    
+  }
+  else {
 
-      /* compute its relative variation */
-      cl_var = delta_cl / cl;
-      
-      /* check if k_max is reached */
-      if ((cl_var < cl_var_last) && (cl_var_last > cl_var_last_last)) {
-        if (cl_var_last < ppr->transfer_cut_threshold_cl) {
-          cut_transfer = _TRUE_;
-        }
+    class_call(transfer_integrate(ppt,
+                                  pbk,
+                                  ptr,
+                                  tau_size,
+                                  index_k,
+                                  index_md,
+                                  index_tt,
+                                  l,
+                                  index_l,
+                                  k,
+                                  tau0_minus_tau,
+                                  delta_tau,
+                                  sources,
+                                  &transfer_function),
+               ptr->error_message,
+               ptr->error_message);
+  }
 
-      }
-    }
-
-    //} /* end of loop over k */
-
+  /* store transfer function in transfer structure */
+  ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
+                           * ptr->l_size[index_md] + index_l)
+                          * ptr->k_size + index_k]
+    = transfer_function;
+  
   return _SUCCESS_;
 
 }
@@ -2771,22 +2574,18 @@ int transfer_use_limber(
 
 int transfer_integrate(
                        struct perturbs * ppt,
+                       struct bessels_for_one_k * pbk,
                        struct transfers * ptr,
                        int tau_size,
                        int index_k,
                        int index_md,
                        int index_tt,
                        double l,
+                       int index_l,
                        double k,
-                       double x_min_l,
-                       double x_step,
                        double * tau0_minus_tau,
                        double * delta_tau,
                        double * sources,
-                       double *j_l,
-                       double *ddj_l,
-                       double *dj_l,
-                       double *dddj_l,
                        double * trsf
                        ) {
 
@@ -2797,12 +2596,10 @@ int transfer_integrate(
   /* minimum value of \f$ (\tau0-\tau) \f$ at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   double tau0_minus_tau_min_bessel;
 
-  /* running value of bessel function */
-  /*   double bessel; */
-  int index_x;
+  /* argument of bessel function */
   double x;
-  double a;
   
+  /* temporary value of transfer function */
   double transfer;
 
   /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
@@ -2811,7 +2608,8 @@ int transfer_integrate(
   double j,dj,bessel;
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
+  //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
+  tau0_minus_tau_min_bessel = pbk->x_min[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
 
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
   if (tau0_minus_tau_min_bessel >= tau0_minus_tau[0]) {
@@ -2826,22 +2624,15 @@ int transfer_integrate(
 
     x = k * tau0_minus_tau[0];
 
-    index_x = (int)((x-x_min_l)/x_step);
-  
-    a = (x_min_l+x_step*(index_x+1) - x)/x_step;
+    class_call(transfer_bessel_interpolate(
+                                           pbk,
+                                           index_l,
+                                           x,
+                                           &j,
+                                           &dj),
+               ptr->error_message,
+               ptr->error_message);
 
-    j = (a * j_l[index_x] +
-         (1.-a) * (j_l[index_x+1]
-                   - a * ((a+1.) * ddj_l[index_x]
-                          +(2.-a) * ddj_l[index_x+1]) 
-                   * x_step * x_step / 6.0) );
-
-    dj = (a * dj_l[index_x] +
-          (1.-a) * (dj_l[index_x+1]
-                    - a * ((a+1.) * dddj_l[index_x]
-                           +(2.-a) * dddj_l[index_x+1]) 
-                    * x_step * x_step / 6.0) );
-    
     class_call(transfer_one_bessel(
                                    ppt,
                                    ptr,
@@ -2855,7 +2646,6 @@ int transfer_integrate(
                ptr->error_message,
                ptr->error_message);
 
-    //*trsf = sources[index_k] * bessel;
     *trsf = sources[0] * bessel;
 
     return _SUCCESS_;  
@@ -2870,7 +2660,6 @@ int transfer_integrate(
     index_tau_max--;
 
   /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
-  //while (sources[index_k * tau_size + index_tau_max] == 0.) { 
   while (sources[index_tau_max] == 0.) { 
     index_tau_max--;
     if (index_tau_max < 0) {
@@ -2929,23 +2718,14 @@ int transfer_integrate(
   
   x = k * tau0_minus_tau[index_tau_max];
 
-  index_x = (int)((x-x_min_l)/x_step);
-  
-  a = (x_min_l+x_step*(index_x+1) - x)/x_step;
-  
-  j = (a * j_l[index_x] +
-       (1.-a) * (j_l[index_x+1]
-                 - a * ((a+1.) * ddj_l[index_x]
-                        +(2.-a) * ddj_l[index_x+1]) 
-                 * x_step * x_step / 6.0) );
-                 
-
-  dj = (a * dj_l[index_x] +
-        (1.-a) * (dj_l[index_x+1]
-                  - a * ((a+1.) * dddj_l[index_x]
-                         +(2.-a) * dddj_l[index_x+1]) 
-                  * x_step * x_step / 6.0) );
-                 
+  class_call(transfer_bessel_interpolate(
+                                         pbk,
+                                         index_l,
+                                         x,
+                                         &j,
+                                         &dj),
+             ptr->error_message,
+             ptr->error_message);
 
   class_call(transfer_one_bessel(
                                  ppt,
@@ -2987,23 +2767,15 @@ int transfer_integrate(
     
     x = k * tau0_minus_tau[index_tau];
     
-    index_x = (int)((x-x_min_l)/x_step);
-    
-    a = (x_min_l+x_step*(index_x+1) - x)/x_step;
-
-    j = (a * j_l[index_x] +
-         (1.-a) * (j_l[index_x+1]
-                   - a * ((a+1.) * ddj_l[index_x]
-                          +(2.-a) * ddj_l[index_x+1]) 
-                   * x_step * x_step / 6.0) );
-                   
-
-    dj = (a * dj_l[index_x] +
-          (1.-a) * (dj_l[index_x+1]
-                    - a * ((a+1.) * dddj_l[index_x]
-                           +(2.-a) * dddj_l[index_x+1]) 
-                    * x_step * x_step / 6.0) );
-                   
+    class_call(transfer_bessel_interpolate(
+                                           pbk,
+                                           index_l,
+                                           x,
+                                           &j,
+                                           &dj),
+               ptr->error_message,
+               ptr->error_message);
+             
     class_call(transfer_one_bessel(
                                    ppt,
                                    ptr,
@@ -3017,13 +2789,8 @@ int transfer_integrate(
                ptr->error_message,
                ptr->error_message);
 
-    //transfer += sources[index_k * tau_size + index_tau] * bessel * delta_tau[index_tau];
     transfer += sources[index_tau] * bessel * delta_tau[index_tau];
 
-    /* (for bessel function cubic spline interpolation, we could have called the
-       subroutine bessel_at_x; however we perform operations directly here
-       in order to speed up the code) */
-    
   }
   
   *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */
@@ -3237,163 +3004,6 @@ int transfer_limber2(
   
 }
 
-/**
- * This routine computes the envelop of transfer functions \f$
- * \Delta_l^{X} (k) \f$) for each mode, initial condition, type,
- * multipole l and wavenumber k, by convolving the source function
- * (passed in input in the array interpolated_sources) with Bessel
- * functions (passed in input in the bessels structure).
- *
- * @param ppt                   Input : pointer to perturbation structure
- * @param pbs                   Input : pointer to bessels structure 
- * @param ptr                   Input : pointer to transfers structure
- * @param tau0                  Input : conformal time today
- * @param tau_rec               Input : conformal time at recombination
- * @param index_md            Input : index of mode
- * @param index_tt              Input : index of type
- * @param index_l               Input : index of multipole
- * @param index_k               Input : index of wavenumber
- * @param interpolated_sources  Input: array of interpolated sources
- * @param ptw                   Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation) 
- * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
- * @return the error status
- */
-
-int transfer_envelop(
-                     int tau_size,
-                     int index_k,
-                     double l,
-                     double k,
-                     double x_min_l,
-                     double x_step,
-                     double * tau0_minus_tau,
-                     double * delta_tau,
-                     double * sources,
-                     double *j_l,
-                     double *ddj_l,
-                     double *dj_l,
-                     double *dddj_l,
-                     double * trsf
-                     ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  /* minimum value of \f$ (\tau0-\tau) \f$ at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  double tau0_minus_tau_min_bessel;
-
-  /* running value of bessel function */
-  /*   double bessel; */
-  int index_x;
-  double x;
-  double a;
-  
-  double transfer, transfer_shifted, source_times_dtau;
-
-  /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
-  int index_tau,index_tau_max;
-
-  //if (l==36.)
-  //printf"there; %e %e %e\n",x_min_l,j_l[0],dj_l[0]);
-
-  /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
-  tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
-
-  /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
-  if (tau0_minus_tau_min_bessel >= tau0_minus_tau[0]) {
-    *trsf = 0.;
-    return _SUCCESS_;
-  }
-
-  /** - if there is an overlap: */
-
-  /** (a) find index in the source's tau list corresponding to the last point in the overlapping region. After this step, index_tau_max can be as small as zero, but not negative. */ 
-  index_tau_max = tau_size-1;
-  while (tau0_minus_tau[index_tau_max] < tau0_minus_tau_min_bessel)
-    index_tau_max--;
-
-  /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
-  //while (sources[index_k * tau_size + index_tau_max] == 0.) { 
-  while (sources[index_tau_max] == 0.) { 
-    index_tau_max--;
-    if (index_tau_max < 0) {
-      *trsf = 0.;
-      return _SUCCESS_;
-    }
-  }
-
-  /** (c) integrate with trapezoidal method */
-    
-  /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
-  
-  x = k * tau0_minus_tau[index_tau_max];
-
-  index_x = (int)((x-x_min_l)/x_step);
-  
-  a = (x_min_l+x_step*(index_x+1) - x)/x_step;
-
-  //source_times_dtau = sources[index_k * tau_size + index_tau_max];
-  source_times_dtau = sources[index_tau_max];
-  
-  if (index_tau_max > 0) {
-    source_times_dtau *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
-  }
-  else {
-    source_times_dtau *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
-  }
-
-  /* source times j_l (cubic spline interpolation) */
-  transfer = source_times_dtau
-    * (a * j_l[index_x] +
-       (1.-a) * (j_l[index_x+1]
-                 - a * ((a+1.) * ddj_l[index_x]
-                        +(2.-a) * ddj_l[index_x+1]) 
-                 * x_step * x_step / 6.0) );
-  
-  /* source times j_l' (cubic spline interpolation) */
-  transfer_shifted = source_times_dtau
-    * (a * dj_l[index_x] +
-       (1.-a) * (dj_l[index_x+1]
-                 - a * ((a+1.) * dddj_l[index_x]
-                        +(2.-a) * dddj_l[index_x+1]) 
-                 * x_step * x_step / 6.0) );
-  
-  for (index_tau=0; index_tau<index_tau_max; index_tau++) {
-    
-    /* for bessel function interpolation, we could call the subroutine bessel_at_x; however we perform operations directly here in order to speed up the code */
-    
-    x = k * tau0_minus_tau[index_tau];
-    
-    index_x = (int)((x-x_min_l)/x_step);
-    
-    a = (x_min_l+x_step*(index_x+1) - x)/x_step;
-    
-    //source_times_dtau = sources[index_k * tau_size + index_tau] * delta_tau[index_tau];
-    source_times_dtau = sources[index_tau] * delta_tau[index_tau];
-    
-    /* source times j_l (cubic spline interpolation) */
-    transfer += source_times_dtau * 
-      (a * j_l[index_x] +
-       (1.-a) * (j_l[index_x+1]
-                 - a * ((a+1.) * ddj_l[index_x]
-                        +(2.-a) * ddj_l[index_x+1]) 
-                 * x_step * x_step / 6.0));
-  
-    /* source times j_l' (cubic spline interpolation) */
-    transfer_shifted += source_times_dtau
-      * (a * dj_l[index_x] +
-         (1.-a) * (dj_l[index_x+1]
-                   - a * ((a+1.) * dddj_l[index_x]
-                          +(2.-a) * dddj_l[index_x+1]) 
-                   * x_step * x_step / 6.0));
-  }
-  
-  *trsf = 0.5*sqrt(transfer*transfer + 1.3*transfer_shifted*transfer_shifted); /* correct for factor 1/2 from trapezoidal rule */
-
-  return _SUCCESS_;
-}
-
 int transfer_one_bessel(
                         struct perturbs * ppt,
                         struct transfers * ptr,
@@ -3485,115 +3095,109 @@ int transfer_one_bessel(
 
 } 
 
-int transfer_bessel_flat(
+int transfer_bessel_fill(
                          struct bessels * pbs,
-                         struct perturbs * ppt,
                          struct transfers * ptr,
-                         struct bessels_k * pbkl
+                         double curvature,
+                         int index_k_tr,
+                         struct bessels_for_one_k * pbk
                          ) {
-
-  int index_md;
+ 
   int index_l;
-  int index_tt;
   int index_x;
-  double l;
-  double x;
-  
-  pbkl->l_size = pbs->l_size;
-  pbkl->x_step = pbs->x_step;
+  int order;
+  double k;
 
-  class_alloc(pbkl->x_min,pbkl->l_size*sizeof(double),ptr->error_message);
-  class_alloc(pbkl->x_size,pbkl->l_size*sizeof(int),ptr->error_message);
+  if (curvature == 0.) {
 
-  for (index_l = 0; index_l < pbkl->l_size; index_l++) {
-    pbkl->x_min[index_l] = *(pbs->x_min[index_l]);
-    pbkl->x_size[index_l]=pbs->x_size[index_l];
-  }
-
-  pbkl->md_size = ptr->md_size;
-
-  class_alloc(pbkl->bessel_k,ptr->md_size*sizeof(double**),ptr->error_message);
-  class_alloc(pbkl->tt_size,ptr->md_size*sizeof(int),ptr->error_message);
-
-  for (index_md = 0; index_md < ptr->md_size; index_md++) {
-
-    pbkl->tt_size[index_md] = ptr->tt_size[index_md];
-
-    class_alloc(pbkl->bessel_k[index_md],pbkl->tt_size[index_md]*sizeof(double*),ptr->error_message);
-
-    for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) { 
-
-      class_alloc(pbkl->bessel_k[index_md][index_tt],ptr->l_size_tt[index_md][index_tt]*pbs->x_size[index_l]*sizeof(double),ptr->error_message);
-
-    }
-
-  }
-
-  /*
-    loop x {
-    recurrence (loop over l)
-    phi(l,x)
-    phi'(l,x)
-    ---
-    phi'''''(x)
-    }
-  */
-
-
-  for (index_md = 0; index_md < ptr->md_size; index_md++) {
-
-    for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {   
-
-      for (index_l = 0; index_l < ptr->l_size_tt[index_md][index_tt]; index_l++) {
-
-        l=ptr->l[index_l];
-
-        for (index_x=0; index_x < pbs->x_size[index_l]; index_x++) {
-
-          x = pbkl->x_min[index_l]+index_x*pbkl->x_step; 
-
-          class_call(transfer_one_bessel(
-                                         ppt,
-                                         ptr,
-                                         pbs->j[index_l][index_x],
-                                         pbs->dj[index_l][index_x],
-                                         index_md,
-                                         index_tt,
-                                         x,
-                                         l,
-                                         &(pbkl->bessel_k[index_md][index_tt][index_l*pbkl->x_size[index_l]+index_x])),
-                     ptr->error_message,
-                     ptr->error_message);
-
-        }
+    pbk->l_size=pbs->l_size;
+    pbk->x_step=pbs->x_step;
+    pbk->order_size=4;
+    
+    class_alloc(pbk->x_min,pbk->l_size*sizeof(double),ptr->error_message);
+    class_alloc(pbk->x_size,pbk->l_size*sizeof(int),ptr->error_message);
+    class_alloc(pbk->bessel_k,pbk->l_size*sizeof(double*),ptr->error_message);
+    
+    for (index_l=0; index_l<pbk->l_size; index_l++) {
+      
+      pbk->x_min[index_l]=*(pbs->x_min[index_l]);
+      pbk->x_size[index_l]=pbs->x_size[index_l];
+      
+      class_alloc(pbk->bessel_k[index_l],
+                  pbk->x_size[index_l]*pbk->order_size*sizeof(double),
+                  ptr->error_message);
+            
+      for (index_x=0; index_x<pbk->x_size[index_l]; index_x++) {
+        order=0;
+        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->j[index_l][index_x];
+        order=1;
+        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->dj[index_l][index_x];
+        order=2;
+        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->ddj[index_l][index_x];
+        order=3;
+        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->dddj[index_l][index_x];
       }
     }
   }
-  
-  return _SUCCESS_;
-
-}
-
-int transfer_bessel_flat_free(
-                              struct bessels_k * pbkl
-                              ) {
-  
-  int index_md;
-  int index_tt;
-
-  free(pbkl->x_min);
-  free(pbkl->x_size);
-
-  for (index_md = 0; index_md < pbkl->md_size; index_md++) {
-    for (index_tt = 0; index_tt < pbkl->tt_size[index_md]; index_tt++) {
-      free(pbkl->bessel_k[index_md][index_tt]);
-    }
-    free(pbkl->bessel_k[index_md]);
+  else {
+    
+    /** compute bessels for all (l,x) and for the wavenumber k given by: */    
+    k = ptr->k[index_k_tr];
+    
+    class_stop(ptr->error_message,
+               "non-flat bessels to be coded");
   }
   
-  free(pbkl->tt_size);
-  free(pbkl->bessel_k);
+  pbk->filled = _TRUE_;
 
   return _SUCCESS_;
+}
 
+int transfer_bessel_free(
+                         struct bessels_for_one_k * pbk
+                         ) {
+
+  int index_l;
+
+  for (index_l=0; index_l<pbk->l_size; index_l++) {    
+    free(pbk->bessel_k[index_l]);
+  }
+  free(pbk->x_min);
+  free(pbk->x_size);
+  free(pbk->bessel_k);   
+  
+  pbk->filled = _FALSE_;
+
+  return _SUCCESS_;
+}
+
+int transfer_bessel_interpolate(
+                                struct bessels_for_one_k * pbk,
+                                int index_l,
+                                double x,
+                                double * j,
+                                double * dj
+                                ) {
+
+  int index_x;
+  double a;
+
+  index_x = (int)((x-pbk->x_min[index_l])/pbk->x_step);
+   
+  a = (pbk->x_min[index_l]+pbk->x_step*(index_x+1) - x)/pbk->x_step;
+  
+  *j = (a * pbk->bessel_k[index_l][index_x] +
+        (1.-a) * (pbk->bessel_k[index_l][index_x+1]
+                  - a * ((a+1.) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x]
+                         +(2.-a) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x+1]) 
+                  * pbk->x_step * pbk->x_step / 6.0) );
+                 
+
+  *dj = (a * pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x] +
+         (1.-a) * (pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x+1]
+                   - a * ((a+1.) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x]
+                          +(2.-a) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x+1]) 
+                   * pbk->x_step * pbk->x_step / 6.0) );
+
+  return _SUCCESS_;
 }
