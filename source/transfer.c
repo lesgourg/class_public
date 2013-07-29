@@ -601,7 +601,7 @@ int transfer_perturbation_source_spline_free(
                                              struct perturbs * ppt,
                                              struct transfers * ptr,
                                              double *** sources_spline
-                                        ) {
+                                             ) {
   int index_md;
   int index_ic;
   int index_tp;
@@ -927,44 +927,44 @@ int transfer_free_source_correspondence(
 
 }
 
- int transfer_source_tau_size_max(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct perturbs * ppt,
-                                  struct transfers * ptr,
-                                  double tau_rec,
-                                  double tau0,
-                                  int * tau_size_max
-                                  ) {
+int transfer_source_tau_size_max(
+                                 struct precision * ppr,
+                                 struct background * pba,
+                                 struct perturbs * ppt,
+                                 struct transfers * ptr,
+                                 double tau_rec,
+                                 double tau0,
+                                 int * tau_size_max
+                                 ) {
 
-   int index_md;
-   int index_tt;
-   int tau_size_tt;
+  int index_md;
+  int index_tt;
+  int tau_size_tt;
 
-   *tau_size_max = 0;
+  *tau_size_max = 0;
 
-   for (index_md = 0; index_md < ptr->md_size; index_md++) {
+  for (index_md = 0; index_md < ptr->md_size; index_md++) {
     
-     for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+    for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
 
-       class_call(transfer_source_tau_size(ppr,
-                                           pba,
-                                           ppt,
-                                           ptr,
-                                           tau_rec,
-                                           tau0,
-                                           index_md,
-                                           index_tt,
-                                           &tau_size_tt),
-                  ptr->error_message,
-                  ptr->error_message);
+      class_call(transfer_source_tau_size(ppr,
+                                          pba,
+                                          ppt,
+                                          ptr,
+                                          tau_rec,
+                                          tau0,
+                                          index_md,
+                                          index_tt,
+                                          &tau_size_tt),
+                 ptr->error_message,
+                 ptr->error_message);
        
-       *tau_size_max = max(*tau_size_max,tau_size_tt);
-     }
-   }
+      *tau_size_max = max(*tau_size_max,tau_size_tt);
+    }
+  }
    
-   return _SUCCESS_;
- }
+  return _SUCCESS_;
+}
 
 /**
  * the code makes a distinction between "perturbation sources"
@@ -1200,6 +1200,7 @@ int transfer_compute_for_each_k(
   address_in_workspace += 1;
    
   sources = address_in_workspace;
+  address_in_workspace += tau_size_max;
 
   /** - loop over all modes. For each mode: */ 
     
@@ -1217,8 +1218,8 @@ int transfer_compute_for_each_k(
       for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
         
         /** check if we must now deal with a new source with a
-           new index ppt->index_type. If yes, interpolate it at the
-           right values of k. */
+            new index ppt->index_type. If yes, interpolate it at the
+            right values of k. */
         
         if (tp_of_tt[index_md][index_tt] != previous_type) {
           
@@ -2598,7 +2599,11 @@ int transfer_integrate(
   /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
   int index_tau,index_tau_max;
 
-  double j,dj,bessel;
+  double bessel;
+
+  int index_x;
+  double a;
+  double b,db;
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
@@ -2621,16 +2626,16 @@ int transfer_integrate(
                                            pbk,
                                            index_l,
                                            x,
-                                           &j,
-                                           &dj),
+                                           &b,
+                                           &db),
                ptr->error_message,
                ptr->error_message);
 
     class_call(transfer_one_bessel(
                                    ppt,
                                    ptr,
-                                   j,
-                                   dj,
+                                   b,
+                                   db,
                                    index_md,
                                    index_tt,
                                    x,
@@ -2715,16 +2720,16 @@ int transfer_integrate(
                                          pbk,
                                          index_l,
                                          x,
-                                         &j,
-                                         &dj),
+                                         &b,
+                                         &db),
              ptr->error_message,
              ptr->error_message);
 
   class_call(transfer_one_bessel(
                                  ppt,
                                  ptr,
-                                 j,
-                                 dj,
+                                 b,
+                                 db,
                                  index_md,
                                  index_tt,
                                  x,
@@ -2733,7 +2738,6 @@ int transfer_integrate(
              ptr->error_message,
              ptr->error_message);
 
-  //transfer = sources[index_k * tau_size + index_tau_max] * bessel;
   transfer = sources[index_tau_max] * bessel;
 
   /* (for bessel function cubic spline interpolation, we could have called the
@@ -2754,33 +2758,127 @@ int transfer_integrate(
       transfer *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
   }
 
-  /* rest of the integral */
+  /* rest of the integral. This is the innermost loop. Most time spent here. */
 
   for (index_tau=0; index_tau<index_tau_max; index_tau++) {
     
     x = k * tau0_minus_tau[index_tau];
+ 
+    /* We could just call these two functions:
+   
+       class_call(transfer_bessel_interpolate(
+       pbk,
+       index_l,
+       x,
+       &b,
+       &db),
+       ptr->error_message,
+       ptr->error_message);
+       
+       class_call(transfer_one_bessel(
+       ppt,
+       ptr,
+       b,
+       db,
+       index_md,
+       index_tt,
+       x,
+       l,
+       &bessel),
+       ptr->error_message,
+       ptr->error_message);
+
+       BUT in this inermost loop any time saving is crucial. Pasting below the content of the functions gives better results:
+
+    */
+       
+    index_x = (int)((x-pbk->x_min[index_l])/pbk->x_step);
     
-    class_call(transfer_bessel_interpolate(
-                                           pbk,
-                                           index_l,
-                                           x,
-                                           &j,
-                                           &dj),
-               ptr->error_message,
-               ptr->error_message);
-             
-    class_call(transfer_one_bessel(
-                                   ppt,
-                                   ptr,
-                                   j,
-                                   dj,
-                                   index_md,
-                                   index_tt,
-                                   x,
-                                   l,
-                                   &bessel),
-               ptr->error_message,
-               ptr->error_message);
+    a = (pbk->x_min[index_l]+pbk->x_step*(index_x+1) - x)/pbk->x_step;
+    
+    b = (a * pbk->bessel_k[index_l][index_x] +
+         (1.-a) * (pbk->bessel_k[index_l][index_x+1]
+                   - a * ((a+1.) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x]
+                          +(2.-a) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x+1]) 
+                   * pbk->x_step * pbk->x_step / 6.0) );
+    
+    
+    db = (a * pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x] +
+          (1.-a) * (pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x+1]
+                    - a * ((a+1.) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x]
+                           +(2.-a) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x+1]) 
+                    * pbk->x_step * pbk->x_step / 6.0) );
+    
+    /* default = bessel function j_l */
+    bessel = b;
+    
+    /* other specific cases */
+    if _scalars_ {
+        
+        if (ppt->has_cl_cmb_temperature == _TRUE_) {
+          
+          if (index_tt == ptr->index_tt_t1) {
+            bessel = db;
+          }
+          if (index_tt == ptr->index_tt_t2) {
+            bessel = (3.*(- 2./x*db + (l*(l+1)/x/x-1.)*b)+b)/2.;
+          }
+        
+        }
+              
+        if (ppt->has_cl_cmb_polarization == _TRUE_) {
+        
+          if (index_tt == ptr->index_tt_e) {
+            bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
+          }
+        
+        }
+      }
+          
+    if _vectors_ {
+      
+        if (ppt->has_cl_cmb_temperature == _TRUE_) {
+        
+          if (index_tt == ptr->index_tt_t1) {
+            bessel = sqrt(l*(l+1.)/2.)*b/x;
+          }
+          if (index_tt == ptr->index_tt_t2) {
+            bessel = sqrt(3.*l*(l+1.)/2.)*(db/x-b/x/x);
+          }
+        }
+      
+        if (ppt->has_cl_cmb_polarization == _TRUE_) {
+                
+          if (index_tt == ptr->index_tt_e) {
+            bessel=sqrt((l-1.)*(l+2.))/2.*(b/x/x+db/x);
+          }
+          if (index_tt == ptr->index_tt_b) {
+            bessel=sqrt((l-1.)*(l+2.))/2.*b/x/x;
+          }
+                
+        }
+      }
+          
+    if _tensors_ {
+
+        if (ppt->has_cl_cmb_temperature == _TRUE_) {
+
+          if (index_tt == ptr->index_tt_t2) {
+            bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
+          }
+        }
+
+        if (ppt->has_cl_cmb_polarization == _TRUE_) {
+
+          if (index_tt == ptr->index_tt_e) {
+            bessel = (-b+(- 2./x*db + (l*(l+1)/x/x-1.)*b)+2.*b/x/x+4.*db/x)/4.;
+          }
+          if (index_tt == ptr->index_tt_b) {
+            bessel = (db+2.*b/x)/2.;
+          }
+
+        }
+      }
 
     transfer += sources[index_tau] * bessel * delta_tau[index_tau];
 
@@ -2988,27 +3086,27 @@ int transfer_limber2(
   
 }
 
- int transfer_can_be_neglected(
-                               struct precision * ppr,
-                               struct background * pba,
-                               struct perturbs * ppt,
-                               struct transfers * ptr,
-                               int index_md,
-                               int index_ic,
-                               int index_tt,
-                               double k,
-                               double l,
-                               short * neglect) {
+int transfer_can_be_neglected(
+                              struct precision * ppr,
+                              struct background * pba,
+                              struct perturbs * ppt,
+                              struct transfers * ptr,
+                              int index_md,
+                              int index_ic,
+                              int index_tt,
+                              double k,
+                              double l,
+                              short * neglect) {
 
-   *neglect = _FALSE_;
+  *neglect = _FALSE_;
 
-   /* implement here some conditions, e.g.:
-      if (k*l>ppr->trans_kl_max) *neglect = _TRUE_;
-   */      
+  /* implement here some conditions, e.g.:
+     if (k*l>ppr->trans_kl_max) *neglect = _TRUE_;
+  */      
 
-   return _SUCCESS_;
+  return _SUCCESS_;
 
- }
+}
 
 int transfer_one_bessel(
                         struct perturbs * ppt,
