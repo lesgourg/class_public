@@ -347,7 +347,8 @@ extern "C" {
                                   double * delta_tau,
                                   int tau_size,
                                   double * sources,
-                                  double k_max_bessel
+                                  double k_max_bessel,
+                                  double * x
                                   );
 
   int transfer_use_limber(
@@ -376,6 +377,7 @@ extern "C" {
                          double * tau0_minus_tau,
                          double * delta_tau,
                          double * sources,
+                         double * x,
                          double * trsf
                          );
     

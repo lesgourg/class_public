@@ -253,7 +253,7 @@ int transfer_init(
        
     /* allocate workspace */
     class_alloc_parallel(workspace,
-                         (ppt->tau_size+3*tau_size_max+1)*sizeof(double),
+                         (ppt->tau_size+4*tau_size_max+1)*sizeof(double),
                          ptr->error_message);
 
     /* for models with zero curvature: fill bessel structure here (before k loop) */
@@ -1168,6 +1168,9 @@ int transfer_compute_for_each_k(
      sources[index_tau] */
   double * sources;
 
+  /* - sixth workspace field, containing the array of x values where to interpolate the bessels, x[index_tau] */
+  double * x;
+
   /* no more workspace fields */
 
   /** - for a given l, maximum value of k such that we can convolve
@@ -1200,6 +1203,9 @@ int transfer_compute_for_each_k(
   address_in_workspace += 1;
    
   sources = address_in_workspace;
+  address_in_workspace += tau_size_max;
+
+  x = address_in_workspace;
   address_in_workspace += tau_size_max;
 
   /** - loop over all modes. For each mode: */ 
@@ -1263,6 +1269,11 @@ int transfer_compute_for_each_k(
                    ptr->error_message,
                    ptr->error_message);
 
+        int index_tau;
+        for (index_tau=0; index_tau < (*tau_size); index_tau++) {
+          x[index_tau] = ptr->k[index_k_tr] * tau0_minus_tau[index_tau];
+        }
+
         for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
           
           l = (double)ptr->l[index_l];
@@ -1308,7 +1319,8 @@ int transfer_compute_for_each_k(
                                                    delta_tau,
                                                    (int)(*tau_size),
                                                    sources,
-                                                   k_max_bessel),
+                                                   k_max_bessel,
+                                                   x),
                        ptr->error_message,
                        ptr->error_message);
           }
@@ -2413,7 +2425,8 @@ int transfer_compute_for_each_l(
                                 double * delta_tau,
                                 int tau_size,
                                 double * sources,
-                                double k_max_bessel
+                                double k_max_bessel,
+                                double * x
                                 ){
 
   /** Summary: */
@@ -2488,6 +2501,7 @@ int transfer_compute_for_each_l(
                                   tau0_minus_tau,
                                   delta_tau,
                                   sources,
+                                  x,
                                   &transfer_function),
                ptr->error_message,
                ptr->error_message);
@@ -2580,6 +2594,7 @@ int transfer_integrate(
                        double * tau0_minus_tau,
                        double * delta_tau,
                        double * sources,
+                       double * x,
                        double * trsf
                        ) {
 
@@ -2589,9 +2604,6 @@ int transfer_integrate(
 
   /* minimum value of \f$ (\tau0-\tau) \f$ at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   double tau0_minus_tau_min_bessel;
-
-  /* argument of bessel function */
-  double x;
   
   /* temporary value of transfer function */
   double transfer;
@@ -2601,8 +2613,6 @@ int transfer_integrate(
 
   double bessel;
 
-  int index_x;
-  double a;
   double b,db;
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
@@ -2620,12 +2630,10 @@ int transfer_integrate(
   /** -> trivial case: the source is a Dirac function and is sampled in only one point */
   if (tau_size == 1) {
 
-    x = k * tau0_minus_tau[0];
-
     class_call(transfer_bessel_interpolate(
                                            pbk,
                                            index_l,
-                                           x,
+                                           x[0],
                                            &b,
                                            &db),
                ptr->error_message,
@@ -2638,7 +2646,7 @@ int transfer_integrate(
                                    db,
                                    index_md,
                                    index_tt,
-                                   x,
+                                   x[0],
                                    l,
                                    &bessel),
                ptr->error_message,
@@ -2714,12 +2722,10 @@ int transfer_integrate(
 
   /* Edge of the integral */
   
-  x = k * tau0_minus_tau[index_tau_max];
-
   class_call(transfer_bessel_interpolate(
                                          pbk,
                                          index_l,
-                                         x,
+                                         x[index_tau_max],
                                          &b,
                                          &db),
              ptr->error_message,
@@ -2732,7 +2738,7 @@ int transfer_integrate(
                                  db,
                                  index_md,
                                  index_tt,
-                                 x,
+                                 x[index_tau_max],
                                  l,
                                  &bessel),
              ptr->error_message,
@@ -2761,127 +2767,33 @@ int transfer_integrate(
   /* rest of the integral. This is the innermost loop. Most time spent here. */
 
   for (index_tau=0; index_tau<index_tau_max; index_tau++) {
-    
-    x = k * tau0_minus_tau[index_tau];
- 
-    /* We could just call these two functions:
+
+    /* For clarity, I restored here the call to these two functions, although it is slower than pasting them */
    
-       class_call(transfer_bessel_interpolate(
-       pbk,
-       index_l,
-       x,
-       &b,
-       &db),
-       ptr->error_message,
-       ptr->error_message);
-       
-       class_call(transfer_one_bessel(
-       ppt,
-       ptr,
-       b,
-       db,
-       index_md,
-       index_tt,
-       x,
-       l,
-       &bessel),
-       ptr->error_message,
-       ptr->error_message);
-
-       BUT in this inermost loop any time saving is crucial. Pasting below the content of the functions gives better results:
-
-    */
-       
-    index_x = (int)((x-pbk->x_min[index_l])/pbk->x_step);
+    class_call(transfer_bessel_interpolate(
+                                           pbk,
+                                           index_l,
+                                           x[index_tau],
+                                           &b,
+                                           &db),
+               ptr->error_message,
+               ptr->error_message);
     
-    a = (pbk->x_min[index_l]+pbk->x_step*(index_x+1) - x)/pbk->x_step;
+    class_call(transfer_one_bessel(
+                                   ppt,
+                                   ptr,
+                                   b,
+                                   db,
+                                   index_md,
+                                   index_tt,
+                                   x[index_tau],
+                                   l,
+                                   &bessel),
+               ptr->error_message,
+               ptr->error_message);
     
-    b = (a * pbk->bessel_k[index_l][index_x] +
-         (1.-a) * (pbk->bessel_k[index_l][index_x+1]
-                   - a * ((a+1.) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x]
-                          +(2.-a) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x+1]) 
-                   * pbk->x_step * pbk->x_step / 6.0) );
-    
-    
-    db = (a * pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x] +
-          (1.-a) * (pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x+1]
-                    - a * ((a+1.) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x]
-                           +(2.-a) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x+1]) 
-                    * pbk->x_step * pbk->x_step / 6.0) );
-    
-    /* default = bessel function j_l */
-    bessel = b;
-    
-    /* other specific cases */
-    if _scalars_ {
-        
-        if (ppt->has_cl_cmb_temperature == _TRUE_) {
-          
-          if (index_tt == ptr->index_tt_t1) {
-            bessel = db;
-          }
-          if (index_tt == ptr->index_tt_t2) {
-            bessel = (3.*(- 2./x*db + (l*(l+1)/x/x-1.)*b)+b)/2.;
-          }
-        
-        }
-              
-        if (ppt->has_cl_cmb_polarization == _TRUE_) {
-        
-          if (index_tt == ptr->index_tt_e) {
-            bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
-          }
-        
-        }
-      }
-          
-    if _vectors_ {
-      
-        if (ppt->has_cl_cmb_temperature == _TRUE_) {
-        
-          if (index_tt == ptr->index_tt_t1) {
-            bessel = sqrt(l*(l+1.)/2.)*b/x;
-          }
-          if (index_tt == ptr->index_tt_t2) {
-            bessel = sqrt(3.*l*(l+1.)/2.)*(db/x-b/x/x);
-          }
-        }
-      
-        if (ppt->has_cl_cmb_polarization == _TRUE_) {
-                
-          if (index_tt == ptr->index_tt_e) {
-            bessel=sqrt((l-1.)*(l+2.))/2.*(b/x/x+db/x);
-          }
-          if (index_tt == ptr->index_tt_b) {
-            bessel=sqrt((l-1.)*(l+2.))/2.*b/x/x;
-          }
-                
-        }
-      }
-          
-    if _tensors_ {
-
-        if (ppt->has_cl_cmb_temperature == _TRUE_) {
-
-          if (index_tt == ptr->index_tt_t2) {
-            bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
-          }
-        }
-
-        if (ppt->has_cl_cmb_polarization == _TRUE_) {
-
-          if (index_tt == ptr->index_tt_e) {
-            bessel = (-b+(- 2./x*db + (l*(l+1)/x/x-1.)*b)+2.*b/x/x+4.*db/x)/4.;
-          }
-          if (index_tt == ptr->index_tt_b) {
-            bessel = (db+2.*b/x)/2.;
-          }
-
-        }
-      }
-
     transfer += sources[index_tau] * bessel * delta_tau[index_tau];
-
+    
   }
   
   *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */
@@ -3279,8 +3191,8 @@ int transfer_bessel_interpolate(
                                 struct bessels_for_one_k * pbk,
                                 int index_l,
                                 double x,
-                                double * j,
-                                double * dj
+                                double * b,
+                                double * db
                                 ) {
 
   int index_x;
@@ -3290,14 +3202,14 @@ int transfer_bessel_interpolate(
    
   a = (pbk->x_min[index_l]+pbk->x_step*(index_x+1) - x)/pbk->x_step;
   
-  *j = (a * pbk->bessel_k[index_l][index_x] +
+  *b = (a * pbk->bessel_k[index_l][index_x] +
         (1.-a) * (pbk->bessel_k[index_l][index_x+1]
                   - a * ((a+1.) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x]
                          +(2.-a) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x+1]) 
                   * pbk->x_step * pbk->x_step / 6.0) );
                  
 
-  *dj = (a * pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x] +
+  *db = (a * pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x] +
          (1.-a) * (pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x+1]
                    - a * ((a+1.) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x]
                           +(2.-a) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x+1]) 
