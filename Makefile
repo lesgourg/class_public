@@ -24,8 +24,8 @@ CC       = gcc -Wall #-ggdb
 AR        = ar rv
 
 # your optimization flag
-#OPTFLAG = -O4
-OPTFLAG = -fast
+OPTFLAG = -O4
+#OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
 OMPFLAG   = -fopenmp

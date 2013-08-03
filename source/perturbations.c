@@ -4345,8 +4345,10 @@ int perturb_sources(
         /* newtonian gauge: more complicated form, but efficient numerically */
          
         if (ppt->gauge == newtonian) {
-          _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime] + pvecthermo[pth->index_th_g] * (delta_g / 4. + y[ppw->pv->index_pt_phi]);
-          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]) + pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b]/k;
+          _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime] 
+            + pvecthermo[pth->index_th_g] * (delta_g / 4. + y[ppw->pv->index_pt_phi])
+            + (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
+          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
           _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
         }
 
@@ -4369,14 +4371,15 @@ int perturb_sources(
         if (ppt->gauge == synchronous) {
           _set_source_(ppt->index_tp_t0) = 
             pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] - (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] - pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
-            + pvecthermo[pth->index_th_g] * (delta_g/4. + y[ppw->pv->index_pt_eta] - 2.*pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]); 
+            + pvecthermo[pth->index_th_g] * (delta_g/4. + y[ppw->pv->index_pt_eta] - 2.*pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]) // SW conter-terms + ISW
+            + (pvecthermo[pth->index_th_dg] * pvecmetric[ppw->index_mt_alpha] + pvecthermo[pth->index_th_g] * pvecmetric[ppw->index_mt_alpha_prime])
+            + (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k; // part of ISW + SW + Doppler
 
           _set_source_(ppt->index_tp_t1) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta])
-            + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k);
+            pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]); // part of ISW
 
           _set_source_(ppt->index_tp_t2) = 
-            pvecthermo[pth->index_th_g] * P;
+            pvecthermo[pth->index_th_g] * P; // Polarisation
         }
 
         /* what should you write if you wanted ONLY the ISW contribution? */
@@ -4387,12 +4390,12 @@ int perturb_sources(
           _set_source_(ppt->index_tp_t2) = 0.;
           }
 
-          if (ppt->gauge == synchronous) {
+        if (ppt->gauge == synchronous) {
           _set_source_(ppt->index_tp_t0) = 
-          pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] - (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] - pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
-          + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta] - pvecmetric[ppw->index_mt_alpha_prime] - 2 * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]);
+            pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] - (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] - pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
+            + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta] - pvecmetric[ppw->index_mt_alpha_prime] - 2 * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]);
           _set_source_(ppt->index_tp_t1) = 
-          pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
+            pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
           _set_source_(ppt->index_tp_t2) = 0.;
           }
         */
@@ -4404,14 +4407,16 @@ int perturb_sources(
              _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
              _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
              }
-             if (ppt->gauge == synchronous) {
-             _set_source_(ppt->index_tp_t0) =
-             pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime]);
-             _set_source_(ppt->index_tp_t1) =
-             pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k);
-             _set_source_(ppt->index_tp_t2) =
-             pvecthermo[pth->index_th_g] * P;
-             }
+        */
+        /*
+        if (ppt->gauge == synchronous) {
+          _set_source_(ppt->index_tp_t0) =
+            pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime]); // SW
+          _set_source_(ppt->index_tp_t1) = 
+            pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k); // Doppler
+          _set_source_(ppt->index_tp_t2) =
+            pvecthermo[pth->index_th_g] * P; // polarisation
+        }
         */
 
         /* for testing purposes */
