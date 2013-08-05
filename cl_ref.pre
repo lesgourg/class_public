@@ -92,6 +92,19 @@ bessel_file_name=bessel_large.dat
 k_per_decade_primordial = 10.
   
 k_step_trans=0.2
+transfer_neglect_delta_k_S_t0 = 0.25; // 0.15;
+transfer_neglect_delta_k_S_t1 = 0.08; // 0.025;
+transfer_neglect_delta_k_S_t2 = 0.20; // 0.1;
+transfer_neglect_delta_k_S_e = 0.20; // 0.1;
+transfer_neglect_delta_k_S_lcmb = 0.8; // 0.2;
+transfer_neglect_delta_k_V_t1 = 100.;
+transfer_neglect_delta_k_V_t2 = 100.;
+transfer_neglect_delta_k_V_e = 100.;
+transfer_neglect_delta_k_V_b = 100.;
+transfer_neglect_delta_k_T_t2 = 100.;
+transfer_neglect_delta_k_T_e = 100.;
+transfer_neglect_delta_k_T_b = 100.;
+
 
 evolver=0
 
