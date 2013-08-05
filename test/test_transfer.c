@@ -91,23 +91,38 @@ int main(int argc, char **argv) {
   int index_k;
   int index_l;
   double transfer;
+  FILE * output;
+
+  output=fopen("output/t0.trsf","w");
 
   for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
     for (index_k=0; index_k<tr.k_size; index_k++) { 
       
-      transfer=tr.transfer[index_mode]
+      transfer = tr.transfer[index_mode]
 	[((index_ic * tr.tt_size[index_mode] + index_type)
 	  * tr.l_size[index_mode] + index_l)
 	 * tr.k_size + index_k];
       
+      /* note: if you want the full temperature transfer function, you have to modify by hand the above line, defining transfer as the sum of the transfer functions for the three types tr.index_tt_t0, tr.index_tt_t1 and tr.index_tt_t2, in the following way: */
+
+      /*
+        transfer = 
+        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.k_size + index_k] + 
+        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.k_size + index_k] + 
+        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.k_size + index_k];
+
+     */
+
       if (transfer != 0.) {
-        printf("%d %e %e \n",tr.l[index_l],tr.k[index_k],transfer); 
+        fprintf(output,"%d %e %e \n",tr.l[index_l],tr.k[index_k],transfer); 
       }
     }
     
-    printf("\n\n");
+    fprintf(output,"\n");
     
   } 
+
+  fclose(output);
 
   /****** all calculations done, now free the structures ******/
 

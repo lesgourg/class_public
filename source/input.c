@@ -1622,9 +1622,20 @@ int input_init(
   class_read_double("k_step_trans_scalars",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans_tensors",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans",ppr->k_step_trans);
-  class_read_int("transfer_cut",ppr->transfer_cut);
-  class_read_double("transfer_cut_threshold_osc",ppr->transfer_cut_threshold_osc);
-  class_read_double("transfer_cut_threshold_cl",ppr->transfer_cut_threshold_cl);
+
+  class_read_double("transfer_neglect_delta_k_S_t0",ppr->transfer_neglect_delta_k_S_t0);
+  class_read_double("transfer_neglect_delta_k_S_t1",ppr->transfer_neglect_delta_k_S_t1);
+  class_read_double("transfer_neglect_delta_k_S_t2",ppr->transfer_neglect_delta_k_S_t2);
+  class_read_double("transfer_neglect_delta_k_S_e",ppr->transfer_neglect_delta_k_S_e);
+  class_read_double("transfer_neglect_delta_k_S_lcmb",ppr->transfer_neglect_delta_k_S_lcmb);
+  class_read_double("transfer_neglect_delta_k_V_t1",ppr->transfer_neglect_delta_k_V_t1);
+  class_read_double("transfer_neglect_delta_k_V_t2",ppr->transfer_neglect_delta_k_V_t2);
+  class_read_double("transfer_neglect_delta_k_V_e",ppr->transfer_neglect_delta_k_V_e);
+  class_read_double("transfer_neglect_delta_k_V_b",ppr->transfer_neglect_delta_k_V_b);
+  class_read_double("transfer_neglect_delta_k_T_t2",ppr->transfer_neglect_delta_k_T_t2);
+  class_read_double("transfer_neglect_delta_k_T_e",ppr->transfer_neglect_delta_k_T_e);
+  class_read_double("transfer_neglect_delta_k_T_b",ppr->transfer_neglect_delta_k_T_b);
+
   class_read_double("l_switch_limber",ppr->l_switch_limber);
   class_read_double("l_switch_limber_for_cl_density_over_z",ppr->l_switch_limber_for_cl_density_over_z);
   class_read_double("selection_cut_at_sigma",ppr->selection_cut_at_sigma);
@@ -2173,9 +2184,19 @@ int input_default_precision ( struct precision * ppr ) {
    */
   
   ppr->k_step_trans=0.4;
-  ppr->transfer_cut=tc_osc;
-  ppr->transfer_cut_threshold_osc=0.007; /* 03.12.10 for chi2plT0.01 */
-  ppr->transfer_cut_threshold_cl=1.e-8; /* 14.12.10 for chi2plT0.01 */
+
+  ppr->transfer_neglect_delta_k_S_t0 = 0.15;
+  ppr->transfer_neglect_delta_k_S_t1 = 0.025;
+  ppr->transfer_neglect_delta_k_S_t2 = 0.1;
+  ppr->transfer_neglect_delta_k_S_e = 0.1;
+  ppr->transfer_neglect_delta_k_S_lcmb = 0.2;
+  ppr->transfer_neglect_delta_k_V_t1 = 1.;
+  ppr->transfer_neglect_delta_k_V_t2 = 1.;
+  ppr->transfer_neglect_delta_k_V_e = 1.;
+  ppr->transfer_neglect_delta_k_V_b = 1.;
+  ppr->transfer_neglect_delta_k_T_t2 = 1.;
+  ppr->transfer_neglect_delta_k_T_e = 1.;
+  ppr->transfer_neglect_delta_k_T_b = 1.;
 
   ppr->l_switch_limber=10.;
   ppr->l_switch_limber_for_cl_density_over_z=30.;

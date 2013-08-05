@@ -199,18 +199,6 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
 /** parameters related to the precision of the code and to the method of calculation */
 
-/** 
- * List of methods for stopping the transfer function computation 
- * at a given k for each l (saves lots of time). 
- */
-
-enum transfer_cutting {
-  tc_none, /**< no transfer cut: for given l, compute transfer functions over full k range (long and usually useless) */ 
-  tc_osc, /**< transfer cut with oscillation method: for given l, compute transfer functions until k_max such that oscillations of \f$ \Delta_l(k) \f$ are tiny relatively to largest oscillation */ 
-  tc_cl, /**< transfer cut with Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny (C_l being computed approximately and with flat spectrum)  */ 
-  tc_env /**< under development */
-};
-
 /**
  * list of evolver types for integrating perturbations over time
  */
@@ -534,11 +522,19 @@ struct precision
 
   double k_step_trans; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
 
-  enum transfer_cutting transfer_cut; /**< flag telling how to cut automatically the transfer function computation at a given \f$ k_{max} \f$ value */
-
-  double transfer_cut_threshold_osc; /**< threshold used for cutting the transfer function computation at a given \f$ k_{max} \f$ value, if transfer_cut = _TC_OSC_ (oscillation method: for given l, compute transfer functions until k_max such that oscillations of \f$ \Delta_l(k) \f$ are tiny relatively to largest oscillation) */
-
-  double transfer_cut_threshold_cl; /**< threshold used for cutting the transfer function computation at a given \f$ k_{max} \f$ value, if transfer_cut = _TC_CL_ (Cl variation method: for given l, compute transfer functions until k_max such that C_l's variation is tiny, C_l being computed approximately and with flat spectrum) */
+  /** for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
+  double transfer_neglect_delta_k_S_t0;
+  double transfer_neglect_delta_k_S_t1;
+  double transfer_neglect_delta_k_S_t2;
+  double transfer_neglect_delta_k_S_e;
+  double transfer_neglect_delta_k_S_lcmb;
+  double transfer_neglect_delta_k_V_t1;
+  double transfer_neglect_delta_k_V_t2;
+  double transfer_neglect_delta_k_V_e;
+  double transfer_neglect_delta_k_V_b;
+  double transfer_neglect_delta_k_T_t2;
+  double transfer_neglect_delta_k_T_e;
+  double transfer_neglect_delta_k_T_b;
 
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;

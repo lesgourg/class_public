@@ -171,14 +171,6 @@ int bessel_init(
   pbs->j_cut = ppr->bessel_j_cut;
 
   /** - do we need to store also j_l'(x) ? */
-
-  if (ppr->transfer_cut == tc_env) {
-    pbs->has_dj = _TRUE_;
-  }
-  else {
-    pbs->has_dj = _FALSE_;
-  }
-
   // added for new version
   pbs->has_dj = _TRUE_;
 

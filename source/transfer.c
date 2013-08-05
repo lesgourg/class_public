@@ -2541,20 +2541,19 @@ int transfer_use_limber(
     
     if _scalars_ {
       
-        if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber))
+        if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
           *use_limber = _TRUE_;
-      
-        if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density]))
+        }
+        else if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density])) {
+          if (ppt->selection != dirac) *use_limber = _TRUE_;
+        }
 
-          if (ppt->selection != dirac)
-            *use_limber = _TRUE_;
-
-        if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_lensing]))
+        else if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_lensing])) {
           *use_limber = _TRUE_;
-	
+        }
       }
   }
-
+  
   return _SUCCESS_;
 }
 
@@ -3015,6 +3014,33 @@ int transfer_can_be_neglected(
   /* implement here some conditions, e.g.:
      if (k*l>ppr->trans_kl_max) *neglect = _TRUE_;
   */      
+
+  if _scalars_ {
+
+      if ((index_tt == ptr->index_tt_t0) && (l < (k-ppr->transfer_neglect_delta_k_S_t0)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_lcmb) && (l < (k-ppr->transfer_neglect_delta_k_S_lcmb)*pba->conformal_age)) *neglect = _TRUE_;
+      
+    }
+  
+  else if _vectors_ {
+      
+      if ((index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*pba->conformal_age)) *neglect = _TRUE_;
+
+    }
+
+  else if _tensors_ {
+
+      if ((index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_T_t2)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*pba->conformal_age)) *neglect = _TRUE_;
+
+    }
 
   return _SUCCESS_;
 
