@@ -1158,8 +1158,8 @@ int transfer_compute_for_each_k(
   /* - second workspace field: list of tau0-tau values, tau0_minus_tau[index_tau] */
   double * tau0_minus_tau;
 
-  /* - third workspace field: list of delta_tau values, delta_tau[index_tau] */
-  double * delta_tau;
+  /* - third workspace field: list of trapezoidal weights for integration in tau0_minus_tau */
+  double * w_trapz;
 
   /* - fourth workspace field, containing just a double: number of time values */
   double * tau_size;
@@ -1196,7 +1196,7 @@ int transfer_compute_for_each_k(
   tau0_minus_tau = address_in_workspace;
   address_in_workspace += tau_size_max;
    
-  delta_tau  = address_in_workspace;
+  w_trapz  = address_in_workspace;
   address_in_workspace += tau_size_max;
    
   tau_size = address_in_workspace;
@@ -1264,7 +1264,7 @@ int transfer_compute_for_each_k(
                                     index_tt,
                                     sources,
                                     tau0_minus_tau,
-                                    delta_tau,
+                                    w_trapz,
                                     tau_size),
                    ptr->error_message,
                    ptr->error_message);
@@ -1316,7 +1316,7 @@ int transfer_compute_for_each_k(
                                                    index_l,
                                                    l,
                                                    tau0_minus_tau,
-                                                   delta_tau,
+                                                   w_trapz,
                                                    (int)(*tau_size),
                                                    sources,
                                                    k_max_bessel,
@@ -1447,7 +1447,7 @@ int transfer_interpolate_sources(
  * @param index_tt              Input : index of type of (transfer) source
  * @param sources               Output: transfer source
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
- * @param delta_tau             Output: corresponding values dtau, used later for trapezoidal integration
+ * @param w_trapz               Output: trapezoidal weights for integration in (tau0-tau)
  * @param tau_size_double       Output: pointer to size of previous two arrays, converted to double
  * @return the error status
  */
@@ -1464,7 +1464,7 @@ int transfer_sources(
                      int index_tt,
                      double * sources,
                      double * tau0_minus_tau,
-                     double * delta_tau,
+                     double * w_trapz,
                      double * tau_size_double
                      )  {
 
@@ -1503,8 +1503,8 @@ int transfer_sources(
   /* array of time sampling for lensing source selection function */
   double * tau0_minus_tau_lensing_sources;
   
-  /* differential array of time sampling for lensing source selection function */
-  double * delta_tau_lensing_sources;
+  /* trapezoidal weights for lensing source selection function */
+  double * w_trapz_lensing_sources;
 
   /* index running on time in previous two arrays */
   int index_tau_sources;
@@ -1597,14 +1597,12 @@ int transfer_sources(
 	  
           }
 
-          /* infer values of delta_tau from values of (tau0-tau) */
-          class_call(transfer_integration_time_steps(ptr,
-                                                     tau0_minus_tau,
-                                                     tau_size,
-                                                     delta_tau),
+          /* Compute trapezoidal weights for integration in (tau0-tau) */
+          class_call(transfer_trapezoidal_weights(tau0_minus_tau,
+						  tau_size,
+						  w_trapz),
                      ptr->error_message,
-                     ptr->error_message);
-	
+                     ptr->error_message); 
         }
     
         /* density source: redefine the time sampling, multiply by
@@ -1646,11 +1644,10 @@ int transfer_sources(
                      ptr->error_message,
                      ptr->error_message);
 
-          /* infer values of delta_tau from values of (tau0-tau) */
-          class_call(transfer_integration_time_steps(ptr,
-                                                     tau0_minus_tau,
-                                                     tau_size,
-                                                     delta_tau),
+          /* Compute trapezoidal weights for integration in (tau0-tau) */
+          class_call(transfer_trapezoidal_weights(tau0_minus_tau,
+						  tau_size,
+						  w_trapz),
                      ptr->error_message,
                      ptr->error_message);
 
@@ -1661,7 +1658,7 @@ int transfer_sources(
                                                 ptr,
                                                 selection,
                                                 tau0_minus_tau,
-                                                delta_tau,
+                                                w_trapz,
                                                 tau_size,
                                                 pvecback,
                                                 tau0,
@@ -1737,7 +1734,7 @@ int transfer_sources(
                       tau_sources_size*sizeof(double),
                       ptr->error_message);
 	
-          class_alloc(delta_tau_lensing_sources,
+          class_alloc(w_trapz_lensing_sources,
                       tau_sources_size*sizeof(double),
                       ptr->error_message);
 	
@@ -1752,11 +1749,10 @@ int transfer_sources(
                      ptr->error_message,
                      ptr->error_message);
 	
-          /* infer values of delta_tau from values of (tau0-tau) */
-          class_call(transfer_integration_time_steps(ptr,
-                                                     tau0_minus_tau_lensing_sources,
-                                                     tau_sources_size,
-                                                     delta_tau_lensing_sources),
+          /* Compute trapezoidal weights for integration in (tau0-tau) */
+          class_call(transfer_trapezoidal_weights(tau0_minus_tau_lensing_sources,
+						  tau_sources_size,
+						  w_trapz_lensing_sources),
                      ptr->error_message,
                      ptr->error_message);
 	
@@ -1767,7 +1763,7 @@ int transfer_sources(
                                                 ptr,
                                                 selection,
                                                 tau0_minus_tau_lensing_sources,
-                                                delta_tau_lensing_sources,
+                                                w_trapz_lensing_sources,
                                                 tau_sources_size,
                                                 pvecback,
                                                 tau0,
@@ -1802,11 +1798,10 @@ int transfer_sources(
                      ptr->error_message,
                      ptr->error_message);
 
-          /* infer values of delta_tau from values of (tau0-tau) */
-          class_call(transfer_integration_time_steps(ptr,
-                                                     tau0_minus_tau,
-                                                     tau_size,
-                                                     delta_tau),
+	  /* Compute trapezoidal weights for integration in (tau0-tau) */
+          class_call(transfer_trapezoidal_weights(tau0_minus_tau,
+						  tau_size,
+						  w_trapz),
                      ptr->error_message,
                      ptr->error_message);
 
@@ -1841,7 +1836,7 @@ int transfer_sources(
                     /tau0_minus_tau[index_tau]
                     /tau0_minus_tau_lensing_sources[index_tau_sources]
                     * selection[index_tau_sources]
-                    * delta_tau_lensing_sources[index_tau_sources];
+                    * w_trapz_lensing_sources[index_tau_sources];
                 }
               }
 	      
@@ -1858,7 +1853,7 @@ int transfer_sources(
           free(pvecback);
           free(selection);
           free(tau0_minus_tau_lensing_sources);
-          free(delta_tau_lensing_sources);
+          free(w_trapz_lensing_sources);
 	
         }
       }
@@ -1881,11 +1876,10 @@ int transfer_sources(
       tau0_minus_tau[index_tau] = tau0 - ppt->tau_sampling[index_tau];
     }
 
-    /* infer values of delta_tau from values of (tau0-tau) */
-    class_call(transfer_integration_time_steps(ptr,
-                                               tau0_minus_tau,
-                                               tau_size,
-                                               delta_tau),
+    /* Compute trapezoidal weights for integration in (tau0-tau) */
+    class_call(transfer_trapezoidal_weights(tau0_minus_tau,
+					    tau_size,
+					    w_trapz),
                ptr->error_message,
                ptr->error_message);
   }
@@ -1942,6 +1936,91 @@ int transfer_integration_time_steps(
   return _SUCCESS_;
   
 }
+
+/**
+ * Compute quadrature weights for the trapezoidal method.
+ *
+ * @param x                     Input: Grid points on which f() is known.
+ * @param n                     Input: number of grid points.
+ * @param w_trapz               Output: Weights of the trapezoidal method.
+ * @return the error status
+ */
+
+int transfer_trapezoidal_weights(
+				 double * x,
+				 int n,
+				 double * w_trapz
+				 ) {
+  int i;
+  /* Case with just one point, w would normally be 0. */
+  if (n==1){
+    w_trapz[0] = 0.0;
+  }
+  else if (n>1){
+    //Set edgeweights:
+    w_trapz[0] = 0.5*(x[1]-x[0]);
+    w_trapz[n-1] = 0.5*(x[n-1]-x[n-2]);
+    //Set inner weights:
+    for (i=1; i<(n-1); i++){
+      w_trapz[i] = 0.5*(x[i+1]-x[i-1]);
+    }
+  }
+  return _SUCCESS_;
+}
+
+/**
+ * Compute integral of function using trapezoidal method.
+ *
+ * @param integrand             Input: The function we are integrating.
+ * @param n                     Input: Compute integral on grid [0;n-1].
+ * @param w_trapz               Input: Weights of the trapezoidal method.
+ * @param I                     Output: The integral.
+ * @return the error status
+ */
+
+int transfer_trapezoidal_integral(
+				  double * integrand,
+				  int n,
+				  double * w_trapz,
+				  double *I
+				  ) {
+  int i;
+  double res=0.0;
+  for (i=0; i<n; i++){
+    res += integrand[i]*w_trapz[i];
+  }
+  *I = res;
+  return _SUCCESS_;
+}
+
+/**
+ * Compute convolution integral of two function using trapezoidal method.
+ *
+ * @param integrand1            Input: Function 1.
+ * @param integrand2            Input: Function 2.
+ * @param n                     Input: Compute integral on grid [0;n-1].
+ * @param w_trapz               Input: Weights of the trapezoidal method.
+ * @param I                     Output: The integral.
+ * @return the error status
+ */
+
+int transfer_trapezoidal_convolution(
+				     double * integrand1,
+				     double * integrand2,
+				     int n,
+				     double * w_trapz,
+				     double *I
+				     ) {
+  int i;
+  double res=0.0;
+  for (i=0; i<n; i++){
+    res += integrand1[i]*integrand2[i]*w_trapz[i];
+  }
+  *I = res;
+  return _SUCCESS_;
+}
+
+
 
 /**
  * arbitrarily normalized selection function dN/dz(z,bin)
@@ -2294,7 +2373,7 @@ int transfer_selection_times(
  * @param ptr                   Input : pointer to transfers structure
  * @param selection             Output: normalized selection function
  * @param tau0_minus_tau        Input : values of (tau0-tau) at which source are sample
- * @param delta_tau             Input : corresponding values dtau, used for trapezoidal integration
+ * @param w_trapz               Input : trapezoidal weights for (tau0-tau) integration
  * @param tau_size              Input : size of previous two arrays
  * @param pvecback              Input : allocated array of background values
  * @param tau_0                 Input : time today
@@ -2309,7 +2388,7 @@ int transfer_selection_compute(
                                struct transfers * ptr,
                                double * selection,
                                double * tau0_minus_tau,
-                               double * delta_tau,
+                               double * w_trapz,
                                int tau_size,
                                double * pvecback,
                                double tau0,
@@ -2365,11 +2444,12 @@ int transfer_selection_compute(
   }
 
   /* compute norm = \int W(tau) dtau */
-  norm = 0;
-  for (index_tau = 0; index_tau <tau_size; index_tau++) {
-    norm += selection[index_tau]*delta_tau[index_tau];
-  }
-  norm /= 2.; /* correct for factor 1/2 from trapezoidal rule */
+  class_call(transfer_trapezoidal_integral(selection, 
+					   tau_size, 
+					   w_trapz,
+					   &norm),
+	     ptr->error_message,
+	     ptr->error_message);
   
   /* divide W by norm so that \int W(tau) dtau = 1 */
   for (index_tau = 0; index_tau < tau_size; index_tau++) {
@@ -2422,7 +2502,7 @@ int transfer_compute_for_each_l(
                                 int index_l,
                                 double l,
                                 double * tau0_minus_tau,
-                                double * delta_tau,
+                                double * w_trapz,
                                 int tau_size,
                                 double * sources,
                                 double k_max_bessel,
@@ -2499,7 +2579,7 @@ int transfer_compute_for_each_l(
                                   index_l,
                                   k,
                                   tau0_minus_tau,
-                                  delta_tau,
+                                  w_trapz,
                                   sources,
                                   x,
                                   &transfer_function),
@@ -2591,7 +2671,7 @@ int transfer_integrate(
                        int index_l,
                        double k,
                        double * tau0_minus_tau,
-                       double * delta_tau,
+                       double * w_trapz,
                        double * sources,
                        double * x,
                        double * trsf
@@ -2603,14 +2683,14 @@ int transfer_integrate(
 
   /* minimum value of \f$ (\tau0-\tau) \f$ at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   double tau0_minus_tau_min_bessel;
-  
+    
   /* temporary value of transfer function */
   double transfer;
 
-  /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels */
-  int index_tau,index_tau_max;
+  /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels. Also the index of possible Bessel truncation. */
+  int index_tau,index_tau_max, index_tau_max_Bessel;
 
-  double bessel;
+  double bessel, *radial_function;
 
   double b,db;
 
@@ -2663,6 +2743,9 @@ int transfer_integrate(
   index_tau_max = tau_size-1;
   while (tau0_minus_tau[index_tau_max] < tau0_minus_tau_min_bessel)
     index_tau_max--;
+  /* Set index so we know if the truncation of the convolution integral is due to Bessel and not
+     due to the source. */
+  index_tau_max_Bessel = index_tau_max;
 
   /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
   while (sources[index_tau_max] == 0.) { 
@@ -2673,102 +2756,9 @@ int transfer_integrate(
     }
   }
 
-  /** (c) integrate with trapezoidal method */
-    
-  /* Note on the trapezoidal method used here:
- 
-     Take a function y(x) sampled in n points [x_0, ..., x_{n-1}].
-     The integral Sigma=int_{x_0}^{x_{n-1}} y(x) dx can be written as:
-     
-     sigma = sum_0^{n-2} [0.5 * (y_i+y_{i+1}) * (x_{i+1}-x_i)]
-     = 0.5 * sum_0^{n-1} [y_i * delta_i]
-     
-     with delta_0     = x_1 - x_0
-     delta_i     = x_{i+1} - x_{i-1}
-     delta_{n-1} = x_{n-1} - x_{n-2}
-
-     We will use the second expression (we have already defined
-     delta_tau as the above delta_i).
-
-     Suppose that we want to truncate the integral at some x_trunc <
-     x_{n-1}, knowing that y(x_trunc)=0. We are in this case, with
-     x-trunc corresponding to x_min of the bessel function. Let i_max
-     be the last index such that y is non-zero: 
-
-     x_{i_max} < x_trunc < x_{i_max+1}.
-
-     We must adapt the formula above, with the last point being
-     x_trunc, and knowing that y(x_trunc)=0:
-
-     sigma = 0.5 * sum_0^{i_trunc-1} [y_i * delta_i]
-     + 0.5 * y_{i_trunc} * (x_trunc - x_{i_max-1}) 
-     + 0.      
-	   
-     Below we willuse exactly this expression, strating form the last term 
-     [y_{i_trunc} * (x_trunc - x_{i_max-1})],
-     then adding all the terms
-     [y_i * delta_i],
-     and finally multiplying by 0.5
-
-     There is just one exception to the formula: the case when
-     x_0<x_trunc<x_1, so that i_max=0. Then
-      
-     sigma = 0.5 * x_0 * (x_trunc-x_0)
-
-     This exception is taken into account below.
-   	   
-  */
-
-  /* Edge of the integral */
-  
-  class_call(transfer_bessel_interpolate(
-                                         pbk,
-                                         index_l,
-                                         x[index_tau_max],
-                                         &b,
-                                         &db),
-             ptr->error_message,
-             ptr->error_message);
-
-  class_call(transfer_one_bessel(
-                                 ppt,
-                                 ptr,
-                                 b,
-                                 db,
-                                 index_md,
-                                 index_tt,
-                                 x[index_tau_max],
-                                 l,
-                                 &bessel),
-             ptr->error_message,
-             ptr->error_message);
-
-  transfer = sources[index_tau_max] * bessel;
-
-  /* (for bessel function cubic spline interpolation, we could have called the
-     subroutine bessel_at_x; however we perform operations directly here
-     in order to speed up the code) */
-
-  // case with no truncation: normal edge:
-  if (index_tau_max == tau_size-1) {
-    transfer *=  delta_tau[index_tau_max];
-  }
-  // case with truncation at tau0_minus_tau_min_bessel:
-  else {
-    if (index_tau_max > 0)
-      // case with several points in the integral
-      transfer *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel);
-    else
-      // case with only one non-zero point y(x_0) in the integral
-      transfer *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel);
-  }
-
-  /* rest of the integral. This is the innermost loop. Most time spent here. */
-
-  for (index_tau=0; index_tau<index_tau_max; index_tau++) {
-
-    /* For clarity, I restored here the call to these two functions, although it is slower than pasting them */
-   
+  /** Compute the radial function: */
+  radial_function = malloc(sizeof(double)*(index_tau_max+1));
+  for (index_tau=0; index_tau<=index_tau_max; index_tau++) {
     class_call(transfer_bessel_interpolate(
                                            pbk,
                                            index_l,
@@ -2777,7 +2767,6 @@ int transfer_integrate(
                                            &db),
                ptr->error_message,
                ptr->error_message);
-    
     class_call(transfer_one_bessel(
                                    ppt,
                                    ptr,
@@ -2790,15 +2779,161 @@ int transfer_integrate(
                                    &bessel),
                ptr->error_message,
                ptr->error_message);
-    
-    transfer += sources[index_tau] * bessel * delta_tau[index_tau];
-    
+    radial_function[index_tau] = bessel;
+  }
+
+  /** Now we do most of the convolution integral: */
+  class_call(transfer_trapezoidal_convolution(sources,
+					      radial_function,
+					      index_tau_max+1,
+					      w_trapz,
+					      trsf),
+	     ptr->error_message,
+	     ptr->error_message);
+  
+  /** This integral is correct for the case where no truncation has
+      occured. If it has been truncated at som index_tau_max because
+      f[index_tau_max+1]==0, it is still correct. The 'mistake' in using
+      the wrong weight w_trapz[index_tau_max] is exactly compensated by the
+      triangle we miss. However, for the Bessel cut off, we must subtract the
+      wrong triangle and add the correct triangle */
+  if ((index_tau_max!=(tau_size-1))&&(index_tau_max==index_tau_max_Bessel)){
+    //Bessel truncation
+    *trsf -= 0.5*(tau0_minus_tau[index_tau_max+1]-tau0_minus_tau_min_bessel)*
+      radial_function[index_tau_max]*sources[index_tau_max];
   }
   
-  *trsf = 0.5*transfer; /* correct for factor 1/2 from trapezoidal rule */
+  free(radial_function);
+  return _SUCCESS_; 
+} 
 
-  return _SUCCESS_;
-}
+
+  /* /\** (c) integrate with trapezoidal method *\/ */
+    
+  /* /\* Note on the trapezoidal method used here: */
+ 
+  /*    Take a function y(x) sampled in n points [x_0, ..., x_{n-1}]. */
+  /*    The integral Sigma=int_{x_0}^{x_{n-1}} y(x) dx can be written as: */
+     
+  /*    sigma = sum_0^{n-2} [0.5 * (y_i+y_{i+1}) * (x_{i+1}-x_i)] */
+  /*    = 0.5 * sum_0^{n-1} [y_i * delta_i] */
+     
+  /*    with delta_0     = x_1 - x_0 */
+  /*    delta_i     = x_{i+1} - x_{i-1} */
+  /*    delta_{n-1} = x_{n-1} - x_{n-2} */
+
+  /*    We will use the second expression (we have already defined */
+  /*    delta_tau as the above delta_i). */
+
+  /*    Suppose that we want to truncate the integral at some x_trunc < */
+  /*    x_{n-1}, knowing that y(x_trunc)=0. We are in this case, with */
+  /*    x-trunc corresponding to x_min of the bessel function. Let i_max */
+  /*    be the last index such that y is non-zero:  */
+
+  /*    x_{i_max} < x_trunc < x_{i_max+1}. */
+
+  /*    We must adapt the formula above, with the last point being */
+  /*    x_trunc, and knowing that y(x_trunc)=0: */
+
+  /*    sigma = 0.5 * sum_0^{i_trunc-1} [y_i * delta_i] */
+  /*    + 0.5 * y_{i_trunc} * (x_trunc - x_{i_max-1})  */
+  /*    + 0.       */
+	   
+  /*    Below we willuse exactly this expression, strating form the last term  */
+  /*    [y_{i_trunc} * (x_trunc - x_{i_max-1})], */
+  /*    then adding all the terms */
+  /*    [y_i * delta_i], */
+  /*    and finally multiplying by 0.5 */
+
+  /*    There is just one exception to the formula: the case when */
+  /*    x_0<x_trunc<x_1, so that i_max=0. Then */
+      
+  /*    sigma = 0.5 * x_0 * (x_trunc-x_0) */
+
+  /*    This exception is taken into account below. */
+   	   
+  /* *\/ */
+
+  /* /\* Edge of the integral *\/ */
+  
+  /* class_call(transfer_bessel_interpolate( */
+  /*                                        pbk, */
+  /*                                        index_l, */
+  /*                                        x[index_tau_max], */
+  /*                                        &b, */
+  /*                                        &db), */
+  /*            ptr->error_message, */
+  /*            ptr->error_message); */
+
+  /* class_call(transfer_one_bessel( */
+  /*                                ppt, */
+  /*                                ptr, */
+  /*                                b, */
+  /*                                db, */
+  /*                                index_md, */
+  /*                                index_tt, */
+  /*                                x[index_tau_max], */
+  /*                                l, */
+  /*                                &bessel), */
+  /*            ptr->error_message, */
+  /*            ptr->error_message); */
+
+  /* transfer = sources[index_tau_max] * bessel; */
+
+  /* /\* (for bessel function cubic spline interpolation, we could have called the */
+  /*    subroutine bessel_at_x; however we perform operations directly here */
+  /*    in order to speed up the code) *\/ */
+
+  /* // case with no truncation: normal edge: */
+  /* if (index_tau_max == tau_size-1) { */
+  /*   transfer *=  delta_tau[index_tau_max]; */
+  /* } */
+  /* // case with truncation at tau0_minus_tau_min_bessel: */
+  /* else { */
+  /*   if (index_tau_max > 0) */
+  /*     // case with several points in the integral */
+  /*     transfer *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel); */
+  /*   else */
+  /*     // case with only one non-zero point y(x_0) in the integral */
+  /*     transfer *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel); */
+  /* } */
+
+  /* /\* rest of the integral. This is the innermost loop. Most time spent here. *\/ */
+
+  /* for (index_tau=0; index_tau<index_tau_max; index_tau++) { */
+
+  /*   /\* For clarity, I restored here the call to these two functions, although it is slower than pasting them *\/ */
+   
+  /*   class_call(transfer_bessel_interpolate( */
+  /*                                          pbk, */
+  /*                                          index_l, */
+  /*                                          x[index_tau], */
+  /*                                          &b, */
+  /*                                          &db), */
+  /*              ptr->error_message, */
+  /*              ptr->error_message); */
+    
+  /*   class_call(transfer_one_bessel( */
+  /*                                  ppt, */
+  /*                                  ptr, */
+  /*                                  b, */
+  /*                                  db, */
+  /*                                  index_md, */
+  /*                                  index_tt, */
+  /*                                  x[index_tau], */
+  /*                                  l, */
+  /*                                  &bessel), */
+  /*              ptr->error_message, */
+  /*              ptr->error_message); */
+    
+  /*   transfer += sources[index_tau] * bessel * delta_tau[index_tau]; */
+    
+  /* } */
+  
+  /* *trsf = 0.5*transfer; /\* correct for factor 1/2 from trapezoidal rule *\/ */
+
+/*   return _SUCCESS_; */
+/* } */
 
 /**
  * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)

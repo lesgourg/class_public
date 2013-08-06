@@ -268,6 +268,26 @@ extern "C" {
                                       int tau_size,
                                       double * delta_tau
                                       );
+  int transfer_trapezoidal_weights(
+				   double * x,
+				   int n,
+				   double * w_trapz
+				   );
+
+  int transfer_trapezoidal_integral(
+				    double * integrand,
+				    int n,
+				    double * w_trapz,
+				    double *I
+				    );
+
+  int transfer_trapezoidal_convolution(
+				       double * integrand1,
+				       double * integrand2,
+				       int n,
+				       double * w_trapz,
+				       double *I
+				       );
 
   int transfer_selection_function(
                                   struct precision * ppr,
