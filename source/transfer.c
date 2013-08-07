@@ -2708,33 +2708,22 @@ int transfer_integrate(
 
   /** -> trivial case: the source is a Dirac function and is sampled in only one point */
   if (tau_size == 1) {
-
-    class_call(transfer_bessel_interpolate(
-                                           pbk,
-                                           index_l,
-                                           x[0],
-                                           &b,
-                                           &db),
-               ptr->error_message,
-               ptr->error_message);
-
-    class_call(transfer_one_bessel(
-                                   ppt,
-                                   ptr,
-                                   b,
-                                   db,
-                                   index_md,
-                                   index_tt,
-                                   x[0],
-                                   l,
-                                   &bessel),
-               ptr->error_message,
-               ptr->error_message);
+    class_call(transfer_radial_function_julien(pbk,
+					       ppt,
+					       ptr,
+					       index_md,
+					       index_tt,
+					       index_l,
+					       1,
+					       x,
+					       l,
+					       &bessel
+					       ),
+	       ptr->error_message,
+	       ptr->error_message);
 
     *trsf = sources[0] * bessel;
-
-    return _SUCCESS_;  
-    
+    return _SUCCESS_;      
   }
 
   /** -> other cases */
@@ -2758,29 +2747,20 @@ int transfer_integrate(
 
   /** Compute the radial function: */
   radial_function = malloc(sizeof(double)*(index_tau_max+1));
-  for (index_tau=0; index_tau<=index_tau_max; index_tau++) {
-    class_call(transfer_bessel_interpolate(
-                                           pbk,
-                                           index_l,
-                                           x[index_tau],
-                                           &b,
-                                           &db),
-               ptr->error_message,
-               ptr->error_message);
-    class_call(transfer_one_bessel(
-                                   ppt,
-                                   ptr,
-                                   b,
-                                   db,
-                                   index_md,
-                                   index_tt,
-                                   x[index_tau],
-                                   l,
-                                   &bessel),
-               ptr->error_message,
-               ptr->error_message);
-    radial_function[index_tau] = bessel;
-  }
+  class_call(transfer_radial_function_julien(pbk,
+					     ppt,
+					     ptr,
+					     index_md,
+					     index_tt,
+					     index_l,
+					     index_tau_max+1,
+					     x,
+					     l,
+					     radial_function
+					     ),
+	     ptr->error_message,
+	     ptr->error_message);
+
 
   /** Now we do most of the convolution integral: */
   class_call(transfer_trapezoidal_convolution(sources,
@@ -3181,24 +3161,65 @@ int transfer_can_be_neglected(
 
 }
 
-int transfer_one_bessel(
-                        struct perturbs * ppt,
-                        struct transfers * ptr,
-                        double b,
-                        double db,
-                        int index_md,
-                        int index_tt,
-                        double x,
-                        double l,
-                        double * bessel
-                        ) {
+int transfer_radial_function_julien(
+				    struct bessels_for_one_k * pbk,
+				    struct perturbs * ppt,
+				    struct transfers * ptr,
+				    int index_md,
+				    int index_tt,
+				    int index_l,
+				    int nx,
+				    double *x,
+				    double l,
+				    double * radial_function
+				    ){
+  double b, db;
+  int j;
+  radial_function_t radial_type;
+  //Select radial function type:
+  class_call(transfer_select_radial_function(
+					     ppt,
+					     ptr,
+					     index_md,
+					     index_tt,
+					     &radial_type),
+               ptr->error_message,
+               ptr->error_message);
 
-  double ddb;
+  for (j=0; j<nx; j++){
+    class_call(transfer_bessel_interpolate(
+                                           pbk,
+                                           index_l,
+                                           x[j],
+                                           &b,
+                                           &db),
+               ptr->error_message,
+               ptr->error_message);
+    
+    class_call(transfer_one_bessel(
+				   b,
+				   db,
+				   x[j],
+				   l,
+				   &(radial_function[j]),
+				   radial_type 
+				   ),
+	       ptr->error_message,
+               ptr->error_message);
+  }
+  return _SUCCESS_;
+}
 
-  ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
+int transfer_select_radial_function(
+				    struct perturbs * ppt,
+				    struct transfers * ptr,
+				    int index_md,
+				    int index_tt,
+				    radial_function_t *radial_type
+				    ) {
 
-  /* default = bessel function j_l */
-  *bessel = b;
+  /* Standard case */
+  *radial_type = SCALAR_TEMPERATURE_0;
 
   /* other specific cases */
   if _scalars_ {
@@ -3206,10 +3227,10 @@ int transfer_one_bessel(
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
                 
         if (index_tt == ptr->index_tt_t1) {
-          *bessel = db;
+          *radial_type = SCALAR_TEMPERATURE_1;
         }
         if (index_tt == ptr->index_tt_t2) {
-          *bessel = (3.*ddb+b)/2.;
+          *radial_type = SCALAR_TEMPERATURE_2;
         }
         
       }
@@ -3217,7 +3238,7 @@ int transfer_one_bessel(
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
         
         if (index_tt == ptr->index_tt_e) {
-          *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
+          *radial_type = SCALAR_POLARISATION_E;
         }
         
       }
@@ -3228,22 +3249,22 @@ int transfer_one_bessel(
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
         
         if (index_tt == ptr->index_tt_t1) {
-          *bessel = sqrt(l*(l+1.)/2.)*b/x;
+	  *radial_type = VECTOR_TEMPERATURE_1;
         }
         if (index_tt == ptr->index_tt_t2) {
-          *bessel = sqrt(3.*l*(l+1.)/2.)*(db/x-b/x/x);
+	  *radial_type = VECTOR_TEMPERATURE_2;
         }
       }
       
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
                 
         if (index_tt == ptr->index_tt_e) {
-          *bessel=sqrt((l-1.)*(l+2.))/2.*(b/x/x+db/x);
+	  *radial_type = VECTOR_POLARISATION_E;
         }
         if (index_tt == ptr->index_tt_b) {
-          *bessel=sqrt((l-1.)*(l+2.))/2.*b/x/x;
+	  *radial_type = VECTOR_POLARISATION_B;
         }
-                
+      
       }
     }
           
@@ -3252,17 +3273,17 @@ int transfer_one_bessel(
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
 
         if (index_tt == ptr->index_tt_t2) {
-          *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
+	  *radial_type = TENSOR_TEMPERATURE_2;
         }
       }
 
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
 
         if (index_tt == ptr->index_tt_e) {
-          *bessel = (-b+ddb+2.*b/x/x+4.*db/x)/4.;
+	  *radial_type = TENSOR_POLARISATION_E;
         }
         if (index_tt == ptr->index_tt_b) {
-          *bessel = (db+2.*b/x)/2.;
+	  *radial_type = TENSOR_POLARISATION_B;
         }
 
       }
@@ -3271,6 +3292,149 @@ int transfer_one_bessel(
   return _SUCCESS_;
 
 } 
+
+int transfer_one_bessel(
+                        double b,
+                        double db,
+                        double x,
+                        double l,
+                        double * bessel,
+			radial_function_t radial_type 
+                        ) {
+
+  double ddb;
+
+  switch (radial_type){
+  case SCALAR_TEMPERATURE_0:
+    *bessel = b;
+    return _SUCCESS_;
+  case SCALAR_TEMPERATURE_1:
+    *bessel = db;
+    return _SUCCESS_;
+  case SCALAR_TEMPERATURE_2:
+    ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
+    *bessel = (3.*ddb+b)/2.;
+    return _SUCCESS_;
+  case SCALAR_POLARISATION_E:
+    *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x; 
+    return _SUCCESS_;
+  case VECTOR_TEMPERATURE_1:
+    *bessel = sqrt(l*(l+1.)/2.)*b/x;
+    return _SUCCESS_;
+  case VECTOR_TEMPERATURE_2:
+    *bessel = sqrt(3.*l*(l+1.)/2.)*(db/x-b/x/x);
+    return _SUCCESS_;
+  case VECTOR_POLARISATION_E:
+    *bessel=sqrt((l-1.)*(l+2.))/2.*(b/x/x+db/x);
+    return _SUCCESS_;
+  case VECTOR_POLARISATION_B:
+    *bessel=sqrt((l-1.)*(l+2.))/2.*b/x/x;
+    return _SUCCESS_;
+  case TENSOR_TEMPERATURE_2:
+    *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
+    return _SUCCESS_;
+  case TENSOR_POLARISATION_E:
+    ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
+    *bessel = (-b+ddb+2.*b/x/x+4.*db/x)/4.;
+    return _SUCCESS_;
+  case TENSOR_POLARISATION_B:
+    *bessel = (db+2.*b/x)/2.;
+    return _SUCCESS_;
+  }
+  /* Radial function type unknown */
+  return _FAILURE_;
+}
+
+/* int transfer_one_bessel( */
+/*                         struct perturbs * ppt, */
+/*                         struct transfers * ptr, */
+/*                         double b, */
+/*                         double db, */
+/*                         int index_md, */
+/*                         int index_tt, */
+/*                         double x, */
+/*                         double l, */
+/*                         double * bessel */
+/*                         ) { */
+
+/*   double ddb; */
+
+/*   ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /\* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j *\/ */
+
+/*   /\* default = bessel function j_l *\/ */
+/*   *bessel = b; */
+
+/*   /\* other specific cases *\/ */
+/*   if _scalars_ { */
+
+/*       if (ppt->has_cl_cmb_temperature == _TRUE_) { */
+                
+/*         if (index_tt == ptr->index_tt_t1) { */
+/*           *bessel = db; */
+/*         } */
+/*         if (index_tt == ptr->index_tt_t2) { */
+/*           *bessel = (3.*ddb+b)/2.; */
+/*         } */
+        
+/*       } */
+              
+/*       if (ppt->has_cl_cmb_polarization == _TRUE_) { */
+        
+/*         if (index_tt == ptr->index_tt_e) { */
+/*           *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x; */
+/*         } */
+        
+/*       } */
+/*     } */
+          
+/*   if _vectors_ { */
+      
+/*       if (ppt->has_cl_cmb_temperature == _TRUE_) { */
+        
+/*         if (index_tt == ptr->index_tt_t1) { */
+/*           *bessel = sqrt(l*(l+1.)/2.)*b/x; */
+/*         } */
+/*         if (index_tt == ptr->index_tt_t2) { */
+/*           *bessel = sqrt(3.*l*(l+1.)/2.)*(db/x-b/x/x); */
+/*         } */
+/*       } */
+      
+/*       if (ppt->has_cl_cmb_polarization == _TRUE_) { */
+                
+/*         if (index_tt == ptr->index_tt_e) { */
+/*           *bessel=sqrt((l-1.)*(l+2.))/2.*(b/x/x+db/x); */
+/*         } */
+/*         if (index_tt == ptr->index_tt_b) { */
+/*           *bessel=sqrt((l-1.)*(l+2.))/2.*b/x/x; */
+/*         } */
+                
+/*       } */
+/*     } */
+          
+/*   if _tensors_ { */
+
+/*       if (ppt->has_cl_cmb_temperature == _TRUE_) { */
+
+/*         if (index_tt == ptr->index_tt_t2) { */
+/*           *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x; */
+/*         } */
+/*       } */
+
+/*       if (ppt->has_cl_cmb_polarization == _TRUE_) { */
+
+/*         if (index_tt == ptr->index_tt_e) { */
+/*           *bessel = (-b+ddb+2.*b/x/x+4.*db/x)/4.; */
+/*         } */
+/*         if (index_tt == ptr->index_tt_b) { */
+/*           *bessel = (db+2.*b/x)/2.; */
+/*         } */
+
+/*       } */
+/*     } */
+
+/*   return _SUCCESS_; */
+
+/* }  */
 
 int transfer_bessel_fill(
                          struct bessels * pbs,
