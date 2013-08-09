@@ -5,6 +5,7 @@
 
 #include "bessel.h"
 #include "perturbations.h"
+#include "hyperspherical.h"
 
 /**
  * Structure containing everything about transfer functions in harmonic space \f$ \Delta_l^{X} (k) \f$ that other modules need to know.
@@ -122,16 +123,16 @@ struct bessels_for_one_k {
 };
 
 typedef enum {SCALAR_TEMPERATURE_0, 
-	      SCALAR_TEMPERATURE_1, 
-	      SCALAR_TEMPERATURE_2, 
-	      SCALAR_POLARISATION_E,
-	      VECTOR_TEMPERATURE_1,
-	      VECTOR_TEMPERATURE_2,
-	      VECTOR_POLARISATION_E,
-	      VECTOR_POLARISATION_B,
-	      TENSOR_TEMPERATURE_2,
-	      TENSOR_POLARISATION_E,
-	      TENSOR_POLARISATION_B} radial_function_t;
+              SCALAR_TEMPERATURE_1, 
+              SCALAR_TEMPERATURE_2, 
+              SCALAR_POLARISATION_E,
+              VECTOR_TEMPERATURE_1,
+              VECTOR_TEMPERATURE_2,
+              VECTOR_POLARISATION_E,
+              VECTOR_POLARISATION_B,
+              TENSOR_TEMPERATURE_2,
+              TENSOR_POLARISATION_E,
+              TENSOR_POLARISATION_B} radial_function_t;
 /*************************************************************************************************************/
 
 /*
@@ -279,25 +280,25 @@ extern "C" {
                                       double * delta_tau
                                       );
   int transfer_trapezoidal_weights(
-				   double * x,
-				   int n,
-				   double * w_trapz
-				   );
+                                   double * x,
+                                   int n,
+                                   double * w_trapz
+                                   );
 
   int transfer_trapezoidal_integral(
-				    double * integrand,
-				    int n,
-				    double * w_trapz,
-				    double *I
-				    );
+                                    double * integrand,
+                                    int n,
+                                    double * w_trapz,
+                                    double *I
+                                    );
 
   int transfer_trapezoidal_convolution(
-				       double * integrand1,
-				       double * integrand2,
-				       int n,
-				       double * w_trapz,
-				       double *I
-				       );
+                                       double * integrand1,
+                                       double * integrand2,
+                                       int n,
+                                       double * w_trapz,
+                                       double *I
+                                       );
 
   int transfer_selection_function(
                                   struct precision * ppr,
@@ -378,7 +379,9 @@ extern "C" {
                                   int tau_size,
                                   double * sources,
                                   double k_max_bessel,
-                                  double * x
+                                  double * x,
+                                  double * cscKgen,
+                                  double * cotKgen
                                   );
 
   int transfer_use_limber(
@@ -408,6 +411,8 @@ extern "C" {
                          double * delta_tau,
                          double * sources,
                          double * x,
+                         double * cscKgen,
+                         double *cotKgen,
                          double * trsf
                          );
     
@@ -447,34 +452,32 @@ extern "C" {
                                  double l,
                                  short * neglect);
   int transfer_select_radial_function(
-				      struct perturbs * ppt,
-				      struct transfers * ptr,
-				      int index_md,
-				      int index_tt,
-				      radial_function_t *radial_type
-				      );
+                                      struct perturbs * ppt,
+                                      struct transfers * ptr,
+                                      int index_md,
+                                      int index_tt,
+                                      radial_function_t *radial_type
+                                      );
   
   int transfer_one_bessel(
-			  double b,
-			  double db,
-			  double x,
-			  double l,
-			  double * bessel,
-			  radial_function_t radial_type 
-			  );
+                          double b,
+                          double db,
+                          double x,
+                          double l,
+                          double * bessel,
+                          radial_function_t radial_type 
+                          );
 
-  int transfer_radial_function_julien(
-				      struct bessels_for_one_k * pbk,
-				      struct perturbs * ppt,
-				      struct transfers * ptr,
-				      int index_md,
-				      int index_tt,
-				      int index_l,
-				      int nx,
-				      double *x,
-				      double l,
-				      double * radial_function
-				      );
+int transfer_radial_function_julien(
+                                    struct bessels_for_one_k * pbk,
+                                    int index_l,
+                                    int nx,
+                                    double *x,
+                                    double l,
+                                    double * radial_function,
+                                    radial_function_t radial_type,
+                                    ErrorMsg error_message
+                                    );
 
   int transfer_bessel_fill(
                            struct bessels * pbs,

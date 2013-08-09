@@ -253,7 +253,7 @@ int transfer_init(
        
     /* allocate workspace */
     class_alloc_parallel(workspace,
-                         (ppt->tau_size+4*tau_size_max+1)*sizeof(double),
+                         (ppt->tau_size+6*tau_size_max+1)*sizeof(double),
                          ptr->error_message);
 
     /* for models with zero curvature: fill bessel structure here (before k loop) */
@@ -675,10 +675,10 @@ int transfer_get_l_list(
 
           if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
             l_max=ppt->l_lss_max;
-	
+        
           if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
             l_max=ppt->l_lss_max;
-	
+        
         }
       
       if _tensors_
@@ -1058,7 +1058,7 @@ int transfer_source_tau_size(
           /* value of l at which the code switches to Limber approximation
              (necessary for next step) */
           l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density];
-	      
+              
           /* check that bessel well sampled, if not define finer sampling
              overwriting the previous one.
              One Bessel oscillations corresponds to [Delta tau]=2pi/k.
@@ -1168,8 +1168,15 @@ int transfer_compute_for_each_k(
      sources[index_tau] */
   double * sources;
 
-  /* - sixth workspace field, containing the array of x values where to interpolate the bessels, x[index_tau] */
-  double * x;
+  /* - sixth workspace field, containing the array of chi=sqrt(|K|)*(tau0-tau) values in the
+     general case, and k*(tau0-tau) in the flat case. */
+  double *chi;
+
+  /* - seventh workspace field, containing the "generalised" cscK(chi)*/ 
+  double *cscKgen;
+
+  /* - eighth workspace field, containing the "generalised" cotK(chi)*/ 
+  double *cotKgen;
 
   /* no more workspace fields */
 
@@ -1184,6 +1191,8 @@ int transfer_compute_for_each_k(
 
   short neglect;
 
+  double sqrt_absK;
+  int sgnK = 0;
   /** store the sources in the workspace and define all
       fields in this workspace */
         
@@ -1205,8 +1214,15 @@ int transfer_compute_for_each_k(
   sources = address_in_workspace;
   address_in_workspace += tau_size_max;
 
-  x = address_in_workspace;
+  chi = address_in_workspace;
   address_in_workspace += tau_size_max;
+
+  cscKgen = address_in_workspace;
+  address_in_workspace += tau_size_max;
+  
+  cotKgen = address_in_workspace;
+  address_in_workspace += tau_size_max;
+  
 
   /** - loop over all modes. For each mode: */ 
     
@@ -1270,8 +1286,34 @@ int transfer_compute_for_each_k(
                    ptr->error_message);
 
         int index_tau;
-        for (index_tau=0; index_tau < (*tau_size); index_tau++) {
-          x[index_tau] = ptr->k[index_k_tr] * tau0_minus_tau[index_tau];
+        switch (sgnK){
+        case 1:
+          sqrt_absK = sqrt(1e-5);
+          for (index_tau=0; index_tau < (*tau_size); index_tau++) {
+            chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
+            cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
+              sin(chi[index_tau]);
+            cotKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]*cscKgen[index_tau]*
+              cos(chi[index_tau]);
+          }
+          break;
+        case 0:
+          for (index_tau=0; index_tau < (*tau_size); index_tau++) {
+            chi[index_tau] = ptr->k[index_k_tr] * tau0_minus_tau[index_tau];
+            cscKgen[index_tau] = 1.0/chi[index_tau];
+            cotKgen[index_tau] = 1.0/chi[index_tau];
+          }
+          break;
+        case -1:
+          sqrt_absK = sqrt(1e-5);
+          for (index_tau=0; index_tau < (*tau_size); index_tau++) {
+            chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
+            cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
+              sinh(chi[index_tau]);
+            cotKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]*cscKgen[index_tau]*
+              cosh(chi[index_tau]);
+          }
+          break;
         }
 
         for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
@@ -1301,9 +1343,8 @@ int transfer_compute_for_each_k(
 
             /* for a given l, maximum value of k such that we can convolve
                the source with Bessel functions j_l(x) without reaching x_max */
-            
             k_max_bessel = (pbk->x_min[index_l]+(pbk->x_size[index_l]-1)*pbk->x_step)/tau0_minus_tau[0];
-            
+
             /* compute the transfer function for this l */
             class_call(transfer_compute_for_each_l(ppr,
                                                    ppt,
@@ -1320,7 +1361,9 @@ int transfer_compute_for_each_k(
                                                    (int)(*tau_size),
                                                    sources,
                                                    k_max_bessel,
-                                                   x),
+                                                   chi,
+                                                   cscKgen,
+                                                   cotKgen),
                        ptr->error_message,
                        ptr->error_message);
           }
@@ -1577,30 +1620,30 @@ int transfer_sources(
                (in tau = tau_0, set source = 0 to avoid division by zero;
                regulated anyway by Bessel).
             */
-		  
+                  
             if (index_tau == ppt->tau_size-1) {
               rescaling=0.;
             }
             else {
               rescaling = -2.*(tau-tau_rec)/(tau0-tau)/(tau0-tau_rec);
             }
-	  
+          
             /* copy from input array to output array */
             sources[index_tau-index_tau_min] = 
               interpolated_sources[index_tau]
               * rescaling
               * ptr->lcmb_rescale
               * pow(ptr->k[index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
-	  
+          
             /* store value of (tau0-tau) */
             tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
-	  
+          
           }
 
           /* Compute trapezoidal weights for integration in (tau0-tau) */
           class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-						  tau_size,
-						  w_trapz),
+                                                  tau_size,
+                                                  w_trapz),
                      ptr->error_message,
                      ptr->error_message); 
         }
@@ -1628,7 +1671,7 @@ int transfer_sources(
                                                  tau_size),
                      ptr->error_message,
                      ptr->error_message);
-	
+        
           /* resample the source at those times */
           class_call(transfer_source_resample(ppr,
                                               pba,
@@ -1646,8 +1689,8 @@ int transfer_sources(
 
           /* Compute trapezoidal weights for integration in (tau0-tau) */
           class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-						  tau_size,
-						  w_trapz),
+                                                  tau_size,
+                                                  w_trapz),
                      ptr->error_message,
                      ptr->error_message);
 
@@ -1668,7 +1711,7 @@ int transfer_sources(
 
           /* loop over time and rescale */
           for (index_tau = 0; index_tau < tau_size; index_tau++) {
-	
+        
             /* conformal time */
             tau = tau0 - tau0_minus_tau[index_tau];
 
@@ -1695,7 +1738,7 @@ int transfer_sources(
             rescaling = selection[index_tau]
               *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
               /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
-	  
+          
             sources[index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
           }
 
@@ -1708,7 +1751,7 @@ int transfer_sources(
            function */
 
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num)) {
-	
+        
           /* bin number associated to particular redshift bin and selection function */
           bin=index_tt-ptr->index_tt_lensing;
 
@@ -1728,16 +1771,16 @@ int transfer_sources(
 
           class_alloc(selection,
                       tau_sources_size*sizeof(double),
-                      ptr->error_message);	  
-	
+                      ptr->error_message);        
+        
           class_alloc(tau0_minus_tau_lensing_sources,
                       tau_sources_size*sizeof(double),
                       ptr->error_message);
-	
+        
           class_alloc(w_trapz_lensing_sources,
                       tau_sources_size*sizeof(double),
                       ptr->error_message);
-	
+        
           /* time sampling for source selection function */
           class_call(transfer_selection_sampling(ppr,
                                                  pba,
@@ -1748,14 +1791,14 @@ int transfer_sources(
                                                  tau_sources_size),
                      ptr->error_message,
                      ptr->error_message);
-	
+        
           /* Compute trapezoidal weights for integration in (tau0-tau) */
           class_call(transfer_trapezoidal_weights(tau0_minus_tau_lensing_sources,
-						  tau_sources_size,
-						  w_trapz_lensing_sources),
+                                                  tau_sources_size,
+                                                  w_trapz_lensing_sources),
                      ptr->error_message,
                      ptr->error_message);
-	
+        
           /* compute values of selection function at sampled values of tau */
           class_call(transfer_selection_compute(ppr,
                                                 pba,
@@ -1782,7 +1825,7 @@ int transfer_sources(
                                                tau_size),
                      ptr->error_message,
                      ptr->error_message);
-	
+        
           /* resample the source at those times */
           class_call(transfer_source_resample(ppr,
                                               pba,
@@ -1798,10 +1841,10 @@ int transfer_sources(
                      ptr->error_message,
                      ptr->error_message);
 
-	  /* Compute trapezoidal weights for integration in (tau0-tau) */
+          /* Compute trapezoidal weights for integration in (tau0-tau) */
           class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-						  tau_size,
-						  w_trapz),
+                                                  tau_size,
+                                                  w_trapz),
                      ptr->error_message,
                      ptr->error_message);
 
@@ -1816,7 +1859,7 @@ int transfer_sources(
                (in tau = tau_0, set source = 0 to avoid division by zero;
                regulated anyway by Bessel).
             */
-		  
+                  
             if (index_tau == tau_size-1) {
               rescaling=0.;
             }
@@ -1827,7 +1870,7 @@ int transfer_sources(
               for (index_tau_sources=0; 
                    index_tau_sources < tau_sources_size; 
                    index_tau_sources++) {
-	     
+             
                 /* condition for excluding from the sum the sources located in z=zero */
                 if ((tau0_minus_tau_lensing_sources[index_tau_sources] > 0.) && (tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau] > 0.)) {
 
@@ -1839,14 +1882,14 @@ int transfer_sources(
                     * w_trapz_lensing_sources[index_tau_sources];
                 }
               }
-	      
+              
               rescaling /= 2.;
 
             }
-	  
+          
             /* copy from input array to output array */
             sources[index_tau] *= rescaling;
-	  
+          
           }
 
           /* deallocate temporary arrays */
@@ -1854,7 +1897,7 @@ int transfer_sources(
           free(selection);
           free(tau0_minus_tau_lensing_sources);
           free(w_trapz_lensing_sources);
-	
+        
         }
       }
   }
@@ -1878,8 +1921,8 @@ int transfer_sources(
 
     /* Compute trapezoidal weights for integration in (tau0-tau) */
     class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-					    tau_size,
-					    w_trapz),
+                                            tau_size,
+                                            w_trapz),
                ptr->error_message,
                ptr->error_message);
   }
@@ -1947,10 +1990,10 @@ int transfer_integration_time_steps(
  */
 
 int transfer_trapezoidal_weights(
-				 double * x,
-				 int n,
-				 double * w_trapz
-				 ) {
+                                 double * x,
+                                 int n,
+                                 double * w_trapz
+                                 ) {
   int i;
   /* Case with just one point, w would normally be 0. */
   if (n==1){
@@ -1979,11 +2022,11 @@ int transfer_trapezoidal_weights(
  */
 
 int transfer_trapezoidal_integral(
-				  double * integrand,
-				  int n,
-				  double * w_trapz,
-				  double *I
-				  ) {
+                                  double * integrand,
+                                  int n,
+                                  double * w_trapz,
+                                  double *I
+                                  ) {
   int i;
   double res=0.0;
   for (i=0; i<n; i++){
@@ -2005,12 +2048,12 @@ int transfer_trapezoidal_integral(
  */
 
 int transfer_trapezoidal_convolution(
-				     double * integrand1,
-				     double * integrand2,
-				     int n,
-				     double * w_trapz,
-				     double *I
-				     ) {
+                                     double * integrand1,
+                                     double * integrand2,
+                                     int n,
+                                     double * w_trapz,
+                                     double *I
+                                     ) {
   int i;
   double res=0.0;
   for (i=0; i<n; i++){
@@ -2445,11 +2488,11 @@ int transfer_selection_compute(
 
   /* compute norm = \int W(tau) dtau */
   class_call(transfer_trapezoidal_integral(selection, 
-					   tau_size, 
-					   w_trapz,
-					   &norm),
-	     ptr->error_message,
-	     ptr->error_message);
+                                           tau_size, 
+                                           w_trapz,
+                                           &norm),
+             ptr->error_message,
+             ptr->error_message);
   
   /* divide W by norm so that \int W(tau) dtau = 1 */
   for (index_tau = 0; index_tau < tau_size; index_tau++) {
@@ -2506,7 +2549,9 @@ int transfer_compute_for_each_l(
                                 int tau_size,
                                 double * sources,
                                 double k_max_bessel,
-                                double * x
+                                double * chi,
+                                double * cscKgen,
+                                double * cotKgen
                                 ){
 
   /** Summary: */
@@ -2538,7 +2583,7 @@ int transfer_compute_for_each_l(
 
   if (ptr->transfer_verbose > 3)
     printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,k,index_tt);
-		
+                
   class_call(transfer_use_limber(ppr,
                                  ppt,
                                  ptr,
@@ -2581,7 +2626,9 @@ int transfer_compute_for_each_l(
                                   tau0_minus_tau,
                                   w_trapz,
                                   sources,
-                                  x,
+                                  chi,
+                                  cscKgen,
+                                  cotKgen,
                                   &transfer_function),
                ptr->error_message,
                ptr->error_message);
@@ -2673,7 +2720,9 @@ int transfer_integrate(
                        double * tau0_minus_tau,
                        double * w_trapz,
                        double * sources,
-                       double * x,
+                       double * chi,
+                       double *cscKgen,
+                       double *cotKgen,
                        double * trsf
                        ) {
 
@@ -2694,6 +2743,8 @@ int transfer_integrate(
 
   double b,db;
 
+  radial_function_t radial_type;
+
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
   tau0_minus_tau_min_bessel = pbk->x_min[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
@@ -2706,22 +2757,31 @@ int transfer_integrate(
 
   /** - if there is an overlap: */
 
+  /** Select radial function type: */
+  class_call(transfer_select_radial_function(
+                                             ppt,
+                                             ptr,
+                                             index_md,
+                                             index_tt,
+                                             &radial_type),
+             ptr->error_message,
+             ptr->error_message);
+  
+
   /** -> trivial case: the source is a Dirac function and is sampled in only one point */
   if (tau_size == 1) {
     class_call(transfer_radial_function_julien(pbk,
-					       ppt,
-					       ptr,
-					       index_md,
-					       index_tt,
-					       index_l,
-					       1,
-					       x,
-					       l,
-					       &bessel
-					       ),
-	       ptr->error_message,
-	       ptr->error_message);
-
+                                               index_l,
+                                               1,
+                                               chi,
+                                               l,
+                                               &bessel,
+                                               radial_type,
+                                               ptr->error_message
+                                               ),
+               ptr->error_message,
+               ptr->error_message);
+    
     *trsf = sources[0] * bessel;
     return _SUCCESS_;      
   }
@@ -2748,28 +2808,25 @@ int transfer_integrate(
   /** Compute the radial function: */
   radial_function = malloc(sizeof(double)*(index_tau_max+1));
   class_call(transfer_radial_function_julien(pbk,
-					     ppt,
-					     ptr,
-					     index_md,
-					     index_tt,
-					     index_l,
-					     index_tau_max+1,
-					     x,
-					     l,
-					     radial_function
-					     ),
-	     ptr->error_message,
-	     ptr->error_message);
-
-
+                                             index_l,
+                                             index_tau_max+1,
+                                             chi,
+                                             l,
+                                             radial_function,
+                                             radial_type,
+                                             ptr->error_message
+                                             ),
+               ptr->error_message,
+               ptr->error_message);
+  
   /** Now we do most of the convolution integral: */
   class_call(transfer_trapezoidal_convolution(sources,
-					      radial_function,
-					      index_tau_max+1,
-					      w_trapz,
-					      trsf),
-	     ptr->error_message,
-	     ptr->error_message);
+                                              radial_function,
+                                              index_tau_max+1,
+                                              w_trapz,
+                                              trsf),
+             ptr->error_message,
+             ptr->error_message);
   
   /** This integral is correct for the case where no truncation has
       occured. If it has been truncated at som index_tau_max because
@@ -2818,7 +2875,7 @@ int transfer_integrate(
   /*    sigma = 0.5 * sum_0^{i_trunc-1} [y_i * delta_i] */
   /*    + 0.5 * y_{i_trunc} * (x_trunc - x_{i_max-1})  */
   /*    + 0.       */
-	   
+           
   /*    Below we willuse exactly this expression, strating form the last term  */
   /*    [y_{i_trunc} * (x_trunc - x_{i_max-1})], */
   /*    then adding all the terms */
@@ -2831,7 +2888,7 @@ int transfer_integrate(
   /*    sigma = 0.5 * x_0 * (x_trunc-x_0) */
 
   /*    This exception is taken into account below. */
-   	   
+           
   /* *\/ */
 
   /* /\* Edge of the integral *\/ */
@@ -3102,7 +3159,7 @@ int transfer_limber2(
                                         ptr->error_message),
              ptr->error_message,
              ptr->error_message);
-	     
+             
 
   /** - get transfer from 2nd order Limber approx (infered from 0809.5112 [astro-ph]) */
 
@@ -3161,31 +3218,145 @@ int transfer_can_be_neglected(
 
 }
 
+int transfer_radial_function_general(
+                                    HyperInterpStruct * pHIS,
+                                    struct perturbs * ppt,
+                                    struct transfers * ptr,
+                                    int index_l,
+                                    int nx,
+                                    double *chi,
+                                    double *cscKgen,
+                                    double *cotKgen,
+                                    double * radial_function,
+                                    radial_function_t radial_type
+                                    ){
+  double b, db;
+  int j, sgnK=0;
+  double *Phi, *dPhi, *d2Phi;
+  double K = 1.0;
+  double k = 1.0, k2 = k*k;
+  double sqrt_absK_over_k = 1.0;
+  double absK_over_k2 = sqrt_absK_over_k*sqrt_absK_over_k;
+  double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
+  double l = (double)ptr->l[index_l];
+  
+  if (sgnK==0){
+    /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
+    sqrt_absK_over_k = 1.0;
+  }
+  else{
+    sqrt_absK_over_k = sqrt(fabs(K))/k;
+  }
+
+  Phi = malloc(sizeof(double)*nx);
+  dPhi = malloc(sizeof(double)*nx);
+  d2Phi = malloc(sizeof(double)*nx);
+
+  
+  switch (radial_type){
+  case SCALAR_TEMPERATURE_0:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, radial_function, NULL, NULL, NULL, NULL);
+    break;
+  case SCALAR_TEMPERATURE_1:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, NULL, dPhi, NULL, NULL, NULL);
+    for (j=0; j<nx; j++)
+      radial_function[j] = sqrt_absK_over_k*dPhi[j];
+    break;
+  case SCALAR_TEMPERATURE_2:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, d2Phi, NULL, NULL);
+    s2 = sqrt(1.0-3.0*K/k2);
+    factor = 1.0/(2*s2);
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*(3*absK_over_k2*d2Phi[j]+sqrt_absK_over_k*Phi[j]);
+    break;
+  case SCALAR_POLARISATION_E:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    s2 = sqrt(1.0-3.0*K/k2);
+    factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/s2;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
+    break;
+  case VECTOR_TEMPERATURE_1:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    s0 = sqrt(1.0+K/k2);
+    factor = sqrt(0.5*l*(l+1))/s0;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*cscKgen[j]*Phi[j];
+    break;
+  case VECTOR_TEMPERATURE_2:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, NULL, NULL, NULL);
+    s0 = sqrt(1.0+K/k2);
+    ssqrt3 = sqrt(1.0-2.0*K/k2);
+    factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*cscKgen[j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
+    break;
+  case VECTOR_POLARISATION_E:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, NULL, NULL, NULL);
+    s0 = sqrt(1.0+K/k2);
+    ssqrt3 = sqrt(1.0-2.0*K/k2);
+    factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*cscKgen[j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
+    break;
+  case VECTOR_POLARISATION_B:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    s0 = sqrt(1.0+K/k2);
+    ssqrt3 = sqrt(1.0-2.0*K/k2);
+    si = sqrt(1.0+2.0*K/k2);
+    factor = 0.5*sqrt((l-1.0)*(l+2.0))*si/s0/ssqrt3;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*cscKgen[j]*Phi[j];
+    break;
+  case TENSOR_TEMPERATURE_2:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    ssqrt2 = sqrt(1.0-1.0*K/k2);
+    si = sqrt(1.0+2.0*K/k2);
+    factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
+    break;
+  case TENSOR_POLARISATION_E:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, d2Phi, NULL, NULL);
+    ssqrt2 = sqrt(1.0-1.0*K/k2);
+    si = sqrt(1.0+2.0*K/k2);
+    factor = 0.25/si/ssqrt2;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[j]*sqrt_absK_over_k*dPhi[j]-
+                                   (1.0+4*K/k2-2.0*cotKgen[j]*cotKgen[j])*Phi[j]);
+    break;
+  case TENSOR_POLARISATION_B:
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, NULL, NULL, NULL);
+    ssqrt2i = sqrt(1.0+5.0*K/k2);
+    ssqrt2 = sqrt(1.0-1.0*K/k2);
+    si = sqrt(1.0+2.0*K/k2);
+    factor = 0.5*ssqrt2i/ssqrt2/si;
+    for (j=0; j<nx; j++)
+      radial_function[j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[j]*Phi[j]);
+    break;
+  }
+  free(Phi);
+  free(dPhi);
+  free(d2Phi);
+
+
+  return _SUCCESS_;
+}
+
+
 int transfer_radial_function_julien(
-				    struct bessels_for_one_k * pbk,
-				    struct perturbs * ppt,
-				    struct transfers * ptr,
-				    int index_md,
-				    int index_tt,
-				    int index_l,
-				    int nx,
-				    double *x,
-				    double l,
-				    double * radial_function
-				    ){
+                                    struct bessels_for_one_k * pbk,
+                                    int index_l,
+                                    int nx,
+                                    double *x,
+                                    double l,
+                                    double * radial_function,
+                                    radial_function_t radial_type,
+                                    ErrorMsg error_message
+                                    ){
   double b, db;
   int j;
-  radial_function_t radial_type;
-  //Select radial function type:
-  class_call(transfer_select_radial_function(
-					     ppt,
-					     ptr,
-					     index_md,
-					     index_tt,
-					     &radial_type),
-               ptr->error_message,
-               ptr->error_message);
-
+  
   for (j=0; j<nx; j++){
     class_call(transfer_bessel_interpolate(
                                            pbk,
@@ -3193,30 +3364,30 @@ int transfer_radial_function_julien(
                                            x[j],
                                            &b,
                                            &db),
-               ptr->error_message,
-               ptr->error_message);
+               error_message,
+               error_message);
     
     class_call(transfer_one_bessel(
-				   b,
-				   db,
-				   x[j],
-				   l,
-				   &(radial_function[j]),
-				   radial_type 
-				   ),
-	       ptr->error_message,
-               ptr->error_message);
+                                   b,
+                                   db,
+                                   x[j],
+                                   l,
+                                   &(radial_function[j]),
+                                   radial_type 
+                                   ),
+               error_message,
+               error_message);
   }
   return _SUCCESS_;
 }
 
 int transfer_select_radial_function(
-				    struct perturbs * ppt,
-				    struct transfers * ptr,
-				    int index_md,
-				    int index_tt,
-				    radial_function_t *radial_type
-				    ) {
+                                    struct perturbs * ppt,
+                                    struct transfers * ptr,
+                                    int index_md,
+                                    int index_tt,
+                                    radial_function_t *radial_type
+                                    ) {
 
   /* Standard case */
   *radial_type = SCALAR_TEMPERATURE_0;
@@ -3249,20 +3420,20 @@ int transfer_select_radial_function(
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
         
         if (index_tt == ptr->index_tt_t1) {
-	  *radial_type = VECTOR_TEMPERATURE_1;
+          *radial_type = VECTOR_TEMPERATURE_1;
         }
         if (index_tt == ptr->index_tt_t2) {
-	  *radial_type = VECTOR_TEMPERATURE_2;
+          *radial_type = VECTOR_TEMPERATURE_2;
         }
       }
       
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
                 
         if (index_tt == ptr->index_tt_e) {
-	  *radial_type = VECTOR_POLARISATION_E;
+          *radial_type = VECTOR_POLARISATION_E;
         }
         if (index_tt == ptr->index_tt_b) {
-	  *radial_type = VECTOR_POLARISATION_B;
+          *radial_type = VECTOR_POLARISATION_B;
         }
       
       }
@@ -3273,17 +3444,17 @@ int transfer_select_radial_function(
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
 
         if (index_tt == ptr->index_tt_t2) {
-	  *radial_type = TENSOR_TEMPERATURE_2;
+          *radial_type = TENSOR_TEMPERATURE_2;
         }
       }
 
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
 
         if (index_tt == ptr->index_tt_e) {
-	  *radial_type = TENSOR_POLARISATION_E;
+          *radial_type = TENSOR_POLARISATION_E;
         }
         if (index_tt == ptr->index_tt_b) {
-	  *radial_type = TENSOR_POLARISATION_B;
+          *radial_type = TENSOR_POLARISATION_B;
         }
 
       }
@@ -3299,7 +3470,7 @@ int transfer_one_bessel(
                         double x,
                         double l,
                         double * bessel,
-			radial_function_t radial_type 
+                        radial_function_t radial_type 
                         ) {
 
   double ddb;
