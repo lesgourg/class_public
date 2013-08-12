@@ -159,6 +159,7 @@ int hyperspherical_HIS_free(HyperInterpStruct *pHIS){
   free(pHIS->phivec);
   free(pHIS->dphivec);
   free(pHIS);
+  return _SUCCESS_;
 }
 
 int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
@@ -182,14 +183,14 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
   int do_function=_TRUE_, do_first_derivative=_TRUE_;
   int do_second_derivative=_TRUE_, do_first_or_second_derivative=_TRUE_;
   int do_trig_linear = _FALSE_, do_trig_three = _FALSE_, do_trig_five = _FALSE_;
-  double ym, yp, dym, dyp, d2ym, d2yp, x, z, z2, z3, z4, z5;
-  double cotKm,cotKp,sinKm,sinKp, sinKm2, sinKp2;
+  double ym=0, yp=0, dym=0, dyp=0, d2ym=0, d2yp=0, x, z, z2, z3, z4, z5;
+  double cotKm=0,cotKp=0,sinKm=0,sinKp=0, sinKm2, sinKp2;
   double d3ym = 0, d3yp=0, d4ym=0, d4yp=0;
-  double a1, a2, a3, a4, a5;
-  double b1, b2, b3, b4, b5;
-  double c1, c2, c3, c4, c5;
-  double d1, d2, d3, d4, d5;
-  double e1, e2, e3, e4, e5;
+  double a1=0, a2=0, a3=0, a4=0, a5=0;
+  double b1=0, b2=0, b3=0, b4=0, b5=0;
+  double c1=0, c2=0, c3=0, c4=0, c5=0;
+  double d1=0, d2=0, d3=0, d4=0, d5=0;
+  double e1=0, e2=0, e3=0, e4=0, e5=0;
   double beta, beta2, *xvec, *sinK, *cotK;
   double xmin, xmax, deltax, deltax2, lxlp1;
   double left_border, right_border, next_border;
@@ -790,17 +791,16 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
     }
     if (right_index==0){
       xmin[index_l] = xvec[0];
-      printf("special case: xmin = %.16e for index_l=%d\n",xmin[index_l],index_l);
+      //printf("special case: xmin = %.16e for index_l=%d\n",xmin[index_l],index_l);
       continue;
     }
     left_index = right_index-1;
     xleft = xvec[left_index];
     xright = xvec[right_index];
-    printf("Index_l = %d\n",index_l);
     xmin[index_l] = xright;
     while ((xright-xleft)>xtol){
       //Create interpolation vector
-      printf("Refining\n");
+      //printf("Refining\n");
       for (j=0; j<REFINE; j++)
         x[j] = xleft+j*(xright-xleft)/(REFINE-1.0);
       hyperspherical_Hermite_interpolation_vector(pHIS,REFINE,
@@ -814,7 +814,7 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
       xright = x[right_index];
       xmin[index_l] = xright;
     }
-    printf("xmin = %.16e\n",xmin[index_l]);
+    //printf("xmin = %.16e\n",xmin[index_l]);
   }
   return _SUCCESS_;
 }

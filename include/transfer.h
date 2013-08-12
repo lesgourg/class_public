@@ -122,6 +122,23 @@ struct bessels_for_one_k {
 
 };
 
+struct transfer_workspace {
+  HyperInterpStruct *pHIS;
+  int HIS_allocated;
+  int get_HIS_from_pbs;
+  int tau_size;
+  int tau_size_max;
+  int nl;
+  double *chi_at_phiminabs;
+  double *interpolated_sources;
+  double *sources;
+  double *tau0_minus_tau;
+  double *w_trapz;
+  double *chi;
+  double *cscKgen;
+  double *cotKgen;
+};
+
 typedef enum {SCALAR_TEMPERATURE_0, 
               SCALAR_TEMPERATURE_1, 
               SCALAR_TEMPERATURE_2, 
@@ -236,16 +253,15 @@ extern "C" {
                                   struct precision * ppr,
                                   struct background * pba,
                                   struct perturbs * ppt,
-                                  struct bessels_for_one_k * pbk,
                                   struct transfers * ptr,
                                   int ** tp_of_tt,
                                   int index_k_tr,
                                   int tau_size_max,
                                   double tau_rec,
                                   double *** sources_spline,
-                                  double * workspace
+                                  struct transfer_workspace * ptw
                                   );
- 
+
   int transfer_interpolate_sources(
                                    struct perturbs * ppt,
                                    struct transfers * ptr,
@@ -270,7 +286,7 @@ extern "C" {
                        double * sources,
                        double * tau0_minus_tau,
                        double * delta_tau,
-                       double * tau_size_double
+                       int * tau_size_out
                        );
 
   int transfer_integration_time_steps(
@@ -364,9 +380,9 @@ extern "C" {
                                  int bin);
 
   int transfer_compute_for_each_l(
+                                  struct transfer_workspace * ptw,
                                   struct precision * ppr,
                                   struct perturbs * ppt,
-                                  struct bessels_for_one_k * pbk,
                                   struct transfers * ptr,
                                   int index_k,
                                   int index_md,
@@ -374,14 +390,8 @@ extern "C" {
                                   int index_tt,
                                   int index_l,
                                   double l,
-                                  double * tau0_minus_tau,
-                                  double * delta_tau,
                                   int tau_size,
-                                  double * sources,
-                                  double k_max_bessel,
-                                  double * x,
-                                  double * cscKgen,
-                                  double * cotKgen
+                                  double k_max_bessel
                                   );
 
   int transfer_use_limber(
@@ -397,8 +407,8 @@ extern "C" {
                           );
 
   int transfer_integrate(
+                         struct transfer_workspace *ptw,
                          struct perturbs * ppt,
-                         struct bessels_for_one_k * pbk,
                          struct transfers * ptr,
                          int tau_size,
                          int index_k,
@@ -407,12 +417,6 @@ extern "C" {
                          double l,
                          int index_l,
                          double k,
-                         double * tau0_minus_tau,
-                         double * delta_tau,
-                         double * sources,
-                         double * x,
-                         double * cscKgen,
-                         double *cotKgen,
                          double * trsf
                          );
     
@@ -458,7 +462,16 @@ extern "C" {
                                       int index_tt,
                                       radial_function_t *radial_type
                                       );
-  
+
+  int transfer_radial_function(
+                               struct transfer_workspace * ptw,
+                               struct perturbs * ppt,
+                               struct transfers * ptr,
+                               int index_l,
+                               int nx,
+                               double * radial_function,
+                               radial_function_t radial_type
+                               );
   int transfer_one_bessel(
                           double b,
                           double db,
@@ -499,6 +512,27 @@ int transfer_radial_function_julien(
                                   double * dj
                                   );
 
+  int transfer_init_HIS_from_bessel(
+                                    struct bessels * pbs,
+                                    HyperInterpStruct **ppHIS,
+                                    ErrorMsg error_message);
+
+  int transfer_workspace_init(
+                              struct transfer_workspace **ptw,
+                              int nl,
+                              int perturb_tau_size,
+                              int tau_size_max,
+                              int get_HIS_from_pbs,
+                              ErrorMsg error_message);
+
+  int transfer_workspace_free(struct transfer_workspace *ptw);
+
+  int transfer_update_HIS( 
+                          struct transfer_workspace * ptw,
+                          struct bessels * pbs,
+                          struct transfers * ptr,
+                          int index_k_tr,
+                          ErrorMsg error_message);
 #ifdef __cplusplus
 }
 #endif

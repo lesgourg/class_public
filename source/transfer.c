@@ -142,7 +142,7 @@ int transfer_init(
   double *** sources_spline;
 
   /* pointer on workspace (one per thread if openmp) */
-  double * workspace;
+  struct transfer_workspace * ptw;
 
   /** - array with the correspondance between the index of sources in
       the perturbation module and in the transfer module,
@@ -152,9 +152,6 @@ int transfer_init(
 
   /* spatial curvature (temporary, will be replaced by a field in pba->... */
   double curvature=0.;
-
-  /* structure containing bessel functions and their derivatives for a given value of k */
-  struct bessels_for_one_k bk;
 
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
@@ -243,7 +240,7 @@ int transfer_init(
   
 #pragma omp parallel                                                    \
   shared(tau_size_max,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,curvature,abort) \
-  private(workspace,thread,index_k_tr,tstart,tstop,tspent,bk)
+  private(ptw,thread,index_k_tr,tstart,tstop,tspent)
   {
     
 #ifdef _OPENMP
@@ -252,22 +249,15 @@ int transfer_init(
 #endif
        
     /* allocate workspace */
-    class_alloc_parallel(workspace,
-                         (ppt->tau_size+6*tau_size_max+1)*sizeof(double),
-                         ptr->error_message);
-
-    /* for models with zero curvature: fill bessel structure here (before k loop) */
-    if (curvature == 0.) {
-      
-      class_call_parallel(transfer_bessel_fill(pbs,
-                                               ptr,
-                                               curvature,
-                                               0, // for zero curvature, bessels independent of k, pass k[0]
-                                               &bk),
-                          ptr->error_message,
-                          ptr->error_message);
-
-    }
+    int get_HIS_from_pbs = _TRUE_;
+    class_call_parallel(transfer_workspace_init(&ptw,
+                                                pbs->l_size,
+                                                ppt->tau_size,
+                                                tau_size_max,
+                                                get_HIS_from_pbs,
+                                                ptr->error_message),
+                        ptr->error_message,
+                        ptr->error_message);
     
     /** - loop over all wavenumbers (parallelised). For each wavenumber: */
     
@@ -279,41 +269,28 @@ int transfer_init(
       tstart = omp_get_wtime();
 #endif
       
-      /* for models with curvature: fill bessel structure here (inside k loop) */
-      if (curvature != 0.) {
-        
-        class_call_parallel(transfer_bessel_fill(pbs,
-                                                 ptr,
-                                                 curvature,
-                                                 index_k_tr,
-                                                 &bk),
-                            ptr->error_message,
-                            ptr->error_message);
-      }
-      
+      /* Update interpolation structure: */
+      class_call_parallel(transfer_update_HIS(ptw,
+                                              pbs,
+                                              ptr,
+                                              index_k_tr,
+                                              ptr->error_message),
+                          ptr->error_message,
+                          ptr->error_message);
+
       class_call_parallel(transfer_compute_for_each_k(ppr,
                                                       pba,
                                                       ppt,
-                                                      &bk,
                                                       ptr,
                                                       tp_of_tt,
                                                       index_k_tr,
                                                       tau_size_max,
                                                       tau_rec,
                                                       sources_spline,
-                                                      workspace),
+                                                      ptw),
                           ptr->error_message,
                           ptr->error_message);
       
-      /* for models with curvature: free bessel structure here (inside k loop) */
-      if (curvature != 0.) {
-        
-        class_call_parallel(transfer_bessel_free(&bk),
-                            ptr->error_message,
-                            ptr->error_message);
-
-      }
-
 #ifdef _OPENMP
       tstop = omp_get_wtime();
       
@@ -324,18 +301,8 @@ int transfer_init(
       
     } /* end of loop over wavenumber */
     
-    /* free arrays allocated inside parallel zone */
-
-    free(workspace);
-
-    /* for models with zero curvature: free bessel structure here (after k loop) */
-    if (curvature == 0.) {
-        
-      class_call_parallel(transfer_bessel_free(&bk),
-                          ptr->error_message,
-                          ptr->error_message);
-
-    }
+    /* free workspace allocated inside parallel zone */
+    transfer_workspace_free(ptw);
 
 #ifdef _OPENMP
     if (ptr->transfer_verbose>1)
@@ -1122,14 +1089,13 @@ int transfer_compute_for_each_k(
                                 struct precision * ppr,
                                 struct background * pba,
                                 struct perturbs * ppt,
-                                struct bessels_for_one_k * pbk,
                                 struct transfers * ptr,
                                 int ** tp_of_tt,
                                 int index_k_tr,
                                 int tau_size_max,
                                 double tau_rec,
                                 double *** sources_spline,
-                                double * workspace
+                                struct transfer_workspace * ptw
                                 ) {
   
   /** Summary: */
@@ -1149,9 +1115,6 @@ int transfer_compute_for_each_k(
      per thread) containing various fields used by the integration
      routine */
 
-  /* - pointer used to assign adresses to the various workspace fields */
-  double * address_in_workspace;
-
   /* - first workspace field: perturbation source interpolated from perturbation stucture */
   double * interpolated_sources;
 
@@ -1162,7 +1125,7 @@ int transfer_compute_for_each_k(
   double * w_trapz;
 
   /* - fourth workspace field, containing just a double: number of time values */
-  double * tau_size;
+  int * tau_size;
 
   /* - fifth workspace field, identical to above interpolated sources:
      sources[index_tau] */
@@ -1195,34 +1158,14 @@ int transfer_compute_for_each_k(
   int sgnK = 0;
   /** store the sources in the workspace and define all
       fields in this workspace */
-        
-  /* define address of each field in the workspace */
-  address_in_workspace = workspace;
-        
-  interpolated_sources = address_in_workspace;
-  address_in_workspace += ppt->tau_size;
-   
-  tau0_minus_tau = address_in_workspace;
-  address_in_workspace += tau_size_max;
-   
-  w_trapz  = address_in_workspace;
-  address_in_workspace += tau_size_max;
-   
-  tau_size = address_in_workspace;
-  address_in_workspace += 1;
-   
-  sources = address_in_workspace;
-  address_in_workspace += tau_size_max;
-
-  chi = address_in_workspace;
-  address_in_workspace += tau_size_max;
-
-  cscKgen = address_in_workspace;
-  address_in_workspace += tau_size_max;
-  
-  cotKgen = address_in_workspace;
-  address_in_workspace += tau_size_max;
-  
+  interpolated_sources = ptw->interpolated_sources;
+  tau0_minus_tau = ptw->tau0_minus_tau;
+  w_trapz  = ptw->w_trapz;
+  tau_size = &(ptw->tau_size);
+  sources = ptw->sources;
+  chi = ptw->chi;
+  cscKgen = ptw->cscKgen;
+  cotKgen = ptw->cotKgen;
 
   /** - loop over all modes. For each mode: */ 
     
@@ -1343,12 +1286,13 @@ int transfer_compute_for_each_k(
 
             /* for a given l, maximum value of k such that we can convolve
                the source with Bessel functions j_l(x) without reaching x_max */
-            k_max_bessel = (pbk->x_min[index_l]+(pbk->x_size[index_l]-1)*pbk->x_step)/tau0_minus_tau[0];
+            k_max_bessel = ptw->pHIS->xvec[ptw->pHIS->nx-1]/tau0_minus_tau[0];
 
             /* compute the transfer function for this l */
-            class_call(transfer_compute_for_each_l(ppr,
+            class_call(transfer_compute_for_each_l(
+                                                   ptw,
+                                                   ppr,
                                                    ppt,
-                                                   pbk,
                                                    ptr,
                                                    index_k_tr,
                                                    index_md,
@@ -1356,14 +1300,9 @@ int transfer_compute_for_each_k(
                                                    index_tt,
                                                    index_l,
                                                    l,
-                                                   tau0_minus_tau,
-                                                   w_trapz,
-                                                   (int)(*tau_size),
-                                                   sources,
-                                                   k_max_bessel,
-                                                   chi,
-                                                   cscKgen,
-                                                   cotKgen),
+                                                   (*tau_size),
+                                                   k_max_bessel
+                                                   ),
                        ptr->error_message,
                        ptr->error_message);
           }
@@ -1508,7 +1447,7 @@ int transfer_sources(
                      double * sources,
                      double * tau0_minus_tau,
                      double * w_trapz,
-                     double * tau_size_double
+                     int * tau_size_out
                      )  {
 
   /** Summary: */
@@ -1930,7 +1869,7 @@ int transfer_sources(
   /* return tau_size value that will be stored in the workspace (the
      workspace wants a double) */
 
-  *tau_size_double = (double)tau_size;
+  *tau_size_out = tau_size;
 
   return _SUCCESS_;
     
@@ -2534,9 +2473,9 @@ int transfer_selection_compute(
  */
 
 int transfer_compute_for_each_l(
+                                struct transfer_workspace * ptw,
                                 struct precision * ppr,
                                 struct perturbs * ppt,
-                                struct bessels_for_one_k * pbk,
                                 struct transfers * ptr,
                                 int index_k,
                                 int index_md,
@@ -2544,14 +2483,8 @@ int transfer_compute_for_each_l(
                                 int index_tt,
                                 int index_l,
                                 double l,
-                                double * tau0_minus_tau,
-                                double * w_trapz,
                                 int tau_size,
-                                double * sources,
-                                double k_max_bessel,
-                                double * chi,
-                                double * cscKgen,
-                                double * cotKgen
+                                double k_max_bessel
                                 ){
 
   /** Summary: */
@@ -2604,17 +2537,17 @@ int transfer_compute_for_each_l(
                                index_k,
                                l,
                                k,
-                               tau0_minus_tau,
-                               sources,
+                               ptw->tau0_minus_tau,
+                               ptw->sources,
                                &transfer_function),
                ptr->error_message,
                ptr->error_message); 
     
   }
   else {
-
-    class_call(transfer_integrate(ppt,
-                                  pbk,
+    class_call(transfer_integrate(
+                                  ptw,
+                                  ppt,
                                   ptr,
                                   tau_size,
                                   index_k,
@@ -2623,13 +2556,8 @@ int transfer_compute_for_each_l(
                                   l,
                                   index_l,
                                   k,
-                                  tau0_minus_tau,
-                                  w_trapz,
-                                  sources,
-                                  chi,
-                                  cscKgen,
-                                  cotKgen,
-                                  &transfer_function),
+                                  &transfer_function
+                                  ),
                ptr->error_message,
                ptr->error_message);
   }
@@ -2707,8 +2635,8 @@ int transfer_use_limber(
  */
 
 int transfer_integrate(
+                       struct transfer_workspace *ptw,
                        struct perturbs * ppt,
-                       struct bessels_for_one_k * pbk,
                        struct transfers * ptr,
                        int tau_size,
                        int index_k,
@@ -2717,12 +2645,6 @@ int transfer_integrate(
                        double l,
                        int index_l,
                        double k,
-                       double * tau0_minus_tau,
-                       double * w_trapz,
-                       double * sources,
-                       double * chi,
-                       double *cscKgen,
-                       double *cotKgen,
                        double * trsf
                        ) {
 
@@ -2730,25 +2652,30 @@ int transfer_integrate(
 
   /** - define local variables */
 
+  double * tau0_minus_tau = ptw->tau0_minus_tau;
+  double * w_trapz = ptw->w_trapz;
+  double * sources = ptw->sources;
+
   /* minimum value of \f$ (\tau0-\tau) \f$ at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   double tau0_minus_tau_min_bessel;
     
-  /* temporary value of transfer function */
-  double transfer;
-
   /* index in the source's tau list corresponding to the last point in the overlapping region between sources and bessels. Also the index of possible Bessel truncation. */
-  int index_tau,index_tau_max, index_tau_max_Bessel;
+  int index_tau_max, index_tau_max_Bessel;
 
   double bessel, *radial_function;
 
-  double b,db;
-
   radial_function_t radial_type;
 
+  int sgnK=0;
+  double K=0.0;
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
-  tau0_minus_tau_min_bessel = pbk->x_min[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
-
+  if (sgnK==0){
+    tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
+  }
+  else{
+    tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/sqrt(sgnK*K); 
+  }
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
   if (tau0_minus_tau_min_bessel >= tau0_minus_tau[0]) {
     *trsf = 0.;
@@ -2768,17 +2695,19 @@ int transfer_integrate(
              ptr->error_message);
   
 
+
+
   /** -> trivial case: the source is a Dirac function and is sampled in only one point */
   if (tau_size == 1) {
-    class_call(transfer_radial_function_julien(pbk,
-                                               index_l,
-                                               1,
-                                               chi,
-                                               l,
-                                               &bessel,
-                                               radial_type,
-                                               ptr->error_message
-                                               ),
+    class_call(transfer_radial_function(
+                                        ptw,
+                                        ppt,
+                                        ptr,
+                                        index_l,
+                                        1,
+                                        &bessel,
+                                        radial_type
+                                        ),
                ptr->error_message,
                ptr->error_message);
     
@@ -2807,15 +2736,15 @@ int transfer_integrate(
 
   /** Compute the radial function: */
   radial_function = malloc(sizeof(double)*(index_tau_max+1));
-  class_call(transfer_radial_function_julien(pbk,
-                                             index_l,
-                                             index_tau_max+1,
-                                             chi,
-                                             l,
-                                             radial_function,
-                                             radial_type,
-                                             ptr->error_message
-                                             ),
+    class_call(transfer_radial_function(
+                                        ptw,
+                                        ppt,
+                                        ptr,
+                                        index_l,
+                                        index_tau_max+1,
+                                        radial_function,
+                                        radial_type
+                                        ),
                ptr->error_message,
                ptr->error_message);
   
@@ -3218,127 +3147,144 @@ int transfer_can_be_neglected(
 
 }
 
-int transfer_radial_function_general(
-                                    HyperInterpStruct * pHIS,
-                                    struct perturbs * ppt,
-                                    struct transfers * ptr,
-                                    int index_l,
-                                    int nx,
-                                    double *chi,
-                                    double *cscKgen,
-                                    double *cotKgen,
-                                    double * radial_function,
-                                    radial_function_t radial_type
-                                    ){
-  double b, db;
+int transfer_radial_function(
+                             struct transfer_workspace * ptw,
+                             struct perturbs * ppt,
+                             struct transfers * ptr,
+                             int index_l,
+                             int nx,
+                             double * radial_function,
+                             radial_function_t radial_type
+                             ){
+  
+  HyperInterpStruct * pHIS = ptw->pHIS;
+  double *chi = ptw->chi;
+  double *cscKgen = ptw->cscKgen;
+  double *cotKgen = ptw->cotKgen;
   int j, sgnK=0;
-  double *Phi, *dPhi, *d2Phi;
-  double K = 1.0;
-  double k = 1.0, k2 = k*k;
-  double sqrt_absK_over_k = 1.0;
-  double absK_over_k2 = sqrt_absK_over_k*sqrt_absK_over_k;
-  double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
+  double *Phi, *dPhi, *d2Phi, *chireverse;
+  double K = 0.0, k=1.0, k2=1.0;
+  double sqrt_absK_over_k;
+  double absK_over_k2;
+   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   
-  if (sgnK==0){
+  //if (sgnK==0){
     /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
     sqrt_absK_over_k = 1.0;
-  }
-  else{
+    //}
+  /* else{
     sqrt_absK_over_k = sqrt(fabs(K))/k;
-  }
+    }*/
+    absK_over_k2 =sqrt_absK_over_k*sqrt_absK_over_k;
 
   Phi = malloc(sizeof(double)*nx);
   dPhi = malloc(sizeof(double)*nx);
   d2Phi = malloc(sizeof(double)*nx);
+  chireverse = malloc(sizeof(double)*nx);
+  //Reverse chi
+  for (j=0; j<nx; j++)
+    chireverse[j] = chi[nx-1-j];
 
-  
+  /** Debug region:
+  hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
+  FILE * debugbessel = fopen("debugbessel.dat","a");
+  fprintf(debugbessel,"#l = %d\n",ptw->pHIS->lvec[index_l]);
+  for (j=0; j<nx; j++){
+    fprintf(debugbessel,"%.16e %.16e %.16e %.16e\n",chireverse[j], Phi[j], dPhi[j], d2Phi[j]);
+  }  
+  fprintf(debugbessel,"#end of block\n");
+  fclose(debugbessel);
+  */
+
   switch (radial_type){
   case SCALAR_TEMPERATURE_0:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, radial_function, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
+    for (j=0; j<nx; j++)
+      radial_function[nx-1-j] = Phi[j];
     break;
   case SCALAR_TEMPERATURE_1:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, NULL, dPhi, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, NULL, dPhi, NULL, NULL, NULL);
     for (j=0; j<nx; j++)
-      radial_function[j] = sqrt_absK_over_k*dPhi[j];
+      radial_function[nx-1-j] = sqrt_absK_over_k*dPhi[j];
     break;
   case SCALAR_TEMPERATURE_2:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, d2Phi, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, d2Phi, NULL, NULL);
     s2 = sqrt(1.0-3.0*K/k2);
-    factor = 1.0/(2*s2);
+    factor = 1.0/(2.0*s2);
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*(3*absK_over_k2*d2Phi[j]+sqrt_absK_over_k*Phi[j]);
+      radial_function[nx-1-j] = factor*(3*absK_over_k2*d2Phi[j]+Phi[j]);
     break;
   case SCALAR_POLARISATION_E:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     s2 = sqrt(1.0-3.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/s2;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
     break;
   case VECTOR_TEMPERATURE_1:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     factor = sqrt(0.5*l*(l+1))/s0;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[j]*Phi[j];
     break;
   case VECTOR_TEMPERATURE_2:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*cscKgen[j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
+      radial_function[nx-1-j] = factor*cscKgen[j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
     break;
   case VECTOR_POLARISATION_E:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*cscKgen[j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
+      radial_function[nx-1-j] = factor*cscKgen[j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
     break;
   case VECTOR_POLARISATION_B:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))*si/s0/ssqrt3;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[j]*Phi[j];
     break;
   case TENSOR_TEMPERATURE_2:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
     break;
   case TENSOR_POLARISATION_E:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, d2Phi, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.25/si/ssqrt2;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[j]*sqrt_absK_over_k*dPhi[j]-
+      radial_function[nx-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[j]*sqrt_absK_over_k*dPhi[j]-
                                    (1.0+4*K/k2-2.0*cotKgen[j]*cotKgen[j])*Phi[j]);
     break;
   case TENSOR_POLARISATION_B:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chi, Phi, dPhi, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
     ssqrt2i = sqrt(1.0+5.0*K/k2);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
     for (j=0; j<nx; j++)
-      radial_function[j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[j]*Phi[j]);
+      radial_function[nx-1-j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[j]*Phi[j]);
     break;
   }
   free(Phi);
   free(dPhi);
   free(d2Phi);
-
+  free(chireverse);
 
   return _SUCCESS_;
 }
@@ -3516,97 +3462,6 @@ int transfer_one_bessel(
   return _FAILURE_;
 }
 
-/* int transfer_one_bessel( */
-/*                         struct perturbs * ppt, */
-/*                         struct transfers * ptr, */
-/*                         double b, */
-/*                         double db, */
-/*                         int index_md, */
-/*                         int index_tt, */
-/*                         double x, */
-/*                         double l, */
-/*                         double * bessel */
-/*                         ) { */
-
-/*   double ddb; */
-
-/*   ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /\* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j *\/ */
-
-/*   /\* default = bessel function j_l *\/ */
-/*   *bessel = b; */
-
-/*   /\* other specific cases *\/ */
-/*   if _scalars_ { */
-
-/*       if (ppt->has_cl_cmb_temperature == _TRUE_) { */
-                
-/*         if (index_tt == ptr->index_tt_t1) { */
-/*           *bessel = db; */
-/*         } */
-/*         if (index_tt == ptr->index_tt_t2) { */
-/*           *bessel = (3.*ddb+b)/2.; */
-/*         } */
-        
-/*       } */
-              
-/*       if (ppt->has_cl_cmb_polarization == _TRUE_) { */
-        
-/*         if (index_tt == ptr->index_tt_e) { */
-/*           *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x; */
-/*         } */
-        
-/*       } */
-/*     } */
-          
-/*   if _vectors_ { */
-      
-/*       if (ppt->has_cl_cmb_temperature == _TRUE_) { */
-        
-/*         if (index_tt == ptr->index_tt_t1) { */
-/*           *bessel = sqrt(l*(l+1.)/2.)*b/x; */
-/*         } */
-/*         if (index_tt == ptr->index_tt_t2) { */
-/*           *bessel = sqrt(3.*l*(l+1.)/2.)*(db/x-b/x/x); */
-/*         } */
-/*       } */
-      
-/*       if (ppt->has_cl_cmb_polarization == _TRUE_) { */
-                
-/*         if (index_tt == ptr->index_tt_e) { */
-/*           *bessel=sqrt((l-1.)*(l+2.))/2.*(b/x/x+db/x); */
-/*         } */
-/*         if (index_tt == ptr->index_tt_b) { */
-/*           *bessel=sqrt((l-1.)*(l+2.))/2.*b/x/x; */
-/*         } */
-                
-/*       } */
-/*     } */
-          
-/*   if _tensors_ { */
-
-/*       if (ppt->has_cl_cmb_temperature == _TRUE_) { */
-
-/*         if (index_tt == ptr->index_tt_t2) { */
-/*           *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x; */
-/*         } */
-/*       } */
-
-/*       if (ppt->has_cl_cmb_polarization == _TRUE_) { */
-
-/*         if (index_tt == ptr->index_tt_e) { */
-/*           *bessel = (-b+ddb+2.*b/x/x+4.*db/x)/4.; */
-/*         } */
-/*         if (index_tt == ptr->index_tt_b) { */
-/*           *bessel = (db+2.*b/x)/2.; */
-/*         } */
-
-/*       } */
-/*     } */
-
-/*   return _SUCCESS_; */
-
-/* }  */
-
 int transfer_bessel_fill(
                          struct bessels * pbs,
                          struct transfers * ptr,
@@ -3711,5 +3566,164 @@ int transfer_bessel_interpolate(
                           +(2.-a) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x+1]) 
                    * pbk->x_step * pbk->x_step / 6.0) );
 
+  return _SUCCESS_;
+}
+
+int transfer_init_HIS_from_bessel(
+                                  struct bessels * pbs,
+                                  HyperInterpStruct **ppHIS,
+                                  ErrorMsg error_message){
+  /* The purpose of this function is to populate a flat Hyperspherical
+     Interpolation Structure from the Bessel structure. The Bessel
+     structure must have been computed on an l-independent x-grid.
+  */
+  int nl, nx, index_l, index_x;
+  double xmin, x;
+  nl = pbs->l_size;
+  
+  /* Check the Bessels structure for compatibility: */
+  nx=pbs->x_size[0];
+  xmin = *(pbs->x_min[0]);
+  for (index_l=1; index_l<nl; index_l++){
+    class_test(nx!=pbs->x_size[index_l],
+               error_message,
+               "pbs->x_size[%d]=%d, not equal to pbs->x_size[0]=%d.\n",
+               index_l,pbs->x_size[index_l],nx);
+    class_test(fabs(xmin-*(pbs->x_min[index_l]))>100*DBL_EPSILON,
+               error_message,
+               "*(pbs->xmin[%d])=%.16e, should have been %.16e.\n",
+               index_l,*(pbs->x_min[index_l]),xmin);
+  }
+  /* Allocate HIS and all fields in HIS: */
+  class_calloc(*ppHIS,1,sizeof(struct transfer_workspace),error_message);
+  class_alloc((*ppHIS)->lvec,nl*sizeof(int),error_message);
+  class_alloc((*ppHIS)->xvec,nx*sizeof(double),error_message);
+  class_alloc((*ppHIS)->sinK,nx*sizeof(double),error_message);
+  class_alloc((*ppHIS)->cotK,nx*sizeof(double),error_message);
+  class_alloc((*ppHIS)->phivec,nx*nl*sizeof(double),error_message);
+  class_alloc((*ppHIS)->dphivec,nx*nl*sizeof(double),error_message);
+  /* Set and copy all fields of HIS: */
+  (*ppHIS)->K = 0;
+  (*ppHIS)->beta = 1;
+  (*ppHIS)->deltax = pbs->x_step;
+  (*ppHIS)->nx = nx;
+  (*ppHIS)->nl = nl;
+  (*ppHIS)->trig_order=5;
+  for(index_x=0; index_x<nx; index_x++){
+    x = xmin+index_x*pbs->x_step;
+    (*ppHIS)->xvec[index_x] = x;
+    (*ppHIS)->sinK[index_x] = x;
+    (*ppHIS)->cotK[index_x] = 1.0/x;
+  }
+  memcpy((*ppHIS)->lvec, pbs->l, nl*sizeof(int));
+  for (index_l=0; index_l<nl; index_l++)
+    memcpy((*ppHIS)->phivec+index_l*nx,pbs->j[index_l],sizeof(double)*nx);
+  for (index_l=0; index_l<nl; index_l++)
+    memcpy((*ppHIS)->dphivec+index_l*nx,pbs->dj[index_l],sizeof(double)*nx);
+  return _SUCCESS_;
+ }
+
+
+int transfer_workspace_init(
+                            struct transfer_workspace **ptw,
+                            int nl,
+                            int perturb_tau_size,
+                            int tau_size_max,
+                            int get_HIS_from_pbs,
+                            ErrorMsg error_message){
+  class_calloc(*ptw,1,sizeof(struct transfer_workspace),error_message);
+  class_alloc((*ptw)->chi_at_phiminabs,nl*sizeof(double),error_message);
+  class_alloc((*ptw)->interpolated_sources,perturb_tau_size*sizeof(double),error_message);
+  class_alloc((*ptw)->sources,tau_size_max*sizeof(double),error_message);
+  class_alloc((*ptw)->tau0_minus_tau,tau_size_max*sizeof(double),error_message);
+  class_alloc((*ptw)->w_trapz,tau_size_max*sizeof(double),error_message);
+  class_alloc((*ptw)->chi,tau_size_max*sizeof(double),error_message);
+  class_alloc((*ptw)->cscKgen,tau_size_max*sizeof(double),error_message);
+  class_alloc((*ptw)->cotKgen,tau_size_max*sizeof(double),error_message);
+  
+  (*ptw)->tau_size_max = tau_size_max;
+  (*ptw)->nl = nl;
+  (*ptw)->HIS_allocated=_FALSE_;
+  (*ptw)->get_HIS_from_pbs=get_HIS_from_pbs;
+  return _SUCCESS_;
+}
+
+int transfer_workspace_free(struct transfer_workspace *ptw){
+  if (ptw->HIS_allocated==_TRUE_){
+    //Free HIS structure:
+    hyperspherical_HIS_free(ptw->pHIS);
+  }
+  free(ptw->chi_at_phiminabs);
+  free(ptw->interpolated_sources);
+  free(ptw->sources);
+  free(ptw->tau0_minus_tau);
+  free(ptw->w_trapz);
+  free(ptw->chi);
+  free(ptw->cscKgen);
+  free(ptw->cotKgen);
+  
+  free(ptw);
+  return _SUCCESS_;
+}
+
+int transfer_update_HIS( 
+                        struct transfer_workspace * ptw,
+                        struct bessels * pbs,
+                        struct transfers * ptr,
+                        int index_k_tr,
+                        ErrorMsg error_message){
+  int K;
+  double beta;
+  double xmin, xmax, sampling, phiminabs, xtol;
+  
+  if (ptw->HIS_allocated==_TRUE_){
+    if (ptw->get_HIS_from_pbs==_TRUE_){
+      /* Nothing to do */
+      return _SUCCESS_;
+    }
+    else{
+      /* Free HIS structure */
+      class_call(hyperspherical_HIS_free(ptw->pHIS),
+                 error_message,error_message);
+      ptw->HIS_allocated = _FALSE_;
+    }
+  }
+  if (ptw->get_HIS_from_pbs==_TRUE_){
+    class_call(transfer_init_HIS_from_bessel(pbs,
+                                             &(ptw->pHIS),
+                                             error_message),
+               error_message,error_message);
+    ptw->HIS_allocated = _TRUE_;
+  }
+  else{
+    //These number should be set from input structures in the future:
+    printf("Creating interpolation structure...\n");
+    K=0;
+    xmin = 1e-7; //Will be changed to _HYPER_SAFETY_ by routine
+    xmax = pbs->x_max;
+    sampling = 3;
+    beta = 1; //Later related to ptr->k[index_k] but also the curvature.
+    class_call(hyperspherical_HIS_create(K, 
+                                         beta,
+                                         pbs->l_size,
+                                         pbs->l,
+                                         xmin,
+                                         xmax,
+                                         sampling,
+                                         &(ptw->pHIS),
+                                         error_message),
+               error_message,error_message);
+    ptw->HIS_allocated = _TRUE_;
+  }
+  //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
+  phiminabs = 1e-5;
+  xtol = 1e-4;
+  printf("Computing minimum values...\n");
+  class_call(hyperspherical_get_xmin(ptw->pHIS,
+                                     xtol,
+                                     phiminabs,
+                                     ptw->chi_at_phiminabs),
+               error_message, error_message);
+  
   return _SUCCESS_;
 }

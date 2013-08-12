@@ -619,6 +619,9 @@ int bessel_j_for_l(
   
   x_min = x_min_down;
 
+  //DEBUG/HACK! Force xmin = 1e-5;
+  x_min = 1e-5;
+
   class_call(bessel_j(pbs,
 		      pbs->l[index_l], /* l */
 		      x_min, /* x */
