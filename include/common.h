@@ -31,6 +31,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _PI_ 3.1415926535897932384626433832795e0 /**< The number pi */
 
+#define _SQRT6_ 2.4494897427831780981972840747059e0 /**< squareroot of 6. */
+
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
 #define _QUADRATURE_MAX_ 250 /**< maximum allowed number of abssices in quadrature integral estimation */

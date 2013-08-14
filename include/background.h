@@ -61,6 +61,10 @@ struct background
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
 
+  double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
+  double K; /**< \f$ K \f$ : Curvature parameter K=-Omega0_k*a_today^2*H_0^2; */
+  
+
   int N_ncdm;                            /**< Number of distinguishabe ncdm species */
   double * M_ncdm;                       /**<vector of masses of non-cold relic: 
                                              dimensionless ratios m_ncdm/T_ncdm */
@@ -92,8 +96,6 @@ struct background
 					     p-s-d is passed through file */
   char * ncdm_psd_files;                /**< list of filenames for tabulated p-s-d */
   /* end of parameters for tabulated ncdm p-s-d */
-
-  double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
 
   //@}
 
@@ -215,6 +217,7 @@ struct background
   short has_lambda;    /**< presence of cosmological constant? */
   short has_fld;       /**< presence of fluid with constant w and cs2? */
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
+  short has_curvature; /**< presence of global spatial curvature? */
 
   //@}
 

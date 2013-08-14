@@ -474,6 +474,9 @@ int input_init(
 
   /* Omega_0_k (curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
+  /* Set curvature parameter K: */
+  pba->K = -pba->Omega0_k*pow(pba->a_today*pba->H0,2);
+  
 
   /* Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid) */
   class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
@@ -487,15 +490,15 @@ int input_init(
              "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
   if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {	
-    pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+    pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   }
   else {
     if (flag1 == _TRUE_) {
       pba->Omega0_lambda= param1;
-      pba->Omega0_fld = 1. + pba->Omega0_k - param1 - Omega_tot;
+      pba->Omega0_fld = 1. - pba->Omega0_k - param1 - Omega_tot;
     }
     if (flag2 == _TRUE_) {
-      pba->Omega0_lambda= 1. + pba->Omega0_k - param2 - Omega_tot;
+      pba->Omega0_lambda= 1. - pba->Omega0_k - param2 - Omega_tot;
       pba->Omega0_fld = param2;
     }
   }
@@ -1830,7 +1833,8 @@ int input_default_params(
   pba->ncdm_psd_files = NULL;
 
   pba->Omega0_k = 0.;
-  pba->Omega0_lambda = 1.+pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+  pba->K = 0.;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   pba->Omega0_fld = 0.;     
   pba->a_today = 1.;       
   pba->w0_fld=-1.;

@@ -370,10 +370,10 @@ int background_functions(
       unique place where the Friedmann equation is assumed. Remember
       that densities are all expressed in units of [3c^2/8piG], ie
       rho_class = [8 pi G rho_physical / 3 c^2] */
-  pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->Omega0_k/a_rel/a_rel*pba->H0*pba->H0);
+  pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
 
   /** - compute derivative of H with respect to conformal time */
-  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->Omega0_k/a_rel*pba->a_today*pba->H0*pba->H0;
+  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->K/a/a;
 
   /** - compute relativistic density to total density ratio */
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
@@ -382,7 +382,7 @@ int background_functions(
   if (return_format == pba->long_info) {
     
     /** - compute critical density */
-    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->Omega0_k/a_rel/a_rel*pba->H0*pba->H0;
+    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->K/a/a;
     class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
                pba->error_message,
                "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
@@ -616,6 +616,7 @@ int background_indices(
   pba->has_lambda = _FALSE_;
   pba->has_fld = _FALSE_;
   pba->has_ur = _FALSE_;
+  pba->has_curvature = _FALSE_;
 
   if (pba->Omega0_cdm != 0.)
     pba->has_cdm = _TRUE_;
@@ -631,6 +632,9 @@ int background_indices(
 
   if (pba->Omega0_ur != 0.)
     pba->has_ur = _TRUE_;
+
+  if (pba->Omega0_k != 0.)
+    pba->has_curvature = _TRUE_;
 
   /** - intialization of all indices */
 
