@@ -4900,7 +4900,7 @@ int perturb_derivs(double tau,
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.,metric_ufa_class=0.;
 
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
-  double P0,P1,P2;
+  double P0,P1,P2, gw_source_g, gw_source_nu;
 
   /* for use with fluid (fld): */
   double w,w_prime;
@@ -5686,8 +5686,14 @@ int perturb_derivs(double tau,
     dy[ppw->pv->index_pt_gw] = y[ppw->pv->index_pt_gwdot];     
     
     /* its time-derivative */
-    dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-(k2+2.*pba->K)*y[ppw->pv->index_pt_gw]; 
+    gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
+                                                               4./21.*y[ppw->pv->index_pt_shear_g]+
+                                                               1./35.*y[ppw->pv->index_pt_l3_g+1]);
+
+    dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-
+      (k2+2.*pba->K)*y[ppw->pv->index_pt_gw]+gw_source_g; 
     // add source (photons and neutrinos)
+    // Photon source added
     
     }
   }
