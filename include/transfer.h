@@ -295,26 +295,6 @@ extern "C" {
                                       int tau_size,
                                       double * delta_tau
                                       );
-  int transfer_trapezoidal_weights(
-                                   double * x,
-                                   int n,
-                                   double * w_trapz
-                                   );
-
-  int transfer_trapezoidal_integral(
-                                    double * integrand,
-                                    int n,
-                                    double * w_trapz,
-                                    double *I
-                                    );
-
-  int transfer_trapezoidal_convolution(
-                                       double * integrand1,
-                                       double * integrand2,
-                                       int n,
-                                       double * w_trapz,
-                                       double *I
-                                       );
 
   int transfer_selection_function(
                                   struct precision * ppr,
@@ -390,7 +370,6 @@ extern "C" {
                                   int index_tt,
                                   int index_l,
                                   double l,
-                                  int tau_size,
                                   double k_max_bessel
                                   );
 
@@ -407,10 +386,9 @@ extern "C" {
                           );
 
   int transfer_integrate(
-                         struct transfer_workspace *ptw,
                          struct perturbs * ppt,
                          struct transfers * ptr,
-                         int tau_size,
+                         struct transfer_workspace *ptw,
                          int index_k,
                          int index_md,
                          int index_tt,
@@ -455,6 +433,7 @@ extern "C" {
                                  double k,
                                  double l,
                                  short * neglect);
+
   int transfer_select_radial_function(
                                       struct perturbs * ppt,
                                       struct transfers * ptr,
@@ -472,25 +451,6 @@ extern "C" {
                                double * radial_function,
                                radial_function_t radial_type
                                );
-  int transfer_one_bessel(
-                          double b,
-                          double db,
-                          double x,
-                          double l,
-                          double * bessel,
-                          radial_function_t radial_type 
-                          );
-
-int transfer_radial_function_julien(
-                                    struct bessels_for_one_k * pbk,
-                                    int index_l,
-                                    int nx,
-                                    double *x,
-                                    double l,
-                                    double * radial_function,
-                                    radial_function_t radial_type,
-                                    ErrorMsg error_message
-                                    );
 
   int transfer_bessel_fill(
                            struct bessels * pbs,
@@ -503,14 +463,6 @@ int transfer_radial_function_julien(
   int transfer_bessel_free(
                            struct bessels_for_one_k * pbk
                            );
-
-  int transfer_bessel_interpolate(
-                                  struct bessels_for_one_k * pbk,
-                                  int index_l,
-                                  double x,
-                                  double * j,
-                                  double * dj
-                                  );
 
   int transfer_init_HIS_from_bessel(
                                     struct bessels * pbs,

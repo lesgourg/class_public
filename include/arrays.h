@@ -380,7 +380,24 @@ extern "C" {
 		   int radius,
 		   ErrorMsg errmsg);
 
-
+  int array_trapezoidal_weights(double * x,
+                                int n,
+                                double * w_trapz,
+                                ErrorMsg errmsg);
+  
+  int array_trapezoidal_integral(double * integrand,
+                                 int n,
+                                 double * w_trapz,
+                                 double *I,
+                                 ErrorMsg errmsg);
+  
+  int array_trapezoidal_convolution(double * integrand1,
+                                    double * integrand2,
+                                    int n,
+                                    double * w_trapz,
+                                    double *I,
+                                    ErrorMsg errmsg);
+  
 #ifdef __cplusplus
 }
 #endif

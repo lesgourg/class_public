@@ -2765,3 +2765,90 @@ int array_smooth(double * array,
   return _SUCCESS_;
 
 }
+
+/**
+ * Compute quadrature weights for the trapezoidal integration method.
+ *
+ * @param x                     Input: Grid points on which f() is known.
+ * @param n                     Input: number of grid points.
+ * @param w_trapz               Output: Weights of the trapezoidal method.
+ * @return the error status
+ */
+
+int array_trapezoidal_weights(
+                                 double * x,
+                                 int n,
+                                 double * w_trapz,
+                                 ErrorMsg errmsg
+                                 ) {
+  int i;
+
+  /* Case with just one point, w would normally be 0. */
+  if (n==1){
+    w_trapz[0] = 0.0;
+  }
+  else if (n>1){
+    //Set edgeweights:
+    w_trapz[0] = 0.5*(x[1]-x[0]);
+    w_trapz[n-1] = 0.5*(x[n-1]-x[n-2]);
+    //Set inner weights:
+    for (i=1; i<(n-1); i++){
+      w_trapz[i] = 0.5*(x[i+1]-x[i-1]);
+    }
+  }
+  return _SUCCESS_;
+}
+
+/**
+ * Compute integral of function using trapezoidal method.
+ *
+ * @param integrand             Input: The function we are integrating.
+ * @param n                     Input: Compute integral on grid [0;n-1].
+ * @param w_trapz               Input: Weights of the trapezoidal method.
+ * @param I                     Output: The integral.
+ * @return the error status
+ */
+
+int array_trapezoidal_integral(
+                                  double * integrand,
+                                  int n,
+                                  double * w_trapz,
+                                  double *I,
+                                  ErrorMsg errmsg
+                                  ) {
+  int i;
+  double res=0.0;
+  for (i=0; i<n; i++){
+    res += integrand[i]*w_trapz[i];
+  }
+  *I = res;
+  return _SUCCESS_;
+}
+
+/**
+ * Compute convolution integral of product of two functions using trapezoidal method.
+ *
+ * @param integrand1            Input: Function 1.
+ * @param integrand2            Input: Function 2.
+ * @param n                     Input: Compute integral on grid [0;n-1].
+ * @param w_trapz               Input: Weights of the trapezoidal method.
+ * @param I                     Output: The integral.
+ * @return the error status
+ */
+
+int array_trapezoidal_convolution(
+                                     double * integrand1,
+                                     double * integrand2,
+                                     int n,
+                                     double * w_trapz,
+                                     double *I,
+                                     ErrorMsg errmsg
+                                     ) {
+  int i;
+  double res=0.0;
+  for (i=0; i<n; i++){
+    res += integrand1[i]*integrand2[i]*w_trapz[i];
+  }
+  *I = res;
+  return _SUCCESS_;
+}

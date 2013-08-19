@@ -34,6 +34,7 @@ int hyperspherical_HIS_create(int K,
   lambda = 2*_PI_/(beta+5.0); //Just to prevent too sparse sampling at beta<5.
   nx = (int) ((xmax-xmin)*sampling/lambda);
   deltax = (xmax-xmin)/(nx-1.0);
+  fprintf(stderr,"dx=%e\n",deltax);
   // Allocate vectors:
   class_alloc(pHIS,sizeof(HyperInterpStruct),error_message);
   class_alloc(pHIS->lvec,sizeof(int)*nl,error_message);

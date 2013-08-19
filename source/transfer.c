@@ -250,6 +250,7 @@ int transfer_init(
        
     /* allocate workspace */
     int get_HIS_from_pbs = _TRUE_;
+    //int get_HIS_from_pbs = _FALSE_;
     class_call_parallel(transfer_workspace_init(&ptw,
                                                 pbs->l_size,
                                                 ppt->tau_size,
@@ -1300,7 +1301,6 @@ int transfer_compute_for_each_k(
                                                    index_tt,
                                                    index_l,
                                                    l,
-                                                   (*tau_size),
                                                    k_max_bessel
                                                    ),
                        ptr->error_message,
@@ -1580,9 +1580,10 @@ int transfer_sources(
           }
 
           /* Compute trapezoidal weights for integration in (tau0-tau) */
-          class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-                                                  tau_size,
-                                                  w_trapz),
+          class_call(array_trapezoidal_weights(tau0_minus_tau,
+                                               tau_size,
+                                               w_trapz,
+                                               ptr->error_message),
                      ptr->error_message,
                      ptr->error_message); 
         }
@@ -1627,9 +1628,10 @@ int transfer_sources(
                      ptr->error_message);
 
           /* Compute trapezoidal weights for integration in (tau0-tau) */
-          class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-                                                  tau_size,
-                                                  w_trapz),
+          class_call(array_trapezoidal_weights(tau0_minus_tau,
+                                               tau_size,
+                                               w_trapz,
+                                               ptr->error_message),
                      ptr->error_message,
                      ptr->error_message);
 
@@ -1732,9 +1734,10 @@ int transfer_sources(
                      ptr->error_message);
         
           /* Compute trapezoidal weights for integration in (tau0-tau) */
-          class_call(transfer_trapezoidal_weights(tau0_minus_tau_lensing_sources,
-                                                  tau_sources_size,
-                                                  w_trapz_lensing_sources),
+          class_call(array_trapezoidal_weights(tau0_minus_tau_lensing_sources,
+                                               tau_sources_size,
+                                               w_trapz_lensing_sources,
+                                               ptr->error_message),
                      ptr->error_message,
                      ptr->error_message);
         
@@ -1781,9 +1784,10 @@ int transfer_sources(
                      ptr->error_message);
 
           /* Compute trapezoidal weights for integration in (tau0-tau) */
-          class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-                                                  tau_size,
-                                                  w_trapz),
+          class_call(array_trapezoidal_weights(tau0_minus_tau,
+                                               tau_size,
+                                               w_trapz,
+                                               ptr->error_message),
                      ptr->error_message,
                      ptr->error_message);
 
@@ -1859,9 +1863,10 @@ int transfer_sources(
     }
 
     /* Compute trapezoidal weights for integration in (tau0-tau) */
-    class_call(transfer_trapezoidal_weights(tau0_minus_tau,
-                                            tau_size,
-                                            w_trapz),
+    class_call(array_trapezoidal_weights(tau0_minus_tau,
+                                         tau_size,
+                                         w_trapz,
+                                         ptr->error_message),
                ptr->error_message,
                ptr->error_message);
   }
@@ -1918,91 +1923,6 @@ int transfer_integration_time_steps(
   return _SUCCESS_;
   
 }
-
-/**
- * Compute quadrature weights for the trapezoidal method.
- *
- * @param x                     Input: Grid points on which f() is known.
- * @param n                     Input: number of grid points.
- * @param w_trapz               Output: Weights of the trapezoidal method.
- * @return the error status
- */
-
-int transfer_trapezoidal_weights(
-                                 double * x,
-                                 int n,
-                                 double * w_trapz
-                                 ) {
-  int i;
-  /* Case with just one point, w would normally be 0. */
-  if (n==1){
-    w_trapz[0] = 0.0;
-  }
-  else if (n>1){
-    //Set edgeweights:
-    w_trapz[0] = 0.5*(x[1]-x[0]);
-    w_trapz[n-1] = 0.5*(x[n-1]-x[n-2]);
-    //Set inner weights:
-    for (i=1; i<(n-1); i++){
-      w_trapz[i] = 0.5*(x[i+1]-x[i-1]);
-    }
-  }
-  return _SUCCESS_;
-}
-
-/**
- * Compute integral of function using trapezoidal method.
- *
- * @param integrand             Input: The function we are integrating.
- * @param n                     Input: Compute integral on grid [0;n-1].
- * @param w_trapz               Input: Weights of the trapezoidal method.
- * @param I                     Output: The integral.
- * @return the error status
- */
-
-int transfer_trapezoidal_integral(
-                                  double * integrand,
-                                  int n,
-                                  double * w_trapz,
-                                  double *I
-                                  ) {
-  int i;
-  double res=0.0;
-  for (i=0; i<n; i++){
-    res += integrand[i]*w_trapz[i];
-  }
-  *I = res;
-  return _SUCCESS_;
-}
-
-/**
- * Compute convolution integral of two function using trapezoidal method.
- *
- * @param integrand1            Input: Function 1.
- * @param integrand2            Input: Function 2.
- * @param n                     Input: Compute integral on grid [0;n-1].
- * @param w_trapz               Input: Weights of the trapezoidal method.
- * @param I                     Output: The integral.
- * @return the error status
- */
-
-int transfer_trapezoidal_convolution(
-                                     double * integrand1,
-                                     double * integrand2,
-                                     int n,
-                                     double * w_trapz,
-                                     double *I
-                                     ) {
-  int i;
-  double res=0.0;
-  for (i=0; i<n; i++){
-    res += integrand1[i]*integrand2[i]*w_trapz[i];
-  }
-  *I = res;
-  return _SUCCESS_;
-}
-
-
 
 /**
  * arbitrarily normalized selection function dN/dz(z,bin)
@@ -2426,10 +2346,11 @@ int transfer_selection_compute(
   }
 
   /* compute norm = \int W(tau) dtau */
-  class_call(transfer_trapezoidal_integral(selection, 
-                                           tau_size, 
-                                           w_trapz,
-                                           &norm),
+  class_call(array_trapezoidal_integral(selection, 
+                                        tau_size, 
+                                        w_trapz,
+                                        &norm,
+                                        ptr->error_message),
              ptr->error_message,
              ptr->error_message);
   
@@ -2483,7 +2404,6 @@ int transfer_compute_for_each_l(
                                 int index_tt,
                                 int index_l,
                                 double l,
-                                int tau_size,
                                 double k_max_bessel
                                 ){
 
@@ -2531,7 +2451,7 @@ int transfer_compute_for_each_l(
   
   if (use_limber == _TRUE_) {
     
-    class_call(transfer_limber(tau_size,
+    class_call(transfer_limber(ptw->tau_size,
                                ptr,
                                index_md,
                                index_k,
@@ -2546,10 +2466,9 @@ int transfer_compute_for_each_l(
   }
   else {
     class_call(transfer_integrate(
-                                  ptw,
                                   ppt,
                                   ptr,
-                                  tau_size,
+                                  ptw,
                                   index_k,
                                   index_md,
                                   index_tt,
@@ -2635,10 +2554,9 @@ int transfer_use_limber(
  */
 
 int transfer_integrate(
-                       struct transfer_workspace *ptw,
                        struct perturbs * ppt,
                        struct transfers * ptr,
-                       int tau_size,
+                       struct transfer_workspace *ptw,
                        int index_k,
                        int index_md,
                        int index_tt,
@@ -2664,7 +2582,7 @@ int transfer_integrate(
 
   double bessel, *radial_function;
 
-  radial_function_t radial_type;
+  radial_function_t radial_type = SCALAR_TEMPERATURE_0; /* initialized ot arbitrary value to prevent compiler warning */
 
   int sgnK=0;
   double K=0.0;
@@ -2694,11 +2612,8 @@ int transfer_integrate(
              ptr->error_message,
              ptr->error_message);
   
-
-
-
   /** -> trivial case: the source is a Dirac function and is sampled in only one point */
-  if (tau_size == 1) {
+  if (ptw->tau_size == 1) {
     class_call(transfer_radial_function(
                                         ptw,
                                         ppt,
@@ -2718,7 +2633,7 @@ int transfer_integrate(
   /** -> other cases */
 
   /** (a) find index in the source's tau list corresponding to the last point in the overlapping region. After this step, index_tau_max can be as small as zero, but not negative. */ 
-  index_tau_max = tau_size-1;
+  index_tau_max = ptw->tau_size-1;
   while (tau0_minus_tau[index_tau_max] < tau0_minus_tau_min_bessel)
     index_tau_max--;
   /* Set index so we know if the truncation of the convolution integral is due to Bessel and not
@@ -2736,24 +2651,25 @@ int transfer_integrate(
 
   /** Compute the radial function: */
   radial_function = malloc(sizeof(double)*(index_tau_max+1));
-    class_call(transfer_radial_function(
-                                        ptw,
-                                        ppt,
-                                        ptr,
-                                        index_l,
-                                        index_tau_max+1,
-                                        radial_function,
-                                        radial_type
-                                        ),
-               ptr->error_message,
-               ptr->error_message);
+  class_call(transfer_radial_function(
+                                      ptw,
+                                      ppt,
+                                      ptr,
+                                      index_l,
+                                      index_tau_max+1,
+                                      radial_function,
+                                      radial_type
+                                      ),
+             ptr->error_message,
+             ptr->error_message);
   
   /** Now we do most of the convolution integral: */
-  class_call(transfer_trapezoidal_convolution(sources,
-                                              radial_function,
-                                              index_tau_max+1,
-                                              w_trapz,
-                                              trsf),
+  class_call(array_trapezoidal_convolution(sources,
+                                           radial_function,
+                                           index_tau_max+1,
+                                           w_trapz,
+                                           trsf,
+                                           ptr->error_message),
              ptr->error_message,
              ptr->error_message);
   
@@ -2763,7 +2679,7 @@ int transfer_integrate(
       the wrong weight w_trapz[index_tau_max] is exactly compensated by the
       triangle we miss. However, for the Bessel cut off, we must subtract the
       wrong triangle and add the correct triangle */
-  if ((index_tau_max!=(tau_size-1))&&(index_tau_max==index_tau_max_Bessel)){
+  if ((index_tau_max!=(ptw->tau_size-1))&&(index_tau_max==index_tau_max_Bessel)){
     //Bessel truncation
     *trsf -= 0.5*(tau0_minus_tau[index_tau_max+1]-tau0_minus_tau_min_bessel)*
       radial_function[index_tau_max]*sources[index_tau_max];
@@ -2772,134 +2688,6 @@ int transfer_integrate(
   free(radial_function);
   return _SUCCESS_; 
 } 
-
-
-  /* /\** (c) integrate with trapezoidal method *\/ */
-    
-  /* /\* Note on the trapezoidal method used here: */
- 
-  /*    Take a function y(x) sampled in n points [x_0, ..., x_{n-1}]. */
-  /*    The integral Sigma=int_{x_0}^{x_{n-1}} y(x) dx can be written as: */
-     
-  /*    sigma = sum_0^{n-2} [0.5 * (y_i+y_{i+1}) * (x_{i+1}-x_i)] */
-  /*    = 0.5 * sum_0^{n-1} [y_i * delta_i] */
-     
-  /*    with delta_0     = x_1 - x_0 */
-  /*    delta_i     = x_{i+1} - x_{i-1} */
-  /*    delta_{n-1} = x_{n-1} - x_{n-2} */
-
-  /*    We will use the second expression (we have already defined */
-  /*    delta_tau as the above delta_i). */
-
-  /*    Suppose that we want to truncate the integral at some x_trunc < */
-  /*    x_{n-1}, knowing that y(x_trunc)=0. We are in this case, with */
-  /*    x-trunc corresponding to x_min of the bessel function. Let i_max */
-  /*    be the last index such that y is non-zero:  */
-
-  /*    x_{i_max} < x_trunc < x_{i_max+1}. */
-
-  /*    We must adapt the formula above, with the last point being */
-  /*    x_trunc, and knowing that y(x_trunc)=0: */
-
-  /*    sigma = 0.5 * sum_0^{i_trunc-1} [y_i * delta_i] */
-  /*    + 0.5 * y_{i_trunc} * (x_trunc - x_{i_max-1})  */
-  /*    + 0.       */
-           
-  /*    Below we willuse exactly this expression, strating form the last term  */
-  /*    [y_{i_trunc} * (x_trunc - x_{i_max-1})], */
-  /*    then adding all the terms */
-  /*    [y_i * delta_i], */
-  /*    and finally multiplying by 0.5 */
-
-  /*    There is just one exception to the formula: the case when */
-  /*    x_0<x_trunc<x_1, so that i_max=0. Then */
-      
-  /*    sigma = 0.5 * x_0 * (x_trunc-x_0) */
-
-  /*    This exception is taken into account below. */
-           
-  /* *\/ */
-
-  /* /\* Edge of the integral *\/ */
-  
-  /* class_call(transfer_bessel_interpolate( */
-  /*                                        pbk, */
-  /*                                        index_l, */
-  /*                                        x[index_tau_max], */
-  /*                                        &b, */
-  /*                                        &db), */
-  /*            ptr->error_message, */
-  /*            ptr->error_message); */
-
-  /* class_call(transfer_one_bessel( */
-  /*                                ppt, */
-  /*                                ptr, */
-  /*                                b, */
-  /*                                db, */
-  /*                                index_md, */
-  /*                                index_tt, */
-  /*                                x[index_tau_max], */
-  /*                                l, */
-  /*                                &bessel), */
-  /*            ptr->error_message, */
-  /*            ptr->error_message); */
-
-  /* transfer = sources[index_tau_max] * bessel; */
-
-  /* /\* (for bessel function cubic spline interpolation, we could have called the */
-  /*    subroutine bessel_at_x; however we perform operations directly here */
-  /*    in order to speed up the code) *\/ */
-
-  /* // case with no truncation: normal edge: */
-  /* if (index_tau_max == tau_size-1) { */
-  /*   transfer *=  delta_tau[index_tau_max]; */
-  /* } */
-  /* // case with truncation at tau0_minus_tau_min_bessel: */
-  /* else { */
-  /*   if (index_tau_max > 0) */
-  /*     // case with several points in the integral */
-  /*     transfer *= (tau0_minus_tau[index_tau_max-1]-tau0_minus_tau_min_bessel); */
-  /*   else */
-  /*     // case with only one non-zero point y(x_0) in the integral */
-  /*     transfer *= (tau0_minus_tau[index_tau_max]-tau0_minus_tau_min_bessel); */
-  /* } */
-
-  /* /\* rest of the integral. This is the innermost loop. Most time spent here. *\/ */
-
-  /* for (index_tau=0; index_tau<index_tau_max; index_tau++) { */
-
-  /*   /\* For clarity, I restored here the call to these two functions, although it is slower than pasting them *\/ */
-   
-  /*   class_call(transfer_bessel_interpolate( */
-  /*                                          pbk, */
-  /*                                          index_l, */
-  /*                                          x[index_tau], */
-  /*                                          &b, */
-  /*                                          &db), */
-  /*              ptr->error_message, */
-  /*              ptr->error_message); */
-    
-  /*   class_call(transfer_one_bessel( */
-  /*                                  ppt, */
-  /*                                  ptr, */
-  /*                                  b, */
-  /*                                  db, */
-  /*                                  index_md, */
-  /*                                  index_tt, */
-  /*                                  x[index_tau], */
-  /*                                  l, */
-  /*                                  &bessel), */
-  /*              ptr->error_message, */
-  /*              ptr->error_message); */
-    
-  /*   transfer += sources[index_tau] * bessel * delta_tau[index_tau]; */
-    
-  /* } */
-  
-  /* *trsf = 0.5*transfer; /\* correct for factor 1/2 from trapezoidal rule *\/ */
-
-/*   return _SUCCESS_; */
-/* } */
 
 /**
  * This routine computes the transfer functions \f$ \Delta_l^{X} (k) \f$)
@@ -3289,44 +3077,6 @@ int transfer_radial_function(
   return _SUCCESS_;
 }
 
-
-int transfer_radial_function_julien(
-                                    struct bessels_for_one_k * pbk,
-                                    int index_l,
-                                    int nx,
-                                    double *x,
-                                    double l,
-                                    double * radial_function,
-                                    radial_function_t radial_type,
-                                    ErrorMsg error_message
-                                    ){
-  double b, db;
-  int j;
-  
-  for (j=0; j<nx; j++){
-    class_call(transfer_bessel_interpolate(
-                                           pbk,
-                                           index_l,
-                                           x[j],
-                                           &b,
-                                           &db),
-               error_message,
-               error_message);
-    
-    class_call(transfer_one_bessel(
-                                   b,
-                                   db,
-                                   x[j],
-                                   l,
-                                   &(radial_function[j]),
-                                   radial_type 
-                                   ),
-               error_message,
-               error_message);
-  }
-  return _SUCCESS_;
-}
-
 int transfer_select_radial_function(
                                     struct perturbs * ppt,
                                     struct transfers * ptr,
@@ -3335,14 +3085,14 @@ int transfer_select_radial_function(
                                     radial_function_t *radial_type
                                     ) {
 
-  /* Standard case */
-  *radial_type = SCALAR_TEMPERATURE_0;
-
   /* other specific cases */
   if _scalars_ {
 
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
-                
+         
+        if (index_tt == ptr->index_tt_t0) {
+          *radial_type = SCALAR_TEMPERATURE_0;
+        }       
         if (index_tt == ptr->index_tt_t1) {
           *radial_type = SCALAR_TEMPERATURE_1;
         }
@@ -3409,58 +3159,6 @@ int transfer_select_radial_function(
   return _SUCCESS_;
 
 } 
-
-int transfer_one_bessel(
-                        double b,
-                        double db,
-                        double x,
-                        double l,
-                        double * bessel,
-                        radial_function_t radial_type 
-                        ) {
-
-  double ddb;
-
-  switch (radial_type){
-  case SCALAR_TEMPERATURE_0:
-    *bessel = b;
-    return _SUCCESS_;
-  case SCALAR_TEMPERATURE_1:
-    *bessel = db;
-    return _SUCCESS_;
-  case SCALAR_TEMPERATURE_2:
-    ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
-    *bessel = (3.*ddb+b)/2.;
-    return _SUCCESS_;
-  case SCALAR_POLARISATION_E:
-    *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x; 
-    return _SUCCESS_;
-  case VECTOR_TEMPERATURE_1:
-    *bessel = sqrt(l*(l+1.)/2.)*b/x;
-    return _SUCCESS_;
-  case VECTOR_TEMPERATURE_2:
-    *bessel = sqrt(3.*l*(l+1.)/2.)*(db/x-b/x/x);
-    return _SUCCESS_;
-  case VECTOR_POLARISATION_E:
-    *bessel=sqrt((l-1.)*(l+2.))/2.*(b/x/x+db/x);
-    return _SUCCESS_;
-  case VECTOR_POLARISATION_B:
-    *bessel=sqrt((l-1.)*(l+2.))/2.*b/x/x;
-    return _SUCCESS_;
-  case TENSOR_TEMPERATURE_2:
-    *bessel = sqrt(3./8.*(l+2.)*(l+1.)*l*(l-1))*b/x/x;
-    return _SUCCESS_;
-  case TENSOR_POLARISATION_E:
-    ddb = - 2./x*db + (l*(l+1)/x/x-1.)*b; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
-    *bessel = (-b+ddb+2.*b/x/x+4.*db/x)/4.;
-    return _SUCCESS_;
-  case TENSOR_POLARISATION_B:
-    *bessel = (db+2.*b/x)/2.;
-    return _SUCCESS_;
-  }
-  /* Radial function type unknown */
-  return _FAILURE_;
-}
 
 int transfer_bessel_fill(
                          struct bessels * pbs,
@@ -3534,37 +3232,6 @@ int transfer_bessel_free(
   free(pbk->bessel_k);   
   
   pbk->filled = _FALSE_;
-
-  return _SUCCESS_;
-}
-
-int transfer_bessel_interpolate(
-                                struct bessels_for_one_k * pbk,
-                                int index_l,
-                                double x,
-                                double * b,
-                                double * db
-                                ) {
-
-  int index_x;
-  double a;
-
-  index_x = (int)((x-pbk->x_min[index_l])/pbk->x_step);
-   
-  a = (pbk->x_min[index_l]+pbk->x_step*(index_x+1) - x)/pbk->x_step;
-  
-  *b = (a * pbk->bessel_k[index_l][index_x] +
-        (1.-a) * (pbk->bessel_k[index_l][index_x+1]
-                  - a * ((a+1.) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x]
-                         +(2.-a) * pbk->bessel_k[index_l][2*pbk->x_size[index_l]+index_x+1]) 
-                  * pbk->x_step * pbk->x_step / 6.0) );
-                 
-
-  *db = (a * pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x] +
-         (1.-a) * (pbk->bessel_k[index_l][pbk->x_size[index_l]+index_x+1]
-                   - a * ((a+1.) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x]
-                          +(2.-a) * pbk->bessel_k[index_l][3*pbk->x_size[index_l]+index_x+1]) 
-                   * pbk->x_step * pbk->x_step / 6.0) );
 
   return _SUCCESS_;
 }
@@ -3672,22 +3339,37 @@ int transfer_update_HIS(
                         struct transfers * ptr,
                         int index_k_tr,
                         ErrorMsg error_message){
-  int K;
+  int K=0.;
   double beta;
   double xmin, xmax, sampling, phiminabs, xtol;
   
   if (ptw->HIS_allocated==_TRUE_){
+
+    /*
     if (ptw->get_HIS_from_pbs==_TRUE_){
-      /* Nothing to do */
+      
       return _SUCCESS_;
     }
     else{
-      /* Free HIS structure */
+      
+      class_call(hyperspherical_HIS_free(ptw->pHIS),
+                 error_message,error_message);
+      ptw->HIS_allocated = _FALSE_;
+    }
+    */
+
+    if (K == 0) {
+      /* nothing to be done */
+      return _SUCCESS_;
+    }
+    else {
+      /** free HIS */
       class_call(hyperspherical_HIS_free(ptw->pHIS),
                  error_message,error_message);
       ptw->HIS_allocated = _FALSE_;
     }
   }
+
   if (ptw->get_HIS_from_pbs==_TRUE_){
     class_call(transfer_init_HIS_from_bessel(pbs,
                                              &(ptw->pHIS),
@@ -3702,6 +3384,7 @@ int transfer_update_HIS(
     xmin = 1e-7; //Will be changed to _HYPER_SAFETY_ by routine
     xmax = pbs->x_max;
     sampling = 3;
+    //sampling = 0.5;
     beta = 1; //Later related to ptr->k[index_k] but also the curvature.
     class_call(hyperspherical_HIS_create(K, 
                                          beta,
