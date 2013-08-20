@@ -1435,9 +1435,6 @@ int perturb_solve(
   /* fourier mode */
   double k;
 
-  /* curvature parameter */
-  double K;
-
   /* number of time intervals where the approximation scheme is uniform */
   int interval_number;
 
@@ -3809,7 +3806,6 @@ int perturb_einstein(
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_pk,delta_rho_pk;
   double w;
-  double K;
 
   /** - wavenumber and scale factor related quantities */ 
 
@@ -3817,7 +3813,6 @@ int perturb_einstein(
   a = ppw->pvecback[pba->index_bg_a];
   a2 = a * a;
   a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
-  K = pba->Omega0_k*pow(pba->a_today/a*pba->H0,2);
 
   /** - for scalar modes: */  
 
@@ -4132,7 +4127,7 @@ int perturb_einstein(
 
         /* first equation involving total density fluctuation */
         ppw->pvecmetric[ppw->index_mt_h_prime] = 
-          ( (k2-K) * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
+          ( (k2-3.*pba->K) * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
 
         /* eventually, infer radiation streaming approximation for gamma and nur, and
            correct the total velocity */
@@ -4186,12 +4181,12 @@ int perturb_einstein(
         }
       
         /* second equation involving total velocity */
-        ppw->pvecmetric[ppw->index_mt_eta_prime] = (1.5 * (a2/k2) * rho_plus_p_theta + 3.*K/k2*ppw->pvecmetric[ppw->index_mt_h_prime])/(1.-3.*K/k2);  /* eta' */
+        ppw->pvecmetric[ppw->index_mt_eta_prime] = (1.5 * (a2/k2) * rho_plus_p_theta + 0.5*pba->K/k2*ppw->pvecmetric[ppw->index_mt_h_prime])/(1.-3.*pba->K/k2);  /* eta' */
 
         /* third equation involving total pressure */
         ppw->pvecmetric[ppw->index_mt_h_prime_prime] = 
           -2.*a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
-          +2.*(k2-3.*K)*y[ppw->pv->index_pt_eta]
+          +2.*(k2-3.*pba->K)*y[ppw->pv->index_pt_eta]
           -9.*a2*delta_p;
 
         /* alpha = (h'+6eta')/2k^2 */

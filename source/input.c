@@ -472,11 +472,13 @@ int input_init(
   }
   Omega_tot += pba->Omega0_ncdm_tot;
 
-  /* Omega_0_k (curvature) */
+  /* Omega_0_k (effective fractional density of curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
-  /* Set curvature parameter K: */
+  /* Set curvature parameter K */
   pba->K = -pba->Omega0_k*pow(pba->a_today*pba->H0,2);
-  
+  /* Set curvature sign */
+  if (pba->K > 0.) pba->sgnK = 1;
+  else if (pba->K < 0.) pba->sgnK = -1;
 
   /* Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid) */
   class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
@@ -1383,8 +1385,7 @@ int input_init(
   }
 
   class_read_int("use_pbs",pbs->use_pbs);
-  if (pba->Omega0_k != 0.) {
-    fprintf(stderr,"Omega0_k=%e, do not use pbs\n",pba->Omega0_k); // temporary, for debugging
+  if (pba->sgnK != 0) {
     pbs->use_pbs = _FALSE_;
   }
 
@@ -1840,6 +1841,7 @@ int input_default_params(
 
   pba->Omega0_k = 0.;
   pba->K = 0.;
+  pba->sgnK = 0;
   pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   pba->Omega0_fld = 0.;     
   pba->a_today = 1.;       

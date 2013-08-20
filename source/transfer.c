@@ -150,9 +150,6 @@ int transfer_init(
   */
   int ** tp_of_tt;
 
-  /* spatial curvature (temporary, will be replaced by a field in pba->... */
-  double curvature=0.;
-
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
@@ -239,7 +236,7 @@ int transfer_init(
   /* beginning of parallel region */
   
 #pragma omp parallel                                                    \
-  shared(tau_size_max,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,curvature,abort) \
+  shared(tau_size_max,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort) \
   private(ptw,thread,index_k_tr,tstart,tstop,tspent)
   {
     
@@ -252,12 +249,13 @@ int transfer_init(
     //int get_HIS_from_pbs = _TRUE_;
     //int get_HIS_from_pbs = _FALSE_;
     int get_HIS_from_pbs = pbs->use_pbs;
-    class_call_parallel(transfer_workspace_init(&ptw,
-                                                ptr->l_size_max,
+    class_call_parallel(transfer_workspace_init(ptr,
+                                                &ptw,
                                                 ppt->tau_size,
                                                 tau_size_max,
                                                 get_HIS_from_pbs,
-                                                ptr->error_message),
+                                                pba->K,
+                                                pba->sgnK),
                         ptr->error_message,
                         ptr->error_message);
     
@@ -276,6 +274,7 @@ int transfer_init(
                                               pbs,
                                               ptr,
                                               index_k_tr,
+                                              tau0,
                                               ptr->error_message),
                           ptr->error_message,
                           ptr->error_message);
@@ -500,13 +499,13 @@ int transfer_indices_of_transfers(
 
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
-  /** get l values using transfer_get_l_list() */
-  class_call(transfer_get_l_list(ppr,ppt,pbs,ptr),
-             ptr->error_message,
-             ptr->error_message);
-  
   /** get k values using transfer_get_k_list() */
   class_call(transfer_get_k_list(ppr,ppt,ptr,tau0),
+             ptr->error_message,
+             ptr->error_message);
+
+  /** get l values using transfer_get_l_list() */
+  class_call(transfer_get_l_list(ppr,ppt,pbs,ptr),
              ptr->error_message,
              ptr->error_message);
 
@@ -1241,7 +1240,7 @@ int transfer_compute_for_each_k(
   short neglect;
 
   double sqrt_absK;
-  int sgnK = 0;
+
   /** store the sources in the workspace and define all
       fields in this workspace */
   interpolated_sources = ptw->interpolated_sources;
@@ -1315,9 +1314,9 @@ int transfer_compute_for_each_k(
                    ptr->error_message);
 
         int index_tau;
-        switch (sgnK){
+        switch (ptw->sgnK){
         case 1:
-          sqrt_absK = sqrt(1e-5);
+          sqrt_absK = sqrt(ptw->K);
           for (index_tau=0; index_tau < (*tau_size); index_tau++) {
             chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
             cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
@@ -1334,7 +1333,7 @@ int transfer_compute_for_each_k(
           }
           break;
         case -1:
-          sqrt_absK = sqrt(1e-5);
+          sqrt_absK = sqrt(-ptw->K);
           for (index_tau=0; index_tau < (*tau_size); index_tau++) {
             chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
             cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
@@ -2669,15 +2668,13 @@ int transfer_integrate(
 
   radial_function_t radial_type = SCALAR_TEMPERATURE_0; /* initialized ot arbitrary value to prevent compiler warning */
 
-  int sgnK=0;
-  double K=0.0;
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
-  if (sgnK==0){
+  if (ptw->sgnK==0){
     tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
   }
   else{
-    tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/sqrt(sgnK*K); 
+    tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/sqrt(ptw->sgnK*ptw->K); 
   }
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
   if (tau0_minus_tau_min_bessel >= tau0_minus_tau[0]) {
@@ -3034,21 +3031,22 @@ int transfer_radial_function(
   double *chi = ptw->chi;
   double *cscKgen = ptw->cscKgen;
   double *cotKgen = ptw->cotKgen;
-  int j, sgnK=0;
+  int j;
   double *Phi, *dPhi, *d2Phi, *chireverse;
-  double K = 0.0, k=1.0, k2=1.0;
+  double K=0.,k=1.0, k2=1.0;
   double sqrt_absK_over_k;
   double absK_over_k2;
   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   
-  //if (sgnK==0){
+  if (ptw->sgnK==0){
   /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
   sqrt_absK_over_k = 1.0;
-  //}
-  /* else{
-     sqrt_absK_over_k = sqrt(fabs(K))/k;
-     }*/
+  }
+  else {
+    K=ptw->K;
+    sqrt_absK_over_k = sqrt(ptw->sgnK*K)/k;
+  }
   absK_over_k2 =sqrt_absK_over_k*sqrt_absK_over_k;
 
   Phi = malloc(sizeof(double)*nx);
@@ -3301,26 +3299,33 @@ int transfer_init_HIS_from_bessel(
 
 
 int transfer_workspace_init(
+                            struct transfers * ptr,
                             struct transfer_workspace **ptw,
-                            int nl,
                             int perturb_tau_size,
                             int tau_size_max,
                             int get_HIS_from_pbs,
-                            ErrorMsg error_message){
-  class_calloc(*ptw,1,sizeof(struct transfer_workspace),error_message);
-  class_alloc((*ptw)->chi_at_phiminabs,nl*sizeof(double),error_message);
-  class_alloc((*ptw)->interpolated_sources,perturb_tau_size*sizeof(double),error_message);
-  class_alloc((*ptw)->sources,tau_size_max*sizeof(double),error_message);
-  class_alloc((*ptw)->tau0_minus_tau,tau_size_max*sizeof(double),error_message);
-  class_alloc((*ptw)->w_trapz,tau_size_max*sizeof(double),error_message);
-  class_alloc((*ptw)->chi,tau_size_max*sizeof(double),error_message);
-  class_alloc((*ptw)->cscKgen,tau_size_max*sizeof(double),error_message);
-  class_alloc((*ptw)->cotKgen,tau_size_max*sizeof(double),error_message);
-  
+                            double K,
+                            double sgnK){
+
+  class_calloc(*ptw,1,sizeof(struct transfer_workspace),ptr->error_message);
+
   (*ptw)->tau_size_max = tau_size_max;
-  (*ptw)->l_size = nl;
+  (*ptw)->l_size = ptr->l_size_max;
   (*ptw)->HIS_allocated=_FALSE_;
   (*ptw)->get_HIS_from_pbs=get_HIS_from_pbs;
+
+  (*ptw)->K = K;
+  (*ptw)->sgnK = sgnK;
+
+  class_alloc((*ptw)->chi_at_phiminabs,(*ptw)->l_size*sizeof(double),ptr->error_message);
+  class_alloc((*ptw)->interpolated_sources,perturb_tau_size*sizeof(double),ptr->error_message);
+  class_alloc((*ptw)->sources,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc((*ptw)->tau0_minus_tau,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc((*ptw)->w_trapz,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc((*ptw)->chi,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc((*ptw)->cscKgen,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc((*ptw)->cotKgen,tau_size_max*sizeof(double),ptr->error_message);
+ 
   return _SUCCESS_;
 }
 
@@ -3347,11 +3352,12 @@ int transfer_update_HIS(
                         struct bessels * pbs,
                         struct transfers * ptr,
                         int index_k_tr,
+                        double tau0,
                         ErrorMsg error_message){
-  int K=0.;
   double beta;
   double xmin, xmax, sampling, phiminabs, xtol;
-  
+  double k,q,sqrt_absK;
+
   if (ptw->HIS_allocated==_TRUE_){
 
     /*
@@ -3367,7 +3373,7 @@ int transfer_update_HIS(
       }
     */
 
-    if (K == 0) {
+    if (ptw->sgnK == 0) {
       /* nothing to be done */
       return _SUCCESS_;
     }
@@ -3389,18 +3395,36 @@ int transfer_update_HIS(
   else{
     //These number should be set from input structures in the future:
     printf("Creating interpolation structure...\n");
-    K=0;
 
     xmin = 1e-7; //Will be changed to _HYPER_SAFETY_ by routine
-    xmax = pbs->x_max;
     xmin = max(xmin,_HYPER_SAFETY_);
-    if (K==1) 
-      xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
-    
-    //sampling = 3;
-    sampling = 2.*_PI_/(beta+5.)*(1./pbs->x_step+1./(xmax-xmin));
-    beta = 1; //Later related to ptr->k[index_k] but also the curvature.
-    class_call(hyperspherical_HIS_create(K, 
+
+    if (ptw->sgnK == 0) {
+      
+      k = ptr->k[ptr->k_size-1];
+      xmax = k*tau0;
+      fprintf(stderr,"%e %e\n",xmax,pbs->x_max);
+      beta=1.;
+
+    }
+    else {
+
+      k = ptr->k[index_k_tr];
+      q=sqrt(k*k+ptw->K); // for scalar only
+      sqrt_absK = sqrt(ptw->sgnK*ptw->K);
+
+      xmax = sqrt_absK*tau0;
+      beta = q/sqrt_absK; //Later related to ptr->k[index_k] but also the curvature.
+
+      if (ptw->sgnK == 1) 
+        xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
+
+    }
+
+    //sampling = 2.*_PI_/(beta+5.)*(1./pbs->x_step+1./(xmax-xmin));
+    sampling = 0.5;
+
+    class_call(hyperspherical_HIS_create(ptw->sgnK, 
                                          beta,
                                          ptr->l_size_max,
                                          ptr->l,
@@ -3411,6 +3435,8 @@ int transfer_update_HIS(
                                          error_message),
                error_message,error_message);
     ptw->HIS_allocated = _TRUE_;
+
+
   }
   //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
   phiminabs = 1e-5;

@@ -633,7 +633,7 @@ int background_indices(
   if (pba->Omega0_ur != 0.)
     pba->has_ur = _TRUE_;
 
-  if (pba->Omega0_k != 0.)
+  if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
 
   /** - intialization of all indices */

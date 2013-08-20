@@ -78,6 +78,8 @@ struct transfers {
 
   int * l;        /**< list of multipole values l[index_l] */
 
+  //int * l_size_bessel; /**< for each wavenumber, maximum value of l at which bessel functions must be evaluated */
+
   //@}
 
   /** @name - number and list of wavenumbers */
@@ -137,6 +139,8 @@ struct transfer_workspace {
   double *chi;
   double *cscKgen;
   double *cotKgen;
+  double K;
+  int sgnK;
 };
 
 typedef enum {SCALAR_TEMPERATURE_0, 
@@ -458,12 +462,13 @@ extern "C" {
                                     ErrorMsg error_message);
 
   int transfer_workspace_init(
+                              struct transfers * ptr,
                               struct transfer_workspace **ptw,
-                              int nl,
                               int perturb_tau_size,
                               int tau_size_max,
                               int get_HIS_from_pbs,
-                              ErrorMsg error_message);
+                              double K,
+                              double sgnK);
 
   int transfer_workspace_free(struct transfer_workspace *ptw);
 
@@ -472,6 +477,7 @@ extern "C" {
                           struct bessels * pbs,
                           struct transfers * ptr,
                           int index_k_tr,
+                          double tau0,
                           ErrorMsg error_message);
 #ifdef __cplusplus
 }

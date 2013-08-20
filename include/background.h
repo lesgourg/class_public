@@ -62,8 +62,6 @@ struct background
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
-  double K; /**< \f$ K \f$ : Curvature parameter K=-Omega0_k*a_today^2*H_0^2; */
-  
 
   int N_ncdm;                            /**< Number of distinguishabe ncdm species */
   double * M_ncdm;                       /**<vector of masses of non-cold relic: 
@@ -106,6 +104,8 @@ struct background
   double h; /** reduced Hubble parameter */
   double age; /**< age in Gyears */
   double conformal_age; /**< conformal age in Mpc */
+  double K; /**< \f$ K \f$ : Curvature parameter K=-Omega0_k*a_today^2*H_0^2; */
+  int sgnK; /**< K/|K|: -1, 0 or 1 */
   double * m_ncdm_in_eV; /**< list of ncdm masses in eV (infered from M_ncdm and other parameters above) */
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
 
