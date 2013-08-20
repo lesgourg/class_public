@@ -128,7 +128,7 @@ struct transfer_workspace {
   int get_HIS_from_pbs;
   int tau_size;
   int tau_size_max;
-  int nl;
+  int l_size;
   double *chi_at_phiminabs;
   double *interpolated_sources;
   double *sources;
@@ -451,18 +451,6 @@ extern "C" {
                                double * radial_function,
                                radial_function_t radial_type
                                );
-
-  int transfer_bessel_fill(
-                           struct bessels * pbs,
-                           struct transfers * ptr,
-                           double curvature,
-                           int index_k_tr,
-                           struct bessels_for_one_k * pbk
-                           );
-
-  int transfer_bessel_free(
-                           struct bessels_for_one_k * pbk
-                           );
 
   int transfer_init_HIS_from_bessel(
                                     struct bessels * pbs,

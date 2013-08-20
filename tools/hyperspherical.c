@@ -28,28 +28,30 @@ int hyperspherical_HIS_create(int K,
   int j, k, l, nx, lmax;
   beta2 = beta*beta;
   lmax = lvec[nl-1];
+  /*
   xmin = max(xmin,_HYPER_SAFETY_);
   if (K==1) 
     xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
+  */
   lambda = 2*_PI_/(beta+5.0); //Just to prevent too sparse sampling at beta<5.
   nx = (int) ((xmax-xmin)*sampling/lambda);
   deltax = (xmax-xmin)/(nx-1.0);
   fprintf(stderr,"dx=%e\n",deltax);
   // Allocate vectors:
   class_alloc(pHIS,sizeof(HyperInterpStruct),error_message);
-  class_alloc(pHIS->lvec,sizeof(int)*nl,error_message);
-  class_alloc(pHIS->xvec,sizeof(double)*nx,error_message);
+  class_alloc(pHIS->l,sizeof(int)*nl,error_message);
+  class_alloc(pHIS->x,sizeof(double)*nx,error_message);
   class_alloc(pHIS->sinK,sizeof(double)*nx,error_message);
   class_alloc(pHIS->cotK,sizeof(double)*nx,error_message);
-  class_alloc(pHIS->phivec,sizeof(double)*nx*nl,error_message);
-  class_alloc(pHIS->dphivec,sizeof(double)*nx*nl,error_message);
+  class_alloc(pHIS->phi,sizeof(double)*nx*nl,error_message);
+  class_alloc(pHIS->dphi,sizeof(double)*nx*nl,error_message);
   //Assign pHIS pointervalue to input ppHIS:
   *ppHIS = pHIS;
   //Set scalar values:
   pHIS->beta = beta;
-  pHIS->deltax = deltax;
-  pHIS->nl = nl;
-  pHIS->nx = nx;
+  pHIS->delta_x = deltax;
+  pHIS->l_size = nl;
+  pHIS->x_size = nx;
   pHIS->K = K;
   //Order needed for trig interpolation: (We are using Taylor's remainder theorem)
   if (0.5*deltax*deltax < _TRIG_PRECISSION_)
@@ -61,7 +63,7 @@ int hyperspherical_HIS_create(int K,
 
   //Copy lvector:
   for (j=0; j<nl; j++){
-    pHIS->lvec[j] = lvec[j];
+    pHIS->l[j] = lvec[j];
   }
   //Allocate sqrtK, and PhiL:
   class_alloc(sqrtK,(lmax+3)*sizeof(double),error_message);
@@ -72,7 +74,7 @@ int hyperspherical_HIS_create(int K,
     xfwd = sqrt(lmax*(lmax+1.0))/beta;
     for (j=0; j<nx; j++){
       x = xmin + j*deltax;
-      pHIS->xvec[j] = x;
+      pHIS->x[j] = x;
       pHIS->sinK[j] = x;
       pHIS->cotK[j] = 1.0/x;
     }
@@ -84,7 +86,7 @@ int hyperspherical_HIS_create(int K,
     xfwd = xmax+1.0;
     for (j=0; j<nx; j++){
       x = xmin + j*deltax;
-      pHIS->xvec[j] = x;
+      pHIS->x[j] = x;
       pHIS->sinK[j] = sin(x);
       pHIS->cotK[j] = 1.0/tan(x);
     }
@@ -104,7 +106,7 @@ int hyperspherical_HIS_create(int K,
     xfwd = asinh(sqrt(lmax*(lmax+1.0))/beta);
     for (j=0; j<nx; j++){
       x = xmin + j*deltax;
-      pHIS->xvec[j] = x;
+      pHIS->x[j] = x;
       pHIS->sinK[j] = sinh(x);
       pHIS->cotK[j] = 1.0/tanh(x);
     }
@@ -114,7 +116,7 @@ int hyperspherical_HIS_create(int K,
   }  
   //Calculate and assign Phi and dPhi values:
   for (j=0; j<nx; j++){
-    x = pHIS->xvec[j];
+    x = pHIS->x[j];
     if (x<xfwd){
       //Use backwards method:
       hyperspherical_backwards_recurrence(K, 
@@ -140,9 +142,9 @@ int hyperspherical_HIS_create(int K,
     //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
     for (k=0; k<nl; k++){
       l = lvec[k];
-      pHIS->phivec[k*nx+j] = PhiL[l];
-      pHIS->dphivec[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
-      //      printf("x = %g, Phi_%d = %g %g\n",x,l,pHIS->phivec[k*nx+j],pHIS->dphivec[k*nx+j]);
+      pHIS->phi[k*nx+j] = PhiL[l];
+      pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
+      //      printf("x = %g, Phi_%d = %g %g\n",x,l,pHIS->phi[k*nx+j],pHIS->dphi[k*nx+j]);
     }
   }
   free(sqrtK);
@@ -153,12 +155,12 @@ int hyperspherical_HIS_create(int K,
 
 int hyperspherical_HIS_free(HyperInterpStruct *pHIS){
   /** Free the Hyperspherical Interpolation Structure. */  
-  free(pHIS->lvec);
-  free(pHIS->xvec);
+  free(pHIS->l);
+  free(pHIS->x);
   free(pHIS->sinK);
   free(pHIS->cotK);
-  free(pHIS->phivec);
-  free(pHIS->dphivec);
+  free(pHIS->phi);
+  free(pHIS->dphi);
   free(pHIS);
   return _SUCCESS_;
 }
@@ -230,18 +232,18 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
       do_trig_linear = _TRUE_;
   }
 
-  xvec = pHIS->xvec;
+  xvec = pHIS->x;
   sinK = pHIS->sinK;
   cotK = pHIS->cotK;
   beta = pHIS->beta;
   beta2 = beta*beta;
-  deltax = pHIS->deltax;
+  deltax = pHIS->delta_x;
   deltax2 = deltax*deltax;
   K = pHIS->K;
-  nx = pHIS->nx;
-  Phi_l = pHIS->phivec+lnum*nx;
-  dPhi_l = pHIS->dphivec+lnum*nx;
-  l = pHIS->lvec[lnum];
+  nx = pHIS->x_size;
+  Phi_l = pHIS->phi+lnum*nx;
+  dPhi_l = pHIS->dphi+lnum*nx;
+  l = pHIS->l[lnum];
   lxlp1 = l*(l+1.0);
   xmin = xvec[0];
   xmax = xvec[nx-1];
@@ -776,13 +778,13 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
                             double phiminabs,
                             double *xmin){
   int left_index, right_index, index_l, j;
-  int nl = pHIS->nl;
-  int nx = pHIS->nx;
+  int nl = pHIS->l_size;
+  int nx = pHIS->x_size;
   int REFINE=10;
   double x[REFINE];
   double Phi[REFINE];
-  double *phivec = pHIS->phivec;
-  double *xvec = pHIS->xvec;
+  double *phivec = pHIS->phi;
+  double *xvec = pHIS->x;
   double xleft, xright;
   
   for (index_l=0; index_l<nl; index_l++){

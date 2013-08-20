@@ -30,6 +30,8 @@ struct bessels {
 
   short bessel_always_recompute; /**< if set to true, Bessels are never read from / written in files */
 
+  short use_pbs; /**< if _TRUE_, try to get bessel function from this module, if _FALSE_, from new hypershperical module. For non-flat models this parameter is forced by input module to be _FALSE_ */
+
  //@}
 
   /** @name - parameters defining uniquely the exact content of the Bessel table

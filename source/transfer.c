@@ -249,10 +249,11 @@ int transfer_init(
 #endif
        
     /* allocate workspace */
-    int get_HIS_from_pbs = _TRUE_;
+    //int get_HIS_from_pbs = _TRUE_;
     //int get_HIS_from_pbs = _FALSE_;
+    int get_HIS_from_pbs = pbs->use_pbs;
     class_call_parallel(transfer_workspace_init(&ptw,
-                                                pbs->l_size,
+                                                ptr->l_size_max,
                                                 ppt->tau_size,
                                                 tau_size_max,
                                                 get_HIS_from_pbs,
@@ -608,15 +609,99 @@ int transfer_get_l_list(
   int l_max=0;
   int index_md;
   int index_tt;
+  int increment,current_l;
 
-  /* allocate and fill l array (taken directly from Bessel module) */
+  /* allocate and fill l array */
 
-  ptr->l_size_max = pbs->l_size;
+  if (pbs->use_pbs == _TRUE_) {
+    
+    fprintf(stderr,"get here\n");
 
-  class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
-  
-  for (index_l=0; index_l < ptr->l_size_max; index_l++)
-    ptr->l[index_l]=pbs->l[index_l];
+    /* take directly from Bessel module) */
+    
+    ptr->l_size_max = pbs->l_size;
+    
+    class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
+    
+    for (index_l=0; index_l < ptr->l_size_max; index_l++)
+      ptr->l[index_l]=pbs->l[index_l];
+  }
+
+  else {
+
+    /** - start from l = 2 and increase with logarithmic step */
+
+    index_l = 0;
+    current_l = 2;
+    increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+    
+    while (((current_l+increment) < pbs->l_max) && 
+           (increment < ppr->l_linstep)) {
+      
+      index_l ++;
+      current_l += increment;
+      increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+
+    }
+
+    /** - when the logarithmic step becomes larger than some linear step, 
+        stick to this linear step till l_max */
+
+    increment = ppr->l_linstep;
+
+    while ((current_l+increment) <= pbs->l_max) {
+
+      index_l ++;
+      current_l += increment;
+
+    }
+
+    /** - last value set to exactly l_max */
+
+    if (current_l != pbs->l_max) {
+
+      index_l ++;
+      current_l = pbs->l_max;
+
+    } 
+
+    ptr->l_size_max = index_l+1;
+
+    /** - so far we just counted the number of values. Now repeat the
+        whole thing but fill array with values. */
+
+    class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
+
+    index_l = 0;
+    ptr->l[0] = 2;
+    increment = max((int)(ptr->l[0] * (ppr->l_logstep-1.)),1);
+
+    while (((ptr->l[index_l]+increment) < pbs->l_max) && 
+           (increment < ppr->l_linstep)) {
+      
+      index_l ++;
+      ptr->l[index_l]=ptr->l[index_l-1]+increment;
+      increment = max((int)(ptr->l[index_l] * (ppr->l_logstep-1.)),1);
+ 
+    }
+
+    increment = ppr->l_linstep;
+
+    while ((ptr->l[index_l]+increment) <= pbs->l_max) {
+
+      index_l ++;
+      ptr->l[index_l]=ptr->l[index_l-1]+increment;
+ 
+    }
+
+    if (ptr->l[index_l] != pbs->l_max) {
+
+      index_l ++;
+      ptr->l[index_l]= pbs->l_max;
+       
+    }
+
+  }
 
   /* for each mode and type, find relevant size of l array,
      l_size_tt[index_md][index_tt] (since for some modes and types
@@ -1287,7 +1372,7 @@ int transfer_compute_for_each_k(
 
             /* for a given l, maximum value of k such that we can convolve
                the source with Bessel functions j_l(x) without reaching x_max */
-            k_max_bessel = ptw->pHIS->xvec[ptw->pHIS->nx-1]/tau0_minus_tau[0];
+            k_max_bessel = ptw->pHIS->x[ptw->pHIS->x_size-1]/tau0_minus_tau[0];
 
             /* compute the transfer function for this l */
             class_call(transfer_compute_for_each_l(
@@ -2954,17 +3039,17 @@ int transfer_radial_function(
   double K = 0.0, k=1.0, k2=1.0;
   double sqrt_absK_over_k;
   double absK_over_k2;
-   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
+  double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   
   //if (sgnK==0){
-    /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
-    sqrt_absK_over_k = 1.0;
-    //}
+  /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
+  sqrt_absK_over_k = 1.0;
+  //}
   /* else{
-    sqrt_absK_over_k = sqrt(fabs(K))/k;
-    }*/
-    absK_over_k2 =sqrt_absK_over_k*sqrt_absK_over_k;
+     sqrt_absK_over_k = sqrt(fabs(K))/k;
+     }*/
+  absK_over_k2 =sqrt_absK_over_k*sqrt_absK_over_k;
 
   Phi = malloc(sizeof(double)*nx);
   dPhi = malloc(sizeof(double)*nx);
@@ -2975,14 +3060,14 @@ int transfer_radial_function(
     chireverse[j] = chi[nx-1-j];
 
   /** Debug region:
-  hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
-  FILE * debugbessel = fopen("debugbessel.dat","a");
-  fprintf(debugbessel,"#l = %d\n",ptw->pHIS->lvec[index_l]);
-  for (j=0; j<nx; j++){
-    fprintf(debugbessel,"%.16e %.16e %.16e %.16e\n",chireverse[j], Phi[j], dPhi[j], d2Phi[j]);
-  }  
-  fprintf(debugbessel,"#end of block\n");
-  fclose(debugbessel);
+      hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
+      FILE * debugbessel = fopen("debugbessel.dat","a");
+      fprintf(debugbessel,"#l = %d\n",ptw->pHIS->l[index_l]);
+      for (j=0; j<nx; j++){
+      fprintf(debugbessel,"%.16e %.16e %.16e %.16e\n",chireverse[j], Phi[j], dPhi[j], d2Phi[j]);
+      }  
+      fprintf(debugbessel,"#end of block\n");
+      fclose(debugbessel);
   */
 
   switch (radial_type){
@@ -3057,7 +3142,7 @@ int transfer_radial_function(
     factor = 0.25/si/ssqrt2;
     for (j=0; j<nx; j++)
       radial_function[nx-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[j]*sqrt_absK_over_k*dPhi[j]-
-                                   (1.0+4*K/k2-2.0*cotKgen[j]*cotKgen[j])*Phi[j]);
+                                        (1.0+4*K/k2-2.0*cotKgen[j]*cotKgen[j])*Phi[j]);
     break;
   case TENSOR_POLARISATION_B:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
@@ -3160,82 +3245,6 @@ int transfer_select_radial_function(
 
 } 
 
-int transfer_bessel_fill(
-                         struct bessels * pbs,
-                         struct transfers * ptr,
-                         double curvature,
-                         int index_k_tr,
-                         struct bessels_for_one_k * pbk
-                         ) {
- 
-  int index_l;
-  int index_x;
-  int order;
-  double k;
-
-  if (curvature == 0.) {
-
-    pbk->l_size=pbs->l_size;
-    pbk->x_step=pbs->x_step;
-    pbk->order_size=4;
-    
-    class_alloc(pbk->x_min,pbk->l_size*sizeof(double),ptr->error_message);
-    class_alloc(pbk->x_size,pbk->l_size*sizeof(int),ptr->error_message);
-    class_alloc(pbk->bessel_k,pbk->l_size*sizeof(double*),ptr->error_message);
-    
-    for (index_l=0; index_l<pbk->l_size; index_l++) {
-      
-      pbk->x_min[index_l]=*(pbs->x_min[index_l]);
-      pbk->x_size[index_l]=pbs->x_size[index_l];
-      
-      class_alloc(pbk->bessel_k[index_l],
-                  pbk->x_size[index_l]*pbk->order_size*sizeof(double),
-                  ptr->error_message);
-            
-      for (index_x=0; index_x<pbk->x_size[index_l]; index_x++) {
-        order=0;
-        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->j[index_l][index_x];
-        order=1;
-        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->dj[index_l][index_x];
-        order=2;
-        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->ddj[index_l][index_x];
-        order=3;
-        pbk->bessel_k[index_l][order*pbk->x_size[index_l]+index_x]=pbs->dddj[index_l][index_x];
-      }
-    }
-  }
-  else {
-    
-    /** compute bessels for all (l,x) and for the wavenumber k given by: */    
-    k = ptr->k[index_k_tr];
-    
-    class_stop(ptr->error_message,
-               "non-flat bessels to be coded");
-  }
-  
-  pbk->filled = _TRUE_;
-
-  return _SUCCESS_;
-}
-
-int transfer_bessel_free(
-                         struct bessels_for_one_k * pbk
-                         ) {
-
-  int index_l;
-
-  for (index_l=0; index_l<pbk->l_size; index_l++) {    
-    free(pbk->bessel_k[index_l]);
-  }
-  free(pbk->x_min);
-  free(pbk->x_size);
-  free(pbk->bessel_k);   
-  
-  pbk->filled = _FALSE_;
-
-  return _SUCCESS_;
-}
-
 int transfer_init_HIS_from_bessel(
                                   struct bessels * pbs,
                                   HyperInterpStruct **ppHIS,
@@ -3263,32 +3272,32 @@ int transfer_init_HIS_from_bessel(
   }
   /* Allocate HIS and all fields in HIS: */
   class_calloc(*ppHIS,1,sizeof(struct transfer_workspace),error_message);
-  class_alloc((*ppHIS)->lvec,nl*sizeof(int),error_message);
-  class_alloc((*ppHIS)->xvec,nx*sizeof(double),error_message);
+  class_alloc((*ppHIS)->l,nl*sizeof(int),error_message);
+  class_alloc((*ppHIS)->x,nx*sizeof(double),error_message);
   class_alloc((*ppHIS)->sinK,nx*sizeof(double),error_message);
   class_alloc((*ppHIS)->cotK,nx*sizeof(double),error_message);
-  class_alloc((*ppHIS)->phivec,nx*nl*sizeof(double),error_message);
-  class_alloc((*ppHIS)->dphivec,nx*nl*sizeof(double),error_message);
+  class_alloc((*ppHIS)->phi,nx*nl*sizeof(double),error_message);
+  class_alloc((*ppHIS)->dphi,nx*nl*sizeof(double),error_message);
   /* Set and copy all fields of HIS: */
   (*ppHIS)->K = 0;
   (*ppHIS)->beta = 1;
-  (*ppHIS)->deltax = pbs->x_step;
-  (*ppHIS)->nx = nx;
-  (*ppHIS)->nl = nl;
+  (*ppHIS)->delta_x = pbs->x_step;
+  (*ppHIS)->x_size = nx;
+  (*ppHIS)->l_size = nl;
   (*ppHIS)->trig_order=5;
   for(index_x=0; index_x<nx; index_x++){
     x = xmin+index_x*pbs->x_step;
-    (*ppHIS)->xvec[index_x] = x;
+    (*ppHIS)->x[index_x] = x;
     (*ppHIS)->sinK[index_x] = x;
     (*ppHIS)->cotK[index_x] = 1.0/x;
   }
-  memcpy((*ppHIS)->lvec, pbs->l, nl*sizeof(int));
+  memcpy((*ppHIS)->l, pbs->l, nl*sizeof(int));
   for (index_l=0; index_l<nl; index_l++)
-    memcpy((*ppHIS)->phivec+index_l*nx,pbs->j[index_l],sizeof(double)*nx);
+    memcpy((*ppHIS)->phi+index_l*nx,pbs->j[index_l],sizeof(double)*nx);
   for (index_l=0; index_l<nl; index_l++)
-    memcpy((*ppHIS)->dphivec+index_l*nx,pbs->dj[index_l],sizeof(double)*nx);
+    memcpy((*ppHIS)->dphi+index_l*nx,pbs->dj[index_l],sizeof(double)*nx);
   return _SUCCESS_;
- }
+}
 
 
 int transfer_workspace_init(
@@ -3309,7 +3318,7 @@ int transfer_workspace_init(
   class_alloc((*ptw)->cotKgen,tau_size_max*sizeof(double),error_message);
   
   (*ptw)->tau_size_max = tau_size_max;
-  (*ptw)->nl = nl;
+  (*ptw)->l_size = nl;
   (*ptw)->HIS_allocated=_FALSE_;
   (*ptw)->get_HIS_from_pbs=get_HIS_from_pbs;
   return _SUCCESS_;
@@ -3346,16 +3355,16 @@ int transfer_update_HIS(
   if (ptw->HIS_allocated==_TRUE_){
 
     /*
-    if (ptw->get_HIS_from_pbs==_TRUE_){
+      if (ptw->get_HIS_from_pbs==_TRUE_){
       
       return _SUCCESS_;
-    }
-    else{
+      }
+      else{
       
       class_call(hyperspherical_HIS_free(ptw->pHIS),
-                 error_message,error_message);
+      error_message,error_message);
       ptw->HIS_allocated = _FALSE_;
-    }
+      }
     */
 
     if (K == 0) {
@@ -3381,15 +3390,20 @@ int transfer_update_HIS(
     //These number should be set from input structures in the future:
     printf("Creating interpolation structure...\n");
     K=0;
+
     xmin = 1e-7; //Will be changed to _HYPER_SAFETY_ by routine
     xmax = pbs->x_max;
-    sampling = 3;
-    //sampling = 0.5;
+    xmin = max(xmin,_HYPER_SAFETY_);
+    if (K==1) 
+      xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
+    
+    //sampling = 3;
+    sampling = 2.*_PI_/(beta+5.)*(1./pbs->x_step+1./(xmax-xmin));
     beta = 1; //Later related to ptr->k[index_k] but also the curvature.
     class_call(hyperspherical_HIS_create(K, 
                                          beta,
-                                         pbs->l_size,
-                                         pbs->l,
+                                         ptr->l_size_max,
+                                         ptr->l,
                                          xmin,
                                          xmax,
                                          sampling,
@@ -3406,7 +3420,7 @@ int transfer_update_HIS(
                                      xtol,
                                      phiminabs,
                                      ptw->chi_at_phiminabs),
-               error_message, error_message);
+             error_message, error_message);
   
   return _SUCCESS_;
 }

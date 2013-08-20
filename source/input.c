@@ -1382,6 +1382,12 @@ int input_init(
     pbs->bessel_always_recompute = _FALSE_;
   }
 
+  class_read_int("use_pbs",pbs->use_pbs);
+  if (pba->Omega0_k != 0.) {
+    fprintf(stderr,"Omega0_k=%e, do not use pbs\n",pba->Omega0_k); // temporary, for debugging
+    pbs->use_pbs = _FALSE_;
+  }
+
   /** (f) parameter related to the non-linear spectra computation */
 
   class_call(parser_read_string(pfc,
@@ -1903,6 +1909,7 @@ int input_default_params(
 
   pbs->l_max = max(max(ppt->l_scalar_max,ppt->l_tensor_max),ppt->l_lss_max);
   pbs->bessel_always_recompute = _TRUE_;
+  pbs->use_pbs = _TRUE_;
 
   /** - primordial structure */
 

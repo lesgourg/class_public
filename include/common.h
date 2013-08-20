@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v1.8"
+#define _VERSION_ "v1.9"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -491,7 +491,7 @@ struct precision
   int l_linstep; /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
   double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
-  double bessel_x_step; /**< step dx for sampling Bessel functions \f$ j_l(x) \f$ */
+  double bessel_x_step; /**< in pbs module only: step dx for sampling Bessel functions \f$ j_l(x) \f$ */
   double bessel_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
   double bessel_tol_x_min;  /**< precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
   FileName bessel_file_name; /**< name of file where Bessel functions will evnetually be written or read */

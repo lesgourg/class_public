@@ -13,16 +13,16 @@
 typedef struct HypersphericalInterpolationStructure{
   int K;                 //Sign of the curvature, (0,-1,1)
   double beta;
-  double deltax;         //x-spacing. (xvec is uniformly spaced)
+  double delta_x;         //x-spacing. (xvec is uniformly spaced)
   int trig_order;        //Order of the interpolation formula for SinK and CosK.
-  int nl;                //Number of l values
-  int *lvec;             //Vector of l values stored
-  int nx;                //Number of x-values  
-  double *xvec;          //Pointer to x-values
+  int l_size;                //Number of l values
+  int *l;             //Vector of l values stored
+  int x_size;                //Number of x-values  
+  double *x;          //Pointer to x-values
   double *sinK;          //Vector of sin_K(xvec)
   double *cotK;          //Vector of cot_K(xvec)
-  double *phivec;        //array of size nl*nx. [y_{l1}(x1) t_{l1}(x2)...]
-  double *dphivec;       //Same as phivec, but containing derivatives.
+  double *phi;        //array of size nl*nx. [y_{l1}(x1) t_{l1}(x2)...]
+  double *dphi;       //Same as phivec, but containing derivatives.
 } HyperInterpStruct;
 
 

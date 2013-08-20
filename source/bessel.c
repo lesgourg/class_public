@@ -146,6 +146,12 @@ int bessel_init(
   double tstart, tstop;
 #endif
 
+  if (pbs->use_pbs == _FALSE_) {
+    if (pbs->bessels_verbose > 0)
+      printf("Bessel functions will be computed on the fly by hyperspherical module. Bessel module skipped.\n");
+    return _SUCCESS_;
+  }
+
   if (pbs->l_max == 0) {
     if (pbs->bessels_verbose > 0)
       printf("No harmonic space transfer functions to compute. Bessel module skipped.\n");
@@ -419,7 +425,7 @@ int bessel_free(
 
   int index_l;
 
-  if (pbs->l_max > 0) {
+  if ((pbs->l_max > 0) && (pbs->use_pbs == _TRUE_)) {
 
     for (index_l = 0; index_l < pbs->l_size; index_l++) {
       free(pbs->buffer[index_l]);
