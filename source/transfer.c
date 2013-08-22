@@ -265,6 +265,8 @@ int transfer_init(
     
     for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
       
+      //fprintf(stderr,"[%d/%d] %e\n",index_k_tr,ptr->k_size-1,ptr->k[index_k_tr]);
+
 #ifdef _OPENMP
       tstart = omp_get_wtime();
 #endif
@@ -1321,8 +1323,7 @@ int transfer_compute_for_each_k(
             chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
             cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
               sin(chi[index_tau]);
-            cotKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]*cscKgen[index_tau]*
-              cos(chi[index_tau]);
+            cotKgen[index_tau] = cscKgen[index_tau]*cos(chi[index_tau]);
           }
           break;
         case 0:
@@ -1338,8 +1339,7 @@ int transfer_compute_for_each_k(
             chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
             cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
               sinh(chi[index_tau]);
-            cotKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]*cscKgen[index_tau]*
-              cosh(chi[index_tau]);
+            cotKgen[index_tau] = cscKgen[index_tau]*cosh(chi[index_tau]);
           }
           break;
         }
@@ -1371,7 +1371,12 @@ int transfer_compute_for_each_k(
 
             /* for a given l, maximum value of k such that we can convolve
                the source with Bessel functions j_l(x) without reaching x_max */
-            k_max_bessel = ptw->pHIS->x[ptw->pHIS->x_size-1]/tau0_minus_tau[0];
+            if (ptw->sgnK == 0) {
+              k_max_bessel = ptw->pHIS->x[ptw->pHIS->x_size-1]/tau0_minus_tau[0];
+            }
+            else {
+              k_max_bessel = ptr->k[ptr->k_size-1];
+            }
 
             /* compute the transfer function for this l */
             class_call(transfer_compute_for_each_l(
@@ -2684,6 +2689,8 @@ int transfer_integrate(
 
   /** - if there is an overlap: */
 
+  //fprintf(stdout,"%e %e\n",k,l);
+
   /** Select radial function type: */
   class_call(transfer_select_radial_function(
                                              ppt,
@@ -2696,10 +2703,12 @@ int transfer_integrate(
   
   /** -> trivial case: the source is a Dirac function and is sampled in only one point */
   if (ptw->tau_size == 1) {
+
     class_call(transfer_radial_function(
                                         ptw,
                                         ppt,
                                         ptr,
+                                        k,
                                         index_l,
                                         1,
                                         &bessel,
@@ -2737,6 +2746,7 @@ int transfer_integrate(
                                       ptw,
                                       ppt,
                                       ptr,
+                                      k,
                                       index_l,
                                       index_tau_max+1,
                                       radial_function,
@@ -2744,7 +2754,7 @@ int transfer_integrate(
                                       ),
              ptr->error_message,
              ptr->error_message);
-  
+
   /** Now we do most of the convolution integral: */
   class_call(array_trapezoidal_convolution(sources,
                                            radial_function,
@@ -3021,6 +3031,7 @@ int transfer_radial_function(
                              struct transfer_workspace * ptw,
                              struct perturbs * ppt,
                              struct transfers * ptr,
+                             double k,
                              int index_l,
                              int nx,
                              double * radial_function,
@@ -3033,12 +3044,15 @@ int transfer_radial_function(
   double *cotKgen = ptw->cotKgen;
   int j;
   double *Phi, *dPhi, *d2Phi, *chireverse;
-  double K=0.,k=1.0, k2=1.0;
+  double K=0.,k2=1.0;
   double sqrt_absK_over_k;
   double absK_over_k2;
   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   
+  K = ptw->K;
+  k2 = k*k;
+
   if (ptw->sgnK==0){
   /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
   sqrt_absK_over_k = 1.0;
@@ -3403,9 +3417,10 @@ int transfer_update_HIS(
       
       k = ptr->k[ptr->k_size-1];
       xmax = k*tau0;
-      fprintf(stderr,"%e %e\n",xmax,pbs->x_max);
+      //fprintf(stderr,"%e %e\n",xmax,pbs->x_max);
       beta=1.;
 
+      sampling = 0.5;
     }
     else {
 
@@ -3414,15 +3429,16 @@ int transfer_update_HIS(
       sqrt_absK = sqrt(ptw->sgnK*ptw->K);
 
       xmax = sqrt_absK*tau0;
-      beta = q/sqrt_absK; //Later related to ptr->k[index_k] but also the curvature.
+      beta = q/sqrt_absK; //Later related to ptr->k[index_k] but also the curvature.      
 
       if (ptw->sgnK == 1) 
         xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
 
-    }
+      //fprintf(stderr,"sgnK=%d beta=%e l_size_max=%d xmin=%e xmax=%e\n",ptw->sgnK,beta,ptr->l_size_max,xmin,xmax);
 
-    //sampling = 2.*_PI_/(beta+5.)*(1./pbs->x_step+1./(xmax-xmin));
-    sampling = 0.5;
+      sampling = 3.;
+
+    }
 
     class_call(hyperspherical_HIS_create(ptw->sgnK, 
                                          beta,
@@ -3450,3 +3466,27 @@ int transfer_update_HIS(
   
   return _SUCCESS_;
 }
+
+/*
+int transfer_l_max_bessel() {
+
+  x = k*tau0; 
+  lmax = 10.*sqrt(x)+x;
+
+  for (index_l = 0; index_l < ptr->l_size_max; index_l++) {
+
+    if (ptr->l[index_l] > lmax) {
+
+      *l_size_bessel=index_l;
+
+      return _SUCCESS_;
+
+    }
+  }
+
+  *l_size_bessel = ptr->l_size_max;
+
+  return _SUCCESS_;
+
+}
+*/
