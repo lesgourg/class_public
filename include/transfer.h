@@ -191,7 +191,9 @@ extern "C" {
                                     struct perturbs * ppt,
                                     struct bessels * pbs,
                                     struct transfers * ptr,
-                                    double tau0
+                                    double tau0,
+                                    double K,
+                                    int sgnK
                                     );
 
   int transfer_perturbation_source_spline(
@@ -217,7 +219,9 @@ extern "C" {
                           struct precision * ppr,
                           struct perturbs * ppt,
                           struct transfers * ptr,
-                          double tau0
+                          double tau0,
+                          double K,
+                          int sgnK
                           );
 
   int transfer_get_source_correspondence(

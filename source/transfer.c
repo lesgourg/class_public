@@ -195,7 +195,7 @@ int transfer_init(
   /** - initialize all indices in the transfers structure and 
       allocate all its arrays using transfer_indices_of_transfers() */
 
-  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,tau0),
+  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,tau0,pba->K,pba->sgnK),
              ptr->error_message,
              ptr->error_message);
 
@@ -387,7 +387,9 @@ int transfer_indices_of_transfers(
                                   struct perturbs * ppt,
                                   struct bessels * pbs,
                                   struct transfers * ptr,
-                                  double tau0
+                                  double tau0,
+                                  double K,
+                                  int sgnK
                                   ) {
 
   /** Summary: */
@@ -502,7 +504,7 @@ int transfer_indices_of_transfers(
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
   /** get k values using transfer_get_k_list() */
-  class_call(transfer_get_k_list(ppr,ppt,ptr,tau0),
+  class_call(transfer_get_k_list(ppr,ppt,ptr,tau0,K,sgnK),
              ptr->error_message,
              ptr->error_message);
 
@@ -784,7 +786,9 @@ int transfer_get_k_list(
                         struct precision * ppr,
                         struct perturbs * ppt,
                         struct transfers * ptr,
-                        double tau0
+                        double tau0,
+                        double K,
+                        int sgnK
                         ) {
 
   int index_k_pt;
@@ -801,7 +805,12 @@ int transfer_get_k_list(
 
   /* first and last value in perturbation module */
 
-  k_min = ppt->k[0]; /* first value, inferred from perturbations structure */
+  if (sgnK==0) {
+    k_min = ppt->k[0]; /* first value, inferred from perturbations structure */
+  }
+  if (sgnK==-1) {
+    k_min = max(sqrt(sgnK*K)+1.e-7,ppt->k[0]); /* first value, inferred from perturbations structure */
+  }
 
   k_max = ppt->k[ppt->k_size_cl-1]; /* last value, inferred from perturbations structure */
 
@@ -3425,11 +3434,20 @@ int transfer_update_HIS(
     else {
 
       k = ptr->k[index_k_tr];
+
+      class_test(k*k+ptw->K<0.,
+                 ptr->error_message,
+                 "k=%e",k);
+
       q=sqrt(k*k+ptw->K); // for scalar only
       sqrt_absK = sqrt(ptw->sgnK*ptw->K);
 
       xmax = sqrt_absK*tau0;
       beta = q/sqrt_absK; //Later related to ptr->k[index_k] but also the curvature.      
+
+      class_test(beta <0.,
+                 ptr->error_message,
+                 "k=%e q=%e beta=%e",k,q,beta);
 
       if (ptw->sgnK == 1) 
         xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
