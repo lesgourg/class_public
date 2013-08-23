@@ -1160,6 +1160,12 @@ int perturb_get_k_list(
   ppt->k[index_k] = ppr->k_min_tau0/pba->conformal_age;
   index_k++;
 
+  /* corrected value of the smallest wavenumber in case of spatial curvature (to be updated later to non-scale modes) */
+  if (pba->K < 0.) 
+    k += sqrt(-pba->K);   // to start from q=sqrt(k2+(1+m)K) close to zero
+  else if (pba->K > 0.) 
+    k += sqrt(9.*pba->K*pba->K-pba->K); // to start from q=sqrt(k2+(1+m)K) equal to 3K
+
   /* values until k_max_cmb */
 
   while (index_k < ppt->k_size_cmb) {

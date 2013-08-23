@@ -1840,7 +1840,7 @@ int spectra_compute_cl(
 
     cl_integrand[index_q*cl_integrand_num_columns+0] = q;
 
-    class_call(primordial_spectrum_at_k(ppm,index_md,linear,q,primordial_pk),
+    class_call(primordial_spectrum_at_k(ppm,index_md,linear,ptr->k[index_md][index_q],primordial_pk),
                ppm->error_message,
                psp->error_message);
 
