@@ -5,40 +5,48 @@
  * This module has two purposes:
  *
  * - at the beginning, to compute the transfer functions \f$
- *   \Delta_l^{X} (k) \f$, and store them in tables used for
+ *   \Delta_l^{X} (q) \f$, and store them in tables used for
  *   interpolation in other modules.
  *
  * - at any time in the code, to evaluate the transfer functions (for
  *   a given mode, initial condition, type and multipole l) at any
- *   wavenumber k (by interpolating within the interpolation table).
+ *   wavenumber q (by interpolating within the interpolation table).
  *
  * Hence the following functions can be called from other modules:
  *
  * -# transfer_init() at the beginning (but after perturb_init() 
  *    and bessel_init())
  *
- * -# transfer_functions_at_k() at any later time 
+ * -# transfer_functions_at_q() at any later time 
  *
  * -# transfer_free() at the end, when no more calls to 
- *    transfer_functions_at_k() are needed
+ *    transfer_functions_at_q() are needed
  * 
  * Note that in the standard implementation of CLASS, only the pre-computed 
  * values of the transfer functions are used, no interpolation is necessary; 
- * hence the routine transfer_functions_at_k() is actually never called.
+ * hence the routine transfer_functions_at_q() is actually never called.
  */
 
 #include "transfer.h"
 
 /** 
- * Transfer function \f$ \Delta_l^{X} (k) \f$ at a given wavenumber k.
+ * Transfer function \f$ \Delta_l^{X} (q) \f$ at a given wavenumber q.
  *
  * For a given mode (scalar, vector, tensor), initial condition, type
- * (temperature, polarization, lensing, etc) and multipole, compute
- * the transfer function for an arbitary value of k by interpolating
- * between pre-computed values of k. This
+ * (temperature, polarization, lensing, etc) and multipole, computes
+ * the transfer function for an arbitary value of q by interpolating
+ * between pre-computed values of q. This
  * function can be called from whatever module at whatever time,
  * provided that transfer_init() has been called before, and
  * transfer_free() has not been called yet.
+ *
+ * Wavenumbers are called q in this module and k in the perturbation
+ * module. In flat universes k=q. In non-flat universes q and k differ
+ * through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector,
+ * tensor. q should be used throughout the transfer module, excepted
+ * when interpolating or manipulating the source functions S(k,tau)
+ * calculated in the perturbation module: for a given value of q, this
+ * should be done at the corresponding k(q).
  *
  * @param index_md Input: index of requested mode
  * @param index_ic   Input: index of requested initial condition
@@ -48,28 +56,29 @@
  * @param transfer_function Output: transfer function
  * @return the error status
  */
-int transfer_functions_at_k(
+
+int transfer_functions_at_q(
                             struct transfers * ptr,
                             int index_md,
                             int index_ic,
                             int index_tt,
                             int index_l,
-                            double k,
+                            double q,
                             double * transfer_function
                             ) {
   /** Summary: */
 
   /** - interpolate in pre-computed table using array_interpolate_two() */
   class_call(array_interpolate_two(
-                                   ptr->k,
+                                   ptr->q,
                                    1,
                                    0,
                                    ptr->transfer[index_md]
                                    +((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l)
-                                   * ptr->k_size,
+                                   * ptr->q_size,
                                    1,
-                                   ptr->k_size,
-                                   k,
+                                   ptr->q_size,
+                                   q,
                                    transfer_function,
                                    1,
                                    ptr->error_message),
@@ -81,25 +90,17 @@ int transfer_functions_at_k(
 
 /**
  * This routine initializes the transfers structure, (in particular,
- * computes table of transfer functions \f$ \Delta_l^{X} (k) \f$)
+ * computes table of transfer functions \f$ \Delta_l^{X} (q) \f$)
  *
  * Main steps: 
  *
  * - initialize all indices in the transfers structure
  *   and allocate all its arrays using transfer_indices_of_transfers().
  *
- * - for a all requested modes (scalar, vector, tensor),
- *   initial conditions and types (temperature, polarization, lensing,
- *   etc), compute the transfer function \f$ \Delta_l^{X} (k) \f$
- *   following the following steps:
- &
- * -# interpolate sources \f$ S(k, \tau) \f$ to get them at the right 
- *    values of k using transfer_interpolate_sources()
+ * - for each thread (in case of parallel run), initialize the fields of a memory zone called the transfer_workspace with transfer_workspace_init()
  *
- * -# for each l, compute the transfer function by convolving the 
- *    sources with the Bessel functions using transfer_compute_for_each_l()
- *    (this step is parallelized). Store result in the transfer table 
- *    transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size + index_k]
+ * - loop over q values. For each q, compute the bessel functions if needed with transfer_update_HIS(), and defer the calculation of all transfer functions to transfer_compute_for_each_q()
+ * - for each thread, free the the workspace with transfer_workspace_free()
  *
  * @param ppr Input : pointer to precision structure 
  * @param pba Input : pointer to background structure 
@@ -124,7 +125,7 @@ int transfer_init(
   /** - define local variables */
 
   /* running index for wavenumbers */
-  int index_k_tr;
+  int index_q;
 
   /* conformal time today */
   double tau0;
@@ -237,7 +238,7 @@ int transfer_init(
   
 #pragma omp parallel                                                    \
   shared(tau_size_max,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort) \
-  private(ptw,thread,index_k_tr,tstart,tstop,tspent)
+  private(ptw,thread,index_q,tstart,tstop,tspent)
   {
     
 #ifdef _OPENMP
@@ -246,14 +247,12 @@ int transfer_init(
 #endif
        
     /* allocate workspace */
-    //int get_HIS_from_pbs = _TRUE_;
-    //int get_HIS_from_pbs = _FALSE_;
-    int get_HIS_from_pbs = pbs->use_pbs;
+
     class_call_parallel(transfer_workspace_init(ptr,
                                                 &ptw,
                                                 ppt->tau_size,
                                                 tau_size_max,
-                                                get_HIS_from_pbs,
+                                                pbs->use_pbs,
                                                 pba->K,
                                                 pba->sgnK),
                         ptr->error_message,
@@ -263,9 +262,9 @@ int transfer_init(
     
 #pragma omp for schedule (dynamic)
     
-    for (index_k_tr = 0; index_k_tr < ptr->k_size; index_k_tr++) {
+    for (index_q = 0; index_q < ptr->q_size; index_q++) {
       
-      //fprintf(stderr,"[%d/%d] %e\n",index_k_tr,ptr->k_size-1,ptr->k[index_k_tr]);
+      //fprintf(stderr,"[%d/%d] %e\n",index_q,ptr->q_size-1,ptr->k[index_q]);
 
 #ifdef _OPENMP
       tstart = omp_get_wtime();
@@ -275,18 +274,17 @@ int transfer_init(
       class_call_parallel(transfer_update_HIS(ptw,
                                               pbs,
                                               ptr,
-                                              index_k_tr,
-                                              tau0,
-                                              ptr->error_message),
+                                              index_q,
+                                              tau0),
                           ptr->error_message,
                           ptr->error_message);
 
-      class_call_parallel(transfer_compute_for_each_k(ppr,
+      class_call_parallel(transfer_compute_for_each_q(ppr,
                                                       pba,
                                                       ppt,
                                                       ptr,
                                                       tp_of_tt,
-                                                      index_k_tr,
+                                                      index_q,
                                                       tau_size_max,
                                                       tau_rec,
                                                       sources_spline,
@@ -305,7 +303,7 @@ int transfer_init(
     } /* end of loop over wavenumber */
     
     /* free workspace allocated inside parallel zone */
-    transfer_workspace_free(ptw);
+    transfer_workspace_free(ptr,ptw);
 
 #ifdef _OPENMP
     if (ptr->transfer_verbose>1)
@@ -351,12 +349,14 @@ int transfer_free(
     for (index_md = 0; index_md < ptr->md_size; index_md++) {
       free(ptr->l_size_tt[index_md]);
       free(ptr->transfer[index_md]);
+      free(ptr->k[index_md]);
     }  
    
     free(ptr->tt_size);
     free(ptr->l_size_tt);
     free(ptr->l_size);
     free(ptr->l);
+    free(ptr->q);
     free(ptr->k);
     free(ptr->transfer);
     
@@ -503,8 +503,13 @@ int transfer_indices_of_transfers(
 
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
+  /** get q values using transfer_get_q_list() */
+  class_call(transfer_get_q_list(ppr,ppt,ptr,tau0,K,sgnK),
+             ptr->error_message,
+             ptr->error_message);
+
   /** get k values using transfer_get_k_list() */
-  class_call(transfer_get_k_list(ppr,ppt,ptr,tau0,K,sgnK),
+  class_call(transfer_get_k_list(ppt,ptr,K),
              ptr->error_message,
              ptr->error_message);
 
@@ -519,7 +524,7 @@ int transfer_indices_of_transfers(
 
     /** allocate arrays of transfer functions, (ptr->transfer[index_md])[index_ic][index_tt][index_l][index_k] */
     class_alloc(ptr->transfer[index_md],
-                ppt->ic_size[index_md] * ptr->tt_size[index_md] * ptr->l_size[index_md] * ptr->k_size * sizeof(double),
+                ppt->ic_size[index_md] * ptr->tt_size[index_md] * ptr->l_size[index_md] * ptr->q_size * sizeof(double),
                 ptr->error_message);
     
   }
@@ -618,8 +623,6 @@ int transfer_get_l_list(
 
   if (pbs->use_pbs == _TRUE_) {
     
-    fprintf(stderr,"get here\n");
-
     /* take directly from Bessel module) */
     
     ptr->l_size_max = pbs->l_size;
@@ -767,22 +770,22 @@ int transfer_get_l_list(
 }
 
 /**
- * This routine defines the number and values of wavenumbers k for
+ * This routine defines the number and values of wavenumbers q for
  * each mode (different in perturbation module and transfer module:
  * here we impose an upper bound on the linear step. So, typically,
- * for small k, the sampling is identical to that in the perturbation
- * module, while at high k it is denser and source functions are
+ * for small q, the sampling is identical to that in the perturbation
+ * module, while at high q it is denser and source functions are
  * interpolated).
  *
  * @param ppr     Input : pointer to precision structure
  * @param ppt     Input : pointer to perturbation structure
- * @param ptr     Input/Output : pointer to transfers structure containing k's
+ * @param ptr     Input/Output : pointer to transfers structure containing q's
  * @param rs_rec  Input : comoving distance to recombination
  * @param index_md Input: index of requested mode (scalar, tensor, etc) 
  * @return the error status
  */
 
-int transfer_get_k_list(
+int transfer_get_q_list(
                         struct precision * ppr,
                         struct perturbs * ppt,
                         struct transfers * ptr,
@@ -791,96 +794,137 @@ int transfer_get_k_list(
                         int sgnK
                         ) {
 
-  int index_k_pt;
-  int index_k_tr;
-  double k,k_min,k_max,k_step_max=0.;
+  int index_k;
+  int index_q;
+  double q,q_min=0.,q_max,q_step_max=0.;
+  double k_min;
 
-  /* find k_step_max, the maximum value of the step */
+  /* find q_step_max, the maximum value of the step */
 
-  k_step_max = 2.*_PI_/tau0*ppr->k_step_trans;
+  q_step_max = 2.*_PI_/tau0*ppr->k_step_trans;
 
-  class_test(k_step_max == 0.,
+  class_test(q_step_max == 0.,
              ptr->error_message,
              "stop to avoid infinite loop");
 
   /* first and last value in perturbation module */
 
-  if (sgnK==0) {
-    k_min = ppt->k[0]; /* first value, inferred from perturbations structure */
-  }
-  if (sgnK==-1) {
-    k_min = max(sqrt(sgnK*K)+1.e-7,ppt->k[0]); /* first value, inferred from perturbations structure */
-  }
+  k_min = ppt->k[0]; /* first value of k, inferred from perturbations structure */
 
-  k_max = ppt->k[ppt->k_size_cl-1]; /* last value, inferred from perturbations structure */
+  if (sgnK == 0) {
+    q_min = k_min; 
+  }
+  else if (sgnK == -1) {
+    q_min = k_min;
+  }
+  else if (sgnK == 1) {
+    q_min = 3.;
+  } 
+
+  q_max = ppt->k[ppt->k_size_cl-1]; /* last value, inferred from perturbations structure */
 
   /* first, count the number of necessary values */
 
-  index_k_pt = 0;
-  index_k_tr = 0;
+  index_k = 0;
+  index_q = 0;
 
   /* - first point */
 
-  k = k_min;
-  index_k_pt++;
-  index_k_tr++;
+  q = q_min;
+  index_k++;
+  index_q++;
 
   /* - points taken from perturbation module if step small enough */
 
-  while ((index_k_pt < ppt->k_size) && ((ppt->k[index_k_pt] -k) < k_step_max)) {
-    k = ppt->k[index_k_pt];
-    index_k_pt++;
-    index_k_tr++;
+  while ((index_k < ppt->k_size) && ((ppt->k[index_k] -q) < q_step_max)) {
+    q = ppt->k[index_k];
+    index_k++;
+    index_q++;
   }
 
-  /* - then, points spaced linearily with step k_step_max */
+  /* - then, points spaced linearily with step q_step_max */
 
-  while (k < k_max) {
-    k += k_step_max;
-    index_k_tr++;
+  while (q < q_max) {
+    q += q_step_max;
+    index_q++;
   }
 
   /* - get number of points and allocate list */
 
-  if (k > k_max)
-    ptr->k_size=index_k_tr-1;
+  if (q > q_max)
+    ptr->q_size=index_q-1;
   else
-    ptr->k_size=index_k_tr;
+    ptr->q_size=index_q;
 
-  class_alloc(ptr->k,
-              ptr->k_size*sizeof(double),
+  class_alloc(ptr->q,
+              ptr->q_size*sizeof(double),
               ptr->error_message);
 
   /* repeat exactly the same steps, but now filling the list */
 
-  index_k_pt = 0;
-  index_k_tr = 0;
+  index_k = 0;
+  index_q = 0;
 
-  ptr->k[0] = k_min;
-  k = k_min;
-  index_k_pt++;
-  index_k_tr++;
+  ptr->q[0] = q_min;
+  q = q_min;
+  index_k++;
+  index_q++;
 
-  while ((index_k_pt < ppt->k_size) && ((ppt->k[index_k_pt] -k) < k_step_max)) {
-    k = ppt->k[index_k_pt];
-    ptr->k[index_k_tr] = k;
-    index_k_pt++;
-    index_k_tr++;
+  while ((index_k < ppt->k_size) && ((ppt->k[index_k] -q) < q_step_max)) {
+    q = ppt->k[index_k];
+    ptr->q[index_q] = q;
+    index_k++;
+    index_q++;
   }
 
-  while ((index_k_tr < ptr->k_size) && (k < k_max)) {
-    k += k_step_max;
-    ptr->k[index_k_tr] = k;
-    index_k_tr++;
+  while ((index_q < ptr->q_size) && (q < q_max)) {
+    q += q_step_max;
+    ptr->q[index_q] = q;
+    index_q++;
   }
 
   /* consistency check */
 
-  class_test(ptr->k[ptr->k_size-1] > k_max,
+  class_test(ptr->q[ptr->q_size-1] > q_max,
              ptr->error_message,
-             "bug in k list calculation, k_max larger in transfer than in perturb, should never happen");
+             "bug in q list calculation, q_max larger in transfer than in perturb, should never happen");
 
   return _SUCCESS_; 
+
+}
+
+int transfer_get_k_list(
+                          struct perturbs * ppt,
+                          struct transfers * ptr,
+                          double K
+                        ) {
+
+  int index_md;
+  int index_q;
+  int m=0;
+
+  class_alloc(ptr->k,ptr->md_size*sizeof(double*),ptr->error_message);
+
+  for (index_md = 0; index_md <  ptr->md_size; index_md++) {
+
+    class_alloc(ptr->k[index_md],ptr->q_size*sizeof(double),ptr->error_message);
+
+    if _scalars_ {
+        m=0;
+      }
+    if _vectors_ {
+        m=1;
+      }
+    if _tensors_ {
+        m=2;
+      }
+
+    for (index_q=0; index_q < ptr->q_size; index_q++) {
+      ptr->k[index_md][index_q] = sqrt(ptr->q[index_q]*ptr->q[index_q]-K*(m+1));
+    }
+  }
+
+  return _SUCCESS_;
 
 }
 
@@ -1181,13 +1225,13 @@ int transfer_source_tau_size(
   return _SUCCESS_;
 }
 
-int transfer_compute_for_each_k(
+int transfer_compute_for_each_q(
                                 struct precision * ppr,
                                 struct background * pba,
                                 struct perturbs * ppt,
                                 struct transfers * ptr,
                                 int ** tp_of_tt,
-                                int index_k_tr,
+                                int index_q,
                                 int tau_size_max,
                                 double tau_rec,
                                 double *** sources_spline,
@@ -1241,7 +1285,7 @@ int transfer_compute_for_each_k(
 
   /** - for a given l, maximum value of k such that we can convolve
       the source with Bessel functions j_l(x) without reaching x_max */
-  double k_max_bessel;
+  double q_max_bessel;
 
   /* a value of index_type */
   int previous_type;
@@ -1286,7 +1330,7 @@ int transfer_compute_for_each_k(
           
           class_call(transfer_interpolate_sources(ppt,
                                                   ptr,
-                                                  index_k_tr,
+                                                  index_q,
                                                   index_md,
                                                   index_ic,
                                                   tp_of_tt[index_md][index_tt],
@@ -1314,7 +1358,7 @@ int transfer_compute_for_each_k(
                                     ptr,
                                     interpolated_sources,
                                     tau_rec,
-                                    index_k_tr,
+                                    index_q,
                                     index_md,
                                     index_tt,
                                     sources,
@@ -1330,14 +1374,14 @@ int transfer_compute_for_each_k(
           sqrt_absK = sqrt(ptw->K);
           for (index_tau=0; index_tau < (*tau_size); index_tau++) {
             chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
-            cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
+            cscKgen[index_tau] = sqrt_absK/ptr->k[index_md][index_q]/
               sin(chi[index_tau]);
             cotKgen[index_tau] = cscKgen[index_tau]*cos(chi[index_tau]);
           }
           break;
         case 0:
           for (index_tau=0; index_tau < (*tau_size); index_tau++) {
-            chi[index_tau] = ptr->k[index_k_tr] * tau0_minus_tau[index_tau];
+            chi[index_tau] = ptr->k[index_md][index_q] * tau0_minus_tau[index_tau];
             cscKgen[index_tau] = 1.0/chi[index_tau];
             cotKgen[index_tau] = 1.0/chi[index_tau];
           }
@@ -1346,7 +1390,7 @@ int transfer_compute_for_each_k(
           sqrt_absK = sqrt(-ptw->K);
           for (index_tau=0; index_tau < (*tau_size); index_tau++) {
             chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
-            cscKgen[index_tau] = sqrt_absK/ptr->k[index_k_tr]/
+            cscKgen[index_tau] = sqrt_absK/ptr->k[index_md][index_q]/
               sinh(chi[index_tau]);
             cotKgen[index_tau] = cscKgen[index_tau]*cosh(chi[index_tau]);
           }
@@ -1364,7 +1408,7 @@ int transfer_compute_for_each_k(
                                                index_md,
                                                index_ic,
                                                index_tt,
-                                               ptr->k[index_k_tr],
+                                               ptr->q[index_q],
                                                l,
                                                &neglect),
                      ptr->error_message,
@@ -1374,17 +1418,21 @@ int transfer_compute_for_each_k(
 
             ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                                      * ptr->l_size[index_md] + index_l)
-                                    * ptr->k_size + index_k_tr] = 0.;
+                                    * ptr->q_size + index_q] = 0.;
           }
           else {
 
-            /* for a given l, maximum value of k such that we can convolve
-               the source with Bessel functions j_l(x) without reaching x_max */
+            /* for a given l, maximum value of k such that we can
+               convolve the source with Bessel functions j_l(x)
+               without reaching x_max (this is relevant in the flat
+               case when the bessels are compiuted with the old bessel
+               module. otherwise this condition is guaranteed by the
+               choice of proper xmax when computing bessels) */
             if (ptw->sgnK == 0) {
-              k_max_bessel = ptw->pHIS->x[ptw->pHIS->x_size-1]/tau0_minus_tau[0];
+              q_max_bessel = ptw->pHIS->x[ptw->pHIS->x_size-1]/tau0_minus_tau[0];
             }
             else {
-              k_max_bessel = ptr->k[ptr->k_size-1];
+              q_max_bessel = ptr->q[ptr->q_size-1];
             }
 
             /* compute the transfer function for this l */
@@ -1393,13 +1441,13 @@ int transfer_compute_for_each_k(
                                                    ppr,
                                                    ppt,
                                                    ptr,
-                                                   index_k_tr,
+                                                   index_q,
                                                    index_md,
                                                    index_ic,
                                                    index_tt,
                                                    index_l,
                                                    l,
-                                                   k_max_bessel
+                                                   q_max_bessel
                                                    ),
                        ptr->error_message,
                        ptr->error_message);
@@ -1435,12 +1483,12 @@ int transfer_compute_for_each_k(
 int transfer_interpolate_sources(
                                  struct perturbs * ppt,
                                  struct transfers * ptr,
-                                 int index_k_tr,
+                                 int index_q,
                                  int index_md,
                                  int index_ic,
                                  int index_type,
                                  double * source_spline, /* array with argument source_spline[index_tau*ppt->k_size[index_md]+index_k] (must be allocated) */
-                                 double * interpolated_sources /* array with argument interpolated_sources[index_k_tr*ppt->tau_size+index_tau] (must be allocated) */
+                                 double * interpolated_sources /* array with argument interpolated_sources[index_q*ppt->tau_size+index_tau] (must be allocated) */
                                  ) {
 
   /** Summary: */
@@ -1478,7 +1526,7 @@ int transfer_interpolate_sources(
     
   while (((index_k+1) < ppt->k_size) &&
          (ppt->k[index_k+1] < 
-          ptr->k[index_k_tr])) {
+          ptr->k[index_md][index_q])) {
     index_k++;
     h = ppt->k[index_k+1] - ppt->k[index_k];
   }
@@ -1487,7 +1535,7 @@ int transfer_interpolate_sources(
              ptr->error_message,
              "stop to avoid division by zero");
     
-  b = (ptr->k[index_k_tr] - ppt->k[index_k])/h;
+  b = (ptr->k[index_md][index_q] - ppt->k[index_k])/h;
   a = 1.-b;
     
   for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
@@ -1539,7 +1587,7 @@ int transfer_sources(
                      struct transfers * ptr,
                      double * interpolated_sources,
                      double tau_rec,
-                     int index_k_tr,
+                     int index_q,
                      int index_md,
                      int index_tt,
                      double * sources,
@@ -1670,7 +1718,7 @@ int transfer_sources(
               interpolated_sources[index_tau]
               * rescaling
               * ptr->lcmb_rescale
-              * pow(ptr->k[index_k_tr]/ptr->lcmb_pivot,ptr->lcmb_tilt);
+              * pow(ptr->k[index_md][index_q]/ptr->lcmb_pivot,ptr->lcmb_tilt);
           
             /* store value of (tau0-tau) */
             tau0_minus_tau[index_tau-index_tau_min] = tau0 - tau;
@@ -1778,7 +1826,7 @@ int transfer_sources(
               *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
               /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
           
-            sources[index_tau] *= rescaling*pow(ptr->k[index_k_tr],2);
+            sources[index_tau] *= rescaling*pow(ptr->k[index_md][index_q],2);
           }
 
           /* deallocate temporary arrays */
@@ -2502,7 +2550,7 @@ int transfer_compute_for_each_l(
                                 int index_tt,
                                 int index_l,
                                 double l,
-                                double k_max_bessel
+                                double q_max_bessel
                                 ){
 
   /** Summary: */
@@ -2510,7 +2558,7 @@ int transfer_compute_for_each_l(
   /** - define local variables */
 
   /* current wavenumber value */
-  double k;
+  double q;
 
   /* value of transfer function */
   double transfer_function;
@@ -2523,25 +2571,25 @@ int transfer_compute_for_each_l(
     
     ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                              * ptr->l_size[index_md] + index_l)
-                            * ptr->k_size + index_k] = 0.;
+                            * ptr->q_size + index_k] = 0.;
     return _SUCCESS_;
   }
   
   if (ptr->transfer_verbose > 2)
     printf("Compute transfer for l=%d\n",(int)l);
   
-  k = ptr->k[index_k];
+  q = ptr->q[index_k];
 
   if (ptr->transfer_verbose > 3)
-    printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,k,index_tt);
+    printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,q,index_tt);
                 
   class_call(transfer_use_limber(ppr,
                                  ppt,
                                  ptr,
-                                 k_max_bessel,
+                                 q_max_bessel,
                                  index_md,
                                  index_tt,
-                                 k,
+                                 q,
                                  l,
                                  &use_limber),
              ptr->error_message,
@@ -2554,7 +2602,7 @@ int transfer_compute_for_each_l(
                                index_md,
                                index_k,
                                l,
-                               k,
+                               q,
                                ptw->tau0_minus_tau,
                                ptw->sources,
                                &transfer_function),
@@ -2572,7 +2620,7 @@ int transfer_compute_for_each_l(
                                   index_tt,
                                   l,
                                   index_l,
-                                  k,
+                                  q,
                                   &transfer_function
                                   ),
                ptr->error_message,
@@ -2582,7 +2630,7 @@ int transfer_compute_for_each_l(
   /* store transfer function in transfer structure */
   ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                            * ptr->l_size[index_md] + index_l)
-                          * ptr->k_size + index_k]
+                          * ptr->q_size + index_k]
     = transfer_function;
   
   return _SUCCESS_;
@@ -2593,10 +2641,10 @@ int transfer_use_limber(
                         struct precision * ppr,
                         struct perturbs * ppt,
                         struct transfers * ptr,
-                        double k_max_bessel,
+                        double q_max_bessel,
                         int index_md,
                         int index_tt,
-                        double k,
+                        double q,
                         double l,
                         short * use_limber) {
 
@@ -2606,7 +2654,7 @@ int transfer_use_limber(
   
   *use_limber = _FALSE_;
 
-  if (k>k_max_bessel) {
+  if (q>q_max_bessel) {
     *use_limber = _TRUE_;
   }
   else {
@@ -2680,7 +2728,7 @@ int transfer_integrate(
 
   double bessel, *radial_function;
 
-  radial_function_t radial_type = SCALAR_TEMPERATURE_0; /* initialized ot arbitrary value to prevent compiler warning */
+  radial_function_type radial_type; 
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
@@ -2817,7 +2865,7 @@ int transfer_limber(
                     double l,
                     double k,
                     double * tau0_minus_tau,
-                    double * sources, /* array with argument interpolated_sources[index_k_tr*ppt->tau_size+index_tau] */
+                    double * sources, /* array with argument interpolated_sources[index_q*ppt->tau_size+index_tau] */
                     double * trsf
                     ){
 
@@ -3044,7 +3092,7 @@ int transfer_radial_function(
                              int index_l,
                              int nx,
                              double * radial_function,
-                             radial_function_t radial_type
+                             radial_function_type radial_type
                              ){
   
   HyperInterpStruct * pHIS = ptw->pHIS;
@@ -3188,8 +3236,11 @@ int transfer_select_radial_function(
                                     struct transfers * ptr,
                                     int index_md,
                                     int index_tt,
-                                    radial_function_t *radial_type
+                                    radial_function_type * radial_type
                                     ) {
+
+  /* generic case leading to generic bessel function (it applies also to all nonCMB types: lcmb, density, lensing) */ 
+  *radial_type = SCALAR_TEMPERATURE_0; 
 
   /* other specific cases */
   if _scalars_ {
@@ -3268,8 +3319,10 @@ int transfer_select_radial_function(
 
 int transfer_init_HIS_from_bessel(
                                   struct bessels * pbs,
-                                  HyperInterpStruct **ppHIS,
-                                  ErrorMsg error_message){
+                                  struct transfers * ptr,
+                                  HyperInterpStruct **ppHIS
+                                  ) {
+
   /* The purpose of this function is to populate a flat Hyperspherical
      Interpolation Structure from the Bessel structure. The Bessel
      structure must have been computed on an l-independent x-grid.
@@ -3283,22 +3336,22 @@ int transfer_init_HIS_from_bessel(
   xmin = *(pbs->x_min[0]);
   for (index_l=1; index_l<nl; index_l++){
     class_test(nx!=pbs->x_size[index_l],
-               error_message,
+               ptr->error_message,
                "pbs->x_size[%d]=%d, not equal to pbs->x_size[0]=%d.\n",
                index_l,pbs->x_size[index_l],nx);
     class_test(fabs(xmin-*(pbs->x_min[index_l]))>100*DBL_EPSILON,
-               error_message,
+               ptr->error_message,
                "*(pbs->xmin[%d])=%.16e, should have been %.16e.\n",
                index_l,*(pbs->x_min[index_l]),xmin);
   }
   /* Allocate HIS and all fields in HIS: */
-  class_calloc(*ppHIS,1,sizeof(struct transfer_workspace),error_message);
-  class_alloc((*ppHIS)->l,nl*sizeof(int),error_message);
-  class_alloc((*ppHIS)->x,nx*sizeof(double),error_message);
-  class_alloc((*ppHIS)->sinK,nx*sizeof(double),error_message);
-  class_alloc((*ppHIS)->cotK,nx*sizeof(double),error_message);
-  class_alloc((*ppHIS)->phi,nx*nl*sizeof(double),error_message);
-  class_alloc((*ppHIS)->dphi,nx*nl*sizeof(double),error_message);
+  class_calloc(*ppHIS,1,sizeof(struct transfer_workspace),ptr->error_message);
+  class_alloc((*ppHIS)->l,nl*sizeof(int),ptr->error_message);
+  class_alloc((*ppHIS)->x,nx*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->sinK,nx*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->cotK,nx*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->phi,nx*nl*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->dphi,nx*nl*sizeof(double),ptr->error_message);
   /* Set and copy all fields of HIS: */
   (*ppHIS)->K = 0;
   (*ppHIS)->beta = 1;
@@ -3352,7 +3405,11 @@ int transfer_workspace_init(
   return _SUCCESS_;
 }
 
-int transfer_workspace_free(struct transfer_workspace *ptw){
+int transfer_workspace_free(
+                            struct transfers * ptr,
+                            struct transfer_workspace *ptw
+                            ) {
+
   if (ptw->HIS_allocated==_TRUE_){
     //Free HIS structure:
     hyperspherical_HIS_free(ptw->pHIS);
@@ -3374,12 +3431,13 @@ int transfer_update_HIS(
                         struct transfer_workspace * ptw,
                         struct bessels * pbs,
                         struct transfers * ptr,
-                        int index_k_tr,
-                        double tau0,
-                        ErrorMsg error_message){
+                        int index_q,
+                        double tau0
+                         ) {
+
   double beta;
   double xmin, xmax, sampling, phiminabs, xtol;
-  double k,q,sqrt_absK;
+  double sqrt_absK;
 
   if (ptw->HIS_allocated==_TRUE_){
 
@@ -3403,16 +3461,18 @@ int transfer_update_HIS(
     else {
       /** free HIS */
       class_call(hyperspherical_HIS_free(ptw->pHIS),
-                 error_message,error_message);
+                 ptr->error_message,
+                 ptr->error_message);
       ptw->HIS_allocated = _FALSE_;
     }
   }
 
   if (ptw->get_HIS_from_pbs==_TRUE_){
     class_call(transfer_init_HIS_from_bessel(pbs,
-                                             &(ptw->pHIS),
-                                             error_message),
-               error_message,error_message);
+                                             ptr,
+                                             &(ptw->pHIS)),
+               ptr->error_message,
+               ptr->error_message);
     ptw->HIS_allocated = _TRUE_;
   }
   else{
@@ -3424,30 +3484,17 @@ int transfer_update_HIS(
 
     if (ptw->sgnK == 0) {
       
-      k = ptr->k[ptr->k_size-1];
-      xmax = k*tau0;
-      //fprintf(stderr,"%e %e\n",xmax,pbs->x_max);
+      xmax = ptr->q[ptr->q_size-1]*tau0; // x_max = k_max * tau0
       beta=1.;
-
       sampling = 0.5;
+
     }
     else {
 
-      k = ptr->k[index_k_tr];
-
-      class_test(k*k+ptw->K<0.,
-                 ptr->error_message,
-                 "k=%e",k);
-
-      q=sqrt(k*k+ptw->K); // for scalar only
       sqrt_absK = sqrt(ptw->sgnK*ptw->K);
 
       xmax = sqrt_absK*tau0;
-      beta = q/sqrt_absK; //Later related to ptr->k[index_k] but also the curvature.      
-
-      class_test(beta <0.,
-                 ptr->error_message,
-                 "k=%e q=%e beta=%e",k,q,beta);
+      beta = ptr->q[index_q]/sqrt_absK;
 
       if (ptw->sgnK == 1) 
         xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
@@ -3466,8 +3513,9 @@ int transfer_update_HIS(
                                          xmax,
                                          sampling,
                                          &(ptw->pHIS),
-                                         error_message),
-               error_message,error_message);
+                                         ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
     ptw->HIS_allocated = _TRUE_;
 
 
@@ -3475,12 +3523,13 @@ int transfer_update_HIS(
   //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
   phiminabs = 1e-5;
   xtol = 1e-4;
-  printf("Computing minimum values...\n");
+
   class_call(hyperspherical_get_xmin(ptw->pHIS,
                                      xtol,
                                      phiminabs,
                                      ptw->chi_at_phiminabs),
-             error_message, error_message);
+             ptr->error_message, 
+             ptr->error_message);
   
   return _SUCCESS_;
 }

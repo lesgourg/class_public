@@ -223,11 +223,11 @@ struct perturbs
                         for CMB calculations, requiring a fine
                         sampling in k-space */
 
-  int k_size_cl;  /**< k_size_cl[index_md] number of k values used
+  int k_size_cl;  /**< k_size_cl number of k values used
                        for non-CMB Cl calculations, requering a coarse
                        sampling in k-space. */
 
-  int k_size;     /**< k_size[index_md] = total number of k
+  int k_size;     /**< k_size = total number of k
                        values, including those needed for P(k) but not
                        for Cl's */
 

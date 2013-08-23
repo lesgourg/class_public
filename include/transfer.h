@@ -8,13 +8,23 @@
 #include "hyperspherical.h"
 
 /**
- * Structure containing everything about transfer functions in harmonic space \f$ \Delta_l^{X} (k) \f$ that other modules need to know.
+ * Structure containing everything about transfer functions in
+ * harmonic space \f$ \Delta_l^{X} (q) \f$ that other modules need to
+ * know.
  *
  * Once initialized by transfer_init(), contains all tables of
  * transfer functions used for interpolation in other modules, for all
- * requested modes (scalar/vector/tensor), initial conditions, type
- * (temperature, polarization, etc), multipole l and wavenumber k.
+ * requested modes (scalar/vector/tensor), initial conditions, types
+ * (temperature, polarization, etc), multipoles l, and wavenumbers q.
  * 
+ * Wavenumbers are called q in this module and k in the perturbation
+ * module. In flat universes k=q. In non-flat universes q and k differ
+ * through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector,
+ * tensor. q should be used throughout the transfer module, excepted
+ * when interpolating or manipulating the source functions S(k,tau)
+ * calculated in the perturbation module: for a given value of q, this
+ * should be done at the corresponding k(q).
+ *
  * The content of this structure is entirely computed in this module,
  * given the content of the 'precision', 'bessels', 'background',
  * 'thermodynamics' and 'perturbation' structures.
@@ -29,7 +39,7 @@ struct transfers {
   //@{
 
   double lcmb_rescale; /**< normally set to one, can be used
-                          excelptionally to rescale by hand the CMB
+                          exceptionally to rescale by hand the CMB
                           lensing potential */
   double lcmb_tilt;    /**< normally set to zero, can be used
                           excelptionally to tilt by hand the CMB
@@ -86,9 +96,11 @@ struct transfers {
 
   //@{
 
-  int k_size; /**< number of wavenumber values */
+  int q_size; /**< number of wavenumber values */
 
-  double * k;  /**< list of wavenumber values for each requested mode, k[index_k] */
+  double * q;  /**< list of wavenumber values for each requested mode, q[index_q] */
+
+  double ** k; /**< list of wavenumber values for each requested mode, k[index_md][index_q]. In flat universes k=q. In non-flat universes q and k differ through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector, tensor. q should be used throughout the transfer module, excepted when interpolating or manipulating the source functions S(k,tau): for a given value of q this should be done in k(q). */
 
   //@}
 
@@ -96,7 +108,7 @@ struct transfers {
 
   //@{
 
-  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->k_size + index_k] */
+  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->q_size + index_q] */
 
   //@}
 
@@ -111,38 +123,74 @@ struct transfers {
   //@}
 };
 
-struct bessels_for_one_k {
-
-  short filled;
-  int l_size;
-  double x_step;
-  double * x_min;
-  int * x_size;
-  int order_size;
-
-  double ** bessel_k;  /**< bessel_k[index_l][order*pbk->x_size[index_l]+index_x] */
-
-};
+/** 
+ * Structure containing all the quantities that each thread needs to
+ * know for computing transfer functions (but that can be forgotten
+ * once the transfer functions are known, otherwise they would be
+ * stored in the transfer module)
+*/
 
 struct transfer_workspace {
-  HyperInterpStruct *pHIS;
-  int HIS_allocated;
-  int get_HIS_from_pbs;
-  int tau_size;
-  int tau_size_max;
-  int l_size;
-  double *chi_at_phiminabs;
-  double *interpolated_sources;
-  double *sources;
-  double *tau0_minus_tau;
-  double *w_trapz;
-  double *chi;
-  double *cscKgen;
-  double *cotKgen;
-  double K;
-  int sgnK;
+
+  /** @name - quantities related to Bessel functions */
+
+  //@{
+
+  HyperInterpStruct *pHIS; /**< pointer towards structure containing all spherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
+
+  int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
+
+  int get_HIS_from_pbs; /**< flag specifying whether flat bessels should be taken from old Bessel module or new hyperspetical module */
+
+  int l_size;        /**< number of l values */
+
+  double * chi_at_phiminabs;     /**< chi_at_phiminabs[index_l] : for each l, value of x below which bessels are negligible */
+
+  //@}
+
+  /** @name - quantities related to the integrand of the transfer functions (most of them are arrays of time) */
+
+  //@{
+
+  int tau_size;                  /**< number of discrete time values for a given type */     
+  int tau_size_max;              /**< maximum number of discrete time values for all types */ 
+  double * interpolated_sources; /**< interpolated_sources[index_tau]
+                                    : sources interpolated from the
+                                    perturbation module at the right
+                                    value of k */
+  double * sources;              /**< sources[index_tau] : sources
+                                    used in transfer module, possibly
+                                    differing from those in the
+                                    perturbation module by some
+                                    reampling or rescaling */
+  double * tau0_minus_tau;       /**< tau0_minus_tau[index_tau] : values of (tau0 - tau) */
+  double * w_trapz;              /**< w_trapz[index_tau] : values of weights in trapezoidal integration (related to time steps) */
+  double * chi;                  /**< chi[index_tau] : value of argument of bessel
+                                    function: k(tau0-tau) (flat case)
+                                    or sqrt(|K|)(tau0-tau) (non-flat
+                                    case) */
+  double * cscKgen;              /**< cscKgen[index_tau] : useful trigonometric function */
+  double * cotKgen;              /**< cotKgen[index_tau] : useful trigonometric function */
+
+  //@}
+
+  /** @name - parameters defining the spatial curvature (copied from background structure) */
+
+  //@{
+
+  double K; /**< curvature parameter (see background module for details) */
+  int sgnK; /**< 0 (flat), 1 (positive curvature, spherical, closed), -1 (negative curvature, hyperbolic, open) */
+
+  //@}
 };
 
+/**
+ * enumeration of possible source types. This looks redundent with
+ * respect to the definition of indices index_tt_... This definition is however
+ * convenient and time-saving: it allows to use a "case" statement in
+ * transfer_radial_function()
+ */
+ 
 typedef enum {SCALAR_TEMPERATURE_0, 
               SCALAR_TEMPERATURE_1, 
               SCALAR_TEMPERATURE_2, 
@@ -153,7 +201,8 @@ typedef enum {SCALAR_TEMPERATURE_0,
               VECTOR_POLARISATION_B,
               TENSOR_TEMPERATURE_2,
               TENSOR_POLARISATION_E,
-              TENSOR_POLARISATION_B} radial_function_t;
+              TENSOR_POLARISATION_B} radial_function_type;
+
 /*************************************************************************************************************/
 
 /*
@@ -163,13 +212,13 @@ typedef enum {SCALAR_TEMPERATURE_0,
 extern "C" {
 #endif
 
-  int transfer_functions_at_k(
+  int transfer_functions_at_q(
                               struct transfers * ptr,
                               int index_md,
                               int index_ic,
                               int index_type,
                               int index_l,
-                              double k,
+                              double q,
                               double * ptransfer_local
                               );
 
@@ -215,13 +264,19 @@ extern "C" {
                           struct transfers * ptr
                           );
 
-  int transfer_get_k_list(
+  int transfer_get_q_list(
                           struct precision * ppr,
                           struct perturbs * ppt,
                           struct transfers * ptr,
                           double tau0,
                           double K,
                           int sgnK
+                          );
+
+  int transfer_get_k_list(
+                          struct perturbs * ppt,
+                          struct transfers * ptr,
+                          double K
                           );
 
   int transfer_get_source_correspondence(
@@ -257,13 +312,13 @@ extern "C" {
                                int * tau_size
                                );
 
-  int transfer_compute_for_each_k(
+  int transfer_compute_for_each_q(
                                   struct precision * ppr,
                                   struct background * pba,
                                   struct perturbs * ppt,
                                   struct transfers * ptr,
                                   int ** tp_of_tt,
-                                  int index_k_tr,
+                                  int index_q,
                                   int tau_size_max,
                                   double tau_rec,
                                   double *** sources_spline,
@@ -273,7 +328,7 @@ extern "C" {
   int transfer_interpolate_sources(
                                    struct perturbs * ppt,
                                    struct transfers * ptr,
-                                   int index_k_tr,
+                                   int index_q,
                                    int index_md,
                                    int index_ic,
                                    int index_type,
@@ -288,7 +343,7 @@ extern "C" {
                        struct transfers * ptr,
                        double * interpolated_sources,
                        double tau_rec,
-                       int index_k_tr,
+                       int index_q,
                        int index_md,
                        int index_tt,
                        double * sources,
@@ -372,23 +427,23 @@ extern "C" {
                                   struct precision * ppr,
                                   struct perturbs * ppt,
                                   struct transfers * ptr,
-                                  int index_k,
+                                  int index_q,
                                   int index_md,
                                   int index_ic,
                                   int index_tt,
                                   int index_l,
                                   double l,
-                                  double k_max_bessel
+                                  double q_max_bessel
                                   );
 
   int transfer_use_limber(
                           struct precision * ppr,
                           struct perturbs * ppt,
                           struct transfers * ptr,
-                          double k_max_bessel,
+                          double q_max_bessel,
                           int index_md,
                           int index_tt,
-                          double k,
+                          double q,
                           double l,
                           short * use_limber
                           );
@@ -397,12 +452,12 @@ extern "C" {
                          struct perturbs * ppt,
                          struct transfers * ptr,
                          struct transfer_workspace *ptw,
-                         int index_k,
+                         int index_q,
                          int index_md,
                          int index_tt,
                          double l,
                          int index_l,
-                         double k,
+                         double q,
                          double * trsf
                          );
     
@@ -410,9 +465,9 @@ extern "C" {
                       int tau_size,
                       struct transfers * ptr,
                       int index_md,
-                      int index_k,
+                      int index_q,
                       double l,
-                      double k,
+                      double q,
                       double * tau0_minus_tau,
                       double * sources,
                       double * trsf
@@ -422,49 +477,51 @@ extern "C" {
                        int tau_size,
                        struct transfers * ptr,
                        int index_md,
-                       int index_k,
+                       int index_q,
                        double l,
-                       double k,
+                       double q,
                        double * tau0_minus_tau,
                        double * sources,
                        double * trsf
                        );
       
   int transfer_can_be_neglected(
-                                 struct precision * ppr,
-                                 struct background * pba,
-                                 struct perturbs * ppt,
-                                 struct transfers * ptr,
-                                 int index_md,
-                                 int index_ic,
-                                 int index_tt,
-                                 double k,
-                                 double l,
-                                 short * neglect);
+                                struct precision * ppr,
+                                struct background * pba,
+                                struct perturbs * ppt,
+                                struct transfers * ptr,
+                                int index_md,
+                                int index_ic,
+                                int index_tt,
+                                double q,
+                                double l,
+                                short * neglect
+                                );
 
   int transfer_select_radial_function(
                                       struct perturbs * ppt,
                                       struct transfers * ptr,
                                       int index_md,
                                       int index_tt,
-                                      radial_function_t *radial_type
+                                      radial_function_type *radial_type
                                       );
 
   int transfer_radial_function(
                                struct transfer_workspace * ptw,
                                struct perturbs * ppt,
                                struct transfers * ptr,
-                               double k,
+                               double q,
                                int index_l,
                                int nx,
                                double * radial_function,
-                               radial_function_t radial_type
+                               radial_function_type radial_type
                                );
 
   int transfer_init_HIS_from_bessel(
                                     struct bessels * pbs,
-                                    HyperInterpStruct **ppHIS,
-                                    ErrorMsg error_message);
+                                    struct transfers * ptr,
+                                    HyperInterpStruct **ppHIS
+                                    );
 
   int transfer_workspace_init(
                               struct transfers * ptr,
@@ -473,17 +530,21 @@ extern "C" {
                               int tau_size_max,
                               int get_HIS_from_pbs,
                               double K,
-                              double sgnK);
+                              double sgnK
+                              );
 
-  int transfer_workspace_free(struct transfer_workspace *ptw);
+  int transfer_workspace_free(
+                              struct transfers * ptr,
+                              struct transfer_workspace *ptw
+                              );
 
   int transfer_update_HIS( 
                           struct transfer_workspace * ptw,
                           struct bessels * pbs,
                           struct transfers * ptr,
-                          int index_k_tr,
-                          double tau0,
-                          ErrorMsg error_message);
+                          int index_q,
+                          double tau0
+                           );
 #ifdef __cplusplus
 }
 #endif
