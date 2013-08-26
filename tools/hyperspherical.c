@@ -798,6 +798,11 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
       //printf("special case: xmin = %.16e for index_l=%d\n",xmin[index_l],index_l);
       continue;
     }
+    if (right_index==nx){
+      xmin[index_l] = xvec[nx-1];
+      //printf("special case: xmin = %.16e for index_l=%d\n",xmin[index_l],index_l);
+      continue;
+    }
     left_index = right_index-1;
     xleft = xvec[left_index];
     xright = xvec[right_index];

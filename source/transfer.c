@@ -811,17 +811,9 @@ int transfer_get_q_list(
 
   k_min = ppt->k[0]; /* first value of k, inferred from perturbations structure */
 
-  if (sgnK == 0) {
-    q_min = k_min; 
-  }
-  else if (sgnK == -1) {
-    q_min = k_min;
-  }
-  else if (sgnK == 1) {
-    q_min = 3.;
-  } 
-
-  q_max = ppt->k[ppt->k_size_cl-1]; /* last value, inferred from perturbations structure */
+  q_min = sqrt(k_min*k_min+K+1.e-8);
+  //q_max = sqrt(pow(ppt->k[ppt->k_size_cl-1],2)+K); /* last value, inferred from perturbations structure */
+  q_max = ppt->k[ppt->k_size_cl-1];  
 
   /* first, count the number of necessary values */
 
@@ -3435,7 +3427,7 @@ int transfer_update_HIS(
                         double tau0
                          ) {
 
-  double beta;
+  double nu;
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
 
@@ -3485,7 +3477,7 @@ int transfer_update_HIS(
     if (ptw->sgnK == 0) {
       
       xmax = ptr->q[ptr->q_size-1]*tau0; // x_max = k_max * tau0
-      beta=1.;
+      nu=1.;
       sampling = 0.5;
 
     }
@@ -3494,19 +3486,19 @@ int transfer_update_HIS(
       sqrt_absK = sqrt(ptw->sgnK*ptw->K);
 
       xmax = sqrt_absK*tau0;
-      beta = ptr->q[index_q]/sqrt_absK;
+      nu = ptr->q[index_q]/sqrt_absK;
 
       if (ptw->sgnK == 1) 
         xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
 
-      //fprintf(stderr,"sgnK=%d beta=%e l_size_max=%d xmin=%e xmax=%e\n",ptw->sgnK,beta,ptr->l_size_max,xmin,xmax);
+      //fprintf(stderr,"sgnK=%d nu=%e l_size_max=%d xmin=%e xmax=%e\n",ptw->sgnK,nu,ptr->l_size_max,xmin,xmax);
 
       sampling = 3.;
 
     }
 
     class_call(hyperspherical_HIS_create(ptw->sgnK, 
-                                         beta,
+                                         nu,
                                          ptr->l_size_max,
                                          ptr->l,
                                          xmin,
