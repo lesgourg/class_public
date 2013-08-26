@@ -133,6 +133,17 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
   }                                                                                                              \
 } 
 
+/* macro for re-allocating memory, returning error if it failed */
+#define class_realloc(pointer, newname, size, error_message_output)  {                                          \
+    pointer=realloc(newname,size);                                                                               \
+  if (pointer == NULL) {                                                                                         \
+    int size_int;                                                                                                \
+    size_int = size;                                                                                             \
+    class_alloc_message(error_message_output,#pointer, size_int);                                                \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+} 
+
 // Testing
 
 #define class_test_message(err_out,extra,args...) {                                                              \

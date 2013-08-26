@@ -88,33 +88,34 @@ int main(int argc, char **argv) {
  
   /* 3) here you can output the full tabulated arrays for all k and l's*/
 
-  int index_k;
+  int index_q;
   int index_l;
   double transfer;
   FILE * output;
 
   output=fopen("output/t0.trsf","w");
 
-  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-    for (index_k=0; index_k<tr.k_size; index_k++) { 
-      
+  //for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
+  index_l=33;
+  {
+    for (index_q=0; index_q<tr.q_size; index_q++) { 
+
+      /*      
       transfer = tr.transfer[index_mode]
 	[((index_ic * tr.tt_size[index_mode] + index_type)
 	  * tr.l_size[index_mode] + index_l)
 	 * tr.k_size + index_k];
-      
-      /* note: if you want the full temperature transfer function, you have to modify by hand the above line, defining transfer as the sum of the transfer functions for the three types tr.index_tt_t0, tr.index_tt_t1 and tr.index_tt_t2, in the following way: */
-
-      /*
-        transfer = 
-        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.k_size + index_k] + 
-        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.k_size + index_k] + 
-        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.k_size + index_k];
-
      */
 
+      /* full temperature transfer function: */
+
+        transfer = 
+        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
+        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
+        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q];
+
       if (transfer != 0.) {
-        fprintf(output,"%d %e %e \n",tr.l[index_l],tr.k[index_k],transfer); 
+        fprintf(output,"%d %e %e \n",tr.l[index_l],tr.k[index_mode][index_q],transfer); 
       }
     }
     

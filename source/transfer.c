@@ -807,11 +807,22 @@ int transfer_get_q_list(
              ptr->error_message,
              "stop to avoid infinite loop");
 
+  /* allocate the q array with the longest possible size (will be reduced later with realloc) */
+
+  //fprintf(stderr,"%d\n",(1+ppt->k_size_cl+(int)((ppt->k[ppt->k_size_cl-1]-ppt->k[0])/q_step_max)));
+
+  class_alloc(ptr->q,
+              (1+ppt->k_size_cl+(int)((ppt->k[ppt->k_size_cl-1]-ppt->k[0])/q_step_max))*sizeof(double),
+              ptr->error_message);
+
+
   /* first and last value in perturbation module */
 
   k_min = ppt->k[0]; /* first value of k, inferred from perturbations structure */
 
-  q_min = sqrt(k_min*k_min+K+1.e-8);
+  //fprintf(stderr,"%e %e\n",k_min,k_min*k_min+K+1.e-8);
+
+  q_min = sqrt(k_min*k_min+K);
   //q_max = sqrt(pow(ppt->k[ppt->k_size_cl-1],2)+K); /* last value, inferred from perturbations structure */
   q_max = ppt->k[ppt->k_size_cl-1];  
 
@@ -823,13 +834,16 @@ int transfer_get_q_list(
   /* - first point */
 
   q = q_min;
+  ptr->q[index_q] = q;
+
   index_k++;
   index_q++;
 
   /* - points taken from perturbation module if step small enough */
 
-  while ((index_k < ppt->k_size) && ((ppt->k[index_k] -q) < q_step_max)) {
-    q = ppt->k[index_k];
+  while ((index_k < ppt->k_size) && ((ppt->k[index_k] - ppt->k[index_k-1]) < q_step_max)) {
+    q = sqrt(ppt->k[index_k]*ppt->k[index_k]+K);
+    ptr->q[index_q] = q;
     index_k++;
     index_q++;
   }
@@ -838,6 +852,7 @@ int transfer_get_q_list(
 
   while (q < q_max) {
     q += q_step_max;
+    ptr->q[index_q] = q;
     index_q++;
   }
 
@@ -848,12 +863,15 @@ int transfer_get_q_list(
   else
     ptr->q_size=index_q;
 
-  class_alloc(ptr->q,
-              ptr->q_size*sizeof(double),
-              ptr->error_message);
+  //fprintf(stderr,"%d\n",ptr->q_size);
+
+  class_realloc(ptr->q,
+                ptr->q,
+                ptr->q_size*sizeof(double),
+                ptr->error_message);
 
   /* repeat exactly the same steps, but now filling the list */
-
+  /*
   index_k = 0;
   index_q = 0;
 
@@ -874,12 +892,20 @@ int transfer_get_q_list(
     ptr->q[index_q] = q;
     index_q++;
   }
+  */
 
   /* consistency check */
 
   class_test(ptr->q[ptr->q_size-1] > q_max,
              ptr->error_message,
              "bug in q list calculation, q_max larger in transfer than in perturb, should never happen");
+
+  /*
+  fprintf(stderr,"%d\n",ptr->q_size);
+  for (index_q=0;index_q<ptr->q_size;index_q++) {
+    fprintf(stderr,"%d %e\n",index_q,ptr->q[index_q]);
+  }
+  */
 
   return _SUCCESS_; 
 

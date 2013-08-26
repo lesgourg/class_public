@@ -1099,7 +1099,6 @@ int perturb_get_k_list(
     
   /* first value */
   k=ppr->k_min_tau0/pba->conformal_age;
-  index_k++;
 
   /* corrected value of the smallest wavenumber in case of spatial curvature (to be updated later to non-scale modes) */
   if (pba->K < 0.) 
@@ -1107,6 +1106,8 @@ int perturb_get_k_list(
   else if (pba->K > 0.) 
     k += sqrt(8.*pba->K); // to start from q=sqrt(k2+(1+m)K) equal to 3K
    
+  index_k++;
+
   /* values until k_max_cmb */
 
   while (k < k_max_cmb) {
@@ -1158,13 +1159,14 @@ int perturb_get_k_list(
 
   /* first value */
   ppt->k[index_k] = ppr->k_min_tau0/pba->conformal_age;
-  index_k++;
 
   /* corrected value of the smallest wavenumber in case of spatial curvature (to be updated later to non-scale modes) */
   if (pba->K < 0.) 
-    k += sqrt(-pba->K);   // to start from q=sqrt(k2+(1+m)K) close to zero
+    ppt->k[index_k] += sqrt(-pba->K);   // to start from q=sqrt(k2+(1+m)K) close to zero
   else if (pba->K > 0.) 
-    k += sqrt(8.*pba->K); // to start from q=sqrt(k2+(1+m)K) equal to 3K
+    ppt->k[index_k] += sqrt(8.*pba->K); // to start from q=sqrt(k2+(1+m)K) equal to 3K
+
+  index_k++;
 
   /* values until k_max_cmb */
 
@@ -1192,6 +1194,13 @@ int perturb_get_k_list(
     index_k++;
 
   }
+
+  /*
+  fprintf(stderr,"%d\n",ppt->k_size);
+  for (index_k=0;index_k<ppt->k_size;index_k++) {
+    fprintf(stderr,"%d %e\n",index_k,ppt->k[index_k]);
+  }
+  */
 
   return _SUCCESS_;
 
