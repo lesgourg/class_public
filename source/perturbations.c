@@ -3043,6 +3043,8 @@ int perturb_initial_conditions(struct precision * ppr,
   double fracnu,fracg,fracb,fraccdm,om;
   double ktau_two,ktau_three;
   
+  double s_0,s_2;
+
   /** - for scalars */
 
   if _scalars_ {
@@ -3131,6 +3133,12 @@ int perturb_initial_conditions(struct precision * ppr,
       ktau_two=k*k*tau*tau;
       ktau_three=k*tau*ktau_two;
         
+
+      /* curvature-dependent factors */
+
+      //s_0 = sqrt(1.+pba->K/k/k);
+      //s_2 = sqrt(1.-3.*pba->K/k/k);
+
       /** (b) starts by setting everything in synchronous gauge. If
           another gauge is needed, we will perform a gauge
           transformation below. */
@@ -3138,6 +3146,10 @@ int perturb_initial_conditions(struct precision * ppr,
       /** (b.1) adiabatic */ 
 
       if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
+
+
+        //ppr->curvature_ini *= s_2*s_2/sqrt(s_0);
+        //ppr->curvature_ini *= s_2*s_2;
 
         /* The following formulas are valid at leading order in
            (k*tau) and (om*tau), and order zero in
@@ -3827,6 +3839,7 @@ int perturb_einstein(
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_pk,delta_rho_pk;
   double w;
+  double s2_squared;
 
   /** - wavenumber and scale factor related quantities */ 
 
@@ -4088,7 +4101,9 @@ int perturb_einstein(
 
         /* in principle we could get phi from the constrain equation:
 	 
-           ppw->pvecmetric[ppw->index_mt_phi] = -1.5 * (a2/k2/k2) * (k2 * delta_rho + 3.*a_prime_over_a * rho_plus_p_theta); 
+           ppw->pvecmetric[ppw->index_mt_phi] = -1.5 * (a2/k2/k2/s2/s2) * (k2 * delta_rho + 3.*a_prime_over_a * rho_plus_p_theta); 
+
+           with s2_squared = sqrt(1-3K/k2) = ppw->s_l[2]*ppw->s_l[2]
 
            This was the case in class v1.3. However the integration is
            more stable is we treat phi as a dynamical variable
@@ -4098,8 +4113,8 @@ int perturb_einstein(
         /* equation for psi */
         ppw->pvecmetric[ppw->index_mt_psi] = y[ppw->pv->index_pt_phi] - 4.5 * (a2/k2) * rho_plus_p_shear;
 
-        /* equation for phi */
-        ppw->pvecmetric[ppw->index_mt_phi_prime] = -a_prime_over_a*(y[ppw->pv->index_pt_phi] - 4.5 * (a2/k2) * rho_plus_p_shear) + 1.5 * (a2/k2) * rho_plus_p_theta;
+        /* equation for phi' */
+        ppw->pvecmetric[ppw->index_mt_phi_prime] = -a_prime_over_a * ppw->pvecmetric[ppw->index_mt_psi] + 1.5 * (a2/k2) * rho_plus_p_theta;
 
         /* eventually, infer radiation streaming approximation for gamma and nur */
 
@@ -4146,9 +4161,11 @@ int perturb_einstein(
       /* synchronous gauge */
       if (ppt->gauge == synchronous) {
 
+        s2_squared = 1.-3.*pba->K/k2;
+
         /* first equation involving total density fluctuation */
         ppw->pvecmetric[ppw->index_mt_h_prime] = 
-          ( (k2-3.*pba->K) * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
+          ( k2 * s2_squared * y[ppw->pv->index_pt_eta] + 1.5 * a2 * delta_rho)/(0.5*a_prime_over_a);  /* h' */
 
         /* eventually, infer radiation streaming approximation for gamma and nur, and
            correct the total velocity */
@@ -4202,13 +4219,13 @@ int perturb_einstein(
         }
       
         /* second equation involving total velocity */
-        ppw->pvecmetric[ppw->index_mt_eta_prime] = (1.5 * (a2/k2) * rho_plus_p_theta + 0.5*pba->K/k2*ppw->pvecmetric[ppw->index_mt_h_prime])/(1.-3.*pba->K/k2);  /* eta' */
+        ppw->pvecmetric[ppw->index_mt_eta_prime] = (1.5 * a2 * rho_plus_p_theta + 0.5 * pba->K * ppw->pvecmetric[ppw->index_mt_h_prime])/k2/s2_squared;  /* eta' */
 
         /* third equation involving total pressure */
         ppw->pvecmetric[ppw->index_mt_h_prime_prime] = 
-          -2.*a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
-          +2.*(k2-3.*pba->K)*y[ppw->pv->index_pt_eta]
-          -9.*a2*delta_p;
+          -2. * a_prime_over_a * ppw->pvecmetric[ppw->index_mt_h_prime]
+          +2. * k2 * s2_squared * y[ppw->pv->index_pt_eta]
+          -9. * a2 * delta_p;
 
         /* alpha = (h'+6eta')/2k^2 */
         ppw->pvecmetric[ppw->index_mt_alpha] = (ppw->pvecmetric[ppw->index_mt_h_prime] + 6.*ppw->pvecmetric[ppw->index_mt_eta_prime])/2./k2;
@@ -4225,7 +4242,9 @@ int perturb_einstein(
       
         /* fourth equation involving total shear */
         ppw->pvecmetric[ppw->index_mt_alpha_prime] = 
-          - 4.5 * (a2/k2) * rho_plus_p_shear + y[ppw->pv->index_pt_eta] - 2.*a_prime_over_a*ppw->pvecmetric[ppw->index_mt_alpha];
+          - 2.*a_prime_over_a*ppw->pvecmetric[ppw->index_mt_alpha]
+          + y[ppw->pv->index_pt_eta]
+          - 4.5 * (a2/k2) * rho_plus_p_shear;
 
       }
     }
@@ -4294,7 +4313,7 @@ int perturb_sources(
   double * pvecmetric;
 
   double delta_g;
-  double s2;
+  double s_2;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -4357,7 +4376,7 @@ int perturb_sources(
                  ppt->error_message,
                  error_message);
 
-      s2 = sqrt(1.-3.*pba->K/k/k);
+      s_2 = ppw->s_l[2];
 
       /** - compute quantities depending on approximation schemes */
 
@@ -4397,7 +4416,9 @@ int perturb_sources(
           _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime] 
             + pvecthermo[pth->index_th_g] * (delta_g / 4. + y[ppw->pv->index_pt_phi])
             + (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
+
           _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+
           _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
         }
 
@@ -4410,7 +4431,7 @@ int perturb_sources(
           + pvecthermo[pth->index_th_g] / 4. * delta_g;
           _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
           _set_source_(ppt->index_tp_t2) = 
-          pvecthermo[pth->index_th_exp_m_kappa] * k*k* 2./3. * s2 * pvecmetric[ppw->index_mt_alpha] 
+          pvecthermo[pth->index_th_exp_m_kappa] * k*k* 2./3. * s_2 * pvecmetric[ppw->index_mt_alpha] 
           + pvecthermo[pth->index_th_g] * P;
           }
         */
@@ -4419,16 +4440,15 @@ int perturb_sources(
 
         if (ppt->gauge == synchronous) {
           _set_source_(ppt->index_tp_t0) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * ((1.+s2) * pvecmetric[ppw->index_mt_eta_prime] 
-                                                     +(s2-1.)/3. * k*k * pvecmetric[ppw->index_mt_alpha]
-                                                     - 2.*s2 * (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] 
-                                                     - 2.*s2 * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
-            + pvecthermo[pth->index_th_g] * (delta_g/4. + s2*y[ppw->pv->index_pt_eta] - 2.*s2 * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]) // SW conter-terms + ISW
-            + s2 * (pvecthermo[pth->index_th_dg] * pvecmetric[ppw->index_mt_alpha] + pvecthermo[pth->index_th_g] * pvecmetric[ppw->index_mt_alpha_prime])
+            pvecthermo[pth->index_th_exp_m_kappa] * (2. * pvecmetric[ppw->index_mt_eta_prime] 
+                                                     -2. * (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] 
+                                                     - 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
+            + pvecthermo[pth->index_th_g] * (delta_g/4. + y[ppw->pv->index_pt_eta] - 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]) // SW conter-terms + ISW
+            + (pvecthermo[pth->index_th_dg] * pvecmetric[ppw->index_mt_alpha] + pvecthermo[pth->index_th_g] * pvecmetric[ppw->index_mt_alpha_prime])
             + (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k; // part of ISW + SW + Doppler
 
           _set_source_(ppt->index_tp_t1) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * s2 * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]); // part of ISW
+            pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]); // part of ISW
 
           _set_source_(ppt->index_tp_t2) = 
             pvecthermo[pth->index_th_g] * P; // Polarisation
@@ -5059,8 +5079,8 @@ int perturb_derivs(double tau,
 
         metric_continuity = pvecmetric[ppw->index_mt_h_prime]/2.;
         metric_euler = 0.;
-        metric_shear = k2*pvecmetric[ppw->index_mt_alpha];
-        metric_shear_prime = k2*pvecmetric[ppw->index_mt_alpha_prime];
+        metric_shear = k2 * s_l[2] * pvecmetric[ppw->index_mt_alpha];
+        metric_shear_prime = k2 * s_l[2] * pvecmetric[ppw->index_mt_alpha_prime];
         metric_ufa_class = pvecmetric[ppw->index_mt_h_prime]/2.;
       }
 

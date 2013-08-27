@@ -3495,7 +3495,7 @@ int transfer_update_HIS(
   }
   else{
     //These number should be set from input structures in the future:
-    printf("Creating interpolation structure...\n");
+    //printf("Creating interpolation structure...\n");
 
     xmin = 1e-7; //Will be changed to _HYPER_SAFETY_ by routine
     xmin = max(xmin,_HYPER_SAFETY_);

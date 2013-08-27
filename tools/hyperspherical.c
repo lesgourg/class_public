@@ -37,7 +37,7 @@ int hyperspherical_HIS_create(int K,
   nx = (int) ((xmax-xmin)*sampling/lambda);
   nx = max(nx,2);
   deltax = (xmax-xmin)/(nx-1.0);
-  fprintf(stderr,"dx=%e\n",deltax);
+  //fprintf(stderr,"dx=%e\n",deltax);
   // Allocate vectors:
   class_alloc(pHIS,sizeof(HyperInterpStruct),error_message);
   class_alloc(pHIS->l,sizeof(int)*nl,error_message);

@@ -1826,7 +1826,7 @@ int spectra_compute_cl(
   int index_tt;
   int index_ct;
   int index_d1,index_d2;
-  double q;
+  double q,k;
   double clvalue;
   int index_ic1_ic2;
   double transfer_ic1_temp=0.;
@@ -1837,10 +1837,11 @@ int spectra_compute_cl(
   for (index_q=0; index_q < ptr->q_size; index_q++) {
 
     q = ptr->q[index_q];
+    k = ptr->k[index_md][index_q];
 
     cl_integrand[index_q*cl_integrand_num_columns+0] = q;
 
-    class_call(primordial_spectrum_at_k(ppm,index_md,linear,ptr->k[index_md][index_q],primordial_pk),
+    class_call(primordial_spectrum_at_k(ppm,index_md,linear,k,primordial_pk),
                ppm->error_message,
                psp->error_message);
 
@@ -1898,7 +1899,8 @@ int spectra_compute_cl(
         primordial_pk[index_ic1_ic2]
         * transfer_ic1_temp
         * transfer_ic2_temp
-        * 4. * _PI_ / q;
+        //* 4. * _PI_ / q;
+        * 4. * _PI_ * q / k / k;
 		  
     if (psp->has_ee == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_ee]=
