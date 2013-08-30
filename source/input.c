@@ -784,11 +784,11 @@ int input_init(
     if (flag1 == _TRUE_) {
       
       if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
-        ppt->gauge = 0;
+        ppt->gauge = newtonian;
       }
       
       if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
-        ppt->gauge = 1;
+        ppt->gauge = synchronous;
       }
     }
     
@@ -1905,7 +1905,7 @@ int input_default_params(
   ppt->l_lss_max=300;
   ppt->k_max_for_pk=0.1;
 
-  ppt->gauge=1;
+  ppt->gauge=synchronous;
 
   /** - bessels structure */
 

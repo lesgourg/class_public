@@ -826,6 +826,8 @@ int transfer_get_q_list(
   //q_max = sqrt(pow(ppt->k[ppt->k_size_cl-1],2)+K); /* last value, inferred from perturbations structure */
   q_max = ppt->k[ppt->k_size_cl-1];  
 
+  //class_stop(ptr->error_message,"%e",q_min);
+
   /* first, count the number of necessary values */
 
   index_k = 0;
@@ -893,6 +895,8 @@ int transfer_get_q_list(
     index_q++;
   }
   */
+
+  //class_stop(ptr->error_message,"%e",ptr->q[0]);
 
   /* consistency check */
 
@@ -1431,6 +1435,11 @@ int transfer_compute_for_each_q(
                                                &neglect),
                      ptr->error_message,
                      ptr->error_message);
+
+          if ((ptw->sgnK==1) && (l>ptr->q[index_q]/sqrt_absK)) {
+            // fprintf(stderr,"%e %e %e\n",l,ptr->q[index_q]/sqrt_absK,ptr->q[index_q]);
+            neglect = _TRUE_;
+          }
 
           if (neglect == _TRUE_) {
 
@@ -3180,14 +3189,15 @@ int transfer_radial_function(
     s2 = sqrt(1.0-3.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/s2;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*cscKgen[nx-1-j]*Phi[j];
+    //radial_function[nx-1-j] = factor*Phi[j]/chireverse[j]/chireverse[j];
     break;
   case VECTOR_TEMPERATURE_1:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     factor = sqrt(0.5*l*(l+1))/s0;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*Phi[j];
     break;
   case VECTOR_TEMPERATURE_2:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
@@ -3195,7 +3205,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
+      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
     break;
   case VECTOR_POLARISATION_E:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
@@ -3203,7 +3213,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
+      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
     break;
   case VECTOR_POLARISATION_B:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
@@ -3212,7 +3222,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))*si/s0/ssqrt3;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*Phi[j];
     break;
   case TENSOR_TEMPERATURE_2:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
@@ -3220,7 +3230,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[j]*cscKgen[j]*Phi[j];
+      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*cscKgen[nx-1-j]*Phi[j];
     break;
   case TENSOR_POLARISATION_E:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
@@ -3228,8 +3238,8 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.25/si/ssqrt2;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[j]*sqrt_absK_over_k*dPhi[j]-
-                                        (1.0+4*K/k2-2.0*cotKgen[j]*cotKgen[j])*Phi[j]);
+      radial_function[nx-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[nx-1-j]*sqrt_absK_over_k*dPhi[j]-
+                                        (1.0+4*K/k2-2.0*cotKgen[nx-1-j]*cotKgen[nx-1-j])*Phi[j]);
     break;
   case TENSOR_POLARISATION_B:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
@@ -3238,7 +3248,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
     for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[j]*Phi[j]);
+      radial_function[nx-1-j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[nx-1-j]*Phi[j]);
     break;
   }
   free(Phi);
@@ -3536,6 +3546,17 @@ int transfer_update_HIS(
                ptr->error_message);
     ptw->HIS_allocated = _TRUE_;
 
+    /*
+    if (index_q == 0) {
+
+      fprintf(stdout,"nu=%e\n",nu);
+
+      int index_x;
+      for (index_x=0; index_x<ptw->pHIS->x_size; index_x++) {
+        fprintf(stdout,"x=%e phi=%e\n",ptw->pHIS->x[index_x],ptw->pHIS->phi[index_x]);
+      }
+    }
+    */
 
   }
   //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
