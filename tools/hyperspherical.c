@@ -94,7 +94,7 @@ int hyperspherical_HIS_create(int K,
     for (l=0; l<=(lmax+2); l++){
       sqrtK[l] = sqrt(beta2-l*l);
     }
-    if (((int) beta)==(lmax+1)){
+    if (((int) (beta+0.2))==(lmax+1)){
       /** Take care of special case lmax = beta-1. The routine below will try to compute
           Phi_{lmax+1} which is not allowed. However, the purpose is to calculate the derivative
           Phi'_{lmax}, and the formula is correct if we set Phi_{lmax+1} = 0.
@@ -437,7 +437,7 @@ int hyperspherical_backwards_recurrence(int K,
 
   //printf("in backwards. x = %g\n",x);
   if (K==1){
-    CF1_from_Gegenbauer(lmax,(int) beta,sinK,cotK, &phipr1);
+    CF1_from_Gegenbauer(lmax,(int) (beta+0.2),sinK,cotK, &phipr1);
     phi1 = 1.0;
   }
   else{
@@ -568,7 +568,7 @@ int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
 
   if (K==1){
     //Limit range to [0; pi/2]:
-    intbeta = (int)(beta+0.5); //Round to nearest integer (just to be sure)
+    intbeta = (int)(beta+0.4); //Round to nearest integer (just to be sure)
     phisign =  ClosedModY(l, intbeta, &y);
   }
   e = 1.0/sqrt(ldbl*(ldbl+1.0));

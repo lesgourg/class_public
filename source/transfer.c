@@ -798,6 +798,8 @@ int transfer_get_q_list(
   int index_q;
   double q,q_min=0.,q_max,q_step_max=0.;
   double k_min;
+  double nu;
+  int int_nu,int_nu_previous=0;
 
   /* find q_step_max, the maximum value of the step */
 
@@ -844,7 +846,19 @@ int transfer_get_q_list(
   /* - points taken from perturbation module if step small enough */
 
   while ((index_k < ppt->k_size) && ((ppt->k[index_k] - ppt->k[index_k-1]) < q_step_max)) {
-    q = sqrt(ppt->k[index_k]*ppt->k[index_k]+K);
+    q = sqrt(ppt->k[index_k]*ppt->k[index_k]+K); 
+
+    if (sgnK == 1) { 
+
+      nu = q/sqrt(K);
+      int_nu = (int)(nu+0.2);
+      if (int_nu == int_nu_previous) int_nu++;  
+      q = int_nu*sqrt(K);
+      int_nu_previous=int_nu;
+
+    }
+
+
     ptr->q[index_q] = q;
     index_k++;
     index_q++;
@@ -854,6 +868,17 @@ int transfer_get_q_list(
 
   while (q < q_max) {
     q += q_step_max;
+
+    if (sgnK == 1) { 
+
+      nu = q/sqrt(K);
+      int_nu = (int)(nu+0.2);
+      if (int_nu == int_nu_previous) int_nu++;  
+      q = int_nu*sqrt(K);
+      int_nu_previous=int_nu;
+
+    }
+
     ptr->q[index_q] = q;
     index_q++;
   }
@@ -907,7 +932,7 @@ int transfer_get_q_list(
   /*
   fprintf(stderr,"%d\n",ptr->q_size);
   for (index_q=0;index_q<ptr->q_size;index_q++) {
-    fprintf(stderr,"%d %e\n",index_q,ptr->q[index_q]);
+    fprintf(stderr,"%d %e\n",index_q,ptr->q[index_q]/sqrt(sgnK*K));
   }
   */
 
@@ -1316,7 +1341,7 @@ int transfer_compute_for_each_q(
 
   short neglect;
 
-  double sqrt_absK;
+  double sqrt_absK=0.;
 
   /** store the sources in the workspace and define all
       fields in this workspace */
@@ -3463,7 +3488,8 @@ int transfer_update_HIS(
                         double tau0
                          ) {
 
-  double nu;
+  double nu,new_nu;
+  int int_nu;
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
 
@@ -3524,9 +3550,17 @@ int transfer_update_HIS(
       xmax = sqrt_absK*tau0;
       nu = ptr->q[index_q]/sqrt_absK;
 
-      if (ptw->sgnK == 1) 
+      if (ptw->sgnK == 1) {
         xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
 
+        int_nu = (int)(nu+0.2);
+        new_nu = (double)int_nu;
+        class_test(nu-new_nu > 1.e-6,
+                   ptr->error_message,
+                   "problem in q list definition in closed case for index_q=%d, nu=%e, nu-int(nu)=%e",index_q,nu,nu-new_nu);
+        nu = new_nu;
+
+      }
       //fprintf(stderr,"sgnK=%d nu=%e l_size_max=%d xmin=%e xmax=%e\n",ptw->sgnK,nu,ptr->l_size_max,xmin,xmax);
 
       sampling = 3.;
@@ -3547,13 +3581,16 @@ int transfer_update_HIS(
     ptw->HIS_allocated = _TRUE_;
 
     /*
-    if (index_q == 0) {
+    int index_x,index_l;
+    if (index_q < 3) {
 
-      fprintf(stdout,"nu=%e\n",nu);
+      fprintf(stdout,"nu=%e    l_size_max=%d    x_size=%d\n",nu,ptr->l_size_max,ptw->pHIS->x_size);
 
-      int index_x;
-      for (index_x=0; index_x<ptw->pHIS->x_size; index_x++) {
-        fprintf(stdout,"x=%e phi=%e\n",ptw->pHIS->x[index_x],ptw->pHIS->phi[index_x]);
+      for (index_l=0; index_l<ptr->l_size_max; index_l++) {
+        for (index_x=0; index_x<ptw->pHIS->x_size; index_x++) {
+
+          fprintf(stdout,"l=%d x=%e phi=%e\n",ptr->l[index_l],ptw->pHIS->x[index_x],ptw->pHIS->phi[index_l*ptw->pHIS->x_size+index_x]);
+        }
       }
     }
     */

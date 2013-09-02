@@ -1036,7 +1036,8 @@ int perturb_get_k_list(
   double k_max_cmb=0.;
   double k_max_cl=0.;
   double k_max=0.;
-  int nu_min;
+  double nu;
+  int int_nu,int_nu_previous=0;
 
   /** Summary: */
 
@@ -1094,6 +1095,8 @@ int perturb_get_k_list(
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
     k_max = max(k_max,ppt->k_max_for_pk);
 
+  //if (pba->sgnK <= 0) {
+
   /* allocate array with, for the moment, the largest possible size */
   class_alloc(ppt->k,(k_max_cmb/k_rec/min(ppr->k_step_super,ppr->k_step_sub)+log(k_max/k_max_cmb)/log(min(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao))+1)*sizeof(double),ppt->error_message);
 
@@ -1102,14 +1105,33 @@ int perturb_get_k_list(
   index_k=0;
     
   /* first value */
-  k_min=ppr->k_min_tau0/pba->conformal_age;
-
-  /* corrected value of the smallest wavenumber in case of spatial curvature (to be updated later to non-scale modes) */
-  if (pba->K < 0.) 
-    k_min += sqrt(-pba->K);   // to start from q=sqrt(k2+(1+m)K) close to zero
-  else if (pba->K > 0.) 
-    k_min += sqrt(8.*pba->K); // to start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K)
-   
+  if (pba->sgnK == 0) {                       /* K<0 (flat)  : start close to zero */
+    k_min=ppr->k_min_tau0/pba->conformal_age;
+  }
+  else if (pba->sgnK == -1) {                  /* K<0 (open)  : start from q=sqrt(k2+(1+m)K) close to zero, i.e. k=sqrt((m+1)-K) */
+    k_min = k_max;
+    if (ppt->has_scalars == _TRUE_) {
+      k_min = min(k_min,sqrt(-pba->K)+ppr->k_min_tau0/pba->conformal_age);
+    }
+    if (ppt->has_vectors == _TRUE_) {
+      k_min = min(k_min,sqrt(-2.*pba->K)+ppr->k_min_tau0/pba->conformal_age);
+    }
+    if (ppt->has_tensors == _TRUE_) {
+      k_min = min(k_min,sqrt(-3.*pba->K)+ppr->k_min_tau0/pba->conformal_age);
+    }
+  }
+  else if (pba->sgnK == 1) {                   /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+    k_min = k_max;
+    if (ppt->has_scalars == _TRUE_) {
+      k_min = min(k_min,sqrt(8.*pba->K));
+    }
+    if (ppt->has_vectors == _TRUE_) {
+      k_min = min(k_min,sqrt(7.*pba->K));
+    }
+    if (ppt->has_tensors == _TRUE_) {
+      k_min = min(k_min,sqrt(6.*pba->K));
+    }
+  }
   //class_stop(ppt->error_message,"%e",k_min);
 
   k = k_min;
@@ -1127,6 +1149,31 @@ int perturb_get_k_list(
                "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
      
     k += step * k_rec;
+
+    /* if K>0, the transfer function will be calculated for discrete
+       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+       m=0,1,2 for scalars/vectors/tensors. However we are free to
+       define in the perturbation module some arbitrary values of k:
+       later on, the transfer module will interpolate at values of k
+       corresponding exactly to integer values of nu. However, in
+       order to maximize the accuracy in the scalar case, we choose
+       here to impose that all values of k are such that nu is an
+       integer in the that case. This is ensured by the following
+       lines: for each new guess for k, we find the nearest integer of
+       nu, impose exactly this integer and rederive the corresponding
+       k. A simple condition ensures that two consective k will
+       correspond to integers nu's differing at least by one unit. */
+
+    if (pba->sgnK == 1) { 
+
+      nu = sqrt(k*k + pba->K)/sqrt(pba->K);
+      int_nu = (int)(nu+0.2);
+      if (int_nu == int_nu_previous) int_nu++;  
+      k = sqrt((int_nu*int_nu-1.)*pba->K);
+      int_nu_previous=int_nu;
+
+    }
+
     ppt->k[index_k] = k;
     index_k++;
   }
@@ -1167,6 +1214,9 @@ int perturb_get_k_list(
                 ppt->error_message);
 
   /*
+  }
+
+  else {
 
     nu_min=3;
 
@@ -1182,6 +1232,7 @@ int perturb_get_k_list(
         
     }
 
+  }
   */
 
   return _SUCCESS_;
