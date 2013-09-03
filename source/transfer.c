@@ -264,8 +264,6 @@ int transfer_init(
     
     for (index_q = 0; index_q < ptr->q_size; index_q++) {
       
-      //fprintf(stderr,"[%d/%d] %e\n",index_q,ptr->q_size-1,ptr->k[index_q]);
-
 #ifdef _OPENMP
       tstart = omp_get_wtime();
 #endif
@@ -466,7 +464,7 @@ int transfer_indices_of_transfers(
       index_tt++;
     }
 
-    ptr->tt_size[ppt->index_md_tensors]=index_tt;
+    ptr->tt_size[ppt->index_md_vectors]=index_tt;
 
   }
 
@@ -797,7 +795,6 @@ int transfer_get_q_list(
   int index_k;
   int index_q;
   double q,q_min=0.,q_max,q_step_max=0.;
-  double k_min;
   double nu;
   int int_nu,int_nu_previous=0;
 
@@ -811,8 +808,6 @@ int transfer_get_q_list(
 
   /* allocate the q array with the longest possible size (will be reduced later with realloc) */
 
-  //fprintf(stderr,"%d\n",(1+ppt->k_size_cl+(int)((ppt->k[ppt->k_size_cl-1]-ppt->k[0])/q_step_max)));
-
   class_alloc(ptr->q,
               (1+ppt->k_size_cl+(int)((ppt->k[ppt->k_size_cl-1]-ppt->k[0])/q_step_max))*sizeof(double),
               ptr->error_message);
@@ -820,15 +815,23 @@ int transfer_get_q_list(
 
   /* first and last value in perturbation module */
 
-  k_min = ppt->k[0]; /* first value of k, inferred from perturbations structure */
-
-  //fprintf(stderr,"%e %e\n",k_min,k_min*k_min+K+1.e-8);
-
-  q_min = sqrt(k_min*k_min+K);
-  //q_max = sqrt(pow(ppt->k[ppt->k_size_cl-1],2)+K); /* last value, inferred from perturbations structure */
-  q_max = ppt->k[ppt->k_size_cl-1];  
-
-  //class_stop(ptr->error_message,"%e",q_min);
+  if (sgnK <= 0) {
+    q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
+  }
+  else {
+    q_min = 3.*sqrt(K);
+  }
+  
+  if (sgnK >= 0) {
+    q_max = ppt->k[ppt->k_size_cl-1]; 
+  }
+  else {
+    q_max = sqrt(ppt->k[ppt->k_size_cl-1]*ppt->k[ppt->k_size_cl-1]+K);
+    if (ppt->has_vectors == _TRUE_) 
+      q_max = min(q_max,sqrt(ppt->k[ppt->k_size_cl-1]*ppt->k[ppt->k_size_cl-1]+2.*K));
+    if (ppt->has_tensors == _TRUE_) 
+      q_max = min(q_max,sqrt(ppt->k[ppt->k_size_cl-1]*ppt->k[ppt->k_size_cl-1]+3.*K));
+  }
 
   /* first, count the number of necessary values */
 
@@ -890,51 +893,22 @@ int transfer_get_q_list(
   else
     ptr->q_size=index_q;
 
-  //fprintf(stderr,"%d\n",ptr->q_size);
-
   class_realloc(ptr->q,
                 ptr->q,
                 ptr->q_size*sizeof(double),
                 ptr->error_message);
 
-  /* repeat exactly the same steps, but now filling the list */
-  /*
-  index_k = 0;
-  index_q = 0;
+  /* consistency checks */
 
-  ptr->q[0] = q_min;
-  q = q_min;
-  index_k++;
-  index_q++;
-
-  while ((index_k < ppt->k_size) && ((ppt->k[index_k] -q) < q_step_max)) {
-    q = ppt->k[index_k];
-    ptr->q[index_q] = q;
-    index_k++;
-    index_q++;
-  }
-
-  while ((index_q < ptr->q_size) && (q < q_max)) {
-    q += q_step_max;
-    ptr->q[index_q] = q;
-    index_q++;
-  }
-  */
-
-  //class_stop(ptr->error_message,"%e",ptr->q[0]);
-
-  /* consistency check */
-
-  class_test(ptr->q[ptr->q_size-1] > q_max,
+  class_test(ptr->q[0] <= 0.,
              ptr->error_message,
-             "bug in q list calculation, q_max larger in transfer than in perturb, should never happen");
+             "bug in q list calculation, q_min=%e, should always be strictly positive",ptr->q[0]);
 
-  /*
-  fprintf(stderr,"%d\n",ptr->q_size);
-  for (index_q=0;index_q<ptr->q_size;index_q++) {
-    fprintf(stderr,"%d %e\n",index_q,ptr->q[index_q]/sqrt(sgnK*K));
-  }
-  */
+  if (sgnK == 1) {
+    class_test(ptr->q[0] < 3.*sqrt(K),
+               ptr->error_message,
+               "bug in q list calculation, q_min=%e, should be greater or equal to 3sqrt(K)=%e in positivevly curved universe",ptr->q[0],3.*sqrt(K));
+  }    
 
   return _SUCCESS_; 
 
@@ -948,7 +922,7 @@ int transfer_get_k_list(
 
   int index_md;
   int index_q;
-  int m=0;
+  double m=0.;
 
   class_alloc(ptr->k,ptr->md_size*sizeof(double*),ptr->error_message);
 
@@ -957,18 +931,34 @@ int transfer_get_k_list(
     class_alloc(ptr->k[index_md],ptr->q_size*sizeof(double),ptr->error_message);
 
     if _scalars_ {
-        m=0;
+        m=0.;
       }
     if _vectors_ {
-        m=1;
+        m=1.;
       }
     if _tensors_ {
-        m=2;
+        m=2.;
       }
 
     for (index_q=0; index_q < ptr->q_size; index_q++) {
-      ptr->k[index_md][index_q] = sqrt(ptr->q[index_q]*ptr->q[index_q]-K*(m+1));
+      ptr->k[index_md][index_q] = sqrt(ptr->q[index_q]*ptr->q[index_q]-K*(m+1.));
     }
+
+    class_test(ptr->k[index_md][0] < ppt->k[0],
+               ptr->error_message,
+               "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
+               ppt->k[0],
+               index_md,
+               ptr->k[index_md][0]);
+
+    class_test(ptr->k[index_md][ptr->q_size-1] < ppt->k[ppt->k_size_cmb],
+               ptr->error_message,
+               "bug in k_list calculation: in perturbation module k_max=%e, in transfer module k_max[mode=%d]=%e, interpolation impossible",
+               ppt->k[ppt->k_size_cmb],
+               index_md,
+               ptr->k[index_md][ptr->q_size-1]);
+      
+
   }
 
   return _SUCCESS_;
@@ -1462,7 +1452,6 @@ int transfer_compute_for_each_q(
                      ptr->error_message);
 
           if ((ptw->sgnK==1) && (l>ptr->q[index_q]/sqrt_absK)) {
-            // fprintf(stderr,"%e %e %e\n",l,ptr->q[index_q]/sqrt_absK,ptr->q[index_q]);
             neglect = _TRUE_;
           }
 
@@ -2596,7 +2585,7 @@ int transfer_compute_for_each_l(
                                 struct precision * ppr,
                                 struct perturbs * ppt,
                                 struct transfers * ptr,
-                                int index_k,
+                                int index_q,
                                 int index_md,
                                 int index_ic,
                                 int index_tt,
@@ -2610,7 +2599,7 @@ int transfer_compute_for_each_l(
   /** - define local variables */
 
   /* current wavenumber value */
-  double q;
+  double q,k;
 
   /* value of transfer function */
   double transfer_function;
@@ -2623,14 +2612,15 @@ int transfer_compute_for_each_l(
     
     ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                              * ptr->l_size[index_md] + index_l)
-                            * ptr->q_size + index_k] = 0.;
+                            * ptr->q_size + index_q] = 0.;
     return _SUCCESS_;
   }
   
   if (ptr->transfer_verbose > 2)
     printf("Compute transfer for l=%d\n",(int)l);
   
-  q = ptr->q[index_k];
+  q = ptr->q[index_q];
+  k = ptr->k[index_md][index_q];
 
   if (ptr->transfer_verbose > 3)
     printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,q,index_tt);
@@ -2652,7 +2642,7 @@ int transfer_compute_for_each_l(
     class_call(transfer_limber(ptw->tau_size,
                                ptr,
                                index_md,
-                               index_k,
+                               index_q,
                                l,
                                q,
                                ptw->tau0_minus_tau,
@@ -2667,12 +2657,12 @@ int transfer_compute_for_each_l(
                                   ppt,
                                   ptr,
                                   ptw,
-                                  index_k,
+                                  index_q,
                                   index_md,
                                   index_tt,
                                   l,
                                   index_l,
-                                  q,
+                                  k,
                                   &transfer_function
                                   ),
                ptr->error_message,
@@ -2682,7 +2672,7 @@ int transfer_compute_for_each_l(
   /* store transfer function in transfer structure */
   ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
                            * ptr->l_size[index_md] + index_l)
-                          * ptr->q_size + index_k]
+                          * ptr->q_size + index_q]
     = transfer_function;
   
   return _SUCCESS_;
@@ -2744,7 +2734,7 @@ int transfer_use_limber(
  * @param index_md            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
- * @param index_k               Input : index of wavenumber
+ * @param index_q               Input : index of wavenumber
  * @param interpolated_sources  Input: array of interpolated sources
  * @param ptw                   Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation) 
  * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
@@ -2755,7 +2745,7 @@ int transfer_integrate(
                        struct perturbs * ppt,
                        struct transfers * ptr,
                        struct transfer_workspace *ptw,
-                       int index_k,
+                       int index_q,
                        int index_md,
                        int index_tt,
                        double l,
@@ -2797,8 +2787,6 @@ int transfer_integrate(
   }
 
   /** - if there is an overlap: */
-
-  //fprintf(stdout,"%e %e\n",k,l);
 
   /** Select radial function type: */
   class_call(transfer_select_radial_function(
@@ -2903,7 +2891,7 @@ int transfer_integrate(
  * @param index_md            Input : index of mode
  * @param index_tt              Input : index of type
  * @param index_l               Input : index of multipole
- * @param index_k               Input : index of wavenumber
+ * @param index_q               Input : index of wavenumber
  * @param interpolated_sources  Input: array of interpolated sources
  * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$ 
  * @return the error status
@@ -2913,7 +2901,7 @@ int transfer_limber(
                     int tau_size,
                     struct transfers * ptr,
                     int index_md,
-                    int index_k,
+                    int index_q,
                     double l,
                     double k,
                     double * tau0_minus_tau,
@@ -3264,11 +3252,15 @@ int transfer_radial_function(
     factor = 0.25/si/ssqrt2;
     for (j=0; j<nx; j++)
       radial_function[nx-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[nx-1-j]*sqrt_absK_over_k*dPhi[j]-
-                                        (1.0+4*K/k2-2.0*cotKgen[nx-1-j]*cotKgen[nx-1-j])*Phi[j]);
+                                        (1.0+4*K/k2-2.0*cotKgen[nx-1-j]*cotKgen[nx-1-j])*Phi[j]);               //TBC: 1.0+4*K/k2. Shouldn't it be 1.0+2*K/k2 ?
     break;
   case TENSOR_POLARISATION_B:
     hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
-    ssqrt2i = sqrt(1.0+5.0*K/k2);
+    //ssqrt2i = sqrt(1.0+5.0*K/k2);
+    class_test(1.0+3.0*K/k2<0.,
+               ptr->error_message,
+               "check this\n");
+    ssqrt2i = sqrt(1.0+3.0*K/k2);      // TBC
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
@@ -3561,11 +3553,15 @@ int transfer_update_HIS(
         nu = new_nu;
 
       }
-      //fprintf(stderr,"sgnK=%d nu=%e l_size_max=%d xmin=%e xmax=%e\n",ptw->sgnK,nu,ptr->l_size_max,xmin,xmax);
 
       sampling = 3.;
 
     }
+
+    class_test(nu <= 0.,
+               ptr->error_message,
+               "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
+               nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
 
     class_call(hyperspherical_HIS_create(ptw->sgnK, 
                                          nu,
@@ -3579,21 +3575,6 @@ int transfer_update_HIS(
                ptr->error_message,
                ptr->error_message);
     ptw->HIS_allocated = _TRUE_;
-
-    /*
-    int index_x,index_l;
-    if (index_q < 3) {
-
-      fprintf(stdout,"nu=%e    l_size_max=%d    x_size=%d\n",nu,ptr->l_size_max,ptw->pHIS->x_size);
-
-      for (index_l=0; index_l<ptr->l_size_max; index_l++) {
-        for (index_x=0; index_x<ptw->pHIS->x_size; index_x++) {
-
-          fprintf(stdout,"l=%d x=%e phi=%e\n",ptr->l[index_l],ptw->pHIS->x[index_x],ptw->pHIS->phi[index_l*ptw->pHIS->x_size+index_x]);
-        }
-      }
-    }
-    */
 
   }
   //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.

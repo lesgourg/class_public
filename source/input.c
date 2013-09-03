@@ -2144,7 +2144,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->curvature_ini=1.; /* initial curvature; used to fix adiabatic initial conditions; must remain fixed to one as long as the primordial adiabatic spectrum stands for the curvature power spectrum */
   ppr->entropy_ini=1.;   /* initial entropy; used to fix isocurvature initial conditions; must remain fixed to one as long as the primordial isocurvature spectrum stands for an entropy power spectrum */
-  ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
+  //ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
+  ppr->gw_ini=1.;
 
   ppr->perturb_integration_stepsize=0.5;
 

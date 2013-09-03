@@ -283,9 +283,13 @@ int perturb_init(
         //for (index_k = 0; index_k < ppt->k_size; index_k++) {
         for (index_k = ppt->k_size-1; index_k >=0; index_k--) {  
 
-          if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_))
-            printf("evolving mode k=%e /Mpc (for scalar modes, corresponds to nu=%e, index_k=%d)\n",ppt->k[index_k],sqrt(1.+ppt->k[index_k]*ppt->k[index_k]/pba->K),index_k);
-	  
+          if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
+            printf("evolving mode k=%e /Mpc",ppt->k[index_k]);
+            if (pba->sgnK != 0)
+              printf(" (for scalar modes, corresponds to nu=%e)",sqrt(ppt->k[index_k]*ppt->k[index_k]+pba->K)/sqrt(pba->sgnK*pba->K));
+            printf("\n");
+          }
+
 #ifdef _OPENMP
           tstart = omp_get_wtime();
 #endif
@@ -1032,7 +1036,7 @@ int perturb_get_k_list(
                        struct perturbs * ppt
                        ) {
   int index_k;
-  double k,k_min,k_rec,step,tau1;
+  double k,k_min=0.,k_rec,step,tau1;
   double k_max_cmb=0.;
   double k_max_cl=0.;
   double k_max=0.;
@@ -1105,26 +1109,24 @@ int perturb_get_k_list(
   index_k=0;
     
   /* first value */
-  if (pba->sgnK == 0) {                       /* K<0 (flat)  : start close to zero */
+  if (pba->sgnK == 0) {                       
+
+    /* K<0 (flat)  : start close to zero */
     k_min=ppr->k_min_tau0/pba->conformal_age;
+
   }
-  else if (pba->sgnK == -1) {                  /* K<0 (open)  : start from q=sqrt(k2+(1+m)K) close to zero, i.e. k=sqrt((m+1)-K) */
-    k_min = k_max;
-    if (ppt->has_scalars == _TRUE_) {
-      k_min = min(k_min,sqrt(-pba->K)+ppr->k_min_tau0/pba->conformal_age);
-    }
-    if (ppt->has_vectors == _TRUE_) {
-      k_min = min(k_min,sqrt(-2.*pba->K)+ppr->k_min_tau0/pba->conformal_age);
-    }
-    if (ppt->has_tensors == _TRUE_) {
-      k_min = min(k_min,sqrt(-3.*pba->K)+ppr->k_min_tau0/pba->conformal_age);
-    }
+  else if (pba->sgnK == -1) {                 
+
+    /* K<0 (open)  : start close to sqrt(-K) 
+       (in transfer modules, for scalars, this will correspond to q close to zero; 
+       for vectors and tensors, this value is even smaller than the minimum necessary value) */
+    k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age,2));
+
   }
-  else if (pba->sgnK == 1) {                   /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
-    k_min = k_max;
-    if (ppt->has_scalars == _TRUE_) {
-      k_min = min(k_min,sqrt(8.*pba->K));
-    }
+  else if (pba->sgnK == 1) {                   
+
+    /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+    k_min = sqrt(8.*pba->K);
     if (ppt->has_vectors == _TRUE_) {
       k_min = min(k_min,sqrt(7.*pba->K));
     }
@@ -1132,7 +1134,6 @@ int perturb_get_k_list(
       k_min = min(k_min,sqrt(6.*pba->K));
     }
   }
-  //class_stop(ppt->error_message,"%e",k_min);
 
   k = k_min;
   ppt->k[index_k] = k;
@@ -1158,9 +1159,9 @@ int perturb_get_k_list(
        corresponding exactly to integer values of nu. However, in
        order to maximize the accuracy in the scalar case, we choose
        here to impose that all values of k are such that nu is an
-       integer in the that case. This is ensured by the following
+       integer in the flat case. This is ensured by the following
        lines: for each new guess for k, we find the nearest integer of
-       nu, impose exactly this integer and rederive the corresponding
+       nu, impose exactly this integer, and rederive the corresponding
        k. A simple condition ensures that two consective k will
        correspond to integers nu's differing at least by one unit. */
 
@@ -1214,9 +1215,9 @@ int perturb_get_k_list(
                 ppt->error_message);
 
   /*
-  }
+    }
 
-  else {
+    else {
 
     nu_min=3;
 
@@ -1228,11 +1229,11 @@ int perturb_get_k_list(
 
     for (index_k=0; index_k < ppt->k_size; index_k++) {
       
-      ppt->k[index_k] = sqrt(pow(nu_min+index_k,2)-1)*sqrt(pba->K);
+    ppt->k[index_k] = sqrt(pow(nu_min+index_k,2)-1)*sqrt(pba->K);
         
     }
 
-  }
+    }
   */
 
   return _SUCCESS_;
@@ -3075,7 +3076,6 @@ int perturb_initial_conditions(struct precision * ppr,
   double fracnu,fracg,fracb,fraccdm,om;
   double ktau_two,ktau_three;
   
-  double s_0,s_2;
   double delta_tot;
   double velocity_tot;
 
@@ -3381,14 +3381,14 @@ int perturb_initial_conditions(struct precision * ppr,
            with 
 
            delta_tot = (delta_rho/rho_c) 
-                     = [rho_r delta_r + rho_m delta_m] / (rho_r + rho_m)
-                     = [delta_r + (rho_m/rho_r) delta_m] / (1 + rho_m/rho_r)
-                     = [(f_g delta_g + f_nu delta_nu) + (rho_m/rho_r) (f_b delta_b + f_cdm delta_cdm)] / (1 + rho_m/rho_r)
+           = [rho_r delta_r + rho_m delta_m] / (rho_r + rho_m)
+           = [delta_r + (rho_m/rho_r) delta_m] / (1 + rho_m/rho_r)
+           = [(f_g delta_g + f_nu delta_nu) + (rho_m/rho_r) (f_b delta_b + f_cdm delta_cdm)] / (1 + rho_m/rho_r)
 
            velocity_tot = ((rho+p)theta/rho_c) 
-                        = [(4/3) rho_r theta_r + rho_m theta_m] / (rho_r + rho_m)
-                        = [(4/3) theta_r + (rho_m/rho_r) theta_m] / (1 + rho_m/rho_r)
-                        = [(4/3) (f_g theta_g + f_nu theta_nu) + (rho_m/rho_r) (f_b delta_b + f_cdm 0)] / (1 + rho_m/rho_r)
+           = [(4/3) rho_r theta_r + rho_m theta_m] / (rho_r + rho_m)
+           = [(4/3) theta_r + (rho_m/rho_r) theta_m] / (1 + rho_m/rho_r)
+           = [(4/3) (f_g theta_g + f_nu theta_nu) + (rho_m/rho_r) (f_b delta_b + f_cdm 0)] / (1 + rho_m/rho_r)
         */
 
         if (pba->has_cdm == _TRUE_) {
@@ -4348,7 +4348,6 @@ int perturb_sources(
   /** - define local variables */
 
   double P;
-  double x;
   int index_type;
 
   struct perturb_parameters_and_workspace * pppaw;
@@ -4386,12 +4385,6 @@ int perturb_sources(
   pvecback = ppw->pvecback;
   pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
-
-  /* class_test(ppw->approx[ppw->index_ap_tca] == (int)tca_on, */
-  /* 	     ppt->error_message, */
-  /* 	     "source calculation assume tight-coupling approximation turned off"); */
-
-  x = k * (pba->conformal_age-tau);
 
   /** - get background/thermo quantities in this point */
 
@@ -4518,12 +4511,12 @@ int perturb_sources(
           _set_source_(ppt->index_tp_t2) = 0.;
           }
 
-        if (ppt->gauge == synchronous) {
+          if (ppt->gauge == synchronous) {
           _set_source_(ppt->index_tp_t0) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] - (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] - pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
-            + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta] - pvecmetric[ppw->index_mt_alpha_prime] - 2 * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]);
+          pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] - (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] - pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
+          + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta] - pvecmetric[ppw->index_mt_alpha_prime] - 2 * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]);
           _set_source_(ppt->index_tp_t1) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
+          pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
           _set_source_(ppt->index_tp_t2) = 0.;
           }
         */
@@ -4537,14 +4530,14 @@ int perturb_sources(
              }
         */
         /*
-        if (ppt->gauge == synchronous) {
+          if (ppt->gauge == synchronous) {
           _set_source_(ppt->index_tp_t0) =
-            pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime]); // SW
+          pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime]); // SW
           _set_source_(ppt->index_tp_t1) = 
-            pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k); // Doppler
+          pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k); // Doppler
           _set_source_(ppt->index_tp_t2) =
-            pvecthermo[pth->index_th_g] * P; // polarisation
-        }
+          pvecthermo[pth->index_th_g] * P; // polarisation
+          }
         */
 
         /* for testing purposes */
@@ -4682,15 +4675,30 @@ int perturb_sources(
   if _tensors_ {
 
       /* compute quantities depending on approximation schemes */
-      if ((ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off)) {
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { 
+        if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 	
-        P = -(1./10.*y[ppw->pv->index_pt_delta_g]
-              +2./7.*y[ppw->pv->index_pt_shear_g]
-              +3./70.*y[ppw->pv->index_pt_delta_g+4]
-              -3./5.*y[ppw->pv->index_pt_pol0_g]
-              +6./7.*y[ppw->pv->index_pt_pol2_g]
-              -3./70.*y[ppw->pv->index_pt_pol0_g+4])
-          /sqrt(6.);
+          P = -(1./10.*y[ppw->pv->index_pt_delta_g]
+                +2./7.*y[ppw->pv->index_pt_shear_g]
+                +3./70.*y[ppw->pv->index_pt_delta_g+4]
+                -3./5.*y[ppw->pv->index_pt_pol0_g]
+                +6./7.*y[ppw->pv->index_pt_pol2_g]
+                -3./70.*y[ppw->pv->index_pt_pol0_g+4])
+            /sqrt(6.);
+
+          /* above expression matches paper, expression below matches old class and is not correct
+          P = -(y[ppw->pv->index_pt_delta_g]/10.
+                +y[ppw->pv->index_pt_shear_g]*2./35.
+                +y[ppw->pv->index_pt_delta_g+4]/210.
+                -y[ppw->pv->index_pt_pol0_g]*3./5.
+                +y[ppw->pv->index_pt_pol2_g]*6./35.
+                -y[ppw->pv->index_pt_pol0_g+4]/210.)
+            /sqrt(6.);
+          */
+        }
+        else {
+          P = 2./5.*_SQRT6_*y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa]; //TBC
+        }
       }
       else {
         P = 0.;
@@ -4698,7 +4706,8 @@ int perturb_sources(
 
       /* tensor temperature */
       if (ppt->has_source_t == _TRUE_) {
-        _set_source_(ppt->index_tp_t2) = -3./2. * y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + 3./2. * pvecthermo[pth->index_th_g] * P;
+        //_set_source_(ppt->index_tp_t2) = -3./2. * y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + 3./2. * pvecthermo[pth->index_th_g] * P; //TBC
+        _set_source_(ppt->index_tp_t2) = -1./_SQRT6_*y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + pvecthermo[pth->index_th_g] * P;
       }
 
       /* tensor polarization */
@@ -4750,7 +4759,7 @@ int perturb_print_variables(double tau,
   double * pvecthermo;
   double * pvecmetric;
   
-  double delta_g,theta_g,shear_g,l3_g,pol0_g,pol1_g,pol2_g,pol3_g;
+  double delta_g,theta_g,shear_g,l3_g,l4_g,pol0_g,pol1_g,pol2_g,pol3_g,pol4_g;
   double delta_b,theta_b;
   double delta_cdm=0.,theta_cdm=0.;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.;
@@ -4776,156 +4785,206 @@ int perturb_print_variables(double tau,
   //if ((k>0.1)&&(k<0.102)){
   //if ((k>=0.001) && (k<0.0011)) {
   //if ((k>=0.060) && (k<0.062)) {
-  if (pppaw->index_k == 9) {
+  //if (_tensors_ && (pppaw->index_k == ppt->k_size-1)) {
+  if ((k < 3.12e-1) && (k>3.10e-1)) {
 
-    if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
-      delta_g = y[ppw->pv->index_pt_delta_g];
-      theta_g = y[ppw->pv->index_pt_theta_g];
-    }
-    else {
-      delta_g = ppw->rsa_delta_g;
-      theta_g = ppw->rsa_theta_g;
-    }
+    if _scalars_ {
+
+        if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
+          delta_g = y[ppw->pv->index_pt_delta_g];
+          theta_g = y[ppw->pv->index_pt_theta_g];
+        }
+        else {
+          delta_g = ppw->rsa_delta_g;
+          theta_g = ppw->rsa_theta_g;
+        }
     
-    if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
-      if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
-        shear_g = ppw->tca_shear_g;
-        l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
-        pol0_g = 2.5*ppw->tca_shear_g;
-        pol1_g = 7./12.*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
-        pol2_g = 0.5*ppw->tca_shear_g;
-        pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
-      }
-      else {
-        shear_g = y[ppw->pv->index_pt_shear_g];
-        l3_g = y[ppw->pv->index_pt_l3_g];
-        pol0_g = y[ppw->pv->index_pt_pol0_g];
-        pol1_g = y[ppw->pv->index_pt_pol1_g];
-        pol2_g = y[ppw->pv->index_pt_pol2_g];
-        pol3_g = y[ppw->pv->index_pt_pol3_g];
-      }
-    }
-    else {
-      shear_g = 0;
-      l3_g = 0;
-      pol0_g = 0;
-      pol1_g = 0;
-      pol2_g = 0;
-      pol3_g = 0.;
-    }
+        if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
+          if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
+            shear_g = ppw->tca_shear_g;
+            l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+            pol0_g = 2.5*ppw->tca_shear_g;
+            pol1_g = 7./12.*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+            pol2_g = 0.5*ppw->tca_shear_g;
+            pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+          }
+          else {
+            shear_g = y[ppw->pv->index_pt_shear_g];
+            l3_g = y[ppw->pv->index_pt_l3_g];
+            pol0_g = y[ppw->pv->index_pt_pol0_g];
+            pol1_g = y[ppw->pv->index_pt_pol1_g];
+            pol2_g = y[ppw->pv->index_pt_pol2_g];
+            pol3_g = y[ppw->pv->index_pt_pol3_g];
+          }
+        }
+        else {
+          shear_g = 0;
+          l3_g = 0;
+          pol0_g = 0;
+          pol1_g = 0;
+          pol2_g = 0;
+          pol3_g = 0.;
+        }
     
-    if (pba->has_ur == _TRUE_) {
-      if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
-        delta_ur = y[ppw->pv->index_pt_delta_ur];
-        theta_ur = y[ppw->pv->index_pt_theta_ur];
-        shear_ur = y[ppw->pv->index_pt_shear_ur];
-      }
-      else {
-        delta_ur = ppw->rsa_delta_ur;
-        theta_ur = ppw->rsa_theta_ur;
-        shear_ur = 0.;
-      }
-    }
+        if (pba->has_ur == _TRUE_) {
+          if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
+            delta_ur = y[ppw->pv->index_pt_delta_ur];
+            theta_ur = y[ppw->pv->index_pt_theta_ur];
+            shear_ur = y[ppw->pv->index_pt_shear_ur];
+          }
+          else {
+            delta_ur = ppw->rsa_delta_ur;
+            theta_ur = ppw->rsa_theta_ur;
+            shear_ur = 0.;
+          }
+        }
 
-    delta_b = y[ppw->pv->index_pt_delta_b];
-    theta_b = y[ppw->pv->index_pt_theta_b];
+        delta_b = y[ppw->pv->index_pt_delta_b];
+        theta_b = y[ppw->pv->index_pt_theta_b];
 
-    if (pba->has_cdm == _TRUE_) {
+        if (pba->has_cdm == _TRUE_) {
 
-      delta_cdm = y[ppw->pv->index_pt_delta_cdm];
-      if (ppt->gauge == synchronous) {
-        theta_cdm = 0.;
-      }
-      else {
-        theta_cdm = y[ppw->pv->index_pt_theta_cdm];
-      }
-    }
+          delta_cdm = y[ppw->pv->index_pt_delta_cdm];
+          if (ppt->gauge == synchronous) {
+            theta_cdm = 0.;
+          }
+          else {
+            theta_cdm = y[ppw->pv->index_pt_theta_cdm];
+          }
+        }
 
-    /* converting synchronous variables to newtonian ones */
-    if (ppt->gauge == synchronous) {
+        /* converting synchronous variables to newtonian ones */
+        if (ppt->gauge == synchronous) {
 
-      /* gravitational potential */
-      psi = pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] + pvecmetric[ppw->index_mt_alpha_prime];
-      phi = y[ppw->pv->index_pt_eta] - pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+          /* gravitational potential */
+          psi = pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] + pvecmetric[ppw->index_mt_alpha_prime];
+          phi = y[ppw->pv->index_pt_eta] - pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
 
-      /* density and velocity perturbations (comment out if you wish to keep synchronous variables) */
-      /*
-        delta_g -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
-        theta_g += k*k*pvecmetric[ppw->index_mt_alpha];
+          /* density and velocity perturbations (comment out if you wish to keep synchronous variables) */
+          /*
+            delta_g -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+            theta_g += k*k*pvecmetric[ppw->index_mt_alpha];
 
-        delta_b -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
-        theta_b += k*k*pvecmetric[ppw->index_mt_alpha];
+            delta_b -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+            theta_b += k*k*pvecmetric[ppw->index_mt_alpha];
+
+            if (pba->has_ur == _TRUE_) {
+            delta_ur -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+            theta_ur += k*k*pvecmetric[ppw->index_mt_alpha];
+            }
+
+            if (pba->has_cdm == _TRUE_) {
+            delta_cdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+            theta_cdm += k*k*pvecmetric[ppw->index_mt_alpha];
+            }
+          */
+
+        }
+
+        fprintf(stdout,"%e   %e   %e   %e   %e   %e   %e   %e   %e   %e   ",
+                k,
+                tau,
+                delta_g,
+                theta_g,
+                shear_g,
+                pol0_g,
+                pol1_g,
+                pol2_g,
+                delta_b,
+                theta_b);
 
         if (pba->has_ur == _TRUE_) {
-        delta_ur -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
-        theta_ur += k*k*pvecmetric[ppw->index_mt_alpha];
+
+          fprintf(stdout,"%e   %e   %e   ",
+                  delta_ur,
+                  theta_ur,
+                  shear_ur);
+
         }
 
         if (pba->has_cdm == _TRUE_) {
-        delta_cdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
-        theta_cdm += k*k*pvecmetric[ppw->index_mt_alpha];
+
+          fprintf(stdout,"%e   %e   ",
+                  delta_cdm,
+                  theta_cdm);
+
         }
-      */
 
-    }
+        if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_))) {
+          for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+            fprintf(stdout,"%e   %e   %e   ",
+                    ppw->delta_ncdm[n_ncdm],
+                    ppw->theta_ncdm[n_ncdm],
+                    ppw->shear_ncdm[n_ncdm]);
+          }
+        }
 
-    fprintf(stdout,"%e   %e   %e   %e   %e   %e   %e   %e   %e   %e   ",
-            k,
-            tau,
-            delta_g,
-            theta_g,
-            shear_g,
-            pol0_g,
-            pol1_g,
-            pol2_g,
-            delta_b,
-            theta_b);
+        if (ppt->gauge == synchronous) {
 
-    if (pba->has_ur == _TRUE_) {
+          fprintf(stdout,"%e   %e", 
+                  //	      y[ppw->pv->index_pt_eta],
+                  //	      pvecmetric[ppw->index_mt_eta_prime],
+                  //	      pvecmetric[ppw->index_mt_h_prime],
+                  psi,
+                  phi);
+        }
 
-      fprintf(stdout,"%e   %e   %e   ",
-              delta_ur,
-              theta_ur,
-              shear_ur);
+        if (ppt->gauge == newtonian) {
 
-    }
+          fprintf(stdout,"%e   %e", 
+                  pvecmetric[ppw->index_mt_psi],
+                  y[ppw->pv->index_pt_phi]);
 
-    if (pba->has_cdm == _TRUE_) {
+        }
 
-      fprintf(stdout,"%e   %e   ",
-              delta_cdm,
-              theta_cdm);
+        fprintf(stdout,"\n");
 
-    }
-
-    if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_))) {
-      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-        fprintf(stdout,"%e   %e   %e   ",
-                ppw->delta_ncdm[n_ncdm],
-                ppw->theta_ncdm[n_ncdm],
-                ppw->shear_ncdm[n_ncdm]);
       }
-    }
 
-    if (ppt->gauge == synchronous) {
+    if _tensors_ {
 
-      fprintf(stdout,"%e   %e", 
-              //	      y[ppw->pv->index_pt_eta],
-              //	      pvecmetric[ppw->index_mt_eta_prime],
-              //	      pvecmetric[ppw->index_mt_h_prime],
-              psi,
-              phi);
-    }
+        if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
+          if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
+            delta_g = y[ppw->pv->index_pt_delta_g];
+            shear_g = y[ppw->pv->index_pt_shear_g];
+            l4_g = y[ppw->pv->index_pt_delta_g+4];
+            pol0_g = y[ppw->pv->index_pt_pol0_g];
+            pol2_g = y[ppw->pv->index_pt_pol2_g];
+            pol4_g = y[ppw->pv->index_pt_pol0_g+4];
+          }
+          else {
+            delta_g = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa]; //TBC
+            shear_g = 0.;
+            l4_g = 0.;
+            pol0_g = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa]; //TBC
+            pol2_g = 0.;
+            pol4_g = 0.;
+          }
+        }
+        else {
+          delta_g = 0.;
+          shear_g = 0.;
+          l4_g = 0.;
+          pol0_g = 0.;
+          pol2_g = 0.;
+          pol4_g = 0.;
+        }
 
-    if (ppt->gauge == newtonian) {
+        fprintf(stdout,"%e   %e   %e   %e   %e   %e   %e   %e   %e   %e   ",
+                k,
+                tau,
+                delta_g,
+                shear_g,
+                l4_g,
+                pol0_g,
+                pol2_g,
+                pol4_g,
+                y[ppw->pv->index_pt_gw],
+                y[ppw->pv->index_pt_gwdot]);
 
-      fprintf(stdout,"%e   %e", 
-              pvecmetric[ppw->index_mt_psi],
-              y[ppw->pv->index_pt_phi]);
+        fprintf(stdout,"\n");
 
-    }
-
-    fprintf(stdout,"\n");
+      }
 
   }
  
@@ -5001,7 +5060,7 @@ int perturb_derivs(double tau,
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.,metric_ufa_class=0.;
 
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
-  double P0,P1,P2, gw_source_g, gw_source_nu;
+  double P2, gw_source_g;
 
   /* for use with fluid (fld): */
   double w,w_prime;
@@ -5457,7 +5516,7 @@ int perturb_derivs(double tau,
       /** -> fluid (fld) */
     
       if (pba->has_fld == _TRUE_) {  
-   //TBC: Not completely sure where to put s_l..
+        //TBC: Not completely sure where to put s_l..
         /** ---> factors w, w_prime, adiabatic sound speed ca2 (all three background-related), 
             plus actual sound speed in the fluid rest frame cs2 */
 
@@ -5676,7 +5735,7 @@ int perturb_derivs(double tau,
               }
 			
               /** -----> ncdm lmax for given momentum bin (truncation as in Ma and Bertschinger) 
-               but with curvature taken into account a la arXiv:1305.3261 */
+                  but with curvature taken into account a la arXiv:1305.3261 */
 
               dy[idx+l] = qk_div_epsilon*y[idx+l-1]-(1.+l)*k*cotKgen*y[idx+l]; 
 			
@@ -5710,6 +5769,8 @@ int perturb_derivs(double tau,
   /** - tensor mode */
   if (_tensors_) {
     
+    gw_source_g = 0.;
+
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
 
@@ -5727,16 +5788,28 @@ int perturb_derivs(double tau,
                           -3./5.*y[ppw->pv->index_pt_pol0_g]
                           +6./7.*y[ppw->pv->index_pt_pol2_g]
                           -3./70.*y[ppw->pv->index_pt_pol0_g+4]);
-	
+
+        /* above epxression from paper, expression below matches old class but is not correct
+        P2 = -1.0/_SQRT6_*(
+                           1./10.*delta_g
+                           +2./35.*shear_g
+                           +1./210.*y[ppw->pv->index_pt_delta_g+4]
+                           -3./5.*y[ppw->pv->index_pt_pol0_g]
+                           +6./35.*y[ppw->pv->index_pt_pol2_g]
+                           -1./210.*y[ppw->pv->index_pt_pol0_g+4]
+                           );
+        */
+
         /* photon density (delta_g = F_0) */
         dy[ppw->pv->index_pt_delta_g] = 
-          -4./3.*s_l[1]*theta_g
+          -4./3.*theta_g
           -pvecthermo[pth->index_th_dkappa]*(delta_g+_SQRT6_*P2)
-          +_SQRT6_*y[ppw->pv->index_pt_gwdot];  
-	
+          +y[ppw->pv->index_pt_gwdot];  
+        //+_SQRT6_*y[ppw->pv->index_pt_gwdot];  //TBC
+          	
         /* photon velocity (theta_g = (3k/4)*F_1) */
         dy[ppw->pv->index_pt_theta_g] = 
-          k2*(s_l[1]*delta_g/4.-s_l[2]*shear_g)
+          k2*(delta_g/4.-s_l[2]*shear_g)
           -pvecthermo[pth->index_th_dkappa]*theta_g;
 	
         /* photon shear (shear_g = F_2/2) */
@@ -5756,6 +5829,7 @@ int perturb_derivs(double tau,
                          -(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_delta_g+l+1])
             -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_delta_g+l];  
 	
+        /* l=lmax */
         l = ppw->pv->l_max_g;
         dy[ppw->pv->index_pt_delta_g+l] = 
           k*(s_l[l]*y[ppw->pv->index_pt_delta_g+l-1]
@@ -5764,7 +5838,7 @@ int perturb_derivs(double tau,
 	
         /* photon polarization, l=0 (pol0_g = G_0)*/
         dy[ppw->pv->index_pt_pol0_g] = 
-          -k*s_l[1]*y[ppw->pv->index_pt_pol0_g+1]
+          -k*y[ppw->pv->index_pt_pol0_g+1]
           -pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_pol0_g]-_SQRT6_*P2); 
 	
         /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
@@ -5774,29 +5848,36 @@ int perturb_derivs(double tau,
                          -(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_pol0_g+l+1])
             -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
 	
+        /* l=lmax */
         l = ppw->pv->l_max_pol_g;
         dy[ppw->pv->index_pt_pol0_g+l] = 
           k*(s_l[l]*y[ppw->pv->index_pt_pol0_g+l-1]
              -(l+1.)*cotKgen*y[ppw->pv->index_pt_pol0_g+l])
           -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
-	
+
+        /*	
+        gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
+                                                                   4./21.*y[ppw->pv->index_pt_shear_g]+
+                                                                   1./35.*y[ppw->pv->index_pt_l3_g+1]);
+        */
+        //TBC
+        gw_source_g = -8*6*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
+                                                             4./21.*y[ppw->pv->index_pt_shear_g]+
+                                                             1./35.*y[ppw->pv->index_pt_l3_g+1]);
+        
+      }
+
     }
     
-    
+        
     /* tensor metric perturbation h (gravitational waves) */
     dy[ppw->pv->index_pt_gw] = y[ppw->pv->index_pt_gwdot];     
     
     /* its time-derivative */
-    gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
-                                                               4./21.*y[ppw->pv->index_pt_shear_g]+
-                                                               1./35.*y[ppw->pv->index_pt_l3_g+1]);
-
-    dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-
-      (k2+2.*pba->K)*y[ppw->pv->index_pt_gw]+gw_source_g; 
+    dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-(k2+2.*pba->K)*y[ppw->pv->index_pt_gw]+gw_source_g; 
     // add source (photons and neutrinos)
     // Photon source added
     
-    }
   }
 
   return _SUCCESS_;

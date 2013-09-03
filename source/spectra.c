@@ -1839,7 +1839,7 @@ int spectra_compute_cl(
     q = ptr->q[index_q];
     k = ptr->k[index_md][index_q];
 
-    cl_integrand[index_q*cl_integrand_num_columns+0] = q;
+    cl_integrand[index_q*cl_integrand_num_columns+0] = k;
 
     class_call(primordial_spectrum_at_k(ppm,index_md,linear,k,primordial_pk),
                ppm->error_message,
@@ -1899,9 +1899,8 @@ int spectra_compute_cl(
         primordial_pk[index_ic1_ic2]
         * transfer_ic1_temp
         * transfer_ic2_temp
-        //* 4. * _PI_ / q;
         * 4. * _PI_ * q / k / k;
-		  
+
     if (psp->has_ee == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_ee]=
         primordial_pk[index_ic1_ic2]
@@ -2024,17 +2023,6 @@ int spectra_compute_cl(
     /* for non-zero spectra, integrate over q */
     else {
 
-      if (0 == 1) {
-
-        psp->cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] =0.;
-
-        for (index_q=0; index_q < ptr->q_size; index_q++) {
-          psp->cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] += cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_ll+index_ct];
-        }
-
-      }
-      else {
-
       class_call(array_spline(cl_integrand,
                               cl_integrand_num_columns,
                               ptr->q_size,
@@ -2061,7 +2049,6 @@ int spectra_compute_cl(
         [(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct]
         = clvalue;
 
-      }
     }
   }
 
