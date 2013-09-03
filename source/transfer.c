@@ -180,7 +180,7 @@ int transfer_init(
     ptr->has_cls = _TRUE_;
 
   if (ptr->transfer_verbose > 0)
-    printf("Computing transfers\n");
+    fprintf(stderr,"Computing transfers\n");
 
   /** get number of modes (scalars, tensors...) */
 
@@ -794,9 +794,9 @@ int transfer_get_q_list(
 
   int index_k;
   int index_q;
-  double q,q_min=0.,q_max,q_step_max=0.;
-  double nu;
-  int int_nu,int_nu_previous=0;
+  double q_min=0.,q_max,q_step_max=0.,k_max;
+  int nu, nu_min, nu_proposed, nu_proposed_following_ppt, nu_proposed_following_step_max;
+  int q_size_max;
 
   /* find q_step_max, the maximum value of the step */
 
@@ -806,92 +806,136 @@ int transfer_get_q_list(
              ptr->error_message,
              "stop to avoid infinite loop");
 
-  /* allocate the q array with the longest possible size (will be reduced later with realloc) */
-
-  class_alloc(ptr->q,
-              (1+ppt->k_size_cl+(int)((ppt->k[ppt->k_size_cl-1]-ppt->k[0])/q_step_max))*sizeof(double),
-              ptr->error_message);
-
-
-  /* first and last value in perturbation module */
+  /* first deal with case K=0 (flat) and K<0 (open). The case K>0 (closed) is very different, and is dealt with separately below. */
 
   if (sgnK <= 0) {
-    q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
+
+    /* first and last value */
+
+    if (sgnK == 0) {
+      q_min = ppt->k[0];
+      q_max = ppt->k[ppt->k_size_cl-1]; 
+      K=0;
+    }
+    else {
+      q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
+      k_max = ppt->k[ppt->k_size_cl-1];
+      q_max = sqrt(k_max*k_max+K);
+      if (ppt->has_vectors == _TRUE_) 
+        q_max = min(q_max,sqrt(k_max*k_max+2.*K));
+      if (ppt->has_tensors == _TRUE_) 
+        q_max = min(q_max,sqrt(k_max*k_max+3.*K));
+    }
+
+    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
+
+    q_size_max = 2+ppt->k_size_cl+(int)((q_max-q_min)/q_step_max);
+
+    class_alloc(ptr->q,
+                q_size_max*sizeof(double),
+                ptr->error_message);
+
+    /* - first point */
+    
+    index_q = 0;
+
+    ptr->q[index_q] = q_min; 
+
+    index_q++;
+
+    /* - points taken from perturbation module if step small enough */
+
+    while ((index_q < ppt->k_size_cl) && ((sqrt(ppt->k[index_q]*ppt->k[index_q]+K) - ptr->q[index_q-1]) < q_step_max)) {
+      
+      class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
+      ptr->q[index_q] = sqrt(ppt->k[index_q]*ppt->k[index_q]+K);
+      index_q++;
+
+    }
+
+    /* - then, points spaced linearily with step q_step_max */
+
+    while (ptr->q[index_q-1] < q_max) {
+      
+      class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
+      ptr->q[index_q] = ptr->q[index_q-1] + q_step_max;
+      index_q++;
+      
+    }
+    
+    /* - get number of valid points in order to re-allocate list */
+    
+    if (ptr->q[index_q-1] > q_max)
+      ptr->q_size=index_q-1;
+    else
+      ptr->q_size=index_q;
+    
   }
+
+  /* deal with K>0 (closed) case */
+
   else {
-    q_min = 3.*sqrt(K);
-  }
-  
-  if (sgnK >= 0) {
+
+    /* first and last value */
+    
+    nu_min = 3;
+    q_min = nu_min * sqrt(K);
     q_max = ppt->k[ppt->k_size_cl-1]; 
-  }
-  else {
-    q_max = sqrt(ppt->k[ppt->k_size_cl-1]*ppt->k[ppt->k_size_cl-1]+K);
-    if (ppt->has_vectors == _TRUE_) 
-      q_max = min(q_max,sqrt(ppt->k[ppt->k_size_cl-1]*ppt->k[ppt->k_size_cl-1]+2.*K));
-    if (ppt->has_tensors == _TRUE_) 
-      q_max = min(q_max,sqrt(ppt->k[ppt->k_size_cl-1]*ppt->k[ppt->k_size_cl-1]+3.*K));
-  }
+    
+    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
 
-  /* first, count the number of necessary values */
+    q_size_max = 2+(int)((q_max-q_min)/sqrt(K));
 
-  index_k = 0;
-  index_q = 0;
+    class_alloc(ptr->q,
+                q_size_max*sizeof(double),
+                ptr->error_message);
+    
+    /* - first point */
+    
+    index_q = 0;
+    index_k = 0;
+    
+    ptr->q[index_q] = q_min; 
+    nu = nu_min;
 
-  /* - first point */
+    index_q++;
 
-  q = q_min;
-  ptr->q[index_q] = q;
+    while (ptr->q[index_q-1] < q_max) {
 
-  index_k++;
-  index_q++;
+      /* find first point in ppt->k list corresponding to a q that is higher than the last q value */
 
-  /* - points taken from perturbation module if step small enough */
+      while ((index_k < ppt->k_size_cl) && (ppt->k[index_k]*ppt->k[index_k]+K < ptr->q[index_q-1]*ptr->q[index_q-1])) index_k++;
 
-  while ((index_k < ppt->k_size) && ((ppt->k[index_k] - ppt->k[index_k-1]) < q_step_max)) {
-    q = sqrt(ppt->k[index_k]*ppt->k[index_k]+K); 
+      /* now we can propose as a next point q_propose_following_ppt, which is bigger than the last q value */
 
-    if (sgnK == 1) { 
+      nu_proposed_following_ppt = (int)(sqrt(ppt->k[index_k]*ppt->k[index_k]+K)/sqrt(K));
 
-      nu = q/sqrt(K);
-      int_nu = (int)(nu+0.2);
-      if (int_nu == int_nu_previous) int_nu++;  
-      q = int_nu*sqrt(K);
-      int_nu_previous=int_nu;
+      /* but if spacing in ppt become too sparse, we should instead refer to the maximum stepsize */
 
+      nu_proposed_following_step_max = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));
+
+      nu_proposed = min(nu_proposed_following_ppt,nu_proposed_following_step_max);
+
+      if (nu_proposed <= nu) nu_proposed=nu+1;
+      
+      ptr->q[index_q] = nu_proposed*sqrt(K);
+      nu = nu_proposed;
+
+      index_q++;
     }
 
+    /* - get number of valid points in order to re-allocate list */
 
-    ptr->q[index_q] = q;
-    index_k++;
-    index_q++;
+    if (ptr->q[index_q-1] > q_max)
+      ptr->q_size=index_q-1;
+    else
+      ptr->q_size=index_q;
+    
   }
 
-  /* - then, points spaced linearily with step q_step_max */
+  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
 
-  while (q < q_max) {
-    q += q_step_max;
-
-    if (sgnK == 1) { 
-
-      nu = q/sqrt(K);
-      int_nu = (int)(nu+0.2);
-      if (int_nu == int_nu_previous) int_nu++;  
-      q = int_nu*sqrt(K);
-      int_nu_previous=int_nu;
-
-    }
-
-    ptr->q[index_q] = q;
-    index_q++;
-  }
-
-  /* - get number of points and allocate list */
-
-  if (q > q_max)
-    ptr->q_size=index_q-1;
-  else
-    ptr->q_size=index_q;
+  /********************/
 
   class_realloc(ptr->q,
                 ptr->q,
@@ -909,6 +953,12 @@ int transfer_get_q_list(
                ptr->error_message,
                "bug in q list calculation, q_min=%e, should be greater or equal to 3sqrt(K)=%e in positivevly curved universe",ptr->q[0],3.*sqrt(K));
   }    
+
+  for (index_q=1; index_q<ptr->q_size; index_q++) {
+    class_test(ptr->q[index_q] <= ptr->q[index_q-1],
+               ptr->error_message,
+               "bug in q list calculation, q values should be in strictly growing order"); 
+  }
 
   return _SUCCESS_; 
 
@@ -951,10 +1001,10 @@ int transfer_get_k_list(
                index_md,
                ptr->k[index_md][0]);
 
-    class_test(ptr->k[index_md][ptr->q_size-1] < ppt->k[ppt->k_size_cmb],
+    class_test(ptr->k[index_md][ptr->q_size-1] > ppt->k[ppt->k_size_cl-1],
                ptr->error_message,
                "bug in k_list calculation: in perturbation module k_max=%e, in transfer module k_max[mode=%d]=%e, interpolation impossible",
-               ppt->k[ppt->k_size_cmb],
+               ppt->k[ppt->k_size_cl],
                index_md,
                ptr->k[index_md][ptr->q_size-1]);
       
@@ -1451,7 +1501,7 @@ int transfer_compute_for_each_q(
                      ptr->error_message,
                      ptr->error_message);
 
-          if ((ptw->sgnK==1) && (l>ptr->q[index_q]/sqrt_absK)) {
+          if ((ptw->sgnK == 1) && (ptr->l[index_l] >= (int)(ptr->q[index_q]/sqrt_absK+0.2))) {
             neglect = _TRUE_;
           }
 
@@ -3484,6 +3534,7 @@ int transfer_update_HIS(
   int int_nu;
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
+  int l_size_max;
 
   if (ptw->HIS_allocated==_TRUE_){
 
@@ -3563,9 +3614,17 @@ int transfer_update_HIS(
                "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
                nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
 
+    l_size_max = ptr->l_size_max;
+
+    if (ptw->sgnK == 1)
+      while ((double)ptr->l[l_size_max-1] >= nu)
+        l_size_max--;
+
+    //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
+
     class_call(hyperspherical_HIS_create(ptw->sgnK, 
                                          nu,
-                                         ptr->l_size_max,
+                                         l_size_max,
                                          ptr->l,
                                          xmin,
                                          xmax,
@@ -3574,6 +3633,7 @@ int transfer_update_HIS(
                                          ptr->error_message),
                ptr->error_message,
                ptr->error_message);
+
     ptw->HIS_allocated = _TRUE_;
 
   }

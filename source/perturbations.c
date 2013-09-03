@@ -338,7 +338,7 @@ int perturb_init(
 #ifdef _OPENMP
       thread=omp_get_thread_num();
 #endif
-      
+
       class_call_parallel(perturb_workspace_free(ppt,index_md,pppw[thread]),
                           ppt->error_message,
                           ppt->error_message);

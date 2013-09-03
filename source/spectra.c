@@ -2033,7 +2033,7 @@ int spectra_compute_cl(
                               psp->error_message),
                  psp->error_message,
                  psp->error_message);
-      
+  
       class_call(array_integrate_all_spline(cl_integrand,
                                             cl_integrand_num_columns,
                                             ptr->q_size,
@@ -2048,7 +2048,6 @@ int spectra_compute_cl(
       psp->cl[index_md]
         [(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct]
         = clvalue;
-
     }
   }
 

@@ -93,11 +93,9 @@ int main(int argc, char **argv) {
   double transfer;
   FILE * output;
 
-  output=fopen("output/tE.trsf","w");
+  output=fopen("output/scalT.trsf","w");
 
-  //for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-  index_l=0;
-  {
+  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
     for (index_q=0; index_q<tr.q_size; index_q++) { 
 
       /*      
@@ -119,7 +117,7 @@ int main(int argc, char **argv) {
         //}
     }
     
-    fprintf(output,"\n");
+    fprintf(output,"\n\n");
     
   } 
 
