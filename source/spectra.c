@@ -1826,7 +1826,8 @@ int spectra_compute_cl(
   int index_tt;
   int index_ct;
   int index_d1,index_d2;
-  double q,k;
+  double q;
+  double k;
   double clvalue;
   int index_ic1_ic2;
   double transfer_ic1_temp=0.;
@@ -1894,54 +1895,76 @@ int spectra_compute_cl(
 
     /* integrand of Cl's */
 
+    /* note: we must integrate C_l = int [4 pi dk/k calP(k) Delta1_l(q) Delta2_l(q)]
+       where calP(k) is the dimensionless power spectrum equal to a constant in the scale-invariant case, and to P(k) = A_s k^(ns-1) otherwise
+       and q=sqrt(k2+K) (scalars) or sqrt(k2+2K) (vectors) or sqrt(k2+3K) (tensors)
+       
+       In the literature, people often rewrite the integral in terms
+       of q and absorb the Jacobian of the change of variables in a redefinition of the scalar
+       spectrum. Let us illustrate this for scalars:
+
+       dk/k = kdk/k2 = qdq/k2 = dq/q * (q/k)^2 = dq/q * [q2/(q2-K)] = q2dq * 1/[q(q2-K)]
+
+       This factor 1/[q(q2-K)] is commonly absorbed in the definition of calP. Then one would have
+
+       C_l = int [4 pi q2 dq {A_s k^(ns-1)/[q(q2-K)]} Delta1_l(q) Delta2_l(q)]
+       
+       Sometimes in the literature, the factor present in the initial conditions of transfer functions (if normalized to curveture R=1) is also absorbed in the definition of the power spectrum.
+       For tensors, the change of variable would give:
+
+       dk/k = kdk/k2 = qdq/k2 = dq/q * (q/k)^2 = dq/q * [q2/(q2-3K)] = q2dq * 1/[q(q2-3K)]
+
+    */
+
+
     if (psp->has_tt == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_tt]=
         primordial_pk[index_ic1_ic2]
         * transfer_ic1_temp
         * transfer_ic2_temp
-        * 4. * _PI_ * q / k / k;
+        * 4. * _PI_ / k;
 
     if (psp->has_ee == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_ee]=
         primordial_pk[index_ic1_ic2]
         * transfer_ic1[ptr->index_tt_e]
         * transfer_ic2[ptr->index_tt_e]
-        * 4. * _PI_ * q / k / k;
+        * 4. * _PI_ / k;
     
     if (psp->has_te == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_te]=
         primordial_pk[index_ic1_ic2]
         * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_e] +
                transfer_ic1[ptr->index_tt_e] * transfer_ic2_temp)
-        * 4. * _PI_ * q / k / k;
+        * 4. * _PI_ / k;
     
     if (_tensors_ && (psp->has_bb == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_bb]=
         primordial_pk[index_ic1_ic2]
         * transfer_ic1[ptr->index_tt_b]
         * transfer_ic2[ptr->index_tt_b]
-        * 4. * _PI_ * q / k / k;
+        * 4. * _PI_ / k;
 
     if (_scalars_ && (psp->has_pp == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_pp]=
         primordial_pk[index_ic1_ic2]
         * transfer_ic1[ptr->index_tt_lcmb]
         * transfer_ic2[ptr->index_tt_lcmb]
-        * 4. * _PI_ * q / k / k;
+        * 4. * _PI_ / k;
     
     if (_scalars_ && (psp->has_tp == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_tp]=
         primordial_pk[index_ic1_ic2]
         * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_lcmb] +
                transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2_temp)
-        * 4. * _PI_ * q / k / k;
+        * 4. * _PI_ / k;
 
     if (_scalars_ && (psp->has_ep == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_ep]=
         primordial_pk[index_ic1_ic2]
         * 0.5*(transfer_ic1[ptr->index_tt_e] * transfer_ic2[ptr->index_tt_lcmb] +
                transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_e])
-        * 4. * _PI_ * q / k / k;
+        * 4. * _PI_ / k;
 
     if (_scalars_ && (psp->has_dd == _TRUE_)) {
       index_ct=0;
@@ -1951,7 +1974,7 @@ int spectra_compute_cl(
             primordial_pk[index_ic1_ic2]
             * transfer_ic1[ptr->index_tt_density+index_d1]
             * transfer_ic2[ptr->index_tt_density+index_d2]
-            * 4. * _PI_ * q / k / k;
+            * 4. * _PI_ / k;
           index_ct++;
         }
       }
@@ -1963,7 +1986,7 @@ int spectra_compute_cl(
           primordial_pk[index_ic1_ic2]
           * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_density+index_d1] +
                  transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2_temp)
-            * 4. * _PI_ * q / k / k;
+            * 4. * _PI_ / k;
       }
     }
 
@@ -1973,7 +1996,7 @@ int spectra_compute_cl(
           primordial_pk[index_ic1_ic2]
           * 0.5*(transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_density+index_d1] +
                  transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2[ptr->index_tt_lcmb])
-            * 4. * _PI_ * q / k / k;
+            * 4. * _PI_ / k;
       }
     }
 
@@ -1985,7 +2008,7 @@ int spectra_compute_cl(
             primordial_pk[index_ic1_ic2]
             * transfer_ic1[ptr->index_tt_lensing+index_d1]
             * transfer_ic2[ptr->index_tt_lensing+index_d2]
-            * 4. * _PI_ * q / k / k;
+            * 4. * _PI_ / k;
           index_ct++;
         }
       }
@@ -1997,7 +2020,7 @@ int spectra_compute_cl(
           primordial_pk[index_ic1_ic2]
           * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_lensing+index_d1] +
                  transfer_ic1[ptr->index_tt_lensing+index_d1] * transfer_ic2_temp)
-            * 4. * _PI_ * q / k / k;
+            * 4. * _PI_ / k;
       }
     }
   }

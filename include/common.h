@@ -495,7 +495,7 @@ struct precision
 
   //@}
 
-  /** @name - parameters related to Bessel functions */
+  /** @name - parameters related to Bessel functions (old pbs module) */
 
   //@{
 
@@ -506,6 +506,18 @@ struct precision
   double bessel_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
   double bessel_tol_x_min;  /**< precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
   FileName bessel_file_name; /**< name of file where Bessel functions will evnetually be written or read */
+
+  //@}
+
+  /** @name - parameters related to Bessel functions (new hypersherical module) */
+
+  //@{
+
+  double hyper_x_min;
+  double hyper_sampling_flat;
+  double hyper_sampling_curved;
+  double hyper_phi_min_abs;
+  double hyper_x_tol;
 
   //@}
 

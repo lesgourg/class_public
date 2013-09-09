@@ -1293,10 +1293,12 @@ int background_solve(
   int i;
   /* vector of quantities to be integrated */
   double * pvecback_integration;
-  
+  /* vector of all background quantities */
   double * pvecback;
-
-  int last_index=0; /* necessary for calling array_interpolate(), but never used */
+  /* necessary for calling array_interpolate(), but never used */
+  int last_index=0;
+  /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
+  double comoving_radius;
 
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -1447,8 +1449,13 @@ int background_solve(
 
     pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
     pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_tau];
-    pvecback[pba->index_bg_ang_distance] = pba->a_today*pvecback[pba->index_bg_conf_distance]/(1.+pba->z_table[i]);
-    pvecback[pba->index_bg_lum_distance] = pba->a_today*pvecback[pba->index_bg_conf_distance]*(1.+pba->z_table[i]);
+
+    if (pba->sgnK == 0) comoving_radius = pvecback[pba->index_bg_conf_distance];
+    else if (pba->sgnK == 1) comoving_radius = sin(sqrt(pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(pba->K);
+    else if (pba->sgnK == -1) comoving_radius = sinh(sqrt(-pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(-pba->K);
+
+    pvecback[pba->index_bg_ang_distance] = pba->a_today*comoving_radius/(1.+pba->z_table[i]);
+    pvecback[pba->index_bg_lum_distance] = pba->a_today*comoving_radius*(1.+pba->z_table[i]);
     pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
 
     /* -> compute all other quantities depending only on a*/
@@ -1678,7 +1685,7 @@ int background_derivs(
              "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
   /** - calculate rs' = c_s */
-  dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]));
+  dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]))*sqrt(1.-pba->K*y[pba->index_bi_rs]*y[pba->index_bi_rs]); // TBC: curvature correction
 
   /** calculate growth' = 1/(aH^2) */
   dy[pba->index_bi_growth] = 1./(y[pba->index_bi_a] * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_H]);

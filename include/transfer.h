@@ -325,6 +325,13 @@ extern "C" {
                                   struct transfer_workspace * ptw
                                   );
 
+  int transfer_radial_coordinates(
+                                  struct transfers * ptr,
+                                  struct transfer_workspace * ptw,
+                                  int index_md,
+                                  int index_q
+                                  );
+
   int transfer_interpolate_sources(
                                    struct perturbs * ppt,
                                    struct transfers * ptr,
@@ -512,7 +519,7 @@ extern "C" {
                                struct transfers * ptr,
                                double q,
                                int index_l,
-                               int nx,
+                               int x_size,
                                double * radial_function,
                                radial_function_type radial_type
                                );
@@ -539,9 +546,10 @@ extern "C" {
                               );
 
   int transfer_update_HIS( 
-                          struct transfer_workspace * ptw,
+                          struct precision * ppr,
                           struct bessels * pbs,
                           struct transfers * ptr,
+                          struct transfer_workspace * ptw,
                           int index_q,
                           double tau0
                            );

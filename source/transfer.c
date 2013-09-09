@@ -269,9 +269,10 @@ int transfer_init(
 #endif
       
       /* Update interpolation structure: */
-      class_call_parallel(transfer_update_HIS(ptw,
+      class_call_parallel(transfer_update_HIS(ppr,
                                               pbs,
                                               ptr,
+                                              ptw,
                                               index_q,
                                               tau0),
                           ptr->error_message,
@@ -933,9 +934,9 @@ int transfer_get_q_list(
     
   }
 
-  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
+  /* check size of q_list and realloc the array to the correct size */
 
-  /********************/
+  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
 
   class_realloc(ptr->q,
                 ptr->q,
@@ -965,9 +966,9 @@ int transfer_get_q_list(
 }
 
 int transfer_get_k_list(
-                          struct perturbs * ppt,
-                          struct transfers * ptr,
-                          double K
+                        struct perturbs * ppt,
+                        struct transfers * ptr,
+                        double K
                         ) {
 
   int index_md;
@@ -1381,8 +1382,6 @@ int transfer_compute_for_each_q(
 
   short neglect;
 
-  double sqrt_absK=0.;
-
   /** store the sources in the workspace and define all
       fields in this workspace */
   interpolated_sources = ptw->interpolated_sources;
@@ -1455,39 +1454,19 @@ int transfer_compute_for_each_q(
                    ptr->error_message,
                    ptr->error_message);
 
-        int index_tau;
-        switch (ptw->sgnK){
-        case 1:
-          sqrt_absK = sqrt(ptw->K);
-          for (index_tau=0; index_tau < (*tau_size); index_tau++) {
-            chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
-            cscKgen[index_tau] = sqrt_absK/ptr->k[index_md][index_q]/
-              sin(chi[index_tau]);
-            cotKgen[index_tau] = cscKgen[index_tau]*cos(chi[index_tau]);
-          }
-          break;
-        case 0:
-          for (index_tau=0; index_tau < (*tau_size); index_tau++) {
-            chi[index_tau] = ptr->k[index_md][index_q] * tau0_minus_tau[index_tau];
-            cscKgen[index_tau] = 1.0/chi[index_tau];
-            cotKgen[index_tau] = 1.0/chi[index_tau];
-          }
-          break;
-        case -1:
-          sqrt_absK = sqrt(-ptw->K);
-          for (index_tau=0; index_tau < (*tau_size); index_tau++) {
-            chi[index_tau] = sqrt_absK*tau0_minus_tau[index_tau];
-            cscKgen[index_tau] = sqrt_absK/ptr->k[index_md][index_q]/
-              sinh(chi[index_tau]);
-            cotKgen[index_tau] = cscKgen[index_tau]*cosh(chi[index_tau]);
-          }
-          break;
-        }
+        /* now that the array of times tau0_minus_tau is known, we can
+           infer the arry of radial coordinates r(tau0_minus_tau) as well as a
+           few other quantities related by trigonometric functions */
+
+        class_call(transfer_radial_coordinates(ptr,ptw,index_md,index_q),
+                   ptr->error_message,
+                   ptr->error_message);
 
         for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
           
           l = (double)ptr->l[index_l];
 
+          /* neglect transfer function when l is much smaller than k*tau0 */
           class_call(transfer_can_be_neglected(ppr,
                                                pba,
                                                ppt,
@@ -1501,7 +1480,8 @@ int transfer_compute_for_each_q(
                      ptr->error_message,
                      ptr->error_message);
 
-          if ((ptw->sgnK == 1) && (ptr->l[index_l] >= (int)(ptr->q[index_q]/sqrt_absK+0.2))) {
+          /* for K>0 (closed), transfer functions only defined for l<nu */
+          if ((ptw->sgnK == 1) && (ptr->l[index_l] >= (int)(ptr->q[index_q]/sqrt(ptw->K)+0.2))) {
             neglect = _TRUE_;
           }
 
@@ -1555,6 +1535,46 @@ int transfer_compute_for_each_q(
   return _SUCCESS_;
 
 }
+
+int transfer_radial_coordinates(
+                                struct transfers * ptr,
+                                struct transfer_workspace * ptw,
+                                int index_md,
+                                int index_q
+                                ) {
+
+  int index_tau;
+  double sqrt_absK=0.;
+
+  switch (ptw->sgnK){
+  case 1:
+    sqrt_absK = sqrt(ptw->K);
+    for (index_tau=0; index_tau < ptw->tau_size; index_tau++) {
+      ptw->chi[index_tau] = sqrt_absK*ptw->tau0_minus_tau[index_tau];
+      ptw->cscKgen[index_tau] = sqrt_absK/ptr->k[index_md][index_q]/sin(ptw->chi[index_tau]);
+      ptw->cotKgen[index_tau] = ptw->cscKgen[index_tau]*cos(ptw->chi[index_tau]);
+    }
+    break;
+  case 0:
+    for (index_tau=0; index_tau < ptw->tau_size; index_tau++) {
+      ptw->chi[index_tau] = ptr->k[index_md][index_q] * ptw->tau0_minus_tau[index_tau];
+      ptw->cscKgen[index_tau] = 1.0/ptw->chi[index_tau];
+      ptw->cotKgen[index_tau] = 1.0/ptw->chi[index_tau];
+    }
+    break;
+  case -1:
+    sqrt_absK = sqrt(-ptw->K);
+    for (index_tau=0; index_tau < ptw->tau_size; index_tau++) {
+      ptw->chi[index_tau] = sqrt_absK*ptw->tau0_minus_tau[index_tau];
+      ptw->cscKgen[index_tau] = sqrt_absK/ptr->k[index_md][index_q]/sinh(ptw->chi[index_tau]);
+      ptw->cotKgen[index_tau] = ptw->cscKgen[index_tau]*cosh(ptw->chi[index_tau]);
+    }
+    break;
+  }
+
+  return _SUCCESS_;
+}
+
 
 /**
  * This routine interpolates sources \f$ S(k, \tau) \f$ for each mode,
@@ -2753,6 +2773,8 @@ int transfer_use_limber(
     
     if _scalars_ {
       
+        //TBC: in principle the Limber condition should be adapted to account for curvature effects
+
         if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
           *use_limber = _TRUE_;
         }
@@ -2973,7 +2995,7 @@ int transfer_limber(
   /** - get k, l and infer tau such that k(tau0-tau)=l+1/2; 
       check that tau is in appropriate range */
 
-  tau0_minus_tau_limber = (l+0.5)/k;
+  tau0_minus_tau_limber = (l+0.5)/k; //TBC: to be updated to include curvature effects
 
   if ((tau0_minus_tau_limber > tau0_minus_tau[0]) || 
       (tau0_minus_tau_limber < tau0_minus_tau[tau_size-1])) {
@@ -3087,7 +3109,7 @@ int transfer_limber2(
   /** - get k, l and infer tau such that k(tau0-tau)=l+1/2; 
       check that tau is in appropriate range */
 
-  tau0_minus_tau_limber = (l+0.5)/k;
+  tau0_minus_tau_limber = (l+0.5)/k;  //TBC: to be updated to include curvature effects
 
   if ((tau0_minus_tau_limber > tau0_minus_tau[0]) || 
       (tau0_minus_tau_limber < tau0_minus_tau[tau_size-1])) {
@@ -3180,7 +3202,7 @@ int transfer_radial_function(
                              struct transfers * ptr,
                              double k,
                              int index_l,
-                             int nx,
+                             int x_size,
                              double * radial_function,
                              radial_function_type radial_type
                              ){
@@ -3201,8 +3223,8 @@ int transfer_radial_function(
   k2 = k*k;
 
   if (ptw->sgnK==0){
-  /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
-  sqrt_absK_over_k = 1.0;
+    /* This is the choice consistent with chi=k*(tau0-tau) and nu=1 */
+    sqrt_absK_over_k = 1.0;
   }
   else {
     K=ptw->K;
@@ -3210,19 +3232,19 @@ int transfer_radial_function(
   }
   absK_over_k2 =sqrt_absK_over_k*sqrt_absK_over_k;
 
-  Phi = malloc(sizeof(double)*nx);
-  dPhi = malloc(sizeof(double)*nx);
-  d2Phi = malloc(sizeof(double)*nx);
-  chireverse = malloc(sizeof(double)*nx);
+  Phi = malloc(sizeof(double)*x_size);
+  dPhi = malloc(sizeof(double)*x_size);
+  d2Phi = malloc(sizeof(double)*x_size);
+  chireverse = malloc(sizeof(double)*x_size);
   //Reverse chi
-  for (j=0; j<nx; j++)
-    chireverse[j] = chi[nx-1-j];
+  for (j=0; j<x_size; j++)
+    chireverse[j] = chi[x_size-1-j];
 
   /** Debug region:
-      hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
+      hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
       FILE * debugbessel = fopen("debugbessel.dat","a");
       fprintf(debugbessel,"#l = %d\n",ptw->pHIS->l[index_l]);
-      for (j=0; j<nx; j++){
+      for (j=0; j<x_size; j++){
       fprintf(debugbessel,"%.16e %.16e %.16e %.16e\n",chireverse[j], Phi[j], dPhi[j], d2Phi[j]);
       }  
       fprintf(debugbessel,"#end of block\n");
@@ -3231,91 +3253,87 @@ int transfer_radial_function(
 
   switch (radial_type){
   case SCALAR_TEMPERATURE_0:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = Phi[j];
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = Phi[j];
     break;
   case SCALAR_TEMPERATURE_1:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, NULL, dPhi, NULL, NULL, NULL);
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = sqrt_absK_over_k*dPhi[j];
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, NULL, dPhi, NULL, NULL, NULL);
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j];
     break;
   case SCALAR_TEMPERATURE_2:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, d2Phi, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, d2Phi, NULL, NULL);
     s2 = sqrt(1.0-3.0*K/k2);
     factor = 1.0/(2.0*s2);
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*(3*absK_over_k2*d2Phi[j]+Phi[j]);
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*(3*absK_over_k2*d2Phi[j]+Phi[j]);
     break;
   case SCALAR_POLARISATION_E:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     s2 = sqrt(1.0-3.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/s2;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*cscKgen[nx-1-j]*Phi[j];
-    //radial_function[nx-1-j] = factor*Phi[j]/chireverse[j]/chireverse[j];
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j];
     break;
   case VECTOR_TEMPERATURE_1:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     factor = sqrt(0.5*l*(l+1))/s0;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*Phi[j];
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j];
     break;
   case VECTOR_TEMPERATURE_2:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
     break;
   case VECTOR_POLARISATION_E:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
     break;
   case VECTOR_POLARISATION_B:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))*si/s0/ssqrt3;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*Phi[j];
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j];
     break;
   case TENSOR_TEMPERATURE_2:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*cscKgen[nx-1-j]*cscKgen[nx-1-j]*Phi[j];
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j];
     break;
   case TENSOR_POLARISATION_E:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.25/si/ssqrt2;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[nx-1-j]*sqrt_absK_over_k*dPhi[j]-
-                                        (1.0+4*K/k2-2.0*cotKgen[nx-1-j]*cotKgen[nx-1-j])*Phi[j]);               //TBC: 1.0+4*K/k2. Shouldn't it be 1.0+2*K/k2 ?
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[x_size-1-j]*sqrt_absK_over_k*dPhi[j]-
+                                        (1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j]);
     break;
   case TENSOR_POLARISATION_B:
-    hyperspherical_Hermite_interpolation_vector(pHIS, nx, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
+    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
     //ssqrt2i = sqrt(1.0+5.0*K/k2);
-    class_test(1.0+3.0*K/k2<0.,
-               ptr->error_message,
-               "check this\n");
-    ssqrt2i = sqrt(1.0+3.0*K/k2);      // TBC
+    ssqrt2i = sqrt(1.0+3.0*K/k2);      // TBC: JL replaced 1.0+5.0*K/k2 by 1.0+3.0*K/k2, is it correct?
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
-    for (j=0; j<nx; j++)
-      radial_function[nx-1-j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[nx-1-j]*Phi[j]);
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[x_size-1-j]*Phi[j]);
     break;
   }
   free(Phi);
@@ -3422,18 +3440,17 @@ int transfer_init_HIS_from_bessel(
      Interpolation Structure from the Bessel structure. The Bessel
      structure must have been computed on an l-independent x-grid.
   */
-  int nl, nx, index_l, index_x;
+  int x_size, index_l, index_x;
   double xmin, x;
-  nl = pbs->l_size;
   
   /* Check the Bessels structure for compatibility: */
-  nx=pbs->x_size[0];
+  x_size=pbs->x_size[0];
   xmin = *(pbs->x_min[0]);
-  for (index_l=1; index_l<nl; index_l++){
-    class_test(nx!=pbs->x_size[index_l],
+  for (index_l=1; index_l<pbs->l_size; index_l++){
+    class_test(x_size!=pbs->x_size[index_l],
                ptr->error_message,
                "pbs->x_size[%d]=%d, not equal to pbs->x_size[0]=%d.\n",
-               index_l,pbs->x_size[index_l],nx);
+               index_l,pbs->x_size[index_l],x_size);
     class_test(fabs(xmin-*(pbs->x_min[index_l]))>100*DBL_EPSILON,
                ptr->error_message,
                "*(pbs->xmin[%d])=%.16e, should have been %.16e.\n",
@@ -3441,30 +3458,30 @@ int transfer_init_HIS_from_bessel(
   }
   /* Allocate HIS and all fields in HIS: */
   class_calloc(*ppHIS,1,sizeof(struct transfer_workspace),ptr->error_message);
-  class_alloc((*ppHIS)->l,nl*sizeof(int),ptr->error_message);
-  class_alloc((*ppHIS)->x,nx*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->sinK,nx*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->cotK,nx*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->phi,nx*nl*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->dphi,nx*nl*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->l,pbs->l_size*sizeof(int),ptr->error_message);
+  class_alloc((*ppHIS)->x,x_size*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->sinK,x_size*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->cotK,x_size*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->phi,x_size*pbs->l_size*sizeof(double),ptr->error_message);
+  class_alloc((*ppHIS)->dphi,x_size*pbs->l_size*sizeof(double),ptr->error_message);
   /* Set and copy all fields of HIS: */
   (*ppHIS)->K = 0;
   (*ppHIS)->beta = 1;
   (*ppHIS)->delta_x = pbs->x_step;
-  (*ppHIS)->x_size = nx;
-  (*ppHIS)->l_size = nl;
+  (*ppHIS)->x_size = x_size;
+  (*ppHIS)->l_size = pbs->l_size;
   (*ppHIS)->trig_order=5;
-  for(index_x=0; index_x<nx; index_x++){
+  for(index_x=0; index_x<x_size; index_x++){
     x = xmin+index_x*pbs->x_step;
     (*ppHIS)->x[index_x] = x;
     (*ppHIS)->sinK[index_x] = x;
     (*ppHIS)->cotK[index_x] = 1.0/x;
   }
-  memcpy((*ppHIS)->l, pbs->l, nl*sizeof(int));
-  for (index_l=0; index_l<nl; index_l++)
-    memcpy((*ppHIS)->phi+index_l*nx,pbs->j[index_l],sizeof(double)*nx);
-  for (index_l=0; index_l<nl; index_l++)
-    memcpy((*ppHIS)->dphi+index_l*nx,pbs->dj[index_l],sizeof(double)*nx);
+  memcpy((*ppHIS)->l, pbs->l, pbs->l_size*sizeof(int));
+  for (index_l=0; index_l<pbs->l_size; index_l++)
+    memcpy((*ppHIS)->phi+index_l*x_size,pbs->j[index_l],sizeof(double)*x_size);
+  for (index_l=0; index_l<pbs->l_size; index_l++)
+    memcpy((*ppHIS)->dphi+index_l*x_size,pbs->dj[index_l],sizeof(double)*x_size);
   return _SUCCESS_;
 }
 
@@ -3523,9 +3540,10 @@ int transfer_workspace_free(
 }
 
 int transfer_update_HIS( 
-                        struct transfer_workspace * ptw,
+                        struct precision * ppr,
                         struct bessels * pbs,
                         struct transfers * ptr,
+                        struct transfer_workspace * ptw,
                         int index_q,
                         double tau0
                          ) {
@@ -3535,21 +3553,11 @@ int transfer_update_HIS(
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
   int l_size_max;
+  double sgnK;
+
+  sgnK = ptw->sgnK;
 
   if (ptw->HIS_allocated==_TRUE_){
-
-    /*
-      if (ptw->get_HIS_from_pbs==_TRUE_){
-      
-      return _SUCCESS_;
-      }
-      else{
-      
-      class_call(hyperspherical_HIS_free(ptw->pHIS),
-      error_message,error_message);
-      ptw->HIS_allocated = _FALSE_;
-      }
-    */
 
     if (ptw->sgnK == 0) {
       /* nothing to be done */
@@ -3576,14 +3584,14 @@ int transfer_update_HIS(
     //These number should be set from input structures in the future:
     //printf("Creating interpolation structure...\n");
 
-    xmin = 1e-7; //Will be changed to _HYPER_SAFETY_ by routine
+    xmin = ppr->hyper_x_min; //Will be changed to _HYPER_SAFETY_ by routine
     xmin = max(xmin,_HYPER_SAFETY_);
 
     if (ptw->sgnK == 0) {
       
       xmax = ptr->q[ptr->q_size-1]*tau0; // x_max = k_max * tau0
       nu=1.;
-      sampling = 0.5;
+      sampling = ppr->hyper_sampling_flat;
 
     }
     else {
@@ -3605,7 +3613,7 @@ int transfer_update_HIS(
 
       }
 
-      sampling = 3.;
+      sampling = ppr->hyper_sampling_curved;
 
     }
 
@@ -3622,7 +3630,7 @@ int transfer_update_HIS(
 
     //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
 
-    class_call(hyperspherical_HIS_create(ptw->sgnK, 
+    class_call(hyperspherical_HIS_create(sgnK, 
                                          nu,
                                          l_size_max,
                                          ptr->l,
@@ -3637,9 +3645,10 @@ int transfer_update_HIS(
     ptw->HIS_allocated = _TRUE_;
 
   }
+
   //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
-  phiminabs = 1e-5;
-  xtol = 1e-4;
+  phiminabs = ppr->hyper_phi_min_abs;
+  xtol = ppr->hyper_x_tol;
 
   class_call(hyperspherical_get_xmin(ptw->pHIS,
                                      xtol,
@@ -3651,26 +3660,3 @@ int transfer_update_HIS(
   return _SUCCESS_;
 }
 
-/*
-int transfer_l_max_bessel() {
-
-  x = k*tau0; 
-  lmax = 10.*sqrt(x)+x;
-
-  for (index_l = 0; index_l < ptr->l_size_max; index_l++) {
-
-    if (ptr->l[index_l] > lmax) {
-
-      *l_size_bessel=index_l;
-
-      return _SUCCESS_;
-
-    }
-  }
-
-  *l_size_bessel = ptr->l_size_max;
-
-  return _SUCCESS_;
-
-}
-*/

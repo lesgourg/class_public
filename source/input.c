@@ -510,10 +510,9 @@ int input_init(
     class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
 
-    class_test(pba->w0_fld<=-1.,
+    class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
                errmsg,
-               "Your choice w_fld=%g is not valid, it will lead to instabilities or division by zero\n",
-               pba->w0_fld);
+               "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
 	       
     class_test(pba->w0_fld+pba->w0_fld>=1./3.,
                errmsg,
@@ -1612,6 +1611,12 @@ int input_init(
   class_read_double("bessel_tol_x_min",ppr->bessel_tol_x_min);
   class_read_string("bessel_file_name",ppr->bessel_file_name);
 
+  class_read_double("hyper_x_min",ppr->hyper_x_min);
+  class_read_double("hyper_sampling_flat",ppr->hyper_sampling_flat);
+  class_read_double("hyper_sampling_curved",ppr->hyper_sampling_curved);
+  class_read_double("hyper_phi_min_abs",ppr->hyper_phi_min_abs);
+  class_read_double("hyper_x_tol",ppr->hyper_x_tol);
+
   /** h.5. parameter related to the primordial spectra */
 
   class_read_double("k_per_decade_primordial",ppr->k_per_decade_primordial);
@@ -1747,7 +1752,7 @@ int input_init(
 
   }
 
-  /** (j) eventually write all the read parameters in a file */
+  /** (j) eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
 
   class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
              errmsg,
@@ -1784,6 +1789,18 @@ int input_init(
     fclose(param_unused);
   }
 
+  class_call(parser_read_string(pfc,"write warnings",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _FALSE_) || ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)))) {
+
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _FALSE_)
+        fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
+    }
+  }
+  
   return _SUCCESS_;
 
 }
@@ -2175,6 +2192,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->bessel_tol_x_min =1.e-4;
   sprintf(ppr->bessel_file_name,"bessels.dat");
 
+  ppr->hyper_x_min = 1.e-7;          // TBC
+  ppr->hyper_sampling_flat = 3.;     // TBC
+  ppr->hyper_sampling_curved = 3.;   // TBC
+  ppr->hyper_phi_min_abs = 1.e-5;    // TBC
+  ppr->hyper_x_tol = 1.e-4;          // TBC
+
   /**
    * - parameter related to the primordial spectra
    */
@@ -2205,12 +2228,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_neglect_delta_k_S_e = 0.1;
   ppr->transfer_neglect_delta_k_S_lcmb = 0.2;
   ppr->transfer_neglect_delta_k_V_t1 = 1.;
-  ppr->transfer_neglect_delta_k_V_t2 = 1.;
+  ppr->transfer_neglect_delta_k_V_t2 = 1.; 
   ppr->transfer_neglect_delta_k_V_e = 1.;
   ppr->transfer_neglect_delta_k_V_b = 1.;
-  ppr->transfer_neglect_delta_k_T_t2 = 1.;
-  ppr->transfer_neglect_delta_k_T_e = 1.;
-  ppr->transfer_neglect_delta_k_T_b = 1.;
+  ppr->transfer_neglect_delta_k_T_t2 = 1.;  //TBC
+  ppr->transfer_neglect_delta_k_T_e = 1.;   //TBC
+  ppr->transfer_neglect_delta_k_T_b = 1.;   //TBC
 
   ppr->l_switch_limber=10.;
   ppr->l_switch_limber_for_cl_density_over_z=30.;
