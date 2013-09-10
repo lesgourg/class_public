@@ -1298,7 +1298,7 @@ int background_solve(
   /* necessary for calling array_interpolate(), but never used */
   int last_index=0;
   /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
-  double comoving_radius;
+  double comoving_radius=0.;
 
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);

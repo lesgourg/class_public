@@ -295,6 +295,7 @@ extern "C" {
                       );
 
   int spectra_cls(
+                  struct background * pba,
                   struct perturbs * ppt,
                   struct transfers * ptr,
                   struct primordial * ppm,
@@ -302,6 +303,7 @@ extern "C" {
                   );
 
   int spectra_compute_cl(
+                         struct background * pba,
                          struct perturbs * ppt,
                          struct transfers * ptr,
                          struct primordial * ppm,

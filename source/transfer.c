@@ -180,7 +180,7 @@ int transfer_init(
     ptr->has_cls = _TRUE_;
 
   if (ptr->transfer_verbose > 0)
-    fprintf(stderr,"Computing transfers\n");
+    fprintf(stdout,"Computing transfers\n");
 
   /** get number of modes (scalars, tensors...) */
 

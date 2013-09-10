@@ -1273,7 +1273,6 @@ int perturb_workspace_init(
 
   int index_mt=0;
   int index_ap;
-  int index_l;
   int l;
 
   /** Compute maximum l_max for any multipole */;
