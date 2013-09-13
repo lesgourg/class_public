@@ -827,3 +827,288 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
   }
   return _SUCCESS_;
 }
+
+int hyperspherical_get_xmin_from_Airy(int K,
+                                       int l,
+                                       double beta,
+                                       double xtol,
+                                       double phiminabs,
+                                       double *xmin,
+                                       int *fevals){
+   double AIRY_SAFETY = 1e-6, lambda, delx, MAX_ITER=200;
+   double xold, xtp, xleft, xright, xnew;
+   double Fnew, Fold, Fleft, Fright;
+   double phiwkb, nu, lhs, alpha, fact;
+   int iter, huntdir;
+   struct WKB_parameters wkbstruct;
+   wkbstruct.K = K;
+   wkbstruct.l = l;
+   wkbstruct.beta = beta;
+   wkbstruct.phiminabs = phiminabs;
+
+   xnew = AIRY_SAFETY;
+   Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
+   *fevals = (*fevals)+1;
+   printf("F(%g)=%g\n",AIRY_SAFETY,Fnew);
+   if (Fnew>=0.0){
+     *xmin = xnew;
+     return _SUCCESS_;
+   }
+   lambda = 2*_PI_/(beta+5.0); //Just to prevent too sparse sampling at beta<5.
+   delx = 0.3*lambda;
+   while (Fnew<0.0){
+     printf("x=%g, Fnew=%g, phiwkb = %.16e, delx=%g\n",xnew,Fnew,phiwkb,delx);
+     xold = xnew;
+     Fold = Fnew;
+     xnew += delx;
+     Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
+     //For debug:
+     hyperspherical_WKB(K,l,beta,xnew, &phiwkb);
+     *fevals = (*fevals)+1;
+   }
+   xleft = xold;
+   Fleft = Fold;
+   xright = xnew;
+   Fright = Fnew;
+
+
+   printf("Hunt finished using %d fevals.\n",*fevals);
+   printf("Root is in interval [%g,%g], starting fzero...\n",xleft,xright);
+
+   fzero_ridder(PhiWKB_minus_phiminabs,
+                xleft,
+                xright,
+                xtol,
+                &wkbstruct,
+                &Fleft,
+                &Fright,
+                xmin,
+                fevals);
+   return _SUCCESS_;
+}
+
+double PhiWKB_minus_phiminabs(double x, void *param){
+   double phiwkb;
+   struct WKB_parameters *wkbparam = param;
+   hyperspherical_WKB(wkbparam->K,wkbparam->l,wkbparam->beta,x, &phiwkb);
+   return(fabs(phiwkb)-wkbparam->phiminabs);
+}
+
+int fzero_ridder(double (*func)(double, void *),
+                  double x1,
+                  double x2,
+                  double xtol,
+                  void *param,
+                  double *Fx1,
+                  double *Fx2,
+                  double *xzero,
+                  int *fevals){
+   /**Using Ridders' method, return the root of a function func known to
+      lie between x1 and x2. The root, returned as zriddr, will be found to
+      an approximate accuracy xtol.
+   */
+   int j,MAXIT=1000;
+    double ans,fh,fl,fm,fnew,s,xh,xl,xm,xnew;
+    if ((Fx1!=NULL)&&(Fx2!=NULL)){
+      fl = *Fx1;
+      fh = *Fx2;
+    }
+    else{
+      fl=(*func)(x1,param);
+      fh=(*func)(x2,param);
+      *fevals = (*fevals)+2;
+    }
+    if ((fl > 0.0 && fh < 0.0) || (fl < 0.0 && fh > 0.0)) {
+      xl=x1;
+      xh=x2;
+      ans=-1.11e11;
+      for (j=1;j<=MAXIT;j++) {
+        xm=0.5*(xl+xh);
+        fm=(*func)(xm,param);
+        *fevals = (*fevals)+1;
+        s=sqrt(fm*fm-fl*fh);
+        if (s == 0.0){
+          *xzero = ans;
+          //printf("Success 1\n");
+          return _SUCCESS_;
+        }
+        xnew=xm+(xm-xl)*((fl >= fh ? 1.0 : -1.0)*fm/s);
+        if (fabs(xnew-ans) <= xtol) {
+          *xzero = ans;
+          return _SUCCESS_;
+        }
+        ans=xnew;
+        fnew=(*func)(ans,param);
+        *fevals = (*fevals)+1;
+        if (fnew == 0.0){
+          *xzero = ans;
+          //printf("Success 2, ans=%g\n",ans);
+          return _SUCCESS_;
+        }
+        if (nrSIGN(fm,fnew) != fm) {
+          xl=xm;
+          fl=fm;
+          xh=ans;
+          fh=fnew;
+        } else if (nrSIGN(fl,fnew) != fl) {
+          xh=ans;
+          fh=fnew;
+        } else if (nrSIGN(fh,fnew) != fh) {
+          xl=ans;
+          fl=fnew;
+        } else return _FAILURE_;
+        if (fabs(xh-xl) <= xtol) {
+          *xzero = ans;
+          //        printf("Success 3\n");
+          return _SUCCESS_;
+        }
+      }
+      fprintf(stderr,"zriddr exceed maximum iterations");
+      return _FAILURE_;
+    }
+    else {
+      if (fl == 0.0) return x1;
+      if (fh == 0.0) return x2;
+      fprintf(stderr,"root must be bracketed in zriddr.");
+      return _FAILURE_;
+    }
+    fprintf(stderr,"Failure in Ridder\n");
+    return _FAILURE_;
+  }
+
+int HypersphericalExplicit(int K,int l, double beta,double x, double *Phi){
+   /** Explicit formulae for the Hyperspherical Besselfunctions of order 
+l<=9.
+       phi_tilde = gam * beta * cos(x*beta) + delta * sin(x*beta),
+       and Phi = phi_tilde *cscK/sqrt(NK). Gamma and delta are 
+polynomials in
+       beta and cscK, containing only even powers.
+   */
+   double NK,xbeta,gamma,delta,CotK;
+   double beta2,beta4,beta6,beta8,beta12,beta16;
+   double CscK,CscK2,CscK4,CscK6,CscK8;
+   //NK = prod(beta^2-K*(0:l).^2);
+   beta2 = beta*beta;
+   xbeta = x*beta;
+   if (K==-1){
+     CotK = 1.0/tanh(x);
+     CscK = 1.0/sinh(x);
+   }
+   else if (K==1){
+     CotK = 1.0/tan(x);
+     CscK = 1.0/sin(x);
+   }
+   else{
+     CotK = 1.0/x;
+     CscK = CotK;
+   }
+
+   //Calculate polynomials:
+   switch (l){
+   case 0:
+     gamma = 0;
+     delta = 1;
+     NK = beta2;
+     break;
+   case 1:
+     gamma = -1;
+     delta = CotK;
+     NK = beta2*(beta2 - K);
+     break;
+   case 2:
+     beta4 = beta2*beta2;
+     CscK2 =CscK*CscK;
+     gamma = -3*CotK;
+     delta = -beta2 + 3*CscK2 - 2*K;
+     NK = beta2*(4.0 + beta4 - 5.0*beta2*K);
+     break;
+   case 3:
+     beta4 = beta2*beta2;
+     CscK2 =CscK*CscK;
+     gamma = beta2-15*CscK2+11*K;
+     delta = CotK*(-6*beta2 + 15*CscK2 - 6*K);
+     NK = beta2*(49*beta2 + beta2*beta4 - 36*K - 14*beta4*K);
+     break;
+   case 4:
+     beta4 = beta2*beta2;
+     CscK2 = CscK*CscK; CscK4 = CscK2*CscK2;
+     gamma = CotK*(10*beta2-105*CscK2+50*K);
+     delta = 24 + beta4 + 105*CscK4 + CscK2*(-45*beta2 - 120*K) + 35*beta2*K;
+     NK = beta2*(576 + 273*beta4 + beta4*beta4 - 10*beta2*(82 + 3*beta4)*K);
+     break;
+   case 5:
+     beta2 = beta*beta; beta4 = beta2*beta2;
+     CscK2 = CscK*CscK; CscK4 = CscK2*CscK2;
+     gamma = -274-beta4+105*beta2*CscK2-945*CscK4-85*beta2*K+1155*CscK2*K;
+     delta = CotK*(120 + 15*beta4 + 945*CscK4 + CscK2*(-420*beta2 - 840*K) +
+           225*beta2*K);
+     NK = beta2*(beta2*(21076.0 + 1023*beta4 + beta4*beta4) -
+         5.0*(2880.0 + 11*beta4*(139 + beta4))*K);
+     break;
+   case 6:
+     beta2 = beta*beta; beta4 = beta2*beta2; beta6 = beta4*beta2; beta8 = beta4*beta4;
+     CscK2 = CscK*CscK; CscK4 = CscK2*CscK2; CscK6 = CscK4*CscK2;
+     gamma = CotK*(-1764 - 21*beta4 + 1260*beta2*CscK2 - 10395*CscK4 -
+           735*beta2*K + 10080*CscK2*K);
+     delta = -1624*beta2 - beta6 + 10395*CscK6 + CscK4*(-4725*beta2 - 17010*K) -
+       720*K - 175*beta4*K + CscK2*(7560 + 210*beta4 + 6090*beta2*K);
+     NK = beta2*(518400 + beta8*beta4 + 296296*beta4 + 3003*beta8 -
+         13*beta2*(59472 + 3421*beta4 + 7*beta8)*K);
+     break;
+   case 7:
+     beta2 = beta*beta; beta4 = beta2*beta2; beta6 = beta4*beta2; beta8 = beta4*beta4;
+     beta12 = beta6*beta6;
+     CscK2 = CscK*CscK; CscK4 = CscK2*CscK2; CscK6 = CscK4*CscK2;
+     gamma = 6769*beta2 + beta6 - 112392*CscK2 - 378*beta4*CscK2 +
+       17325*beta2*CscK4 - 135135*CscK6 + 13068*K + 322*beta4*K -
+       23310*beta2*CscK2*K + 232155*CscK4*K;
+     delta = CotK*(-13132*beta2 - 28*beta6 + 135135*CscK6 +
+           CscK4*(-62370*beta2 - 187110*K) - 5040*K - 1960*beta4*K +
+           CscK2*(68040 + 3150*beta4 + 64890*beta2*K));
+     NK = beta2*(beta2*(38402064 + beta6*beta6 + 2475473*beta4 + 7462*beta8) -
+         20*(1270080 + 7*beta12 + 764582*beta4 + 9581*beta8)*K);
+     break;
+   case 8:
+     beta2 = beta*beta; beta4 = beta2*beta2; beta6 = beta4*beta2; beta8 = beta4*beta4;
+     beta12 = beta6*beta6; beta16 = beta8*beta8;
+     CscK2 = CscK*CscK; CscK4 = CscK2*CscK2; CscK6 = CscK4*CscK2; CscK8 = CscK4*CscK4;
+     gamma = CotK*(67284*beta2 + 36*beta6 - 1191960*CscK2 - 6930*beta4*CscK2 +
+           270270*beta2*CscK4 - 2027025*CscK6 + 109584*K + 4536*beta4*K -
+           297990*beta2*CscK2*K + 2972970*CscK4*K);
+     delta = 40320 + 22449*beta4 + beta8 + 2027025*CscK8 +
+       CscK6*(-945945*beta2 - 4324320*K) + 118124*beta2*K + 546*beta6*K +
+       CscK4*(2993760 + 51975*beta4 + 1694385*beta2*K) +
+       CscK2*(-879480*beta2 - 630*beta6 - 725760*K - 72450*beta4*K);
+     NK = beta2*(1625702400 + 16422*beta12 + beta16 + 1017067024*beta4 + 14739153*beta8 -
+         68*beta2*(36516672 + 3*beta12 + 2554734*beta4 + 9841*beta8)*K);
+   break;
+   case 9:
+     beta2 = beta*beta; beta4 = beta2*beta2; beta6 = beta4*beta2; beta8 = beta4*beta4;
+     beta12 = beta6*beta6; beta16 = beta8*beta8;
+     CscK2 = CscK*CscK; CscK4 = CscK2*CscK2; CscK6 = CscK4*CscK2; CscK8 = CscK4*CscK4;
+     gamma = -1026576 - 63273*beta4 - beta8 + 4830210*beta2*CscK2 +
+       990*beta6*CscK2 - 55945890*CscK4 - 135135*beta4*CscK4 +
+       4729725*beta2*CscK6 - 34459425*CscK8 - 723680*beta2*K - 870*beta6*K +
+       14933160*CscK2*K + 194040*beta4*CscK2*K - 8783775*beta2*CscK4*K +
+       76351275*CscK6*K;
+     delta = CotK*(362880 + 269325*beta4 + 45*beta8 + 34459425*CscK8 +
+           CscK6*(-16216200*beta2 - 64864800*K) + 1172700*beta2*K + 9450*beta6*K +
+           CscK4*(38918880 + 945945*beta4 + 24999975*beta2*K) +
+           CscK2*(-10866240*beta2 - 13860*beta6 - 7983360*K - 1094940*beta4*K));
+     NK = beta2*(beta2*(202759531776 + 32946*beta12 + beta16 + 15088541896*beta4 + 68943381*beta8) -
+         5*(26336378880 + 19*beta4*(893321712 + 3*beta12 + 14395719*beta4 + 21046*beta8))*K);
+     break;
+   default:
+     *Phi = 0.0;
+     //Failure
+     return _FAILURE_;
+   }
+   beta2 = beta*beta;
+   NK = beta*beta;
+   int n;
+   for (n=1; n<=l; n++)
+     NK *=(beta*beta-K*n*n);
+
+   *Phi = (gamma*beta*cos(xbeta)+delta*sin(xbeta))*CscK/sqrt(NK);
+   return _SUCCESS_;
+}

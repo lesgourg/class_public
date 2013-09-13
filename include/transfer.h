@@ -553,6 +553,7 @@ extern "C" {
                           int index_q,
                           double tau0
                            );
+
 #ifdef __cplusplus
 }
 #endif

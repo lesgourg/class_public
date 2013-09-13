@@ -25,6 +25,12 @@ typedef struct HypersphericalInterpolationStructure{
   double *dphi;       //Same as phivec, but containing derivatives.
 } HyperInterpStruct;
 
+struct WKB_parameters{
+   int K;
+   int l;
+   double beta;
+   double phiminabs;
+};
 
 /**
  * Boilerplate for C++ 
@@ -81,6 +87,31 @@ int hyperspherical_HIS_create(int K,
   double coef4(double z);
   double cheb(double x, int n, double *A);
   double get_value_at_small_phi(int K,int l,double beta,double Phi);
+
+  double PhiWKB_minus_phiminabs(double x, void *param);
+
+  int hyperspherical_get_xmin_from_Airy(int K,
+                                        int l,
+                                        double beta,
+                                        double xtol,
+                                        double phiminabs,
+                                        double *xmin,
+                                        int *fevals
+                                        );
+
+  int fzero_ridder(double (*func)(double, void *),
+                   double x1,
+                   double x2,
+                   double xtol,
+                   void *param,
+                   double *Fx1,
+                   double *Fx2,
+                   double *xzero,
+                   int *fevals
+                   );
+
+  int HypersphericalExplicit(int K,int l, double beta,double x, double *Phi);
+
 #ifdef __cplusplus
 }
 #endif

@@ -2933,7 +2933,7 @@ int transfer_integrate(
                                            ptr->error_message),
              ptr->error_message,
              ptr->error_message);
-  
+
   /** This integral is correct for the case where no truncation has
       occured. If it has been truncated at som index_tau_max because
       f[index_tau_max+1]==0, it is still correct. The 'mistake' in using
@@ -2946,6 +2946,7 @@ int transfer_integrate(
       radial_function[index_tau_max]*sources[index_tau_max];
   }
   
+
   free(radial_function);
   return _SUCCESS_; 
 } 
@@ -3219,6 +3220,8 @@ int transfer_radial_function(
   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   
+  double onePhi;
+
   K = ptw->K;
   k2 = k*k;
 
@@ -3313,8 +3316,18 @@ int transfer_radial_function(
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
-    for (j=0; j<x_size; j++)
+    for (j=0; j<x_size; j++) {
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j];
+      /*
+      if (ptr->l[index_l]<10) {
+        class_call(HypersphericalExplicit(ptw->sgnK,(int)ptr->l[index_l],pHIS->beta,chireverse[j],&onePhi),
+                   ptr->error_message,
+                   ptr->error_message);
+        radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*onePhi;
+
+      }
+      */
+    }
     break;
   case TENSOR_POLARISATION_E:
     hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
@@ -3327,8 +3340,7 @@ int transfer_radial_function(
     break;
   case TENSOR_POLARISATION_B:
     hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
-    //ssqrt2i = sqrt(1.0+5.0*K/k2);
-    ssqrt2i = sqrt(1.0+3.0*K/k2);      // TBC: JL replaced 1.0+5.0*K/k2 by 1.0+3.0*K/k2, is it correct?
+    ssqrt2i = sqrt(1.0+3.0*K/k2);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
@@ -3592,6 +3604,7 @@ int transfer_update_HIS(
       xmax = ptr->q[ptr->q_size-1]*tau0; // x_max = k_max * tau0
       nu=1.;
       sampling = ppr->hyper_sampling_flat;
+      l_size_max = ptr->l_size_max;
 
     }
     else {
@@ -3615,14 +3628,75 @@ int transfer_update_HIS(
 
       sampling = ppr->hyper_sampling_curved;
 
+
+      /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
+      /*
+      int l_left=2;
+      int l_right=10000;
+      double x_nonzero;
+      int fevals=0;
+      int l;
+      xtol = ppr->hyper_x_tol;
+      phiminabs = ppr->hyper_phi_min_abs;
+
+      while (l_right - l_left > 1) {
+
+        l= (int)(0.5*(l_left-l_right));
+
+        class_call(hyperspherical_get_xmin_from_Airy(ptw->K,
+                                                     l,
+                                                     nu,
+                                                     xtol,
+                                                     phiminabs,
+                                                     &x_nonzero,
+                                                     &fevals),
+                 ptr->error_message,
+                 ptr->error_message);
+
+        if (x_nonzero < xmax) 
+          l_left=l;
+        else 
+          l_right=l;
+
+      }
+
+      l=l_left;
+
+      class_call(hyperspherical_get_xmin_from_Airy(ptw->K,
+                                                   l,
+                                                   nu,
+                                                   xtol,
+                                                   phiminabs,
+                                                   &x_nonzero,
+                                                   &fevals),
+                 ptr->error_message,
+                 ptr->error_message);
+
+      fprintf(stderr,"In l=%d, x_nonzero=%e < x_max=%e\n",l_left,x_nonzero,xmax);
+      
+      l=l_right;
+
+      class_call(hyperspherical_get_xmin_from_Airy(ptw->K,
+                                                   l,
+                                                   nu,
+                                                   xtol,
+                                                   phiminabs,
+                                                   &x_nonzero,
+                                                   &fevals),
+                 ptr->error_message,
+                 ptr->error_message);
+
+      fprintf(stderr,"In l=%d, x_nonzero=%e > x_max=%e\n",l_left,x_nonzero,xmax);
+      */
+
+
+      l_size_max = ptr->l_size_max;
     }
 
     class_test(nu <= 0.,
                ptr->error_message,
                "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
                nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
-
-    l_size_max = ptr->l_size_max;
 
     if (ptw->sgnK == 1)
       while ((double)ptr->l[l_size_max-1] >= nu)
@@ -3652,7 +3726,7 @@ int transfer_update_HIS(
 
   class_call(hyperspherical_get_xmin(ptw->pHIS,
                                      xtol,
-                                     phiminabs,
+                                     phiminabs/1000.,
                                      ptw->chi_at_phiminabs),
              ptr->error_message, 
              ptr->error_message);

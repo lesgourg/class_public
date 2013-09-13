@@ -1899,9 +1899,14 @@ int spectra_compute_cl(
 
     /* integrand of Cl's */
 
-    /* note: we must integrate C_l = int [4 pi dk/k calP(k) Delta1_l(q) Delta2_l(q)]
-       where calP(k) is the dimensionless power spectrum equal to a constant in the scale-invariant case, and to P(k) = A_s k^(ns-1) otherwise
-       and q=sqrt(k2+K) (scalars) or sqrt(k2+2K) (vectors) or sqrt(k2+3K) (tensors)
+    /* note: we must integrate 
+
+       C_l = int [4 pi dk/k calP(k) Delta1_l(q) Delta2_l(q)] 
+
+       where calP(k) is the dimensionless
+       power spectrum equal to a constant in the scale-invariant case,
+       and to P(k) = A_s k^(ns-1) otherwise and q=sqrt(k2+K) (scalars)
+       or sqrt(k2+2K) (vectors) or sqrt(k2+3K) (tensors)
        
        In the literature, people often rewrite the integral in terms
        of q and absorb the Jacobian of the change of variables in a redefinition of the primodial
@@ -1913,25 +1918,54 @@ int spectra_compute_cl(
 
        C_l = int [4 pi q2 dq {A_s k^(ns-1)/[q(q2-K)]} Delta1_l(q) Delta2_l(q)]
        
-       Sometimes in the literature, the factor present in the initial conditions of transfer functions (if normalized to curveture R=1) is also absorbed in the definition of the power spectrum.
-       For tensors, the change of variable would give:
+       Sometimes in the literature, the factor (k2-3K)=(q2-4K) present
+       in the initial conditions of scalar transfer functions (if
+       normalized to curvature R=1) is also absorbed in the definition
+       of the power spectrum. Then the curvature power spectrum reads 
+
+       calP = (q2-4K)/[q(q2-K)] * (k/k)^ns
+
+       In CLASS we prefer to define calP = (k/k)^ns like in the flat case, to have the factor (q2-4K) in the initialk conditions, and the factor 1/[q(q2-K)] doesn't need to be there since we integrate over dk/k.
+
+       For tensors, the change of variable described above gives a slightly different result:
 
        dk/k = kdk/k2 = qdq/k2 = dq/q * (q/k)^2 = dq/q * [q2/(q2-3K)] = q2dq * 1/[q(q2-3K)]
 
+       But for tensors there are extra curvature-related correction factors to
+       take into account. See the comments in the perturbation module,
+       related to initial conditions for tensors.
+
     */
 
-    if (pba->sgnK <= 0) {
+    /* factor for spline integration */
+    if (pba->sgnK <= 0) { // <=0 if you want the spline integration for flat, open; 
+                          // ==0 if you want the spline integration for flat only; 
+                          // == anything but -1,0,1 if you never want the spline integration
       factor = 4. * _PI_ / k;
     }
+    /* factor for trapezoidal integration */
     else {
       if (index_q > 0) {
         if (index_q < ptr->q_size-1)
+          /* edge for large k */
           factor = 2. * _PI_ * q / k / k * (ptr->q[index_q+1] - ptr->q[index_q-1]); 
         else
+          /* generic */
           factor = 4. * _PI_ * q / k / k * (ptr->q[index_q] - ptr->q[index_q-1]); 
       }
-      else 
-        factor = 2. * _PI_ * q / k / k * (ptr->q[1] - ptr->q[0] + sqrt(pba->K)); 
+      else { 
+        /* edge for low k */
+        if (pba->sgnK > 0) {
+          /* closed: assumes discrete sum starting at nu=3 */
+          factor = 2. * _PI_ * q / k / k * (ptr->q[1] - ptr->q[0] + sqrt(pba->K));
+        }
+        if (pba->sgnK <= 0) {
+          /* flat/open cases: for a trapezoidal integration starting in q[1],
+             plus one missing triangle between 0 and q[1], assuming the
+             integrand is zero in q=0 */
+          factor = 2. * _PI_ * q / k / k * (ptr->q[1] - ptr->q[0] + ptr->q[1]/2.); /* assumes trapezoidal integral starting in q[1] plus missing triangle between 0 and q[1], assuming the integrand is zero in q=0 */
+        }
+      }
     }
 
     if (psp->has_tt == _TRUE_)
@@ -2063,7 +2097,7 @@ int spectra_compute_cl(
     /* for non-zero spectra, integrate over q */
     else {
 
-      if (pba->K <= 0){
+      if (pba->sgnK <= 0){ // <=0 if you want the spline for flat, open; ==0 if you want the spline for flat only; == 2 if you never want the spline
 
         class_call(array_spline(cl_integrand,
                                 cl_integrand_num_columns,

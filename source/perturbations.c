@@ -3075,7 +3075,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
   double a,a_prime_over_a;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha;
-  double q,epsilon;
+  double q,epsilon,k2;
   int index_q,n_ncdm,idx;
   double rho_r,rho_m,rho_nu,rho_m_over_rho_r;
   double fracnu,fracg,fracb,fraccdm,om;
@@ -3176,10 +3176,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
       /* curvature-dependent factors */
 
-      //s_0 = sqrt(1.+pba->K/k/k);
-      //s_2 = sqrt(1.-3.*pba->K/k/k);
       s2_squared = 1.-3.*pba->K/k/k;
-      //s2_squared = 1;
 
       /** (b) starts by setting everything in synchronous gauge. If
           another gauge is needed, we will perform a gauge
@@ -3189,17 +3186,19 @@ int perturb_initial_conditions(struct precision * ppr,
 
       if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
 
-        //ppr->curvature_ini *= sqrt(sqrt(1.-pba->K/k/k));
-        //ppr->curvature_ini *= s_2*s_2/sqrt(s_0);
-        //ppr->curvature_ini *= (1.-3.*pba->K/k/k);
-
         /* The following formulas are valid at leading order in
            (k*tau) and (om*tau), and order zero in
            tight-coupling. Identical to first order terms in CRS,
            except for normalization (when ppr->curvature_ini=1, tau=1:
            leads to factor 1/2 difference between CRS formulas with
            beta1=0). Identical to CAMB when om set to zero in theta_g,
-           theta_ur, shear_ur, tau */
+           theta_ur, shear_ur, tau
+
+           In the non-flat case the relation R=eta is still valid
+           outsode the horizon for adiabatic IC. Hence eta is still
+           set to ppr->curvature_ini at leading order.  Factors s2
+           appear through the solution of Einstein equations and
+           equations of motion. */
       
         /* photon density */
         ppw->pv->y[ppw->pv->index_pt_delta_g] = - ktau_two/3. * (1.-om*tau/5.) 
@@ -3489,14 +3488,129 @@ int perturb_initial_conditions(struct precision * ppr,
 
   if _tensors_ {
 
-      if (index_ic == ppt->index_ic_ten) 
-        ppw->pv->y[ppw->pv->index_pt_gw] = ppr->gw_ini;
+      /* tensor initial conditions take into account the fact that
+         scalar (resp. tensor) Cl's are related to the real space
+         power spectrum of curvature (resp. of the tensor part of
+         metric perturbations)
 
-      /* in K<0 (open) case tensor initial conditions get multiplied by sqrt[tanh(pi*nu/2)] with nu=q/sqrt(|K|)=sqrt(k2+3K)/sqrt(-K) */ 
+         <R(x) R(x)>,   sum_ij<h_ij(x) h^ij(x)>
+
+         In momentum space it is conventional to use the modes R(k)
+         and h(k) where the quantity h obeying to the equation of
+         propagation
+
+         h'' + 2a'/a h + [k2+2K] h = 12piGa2 (rho+p) sigma = 8piGa2 p pi
+
+         and the power spectra in real space and momentum space are related through
+
+         <R(x) R(x)> = \int dk/k [k^3/2pi^2 <R(k)R(k)*>] = \int dk/k calPR(k)
+         sum_ij<h_ij(x) h^ij(x)> = \int dk/k [k^3/2pi^2 F(k^2/K) <h(k)h(k)*>] = \int dk/k F(k^2/K) calPh(k)
+         
+         where calPR and calPh are the dimensionless spectrum of
+         curvature R, and F is a function of k2/K, where K is the curvature
+         parameter. F is equal to one in flat space (K=0), and coming
+         from the contraction of the laplacian eigentensor Q_ij with
+         itself. We will give F explicitely below.
+
+         Similarily the scalar (S) and tensor (T) C_ls are given by
+
+         C_l^S = 4pi \int dk/k [Delta_l^S(q)]^2 calPR(k)
+         C_l^T = 4pi \int dk/k [Delta_l^T(q)]^2 F(k^2/K) calPh(k)
+         
+         The usual convention for the tensor-to-scalar ratio
+
+         r = A_t / A_s at pivot scale
+           = 16 epsilon in single-field inflation
+
+         is such that for constant calPR(k) and calPh(k),
+
+         r = 6 calPh(k) / calPR(k)
+
+         so calPh(k) = calPR(k) r / 6 = A_s r / 6 = A_t / 6
+
+         A priori it would make sense to say that for a power-law
+         primordial spectrum there is an extra factor (k/k_pivot)^n_t
+         (and eventually running and so on and so forth...)
+
+         However it has been shown that the minimal models of
+         inflation in a negatively curved bubble lead to
+         calP_h(k)=tanh(pi*nu/2). In open models it is customary to
+         define the tensor tilt in a non-flat universe as a deviation
+         from this behavior rather than from true scale-invariance in
+         the above sense.
+
+         Hence we should have 
+
+         calPh(k) = (A_t/6) {tanh(pi*nu/2)} (k/k_pivot)^[n_t+...]
+
+         where the brackets mean "if K<0"
+
+         Then
+
+         C_l^T = 4pi \int dk/k [Delta_l^T(q)]^2 F(k^2/K) (A_t/6) tanh(pi*nu/2) k/k_pivot)^[n_t+...]
+
+         In the code, it is then a matter of choice to write:
+
+         * In the primordial module              : calP_h(k) = (A_t/6) tanh(pi*nu/2) (k/k*)^n_T
+         * In the perturbation initial conditions: h = 1
+         * In the spectra module                 : C_l^T = 4/pi \int dk/k [Delta_l^T(q)]^2 F(k^2/K) calPh(k)
+
+         or:
+
+         * In the primordial module              : calP_h(k) = A_t (k/k*)^n_T
+         * In the perturbation initial conditions: h = sqrt[(F/6) tanh(pi*nu/2)] 
+         * In the spectra module                 : C_l^T = 4/pi \int dk/k [Delta_l^T(q)]^2 calPh(k)
+
+         We choose this last option, such that the primordial and
+         spectra module differ minimally in flat and non-flat space. Then we must impose
+
+         h = sqrt[(F/6) tanh(pi*nu/2)]
+
+         The factor F is found to be given by:
+
+         sum_ij<h_ij(x) h^ij(x)> = \int dk/k  [k2(k2-K)]/[(k2+3K)(k2+2K)] calP_h(k)
+
+         Introducing as usual q2 = k2 - 3K  and using qdq = kdk this gives
+
+         sum_ij<h_ij(x) h^ij(x)> = \int dk/k [(q2-3K)(q2-4K)]/[q2(q2-K)] calP_h(k)
+
+         Using qdq = kdk this is equivalent to
+
+         sum_ij<h_ij(x) h^ij(x)> = \int dq/q [q2-4K]/[q2-K] calP_h(k(q))
+
+         Finally, introducing nu=q/sqrt(|K|) and sgnK=sign(k)=+-1, this could also be written 
+
+         sum_ij<h_ij(x) h^ij(x)> = \int dnu/nu (nu2-4sgnK)/(nu2-sgnK) calP_h(k(nu))
+
+         Equation (43,44) of Hu, Seljak, White, Zaldarriaga is
+         equivalent to absorbing the above factor
+         (nu2-4sgnK)/(nu2-sgnK) in the definition of the primordial
+         spectrum. Since the initial condition should be written in terms of k rather than nu, they should read
+
+         h = sqrt[ [k2(k2-K)]/[(k2+3K)(k2+2K)] / 6 * tanh(pi*nu/2) ]
+
+         We leave the freedom to mutiply by an arbitrary number
+         ppr->gw_ini. The standard convenrtion corresponding to
+         standard definitions of r, A_T, n_T is however ppr->gw_ini=1.
+
+      */
+
+      if (index_ic == ppt->index_ic_ten) { 
+        ppw->pv->y[ppw->pv->index_pt_gw] = ppr->gw_ini/_SQRT6_;
+      }
+
+      k2 = k*k;
+
+      if (pba->sgnK != 0) {
+        ppw->pv->y[ppw->pv->index_pt_gw] *= sqrt(k2*(k2-pba->K)/(k2+3.*pba->K)/(k2+2.*pba->K));
+      } 
       
       if (pba->sgnK == -1) {
-        if (k*k+3*pba->K >= 0.) {  // modes not fullfilling this are unphysical modes and can be left untouched (they are never needed)
-          ppw->pv->y[ppw->pv->index_pt_gw] *= sqrt(tanh(_PI_/2.*sqrt(k*k+3*pba->K)/sqrt(-pba->K))); // TBC
+        if (k*k+3*pba->K >= 0.) {
+          ppw->pv->y[ppw->pv->index_pt_gw] *= sqrt(tanh(_PI_/2.*sqrt(k2+3*pba->K)/sqrt(-pba->K)));
+        }
+        else {
+          ppw->pv->y[ppw->pv->index_pt_gw] = 0.;
         }
       }
       
@@ -4388,7 +4502,7 @@ int perturb_sources(
   double delta_g;
   double a_prime_over_a;  /* (a'/a) */
   double a_prime_over_a_prime;  /* (a'/a)' */
-
+  double s2;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -4406,6 +4520,8 @@ int perturb_sources(
   pvecback = ppw->pvecback;
   pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
+
+  s2 = ppw->s_l[2];
 
   /** - get background/thermo quantities in this point */
 
@@ -4457,9 +4573,9 @@ int perturb_sources(
 
         delta_g = y[ppw->pv->index_pt_delta_g];
         if (ppw->approx[ppw->index_ap_tca] == (int)tca_on)
-          P = 5.*ppw->tca_shear_g/8.; /* (2.5+0.5+2)shear_g/8 */
+          P = 5.*s2*ppw->tca_shear_g/8.; /* (2.5+0.5+2)shear_g/8 */
         else
-          P = (y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.*y[ppw->pv->index_pt_shear_g])/8.;
+          P = (y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.*s2*y[ppw->pv->index_pt_shear_g])/8.;
 
       }
 
@@ -4727,8 +4843,9 @@ int perturb_sources(
 
       /* tensor temperature */
       if (ppt->has_source_t == _TRUE_) {
-        //_set_source_(ppt->index_tp_t2) = -3./2. * y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + 3./2. * pvecthermo[pth->index_th_g] * P; //TBC
-        _set_source_(ppt->index_tp_t2) = -1./_SQRT6_*y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + pvecthermo[pth->index_th_g] * P;
+        _set_source_(ppt->index_tp_t2) = - y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + pvecthermo[pth->index_th_g] * P; 
+        //_set_source_(ppt->index_tp_t2) = -1./_SQRT6_*y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + pvecthermo[pth->index_th_g] * P;
+        //_set_source_(ppt->index_tp_t2) = -y[ppw->pv->index_pt_gwdot] * pvecthermo[pth->index_th_exp_m_kappa] + pvecthermo[pth->index_th_g] * P;
       }
 
       /* tensor polarization */
@@ -5816,7 +5933,7 @@ int perturb_derivs(double tau,
                           +6./7.*y[ppw->pv->index_pt_pol2_g]
                           -3./70.*y[ppw->pv->index_pt_pol0_g+4]);
 
-        /* above epxression from paper, expression below matches old class but is not correct
+        /* above expression from paper, expression below matches old class but is not correct
         P2 = -1.0/_SQRT6_*(
                            1./10.*delta_g
                            +2./35.*shear_g
@@ -5831,8 +5948,8 @@ int perturb_derivs(double tau,
         dy[ppw->pv->index_pt_delta_g] = 
           -4./3.*theta_g
           -pvecthermo[pth->index_th_dkappa]*(delta_g+_SQRT6_*P2)
-          +y[ppw->pv->index_pt_gwdot];  
-        //+_SQRT6_*y[ppw->pv->index_pt_gwdot];  //TBC
+          //+y[ppw->pv->index_pt_gwdot];  
+          +_SQRT6_*y[ppw->pv->index_pt_gwdot];  //TBC
           	
         /* photon velocity (theta_g = (3k/4)*F_1) */
         dy[ppw->pv->index_pt_theta_g] = 
@@ -5882,16 +5999,18 @@ int perturb_derivs(double tau,
              -(l+1.)*cotKgen*y[ppw->pv->index_pt_pol0_g+l])
           -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
 
-        /*	
+        //	Thomas: //TBC
+        
         gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
                                                                    4./21.*y[ppw->pv->index_pt_shear_g]+
                                                                    1./35.*y[ppw->pv->index_pt_l3_g+1]);
-        */
-        //TBC
+
+        // Julien:
+        /*
         gw_source_g = -8*6*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
                                                              4./21.*y[ppw->pv->index_pt_shear_g]+
                                                              1./35.*y[ppw->pv->index_pt_l3_g+1]);
-        
+        */
       }
 
     }
