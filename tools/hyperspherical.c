@@ -829,63 +829,93 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
 }
 
 int hyperspherical_get_xmin_from_Airy(int K,
-                                       int l,
-                                       double beta,
-                                       double xtol,
-                                       double phiminabs,
-                                       double *xmin,
-                                       int *fevals){
-   double AIRY_SAFETY = 1e-6, lambda, delx, MAX_ITER=200;
-   double xold, xtp, xleft, xright, xnew;
-   double Fnew, Fold, Fleft, Fright;
-   double phiwkb, nu, lhs, alpha, fact;
-   int iter, huntdir;
-   struct WKB_parameters wkbstruct;
-   wkbstruct.K = K;
-   wkbstruct.l = l;
-   wkbstruct.beta = beta;
-   wkbstruct.phiminabs = phiminabs;
+                                      int l,
+                                      double beta,
+                                      double xtol,
+                                      double phiminabs,
+                                      double *xmin,
+                                      int *fevals){
+  double xold, xtp=0, xleft, xright, xnew;
+  double Fnew, Fold, Fleft, Fright;
+  double delx, lambda;
+  double AIRY_SAFETY = 1e-6;
+  int iter, huntdir;
+  struct WKB_parameters wkbstruct;
+  //Start searching from turning point:
+  switch (K){
+  case -1:
+    xtp = asinh(sqrt(l*(l+1.))/beta);
+    break;
+  case 0:
+    xtp = sqrt(l*(l+1.))/beta;
+    break;
+  case 1:
+    xtp = asin(sqrt(l*(l+1.))/beta);
+    break;
+  }
+  wkbstruct.K = K;
+  wkbstruct.l = l;
+  wkbstruct.beta = beta;
+  wkbstruct.phiminabs = phiminabs;
+  
+  xnew = 0.99*xtp;
 
-   xnew = AIRY_SAFETY;
-   Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
-   *fevals = (*fevals)+1;
-   printf("F(%g)=%g\n",AIRY_SAFETY,Fnew);
-   if (Fnew>=0.0){
-     *xmin = xnew;
-     return _SUCCESS_;
-   }
-   lambda = 2*_PI_/(beta+5.0); //Just to prevent too sparse sampling at beta<5.
-   delx = 0.3*lambda;
-   while (Fnew<0.0){
-     printf("x=%g, Fnew=%g, phiwkb = %.16e, delx=%g\n",xnew,Fnew,phiwkb,delx);
-     xold = xnew;
-     Fold = Fnew;
-     xnew += delx;
-     Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
-     //For debug:
-     hyperspherical_WKB(K,l,beta,xnew, &phiwkb);
-     *fevals = (*fevals)+1;
-   }
-   xleft = xold;
-   Fleft = Fold;
-   xright = xnew;
-   Fright = Fnew;
+  Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
+  *fevals = (*fevals)+1;
 
+  lambda = 2*_PI_/(beta+5.0);
+  if (Fnew>0)
+    delx = -lambda;
+  else
+    delx = 0.25*lambda;
+  Fold = Fnew;
 
-   printf("Hunt finished using %d fevals.\n",*fevals);
-   printf("Root is in interval [%g,%g], starting fzero...\n",xleft,xright);
+  while (sign(Fnew)==(sign(Fold))){
+    //printf("In the loop: xnew = %g, Fnew=%g, Fold=%g\n",xnew,Fnew,Fold);
+    xold = xnew;
+    Fold = Fnew;
+    xnew += delx;
+    if (xnew<AIRY_SAFETY){
+      xnew = AIRY_SAFETY;
+      Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
+      *fevals = (*fevals)+1;
+      if (Fnew>=0.0){
+        *xmin = xnew;
+        return _SUCCESS_;
+      }
+      else{
+        break;
+      }
+    }
+    Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
+    *fevals = (*fevals)+1;
+  }
 
-   fzero_ridder(PhiWKB_minus_phiminabs,
-                xleft,
-                xright,
-                xtol,
-                &wkbstruct,
-                &Fleft,
-                &Fright,
-                xmin,
-                fevals);
-   return _SUCCESS_;
-}
+  if (Fnew<=0.0){
+    xleft = xnew;
+    Fleft = Fnew;
+    xright = xold;
+    Fright = Fold;
+  }
+  else{
+    xleft = xold;
+    Fleft = Fold;
+    xright = xnew;
+    Fright = Fnew;
+  }
+
+  fzero_ridder(PhiWKB_minus_phiminabs,
+               xleft,
+               xright,
+               xtol,
+               &wkbstruct,
+               &Fleft,
+               &Fright,
+               xmin,
+               fevals);
+
+  return _SUCCESS_;
+} 
 
 double PhiWKB_minus_phiminabs(double x, void *param){
    double phiwkb;
@@ -1111,4 +1141,37 @@ polynomials in
 
    *Phi = (gamma*beta*cos(xbeta)+delta*sin(xbeta))*CscK/sqrt(NK);
    return _SUCCESS_;
+}
+
+int hyperspherical_get_xmin_from_approx(int K,
+                                        int l,
+                                        double nu,
+                                        double ignore1,
+                                        double phiminabs,
+                                        double *xmin,
+                                        int *ignore2){
+
+  double l_plus_half;
+  double lhs;
+  double alpha;
+  double ldbl = l;
+  double x;
+
+  l_plus_half = l+0.5;
+  lhs = 1.0/l_plus_half*log(2*phiminabs*l_plus_half);
+  //Using Chebyshev cubic root, much cleaner:
+  alpha = -2.0*lhs/5.0*(1.0+2.0*cosh(1.0/3.0*acosh(1.0+375.0/(16.0*lhs*lhs))));
+  x = l_plus_half/cosh(alpha)/nu;
+  if (K==-1){
+    //%Correct for open case:
+    x *= asinh(ldbl/nu)/(ldbl/nu);
+    //...and fudge for small nu:
+    x *=((nu+0.4567)/(nu+1.24)-2.209e-3);
+  }
+  else if(K==1){
+    //Correct for closed case if possible
+    x *= asin(ldbl/nu)/(ldbl/nu);
+  }
+  *xmin = x;
+  return _SUCCESS_;
 }

@@ -1484,7 +1484,10 @@ int transfer_compute_for_each_q(
           if ((ptw->sgnK == 1) && (ptr->l[index_l] >= (int)(ptr->q[index_q]/sqrt(ptw->K)+0.2))) {
             neglect = _TRUE_;
           }
-
+          /* This would maybe go into transfer_can_be_neglected later: */
+          if ((ptw->sgnK != 0) && (index_l>=ptw->pHIS->l_size)){
+            neglect = _TRUE_;
+          }
           if (neglect == _TRUE_) {
 
             ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
@@ -2846,6 +2849,7 @@ int transfer_integrate(
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
+  //printf("index_l=%d\n",index_l);
   if (ptw->sgnK==0){
     tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
   }
@@ -3630,94 +3634,146 @@ int transfer_update_HIS(
 
 
       /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
-      /*
-      int l_left=2;
-      int l_right=10000;
+      l_size_max = ptr->l_size_max;
+      if (ptw->sgnK == 1)
+        while ((double)ptr->l[l_size_max-1] >= nu)
+          l_size_max--;
+    
+      int index_l_left;
+      int index_l_right;
       double x_nonzero;
       int fevals=0;
-      int l;
+      int index_l_mid;
+      double xest_l, xest_r,x_l,x_r;
+      int verb=_FALSE_;
       xtol = ppr->hyper_x_tol;
       phiminabs = ppr->hyper_phi_min_abs;
 
-      while (l_right - l_left > 1) {
-
-        l= (int)(0.5*(l_left-l_right));
-
-        class_call(hyperspherical_get_xmin_from_Airy(ptw->K,
-                                                     l,
-                                                     nu,
-                                                     xtol,
-                                                     phiminabs,
-                                                     &x_nonzero,
-                                                     &fevals),
+      /** First try to find lmax using fast approximation: */
+      index_l_left=0;
+      index_l_right=l_size_max-1;
+      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
+                                   ptw->sgnK,
+                                   nu,
+                                   ptr->l,
+                                   l_size_max,
+                                   phiminabs,
+                                   xmax,
+                                   xtol,
+                                   &index_l_left,
+                                   &index_l_right,
+                                   ptr->error_message),
                  ptr->error_message,
                  ptr->error_message);
+      int index_l_left_approx = index_l_left;
+      int index_l_right_approx = index_l_right;
 
-        if (x_nonzero < xmax) 
-          l_left=l;
-        else 
-          l_right=l;
-
-      }
-
-      l=l_left;
-
-      class_call(hyperspherical_get_xmin_from_Airy(ptw->K,
-                                                   l,
-                                                   nu,
-                                                   xtol,
-                                                   phiminabs,
-                                                   &x_nonzero,
-                                                   &fevals),
+      /** Now use WKB approximation to eventually modify borders: */
+      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
+                                   ptw->sgnK,
+                                   nu,
+                                   ptr->l,
+                                   l_size_max,
+                                   phiminabs,
+                                   xmax,
+                                   xtol,
+                                   &index_l_left,
+                                   &index_l_right,
+                                   ptr->error_message),
                  ptr->error_message,
                  ptr->error_message);
-
-      fprintf(stderr,"In l=%d, x_nonzero=%e < x_max=%e\n",l_left,x_nonzero,xmax);
-      
-      l=l_right;
-
-      class_call(hyperspherical_get_xmin_from_Airy(ptw->K,
-                                                   l,
-                                                   nu,
-                                                   xtol,
-                                                   phiminabs,
-                                                   &x_nonzero,
-                                                   &fevals),
-                 ptr->error_message,
-                 ptr->error_message);
-
-      fprintf(stderr,"In l=%d, x_nonzero=%e > x_max=%e\n",l_left,x_nonzero,xmax);
+      /**
+      if (index_l_left_approx!=index_l_left)
+        printf("Approx failed slightly: Approx: [%d, %d], not [%d,%d]\n",
+               index_l_left_approx,index_l_right_approx,
+               index_l_left,index_l_right);
+      else
+       printf("Approx worked!\n");
       */
+      hyperspherical_get_xmin_from_approx(ptw->sgnK,
+                                          ptr->l[index_l_left_approx],
+                                          nu,
+                                          xtol,
+                                          phiminabs,
+                                          &xest_l,
+                                          &fevals);
+      hyperspherical_get_xmin_from_approx(ptw->sgnK,
+                                          ptr->l[index_l_right_approx],
+                                          nu,
+                                          xtol,
+                                          phiminabs,
+                                          &xest_r,
+                                          &fevals);
 
+      /**
+      fprintf(stderr,"Estimate for nu=%g. at l_left: %g, at l_right: %g\n",nu,xest_l,xest_r);
+      */
+      class_call(hyperspherical_get_xmin_from_Airy(ptw->sgnK,
+                                                   ptr->l[index_l_left],
+                                                   nu,
+                                                   xtol,
+                                                   phiminabs,
+                                                   &x_l,
+                                                   &fevals),
+                 ptr->error_message,
+                 ptr->error_message);
+      /**
+      fprintf(stderr,"In l=%d, (index_l=%d), x_nonzero=%e < x_max=%e\n",
+              ptr->l[index_l_left],index_l_left,x_l,xmax);
+      */
+      class_call(hyperspherical_get_xmin_from_Airy(ptw->sgnK,
+                                                   ptr->l[index_l_right],
+                                                   nu,
+                                                   xtol,
+                                                   phiminabs,
+                                                   &x_r,
+                                                   &fevals),
+                 ptr->error_message,
+                 ptr->error_message);
 
-      l_size_max = ptr->l_size_max;
+      /**      fprintf(stderr,"In l=%d, (index_l=%d), x_nonzero=%e < x_max=%e\n",
+              ptr->l[index_l_right],index_l_right,x_r,xmax);
+      */
+      /**      fprintf(stderr,"%e %.16e %.16e %.16e %.16e\n",
+              nu,
+              xest_l,xest_r,x_l,x_r);
+      
+      */
+            
+      //l_size_max = ptr->l_size_max;
+      l_size_max = index_l_right+1;
+      /**
+      double lc,lm;
+      lc = ptr->l[index_l_right];
+      lm = ptr->l[ptr->l_size_max-1];
+      fprintf(stderr,"%g %g\n ",
+              nu,(100.0*lc/lm));
+      //      printf("%d in range [0; %d]?\n",l_size_max, ptr->l_size_max);
+      */
+      
+
+      class_test(nu <= 0.,
+                 ptr->error_message,
+                 "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
+                 nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
+      
+
+      //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
+      
+      class_call(hyperspherical_HIS_create(sgnK,
+                                           nu,
+                                           l_size_max,
+                                           ptr->l,
+                                           xmin,
+                                           xmax,
+                                           sampling,
+                                           &(ptw->pHIS),
+                                           ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
+      
+      ptw->HIS_allocated = _TRUE_; 
     }
-
-    class_test(nu <= 0.,
-               ptr->error_message,
-               "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
-               nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
-
-    if (ptw->sgnK == 1)
-      while ((double)ptr->l[l_size_max-1] >= nu)
-        l_size_max--;
-
-    //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
-
-    class_call(hyperspherical_HIS_create(sgnK, 
-                                         nu,
-                                         l_size_max,
-                                         ptr->l,
-                                         xmin,
-                                         xmax,
-                                         sampling,
-                                         &(ptw->pHIS),
-                                         ptr->error_message),
-               ptr->error_message,
-               ptr->error_message);
-
-    ptw->HIS_allocated = _TRUE_;
-
   }
 
   //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
@@ -3734,3 +3790,145 @@ int transfer_update_HIS(
   return _SUCCESS_;
 }
 
+
+int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
+                                              int l,
+                                              double nu,
+                                              double xtol,
+                                              double phiminabs,
+                                              double *x_nonzero,
+                                              int *fevals),
+                      int sgnK,
+                      double nu,
+                      int *lvec,
+                      int lsize,
+                      double phiminabs,
+                      double xmax,
+                      double xtol,
+                      int *index_l_left,
+                      int *index_l_right,
+                      ErrorMsg error_message){
+  double x_nonzero;
+  int fevals=0, index_l_mid;
+  int multiplier;
+  int right_boundary_checked = _FALSE_;
+  int hil=0,hir=0,bini=0;
+  class_call(get_xmin_generic(sgnK,
+                              lvec[0],
+                              nu,
+                              xtol,
+                              phiminabs,
+                              &x_nonzero,
+                              &fevals),
+             error_message,
+             error_message);
+  if (x_nonzero >= xmax){
+    //printf("None relevant\n");
+    //x at left boundary is already larger than xmax. 
+    *index_l_right = max(lsize-1,1);
+    return _SUCCESS_;
+  }
+  class_call(get_xmin_generic(sgnK,
+                              lvec[lsize-1],
+                              nu,
+                              xtol,
+                              phiminabs,
+                              &x_nonzero,
+                              &fevals),
+             error_message,
+             error_message);
+  
+  if (x_nonzero < xmax){
+    //All Bessels are relevant
+    //printf("All relevant\n");
+    *index_l_left = max(0,(lsize-2));
+    return _SUCCESS_;
+  }
+  /** Hunt for left boundary: */
+  for (multiplier=1; ;multiplier *= 5){
+    hil++;
+    class_call(get_xmin_generic(sgnK,
+                                lvec[*index_l_left],
+                                nu,
+                                xtol,
+                                phiminabs,
+                                &x_nonzero,
+                                &fevals),
+               error_message,
+               error_message);
+    //printf("Hunt left, iter = %d, x_nonzero=%g\n",hil,x_nonzero);
+    if (x_nonzero <= xmax){
+      //Boundary found
+      break;
+    }
+    else{
+      //We can use current index_l_left as index_l_right:
+      *index_l_right = *index_l_left;
+      right_boundary_checked = _TRUE_;
+    }
+    //Update index_l_left:
+    *index_l_left = (*index_l_left)-multiplier;
+    if (*index_l_left<=0){
+      *index_l_left = 0;
+      break;
+    }
+  }
+  /** If not found, hunt for right boundary: */
+  if (right_boundary_checked == _FALSE_){
+    for (multiplier=1; ;multiplier *= 5){
+      hir++;
+      //printf("right iteration %d,index_l_right:%d\n",hir,*index_l_right);
+      class_call(get_xmin_generic(sgnK,
+                                  lvec[*index_l_right],
+                                  nu,
+                                  xtol,
+                                  phiminabs,
+                                  &x_nonzero,
+                                  &fevals),
+                 error_message,
+                 error_message);
+      if (x_nonzero >= xmax){
+        //Boundary found
+        break;
+      }
+      else{
+        //We can use current index_l_right as index_l_left:
+        *index_l_left = *index_l_right;
+       }
+      //Update index_l_right:
+      *index_l_right = (*index_l_right)+multiplier;
+      if (*index_l_right>=(lsize-1)){
+        *index_l_right = lsize-1;
+        break;
+      }
+    }
+  }
+  int fevalshunt=fevals;
+  fevals=0;
+  //Do binary search
+  //  printf("Do binary search in get_lmax. \n");
+  //printf("Region: [%d, %d]\n",*index_l_left,*index_l_right);
+  while (((*index_l_right) - (*index_l_left)) > 1) {
+    bini++;
+    index_l_mid= (int)(0.5*((*index_l_right)+(*index_l_left)));
+    //printf("left:%d, mid=%d, right=%d\n",*index_l_left,index_l_mid,*index_l_right);
+    class_call(get_xmin_generic(sgnK,
+                                lvec[index_l_mid],
+                                nu,
+                                xtol,
+                                phiminabs,
+                                &x_nonzero,
+                                &fevals),
+               error_message,
+               error_message);
+    if (x_nonzero < xmax) 
+      *index_l_left=index_l_mid;
+    else 
+      *index_l_right=index_l_mid;
+  }
+  //printf("Done\n");
+  /**  printf("Hunt left iter=%d, hunt right iter=%d (fevals: %d). For binary seach: %d (fevals: %d)\n",
+         hil,hir,fevalshunt,bini,fevals);
+  */
+  return _SUCCESS_;
+}

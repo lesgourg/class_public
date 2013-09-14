@@ -112,6 +112,16 @@ int hyperspherical_HIS_create(int K,
 
   int HypersphericalExplicit(int K,int l, double beta,double x, double *Phi);
 
+  int hyperspherical_get_xmin_from_approx(int K,
+                                          int l,
+                                          double nu,
+                                          double ignore1,
+                                          double phiminabs,
+                                          double *xmin,
+                                          int *ignore2);
+
+
+
 #ifdef __cplusplus
 }
 #endif

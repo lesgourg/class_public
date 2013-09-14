@@ -554,6 +554,24 @@ extern "C" {
                           double tau0
                            );
 
+  int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
+                                                int l,
+                                                double nu,
+                                                double xtol,
+                                                double phiminabs,
+                                                double *x_nonzero,
+                                                int *fevals),
+                        int sgnK,
+                        double nu,
+                        int *lvec,
+                        int lsize,
+                        double phiminabs,
+                        double xmax,
+                        double xtol,
+                        int *index_l_left,
+                        int *index_l_right,
+                        ErrorMsg error_message);
+
 #ifdef __cplusplus
 }
 #endif
