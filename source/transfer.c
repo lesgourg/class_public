@@ -254,7 +254,8 @@ int transfer_init(
                                                 tau_size_max,
                                                 pbs->use_pbs,
                                                 pba->K,
-                                                pba->sgnK),
+                                                pba->sgnK,
+                                                pbs->get_HIS_from_shared_memory),
                         ptr->error_message,
                         ptr->error_message);
     
@@ -506,6 +507,21 @@ int transfer_indices_of_transfers(
   class_call(transfer_get_q_list(ppr,ppt,ptr,tau0,K,sgnK),
              ptr->error_message,
              ptr->error_message);
+  if (pbs->get_HIS_from_shared_memory==_TRUE_){
+    /** Read q_list from generated file. We should add some tests here. */
+    free(ptr->q);
+    FILE * q_file;
+    int lSize;
+    q_file = fopen("q_list_binary.bin","rb");
+    // obtain file size:
+    fseek (q_file , 0 , SEEK_END);
+    lSize = ftell (q_file);
+    ptr->q_size = lSize/sizeof(double);
+    rewind (q_file);
+    class_alloc(ptr->q,sizeof(double)*ptr->q_size,ptr->error_message);
+    fread (ptr->q,sizeof(double),ptr->q_size,q_file);
+    fclose(q_file);
+  }
 
   /** get k values using transfer_get_k_list() */
   class_call(transfer_get_k_list(ppt,ptr,K),
@@ -961,9 +977,218 @@ int transfer_get_q_list(
                "bug in q list calculation, q values should be in strictly growing order"); 
   }
 
+  FILE *fid=fopen("q_from_class.dat","w");
+  int i;
+  for (i=0; i<ptr->q_size; i++){
+    fprintf(fid,"%.16e ",ptr->q[i]);
+  }
+  fclose(fid);
+
+
   return _SUCCESS_; 
 
 }
+
+/**
+ * This routine defines the number and values of wavenumbers q for
+ * each mode (different in perturbation module and transfer module:
+ * here we impose an upper bound on the linear step. So, typically,
+ * for small q, the sampling is identical to that in the perturbation
+ * module, while at high q it is denser and source functions are
+ * interpolated).
+ *
+ * @param ppr     Input : pointer to precision structure
+ * @param ppt     Input : pointer to perturbation structure
+ * @param ptr     Input/Output : pointer to transfers structure containing q's
+ * @param rs_rec  Input : comoving distance to recombination
+ * @param index_md Input: index of requested mode (scalar, tensor, etc) 
+ * @return the error status
+ */
+
+int transfer_get_q_list2(
+                        struct precision * ppr,
+                        struct perturbs * ppt,
+                        double tau0,
+                        double K,
+                        int sgnK,
+                        double **qin,
+                        int *q_size,
+                        ErrorMsg error_message
+                        ) {
+
+  int index_k;
+  int index_q;
+  double q_min=0.,q_max,q_step_max=0.,k_max;
+  int nu, nu_min, nu_proposed, nu_proposed_following_ppt, nu_proposed_following_step_max;
+  int q_size_max;
+  double * q;
+  /* find q_step_max, the maximum value of the step */
+
+  q_step_max = 2.*_PI_/tau0*ppr->k_step_trans;
+
+  class_test(q_step_max == 0.,
+             error_message,
+             "stop to avoid infinite loop");
+
+  /* first deal with case K=0 (flat) and K<0 (open). The case K>0 (closed) is very different, and is dealt with separately below. */
+
+  if (sgnK <= 0) {
+
+    /* first and last value */
+
+    if (sgnK == 0) {
+      q_min = ppt->k[0];
+      q_max = ppt->k[ppt->k_size_cl-1]; 
+      K=0;
+    }
+    else {
+      q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
+      k_max = ppt->k[ppt->k_size_cl-1];
+      q_max = sqrt(k_max*k_max+K);
+      if (ppt->has_vectors == _TRUE_) 
+        q_max = min(q_max,sqrt(k_max*k_max+2.*K));
+      if (ppt->has_tensors == _TRUE_) 
+        q_max = min(q_max,sqrt(k_max*k_max+3.*K));
+    }
+
+    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
+
+    q_size_max = 2+ppt->k_size_cl+(int)((q_max-q_min)/q_step_max);
+
+    class_alloc(q,
+                q_size_max*sizeof(double),
+                error_message);
+
+    /* - first point */
+    
+    index_q = 0;
+
+    q[index_q] = q_min; 
+
+    index_q++;
+
+    /* - points taken from perturbation module if step small enough */
+
+    while ((index_q < ppt->k_size_cl) && ((sqrt(ppt->k[index_q]*ppt->k[index_q]+K) - q[index_q-1]) < q_step_max)) {
+      
+      class_test(index_q >= q_size_max,error_message,"buggy q-list definition");
+      q[index_q] = sqrt(ppt->k[index_q]*ppt->k[index_q]+K);
+      index_q++;
+
+    }
+
+    /* - then, points spaced linearily with step q_step_max */
+
+    while (q[index_q-1] < q_max) {
+      
+      class_test(index_q >= q_size_max,error_message,"buggy q-list definition");
+      q[index_q] = q[index_q-1] + q_step_max;
+      index_q++;
+      
+    }
+    
+    /* - get number of valid points in order to re-allocate list */
+    
+    if (q[index_q-1] > q_max)
+      *q_size=index_q-1;
+    else
+      *q_size=index_q;
+    
+  }
+
+  /* deal with K>0 (closed) case */
+
+  else {
+
+    /* first and last value */
+    
+    nu_min = 3;
+    q_min = nu_min * sqrt(K);
+    q_max = ppt->k[ppt->k_size_cl-1]; 
+    
+    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
+
+    q_size_max = 2+(int)((q_max-q_min)/sqrt(K));
+
+    class_alloc(q,
+                q_size_max*sizeof(double),
+                error_message);
+    
+    /* - first point */
+    
+    index_q = 0;
+    index_k = 0;
+    
+    q[index_q] = q_min; 
+    nu = nu_min;
+
+    index_q++;
+
+    while (q[index_q-1] < q_max) {
+
+      /* find first point in ppt->k list corresponding to a q that is higher than the last q value */
+
+      while ((index_k < ppt->k_size_cl) && (ppt->k[index_k]*ppt->k[index_k]+K < q[index_q-1]*q[index_q-1])) index_k++;
+
+      /* now we can propose as a next point q_propose_following_ppt, which is bigger than the last q value */
+
+      nu_proposed_following_ppt = (int)(sqrt(ppt->k[index_k]*ppt->k[index_k]+K)/sqrt(K));
+
+      /* but if spacing in ppt become too sparse, we should instead refer to the maximum stepsize */
+
+      nu_proposed_following_step_max = (int)((q[index_q-1]+q_step_max)/sqrt(K));
+
+      nu_proposed = min(nu_proposed_following_ppt,nu_proposed_following_step_max);
+
+      if (nu_proposed <= nu) nu_proposed=nu+1;
+      
+      q[index_q] = nu_proposed*sqrt(K);
+      nu = nu_proposed;
+
+      index_q++;
+    }
+
+    /* - get number of valid points in order to re-allocate list */
+
+    if (q[index_q-1] > q_max)
+      *q_size=index_q-1;
+    else
+      *q_size=index_q;
+    
+  }
+
+  /* check size of q_list and realloc the array to the correct size */
+
+  class_test((*q_size)<2,error_message,"buggy q-list definition");
+
+  class_realloc(q,
+                q,
+                (*q_size)*sizeof(double),
+                error_message);
+  /* consistency checks */
+
+  class_test(q[0] <= 0.,
+             error_message,
+             "bug in q list calculation, q_min=%e, should always be strictly positive",q[0]);
+
+  if (sgnK == 1) {
+    class_test(q[0] < 3.*sqrt(K),
+               error_message,
+               "bug in q list calculation, q_min=%e, should be greater or equal to 3sqrt(K)=%e in positivevly curved universe",q[0],3.*sqrt(K));
+  }    
+
+  for (index_q=1; index_q<(*q_size); index_q++) {
+    class_test(q[index_q] <= q[index_q-1],
+               error_message,
+               "bug in q list calculation, q values should be in strictly growing order"); 
+  }
+
+  *qin = q;
+  return _SUCCESS_; 
+
+}
+
+
 
 int transfer_get_k_list(
                         struct perturbs * ppt,
@@ -1359,18 +1584,6 @@ int transfer_compute_for_each_q(
      sources[index_tau] */
   double * sources;
 
-  /* - sixth workspace field, containing the array of chi=sqrt(|K|)*(tau0-tau) values in the
-     general case, and k*(tau0-tau) in the flat case. */
-  double *chi;
-
-  /* - seventh workspace field, containing the "generalised" cscK(chi)*/ 
-  double *cscKgen;
-
-  /* - eighth workspace field, containing the "generalised" cotK(chi)*/ 
-  double *cotKgen;
-
-  /* no more workspace fields */
-
   /** - for a given l, maximum value of k such that we can convolve
       the source with Bessel functions j_l(x) without reaching x_max */
   double q_max_bessel;
@@ -1389,9 +1602,6 @@ int transfer_compute_for_each_q(
   w_trapz  = ptw->w_trapz;
   tau_size = &(ptw->tau_size);
   sources = ptw->sources;
-  chi = ptw->chi;
-  cscKgen = ptw->cscKgen;
-  cotKgen = ptw->cotKgen;
 
   /** - loop over all modes. For each mode: */ 
     
@@ -3224,8 +3434,6 @@ int transfer_radial_function(
   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   
-  double onePhi;
-
   K = ptw->K;
   k2 = k*k;
 
@@ -3509,7 +3717,8 @@ int transfer_workspace_init(
                             int tau_size_max,
                             int get_HIS_from_pbs,
                             double K,
-                            double sgnK){
+                            int sgnK,
+                            int get_HIS_from_shared_memory){
 
   class_calloc(*ptw,1,sizeof(struct transfer_workspace),ptr->error_message);
 
@@ -3517,6 +3726,7 @@ int transfer_workspace_init(
   (*ptw)->l_size = ptr->l_size_max;
   (*ptw)->HIS_allocated=_FALSE_;
   (*ptw)->get_HIS_from_pbs=get_HIS_from_pbs;
+  (*ptw)->get_HIS_from_shared_memory=get_HIS_from_shared_memory;
 
   (*ptw)->K = K;
   (*ptw)->sgnK = sgnK;
@@ -3569,10 +3779,40 @@ int transfer_update_HIS(
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
   int l_size_max;
-  double sgnK;
+  int index_l_left,index_l_right;
+  int shmid;
+  char *buf;
 
-  sgnK = ptw->sgnK;
+  if ((ptw->get_HIS_from_shared_memory==_TRUE_)&&
+      (ptr->initialise_HIS_cache==_FALSE_)){
+    /** Try to connect to shared memory region containing HIS structure: */
+    shmid = shmget(_SHARED_MEMORY_KEYS_START_+index_q, 
+                   0,
+                   S_IRUSR | S_IWUSR);
+    if (shmid>0){
+      /** Now try to attach the region: */
+      ptw->pHIS = shmat (shmid, 0, 0);
+      if (ptw->pHIS>0){
+        /** Eventually do a few more checks here, perhaps macros. */
+        //fprintf(stderr,"Connected to HIS struct!\n");
+        /** Update pointers in pHIS:*/
+        hyperspherical_update_pointers(ptw->pHIS);
+        /** Find x_at_phimin: */
+        phiminabs = ppr->hyper_phi_min_abs;
+        xtol = ppr->hyper_x_tol;
+        
+        class_call(hyperspherical_get_xmin(ptw->pHIS,
+                                           xtol,
+                                           phiminabs/1000.,
+                                           ptw->chi_at_phiminabs),
+                   ptr->error_message, 
+                   ptr->error_message);
+        return _SUCCESS_;
+      }
+    }
+  }
 
+    
   if (ptw->HIS_allocated==_TRUE_){
 
     if (ptw->sgnK == 0) {
@@ -3599,182 +3839,119 @@ int transfer_update_HIS(
   else{
     //These number should be set from input structures in the future:
     //printf("Creating interpolation structure...\n");
-
     xmin = ppr->hyper_x_min; //Will be changed to _HYPER_SAFETY_ by routine
     xmin = max(xmin,_HYPER_SAFETY_);
-
     if (ptw->sgnK == 0) {
-      
       xmax = ptr->q[ptr->q_size-1]*tau0; // x_max = k_max * tau0
       nu=1.;
       sampling = ppr->hyper_sampling_flat;
       l_size_max = ptr->l_size_max;
-
+      sqrt_absK=0.0;
     }
     else {
-
       sqrt_absK = sqrt(ptw->sgnK*ptw->K);
-
+    
       xmax = sqrt_absK*tau0;
       nu = ptr->q[index_q]/sqrt_absK;
-
+    
       if (ptw->sgnK == 1) {
         xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
-
+      
         int_nu = (int)(nu+0.2);
         new_nu = (double)int_nu;
         class_test(nu-new_nu > 1.e-6,
                    ptr->error_message,
                    "problem in q list definition in closed case for index_q=%d, nu=%e, nu-int(nu)=%e",index_q,nu,nu-new_nu);
         nu = new_nu;
-
+        
       }
-
-      sampling = ppr->hyper_sampling_curved;
-
-
-      /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
-      l_size_max = ptr->l_size_max;
-      if (ptw->sgnK == 1)
-        while ((double)ptr->l[l_size_max-1] >= nu)
-          l_size_max--;
+    }
+    sampling = ppr->hyper_sampling_curved;
     
-      int index_l_left;
-      int index_l_right;
-      double x_nonzero;
-      int fevals=0;
-      int index_l_mid;
-      double xest_l, xest_r,x_l,x_r;
-      int verb=_FALSE_;
-      xtol = ppr->hyper_x_tol;
-      phiminabs = ppr->hyper_phi_min_abs;
+  
+    /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
+    l_size_max = ptr->l_size_max;
+    if (ptw->sgnK == 1)
+      while ((double)ptr->l[l_size_max-1] >= nu)
+        l_size_max--;
+    
+    xtol = ppr->hyper_x_tol;
+    phiminabs = ppr->hyper_phi_min_abs;
+  
+    /** First try to find lmax using fast approximation: */
+    index_l_left=0;
+    index_l_right=l_size_max-1;
+    class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
+                                 ptw->sgnK,
+                                 nu,
+                                 ptr->l,
+                                 l_size_max,
+                                 phiminabs,
+                                 xmax,
+                                 xtol,
+                                 &index_l_left,
+                                 &index_l_right,
+                                 ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+  
+    /** Now use WKB approximation to eventually modify borders: */
+    class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
+                                 ptw->sgnK,
+                                 nu,
+                                 ptr->l,
+                                 l_size_max,
+                                 phiminabs,
+                                 xmax,
+                                 xtol,
+                                 &index_l_left,
+                                 &index_l_right,
+                                 ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+    l_size_max = index_l_right+1;
+  
+  
+    class_test(nu <= 0.,
+               ptr->error_message,
+               "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
+               nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
+    
 
-      /** First try to find lmax using fast approximation: */
-      index_l_left=0;
-      index_l_right=l_size_max-1;
-      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
-                                   ptw->sgnK,
-                                   nu,
-                                   ptr->l,
-                                   l_size_max,
-                                   phiminabs,
-                                   xmax,
-                                   xtol,
-                                   &index_l_left,
-                                   &index_l_right,
-                                   ptr->error_message),
-                 ptr->error_message,
-                 ptr->error_message);
-      int index_l_left_approx = index_l_left;
-      int index_l_right_approx = index_l_right;
-
-      /** Now use WKB approximation to eventually modify borders: */
-      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
-                                   ptw->sgnK,
-                                   nu,
-                                   ptr->l,
-                                   l_size_max,
-                                   phiminabs,
-                                   xmax,
-                                   xtol,
-                                   &index_l_left,
-                                   &index_l_right,
-                                   ptr->error_message),
-                 ptr->error_message,
-                 ptr->error_message);
-      /**
-      if (index_l_left_approx!=index_l_left)
-        printf("Approx failed slightly: Approx: [%d, %d], not [%d,%d]\n",
-               index_l_left_approx,index_l_right_approx,
-               index_l_left,index_l_right);
-      else
-       printf("Approx worked!\n");
-      */
-      hyperspherical_get_xmin_from_approx(ptw->sgnK,
-                                          ptr->l[index_l_left_approx],
-                                          nu,
-                                          xtol,
-                                          phiminabs,
-                                          &xest_l,
-                                          &fevals);
-      hyperspherical_get_xmin_from_approx(ptw->sgnK,
-                                          ptr->l[index_l_right_approx],
-                                          nu,
-                                          xtol,
-                                          phiminabs,
-                                          &xest_r,
-                                          &fevals);
-
-      /**
-      fprintf(stderr,"Estimate for nu=%g. at l_left: %g, at l_right: %g\n",nu,xest_l,xest_r);
-      */
-      class_call(hyperspherical_get_xmin_from_Airy(ptw->sgnK,
-                                                   ptr->l[index_l_left],
-                                                   nu,
-                                                   xtol,
-                                                   phiminabs,
-                                                   &x_l,
-                                                   &fevals),
-                 ptr->error_message,
-                 ptr->error_message);
-      /**
-      fprintf(stderr,"In l=%d, (index_l=%d), x_nonzero=%e < x_max=%e\n",
-              ptr->l[index_l_left],index_l_left,x_l,xmax);
-      */
-      class_call(hyperspherical_get_xmin_from_Airy(ptw->sgnK,
-                                                   ptr->l[index_l_right],
-                                                   nu,
-                                                   xtol,
-                                                   phiminabs,
-                                                   &x_r,
-                                                   &fevals),
-                 ptr->error_message,
-                 ptr->error_message);
-
-      /**      fprintf(stderr,"In l=%d, (index_l=%d), x_nonzero=%e < x_max=%e\n",
-              ptr->l[index_l_right],index_l_right,x_r,xmax);
-      */
-      /**      fprintf(stderr,"%e %.16e %.16e %.16e %.16e\n",
-              nu,
-              xest_l,xest_r,x_l,x_r);
-      
-      */
-            
-      //l_size_max = ptr->l_size_max;
-      l_size_max = index_l_right+1;
-      /**
-      double lc,lm;
-      lc = ptr->l[index_l_right];
-      lm = ptr->l[ptr->l_size_max-1];
-      fprintf(stderr,"%g %g\n ",
-              nu,(100.0*lc/lm));
-      //      printf("%d in range [0; %d]?\n",l_size_max, ptr->l_size_max);
-      */
-      
-
-      class_test(nu <= 0.,
-                 ptr->error_message,
-                 "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
-                 nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
-      
-
-      //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
-      
-      class_call(hyperspherical_HIS_create(sgnK,
-                                           nu,
-                                           l_size_max,
-                                           ptr->l,
-                                           xmin,
-                                           xmax,
-                                           sampling,
-                                           &(ptw->pHIS),
-                                           ptr->error_message),
-                 ptr->error_message,
-                 ptr->error_message);
-      
-      ptw->HIS_allocated = _TRUE_; 
+    //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
+    class_call(hyperspherical_HIS_create(ptw->sgnK,
+                                         nu,
+                                         l_size_max,
+                                         ptr->l,
+                                         xmin,
+                                         xmax,
+                                         sampling,
+                                         &(ptw->pHIS),
+                                         ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+    ptw->HIS_allocated = _TRUE_; 
+    if (ptr->initialise_HIS_cache==_TRUE_){
+      //Try to allocate shared memory segment and copy HIS structure:
+      shmid = shmget(_SHARED_MEMORY_KEYS_START_+index_q, 
+                     hyperspherical_HIS_size(ptw->pHIS->l_size, ptw->pHIS->x_size), 
+                     IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+      //printf("shmid = %d\n",shmid);
+      if (shmid<0){
+        fprintf(stderr,"Could not allocate HIS\n");
+        //printf("errno = %d. (EEXIST=%d)\n",errno,EEXIST);
+      }
+      else{
+        printf("Allocating HIS structure for key:%08X with size %dkB\n",
+               _SHARED_MEMORY_KEYS_START_+index_q,(int)(hyperspherical_HIS_size(ptw->pHIS->l_size, ptw->pHIS->x_size)/1024));
+        buf = shmat (shmid, 0, 0);
+        //Memcopy:
+        memcpy(buf,ptw->pHIS,hyperspherical_HIS_size(ptw->pHIS->l_size, ptw->pHIS->x_size));
+        shmdt(buf);
+      }
     }
   }
+  
 
   //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
   phiminabs = ppr->hyper_phi_min_abs;
@@ -3789,7 +3966,6 @@ int transfer_update_HIS(
   
   return _SUCCESS_;
 }
-
 
 int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
                                               int l,
@@ -3903,7 +4079,7 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
       }
     }
   }
-  int fevalshunt=fevals;
+  //  int fevalshunt=fevals;
   fevals=0;
   //Do binary search
   //  printf("Do binary search in get_lmax. \n");

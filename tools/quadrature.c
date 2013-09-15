@@ -27,12 +27,11 @@ int get_qsampling(double *x,
 	
   int i, NL=2,NR,level,Nadapt=0,NLag,NLag_max,Nold=NL;
   int adapt_converging=_FALSE_,Laguerre_converging=_FALSE_,combined_converging=_FALSE_;
-  int combined2_converging=_FALSE_;
   double y,y1,y2,I,Igk,err,ILag,*b,*c;
   qss_node *root,*root_comb;
   double I_comb,I_atzero,I_atinf,I_comb2;
   int N_comb=0,N_comb_lag=16,N_comb_leg=4;
-  double a_comb,b_comb,c_comb;
+  double a_comb,b_comb;
   double q_leg[4],w_leg[4];
   double q_lag[N_comb_lag],w_lag[N_comb_lag];
   char method_chosen[40];
@@ -111,7 +110,7 @@ int get_qsampling(double *x,
 
     b_comb = (y1/y2-1.0)/(qmax-qmaxm1);
     b_comb = max(b_comb,1e-100);
-    c_comb = -b_comb*qmax;
+    //c_comb = -b_comb*qmax;
     a_comb = y2*exp(b_comb*qmax);
     // printf("f(q) = %g*exp(-%g*q) \n",a_comb,b_comb);
     //(*function)(params_for_function,100,&y2);
@@ -171,7 +170,7 @@ int get_qsampling(double *x,
     }
     I_comb2 +=(I_atzero+I_atinf);
     err = I - I_comb2;
-    if(fabs(err/Itot)<rtol) combined2_converging= _TRUE_;
+    //    if(fabs(err/Itot)<rtol) combined2_converging= _TRUE_;
     //printf("I_comb2 = %e, rerr = %e\n",I_comb2,fabs(err/I));
   }
 
@@ -520,7 +519,7 @@ int compute_Hermite(double *x, double *w, int N, int alpha, double *b, double *c
 	
 int compute_Laguerre(double *x, double *w, int N, double alpha, double *b, double *c,int totalweight){
   int i,j,iter,maxiter=10;
-  double prod,x0=0.,r1,r2,ratio,d,logprod,logcc;
+  double x0=0.,r1,r2,ratio,d,logprod,logcc;
   double p0,p1,p2,dp0,dp1,dp2;
   double eps=1e-14;
   /* Initialise recursion coefficients: */
@@ -528,10 +527,8 @@ int compute_Laguerre(double *x, double *w, int N, double alpha, double *b, doubl
     b[i] = alpha + 2.0*i +1.0;
     c[i] = i*(alpha+i);
   }
-  prod=1.0;
   logprod = 0.0;
   for(i=1; i<N; i++) logprod +=log(c[i]);
-  prod = exp(logprod);
   logcc = lgamma(alpha+1)+logprod;
 
   /* Loop over roots: */

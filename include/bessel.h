@@ -32,6 +32,8 @@ struct bessels {
 
   short use_pbs; /**< if _TRUE_, try to get bessel function from this module, if _FALSE_, from new hypershperical module. For non-flat models this parameter is forced by input module to be _FALSE_ */
 
+  int get_HIS_from_shared_memory; /**< flag specifying if class should try to get HIS from shared memory */
+
  //@}
 
   /** @name - parameters defining uniquely the exact content of the Bessel table

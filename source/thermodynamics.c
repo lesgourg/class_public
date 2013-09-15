@@ -2332,7 +2332,7 @@ int thermodynamics_recombination_with_recfast(
   /* other recfast variables */
   double OmegaB,zinitial,x_He0,x0;
   double x_H0=0.;
-  double z,mu_H,n,Lalpha,Lalpha_He,DeltaB,DeltaB_He,mu_T;
+  double z,mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He,n,mu_T;
   double zstart,zend,rhs;
   int i,Nz;
 

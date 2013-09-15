@@ -6,6 +6,14 @@
 #include "bessel.h"
 #include "perturbations.h"
 #include "hyperspherical.h"
+#include <sys/shm.h>
+#include <sys/stat.h>
+//#include "errno.h"
+
+/** Written as hex, "c1a55" should be read as "class". 
+    The next 4096 keys will also have c1a55 in front.
+    This is nice when you use ipcs -m*/
+#define _SHARED_MEMORY_KEYS_START_ 0xc1a55000
 
 /**
  * Structure containing everything about transfer functions in
@@ -116,6 +124,8 @@ struct transfers {
 
   //@{
 
+  short initialise_HIS_cache; /**< only true if we are using CLASS for setting up a cache of HIS structures */
+
   short transfer_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
@@ -141,6 +151,8 @@ struct transfer_workspace {
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
 
   int get_HIS_from_pbs; /**< flag specifying whether flat bessels should be taken from old Bessel module or new hyperspetical module */
+
+  int get_HIS_from_shared_memory; /**< flag specifying if class should try to get HIS from shared memory */
 
   int l_size;        /**< number of l values */
 
@@ -537,7 +549,8 @@ extern "C" {
                               int tau_size_max,
                               int get_HIS_from_pbs,
                               double K,
-                              double sgnK
+                              int sgnK,
+                              int get_HIS_from_shared_memory
                               );
 
   int transfer_workspace_free(
@@ -571,6 +584,17 @@ extern "C" {
                         int *index_l_left,
                         int *index_l_right,
                         ErrorMsg error_message);
+
+  int transfer_get_q_list2(
+                           struct precision * ppr,
+                           struct perturbs * ppt,
+                           double tau0,
+                           double K,
+                           int sgnK,
+                           double **q,
+                           int *q_size,
+                           ErrorMsg error_message
+                           );
 
 #ifdef __cplusplus
 }

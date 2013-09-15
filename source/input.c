@@ -1387,6 +1387,7 @@ int input_init(
   if (pba->sgnK != 0) {
     pbs->use_pbs = _FALSE_;
   }
+  class_read_int("usesharedmemory",pbs->get_HIS_from_shared_memory);
 
   /** (f) parameter related to the non-linear spectra computation */
 
@@ -1929,7 +1930,8 @@ int input_default_params(
   pbs->l_max = max(max(ppt->l_scalar_max,ppt->l_tensor_max),ppt->l_lss_max);
   pbs->bessel_always_recompute = _TRUE_;
   pbs->use_pbs = _TRUE_;
-
+  pbs->get_HIS_from_shared_memory = _FALSE_;
+  
   /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
@@ -1999,6 +2001,7 @@ int input_default_params(
   ptr->lcmb_rescale=1.;
   ptr->lcmb_pivot=0.1;
   ptr->lcmb_tilt=0.;
+  ptr->initialise_HIS_cache=_FALSE_;
 
   /** - output structure */ 
 

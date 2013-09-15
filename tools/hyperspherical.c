@@ -21,9 +21,12 @@ int hyperspherical_HIS_create(int K,
       also allocated here.
       Then, compute the values of Phi and dPhi and complete the interpolation
       structure.
+      Change to accomodate shared memory approach: Allocate all memory in a
+      single call, and return the pointer as ppHIS. All pointers inside are
+      then relative to ppHIS.
   */
   HyperInterpStruct *pHIS;
-  double deltax, beta2, lambda, x, xfwd, relerr;
+  double deltax, beta2, lambda, x, xfwd;
   double *sqrtK, *PhiL;
   int j, k, l, nx, lmax;
   beta2 = beta*beta;
@@ -39,6 +42,7 @@ int hyperspherical_HIS_create(int K,
   deltax = (xmax-xmin)/(nx-1.0);
   //fprintf(stderr,"dx=%e\n",deltax);
   // Allocate vectors:
+  /**
   class_alloc(pHIS,sizeof(HyperInterpStruct),error_message);
   class_alloc(pHIS->l,sizeof(int)*nl,error_message);
   class_alloc(pHIS->x,sizeof(double)*nx,error_message);
@@ -48,12 +52,19 @@ int hyperspherical_HIS_create(int K,
   class_alloc(pHIS->dphi,sizeof(double)*nx*nl,error_message);
   //Assign pHIS pointervalue to input ppHIS:
   *ppHIS = pHIS;
+  */
+  class_alloc(pHIS,hyperspherical_HIS_size(nl, nx),error_message);
+  //Assign pHIS pointervalue to input ppHIS:
+  *ppHIS = pHIS;
   //Set scalar values:
   pHIS->beta = beta;
   pHIS->delta_x = deltax;
   pHIS->l_size = nl;
   pHIS->x_size = nx;
   pHIS->K = K;
+  //Set pointervalues in pHIS:
+  hyperspherical_update_pointers(pHIS);
+
   //Order needed for trig interpolation: (We are using Taylor's remainder theorem)
   if (0.5*deltax*deltax < _TRIG_PRECISSION_)
     pHIS->trig_order = 1;
@@ -71,7 +82,8 @@ int hyperspherical_HIS_create(int K,
   class_alloc(PhiL,(lmax+2)*sizeof(double),error_message);
   
   //Create xvector and set x, cotK, sinK, sqrtK and fwdidx:
-  if (K==0){
+  switch (K){
+  case 0:
     xfwd = sqrt(lmax*(lmax+1.0))/beta;
     for (j=0; j<nx; j++){
       x = xmin + j*deltax;
@@ -82,8 +94,8 @@ int hyperspherical_HIS_create(int K,
     for (l=0; l<=(lmax+2); l++){
       sqrtK[l] = beta;
     }
-  }
-  else if (K==1){
+    break;
+  case 1:
     xfwd = xmax+1.0;
     for (j=0; j<nx; j++){
       x = xmin + j*deltax;
@@ -102,8 +114,8 @@ int hyperspherical_HIS_create(int K,
       PhiL[lmax+1] = 0.0;
       lmax--;
     }
-  }
-  else if (K==-1){
+    break;
+  case -1:
     xfwd = asinh(sqrt(lmax*(lmax+1.0))/beta);
     for (j=0; j<nx; j++){
       x = xmin + j*deltax;
@@ -114,6 +126,9 @@ int hyperspherical_HIS_create(int K,
     for (l=0; l<=(lmax+2); l++){
       sqrtK[l] = sqrt(beta2+l*l);
     }
+    break;
+  default:
+    return _FAILURE_;
   }  
   //Calculate and assign Phi and dPhi values:
   for (j=0; j<nx; j++){
@@ -153,15 +168,37 @@ int hyperspherical_HIS_create(int K,
   return _SUCCESS_;
 }
 
+size_t hyperspherical_HIS_size(int nl, int nx){
+  return(sizeof(HyperInterpStruct)+sizeof(int)*nl+
+         3*sizeof(double)*nx+2*sizeof(double)*nx*nl);
+}
+
+int hyperspherical_update_pointers(HyperInterpStruct *pHIS){
+  /** Assign pointers in pHIS: (Remember that pointer incrementation moves
+      the number of bytes taken up by 1 variable of the type that the 
+      pointer points to. */
+  int nx=pHIS->x_size;
+  int nl=pHIS->l_size;
+  pHIS->l = (int *) (pHIS+1);
+  pHIS->x = (double *) (pHIS->l+nl);
+  pHIS->sinK = pHIS->x + nx;
+  pHIS->cotK = pHIS->sinK + nx;
+  pHIS->phi = pHIS->cotK +nx;
+  pHIS->dphi = pHIS->phi+nx*nl;
+  return _SUCCESS_;
+}
 
 int hyperspherical_HIS_free(HyperInterpStruct *pHIS){
   /** Free the Hyperspherical Interpolation Structure. */  
+  /**
   free(pHIS->l);
   free(pHIS->x);
   free(pHIS->sinK);
   free(pHIS->cotK);
   free(pHIS->phi);
   free(pHIS->dphi);
+  free(pHIS);
+  */
   free(pHIS);
   return _SUCCESS_;
 }
@@ -198,7 +235,7 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
   double beta, beta2, *xvec, *sinK, *cotK;
   double xmin, xmax, deltax, deltax2, lxlp1;
   double left_border, right_border, next_border;
-  int K, l, j, nx, current_border_idx;
+  int K, l, j, nx, current_border_idx=0;
   double *Phi_l, *dPhi_l;
   
   /** Set logical flags. The compiler should probably generate 2^3-1=7
@@ -518,6 +555,8 @@ int CF1_from_Gegenbauer(int l,
   int n, alpha, k;
   double x, G, dG, Gkm1, Gkm2;
   n = beta-l-1;
+  if (n<0)
+    return _FAILURE_;
   alpha = l+1;
   x = sinK*cotK; //cos(x)
   switch (n){
@@ -538,6 +577,7 @@ int CF1_from_Gegenbauer(int l,
     dG = 2*alpha*(1+alpha)*(2*(2+alpha)*x*x-1);
     break;
   default:
+    G = 0.0;
     Gkm2 = -alpha + 2*alpha*(1+alpha)*x*x;
     Gkm1 = -2*alpha*(1+alpha)*x+4.0/3.0*alpha*(1+alpha)*(2+alpha)*x*x*x;
     for (k=4; k<=n; k++){
@@ -558,6 +598,7 @@ int CF1_from_Gegenbauer(int l,
   //%Phi = G;
   //%dPhi = l*coty.*G-siny.*dG;
   *CF = l*cotK-sinK*dG/G;
+  return _SUCCESS_;
 }
  
 int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
@@ -582,7 +623,7 @@ int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
     ytp = asin(1.0/alpha);
   }
   else{
-    //Failure
+    return _FAILURE_;
   }
   w = alpha/CscK;
   w2 = w*w;
@@ -616,6 +657,7 @@ int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
   C = 0.5*sqrt(alpha)/beta;
   Ai = airy_cheb_approx(airy_sign*pow(argu,2.0/3.0));
   *Phi = phisign*2.0*sqrt(_PI_)*C*pow(argu,1.0/6.0)*pow(fabs(Q),-0.25)*Ai*CscK;
+  return _SUCCESS_;
 }
 
 
@@ -686,13 +728,15 @@ double coef3(double z){
               -0.1546539e-4,-0.32193999e-3,0.3812734e-4,0.1714935e-4,
               -0.416096e-5,-0.50623e-6,0.26346e-6,-0.281e-8,
               -0.1122e-7,0.120e-8,0.31e-9,-0.7e-10};
-  double B[25]={0.47839902387,-0.6881732880e-1,0.20938146768,
+  /**
+double B[25]={0.47839902387,-0.6881732880e-1,0.20938146768,
             -0.3988095886e-1,0.4758441683e-1,-0.812296149e-2,
             0.462845913e-2,0.70010098e-3,-0.75611274e-3,
             0.68958657e-3,-0.33621865e-3,0.14501668e-3,-0.4766359e-4,
             0.1251965e-4,-0.193012e-5,-0.19032e-6,0.29390e-6,
             -0.13436e-6,0.4231e-7,-0.967e-8,0.135e-8,0.7e-10,
             -0.12e-9,0.4e-10,-0.1e-10};
+  */
   double x,EX,EY,Ai;
   x = z/7.0;
   EX = exp(1.75*z);
@@ -706,8 +750,9 @@ double coef3(double z){
 double coef4(double z){
   double A[7]={0.56265126169,-0.76136219e-3,0.765252e-5,-0.14228e-6,
             0.380e-8,-0.13e-9,0.1e-10};
-  double B[7]={1.1316635302,0.166141673e-02,0.1968882e-04,0.47047e-06,
+  /**  double B[7]={1.1316635302,0.166141673e-02,0.1968882e-04,0.47047e-06,
             0.1769e-7,0.94e-9,0.6e-10};
+  */
   double x,Y,t,zeta,EX,EY,Ai;
 
   Y = z*sqrt(z);
@@ -839,7 +884,6 @@ int hyperspherical_get_xmin_from_Airy(int K,
   double Fnew, Fold, Fleft, Fright;
   double delx, lambda;
   double AIRY_SAFETY = 1e-6;
-  int iter, huntdir;
   struct WKB_parameters wkbstruct;
   //Start searching from turning point:
   switch (K){
@@ -868,9 +912,8 @@ int hyperspherical_get_xmin_from_Airy(int K,
     delx = -lambda;
   else
     delx = 0.25*lambda;
-  Fold = Fnew;
-
-  while (sign(Fnew)==(sign(Fold))){
+  
+  do {
     //printf("In the loop: xnew = %g, Fnew=%g, Fold=%g\n",xnew,Fnew,Fold);
     xold = xnew;
     Fold = Fnew;
@@ -889,7 +932,7 @@ int hyperspherical_get_xmin_from_Airy(int K,
     }
     Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
     *fevals = (*fevals)+1;
-  }
+  } while (sign(Fnew)==(sign(Fold)));
 
   if (Fnew<=0.0){
     xleft = xnew;

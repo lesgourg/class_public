@@ -78,6 +78,7 @@ int hyperspherical_HIS_create(int K,
                             double phiminabs,
                             double *xmin);
   int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi);
+  int ClosedModY(int l, int beta, double *y);
   int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign);
   int CF1_from_Gegenbauer(int l, int beta, double sinK, double cotK, double *CF);
   double airy_cheb_approx(double z);
@@ -120,8 +121,8 @@ int hyperspherical_HIS_create(int K,
                                           double *xmin,
                                           int *ignore2);
 
-
-
+  size_t hyperspherical_HIS_size(int nl, int nx);
+  int hyperspherical_update_pointers(HyperInterpStruct *pHIS);
 #ifdef __cplusplus
 }
 #endif

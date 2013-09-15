@@ -91,6 +91,8 @@ OUTPUT = output.o
 
 CLASS = class.o
 
+CLASS_CACHE = class_cache.o
+
 TEST_LOOPS = test_loops.o
 
 TEST_DEGENERACY = test_degeneracy.o
@@ -122,13 +124,16 @@ PYTHON = python/classy.pyx python/setup.py
 
 
 
-all: class libclass.a
+all: class class_cache libclass.a
 
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
+
+class_cache: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS_CACHE)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class_cache $(addprefix build/,$(notdir $^)) -lm
 
 test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm
