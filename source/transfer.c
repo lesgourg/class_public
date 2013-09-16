@@ -1695,7 +1695,7 @@ int transfer_compute_for_each_q(
             neglect = _TRUE_;
           }
           /* This would maybe go into transfer_can_be_neglected later: */
-          if ((ptw->sgnK != 0) && (index_l>=ptw->pHIS->l_size)){
+          if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size)){
             neglect = _TRUE_;
           }
           if (neglect == _TRUE_) {
@@ -1713,7 +1713,7 @@ int transfer_compute_for_each_q(
                module. otherwise this condition is guaranteed by the
                choice of proper xmax when computing bessels) */
             if (ptw->sgnK == 0) {
-              q_max_bessel = ptw->pHIS->x[ptw->pHIS->x_size-1]/tau0_minus_tau[0];
+              q_max_bessel = ptw->HIS.x[ptw->HIS.x_size-1]/tau0_minus_tau[0];
             }
             else {
               q_max_bessel = ptr->q[ptr->q_size-1];
@@ -3422,7 +3422,7 @@ int transfer_radial_function(
                              radial_function_type radial_type
                              ){
   
-  HyperInterpStruct * pHIS = ptw->pHIS;
+  HyperInterpStruct * pHIS = &(ptw->HIS);
   double *chi = ptw->chi;
   double *cscKgen = ptw->cscKgen;
   double *cotKgen = ptw->cotKgen;
@@ -3458,7 +3458,7 @@ int transfer_radial_function(
   /** Debug region:
       hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
       FILE * debugbessel = fopen("debugbessel.dat","a");
-      fprintf(debugbessel,"#l = %d\n",ptw->pHIS->l[index_l]);
+      fprintf(debugbessel,"#l = %d\n",ptw->HIS.l[index_l]);
       for (j=0; j<x_size; j++){
       fprintf(debugbessel,"%.16e %.16e %.16e %.16e\n",chireverse[j], Phi[j], dPhi[j], d2Phi[j]);
       }  
@@ -3657,7 +3657,7 @@ int transfer_select_radial_function(
 int transfer_init_HIS_from_bessel(
                                   struct bessels * pbs,
                                   struct transfers * ptr,
-                                  HyperInterpStruct **ppHIS
+                                  HyperInterpStruct *pHIS
                                   ) {
 
   /* The purpose of this function is to populate a flat Hyperspherical
@@ -3680,32 +3680,29 @@ int transfer_init_HIS_from_bessel(
                "*(pbs->xmin[%d])=%.16e, should have been %.16e.\n",
                index_l,*(pbs->x_min[index_l]),xmin);
   }
-  /* Allocate HIS and all fields in HIS: */
-  class_calloc(*ppHIS,1,sizeof(struct transfer_workspace),ptr->error_message);
-  class_alloc((*ppHIS)->l,pbs->l_size*sizeof(int),ptr->error_message);
-  class_alloc((*ppHIS)->x,x_size*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->sinK,x_size*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->cotK,x_size*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->phi,x_size*pbs->l_size*sizeof(double),ptr->error_message);
-  class_alloc((*ppHIS)->dphi,x_size*pbs->l_size*sizeof(double),ptr->error_message);
   /* Set and copy all fields of HIS: */
-  (*ppHIS)->K = 0;
-  (*ppHIS)->beta = 1;
-  (*ppHIS)->delta_x = pbs->x_step;
-  (*ppHIS)->x_size = x_size;
-  (*ppHIS)->l_size = pbs->l_size;
-  (*ppHIS)->trig_order=5;
+  pHIS->K = 0;
+  pHIS->beta = 1;
+  pHIS->delta_x = pbs->x_step;
+  pHIS->x_size = x_size;
+  pHIS->l_size = pbs->l_size;
+  pHIS->trig_order=5;
+  /* Allocate storage in pHIS: */
+  class_alloc(pHIS->l,hyperspherical_HIS_size(pHIS->l_size, pHIS->x_size),ptr->error_message);
+  /* Set pointers: */
+  hyperspherical_update_pointers(pHIS, pHIS->l);
+  
   for(index_x=0; index_x<x_size; index_x++){
     x = xmin+index_x*pbs->x_step;
-    (*ppHIS)->x[index_x] = x;
-    (*ppHIS)->sinK[index_x] = x;
-    (*ppHIS)->cotK[index_x] = 1.0/x;
+    pHIS->x[index_x] = x;
+    pHIS->sinK[index_x] = x;
+    pHIS->cotK[index_x] = 1.0/x;
   }
-  memcpy((*ppHIS)->l, pbs->l, pbs->l_size*sizeof(int));
+  memcpy(pHIS->l, pbs->l, pbs->l_size*sizeof(int));
   for (index_l=0; index_l<pbs->l_size; index_l++)
-    memcpy((*ppHIS)->phi+index_l*x_size,pbs->j[index_l],sizeof(double)*x_size);
+    memcpy(pHIS->phi+index_l*x_size,pbs->j[index_l],sizeof(double)*x_size);
   for (index_l=0; index_l<pbs->l_size; index_l++)
-    memcpy((*ppHIS)->dphi+index_l*x_size,pbs->dj[index_l],sizeof(double)*x_size);
+    memcpy(pHIS->dphi+index_l*x_size,pbs->dj[index_l],sizeof(double)*x_size);
   return _SUCCESS_;
 }
 
@@ -3750,7 +3747,7 @@ int transfer_workspace_free(
 
   if (ptw->HIS_allocated==_TRUE_){
     //Free HIS structure:
-    hyperspherical_HIS_free(ptw->pHIS);
+    hyperspherical_HIS_free(&(ptw->HIS));
   }
   free(ptw->chi_at_phiminabs);
   free(ptw->interpolated_sources);
@@ -3781,7 +3778,10 @@ int transfer_update_HIS(
   int l_size_max;
   int index_l_left,index_l_right;
   int shmid;
-  char *buf;
+  HyperInterpStruct *pHIS_shared;
+
+  if (ptw->sgnK==0)
+    index_q=0;
 
   if ((ptw->get_HIS_from_shared_memory==_TRUE_)&&
       (ptr->initialise_HIS_cache==_FALSE_)){
@@ -3791,17 +3791,19 @@ int transfer_update_HIS(
                    S_IRUSR | S_IWUSR);
     if (shmid>0){
       /** Now try to attach the region: */
-      ptw->pHIS = shmat (shmid, 0, 0);
-      if (ptw->pHIS>0){
+      pHIS_shared = shmat (shmid, 0, 0);
+      if (pHIS_shared>0){
         /** Eventually do a few more checks here, perhaps macros. */
         //fprintf(stderr,"Connected to HIS struct!\n");
-        /** Update pointers in pHIS:*/
-        hyperspherical_update_pointers(ptw->pHIS);
+        /** Copy HIS structure from shared HIS to ptw->HIS: */
+        memcpy(&(ptw->HIS),pHIS_shared,sizeof(HyperInterpStruct));
+        /** Update pointers in ptw->HIS:*/
+        hyperspherical_update_pointers(&(ptw->HIS),pHIS_shared+1);
         /** Find x_at_phimin: */
         phiminabs = ppr->hyper_phi_min_abs;
         xtol = ppr->hyper_x_tol;
         
-        class_call(hyperspherical_get_xmin(ptw->pHIS,
+        class_call(hyperspherical_get_xmin(&(ptw->HIS),
                                            xtol,
                                            phiminabs/1000.,
                                            ptw->chi_at_phiminabs),
@@ -3821,7 +3823,7 @@ int transfer_update_HIS(
     }
     else {
       /** free HIS */
-      class_call(hyperspherical_HIS_free(ptw->pHIS),
+      class_call(hyperspherical_HIS_free(&(ptw->HIS)),
                  ptr->error_message,
                  ptr->error_message);
       ptw->HIS_allocated = _FALSE_;
@@ -3831,7 +3833,7 @@ int transfer_update_HIS(
   if (ptw->get_HIS_from_pbs==_TRUE_){
     class_call(transfer_init_HIS_from_bessel(pbs,
                                              ptr,
-                                             &(ptw->pHIS)),
+                                             &(ptw->HIS)),
                ptr->error_message,
                ptr->error_message);
     ptw->HIS_allocated = _TRUE_;
@@ -3875,42 +3877,43 @@ int transfer_update_HIS(
       while ((double)ptr->l[l_size_max-1] >= nu)
         l_size_max--;
     
-    xtol = ppr->hyper_x_tol;
-    phiminabs = ppr->hyper_phi_min_abs;
+    if (ptw->sgnK == -1){
+      xtol = ppr->hyper_x_tol;
+      phiminabs = ppr->hyper_phi_min_abs;
   
-    /** First try to find lmax using fast approximation: */
-    index_l_left=0;
-    index_l_right=l_size_max-1;
-    class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
-                                 ptw->sgnK,
-                                 nu,
-                                 ptr->l,
-                                 l_size_max,
-                                 phiminabs,
-                                 xmax,
-                                 xtol,
-                                 &index_l_left,
-                                 &index_l_right,
-                                 ptr->error_message),
-               ptr->error_message,
-               ptr->error_message);
+      /** First try to find lmax using fast approximation: */
+      index_l_left=0;
+      index_l_right=l_size_max-1;
+      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
+                                   ptw->sgnK,
+                                   nu,
+                                   ptr->l,
+                                   l_size_max,
+                                   phiminabs,
+                                   xmax,
+                                   xtol,
+                                   &index_l_left,
+                                   &index_l_right,
+                                   ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
   
-    /** Now use WKB approximation to eventually modify borders: */
-    class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
-                                 ptw->sgnK,
-                                 nu,
-                                 ptr->l,
-                                 l_size_max,
-                                 phiminabs,
-                                 xmax,
-                                 xtol,
-                                 &index_l_left,
-                                 &index_l_right,
-                                 ptr->error_message),
-               ptr->error_message,
-               ptr->error_message);
-    l_size_max = index_l_right+1;
-  
+      /** Now use WKB approximation to eventually modify borders: */
+      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
+                                   ptw->sgnK,
+                                   nu,
+                                   ptr->l,
+                                   l_size_max,
+                                   phiminabs,
+                                   xmax,
+                                   xtol,
+                                   &index_l_left,
+                                   &index_l_right,
+                                   ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
+      l_size_max = index_l_right+1;
+    }
   
     class_test(nu <= 0.,
                ptr->error_message,
@@ -3926,29 +3929,34 @@ int transfer_update_HIS(
                                          xmin,
                                          xmax,
                                          sampling,
-                                         &(ptw->pHIS),
+                                         &(ptw->HIS),
                                          ptr->error_message),
                ptr->error_message,
                ptr->error_message);
     ptw->HIS_allocated = _TRUE_; 
-    if (ptr->initialise_HIS_cache==_TRUE_){
-      //Try to allocate shared memory segment and copy HIS structure:
-      shmid = shmget(_SHARED_MEMORY_KEYS_START_+index_q, 
-                     hyperspherical_HIS_size(ptw->pHIS->l_size, ptw->pHIS->x_size), 
-                     IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
-      //printf("shmid = %d\n",shmid);
-      if (shmid<0){
-        fprintf(stderr,"Could not allocate HIS\n");
-        //printf("errno = %d. (EEXIST=%d)\n",errno,EEXIST);
-      }
-      else{
-        printf("Allocating HIS structure for key:%08X with size %dkB\n",
-               _SHARED_MEMORY_KEYS_START_+index_q,(int)(hyperspherical_HIS_size(ptw->pHIS->l_size, ptw->pHIS->x_size)/1024));
-        buf = shmat (shmid, 0, 0);
-        //Memcopy:
-        memcpy(buf,ptw->pHIS,hyperspherical_HIS_size(ptw->pHIS->l_size, ptw->pHIS->x_size));
-        shmdt(buf);
-      }
+  }
+
+  if (ptr->initialise_HIS_cache==_TRUE_){
+    //Try to allocate shared memory segment and copy HIS structure:
+    shmid = shmget(_SHARED_MEMORY_KEYS_START_+index_q, 
+                   sizeof(HyperInterpStruct)+
+                   hyperspherical_HIS_size(ptw->HIS.l_size, ptw->HIS.x_size), 
+                   IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    //printf("shmid = %d\n",shmid);
+    if (shmid<0){
+      fprintf(stderr,"Could not allocate HIS\n");
+      //printf("errno = %d. (EEXIST=%d)\n",errno,EEXIST);
+    }
+    else{
+      printf("Allocating HIS structure for key:%08X with size %dkB\n",
+             _SHARED_MEMORY_KEYS_START_+index_q,
+             (int)(hyperspherical_HIS_size(ptw->HIS.l_size, ptw->HIS.x_size)/1024));
+      pHIS_shared = shmat (shmid, 0, 0);
+      //Memcopy: First structure, then storage
+      memcpy(pHIS_shared,&(ptw->HIS),sizeof(HyperInterpStruct));
+      memcpy((pHIS_shared+1), ptw->HIS.l,
+             hyperspherical_HIS_size(ptw->HIS.l_size,ptw->HIS.x_size));
+      shmdt(pHIS_shared);
     }
   }
   
@@ -3957,7 +3965,7 @@ int transfer_update_HIS(
   phiminabs = ppr->hyper_phi_min_abs;
   xtol = ppr->hyper_x_tol;
 
-  class_call(hyperspherical_get_xmin(ptw->pHIS,
+  class_call(hyperspherical_get_xmin(&(ptw->HIS),
                                      xtol,
                                      phiminabs/1000.,
                                      ptw->chi_at_phiminabs),

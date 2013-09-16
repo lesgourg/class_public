@@ -14,20 +14,17 @@ int hyperspherical_HIS_create(int K,
                               double xmin, 
                               double xmax, 
                               double sampling,
-                              HyperInterpStruct **ppHIS, 
+                              HyperInterpStruct *pHIS, 
                               ErrorMsg error_message){
   /** Allocate storage for Hyperspherical Interpolation Structure (HIS).
-      A pointer to a HIS pointer is input, so the structure itself is 
-      also allocated here.
       Then, compute the values of Phi and dPhi and complete the interpolation
       structure.
       Change to accomodate shared memory approach: Allocate all memory in a
       single call, and return the pointer as ppHIS. All pointers inside are
       then relative to ppHIS.
   */
-  HyperInterpStruct *pHIS;
   double deltax, beta2, lambda, x, xfwd;
-  double *sqrtK, *PhiL;
+  double *sqrtK, *one_over_sqrtK,*PhiL;
   int j, k, l, nx, lmax;
   beta2 = beta*beta;
   lmax = lvec[nl-1];
@@ -41,21 +38,6 @@ int hyperspherical_HIS_create(int K,
   nx = max(nx,2);
   deltax = (xmax-xmin)/(nx-1.0);
   //fprintf(stderr,"dx=%e\n",deltax);
-  // Allocate vectors:
-  /**
-  class_alloc(pHIS,sizeof(HyperInterpStruct),error_message);
-  class_alloc(pHIS->l,sizeof(int)*nl,error_message);
-  class_alloc(pHIS->x,sizeof(double)*nx,error_message);
-  class_alloc(pHIS->sinK,sizeof(double)*nx,error_message);
-  class_alloc(pHIS->cotK,sizeof(double)*nx,error_message);
-  class_alloc(pHIS->phi,sizeof(double)*nx*nl,error_message);
-  class_alloc(pHIS->dphi,sizeof(double)*nx*nl,error_message);
-  //Assign pHIS pointervalue to input ppHIS:
-  *ppHIS = pHIS;
-  */
-  class_alloc(pHIS,hyperspherical_HIS_size(nl, nx),error_message);
-  //Assign pHIS pointervalue to input ppHIS:
-  *ppHIS = pHIS;
   //Set scalar values:
   pHIS->beta = beta;
   pHIS->delta_x = deltax;
@@ -63,7 +45,8 @@ int hyperspherical_HIS_create(int K,
   pHIS->x_size = nx;
   pHIS->K = K;
   //Set pointervalues in pHIS:
-  hyperspherical_update_pointers(pHIS);
+  class_alloc(pHIS->l,hyperspherical_HIS_size(nl, nx),error_message);
+  hyperspherical_update_pointers(pHIS, (void *) pHIS->l);
 
   //Order needed for trig interpolation: (We are using Taylor's remainder theorem)
   if (0.5*deltax*deltax < _TRIG_PRECISSION_)
@@ -79,6 +62,7 @@ int hyperspherical_HIS_create(int K,
   }
   //Allocate sqrtK, and PhiL:
   class_alloc(sqrtK,(lmax+3)*sizeof(double),error_message);
+  class_alloc(one_over_sqrtK,(lmax+3)*sizeof(double),error_message);
   class_alloc(PhiL,(lmax+2)*sizeof(double),error_message);
   
   //Create xvector and set x, cotK, sinK, sqrtK and fwdidx:
@@ -93,6 +77,7 @@ int hyperspherical_HIS_create(int K,
     }
     for (l=0; l<=(lmax+2); l++){
       sqrtK[l] = beta;
+      one_over_sqrtK[l] = 1.0/sqrtK[l];
     }
     break;
   case 1:
@@ -105,6 +90,7 @@ int hyperspherical_HIS_create(int K,
     }
     for (l=0; l<=(lmax+2); l++){
       sqrtK[l] = sqrt(beta2-l*l);
+      one_over_sqrtK[l] = 1.0/sqrtK[l];
     }
     if (((int) (beta+0.2))==(lmax+1)){
       /** Take care of special case lmax = beta-1. The routine below will try to compute
@@ -125,6 +111,7 @@ int hyperspherical_HIS_create(int K,
     }
     for (l=0; l<=(lmax+2); l++){
       sqrtK[l] = sqrt(beta2+l*l);
+      one_over_sqrtK[l] = 1.0/sqrtK[l];
     }
     break;
   default:
@@ -142,6 +129,7 @@ int hyperspherical_HIS_create(int K,
                                           pHIS->sinK[j],
                                           pHIS->cotK[j],
                                           sqrtK,
+                                          one_over_sqrtK,
                                           PhiL);
     }
     else{
@@ -153,6 +141,7 @@ int hyperspherical_HIS_create(int K,
                                          pHIS->sinK[j],
                                          pHIS->cotK[j],
                                          sqrtK,
+                                         one_over_sqrtK,
                                          PhiL);
     }
     //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
@@ -169,37 +158,28 @@ int hyperspherical_HIS_create(int K,
 }
 
 size_t hyperspherical_HIS_size(int nl, int nx){
-  return(sizeof(HyperInterpStruct)+sizeof(int)*nl+
-         3*sizeof(double)*nx+2*sizeof(double)*nx*nl);
+  return(sizeof(int)*nl+3*sizeof(double)*nx+2*sizeof(double)*nx*nl);
 }
 
-int hyperspherical_update_pointers(HyperInterpStruct *pHIS){
+int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local, 
+                                   void * HIS_storage_shared){
   /** Assign pointers in pHIS: (Remember that pointer incrementation moves
       the number of bytes taken up by 1 variable of the type that the 
       pointer points to. */
-  int nx=pHIS->x_size;
-  int nl=pHIS->l_size;
-  pHIS->l = (int *) (pHIS+1);
-  pHIS->x = (double *) (pHIS->l+nl);
-  pHIS->sinK = pHIS->x + nx;
-  pHIS->cotK = pHIS->sinK + nx;
-  pHIS->phi = pHIS->cotK +nx;
-  pHIS->dphi = pHIS->phi+nx*nl;
+  int nx=pHIS_local->x_size;
+  int nl=pHIS_local->l_size;
+  pHIS_local->l = (int *) (HIS_storage_shared);
+  pHIS_local->x = (double *) (pHIS_local->l+nl);
+  pHIS_local->sinK = pHIS_local->x + nx;
+  pHIS_local->cotK = pHIS_local->sinK + nx;
+  pHIS_local->phi = pHIS_local->cotK +nx;
+  pHIS_local->dphi = pHIS_local->phi+nx*nl;
   return _SUCCESS_;
 }
 
 int hyperspherical_HIS_free(HyperInterpStruct *pHIS){
   /** Free the Hyperspherical Interpolation Structure. */  
-  /**
   free(pHIS->l);
-  free(pHIS->x);
-  free(pHIS->sinK);
-  free(pHIS->cotK);
-  free(pHIS->phi);
-  free(pHIS->dphi);
-  free(pHIS);
-  */
-  free(pHIS);
   return _SUCCESS_;
 }
 
@@ -445,18 +425,16 @@ int hyperspherical_forwards_recurrence(int K,
                                        double x, 
                                        double sinK,
                                        double cotK,
-                                       double *sqrtK,
-                                       double *PhiL){
+                                       double * __restrict__ sqrtK,
+                                       double * __restrict__ one_over_sqrtK,
+                                       double * __restrict__ PhiL){
   int l;
-
-  //  printf("x = %g, K=%d, beta = %g, lmax = %d, sinK = %g, cotK = %g.\n",
-  //     x,K,beta,lmax,sinK,cotK);
+  double phi_lm2,phi_lm1;
   PhiL[0] = 1.0/beta*sin(beta*x)/sinK;
-  PhiL[1] = PhiL[0]*(cotK-beta/tan(beta*x))/sqrtK[1];
+  PhiL[1] = PhiL[0]*(cotK-beta/tan(beta*x))*one_over_sqrtK[1];
   for (l=2; l<=lmax; l++){
-    PhiL[l] = ((2*l-1)*cotK*PhiL[l-1]-PhiL[l-2]*sqrtK[l-1])/sqrtK[l];
+    PhiL[l] = ((2*l-1)*cotK*PhiL[l-1]-PhiL[l-2]*sqrtK[l-1])*one_over_sqrtK[l];
   }
-  //printf("Phi_0 = %g, Phi_1=%g, Phi_lmax = %g\n",PhiL[0],PhiL[1], PhiL[lmax]);
   return _SUCCESS_;
 }
 
@@ -466,8 +444,9 @@ int hyperspherical_backwards_recurrence(int K,
                                         double x, 
                                         double sinK,
                                         double cotK,
-                                        double *sqrtK,
-                                        double *PhiL){
+                                        double * __restrict__ sqrtK,
+                                        double * __restrict__ one_over_sqrtK,
+                                        double * __restrict__ PhiL){
   double phi0, phi1, phipr1, phi, phi_plus_1_times_sqrtK, phi_minus_1, scaling;
   int l, k, isign;
   phi0 = sin(beta*x)/(beta*sinK);
@@ -488,19 +467,53 @@ int hyperspherical_backwards_recurrence(int K,
   phi = phi1;
   //  phi_plus_1 = 1/sqrtK[lmax+1]*(lmax*cotK*phi1-phipr1);
   phi_plus_1_times_sqrtK = lmax*cotK*phi1-phipr1;
+  
+  
+  int l_ini, l_align;
+  l_align = lmax-lmax%_HYPER_BLOCK_;
+  
+  // Bring l down to _HYPER_BLOCK_ aligned region: 
+  for (l=lmax; l>l_align; l--){
+    //    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )/sqrtK[l];
+    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )*one_over_sqrtK[l];
+    phi_plus_1_times_sqrtK = phi*sqrtK[l];
+    phi = phi_minus_1;
+    PhiL[l-1] = phi;
+  }
+  for (l_ini=l_align; l_ini>0; l_ini -= _HYPER_BLOCK_){
+    for (l=l_ini; l>(l_ini-_HYPER_BLOCK_); l--){
+      //    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )/sqrtK[l];
+      phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )*one_over_sqrtK[l];
+      phi_plus_1_times_sqrtK = phi*sqrtK[l];
+      phi = phi_minus_1;
+      PhiL[l-1] = phi;
+    }
+    if (fabs(phi)>_HYPER_OVERFLOW_){
+      phi *= _ONE_OVER_HYPER_OVERFLOW_;
+      phi_plus_1_times_sqrtK *= _ONE_OVER_HYPER_OVERFLOW_;
+      //Rescale whole Phi vector until this point:
+      for (k=l; k<=lmax; k++)
+        PhiL[k] *=_ONE_OVER_HYPER_OVERFLOW_;
+    }
+  }
+  
+  /**
   for (l=lmax; l>=1; l--){
-    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )/sqrtK[l];
+    //    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )/sqrtK[l];
+    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )*one_over_sqrtK[l];
     phi_plus_1_times_sqrtK = phi*sqrtK[l];
     phi = phi_minus_1;
     PhiL[l-1] = phi;
     if (fabs(phi)>_HYPER_OVERFLOW_){
-      phi = phi/_HYPER_OVERFLOW_;
-      phi_plus_1_times_sqrtK = phi_plus_1_times_sqrtK/_HYPER_OVERFLOW_;
+      //
+      phi *= _ONE_OVER_HYPER_OVERFLOW_;
+      phi_plus_1_times_sqrtK *= _ONE_OVER_HYPER_OVERFLOW_;
       //Rescale whole Phi vector until this point:
       for (k=l-1; k<=lmax; k++)
-        PhiL[k] /= _HYPER_OVERFLOW_;
+        PhiL[k] *=_ONE_OVER_HYPER_OVERFLOW_;
     }
   }
+  */
   scaling = phi0/phi;
   for (k=0; k<=lmax; k++)
     PhiL[k] *= scaling;

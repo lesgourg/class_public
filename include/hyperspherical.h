@@ -6,9 +6,11 @@
 #define __HYPERSPHERICAL__
 
 #include "common.h"
-#define _HYPER_OVERFLOW_ 1e50
+#define _HYPER_OVERFLOW_ 1e200
+#define _ONE_OVER_HYPER_OVERFLOW_ 1e-200
 #define _HYPER_SAFETY_ 1e-5
 #define _TRIG_PRECISSION_ 1e-7
+#define _HYPER_BLOCK_ 8
 
 typedef struct HypersphericalInterpolationStructure{
   int K;                 //Sign of the curvature, (0,-1,1)
@@ -55,6 +57,7 @@ int hyperspherical_HIS_create(int K,
                                          double sinK,
                                          double cotK,
                                          double *sqrtK,
+                                         double *one_over_sqrtK,
                                          double *PhiL);
   int hyperspherical_backwards_recurrence(int K, 
                                           int lmax, 
@@ -63,6 +66,7 @@ int hyperspherical_HIS_create(int K,
                                           double sinK,
                                           double cotK,
                                           double *sqrtK,
+                                          double *one_over_sqrtK,
                                           double *PhiL);
   int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
                                                   int nxi,

@@ -24,7 +24,7 @@ CC       = gcc -Wall -ggdb
 AR        = ar rv
 
 # your optimization flag
-OPTFLAG = -O4
+OPTFLAG = -O4 -ffast-math -march=native
 #OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
@@ -32,7 +32,7 @@ OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
 
 # all other compilation flags
-CCFLAG = -fPIC
+CCFLAG = -g -fPIC
 LDFLAG = -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory 
