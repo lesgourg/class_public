@@ -146,7 +146,7 @@ struct transfer_workspace {
 
   //@{
 
-  HyperInterpStruct *pHIS; /**< pointer towards structure containing all spherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
+  HyperInterpStruct HIS; /**< structure containing all spherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
 
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
 
@@ -539,7 +539,7 @@ extern "C" {
   int transfer_init_HIS_from_bessel(
                                     struct bessels * pbs,
                                     struct transfers * ptr,
-                                    HyperInterpStruct **ppHIS
+                                    HyperInterpStruct *pHIS
                                     );
 
   int transfer_workspace_init(

@@ -45,7 +45,7 @@ int hyperspherical_HIS_create(int K,
                               double xmin, 
                               double xmax, 
                               double sampling,
-                              HyperInterpStruct **ppHIS, 
+                              HyperInterpStruct *pHIS, 
                               ErrorMsg error_message);
   int hyperspherical_HIS_free(HyperInterpStruct *pHIS);
   int hyperspherical_forwards_recurrence(int K, 
@@ -122,7 +122,8 @@ int hyperspherical_HIS_create(int K,
                                           int *ignore2);
 
   size_t hyperspherical_HIS_size(int nl, int nx);
-  int hyperspherical_update_pointers(HyperInterpStruct *pHIS);
+  int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local, 
+                                     void * HIS_storage_shared);
 #ifdef __cplusplus
 }
 #endif
