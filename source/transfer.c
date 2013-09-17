@@ -3722,6 +3722,7 @@ int transfer_workspace_init(
   (*ptw)->tau_size_max = tau_size_max;
   (*ptw)->l_size = ptr->l_size_max;
   (*ptw)->HIS_allocated=_FALSE_;
+  (*ptw)->HIS_attached=_FALSE_;
   (*ptw)->get_HIS_from_pbs=get_HIS_from_pbs;
   (*ptw)->get_HIS_from_shared_memory=get_HIS_from_shared_memory;
 
@@ -3745,9 +3746,16 @@ int transfer_workspace_free(
                             struct transfer_workspace *ptw
                             ) {
 
+  HyperInterpStruct *pHIS_shared;
+
   if (ptw->HIS_allocated==_TRUE_){
     //Free HIS structure:
     hyperspherical_HIS_free(&(ptw->HIS));
+  }
+  if (ptw->HIS_attached==_TRUE_){
+    //detach HIS from shared memory zone:
+    pHIS_shared = (HyperInterpStruct *)ptw->HIS.l;
+    shmdt((pHIS_shared-1));
   }
   free(ptw->chi_at_phiminabs);
   free(ptw->interpolated_sources);
@@ -3783,15 +3791,27 @@ int transfer_update_HIS(
   if (ptw->sgnK==0)
     index_q=0;
 
+
   if ((ptw->get_HIS_from_shared_memory==_TRUE_)&&
       (ptr->initialise_HIS_cache==_FALSE_)){
+
+    if ((ptw->HIS_attached==_TRUE_) && (ptw->sgnK==0)) return _SUCCESS_;
+      
     /** Try to connect to shared memory region containing HIS structure: */
     shmid = shmget(_SHARED_MEMORY_KEYS_START_+index_q, 
-                   0,
+                   sizeof(HyperInterpStruct),
                    S_IRUSR | S_IWUSR);
     if (shmid>0){
+
+      if (ptw->HIS_attached==_TRUE_){
+        //detach HIS from shared memory zone:
+        pHIS_shared = (HyperInterpStruct *)ptw->HIS.l;
+        shmdt(pHIS_shared-1);
+      }
+
       /** Now try to attach the region: */
       pHIS_shared = shmat (shmid, 0, 0);
+      ptw->HIS_attached=_TRUE_;
       if (pHIS_shared>0){
         /** Eventually do a few more checks here, perhaps macros. */
         //fprintf(stderr,"Connected to HIS struct!\n");
@@ -3811,6 +3831,9 @@ int transfer_update_HIS(
                    ptr->error_message);
         return _SUCCESS_;
       }
+    }
+    else {
+      fprintf(stderr,"Unable to connect to shared memory\n");
     }
   }
 
@@ -3915,6 +3938,9 @@ int transfer_update_HIS(
       l_size_max = index_l_right+1;
     }
   
+    while ((ptr->l[l_size_max]> 750./nu ) && (ptr->l[l_size_max] > 45 ))
+      l_size_max--;
+
     class_test(nu <= 0.,
                ptr->error_message,
                "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
@@ -3948,9 +3974,11 @@ int transfer_update_HIS(
       //printf("errno = %d. (EEXIST=%d)\n",errno,EEXIST);
     }
     else{
+      /*
       printf("Allocating HIS structure for key:%08X with size %dkB\n",
              _SHARED_MEMORY_KEYS_START_+index_q,
              (int)(hyperspherical_HIS_size(ptw->HIS.l_size, ptw->HIS.x_size)/1024));
+      */
       pHIS_shared = shmat (shmid, 0, 0);
       //Memcopy: First structure, then storage
       memcpy(pHIS_shared,&(ptw->HIS),sizeof(HyperInterpStruct));

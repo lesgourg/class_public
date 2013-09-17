@@ -8,7 +8,7 @@
 #include "hyperspherical.h"
 #include <sys/shm.h>
 #include <sys/stat.h>
-//#include "errno.h"
+#include "errno.h"
 
 /** Written as hex, "c1a55" should be read as "class". 
     The next 4096 keys will also have c1a55 in front.
@@ -149,6 +149,8 @@ struct transfer_workspace {
   HyperInterpStruct HIS; /**< structure containing all spherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
 
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
+
+  int HIS_attached; /**< flag specifying whether HIS is attached to the shared memory zone */
 
   int get_HIS_from_pbs; /**< flag specifying whether flat bessels should be taken from old Bessel module or new hyperspetical module */
 
