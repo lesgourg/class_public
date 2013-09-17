@@ -3938,9 +3938,6 @@ int transfer_update_HIS(
       l_size_max = index_l_right+1;
     }
   
-    while ((ptr->l[l_size_max]> 750./nu ) && (ptr->l[l_size_max] > 45 ))
-      l_size_max--;
-
     class_test(nu <= 0.,
                ptr->error_message,
                "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
@@ -3948,7 +3945,19 @@ int transfer_update_HIS(
     
 
     //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
-    l_WKB = 46;
+
+    switch (ptw->sgnK) {
+    case 0:
+      l_WKB = ptr->l[l_size_max-1]+1;
+      break;
+    case -1:
+      l_WKB = max(46,(int)(750./nu));
+      break;
+    case +1:
+      l_WKB = max(46,(int)(750./nu));
+      break;
+    }
+
     class_call(hyperspherical_HIS_create(ptw->sgnK,
                                          nu,
                                          l_size_max,
@@ -3961,6 +3970,7 @@ int transfer_update_HIS(
                                          ptr->error_message),
                ptr->error_message,
                ptr->error_message);
+
     ptw->HIS_allocated = _TRUE_; 
   }
 

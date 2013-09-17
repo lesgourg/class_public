@@ -161,7 +161,8 @@ int hyperspherical_HIS_create(int K,
       if (l>=l_recurrence_max){
         //Compute WKB approximation using Langers formula:
         hyperspherical_WKB(K,l,beta, x, PhiL+l);      
-        hyperspherical_WKB(K,l+1,beta, x, PhiL+l+1);      
+        hyperspherical_WKB(K,l+1,beta, x, PhiL+l+1);   
+        fprintf(stderr,"%d %d %e %e %e %e\n",K,l,beta,x, PhiL[l], PhiL[l+1]);
       }
       pHIS->phi[k*nx+j] = PhiL[l];
       pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
