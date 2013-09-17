@@ -373,7 +373,7 @@ struct perturb_workspace
                                  time-derivatives */
 
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
-  double tca_shear_g_prime; /**< photon shear derivative in tight-coupling approximation */
+  double tca_slip;    /**< photon-baryon slip in tight-coupling approximation */
   double rsa_delta_g; /**< photon density in radiation streaming approximation */
   double rsa_theta_g; /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
@@ -630,6 +630,12 @@ extern "C" {
                      void * parameters_and_workspace,
                      ErrorMsg error_message
                      );
+
+  int perturb_tca_slip_and_shear(
+                                 double * y,
+                                 void * parameters_and_workspace,
+                                 ErrorMsg error_message
+                                 );
 
     
 #ifdef __cplusplus

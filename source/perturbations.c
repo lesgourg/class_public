@@ -5189,6 +5189,7 @@ int perturb_derivs(double tau,
   double * pvecthermo;
   double * pvecmetric;
   double * s_l;
+  struct perturb_vector * pv;
 
   /* short-cut notations for the perturbations */
   double delta_g=0.,theta_g=0.,shear_g=0.;
@@ -5229,6 +5230,7 @@ int perturb_derivs(double tau,
   pvecback = ppw->pvecback;
   pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
+  pv = ppw->pv;
 
   /** - get background/thermo quantities in this point */
 
@@ -5279,32 +5281,16 @@ int perturb_derivs(double tau,
 
       /** (a) define short-cut notations for the scalar perturbations */
       if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
-        delta_g = y[ppw->pv->index_pt_delta_g];
-        theta_g = y[ppw->pv->index_pt_theta_g];
+        delta_g = y[pv->index_pt_delta_g];
+        theta_g = y[pv->index_pt_theta_g];
         if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
-          shear_g = y[ppw->pv->index_pt_shear_g];
+          shear_g = y[pv->index_pt_shear_g];
         }
       }
-      delta_b = y[ppw->pv->index_pt_delta_b];
-      theta_b = y[ppw->pv->index_pt_theta_b];
+      delta_b = y[pv->index_pt_delta_b];
+      theta_b = y[pv->index_pt_theta_b];
       cb2 = pvecthermo[pth->index_th_cb2];
     
-      /** (b) define short-cut notations used only in tight-coupling approximation */
-      if (ppw->approx[ppw->index_ap_tca] == (int)tca_on) {
-        tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
-        dtau_c = -pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c; /* its first derivative wrt conformal time */
-        F = tau_c/(1+R); /* F = tau_c/(1+R) */
-        if (ppr->tight_coupling_approximation >= (int)second_order_CLASS) {
-          F_prime = dtau_c/(1+R)+tau_c*a_prime_over_a*R/(1+R)/(1+R); /*F' needed by second_order_CLASS and compromise_CLASS */
-          if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
-            F_prime_prime =(- pvecthermo[pth->index_th_dddkappa]*tau_c*tau_c /* F'' needed by second_order_CLASS only */
-                            + 2.*pvecthermo[pth->index_th_ddkappa]*pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c*tau_c)/(1+R)
-              +2.*dtau_c*a_prime_over_a*R/(1+R)/(1+R)
-              +tau_c*((a_primeprime_over_a-2.*a_prime_over_a*a_prime_over_a)+2.*a_prime_over_a*a_prime_over_a*R/(1+R))*R/(1+R)/(1+R);
-          }
-        }
-      }
-
       /** (c) get metric perturbations with perturb_einstein() */
       class_call(perturb_einstein(ppr,
                                   pba,
@@ -5364,13 +5350,13 @@ int perturb_derivs(double tau,
 
       if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
-        dy[ppw->pv->index_pt_delta_g] = -4./3.*(theta_g+metric_continuity); 
+        dy[pv->index_pt_delta_g] = -4./3.*(theta_g+metric_continuity); 
 
       }
 
       /** -> baryon density (does not depend on tca) */
 
-      dy[ppw->pv->index_pt_delta_b] = -(theta_b+metric_continuity);
+      dy[pv->index_pt_delta_b] = -(theta_b+metric_continuity);
         
       /** -> baryon velocity (depends on tight-coupling approximation) */
 
@@ -5378,7 +5364,7 @@ int perturb_derivs(double tau,
 
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
         
-        dy[ppw->pv->index_pt_theta_b] = 
+        dy[pv->index_pt_theta_b] = 
           - a_prime_over_a*theta_b 
           + metric_euler
           + cb2*k2*delta_b
@@ -5390,162 +5376,14 @@ int perturb_derivs(double tau,
       
       else {
 
-        /** -----> like Ma & Bertschinger */
-        if (ppr->tight_coupling_approximation == (int)first_order_MB) {
-	
-          slip=2.*R/(1.+R)*a_prime_over_a*(theta_b-theta_g)
-            +F*(-a_primeprime_over_a*theta_b
-                +k2*(-a_prime_over_a*delta_g/2.
-                     +cb2*dy[ppw->pv->index_pt_delta_b]
-                     -dy[ppw->pv->index_pt_delta_g]/4.)
-                -a_prime_over_a*metric_euler);
-	
-        }
+        class_call(perturb_tca_slip_and_shear(y,pppaw,error_message),
+                   error_message,
+                   error_message);
 
-        /** -----> relax assumption dkappa~a^-2 (like in CAMB) */
-        if ((ppr->tight_coupling_approximation == (int)first_order_CAMB) || (ppr->tight_coupling_approximation == (int)compromise_CLASS)) {
-	
-          slip=(dtau_c/tau_c-2.*a_prime_over_a/(1.+R))*(theta_b-theta_g)
-            +F*(-a_primeprime_over_a*theta_b
-                +k2*(-a_prime_over_a*delta_g/2.
-                     +cb2*dy[ppw->pv->index_pt_delta_b]
-                     -dy[ppw->pv->index_pt_delta_g]/4.)
-                -a_prime_over_a*metric_euler);
-        }
-
-        /** -----> also relax assumption cb2~a^-1 */
-        if ((ppr->tight_coupling_approximation == (int)first_order_CLASS) || (ppr->tight_coupling_approximation == (int)second_order_CLASS)){
-	
-          slip=(dtau_c/tau_c-2.*a_prime_over_a/(1.+R))*(theta_b-theta_g)
-            +F*(-a_primeprime_over_a*theta_b
-                +k2*(-a_prime_over_a*delta_g/2.
-                     +pvecthermo[pth->index_th_dcb2]*y[ppw->pv->index_pt_delta_b]
-                     +cb2*dy[ppw->pv->index_pt_delta_b]
-                     -dy[ppw->pv->index_pt_delta_g]/4.)
-                -a_prime_over_a*metric_euler);
-        }
-
-        /** -----> intermediate quantities for 2nd order tca: shear_g at first order in tight-coupling */
-        shear_g=16./45.*tau_c*(theta_g+metric_shear);
-        /* (Ma & Bertschinger give (1/9)*(4/3) instead of (2/15)*(4/3)
-           because they didn't include the contribution of G_gamma0
-           and G_gamma2, which are of the same order as sigma_g. This
-           was already consistently included in CAMB) */ 
-
-        /** -----> intermediate quantities for 2nd order tca: zero order for theta_b' = theta_g' */
-        theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R) + metric_euler;
-	
-        /** -----> intermediate quantities for 2nd order tca: shear_g_prime at first order in tight-coupling */
-        shear_g_prime=16./45.*(tau_c*(theta_prime+metric_shear_prime)+dtau_c*(theta_g+metric_shear));
-
-        /** -----> 2nd order as in CRS*/
-        if (ppr->tight_coupling_approximation == (int)second_order_CRS) {
-
-          if (ppt->gauge == newtonian) {
-
-            class_stop(error_message,
-                       "the second_order_CRS approach to tight-coupling is coded in synchronous gauge, not newtonian: change gauge or try another tight-coupling scheme");
-	  
-          }
-
-          if (ppt->gauge == synchronous) {
-
-            class_test(pba->sgnK != 0,
-                       ppt->error_message,
-                       "the second_order_CRS approach to tight-coupling is coded in the flat case only: for non-flat try another tight-coupling scheme");
-
-            /* infer Delta from h'' using Einstein equation */
-	  
-            Delta = 2*k2*y[ppw->pv->index_pt_eta]
-              -2*a_prime_over_a*pvecmetric[ppw->index_mt_h_prime]
-              -pvecmetric[ppw->index_mt_h_prime_prime];
-	  
-            /* monster expression for slip at second-order in tight-coupling */
-            slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(theta_b-theta_g)
-              +(-a_primeprime_over_a*theta_b
-                -k2*a_prime_over_a*(delta_g/2.-2.*shear_g)
-                +k2*(cb2*dy[ppw->pv->index_pt_delta_b]
-                     -dy[ppw->pv->index_pt_delta_g]/4.
-                     +shear_g_prime)
-                )/pvecthermo[pth->index_th_dkappa]/(1.+R)
-              -2.*R*(3.*a_prime_over_a*a_prime_over_a*cb2+(1.+R)*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)-3.*a_prime_over_a*a_prime_over_a)
-              /(1.+R)/(1.+R)/(1.+R)*(theta_b-theta_g)/pvecthermo[pth->index_th_dkappa]
-              +(
-                a_primeprime_over_a*a_prime_over_a*((2.-3.*cb2)*R-2.)*theta_b/(1.+R)
-                +a_prime_over_a*k2*(1.-3.*cb2)*theta_b/3./(1.+R)
-                +a_primeprime_over_a*k2*cb2*delta_b/(1.+R)
-                +k2*k2*(3.*cb2-1.)*cb2*delta_b/3./(1.+R)
-                +k2*k2*R*(3.*cb2-1.)*delta_g/12./(1.+R)
-                +a_primeprime_over_a*k2*(2.+3.*R)*delta_g/4./(1.+R)
-                +a_prime_over_a*a_prime_over_a*k2*((2.-3.*cb2)*R-1.)*delta_g/2./(1.+R)
-                +a_prime_over_a*k2*cb2*(1.+(3.*cb2-2.)*R)*dy[ppw->pv->index_pt_delta_b]/(1.+R)
-                +a_prime_over_a*k2*(2.+(5.-3.*cb2)*R)*dy[ppw->pv->index_pt_delta_g]/4./(1.+R)
-                +a_prime_over_a*(1.-3.*cb2)*k2*2.*metric_shear/3.
-                +k2*k2*(3.*cb2-1.)*y[ppw->pv->index_pt_eta]/3.
-                +2.*a_prime_over_a*k2*(3.*cb2-1.)*pvecmetric[ppw->index_mt_eta_prime]
-                +k2*(1.-3.*cb2)*Delta/6.
-                )/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/(1.+R)/(1.+R)
-              -(4.*a_primeprime_over_a*theta_b-4.*k2*cb2*dy[ppw->pv->index_pt_delta_b]+2.*a_prime_over_a*k2*delta_g+k2*dy[ppw->pv->index_pt_delta_g])/2./(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]
-              +4.*a_prime_over_a*R/(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
-	
-            /* second-order correction to shear */
-            shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime]); 
-
-          }
-        }
-
-        /** -----> 2nd order like in CLASS paper */
-        if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
-	
-          if (ppt->gauge == newtonian) {
-
-            class_stop(error_message,
-                       "the second_order_CLASS approach to tight-coupling is coded in synchronous gauge, not newtonian: change gauge or try another tight-coupling scheme");
-	  
-          }
-
-          if (ppt->gauge == synchronous) {
-
-            /* zero order for theta_b'' = theta_g'' */
-            theta_prime_prime = ((R-1.)*a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b
-                                 +k2*(pvecthermo[pth->index_th_dcb2]*delta_b+cb2*dy[ppw->pv->index_pt_delta_b]-a_prime_over_a*R/4.*delta_g+R/4.*dy[ppw->pv->index_pt_delta_g]))/(1.+R);
-	  
-            /* zero-order quantities g0, g0', go'' */
-            g0 = -a_prime_over_a*theta_b + k2*(cb2*delta_b-delta_g/4.);
-            g0_prime = -a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b+k2*(pvecthermo[pth->index_th_dcb2]*delta_b+(1./3.-cb2)*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime]));
-            g0_prime_prime = -a_prime_over_a*theta_prime_prime-2.*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_prime
-              -(2.*a_prime_over_a*a_prime_over_a*a_prime_over_a-3.*a_primeprime_over_a*a_prime_over_a)*theta_b
-              +k2*(pvecthermo[pth->index_th_ddcb2]*delta_b-2.*pvecthermo[pth->index_th_dcb2]*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])+(1./3.-cb2)*(theta_prime+0.5*pvecmetric[ppw->index_mt_h_prime_prime]));
-	  
-            /* slip at second order */
-            slip = (1.-2*a_prime_over_a*F)*slip + F*k2*s2_squared*(2.*a_prime_over_a*shear_g+shear_g_prime)
-              -F*(F_prime_prime*g0+2.*F_prime*g0_prime+F*g0_prime_prime);
-	  
-            /* second-order correction to shear */
-            shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+metric_shear_prime); 
-
-          }
-        }
-
-        /** -----> add only the most important 2nd order terms */
-        if (ppr->tight_coupling_approximation == (int)compromise_CLASS) {
-
-          /* slip at second order (only leading second-order terms) */
-          slip = (1.-2.*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*s2_squared*shear_g+s2_squared*shear_g_prime-(1./3.-cb2)*(F*theta_prime+2.*F_prime*theta_b));
-
-          /* second-order correction to shear */
-          shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+metric_shear_prime);
-
-        }
-	
-        /* tight-coupling baryon velocity */
-        dy[ppw->pv->index_pt_theta_b] = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R*(delta_g/4.-s2_squared*shear_g))+R*slip)/(1.+R)+metric_euler;
-
-        /** ---> store tight-coupling values of photon shear and its derivative */
-
-        ppw->tca_shear_g = shear_g;
-        //ppw->tca_shear_g_prime = shear_g_prime;
-
+        dy[pv->index_pt_theta_b] = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R*(delta_g/4.-s2_squared*ppw->tca_shear_g))+R*ppw->tca_slip)/(1.+R)+metric_euler;
+        
+        shear_g = ppw->tca_shear_g;
+        
       }
 
       /** -> photon temperature higher momenta and photon polarisation (depend on tight-coupling approximation) : */
@@ -5556,73 +5394,73 @@ int perturb_derivs(double tau,
         if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
           /** -----> define \f$ \Pi = G_{\gamma 0} + G_{\gamma 2} + F_{\gamma 2} \f$ */
-          P0 = (y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.*s_l[2]*shear_g)/8.;
+          P0 = (y[pv->index_pt_pol0_g] + y[pv->index_pt_pol2_g] + 2.*s_l[2]*shear_g)/8.;
 
           /** -----> photon temperature velocity */ 
 
-          dy[ppw->pv->index_pt_theta_g] =
+          dy[pv->index_pt_theta_g] =
             k2*(delta_g/4.-s2_squared*shear_g)
             + metric_euler
             + pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
 
           /** -----> photon temperature shear */
-          dy[ppw->pv->index_pt_shear_g] =
+          dy[pv->index_pt_shear_g] =
             0.5*(8./15.*(theta_g+metric_shear)
-                 -3./5.*k*s_l[3]/s_l[2]*y[ppw->pv->index_pt_l3_g]
+                 -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_l3_g]
                  -pvecthermo[pth->index_th_dkappa]*(2.*shear_g-4./5./s_l[2]*P0));
             
           /** -----> photon temperature l=3 */ 
 
           l = 3;
-          dy[ppw->pv->index_pt_l3_g] = k/(2.0*l+1.0)*
-            (l*s_l[l]*2.*s_l[2]*shear_g-(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_l3_g+1])
-            - pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_l3_g];
+          dy[pv->index_pt_l3_g] = k/(2.0*l+1.0)*
+            (l*s_l[l]*2.*s_l[2]*shear_g-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_g+1])
+            - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
 
           /** -----> photon temperature l>3 */ 
-          for (l = 4; l < ppw->pv->l_max_g; l++) { 
+          for (l = 4; l < pv->l_max_g; l++) { 
 
-            dy[ppw->pv->index_pt_delta_g+l] = k/(2.0*l+1.0)*
-              (l*s_l[l]*y[ppw->pv->index_pt_delta_g+l-1]-(l+1)*s_l[l+1]*y[ppw->pv->index_pt_delta_g+l+1])
-              - pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_delta_g+l];
+            dy[pv->index_pt_delta_g+l] = k/(2.0*l+1.0)*
+              (l*s_l[l]*y[pv->index_pt_delta_g+l-1]-(l+1)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
+              - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
           }
 
           /** -----> photon temperature lmax */ 
-          l = ppw->pv->l_max_g; /* l=lmax */
-          dy[ppw->pv->index_pt_delta_g+l] =
-            k*(s_l[l]*y[ppw->pv->index_pt_delta_g+l-1]-(1.+l)*cotKgen*y[ppw->pv->index_pt_delta_g+l])
-            - pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_delta_g+l];
+          l = pv->l_max_g; /* l=lmax */
+          dy[pv->index_pt_delta_g+l] =
+            k*(s_l[l]*y[pv->index_pt_delta_g+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
+            - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
 	
           /** -----> photon polarisation l=0 */
 
-          dy[ppw->pv->index_pt_pol0_g] =
-            -k*y[ppw->pv->index_pt_pol0_g+1]
-            -pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_pol0_g]-4.*P0);
+          dy[pv->index_pt_pol0_g] =
+            -k*y[pv->index_pt_pol0_g+1]
+            -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-4.*P0);
 
           /** -----> photon polarisation l=1 */
 
-          dy[ppw->pv->index_pt_pol1_g] =
-            k/3.*(y[ppw->pv->index_pt_pol1_g-1]-2.*s_l[2]*y[ppw->pv->index_pt_pol1_g+1])
-            -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol1_g];
+          dy[pv->index_pt_pol1_g] =
+            k/3.*(y[pv->index_pt_pol1_g-1]-2.*s_l[2]*y[pv->index_pt_pol1_g+1])
+            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol1_g];
 
           /** -----> photon polarisation l=2 */
 
-          dy[ppw->pv->index_pt_pol2_g] =
-            k/5.*(2.*s_l[2]*y[ppw->pv->index_pt_pol2_g-1]-3.*s_l[3]*y[ppw->pv->index_pt_pol2_g+1])
-            -pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_pol2_g]-4./5.*P0);
+          dy[pv->index_pt_pol2_g] =
+            k/5.*(2.*s_l[2]*y[pv->index_pt_pol2_g-1]-3.*s_l[3]*y[pv->index_pt_pol2_g+1])
+            -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol2_g]-4./5.*P0);
 
           /** -----> photon polarisation l>2 */
 
-          for (l=3; l < ppw->pv->l_max_pol_g; l++)
-            dy[ppw->pv->index_pt_pol0_g+l] = k/(2.*l+1)*
-              (l*s_l[l]*y[ppw->pv->index_pt_pol0_g+l-1]-(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_pol0_g+l+1])
-              -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
+          for (l=3; l < pv->l_max_pol_g; l++)
+            dy[pv->index_pt_pol0_g+l] = k/(2.*l+1)*
+              (l*s_l[l]*y[pv->index_pt_pol0_g+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
+              -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
 
           /** -----> photon polarisation lmax_pol */
 
-          l = ppw->pv->l_max_pol_g;
-          dy[ppw->pv->index_pt_pol0_g+l] = 
-            k*(s_l[l]*y[ppw->pv->index_pt_pol0_g+l-1]-(l+1)*cotKgen*y[ppw->pv->index_pt_pol0_g+l])
-            -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
+          l = pv->l_max_pol_g;
+          dy[pv->index_pt_pol0_g+l] = 
+            k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]-(l+1)*cotKgen*y[pv->index_pt_pol0_g+l])
+            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
 
         }
 
@@ -5632,8 +5470,8 @@ int perturb_derivs(double tau,
 
           /** ----> in that case, only need photon velocity */
 
-          dy[ppw->pv->index_pt_theta_g] =
-            -(dy[ppw->pv->index_pt_theta_b]+a_prime_over_a*theta_b-cb2*k2*delta_b)/R
+          dy[pv->index_pt_theta_g] =
+            -(dy[pv->index_pt_theta_b]+a_prime_over_a*theta_b-cb2*k2*delta_b)/R
             +k2*(0.25*delta_g-s2_squared*shear_g)+(1.+R)/R*metric_euler;
         }
       }
@@ -5645,15 +5483,15 @@ int perturb_derivs(double tau,
         /** ---> newtonian gauge: cdm density and velocity */
 
         if (ppt->gauge == newtonian) {
-          dy[ppw->pv->index_pt_delta_cdm] = -(y[ppw->pv->index_pt_theta_cdm]+metric_continuity); /* cdm density */
+          dy[pv->index_pt_delta_cdm] = -(y[pv->index_pt_theta_cdm]+metric_continuity); /* cdm density */
 
-          dy[ppw->pv->index_pt_theta_cdm] = - a_prime_over_a*y[ppw->pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
+          dy[pv->index_pt_theta_cdm] = - a_prime_over_a*y[pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
         }
 
         /** ---> synchronous gauge: cdm density only (velocity set to zero by definition of the gauge) */
 
         if (ppt->gauge == synchronous) {
-          dy[ppw->pv->index_pt_delta_cdm] = -metric_continuity; /* cdm density */
+          dy[pv->index_pt_delta_cdm] = -metric_continuity; /* cdm density */
         }
 
       }
@@ -5672,16 +5510,16 @@ int perturb_derivs(double tau,
 
         /** ---> fluid density */
 
-        dy[ppw->pv->index_pt_delta_fld] = 
-          -(1+w)*(y[ppw->pv->index_pt_theta_fld]+metric_continuity)
-          -3.*(cs2-w)*a_prime_over_a*y[ppw->pv->index_pt_delta_fld]
-          -9.*(1+w)*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]/k2;
+        dy[pv->index_pt_delta_fld] = 
+          -(1+w)*(y[pv->index_pt_theta_fld]+metric_continuity)
+          -3.*(cs2-w)*a_prime_over_a*y[pv->index_pt_delta_fld]
+          -9.*(1+w)*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[pv->index_pt_theta_fld]/k2;
 	
         /** ---> fluid velocity */
 
-        dy[ppw->pv->index_pt_theta_fld] = /* fluid velocity */
-          -(1.-3.*cs2)*a_prime_over_a*y[ppw->pv->index_pt_theta_fld]
-          +cs2*k2/(1.+w)*y[ppw->pv->index_pt_delta_fld]
+        dy[pv->index_pt_theta_fld] = /* fluid velocity */
+          -(1.-3.*cs2)*a_prime_over_a*y[pv->index_pt_theta_fld]
+          +cs2*k2/(1.+w)*y[pv->index_pt_delta_fld]
           +metric_euler;
       
       }  
@@ -5695,32 +5533,32 @@ int perturb_derivs(double tau,
         if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
           /** -----> ur density */
-          dy[ppw->pv->index_pt_delta_ur] = -4./3.*(y[ppw->pv->index_pt_theta_ur] + metric_continuity);
+          dy[pv->index_pt_delta_ur] = -4./3.*(y[pv->index_pt_theta_ur] + metric_continuity);
 	
           /** -----> ur velocity */
-          dy[ppw->pv->index_pt_theta_ur] = k2*(y[ppw->pv->index_pt_delta_ur]/4.-s2_squared*y[ppw->pv->index_pt_shear_ur]) + metric_euler;
+          dy[pv->index_pt_theta_ur] = k2*(y[pv->index_pt_delta_ur]/4.-s2_squared*y[pv->index_pt_shear_ur]) + metric_euler;
       
           if(ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
 
             /** -----> exact ur shear */
-            dy[ppw->pv->index_pt_shear_ur] = 0.5*(8./15.*(y[ppw->pv->index_pt_theta_ur]+metric_shear) 
-                                                  -3./5.*k*s_l[3]/s_l[2]*y[ppw->pv->index_pt_shear_ur+1]); 
+            dy[pv->index_pt_shear_ur] = 0.5*(8./15.*(y[pv->index_pt_theta_ur]+metric_shear) 
+                                                  -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_ur+1]); 
 
             /** -----> exact ur l=3 */
             l = 3;
-            dy[ppw->pv->index_pt_l3_ur] = k/(2.*l+1.)*
-              (l*2.*s_l[l]*s_l[2]*y[ppw->pv->index_pt_shear_ur]-(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_l3_ur+1]);
+            dy[pv->index_pt_l3_ur] = k/(2.*l+1.)*
+              (l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_ur]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_ur+1]);
 	  
             /** -----> exact ur l>3 */
-            for (l = 4; l < ppw->pv->l_max_ur; l++) {
-              dy[ppw->pv->index_pt_delta_ur+l] = k/(2.*l+1)*
-                (l*s_l[l]*y[ppw->pv->index_pt_delta_ur+l-1]-(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_delta_ur+l+1]);
+            for (l = 4; l < pv->l_max_ur; l++) {
+              dy[pv->index_pt_delta_ur+l] = k/(2.*l+1)*
+                (l*s_l[l]*y[pv->index_pt_delta_ur+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_ur+l+1]);
             }
 	  
             /** -----> exact ur lmax_ur */
-            l = ppw->pv->l_max_ur;
-            dy[ppw->pv->index_pt_delta_ur+l] =
-              k*(s_l[l]*y[ppw->pv->index_pt_delta_ur+l-1]-(1.+l)*cotKgen*y[ppw->pv->index_pt_delta_ur+l]);
+            l = pv->l_max_ur;
+            dy[pv->index_pt_delta_ur+l] =
+              k*(s_l[l]*y[pv->index_pt_delta_ur+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_ur+l]);
 	  
           }
 	
@@ -5731,27 +5569,27 @@ int perturb_derivs(double tau,
             /* a la Ma & Bertschinger */
             if (ppr->ur_fluid_approximation == ufa_mb) {
 	    
-              dy[ppw->pv->index_pt_shear_ur] =
-                -3./tau*y[ppw->pv->index_pt_shear_ur]
-                +2./3.*(y[ppw->pv->index_pt_theta_ur]+metric_shear);
+              dy[pv->index_pt_shear_ur] =
+                -3./tau*y[pv->index_pt_shear_ur]
+                +2./3.*(y[pv->index_pt_theta_ur]+metric_shear);
 	    
             }
 
             /* a la Hu */
             if (ppr->ur_fluid_approximation == ufa_hu) {
 	    
-              dy[ppw->pv->index_pt_shear_ur] =
-                -3.*a_prime_over_a*y[ppw->pv->index_pt_shear_ur]
-                +2./3.*(y[ppw->pv->index_pt_theta_ur]+metric_shear);
+              dy[pv->index_pt_shear_ur] =
+                -3.*a_prime_over_a*y[pv->index_pt_shear_ur]
+                +2./3.*(y[pv->index_pt_theta_ur]+metric_shear);
 	    
             }
 
             /* a la CLASS */
             if (ppr->ur_fluid_approximation == ufa_CLASS) {
 
-              dy[ppw->pv->index_pt_shear_ur] = 
-                -3./tau*y[ppw->pv->index_pt_shear_ur]
-                +2./3.*(y[ppw->pv->index_pt_theta_ur]+metric_ufa_class);
+              dy[pv->index_pt_shear_ur] = 
+                -3./tau*y[pv->index_pt_shear_ur]
+                +2./3.*(y[pv->index_pt_theta_ur]+metric_ufa_class);
 
             }
           }
@@ -5762,7 +5600,7 @@ int perturb_derivs(double tau,
       //TBC: curvature in all ncdm
       if (pba->has_ncdm == _TRUE_) {
 
-        idx = ppw->pv->index_pt_psi0_ncdm1;
+        idx = pv->index_pt_psi0_ncdm1;
 
         /** ---> first case: use a fluid approximation (ncdmfa) */
         //TBC: curvature
@@ -5770,13 +5608,13 @@ int perturb_derivs(double tau,
 
           /** -----> loop over species */
 
-          for (n_ncdm=0; n_ncdm<ppw->pv->N_ncdm; n_ncdm++) {
+          for (n_ncdm=0; n_ncdm<pv->N_ncdm; n_ncdm++) {
 
             /** -----> define intermediate quantitites */
 
-            rho_ncdm_bg = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]; /* background density */
-            p_ncdm_bg = ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]; /* background pressure */
-            pseudo_p_ncdm = ppw->pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm]; /* pseudo-pressure (see CLASS IV paper) */
+            rho_ncdm_bg = pvecback[pba->index_bg_rho_ncdm1+n_ncdm]; /* background density */
+            p_ncdm_bg = pvecback[pba->index_bg_p_ncdm1+n_ncdm]; /* background pressure */
+            pseudo_p_ncdm = pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm]; /* pseudo-pressure (see CLASS IV paper) */
             w_ncdm = p_ncdm_bg/rho_ncdm_bg; /* eqaution of state parameter */
             ca2_ncdm = w_ncdm/3.0/(1.0+w_ncdm)*(5.0-pseudo_p_ncdm/p_ncdm_bg); /* adiabatic sound speed */
 
@@ -5836,7 +5674,7 @@ int perturb_derivs(double tau,
 
             /** -----> jump to next species */
 
-            idx += ppw->pv->l_max_ncdm[n_ncdm]+1;
+            idx += pv->l_max_ncdm[n_ncdm]+1;
           }
         }
 
@@ -5846,11 +5684,11 @@ int perturb_derivs(double tau,
 
           /** -----> loop over species */
 
-          for (n_ncdm=0; n_ncdm<ppw->pv->N_ncdm; n_ncdm++) {
+          for (n_ncdm=0; n_ncdm<pv->N_ncdm; n_ncdm++) {
 
             /** -----> loop over momentum */
 
-            for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++) {
+            for (index_q=0; index_q < pv->q_size_ncdm[n_ncdm]; index_q++) {
 
               /** -----> define intermediate quantitites */
 
@@ -5875,7 +5713,7 @@ int perturb_derivs(double tau,
 		
               /** -----> ncdm l>3 for given momentum bin */
 
-              for(l=3; l<ppw->pv->l_max_ncdm[n_ncdm]; l++){
+              for(l=3; l<pv->l_max_ncdm[n_ncdm]; l++){
                 dy[idx+l] = qk_div_epsilon/(2.*l+1.0)*(l*s_l[l]*y[idx+(l-1)]-(l+1.)*s_l[l+1]*y[idx+(l+1)]);
               }
 			
@@ -5886,7 +5724,7 @@ int perturb_derivs(double tau,
 			
               /** -----> jump to next momentum bin or species */
 
-              idx += (ppw->pv->l_max_ncdm[n_ncdm]+1);
+              idx += (pv->l_max_ncdm[n_ncdm]+1);
             }
           }
         }
@@ -5898,13 +5736,13 @@ int perturb_derivs(double tau,
       
       if (ppt->gauge == synchronous) {
         
-        dy[ppw->pv->index_pt_eta] = pvecmetric[ppw->index_mt_eta_prime];
+        dy[pv->index_pt_eta] = pvecmetric[ppw->index_mt_eta_prime];
 
       }
       
       if (ppt->gauge == newtonian) {
         
-        dy[ppw->pv->index_pt_phi] = pvecmetric[ppw->index_mt_phi_prime];
+        dy[pv->index_pt_phi] = pvecmetric[ppw->index_mt_phi_prime];
         
       }
       
@@ -5919,108 +5757,100 @@ int perturb_derivs(double tau,
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
 
         /* short-cut notations for the tensor perturbations */
-        delta_g = y[ppw->pv->index_pt_delta_g];
-        theta_g = y[ppw->pv->index_pt_theta_g];
-        shear_g = y[ppw->pv->index_pt_shear_g];
+        delta_g = y[pv->index_pt_delta_g];
+        theta_g = y[pv->index_pt_theta_g];
+        shear_g = y[pv->index_pt_shear_g];
 	
 	
         /* (P^{(2)}) */
         P2 =-1.0/_SQRT6_*(
                           1./10.*delta_g
                           +2./7.*shear_g
-                          +3./70.*y[ppw->pv->index_pt_delta_g+4]
-                          -3./5.*y[ppw->pv->index_pt_pol0_g]
-                          +6./7.*y[ppw->pv->index_pt_pol2_g]
-                          -3./70.*y[ppw->pv->index_pt_pol0_g+4]);
+                          +3./70.*y[pv->index_pt_delta_g+4]
+                          -3./5.*y[pv->index_pt_pol0_g]
+                          +6./7.*y[pv->index_pt_pol2_g]
+                          -3./70.*y[pv->index_pt_pol0_g+4]);
 
         /* above expression from paper, expression below matches old class but is not correct
         P2 = -1.0/_SQRT6_*(
                            1./10.*delta_g
                            +2./35.*shear_g
-                           +1./210.*y[ppw->pv->index_pt_delta_g+4]
-                           -3./5.*y[ppw->pv->index_pt_pol0_g]
-                           +6./35.*y[ppw->pv->index_pt_pol2_g]
-                           -1./210.*y[ppw->pv->index_pt_pol0_g+4]
+                           +1./210.*y[pv->index_pt_delta_g+4]
+                           -3./5.*y[pv->index_pt_pol0_g]
+                           +6./35.*y[pv->index_pt_pol2_g]
+                           -1./210.*y[pv->index_pt_pol0_g+4]
                            );
         */
 
         /* photon density (delta_g = F_0) */
-        dy[ppw->pv->index_pt_delta_g] = 
+        dy[pv->index_pt_delta_g] = 
           -4./3.*theta_g
           -pvecthermo[pth->index_th_dkappa]*(delta_g+_SQRT6_*P2)
-          //+y[ppw->pv->index_pt_gwdot];  
-          +_SQRT6_*y[ppw->pv->index_pt_gwdot];  //TBC
+          //+y[pv->index_pt_gwdot];  
+          +_SQRT6_*y[pv->index_pt_gwdot];  //TBC
           	
         /* photon velocity (theta_g = (3k/4)*F_1) */
-        dy[ppw->pv->index_pt_theta_g] = 
+        dy[pv->index_pt_theta_g] = 
           k2*(delta_g/4.-s_l[2]*shear_g)
           -pvecthermo[pth->index_th_dkappa]*theta_g;
 	
         /* photon shear (shear_g = F_2/2) */
-        dy[ppw->pv->index_pt_shear_g] =	
-          4./15.*s_l[2]*theta_g-3./10.*k*s_l[3]*y[ppw->pv->index_pt_shear_g+1]
+        dy[pv->index_pt_shear_g] =	
+          4./15.*s_l[2]*theta_g-3./10.*k*s_l[3]*y[pv->index_pt_shear_g+1]
           -pvecthermo[pth->index_th_dkappa]*shear_g;
 	
         /* photon l=3 */
-        dy[ppw->pv->index_pt_l3_g] = 
-          k/7.*(6.*s_l[3]*shear_g-4.*s_l[4]*y[ppw->pv->index_pt_l3_g+1])
-          -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_l3_g];
+        dy[pv->index_pt_l3_g] = 
+          k/7.*(6.*s_l[3]*shear_g-4.*s_l[4]*y[pv->index_pt_l3_g+1])
+          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
 	
         /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
-        for (l=4; l < ppw->pv->l_max_g; l++)
-          dy[ppw->pv->index_pt_delta_g+l] = 
-            k/(2.*l+1.)*(l*s_l[l]*y[ppw->pv->index_pt_delta_g+l-1]
-                         -(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_delta_g+l+1])
-            -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_delta_g+l];  
+        for (l=4; l < pv->l_max_g; l++)
+          dy[pv->index_pt_delta_g+l] = 
+            k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_delta_g+l-1]
+                         -(l+1.)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
+            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];  
 	
         /* l=lmax */
-        l = ppw->pv->l_max_g;
-        dy[ppw->pv->index_pt_delta_g+l] = 
-          k*(s_l[l]*y[ppw->pv->index_pt_delta_g+l-1]
-             -(1.+l)*cotKgen*y[ppw->pv->index_pt_delta_g+l])
-          - pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_delta_g+l];
+        l = pv->l_max_g;
+        dy[pv->index_pt_delta_g+l] = 
+          k*(s_l[l]*y[pv->index_pt_delta_g+l-1]
+             -(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
+          - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
 	
         /* photon polarization, l=0 (pol0_g = G_0)*/
-        dy[ppw->pv->index_pt_pol0_g] = 
-          -k*y[ppw->pv->index_pt_pol0_g+1]
-          -pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_pol0_g]-_SQRT6_*P2); 
+        dy[pv->index_pt_pol0_g] = 
+          -k*y[pv->index_pt_pol0_g+1]
+          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P2); 
 	
         /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
-        for (l=1; l < ppw->pv->l_max_pol_g; l++)
-          dy[ppw->pv->index_pt_pol0_g+l] = 
-            k/(2.*l+1.)*(l*s_l[l]*y[ppw->pv->index_pt_pol0_g+l-1]
-                         -(l+1.)*s_l[l+1]*y[ppw->pv->index_pt_pol0_g+l+1])
-            -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
+        for (l=1; l < pv->l_max_pol_g; l++)
+          dy[pv->index_pt_pol0_g+l] = 
+            k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_pol0_g+l-1]
+                         -(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
+            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
 	
         /* l=lmax */
-        l = ppw->pv->l_max_pol_g;
-        dy[ppw->pv->index_pt_pol0_g+l] = 
-          k*(s_l[l]*y[ppw->pv->index_pt_pol0_g+l-1]
-             -(l+1.)*cotKgen*y[ppw->pv->index_pt_pol0_g+l])
-          -pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_pol0_g+l];
+        l = pv->l_max_pol_g;
+        dy[pv->index_pt_pol0_g+l] = 
+          k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]
+             -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
+          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
 
-        //	Thomas: //TBC
-        
-        gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
-                                                                   4./21.*y[ppw->pv->index_pt_shear_g]+
-                                                                   1./35.*y[ppw->pv->index_pt_l3_g+1]);
+        gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[pv->index_pt_delta_g]+
+                                                                   4./21.*y[pv->index_pt_shear_g]+
+                                                                   1./35.*y[pv->index_pt_l3_g+1]);
 
-        // Julien:
-        /*
-        gw_source_g = -8*6*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
-                                                             4./21.*y[ppw->pv->index_pt_shear_g]+
-                                                             1./35.*y[ppw->pv->index_pt_l3_g+1]);
-        */
       }
 
     }
     
         
     /* tensor metric perturbation h (gravitational waves) */
-    dy[ppw->pv->index_pt_gw] = y[ppw->pv->index_pt_gwdot];     
+    dy[pv->index_pt_gw] = y[pv->index_pt_gwdot];     
     
     /* its time-derivative */
-    dy[ppw->pv->index_pt_gwdot] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-(k2+2.*pba->K)*y[ppw->pv->index_pt_gw]+gw_source_g; 
+    dy[pv->index_pt_gwdot] = -2.*a_prime_over_a*y[pv->index_pt_gwdot]-(k2+2.*pba->K)*y[pv->index_pt_gw]+gw_source_g; 
     // add source (photons and neutrinos)
     // Photon source added
     
@@ -6029,3 +5859,290 @@ int perturb_derivs(double tau,
   return _SUCCESS_;
 }
 
+int perturb_tca_slip_and_shear(double * y,
+                               void * parameters_and_workspace,
+                               ErrorMsg error_message
+                               ) {
+  /** Summary: */
+
+  /** - define local variables */
+
+  /* scale factor and other background quantities */ 
+  double a,a2,a_prime_over_a,a_primeprime_over_a,R;
+
+  /* useful terms for tight-coupling approximation */
+  double slip=0.;
+  double tau_c=0.,dtau_c=0.;
+  double theta_prime,shear_g_prime=0.,theta_prime_prime;
+  double g0,g0_prime,g0_prime_prime;
+  double F=0.,F_prime=0.,F_prime_prime=0.;
+
+  /* short-cut names for the fields of the input structure */
+  struct perturb_parameters_and_workspace * pppaw;
+  double k,k2;
+  struct precision * ppr;
+  struct background * pba;
+  struct thermo * pth;
+  struct perturbs * ppt;
+  struct perturb_workspace * ppw;
+  double * pvecback;
+  double * pvecthermo;
+  double * pvecmetric;
+  struct perturb_vector * pv;
+
+  /* short-cut notations for the perturbations */
+  double delta_g=0.,theta_g=0.,shear_g=0.;
+  double delta_b,theta_b;
+  double Delta;
+  double cb2;
+  double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.;
+
+  /* for use with curvature */
+  double s2_squared;
+
+  /** - rename the fields of the input structure (just to avoid heavy notations) */
+
+  pppaw = parameters_and_workspace;
+
+  k = pppaw->k;
+  k2=k*k;
+
+  ppr = pppaw->ppr;
+  pba = pppaw->pba;
+  pth = pppaw->pth;
+  ppt = pppaw->ppt;
+  ppw = pppaw->ppw;
+
+  pvecback = ppw->pvecback;
+  pvecthermo = ppw->pvecthermo;
+  pvecmetric = ppw->pvecmetric;
+  pv = ppw->pv;
+
+  /** - compute related background quantities */
+
+  a = pvecback[pba->index_bg_a];a2 = a*a;
+  a_prime_over_a = pvecback[pba->index_bg_H] * a;
+  a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
+  //z = pba->a_today-1.;
+  R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
+  s2_squared = 1.-3.*pba->K/k2;
+
+  /** (a) define short-cut notations for the scalar perturbations */
+  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+    delta_g = y[pv->index_pt_delta_g];
+    theta_g = y[pv->index_pt_theta_g];
+  }
+  delta_b = y[pv->index_pt_delta_b];
+  theta_b = y[pv->index_pt_theta_b];
+  cb2 = pvecthermo[pth->index_th_cb2];
+    
+  /** (b) define short-cut notations used only in tight-coupling approximation */
+  tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
+  dtau_c = -pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c; /* its first derivative wrt conformal time */
+  F = tau_c/(1+R); /* F = tau_c/(1+R) */
+  if (ppr->tight_coupling_approximation >= (int)second_order_CLASS) {
+    F_prime = dtau_c/(1+R)+tau_c*a_prime_over_a*R/(1+R)/(1+R); /*F' needed by second_order_CLASS and compromise_CLASS */
+    if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
+      F_prime_prime =(- pvecthermo[pth->index_th_dddkappa]*tau_c*tau_c /* F'' needed by second_order_CLASS only */
+                      + 2.*pvecthermo[pth->index_th_ddkappa]*pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c*tau_c)/(1+R)
+        +2.*dtau_c*a_prime_over_a*R/(1+R)/(1+R)
+        +tau_c*((a_primeprime_over_a-2.*a_prime_over_a*a_prime_over_a)+2.*a_prime_over_a*a_prime_over_a*R/(1+R))*R/(1+R)/(1+R);
+    }
+  }
+
+      /** (d) compute metric-related quantities (depending on gauge; additional gauges can be coded below)
+
+          Each continuity equation contains a term in (theta+metric_continuity) with
+          metric_continuity = (h_prime/2) in synchronous gauge, (-3 phi_prime) in newtonian gauge 
+
+          Each Euler equation contains a source term metric_euler with
+          metric_euler = 0 in synchronous gauge, (k2 psi) in newtonian gauge
+
+          Each shear derivative equation contains a source term metric_shear equal to
+          metric_shear = (h_prime+6eta_prime)/2 in synchronous gauge, 0 in newtonian gauge
+
+          metric_shear_prime is the derivative of metric_shear 
+
+          In the ufa_class approximation, the leading-order source term is (h_prime/2) in synchronous gauge, 
+          (-3 (phi_prime+psi_prime)) in newtonian gauge: we approximate the later by (-6 phi_prime) */ 
+
+  if (ppt->gauge == synchronous) {
+
+    metric_continuity = pvecmetric[ppw->index_mt_h_prime]/2.;
+    metric_euler = 0.;
+    metric_shear = k2 * pvecmetric[ppw->index_mt_alpha];
+    metric_shear_prime = k2 * pvecmetric[ppw->index_mt_alpha_prime];
+  }
+
+  if (ppt->gauge == newtonian) {
+
+    metric_continuity = -3.*pvecmetric[ppw->index_mt_phi_prime];
+    metric_euler = k2*pvecmetric[ppw->index_mt_psi];
+    metric_shear = 0.;
+    metric_shear_prime = 0.;
+  }
+
+  /** (e) if some approximation schemes are turned on, enforce a few y[] values computed in perturb_einstein */
+
+  /* free-streaming photon velocity */
+  if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on) 
+    theta_g = ppw->rsa_theta_g;
+
+
+  /** -----> like Ma & Bertschinger */
+  if (ppr->tight_coupling_approximation == (int)first_order_MB) {
+	
+    slip=2.*R/(1.+R)*a_prime_over_a*(theta_b-theta_g)
+      +F*(-a_primeprime_over_a*theta_b
+          +k2*(-a_prime_over_a*delta_g/2.
+               +cb2*(-theta_b-metric_continuity)
+               -4./3.*(-theta_g-metric_continuity)/4.)
+          -a_prime_over_a*metric_euler);
+	
+  }
+
+  /** -----> relax assumption dkappa~a^-2 (like in CAMB) */
+  if ((ppr->tight_coupling_approximation == (int)first_order_CAMB) || (ppr->tight_coupling_approximation == (int)compromise_CLASS)) {
+	
+    slip=(dtau_c/tau_c-2.*a_prime_over_a/(1.+R))*(theta_b-theta_g)
+      +F*(-a_primeprime_over_a*theta_b
+          +k2*(-a_prime_over_a*delta_g/2.
+               +cb2*(-theta_b-metric_continuity)
+               -4./3.*(-theta_g-metric_continuity)/4.)
+          -a_prime_over_a*metric_euler);
+  }
+
+  /** -----> also relax assumption cb2~a^-1 */
+  if ((ppr->tight_coupling_approximation == (int)first_order_CLASS) || (ppr->tight_coupling_approximation == (int)second_order_CLASS)){
+	
+    slip=(dtau_c/tau_c-2.*a_prime_over_a/(1.+R))*(theta_b-theta_g)
+      +F*(-a_primeprime_over_a*theta_b
+          +k2*(-a_prime_over_a*delta_g/2.
+               +pvecthermo[pth->index_th_dcb2]*delta_b
+               +cb2*(-theta_b-metric_continuity)
+               -4./3.*(-theta_g-metric_continuity)/4.)
+          -a_prime_over_a*metric_euler);
+  }
+
+  /** -----> intermediate quantities for 2nd order tca: shear_g at first order in tight-coupling */
+  shear_g=16./45.*tau_c*(theta_g+metric_shear);
+  /* (Ma & Bertschinger give (1/9)*(4/3) instead of (2/15)*(4/3)
+     because they didn't include the contribution of G_gamma0
+     and G_gamma2, which are of the same order as sigma_g. This
+     was already consistently included in CAMB) */ 
+
+  /** -----> intermediate quantities for 2nd order tca: zero order for theta_b' = theta_g' */
+  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R) + metric_euler;
+	
+  /** -----> intermediate quantities for 2nd order tca: shear_g_prime at first order in tight-coupling */
+  shear_g_prime=16./45.*(tau_c*(theta_prime+metric_shear_prime)+dtau_c*(theta_g+metric_shear));
+
+  /** -----> 2nd order as in CRS*/
+  if (ppr->tight_coupling_approximation == (int)second_order_CRS) {
+
+    if (ppt->gauge == newtonian) {
+
+      class_stop(error_message,
+                 "the second_order_CRS approach to tight-coupling is coded in synchronous gauge, not newtonian: change gauge or try another tight-coupling scheme");
+	  
+    }
+
+    if (ppt->gauge == synchronous) {
+
+      class_test(pba->sgnK != 0,
+                 ppt->error_message,
+                 "the second_order_CRS approach to tight-coupling is coded in the flat case only: for non-flat try another tight-coupling scheme");
+
+      /* infer Delta from h'' using Einstein equation */
+	  
+      Delta = 2*k2*y[pv->index_pt_eta]
+        -2*a_prime_over_a*pvecmetric[ppw->index_mt_h_prime]
+        -pvecmetric[ppw->index_mt_h_prime_prime];
+	  
+      /* monster expression for slip at second-order in tight-coupling */
+      slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(theta_b-theta_g)
+        +(-a_primeprime_over_a*theta_b
+          -k2*a_prime_over_a*(delta_g/2.-2.*shear_g)
+          +k2*(cb2*(-theta_b-metric_continuity)
+               -4./3.*(-theta_g-metric_continuity)/4.
+               +shear_g_prime)
+          )/pvecthermo[pth->index_th_dkappa]/(1.+R)
+        -2.*R*(3.*a_prime_over_a*a_prime_over_a*cb2+(1.+R)*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)-3.*a_prime_over_a*a_prime_over_a)
+        /(1.+R)/(1.+R)/(1.+R)*(theta_b-theta_g)/pvecthermo[pth->index_th_dkappa]
+        +(
+          a_primeprime_over_a*a_prime_over_a*((2.-3.*cb2)*R-2.)*theta_b/(1.+R)
+          +a_prime_over_a*k2*(1.-3.*cb2)*theta_b/3./(1.+R)
+          +a_primeprime_over_a*k2*cb2*delta_b/(1.+R)
+          +k2*k2*(3.*cb2-1.)*cb2*delta_b/3./(1.+R)
+          +k2*k2*R*(3.*cb2-1.)*delta_g/12./(1.+R)
+          +a_primeprime_over_a*k2*(2.+3.*R)*delta_g/4./(1.+R)
+          +a_prime_over_a*a_prime_over_a*k2*((2.-3.*cb2)*R-1.)*delta_g/2./(1.+R)
+          +a_prime_over_a*k2*cb2*(1.+(3.*cb2-2.)*R)*(-theta_b-metric_continuity)/(1.+R)
+          +a_prime_over_a*k2*(2.+(5.-3.*cb2)*R)*4./3.*(-theta_g-metric_continuity)/4./(1.+R)
+          +a_prime_over_a*(1.-3.*cb2)*k2*2.*metric_shear/3.
+          +k2*k2*(3.*cb2-1.)*y[pv->index_pt_eta]/3.
+          +2.*a_prime_over_a*k2*(3.*cb2-1.)*pvecmetric[ppw->index_mt_eta_prime]
+          +k2*(1.-3.*cb2)*Delta/6.
+          )/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/(1.+R)/(1.+R)
+        -(4.*a_primeprime_over_a*theta_b-4.*k2*cb2*(-theta_b-metric_continuity)+2.*a_prime_over_a*k2*delta_g+k2*4./3.*(-theta_g-metric_continuity))/2./(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]
+        +4.*a_prime_over_a*R/(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
+	
+      /* second-order correction to shear */
+      shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime]); 
+
+    }
+  }
+
+  /** -----> 2nd order like in CLASS paper */
+  if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
+	
+    if (ppt->gauge == newtonian) {
+
+      class_stop(error_message,
+                 "the second_order_CLASS approach to tight-coupling is coded in synchronous gauge, not newtonian: change gauge or try another tight-coupling scheme");
+	  
+    }
+
+    if (ppt->gauge == synchronous) {
+
+      /* zero order for theta_b'' = theta_g'' */
+      theta_prime_prime = ((R-1.)*a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b
+                           +k2*(pvecthermo[pth->index_th_dcb2]*delta_b+cb2*(-theta_b-metric_continuity)-a_prime_over_a*R/4.*delta_g+R/4.*4./3.*(-theta_g-metric_continuity)))/(1.+R);
+	  
+      /* zero-order quantities g0, g0', go'' */
+      g0 = -a_prime_over_a*theta_b + k2*(cb2*delta_b-delta_g/4.);
+      g0_prime = -a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b+k2*(pvecthermo[pth->index_th_dcb2]*delta_b+(1./3.-cb2)*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime]));
+      g0_prime_prime = -a_prime_over_a*theta_prime_prime-2.*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_prime
+        -(2.*a_prime_over_a*a_prime_over_a*a_prime_over_a-3.*a_primeprime_over_a*a_prime_over_a)*theta_b
+        +k2*(pvecthermo[pth->index_th_ddcb2]*delta_b-2.*pvecthermo[pth->index_th_dcb2]*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])+(1./3.-cb2)*(theta_prime+0.5*pvecmetric[ppw->index_mt_h_prime_prime]));
+	  
+      /* slip at second order */
+      slip = (1.-2*a_prime_over_a*F)*slip + F*k2*s2_squared*(2.*a_prime_over_a*shear_g+shear_g_prime)
+        -F*(F_prime_prime*g0+2.*F_prime*g0_prime+F*g0_prime_prime);
+	  
+      /* second-order correction to shear */
+      shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+metric_shear_prime); 
+
+    }
+  }
+
+  /** -----> add only the most important 2nd order terms */
+  if (ppr->tight_coupling_approximation == (int)compromise_CLASS) {
+
+    /* slip at second order (only leading second-order terms) */
+    slip = (1.-2.*a_prime_over_a*F)*slip + F*k2*(2.*a_prime_over_a*s2_squared*shear_g+s2_squared*shear_g_prime-(1./3.-cb2)*(F*theta_prime+2.*F_prime*theta_b));
+
+    /* second-order correction to shear */
+    shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+metric_shear_prime);
+
+  }
+
+  /** ---> store tight-coupling values of photon shear and its derivative */
+
+  ppw->tca_shear_g = shear_g;
+  ppw->tca_slip = slip;
+
+
+  return _SUCCESS_;
+
+}
