@@ -32,8 +32,8 @@ OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
 
 # all other compilation flags
-CCFLAG = -g -fPIC
-LDFLAG = -g -fPIC
+CCFLAG = -g -pg -fPIC
+LDFLAG = -g -pg -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory 
 # (with no slash at the end: e.g. hyrec or ../hyrec)
