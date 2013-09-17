@@ -3783,7 +3783,7 @@ int transfer_update_HIS(
   int int_nu;
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
-  int l_size_max;
+  int l_size_max, l_WKB;
   int index_l_left,index_l_right;
   int shmid;
   HyperInterpStruct *pHIS_shared;
@@ -3948,6 +3948,7 @@ int transfer_update_HIS(
     
 
     //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
+    l_WKB = 46;
     class_call(hyperspherical_HIS_create(ptw->sgnK,
                                          nu,
                                          l_size_max,
@@ -3955,6 +3956,7 @@ int transfer_update_HIS(
                                          xmin,
                                          xmax,
                                          sampling,
+                                         l_WKB,
                                          &(ptw->HIS),
                                          ptr->error_message),
                ptr->error_message,

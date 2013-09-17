@@ -14,6 +14,7 @@ int hyperspherical_HIS_create(int K,
                               double xmin, 
                               double xmax, 
                               double sampling,
+                              int l_WKB,
                               HyperInterpStruct *pHIS, 
                               ErrorMsg error_message){
   /** Allocate storage for Hyperspherical Interpolation Structure (HIS).
@@ -25,7 +26,7 @@ int hyperspherical_HIS_create(int K,
   */
   double deltax, beta2, lambda, x, xfwd;
   double *sqrtK, *one_over_sqrtK,*PhiL;
-  int j, k, l, nx, lmax;
+  int j, k, l, nx, lmax, l_recurrence_max;
   beta2 = beta*beta;
   lmax = lvec[nl-1];
   /*
@@ -117,13 +118,23 @@ int hyperspherical_HIS_create(int K,
   default:
     return _FAILURE_;
   }  
+  //Find l_WKB_min, the highest l in lvec where l<l_WKB:
+  l_recurrence_max = lmax+1;
+  for (k=nl-1; k>=0; k--){  
+    l = lvec[k];
+    if (l<l_WKB){
+        l_recurrence_max = l+1;
+        break;
+    }
+  }
+
   //Calculate and assign Phi and dPhi values:
   for (j=0; j<nx; j++){
     x = pHIS->x[j];
     if (x<xfwd){
       //Use backwards method:
       hyperspherical_backwards_recurrence(K, 
-                                          lmax+1, 
+                                          min(l_recurrence_max,lmax+1), 
                                           beta, 
                                           x, 
                                           pHIS->sinK[j],
@@ -135,7 +146,7 @@ int hyperspherical_HIS_create(int K,
     else{
       //Use forwards method:
       hyperspherical_forwards_recurrence(K, 
-                                         lmax+1, 
+                                         min(l_recurrence_max,lmax+1), 
                                          beta, 
                                          x, 
                                          pHIS->sinK[j],
@@ -147,6 +158,11 @@ int hyperspherical_HIS_create(int K,
     //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
     for (k=0; k<nl; k++){
       l = lvec[k];
+      if (l>=l_recurrence_max){
+        //Compute WKB approximation using Langers formula:
+        hyperspherical_WKB(K,l,beta, x, PhiL+l);      
+        hyperspherical_WKB(K,l+1,beta, x, PhiL+l+1);      
+      }
       pHIS->phi[k*nx+j] = PhiL[l];
       pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
       //      printf("x = %g, Phi_%d = %g %g\n",x,l,pHIS->phi[k*nx+j],pHIS->dphi[k*nx+j]);

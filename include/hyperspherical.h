@@ -40,15 +40,17 @@ struct WKB_parameters{
 #ifdef __cplusplus
 extern "C" {
 #endif
-int hyperspherical_HIS_create(int K, 
-                              double beta, 
-                              int nl, 
-                              int *lvec, 
-                              double xmin, 
-                              double xmax, 
-                              double sampling,
-                              HyperInterpStruct *pHIS, 
-                              ErrorMsg error_message);
+  int hyperspherical_HIS_create(int K, 
+                                double beta, 
+                                int nl, 
+                                int *lvec, 
+                                double xmin, 
+                                double xmax, 
+                                double sampling,
+                                int l_WKB,
+                                HyperInterpStruct *pHIS, 
+                                ErrorMsg error_message);
+
   int hyperspherical_HIS_free(HyperInterpStruct *pHIS);
   int hyperspherical_forwards_recurrence(int K, 
                                          int lmax, 
