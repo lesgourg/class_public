@@ -17,14 +17,14 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc -Wall -ggdb
+CC       = gcc -Wall #-ggdb
 #CC       = pgcc
 
 # your tool for creating static libraries:
 AR        = ar rv
 
 # your optimization flag
-OPTFLAG = -O4 -ffast-math -march=native
+OPTFLAG = -O4 -ffast-math #-march=native
 #OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
@@ -33,7 +33,7 @@ OMPFLAG   = -fopenmp
 
 # all other compilation flags
 CCFLAG = -g -fPIC
-LDFLAG = -fPIC
+LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory 
 # (with no slash at the end: e.g. hyrec or ../hyrec)

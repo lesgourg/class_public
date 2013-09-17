@@ -372,6 +372,11 @@ struct perturb_workspace
                                  perturbations and their
                                  time-derivatives */
 
+  double delta_rho;
+  double rho_plus_p_theta;
+  double rho_plus_p_shear;
+  double delta_p;
+
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
   double tca_slip;    /**< photon-baryon slip in tight-coupling approximation */
   double rsa_delta_g; /**< photon density in radiation streaming approximation */
@@ -607,6 +612,16 @@ extern "C" {
                        struct perturb_workspace * ppw
                        );
 
+  int perturb_total_stress_energy(
+                                  struct precision * ppr,
+                                  struct background * pba,
+                                  struct thermo * pth,
+                                  struct perturbs * ppt,
+                                  double k,
+                                  double * y,
+                                  struct perturb_workspace * ppw
+                                  );
+
   int perturb_sources(
                       double tau,
                       double * pvecperturbations,
@@ -636,6 +651,18 @@ extern "C" {
                                  void * parameters_and_workspace,
                                  ErrorMsg error_message
                                  );
+
+  int perturb_rsa_delta_and_theta(
+                                  struct precision * ppr,
+                                  struct background * pba,
+                                  struct thermo * pth,
+                                  struct perturbs * ppt,
+                                  double k,
+                                  double * y,
+                                  double a_prime_over_a,
+                                  double * pvecthermo,
+                                  struct perturb_workspace * ppw
+                                  );
 
     
 #ifdef __cplusplus

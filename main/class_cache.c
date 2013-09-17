@@ -97,6 +97,8 @@ int main(int argcin, char **argv) {
       return _FAILURE_;
     }
 
+    fprintf(stderr,"%d\n",tr.q_size);
+
     if (spectra_init(&pr,&ba,&pt,&tr,&pm,&sp) == _FAILURE_) {
       printf("\n\nError in spectra_init \n=>%s\n",sp.error_message);
       return _FAILURE_;
