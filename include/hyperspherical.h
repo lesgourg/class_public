@@ -11,6 +11,7 @@
 #define _HYPER_SAFETY_ 1e-5
 #define _TRIG_PRECISSION_ 1e-7
 #define _HYPER_BLOCK_ 8
+#define _TWO_OVER_THREE_ 0.666666666666666666666666666667e0
 
 typedef struct HypersphericalInterpolationStructure{
   int K;                 //Sign of the curvature, (0,-1,1)
@@ -79,11 +80,17 @@ extern "C" {
                                                   double *d2Phi,
                                                   double *sinKinterp,
                                                   double *cosKinterp);
-                                                  int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
-                            double xtol,
-                            double phiminabs,
-                            double *xmin);
+                                                  
+  int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
+                              double xtol,
+                              double phiminabs,
+                              double *xmin);
   int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi);
+  int hyperspherical_WKB_vec(int l,
+                             double beta, 
+                             double *sinK_vec, 
+                             int size_sinK_vec, 
+                             double *Phi);
   int ClosedModY(int l, int beta, double *y);
   int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign);
   int CF1_from_Gegenbauer(int l, int beta, double sinK, double cotK, double *CF);
@@ -92,7 +99,7 @@ extern "C" {
   double coef2(double z);
   double coef3(double z);
   double coef4(double z);
-  double cheb(double x, int n, double *A);
+  double cheb(double x, int n, const double A[]);
   double get_value_at_small_phi(int K,int l,double beta,double Phi);
 
   double PhiWKB_minus_phiminabs(double x, void *param);

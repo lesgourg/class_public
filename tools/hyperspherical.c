@@ -67,11 +67,13 @@ int hyperspherical_HIS_create(int K,
   class_alloc(PhiL,(lmax+2)*sizeof(double),error_message);
   
   //Find l_WKB_min, the highest l in lvec where l<l_WKB:
-  l_recurrence_max = lmax;
+  l_recurrence_max = -10;
+  int index_recurrence_max=-10;
   for (k=nl-1; k>=0; k--){  
     l = lvec[k];
     if (l<l_WKB){
         l_recurrence_max = l;
+        index_recurrence_max = k;
         break;
     }
   }
@@ -157,18 +159,36 @@ int hyperspherical_HIS_create(int K,
                                          PhiL);
     }
     //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
-    for (k=0; k<nl; k++){
+    for (k=0; k<=index_recurrence_max; k++){
       l = lvec[k];
-      if (l>=l_recurrence_max){
-        //Compute WKB approximation using Langers formula:
-        hyperspherical_WKB(K,l,beta, x, PhiL+l);      
-        hyperspherical_WKB(K,l+1,beta, x, PhiL+l+1);   
-        //        fprintf(stderr,"%d %d %e %e %e %e\n",K,l,beta,x, PhiL[l], PhiL[l+1]);
-      }
       pHIS->phi[k*nx+j] = PhiL[l];
       pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
-      //      printf("x = %g, Phi_%d = %g %g\n",x,l,pHIS->phi[k*nx+j],pHIS->dphi[k*nx+j]);
     }
+  }
+  //Do WKB for rest:
+  double *PhiLWKB, *PhiLp1WKB, *tmp;
+  int lold=-2;
+  if (index_recurrence_max<(nl-1)){
+    PhiLWKB = malloc(sizeof(double)*nx);
+    PhiLp1WKB = malloc(sizeof(double)*nx);
+    for (k=index_recurrence_max+1; k<nl; k++){
+      l = lvec[k];
+      if (l == lold+1){
+        //We swap pointers instead of computing Phi_l:
+        tmp = PhiLWKB; PhiLWKB=PhiLp1WKB;PhiLp1WKB=tmp;
+      }
+      else{
+        hyperspherical_WKB_vec(l,beta, pHIS->sinK, nx, PhiLWKB);
+      }
+      hyperspherical_WKB_vec(l+1,beta, pHIS->sinK, nx, PhiLp1WKB);
+      for (j=0; j<nx; j++){
+        pHIS->phi[k*nx+j] = PhiLWKB[j];
+        pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiLWKB[j]-sqrtK[l+1]*PhiLp1WKB[j];
+      }
+      lold=l;
+    }
+    free(PhiLWKB);
+    free(PhiLp1WKB);
   }
   free(sqrtK);
   free(PhiL);
@@ -631,7 +651,60 @@ int CF1_from_Gegenbauer(int l,
   *CF = l*cotK-sinK*dG/G;
   return _SUCCESS_;
 }
+
+ int hyperspherical_WKB_vec(int l,
+                            double beta, 
+                            double * __restrict__ sinK_vec, 
+                            int size_sinK_vec, 
+                            double * __restrict__ Phi){
+  double e, w, w2, alpha, alpha2, t;
+  double S, Q, C, argu, Ai;
+  int airy_sign = 1, phisign = 1, intbeta;
+  int index_sinK;
+  double one_over_alpha;
+  double one_over_alpha2;
+  double one_over_sqrt_one_plus_alpha2;
+  double sqrt_alpha;
+  double one_over_e;
+  double one_over_beta;
+  double cscK;
+  double pow_argu_onesixth;
+
+  one_over_e = sqrt(l*(l+1.0));
+  e = 1.0/one_over_e;
+  alpha = beta*e;
+  alpha2 = alpha*alpha;
+  one_over_alpha = 1.0/alpha;
+  one_over_alpha2 = one_over_alpha*one_over_alpha;
+  one_over_sqrt_one_plus_alpha2 = 1.0/sqrt(1.0+alpha2);
+  sqrt_alpha=sqrt(alpha);
+  one_over_beta = 1.0/beta;
+
+  for (index_sinK=0; index_sinK<size_sinK_vec; index_sinK++){
+    cscK=1.0/sinK_vec[index_sinK];
+    w = alpha*sinK_vec[index_sinK];
+    w2 = w*w;
+    if (alpha > cscK){
+      S = alpha*log((sqrt(w2-1.0)+sqrt(w2+alpha2))*one_over_sqrt_one_plus_alpha2)+
+        atan(one_over_alpha*sqrt((w2+alpha2)/(w2-1.0)))-M_PI_2;
+      airy_sign = -1;
+    }
+    else{
+      t = sqrt(1.0-w2)/sqrt(1.0+w2*one_over_alpha2);
+      S = atanh(t)-alpha*atan(t*one_over_alpha);
+      airy_sign = 1;
+    }
+    argu = 1.5*S*one_over_e;
+    Q = cscK*cscK-alpha2;
+    C = 0.5*sqrt_alpha*one_over_beta;
+    pow_argu_onesixth = pow(argu,1.0/6.0);
+    Ai = airy_cheb_approx(airy_sign*pow(pow_argu_onesixth,4));
+    Phi[index_sinK] = phisign*2.0*_SQRT_PI_*C*pow_argu_onesixth*pow(fabs(Q),-0.25)*Ai*cscK;
+  }
+  return _SUCCESS_;
+}
  
+
 int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
   double e, w, w2, alpha, alpha2, CscK, ytp, t;
   double S, Q, C, argu, Ai;
@@ -692,6 +765,7 @@ int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
 }
 
 
+
 double airy_cheb_approx(double z){
   double Ai;
   if (z<=-7){
@@ -711,17 +785,17 @@ double airy_cheb_approx(double z){
 }
 
 double coef1(double z){
-  double A[5] = {1.1282427601,-0.6803534e-4,0.16687e-6,-0.128e-8,0.2e-10};
-  double B[5] = {0.7822108673e-1,-0.6895649e-4,0.32857e-6,-0.37e-8,0.7e-10};
+  const double A[5] = {1.1282427601,-0.6803534e-4,0.16687e-6,-0.128e-8,0.2e-10};
+  const double B[5] = {0.7822108673e-1,-0.6895649e-4,0.32857e-6,-0.37e-8,0.7e-10};
   double x,y,t,Ai,zeta,theta,sintheta,costheta,FA,FB;
  
   x = -z;
-  zeta = 2.0/3.0*x*sqrt(x);
+  zeta = _TWO_OVER_THREE_*x*sqrt(x);
   theta = zeta+0.25*_PI_;
   sintheta = sin(theta);
   costheta = cos(theta);
 
-  y = (7.0/x)*(7.0/x)*(7.0/x);
+  y = pow(7.0/x,3);//y = (7.0/x)*(7.0/x)*(7.0/x);
   FA = cheb(y,5,A);
   FB = cheb(y,5,B)/zeta;
 
@@ -732,12 +806,12 @@ double coef1(double z){
 }
 
 double coef2(double z){
-  double A[17] = {0.11535880704,0.6542816649e-1,0.26091774326,0.21959346500,
+  const double A[17] = {0.11535880704,0.6542816649e-1,0.26091774326,0.21959346500,
               0.12476382168,-0.43476292594,0.28357718605,-0.9751797082e-1,
               0.2182551823e-1,-0.350454097e-2,0.42778312e-3,
               -0.4127564e-4,0.323880e-5,-0.21123e-6,0.1165e-7,
               -0.55e-9,0.2e-10};
-  double B[16] = {0.10888288487,-0.17511655051,0.13887871101,-0.11469998998,
+  const double B[16] = {0.10888288487,-0.17511655051,0.13887871101,-0.11469998998,
              0.22377807641,-0.18546243714,0.8063565186e-1,
              -0.2208847864e-1,0.422444527e-2,-0.60131028e-3,
              0.6653890e-4,-0.590842e-5,0.43131e-6,-0.2638e-7,
@@ -746,14 +820,14 @@ double coef2(double z){
   double E1 = 0.355028053887817, E2 = 0.258819403792807;
   double x,FA,FB,Ai;
   x = -(z/7.0)*(z/7.0)*(z/7.0);
-  FA = E1*cheb(x,17,&(A[0]));
-  FB = E2*z*cheb(x,16,&(B[0]));
+  FA = E1*cheb(x,17,A);
+  FB = E2*z*cheb(x,16,B);
   Ai = FA-FB;
   //Bi = sqrt(3)*(FA+FB);
   return Ai;
 }
 double coef3(double z){
-  double A[20] = {1.2974695794,-0.20230907821,
+  const double A[20] = {1.2974695794,-0.20230907821,
               -0.45786169516,0.12953331987,0.6983827954e-1,
               -0.3005148746e-1,-0.493036334e-2,0.390425474e-2,
               -0.1546539e-4,-0.32193999e-3,0.3812734e-4,0.1714935e-4,
@@ -773,13 +847,13 @@ double B[25]={0.47839902387,-0.6881732880e-1,0.20938146768,
   EX = exp(1.75*z);
   EY = 1.0/EX;
 
-  Ai = EY*cheb(x,20,&(A[0]));
+  Ai = EY*cheb(x,20,A);
   //Bi = EX*cheb(x,25,&(B[0]));
   return Ai;
 }
 
 double coef4(double z){
-  double A[7]={0.56265126169,-0.76136219e-3,0.765252e-5,-0.14228e-6,
+  const double A[7]={0.56265126169,-0.76136219e-3,0.765252e-5,-0.14228e-6,
             0.380e-8,-0.13e-9,0.1e-10};
   /**  double B[7]={1.1316635302,0.166141673e-02,0.1968882e-04,0.47047e-06,
             0.1769e-7,0.94e-9,0.6e-10};
@@ -793,12 +867,12 @@ double coef4(double z){
   x = 7*sqrt(7)/Y;
   t = pow(z,-0.25);
 
-  Ai = t*EY*cheb(x, 7, &(A[0]));
+  Ai = t*EY*cheb(x, 7, A);
   //Bi = t*EX*cheb(x, 7, &(B[0]));
   return Ai;
 }
 
-double cheb(double x, int n, double *A){
+double cheb(double x, int n, const double A[]){
   double b,d,u,y,c,F;
   int j;
   b = 0.0;
