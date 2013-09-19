@@ -1042,7 +1042,7 @@ int perturb_get_k_list(
   double k_max_cl=0.;
   double k_max=0.;
   double nu;
-  int int_nu,int_nu_previous=0;
+  long int int_nu,int_nu_previous=0;
 
   /** Summary: */
 
@@ -1169,9 +1169,9 @@ int perturb_get_k_list(
     if (pba->sgnK == 1) { 
 
       nu = sqrt(k*k + pba->K)/sqrt(pba->K);
-      int_nu = (int)(nu+0.2);
+      int_nu = (long int)(nu+0.2);
       if (int_nu == int_nu_previous) int_nu++;  
-      k = sqrt((int_nu*int_nu-1.)*pba->K);
+      k = sqrt((double)(int_nu*int_nu-1)*pba->K);
       int_nu_previous=int_nu;
 
     }

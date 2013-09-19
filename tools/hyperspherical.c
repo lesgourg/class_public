@@ -94,7 +94,7 @@ int hyperspherical_HIS_create(int K,
     }
     break;
   case 1:
-    xfwd = xmax+1.0;
+    xfwd = asin(sqrt(l_recurrence_max*(l_recurrence_max+1.0))/beta);
     for (j=0; j<nx; j++){
       x = xmin + j*deltax;
       pHIS->x[j] = x;

@@ -84,7 +84,7 @@ int main(int argcin, char **argv) {
     }
     q_file=fopen("q_from_cache.dat","w");
     for (index_q=0; index_q<tr.q_size; index_q++){
-      fprintf(q_file,"%.16e ",tr.q[index_q]);
+      fprintf(q_file,"%d %e %e\n",index_q,tr.q[index_q],tr.q[index_q]/sqrt(ba.K*ba.sgnK));
     }
     fclose(q_file);
     q_file = fopen("q_list_binary.bin","wb");

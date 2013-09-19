@@ -146,7 +146,7 @@ struct transfer_workspace {
 
   //@{
 
-  HyperInterpStruct HIS; /**< structure containing all spherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
+  HyperInterpStruct HIS; /**< structure containing all hyperspherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
 
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
 
@@ -155,6 +155,12 @@ struct transfer_workspace {
   int get_HIS_from_pbs; /**< flag specifying whether flat bessels should be taken from old Bessel module or new hyperspetical module */
 
   int get_HIS_from_shared_memory; /**< flag specifying if class should try to get HIS from shared memory */
+
+  HyperInterpStruct BIS; /**< structure containing all spherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
+
+  int BIS_allocated;
+
+  int index_q_flat_approximation;
 
   int l_size;        /**< number of l values */
 
@@ -531,7 +537,8 @@ extern "C" {
                                struct transfer_workspace * ptw,
                                struct perturbs * ppt,
                                struct transfers * ptr,
-                               double q,
+                               double k,
+                               int index_q,
                                int index_l,
                                int x_size,
                                double * radial_function,
@@ -546,6 +553,7 @@ extern "C" {
 
   int transfer_workspace_init(
                               struct transfers * ptr,
+                              struct precision * ppr,
                               struct transfer_workspace **ptw,
                               int perturb_tau_size,
                               int tau_size_max,

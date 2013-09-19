@@ -1611,6 +1611,7 @@ int input_init(
   class_read_double("bessel_j_cut",ppr->bessel_j_cut);
   class_read_double("bessel_tol_x_min",ppr->bessel_tol_x_min);
   class_read_string("bessel_file_name",ppr->bessel_file_name);
+  class_read_double("bessel_flat_approximation_nu",ppr->bessel_flat_approximation_nu);
 
   class_read_double("hyper_x_min",ppr->hyper_x_min);
   class_read_double("hyper_sampling_flat",ppr->hyper_sampling_flat);
@@ -2194,6 +2195,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->bessel_j_cut=1.e-5;
   ppr->bessel_tol_x_min =1.e-4;
   sprintf(ppr->bessel_file_name,"bessels.dat");
+  ppr->bessel_flat_approximation_nu = 500.;
 
   ppr->hyper_x_min = 1.e-7;          // TBC
   ppr->hyper_sampling_flat = 3.;     // TBC

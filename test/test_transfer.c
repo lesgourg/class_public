@@ -93,10 +93,10 @@ int main(int argc, char **argv) {
   double transfer;
   FILE * output;
 
-  output=fopen("output/scalT.trsf","w");
+  output=fopen("output/scalS.trsf","w");
 
   //  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-  index_l=0;
+  index_l=50;
   {
     for (index_q=0; index_q<tr.q_size; index_q++) { 
 
@@ -114,9 +114,15 @@ int main(int argc, char **argv) {
         tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
         tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q];
 
-        //if (transfer != 0.) {
-        fprintf(output,"%d %e %e %e %e\n",tr.l[index_l],tr.k[index_mode][index_q],transfer,tr.q[index_q],tr.q[index_q]/sqrt(ba.sgnK*ba.K)); 
-        //}
+        if (transfer != 0.) {
+          fprintf(output,"%d %e %e %e %d %e\n",
+                  tr.l[index_l],
+                  tr.k[index_mode][index_q],
+                  transfer,
+                  tr.q[index_q],
+                  index_q,
+                  tr.q[index_q]/sqrt(ba.sgnK*ba.K)); 
+        }
     }
     
     fprintf(output,"\n\n");
