@@ -95,10 +95,9 @@ int main(int argc, char **argv) {
 
   output=fopen("output/scalS.trsf","w");
 
-  //  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-  index_l=50;
-  {
-    for (index_q=0; index_q<tr.q_size; index_q++) { 
+  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
+    if ((tr.l[index_l] > 1990) && (tr.l[index_l] < 2000)) { 
+        for (index_q=0; index_q<tr.q_size; index_q++) { 
 
       /*      
       transfer = tr.transfer[index_mode]
@@ -109,24 +108,24 @@ int main(int argc, char **argv) {
 
       /* full temperature transfer function: */
 
-        transfer = 
-        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
-        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
-        tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q];
-
-        if (transfer != 0.) {
-          fprintf(output,"%d %e %e %e %d %e\n",
-                  tr.l[index_l],
-                  tr.k[index_mode][index_q],
-                  transfer,
-                  tr.q[index_q],
-                  index_q,
-                  tr.q[index_q]/sqrt(ba.sgnK*ba.K)); 
+          transfer = 
+            tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
+            tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
+            tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q];
+          
+          if (transfer != 0.) {
+            fprintf(output,"%d %e %e %e %d %e\n",
+                    tr.l[index_l],
+                    tr.k[index_mode][index_q],
+                    transfer,
+                    tr.q[index_q],
+                    index_q,
+                    tr.q[index_q]/sqrt(ba.sgnK*ba.K)); 
+          }
         }
+    
+        fprintf(output,"\n\n");
     }
-    
-    fprintf(output,"\n\n");
-    
   } 
 
   fclose(output);

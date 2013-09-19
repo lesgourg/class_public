@@ -487,11 +487,17 @@ int hyperspherical_backwards_recurrence(int K,
                                         double * __restrict__ PhiL){
   double phi0, phi1, phipr1, phi, phi_plus_1_times_sqrtK, phi_minus_1, scaling;
   int l, k, isign;
+  int funcreturn = _FAILURE_;
   phi0 = sin(beta*x)/(beta*sinK);
 
   //printf("in backwards. x = %g\n",x);
   if (K==1){
-    CF1_from_Gegenbauer(lmax,(int) (beta+0.2),sinK,cotK, &phipr1);
+    if (beta > 1.5*lmax) {
+      funcreturn = get_CF1(K,lmax,beta,cotK, &phipr1, &isign);
+    }
+    if (funcreturn == _FAILURE_) {
+      CF1_from_Gegenbauer(lmax,(int) (beta+0.2),sinK,cotK, &phipr1);
+    }
     phi1 = 1.0;
   }
   else{
@@ -567,6 +573,7 @@ int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign){
   double sqrttmp;
   int j;
 
+  if (K==1) maxiter = (int)(beta-l-10);
   bj = l*cotK; //This is b_0
   fj = bj;
   Cj = bj;

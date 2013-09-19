@@ -1170,13 +1170,15 @@ int perturb_get_k_list(
 
       nu = sqrt(k*k + pba->K)/sqrt(pba->K);
       int_nu = (long int)(nu+0.2);
-      if (int_nu == int_nu_previous) int_nu++;  
-      k = sqrt((double)(int_nu*int_nu-1)*pba->K);
+      if (int_nu == int_nu_previous) int_nu++; 
+      nu = (double)int_nu;
+      k = sqrt((nu*nu-1.0)*pba->K);
       int_nu_previous=int_nu;
 
     }
 
     ppt->k[index_k] = k;
+
     index_k++;
   }
 

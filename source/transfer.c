@@ -3476,9 +3476,9 @@ int transfer_radial_function(
     pHIS = &(ptw->BIS);
 
     if (ptw->sgnK == 1)
-      rescale_factor = ptr->l[index_l]/sin(ptr->l[index_l]/ptr->q[index_q]*sqrt(K));
+      rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
     else
-      rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/sinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
+      rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
     //rescale_factor = ptr->q[index_q]/sqrt(-K);
   }
 
@@ -3550,7 +3550,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]-cotKgen[j]*Phi[j]);
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_factor-cotKgen[j]*Phi[j]);
     break;
   case VECTOR_POLARISATION_E:
     hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
@@ -3558,7 +3558,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]);
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_factor);
     break;
   case VECTOR_POLARISATION_B:
     hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL, NULL, NULL);
@@ -3593,8 +3593,9 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.25/si/ssqrt2;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*(absK_over_k2*d2Phi[j]+4.0*cotKgen[x_size-1-j]*sqrt_absK_over_k*dPhi[j]-
-                                            (1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j]);
+      radial_function[x_size-1-j] = factor*(absK_over_k2*d2Phi[j]*rescale_factor*rescale_factor
+                                            +4.0*cotKgen[x_size-1-j]*sqrt_absK_over_k*dPhi[j]*rescale_factor
+                                            -(1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j]);
     break;
   case TENSOR_POLARISATION_B:
     hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL, NULL, NULL);
@@ -3603,9 +3604,34 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]+2.0*cotKgen[x_size-1-j]*Phi[j]);
+      radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]*rescale_factor+2.0*cotKgen[x_size-1-j]*Phi[j]);
     break;
   }
+
+  /*
+  if ((index_q == 1338) && (ptr->l[index_l] == 1995) && (radial_type == SCALAR_TEMPERATURE_0)) {
+
+    for (j=0; j < x_size;j++) { 
+      printf("%e %e %e %e\n",
+             chireverse[j]/rescale_factor,
+             Phi[j],
+             dPhi[j]*rescale_factor,
+             d2Phi[j]*rescale_factor*rescale_factor);
+    }
+    
+    for (j=0; j < pHIS->x_size;j++) { 
+      printf("%e %e %e %e\n",
+             pHIS->x[j]/rescale_factor,
+             pHIS->phi[index_l*pHIS->x_size+j],
+             pHIS->dphi[index_l*pHIS->x_size+j]*rescale_factor,
+             0.);
+    }
+    
+
+    class_stop(ptr->error_message," ");
+  }
+  */
+
   free(Phi);
   free(dPhi);
   free(d2Phi);
@@ -3782,7 +3808,7 @@ int transfer_workspace_init(
        (*ptw)->index_q_flat_approximation++) {
     if (ptr->q[(*ptw)->index_q_flat_approximation] > q_approximation) break;
   }
-  fprintf(stderr,"approx at %d, max index %d\n",(*ptw)->index_q_flat_approximation,ptr->q_size-1);
+  fprintf(stderr,"approx at %d, max index %d, for q=%e\n",(*ptw)->index_q_flat_approximation,ptr->q_size-1,q_approximation);
 
   (*ptw)->K = K;
   (*ptw)->sgnK = sgnK;
@@ -3923,7 +3949,7 @@ int transfer_update_HIS(
   }
 
 
-  if (((ptw->sgnK != 0) && (index_q > ptw->index_q_flat_approximation)) && (ptw->BIS_allocated==_TRUE_)) {
+  if (((ptw->sgnK != 0) && (index_q >= ptw->index_q_flat_approximation)) && (ptw->BIS_allocated == _TRUE_)) {
 
     if (ptw->HIS_allocated == _TRUE_) {
       hyperspherical_HIS_free(&(ptw->HIS));
@@ -3942,8 +3968,6 @@ int transfer_update_HIS(
 
     nu = ptr->q[index_q]/sqrt(ptw->sgnK*ptw->K);
 
-    fprintf(stderr,"here %e\n",ptw->chi_at_phiminabs[87]);
-
     if (ptw->sgnK == 1) {
       for (index_l=0; index_l<ptr->l_size_max; index_l++) {
         ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asin(ptr->l[index_l]/nu);      
@@ -3954,8 +3978,6 @@ int transfer_update_HIS(
         ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asinh(ptr->l[index_l]/nu);      
       }
     }
-
-    fprintf(stderr,"here %e\n",ptw->chi_at_phiminabs[87]);
 
     return _SUCCESS_;
 
@@ -4129,17 +4151,19 @@ int transfer_update_HIS(
     }
   }
   
+  if (ptw->HIS_allocated == _TRUE_) {
 
-  //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
-  phiminabs = ppr->hyper_phi_min_abs;
-  xtol = ppr->hyper_x_tol;
-
-  class_call(hyperspherical_get_xmin(&(ptw->HIS),
-                                     xtol,
-                                     phiminabs/1000.,
-                                     ptw->chi_at_phiminabs),
-             ptr->error_message, 
-             ptr->error_message);
+    //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
+    phiminabs = ppr->hyper_phi_min_abs;
+    xtol = ppr->hyper_x_tol;
+    
+    class_call(hyperspherical_get_xmin(&(ptw->HIS),
+                                       xtol,
+                                       phiminabs/1000.,
+                                       ptw->chi_at_phiminabs),
+               ptr->error_message, 
+               ptr->error_message);
+  }
   
   return _SUCCESS_;
 }
