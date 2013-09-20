@@ -156,8 +156,6 @@ struct transfer_workspace {
 
   int l_size;        /**< number of l values */
 
-  double * chi_at_phiminabs;     /**< chi_at_phiminabs[index_l] : for each l, value of x below which bessels are negligible */
-
   //@}
 
   /** @name - quantities related to the integrand of the transfer functions (most of them are arrays of time) */

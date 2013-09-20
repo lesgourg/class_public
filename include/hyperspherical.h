@@ -20,6 +20,7 @@ typedef struct HypersphericalInterpolationStructure{
   int trig_order;        //Order of the interpolation formula for SinK and CosK.
   int l_size;                //Number of l values
   int *l;             //Vector of l values stored
+  double * chi_at_phimin;     // vector x_min[index-l] below which neglect Bessels
   int x_size;                //Number of x-values  
   double *x;          //Pointer to x-values
   double *sinK;          //Vector of sin_K(xvec)
@@ -49,6 +50,7 @@ extern "C" {
                                 double xmax, 
                                 double sampling,
                                 int l_WKB,
+                                double phiminabs,
                                 HyperInterpStruct *pHIS, 
                                 ErrorMsg error_message);
 
@@ -85,13 +87,14 @@ extern "C" {
                               double xtol,
                               double phiminabs,
                               double *xmin);
+
   int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi);
   int hyperspherical_WKB_vec(int l,
                              double beta, 
                              double *sinK_vec, 
                              int size_sinK_vec, 
                              double *Phi);
-  int ClosedModY(int l, int beta, double *y);
+  int ClosedModY(int l, int beta, double *y, int * phisign, int * dphisign);
   int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign);
   int CF1_from_Gegenbauer(int l, int beta, double sinK, double cotK, double *CF);
   double airy_cheb_approx(double z);

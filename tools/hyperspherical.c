@@ -15,6 +15,7 @@ int hyperspherical_HIS_create(int K,
                               double xmax, 
                               double sampling,
                               int l_WKB,
+                              double phiminabs,
                               HyperInterpStruct *pHIS, 
                               ErrorMsg error_message){
   /** Allocate storage for Hyperspherical Interpolation Structure (HIS).
@@ -192,11 +193,18 @@ int hyperspherical_HIS_create(int K,
   }
   free(sqrtK);
   free(PhiL);
+
+  for (k=0; k<nl; k++){ 
+    hyperspherical_get_xmin_from_approx(K,lvec[k],beta,0.,phiminabs,pHIS->chi_at_phimin+k,NULL);
+  }
+
+  //hyperspherical_get_xmin(pHIS,1.e-4,phiminabs,pHIS->chi_at_phimin);
+
   return _SUCCESS_;
 }
 
 size_t hyperspherical_HIS_size(int nl, int nx){
-  return(sizeof(int)*nl+3*sizeof(double)*nx+2*sizeof(double)*nx*nl);
+  return(sizeof(int)*nl+sizeof(double)*nl+3*sizeof(double)*nx+2*sizeof(double)*nx*nl);
 }
 
 int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local, 
@@ -207,7 +215,8 @@ int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local,
   int nx=pHIS_local->x_size;
   int nl=pHIS_local->l_size;
   pHIS_local->l = (int *) (HIS_storage_shared);
-  pHIS_local->x = (double *) (pHIS_local->l+nl);
+  pHIS_local->chi_at_phimin = (double *) (pHIS_local->l+nl);
+  pHIS_local->x = pHIS_local->chi_at_phimin+nl;
   pHIS_local->sinK = pHIS_local->x + nx;
   pHIS_local->cotK = pHIS_local->sinK + nx;
   pHIS_local->phi = pHIS_local->cotK +nx;
@@ -255,7 +264,8 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
   double left_border, right_border, next_border;
   int K, l, j, nx, current_border_idx=0;
   double *Phi_l, *dPhi_l;
-  
+  int phisign = 1, dphisign = 1;
+
   /** Set logical flags. The compiler should probably generate 2^3-1=7
       different functions, according to these flags. If not, maybe I should
       do it.
@@ -310,6 +320,9 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
 
   for (j=0; j<nxi; j++){
     x = xinterp[j];
+    //take advantage of periodicity of functions in closed case
+    if (pHIS->K==1) 
+      ClosedModY(pHIS->l[lnum], (int)(pHIS->beta+0.2), &x, &phisign, &dphisign);
     //Loop over output values
     if ((x<xmin)||(x>xmax)){
       //Outside interpolation region, set to zero.
@@ -436,22 +449,11 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
     z4 = z2*z2;
     z5 = z2*z3;
     if (do_function == _TRUE_)
-      Phi[j] = ym+a1*z+a2*z2+a3*z3+a4*z4+a5*z5;
+      Phi[j] = (ym+a1*z+a2*z2+a3*z3+a4*z4+a5*z5)*phisign;
     if (do_first_derivative == _TRUE_)
-      dPhi[j] = dym+b1*z+b2*z2+b3*z3+b4*z4+b5*z5;
+      dPhi[j] = (dym+b1*z+b2*z2+b3*z3+b4*z4+b5*z5)*dphisign;
     if (do_second_derivative == _TRUE_)
-      d2Phi[j] = d2ym+c1*z+c2*z2+c3*z3+c4*z4+c5*z5;
-    if (do_trig_five==_TRUE_){
-      sinKinterp[j] = sinKm+d1*z+d2*z2+d3*z3+d4*z4+d5*z5;
-      cosKinterp[j] = cotKm*sinKm+e1*z+e2*z2+e3*z3+e4*z4+e5*z5;
-    } else if (do_trig_three==_TRUE_){
-      sinKinterp[j] = sinKm+d1*z+d2*z2+d3*z3;
-      cosKinterp[j] = cotKm*sinKm+e1*z+e2*z2+e3*z3;
-    } else if (do_trig_linear==_TRUE_){
-      //We do linear interpolation directly, sinKm, sinKp are available
-      sinKinterp[j] = sinKm+(sinKp-sinKm)*z;
-      cosKinterp[j] = cotKm*sinKm*(1.0-z)+cotKp*sinKp*z;
-    }
+      d2Phi[j] = (d2ym+c1*z+c2*z2+c3*z3+c4*z4+c5*z5)*phisign;
     //printf("x = %g, [%g, %g, %g]\n",x,Phi[j],dPhi[j],d2Phi[j]);
   }
   return _SUCCESS_;
@@ -715,13 +717,13 @@ int CF1_from_Gegenbauer(int l,
 int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
   double e, w, w2, alpha, alpha2, CscK, ytp, t;
   double S, Q, C, argu, Ai;
-  int airy_sign = 1, phisign = 1, intbeta;
+  int airy_sign = 1, phisign = 1, dphisign = 1, intbeta;
   double ldbl = l;
 
   if (K==1){
     //Limit range to [0; pi/2]:
     intbeta = (int)(beta+0.4); //Round to nearest integer (just to be sure)
-    phisign =  ClosedModY(l, intbeta, &y);
+    ClosedModY(l, intbeta, &y, &phisign, &dphisign);
   }
   e = 1.0/sqrt(ldbl*(ldbl+1.0));
   alpha = beta*e;
@@ -912,22 +914,27 @@ double get_value_at_small_phi(int K,int l,double beta,double Phi){
   return xval;
 }
 
-int ClosedModY(int l, int beta, double *y){
-  int phisign = 1;
+int ClosedModY(int l, int beta, double *y, int * phisign, int * dphisign){
+  *phisign = 1;
+  *dphisign = 1;
   *y = fmod(*y,2.0*_PI_);
   if ((*y) > _PI_){
     *y = 2.0*_PI_-(*y);
     //phisign *= pow(-1,l)
-    if (l%2==1) //l is uneven
-      phisign = -phisign;
+    if (l%2==1) //l is odd
+      *phisign *= -1;
+    else        //l is even
+      *dphisign *= -1;
   }
   if ((*y)>0.5*_PI_){
     *y = _PI_-(*y);
     //phisign *= pow(-1,beta-l-1)
-    if ((beta-l)%2==0) //beta-l-1 uneven
-      phisign = -phisign;
+    if ((beta-l)%2==0) //beta-l-1 odd
+      *phisign *= -1;
+    else               //beta-l-1 even
+      *dphisign *= -1;
   }
-  return phisign;
+  return _SUCCESS_;
 }
 
 

@@ -2195,7 +2195,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->bessel_j_cut=1.e-5;
   ppr->bessel_tol_x_min =1.e-4;
   sprintf(ppr->bessel_file_name,"bessels.dat");
-  ppr->bessel_flat_approximation_nu = 500.;
+  ppr->bessel_flat_approximation_nu = 10000.;
 
   ppr->hyper_x_min = 1.e-7;          // TBC
   ppr->hyper_sampling_flat = 3.;     // TBC

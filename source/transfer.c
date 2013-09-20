@@ -247,6 +247,7 @@ int transfer_init(
                                        xmax,
                                        ppr->hyper_sampling_flat,
                                        ptr->l[ptr->l_size_max-1]+1,
+                                       ppr->hyper_phi_min_abs,
                                        &BIS,
                                        ptr->error_message),
              ptr->error_message,
@@ -536,21 +537,6 @@ int transfer_indices_of_transfers(
   class_call(transfer_get_q_list(ppr,ppt,ptr,tau0,K,sgnK),
              ptr->error_message,
              ptr->error_message);
-  if (pbs->get_HIS_from_shared_memory==_TRUE_){
-    /** Read q_list from generated file. We should add some tests here. */
-    free(ptr->q);
-    FILE * q_file;
-    int lSize;
-    q_file = fopen("q_list_binary.bin","rb");
-    // obtain file size:
-    fseek (q_file , 0 , SEEK_END);
-    lSize = ftell (q_file);
-    ptr->q_size = lSize/sizeof(double);
-    rewind (q_file);
-    class_alloc(ptr->q,sizeof(double)*ptr->q_size,ptr->error_message);
-    fread (ptr->q,sizeof(double),ptr->q_size,q_file);
-    fclose(q_file);
-  }
 
   /** get k values using transfer_get_k_list() */
   class_call(transfer_get_k_list(ppt,ptr,K),
@@ -1007,19 +993,19 @@ int transfer_get_q_list(
   }
 
   /*
-  FILE *fid=fopen("q_from_class.dat","w");
-  int i;
-  for (i=0; i<ptr->q_size; i++){
+    FILE *fid=fopen("q_from_class.dat","w");
+    int i;
+    for (i=0; i<ptr->q_size; i++){
     fprintf(fid,"%.16e ",ptr->q[i]);
-  }
-  fclose(fid);
+    }
+    fclose(fid);
   */
   /*
-  for (index_q=0; index_q<ptr->q_size; index_q++){
+    for (index_q=0; index_q<ptr->q_size; index_q++){
     fprintf(stdout,"%d %e %e\n",index_q,ptr->q[index_q],ptr->q[index_q]/sqrt(K*sgnK));
-  }
+    }
   
-  class_stop(ptr->error_message,"bla\n");
+    class_stop(ptr->error_message,"bla\n");
   */
 
   return _SUCCESS_; 
@@ -1750,7 +1736,7 @@ int transfer_compute_for_each_q(
                module. otherwise this condition is guaranteed by the
                choice of proper xmax when computing bessels) */
             if (ptw->sgnK == 0) {
-              q_max_bessel = ptw->HIS.x[ptw->HIS.x_size-1]/tau0_minus_tau[0];
+              q_max_bessel = ptw->pBIS->x[ptw->pBIS->x_size-1]/tau0_minus_tau[0];
             }
             else {
               q_max_bessel = ptr->q[ptr->q_size-1];
@@ -3092,16 +3078,36 @@ int transfer_integrate(
 
   double bessel, *radial_function;
 
+  double x_turning_point;
+
   radial_function_type radial_type; 
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */  
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
   //printf("index_l=%d\n",index_l);
   if (ptw->sgnK==0){
-    tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
+    tau0_minus_tau_min_bessel = ptw->pBIS->chi_at_phimin[index_l]/k; /* segmentation fault impossible, checked before that k != 0 */
   }
   else{
-    tau0_minus_tau_min_bessel = ptw->chi_at_phiminabs[index_l]/sqrt(ptw->sgnK*ptw->K); 
+
+    if (index_q < ptw->index_q_flat_approximation) {
+
+      tau0_minus_tau_min_bessel = ptw->HIS.chi_at_phimin[index_l]/sqrt(ptw->sgnK*ptw->K); 
+
+    }
+    else {
+
+      tau0_minus_tau_min_bessel = ptw->pBIS->chi_at_phimin[index_l]/sqrt(ptw->sgnK*ptw->K);
+
+      if (ptw->sgnK == 1) {
+        x_turning_point = asin(sqrt(l*(l+1.))/ptr->q[index_q]*sqrt(ptw->sgnK*ptw->K));
+        tau0_minus_tau_min_bessel *= x_turning_point/sqrt(l*(l+1.));  
+      }
+      else {
+        x_turning_point = asinh(sqrt(l*(l+1.))/ptr->q[index_q]*sqrt(ptw->sgnK*ptw->K));
+        tau0_minus_tau_min_bessel *= x_turning_point/sqrt(l*(l+1.));  
+      }
+    }
   }
   /** - if there is no overlap between the region in which bessels and sources are non-zero, return zero */
   if (tau0_minus_tau_min_bessel >= tau0_minus_tau[0]) {
@@ -3536,13 +3542,11 @@ int transfer_radial_function(
 
   class_test(pHIS->x[0] > chireverse[0],
              ptr->error_message,
-             "Bessels need to be interpolated at %e, outside the range in which they have been computed (>%e). Decrease their x_min. %e %d",
+             "Bessels need to be interpolated at %e, outside the range in which they have been computed (>%e). Decrease their x_min.",
              chireverse[0],
-             pHIS->x[0],
-             ptw->chi_at_phiminabs[index_l],
-             index_l);
+             pHIS->x[0]);
 
-  class_test(pHIS->x[pHIS->x_size-1] < chireverse[x_size-1],
+  class_test((pHIS->x[pHIS->x_size-1] < chireverse[x_size-1]) && (ptw->sgnK != 1),
              ptr->error_message,
              "Bessels need to be interpolated at %e, outside the range in which they have been computed (<%e). Increase their x_max.",
              chireverse[x_size-1],
@@ -3646,27 +3650,27 @@ int transfer_radial_function(
   }
 
   /*
-  if ((index_q == 1338) && (ptr->l[index_l] == 1995) && (radial_type == SCALAR_TEMPERATURE_0)) {
+    if ((index_q == 1338) && (ptr->l[index_l] == 1995) && (radial_type == SCALAR_TEMPERATURE_0)) {
 
     for (j=0; j < x_size;j++) { 
-      printf("%e %e %e %e\n",
-             chireverse[j]/rescale_factor,
-             Phi[j],
-             dPhi[j]*rescale_factor,
-             d2Phi[j]*rescale_factor*rescale_factor);
+    printf("%e %e %e %e\n",
+    chireverse[j]/rescale_factor,
+    Phi[j],
+    dPhi[j]*rescale_factor,
+    d2Phi[j]*rescale_factor*rescale_factor);
     }
     
     for (j=0; j < pHIS->x_size;j++) { 
-      printf("%e %e %e %e\n",
-             pHIS->x[j]/rescale_factor,
-             pHIS->phi[index_l*pHIS->x_size+j],
-             pHIS->dphi[index_l*pHIS->x_size+j]*rescale_factor,
-             0.);
+    printf("%e %e %e %e\n",
+    pHIS->x[j]/rescale_factor,
+    pHIS->phi[index_l*pHIS->x_size+j],
+    pHIS->dphi[index_l*pHIS->x_size+j]*rescale_factor,
+    0.);
     }
     
 
     class_stop(ptr->error_message," ");
-  }
+    }
   */
 
   free(Phi);
@@ -3848,7 +3852,6 @@ int transfer_workspace_init(
   (*ptw)->K = K;
   (*ptw)->sgnK = sgnK;
 
-  class_alloc((*ptw)->chi_at_phiminabs,(*ptw)->l_size*sizeof(double),ptr->error_message);
   class_alloc((*ptw)->interpolated_sources,perturb_tau_size*sizeof(double),ptr->error_message);
   class_alloc((*ptw)->sources,tau_size_max*sizeof(double),ptr->error_message);
   class_alloc((*ptw)->tau0_minus_tau,tau_size_max*sizeof(double),ptr->error_message);
@@ -3869,7 +3872,6 @@ int transfer_workspace_free(
     //Free HIS structure:
     hyperspherical_HIS_free(&(ptw->HIS));
   }
-  free(ptw->chi_at_phiminabs);
   free(ptw->interpolated_sources);
   free(ptw->sources);
   free(ptw->tau0_minus_tau);
@@ -3896,155 +3898,101 @@ int transfer_update_HIS(
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
   int l_size_max;
-  int index_l;
   int index_l_left,index_l_right;
 
-  if (ptw->sgnK==0) {
-
-    xtol = ppr->hyper_x_tol;
-    phiminabs = ppr->hyper_phi_min_abs;
-    
-    class_call(hyperspherical_get_xmin(ptw->pBIS,
-                                       xtol,
-                                       phiminabs/1000.,
-                                       ptw->chi_at_phiminabs),
-               ptr->error_message, 
-               ptr->error_message);
-
+  if (ptw->HIS_allocated == _TRUE_) {
+    hyperspherical_HIS_free(&(ptw->HIS));
   }
 
-  else {
+  if ((ptw->sgnK!=0) && (index_q < ptw->index_q_flat_approximation)) {
 
-    if (ptw->HIS_allocated == _TRUE_) {
-      hyperspherical_HIS_free(&(ptw->HIS));
-      ptw->HIS_allocated = _FALSE_;
-    }
+    xmin = ppr->hyper_x_min; //Will be changed to _HYPER_SAFETY_ by routine
+    xmin = max(xmin,_HYPER_SAFETY_);
 
-    if (index_q >= ptw->index_q_flat_approximation) {
-
-      xtol = ppr->hyper_x_tol;
-      phiminabs = ppr->hyper_phi_min_abs;
-
-      class_call(hyperspherical_get_xmin(ptw->pBIS,
-                                         xtol,
-                                         phiminabs/1000.,
-                                         ptw->chi_at_phiminabs),
-                 ptr->error_message, 
-                 ptr->error_message);
-
-      nu = ptr->q[index_q]/sqrt(ptw->sgnK*ptw->K);
-
-      if (ptw->sgnK == 1) {
-        for (index_l=0; index_l<ptr->l_size_max; index_l++) {
-          ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asin(ptr->l[index_l]/nu);      
-        }
-      }
-      else {
-        for (index_l=0; index_l<ptr->l_size_max; index_l++) {
-          ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asinh(ptr->l[index_l]/nu);      
-        }
-      }
-    }
-
-    else {
-
-      xmin = ppr->hyper_x_min; //Will be changed to _HYPER_SAFETY_ by routine
-      xmin = max(xmin,_HYPER_SAFETY_);
-
-      sqrt_absK = sqrt(ptw->sgnK*ptw->K);
+    sqrt_absK = sqrt(ptw->sgnK*ptw->K);
     
-      xmax = sqrt_absK*tau0;
-      nu = ptr->q[index_q]/sqrt_absK;
+    xmax = sqrt_absK*tau0;
+    nu = ptr->q[index_q]/sqrt_absK;
     
-      if (ptw->sgnK == 1) {
-        xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
+    if (ptw->sgnK == 1) {
+      xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
       
-        int_nu = (int)(nu+0.2);
-        new_nu = (double)int_nu;
-        class_test(nu-new_nu > 1.e-6,
-                   ptr->error_message,
-                   "problem in q list definition in closed case for index_q=%d, nu=%e, nu-int(nu)=%e",index_q,nu,nu-new_nu);
-        nu = new_nu;
+      int_nu = (int)(nu+0.2);
+      new_nu = (double)int_nu;
+      class_test(nu-new_nu > 1.e-6,
+                 ptr->error_message,
+                 "problem in q list definition in closed case for index_q=%d, nu=%e, nu-int(nu)=%e",index_q,nu,nu-new_nu);
+      nu = new_nu;
         
-      }
-
-      sampling = ppr->hyper_sampling_curved;
-      
-      /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
-      l_size_max = ptr->l_size_max;
-      if (ptw->sgnK == 1)
-        while ((double)ptr->l[l_size_max-1] >= nu)
-          l_size_max--;
-    
-      if (ptw->sgnK == -1){
-        xtol = ppr->hyper_x_tol;
-        phiminabs = ppr->hyper_phi_min_abs;
-  
-        /** First try to find lmax using fast approximation: */
-        index_l_left=0;
-        index_l_right=l_size_max-1;
-        class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
-                                     ptw->sgnK,
-                                     nu,
-                                     ptr->l,
-                                     l_size_max,
-                                     phiminabs,
-                                     xmax,
-                                     xtol,
-                                     &index_l_left,
-                                     &index_l_right,
-                                     ptr->error_message),
-                   ptr->error_message,
-                   ptr->error_message);
-  
-        /** Now use WKB approximation to eventually modify borders: */
-        class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
-                                     ptw->sgnK,
-                                     nu,
-                                     ptr->l,
-                                     l_size_max,
-                                     phiminabs,
-                                     xmax,
-                                     xtol,
-                                     &index_l_left,
-                                     &index_l_right,
-                                     ptr->error_message),
-                   ptr->error_message,
-                   ptr->error_message);
-        l_size_max = index_l_right+1;
-      }
-  
-      class_test(nu <= 0.,
-                 ptr->error_message,
-                 "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
-                 nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
-    
-      class_call(hyperspherical_HIS_create(ptw->sgnK,
-                                           nu,
-                                           l_size_max,
-                                           ptr->l,
-                                           xmin,
-                                           xmax,
-                                           sampling,
-                                           ptr->l[l_size_max-1]+1,
-                                           &(ptw->HIS),
-                                           ptr->error_message),
-                 ptr->error_message,
-                 ptr->error_message);
-      
-      ptw->HIS_allocated = _TRUE_; 
-
-      phiminabs = ppr->hyper_phi_min_abs;
-      xtol = ppr->hyper_x_tol;
-      
-      class_call(hyperspherical_get_xmin(&(ptw->HIS),
-                                         xtol,
-                                         phiminabs/1000.,
-                                         ptw->chi_at_phiminabs),
-                 ptr->error_message, 
-                 ptr->error_message);
-      
     }
+
+    sampling = ppr->hyper_sampling_curved;
+      
+    /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
+    l_size_max = ptr->l_size_max;
+    if (ptw->sgnK == 1)
+      while ((double)ptr->l[l_size_max-1] >= nu)
+        l_size_max--;
+    
+    if (ptw->sgnK == -1){
+      xtol = ppr->hyper_x_tol;
+      phiminabs = ppr->hyper_phi_min_abs;
+  
+      /** First try to find lmax using fast approximation: */
+      index_l_left=0;
+      index_l_right=l_size_max-1;
+      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
+                                   ptw->sgnK,
+                                   nu,
+                                   ptr->l,
+                                   l_size_max,
+                                   phiminabs,
+                                   xmax,
+                                   xtol,
+                                   &index_l_left,
+                                   &index_l_right,
+                                   ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
+  
+      /** Now use WKB approximation to eventually modify borders: */
+      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
+                                   ptw->sgnK,
+                                   nu,
+                                   ptr->l,
+                                   l_size_max,
+                                   phiminabs,
+                                   xmax,
+                                   xtol,
+                                   &index_l_left,
+                                   &index_l_right,
+                                   ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
+      l_size_max = index_l_right+1;
+    }
+  
+    class_test(nu <= 0.,
+               ptr->error_message,
+               "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
+               nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
+    
+    class_call(hyperspherical_HIS_create(ptw->sgnK,
+                                         nu,
+                                         l_size_max,
+                                         ptr->l,
+                                         xmin,
+                                         xmax,
+                                         sampling,
+                                         ptr->l[l_size_max-1]+1,
+                                         ppr->hyper_phi_min_abs,
+                                         &(ptw->HIS),
+                                         ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+      
+    ptw->HIS_allocated = _TRUE_; 
+    
   }
   
   return _SUCCESS_;
