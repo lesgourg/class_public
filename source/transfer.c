@@ -151,6 +151,11 @@ int transfer_init(
   */
   int ** tp_of_tt;
 
+  /* structure containing the flat spherical bessel functions */
+
+  HyperInterpStruct BIS;
+  double xmax;
+
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
@@ -228,6 +233,26 @@ int transfer_init(
              ptr->error_message,
              ptr->error_message);
 
+  /** - compute flat spherical bessel functions */
+
+  xmax = ptr->q[ptr->q_size-1]*tau0;
+  if (pba->sgnK == -1)
+    xmax *= (ptr->l[ptr->l_size_max-1]/ppr->bessel_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->bessel_flat_approximation_nu);
+
+  class_call(hyperspherical_HIS_create(0,
+                                       1.,
+                                       ptr->l_size_max,
+                                       ptr->l,
+                                       ppr->hyper_x_min,
+                                       xmax,
+                                       ppr->hyper_sampling_flat,
+                                       ptr->l[ptr->l_size_max-1]+1,
+                                       &BIS,
+                                       ptr->error_message),
+             ptr->error_message,
+             ptr->error_message);
+  
+
   /** (a.3.) workspace, allocated in a parallel zone since in openmp
       version there is one workspace per thread */
   
@@ -237,7 +262,7 @@ int transfer_init(
   /* beginning of parallel region */
   
 #pragma omp parallel                                                    \
-  shared(tau_size_max,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort) \
+  shared(tau_size_max,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS) \
   private(ptw,thread,index_q,tstart,tstop,tspent)
   {
     
@@ -256,6 +281,7 @@ int transfer_init(
                                                 pbs->use_pbs,
                                                 pba->K,
                                                 pba->sgnK,
+                                                &BIS,
                                                 pbs->get_HIS_from_shared_memory),
                         ptr->error_message,
                         ptr->error_message);
@@ -325,6 +351,8 @@ int transfer_init(
   class_call(transfer_free_source_correspondence(ptr,tp_of_tt),
              ptr->error_message,
              ptr->error_message);
+
+  hyperspherical_HIS_free(&BIS); // TBC error management and class_call
 
   return _SUCCESS_;
 }
@@ -3465,21 +3493,30 @@ int transfer_radial_function(
   d2Phi = malloc(sizeof(double)*x_size);
   chireverse = malloc(sizeof(double)*x_size);
 
-  if ((ptw->sgnK == 0) || (index_q < ptw->index_q_flat_approximation)) {
+  if (ptw->sgnK == 0) {
 
-    pHIS = &(ptw->HIS);
+    pHIS = ptw->pBIS;
 
     rescale_factor = 1.;
   }
+
   else {
 
-    pHIS = &(ptw->BIS);
+    if (index_q < ptw->index_q_flat_approximation) {
 
-    if (ptw->sgnK == 1)
-      rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
-    else
-      rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
-    //rescale_factor = ptr->q[index_q]/sqrt(-K);
+      pHIS = &(ptw->HIS);
+
+      rescale_factor = 1.;
+    }
+    else {
+      
+      pHIS = ptw->pBIS;
+
+      if (ptw->sgnK == 1)
+        rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
+      else
+        rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
+    }
   }
 
   //Reverse chi
@@ -3788,6 +3825,7 @@ int transfer_workspace_init(
                             int get_HIS_from_pbs,
                             double K,
                             int sgnK,
+                            HyperInterpStruct * pBIS,
                             int get_HIS_from_shared_memory){
 
   double q_approximation;
@@ -3797,10 +3835,7 @@ int transfer_workspace_init(
   (*ptw)->tau_size_max = tau_size_max;
   (*ptw)->l_size = ptr->l_size_max;
   (*ptw)->HIS_allocated=_FALSE_;
-  (*ptw)->HIS_attached=_FALSE_;
-  (*ptw)->get_HIS_from_pbs=get_HIS_from_pbs;
-  (*ptw)->get_HIS_from_shared_memory=get_HIS_from_shared_memory;
-  (*ptw)->BIS_allocated=_FALSE_;
+  (*ptw)->pBIS = pBIS;
 
   q_approximation = ppr->bessel_flat_approximation_nu * sqrt(sgnK*K);
   for ((*ptw)->index_q_flat_approximation=0; 
@@ -3830,20 +3865,9 @@ int transfer_workspace_free(
                             struct transfer_workspace *ptw
                             ) {
 
-  HyperInterpStruct *pHIS_shared;
-
   if (ptw->HIS_allocated==_TRUE_){
     //Free HIS structure:
     hyperspherical_HIS_free(&(ptw->HIS));
-  }
-  if (ptw->HIS_attached==_TRUE_){
-    //detach HIS from shared memory zone:
-    pHIS_shared = (HyperInterpStruct *)ptw->HIS.l;
-    shmdt((pHIS_shared-1));
-  }
-  if (ptw->BIS_allocated==_TRUE_){
-    //Free HIS structure:
-    hyperspherical_HIS_free(&(ptw->BIS));
   }
   free(ptw->chi_at_phiminabs);
   free(ptw->interpolated_sources);
@@ -3871,157 +3895,62 @@ int transfer_update_HIS(
   int int_nu;
   double xmin, xmax, sampling, phiminabs, xtol;
   double sqrt_absK;
-  int l_size_max, l_WKB;
+  int l_size_max;
   int index_l;
   int index_l_left,index_l_right;
-  int shmid;
-  HyperInterpStruct *pHIS_shared;
 
+  if (ptw->sgnK==0) {
 
-  if (ptw->BIS_allocated == _FALSE_) {
-
-    xmax = ptr->q[ptr->q_size-1]*tau0;
-    if (ptw->sgnK == -1)
-      xmax *= (ptr->l[ptr->l_size_max-1]/ppr->bessel_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->bessel_flat_approximation_nu)*1.1;
-
-    class_call(hyperspherical_HIS_create(0,
-                                         1.,
-                                         ptr->l_size_max,
-                                         ptr->l,
-                                         ppr->hyper_x_min,
-                                         xmax,
-                                         ppr->hyper_sampling_flat,
-                                         ptr->l[ptr->l_size_max-1]+1,
-                                         &(ptw->BIS),
-                                         ptr->error_message),
-               ptr->error_message,
+    xtol = ppr->hyper_x_tol;
+    phiminabs = ppr->hyper_phi_min_abs;
+    
+    class_call(hyperspherical_get_xmin(ptw->pBIS,
+                                       xtol,
+                                       phiminabs/1000.,
+                                       ptw->chi_at_phiminabs),
+               ptr->error_message, 
                ptr->error_message);
 
-    ptw->BIS_allocated = _TRUE_;
   }
 
-  if (ptw->sgnK==0)
-    index_q=0;
-
-  if ((ptw->get_HIS_from_shared_memory==_TRUE_)&&
-      (ptr->initialise_HIS_cache==_FALSE_)){
-
-    if ((ptw->HIS_attached==_TRUE_) && (ptw->sgnK==0)) return _SUCCESS_;
-      
-    /** Try to connect to shared memory region containing HIS structure: */
-    shmid = shmget(_SHARED_MEMORY_KEYS_START_+index_q, 
-                   sizeof(HyperInterpStruct),
-                   S_IRUSR | S_IWUSR);
-    if (shmid>0){
-
-      if (ptw->HIS_attached==_TRUE_){
-        //detach HIS from shared memory zone:
-        pHIS_shared = (HyperInterpStruct *)ptw->HIS.l;
-        shmdt(pHIS_shared-1);
-      }
-
-      /** Now try to attach the region: */
-      pHIS_shared = shmat (shmid, 0, 0);
-      ptw->HIS_attached=_TRUE_;
-      if (pHIS_shared>0){
-        /** Eventually do a few more checks here, perhaps macros. */
-        //fprintf(stderr,"Connected to HIS struct!\n");
-        /** Copy HIS structure from shared HIS to ptw->HIS: */
-        memcpy(&(ptw->HIS),pHIS_shared,sizeof(HyperInterpStruct));
-        /** Update pointers in ptw->HIS:*/
-        hyperspherical_update_pointers(&(ptw->HIS),pHIS_shared+1);
-        /** Find x_at_phimin: */
-        phiminabs = ppr->hyper_phi_min_abs;
-        xtol = ppr->hyper_x_tol;
-        
-        class_call(hyperspherical_get_xmin(&(ptw->HIS),
-                                           xtol,
-                                           phiminabs/1000.,
-                                           ptw->chi_at_phiminabs),
-                   ptr->error_message, 
-                   ptr->error_message);
-        return _SUCCESS_;
-      }
-    }
-    else {
-      fprintf(stderr,"Unable to connect to shared memory\n");
-    }
-  }
-
-
-  if (((ptw->sgnK != 0) && (index_q >= ptw->index_q_flat_approximation)) && (ptw->BIS_allocated == _TRUE_)) {
+  else {
 
     if (ptw->HIS_allocated == _TRUE_) {
       hyperspherical_HIS_free(&(ptw->HIS));
       ptw->HIS_allocated = _FALSE_;
     }
 
-    xtol = ppr->hyper_x_tol;
-    phiminabs = ppr->hyper_phi_min_abs;
+    if (index_q >= ptw->index_q_flat_approximation) {
 
-    class_call(hyperspherical_get_xmin(&(ptw->BIS),
-                                           xtol,
-                                           phiminabs/1000.,
-                                           ptw->chi_at_phiminabs),
-                   ptr->error_message, 
-                   ptr->error_message);
+      xtol = ppr->hyper_x_tol;
+      phiminabs = ppr->hyper_phi_min_abs;
 
-    nu = ptr->q[index_q]/sqrt(ptw->sgnK*ptw->K);
-
-    if (ptw->sgnK == 1) {
-      for (index_l=0; index_l<ptr->l_size_max; index_l++) {
-        ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asin(ptr->l[index_l]/nu);      
-      }
-    }
-    else {
-      for (index_l=0; index_l<ptr->l_size_max; index_l++) {
-        ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asinh(ptr->l[index_l]/nu);      
-      }
-    }
-
-    return _SUCCESS_;
-
-  }
-
-
-  if (ptw->HIS_allocated==_TRUE_){
-
-    if (ptw->sgnK == 0) {
-      /* nothing to be done */
-      return _SUCCESS_;
-    }
-    else {
-        
-      /** free HIS */
-      class_call(hyperspherical_HIS_free(&(ptw->HIS)),
-                 ptr->error_message,
+      class_call(hyperspherical_get_xmin(ptw->pBIS,
+                                         xtol,
+                                         phiminabs/1000.,
+                                         ptw->chi_at_phiminabs),
+                 ptr->error_message, 
                  ptr->error_message);
-      ptw->HIS_allocated = _FALSE_;
-      
-    }
-  }
 
-  if (ptw->get_HIS_from_pbs==_TRUE_){
-    class_call(transfer_init_HIS_from_bessel(pbs,
-                                             ptr,
-                                             &(ptw->HIS)),
-               ptr->error_message,
-               ptr->error_message);
-    ptw->HIS_allocated = _TRUE_;
-  }
-  else{
-    //These number should be set from input structures in the future:
-    //printf("Creating interpolation structure...\n");
-    xmin = ppr->hyper_x_min; //Will be changed to _HYPER_SAFETY_ by routine
-    xmin = max(xmin,_HYPER_SAFETY_);
-    if (ptw->sgnK == 0) {
-      xmax = ptr->q[ptr->q_size-1]*tau0; // x_max = k_max * tau0
-      nu=1.;
-      sampling = ppr->hyper_sampling_flat;
-      l_size_max = ptr->l_size_max;
-      sqrt_absK=0.0;
+      nu = ptr->q[index_q]/sqrt(ptw->sgnK*ptw->K);
+
+      if (ptw->sgnK == 1) {
+        for (index_l=0; index_l<ptr->l_size_max; index_l++) {
+          ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asin(ptr->l[index_l]/nu);      
+        }
+      }
+      else {
+        for (index_l=0; index_l<ptr->l_size_max; index_l++) {
+          ptw->chi_at_phiminabs[index_l] /= ptr->l[index_l]/asinh(ptr->l[index_l]/nu);      
+        }
+      }
     }
+
     else {
+
+      xmin = ppr->hyper_x_min; //Will be changed to _HYPER_SAFETY_ by routine
+      xmin = max(xmin,_HYPER_SAFETY_);
+
       sqrt_absK = sqrt(ptw->sgnK*ptw->K);
     
       xmax = sqrt_absK*tau0;
@@ -4039,130 +3968,83 @@ int transfer_update_HIS(
         
       }
 
-    }
-    sampling = ppr->hyper_sampling_curved;
+      sampling = ppr->hyper_sampling_curved;
+      
+      /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
+      l_size_max = ptr->l_size_max;
+      if (ptw->sgnK == 1)
+        while ((double)ptr->l[l_size_max-1] >= nu)
+          l_size_max--;
     
+      if (ptw->sgnK == -1){
+        xtol = ppr->hyper_x_tol;
+        phiminabs = ppr->hyper_phi_min_abs;
   
-    /* find the highest value of l such that x_nonzero < xmax = sqrt(|K|) tau0. That will be l_max. */
-    l_size_max = ptr->l_size_max;
-    if (ptw->sgnK == 1)
-      while ((double)ptr->l[l_size_max-1] >= nu)
-        l_size_max--;
+        /** First try to find lmax using fast approximation: */
+        index_l_left=0;
+        index_l_right=l_size_max-1;
+        class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
+                                     ptw->sgnK,
+                                     nu,
+                                     ptr->l,
+                                     l_size_max,
+                                     phiminabs,
+                                     xmax,
+                                     xtol,
+                                     &index_l_left,
+                                     &index_l_right,
+                                     ptr->error_message),
+                   ptr->error_message,
+                   ptr->error_message);
+  
+        /** Now use WKB approximation to eventually modify borders: */
+        class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
+                                     ptw->sgnK,
+                                     nu,
+                                     ptr->l,
+                                     l_size_max,
+                                     phiminabs,
+                                     xmax,
+                                     xtol,
+                                     &index_l_left,
+                                     &index_l_right,
+                                     ptr->error_message),
+                   ptr->error_message,
+                   ptr->error_message);
+        l_size_max = index_l_right+1;
+      }
+  
+      class_test(nu <= 0.,
+                 ptr->error_message,
+                 "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
+                 nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
     
-    if (ptw->sgnK == -1){
-      xtol = ppr->hyper_x_tol;
+      class_call(hyperspherical_HIS_create(ptw->sgnK,
+                                           nu,
+                                           l_size_max,
+                                           ptr->l,
+                                           xmin,
+                                           xmax,
+                                           sampling,
+                                           ptr->l[l_size_max-1]+1,
+                                           &(ptw->HIS),
+                                           ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
+      
+      ptw->HIS_allocated = _TRUE_; 
+
       phiminabs = ppr->hyper_phi_min_abs;
-  
-      /** First try to find lmax using fast approximation: */
-      index_l_left=0;
-      index_l_right=l_size_max-1;
-      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_approx,
-                                   ptw->sgnK,
-                                   nu,
-                                   ptr->l,
-                                   l_size_max,
-                                   phiminabs,
-                                   xmax,
-                                   xtol,
-                                   &index_l_left,
-                                   &index_l_right,
-                                   ptr->error_message),
-                 ptr->error_message,
+      xtol = ppr->hyper_x_tol;
+      
+      class_call(hyperspherical_get_xmin(&(ptw->HIS),
+                                         xtol,
+                                         phiminabs/1000.,
+                                         ptw->chi_at_phiminabs),
+                 ptr->error_message, 
                  ptr->error_message);
-  
-      /** Now use WKB approximation to eventually modify borders: */
-      class_call(transfer_get_lmax(hyperspherical_get_xmin_from_Airy,
-                                   ptw->sgnK,
-                                   nu,
-                                   ptr->l,
-                                   l_size_max,
-                                   phiminabs,
-                                   xmax,
-                                   xtol,
-                                   &index_l_left,
-                                   &index_l_right,
-                                   ptr->error_message),
-                 ptr->error_message,
-                 ptr->error_message);
-      l_size_max = index_l_right+1;
+      
     }
-  
-    class_test(nu <= 0.,
-               ptr->error_message,
-               "nu=%e when index_q=%d, q=%e, K=%e, sqrt(|K|)=%e; instead nu should always be strictly positive",
-               nu,index_q,ptr->q[index_q],ptw->K,sqrt_absK);
-    
-
-    //fprintf(stderr,"%d %d %d %e\n",ptr->l_size_max,l_size_max,ptr->l[l_size_max-1],nu);
-
-    switch (ptw->sgnK) {
-    case 0:
-      l_WKB = ptr->l[l_size_max-1]+1;
-      break;
-    case -1:
-      l_WKB = max(46,(int)(750./nu));
-      break;
-    case +1:
-      l_WKB = max(46,(int)(750./nu));
-      break;
-    }
-
-    l_WKB = ptr->l[l_size_max-1]+1;
-
-    class_call(hyperspherical_HIS_create(ptw->sgnK,
-                                         nu,
-                                         l_size_max,
-                                         ptr->l,
-                                         xmin,
-                                         xmax,
-                                         sampling,
-                                         l_WKB,
-                                         &(ptw->HIS),
-                                         ptr->error_message),
-               ptr->error_message,
-               ptr->error_message);
-
-    ptw->HIS_allocated = _TRUE_; 
-  }
-
-  if (ptr->initialise_HIS_cache==_TRUE_){
-    //Try to allocate shared memory segment and copy HIS structure:
-    shmid = shmget(_SHARED_MEMORY_KEYS_START_+index_q, 
-                   sizeof(HyperInterpStruct)+
-                   hyperspherical_HIS_size(ptw->HIS.l_size, ptw->HIS.x_size), 
-                   IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
-    //printf("shmid = %d\n",shmid);
-    if (shmid<0){
-      fprintf(stderr,"Could not allocate HIS\n");
-      //printf("errno = %d. (EEXIST=%d)\n",errno,EEXIST);
-    }
-    else{
-      /*
-        printf("Allocating HIS structure for key:%08X with size %dkB\n",
-        _SHARED_MEMORY_KEYS_START_+index_q,
-        (int)(hyperspherical_HIS_size(ptw->HIS.l_size, ptw->HIS.x_size)/1024));
-      */
-      pHIS_shared = shmat (shmid, 0, 0);
-      //Memcopy: First structure, then storage
-      memcpy(pHIS_shared,&(ptw->HIS),sizeof(HyperInterpStruct));
-      memcpy((pHIS_shared+1), ptw->HIS.l,
-             hyperspherical_HIS_size(ptw->HIS.l_size,ptw->HIS.x_size));
-      shmdt(pHIS_shared);
-    }
-  }
-  
-  if (ptw->HIS_allocated == _TRUE_) {
-
-    //For each l, find lowest x such that |phi(x)| (or |j_l(x)| = phiminabs.
-    phiminabs = ppr->hyper_phi_min_abs;
-    xtol = ppr->hyper_x_tol;
-    
-    class_call(hyperspherical_get_xmin(&(ptw->HIS),
-                                       xtol,
-                                       phiminabs/1000.,
-                                       ptw->chi_at_phiminabs),
-               ptr->error_message, 
-               ptr->error_message);
   }
   
   return _SUCCESS_;

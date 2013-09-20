@@ -150,15 +150,7 @@ struct transfer_workspace {
 
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
 
-  int HIS_attached; /**< flag specifying whether HIS is attached to the shared memory zone */
-
-  int get_HIS_from_pbs; /**< flag specifying whether flat bessels should be taken from old Bessel module or new hyperspetical module */
-
-  int get_HIS_from_shared_memory; /**< flag specifying if class should try to get HIS from shared memory */
-
-  HyperInterpStruct BIS; /**< structure containing all spherical bessel functions (flat case) or all hyperspherical bessel functions for a given value of beta=q/sqrt(|K|) (non-flat case). HIS = Hyperspherical Interpolation Structure. */
-
-  int BIS_allocated;
+  HyperInterpStruct * pBIS;
 
   int index_q_flat_approximation;
 
@@ -560,6 +552,7 @@ extern "C" {
                               int get_HIS_from_pbs,
                               double K,
                               int sgnK,
+                              HyperInterpStruct * pBIS,
                               int get_HIS_from_shared_memory
                               );
 
