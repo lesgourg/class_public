@@ -1489,16 +1489,16 @@ int array_interpolate(
   * Called by background_at_eta(); background_eta_of_z(); background_solve(); thermodynamics_at_z().
   */
 int array_interpolate_spline(
-			     double * x_array,
-			     int n_lines,
-			     double * array,
-			     double * array_splined,
-			     int n_columns,
-			     double x,
-			     int * last_index,
-			     double * result,
-			     int result_size, /** from 1 to n_columns */
-			     ErrorMsg errmsg) {
+                             double * __restrict__ x_array,
+                             int n_lines,
+                             double * __restrict__ array,
+                             double * __restrict__ array_splined,
+                             int n_columns,
+                             double x,
+                             int * __restrict__ last_index,
+                             double * __restrict__ result,
+                             int result_size, /** from 1 to n_columns */
+                             ErrorMsg errmsg) {
 
   int inf,sup,mid,i;
   double h,a,b;
@@ -2776,11 +2776,11 @@ int array_smooth(double * array,
  */
 
 int array_trapezoidal_weights(
-                                 double * x,
-                                 int n,
-                                 double * w_trapz,
-                                 ErrorMsg errmsg
-                                 ) {
+                              double * __restrict__ x,
+                              int n,
+                              double * __restrict__ w_trapz,
+                              ErrorMsg errmsg
+                              ) {
   int i;
 
   /* Case with just one point, w would normally be 0. */
@@ -2810,10 +2810,10 @@ int array_trapezoidal_weights(
  */
 
 int array_trapezoidal_integral(
-                                  double * integrand,
+                                  double * __restrict__ integrand,
                                   int n,
-                                  double * w_trapz,
-                                  double *I,
+                                  double * __restrict__ w_trapz,
+                                  double * __restrict__ I,
                                   ErrorMsg errmsg
                                   ) {
   int i;
@@ -2837,11 +2837,11 @@ int array_trapezoidal_integral(
  */
 
 int array_trapezoidal_convolution(
-                                     double * integrand1,
-                                     double * integrand2,
+                                     double * __restrict__ integrand1,
+                                     double * __restrict__ integrand2,
                                      int n,
-                                     double * w_trapz,
-                                     double *I,
+                                     double * __restrict__ w_trapz,
+                                     double * __restrict__ I,
                                      ErrorMsg errmsg
                                      ) {
   int i;

@@ -28,6 +28,8 @@ int hyperspherical_HIS_create(int K,
   double deltax, beta2, lambda, x, xfwd;
   double *sqrtK, *one_over_sqrtK,*PhiL;
   int j, k, l, nx, lmax, l_recurrence_max;
+  int abort;
+
   beta2 = beta*beta;
   lmax = lvec[nl-1];
   /*
@@ -65,7 +67,7 @@ int hyperspherical_HIS_create(int K,
   //Allocate sqrtK, and PhiL:
   class_alloc(sqrtK,(lmax+3)*sizeof(double),error_message);
   class_alloc(one_over_sqrtK,(lmax+3)*sizeof(double),error_message);
-  class_alloc(PhiL,(lmax+2)*sizeof(double),error_message);
+  //class_alloc(PhiL,(lmax+2)*sizeof(double),error_message);
   
   //Find l_WKB_min, the highest l in lvec where l<l_WKB:
   l_recurrence_max = -10;
@@ -106,14 +108,6 @@ int hyperspherical_HIS_create(int K,
       sqrtK[l] = sqrt(beta2-l*l);
       one_over_sqrtK[l] = 1.0/sqrtK[l];
     }
-    if (((int) (beta+0.2))==(lmax+1)){
-      /** Take care of special case lmax = beta-1. The routine below will try to compute
-          Phi_{lmax+1} which is not allowed. However, the purpose is to calculate the derivative
-          Phi'_{lmax}, and the formula is correct if we set Phi_{lmax+1} = 0.
-      */
-      PhiL[lmax+1] = 0.0;
-      lmax--;
-    }
     break;
   case -1:
     xfwd = asinh(sqrt(l_recurrence_max*(l_recurrence_max+1.0))/beta);
@@ -133,66 +127,67 @@ int hyperspherical_HIS_create(int K,
   }  
 
   //Calculate and assign Phi and dPhi values:
-  for (j=0; j<nx; j++){
-    x = pHIS->x[j];
-    if (x<xfwd){
-      //Use backwards method:
-      hyperspherical_backwards_recurrence(K, 
-                                          min(l_recurrence_max,lmax)+1, 
-                                          beta, 
-                                          x, 
-                                          pHIS->sinK[j],
-                                          pHIS->cotK[j],
-                                          sqrtK,
-                                          one_over_sqrtK,
-                                          PhiL);
+
+  abort = _FALSE_;
+
+#pragma omp parallel         \
+  shared(nx,pHIS,xfwd,K,l_recurrence_max,beta,sqrtK,one_over_sqrtK,lvec,nl,abort,error_message) \
+  private(j,x,PhiL,k,l) \
+  firstprivate(lmax)
+  {
+    //lmax = lvec[nl-1];
+
+    class_alloc_parallel(PhiL,(lmax+2)*sizeof(double),error_message);
+
+    if ((K == 1) && ((int)(beta+0.2) == (lmax+1))) {
+      /** Take care of special case lmax = beta-1. The routine below will try to compute
+          Phi_{lmax+1} which is not allowed. However, the purpose is to calculate the derivative
+          Phi'_{lmax}, and the formula is correct if we set Phi_{lmax+1} = 0.
+      */
+      PhiL[lmax+1] = 0.0;
+      lmax--;
     }
-    else{
-      //Use forwards method:
-      hyperspherical_forwards_recurrence(K, 
-                                         min(l_recurrence_max,lmax)+1, 
-                                         beta, 
-                                         x, 
-                                         pHIS->sinK[j],
-                                         pHIS->cotK[j],
-                                         sqrtK,
-                                         one_over_sqrtK,
-                                         PhiL);
-    }
-    //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
-    for (k=0; k<=index_recurrence_max; k++){
-      l = lvec[k];
-      pHIS->phi[k*nx+j] = PhiL[l];
-      pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
-    }
-  }
-  //Do WKB for rest:
-  double *PhiLWKB, *PhiLp1WKB, *tmp;
-  int lold=-2;
-  if (index_recurrence_max<(nl-1)){
-    PhiLWKB = malloc(sizeof(double)*nx);
-    PhiLp1WKB = malloc(sizeof(double)*nx);
-    for (k=index_recurrence_max+1; k<nl; k++){
-      l = lvec[k];
-      if (l == lold+1){
-        //We swap pointers instead of computing Phi_l:
-        tmp = PhiLWKB; PhiLWKB=PhiLp1WKB;PhiLp1WKB=tmp;
+
+#pragma omp for schedule (dynamic)              \
+
+    for (j=0; j<nx; j++){
+      x = pHIS->x[j];
+      if (x<xfwd){
+        //Use backwards method:
+        hyperspherical_backwards_recurrence(K, 
+                                            min(l_recurrence_max,lmax)+1, 
+                                            beta, 
+                                            x, 
+                                            pHIS->sinK[j],
+                                            pHIS->cotK[j],
+                                            sqrtK,
+                                            one_over_sqrtK,
+                                            PhiL);
       }
       else{
-        hyperspherical_WKB_vec(l,beta, pHIS->sinK, nx, PhiLWKB);
+        //Use forwards method:
+        hyperspherical_forwards_recurrence(K, 
+                                           min(l_recurrence_max,lmax)+1, 
+                                           beta, 
+                                           x, 
+                                           pHIS->sinK[j],
+                                           pHIS->cotK[j],
+                                           sqrtK,
+                                           one_over_sqrtK,
+                                           PhiL);
       }
-      hyperspherical_WKB_vec(l+1,beta, pHIS->sinK, nx, PhiLp1WKB);
-      for (j=0; j<nx; j++){
-        pHIS->phi[k*nx+j] = PhiLWKB[j];
-        pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiLWKB[j]-sqrtK[l+1]*PhiLp1WKB[j];
+      //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
+      for (k=0; k<=index_recurrence_max; k++){
+        l = lvec[k];
+        pHIS->phi[k*nx+j] = PhiL[l];
+        pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
       }
-      lold=l;
     }
-    free(PhiLWKB);
-    free(PhiLp1WKB);
+    free(PhiL);
   }
+  if (abort == _TRUE_) return _FAILURE_;
+
   free(sqrtK);
-  free(PhiL);
 
   for (k=0; k<nl; k++){ 
     hyperspherical_get_xmin_from_approx(K,lvec[k],beta,0.,phiminabs,pHIS->chi_at_phimin+k,NULL);
@@ -236,9 +231,8 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
                                                 double *xinterp,
                                                 double *Phi,
                                                 double *dPhi,
-                                                double *d2Phi,
-                                                double *sinKinterp,
-                                                double *cosKinterp){
+                                                double *d2Phi) {
+
   /** Hermite interpolation of order 6 for Phi, dPhi, and d2Phi. When xinterp
       is sorted (increasing), computations can be reused. On the other hand, 
       for a randomly called value, the routine is not much slower than a
@@ -250,15 +244,12 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
 
   int do_function=_TRUE_, do_first_derivative=_TRUE_;
   int do_second_derivative=_TRUE_, do_first_or_second_derivative=_TRUE_;
-  int do_trig_linear = _FALSE_, do_trig_three = _FALSE_, do_trig_five = _FALSE_;
   double ym=0, yp=0, dym=0, dyp=0, d2ym=0, d2yp=0, x, z, z2, z3, z4, z5;
   double cotKm=0,cotKp=0,sinKm=0,sinKp=0, sinKm2, sinKp2;
   double d3ym = 0, d3yp=0, d4ym=0, d4yp=0;
   double a1=0, a2=0, a3=0, a4=0, a5=0;
   double b1=0, b2=0, b3=0, b4=0, b5=0;
   double c1=0, c2=0, c3=0, c4=0, c5=0;
-  double d1=0, d2=0, d3=0, d4=0, d5=0;
-  double e1=0, e2=0, e3=0, e4=0, e5=0;
   double beta, beta2, *xvec, *sinK, *cotK;
   double xmin, xmax, deltax, deltax2, lxlp1;
   double left_border, right_border, next_border;
@@ -288,15 +279,6 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
     do_first_or_second_derivative = _TRUE_;
   else
     do_first_or_second_derivative = _FALSE_;
-  if ((sinKinterp!=NULL)&&(cosKinterp!=NULL)){
-    //Select interpolation method:
-    if (pHIS->trig_order==5)
-      do_trig_five = _TRUE_;
-    else if(pHIS->trig_order==3)
-      do_trig_three = _TRUE_;
-    else
-      do_trig_linear = _TRUE_;
-  }
 
   xvec = pHIS->x;
   sinK = pHIS->sinK;
@@ -413,34 +395,6 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
         c4 = (1.5*d4ym-d4yp)*deltax2+(8*d3ym+7*d3yp)*deltax+15*(d2ym-d2yp);
         c5 = (-0.5*d4ym+0.5*d4yp)*deltax2-3*(d3ym+d3yp)*deltax-6*(d2ym-d2yp);
       }
-      if (do_trig_five==_TRUE_){
-        //sinK
-        d1 = sinKm*cotKm*deltax;
-        d2 = -K*0.5*sinKm*deltax2;
-        d3 = -K*(-1.5*sinKm+0.5*sinKp)*deltax2-(6*sinKm*cotKm+4*sinKp*cotKp)*deltax
-          -10*(sinKm-sinKp);
-        d4 = -K*(1.5*sinKm-sinKp)*deltax2+(8*sinKm*cotKm+7*sinKp*cotKp)*deltax+15*(sinKm-sinKp);
-        d5 = -K*(-0.5*sinKm+0.5*sinKp)*deltax2-3*(sinKm*cotKm+sinKp*cotKp)*deltax-6*(sinKm-sinKp);
-        //cosK:
-        e1 = -K*sinKm*deltax;
-        e2 = -K*0.5*sinKm*cotKm*deltax2;
-        e3 = -K*(-1.5*sinKm*cotKm+0.5*sinKp*cotKp)*deltax2+K*(6*sinKm+4*sinKp)*deltax-
-          10*(cotKm*sinKm-cotKp*sinKp);
-        e4 = -K*(1.5*sinKm*cotKm-sinKp*cotKp)*deltax2-K*(8*sinKm+7*sinKp)*deltax+
-          15*(cotKm*sinKm-cotKp*sinKp);
-        e5 = -K*(-0.5*sinKm*cotKm+0.5*sinKp*cotKp)*deltax2+
-          3*K*(sinKm+sinKp)*deltax-6*(cotKm*sinKm-cotKp*sinKp);
-      }
-      else if (do_trig_three==_TRUE_){
-        //sin
-        d1 = sinKm*cotKm*deltax;
-        d2 = -2*sinKm*cotKm*deltax-sinKp*cotKp*deltax-3*sinKm+3*sinKp;
-        d3 = sinKm*cotKm*deltax+sinKp*cotKp*deltax+2*sinKm-2*sinKp;
-        //cos
-        e1 = -K*sinKm*deltax;
-        e2 = 2*K*sinKm*deltax+K*sinKp*deltax-3*sinKm*cotKm+3*sinKp*cotKp;
-        e3 = -K*sinKm*deltax-K*sinKp*deltax+2*sinKm*cotKm-2*sinKp*cotKp;
-      }
     }
     //Evaluate polynomial:
     z = (x-left_border)/deltax;
@@ -459,6 +413,384 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
   return _SUCCESS_;
 }
 
+int hyperspherical_Hermite_interpolation_vector_Phi(HyperInterpStruct *pHIS,
+                                                    int nxi,
+                                                    int lnum,
+                                                    double *xinterp,
+                                                    double *Phi) {
+
+  /** Hermite interpolation of order 6 for Phi, dPhi, and d2Phi. When xinterp
+      is sorted (increasing), computations can be reused. On the other hand, 
+      for a randomly called value, the routine is not much slower than a
+      routine optimised for this case. The more sorted the vector, the faster
+      the execution time. For closed case, the interpolation structure only 
+      covers [safety;pi/2-safety]. The calling routine should respect this.
+      if sinK and cosK are not NULL, we will also interpolate them.
+  */
+
+  double ym=0, yp=0, dym=0, dyp=0, d2ym=0, d2yp=0, x, z, z2, z3, z4, z5;
+  double cotKm=0,cotKp=0,sinKm=0,sinKp=0, sinKm2, sinKp2;
+  double a1=0, a2=0, a3=0, a4=0, a5=0;
+  double beta, beta2, *xvec, *sinK, *cotK;
+  double xmin, xmax, deltax, deltax2, lxlp1;
+  double left_border, right_border, next_border;
+  int K, l, j, nx, current_border_idx=0;
+  double *Phi_l, *dPhi_l;
+  int phisign = 1, dphisign = 1;
+
+  /** Set logical flags. The compiler should probably generate 2^3-1=7
+      different functions, according to these flags. If not, maybe I should
+      do it.
+  */
+  
+  xvec = pHIS->x;
+  sinK = pHIS->sinK;
+  cotK = pHIS->cotK;
+  beta = pHIS->beta;
+  beta2 = beta*beta;
+  deltax = pHIS->delta_x;
+  deltax2 = deltax*deltax;
+  K = pHIS->K;
+  nx = pHIS->x_size;
+  Phi_l = pHIS->phi+lnum*nx;
+  dPhi_l = pHIS->dphi+lnum*nx;
+  l = pHIS->l[lnum];
+  lxlp1 = l*(l+1.0);
+  xmin = xvec[0];
+  xmax = xvec[nx-1];
+
+  left_border = xmax;
+  right_border = xmin;
+  next_border = xmin;
+
+  for (j=0; j<nxi; j++){
+    x = xinterp[j];
+    //take advantage of periodicity of functions in closed case
+    if (pHIS->K==1) 
+      ClosedModY(pHIS->l[lnum], (int)(pHIS->beta+0.2), &x, &phisign, &dphisign);
+    //Loop over output values
+    if ((x<xmin)||(x>xmax)){
+      //Outside interpolation region, set to zero.
+      Phi[j] = 0.0;
+      continue;
+    }
+    if ((x>right_border)||(x<left_border)){
+      if ((x>next_border)||(x<left_border)){
+        current_border_idx = ((int) ((x-xmin)/deltax))+1; 
+        current_border_idx = max(1,current_border_idx);
+        current_border_idx = min(nx-1,current_border_idx);
+        //printf("Current border index at jump: %d\n",current_border_idx);
+        //max operation takes care of case x = xmin,
+        //min operation takes care of case x = xmax.
+        //Calculate left derivatives:
+        cotKm = cotK[current_border_idx-1];
+        sinKm = sinK[current_border_idx-1];
+        sinKm2 = sinKm*sinKm;
+        ym = Phi_l[current_border_idx-1];
+        dym = dPhi_l[current_border_idx-1];
+        d2ym = -2*dym*cotKm+ym*(lxlp1/sinKm2-beta2+K);
+        //printf("%g %g %g %g %g\n",cotKm,sinKm,ym,dym,d2ym);
+      }
+      else{
+        //x>current_border but not next border: I have moved to next block.
+        current_border_idx++;
+        //printf("Current border index at else: %d\n",current_border_idx);
+        //Copy former right derivatives to left derivatives.
+        ym = yp;
+        dym = dyp;
+        d2ym = d2yp;
+        sinKm = sinKp;
+        cotKm = cotKp;
+      }
+      left_border = xvec[max(0,current_border_idx-1)];
+      right_border = xvec[current_border_idx];
+      next_border = xvec[min(nx-1,current_border_idx+1)];
+      //Evaluate right derivatives and calculate coefficients:
+      cotKp = cotK[current_border_idx];
+      sinKp = sinK[current_border_idx];
+      sinKp2 = sinKp*sinKp;
+      yp = Phi_l[current_border_idx];
+      dyp = dPhi_l[current_border_idx];
+      d2yp = -2*dyp*cotKp+yp*(lxlp1/sinKp2-beta2+K);
+      a1 = dym*deltax;
+      a2 = 0.5*d2ym*deltax2;
+      a3 = (-1.5*d2ym+0.5*d2yp)*deltax2-(6*dym+4*dyp)*deltax-10*(ym-yp);
+      a4 = (1.5*d2ym-d2yp)*deltax2+(8*dym+7*dyp)*deltax+15*(ym-yp);
+      a5 = (-0.5*d2ym+0.5*d2yp)*deltax2-3*(dym+dyp)*deltax-6*(ym-yp);
+    }
+    //Evaluate polynomial:
+    z = (x-left_border)/deltax;
+    z2 = z*z;
+    z3 = z2*z;
+    z4 = z2*z2;
+    z5 = z2*z3;
+    Phi[j] = (ym+a1*z+a2*z2+a3*z3+a4*z4+a5*z5)*phisign;
+    //printf("x = %g, [%g, %g, %g]\n",x,Phi[j],dPhi[j],d2Phi[j]);
+  }
+  return _SUCCESS_;
+}
+
+int hyperspherical_Hermite_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
+                                                     int nxi,
+                                                     int lnum,
+                                                     double *xinterp,
+                                                     double *dPhi) {
+
+  /** Hermite interpolation of order 6 for Phi, dPhi, and d2Phi. When xinterp
+      is sorted (increasing), computations can be reused. On the other hand, 
+      for a randomly called value, the routine is not much slower than a
+      routine optimised for this case. The more sorted the vector, the faster
+      the execution time. For closed case, the interpolation structure only 
+      covers [safety;pi/2-safety]. The calling routine should respect this.
+      if sinK and cosK are not NULL, we will also interpolate them.
+  */
+
+  double ym=0, yp=0, dym=0, dyp=0, d2ym=0, d2yp=0, x, z, z2, z3, z4, z5;
+  double cotKm=0,cotKp=0,sinKm=0,sinKp=0, sinKm2, sinKp2;
+  double d3ym = 0, d3yp=0;
+  double b1=0, b2=0, b3=0, b4=0, b5=0;
+  double beta, beta2, *xvec, *sinK, *cotK;
+  double xmin, xmax, deltax, deltax2, lxlp1;
+  double left_border, right_border, next_border;
+  int K, l, j, nx, current_border_idx=0;
+  double *Phi_l, *dPhi_l;
+  int phisign = 1, dphisign = 1;
+
+  /** Set logical flags. The compiler should probably generate 2^3-1=7
+      different functions, according to these flags. If not, maybe I should
+      do it.
+  */
+ 
+  xvec = pHIS->x;
+  sinK = pHIS->sinK;
+  cotK = pHIS->cotK;
+  beta = pHIS->beta;
+  beta2 = beta*beta;
+  deltax = pHIS->delta_x;
+  deltax2 = deltax*deltax;
+  K = pHIS->K;
+  nx = pHIS->x_size;
+  Phi_l = pHIS->phi+lnum*nx;
+  dPhi_l = pHIS->dphi+lnum*nx;
+  l = pHIS->l[lnum];
+  lxlp1 = l*(l+1.0);
+  xmin = xvec[0];
+  xmax = xvec[nx-1];
+
+  left_border = xmax;
+  right_border = xmin;
+  next_border = xmin;
+
+  for (j=0; j<nxi; j++){
+    x = xinterp[j];
+    //take advantage of periodicity of functions in closed case
+    if (pHIS->K==1) 
+      ClosedModY(pHIS->l[lnum], (int)(pHIS->beta+0.2), &x, &phisign, &dphisign);
+    //Loop over output values
+    if ((x<xmin)||(x>xmax)){
+      //Outside interpolation region, set to zero.
+      dPhi[j] = 0.0;
+    }
+    if ((x>right_border)||(x<left_border)){
+      if ((x>next_border)||(x<left_border)){
+        current_border_idx = ((int) ((x-xmin)/deltax))+1; 
+        current_border_idx = max(1,current_border_idx);
+        current_border_idx = min(nx-1,current_border_idx);
+        //printf("Current border index at jump: %d\n",current_border_idx);
+        //max operation takes care of case x = xmin,
+        //min operation takes care of case x = xmax.
+        //Calculate left derivatives:
+        cotKm = cotK[current_border_idx-1];
+        sinKm = sinK[current_border_idx-1];
+        sinKm2 = sinKm*sinKm;
+        ym = Phi_l[current_border_idx-1];
+        dym = dPhi_l[current_border_idx-1];
+        d2ym = -2*dym*cotKm+ym*(lxlp1/sinKm2-beta2+K);
+        //printf("%g %g %g %g %g\n",cotKm,sinKm,ym,dym,d2ym);
+        d3ym = -2*cotKm*d2ym-2*ym*lxlp1*cotKm/sinKm2+
+          dym*(K-beta2+(2+lxlp1)/sinKm2);
+      }
+      else{
+        //x>current_border but not next border: I have moved to next block.
+        current_border_idx++;
+        //printf("Current border index at else: %d\n",current_border_idx);
+        //Copy former right derivatives to left derivatives.
+        ym = yp;
+        dym = dyp;
+        d2ym = d2yp;
+        d3ym = d3yp;
+        sinKm = sinKp;
+        cotKm = cotKp;
+      }
+      left_border = xvec[max(0,current_border_idx-1)];
+      right_border = xvec[current_border_idx];
+      next_border = xvec[min(nx-1,current_border_idx+1)];
+      //Evaluate right derivatives and calculate coefficients:
+      cotKp = cotK[current_border_idx];
+      sinKp = sinK[current_border_idx];
+      sinKp2 = sinKp*sinKp;
+      yp = Phi_l[current_border_idx];
+      dyp = dPhi_l[current_border_idx];
+      d2yp = -2*dyp*cotKp+yp*(lxlp1/sinKp2-beta2+K);
+      d3yp = -2*cotKp*d2yp-2*yp*lxlp1*cotKp/sinKp2+
+        dyp*(K-beta2+(2+lxlp1)/sinKp2);
+      b1 = d2ym*deltax;
+      b2 = 0.5*d3ym*deltax2;
+      b3 = (-1.5*d3ym+0.5*d3yp)*deltax2-(6*d2ym+4*d2yp)*deltax-10*(dym-dyp);
+      b4 = (1.5*d3ym-d3yp)*deltax2+(8*d2ym+7*d2yp)*deltax+15*(dym-dyp);
+      b5 = (-0.5*d3ym+0.5*d3yp)*deltax2-3*(d2ym+d2yp)*deltax-6*(dym-dyp);
+    }
+    //Evaluate polynomial:
+    z = (x-left_border)/deltax;
+    z2 = z*z;
+    z3 = z2*z;
+    z4 = z2*z2;
+    z5 = z2*z3;
+    dPhi[j] = (dym+b1*z+b2*z2+b3*z3+b4*z4+b5*z5)*dphisign;
+    //printf("x = %g, [%g, %g, %g]\n",x,Phi[j],dPhi[j],d2Phi[j]);
+  }
+  return _SUCCESS_;
+}
+
+int hyperspherical_Hermite_interpolation_vector_Phi_d2Phi(HyperInterpStruct *pHIS,
+                                                          int nxi,
+                                                          int lnum,
+                                                          double *xinterp,
+                                                          double *Phi,
+                                                          double *d2Phi) {
+
+  /** Hermite interpolation of order 6 for Phi, dPhi, and d2Phi. When xinterp
+      is sorted (increasing), computations can be reused. On the other hand, 
+      for a randomly called value, the routine is not much slower than a
+      routine optimised for this case. The more sorted the vector, the faster
+      the execution time. For closed case, the interpolation structure only 
+      covers [safety;pi/2-safety]. The calling routine should respect this.
+      if sinK and cosK are not NULL, we will also interpolate them.
+  */
+
+  double ym=0, yp=0, dym=0, dyp=0, d2ym=0, d2yp=0, x, z, z2, z3, z4, z5;
+  double cotKm=0,cotKp=0,sinKm=0,sinKp=0, sinKm2, sinKp2;
+  double d3ym = 0, d3yp=0, d4ym=0, d4yp=0;
+  double a1=0, a2=0, a3=0, a4=0, a5=0;
+  double c1=0, c2=0, c3=0, c4=0, c5=0;
+  double beta, beta2, *xvec, *sinK, *cotK;
+  double xmin, xmax, deltax, deltax2, lxlp1;
+  double left_border, right_border, next_border;
+  int K, l, j, nx, current_border_idx=0;
+  double *Phi_l, *dPhi_l;
+  int phisign = 1, dphisign = 1;
+
+  /** Set logical flags. The compiler should probably generate 2^3-1=7
+      different functions, according to these flags. If not, maybe I should
+      do it.
+  */
+ 
+  xvec = pHIS->x;
+  sinK = pHIS->sinK;
+  cotK = pHIS->cotK;
+  beta = pHIS->beta;
+  beta2 = beta*beta;
+  deltax = pHIS->delta_x;
+  deltax2 = deltax*deltax;
+  K = pHIS->K;
+  nx = pHIS->x_size;
+  Phi_l = pHIS->phi+lnum*nx;
+  dPhi_l = pHIS->dphi+lnum*nx;
+  l = pHIS->l[lnum];
+  lxlp1 = l*(l+1.0);
+  xmin = xvec[0];
+  xmax = xvec[nx-1];
+
+  left_border = xmax;
+  right_border = xmin;
+  next_border = xmin;
+
+  for (j=0; j<nxi; j++){
+    x = xinterp[j];
+    //take advantage of periodicity of functions in closed case
+    if (pHIS->K==1) 
+      ClosedModY(pHIS->l[lnum], (int)(pHIS->beta+0.2), &x, &phisign, &dphisign);
+    //Loop over output values
+    if ((x<xmin)||(x>xmax)){
+      //Outside interpolation region, set to zero.
+      Phi[j] = 0.0;
+      d2Phi[j] = 0.0;
+      continue;
+    }
+    if ((x>right_border)||(x<left_border)){
+      if ((x>next_border)||(x<left_border)){
+        current_border_idx = ((int) ((x-xmin)/deltax))+1; 
+        current_border_idx = max(1,current_border_idx);
+        current_border_idx = min(nx-1,current_border_idx);
+        //printf("Current border index at jump: %d\n",current_border_idx);
+        //max operation takes care of case x = xmin,
+        //min operation takes care of case x = xmax.
+        //Calculate left derivatives:
+        cotKm = cotK[current_border_idx-1];
+        sinKm = sinK[current_border_idx-1];
+        sinKm2 = sinKm*sinKm;
+        ym = Phi_l[current_border_idx-1];
+        dym = dPhi_l[current_border_idx-1];
+        d2ym = -2*dym*cotKm+ym*(lxlp1/sinKm2-beta2+K);
+        //printf("%g %g %g %g %g\n",cotKm,sinKm,ym,dym,d2ym);
+        d3ym = -2*cotKm*d2ym-2*ym*lxlp1*cotKm/sinKm2+
+          dym*(K-beta2+(2+lxlp1)/sinKm2);
+        d4ym = -2*cotKm*d3ym + d2ym*(K-beta2+(4+lxlp1)/sinKm2)+
+          dym*(-4*(1+lxlp1)*cotKm/sinKm2)+
+          ym*(2*lxlp1/sinKm2*(2*cotKm*cotKm+1/sinKm2));
+      }
+      else{
+        //x>current_border but not next border: I have moved to next block.
+        current_border_idx++;
+        //printf("Current border index at else: %d\n",current_border_idx);
+        //Copy former right derivatives to left derivatives.
+        ym = yp;
+        dym = dyp;
+        d2ym = d2yp;
+        d3ym = d3yp;
+        d4ym = d4yp;
+        sinKm = sinKp;
+        cotKm = cotKp;
+      }
+      left_border = xvec[max(0,current_border_idx-1)];
+      right_border = xvec[current_border_idx];
+      next_border = xvec[min(nx-1,current_border_idx+1)];
+      //Evaluate right derivatives and calculate coefficients:
+      cotKp = cotK[current_border_idx];
+      sinKp = sinK[current_border_idx];
+      sinKp2 = sinKp*sinKp;
+      yp = Phi_l[current_border_idx];
+      dyp = dPhi_l[current_border_idx];
+      d2yp = -2*dyp*cotKp+yp*(lxlp1/sinKp2-beta2+K);
+      d3yp = -2*cotKp*d2yp-2*yp*lxlp1*cotKp/sinKp2+
+        dyp*(K-beta2+(2+lxlp1)/sinKp2);
+      d4yp = -2*cotKp*d3yp + d2yp*(K-beta2+(4+lxlp1)/sinKp2)+
+        dyp*(-4*(1+lxlp1)*cotKp/sinKp2)+
+        yp*(2*lxlp1/sinKp2*(2*cotKp*cotKp+1/sinKp2));
+      a1 = dym*deltax;
+      a2 = 0.5*d2ym*deltax2;
+      a3 = (-1.5*d2ym+0.5*d2yp)*deltax2-(6*dym+4*dyp)*deltax-10*(ym-yp);
+      a4 = (1.5*d2ym-d2yp)*deltax2+(8*dym+7*dyp)*deltax+15*(ym-yp);
+      a5 = (-0.5*d2ym+0.5*d2yp)*deltax2-3*(dym+dyp)*deltax-6*(ym-yp);
+      c1 = d3ym*deltax;
+      c2 = 0.5*d4ym*deltax2;
+      c3 = (-1.5*d4ym+0.5*d4yp)*deltax2-(6*d3ym+4*d3yp)*deltax-10*(d2ym-d2yp);
+      c4 = (1.5*d4ym-d4yp)*deltax2+(8*d3ym+7*d3yp)*deltax+15*(d2ym-d2yp);
+      c5 = (-0.5*d4ym+0.5*d4yp)*deltax2-3*(d3ym+d3yp)*deltax-6*(d2ym-d2yp);
+    }
+    //Evaluate polynomial:
+    z = (x-left_border)/deltax;
+    z2 = z*z;
+    z3 = z2*z;
+    z4 = z2*z2;
+    z5 = z2*z3;
+    Phi[j] = (ym+a1*z+a2*z2+a3*z3+a4*z4+a5*z5)*phisign;
+    d2Phi[j] = (d2ym+c1*z+c2*z2+c3*z3+c4*z4+c5*z5)*phisign;
+    //printf("x = %g, [%g, %g, %g]\n",x,Phi[j],dPhi[j],d2Phi[j]);
+  }
+  return _SUCCESS_;
+}
+
 int hyperspherical_forwards_recurrence(int K, 
                                        int lmax, 
                                        double beta, 
@@ -469,7 +801,6 @@ int hyperspherical_forwards_recurrence(int K,
                                        double * __restrict__ one_over_sqrtK,
                                        double * __restrict__ PhiL){
   int l;
-  double phi_lm2,phi_lm1;
   PhiL[0] = 1.0/beta*sin(beta*x)/sinK;
   PhiL[1] = PhiL[0]*(cotK-beta/tan(beta*x))*one_over_sqrtK[1];
   for (l=2; l<=lmax; l++){
@@ -668,7 +999,7 @@ int CF1_from_Gegenbauer(int l,
                             double * __restrict__ Phi){
   double e, w, w2, alpha, alpha2, t;
   double S, Q, C, argu, Ai;
-  int airy_sign = 1, phisign = 1, intbeta;
+  int airy_sign = 1, phisign = 1;
   int index_sinK;
   double one_over_alpha;
   double one_over_alpha2;
@@ -915,24 +1246,29 @@ double get_value_at_small_phi(int K,int l,double beta,double Phi){
 }
 
 int ClosedModY(int l, int beta, double *y, int * phisign, int * dphisign){
+  
   *phisign = 1;
   *dphisign = 1;
-  *y = fmod(*y,2.0*_PI_);
+
+
+  while (*y > _TWOPI_)
+    *y -= _TWOPI_;
+
   if ((*y) > _PI_){
     *y = 2.0*_PI_-(*y);
     //phisign *= pow(-1,l)
     if (l%2==1) //l is odd
-      *phisign *= -1;
+      *phisign = -*phisign;
     else        //l is even
-      *dphisign *= -1;
+      *dphisign = -*dphisign;
   }
   if ((*y)>0.5*_PI_){
     *y = _PI_-(*y);
     //phisign *= pow(-1,beta-l-1)
     if ((beta-l)%2==0) //beta-l-1 odd
-      *phisign *= -1;
+      *phisign = -*phisign;
     else               //beta-l-1 even
-      *dphisign *= -1;
+      *dphisign = -*dphisign;
   }
   return _SUCCESS_;
 }
@@ -977,7 +1313,7 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
       for (j=0; j<REFINE; j++)
         x[j] = xleft+j*(xright-xleft)/(REFINE-1.0);
       hyperspherical_Hermite_interpolation_vector(pHIS,REFINE,
-                                                  index_l, x, Phi, NULL,NULL,NULL,NULL);
+                                                  index_l, x, Phi, NULL,NULL);
       for (right_index = 1; right_index<REFINE; right_index++){
         if (fabs(Phi[right_index])>phiminabs)
           break;

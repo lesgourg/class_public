@@ -211,14 +211,14 @@ extern "C" {
 			ErrorMsg errmsg); /** from 1 to n_columns */
 
   int array_interpolate_spline(
-			       double * x_array,
+			       double * __restrict__ x_array,
 			       int n_lines,
-			       double * array,
-			       double * array_splined,
+			       double * __restrict__ array,
+			       double * __restrict__ array_splined,
 			       int n_columns,
 			       double x,
-			       int * last_index,
-			       double * result,
+			       int * __restrict__ last_index,
+			       double * __restrict__ result,
 			       int result_size, /** from 1 to n_columns */
 			       ErrorMsg errmsg);
 	
@@ -380,22 +380,22 @@ extern "C" {
 		   int radius,
 		   ErrorMsg errmsg);
 
-  int array_trapezoidal_weights(double * x,
+  int array_trapezoidal_weights(double * __restrict__ x,
                                 int n,
-                                double * w_trapz,
+                                double * __restrict__ w_trapz,
                                 ErrorMsg errmsg);
   
-  int array_trapezoidal_integral(double * integrand,
+  int array_trapezoidal_integral(double * __restrict__ integrand,
                                  int n,
-                                 double * w_trapz,
-                                 double *I,
+                                 double * __restrict__ w_trapz,
+                                 double * __restrict__ I,
                                  ErrorMsg errmsg);
   
-  int array_trapezoidal_convolution(double * integrand1,
-                                    double * integrand2,
+  int array_trapezoidal_convolution(double * __restrict__ integrand1,
+                                    double * __restrict__ integrand2,
                                     int n,
-                                    double * w_trapz,
-                                    double *I,
+                                    double * __restrict__ w_trapz,
+                                    double * __restrict__ I,
                                     ErrorMsg errmsg);
   
 #ifdef __cplusplus

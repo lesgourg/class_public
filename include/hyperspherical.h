@@ -79,9 +79,23 @@ extern "C" {
                                                   double *xinterp,
                                                   double *Phi,
                                                   double *dPhi,
-                                                  double *d2Phi,
-                                                  double *sinKinterp,
-                                                  double *cosKinterp);
+                                                  double *d2Phi);
+  int hyperspherical_Hermite_interpolation_vector_Phi(HyperInterpStruct *pHIS,
+                                                      int nxi,
+                                                      int lnum,
+                                                      double *xinterp,
+                                                      double *Phi);
+  int hyperspherical_Hermite_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
+                                                       int nxi,
+                                                       int lnum,
+                                                       double *xinterp,
+                                                       double *dPhi);
+  int hyperspherical_Hermite_interpolation_vector_Phi_d2Phi(HyperInterpStruct *pHIS,
+                                                            int nxi,
+                                                            int lnum,
+                                                            double *xinterp,
+                                                            double *Phi,
+                                                            double *d2Phi);
                                                   
   int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
                               double xtol,

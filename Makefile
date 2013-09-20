@@ -17,7 +17,7 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc -Wall #-ggdb
+CC       = gcc -Wall -g -pg #-ggdb
 #CC       = icc #-ggdb
 #CC       = pgcc
 
@@ -25,9 +25,9 @@ CC       = gcc -Wall #-ggdb
 AR        = ar rv
 
 # your optimization flag
-#OPTFLAG = -O4 -ffast-math -march=native
+OPTFLAG = -O4 -ffast-math -march=native
 #OPTFLAG = -Ofast -ffast-math #-march=native
-OPTFLAG = -fast
+#OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
 OMPFLAG   = -fopenmp
