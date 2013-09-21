@@ -31,9 +31,9 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _PI_ 3.1415926535897932384626433832795e0 /**< The number pi */
 
-#define _PIHALF_ 1.57
+#define _PIHALF_ 1.57079632679489661923132169164e0 /**< pi divided by 2 */
 
-#define _TWOPI_ 6.28
+#define _TWOPI_ 6.283185307179586476925286766559e0 /**< 2 times pi */
 
 #define _SQRT6_ 2.4494897427831780981972840747059e0 /**< square root of 6. */
 
