@@ -134,29 +134,29 @@ for (j=0; j<nxi; j++){
       dyp*(-4*(1+lxlp1)*cotKp/sinKp2)+
       yp*(2*lxlp1/sinKp2*(2*cotKp*cotKp+1/sinKp2));
 #endif
-  }
+  
 #ifdef HERMITE_DO_PHI
-  a1 = dym*deltax;
-  a2 = 0.5*d2ym*deltax2;
-  a3 = (-1.5*d2ym+0.5*d2yp)*deltax2-(6*dym+4*dyp)*deltax-10*(ym-yp);
-  a4 = (1.5*d2ym-d2yp)*deltax2+(8*dym+7*dyp)*deltax+15*(ym-yp);
-  a5 = (-0.5*d2ym+0.5*d2yp)*deltax2-3*(dym+dyp)*deltax-6*(ym-yp);
+    a1 = dym*deltax;
+    a2 = 0.5*d2ym*deltax2;
+    a3 = (-1.5*d2ym+0.5*d2yp)*deltax2-(6*dym+4*dyp)*deltax-10*(ym-yp);
+    a4 = (1.5*d2ym-d2yp)*deltax2+(8*dym+7*dyp)*deltax+15*(ym-yp);
+    a5 = (-0.5*d2ym+0.5*d2yp)*deltax2-3*(dym+dyp)*deltax-6*(ym-yp);
 #endif
 #ifdef HERMITE_DO_DPHI
-  b1 = d2ym*deltax;
-  b2 = 0.5*d3ym*deltax2;
-  b3 = (-1.5*d3ym+0.5*d3yp)*deltax2-(6*d2ym+4*d2yp)*deltax-10*(dym-dyp);
-  b4 = (1.5*d3ym-d3yp)*deltax2+(8*d2ym+7*d2yp)*deltax+15*(dym-dyp);
-  b5 = (-0.5*d3ym+0.5*d3yp)*deltax2-3*(d2ym+d2yp)*deltax-6*(dym-dyp);
+    b1 = d2ym*deltax;
+    b2 = 0.5*d3ym*deltax2;
+    b3 = (-1.5*d3ym+0.5*d3yp)*deltax2-(6*d2ym+4*d2yp)*deltax-10*(dym-dyp);
+    b4 = (1.5*d3ym-d3yp)*deltax2+(8*d2ym+7*d2yp)*deltax+15*(dym-dyp);
+    b5 = (-0.5*d3ym+0.5*d3yp)*deltax2-3*(d2ym+d2yp)*deltax-6*(dym-dyp);
 #endif
 #ifdef HERMITE_DO_D2PHI
-  c1 = d3ym*deltax;
-  c2 = 0.5*d4ym*deltax2;
-  c3 = (-1.5*d4ym+0.5*d4yp)*deltax2-(6*d3ym+4*d3yp)*deltax-10*(d2ym-d2yp);
-  c4 = (1.5*d4ym-d4yp)*deltax2+(8*d3ym+7*d3yp)*deltax+15*(d2ym-d2yp);
-  c5 = (-0.5*d4ym+0.5*d4yp)*deltax2-3*(d3ym+d3yp)*deltax-6*(d2ym-d2yp);
+    c1 = d3ym*deltax;
+    c2 = 0.5*d4ym*deltax2;
+    c3 = (-1.5*d4ym+0.5*d4yp)*deltax2-(6*d3ym+4*d3yp)*deltax-10*(d2ym-d2yp);
+    c4 = (1.5*d4ym-d4yp)*deltax2+(8*d3ym+7*d3yp)*deltax+15*(d2ym-d2yp);
+    c5 = (-0.5*d4ym+0.5*d4yp)*deltax2-3*(d3ym+d3yp)*deltax-6*(d2ym-d2yp);
 #endif
-  
+  }
   //Evaluate polynomial:
   z = (x-left_border)/deltax;
   z2 = z*z;
