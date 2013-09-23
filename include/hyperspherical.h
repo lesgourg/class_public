@@ -12,6 +12,7 @@
 #define _TRIG_PRECISSION_ 1e-7
 #define _HYPER_BLOCK_ 8
 #define _TWO_OVER_THREE_ 0.666666666666666666666666666667e0
+#define _HIS_BYTE_ALIGNMENT_ 16
 
 typedef struct HypersphericalInterpolationStructure{
   int K;                 //Sign of the curvature, (0,-1,1)
@@ -72,31 +73,7 @@ extern "C" {
                                           double cotK,
                                           double *sqrtK,
                                           double *one_over_sqrtK,
-                                          double *PhiL);
-  int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
-                                                  int nxi,
-                                                  int lnum,
-                                                  double *xinterp,
-                                                  double *Phi,
-                                                  double *dPhi,
-                                                  double *d2Phi);
-  int hyperspherical_Hermite_interpolation_vector_Phi(HyperInterpStruct *pHIS,
-                                                      int nxi,
-                                                      int lnum,
-                                                      double *xinterp,
-                                                      double *Phi);
-  int hyperspherical_Hermite_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
-                                                       int nxi,
-                                                       int lnum,
-                                                       double *xinterp,
-                                                       double *dPhi);
-  int hyperspherical_Hermite_interpolation_vector_Phi_d2Phi(HyperInterpStruct *pHIS,
-                                                            int nxi,
-                                                            int lnum,
-                                                            double *xinterp,
-                                                            double *Phi,
-                                                            double *d2Phi);
-                                                  
+                                          double *PhiL);                                                  
   int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
                               double xtol,
                               double phiminabs,
@@ -154,6 +131,57 @@ extern "C" {
   size_t hyperspherical_HIS_size(int nl, int nx);
   int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local, 
                                      void * HIS_storage_shared);
+
+  int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
+                                                  int nxi,
+                                                  int lnum,
+                                                  double *xinterp,
+                                                  double *Phi,
+                                                  double *dPhi,
+                                                  double *d2Phi);
+
+  int hyperspherical_Hermite_interpolation_vector_Phi(HyperInterpStruct *pHIS,
+                                                      int nxi,
+                                                      int lnum,
+                                                      double *xinterp,
+                                                      double *Phi);
+  int hyperspherical_Hermite_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
+                                                       int nxi,
+                                                       int lnum,
+                                                       double *xinterp,
+                                                       double *dPhi);
+  int hyperspherical_Hermite_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
+                                                        int nxi,
+                                                        int lnum,
+                                                        double *xinterp,
+                                                        double *d2Phi);
+  int hyperspherical_Hermite_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS,
+                                                           int nxi,
+                                                           int lnum,
+                                                           double *xinterp,
+                                                           double *Phi,
+                                                           double *dPhi);
+  int hyperspherical_Hermite_interpolation_vector_Phid2Phi(HyperInterpStruct *pHIS,
+                                                           int nxi,
+                                                           int lnum,
+                                                           double *xinterp,
+                                                           double *Phi,
+                                                           double *d2Phi);
+  int hyperspherical_Hermite_interpolation_vector_dPhid2Phi(HyperInterpStruct *pHIS,
+                                                           int nxi,
+                                                           int lnum,
+                                                           double *xinterp,
+                                                           double *dPhi,
+                                                           double *d2Phi);
+  int hyperspherical_Hermite_interpolation_vector_PhidPhid2Phi(HyperInterpStruct *pHIS,
+                                                               int nxi,
+                                                               int lnum,
+                                                               double *xinterp,
+                                                               double *Phi,
+                                                               double *dPhi,
+                                                               double *d2Phi);
+  
+
 #ifdef __cplusplus
 }
 #endif
