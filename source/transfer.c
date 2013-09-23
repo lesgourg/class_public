@@ -106,7 +106,6 @@ int transfer_functions_at_q(
  * @param pba Input : pointer to background structure 
  * @param pth Input : pointer to thermodynamics structure 
  * @param ppt Input : pointer to perturbation structure
- * @param pbs Input : pointer to bessels structure
  * @param ptr Output: pointer to initialized transfers structure
  * @return the error status
  */
@@ -116,7 +115,6 @@ int transfer_init(
                   struct background * pba,
                   struct thermo * pth,
                   struct perturbs * ppt,
-                  struct bessels * pbs,
                   struct transfers * ptr
                   ) {
 
@@ -201,7 +199,7 @@ int transfer_init(
   /** - initialize all indices in the transfers structure and 
       allocate all its arrays using transfer_indices_of_transfers() */
 
-  class_call(transfer_indices_of_transfers(ppr,ppt,pbs,ptr,tau0,pba->K,pba->sgnK),
+  class_call(transfer_indices_of_transfers(ppr,ppt,ptr,tau0,pba->K,pba->sgnK),
              ptr->error_message,
              ptr->error_message);
 
@@ -237,7 +235,7 @@ int transfer_init(
 
   xmax = ptr->q[ptr->q_size-1]*tau0;
   if (pba->sgnK == -1)
-    xmax *= (ptr->l[ptr->l_size_max-1]/ppr->bessel_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->bessel_flat_approximation_nu);
+    xmax *= (ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu);
 
   class_call(hyperspherical_HIS_create(0,
                                        1.,
@@ -263,7 +261,7 @@ int transfer_init(
   /* beginning of parallel region */
   
 #pragma omp parallel                                                    \
-  shared(tau_size_max,pbs,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS) \
+  shared(tau_size_max,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS) \
   private(ptw,thread,index_q,tstart,tstop,tspent)
   {
     
@@ -279,11 +277,9 @@ int transfer_init(
                                                 &ptw,
                                                 ppt->tau_size,
                                                 tau_size_max,
-                                                pbs->use_pbs,
                                                 pba->K,
                                                 pba->sgnK,
-                                                &BIS,
-                                                pbs->get_HIS_from_shared_memory),
+                                                &BIS),
                         ptr->error_message,
                         ptr->error_message);
     
@@ -299,7 +295,6 @@ int transfer_init(
       
       /* Update interpolation structure: */
       class_call_parallel(transfer_update_HIS(ppr,
-                                              pbs,
                                               ptr,
                                               ptw,
                                               index_q,
@@ -406,7 +401,6 @@ int transfer_free(
  *
  * @param ppr Input : pointer to precision structure 
  * @param ppt Input : pointer to perturbation structure
- * @param pbs Input : pointer to bessels structure
  * @param ptr Input/Output: pointer to transfer structure
  * @param rs_rec  Input : comoving distance to recombination
  * @return the error status
@@ -415,7 +409,6 @@ int transfer_free(
 int transfer_indices_of_transfers(
                                   struct precision * ppr,
                                   struct perturbs * ppt,
-                                  struct bessels * pbs,
                                   struct transfers * ptr,
                                   double tau0,
                                   double K,
@@ -544,7 +537,7 @@ int transfer_indices_of_transfers(
              ptr->error_message);
 
   /** get l values using transfer_get_l_list() */
-  class_call(transfer_get_l_list(ppr,ppt,pbs,ptr),
+  class_call(transfer_get_l_list(ppr,ppt,ptr),
              ptr->error_message,
              ptr->error_message);
 
@@ -631,7 +624,6 @@ int transfer_perturbation_source_spline_free(
  *
  * @param ppr  Input : pointer to precision structure
  * @param ppt  Input : pointer to perturbation structure
- * @param pbs  Input : pointer to bessels structure
  * @param ptr  Input/Output : pointer to transfers structure containing l's
  * @return the error status
  */
@@ -639,7 +631,6 @@ int transfer_perturbation_source_spline_free(
 int transfer_get_l_list(
                         struct precision * ppr,
                         struct perturbs * ppt,
-                        struct bessels * pbs,
                         struct transfers * ptr
                         ) {
 
@@ -649,94 +640,99 @@ int transfer_get_l_list(
   int index_tt;
   int increment,current_l;
 
-  /* allocate and fill l array */
+  /* check that largests need value of l_max */
 
-  if (pbs->use_pbs == _TRUE_) {
+  if (ppt->has_cls == _TRUE_) {
+
+    if (ppt->has_scalars == _TRUE_) {
+      
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) || 
+          (ppt->has_cl_cmb_polarization == _TRUE_) || 
+          (ppt->has_cl_cmb_lensing_potential == _TRUE_))
+        l_max=max(ppt->l_scalar_max,l_max);
+
+      if ((ppt->has_cl_lensing_potential == _TRUE_) || 
+          (ppt->has_cl_density == _TRUE_))
+        l_max=max(ppt->l_lss_max,l_max);
+    }
     
-    /* take directly from Bessel module) */
-    
-    ptr->l_size_max = pbs->l_size;
-    
-    class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
-    
-    for (index_l=0; index_l < ptr->l_size_max; index_l++)
-      ptr->l[index_l]=pbs->l[index_l];
+    if (ppt->has_tensors == _TRUE_)
+      l_max=max(ppt->l_tensor_max,l_max);
+
   }
 
-  else {
+  /* allocate and fill l array */
 
-    /** - start from l = 2 and increase with logarithmic step */
+  /** - start from l = 2 and increase with logarithmic step */
 
-    index_l = 0;
-    current_l = 2;
+  index_l = 0;
+  current_l = 2;
+  increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+  
+  while (((current_l+increment) < l_max) && 
+         (increment < ppr->l_linstep)) {
+    
+    index_l ++;
+    current_l += increment;
     increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
     
-    while (((current_l+increment) < pbs->l_max) && 
-           (increment < ppr->l_linstep)) {
-      
-      index_l ++;
-      current_l += increment;
-      increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+  }
 
-    }
+  /** - when the logarithmic step becomes larger than some linear step, 
+      stick to this linear step till l_max */
+  
+  increment = ppr->l_linstep;
+  
+  while ((current_l+increment) <= l_max) {
+    
+    index_l ++;
+    current_l += increment;
+    
+  }
 
-    /** - when the logarithmic step becomes larger than some linear step, 
-        stick to this linear step till l_max */
-
-    increment = ppr->l_linstep;
-
-    while ((current_l+increment) <= pbs->l_max) {
-
-      index_l ++;
-      current_l += increment;
-
-    }
-
-    /** - last value set to exactly l_max */
-
-    if (current_l != pbs->l_max) {
-
-      index_l ++;
-      current_l = pbs->l_max;
-
-    } 
-
-    ptr->l_size_max = index_l+1;
-
-    /** - so far we just counted the number of values. Now repeat the
-        whole thing but fill array with values. */
-
-    class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
-
-    index_l = 0;
-    ptr->l[0] = 2;
-    increment = max((int)(ptr->l[0] * (ppr->l_logstep-1.)),1);
-
-    while (((ptr->l[index_l]+increment) < pbs->l_max) && 
-           (increment < ppr->l_linstep)) {
-      
-      index_l ++;
-      ptr->l[index_l]=ptr->l[index_l-1]+increment;
-      increment = max((int)(ptr->l[index_l] * (ppr->l_logstep-1.)),1);
- 
-    }
-
-    increment = ppr->l_linstep;
-
-    while ((ptr->l[index_l]+increment) <= pbs->l_max) {
-
-      index_l ++;
-      ptr->l[index_l]=ptr->l[index_l-1]+increment;
- 
-    }
-
-    if (ptr->l[index_l] != pbs->l_max) {
-
-      index_l ++;
-      ptr->l[index_l]= pbs->l_max;
-       
-    }
-
+  /** - last value set to exactly l_max */
+  
+  if (current_l != l_max) {
+    
+    index_l ++;
+    current_l = l_max;
+    
+  } 
+  
+  ptr->l_size_max = index_l+1;
+  
+  /** - so far we just counted the number of values. Now repeat the
+      whole thing but fill array with values. */
+  
+  class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
+  
+  index_l = 0;
+  ptr->l[0] = 2;
+  increment = max((int)(ptr->l[0] * (ppr->l_logstep-1.)),1);
+  
+  while (((ptr->l[index_l]+increment) < l_max) && 
+         (increment < ppr->l_linstep)) {
+    
+    index_l ++;
+    ptr->l[index_l]=ptr->l[index_l-1]+increment;
+    increment = max((int)(ptr->l[index_l] * (ppr->l_logstep-1.)),1);
+    
+  }
+  
+  increment = ppr->l_linstep;
+  
+  while ((ptr->l[index_l]+increment) <= l_max) {
+    
+    index_l ++;
+    ptr->l[index_l]=ptr->l[index_l-1]+increment;
+    
+  }
+  
+  if (ptr->l[index_l] != l_max) {
+    
+    index_l ++;
+    ptr->l[index_l]= l_max;
+    
   }
 
   /* for each mode and type, find relevant size of l array,
@@ -750,28 +746,29 @@ int transfer_get_l_list(
 
     for (index_tt=0;index_tt<ptr->tt_size[index_md];index_tt++) {
 
-      if _scalars_ {
+      if (_scalars_) {
 
-          if ((ppt->has_cl_cmb_temperature == _TRUE_) && 
-              ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2)))
-            l_max=ppt->l_scalar_max;
-
-          if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
-            l_max=ppt->l_scalar_max;
-
-          if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
-            l_max=ppt->l_scalar_max;
-
-          if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
-            l_max=ppt->l_lss_max;
+        if ((ppt->has_cl_cmb_temperature == _TRUE_) && 
+            ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2)))
+          l_max=ppt->l_scalar_max;
         
-          if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
-            l_max=ppt->l_lss_max;
+        if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
+          l_max=ppt->l_scalar_max;
         
-        }
+        if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
+          l_max=ppt->l_scalar_max;
+        
+        if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
+          l_max=ppt->l_lss_max;
+        
+        if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
+          l_max=ppt->l_lss_max;
+        
+      }
       
-      if _tensors_
+      if (_tensors_) {
         l_max = ppt->l_tensor_max;
+      }
 
       class_test(l_max > ptr->l[ptr->l_size_max-1],
                  ptr->error_message,
@@ -780,18 +777,18 @@ int transfer_get_l_list(
                  index_tt,
                  l_max,
                  ptr->l[ptr->l_size_max-1]);
-
+      
       index_l=0;
       while (ptr->l[index_l] < l_max) index_l++;
       ptr->l_size_tt[index_md][index_tt]=index_l+1;
-
+      
       if (ptr->l_size_tt[index_md][index_tt] < ptr->l_size_max)
         ptr->l_size_tt[index_md][index_tt]++;
       if (ptr->l_size_tt[index_md][index_tt] < ptr->l_size_max)
         ptr->l_size_tt[index_md][index_tt]++;
-
+      
       ptr->l_size[index_md] = max(ptr->l_size[index_md],ptr->l_size_tt[index_md][index_tt]);
-
+      
     }
   }
    
@@ -2873,7 +2870,6 @@ int transfer_selection_compute(
  * 
  * @param ppr                   Input : pointer to precision structure 
  * @param ppt                   Input : pointer to perturbation structure
- * @param pbs                   Input : pointer to bessels structure 
  * @param ptr                   Input/output : pointer to transfers structure (result stored there)
  * @param tau0                  Input : conformal time today
  * @param tau_rec               Input : conformal time at recombination
@@ -3035,7 +3031,6 @@ int transfer_use_limber(
  * bessels structure).
  *
  * @param ppt                   Input : pointer to perturbation structure
- * @param pbs                   Input : pointer to bessels structure 
  * @param ptr                   Input : pointer to transfers structure
  * @param tau0                  Input : conformal time today
  * @param tau_rec               Input : conformal time at recombination
@@ -3621,7 +3616,7 @@ int transfer_radial_function(
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j];
-     break;
+    break;
   case TENSOR_POLARISATION_E:
     hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
@@ -3737,70 +3732,15 @@ int transfer_select_radial_function(
 
 } 
 
-int transfer_init_HIS_from_bessel(
-                                  struct bessels * pbs,
-                                  struct transfers * ptr,
-                                  HyperInterpStruct *pHIS
-                                  ) {
-
-  /* The purpose of this function is to populate a flat Hyperspherical
-     Interpolation Structure from the Bessel structure. The Bessel
-     structure must have been computed on an l-independent x-grid.
-  */
-  int x_size, index_l, index_x;
-  double xmin, x;
-  
-  /* Check the Bessels structure for compatibility: */
-  x_size=pbs->x_size[0];
-  xmin = *(pbs->x_min[0]);
-  for (index_l=1; index_l<pbs->l_size; index_l++){
-    class_test(x_size!=pbs->x_size[index_l],
-               ptr->error_message,
-               "pbs->x_size[%d]=%d, not equal to pbs->x_size[0]=%d.\n",
-               index_l,pbs->x_size[index_l],x_size);
-    class_test(fabs(xmin-*(pbs->x_min[index_l]))>100*DBL_EPSILON,
-               ptr->error_message,
-               "*(pbs->xmin[%d])=%.16e, should have been %.16e.\n",
-               index_l,*(pbs->x_min[index_l]),xmin);
-  }
-  /* Set and copy all fields of HIS: */
-  pHIS->K = 0;
-  pHIS->beta = 1;
-  pHIS->delta_x = pbs->x_step;
-  pHIS->x_size = x_size;
-  pHIS->l_size = pbs->l_size;
-  pHIS->trig_order=5;
-  /* Allocate storage in pHIS: */
-  class_alloc(pHIS->l,hyperspherical_HIS_size(pHIS->l_size, pHIS->x_size),ptr->error_message);
-  /* Set pointers: */
-  hyperspherical_update_pointers(pHIS, pHIS->l);
-  
-  for(index_x=0; index_x<x_size; index_x++){
-    x = xmin+index_x*pbs->x_step;
-    pHIS->x[index_x] = x;
-    pHIS->sinK[index_x] = x;
-    pHIS->cotK[index_x] = 1.0/x;
-  }
-  memcpy(pHIS->l, pbs->l, pbs->l_size*sizeof(int));
-  for (index_l=0; index_l<pbs->l_size; index_l++)
-    memcpy(pHIS->phi+index_l*x_size,pbs->j[index_l],sizeof(double)*x_size);
-  for (index_l=0; index_l<pbs->l_size; index_l++)
-    memcpy(pHIS->dphi+index_l*x_size,pbs->dj[index_l],sizeof(double)*x_size);
-  return _SUCCESS_;
-}
-
-
 int transfer_workspace_init(
                             struct transfers * ptr,
                             struct precision * ppr,
                             struct transfer_workspace **ptw,
                             int perturb_tau_size,
                             int tau_size_max,
-                            int get_HIS_from_pbs,
                             double K,
                             int sgnK,
-                            HyperInterpStruct * pBIS,
-                            int get_HIS_from_shared_memory){
+                            HyperInterpStruct * pBIS){
 
   double q_approximation;
 
@@ -3811,7 +3751,7 @@ int transfer_workspace_init(
   (*ptw)->HIS_allocated=_FALSE_;
   (*ptw)->pBIS = pBIS;
 
-  q_approximation = ppr->bessel_flat_approximation_nu * sqrt(sgnK*K);
+  q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
   for ((*ptw)->index_q_flat_approximation=0; 
        (*ptw)->index_q_flat_approximation < ptr->q_size;
        (*ptw)->index_q_flat_approximation++) {
@@ -3856,7 +3796,6 @@ int transfer_workspace_free(
 
 int transfer_update_HIS( 
                         struct precision * ppr,
-                        struct bessels * pbs,
                         struct transfers * ptr,
                         struct transfer_workspace * ptw,
                         int index_q,

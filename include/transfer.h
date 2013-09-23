@@ -237,7 +237,6 @@ extern "C" {
                     struct background * pba,
                     struct thermo * pth,
                     struct perturbs * ppt,
-                    struct bessels * pbs,
                     struct transfers * ptr
                     );
     
@@ -248,7 +247,6 @@ extern "C" {
   int transfer_indices_of_transfers(
                                     struct precision * ppr,
                                     struct perturbs * ppt,
-                                    struct bessels * pbs,
                                     struct transfers * ptr,
                                     double tau0,
                                     double K,
@@ -270,7 +268,6 @@ extern "C" {
   int transfer_get_l_list(
                           struct precision * ppr,
                           struct perturbs * ppt,
-                          struct bessels * pbs,
                           struct transfers * ptr
                           );
 
@@ -536,7 +533,6 @@ extern "C" {
                                );
 
   int transfer_init_HIS_from_bessel(
-                                    struct bessels * pbs,
                                     struct transfers * ptr,
                                     HyperInterpStruct *pHIS
                                     );
@@ -547,11 +543,9 @@ extern "C" {
                               struct transfer_workspace **ptw,
                               int perturb_tau_size,
                               int tau_size_max,
-                              int get_HIS_from_pbs,
                               double K,
                               int sgnK,
-                              HyperInterpStruct * pBIS,
-                              int get_HIS_from_shared_memory
+                              HyperInterpStruct * pBIS
                               );
 
   int transfer_workspace_free(
@@ -561,7 +555,6 @@ extern "C" {
 
   int transfer_update_HIS( 
                           struct precision * ppr,
-                          struct bessels * pbs,
                           struct transfers * ptr,
                           struct transfer_workspace * ptw,
                           int index_q,

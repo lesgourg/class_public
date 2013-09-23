@@ -502,34 +502,6 @@ struct precision
 
   //@}
 
-  /** @name - parameters related to Bessel functions (old pbs module) */
-
-  //@{
-
-  int l_linstep; /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
-  double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
-
-  double bessel_x_step; /**< in pbs module only: step dx for sampling Bessel functions \f$ j_l(x) \f$ */
-  double bessel_j_cut; /**< value of \f$ j_l \f$ below which it is approximated by zero (in the region \f$ x \ll l \f$) */
-  double bessel_tol_x_min;  /**< precision with which x_min such that j_l(x_min)=j_cut is found (order of magnitude set by k_min) */
-  FileName bessel_file_name; /**< name of file where Bessel functions will evnetually be written or read */
-
-  double bessel_flat_approximation_nu;
-
-  //@}
-
-  /** @name - parameters related to Bessel functions (new hypersherical module) */
-
-  //@{
-
-  double hyper_x_min;
-  double hyper_sampling_flat;
-  double hyper_sampling_curved;
-  double hyper_phi_min_abs;
-  double hyper_x_tol;
-
-  //@}
-
   /** @name - parameters related to the primordial spectra */
 
   //@{
@@ -553,6 +525,18 @@ struct precision
   /** @name - parameters related to the transfer function */
 
   //@{
+
+  int l_linstep; /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
+
+  double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
+
+  /* parameters relevant for bessel functions */
+  double hyper_x_min;
+  double hyper_sampling_flat;
+  double hyper_sampling_curved;
+  double hyper_phi_min_abs;
+  double hyper_x_tol;
+  double hyper_flat_approximation_nu;
 
   double k_step_trans; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
 

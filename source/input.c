@@ -21,7 +21,6 @@ int input_init_from_arguments(
                               struct background *pba,
                               struct thermo *pth,
                               struct perturbs *ppt,
-                              struct bessels * pbs,
                               struct transfers *ptr,
                               struct primordial *ppm,
                               struct spectra *psp,
@@ -115,7 +114,6 @@ int input_init_from_arguments(
                         pba,
                         pth,
                         ppt,
-                        pbs,
                         ptr,
                         ppm,
                         psp,
@@ -144,7 +142,6 @@ int input_init(
                struct background *pba,
                struct thermo *pth,
                struct perturbs *ppt,
-               struct bessels * pbs,
                struct transfers *ptr,
                struct primordial *ppm,
                struct spectra *psp,
@@ -199,7 +196,6 @@ int input_init(
   class_call(input_default_params(pba,
                                   pth,
                                   ppt,
-                                  pbs,
                                   ptr,
                                   ppm,
                                   psp,
@@ -1371,24 +1367,6 @@ int input_init(
     }
   }
   
-  class_call(parser_read_string(pfc,
-                                "bessel file",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
-	     
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-    pbs->bessel_always_recompute = _FALSE_;
-  }
-
-  class_read_int("use_pbs",pbs->use_pbs);
-  if (pba->sgnK != 0) {
-    pbs->use_pbs = _FALSE_;
-  }
-  class_read_int("usesharedmemory",pbs->get_HIS_from_shared_memory);
-
   /** (f) parameter related to the non-linear spectra computation */
 
   class_call(parser_read_string(pfc,
@@ -1444,9 +1422,6 @@ int input_init(
 
   class_read_int("perturbations_verbose",
                  ppt->perturbations_verbose);
-
-  class_read_int("bessels_verbose",
-                 pbs->bessels_verbose);
 
   class_read_int("transfer_verbose",
                  ptr->transfer_verbose);
@@ -1603,22 +1578,6 @@ int input_init(
     
   }
   
-  /** h.4. parameter related to the Bessel functions */
-
-  class_read_double("l_logstep",ppr->l_logstep);
-  class_read_int("l_linstep",ppr->l_linstep);
-  class_read_double("bessel_x_step",ppr->bessel_x_step);
-  class_read_double("bessel_j_cut",ppr->bessel_j_cut);
-  class_read_double("bessel_tol_x_min",ppr->bessel_tol_x_min);
-  class_read_string("bessel_file_name",ppr->bessel_file_name);
-  class_read_double("bessel_flat_approximation_nu",ppr->bessel_flat_approximation_nu);
-
-  class_read_double("hyper_x_min",ppr->hyper_x_min);
-  class_read_double("hyper_sampling_flat",ppr->hyper_sampling_flat);
-  class_read_double("hyper_sampling_curved",ppr->hyper_sampling_curved);
-  class_read_double("hyper_phi_min_abs",ppr->hyper_phi_min_abs);
-  class_read_double("hyper_x_tol",ppr->hyper_x_tol);
-
   /** h.5. parameter related to the primordial spectra */
 
   class_read_double("k_per_decade_primordial",ppr->k_per_decade_primordial);
@@ -1635,6 +1594,16 @@ int input_init(
   class_read_double("primordial_inflation_tol_curvature",ppr->primordial_inflation_tol_curvature);
 
   /** h.6. parameter related to the transfer functions */
+
+  class_read_double("l_logstep",ppr->l_logstep);
+  class_read_int("l_linstep",ppr->l_linstep);
+
+  class_read_double("hyper_x_min",ppr->hyper_x_min);
+  class_read_double("hyper_sampling_flat",ppr->hyper_sampling_flat);
+  class_read_double("hyper_sampling_curved",ppr->hyper_sampling_curved);
+  class_read_double("hyper_phi_min_abs",ppr->hyper_phi_min_abs);
+  class_read_double("hyper_x_tol",ppr->hyper_x_tol);
+  class_read_double("hyper_flat_approximation_nu",ppr->hyper_flat_approximation_nu);
 
   class_read_double("k_step_trans_scalars",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans_tensors",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
@@ -1709,40 +1678,7 @@ int input_init(
   if (ple->has_lensed_cls == _TRUE_)
     ppt->l_scalar_max+=ppr->delta_l_max;
 
-  /* check various l_max */
-
-  pbs->l_max=0;
-  pbs->x_max=0;
-
-  if (ppt->has_cls == _TRUE_) {
-
-    if (ppt->has_scalars == _TRUE_) {
-      
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) || 
-          (ppt->has_cl_cmb_polarization == _TRUE_) || 
-          (ppt->has_cl_cmb_lensing_potential == _TRUE_))
-        pbs->l_max=max(ppt->l_scalar_max,pbs->l_max);
-
-      if ((ppt->has_cl_lensing_potential == _TRUE_) || 
-          (ppt->has_cl_density == _TRUE_))
-        pbs->l_max=max(ppt->l_lss_max,pbs->l_max);
-
-      pbs->x_max=max(pbs->l_max*ppr->k_max_tau0_over_l_max,pbs->x_max);
-      
-    }
-    
-    if (ppt->has_tensors == _TRUE_) {   
-      pbs->l_max=max(ppt->l_tensor_max,pbs->l_max);
-
-      pbs->x_max=max(pbs->l_max*ppr->k_max_tau0_over_l_max,pbs->x_max);
-    }
-  }
-
-  pbs->x_step = ppr->bessel_x_step;
-
-  pbs->x_max = ((int)(pbs->x_max * 1.01 / pbs->x_step)+1)*pbs->x_step;
-
-  /** (i) shall we wrtie background quantitites in a file? */
+  /** (i) shall we write background quantitites in a file? */
 
   class_call(parser_read_string(pfc,"write background",&string1,&flag1,errmsg),
              errmsg,
@@ -1795,7 +1731,7 @@ int input_init(
              errmsg,
              errmsg);
 
-  if ((flag1 == _FALSE_) || ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)))) {
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
     for (i=0; i<pfc->size; i++) {
       if (pfc->read[i] == _FALSE_)
@@ -1813,7 +1749,6 @@ int input_init(
  * @param pba Input : pointer to background structure 
  * @param pth Input : pointer to thermodynamics structure 
  * @param ppt Input : pointer to perturbation structure
- * @param pbs Input : pointer to bessels structure
  * @param ptr Input : pointer to transfer structure 
  * @param ppm Input : pointer to primordial structure 
  * @param psp Input : pointer to spectra structure
@@ -1825,7 +1760,6 @@ int input_default_params(
                          struct background *pba,
                          struct thermo *pth,
                          struct perturbs *ppt,
-                         struct bessels * pbs,
                          struct transfers *ptr,
                          struct primordial *ppm,
                          struct spectra *psp,
@@ -1926,13 +1860,6 @@ int input_default_params(
 
   ppt->gauge=synchronous;
 
-  /** - bessels structure */
-
-  pbs->l_max = max(max(ppt->l_scalar_max,ppt->l_tensor_max),ppt->l_lss_max);
-  pbs->bessel_always_recompute = _TRUE_;
-  pbs->use_pbs = _TRUE_;
-  pbs->get_HIS_from_shared_memory = _FALSE_;
-  
   /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
@@ -2034,7 +1961,6 @@ int input_default_params(
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
   ppt->perturbations_verbose = 0;
-  pbs->bessels_verbose = 0;
   ptr->transfer_verbose = 0;
   ppm->primordial_verbose = 0;
   psp->spectra_verbose = 0;
@@ -2185,25 +2111,6 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.; 
 
   /**
-   * - parameter related to the Bessel functions
-   */
-
-  ppr->l_logstep=1.15;
-  ppr->l_linstep=40;
-
-  ppr->bessel_x_step=0.5;
-  ppr->bessel_j_cut=1.e-5;
-  ppr->bessel_tol_x_min =1.e-4;
-  sprintf(ppr->bessel_file_name,"bessels.dat");
-  ppr->bessel_flat_approximation_nu = 10000.;
-
-  ppr->hyper_x_min = 1.e-7;          // TBC
-  ppr->hyper_sampling_flat = 3.;     // TBC
-  ppr->hyper_sampling_curved = 3.;   // TBC
-  ppr->hyper_phi_min_abs = 1.e-5;    // TBC
-  ppr->hyper_x_tol = 1.e-4;          // TBC
-
-  /**
    * - parameter related to the primordial spectra
    */
 
@@ -2225,6 +2132,16 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
+  ppr->l_logstep=1.15;
+  ppr->l_linstep=40;
+
+  ppr->hyper_x_min = 1.e-7;          // TBC
+  ppr->hyper_sampling_flat = 3.;     // TBC
+  ppr->hyper_sampling_curved = 3.;   // TBC
+  ppr->hyper_phi_min_abs = 1.e-5;    // TBC
+  ppr->hyper_x_tol = 1.e-4;          // TBC
+  ppr->hyper_flat_approximation_nu = 10000.; // TBC
+
   ppr->k_step_trans=0.4;
 
   ppr->transfer_neglect_delta_k_S_t0 = 0.15;
