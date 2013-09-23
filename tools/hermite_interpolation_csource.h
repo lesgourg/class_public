@@ -71,7 +71,7 @@ for (j=0; j<nxi; j++){
 #ifdef HERMITE_DO_D2PHI
     d2Phi[j] = 0.0;
 #endif
-    return _SUCCESS_;
+    continue;
   }
   if ((x>right_border)||(x<left_border)){
     if ((x>next_border)||(x<left_border)){
