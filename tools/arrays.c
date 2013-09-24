@@ -1083,16 +1083,14 @@ int array_spline_table_columns2(
   shared(x,x_size,y_array,y_size,ddy_array,spline_mode,p,qn,un,u)   \
   private(index_y,index_x,sig,dy_first,dy_last)
   {
-
-    index_x=0;
     
 #pragma omp for schedule (dynamic)
 
     for (index_y=0; index_y < y_size; index_y++) {
       
       if (spline_mode == _SPLINE_NATURAL_) {
-        ddy_array[index_y*x_size+index_x] = 0.0;
-        u[index_x*y_size+index_y] = 0.0;
+        ddy_array[index_y*x_size+0] = 0.0;
+        u[0*y_size+index_y] = 0.0;
       }
       else {
         dy_first = 
@@ -1102,9 +1100,9 @@ int array_spline_table_columns2(
            (y_array[index_y*x_size+2]-y_array[index_y*x_size+0]))/
           ((x[2]-x[0])*(x[1]-x[0])*(x[2]-x[1]));
         
-        ddy_array[index_y*x_size+index_x] = -0.5;
+        ddy_array[index_y*x_size+0] = -0.5;
         
-        u[index_x*y_size+index_y] =
+        u[0*y_size+index_y] =
           (3./(x[1] -  x[0]))*
           ((y_array[index_y*x_size+1]-y_array[index_y*x_size+0])/
            (x[1] - x[0])-dy_first);
