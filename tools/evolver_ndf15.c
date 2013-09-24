@@ -754,7 +754,7 @@ int calc_C(struct jacobian *jac){
 }
 
 /* Subroutine that interpolates from information stored in dif */
-int interp_from_dif(double tinterp,double tnew,double *ynew,double h,double **dif,int k, double *yinterp,
+int interp_from_difold(double tinterp,double tnew,double *ynew,double h,double **dif,int k, double *yinterp,
 		    double *ypinterp, double *yppinterp, int* index, int neq, int output){
   /* Output=1: only y_vector. Output=2: y and y prime. Output=3: y, yp and ypp*/
   int i,j,m,l,p,factor;
@@ -828,6 +828,54 @@ int interp_from_dif(double tinterp,double tnew,double *ynew,double h,double **di
 	  yppinterp[i] = sumj/(h*h);
 	}
       }
+    }
+  }
+  return _SUCCESS_;
+}
+
+/* Subroutine that interpolates from information stored in dif */
+int interp_from_dif(double tinterp,
+                    double tnew,
+                    double *ynew,
+                    double h,
+                    double **dif,
+                    int k, 
+                    double *yinterp,
+		    double *ypinterp, 
+                    double *yppinterp, 
+                    int* mask, 
+                    int neq, 
+                    int output){
+  /* Output=1: only y_vector. Output=2: y and y prime. Output=3: y, yp and ypp*/
+  double fact,prod,sumfrac;
+  double vecy[5]={0.,0.,0.,0.,0.};
+  double vecdy[5]={0.,0.,0.,0.,0.};
+  int j, index_x;
+  double s, sumtmp, sumtmp2;
+
+  s = (tinterp - tnew)/h;
+  
+  prod = 1.0;
+  sumfrac = 0.;
+  fact = 1.0;
+  for (j=0; j<k; j++){
+    prod *= (s+j);
+    fact *= (j+1);
+    sumfrac += 1.0/(s+j);
+    vecy[j] = prod/fact;
+    vecdy[j] = prod*sumfrac/(h*fact);
+  }
+
+  for (index_x=1; index_x<=neq; index_x++){
+    if (mask[index_x]==_TRUE_){
+      sumtmp = 0;
+      sumtmp2 = 0;
+      for (j=0; j<k; j++){
+        sumtmp += vecy[j]*dif[index_x][j+1];
+        sumtmp2 += vecdy[j]*dif[index_x][j+1];
+      }
+      yinterp[index_x] = ynew[index_x] + sumtmp;
+      ypinterp[index_x] = sumtmp2;
     }
   }
   return _SUCCESS_;
