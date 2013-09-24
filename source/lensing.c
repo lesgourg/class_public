@@ -209,6 +209,7 @@ int lensing_init(
               ple->error_message);
 
   if (ppr->accurate_lensing == _TRUE_) {
+
     //debut = omp_get_wtime();
     class_call(quadrature_gauss_legendre(mu,
                                          w8,

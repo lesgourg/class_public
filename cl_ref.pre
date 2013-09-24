@@ -86,15 +86,12 @@ k_per_decade_primordial = 10.
 l_logstep=1.026
 l_linstep=25
 
-#hyper_x_min = 1.e-7
 hyper_x_min = 1.e-5
-hyper_sampling_flat = 8.
+hyper_sampling_flat = 6.
 hyper_sampling_curved = 3.
 hyper_phi_min_abs = 1.e-10
 hyper_x_tol = 1.e-4
-#hyper_phi_min_abs = 1.e-15
-#hyper_x_tol = 1.e-6
-hyper_flat_approximation_nu = 10000.
+hyper_flat_approximation_nu = 10000. //
 
 k_step_trans=0.2
 transfer_neglect_delta_k_S_t0 = 0.25; // 0.15;
@@ -110,6 +107,8 @@ transfer_neglect_delta_k_T_t2 = 100.;
 transfer_neglect_delta_k_T_e = 100.;
 transfer_neglect_delta_k_T_b = 100.;
 
+neglect_CMB_sources_below_visibility = 1.e-30;
+transfer_neglect_late_source = 3000.;
 
 evolver=0
 

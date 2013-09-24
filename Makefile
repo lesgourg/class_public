@@ -25,7 +25,7 @@ CC       = gcc -Wall -g -pg #-ggdb
 AR        = ar rv
 
 # your optimization flag
-OPTFLAG = -O4 -ffast-math #-march=native
+OPTFLAG = -O4 -ffast-math -march=native
 #OPTFLAG = -Ofast -ffast-math #-march=native
 #OPTFLAG = -fast
 
