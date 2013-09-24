@@ -81,16 +81,21 @@ ncdm_fluid_trigger_tau_over_tau_k = 51.
 
 tol_ncdm = 1.e-10
 
+k_per_decade_primordial = 10.
+
 l_logstep=1.026
 l_linstep=25
 
-bessel_x_step=0.05
-bessel_j_cut=5.e-10
-bessel_tol_x_min =1.e-4
-bessel_file_name=bessel_large.dat
+#hyper_x_min = 1.e-7
+hyper_x_min = 1.e-5
+hyper_sampling_flat = 8.
+hyper_sampling_curved = 3.
+hyper_phi_min_abs = 1.e-10
+hyper_x_tol = 1.e-4
+#hyper_phi_min_abs = 1.e-15
+#hyper_x_tol = 1.e-6
+hyper_flat_approximation_nu = 10000.
 
-k_per_decade_primordial = 10.
-  
 k_step_trans=0.2
 transfer_neglect_delta_k_S_t0 = 0.25; // 0.15;
 transfer_neglect_delta_k_S_t1 = 0.08; // 0.025;

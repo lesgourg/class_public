@@ -3475,7 +3475,13 @@ int transfer_radial_function(
   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   double rescale_factor;
-  int debug;
+  int (*interpolate_Phi)();
+  int (*interpolate_dPhi)();
+  int (*interpolate_Phid2Phi)();
+  int (*interpolate_PhidPhi)();
+  int (*interpolate_PhidPhid2Phi)();
+  short interpolation_order;
+
   K = ptw->K;
   k2 = k*k;
 
@@ -3499,6 +3505,8 @@ int transfer_radial_function(
     pHIS = ptw->pBIS;
 
     rescale_factor = 1.;
+
+    interpolation_order = 4;
   }
 
   else {
@@ -3508,6 +3516,8 @@ int transfer_radial_function(
       pHIS = &(ptw->HIS);
 
       rescale_factor = 1.;
+
+      interpolation_order = 4;
     }
     else {
       
@@ -3517,7 +3527,24 @@ int transfer_radial_function(
         rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
       else
         rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
+
+      interpolation_order = 6;
     }
+  }
+
+  if (interpolation_order == 4) {
+    interpolate_Phi = hyperspherical_Hermite4_interpolation_vector_Phi;
+    interpolate_dPhi = hyperspherical_Hermite4_interpolation_vector_Phi;
+    interpolate_PhidPhi = hyperspherical_Hermite4_interpolation_vector_Phi;
+    interpolate_Phid2Phi = hyperspherical_Hermite4_interpolation_vector_Phi;
+    interpolate_PhidPhid2Phi = hyperspherical_Hermite4_interpolation_vector_Phi;
+  }
+  else {
+    interpolate_Phi = hyperspherical_Hermite6_interpolation_vector_Phi;
+    interpolate_dPhi = hyperspherical_Hermite6_interpolation_vector_Phi;
+    interpolate_PhidPhi = hyperspherical_Hermite6_interpolation_vector_Phi;
+    interpolate_Phid2Phi = hyperspherical_Hermite6_interpolation_vector_Phi;
+    interpolate_PhidPhid2Phi = hyperspherical_Hermite6_interpolation_vector_Phi;
   }
 
   //Reverse chi
@@ -3550,7 +3577,8 @@ int transfer_radial_function(
 
   switch (radial_type){
   case SCALAR_TEMPERATURE_0:
-    hyperspherical_Hermite4_interpolation_vector_Phi(pHIS, x_size, index_l, chireverse, Phi);
+    interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi);
+    //hyperspherical_Hermite4_interpolation_vector_Phi(pHIS, x_size, index_l, chireverse, Phi);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = Phi[j];
