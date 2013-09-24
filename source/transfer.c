@@ -261,7 +261,7 @@ int transfer_init(
   /* beginning of parallel region */
   
 #pragma omp parallel                                                    \
-  shared(tau_size_max,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS) \
+  shared(tau_size_max,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS,tau0) \
   private(ptw,thread,index_q,tstart,tstop,tspent)
   {
     
@@ -279,6 +279,7 @@ int transfer_init(
                                                 tau_size_max,
                                                 pba->K,
                                                 pba->sgnK,
+                                                tau0-pth->tau_cut,
                                                 &BIS),
                         ptr->error_message,
                         ptr->error_message);
@@ -1739,6 +1740,17 @@ int transfer_compute_for_each_q(
               q_max_bessel = ptr->q[ptr->q_size-1];
             }
 
+            /* neglect late time CMB sources when l is above threshold */
+            class_call(transfer_late_source_can_be_neglected(ppr,
+                                                             ppt,
+                                                             ptr,
+                                                             index_md,
+                                                             index_tt,
+                                                             l,
+                                                             &(ptw->neglect_late_source)),
+                       ptr->error_message,
+                       ptr->error_message);
+            
             /* compute the transfer function for this l */
             class_call(transfer_compute_for_each_l(
                                                    ptw,
@@ -3162,6 +3174,17 @@ int transfer_integrate(
     }
   }
 
+  if (ptw->neglect_late_source == _TRUE_) {
+
+    while (tau0_minus_tau[index_tau_max] < ptw->tau0_minus_tau_cut) {
+      index_tau_max--;
+      if (index_tau_max < 0) {
+        *trsf = 0.;
+        return _SUCCESS_;
+      } 
+    }
+  }
+
   /** Compute the radial function: */
   radial_function = malloc(sizeof(double)*(index_tau_max+1));
   class_call(transfer_radial_function(
@@ -3446,6 +3469,45 @@ int transfer_can_be_neglected(
       else if ((index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*pba->conformal_age)) *neglect = _TRUE_;
 
     }
+
+  return _SUCCESS_;
+
+}
+
+int transfer_late_source_can_be_neglected(
+                                          struct precision * ppr,
+                                          struct perturbs * ppt,
+                                          struct transfers * ptr,
+                                          int index_md,
+                                          int index_tt,
+                                          double l,
+                                          short * neglect) {
+  
+  *neglect = _FALSE_;
+  
+  if (l > ppr->transfer_neglect_late_source) {
+    
+    if (_scalars_) {
+      if ((index_tt == ptr->index_tt_t0) ||
+          (index_tt == ptr->index_tt_t1) ||
+          (index_tt == ptr->index_tt_t2) ||
+          (index_tt == ptr->index_tt_e))
+          *neglect = _TRUE_;
+    }
+    else if (_vectors_) {
+      if ((index_tt == ptr->index_tt_t1) ||
+          (index_tt == ptr->index_tt_t2) ||
+          (index_tt == ptr->index_tt_e) ||
+          (index_tt == ptr->index_tt_b))
+        *neglect = _TRUE_;
+    }
+    else if (_tensors_) {
+      if ((index_tt == ptr->index_tt_t2) ||
+          (index_tt == ptr->index_tt_e) ||
+          (index_tt == ptr->index_tt_b))
+        *neglect = _TRUE_;
+    }
+  }
 
   return _SUCCESS_;
 
@@ -3775,6 +3837,7 @@ int transfer_workspace_init(
                             int tau_size_max,
                             double K,
                             int sgnK,
+                            double tau0_minus_tau_cut,
                             HyperInterpStruct * pBIS){
 
   double q_approximation;
@@ -3786,16 +3849,22 @@ int transfer_workspace_init(
   (*ptw)->HIS_allocated=_FALSE_;
   (*ptw)->pBIS = pBIS;
 
-  q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
-  for ((*ptw)->index_q_flat_approximation=0; 
-       (*ptw)->index_q_flat_approximation < ptr->q_size;
-       (*ptw)->index_q_flat_approximation++) {
-    if (ptr->q[(*ptw)->index_q_flat_approximation] > q_approximation) break;
+  if (sgnK != 0) {
+    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
+    for ((*ptw)->index_q_flat_approximation=0; 
+         (*ptw)->index_q_flat_approximation < ptr->q_size;
+         (*ptw)->index_q_flat_approximation++) {
+      if (ptr->q[(*ptw)->index_q_flat_approximation] > q_approximation) break;
+    }
+    if (ptr->transfer_verbose > 1)
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d",
+             ptr->q_size-(*ptw)->index_q_flat_approximation,ptr->q_size);
   }
-  fprintf(stderr,"approx at %d, max index %d, for q=%e\n",(*ptw)->index_q_flat_approximation,ptr->q_size-1,q_approximation);
 
   (*ptw)->K = K;
   (*ptw)->sgnK = sgnK;
+  (*ptw)->tau0_minus_tau_cut = tau0_minus_tau_cut;
+  (*ptw)->neglect_late_source = _FALSE_;
 
   class_alloc((*ptw)->interpolated_sources,perturb_tau_size*sizeof(double),ptr->error_message);
   class_alloc((*ptw)->sources,tau_size_max*sizeof(double),ptr->error_message);
@@ -3851,8 +3920,7 @@ int transfer_update_HIS(
 
   if ((ptw->sgnK!=0) && (index_q < ptw->index_q_flat_approximation)) {
 
-    xmin = ppr->hyper_x_min; //Will be changed to _HYPER_SAFETY_ by routine
-    xmin = max(xmin,_HYPER_SAFETY_);
+    xmin = ppr->hyper_x_min;
 
     sqrt_absK = sqrt(ptw->sgnK*ptw->K);
     
@@ -3860,7 +3928,7 @@ int transfer_update_HIS(
     nu = ptr->q[index_q]/sqrt_absK;
     
     if (ptw->sgnK == 1) {
-      xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
+      xmax = min(xmax,_PI_/2.0-ppr->hyper_x_min); //We only need solution on [0;pi/2]
       
       int_nu = (int)(nu+0.2);
       new_nu = (double)int_nu;

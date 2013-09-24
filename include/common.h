@@ -500,6 +500,8 @@ struct precision
    */
   double ncdm_fluid_trigger_tau_over_tau_k;
 
+  double neglect_CMB_sources_below_visibility;
+
   //@}
 
   /** @name - parameters related to the primordial spectra */
@@ -554,6 +556,8 @@ struct precision
   double transfer_neglect_delta_k_T_e;
   double transfer_neglect_delta_k_T_b;
 
+  double transfer_neglect_late_source;
+
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;
 
@@ -571,14 +575,6 @@ struct precision
 
   /** controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
   double selection_tophat_edge;
-
-  //@}
-
-  /** @name - parameters related to spectra */
-
-  //@{
-
-  int spectra_integration_method;
 
   //@}
 

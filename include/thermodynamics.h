@@ -184,6 +184,7 @@ struct thermo
   double tau_d;   /**< baryon drag time */
   double ds_d;    /**< physical sound horizon at baryon drag */
   double rs_d;    /**< comoving sound horizon at baryon drag */
+  double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
 
   //@}
 

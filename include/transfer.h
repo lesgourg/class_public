@@ -10,11 +10,6 @@
 #include <sys/stat.h>
 #include "errno.h"
 
-/** Written as hex, "c1a55" should be read as "class". 
-    The next 4096 keys will also have c1a55 in front.
-    This is nice when you use ipcs -m*/
-#define _SHARED_MEMORY_KEYS_START_ 0xc1a55000
-
 /**
  * Structure containing everything about transfer functions in
  * harmonic space \f$ \Delta_l^{X} (q) \f$ that other modules need to
@@ -192,6 +187,9 @@ struct transfer_workspace {
   int sgnK; /**< 0 (flat), 1 (positive curvature, spherical, closed), -1 (negative curvature, hyperbolic, open) */
 
   //@}
+
+  double tau0_minus_tau_cut;
+  short neglect_late_source;
 };
 
 /**
@@ -512,6 +510,15 @@ extern "C" {
                                 short * neglect
                                 );
 
+  int transfer_late_source_can_be_neglected(
+                                            struct precision * ppr,
+                                            struct perturbs * ppt,
+                                            struct transfers * ptr,
+                                            int index_md,
+                                            int index_tt,
+                                            double l,
+                                            short * neglect);
+
   int transfer_select_radial_function(
                                       struct perturbs * ppt,
                                       struct transfers * ptr,
@@ -545,6 +552,7 @@ extern "C" {
                               int tau_size_max,
                               double K,
                               int sgnK,
+                              double tau0_minus_tau_cut,
                               HyperInterpStruct * pBIS
                               );
 

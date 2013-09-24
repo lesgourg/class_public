@@ -271,6 +271,8 @@ int thermodynamics_init(
   struct reionization * preio;
 
   double tau;
+  double g_max;
+  int index_tau_max;
 
   /** - initialize pointers, allocate background vector */
 
@@ -600,6 +602,9 @@ int thermodynamics_init(
     index_tau--;
   }
   
+  g_max = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g];
+  index_tau_max = index_tau;
+
   /* approximation for maximum of g, using cubic interpolation, assuming equally spaced z's */
   pth->z_rec=pth->z_table[index_tau+1]+0.5*(pth->z_table[index_tau+1]-pth->z_table[index_tau])*(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g])/(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g]+pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g]);
 
@@ -667,6 +672,17 @@ int thermodynamics_init(
 
   pth->rs_d=pvecback[pba->index_bg_rs];
   pth->ds_d=pth->rs_d*pba->a_today/(1.+pth->z_d);
+
+  /** - find time above which visibility falls below a given fraction of its maximum */
+
+  index_tau=index_tau_max;
+  while (pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g] > 
+         g_max * ppr->neglect_CMB_sources_below_visibility)
+    index_tau--;
+
+  class_call(background_tau_of_z(pba,pth->z_table[index_tau],&(pth->tau_cut)),
+             pba->error_message,
+             pth->error_message);
 
   /** - if verbose flag set to next-to-minimum value, print the main results */
 

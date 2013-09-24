@@ -1577,6 +1577,8 @@ int input_init(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
     
   }
+
+  class_read_double("neglect_CMB_sources_below_visibility",ppr->neglect_CMB_sources_below_visibility);
   
   /** h.5. parameter related to the primordial spectra */
 
@@ -1621,6 +1623,8 @@ int input_init(
   class_read_double("transfer_neglect_delta_k_T_t2",ppr->transfer_neglect_delta_k_T_t2);
   class_read_double("transfer_neglect_delta_k_T_e",ppr->transfer_neglect_delta_k_T_e);
   class_read_double("transfer_neglect_delta_k_T_b",ppr->transfer_neglect_delta_k_T_b);
+
+  class_read_double("transfer_neglect_late_source",ppr->transfer_neglect_late_source);
 
   class_read_double("l_switch_limber",ppr->l_switch_limber);
   class_read_double("l_switch_limber_for_cl_density_over_z",ppr->l_switch_limber_for_cl_density_over_z);
@@ -2110,6 +2114,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
   ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.; 
 
+  ppr->neglect_CMB_sources_below_visibility = 1.e-4;
+
   /**
    * - parameter related to the primordial spectra
    */
@@ -2156,6 +2162,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_neglect_delta_k_T_t2 = 1.;  //TBC
   ppr->transfer_neglect_delta_k_T_e = 1.;   //TBC
   ppr->transfer_neglect_delta_k_T_b = 1.;   //TBC
+
+  ppr->transfer_neglect_late_source = 500.;
 
   ppr->l_switch_limber=10.;
   ppr->l_switch_limber_for_cl_density_over_z=30.;
