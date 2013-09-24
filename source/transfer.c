@@ -580,13 +580,13 @@ int transfer_perturbation_source_spline(
                     ppt->k_size*ppt->tau_size*sizeof(double),
                     ptr->error_message);
 
-        class_call(array_spline_table_columns(ppt->k,
-                                              ppt->k_size,
-                                              ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                              ppt->tau_size,
-                                              sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                              _SPLINE_EST_DERIV_,
-                                              ptr->error_message),
+        class_call(array_spline_table_columns2(ppt->k,
+                                               ppt->k_size,
+                                               ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                               ppt->tau_size,
+                                               sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                               _SPLINE_EST_DERIV_,
+                                               ptr->error_message),
                    ptr->error_message,
                    ptr->error_message);
         

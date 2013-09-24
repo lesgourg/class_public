@@ -1037,6 +1037,145 @@ int array_spline_table_columns(
   return _SUCCESS_;
  }
 
+int array_spline_table_columns2(
+		       double * x, /* vector of size x_size */
+		       int x_size,
+		       double * y_array, /* array of size x_size*y_size with elements 
+					  y_array[index_y*x_size+index_x] */
+		       int y_size,    
+		       double * ddy_array, /* array of size x_size*y_size */
+		       short spline_mode,
+		       ErrorMsg errmsg
+		       ) {
+
+  double * p;
+  double * qn;
+  double * un; 
+  double * u;
+  double sig;
+  int index_x;
+  int index_y;
+  double dy_first;
+  double dy_last;
+
+  u = malloc((x_size-1) * y_size * sizeof(double));
+  p = malloc(y_size * sizeof(double));
+  qn = malloc(y_size * sizeof(double));
+  un = malloc(y_size * sizeof(double));
+  if (u == NULL) {
+    sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
+    return _FAILURE_;
+  }
+  if (p == NULL) {
+    sprintf(errmsg,"%s(L:%d) Cannot allocate p",__func__,__LINE__);
+    return _FAILURE_;
+  }
+  if (qn == NULL) {
+    sprintf(errmsg,"%s(L:%d) Cannot allocate qn",__func__,__LINE__);
+    return _FAILURE_;
+  }
+  if (un == NULL) {
+    sprintf(errmsg,"%s(L:%d) Cannot allocate un",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+#pragma omp parallel                                                \
+  shared(x,x_size,y_array,y_size,ddy_array,spline_mode,p,qn,un,u)   \
+  private(index_y,index_x,sig,dy_first,dy_last)
+  {
+
+    index_x=0;
+    
+#pragma omp for schedule (dynamic)
+
+    for (index_y=0; index_y < y_size; index_y++) {
+      
+      if (spline_mode == _SPLINE_NATURAL_) {
+        ddy_array[index_y*x_size+index_x] = 0.0;
+        u[index_x*y_size+index_y] = 0.0;
+      }
+      else {
+        dy_first = 
+          ((x[2]-x[0])*(x[2]-x[0])*
+           (y_array[index_y*x_size+1]-y_array[index_y*x_size+0])-
+           (x[1]-x[0])*(x[1]-x[0])*
+           (y_array[index_y*x_size+2]-y_array[index_y*x_size+0]))/
+          ((x[2]-x[0])*(x[1]-x[0])*(x[2]-x[1]));
+        
+        ddy_array[index_y*x_size+index_x] = -0.5;
+        
+        u[index_x*y_size+index_y] =
+          (3./(x[1] -  x[0]))*
+          ((y_array[index_y*x_size+1]-y_array[index_y*x_size+0])/
+           (x[1] - x[0])-dy_first);
+        
+      }
+
+      for (index_x=1; index_x < x_size-1; index_x++) {
+        
+        sig = (x[index_x] - x[index_x-1])/(x[index_x+1] - x[index_x-1]);
+        
+        p[index_y] = sig * ddy_array[index_y*x_size+(index_x-1)] + 2.0;
+        
+        ddy_array[index_y*x_size+index_x] = (sig-1.0)/p[index_y];
+        
+        u[index_x*y_size+index_y] =	
+          (y_array[index_y*x_size+(index_x+1)] - y_array[index_y*x_size+index_x])
+          / (x[index_x+1] - x[index_x])
+          - (y_array[index_y*x_size+index_x] - y_array[index_y*x_size+(index_x-1)])
+          / (x[index_x] - x[index_x-1]);
+        
+        u[index_x*y_size+index_y] = (6.0 * u[index_x*y_size+index_y] /
+                                     (x[index_x+1] - x[index_x-1])
+                                     - sig * u[(index_x-1)*y_size+index_y]) / p[index_y];
+        
+      }
+      
+      if (spline_mode == _SPLINE_NATURAL_) {
+        
+        qn[index_y]=un[index_y]=0.0;
+        
+      }
+      else {
+
+        dy_last = 
+          ((x[x_size-3]-x[x_size-1])*(x[x_size-3]-x[x_size-1])*
+           (y_array[index_y*x_size+(x_size-2)]-y_array[index_y*x_size+(x_size-1)])-
+           (x[x_size-2]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*
+           (y_array[index_y*x_size+(x_size-3)]-y_array[index_y*x_size+(x_size-1)]))/
+          ((x[x_size-3]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*(x[x_size-3]-x[x_size-2]));
+        
+        qn[index_y]=0.5;
+        
+        un[index_y]=
+          (3./(x[x_size-1] - x[x_size-2]))*
+          (dy_last-(y_array[index_y*x_size+(x_size-1)] - y_array[index_y*x_size+(x_size-2)])/
+           (x[x_size-1] - x[x_size-2]));	
+        
+      }
+      
+      index_x=x_size-1;
+      
+      ddy_array[index_y*x_size+index_x] =
+        (un[index_y] - qn[index_y] * u[(index_x-1)*y_size+index_y]) /
+        (qn[index_y] * ddy_array[index_y*x_size+(index_x-1)] + 1.0);
+      
+      for (index_x=x_size-2; index_x >= 0; index_x--) {
+        
+        ddy_array[index_y*x_size+index_x] = ddy_array[index_y*x_size+index_x] *
+          ddy_array[index_y*x_size+(index_x+1)] + u[index_x*y_size+index_y];
+        
+      }
+    }
+  }
+  free(qn);
+  free(p);
+  free(u);
+  free(un);
+
+  return _SUCCESS_;
+ }
+
 int array_spline_table_one_column(
 		       double * x, /* vector of size x_size */
 		       int x_size,
