@@ -140,6 +140,13 @@ extern "C" {
                                                   double *dPhi,
                                                   double *d2Phi);
 
+  int hyperspherical_Hermite3_interpolation_vector_Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *Phi);
+  int hyperspherical_Hermite3_interpolation_vector_dPhi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *dPhi);
+  int hyperspherical_Hermite3_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *d2Phi);
+  int hyperspherical_Hermite3_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *Phi,double *dPhi);
+  int hyperspherical_Hermite3_interpolation_vector_Phid2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *Phi,double *d2Phi);
+  int hyperspherical_Hermite3_interpolation_vector_dPhid2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *dPhi,double *d2Phi);
+  int hyperspherical_Hermite3_interpolation_vector_PhidPhid2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *Phi,double *dPhi,double *d2Phi);
   int hyperspherical_Hermite4_interpolation_vector_Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *Phi);
   int hyperspherical_Hermite4_interpolation_vector_dPhi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *dPhi);
   int hyperspherical_Hermite4_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *d2Phi);
