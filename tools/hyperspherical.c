@@ -1297,12 +1297,13 @@ int hyperspherical_get_xmin_from_approx(int K,
   return _SUCCESS_;
 }
 
-/** Generate the 2^3-1 non-trivial versions of the function 
-    hyperspherical_Hermite_interpolation_vector() using the
+/** Generate the 2^3-1 non-trivial versions of the functions 
+    hyperspherical_Hermite4_interpolation_vectorXXX() and 
+    hyperspherical_Hermite6_interpolation_vectorXXX() using the
     preprocessor. Apologise in advance, but speed for this function
     is important and it is better than manual copy-paste.
 */
-int hyperspherical_Hermite_interpolation_vector_Phi(HyperInterpStruct *pHIS,
+int hyperspherical_Hermite4_interpolation_vector_Phi(HyperInterpStruct *pHIS,
                                                     int nxi,
                                                     int lnum,
                                                     double * xinterp,
@@ -1311,10 +1312,10 @@ int hyperspherical_Hermite_interpolation_vector_Phi(HyperInterpStruct *pHIS,
 #undef HERMITE_DO_DPHI
 #undef HERMITE_DO_D2PHI
 #define HERMITE_DO_PHI
-#include "hermite_interpolation_csource.h"
+#include "hermite4_interpolation_csource.h"
   return _SUCCESS_;
 }
-int hyperspherical_Hermite_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
+int hyperspherical_Hermite4_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
                                                     int nxi,
                                                     int lnum,
                                                     double * xinterp,
@@ -1323,10 +1324,10 @@ int hyperspherical_Hermite_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
 #undef HERMITE_DO_DPHI
 #undef HERMITE_DO_D2PHI
 #define HERMITE_DO_DPHI
-#include "hermite_interpolation_csource.h"
+#include "hermite4_interpolation_csource.h"
   return _SUCCESS_;
 }
-int hyperspherical_Hermite_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
+int hyperspherical_Hermite4_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
                                                     int nxi,
                                                     int lnum,
                                                     double * xinterp,
@@ -1335,10 +1336,10 @@ int hyperspherical_Hermite_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
 #undef HERMITE_DO_DPHI
 #undef HERMITE_DO_D2PHI
 #define HERMITE_DO_D2PHI
-#include "hermite_interpolation_csource.h"
+#include "hermite4_interpolation_csource.h"
   return _SUCCESS_;
 }
-int hyperspherical_Hermite_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS,
+int hyperspherical_Hermite4_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS,
                                                         int nxi,
                                                         int lnum,
                                                         double * xinterp,
@@ -1349,10 +1350,10 @@ int hyperspherical_Hermite_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS,
 #undef HERMITE_DO_D2PHI
 #define HERMITE_DO_PHI
 #define HERMITE_DO_DPHI
-#include "hermite_interpolation_csource.h"
+#include "hermite4_interpolation_csource.h"
   return _SUCCESS_;
 }
-int hyperspherical_Hermite_interpolation_vector_Phid2Phi(HyperInterpStruct *pHIS,
+int hyperspherical_Hermite4_interpolation_vector_Phid2Phi(HyperInterpStruct *pHIS,
                                                          int nxi,
                                                          int lnum,
                                                          double * xinterp,
@@ -1363,10 +1364,10 @@ int hyperspherical_Hermite_interpolation_vector_Phid2Phi(HyperInterpStruct *pHIS
 #undef HERMITE_DO_D2PHI
 #define HERMITE_DO_PHI
 #define HERMITE_DO_D2PHI
-#include "hermite_interpolation_csource.h"
+#include "hermite4_interpolation_csource.h"
   return _SUCCESS_;
 }
-int hyperspherical_Hermite_interpolation_vector_dPhid2Phi(HyperInterpStruct *pHIS,
+int hyperspherical_Hermite4_interpolation_vector_dPhid2Phi(HyperInterpStruct *pHIS,
                                                          int nxi,
                                                          int lnum,
                                                          double * xinterp,
@@ -1377,11 +1378,11 @@ int hyperspherical_Hermite_interpolation_vector_dPhid2Phi(HyperInterpStruct *pHI
 #undef HERMITE_DO_D2PHI
 #define HERMITE_DO_DPHI
 #define HERMITE_DO_D2PHI
-#include "hermite_interpolation_csource.h"
+#include "hermite4_interpolation_csource.h"
   return _SUCCESS_;
 }
 
-int hyperspherical_Hermite_interpolation_vector_PhidPhid2Phi(HyperInterpStruct *pHIS,
+int hyperspherical_Hermite4_interpolation_vector_PhidPhid2Phi(HyperInterpStruct *pHIS,
                                                              int nxi,
                                                              int lnum,
                                                              double * xinterp,
@@ -1394,7 +1395,102 @@ int hyperspherical_Hermite_interpolation_vector_PhidPhid2Phi(HyperInterpStruct *
 #define HERMITE_DO_PHI
 #define HERMITE_DO_DPHI
 #define HERMITE_DO_D2PHI
-#include "hermite_interpolation_csource.h"
+#include "hermite4_interpolation_csource.h"
+  return _SUCCESS_;
+}
+int hyperspherical_Hermite6_interpolation_vector_Phi(HyperInterpStruct *pHIS,
+                                                    int nxi,
+                                                    int lnum,
+                                                    double * xinterp,
+                                                    double * Phi) {
+#undef HERMITE_DO_PHI
+#undef HERMITE_DO_DPHI
+#undef HERMITE_DO_D2PHI
+#define HERMITE_DO_PHI
+#include "hermite6_interpolation_csource.h"
+  return _SUCCESS_;
+}
+int hyperspherical_Hermite6_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
+                                                    int nxi,
+                                                    int lnum,
+                                                    double * xinterp,
+                                                    double * dPhi) {
+#undef HERMITE_DO_PHI
+#undef HERMITE_DO_DPHI
+#undef HERMITE_DO_D2PHI
+#define HERMITE_DO_DPHI
+#include "hermite6_interpolation_csource.h"
+  return _SUCCESS_;
+}
+int hyperspherical_Hermite6_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
+                                                    int nxi,
+                                                    int lnum,
+                                                    double * xinterp,
+                                                    double * d2Phi) {
+#undef HERMITE_DO_PHI
+#undef HERMITE_DO_DPHI
+#undef HERMITE_DO_D2PHI
+#define HERMITE_DO_D2PHI
+#include "hermite6_interpolation_csource.h"
+  return _SUCCESS_;
+}
+int hyperspherical_Hermite6_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS,
+                                                        int nxi,
+                                                        int lnum,
+                                                        double * xinterp,
+                                                        double * Phi,
+                                                        double * dPhi) {
+#undef HERMITE_DO_PHI
+#undef HERMITE_DO_DPHI
+#undef HERMITE_DO_D2PHI
+#define HERMITE_DO_PHI
+#define HERMITE_DO_DPHI
+#include "hermite6_interpolation_csource.h"
+  return _SUCCESS_;
+}
+int hyperspherical_Hermite6_interpolation_vector_Phid2Phi(HyperInterpStruct *pHIS,
+                                                         int nxi,
+                                                         int lnum,
+                                                         double * xinterp,
+                                                         double * Phi,
+                                                         double * d2Phi) {
+#undef HERMITE_DO_PHI
+#undef HERMITE_DO_DPHI
+#undef HERMITE_DO_D2PHI
+#define HERMITE_DO_PHI
+#define HERMITE_DO_D2PHI
+#include "hermite6_interpolation_csource.h"
+  return _SUCCESS_;
+}
+int hyperspherical_Hermite6_interpolation_vector_dPhid2Phi(HyperInterpStruct *pHIS,
+                                                         int nxi,
+                                                         int lnum,
+                                                         double * xinterp,
+                                                         double * dPhi,
+                                                         double * d2Phi) {
+#undef HERMITE_DO_PHI
+#undef HERMITE_DO_DPHI
+#undef HERMITE_DO_D2PHI
+#define HERMITE_DO_DPHI
+#define HERMITE_DO_D2PHI
+#include "hermite6_interpolation_csource.h"
+  return _SUCCESS_;
+}
+
+int hyperspherical_Hermite6_interpolation_vector_PhidPhid2Phi(HyperInterpStruct *pHIS,
+                                                             int nxi,
+                                                             int lnum,
+                                                             double * xinterp,
+                                                             double *Phi,
+                                                             double * dPhi,
+                                                             double * d2Phi) {
+#undef HERMITE_DO_PHI
+#undef HERMITE_DO_DPHI
+#undef HERMITE_DO_D2PHI
+#define HERMITE_DO_PHI
+#define HERMITE_DO_DPHI
+#define HERMITE_DO_D2PHI
+#include "hermite6_interpolation_csource.h"
   return _SUCCESS_;
 }
 
