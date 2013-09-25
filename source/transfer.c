@@ -327,9 +327,9 @@ int transfer_init(
     } /* end of loop over wavenumber */
     
     /* free workspace allocated inside parallel zone */
-    class_call(transfer_workspace_free(ptr,ptw),
-               ptr->error_message,
-               ptr->error_message);
+    class_call_parallel(transfer_workspace_free(ptr,ptw),
+                        ptr->error_message,
+                        ptr->error_message);
 
 #ifdef _OPENMP
     if (ptr->transfer_verbose>1)
