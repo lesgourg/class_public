@@ -12,7 +12,6 @@ int main(int argc, char **argv) {
   struct background ba;       /* for cosmological background */
   struct thermo th;           /* for thermodynamics */
   struct perturbs pt;         /* for source functions */
-  struct bessels bs;          /* for bessel functions */
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
@@ -21,7 +20,7 @@ int main(int argc, char **argv) {
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error messages */
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -41,12 +40,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (bessel_init(&pr,&bs) == _FAILURE_) {
-    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
-
-  if (transfer_init(&pr,&ba,&th,&pt,&bs,&tr) == _FAILURE_) {
+  if (transfer_init(&pr,&ba,&th,&pt,&tr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
@@ -99,20 +93,21 @@ int main(int argc, char **argv) {
     if ((tr.l[index_l] > 1990) && (tr.l[index_l] < 2000)) { 
         for (index_q=0; index_q<tr.q_size; index_q++) { 
 
-      /*      
-      transfer = tr.transfer[index_mode]
-	[((index_ic * tr.tt_size[index_mode] + index_type)
-	  * tr.l_size[index_mode] + index_l)
-	 * tr.k_size + index_k];
-     */
+          /* use this to plot a single type : */
 
-      /* full temperature transfer function: */
-
+          transfer = tr.transfer[index_mode]
+            [((index_ic * tr.tt_size[index_mode] + index_type)
+              * tr.l_size[index_mode] + index_l)
+             * tr.q_size + index_q];
+          
+          /* use this to plot the full temperature transfer function: */
+          /*
           transfer = 
             tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
             tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
             tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q];
-          
+          */
+
           if (transfer != 0.) {
             fprintf(output,"%d %e %e %e %d %e\n",
                     tr.l[index_l],
@@ -134,11 +129,6 @@ int main(int argc, char **argv) {
 
   if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
-    return _FAILURE_;
-  }
-
-  if (bessel_free(&bs) == _FAILURE_) {
-    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
     return _FAILURE_;
   }
 

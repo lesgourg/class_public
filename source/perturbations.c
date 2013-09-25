@@ -3556,18 +3556,18 @@ int perturb_initial_conditions(struct precision * ppr,
 
          Then
 
-         C_l^T = 4pi \int dk/k [Delta_l^T(q)]^2 F(k^2/K) (A_t/6) tanh(pi*nu/2) k/k_pivot)^[n_t+...]
+         C_l^T = 4pi \int dk/k [Delta_l^T(q)]^2 F(k^2/K) (A_t/6) {tanh(pi*nu/2)} k/k_pivot)^[n_t+...]
 
          In the code, it is then a matter of choice to write:
 
-         * In the primordial module              : calP_h(k) = (A_t/6) tanh(pi*nu/2) (k/k*)^n_T
+         * In the primordial module              : calP_h(k) = (A_t/6) {tanh(pi*nu/2)} (k/k*)^n_T
          * In the perturbation initial conditions: h = 1
          * In the spectra module                 : C_l^T = 4/pi \int dk/k [Delta_l^T(q)]^2 F(k^2/K) calPh(k)
 
          or:
 
          * In the primordial module              : calP_h(k) = A_t (k/k*)^n_T
-         * In the perturbation initial conditions: h = sqrt[(F/6) tanh(pi*nu/2)] 
+         * In the perturbation initial conditions: h = sqrt[F(k^2/K) / 6 {tanh(pi*nu/2)}] 
          * In the spectra module                 : C_l^T = 4/pi \int dk/k [Delta_l^T(q)]^2 calPh(k)
 
          We choose this last option, such that the primordial and

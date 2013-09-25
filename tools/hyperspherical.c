@@ -183,6 +183,7 @@ int hyperspherical_HIS_create(int K,
   if (abort == _TRUE_) return _FAILURE_;
 
   free(sqrtK);
+  free(one_over_sqrtK);
 
   for (k=0; k<nl; k++){ 
     hyperspherical_get_xmin_from_approx(K,lvec[k],beta,0.,phiminabs,pHIS->chi_at_phimin+k,NULL);
