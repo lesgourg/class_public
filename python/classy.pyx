@@ -455,7 +455,15 @@ cdef class Class:
   # is called in MontePython, and this ensures that the Class instance of this
   # class contains all the relevant quantities. Then, one can deduce Pk, Cl,
   # etc...
-  def _compute(self,lvl=("lensing")):
+  def compute(self, lvl=("lensing")):
+    """
+    Compute CMB quantities up to module lvl
+
+    :Parameters:
+        - **lvl** (`set`) - last module desired. For instance, "lensing". Then
+          Class will compute all the modules required to compute this desired
+          module
+    """
     cdef ErrorMsg errmsg
     cdef int ierr
     cdef char* dumc
@@ -575,7 +583,7 @@ cdef class Class:
     if lmax>lmaxR:
       if nofail:
         self._pars_check("l_max_scalars",lmax)
-        self._compute(["lensing"])
+        self.compute(["lensing"])
       else:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
 
@@ -606,7 +614,7 @@ cdef class Class:
     if lmax>lmaxR:
       if nofail:
         self._pars_check("l_max_scalars",lmax)
-        self._compute(["lensing"])
+        self.compute(["lensing"])
       else:
         raise ClassError("Can only compute up to lmax=%d"%lmaxR)
     
@@ -655,7 +663,7 @@ cdef class Class:
     return r[:],dzdr[:]
 
   # Gives the pk for a given (k,z)
-  def _pk(self,double k,double z):
+  def pk(self,double k,double z):
     cdef double pk
     cdef double pk_velo
     cdef double pk_cross
@@ -670,7 +678,7 @@ cdef class Class:
     #free(junk)
     return pk
 
-  def _get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
+  def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
     #cdef np.ndarray[DTYPE_t, ndim = 3] k_int = k
     #cdef np.ndarray[DTYPE_t, ndim = 1] z_int = z
     #cdef np.ndarray k_int
@@ -699,28 +707,28 @@ cdef class Class:
     index['tp'] = self.le.index_lt_tp
     return index
         
-  def _age(self):
-    self._compute(["background"])
+  def age(self):
+    self.compute(["background"])
     return self.ba.age
     
-  def _h(self):
+  def h(self):
     return self.ba.h
 
-  def _n_s(self):
+  def n_s(self):
     return self.pm.n_s  
 
-  def _Omega_m(self):
+  def Omega_m(self):
     return self.ba.Omega0_b+self.ba.Omega0_cdm
 
-  def _sigma8(self):
-    self._compute(["spectra"])
+  def sigma8(self):
+    self.compute(["spectra"])
     return self.sp.sigma8   
 
-  def _rs_drag(self):
-    self._compute(["thermodynamics"])
+  def rs_drag(self):
+    self.compute(["thermodynamics"])
     return self.th.rs_d
 
-  def _angular_distance(self, z):
+  def angular_distance(self, z):
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
@@ -739,7 +747,7 @@ cdef class Class:
       
     return D_A
 
-  def _Hubble(self, z):
+  def Hubble(self, z):
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
@@ -758,7 +766,7 @@ cdef class Class:
       
     return H
 
-  def _ionization_fraction(self, z):
+  def ionization_fraction(self, z):
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
@@ -783,7 +791,7 @@ cdef class Class:
 
     return xe
 
-  def _baryon_temperature(self, z):
+  def baryon_temperature(self, z):
     cdef double tau
     cdef int last_index #junk
     cdef double * pvecback
@@ -808,10 +816,10 @@ cdef class Class:
 
     return Tb
 
-  def _T_cmb(self):
+  def T_cmb(self):
     return self.ba.T_cmb
 
-  def _Omega0_m(self):
+  def Omega0_m(self):
     return self.ba.Omega0_b+self.ba.Omega0_cdm
   
   def get_current_derived_parameters(self,data):
