@@ -46,6 +46,9 @@ HYREC = hyrec
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
 ########################################################
 
+# pass current working directory to the code
+CCFLAG += -D__CLASSDIR__='"$(MDIR)"'
+
 # where to find include files *.h
 INCLUDES = -I../include
 

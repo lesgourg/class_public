@@ -49,6 +49,10 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _HUGE_ 1.e99
 
+#ifndef __CLASSDIR__
+#define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */
+#endif
+
 #define min(a,b) (((a)<(b)) ? (a) : (b) ) /**< the usual "min" function */
 #define max(a,b) (((a)<(b)) ? (b) : (a) ) /**< the usual "max" function */
 #define sign(a) (((a)>0) ? 1. : -1. )

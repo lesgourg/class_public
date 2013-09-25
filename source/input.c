@@ -2010,7 +2010,8 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   /* for bbn */
-  sprintf(ppr->sBBN_file,"bbn/sBBN.dat");
+  sprintf(ppr->sBBN_file,__CLASSDIR__);
+  strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
 
   /* for recombination */
 
@@ -2047,9 +2048,12 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->recfast_H_frac=1.e-3;               /* from recfast 1.4 */
 
-  sprintf(ppr->hyrec_Alpha_inf_file,"hyrec/Alpha_inf.dat");
-  sprintf(ppr->hyrec_R_inf_file,"hyrec/R_inf.dat");
-  sprintf(ppr->hyrec_two_photon_tables_file,"hyrec/two_photon_tables.dat");
+  sprintf(ppr->hyrec_Alpha_inf_file,__CLASSDIR__);
+  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat");
+  sprintf(ppr->hyrec_R_inf_file,__CLASSDIR__);
+  strcat(ppr->hyrec_R_inf_file,"/hyrec/R_inf.dat");
+  sprintf(ppr->hyrec_two_photon_tables_file,__CLASSDIR__);
+  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat");
 
   /* for reionization */
 
