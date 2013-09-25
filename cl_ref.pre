@@ -1,49 +1,31 @@
-# this precision file obtained as follows:
-# - computing adiabatic scalar unlensed ClT only (ndf15 integrator with AMD)
-# - for each precision parameter varied individually, Deltachi2(Planck) between high-precision limit and selected value = 1.e-3  
+# this file achieves maximum precision for the CMB: each ClTT and ClEE, lensed and unlensed, are stable at the 0.01% level
 
-a_ini_over_a_today_default = 1.e-14
-back_integration_stepsize = 7.e-3
-tol_background_integration = 1.e-2
 tol_ncdm_bg = 1.e-10
-
-recfast_z_initial=1.e4
 
 recfast_Nz0=100000
 tol_thermo_integration=1.e-5
-recfast_x_He0_trigger = 0.995
-recfast_x_He0_trigger2 = 0.995
+
 recfast_x_He0_trigger_delta = 0.01
-recfast_x_H0_trigger = 0.995
-recfast_x_H0_trigger2 = 0.995
 recfast_x_H0_trigger_delta = 0.01
 
-reionization_z_start_max = 50.
-reionization_sampling=0.01
-reionization_optical_depth_tol=1.e-2
-reionization_start_factor=8.
-
-thermo_rate_smoothing_radius=50
+evolver=0
 
 k_scalar_min_tau0=0.002
 k_scalar_max_tau0_over_l_max=3.
 k_scalar_step_sub=0.015
-k_scalar_step_super=0.0001 # was 0.0005
-k_scalar_step_transition=0.2 # was 0.2
+k_scalar_step_super=0.0001
 
 start_small_k_at_tau_c_over_tau_h = 0.0004
-start_large_k_at_tau_h_over_tau_k = 0.05 # changed from 0.15 to 0.05 on 6.04.11
+start_large_k_at_tau_h_over_tau_k = 0.05
 tight_coupling_trigger_tau_c_over_tau_h=0.005
 tight_coupling_trigger_tau_c_over_tau_k=0.008
 start_sources_at_tau_c_over_tau_h = 0.006
-tight_coupling_approximation=5 #(int)second_order_CRS;
 
-l_max_g=50 # changed from 25 to 50 on 6.04.11
+l_max_g=50
 l_max_pol_g=25
 l_max_ur=50
 l_max_ncdm=50
 
-tol_tau_approx=1.e-5
 tol_perturb_integration=1.e-6
 perturb_sampling_stepsize=0.01
 
@@ -59,24 +41,23 @@ ncdm_fluid_trigger_tau_over_tau_k = 51.
 
 tol_ncdm = 1.e-10
 
-k_per_decade_primordial = 10.
-
 l_logstep=1.026
 l_linstep=25
 
 hyper_x_min = 1.e-5
-hyper_sampling_flat = 6.
+hyper_sampling_flat = 12.
 hyper_sampling_curved = 3.
 hyper_phi_min_abs = 1.e-10
 hyper_x_tol = 1.e-4
 hyper_flat_approximation_nu = 10000. //
 
 k_step_trans=0.2
-transfer_neglect_delta_k_S_t0 = 0.25;
-transfer_neglect_delta_k_S_t1 = 0.08;
-transfer_neglect_delta_k_S_t2 = 0.20;
-transfer_neglect_delta_k_S_e = 0.20;
-transfer_neglect_delta_k_S_lcmb = 0.8;
+
+transfer_neglect_delta_k_S_t0 = 100.;
+transfer_neglect_delta_k_S_t1 = 100.;
+transfer_neglect_delta_k_S_t2 = 100.;
+transfer_neglect_delta_k_S_e = 100.;
+transfer_neglect_delta_k_S_lcmb = 100.;
 transfer_neglect_delta_k_V_t1 = 100.;
 transfer_neglect_delta_k_V_t2 = 100.;
 transfer_neglect_delta_k_V_e = 100.;
@@ -87,8 +68,6 @@ transfer_neglect_delta_k_T_b = 100.;
 
 neglect_CMB_sources_below_visibility = 1.e-30;
 transfer_neglect_late_source = 3000.;
-
-evolver=0
 
 l_switch_limber = 40.
 accurate_lensing=1
