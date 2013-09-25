@@ -10,7 +10,6 @@ int main(int argc, char **argv) {
   struct background ba;       /* for cosmological background */
   struct thermo th;           /* for thermodynamics */
   struct perturbs pt;         /* for source functions */
-  struct bessels bs;          /* for bessel functions */
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
@@ -54,7 +53,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (nonlinear_init(&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl) == _FAILURE_) {
+  if (nonlinear_init(&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl) == _FAILURE_) {
     printf("\n\nError in nonlinear_init \n=>%s\n",nl.error_message);
     return _FAILURE_;
   }

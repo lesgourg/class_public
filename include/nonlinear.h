@@ -116,7 +116,6 @@ extern "C" {
 		     struct background *pba,
 		     struct thermo *pth,
 		     struct perturbs *ppt,
-		     struct bessels * pbs,
 		     struct transfers * ptr,
 		     struct primordial *ppm,
 		     struct spectra *psp,
