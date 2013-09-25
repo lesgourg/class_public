@@ -327,7 +327,9 @@ int transfer_init(
     } /* end of loop over wavenumber */
     
     /* free workspace allocated inside parallel zone */
-    transfer_workspace_free(ptr,ptw);
+    class_call(transfer_workspace_free(ptr,ptw),
+               ptr->error_message,
+               ptr->error_message);
 
 #ifdef _OPENMP
     if (ptr->transfer_verbose>1)
@@ -349,8 +351,9 @@ int transfer_init(
              ptr->error_message,
              ptr->error_message);
 
-  hyperspherical_HIS_free(&BIS); // TBC error management and class_call
-
+  class_call(hyperspherical_HIS_free(&BIS,ptr->error_message),
+             ptr->error_message,
+             ptr->error_message); 
   return _SUCCESS_;
 }
 
@@ -3186,7 +3189,8 @@ int transfer_integrate(
   }
 
   /** Compute the radial function: */
-  radial_function = malloc(sizeof(double)*(index_tau_max+1));
+  class_alloc(radial_function,sizeof(double)*(index_tau_max+1),ptr->error_message);
+
   class_call(transfer_radial_function(
                                       ptw,
                                       ppt,
@@ -3541,9 +3545,7 @@ int transfer_radial_function(
   int (*interpolate_dPhi)();
   int (*interpolate_Phid2Phi)();
   int (*interpolate_PhidPhi)();
-  int (*interpolate_PhidPhid2Phi)();
-
-  
+  int (*interpolate_PhidPhid2Phi)();  
   enum Hermite_Interpolation_Order HIorder;
 
   K = ptw->K;
@@ -3559,41 +3561,32 @@ int transfer_radial_function(
   }
   absK_over_k2 =sqrt_absK_over_k*sqrt_absK_over_k;
 
-  Phi = malloc(sizeof(double)*x_size);
-  dPhi = malloc(sizeof(double)*x_size);
-  d2Phi = malloc(sizeof(double)*x_size);
-  chireverse = malloc(sizeof(double)*x_size);
+  class_alloc(Phi,sizeof(double)*x_size,ptr->error_message);
+  class_alloc(dPhi,sizeof(double)*x_size,ptr->error_message);
+  class_alloc(d2Phi,sizeof(double)*x_size,ptr->error_message);
+  class_alloc(chireverse,sizeof(double)*x_size,ptr->error_message);
 
   if (ptw->sgnK == 0) {
-
     pHIS = ptw->pBIS;
-
     rescale_factor = 1.;
-
     HIorder = HERMITE3;
   }
-
-  else {
-
-    if (index_q < ptw->index_q_flat_approximation) {
-
-      pHIS = &(ptw->HIS);
-
-      rescale_factor = 1.;
-
-      HIorder = HERMITE3;
+  else if (index_q < ptw->index_q_flat_approximation) {
+    pHIS = &(ptw->HIS);
+    rescale_factor = 1.;
+    HIorder = HERMITE3;
+  }
+  else {    
+    pHIS = ptw->pBIS;
+    if (ptw->sgnK == 1){
+      rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
+        asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
     }
-    else {
-      
-      pHIS = ptw->pBIS;
-
-      if (ptw->sgnK == 1)
-        rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
-      else
-        rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
-
-        HIorder = HERMITE6;
+    else{
+      rescale_factor = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
+        asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
     }
+    HIorder = HERMITE6;
   }
   
   switch (HIorder){
@@ -3624,17 +3617,6 @@ int transfer_radial_function(
   for (j=0; j<x_size; j++)
     chireverse[j] = chi[x_size-1-j]*rescale_factor;
 
-  /** Debug region:
-      hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, NULL, NULL);
-      FILE * debugbessel = fopen("debugbessel.dat","a");
-      fprintf(debugbessel,"#l = %d\n",ptw->HIS.l[index_l]);
-      for (j=0; j<x_size; j++){
-      fprintf(debugbessel,"%.16e %.16e %.16e %.16e\n",chireverse[j], Phi[j], dPhi[j], d2Phi[j]);
-      }  
-      fprintf(debugbessel,"#end of block\n");
-      fclose(debugbessel);
-  */
-
   class_test(pHIS->x[0] > chireverse[0],
              ptr->error_message,
              "Bessels need to be interpolated at %e, outside the range in which they have been computed (>%e). Decrease their x_min.",
@@ -3650,20 +3632,22 @@ int transfer_radial_function(
 
   switch (radial_type){
   case SCALAR_TEMPERATURE_0:
-    interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi);
-    //hyperspherical_Hermite4_interpolation_vector_Phi(pHIS, x_size, index_l, chireverse, Phi);
+    class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = Phi[j];
     break;
   case SCALAR_TEMPERATURE_1:
-    interpolate_dPhi(pHIS, x_size, index_l, chireverse, dPhi);
+    class_call(interpolate_dPhi(pHIS, x_size, index_l, chireverse, dPhi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, NULL, dPhi, NULL);
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_factor;
     break;
   case SCALAR_TEMPERATURE_2:
-    interpolate_Phid2Phi(pHIS, x_size, index_l, chireverse, Phi, d2Phi);
+    class_call(interpolate_Phid2Phi(pHIS, x_size, index_l, chireverse, Phi, d2Phi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, d2Phi);
     s2 = sqrt(1.0-3.0*K/k2);
     factor = 1.0/(2.0*s2);
@@ -3671,7 +3655,8 @@ int transfer_radial_function(
       radial_function[x_size-1-j] = factor*(3*absK_over_k2*d2Phi[j]*rescale_factor*rescale_factor+Phi[j]);
     break;
   case SCALAR_POLARISATION_E:
-    interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi);
+    class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     s2 = sqrt(1.0-3.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/s2;
@@ -3679,7 +3664,8 @@ int transfer_radial_function(
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j];
     break;
   case VECTOR_TEMPERATURE_1:
-    interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi);
+    class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     factor = sqrt(0.5*l*(l+1))/s0;
@@ -3687,7 +3673,8 @@ int transfer_radial_function(
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j];
     break;
   case VECTOR_TEMPERATURE_2:
-    interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi);
+    class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
@@ -3696,7 +3683,8 @@ int transfer_radial_function(
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_factor-cotKgen[j]*Phi[j]);
     break;
   case VECTOR_POLARISATION_E:
-    interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi);
+    class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //    hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
@@ -3705,7 +3693,8 @@ int transfer_radial_function(
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_factor);
     break;
   case VECTOR_POLARISATION_B:
-    interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi);
+    class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     s0 = sqrt(1.0+K/k2);
     ssqrt3 = sqrt(1.0-2.0*K/k2);
@@ -3715,7 +3704,8 @@ int transfer_radial_function(
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j];
     break;
   case TENSOR_TEMPERATURE_2:
-    interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi);
+    class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
@@ -3724,7 +3714,8 @@ int transfer_radial_function(
       radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j];
     break;
   case TENSOR_POLARISATION_E:
-    interpolate_PhidPhid2Phi(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi);
+    class_call(interpolate_PhidPhid2Phi(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
     si = sqrt(1.0+2.0*K/k2);
@@ -3735,7 +3726,8 @@ int transfer_radial_function(
                                             -(1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j]);
     break;
   case TENSOR_POLARISATION_B:
-    interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi);
+    class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
+               ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, dPhi, NULL);
     ssqrt2i = sqrt(1.0+3.0*K/k2);
     ssqrt2 = sqrt(1.0-1.0*K/k2);
@@ -3895,7 +3887,9 @@ int transfer_workspace_free(
 
   if (ptw->HIS_allocated==_TRUE_){
     //Free HIS structure:
-    hyperspherical_HIS_free(&(ptw->HIS));
+    class_call(hyperspherical_HIS_free(&(ptw->HIS),ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
   }
   free(ptw->interpolated_sources);
   free(ptw->sources);
@@ -3925,7 +3919,9 @@ int transfer_update_HIS(
   int index_l_left,index_l_right;
 
   if (ptw->HIS_allocated == _TRUE_) {
-    hyperspherical_HIS_free(&(ptw->HIS));
+    class_call(hyperspherical_HIS_free(&(ptw->HIS),ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
     ptw->HIS_allocated = _FALSE_;
   }
 
