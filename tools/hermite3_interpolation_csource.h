@@ -84,8 +84,8 @@ for (j=0; j<nxi; j++){
   if ((x>right_border)||(x<left_border)){
     if ((x>next_border)||(x<left_border)){
       current_border_idx = ((int) ((x-xmin)/deltax))+1; 
-      current_border_idx = max(1,current_border_idx);
-      current_border_idx = min(nx-1,current_border_idx);
+      current_border_idx = MAX(1,current_border_idx);
+      current_border_idx = MIN(nx-1,current_border_idx);
       //printf("Current border index at jump: %d\n",current_border_idx);
       //max operation takes care of case x = xmin,
       //min operation takes care of case x = xmax.
@@ -120,9 +120,9 @@ for (j=0; j<nxi; j++){
       cotKm = cotKp;
 #endif
     }
-    left_border = xvec[max(0,current_border_idx-1)];
+    left_border = xvec[MAX(0,current_border_idx-1)];
     right_border = xvec[current_border_idx];
-    next_border = xvec[min(nx-1,current_border_idx+1)];
+    next_border = xvec[MIN(nx-1,current_border_idx+1)];
     //Evaluate right derivatives and calculate coefficients:
     yp = Phi_l[current_border_idx];
     dyp = dPhi_l[current_border_idx];

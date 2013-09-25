@@ -1480,13 +1480,13 @@ int spectra_indices(
         for (index_ct=psp->index_ct_td; 
              index_ct<psp->index_ct_td+psp->d_size; 
              index_ct++)
-          psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
+          psp->l_max_ct[ppt->index_md_scalars][index_ct] = MIN(ppt->l_scalar_max,ppt->l_lss_max);
       
       if (psp->has_pd == _TRUE_) 
         for (index_ct=psp->index_ct_pd; 
              index_ct<psp->index_ct_pd+psp->d_size; 
              index_ct++)
-          psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
+          psp->l_max_ct[ppt->index_md_scalars][index_ct] = MIN(ppt->l_scalar_max,ppt->l_lss_max);
       
       if (psp->has_ll == _TRUE_) 
         for (index_ct=psp->index_ct_ll; 
@@ -1498,7 +1498,7 @@ int spectra_indices(
         for (index_ct=psp->index_ct_tl; 
              index_ct<psp->index_ct_tl+psp->d_size; 
              index_ct++)
-          psp->l_max_ct[ppt->index_md_scalars][index_ct] = min(ppt->l_scalar_max,ppt->l_lss_max);
+          psp->l_max_ct[ppt->index_md_scalars][index_ct] = MIN(ppt->l_scalar_max,ppt->l_lss_max);
     }
     if (ppt->has_tensors == _TRUE_) {
       
@@ -1515,8 +1515,8 @@ int spectra_indices(
     for (index_md=0; index_md < psp->md_size; index_md++) {
       psp->l_max[index_md] = 0.;
       for (index_ct=0.; index_ct<psp->ct_size; index_ct++)
-        psp->l_max[index_md] = max(psp->l_max[index_md],psp->l_max_ct[index_md][index_ct]);
-      psp->l_max_tot = max(psp->l_max_tot,psp->l_max[index_md]); 
+        psp->l_max[index_md] = MAX(psp->l_max[index_md],psp->l_max_ct[index_md][index_ct]);
+      psp->l_max_tot = MAX(psp->l_max_tot,psp->l_max[index_md]); 
     }
   }
 
@@ -2020,7 +2020,7 @@ int spectra_compute_cl(
     if (_scalars_ && (psp->has_dd == _TRUE_)) {
       index_ct=0;
       for (index_d1=0; index_d1<psp->d_size; index_d1++) {
-        for (index_d2=index_d1; index_d2<=min(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
           cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_dd+index_ct]=
             primordial_pk[index_ic1_ic2]
             * transfer_ic1[ptr->index_tt_density+index_d1]
@@ -2054,7 +2054,7 @@ int spectra_compute_cl(
     if (_scalars_ && (psp->has_ll == _TRUE_)) {
       index_ct=0;
       for (index_d1=0; index_d1<psp->d_size; index_d1++) {
-        for (index_d2=index_d1; index_d2<=min(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
           cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_ll+index_ct]=
             primordial_pk[index_ic1_ic2]
             * transfer_ic1[ptr->index_tt_lensing+index_d1]
@@ -2406,7 +2406,7 @@ int spectra_pk(
             }
 
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] = 
-              primordial_pk[index_ic1_ic2]*sign(source_ic1)*sign(source_ic2);
+              primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 	    
           }
           else {

@@ -2519,8 +2519,8 @@ int array_smooth_trg(double * array,
 
   for (i=starting_k; i<k_size-radius; i++) {
       smooth[i]=0.;
-      jmin = max(i-radius,0);
-      jmax = min(i+radius,k_size-1);
+      jmin = MAX(i-radius,0);
+      jmax = MIN(i+radius,k_size-1);
       for (j=jmin; j <= jmax; j++) {
 	smooth[i] += coeff[j-jmin]*array[j+k_size*index_eta];
       }
@@ -2597,8 +2597,8 @@ int array_smooth(double * array,
   for (i=0; i<n_lines; i++) {
     smooth[i]=0.;
     weigth=0.;
-    jmin = max(i-radius,0);
-    jmax = min(i+radius,n_lines-1);
+    jmin = MAX(i-radius,0);
+    jmax = MIN(i+radius,n_lines-1);
     for (j=jmin; j <= jmax; j++) {
       smooth[i] += array[j*n_columns+index];
       weigth += 1.;

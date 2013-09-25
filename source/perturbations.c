@@ -1090,7 +1090,7 @@ int perturb_get_k_list(
                  pba->error_message,
                  ppt->error_message);
 	
-      k_max_cl = max(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1));
+      k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1));
       k_max    = k_max_cl;
     }
   }
@@ -1098,12 +1098,12 @@ int perturb_get_k_list(
   /* find k_max: */
 
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
-    k_max = max(k_max,ppt->k_max_for_pk);
+    k_max = MAX(k_max,ppt->k_max_for_pk);
 
   //if (pba->sgnK <= 0) {
 
   /* allocate array with, for the moment, the largest possible size */
-  class_alloc(ppt->k,(k_max_cmb/k_rec/min(ppr->k_step_super,ppr->k_step_sub)+log(k_max/k_max_cmb)/log(min(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao))+1)*sizeof(double),ppt->error_message);
+  class_alloc(ppt->k,(k_max_cmb/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub)+log(k_max/k_max_cmb)/log(MIN(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao))+1)*sizeof(double),ppt->error_message);
 
   /* now, find indices corresponding to k_max_cmb, k_max_cl, k_max_full */
 
@@ -1130,10 +1130,10 @@ int perturb_get_k_list(
     k_min = sqrt(8.*pba->K);
     int_nu_previous = 3;
     if (ppt->has_vectors == _TRUE_) {
-      k_min = min(k_min,sqrt(7.*pba->K));
+      k_min = MIN(k_min,sqrt(7.*pba->K));
     }
     if (ppt->has_tensors == _TRUE_) {
-      k_min = min(k_min,sqrt(6.*pba->K));
+      k_min = MIN(k_min,sqrt(6.*pba->K));
     }
     nu = sqrt(k_min*k_min + pba->K)/sqrt(pba->K);
     int_nu_previous = (long int)(nu+0.2);
@@ -1286,12 +1286,12 @@ int perturb_workspace_init(
 
   /** Compute maximum l_max for any multipole */;
   if (_scalars_) {
-    ppw->max_l_max = max(ppr->l_max_g, ppr->l_max_pol_g);
-    if (pba->has_ur == _TRUE_) ppw->max_l_max = max(ppw->max_l_max, ppr->l_max_ur);
-    if (pba->has_ncdm == _TRUE_) ppw->max_l_max = max(ppw->max_l_max, ppr->l_max_ncdm);
+    ppw->max_l_max = MAX(ppr->l_max_g, ppr->l_max_pol_g);
+    if (pba->has_ur == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ur);
+    if (pba->has_ncdm == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ncdm);
   }
   if (_tensors_) {
-    ppw->max_l_max = max(ppr->l_max_g_ten, ppr->l_max_pol_g_ten);
+    ppw->max_l_max = MAX(ppr->l_max_g_ten, ppr->l_max_pol_g_ten);
   }
   
   /** Allocate s_l[] array for freestreaming of multipoles (see arXiv:1305.3261) and initialise
@@ -1547,7 +1547,7 @@ int perturb_solve(
   /** If non-zero curvature, update array of free-streaming coefficients ppw->s_l */
   if (pba->has_curvature == _TRUE_){
     for (l = 0; l<=ppw->max_l_max; l++){
-      ppw->s_l[l] = sqrt(max(1.0-pba->K*(l*l-1.0)/k/k,0.));
+      ppw->s_l[l] = sqrt(MAX(1.0-pba->K*(l*l-1.0)/k/k,0.));
     }
   }
     
@@ -3587,7 +3587,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
          sum_ij<h_ij(x) h^ij(x)> = \int dq/q [q2-4K]/[q2-K] calP_h(k(q))
 
-         Finally, introducing nu=q/sqrt(|K|) and sgnK=sign(k)=+-1, this could also be written 
+         Finally, introducing nu=q/sqrt(|K|) and sgnK=SIGN(k)=+-1, this could also be written 
 
          sum_ij<h_ij(x) h^ij(x)> = \int dnu/nu (nu2-4sgnK)/(nu2-sgnK) calP_h(k(nu))
 
@@ -3924,7 +3924,7 @@ int perturb_timescale(
     *timescale = tau_h;
 
     if ((ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) || (pba->has_ncdm == _TRUE_))
-      *timescale = min(tau_k,*timescale);
+      *timescale = MIN(tau_k,*timescale);
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
@@ -3944,7 +3944,7 @@ int perturb_timescale(
 
         tau_c = 1./pvecthermo[pth->index_th_dkappa];
 
-        *timescale = min(tau_c,*timescale);
+        *timescale = MIN(tau_c,*timescale);
 
       }
     }
@@ -3955,7 +3955,7 @@ int perturb_timescale(
 
   if ((ppt->has_tensors == _TRUE_) && (pppaw->index_md == ppt->index_md_tensors)) {
 
-    *timescale = min(tau_h,tau_k);
+    *timescale = MIN(tau_h,tau_k);
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
@@ -3975,7 +3975,7 @@ int perturb_timescale(
 
         tau_c = 1./pvecthermo[pth->index_th_dkappa];
 
-        *timescale = min(tau_c,*timescale);
+        *timescale = MIN(tau_c,*timescale);
 
       }
     }

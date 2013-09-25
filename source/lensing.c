@@ -1011,10 +1011,10 @@ int lensing_indices(
   for (index_lt = 0; index_lt < ple->lt_size; index_lt++) {
     ple->l_max_lt[index_lt]=0.;
     for (index_md = 0; index_md < psp->md_size; index_md++) {
-      ple->l_max_lt[index_lt]=max(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][index_lt]);
+      ple->l_max_lt[index_lt]=MAX(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][index_lt]);
 
       if ((ple->has_bb == _TRUE_) && (ple->has_ee == _TRUE_) && (index_lt == ple->index_lt_bb)) {
-        ple->l_max_lt[index_lt]=max(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][ple->index_lt_ee]);
+        ple->l_max_lt[index_lt]=MAX(ple->l_max_lt[index_lt],psp->l_max_ct[index_md][ple->index_lt_ee]);
       }
 
     }

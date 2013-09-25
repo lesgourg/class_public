@@ -653,15 +653,15 @@ int transfer_get_l_list(
       if ((ppt->has_cl_cmb_temperature == _TRUE_) || 
           (ppt->has_cl_cmb_polarization == _TRUE_) || 
           (ppt->has_cl_cmb_lensing_potential == _TRUE_))
-        l_max=max(ppt->l_scalar_max,l_max);
+        l_max=MAX(ppt->l_scalar_max,l_max);
 
       if ((ppt->has_cl_lensing_potential == _TRUE_) || 
           (ppt->has_cl_density == _TRUE_))
-        l_max=max(ppt->l_lss_max,l_max);
+        l_max=MAX(ppt->l_lss_max,l_max);
     }
     
     if (ppt->has_tensors == _TRUE_)
-      l_max=max(ppt->l_tensor_max,l_max);
+      l_max=MAX(ppt->l_tensor_max,l_max);
 
   }
 
@@ -671,14 +671,14 @@ int transfer_get_l_list(
 
   index_l = 0;
   current_l = 2;
-  increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+  increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
   
   while (((current_l+increment) < l_max) && 
          (increment < ppr->l_linstep)) {
     
     index_l ++;
     current_l += increment;
-    increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+    increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
     
   }
 
@@ -712,14 +712,14 @@ int transfer_get_l_list(
   
   index_l = 0;
   ptr->l[0] = 2;
-  increment = max((int)(ptr->l[0] * (ppr->l_logstep-1.)),1);
+  increment = MAX((int)(ptr->l[0] * (ppr->l_logstep-1.)),1);
   
   while (((ptr->l[index_l]+increment) < l_max) && 
          (increment < ppr->l_linstep)) {
     
     index_l ++;
     ptr->l[index_l]=ptr->l[index_l-1]+increment;
-    increment = max((int)(ptr->l[index_l] * (ppr->l_logstep-1.)),1);
+    increment = MAX((int)(ptr->l[index_l] * (ppr->l_logstep-1.)),1);
     
   }
   
@@ -791,7 +791,7 @@ int transfer_get_l_list(
       if (ptr->l_size_tt[index_md][index_tt] < ptr->l_size_max)
         ptr->l_size_tt[index_md][index_tt]++;
       
-      ptr->l_size[index_md] = max(ptr->l_size[index_md],ptr->l_size_tt[index_md][index_tt]);
+      ptr->l_size[index_md] = MAX(ptr->l_size[index_md],ptr->l_size_tt[index_md][index_tt]);
       
     }
   }
@@ -855,9 +855,9 @@ int transfer_get_q_list(
       k_max = ppt->k[ppt->k_size_cl-1];
       q_max = sqrt(k_max*k_max+K);
       if (ppt->has_vectors == _TRUE_) 
-        q_max = min(q_max,sqrt(k_max*k_max+2.*K));
+        q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
       if (ppt->has_tensors == _TRUE_) 
-        q_max = min(q_max,sqrt(k_max*k_max+3.*K));
+        q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
     }
 
     /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
@@ -947,7 +947,7 @@ int transfer_get_q_list(
 
       nu_proposed_following_step_max = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));
 
-      nu_proposed = min(nu_proposed_following_ppt,nu_proposed_following_step_max);
+      nu_proposed = MIN(nu_proposed_following_ppt,nu_proposed_following_step_max);
 
       if (nu_proposed <= nu) nu_proposed=nu+1;
       
@@ -1070,9 +1070,9 @@ int transfer_get_q_list2(
       k_max = ppt->k[ppt->k_size_cl-1];
       q_max = sqrt(k_max*k_max+K);
       if (ppt->has_vectors == _TRUE_) 
-        q_max = min(q_max,sqrt(k_max*k_max+2.*K));
+        q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
       if (ppt->has_tensors == _TRUE_) 
-        q_max = min(q_max,sqrt(k_max*k_max+3.*K));
+        q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
     }
 
     /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
@@ -1162,7 +1162,7 @@ int transfer_get_q_list2(
 
       nu_proposed_following_step_max = (int)((q[index_q-1]+q_step_max)/sqrt(K));
 
-      nu_proposed = min(nu_proposed_following_ppt,nu_proposed_following_step_max);
+      nu_proposed = MIN(nu_proposed_following_ppt,nu_proposed_following_step_max);
 
       if (nu_proposed <= nu) nu_proposed=nu+1;
       
@@ -1403,7 +1403,7 @@ int transfer_source_tau_size_max(
                  ptr->error_message,
                  ptr->error_message);
        
-      *tau_size_max = max(*tau_size_max,tau_size_tt);
+      *tau_size_max = MAX(*tau_size_max,tau_size_tt);
     }
   }
    
@@ -1511,7 +1511,7 @@ int transfer_source_tau_size(
              We need to cut the interval (tau_max-tau_min) in pieces of size
              [Delta tau]=2pi/k_max. This gives the number below.
           */
-          *tau_size=max(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
+          *tau_size=MAX(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
         }
       }
 
@@ -1547,7 +1547,7 @@ int transfer_source_tau_size(
            We need to cut the interval (tau_0-tau_min) in pieces of size
            [Delta tau]=2pi/k_max. This gives the number below. 
         */
-        *tau_size=max(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel);
+        *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel);
 
       }
     }
@@ -2742,10 +2742,10 @@ int transfer_selection_times(
   /* higher edge of time interval for this bin */
   
   if (ppt->selection==gaussian) {
-    z = max(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
+    z = MAX(ppt->selection_mean[bin]-ppt->selection_width[bin]*ppr->selection_cut_at_sigma,0.);
   }
   if (ppt->selection==tophat) {
-    z = max(ppt->selection_mean[bin]-(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[bin],0.);
+    z = MAX(ppt->selection_mean[bin]-(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[bin],0.);
   }
   if (ppt->selection==dirac) {
     z = ppt->selection_mean[bin];
@@ -2759,7 +2759,7 @@ int transfer_selection_times(
 
   /* central value of time interval for this bin */
   
-  z = max(ppt->selection_mean[bin],0.);
+  z = MAX(ppt->selection_mean[bin],0.);
 
   class_call(background_tau_of_z(pba,
                                  z,
@@ -3935,7 +3935,7 @@ int transfer_update_HIS(
     nu = ptr->q[index_q]/sqrt_absK;
     
     if (ptw->sgnK == 1) {
-      xmax = min(xmax,_PI_/2.0-ppr->hyper_x_min); //We only need solution on [0;pi/2]
+      xmax = MIN(xmax,_PI_/2.0-ppr->hyper_x_min); //We only need solution on [0;pi/2]
       
       int_nu = (int)(nu+0.2);
       new_nu = (double)int_nu;
@@ -4052,7 +4052,7 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
   if (x_nonzero >= xmax){
     //printf("None relevant\n");
     //x at left boundary is already larger than xmax. 
-    *index_l_right = max(lsize-1,1);
+    *index_l_right = MAX(lsize-1,1);
     return _SUCCESS_;
   }
   class_call(get_xmin_generic(sgnK,
@@ -4068,7 +4068,7 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
   if (x_nonzero < xmax){
     //All Bessels are relevant
     //printf("All relevant\n");
-    *index_l_left = max(0,(lsize-2));
+    *index_l_left = MAX(0,(lsize-2));
     return _SUCCESS_;
   }
   /** Hunt for left boundary: */

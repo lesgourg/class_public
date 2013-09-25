@@ -34,7 +34,7 @@ int hyperspherical_HIS_create(int K,
   lmax = lvec[nl-1];
   lambda = 2*_PI_/beta; //Just to prevent too sparse sampling at beta<5.
   nx = (int) ((xmax-xmin)*sampling/lambda);
-  nx = max(nx,2);
+  nx = MAX(nx,2);
   deltax = (xmax-xmin)/(nx-1.0);
   //fprintf(stderr,"dx=%e\n",deltax);
   //Set scalar values:
@@ -150,7 +150,7 @@ int hyperspherical_HIS_create(int K,
       if (x<xfwd){
         //Use backwards method:
         hyperspherical_backwards_recurrence(K, 
-                                            min(l_recurrence_max,lmax)+1, 
+                                            MIN(l_recurrence_max,lmax)+1, 
                                             beta, 
                                             x, 
                                             pHIS->sinK[j],
@@ -162,7 +162,7 @@ int hyperspherical_HIS_create(int K,
       else{
         //Use forwards method:
         hyperspherical_forwards_recurrence(K, 
-                                           min(l_recurrence_max,lmax)+1, 
+                                           MIN(l_recurrence_max,lmax)+1, 
                                            beta, 
                                            x, 
                                            pHIS->sinK[j],
@@ -316,8 +316,8 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
     if ((x>right_border)||(x<left_border)){
       if ((x>next_border)||(x<left_border)){
         current_border_idx = ((int) ((x-xmin)/deltax))+1; 
-        current_border_idx = max(1,current_border_idx);
-        current_border_idx = min(nx-1,current_border_idx);
+        current_border_idx = MAX(1,current_border_idx);
+        current_border_idx = MIN(nx-1,current_border_idx);
         //printf("Current border index at jump: %d\n",current_border_idx);
         //max operation takes care of case x = xmin,
         //min operation takes care of case x = xmax.
@@ -352,9 +352,9 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
         sinKm = sinKp;
         cotKm = cotKp;
       }
-      left_border = xvec[max(0,current_border_idx-1)];
+      left_border = xvec[MAX(0,current_border_idx-1)];
       right_border = xvec[current_border_idx];
-      next_border = xvec[min(nx-1,current_border_idx+1)];
+      next_border = xvec[MIN(nx-1,current_border_idx+1)];
       //Evaluate right derivatives and calculate coefficients:
       cotKp = cotK[current_border_idx];
       sinKp = sinK[current_border_idx];
@@ -1006,7 +1006,7 @@ int hyperspherical_get_xmin_from_Airy(int K,
     }
     Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
     *fevals = (*fevals)+1;
-  } while (sign(Fnew)==(sign(Fold)));
+  } while (SIGN(Fnew)==(SIGN(Fold)));
 
   if (Fnew<=0.0){
     xleft = xnew;
@@ -1092,15 +1092,15 @@ int fzero_ridder(double (*func)(double, void *),
           //printf("Success 2, ans=%g\n",ans);
           return _SUCCESS_;
         }
-        if (nrSIGN(fm,fnew) != fm) {
+        if (NRSIGN(fm,fnew) != fm) {
           xl=xm;
           fl=fm;
           xh=ans;
           fh=fnew;
-        } else if (nrSIGN(fl,fnew) != fl) {
+        } else if (NRSIGN(fl,fnew) != fl) {
           xh=ans;
           fh=fnew;
-        } else if (nrSIGN(fh,fnew) != fh) {
+        } else if (NRSIGN(fh,fnew) != fh) {
           xl=ans;
           fl=fnew;
         } else return _FAILURE_;

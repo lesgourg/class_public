@@ -333,8 +333,8 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 		and that the diagonal elements has been removed. C must be large enough,
 		C->max_nonzero >= (6/5)*(C->Ap[n]) + 2n. Work array W must be 8*(n+1).
 	*/
-	dense = max(16,10*sqrt((double) n));
-	dense = min(n-2,dense);
+	dense = MAX(16,10*sqrt((double) n));
+	dense = MIN(n-2,dense);
 	cnz = Cp[n]; 
 	/*	Assign pointers to positions in work array:*/
 	len = W;
@@ -509,7 +509,7 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 				elen[i] = -1;
 			}
 			else{
-				degree[i] = min(degree[i],d);
+				degree[i] = MIN(degree[i],d);
 				Ci[pn] = Ci[p3];
 				Ci[p3] = Ci[p1];
 				Ci[p1] = k;
@@ -521,7 +521,7 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 			}
 		}
 		degree[k] = dk;
-		lemax = max(lemax,dk);
+		lemax = MAX(lemax,dk);
 		mark = sp_wclear(mark+lemax, lemax, w, n);
 		/* Supernode detection: */
 		for(pk=pk1; pk <pk2; pk++){
@@ -561,12 +561,12 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 			if ((nvi = -nv[i]) <=0) continue;
 			nv[i] = nvi;
 			d = degree[i] +dk -nvi;
-			d = min(d, (n-nel-nvi));
+			d = MIN(d, (n-nel-nvi));
 			if(head[d]!=-1) last[head[d]] = i;
 			next[i] = head[d];
 			last[i] = -1;
 			head[d] = i;
-			mindeg = min(mindeg,d);
+			mindeg = MIN(mindeg,d);
 			degree[i] = d;
 			Ci[p++] = i;
 		}

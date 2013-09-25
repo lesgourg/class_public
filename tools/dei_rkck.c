@@ -145,11 +145,11 @@ int rkqs(double *x, double htry, double eps,
 	       pgi->error_message,
 	       pgi->error_message);
     errmax=0.0;
-    for (i=0;i<pgi->n;i++) errmax=max(errmax,fabs(pgi->yerr[i]/pgi->yscal[i]));
+    for (i=0;i<pgi->n;i++) errmax=MAX(errmax,fabs(pgi->yerr[i]/pgi->yscal[i]));
     errmax /= eps;
     if (errmax <= 1.0) break;
     htemp=_SAFETY_*h*pow(errmax,_PSHRNK_);
-    h=(h >= 0.0 ? max(htemp,0.1*h) : min(htemp,0.1*h));
+    h=(h >= 0.0 ? MAX(htemp,0.1*h) : MIN(htemp,0.1*h));
     xnew=(*x)+h;
     class_test(xnew == *x,
 	       pgi->error_message,

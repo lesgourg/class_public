@@ -474,14 +474,14 @@ int bessel_get_l_list(
 
   index_l = 0;
   current_l = 2;
-  increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+  increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
     
   while (((current_l+increment) < pbs->l_max) && 
 	 (increment < ppr->l_linstep)) {
       
     index_l ++;
     current_l += increment;
-    increment = max((int)(current_l * (ppr->l_logstep-1.)),1);
+    increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
 
   }
 
@@ -515,14 +515,14 @@ int bessel_get_l_list(
 
   index_l = 0;
   pbs->l[0] = 2;
-  increment = max((int)(pbs->l[0] * (ppr->l_logstep-1.)),1);
+  increment = MAX((int)(pbs->l[0] * (ppr->l_logstep-1.)),1);
 
   while (((pbs->l[index_l]+increment) < pbs->l_max) && 
 	 (increment < ppr->l_linstep)) {
       
     index_l ++;
     pbs->l[index_l]=pbs->l[index_l-1]+increment;
-    increment = max((int)(pbs->l[index_l] * (ppr->l_logstep-1.)),1);
+    increment = MAX((int)(pbs->l[index_l] * (ppr->l_logstep-1.)),1);
  
   }
 

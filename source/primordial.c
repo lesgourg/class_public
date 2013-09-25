@@ -1402,7 +1402,7 @@ int primordial_inflation_one_k(
              ppm->error_message,
              ppm->error_message);
     
-  dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/max(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
+  dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/MAX(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
 
   /* loop over time */
   do {
@@ -1438,7 +1438,7 @@ int primordial_inflation_one_k(
                ppm->error_message);
     
     /* new time step */
-    dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/max(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
+    dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/MAX(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
 
     /* new aH */
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
@@ -1611,7 +1611,7 @@ int primordial_inflation_evolve_background(
              ppm->error_message);
       
   aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
-  dtau = ppr->primordial_inflation_bg_stepsize*min(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+  dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
   while (y[ppm->index_in_phi] <= (phi_stop-y[ppm->index_in_dphi]*dtau)) {
     
@@ -1633,7 +1633,7 @@ int primordial_inflation_evolve_background(
                       cleanup_generic_integrator(&gi));
       
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
-    dtau = ppr->primordial_inflation_bg_stepsize*min(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+    dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
     tau_end = tau_start + dtau;
 
@@ -1755,7 +1755,7 @@ int primordial_inflation_reach_aH(
                ppm->error_message);
       
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
-    dtau = ppr->primordial_inflation_bg_stepsize*min(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+    dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
     tau_end = tau_start + dtau;
 

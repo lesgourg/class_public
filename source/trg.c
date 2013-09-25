@@ -1921,7 +1921,7 @@ int trg_integrate_xy_at_eta(
        enough. These are precision parameters hard-coded, maybe there
        is some execution time to save here, but not much. */
 
-    logstepx=min(1.07,1+0.01/pow(k,1));
+    logstepx=MIN(1.07,1+0.01/pow(k,1));
     
     /* however, a pnl->logstepx_min is defined to restrain the
        computing time. This is the key element controling the speed of

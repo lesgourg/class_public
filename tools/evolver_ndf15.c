@@ -248,17 +248,17 @@ int evolver_ndf15(
   rh = 0.0;
 
   for(jj=1;jj<=neq;jj++){
-    wt[jj] = max(fabs(y[jj]),threshold);
+    wt[jj] = MAX(fabs(y[jj]),threshold);
     /*printf("wt: %4.8f \n",wt[jj]);*/
-    rh = max(rh,1.25/sqrt(rtol)*fabs(f0[jj]/wt[jj]));
+    rh = MAX(rh,1.25/sqrt(rtol)*fabs(f0[jj]/wt[jj]));
   }
 
-  absh = min(hmax, htspan);
+  absh = MIN(hmax, htspan);
   if (absh * rh > 1.0) absh = 1.0 / rh;
 	
-  absh = max(absh, hmin);
+  absh = MAX(absh, hmin);
   h = tdir * absh;
-  tdel = (t + tdir*min(sqrt(eps)*max(fabs(t),fabs(t+h)),absh)) - t;
+  tdel = (t + tdir*MIN(sqrt(eps)*MAX(fabs(t),fabs(t+h)),absh)) - t;
 
   class_call((*derivs)(t+tdel,y+1,tempvec1+1,parameters_and_workspace_for_derivs,error_message),
 	     error_message,error_message);
@@ -275,12 +275,12 @@ int evolver_ndf15(
   rh = 0.0;
   for(ii=1;ii<=neq;ii++){
     ddfddt[ii] += (tempvec1[ii] - f0[ii]) / tdel;
-    rh = max(rh,1.25*sqrt(0.5*fabs(ddfddt[ii]/wt[ii])/rtol));
+    rh = MAX(rh,1.25*sqrt(0.5*fabs(ddfddt[ii]/wt[ii])/rtol));
   }
-  absh = min(hmax, htspan);
+  absh = MIN(hmax, htspan);
   if (absh * rh > 1.0) absh = 1.0 / rh;
 	
-  absh = max(absh, hmin);
+  absh = MAX(absh, hmin);
   h = tdir * absh;
   /* Done calculating initial step
      Get ready to do the loop:*/
@@ -302,8 +302,8 @@ int evolver_ndf15(
   at_hmin = _FALSE_;
   while (done==_FALSE_){
     hmin = minimum_variation;
-    maxtmp = max(hmin,absh);
-    absh = min(hmax, maxtmp);
+    maxtmp = MAX(hmin,absh);
+    absh = MIN(hmax, maxtmp);
     if (fabs(absh-hmin)<100*eps){
       /* If the stepsize has not changed */
       if (at_hmin==_TRUE_){
@@ -365,10 +365,10 @@ int evolver_ndf15(
 	minnrm = 0.0;
 	for(j=1;j<=neq;j++){
 	  difkp1[j] = 0.0;
-	  maxtmp = max(fabs(ynew[j]),fabs(y[j]));
-	  invwt[j] = 1.0 / max(maxtmp,threshold);
+	  maxtmp = MAX(fabs(ynew[j]),fabs(y[j]));
+	  invwt[j] = 1.0 / MAX(maxtmp,threshold);
 	  maxtmp = 100*eps*fabs(ynew[j]*invwt[j]);
-	  minnrm = max(minnrm,maxtmp);
+	  minnrm = MAX(minnrm,maxtmp);
 	}
 	/* Iterate with simplified Newton method. */
 	tooslow = _FALSE_;
@@ -396,7 +396,7 @@ int evolver_ndf15(
 	  newnrm = 0.0;
 	  for(j=1;j<=neq;j++){
 	    maxtmp = fabs(del[j]*invwt[j]);
-	    newnrm = max(newnrm,maxtmp);
+	    newnrm = MAX(newnrm,maxtmp);
 	  }
 	  for(j=1;j<=neq;j++){
 	    difkp1[j] += del[j];
@@ -423,7 +423,7 @@ int evolver_ndf15(
 	    break; /*Break Newton lop */
 	  }
 	  else{
-	    rate = max(0.9*rate, newnrm / oldnrm);
+	    rate = MAX(0.9*rate, newnrm / oldnrm);
 	    havrate = _TRUE_;
 	    errit = newnrm * rate / (1.0 - rate);
 	    if (errit <= 0.5*rtol){
@@ -462,7 +462,7 @@ int evolver_ndf15(
 	  }
 	  else{
 	    abshlast = absh;
-	    absh = max(0.3 * absh, hmin);
+	    absh = MAX(0.3 * absh, hmin);
 	    h = tdir * absh;
 	    done = _FALSE_;
 	    adjust_stepsize(dif,(absh/abshlast),neq,k);
@@ -480,7 +480,7 @@ int evolver_ndf15(
 	difkp1 is now the backward difference of ynew of order k+1. */
       err = 0.0;
       for(jj=1;jj<=neq;jj++){
-	err = max(err,fabs(difkp1[jj]*invwt[jj]));
+	err = MAX(err,fabs(difkp1[jj]*invwt[jj]));
       }
       err = err * erconst[k-1];
       if (err>rtol){
@@ -494,23 +494,23 @@ int evolver_ndf15(
 	abshlast = absh;
 	if (nofailed==_TRUE_){
 	  nofailed = _FALSE_;
-	  hopt = absh * max(0.1, 0.833*pow((rtol/err),(1.0/(k+1))));
+	  hopt = absh * MAX(0.1, 0.833*pow((rtol/err),(1.0/(k+1))));
 	  if (k > 1){
 	    errkm1 = 0.0;
 	    for(jj=1;jj<=neq;jj++){
-	      errkm1 = max(errkm1,fabs((dif[jj][k]+difkp1[jj])*invwt[jj]));
+	      errkm1 = MAX(errkm1,fabs((dif[jj][k]+difkp1[jj])*invwt[jj]));
 	    }
 	    errkm1 = errkm1*erconst[k-2];
-	    hkm1 = absh * max(0.1, 0.769*pow((rtol/errkm1),(1.0/k)));
+	    hkm1 = absh * MAX(0.1, 0.769*pow((rtol/errkm1),(1.0/k)));
 	    if (hkm1 > hopt){
-	      hopt = min(absh,hkm1); 		/* don't allow step size increase */
+	      hopt = MIN(absh,hkm1); 		/* don't allow step size increase */
 	      k = k - 1;
 	    }
 	  }
-	  absh = max(hmin, hopt);
+	  absh = MAX(hmin, hopt);
 	}
 	else{
-	  absh = max(hmin, 0.5 * absh);
+	  absh = MAX(hmin, 0.5 * absh);
 	}
 	h = tdir * absh;
 	if (absh < abshlast){
@@ -575,7 +575,7 @@ int evolver_ndf15(
     }
     klast = k;
     abshlast = absh;
-    nconhk = min(nconhk+1,maxk+2);
+    nconhk = MIN(nconhk+1,maxk+2);
     if (nconhk >= k + 2){
       temp = 1.2*pow((err/rtol),(1.0/(k+1.0)));
       if (temp > 0.1){
@@ -588,7 +588,7 @@ int evolver_ndf15(
       if (k > 1){
 	errkm1 = 0.0;
 	for(jj=1;jj<=neq;jj++){
-	  errkm1 = max(errkm1,fabs(dif[jj][k]*invwt[jj]));
+	  errkm1 = MAX(errkm1,fabs(dif[jj][k]*invwt[jj]));
 	}
 	errkm1 = errkm1*erconst[k-2];
 	temp = 1.3*pow((errkm1/rtol),(1.0/k));
@@ -606,7 +606,7 @@ int evolver_ndf15(
       if (k < maxk){
 	errkp1 = 0.0;
 	for(jj=1;jj<=neq;jj++){
-	  errkp1 = max(errkp1,fabs(dif[jj][k+2]*invwt[jj]));
+	  errkp1 = MAX(errkp1,fabs(dif[jj][k+2]*invwt[jj]));
 	}
 	errkp1 = errkp1*erconst[k];
 	temp = 1.4*pow((errkp1/rtol),(1.0/(k+2.0)));
@@ -1078,7 +1078,7 @@ int numjac(
   jac->new_jacobian = _TRUE_;
 	
   for(j=1;j<=neq;j++){
-    nj_ws->yscale[j] = max(fabs(y[j]),thresh);
+    nj_ws->yscale[j] = MAX(fabs(y[j]),thresh);
     nj_ws->del[j] = (y[j] + fac[j] * nj_ws->yscale[j]) - y[j];
   }
 
@@ -1090,7 +1090,7 @@ int numjac(
     if (nj_ws->del[j]==0.0){
       for(;;){
 	if (fac[j] < facmax){
-	  fac[j] = min(100*fac[j],facmax);
+	  fac[j] = MIN(100*fac[j],facmax);
 	  nj_ws->del[j] = (y[j] + fac[j]*nj_ws->yscale[j]) - y[j];
 	  if(nj_ws->del[j]==0.0){
 	    break;
@@ -1175,7 +1175,7 @@ int numjac(
 	/* Loop over rows in the sparse matrix */
 	row = Ai[i]+1;
 	/* Do I want to construct the full jacobian? No, that is ugly..*/
-	Fdiff_absrm = max(Fdiff_absrm,fabs(Fdiff_new));
+	Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
 	Fdiff_new = nj_ws->ydel_Fdel[row][group+1]-fval[row]; /*Remember to access the column of the corresponding group */
 	if (fabs(Fdiff_new)>=Fdiff_absrm){
 	  nj_ws->Rowmax[j+1] = row;
@@ -1194,7 +1194,7 @@ int numjac(
       Fdiff_new = 0.0;
       Fdiff_absrm = 0.0;
       for(i=1;i<=neq;i++){
-	Fdiff_absrm = max(fabs(Fdiff_new),Fdiff_absrm);
+	Fdiff_absrm = MAX(fabs(Fdiff_new),Fdiff_absrm);
 	Fdiff_new = nj_ws->ydel_Fdel[i][j] - fval[i];
 	dFdy[i][j] = Fdiff_new/nj_ws->del[j];
 	/*Find row maximums:*/
@@ -1230,13 +1230,13 @@ int numjac(
   if (logjpos ==1){
     for(i=1;i<=neq;i++){
       nj_ws->yydel[i] = y[i];
-      nj_ws->Fscale[i] = max(nj_ws->absFdelRm[i],nj_ws->absFvalueRm[i]);
+      nj_ws->Fscale[i] = MAX(nj_ws->absFdelRm[i],nj_ws->absFvalueRm[i]);
     }
     /* If the difference in f values is so small that the column might be just
        ! roundoff error, try a bigger increment. */
     for(j=1;j<=neq;j++){
       if ((nj_ws->logj[j]==1)&&(nj_ws->Difmax[j]<=(br*nj_ws->Fscale[j]))){
-	tmpfac = min(sqrt(fac[j]),facmax);
+	tmpfac = MIN(sqrt(fac[j]),facmax);
 	del2 = (y[j] + tmpfac*nj_ws->yscale[j]) - y[j];
 	if ((tmpfac!=fac[j])&&(del2!=0.0)){
 	  if (fval[j] >= 0.0){
@@ -1256,7 +1256,7 @@ int numjac(
 	  Fdiff_new=0.0;
 	  Fdiff_absrm = 0.0;
 	  for(i=1;i<=neq;i++){
-	    Fdiff_absrm = max(Fdiff_absrm,fabs(Fdiff_new));
+	    Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
 	    Fdiff_new = nj_ws->ffdel[i]-fval[i];
 	    nj_ws->tmp[i] = Fdiff_new/del2;
 	    if(fabs(Fdiff_new)>=Fdiff_absrm){
@@ -1277,14 +1277,14 @@ int numjac(
 	      for(i=1;i<=neq;i++) dFdy[i][j]=nj_ws->tmp[i];
 	    }
 	    /* Adjust fac for the next call to numjac. */
-	    ffscale = max(fabs(nj_ws->ffdel[rowmax2]),nj_ws->absFvalue[rowmax2]);
+	    ffscale = MAX(fabs(nj_ws->ffdel[rowmax2]),nj_ws->absFvalue[rowmax2]);
 	    if (difmax2 <= bl*ffscale){
 	      /* The difference is small, so increase the increment. */
-	      fac[j] = min(10*tmpfac, facmax);
+	      fac[j] = MIN(10*tmpfac, facmax);
 	    }
 	    else if(difmax2 > bu*ffscale){
 	      /* The difference is large, so reduce the increment. */
-	      fac[j] = max(0.1*tmpfac, facmin);
+	      fac[j] = MAX(0.1*tmpfac, facmin);
 	    }
 	    else{
 	      fac[j] = tmpfac;
@@ -1382,7 +1382,7 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
   else{
     jac->use_sparse = 0;
   }
-  jac->max_nonzero = (int)(max(3*neq,0.20*neq*neq));		 
+  jac->max_nonzero = (int)(MAX(3*neq,0.20*neq*neq));		 
   jac->cnzmax = 12*jac->max_nonzero/5;
 
   /*Maximal number of non-zero entries to be considered sparse */

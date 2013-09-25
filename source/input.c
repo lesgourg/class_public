@@ -1234,7 +1234,7 @@ int input_init(
     else {
       psp->z_max_pk = 0.;
       for (i=0; i<pop->z_pk_num; i++)
-        psp->z_max_pk = max(psp->z_max_pk,pop->z_pk[i]);
+        psp->z_max_pk = MAX(psp->z_max_pk,pop->z_pk[i]);
     }
   }
 
@@ -1663,7 +1663,7 @@ int input_init(
        be changed */
 
     ppt->k_max_for_pk 
-      = max(
+      = MAX(
             ppt->k_max_for_pk,
             ppr->k_scalar_max_for_pk_nl*pba->h);
 
