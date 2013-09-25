@@ -65,167 +65,163 @@ void class_protect_sprintf(char* dest, char* tpl,...);
 void class_protect_fprintf(FILE* dest, char* tpl,...);
 void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
+
+#define class_build_error_string(dest,tmpl,...) {                                                                \
+  ErrorMsg FMsg;                                                                                                 \
+  class_protect_sprintf(FMsg,tmpl,__VA_ARGS__);                                                                  \
+  class_protect_sprintf(dest,"%s(L:%d) :%s",__func__,__LINE__,FMsg);                                             \
+}
+
 // Error reporting macros
 
+// Call 
+#define class_call_message(err_out,extra,err_mess)   \
+  class_build_error_string(err_out,"error in %s;\n=>%s",extra,err_mess);
+
 /* macro for calling function and returning error if it failed */
-#define class_call(function, error_message_from_function, error_message_output) \
+#define class_call_except(function, error_message_from_function, error_message_output,list_of_commands) {        \
+  if (function == _FAILURE_) {                                                                                   \
+    class_call_message(error_message_output,#function,error_message_from_function);                              \
+    list_of_commands;                                                                                            \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
+
+/* macro for calling function and returning error if it failed */
+#define class_call(function, error_message_from_function, error_message_output)                                  \
   class_call_except(function, error_message_from_function,error_message_output,)
 
 /* same in parallel region */
-#define class_call_parallel(function, error_message_from_function, error_message_output) { \
-    if (abort == _FALSE_) {                                             \
-      if (function == _FAILURE_) {                                      \
-        class_call_message(error_message_output,#function,error_message_from_function); \
-        abort=_TRUE_;                                                   \
-      }                                                                 \
-    }                                                                   \
-  }
+#define class_call_parallel(function, error_message_from_function, error_message_output) {                       \
+  if (abort == _FALSE_) {                                                                                        \
+    if (function == _FAILURE_) {                                                                                 \
+      class_call_message(error_message_output,#function,error_message_from_function);                            \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+}
 
-/* macro for calling function and, if it failed, executing commands before returning an error */
-#define class_call_except(function, error_message_from_function, error_message_output,list_of_commands) { \
-    if (function == _FAILURE_) { \                                      \
-        class_call_message(error_message_output,#function,error_message_from_function); \
-      list_of_commands;                                                 \
-      return _FAILURE_;                                                 \
-    }                                                                   \
-  }
 
-/* macros for adding something to the error message */
-#define class_call_message(err_out,extra,err_mess)                      \
-  class_build_error_string(err_out,"error in %s;\n=>%s",extra,err_mess);
 
-#define class_build_error_string(dest,tmpl,...) {                       \
-    ErrorMsg FMsg;                                                      \
-    class_protect_sprintf(FMsg,tmpl,__VA_ARGS__);                       \
-    class_protect_sprintf(dest,"%s(L:%d) :%s",__func__,__LINE__,FMsg);  \
-  }
 
-// Allocation macros
-
-/* macro for allocating memory and returning error if it failed */
-#define class_alloc(pointer, size, error_message_output)  {         \
-    pointer=malloc(size);                                           \
-    if (pointer == NULL) {                                          \
-      int size_int;                                                 \
-      size_int = size;                                              \
-      class_alloc_message(error_message_output,#pointer, size_int); \
-      return _FAILURE_;                                             \
-    }                                                               \
-  } 
-
-/* same inside parallel structure */
-#define class_alloc_parallel(pointer, size, error_message_output)  {    \
-    pointer=NULL;                                                       \
-    if (abort == _FALSE_) {                                             \
-      pointer=malloc(size);                                             \
-      if (pointer == NULL) {                                            \
-        int size_int;                                                   \
-        size_int = size;                                                \
-        class_alloc_message(error_message_output,#pointer, size_int);   \
-        abort=_TRUE_;                                                   \
-      }                                                                 \
-    }                                                                   \
-  } 
-
-/* macro for allocating memory, initializing it with zeros, and returning error if it failed */
-#define class_calloc(pointer, init,size, error_message_output)  {       \
-    pointer=calloc(init,size);                                          \
-    if (pointer == NULL) {                                              \
-      int size_int;                                                     \
-      size_int = size;                                                  \
-      class_alloc_message(error_message_output,#pointer, size_int);     \
-      return _FAILURE_;                                                 \
-    }                                                                   \
-  } 
-
-/* macro for re-allocating memory, returning error if it failed */
-#define class_realloc(pointer, newname, size, error_message_output)  {  \
-    pointer=realloc(newname,size);                                      \
-    if (pointer == NULL) {                                              \
-      int size_int;                                                     \
-      size_int = size;                                                  \
-      class_alloc_message(error_message_output,#pointer, size_int);     \
-      return _FAILURE_;                                                 \
-    }                                                                   \
-  } 
-
-#define class_alloc_message(err_out,extra,sz)                           \
+// Alloc 
+#define class_alloc_message(err_out,extra,sz)                                                                    \
   class_build_error_string(err_out,"could not allocate %s with size %d",extra,sz);
 
-// Testing macros
+/* macro for allocating memory and returning error if it failed */
+#define class_alloc(pointer, size, error_message_output)  {                                                      \
+  pointer=malloc(size);                                                                                          \
+  if (pointer == NULL) {                                                                                         \
+    int size_int;                                                                                                \
+    size_int = size;                                                                                             \
+    class_alloc_message(error_message_output,#pointer, size_int);                                                \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+} 
 
-#define class_test_message(err_out,extra,args...) {                     \
-    ErrorMsg Optional_arguments;                                        \
-    class_protect_sprintf(Optional_arguments,args);                     \
-    class_build_error_string(err_out,"condition (%s) is true; %s",extra,Optional_arguments); \
-  }
+/* same inside parallel structure */
+#define class_alloc_parallel(pointer, size, error_message_output)  {                                             \
+  pointer=NULL;                                                                                                  \
+  if (abort == _FALSE_) {                                                                                        \
+    pointer=malloc(size);                                                                                        \
+    if (pointer == NULL) {                                                                                       \
+      int size_int;                                                                                              \
+      size_int = size;                                                                                           \
+      class_alloc_message(error_message_output,#pointer, size_int);                                              \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+} 
+
+/* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
+#define class_calloc(pointer, init,size, error_message_output)  {                                                \
+  pointer=calloc(init,size);                                                                                     \
+  if (pointer == NULL) {                                                                                         \
+    int size_int;                                                                                                \
+    size_int = size;                                                                                             \
+    class_alloc_message(error_message_output,#pointer, size_int);                                                \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+} 
+
+/* macro for re-allocating memory, returning error if it failed */
+#define class_realloc(pointer, newname, size, error_message_output)  {                                          \
+    pointer=realloc(newname,size);                                                                               \
+  if (pointer == NULL) {                                                                                         \
+    int size_int;                                                                                                \
+    size_int = size;                                                                                             \
+    class_alloc_message(error_message_output,#pointer, size_int);                                                \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+} 
+
+// Testing
+
+#define class_test_message(err_out,extra,args...) {                                                              \
+  ErrorMsg Optional_arguments;                                                                                   \
+  class_protect_sprintf(Optional_arguments,args);                                                                \
+  class_build_error_string(err_out,"condition (%s) is true; %s",extra,Optional_arguments);                       \
+}
 
 /* macro for testing condition and returning error if condition is true;
    args is a variable list of optional arguments, e.g.: args="x=%d",x 
    args cannot be empty, if there is nothing to pass use args="" */
-#define class_test(condition, error_message_output, args...) {      \
-    if (condition) {                                                \
-      class_test_message(error_message_output,#condition, args);    \
-      return _FAILURE_;                                             \
-    }                                                               \
-  }
+#define class_test_except(condition, error_message_output,list_of_commands, args...) {                           \
+  if (condition) {                                                                                               \
+    class_test_message(error_message_output,#condition, args);                                                   \
+    list_of_commands;                                                                                            \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
 
-/* same in a parallel zone */
-#define class_test_parallel(condition, error_message_output, args...) { \
-    if (abort == _FALSE_) {                                             \
-      if (condition) {                                                  \
-        class_test_message(error_message_output,#condition, args);      \
-        abort=_TRUE_;                                                   \
-      }                                                                 \
-    }                                                                   \
-  }
+#define class_test(condition, error_message_output, args...) {                                                   \
+  if (condition) {                                                                                               \
+    class_test_message(error_message_output,#condition, args);                                                   \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
 
-/* same as class_test, but in case of failure, executes some commands before returning failure */
-#define class_test_except(condition, error_message_output,list_of_commands, args...) { \
-    if (condition) {                                                    \
-      class_test_message(error_message_output,#condition, args);        \
-      list_of_commands;                                                 \
-      return _FAILURE_;                                                 \
-    }                                                                   \
-  }
+#define class_test_parallel(condition, error_message_output, args...) {                                          \
+  if (abort == _FALSE_) {                                                                                        \
+    if (condition) {                                                                                             \
+      class_test_message(error_message_output,#condition, args);                                                 \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+}
 
-/* macro for stoping and returning error message;
+/* macro for returning error message;
    args is a variable list of optional arguments, e.g.: args="x=%d",x 
    args cannot be empty, if there is nothing to pass use args="" */
-#define class_stop(error_message_output,args...) {                      \
-    ErrorMsg Optional_arguments;                                        \
-    class_protect_sprintf(Optional_arguments,args);                     \
-    class_build_error_string(error_message_output,"error; %s",Optional_arguments); \
-    return _FAILURE_;                                                   \
-  }
+#define class_stop(error_message_output,args...) {                                                               \
+  ErrorMsg Optional_arguments;                                                                                   \
+  class_protect_sprintf(Optional_arguments,args);                                                                \
+  class_build_error_string(error_message_output,"error; %s",Optional_arguments);                                 \
+  return _FAILURE_;                                                                                              \
+}
 
-// Input/Output macros
-
+// IO
 /* macro for opening file and returning error if it failed */
-#define class_open(pointer, filename,	mode, error_output) {           \
-    pointer=fopen(filename,mode);                                       \
-    if (pointer == NULL) {                                              \
-      class_build_error_string(error_output,"could not open %s with name %s and mode %s",#pointer,filename,#mode); \
-      return _FAILURE_;                                                 \
-    }                                                                   \
-  }
-
-// Miscellaneous macros
+#define class_open(pointer, filename,	mode, error_output) {                                                      \
+  pointer=fopen(filename,mode);                                                                                  \
+  if (pointer == NULL) {                                                                                         \
+    class_build_error_string(error_output,"could not open %s with name %s and mode %s",#pointer,filename,#mode); \
+    return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
 
 /* macro for defining indices (usually one, sometimes a block) */
-#define class_define_index(index,               \
-                           condition,           \
-                           running_index,       \
-                           number_of_indices) { \
-    if (condition) {                            \
-      index = running_index;                    \
-      running_index += number_of_indices;       \
-    }                                           \
-  }
+#define class_define_index(index,                                                                                \
+                           condition,                                                                            \
+                           running_index,                                                                        \
+                           number_of_indices) {                                                                  \
+  if (condition) {                                                                                               \
+    index = running_index;                                                                                       \
+    running_index += number_of_indices;                                                                          \
+  }                                                                                                              \
+}
 
-/*************************************************************************************/
 /** parameters related to the precision of the code and to the method of calculation */
-/*************************************************************************************/
 
 /**
  * list of evolver types for integrating perturbations over time
@@ -352,24 +348,24 @@ struct precision
   double recfast_delta_z_He_1;        /**< z range over which transition is smoothed */
 
   double recfast_z_He_2;              /**< down to which redshift first Helium recombination 
-                                         not complete */
+					   not complete */
   double recfast_delta_z_He_2;        /**< z range over which transition is smoothed */
 
   double recfast_z_He_3;              /**< down to which redshift Helium singly ionized */
   double recfast_delta_z_He_3;        /**< z range over which transition is smoothed */
 
   double recfast_x_He0_trigger;       /**< below which Helium ionization fraction start using 
-                                         full equation for Helium */
+                                           full equation for Helium */
   double recfast_x_He0_trigger2;      /**< a second threshold used in derivative routine */
   double recfast_x_He0_trigger_delta; /**< x_He range over which transition is smoothed */
 
   double recfast_x_H0_trigger;        /**< below which Helium ionization fraction start using 
-                                         full equation for Helium */
+                                           full equation for Helium */
   double recfast_x_H0_trigger2;       /**< a second threshold used in derivative routine */
   double recfast_x_H0_trigger_delta;  /**< x_H range over which transition is smoothed */
 
   double recfast_H_frac;              /**< governs time at which full equation of evolution 
-                                         for Tmat is used */
+					   for Tmat is used */
 
   FileName hyrec_Alpha_inf_file;
   FileName hyrec_R_inf_file;
@@ -593,83 +589,83 @@ struct precision
   /** parameters relevant for HALOFIT computation */
 
   double halofit_dz; /* spacing in redshift space defining values of z
-                        at which HALOFIT will be used. Intermediate
-                        values will be obtained by
-                        interpolation. Decrease for more precise
-                        interpolations, at the expense of increasing
-                        time spent in nonlinear_init() */ 
+			at which HALOFIT will be used. Intermediate
+			values will be obtained by
+			interpolation. Decrease for more precise
+			interpolations, at the expense of increasing
+			time spent in nonlinear_init() */ 
 
   double halofit_min_k_nonlinear; /* value of k in 1/Mpc above
-                                     which non-linear corrections will
-                                     be computed */
+				     which non-linear corrections will
+				     be computed */
 
   double halofit_sigma_precision; /* a smaller value will lead to a
-                                     more precise halofit result at
-                                     the highest requested redshift,
-                                     at the expense of requiring a
-                                     larger k_max */
+				      more precise halofit result at
+				      the highest requested redshift,
+				      at the expense of requiring a
+				      larger k_max */
 
   /** parameters relevant for TRG computation */
 
   int double_escape;      /* number of points to drop at every
-                             half-step of the computation (double
-                             espace mechanism) */
+			     half-step of the computation (double
+			     espace mechanism) */
   double z_ini;           /* starting redshift for computing the
-                             non-linear evolution */
+			     non-linear evolution */
   int eta_size;           /* number of steps in the time-variable eta */
   double k_L;             /* scale above which we consider linear
-                             theory to be true at any time of the
-                           computation. To be more explicit, for k's
-                           smaller than this one, the A's function
-                           are forced to 0. */
-double k_min;           /* lower bound for computing non-linear
-                           matter power spectrum */
-double logstepx_min;    /* precision parameter for computation of
-                           the As functions. */
-double logstepk1;       /* various parameters used in the definition
-                           of steps in k space in the non-linear
-                           calculation */
-double logstepk2;
-double logstepk3;
-double logstepk4;
-double logstepk5;
-double logstepk6;
-double logstepk7;
-double logstepk8;
-double k_growth_factor; /* at which scale k in 1/Mpc units do we
-                           want to evaluate the LmabdaCDM growth
-                           factor? */
+			     theory to be true at any time of the
+			     computation. To be more explicit, for k's
+			     smaller than this one, the A's function
+			     are forced to 0. */
+  double k_min;           /* lower bound for computing non-linear
+			     matter power spectrum */
+  double logstepx_min;    /* precision parameter for computation of
+			     the As functions. */
+  double logstepk1;       /* various parameters used in the definition
+			     of steps in k space in the non-linear
+			     calculation */
+  double logstepk2;
+  double logstepk3;
+  double logstepk4;
+  double logstepk5;
+  double logstepk6;
+  double logstepk7;
+  double logstepk8;
+  double k_growth_factor; /* at which scale k in 1/Mpc units do we
+			     want to evaluate the LmabdaCDM growth
+			     factor? */
 
-double k_scalar_max_for_pk_nl; /* max value of k in h/Mpc to be used
-                                  in the trg module */
+  double k_scalar_max_for_pk_nl; /* max value of k in h/Mpc to be used
+				    in the trg module */
 
-//@}
+  //@}
 
-/** @name - parameters related to lensing */
+  /** @name - parameters related to lensing */
 
-//@{
+  //@{
 
-int accurate_lensing; /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
-int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
-int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
-double tol_gauss_legendre; /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
-//@}
+  int accurate_lensing; /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
+  int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
+  int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
+  double tol_gauss_legendre; /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
+  //@}
 
-/** @name - general precision parameters */
+  /** @name - general precision parameters */
 
-//@{
+  //@{
 
-double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
+  double smallest_allowed_variation; /**< machine-dependent, assigned automatically by the code */
 
-//@}
+  //@}
 
-/** @name - zone for writing error messages */
+  /** @name - zone for writing error messages */
 
-//@{
+  //@{
 
-ErrorMsg error_message;
+  ErrorMsg error_message;
 
-//@}
+  //@}
 
 };
 
