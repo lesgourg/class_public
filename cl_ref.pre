@@ -49,7 +49,7 @@ hyper_sampling_flat = 12.
 hyper_sampling_curved = 3.
 hyper_phi_min_abs = 1.e-10
 hyper_x_tol = 1.e-4
-hyper_flat_approximation_nu = 10000. //
+hyper_flat_approximation_nu = 1.e6
 
 k_step_trans=0.2
 

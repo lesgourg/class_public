@@ -293,7 +293,10 @@ int transfer_init(
 #ifdef _OPENMP
       tstart = omp_get_wtime();
 #endif
-      
+    
+      if (ptr->transfer_verbose > 2)
+        printf("Compute transfer for wavenumber [%d/%d]\n",index_q,ptr->q_size-1);
+  
       /* Update interpolation structure: */
       class_call_parallel(transfer_update_HIS(ppr,
                                               ptr,
@@ -2932,15 +2935,12 @@ int transfer_compute_for_each_l(
                             * ptr->q_size + index_q] = 0.;
     return _SUCCESS_;
   }
-  
-  if (ptr->transfer_verbose > 2)
-    printf("Compute transfer for l=%d\n",(int)l);
-  
+    
   q = ptr->q[index_q];
   k = ptr->k[index_md][index_q];
 
   if (ptr->transfer_verbose > 3)
-    printf("Compute transfer for l=%d k=%e type=%d\n",(int)l,q,index_tt);
+    printf("Compute transfer for l=%d type=%d\n",(int)l,index_tt);
                 
   class_call(transfer_use_limber(ppr,
                                  ppt,
@@ -3860,7 +3860,7 @@ int transfer_workspace_init(
       if (ptr->q[(*ptw)->index_q_flat_approximation] > q_approximation) break;
     }
     if (ptr->transfer_verbose > 1)
-      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d",
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
              ptr->q_size-(*ptw)->index_q_flat_approximation,ptr->q_size);
   }
 
