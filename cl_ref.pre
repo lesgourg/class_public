@@ -11,34 +11,12 @@ recfast_z_initial=1.e4
 
 recfast_Nz0=100000
 tol_thermo_integration=1.e-5
-
-recfast_Heswitch=6
-recfast_fudge_He=0.86
-
-recfast_Hswitch = 1 #_TRUE_
-recfast_fudge_H = 1.14
-recfast_delta_fudge_H = -0.035
-recfast_AGauss1 = -0.14
-recfast_AGauss2 =  0.05
-recfast_zGauss1 =  7.28
-recfast_zGauss2 =  6.75
-recfast_wGauss1 =  0.18
-recfast_wGauss2 =  0.33
-
-recfast_z_He_1 = 8000.
-recfast_delta_z_He_1 = 50.
-recfast_z_He_2 = 5000.
-recfast_delta_z_He_2 = 100.
-recfast_z_He_3 = 3500.
-recfast_delta_z_He_3 = 50.
 recfast_x_He0_trigger = 0.995
 recfast_x_He0_trigger2 = 0.995
 recfast_x_He0_trigger_delta = 0.01
 recfast_x_H0_trigger = 0.995
 recfast_x_H0_trigger2 = 0.995
 recfast_x_H0_trigger_delta = 0.01
-
-recfast_H_frac=1.e-3
 
 reionization_z_start_max = 50.
 reionization_sampling=0.01
@@ -94,11 +72,11 @@ hyper_x_tol = 1.e-4
 hyper_flat_approximation_nu = 10000. //
 
 k_step_trans=0.2
-transfer_neglect_delta_k_S_t0 = 0.25; // 0.15;
-transfer_neglect_delta_k_S_t1 = 0.08; // 0.025;
-transfer_neglect_delta_k_S_t2 = 0.20; // 0.1;
-transfer_neglect_delta_k_S_e = 0.20; // 0.1;
-transfer_neglect_delta_k_S_lcmb = 0.8; // 0.2;
+transfer_neglect_delta_k_S_t0 = 0.25;
+transfer_neglect_delta_k_S_t1 = 0.08;
+transfer_neglect_delta_k_S_t2 = 0.20;
+transfer_neglect_delta_k_S_e = 0.20;
+transfer_neglect_delta_k_S_lcmb = 0.8;
 transfer_neglect_delta_k_V_t1 = 100.;
 transfer_neglect_delta_k_V_t2 = 100.;
 transfer_neglect_delta_k_V_e = 100.;

@@ -2070,7 +2070,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->pk_definition = delta_m_squared;
 
   ppr->k_min_tau0=0.1;
-  ppr->k_max_tau0_over_l_max=2.;
+  ppr->k_max_tau0_over_l_max=2.4; // very relevant for accuracy of lensed ClTT at highest l's
   ppr->k_step_sub=0.05;
   ppr->k_step_super=0.002;
   ppr->k_step_transition=0.2;
@@ -2086,8 +2086,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->start_sources_at_tau_c_over_tau_h = 0.008; /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)compromise_CLASS;
 
-  ppr->l_max_g=10; 
-  ppr->l_max_pol_g=8; 
+  ppr->l_max_g=12; 
+  ppr->l_max_pol_g=10; 
   ppr->l_max_ur=12; 
   ppr->l_max_ncdm=12;
   ppr->l_max_g_ten=5;
@@ -2101,8 +2101,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_integration_stepsize=0.5;
 
   ppr->tol_tau_approx=1.e-5;
-  ppr->tol_perturb_integration=1.e-4;
-  ppr->perturb_sampling_stepsize=0.08;
+  ppr->tol_perturb_integration=3.e-4;
+  ppr->perturb_sampling_stepsize=0.10;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.; 
@@ -2114,7 +2114,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
   ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.; 
 
-  ppr->neglect_CMB_sources_below_visibility = 1.e-4;
+  ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
   /**
    * - parameter related to the primordial spectra
@@ -2138,23 +2138,23 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the transfer functions
    */
   
-  ppr->l_logstep=1.15;
+  ppr->l_logstep=1.12;
   ppr->l_linstep=40;
 
-  ppr->hyper_x_min = 1.e-7;          // TBC
-  ppr->hyper_sampling_flat = 3.;     // TBC
-  ppr->hyper_sampling_curved = 3.;   // TBC
-  ppr->hyper_phi_min_abs = 1.e-5;    // TBC
-  ppr->hyper_x_tol = 1.e-4;          // TBC
-  ppr->hyper_flat_approximation_nu = 10000.; // TBC
+  ppr->hyper_x_min = 1.e-5;
+  ppr->hyper_sampling_flat = 8.;
+  ppr->hyper_sampling_curved = 3.;
+  ppr->hyper_phi_min_abs = 1.e-5;
+  ppr->hyper_x_tol = 1.e-3;
+  ppr->hyper_flat_approximation_nu = 10000.;
 
-  ppr->k_step_trans=0.4;
+  ppr->k_step_trans=0.45;
 
   ppr->transfer_neglect_delta_k_S_t0 = 0.15;
-  ppr->transfer_neglect_delta_k_S_t1 = 0.025;
+  ppr->transfer_neglect_delta_k_S_t1 = 0.020;
   ppr->transfer_neglect_delta_k_S_t2 = 0.1;
   ppr->transfer_neglect_delta_k_S_e = 0.1;
-  ppr->transfer_neglect_delta_k_S_lcmb = 0.2;
+  ppr->transfer_neglect_delta_k_S_lcmb = 0.5;
   ppr->transfer_neglect_delta_k_V_t1 = 1.;
   ppr->transfer_neglect_delta_k_V_t2 = 1.; 
   ppr->transfer_neglect_delta_k_V_e = 1.;
@@ -2163,7 +2163,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_neglect_delta_k_T_e = 1.;   //TBC
   ppr->transfer_neglect_delta_k_T_b = 1.;   //TBC
 
-  ppr->transfer_neglect_late_source = 500.;
+  ppr->transfer_neglect_late_source = 400.;
 
   ppr->l_switch_limber=10.;
   ppr->l_switch_limber_for_cl_density_over_z=30.;
@@ -2209,7 +2209,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->accurate_lensing=_FALSE_;
   ppr->num_mu_minus_lmax=70;
-  ppr->delta_l_max=800;
+  ppr->delta_l_max=1000;
 
   /**
    * - automatic estimate of machine precision

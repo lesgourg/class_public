@@ -32,12 +32,7 @@ int hyperspherical_HIS_create(int K,
 
   beta2 = beta*beta;
   lmax = lvec[nl-1];
-  /*
-  xmin = max(xmin,_HYPER_SAFETY_);
-  if (K==1) 
-    xmax = min(xmax,_PI_/2.0-_HYPER_SAFETY_); //We only need solution on [0;pi/2]
-  */
-  lambda = 2*_PI_/(beta+5.0); //Just to prevent too sparse sampling at beta<5.
+  lambda = 2*_PI_/beta; //Just to prevent too sparse sampling at beta<5.
   nx = (int) ((xmax-xmin)*sampling/lambda);
   nx = max(nx,2);
   deltax = (xmax-xmin)/(nx-1.0);

@@ -3569,12 +3569,12 @@ int transfer_radial_function(
   if (ptw->sgnK == 0) {
     pHIS = ptw->pBIS;
     rescale_factor = 1.;
-    HIorder = HERMITE3;
+    HIorder = HERMITE4;
   }
   else if (index_q < ptw->index_q_flat_approximation) {
     pHIS = &(ptw->HIS);
     rescale_factor = 1.;
-    HIorder = HERMITE3;
+    HIorder = HERMITE4;
   }
   else {    
     pHIS = ptw->pBIS;
