@@ -196,6 +196,11 @@ int transfer_init(
   tau0 = pba->conformal_age;
   tau_rec = pth->tau_rec;
 
+  /** - correspondance between k and l depend on angular diameter
+      diatance, i.e. on curvature. */
+
+  ptr->angular_rescaling = pth->angular_rescaling;
+
   /** - initialize all indices in the transfers structure and 
       allocate all its arrays using transfer_indices_of_transfers() */
 
@@ -674,21 +679,21 @@ int transfer_get_l_list(
 
   index_l = 0;
   current_l = 2;
-  increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
+  increment = MAX((int)(current_l * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
   
   while (((current_l+increment) < l_max) && 
-         (increment < ppr->l_linstep)) {
+         (increment < ppr->l_linstep*ptr->angular_rescaling)) {
     
     index_l ++;
     current_l += increment;
-    increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
+    increment = MAX((int)(current_l * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
     
   }
 
   /** - when the logarithmic step becomes larger than some linear step, 
       stick to this linear step till l_max */
   
-  increment = ppr->l_linstep;
+  increment = ppr->l_linstep*ptr->angular_rescaling;
   
   while ((current_l+increment) <= l_max) {
     
@@ -715,18 +720,18 @@ int transfer_get_l_list(
   
   index_l = 0;
   ptr->l[0] = 2;
-  increment = MAX((int)(ptr->l[0] * (ppr->l_logstep-1.)),1);
+  increment = MAX((int)(ptr->l[0] * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
   
   while (((ptr->l[index_l]+increment) < l_max) && 
-         (increment < ppr->l_linstep)) {
+         (increment < ppr->l_linstep*ptr->angular_rescaling)) {
     
     index_l ++;
     ptr->l[index_l]=ptr->l[index_l-1]+increment;
-    increment = MAX((int)(ptr->l[index_l] * (ppr->l_logstep-1.)),1);
+    increment = MAX((int)(ptr->l[index_l] * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
     
   }
   
-  increment = ppr->l_linstep;
+  increment = ppr->l_linstep*ptr->angular_rescaling;
   
   while ((ptr->l[index_l]+increment) <= l_max) {
     
@@ -3449,11 +3454,11 @@ int transfer_can_be_neglected(
 
   if _scalars_ {
 
-      if ((index_tt == ptr->index_tt_t0) && (l < (k-ppr->transfer_neglect_delta_k_S_t0)*pba->conformal_age)) *neglect = _TRUE_;
-      else if ((index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*pba->conformal_age)) *neglect = _TRUE_;
-      else if ((index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*pba->conformal_age)) *neglect = _TRUE_;
-      else if ((index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*pba->conformal_age)) *neglect = _TRUE_;
-      else if ((index_tt == ptr->index_tt_lcmb) && (l < (k-ppr->transfer_neglect_delta_k_S_lcmb)*pba->conformal_age)) *neglect = _TRUE_;
+      if ((index_tt == ptr->index_tt_t0) && (l < (k-ppr->transfer_neglect_delta_k_S_t0)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_lcmb) && (l < (k-ppr->transfer_neglect_delta_k_S_lcmb)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
       
     }
   

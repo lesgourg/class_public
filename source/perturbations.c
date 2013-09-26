@@ -1063,10 +1063,12 @@ int perturb_get_k_list(
     /* find k_max_cmb: */
 
     /* choose a k_max_cmb corresponding to a wavelength on the last
-       scattering surface seen today under an angle smaller than pi/lmax:
-       this is equivalent to k_max_cl*tau0 > l_max */
-      
-    k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age;
+       scattering surface seen today under an angle smaller than
+       pi/lmax: this is equivalent to
+       k_max_cl*[comvoving.ang.diameter.distance] > l_max */
+
+    k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
+      /pba->conformal_age/pth->angular_rescaling;
     k_max_cl  = k_max_cmb;
     k_max     = k_max_cmb;
 
@@ -1090,7 +1092,7 @@ int perturb_get_k_list(
                  pba->error_message,
                  ppt->error_message);
 	
-      k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1));
+      k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
       k_max    = k_max_cl;
     }
   }
@@ -1121,7 +1123,7 @@ int perturb_get_k_list(
     /* K<0 (open)  : start close to sqrt(-K) 
        (in transfer modules, for scalars, this will correspond to q close to zero; 
        for vectors and tensors, this value is even smaller than the minimum necessary value) */
-    k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age,2));
+    k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
 
   }
   else if (pba->sgnK == 1) {                   

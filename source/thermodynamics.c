@@ -629,6 +629,8 @@ int thermodynamics_init(
   pth->rs_rec=pvecback[pba->index_bg_rs];
   pth->ds_rec=pth->rs_rec*pba->a_today/(1.+pth->z_rec);
   pth->da_rec=pvecback[pba->index_bg_ang_distance];
+  pth->ra_rec=pth->da_rec*(1.+pth->z_rec)/pba->a_today; 
+  pth->angular_rescaling=pth->ra_rec/(pba->conformal_age-pth->tau_rec);
 
   /** - find time (always after recombination) at which tau_c/tau
         falls below some threshold, defining tau_free_streaming */

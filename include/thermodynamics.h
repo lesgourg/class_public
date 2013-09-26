@@ -179,12 +179,14 @@ struct thermo
   double tau_rec; /**< conformal time at which the visibility reaches its maximum (= recombination time) */
   double rs_rec;  /**< comoving sound horizon at recombination */
   double ds_rec;  /**< physical sound horizon at recombination */
-  double da_rec;  /**< angular diameter distance to recombination */
+  double ra_rec;  /**< conformal angular diameter distance to recombination */
+  double da_rec;  /**< physical angular diameter distance to recombination */
   double z_d;     /**< baryon drag redshift */
   double tau_d;   /**< baryon drag time */
   double ds_d;    /**< physical sound horizon at baryon drag */
   double rs_d;    /**< comoving sound horizon at baryon drag */
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
+  double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
 
   //@}
 

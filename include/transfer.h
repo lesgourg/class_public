@@ -93,6 +93,8 @@ struct transfers {
 
   //int * l_size_bessel; /**< for each wavenumber, maximum value of l at which bessel functions must be evaluated */
 
+  double angular_rescaling; /**< correction between l and k space due to curvature (= comoving angular diameter distance to recombination / comoving radius to recombination) */
+
   //@}
 
   /** @name - number and list of wavenumbers */
