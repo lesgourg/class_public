@@ -1129,13 +1129,13 @@ int perturb_get_k_list(
   else if (pba->sgnK == 1) {                   
 
     /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
-    k_min = sqrt(8.*pba->K);
+    k_min = sqrt((8.-1.e-4)*pba->K);
     int_nu_previous = 3;
     if (ppt->has_vectors == _TRUE_) {
-      k_min = MIN(k_min,sqrt(7.*pba->K));
+      k_min = MIN(k_min,sqrt((7.-1.e-4)*pba->K));
     }
     if (ppt->has_tensors == _TRUE_) {
-      k_min = MIN(k_min,sqrt(6.*pba->K));
+      k_min = MIN(k_min,sqrt((6.-1e-4)*pba->K));
     }
     nu = sqrt(k_min*k_min + pba->K)/sqrt(pba->K);
     int_nu_previous = (long int)(nu+0.2);
