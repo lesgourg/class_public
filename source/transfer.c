@@ -675,6 +675,11 @@ int transfer_get_l_list(
 
   /* allocate and fill l array */
 
+  fprintf(stderr,"rescaling %e logstep %e linstep %e\n",
+          ptr->angular_rescaling,
+          ppr->l_logstep*ptr->angular_rescaling,
+          ppr->l_linstep*ptr->angular_rescaling);
+
   /** - start from l = 2 and increase with logarithmic step */
 
   index_l = 0;
@@ -835,13 +840,13 @@ int transfer_get_q_list(
 
   int index_k;
   int index_q;
-  double q_min=0.,q_max,q_step_max=0.,k_max;
+  double q_min=0.,q_max,q_step_max=0.,q_step=0.,k_max;
   int nu, nu_min, nu_proposed, nu_proposed_following_ppt, nu_proposed_following_step_max;
   int q_size_max;
 
   /* find q_step_max, the maximum value of the step */
 
-  q_step_max = 2.*_PI_/tau0*ppr->k_step_trans;
+  q_step_max = 2.*_PI_/tau0/ptr->angular_rescaling*ppr->k_step_trans;
 
   class_test(q_step_max == 0.,
              ptr->error_message,
@@ -941,29 +946,77 @@ int transfer_get_q_list(
 
     index_q++;
 
+    while (index_k < ppt->k_size_cl-2) {
+
+      index_k++;
+      nu_proposed = (int)(sqrt(pow(ppt->k[index_k],2)+K)/sqrt(K));
+      if (nu_proposed > nu) {
+        if (nu_proposed*sqrt(K)-ptr->q[index_q-1] > q_step_max) break;
+        ptr->q[index_q] = nu_proposed*sqrt(K);
+        nu = nu_proposed;
+        index_q++;
+      }
+    }
+
     while (ptr->q[index_q-1] < q_max) {
 
-      /* find first point in ppt->k list corresponding to a q that is higher than the last q value */
-
-      while ((index_k < ppt->k_size_cl) && (ppt->k[index_k]*ppt->k[index_k]+K < ptr->q[index_q-1]*ptr->q[index_q-1])) index_k++;
-
-      /* now we can propose as a next point q_propose_following_ppt, which is bigger than the last q value */
-
-      nu_proposed_following_ppt = (int)(sqrt(ppt->k[index_k]*ppt->k[index_k]+K)/sqrt(K));
-
-      /* but if spacing in ppt become too sparse, we should instead refer to the maximum stepsize */
-
-      nu_proposed_following_step_max = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));
-
-      nu_proposed = MIN(nu_proposed_following_ppt,nu_proposed_following_step_max);
-
-      if (nu_proposed <= nu) nu_proposed=nu+1;
-      
-      ptr->q[index_q] = nu_proposed*sqrt(K);
-      nu = nu_proposed;
-
-      index_q++;
+      nu_proposed = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));
+      if (nu_proposed > nu) {
+        ptr->q[index_q] = nu_proposed*sqrt(K);
+        nu = nu_proposed;
+        index_q++;
+      }
     }
+      
+    /* 
+
+    int debug=1;
+
+    while (ptr->q[index_q-1] < q_max) {
+
+      switch(debug) {
+        
+      case 0:  
+        nu += 1;
+        ptr->q[index_q] = nu*sqrt(K);
+        index_q++;
+        
+      case 1: 
+        // find first point in ppt->k list corresponding to a q that is higher than the last q value
+
+        while ((index_k < ppt->k_size_cl) && (ppt->k[index_k]*ppt->k[index_k]+K < ptr->q[index_q-1]*ptr->q[index_q-1])) index_k++;
+        
+        q_step = ppt->k[index_k]-ppt->k[index_k-1];
+        //q_step = ppt->k[index_k]* ppt->k[index_k]-ppt->k[index_k-1]* ppt->k[index_k-1];
+
+        // now we can propose as a next point q_propose_following_ppt, spaced wrt the previous one according to the k values of the pertubation module
+        
+        nu_proposed_following_ppt = (int)((ptr->q[index_q-1]+q_step)/sqrt(K));
+        
+        // but if spacing in ppt become too sparse, we should instead refer to the maximum stepsize
+        
+        nu_proposed_following_step_max = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));
+                
+        nu_proposed = MIN(nu_proposed_following_ppt,nu_proposed_following_step_max);
+        
+        if (nu_proposed <= nu) nu_proposed=nu+1;
+        
+        ptr->q[index_q] = nu_proposed*sqrt(K);
+        nu = nu_proposed;
+        
+        index_q++;
+        
+      case 3:
+        nu_proposed = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));     
+        if (nu_proposed <= nu) nu_proposed=nu+1;
+
+        ptr->q[index_q] = nu_proposed*sqrt(K);
+        nu = nu_proposed;
+        
+        index_q++;
+      }
+    }
+    */
 
     /* - get number of valid points in order to re-allocate list */
 
@@ -974,6 +1027,12 @@ int transfer_get_q_list(
     
   }
 
+  /*
+  class_stop(ptr->error_message,
+             "%d %d\n",
+             ptr->q_size,
+             nu);
+  */
   /* check size of q_list and realloc the array to the correct size */
 
   class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");

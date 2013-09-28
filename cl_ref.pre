@@ -44,9 +44,8 @@ tol_ncdm = 1.e-10
 l_logstep=1.026
 l_linstep=25
 
-hyper_x_min = 1.e-5
 hyper_sampling_flat = 12.
-hyper_sampling_curved = 3.
+hyper_sampling_curved = 10.
 hyper_phi_min_abs = 1.e-10
 hyper_x_tol = 1.e-4
 hyper_flat_approximation_nu = 1.e6

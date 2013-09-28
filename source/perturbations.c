@@ -1170,9 +1170,9 @@ int perturb_get_k_list(
        nu, impose exactly this integer, and rederive the corresponding
        k. A simple condition ensures that two consective k will
        correspond to integers nu's differing at least by one unit. */
-
+    /*
     if (pba->sgnK == 1) { 
-
+      
       nu = sqrt(k*k + pba->K)/sqrt(pba->K);
       int_nu = (long int)(nu+0.2);
       if (int_nu == int_nu_previous) int_nu++; 
@@ -1181,6 +1181,7 @@ int perturb_get_k_list(
       int_nu_previous=int_nu;
 
     }
+    */
 
     class_test(k == ppt->k[index_k-1],
                ppt->error_message,

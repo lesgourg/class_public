@@ -90,23 +90,23 @@ int main(int argc, char **argv) {
   output=fopen("output/scalS.trsf","w");
 
   for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-    if ((tr.l[index_l] > 1990) && (tr.l[index_l] < 2000)) { 
+    //    if ((tr.l[index_l] > 1990) && (tr.l[index_l] < 2000)) { 
         for (index_q=0; index_q<tr.q_size; index_q++) { 
 
           /* use this to plot a single type : */
-
+          /*
           transfer = tr.transfer[index_mode]
             [((index_ic * tr.tt_size[index_mode] + index_type)
               * tr.l_size[index_mode] + index_l)
              * tr.q_size + index_q];
-          
+             */
           /* use this to plot the full temperature transfer function: */
-          /*
+
           transfer = 
             tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
             tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
             tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q];
-          */
+
 
           if (transfer != 0.) {
             fprintf(output,"%d %e %e %e %d %e\n",
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
         }
     
         fprintf(output,"\n\n");
-    }
+        //}
   } 
 
   fclose(output);
