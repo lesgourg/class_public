@@ -1836,6 +1836,13 @@ int spectra_compute_cl(
   double transfer_ic1_temp=0.;
   double transfer_ic2_temp=0.;
   double factor;
+  /* variable switching between trapezoidal and spline integration.
+     1: always spline
+     0: spline for flat/open only
+    -1: spline for open only
+    -2: always trapezoidal
+  */
+  int method=0;
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
 
@@ -1938,9 +1945,8 @@ int spectra_compute_cl(
     */
 
     /* factor for spline integration */
-    if (pba->sgnK <= 0) { // <=0 if you want the spline integration for flat, open; 
-                          // ==0 if you want the spline integration for flat only; 
-                          // == anything but -1,0,1 if you never want the spline integration
+    if (pba->sgnK <= method) {
+
       factor = 4. * _PI_ / k;
     }
     /* factor for trapezoidal integration */
@@ -1963,7 +1969,7 @@ int spectra_compute_cl(
           /* flat/open cases: for a trapezoidal integration starting in q[1],
              plus one missing triangle between 0 and q[1], assuming the
              integrand is zero in q=0 */
-          factor = 2. * _PI_ * q / k / k * (ptr->q[1] - ptr->q[0] + ptr->q[1]/2.); /* assumes trapezoidal integral starting in q[1] plus missing triangle between 0 and q[1], assuming the integrand is zero in q=0 */
+          factor = 2. * _PI_ * q / k / k * (ptr->q[1] - ptr->q[0] + ptr->q[1]/2.);
         }
       }
     }
@@ -2076,7 +2082,7 @@ int spectra_compute_cl(
     }
   }
   
-  for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
 
     /* treat null spectra (C_l^BB of scalars, C_l^pp of tensors, etc. */
 
@@ -2097,7 +2103,8 @@ int spectra_compute_cl(
     /* for non-zero spectra, integrate over q */
     else {
 
-      if (pba->sgnK <= 0){ // <=0 if you want the spline for flat, open; ==0 if you want the spline for flat only; == 2 if you never want the spline
+      /* spline integral */
+      if (pba->sgnK <= method) {
 
         class_call(array_spline(cl_integrand,
                                 cl_integrand_num_columns,
@@ -2122,6 +2129,8 @@ int spectra_compute_cl(
                    psp->error_message);
       
       } 
+
+      /* trapezoidal integral */
       else {
 
         clvalue=0.;

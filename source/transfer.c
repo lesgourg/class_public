@@ -257,6 +257,12 @@ int transfer_init(
              ptr->error_message);
   
 
+  fprintf(stderr,"tau:%d   l:%d   q:%d\n",
+          ppt->tau_size,
+          ptr->l_size_max,
+          ptr->q_size
+          );
+
   /** (a.3.) workspace, allocated in a parallel zone since in openmp
       version there is one workspace per thread */
   
@@ -539,7 +545,7 @@ int transfer_indices_of_transfers(
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
   /** get q values using transfer_get_q_list() */
-  class_call(transfer_get_q_list(ppr,ppt,ptr,tau0,K,sgnK),
+  class_call(transfer_get_q_list2(ppr,ppt,ptr,tau0,K,sgnK),
              ptr->error_message,
              ptr->error_message);
 
@@ -652,6 +658,12 @@ int transfer_get_l_list(
   int index_tt;
   int increment,current_l;
 
+  fprintf(stderr,"rescaling %e logstep %e linstep %e\n",
+          ptr->angular_rescaling,
+          pow(ppr->l_logstep,ptr->angular_rescaling),
+          ppr->l_linstep*ptr->angular_rescaling);
+
+
   /* check that largests need value of l_max */
 
   if (ppt->has_cls == _TRUE_) {
@@ -675,23 +687,18 @@ int transfer_get_l_list(
 
   /* allocate and fill l array */
 
-  fprintf(stderr,"rescaling %e logstep %e linstep %e\n",
-          ptr->angular_rescaling,
-          ppr->l_logstep*ptr->angular_rescaling,
-          ppr->l_linstep*ptr->angular_rescaling);
-
   /** - start from l = 2 and increase with logarithmic step */
 
   index_l = 0;
   current_l = 2;
-  increment = MAX((int)(current_l * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
+  increment = MAX((int)(current_l * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
   
   while (((current_l+increment) < l_max) && 
          (increment < ppr->l_linstep*ptr->angular_rescaling)) {
     
     index_l ++;
     current_l += increment;
-    increment = MAX((int)(current_l * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
+    increment = MAX((int)(current_l * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
     
   }
 
@@ -725,14 +732,14 @@ int transfer_get_l_list(
   
   index_l = 0;
   ptr->l[0] = 2;
-  increment = MAX((int)(ptr->l[0] * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
+  increment = MAX((int)(ptr->l[0] * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
   
   while (((ptr->l[index_l]+increment) < l_max) && 
          (increment < ppr->l_linstep*ptr->angular_rescaling)) {
     
     index_l ++;
     ptr->l[index_l]=ptr->l[index_l-1]+increment;
-    increment = MAX((int)(ptr->l[index_l] * (ppr->l_logstep*ptr->angular_rescaling-1.)),1);
+    increment = MAX((int)(ptr->l[index_l] * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
     
   }
   
@@ -1097,31 +1104,19 @@ int transfer_get_q_list(
  */
 
 int transfer_get_q_list2(
-                         struct precision * ppr,
-                         struct perturbs * ppt,
-                         double tau0,
-                         double K,
-                         int sgnK,
-                         double **qin,
-                         int *q_size,
-                         ErrorMsg error_message
+                        struct precision * ppr,
+                        struct perturbs * ppt,
+                        struct transfers * ptr,
+                        double tau0,
+                        double K,
+                        int sgnK
                          ) {
 
   int index_k;
   int index_q;
-  double q_min=0.,q_max,q_step_max=0.,k_max;
+  double q,q_min=0.,q_max,q_step,q_logstep,q_step_max,k_max;
   int nu, nu_min, nu_proposed, nu_proposed_following_ppt, nu_proposed_following_step_max;
   int q_size_max;
-  double * q;
-  /* find q_step_max, the maximum value of the step */
-
-  q_step_max = 2.*_PI_/tau0*ppr->k_step_trans;
-
-  class_test(q_step_max == 0.,
-             error_message,
-             "stop to avoid infinite loop");
-
-  /* first deal with case K=0 (flat) and K<0 (open). The case K>0 (closed) is very different, and is dealt with separately below. */
 
   if (sgnK <= 0) {
 
@@ -1141,53 +1136,7 @@ int transfer_get_q_list2(
       if (ppt->has_tensors == _TRUE_) 
         q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
     }
-
-    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
-
-    q_size_max = 2+ppt->k_size_cl+(int)((q_max-q_min)/q_step_max);
-
-    class_alloc(q,
-                q_size_max*sizeof(double),
-                error_message);
-
-    /* - first point */
-    
-    index_q = 0;
-
-    q[index_q] = q_min; 
-
-    index_q++;
-
-    /* - points taken from perturbation module if step small enough */
-
-    while ((index_q < ppt->k_size_cl) && ((sqrt(ppt->k[index_q]*ppt->k[index_q]+K) - q[index_q-1]) < q_step_max)) {
-      
-      class_test(index_q >= q_size_max,error_message,"buggy q-list definition");
-      q[index_q] = sqrt(ppt->k[index_q]*ppt->k[index_q]+K);
-      index_q++;
-
-    }
-
-    /* - then, points spaced linearily with step q_step_max */
-
-    while (q[index_q-1] < q_max) {
-      
-      class_test(index_q >= q_size_max,error_message,"buggy q-list definition");
-      q[index_q] = q[index_q-1] + q_step_max;
-      index_q++;
-      
-    }
-    
-    /* - get number of valid points in order to re-allocate list */
-    
-    if (q[index_q-1] > q_max)
-      *q_size=index_q-1;
-    else
-      *q_size=index_q;
-    
   }
-
-  /* deal with K>0 (closed) case */
 
   else {
 
@@ -1196,85 +1145,72 @@ int transfer_get_q_list2(
     nu_min = 3;
     q_min = nu_min * sqrt(K);
     q_max = ppt->k[ppt->k_size_cl-1]; 
-    
-    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
+  }
 
-    q_size_max = 2+(int)((q_max-q_min)/sqrt(K));
+  // ca marche avec tout en logstep de 1.001 (3925 points)
+  // ou logstep 1.0015 puis linstep 0.55 (4658 points)
 
-    class_alloc(q,
-                q_size_max*sizeof(double),
-                error_message);
-    
-    /* - first point */
-    
-    index_q = 0;
-    index_k = 0;
-    
-    q[index_q] = q_min; 
-    nu = nu_min;
+  //q_step_max = 2.*_PI_/tau0/ptr->angular_rescaling*ppr->k_step_trans;
+  //q_step_max = 2.*_PI_/tau0/ptr->angular_rescaling*0.55;
 
-    index_q++;
+  // pour c1: 0.5. Pour c1-2: moins
 
-    while (q[index_q-1] < q_max) {
+  //q_step = 2.*_PI_/tau0/ptr->angular_rescaling*0.5;
+  q_step = 2.*_PI_/tau0*0.6;
+  //q_size_max = 2+2*(int)((q_max-q_min)/q_step);
 
-      /* find first point in ppt->k list corresponding to a q that is higher than the last q value */
+  q_logstep = 1.001;
+  //q_logstep = 1.0015;
 
-      while ((index_k < ppt->k_size_cl) && (ppt->k[index_k]*ppt->k[index_k]+K < q[index_q-1]*q[index_q-1])) index_k++;
+  q_size_max = 2+2*(int)((q_max-q_min)/q_step)
+    +(int)(log(q_max/q_min)/log(q_logstep));
 
-      /* now we can propose as a next point q_propose_following_ppt, which is bigger than the last q value */
+  fprintf(stderr,"%d %e %e\n",q_size_max,q_min,q_max);
 
-      nu_proposed_following_ppt = (int)(sqrt(ppt->k[index_k]*ppt->k[index_k]+K)/sqrt(K));
+  class_alloc(ptr->q,
+              q_size_max*sizeof(double),
+              ptr->error_message);
 
-      /* but if spacing in ppt become too sparse, we should instead refer to the maximum stepsize */
+  index_q = 0;
+  ptr->q[index_q] = q_min;
+  nu = 3; 
+  index_q++;
 
-      nu_proposed_following_step_max = (int)((q[index_q-1]+q_step_max)/sqrt(K));
+  while (ptr->q[index_q-1] < q_max) {
 
-      nu_proposed = MIN(nu_proposed_following_ppt,nu_proposed_following_step_max);
+    class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
 
-      if (nu_proposed <= nu) nu_proposed=nu+1;
-      
-      q[index_q] = nu_proposed*sqrt(K);
-      nu = nu_proposed;
+    q = MIN(ptr->q[index_q-1] + q_step,
+            ptr->q[index_q-1] * q_logstep);
 
+    if (sgnK==1) {
+      nu_proposed = (int)(q/sqrt(K));
+      if (nu_proposed <= nu)
+        nu = nu+1;
+      else
+        nu = nu_proposed;
+      ptr->q[index_q] = nu*sqrt(K);
+      //fprintf(stderr,"%d %e\n",index_q,ptr->q[index_q]);
       index_q++;
     }
-
-    /* - get number of valid points in order to re-allocate list */
-
-    if (q[index_q-1] > q_max)
-      *q_size=index_q-1;
-    else
-      *q_size=index_q;
-    
+    else {
+      ptr->q[index_q] = q;
+      index_q++;
+    }
   }
 
-  /* check size of q_list and realloc the array to the correct size */
+  if (ptr->q[index_q-1] > q_max)
+    ptr->q_size=index_q-1;
+  else
+    ptr->q_size=index_q;
 
-  class_test((*q_size)<2,error_message,"buggy q-list definition");
+  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
 
-  class_realloc(q,
-                q,
-                (*q_size)*sizeof(double),
-                error_message);
-  /* consistency checks */
+  class_realloc(ptr->q,
+                ptr->q,
+                ptr->q_size*sizeof(double),
+                ptr->error_message);
 
-  class_test(q[0] <= 0.,
-             error_message,
-             "bug in q list calculation, q_min=%e, should always be strictly positive",q[0]);
-
-  if (sgnK == 1) {
-    class_test(q[0] < 3.*sqrt(K),
-               error_message,
-               "bug in q list calculation, q_min=%e, should be greater or equal to 3sqrt(K)=%e in positivevly curved universe",q[0],3.*sqrt(K));
-  }    
-
-  for (index_q=1; index_q<(*q_size); index_q++) {
-    class_test(q[index_q] <= q[index_q-1],
-               error_message,
-               "bug in q list calculation, q values should be in strictly growing order"); 
-  }
-
-  *qin = q;
   return _SUCCESS_; 
 
 }

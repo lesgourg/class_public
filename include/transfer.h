@@ -592,14 +592,12 @@ extern "C" {
                         ErrorMsg error_message);
 
   int transfer_get_q_list2(
-                           struct precision * ppr,
-                           struct perturbs * ppt,
-                           double tau0,
-                           double K,
-                           int sgnK,
-                           double **q,
-                           int *q_size,
-                           ErrorMsg error_message
+                        struct precision * ppr,
+                        struct perturbs * ppt,
+                        struct transfers * ptr,
+                        double tau0,
+                        double K,
+                        int sgnK 
                            );
 
 #ifdef __cplusplus
