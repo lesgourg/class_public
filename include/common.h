@@ -539,7 +539,9 @@ struct precision
   /* parameters relevant for bessel functions */
   double hyper_x_min;
   double hyper_sampling_flat;
-  double hyper_sampling_curved;
+  double hyper_sampling_curved_low_nu;
+  double hyper_sampling_curved_high_nu;
+  double hyper_nu_sampling_step;
   double hyper_phi_min_abs;
   double hyper_x_tol;
   double hyper_flat_approximation_nu;

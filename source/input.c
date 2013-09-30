@@ -1602,7 +1602,9 @@ int input_init(
 
   class_read_double("hyper_x_min",ppr->hyper_x_min);
   class_read_double("hyper_sampling_flat",ppr->hyper_sampling_flat);
-  class_read_double("hyper_sampling_curved",ppr->hyper_sampling_curved);
+  class_read_double("hyper_sampling_curved_low_nu",ppr->hyper_sampling_curved_low_nu);
+  class_read_double("hyper_sampling_curved_high_nu",ppr->hyper_sampling_curved_high_nu);
+  class_read_double("hyper_nu_sampling_step",ppr->hyper_nu_sampling_step);
   class_read_double("hyper_phi_min_abs",ppr->hyper_phi_min_abs);
   class_read_double("hyper_x_tol",ppr->hyper_x_tol);
   class_read_double("hyper_flat_approximation_nu",ppr->hyper_flat_approximation_nu);
@@ -2147,11 +2149,13 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->hyper_x_min = 1.e-5;
   ppr->hyper_sampling_flat = 8.;
-  ppr->hyper_sampling_curved = 3.;
+  ppr->hyper_sampling_curved_low_nu = 6.;
+  ppr->hyper_sampling_curved_high_nu = 3.;
+  ppr->hyper_nu_sampling_step = 1000.;
   ppr->hyper_phi_min_abs = 1.e-10;
   ppr->hyper_x_tol = 1.e-4;
   ppr->hyper_flat_approximation_nu = 10000.;
-
+  
   ppr->k_step_trans=0.45;
 
   ppr->transfer_neglect_delta_k_S_t0 = 0.15;
@@ -2213,7 +2217,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->accurate_lensing=_FALSE_;
   ppr->num_mu_minus_lmax=70;
-  ppr->delta_l_max=1000;
+  ppr->delta_l_max=750; // 750 for 0.2% near l_max, 1000 for 0.1%
 
   /**
    * - automatic estimate of machine precision
