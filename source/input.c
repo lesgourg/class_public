@@ -2160,7 +2160,7 @@ int input_default_precision ( struct precision * ppr ) {
   
   ppr->k_step_trans=0.45;
   ppr->q_linstep_trans=0.50;
-  ppr->q_logstep_trans=1.003;
+  ppr->q_logstep_trans=1.0016;
 
   ppr->transfer_neglect_delta_k_S_t0 = 0.15;
   ppr->transfer_neglect_delta_k_S_t1 = 0.020;

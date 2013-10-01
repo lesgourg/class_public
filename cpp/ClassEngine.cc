@@ -76,16 +76,13 @@ ClassEngine::ClassEngine(const ClassParams& pars): cl(0),dofree(true){
   }
 
     //input
-  if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_) 
+  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_) 
     throw invalid_argument(_errmsg);
 
   //proetction parametres mal defini
   for (size_t i=0;i<pars.size();i++){
     if (fc.read[i] !=_TRUE_) throw invalid_argument(string("invalid CLASS parameter: ")+fc.name[i]);
   }
-
-  //init bessel
-  if (bessel_init(&pr,&bs) == _FAILURE_) throw  invalid_argument(_errmsg);
 
   //calcul class
   computeCls();
@@ -127,16 +124,13 @@ ClassEngine::ClassEngine(const ClassParams& pars,const string & precision_file):
   parser_free(&fc_precision);
   
   //input
-  if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_) 
+  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_) 
     throw invalid_argument(_errmsg);
 
   //proetction parametres mal defini
   for (size_t i=0;i<pars.size();i++){
     if (fc.read[i] !=_TRUE_) throw invalid_argument(string("invalid CLASS parameter: ")+fc.name[i]);
   }
-
-  //init bessel
-  if (bessel_init(&pr,&bs) == _FAILURE_) throw  invalid_argument(_errmsg);
 
   //calcul class
   computeCls();
@@ -159,9 +153,6 @@ ClassEngine::~ClassEngine()
 
   //printFC();
   dofree && freeStructs();
-
-  //clean
-  if (bessel_free(&bs) == _FAILURE_) throw domain_error(bs.error_message);
 
   delete [] cl;
 
@@ -186,24 +177,23 @@ void ClassEngine::printFC() {
 
 
 }
-int ClassEngine::class_assuming_bessels_computed(
-				    struct file_content *pfc,
-				    struct precision * ppr,
-				    struct background * pba,
-				    struct thermo * pth,
-				    struct perturbs * ppt,
-				    struct bessels * pbs,
-				    struct transfers * ptr,
-				    struct primordial * ppm,
-				    struct spectra * psp,
-				    struct nonlinear * pnl,
-				    struct lensing * ple,
-				    struct output * pop,
-				    ErrorMsg errmsg) {
+int ClassEngine::class(
+                       struct file_content *pfc,
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct thermo * pth,
+                       struct perturbs * ppt,
+                       struct transfers * ptr,
+                       struct primordial * ppm,
+                       struct spectra * psp,
+                       struct nonlinear * pnl,
+                       struct lensing * ple,
+                       struct output * pop,
+                       ErrorMsg errmsg) {
   
 
 
-  if (input_init(pfc,ppr,pba,pth,ppt,pbs,ptr,ppm,psp,pnl,ple,pop,errmsg) == _FAILURE_) {
+  if (input_init(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     dofree=false;
     return _FAILURE_;
@@ -230,15 +220,7 @@ int ClassEngine::class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  /*
-  if (bessel_init(ppr,pbs) == _FAILURE_) {
-    printf("\n\nError in bessel_init \n=>%s\n",pbs->error_message);
-    dofree=false;
-    return _FAILURE_;
-  } 
-  */
-
-  if (transfer_init(ppr,pba,pth,ppt,pbs,ptr) == _FAILURE_) {
+  if (transfer_init(ppr,pba,pth,ppt,ptr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
     perturb_free(&pt);
     thermodynamics_free(&th);
@@ -268,7 +250,7 @@ int ClassEngine::class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  if (nonlinear_init(ppr,pba,pth,ppt,pbs,ptr,ppm,psp,pnl) == _FAILURE_)  {
+  if (nonlinear_init(ppr,pba,pth,ppt,ptr,ppm,psp,pnl) == _FAILURE_)  {
     printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
     spectra_free(&sp);
     primordial_free(&pm);
@@ -304,7 +286,7 @@ int ClassEngine::computeCls(){
 
   //printFC();
   //new call
-  return this->class_assuming_bessels_computed(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,_errmsg);
+  return this->class_main(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,_errmsg);
 }
 
 int

@@ -8,22 +8,21 @@
 
 #include "class.h"
 
-int class_assuming_bessels_computed(
-				    struct file_content *pfc,
-				    struct precision * ppr,
-				    struct background * pba,
-				    struct thermo * pth,
-				    struct perturbs * ppt,
-				    struct bessels * pbs,
-				    struct transfers * ptr,
-				    struct primordial * ppm,
-				    struct spectra * psp,
-				    struct nonlinear * pnl,
-				    struct lensing * ple,
-				    struct output * pop,
-				    int l_max,
-				    double ** cl,
-				    ErrorMsg errmsg);
+int class(
+          struct file_content *pfc,
+          struct precision * ppr,
+          struct background * pba,
+          struct thermo * pth,
+          struct perturbs * ppt,
+          struct transfers * ptr,
+          struct primordial * ppm,
+          struct spectra * psp,
+          struct nonlinear * pnl,
+          struct lensing * ple,
+          struct output * pop,
+          int l_max,
+          double ** cl,
+          ErrorMsg errmsg);
 
 int main() {
 
@@ -31,7 +30,6 @@ int main() {
   struct background ba;       /* for cosmological background */
   struct thermo th;           /* for thermodynamics */
   struct perturbs pt;         /* for source functions */
-  struct bessels bs;          /* for bessel functions */
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
@@ -95,14 +93,9 @@ int main() {
   for (l=0;l<=l_max;l++)
     cl[l]=malloc(num_ct_max*sizeof(double));
 
-  /* read input parameters and compute bessel functions once and for all */
-  if (input_init(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
+  /* read input parameters */
+  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
-    return _FAILURE_;
-  }
-
-  if (bessel_init(&pr,&bs) == _FAILURE_) {
-    printf("\n\nError in bessel_init \n =>%s\n",bs.error_message);
     return _FAILURE_;
   }
 
@@ -114,9 +107,8 @@ int main() {
     sprintf(fc.value[4],"%e",0.01+i*0.002);
     printf("#run with omega_b = %s\n",fc.value[4]);
 
-    /* calls class (except the bessel module which has been called
-       once and for all) and return the C_l's*/
-    class_assuming_bessels_computed(&fc,&pr,&ba,&th,&pt,&bs,&tr,&pm,&sp,&nl,&le,&op,l_max,cl,errmsg);
+    /* calls class and return the C_l's*/
+    class(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,l_max,cl,errmsg);
 
     /* printf the lensed C_l^TT, C_l^EE, C_l^TE's for this run */
     for (l=2;l<=l_max;l++) {
@@ -129,12 +121,6 @@ int main() {
     fprintf(stdout,"\n");
   }
 
-  /* now free the bessel structure */
-  if (bessel_free(&bs) == _FAILURE_)  {
-    printf("\n\nError in bessel_free \n=>%s\n",bs.error_message);
-    return _FAILURE_;
-  }
-
   for (l=0;l<l_max;l++) 
     free(cl[l]);
   free(cl);
@@ -143,26 +129,25 @@ int main() {
   
 }
 
-int class_assuming_bessels_computed(
-				    struct file_content *pfc,
-				    struct precision * ppr,
-				    struct background * pba,
-				    struct thermo * pth,
-				    struct perturbs * ppt,
-				    struct bessels * pbs,
-				    struct transfers * ptr,
-				    struct primordial * ppm,
-				    struct spectra * psp,
-				    struct nonlinear * pnl,
-				    struct lensing * ple,
-				    struct output * pop,
-				    int l_max,
-				    double ** cl,
-				    ErrorMsg errmsg) {
+int class(
+          struct file_content *pfc,
+          struct precision * ppr,
+          struct background * pba,
+          struct thermo * pth,
+          struct perturbs * ppt,
+          struct transfers * ptr,
+          struct primordial * ppm,
+          struct spectra * psp,
+          struct nonlinear * pnl,
+          struct lensing * ple,
+          struct output * pop,
+          int l_max,
+          double ** cl,
+          ErrorMsg errmsg) {
   
   int l;
 
-  if (input_init(pfc,ppr,pba,pth,ppt,pbs,ptr,ppm,psp,pnl,ple,pop,errmsg) == _FAILURE_) {
+  if (input_init(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
     return _FAILURE_;
   }
@@ -182,7 +167,7 @@ int class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  if (transfer_init(ppr,pba,pth,ppt,pbs,ptr) == _FAILURE_) {
+  if (transfer_init(ppr,pba,pth,ppt,ptr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
     return _FAILURE_;
   }
@@ -197,7 +182,7 @@ int class_assuming_bessels_computed(
     return _FAILURE_;
   }
 
-  if (nonlinear_init(ppr,pba,pth,ppt,pbs,ptr,ppm,psp,pnl) == _FAILURE_) {
+  if (nonlinear_init(ppr,pba,pth,ppt,ptr,ppm,psp,pnl) == _FAILURE_) {
     printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
     return _FAILURE_;
   }

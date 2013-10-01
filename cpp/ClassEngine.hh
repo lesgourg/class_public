@@ -115,7 +115,6 @@ private:
   struct background ba;       /* for cosmological background */
   struct thermo th;           /* for thermodynamics */
   struct perturbs pt;         /* for source functions */
-  struct bessels bs;          /* for bessel functions */
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
@@ -133,21 +132,20 @@ private:
   //call once /model
   int computeCls();
 
-  int class_assuming_bessels_computed(
-				    struct file_content *pfc,
-				    struct precision * ppr,
-				    struct background * pba,
-				    struct thermo * pth,
-				    struct perturbs * ppt,
-				    struct bessels * pbs,
-				    struct transfers * ptr,
-				    struct primordial * ppm,
-				    struct spectra * psp,
-				    struct nonlinear * pnl,
-				    struct lensing * ple,
-				    struct output * pop,
-				    ErrorMsg errmsg);
-
+  int class_main(
+                 struct file_content *pfc,
+                 struct precision * ppr,
+                 struct background * pba,
+                 struct thermo * pth,
+                 struct perturbs * ppt,
+                 struct transfers * ptr,
+                 struct primordial * ppm,
+                 struct spectra * psp,
+                 struct nonlinear * pnl,
+                 struct lensing * ple,
+                 struct output * pop,
+                 ErrorMsg errmsg);
+  
 protected:
  
   
