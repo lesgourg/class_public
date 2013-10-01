@@ -9,7 +9,6 @@
 #include "background.h"
 #include "thermodynamics.h"
 #include "perturbations.h"
-#include "bessel.h"
 #include "transfer.h"
 #include "primordial.h"
 #include "spectra.h"

@@ -3,7 +3,6 @@
 #ifndef __TRANSFER__
 #define __TRANSFER__
 
-#include "bessel.h"
 #include "perturbations.h"
 #include "hyperspherical.h"
 #include <sys/shm.h>
