@@ -32,11 +32,12 @@ int hyperspherical_HIS_create(int K,
 
   beta2 = beta*beta;
   lmax = lvec[nl-1];
-  lambda = 2*_PI_/beta; //Just to prevent too sparse sampling at beta<5.
+  lambda = 2*_PI_/beta;
   nx = (int) ((xmax-xmin)*sampling/lambda);
   nx = MAX(nx,2);
   deltax = (xmax-xmin)/(nx-1.0);
   //fprintf(stderr,"dx=%e\n",deltax);
+  //fprintf(stderr,"%e %e\n",beta,sampling);
   //Set scalar values:
   pHIS->beta = beta;
   pHIS->delta_x = deltax;

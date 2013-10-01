@@ -256,12 +256,13 @@ int transfer_init(
              ptr->error_message,
              ptr->error_message);
   
-
+  /*
   fprintf(stderr,"tau:%d   l:%d   q:%d\n",
           ppt->tau_size,
           ptr->l_size_max,
           ptr->q_size
           );
+  */
 
   /** (a.3.) workspace, allocated in a parallel zone since in openmp
       version there is one workspace per thread */
@@ -658,11 +659,12 @@ int transfer_get_l_list(
   int index_tt;
   int increment,current_l;
 
+  /*
   fprintf(stderr,"rescaling %e logstep %e linstep %e\n",
           ptr->angular_rescaling,
           pow(ppr->l_logstep,ptr->angular_rescaling),
           ppr->l_linstep*ptr->angular_rescaling);
-
+  */
 
   /* check that largests need value of l_max */
 
