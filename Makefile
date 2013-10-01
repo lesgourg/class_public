@@ -25,9 +25,9 @@ CC       = gcc -Wall #-g -pg -E#-ggdb
 AR        = ar rv
 
 # your optimization flag
-#OPTFLAG = -O4 -ffast-math #-march=native
+OPTFLAG = -O4 -ffast-math -march=native
 #OPTFLAG = -Ofast -ffast-math #-march=native
-OPTFLAG = -fast
+#OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
 OMPFLAG   = -fopenmp

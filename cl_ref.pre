@@ -53,6 +53,8 @@ hyper_x_tol = 1.e-4
 hyper_flat_approximation_nu = 1.e6
 
 k_step_trans=0.2
+q_linstep_trans=0.2
+q_logstep_trans=1.001
 
 transfer_neglect_delta_k_S_t0 = 100.;
 transfer_neglect_delta_k_S_t1 = 100.;

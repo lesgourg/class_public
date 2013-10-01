@@ -3403,10 +3403,10 @@ int transfer_can_be_neglected(
   
   else if _vectors_ {
       
-      if ((index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*pba->conformal_age)) *neglect = _TRUE_;
-      else if ((index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*pba->conformal_age)) *neglect = _TRUE_;
-      else if ((index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*pba->conformal_age)) *neglect = _TRUE_;
-      else if ((index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*pba->conformal_age)) *neglect = _TRUE_;
+      if ((index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_t2*ptr->angular_rescaling) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_e*ptr->angular_rescaling) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((index_tt == ptr->index_tt_b*ptr->angular_rescaling) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*pba->conformal_age)) *neglect = _TRUE_;
 
     }
 

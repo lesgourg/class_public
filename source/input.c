@@ -2159,7 +2159,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->hyper_flat_approximation_nu = 4000.;
   
   ppr->k_step_trans=0.45;
-  ppr->q_linstep_trans=0.60;
+  ppr->q_linstep_trans=0.50;
   ppr->q_logstep_trans=1.003;
 
   ppr->transfer_neglect_delta_k_S_t0 = 0.15;
@@ -2171,9 +2171,9 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_neglect_delta_k_V_t2 = 1.; 
   ppr->transfer_neglect_delta_k_V_e = 1.;
   ppr->transfer_neglect_delta_k_V_b = 1.;
-  ppr->transfer_neglect_delta_k_T_t2 = 1.;  //TBC
-  ppr->transfer_neglect_delta_k_T_e = 1.;   //TBC
-  ppr->transfer_neglect_delta_k_T_b = 1.;   //TBC
+  ppr->transfer_neglect_delta_k_T_t2 = 5.e-3;
+  ppr->transfer_neglect_delta_k_T_e = 0.1;
+  ppr->transfer_neglect_delta_k_T_b = 0.1;
 
   ppr->transfer_neglect_late_source = 400.;
 
@@ -2221,7 +2221,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->accurate_lensing=_FALSE_;
   ppr->num_mu_minus_lmax=70;
-  ppr->delta_l_max=750; // 750 for 0.2% near l_max, 1000 for 0.1%
+  ppr->delta_l_max=500; // 750 for 0.2% near l_max, 1000 for 0.1%
 
   /**
    * - automatic estimate of machine precision
