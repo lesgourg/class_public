@@ -3584,12 +3584,12 @@ int transfer_radial_function(
     if (ptw->sgnK == 1){
       rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
         asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
-      rescale_amplitude = 1.;
+      rescale_amplitude = pow(ptr->angular_rescaling,-0.6);
     }
     else{
       rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
         asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
-      rescale_amplitude = 1.;
+      rescale_amplitude = pow(ptr->angular_rescaling,-0.6);
     }
     HIorder = HERMITE4;
   }
