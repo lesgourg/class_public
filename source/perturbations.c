@@ -1042,7 +1042,7 @@ int perturb_get_k_list(
   double k_max_cl=0.;
   double k_max=0.;
   double nu;
-  long int int_nu,int_nu_previous=0;
+  long int int_nu_previous=0;
 
   /** Summary: */
 
@@ -1162,26 +1162,7 @@ int perturb_get_k_list(
        m=0,1,2 for scalars/vectors/tensors. However we are free to
        define in the perturbation module some arbitrary values of k:
        later on, the transfer module will interpolate at values of k
-       corresponding exactly to integer values of nu. However, in
-       order to maximize the accuracy in the scalar case, we choose
-       here to impose that all values of k are such that nu is an
-       integer in the flat case. This is ensured by the following
-       lines: for each new guess for k, we find the nearest integer of
-       nu, impose exactly this integer, and rederive the corresponding
-       k. A simple condition ensures that two consective k will
-       correspond to integers nu's differing at least by one unit. */
-    /*
-    if (pba->sgnK == 1) { 
-      
-      nu = sqrt(k*k + pba->K)/sqrt(pba->K);
-      int_nu = (long int)(nu+0.2);
-      if (int_nu == int_nu_previous) int_nu++; 
-      nu = (double)int_nu;
-      k = sqrt((nu*nu-1.0)*pba->K);
-      int_nu_previous=int_nu;
-
-    }
-    */
+       corresponding exactly to integer values of nu.*/
 
     class_test(k == ppt->k[index_k-1],
                ppt->error_message,

@@ -546,7 +546,10 @@ struct precision
   double hyper_x_tol;
   double hyper_flat_approximation_nu;
 
-  double k_step_trans; /**< upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
+  double k_step_trans; /**< for q_list function: upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
+
+  double q_linstep_trans; /**< for q_list2 function: upper bound on linear sampling step in q space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
+  double q_logstep_trans; /**< for q_list2 function: logarithmic sampling step in q space, applies to small q values, until above linear step is reached */
 
   /** for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
   double transfer_neglect_delta_k_S_t0;

@@ -546,9 +546,16 @@ int transfer_indices_of_transfers(
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
   /** get q values using transfer_get_q_list() */
-  class_call(transfer_get_q_list(ppr,ppt,ptr,tau0,K,sgnK),
-             ptr->error_message,
-             ptr->error_message);
+  if (sgnK == 0) {
+    class_call(transfer_get_q_list(ppr,ppt,ptr,tau0,K,sgnK),
+               ptr->error_message,
+               ptr->error_message);
+  }
+  else {
+    class_call(transfer_get_q_list2(ppr,ppt,ptr,tau0,K,sgnK),
+               ptr->error_message,
+               ptr->error_message);
+  }
 
   /** get k values using transfer_get_k_list() */
   class_call(transfer_get_k_list(ppt,ptr,K),
@@ -849,8 +856,8 @@ int transfer_get_q_list(
 
   int index_k;
   int index_q;
-  double q_min=0.,q_max,q_step_max=0.,q_step=0.,k_max;
-  int nu, nu_min, nu_proposed, nu_proposed_following_ppt, nu_proposed_following_step_max;
+  double q_min=0.,q_max,q_step_max=0.,k_max;
+  int nu, nu_min, nu_proposed;
   int q_size_max;
 
   /* find q_step_max, the maximum value of the step */
@@ -976,56 +983,6 @@ int transfer_get_q_list(
         index_q++;
       }
     }
-      
-    /* 
-
-    int debug=1;
-
-    while (ptr->q[index_q-1] < q_max) {
-
-      switch(debug) {
-        
-      case 0:  
-        nu += 1;
-        ptr->q[index_q] = nu*sqrt(K);
-        index_q++;
-        
-      case 1: 
-        // find first point in ppt->k list corresponding to a q that is higher than the last q value
-
-        while ((index_k < ppt->k_size_cl) && (ppt->k[index_k]*ppt->k[index_k]+K < ptr->q[index_q-1]*ptr->q[index_q-1])) index_k++;
-        
-        q_step = ppt->k[index_k]-ppt->k[index_k-1];
-        //q_step = ppt->k[index_k]* ppt->k[index_k]-ppt->k[index_k-1]* ppt->k[index_k-1];
-
-        // now we can propose as a next point q_propose_following_ppt, spaced wrt the previous one according to the k values of the pertubation module
-        
-        nu_proposed_following_ppt = (int)((ptr->q[index_q-1]+q_step)/sqrt(K));
-        
-        // but if spacing in ppt become too sparse, we should instead refer to the maximum stepsize
-        
-        nu_proposed_following_step_max = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));
-                
-        nu_proposed = MIN(nu_proposed_following_ppt,nu_proposed_following_step_max);
-        
-        if (nu_proposed <= nu) nu_proposed=nu+1;
-        
-        ptr->q[index_q] = nu_proposed*sqrt(K);
-        nu = nu_proposed;
-        
-        index_q++;
-        
-      case 3:
-        nu_proposed = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));     
-        if (nu_proposed <= nu) nu_proposed=nu+1;
-
-        ptr->q[index_q] = nu_proposed*sqrt(K);
-        nu = nu_proposed;
-        
-        index_q++;
-      }
-    }
-    */
 
     /* - get number of valid points in order to re-allocate list */
 
@@ -1114,10 +1071,9 @@ int transfer_get_q_list2(
                         int sgnK
                          ) {
 
-  int index_k;
   int index_q;
-  double q,q_min=0.,q_max,q_step,q_logstep,q_step_max,k_max;
-  int nu, nu_min, nu_proposed, nu_proposed_following_ppt, nu_proposed_following_step_max;
+  double q,q_min=0.,q_max,q_step,q_logstep,k_max;
+  int nu, nu_min, nu_proposed;
   int q_size_max;
 
   if (sgnK <= 0) {
@@ -1149,25 +1105,11 @@ int transfer_get_q_list2(
     q_max = ppt->k[ppt->k_size_cl-1]; 
   }
 
-  // ca marche avec tout en logstep de 1.001 (3925 points)
-  // ou logstep 1.0015 puis linstep 0.55 (4658 points)
-
-  //q_step_max = 2.*_PI_/tau0/ptr->angular_rescaling*ppr->k_step_trans;
-  //q_step_max = 2.*_PI_/tau0/ptr->angular_rescaling*0.55;
-
-  // pour c1: 0.5. Pour c1-2: moins
-
-  //q_step = 2.*_PI_/tau0/ptr->angular_rescaling*0.5;
-  q_step = 2.*_PI_/tau0*0.6;
-  //q_size_max = 2+2*(int)((q_max-q_min)/q_step);
-
-  q_logstep = 1.001;
-  //q_logstep = 1.0015;
+  q_step = 2.*_PI_/tau0*ppr->q_linstep_trans;
+  q_logstep = ppr->q_logstep_trans;
 
   q_size_max = 2+2*(int)((q_max-q_min)/q_step)
     +(int)(log(q_max/q_min)/log(q_logstep));
-
-  fprintf(stderr,"%d %e %e\n",q_size_max,q_min,q_max);
 
   class_alloc(ptr->q,
               q_size_max*sizeof(double),
