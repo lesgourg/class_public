@@ -2,3 +2,7 @@ output/
 *~
 build/
 class
+*.prof
+*.ini
+libclass.a
+*out
