@@ -11,6 +11,7 @@
 #define _HYPER_SAFETY_ 1e-5
 #define _TRIG_PRECISSION_ 1e-7
 #define _HYPER_BLOCK_ 8
+#define _HYPER_CHUNK_ 16
 #define _TWO_OVER_THREE_ 0.666666666666666666666666666667e0
 #define _HIS_BYTE_ALIGNMENT_ 16
 
@@ -65,6 +66,16 @@ extern "C" {
                                          double *sqrtK,
                                          double *one_over_sqrtK,
                                          double *PhiL);
+int hyperspherical_forwards_recurrence_chunk(int K, 
+                                             int lmax, 
+                                             double beta, 
+                                             double * __restrict__ x, 
+                                             double * __restrict__ sinK,
+                                             double * __restrict__ cotK,
+                                             int chunk,
+                                             double * __restrict__ sqrtK,
+                                             double * __restrict__ one_over_sqrtK,
+                                             double * __restrict__ PhiL);
   int hyperspherical_backwards_recurrence(int K, 
                                           int lmax, 
                                           double beta, 
@@ -73,7 +84,18 @@ extern "C" {
                                           double cotK,
                                           double *sqrtK,
                                           double *one_over_sqrtK,
-                                          double *PhiL);                                                  
+                                          double *PhiL);
+
+  int hyperspherical_backwards_recurrence_chunk(int K, 
+                                                int lmax, 
+                                                double beta, 
+                                                double * __restrict__ x, 
+                                                double * __restrict__ sinK,
+                                                double * __restrict__ cotK,
+                                                int chunk,
+                                                double * __restrict__ sqrtK,
+                                                double * __restrict__ one_over_sqrtK,
+                                                double * __restrict__ PhiL);                                                  
   int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
                               double xtol,
                               double phiminabs,

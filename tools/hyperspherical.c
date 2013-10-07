@@ -29,6 +29,7 @@ int hyperspherical_HIS_create(int K,
   double *sqrtK, *one_over_sqrtK,*PhiL;
   int j, k, l, nx, lmax, l_recurrence_max;
   int abort;
+  int current_chunk, index_x;
 
   beta2 = beta*beta;
   lmax = lvec[nl-1];
@@ -45,8 +46,14 @@ int hyperspherical_HIS_create(int K,
   pHIS->x_size = nx;
   pHIS->K = K;
   //Set pointervalues in pHIS:
-  class_alloc(pHIS->l,hyperspherical_HIS_size(nl, nx),error_message);
-  hyperspherical_update_pointers(pHIS, (void *) pHIS->l);
+  
+  class_alloc(pHIS->l, sizeof(int)*nl,error_message);
+  class_alloc(pHIS->chi_at_phimin,sizeof(double)*nl,error_message);
+  class_alloc(pHIS->x,sizeof(double)*nx,error_message);
+  class_alloc(pHIS->sinK,sizeof(double)*nx,error_message);
+  class_alloc(pHIS->cotK,sizeof(double)*nx,error_message);
+  class_alloc(pHIS->phi,sizeof(double)*nx*nl,error_message);
+  class_alloc(pHIS->dphi,sizeof(double)*nx*nl,error_message);  
 
   //Order needed for trig interpolation: (We are using Taylor's remainder theorem)
   if (0.5*deltax*deltax < _TRIG_PRECISSION_)
@@ -122,63 +129,105 @@ int hyperspherical_HIS_create(int K,
     return _FAILURE_;
   }  
 
+  int xfwdidx = (xfwd-xmin)/deltax;
   //Calculate and assign Phi and dPhi values:
 
   abort = _FALSE_;
 
-#pragma omp parallel         \
-  shared(nx,pHIS,xfwd,K,l_recurrence_max,beta,sqrtK,one_over_sqrtK,lvec,nl,abort,error_message) \
-  private(j,x,PhiL,k,l) \
+#pragma omp parallel                                                    \
+  shared(nx,pHIS,xfwd,K,l_recurrence_max,beta,sqrtK,one_over_sqrtK,lvec,nl,xfwdidx,abort,error_message) \
+  private(j,PhiL,k,l,current_chunk,index_x)                           \
   firstprivate(lmax)
   {
-    //lmax = lvec[nl-1];
-
-    class_alloc_parallel(PhiL,(lmax+2)*sizeof(double),error_message);
-
+    class_alloc_parallel(PhiL,(lmax+2)*sizeof(double)*_HYPER_CHUNK_,error_message);
+    
     if ((K == 1) && ((int)(beta+0.2) == (lmax+1))) {
-      /** Take care of special case lmax = beta-1. The routine below will try to compute
-          Phi_{lmax+1} which is not allowed. However, the purpose is to calculate the derivative
+      /** Take care of special case lmax = beta-1. 
+          The routine below will try to compute
+          Phi_{lmax+1} which is not allowed. However, 
+          the purpose is to calculate the derivative
           Phi'_{lmax}, and the formula is correct if we set Phi_{lmax+1} = 0.
       */
       PhiL[lmax+1] = 0.0;
       lmax--;
     }
-
+    
 #pragma omp for schedule (dynamic)              \
 
-    for (j=0; j<nx; j++){
-      x = pHIS->x[j];
-      if (x<xfwd){
-        //Use backwards method:
-        hyperspherical_backwards_recurrence(K, 
-                                            MIN(l_recurrence_max,lmax)+1, 
-                                            beta, 
-                                            x, 
-                                            pHIS->sinK[j],
-                                            pHIS->cotK[j],
-                                            sqrtK,
-                                            one_over_sqrtK,
-                                            PhiL);
-      }
-      else{
-        //Use forwards method:
-        hyperspherical_forwards_recurrence(K, 
-                                           MIN(l_recurrence_max,lmax)+1, 
-                                           beta, 
-                                           x, 
-                                           pHIS->sinK[j],
-                                           pHIS->cotK[j],
-                                           sqrtK,
-                                           one_over_sqrtK,
-                                           PhiL);
-      }
+    /*
+    for (j=0; j<MIN(nx,xfwdidx); j++){
+      //Use backwards method:
+      hyperspherical_backwards_recurrence(K, 
+                                          MIN(l_recurrence_max,lmax)+1, 
+                                          beta, 
+                                          pHIS->x[j], 
+                                          pHIS->sinK[j],
+                                          pHIS->cotK[j],
+                                          sqrtK,
+                                          one_over_sqrtK,
+                                          PhiL);
       //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
       for (k=0; k<=index_recurrence_max; k++){
         l = lvec[k];
         pHIS->phi[k*nx+j] = PhiL[l];
         pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
       }
+    }*/
+    
+    for (j=0; j<MIN(nx,xfwdidx); j+= _HYPER_CHUNK_){
+      current_chunk = MIN(_HYPER_CHUNK_,MIN(nx,xfwdidx)-j);
+      //Use backwards method:
+      hyperspherical_backwards_recurrence_chunk(K, 
+                                                MIN(l_recurrence_max,lmax)+1, 
+                                                beta, 
+                                                pHIS->x+j, 
+                                                pHIS->sinK+j,
+                                                pHIS->cotK+j,
+                                                current_chunk,
+                                                sqrtK,
+                                                one_over_sqrtK,
+                                                PhiL);
+      //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
+      for (k=0; k<=index_recurrence_max; k++){
+        l = lvec[k];
+        for (index_x=0; index_x<current_chunk; index_x++){
+          pHIS->phi[k*nx+j+index_x] = PhiL[l*current_chunk+index_x];
+          pHIS->dphi[k*nx+j+index_x] = l*pHIS->cotK[j+index_x]*
+            PhiL[l*current_chunk+index_x]-
+            sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
+        }    
+      }
     }
+    
+
+
+#pragma omp for schedule (dynamic)              \
+  
+    for (j=xfwdidx; j<nx; j+=_HYPER_CHUNK_){
+      //Use forwards method:
+      current_chunk = MIN(_HYPER_CHUNK_,nx-j);
+      hyperspherical_forwards_recurrence_chunk(K, 
+                                               MIN(l_recurrence_max,lmax)+1, 
+                                               beta, 
+                                               pHIS->x+j,
+                                               pHIS->sinK+j,
+                                               pHIS->cotK+j,
+                                               current_chunk,
+                                               sqrtK,
+                                               one_over_sqrtK,
+                                               PhiL);
+  
+      //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
+      for (k=0; k<=index_recurrence_max; k++){
+        l = lvec[k];
+        for (index_x=0; index_x<current_chunk; index_x++){
+          pHIS->phi[k*nx+j+index_x] = PhiL[l*current_chunk+index_x];
+          pHIS->dphi[k*nx+j+index_x] = l*pHIS->cotK[j+index_x]*
+            PhiL[l*current_chunk+index_x]-
+            sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
+        }    
+      }
+    } 
     free(PhiL);
   }
   if (abort == _TRUE_) return _FAILURE_;
@@ -221,6 +270,13 @@ int hyperspherical_HIS_free(HyperInterpStruct *pHIS,
                             ErrorMsg error_message){
   /** Free the Hyperspherical Interpolation Structure. */  
   free(pHIS->l);
+  free(pHIS->chi_at_phimin);
+  free(pHIS->x);
+  free(pHIS->sinK);
+  free(pHIS->cotK);
+  free(pHIS->phi);
+  free(pHIS->dphi);
+  
   return _SUCCESS_;
 }
 
@@ -430,6 +486,33 @@ int hyperspherical_forwards_recurrence(int K,
   return _SUCCESS_;
 }
 
+int hyperspherical_forwards_recurrence_chunk(int K, 
+                                             int lmax, 
+                                             double beta, 
+                                             double * __restrict__ x, 
+                                             double * __restrict__ sinK,
+                                             double * __restrict__ cotK,
+                                             int chunk,
+                                             double * __restrict__ sqrtK,
+                                             double * __restrict__ one_over_sqrtK,
+                                             double * __restrict__ PhiL){
+  int l;
+  int index_x;
+  for (index_x=0; index_x<chunk; index_x++){
+    PhiL[index_x] = 1.0/beta*sin(beta*x[index_x])/sinK[index_x];
+    PhiL[chunk+index_x] = PhiL[index_x]*
+      (cotK[index_x]-beta/tan(beta*x[index_x]))*one_over_sqrtK[1];
+  }
+  for (l=2; l<=lmax; l++){
+    for (index_x=0; index_x<chunk; index_x++)
+      PhiL[l*chunk+index_x] = 
+        ((2*l-1)*cotK[index_x]*PhiL[(l-1)*chunk+index_x]-
+         PhiL[(l-2)*chunk+index_x]*sqrtK[l-1])*one_over_sqrtK[l];
+  }
+  return _SUCCESS_;
+}
+
+
 int hyperspherical_backwards_recurrence(int K, 
                                         int lmax, 
                                         double beta, 
@@ -517,6 +600,78 @@ int hyperspherical_backwards_recurrence(int K,
     PhiL[k] *= scaling;
   return _SUCCESS_;
 }
+
+int hyperspherical_backwards_recurrence_chunk(int K, 
+                                              int lmax, 
+                                              double beta, 
+                                              double * __restrict__ x, 
+                                              double * __restrict__ sinK,
+                                              double * __restrict__ cotK,
+                                              int chunk,
+                                              double * __restrict__ sqrtK,
+                                              double * __restrict__ one_over_sqrtK,
+                                              double * __restrict__ PhiL){
+  double phi0, phi1, phipr1;
+  int l, k, isign;
+  int funcreturn = _FAILURE_;
+  int index_x;
+  double scalevec[_HYPER_CHUNK_]={0};
+
+  for (index_x=0; index_x<chunk; index_x++){
+    if (K==1){
+      if (beta > 1.5*lmax) {
+        funcreturn = get_CF1(K,lmax,beta,cotK[index_x], &phipr1, &isign);
+      }
+      if (funcreturn == _FAILURE_) {
+        CF1_from_Gegenbauer(lmax,(int) (beta+0.2),sinK[index_x],cotK[index_x], &phipr1);
+      }
+      phi1 = 1.0;
+    }
+    else{
+      get_CF1(K,lmax,beta,cotK[index_x], &phipr1, &isign);
+      phi1 = isign;
+      phipr1 *=phi1;  
+    }
+
+    PhiL[lmax*chunk+index_x] = phi1;
+    PhiL[(lmax-1)*chunk+index_x] = one_over_sqrtK[lmax]*
+      ((lmax+1)*cotK[index_x]*phi1+phipr1);
+
+  } 
+  for (l=lmax-2; l>=0; l--){
+    //Use recurrence Phi_{l} = --Phi_{l+1} + -- Phi_{l+2}
+    for (index_x=0; index_x<chunk; index_x++){
+      PhiL[l*chunk+index_x] = one_over_sqrtK[l+1]*
+        ((2*l+3)*cotK[index_x]*PhiL[(l+1)*chunk+index_x]-
+         sqrtK[l+2]*PhiL[(l+2)*chunk+index_x]);
+    }
+    
+    if (fabs(PhiL[l*chunk])>_HYPER_OVERFLOW_){
+      //Rescale whole Phi vector until this point.
+      //Create scale vector:
+      for (index_x=0; index_x<chunk; index_x++)
+        scalevec[index_x] = fabs(1.0/PhiL[l*chunk+index_x]);
+      //Now do the scaling: (We do it this way to access elements in order)
+      for (k=l; k<=lmax; k++){
+        for (index_x=0; index_x<chunk; index_x++){
+          PhiL[k*chunk+index_x] *= scalevec[index_x];
+        }
+      }
+    }
+  }
+  for(index_x=0; index_x<chunk; index_x++){
+    phi0 = sin(beta*x[index_x])/(beta*sinK[index_x]);
+    scalevec[index_x] = phi0/PhiL[index_x];
+  }    
+  for (k=0; k<=lmax; k++){
+    for (index_x=0; index_x<chunk; index_x++){
+      PhiL[k*chunk+index_x] *= scalevec[index_x];
+    }
+  }
+
+  return _SUCCESS_;
+}
+
 
 int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign){
   int maxiter = 1000000;
