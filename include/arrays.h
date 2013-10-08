@@ -394,6 +394,11 @@ extern "C" {
                                 double * __restrict__ w_trapz,
                                 ErrorMsg errmsg);
   
+  int array_trapezoidal_mweights(double * __restrict__ x,
+                                int n,
+                                double * __restrict__ w_trapz,
+                                ErrorMsg errmsg);
+  
   int array_trapezoidal_integral(double * __restrict__ integrand,
                                  int n,
                                  double * __restrict__ w_trapz,

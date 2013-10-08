@@ -306,7 +306,7 @@ int input_init(
              "In input file, you can only enter one of N_eff, Omega_ur or omega_ur, choose one");
 
   if (class_none_of_three(flag1,flag2,flag3)) {
-    pba->Omega0_ur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+    pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   }
   else {
 
@@ -1786,7 +1786,7 @@ int input_default_params(
   pba->H0 = pba->h * 1.e5 / _c_;
   pba->T_cmb = 2.726;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
-  pba->Omega0_ur = 3.04*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+  pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
   pba->Omega0_cdm = 0.1122/0.704/0.704;
   pba->N_ncdm = 0;
