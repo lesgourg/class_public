@@ -1445,6 +1445,15 @@ int spectra_indices(
     */
     psp->has_tl = _FALSE_;
 
+    if ((ppt->has_cl_density == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+      psp->has_dl = _TRUE_;
+      psp->index_ct_dl=index_ct;
+      index_ct+=(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2;
+    }
+    else {
+      psp->has_dl = _FALSE_;
+    }
+
     psp->ct_size = index_ct;
 
     /* infer from input quantities the l_max for each mode and type,
@@ -1499,6 +1508,13 @@ int spectra_indices(
              index_ct<psp->index_ct_tl+psp->d_size; 
              index_ct++)
           psp->l_max_ct[ppt->index_md_scalars][index_ct] = MIN(ppt->l_scalar_max,ppt->l_lss_max);
+
+      if (psp->has_dl == _TRUE_)
+        for (index_ct=psp->index_ct_dl; 
+             index_ct<psp->index_ct_dl+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2;
+             index_ct++)
+          psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
+
     }
     if (ppt->has_tensors == _TRUE_) {
       
@@ -2080,10 +2096,25 @@ int spectra_compute_cl(
             * factor;
       }
     }
+
+    if (_scalars_ && (psp->has_dl == _TRUE_)) {
+      index_ct=0;
+      for (index_d1=0; index_d1<psp->d_size; index_d1++) {
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
+          cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_dl+index_ct]=
+            primordial_pk[index_ic1_ic2]
+            * 0.5*(transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2[ptr->index_tt_lensing+index_d2] +
+                   transfer_ic1[ptr->index_tt_lensing+index_d1] * transfer_ic2[ptr->index_tt_density+index_d2])
+            * factor;
+          index_ct++;
+        }
+      }
+    }
+    
   }
   
-for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
-
+  for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
+    
     /* treat null spectra (C_l^BB of scalars, C_l^pp of tensors, etc. */
 
     if ((_scalars_ && (psp->has_bb == _TRUE_) && (index_ct == psp->index_ct_bb)) ||
@@ -2094,7 +2125,9 @@ for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
         (_tensors_ && (psp->has_td == _TRUE_) && (index_ct == psp->index_ct_td)) ||
         (_tensors_ && (psp->has_pd == _TRUE_) && (index_ct == psp->index_ct_pd)) ||
         (_tensors_ && (psp->has_ll == _TRUE_) && (index_ct == psp->index_ct_ll)) ||
-        (_tensors_ && (psp->has_tl == _TRUE_) && (index_ct == psp->index_ct_tl))) {
+        (_tensors_ && (psp->has_tl == _TRUE_) && (index_ct == psp->index_ct_tl)) ||
+        (_tensors_ && (psp->has_dl == _TRUE_) && (index_ct == psp->index_ct_dl))
+        ) {
 
       psp->cl[index_md]
         [(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] = 0.;

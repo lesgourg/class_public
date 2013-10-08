@@ -62,6 +62,7 @@ struct spectra {
   int has_pd; /**< do we want C_l^phi-d ? */
   int has_ll; /**< do we want C_l^l-l ? (l = galaxy lensing potential) */
   int has_tl; /**< do we want C_l^T-l ? */
+  int has_dl; /**< do we want C_l^d-l ? */
 
   int index_ct_tt; /**< index for type C_l^TT */
   int index_ct_ee; /**< index for type C_l^EE */
@@ -75,6 +76,7 @@ struct spectra {
   int index_ct_pd; /**< first index for type C_l^pd (d_size values) */
   int index_ct_ll; /**< first index for type C_l^ll ((d_size*d_size-(d_size-non_diag)*(d_size-non_diag-1)/2) values) */
   int index_ct_tl; /**< first index for type C_l^Tl (d_size values) */
+  int index_ct_dl; /**< first index for type C_l^dl (d_size values) */
 
   int d_size;
 
