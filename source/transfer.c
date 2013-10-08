@@ -2561,7 +2561,8 @@ int transfer_lensing_sampling(
              ptr->error_message);
 
   for (index_tau=0; index_tau<tau_size; index_tau++) {
-    tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau0-tau_min);
+    //tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau0-tau_min);
+    tau0_minus_tau[index_tau]=((double)(tau_size-1-index_tau))/((double)(tau_size-1))*(tau0-tau_min);
   }
 
   return _SUCCESS_;
