@@ -2108,7 +2108,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->perturb_integration_stepsize=0.5;
 
-  ppr->tol_tau_approx=1.e-5;
+  ppr->tol_tau_approx=1.e-10;
   ppr->tol_perturb_integration=3.e-4;
   ppr->perturb_sampling_stepsize=0.10;
 
