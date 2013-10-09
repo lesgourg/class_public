@@ -4691,9 +4691,12 @@ int perturb_sources(
       /* scalar polarization */
       if (ppt->has_source_p == _TRUE_) {
 
-        /* all gauges */
-        _set_source_(ppt->index_tp_p) = -sqrt(6.) * pvecthermo[pth->index_th_g] * P;  
-        //_set_source_(ppt->index_tp_p) = -sqrt(6.) * pvecthermo[pth->index_th_g] * P/x/x;  
+        /* all gauges. Note that the correct formula for the E source
+           should have a minus sign, as shown in Hu & White. We put a
+           plus sign to comply with the 'historical convention'
+           established in CMBFAST and CAMB. */
+
+        _set_source_(ppt->index_tp_p) = sqrt(6.) * pvecthermo[pth->index_th_g] * P;  
 
       }
 
@@ -4821,7 +4824,13 @@ int perturb_sources(
 
       /* tensor polarization */
       if (ppt->has_source_p == _TRUE_) {
-        _set_source_(ppt->index_tp_p) = -pvecthermo[pth->index_th_g] * sqrt(6.) * P;
+
+        /* Note that the correct formula for the polarisation source
+           should have a minus sign, as shown in Hu & White. We put a
+           plus sign to comply with the 'historical convention'
+           established in CMBFAST and CAMB. */
+
+        _set_source_(ppt->index_tp_p) = sqrt(6.) * pvecthermo[pth->index_th_g] * P;
       }
     }
  

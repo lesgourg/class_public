@@ -2904,7 +2904,7 @@ int array_smooth(double * array,
 }
 
 /**
- * Compute quadrature weights for the trapezoidal integration method.
+ * Compute quadrature weights for the trapezoidal integration method, xhen x is in gorwing order.
  *
  * @param x                     Input: Grid points on which f() is known.
  * @param n                     Input: number of grid points.
@@ -2931,6 +2931,39 @@ int array_trapezoidal_weights(
     //Set inner weights:
     for (i=1; i<(n-1); i++){
       w_trapz[i] = 0.5*(x[i+1]-x[i-1]);
+    }
+  }
+  return _SUCCESS_;
+}
+
+/**
+ * Compute quadrature weights for the trapezoidal integration method, when x is in decreasing order.
+ *
+ * @param x                     Input: Grid points on which f() is known.
+ * @param n                     Input: number of grid points.
+ * @param w_trapz               Output: Weights of the trapezoidal method.
+ * @return the error status
+ */
+
+int array_trapezoidal_mweights(
+                              double * __restrict__ x,
+                              int n,
+                              double * __restrict__ w_trapz,
+                              ErrorMsg errmsg
+                              ) {
+  int i;
+
+  /* Case with just one point, w would normally be 0. */
+  if (n==1){
+    w_trapz[0] = 0.0;
+  }
+  else if (n>1){
+    //Set edgeweights:
+    w_trapz[0] = 0.5*(x[0]-x[1]);
+    w_trapz[n-1] = 0.5*(x[n-2]-x[n-1]);
+    //Set inner weights:
+    for (i=1; i<(n-1); i++){
+      w_trapz[i] = 0.5*(x[i-1]-x[i+1]);
     }
   }
   return _SUCCESS_;

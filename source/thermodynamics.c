@@ -935,6 +935,7 @@ int thermodynamics_helium_from_bbn(
 
   int array_line=0;
   double DeltaNeff;
+  double omega_b;
   int last_index;
 
   /* compute Delta N_eff as defined in bbn file, i.e. Delta N_eff=0 means N_eff=3.046 */
@@ -1017,6 +1018,28 @@ int thermodynamics_helium_from_bbn(
 	     pth->error_message,
 	     pth->error_message);
 
+  omega_b=pba->Omega0_b*pba->h*pba->h;
+
+  class_test(omega_b < omegab[0],
+             pth->error_message,
+             "You have asked for an unrealistic small value omega_b = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             omega_b);
+
+  class_test(omega_b > omegab[num_omegab-1],
+             pth->error_message,
+             "You have asked for an unrealistic high value omega_b = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             omega_b);
+
+  class_test(DeltaNeff < deltaN[0],
+             pth->error_message,
+             "You have asked for an unrealistic small value of Delta N_eff = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             DeltaNeff);
+
+  class_test(DeltaNeff > deltaN[num_deltaN-1],
+             pth->error_message,
+             "You have asked for an unrealistic high value of Delta N_eff = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             DeltaNeff);
+
   /* interpolate in one dimension (along deltaN) */
   class_call(array_interpolate_spline(deltaN,
 				      num_deltaN,
@@ -1048,7 +1071,7 @@ int thermodynamics_helium_from_bbn(
 				      YHe_at_deltaN,
 				      ddYHe_at_deltaN,
 				      1,
-				      pba->Omega0_b*pba->h*pba->h,
+				      omega_b,
 				      &last_index,
 				      &(pth->YHe),
 				      1,
