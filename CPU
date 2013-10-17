@@ -324,7 +324,7 @@ def blend_against_interp(names,spectrum_type,term):
   plotfile = open(gnuplot_file,"w")
   plotfile.write(headers_plot_file(spectrum_type,names,False,term))
   plotfile.write("unset logscale \n")
-  if args.t == 'cl_log':
+  if args.t in ['cl_log', 'pk']:
     plotfile.write("set logscale x\n")
   plotfile.write("set xr [{0}:{1}]\n".format(kmin,kmax))
   #plotfile.write("set yr [-0.001:0.005]\n")
@@ -369,8 +369,10 @@ if len(args.files)==0:
 # if the first file name contains cl or pk, infer the type of desired spectrum
 if ((args.files[0].rfind('cl')!=-1) and (args.t is None)):
   spectrum_type='cl_lin'
+  args.t = 'cl_lin'
 elif args.files[0].rfind('pk')!=-1:
   spectrum_type='pk'
+  args.t = 'pk'
 elif args.t is not None:
   spectrum_type=args.t
 else:
