@@ -1056,7 +1056,46 @@ int perturb_get_k_list(
              ppt->error_message,
              "stop to avoid division by zero");
 
+
+  /** - find k_min */
+
+  /* first value */
+  if (pba->sgnK == 0) {                       
+
+    /* K<0 (flat)  : start close to zero */
+    k_min=ppr->k_min_tau0/pba->conformal_age;
+
+  }
+  else if (pba->sgnK == -1) {                 
+
+    /* K<0 (open)  : start close to sqrt(-K) 
+       (in transfer modules, for scalars, this will correspond to q close to zero; 
+       for vectors and tensors, this value is even smaller than the minimum necessary value) */
+    k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
+
+  }
+  else if (pba->sgnK == 1) {                   
+
+    /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+    k_min = sqrt((8.-1.e-4)*pba->K);
+    int_nu_previous = 3;
+    if (ppt->has_vectors == _TRUE_) {
+      k_min = MIN(k_min,sqrt((7.-1.e-4)*pba->K));
+    }
+    if (ppt->has_tensors == _TRUE_) {
+      k_min = MIN(k_min,sqrt((6.-1e-4)*pba->K));
+    }
+    nu = sqrt(k_min*k_min + pba->K)/sqrt(pba->K);
+    int_nu_previous = (long int)(nu+0.2);
+  }
+
+  /** - find k_max (as well as k_max_cmb, k_max_cl) */
+
   k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+
+  k_max_cmb = k_min;
+  k_max_cl = k_min;
+  k_max = k_min;
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -1102,45 +1141,28 @@ int perturb_get_k_list(
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
     k_max = MAX(k_max,ppt->k_max_for_pk);
 
-  //if (pba->sgnK <= 0) {
+  /** - test that result for k_min, k_max make sense */
 
+  class_test(k_min<0.,
+             ppt->error_message,
+             "buggy definition of k_min");
+
+  class_test(k_max<0.,
+             ppt->error_message,
+             "buggy definition of k_max");
+
+  class_test(k_max<k_min,
+             ppt->error_message,
+             "buggy definition of k_min and/or k_max");
+  
   /* allocate array with, for the moment, the largest possible size */
-  class_alloc(ppt->k,(k_max_cmb/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub)+log(k_max/k_max_cmb)/log(MIN(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao))+1)*sizeof(double),ppt->error_message);
-
-  /* now, find indices corresponding to k_max_cmb, k_max_cl, k_max_full */
-
-  index_k=0;
+  class_alloc(ppt->k,((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+                      (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
+              *sizeof(double),ppt->error_message);
     
   /* first value */
-  if (pba->sgnK == 0) {                       
 
-    /* K<0 (flat)  : start close to zero */
-    k_min=ppr->k_min_tau0/pba->conformal_age;
-
-  }
-  else if (pba->sgnK == -1) {                 
-
-    /* K<0 (open)  : start close to sqrt(-K) 
-       (in transfer modules, for scalars, this will correspond to q close to zero; 
-       for vectors and tensors, this value is even smaller than the minimum necessary value) */
-    k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
-
-  }
-  else if (pba->sgnK == 1) {                   
-
-    /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
-    k_min = sqrt((8.-1.e-4)*pba->K);
-    int_nu_previous = 3;
-    if (ppt->has_vectors == _TRUE_) {
-      k_min = MIN(k_min,sqrt((7.-1.e-4)*pba->K));
-    }
-    if (ppt->has_tensors == _TRUE_) {
-      k_min = MIN(k_min,sqrt((6.-1e-4)*pba->K));
-    }
-    nu = sqrt(k_min*k_min + pba->K)/sqrt(pba->K);
-    int_nu_previous = (long int)(nu+0.2);
-  }
-
+  index_k=0;
   k = k_min;
   ppt->k[index_k] = k;
   index_k++;

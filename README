@@ -1,7 +1,7 @@
 Readme file for CLASS - the Cosmic Linear Anisotropy Solving System
 
-By Julien Lesgourgues, with several major inputs from other people
-including Benjamin Audren, Thomas Tram, Simon Prunet, etc.
+By Julien Lesgourgues, with several major inputs from other people,
+especially Thomas Tram, as well as Benjamin Audren, Simon Prunet, etc.
 
 For download and information, see http://class-code.net
 
@@ -41,22 +41,6 @@ one of the provided precision files (e.g. cl_permille.pre) or modify
 one of them, and run with two input files, for instance:
 
 ./class test.ini cl_permille.pre
-
-The following precision files are less accurate/faster than the default
-settings:
-
-chi2pl10.pre (fastest setting)
-chi2pl1.pre
-
-The following ones are more accurate/slower than the default settings
-(ordered below from lowest to highest accuracy):
-
-chi2pl0.1.pre
-cl_3permille.pre
-cl_2permille.pre
-cl_permille.pre
-cl_ref.pre 
-pk_ref.pre
 
 A simplified documentation can be found in the paper ``CLASS I:
 Overview'', arXiv:1104.2932 [astro-ph.IM]. On top of that, if you wish
