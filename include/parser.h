@@ -35,6 +35,7 @@ int parser_read_file(
 int parser_init(
 		struct file_content * pfc,
 		int size,
+        char * filename,
 		ErrorMsg errmsg
 		);
 

@@ -24,10 +24,7 @@ int parser_read_file(
 	     errmsg,
 	     "No readable input in file %s",filename);
 
-  class_alloc(pfc->filename,(strlen(filename)+1)*sizeof(char),errmsg);
-  strcpy(pfc->filename,filename);
-
-  class_call(parser_init(pfc,counter,errmsg),
+  class_call(parser_init(pfc,counter,filename,errmsg),
 	     errmsg,
 	     errmsg);
 
@@ -53,11 +50,14 @@ int parser_read_file(
 int parser_init(
 		struct file_content * pfc,
 		int size,
+        char * filename,
 		ErrorMsg errmsg
 		) {
 
   if (size > 0) {
     pfc->size=size;
+    class_alloc(pfc->filename,(strlen(filename)+1)*sizeof(char),errmsg);
+    strcpy(pfc->filename,filename);
     class_alloc(pfc->name,size*sizeof(FileArg),errmsg);
     class_alloc(pfc->value,size*sizeof(FileArg),errmsg);
     class_alloc(pfc->read,size*sizeof(short),errmsg);
