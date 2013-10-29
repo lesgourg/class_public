@@ -3410,21 +3410,21 @@ int transfer_can_be_neglected(
       
       if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2*ptr->angular_rescaling) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e*ptr->angular_rescaling) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b*ptr->angular_rescaling) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
 
     }
 
   else if _tensors_ {
 
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_T_t2)*pba->conformal_age)) *neglect = _TRUE_;
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_T_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*pba->conformal_age)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
 
     }
 
