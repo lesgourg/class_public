@@ -2162,10 +2162,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->q_linstep_trans=0.50;
   ppr->q_logstep_trans=1.0016;
 
-  ppr->transfer_neglect_delta_k_S_t0 = 0.15;
+  ppr->transfer_neglect_delta_k_S_t0 = 0.19;
   ppr->transfer_neglect_delta_k_S_t1 = 0.020;
   ppr->transfer_neglect_delta_k_S_t2 = 0.1;
-  ppr->transfer_neglect_delta_k_S_e = 0.1;
+  ppr->transfer_neglect_delta_k_S_e = 0.15;
   ppr->transfer_neglect_delta_k_S_lcmb = 0.5;
   ppr->transfer_neglect_delta_k_V_t1 = 1.;
   ppr->transfer_neglect_delta_k_V_t2 = 1.; 
