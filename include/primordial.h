@@ -11,7 +11,8 @@ enum primordial_spectrum_type {
   analytic_Pk,
   two_scales,
   inflation_V,
-  inflation_H
+  inflation_H,
+  external_Pk
 };
 
 /** enum defining whether the spectrum routine works with linear or logarithmic input/output */
@@ -124,6 +125,20 @@ struct primordial {
   double V2;
   double V3;
   double V4;
+
+  /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
+
+  char*  command;
+  double custom1;
+  double custom2;
+  double custom3;
+  double custom4;
+  double custom5;
+  double custom6;
+  double custom7;
+  double custom8;
+  double custom9;
+  double custom10;
 
   //@}
 
@@ -376,6 +391,11 @@ extern "C" {
 				  ErrorMsg error_message
 				  );
 
+  int primordial_external_spectrum_init(
+                                        struct perturbs * ppt,
+                                        struct primordial * ppm
+                                        );
+  
 #ifdef __cplusplus
 }
 #endif

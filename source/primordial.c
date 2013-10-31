@@ -385,6 +385,56 @@ int primordial_init(
 
   }
 
+  /** - deal with the case of external calculation of Pk */
+
+  else if (ppm->primordial_spec_type == external_Pk) {
+
+    class_test(ppt->has_scalars == _FALSE_,
+               ppm->error_message,
+               "external Pk module cannot work if you do not ask for scalar modes");
+
+    class_test(ppt->has_vectors == _TRUE_,
+               ppm->error_message,
+               "external Pk module cannot work if you ask for vector modes");
+
+    class_test(ppt->has_tensors == _TRUE_,
+               ppm->error_message,
+               "external Pk module cannot work if you ask for tensor modes (but that could be implemented easily in the future!)");
+
+    class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
+               ppm->error_message,
+               "external Pk module cannot work if you ask for isocurvature modes (but that could be implemented easily in the future!)");
+
+    class_call(primordial_inflation_indices(ppm),
+               ppm->error_message,
+               ppm->error_message);
+
+    if (ppm->primordial_verbose > 0)
+      printf(" (Pk calculated externally)\n");
+
+    class_call_except(primordial_external_spectrum_init(ppt,ppm),
+                      ppm->error_message,
+                      ppm->error_message,
+                      primordial_free(ppm));
+
+    /*
+    for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
+
+      k=exp(ppm->lnk[index_k]);
+      
+      class_call(primordial_external_spectrum(ppm,
+                                              k,
+                                              &pk),
+                 ppm->error_message,
+                 ppm->error_message);
+      
+      ppm->lnpk[ppt->index_md_scalars][index_k] = log(pk);
+      ppm->is_non_zero[ppt->index_md_scalars][0] = _TRUE_;
+      
+    }
+    */
+  }
+  
   else {
 
     class_test(0==0,
@@ -557,6 +607,9 @@ int primordial_free(
       free(ppm->amplitude);
       free(ppm->tilt);
       free(ppm->running);
+    }
+    else if (ppm->primordial_spec_type == external_Pk) {
+      free(ppm->command);
     }
 
     for (index_md = 0; index_md < ppm->md_size; index_md++) {
@@ -1935,4 +1988,126 @@ int primordial_inflation_derivs(
     
   return _SUCCESS_;
 
+}
+
+/**
+ * This function runs the command provided in the input file, reads its output,
+ * and prepares the spline interpolation framework, such that the function
+ * primordial_external_spectrum() can be called at any time to obtain the
+ * spectrum at any k
+ *
+ * @param ppm  Input/output: pointer to primordial structure 
+ * @return the error status
+ */
+
+int primordial_external_spectrum_init(
+                                      struct perturbs * ppt,
+                                      struct primordial * ppm
+                                      ) {
+  char arguments[500];
+  FILE *process;
+  char line[500];
+  int n_data = 0;
+  double *k = NULL, *pk = NULL;
+  double this_k, this_pk;
+  double k_min, k_max;
+  char * command_with_arguments = malloc(snprintf(NULL, 0, "%s %s", ppm->command, arguments) + 1);
+  int status;
+  int index_k;
+
+  /** 1. Run the command */
+
+  /* If the command is just a "cat", no arguments need to be passed */
+  if(!strncmp("cat ", ppm->command, 4)) {
+    sprintf(arguments, " ");
+  }
+  /* otherwise pass the list of arguments */
+  else {
+    sprintf(arguments, " %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g",
+            ppm->custom1, ppm->custom2, ppm->custom3, ppm->custom4, ppm->custom5,
+            ppm->custom6, ppm->custom7, ppm->custom8, ppm->custom9, ppm->custom10);      
+  }
+
+  /* write the actual command in a string */
+  sprintf(command_with_arguments, "%s %s", ppm->command, arguments);
+
+  if (ppm->primordial_verbose > 0)
+    printf("Running: %s\n",command_with_arguments);
+
+  /* Launch the process */
+  process = popen(command_with_arguments, "r");
+  class_test(process == NULL,
+             ppm->error_message,
+             "The program failed to set the environment for the external command. Maybe you ran out of memory.");
+
+  /** 2. read output and store */
+
+  while (fgets(line, sizeof(line)-1, process) != NULL) {
+    sscanf(line, "%lf %lf", &this_k, &this_pk);
+    n_data++;
+    k  = (double *)realloc(k,  n_data*sizeof(double));
+    k [n_data-1] = this_k;
+    pk = (double *)realloc(pk, n_data*sizeof(double));
+    pk[n_data-1] = this_pk;
+
+    ppm->lnpk[ppt->index_md_scalars][n_data-1] = log(this_pk);
+
+    // Check ascending order of the k's, required by gsl splines!
+    if(n_data>1) {
+      class_test(k[n_data-1] <= k[n_data-2],
+                 ppm->error_message,
+                 "The k's are not strictly sorted in ascending order, as it is required for the calculation of the splines.\n");
+      
+    }
+    
+    /*
+    // uncomment to print all values of the external Pk table
+    printf("%s --> %.18g %.18g--> [%d] : %.18g %.18g\n", line, this_k, this_pk, n_data-1, k[n_data-1], pk[n_data-1]);
+    */
+
+  }
+
+  class_alloc(ppm->lnk,
+              n_data*sizeof(double),
+              ppm->error_message);
+  class_alloc(ppm->lnpk[ppt->index_md_scalars],
+              n_data*sizeof(double),
+              ppm->error_message);
+  
+  for (index_k=0; index_k<n_data; index_k++) {
+    ppm->lnk[n_data-1] = log(this_pk);
+    ppm->lnpk[ppt->index_md_scalars][n_data-1] = log(this_pk);
+  }
+
+  /** 3. Close the process */
+
+  status = pclose(process);
+  class_test(status != 0.,
+             ppm->error_message,
+             "The attempt to launch the external command was unsuccessful. Try doing it by hand to check for errors.");
+
+  /** 4. Testing limits and sampling of the k's */
+
+  k_min = exp(ppm->lnk[0]);
+  k_max = exp(ppm->lnk[ppm->lnk_size-1]);
+  class_test(k[1] > k_min,
+             ppm->error_message,
+             "your table does not have at least 2 points before the minimum value of k: %e . The splines interpolation would not be safe.",k_min);
+  class_test(k[n_data-2] < k_max,
+             ppm->error_message,
+             "your table does not have at least 2 points after the maximum value of k: %e . The splines interpolation would not be safe.",k_max);
+  
+  /** 5. Generate the spline interpolating function */
+
+  //ppm->acc = gsl_interp_accel_alloc();
+  //ppm->spline = gsl_spline_alloc(gsl_interp_akima, n_data);
+  //gsl_spline_init(ppm->spline, k, pk, n_data);
+
+  /** 6. Release the memory used locally */
+  free(command_with_arguments);
+  free(k);
+  free(pk);
+  
+  return _SUCCESS_;
+  
 }

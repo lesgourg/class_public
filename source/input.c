@@ -1175,7 +1175,23 @@ int input_init(
       class_read_double("V_3",ppm->V3);
       class_read_double("V_4",ppm->V4);
     }
+  }
 
+  else if (ppm->primordial_spec_type == external_Pk) {
+    class_call(parser_read_string(pfc, "command", &(string1), &(flag1), errmsg),
+               errmsg, errmsg);
+    ppm->command = (char *) malloc (strlen(string1) + 1);
+    strcpy(ppm->command, string1);
+    class_read_double("custom1",ppm->custom1);
+    class_read_double("custom2",ppm->custom2);
+    class_read_double("custom3",ppm->custom3);
+    class_read_double("custom4",ppm->custom4);
+    class_read_double("custom5",ppm->custom5);
+    class_read_double("custom6",ppm->custom6);
+    class_read_double("custom7",ppm->custom7);
+    class_read_double("custom8",ppm->custom8);
+    class_read_double("custom9",ppm->custom9);
+    class_read_double("custom10",ppm->custom10);
   }
 
   /** (e) parameters for final spectra */
@@ -1974,6 +1990,17 @@ int input_default_params(
   ppm->V2=-6.95e-14;
   ppm->V3=0.;
   ppm->V4=0.;
+  ppm->command="";
+  ppm->custom1=0.;
+  ppm->custom2=0.;
+  ppm->custom3=0.;
+  ppm->custom4=0.;
+  ppm->custom5=0.;
+  ppm->custom6=0.;
+  ppm->custom7=0.;
+  ppm->custom8=0.;
+  ppm->custom9=0.;
+  ppm->custom10=0.;
 
   /** - transfer structure */
 

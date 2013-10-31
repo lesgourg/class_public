@@ -1,0 +1,99 @@
+The `external_Pk` mode
+======================
+
+* Author: Jesus Torrado (torradocacho@lorentz.leidenuniv.nl)
+* Date:   2013-07-22
+
+
+Introduction
+------------
+
+This mode allows for a free primordial spectrum `P(k)` to be passed as a table to Class, which in turn can pass a number of parameters to the script generating that table at the moment of requesting `P(k)`.
+
+It uses [Akima spline interpolation](http://student.ndhu.edu.tw/~u9111023/akima.pdf) as implemented in the [GNU Scientific Library](http://www.gnu.org/software/gsl/). Akima splines are stable against the outliers (which may create strong oscillations in other splines frameworks), and have an interpolation error (between the 2nd and last-by-two data points) of 2nd order in the maximum distance between the data points.
+
+
+Requirements
+------------
+
+In addition to the Class requisites, the GNU Scientific Library is needed, including headers. In Debian-like systems, these are the packages `libgsl0ldbl` and `libgsl0-dev`.
+
+
+Use cases
+---------
+
+There are 2 possible use cases:
+
+1. An external command is called to generate the spectrum when the `primordial` module is initialized. This command may be passed up to 10 floating points arguments, named `custom1` to `custom10`, with values given in the parameter file of Class. The user must have permissions to run the command, which may be some compiled code, a python script (starting with a line like `#/usr/bin/python`), etc.
+
+2. The spectrum is simply read from a table. In that case, say the file with the table is called `spectrum.txt`, make the command simply
+
+        cat path/to/spectrum.txt
+		
+    It is necessary that 1st 4 characters are exactly "cat ".
+
+As an example of the 1st use case, one may use the included script `generate_Pk_example.py`, which implements a single-field slow-roll scale invariant spectrum with no running, and takes 3 arguments:
+* `custom1` -- the pivot scale (`k_0 = 0.05 1/Mpc` for Planck).
+* `custom2` -- the amplitude of the scalar power spectrum.
+* `custom3` -- the scalar spectral index.
+
+In order to use it, the following lines must be present in the parameter file:
+
+    P_k_ini type = external_Pk
+    command = /path/to/generate_Pk_example.py
+    custom1 = 0.05
+    custom2 = 2.2e-9
+    custom3 = 1.
+
+Defined or not (in that case, 0-valued), `custom4` to `custom10` will be passed to the example script, which will ignore them.
+
+
+Output of the command / format of the table
+-------------------------------------------
+
+In both cases, Class is passed a line at a time, in which it expects to find a single pair `(k, P(k))`, fulfilling the following requisites:
+
+* Each line must contain 2 floating points numbers, maybe in scientific notation: `k` (in `1/Mpc` units) and `P(k)`, separated by any number of spaces or tabs.
+
+* Lines must be sorted in increasing values of `k`. This is a requirement of the code computing the splines interpolation.
+
+* There must be at least two points `(k, P(k))` before and after the interval of `k` requested by Class, in order not to introduce unnecessary interpolation error. Otherwise, and error will be raised. In most of the cases, generating the spectrum between `1e-6` and `1` 1/Mpc should be more than enough.
+
+
+Precision
+---------
+
+The proper sampling of `P(k)` implies 2 different issues:
+
+1. The table or the output of the command must show accurately the features of the spectrum. The best way to do it is to plot the output/table and check it with the naked eye.
+2. Once the 1st issue has been solved, one has to be sure that Class samples internally fine enough. This can be achieved by increasing the precision parameter `k_per_decade_primordial` (and maybe `k_step_trans_scalars`) until there is no visible difference in the final `C_l`'s.
+
+In particular, the example python routine uses a spacing equal to that of Class, i.e, linear in `log(k)`, with a corresponding, hard-coded, independent-from-Class `k_per_decade_primordial` parameter. It is a good idea to make it slightly bigger than that of Class.
+
+The mode handles properly double-precision floating point numbers (i.e., about 17 significant figures), both for the input parameters of the command and for the output/table.
+
+
+Parameter fit with MontePython
+------------------------------
+
+(MontePython)[http://montepython.net/] is able to interact with the `external_Pk` mode transparently, and perform MCMC fits as usual. One must just add the appropriate lines to the input file. For our example, they would be:
+
+    data.cosmo_arguments['P_k_ini type'] = 'external_Pk'
+    data.cosmo_arguments['command'] = '/path/to/generate_Pk_example.py'
+    data.cosmo_arguments['custom1'] = 0.05
+    data.parameters['custom2']   = [ 2.2,  0, -1,  0.055, 1.e-9, 'cosmo']
+    data.parameters['custom3']   = [  1.,  0, -1, 0.0074,     1, 'cosmo']
+
+Notice that as in our case `custom1` represents the pivot scale, it is passed as a (non-varying) argument, instead of as a (varying) parameter.
+
+In this case, one would not include the corresponding lines for the primordial parameters of Class: `k_pivot`, `A_s`, `n_s`, `alpha_s`, etc.
+
+
+Limitations
+-----------
+
+* So far, this mode cannot handle vectors or tensors modes, neither isocurvature initial conditions.
+* The string containing the command must not exceed 500 characters.
+* The size of any of the output lines of the command, or the lines of the table, must not exceed 500 characters.
+* The external script knows nothing about the rest of the Class parameters, so if it needs, e.g., `k_pivot`, it should be either hard coded, or its value passed as one of the `custom` parameters.
+
