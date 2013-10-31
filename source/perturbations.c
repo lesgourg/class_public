@@ -4731,7 +4731,7 @@ int perturb_sources(
 
       /* delta_cdm */
       if (ppt->has_source_delta_cdm == _TRUE_) {
-        _set_source_(ppt->index_tp_delta_b) = y[ppw->pv->index_pt_delta_cdm]; 
+        _set_source_(ppt->index_tp_delta_cdm) = y[ppw->pv->index_pt_delta_cdm]; 
       }
 
       /* delta_fld */
@@ -4769,7 +4769,7 @@ int perturb_sources(
 
       /* theta_cdm */
       if (ppt->has_source_theta_cdm == _TRUE_) {
-        _set_source_(ppt->index_tp_theta_b) = y[ppw->pv->index_pt_theta_cdm]; 
+        _set_source_(ppt->index_tp_theta_cdm) = y[ppw->pv->index_pt_theta_cdm]; 
       }
 
       /* theta_fld */
