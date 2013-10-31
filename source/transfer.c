@@ -3445,10 +3445,12 @@ int transfer_late_source_can_be_neglected(
   
   if (l > ppr->transfer_neglect_late_source) {
     
+    /* sources at late times canb be neglected for CMB, excepted when
+       there is a LISW: this means for tt_t1, t2, e */
+
     if (_scalars_) {
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
-        if ((index_tt == ptr->index_tt_t0) ||
-            (index_tt == ptr->index_tt_t1) ||
+        if ((index_tt == ptr->index_tt_t1) ||
             (index_tt == ptr->index_tt_t2))
           *neglect = _TRUE_;
       }
