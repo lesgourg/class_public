@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import sys
 from math import exp
 

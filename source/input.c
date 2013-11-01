@@ -843,6 +843,10 @@ int input_init(
       ppm->primordial_spec_type = inflation_V;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"external_Pk") == 0) {
+      ppm->primordial_spec_type = external_Pk;
+      flag2=_TRUE_;
+    }
     class_test(flag2==_FALSE_,
                errmsg,
                "could not identify primordial spectrum type, check that it is one of 'analytic_pk', 'inflation_V'...");

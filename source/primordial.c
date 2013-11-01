@@ -405,10 +405,6 @@ int primordial_init(
                ppm->error_message,
                "external Pk module cannot work if you ask for isocurvature modes (but that could be implemented easily in the future!)");
 
-    class_call(primordial_inflation_indices(ppm),
-               ppm->error_message,
-               ppm->error_message);
-
     if (ppm->primordial_verbose > 0)
       printf(" (Pk calculated externally)\n");
 
@@ -1369,8 +1365,6 @@ int primordial_inflation_spectra(
     /* store the obtained result for curvatute and tensor perturbations */
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
-    ppm->is_non_zero[ppt->index_md_scalars][0] = _TRUE_;
-    ppm->is_non_zero[ppt->index_md_tensors][0] = _TRUE_;
    
     /* fprintf(stderr,"%e %e %e\n", */
     /* 	    ppm->lnk[index_k], */
@@ -1378,6 +1372,9 @@ int primordial_inflation_spectra(
     /* 	    ppm->lnpk[ppt->index_md_tensors][index_k]); */
 	    
   }
+
+  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
+  ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
 
   return _SUCCESS_;
 
@@ -2032,10 +2029,11 @@ int primordial_external_spectrum_init(
   sprintf(command_with_arguments, "%s %s", ppm->command, arguments);
 
   if (ppm->primordial_verbose > 0)
-    printf("Running: %s\n",command_with_arguments);
+    printf(" -> running: %s\n",command_with_arguments);
 
   /* Launch the process */
   process = popen(command_with_arguments, "r");
+  fprintf(stderr," - > done with the run\n");
   class_test(process == NULL,
              ppm->error_message,
              "The program failed to set the environment for the external command. Maybe you ran out of memory.");
@@ -2044,13 +2042,12 @@ int primordial_external_spectrum_init(
 
   while (fgets(line, sizeof(line)-1, process) != NULL) {
     sscanf(line, "%lf %lf", &this_k, &this_pk);
+
     n_data++;
     k  = (double *)realloc(k,  n_data*sizeof(double));
     k [n_data-1] = this_k;
     pk = (double *)realloc(pk, n_data*sizeof(double));
     pk[n_data-1] = this_pk;
-
-    ppm->lnpk[ppt->index_md_scalars][n_data-1] = log(this_pk);
 
     // Check ascending order of the k's, required by gsl splines!
     if(n_data>1) {
@@ -2060,42 +2057,52 @@ int primordial_external_spectrum_init(
       
     }
     
-    /*
     // uncomment to print all values of the external Pk table
-    printf("%s --> %.18g %.18g--> [%d] : %.18g %.18g\n", line, this_k, this_pk, n_data-1, k[n_data-1], pk[n_data-1]);
-    */
+    //fprintf(stderr,"%s --> %.18g %.18g--> [%d] : %.18g %.18g\n", line, this_k, this_pk, n_data-1, k[n_data-1], pk[n_data-1]);
 
   }
 
-  class_alloc(ppm->lnk,
-              n_data*sizeof(double),
-              ppm->error_message);
-  class_alloc(ppm->lnpk[ppt->index_md_scalars],
-              n_data*sizeof(double),
-              ppm->error_message);
+  ppm->lnk_size = n_data;
+
+  class_realloc(ppm->lnk,
+                ppm->lnk,
+                ppm->lnk_size*sizeof(double),
+                ppm->error_message);
+  class_realloc(ppm->lnpk[ppt->index_md_scalars],
+                ppm->lnpk[ppt->index_md_scalars],
+                ppm->lnk_size*sizeof(double),
+                ppm->error_message);
+  class_realloc(ppm->ddlnpk[ppt->index_md_scalars],
+                ppm->ddlnpk[ppt->index_md_scalars],
+                ppm->lnk_size*sizeof(double),
+                ppm->error_message);
   
-  for (index_k=0; index_k<n_data; index_k++) {
-    ppm->lnk[n_data-1] = log(this_pk);
-    ppm->lnpk[ppt->index_md_scalars][n_data-1] = log(this_pk);
+  for (index_k=0; index_k<ppm->lnk_size; index_k++) {
+    ppm->lnk[index_k] = log(k[index_k]);
+    ppm->lnpk[ppt->index_md_scalars][index_k] = log(pk[index_k]);
+    //fprintf(stderr,"%d  %e  %e\n",index_k,ppm->lnk[index_k],ppm->lnpk[ppt->index_md_scalars][index_k]);
   }
+
+  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
 
   /** 3. Close the process */
 
   status = pclose(process);
+
   class_test(status != 0.,
              ppm->error_message,
              "The attempt to launch the external command was unsuccessful. Try doing it by hand to check for errors.");
 
   /** 4. Testing limits and sampling of the k's */
 
-  k_min = exp(ppm->lnk[0]);
-  k_max = exp(ppm->lnk[ppm->lnk_size-1]);
-  class_test(k[1] > k_min,
+  //k_min = exp(ppm->lnk[0]);
+  //k_max = exp(ppm->lnk[ppm->lnk_size-1]);
+  class_test(k[1] > ppt->k[0],
              ppm->error_message,
-             "your table does not have at least 2 points before the minimum value of k: %e . The splines interpolation would not be safe.",k_min);
-  class_test(k[n_data-2] < k_max,
+             "your table for the primordial spectrum does not have at least 2 points before the minimum value of k: %e . The splines interpolation would not be safe.",ppt->k[0]);
+  class_test(k[n_data-2] < ppt->k[ppt->k_size-1],
              ppm->error_message,
-             "your table does not have at least 2 points after the maximum value of k: %e . The splines interpolation would not be safe.",k_max);
+             "your table for the primordial spectrum does not have at least 2 points after the maximum value of k: %e . The splines interpolation would not be safe.",ppt->k[ppt->k_size-1]);
   
   /** 5. Generate the spline interpolating function */
 
@@ -2107,7 +2114,7 @@ int primordial_external_spectrum_init(
   free(command_with_arguments);
   free(k);
   free(pk);
-  
+
   return _SUCCESS_;
   
 }
