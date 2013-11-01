@@ -26,7 +26,7 @@ enum file_format {class_format,camb_format};
 
 struct output {
 
-   /** @name - root for all file names */
+  /** @name - root for all file names */
 
   //@{
 
@@ -43,7 +43,7 @@ struct output {
 
   //@}
 
-   /** @name - extra information on output */
+  /** @name - extra information on output */
 
   //@{
 
@@ -52,6 +52,7 @@ struct output {
   enum file_format output_format;
 
   short write_background;
+  short write_primordial;
 
   //@}
 
@@ -76,133 +77,155 @@ extern "C" {
 #endif
 
   int output_total_cl_at_l(
-			   struct spectra * psp,
-			   struct lensing * ple,
-			   struct output * pop,
-			   int l,
-			   double * cl
-			   );
+                           struct spectra * psp,
+                           struct lensing * ple,
+                           struct output * pop,
+                           int l,
+                           double * cl
+                           );
 
   int output_init(
-		  struct background * pba,
-		  struct perturbs * ppt,
-		  struct spectra * psp,
-		  struct nonlinear * pnl,
-		  struct lensing * ple,
-		  struct output * pop
-		  );
+                  struct background * pba,
+                  struct thermo * pth,
+                  struct perturbs * ppt,
+                  struct primordial * ppm,
+                  struct transfers * ptr,
+                  struct spectra * psp,
+                  struct nonlinear * pnl,
+                  struct lensing * ple,
+                  struct output * pop
+                  );
 
   int output_cl(
-		struct background * pba,
-		struct perturbs * ppt,
-		struct spectra * psp,
-		struct lensing * ple,
-		struct output * pop
-		);
+                struct background * pba,
+                struct perturbs * ppt,
+                struct spectra * psp,
+                struct lensing * ple,
+                struct output * pop
+                );
 
   int output_pk(
-		struct background * pba,
-		struct perturbs * ppt,
-		struct spectra * psp,
-		struct output * pop
-		);
+                struct background * pba,
+                struct perturbs * ppt,
+                struct spectra * psp,
+                struct output * pop
+                );
 
   int output_pk_nl(
-		   struct background * pba,
-		   struct nonlinear * pnl,
-		   struct output * pop
-		   );
+                   struct background * pba,
+                   struct nonlinear * pnl,
+                   struct output * pop
+                   );
 
   int output_tk(
-		struct background * pba,
-		struct perturbs * ppt,
-		struct spectra * psp,
-		struct output * pop
-		);
+                struct background * pba,
+                struct perturbs * ppt,
+                struct spectra * psp,
+                struct output * pop
+                );
 
   int output_background(
-		struct background * pba,
-		struct output * pop
-		);
+                        struct background * pba,
+                        struct output * pop
+                        );
 
+  int output_primordial(
+                        struct perturbs * ppt,
+                        struct primordial * ppm,
+                        struct output * pop
+                        );
+  
   int output_open_cl_file(
-			  struct spectra * psp,
-			  struct output * pop,
-			  FILE ** clfile,
-			  FileName filename,
-			  char * first_line,
-			  int lmax
-			  );
+                          struct spectra * psp,
+                          struct output * pop,
+                          FILE ** clfile,
+                          FileName filename,
+                          char * first_line,
+                          int lmax
+                          );
 
   int output_one_line_of_cl(
-			    struct background * pba,
-			    struct spectra * psp,
-			    struct output * pop,
-			    FILE * clfile,
-			    double l,
-			    double * cl,
-			    int ct_size
-			    );
+                            struct background * pba,
+                            struct spectra * psp,
+                            struct output * pop,
+                            FILE * clfile,
+                            double l,
+                            double * cl,
+                            int ct_size
+                            );
 
   int output_open_pk_file(
-			  struct background * pba,
-			  struct spectra * psp,
-			  struct output * pop,
-			  FILE ** pkfile,
-			  FileName filename,
-			  char * first_line,
-			  double z
-			  );
+                          struct background * pba,
+                          struct spectra * psp,
+                          struct output * pop,
+                          FILE ** pkfile,
+                          FileName filename,
+                          char * first_line,
+                          double z
+                          );
 
   int output_one_line_of_pk(
-			    FILE * tkfile,
-			    double one_k,
-			    double one_pk
-			    );
+                            FILE * tkfile,
+                            double one_k,
+                            double one_pk
+                            );
 
   int output_open_pk_nl_file(
-			      struct background * pba,
-			      struct nonlinear * pnl,
-			      struct output * pop,
-			      FILE ** pkfile,
-			      FileName filename,
-			      char * first_line,
-			      double z,
-			      int k_size
-			     );
+                             struct background * pba,
+                             struct nonlinear * pnl,
+                             struct output * pop,
+                             FILE ** pkfile,
+                             FileName filename,
+                             char * first_line,
+                             double z,
+                             int k_size
+                             );
   
   int output_open_tk_file(
-			  struct background * pba,
-			  struct perturbs * ppt,
-			  struct spectra * psp,
-			  struct output * pop,
-			  FILE ** tkfile,
-			  FileName filename,
-			  char * first_line,
-			  double z
-			  );
+                          struct background * pba,
+                          struct perturbs * ppt,
+                          struct spectra * psp,
+                          struct output * pop,
+                          FILE ** tkfile,
+                          FileName filename,
+                          char * first_line,
+                          double z
+                          );
 
   int output_one_line_of_tk(
-			    FILE * tkfile,
-			    double one_k,
-			    double * tk,
-			    int tr_size
-			    );
+                            FILE * tkfile,
+                            double one_k,
+                            double * tk,
+                            int tr_size
+                            );
 
   int output_open_background_file(
-				  struct background * pba,
-				  struct output * pop,
-				  FILE ** backfile,
-				  FileName filename
-				  );
+                                  struct background * pba,
+                                  struct output * pop,
+                                  FILE ** backfile,
+                                  FileName filename
+                                  );
 
   int output_one_line_of_background(
-				    struct background * pba,
-				    FILE * backfile,
-				    double * pvecback
-				    );
+                                    struct background * pba,
+                                    FILE * backfile,
+                                    double * pvecback
+                                    );
 
+  int output_open_primordial_file(
+                                  struct perturbs * ppt,
+                                  struct primordial * ppm,
+                                  struct output * pop,
+                                  FILE * * outputfile,
+                                  FileName filename
+                                  );
 
+  int output_one_line_of_primordial(
+                                    struct perturbs * ppt,
+                                    struct primordial * ppm,
+                                    FILE * outputfile,
+                                    int index_k
+                                    );
 
 #ifdef __cplusplus
 }

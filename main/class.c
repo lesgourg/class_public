@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (output_init(&ba,&pt,&sp,&nl,&le,&op) == _FAILURE_) {
+  if (output_init(&ba,&th,&pt,&pm,&tr,&sp,&nl,&le,&op) == _FAILURE_) {
     printf("\n\nError in output_init \n=>%s\n",op.error_message);
     return _FAILURE_;
   }

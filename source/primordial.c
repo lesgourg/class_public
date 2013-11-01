@@ -397,10 +397,6 @@ int primordial_init(
                ppm->error_message,
                "external Pk module cannot work if you ask for vector modes");
 
-    class_test(ppt->has_tensors == _TRUE_,
-               ppm->error_message,
-               "external Pk module cannot work if you ask for tensor modes (but that could be implemented easily in the future!)");
-
     class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
                ppm->error_message,
                "external Pk module cannot work if you ask for isocurvature modes (but that could be implemented easily in the future!)");
@@ -412,23 +408,6 @@ int primordial_init(
                       ppm->error_message,
                       ppm->error_message,
                       primordial_free(ppm));
-
-    /*
-    for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
-
-      k=exp(ppm->lnk[index_k]);
-      
-      class_call(primordial_external_spectrum(ppm,
-                                              k,
-                                              &pk),
-                 ppm->error_message,
-                 ppm->error_message);
-      
-      ppm->lnpk[ppt->index_md_scalars][index_k] = log(pk);
-      ppm->is_non_zero[ppt->index_md_scalars][0] = _TRUE_;
-      
-    }
-    */
   }
   
   else {
@@ -2010,8 +1989,8 @@ int primordial_external_spectrum_init(
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
   FILE *process;
   int n_data = 0;
-  double *k = NULL, *pk = NULL;
-  double this_k, this_pk;
+  double *k = NULL, *pks = NULL, *pkt = NULL;
+  double this_k, this_pks, this_pkt;
   int status;
   int index_k;
 
@@ -2043,15 +2022,24 @@ int primordial_external_spectrum_init(
   /** 2. read output and store */
 
   while (fgets(line, sizeof(line)-1, process) != NULL) {
-    sscanf(line, "%lf %lf", &this_k, &this_pk);
+    if (ppt->has_tensors == _TRUE_) {
+      sscanf(line, "%lf %lf %lf", &this_k, &this_pks, &this_pkt);
+    }
+    else {
+      sscanf(line, "%lf %lf", &this_k, &this_pks);
+    }
 
     n_data++;
     k  = (double *)realloc(k,  n_data*sizeof(double));
     k [n_data-1] = this_k;
-    pk = (double *)realloc(pk, n_data*sizeof(double));
-    pk[n_data-1] = this_pk;
-
-    // Check ascending order of the k's, required by gsl splines!
+    pks = (double *)realloc(pks, n_data*sizeof(double));
+    pks[n_data-1] = this_pks;
+    if (ppt->has_tensors == _TRUE_) {
+      pkt = (double *)realloc(pkt, n_data*sizeof(double));
+      pkt[n_data-1] = this_pkt;
+    }
+      
+    // Check ascending order of the k's !
     if(n_data>1) {
       class_test(k[n_data-1] <= k[n_data-2],
                  ppm->error_message,
@@ -2061,32 +2049,48 @@ int primordial_external_spectrum_init(
     
     // uncomment to print all values of the external Pk table
     //fprintf(stderr,"%s --> %.18g %.18g--> [%d] : %.18g %.18g\n", line, this_k, this_pk, n_data-1, k[n_data-1], pk[n_data-1]);
-
+    
   }
  
   ppm->lnk_size = n_data;
-
+    
   class_realloc(ppm->lnk,
                 ppm->lnk,
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
+
   class_realloc(ppm->lnpk[ppt->index_md_scalars],
                 ppm->lnpk[ppt->index_md_scalars],
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
+
   class_realloc(ppm->ddlnpk[ppt->index_md_scalars],
                 ppm->ddlnpk[ppt->index_md_scalars],
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
-  
+    
+  if (ppt->has_tensors == _TRUE_) {
+    class_realloc(ppm->ddlnpk[ppt->index_md_tensors],
+                  ppm->ddlnpk[ppt->index_md_tensors],
+                  ppm->lnk_size*sizeof(double),
+                  ppm->error_message);
+  }
+
   for (index_k=0; index_k<ppm->lnk_size; index_k++) {
     ppm->lnk[index_k] = log(k[index_k]);
-    ppm->lnpk[ppt->index_md_scalars][index_k] = log(pk[index_k]);
+    ppm->lnpk[ppt->index_md_scalars][index_k] = log(pks[index_k]);
+    if (ppt->has_tensors == _TRUE_) {
+      ppm->lnpk[ppt->index_md_tensors][index_k] = log(pkt[index_k]);
+    }
+
     //fprintf(stderr,"%d  %e  %e\n",index_k,ppm->lnk[index_k],ppm->lnpk[ppt->index_md_scalars][index_k]);
   }
 
   ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
-
+  if (ppt->has_tensors == _TRUE_) {
+    ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
+  }
+  
   /** 3. Close the process */
 
   status = pclose(process);
@@ -2108,7 +2112,9 @@ int primordial_external_spectrum_init(
   /** 5. Release the memory used locally */
 
   free(k);
-  free(pk);
+  free(pks);
+  if (ppt->has_tensors == _TRUE_)  
+    free(pkt);
 
   return _SUCCESS_;
   

@@ -102,7 +102,10 @@ int output_total_cl_at_l(
 
 int output_init(
                 struct background * pba,
+                struct thermo * pth,
                 struct perturbs * ppt,
+                struct primordial * ppm,
+                struct transfers * ptr,
                 struct spectra * psp,
                 struct nonlinear * pnl,
                 struct lensing * ple,
@@ -113,7 +116,7 @@ int output_init(
 
   /** - check that we really want to output at least one file */
 
-  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (pnl->method == nl_none) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_)) {
+  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (pnl->method == nl_none) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_) && (pop->write_primordial == _FALSE_)) {
     if (pop->output_verbose > 0)
       printf("No output files requested. Output module skipped.\n");
     return _SUCCESS_;
@@ -162,6 +165,16 @@ int output_init(
   if (pop->write_background == _TRUE_) {
 
     class_call(output_background(pba,pop),
+               pop->error_message,
+               pop->error_message);
+
+  }
+
+  /** - deal with primordial spectra */
+
+  if (pop->write_primordial == _TRUE_) {
+
+    class_call(output_primordial(ppt,ppm,pop),
                pop->error_message,
                pop->error_message);
 
@@ -1256,6 +1269,43 @@ int output_background(
 
 }
 
+int output_primordial(
+                      struct perturbs * ppt,
+                      struct primordial * ppm,
+                      struct output * pop
+                      ) {
+
+  FILE * out;
+  FileName file_name;
+  int index_k;
+
+  sprintf(file_name,"%s%s",pop->root,"primordial_Pk.dat");
+
+  class_call(output_open_primordial_file(ppt,
+                                         ppm,
+                                         pop,
+                                         &out,
+                                         file_name
+                                         ),
+             pop->error_message,
+             pop->error_message);
+
+  for (index_k=0; index_k<ppm->lnk_size; index_k++) {
+
+    class_call(output_one_line_of_primordial(ppt,
+                                             ppm,
+                                             out,
+                                             index_k
+                                             ),
+               pop->error_message,
+               pop->error_message);
+    
+  }
+  
+  return _SUCCESS_;
+
+}
+
 /**
  * This routine opens one file where some C_l's will be written, and writes 
  * a heading with some general information concerning its content.
@@ -1790,6 +1840,67 @@ int output_one_line_of_background(
     fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_ur]);
   fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_crit]);
   fprintf(backfile,"\n");
+  
+  return _SUCCESS_;
+  
+}
+
+/**
+ * This routine opens one file where the primordial spectrum/spectra will be written, 
+ * and writes a heading with some general information concerning its content.
+ *
+ * @param ppt        Input: pointer to perturbation structure
+ * @param ppm        Input: pointer to primordial structure
+ * @param pop        Input : pointer to output structure
+ * @param outputfile Output: returned pointer to file pointer
+ * @param filename   Input : name of the file
+ * @return the error status
+ */
+
+int output_open_primordial_file(
+                                struct perturbs * ppt,
+                                struct primordial * ppm,
+                                struct output * pop,
+                                FILE * * outputfile,
+                                FileName filename
+                                ) {
+
+  class_open(*outputfile,filename,"w",pop->error_message);
+
+  if (pop->write_header == _TRUE_) {
+    fprintf(*outputfile,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
+    fprintf(*outputfile,"                k [1/Mpc]");
+    fprintf(*outputfile,"              P_scalar(k)");
+    if (ppt->has_tensors == _TRUE_)
+      fprintf(*outputfile,"              P_tensor(k)");
+    fprintf(*outputfile,"\n");
+  }
+  
+  return _SUCCESS_;
+}
+
+/**
+ * This routine writes one line with the primordial spectrum/spectra
+ *
+ * @param ppt        Input: pointer to perturbation structure
+ * @param ppm        Input: pointer to primordial structure
+ * @param outputfile   Input : file pointer
+ * @param index_k    Input: index for wavenumebr in ppm structure
+ * @return the error status
+ */
+
+int output_one_line_of_primordial(
+                                  struct perturbs * ppt,
+                                  struct primordial * ppm,
+                                  FILE * outputfile,
+                                  int index_k
+                                  ) {
+  
+  fprintf(outputfile,"%25.12e",exp(ppm->lnk[index_k]));
+  fprintf(outputfile,"%25.12e",exp(ppm->lnpk[ppt->index_md_scalars][index_k]));
+  if (ppt->has_tensors == _TRUE_)
+    fprintf(outputfile,"%25.12e",exp(ppm->lnpk[ppt->index_md_tensors][index_k]));
+  fprintf(outputfile,"\n");
   
   return _SUCCESS_;
   

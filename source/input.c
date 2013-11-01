@@ -1750,7 +1750,7 @@ int input_init(
   if (ple->has_lensed_cls == _TRUE_)
     ppt->l_scalar_max+=ppr->delta_l_max;
 
-  /** (i) shall we write background quantitites in a file? */
+  /** (i.1) shall we write background quantitites in a file? */
 
   class_call(parser_read_string(pfc,"write background",&string1,&flag1,errmsg),
              errmsg,
@@ -1759,6 +1759,18 @@ int input_init(
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
     pop->write_background = _TRUE_;
+
+  }
+
+  /** (i.2) shall we write primordial spectra in a file? */
+
+  class_call(parser_read_string(pfc,"write primordial",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    pop->write_primordial = _TRUE_;
 
   }
 
@@ -2029,6 +2041,7 @@ int input_default_params(
   pop->write_header = _TRUE_;
   pop->output_format = class_format;
   pop->write_background = _FALSE_;
+  pop->write_primordial = _FALSE_;
 
   /** - spectra structure */ 
 
