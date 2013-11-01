@@ -1,5 +1,5 @@
 import sys
-from math import exp
+from math import exp,sin
 
 # README:
 #
@@ -11,6 +11,9 @@ from math import exp
 #
 # 1. The name of the parameters needed for the calculation of Pk.
 #    "sys.argv[1]" corresponds to "custom1" in Class, an so on
+
+#for i,a in enumerate(sys.argv) :
+#    sys.stderr.write("%d "%i+a)
 
 try :
     k_0           = float(sys.argv[1])

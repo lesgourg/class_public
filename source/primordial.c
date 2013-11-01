@@ -2001,21 +2001,22 @@ int primordial_external_spectrum_init(
                                       struct perturbs * ppt,
                                       struct primordial * ppm
                                       ) {
-  char arguments[500];
+  char arguments[_ARGUMENT_LENGTH_MAX_];
   FILE *process;
-  char line[500];
+  char line[_LINE_LENGTH_MAX_];
   int n_data = 0;
   double *k = NULL, *pk = NULL;
   double this_k, this_pk;
   double k_min, k_max;
-  char * command_with_arguments = malloc(snprintf(NULL, 0, "%s %s", ppm->command, arguments) + 1);
+  char command_with_arguments[_LINE_LENGTH_MAX_+_ARGUMENT_LENGTH_MAX_];
+// = malloc(snprintf(NULL, 0, "%s %s", ppm->command, arguments) + 1);
   int status;
   int index_k;
 
   /** 1. Run the command */
 
   /* If the command is just a "cat", no arguments need to be passed */
-  if(!strncmp("cat ", ppm->command, 4)) {
+  if(strncmp("cat ", ppm->command, 4) == 0) {
     sprintf(arguments, " ");
   }
   /* otherwise pass the list of arguments */
@@ -2033,13 +2034,14 @@ int primordial_external_spectrum_init(
 
   /* Launch the process */
   process = popen(command_with_arguments, "r");
-  fprintf(stderr," - > done with the run\n");
+  fprintf(stderr," -> done with the run\n");
   class_test(process == NULL,
              ppm->error_message,
              "The program failed to set the environment for the external command. Maybe you ran out of memory.");
 
   /** 2. read output and store */
 
+  fprintf(stderr," -> now read in file\n");
   while (fgets(line, sizeof(line)-1, process) != NULL) {
     sscanf(line, "%lf %lf", &this_k, &this_pk);
 
@@ -2061,7 +2063,7 @@ int primordial_external_spectrum_init(
     //fprintf(stderr,"%s --> %.18g %.18g--> [%d] : %.18g %.18g\n", line, this_k, this_pk, n_data-1, k[n_data-1], pk[n_data-1]);
 
   }
-
+ 
   ppm->lnk_size = n_data;
 
   class_realloc(ppm->lnk,
@@ -2087,7 +2089,11 @@ int primordial_external_spectrum_init(
 
   /** 3. Close the process */
 
+  fprintf(stderr,"about to close\n");
+
   status = pclose(process);
+
+  fprintf(stderr,"closed\n");
 
   class_test(status != 0.,
              ppm->error_message,
@@ -2111,7 +2117,8 @@ int primordial_external_spectrum_init(
   //gsl_spline_init(ppm->spline, k, pk, n_data);
 
   /** 6. Release the memory used locally */
-  free(command_with_arguments);
+
+  //free(command_with_arguments);
   free(k);
   free(pk);
 
