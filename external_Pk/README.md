@@ -42,13 +42,13 @@ Defined or not (in that case, 0-valued), `custom4` to `custom10` will be passed 
 Output of the command / format of the table
 -------------------------------------------
 
-In both cases, Class is passed a line at a time, in which it expects to find a single pair `(k, P(k))`, fulfilling the following requisites:
+In both cases, Class is passed a line at a time, in which it expects to find a single pair `(k, P(k))` (if no tensors are requested) or `(k, P_s(k), P_t(k))` (if tensors are rquested), fulfilling the following requisites:
 
-* Each line must contain 2 floating points numbers, maybe in scientific notation: `k` (in `1/Mpc` units) and `P(k)`, separated by any number of spaces or tabs.
+* Each line must contain 2 (or 3 in case of tensors) floating points numbers, maybe in scientific notation: `k` (in `1/Mpc` units) and `P(k)` (dimensionless), separated by any number of spaces or tabs.
 
 * Lines must be sorted in increasing values of `k`. This is a requirement of the code computing the splines interpolation.
 
-* There must be at least two points `(k, P(k))` before and after the interval of `k` requested by Class, in order not to introduce unnecessary interpolation error. Otherwise, and error will be raised. In most of the cases, generating the spectrum between `1e-6` and `1` 1/Mpc should be more than enough.
+* There must be at least two points `(k, P(k))` ( or `(k, P_s(k), P_t(k))` with tensors) before and after the interval of `k` requested by Class, in order not to introduce unnecessary interpolation error. Otherwise, and error will be raised. In most of the cases, generating the spectrum between `1e-6` and `1` 1/Mpc should be more than enough.
 
 
 Precision
@@ -84,7 +84,7 @@ In this case, one would not include the corresponding lines for the primordial p
 Limitations
 -----------
 
-* So far, this mode cannot handle vectors or tensors modes, neither isocurvature initial conditions.
+* So far, this mode cannot handle vectors, neither isocurvature initial conditions.
 * The string containing the command must not exceed 1024 characters (this number is set by the parameter _LINE_LENGTH_MAX_ in include/parser.h).
 * The size of any of the output lines of the command, or the lines of the table, must not exceed 1024 characters (this number is set by the parameter _ARGUMENT_LENGTH_MAX_ in include/parser.h).
 * The external script knows nothing about the rest of the Class parameters, so if it needs, e.g., `k_pivot`, it should be either hard coded, or its value passed as one of the `custom` parameters.

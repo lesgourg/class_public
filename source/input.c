@@ -1184,6 +1184,10 @@ int input_init(
   else if (ppm->primordial_spec_type == external_Pk) {
     class_call(parser_read_string(pfc, "command", &(string1), &(flag1), errmsg),
                errmsg, errmsg);
+    class_test(strlen(string1) == 0,
+               errmsg,
+               "You ommitted to write a command for the external Pk");
+
     ppm->command = (char *) malloc (strlen(string1) + 1);
     strcpy(ppm->command, string1);
     class_read_double("custom1",ppm->custom1);
@@ -1994,7 +1998,7 @@ int input_default_params(
   ppm->V2=-6.95e-14;
   ppm->V3=0.;
   ppm->V4=0.;
-  ppm->command="";
+  ppm->command="write here your command for the external Pk";
   ppm->custom1=0.;
   ppm->custom2=0.;
   ppm->custom3=0.;
