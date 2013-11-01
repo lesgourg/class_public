@@ -1992,6 +1992,9 @@ int primordial_inflation_derivs(
  * and prepares the spline interpolation framework, such that the function
  * primordial_external_spectrum() can be called at any time to obtain the
  * spectrum at any k
+ * 
+ * Author: Jesus Torrado (torradocacho@lorentz.leidenuniv.nl)
+ * Date:   2013-07-22
  *
  * @param ppm  Input/output: pointer to primordial structure 
  * @return the error status
@@ -2001,15 +2004,14 @@ int primordial_external_spectrum_init(
                                       struct perturbs * ppt,
                                       struct primordial * ppm
                                       ) {
+
   char arguments[_ARGUMENT_LENGTH_MAX_];
-  FILE *process;
   char line[_LINE_LENGTH_MAX_];
+  char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
+  FILE *process;
   int n_data = 0;
   double *k = NULL, *pk = NULL;
   double this_k, this_pk;
-  double k_min, k_max;
-  char command_with_arguments[_LINE_LENGTH_MAX_+_ARGUMENT_LENGTH_MAX_];
-// = malloc(snprintf(NULL, 0, "%s %s", ppm->command, arguments) + 1);
   int status;
   int index_k;
 
@@ -2034,14 +2036,12 @@ int primordial_external_spectrum_init(
 
   /* Launch the process */
   process = popen(command_with_arguments, "r");
-  fprintf(stderr," -> done with the run\n");
   class_test(process == NULL,
              ppm->error_message,
              "The program failed to set the environment for the external command. Maybe you ran out of memory.");
 
   /** 2. read output and store */
 
-  fprintf(stderr," -> now read in file\n");
   while (fgets(line, sizeof(line)-1, process) != NULL) {
     sscanf(line, "%lf %lf", &this_k, &this_pk);
 
@@ -2089,11 +2089,7 @@ int primordial_external_spectrum_init(
 
   /** 3. Close the process */
 
-  fprintf(stderr,"about to close\n");
-
   status = pclose(process);
-
-  fprintf(stderr,"closed\n");
 
   class_test(status != 0.,
              ppm->error_message,
@@ -2101,24 +2097,16 @@ int primordial_external_spectrum_init(
 
   /** 4. Testing limits and sampling of the k's */
 
-  //k_min = exp(ppm->lnk[0]);
-  //k_max = exp(ppm->lnk[ppm->lnk_size-1]);
   class_test(k[1] > ppt->k[0],
              ppm->error_message,
              "your table for the primordial spectrum does not have at least 2 points before the minimum value of k: %e . The splines interpolation would not be safe.",ppt->k[0]);
+
   class_test(k[n_data-2] < ppt->k[ppt->k_size-1],
              ppm->error_message,
              "your table for the primordial spectrum does not have at least 2 points after the maximum value of k: %e . The splines interpolation would not be safe.",ppt->k[ppt->k_size-1]);
   
-  /** 5. Generate the spline interpolating function */
+  /** 5. Release the memory used locally */
 
-  //ppm->acc = gsl_interp_accel_alloc();
-  //ppm->spline = gsl_spline_alloc(gsl_interp_akima, n_data);
-  //gsl_spline_init(ppm->spline, k, pk, n_data);
-
-  /** 6. Release the memory used locally */
-
-  //free(command_with_arguments);
   free(k);
   free(pk);
 
