@@ -1612,8 +1612,8 @@ int input_init(
   class_read_double("k_step_trans_scalars",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans_tensors",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans",ppr->k_step_trans);
-  class_read_double("q_linstep_trans",ppr->k_step_trans);
-  class_read_double("q_logstep_trans",ppr->k_step_trans);
+  class_read_double("q_linstep_trans",ppr->q_linstep_trans);
+  class_read_double("q_logstep_trans",ppr->q_logstep_trans);
 
   class_read_double("transfer_neglect_delta_k_S_t0",ppr->transfer_neglect_delta_k_S_t0);
   class_read_double("transfer_neglect_delta_k_S_t1",ppr->transfer_neglect_delta_k_S_t1);
