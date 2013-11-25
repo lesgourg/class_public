@@ -678,8 +678,9 @@ int thermodynamics_init(
   /** - find time above which visibility falls below a given fraction of its maximum */
 
   index_tau=index_tau_max;
-  while (pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g] > 
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g] > 
          g_max * ppr->neglect_CMB_sources_below_visibility)
+         && (index_tau > 0))
     index_tau--;
 
   class_call(background_tau_of_z(pba,pth->z_table[index_tau],&(pth->tau_cut)),
