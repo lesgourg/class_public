@@ -3450,8 +3450,9 @@ int transfer_late_source_can_be_neglected(
 
     if (_scalars_) {
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
-        if ((index_tt == ptr->index_tt_t1) ||
-            (index_tt == ptr->index_tt_t2))
+        /*if ((index_tt == ptr->index_tt_t1) ||
+          (index_tt == ptr->index_tt_t2))*/
+        if (index_tt == ptr->index_tt_t2)
           *neglect = _TRUE_;
       }
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
@@ -3509,10 +3510,12 @@ int transfer_radial_function(
   double K=0.,k2=1.0;
   double sqrt_absK_over_k;
   double absK_over_k2;
+  double nu=0., chi_tp=0.;
   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   double rescale_argument;
   double rescale_amplitude;
+  double * rescale_function;
   int (*interpolate_Phi)();
   int (*interpolate_dPhi)();
   int (*interpolate_Phid2Phi)();
@@ -3537,6 +3540,7 @@ int transfer_radial_function(
   class_alloc(dPhi,sizeof(double)*x_size,ptr->error_message);
   class_alloc(d2Phi,sizeof(double)*x_size,ptr->error_message);
   class_alloc(chireverse,sizeof(double)*x_size,ptr->error_message);
+  class_alloc(rescale_function,sizeof(double)*x_size,ptr->error_message);
 
   if (ptw->sgnK == 0) {
     pHIS = ptw->pBIS;
@@ -3553,15 +3557,15 @@ int transfer_radial_function(
   else {    
     pHIS = ptw->pBIS;
     if (ptw->sgnK == 1){
-      rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
-        asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
-      rescale_amplitude = pow(ptr->angular_rescaling,-0.6);
+      nu = ptr->q[index_q]/sqrt(K);
+      chi_tp = asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/nu);
     }
     else{
-      rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
-        asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
-      rescale_amplitude = pow(ptr->angular_rescaling,-0.6);
+      nu = ptr->q[index_q]/sqrt(-K);
+      chi_tp = asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/nu);
     }
+    rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/chi_tp;
+    rescale_amplitude = pow(1.-K*ptr->l[index_l]*(ptr->l[index_l]+1.)/ptr->q[index_q]/ptr->q[index_q],-1./12.);
     HIorder = HERMITE4;
   }
   
@@ -3590,8 +3594,34 @@ int transfer_radial_function(
   }
 
   //Reverse chi
-  for (j=0; j<x_size; j++)
+  for (j=0; j<x_size; j++) {
     chireverse[j] = chi[x_size-1-j]*rescale_argument;
+    if (rescale_amplitude == 1.) {
+      rescale_function[j] = 1.;
+    }
+    else {
+      if (ptw->sgnK == 1) {
+        rescale_function[j] =
+          MIN(
+              rescale_amplitude 
+              * (1 
+                 + 0.34 * atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp)
+                 + 2.00 * pow(atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp),2)),
+              chireverse[j]/rescale_argument/sin(chireverse[j]/rescale_argument)
+              );
+      }
+      else {
+        rescale_function[j] =
+          MAX(
+              rescale_amplitude 
+              * (1 
+                 - 0.38 * atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp)
+                 + 0.40 * pow(atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp),2)),
+              chireverse[j]/rescale_argument/sinh(chireverse[j]/rescale_argument)
+              );
+      }
+    }
+  }
 
   class_test(pHIS->x[0] > chireverse[0],
              ptr->error_message,
@@ -3612,14 +3642,14 @@ int transfer_radial_function(
                ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = Phi[j]*rescale_function[j];
     break;
   case SCALAR_TEMPERATURE_1:
     class_call(interpolate_dPhi(pHIS, x_size, index_l, chireverse, dPhi, ptr->error_message), 
                ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, NULL, dPhi, NULL);
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_argument*rescale_amplitude;
+      radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_argument*rescale_function[j];
     break;
   case SCALAR_TEMPERATURE_2:
     class_call(interpolate_Phid2Phi(pHIS, x_size, index_l, chireverse, Phi, d2Phi, ptr->error_message), 
@@ -3628,7 +3658,7 @@ int transfer_radial_function(
     s2 = sqrt(1.0-3.0*K/k2);
     factor = 1.0/(2.0*s2);
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*(3*absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument+Phi[j])*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*(3*absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument+Phi[j])*rescale_function[j];
     break;
   case SCALAR_POLARISATION_E:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3637,7 +3667,7 @@ int transfer_radial_function(
     s2 = sqrt(1.0-3.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/s2;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case VECTOR_TEMPERATURE_1:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3646,7 +3676,7 @@ int transfer_radial_function(
     s0 = sqrt(1.0+K/k2);
     factor = sqrt(0.5*l*(l+1))/s0;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case VECTOR_TEMPERATURE_2:
     class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
@@ -3656,7 +3686,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_argument-cotKgen[j]*Phi[j])*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_argument-cotKgen[j]*Phi[j])*rescale_function[j];
     break;
   case VECTOR_POLARISATION_E:
     class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
@@ -3666,7 +3696,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_argument)*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_argument)*rescale_function[j];
     break;
   case VECTOR_POLARISATION_B:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3677,7 +3707,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))*si/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case TENSOR_TEMPERATURE_2:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3687,7 +3717,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case TENSOR_POLARISATION_E:
     class_call(interpolate_PhidPhid2Phi(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, ptr->error_message), 
@@ -3699,7 +3729,7 @@ int transfer_radial_function(
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = factor*(absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument
                                             +4.0*cotKgen[x_size-1-j]*sqrt_absK_over_k*dPhi[j]*rescale_argument
-                                            -(1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j])*rescale_amplitude;
+                                            -(1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j])*rescale_function[j];
     break;
   case TENSOR_POLARISATION_B:
     class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
@@ -3710,7 +3740,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]*rescale_argument+2.0*cotKgen[x_size-1-j]*Phi[j])*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]*rescale_argument+2.0*cotKgen[x_size-1-j]*Phi[j])*rescale_function[j];
     break;
   }
 
@@ -3718,6 +3748,7 @@ int transfer_radial_function(
   free(dPhi);
   free(d2Phi);
   free(chireverse);
+  free(rescale_function);
 
   return _SUCCESS_;
 }
