@@ -16,7 +16,7 @@ cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
 from libc.string cimport *
-cimport cython 
+cimport cython
 
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
@@ -37,7 +37,7 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct background:
-        ErrorMsg error_message 
+        ErrorMsg error_message
         int bg_size
         int index_bg_ang_distance
         int index_bg_conf_distance
@@ -57,7 +57,7 @@ cdef extern from "class.h":
         double Omega0_fld
 
     cdef struct thermo:
-        ErrorMsg error_message 
+        ErrorMsg error_message
         int th_size
         int index_th_xe
         int index_th_Tb
@@ -76,14 +76,14 @@ cdef extern from "class.h":
         double YHe
 
     cdef struct perturbs:
-        ErrorMsg error_message 
+        ErrorMsg error_message
         int has_pk_matter
 
     cdef struct transfers:
-        ErrorMsg error_message 
+        ErrorMsg error_message
 
     cdef struct primordial:
-        ErrorMsg error_message 
+        ErrorMsg error_message
         double k_pivot
         double A_s
         double n_s
@@ -113,7 +113,7 @@ cdef extern from "class.h":
         double phi_max
 
     cdef struct spectra:
-        ErrorMsg error_message 
+        ErrorMsg error_message
         int l_max_tot
         int ln_k_size
         int ct_size
@@ -142,7 +142,7 @@ cdef extern from "class.h":
         double alpha_k2
 
     cdef struct output:
-        ErrorMsg error_message 
+        ErrorMsg error_message
 
     cdef struct lensing:
         int index_lt_tt
@@ -155,11 +155,11 @@ cdef extern from "class.h":
         int has_lensed_cls
         int l_lensed_max
         int l_unlensed_max
-        ErrorMsg error_message 
+        ErrorMsg error_message
 
     cdef struct nonlinear:
         int method
-        ErrorMsg error_message 
+        ErrorMsg error_message
 
     cdef struct file_content:
         char * filename
@@ -200,7 +200,7 @@ cdef extern from "class.h":
     int spectra_pk_at_z(
         void * pba,
         void * psp,
-        int mode, 
+        int mode,
         double z,
         double * output_tot,
         double * output_ic
@@ -261,7 +261,7 @@ cdef class Class:
     cdef precision pr
     cdef background ba
     cdef thermo th
-    cdef perturbs pt 
+    cdef perturbs pt
     cdef primordial pm
     cdef transfers tr
     cdef spectra sp
@@ -336,7 +336,7 @@ cdef class Class:
                 del(self._pars[self.fc.name[i]])
 
     # Create an equivalent of the parameter file. Non specified values will be
-    # taken at their default (in Class) 
+    # taken at their default (in Class)
     def _fillparfile(self):
         cdef char* dumc
 
@@ -443,7 +443,7 @@ cdef class Class:
 
         Parameters
         ----------
-        lvl : list 
+        lvl : list
                 last module desired. For instance, "lensing". Then Class will compute all
                 the modules required to compute this desired module through the
                 (internal) function _check_task_dependency
@@ -459,12 +459,12 @@ cdef class Class:
             return
 
         self.ready = False
-        
+
         self._fillparfile()
-            
+
         # empty all
         self.ncp=set()
-        
+
         # compute
         if "input" in lvl:
             ierr = input_init(
@@ -492,31 +492,31 @@ cdef class Class:
             if background_init(&(self.pr),&(self.ba)) == _FAILURE_:
                 self._struct_cleanup(self.ncp)
                 raise ClassError(self.ba.error_message)
-            self.ncp.add("background") 
+            self.ncp.add("background")
 
         if "thermodynamics" in lvl:
             if thermodynamics_init(&(self.pr),&(self.ba),&(self.th)) == _FAILURE_:
                 self._struct_cleanup(self.ncp)
                 raise ClassError(self.th.error_message)
-            self.ncp.add("thermodynamics") 
+            self.ncp.add("thermodynamics")
 
         if "perturb" in lvl:
             if perturb_init(&(self.pr),&(self.ba),&(self.th),&(self.pt)) == _FAILURE_:
                 self._struct_cleanup(self.ncp)
                 raise ClassError(self.pt.error_message)
-            self.ncp.add("perturb") 
+            self.ncp.add("perturb")
 
         if "primordial" in lvl:
             if primordial_init(&(self.pr),&(self.pt),&(self.pm)) == _FAILURE_:
                 self._struct_cleanup(self.ncp)
                 raise ClassError(self.pm.error_message)
-            self.ncp.add("primordial") 
+            self.ncp.add("primordial")
 
         if "transfer" in lvl:
             if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.tr)) == _FAILURE_:
                 self._struct_cleanup(self.ncp)
                 raise ClassError(self.tr.error_message)
-            self.ncp.add("transfer") 
+            self.ncp.add("transfer")
 
         if "spectra" in lvl:
             if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
@@ -528,14 +528,14 @@ cdef class Class:
             if (nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.tr,&self.pm,&self.sp,&self.nl) == _FAILURE_):
                 self._struct_cleanup(self.ncp)
                 raise ClassError(self.nl.error_message)
-            self.ncp.add("nonlinear") 
+            self.ncp.add("nonlinear")
 
         if "lensing" in lvl:
             if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.nl),&(self.le)) == _FAILURE_:
                 self._struct_cleanup(self.ncp)
                 raise ClassError(self.le.error_message)
-            self.ncp.add("lensing") 
- 
+            self.ncp.add("lensing")
+
         self.ready = True
 
         # At this point, the cosmological instance contains everything needed. The
@@ -562,7 +562,7 @@ cdef class Class:
                 index associated with each is defined wrt. Class convention, and are non
                 important from the python point of view.
         """
-        cdef int lmaxR 
+        cdef int lmaxR
         cdef double *rcl = <double*> calloc(self.sp.ct_size,sizeof(double))
 
         lmaxR = self.sp.l_max_tot
@@ -581,7 +581,7 @@ cdef class Class:
             cl[elem][:2]=0
         for ell from 2<=ell<lmax+1:
             if spectra_cl_at_l(&self.sp,ell,rcl,NULL,NULL) == _FAILURE_:
-                raise ClassError(self.sp.error_message) 
+                raise ClassError(self.sp.error_message)
             cl['tt'][ell] = rcl[self.sp.index_ct_tt]
             cl['te'][ell] = rcl[self.sp.index_ct_te]
             cl['ee'][ell] = rcl[self.sp.index_ct_ee]
@@ -612,7 +612,7 @@ cdef class Class:
                 index associated with each is defined wrt. Class convention, and are non
                 important from the python point of view.
         """
-        cdef int lmaxR 
+        cdef int lmaxR
         cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
         lmaxR = self.le.l_lensed_max
 
@@ -631,7 +631,7 @@ cdef class Class:
             cl[elem][:2]=0
         for ell from 2<=ell<lmax+1:
             if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
-                raise ClassError(self.le.error_message) 
+                raise ClassError(self.le.error_message)
             cl['tt'][ell] = lcl[self.le.index_lt_tt]
             cl['te'][ell] = lcl[self.le.index_lt_te]
             cl['ee'][ell] = lcl[self.le.index_lt_ee]
@@ -718,7 +718,7 @@ cdef class Class:
     def age(self):
         self.compute(["background"])
         return self.ba.age
-        
+
     def h(self):
         return self.ba.h
 
@@ -794,7 +794,7 @@ cdef class Class:
         H = pvecback[self.ba.index_bg_H]
 
         free(pvecback)
-            
+
         return H
 
     def ionization_fraction(self, z):
@@ -825,7 +825,7 @@ cdef class Class:
         if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
             raise ClassError(self.th.error_message)
 
-        xe = pvecthermo[self.th.index_th_xe] 
+        xe = pvecthermo[self.th.index_th_xe]
 
         free(pvecback)
         free(pvecthermo)
@@ -860,7 +860,7 @@ cdef class Class:
         if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
             raise ClassError(self.th.error_message)
 
-        Tb = pvecthermo[self.th.index_th_Tb] 
+        Tb = pvecthermo[self.th.index_th_Tb]
 
         free(pvecback)
         free(pvecthermo)
@@ -875,10 +875,10 @@ cdef class Class:
 
     def Omega0_m(self):
         """
-        Return the sum of Omega0 for baryon and CDM 
+        Return the sum of Omega0 for baryon and CDM
         """
         return self.ba.Omega0_b+self.ba.Omega0_cdm
-    
+
     def get_current_derived_parameters(self, data):
         """
         get_current_derived_parameters(data)
@@ -1042,7 +1042,7 @@ cdef class Class:
     def nonlinear_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
         nonlinear_scale(z, z_size)
-        
+
         Return the nonlinear scale for all the redshift specified in z, of size
         z_size
 
@@ -1064,3 +1064,29 @@ cdef class Class:
 
         return k_nl
 
+    def __call__(self, ctx):
+        """
+        Function to interface with CosmoHammer
+
+        Parameters
+        ----------
+        ctx : context
+                Contains several dictionaries storing data and cosmological
+                information
+
+        """
+        data = ctx.get('data')  # recover data from the context
+
+        # If the module has already been called once, clean-up
+        if self.state:
+            self._struct_cleanup(set(
+                ["lensing", "nonlinear", "spectra",
+                 "primordial", "transfer", "perturb",
+                 "thermodynamics", "backround", "bessel"]))
+
+        # Set the module to the current values
+        self.set(data.cosmo_arguments)
+        self.compute(["lensing"])
+
+        # Store itself into the context, to be accessed by the likelihoods
+        ctx.add('cosmo', self)
