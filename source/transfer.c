@@ -3443,16 +3443,15 @@ int transfer_late_source_can_be_neglected(
   
   *neglect = _FALSE_;
   
-  if (l > ppr->transfer_neglect_late_source) {
+  if (l > ppr->transfer_neglect_late_source*ptr->angular_rescaling) {
     
     /* sources at late times canb be neglected for CMB, excepted when
        there is a LISW: this means for tt_t1, t2, e */
 
     if (_scalars_) {
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
-        /*if ((index_tt == ptr->index_tt_t1) ||
-          (index_tt == ptr->index_tt_t2))*/
-        if (index_tt == ptr->index_tt_t2)
+        if ((index_tt == ptr->index_tt_t1) ||
+          (index_tt == ptr->index_tt_t2))
           *neglect = _TRUE_;
       }
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
@@ -3473,10 +3472,6 @@ int transfer_late_source_can_be_neglected(
       }
     }
     else if (_tensors_) {
-      if (ppt->has_cl_cmb_temperature == _TRUE_) {
-        if (index_tt == ptr->index_tt_t2)
-          *neglect = _TRUE_;
-      }   
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
         if ((index_tt == ptr->index_tt_e) ||
             (index_tt == ptr->index_tt_b))
