@@ -502,12 +502,12 @@ extern "C" {
       
   int transfer_can_be_neglected(
                                 struct precision * ppr,
-                                struct background * pba,
                                 struct perturbs * ppt,
                                 struct transfers * ptr,
                                 int index_md,
                                 int index_ic,
                                 int index_tt,
+                                double ra_rec,
                                 double q,
                                 double l,
                                 short * neglect

@@ -1619,7 +1619,6 @@ int input_init(
   class_read_double("transfer_neglect_delta_k_S_t1",ppr->transfer_neglect_delta_k_S_t1);
   class_read_double("transfer_neglect_delta_k_S_t2",ppr->transfer_neglect_delta_k_S_t2);
   class_read_double("transfer_neglect_delta_k_S_e",ppr->transfer_neglect_delta_k_S_e);
-  class_read_double("transfer_neglect_delta_k_S_lcmb",ppr->transfer_neglect_delta_k_S_lcmb);
   class_read_double("transfer_neglect_delta_k_V_t1",ppr->transfer_neglect_delta_k_V_t1);
   class_read_double("transfer_neglect_delta_k_V_t2",ppr->transfer_neglect_delta_k_V_t2);
   class_read_double("transfer_neglect_delta_k_V_e",ppr->transfer_neglect_delta_k_V_e);
@@ -2162,17 +2161,16 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->q_linstep_trans=0.50;
   ppr->q_logstep_trans=1.0016;
 
-  ppr->transfer_neglect_delta_k_S_t0 = 0.19;
-  ppr->transfer_neglect_delta_k_S_t1 = 0.020;
-  ppr->transfer_neglect_delta_k_S_t2 = 0.1;
-  ppr->transfer_neglect_delta_k_S_e = 0.15;
-  ppr->transfer_neglect_delta_k_S_lcmb = 0.5;
+  ppr->transfer_neglect_delta_k_S_t0 = 0.15;
+  ppr->transfer_neglect_delta_k_S_t1 = 0.04;
+  ppr->transfer_neglect_delta_k_S_t2 = 0.15;
+  ppr->transfer_neglect_delta_k_S_e = 0.11;
   ppr->transfer_neglect_delta_k_V_t1 = 1.;
   ppr->transfer_neglect_delta_k_V_t2 = 1.; 
   ppr->transfer_neglect_delta_k_V_e = 1.;
   ppr->transfer_neglect_delta_k_V_b = 1.;
-  ppr->transfer_neglect_delta_k_T_t2 = 5.e-3;
-  ppr->transfer_neglect_delta_k_T_e = 0.1;
+  ppr->transfer_neglect_delta_k_T_t2 = 0.2;
+  ppr->transfer_neglect_delta_k_T_e = 0.25;
   ppr->transfer_neglect_delta_k_T_b = 0.1;
 
   ppr->transfer_neglect_late_source = 400.;

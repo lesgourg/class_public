@@ -1649,12 +1649,12 @@ int transfer_compute_for_each_q(
 
           /* neglect transfer function when l is much smaller than k*tau0 */
           class_call(transfer_can_be_neglected(ppr,
-                                               pba,
                                                ppt,
                                                ptr,
                                                index_md,
                                                index_ic,
                                                index_tt,
+                                               (pba->conformal_age-tau_rec)*ptr->angular_rescaling,
                                                ptr->q[index_q],
                                                l,
                                                &neglect),
@@ -3376,57 +3376,51 @@ int transfer_limber2(
 
 int transfer_can_be_neglected(
                               struct precision * ppr,
-                              struct background * pba,
                               struct perturbs * ppt,
                               struct transfers * ptr,
                               int index_md,
                               int index_ic,
                               int index_tt,
+                              double ra_rec,
                               double k,
                               double l,
                               short * neglect) {
 
   *neglect = _FALSE_;
 
-  /* implement here some conditions, e.g.:
-     if (k*l>ppr->trans_kl_max) *neglect = _TRUE_;
-  */      
+  if (_scalars_) {
 
-  if _scalars_ {
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t0) && (l < (k-ppr->transfer_neglect_delta_k_S_t0)*ra_rec)) *neglect = _TRUE_;
 
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t0) && (l < (k-ppr->transfer_neglect_delta_k_S_t0)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
-
-      else if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l < (k-ppr->transfer_neglect_delta_k_S_lcmb)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
-      
-    }
+  }
   
-  else if _vectors_ {
+  else if (_vectors_) {
       
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*ra_rec)) *neglect = _TRUE_;
 
-    }
+  }
 
-  else if _tensors_ {
+  else if (_tensors_) {
 
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_T_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_T_t2)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*ra_rec)) *neglect = _TRUE_;
 
-    }
+  }
 
   return _SUCCESS_;
 

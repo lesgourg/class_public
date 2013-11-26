@@ -556,7 +556,6 @@ struct precision
   double transfer_neglect_delta_k_S_t1;
   double transfer_neglect_delta_k_S_t2;
   double transfer_neglect_delta_k_S_e;
-  double transfer_neglect_delta_k_S_lcmb;
   double transfer_neglect_delta_k_V_t1;
   double transfer_neglect_delta_k_V_t2;
   double transfer_neglect_delta_k_V_e;
