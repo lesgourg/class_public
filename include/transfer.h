@@ -249,7 +249,7 @@ extern "C" {
                                     struct precision * ppr,
                                     struct perturbs * ppt,
                                     struct transfers * ptr,
-                                    double tau0,
+                                    double q_period,
                                     double K,
                                     int sgnK
                                     );
@@ -276,10 +276,19 @@ extern "C" {
                           struct precision * ppr,
                           struct perturbs * ppt,
                           struct transfers * ptr,
-                          double tau0,
+                          double q_period,
                           double K,
                           int sgnK
                           );
+
+  int transfer_get_q_list_v1(
+                             struct precision * ppr,
+                             struct perturbs * ppt,
+                             struct transfers * ptr,
+                             double q_period,
+                             double K,
+                             int sgnK
+                             );
 
   int transfer_get_k_list(
                           struct perturbs * ppt,
@@ -589,15 +598,6 @@ extern "C" {
                         int *index_l_left,
                         int *index_l_right,
                         ErrorMsg error_message);
-
-  int transfer_get_q_list2(
-                        struct precision * ppr,
-                        struct perturbs * ppt,
-                        struct transfers * ptr,
-                        double tau0,
-                        double K,
-                        int sgnK 
-                           );
 
 #ifdef __cplusplus
 }

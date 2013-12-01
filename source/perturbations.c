@@ -1041,8 +1041,9 @@ int perturb_get_k_list(
   double k_max_cmb=0.;
   double k_max_cl=0.;
   double k_max=0.;
-  double nu;
+  double nu,nu2,q2;
   long int int_nu_previous=0;
+  double scale2;
 
   /** Summary: */
 
@@ -1155,6 +1156,16 @@ int perturb_get_k_list(
              ppt->error_message,
              "buggy definition of k_min and/or k_max");
   
+  /* if K>0, the transfer function will be calculated for discrete
+     integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+     m=0,1,2 for scalars/vectors/tensors. However we are free to
+     define in the perturbation module some arbitrary values of k:
+     later on, the transfer module will interpolate at values of k
+     corresponding exactly to integer values of nu. Hence, apart
+     from the value of k_min and the step size in thevicinity of
+     k_min, we define exactly the same sampling in the three cases
+     K=0, K<0, K>0 */
+  
   /* allocate array with, for the moment, the largest possible size */
   class_alloc(ppt->k,((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
                       (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
@@ -1170,25 +1181,40 @@ int perturb_get_k_list(
   /* values until k_max_cmb */
 
   while (k < k_max_cmb) {
-    step = ppr->k_step_super 
-      + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.) * (ppr->k_step_sub-ppr->k_step_super);
-      
-    class_test(step * k_rec / k < ppr->smallest_allowed_variation,
+
+    /* the linear step is not constant, it has a step-like shape,
+       centered around the characteristic scale set by the sound
+       horizon at recombination (associated to the comoving wavenumber
+       k_rec) */
+
+    step = (ppr->k_step_super 
+            + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.) 
+            * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+    
+    /* there is one other thing to take into account in the step
+       size. There are two other characteristic scales that matter for
+       the sampling: the Hubble scale today, k0=a0H0, and eventually
+       curvature scale sqrt(|K|). We define "scale2" as the sum of the
+       squared Hubble radius and squared curvature radius. We need to
+       increase the sampling for k<sqrt(scale2), in order to get the
+       first mutipoles accurate enough. The formula below reduces it
+       gradually in the k-->0 limit, by up to a factor 10. The actual
+       stepsize is still fixed by k_step_super, this is just a
+       reduction factor. */ 
+
+    scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+    step *= (k*k/scale2+1.)/(k*k/scale2+10.);
+
+    class_test(step / k < ppr->smallest_allowed_variation,
                ppt->error_message,
                "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
      
-    k += step * k_rec;
+    k += step;
 
-    /* if K>0, the transfer function will be calculated for discrete
-       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
-       m=0,1,2 for scalars/vectors/tensors. However we are free to
-       define in the perturbation module some arbitrary values of k:
-       later on, the transfer module will interpolate at values of k
-       corresponding exactly to integer values of nu.*/
-
-    class_test(k == ppt->k[index_k-1],
+    class_test(k <= ppt->k[index_k-1],
                ppt->error_message,
-               "consecutive values of k should differ");
+               "consecutive values of k should differ and should be in growing order");
 
     ppt->k[index_k] = k;
 
@@ -1251,6 +1277,16 @@ int perturb_get_k_list(
 
     }
   */
+
+  FILE * out=fopen("test_q/k","w");
+
+  for (index_k=0; index_k < ppt->k_size; index_k++) {
+
+    fprintf(out,"%e %e\n",ppt->k[index_k],pba->K);
+
+  }
+
+  fclose(out);
 
   return _SUCCESS_;
 
