@@ -562,16 +562,19 @@ int transfer_indices_of_transfers(
              ptr->error_message,
              ptr->error_message);
 
-  FILE * out=fopen("test_q/q","w");
+  /* for testing, it can be useful to print the q list in a file:
+
+  FILE * out=fopen("output/q","w");
   int index_q;
 
   for (index_q=0; index_q < ptr->q_size; index_q++) {
 
-    fprintf(out,"%e %e %e\n",ptr->q[index_q],ptr->k[0][index_q],K);
+    fprintf(out,"%d %e %e %e\n",index_q,ptr->q[index_q],ptr->k[0][index_q],K);
 
   }
 
   fclose(out);
+  */
 
   /** get l values using transfer_get_l_list() */
   class_call(transfer_get_l_list(ppr,ppt,ptr),
@@ -842,6 +845,159 @@ int transfer_get_l_list(
 
 /**
  * This routine defines the number and values of wavenumbers q for
+ * each mode (goes smoothly from logarithmic step for small q's to
+ * linear step for large q's).
+ *
+ * @param ppr     Input : pointer to precision structure
+ * @param ppt     Input : pointer to perturbation structure
+ * @param ptr     Input/Output : pointer to transfers structure containing q's
+ * @param rs_rec  Input : comoving distance to recombination
+ * @param index_md Input: index of requested mode (scalar, tensor, etc) 
+ * @return the error status
+ */
+
+int transfer_get_q_list(
+                        struct precision * ppr,
+                        struct perturbs * ppt,
+                        struct transfers * ptr,
+                        double q_period,
+                        double K,
+                        int sgnK
+                         ) {
+
+  int index_q;
+  double q,q_min=0.,q_max=0.,q_step,k_max,q_logstep_trans;
+  int nu, nu_min, nu_proposed;
+  int q_size_max;
+
+  /* first and last value in flat case*/
+
+  if (sgnK == 0) {
+    q_min = ppt->k[0];
+    q_max = ppt->k[ppt->k_size_cl-1]; 
+    K=0;
+  }
+
+  /* first and last value in open case*/
+
+  else if (sgnK == -1) {
+    q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
+    k_max = ppt->k[ppt->k_size_cl-1];
+    q_max = sqrt(k_max*k_max+K);
+    if (ppt->has_vectors == _TRUE_) 
+      q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
+    if (ppt->has_tensors == _TRUE_) 
+      q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
+  }
+
+  /* first and last value in closed case*/
+
+  else if (sgnK == 1) {
+    nu_min = 3;
+    q_min = nu_min * sqrt(K);
+    q_max = ppt->k[ppt->k_size_cl-1]; 
+  }
+
+  /* initialize q_index_closed */
+
+  ptr->index_q_closed = 0;
+
+  /* adjust the parameter governing the log step size to curvature */
+
+  q_logstep_trans = ppr->q_logstep_trans;
+
+  if (sgnK == -1)
+    q_logstep_trans *= pow(ptr->angular_rescaling,6);
+  //if (sgnK == 1)
+  //q_logstep_trans *= 7.;
+  
+  /* very conservative estimate of number of values (assuming the
+     step remains logarithmic, while in reality it becomes gradually
+     linear). */
+ 
+  q_step = 1.+q_period*ppr->q_linstep_trans/q_logstep_trans;
+
+  q_size_max = 2+2*(int)(log(q_max/q_min)/log(q_step));
+
+  q_step = q_period*ppr->q_linstep_trans;
+
+  q_size_max += 2*(int)((q_max-q_min)/q_step);
+
+  //fprintf(stderr,"%e %e\n",ppr->q_linstep_trans,q_logstep_trans);
+
+  /* create array with this conservative size estimate. The exact size
+     will be readjusted below, after filling the array. */
+
+  class_alloc(ptr->q,
+              q_size_max*sizeof(double),
+              ptr->error_message);
+
+  /* assign the first value before starting the loop */
+
+  index_q = 0;
+  ptr->q[index_q] = q_min;
+  nu = 3; 
+  index_q++;
+
+  /* loop over the values */
+
+  while (ptr->q[index_q-1] < q_max) {
+
+    class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
+
+    /* step size formula. Step goes gradually from logarithmic to linear: 
+       - in the small q limit, it is logarithmic with:
+       (delta q / q) =  q_period * ppr->q_linstep_trans / ppr->q_logstep_trans 
+       - in the large q limit, it is linear with:
+       (delta q) =  q_period * ppr->q_linstep_trans
+    */
+
+    q = ptr->q[index_q-1] 
+      + q_period * ppr->q_linstep_trans * ptr->q[index_q-1] / (ptr->q[index_q-1] + q_logstep_trans); 
+
+    /* in a closed universe, readjust the value to the closest integer value of nu */
+
+    if (sgnK==1) {
+      nu_proposed = (int)(q/sqrt(K));
+      if (nu_proposed <= nu+1)
+        ptr->index_q_closed = index_q;
+      if (nu_proposed <= nu)
+        nu = nu+1;
+      else
+        nu = nu_proposed;
+      ptr->q[index_q] = nu*sqrt(K);
+      index_q++;
+    }
+    else {
+      ptr->q[index_q] = q;
+      index_q++;
+    }
+  }
+
+  /* infer total number of values (also checking if we overshooted the last point) */
+
+  if (ptr->q[index_q-1] > q_max)
+    ptr->q_size=index_q-1;
+  else
+    ptr->q_size=index_q;
+
+  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
+
+  //fprintf(stderr,"q_size = %d\n",ptr->q_size);
+
+  /* now, readjust array size */
+
+  class_realloc(ptr->q,
+                ptr->q,
+                ptr->q_size*sizeof(double),
+                ptr->error_message);
+
+  return _SUCCESS_; 
+
+}
+
+/**
+ * This routine defines the number and values of wavenumbers q for
  * each mode (different in perturbation module and transfer module:
  * here we impose an upper bound on the linear step. So, typically,
  * for small q, the sampling is identical to that in the perturbation
@@ -1036,156 +1192,14 @@ int transfer_get_q_list_v1(
 }
 
 /**
- * This routine defines the number and values of wavenumbers q for
- * each mode (different in perturbation module and transfer module:
- * here we impose an upper bound on the linear step. So, typically,
- * for small q, the sampling is identical to that in the perturbation
- * module, while at high q it is denser and source functions are
- * interpolated).
+ * This routine infers from the q values a list of corresponding k
+ * avlues for each mode.
  *
- * @param ppr     Input : pointer to precision structure
  * @param ppt     Input : pointer to perturbation structure
  * @param ptr     Input/Output : pointer to transfers structure containing q's
- * @param rs_rec  Input : comoving distance to recombination
- * @param index_md Input: index of requested mode (scalar, tensor, etc) 
+ * @param K       Input : spatial curvature
  * @return the error status
  */
-
-int transfer_get_q_list(
-                        struct precision * ppr,
-                        struct perturbs * ppt,
-                        struct transfers * ptr,
-                        double q_period,
-                        double K,
-                        int sgnK
-                         ) {
-
-  int index_q;
-  double q,q_min=0.,q_max=0.,q_step,k_max,q_logstep_trans;
-  int nu, nu_min, nu_proposed;
-  int q_size_max;
-
-  /* first and last value in flat case*/
-
-  if (sgnK == 0) {
-    q_min = ppt->k[0];
-    q_max = ppt->k[ppt->k_size_cl-1]; 
-    K=0;
-  }
-
-  /* first and last value in open case*/
-
-  else if (sgnK == -1) {
-    q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
-    k_max = ppt->k[ppt->k_size_cl-1];
-    q_max = sqrt(k_max*k_max+K);
-    if (ppt->has_vectors == _TRUE_) 
-      q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
-    if (ppt->has_tensors == _TRUE_) 
-      q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
-  }
-
-  /* first and last value in closed case*/
-
-  else if (sgnK == 1) {
-    nu_min = 3;
-    q_min = nu_min * sqrt(K);
-    q_max = ppt->k[ppt->k_size_cl-1]; 
-  }
-
-  /* adjust the parameter governing the log step size to curvature */
-
-  q_logstep_trans = ppr->q_logstep_trans;
-
-  if (sgnK == -1)
-    q_logstep_trans *= pow(ptr->angular_rescaling,6);
-  if (sgnK == 1)
-    q_logstep_trans *= 7.;
-  
-  /* very conservative estimate of number of values (assuming the
-     step remains logarithmic, while in reality it becomes gradually
-     linear). */
- 
-  q_step = 1.+q_period*ppr->q_linstep_trans/q_logstep_trans;
-
-  q_size_max = 2+2*(int)(log(q_max/q_min)/log(q_step));
-
-  q_step = q_period*ppr->q_linstep_trans;
-
-  q_size_max += 2*(int)((q_max-q_min)/q_step);
-
-  //fprintf(stderr,"%e %e\n",ppr->q_linstep_trans,q_logstep_trans);
-
-  /* create array with this conservative size estimate. The exact size
-     will be readjusted below, after filling the array. */
-
-  class_alloc(ptr->q,
-              q_size_max*sizeof(double),
-              ptr->error_message);
-
-  /* assign the first value before starting the loop */
-
-  index_q = 0;
-  ptr->q[index_q] = q_min;
-  nu = 3; 
-  index_q++;
-
-  /* loop over the values */
-
-  while (ptr->q[index_q-1] < q_max) {
-
-    class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
-
-    /* step size formula. Step goes gradually from logarithmic to linear: 
-       - in the small q limit, it is logarithmic with:
-       (delta q / q) =  q_period * ppr->q_linstep_trans / ppr->q_logstep_trans 
-       - in the large q limit, it is linear with:
-       (delta q) =  q_period * ppr->q_linstep_trans
-    */
-
-    q = ptr->q[index_q-1] 
-      + q_period * ppr->q_linstep_trans * ptr->q[index_q-1] / (ptr->q[index_q-1] + q_logstep_trans); 
-
-    /* in a closed universe, readjust the value to the closest integer value of nu */
-
-    if (sgnK==1) {
-      nu_proposed = (int)(q/sqrt(K));
-      if (nu_proposed <= nu)
-        nu = nu+1;
-      else
-        nu = nu_proposed;
-      ptr->q[index_q] = nu*sqrt(K);
-      index_q++;
-    }
-    else {
-      ptr->q[index_q] = q;
-      index_q++;
-    }
-  }
-
-  /* infer total number of values (also checking if we overshooted the last point) */
-
-  if (ptr->q[index_q-1] > q_max)
-    ptr->q_size=index_q-1;
-  else
-    ptr->q_size=index_q;
-
-  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
-
-  //fprintf(stderr,"q_size = %d\n",ptr->q_size);
-
-  /* now, readjust array size */
-
-  class_realloc(ptr->q,
-                ptr->q,
-                ptr->q_size*sizeof(double),
-                ptr->error_message);
-
-  return _SUCCESS_; 
-
-}
-
-/* infer the list of k values for each mode from that of q */
 
 int transfer_get_k_list(
                         struct perturbs * ppt,

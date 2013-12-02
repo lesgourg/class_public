@@ -1041,7 +1041,7 @@ int perturb_get_k_list(
   double k_max_cmb=0.;
   double k_max_cl=0.;
   double k_max=0.;
-  double nu,nu2,q2;
+  double nu;
   long int int_nu_previous=0;
   double scale2;
 
@@ -1256,29 +1256,9 @@ int perturb_get_k_list(
                 ppt->k_size*sizeof(double),
                 ppt->error_message);
 
-  /*
-    }
+  /* For testing, can be useful to print the k list in a file:
 
-    else {
-
-    nu_min=3;
-
-    ppt->k_size = (int)sqrt(k_max*k_max/pba->K+1.)-nu_min+1;
-    ppt->k_size_cmb = (int)sqrt(k_max_cmb*k_max_cmb/pba->K+1.)-nu_min+1;
-    ppt->k_size_cl = (int)sqrt(k_max_cl*k_max_cl/pba->K+1.)-nu_min+1;
-
-    class_alloc(ppt->k,ppt->k_size*sizeof(double),ppt->error_message);
-
-    for (index_k=0; index_k < ppt->k_size; index_k++) {
-      
-    ppt->k[index_k] = sqrt(pow(nu_min+index_k,2)-1)*sqrt(pba->K);
-        
-    }
-
-    }
-  */
-
-  FILE * out=fopen("test_q/k","w");
+  FILE * out=fopen("output/k","w");
 
   for (index_k=0; index_k < ppt->k_size; index_k++) {
 
@@ -1287,6 +1267,7 @@ int perturb_get_k_list(
   }
 
   fclose(out);
+  */
 
   return _SUCCESS_;
 

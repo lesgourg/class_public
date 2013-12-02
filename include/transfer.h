@@ -102,9 +102,11 @@ struct transfers {
 
   int q_size; /**< number of wavenumber values */
 
-  double * q;  /**< list of wavenumber values for each requested mode, q[index_q] */
+  double * q;  /**< list of wavenumber values, q[index_q] */
 
   double ** k; /**< list of wavenumber values for each requested mode, k[index_md][index_q]. In flat universes k=q. In non-flat universes q and k differ through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector, tensor. q should be used throughout the transfer module, excepted when interpolating or manipulating the source functions S(k,tau): for a given value of q this should be done in k(q). */
+
+  int index_q_closed; /**< for closed model, index of the last q values for which we sample all consecutive nu's. Will be used in spectra module for switching from discrete sum to spline integral. */
 
   //@}
 
