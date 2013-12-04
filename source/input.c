@@ -700,6 +700,36 @@ int input_init(
 
   }
 
+  if (ppt->has_cl_cmb_temperature == _TRUE_) {
+
+    class_call(parser_read_string(pfc,"temperature contributions",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    
+    if (flag1 == _TRUE_) {
+
+      ppt->switch_sw = 0;
+      ppt->switch_isw = 0;
+      ppt->switch_dop = 0;
+      ppt->switch_pol = 0;
+
+      if ((strstr(string1,"sw") != NULL) || (strstr(string1,"SW") != NULL))
+        ppt->switch_sw = 1;
+      if ((strstr(string1,"isw") != NULL) || (strstr(string1,"ISW") != NULL))
+        ppt->switch_isw = 1;      
+      if ((strstr(string1,"dop") != NULL) || (strstr(string1,"Dop") != NULL))
+        ppt->switch_dop = 1;      
+      if ((strstr(string1,"pol") != NULL) || (strstr(string1,"Pol") != NULL))
+        ppt->switch_pol = 1;
+
+      class_test((ppt->switch_sw == 0) && (ppt->switch_isw == 0) && (ppt->switch_dop == 0) && (ppt->switch_pol == 0),
+                 errmsg,
+                 "In the field 'output', you selected CMB temperature, but in the field 'temperature contributions', you removed all contributions");
+      
+    }
+
+  }
+
   if (ppt->has_perturbations == _TRUE_) { 
 
     class_call(parser_read_string(pfc,"modes",&string1,&flag1,errmsg),
@@ -1520,6 +1550,7 @@ int input_init(
   class_read_double("k_step_sub",ppr->k_step_sub);
   class_read_double("k_step_super",ppr->k_step_super);
   class_read_double("k_step_transition",ppr->k_step_transition);
+  class_read_double("k_step_super_reduction",ppr->k_step_super_reduction);
   class_read_double("k_per_decade_for_pk",ppr->k_per_decade_for_pk);
   class_read_double("k_per_decade_for_bao",ppr->k_per_decade_for_bao);
   class_read_double("k_bao_center",ppr->k_bao_center);
@@ -1609,11 +1640,16 @@ int input_init(
   class_read_double("hyper_x_tol",ppr->hyper_x_tol);
   class_read_double("hyper_flat_approximation_nu",ppr->hyper_flat_approximation_nu);
 
-  class_read_double("k_step_trans_scalars",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
-  class_read_double("k_step_trans_tensors",ppr->k_step_trans); // obsolete precision parameter: read for compatibility with old precision files
-  class_read_double("k_step_trans",ppr->k_step_trans);
-  class_read_double("q_linstep_trans",ppr->q_linstep_trans);
-  class_read_double("q_logstep_trans",ppr->q_logstep_trans);
+  class_read_double("q_linstep",ppr->q_linstep);
+  class_read_double("q_logstep_spline",ppr->q_logstep_spline);
+  class_read_double("q_logstep_trapzd",ppr->q_logstep_trapzd);
+  class_read_double("q_numstep_transition",ppr->q_numstep_transition);
+
+  class_read_double("k_step_trans_scalars",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_step_trans_tensors",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_step_trans",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("q_linstep_trans",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("q_logstep_trans",ppr->q_logstep_spline); // obsolete precision parameter: read for compatibility with old precision files
 
   class_read_double("transfer_neglect_delta_k_S_t0",ppr->transfer_neglect_delta_k_S_t0);
   class_read_double("transfer_neglect_delta_k_S_t1",ppr->transfer_neglect_delta_k_S_t1);
@@ -1850,6 +1886,11 @@ int input_default_params(
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
 
+  ppt->switch_sw = 1;
+  ppt->switch_isw = 1;
+  ppt->switch_dop = 1;
+  ppt->switch_pol = 1;
+
   ppt->has_ad=_TRUE_;  
   ppt->has_bi=_FALSE_;
   ppt->has_cdi=_FALSE_;
@@ -2081,6 +2122,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_step_sub=0.05;
   ppr->k_step_super=0.002;
   ppr->k_step_transition=0.2;
+  ppr->k_step_super_reduction=0.1;
   ppr->k_per_decade_for_pk=10.;
   ppr->k_per_decade_for_bao=70.;
   ppr->k_bao_center=3.;
@@ -2157,9 +2199,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->hyper_x_tol = 1.e-4;
   ppr->hyper_flat_approximation_nu = 4000.;
   
-  ppr->k_step_trans=0.45;
-  ppr->q_linstep_trans=0.45;
-  ppr->q_logstep_trans=0.003;
+  ppr->q_linstep=0.45;
+  ppr->q_logstep_spline=170.;
+  ppr->q_logstep_trapzd=22.;
+  ppr->q_numstep_transition=500.;
 
   ppr->transfer_neglect_delta_k_S_t0 = 0.15;
   ppr->transfer_neglect_delta_k_S_t1 = 0.04;

@@ -562,14 +562,20 @@ int transfer_indices_of_transfers(
              ptr->error_message,
              ptr->error_message);
 
-  /* for testing, it can be useful to print the q list in a file:
+  /* for testing, it can be useful to print the q list in a file: */
 
+  /*
   FILE * out=fopen("output/q","w");
   int index_q;
 
   for (index_q=0; index_q < ptr->q_size; index_q++) {
 
-    fprintf(out,"%d %e %e %e\n",index_q,ptr->q[index_q],ptr->k[0][index_q],K);
+    fprintf(out,"%d %e %e %e %e\n",
+    index_q,
+    ptr->q[index_q],
+    ptr->k[0][index_q],
+    ptr->q[index_q]/sqrt(sgnK*K),
+    ptr->q[index_q+1]-ptr->q[index_q]);
 
   }
 
@@ -866,9 +872,15 @@ int transfer_get_q_list(
                          ) {
 
   int index_q;
-  double q,q_min=0.,q_max=0.,q_step,k_max,q_logstep_trans;
+  double q,q_min=0.,q_max=0.,q_step,k_max;
   int nu, nu_min, nu_proposed;
   int q_size_max;
+  double q_approximation;
+  double last_step=0.;
+  double last_q;
+  int last_index=0;
+  double q_logstep_spline;
+  double q_logstep_trapzd;
 
   /* first and last value in flat case*/
 
@@ -898,32 +910,29 @@ int transfer_get_q_list(
     q_max = ppt->k[ppt->k_size_cl-1]; 
   }
 
-  /* initialize q_index_closed */
-
-  ptr->index_q_closed = 0;
-
   /* adjust the parameter governing the log step size to curvature */
 
-  q_logstep_trans = ppr->q_logstep_trans;
+  q_logstep_spline = ppr->q_logstep_spline;
+  q_logstep_trapzd = ppr->q_logstep_trapzd;
 
   if (sgnK == -1)
-    q_logstep_trans *= pow(ptr->angular_rescaling,6);
+    q_logstep_spline /= pow(ptr->angular_rescaling,6);
   //if (sgnK == 1)
   //q_logstep_trans *= 7.;
   
-  /* very conservative estimate of number of values (assuming the
-     step remains logarithmic, while in reality it becomes gradually
-     linear). */
+  /* very conservative estimate of number of values */
  
-  q_step = 1.+q_period*ppr->q_linstep_trans/q_logstep_trans;
+  q_step = 1.+q_period*ppr->q_logstep_spline;
 
-  q_size_max = 2+2*(int)(log(q_max/q_min)/log(q_step));
+  q_size_max = (int)(log(q_max/q_min)/log(q_step));
 
-  q_step = q_period*ppr->q_linstep_trans;
+  q_step += 1.+q_period*ppr->q_logstep_trapzd;
+
+  q_size_max = (int)(log(q_max/q_min)/log(q_step));
+
+  q_step = q_period*ppr->q_linstep;
 
   q_size_max += 2*(int)((q_max-q_min)/q_step);
-
-  //fprintf(stderr,"%e %e\n",ppr->q_linstep_trans,q_logstep_trans);
 
   /* create array with this conservative size estimate. The exact size
      will be readjusted below, after filling the array. */
@@ -945,33 +954,68 @@ int transfer_get_q_list(
 
     class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
 
-    /* step size formula. Step goes gradually from logarithmic to linear: 
-       - in the small q limit, it is logarithmic with:
-       (delta q / q) =  q_period * ppr->q_linstep_trans / ppr->q_logstep_trans 
-       - in the large q limit, it is linear with:
-       (delta q) =  q_period * ppr->q_linstep_trans
+    /* step size formula in flat/open case. Step goes gradually from
+       logarithmic to linear:
+
+       - in the small q limit, it is logarithmic with: (delta q / q) =
+       q_period * q_logstep_spline
+
+       - in the large q limit, it is linear with: (delta q) = q_period
+       * ppr->q_linstep
     */
 
-    q = ptr->q[index_q-1] 
-      + q_period * ppr->q_linstep_trans * ptr->q[index_q-1] / (ptr->q[index_q-1] + q_logstep_trans); 
+    if (sgnK<=0) {
 
-    /* in a closed universe, readjust the value to the closest integer value of nu */
+      q = ptr->q[index_q-1] 
+        + q_period * ppr->q_linstep * ptr->q[index_q-1] 
+        / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_spline);
 
-    if (sgnK==1) {
-      nu_proposed = (int)(q/sqrt(K));
-      if (nu_proposed <= nu+1)
-        ptr->index_q_closed = index_q;
-      if (nu_proposed <= nu)
-        nu = nu+1;
-      else
-        nu = nu_proposed;
-      ptr->q[index_q] = nu*sqrt(K);
-      index_q++;
     }
+
+    /* step size formula in closed case. Same thing excepted that:
+
+       - in the small q limit, the logarithmic step is reduced, being
+         given by q_logstep_trapzd, and values are rounded to integer
+         values of nu=q/sqrt(K). This happens as long as
+         nu<nu_flat_approximation
+
+       - for nu>nu_flat_approximation, the step gradually catches up
+         the same expression as in the flat/opne case, and there is no
+         need to round up to integer nu's.
+    */
+
     else {
-      ptr->q[index_q] = q;
-      index_q++;
+
+      if (nu<(int)ppr->hyper_flat_approximation_nu) {
+
+        q = ptr->q[index_q-1] 
+          + q_period * ppr->q_linstep * ptr->q[index_q-1] 
+          / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_trapzd); 
+
+        nu_proposed = (int)(q/sqrt(K));
+        if (nu_proposed <= nu+1)
+          nu = nu+1;
+        else
+          nu = nu_proposed;
+
+        q = nu*sqrt(K);
+        last_step = q - ptr->q[index_q-1];
+        last_q = q;
+        last_index = index_q+1;
+      }
+      else {
+
+        q_step = q_period * ppr->q_linstep * ptr->q[index_q-1] / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_spline); 
+        
+        if (index_q-last_index < (int)ppr->q_numstep_transition)
+          q = ptr->q[index_q-1] + (1-(double)(index_q-last_index)/ppr->q_numstep_transition) * last_step + (double)(index_q-last_index)/ppr->q_numstep_transition * q_step;
+        else 
+          q = ptr->q[index_q-1] + q_step;
+      }   
     }
+
+    ptr->q[index_q] = q;
+    index_q++;
   }
 
   /* infer total number of values (also checking if we overshooted the last point) */
@@ -983,7 +1027,7 @@ int transfer_get_q_list(
 
   class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
 
-  //fprintf(stderr,"q_size = %d\n",ptr->q_size);
+  //fprintf(stderr,"q_size_max=%d q_size = %d\n",q_size_max,ptr->q_size);
 
   /* now, readjust array size */
 
@@ -991,6 +1035,22 @@ int transfer_get_q_list(
                 ptr->q,
                 ptr->q_size*sizeof(double),
                 ptr->error_message);
+
+  /* in curved universe, check at which index the flat rescaling
+     approximation will start being used */
+
+  if (sgnK != 0) {
+
+    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
+    for (ptr->index_q_flat_approximation=0; 
+         ptr->index_q_flat_approximation < ptr->q_size;
+         ptr->index_q_flat_approximation++) {
+      if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
+    }
+    if (ptr->transfer_verbose > 1)
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
+             ptr->q_size-ptr->index_q_flat_approximation,ptr->q_size);
+  }
 
   return _SUCCESS_; 
 
@@ -1026,10 +1086,11 @@ int transfer_get_q_list_v1(
   double q_min=0.,q_max,q_step_max=0.,k_max;
   int nu, nu_min, nu_proposed;
   int q_size_max;
+  double q_approximation;
 
   /* find q_step_max, the maximum value of the step */
 
-  q_step_max = q_period*ppr->k_step_trans;
+  q_step_max = q_period*ppr->q_linstep;
 
   class_test(q_step_max == 0.,
              ptr->error_message,
@@ -1185,6 +1246,21 @@ int transfer_get_q_list_v1(
     class_test(ptr->q[index_q] <= ptr->q[index_q-1],
                ptr->error_message,
                "bug in q list calculation, q values should be in strictly growing order"); 
+  }
+
+  /* in curved universe, check at which index the flat rescaling
+     approximation will start being used */
+
+  if (sgnK != 0) {
+    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
+    for (ptr->index_q_flat_approximation=0; 
+         ptr->index_q_flat_approximation < ptr->q_size;
+         ptr->index_q_flat_approximation++) {
+      if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
+    }
+    if (ptr->transfer_verbose > 1)
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
+             ptr->q_size-ptr->index_q_flat_approximation,ptr->q_size);
   }
 
   return _SUCCESS_; 
@@ -1706,7 +1782,7 @@ int transfer_compute_for_each_q(
             neglect = _TRUE_;
           }
           /* This would maybe go into transfer_can_be_neglected later: */
-          if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size) && (index_q < ptw->index_q_flat_approximation)) {
+          if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size) && (index_q < ptr->index_q_flat_approximation)) {
             neglect = _TRUE_;
           }
           if (neglect == _TRUE_) {
@@ -3085,7 +3161,7 @@ int transfer_integrate(
   }
   else{
 
-    if (index_q < ptw->index_q_flat_approximation) {
+    if (index_q < ptr->index_q_flat_approximation) {
 
       tau0_minus_tau_min_bessel = ptw->HIS.chi_at_phimin[index_l]/sqrt(ptw->sgnK*ptw->K); 
 
@@ -3577,7 +3653,7 @@ int transfer_radial_function(
     rescale_amplitude = 1.;
     HIorder = HERMITE4;
   }
-  else if (index_q < ptw->index_q_flat_approximation) {
+  else if (index_q < ptr->index_q_flat_approximation) {
     pHIS = &(ptw->HIS);
     rescale_argument = 1.;
     rescale_amplitude = 1.;
@@ -3652,11 +3728,13 @@ int transfer_radial_function(
     }
   }
 
+  /*
   class_test(pHIS->x[0] > chireverse[0],
              ptr->error_message,
              "Bessels need to be interpolated at %e, outside the range in which they have been computed (>%e). Decrease their x_min.",
              chireverse[0],
              pHIS->x[0]);
+  */
 
   class_test((pHIS->x[pHIS->x_size-1] < chireverse[x_size-1]) && (ptw->sgnK != 1),
              ptr->error_message,
@@ -3879,27 +3957,12 @@ int transfer_workspace_init(
                             double tau0_minus_tau_cut,
                             HyperInterpStruct * pBIS){
 
-  double q_approximation;
-
   class_calloc(*ptw,1,sizeof(struct transfer_workspace),ptr->error_message);
 
   (*ptw)->tau_size_max = tau_size_max;
   (*ptw)->l_size = ptr->l_size_max;
   (*ptw)->HIS_allocated=_FALSE_;
   (*ptw)->pBIS = pBIS;
-
-  if (sgnK != 0) {
-    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
-    for ((*ptw)->index_q_flat_approximation=0; 
-         (*ptw)->index_q_flat_approximation < ptr->q_size;
-         (*ptw)->index_q_flat_approximation++) {
-      if (ptr->q[(*ptw)->index_q_flat_approximation] > q_approximation) break;
-    }
-    if (ptr->transfer_verbose > 1)
-      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
-             ptr->q_size-(*ptw)->index_q_flat_approximation,ptr->q_size);
-  }
-
   (*ptw)->K = K;
   (*ptw)->sgnK = sgnK;
   (*ptw)->tau0_minus_tau_cut = tau0_minus_tau_cut;
@@ -3961,7 +4024,7 @@ int transfer_update_HIS(
     ptw->HIS_allocated = _FALSE_;
   }
 
-  if ((ptw->sgnK!=0) && (index_q < ptw->index_q_flat_approximation)) {
+  if ((ptw->sgnK!=0) && (index_q < ptr->index_q_flat_approximation)) {
 
     xmin = ppr->hyper_x_min;
 

@@ -1204,7 +1204,7 @@ int perturb_get_k_list(
 
     scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
 
-    step *= (k*k/scale2+1.)/(k*k/scale2+10.);
+    step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
 
     class_test(step / k < ppr->smallest_allowed_variation,
                ppt->error_message,
@@ -4596,13 +4596,14 @@ int perturb_sources(
          
         if (ppt->gauge == newtonian) {
           _set_source_(ppt->index_tp_t0) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime] 
-            + pvecthermo[pth->index_th_g] * (delta_g / 4. + y[ppw->pv->index_pt_phi])
-            + (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
+            pvecthermo[pth->index_th_g] * (ppt->switch_sw * delta_g / 4. + ppt->switch_isw * y[ppw->pv->index_pt_phi])
+            + ppt->switch_isw * (pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime]) 
+            + (ppt->switch_sw - ppt->switch_isw) * pvecmetric[ppw->index_mt_psi]
+            + ppt->switch_dop * (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
 
-          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+          _set_source_(ppt->index_tp_t1) = ppt->switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
 
-          _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
+          _set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
         }
 
 
@@ -4627,16 +4628,18 @@ int perturb_sources(
           a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
 
           _set_source_(ppt->index_tp_t0) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] -  a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha] -  a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime])
-            + pvecthermo[pth->index_th_g] * (delta_g/4. + y[ppw->pv->index_pt_eta] - 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]) // SW conter-terms + ISW
-            + pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]) 
-            + pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime]); // part of ISW + SW + Doppler
+            pvecthermo[pth->index_th_g] * (ppt->switch_sw * delta_g/4. + ppt->switch_isw * y[ppw->pv->index_pt_eta] 
+                                           - (ppt->switch_sw + ppt->switch_isw) * a_prime_over_a * pvecmetric[ppw->index_mt_alpha])
+            + ppt->switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha] - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime])
+            + (ppt->switch_sw - ppt->switch_isw) * (pvecmetric[ppw->index_mt_alpha_prime] + a_prime_over_a * pvecmetric[ppw->index_mt_alpha])
+            + ppt->switch_dop * (pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]) 
+                            + pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime]));
 
           _set_source_(ppt->index_tp_t1) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]); // part of ISW
+            ppt->switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
 
           _set_source_(ppt->index_tp_t2) = 
-            pvecthermo[pth->index_th_g] * P; // Polarisation
+            ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
         }
 
         /* what should you write if you wanted ONLY the ISW contribution? */

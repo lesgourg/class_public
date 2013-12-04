@@ -122,6 +122,11 @@ struct perturbs
   double selection_mean[_SELECTION_NUM_MAX_]; /**< centers of selection functions */
   double selection_width[_SELECTION_NUM_MAX_];  /**< widths of selection functions */
 
+  int switch_sw;  /**< in temperature calculation, do we want to include the intrinsic temperature + Sachs Wolfe term? */
+  int switch_isw; /**< in temperature calculation, do we want to include the integrated Sachs Wolfe term? */
+  int switch_dop; /**< in temperature calculation, do we want to include the Doppler term? */
+  int switch_pol; /**< in temperature calculation, do we want to include the polarisation-related term? */
+
   //@}
 
   /** @name - useful flags infered from the ones above */
