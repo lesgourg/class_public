@@ -1088,5 +1088,6 @@ cdef class Class:
         self.set(data.cosmo_arguments)
         self.compute(["lensing"])
 
+        ctx.add('boundary', True)
         # Store itself into the context, to be accessed by the likelihoods
         ctx.add('cosmo', self)
