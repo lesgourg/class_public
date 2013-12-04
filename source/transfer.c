@@ -912,13 +912,8 @@ int transfer_get_q_list(
 
   /* adjust the parameter governing the log step size to curvature */
 
-  q_logstep_spline = ppr->q_logstep_spline;
+  q_logstep_spline = ppr->q_logstep_spline/pow(ptr->angular_rescaling,6);
   q_logstep_trapzd = ppr->q_logstep_trapzd;
-
-  if (sgnK == -1)
-    q_logstep_spline /= pow(ptr->angular_rescaling,6);
-  //if (sgnK == 1)
-  //q_logstep_trans *= 7.;
   
   /* very conservative estimate of number of values */
  
@@ -1028,6 +1023,7 @@ int transfer_get_q_list(
   class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
 
   //fprintf(stderr,"q_size_max=%d q_size = %d\n",q_size_max,ptr->q_size);
+  //fprintf(stderr,"q_size = %d\n",ptr->q_size);
 
   /* now, readjust array size */
 
