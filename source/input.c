@@ -713,7 +713,7 @@ int input_init(
       ppt->switch_dop = 0;
       ppt->switch_pol = 0;
 
-      if ((strstr(string1,"sw") != NULL) || (strstr(string1,"SW") != NULL))
+      if ((strstr(string1,"tsw") != NULL) || (strstr(string1,"TSW") != NULL))
         ppt->switch_sw = 1;
       if ((strstr(string1,"isw") != NULL) || (strstr(string1,"ISW") != NULL))
         ppt->switch_isw = 1;      
@@ -2201,8 +2201,8 @@ int input_default_precision ( struct precision * ppr ) {
   
   ppr->q_linstep=0.45;
   ppr->q_logstep_spline=170.;
-  ppr->q_logstep_trapzd=22.;
-  ppr->q_numstep_transition=500.;
+  ppr->q_logstep_trapzd=20.;
+  ppr->q_numstep_transition=250.;
 
   ppr->transfer_neglect_delta_k_S_t0 = 0.15;
   ppr->transfer_neglect_delta_k_S_t1 = 0.04;
