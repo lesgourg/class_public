@@ -559,6 +559,13 @@ struct precision
                                 (comoving angular diameter distance to
                                 recombination) */
 
+  double q_logstep_open;   /**< in open models, the value of
+                                q_logstep_spline must be decreased
+                                according to curvature. Increasing
+                                this number will make the calculation
+                                more accurate for large positive
+                                Omega_k */
+
   double q_logstep_trapzd; /**< initial logarithmic sampling step in q
                                 space, in units of 2pi/r_a(tau_rec)
                                 (comoving angular diameter distance to
@@ -570,7 +577,7 @@ struct precision
                                 with curvature and vanishes in the
                                 flat limit) */
 
-  int q_numstep_transition; /**< number of steps for the transition
+  double q_numstep_transition; /**< number of steps for the transition
                                  from q_logstep_trapzd steps to
                                  q_logstep_spline steps (transition
                                  must be smooth for spline) */

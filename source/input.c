@@ -1642,6 +1642,7 @@ int input_init(
 
   class_read_double("q_linstep",ppr->q_linstep);
   class_read_double("q_logstep_spline",ppr->q_logstep_spline);
+  class_read_double("q_logstep_open",ppr->q_logstep_open);
   class_read_double("q_logstep_trapzd",ppr->q_logstep_trapzd);
   class_read_double("q_numstep_transition",ppr->q_numstep_transition);
 
@@ -2201,6 +2202,7 @@ int input_default_precision ( struct precision * ppr ) {
   
   ppr->q_linstep=0.45;
   ppr->q_logstep_spline=170.;
+  ppr->q_logstep_open=6.;
   ppr->q_logstep_trapzd=20.;
   ppr->q_numstep_transition=250.;
 

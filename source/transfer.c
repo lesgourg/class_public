@@ -912,18 +912,18 @@ int transfer_get_q_list(
 
   /* adjust the parameter governing the log step size to curvature */
 
-  q_logstep_spline = ppr->q_logstep_spline/pow(ptr->angular_rescaling,6);
+  q_logstep_spline = ppr->q_logstep_spline/pow(ptr->angular_rescaling,ppr->q_logstep_open);
   q_logstep_trapzd = ppr->q_logstep_trapzd;
   
   /* very conservative estimate of number of values */
  
   q_step = 1.+q_period*ppr->q_logstep_spline;
 
-  q_size_max = (int)(log(q_max/q_min)/log(q_step));
+  q_size_max = 2*(int)(log(q_max/q_min)/log(q_step));
 
   q_step += 1.+q_period*ppr->q_logstep_trapzd;
 
-  q_size_max = (int)(log(q_max/q_min)/log(q_step));
+  q_size_max = 2*(int)(log(q_max/q_min)/log(q_step));
 
   q_step = q_period*ppr->q_linstep;
 
@@ -981,7 +981,7 @@ int transfer_get_q_list(
 
     else {
 
-      if (nu<(int)ppr->hyper_flat_approximation_nu) {
+      if (nu < (int)ppr->hyper_flat_approximation_nu) {
 
         q = ptr->q[index_q-1] 
           + q_period * ppr->q_linstep * ptr->q[index_q-1] 
