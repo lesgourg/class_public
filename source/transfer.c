@@ -922,10 +922,14 @@ int transfer_get_q_list(
     q_approximation = MIN(ppr->hyper_flat_approximation_nu,(q_max/sqrt(K)));
 
     /* max contribution from integer nu values */
-    q_size_max = (int)q_approximation+1;
+    q_step = 1.+q_period*ppr->q_logstep_trapzd;  
+    q_size_max = 2*(int)(log(q_approximation/q_min)/log(q_step));               
+
+    q_step = q_period*ppr->q_linstep;
+    q_size_max += 2*(int)((q_approximation-q_min)/q_step);
 
     /* max contribution from non-integer nu values */
-    q_step = 1.+q_period*ppr->q_logstep_trapzd;  
+    q_step = 1.+q_period*ppr->q_logstep_spline;  
     q_size_max += 2*(int)(log(q_max/q_approximation)/log(q_step));               
 
     q_step = q_period*ppr->q_linstep;

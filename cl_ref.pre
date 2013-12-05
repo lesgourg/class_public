@@ -55,7 +55,7 @@ hyper_flat_approximation_nu = 1.e6
 
 q_linstep=0.20
 q_logstep_spline= 20. 
-q_logstep_trapzd = 1.
+q_logstep_trapzd = 0.5
 q_numstep_transition = 250
 
 transfer_neglect_delta_k_S_t0 = 100.
