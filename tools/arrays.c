@@ -1482,6 +1482,11 @@ int array_integrate_all_trapzd_or_spline(
   int i;
   double h;
 
+  if ((index_start_spline<0) || (index_start_spline>=n_lines)) {
+    sprintf(errmsg,"%s(L:%d) index_start_spline outside of range",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
   *result = 0; 
 
   /* trapezoidal integration till given index */

@@ -917,17 +917,31 @@ int transfer_get_q_list(
   
   /* very conservative estimate of number of values */
  
-  q_step = 1.+q_period*ppr->q_logstep_spline;
+  if (sgnK == 1) {
 
-  q_size_max = 2*(int)(log(q_max/q_min)/log(q_step));
+    q_approximation = MIN(ppr->hyper_flat_approximation_nu,(q_max/sqrt(K)));
 
-  q_step += 1.+q_period*ppr->q_logstep_trapzd;
+    /* max contribution from integer nu values */
+    q_size_max = (int)q_approximation+1;
 
-  q_size_max = 2*(int)(log(q_max/q_min)/log(q_step));
+    /* max contribution from non-integer nu values */
+    q_step = 1.+q_period*ppr->q_logstep_trapzd;  
+    q_size_max += 2*(int)(log(q_max/q_approximation)/log(q_step));               
 
-  q_step = q_period*ppr->q_linstep;
+    q_step = q_period*ppr->q_linstep;
+    q_size_max += 2*(int)((q_max-q_approximation)/q_step);
 
-  q_size_max += 2*(int)((q_max-q_min)/q_step);
+  }
+  else {
+
+    /* max contribution from non-integer nu values */
+    q_step = 1.+q_period*ppr->q_logstep_spline;  
+    q_size_max += 2*(int)(log(q_max/q_min)/log(q_step));               
+
+    q_step = q_period*ppr->q_linstep;
+    q_size_max += 2*(int)((q_max-q_min)/q_step);
+
+  }
 
   /* create array with this conservative size estimate. The exact size
      will be readjusted below, after filling the array. */
@@ -1039,7 +1053,7 @@ int transfer_get_q_list(
 
     q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
     for (ptr->index_q_flat_approximation=0; 
-         ptr->index_q_flat_approximation < ptr->q_size;
+         ptr->index_q_flat_approximation < ptr->q_size-1;
          ptr->index_q_flat_approximation++) {
       if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
     }
@@ -1250,7 +1264,7 @@ int transfer_get_q_list_v1(
   if (sgnK != 0) {
     q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
     for (ptr->index_q_flat_approximation=0; 
-         ptr->index_q_flat_approximation < ptr->q_size;
+         ptr->index_q_flat_approximation < ptr->q_size-1;
          ptr->index_q_flat_approximation++) {
       if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
     }
