@@ -246,7 +246,7 @@ int transfer_init(
 
   xmax = ptr->q[ptr->q_size-1]*tau0;
   if (pba->sgnK == -1)
-    xmax *= (ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu);
+    xmax *= (ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu)*1.01;
 
   class_call(hyperspherical_HIS_create(0,
                                        1.,

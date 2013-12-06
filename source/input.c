@@ -2194,8 +2194,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->hyper_x_min = 1.e-5;
   ppr->hyper_sampling_flat = 8.;
   ppr->hyper_sampling_curved_low_nu = 6.0;
-  ppr->hyper_sampling_curved_high_nu = 2.5;
-  ppr->hyper_nu_sampling_step = 100.;
+  ppr->hyper_sampling_curved_high_nu = 3.0;
+  ppr->hyper_nu_sampling_step = 1000.;
   ppr->hyper_phi_min_abs = 1.e-10;
   ppr->hyper_x_tol = 1.e-4;
   ppr->hyper_flat_approximation_nu = 4000.;

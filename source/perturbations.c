@@ -282,7 +282,6 @@ int perturb_init(
         /* integrating backwards is slightly more optimal for parallel runs */
         //for (index_k = 0; index_k < ppt->k_size; index_k++) {
         for (index_k = ppt->k_size-1; index_k >=0; index_k--) {  
-          //for (index_k = 0; index_k < 1; index_k++) {
 
           if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
             printf("evolving mode k=%e /Mpc",ppt->k[index_k]);
@@ -1045,10 +1044,6 @@ int perturb_get_k_list(
   long int int_nu_previous=0;
   double scale2;
 
-  /** Summary: */
-
-  /** - get number of wavenumbers for scalar mode */
-
   class_test(ppr->k_step_transition == 0.,
              ppt->error_message,
              "stop to avoid division by zero");
@@ -1056,7 +1051,6 @@ int perturb_get_k_list(
   class_test(pth->rs_rec == 0.,
              ppt->error_message,
              "stop to avoid division by zero");
-
 
   /** - find k_min */
 
@@ -1107,7 +1101,7 @@ int perturb_get_k_list(
        pi/lmax: this is equivalent to
        k_max_cl*[comvoving.ang.diameter.distance] > l_max */
 
-    k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
+    k_max_cmb = ppr->k_max_tau0_over_l_max*MAX(ppt->l_scalar_max,ppt->l_tensor_max)
       /pba->conformal_age/pth->angular_rescaling;
     k_max_cl  = k_max_cmb;
     k_max     = k_max_cmb;
