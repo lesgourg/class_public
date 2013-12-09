@@ -1896,7 +1896,7 @@ int input_default_params(
   ppt->switch_lisw = 1;
   ppt->switch_dop = 1;
   ppt->switch_pol = 1;
-  ppt->eisw_lisw_split_z = 50;
+  ppt->eisw_lisw_split_z = 120;
 
   ppt->has_ad=_TRUE_;  
   ppt->has_bi=_FALSE_;
