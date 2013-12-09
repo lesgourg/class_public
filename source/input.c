@@ -709,23 +709,27 @@ int input_init(
     if (flag1 == _TRUE_) {
 
       ppt->switch_sw = 0;
-      ppt->switch_isw = 0;
+      ppt->switch_eisw = 0;
+      ppt->switch_lisw = 0;
       ppt->switch_dop = 0;
       ppt->switch_pol = 0;
 
       if ((strstr(string1,"tsw") != NULL) || (strstr(string1,"TSW") != NULL))
         ppt->switch_sw = 1;
-      if ((strstr(string1,"isw") != NULL) || (strstr(string1,"ISW") != NULL))
-        ppt->switch_isw = 1;      
+      if ((strstr(string1,"eisw") != NULL) || (strstr(string1,"EISW") != NULL))
+        ppt->switch_eisw = 1;      
+      if ((strstr(string1,"lisw") != NULL) || (strstr(string1,"LISW") != NULL))
+        ppt->switch_lisw = 1;      
       if ((strstr(string1,"dop") != NULL) || (strstr(string1,"Dop") != NULL))
         ppt->switch_dop = 1;      
       if ((strstr(string1,"pol") != NULL) || (strstr(string1,"Pol") != NULL))
         ppt->switch_pol = 1;
 
-      class_test((ppt->switch_sw == 0) && (ppt->switch_isw == 0) && (ppt->switch_dop == 0) && (ppt->switch_pol == 0),
+      class_test((ppt->switch_sw == 0) && (ppt->switch_eisw == 0) && (ppt->switch_lisw == 0) && (ppt->switch_dop == 0) && (ppt->switch_pol == 0),
                  errmsg,
                  "In the field 'output', you selected CMB temperature, but in the field 'temperature contributions', you removed all contributions");
       
+      class_read_double("early/late isw redshift",ppt->eisw_lisw_split_z);
     }
 
   }
@@ -1888,9 +1892,11 @@ int input_default_params(
   ppt->has_velocity_transfers = _FALSE_;
 
   ppt->switch_sw = 1;
-  ppt->switch_isw = 1;
+  ppt->switch_eisw = 1;
+  ppt->switch_lisw = 1;
   ppt->switch_dop = 1;
   ppt->switch_pol = 1;
+  ppt->eisw_lisw_split_z = 50;
 
   ppt->has_ad=_TRUE_;  
   ppt->has_bi=_FALSE_;
