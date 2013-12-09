@@ -165,9 +165,6 @@ int transfer_init(
 
 #ifdef _OPENMP
 
-  /* number of a given thread */
-  int thread;
-
   /* instrumentation times */
   double tstart, tstop, tspent;
 
@@ -280,11 +277,10 @@ int transfer_init(
   
 #pragma omp parallel                                                    \
   shared(tau_size_max,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS,tau0) \
-  private(ptw,thread,index_q,tstart,tstop,tspent)
+  private(ptw,index_q,tstart,tstop,tspent)
   {
     
 #ifdef _OPENMP
-    thread = omp_get_thread_num();
     tspent = 0.;
 #endif
        
@@ -877,7 +873,6 @@ int transfer_get_q_list(
   int q_size_max;
   double q_approximation;
   double last_step=0.;
-  double last_q;
   int last_index=0;
   double q_logstep_spline;
   double q_logstep_trapzd;
@@ -940,7 +935,7 @@ int transfer_get_q_list(
 
     /* max contribution from non-integer nu values */
     q_step = 1.+q_period*ppr->q_logstep_spline;  
-    q_size_max += 2*(int)(log(q_max/q_min)/log(q_step));               
+    q_size_max = 2*(int)(log(q_max/q_min)/log(q_step));               
 
     q_step = q_period*ppr->q_linstep;
     q_size_max += 2*(int)((q_max-q_min)/q_step);
@@ -1013,7 +1008,6 @@ int transfer_get_q_list(
 
         q = nu*sqrt(K);
         last_step = q - ptr->q[index_q-1];
-        last_q = q;
         last_index = index_q+1;
       }
       else {
@@ -1460,7 +1454,7 @@ int transfer_source_tau_size_max(
 
   int index_md;
   int index_tt;
-  int tau_size_tt;
+  int tau_size_tt=0;
 
   *tau_size_max = 0;
 

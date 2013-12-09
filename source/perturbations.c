@@ -1040,8 +1040,6 @@ int perturb_get_k_list(
   double k_max_cmb=0.;
   double k_max_cl=0.;
   double k_max=0.;
-  double nu;
-  long int int_nu_previous=0;
   double scale2;
 
   class_test(ppr->k_step_transition == 0.,
@@ -1073,15 +1071,12 @@ int perturb_get_k_list(
 
     /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
     k_min = sqrt((8.-1.e-4)*pba->K);
-    int_nu_previous = 3;
     if (ppt->has_vectors == _TRUE_) {
       k_min = MIN(k_min,sqrt((7.-1.e-4)*pba->K));
     }
     if (ppt->has_tensors == _TRUE_) {
       k_min = MIN(k_min,sqrt((6.-1e-4)*pba->K));
     }
-    nu = sqrt(k_min*k_min + pba->K)/sqrt(pba->K);
-    int_nu_previous = (long int)(nu+0.2);
   }
 
   /** - find k_max (as well as k_max_cmb, k_max_cl) */
@@ -1502,9 +1497,6 @@ int perturb_solve(
   /* conformal time */
   double tau,tau_lower,tau_upper,tau_mid;
 
-  /* maximum value of conformal time for current wavenumber */
-  double taumax;
-
   /* multipole */
   int l;
 
@@ -1569,25 +1561,11 @@ int perturb_solve(
   }
     
 
-  /** - compute maximum value of tau for which sources are calculated for this wavenumber */
+  /** - maximum value of tau for which sources are calculated for this wavenumber */
 
   /* by default, today */
-  taumax = pba->conformal_age;
   tau_actual_size = ppt->tau_size;
 
-  /* eventually stop earlier, when k*tau=k_tau_max, but not before the end of recombination */
-  /*   if (ppt->has_lss == _FALSE_) { */
-
-  /* revisit this issue */
-
-  /*     while (ppt->tau_sampling[tau_actual_size-1] > taumax) */
-  /*       tau_actual_size--; */
-
-  /*     class_test(tau_actual_size < 1, */
-  /* 	       ppt->error_message, */
-  /* 	       "did not consider this case yet"); */
-
-  /*   } */
 
   /** - using bisection, compute minimum value of tau for which this
       wavenumber is integrated */
@@ -4034,7 +4012,7 @@ int perturb_einstein(
   /** - define local variables */
 
   double k2,a,a2,a_prime_over_a;
-  double s2,s2_squared;
+  double s2_squared;
   double shear_g = 0.;
 
   /** - wavenumber and scale factor related quantities */ 
@@ -4043,8 +4021,6 @@ int perturb_einstein(
   a = ppw->pvecback[pba->index_bg_a];
   a2 = a * a;
   a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
-
-  s2 = ppw->s_l[2];
   s2_squared = 1.-3.*pba->K/k2;
 
   /** - for scalar modes: */  
@@ -4828,16 +4804,15 @@ int perturb_print_variables(double tau,
 
   double k;
   int index_md;
-  struct precision * ppr;
+  //struct precision * ppr;
   struct background * pba;
   struct thermo * pth;
   struct perturbs * ppt;
   struct perturb_workspace * ppw;
   double * pvecback;
-  double * pvecthermo;
   double * pvecmetric;
   
-  double delta_g,theta_g,shear_g,l3_g,l4_g,pol0_g,pol1_g,pol2_g,pol3_g,pol4_g;
+  double delta_g,theta_g,shear_g,l4_g,pol0_g,pol1_g,pol2_g,pol4_g;
   double delta_b,theta_b;
   double delta_cdm=0.,theta_cdm=0.;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.;
@@ -4849,13 +4824,12 @@ int perturb_print_variables(double tau,
   pppaw = parameters_and_workspace;
   k = pppaw->k;
   index_md = pppaw->index_md;
-  ppr = pppaw->ppr;
+  //ppr = pppaw->ppr;
   pba = pppaw->pba;
   pth = pppaw->pth;
   ppt = pppaw->ppt;
   ppw = pppaw->ppw;
   pvecback = ppw->pvecback;
-  pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
 
   /** - print whatever you want for whatever mode of your choice */
@@ -4880,28 +4854,28 @@ int perturb_print_variables(double tau,
         if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
           if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
             shear_g = ppw->tca_shear_g;
-            l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+            //l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
             pol0_g = 2.5*ppw->tca_shear_g;
             pol1_g = 7./12.*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
             pol2_g = 0.5*ppw->tca_shear_g;
-            pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+            //pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
           }
           else {
             shear_g = y[ppw->pv->index_pt_shear_g];
-            l3_g = y[ppw->pv->index_pt_l3_g];
+            //l3_g = y[ppw->pv->index_pt_l3_g];
             pol0_g = y[ppw->pv->index_pt_pol0_g];
             pol1_g = y[ppw->pv->index_pt_pol1_g];
             pol2_g = y[ppw->pv->index_pt_pol2_g];
-            pol3_g = y[ppw->pv->index_pt_pol3_g];
+            //pol3_g = y[ppw->pv->index_pt_pol3_g];
           }
         }
         else {
           shear_g = 0;
-          l3_g = 0;
+          //l3_g = 0;
           pol0_g = 0;
           pol1_g = 0;
           pol2_g = 0;
-          pol3_g = 0.;
+          //pol3_g = 0.;
         }
     
         if (pba->has_ur == _TRUE_) {
@@ -5106,7 +5080,7 @@ int perturb_derivs(double tau,
   int l;
   
   /* scale factor and other background quantities */ 
-  double a,a2,a_prime_over_a,a_primeprime_over_a,z,R;
+  double a,a2,a_prime_over_a,R;
 
   /* short-cut names for the fields of the input structure */
   struct perturb_parameters_and_workspace * pppaw;
@@ -5128,7 +5102,7 @@ int perturb_derivs(double tau,
   double delta_b,theta_b;
   double P0;
   double cb2,cs2,ca2;
-  double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.,metric_ufa_class=0.;
+  double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_ufa_class=0.;
 
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
   double P2, gw_source_g;
@@ -5187,10 +5161,11 @@ int perturb_derivs(double tau,
 
   /** - compute related background quantities */
 
-  a = pvecback[pba->index_bg_a];a2 = a*a;
+  a = pvecback[pba->index_bg_a];
+  a2 = a*a;
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
-  a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
-  z = pba->a_today-1.;
+  //a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
+  //z = pba->a_today-1.;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
   
   /** Compute 'generalised cotK function of argument sqrt(|K|)*tau, for closing hierarchy. 
@@ -5254,7 +5229,7 @@ int perturb_derivs(double tau,
         metric_continuity = pvecmetric[ppw->index_mt_h_prime]/2.;
         metric_euler = 0.;
         metric_shear = k2 * pvecmetric[ppw->index_mt_alpha];
-        metric_shear_prime = k2 * pvecmetric[ppw->index_mt_alpha_prime];
+        //metric_shear_prime = k2 * pvecmetric[ppw->index_mt_alpha_prime];
         metric_ufa_class = pvecmetric[ppw->index_mt_h_prime]/2.;
       }
 
@@ -5263,7 +5238,7 @@ int perturb_derivs(double tau,
         metric_continuity = -3.*pvecmetric[ppw->index_mt_phi_prime];
         metric_euler = k2*pvecmetric[ppw->index_mt_psi];
         metric_shear = 0.;
-        metric_shear_prime = 0.;
+        //metric_shear_prime = 0.;
         metric_ufa_class = -6.*pvecmetric[ppw->index_mt_phi_prime];
       }
 
@@ -5797,7 +5772,7 @@ int perturb_tca_slip_and_shear(double * y,
   /** - define local variables */
 
   /* scale factor and other background quantities */ 
-  double a,a2,a_prime_over_a,a_primeprime_over_a,R;
+  double a,a_prime_over_a,a_primeprime_over_a,R;
 
   /* useful terms for tight-coupling approximation */
   double slip=0.;
@@ -5849,7 +5824,7 @@ int perturb_tca_slip_and_shear(double * y,
 
   /** - compute related background quantities */
 
-  a = pvecback[pba->index_bg_a];a2 = a*a;
+  a = pvecback[pba->index_bg_a];
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
   a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
   //z = pba->a_today-1.;

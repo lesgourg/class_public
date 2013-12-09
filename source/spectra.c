@@ -1845,7 +1845,6 @@ int spectra_compute_cl(
   int index_tt;
   int index_ct;
   int index_d1,index_d2;
-  double q;
   double k;
   double clvalue;
   int index_ic1_ic2;
@@ -1858,7 +1857,7 @@ int spectra_compute_cl(
 
   for (index_q=0; index_q < ptr->q_size; index_q++) {
 
-    q = ptr->q[index_q];
+    //q = ptr->q[index_q];
     k = ptr->k[index_md][index_q];
 
     cl_integrand[index_q*cl_integrand_num_columns+0] = k;
@@ -2196,7 +2195,6 @@ int spectra_k_and_tau(
 
   /** - define local variables */
 
-  int index_md;
   int index_k;
   int index_tau;
   double tau_min;
@@ -2208,7 +2206,6 @@ int spectra_k_and_tau(
              "you cannot ask for matter power spectrum since you turned off scalar modes");
   
   psp->index_md_scalars = ppt->index_md_scalars;
-  index_md = psp->index_md_scalars;
 
   /** - check the maximum redshift z_max_pk at which P(k,z) and T_i(k,z) should be 
       computable by interpolation. If it is equal to zero, only P(k,z=0) 
