@@ -1,9 +1,9 @@
 /** @file input.c Documented input module.
  *
- * Julien Lesgourgues, 27.08.2010    
+ * Julien Lesgourgues, 27.08.2010
  */
 
-#include "input.h" 
+#include "input.h"
 
 /**
  * Use this routine to extract initial parameters from files 'xxx.ini'
@@ -15,7 +15,7 @@
  */
 
 int input_init_from_arguments(
-                              int argc, 
+                              int argc,
                               char **argv,
                               struct precision * ppr,
                               struct background *pba,
@@ -76,11 +76,11 @@ int input_init_from_arguments(
       }
     }
   }
-  
+
   /** - if there is an 'xxx.ini' file, read it and store its content. */
 
   if (input_file[0] != '\0')
-    
+
     class_call(parser_read_file(input_file,&fc_input,errmsg),
                errmsg,
                errmsg);
@@ -88,7 +88,7 @@ int input_init_from_arguments(
   /** - if there is an 'xxx.pre' file, read it and store its content. */
 
   if (precision_file[0] != '\0')
-    
+
     class_call(parser_read_file(precision_file,&fc_precision,errmsg),
                errmsg,
                errmsg);
@@ -104,7 +104,7 @@ int input_init_from_arguments(
 
   class_call(parser_free(&fc_input),errmsg,errmsg);
   class_call(parser_free(&fc_precision),errmsg,errmsg);
-  
+
   /** - now, initialize all parameters given the input 'file_content'
       structure.  If its size is null, all parameters take their
       default values. */
@@ -123,7 +123,7 @@ int input_init_from_arguments(
                         errmsg),
              errmsg,
              errmsg);
-  
+
   class_call(parser_free(&fc),errmsg,errmsg);
 
   return _SUCCESS_;
@@ -256,7 +256,7 @@ int input_init(
     if (flag1 == _TRUE_) {
       /* Omega0_g = rho_g / rho_c0, each of them expressed in Kg/m/s^2 */
       /* rho_g = (4 sigma_B / c) T^4 */
-      /* rho_c0 = 3 c^2 H0^2 / (8 pi G) */ 
+      /* rho_c0 = 3 c^2 H0^2 / (8 pi G) */
       pba->Omega0_g = (4.*sigma_B/_c_*pow(param1,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
       pba->T_cmb=param1;
     }
@@ -342,13 +342,13 @@ int input_init(
 
   /* non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
-  if ((flag1 == _TRUE_) && (N_ncdm > 0)){	
+  if ((flag1 == _TRUE_) && (N_ncdm > 0)){
     pba->N_ncdm = N_ncdm;
     /* Precision parameters for ncdm has to be read now since they are used here:*/
     class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
     class_read_double("tol_ncdm",ppr->tol_ncdm);
     class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
-	
+
     /* Read temperatures: */
     class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
 
@@ -367,7 +367,7 @@ int input_init(
     /* Read omega of each ncdm species: (Use pba->M_ncdm temporarily)*/
     class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0,N_ncdm);
 
-    /* Check for duplicate Omega/omega entries, missing mass definition and 
+    /* Check for duplicate Omega/omega entries, missing mass definition and
        update pba->Omega0_ncdm:*/
     for(n=0; n<N_ncdm; n++){
       /* pba->M_ncdm holds value of omega */
@@ -389,7 +389,7 @@ int input_init(
 
     /* Check if filenames for interpolation tables are given: */
     class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
-	
+
     if (flag1==_TRUE_){
       for(n=0,fileentries=0; n<N_ncdm; n++){
         if (pba->got_files[n] == _TRUE_) fileentries++;
@@ -402,7 +402,7 @@ int input_init(
                                                &entries_read,&(pba->ncdm_psd_files),&flag2,errmsg),
                    errmsg,
                    errmsg);
-        class_test(flag2 == _FALSE_,errmsg, 
+        class_test(flag2 == _FALSE_,errmsg,
                    "Input use_ncdm_files is found, but no filenames found!");
         class_test(entries_read != fileentries,errmsg,
                    "Numer of filenames found, %d, does not match number of _TRUE_ values in use_ncdm_files, %d",
@@ -420,7 +420,7 @@ int input_init(
     class_call(background_ncdm_init(ppr,pba),
                pba->error_message,
                errmsg);
-	
+
     /* We must calculate M from omega or vice versa if one of them is missing.
        If both are present, we must update the degeneracy parameter to
        reflect the implicit normalisation of the distribution function.*/
@@ -438,7 +438,7 @@ int input_init(
                                            &rho_ncdm,
                                            NULL,
                                            NULL,
-                                           NULL), 
+                                           NULL),
                    pba->error_message,
                    errmsg);
         if (pba->Omega0_ncdm[n] == 0.0){
@@ -447,7 +447,7 @@ int input_init(
         else{
           fnu_factor = (pba->H0*pba->H0*pba->Omega0_ncdm[n]/rho_ncdm);
           pba->factor_ncdm[n] *= fnu_factor;
-          /* dlnf0dlnq is already computed, but it is 
+          /* dlnf0dlnq is already computed, but it is
              independent of any normalisation of f0.
              We don't need the factor anymore, but we
              store it nevertheless:*/
@@ -464,7 +464,7 @@ int input_init(
       }
       pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
       //printf("Adding %g to total Omega..\n",pba->Omega0_ncdm[n]);
-    }			
+    }
   }
   Omega_tot += pba->Omega0_ncdm_tot;
 
@@ -487,7 +487,7 @@ int input_init(
              errmsg,
              "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
-  if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {	
+  if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {
     pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
   }
   else {
@@ -509,12 +509,12 @@ int input_init(
     class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
                errmsg,
                "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
-	       
+
     class_test(pba->w0_fld+pba->w0_fld>=1./3.,
                errmsg,
                "Your choice for w0_fld+wa_fld=%g is suspicious, ther would not be radiation domination at early times\n",
                pba->w0_fld+pba->wa_fld);
-	       
+
 
   }
 
@@ -529,14 +529,14 @@ int input_init(
              errmsg);
 
   if (flag1 == _TRUE_) {
-    
+
     if ((strstr(string1,"BBN") != NULL) || (strstr(string1,"bbn") != NULL)) {
-      pth->YHe = _BBN_;  
+      pth->YHe = _BBN_;
     }
     else {
       class_read_double("YHe",pth->YHe);
     }
-    
+
   }
 
   /* recombination parameters */
@@ -547,7 +547,7 @@ int input_init(
   if (flag1 == _TRUE_) {
 
     if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)) {
-      pth->recombination = hyrec;  
+      pth->recombination = hyrec;
     }
 
   }
@@ -653,20 +653,20 @@ int input_init(
   if (flag1 == _TRUE_) {
 
     if ((strstr(string1,"tCl") != NULL) || (strstr(string1,"TCl") != NULL) || (strstr(string1,"TCL") != NULL)) {
-      ppt->has_cl_cmb_temperature = _TRUE_;  
-      ppt->has_perturbations = _TRUE_;  
+      ppt->has_cl_cmb_temperature = _TRUE_;
+      ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
     }
 
     if ((strstr(string1,"pCl") != NULL) || (strstr(string1,"PCl") != NULL) || (strstr(string1,"PCL") != NULL)) {
-      ppt->has_cl_cmb_polarization = _TRUE_;  
-      ppt->has_perturbations = _TRUE_;  
+      ppt->has_cl_cmb_polarization = _TRUE_;
+      ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
     }
-    
+
     if ((strstr(string1,"lCl") != NULL) || (strstr(string1,"LCl") != NULL) || (strstr(string1,"LCL") != NULL)) {
       ppt->has_cl_cmb_lensing_potential = _TRUE_;
-      ppt->has_perturbations = _TRUE_; 
+      ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
     }
 
@@ -683,8 +683,8 @@ int input_init(
     }
 
     if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL)) {
-      ppt->has_pk_matter=_TRUE_; 
-      ppt->has_perturbations = _TRUE_;  
+      ppt->has_pk_matter=_TRUE_;
+      ppt->has_perturbations = _TRUE_;
     }
 
     if ((strstr(string1,"mTk") != NULL) || (strstr(string1,"MTk") != NULL) || (strstr(string1,"MTK") != NULL) ||
@@ -732,27 +732,30 @@ int input_init(
 
   if (ppt->has_perturbations == _TRUE_) { 
 
+    /* perturbed recombination */
+    class_read_int("has_perturbed_recombination",ppt->has_perturbed_recombination);
+
     class_call(parser_read_string(pfc,"modes",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
 
     if (flag1 == _TRUE_) {
 
-      /* if no modes are specified, the default is has_scalars=_TRUE_; 
+      /* if no modes are specified, the default is has_scalars=_TRUE_;
          but if they are specified we should reset has_scalars to _FALSE_ before reading */
       ppt->has_scalars=_FALSE_;
 
       if ((strstr(string1,"s") != NULL) || (strstr(string1,"S") != NULL))
-        ppt->has_scalars=_TRUE_; 
+        ppt->has_scalars=_TRUE_;
 
       if ((strstr(string1,"v") != NULL) || (strstr(string1,"V") != NULL))
-        ppt->has_vectors=_TRUE_;  
+        ppt->has_vectors=_TRUE_;
 
       if ((strstr(string1,"t") != NULL) || (strstr(string1,"T") != NULL))
         ppt->has_tensors=_TRUE_;
 
       class_test(class_none_of_three(ppt->has_scalars,ppt->has_vectors,ppt->has_tensors),
-                 errmsg,	       
+                 errmsg,
                  "You wrote: modes=%s. Could not identify any of the modes ('s', 'v', 't') in such input",string1);
     }
 
@@ -764,29 +767,29 @@ int input_init(
 
       if (flag1 == _TRUE_) {
 
-        /* if no initial conditions are specified, the default is has_ad=_TRUE_; 
+        /* if no initial conditions are specified, the default is has_ad=_TRUE_;
            but if they are specified we should reset has_ad to _FALSE_ before reading */
         ppt->has_ad=_FALSE_;
 
         if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL))
-          ppt->has_ad=_TRUE_; 
-	
+          ppt->has_ad=_TRUE_;
+
         if ((strstr(string1,"bi") != NULL) || (strstr(string1,"BI") != NULL))
-          ppt->has_bi=_TRUE_; 
-	
+          ppt->has_bi=_TRUE_;
+
         if ((strstr(string1,"cdi") != NULL) || (strstr(string1,"CDI") != NULL))
-          ppt->has_cdi=_TRUE_; 
-	
+          ppt->has_cdi=_TRUE_;
+
         if ((strstr(string1,"nid") != NULL) || (strstr(string1,"NID") != NULL))
-          ppt->has_nid=_TRUE_; 
-	
+          ppt->has_nid=_TRUE_;
+
         if ((strstr(string1,"niv") != NULL) || (strstr(string1,"NIV") != NULL))
-          ppt->has_niv=_TRUE_; 
-      
+          ppt->has_niv=_TRUE_;
+
         class_test(ppt->has_ad==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
-                   errmsg,	       
+                   errmsg,
                    "You wrote: ic=%s. Could not identify any of the initial conditions ('ad', 'bi', 'cdi', 'nid', 'niv') in such input",string1);
-	
+
       }
     }
 
@@ -805,18 +808,18 @@ int input_init(
     class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
-    
+
     if (flag1 == _TRUE_) {
-      
+
       if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
         ppt->gauge = newtonian;
       }
-      
+
       if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
         ppt->gauge = synchronous;
       }
     }
-    
+
   }
 
   /** (d) define the primordial spectrum */
@@ -852,7 +855,7 @@ int input_init(
     class_read_double("k2",k2);
     class_test(k1<=0.,errmsg,"enter strictly positive scale k1");
     class_test(k2<=0.,errmsg,"enter strictly positive scale k2");
-	
+
     if (ppt->has_scalars == _TRUE_) {
 
       class_read_double("P_{RR}^1",prr1);
@@ -872,7 +875,7 @@ int input_init(
         class_read_double("P_{II}^2",pii2);
         class_read_double("P_{RI}^1",pri1);
         class_read_double("|P_{RI}^2|",pri2);
-	
+
         class_test(pii1 <= 0.,
                    errmsg,
                    "since you request iso modes, you should have P_{ii}^1 strictly positive");
@@ -888,7 +891,7 @@ int input_init(
         class_call(parser_read_string(pfc,"special iso",&string1,&flag1,errmsg),
                    errmsg,
                    errmsg);
-	
+
         /* axion case, only one iso parameter: piir1  */
         if ((flag1 == _TRUE_) && (strstr(string1,"axion") != NULL)) {
           n_iso = 1.;
@@ -914,7 +917,7 @@ int input_init(
             n_iso = ppm->n_s;
           }
           else {
-            class_test((pii1==0.) || (pii2 == 0.) || (pii1*pii2<0.),errmsg,"should NEVER happen"); 
+            class_test((pii1==0.) || (pii2 == 0.) || (pii1*pii2<0.),errmsg,"should NEVER happen");
             n_iso = log(pii2/pii1)/log(k2/k1)+1.;
           }
           class_test(pri1==0,errmsg,"the general isocurvature case requires a non-zero P_{RI}^1");
@@ -933,30 +936,30 @@ int input_init(
         /* formula for f_iso valid in all cases */
         class_test((pii1==0.) || (prr1 == 0.) || (pii1*prr1<0.),errmsg,"should NEVER happen");
         f_iso = sqrt(pii1/prr1)*exp(0.5*(n_iso-ppm->n_s)*log(ppm->k_pivot/k1));
-        
+
       }
-      
+
       if (ppt->has_bi == _TRUE_) {
         ppm->f_bi = f_iso;
         ppm->n_bi = n_iso;
         ppm->c_ad_bi = c_cor;
         ppm->n_ad_bi = n_cor;
       }
-      
+
       if (ppt->has_cdi == _TRUE_) {
         ppm->f_cdi = f_iso;
         ppm->n_cdi = n_iso;
         ppm->c_ad_cdi = c_cor;
         ppm->n_ad_cdi = n_cor;
       }
-      
+
       if (ppt->has_nid == _TRUE_) {
         ppm->f_nid = f_iso;
         ppm->n_nid = n_iso;
         ppm->c_ad_nid = c_cor;
         ppm->n_ad_nid = n_cor;
       }
-      
+
       if (ppt->has_niv == _TRUE_) {
         ppm->f_niv = f_iso;
         ppm->n_niv = n_iso;
@@ -972,7 +975,7 @@ int input_init(
   else if (ppm->primordial_spec_type == analytic_Pk) {
 
     if (ppt->has_scalars == _TRUE_) {
-      
+
       class_call(parser_read_double(pfc,"A_s",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
@@ -1084,12 +1087,12 @@ int input_init(
         class_read_double_one_of_two("c_nid_niv","c_niv_nid",ppm->c_nid_niv);
         class_read_double_one_of_two("n_nid_niv","n_niv_nid",ppm->n_nid_niv);
         class_read_double_one_of_two("alpha_nid_niv","alpha_niv_nid",ppm->alpha_nid_niv);
-      }  
+      }
 
     }
 
     if (ppt->has_tensors == _TRUE_) {
-    
+
       class_read_double("r",ppm->r);
 
       class_call(parser_read_string(pfc,"n_t",&string1,&flag1,errmsg),
@@ -1097,14 +1100,14 @@ int input_init(
                  errmsg);
 
       if (flag1 == _TRUE_) {
-    
+
         if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-          ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);  
+          ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
         }
         else {
           class_read_double("n_t",ppm->n_t);
         }
-    
+
       }
 
       class_call(parser_read_string(pfc,"alpha_t",&string1,&flag1,errmsg),
@@ -1112,14 +1115,14 @@ int input_init(
                  errmsg);
 
       if (flag1 == _TRUE_) {
-    
+
         if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-          ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);  
+          ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
         }
         else {
           class_read_double("alpha_t",ppm->alpha_t);
         }
-    
+
       }
     }
   }
@@ -1129,14 +1132,14 @@ int input_init(
     class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
-    /** only polynomial coded so far: no need to interpret string1 **/		 
+    /** only polynomial coded so far: no need to interpret string1 **/
 
     class_read_double("phi_pivot",ppm->phi_pivot);
 
     class_call(parser_read_string(pfc,"R_0",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
-    
+
     if (flag1 == _TRUE_) {
 
       R0=0.;
@@ -1179,24 +1182,24 @@ int input_init(
   if (ppt->has_cls == _TRUE_) {
 
     if (ppt->has_scalars == _TRUE_) {
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) || 
-          (ppt->has_cl_cmb_polarization == _TRUE_) || 
-          (ppt->has_cl_cmb_lensing_potential == _TRUE_)) 
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) ||
+          (ppt->has_cl_cmb_polarization == _TRUE_) ||
+          (ppt->has_cl_cmb_lensing_potential == _TRUE_))
         class_read_double("l_max_scalars",ppt->l_scalar_max);
 
       if ((ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_density == _TRUE_))
         class_read_double("l_max_lss",ppt->l_lss_max);
     }
 
-    if (ppt->has_tensors == _TRUE_) {   
+    if (ppt->has_tensors == _TRUE_) {
       class_read_double("l_max_tensors",ppt->l_tensor_max);
     }
   }
 
-  if ((ppt->has_scalars == _TRUE_) && 
-      ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) && 
+  if ((ppt->has_scalars == _TRUE_) &&
+      ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) &&
       (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
-    
+
     class_call(parser_read_string(pfc,
                                   "lensing",
                                   &(string1),
@@ -1204,7 +1207,7 @@ int input_init(
                                   errmsg),
                errmsg,
                errmsg);
-    
+
     if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
       ple->has_lensed_cls = _TRUE_;
     }
@@ -1241,7 +1244,7 @@ int input_init(
                                            errmsg),
                errmsg,
                errmsg);
-    
+
     if (flag1 == _TRUE_) {
       class_test(int1 > _Z_PK_NUM_MAX_,
                  errmsg,
@@ -1253,11 +1256,11 @@ int input_init(
       }
       free(pointer1);
     }
-    
+
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
-  
+
     if (flag1==_TRUE_) {
       psp->z_max_pk = param1;
     }
@@ -1270,7 +1273,7 @@ int input_init(
 
   /* deal with selection functions */
   if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
-    
+
     class_call(parser_read_string(pfc,
                                   "selection",
                                   &(string1),
@@ -1278,22 +1281,22 @@ int input_init(
                                   errmsg),
                errmsg,
                errmsg);
-    
+
     if (flag1 == _TRUE_) {
       if (strstr(string1,"gaussian") != NULL) {
-        ppt->selection=gaussian; 
+        ppt->selection=gaussian;
       }
       else if (strstr(string1,"tophat") != NULL) {
-        ppt->selection=tophat; 
+        ppt->selection=tophat;
       }
       else if (strstr(string1,"dirac") != NULL) {
-        ppt->selection=dirac; 
+        ppt->selection=dirac;
       }
       else {
         class_stop(errmsg,"In selection function input: type %s is unclear",string1);
       }
     }
-    
+
     class_call(parser_read_list_of_doubles(pfc,
                                            "selection_mean",
                                            &(int1),
@@ -1302,7 +1305,7 @@ int input_init(
                                            errmsg),
                errmsg,
                errmsg);
-    
+
     if ((flag1 == _TRUE_) && (int1>0)) {
 
       class_test(int1 > _SELECTION_NUM_MAX_,
@@ -1335,18 +1338,18 @@ int input_init(
                                              errmsg),
                  errmsg,
                  errmsg);
-    
+
       if ((flag1 == _TRUE_) && (int1>0)) {
-	
+
         if (int1==1) {
           for (i=0; i<ppt->selection_num; i++) {
             ppt->selection_width[i] = pointer1[0];
-          }	
+          }
         }
         else if (int1==ppt->selection_num) {
           for (i=0; i<int1; i++) {
             ppt->selection_width[i] = pointer1[i];
-          }	
+          }
         }
         else {
           class_stop(errmsg,
@@ -1356,7 +1359,7 @@ int input_init(
         free(pointer1);
       }
     }
-  
+
     if (ppt->selection_num>1) {
       class_read_int("non_diagonal",psp->non_diag);
       if ((psp->non_diag<0) || (psp->non_diag>=ppt->selection_num))
@@ -1375,7 +1378,7 @@ int input_init(
                                 errmsg),
              errmsg,
              errmsg);
-	     
+
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") == NULL) && (strstr(string1,"Y") == NULL))) {
     pop->write_header = _FALSE_;
   }
@@ -1392,11 +1395,11 @@ int input_init(
       if ((strstr(string1,"camb") != NULL) || (strstr(string1,"CAMB") != NULL))
         pop->output_format = camb_format;
       else
-        class_stop(errmsg,	       
-                   "You wrote: format=%s. Could not identify any of the possible formats ('class', 'CLASS', 'camb', 'CAMB')",string1);	  
+        class_stop(errmsg,
+                   "You wrote: format=%s. Could not identify any of the possible formats ('class', 'CLASS', 'camb', 'CAMB')",string1);
     }
   }
-  
+
   /** (f) parameter related to the non-linear spectra computation */
 
   class_call(parser_read_string(pfc,
@@ -1414,7 +1417,7 @@ int input_init(
     }
     if ((strstr(string1,"trg") != NULL) || (strstr(string1,"TRG") != NULL)) {
       pnl->method=nl_trg;
-    }    
+    }
     if ((strstr(string1,"one-loop") != NULL) || (strstr(string1,"oneloop") != NULL) || (strstr(string1,"one loop") != NULL)) {
       pnl->method=nl_trg_one_loop;
     }
@@ -1425,9 +1428,9 @@ int input_init(
     class_test((pnl->method>nl_none) && (ppt->has_pk_matter==_FALSE_),
                errmsg,
                "it is not consistent to ask for non-linear power spectrum but not for linear one: you should include mPk in the 'output' entry");
-        
+
     if (pnl->method==nl_trg) {
-      
+
       class_call(parser_read_string(pfc,
                                     "non linear ic",
                                     &(string1),
@@ -1435,7 +1438,7 @@ int input_init(
                                     errmsg),
                  errmsg,
                  errmsg);
-      
+
       if ((strstr(string1,"linear") != NULL) || (strstr(string1,"lin") != NULL)) {
         pnl->ic=nl_lin;
       }
@@ -1602,15 +1605,15 @@ int input_init(
     class_test(ppr->ncdm_fluid_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
-    
+
     class_test(ppr->ncdm_fluid_trigger_tau_over_tau_k==ppr->ur_fluid_trigger_tau_over_tau_k,
                errmsg,
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
-    
+
   }
 
   class_read_double("neglect_CMB_sources_below_visibility",ppr->neglect_CMB_sources_below_visibility);
-  
+
   /** h.5. parameter related to the primordial spectra */
 
   class_read_double("k_per_decade_primordial",ppr->k_per_decade_primordial);
@@ -1702,7 +1705,7 @@ int input_init(
     /* when using the trg module, the following parameters need to
        be changed */
 
-    ppt->k_max_for_pk 
+    ppt->k_max_for_pk
       = MAX(
             ppt->k_max_for_pk,
             ppr->k_scalar_max_for_pk_nl*pba->h);
@@ -1710,7 +1713,7 @@ int input_init(
     psp->z_max_pk = ppr->z_ini+1.;
 
   }
-  
+
   /** h.8. parameter related to lensing */
 
   class_read_int("accurate_lensing",ppr->accurate_lensing);
@@ -1738,7 +1741,7 @@ int input_init(
 
   class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
              errmsg,
-             errmsg);	
+             errmsg);
 
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
@@ -1782,19 +1785,19 @@ int input_init(
         fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
     }
   }
-  
+
   return _SUCCESS_;
 
 }
 
-/** 
+/**
  * All default parameter values (for input parameters)
  *
- * @param pba Input : pointer to background structure 
- * @param pth Input : pointer to thermodynamics structure 
+ * @param pba Input : pointer to background structure
+ * @param pth Input : pointer to thermodynamics structure
  * @param ppt Input : pointer to perturbation structure
- * @param ptr Input : pointer to transfer structure 
- * @param ppm Input : pointer to primordial structure 
+ * @param ptr Input : pointer to transfer structure
+ * @param ppm Input : pointer to primordial structure
  * @param psp Input : pointer to spectra structure
  * @param pop Input : pointer to output structure
  * @return the error status
@@ -1817,7 +1820,7 @@ int input_default_params(
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /** - background structure */
-      
+
   pba->h = 0.704;
   pba->H0 = pba->h * 1.e5 / _c_;
   pba->T_cmb = 2.726;
@@ -1840,8 +1843,8 @@ int input_default_params(
   pba->K = 0.;
   pba->sgnK = 0;
   pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
-  pba->Omega0_fld = 0.;     
-  pba->a_today = 1.;       
+  pba->Omega0_fld = 0.;
+  pba->a_today = 1.;
   pba->w0_fld=-1.;
   pba->wa_fld=0.;
   pba->cs2_fld=1.;
@@ -1980,16 +1983,16 @@ int input_default_params(
   ptr->lcmb_tilt=0.;
   ptr->initialise_HIS_cache=_FALSE_;
 
-  /** - output structure */ 
+  /** - output structure */
 
   pop->z_pk_num = 1;
-  pop->z_pk[0] = 0.;  
+  pop->z_pk[0] = 0.;
   sprintf(pop->root,"output/");
   pop->write_header = _TRUE_;
   pop->output_format = class_format;
   pop->write_background = _FALSE_;
 
-  /** - spectra structure */ 
+  /** - spectra structure */
 
   psp->z_max_pk = pop->z_pk[0];
   psp->non_diag=0;
@@ -1999,13 +2002,13 @@ int input_default_params(
   /** - lensing structure */
 
   ple->has_lensed_cls = _FALSE_;
- 
-  /** - nonlinear structure */ 
+
+  /** - nonlinear structure */
 
   pnl->method = nl_none;
   pnl->ic = nl_pt;
 
-  /** - all verbose parameters */ 
+  /** - all verbose parameters */
 
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
@@ -2021,13 +2024,13 @@ int input_default_params(
 
 }
 
-/** 
- * Initialize the precision parameter structure. 
- * 
+/**
+ * Initialize the precision parameter structure.
+ *
  * All precision parameters used in the other moduels are listed here
  * and assigned here a default value.
  *
- * @param ppr Input/Ouput: a precision_params structure pointer  
+ * @param ppr Input/Ouput: a precision_params structure pointer
  * @return the error status
  *
  */
@@ -2071,7 +2074,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->recfast_Hswitch = _TRUE_;           /* from recfast 1.5 */
   ppr->recfast_fudge_H = 1.14;             /* from recfast 1.4 */
   ppr->recfast_delta_fudge_H = -0.015;     /* from recfast 1.5.2 */
-  ppr->recfast_AGauss1 = -0.14;            /* from recfast 1.5 */ 
+  ppr->recfast_AGauss1 = -0.14;            /* from recfast 1.5 */
   ppr->recfast_AGauss2 =  0.079;           /* from recfast 1.5.2 */
   ppr->recfast_zGauss1 =  7.28;            /* from recfast 1.5 */
   ppr->recfast_zGauss2 =  6.73;            /* from recfast 1.5.2 */
@@ -2084,12 +2087,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->recfast_delta_z_He_2 = 100.;        /* found to be OK on 3.09.10 */
   ppr->recfast_z_He_3 = 3500.;             /* from recfast 1.4 */
   ppr->recfast_delta_z_He_3 = 50.;         /* found to be OK on 3.09.10 */
-  ppr->recfast_x_He0_trigger = 0.995;      /* raised from 0.99 to 0.995 for smoother Helium */              
+  ppr->recfast_x_He0_trigger = 0.995;      /* raised from 0.99 to 0.995 for smoother Helium */
   ppr->recfast_x_He0_trigger2 = 0.995;     /* raised from 0.985 to same as previous one for smoother Helium */
   ppr->recfast_x_He0_trigger_delta = 0.05; /* found to be OK on 3.09.10 */
   ppr->recfast_x_H0_trigger = 0.995;       /* raised from 0.99 to 0.995 for smoother Hydrogen */
   ppr->recfast_x_H0_trigger2 = 0.995;      /* raised from 0.98 to same as previous one for smoother Hydrogen */
-  ppr->recfast_x_H0_trigger_delta = 0.05;  /* found to be OK on 3.09.10 */ 
+  ppr->recfast_x_H0_trigger_delta = 0.05;  /* found to be OK on 3.09.10 */
 
   ppr->recfast_H_frac=1.e-3;               /* from recfast 1.4 */
 
@@ -2103,7 +2106,7 @@ int input_default_precision ( struct precision * ppr ) {
   /* for reionization */
 
   ppr->reionization_z_start_max = 50.;
-  ppr->reionization_sampling=1.e-2; 
+  ppr->reionization_sampling=1.e-2;
   ppr->reionization_optical_depth_tol=1.e-4;
   ppr->reionization_start_factor=8.;
 
@@ -2136,9 +2139,9 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->start_sources_at_tau_c_over_tau_h = 0.008; /* decrease to start earlier in time */
   ppr->tight_coupling_approximation=(int)compromise_CLASS;
 
-  ppr->l_max_g=12; 
-  ppr->l_max_pol_g=10; 
-  ppr->l_max_ur=12; 
+  ppr->l_max_g=12;
+  ppr->l_max_pol_g=10;
+  ppr->l_max_ur=12;
   ppr->l_max_ncdm=12;
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
@@ -2155,14 +2158,14 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_sampling_stepsize=0.10;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
-  ppr->radiation_streaming_trigger_tau_over_tau_k = 45.; 
+  ppr->radiation_streaming_trigger_tau_over_tau_k = 45.;
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
- 
+
   ppr->ur_fluid_approximation = ufa_CLASS;
-  ppr->ur_fluid_trigger_tau_over_tau_k = 15.; 
+  ppr->ur_fluid_trigger_tau_over_tau_k = 15.;
 
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
-  ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.; 
+  ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.;
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
@@ -2170,7 +2173,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameter related to the primordial spectra
    */
 
-  ppr->k_per_decade_primordial = 10.; 
+  ppr->k_per_decade_primordial = 10.;
 
   ppr->primordial_inflation_ratio_min=100.;
   ppr->primordial_inflation_ratio_max=1/50.;
@@ -2187,7 +2190,7 @@ int input_default_precision ( struct precision * ppr ) {
   /**
    * - parameter related to the transfer functions
    */
-  
+
   ppr->l_logstep=1.12;
   ppr->l_linstep=40;
 
@@ -2286,13 +2289,13 @@ int input_default_precision ( struct precision * ppr ) {
 int class_version(
                   char * version
                   ) {
-  
+
   sprintf(version,"%s",_VERSION_);
   return _SUCCESS_;
 }
 
-/** 
- * Computes automatically the machine precision. 
+/**
+ * Computes automatically the machine precision.
  *
  * @param smallest_allowed_variation a pointer to the smallest allowed variation
  *
@@ -2302,7 +2305,7 @@ int class_version(
 
 int get_machine_precision(double * smallest_allowed_variation) {
   double one, meps, sum;
-  
+
   one = 1.0;
   meps = 1.0;
   do {
@@ -2310,7 +2313,7 @@ int get_machine_precision(double * smallest_allowed_variation) {
     sum = one + meps;
   } while (sum != one);
   meps *= 2.0;
-  
+
   *smallest_allowed_variation = meps * _TOLVAR_;
 
   return _SUCCESS_;
