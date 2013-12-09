@@ -102,9 +102,11 @@ struct transfers {
 
   int q_size; /**< number of wavenumber values */
 
-  double * q;  /**< list of wavenumber values for each requested mode, q[index_q] */
+  double * q;  /**< list of wavenumber values, q[index_q] */
 
   double ** k; /**< list of wavenumber values for each requested mode, k[index_md][index_q]. In flat universes k=q. In non-flat universes q and k differ through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector, tensor. q should be used throughout the transfer module, excepted when interpolating or manipulating the source functions S(k,tau): for a given value of q this should be done in k(q). */
+
+  int index_q_flat_approximation; /**< index of the first q value using the flat rscaling approximation */
 
   //@}
 
@@ -147,8 +149,6 @@ struct transfer_workspace {
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
 
   HyperInterpStruct * pBIS;
-
-  int index_q_flat_approximation;
 
   int l_size;        /**< number of l values */
 
@@ -249,7 +249,7 @@ extern "C" {
                                     struct precision * ppr,
                                     struct perturbs * ppt,
                                     struct transfers * ptr,
-                                    double tau0,
+                                    double q_period,
                                     double K,
                                     int sgnK
                                     );
@@ -276,10 +276,19 @@ extern "C" {
                           struct precision * ppr,
                           struct perturbs * ppt,
                           struct transfers * ptr,
-                          double tau0,
+                          double q_period,
                           double K,
                           int sgnK
                           );
+
+  int transfer_get_q_list_v1(
+                             struct precision * ppr,
+                             struct perturbs * ppt,
+                             struct transfers * ptr,
+                             double q_period,
+                             double K,
+                             int sgnK
+                             );
 
   int transfer_get_k_list(
                           struct perturbs * ppt,
@@ -502,12 +511,12 @@ extern "C" {
       
   int transfer_can_be_neglected(
                                 struct precision * ppr,
-                                struct background * pba,
                                 struct perturbs * ppt,
                                 struct transfers * ptr,
                                 int index_md,
                                 int index_ic,
                                 int index_tt,
+                                double ra_rec,
                                 double q,
                                 double l,
                                 short * neglect
@@ -589,15 +598,6 @@ extern "C" {
                         int *index_l_left,
                         int *index_l_right,
                         ErrorMsg error_message);
-
-  int transfer_get_q_list2(
-                        struct precision * ppr,
-                        struct perturbs * ppt,
-                        struct transfers * ptr,
-                        double tau0,
-                        double K,
-                        int sgnK 
-                           );
 
 #ifdef __cplusplus
 }

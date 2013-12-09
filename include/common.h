@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.0.3"
+#define _VERSION_ "v2.0.4"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -399,6 +399,7 @@ struct precision
   double k_step_sub; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
   double k_step_super; /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */  
   double k_step_transition; /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
+  double k_step_super_reduction; /**< the step k_step_super is reduced by this amount in the k-->0 limit (below scale of Hubble and/or curvature radius) */
 
   double k_per_decade_for_pk; /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade outside the BAO region*/
 
@@ -546,17 +547,46 @@ struct precision
   double hyper_x_tol;
   double hyper_flat_approximation_nu;
 
-  double k_step_trans; /**< for q_list function: upper bound on linear sampling step in k space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
+  /* parameters relevant for transfer function */
 
-  double q_linstep_trans; /**< for q_list2 function: upper bound on linear sampling step in q space, in units of 2pi/tau0 (where tau0 is the conformal time today) */
-  double q_logstep_trans; /**< for q_list2 function: logarithmic sampling step in q space, applies to small q values, until above linear step is reached */
+  double q_linstep;         /**< asymptotic linear sampling step in q
+                               space, in units of 2pi/r_a(tau_rec)
+                               (comoving angular diameter distance to
+                               recombination) */
+
+  double q_logstep_spline; /**< initial logarithmic sampling step in q
+                                space, in units of 2pi/r_a(tau_rec)
+                                (comoving angular diameter distance to
+                                recombination) */
+
+  double q_logstep_open;   /**< in open models, the value of
+                                q_logstep_spline must be decreased
+                                according to curvature. Increasing
+                                this number will make the calculation
+                                more accurate for large positive
+                                Omega_k */
+
+  double q_logstep_trapzd; /**< initial logarithmic sampling step in q
+                                space, in units of 2pi/r_a(tau_rec)
+                                (comoving angular diameter distance to
+                                recombination), in the case of small
+                                q's in the closed case, for which one
+                                must used trapezoidal integration
+                                instead of spline (the number of q's
+                                for which this is the case decreases
+                                with curvature and vanishes in the
+                                flat limit) */
+
+  double q_numstep_transition; /**< number of steps for the transition
+                                 from q_logstep_trapzd steps to
+                                 q_logstep_spline steps (transition
+                                 must be smooth for spline) */
 
   /** for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
   double transfer_neglect_delta_k_S_t0;
   double transfer_neglect_delta_k_S_t1;
   double transfer_neglect_delta_k_S_t2;
   double transfer_neglect_delta_k_S_e;
-  double transfer_neglect_delta_k_S_lcmb;
   double transfer_neglect_delta_k_V_t1;
   double transfer_neglect_delta_k_V_t2;
   double transfer_neglect_delta_k_V_e;

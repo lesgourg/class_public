@@ -1845,26 +1845,19 @@ int spectra_compute_cl(
   int index_tt;
   int index_ct;
   int index_d1,index_d2;
-  double q;
   double k;
   double clvalue;
   int index_ic1_ic2;
   double transfer_ic1_temp=0.;
   double transfer_ic2_temp=0.;
   double factor;
-  /* variable switching between trapezoidal and spline integration.
-     1: always spline
-     0: spline for flat/open only
-    -1: spline for open only
-    -2: always trapezoidal
-  */
-  int method=0;
+  int index_q_spline=0;
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
 
   for (index_q=0; index_q < ptr->q_size; index_q++) {
 
-    q = ptr->q[index_q];
+    //q = ptr->q[index_q];
     k = ptr->k[index_md][index_q];
 
     cl_integrand[index_q*cl_integrand_num_columns+0] = k;
@@ -1948,7 +1941,10 @@ int spectra_compute_cl(
 
        calP = (q2-4K)/[q(q2-K)] * (k/k)^ns
 
-       In CLASS we prefer to define calP = (k/k)^ns like in the flat case, to have the factor (q2-4K) in the initialk conditions, and the factor 1/[q(q2-K)] doesn't need to be there since we integrate over dk/k.
+       In CLASS we prefer to define calP = (k/k)^ns like in the flat
+       case, to have the factor (q2-4K) in the initialk conditions,
+       and the factor 1/[q(q2-K)] doesn't need to be there since we
+       integrate over dk/k.
 
        For tensors, the change of variable described above gives a slightly different result:
 
@@ -1960,35 +1956,7 @@ int spectra_compute_cl(
 
     */
 
-    /* factor for spline integration */
-    if (pba->sgnK <= method) {
-
-      factor = 4. * _PI_ / k;
-    }
-    /* factor for trapezoidal integration */
-    else {
-      if (index_q > 0) {
-        if (index_q < ptr->q_size-1)
-          /* edge for large k */
-          factor = 2. * _PI_ * q / k / k * (ptr->q[index_q+1] - ptr->q[index_q-1]); 
-        else
-          /* generic */
-          factor = 4. * _PI_ * q / k / k * (ptr->q[index_q] - ptr->q[index_q-1]); 
-      }
-      else { 
-        /* edge for low k */
-        if (pba->sgnK > 0) {
-          /* closed: assumes discrete sum starting at nu=3 */
-          factor = 2. * _PI_ * q / k / k * (ptr->q[1] - ptr->q[0] + sqrt(pba->K));
-        }
-        if (pba->sgnK <= 0) {
-          /* flat/open cases: for a trapezoidal integration starting in q[1],
-             plus one missing triangle between 0 and q[1], assuming the
-             integrand is zero in q=0 */
-          factor = 2. * _PI_ * q / k / k * (ptr->q[1] - ptr->q[0] + ptr->q[1]/2.);
-        }
-      }
-    }
+    factor = 4. * _PI_ / k;
 
     if (psp->has_tt == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_tt]=
@@ -2110,7 +2078,6 @@ int spectra_compute_cl(
         }
       }
     }
-    
   }
   
   for (index_ct=0; index_ct<psp->ct_size; index_ct++) {
@@ -2136,42 +2103,65 @@ int spectra_compute_cl(
     /* for non-zero spectra, integrate over q */
     else {
 
-      /* spline integral */
-      if (pba->sgnK <= method) {
+      /* spline the integrand over the whole range of k's */
 
-        class_call(array_spline(cl_integrand,
-                                cl_integrand_num_columns,
-                                ptr->q_size,
-                                0,
-                                1+index_ct,
-                                1+psp->ct_size+index_ct,
-                                _SPLINE_EST_DERIV_,
-                                psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-        
-        class_call(array_integrate_all_spline(cl_integrand,
-                                              cl_integrand_num_columns,
-                                              ptr->q_size,
-                                              0,
-                                              1+index_ct,
-                                              1+psp->ct_size+index_ct,
-                                              &clvalue,
-                                              psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-      
-      } 
+      class_call(array_spline(cl_integrand,
+                              cl_integrand_num_columns,
+                              ptr->q_size,
+                              0,
+                              1+index_ct,
+                              1+psp->ct_size+index_ct,
+                              _SPLINE_EST_DERIV_,
+                              psp->error_message),
+                 psp->error_message,
+                 psp->error_message);
 
-      /* trapezoidal integral */
-      else {
+      /* Technical point: we will now do a spline integral over the
+         whole range of k's, excepted in the closed (K>0) case. In
+         that case, it is a bad idea to spline over the values of k
+         corresponding to nu<nu_flat_approximation. In this region, nu
+         values are integer values, so the steps dq and dk have some
+         discrete jumps. This makes the spline routine less accurate
+         than a trapezoidal integral with finer sampling. So, in the
+         closed case, we set index_q_spline to
+         ptr->index_q_flat_approximation, to tell the integration
+         routine that below this index, it should treat the integral
+         as a trapezoidal one. For testing, one is free to set
+         index_q_spline to 0, to enforce spline integration
+         everywhere, or to (ptr->q_size-1), to enforce trapezoidal
+         integration everywhere. */
 
-        clvalue=0.;
-        for (index_q=0 ; index_q < ptr->q_size; index_q++) {
-          clvalue += cl_integrand[index_q*cl_integrand_num_columns+1+index_ct];
-        }
-
+      if (pba->sgnK == 1) {
+        index_q_spline = ptr->index_q_flat_approximation;
       }
+
+      class_call(array_integrate_all_trapzd_or_spline(cl_integrand,
+                                                      cl_integrand_num_columns,
+                                                      ptr->q_size,
+                                                      index_q_spline,
+                                                      0,
+                                                      1+index_ct,
+                                                      1+psp->ct_size+index_ct,
+                                                      &clvalue,
+                                                      psp->error_message),
+                 psp->error_message,
+                 psp->error_message);
+      
+      /* in the closed case, instead of an integral, we have a
+         discrete sum. In practise, this does not matter: the previous
+         routine does give a correct approximation of the discrete
+         sum, both in the trapezoidal and spline regions. The only
+         error comes from the first point: the previous routine
+         assumes a weight for the first point which is too small
+         compared to what it would be in the an actual discrete
+         sum. The line below correct this problem in an exact way.
+       */
+
+      if (pba->sgnK == 1) {
+        clvalue += cl_integrand[1+index_ct] * ptr->q[0]/ptr->k[0][0]*sqrt(pba->K)/2.;
+      }
+
+      /* we have the correct C_l now. We can store it in the transfer structure. */
 
       psp->cl[index_md]
         [(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct]
@@ -2205,7 +2195,6 @@ int spectra_k_and_tau(
 
   /** - define local variables */
 
-  int index_md;
   int index_k;
   int index_tau;
   double tau_min;
@@ -2217,7 +2206,6 @@ int spectra_k_and_tau(
              "you cannot ask for matter power spectrum since you turned off scalar modes");
   
   psp->index_md_scalars = ppt->index_md_scalars;
-  index_md = psp->index_md_scalars;
 
   /** - check the maximum redshift z_max_pk at which P(k,z) and T_i(k,z) should be 
       computable by interpolation. If it is equal to zero, only P(k,z=0) 

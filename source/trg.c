@@ -2395,7 +2395,6 @@ int trg_init (
   /** Wave-number (k) quantities */
 
   int index_k;
-  int temp_index_k;
 
   double * temp_k;
   double logstepk;
@@ -2417,8 +2416,6 @@ int trg_init (
   double *p_11_linear;
   double *p_12_linear;
   double *p_22_linear;
-
-  double cutoff;
 
   double time_step;
   int index_int;
@@ -2532,7 +2529,6 @@ int trg_init (
   }
 
   temp_k[index_k]=temp_k[index_k-1]*logstepk;
-  temp_index_k=index_k;
 
   while(temp_k[index_k]<pnl->k_max){
     class_test(index_k>=20000,pnl->error_message,"Change initial size of temp_k\n");
@@ -2702,13 +2698,6 @@ int trg_init (
   dz_p=-dtau*pba->a_today*H[0]/a_ini;
 
   for(index_k=0; index_k<pnl->k_size; index_k++){
-
-    /* There is the possibility to add a cutoff to take into account
-     * exponential suppression of the power spectrum at high k. By
-     * default, however, set on 1. (no cutoff).
-     */
-
-    cutoff=1.;
 
     class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k[index_k],pnl->z[0],&pnl->p_11_nl[index_k],junk),
                psp->error_message,

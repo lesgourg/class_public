@@ -171,6 +171,17 @@ extern "C" {
 				 ErrorMsg errmsg
 				 );
 
+int array_integrate_all_trapzd_or_spline(
+		   double * array,
+		   int n_columns,
+		   int n_lines,
+           int index_start_spline,
+		   int index_x,   /** from 0 to (n_columns-1) */
+		   int index_y,
+		   int index_ddy,
+		   double * result,
+		   ErrorMsg errmsg);
+
   int array_integrate_spline_table_line_to_line(
 						double * x_array,
 						int n_lines,

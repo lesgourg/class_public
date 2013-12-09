@@ -1502,7 +1502,7 @@ int primordial_inflation_find_attractor(
                                         ) {
 
   double V_0,dV_0,ddV_0;
-  double V,dV,ddV;
+  double V=0.,dV=0.,ddV=0.;
   double a;
   double dphidt,dphidt_0new,dphidt_0old,phi;
   int counter;
@@ -1800,7 +1800,7 @@ int primordial_inflation_check_potential(
                                          double phi
                                          ) {
 
-  double V,dV,ddV;
+  double V=0.,dV=0.,ddV=0.;
 
   class_call(primordial_inflation_potential(ppm,phi,&V,&dV,&ddV),
              ppm->error_message,
@@ -1834,7 +1834,7 @@ int primordial_inflation_get_epsilon(
                                      double * epsilon
                                      ) {
 
-  double V,dV,ddV;
+  double V=0.,dV=0.,ddV=0.;
   
   class_call(primordial_inflation_potential(ppm,phi,&V,&dV,&ddV),
              ppm->error_message,

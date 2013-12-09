@@ -727,7 +727,7 @@ double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHO
                            double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
 		    unsigned iz, double z, double *Dxe, int model, double energy_rate){
 
-    double s, xeSaha, dxeSaha_dlna, Ddxedlna_Dxe, dxedlna;
+    double s, xeSaha, dxeSaha_dlna, Ddxedlna_Dxe;
 	
     s = 3.016103031869581e21 *T*sqrt(T) *exp(-EI/T)/nH;                     /* xe^2/(1-xe) in Saha eq.*/
     xeSaha = 2./(1.+sqrt(1.+4./s));                                         /* Saha equilibrium */
@@ -755,8 +755,7 @@ double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHO
     *Dxe = dxeSaha_dlna/Ddxedlna_Dxe;
 
      /* Compute derivative again just so the fminuses are properly updated */
-    dxedlna = rec_HMLA_2photon_dxedlna(xeSaha + *Dxe, nH, H, T, T,
-                   rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate);  
+    //dxedlna = rec_HMLA_2photon_dxedlna(xeSaha + *Dxe, nH, H, T, T,rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate);  
 
     return xeSaha + *Dxe;
 

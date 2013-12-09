@@ -282,7 +282,6 @@ int perturb_init(
         /* integrating backwards is slightly more optimal for parallel runs */
         //for (index_k = 0; index_k < ppt->k_size; index_k++) {
         for (index_k = ppt->k_size-1; index_k >=0; index_k--) {  
-          //for (index_k = 0; index_k < 1; index_k++) {
 
           if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
             printf("evolving mode k=%e /Mpc",ppt->k[index_k]);
@@ -1041,12 +1040,7 @@ int perturb_get_k_list(
   double k_max_cmb=0.;
   double k_max_cl=0.;
   double k_max=0.;
-  double nu;
-  long int int_nu_previous=0;
-
-  /** Summary: */
-
-  /** - get number of wavenumbers for scalar mode */
+  double scale2;
 
   class_test(ppr->k_step_transition == 0.,
              ppt->error_message,
@@ -1055,7 +1049,6 @@ int perturb_get_k_list(
   class_test(pth->rs_rec == 0.,
              ppt->error_message,
              "stop to avoid division by zero");
-
 
   /** - find k_min */
 
@@ -1078,15 +1071,12 @@ int perturb_get_k_list(
 
     /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
     k_min = sqrt((8.-1.e-4)*pba->K);
-    int_nu_previous = 3;
     if (ppt->has_vectors == _TRUE_) {
       k_min = MIN(k_min,sqrt((7.-1.e-4)*pba->K));
     }
     if (ppt->has_tensors == _TRUE_) {
       k_min = MIN(k_min,sqrt((6.-1e-4)*pba->K));
     }
-    nu = sqrt(k_min*k_min + pba->K)/sqrt(pba->K);
-    int_nu_previous = (long int)(nu+0.2);
   }
 
   /** - find k_max (as well as k_max_cmb, k_max_cl) */
@@ -1106,7 +1096,7 @@ int perturb_get_k_list(
        pi/lmax: this is equivalent to
        k_max_cl*[comvoving.ang.diameter.distance] > l_max */
 
-    k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
+    k_max_cmb = ppr->k_max_tau0_over_l_max*MAX(ppt->l_scalar_max,ppt->l_tensor_max)
       /pba->conformal_age/pth->angular_rescaling;
     k_max_cl  = k_max_cmb;
     k_max     = k_max_cmb;
@@ -1155,6 +1145,16 @@ int perturb_get_k_list(
              ppt->error_message,
              "buggy definition of k_min and/or k_max");
   
+  /* if K>0, the transfer function will be calculated for discrete
+     integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+     m=0,1,2 for scalars/vectors/tensors. However we are free to
+     define in the perturbation module some arbitrary values of k:
+     later on, the transfer module will interpolate at values of k
+     corresponding exactly to integer values of nu. Hence, apart
+     from the value of k_min and the step size in thevicinity of
+     k_min, we define exactly the same sampling in the three cases
+     K=0, K<0, K>0 */
+  
   /* allocate array with, for the moment, the largest possible size */
   class_alloc(ppt->k,((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
                       (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
@@ -1170,25 +1170,40 @@ int perturb_get_k_list(
   /* values until k_max_cmb */
 
   while (k < k_max_cmb) {
-    step = ppr->k_step_super 
-      + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.) * (ppr->k_step_sub-ppr->k_step_super);
-      
-    class_test(step * k_rec / k < ppr->smallest_allowed_variation,
+
+    /* the linear step is not constant, it has a step-like shape,
+       centered around the characteristic scale set by the sound
+       horizon at recombination (associated to the comoving wavenumber
+       k_rec) */
+
+    step = (ppr->k_step_super 
+            + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.) 
+            * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+    
+    /* there is one other thing to take into account in the step
+       size. There are two other characteristic scales that matter for
+       the sampling: the Hubble scale today, k0=a0H0, and eventually
+       curvature scale sqrt(|K|). We define "scale2" as the sum of the
+       squared Hubble radius and squared curvature radius. We need to
+       increase the sampling for k<sqrt(scale2), in order to get the
+       first mutipoles accurate enough. The formula below reduces it
+       gradually in the k-->0 limit, by up to a factor 10. The actual
+       stepsize is still fixed by k_step_super, this is just a
+       reduction factor. */ 
+
+    scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+    step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+
+    class_test(step / k < ppr->smallest_allowed_variation,
                ppt->error_message,
                "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
      
-    k += step * k_rec;
+    k += step;
 
-    /* if K>0, the transfer function will be calculated for discrete
-       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
-       m=0,1,2 for scalars/vectors/tensors. However we are free to
-       define in the perturbation module some arbitrary values of k:
-       later on, the transfer module will interpolate at values of k
-       corresponding exactly to integer values of nu.*/
-
-    class_test(k == ppt->k[index_k-1],
+    class_test(k <= ppt->k[index_k-1],
                ppt->error_message,
-               "consecutive values of k should differ");
+               "consecutive values of k should differ and should be in growing order");
 
     ppt->k[index_k] = k;
 
@@ -1230,26 +1245,17 @@ int perturb_get_k_list(
                 ppt->k_size*sizeof(double),
                 ppt->error_message);
 
-  /*
-    }
+  /* For testing, can be useful to print the k list in a file:
 
-    else {
+  FILE * out=fopen("output/k","w");
 
-    nu_min=3;
+  for (index_k=0; index_k < ppt->k_size; index_k++) {
 
-    ppt->k_size = (int)sqrt(k_max*k_max/pba->K+1.)-nu_min+1;
-    ppt->k_size_cmb = (int)sqrt(k_max_cmb*k_max_cmb/pba->K+1.)-nu_min+1;
-    ppt->k_size_cl = (int)sqrt(k_max_cl*k_max_cl/pba->K+1.)-nu_min+1;
+    fprintf(out,"%e %e\n",ppt->k[index_k],pba->K);
 
-    class_alloc(ppt->k,ppt->k_size*sizeof(double),ppt->error_message);
+  }
 
-    for (index_k=0; index_k < ppt->k_size; index_k++) {
-      
-    ppt->k[index_k] = sqrt(pow(nu_min+index_k,2)-1)*sqrt(pba->K);
-        
-    }
-
-    }
+  fclose(out);
   */
 
   return _SUCCESS_;
@@ -1491,9 +1497,6 @@ int perturb_solve(
   /* conformal time */
   double tau,tau_lower,tau_upper,tau_mid;
 
-  /* maximum value of conformal time for current wavenumber */
-  double taumax;
-
   /* multipole */
   int l;
 
@@ -1558,25 +1561,11 @@ int perturb_solve(
   }
     
 
-  /** - compute maximum value of tau for which sources are calculated for this wavenumber */
+  /** - maximum value of tau for which sources are calculated for this wavenumber */
 
   /* by default, today */
-  taumax = pba->conformal_age;
   tau_actual_size = ppt->tau_size;
 
-  /* eventually stop earlier, when k*tau=k_tau_max, but not before the end of recombination */
-  /*   if (ppt->has_lss == _FALSE_) { */
-
-  /* revisit this issue */
-
-  /*     while (ppt->tau_sampling[tau_actual_size-1] > taumax) */
-  /*       tau_actual_size--; */
-
-  /*     class_test(tau_actual_size < 1, */
-  /* 	       ppt->error_message, */
-  /* 	       "did not consider this case yet"); */
-
-  /*   } */
 
   /** - using bisection, compute minimum value of tau for which this
       wavenumber is integrated */
@@ -4023,7 +4012,7 @@ int perturb_einstein(
   /** - define local variables */
 
   double k2,a,a2,a_prime_over_a;
-  double s2,s2_squared;
+  double s2_squared;
   double shear_g = 0.;
 
   /** - wavenumber and scale factor related quantities */ 
@@ -4032,8 +4021,6 @@ int perturb_einstein(
   a = ppw->pvecback[pba->index_bg_a];
   a2 = a * a;
   a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
-
-  s2 = ppw->s_l[2];
   s2_squared = 1.-3.*pba->K/k2;
 
   /** - for scalar modes: */  
@@ -4476,6 +4463,7 @@ int perturb_sources(
   int index_ic;
   int index_k;
   double k;
+  double z;
   struct perturb_workspace * ppw;
   double * pvecback;
   double * pvecthermo;
@@ -4484,7 +4472,7 @@ int perturb_sources(
   double delta_g;
   double a_prime_over_a;  /* (a'/a) */
   double a_prime_over_a_prime;  /* (a'/a)' */
-  double s2;
+  int switch_isw = 1;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -4503,8 +4491,6 @@ int perturb_sources(
   pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
 
-  s2 = ppw->s_l[2];
-
   /** - get background/thermo quantities in this point */
 
   class_call(background_at_tau(pba,
@@ -4516,9 +4502,11 @@ int perturb_sources(
              pba->error_message,
              error_message);
 
+  z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+
   class_call(thermodynamics_at_z(pba,
                                  pth,
-                                 1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                 z,  /* redshift z=1/a-1 */
                                  pth->inter_closeby,
                                  &(ppw->last_index_thermo),
                                  pvecback,
@@ -4555,9 +4543,9 @@ int perturb_sources(
 
         delta_g = y[ppw->pv->index_pt_delta_g];
         if (ppw->approx[ppw->index_ap_tca] == (int)tca_on)
-          P = 5.*s2*ppw->tca_shear_g/8.; /* (2.5+0.5+2)shear_g/8 */
+          P = 5.* ppw->s_l[2] * ppw->tca_shear_g/8.; /* (2.5+0.5+2)shear_g/8 */
         else
-          P = (y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.*s2*y[ppw->pv->index_pt_shear_g])/8.;
+          P = (y[ppw->pv->index_pt_pol0_g] + y[ppw->pv->index_pt_pol2_g] + 2.* ppw->s_l[2] *y[ppw->pv->index_pt_shear_g])/8.;
 
       }
 
@@ -4565,6 +4553,14 @@ int perturb_sources(
 
       /* scalar temperature */
       if (ppt->has_source_t == _TRUE_) {
+
+        /* check whether integrated Sachs-Wolf term should be included */
+        if ((ppt->switch_eisw == 0) && (z >= ppt->eisw_lisw_split_z)){
+          switch_isw = 0;
+        }
+        if ((ppt->switch_lisw == 0) && (z < ppt->eisw_lisw_split_z)) {
+          switch_isw=0;
+        }
 
         /* newtonian gauge: simplest form, not efficient numerically */
         /*
@@ -4575,34 +4571,32 @@ int perturb_sources(
           }
         */
 
-        /* newtonian gauge: more complicated form, but efficient numerically */
+        /* newtonian gauge: slightly more complicated form, but more efficient numerically */
          
         if (ppt->gauge == newtonian) {
           _set_source_(ppt->index_tp_t0) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime] 
-            + pvecthermo[pth->index_th_g] * (delta_g / 4. + y[ppw->pv->index_pt_phi])
-            + (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
+            ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
+            + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi])
+                            + pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime])
+            + ppt->switch_dop /k/k * (pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b] 
+                                      + pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b]);
 
-          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
+          _set_source_(ppt->index_tp_t1) = switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
 
-          _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
+          _set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
         }
 
 
         /* synchronous gauge: simplest form, not efficient numerically */
         /*
           if (ppt->gauge == synchronous) {
-          _set_source_(ppt->index_tp_t0) = 
-          -pvecthermo[pth->index_th_exp_m_kappa] * pvecmetric[ppw->index_mt_h_prime] / 6. 
-          + pvecthermo[pth->index_th_g] / 4. * delta_g;
+          _set_source_(ppt->index_tp_t0) = - pvecthermo[pth->index_th_exp_m_kappa] * pvecmetric[ppw->index_mt_h_prime] / 6. + pvecthermo[pth->index_th_g] / 4. * delta_g;
           _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
-          _set_source_(ppt->index_tp_t2) = 
-          pvecthermo[pth->index_th_exp_m_kappa] * k*k* 2./3. * ppw->s_l[2] * pvecmetric[ppw->index_mt_alpha] 
-          + pvecthermo[pth->index_th_g] * P;
+          _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_exp_m_kappa] * k*k* 2./3. * ppw->s_l[2] * pvecmetric[ppw->index_mt_alpha] + pvecthermo[pth->index_th_g] * P;
           }
         */
         
-        /* synchronous gauge: more complicated form, but efficient numerically */
+        /* synchronous gauge: slightly more complicated form, but more efficient numerically */
 
         if (ppt->gauge == synchronous) {
 
@@ -4610,82 +4604,24 @@ int perturb_sources(
           a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
 
           _set_source_(ppt->index_tp_t0) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] -  a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha] -  a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime])
-            + pvecthermo[pth->index_th_g] * (delta_g/4. + y[ppw->pv->index_pt_eta] - 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]) // SW conter-terms + ISW
-            + pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]) 
-            + pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime]); // part of ISW + SW + Doppler
-
+            ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
+            + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta] 
+                                                           - pvecmetric[ppw->index_mt_alpha_prime] 
+                                                           - 2 * a_prime_over_a * pvecmetric[ppw->index_mt_alpha])
+                            + pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] 
+                                                                            - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha] 
+                                                                            - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime]))
+            + ppt->switch_dop * (pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime])
+                                 +pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]));
+          
           _set_source_(ppt->index_tp_t1) = 
-            pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]); // part of ISW
+            switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] 
+                                                                      + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha] 
+                                                                      - y[ppw->pv->index_pt_eta]);
 
           _set_source_(ppt->index_tp_t2) = 
-            pvecthermo[pth->index_th_g] * P; // Polarisation
+            ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
         }
-
-        /* what should you write if you wanted ONLY the ISW contribution? */
-        /*
-          if (ppt->gauge == newtonian) {
-          _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime] + pvecthermo[pth->index_th_g] * (- pvecmetric[ppw->index_mt_psi] + y[ppw->pv->index_pt_phi]);
-          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
-          _set_source_(ppt->index_tp_t2) = 0.;
-          }
-
-          if (ppt->gauge == synchronous) {
-          _set_source_(ppt->index_tp_t0) = 
-          pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] - (pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2)) * pvecmetric[ppw->index_mt_alpha] - pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha_prime])
-          + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta] - pvecmetric[ppw->index_mt_alpha_prime] - 2 * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha]);
-          _set_source_(ppt->index_tp_t1) = 
-          pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
-          _set_source_(ppt->index_tp_t2) = 0.;
-          }
-        */
-
-        /* what should you write if you wanted EVERYTHING BUT the ISW contribution? */
-        /*   
-             if (ppt->gauge == newtonian) {
-             _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi]);
-             _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
-             _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
-             }
-        */
-        /*
-          if (ppt->gauge == synchronous) {
-          _set_source_(ppt->index_tp_t0) =
-          pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime]); // SW
-          _set_source_(ppt->index_tp_t1) = 
-          pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_theta_b] / k + pvecmetric[ppw->index_mt_alpha] * k); // Doppler
-          _set_source_(ppt->index_tp_t2) =
-          pvecthermo[pth->index_th_g] * P; // polarisation
-          }
-        */
-
-        /* for testing purposes */
-        /*
-          _set_source_(ppt->index_tp_t0) = 0.;
-          _set_source_(ppt->index_tp_t1) = 0.;
-          _set_source_(ppt->index_tp_t2) = 0.;
-
-          _set_source_(ppt->index_tp_t0) = (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
-          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b]/k;
-        */
-
-        /*
-          if (ppt->gauge == synchronous) {
-          _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + P/2. + pvecmetric[ppw->index_mt_alpha_prime]);
-          + (pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b] + pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b])/ k / k;
-          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
-          _set_source_(ppt->index_tp_t2) = 0.; pvecthermo[pth->index_th_g] * P;
-
-          }
-        */
-        /*
-          if (ppt->gauge == newtonian) {
-          _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi]);
-          _set_source_(ppt->index_tp_t1) = 0.;
-          _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
-          }
-        */
-
       }
 
       /* scalar polarization */
@@ -4868,16 +4804,15 @@ int perturb_print_variables(double tau,
 
   double k;
   int index_md;
-  struct precision * ppr;
+  //struct precision * ppr;
   struct background * pba;
   struct thermo * pth;
   struct perturbs * ppt;
   struct perturb_workspace * ppw;
   double * pvecback;
-  double * pvecthermo;
   double * pvecmetric;
   
-  double delta_g,theta_g,shear_g,l3_g,l4_g,pol0_g,pol1_g,pol2_g,pol3_g,pol4_g;
+  double delta_g,theta_g,shear_g,l4_g,pol0_g,pol1_g,pol2_g,pol4_g;
   double delta_b,theta_b;
   double delta_cdm=0.,theta_cdm=0.;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.;
@@ -4889,13 +4824,12 @@ int perturb_print_variables(double tau,
   pppaw = parameters_and_workspace;
   k = pppaw->k;
   index_md = pppaw->index_md;
-  ppr = pppaw->ppr;
+  //ppr = pppaw->ppr;
   pba = pppaw->pba;
   pth = pppaw->pth;
   ppt = pppaw->ppt;
   ppw = pppaw->ppw;
   pvecback = ppw->pvecback;
-  pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
 
   /** - print whatever you want for whatever mode of your choice */
@@ -4920,28 +4854,28 @@ int perturb_print_variables(double tau,
         if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
           if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
             shear_g = ppw->tca_shear_g;
-            l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+            //l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
             pol0_g = 2.5*ppw->tca_shear_g;
             pol1_g = 7./12.*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
             pol2_g = 0.5*ppw->tca_shear_g;
-            pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+            //pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
           }
           else {
             shear_g = y[ppw->pv->index_pt_shear_g];
-            l3_g = y[ppw->pv->index_pt_l3_g];
+            //l3_g = y[ppw->pv->index_pt_l3_g];
             pol0_g = y[ppw->pv->index_pt_pol0_g];
             pol1_g = y[ppw->pv->index_pt_pol1_g];
             pol2_g = y[ppw->pv->index_pt_pol2_g];
-            pol3_g = y[ppw->pv->index_pt_pol3_g];
+            //pol3_g = y[ppw->pv->index_pt_pol3_g];
           }
         }
         else {
           shear_g = 0;
-          l3_g = 0;
+          //l3_g = 0;
           pol0_g = 0;
           pol1_g = 0;
           pol2_g = 0;
-          pol3_g = 0.;
+          //pol3_g = 0.;
         }
     
         if (pba->has_ur == _TRUE_) {
@@ -5146,7 +5080,7 @@ int perturb_derivs(double tau,
   int l;
   
   /* scale factor and other background quantities */ 
-  double a,a2,a_prime_over_a,a_primeprime_over_a,z,R;
+  double a,a2,a_prime_over_a,R;
 
   /* short-cut names for the fields of the input structure */
   struct perturb_parameters_and_workspace * pppaw;
@@ -5168,7 +5102,7 @@ int perturb_derivs(double tau,
   double delta_b,theta_b;
   double P0;
   double cb2,cs2,ca2;
-  double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.,metric_ufa_class=0.;
+  double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_ufa_class=0.;
 
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
   double P2, gw_source_g;
@@ -5227,10 +5161,11 @@ int perturb_derivs(double tau,
 
   /** - compute related background quantities */
 
-  a = pvecback[pba->index_bg_a];a2 = a*a;
+  a = pvecback[pba->index_bg_a];
+  a2 = a*a;
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
-  a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
-  z = pba->a_today-1.;
+  //a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
+  //z = pba->a_today-1.;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
   
   /** Compute 'generalised cotK function of argument sqrt(|K|)*tau, for closing hierarchy. 
@@ -5294,7 +5229,7 @@ int perturb_derivs(double tau,
         metric_continuity = pvecmetric[ppw->index_mt_h_prime]/2.;
         metric_euler = 0.;
         metric_shear = k2 * pvecmetric[ppw->index_mt_alpha];
-        metric_shear_prime = k2 * pvecmetric[ppw->index_mt_alpha_prime];
+        //metric_shear_prime = k2 * pvecmetric[ppw->index_mt_alpha_prime];
         metric_ufa_class = pvecmetric[ppw->index_mt_h_prime]/2.;
       }
 
@@ -5303,7 +5238,7 @@ int perturb_derivs(double tau,
         metric_continuity = -3.*pvecmetric[ppw->index_mt_phi_prime];
         metric_euler = k2*pvecmetric[ppw->index_mt_psi];
         metric_shear = 0.;
-        metric_shear_prime = 0.;
+        //metric_shear_prime = 0.;
         metric_ufa_class = -6.*pvecmetric[ppw->index_mt_phi_prime];
       }
 
@@ -5837,7 +5772,7 @@ int perturb_tca_slip_and_shear(double * y,
   /** - define local variables */
 
   /* scale factor and other background quantities */ 
-  double a,a2,a_prime_over_a,a_primeprime_over_a,R;
+  double a,a_prime_over_a,a_primeprime_over_a,R;
 
   /* useful terms for tight-coupling approximation */
   double slip=0.;
@@ -5889,7 +5824,7 @@ int perturb_tca_slip_and_shear(double * y,
 
   /** - compute related background quantities */
 
-  a = pvecback[pba->index_bg_a];a2 = a*a;
+  a = pvecback[pba->index_bg_a];
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
   a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
   //z = pba->a_today-1.;

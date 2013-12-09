@@ -129,6 +129,8 @@ int transfer_init(
   double tau0;
   /* conformal time at recombination */
   double tau_rec;
+  /* order of magnitude of the oscillation period of transfer functions */
+  double q_period;
 
   /* maximum number of sampling times for transfer sources */
   int tau_size_max;
@@ -162,9 +164,6 @@ int transfer_init(
   int abort;
 
 #ifdef _OPENMP
-
-  /* number of a given thread */
-  int thread;
 
   /* instrumentation times */
   double tstart, tstop, tspent;
@@ -201,10 +200,14 @@ int transfer_init(
 
   ptr->angular_rescaling = pth->angular_rescaling;
 
+  /** order of magnitude of the oscillation period of transfer functions */
+
+  q_period = 2.*_PI_/(tau0-tau_rec)*ptr->angular_rescaling;
+
   /** - initialize all indices in the transfers structure and 
       allocate all its arrays using transfer_indices_of_transfers() */
 
-  class_call(transfer_indices_of_transfers(ppr,ppt,ptr,tau0,pba->K,pba->sgnK),
+  class_call(transfer_indices_of_transfers(ppr,ppt,ptr,q_period,pba->K,pba->sgnK),
              ptr->error_message,
              ptr->error_message);
 
@@ -240,7 +243,7 @@ int transfer_init(
 
   xmax = ptr->q[ptr->q_size-1]*tau0;
   if (pba->sgnK == -1)
-    xmax *= (ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu);
+    xmax *= (ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu)/asinh(ptr->l[ptr->l_size_max-1]/ppr->hyper_flat_approximation_nu)*1.01;
 
   class_call(hyperspherical_HIS_create(0,
                                        1.,
@@ -274,11 +277,10 @@ int transfer_init(
   
 #pragma omp parallel                                                    \
   shared(tau_size_max,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS,tau0) \
-  private(ptw,thread,index_q,tstart,tstop,tspent)
+  private(ptw,index_q,tstart,tstop,tspent)
   {
     
 #ifdef _OPENMP
-    thread = omp_get_thread_num();
     tspent = 0.;
 #endif
        
@@ -429,7 +431,7 @@ int transfer_indices_of_transfers(
                                   struct precision * ppr,
                                   struct perturbs * ppt,
                                   struct transfers * ptr,
-                                  double tau0,
+                                  double q_period,
                                   double K,
                                   int sgnK
                                   ) {
@@ -546,21 +548,35 @@ int transfer_indices_of_transfers(
   class_alloc(ptr->transfer,ptr->md_size * sizeof(double *),ptr->error_message);
 
   /** get q values using transfer_get_q_list() */
-  if (sgnK == 0) {
-    class_call(transfer_get_q_list(ppr,ppt,ptr,tau0,K,sgnK),
-               ptr->error_message,
-               ptr->error_message);
-  }
-  else {
-    class_call(transfer_get_q_list2(ppr,ppt,ptr,tau0,K,sgnK),
-               ptr->error_message,
-               ptr->error_message);
-  }
+
+  class_call(transfer_get_q_list(ppr,ppt,ptr,q_period,K,sgnK),
+             ptr->error_message,
+             ptr->error_message);
 
   /** get k values using transfer_get_k_list() */
   class_call(transfer_get_k_list(ppt,ptr,K),
              ptr->error_message,
              ptr->error_message);
+
+  /* for testing, it can be useful to print the q list in a file: */
+
+  /*
+  FILE * out=fopen("output/q","w");
+  int index_q;
+
+  for (index_q=0; index_q < ptr->q_size; index_q++) {
+
+    fprintf(out,"%d %e %e %e %e\n",
+    index_q,
+    ptr->q[index_q],
+    ptr->k[0][index_q],
+    ptr->q[index_q]/sqrt(sgnK*K),
+    ptr->q[index_q+1]-ptr->q[index_q]);
+
+  }
+
+  fclose(out);
+  */
 
   /** get l values using transfer_get_l_list() */
   class_call(transfer_get_l_list(ppr,ppt,ptr),
@@ -831,6 +847,225 @@ int transfer_get_l_list(
 
 /**
  * This routine defines the number and values of wavenumbers q for
+ * each mode (goes smoothly from logarithmic step for small q's to
+ * linear step for large q's).
+ *
+ * @param ppr     Input : pointer to precision structure
+ * @param ppt     Input : pointer to perturbation structure
+ * @param ptr     Input/Output : pointer to transfers structure containing q's
+ * @param rs_rec  Input : comoving distance to recombination
+ * @param index_md Input: index of requested mode (scalar, tensor, etc) 
+ * @return the error status
+ */
+
+int transfer_get_q_list(
+                        struct precision * ppr,
+                        struct perturbs * ppt,
+                        struct transfers * ptr,
+                        double q_period,
+                        double K,
+                        int sgnK
+                         ) {
+
+  int index_q;
+  double q,q_min=0.,q_max=0.,q_step,k_max;
+  int nu, nu_min, nu_proposed;
+  int q_size_max;
+  double q_approximation;
+  double last_step=0.;
+  int last_index=0;
+  double q_logstep_spline;
+  double q_logstep_trapzd;
+
+  /* first and last value in flat case*/
+
+  if (sgnK == 0) {
+    q_min = ppt->k[0];
+    q_max = ppt->k[ppt->k_size_cl-1]; 
+    K=0;
+  }
+
+  /* first and last value in open case*/
+
+  else if (sgnK == -1) {
+    q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
+    k_max = ppt->k[ppt->k_size_cl-1];
+    q_max = sqrt(k_max*k_max+K);
+    if (ppt->has_vectors == _TRUE_) 
+      q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
+    if (ppt->has_tensors == _TRUE_) 
+      q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
+  }
+
+  /* first and last value in closed case*/
+
+  else if (sgnK == 1) {
+    nu_min = 3;
+    q_min = nu_min * sqrt(K);
+    q_max = ppt->k[ppt->k_size_cl-1]; 
+  }
+
+  /* adjust the parameter governing the log step size to curvature */
+
+  q_logstep_spline = ppr->q_logstep_spline/pow(ptr->angular_rescaling,ppr->q_logstep_open);
+  q_logstep_trapzd = ppr->q_logstep_trapzd;
+  
+  /* very conservative estimate of number of values */
+ 
+  if (sgnK == 1) {
+
+    q_approximation = MIN(ppr->hyper_flat_approximation_nu,(q_max/sqrt(K)));
+
+    /* max contribution from integer nu values */
+    q_step = 1.+q_period*ppr->q_logstep_trapzd;  
+    q_size_max = 2*(int)(log(q_approximation/q_min)/log(q_step));               
+
+    q_step = q_period*ppr->q_linstep;
+    q_size_max += 2*(int)((q_approximation-q_min)/q_step);
+
+    /* max contribution from non-integer nu values */
+    q_step = 1.+q_period*ppr->q_logstep_spline;  
+    q_size_max += 2*(int)(log(q_max/q_approximation)/log(q_step));               
+
+    q_step = q_period*ppr->q_linstep;
+    q_size_max += 2*(int)((q_max-q_approximation)/q_step);
+
+  }
+  else {
+
+    /* max contribution from non-integer nu values */
+    q_step = 1.+q_period*ppr->q_logstep_spline;  
+    q_size_max = 2*(int)(log(q_max/q_min)/log(q_step));               
+
+    q_step = q_period*ppr->q_linstep;
+    q_size_max += 2*(int)((q_max-q_min)/q_step);
+
+  }
+
+  /* create array with this conservative size estimate. The exact size
+     will be readjusted below, after filling the array. */
+
+  class_alloc(ptr->q,
+              q_size_max*sizeof(double),
+              ptr->error_message);
+
+  /* assign the first value before starting the loop */
+
+  index_q = 0;
+  ptr->q[index_q] = q_min;
+  nu = 3; 
+  index_q++;
+
+  /* loop over the values */
+
+  while (ptr->q[index_q-1] < q_max) {
+
+    class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
+
+    /* step size formula in flat/open case. Step goes gradually from
+       logarithmic to linear:
+
+       - in the small q limit, it is logarithmic with: (delta q / q) =
+       q_period * q_logstep_spline
+
+       - in the large q limit, it is linear with: (delta q) = q_period
+       * ppr->q_linstep
+    */
+
+    if (sgnK<=0) {
+
+      q = ptr->q[index_q-1] 
+        + q_period * ppr->q_linstep * ptr->q[index_q-1] 
+        / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_spline);
+
+    }
+
+    /* step size formula in closed case. Same thing excepted that:
+
+       - in the small q limit, the logarithmic step is reduced, being
+         given by q_logstep_trapzd, and values are rounded to integer
+         values of nu=q/sqrt(K). This happens as long as
+         nu<nu_flat_approximation
+
+       - for nu>nu_flat_approximation, the step gradually catches up
+         the same expression as in the flat/opne case, and there is no
+         need to round up to integer nu's.
+    */
+
+    else {
+
+      if (nu < (int)ppr->hyper_flat_approximation_nu) {
+
+        q = ptr->q[index_q-1] 
+          + q_period * ppr->q_linstep * ptr->q[index_q-1] 
+          / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_trapzd); 
+
+        nu_proposed = (int)(q/sqrt(K));
+        if (nu_proposed <= nu+1)
+          nu = nu+1;
+        else
+          nu = nu_proposed;
+
+        q = nu*sqrt(K);
+        last_step = q - ptr->q[index_q-1];
+        last_index = index_q+1;
+      }
+      else {
+
+        q_step = q_period * ppr->q_linstep * ptr->q[index_q-1] / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_spline); 
+        
+        if (index_q-last_index < (int)ppr->q_numstep_transition)
+          q = ptr->q[index_q-1] + (1-(double)(index_q-last_index)/ppr->q_numstep_transition) * last_step + (double)(index_q-last_index)/ppr->q_numstep_transition * q_step;
+        else 
+          q = ptr->q[index_q-1] + q_step;
+      }   
+    }
+
+    ptr->q[index_q] = q;
+    index_q++;
+  }
+
+  /* infer total number of values (also checking if we overshooted the last point) */
+
+  if (ptr->q[index_q-1] > q_max)
+    ptr->q_size=index_q-1;
+  else
+    ptr->q_size=index_q;
+
+  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
+
+  //fprintf(stderr,"q_size_max=%d q_size = %d\n",q_size_max,ptr->q_size);
+  //fprintf(stderr,"q_size = %d\n",ptr->q_size);
+
+  /* now, readjust array size */
+
+  class_realloc(ptr->q,
+                ptr->q,
+                ptr->q_size*sizeof(double),
+                ptr->error_message);
+
+  /* in curved universe, check at which index the flat rescaling
+     approximation will start being used */
+
+  if (sgnK != 0) {
+
+    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
+    for (ptr->index_q_flat_approximation=0; 
+         ptr->index_q_flat_approximation < ptr->q_size-1;
+         ptr->index_q_flat_approximation++) {
+      if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
+    }
+    if (ptr->transfer_verbose > 1)
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
+             ptr->q_size-ptr->index_q_flat_approximation,ptr->q_size);
+  }
+
+  return _SUCCESS_; 
+
+}
+
+/**
+ * This routine defines the number and values of wavenumbers q for
  * each mode (different in perturbation module and transfer module:
  * here we impose an upper bound on the linear step. So, typically,
  * for small q, the sampling is identical to that in the perturbation
@@ -845,24 +1080,25 @@ int transfer_get_l_list(
  * @return the error status
  */
 
-int transfer_get_q_list(
-                        struct precision * ppr,
-                        struct perturbs * ppt,
-                        struct transfers * ptr,
-                        double tau0,
-                        double K,
-                        int sgnK
-                        ) {
+int transfer_get_q_list_v1(
+                           struct precision * ppr,
+                           struct perturbs * ppt,
+                           struct transfers * ptr,
+                           double q_period,
+                           double K,
+                           int sgnK
+                           ) {
 
   int index_k;
   int index_q;
   double q_min=0.,q_max,q_step_max=0.,k_max;
   int nu, nu_min, nu_proposed;
   int q_size_max;
+  double q_approximation;
 
   /* find q_step_max, the maximum value of the step */
 
-  q_step_max = 2.*_PI_/tau0/ptr->angular_rescaling*ppr->k_step_trans;
+  q_step_max = q_period*ppr->q_linstep;
 
   class_test(q_step_max == 0.,
              ptr->error_message,
@@ -993,12 +1229,6 @@ int transfer_get_q_list(
     
   }
 
-  /*
-  class_stop(ptr->error_message,
-             "%d %d\n",
-             ptr->q_size,
-             nu);
-  */
   /* check size of q_list and realloc the array to the correct size */
 
   class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
@@ -1026,140 +1256,34 @@ int transfer_get_q_list(
                "bug in q list calculation, q values should be in strictly growing order"); 
   }
 
-  /*
-    FILE *fid=fopen("q_from_class.dat","w");
-    int i;
-    for (i=0; i<ptr->q_size; i++){
-    fprintf(fid,"%.16e ",ptr->q[i]);
+  /* in curved universe, check at which index the flat rescaling
+     approximation will start being used */
+
+  if (sgnK != 0) {
+    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
+    for (ptr->index_q_flat_approximation=0; 
+         ptr->index_q_flat_approximation < ptr->q_size-1;
+         ptr->index_q_flat_approximation++) {
+      if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
     }
-    fclose(fid);
-  */
-  /*
-    for (index_q=0; index_q<ptr->q_size; index_q++){
-    fprintf(stdout,"%d %e %e\n",index_q,ptr->q[index_q],ptr->q[index_q]/sqrt(K*sgnK));
-    }
-  
-    class_stop(ptr->error_message,"bla\n");
-  */
+    if (ptr->transfer_verbose > 1)
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
+             ptr->q_size-ptr->index_q_flat_approximation,ptr->q_size);
+  }
 
   return _SUCCESS_; 
 
 }
 
 /**
- * This routine defines the number and values of wavenumbers q for
- * each mode (different in perturbation module and transfer module:
- * here we impose an upper bound on the linear step. So, typically,
- * for small q, the sampling is identical to that in the perturbation
- * module, while at high q it is denser and source functions are
- * interpolated).
+ * This routine infers from the q values a list of corresponding k
+ * avlues for each mode.
  *
- * @param ppr     Input : pointer to precision structure
  * @param ppt     Input : pointer to perturbation structure
  * @param ptr     Input/Output : pointer to transfers structure containing q's
- * @param rs_rec  Input : comoving distance to recombination
- * @param index_md Input: index of requested mode (scalar, tensor, etc) 
+ * @param K       Input : spatial curvature
  * @return the error status
  */
-
-int transfer_get_q_list2(
-                        struct precision * ppr,
-                        struct perturbs * ppt,
-                        struct transfers * ptr,
-                        double tau0,
-                        double K,
-                        int sgnK
-                         ) {
-
-  int index_q;
-  double q,q_min=0.,q_max,q_step,q_logstep,k_max;
-  int nu, nu_min, nu_proposed;
-  int q_size_max;
-
-  if (sgnK <= 0) {
-
-    /* first and last value */
-
-    if (sgnK == 0) {
-      q_min = ppt->k[0];
-      q_max = ppt->k[ppt->k_size_cl-1]; 
-      K=0;
-    }
-    else {
-      q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
-      k_max = ppt->k[ppt->k_size_cl-1];
-      q_max = sqrt(k_max*k_max+K);
-      if (ppt->has_vectors == _TRUE_) 
-        q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
-      if (ppt->has_tensors == _TRUE_) 
-        q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
-    }
-  }
-
-  else {
-
-    /* first and last value */
-    
-    nu_min = 3;
-    q_min = nu_min * sqrt(K);
-    q_max = ppt->k[ppt->k_size_cl-1]; 
-  }
-
-  q_step = 2.*_PI_/tau0*ppr->q_linstep_trans;
-  q_logstep = ppr->q_logstep_trans;
-
-  q_size_max = 2+2*(int)((q_max-q_min)/q_step)
-    +(int)(log(q_max/q_min)/log(q_logstep));
-
-  class_alloc(ptr->q,
-              q_size_max*sizeof(double),
-              ptr->error_message);
-
-  index_q = 0;
-  ptr->q[index_q] = q_min;
-  nu = 3; 
-  index_q++;
-
-  while (ptr->q[index_q-1] < q_max) {
-
-    class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
-
-    q = MIN(ptr->q[index_q-1] + q_step,
-            ptr->q[index_q-1] * q_logstep);
-
-    if (sgnK==1) {
-      nu_proposed = (int)(q/sqrt(K));
-      if (nu_proposed <= nu)
-        nu = nu+1;
-      else
-        nu = nu_proposed;
-      ptr->q[index_q] = nu*sqrt(K);
-      //fprintf(stderr,"%d %e\n",index_q,ptr->q[index_q]);
-      index_q++;
-    }
-    else {
-      ptr->q[index_q] = q;
-      index_q++;
-    }
-  }
-
-  if (ptr->q[index_q-1] > q_max)
-    ptr->q_size=index_q-1;
-  else
-    ptr->q_size=index_q;
-
-  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
-
-  class_realloc(ptr->q,
-                ptr->q,
-                ptr->q_size*sizeof(double),
-                ptr->error_message);
-
-  return _SUCCESS_; 
-
-}
-
-
 
 int transfer_get_k_list(
                         struct perturbs * ppt,
@@ -1330,7 +1454,7 @@ int transfer_source_tau_size_max(
 
   int index_md;
   int index_tt;
-  int tau_size_tt;
+  int tau_size_tt=0;
 
   *tau_size_max = 0;
 
@@ -1649,12 +1773,12 @@ int transfer_compute_for_each_q(
 
           /* neglect transfer function when l is much smaller than k*tau0 */
           class_call(transfer_can_be_neglected(ppr,
-                                               pba,
                                                ppt,
                                                ptr,
                                                index_md,
                                                index_ic,
                                                index_tt,
+                                               (pba->conformal_age-tau_rec)*ptr->angular_rescaling,
                                                ptr->q[index_q],
                                                l,
                                                &neglect),
@@ -1666,7 +1790,7 @@ int transfer_compute_for_each_q(
             neglect = _TRUE_;
           }
           /* This would maybe go into transfer_can_be_neglected later: */
-          if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size) && (index_q < ptw->index_q_flat_approximation)) {
+          if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size) && (index_q < ptr->index_q_flat_approximation)) {
             neglect = _TRUE_;
           }
           if (neglect == _TRUE_) {
@@ -3045,7 +3169,7 @@ int transfer_integrate(
   }
   else{
 
-    if (index_q < ptw->index_q_flat_approximation) {
+    if (index_q < ptr->index_q_flat_approximation) {
 
       tau0_minus_tau_min_bessel = ptw->HIS.chi_at_phimin[index_l]/sqrt(ptw->sgnK*ptw->K); 
 
@@ -3376,57 +3500,51 @@ int transfer_limber2(
 
 int transfer_can_be_neglected(
                               struct precision * ppr,
-                              struct background * pba,
                               struct perturbs * ppt,
                               struct transfers * ptr,
                               int index_md,
                               int index_ic,
                               int index_tt,
+                              double ra_rec,
                               double k,
                               double l,
                               short * neglect) {
 
   *neglect = _FALSE_;
 
-  /* implement here some conditions, e.g.:
-     if (k*l>ppr->trans_kl_max) *neglect = _TRUE_;
-  */      
+  if (_scalars_) {
 
-  if _scalars_ {
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t0) && (l < (k-ppr->transfer_neglect_delta_k_S_t0)*ra_rec)) *neglect = _TRUE_;
 
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t0) && (l < (k-ppr->transfer_neglect_delta_k_S_t0)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_S_t1)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_S_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_S_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
-
-      else if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l < (k-ppr->transfer_neglect_delta_k_S_lcmb)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
-      
-    }
+  }
   
-  else if _vectors_ {
+  else if (_vectors_) {
       
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t1) && (l < (k-ppr->transfer_neglect_delta_k_V_t1)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_V_t2)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_V_e)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_V_b)*ra_rec)) *neglect = _TRUE_;
 
-    }
+  }
 
-  else if _tensors_ {
+  else if (_tensors_) {
 
-      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_T_t2)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == ptr->index_tt_t2) && (l < (k-ppr->transfer_neglect_delta_k_T_t2)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e) && (l < (k-ppr->transfer_neglect_delta_k_T_e)*ra_rec)) *neglect = _TRUE_;
 
-      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*pba->conformal_age*ptr->angular_rescaling)) *neglect = _TRUE_;
+      else if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_b) && (l < (k-ppr->transfer_neglect_delta_k_T_b)*ra_rec)) *neglect = _TRUE_;
 
-    }
+  }
 
   return _SUCCESS_;
 
@@ -3443,7 +3561,7 @@ int transfer_late_source_can_be_neglected(
   
   *neglect = _FALSE_;
   
-  if (l > ppr->transfer_neglect_late_source) {
+  if (l > ppr->transfer_neglect_late_source*ptr->angular_rescaling) {
     
     /* sources at late times canb be neglected for CMB, excepted when
        there is a LISW: this means for tt_t1, t2, e */
@@ -3451,7 +3569,7 @@ int transfer_late_source_can_be_neglected(
     if (_scalars_) {
       if (ppt->has_cl_cmb_temperature == _TRUE_) {
         if ((index_tt == ptr->index_tt_t1) ||
-            (index_tt == ptr->index_tt_t2))
+          (index_tt == ptr->index_tt_t2))
           *neglect = _TRUE_;
       }
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
@@ -3472,10 +3590,6 @@ int transfer_late_source_can_be_neglected(
       }
     }
     else if (_tensors_) {
-      if (ppt->has_cl_cmb_temperature == _TRUE_) {
-        if (index_tt == ptr->index_tt_t2)
-          *neglect = _TRUE_;
-      }   
       if (ppt->has_cl_cmb_polarization == _TRUE_) {
         if ((index_tt == ptr->index_tt_e) ||
             (index_tt == ptr->index_tt_b))
@@ -3509,10 +3623,12 @@ int transfer_radial_function(
   double K=0.,k2=1.0;
   double sqrt_absK_over_k;
   double absK_over_k2;
+  double nu=0., chi_tp=0.;
   double factor, s0, s2, ssqrt3, si, ssqrt2, ssqrt2i;
   double l = (double)ptr->l[index_l];
   double rescale_argument;
   double rescale_amplitude;
+  double * rescale_function;
   int (*interpolate_Phi)();
   int (*interpolate_dPhi)();
   int (*interpolate_Phid2Phi)();
@@ -3537,6 +3653,7 @@ int transfer_radial_function(
   class_alloc(dPhi,sizeof(double)*x_size,ptr->error_message);
   class_alloc(d2Phi,sizeof(double)*x_size,ptr->error_message);
   class_alloc(chireverse,sizeof(double)*x_size,ptr->error_message);
+  class_alloc(rescale_function,sizeof(double)*x_size,ptr->error_message);
 
   if (ptw->sgnK == 0) {
     pHIS = ptw->pBIS;
@@ -3544,7 +3661,7 @@ int transfer_radial_function(
     rescale_amplitude = 1.;
     HIorder = HERMITE4;
   }
-  else if (index_q < ptw->index_q_flat_approximation) {
+  else if (index_q < ptr->index_q_flat_approximation) {
     pHIS = &(ptw->HIS);
     rescale_argument = 1.;
     rescale_amplitude = 1.;
@@ -3553,15 +3670,15 @@ int transfer_radial_function(
   else {    
     pHIS = ptw->pBIS;
     if (ptw->sgnK == 1){
-      rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
-        asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(K));
-      rescale_amplitude = pow(ptr->angular_rescaling,-0.6);
+      nu = ptr->q[index_q]/sqrt(K);
+      chi_tp = asin(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/nu);
     }
     else{
-      rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/
-        asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/ptr->q[index_q]*sqrt(-K));
-      rescale_amplitude = pow(ptr->angular_rescaling,-0.6);
+      nu = ptr->q[index_q]/sqrt(-K);
+      chi_tp = asinh(sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/nu);
     }
+    rescale_argument = sqrt(ptr->l[index_l]*(ptr->l[index_l]+1.))/chi_tp;
+    rescale_amplitude = pow(1.-K*ptr->l[index_l]*(ptr->l[index_l]+1.)/ptr->q[index_q]/ptr->q[index_q],-1./12.);
     HIorder = HERMITE4;
   }
   
@@ -3590,14 +3707,42 @@ int transfer_radial_function(
   }
 
   //Reverse chi
-  for (j=0; j<x_size; j++)
+  for (j=0; j<x_size; j++) {
     chireverse[j] = chi[x_size-1-j]*rescale_argument;
+    if (rescale_amplitude == 1.) {
+      rescale_function[j] = 1.;
+    }
+    else {
+      if (ptw->sgnK == 1) {
+        rescale_function[j] =
+          MIN(
+              rescale_amplitude 
+              * (1 
+                 + 0.34 * atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp)
+                 + 2.00 * pow(atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp),2)),
+              chireverse[j]/rescale_argument/sin(chireverse[j]/rescale_argument)
+              );
+      }
+      else {
+        rescale_function[j] =
+          MAX(
+              rescale_amplitude 
+              * (1 
+                 - 0.38 * atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp)
+                 + 0.40 * pow(atan(ptr->l[index_l]/nu) * (chireverse[j]/rescale_argument-chi_tp),2)),
+              chireverse[j]/rescale_argument/sinh(chireverse[j]/rescale_argument)
+              );
+      }
+    }
+  }
 
+  /*
   class_test(pHIS->x[0] > chireverse[0],
              ptr->error_message,
              "Bessels need to be interpolated at %e, outside the range in which they have been computed (>%e). Decrease their x_min.",
              chireverse[0],
              pHIS->x[0]);
+  */
 
   class_test((pHIS->x[pHIS->x_size-1] < chireverse[x_size-1]) && (ptw->sgnK != 1),
              ptr->error_message,
@@ -3612,14 +3757,14 @@ int transfer_radial_function(
                ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, NULL);
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = Phi[j]*rescale_function[j];
     break;
   case SCALAR_TEMPERATURE_1:
     class_call(interpolate_dPhi(pHIS, x_size, index_l, chireverse, dPhi, ptr->error_message), 
                ptr->error_message, ptr->error_message);
     //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, NULL, dPhi, NULL);
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_argument*rescale_amplitude;
+      radial_function[x_size-1-j] = sqrt_absK_over_k*dPhi[j]*rescale_argument*rescale_function[j];
     break;
   case SCALAR_TEMPERATURE_2:
     class_call(interpolate_Phid2Phi(pHIS, x_size, index_l, chireverse, Phi, d2Phi, ptr->error_message), 
@@ -3628,7 +3773,7 @@ int transfer_radial_function(
     s2 = sqrt(1.0-3.0*K/k2);
     factor = 1.0/(2.0*s2);
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*(3*absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument+Phi[j])*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*(3*absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument+Phi[j])*rescale_function[j];
     break;
   case SCALAR_POLARISATION_E:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3637,7 +3782,7 @@ int transfer_radial_function(
     s2 = sqrt(1.0-3.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/s2;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case VECTOR_TEMPERATURE_1:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3646,7 +3791,7 @@ int transfer_radial_function(
     s0 = sqrt(1.0+K/k2);
     factor = sqrt(0.5*l*(l+1))/s0;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case VECTOR_TEMPERATURE_2:
     class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
@@ -3656,7 +3801,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = sqrt(1.5*l*(l+1))/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_argument-cotKgen[j]*Phi[j])*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(sqrt_absK_over_k*dPhi[j]*rescale_argument-cotKgen[j]*Phi[j])*rescale_function[j];
     break;
   case VECTOR_POLARISATION_E:
     class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
@@ -3666,7 +3811,7 @@ int transfer_radial_function(
     ssqrt3 = sqrt(1.0-2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_argument)*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*(cotKgen[j]*Phi[j]+sqrt_absK_over_k*dPhi[j]*rescale_argument)*rescale_function[j];
     break;
   case VECTOR_POLARISATION_B:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3677,7 +3822,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*sqrt((l-1.0)*(l+2.0))*si/s0/ssqrt3;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case TENSOR_TEMPERATURE_2:
     class_call(interpolate_Phi(pHIS, x_size, index_l, chireverse, Phi, ptr->error_message), 
@@ -3687,7 +3832,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = sqrt(3.0/8.0*(l+2.0)*(l+1.0)*l*(l-1.0))/si/ssqrt2;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*cscKgen[x_size-1-j]*cscKgen[x_size-1-j]*Phi[j]*rescale_function[j];
     break;
   case TENSOR_POLARISATION_E:
     class_call(interpolate_PhidPhid2Phi(pHIS, x_size, index_l, chireverse, Phi, dPhi, d2Phi, ptr->error_message), 
@@ -3699,7 +3844,7 @@ int transfer_radial_function(
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = factor*(absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument
                                             +4.0*cotKgen[x_size-1-j]*sqrt_absK_over_k*dPhi[j]*rescale_argument
-                                            -(1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j])*rescale_amplitude;
+                                            -(1.0+4*K/k2-2.0*cotKgen[x_size-1-j]*cotKgen[x_size-1-j])*Phi[j])*rescale_function[j];
     break;
   case TENSOR_POLARISATION_B:
     class_call(interpolate_PhidPhi(pHIS, x_size, index_l, chireverse, Phi, dPhi, ptr->error_message), 
@@ -3710,7 +3855,7 @@ int transfer_radial_function(
     si = sqrt(1.0+2.0*K/k2);
     factor = 0.5*ssqrt2i/ssqrt2/si;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]*rescale_argument+2.0*cotKgen[x_size-1-j]*Phi[j])*rescale_amplitude;
+      radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]*rescale_argument+2.0*cotKgen[x_size-1-j]*Phi[j])*rescale_function[j];
     break;
   }
 
@@ -3718,6 +3863,7 @@ int transfer_radial_function(
   free(dPhi);
   free(d2Phi);
   free(chireverse);
+  free(rescale_function);
 
   return _SUCCESS_;
 }
@@ -3819,27 +3965,12 @@ int transfer_workspace_init(
                             double tau0_minus_tau_cut,
                             HyperInterpStruct * pBIS){
 
-  double q_approximation;
-
   class_calloc(*ptw,1,sizeof(struct transfer_workspace),ptr->error_message);
 
   (*ptw)->tau_size_max = tau_size_max;
   (*ptw)->l_size = ptr->l_size_max;
   (*ptw)->HIS_allocated=_FALSE_;
   (*ptw)->pBIS = pBIS;
-
-  if (sgnK != 0) {
-    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
-    for ((*ptw)->index_q_flat_approximation=0; 
-         (*ptw)->index_q_flat_approximation < ptr->q_size;
-         (*ptw)->index_q_flat_approximation++) {
-      if (ptr->q[(*ptw)->index_q_flat_approximation] > q_approximation) break;
-    }
-    if (ptr->transfer_verbose > 1)
-      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
-             ptr->q_size-(*ptw)->index_q_flat_approximation,ptr->q_size);
-  }
-
   (*ptw)->K = K;
   (*ptw)->sgnK = sgnK;
   (*ptw)->tau0_minus_tau_cut = tau0_minus_tau_cut;
@@ -3901,7 +4032,7 @@ int transfer_update_HIS(
     ptw->HIS_allocated = _FALSE_;
   }
 
-  if ((ptw->sgnK!=0) && (index_q < ptw->index_q_flat_approximation)) {
+  if ((ptw->sgnK!=0) && (index_q < ptr->index_q_flat_approximation)) {
 
     xmin = ppr->hyper_x_min;
 

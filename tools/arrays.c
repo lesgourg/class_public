@@ -447,7 +447,7 @@ int array_spline(
   free(u);
 
   return _SUCCESS_;
- }
+}
 
 int array_spline_table_line_to_line(
 				    double * x, /* vector of size x_size */
@@ -1456,6 +1456,53 @@ int array_integrate_all_spline(
   *result = 0; 
 
   for (i=0; i < n_lines-1; i++) {
+
+    h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
+
+    *result += 
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
+
+  }
+
+  return _SUCCESS_;
+}
+
+int array_integrate_all_trapzd_or_spline(
+		   double * array,
+		   int n_columns,
+		   int n_lines,
+           int index_start_spline,
+		   int index_x,   /** from 0 to (n_columns-1) */
+		   int index_y,
+		   int index_ddy,
+		   double * result,
+		   ErrorMsg errmsg) {
+
+  int i;
+  double h;
+
+  if ((index_start_spline<0) || (index_start_spline>=n_lines)) {
+    sprintf(errmsg,"%s(L:%d) index_start_spline outside of range",__func__,__LINE__);
+    return _FAILURE_;
+  }
+
+  *result = 0; 
+
+  /* trapezoidal integration till given index */
+
+  for (i=0; i < index_start_spline; i++) {
+
+    h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
+
+    *result += 
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.;
+
+  }
+
+  /* then, spline integration */
+
+  for (i=index_start_spline; i < n_lines-1; i++) {
 
     h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
 

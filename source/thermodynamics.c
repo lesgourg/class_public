@@ -678,8 +678,9 @@ int thermodynamics_init(
   /** - find time above which visibility falls below a given fraction of its maximum */
 
   index_tau=index_tau_max;
-  while (pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g] > 
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g] > 
          g_max * ppr->neglect_CMB_sources_below_visibility)
+         && (index_tau > 0))
     index_tau--;
 
   class_call(background_tau_of_z(pba,pth->z_table[index_tau],&(pth->tau_cut)),
@@ -1759,7 +1760,7 @@ int thermodynamics_reionization_sample(
   double z,z_next;
   double xe,xe_next;
   double dkappadz,dkappadz_next;
-  double Tb,Tba2,Yp,dTdz,opacity,mu;
+  double Tb,Yp,dTdz,opacity,mu;
   double dkappadtau,dkappadtau_next;
   double energy_rate;
 
@@ -1817,7 +1818,7 @@ int thermodynamics_reionization_sample(
   reio_vector[preio->index_re_Tb] = Tb;
 
   /** - after recombination, Tb scales like (1+z)**2. Compute constant factor Tb/(1+z)**2. */
-  Tba2 = Tb/(1+z)/(1+z);
+  //Tba2 = Tb/(1+z)/(1+z);
 
   /** - get baryon sound speed */
   reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
@@ -2373,7 +2374,7 @@ int thermodynamics_recombination_with_recfast(
   /* other recfast variables */
   double OmegaB,zinitial,x_He0,x0;
   double x_H0=0.;
-  double z,mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He,n,mu_T;
+  double z,mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He;
   double zstart,zend,rhs;
   int i,Nz;
 
@@ -2434,7 +2435,7 @@ int thermodynamics_recombination_with_recfast(
   /* related quantities */ 
   z=zinitial;
   mu_H = 1./(1.-preco->YHe);
-  mu_T = _not4_ /(_not4_ - (_not4_-1.)*preco->YHe); /* recfast 1.4*/
+  //mu_T = _not4_ /(_not4_ - (_not4_-1.)*preco->YHe); /* recfast 1.4*/
   preco->fHe = preco->YHe/(_not4_ *(1.-preco->YHe)); /* recfast 1.4 */
   preco->Nnow = 3.*preco->H0*preco->H0*OmegaB/(8.*_PI_*_G_*mu_H*_m_H_);
   pth->n_e = preco->Nnow;
@@ -2451,7 +2452,7 @@ int thermodynamics_recombination_with_recfast(
   preco->annihilation_z_halo = pth->annihilation_z_halo;
 
   /* quantities related to constants defined in thermodynamics.h */
-  n = preco->Nnow * pow((1.+z),3);
+  //n = preco->Nnow * pow((1.+z),3);
   Lalpha = 1./_L_H_alpha_;
   Lalpha_He = 1./_L_He_2p_;
   DeltaB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_);
@@ -2780,7 +2781,7 @@ int thermodynamics_derivs_with_recfast(
 
   /* used for energy injection from dark matter */
   double C;
-  double C_He;
+  //double C_He;
   double energy_rate;
  
   ptpaw = parameters_and_workspace;
@@ -2913,7 +2914,7 @@ int thermodynamics_derivs_with_recfast(
       He_Boltz=exp(680.);
 
     /* equations modified to take into account energy injection from dark matter */
-    C_He=(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)/(1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz);
+    //C_He=(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)/(1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz);
 
     dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat)) 
 	     *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))
