@@ -6,26 +6,26 @@
 /**************************************************************/
 
 /**
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  int evolver_rk(int (*derivs)(double x, 
-				    double * y, 
-				    double * dy, 
+  int evolver_rk(int (*derivs)(double x,
+				    double * y,
+				    double * dy,
 				    void * parameters_and_workspace,
 				    ErrorMsg error_message),
 		      double x_ini,
 		      double x_end,
-		      double * y, 
+		      double * y,
 		      int * used_in_output,
 		      int y_size,
 		      void * parameters_and_workspace_for_derivs,
-		      double tolerance, 
+		      double tolerance,
 		      double minimum_variation,
-		      int (*evaluate_timescale)(double x, 
+		      int (*evaluate_timescale)(double x,
 						void * parameters_and_workspace,
 						double * timescale,
 						ErrorMsg error_message),
@@ -39,7 +39,7 @@ extern "C" {
 				    void * parameters_and_workspace,
 				    ErrorMsg error_message),
 		      int (*print_variables)(double x,
-					     double y[], 
+					     double y[],
 					     double dy[],
 					     void * parameters_and_workspace,
 					     ErrorMsg error_message),

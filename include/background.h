@@ -34,7 +34,7 @@ struct background
    * differently, and to pre-process them into this format, using the input
    * module (this might require iterative calls of background_init()
    * e.g. for dark energy or decaying dark matter). */
-  
+
   //@{
 
   double H0; /**< \f$ H_0 \f$ : Hubble parameter (in fact, [H_0/c]) in \f$ Mpc^{-1} \f$ */
@@ -64,12 +64,12 @@ struct background
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
 
   int N_ncdm;                            /**< Number of distinguishabe ncdm species */
-  double * M_ncdm;                       /**<vector of masses of non-cold relic: 
+  double * M_ncdm;                       /**<vector of masses of non-cold relic:
                                              dimensionless ratios m_ncdm/T_ncdm */
   double * Omega0_ncdm, Omega0_ncdm_tot; /**<Omega0_ncdm for each species and for the total Omega0_ncdm */
   double * deg_ncdm, deg_ncdm_default;   /**<vector of degeneracy parameters in factor
-                                             of p-s-d: 1 for one family of neutrinos 
-                                             (= one neutrino plus its anti-neutrino, 
+                                             of p-s-d: 1 for one family of neutrinos
+                                             (= one neutrino plus its anti-neutrino,
                                              total g*=1+1=2, so deg = 0.5 g*); and its
 					     default value */
 
@@ -84,13 +84,13 @@ struct background
 					     relative chemical potential
 					     ksi_ncdm1/T_ncdm1; and its
 					     default value */
-  double * ncdm_psd_parameters;         /**< list of parameters for specifying/modifying 
-                                             ncdm p.s.d.'s, to be cutomized for given model 
+  double * ncdm_psd_parameters;         /**< list of parameters for specifying/modifying
+                                             ncdm p.s.d.'s, to be cutomized for given model
                                              (could be e.g. mixing angles) */
   /* end of parameters for analytical ncdm p-s-d */
 
   /* the following parameters help to define tabulated ncdm p-s-d passed in file */
-  int * got_files;                      /**< list of flags for each species, set to true if 
+  int * got_files;                      /**< list of flags for each species, set to true if
 					     p-s-d is passed through file */
   char * ncdm_psd_files;                /**< list of filenames for tabulated p-s-d */
   /* end of parameters for tabulated ncdm p-s-d */
@@ -153,7 +153,7 @@ struct background
   int index_bg_rs;            /**< comoving sound horizon in Mpc */
 
   int index_bg_D;             /**< density growth factor in dust universe, D = H \int [da/(aH)^3] (arbitrary normalization) */
-  int index_bg_f;             /**< velocity growth factor in dust universe, [dlnD]/[dln a] */               
+  int index_bg_f;             /**< velocity growth factor in dust universe, [dlnD]/[dln a] */
 
   int bg_size_short;  /**< size of background vector in the "short format" */
   int bg_size_normal; /**< size of background vector in the "normal format" */
@@ -181,7 +181,7 @@ struct background
 
   //@}
 
-  /** @name - all indices for the vector of background quantities to be integrated (=bi) 
+  /** @name - all indices for the vector of background quantities to be integrated (=bi)
    *
    * Most background quantities can be immediately inferred from the
    * scale factor. Only few of them require an integration with
@@ -198,7 +198,7 @@ struct background
   int index_bi_rs;      /**< sound horizon */
   int index_bi_tau;     /**< conformal time in Mpc */
   int index_bi_growth;  /**< integral over [da/(aH)^3]=[dtau/(aH^2)], useful for growth factor */
-  int bi_size;       
+  int bi_size;
 
   //@}
 
@@ -221,10 +221,10 @@ struct background
 
   //@}
 
-  /** 
+  /**
    *@name - arrays related to sampling and integration of ncdm phase space distributions
    */
-  
+
 
   //@{
 
@@ -239,10 +239,10 @@ struct background
 
   //@}
 
-  /** 
+  /**
    *@name - some flags needed for calling background functions
    */
-  
+
   //@{
 
   short short_info;  /**< flag for calling background_at_eta and return little information */
@@ -266,13 +266,13 @@ struct background
 };
 
 /**
- * temporary parameters and workspace passed to the background_derivs function 
+ * temporary parameters and workspace passed to the background_derivs function
  */
 
 struct background_parameters_and_workspace {
 
   /* structures containing fixed input parameters (indices, ...) */
-  struct background * pba; 
+  struct background * pba;
 
   /* workspace */
   double * pvecback;
@@ -280,18 +280,18 @@ struct background_parameters_and_workspace {
 };
 
 /**
- * temporary parameters and workspace passed to phase space distribution function 
+ * temporary parameters and workspace passed to phase space distribution function
  */
 
 struct background_parameters_for_distributions {
 
   /* structures containing fixed input parameters (indices, ...) */
-  struct background * pba; 
+  struct background * pba;
 
   /* Additional parameters */
 
   /* Index of current distribution function */
-  int n_ncdm; 
+  int n_ncdm;
 
   /* Used for interpolating in file of tabulated p-s-d: */
   int tablesize;
@@ -305,7 +305,7 @@ struct background_parameters_for_distributions {
 /**************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -362,7 +362,7 @@ extern "C" {
 			    struct precision *ppr,
 			    struct background *pba
 			    );
-  
+
 
   int background_ncdm_momenta(
                              double * qvec,
@@ -372,8 +372,8 @@ extern "C" {
                              double factor,
                              double z,
                              double * n,
-		             double * rho, 
-                             double * p,   
+		             double * rho,
+                             double * p,
                              double * drho_dM,
 			     double * pseudo_p
                              );
@@ -410,7 +410,7 @@ extern "C" {
 
 /**************************************************************/
 
-/**  
+/**
  * @name Some conversion factors and fundamental constants needed by background module:
  */
 
@@ -419,7 +419,7 @@ extern "C" {
 #define _Mpc_over_m_ 3.085677581282e22  /**< conversion factor from meters to megaparsecs */
 /* remark: CAMB uses 3.085678e22: good to know if you want to compare  with high accuracy */
 
-#define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears 
+#define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears
 				         (c=1 units, Julian years of 365.25 days) */
 #define _c_ 2.99792458e8            /**< c in m/s */
 #define _G_ 6.67428e-11             /**< Newton constant in m^3/Kg/s^2 */
@@ -428,12 +428,12 @@ extern "C" {
 /* parameters entering in Stefan-Boltzmann constant sigma_B */
 #define _k_B_ 1.3806504e-23
 #define _h_P_ 6.62606896e-34
-/* remark: sigma_B = 2 pi^5 k_B^4 / (15h^3c^2) = 5.670400e-8 
+/* remark: sigma_B = 2 pi^5 k_B^4 / (15h^3c^2) = 5.670400e-8
                    = Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
 //@}
 
-/**  
+/**
  * @name Some numbers useful in numerical algorithms - but not
  * affecting precision, otherwise would be in precision structure
  */
@@ -448,7 +448,7 @@ extern "C" {
 
 //@}
 
-/**  
+/**
  * @name Some limits imposed in other parts of the module:
  */
 

@@ -689,13 +689,13 @@ int input_init(
 
     if ((strstr(string1,"mTk") != NULL) || (strstr(string1,"MTk") != NULL) || (strstr(string1,"MTK") != NULL) ||
         (strstr(string1,"dTk") != NULL) || (strstr(string1,"DTk") != NULL) || (strstr(string1,"DTK") != NULL)) {
-      ppt->has_density_transfers=_TRUE_; 
-      ppt->has_perturbations = _TRUE_;  
+      ppt->has_density_transfers=_TRUE_;
+      ppt->has_perturbations = _TRUE_;
     }
 
     if ((strstr(string1,"vTk") != NULL) || (strstr(string1,"VTk") != NULL) || (strstr(string1,"VTK") != NULL)) {
-      ppt->has_velocity_transfers=_TRUE_; 
-      ppt->has_perturbations = _TRUE_;  
+      ppt->has_velocity_transfers=_TRUE_;
+      ppt->has_perturbations = _TRUE_;
     }
 
   }
@@ -705,7 +705,7 @@ int input_init(
     class_call(parser_read_string(pfc,"temperature contributions",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
-    
+
     if (flag1 == _TRUE_) {
 
       ppt->switch_sw = 0;
@@ -716,21 +716,21 @@ int input_init(
       if ((strstr(string1,"tsw") != NULL) || (strstr(string1,"TSW") != NULL))
         ppt->switch_sw = 1;
       if ((strstr(string1,"isw") != NULL) || (strstr(string1,"ISW") != NULL))
-        ppt->switch_isw = 1;      
+        ppt->switch_isw = 1;
       if ((strstr(string1,"dop") != NULL) || (strstr(string1,"Dop") != NULL))
-        ppt->switch_dop = 1;      
+        ppt->switch_dop = 1;
       if ((strstr(string1,"pol") != NULL) || (strstr(string1,"Pol") != NULL))
         ppt->switch_pol = 1;
 
       class_test((ppt->switch_sw == 0) && (ppt->switch_isw == 0) && (ppt->switch_dop == 0) && (ppt->switch_pol == 0),
                  errmsg,
                  "In the field 'output', you selected CMB temperature, but in the field 'temperature contributions', you removed all contributions");
-      
+
     }
 
   }
 
-  if (ppt->has_perturbations == _TRUE_) { 
+  if (ppt->has_perturbations == _TRUE_) {
 
     /* perturbed recombination */
     class_read_int("has_perturbed_recombination",ppt->has_perturbed_recombination);
@@ -1895,15 +1895,15 @@ int input_default_params(
   ppt->switch_dop = 1;
   ppt->switch_pol = 1;
 
-  ppt->has_ad=_TRUE_;  
+  ppt->has_ad=_TRUE_;
   ppt->has_bi=_FALSE_;
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
 
-  ppt->has_scalars=_TRUE_;  
+  ppt->has_scalars=_TRUE_;
   ppt->has_vectors=_FALSE_;
-  ppt->has_tensors=_FALSE_;  
+  ppt->has_tensors=_FALSE_;
 
   ppt->l_scalar_max=2500;
   ppt->l_tensor_max=500;
@@ -2202,7 +2202,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->hyper_phi_min_abs = 1.e-10;
   ppr->hyper_x_tol = 1.e-4;
   ppr->hyper_flat_approximation_nu = 4000.;
-  
+
   ppr->q_linstep=0.45;
   ppr->q_logstep_spline=170.;
   ppr->q_logstep_open=6.;
@@ -2214,7 +2214,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_neglect_delta_k_S_t2 = 0.15;
   ppr->transfer_neglect_delta_k_S_e = 0.11;
   ppr->transfer_neglect_delta_k_V_t1 = 1.;
-  ppr->transfer_neglect_delta_k_V_t2 = 1.; 
+  ppr->transfer_neglect_delta_k_V_t2 = 1.;
   ppr->transfer_neglect_delta_k_V_e = 1.;
   ppr->transfer_neglect_delta_k_V_b = 1.;
   ppr->transfer_neglect_delta_k_T_t2 = 0.2;

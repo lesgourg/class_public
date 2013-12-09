@@ -19,7 +19,7 @@
 enum file_format {class_format,camb_format};
 
 /**
- * Structure containing various informations on the output format, 
+ * Structure containing various informations on the output format,
  * all of them initialized by user in input module.
  *
  */
@@ -48,7 +48,7 @@ struct output {
   //@{
 
   short write_header;
-  
+
   enum file_format output_format;
 
   short write_background;
@@ -58,7 +58,7 @@ struct output {
   /** @name - technical parameters */
 
   //@{
-  
+
   short output_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
@@ -69,7 +69,7 @@ struct output {
 /*************************************************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -170,7 +170,7 @@ extern "C" {
 			      double z,
 			      int k_size
 			     );
-  
+
   int output_open_tk_file(
 			  struct background * pba,
 			  struct perturbs * ppt,

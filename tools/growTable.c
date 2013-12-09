@@ -5,15 +5,15 @@
 #include "growTable.h"
 
 /***
- * gt_init Initialize the growTable. 
+ * gt_init Initialize the growTable.
  * gt_init will initialize the growTable structure. It must be already allocated.
  *
  * Called by background_solve().
  */
 int gt_init(
-  growTable* self /***< a pointer on an empty growTable */ 
+  growTable* self /***< a pointer on an empty growTable */
   ) {
-    
+
   class_alloc(self->buffer,_GT_INITSIZE_,self->error_message);
   self->sz=_GT_INITSIZE_;
   self->csz=0;
@@ -35,13 +35,13 @@ int gt_add(
   long ridx;
   void *res;
   void *nbuffer;
-  
+
   /** - assumes the growTable is correctly initialized */
-  
+
   class_test(self->freeze == _TRUE_,
 	     self->error_message,
 	     "cannot add any more data in the growTable (freeze is on)");
-  
+
   if (idx==_GT_END_) {
     ridx=self->csz;
   }
@@ -51,7 +51,7 @@ int gt_add(
   class_test(ridx<0,
 	     self->error_message,
 	     "Don't know what to do with idx=%ld",ridx);
- 
+
   if (ridx+sz>self->sz) {
     /** - test -> pass -> ok we need to grow */
     nbuffer=realloc(self->buffer,self->sz*_GT_FACTOR_);
@@ -61,13 +61,13 @@ int gt_add(
     self->buffer=nbuffer;
     self->sz=self->sz*_GT_FACTOR_;
   }
-  
+
   res=memcpy((void*) (self->buffer+ridx),(void*) data,(size_t) sz);
   class_test(res!=self->buffer+ridx,
 	     self->error_message,
 	     "Cannot add data to growTable");
   self->csz=ridx+sz;
-  
+
   return _SUCCESS_;
 }
 
@@ -83,7 +83,7 @@ int gt_retrieve(
   void* data       /**< OUTPUT : data must be allocated to ::sz bytes*/
   ) {
   void *res;
-  
+
   class_test(idx<0,
 	     self->error_message,
 	     "don't know what to do with idx=%ld",idx);
@@ -91,7 +91,7 @@ int gt_retrieve(
   class_test((idx>self->csz) || (idx+sz>self->csz),
 	     self->error_message,
 	     "not enough data in growTable");
-  
+
   res=memcpy(data,self->buffer+idx,sz);
   class_test(res!=self->buffer+idx,
 	     self->error_message,
@@ -113,13 +113,13 @@ int gt_retrieveAll(
 }
 
 /**
- * returns the size of the growTable 
+ * returns the size of the growTable
  *
  *  Not called.
  */
 int gt_getSize(
   growTable* self,/**< a growTable*/
-  long *idx /**< OUTPUT : the size of the growTable ::self*/ 
+  long *idx /**< OUTPUT : the size of the growTable ::self*/
   ) {
   class_test(self->csz<0,
 	     self->error_message,
@@ -136,7 +136,7 @@ int gt_getSize(
  */
 int gt_getPtr(
   growTable* self, /**< a growTable*/
-  void** ptr       /**< OUTPUT : pointer on the data */  
+  void** ptr       /**< OUTPUT : pointer on the data */
   ) {
   self->freeze=_TRUE_;
   *ptr=self->buffer;
@@ -146,7 +146,7 @@ int gt_getPtr(
 
 
 /**
- * free the growTable 
+ * free the growTable
  *
  * Called by background_solve().
  */

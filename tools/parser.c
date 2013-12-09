@@ -88,7 +88,7 @@ int parser_read_line(
 		     ErrorMsg errmsg
 		     ) {
 
-  char * phash; 
+  char * phash;
   char * pequal;
   char * left;
   char * right;
@@ -102,7 +102,7 @@ int parser_read_line(
 
   phash=strchr(line,'#');
   if ((phash != NULL) && (phash-pequal<2)) {*is_data = _FALSE_; return _SUCCESS_;}
-  
+
   /* get the name, i.e. the block before the '=' */
 
   left=line;
@@ -120,7 +120,7 @@ int parser_read_line(
   class_test(right-left+1 >= _ARGUMENT_LENGTH_MAX_,
 	     errmsg,
 	     "name starting by '%s' too long; shorten it or increase _ARGUMENT_LENGTH_MAX_",strncpy(name,left,(_ARGUMENT_LENGTH_MAX_-1)));
-  
+
   strncpy(name,left,right-left+1);
   name[right-left+1]='\0';
 
@@ -133,13 +133,13 @@ int parser_read_line(
 
   if (phash == NULL)
     right = line+strlen(line)-1;
-  else 
+  else
     right = phash-1;
 
   while (right[0]<=' ') {
     right--;
   }
- 
+
   if (right-left < 0) {*is_data = _FALSE_; return _SUCCESS_;}
 
   class_test(right-left+1 >= _ARGUMENT_LENGTH_MAX_,
@@ -186,13 +186,13 @@ int parser_read_int(
 	     errmsg,
 	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
 
-  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
-     associated with this parameter in the file_content structure */ 
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag
+     associated with this parameter in the file_content structure */
 
   * found = _TRUE_;
   pfc->read[index] = _TRUE_;
 
-  /* check for multiple entries of the same parameter. If another occurence is found, 
+  /* check for multiple entries of the same parameter. If another occurence is found,
      return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
@@ -238,13 +238,13 @@ int parser_read_double(
 	     errmsg,
 	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
 
-  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
-     associated with this parameter in the file_content structure */ 
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag
+     associated with this parameter in the file_content structure */
 
   * found = _TRUE_;
   pfc->read[index] = _TRUE_;
 
-  /* check for multiple entries of the same parameter. If another occurence is found, 
+  /* check for multiple entries of the same parameter. If another occurence is found,
      return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
@@ -288,13 +288,13 @@ int parser_read_string(
 
   strcpy(*value,pfc->value[index]);
 
-  /* Set 'found' flag to true, as well as the flag 
-     associated with this parameter in the file_content structure */ 
+  /* Set 'found' flag to true, as well as the flag
+     associated with this parameter in the file_content structure */
 
   * found = _TRUE_;
   pfc->read[index] = _TRUE_;
 
-  /* check for multiple entries of the same parameter. If another occurence is found, 
+  /* check for multiple entries of the same parameter. If another occurence is found,
      return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
@@ -350,7 +350,7 @@ int parser_read_list_of_doubles(
     string = substring+1;
   } while(substring != NULL);
 
-  *size = i; 
+  *size = i;
 
   /* free and re-allocate array of values */
   class_alloc(list,*size*sizeof(double),errmsg);
@@ -378,13 +378,13 @@ int parser_read_list_of_doubles(
     string = substring+1;
   } while(substring != NULL);
 
-  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
-     associated with this parameter in the file_content structure */ 
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag
+     associated with this parameter in the file_content structure */
 
   * found = _TRUE_;
   pfc->read[index] = _TRUE_;
 
-  /* check for multiple entries of the same parameter. If another occurence is found, 
+  /* check for multiple entries of the same parameter. If another occurence is found,
      return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
@@ -440,7 +440,7 @@ int parser_read_list_of_integers(
     string = substring+1;
   } while(substring != NULL);
 
-  *size = i; 
+  *size = i;
 
   /* free and re-allocate array of values */
   class_alloc(list,*size*sizeof(int),errmsg);
@@ -468,13 +468,13 @@ int parser_read_list_of_integers(
     string = substring+1;
   } while(substring != NULL);
 
-  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
-     associated with this parameter in the file_content structure */ 
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag
+     associated with this parameter in the file_content structure */
 
   * found = _TRUE_;
   pfc->read[index] = _TRUE_;
 
-  /* check for multiple entries of the same parameter. If another occurence is found, 
+  /* check for multiple entries of the same parameter. If another occurence is found,
      return an error. */
 
   for (i=index+1; i < pfc->size; i++) {
@@ -530,7 +530,7 @@ int parser_read_list_of_strings(
     string = substring+1;
   } while(substring != NULL);
 
-  *size = i; 
+  *size = i;
 
   /* free and re-allocate array of values */
   class_alloc(list,*size*sizeof(FileArg),errmsg);
@@ -554,12 +554,12 @@ int parser_read_list_of_strings(
     *(list+i*_ARGUMENT_LENGTH_MAX_-1) = '\n';
     string = substring+1;
   } while(substring != NULL);
-  /* if parameter read correctly, set 'found' flag to true, as well as the flag 
-     associated with this parameter in the file_content structure */ 
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag
+     associated with this parameter in the file_content structure */
   * found = _TRUE_;
   pfc->read[index] = _TRUE_;
-  /* check for multiple entries of the same parameter. If another occurence is 
-     found, 
+  /* check for multiple entries of the same parameter. If another occurence is
+     found,
      return an error. */
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
@@ -616,7 +616,7 @@ int parser_cat(
     strcpy(pfc3->name[i+pfc1->size],pfc2->name[i]);
     pfc3->read[i+pfc1->size]=pfc2->read[i];
   }
-  
+
   return _SUCCESS_;
 
 }

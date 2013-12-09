@@ -134,14 +134,14 @@
 /**************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
   int input_init_from_arguments(
-		 int argc, 
+		 int argc,
 		 char **argv,
 		 struct precision * ppr,
 		 struct background *pba,
@@ -182,7 +182,7 @@ extern "C" {
 			   struct lensing *ple,
 			   struct output *pop
 			   );
-  
+
   int input_default_precision(
 			      struct precision * ppp
 			      );

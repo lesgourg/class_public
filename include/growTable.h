@@ -1,5 +1,5 @@
 /***
- * A table that  grows automatically. 
+ * A table that  grows automatically.
  */
 
 #ifndef __GROWTABLE__

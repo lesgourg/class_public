@@ -121,7 +121,7 @@ extern "C" {
 		     struct spectra *psp,
 		     struct nonlinear *pnl
 		     );
-  
+
   int nonlinear_free(
 	       struct nonlinear *pnl
 	       );
@@ -134,7 +134,7 @@ extern "C" {
 			struct nonlinear *pnl
 			);
 
-  
+
 #ifdef __cplusplus
 }
 #endif

@@ -5,10 +5,10 @@
  *
  */
 int initialize_generic_integrator(
-				  int n_dim, 
+				  int n_dim,
 				  struct generic_integrator_workspace * pgi){
 
-  /** - Allocate workspace dynamically */ 
+  /** - Allocate workspace dynamically */
 
   pgi->n = n_dim;
 
@@ -77,12 +77,12 @@ int cleanup_generic_integrator(struct generic_integrator_workspace * pgi){
 }
 
 int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void * parameters_and_workspace, ErrorMsg error_message),
-		       double x1, 
-		       double x2,  
-		       double ystart[],  
+		       double x1,
+		       double x2,
+		       double ystart[],
 		       void * parameters_and_workspace_for_derivs,
-		       double eps, 
-		       double hmin, 
+		       double eps,
+		       double hmin,
 		       struct generic_integrator_workspace * pgi)
 
 {
@@ -117,7 +117,7 @@ int generic_integrator(int (*derivs)(double x, double y[], double yprime[], void
     class_test(fabs(hnext/x1) <= hmin,
 	       pgi->error_message,
 	       "Step size too small: step:%g, minimum:%g, in interval: [%g:%g]",
-	       fabs(hnext/x1), 
+	       fabs(hnext/x1),
 	       hmin,
 	       x1,
 	       x2);
@@ -164,7 +164,7 @@ int rkqs(double *x, double htry, double eps,
 }
 
 int rkck(
-	 double x, 
+	 double x,
 	 double h,
 	 int (*derivs)(double, double [], double [], void * parameters_and_workspace, ErrorMsg error_message),
 	 void * parameters_and_workspace_for_derivs,
@@ -182,7 +182,7 @@ int rkck(
 		       pgi->error_message),
 	     pgi->error_message,
 	     pgi->error_message);
-  
+
   for (i=0;i<pgi->n;i++)
     pgi->ytemp[i]=pgi->y[i]+h*(_RKCK_b31_*pgi->dydx[i]+_RKCK_b32_*pgi->ak2[i]);
 

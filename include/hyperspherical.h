@@ -1,5 +1,5 @@
-/** 
- * definitions for module hyperspherical.c 
+/**
+ * definitions for module hyperspherical.c
  */
 
 #ifndef __HYPERSPHERICAL__
@@ -23,7 +23,7 @@ typedef struct HypersphericalInterpolationStructure{
   int l_size;                //Number of l values
   int *l;             //Vector of l values stored
   double * chi_at_phimin;     // vector x_min[index-l] below which neglect Bessels
-  int x_size;                //Number of x-values  
+  int x_size;                //Number of x-values
   double *x;          //Pointer to x-values
   double *sinK;          //Vector of sin_K(xvec)
   double *cotK;          //Vector of cot_K(xvec)
@@ -39,63 +39,63 @@ struct WKB_parameters{
 };
 
 /**
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
 #endif
-  int hyperspherical_HIS_create(int K, 
-                                double beta, 
-                                int nl, 
-                                int *lvec, 
-                                double xmin, 
-                                double xmax, 
+  int hyperspherical_HIS_create(int K,
+                                double beta,
+                                int nl,
+                                int *lvec,
+                                double xmin,
+                                double xmax,
                                 double sampling,
                                 int l_WKB,
                                 double phiminabs,
-                                HyperInterpStruct *pHIS, 
+                                HyperInterpStruct *pHIS,
                                 ErrorMsg error_message);
 
   int hyperspherical_HIS_free(HyperInterpStruct *pHIS, ErrorMsg error_message);
-  int hyperspherical_forwards_recurrence(int K, 
-                                         int lmax, 
-                                         double beta, 
-                                         double x, 
+  int hyperspherical_forwards_recurrence(int K,
+                                         int lmax,
+                                         double beta,
+                                         double x,
                                          double sinK,
                                          double cotK,
                                          double *sqrtK,
                                          double *one_over_sqrtK,
                                          double *PhiL);
-int hyperspherical_forwards_recurrence_chunk(int K, 
-                                             int lmax, 
-                                             double beta, 
-                                             double * __restrict__ x, 
+int hyperspherical_forwards_recurrence_chunk(int K,
+                                             int lmax,
+                                             double beta,
+                                             double * __restrict__ x,
                                              double * __restrict__ sinK,
                                              double * __restrict__ cotK,
                                              int chunk,
                                              double * __restrict__ sqrtK,
                                              double * __restrict__ one_over_sqrtK,
                                              double * __restrict__ PhiL);
-  int hyperspherical_backwards_recurrence(int K, 
-                                          int lmax, 
-                                          double beta, 
-                                          double x, 
+  int hyperspherical_backwards_recurrence(int K,
+                                          int lmax,
+                                          double beta,
+                                          double x,
                                           double sinK,
                                           double cotK,
                                           double *sqrtK,
                                           double *one_over_sqrtK,
                                           double *PhiL);
 
-  int hyperspherical_backwards_recurrence_chunk(int K, 
-                                                int lmax, 
-                                                double beta, 
-                                                double * __restrict__ x, 
+  int hyperspherical_backwards_recurrence_chunk(int K,
+                                                int lmax,
+                                                double beta,
+                                                double * __restrict__ x,
                                                 double * __restrict__ sinK,
                                                 double * __restrict__ cotK,
                                                 int chunk,
                                                 double * __restrict__ sqrtK,
                                                 double * __restrict__ one_over_sqrtK,
-                                                double * __restrict__ PhiL);                                                  
+                                                double * __restrict__ PhiL);
   int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
                               double xtol,
                               double phiminabs,
@@ -103,9 +103,9 @@ int hyperspherical_forwards_recurrence_chunk(int K,
 
   int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi);
   int hyperspherical_WKB_vec(int l,
-                             double beta, 
-                             double *sinK_vec, 
-                             int size_sinK_vec, 
+                             double beta,
+                             double *sinK_vec,
+                             int size_sinK_vec,
                              double *Phi);
   int ClosedModY(int l, int beta, double *y, int * phisign, int * dphisign);
   int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign);
@@ -151,7 +151,7 @@ int hyperspherical_forwards_recurrence_chunk(int K,
                                           int *ignore2);
 
   size_t hyperspherical_HIS_size(int nl, int nx);
-  int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local, 
+  int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local,
                                      void * HIS_storage_shared);
 
   int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
@@ -183,7 +183,7 @@ int hyperspherical_forwards_recurrence_chunk(int K,
   int hyperspherical_Hermite6_interpolation_vector_Phid2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *Phi,double *d2Phi, ErrorMsg error_message);
   int hyperspherical_Hermite6_interpolation_vector_dPhid2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *dPhi,double *d2Phi, ErrorMsg error_message);
   int hyperspherical_Hermite6_interpolation_vector_PhidPhid2Phi(HyperInterpStruct *pHIS,int nxi,int lnum,double *xinterp,double *Phi,double *dPhi,double *d2Phi, ErrorMsg error_message);
-  
+
 
 #ifdef __cplusplus
 }

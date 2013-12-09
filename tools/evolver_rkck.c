@@ -1,19 +1,19 @@
 #include "evolver_rkck.h"
 
-int evolver_rk(int (*derivs)(double x, 
-				  double * y, 
-				  double * dy, 
+int evolver_rk(int (*derivs)(double x,
+				  double * y,
+				  double * dy,
 				  void * parameters_and_workspace,
 				  ErrorMsg error_message),
 		    double x_ini,
 		    double x_end,
-		    double * y, 
+		    double * y,
 		    int * used_in_output,
 		    int y_size,
 		    void * parameters_and_workspace_for_derivs,
-		    double tolerance, 
+		    double tolerance,
 		    double minimum_variation,
-		    int (*evaluate_timescale)(double x, 
+		    int (*evaluate_timescale)(double x,
 					      void * parameters_and_workspace,
 					      double * timescale,
 					      ErrorMsg error_message),
@@ -21,13 +21,13 @@ int evolver_rk(int (*derivs)(double x,
 		    double * x_sampling,
 		    int x_size,
 		    int (*output)(double x,
-				  double y[], 
+				  double y[],
 				  double dy[],
 				  int index_x,
 				  void * parameters_and_workspace,
 				  ErrorMsg error_message),
 		    int (*print_variables)(double x,
-					   double y[], 
+					   double y[],
 					   double dy[],
 					   void * parameters_and_workspace,
 					   ErrorMsg error_message),
@@ -42,30 +42,30 @@ int evolver_rk(int (*derivs)(double x,
   class_test(x_ini > x_sampling[x_size-1],
 	     error_message,
 	     "called with x=%e, last x_sampling=%e",x_ini,x_sampling[x_size-1]);
-  
+
   next_index_x=0;
 
-  while (x_sampling[next_index_x] < x_ini) next_index_x++; 
+  while (x_sampling[next_index_x] < x_ini) next_index_x++;
 
   class_call(initialize_generic_integrator(y_size, &gi),
 	     gi.error_message,
 	     error_message);
-  
+
   class_alloc(dy,y_size*sizeof(double),error_message);
 
   x1=x_ini;
 
   call_output = _FALSE_;
-  
+
   while ((x1 < x_end) && (next_index_x<x_size)) {
-   
-    class_call((*evaluate_timescale)(x1, 
+
+    class_call((*evaluate_timescale)(x1,
 				     parameters_and_workspace_for_derivs,
 				     &timescale,
 				     error_message),
 	       error_message,
 	       error_message);
-    
+
     timestep = timestep_over_timescale * timescale;
 
     class_test(fabs(timestep/x1) < minimum_variation,
@@ -75,7 +75,7 @@ int evolver_rk(int (*derivs)(double x,
     if (x1 + 2.* timestep < x_sampling[next_index_x]) {
       x2 = x1 + timestep;
     }
-    else {  
+    else {
       x2 = x_sampling[next_index_x];
       call_output = _TRUE_;
     }
@@ -106,7 +106,7 @@ int evolver_rk(int (*derivs)(double x,
 		 error_message,
 		 error_message);
     }
-    
+
     class_call(generic_integrator(derivs,
 				  x1,
 				  x2,
@@ -117,7 +117,7 @@ int evolver_rk(int (*derivs)(double x,
 				  &gi),
 	       gi.error_message,
 	       error_message);
-    
+
     if (call_output == _TRUE_) {
 
       class_call((*derivs)(x2,
@@ -127,7 +127,7 @@ int evolver_rk(int (*derivs)(double x,
 			   error_message),
 		 error_message,
 		 error_message);
-    
+
       class_call((*output)(x2,
 			   y,
 			   dy,
@@ -138,9 +138,9 @@ int evolver_rk(int (*derivs)(double x,
 		 error_message);
 
       call_output = _FALSE_;
-    
+
       next_index_x++;
-      
+
     }
 
     x1 = x2;
@@ -166,11 +166,11 @@ int evolver_rk(int (*derivs)(double x,
 				  error_message),
 	       error_message,
 	       error_message);
-  
+
   class_call(cleanup_generic_integrator(&gi),
 	     gi.error_message,
 	     error_message);
-  
+
   free(dy);
 
   return _SUCCESS_;

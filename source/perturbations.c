@@ -281,7 +281,7 @@ int perturb_init(
 
         /* integrating backwards is slightly more optimal for parallel runs */
         //for (index_k = 0; index_k < ppt->k_size; index_k++) {
-        for (index_k = ppt->k_size-1; index_k >=0; index_k--) {  
+        for (index_k = ppt->k_size-1; index_k >=0; index_k--) {
 
           if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
             printf("evolving mode k=%e /Mpc",ppt->k[index_k]);
@@ -1160,7 +1160,7 @@ int perturb_get_k_list(
   class_test(k_max<k_min,
              ppt->error_message,
              "buggy definition of k_min and/or k_max");
-  
+
   /* if K>0, the transfer function will be calculated for discrete
      integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
      m=0,1,2 for scalars/vectors/tensors. However we are free to
@@ -1170,12 +1170,12 @@ int perturb_get_k_list(
      from the value of k_min and the step size in thevicinity of
      k_min, we define exactly the same sampling in the three cases
      K=0, K<0, K>0 */
-  
+
   /* allocate array with, for the moment, the largest possible size */
   class_alloc(ppt->k,((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
                       (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
               *sizeof(double),ppt->error_message);
-    
+
   /* first value */
 
   index_k=0;
@@ -1192,10 +1192,10 @@ int perturb_get_k_list(
        horizon at recombination (associated to the comoving wavenumber
        k_rec) */
 
-    step = (ppr->k_step_super 
-            + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.) 
+    step = (ppr->k_step_super
+            + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
             * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
-    
+
     /* there is one other thing to take into account in the step
        size. There are two other characteristic scales that matter for
        the sampling: the Hubble scale today, k0=a0H0, and eventually
@@ -1205,7 +1205,7 @@ int perturb_get_k_list(
        first mutipoles accurate enough. The formula below reduces it
        gradually in the k-->0 limit, by up to a factor 10. The actual
        stepsize is still fixed by k_step_super, this is just a
-       reduction factor. */ 
+       reduction factor. */
 
     scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
 
@@ -1214,7 +1214,7 @@ int perturb_get_k_list(
     class_test(step / k < ppr->smallest_allowed_variation,
                ppt->error_message,
                "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
-     
+
     k += step;
 
     class_test(k <= ppt->k[index_k-1],
@@ -4624,13 +4624,13 @@ int perturb_sources(
         */
 
         /* newtonian gauge: more complicated form, but efficient numerically */
-         
+
         if (ppt->gauge == newtonian) {
-          _set_source_(ppt->index_tp_t0) = 
+          _set_source_(ppt->index_tp_t0) =
             ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
-            + ppt->switch_isw * (pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime] 
+            + ppt->switch_isw * (pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime]
                                  - pvecthermo[pth->index_th_g] * (pvecmetric[ppw->index_mt_psi] - y[ppw->pv->index_pt_phi]))
-            + ppt->switch_dop * (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b] 
+            + ppt->switch_dop * (pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b]
                                  + pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b])/k/k;
 
           _set_source_(ppt->index_tp_t1) = ppt->switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
@@ -4659,21 +4659,21 @@ int perturb_sources(
           a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
           a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
 
-          _set_source_(ppt->index_tp_t0) = 
+          _set_source_(ppt->index_tp_t0) =
             ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
-            + ppt->switch_isw * (pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime] 
-                                                                               - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha] 
+            + ppt->switch_isw * (pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime]
+                                                                               - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha]
                                                                                - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime])
-                                 + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta] 
-                                                                  - pvecmetric[ppw->index_mt_alpha_prime] 
+                                 + pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta]
+                                                                  - pvecmetric[ppw->index_mt_alpha_prime]
                                                                   - 2 * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]))
-            + ppt->switch_dop * (pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]) 
+            + ppt->switch_dop * (pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha])
                             + pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime]));
 
-          _set_source_(ppt->index_tp_t1) = 
+          _set_source_(ppt->index_tp_t1) =
             ppt->switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
 
-          _set_source_(ppt->index_tp_t2) = 
+          _set_source_(ppt->index_tp_t2) =
             ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
         }
 
@@ -4957,10 +4957,10 @@ int perturb_print_variables(double tau,
 
   double delta_temp=0., delta_chi=0.;
   double z, chi;
-  
+
   z = pba->a_today/ppw->pvecback[pba->index_bg_a]-1.;
   chi=pvecthermo[pth->index_th_xe];
-  
+
   if ((ppt->has_perturbed_recombination == _TRUE_) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off) ){
     delta_temp = y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
     delta_chi =y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
@@ -5082,7 +5082,7 @@ int perturb_print_variables(double tau,
 
         /* perturbed recombination */
         if (ppt->has_perturbed_recombination == _TRUE_){
-        
+
           fprintf(stdout,"%e   %e   ",
           delta_temp,
           delta_chi);
@@ -5352,38 +5352,38 @@ int perturb_derivs(double tau,
 /** perturbed recombination **/
 
       if ((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca]==(int)tca_off)){
-      
+
         delta_temp= y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
         delta_chi= y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
         chi=pvecthermo[pth->index_th_xe];
-        
+
         // Conversion of H0 in inverse seconds (pba->H0 is [H0/c] in inverse Mpcs)
         H0 = pba->H0 * _c_ / _Mpc_over_m_;
-        
+
         //Computation of Nnow in SI units
         Nnow = 3.*H0*H0*pba->Omega0_b*(1.-pth->YHe)/(8.*_PI_*_G_*_m_H_);
-        
+
         // total amount of hydrogen today
         n_H = (pba->a_today/a)*(pba->a_today/a)*(pba->a_today/a)* Nnow;
-        
+
         // Helium-to-hydrogen ratio
         fHe = pth->YHe / (_not4_*(1-pth->YHe));
-        
+
         // The constant such that rho_gamma = a_rad * T^4
         a_rad = 8./15.*pow(_PI_,5)*pow(_k_B_,4)/pow(_c_*_h_P_,3);
-        
+
         // Compton cooling rate in Mpc^(-1)
         Compton_CR = 8./3. *_sigma_ * a_rad /(_m_e_ * _c_ *_c_) *_Mpc_over_m_   ;
-        
+
         // Temperature is already in Kelvin
         Tb_in_K = pvecthermo[pth->index_th_Tb];
-        
+
         // Alpha in m^3/s, cf. Recfast paper
         alpha_rec = 1.14 * 4.309e-19*pow((Tb_in_K * 1e-4),-0.6166)/(1+0.6703*pow((Tb_in_K * 1e-4),0.53)) ;
-        
+
         // delta alpha, dimensionless
         delta_alpha_rec= (-0.6166 + 0.6703 * pow((Tb_in_K * 1e-4),0.53)*(-0.6166-0.53))/(1+0.6703*pow((Tb_in_K * 1e-4),0.53)) * delta_temp;
-      
+
       } // end of perturbed recombination related quantities
 
 

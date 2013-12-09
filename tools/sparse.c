@@ -44,18 +44,18 @@ int sp_num_alloc(sp_num** N, int n, ErrorMsg error_message){
 		error_message,error_message);
 	class_call(sp_mat_alloc(&((*N)->U), n, n, maxnz, error_message),
 		error_message,error_message);
-	class_alloc((*N)->xi,n*sizeof(int*),error_message); 
+	class_alloc((*N)->xi,n*sizeof(int*),error_message);
 	/* I really want xi to be a vector of pointers to vectors. */
 	class_alloc((*N)->xi[0],n*n*sizeof(int),error_message);
-	for (k=1;k<n;k++)	(*N)->xi[k] = (*N)->xi[k-1]+n; 
+	for (k=1;k<n;k++)	(*N)->xi[k] = (*N)->xi[k-1]+n;
 	/*Assign pointers to rows.*/
 	class_alloc((*N)->topvec,n*sizeof(int),error_message);
 	class_alloc((*N)->pinv,n*sizeof(int),error_message);
 	class_alloc((*N)->p,n*sizeof(int),error_message);
 	/* Has to be n+1 because sp_amd uses it for storage:*/
-	class_alloc((*N)->q,(n+1)*sizeof(int),error_message); 
+	class_alloc((*N)->q,(n+1)*sizeof(int),error_message);
 	class_alloc((*N)->w,n*sizeof(double),error_message);
-	class_alloc((*N)->wamd,(8*(n+1))*sizeof(int),error_message);	
+	class_alloc((*N)->wamd,(8*(n+1))*sizeof(int),error_message);
 	return _SUCCESS_;
 }
 
@@ -110,7 +110,7 @@ int sp_splsolve(sp_mat *G, sp_mat *B, int k, int*xik, int top, double *x, int *p
 	Gp = G->Ap; Gi = G->Ai; Gx = G->Ax;
 	Bp = B->Ap; Bi = B->Ai; Bx = B->Ax;
 	n = G->ncols;
-	
+
 	for (p=top; p<n; p++) x[xik[p]] = 0;
 	for (p=Bp[k];p<Bp[k+1];p++) x[Bi[p]] = Bx[p];
 	for (px=top; px<n; px++){
@@ -139,13 +139,13 @@ int sp_ludcmp(sp_num *N, sp_mat *A, double pivtol){
 	for (i=0; i<n; i++) x[i]=0;
 	for (i=0; i<n; i++) pinv[i] = -1;
 	for (k=0; k<=n; k++) Lp[k] = 0;
-	
+
 	for(k=0; k<n; k++){
 		/* Triangular solve: */
 		Lp[k] = lnz;
 		Up[k] = unz;
 		col = q ? (q[k]) : k;
-		
+
 		top = reachr(N->L, A, col, N->xi[k], pinv);
 		N->topvec[k] = top;
 		sp_splsolve(N->L, A, col, N->xi[k], top, x, pinv);
@@ -244,7 +244,7 @@ int sp_refactor(sp_num *N, sp_mat *A){
 		Lp[k] = lnz;
 		Up[k] = unz;
 		col = q ? (q[k]) : k;
-		
+
 		top = N->topvec[k];
 		sp_splsolve(N->L, A, col, N->xi[k], top, x, pinv);
 		/* Assign values to U and L: */
@@ -285,12 +285,12 @@ int column_grouping(sp_mat *G, int *col_g, int *filled){
   Ai = G->Ai; Ap = G->Ap;
   for(i=0;i<neq;i++)
     col_g[i]=-1;
-  
+
   for(groupnum=0; groupnum<neq; groupnum++){
     //Reset filled vector:
     for (i=0; i<neq; i++){
       filled[i] = 0;
-    } 
+    }
     //Try to assign remaining columns to current group:
     done = _TRUE_;
     for (testcol=0; testcol<neq; testcol++){
@@ -329,13 +329,13 @@ int sp_amd(int *Cp, int *Ci, int n, int nzmax, int *P, int *W){
 	int dense, mindeg=0, nvi, nvj, nvk, mark, wnvi, ok, nel=0;
 	int p, p1, p2, p3, p4, pj, pk, pk1, pk2, pn, q, cnz;
 	unsigned int h;
-	/*	I assume that the sparse matrix C is symmetrix (C = A + A' in our case) 
+	/*	I assume that the sparse matrix C is symmetrix (C = A + A' in our case)
 		and that the diagonal elements has been removed. C must be large enough,
 		C->max_nonzero >= (6/5)*(C->Ap[n]) + 2n. Work array W must be 8*(n+1).
 	*/
 	dense = MAX(16,10*sqrt((double) n));
 	dense = MIN(n-2,dense);
-	cnz = Cp[n]; 
+	cnz = Cp[n];
 	/*	Assign pointers to positions in work array:*/
 	len = W;
 	nv = W+(n+1);
@@ -625,4 +625,4 @@ int sp_tdfs(int j, int k, int *head, const int *next, int *post, int *stack){
 	return (k);
 }
 
-	
+
