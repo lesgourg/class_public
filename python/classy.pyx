@@ -722,8 +722,8 @@ cdef class Class:
                 data.mcmc_parameters[elem]['current'] = self.ba.m_ncdm_in_eV[0]
             elif elem == 'm_ncdm_tot':
                 data.mcmc_parameters[elem]['current'] = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
-            elif elem == 'N_eff':
-                data.mcmc_parameters[elem]['current'] = self.ba.N_eff
+            elif elem == 'Neff':
+                data.mcmc_parameters[elem]['current'] = self.ba.Neff
             elif elem == 'tau_reio':
                 data.mcmc_parameters[elem]['current'] = self.th.tau_reio
             elif elem == 'z_reio':
