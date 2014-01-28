@@ -544,6 +544,15 @@ cdef class Class:
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm
 
+    def Omega_b(self):
+        return self.ba.Omega0_b
+
+    def omega_b(self):
+        return self.ba.Omega0_b * self.ba.h * self.ba.h
+
+    def Neff(self):
+        return self.ba.Neff
+
     def sigma8(self):
         self.compute(["spectra"])
         return self.sp.sigma8
@@ -722,8 +731,8 @@ cdef class Class:
                 data.mcmc_parameters[elem]['current'] = self.ba.m_ncdm_in_eV[0]
             elif elem == 'm_ncdm_tot':
                 data.mcmc_parameters[elem]['current'] = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
-            elif elem == 'N_eff':
-                data.mcmc_parameters[elem]['current'] = self.ba.N_eff
+            elif elem == 'Neff':
+                data.mcmc_parameters[elem]['current'] = self.ba.Neff
             elif elem == 'tau_reio':
                 data.mcmc_parameters[elem]['current'] = self.th.tau_reio
             elif elem == 'z_reio':

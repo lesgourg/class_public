@@ -28,12 +28,15 @@ cdef extern from "class.h":
         double age
         double conformal_age
         double * m_ncdm_in_eV
-        double N_eff
+        double Neff
         double Omega0_b
         double Omega0_cdm
         double Omega0_ncdm_tot
         double Omega0_lambda
         double Omega0_fld
+        double w0_fld
+        double wa_fld
+        double cs2_fld
 
     cdef struct thermo:
         ErrorMsg error_message
