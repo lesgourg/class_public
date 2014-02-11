@@ -128,7 +128,7 @@ extern "C" {
   int output_open_cl_file(
 			  struct spectra * psp,
 			  struct output * pop,
-			  FILE * * clfile,
+			  FILE ** clfile,
 			  FileName filename,
 			  char * first_line,
 			  int lmax
@@ -148,7 +148,7 @@ extern "C" {
 			  struct background * pba,
 			  struct spectra * psp,
 			  struct output * pop,
-			  FILE * * pkfile,
+			  FILE ** pkfile,
 			  FileName filename,
 			  char * first_line,
 			  double z
@@ -164,7 +164,7 @@ extern "C" {
 			      struct background * pba,
 			      struct nonlinear * pnl,
 			      struct output * pop,
-			      FILE * * pkfile,
+			      FILE ** pkfile,
 			      FileName filename,
 			      char * first_line,
 			      double z,
@@ -176,7 +176,7 @@ extern "C" {
 			  struct perturbs * ppt,
 			  struct spectra * psp,
 			  struct output * pop,
-			  FILE * * tkfile,
+			  FILE ** tkfile,
 			  FileName filename,
 			  char * first_line,
 			  double z
@@ -192,7 +192,7 @@ extern "C" {
   int output_open_background_file(
 				  struct background * pba,
 				  struct output * pop,
-				  FILE * * backfile,
+				  FILE ** backfile,
 				  FileName filename
 				  );
 

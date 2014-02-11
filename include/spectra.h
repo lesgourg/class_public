@@ -42,7 +42,7 @@ struct spectra {
 
   int * ic_size;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
   int * ic_ic_size;      /**< for a given mode, ic_ic_size[index_md] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_md] */
-  short * * is_non_zero; /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
+  short ** is_non_zero; /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
   
   //@}
 
@@ -238,8 +238,8 @@ extern "C" {
                       struct spectra * psp,
                       double l,
                       double * cl,
-                      double * * cl_md,
-                      double * * cl_md_ic
+                      double ** cl_md,
+                      double ** cl_md_ic
                       );
 
   int spectra_pk_at_z(
