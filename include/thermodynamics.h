@@ -517,7 +517,8 @@ extern "C" {
 					 double * pvecback
 					 );
   
-  int thermodynamics_get_xe_before_reionization(struct precision * ppr,
+  int thermodynamics_get_xe_before_reionization(
+                                                struct precision * ppr,
 						struct thermo * pth,
 						struct recombination * preco,
 						double z,

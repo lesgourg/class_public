@@ -225,7 +225,8 @@ struct spectra {
 extern "C" {
 #endif
 
-  int spectra_bandpower(struct spectra * psp,
+  int spectra_bandpower(
+                        struct spectra * psp,
                         int l1,
                         int l2,
                         double * TT_II,
