@@ -34,6 +34,9 @@ cdef extern from "class.h":
         double Omega0_ncdm_tot
         double Omega0_lambda
         double Omega0_fld
+        double w0_fld
+        double wa_fld
+        double cs2_fld
 
     cdef struct thermo:
         ErrorMsg error_message

@@ -544,6 +544,15 @@ cdef class Class:
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm
 
+    def Omega_b(self):
+        return self.ba.Omega0_b
+
+    def omega_b(self):
+        return self.ba.Omega0_b * self.ba.h * self.ba.h
+
+    def Neff(self):
+        return self.ba.Neff
+
     def sigma8(self):
         self.compute(["spectra"])
         return self.sp.sigma8
