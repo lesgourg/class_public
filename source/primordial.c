@@ -2002,7 +2002,8 @@ int primordial_external_spectrum_init(
   }
   /* otherwise pass the list of arguments */
   else {
-    sprintf(arguments, " %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g",
+    //    sprintf(arguments, " %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g",
+    sprintf(arguments, " %g %g %g %g %g %g %g %g %g %g",
             ppm->custom1, ppm->custom2, ppm->custom3, ppm->custom4, ppm->custom5,
             ppm->custom6, ppm->custom7, ppm->custom8, ppm->custom9, ppm->custom10);      
   }
