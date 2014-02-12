@@ -414,7 +414,7 @@ int primordial_init(
 
     class_test(0==0,
                ppm->error_message,
-               "only analytic and inflation_V primordial spectrum coded yet");
+               "only analytic, external and inflation_V primordial spectrum coded yet");
 
   }     
 
@@ -1967,14 +1967,14 @@ int primordial_inflation_derivs(
 }
 
 /**
- * This function runs the command provided in the input file, reads its output,
- * and prepares the spline interpolation framework, such that the function
- * primordial_external_spectrum() can be called at any time to obtain the
- * spectrum at any k
+ * This routine reads the primordial spectrum from an external command,
+ * and stores the tabulated values.
+ * The sampling of the k's given by the external command is preserved.
  * 
  * Author: Jesus Torrado (torradocacho@lorentz.leidenuniv.nl)
- * Date:   2013-07-22
+ * Date:   2013-12-20
  *
+ * @param ppm  Input/output: pointer to perturbs structure 
  * @param ppm  Input/output: pointer to primordial structure 
  * @return the error status
  */
@@ -1988,40 +1988,42 @@ int primordial_external_spectrum_init(
   char line[_LINE_LENGTH_MAX_];
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
   FILE *process;
-  int n_data = 0;
-  double *k = NULL, *pks = NULL, *pkt = NULL;
+  int n_data_guess, n_data = 0;
+  double *k = NULL, *pks = NULL, *pkt = NULL, *tmp = NULL;
   double this_k, this_pks, this_pkt;
   int status;
   int index_k;
 
-  /** 1. Run the command */
-
+  /** 1. Initialization */
+  /* Prepare the data (with some initial size) */
+  n_data_guess = 100;
+  k   = (double *)malloc(n_data_guess*sizeof(double));
+  pks = (double *)malloc(n_data_guess*sizeof(double));
+  if (ppt->has_tensors == _TRUE_)
+    pkt = (double *)malloc(n_data_guess*sizeof(double));
+  /* Prepare the command */
   /* If the command is just a "cat", no arguments need to be passed */
   if(strncmp("cat ", ppm->command, 4) == 0) {
     sprintf(arguments, " ");
   }
   /* otherwise pass the list of arguments */
   else {
-    //    sprintf(arguments, " %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g %.18g",
     sprintf(arguments, " %g %g %g %g %g %g %g %g %g %g",
             ppm->custom1, ppm->custom2, ppm->custom3, ppm->custom4, ppm->custom5,
             ppm->custom6, ppm->custom7, ppm->custom8, ppm->custom9, ppm->custom10);      
   }
-
   /* write the actual command in a string */
   sprintf(command_with_arguments, "%s %s", ppm->command, arguments);
-
   if (ppm->primordial_verbose > 0)
     printf(" -> running: %s\n",command_with_arguments);
 
+  /** 2. Launch the command and retrieve the output */
   /* Launch the process */
   process = popen(command_with_arguments, "r");
   class_test(process == NULL,
              ppm->error_message,
              "The program failed to set the environment for the external command. Maybe you ran out of memory.");
-
-  /** 2. read output and store */
-
+  /* Read output and store it */
   while (fgets(line, sizeof(line)-1, process) != NULL) {
     if (ppt->has_tensors == _TRUE_) {
       sscanf(line, "%lf %lf %lf", &this_k, &this_pks, &this_pkt);
@@ -2029,94 +2031,109 @@ int primordial_external_spectrum_init(
     else {
       sscanf(line, "%lf %lf", &this_k, &this_pks);
     }
-
-    n_data++;
-    k  = (double *)realloc(k,  n_data*sizeof(double));
-    k [n_data-1] = this_k;
-    pks = (double *)realloc(pks, n_data*sizeof(double));
-    pks[n_data-1] = this_pks;
+    /* Standard technique in C: if too many data, double the size of the vectors */
+    /* (it is faster and safer that reallocating every new line) */
+    if((n_data+1) > n_data_guess) {
+      n_data_guess *= 2;
+      tmp = (double *)realloc(k,   n_data_guess*sizeof(double));
+      class_test(tmp == NULL,
+                 ppm->error_message,
+                 "Error allocating memory to read the external spectrum.\n");
+      k = tmp;
+      tmp = (double *)realloc(pks, n_data_guess*sizeof(double));
+      class_test(tmp == NULL,
+                 ppm->error_message,
+                 "Error allocating memory to read the external spectrum.\n");
+      pks = tmp;
+      if (ppt->has_tensors == _TRUE_) {
+        tmp = (double *)realloc(pkt, n_data_guess*sizeof(double));
+        class_test(tmp == NULL,
+                   ppm->error_message,
+                   "Error allocating memory to read the external spectrum.\n");
+        pkt = tmp;
+      };
+    };
+    /* Store */
+    k  [n_data]   = this_k;
+    pks[n_data]   = this_pks;
     if (ppt->has_tensors == _TRUE_) {
-      pkt = (double *)realloc(pkt, n_data*sizeof(double));
-      pkt[n_data-1] = this_pkt;
+      pkt[n_data] = this_pkt;
     }
-      
-    // Check ascending order of the k's !
+    n_data++;
+    /* Check ascending order of the k's */
     if(n_data>1) {
       class_test(k[n_data-1] <= k[n_data-2],
                  ppm->error_message,
-                 "The k's are not strictly sorted in ascending order, as it is required for the calculation of the splines.\n");
-      
+                 "The k's are not strictly sorted in ascending order, "
+                 "as it is required for the calculation of the splines.\n");
     }
-    
-    // uncomment to print all values of the external Pk table
-    //fprintf(stderr,"%s --> %.18g %.18g--> [%d] : %.18g %.18g\n", line, this_k, this_pk, n_data-1, k[n_data-1], pk[n_data-1]);
-    
   }
- 
+  /* Close the process */
+  status = pclose(process);
+  class_test(status != 0.,
+             ppm->error_message,
+             "The attempt to launch the external command was unsuccessful. "
+             "Try doing it by hand to check for errors.");
+  /* Test limits of the k's */
+  class_test(k[1] > ppt->k[0],
+             ppm->error_message,
+             "Your table for the primordial spectrum does not have "
+             "at least 2 points before the minimum value of k: %e . "
+             "The splines interpolation would not be safe.",ppt->k[0]);
+  class_test(k[n_data-2] < ppt->k[ppt->k_size-1],
+             ppm->error_message,
+             "Your table for the primordial spectrum does not have "
+             "at least 2 points after the maximum value of k: %e . "
+             "The splines interpolation would not be safe.",ppt->k[ppt->k_size-1]);
+
+  /** 3. Store the read results into CLASS structures */
   ppm->lnk_size = n_data;
-    
+  /** Make room */
   class_realloc(ppm->lnk,
                 ppm->lnk,
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
-
   class_realloc(ppm->lnpk[ppt->index_md_scalars],
                 ppm->lnpk[ppt->index_md_scalars],
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
-
   class_realloc(ppm->ddlnpk[ppt->index_md_scalars],
                 ppm->ddlnpk[ppt->index_md_scalars],
                 ppm->lnk_size*sizeof(double),
                 ppm->error_message);
-    
   if (ppt->has_tensors == _TRUE_) {
+    class_realloc(ppm->lnpk[ppt->index_md_tensors],
+                  ppm->lnpk[ppt->index_md_tensors],
+                  ppm->lnk_size*sizeof(double),
+                  ppm->error_message);
     class_realloc(ppm->ddlnpk[ppt->index_md_tensors],
                   ppm->ddlnpk[ppt->index_md_tensors],
                   ppm->lnk_size*sizeof(double),
                   ppm->error_message);
-  }
-
+  };
+  /** Store them */
   for (index_k=0; index_k<ppm->lnk_size; index_k++) {
     ppm->lnk[index_k] = log(k[index_k]);
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(pks[index_k]);
-    if (ppt->has_tensors == _TRUE_) {
+    if (ppt->has_tensors == _TRUE_)
       ppm->lnpk[ppt->index_md_tensors][index_k] = log(pkt[index_k]);
-    }
-
-    //fprintf(stderr,"%d  %e  %e\n",index_k,ppm->lnk[index_k],ppm->lnpk[ppt->index_md_scalars][index_k]);
-  }
-
-  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
-  if (ppt->has_tensors == _TRUE_) {
-    ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
-  }
-  
-  /** 3. Close the process */
-
-  status = pclose(process);
-
-  class_test(status != 0.,
-             ppm->error_message,
-             "The attempt to launch the external command was unsuccessful. Try doing it by hand to check for errors.");
-
-  /** 4. Testing limits and sampling of the k's */
-
-  class_test(k[1] > ppt->k[0],
-             ppm->error_message,
-             "your table for the primordial spectrum does not have at least 2 points before the minimum value of k: %e . The splines interpolation would not be safe.",ppt->k[0]);
-
-  class_test(k[n_data-2] < ppt->k[ppt->k_size-1],
-             ppm->error_message,
-             "your table for the primordial spectrum does not have at least 2 points after the maximum value of k: %e . The splines interpolation would not be safe.",ppt->k[ppt->k_size-1]);
-  
-  /** 5. Release the memory used locally */
-
+    /* DEBUG (with tensors)
+    fprintf(stderr,"Storing[%d(+1) of %d]: \n k = %g == %g\n pks = %g == %g\n pkt = %g == %g\n",
+            index_k, n_data,
+            ppm->lnk[index_k], log(k[index_k]),
+            ppm->lnpk[ppt->index_md_scalars][index_k], log(pks[index_k]),
+            ppm->lnpk[ppt->index_md_tensors][index_k], log(pkt[index_k]));
+    */
+  };
+  /** Release the memory used locally */
   free(k);
   free(pks);
-  if (ppt->has_tensors == _TRUE_)  
+  if (ppt->has_tensors == _TRUE_)
     free(pkt);
+  /** Tell CLASS that the are scalar (and tensor) modes */
+  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
+  if (ppt->has_tensors == _TRUE_)
+    ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
 
   return _SUCCESS_;
-  
 }

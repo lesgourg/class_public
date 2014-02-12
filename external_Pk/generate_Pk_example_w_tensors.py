@@ -15,8 +15,10 @@ from math import exp
 
 try :
     k_0           = float(sys.argv[1])
-    A             = float(sys.argv[2])
+    A_s           = float(sys.argv[2])
     n_s           = float(sys.argv[3])
+    A_t           = float(sys.argv[4])
+    n_t           = float(sys.argv[5])
 
 # Error control, no need to touch
 except IndexError :
@@ -28,8 +30,11 @@ except ValueError :
 # 2. The function giving P(k), including the necessary import statements.
 #    Inside this function, you can use the parameters named in the previous step.
 
-def P(k) :
-    return A * (k/k_0)**(n_s-1.)
+def P_s(k) :
+    return A_s * (k/k_0)**(n_s-1.)
+
+def P_t(k) :
+    return A_t * (k/k_0)**(n_t)
 
 # 3. Limits for k and precision:
 #    Check that the boundaries are correct for your case.
@@ -50,6 +55,5 @@ while ks[-1] <= float(k_max) :
 
 # Filling the array of Pk's
 for k in ks :
-    P_k = P(k)
-    print "%.18g %.18g" % (k, P_k)
+    print "%.18g %.18g %.18g" % (k, P_s(k), P_t(k))
 
