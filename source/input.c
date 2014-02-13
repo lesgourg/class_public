@@ -738,8 +738,19 @@ int input_init(
   if (ppt->has_perturbations == _TRUE_) {
 
     /* perturbed recombination */
-    class_read_int("has_perturbed_recombination",ppt->has_perturbed_recombination);
+    class_call(parser_read_string(pfc,
+                                  "perturbed recombination",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
 
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+      ppt->has_perturbed_recombination = _TRUE_;
+    }
+
+    /* modes */
     class_call(parser_read_string(pfc,"modes",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -1943,6 +1954,8 @@ int input_default_params(
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
+
+  ppt->has_perturbed_recombination=_FALSE_;
 
   ppt->has_scalars=_TRUE_;
   ppt->has_vectors=_FALSE_;

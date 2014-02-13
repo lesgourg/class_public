@@ -713,9 +713,11 @@ int perturb_timesampling_for_sources(
 
   /** (a) if CMB requested, first sampling point = when the universe
       stops being opaque; otherwise, start sampling gravitational
-      potential at recombination */
-
-  /* If perturbed recombination is requested, we also need to start the system before recombination. Otherwise, the initial conditions for gas temperature and ionization fraction perturbations (delta_T = 1/3 delta_b, delta_x_e) are not valid. */
+      potential at recombination [however, if perturbed recombination
+      is requested, we also need to start the system before
+      recombination. Otherwise, the initial conditions for gas
+      temperature and ionization fraction perturbations (delta_T = 1/3
+      delta_b, delta_x_e) are not valid]. */
 
   if ((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) {
 
@@ -4853,6 +4855,7 @@ int perturb_print_variables(double tau,
   double delta_ur=0.,theta_ur=0.,shear_ur=0.;
   int n_ncdm;
   double phi=0.,psi=0.;
+  double delta_temp=0., delta_chi=0.;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -4868,8 +4871,6 @@ int perturb_print_variables(double tau,
   pvecmetric = ppw->pvecmetric;
 
   /** perturbed recombination **/
-
-  double delta_temp=0., delta_chi=0.;
 
   if ((ppt->has_perturbed_recombination == _TRUE_) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off) ){
     delta_temp = y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
