@@ -232,7 +232,7 @@ int perturb_init(
     sz = sizeof(struct perturb_workspace);
 
 #pragma omp parallel                            \
-  shared(pppw,ppr,pba,pth,ppt,index_md,abort)\
+  shared(pppw,ppr,pba,pth,ppt,index_md,abort)   \
   private(thread)
 
     {
@@ -267,7 +267,7 @@ int perturb_init(
       abort = _FALSE_;
 
 #pragma omp parallel                                    \
-  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort)\
+  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort)  \
   private(index_k,thread,tstart,tstop,tspent)
 
       {
@@ -496,7 +496,7 @@ int perturb_indices_of_perturbs(
   class_define_index(ppt->index_tp_p,ppt->has_source_p,index_type,1);
   index_type_common = index_type;
 
-/* indices for perturbed recombination */
+  /* indices for perturbed recombination */
 
   class_define_index(ppt->index_tp_perturbed_recombination_delta_temp,ppt->has_perturbed_recombination,index_type,1);
   class_define_index(ppt->index_tp_perturbed_recombination_delta_chi,ppt->has_perturbed_recombination,index_type,1);
@@ -1263,15 +1263,15 @@ int perturb_get_k_list(
 
   /* For testing, can be useful to print the k list in a file:
 
-  FILE * out=fopen("output/k","w");
+     FILE * out=fopen("output/k","w");
 
-  for (index_k=0; index_k < ppt->k_size; index_k++) {
+     for (index_k=0; index_k < ppt->k_size; index_k++) {
 
-    fprintf(out,"%e %e\n",ppt->k[index_k],pba->K);
+     fprintf(out,"%e %e\n",ppt->k[index_k],pba->K);
 
-  }
+     }
 
-  fclose(out);
+     fclose(out);
   */
 
   return _SUCCESS_;
@@ -2773,24 +2773,24 @@ int perturb_vector_init(
             }
           }
 
-/* perturbed recombination */
-/* the initial conditions are set when tca is switched off (current block) */
+          /* perturbed recombination */
+          /* the initial conditions are set when tca is switched off (current block) */
           if (ppt->has_perturbed_recombination == _TRUE_){
             ppv->y[ppv->index_pt_perturbed_recombination_delta_temp] = 1./3.*ppv->y[ppw->pv->index_pt_delta_b];
             ppv->y[ppv->index_pt_perturbed_recombination_delta_chi] =0.;
           }
 
-      }  // end of block tca ON -> tca OFF
+        }  // end of block tca ON -> tca OFF
 
-/* perturbed recombination */
-/* For any other transition in the approximation scheme, we should just copy the value of the perturbations, provided tca is already off (otherwise the indices are not yet allocated). For instance, we do not want to copy the values in the (k,tau) region where both UFA and TCA are engaged.*/
+        /* perturbed recombination */
+        /* For any other transition in the approximation scheme, we should just copy the value of the perturbations, provided tca is already off (otherwise the indices are not yet allocated). For instance, we do not want to copy the values in the (k,tau) region where both UFA and TCA are engaged.*/
 
-      if ((ppt->has_perturbed_recombination == _TRUE_)&&(pa_old[ppw->index_ap_tca]==(int)tca_off)){
-        ppv->y[ppv->index_pt_perturbed_recombination_delta_temp] =
-        ppw->pv->y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
-        ppv->y[ppv->index_pt_perturbed_recombination_delta_chi] =
-        ppw->pv->y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
-      }
+        if ((ppt->has_perturbed_recombination == _TRUE_)&&(pa_old[ppw->index_ap_tca]==(int)tca_off)){
+          ppv->y[ppv->index_pt_perturbed_recombination_delta_temp] =
+            ppw->pv->y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
+          ppv->y[ppv->index_pt_perturbed_recombination_delta_chi] =
+            ppw->pv->y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
+        }
 
 
         /* -- case of switching on radiation streaming
@@ -4668,7 +4668,7 @@ int perturb_sources(
                                                                   - pvecmetric[ppw->index_mt_alpha_prime]
                                                                   - 2 * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]))
             + ppt->switch_dop * (pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha])
-                            + pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime]));
+                                 + pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime]));
 
           _set_source_(ppt->index_tp_t1) =
             ppt->switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime] + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha] - y[ppw->pv->index_pt_eta]);
@@ -4697,11 +4697,11 @@ int perturb_sources(
 
         /* what should you write if you wanted EVERYTHING BUT the ISW contribution? */
         /*
-             if (ppt->gauge == newtonian) {
-             _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi]);
-             _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
-             _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
-             }
+          if (ppt->gauge == newtonian) {
+          _set_source_(ppt->index_tp_t0) = pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi]);
+          _set_source_(ppt->index_tp_t1) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
+          _set_source_(ppt->index_tp_t2) = pvecthermo[pth->index_th_g] * P;
+          }
         */
         /*
           if (ppt->gauge == synchronous) {
@@ -4953,7 +4953,7 @@ int perturb_print_variables(double tau,
   pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
 
-/** perturbed recombination **/
+  /** perturbed recombination **/
 
   double delta_temp=0., delta_chi=0.;
   double z, chi;
@@ -4971,9 +4971,9 @@ int perturb_print_variables(double tau,
   /** - print whatever you want for whatever mode of your choice */
 
   if ((k>0.1)&&(k<0.102)){
-  //if ((k>=0.001) && (k<0.0011)) {
-  //if ((k>=0.060) && (k<0.062)) {
-  //if (_tensors_ && (pppaw->index_k == ppt->k_size-1)) {
+    //if ((k>=0.001) && (k<0.0011)) {
+    //if ((k>=0.060) && (k<0.062)) {
+    //if (_tensors_ && (pppaw->index_k == ppt->k_size-1)) {
 
     if _scalars_ {
 
@@ -5084,8 +5084,8 @@ int perturb_print_variables(double tau,
         if (ppt->has_perturbed_recombination == _TRUE_){
 
           fprintf(stdout,"%e   %e   ",
-          delta_temp,
-          delta_chi);
+                  delta_temp,
+                  delta_chi);
         }
 
 
@@ -5248,7 +5248,7 @@ int perturb_derivs(double tau,
   double cb2,cs2,ca2;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.,metric_ufa_class=0.;
 
-/* perturbed recombination (just to simplify the notation) */
+  /* perturbed recombination (just to simplify the notation) */
 
   double H0=0.,Nnow=0.,n_H=0.,fHe=0.;
   double delta_temp=0.,delta_chi=0., chi=0.;
@@ -5349,7 +5349,7 @@ int perturb_derivs(double tau,
 
 
 
-/** perturbed recombination **/
+      /** perturbed recombination **/
 
       if ((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca]==(int)tca_off)){
 
@@ -5438,10 +5438,10 @@ int perturb_derivs(double tau,
 
       /** (e) if some approximation schemes are turned on, enforce a few y[] values computed in perturb_einstein */
 
-    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on) {
-      delta_g = ppw->rsa_delta_g;
-      theta_g = ppw->rsa_theta_g;
-    }
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on) {
+        delta_g = ppw->rsa_delta_g;
+        theta_g = ppw->rsa_theta_g;
+      }
 
       /** (d) BEGINNING OF ACTUAL SYSTEM OF EQUATIONS OF EVOLUTION: */
 
@@ -5604,18 +5604,18 @@ int perturb_derivs(double tau,
 
       }
 
-/* perturbed recombination */
-/* computes the derivatives of delta x_e and delta T_b */
+      /* perturbed recombination */
+      /* computes the derivatives of delta x_e and delta T_b */
 
-if((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca] == (int)tca_off)){
+      if((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca] == (int)tca_off)){
 
-    // alpha * n_H is in inverse seconds, so we have to multiply it by Mpc_in_sec
-    dy[ppw->pv->index_pt_perturbed_recombination_delta_chi] = - alpha_rec* a * chi*n_H  *(delta_alpha_rec + delta_chi + delta_b) * _Mpc_over_m_ / _c_ ;
+        // alpha * n_H is in inverse seconds, so we have to multiply it by Mpc_in_sec
+        dy[ppw->pv->index_pt_perturbed_recombination_delta_chi] = - alpha_rec* a * chi*n_H  *(delta_alpha_rec + delta_chi + delta_b) * _Mpc_over_m_ / _c_ ;
 
-    // see the documentation for this formula
-    dy[ppw->pv->index_pt_perturbed_recombination_delta_temp] =  2./3. * dy[ppw->pv->index_pt_delta_b] - a * Compton_CR * pow(pba->T_cmb/a, 4) * chi / (1.+chi+fHe) * ( (1.-pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb])*(delta_g + delta_chi*(1.+fHe)/(1.+chi+fHe)) + pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb] *(delta_temp - 1./4. * delta_g) );
+        // see the documentation for this formula
+        dy[ppw->pv->index_pt_perturbed_recombination_delta_temp] =  2./3. * dy[ppw->pv->index_pt_delta_b] - a * Compton_CR * pow(pba->T_cmb/a, 4) * chi / (1.+chi+fHe) * ( (1.-pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb])*(delta_g + delta_chi*(1.+fHe)/(1.+chi+fHe)) + pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb] *(delta_temp - 1./4. * delta_g) );
 
-}
+      }
 
 
 
