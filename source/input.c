@@ -670,7 +670,8 @@ int input_init(
       ppt->has_cls = _TRUE_;
     }
 
-    if ((strstr(string1,"dCl") != NULL) || (strstr(string1,"DCl") != NULL) || (strstr(string1,"DCL") != NULL)) {
+    if ((strstr(string1,"nCl") != NULL) || (strstr(string1,"NCl") != NULL) || (strstr(string1,"NCL") != NULL) ||
+        (strstr(string1,"dCl") != NULL) || (strstr(string1,"DCl") != NULL) || (strstr(string1,"DCL") != NULL)) {
       ppt->has_cl_density=_TRUE_;
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
@@ -730,6 +731,36 @@ int input_init(
                  "In the field 'output', you selected CMB temperature, but in the field 'temperature contributions', you removed all contributions");
 
       class_read_double("early/late isw redshift",ppt->eisw_lisw_split_z);
+
+    }
+
+  }
+
+  if (ppt->has_cl_density == _TRUE_) {
+
+    class_call(parser_read_string(pfc,"number count contributions",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+
+      ppt->has_dCl_density = _FALSE_;
+      ppt->has_dCl_rsd = _FALSE_;
+      ppt->has_dCl_lensing = _FALSE_;
+      ppt->has_dCl_gr = _FALSE_;
+
+      if (strstr(string1,"density") != NULL)
+        ppt->has_dCl_density = _TRUE_;
+      if (strstr(string1,"rsd") != NULL)
+        ppt->has_dCl_rsd = _TRUE_;
+      if (strstr(string1,"lensing") != NULL)
+        ppt->has_dCl_lensing = _TRUE_;
+      if (strstr(string1,"gr") != NULL)
+        ppt->has_dCl_gr = _TRUE_;
+
+      class_test((ppt->has_dCl_density == _FALSE_) && (ppt->has_dCl_rsd == _FALSE_) && (ppt->has_dCl_lensing == _FALSE_) && (ppt->has_dCl_gr == _FALSE_),
+                 errmsg,
+                 "In the field 'output', you selected number count Cl's, but in the field 'number count contributions', you removed all contributions");
 
     }
 
@@ -1576,7 +1607,6 @@ int input_init(
   /** h.3. parameters related to the perturbations */
 
   class_read_int("evolver",ppr->evolver);
-  class_read_int("pk_definition",ppr->pk_definition);
 
   class_read_double("k_scalar_min_tau0",ppr->k_min_tau0); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_max_tau0_over_l_max",ppr->k_max_tau0_over_l_max); // obsolete precision parameter: read for compatibility with old precision files
@@ -2187,7 +2217,6 @@ int input_default_precision ( struct precision * ppr ) {
    */
 
   ppr->evolver = ndf15;
-  ppr->pk_definition = delta_m_squared;
 
   ppr->k_min_tau0=0.1;
   ppr->k_max_tau0_over_l_max=2.4; // very relevant for accuracy of lensed ClTT at highest l's

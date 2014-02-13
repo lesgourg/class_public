@@ -2378,10 +2378,10 @@ int spectra_pk(
 
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
 
-        if (ppt->has_source_delta_pk == _TRUE_) {
+        if (ppt->has_source_delta_m == _TRUE_) {
 
           source_ic1 = ppt->sources[index_md]
-            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_pk]
+            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
             [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
 
           psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
@@ -2412,14 +2412,14 @@ int spectra_pk(
 
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-            if (ppt->has_source_delta_pk == _TRUE_) {
+            if (ppt->has_source_delta_m == _TRUE_) {
 
               source_ic1 = ppt->sources[index_md]
-                [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_pk]
+                [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
                 [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
 
               source_ic2 = ppt->sources[index_md]
-                [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_pk]
+                [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
                 [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
 
             }
@@ -2909,4 +2909,3 @@ int spectra_matter_transfers(
 
   return _SUCCESS_;
 }
-

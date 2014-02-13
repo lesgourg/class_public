@@ -461,13 +461,14 @@ int perturb_indices_of_perturbs(
   ppt->has_source_t = _FALSE_;
   ppt->has_source_p = _FALSE_;
   ppt->has_source_g = _FALSE_;
-  ppt->has_source_delta_pk = _FALSE_;
+  ppt->has_source_delta_m = _FALSE_;
   ppt->has_source_delta_g = _FALSE_;
   ppt->has_source_delta_b = _FALSE_;
   ppt->has_source_delta_cdm = _FALSE_;
   ppt->has_source_delta_fld = _FALSE_;
   ppt->has_source_delta_ur = _FALSE_;
   ppt->has_source_delta_ncdm = _FALSE_;
+  ppt->has_source_theta_m = _FALSE_;
   ppt->has_source_theta_g = _FALSE_;
   ppt->has_source_theta_b = _FALSE_;
   ppt->has_source_theta_cdm = _FALSE_;
@@ -523,17 +524,15 @@ int perturb_indices_of_perturbs(
 
         /** - source flags and indices, for sources that are specific to scalars */
 
-        if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) ||
-            ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition == delta_tot_from_poisson_squared)) ||
-            (ppt->has_cl_density == _TRUE_) ||
-            (ppt->has_cl_lensing_potential)) {
+        if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_cl_lensing_potential)) {
           ppt->has_lss = _TRUE_;
           ppt->has_source_g = _TRUE_;
         }
 
-        if ((ppt->has_pk_matter == _TRUE_) && (ppr->pk_definition != delta_tot_from_poisson_squared)) {
+        if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_cl_density == _TRUE_)) {
           ppt->has_lss = _TRUE_;
-          ppt->has_source_delta_pk = _TRUE_;
+          ppt->has_source_delta_m = _TRUE_;
+          ppt->has_source_theta_m = _TRUE_;
         }
 
         if (ppt->has_density_transfers == _TRUE_) {
@@ -568,13 +567,14 @@ int perturb_indices_of_perturbs(
         class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
         class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
         class_define_index(ppt->index_tp_g,          ppt->has_source_g,         index_type,1);
-        class_define_index(ppt->index_tp_delta_pk,   ppt->has_source_delta_pk,  index_type,1);
+        class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
         class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
         class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_type,1);
         class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_type,1);
         class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
         class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
         class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
+        class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
         class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
         class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_type,1);
         class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_type,1);
@@ -1414,7 +1414,7 @@ int perturb_workspace_init(
 
   if _scalars_ {
 
-      if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
+      if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
 
         class_alloc(ppw->delta_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
         class_alloc(ppw->theta_ncdm,pba->N_ncdm*sizeof(double),ppt->error_message);
@@ -1453,7 +1453,7 @@ int perturb_workspace_free (
 
   if _scalars_ {
 
-      if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
+      if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
         free(ppw->delta_ncdm);
         free(ppw->theta_ncdm);
         free(ppw->shear_ncdm);
@@ -4161,6 +4161,21 @@ int perturb_einstein(
           - 4.5 * (a2/k2) * ppw->rho_plus_p_shear;
 
       }
+
+      /* transform (delta_m, theta_m) of the current gauge into
+         gauge-independent variables (you could comment this out if you
+         really want gauge-dependent results) */
+
+      if (ppt->has_source_delta_m == _TRUE_) {
+
+        ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+
+        if  (ppt->gauge == synchronous) {
+
+          ppw->theta_m += ppw->pvecmetric[ppw->index_mt_alpha]*k2;
+
+        }
+      }
     }
 
   /* nothing to be done for tensors: only one propagating degree of
@@ -4198,7 +4213,7 @@ int perturb_total_stress_energy(
   double rho_plus_p_ncdm;
   int index_q,n_ncdm,idx;
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
-  double rho_pk,delta_rho_pk;
+  double rho_m,delta_rho_m,rho_plus_p_m,rho_plus_p_theta_m;
   double w;
 
   /** - wavenumber and scale factor related quantities */
@@ -4326,7 +4341,7 @@ int perturb_total_stress_energy(
         rho_plus_p_ncdm = rho_ncdm_bg + p_ncdm_bg;
         w_ncdm = p_ncdm_bg/rho_ncdm_bg;
         cg2_ncdm = w_ncdm*(1.0-1.0/(3.0+3.0*w_ncdm)*(3.0*w_ncdm-2.0+pseudo_p_ncdm/p_ncdm_bg));
-        if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
+        if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
           ppw->delta_ncdm[n_ncdm] = y[idx];
           ppw->theta_ncdm[n_ncdm] = y[idx+1];
           ppw->shear_ncdm[n_ncdm] = y[idx+2];
@@ -4368,7 +4383,7 @@ int perturb_total_stress_energy(
         rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
         delta_p_ncdm *= factor/3.;
 
-        if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_)) {
+        if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
           ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
           ppw->theta_ncdm[n_ncdm] = rho_plus_p_theta_ncdm/
             (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
@@ -4384,67 +4399,68 @@ int perturb_total_stress_energy(
     }
   }
 
-  /* store delta_pk (for corresponding source function). Since the
-     matter power spectrum is usually defined in such way to include
-     only non-relativistic components, the sum over each species
-     contribution to delta_rho_pk and rho_pk must be done
-     'manually'. Only if the P(k) is defined from the total matter
-     overdensity we can use the delta_rho computed above.  */
+  /* store delta_m in the current gauge. In perturb_einstein, this
+     will be transformed later on into the gauge-independent variable D
+     = delta_m - 2H'/H \theta_m/k^2 .  */
 
-  if (ppt->has_source_delta_pk == _TRUE_) {
+  if (ppt->has_source_delta_m == _TRUE_) {
 
-    /* do the sum over species contributing to delta_pk */
+    /* include baryons and cold dark matter */
 
-    if ((ppr->pk_definition == delta_m_squared) ||
-        (ppr->pk_definition == delta_bc_squared)){
+    delta_rho_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
+    rho_m = ppw->pvecback[pba->index_bg_rho_b];
 
-      /* include baryons and cold dark matter */
-
-      delta_rho_pk = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
-      rho_pk = ppw->pvecback[pba->index_bg_rho_b];
-
-      if (pba->has_cdm == _TRUE_) {
-        delta_rho_pk += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
-        rho_pk += ppw->pvecback[pba->index_bg_rho_cdm];
-      }
-
-      /* include any other species non-relativistic today (like ncdm
-         species) */
-
-      if (ppr->pk_definition == delta_m_squared) {
-
-        if (pba->has_ncdm == _TRUE_) {
-
-          for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-
-            delta_rho_pk += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]*ppw->delta_ncdm[n_ncdm];
-            rho_pk += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-          }
-        }
-      }
-
-      /* infer delta_pk */
-
-      ppw->delta_pk = delta_rho_pk/rho_pk;
+    if (pba->has_cdm == _TRUE_) {
+      delta_rho_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
+      rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
     }
 
-    /* alternative: take directly into account all species in
-       delta_rho, and matter species in rho (final result differs
-       from delta_m_squared only for modes close to Hubble scale) */
+    /* include any other species non-relativistic today (like ncdm species) */
 
-    if (ppr->pk_definition == delta_tot_squared) {
+    if (pba->has_ncdm == _TRUE_) {
 
-      rho_pk = ppw->pvecback[pba->index_bg_rho_b];
-      if (pba->has_cdm == _TRUE_)
-        rho_pk += ppw->pvecback[pba->index_bg_rho_cdm];
-      if (pba->has_ncdm == _TRUE_) {
-        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          rho_pk += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-        }
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+
+        delta_rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]*ppw->delta_ncdm[n_ncdm];
+        rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
       }
-      ppw->delta_pk = ppw->delta_rho/rho_pk;
     }
 
+    /* infer delta_m */
+
+    ppw->delta_m = delta_rho_m/rho_m;
+
+  }
+
+  /* store theta_m in the current gauge. In perturb_einstein, this
+     will be transformed later on into the gauge-independent variable
+     Theta .  */
+
+  if (ppt->has_source_theta_m == _TRUE_) {
+
+    /* include baryons and cold dark matter */
+
+    rho_plus_p_theta_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
+    rho_plus_p_m = ppw->pvecback[pba->index_bg_rho_b];
+
+    if (pba->has_cdm == _TRUE_) {
+      if (ppt->gauge == newtonian)
+        rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
+      rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
+    }
+
+    /* include any other species non-relativistic today (like ncdm species) */
+
+    if (pba->has_ncdm == _TRUE_) {
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+        rho_plus_p_theta_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm])*ppw->theta_ncdm[n_ncdm];
+        rho_plus_p_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+      }
+    }
+
+    /* infer theta_m */
+
+    ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
   }
 
   return _SUCCESS_;
@@ -4687,9 +4703,9 @@ int perturb_sources(
           _set_source_(ppt->index_tp_g) = (pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2./k/k + pvecmetric[ppw->index_mt_alpha_prime]);
       }
 
-      /* total matter overdensity */
-      if (ppt->has_source_delta_pk == _TRUE_) {
-        _set_source_(ppt->index_tp_delta_pk) = ppw->delta_pk;
+      /* total matter overdensity (gauge-invariant, defined as in arXiv:1307.1459) */
+      if (ppt->has_source_delta_m == _TRUE_) {
+        _set_source_(ppt->index_tp_delta_m) = ppw->delta_m;
       }
 
       /* delta_g */
@@ -4725,6 +4741,11 @@ int perturb_sources(
         for (index_type = ppt->index_tp_delta_ncdm1; index_type < ppt->index_tp_delta_ncdm1+pba->N_ncdm; index_type++) {
           _set_source_(index_type) = ppw->delta_ncdm[index_type - ppt->index_tp_delta_ncdm1];
         }
+      }
+
+      /* total velocity (gauge-invariant, defined as in arXiv:1307.1459) */
+      if (ppt->has_source_theta_m == _TRUE_) {
+        _set_source_(ppt->index_tp_theta_m) = ppw->theta_m;
       }
 
       /* theta_g */
@@ -5016,7 +5037,7 @@ int perturb_print_variables(double tau,
 
         }
 
-        if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_pk == _TRUE_))) {
+        if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_))) {
           for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
             fprintf(stdout,"%e   %e   %e   ",
                     ppw->delta_ncdm[n_ncdm],
