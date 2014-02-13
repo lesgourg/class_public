@@ -5,7 +5,7 @@
 #ifndef __SPECTRA_NL__
 #define __SPECTRA_NL__
 
-/** 
+/**
  * possible initial conditions (so far, refers to the TRG method only:
  * these TRG initial conditions are explained in arXiv:1106.2607)
  */
@@ -16,14 +16,14 @@ enum non_linear_ic {nl_lin,nl_pt};
  * Structure containing all the non-linear information.
  *
  * Once initialised by spectra_init(), contains a table for all two points correlation functions
- * and for all the ai,bj functions (containing the three points correlation functions), for each 
+ * and for all the ai,bj functions (containing the three points correlation functions), for each
  * time and wave-number.
  */
 struct spectra_nl {
 
   /** @name - input parameters initialized by user in input module
       (all other quantities are computed in this module , given these parameters
-      and the content of the 'precision', 'background', 'thermo', 
+      and the content of the 'precision', 'background', 'thermo',
       'primordial' and 'spectra' structure */
 
   //@{
@@ -38,7 +38,7 @@ struct spectra_nl {
   enum non_linear_ic ic;        /**< set initial conditions to linear or PT (see arXiv:1106.2607) */
 
   //@}
-  
+
   /** @name - table of k values, and related quantities */
 
   //@{
@@ -96,13 +96,13 @@ struct spectra_nl {
 /********************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  /** 
+  /**
    * List of names for the different AA terms.
    */
 
@@ -124,20 +124,20 @@ extern "C" {
   };
 
   int trg_gamma_121(
-		    double k, 
-		    double p, 
-		    double q, 
+		    double k,
+		    double p,
+		    double q,
 		    double * result
 		    );
-  
+
   int trg_gamma_222(
-		    double k, 
-		    double p, 
+		    double k,
+		    double p,
 		    double q,
 		    double * result,
 		    char * errmsg
 		    );
-  
+
   int trg_p_ab_at_any_k(
 			struct spectra_nl * pnl,
 			double * p_ab,
@@ -149,21 +149,21 @@ extern "C" {
 
   int trg_A_arg_trg(
 		struct spectra_nl *pnl,
-		enum name_A name, 
-		double k, 
-		double p, 
-		double m, 
+		enum name_A name,
+		double k,
+		double p,
+		double m,
 		int index_eta,
-		double * result 
+		double * result
 		);
 
   int trg_A_arg_one_loop(
 			 struct spectra_nl * pnl,
-			 enum name_A name, 
-			 double k, 
-			 double p, 
-			 double m, 
-			 double * result 
+			 enum name_A name,
+			 double k,
+			 double p,
+			 double m,
+			 double * result
 			 );
 
   int trg_integrate_xy_at_eta(
@@ -176,12 +176,12 @@ extern "C" {
 			      double * result
 			      );
 
-  int trg_logstep1_k( 
+  int trg_logstep1_k(
 		    struct precision * ppr,
 		    double k,
 		    double * logstep);
 
-  int trg_logstep2_k( 
+  int trg_logstep2_k(
 		    struct precision * ppr,
 		    double k,
 		    double * logstep);
@@ -198,7 +198,7 @@ extern "C" {
   int trg_free(
 	       struct spectra_nl *pnl
 	       );
-      
+
 #ifdef __cplusplus
 }
 #endif

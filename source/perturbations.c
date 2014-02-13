@@ -232,7 +232,7 @@ int perturb_init(
     sz = sizeof(struct perturb_workspace);
 
 #pragma omp parallel                            \
-  shared(pppw,ppr,pba,pth,ppt,index_md,abort)	\
+  shared(pppw,ppr,pba,pth,ppt,index_md,abort)   \
   private(thread)
 
     {
@@ -267,7 +267,7 @@ int perturb_init(
       abort = _FALSE_;
 
 #pragma omp parallel                                    \
-  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort)	\
+  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort)  \
   private(index_k,thread,tstart,tstop,tspent)
 
       {
@@ -496,6 +496,14 @@ int perturb_indices_of_perturbs(
   class_define_index(ppt->index_tp_p,ppt->has_source_p,index_type,1);
   index_type_common = index_type;
 
+  /* indices for perturbed recombination */
+
+  class_define_index(ppt->index_tp_perturbed_recombination_delta_temp,ppt->has_perturbed_recombination,index_type,1);
+  class_define_index(ppt->index_tp_perturbed_recombination_delta_chi,ppt->has_perturbed_recombination,index_type,1);
+
+
+
+
   /** define k values with perturb_get_k_list() */
 
   class_call(perturb_get_k_list(ppr,
@@ -706,7 +714,10 @@ int perturb_timesampling_for_sources(
   /** (a) if CMB requested, first sampling point = when the universe
       stops being opaque; otherwise, start sampling gravitational
       potential at recombination */
-  if (ppt->has_cmb == _TRUE_) {
+
+  /* If perturbed recombination is requested, we also need to start the system before recombination. Otherwise, the initial conditions for gas temperature and ionization fraction perturbations (delta_T = 1/3 delta_b, delta_x_e) are not valid. */
+
+  if ((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) {
 
     /* using bisection, search time tau such that the ratio of thermo
        to Hubble time scales tau_c/tau_h=aH/kappa' is equal to
@@ -1560,12 +1571,10 @@ int perturb_solve(
     }
   }
 
-
   /** - maximum value of tau for which sources are calculated for this wavenumber */
 
   /* by default, today */
   tau_actual_size = ppt->tau_size;
-
 
   /** - using bisection, compute minimum value of tau for which this
       wavenumber is integrated */
@@ -1815,7 +1824,7 @@ int perturb_solve(
                                   points if you use the runge-kutta
                                   integrator, set evolver=rk) */
                                NULL,
-                               //perturb_print_variables,
+                               /*perturb_print_variables,*/
                                ppt->error_message),
                ppt->error_message,
                ppt->error_message);
@@ -2342,6 +2351,13 @@ int perturb_vector_init(
       class_define_index(ppv->index_pt_delta_fld,pba->has_fld,index_pt,1); /* fluid density */
       class_define_index(ppv->index_pt_theta_fld,pba->has_fld,index_pt,1); /* fluid velocity */
 
+      /* perturbed recombination: the indices are defined once tca is off. */
+      if ( (ppt->has_perturbed_recombination == _TRUE_) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off) ){
+        class_define_index(ppv->index_pt_perturbed_recombination_delta_temp,_TRUE_,index_pt,1);
+        class_define_index(ppv->index_pt_perturbed_recombination_delta_chi,_TRUE_,index_pt,1);
+      }
+
+
       /* ultra relativistic neutrinos */
 
       if (pba->has_ur && (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off)) {
@@ -2732,7 +2748,26 @@ int perturb_vector_init(
               }
             }
           }
+
+          /* perturbed recombination */
+          /* the initial conditions are set when tca is switched off (current block) */
+          if (ppt->has_perturbed_recombination == _TRUE_){
+            ppv->y[ppv->index_pt_perturbed_recombination_delta_temp] = 1./3.*ppv->y[ppw->pv->index_pt_delta_b];
+            ppv->y[ppv->index_pt_perturbed_recombination_delta_chi] =0.;
+          }
+
+        }  // end of block tca ON -> tca OFF
+
+        /* perturbed recombination */
+        /* For any other transition in the approximation scheme, we should just copy the value of the perturbations, provided tca is already off (otherwise the indices are not yet allocated). For instance, we do not want to copy the values in the (k,tau) region where both UFA and TCA are engaged.*/
+
+        if ((ppt->has_perturbed_recombination == _TRUE_)&&(pa_old[ppw->index_ap_tca]==(int)tca_off)){
+          ppv->y[ppv->index_pt_perturbed_recombination_delta_temp] =
+            ppw->pv->y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
+          ppv->y[ppv->index_pt_perturbed_recombination_delta_chi] =
+            ppw->pv->y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
         }
+
 
         /* -- case of switching on radiation streaming
            approximation. Provide correct initial conditions to new set
@@ -4832,6 +4867,21 @@ int perturb_print_variables(double tau,
   pvecback = ppw->pvecback;
   pvecmetric = ppw->pvecmetric;
 
+  /** perturbed recombination **/
+
+  double delta_temp=0., delta_chi=0.;
+  double z, chi;
+
+  z = pba->a_today/ppw->pvecback[pba->index_bg_a]-1.;
+  chi=pvecthermo[pth->index_th_xe];
+
+  if ((ppt->has_perturbed_recombination == _TRUE_) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off) ){
+    delta_temp = y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
+    delta_chi =y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
+  }
+
+
+
   /** - print whatever you want for whatever mode of your choice */
 
   //if ((k>0.1)&&(k<0.102)){
@@ -4944,6 +4994,15 @@ int perturb_print_variables(double tau,
                 pol2_g,
                 delta_b,
                 theta_b);
+
+        /* perturbed recombination */
+        if (ppt->has_perturbed_recombination == _TRUE_){
+
+          fprintf(stdout,"%e   %e   ",
+                  delta_temp,
+                  delta_chi);
+        }
+
 
         if (pba->has_ur == _TRUE_) {
 
@@ -5104,6 +5163,16 @@ int perturb_derivs(double tau,
   double cb2,cs2,ca2;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_ufa_class=0.;
 
+  /* perturbed recombination (just to simplify the notation) */
+
+  double H0=0.,Nnow=0.,n_H=0.,fHe=0.;
+  double delta_temp=0.,delta_chi=0., chi=0.;
+  double alpha_rec=0.,delta_alpha_rec=0.;
+  double compton_cooling_rate = 0.;
+  double a_rad=0., Compton_CR =0.;
+  double Tb_in_K=0.;
+
+
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
   double P2, gw_source_g;
 
@@ -5164,8 +5233,6 @@ int perturb_derivs(double tau,
   a = pvecback[pba->index_bg_a];
   a2 = a*a;
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
-  //a_primeprime_over_a = pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a;
-  //z = pba->a_today-1.;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
 
   /** Compute 'generalised cotK function of argument sqrt(|K|)*tau, for closing hierarchy.
@@ -5194,6 +5261,43 @@ int perturb_derivs(double tau,
       delta_b = y[pv->index_pt_delta_b];
       theta_b = y[pv->index_pt_theta_b];
       cb2 = pvecthermo[pth->index_th_cb2];
+
+      /** perturbed recombination **/
+
+      if ((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca]==(int)tca_off)){
+
+        delta_temp= y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
+        delta_chi= y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
+        chi=pvecthermo[pth->index_th_xe];
+
+        // Conversion of H0 in inverse seconds (pba->H0 is [H0/c] in inverse Mpcs)
+        H0 = pba->H0 * _c_ / _Mpc_over_m_;
+
+        //Computation of Nnow in SI units
+        Nnow = 3.*H0*H0*pba->Omega0_b*(1.-pth->YHe)/(8.*_PI_*_G_*_m_H_);
+
+        // total amount of hydrogen today
+        n_H = (pba->a_today/a)*(pba->a_today/a)*(pba->a_today/a)* Nnow;
+
+        // Helium-to-hydrogen ratio
+        fHe = pth->YHe / (_not4_*(1-pth->YHe));
+
+        // The constant such that rho_gamma = a_rad * T^4
+        a_rad = 8./15.*pow(_PI_,5)*pow(_k_B_,4)/pow(_c_*_h_P_,3);
+
+        // Compton cooling rate in Mpc^(-1)
+        Compton_CR = 8./3. *_sigma_ * a_rad /(_m_e_ * _c_ *_c_) *_Mpc_over_m_   ;
+
+        // Temperature is already in Kelvin
+        Tb_in_K = pvecthermo[pth->index_th_Tb];
+
+        // Alpha in m^3/s, cf. Recfast paper
+        alpha_rec = 1.14 * 4.309e-19*pow((Tb_in_K * 1e-4),-0.6166)/(1+0.6703*pow((Tb_in_K * 1e-4),0.53)) ;
+
+        // delta alpha, dimensionless
+        delta_alpha_rec= (-0.6166 + 0.6703 * pow((Tb_in_K * 1e-4),0.53)*(-0.6166-0.53))/(1+0.6703*pow((Tb_in_K * 1e-4),0.53)) * delta_temp;
+
+      } // end of perturbed recombination related quantities
 
       /** (c) get metric perturbations with perturb_einstein() */
       class_call(perturb_einstein(ppr,
@@ -5244,11 +5348,14 @@ int perturb_derivs(double tau,
 
       /** (e) if some approximation schemes are turned on, enforce a few y[] values computed in perturb_einstein */
 
-      /* free-streaming photon velocity */
-      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on)
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on) {
+        delta_g = ppw->rsa_delta_g;
         theta_g = ppw->rsa_theta_g;
+      }
 
       /** (d) BEGINNING OF ACTUAL SYSTEM OF EQUATIONS OF EVOLUTION: */
+
+      /* Note concerning perturbed recombination: $cb2*delta_b$ must be replaced everywhere by $cb2*(delta_b+delta_temp)$. If perturbed recombination is not required, delta_temp is equal to zero. */
 
       /** -> photon temperature density */
 
@@ -5267,10 +5374,12 @@ int perturb_derivs(double tau,
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
         /* without tca */
+
+        /** perturbed recombination has an impact **/
         dy[pv->index_pt_theta_b] =
           - a_prime_over_a*theta_b
           + metric_euler
-          + cb2*k2*delta_b
+          + k2*cb2*(delta_b+delta_temp)
           + R*pvecthermo[pth->index_th_dkappa]*(theta_g-theta_b);
 
       }
@@ -5282,9 +5391,10 @@ int perturb_derivs(double tau,
                    error_message,
                    error_message);
 
+        /** perturbed recombination has an impact **/
         dy[pv->index_pt_theta_b] =
           (-a_prime_over_a*theta_b
-           +k2*(cb2*delta_b+R*(delta_g/4.-s2_squared*ppw->tca_shear_g))
+           +k2*(cb2*(delta_b+delta_temp)+R*(delta_g/4.-s2_squared*ppw->tca_shear_g))
            +R*ppw->tca_slip)/(1.+R)
           +metric_euler;
 
@@ -5374,8 +5484,10 @@ int perturb_derivs(double tau,
 
           /** ----> in that case, only need photon velocity */
 
+
+          /** perturbed recombination has an impact **/
           dy[pv->index_pt_theta_g] =
-            -(dy[pv->index_pt_theta_b]+a_prime_over_a*theta_b-cb2*k2*delta_b)/R
+            -(dy[pv->index_pt_theta_b]+a_prime_over_a*theta_b-cb2*k2*(delta_b+delta_temp))/R
             +k2*(0.25*delta_g-s2_squared*ppw->tca_shear_g)+(1.+R)/R*metric_euler;
         }
       }
@@ -5397,6 +5509,19 @@ int perturb_derivs(double tau,
         if (ppt->gauge == synchronous) {
           dy[pv->index_pt_delta_cdm] = -metric_continuity; /* cdm density */
         }
+
+      }
+
+      /* perturbed recombination */
+      /* computes the derivatives of delta x_e and delta T_b */
+
+      if((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca] == (int)tca_off)){
+
+        // alpha * n_H is in inverse seconds, so we have to multiply it by Mpc_in_sec
+        dy[ppw->pv->index_pt_perturbed_recombination_delta_chi] = - alpha_rec* a * chi*n_H  *(delta_alpha_rec + delta_chi + delta_b) * _Mpc_over_m_ / _c_ ;
+
+        // see the documentation for this formula
+        dy[ppw->pv->index_pt_perturbed_recombination_delta_temp] =  2./3. * dy[ppw->pv->index_pt_delta_b] - a * Compton_CR * pow(pba->T_cmb/a, 4) * chi / (1.+chi+fHe) * ( (1.-pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb])*(delta_g + delta_chi*(1.+fHe)/(1.+chi+fHe)) + pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb] *(delta_temp - 1./4. * delta_g) );
 
       }
 
@@ -5801,6 +5926,9 @@ int perturb_tca_slip_and_shear(double * y,
   double cb2;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.;
 
+  /* perturbed recombination */
+  double delta_temp=0.;
+
   /* for use with curvature */
   double s2_squared;
 
@@ -5839,6 +5967,11 @@ int perturb_tca_slip_and_shear(double * y,
   delta_b = y[pv->index_pt_delta_b];
   theta_b = y[pv->index_pt_theta_b];
   cb2 = pvecthermo[pth->index_th_cb2];
+
+  /* perturbed recombination */
+  if ((ppt->has_perturbed_recombination == _TRUE_) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off) ){
+    delta_temp = y[pv->index_pt_perturbed_recombination_delta_temp];
+  }
 
   /** (b) define short-cut notations used only in tight-coupling approximation */
   tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
@@ -5936,7 +6069,8 @@ int perturb_tca_slip_and_shear(double * y,
      was already consistently included in CAMB) */
 
   /** -----> intermediate quantities for 2nd order tca: zero order for theta_b' = theta_g' */
-  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R) + metric_euler;
+  /** perturbed recombination has an impact **/
+  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*(delta_b+delta_temp)+R/4.*delta_g))/(1.+R) + metric_euler;
 
   /** -----> intermediate quantities for 2nd order tca: shear_g_prime at first order in tight-coupling */
   shear_g_prime=16./45.*(tau_c*(theta_prime+metric_shear_prime)+dtau_c*(theta_g+metric_shear));
@@ -5976,8 +6110,9 @@ int perturb_tca_slip_and_shear(double * y,
         +(
           a_primeprime_over_a*a_prime_over_a*((2.-3.*cb2)*R-2.)*theta_b/(1.+R)
           +a_prime_over_a*k2*(1.-3.*cb2)*theta_b/3./(1.+R)
-          +a_primeprime_over_a*k2*cb2*delta_b/(1.+R)
-          +k2*k2*(3.*cb2-1.)*cb2*delta_b/3./(1.+R)
+          /* perturbed recombination has an impact (next two lines) */
+          +a_primeprime_over_a*k2*cb2*(delta_b+delta_temp)/(1.+R)
+          +k2*k2*(3.*cb2-1.)*cb2*(delta_b+delta_temp)/3./(1.+R)
           +k2*k2*R*(3.*cb2-1.)*delta_g/12./(1.+R)
           +a_primeprime_over_a*k2*(2.+3.*R)*delta_g/4./(1.+R)
           +a_prime_over_a*a_prime_over_a*k2*((2.-3.*cb2)*R-1.)*delta_g/2./(1.+R)

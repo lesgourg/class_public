@@ -1,6 +1,6 @@
 /** @file cl.c Documented nonlinear module
  *
- * Benjamin Audren and Julien Lesgourgues, 21.12.2010    
+ * Benjamin Audren and Julien Lesgourgues, 21.12.2010
  *
  */
 
@@ -28,7 +28,7 @@ int nonlinear_pk_at_z(
     class_test(z !=0,
 	       pnl->error_message,
 	       "if you want the non-linear pk at z=%g, you must set the input parameter z_max_pk to at least this value",z);
-   
+
     for (index_k=0; index_k<pnl->k_size[0]; index_k++) {
 
       pz_density[index_k] = pnl->p_density[index_k];
@@ -53,9 +53,9 @@ int nonlinear_pk_at_z(
 					pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
-    
+
     if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
-      
+
       class_call(array_interpolate_spline(pnl->z,
 					  pnl->z_size,
 					  pnl->p_velocity,
@@ -68,7 +68,7 @@ int nonlinear_pk_at_z(
 					  pnl->error_message),
 		 pnl->error_message,
 		 pnl->error_message);
-      
+
       class_call(array_interpolate_spline(pnl->z,
 					  pnl->z_size,
 					  pnl->p_cross,
@@ -81,7 +81,7 @@ int nonlinear_pk_at_z(
 					  pnl->error_message),
 		 pnl->error_message,
 		 pnl->error_message);
-      
+
     }
   }
 
@@ -100,7 +100,7 @@ int nonlinear_pk_at_k_and_z(
 			    double * pk_cross,
 			    int * k_size_at_z
 			    ) {
-  
+
   double * pz_density;
   double * pz_velocity=NULL;
   double * pz_cross=NULL;
@@ -138,7 +138,7 @@ int nonlinear_pk_at_k_and_z(
 				      pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
-      
+
   class_call(array_interpolate_spline(pnl->k,
 				      *k_size_at_z,
 				      pz_density,
@@ -163,7 +163,7 @@ int nonlinear_pk_at_k_and_z(
 					pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
-    
+
     class_call(array_interpolate_spline(pnl->k,
 					*k_size_at_z,
 					pz_velocity,
@@ -186,7 +186,7 @@ int nonlinear_pk_at_k_and_z(
 					pnl->error_message),
 	       pnl->error_message,
 	       pnl->error_message);
-    
+
     class_call(array_interpolate_spline(pnl->k,
 					*k_size_at_z,
 					pz_cross,
@@ -221,7 +221,7 @@ int nonlinear_k_nl_at_z(
   class_test(z>pnl->z[0],
 	     pnl->error_message,
 	     "you want to interpolate at z=%g greater than zmax=%g\n",z,pnl->z[0]);
-	     
+
   if (pnl->z_size == 1) {
     *k_nl = pnl->k_nl[0];
   }
@@ -239,7 +239,7 @@ int nonlinear_k_nl_at_z(
 	       pnl->error_message,
 	       pnl->error_message);
   }
-  
+
   return _SUCCESS_;
 }
 
@@ -258,10 +258,10 @@ int nonlinear_init(
   int last_density;
   int last_cross;
   int last_velocity;
-  double * pk_ic=NULL;  /* array with argument 
+  double * pk_ic=NULL;  /* array with argument
 		      pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] */
 
-  double * pk_tot; /* array with argument 
+  double * pk_tot; /* array with argument
 		      pk_tot[index_k] */
   int index_ncdm;
 
@@ -311,7 +311,7 @@ int nonlinear_init(
     class_alloc(pnl->k_size,
 		pnl->z_size*sizeof(int),
 		pnl->error_message);
-    
+
     for (index_z=0; index_z < pnl->z_size; index_z++) {
       pnl->k_size[index_z] = psp->ln_k_size;
     }
@@ -354,10 +354,10 @@ int nonlinear_init(
 		 pnl->error_message);
 
       for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
-	
+
 	pnl->p_density[index_z*pnl->k_size[index_z]+index_k] = pk_tot[index_k];
 
-      }      
+      }
     }
 
     free(pk_tot);
@@ -388,7 +388,7 @@ int nonlinear_init(
 					  pnl->error_message),
 		 pnl->error_message,
 		 pnl->error_message);
-      
+
     }
   }
 
@@ -425,7 +425,7 @@ int nonlinear_init(
 	       pnl->error_message);
 
     /* copy non-linear spectrum in pnl */
-    
+
     pnl->z_size = (trg.eta_size-1)/2+1;
 
     class_calloc(pnl->k_size,
@@ -480,7 +480,7 @@ int nonlinear_init(
     }
 
     for (index_z=0; index_z<pnl->z_size; index_z++) {
-      
+
       pnl->z[index_z] = trg.z[2*index_z];
 
       for (index_k=0; index_k<pnl->k_size[0]; index_k++) {
@@ -498,7 +498,7 @@ int nonlinear_init(
        end. In order to have an even better intrpolation, would be
        better to extrapolate with a parabola rather than a
        constant. */
- 
+
     for (index_k=0; index_k<pnl->k_size[0]; index_k++) {
 
       last_density = pnl->p_density[index_k];
@@ -516,7 +516,7 @@ int nonlinear_init(
 	  pnl->p_cross[index_z*pnl->k_size[0]+index_k] = last_cross;
 	else
 	  last_cross = pnl->p_cross[index_z*pnl->k_size[0]+index_k];
-	
+
 	if (pnl->p_velocity[index_z*pnl->k_size[0]+index_k] == 0.)
 	  pnl->p_velocity[index_z*pnl->k_size[0]+index_k] = last_velocity;
 	else
@@ -565,7 +565,7 @@ int nonlinear_init(
     class_stop(pnl->error_message,
 		"Your non-linear method variable is set to %d, out of the range defined in nonlinear.h",pnl->method);
   }
-  
+
   return _SUCCESS_;
 }
 
@@ -675,13 +675,13 @@ int nonlinear_halofit(
 	       pnl->error_message,
 	       "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
 	       pnl->k[pnl->k_size[0]-1],
-	       pnl->z[index_z]);  
+	       pnl->z[index_z]);
 
     xlogr1 = log(R)/log(10.);
 
     /* maximum value of R in the bisection algorithm leading to the determination of R_nl */
     R=1./ppr->halofit_min_k_nonlinear;
-    
+
     /* corresponding value of sigma_R */
     sum1=0.;
     for (index_k=0; index_k < pnl->k_size[index_z]; index_k++) {
@@ -747,7 +747,7 @@ int nonlinear_halofit(
       d1 = -sum2/sum1;
       d2 = -sum2*sum2/sum1/sum1 - sum3/sum1;
       /* in original halofit, this is the end of the function wint() */
- 
+
       diff = sigma - 1.0;
       /*fprintf(stderr,"xlogr1 = %g, xlogr2 = %g, rmid = %g, diff: =%g, abs(diff) = %g\n",xlogr1,xlogr2,log10(rmid),diff,fabs(diff));*/
       if (diff>0.001){
@@ -772,23 +772,23 @@ int nonlinear_halofit(
     pnl->k_nl[index_z] = rknl;
 
     for (index_k = 0; index_k < pnl->k_size[index_z]; index_k++){
-      
+
       rk = pnl->k[index_k];
-      
+
       if (rk > ppr->halofit_min_k_nonlinear) {
-	
+
 	pk_lin = pnl->p_density[index_z*pnl->k_size[index_z]+index_k]*pow(pnl->k[index_k],3)*anorm;
-	
+
 	/* in original halofit, this is the beginning of the function halofit() */
-	
+
 	/*SPB11: Standard halofit underestimates the power on the smallest
 	   * scales by a factor of two. Add an extra correction from the
 	   * simulations in Bird, Viel,Haehnelt 2011 which partially accounts for
 	   * this.*/
-	
+
 	extragam = 0.3159 -0.0765*rneff -0.8350*rncur;
 	gam=extragam+0.86485+0.2989*rneff+0.1631*rncur;
-	
+
 	a=1.4861+1.83693*rneff+1.67618*rneff*rneff+0.7940*rneff*rneff*rneff+0.1670756*rneff*rneff*rneff*rneff-0.620695*rncur;
 	a=pow(10,a);
 	b=pow(10,(0.9463+0.9466*rneff+0.3084*rneff*rneff-0.940*rncur));
@@ -803,8 +803,8 @@ int nonlinear_halofit(
 	  f3a=pow(Omega_m,(0.0725));
 	  f1b=pow(Omega_m,(-0.0307));
 	  f2b=pow(Omega_m,(-0.0585));
-	  f3b=pow(Omega_m,(0.0743));     
-	  frac=Omega_v/(1.-Omega_m); 
+	  f3b=pow(Omega_m,(0.0743));
+	  frac=Omega_v/(1.-Omega_m);
 	  f1=frac*f1b + (1-frac)*f1a;
 	  f2=frac*f2b + (1-frac)*f2a;
 	  f3=frac*f3b + (1-frac)*f3a;
@@ -814,19 +814,19 @@ int nonlinear_halofit(
 	  f2=1.;
 	  f3=1.;
 	}
-	
+
 	y=(rk/rknl);
 	pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
 	pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(2.080-12.39*(Omega0_m-0.3))/(1+1.201e-03*pow(y,3)));
 	pk_linaa=pk_lin*(1+fnu*26.29*pow(rk,2)/(1+1.5*pow(rk,2)));
 	pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
-	
+
 	pnl->p_density[index_z*pnl->k_size[index_z]+index_k] = (pk_halo+pk_quasi)/pow(pnl->k[index_k],3)/anorm;
-	
+
 	/* in original halofit, this is the end of the function halofit() */
       }
     }
-  }						
+  }
   free(pvecback);
   free(integrand_array);
   return _SUCCESS_;

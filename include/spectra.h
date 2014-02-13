@@ -9,8 +9,8 @@
  * Structure containing everything about anisotropy and Fourier power spectra that other modules need to know.
  *
  * Once initialized by spectra_init(), contains a table of all
- * C_l's and P(k) as a function of multipole/wavenumber, 
- * mode (scalar/tensor...), type (for C_l's: TT, TE...), 
+ * C_l's and P(k) as a function of multipole/wavenumber,
+ * mode (scalar/tensor...), type (for C_l's: TT, TE...),
  * and pairs of initial conditions (adiabatic, isocurvatures...).
  */
 
@@ -24,26 +24,26 @@ struct spectra {
   //@{
 
   double z_max_pk;  /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
-  
+
 
   int non_diag; /**< sets the number of cross-correlation spectra
                    that you want to calculate: 0 means only
                    auto-correlation, 1 means only adjacent bins,
                    and number of bins minus one means all
                    correlations */
-  
+
   //@}
 
   /** @name - information on number of modes and pairs of initial conditions */
 
   //@{
- 
+
   int md_size;           /**< number of modes (scalar, tensor, ...) included in computation */
 
   int * ic_size;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
   int * ic_ic_size;      /**< for a given mode, ic_ic_size[index_md] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_md] */
   short ** is_non_zero; /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
-  
+
   //@}
 
   /** @name - information on number of type of C_l's (TT, TE...) */
@@ -114,7 +114,7 @@ struct spectra {
                     better interpolation with no boundary effects */
 
   double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
-  double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */ 
+  double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */
 
   double alpha_II_2_20;
   double alpha_RI_2_20;
@@ -153,28 +153,28 @@ struct spectra {
   double * ln_pk;   /**< Matter power spectrum.
                        depends on indices index_md, index_ic1, index_ic2, index_k as:
                        ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
-                       where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
+                       where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
                        the primordial spectrum is symmetric in (index_ic1, index_ic2)).
                        - for diagonal elements (index_ic1 = index_ic2) this arrays contains
                        ln[P(k)] where P(k) is positive by construction.
-                       - for non-diagonal elements this arrays contains the k-dependent 
+                       - for non-diagonal elements this arrays contains the k-dependent
                        cosine of the correlation angle, namely
                        P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-                       This choice is convenient since the sign of the non-diagonal cross-correlation 
+                       This choice is convenient since the sign of the non-diagonal cross-correlation
                        is arbitrary. For fully correlated or anti-correlated initial conditions,
                        this non-diagonal element is independent on k, and equal to +1 or -1.
                     */
 
-  double * ddln_pk; /**< second derivative of above array with respect to log(tau), for spline interpolation. So: 
+  double * ddln_pk; /**< second derivative of above array with respect to log(tau), for spline interpolation. So:
                        - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
                        good since this function is usually smooth.
-                       - for non-diagonal coefficients, we spline  
+                       - for non-diagonal coefficients, we spline
                        P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
                        vs. ln(k), which is fine since this quantity is often assumed to be
                        constant (e.g for fully correlated/anticorrelated initial conditions)
                        or nearly constant, and with arbitrary sign.
                     */
-  
+
   double sigma8;    /**< sigma8 parameter */
 
   int index_tr_delta_g;        /**< index of gamma density transfer function */
@@ -193,12 +193,12 @@ struct spectra {
   int index_tr_theta_tot;      /**< index of total matter velocity transfer function */
   int tr_size;                 /**< total number of species in transfer functions */
 
-  double * matter_transfer;   /**< Matter transfer functions.  
+  double * matter_transfer;   /**< Matter transfer functions.
                                  Depends on indices index_md,index_tau,index_ic,index_k, index_tr as:
                                  matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr]
                               */
   double * ddmatter_transfer; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
-  
+
   /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations betzeen various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
 
   /* double * LTdCl; /\**< cross (temperature * density) Cl's in the Limber plus thin shell approximation; depends on index_tau,index_l as: LTdCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
@@ -219,7 +219,7 @@ struct spectra {
 /*************************************************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -245,7 +245,7 @@ extern "C" {
   int spectra_pk_at_z(
                       struct background * pba,
                       struct spectra * psp,
-                      enum linear_or_logarithmic mode, 
+                      enum linear_or_logarithmic mode,
                       double z,
                       double * output_tot,
                       double * output_ic
@@ -321,7 +321,7 @@ extern "C" {
                          double * transfer_ic1,
                          double * transfer_ic2
                          );
-  
+
   int spectra_k_and_tau(
                         struct background * pba,
                         struct perturbs * ppt,
@@ -334,14 +334,14 @@ extern "C" {
                  struct primordial * ppm,
                  struct spectra * psp
                  );
-  
+
   int spectra_sigma(
                     struct background * pba,
                     struct primordial * ppm,
                     struct spectra * psp,
                     double R,
                     double z,
-                    double *sigma 
+                    double *sigma
                     );
 
   int spectra_matter_transfers(

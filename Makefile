@@ -38,7 +38,7 @@ OMPFLAG   = -fopenmp
 CCFLAG = -g -fPIC
 LDFLAG = -g -fPIC
 
-# leave blank to compile without HyRec, or put path to HyRec directory 
+# leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
 HYREC = hyrec
 
@@ -61,7 +61,7 @@ vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
 INCLUDES += -I../hyrec
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o 
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
 endif
 
 %.o:  %.c .base
@@ -79,7 +79,7 @@ BACKGROUND = background.o
 
 THERMO = thermodynamics.o
 
-PERTURBATIONS = perturbations.o 
+PERTURBATIONS = perturbations.o
 
 TRANSFER = transfer.o
 

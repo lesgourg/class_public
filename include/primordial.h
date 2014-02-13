@@ -38,7 +38,7 @@ enum potential_shape {
 
 struct primordial {
 
-  /** @name - input parameters initialized by user in input module 
+  /** @name - input parameters initialized by user in input module
       (all other quantitites are computed in this module, given these parameters
       and the content of the 'precision' and 'perturbs' structures) */
 
@@ -158,22 +158,22 @@ struct primordial {
 
   double ** lnpk;  /**< depends on indices index_md, index_ic1, index_ic2, index_k as:
                       lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]
-                      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since 
+                      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
                       the primordial spectrum is symmetric in (index_ic1, index_ic2)).
                       - for diagonal elements (index_ic1 = index_ic2) this arrays contains
                       ln[P(k)] where P(k) is positive by construction.
-                      - for non-diagonal elements this arrays contains the k-dependent 
+                      - for non-diagonal elements this arrays contains the k-dependent
                       cosine of the correlation angle, namely
                       P(k )_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-                      This choice is convenient since the sign of the non-diagonal cross-correlation 
+                      This choice is convenient since the sign of the non-diagonal cross-correlation
                       is arbitrary. For fully correlated or anti-correlated initial conditions,
                       this non -diagonal element is independent on k, and equal to +1 or -1.
-                   */ 
+                   */
 
-  double ** ddlnpk; /**< second derivative of above array, for spline interpolation. So: 
+  double ** ddlnpk; /**< second derivative of above array, for spline interpolation. So:
                        - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
                        good since this function is usually smooth.
-                       - for non-diagonal coefficients, we spline  
+                       - for non-diagonal coefficients, we spline
                        P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
                        vs. ln(k), which is fine since this quantity is often assumed to be
                        constant (e.g for fully correlated/anticorrelated initial conditions)
@@ -181,7 +181,7 @@ struct primordial {
                     */
 
   short ** is_non_zero; /**< is_non_zero[index_md][index_ic1_ic2] set to false if pair
-                           (index_ic1, index_ic2) is uncorrelated 
+                           (index_ic1, index_ic2) is uncorrelated
                            (ensures more precision and saves time with respect to the option
                            of simply setting P(k)_(index_ic1, index_ic2) to zero) */
 
@@ -216,11 +216,11 @@ struct primordial {
   int in_bg_size;       /**< size of vector of background quantitites only */
   int in_size;          /**< full size of vector */
 
-  //@}                                                                                                                                                        
+  //@}
 
   /** @name - derived parameters */
 
-  //@{  
+  //@{
 
   double phi_min;        /**< in inflationary module, value of phi when k_min=aH */
   double phi_max;        /**< in inflationary module, value of phi when k_max=aH */
@@ -260,16 +260,17 @@ struct primordial_inflation_parameters_and_workspace {
 /*************************************************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
   int primordial_spectrum_at_k(
+<<<<<<< HEAD
                                struct primordial * ppm,
                                int index_md,
-                               enum linear_or_logarithmic mode, 
+                               enum linear_or_logarithmic mode,
                                double k,
                                double * pk
                                );
@@ -279,11 +280,30 @@ extern "C" {
                       struct perturbs   * ppt,
                       struct primordial * ppm
                       );
-    
+
   int primordial_free(
                       struct primordial * ppm
                       );
-    
+
+=======
+			       struct primordial * ppm,
+			       int index_md,
+			       enum linear_or_logarithmic mode,
+			       double k,
+			       double * pk
+			       );
+
+  int primordial_init(
+		      struct precision  * ppr,
+		      struct perturbs   * ppt,
+		      struct primordial * ppm
+		      );
+
+  int primordial_free(
+		      struct primordial * ppm
+		      );
+
+>>>>>>> perturbed_recombination
   int primordial_indices(
                          struct perturbs   * ppt,
                          struct primordial * ppm
@@ -395,14 +415,14 @@ extern "C" {
                                         struct perturbs * ppt,
                                         struct primordial * ppm
                                         );
-  
+
 #ifdef __cplusplus
 }
 #endif
 
 /**************************************************************/
 
-/**  
+/**
  * @name Some limits imposed on parameter values:
  */
 

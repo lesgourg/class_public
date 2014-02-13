@@ -1,6 +1,6 @@
 /** @file bessel.c Documented Bessel module.
  *
- * Julien Lesgourgues, 26.08.2010    
+ * Julien Lesgourgues, 26.08.2010
  *
  * This module loads spherical Bessel functions
  * (either read from file or computed from scratch).
@@ -14,8 +14,8 @@
 
 #include "bessel.h"
 
-/** 
- * Bessel function for arbitrary argument x. 
+/**
+ * Bessel function for arbitrary argument x.
  *
  * Evaluates the spherical Bessel function x at a given value of x by
  * interpolating in the pre-computed table.  This function can be
@@ -36,7 +36,7 @@ int bessel_at_x(
 		double * j
 		) {
 
-  
+
   /** Summary: */
 
   /** - define local variables */
@@ -72,10 +72,10 @@ int bessel_at_x(
 
     /** (b) find result with the splint algorithm (equivalent to the one in numerical recipies, although terms are rearranged differently to minimize number of operations) */
     a = (*(pbs->x_min[index_l])+pbs->x_step*(index_x+1) - x)/pbs->x_step;
-    *j= a * pbs->j[index_l][index_x] 
+    *j= a * pbs->j[index_l][index_x]
       + (1.-a) * ( pbs->j[index_l][index_x+1]
 		   - a * ((a+1.) * pbs->ddj[index_l][index_x]
-			  +(2.-a) * pbs->ddj[index_l][index_x+1]) 
+			  +(2.-a) * pbs->ddj[index_l][index_x+1])
 		   * pbs->x_step * pbs->x_step / 6.0);
   }
 
@@ -88,7 +88,7 @@ int bessel_at_x(
  * from scratch).
  *
  * Each table of spherical Bessel functions \f$ j_l(x) \f$ corresponds
- * to a set of values for: 
+ * to a set of values for:
  *
  * -# pbs->l[index_l]: list of l values l of size pbs->l_size
  * -# pbs->x_step: step dx for sampling Bessel functions \f$ j_l(x) \f$
@@ -96,7 +96,7 @@ int bessel_at_x(
  * -# pbs->j_cut: value of \f$ j_l \f$ below which it is approximated by zero (in the region x << l)
  *
  * This function checks whether there is alread a file "bessels.dat"
- * with the same l's, x_step, x_max, j_cut). 
+ * with the same l's, x_step, x_max, j_cut).
  * If yes, it fills the table of bessel functions (and
  * their second derivatives, needed for spline interpolation) with the
  * values read from the file. If not, it computes all values using
@@ -105,7 +105,7 @@ int bessel_at_x(
  * runs).
  *
  * @param ppr Input : pointer to precision strucutre
- * @param pbs Output: initialized bessel structure 
+ * @param pbs Output: initialized bessel structure
  * @return the error status
  */
 
@@ -133,11 +133,11 @@ int bessel_init(
 
   /* bessels.dat file */
   FILE * bessel_file;
-  
+
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the
      parallel region. */
   int abort;
 
@@ -185,7 +185,7 @@ int bessel_init(
   if (pbs->bessel_always_recompute == _FALSE_) {
 
     bessel_file=fopen(ppr->bessel_file_name,"r");
-  
+
     if (bessel_file == NULL) {
       if (pbs->bessels_verbose > 1)
 	printf("File %s did not exist.\n",ppr->bessel_file_name);
@@ -226,7 +226,7 @@ int bessel_init(
 	while ((pbs->l[index_l] == l_file[index_l]) && (index_l < pbs->l_size-1)) {
 	  index_l++;
 	}
-	if (pbs->l[pbs->l_size-1] == l_file[pbs->l_size-1]) 
+	if (pbs->l[pbs->l_size-1] == l_file[pbs->l_size-1])
 	  index_l++;
       }
 
@@ -237,10 +237,10 @@ int bessel_init(
 	  (j_cut_file == pbs->j_cut) &&
 	  (x_max_file == pbs->x_max) &&
 	  (has_dj_file == pbs->has_dj)) {
-	
+
 	if (pbs->bessels_verbose > 0)
 	  printf("Read bessels in file %s\n",ppr->bessel_file_name);
-	
+
 	class_alloc(pbs->x_size,pbs->l_size*sizeof(int*),pbs->error_message);
 	class_alloc(pbs->x_min,pbs->l_size*sizeof(double*),pbs->error_message);
 	class_alloc(pbs->buffer,pbs->l_size*sizeof(double*),pbs->error_message);
@@ -258,7 +258,7 @@ int bessel_init(
 	pbs->x_size_max=0;
 
 	for (index_l=0; index_l < pbs->l_size; index_l++) {
-	  
+
 	  if (pbs->x_size[index_l] > pbs->x_size_max)
 	    pbs->x_size_max=pbs->x_size[index_l];
 
@@ -272,7 +272,7 @@ int bessel_init(
 	  class_alloc(pbs->buffer[index_l],
 		      (1+num_j*pbs->x_size[index_l])*sizeof(double),
 		      pbs->error_message);
-    
+
 	  pbs->x_min[index_l] = pbs->buffer[index_l];
 	  pbs->j[index_l] = pbs->buffer[index_l]+1;
 	  pbs->ddj[index_l] = pbs->j[index_l]+pbs->x_size[index_l];
@@ -302,7 +302,7 @@ int bessel_init(
 	    class_test(fread(pbs->dddj[index_l],sizeof(double),pbs->x_size[index_l],bessel_file) != pbs->x_size[index_l],
 		       pbs->error_message,
 		       "Could not read in bessel file");
-	    
+
 	  }
 	}
 
@@ -334,13 +334,13 @@ int bessel_init(
 
   /* initialize error management flag */
   abort = _FALSE_;
-  
+
   /* beginning of parallel region */
 
 #pragma omp parallel				\
   shared(ppr,pbs,abort)				\
   private(index_l,tstart,tstop)
-  
+
   {
 
 #ifdef _OPENMP
@@ -355,9 +355,9 @@ int bessel_init(
       class_call_parallel(bessel_j_for_l(ppr,pbs,index_l),
 			  pbs->error_message,
 			  pbs->error_message);
-	
+
 #pragma omp flush(abort)
-		  
+
     } /* end of loop over l */
 
 #ifdef _OPENMP
@@ -416,7 +416,7 @@ int bessel_init(
  *
  * To be called at the end of each run.
  *
- * @param pbs Input : Initialized bessel structure 
+ * @param pbs Input : Initialized bessel structure
  * @return the error status
  */
 
@@ -440,10 +440,10 @@ int bessel_free(
     }
     free(pbs->x_size);
     free(pbs->l);
-    
+
   }
 
-  return _SUCCESS_; 
+  return _SUCCESS_;
 }
 
 /**
@@ -455,7 +455,7 @@ int bessel_free(
  *
  *
  * @param ppr Input : pointer to precision structure
- * @param pbs Input/Output : pointer to besseld structure (result stored here) 
+ * @param pbs Input/Output : pointer to besseld structure (result stored here)
  * @return the error status
  */
 
@@ -475,17 +475,17 @@ int bessel_get_l_list(
   index_l = 0;
   current_l = 2;
   increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
-    
-  while (((current_l+increment) < pbs->l_max) && 
+
+  while (((current_l+increment) < pbs->l_max) &&
 	 (increment < ppr->l_linstep)) {
-      
+
     index_l ++;
     current_l += increment;
     increment = MAX((int)(current_l * (ppr->l_logstep-1.)),1);
 
   }
 
-  /** - when the logarithmic step becomes larger than some linear step, 
+  /** - when the logarithmic step becomes larger than some linear step,
       stick to this linear step till l_max */
 
   increment = ppr->l_linstep;
@@ -504,7 +504,7 @@ int bessel_get_l_list(
     index_l ++;
     current_l = pbs->l_max;
 
-  } 
+  }
 
   pbs->l_size = index_l+1;
 
@@ -517,13 +517,13 @@ int bessel_get_l_list(
   pbs->l[0] = 2;
   increment = MAX((int)(pbs->l[0] * (ppr->l_logstep-1.)),1);
 
-  while (((pbs->l[index_l]+increment) < pbs->l_max) && 
+  while (((pbs->l[index_l]+increment) < pbs->l_max) &&
 	 (increment < ppr->l_linstep)) {
-      
+
     index_l ++;
     pbs->l[index_l]=pbs->l[index_l-1]+increment;
     increment = MAX((int)(pbs->l[index_l] * (ppr->l_logstep-1.)),1);
- 
+
   }
 
   increment = ppr->l_linstep;
@@ -532,16 +532,16 @@ int bessel_get_l_list(
 
     index_l ++;
     pbs->l[index_l]=pbs->l[index_l-1]+increment;
- 
+
   }
 
   if (pbs->l[index_l] != pbs->l_max) {
 
     index_l ++;
     pbs->l[index_l]= pbs->l_max;
-       
+
   }
-  
+
   return _SUCCESS_;
 
 }
@@ -555,7 +555,7 @@ int bessel_get_l_list(
  * Then, sample it with step x_step till x_max.
  *
  * @param ppr Input : pointer to precision structure
- * @param pbs Input/Output : pointer to bessel structure (store result here) 
+ * @param pbs Input/Output : pointer to bessel structure (store result here)
  * @return the error status
  */
 
@@ -564,7 +564,7 @@ int bessel_j_for_l(
 		   struct bessels * pbs,
 		   int index_l
 		   ){
-  
+
   /** Summary: */
 
   /** - define local variables */
@@ -597,32 +597,32 @@ int bessel_j_for_l(
 		      &j),  /* j_l(x) */
 	     pbs->error_message,
 	     pbs->error_message);
-  
+
   class_test(j < pbs->j_cut,
 	     pbs->error_message,
 	     "in bisection, wrong initial guess for x_min_up.");
- 
+
   while ((x_min_up-x_min_down)/x_min_down > ppr->bessel_tol_x_min) {
-      
+
     class_test((x_min_up-x_min_down) < ppr->smallest_allowed_variation,
 	       pbs->error_message,
 	       "(x_min_up-x_min_down) =%e < machine precision : maybe kmin=%e is too small",
 	       (x_min_up-x_min_down),ppr->bessel_tol_x_min);
-    
+
     class_call(bessel_j(pbs,
 			pbs->l[index_l], /* l */
 			0.5 * (x_min_up+x_min_down), /* x */
 			&j),  /* j_l(x) */
 	       pbs->error_message,
 	       pbs->error_message);
-    
-    if (j >= pbs->j_cut) 
+
+    if (j >= pbs->j_cut)
       x_min_up=0.5 * (x_min_up+x_min_down);
     else
       x_min_down=0.5 * (x_min_up+x_min_down);
 
   }
-  
+
   x_min = x_min_down;
 
   //DEBUG/HACK! Force xmin = 1e-5;
@@ -636,7 +636,7 @@ int bessel_j_for_l(
 	     pbs->error_message);
 
   /** - define number of x values to be stored (one if all values of j_l(x) were negligible for this l) */
-  
+
   if (x_min >= pbs->x_max)
     pbs->x_size[index_l] = 1;
   else
@@ -654,7 +654,7 @@ int bessel_j_for_l(
   class_alloc(pbs->buffer[index_l],
 	      (1+num_j*pbs->x_size[index_l])*sizeof(double),
 	      pbs->error_message);
-    
+
   pbs->x_min[index_l] = pbs->buffer[index_l];
   pbs->j[index_l] = pbs->buffer[index_l]+1;
   pbs->ddj[index_l] = pbs->j[index_l] + pbs->x_size[index_l];
@@ -666,7 +666,7 @@ int bessel_j_for_l(
   /** - case when all values of j_l(x) were negligible for this l*/
 
   if (x_min >= pbs->x_max) {
-    
+
     *(pbs->x_min[index_l]) = pbs->x_max;
     pbs->j[index_l][0]=0.;
     pbs->ddj[index_l][0]=0.;
@@ -691,13 +691,13 @@ int bessel_j_for_l(
 	       pbs->error_message);
 
     jprime = jm - (pbs->l[index_l]+1)*j/x_min; /* j_l'=j_{l-1}-(l+1)j_l/x */
-    
-    pbs->ddj[index_l][0] = - 2./x_min*jprime 
+
+    pbs->ddj[index_l][0] = - 2./x_min*jprime
       + (pbs->l[index_l]*(pbs->l[index_l]+1)/x_min/x_min-1.)*j; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
 
     if (pbs->has_dj == _TRUE_) {
 
-      pbs->dj[index_l][0] = jprime; 
+      pbs->dj[index_l][0] = jprime;
 
       pbs->dddj[index_l][0] = - 2./x_min*pbs->ddj[index_l][0]
 	+ ((pbs->l[index_l]*(pbs->l[index_l]+1)+2)/x_min/x_min-1.)*jprime
@@ -724,15 +724,15 @@ int bessel_j_for_l(
 		 pbs->error_message);
 
       jprime = jm - (pbs->l[index_l]+1)*j/x; /* j_l'=j_{l-1}-(l+1)j_l/x */
-    
+
       pbs->j[index_l][index_x] = j;
 
-      pbs->ddj[index_l][index_x] = - 2./x*jprime 
+      pbs->ddj[index_l][index_x] = - 2./x*jprime
 	+ (pbs->l[index_l]*(pbs->l[index_l]+1)/x/x-1.)*j; /* j_l'' = -2/x j_l' + (l(l+1)/x/x-1)*j */
 
       if (pbs->has_dj == _TRUE_) {
 
-	pbs->dj[index_l][index_x] = jprime; 
+	pbs->dj[index_l][index_x] = jprime;
 
 	pbs->dddj[index_l][index_x] = - 2./x*pbs->ddj[index_l][index_x]
 	  + ((pbs->l[index_l]*(pbs->l[index_l]+1)+2)/x/x-1.)*jprime
@@ -740,16 +740,16 @@ int bessel_j_for_l(
       }
     }
   }
-  
+
   return _SUCCESS_;
 }
-    
+
 
 /**
  * Compute spherical Bessel function \f$ j_l(x) \f$ for a given l and x.
  *
  * Inspired from Numerical Recipies.
- * 
+ *
  * @param pbs Input : pointer to bessel structure (used only for error mess ge)
  * @param l   Input: l value
  * @param x   Input: x value
@@ -763,7 +763,7 @@ int bessel_j(
 	     double x,
 	     double * jl
 	     ) {
-    
+
   double nu,nu2,beta,beta2;
   double x2,sx,sx2,cx;
   double cotb,cot3b,cot6b,secb,sec2b;
@@ -818,7 +818,7 @@ int bessel_j(
       else *jl=x2*x2/945.*(1.-x2/22.*(1.-x2/52.));
       return _SUCCESS_;
     }
-    
+
     if (l == 5) {
       if (x > 1) *jl=(sx*(15.-420./x2+945./x2/x2)/x -cx*(1.0-105./x2+945./x2/x2))/x;
       else *jl=x2*x2*x/10395.*(1.-x2/26.*(1.-x2/60.));
@@ -855,7 +855,7 @@ int bessel_j(
       beta = x - _PI_/2.*(fl+1.);
       *jl = (cos(beta)*(1.-(nu2-0.25)*(nu2-2.25)/8./x2*(1.-(nu2-6.25)*(nu2-12.25)/48./x2))
 	     -sin(beta)*(nu2-0.25)/2./x* (1.-(nu2-2.25)*(nu2-6.25)/24./x2*(1.-(nu2-12.25)*(nu2-20.25)/80./x2)) )/x;
-      
+
       return _SUCCESS_;
 
     }
@@ -901,7 +901,7 @@ int bessel_j(
 
       return _SUCCESS_;
     }
-    
+
     /* last possible case */
 
     beta=x-nu;

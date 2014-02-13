@@ -16,11 +16,11 @@
  * The logic is the following :
  *
  * - in a first step, recover all relevant information from all other modules.
- *   
- * - in a second step, initialize all relevant quantities, i.e. the matter power 
+ *
+ * - in a second step, initialize all relevant quantities, i.e. the matter power
  *   spectra and the I's variables (that contain the matter bispectra).
  *
- * - in a third step, compute the A variables (complicated functions of the matter 
+ * - in a third step, compute the A variables (complicated functions of the matter
  *   power spectra), at first time.
  *
  * - the final step consists in a loop, where the matter power spectra
@@ -61,9 +61,9 @@
  */
 
 int trg_gamma_121(
-		  double  k, 
-		  double  p, 
-		  double  q, 
+		  double  k,
+		  double  p,
+		  double  q,
 		  double  *result
 		  ){
   *result =  (1./ (4*p*p)) * (- q*q + k*k + p*p);
@@ -83,8 +83,8 @@ int trg_gamma_121(
 
 
 int trg_gamma_222(
-		  double k, 
-		  double p, 
+		  double k,
+		  double p,
 		  double q,
 		  double * result,
 		  char   * errmsg
@@ -117,11 +117,11 @@ int trg_gamma_222(
 
 int trg_p_ab_at_any_k(
 		      struct spectra_nl * pnl,
-		      double *p_ab, 
+		      double *p_ab,
 		      double *ddp_ab,
 		      int    index_eta,
 		      double any_k,
-		      double *result 
+		      double *result
 		      ){
 
   class_call(array_interpolate_extrapolate_logspline_loglinear_one_column(pnl->k,
@@ -136,23 +136,23 @@ int trg_p_ab_at_any_k(
 									  pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
-    
+
   return _SUCCESS_;
 }
 
 /**
  * Argument of the integral defining AA[name] for the TRG method
  *
- * Returns the argument (symmetrized in p,m) of the desired integral, 
+ * Returns the argument (symmetrized in p,m) of the desired integral,
  * called by the 'name' argument, at the desired wave-number values,
- * and time pnl->eta[index_eta]. The names 'p' and 'm' stands resp. for 
+ * and time pnl->eta[index_eta]. The names 'p' and 'm' stands resp. for
  * 'plus' and 'minus', standing themselves resp. for
  * '(x + y)/sqrt(2)' and '(x - y)/sqrt(2)'
  *
  * This trg version uses the full non-linear spectrum computed at each time
  *
  * @param pnl       Input: pointer to spectra_nl structure
- * @param name      Input: select the desired A function to get the argument from, from _A0_ to _B3_ 
+ * @param name      Input: select the desired A function to get the argument from, from _A0_ to _B3_
  * @param k         Input: wave-vector
  * @param p         Input: wave-vector corresponding to (x+y)/sqrt(2)
  * @param m         Input: wave-vector corresponding to (x-y)/sqrt(2)
@@ -161,16 +161,16 @@ int trg_p_ab_at_any_k(
  * @return the error status
  */
 
- 
+
 
 int trg_G_terms(
     struct spectra_nl * pnl,
-    enum name_B name, 
-    double k, 
-    double q, 
-    double p, 
+    enum name_B name,
+    double k,
+    double q,
+    double p,
     int index_eta,
-    double * result 
+    double * result
     ){
 
   /** - define local variables */
@@ -215,7 +215,7 @@ int trg_G_terms(
       trg_gamma_121(p,k,q,&gamma1_pkq);
       trg_gamma_121(p,q,k,&gamma1_pqk);
 
-      *result = gamma1_kqp*p_12q*p_11p + gamma1_kpq*p_11q*p_12p + 
+      *result = gamma1_kqp*p_12q*p_11p + gamma1_kpq*p_11q*p_12p +
 	gamma1_qpk*p_12p*p_11k + gamma1_qkp*p_11p*p_12k +
 	gamma1_pkq*p_12k*p_11q + gamma1_pqk*p_11k*p_12q;
 
@@ -256,7 +256,7 @@ int trg_G_terms(
       trg_gamma_121(p,k,q,&gamma1_pkq);
       trg_gamma_121(p,q,k,&gamma1_pqk);
 
-      *result = gamma1_kqp*p_22q*p_11p + gamma1_kpq*p_12q*p_12p + 
+      *result = gamma1_kqp*p_22q*p_11p + gamma1_kpq*p_12q*p_12p +
 	gamma2_qpk*p_12p*p_12k +
 	gamma1_pkq*p_12k*p_12q + gamma1_pqk*p_11k*p_22q;
 
@@ -336,7 +336,7 @@ int trg_G_terms(
       trg_gamma_121(k,q,p,&gamma1_kqp);
       trg_gamma_121(k,p,q,&gamma1_kpq);
 
-      *result = gamma1_kqp*p_22q*p_12p + gamma1_kpq*p_12q*p_22p + 
+      *result = gamma1_kqp*p_22q*p_12p + gamma1_kpq*p_12q*p_22p +
 	gamma2_qpk*p_22p*p_12k + gamma2_pkq*p_12k*p_22q;
 
       return _SUCCESS_;
@@ -375,7 +375,7 @@ int trg_G_terms(
       trg_gamma_121(k,q,p,&gamma1_kqp);
       trg_gamma_121(k,p,q,&gamma1_kpq);
 
-      *result = gamma1_kqp*p_22q*p_12p + gamma1_kpq*p_12q*p_22p + 
+      *result = gamma1_kqp*p_22q*p_12p + gamma1_kpq*p_12q*p_22p +
 	gamma2_qpk*p_22p*p_12k + gamma2_pkq*p_12k*p_22q;
 
       return _SUCCESS_;
@@ -422,19 +422,19 @@ int trg_G_terms(
 /**
  * Argument of the integral defining AA[name] for the TRG method
  *
- * Returns the argument (symmetrized in p,m) of the desired integral, 
+ * Returns the argument (symmetrized in p,m) of the desired integral,
  * called by the 'name' argument, at the desired wave-number values,
- * and time pnl->eta[index_eta]. The names 'p' and 'm' stands resp. for 
+ * and time pnl->eta[index_eta]. The names 'p' and 'm' stands resp. for
  * 'plus' and 'minus', standing themselves resp. for
  * '(x + y)/sqrt(2)' and '(x - y)/sqrt(2)'
  *
  * This one-loop version uses the linear spectrum computed initially, and
- * hence do not need any index_eta. It is indeed called only once, before 
+ * hence do not need any index_eta. It is indeed called only once, before
  * the time evolution loop, and is copied from time step to time step to
  * keep the same structure than for the trg computation.
  *
  * @param pnl       Input: pointer to spectra_nl structure
- * @param name      Input: select the desired A function to get the argument from, from _A0_ to _B3_ 
+ * @param name      Input: select the desired A function to get the argument from, from _A0_ to _B3_
  * @param k         Input: wave-vector
  * @param p         Input: wave-vector corresponding to (x+y)/sqrt(2)
  * @param m         Input: wave-vector corresponding to (x-y)/sqrt(2)
@@ -444,14 +444,14 @@ int trg_G_terms(
 
 int trg_I_arg(
     struct spectra_nl * pnl,
-    enum name_I name, 
-    double k, 
-    double p, 
-    double m, 
+    enum name_I name,
+    double k,
+    double p,
+    double m,
     int i,
     int index_k,
     int index_eta,
-    double * result 
+    double * result
     ){
 
   /** - define local variables */
@@ -546,7 +546,7 @@ int trg_I_arg(
  *
  * - in a first step, determine the boundaries of the integration on x and y.
  *
- * - in a second step, perform the integration over the computed domain. To smooth out 
+ * - in a second step, perform the integration over the computed domain. To smooth out
  *   the function, the mean value of the argument on a square is integrated, and not
  *   simply the argument. Cases are thus defined on the grid domain.
  *
@@ -558,27 +558,27 @@ int trg_I_arg(
  *
  * - this integration scheme consists thus in integrating over L-shaped region, starting
  *   from the upper left corner. Since the region is not exactly squared, the last lower-right
- *   corner is integrated line per line at the end. This scheme has been designed to 
- *   better follow the compensations in the computation: 
- *     - the majority of the features of the argument takes place in the first "L" region, with 
+ *   corner is integrated line per line at the end. This scheme has been designed to
+ *   better follow the compensations in the computation:
+ *     - the majority of the features of the argument takes place in the first "L" region, with
  *     opposite signs on the horizontal and the vertical
  *     - though, the integration has to be performed over all the region because small contributions
  *     continue to add even in the lower-right corner
  *
  * - a large k_max is defined in this function to replace the 'infinity' upper limit of the integral
- *   over y. The value has been defined to get the convergence of the integral, 
+ *   over y. The value has been defined to get the convergence of the integral,
  *   while keeping the computing time reasonnable.
- *   
+ *
  * - finally, a 'double escape' scheme has been implemented to get rid of numerical divergences.
  *   It concretely consists in forgetting a fixed number of points (pnl->double_escape) at each half-step
  *   in time, meaning every time new P's are calculated and every time new A's are calculated.
  *
- *   
+ *
  * @param pba       Input: pointer to background structure
  * @param ppm       Input: pointer to primordial structure
  * @param psp       Input: pointer to spectra structure
  * @param pnl       Input: pointer to spectra_nl structure
- * @param name      Input: select the desired A function to compute, from _A0_ to _B3_ 
+ * @param name      Input: select the desired A function to compute, from _A0_ to _B3_
  * @param index_eta Input: index of time evolution
  * @param result    Output: returns the computed integral corresponding to the whole function A[name]
  * @return the error status
@@ -593,7 +593,7 @@ int trg_integrate_xy_at_eta(
 			    int index_eta,
 			    double * result
 			    ){
- 
+
  /** - define local variables */
 
   int index_k;
@@ -628,7 +628,7 @@ int trg_integrate_xy_at_eta(
     yl=0.;
     yr=k/sqrt(2.);
 
-    /** implement quadrature integral. The result will be the weighted sum of the bispectra 
+    /** implement quadrature integral. The result will be the weighted sum of the bispectra
      * evaluated in carefully chosen points */
 
     n=24;
@@ -652,7 +652,7 @@ int trg_integrate_xy_at_eta(
   return _SUCCESS_;
 }
 
-/** 
+/**
  * Logarithmic step in k for the low k values
  *
  * It simply affects the correct logstep corresponding to a certain
@@ -675,7 +675,7 @@ int trg_logstep1_k (
   return _SUCCESS_;
 }
 
-/** 
+/**
  * Logarithmic step in k for the high k values
  *
  * It simply affects the correct logstep corresponding to a certain
@@ -698,7 +698,7 @@ int trg_logstep2_k (
   return _SUCCESS_;
 }
 
-/** 
+/**
  * Computes the non-linear spectra for matter (cold dark matter and
  * baryons, so far) and fills in the spectra_nl structure with pk_nl,
  * p_12_nl, p_22_nl.
@@ -730,12 +730,12 @@ int trg_logstep2_k (
  */
 
 int trg_init (
-	      struct precision * ppr, 
-	      struct background * pba, 
+	      struct precision * ppr,
+	      struct background * pba,
 	      struct thermo *pth,
 	      struct primordial * ppm,
-	      struct spectra * psp, 
-	      struct spectra_nl * pnl 
+	      struct spectra * psp,
+	      struct spectra_nl * pnl
 	      ) {
 
   /** Summary: 	the code takes as an input the matter power spectrum at desired starting redshift,
@@ -749,7 +749,7 @@ int trg_init (
    * 		in droping every half step some points (defined with the double_escape parameter). This
    * 		way, every starting numerical instabily may be taken care of). As it is, the values of
    * 		this parameter, along with eta_step and logstep_k are fixed and balanced to produce an
-   * 		output at z=0 with no divergences. Changes are at your own risks.*/		
+   * 		output at z=0 with no divergences. Changes are at your own risks.*/
 
   /** Variables for time control of the computation */
 
@@ -768,8 +768,8 @@ int trg_init (
 
   int index_eta;
 
-  int index;  
-  int index_plus; 
+  int index;
+  int index_plus;
 
   double a_ini;
   double eta_max;
@@ -796,7 +796,7 @@ int trg_init (
   double gprime;
   double aprime;
 
-  /** 
+  /**
    * Definition of the matrix Omega that mixes terms together,
    * two are k indepedant and two dependant
    */
@@ -804,17 +804,17 @@ int trg_init (
   double Omega_11,Omega_12;
   double *Omega_21,*Omega_22;
 
-  /** 
+  /**
    * Definition of the variables 1 ijk,lmn and 2 ijk,lmn that
    * replace the Bispectra variables, and of the A's.
    */
 
   int index_name,name_size;
   double **G;
-  
+
   /** Additionnal temporary variables */
 
-  double temp; 
+  double temp;
   double * junk;
   double pk,pk_ini;
 
@@ -837,14 +837,14 @@ int trg_init (
   class_calloc(junk,2,sizeof(double),pnl->error_message); // This one would be to use several different IC in spectra_pk_at_k_and_z
 
 
-  /** 
+  /**
    * This code can be optionally compiled with the openmp option for parallel computation.
    *
    * Inside parallel regions, the use of the command "return" is forbidden.
    *
    * For error management, instead of "return _FAILURE_", we will set the variable below
-   * to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the 
-   * parallel region. 
+   * to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the
+   * parallel region.
    */
   int abort;
 
@@ -881,7 +881,7 @@ int trg_init (
   eta_max = log(pba->a_today/a_ini);
 
   /** define size and step for integration in eta, at any time now, a = a_ini * exp(eta) and z=exp(eta)-1 */
-  
+
   pnl->eta_step = (eta_max)/(pnl->eta_size-1);
 
   /** find total number of k values in the module */
@@ -926,9 +926,9 @@ int trg_init (
       temp++;
     }
   }
- 
+
   free(temp_k);
- 
+
   /** Define time-related values. First check wheter eta_size is odd:
       otherwise the pattern of integration with the predictor
       corrector algorithm is not well behaved */
@@ -939,7 +939,7 @@ int trg_init (
 
   class_calloc(pnl->eta,pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->z,  pnl->eta_size,sizeof(double),pnl->error_message);
-  
+
   for(index_eta=0;index_eta<pnl->eta_size; index_eta++){
     pnl->eta[index_eta]=index_eta*pnl->eta_step;
     pnl->z[index_eta]= exp(-pnl->eta[index_eta])*(pba->a_today/a_ini)-1.;
@@ -971,27 +971,27 @@ int trg_init (
 				    ),
 	       pba->error_message,
 	       pnl->error_message);
-    
+
     Omega_m[index_eta] = pvecback_nl[pba->index_bg_Omega_m];
-    
+
     H[index_eta] = pvecback_nl[pba->index_bg_H] * a_ini * exp(pnl->eta[index_eta]);
     H_prime[index_eta] =H[index_eta]*(1 + pvecback_nl[pba->index_bg_H_prime] / a_ini * exp(-pnl->eta[index_eta])/pvecback_nl[pba->index_bg_H]/pvecback_nl[pba->index_bg_H]);
-    
+
   }
-  
+
   free(pvecback_nl);
 
   /** Definition of the matrix elements Omega_11,Omega_12, Omega_22,Omega_12 for each k and eta */
 
   Omega_11 = 1.;
   Omega_12 = -1.;
-  
+
   class_calloc(Omega_21, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
   class_calloc(Omega_22, pnl->eta_size * pnl->k_size,sizeof(double),pnl->error_message);
 
   for(index_eta=0; index_eta < pnl->eta_size; index_eta++) {
     for(index_k=0; index_k < pnl->k_size; index_k++) {
-      
+
       index=index_k+pnl->k_size*index_eta;
 
       Omega_21[index] = -3./2 * Omega_m[index_eta];
@@ -1015,7 +1015,7 @@ int trg_init (
 
   class_calloc(growth_factor,pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(corrected_growth_factor,pnl->eta_size,sizeof(double),pnl->error_message);
- 
+
   class_call(spectra_pk_at_k_and_z(pba,ppm,psp,pnl->k_growth_factor,pnl->z[0],&pk_ini,junk),
 	     psp->error_message,
 	     pnl->error_message);
@@ -1039,7 +1039,7 @@ int trg_init (
   }
 
 
-  /** 
+  /**
    * Definition of P_11, P_12 and P_22, the two points correlators
    * of the density/density (resp. density/velocity and velocity/velocity),
    * initialized at eta=0 (by default, z=35).
@@ -1048,7 +1048,7 @@ int trg_init (
    * are only here for the one-loop computation. The p_ij_linear, not stored
    * in the nl_spectra module, keep trace of the linear evolution of this code.
    *
-   * With the default parameter choice, the relative difference between the linear 
+   * With the default parameter choice, the relative difference between the linear
    * evolution in this part and the more carefull time integration from CLASS
    * is no more than 1.6% for the peak height in the spectrum, at z=0.
    */
@@ -1060,7 +1060,7 @@ int trg_init (
   class_calloc(pnl->p_11,pnl->k_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->p_12,pnl->k_size,sizeof(double),pnl->error_message);
   class_calloc(pnl->p_22,pnl->k_size,sizeof(double),pnl->error_message);
-  
+
   class_calloc(p_11_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(p_12_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
   class_calloc(p_22_linear,pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
@@ -1136,7 +1136,7 @@ int trg_init (
 					      _SPLINE_NATURAL_,pnl->error_message),
 	     pnl->error_message,
 	     pnl->error_message);
-  
+
   class_call(array_logspline_table_one_column(pnl->k,pnl->k_size,pnl->k_size,
 					      pnl->p_12_nl,
 					      pnl->eta_size,0,
@@ -1157,11 +1157,11 @@ int trg_init (
     pnl->ddp_11[index_k] = pnl->ddp_11_nl[index_k];
     pnl->ddp_12[index_k] = pnl->ddp_12_nl[index_k];
     pnl->ddp_22[index_k] = pnl->ddp_22_nl[index_k];
-  } 
+  }
 
   /**
    * Definition of xy size for quadrature integration is given
-   * in input file by the parameter n. If it is incorrect, it will 
+   * in input file by the parameter n. If it is incorrect, it will
    * changed (always to the closest lower value). This way, the
    * initialization can take place now.
    */
@@ -1198,7 +1198,7 @@ int trg_init (
   for (index_name=0; index_name<name_size_I; index_name++)
     class_calloc(I[index_name],pnl->k_size*pnl->eta_size,sizeof(double),pnl->error_message);
 
-  /** Initialization of bispectra 
+  /** Initialization of bispectra
    */
 
   //TO DO
@@ -1208,7 +1208,7 @@ int trg_init (
 
   if (pnl->spectra_nl_verbose > 1)
     printf(" -> initialisation\n");
-  
+
   if(pnl->mode > 0){
 
     /* initialize error management flag */
@@ -1219,7 +1219,7 @@ int trg_init (
 #pragma omp parallel							\
   shared(name_size_I,abort,pba,ppm,psp,pnl,I)				\
   private(tstart,index_name,tstop)
-    
+
     {
 
 #ifdef _OPENMP
@@ -1265,13 +1265,13 @@ int trg_init (
    * functions are updated. The pnl->double_escape procedure also
    * takes place during this time.
    */
-  
-  if (pnl->spectra_nl_verbose > 1){	
+
+  if (pnl->spectra_nl_verbose > 1){
     printf(" -> progression:\n");}
 
   time_1=time(NULL);
   time_2=time(NULL);
- 
+
   for (index_eta=2; index_eta<pnl->eta_size; index_eta+=2){
     exp_eta=exp(pnl->eta[index_eta-2]);
     time_step=pnl->eta[index_eta-1]-pnl->eta[index_eta-2];
@@ -1314,7 +1314,7 @@ int trg_init (
 					    +exp_eta*fourpi_over_k*I[_12_][0])
 	+ pnl->p_12_nl[index];
 
-      
+
       for(i=0;i<2*n;i++){
 
 	index_b = index_k+pnl->k_size*(index_eta-2+pnl->eta_size*i);
@@ -1385,7 +1385,7 @@ int trg_init (
 	pnl->b_222_nl[index_b_plus] = (time_step) *(
 	    -pnl->b_222_nl[index_b]*(Omega_21[index]+omega_22_q+omega_22_p)-pnl->b_122_nl[index_b]*Omega_21[index]-pnl->b_221_nl[index_2b]*omega_21_q
 	    -pnl->b_221_nl[index_b]*omega_21_p + 2.*exp_eta*G[_222_][index_b]) + pnl->b_222_nl[index_b];
-	   
+
       }
 
       /* The linear quantities are followed through this simplified integrator, for reference */
@@ -1438,9 +1438,9 @@ int trg_init (
 		 pnl->error_message);
     }
 
-    /** Update of AA's at the new time 
+    /** Update of AA's at the new time
      */
-    
+
     /* For Evolved-1-Loop, copy the previous values, taking into
      * account the correct powers of growth factor g for density, and
      * f=g+ag'/a' for velocity perturbation) */
@@ -1667,7 +1667,7 @@ int trg_init (
 	printf("     max estimated remaining : %3.1f min\n",difftime(time_2,time_1)*(pnl->eta_size-2)/60/10);
       }
     }
-    
+
     class_test(isnan(pnl->p_11_nl[50+pnl->k_size*index_eta])!=0,pnl->error_message,"Code returns nan!\n");
 
   }
@@ -1679,7 +1679,7 @@ int trg_init (
   free(p_11_linear);
   free(p_12_linear);
   free(p_22_linear);
-  
+
   free(Omega_21);
   free(Omega_22);
 
@@ -1705,10 +1705,10 @@ int trg_init (
   free(H);
 
   return _SUCCESS_;
-   
+
 }
 
-/** 
+/**
  * This routine frees all the memory space allocated by trg_init().
  *
  * To be called at the end of each run, when no further use of the nl_functions are needed.
@@ -1720,7 +1720,7 @@ int trg_init (
 int trg_free(
 	     struct spectra_nl * pnl
 	     ){
-  
+
   free(pnl->k);
   free(pnl->p_11_nl);
   free(pnl->p_12_nl);
@@ -1734,5 +1734,5 @@ int trg_free(
   free(pnl->eta);
   free(pnl->z);
 
-  return _SUCCESS_;  
+  return _SUCCESS_;
 }

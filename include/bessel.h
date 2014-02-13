@@ -7,7 +7,7 @@
 #include "arrays.h"
 
 /**
- * Structure containing everything about spherical bessel functions 
+ * Structure containing everything about spherical bessel functions
  * that other modules need to know.
  *
  * Once initialized by bessel_init(), contains table of
@@ -16,10 +16,10 @@
 
 struct bessels {
 
-  /** @name - input parameters initialized by user in input module 
-      (all other quantitites are computed in this module, given these 
+  /** @name - input parameters initialized by user in input module
+      (all other quantitites are computed in this module, given these
       parameters and the content of the 'precision' structure) */
-  
+
   //@{
 
   int l_max; /**< last l value */
@@ -62,11 +62,11 @@ struct bessels {
 
   double ** x_min; /**< x_min[index_l] is a pointer towards the minimum value of x for l[index_l], given j_cut; always a multiple of x_step */
 
-  double ** j; /* (j[index_l])[index_x] is \f$ j_l(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
+  double ** j; /* (j[index_l])[index_x] is \f$ j_l(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */
 
-  double ** ddj; /* (ddj[index_l])[index_x] \f$ j_l''(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x (in view of spline interpolation) */ 
+  double ** ddj; /* (ddj[index_l])[index_x] \f$ j_l''(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x (in view of spline interpolation) */
 
-  double ** dj; /* (dj[index_l])[index_x] is \f$ j_l'(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */ 
+  double ** dj; /* (dj[index_l])[index_x] is \f$ j_l'(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x */
 
   double ** dddj; /* (dddj[index_l])[index_x] \f$ j_l'''(x) \f$ for l[index_l] and x=x_min[index_l]+x_step*index_x (in view of spline interpolation) */
 
@@ -87,7 +87,7 @@ struct bessels {
 /*************************************************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -126,12 +126,12 @@ extern "C" {
 	       double x,
 	       double * jl
 	       );
-    
+
 #ifdef __cplusplus
 }
 #endif
 
-/**  
+/**
  * @name Constants used for computing Bessel function
  */
 
