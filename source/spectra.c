@@ -1891,26 +1891,26 @@ int spectra_compute_cl(
 
     if (ppt->has_cl_cmb_temperature == _TRUE_) {
 
-      if _scalars_ {
+      if (_scalars_) {
 
-          transfer_ic1_temp = transfer_ic1[ptr->index_tt_t0] + transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
-          transfer_ic2_temp = transfer_ic2[ptr->index_tt_t0] + transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
+        transfer_ic1_temp = transfer_ic1[ptr->index_tt_t0] + transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
+        transfer_ic2_temp = transfer_ic2[ptr->index_tt_t0] + transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
 
-        }
+      }
 
-      if _vectors_ {
+      if (_vectors_) {
 
-          transfer_ic1_temp = transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
-          transfer_ic2_temp = transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
+        transfer_ic1_temp = transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
+        transfer_ic2_temp = transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
 
-        }
+      }
 
-      if _tensors_ {
+      if (_tensors_) {
 
-          transfer_ic1_temp = transfer_ic1[ptr->index_tt_t2];
-          transfer_ic2_temp = transfer_ic2[ptr->index_tt_t2];
+        transfer_ic1_temp = transfer_ic1[ptr->index_tt_t2];
+        transfer_ic2_temp = transfer_ic2[ptr->index_tt_t2];
 
-        }
+      }
     }
 
     /* integrand of Cl's */
@@ -2027,7 +2027,7 @@ int spectra_compute_cl(
           primordial_pk[index_ic1_ic2]
           * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_density+index_d1] +
                  transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2_temp)
-            * factor;
+          * factor;
       }
     }
 
@@ -2037,7 +2037,7 @@ int spectra_compute_cl(
           primordial_pk[index_ic1_ic2]
           * 0.5*(transfer_ic1[ptr->index_tt_lcmb] * transfer_ic2[ptr->index_tt_density+index_d1] +
                  transfer_ic1[ptr->index_tt_density+index_d1] * transfer_ic2[ptr->index_tt_lcmb])
-            * factor;
+          * factor;
       }
     }
 
@@ -2061,7 +2061,7 @@ int spectra_compute_cl(
           primordial_pk[index_ic1_ic2]
           * 0.5*(transfer_ic1_temp * transfer_ic2[ptr->index_tt_lensing+index_d1] +
                  transfer_ic1[ptr->index_tt_lensing+index_d1] * transfer_ic2_temp)
-            * factor;
+          * factor;
       }
     }
 
@@ -2155,7 +2155,7 @@ int spectra_compute_cl(
          assumes a weight for the first point which is too small
          compared to what it would be in the an actual discrete
          sum. The line below correct this problem in an exact way.
-       */
+      */
 
       if (pba->sgnK == 1) {
         clvalue += cl_integrand[1+index_ct] * ptr->q[0]/ptr->k[0][0]*sqrt(pba->K)/2.;

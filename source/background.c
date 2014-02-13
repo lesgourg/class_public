@@ -835,11 +835,11 @@ int background_ncdm_distribution(
   /** -> deal now with case of reading analytical function */
   else{
     /**
-        Enter here your analytic expression(s) for the p.s.d.'s. If
-        you need different p.s.d.'s for different species, put each
-        p.s.d inside a condition, like for instance: if (n_ncdm==2) {
-        *f0=...}.  Remember that n_ncdm = 0 refers to the first
-        species.
+       Enter here your analytic expression(s) for the p.s.d.'s. If
+       you need different p.s.d.'s for different species, put each
+       p.s.d inside a condition, like for instance: if (n_ncdm==2) {
+       *f0=...}.  Remember that n_ncdm = 0 refers to the first
+       species.
     */
 
     /**************************************************/
@@ -1693,4 +1693,3 @@ int background_derivs(
   return _SUCCESS_;
 
 }
-

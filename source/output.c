@@ -298,19 +298,19 @@ int output_cl(
 
     for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
-      if _scalars_ {
+      if (_scalars_) {
 
-          sprintf(file_name,"%s%s",pop->root,"cls.dat");
-          strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar mode");
+        sprintf(file_name,"%s%s",pop->root,"cls.dat");
+        strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar mode");
 
-        }
+      }
 
-      if _tensors_ {
+      if (_tensors_) {
 
-          sprintf(file_name,"%s%s",pop->root,"clt.dat");
-          strcpy(first_line,"[l(l+1)/2pi] C_l's for tensor mode");
+        sprintf(file_name,"%s%s",pop->root,"clt.dat");
+        strcpy(first_line,"[l(l+1)/2pi] C_l's for tensor mode");
 
-        }
+      }
 
       class_call(output_open_cl_file(psp,
                                      pop,
@@ -337,122 +337,122 @@ int output_cl(
 
         for (index_ic2 = index_ic1; index_ic2 < ppt->ic_size[index_md]; index_ic2++) {
 
-          if _scalars_ {
+          if (_scalars_) {
 
-              if ((ppt->has_ad == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
+            if ((ppt->has_ad == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
 
-                sprintf(file_name,"%s%s",pop->root,"cls_ad.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar adiabatic (AD) mode");
-              }
-
-              if ((ppt->has_bi == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_bi.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar baryon isocurvature (BI) mode");
-              }
-
-              if ((ppt->has_cdi == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_cdi)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_cdi.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar CDM isocurvature (CDI) mode");
-              }
-
-              if ((ppt->has_nid == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_nid.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar neutrino density isocurvature (NID) mode");
-              }
-
-              if ((ppt->has_niv == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_niv)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_niv.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar neutrino velocity isocurvature (NIV) mode");
-              }
-
-              if ((ppt->has_ad == _TRUE_) &&
-                  (ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_ad_bi.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxBI mode");
-              }
-
-              if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_ad_cdi.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxCDI mode");
-              }
-
-              if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_ad_nid.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxNID mode");
-              }
-
-              if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_ad_niv.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxNIV mode");
-              }
-
-              if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_bi_cdi.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxCDI mode");
-              }
-
-              if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_bi_nid.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxNID mode");
-              }
-
-              if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_bi_niv.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxNIV mode");
-              }
-
-              if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_cdi_nid.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxNID mode");
-              }
-
-              if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_cdi_niv.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxNIV mode");
-              }
-
-              if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                  (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
-
-                sprintf(file_name,"%s%s",pop->root,"cls_nid_niv.dat");
-                strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross NIDxNIV mode");
-              }
-
+              sprintf(file_name,"%s%s",pop->root,"cls_ad.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar adiabatic (AD) mode");
             }
 
-          if _tensors_ {
+            if ((ppt->has_bi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
 
-              class_test(0==0,
-                         pop->error_message,
-                         "Seems that we have mixed initial conditions for tensors? Should not happen!\n");
-
+              sprintf(file_name,"%s%s",pop->root,"cls_bi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar baryon isocurvature (BI) mode");
             }
+
+            if ((ppt->has_cdi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_cdi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_cdi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar CDM isocurvature (CDI) mode");
+            }
+
+            if ((ppt->has_nid == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_nid.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar neutrino density isocurvature (NID) mode");
+            }
+
+            if ((ppt->has_niv == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_niv)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_niv.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar neutrino velocity isocurvature (NIV) mode");
+            }
+
+            if ((ppt->has_ad == _TRUE_) &&
+                (ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_ad_bi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxBI mode");
+            }
+
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_ad_cdi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxCDI mode");
+            }
+
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_ad_nid.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxNID mode");
+            }
+
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_ad_niv.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross ADxNIV mode");
+            }
+
+            if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_bi_cdi.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxCDI mode");
+            }
+
+            if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_bi_nid.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxNID mode");
+            }
+
+            if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_bi_niv.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross BIxNIV mode");
+            }
+
+            if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_cdi_nid.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxNID mode");
+            }
+
+            if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_cdi_niv.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross CDIxNIV mode");
+            }
+
+            if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+                (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
+
+              sprintf(file_name,"%s%s",pop->root,"cls_nid_niv.dat");
+              strcpy(first_line,"[l(l+1)/2pi] C_l's for scalar cross NIDxNIV mode");
+            }
+
+          }
+
+          if (_tensors_) {
+
+            class_test(0==0,
+                       pop->error_message,
+                       "Seems that we have mixed initial conditions for tensors? Should not happen!\n");
+
+          }
 
           index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
 
@@ -1299,9 +1299,9 @@ int output_primordial(
                                              ),
                pop->error_message,
                pop->error_message);
-    
+
   }
-  
+
   return _SUCCESS_;
 
 }
@@ -1846,7 +1846,7 @@ int output_one_line_of_background(
 }
 
 /**
- * This routine opens one file where the primordial spectrum/spectra will be written, 
+ * This routine opens one file where the primordial spectrum/spectra will be written,
  * and writes a heading with some general information concerning its content.
  *
  * @param ppt        Input: pointer to perturbation structure
@@ -1875,7 +1875,7 @@ int output_open_primordial_file(
       fprintf(*outputfile,"              P_tensor(k)");
     fprintf(*outputfile,"\n");
   }
-  
+
   return _SUCCESS_;
 }
 
@@ -1895,13 +1895,13 @@ int output_one_line_of_primordial(
                                   FILE * outputfile,
                                   int index_k
                                   ) {
-  
+
   fprintf(outputfile,"%25.12e",exp(ppm->lnk[index_k]));
   fprintf(outputfile,"%25.12e",exp(ppm->lnpk[ppt->index_md_scalars][index_k]));
   if (ppt->has_tensors == _TRUE_)
     fprintf(outputfile,"%25.12e",exp(ppm->lnpk[ppt->index_md_tensors][index_k]));
   fprintf(outputfile,"\n");
-  
+
   return _SUCCESS_;
-  
+
 }

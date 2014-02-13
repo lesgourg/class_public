@@ -750,47 +750,47 @@ int primordial_analytic_spectrum_init(
 
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
 
-      if _scalars_ {
+      if (_scalars_) {
 
-          if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
-            one_amplitude = ppm->A_s;
-            one_tilt = ppm->n_s;
-            one_running = ppm->alpha_s;
-          }
-
-          if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
-            one_amplitude = ppm->A_s*ppm->f_bi*ppm->f_bi;
-            one_tilt = ppm->n_bi;
-            one_running = ppm->alpha_bi;
-          }
-
-          if ((ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_cdi)) {
-            one_amplitude = ppm->A_s*ppm->f_cdi*ppm->f_cdi;
-            one_tilt = ppm->n_cdi;
-            one_running = ppm->alpha_cdi;
-          }
-
-          if ((ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_nid)) {
-            one_amplitude = ppm->A_s*ppm->f_nid*ppm->f_nid;
-            one_tilt = ppm->n_nid;
-            one_running = ppm->alpha_nid;
-          }
-
-          if ((ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_niv)) {
-            one_amplitude = ppm->A_s*ppm->f_niv*ppm->f_niv;
-            one_tilt = ppm->n_niv;
-            one_running = ppm->alpha_niv;
-          }
+        if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
+          one_amplitude = ppm->A_s;
+          one_tilt = ppm->n_s;
+          one_running = ppm->alpha_s;
         }
 
-      if _tensors_ {
-
-          if (index_ic1 == ppt->index_ic_ten) {
-            one_amplitude = ppm->A_s*ppm->r;
-            one_tilt = ppm->n_t+1.; /* +1 to match usual definition of n_t (equivalent to n_s-1) */
-            one_running = ppm->alpha_t;
-          }
+        if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
+          one_amplitude = ppm->A_s*ppm->f_bi*ppm->f_bi;
+          one_tilt = ppm->n_bi;
+          one_running = ppm->alpha_bi;
         }
+
+        if ((ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_cdi)) {
+          one_amplitude = ppm->A_s*ppm->f_cdi*ppm->f_cdi;
+          one_tilt = ppm->n_cdi;
+          one_running = ppm->alpha_cdi;
+        }
+
+        if ((ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_nid)) {
+          one_amplitude = ppm->A_s*ppm->f_nid*ppm->f_nid;
+          one_tilt = ppm->n_nid;
+          one_running = ppm->alpha_nid;
+        }
+
+        if ((ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_niv)) {
+          one_amplitude = ppm->A_s*ppm->f_niv*ppm->f_niv;
+          one_tilt = ppm->n_niv;
+          one_running = ppm->alpha_niv;
+        }
+      }
+
+      if (_tensors_) {
+
+        if (index_ic1 == ppt->index_ic_ten) {
+          one_amplitude = ppm->A_s*ppm->r;
+          one_tilt = ppm->n_t+1.; /* +1 to match usual definition of n_t (equivalent to n_s-1) */
+          one_running = ppm->alpha_t;
+        }
+      }
 
       class_test(one_amplitude <= 0.,
                  ppm->error_message,
@@ -810,89 +810,89 @@ int primordial_analytic_spectrum_init(
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
       for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
 
-        if _scalars_ {
+        if (_scalars_) {
 
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
-                 ((index_ic1 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
-              one_correlation = ppm->c_ad_bi;
-              one_tilt = ppm->n_ad_bi;
-              one_running = ppm->alpha_ad_bi;
-            }
-
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) ||
-                 ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_cdi)))) {
-              one_correlation = ppm->c_ad_cdi;
-              one_tilt = ppm->n_ad_cdi;
-              one_running = ppm->alpha_ad_cdi;
-            }
-
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) ||
-                 ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_nid)))) {
-              one_correlation = ppm->c_ad_nid;
-              one_tilt = ppm->n_ad_nid;
-              one_running = ppm->alpha_ad_nid;
-            }
-
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_ad_niv;
-              one_tilt = ppm->n_ad_niv;
-              one_running = ppm->alpha_ad_niv;
-            }
-
-            if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) ||
-                 ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_cdi)))) {
-              one_correlation = ppm->c_bi_cdi;
-              one_tilt = ppm->n_bi_cdi;
-              one_running = ppm->alpha_bi_cdi;
-            }
-
-            if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) ||
-                 ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_nid)))) {
-              one_correlation = ppm->c_bi_nid;
-              one_tilt = ppm->n_bi_nid;
-              one_running = ppm->alpha_bi_nid;
-            }
-
-            if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_bi_niv;
-              one_tilt = ppm->n_bi_niv;
-              one_running = ppm->alpha_bi_niv;
-            }
-
-            if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) ||
-                 ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_nid)))) {
-              one_correlation = ppm->c_cdi_nid;
-              one_tilt = ppm->n_cdi_nid;
-              one_running = ppm->alpha_cdi_nid;
-            }
-
-            if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_cdi_niv;
-              one_tilt = ppm->n_cdi_niv;
-              one_running = ppm->alpha_cdi_niv;
-            }
-
-            if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-                (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_nid_niv;
-              one_tilt = ppm->n_nid_niv;
-              one_running = ppm->alpha_nid_niv;
-            }
-
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
+               ((index_ic1 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
+            one_correlation = ppm->c_ad_bi;
+            one_tilt = ppm->n_ad_bi;
+            one_running = ppm->alpha_ad_bi;
           }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) ||
+               ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_cdi)))) {
+            one_correlation = ppm->c_ad_cdi;
+            one_tilt = ppm->n_ad_cdi;
+            one_running = ppm->alpha_ad_cdi;
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) ||
+               ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_nid)))) {
+            one_correlation = ppm->c_ad_nid;
+            one_tilt = ppm->n_ad_nid;
+            one_running = ppm->alpha_ad_nid;
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_ad_niv;
+            one_tilt = ppm->n_ad_niv;
+            one_running = ppm->alpha_ad_niv;
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) ||
+               ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_cdi)))) {
+            one_correlation = ppm->c_bi_cdi;
+            one_tilt = ppm->n_bi_cdi;
+            one_running = ppm->alpha_bi_cdi;
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) ||
+               ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_nid)))) {
+            one_correlation = ppm->c_bi_nid;
+            one_tilt = ppm->n_bi_nid;
+            one_running = ppm->alpha_bi_nid;
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_bi_niv;
+            one_tilt = ppm->n_bi_niv;
+            one_running = ppm->alpha_bi_niv;
+          }
+
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) ||
+               ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_nid)))) {
+            one_correlation = ppm->c_cdi_nid;
+            one_tilt = ppm->n_cdi_nid;
+            one_running = ppm->alpha_cdi_nid;
+          }
+
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_cdi_niv;
+            one_tilt = ppm->n_cdi_niv;
+            one_running = ppm->alpha_cdi_niv;
+          }
+
+          if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_nid_niv;
+            one_tilt = ppm->n_nid_niv;
+            one_running = ppm->alpha_nid_niv;
+          }
+
+        }
 
         class_test((one_correlation < -1) || (one_correlation > 1),
                    ppm->error_message,
@@ -2118,11 +2118,11 @@ int primordial_external_spectrum_init(
     if (ppt->has_tensors == _TRUE_)
       ppm->lnpk[ppt->index_md_tensors][index_k] = log(pkt[index_k]);
     /* DEBUG (with tensors)
-    fprintf(stderr,"Storing[%d(+1) of %d]: \n k = %g == %g\n pks = %g == %g\n pkt = %g == %g\n",
-            index_k, n_data,
-            ppm->lnk[index_k], log(k[index_k]),
-            ppm->lnpk[ppt->index_md_scalars][index_k], log(pks[index_k]),
-            ppm->lnpk[ppt->index_md_tensors][index_k], log(pkt[index_k]));
+       fprintf(stderr,"Storing[%d(+1) of %d]: \n k = %g == %g\n pks = %g == %g\n pkt = %g == %g\n",
+       index_k, n_data,
+       ppm->lnk[index_k], log(k[index_k]),
+       ppm->lnpk[ppt->index_md_scalars][index_k], log(pks[index_k]),
+       ppm->lnpk[ppt->index_md_tensors][index_k], log(pkt[index_k]));
     */
   };
   /** Release the memory used locally */

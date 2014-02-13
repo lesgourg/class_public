@@ -1005,7 +1005,7 @@ int lensing_indices(
      internally for more accurate results). Notable exception to the
      above rule: ClBB_lensed(saclars) must be outputed at least up to the same l_max as
      ClEE_unlensed(scalars) (since ClBB_unlensed is null for scalars)
-*/
+  */
 
   class_alloc(ple->l_max_lt,ple->lt_size*sizeof(double),ple->error_message);
   for (index_lt = 0; index_lt < ple->lt_size; index_lt++) {
