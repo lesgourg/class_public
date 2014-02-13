@@ -115,6 +115,11 @@ struct perturbs
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
 
+  short has_dCl_density;  /**< in dCl, do we want density terms ? */
+  short has_dCl_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
+  short has_dCl_lensing;  /**< in dCl, do we want lensing terms ? */
+  short has_dCl_gr;       /**< in dCl, do we want gravity terms ? */
+
   int l_scalar_max; /**< maximum l value for CMB scalars C_ls */
   int l_tensor_max; /**< maximum l value for CMB tensors C_ls */
   int l_lss_max; /**< maximum l value for LSS C_ls (density and lensing potential in  bins) */
