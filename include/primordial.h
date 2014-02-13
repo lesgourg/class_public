@@ -267,7 +267,6 @@ extern "C" {
 #endif
 
   int primordial_spectrum_at_k(
-<<<<<<< HEAD
                                struct primordial * ppm,
                                int index_md,
                                enum linear_or_logarithmic mode,
@@ -285,25 +284,6 @@ extern "C" {
                       struct primordial * ppm
                       );
 
-=======
-			       struct primordial * ppm,
-			       int index_md,
-			       enum linear_or_logarithmic mode,
-			       double k,
-			       double * pk
-			       );
-
-  int primordial_init(
-		      struct precision  * ppr,
-		      struct perturbs   * ppt,
-		      struct primordial * ppm
-		      );
-
-  int primordial_free(
-		      struct primordial * ppm
-		      );
-
->>>>>>> perturbed_recombination
   int primordial_indices(
                          struct perturbs   * ppt,
                          struct primordial * ppm

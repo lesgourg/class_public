@@ -4870,17 +4870,11 @@ int perturb_print_variables(double tau,
   /** perturbed recombination **/
 
   double delta_temp=0., delta_chi=0.;
-  double z, chi;
-
-  z = pba->a_today/ppw->pvecback[pba->index_bg_a]-1.;
-  chi=pvecthermo[pth->index_th_xe];
 
   if ((ppt->has_perturbed_recombination == _TRUE_) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off) ){
     delta_temp = y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
     delta_chi =y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
   }
-
-
 
   /** - print whatever you want for whatever mode of your choice */
 
@@ -5168,7 +5162,6 @@ int perturb_derivs(double tau,
   double H0=0.,Nnow=0.,n_H=0.,fHe=0.;
   double delta_temp=0.,delta_chi=0., chi=0.;
   double alpha_rec=0.,delta_alpha_rec=0.;
-  double compton_cooling_rate = 0.;
   double a_rad=0., Compton_CR =0.;
   double Tb_in_K=0.;
 
