@@ -110,15 +110,15 @@ struct perturbs
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
   short has_cl_lensing_potential;     /**< do we need Cl's for galaxy lensing potential? */
-  short has_cl_density;               /**< do we need Cl's for matter density? */
+  short has_cl_number_count;          /**< do we need Cl's for density number count? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
 
-  short has_dCl_density;  /**< in dCl, do we want density terms ? */
-  short has_dCl_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
-  short has_dCl_lensing;  /**< in dCl, do we want lensing terms ? */
-  short has_dCl_gr;       /**< in dCl, do we want gravity terms ? */
+  short has_nc_density;  /**< in dCl, do we want density terms ? */
+  short has_nc_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
+  short has_nc_lensing;  /**< in dCl, do we want lensing terms ? */
+  short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
   int l_scalar_max; /**< maximum l value for CMB scalars C_ls */
   int l_tensor_max; /**< maximum l value for CMB tensors C_ls */

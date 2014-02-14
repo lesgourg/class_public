@@ -532,7 +532,7 @@ int perturb_indices_of_perturbs(
         ppt->has_source_phi_plus_psi = _TRUE_;
       }
 
-      if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_cl_density == _TRUE_)) {
+      if (ppt->has_pk_matter == _TRUE_) {
         ppt->has_lss = _TRUE_;
         ppt->has_source_delta_m = _TRUE_;
         ppt->has_source_theta_m = _TRUE_;
@@ -566,11 +566,15 @@ int perturb_indices_of_perturbs(
           ppt->has_source_theta_ncdm = _TRUE_;
       }
 
-      if (ppt->has_cl_density == _TRUE_) {
-        ppt->has_source_phi = _TRUE_;
-        ppt->has_source_phi_prime = _TRUE_;
-        ppt->has_source_phi_plus_psi = _TRUE_;
-        ppt->has_source_psi = _TRUE_;
+      if (ppt->has_cl_number_count == _TRUE_) {
+        ppt->has_lss = _TRUE_;
+        if (ppt->has_nc_density == _TRUE_) {
+          ppt->has_source_delta_m = _TRUE_;
+          ppt->has_source_theta_m = _TRUE_;
+        }
+        if (ppt->has_nc_rsd == _TRUE_) {
+          ppt->has_source_theta_m = _TRUE_;
+        }
       }
 
       index_type = index_type_common;
@@ -1139,7 +1143,7 @@ int perturb_get_k_list(
        large l. We don't do it by default, because the lensed ClT,
        ClE would be marginally affected. */
 
-    if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
+    if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
       class_call(background_tau_of_z(pba,
                                      ppt->selection_mean[0],

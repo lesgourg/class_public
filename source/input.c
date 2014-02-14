@@ -672,7 +672,7 @@ int input_init(
 
     if ((strstr(string1,"nCl") != NULL) || (strstr(string1,"NCl") != NULL) || (strstr(string1,"NCL") != NULL) ||
         (strstr(string1,"dCl") != NULL) || (strstr(string1,"DCl") != NULL) || (strstr(string1,"DCL") != NULL)) {
-      ppt->has_cl_density=_TRUE_;
+      ppt->has_cl_number_count = _TRUE_;
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
     }
@@ -736,7 +736,7 @@ int input_init(
 
   }
 
-  if (ppt->has_cl_density == _TRUE_) {
+  if (ppt->has_cl_number_count == _TRUE_) {
 
     class_call(parser_read_string(pfc,"number count contributions",&string1,&flag1,errmsg),
                errmsg,
@@ -744,26 +744,25 @@ int input_init(
 
     if (flag1 == _TRUE_) {
 
-      ppt->has_dCl_density = _FALSE_;
-      ppt->has_dCl_rsd = _FALSE_;
-      ppt->has_dCl_lensing = _FALSE_;
-      ppt->has_dCl_gr = _FALSE_;
-
       if (strstr(string1,"density") != NULL)
-        ppt->has_dCl_density = _TRUE_;
+        ppt->has_nc_density = _TRUE_;
       if (strstr(string1,"rsd") != NULL)
-        ppt->has_dCl_rsd = _TRUE_;
+        ppt->has_nc_rsd = _TRUE_;
       if (strstr(string1,"lensing") != NULL)
-        ppt->has_dCl_lensing = _TRUE_;
+        ppt->has_nc_lensing = _TRUE_;
       if (strstr(string1,"gr") != NULL)
-        ppt->has_dCl_gr = _TRUE_;
+        ppt->has_nc_gr = _TRUE_;
 
-      class_test((ppt->has_dCl_density == _FALSE_) && (ppt->has_dCl_rsd == _FALSE_) && (ppt->has_dCl_lensing == _FALSE_) && (ppt->has_dCl_gr == _FALSE_),
+      class_test((ppt->has_nc_density == _FALSE_) && (ppt->has_nc_rsd == _FALSE_) && (ppt->has_nc_lensing == _FALSE_) && (ppt->has_nc_gr == _FALSE_),
                  errmsg,
                  "In the field 'output', you selected number count Cl's, but in the field 'number count contributions', you removed all contributions");
 
     }
 
+    else {
+      /* default: only the density contribution */
+      ppt->has_nc_density = _TRUE_;
+    }
   }
 
   if (ppt->has_perturbations == _TRUE_) {
@@ -1258,7 +1257,7 @@ int input_init(
           (ppt->has_cl_cmb_lensing_potential == _TRUE_))
         class_read_double("l_max_scalars",ppt->l_scalar_max);
 
-      if ((ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_density == _TRUE_))
+      if ((ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_number_count == _TRUE_))
         class_read_double("l_max_lss",ppt->l_lss_max);
     }
 
@@ -1343,7 +1342,7 @@ int input_init(
   }
 
   /* deal with selection functions */
-  if ((ppt->has_cl_density == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
+  if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
     class_call(parser_read_string(pfc,
                                   "selection",
@@ -1966,11 +1965,16 @@ int input_default_params(
   ppt->has_cl_cmb_temperature = _FALSE_;
   ppt->has_cl_cmb_polarization = _FALSE_;
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
-  ppt->has_cl_density = _FALSE_;
+  ppt->has_cl_number_count = _FALSE_;
   ppt->has_cl_lensing_potential = _FALSE_;
   ppt->has_pk_matter = _FALSE_;
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
+
+  ppt->has_nc_density = _FALSE_;
+  ppt->has_nc_rsd = _FALSE_;
+  ppt->has_nc_lensing = _FALSE_;
+  ppt->has_nc_gr = _FALSE_;
 
   ppt->switch_sw = 1;
   ppt->switch_eisw = 1;

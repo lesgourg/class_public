@@ -9,6 +9,9 @@
 #include <sys/stat.h>
 #include "errno.h"
 
+/* macro: test if index_tt is in the range between index and index+num, while the flag is true */
+#define _index_tt_in_range_(index,num,flag) (flag == _TRUE_) && (index_tt >= index) && (index_tt < index+num)
+
 /**
  * Structure containing everything about transfer functions in
  * harmonic space \f$ \Delta_l^{X} (q) \f$ that other modules need to
@@ -74,7 +77,8 @@ struct transfers {
   int index_tt_density; /**< index for first bin of transfer type = matter density */
   int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
 
-  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distorsion of number count */
+  int index_tt_rsd0;    /**< index for first bin of transfer type = redshift space distorsion of number count (j=0 term) */
+  int index_tt_rsd2;    /**< index for first bin of transfer type = redshift space distorsion of number count (j=2 term) */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
 
