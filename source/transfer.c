@@ -450,6 +450,8 @@ int transfer_indices_of_transfers(
 
   index_tt = 0;
 
+  //class_define_index(ptr->index_tt_t2,ppt->has_cl_cmb_temperature,index_tt,1);
+
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
     ptr->index_tt_t2 = index_tt;
     index_tt++;
@@ -484,6 +486,13 @@ int transfer_indices_of_transfers(
       ptr->index_tt_density = index_tt;
       index_tt+=ppt->selection_num;
     }
+
+    /*
+    if (ppt->has_dCl_rsd == _TRUE_) {
+      ptr->index_tt_rsd = index_tt;
+      index_tt+=ppt->selection_num;
+    }
+    */
 
     if (ppt->has_cl_lensing_potential == _TRUE_) {
       ptr->index_tt_lensing = index_tt;
@@ -1383,13 +1392,13 @@ int transfer_get_source_correspondence(
           tp_of_tt[index_md][index_tt]=ppt->index_tp_p;
 
         if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_g;
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
 
         if ((ppt->has_cl_density == _TRUE_) && (index_tt >= ptr->index_tt_density) && (index_tt < ptr->index_tt_density+ppt->selection_num))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_g;
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_delta_m;
 
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_g;
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
 
       }
 
@@ -2127,9 +2136,9 @@ int transfer_sources(
           /* conformal time */
           tau = ppt->tau_sampling[index_tau];
 
-          /* lensing source =  - 2 W(tau) psi(k,tau) Heaviside(tau-tau_rec)
+          /* lensing source =  - W(tau) (phi(k,tau) + psi(k,tau)) Heaviside(tau-tau_rec)
              with
-             psi = (newtonian) gravitationnal potential
+             psi,phi = metric perturbation in newtonian gauge (phi+psi = Phi_A-Phi_H of Bardeen)
              W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec)
              H(x) = Heaviside
              (in tau = tau_0, set source = 0 to avoid division by zero;
@@ -2140,7 +2149,7 @@ int transfer_sources(
             rescaling=0.;
           }
           else {
-            rescaling = -2.*(tau-tau_rec)/(tau0-tau)/(tau0-tau_rec);
+            rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);
           }
 
           /* copy from input array to output array */
@@ -2242,21 +2251,17 @@ int transfer_sources(
                      pba->error_message,
                      ptr->error_message);
 
-          /* matter density source =  - [- (dz/dtau) W(z)] * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
-             =  - W(tau) * 2/(3 Omega_m(tau) H^2(tau)) * (k/a)^2 psi(k,tau)
+          /* matter density source =  [- (dz/dtau) W(z)] * delta_m(k,tau)
+             = W(tau) delta_m(k,tau)
              with
-             psi = (newtonian) gravitationnal potential
+             delta_m = total matter perturbation (defined in gauge-independent way, see arXiv 1307.1459)
              W(z) = redshift space selection function = dN/dz
              W(tau) = same wrt conformal time = dN/dtau
              (in tau = tau_0, set source = 0 to avoid division by zero;
              regulated anyway by Bessel).
           */
 
-          rescaling = selection[index_tau]
-            *(-2.)/3./pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_H]
-            /pvecback[pba->index_bg_H]/pow(pvecback[pba->index_bg_a],2);
-
-          sources[index_tau] *= rescaling*pow(ptr->k[index_md][index_q],2);
+          sources[index_tau] *= selection[index_tau];
         }
 
         /* deallocate temporary arrays */
@@ -2370,9 +2375,9 @@ int transfer_sources(
         /* loop over time and rescale */
         for (index_tau = 0; index_tau < tau_size; index_tau++) {
 
-          /* lensing source =  - 2 W(tau) psi(k,tau) Heaviside(tau-tau_rec)
+          /* lensing source =  - W(tau) (phi(k,tau) + psi(k,tau)) Heaviside(tau-tau_rec)
              with
-             psi = (newtonian) gravitationnal potential
+             psi,phi = metric perturbation in newtonian gauge (phi+psi = Phi_A-Phi_H of Bardeen)
              W = (tau-tau_rec)/(tau_0-tau)/(tau_0-tau_rec)
              H(x) = Heaviside
              (in tau = tau_0, set source = 0 to avoid division by zero;
@@ -2394,7 +2399,7 @@ int transfer_sources(
               if ((tau0_minus_tau_lensing_sources[index_tau_sources] > 0.) && (tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau] > 0.)) {
 
                 rescaling +=
-                  -2.*(tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau])
+                  (tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                   /tau0_minus_tau[index_tau]
                   /tau0_minus_tau_lensing_sources[index_tau_sources]
                   * selection[index_tau_sources]

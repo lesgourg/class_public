@@ -2347,28 +2347,8 @@ int spectra_pk(
          P_R(k) = 1/(2pi^2) k^3 <R R>
          so, primordial curvature correlator:
          <R R> = (2pi^2) k^-3 P_R(k)
-         so, gravitational potential correlator:
-         <phi phi> = (2pi^2) k^-3 (source_phi)^2 P_R(k)
-
-         Matter power spectrum can be computed in two ways:
-
-         1) from source function = delta_pk (default)
-         P(k) = <delta_pk delta_pk>
-         = (source_delta_pk)^2 <R R>
-         = (2pi^2) k^-3 (source_delta_pk)^2 P_R(k)
-
-         2) from source function = gravitational potential (using Poisson):
-         P(k) = <delta_m delta_m>
-         = 4/9 H^-4 Omega_m^-2 (k/a)^4 <phi phi>
-         = 4/9 H^-4 Omega_m^-2 (k/a)^4 (source_phi)^2 <R R>
-         = 8pi^2/9 H^-4 Omega_m^-2 k/a^4 (source_phi)^2 <R R>
-
-         CLASS now uses the first way. You could easily use the second
-         one (by uncommenting the lines below) if you prefer the
-         second way, and if you want to save a bit of computing time
-         (since in the second case we need to compute a single source
-         function for both P(k) and lensing). The result will
-         differ only on scales close to Hubble scale.
+         so, delta_m correlator:
+         P(k) = <delta_m delta_m> = (2pi^2) k^-3 (source_m)^2 P_R(k)
 
          For isocurvature or cross adiabatic-isocurvature parts,
          replace one or two 'R' by 'S_i's */
@@ -2378,30 +2358,14 @@ int spectra_pk(
 
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
 
-        if (ppt->has_source_delta_m == _TRUE_) {
+        source_ic1 = ppt->sources[index_md]
+          [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+          [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
 
-          source_ic1 = ppt->sources[index_md]
-            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
-
-          psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
-            log(2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
-                *source_ic1*source_ic1
-                *exp(primordial_pk[index_ic1_ic2]));
-        }
-        else {
-
-          source_ic1 = ppt->sources[index_md]
-            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_g]
-            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
-
-          psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
-            log(8.*_PI_*_PI_/9./pow(pvecback_sp_long[pba->index_bg_H],4)
-                /pow(pvecback_sp_long[pba->index_bg_Omega_m],2)
-                *exp(psp->ln_k[index_k])
-                /pow(pvecback_sp_long[pba->index_bg_a],4)
-                *exp(primordial_pk[index_ic1_ic2])*source_ic1*source_ic1);
-        }
+        psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
+          log(2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
+              *source_ic1*source_ic1
+              *exp(primordial_pk[index_ic1_ic2]));
       }
 
       /* part non-diagonal in initial conditions */
@@ -2412,28 +2376,13 @@ int spectra_pk(
 
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-            if (ppt->has_source_delta_m == _TRUE_) {
+            source_ic1 = ppt->sources[index_md]
+              [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
 
-              source_ic1 = ppt->sources[index_md]
-                [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-                [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
-
-              source_ic2 = ppt->sources[index_md]
-                [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-                [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
-
-            }
-            else {
-
-              source_ic1 = ppt->sources[index_md]
-                [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_g]
-                [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
-
-              source_ic2 = ppt->sources[index_md]
-                [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_g]
-                [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
-
-            }
+            source_ic2 = ppt->sources[index_md]
+              [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k];
 
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
               primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);

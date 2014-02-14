@@ -190,7 +190,6 @@ struct perturbs
 
   short has_source_t;  /**< do we need source for CMB temperature? */
   short has_source_p;  /**< do we need source for CMB polarisation? */
-  short has_source_g;  /**< do we need source for gravitationnal potential? */
   short has_source_delta_m;   /**< do we need source for delta of total matter? */
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
   short has_source_delta_b;    /**< do we need source for delta of baryons? */
@@ -205,11 +204,10 @@ struct perturbs
   short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
   short has_source_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_phi;
-  short has_source_phi_prime;
-  short has_source_phi_plus_psi;
-  short has_source_phi_plus_psi_prime;
-  short has_source_psi;
+  short has_source_phi;          /**< do we need source for metric fluctuation phi? */
+  short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
+  short has_source_phi_plus_psi; /**< do we need source for metric fluctuation (phi+psi)? */
+  short has_source_psi;          /**< do we need source for metric fluctuation psi? */
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -219,7 +217,6 @@ struct perturbs
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
-  int index_tp_g; /**< index value for gravitationnal potential */
 
   int index_tp_delta_m;     /**< index value for delta of total matter */
   int index_tp_delta_g;     /**< index value for delta of gammas */
@@ -240,11 +237,11 @@ struct perturbs
   int index_tp_theta_fld;   /**< index value for theta of dark energy */
   int index_tp_theta_ur;    /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
-  int index_tp_phi;
-  int index_tp_phi_prime;
-  int index_tp_phi_plus_psi;
-  int index_tp_phi_plus_psi_prime;
-  int index_tp_psi;
+
+  int index_tp_phi;          /**< index value for metric fluctuation phi */
+  int index_tp_phi_prime;    /**< index value for metric fluctuation phi' */
+  int index_tp_phi_plus_psi; /**< index value for metric fluctuation phi+psi */
+  int index_tp_psi;          /**< index value for metric fluctuation psi */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 

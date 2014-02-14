@@ -460,7 +460,6 @@ int perturb_indices_of_perturbs(
 
   ppt->has_source_t = _FALSE_;
   ppt->has_source_p = _FALSE_;
-  ppt->has_source_g = _FALSE_;
   ppt->has_source_delta_m = _FALSE_;
   ppt->has_source_delta_g = _FALSE_;
   ppt->has_source_delta_b = _FALSE_;
@@ -475,6 +474,10 @@ int perturb_indices_of_perturbs(
   ppt->has_source_theta_fld = _FALSE_;
   ppt->has_source_theta_ur = _FALSE_;
   ppt->has_source_theta_ncdm = _FALSE_;
+  ppt->has_source_phi = _FALSE_;
+  ppt->has_source_phi_prime = _FALSE_;
+  ppt->has_source_phi_plus_psi = _FALSE_;
+  ppt->has_source_psi = _FALSE_;
 
   /** - source flags and indices, for sources that all modes have in
       common (temperature, polarization, ...). For temperature, the
@@ -526,7 +529,7 @@ int perturb_indices_of_perturbs(
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) || (ppt->has_cl_lensing_potential)) {
         ppt->has_lss = _TRUE_;
-        ppt->has_source_g = _TRUE_;
+        ppt->has_source_phi_plus_psi = _TRUE_;
       }
 
       if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_cl_density == _TRUE_)) {
@@ -563,10 +566,16 @@ int perturb_indices_of_perturbs(
           ppt->has_source_theta_ncdm = _TRUE_;
       }
 
+      if (ppt->has_cl_density == _TRUE_) {
+        ppt->has_source_phi = _TRUE_;
+        ppt->has_source_phi_prime = _TRUE_;
+        ppt->has_source_phi_plus_psi = _TRUE_;
+        ppt->has_source_psi = _TRUE_;
+      }
+
       index_type = index_type_common;
       class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
-      class_define_index(ppt->index_tp_g,          ppt->has_source_g,         index_type,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
       class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
       class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_type,1);
@@ -581,6 +590,10 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
       class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
       class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
+      class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_type,1);
+      class_define_index(ppt->index_tp_phi_prime,  ppt->has_source_phi_prime, index_type,1);
+      class_define_index(ppt->index_tp_phi_plus_psi,ppt->has_source_phi_plus_psi,index_type,1);
+      class_define_index(ppt->index_tp_psi,        ppt->has_source_psi,       index_type,1);
       ppt->tp_size[index_md] = index_type;
 
       class_test(index_type == 0,
@@ -4523,8 +4536,8 @@ int perturb_sources(
   double * pvecmetric;
 
   double delta_g;
-  double a_prime_over_a;  /* (a'/a) */
-  double a_prime_over_a_prime;  /* (a'/a)' */
+  double a_prime_over_a=0.;  /* (a'/a) */
+  double a_prime_over_a_prime=0.;  /* (a'/a)' */
   int switch_isw = 1;
 
   /** - rename structure fields (just to avoid heavy notations) */
@@ -4566,6 +4579,12 @@ int perturb_sources(
                                  pvecthermo),
              pth->error_message,
              error_message);
+
+  /* derived background quantities, useful only in synchronous gauge */
+  if (ppt->gauge == synchronous) {
+    a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
+    a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
+  }
 
   /* scalars */
   if (_scalars_) {
@@ -4653,9 +4672,6 @@ int perturb_sources(
 
       if (ppt->gauge == synchronous) {
 
-        a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
-        a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
-
         _set_source_(ppt->index_tp_t0) =
           ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
           + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta]
@@ -4691,16 +4707,52 @@ int perturb_sources(
 
     /* now, non-CMB sources */
 
-    /* gravitational potential */
-    if (ppt->has_source_g == _TRUE_) {
+    /* Bardeen potential -PHI_H = phi in Newtonian gauge */
+    if (ppt->has_source_phi == _TRUE_) {
 
-      /* newtonian gauge */
       if (ppt->gauge == newtonian)
-        _set_source_(ppt->index_tp_g) = pvecmetric[ppw->index_mt_psi];
+        _set_source_(ppt->index_tp_phi) = y[ppw->pv->index_pt_phi];
 
-      /* synchronous gauge */
       if (ppt->gauge == synchronous)
-        _set_source_(ppt->index_tp_g) = (pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a] * (pvecmetric[ppw->index_mt_h_prime] + 6. * pvecmetric[ppw->index_mt_eta_prime])/2./k/k + pvecmetric[ppw->index_mt_alpha_prime]);
+        _set_source_(ppt->index_tp_phi) = y[ppw->pv->index_pt_eta] - a_prime_over_a * pvecmetric[ppw->index_mt_alpha];
+
+    }
+
+    /* its derivative phi' */
+    if (ppt->has_source_phi_prime == _TRUE_) {
+
+      if (ppt->gauge == newtonian)
+        _set_source_(ppt->index_tp_phi_prime) = dy[ppw->pv->index_pt_phi];
+
+      if (ppt->gauge == synchronous)
+        _set_source_(ppt->index_tp_phi_prime) = dy[ppw->pv->index_pt_eta]
+          - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha]
+          - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime];
+    }
+
+    /* diff of Bardeen potentials PHI_A-PHI_H = psi + phi in newtonian gauge */
+    if (ppt->has_source_phi_plus_psi == _TRUE_) {
+
+      if (ppt->gauge == newtonian)
+        _set_source_(ppt->index_tp_phi_plus_psi) =
+          y[ppw->pv->index_pt_phi] + pvecmetric[ppw->index_mt_psi];
+
+      if (ppt->gauge == synchronous)
+        _set_source_(ppt->index_tp_phi_plus_psi) =
+          y[ppw->pv->index_pt_eta] + pvecmetric[ppw->index_mt_alpha_prime];
+
+    }
+
+    /* Bardeen potential PHI_A = psi in newtonian gauge */
+    if (ppt->has_source_psi == _TRUE_) {
+
+      if (ppt->gauge == newtonian)
+        _set_source_(ppt->index_tp_psi) =
+          pvecmetric[ppw->index_mt_psi];
+
+      if (ppt->gauge == synchronous)
+        _set_source_(ppt->index_tp_psi) =
+          a_prime_over_a * pvecmetric[ppw->index_mt_alpha] + pvecmetric[ppw->index_mt_alpha_prime];
     }
 
     /* total matter overdensity (gauge-invariant, defined as in arXiv:1307.1459) */
