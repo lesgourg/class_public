@@ -1,4 +1,5 @@
 from classy import Class
+from classy import CosmoSevereError
 import itertools
 import numpy as np
 import unittest
@@ -99,7 +100,7 @@ class TestClass(unittest.TestCase):
             # Negative tests of output functions
             if 'tCl' not in self.scenario['output'].split():
                 print '--> testing absence of tCl'
-                self.assertRaises(NameError, self.cosmo.raw_cl, 100)
+                self.assertRaises(CosmoSevereError, self.cosmo.raw_cl, 100)
             #if 'mPk' not in self.scenario['output'].split():
                 #print '--> testing absence of mPk'
                 ##args = (1, 0)
