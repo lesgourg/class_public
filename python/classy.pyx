@@ -175,25 +175,26 @@ cdef class Class:
             i+=1
 
     # Called at the end of a run, to free memory
-    def _struct_cleanup(self,ncp):
+    def struct_cleanup(self):
         if self.ready == _FALSE_:
              return
-        if "lensing" in ncp:
+        if "lensing" in self.ncp:
             lensing_free(&self.le)
-        if "nonlinear" in ncp:
+        if "nonlinear" in self.ncp:
             nonlinear_free (&self.nl)
-        if "spectra" in ncp:
+        if "spectra" in self.ncp:
             spectra_free(&self.sp)
-        if "transfer" in ncp:
+        if "transfer" in self.ncp:
             transfer_free(&self.tr)
-        if "primordial" in ncp:
+        if "primordial" in self.ncp:
             primordial_free(&self.pm)
-        if "perturb" in ncp:
+        if "perturb" in self.ncp:
             perturb_free(&self.pt)
-        if "thermodynamics" in ncp:
+        if "thermodynamics" in self.ncp:
             thermodynamics_free(&self.th)
-        if "background" in ncp:
+        if "background" in self.ncp:
             background_free(&self.ba)
+        self.ready = False
 
     # Ensure the full module dependency
     def _check_task_dependency(self,lvl):
@@ -305,49 +306,49 @@ cdef class Class:
 
         if "background" in lvl:
             if background_init(&(self.pr),&(self.ba)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
             self.ncp.add("background")
 
         if "thermodynamics" in lvl:
             if thermodynamics_init(&(self.pr),&(self.ba),&(self.th)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
 
         if "perturb" in lvl:
             if perturb_init(&(self.pr),&(self.ba),&(self.th),&(self.pt)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
 
         if "primordial" in lvl:
             if primordial_init(&(self.pr),&(self.pt),&(self.pm)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
 
         if "transfer" in lvl:
             if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.tr)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
 
         if "spectra" in lvl:
             if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.sp.error_message)
             self.ncp.add("spectra")
 
         if "nonlinear" in lvl:
             if (nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.tr,&self.pm,&self.sp,&self.nl) == _FAILURE_):
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.nl.error_message)
             self.ncp.add("nonlinear")
 
         if "lensing" in lvl:
             if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.nl),&(self.le)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
+                self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
 
@@ -903,10 +904,7 @@ cdef class Class:
 
         # If the module has already been called once, clean-up
         if self.state:
-            self._struct_cleanup(set(
-                ["lensing", "nonlinear", "spectra",
-                 "primordial", "transfer", "perturb",
-                 "thermodynamics", "backround", "bessel"]))
+            self.struct_cleanup()
 
         # Set the module to the current values
         self.set(data.cosmo_arguments)
