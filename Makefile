@@ -161,3 +161,4 @@ tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(
 
 clean: .base
 	rm -rf $(WRKDIR);
+	rm -f libclass.a
