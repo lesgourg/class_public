@@ -69,6 +69,18 @@ enum selection_type {gaussian,tophat,dirac};
 
 //@}
 
+
+//@{
+
+/**
+ * maximum number of k-values for perturbation output
+ */
+#define _MAX_NUMBER_OF_K_FILES_ 30
+
+//@}
+
+
+
 /**
  * Structure containing everything about perturbations that other
  * modules need to know, in particular tabuled values of the source
@@ -137,6 +149,12 @@ struct perturbs
   int switch_dop;  /**< in temperature calculation, do we want to include the Doppler term? */
   int switch_pol;  /**< in temperature calculation, do we want to include the polarisation-related term? */
   double eisw_lisw_split_z; /**< at which redshift do we define the cut between eisw and lisw ?*/
+
+  int k_output_values_num;       /**< Number of perturbation outputs (default=0) */
+  double k_output_values[_MAX_NUMBER_OF_K_FILES_];    /**< List of k values where perturbation output is requested. */
+  int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]; /**< List of indices corresponding to k-values close to k_output_values */
+  FileName root; /**< Same as root in output structure, for writing perturbations.*/
+
 
   //@}
 
@@ -427,6 +445,8 @@ struct perturb_workspace
   double delta_m;
   double theta_m;
 
+  FILE * perturb_output_file; /**< filepointer to output file*/
+
   //@}
 
   /** @name - indices useful for searching background/termo quantitites in tables */
@@ -701,6 +721,12 @@ extern "C" {
                                   double * pvecthermo,
                                   struct perturb_workspace * ppw
                                   );
+
+  int perturb_prepare_output_file(struct background * pba,
+                                  struct perturbs * ppt,
+                                  struct perturb_workspace * ppw,
+                                  int index_ikout,
+                                  int index_md);
 
 
 #ifdef __cplusplus

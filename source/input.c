@@ -1479,6 +1479,9 @@ int input_init(
   }
 
   class_read_string("root",pop->root);
+  sprintf(ppt->root,pop->root);
+
+  class_read_string("root",pop->root);
 
   class_call(parser_read_string(pfc,
                                 "headers",
@@ -1845,7 +1848,30 @@ int input_init(
 
   }
 
-  /** (i.2) shall we write primordial spectra in a file? */
+  /** (i.2) shall we write perturbation quantitites in files? */
+
+  class_call(parser_read_list_of_doubles(pfc,
+                                         "k_output_values",
+                                         &(int1),
+                                         &(pointer1),
+                                         &flag1,
+                                         errmsg),
+             errmsg,
+             errmsg);
+
+  if (flag1 == _TRUE_) {
+    class_test(int1 > _MAX_NUMBER_OF_K_FILES_,
+               errmsg,
+               "you want to write some output for %d different values of k, hence you should increase _MAX_NUMBER_OF_K_FILES_ in include/perturbations.h to at least this number",
+               int1);
+    ppt->k_output_values_num = int1;
+    for (i=0; i<int1; i++) {
+      ppt->k_output_values[i] = pointer1[i];
+    }
+    free(pointer1);
+  }
+
+  /** (i.3) shall we write primordial spectra in a file? */
 
   class_call(parser_read_string(pfc,"write primordial",&string1,&flag1,errmsg),
              errmsg,
@@ -2040,6 +2066,8 @@ int input_default_params(
   ppt->k_max_for_pk=0.1;
 
   ppt->gauge=synchronous;
+
+  ppt->k_output_values_num=0;
 
   /** - primordial structure */
 
