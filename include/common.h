@@ -49,6 +49,10 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _HUGE_ 1.e99
 
+#define _OUTPUTPRECISION_ 10 /**< Number of significant digits in some output files */
+
+#define _COLUMNWIDTH_ 20 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
+
 #ifndef __CLASSDIR__
 #define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */
 #endif
@@ -187,7 +191,7 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
       class_test_message(error_message_output,#condition, args);                                                 \
       abort=_TRUE_;                                                                                              \
     }                                                                                                            \
-  }                                                                                                              \
+  }                                                                     \
 }
 
 /* macro for returning error message;
@@ -211,15 +215,30 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
 }
 
 /* macro for defining indices (usually one, sometimes a block) */
-#define class_define_index(index,                                                                                \
-                           condition,                                                                            \
-                           running_index,                                                                        \
-                           number_of_indices) {                                                                  \
-  if (condition) {                                                                                               \
-    index = running_index;                                                                                       \
-    running_index += number_of_indices;                                                                          \
-  }                                                                                                              \
-}
+#define class_define_index(index,                                       \
+                           condition,                                   \
+                           running_index,                               \
+                           number_of_indices) {                         \
+    if (condition) {                                                    \
+      index = running_index;                                            \
+      running_index += number_of_indices;                               \
+    }                                                                   \
+  }
+
+/* macros for writing formatted output */
+#define class_fprintf_double(file,                                      \
+                             output,                                    \
+                             condition){                                \
+    if (condition == _TRUE_)                                            \
+      fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,output);    \
+  }
+
+#define class_fprintf_columntitle(file,                                 \
+                                  title,                                \
+                                  condition){                           \
+    if (condition == _TRUE_)                                            \
+      fprintf(file,"%*s%-*s ",MAX(0,_COLUMNWIDTH_-_OUTPUTPRECISION_-6),"",_OUTPUTPRECISION_+6,title); \
+  }
 
 /** parameters related to the precision of the code and to the method of calculation */
 
