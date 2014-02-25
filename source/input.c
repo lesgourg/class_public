@@ -1037,7 +1037,7 @@ int input_init(
                  "In input file, you cannot enter both A_s and ln10^{10}A_s, choose one");
       if (flag1 == _TRUE_)
         ppm->A_s = param1;
-      else
+      else if (flag2 == _TRUE_)
         ppm->A_s = exp(param2)*1.e-10;
 
       if (ppt->has_ad == _TRUE_) {
