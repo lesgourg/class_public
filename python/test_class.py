@@ -53,7 +53,8 @@ class TestClass(unittest.TestCase):
              'Positive_Omega_k',
              'Negative_Omega_k'),
             ({}, {'output': 'mPk'}, {'output': 'tCl'},
-             {'output': 'tCl lCl'}, {'output': 'mPk tCl lCl'})))
+             {'output': 'tCl lCl'}, {'output': 'mPk tCl lCl'},
+             {'gauge': 'newtonian'})))
     def test_parameters(self, name, scenario):
         """Create a few instances based on different cosmologies"""
         if name == 'Mnu':
