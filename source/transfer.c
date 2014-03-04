@@ -1706,6 +1706,8 @@ int transfer_compute_for_each_q(
 
   short neglect;
 
+  radial_function_type radial_type;
+
   /** store the sources in the workspace and define all
       fields in this workspace */
   interpolated_sources = ptw->interpolated_sources;
@@ -1783,6 +1785,16 @@ int transfer_compute_for_each_q(
                    ptr->error_message,
                    ptr->error_message);
 
+        /** Select radial function type: */
+        class_call(transfer_select_radial_function(
+                                                   ppt,
+                                                   ptr,
+                                                   index_md,
+                                                   index_tt,
+                                                   &radial_type),
+                   ptr->error_message,
+                   ptr->error_message);
+
         for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
 
           l = (double)ptr->l[index_l];
@@ -1853,7 +1865,8 @@ int transfer_compute_for_each_q(
                                                    index_tt,
                                                    index_l,
                                                    l,
-                                                   q_max_bessel
+                                                   q_max_bessel,
+                                                   radial_type
                                                    ),
                        ptr->error_message,
                        ptr->error_message);
@@ -3014,7 +3027,8 @@ int transfer_compute_for_each_l(
                                 int index_tt,
                                 int index_l,
                                 double l,
-                                double q_max_bessel
+                                double q_max_bessel,
+                                radial_function_type radial_type
                                 ){
 
   /** Summary: */
@@ -3067,6 +3081,7 @@ int transfer_compute_for_each_l(
                                q,
                                ptw->tau0_minus_tau,
                                ptw->sources,
+                               radial_type,
                                &transfer_function),
                ptr->error_message,
                ptr->error_message);
@@ -3083,6 +3098,7 @@ int transfer_compute_for_each_l(
                                   l,
                                   index_l,
                                   k,
+                                  radial_type,
                                   &transfer_function
                                   ),
                ptr->error_message,
@@ -3183,6 +3199,7 @@ int transfer_integrate(
                        double l,
                        int index_l,
                        double k,
+                       radial_function_type radial_type,
                        double * trsf
                        ) {
 
@@ -3203,8 +3220,6 @@ int transfer_integrate(
   double bessel, *radial_function;
 
   double x_turning_point;
-
-  radial_function_type radial_type;
 
   /** - find minimum value of (tau0-tau) at which \f$ j_l(k[\tau_0-\tau]) \f$ is known, given that \f$ j_l(x) \f$ is sampled above some finite value \f$ x_{\min} \f$ (below which it can be approximated by zero) */
   //tau0_minus_tau_min_bessel = x_min_l/k; /* segmentation fault impossible, checked before that k != 0 */
@@ -3240,16 +3255,6 @@ int transfer_integrate(
   }
 
   /** - if there is an overlap: */
-
-  /** Select radial function type: */
-  class_call(transfer_select_radial_function(
-                                             ppt,
-                                             ptr,
-                                             index_md,
-                                             index_tt,
-                                             &radial_type),
-             ptr->error_message,
-             ptr->error_message);
 
   /** -> trivial case: the source is a Dirac function and is sampled in only one point */
   if (ptw->tau_size == 1) {
@@ -3374,6 +3379,7 @@ int transfer_limber(
                     double k,
                     double * tau0_minus_tau,
                     double * sources, /* array with argument interpolated_sources[index_q*ppt->tau_size+index_tau] */
+                    radial_function_type radial_type,
                     double * trsf
                     ){
 
@@ -3381,23 +3387,134 @@ int transfer_limber(
 
   /** - define local variables */
 
-  /* conformal time at which source must be computed */
-  double tau0_minus_tau_limber;
-  int index_tau;
-
   /* interpolated source and its derivatives at this value */
-  double S, dS, ddS;
+  double S, Sp, Sm;
 
-  /** - get k, l and infer tau such that k(tau0-tau)=l+1/2;
-      check that tau is in appropriate range */
+  if (radial_type == SCALAR_TEMPERATURE_0) {
 
-  tau0_minus_tau_limber = (l+0.5)/k; //TBC: to be updated to include curvature effects
+    /** - get k, l and infer tau such that k(tau0-tau)=l+1/2;
+        check that tau is in appropriate range */
 
-  if ((tau0_minus_tau_limber > tau0_minus_tau[0]) ||
-      (tau0_minus_tau_limber < tau0_minus_tau[tau_size-1])) {
-    *trsf = 0.;
-    return _SUCCESS_;
+    if (((l+0.5)/k > tau0_minus_tau[0]) ||
+        ((l+0.5)/k < tau0_minus_tau[tau_size-1])) {
+      *trsf = 0.;
+      return _SUCCESS_;
+    }
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           tau0_minus_tau,
+                                           sources,
+                                           tau_size,
+                                           (l+0.5)/k,
+                                           &S),
+               ptr->error_message,
+               ptr->error_message);
+
+    /** - get transfer = source * sqrt(pi/(2l+1))/k
+        = source*[tau0-tau] * sqrt(pi/(2l+1))/(l+1/2)
+    */
+
+    *trsf = sqrt(_PI_/(2.*l+1.))*S/(l+0.5);
+
   }
+
+  else if (radial_type == SCALAR_TEMPERATURE_1) {
+
+    if (((l+1.5)/k > tau0_minus_tau[0]) ||
+        ((l-0.5)/k < tau0_minus_tau[tau_size-1])) {
+      *trsf = 0.;
+      return _SUCCESS_;
+    }
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           tau0_minus_tau,
+                                           sources,
+                                           tau_size,
+                                           (l+1.5)/k,
+                                           &Sp),
+               ptr->error_message,
+               ptr->error_message);
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           tau0_minus_tau,
+                                           sources,
+                                           tau_size,
+                                           (l-0.5)/k,
+                                           &Sm),
+               ptr->error_message,
+               ptr->error_message);
+
+    *trsf =
+      -sqrt(_PI_/(2.*l+3.))*Sp/(l+1.5) * (l+1.)/(2.*l+1)
+      +sqrt(_PI_/(2.*l-1.))*Sm/(l-0.5) * l/(2.*l+1.);
+
+  }
+
+  else if (radial_type == NC_RSD) {
+
+    if (((l+2.5)/k > tau0_minus_tau[0]) ||
+        ((l-1.5)/k < tau0_minus_tau[tau_size-1])) {
+      *trsf = 0.;
+      return _SUCCESS_;
+    }
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           tau0_minus_tau,
+                                           sources,
+                                           tau_size,
+                                           (l+2.5)/k,
+                                           &Sp),
+               ptr->error_message,
+               ptr->error_message);
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           tau0_minus_tau,
+                                           sources,
+                                           tau_size,
+                                           (l-1.5)/k,
+                                           &Sm),
+               ptr->error_message,
+               ptr->error_message);
+
+    class_call(transfer_limber_interpolate(ptr,
+                                           tau0_minus_tau,
+                                           sources,
+                                           tau_size,
+                                           (l+0.5)/k,
+                                           &S),
+               ptr->error_message,
+               ptr->error_message);
+
+    *trsf =
+      sqrt(_PI_/(2.*l+5.))*Sp/(l+2.5) * l*(l+2.)/(2.*l+1.)/(2.*l+3.)
+      -sqrt(_PI_/(2.*l+1.))*S/(l+0.5) * l/(2.*l+1.)*(l/(2.*l-1.)+(l+1.)/(2.*l+3.))
+      +sqrt(_PI_/(2.*l-3.))*Sm/(l-1.5) * l*(l-1.)/(2.*l+1.)/(2.*l-1.);
+
+  }
+
+  else {
+
+    class_stop(ptr->error_message,
+               "Limber approximation has not been coded for the radial_type of index %d\n",
+               radial_type);
+
+  }
+
+  return _SUCCESS_;
+
+}
+
+int transfer_limber_interpolate(
+                                struct transfers * ptr,
+                                double * tau0_minus_tau,
+                                double * sources,
+                                int tau_size,
+                                double tau0_minus_tau_limber,
+                                double * S
+                                ){
+
+  int index_tau;
+  double dS,ddS;
 
   /** - find  bracketing indices.
       index_tau must be at least 1 (so that index_tau-1 is at least 0)
@@ -3423,7 +3540,7 @@ int transfer_limber(
                                           sources[index_tau-1]*tau0_minus_tau[index_tau-1],
                                           sources[index_tau]*tau0_minus_tau[index_tau],
                                           sources[index_tau+1]*tau0_minus_tau[index_tau+1],
-                                          &S,
+                                          S,
                                           &dS,
                                           &ddS,
                                           ptr->error_message),
@@ -3442,19 +3559,13 @@ int transfer_limber(
                                           sources[index_tau-1]*tau0_minus_tau[index_tau-1],
                                           sources[index_tau]*tau0_minus_tau[index_tau],
                                           sources[index_tau]*tau0_minus_tau[index_tau],
-                                          &S,
+                                          S,
                                           &dS,
                                           &ddS,
                                           ptr->error_message),
                ptr->error_message,
                ptr->error_message);
   }
-
-  /** - get transfer = source * sqrt(pi/(2l+1))/k
-      = source*[tau0-tau] * sqrt(pi/(2l+1))/(l+1/2)
-  */
-
-  *trsf = sqrt(_PI_/(2.*l+1.))*S/(l+0.5);
 
   return _SUCCESS_;
 
@@ -3488,6 +3599,7 @@ int transfer_limber2(
                      double k,
                      double * tau0_minus_tau,
                      double * sources,
+                     radial_function_type radial_type,
                      double * trsf
                      ){
 

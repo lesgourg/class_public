@@ -459,7 +459,8 @@ extern "C" {
                                   int index_tt,
                                   int index_l,
                                   double l,
-                                  double q_max_bessel
+                                  double q_max_bessel,
+                                  radial_function_type radial_type
                                   );
 
   int transfer_use_limber(
@@ -484,6 +485,7 @@ extern "C" {
                          double l,
                          int index_l,
                          double q,
+                         radial_function_type radial_type,
                          double * trsf
                          );
 
@@ -496,8 +498,18 @@ extern "C" {
                       double q,
                       double * tau0_minus_tau,
                       double * sources,
+                      radial_function_type radial_type,
                       double * trsf
                       );
+
+  int transfer_limber_interpolate(
+                                  struct transfers * ptr,
+                                  double * tau0_minus_tau,
+                                  double * sources,
+                                  int tau_size,
+                                  double tau0_minus_tau_limber,
+                                  double * S
+                                  );
 
   int transfer_limber2(
                        int tau_size,
@@ -508,6 +520,7 @@ extern "C" {
                        double q,
                        double * tau0_minus_tau,
                        double * sources,
+                       radial_function_type radial_type,
                        double * trsf
                        );
 
