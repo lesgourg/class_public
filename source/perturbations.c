@@ -573,6 +573,15 @@ int perturb_indices_of_perturbs(
         if (ppt->has_nc_rsd == _TRUE_) {
           ppt->has_source_theta_m = _TRUE_;
         }
+        if (ppt->has_nc_lens == _TRUE_) {
+          ppt->has_source_phi_plus_psi = _TRUE_;
+        }
+        if (ppt->has_nc_gr == _TRUE_) {
+          ppt->has_source_phi = _TRUE_;
+          ppt->has_source_psi = _TRUE_;
+          ppt->has_source_phi_prime = _TRUE_;
+          ppt->has_source_phi_plus_psi = _TRUE_;
+        }
       }
 
       index_type = index_type_common;

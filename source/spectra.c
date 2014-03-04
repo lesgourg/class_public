@@ -1944,17 +1944,27 @@ int spectra_compute_cl(
         }
 
         if (ppt->has_nc_lens == _TRUE_) {
-          //transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_nc_lens+index_d1];
-          //transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_nc_lens+index_d1];
-          transfer_ic1_nc[index_d1] += psp->l[index_l]*(psp->l[index_l]+1.)*transfer_ic1[ptr->index_tt_nc_lens+index_d1];
-          transfer_ic2_nc[index_d1] += psp->l[index_l]*(psp->l[index_l]+1.)*transfer_ic2[ptr->index_tt_nc_lens+index_d1];
+          transfer_ic1_nc[index_d1] +=
+            psp->l[index_l]*(psp->l[index_l]+1.)*transfer_ic1[ptr->index_tt_nc_lens+index_d1];
+          transfer_ic2_nc[index_d1] +=
+            psp->l[index_l]*(psp->l[index_l]+1.)*transfer_ic2[ptr->index_tt_nc_lens+index_d1];
         }
-        /*
-          if (ppt->has_nc_gr == _TRUE_) {
-          transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_gr+index_d1];
-          transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_gr+index_d1];
-          }
-        */
+
+        if (ppt->has_nc_gr == _TRUE_) {
+          transfer_ic1_nc[index_d1]
+            += transfer_ic1[ptr->index_tt_nc_g1+index_d1]
+            + transfer_ic1[ptr->index_tt_nc_g2+index_d1]
+            + transfer_ic1[ptr->index_tt_nc_g3+index_d1]
+            + transfer_ic1[ptr->index_tt_nc_g4+index_d1]
+            + transfer_ic1[ptr->index_tt_nc_g5+index_d1];
+          transfer_ic2_nc[index_d1]
+            += transfer_ic2[ptr->index_tt_nc_g1+index_d1]
+            + transfer_ic2[ptr->index_tt_nc_g2+index_d1]
+            + transfer_ic2[ptr->index_tt_nc_g3+index_d1]
+            + transfer_ic2[ptr->index_tt_nc_g4+index_d1]
+            + transfer_ic2[ptr->index_tt_nc_g5+index_d1];
+        }
+
       }
     }
 

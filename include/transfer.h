@@ -81,6 +81,11 @@ struct transfers {
   int index_tt_d0;      /**< index for first bin of transfer type = doppler effect for of number count (j=0 term) */
   int index_tt_d1;      /**< index for first bin of transfer type = doppler effect for of number count (j=1 term) */
   int index_tt_nc_lens; /**< index for first bin of transfer type = lensing for of number count */
+  int index_tt_nc_g1;   /**< index for first bin of transfer type = gravity term G1 for of number count */
+  int index_tt_nc_g2;   /**< index for first bin of transfer type = gravity term G2 for of number count */
+  int index_tt_nc_g3;   /**< index for first bin of transfer type = gravity term G3 for of number count */
+  int index_tt_nc_g4;   /**< index for first bin of transfer type = gravity term G3 for of number count */
+  int index_tt_nc_g5;   /**< index for first bin of transfer type = gravity term G3 for of number count */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
 
