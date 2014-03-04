@@ -53,9 +53,9 @@ class TestClass(unittest.TestCase):
              'Positive_Omega_k',
              'Negative_Omega_k'),
             ({}, {'output': 'mPk'}, {'output': 'tCl'},
-             {'output': 'tCl lCl'}, {'output': 'mPk tCl lCl'},
-             {'gauge': 'newtonian'})))
-    def test_parameters(self, name, scenario):
+             {'output': 'tCl lCl'}, {'output': 'mPk tCl lCl'}),
+            ({'gauge': 'newtonian'}, {'gauge': 'sync'})))
+    def test_parameters(self, name, scenario, gauge):
         """Create a few instances based on different cosmologies"""
         if name == 'Mnu':
             self.scenario.update({'N_ncdm': 1, 'm_ncdm': 0.06})
@@ -65,6 +65,8 @@ class TestClass(unittest.TestCase):
             self.scenario.update({'Omega_k': -0.01})
 
         self.scenario.update(scenario)
+        if scenario != {}:
+            self.scenario.update(gauge)
 
         print '\n\n--------------------------'
         print '| Test case %s |' % name
@@ -102,12 +104,10 @@ class TestClass(unittest.TestCase):
             if 'tCl' not in self.scenario['output'].split():
                 print '--> testing absence of tCl'
                 self.assertRaises(CosmoSevereError, self.cosmo.raw_cl, 100)
-            #if 'mPk' not in self.scenario['output'].split():
-                #print '--> testing absence of mPk'
-                ##args = (1, 0)
-                #pk = self.cosmo.pk(0.1, 0.)
-                #print pk
-                #self.assertRaises(NameError, self.cosmo.pk, *args)
+            if 'mPk' not in self.scenario['output'].split():
+                print '--> testing absence of mPk'
+                #args = (0.1, 0)
+                self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
 
         print '~~~~~~~~ passed ? '
 
