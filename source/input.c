@@ -749,11 +749,11 @@ int input_init(
       if (strstr(string1,"rsd") != NULL)
         ppt->has_nc_rsd = _TRUE_;
       if (strstr(string1,"lensing") != NULL)
-        ppt->has_nc_lensing = _TRUE_;
+        ppt->has_nc_lens = _TRUE_;
       if (strstr(string1,"gr") != NULL)
         ppt->has_nc_gr = _TRUE_;
 
-      class_test((ppt->has_nc_density == _FALSE_) && (ppt->has_nc_rsd == _FALSE_) && (ppt->has_nc_lensing == _FALSE_) && (ppt->has_nc_gr == _FALSE_),
+      class_test((ppt->has_nc_density == _FALSE_) && (ppt->has_nc_rsd == _FALSE_) && (ppt->has_nc_lens == _FALSE_) && (ppt->has_nc_gr == _FALSE_),
                  errmsg,
                  "In the field 'output', you selected number count Cl's, but in the field 'number count contributions', you removed all contributions");
 
@@ -1973,7 +1973,7 @@ int input_default_params(
 
   ppt->has_nc_density = _FALSE_;
   ppt->has_nc_rsd = _FALSE_;
-  ppt->has_nc_lensing = _FALSE_;
+  ppt->has_nc_lens = _FALSE_;
   ppt->has_nc_gr = _FALSE_;
 
   ppt->switch_sw = 1;

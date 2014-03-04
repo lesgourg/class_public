@@ -117,7 +117,7 @@ struct perturbs
 
   short has_nc_density;  /**< in dCl, do we want density terms ? */
   short has_nc_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
-  short has_nc_lensing;  /**< in dCl, do we want lensing terms ? */
+  short has_nc_lens;     /**< in dCl, do we want lensing terms ? */
   short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
   int l_scalar_max; /**< maximum l value for CMB scalars C_ls */

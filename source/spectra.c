@@ -1903,31 +1903,6 @@ int spectra_compute_cl(
         transfer_ic1_temp = transfer_ic1[ptr->index_tt_t0] + transfer_ic1[ptr->index_tt_t1] + transfer_ic1[ptr->index_tt_t2];
         transfer_ic2_temp = transfer_ic2[ptr->index_tt_t0] + transfer_ic2[ptr->index_tt_t1] + transfer_ic2[ptr->index_tt_t2];
 
-        if (ppt->has_cl_number_count == _TRUE_) {
-
-          for (index_d1=0; index_d1<psp->d_size; index_d1++) {
-            transfer_ic1_nc[index_d1] = 0.;
-            transfer_ic2_nc[index_d1] = 0.;
-            if (ppt->has_nc_density == _TRUE_) {
-              transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_density+index_d1];
-              transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_density+index_d1];
-            }
-            if (ppt->has_nc_rsd     == _TRUE_) {
-              transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_rsd0+index_d1] + transfer_ic1[ptr->index_tt_rsd2+index_d1];
-              transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_rsd0+index_d1] + transfer_ic2[ptr->index_tt_rsd2+index_d1];
-            }
-            /*
-            if (ppt->has_nc_lensing == _TRUE_) {
-              transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_lensing+index_d1];
-              transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_lensing+index_d1];
-            }
-            if (ppt->has_nc_gr == _TRUE_) {
-              transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_gr+index_d1];
-              transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_gr+index_d1];
-            }
-            */
-          }
-        }
       }
 
       if (_vectors_) {
@@ -1942,6 +1917,46 @@ int spectra_compute_cl(
         transfer_ic1_temp = transfer_ic1[ptr->index_tt_t2];
         transfer_ic2_temp = transfer_ic2[ptr->index_tt_t2];
 
+      }
+    }
+
+    if (ppt->has_cl_number_count == _TRUE_) {
+
+      for (index_d1=0; index_d1<psp->d_size; index_d1++) {
+
+        transfer_ic1_nc[index_d1] = 0.;
+        transfer_ic2_nc[index_d1] = 0.;
+
+        if (ppt->has_nc_density == _TRUE_) {
+          transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_density+index_d1];
+          transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_density+index_d1];
+        }
+
+        if (ppt->has_nc_rsd     == _TRUE_) {
+          transfer_ic1_nc[index_d1]
+            += transfer_ic1[ptr->index_tt_rsd0+index_d1]
+            + transfer_ic1[ptr->index_tt_rsd2+index_d1]
+            + transfer_ic1[ptr->index_tt_d0+index_d1]
+            + transfer_ic1[ptr->index_tt_d1+index_d1];
+          transfer_ic2_nc[index_d1]
+            += transfer_ic2[ptr->index_tt_rsd0+index_d1]
+            + transfer_ic2[ptr->index_tt_rsd2+index_d1]
+            + transfer_ic2[ptr->index_tt_d0+index_d1]
+            + transfer_ic2[ptr->index_tt_d1+index_d1];
+        }
+
+        if (ppt->has_nc_lens == _TRUE_) {
+          //transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_nc_lens+index_d1];
+          //transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_nc_lens+index_d1];
+          transfer_ic1_nc[index_d1] += psp->l[index_l]*(psp->l[index_l]+1.)*transfer_ic1[ptr->index_tt_nc_lens+index_d1];
+          transfer_ic2_nc[index_d1] += psp->l[index_l]*(psp->l[index_l]+1.)*transfer_ic2[ptr->index_tt_nc_lens+index_d1];
+        }
+        /*
+          if (ppt->has_nc_gr == _TRUE_) {
+          transfer_ic1_nc[index_d1] += transfer_ic1[ptr->index_tt_gr+index_d1];
+          transfer_ic2_nc[index_d1] += transfer_ic2[ptr->index_tt_gr+index_d1];
+          }
+        */
       }
     }
 

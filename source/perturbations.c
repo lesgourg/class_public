@@ -535,7 +535,6 @@ int perturb_indices_of_perturbs(
       if (ppt->has_pk_matter == _TRUE_) {
         ppt->has_lss = _TRUE_;
         ppt->has_source_delta_m = _TRUE_;
-        ppt->has_source_theta_m = _TRUE_;
       }
 
       if (ppt->has_density_transfers == _TRUE_) {
@@ -570,7 +569,6 @@ int perturb_indices_of_perturbs(
         ppt->has_lss = _TRUE_;
         if (ppt->has_nc_density == _TRUE_) {
           ppt->has_source_delta_m = _TRUE_;
-          ppt->has_source_theta_m = _TRUE_;
         }
         if (ppt->has_nc_rsd == _TRUE_) {
           ppt->has_source_theta_m = _TRUE_;
@@ -4184,11 +4182,12 @@ int perturb_einstein(
        really want gauge-dependent results) */
 
     if (ppt->has_source_delta_m == _TRUE_) {
+      //ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+      ppw->delta_m -= 2.*ppw->pvecback[pba->index_bg_H_prime]/ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+    }
 
-      ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
-
+    if (ppt->has_source_theta_m == _TRUE_) {
       if  (ppt->gauge == synchronous) {
-
         ppw->theta_m += ppw->pvecmetric[ppw->index_mt_alpha]*k2;
 
       }
@@ -4451,9 +4450,11 @@ int perturb_total_stress_energy(
 
   /* store theta_m in the current gauge. In perturb_einstein, this
      will be transformed later on into the gauge-independent variable
-     Theta .  */
+     Theta . Note that computing theta_m is necessary also if we want
+     the delta_m source only, because the gauge-invariant delta_m
+     involves theta_m in the current gauge. */
 
-  if (ppt->has_source_theta_m == _TRUE_) {
+  if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
 
     /* include baryons and cold dark matter */
 

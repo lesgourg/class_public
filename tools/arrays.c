@@ -3000,9 +3000,9 @@ int array_trapezoidal_mweights(
                               ) {
   int i;
 
-  /* Case with just one point, w would normally be 0. */
+  /* Case with just one point. */
   if (n==1){
-    w_trapz[0] = 0.0;
+    w_trapz[0] = 1.0;
   }
   else if (n>1){
     //Set edgeweights:

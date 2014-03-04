@@ -79,6 +79,9 @@ struct transfers {
 
   int index_tt_rsd0;    /**< index for first bin of transfer type = redshift space distorsion of number count (j=0 term) */
   int index_tt_rsd2;    /**< index for first bin of transfer type = redshift space distorsion of number count (j=2 term) */
+  int index_tt_d0;      /**< index for first bin of transfer type = doppler effect for of number count (j=0 term) */
+  int index_tt_d1;      /**< index for first bin of transfer type = doppler effect for of number count (j=1 term) */
+  int index_tt_nc_lens; /**< index for first bin of transfer type = lensing for of number count */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
 
@@ -381,13 +384,6 @@ extern "C" {
                        double * delta_tau,
                        int * tau_size_out
                        );
-
-  int transfer_integration_time_steps(
-                                      struct transfers * ptr,
-                                      double * tau0_minus_tau,
-                                      int tau_size,
-                                      double * delta_tau
-                                      );
 
   int transfer_selection_function(
                                   struct precision * ppr,
