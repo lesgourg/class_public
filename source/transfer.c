@@ -465,8 +465,7 @@ int transfer_indices_of_transfers(
     class_define_index(ptr->index_tt_t1,     ppt->has_cl_cmb_temperature,      index_tt,1);
     class_define_index(ptr->index_tt_lcmb,   ppt->has_cl_cmb_lensing_potential,index_tt,1);
     class_define_index(ptr->index_tt_density,ppt->has_nc_density,              index_tt,ppt->selection_num);
-    class_define_index(ptr->index_tt_rsd0,   ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
-    class_define_index(ptr->index_tt_rsd2,   ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
+    class_define_index(ptr->index_tt_rsd,    ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_d0,     ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_d1,     ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
     class_define_index(ptr->index_tt_nc_lens,ppt->has_nc_lens,                 index_tt,ppt->selection_num);
@@ -780,8 +779,7 @@ int transfer_get_l_list(
           l_max=ppt->l_scalar_max;
 
         if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-            (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd)) ||
-            (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd)) ||
+            (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
             (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
             (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
             (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens))
@@ -1366,10 +1364,7 @@ int transfer_get_source_correspondence(
         if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_delta_m;
 
-        if (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;
-
-        if (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd))
+        if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;
 
         if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
@@ -1543,8 +1538,7 @@ int transfer_source_tau_size(
 
     /* density Cl's */
     if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-        (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd)) ||
+        (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
         (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
         (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
         ) {
@@ -1553,11 +1547,8 @@ int transfer_source_tau_size(
       if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
         bin = index_tt - ptr->index_tt_density;
 
-      if (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd))
-        bin = index_tt - ptr->index_tt_rsd0;
-
-      if (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd))
-        bin = index_tt - ptr->index_tt_rsd2;
+      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
+        bin = index_tt - ptr->index_tt_rsd;
 
       if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
         bin = index_tt - ptr->index_tt_d0;
@@ -2110,8 +2101,7 @@ int transfer_sources(
 
     /* number count Cl's */
     if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-        (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd)) ||
+        (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
         (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
         (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
         (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens))
@@ -2200,8 +2190,7 @@ int transfer_sources(
          function */
 
       if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-          (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd)) ||
-          (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd)) ||
+          (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
           (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
           (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
           ) {
@@ -2210,11 +2199,8 @@ int transfer_sources(
         if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
           bin = index_tt - ptr->index_tt_density;
 
-        if (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_rsd0;
-
-        if (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_rsd2;
+        if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
+          bin = index_tt - ptr->index_tt_rsd;
 
         if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
           bin = index_tt - ptr->index_tt_d0;
@@ -2306,11 +2292,8 @@ int transfer_sources(
 
           /* redhsift space distorsion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
 
-          if (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd))
-            rescaling = -1./3.*selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
-
-          if (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd))
-            rescaling = 2./3.*selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+          if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
+            rescaling = selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
           if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
             rescaling = -3.*selection[index_tau]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]
@@ -3148,10 +3131,7 @@ int transfer_use_limber(
       if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_rsd0,    ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_rsd0])) {
-        if (ppt->selection != dirac) *use_limber = _TRUE_;
-      }
-      if (_index_tt_in_range_(ptr->index_tt_rsd2,    ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_rsd2])) {
+      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_rsd])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
       if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_d0])) {
@@ -3922,6 +3902,15 @@ int transfer_radial_function(
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = factor*(sqrt_absK_over_k*dPhi[j]*rescale_argument+2.0*cotKgen[x_size-1-j]*Phi[j])*rescale_function[j];
     break;
+  case NC_RSD:
+    class_call(interpolate_Phid2Phi(pHIS, x_size, index_l, chireverse, Phi, d2Phi, ptr->error_message),
+               ptr->error_message, ptr->error_message);
+    //hyperspherical_Hermite_interpolation_vector(pHIS, x_size, index_l, chireverse, Phi, NULL, d2Phi);
+    //s2 = sqrt(1.0-3.0*K/k2);
+    factor = 1.0;
+    for (j=0; j<x_size; j++)
+      radial_function[x_size-1-j] = factor*d2Phi[j]*rescale_argument*rescale_argument*rescale_function[j];
+    break;
   }
 
   free(Phi);
@@ -3974,8 +3963,8 @@ int transfer_select_radial_function(
       if (index_tt == ptr->index_tt_d1) {
         *radial_type = SCALAR_TEMPERATURE_1;
       }
-      if (index_tt == ptr->index_tt_rsd2) {
-        *radial_type = SCALAR_TEMPERATURE_2;
+      if (index_tt == ptr->index_tt_rsd) {
+        *radial_type = NC_RSD;
       }
 
     }

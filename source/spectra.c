@@ -1934,13 +1934,11 @@ int spectra_compute_cl(
 
         if (ppt->has_nc_rsd     == _TRUE_) {
           transfer_ic1_nc[index_d1]
-            += transfer_ic1[ptr->index_tt_rsd0+index_d1]
-            + transfer_ic1[ptr->index_tt_rsd2+index_d1]
+            += transfer_ic1[ptr->index_tt_rsd+index_d1]
             + transfer_ic1[ptr->index_tt_d0+index_d1]
             + transfer_ic1[ptr->index_tt_d1+index_d1];
           transfer_ic2_nc[index_d1]
-            += transfer_ic2[ptr->index_tt_rsd0+index_d1]
-            + transfer_ic2[ptr->index_tt_rsd2+index_d1]
+            += transfer_ic2[ptr->index_tt_rsd+index_d1]
             + transfer_ic2[ptr->index_tt_d0+index_d1]
             + transfer_ic2[ptr->index_tt_d1+index_d1];
         }

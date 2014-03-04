@@ -77,8 +77,7 @@ struct transfers {
   int index_tt_density; /**< index for first bin of transfer type = matter density */
   int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
 
-  int index_tt_rsd0;    /**< index for first bin of transfer type = redshift space distorsion of number count (j=0 term) */
-  int index_tt_rsd2;    /**< index for first bin of transfer type = redshift space distorsion of number count (j=2 term) */
+  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distorsion of number count */
   int index_tt_d0;      /**< index for first bin of transfer type = doppler effect for of number count (j=0 term) */
   int index_tt_d1;      /**< index for first bin of transfer type = doppler effect for of number count (j=1 term) */
   int index_tt_nc_lens; /**< index for first bin of transfer type = lensing for of number count */
@@ -219,7 +218,8 @@ typedef enum {SCALAR_TEMPERATURE_0,
               VECTOR_POLARISATION_B,
               TENSOR_TEMPERATURE_2,
               TENSOR_POLARISATION_E,
-              TENSOR_POLARISATION_B} radial_function_type;
+              TENSOR_POLARISATION_B,
+              NC_RSD} radial_function_type;
 
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 
