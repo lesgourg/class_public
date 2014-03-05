@@ -2144,6 +2144,13 @@ int transfer_sources(
   /* number of time values in previous two arrays */
   int tau_sources_size;
 
+  /* source evolution factor */
+  double f_evo = 0.;
+
+  /* when the selection function is multiplied by a function dNdz */
+  double dNdz;
+  double dln_dNdz_dz;
+
   /* in which cases are perturbation and transfer sources are different?
      I.e., in which case do we need to mutiply the sources by some
      background and/or window function, and eventually to resample it,
@@ -2352,6 +2359,38 @@ int transfer_sources(
                      pba->error_message,
                      ptr->error_message);
 
+          /* Source evolution, used by number counf rsd and number count gravity terms */
+
+          if ((_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
+              (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))) {
+
+            if((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
+
+              f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
+                    + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+
+
+              if (ptr->has_nz_evo_file ==_TRUE_) {
+                class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+              }
+              else {
+
+                class_call(transfer_dNdz_analytic(ptr,
+                                                  pba->a_today/pvecback[pba->index_bg_a]-1.,
+                                                  &dNdz,
+                                                  &dln_dNdz_dz),
+                           ptr->error_message,
+                           ptr->error_message);
+              }
+
+              f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
+            }
+            else {
+              f_evo = 0.;
+            }
+
+          }
+
           /* matter density source =  [- (dz/dtau) W(z)] * delta_m(k,tau)
              = W(tau) delta_m(k,tau)
              with
@@ -2386,7 +2425,7 @@ int transfer_sources(
                                               /pvecback[pba->index_bg_a]
                                               /pvecback[pba->index_bg_H]
                                               +5.*ptr->s_bias
-                                              -0.
+                                              -f_evo
                                               )/ptr->k[index_md][index_q];
 
           if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
@@ -2404,7 +2443,7 @@ int transfer_sources(
                                                /tau0_minus_tau[index_tau]
                                                /pvecback[pba->index_bg_a]
                                                /pvecback[pba->index_bg_H]
-                                               -0.
+                                               -f_evo
                                                );
 
           if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
@@ -2595,6 +2634,8 @@ int transfer_sources(
 
                 if (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr)) {
 
+                  /* background quantities at time tau_lensing_source */
+
                   class_call(background_at_tau(pba,
                                                tau0-tau0_minus_tau_lensing_sources[index_tau_sources],
                                                pba->long_info,
@@ -2604,12 +2645,44 @@ int transfer_sources(
                              pba->error_message,
                              ptr->error_message);
 
+                  /* Source evolution at time tau_lensing_source */
+
+                  if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)) {
+
+                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
+                      + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+
+                    if (ptr->has_nz_evo_file == _TRUE_) {
+                      class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+                    }
+                    else {
+
+                      class_call(transfer_dNdz_analytic(ptr,
+                                                        pba->a_today/pvecback[pba->index_bg_a]-1.,
+                                                        &dNdz,
+                                                        &dln_dNdz_dz),
+                                 ptr->error_message,
+                                 ptr->error_message);
+                    }
+
+                    f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
+                  }
+                  else {
+                    f_evo = 0.;
+                  }
+
                   rescaling +=
                     (1.
-                     + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]
-                     + (2.-5.*ptr->s_bias)/tau0_minus_tau_lensing_sources[index_tau_sources]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H]
+                     + pvecback[pba->index_bg_H_prime]
+                     /pvecback[pba->index_bg_a]
+                     /pvecback[pba->index_bg_H]
+                     /pvecback[pba->index_bg_H]
+                     + (2.-5.*ptr->s_bias)
+                     /tau0_minus_tau_lensing_sources[index_tau_sources]
+                     /pvecback[pba->index_bg_a]
+                     /pvecback[pba->index_bg_H]
                      + 5.*ptr->s_bias
-                     - 0.)
+                     - f_evo)
                     * ptr->k[index_md][index_q]
                     * selection[index_tau_sources]
                     * w_trapz_lensing_sources[index_tau_sources];
@@ -2689,6 +2762,8 @@ int transfer_selection_function(
                                 double * selection) {
 
   double x;
+  double dNdz;
+  double dln_dNdz_dz;
 
   /* trivial dirac case */
   if (ppt->selection==dirac) {
@@ -2711,6 +2786,24 @@ int transfer_selection_function(
     *selection = exp(-0.5*pow(x/ppt->selection_width[bin],2))
       /ppt->selection_width[bin]/sqrt(2.*_PI_);
 
+    if ((ptr->has_nz_file == _TRUE_) || (ptr->has_nz_analytic == _TRUE_)) {
+
+      if (ptr->has_nz_file == _TRUE_) {
+        class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+      }
+      else {
+
+        class_call(transfer_dNdz_analytic(ptr,
+                                          z,
+                                          &dNdz,
+                                          &dln_dNdz_dz),
+                   ptr->error_message,
+                   ptr->error_message);
+      }
+
+      *selection *= dNdz;
+    }
+
     return _SUCCESS_;
   }
 
@@ -2721,9 +2814,10 @@ int transfer_selection_function(
      of the true transfer function (computed with or even without the
      Limber approximation). Hence the integral Cl=\int dk
      Delta_l(k)**2 (...) will be unprecise and will fluctuate randomly
-     with the resolution along k. With smooth edges, the problemeis
+     with the resolution along k. With smooth edges, the problem is
      sloved, and the final Cls become mildly dependent on the
      resolution along k. */
+
   if (ppt->selection==tophat) {
 
     /* selection function, centered on z=mean (i.e. on x=0), equal to
@@ -2731,6 +2825,24 @@ int transfer_selection_function(
        delta x = 0.1*width
     */
     *selection=(1.-tanh((x-ppt->selection_width[bin])/(ppr->selection_tophat_edge*ppt->selection_width[bin])))/2.;
+
+    if ((ptr->has_nz_file == _TRUE_) || (ptr->has_nz_analytic == _TRUE_)) {
+
+      if (ptr->has_nz_file == _TRUE_) {
+        class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+      }
+      else {
+
+        class_call(transfer_dNdz_analytic(ptr,
+                                          z,
+                                          &dNdz,
+                                          &dln_dNdz_dz),
+                   ptr->error_message,
+                   ptr->error_message);
+      }
+
+      *selection *= dNdz;
+    }
 
     return _SUCCESS_;
   }
@@ -2740,6 +2852,45 @@ int transfer_selection_function(
              "invalid choice of selection function");
 
   return _SUCCESS_;
+}
+
+/**
+ * Analytic form for dNdz distribution, from arXiv:1004.4640
+ *
+ * @param ptr          Input: pointer to transfer structure
+ * @param z            Input: redshift
+ * @param dNdz         Output: density per redshift, dN/dZ
+ * @param dln_dNdz_dz  Output: dln(dN/dz)/dz, used optionally for the source evolution
+ * @return the error status
+*/
+
+int transfer_dNdz_analytic(
+                           struct transfers * ptr,
+                           double z,
+                           double * dNdz,
+                           double * dln_dNdz_dz) {
+
+  /* Implement here your favorite analytic ansatz for the selection
+     function. Typical function for photometric sample: dN/dz =
+     (z/z0)^alpha exp[-(z/z0)^beta]. Then: dln(dN/dz)/dz = (alpha -
+     beta*(z/z0)^beta)/z. In principle, one is free to use different
+     ansaztz for the selection function and the evolution
+     function. Since the selection function uses only dN/dz, while the
+     evolution uses only dln(dN/dz)/dz, it is possible to use
+     different functions for dN/dz and dln(dN/dz)/dz */
+
+  double z0,alpha,beta;
+
+  z0 = 0.55;
+  alpha = 0.63;
+  beta = 1.5;
+
+  *dNdz = pow(z/z0,alpha) * exp(-pow(z/z0,beta));
+
+  *dln_dNdz_dz = (alpha - pow(z/z0,beta)*beta)/z;
+
+  return _SUCCESS_;
+
 }
 
 /**

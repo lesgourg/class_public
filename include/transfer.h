@@ -56,6 +56,14 @@ struct transfers {
 
   double s_bias;       /**< magnification bias in the transfer function of density number count */
 
+  short has_nz_file;    /**< Has dN/dz (selection function) input file? */
+  short has_nz_analytic; /**< Use analytic form for dN/dz (selection function) distribution? */
+  FileName nz_file_name; /**< dN/dz (selection function) input file name */
+
+  short has_nz_evo_file;    /**< Has dN/dz (evolution function) input file? */
+  short has_nz_evo_analytic; /**< Use analytic form for dN/dz (evolution function) distribution? */
+  FileName nz_evo_file_name; /**< dN/dz (evolution function) input file name */
+
   //@}
 
   /** @name - flag stating whether we need transfer functions at all */
@@ -401,6 +409,12 @@ extern "C" {
                                   int bin,
                                   double z,
                                   double * selection);
+
+  int transfer_dNdz_analytic(
+                             struct transfers * ptr,
+                             double z,
+                             double * dNdz,
+                             double * dln_dNdz_dz);
 
   int transfer_selection_sampling(
                                   struct precision * ppr,

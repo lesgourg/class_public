@@ -1438,6 +1438,40 @@ int input_init(
                    psp->non_diag,ppt->selection_num-1);
     }
 
+    class_call(parser_read_string(pfc,
+				"dNdz_selection",
+				&(string1),
+				&(flag1),
+				errmsg),
+	     errmsg,
+	     errmsg);
+
+    if ((flag1 == _TRUE_)) {
+      if ((strstr(string1,"analytic") != NULL))
+        ptr->has_nz_analytic = _TRUE_;
+      else{
+        ptr->has_nz_file = _TRUE_;
+        class_read_string("dNdz_selection",ptr->nz_file_name);
+      }
+    }
+
+    class_call(parser_read_string(pfc,
+                                  "dNdz_evolution",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
+
+    if ((flag1 == _TRUE_)) {
+      if ((strstr(string1,"analytic") != NULL))
+        ptr->has_nz_evo_analytic = _TRUE_;
+      else{
+        ptr->has_nz_evo_file = _TRUE_;
+        class_read_string("dNdz_evolution",ptr->nz_evo_file_name);
+      }
+    }
+
     class_read_double("bias",ptr->bias);
     class_read_double("s_bias",ptr->s_bias);
 
@@ -2088,6 +2122,10 @@ int input_default_params(
   ptr->lcmb_pivot=0.1;
   ptr->lcmb_tilt=0.;
   ptr->initialise_HIS_cache=_FALSE_;
+  ptr->has_nz_analytic = _FALSE_;
+  ptr->has_nz_file = _FALSE_;
+  ptr->has_nz_evo_analytic = _FALSE_;
+  ptr->has_nz_evo_file = _FALSE_;
   ptr->bias = 1.;
   ptr->s_bias = 0.;
 
