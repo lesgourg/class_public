@@ -1437,6 +1437,11 @@ int input_init(
                    "Input for non_diagonal is %d, while it is expected to be between 0 and %d\n",
                    psp->non_diag,ppt->selection_num-1);
     }
+
+    class_read_double("bias",ptr->bias);
+    class_read_double("s_bias",ptr->s_bias);
+
+
   }
 
   class_read_string("root",pop->root);
@@ -2083,6 +2088,8 @@ int input_default_params(
   ptr->lcmb_pivot=0.1;
   ptr->lcmb_tilt=0.;
   ptr->initialise_HIS_cache=_FALSE_;
+  ptr->bias = 1.;
+  ptr->s_bias = 0.;
 
   /** - output structure */
 

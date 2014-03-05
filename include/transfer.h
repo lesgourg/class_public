@@ -52,6 +52,10 @@ struct transfers {
   double lcmb_pivot;   /**< if lcmb_tilt non-zero, corresponding pivot
                           scale */
 
+  double bias;         /**< light-to-mass bias in the transfer function of density number count */
+
+  double s_bias;       /**< magnification bias in the transfer function of density number count */
+
   //@}
 
   /** @name - flag stating whether we need transfer functions at all */
