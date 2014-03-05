@@ -59,10 +59,19 @@ struct transfers {
   short has_nz_file;    /**< Has dN/dz (selection function) input file? */
   short has_nz_analytic; /**< Use analytic form for dN/dz (selection function) distribution? */
   FileName nz_file_name; /**< dN/dz (selection function) input file name */
+  int nz_size;
+  double * nz_z;
+  double * nz_nz;
+  double * nz_ddnz;
 
   short has_nz_evo_file;    /**< Has dN/dz (evolution function) input file? */
   short has_nz_evo_analytic; /**< Use analytic form for dN/dz (evolution function) distribution? */
   FileName nz_evo_file_name; /**< dN/dz (evolution function) input file name */
+  int nz_evo_size;
+  double * nz_evo_z;
+  double * nz_evo_nz;
+  double * nz_evo_dlog_nz;
+  double * nz_evo_dd_dlog_nz;
 
   //@}
 

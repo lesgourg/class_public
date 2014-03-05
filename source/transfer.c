@@ -156,6 +156,11 @@ int transfer_init(
   HyperInterpStruct BIS;
   double xmax;
 
+  /* for reading selection function */
+  FILE * input_file;
+  int row,status;
+  double tmp1,tmp2;
+
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
@@ -266,6 +271,102 @@ int transfer_init(
     ptr->q_size
     );
   */
+
+  /** - eventually read the selection and evolution functions */
+
+  ptr->nz_size = 0;
+
+  if (ptr->has_nz_file == _TRUE_) {
+
+    input_file = fopen(ptr->nz_file_name,"r");
+    class_test(input_file == NULL,
+               ptr->error_message,
+               "Could not open file %s!",ptr->nz_file_name);
+
+    /* Find size of table */
+    for (row=0,status=2; status==2; row++){
+      status = fscanf(input_file,"%lf %lf",&tmp1,&tmp2);
+    }
+    rewind(input_file);
+    ptr->nz_size = row-1;
+
+    /* Allocate room for interpolation table */
+    class_alloc(ptr->nz_z,sizeof(double)*ptr->nz_size,ptr->error_message);
+    class_alloc(ptr->nz_nz,sizeof(double)*ptr->nz_size,ptr->error_message);
+    class_alloc(ptr->nz_ddnz,sizeof(double)*ptr->nz_size,ptr->error_message);
+
+    for (row=0; row<ptr->nz_size; row++){
+      status = fscanf(input_file,"%lf %lf",
+                      &ptr->nz_z[row],&ptr->nz_nz[row]);
+      //printf("%d: (z,dNdz) = (%g,%g)\n",row,ptr->nz_z[row],ptr->nz_nz[row]);
+    }
+    fclose(input_file);
+
+    /* Call spline interpolation: */
+    class_call(array_spline_table_lines(ptr->nz_z,
+                                        ptr->nz_size,
+                                        ptr->nz_nz,
+                                        1,
+                                        ptr->nz_ddnz,
+                                        _SPLINE_EST_DERIV_,
+                                        ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+  }
+
+  ptr->nz_evo_size = 0;
+
+  if (ptr->has_nz_evo_file == _TRUE_) {
+
+    input_file = fopen(ptr->nz_evo_file_name,"r");
+    class_test(input_file == NULL,
+               ptr->error_message,
+               "Could not open file %s!",ptr->nz_evo_file_name);
+
+    /* Find size of table */
+    for (row=0,status=2; status==2; row++){
+      status = fscanf(input_file,"%lf %lf",&tmp1,&tmp2);
+    }
+    rewind(input_file);
+    ptr->nz_evo_size = row-1;
+
+    /* Allocate room for interpolation table */
+    class_alloc(ptr->nz_evo_z,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+    class_alloc(ptr->nz_evo_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+    class_alloc(ptr->nz_evo_dlog_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+    class_alloc(ptr->nz_evo_dd_dlog_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+
+    for (row=0; row<ptr->nz_evo_size; row++){
+      status = fscanf(input_file,"%lf %lf",
+                      &ptr->nz_evo_z[row],&ptr->nz_evo_nz[row]);
+      //printf("%d: (z,dNdz) = (%g,%g)\n",row,ptr->nz_evo_z[row],ptr->nz_evo_nz[row]);
+    }
+    fclose(input_file);
+
+    /* infer dlog(dN/dz)/dz from dN/dz */
+    ptr->nz_evo_dlog_nz[0] =
+      (ptr->nz_evo_dlog_nz[1]-ptr->nz_evo_dlog_nz[0])
+      /(ptr->nz_evo_z[1]-ptr->nz_evo_z[0]);
+    for (row=1; row<ptr->nz_evo_size-1; row++){
+      ptr->nz_evo_dlog_nz[row] =
+        (ptr->nz_evo_dlog_nz[row+1]-ptr->nz_evo_dlog_nz[row-1])
+        /(ptr->nz_evo_z[row+1]-ptr->nz_evo_z[row-1]);
+    }
+    ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1] =
+      (ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1]-ptr->nz_evo_dlog_nz[ptr->nz_evo_size-2])
+      /(ptr->nz_evo_z[ptr->nz_evo_size-1]-ptr->nz_evo_z[ptr->nz_evo_size-2]);
+
+    /* Call spline interpolation: */
+    class_call(array_spline_table_lines(ptr->nz_evo_z,
+                                        ptr->nz_evo_size,
+                                        ptr->nz_evo_dlog_nz,
+                                        1,
+                                        ptr->nz_evo_dd_dlog_nz,
+                                        _SPLINE_EST_DERIV_,
+                                        ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+  }
 
   /** (a.3.) workspace, allocated in a parallel zone since in openmp
       version there is one workspace per thread */
@@ -406,6 +507,19 @@ int transfer_free(
     free(ptr->k);
     free(ptr->transfer);
 
+  }
+
+  if (ptr->nz_size > 0) {
+    free(ptr->nz_z);
+    free(ptr->nz_nz);
+    free(ptr->nz_ddnz);
+  }
+
+  if (ptr->nz_evo_size > 0) {
+    free(ptr->nz_evo_z);
+    free(ptr->nz_evo_nz);
+    free(ptr->nz_evo_dlog_nz);
+    free(ptr->nz_evo_dd_dlog_nz);
   }
 
   return _SUCCESS_;
@@ -2148,6 +2262,7 @@ int transfer_sources(
   double f_evo = 0.;
 
   /* when the selection function is multiplied by a function dNdz */
+  double z;
   double dNdz;
   double dln_dNdz_dz;
 
@@ -2369,14 +2484,35 @@ int transfer_sources(
               f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
                     + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
+              z = pba->a_today/pvecback[pba->index_bg_a]-1.;
 
               if (ptr->has_nz_evo_file ==_TRUE_) {
-                class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+
+                class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
+                           ptr->error_message,
+                           "Your input file for the selection function only covers the redhsift range [%f : %f]. However, your input for the selection function requires z=%f",
+                           ptr->nz_evo_z[0],
+                           ptr->nz_evo_z[ptr->nz_evo_size-1],
+                           z);
+
+                class_call(array_interpolate_spline(
+                                                    ptr->nz_evo_z,
+                                                    ptr->nz_evo_size,
+                                                    ptr->nz_evo_dlog_nz,
+                                                    ptr->nz_evo_dd_dlog_nz,
+                                                    1,
+                                                    z,
+                                                    &last_index,
+                                                    &dln_dNdz_dz,
+                                                    1,
+                                                    ptr->error_message),
+                           ptr->error_message,
+                           ptr->error_message);
               }
               else {
 
                 class_call(transfer_dNdz_analytic(ptr,
-                                                  pba->a_today/pvecback[pba->index_bg_a]-1.,
+                                                  z,
                                                   &dNdz,
                                                   &dln_dNdz_dz),
                            ptr->error_message,
@@ -2652,13 +2788,36 @@ int transfer_sources(
                     f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
                       + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
+                    z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+
                     if (ptr->has_nz_evo_file == _TRUE_) {
-                      class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+
+                      class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
+                                 ptr->error_message,
+                                 "Your input file for the selection function only covers the redhsift range [%f : %f]. However, your input for the selection function requires z=%f",
+                                 ptr->nz_evo_z[0],
+                                 ptr->nz_evo_z[ptr->nz_evo_size-1],
+                                 z);
+
+                      class_call(array_interpolate_spline(
+                                                          ptr->nz_evo_z,
+                                                          ptr->nz_evo_size,
+                                                          ptr->nz_evo_dlog_nz,
+                                                          ptr->nz_evo_dd_dlog_nz,
+                                                          1,
+                                                          z,
+                                                          &last_index,
+                                                          &dln_dNdz_dz,
+                                                          1,
+                                                          ptr->error_message),
+                                 ptr->error_message,
+                                 ptr->error_message);
+
                     }
                     else {
 
                       class_call(transfer_dNdz_analytic(ptr,
-                                                        pba->a_today/pvecback[pba->index_bg_a]-1.,
+                                                        z,
                                                         &dNdz,
                                                         &dln_dNdz_dz),
                                  ptr->error_message,
@@ -2764,6 +2923,7 @@ int transfer_selection_function(
   double x;
   double dNdz;
   double dln_dNdz_dz;
+  int last_index;
 
   /* trivial dirac case */
   if (ppt->selection==dirac) {
@@ -2789,7 +2949,27 @@ int transfer_selection_function(
     if ((ptr->has_nz_file == _TRUE_) || (ptr->has_nz_analytic == _TRUE_)) {
 
       if (ptr->has_nz_file == _TRUE_) {
-        class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+
+        class_test((z<ptr->nz_z[0]) || (z>ptr->nz_z[ptr->nz_size-1]),
+                   ptr->error_message,
+                   "Your input file for the selection function only covers the redhsift range [%f : %f]. However, your input for the selection function requires z=%f",
+                   ptr->nz_z[0],
+                   ptr->nz_z[ptr->nz_size-1],
+                   z);
+
+        class_call(array_interpolate_spline(
+                                            ptr->nz_z,
+                                            ptr->nz_size,
+                                            ptr->nz_nz,
+                                            ptr->nz_ddnz,
+                                            1,
+                                            z,
+                                            &last_index,
+                                            &dNdz,
+                                            1,
+                                            ptr->error_message),
+                   ptr->error_message,
+                   ptr->error_message);
       }
       else {
 
@@ -2829,7 +3009,20 @@ int transfer_selection_function(
     if ((ptr->has_nz_file == _TRUE_) || (ptr->has_nz_analytic == _TRUE_)) {
 
       if (ptr->has_nz_file == _TRUE_) {
-        class_stop(ptr->error_message,"Selection function in a file: not yet implemented");
+
+        class_call(array_interpolate_spline(
+                                            ptr->nz_z,
+                                            ptr->nz_size,
+                                            ptr->nz_nz,
+                                            ptr->nz_ddnz,
+                                            1,
+                                            z,
+                                            &last_index,
+                                            &dNdz,
+                                            1,
+                                            ptr->error_message),
+                   ptr->error_message,
+                   ptr->error_message);
       }
       else {
 
