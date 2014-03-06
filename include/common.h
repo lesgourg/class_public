@@ -657,6 +657,11 @@ struct precision
 				      at the expense of requiring a
 				      larger k_max */
 
+  double halofit_min_k_max; /* when halofit is used, k_max must be at
+                               least equal to this value (otherwise
+                               halofit could not find the scale of
+                               non-linearity) */
+
   //@}
 
   /** @name - parameters related to lensing */

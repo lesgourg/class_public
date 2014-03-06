@@ -273,6 +273,7 @@ extern "C" {
                     struct background * pba,
                     struct thermo * pth,
                     struct perturbs * ppt,
+                    struct nonlinear * pnl,
                     struct transfers * ptr
                     );
 
@@ -289,17 +290,32 @@ extern "C" {
                                     int sgnK
                                     );
 
+  int transfer_perturbation_copy_sources_and_nl_corrections(
+                                                            struct perturbs * ppt,
+                                                            struct nonlinear * pnl,
+                                                            struct transfers * ptr,
+                                                            double *** sources
+                                                            );
+
   int transfer_perturbation_source_spline(
                                           struct perturbs * ppt,
                                           struct transfers * ptr,
+                                          double *** sources,
                                           double *** sources_spline
                                           );
 
-  int transfer_perturbation_source_spline_free(
-                                               struct perturbs * ppt,
-                                               struct transfers * ptr,
-                                               double *** sources_spline
-                                               );
+  int transfer_perturbation_sources_free(
+                                         struct perturbs * ppt,
+                                         struct nonlinear * pnl,
+                                         struct transfers * ptr,
+                                         double *** sources
+                                         );
+
+  int transfer_perturbation_sources_spline_free(
+                                                struct perturbs * ppt,
+                                                struct transfers * ptr,
+                                                double *** sources_spline
+                                                );
 
   int transfer_get_l_list(
                           struct precision * ppr,
@@ -373,6 +389,7 @@ extern "C" {
                                   int index_q,
                                   int tau_size_max,
                                   double tau_rec,
+                                  double *** sources,
                                   double *** sources_spline,
                                   struct transfer_workspace * ptw
                                   );
@@ -391,6 +408,7 @@ extern "C" {
                                    int index_md,
                                    int index_ic,
                                    int index_type,
+                                   double * sources,
                                    double * source_spline,
                                    double * interpolated_sources
                                    );

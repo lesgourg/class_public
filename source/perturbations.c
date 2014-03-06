@@ -1170,7 +1170,7 @@ int perturb_get_k_list(
     k_max = MAX(k_max,ppt->k_max_for_pk);
 
   if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
-    k_max = MAX(k_max,100.); //TBC for testing
+    k_max = MAX(k_max,ppr->halofit_min_k_max);
 
   /** - test that result for k_min, k_max make sense */
 

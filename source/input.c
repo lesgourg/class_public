@@ -2361,6 +2361,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->halofit_dz=0.1;
   ppr->halofit_min_k_nonlinear=0.0035;
   ppr->halofit_sigma_precision=0.05;
+  ppr->halofit_min_k_max=5.;
 
   /**
    * - parameter related to lensing
