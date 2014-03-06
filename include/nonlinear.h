@@ -64,6 +64,13 @@ struct nonlinear {
 extern "C" {
 #endif
 
+  int nonlinear_k_nl_at_z(
+                          struct background *pba,
+                          struct nonlinear * pnl,
+                          double z,
+                          double * k_nl
+                          );
+
   int nonlinear_init(
                      struct precision *ppr,
                      struct background *pba,

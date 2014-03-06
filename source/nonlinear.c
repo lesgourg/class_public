@@ -13,6 +13,42 @@
 
 #include "nonlinear.h"
 
+int nonlinear_k_nl_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * k_nl
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+
+  if (pnl->tau_size == 1) {
+    *k_nl = pnl->k_nl[0];
+  }
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->k_nl,
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     k_nl,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
 int nonlinear_init(
                    struct precision *ppr,
                    struct background *pba,
