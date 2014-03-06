@@ -115,6 +115,7 @@ int transfer_init(
                   struct background * pba,
                   struct thermo * pth,
                   struct perturbs * ppt,
+                  struct nonlinear * pnl,
                   struct transfers * ptr
                   ) {
 
@@ -134,6 +135,12 @@ int transfer_init(
 
   /* maximum number of sampling times for transfer sources */
   int tau_size_max;
+
+  /* array of sources S(k,tau), just taken from perturbation module,
+     or transformed if non-linear corrections are needed
+     sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp][index_tau * ppt->k_size + index_k]
+  */
+  double *** sources;
 
   /* array of source derivatives S''(k,tau)
      (second derivative with respect to k, not tau!),
@@ -216,13 +223,23 @@ int transfer_init(
              ptr->error_message,
              ptr->error_message);
 
+  /** - copy sources to a local array sources (in fact, only the pointers are copied, not the data), and eventually apply non-linear corrections to the sources */
+
+  class_alloc(sources,
+              ptr->md_size*sizeof(double**),
+              ptr->error_message);
+
+  class_call(transfer_perturbation_copy_sources_and_nl_corrections(ppt,pnl,ptr,sources),
+             ptr->error_message,
+             ptr->error_message);
+
   /** - spline all the sources passed by the perturbation module with respect to k (in order to interpolate later at a given value of k) */
 
   class_alloc(sources_spline,
-              ptr->md_size*sizeof(double*),
+              ptr->md_size*sizeof(double**),
               ptr->error_message);
 
-  class_call(transfer_perturbation_source_spline(ppt,ptr,sources_spline),
+  class_call(transfer_perturbation_source_spline(ppt,ptr,sources,sources_spline),
              ptr->error_message,
              ptr->error_message);
 
@@ -429,6 +446,7 @@ int transfer_init(
                                                       index_q,
                                                       tau_size_max,
                                                       tau_rec,
+                                                      sources,
                                                       sources_spline,
                                                       ptw),
                           ptr->error_message,
@@ -461,7 +479,11 @@ int transfer_init(
 
   /* finally, free arrays allocated outside parallel zone */
 
-  class_call(transfer_perturbation_source_spline_free(ppt,ptr,sources_spline),
+  class_call(transfer_perturbation_sources_spline_free(ppt,ptr,sources_spline),
+             ptr->error_message,
+             ptr->error_message);
+
+  class_call(transfer_perturbation_sources_free(ppt,pnl,ptr,sources),
              ptr->error_message,
              ptr->error_message);
 
@@ -688,9 +710,69 @@ int transfer_indices_of_transfers(
 
 }
 
+int transfer_perturbation_copy_sources_and_nl_corrections(
+                                                          struct perturbs * ppt,
+                                                          struct nonlinear * pnl,
+                                                          struct transfers * ptr,
+                                                          double *** sources
+                                                          ) {
+  int index_md;
+  int index_ic;
+  int index_tp;
+  int index_k;
+  int index_tau;
+
+  for (index_md = 0; index_md < ptr->md_size; index_md++) {
+
+    class_alloc(sources[index_md],
+                ppt->ic_size[index_md]*ppt->tp_size[index_md]*sizeof(double*),
+                ptr->error_message);
+
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+
+      for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+
+        if ((pnl->method != nl_none) && (_scalars_) &&
+            (((ppt->has_source_delta_m == _TRUE_) && (index_tp == ppt->index_tp_delta_m)) ||
+             ((ppt->has_source_theta_m == _TRUE_) && (index_tp == ppt->index_tp_theta_m)) ||
+             ((ppt->has_source_phi == _TRUE_) && (index_tp == ppt->index_tp_phi)) ||
+             ((ppt->has_source_phi_prime == _TRUE_) && (index_tp == ppt->index_tp_phi_prime)) ||
+             ((ppt->has_source_phi_plus_psi == _TRUE_) && (index_tp == ppt->index_tp_phi_plus_psi)) ||
+             ((ppt->has_source_psi == _TRUE_) && (index_tp == ppt->index_tp_psi)))) {
+
+          class_alloc(sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                      ppt->k_size*ppt->tau_size*sizeof(double),
+                      ptr->error_message);
+
+          for (index_tau=0; index_tau<ppt->tau_size; index_tau++) {
+            for (index_k=0; index_k<ppt->k_size; index_k++) {
+              sources[index_md]
+                [index_ic * ppt->tp_size[index_md] + index_tp]
+                [index_tau * ppt->k_size + index_k] =
+                ppt->sources[index_md]
+                [index_ic * ppt->tp_size[index_md] + index_tp]
+                [index_tau * ppt->k_size + index_k]
+                * pnl->nl_corr_density[index_tau * ppt->k_size + index_k];
+            }
+          }
+        }
+        else {
+          sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp] =
+            ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp];
+        }
+      }
+    }
+  }
+
+  return _SUCCESS_;
+
+}
+
+
 int transfer_perturbation_source_spline(
                                         struct perturbs * ppt,
                                         struct transfers * ptr,
+                                        double *** sources,
                                         double *** sources_spline
                                         ) {
   int index_md;
@@ -713,7 +795,7 @@ int transfer_perturbation_source_spline(
 
         class_call(array_spline_table_columns2(ppt->k,
                                                ppt->k_size,
-                                               ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                               sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
                                                ppt->tau_size,
                                                sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
                                                _SPLINE_EST_DERIV_,
@@ -729,7 +811,39 @@ int transfer_perturbation_source_spline(
 
 }
 
-int transfer_perturbation_source_spline_free(
+int transfer_perturbation_sources_free(
+                                       struct perturbs * ppt,
+                                       struct nonlinear * pnl,
+                                       struct transfers * ptr,
+                                       double *** sources
+                                       ) {
+  int index_md;
+  int index_ic;
+  int index_tp;
+
+  for (index_md = 0; index_md < ptr->md_size; index_md++) {
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+      for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+        if ((pnl->method != nl_none) && (_scalars_) &&
+            (((ppt->has_source_delta_m == _TRUE_) && (index_tp == ppt->index_tp_delta_m)) ||
+             ((ppt->has_source_theta_m == _TRUE_) && (index_tp == ppt->index_tp_theta_m)) ||
+             ((ppt->has_source_phi == _TRUE_) && (index_tp == ppt->index_tp_phi)) ||
+             ((ppt->has_source_phi_prime == _TRUE_) && (index_tp == ppt->index_tp_phi_prime)) ||
+             ((ppt->has_source_phi_plus_psi == _TRUE_) && (index_tp == ppt->index_tp_phi_plus_psi)) ||
+             ((ppt->has_source_psi == _TRUE_) && (index_tp == ppt->index_tp_psi)))) {
+
+          free(sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp]);
+        }
+      }
+    }
+    free(sources[index_md]);
+  }
+  free(sources);
+
+  return _SUCCESS_;
+}
+
+int transfer_perturbation_sources_spline_free(
                                              struct perturbs * ppt,
                                              struct transfers * ptr,
                                              double *** sources_spline
@@ -1817,7 +1931,8 @@ int transfer_compute_for_each_q(
                                 int index_q,
                                 int tau_size_max,
                                 double tau_rec,
-                                double *** sources_spline,
+                                double *** pert_sources,
+                                double *** pert_sources_spline,
                                 struct transfer_workspace * ptw
                                 ) {
 
@@ -1902,7 +2017,8 @@ int transfer_compute_for_each_q(
                                                   index_md,
                                                   index_ic,
                                                   tp_of_tt[index_md][index_tt],
-                                                  sources_spline[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_md][index_tt]],
+                                                  pert_sources[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_md][index_tt]],
+                                                  pert_sources_spline[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_md][index_tt]],
                                                   interpolated_sources),
                      ptr->error_message,
                      ptr->error_message);
@@ -2090,10 +2206,11 @@ int transfer_radial_coordinates(
  *
  * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
- * @param index_md            Input : index of mode
+ * @param index_md              Input : index of mode
  * @param index_ic              Input : index of initial condition
  * @param index_type            Input : index of type of source (in perturbation module)
- * @param source_spline         Output: array of second derivative of sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
+ * @param pert_source           Input : array of sources
+ * @param pert_source_spline    Input : array of second derivative of sources
  * @param interpolated_sources  Output: array of interpolated sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
  * @return the error status
  */
@@ -2105,7 +2222,8 @@ int transfer_interpolate_sources(
                                  int index_md,
                                  int index_ic,
                                  int index_type,
-                                 double * source_spline, /* array with argument source_spline[index_tau*ppt->k_size[index_md]+index_k] (must be allocated) */
+                                 double * pert_source,       /* array with argument pert_source[index_tau*ppt->k_size[index_md]+index_k] (must be allocated) */
+                                 double * pert_source_spline, /* array with argument pert_source_spline[index_tau*ppt->k_size[index_md]+index_k] (must be allocated) */
                                  double * interpolated_sources /* array with argument interpolated_sources[index_q*ppt->tau_size+index_tau] (must be allocated) */
                                  ) {
 
@@ -2121,20 +2239,6 @@ int transfer_interpolate_sources(
 
   /* variables used for spline interpolation algorithm */
   double h, a, b;
-
-  /** - find second derivative of original sources with respect to k
-      in view of spline interpolation */
-  /*
-    class_call(array_spline_table_columns(ppt->k,
-    ppt->k_size,
-    ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_type],
-    ppt->tau_size,
-    source_spline,
-    _SPLINE_EST_DERIV_,
-    ptr->error_message),
-    ptr->error_message,
-    ptr->error_message);
-  */
 
   /** - interpolate at each k value using the usual
       spline interpolation algorithm. */
@@ -2159,14 +2263,10 @@ int transfer_interpolate_sources(
   for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
 
     interpolated_sources[index_tau] =
-      a * ppt->sources[index_md]
-      [index_ic * ppt->tp_size[index_md] + index_type]
-      [index_tau*ppt->k_size+index_k]
-      + b * ppt->sources[index_md]
-      [index_ic * ppt->tp_size[index_md] + index_type]
-      [index_tau*ppt->k_size+index_k+1]
-      + ((a*a*a-a) * source_spline[index_tau*ppt->k_size+index_k]
-         +(b*b*b-b) * source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
+      a * pert_source[index_tau*ppt->k_size+index_k]
+      + b * pert_source[index_tau*ppt->k_size+index_k+1]
+      + ((a*a*a-a) * pert_source_spline[index_tau*ppt->k_size+index_k]
+         +(b*b*b-b) * pert_source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
 
   }
 

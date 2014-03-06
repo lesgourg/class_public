@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (transfer_init(&pr,&ba,&th,&pt,&tr) == _FAILURE_) {
+  if (transfer_init(&pr,&ba,&th,&pt,&nl,&tr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
