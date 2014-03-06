@@ -127,6 +127,8 @@ struct perturbs
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
 
+  short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
+
   short has_nc_density;  /**< in dCl, do we want density terms ? */
   short has_nc_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
   short has_nc_lens;     /**< in dCl, do we want lensing terms ? */
@@ -727,7 +729,6 @@ extern "C" {
                                   struct perturb_workspace * ppw,
                                   int index_ikout,
                                   int index_md);
-
 
 #ifdef __cplusplus
 }

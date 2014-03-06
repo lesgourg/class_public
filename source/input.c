@@ -1526,35 +1526,9 @@ int input_init(
 
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pnl->method=nl_halofit;
-    }
-    if ((strstr(string1,"trg") != NULL) || (strstr(string1,"TRG") != NULL)) {
-      pnl->method=nl_trg;
-    }
-    if ((strstr(string1,"one-loop") != NULL) || (strstr(string1,"oneloop") != NULL) || (strstr(string1,"one loop") != NULL)) {
-      pnl->method=nl_trg_one_loop;
-    }
-    if ((strstr(string1,"test linear") != NULL) || (strstr(string1,"test-linear") != NULL)) {
-      pnl->method=nl_trg_linear;
+      ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
 
-    class_test((pnl->method>nl_none) && (ppt->has_pk_matter==_FALSE_),
-               errmsg,
-               "it is not consistent to ask for non-linear power spectrum but not for linear one: you should include mPk in the 'output' entry");
-
-    if (pnl->method==nl_trg) {
-
-      class_call(parser_read_string(pfc,
-                                    "non linear ic",
-                                    &(string1),
-                                    &(flag1),
-                                    errmsg),
-                 errmsg,
-                 errmsg);
-
-      if ((strstr(string1,"linear") != NULL) || (strstr(string1,"lin") != NULL)) {
-        pnl->ic=nl_lin;
-      }
-    }
   }
 
   /** (g) amount of information sent to standard output (none if all set to zero) */
@@ -1793,38 +1767,6 @@ int input_init(
   class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
 
-  class_read_int("double escape",ppr->double_escape);
-  class_read_double("z_ini",ppr->z_ini);
-  class_read_int("eta_size",ppr->eta_size);
-  class_read_double("k_L",ppr->k_L);
-  class_read_double("k_min",ppr->k_min);
-  class_read_double("logstepx_min",ppr->logstepx_min);
-  class_read_double("logstepk1",ppr->logstepk1);
-  class_read_double("logstepk2",ppr->logstepk2);
-  class_read_double("logstepk3",ppr->logstepk3);
-  class_read_double("logstepk4",ppr->logstepk4);
-  class_read_double("logstepk5",ppr->logstepk5);
-  class_read_double("logstepk6",ppr->logstepk6);
-  class_read_double("logstepk7",ppr->logstepk7);
-  class_read_double("logstepk8",ppr->logstepk8);
-  class_read_double("k_growth_factor",ppr->k_growth_factor);
-  class_read_double("k_scalar_max_for_pk_nl",ppr->k_scalar_max_for_pk_nl);
-
-  if ((pnl->method==nl_trg_one_loop) ||
-      (pnl->method==nl_trg)) {
-
-    /* when using the trg module, the following parameters need to
-       be changed */
-
-    ppt->k_max_for_pk
-      = MAX(
-            ppt->k_max_for_pk,
-            ppr->k_scalar_max_for_pk_nl*pba->h);
-
-    psp->z_max_pk = ppr->z_ini+1.;
-
-  }
-
   /** h.8. parameter related to lensing */
 
   class_read_int("accurate_lensing",ppr->accurate_lensing);
@@ -2036,6 +1978,8 @@ int input_default_params(
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
 
+  ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
+
   ppt->has_nc_density = _FALSE_;
   ppt->has_nc_rsd = _FALSE_;
   ppt->has_nc_lens = _FALSE_;
@@ -2181,7 +2125,6 @@ int input_default_params(
   /** - nonlinear structure */
 
   pnl->method = nl_none;
-  pnl->ic = nl_pt;
 
   /** - all verbose parameters */
 
@@ -2412,28 +2355,12 @@ int input_default_precision ( struct precision * ppr ) {
   /* nothing */
 
   /**
-   * - parameters related to trg module
+   * - parameters related to nonlinear module
    */
 
   ppr->halofit_dz=0.1;
   ppr->halofit_min_k_nonlinear=0.0035;
   ppr->halofit_sigma_precision=0.05;
-  ppr->double_escape=2;
-  ppr->z_ini = 35.;
-  ppr->eta_size = 101;
-  ppr->k_L = 1.e-3;
-  ppr->k_min = 1.e-4;
-  ppr->logstepx_min = 1.04;
-  ppr->logstepk1 = 1.11;
-  ppr->logstepk2 = 0.09;
-  ppr->logstepk3 = 300.;
-  ppr->logstepk4 = 0.01;
-  ppr->logstepk5 = 1.02;
-  ppr->logstepk6 = 0.;
-  ppr->logstepk7 = 0.;
-  ppr->logstepk8 = 0.;
-  ppr->k_growth_factor = 0.1;
-  ppr->k_scalar_max_for_pk_nl = 1000.;
 
   /**
    * - parameter related to lensing

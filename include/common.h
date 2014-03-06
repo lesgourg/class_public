@@ -657,40 +657,6 @@ struct precision
 				      at the expense of requiring a
 				      larger k_max */
 
-  /** parameters relevant for TRG computation */
-
-  int double_escape;      /* number of points to drop at every
-			     half-step of the computation (double
-			     espace mechanism) */
-  double z_ini;           /* starting redshift for computing the
-			     non-linear evolution */
-  int eta_size;           /* number of steps in the time-variable eta */
-  double k_L;             /* scale above which we consider linear
-			     theory to be true at any time of the
-			     computation. To be more explicit, for k's
-			     smaller than this one, the A's function
-			     are forced to 0. */
-  double k_min;           /* lower bound for computing non-linear
-			     matter power spectrum */
-  double logstepx_min;    /* precision parameter for computation of
-			     the As functions. */
-  double logstepk1;       /* various parameters used in the definition
-			     of steps in k space in the non-linear
-			     calculation */
-  double logstepk2;
-  double logstepk3;
-  double logstepk4;
-  double logstepk5;
-  double logstepk6;
-  double logstepk7;
-  double logstepk8;
-  double k_growth_factor; /* at which scale k in 1/Mpc units do we
-			     want to evaluate the LmabdaCDM growth
-			     factor? */
-
-  double k_scalar_max_for_pk_nl; /* max value of k in h/Mpc to be used
-				    in the trg module */
-
   //@}
 
   /** @name - parameters related to lensing */

@@ -797,6 +797,208 @@ int spectra_pk_at_k_and_z(
 }
 
 /**
+ * Non-linear total matter power spectrum for arbitrary redshift.
+ *
+ * This routine evaluates the non-linear matter power spectrum at a given value of z by
+ * interpolating in the pre-computed table (if several values of z have been stored)
+ * or by directly reading it (if it only contains values at z=0 and we want P(k,z=0))
+ *
+ *
+ * Can be called in two modes: linear or logarithmic.
+ *
+ * - linear: returns P(k) (units: Mpc^3)
+ *
+ * - logarithmic: returns ln(P(k))
+ *
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * spectra_init() has been called before, and spectra_free() has not
+ * been called yet.
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into tau)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param mode       Input: linear or logarithmic
+ * @param z          Input: redshift
+ * @param output_tot Ouput: total matter power spectrum P(k) in Mpc**3 (linear mode), or its logarithms (logarithmic mode)
+ * @return the error status
+ */
+
+int spectra_pk_nl_at_z(
+                       struct background * pba,
+                       struct spectra * psp,
+                       enum linear_or_logarithmic mode,
+                       double z,
+                       double * output_tot /* array with argument output_tot[index_k] (must be already allocated) */
+                       ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int last_index;
+  int index_k;
+  double tau,ln_tau;
+
+  /** - first step: convert z into ln(tau) */
+
+  class_call(background_tau_of_z(pba,z,&tau),
+             pba->error_message,
+             psp->error_message);
+
+  class_test(tau <= 0.,
+             psp->error_message,
+             "negative or null value of conformal time: cannot interpolate");
+
+  ln_tau = log(tau);
+
+  /** - second step: for both modes (linear or logarithmic), store the spectrum in logarithmic format in the output array(s) */
+
+  /**   (a.) if only values at tau=tau_today are stored and we want P(k,z=0), no need to interpolate */
+
+  if (psp->ln_tau_size == 1) {
+
+    class_test(z != 0.,
+               psp->error_message,
+               "asked z=%e but only P(k,z=0) has been tabulated",z);
+
+    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+      output_tot[index_k] = psp->ln_pk_nl[index_k];
+    }
+  }
+
+  /**   (b.) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
+
+  else {
+
+    class_call(array_interpolate_spline(psp->ln_tau,
+                                        psp->ln_tau_size,
+                                        psp->ln_pk_nl,
+                                        psp->ddln_pk_nl,
+                                        psp->ln_k_size,
+                                        ln_tau,
+                                        &last_index,
+                                        output_tot,
+                                        psp->ln_k_size,
+                                        psp->error_message),
+               psp->error_message,
+               psp->error_message);
+  }
+
+  /** - fourth step: eventually convert to linear format */
+
+  if (mode == linear) {
+    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+      output_tot[index_k] = exp(output_tot[index_k]);
+    }
+  }
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Non-linear total matter power spectrum for arbitrary wavenumber and redshift.
+ *
+ * This routine evaluates the matter power spectrum at a given value of k and z by
+ * interpolating in a table of all P(k)'s computed at this z by spectra_pk_nl_at_z() (when kmin <= k <= kmax),
+ * or eventually by using directly the primordial spectrum (when 0 <= k < kmin):
+ * the latter case is an approximation, valid when kmin << comoving Hubble scale today.
+ * Returns zero when k=0. Returns an error when k<0 or k > kmax.
+ *
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * spectra_init() has been called before, and spectra_free() has not
+ * been called yet.
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into tau)
+ * @param ppm        Input: pointer to primordial structure (used only in the case 0 < k < kmin)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param k          Input: wavenumber in 1/Mpc
+ * @param z          Input: redshift
+ * @param pk_tot     Ouput: total matter power spectrum P(k) in Mpc**3
+ * @return the error status
+ */
+
+int spectra_pk_nl_at_k_and_z(
+                             struct background * pba,
+                             struct primordial * ppm,
+                             struct spectra * psp,
+                             double k,
+                             double z,
+                             double * pk_tot /* pointer to a single number (must be already allocated) */
+                             ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_md;
+  int last_index;
+
+  double * spectrum_at_z = NULL;
+  double * spline;
+
+  index_md = psp->index_md_scalars;
+
+  /** - first step: check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_pk_at_z()) */
+
+  class_test((k < exp(psp->ln_k[0])) || (k > exp(psp->ln_k[psp->ln_k_size-1])),
+             psp->error_message,
+             "k=%e out of bounds [%e:%e]",k,0.,exp(psp->ln_k[psp->ln_k_size-1]));
+
+  /* compute P(k,z) (in logarithmic format for more accurate interpolation) */
+  class_alloc(spectrum_at_z,
+              psp->ln_k_size*sizeof(double),
+              psp->error_message);
+
+  class_call(spectra_pk_nl_at_z(pba,
+                                psp,
+                                logarithmic,
+                                z,
+                                spectrum_at_z),
+             psp->error_message,
+             psp->error_message);
+
+  /* get its second derivatives with spline, then interpolate, then convert to linear format */
+
+  class_alloc(spline,
+              sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
+              psp->error_message);
+
+  class_call(array_spline_table_lines(psp->ln_k,
+                                      psp->ln_k_size,
+                                      spectrum_at_z,
+                                      1,
+                                      spline,
+                                      _SPLINE_NATURAL_,
+                                      psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  class_call(array_interpolate_spline(psp->ln_k,
+                                      psp->ln_k_size,
+                                      spectrum_at_z,
+                                      spline,
+                                      1,
+                                      log(k),
+                                      &last_index,
+                                      pk_tot,
+                                      1,
+                                      psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  *pk_tot = exp(*pk_tot);
+
+  free(spectrum_at_z);
+  free(spline);
+
+  return _SUCCESS_;
+
+}
+
+
+/**
  * Matter transfer functions T_i(k) for arbitrary redshift and for all
  * initial conditions.
  *
@@ -1002,8 +1204,9 @@ int spectra_init(
                  struct precision * ppr,
                  struct background * pba,
                  struct perturbs * ppt,
-                 struct transfers * ptr,
                  struct primordial * ppm,
+                 struct nonlinear *pnl,
+                 struct transfers * ptr,
                  struct spectra * psp
                  ) {
 
@@ -1055,7 +1258,7 @@ int spectra_init(
 
     if (ppt->has_pk_matter == _TRUE_) {
 
-      class_call(spectra_pk(pba,ppt,ppm,psp),
+      class_call(spectra_pk(pba,ppt,ppm,pnl,psp),
                  psp->error_message,
                  psp->error_message);
 
@@ -1232,6 +1435,15 @@ int spectra_free(
 
         if (psp->ln_tau_size > 1) {
           free(psp->ddln_pk);
+        }
+
+        if (psp->ln_pk_nl != NULL) {
+
+          free(psp->ln_pk_nl);
+
+          if (psp->ln_tau_size > 1) {
+            free(psp->ddln_pk_nl);
+          }
         }
       }
 
@@ -2348,6 +2560,7 @@ int spectra_pk(
                struct background * pba,
                struct perturbs * ppt,
                struct primordial * ppm,
+               struct nonlinear *pnl,
                struct spectra * psp
                ) {
 
@@ -2360,10 +2573,9 @@ int spectra_pk(
   int index_k;
   int index_tau;
   double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
-  int last_index_back;
-  double * pvecback_sp_long; /* array with argument pvecback_sp_long[pba->index_bg] */
   double source_ic1;
   double source_ic2;
+  double ln_pk_tot;
 
   /** - check the presence of scalar modes */
 
@@ -2377,31 +2589,30 @@ int spectra_pk(
   /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
 
   class_alloc(primordial_pk,psp->ic_ic_size[index_md]*sizeof(double),psp->error_message);
-  class_alloc(pvecback_sp_long,pba->bg_size*sizeof(double),psp->error_message);
 
   /** - allocate and fill array of P(k,tau) values */
 
-  class_alloc(psp->ln_pk,sizeof(double)*psp->ln_tau_size*psp->ln_k_size*psp->ic_ic_size[index_md],psp->error_message);
+  class_alloc(psp->ln_pk,
+              sizeof(double)*psp->ln_tau_size*psp->ln_k_size*psp->ic_ic_size[index_md],
+              psp->error_message);
+
+  if (pnl->method != nl_none) {
+    class_alloc(psp->ln_pk_nl,
+                sizeof(double)*psp->ln_tau_size*psp->ln_k_size,
+                psp->error_message);
+  }
+  else {
+    psp->ln_pk_nl = NULL;
+  }
 
   for (index_tau=0 ; index_tau < psp->ln_tau_size; index_tau++) {
-
-    class_call(background_at_tau(pba,
-                                 ppt->tau_sampling[index_tau-psp->ln_tau_size+ppt->tau_size],
-                                 /* for this last argument we could have passed
-                                    exp(psp->ln_tau[index_tau]) but we would then loose
-                                    precision in the exp(log(x)) operation) */
-                                 pba->long_info,
-                                 pba->inter_normal,
-                                 &last_index_back,
-                                 pvecback_sp_long),
-               pba->error_message,
-               psp->error_message);
-
     for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
       class_call(primordial_spectrum_at_k(ppm,index_md,logarithmic,psp->ln_k[index_k],primordial_pk),
                  ppm->error_message,
                  psp->error_message);
+
+      ln_pk_tot =0;
 
       /* curvature primordial spectrum:
          P_R(k) = 1/(2pi^2) k^3 <R R>
@@ -2426,6 +2637,9 @@ int spectra_pk(
           log(2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
               *source_ic1*source_ic1
               *exp(primordial_pk[index_ic1_ic2]));
+
+        ln_pk_tot += psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2];
+
       }
 
       /* part non-diagonal in initial conditions */
@@ -2447,11 +2661,23 @@ int spectra_pk(
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
               primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 
+            ln_pk_tot += psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2];
+
           }
           else {
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] = 0.;
           }
         }
+      }
+
+      /* if non-linear corrections required, compute the total non-linear matter power spectrum */
+
+      if (pnl->method != nl_none) {
+
+        psp->ln_pk_nl[index_tau * psp->ln_k_size + index_k] =
+          ln_pk_tot
+          + 2.*log(pnl->nl_corr_density[(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size + index_k]);
+
       }
     }
   }
@@ -2475,9 +2701,6 @@ int spectra_pk(
 
   }
 
-  free (primordial_pk);
-  free (pvecback_sp_long);
-
   /* compute sigma8 (mean variance today in sphere of radius 8/h Mpc */
 
   class_call(spectra_sigma(pba,ppm,psp,8./pba->h,0.,&(psp->sigma8)),
@@ -2488,6 +2711,29 @@ int spectra_pk(
     fprintf(stdout," -> sigma8=%g (computed till k = %g h/Mpc)\n",
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+
+  /**- if interpolation of P_NL(k,tau) will be needed (as a function of tau),
+     compute array of second derivatives in view of spline interpolation */
+
+  if (pnl->method != nl_none) {
+    if (psp->ln_tau_size > 1) {
+
+      class_alloc(psp->ddln_pk_nl,sizeof(double)*psp->ln_tau_size*psp->ln_k_size*psp->ic_ic_size[index_md],psp->error_message);
+
+      class_call(array_spline_table_lines(psp->ln_tau,
+                                          psp->ln_tau_size,
+                                          psp->ln_pk_nl,
+                                          psp->ln_k_size,
+                                          psp->ddln_pk_nl,
+                                          _SPLINE_EST_DERIV_,
+                                          psp->error_message),
+                 psp->error_message,
+                 psp->error_message);
+
+    }
+  }
+
+  free (primordial_pk);
 
   return _SUCCESS_;
 }

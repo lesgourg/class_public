@@ -3,7 +3,7 @@
 #ifndef __PRIMORDIAL__
 #define __PRIMORDIAL__
 
-#include "transfer.h"
+#include "perturbations.h"
 
 /** enum defining how should the primnordial spectrum be compurted */
 

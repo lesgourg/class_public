@@ -3,7 +3,7 @@
 #ifndef __SPECTRA__
 #define __SPECTRA__
 
-#include "primordial.h"
+#include "transfer.h"
 
 /**
  * Structure containing everything about anisotropy and Fourier power spectra that other modules need to know.
@@ -151,7 +151,7 @@ struct spectra {
   double * ln_tau;  /**< list of ln(tau) values ln_tau[index_tau] */
 
   double * ln_pk;   /**< Matter power spectrum.
-                       depends on indices index_md, index_ic1, index_ic2, index_k as:
+                       depends on indices index_md, index_ic1, index_ic2, index_k, index_tau as:
                        ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
                        where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
                        the primordial spectrum is symmetric in (index_ic1, index_ic2)).
@@ -176,6 +176,12 @@ struct spectra {
                     */
 
   double sigma8;    /**< sigma8 parameter */
+
+  double * ln_pk_nl;   /**< Non-linear matter power spectrum.
+                          depends on indices index_k, index_tau as:
+                          ln_pk_nl[index_tau * psp->k_size + index_k]
+                    */
+  double * ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
   int index_tr_delta_g;        /**< index of gamma density transfer function */
   int index_tr_delta_b;        /**< index of baryon density transfer function */
@@ -261,6 +267,23 @@ extern "C" {
                             double * pk_ic
                             );
 
+  int spectra_pk_nl_at_z(
+                         struct background * pba,
+                         struct spectra * psp,
+                         enum linear_or_logarithmic mode,
+                         double z,
+                         double * output_tot
+                         );
+
+  int spectra_pk_nl_at_k_and_z(
+                               struct background * pba,
+                               struct primordial * ppm,
+                               struct spectra * psp,
+                               double k,
+                               double z,
+                               double * pk_tot
+                               );
+
   int spectra_tk_at_z(
                       struct background * pba,
                       struct spectra * psp,
@@ -280,8 +303,9 @@ extern "C" {
                    struct precision * ppr,
                    struct background * pba,
                    struct perturbs * ppt,
-                   struct transfers * ptr,
                    struct primordial * ppm,
+                   struct nonlinear *pnl,
+                   struct transfers * ptr,
                    struct spectra * psp
                    );
 
@@ -332,6 +356,7 @@ extern "C" {
                  struct background * pba,
                  struct perturbs * ppt,
                  struct primordial * ppm,
+                 struct nonlinear *pnl,
                  struct spectra * psp
                  );
 
@@ -355,4 +380,3 @@ extern "C" {
 #endif
 
 #endif
-

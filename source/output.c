@@ -116,7 +116,7 @@ int output_init(
 
   /** - check that we really want to output at least one file */
 
-  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (pnl->method == nl_none) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_) && (pop->write_primordial == _FALSE_)) {
+  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_) && (pop->write_primordial == _FALSE_)) {
     if (pop->output_verbose > 0)
       printf("No output files requested. Output module skipped.\n");
     return _SUCCESS_;
@@ -142,13 +142,12 @@ int output_init(
     class_call(output_pk(pba,ppt,psp,pop),
                pop->error_message,
                pop->error_message);
-  }
 
-  if (pnl->method > nl_none) {
-
-    class_call(output_pk_nl(pba,pnl,pop),
-               pop->error_message,
-               pop->error_message);
+    if (pnl->method != nl_none) {
+          class_call(output_pk_nl(pba,ppt,psp,pop),
+                     pop->error_message,
+                     pop->error_message);
+    }
   }
 
   /** - deal with density and matter power spectra */
@@ -870,36 +869,43 @@ int output_pk(
 
 }
 
+/**
+ * This routines writes the output in files for Fourier non-linear matter power spectra P(k)'s.
+ *
+ * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
+ * @param ppt Input : pointer perturbation structure
+ * @param psp Input : pointer to spectra structure
+ * @param pop Input : pointer to output structure
+ */
+
 int output_pk_nl(
                  struct background * pba,
-                 struct nonlinear * pnl,
+                 struct perturbs * ppt,
+                 struct spectra * psp,
                  struct output * pop
                  ) {
 
-  int index_z;
+  /** Summary: */
+
+  /** - define local variables */
+
+  FILE * out;     /* (will contain total P(k) summed eventually over initial conditions) */
+
+  double * pk_tot; /* array with argument pk_tot[index_k] */
+
   int index_k;
-  double * pz_density;
-  double * pz_velocity=NULL;
-  double * pz_cross=NULL;
-  FILE * out_density;
-  FILE * out_velocity;
-  FILE * out_cross;
+  int index_z;
+
   FileName file_name;
   FileName redshift_suffix;
-  int k_size_at_z;
-
-  class_alloc(pz_density,pnl->k_size[0]*sizeof(double),pnl->error_message);
-
-  if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
-    class_alloc(pz_velocity,pnl->k_size[0]*sizeof(double),pnl->error_message);
-    class_alloc(pz_cross,pnl->k_size[0]*sizeof(double),pnl->error_message);
-  }
 
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
-    class_test((pop->z_pk[index_z] < pnl->z[pnl->z_size-1]) || (pop->z_pk[index_z] > pnl->z[0]),
+    /** - first, check that requested redshift z_pk is consistent */
+
+    class_test((pop->z_pk[index_z] > psp->z_max_pk),
                pop->error_message,
-               "P_nl(k,z) computed in range %f<=z<=%f but requested at z=%f. You should probably increase z_ini in precision file.",pnl->z[pnl->z_size-1],pnl->z[0],pop->z_pk[index_z]);
+               "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk[index_z]);
 
     if (pop->z_pk_num == 1)
       redshift_suffix[0]='\0';
@@ -908,111 +914,69 @@ int output_pk_nl(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_call(nonlinear_pk_at_z(pnl,pop->z_pk[index_z],pz_density,pz_velocity,pz_cross,&k_size_at_z),
+    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl.dat");
+
+    class_call(output_open_pk_file(pba,
+                                   psp,
+                                   pop,
+                                   &out,
+                                   file_name,
+                                   "",
+                                   pop->z_pk[index_z]
+                                   ),
                pop->error_message,
                pop->error_message);
 
-    if (pnl->method == nl_halofit) {
+    class_alloc(pk_tot,
+                psp->ln_k_size*sizeof(double),
+                pop->error_message);
 
-      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl.dat");
+    /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
 
-      class_call(output_open_pk_nl_file(pba,
-                                        pnl,
-                                        pop,
-                                        &out_density,
-                                        file_name,
-                                        "(using HALOFIT) ",
-                                        pop->z_pk[index_z],
-                                        k_size_at_z
-                                        ),
-                 pop->error_message,
-                 pop->error_message);
-    }
+    /* if z_pk = 0, no interpolation needed */
 
-    if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
+    if (pop->z_pk[index_z] == 0.) {
 
-      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_density.dat");
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
-      class_call(output_open_pk_nl_file(pba,
-                                        pnl,
-                                        pop,
-                                        &out_density,
-                                        file_name,
-                                        "(density auto-correlation) ",
-                                        pop->z_pk[index_z],
-                                        k_size_at_z
-                                        ),
-                 pop->error_message,
-                 pop->error_message);
+        pk_tot[index_k] = exp(psp->ln_pk_nl[(psp->ln_tau_size-1) * psp->ln_k_size + index_k]);
 
-      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_velocity.dat");
-
-      class_call(output_open_pk_nl_file(pba,
-                                        pnl,
-                                        pop,
-                                        &out_velocity,
-                                        file_name,
-                                        "(velocity auto-correlation) ",
-                                        pop->z_pk[index_z],
-                                        k_size_at_z
-                                        ),
-                 pop->error_message,
-                 pop->error_message);
-
-      sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_cross.dat");
-
-      class_call(output_open_pk_nl_file(pba,
-                                        pnl,
-                                        pop,
-                                        &out_cross,
-                                        file_name,
-                                        "(density-velocity cross-correlation) ",
-                                        pop->z_pk[index_z],
-                                        k_size_at_z
-                                        ),
-                 pop->error_message,
-                 pop->error_message);
-    }
-
-    for (index_k=0; index_k<k_size_at_z;index_k++) {
-
-      class_call(output_one_line_of_pk(out_density,
-                                       pnl->k[index_k]/pba->h,
-                                       pz_density[index_k]*pow(pba->h,3)),
-                 pop->error_message,
-                 pop->error_message);
-
-      if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
-
-        class_call(output_one_line_of_pk(out_velocity,
-                                         pnl->k[index_k]/pba->h,
-                                         pz_velocity[index_k]*pow(pba->h,3)),
-                   pop->error_message,
-                   pop->error_message);
-
-        class_call(output_one_line_of_pk(out_cross,
-                                         pnl->k[index_k]/pba->h,
-                                         pz_cross[index_k]*pow(pba->h,3)),
-                   pop->error_message,
-                   pop->error_message);
       }
     }
 
-    fclose(out_density);
+    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
+    else {
 
-    if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
-      fclose(out_velocity);
-      fclose(out_cross);
+      class_call(spectra_pk_nl_at_z(pba,
+                                    psp,
+                                    linear,
+                                    pop->z_pk[index_z],
+                                    pk_tot),
+                 psp->error_message,
+                 pop->error_message);
     }
-  }
 
-  free(pz_density);
-  if ((pnl->method >= nl_trg_linear) && (pnl->method <= nl_trg)) {
-    free(pz_velocity);
-    free(pz_cross);
+    /** - fourth, write in files */
+
+    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+
+      class_call(output_one_line_of_pk(out,
+                                       exp(psp->ln_k[index_k])/pba->h,
+                                       pk_tot[index_k]*pow(pba->h,3)),
+                 pop->error_message,
+                 pop->error_message);
+
+    }
+
+    /** - fifth, free memory and close files */
+
+    fclose(out);
+    free(pk_tot);
+
   }
 
   return _SUCCESS_;
+
 }
 
 /**
@@ -1571,44 +1535,6 @@ int output_one_line_of_pk(
 
   return _SUCCESS_;
 
-}
-
-/**
- * This routine opens one file where some P_nl(k)'s will be written, and writes
- * a heading with some general information concerning its content.
- *
- * @param pba        Input: pointer to background structure (needed for h)
- * @param pnl        Input : pointer to nonlinear structure
- * @param pop        Input : pointer to output structure
- * @param tkfile     Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @param first_line Input : text describing the content (initial conditions, ...)
- * @param z          Input : redshift of the output
- * @param k_size     Input : number of k values
- * @return the error status
- */
-
-int output_open_pk_nl_file(
-                           struct background * pba,
-                           struct nonlinear * pnl,
-                           struct output * pop,
-                           FILE * * pkfile,
-                           FileName filename,
-                           char * first_line,
-                           double z,
-                           int k_size
-                           ) {
-
-  class_open(*pkfile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-    fprintf(*pkfile,"# Non-linear matter power spectrum P_nl(k) %sat redshift z=%g\n",first_line,z);
-    fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",pnl->k[0]/pba->h,pnl->k[k_size-1]/pba->h);
-    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",k_size);
-    fprintf(*pkfile,"# k (h/Mpc)  P_nl (Mpc/h)^3:\n");
-  }
-
-  return _SUCCESS_;
 }
 
 /**

@@ -532,7 +532,7 @@ int perturb_indices_of_perturbs(
         ppt->has_source_phi_plus_psi = _TRUE_;
       }
 
-      if (ppt->has_pk_matter == _TRUE_) {
+      if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_nl_corrections_based_on_delta_m)) {
         ppt->has_lss = _TRUE_;
         ppt->has_source_delta_m = _TRUE_;
       }
@@ -1168,6 +1168,9 @@ int perturb_get_k_list(
 
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
     k_max = MAX(k_max,ppt->k_max_for_pk);
+
+  if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
+    k_max = MAX(k_max,100.); //TBC for testing
 
   /** - test that result for k_min, k_max make sense */
 

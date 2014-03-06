@@ -69,7 +69,7 @@ endif
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o
 
-SOURCE = input.o background.o thermodynamics.o perturbations.o transfer.o primordial.o spectra.o trg.o nonlinear.o lensing.o
+SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o
 
 INPUT = input.o
 
@@ -87,7 +87,7 @@ PRIMORDIAL = primordial.o
 
 SPECTRA = spectra.o
 
-NONLINEAR = trg.o nonlinear.o
+NONLINEAR = nonlinear.o
 
 LENSING = lensing.o
 
