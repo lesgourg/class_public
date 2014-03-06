@@ -487,10 +487,32 @@ cdef class Class:
 
     # Gives the pk for a given (k,z)
     def pk(self,double k,double z):
+        """
+        Gives the pk for a given k and z
+
+        .. note::
+
+            there is an additional check to verify if output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
         cdef double pk
         cdef double pk_velo
         cdef double pk_cross
         cdef int dummy
+
+        abort = True
+        if 'output' in self._pars:
+            options = self._pars['output'].split()
+            for option in options:
+                if option in ['mPk', 'mTk', 'vTk']:
+                    abort = False
+                    break
+        if abort:
+            raise CosmoSevereError(
+                "No power spectrum nor transfer function"
+                " asked: you should not ask for a power"
+                " spectrum, then")
 
         if (self.nl.method == 0):
              if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
@@ -909,6 +931,14 @@ cdef class Class:
         # Set the module to the current values
         self.set(data.cosmo_arguments)
         self.compute(["lensing"])
+
+        # Compute the derived paramter value and store them
+        params = ctx.getData()
+        self.get_current_derived_parameters(data)
+        for elem in data.get_mcmc_parameters(['derived']):
+            data.mcmc_parameters[elem]['current'] /= \
+                data.mcmc_parameters[elem]['scale']
+            params[elem] = data.mcmc_parameters[elem]['current']
 
         ctx.add('boundary', True)
         # Store itself into the context, to be accessed by the likelihoods
