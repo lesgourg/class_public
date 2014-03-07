@@ -356,22 +356,27 @@ int transfer_init(
     for (row=0; row<ptr->nz_evo_size; row++){
       status = fscanf(input_file,"%lf %lf",
                       &ptr->nz_evo_z[row],&ptr->nz_evo_nz[row]);
-      //printf("%d: (z,dNdz) = (%g,%g)\n",row,ptr->nz_evo_z[row],ptr->nz_evo_nz[row]);
     }
     fclose(input_file);
 
     /* infer dlog(dN/dz)/dz from dN/dz */
     ptr->nz_evo_dlog_nz[0] =
-      (ptr->nz_evo_dlog_nz[1]-ptr->nz_evo_dlog_nz[0])
+      (ptr->nz_evo_nz[1]-ptr->nz_evo_nz[0])
       /(ptr->nz_evo_z[1]-ptr->nz_evo_z[0]);
     for (row=1; row<ptr->nz_evo_size-1; row++){
       ptr->nz_evo_dlog_nz[row] =
-        (ptr->nz_evo_dlog_nz[row+1]-ptr->nz_evo_dlog_nz[row-1])
+        (ptr->nz_evo_nz[row+1]-ptr->nz_evo_nz[row-1])
         /(ptr->nz_evo_z[row+1]-ptr->nz_evo_z[row-1]);
     }
     ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1] =
-      (ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1]-ptr->nz_evo_dlog_nz[ptr->nz_evo_size-2])
+      (ptr->nz_evo_nz[ptr->nz_evo_size-1]-ptr->nz_evo_nz[ptr->nz_evo_size-2])
       /(ptr->nz_evo_z[ptr->nz_evo_size-1]-ptr->nz_evo_z[ptr->nz_evo_size-2]);
+
+    /* to test that the file is read:
+    for (row=0; row<ptr->nz_evo_size; row++){
+      fprintf(stdout,"%d: (z,dNdz,dlndNdzdz) = (%g,%g,%g)\n",row,ptr->nz_evo_z[row],ptr->nz_evo_nz[row],ptr->nz_evo_dlog_nz[row]);
+    }
+    */
 
     /* Call spline interpolation: */
     class_call(array_spline_table_lines(ptr->nz_evo_z,
@@ -2608,6 +2613,7 @@ int transfer_sources(
                                                     ptr->error_message),
                            ptr->error_message,
                            ptr->error_message);
+
               }
               else {
 
