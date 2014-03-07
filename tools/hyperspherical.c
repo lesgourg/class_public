@@ -7,16 +7,16 @@
 
 #include "hyperspherical.h"
 
-int hyperspherical_HIS_create(int K, 
-                              double beta, 
-                              int nl, 
-                              int *lvec, 
-                              double xmin, 
-                              double xmax, 
+int hyperspherical_HIS_create(int K,
+                              double beta,
+                              int nl,
+                              int *lvec,
+                              double xmin,
+                              double xmax,
                               double sampling,
                               int l_WKB,
                               double phiminabs,
-                              HyperInterpStruct *pHIS, 
+                              HyperInterpStruct *pHIS,
                               ErrorMsg error_message){
   /** Allocate storage for Hyperspherical Interpolation Structure (HIS).
       Then, compute the values of Phi and dPhi and complete the interpolation
@@ -46,14 +46,14 @@ int hyperspherical_HIS_create(int K,
   pHIS->x_size = nx;
   pHIS->K = K;
   //Set pointervalues in pHIS:
-  
+
   class_alloc(pHIS->l, sizeof(int)*nl,error_message);
   class_alloc(pHIS->chi_at_phimin,sizeof(double)*nl,error_message);
   class_alloc(pHIS->x,sizeof(double)*nx,error_message);
   class_alloc(pHIS->sinK,sizeof(double)*nx,error_message);
   class_alloc(pHIS->cotK,sizeof(double)*nx,error_message);
   class_alloc(pHIS->phi,sizeof(double)*nx*nl,error_message);
-  class_alloc(pHIS->dphi,sizeof(double)*nx*nl,error_message);  
+  class_alloc(pHIS->dphi,sizeof(double)*nx*nl,error_message);
 
   //Order needed for trig interpolation: (We are using Taylor's remainder theorem)
   if (0.5*deltax*deltax < _TRIG_PRECISSION_)
@@ -71,11 +71,11 @@ int hyperspherical_HIS_create(int K,
   class_alloc(sqrtK,(lmax+3)*sizeof(double),error_message);
   class_alloc(one_over_sqrtK,(lmax+3)*sizeof(double),error_message);
   //class_alloc(PhiL,(lmax+2)*sizeof(double),error_message);
-  
+
   //Find l_WKB_min, the highest l in lvec where l<l_WKB:
   l_recurrence_max = -10;
   int index_recurrence_max=-10;
-  for (k=nl-1; k>=0; k--){  
+  for (k=nl-1; k>=0; k--){
     l = lvec[k];
     if (l<l_WKB){
         l_recurrence_max = l;
@@ -127,7 +127,7 @@ int hyperspherical_HIS_create(int K,
     break;
   default:
     return _FAILURE_;
-  }  
+  }
 
   int xfwdidx = (xfwd-xmin)/deltax;
   //Calculate and assign Phi and dPhi values:
@@ -140,27 +140,27 @@ int hyperspherical_HIS_create(int K,
   firstprivate(lmax)
   {
     class_alloc_parallel(PhiL,(lmax+2)*sizeof(double)*_HYPER_CHUNK_,error_message);
-    
+
     if ((K == 1) && ((int)(beta+0.2) == (lmax+1))) {
-      /** Take care of special case lmax = beta-1. 
+      /** Take care of special case lmax = beta-1.
           The routine below will try to compute
-          Phi_{lmax+1} which is not allowed. However, 
+          Phi_{lmax+1} which is not allowed. However,
           the purpose is to calculate the derivative
           Phi'_{lmax}, and the formula is correct if we set Phi_{lmax+1} = 0.
       */
       PhiL[lmax+1] = 0.0;
       lmax--;
     }
-    
+
 #pragma omp for schedule (dynamic)              \
 
     /*
     for (j=0; j<MIN(nx,xfwdidx); j++){
       //Use backwards method:
-      hyperspherical_backwards_recurrence(K, 
-                                          MIN(l_recurrence_max,lmax)+1, 
-                                          beta, 
-                                          pHIS->x[j], 
+      hyperspherical_backwards_recurrence(K,
+                                          MIN(l_recurrence_max,lmax)+1,
+                                          beta,
+                                          pHIS->x[j],
                                           pHIS->sinK[j],
                                           pHIS->cotK[j],
                                           sqrtK,
@@ -173,14 +173,14 @@ int hyperspherical_HIS_create(int K,
         pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
       }
     }*/
-    
+
     for (j=0; j<MIN(nx,xfwdidx); j+= _HYPER_CHUNK_){
       current_chunk = MIN(_HYPER_CHUNK_,MIN(nx,xfwdidx)-j);
       //Use backwards method:
-      hyperspherical_backwards_recurrence_chunk(K, 
-                                                MIN(l_recurrence_max,lmax)+1, 
-                                                beta, 
-                                                pHIS->x+j, 
+      hyperspherical_backwards_recurrence_chunk(K,
+                                                MIN(l_recurrence_max,lmax)+1,
+                                                beta,
+                                                pHIS->x+j,
                                                 pHIS->sinK+j,
                                                 pHIS->cotK+j,
                                                 current_chunk,
@@ -195,20 +195,20 @@ int hyperspherical_HIS_create(int K,
           pHIS->dphi[k*nx+j+index_x] = l*pHIS->cotK[j+index_x]*
             PhiL[l*current_chunk+index_x]-
             sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
-        }    
+        }
       }
     }
-    
+
 
 
 #pragma omp for schedule (dynamic)              \
-  
+
     for (j=xfwdidx; j<nx; j+=_HYPER_CHUNK_){
       //Use forwards method:
       current_chunk = MIN(_HYPER_CHUNK_,nx-j);
-      hyperspherical_forwards_recurrence_chunk(K, 
-                                               MIN(l_recurrence_max,lmax)+1, 
-                                               beta, 
+      hyperspherical_forwards_recurrence_chunk(K,
+                                               MIN(l_recurrence_max,lmax)+1,
+                                               beta,
                                                pHIS->x+j,
                                                pHIS->sinK+j,
                                                pHIS->cotK+j,
@@ -216,7 +216,7 @@ int hyperspherical_HIS_create(int K,
                                                sqrtK,
                                                one_over_sqrtK,
                                                PhiL);
-  
+
       //We have now populated PhiL at x, assign Phi and dPhi for all l in lvec:
       for (k=0; k<=index_recurrence_max; k++){
         l = lvec[k];
@@ -225,9 +225,9 @@ int hyperspherical_HIS_create(int K,
           pHIS->dphi[k*nx+j+index_x] = l*pHIS->cotK[j+index_x]*
             PhiL[l*current_chunk+index_x]-
             sqrtK[l+1]*PhiL[(l+1)*current_chunk+index_x];
-        }    
+        }
       }
-    } 
+    }
     free(PhiL);
   }
   if (abort == _TRUE_) return _FAILURE_;
@@ -235,7 +235,7 @@ int hyperspherical_HIS_create(int K,
   free(sqrtK);
   free(one_over_sqrtK);
 
-  for (k=0; k<nl; k++){ 
+  for (k=0; k<nl; k++){
     hyperspherical_get_xmin_from_approx(K,lvec[k],beta,0.,phiminabs,pHIS->chi_at_phimin+k,NULL);
   }
 
@@ -248,10 +248,10 @@ size_t hyperspherical_HIS_size(int nl, int nx){
   return(sizeof(int)*nl+sizeof(double)*nl+3*sizeof(double)*nx+2*sizeof(double)*nx*nl);
 }
 
-int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local, 
+int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local,
                                    void * HIS_storage_shared){
   /** Assign pointers in pHIS: (Remember that pointer incrementation moves
-      the number of bytes taken up by 1 variable of the type that the 
+      the number of bytes taken up by 1 variable of the type that the
       pointer points to. */
   int nx=pHIS_local->x_size;
   int nl=pHIS_local->l_size;
@@ -268,7 +268,7 @@ int hyperspherical_update_pointers(HyperInterpStruct *pHIS_local,
 
 int hyperspherical_HIS_free(HyperInterpStruct *pHIS,
                             ErrorMsg error_message){
-  /** Free the Hyperspherical Interpolation Structure. */  
+  /** Free the Hyperspherical Interpolation Structure. */
   free(pHIS->l);
   free(pHIS->chi_at_phimin);
   free(pHIS->x);
@@ -276,7 +276,7 @@ int hyperspherical_HIS_free(HyperInterpStruct *pHIS,
   free(pHIS->cotK);
   free(pHIS->phi);
   free(pHIS->dphi);
-  
+
   return _SUCCESS_;
 }
 
@@ -289,10 +289,10 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
                                                 double *d2Phi) {
 
   /** Hermite interpolation of order 6 for Phi, dPhi, and d2Phi. When xinterp
-      is sorted (increasing), computations can be reused. On the other hand, 
+      is sorted (increasing), computations can be reused. On the other hand,
       for a randomly called value, the routine is not much slower than a
       routine optimised for this case. The more sorted the vector, the faster
-      the execution time. For closed case, the interpolation structure only 
+      the execution time. For closed case, the interpolation structure only
       covers [safety;pi/2-safety]. The calling routine should respect this.
       if sinK and cosK are not NULL, we will also interpolate them.
   */
@@ -316,8 +316,8 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
       different functions, according to these flags. If not, maybe I should
       do it.
   */
- 
-  
+
+
   if (Phi==NULL)
     do_function = _FALSE_;
   else
@@ -358,12 +358,12 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
   for (j=0; j<nxi; j++){
     x = xinterp[j];
     //take advantage of periodicity of functions in closed case
-    if (pHIS->K==1) 
+    if (pHIS->K==1)
       ClosedModY(pHIS->l[lnum], (int)(pHIS->beta+0.2), &x, &phisign, &dphisign);
     //Loop over output values
     if ((x<xmin)||(x>xmax)){
       //Outside interpolation region, set to zero.
-      if (do_function==_TRUE_) 
+      if (do_function==_TRUE_)
         Phi[j] = 0.0;
       if (do_first_derivative==_TRUE_)
         dPhi[j] = 0.0;
@@ -373,7 +373,7 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
     }
     if ((x>right_border)||(x<left_border)){
       if ((x>next_border)||(x<left_border)){
-        current_border_idx = ((int) ((x-xmin)/deltax))+1; 
+        current_border_idx = ((int) ((x-xmin)/deltax))+1;
         current_border_idx = MAX(1,current_border_idx);
         current_border_idx = MIN(nx-1,current_border_idx);
         //printf("Current border index at jump: %d\n",current_border_idx);
@@ -468,10 +468,10 @@ int hyperspherical_Hermite_interpolation_vector(HyperInterpStruct *pHIS,
   return _SUCCESS_;
 }
 
-int hyperspherical_forwards_recurrence(int K, 
-                                       int lmax, 
-                                       double beta, 
-                                       double x, 
+int hyperspherical_forwards_recurrence(int K,
+                                       int lmax,
+                                       double beta,
+                                       double x,
                                        double sinK,
                                        double cotK,
                                        double * __restrict__ sqrtK,
@@ -486,10 +486,10 @@ int hyperspherical_forwards_recurrence(int K,
   return _SUCCESS_;
 }
 
-int hyperspherical_forwards_recurrence_chunk(int K, 
-                                             int lmax, 
-                                             double beta, 
-                                             double * __restrict__ x, 
+int hyperspherical_forwards_recurrence_chunk(int K,
+                                             int lmax,
+                                             double beta,
+                                             double * __restrict__ x,
                                              double * __restrict__ sinK,
                                              double * __restrict__ cotK,
                                              int chunk,
@@ -505,7 +505,7 @@ int hyperspherical_forwards_recurrence_chunk(int K,
   }
   for (l=2; l<=lmax; l++){
     for (index_x=0; index_x<chunk; index_x++)
-      PhiL[l*chunk+index_x] = 
+      PhiL[l*chunk+index_x] =
         ((2*l-1)*cotK[index_x]*PhiL[(l-1)*chunk+index_x]-
          PhiL[(l-2)*chunk+index_x]*sqrtK[l-1])*one_over_sqrtK[l];
   }
@@ -513,10 +513,10 @@ int hyperspherical_forwards_recurrence_chunk(int K,
 }
 
 
-int hyperspherical_backwards_recurrence(int K, 
-                                        int lmax, 
-                                        double beta, 
-                                        double x, 
+int hyperspherical_backwards_recurrence(int K,
+                                        int lmax,
+                                        double beta,
+                                        double x,
                                         double sinK,
                                         double cotK,
                                         double * __restrict__ sqrtK,
@@ -540,7 +540,7 @@ int hyperspherical_backwards_recurrence(int K,
   else{
     get_CF1(K,lmax,beta,cotK, &phipr1, &isign);
     phi1 = isign;
-    phipr1 *=phi1;  
+    phipr1 *=phi1;
     //printf("isign = %d, phi1 = %g, phipr1 = %g\n",isign,phi1,phipr1);
   }
 
@@ -548,12 +548,12 @@ int hyperspherical_backwards_recurrence(int K,
   phi = phi1;
   //  phi_plus_1 = 1/sqrtK[lmax+1]*(lmax*cotK*phi1-phipr1);
   phi_plus_1_times_sqrtK = lmax*cotK*phi1-phipr1;
-  
-  
+
+
   int l_ini, l_align;
   l_align = lmax-lmax%_HYPER_BLOCK_;
-  
-  // Bring l down to _HYPER_BLOCK_ aligned region: 
+
+  // Bring l down to _HYPER_BLOCK_ aligned region:
   for (l=lmax; l>l_align; l--){
     //    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )/sqrtK[l];
     phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )*one_over_sqrtK[l];
@@ -577,7 +577,7 @@ int hyperspherical_backwards_recurrence(int K,
         PhiL[k] *=_ONE_OVER_HYPER_OVERFLOW_;
     }
   }
-  
+
   /**
   for (l=lmax; l>=1; l--){
     //    phi_minus_1 = ( (2*l+1)*cotK*phi-phi_plus_1_times_sqrtK )/sqrtK[l];
@@ -601,10 +601,10 @@ int hyperspherical_backwards_recurrence(int K,
   return _SUCCESS_;
 }
 
-int hyperspherical_backwards_recurrence_chunk(int K, 
-                                              int lmax, 
-                                              double beta, 
-                                              double * __restrict__ x, 
+int hyperspherical_backwards_recurrence_chunk(int K,
+                                              int lmax,
+                                              double beta,
+                                              double * __restrict__ x,
                                               double * __restrict__ sinK,
                                               double * __restrict__ cotK,
                                               int chunk,
@@ -630,14 +630,14 @@ int hyperspherical_backwards_recurrence_chunk(int K,
     else{
       get_CF1(K,lmax,beta,cotK[index_x], &phipr1, &isign);
       phi1 = isign;
-      phipr1 *=phi1;  
+      phipr1 *=phi1;
     }
 
     PhiL[lmax*chunk+index_x] = phi1;
     PhiL[(lmax-1)*chunk+index_x] = one_over_sqrtK[lmax]*
       ((lmax+1)*cotK[index_x]*phi1+phipr1);
 
-  } 
+  }
   for (l=lmax-2; l>=0; l--){
     //Use recurrence Phi_{l} = --Phi_{l+1} + -- Phi_{l+2}
     for (index_x=0; index_x<chunk; index_x++){
@@ -645,7 +645,7 @@ int hyperspherical_backwards_recurrence_chunk(int K,
         ((2*l+3)*cotK[index_x]*PhiL[(l+1)*chunk+index_x]-
          sqrtK[l+2]*PhiL[(l+2)*chunk+index_x]);
     }
-    
+
     if (fabs(PhiL[l*chunk])>_HYPER_OVERFLOW_){
       //Rescale whole Phi vector until this point.
       //Create scale vector:
@@ -662,7 +662,7 @@ int hyperspherical_backwards_recurrence_chunk(int K,
   for(index_x=0; index_x<chunk; index_x++){
     phi0 = sin(beta*x[index_x])/(beta*sinK[index_x]);
     scalevec[index_x] = phi0/PhiL[index_x];
-  }    
+  }
   for (k=0; k<=lmax; k++){
     for (index_x=0; index_x<chunk; index_x++){
       PhiL[k*chunk+index_x] *= scalevec[index_x];
@@ -699,7 +699,7 @@ int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign){
       Dj = tiny;
     Cj = bj+aj/Cj;
     if (Cj==0.0)
-      Cj = tiny; 
+      Cj = tiny;
     Dj = 1.0/Dj;
     Delj = Cj*Dj;
     fj = fj*Delj;
@@ -715,9 +715,9 @@ int get_CF1(int K,int l,double beta, double cotK, double *CF, int *isign){
 }
 
 int CF1_from_Gegenbauer(int l,
-                        int beta, 
-                        double sinK, 
-                        double cotK, 
+                        int beta,
+                        double sinK,
+                        double cotK,
                         double *CF){
   int n, alpha, k;
   double x, G, dG, Gkm1, Gkm2;
@@ -769,9 +769,9 @@ int CF1_from_Gegenbauer(int l,
 }
 
  int hyperspherical_WKB_vec(int l,
-                            double beta, 
-                            double * __restrict__ sinK_vec, 
-                            int size_sinK_vec, 
+                            double beta,
+                            double * __restrict__ sinK_vec,
+                            int size_sinK_vec,
                             double * __restrict__ Phi){
   double e, w, w2, alpha, alpha2, t;
   double S, Q, C, argu, Ai;
@@ -819,7 +819,7 @@ int CF1_from_Gegenbauer(int l,
   }
   return _SUCCESS_;
 }
- 
+
 
 int hyperspherical_WKB(int K,int l,double beta,double y, double *Phi){
   double e, w, w2, alpha, alpha2, CscK, ytp, t;
@@ -904,7 +904,7 @@ double coef1(double z){
   const double A[5] = {1.1282427601,-0.6803534e-4,0.16687e-6,-0.128e-8,0.2e-10};
   const double B[5] = {0.7822108673e-1,-0.6895649e-4,0.32857e-6,-0.37e-8,0.7e-10};
   double x,y,t,Ai,zeta,theta,sintheta,costheta,FA,FB;
- 
+
   x = -z;
   zeta = _TWO_OVER_THREE_*x*sqrt(x);
   theta = zeta+0.25*_PI_;
@@ -995,7 +995,7 @@ double cheb(double x, int n, const double A[]){
   d = A[n-1];
   u = 2*x-1.0;
   y = 2*u;
-  
+
   for (j=(n-1);j>1;j--){
     c=b;
     b=d;
@@ -1022,7 +1022,7 @@ double get_value_at_small_phi(int K,int l,double beta,double Phi){
 }
 
 int ClosedModY(int l, int beta, double *y, int * phisign, int * dphisign){
-  
+
   *phisign = 1;
   *dphisign = 1;
 
@@ -1063,7 +1063,7 @@ int hyperspherical_get_xmin(HyperInterpStruct *pHIS,
   double *phivec = pHIS->phi;
   double *xvec = pHIS->x;
   double xleft, xright;
-  
+
   for (index_l=0; index_l<nl; index_l++){
     for (right_index = 0; right_index<nx; right_index++){
       if (fabs(phivec[index_l*nx+right_index])>phiminabs)
@@ -1132,7 +1132,7 @@ int hyperspherical_get_xmin_from_Airy(int K,
   wkbstruct.l = l;
   wkbstruct.beta = beta;
   wkbstruct.phiminabs = phiminabs;
-  
+
   xnew = 0.99*xtp;
 
   Fnew = PhiWKB_minus_phiminabs(xnew,&wkbstruct);
@@ -1143,7 +1143,7 @@ int hyperspherical_get_xmin_from_Airy(int K,
     delx = -lambda;
   else
     delx = 0.25*lambda;
-  
+
   do {
     //printf("In the loop: xnew = %g, Fnew=%g, Fold=%g\n",xnew,Fnew,Fold);
     xold = xnew;
@@ -1189,7 +1189,7 @@ int hyperspherical_get_xmin_from_Airy(int K,
                fevals);
 
   return _SUCCESS_;
-} 
+}
 
 double PhiWKB_minus_phiminabs(double x, void *param){
    double phiwkb;
@@ -1281,10 +1281,10 @@ int fzero_ridder(double (*func)(double, void *),
   }
 
 int HypersphericalExplicit(int K,int l, double beta,double x, double *Phi){
-   /** Explicit formulae for the Hyperspherical Besselfunctions of order 
+   /** Explicit formulae for the Hyperspherical Besselfunctions of order
 l<=9.
        phi_tilde = gam * beta * cos(x*beta) + delta * sin(x*beta),
-       and Phi = phi_tilde *cscK/sqrt(NK). Gamma and delta are 
+       and Phi = phi_tilde *cscK/sqrt(NK). Gamma and delta are
 polynomials in
        beta and cscK, containing only even powers.
    */
@@ -1450,9 +1450,9 @@ int hyperspherical_get_xmin_from_approx(int K,
   return _SUCCESS_;
 }
 
-/** Generate the 2^3-1 non-trivial versions of the functions 
+/** Generate the 2^3-1 non-trivial versions of the functions
     hyperspherical_Hermite3_interpolation_vectorXXX(),
-    hyperspherical_Hermite4_interpolation_vectorXXX() and 
+    hyperspherical_Hermite4_interpolation_vectorXXX() and
     hyperspherical_Hermite6_interpolation_vectorXXX() using the
     preprocessor. Apologise in advance, but speed for this function
     is important and it is better than manual copy-paste.
@@ -1461,7 +1461,7 @@ int hyperspherical_Hermite3_interpolation_vector_Phi(HyperInterpStruct *pHIS,
                                                      int nxi,
                                                      int lnum,
                                                      double * xinterp,
-                                                     double * Phi, 
+                                                     double * Phi,
                                                      ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1474,7 +1474,7 @@ int hyperspherical_Hermite3_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
                                                       int nxi,
                                                       int lnum,
                                                       double * xinterp,
-                                                      double * dPhi, 
+                                                      double * dPhi,
                                                       ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1487,7 +1487,7 @@ int hyperspherical_Hermite3_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
                                                        int nxi,
                                                        int lnum,
                                                        double * xinterp,
-                                                       double * d2Phi, 
+                                                       double * d2Phi,
                                                        ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1501,7 +1501,7 @@ int hyperspherical_Hermite3_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS
                                                          int lnum,
                                                          double * xinterp,
                                                          double * Phi,
-                                                         double * dPhi, 
+                                                         double * dPhi,
                                                          ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1516,7 +1516,7 @@ int hyperspherical_Hermite3_interpolation_vector_Phid2Phi(HyperInterpStruct *pHI
                                                           int lnum,
                                                           double * xinterp,
                                                           double * Phi,
-                                                          double * d2Phi, 
+                                                          double * d2Phi,
                                                           ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1531,7 +1531,7 @@ int hyperspherical_Hermite3_interpolation_vector_dPhid2Phi(HyperInterpStruct *pH
                                                            int lnum,
                                                            double * xinterp,
                                                            double * dPhi,
-                                                           double * d2Phi, 
+                                                           double * d2Phi,
                                                            ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1548,7 +1548,7 @@ int hyperspherical_Hermite3_interpolation_vector_PhidPhid2Phi(HyperInterpStruct 
                                                               double * xinterp,
                                                               double *Phi,
                                                               double * dPhi,
-                                                              double * d2Phi, 
+                                                              double * d2Phi,
                                                               ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1563,7 +1563,7 @@ int hyperspherical_Hermite4_interpolation_vector_Phi(HyperInterpStruct *pHIS,
                                                      int nxi,
                                                      int lnum,
                                                      double * xinterp,
-                                                     double * Phi, 
+                                                     double * Phi,
                                                      ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1576,7 +1576,7 @@ int hyperspherical_Hermite4_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
                                                       int nxi,
                                                       int lnum,
                                                       double * xinterp,
-                                                      double * dPhi, 
+                                                      double * dPhi,
                                                       ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1589,7 +1589,7 @@ int hyperspherical_Hermite4_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
                                                        int nxi,
                                                        int lnum,
                                                        double * xinterp,
-                                                       double * d2Phi, 
+                                                       double * d2Phi,
                                                        ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1603,7 +1603,7 @@ int hyperspherical_Hermite4_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS
                                                          int lnum,
                                                          double * xinterp,
                                                          double * Phi,
-                                                         double * dPhi, 
+                                                         double * dPhi,
                                                          ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1618,7 +1618,7 @@ int hyperspherical_Hermite4_interpolation_vector_Phid2Phi(HyperInterpStruct *pHI
                                                           int lnum,
                                                           double * xinterp,
                                                           double * Phi,
-                                                          double * d2Phi, 
+                                                          double * d2Phi,
                                                           ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1633,7 +1633,7 @@ int hyperspherical_Hermite4_interpolation_vector_dPhid2Phi(HyperInterpStruct *pH
                                                            int lnum,
                                                            double * xinterp,
                                                            double * dPhi,
-                                                           double * d2Phi, 
+                                                           double * d2Phi,
                                                            ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1650,7 +1650,7 @@ int hyperspherical_Hermite4_interpolation_vector_PhidPhid2Phi(HyperInterpStruct 
                                                               double * xinterp,
                                                               double *Phi,
                                                               double * dPhi,
-                                                              double * d2Phi, 
+                                                              double * d2Phi,
                                                               ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1665,7 +1665,7 @@ int hyperspherical_Hermite6_interpolation_vector_Phi(HyperInterpStruct *pHIS,
                                                      int nxi,
                                                      int lnum,
                                                      double * xinterp,
-                                                     double * Phi, 
+                                                     double * Phi,
                                                      ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1678,7 +1678,7 @@ int hyperspherical_Hermite6_interpolation_vector_dPhi(HyperInterpStruct *pHIS,
                                                       int nxi,
                                                       int lnum,
                                                       double * xinterp,
-                                                      double * dPhi, 
+                                                      double * dPhi,
                                                       ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1691,7 +1691,7 @@ int hyperspherical_Hermite6_interpolation_vector_d2Phi(HyperInterpStruct *pHIS,
                                                        int nxi,
                                                        int lnum,
                                                        double * xinterp,
-                                                       double * d2Phi, 
+                                                       double * d2Phi,
                                                        ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1705,7 +1705,7 @@ int hyperspherical_Hermite6_interpolation_vector_PhidPhi(HyperInterpStruct *pHIS
                                                          int lnum,
                                                          double * xinterp,
                                                          double * Phi,
-                                                         double * dPhi, 
+                                                         double * dPhi,
                                                          ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1720,7 +1720,7 @@ int hyperspherical_Hermite6_interpolation_vector_Phid2Phi(HyperInterpStruct *pHI
                                                           int lnum,
                                                           double * xinterp,
                                                           double * Phi,
-                                                          double * d2Phi, 
+                                                          double * d2Phi,
                                                           ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1735,7 +1735,7 @@ int hyperspherical_Hermite6_interpolation_vector_dPhid2Phi(HyperInterpStruct *pH
                                                            int lnum,
                                                            double * xinterp,
                                                            double * dPhi,
-                                                           double * d2Phi, 
+                                                           double * d2Phi,
                                                            ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI
@@ -1752,7 +1752,7 @@ int hyperspherical_Hermite6_interpolation_vector_PhidPhid2Phi(HyperInterpStruct 
                                                               double * xinterp,
                                                               double *Phi,
                                                               double * dPhi,
-                                                              double * d2Phi, 
+                                                              double * d2Phi,
                                                               ErrorMsg error_message) {
 #undef HERMITE_DO_PHI
 #undef HERMITE_DO_DPHI

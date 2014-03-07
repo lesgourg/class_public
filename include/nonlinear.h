@@ -1,14 +1,13 @@
-/** @file trg.h Document includes for trg module */
+/** @file nonlinear.h Documented includes for trg module */
 
-#include "spectra.h"
-#include "trg.h"
+#include "primordial.h"
 
 #ifndef __NONLINEAR__
 #define __NONLINEAR__
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
-enum non_linear_method {nl_none,nl_halofit,nl_trg_linear,nl_trg_one_loop,nl_trg};
+enum non_linear_method {nl_none,nl_halofit};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -28,41 +27,20 @@ struct nonlinear {
   //@{
 
   enum non_linear_method method;
-  enum non_linear_ic ic;
 
   //@}
 
-  /** @name - table of k values, and related quantities */
+  /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
 
   //@{
 
-  double * k;		/**< table containing the values of k used in this module */
-  int * k_size; 	/**< k_size[index_z] total number of k values at a given redshift z[index_z] */
+  int k_size;      /**< k_size = total number of k values */
+  double * k;      /**< k[index_k] = list of k values */
+  int tau_size;    /**< tau_size = number of values */
+  double * tau;    /**< tau[index_tau] = list of time values */
 
-  //@}
-
-  /** @name - tables of time values, and related quantities */
-
-  //@{
-
-  double * z;		/**< table containing z values used in this module */
-  int z_size;
-
-  double * k_nl;        /**< table of non-linear wavenumber at each redshift */
-
-  //@}
-
-  /** @name - tables of non-linear spectra and their second derivatives with respect to redshift */
-
-  //@{
-
-  double * p_density; /* density-density */
-  double * p_cross; /* density-velocity */
-  double * p_velocity; /* velocity-velocity */
-
-  double * ddp_density;
-  double * ddp_cross;
-  double * ddp_velocity;
+  double * nl_corr_density;   /**< nl_corr_density[index_tau * ppt->k_size + index_k] */
+  double * k_nl;
 
   //@}
 
@@ -86,55 +64,43 @@ struct nonlinear {
 extern "C" {
 #endif
 
-  int nonlinear_pk_at_z(
-			struct nonlinear * pnl,
-			double z,
-			double * pz_density,
-			double * pz_velocity,
-			double * pz_cross,
-			int * k_size_at_z
-			);
-
-  int nonlinear_pk_at_k_and_z(
-			      struct nonlinear * pnl,
-			      double k,
-			      double z,
-			      double * pk_density,
-			      double * pk_velocity,
-			      double * pk_cross,
-			      int * k_size_at_z
-			      );
-
   int nonlinear_k_nl_at_z(
-			  struct nonlinear * pnl,
-			  double z,
-			  double * k_nl
-			);
+                          struct background *pba,
+                          struct nonlinear * pnl,
+                          double z,
+                          double * k_nl
+                          );
 
   int nonlinear_init(
-		     struct precision *ppr,
-		     struct background *pba,
-		     struct thermo *pth,
-		     struct perturbs *ppt,
-		     struct transfers * ptr,
-		     struct primordial *ppm,
-		     struct spectra *psp,
-		     struct nonlinear *pnl
-		     );
-  
+                     struct precision *ppr,
+                     struct background *pba,
+                     struct thermo *pth,
+                     struct perturbs *ppt,
+                     struct primordial *ppm,
+                     struct nonlinear *pnl
+                     );
+
   int nonlinear_free(
-	       struct nonlinear *pnl
-	       );
+                     struct nonlinear *pnl
+                     );
+
+  int nonlinear_pk_l(struct perturbs *ppt,
+                     struct primordial *ppm,
+                     struct nonlinear *pnl,
+                     int index_tau,
+                     double *pk_l);
 
   int nonlinear_halofit(
-			struct precision *ppr,
-			struct background *pba,
-			struct primordial *ppm,
-			struct spectra *psp,
-			struct nonlinear *pnl
-			);
+                        struct precision *ppr,
+                        struct background *pba,
+                        struct primordial *ppm,
+                        struct nonlinear *pnl,
+                        double tau,
+                        double *pk_l,
+                        double *pk_nl,
+                        double *k_nl
+                        );
 
-  
 #ifdef __cplusplus
 }
 #endif

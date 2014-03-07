@@ -3,15 +3,15 @@
 
 #include "common.h"
 
-struct generic_integrator_workspace 
-{ 
+struct generic_integrator_workspace
+{
 
   int n;
 
   double * yscal;
   double * y;
   double * dydx;
-  
+
   double * yerr;
   double * ytempo;
 
@@ -24,8 +24,8 @@ struct generic_integrator_workspace
 
   double stepmin;
 
-  /** 
-    * zone for writing error messages 
+  /**
+    * zone for writing error messages
     */
   ErrorMsg error_message;
 
@@ -34,42 +34,42 @@ struct generic_integrator_workspace
 /**************************************************************/
 
 /**
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
   int initialize_generic_integrator(
-				    int n_dim, 
+				    int n_dim,
 				    struct generic_integrator_workspace * pgi
 				    );
 
   int cleanup_generic_integrator(struct generic_integrator_workspace * pgi);
 
-  int generic_integrator(int (*derivs)(double x, 
-				       double y[], 
-				       double yprime[], 
+  int generic_integrator(int (*derivs)(double x,
+				       double y[],
+				       double yprime[],
 				       void * parameters_and_workspace,
 				       ErrorMsg error_message),
-			 double x1, 
-			 double x2,  
-			 double ystart[],  
+			 double x1,
+			 double x2,
+			 double ystart[],
 			 void * parameters_and_workspace_for_derivs,
-			 double eps, 
-			 double hmin, 
+			 double eps,
+			 double hmin,
 			 struct generic_integrator_workspace * pgi);
-  
-  int rkqs(double *x, 
-	   double htry, 
+
+  int rkqs(double *x,
+	   double htry,
 	   double eps,
-	   double *hdid, 
+	   double *hdid,
 	   double *hnext,
 	   int (*derivs)(double, double [], double [], void *, ErrorMsg),
 	   void * parameters_and_workspace_for_derivs,
 	   struct generic_integrator_workspace * pgi);
 
-  int rkck(double x, 
+  int rkck(double x,
 	   double h,
 	   int (*derivs)(double, double [], double [], void *, ErrorMsg),
 	   void * parameters_and_workspace_for_derivs,

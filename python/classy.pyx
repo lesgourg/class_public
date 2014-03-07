@@ -9,9 +9,8 @@ This module defines a class called Class. It is used with Monte Python to
 extract cosmological parameters.
 
 """
-import numpy as np
-import os
 from math import exp,log
+import numpy as np
 cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
@@ -20,259 +19,71 @@ cimport cython
 
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
-# Bunch of declarations from C to python. The idea here is to define only the
-# quantities that will be used, for input, output or intermediate manipulation,
-# by the python wrapper. For instance, in the precision structure, the only
-# item used here is its error message. That is why nothing more is defined from
-# this structure. The rest is internal in Class.
-# If, for whatever reason, you need an other, existing parameter from Class,
-# remember to add it inside this cdef.
-cdef extern from "class.h":
 
-    ctypedef char FileArg[40]
-
-    ctypedef char* ErrorMsg
-
-    cdef struct precision:
-        ErrorMsg error_message
-
-    cdef struct background:
-        ErrorMsg error_message
-        int bg_size
-        int index_bg_ang_distance
-        int index_bg_conf_distance
-        int index_bg_H
-        short long_info
-        short inter_normal
-        double T_cmb
-        double h
-        double age
-        double conformal_age
-        double * m_ncdm_in_eV
-        double Neff
-        double Omega0_b
-        double Omega0_cdm
-        double Omega0_ncdm_tot
-        double Omega0_lambda
-        double Omega0_fld
-
-    cdef struct thermo:
-        ErrorMsg error_message
-        int th_size
-        int index_th_xe
-        int index_th_Tb
-        short inter_normal
-        double tau_reio
-        double z_reio
-        double z_rec
-        double tau_rec
-        double rs_rec
-        double ds_rec
-        double da_rec
-        double z_d
-        double tau_d
-        double ds_d
-        double rs_d
-        double YHe
-
-    cdef struct perturbs:
-        ErrorMsg error_message
-        int has_pk_matter
-
-    cdef struct transfers:
-        ErrorMsg error_message
-
-    cdef struct primordial:
-        ErrorMsg error_message
-        double k_pivot
-        double A_s
-        double n_s
-        double alpha_s
-        double beta_s
-        double r
-        double n_t
-        double alpha_t
-        double V0
-        double V1
-        double V2
-        double V3
-        double V4
-        double f_cdi
-        double n_cdi
-        double c_ad_cdi
-        double n_ad_cdi
-        double f_nid
-        double n_nid
-        double c_ad_nid
-        double n_ad_nid
-        double f_niv
-        double n_niv
-        double c_ad_niv
-        double n_ad_niv
-        double phi_min
-        double phi_max
-
-    cdef struct spectra:
-        ErrorMsg error_message
-        int l_max_tot
-        int ln_k_size
-        int ct_size
-        int index_ct_tt
-        int index_ct_te
-        int index_ct_ee
-        int index_ct_bb
-        int index_ct_pp
-        int index_ct_tp
-        double* ln_k
-        double sigma8
-        double alpha_II_2_20
-        double alpha_RI_2_20
-        double alpha_RR_2_20
-        double alpha_II_21_200
-        double alpha_RI_21_200
-        double alpha_RR_21_200
-        double alpha_II_201_2500
-        double alpha_RI_201_2500
-        double alpha_RR_201_2500
-        double alpha_II_2_2500
-        double alpha_RI_2_2500
-        double alpha_RR_2_2500
-        double alpha_kp
-        double alpha_k1
-        double alpha_k2
-
-    cdef struct output:
-        ErrorMsg error_message
-
-    cdef struct lensing:
-        int index_lt_tt
-        int index_lt_te
-        int index_lt_ee
-        int index_lt_bb
-        int index_lt_pp
-        int index_lt_tp
-        int lt_size
-        int has_lensed_cls
-        int l_lensed_max
-        int l_unlensed_max
-        ErrorMsg error_message
-
-    cdef struct nonlinear:
-        int method
-        ErrorMsg error_message
-
-    cdef struct file_content:
-        char * filename
-        int size
-        FileArg * name
-        FileArg * value
-        short * read
-
-    void lensing_free(void*)
-    void spectra_free(void*)
-    void transfer_free(void*)
-    void primordial_free(void*)
-    void perturb_free(void*)
-    void thermodynamics_free(void*)
-    void background_free(void*)
-    void nonlinear_free(void*)
-
-    cdef int _FAILURE_
-    cdef int _FALSE_
-    cdef int _TRUE_
-
-    int input_init(void*, void*, void*, void*, void*, void*, void*, void*, void*,
-        void*, void*, char*)
-    int background_init(void*,void*)
-    int thermodynamics_init(void*,void*,void*)
-    int perturb_init(void*,void*,void*,void*)
-    int primordial_init(void*,void*,void*)
-    int transfer_init(void*,void*,void*,void*,void*)
-    int spectra_init(void*,void*,void*,void*,void*,void*)
-    int nonlinear_init(void*,void*,void*,void*,void*,void*,void*,void*)
-    int lensing_init(void*,void*,void*,void*,void*)
-
-    int background_tau_of_z(void* pba, double z,double* tau)
-    int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
-    int thermodynamics_at_z(void * pba, void * pth, double z, short inter_mode, int * last_index, double *pvecback, double *pvecthermo)
-    int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
-    int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
-    int spectra_pk_at_z(
-        void * pba,
-        void * psp,
-        int mode,
-        double z,
-        double * output_tot,
-        double * output_ic
-        )
-
-    int spectra_pk_at_k_and_z(
-        void* pba,
-        void * ppm,
-        void * psp,
-        double k,
-        double z,
-        double * pk,
-        double * pk_ic)
-
-    int nonlinear_pk_at_z(
-        void * pnl,
-        double z,
-        double * pz_density,
-        double * pz_velocity,
-        double * pz_cross,
-        int * k_size_at_z)
-
-    int nonlinear_pk_at_k_and_z(
-        void * pnl,
-        double k,
-        double z,
-        double * pz_density,
-        double * pz_velocity,
-        double * pz_cross,
-        int * k_size_at_z)
-
-    int nonlinear_k_nl_at_z(void* pnl, double z, double* k_nl)
-
-    cdef enum linear_or_logarithmic :
-        linear
-        logarithmic
-
+# Import the .pxd containing definitions
+from cclassy cimport *
 
 # Implement a specific Exception (this might not be optimally designed, nor
-# even acceptable for python standards. It, however, do the job).
+# even acceptable for python standards. It, however, does the job).
 # The idea is to raise either an AttributeError if the problem happened while
 # reading the parameters (in the normal Class, this would just return a line in
 # the unused_parameters file), or a NameError in other cases. This allows
 # MontePython to handle things differently.
-class ClassError(Exception):
-    def __init__(self,error_message,init=False):
-        print error_message
-        if init:
-            raise AttributeError
-        else:
-            raise NameError
+class CosmoError(Exception):
+    def __init__(self, message=""):
+        self.message = message
 
-# The actual Class wrapping, the only class we will call from MontePython
-# (indeed the only one we will import, with the command:
-# from classy import Class
+    def __str__(self):
+        return '\n\nError in Class: ' + self.message
+
+
+class CosmoSevereError(CosmoError):
+    """
+    Raised when Class failed to understand one or more input parameters.
+
+    This case would not raise any problem in Class default behaviour. However,
+    for parameter extraction, one has to be sure that all input parameters were
+    understood, otherwise the wrong cosmological model would be selected.
+    """
+    pass
+
+
+class CosmoComputationError(CosmoError):
+    """
+    Raised when Class could not compute the cosmology at this point.
+
+    This will be caught by the parameter extraction code to give an extremely
+    unlikely value to this point
+    """
+    pass
+
+
 cdef class Class:
-    # List of used structures
+    """
+    Class wrapping, creates the glue between C and python
+
+    The actual Class wrapping, the only class we will call from MontePython
+    (indeed the only one we will import, with the command:
+    from classy import Class
+
+    """
+    # List of used structures, defined in the header file. They have to be
+    # "cdefined", because they correspond to C structures
     cdef precision pr
     cdef background ba
     cdef thermo th
     cdef perturbs pt
     cdef primordial pm
+    cdef nonlinear nl
     cdef transfers tr
     cdef spectra sp
     cdef output op
     cdef lensing le
-    cdef nonlinear nl
     cdef file_content fc
 
-    cdef object ready # Flag
-    cdef object _pars # Dictionary of the parameters
-    cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cpdef int ready # Flag
+    cpdef object _pars # Dictionary of the parameters
+    cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -284,12 +95,6 @@ cdef class Class:
     property state:
         def __get__(self):
             return self.ready
-    property age:
-        def __get__(self):
-            return self._age()
-    property Omega_m:
-        def __get__(self):
-            return self._Omega_m()
     property Omega_nu:
         def __get__(self):
             return self.ba.Omega0_ncdm_tot
@@ -302,8 +107,8 @@ cdef class Class:
             "output":"tCl mPk",}
         self.set(**_pars)
 
-    def __init__(self,default=False):
-        cdef char* dumc
+    def __cinit__(self, default=False):
+        cpdef char* dumc
         self.ready = False
         self._pars = {}
         self.fc.size=0
@@ -314,12 +119,15 @@ cdef class Class:
         self.ncp = set()
         if default: self.set_default()
 
+        # TEST
+        #raise CosmoSevereError
+
     # Set up the dictionary
     def set(self,*pars,**kars):
         if len(pars)==1:
             self._pars.update(dict(pars[0]))
         elif len(pars)!=0:
-            raise ClassError("bad call")
+            raise CosmoSevereError("bad call")
         self._pars.update(kars)
         self.ready=False
         return True
@@ -367,35 +175,36 @@ cdef class Class:
             i+=1
 
     # Called at the end of a run, to free memory
-    def _struct_cleanup(self,ncp):
+    def struct_cleanup(self):
         if self.ready == _FALSE_:
              return
-        if "lensing" in ncp:
+        if "lensing" in self.ncp:
             lensing_free(&self.le)
-        if "nonlinear" in ncp:
-            nonlinear_free (&self.nl)
-        if "spectra" in ncp:
+        if "spectra" in self.ncp:
             spectra_free(&self.sp)
-        if "transfer" in ncp:
+        if "transfer" in self.ncp:
             transfer_free(&self.tr)
-        if "primordial" in ncp:
+        if "nonlinear" in self.ncp:
+            nonlinear_free(&self.nl)
+        if "primordial" in self.ncp:
             primordial_free(&self.pm)
-        if "perturb" in ncp:
+        if "perturb" in self.ncp:
             perturb_free(&self.pt)
-        if "thermodynamics" in ncp:
+        if "thermodynamics" in self.ncp:
             thermodynamics_free(&self.th)
-        if "background" in ncp:
+        if "background" in self.ncp:
             background_free(&self.ba)
+        self.ready = False
 
     # Ensure the full module dependency
     def _check_task_dependency(self,lvl):
         if "lensing" in lvl:
-            lvl.append("nonlinear")
-        if "nonlinear" in lvl:
             lvl.append("spectra")
         if "spectra" in lvl:
             lvl.append("transfer")
         if "transfer" in lvl:
+            lvl.append("nonlinear")
+        if "nonlinear" in lvl:
             lvl.append("primordial")
         if "primordial" in lvl:
             lvl.append("perturb")
@@ -480,60 +289,67 @@ cdef class Class:
                 &self.le,
                 &self.op,
                 errmsg)
-            if ierr==_FAILURE_:
-                raise ClassError(errmsg)
+            if ierr == _FAILURE_:
+                raise CosmoSevereError(errmsg)
             self.ncp.add("input")
 
+            problem_flag = False
+            problematic_parameters = []
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
-                    raise ClassError("Class did not read input parameter %s\n" % self.fc.name[i],init=True)
+                    problem_flag = True
+                    problematic_parameters.append(self.fc.name[i])
+            if problem_flag:
+                raise CosmoSevereError(
+                    "Class did not read input parameter(s): %s\n" % ', '.join(
+                    problematic_parameters))
 
         if "background" in lvl:
             if background_init(&(self.pr),&(self.ba)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.ba.error_message)
+                self.struct_cleanup()
+                raise CosmoComputationError(self.ba.error_message)
             self.ncp.add("background")
 
         if "thermodynamics" in lvl:
             if thermodynamics_init(&(self.pr),&(self.ba),&(self.th)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.th.error_message)
+                self.struct_cleanup()
+                raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
 
         if "perturb" in lvl:
             if perturb_init(&(self.pr),&(self.ba),&(self.th),&(self.pt)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.pt.error_message)
+                self.struct_cleanup()
+                raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
 
         if "primordial" in lvl:
             if primordial_init(&(self.pr),&(self.pt),&(self.pm)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.pm.error_message)
+                self.struct_cleanup()
+                raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
 
+        if "nonlinear" in lvl:
+            if nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.pm,&self.nl) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.nl.error_message)
+            self.ncp.add("nonlinear")
+
         if "transfer" in lvl:
-            if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.tr)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.tr.error_message)
+            if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.nl),&(self.tr)) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
 
         if "spectra" in lvl:
-            if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.sp.error_message)
+            if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.pm),&(self.nl),&(self.tr),&(self.sp)) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.sp.error_message)
             self.ncp.add("spectra")
-
-        if "nonlinear" in lvl:
-            if (nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.tr,&self.pm,&self.sp,&self.nl) == _FAILURE_):
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.nl.error_message)
-            self.ncp.add("nonlinear")
 
         if "lensing" in lvl:
             if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.nl),&(self.le)) == _FAILURE_:
-                self._struct_cleanup(self.ncp)
-                raise ClassError(self.le.error_message)
+                self.struct_cleanup()
+                raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
 
         self.ready = True
@@ -573,7 +389,7 @@ cdef class Class:
                 self._pars_check("l_max_scalars",lmax)
                 self.compute(["lensing"])
             else:
-                raise ClassError("Can only compute up to lmax=%d"%lmaxR)
+                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
 
         cl = {}
         for elem in ['tt','te','ee','bb','pp','tp']:
@@ -581,7 +397,7 @@ cdef class Class:
             cl[elem][:2]=0
         for ell from 2<=ell<lmax+1:
             if spectra_cl_at_l(&self.sp,ell,rcl,NULL,NULL) == _FAILURE_:
-                raise ClassError(self.sp.error_message)
+                raise CosmoSevereError(self.sp.error_message)
             cl['tt'][ell] = rcl[self.sp.index_ct_tt]
             cl['te'][ell] = rcl[self.sp.index_ct_te]
             cl['ee'][ell] = rcl[self.sp.index_ct_ee]
@@ -623,7 +439,7 @@ cdef class Class:
                 self._pars_check("l_max_scalars",lmax)
                 self.compute(["lensing"])
             else:
-                raise ClassError("Can only compute up to lmax=%d"%lmaxR)
+                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
 
         cl = {}
         for elem in ['tt','te','ee','bb','pp','tp']:
@@ -631,7 +447,7 @@ cdef class Class:
             cl[elem][:2]=0
         for ell from 2<=ell<lmax+1:
             if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
-                raise ClassError(self.le.error_message)
+                raise CosmoSevereError(self.le.error_message)
             cl['tt'][ell] = lcl[self.le.index_lt_tt]
             cl['te'][ell] = lcl[self.le.index_lt_te]
             cl['ee'][ell] = lcl[self.le.index_lt_ee]
@@ -654,10 +470,10 @@ cdef class Class:
         i = 0
         for redshift in z_array:
             if background_tau_of_z(&self.ba,redshift,&tau)==_FAILURE_:
-                raise ClassError(self.ba.error_message)
+                raise CosmoSevereError(self.ba.error_message)
 
             if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-                raise ClassError(self.ba.error_message)
+                raise CosmoSevereError(self.ba.error_message)
 
             # store r
             r[i] = pvecback[self.ba.index_bg_conf_distance]
@@ -671,17 +487,39 @@ cdef class Class:
 
     # Gives the pk for a given (k,z)
     def pk(self,double k,double z):
+        """
+        Gives the pk for a given k and z
+
+        .. note::
+
+            there is an additional check to verify if output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
         cdef double pk
         cdef double pk_velo
         cdef double pk_cross
         cdef int dummy
 
+        abort = True
+        if 'output' in self._pars:
+            options = self._pars['output'].split()
+            for option in options:
+                if option in ['mPk', 'mTk', 'vTk']:
+                    abort = False
+                    break
+        if abort:
+            raise CosmoSevereError(
+                "No power spectrum nor transfer function"
+                " asked: you should not ask for a power"
+                " spectrum, then")
+
         if (self.nl.method == 0):
              if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
-                 raise ClassError(self.sp.error_message)
+                 raise CosmoSevereError(self.sp.error_message)
         else:
-             if nonlinear_pk_at_k_and_z(&self.nl,k,z,&pk,&pk_velo,&pk_cross,&dummy)==_FAILURE_:
-                    raise ClassError(self.nl.error_message)
+             if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
+                    raise CosmoSevereError(self.sp.error_message)
         #free(junk)
         return pk
 
@@ -729,6 +567,15 @@ cdef class Class:
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm
 
+    def Omega_b(self):
+        return self.ba.Omega0_b
+
+    def omega_b(self):
+        return self.ba.Omega0_b * self.ba.h * self.ba.h
+
+    def Neff(self):
+        return self.ba.Neff
+
     def sigma8(self):
         self.compute(["spectra"])
         return self.sp.sigma8
@@ -756,10 +603,10 @@ cdef class Class:
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         D_A = pvecback[self.ba.index_bg_ang_distance]
 
@@ -786,10 +633,10 @@ cdef class Class:
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
         if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         H = pvecback[self.ba.index_bg_H]
 
@@ -817,13 +664,13 @@ cdef class Class:
         pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
 
         if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
-            raise ClassError(self.th.error_message)
+            raise CosmoSevereError(self.th.error_message)
 
         xe = pvecthermo[self.th.index_th_xe]
 
@@ -852,13 +699,13 @@ cdef class Class:
         pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
 
         if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise ClassError(self.ba.error_message)
+            raise CosmoSevereError(self.ba.error_message)
 
         if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
-            raise ClassError(self.th.error_message)
+            raise CosmoSevereError(self.th.error_message)
 
         Tb = pvecthermo[self.th.index_th_Tb]
 
@@ -947,8 +794,8 @@ cdef class Class:
                 data.mcmc_parameters[elem]['current'] = self.th.rs_d*self.ba.h
             elif elem == 'YHe':
                 data.mcmc_parameters[elem]['current'] = self.th.YHe
-            elif elem == 'ne':
-                data.mcmc_parameters[elem]['current'] = self.th.ne
+            elif elem == 'n_e':
+                data.mcmc_parameters[elem]['current'] = self.th.n_e
             elif elem == 'A_s':
                 data.mcmc_parameters[elem]['current'] = self.pm.A_s
             elif elem == 'ln10^{10}A_s':
@@ -1036,7 +883,7 @@ cdef class Class:
             elif elem == 'sigma8':
                 data.mcmc_parameters[elem]['current'] = self.sp.sigma8
             else:
-                raise ClassError("%s was not recognized as a derived parameter" % elem)
+                raise CosmoSevereError("%s was not recognized as a derived parameter" % elem)
         return
 
     def nonlinear_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
@@ -1059,8 +906,8 @@ cdef class Class:
 
         #k_nl = <double*> calloc(z_size,sizeof(double))
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.nl,z[index_z],&k_nl[index_z]) == _FAILURE_:
-                raise ClassError(self.nl.error_message)
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
 
         return k_nl
 
@@ -1079,14 +926,19 @@ cdef class Class:
 
         # If the module has already been called once, clean-up
         if self.state:
-            self._struct_cleanup(set(
-                ["lensing", "nonlinear", "spectra",
-                 "primordial", "transfer", "perturb",
-                 "thermodynamics", "backround", "bessel"]))
+            self.struct_cleanup()
 
         # Set the module to the current values
         self.set(data.cosmo_arguments)
         self.compute(["lensing"])
+
+        # Compute the derived paramter value and store them
+        params = ctx.getData()
+        self.get_current_derived_parameters(data)
+        for elem in data.get_mcmc_parameters(['derived']):
+            data.mcmc_parameters[elem]['current'] /= \
+                data.mcmc_parameters[elem]['scale']
+            params[elem] = data.mcmc_parameters[elem]['current']
 
         ctx.add('boundary', True)
         # Store itself into the context, to be accessed by the likelihoods

@@ -3,11 +3,14 @@
 #ifndef __TRANSFER__
 #define __TRANSFER__
 
-#include "perturbations.h"
+#include "nonlinear.h"
 #include "hyperspherical.h"
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include "errno.h"
+
+/* macro: test if index_tt is in the range between index and index+num, while the flag is true */
+#define _index_tt_in_range_(index,num,flag) (flag == _TRUE_) && (index_tt >= index) && (index_tt < index+num)
 
 /**
  * Structure containing everything about transfer functions in
@@ -18,7 +21,7 @@
  * transfer functions used for interpolation in other modules, for all
  * requested modes (scalar/vector/tensor), initial conditions, types
  * (temperature, polarization, etc), multipoles l, and wavenumbers q.
- * 
+ *
  * Wavenumbers are called q in this module and k in the perturbation
  * module. In flat universes k=q. In non-flat universes q and k differ
  * through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector,
@@ -37,7 +40,7 @@ struct transfers {
   /** @name - input parameters initialized by user in input module
    *  (all other quantitites are computed in this module, given these
    *  parameters and the content of previous structures) */
-  
+
   //@{
 
   double lcmb_rescale; /**< normally set to one, can be used
@@ -48,6 +51,27 @@ struct transfers {
                           lensing potential */
   double lcmb_pivot;   /**< if lcmb_tilt non-zero, corresponding pivot
                           scale */
+
+  double bias;         /**< light-to-mass bias in the transfer function of density number count */
+
+  double s_bias;       /**< magnification bias in the transfer function of density number count */
+
+  short has_nz_file;    /**< Has dN/dz (selection function) input file? */
+  short has_nz_analytic; /**< Use analytic form for dN/dz (selection function) distribution? */
+  FileName nz_file_name; /**< dN/dz (selection function) input file name */
+  int nz_size;
+  double * nz_z;
+  double * nz_nz;
+  double * nz_ddnz;
+
+  short has_nz_evo_file;    /**< Has dN/dz (evolution function) input file? */
+  short has_nz_evo_analytic; /**< Use analytic form for dN/dz (evolution function) distribution? */
+  FileName nz_evo_file_name; /**< dN/dz (evolution function) input file name */
+  int nz_evo_size;
+  double * nz_evo_z;
+  double * nz_evo_nz;
+  double * nz_evo_dlog_nz;
+  double * nz_evo_dd_dlog_nz;
 
   //@}
 
@@ -68,11 +92,21 @@ struct transfers {
   int index_tt_t0;      /**< index for transfer type = temperature (j=0 term) */
   int index_tt_t1;      /**< index for transfer type = temperature (j=1 term) */
   int index_tt_t2;      /**< index for transfer type = temperature (j=2 term) */
-  int index_tt_e;      /**< index for transfer type = E-polarization */
-  int index_tt_b;      /**< index for transfer type = B-polarization */
-  int index_tt_lcmb;   /**< index for transfer type = CMB lensing */
+  int index_tt_e;       /**< index for transfer type = E-polarization */
+  int index_tt_b;       /**< index for transfer type = B-polarization */
+  int index_tt_lcmb;    /**< index for transfer type = CMB lensing */
   int index_tt_density; /**< index for first bin of transfer type = matter density */
   int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
+
+  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distorsion of number count */
+  int index_tt_d0;      /**< index for first bin of transfer type = doppler effect for of number count (j=0 term) */
+  int index_tt_d1;      /**< index for first bin of transfer type = doppler effect for of number count (j=1 term) */
+  int index_tt_nc_lens; /**< index for first bin of transfer type = lensing for of number count */
+  int index_tt_nc_g1;   /**< index for first bin of transfer type = gravity term G1 for of number count */
+  int index_tt_nc_g2;   /**< index for first bin of transfer type = gravity term G2 for of number count */
+  int index_tt_nc_g3;   /**< index for first bin of transfer type = gravity term G3 for of number count */
+  int index_tt_nc_g4;   /**< index for first bin of transfer type = gravity term G3 for of number count */
+  int index_tt_nc_g5;   /**< index for first bin of transfer type = gravity term G3 for of number count */
 
   int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
 
@@ -82,7 +116,7 @@ struct transfers {
 
   //@{
 
-  int ** l_size_tt;  /**< number of multipole values for which we effectively compute the transfer function,l_size_tt[index_md][index_tt] */ 
+  int ** l_size_tt;  /**< number of multipole values for which we effectively compute the transfer function,l_size_tt[index_md][index_tt] */
 
   int * l_size;   /**< number of multipole values for each requested mode, l_size[index_md] */
 
@@ -131,7 +165,7 @@ struct transfers {
   //@}
 };
 
-/** 
+/**
  * Structure containing all the quantities that each thread needs to
  * know for computing transfer functions (but that can be forgotten
  * once the transfer functions are known, otherwise they would be
@@ -158,8 +192,8 @@ struct transfer_workspace {
 
   //@{
 
-  int tau_size;                  /**< number of discrete time values for a given type */     
-  int tau_size_max;              /**< maximum number of discrete time values for all types */ 
+  int tau_size;                  /**< number of discrete time values for a given type */
+  int tau_size_max;              /**< maximum number of discrete time values for all types */
   double * interpolated_sources; /**< interpolated_sources[index_tau]
                                     : sources interpolated from the
                                     perturbation module at the right
@@ -199,10 +233,10 @@ struct transfer_workspace {
  * convenient and time-saving: it allows to use a "case" statement in
  * transfer_radial_function()
  */
- 
-typedef enum {SCALAR_TEMPERATURE_0, 
-              SCALAR_TEMPERATURE_1, 
-              SCALAR_TEMPERATURE_2, 
+
+typedef enum {SCALAR_TEMPERATURE_0,
+              SCALAR_TEMPERATURE_1,
+              SCALAR_TEMPERATURE_2,
               SCALAR_POLARISATION_E,
               VECTOR_TEMPERATURE_1,
               VECTOR_TEMPERATURE_2,
@@ -210,14 +244,15 @@ typedef enum {SCALAR_TEMPERATURE_0,
               VECTOR_POLARISATION_B,
               TENSOR_TEMPERATURE_2,
               TENSOR_POLARISATION_E,
-              TENSOR_POLARISATION_B} radial_function_type;
+              TENSOR_POLARISATION_B,
+              NC_RSD} radial_function_type;
 
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 
 /*************************************************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -238,9 +273,10 @@ extern "C" {
                     struct background * pba,
                     struct thermo * pth,
                     struct perturbs * ppt,
+                    struct nonlinear * pnl,
                     struct transfers * ptr
                     );
-    
+
   int transfer_free(
                     struct transfers * ptr
                     );
@@ -254,17 +290,32 @@ extern "C" {
                                     int sgnK
                                     );
 
+  int transfer_perturbation_copy_sources_and_nl_corrections(
+                                                            struct perturbs * ppt,
+                                                            struct nonlinear * pnl,
+                                                            struct transfers * ptr,
+                                                            double *** sources
+                                                            );
+
   int transfer_perturbation_source_spline(
                                           struct perturbs * ppt,
                                           struct transfers * ptr,
+                                          double *** sources,
                                           double *** sources_spline
                                           );
 
-  int transfer_perturbation_source_spline_free(
-                                               struct perturbs * ppt,
-                                               struct transfers * ptr,
-                                               double *** sources_spline
-                                               );
+  int transfer_perturbation_sources_free(
+                                         struct perturbs * ppt,
+                                         struct nonlinear * pnl,
+                                         struct transfers * ptr,
+                                         double *** sources
+                                         );
+
+  int transfer_perturbation_sources_spline_free(
+                                                struct perturbs * ppt,
+                                                struct transfers * ptr,
+                                                double *** sources_spline
+                                                );
 
   int transfer_get_l_list(
                           struct precision * ppr,
@@ -338,6 +389,7 @@ extern "C" {
                                   int index_q,
                                   int tau_size_max,
                                   double tau_rec,
+                                  double *** sources,
                                   double *** sources_spline,
                                   struct transfer_workspace * ptw
                                   );
@@ -356,6 +408,7 @@ extern "C" {
                                    int index_md,
                                    int index_ic,
                                    int index_type,
+                                   double * sources,
                                    double * source_spline,
                                    double * interpolated_sources
                                    );
@@ -376,13 +429,6 @@ extern "C" {
                        int * tau_size_out
                        );
 
-  int transfer_integration_time_steps(
-                                      struct transfers * ptr,
-                                      double * tau0_minus_tau,
-                                      int tau_size,
-                                      double * delta_tau
-                                      );
-
   int transfer_selection_function(
                                   struct precision * ppr,
                                   struct perturbs * ppt,
@@ -390,6 +436,12 @@ extern "C" {
                                   int bin,
                                   double z,
                                   double * selection);
+
+  int transfer_dNdz_analytic(
+                             struct transfers * ptr,
+                             double z,
+                             double * dNdz,
+                             double * dln_dNdz_dz);
 
   int transfer_selection_sampling(
                                   struct precision * ppr,
@@ -399,7 +451,7 @@ extern "C" {
                                   int bin,
                                   double * tau0_minus_tau,
                                   int tau_size);
-  
+
   int transfer_lensing_sampling(
                                 struct precision * ppr,
                                 struct background * pba,
@@ -409,7 +461,7 @@ extern "C" {
                                 double tau0,
                                 double * tau0_minus_tau,
                                 int tau_size);
-  
+
   int transfer_source_resample(
                                struct precision * ppr,
                                struct background * pba,
@@ -432,7 +484,7 @@ extern "C" {
                                double * tau_min,
                                double * tau_mean,
                                double * tau_max);
-  
+
   int transfer_selection_compute(
                                  struct precision * ppr,
                                  struct background * pba,
@@ -457,7 +509,8 @@ extern "C" {
                                   int index_tt,
                                   int index_l,
                                   double l,
-                                  double q_max_bessel
+                                  double q_max_bessel,
+                                  radial_function_type radial_type
                                   );
 
   int transfer_use_limber(
@@ -482,9 +535,10 @@ extern "C" {
                          double l,
                          int index_l,
                          double q,
+                         radial_function_type radial_type,
                          double * trsf
                          );
-    
+
   int transfer_limber(
                       int tau_size,
                       struct transfers * ptr,
@@ -494,9 +548,19 @@ extern "C" {
                       double q,
                       double * tau0_minus_tau,
                       double * sources,
+                      radial_function_type radial_type,
                       double * trsf
                       );
-  
+
+  int transfer_limber_interpolate(
+                                  struct transfers * ptr,
+                                  double * tau0_minus_tau,
+                                  double * sources,
+                                  int tau_size,
+                                  double tau0_minus_tau_limber,
+                                  double * S
+                                  );
+
   int transfer_limber2(
                        int tau_size,
                        struct transfers * ptr,
@@ -506,9 +570,10 @@ extern "C" {
                        double q,
                        double * tau0_minus_tau,
                        double * sources,
+                       radial_function_type radial_type,
                        double * trsf
                        );
-      
+
   int transfer_can_be_neglected(
                                 struct precision * ppr,
                                 struct perturbs * ppt,
@@ -573,7 +638,7 @@ extern "C" {
                               struct transfer_workspace *ptw
                               );
 
-  int transfer_update_HIS( 
+  int transfer_update_HIS(
                           struct precision * ppr,
                           struct transfers * ptr,
                           struct transfer_workspace * ptw,

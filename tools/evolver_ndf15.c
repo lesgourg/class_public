@@ -5,27 +5,27 @@
 /****************************************/
 /*	This is an variable order, adaptive stepsize ODE evolver for CLASS.
 	It is based on the Numerical Differentiaion Formulas	of order 1-5,
-	and can be used to solve stiff problems. The algorithm is described in 
-	[The MATLAB ODE Suite, L. F. Shampine and M. W. Reichelt, SIAM Journal 
+	and can be used to solve stiff problems. The algorithm is described in
+	[The MATLAB ODE Suite, L. F. Shampine and M. W. Reichelt, SIAM Journal
 	on Scientific Computing, 18-1, 1997].
-	
+
 	The code will call the (*output) routine at x-values in t_vec[]. It
 	will interpolate to get the y-value aswell as (optionally) the first and
-	second derivative at points returned by the routine relevant_indices. 
+	second derivative at points returned by the routine relevant_indices.
 	Since the transfer function only depends on a few of these values, there
 	is no need to interpolate all of them.
-		
+
 	Every time there is a stepsize change, we need to rebuild **dif, the matrix
 	which holds the backward differences, to reflect the new stepsize. This is done
-	in "adjust_stepsize" and is essentially a matrix multiplication. Every times 
+	in "adjust_stepsize" and is essentially a matrix multiplication. Every times
 	there is either a stepsize change, the method order k is changed, or we compute
-	a new Jacobian, we must call "new_linearisation" to calculate a new LU 
+	a new Jacobian, we must call "new_linearisation" to calculate a new LU
 	decomposition of a matrix.
-	
+
 	The method will not recompute the Jacobian in every step, but only when the
 	Newton iterations fail to converge fast enough. This feature makes the
 	solver competitive even for non-stiff problems.
-	
+
 	Statistics is saved in the stepstat[6] vector. The entries are:
 	stepstat[0] = Successful steps.
 	stepstat[1] = Failed steps.
@@ -35,7 +35,7 @@
 	stepstat[5] = Number of linear solves.
 	If ppt->perturbations_verbose > 2, this statistic is printed at the end of
 	each call to evolver.
-	
+
 	Sparsity:
 	When the number of equations becomes high, too much times is spent on solving
 	linear equations. Since the ODE-functions are not very coupled, one would normally
@@ -43,12 +43,12 @@
 	equations. However, this would be of some inconvenience to the users who just want
 	to add some new physics without thinking too much about how the code work. So we
 	pay a few more function evaluations, and calculate the full jacobian every time.
-	
-	Then, if jac->use_sparse==_TRUE_, numjac will try to construct a sparse matrix from 
+
+	Then, if jac->use_sparse==_TRUE_, numjac will try to construct a sparse matrix from
 	the dense matrix. If there are too many nonzero elements in the dense matrix, numjac
 	will stop constructing the sparse matrix and set jac->use_sparse=_FALSE_. The sparse
 	matrix is stored in the compressed column format. (See sparse.h).
-	
+
 	In the sparse case, we also do partial pivoting, but with diagonal preference. The
 	structure of the equations are nearly optimal for the LU decomposition, so we don't
 	want to mess it up by too many row permutations if we can avoid it. This is also why
@@ -64,49 +64,49 @@ int evolver_ndf15(
 				void * parameters_and_workspace, ErrorMsg error_message),
 		  double x_ini,
 		  double x_final,
-		  double * y_inout, 
+		  double * y_inout,
 		  int * used_in_output,
-		  int neq, 
+		  int neq,
 		  void * parameters_and_workspace_for_derivs,
-		  double rtol, 
-		  double minimum_variation, 
-		  int (*timescale_and_approximation)(double x, 
-						     void * parameters_and_workspace, 
+		  double rtol,
+		  double minimum_variation,
+		  int (*timescale_and_approximation)(double x,
+						     void * parameters_and_workspace,
 						     double * timescales,
 						     ErrorMsg error_message),
-		  double timestep_over_timescale, 
-		  double * t_vec, 
+		  double timestep_over_timescale,
+		  double * t_vec,
 		  int tres,
 		  int (*output)(double x,double y[],double dy[],int index_x,void * parameters_and_workspace,
 				ErrorMsg error_message),
 		  int (*print_variables)(double x, double y[], double dy[], void *parameters_and_workspace,
 					 ErrorMsg error_message),
 		  ErrorMsg error_message){
-	
+
   /* Constants: */
   double G[5]={1.0,3.0/2.0,11.0/6.0,25.0/12.0,137.0/60.0};
   double alpha[5]={-37.0/200,-1.0/9.0,-8.23e-2,-4.15e-2, 0};
   double invGa[5],erconst[5];
   double abstol = 1e-15, eps=1e-16, threshold=abstol;
   int maxit=4, maxk=5;
-	
+
   /* Logicals: */
   int Jcurrent,havrate,done,at_hmin,nofailed,gotynew,tooslow,*interpidx;
-	
+
   /* Storage: */
   double *f0,*y,*wt,*ddfddt,*pred,*ynew,*invwt,*rhs,*psi,*difkp1,*del,*yinterp;
   double *tempvec1,*tempvec2,*ypinterp,*yppinterp;
   double **dif;
   struct jacobian jac;
   struct numjac_workspace nj_ws;
-	
+
   /* Method variables: */
   double t,t0,tfinal,tnew=0;
   double rh,htspan,absh,hmin,hmax,h,tdel;
   double abshlast,hinvGak,minnrm,oldnrm=0.,newnrm;
   double err,hopt,errkm1,hkm1,errit,rate=0.,temp,errkp1,hkp1,maxtmp;
   int k,klast,nconhk,iter,next,kopt,tdir;
-	
+
   /* Misc: */
   int stepstat[6],nfenj,j,ii,jj, numidx, neqp=neq+1;
   int verbose=0;
@@ -164,30 +164,30 @@ int evolver_ndf15(
   /* 	class_alloc(rhs,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(psi,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(difkp1,sizeof(double)*neqp,error_message); */
-  /* 	class_alloc(del,sizeof(double)*neqp,error_message); */ 
+  /* 	class_alloc(del,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(yinterp,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(ypinterp,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(yppinterp,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(tempvec1,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(tempvec2,sizeof(double)*neqp,error_message); */
-	
+
   /* 	class_alloc(interpidx,sizeof(int)*neqp,error_message); */
-	
+
   /* Allocate vector of pointers to rows of dif:*/
   /* 	class_alloc(dif,sizeof(double*)*neqp,error_message);  */
   /* 	class_calloc(dif[1],(7*neq+1),sizeof(double),error_message); */
   /* 	dif[0] = NULL; */
-  /* 	for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; */ /* Set row pointers... */ 
-	
+  /* 	for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; */ /* Set row pointers... */
+
   /*Set pointers:*/
   ynew = y_inout-1; /* This way y_inout is always up to date. */
 
   /*Initialize the jacobian:*/
   class_call(initialize_jacobian(&jac,neq,error_message),error_message,error_message);
-	
+
   /* Initialize workspace for numjac: */
   class_call(initialize_numjac_workspace(&nj_ws,neq,error_message),error_message,error_message);
-	
+
   /* Initialize some method parameters:*/
   for(ii=0;ii<5;ii++){
     invGa[ii] = 1.0/(G[ii]*(1.0 - alpha[ii]));
@@ -211,7 +211,7 @@ int evolver_ndf15(
   /* Some CLASS-specific stuff:*/
   next=0;
   while (t_vec[next] < t0) next++;
-	
+
   if (verbose > 1){
     numidx=0;
     for(ii=1;ii<=neq;ii++){
@@ -222,7 +222,7 @@ int evolver_ndf15(
 
   htspan = fabs(tfinal-t0);
   for(ii=0;ii<6;ii++) stepstat[ii] = 0;
-	
+
   class_call((*derivs)(t0,y+1,f0+1,parameters_and_workspace_for_derivs,error_message),error_message,error_message);
   stepstat[2] +=1;
   if ((tfinal-t0)<0.0){
@@ -242,7 +242,7 @@ int evolver_ndf15(
   stepstat[3] += 1;
   stepstat[2] += nfenj;
   Jcurrent = _TRUE_; /* True */
-	
+
   hmin = 16.0*eps*fabs(t);
   /*Calculate initial step */
   rh = 0.0;
@@ -255,7 +255,7 @@ int evolver_ndf15(
 
   absh = MIN(hmax, htspan);
   if (absh * rh > 1.0) absh = 1.0 / rh;
-	
+
   absh = MAX(absh, hmin);
   h = tdir * absh;
   tdel = (t + tdir*MIN(sqrt(eps)*MAX(fabs(t),fabs(t+h)),absh)) - t;
@@ -279,7 +279,7 @@ int evolver_ndf15(
   }
   absh = MIN(hmax, htspan);
   if (absh * rh > 1.0) absh = 1.0 / rh;
-	
+
   absh = MAX(absh, hmin);
   h = tdir * absh;
   /* Done calculating initial step
@@ -289,7 +289,7 @@ int evolver_ndf15(
   abshlast = absh;
 
   for(ii=1;ii<=neq;ii++) dif[ii][1] = h*f0[ii];
-	
+
   hinvGak = h*invGa[k-1];
   nconhk = 0; 	/*steps taken with current h and k*/
   class_call(new_linearisation(&jac,hinvGak,neq,error_message),
@@ -356,12 +356,12 @@ int evolver_ndf15(
 	  }
 	}
 	eqvec(pred,ynew,neq);
-							
+
 	/*The difference, difkp1, between pred and the final accepted
 	  ynew is equal to the backward difference of ynew of order
 	  k+1. Initialize to zero for the iteration to compute ynew.
 	*/
-							
+
 	minnrm = 0.0;
 	for(j=1;j<=neq;j++){
 	  difkp1[j] = 0.0;
@@ -382,7 +382,7 @@ int evolver_ndf15(
 	  for(j=1;j<=neq;j++){
 	    rhs[j] = hinvGak*f0[j]-tempvec1[j];
 	  }
-								
+
 	  /*Solve the linear system A*x=del by using the LU decomposition stored in jac.*/
 	  if (jac.use_sparse){
 	    sp_lusolve(jac.Numerical, rhs+1, del+1);
@@ -530,7 +530,7 @@ int evolver_ndf15(
     }
     /* End of conditionless FOR loop */
     stepstat[0] += 1;
-		 
+
     /* Update dif: */
     for(jj=1;jj<=neq;jj++){
       dif[jj][k+2] = difkp1[jj] - dif[jj][k+1];
@@ -547,25 +547,23 @@ int evolver_ndf15(
       if (tnew==t_vec[next]){
 	class_call((*output)(t_vec[next],ynew+1,f0+1,next,parameters_and_workspace_for_derivs,error_message),
 		   error_message,error_message);
-
+// MODIFICATION BY LUC
+// All print_variables have been moved to the end of time step
+/*
 	if (print_variables != NULL){
 	  class_call((*print_variables)(t_vec[next],ynew+1,f0+1,
 					parameters_and_workspace_for_derivs,error_message),
 		     error_message,error_message);
 	}
-
+*/
       }
       else {
 	/*Interpolate if we have overshot sample values*/
-	interp_from_dif(t_vec[next],tnew,ynew,h,dif,k,yinterp,ypinterp,yppinterp,interpidx,neq,2);				
+	interp_from_dif(t_vec[next],tnew,ynew,h,dif,k,yinterp,ypinterp,yppinterp,interpidx,neq,2);
+
 	class_call((*output)(t_vec[next],yinterp+1,ypinterp+1,next,parameters_and_workspace_for_derivs,
 			     error_message),error_message,error_message);
 
-	if (print_variables != NULL){
-	  class_call((*print_variables)(t_vec[next],ynew+1,f0+1,
-					parameters_and_workspace_for_derivs,error_message),
-		     error_message,error_message);
-	}
       }
       next++;
     }
@@ -632,6 +630,22 @@ int evolver_ndf15(
     t = tnew;
     eqvec(ynew,y,neq);
     Jcurrent = _FALSE_;
+
+// MODIFICATION BY LUC
+    if (print_variables!=NULL){
+      class_call((*derivs)(tnew,
+		             ynew+1,
+		             f0+1,
+		             parameters_and_workspace_for_derivs,error_message),
+	               error_message,
+	               error_message);
+
+        class_call((*print_variables)(tnew,ynew+1,f0+1,
+					parameters_and_workspace_for_derivs,error_message),
+		     error_message,error_message);
+    }
+// end of modification
+
   }
 
   /* a last call is compulsory to ensure that all quantitites in
@@ -644,13 +658,13 @@ int evolver_ndf15(
 		       parameters_and_workspace_for_derivs,error_message),
 	     error_message,
 	     error_message);
-	
+
   if (verbose > 0){
     printf("\n End of evolver. Next=%d, t=%e and tnew=%e.",next,t,tnew);
     printf("\n Statistics: [%d %d %d %d %d %d] \n",stepstat[0],stepstat[1],
 	   stepstat[2],stepstat[3],stepstat[4],stepstat[5]);
   }
-	
+
   /** Deallocate memory */
 
   free(buffer);
@@ -674,7 +688,7 @@ int evolver_ndf15(
   /* 	free(interpidx); */
   /* 	free(dif[1]); */
   /* 	free(dif); */
-	
+
   uninitialize_jacobian(&jac);
   uninitialize_numjac_workspace(&nj_ws);
   return _SUCCESS_;
@@ -739,7 +753,7 @@ int calc_C(struct jacobian *jac){
 	  Cp[col+1]++;
 	}
       }
-    }	
+    }
   }
   /* wi prepared, write sparsity pattern in Ci and Cp:*/
   nz = 0;
@@ -839,12 +853,12 @@ int interp_from_dif(double tinterp,
                     double *ynew,
                     double h,
                     double **dif,
-                    int k, 
+                    int k,
                     double *yinterp,
-		    double *ypinterp, 
-                    double *yppinterp, 
-                    int* mask, 
-                    int neq, 
+		    double *ypinterp,
+                    double *yppinterp,
+                    int* mask,
+                    int neq,
                     int output){
   /* Output=1: only y_vector. Output=2: y and y prime. Output=3: y, yp and ypp*/
   double fact,prod,sumfrac;
@@ -854,7 +868,7 @@ int interp_from_dif(double tinterp,
   double s, sumtmp, sumtmp2;
 
   s = (tinterp - tnew)/h;
-  
+
   prod = 1.0;
   sumfrac = 0.;
   fact = 1.0;
@@ -886,7 +900,7 @@ int adjust_stepsize(double **dif, double abshdivabshlast, int neq,int k){
   double tempvec[5];
   double mydifRU[5][5];
   int ii,jj,kk;
-	
+
   for(ii=1;ii<=5;ii++) mydifRU[0][ii-1] = -ii*abshdivabshlast;
   for(jj=2;jj<=5;jj++){
     for(ii=1;ii<=5;ii++){
@@ -938,8 +952,8 @@ int new_linearisation(struct jacobian *jac,double hinvGak,int neq,ErrorMsg error
     }
     /* Matrix constructed... */
     if(jac->new_jacobian==_TRUE_){
-      /*I have a new pattern, and I have not done a LU decomposition 
-	since the last jacobian calculation, so	I need to do a full 
+      /*I have a new pattern, and I have not done a LU decomposition
+	since the last jacobian calculation, so	I need to do a full
 	sparse LU-decomposition: */
       /* Find the sparsity pattern C = J + J':*/
       calc_C(jac);
@@ -1046,13 +1060,13 @@ int ludcmp(double **a, int n, int *indx, double *d, double *vv){
 /* "initialize_numjac_workspace", "uninitialize_numjac_workspace".		*/
 /**********************************************************************/
 int numjac(
-	   int (*derivs)(double x, double * y,double * dy, 
+	   int (*derivs)(double x, double * y,double * dy,
 			 void * parameters_and_workspace, ErrorMsg error_message),
 	   double t, double *y, double *fval,
 	   struct jacobian *jac, struct numjac_workspace *nj_ws,
 	   double thresh, int neq, int *nfe, void * parameters_and_workspace_for_derivs,
 	   ErrorMsg error_message){
-  /*	Routine that computes the jacobian numerically. It is based on the numjac 
+  /*	Routine that computes the jacobian numerically. It is based on the numjac
 	implementation in MATLAB, but a feature for recognising sparsity in the
 	jacobian and taking advantage of that has been added.
   */
@@ -1073,10 +1087,10 @@ int numjac(
     Ap = jac->spJ->Ap;
     Ai = jac->spJ->Ai;
   }
-	
+
   /* Set new_jacobian flag: */
   jac->new_jacobian = _TRUE_;
-	
+
   for(j=1;j<=neq;j++){
     nj_ws->yscale[j] = MAX(fabs(y[j]),thresh);
     nj_ws->del[j] = (y[j] + fac[j] * nj_ws->yscale[j]) - y[j];
@@ -1360,7 +1374,7 @@ int numjac(
       if ((jac->has_pattern==_TRUE_)&&(pattern_broken==_FALSE_)){
 	/*New jacobian fitted into the current sparsity pattern:*/
 	jac->repeated_pattern++;
-	/* printf("\n Found repeated pattern. nz=%d/%d and 
+	/* printf("\n Found repeated pattern. nz=%d/%d and
 	   rep.pat=%d.",nz,neq*neq,jac->repeated_pattern); */
       }
       else{
@@ -1374,7 +1388,7 @@ int numjac(
 } /* End of numjac */
 
 int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
-  int i; 
+  int i;
 
   if (neq>15){
     jac->use_sparse = 1;
@@ -1382,33 +1396,33 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
   else{
     jac->use_sparse = 0;
   }
-  jac->max_nonzero = (int)(MAX(3*neq,0.20*neq*neq));		 
+  jac->max_nonzero = (int)(MAX(3*neq,0.20*neq*neq));
   jac->cnzmax = 12*jac->max_nonzero/5;
 
   /*Maximal number of non-zero entries to be considered sparse */
   jac->repeated_pattern = 0;
-  jac->trust_sparse = 4; 
+  jac->trust_sparse = 4;
   /* Number of times a pattern is repeated before we trust it. */
   jac->has_grouping = 0;
   jac->has_pattern = 0;
   jac->sparse_stuff_initialized=0;
-	
+
   /*Setup memory for the pointers of the dense method:*/
 
   class_alloc(jac->dfdy,sizeof(double*)*(neq+1),error_message); /* Allocate vector of pointers to rows of matrix.*/
   class_alloc(jac->dfdy[1],sizeof(double)*(neq*neq+1),error_message);
   jac->dfdy[0] = NULL;
-  for(i=2;i<=neq;i++) jac->dfdy[i] = jac->dfdy[i-1]+neq; /* Set row pointers... */ 
-	
+  for(i=2;i<=neq;i++) jac->dfdy[i] = jac->dfdy[i-1]+neq; /* Set row pointers... */
+
   class_alloc(jac->LU,sizeof(double*)*(neq+1),error_message); /* Allocate vector of pointers to rows of matrix.*/
   class_alloc(jac->LU[1],sizeof(double)*(neq*neq+1),error_message);
   jac->LU[0] = NULL;
-  for(i=2;i<=neq;i++) jac->LU[i] = jac->LU[i-1]+neq; /* Set row pointers... */ 
-	
+  for(i=2;i<=neq;i++) jac->LU[i] = jac->LU[i-1]+neq; /* Set row pointers... */
+
   class_alloc(jac->LUw,sizeof(double)*(neq+1),error_message);
   class_alloc(jac->jacvec,sizeof(double)*(neq+1),error_message);
   class_alloc(jac->luidx,sizeof(int)*(neq+1),error_message);
-	
+
   /*Setup memory for the sparse method, if used: */
   if (jac->use_sparse){
     jac->sparse_stuff_initialized = 1;
@@ -1424,13 +1438,13 @@ int initialize_jacobian(struct jacobian *jac, int neq, ErrorMsg error_message){
     class_alloc(jac->col_wi,sizeof(int)*neq,error_message);
     class_alloc(jac->Cp,sizeof(int)*(neq+1),error_message);
     class_alloc(jac->Ci,sizeof(int)*jac->cnzmax,error_message);
-		
+
     class_call(sp_num_alloc(&jac->Numerical, neq,error_message),
 	       error_message,error_message);
-		
+
     class_call(sp_mat_alloc(&jac->spJ, neq, neq, jac->max_nonzero,
 			    error_message),error_message,error_message);
-		
+
   }
 
   /* Initialize jacvec to sqrt(eps):*/
@@ -1443,7 +1457,7 @@ int uninitialize_jacobian(struct jacobian *jac){
   free(jac->dfdy);
   free(jac->LU[1]);
   free(jac->LU);
-	
+
   free(jac->luidx);
   free(jac->LUw);
   free(jac->jacvec);
@@ -1474,12 +1488,12 @@ int initialize_numjac_workspace(struct numjac_workspace * nj_ws,int neq, ErrorMs
   class_alloc(nj_ws->ffdel,sizeof(double)*neqp,error_message);
   class_alloc(nj_ws->yydel,sizeof(double)*neqp,error_message);
   class_alloc(nj_ws->tmp,sizeof(double)*neqp,error_message);
-	
+
   class_alloc(nj_ws->ydel_Fdel,sizeof(double*)*(neq+1),error_message); /* Allocate vector of pointers to rows of matrix.*/
   class_alloc(nj_ws->ydel_Fdel[1],sizeof(double)*(neq*neq+1),error_message);
   nj_ws->ydel_Fdel[0] = NULL;
-  for(i=2;i<=neq;i++) nj_ws->ydel_Fdel[i] = nj_ws->ydel_Fdel[i-1]+neq; /* Set row pointers... */ 
-	
+  for(i=2;i<=neq;i++) nj_ws->ydel_Fdel[i] = nj_ws->ydel_Fdel[i-1]+neq; /* Set row pointers... */
+
   class_alloc(nj_ws->logj,sizeof(int)*neqp,error_message);
   class_alloc(nj_ws->Rowmax,sizeof(int)*neqp,error_message);
 

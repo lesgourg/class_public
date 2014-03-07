@@ -9,7 +9,8 @@
 //	Stephane Plaszczynski (plaszczy@lal.in2p3.fr)
 //
 // History (add to end):
-//	creation:   ven. nov. 4 11:02:20 CET 2011 
+//	creation:   ven. nov. 4 11:02:20 CET 2011
+//  updated to class v2.1 by Julien Lesgourgues (7 March 2014)
 //
 //-----------------------------------------------------------------------
 
@@ -50,7 +51,7 @@ public:
   pars.push_back(make_pair(key,str(val)));
   return pars.size();
   }
-  
+
   //accesors
   inline unsigned size() const {return pars.size();}
   inline string key(const unsigned& i) const {return pars[i].first;}
@@ -72,7 +73,7 @@ public:
   ClassEngine(const ClassParams& pars);
   //with a class .pre file
   ClassEngine(const ClassParams& pars,const string & precision_file);
-  
+
 
   // destructor
   ~ClassEngine();
@@ -85,17 +86,17 @@ public:
   //don't call if FAILURE returned previously
   //throws std::execption if pb
 
-  double getCl(Engine::cltype t,const long &l);  
-  void getCls(const std::vector<unsigned>& lVec, //input 
-	      std::vector<double>& cltt, 
-	      std::vector<double>& clte, 
-	      std::vector<double>& clee, 
+  double getCl(Engine::cltype t,const long &l);
+  void getCls(const std::vector<unsigned>& lVec, //input
+	      std::vector<double>& cltt,
+	      std::vector<double>& clte,
+	      std::vector<double>& clee,
 	      std::vector<double>& clbb);
 
-  
-  bool getLensing(const std::vector<unsigned>& lVec, //input 
-	      std::vector<double>& clphiphi, 
-	      std::vector<double>& cltphi, 
+
+  bool getLensing(const std::vector<unsigned>& lVec, //input
+	      std::vector<double>& clphiphi,
+	      std::vector<double>& cltphi,
 	      std::vector<double>& clephi);
 
 
@@ -138,20 +139,19 @@ private:
                  struct background * pba,
                  struct thermo * pth,
                  struct perturbs * ppt,
-                 struct transfers * ptr,
                  struct primordial * ppm,
-                 struct spectra * psp,
                  struct nonlinear * pnl,
+                 struct transfers * ptr,
+                 struct spectra * psp,
                  struct lensing * ple,
                  struct output * pop,
                  ErrorMsg errmsg);
-  
+
 protected:
- 
-  
+
+
 };
 
 
 ;
 #endif
-

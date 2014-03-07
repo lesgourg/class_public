@@ -1,10 +1,10 @@
 /** @file primordial.c Documented primordial module.
  *
- * Julien Lesgourgues, 24.08.2010    
+ * Julien Lesgourgues, 24.08.2010
  *
  * This module computes the primordial spectra. Can be used in different modes:
  * simple parametric form, evolving inflaton perturbations, etc. So far only
- * the mode corresponding to a simple analytic form in terms of amplitudes, tilts 
+ * the mode corresponding to a simple analytic form in terms of amplitudes, tilts
  * and runnings has been developped.
  *
  * The following functions can be called from other modules:
@@ -16,24 +16,24 @@
 
 #include "primordial.h"
 
-/** 
- * Primordial spectra for arbitrary argument and for all initial conditions. 
+/**
+ * Primordial spectra for arbitrary argument and for all initial conditions.
  *
  * This routine evaluates the primordial spectrum at a given value of k by
- * interpolating in the pre-computed table. 
- * 
+ * interpolating in the pre-computed table.
+ *
  * When k is not in the pre-computed range but the spectrum can be found
  * analytically, finds it. Otherwise returns an error.
- * 
+ *
  * Can be called in two modes: linear or logarithmic.
- * 
+ *
  * - linear: takes k, returns P(k)
- * 
+ *
  * - logarithmic: takes ln(k), return ln(P(k))
  *
  * One little subtlety: in case of several correlated initial conditions,
- * the cross-correlation spectrum can be negative. Then, in logarithmic mode, 
- * the non-diagonal elements contain the cross-correlation angle P_12/sqrt(P_11 P_22) 
+ * the cross-correlation spectrum can be negative. Then, in logarithmic mode,
+ * the non-diagonal elements contain the cross-correlation angle P_12/sqrt(P_11 P_22)
  * (from -1 to 1) instead of ln(P_12)
  *
  * This function can be
@@ -41,8 +41,8 @@
  * primordial_init() has been called before, and primordial_free() has not
  * been called yet.
  *
- * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum 
- * @param index_md Input: index of mode (scalar, tensor, ...) 
+ * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum
+ * @param index_md Input: index of mode (scalar, tensor, ...)
  * @param mode       Input: linear or logarithmic
  * @param k          Input: wavenumber in 1/Mpc (linear mode) or its logarithm (logarithmic mode)
  * @param pk         Ouput: for each pair of initial conditions, primordial spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
@@ -52,8 +52,8 @@
 int primordial_spectrum_at_k(
                              struct primordial * ppm,
                              int index_md,
-                             enum linear_or_logarithmic mode, 
-                             double input,  
+                             enum linear_or_logarithmic mode,
+                             double input,
                              double * output /* array with argument output[index_ic1_ic2] (must be already allocated) */
                              ) {
 
@@ -77,9 +77,9 @@ int primordial_spectrum_at_k(
     lnk = input;
   }
 
-  /** - if ln(k) is not in the interpolation range, return an error, unless 
+  /** - if ln(k) is not in the interpolation range, return an error, unless
       we are in the case of a analytic spectrum, for which a direct computation is possible */
-  
+
   if ((lnk > ppm->lnk[ppm->lnk_size-1]) || (lnk < ppm->lnk[0])) {
 
     class_test(ppm->primordial_spec_type != analytic_Pk,
@@ -90,7 +90,7 @@ int primordial_spectrum_at_k(
 
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
-	
+
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
 
         if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
@@ -108,7 +108,7 @@ int primordial_spectrum_at_k(
         }
       }
     }
-    
+
     /* if mode==linear, output is already in the correct format. Otherwise, apply necessary transformation. */
 
     if (mode == logarithmic) {
@@ -127,7 +127,7 @@ int primordial_spectrum_at_k(
         }
       }
     }
-  } 
+  }
 
   /** - otherwise, interpolate in the pre-computed table: */
 
@@ -146,7 +146,7 @@ int primordial_spectrum_at_k(
                                         ppm->error_message),
                ppm->error_message,
                ppm->error_message);
-  
+
     /* if mode==logarithmic, output is already in the correct format. Otherwise, apply necessary transformation. */
 
     if (mode == linear) {
@@ -169,17 +169,17 @@ int primordial_spectrum_at_k(
       }
     }
   }
-  
+
   return _SUCCESS_;
-  
+
 }
 
 /**
  * This routine initializes the primordial structure (in particular, compute table of primordial spectrum values)
- * 
+ *
  * @param ppr Input : pointer to precision structure (defines method and precision for all computations)
  * @param ppt Input : pointer to perturbation structure (useful for knowing k_min, k_max, etc.)
- * @param ppm Output: pointer to initialized primordial structure 
+ * @param ppm Output: pointer to initialized primordial structure
  * @return the error status
  */
 
@@ -218,7 +218,7 @@ int primordial_init(
 
   k_min = ppt->k[0]; /* first value, inferred from perturbations structure */
   k_max = ppt->k[ppt->k_size-1]; /* last value, inferred from perturbations structure */
-  
+
   class_test(k_min <= 0.,
              ppm->error_message,
              "k_min negative or null: stop to avoid segmentation fault");
@@ -256,7 +256,7 @@ int primordial_init(
                                 ppm),
              ppm->error_message,
              ppm->error_message);
-		
+
   /** - deal with case of analytic primordial spectra (with amplitudes, tilts, runnings etc.) */
 
   if (ppm->primordial_spec_type == analytic_Pk) {
@@ -269,7 +269,7 @@ int primordial_init(
                       ppm->error_message,
                       ppm->error_message,
                       primordial_free(ppm));
-    
+
     for (index_k = 0; index_k < ppm->lnk_size; index_k++) {
 
       k=exp(ppm->lnk[index_k]);
@@ -289,7 +289,7 @@ int primordial_init(
                                                       &pk),
                          ppm->error_message,
                          ppm->error_message);
-	      
+
               if (index_ic1 == index_ic2) {
 
                 /* diagonal coefficients: ln[P(k)] */
@@ -306,7 +306,7 @@ int primordial_init(
                                                         k,
                                                         &pk1),
                            ppm->error_message,
-                           ppm->error_message);			     
+                           ppm->error_message);
 
                 class_call(primordial_analytic_spectrum(ppm,
                                                         index_md,
@@ -314,7 +314,7 @@ int primordial_init(
                                                         k,
                                                         &pk2),
                            ppm->error_message,
-                           ppm->error_message);	
+                           ppm->error_message);
 
                 /* either return an error if correlation is too large... */
                 /*
@@ -323,7 +323,7 @@ int primordial_init(
                   ppm->error_message,
                   primordial_free(ppm),
                   "correlation angle between IC's takes unphysical values");
-		
+
                   ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = cos_delta_k;
                 */
 
@@ -333,14 +333,14 @@ int primordial_init(
                   ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 1.;
                 else if (pk < -sqrt(pk1*pk2))
                   ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = -1.;
-                else 
+                else
                   ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = pk/sqrt(pk1*pk2);
 
 
               }
             }
             else {
-	      
+
               /* non-diagonal coefficients when ic's are uncorrelated */
 
               ppm->lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2] = 0.;
@@ -385,13 +385,38 @@ int primordial_init(
 
   }
 
+  /** - deal with the case of external calculation of Pk */
+
+  else if (ppm->primordial_spec_type == external_Pk) {
+
+    class_test(ppt->has_scalars == _FALSE_,
+               ppm->error_message,
+               "external Pk module cannot work if you do not ask for scalar modes");
+
+    class_test(ppt->has_vectors == _TRUE_,
+               ppm->error_message,
+               "external Pk module cannot work if you ask for vector modes");
+
+    class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
+               ppm->error_message,
+               "external Pk module cannot work if you ask for isocurvature modes (but that could be implemented easily in the future!)");
+
+    if (ppm->primordial_verbose > 0)
+      printf(" (Pk calculated externally)\n");
+
+    class_call_except(primordial_external_spectrum_init(ppt,ppm),
+                      ppm->error_message,
+                      ppm->error_message,
+                      primordial_free(ppm));
+  }
+
   else {
 
     class_test(0==0,
                ppm->error_message,
-               "only analytic and inflation_V primordial spectrum coded yet");
+               "only analytic, external and inflation_V primordial spectrum coded yet");
 
-  }     
+  }
 
   /** - compute second derivative of each lnpk versus lnk  with spline, in view of interpolation */
 
@@ -406,12 +431,12 @@ int primordial_init(
                                         ppm->error_message),
                ppm->error_message,
                ppm->error_message);
-    
+
   }
-  
+
   /** derive spectral parameters from numerically computed spectra
       (not used by the rest of the code, but useful to keep in memory for several types of investigations) */
-  
+
   if (ppm->primordial_spec_type != analytic_Pk) {
 
     dlnk = log(10.)/ppr->k_per_decade_primordial;
@@ -446,10 +471,10 @@ int primordial_init(
       ppm->A_s = exp(lnpk_pivot);
       ppm->n_s = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
       ppm->alpha_s = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
-      
+
       /** expression for n_s comes from:
 
-          ns_2 = (lnpk_plus-lnpk_pivot)/(dlnk)+1.    
+          ns_2 = (lnpk_plus-lnpk_pivot)/(dlnk)+1.
           ns_1 = (lnpk_pivot-lnpk_minus)/(dlnk)+1.
           alpha_s = dns/dlnk
           = (ns_2-ns_1)/dlnk
@@ -461,7 +486,7 @@ int primordial_init(
                                           ppt->index_md_scalars,
                                           logarithmic,
                                           log(ppm->k_pivot)+2.*dlnk,
-                                          
+
                                           &lnpk_plusplus),
                  ppm->error_message,
                  ppm->error_message);
@@ -474,7 +499,7 @@ int primordial_init(
                  ppm->error_message,
                  ppm->error_message);
 
-      /** expression for beta_s: 
+      /** expression for beta_s:
 
           ppm->beta_s = (alpha_plus-alpha_minus)/dlnk
           = (lnpk_plusplus-2.*lnpk_plus+lnpk_pivot - (lnpk_pivot-2.*lnpk_minus+lnpk_minusminus)/pow(dlnk,3);
@@ -483,7 +508,7 @@ int primordial_init(
 
       **/
 
-      ppm->beta_s = (lnpk_plusplus-2.*lnpk_plus+2.*lnpk_minus-lnpk_minusminus)/pow(dlnk,3);  
+      ppm->beta_s = (lnpk_plusplus-2.*lnpk_plus+2.*lnpk_minus-lnpk_minusminus)/pow(dlnk,3);
 
       if (ppm->primordial_verbose > 0)
         printf(" -> A_s=%g  n_s=%g  alpha_s=%g\n",ppm->A_s,ppm->n_s,ppm->alpha_s);
@@ -528,7 +553,7 @@ int primordial_init(
   }
 
   return _SUCCESS_;
-  
+
 }
 
 /**
@@ -558,6 +583,9 @@ int primordial_free(
       free(ppm->tilt);
       free(ppm->running);
     }
+    else if (ppm->primordial_spec_type == external_Pk) {
+      free(ppm->command);
+    }
 
     for (index_md = 0; index_md < ppm->md_size; index_md++) {
       free(ppm->lnpk[index_md]);
@@ -572,17 +600,17 @@ int primordial_free(
     free(ppm->ic_ic_size);
 
     free(ppm->lnk);
-    
+
   }
 
-  return _SUCCESS_; 
+  return _SUCCESS_;
 }
 
 /**
- * This routine defines indices and allocates tables in the primordial structure 
+ * This routine defines indices and allocates tables in the primordial structure
  *
  * @param ppt  Input : pointer to perturbation structure
- * @param ppm  Input/output: pointer to primordial structure 
+ * @param ppm  Input/output: pointer to primordial structure
  * @return the error status
  */
 
@@ -605,7 +633,7 @@ int primordial_indices(
 
   class_alloc(ppm->is_non_zero,ppm->md_size*sizeof(short *),ppm->error_message);
 
-  for (index_md = 0; index_md < ppt->md_size; index_md++) {		     
+  for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
     ppm->ic_size[index_md] = ppt->ic_size[index_md];
 
@@ -622,7 +650,7 @@ int primordial_indices(
     class_alloc(ppm->is_non_zero[index_md],
                 ppm->ic_ic_size[index_md]*sizeof(short),
                 ppm->error_message);
-    
+
 
   }
 
@@ -634,7 +662,7 @@ int primordial_indices(
  * This routine allocates and fills the list of wavenumbers k
  *
  *
- * @param ppm  Input/output: pointer to primordial structure 
+ * @param ppm  Input/output: pointer to primordial structure
  * @param kmin Input : first value
  * @param kmax Input : last value that we should encompass
  * @param k_per_decade Input : number of k per decade
@@ -653,26 +681,26 @@ int primordial_get_lnk_list(
   class_test((kmin <= 0.) || (kmax <= kmin),
              ppm->error_message,
              "inconsistent values of kmin=%e, kmax=%e",kmin,kmax);
- 
+
   ppm->lnk_size = (int)(log(kmax/kmin)/log(10.)*k_per_decade) + 2;
 
   class_alloc(ppm->lnk,ppm->lnk_size*sizeof(double),ppm->error_message);
 
   for (i=0; i<ppm->lnk_size; i++)
     ppm->lnk[i]=log(kmin)+i*log(10.)/k_per_decade;
-        
+
   return _SUCCESS_;
-  
+
 }
 
 /**
- * This routine interprets and stores in a condensed form the input parameters 
- * in the case of a simple analytic spectra with amplitudes, tilts, runnings, 
+ * This routine interprets and stores in a condensed form the input parameters
+ * in the case of a simple analytic spectra with amplitudes, tilts, runnings,
  * in such way that later on, the spectrum can be obtained by a quick call to
  * the routine primordial_analytic_spectrum(()
  *
  * @param ppt  Input : pointer to perturbation structure
- * @param ppm  Input/output: pointer to primordial structure 
+ * @param ppm  Input/output: pointer to primordial structure
  * @return the error status
  */
 
@@ -715,54 +743,54 @@ int primordial_analytic_spectrum_init(
                 ppm->error_message);
 
   }
-      
+
   for (index_md = 0; index_md < ppm->md_size; index_md++) {
 
     /* diagonal coefficients */
-    
+
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
 
-      if _scalars_ {
+      if (_scalars_) {
 
-          if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
-            one_amplitude = ppm->A_s;
-            one_tilt = ppm->n_s;
-            one_running = ppm->alpha_s;
-          }
-
-          if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
-            one_amplitude = ppm->A_s*ppm->f_bi*ppm->f_bi;
-            one_tilt = ppm->n_bi;
-            one_running = ppm->alpha_bi;
-          }
-
-          if ((ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_cdi)) {
-            one_amplitude = ppm->A_s*ppm->f_cdi*ppm->f_cdi;
-            one_tilt = ppm->n_cdi;
-            one_running = ppm->alpha_cdi;
-          }
-
-          if ((ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_nid)) {
-            one_amplitude = ppm->A_s*ppm->f_nid*ppm->f_nid;
-            one_tilt = ppm->n_nid;
-            one_running = ppm->alpha_nid;
-          }
-    
-          if ((ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_niv)) {
-            one_amplitude = ppm->A_s*ppm->f_niv*ppm->f_niv;
-            one_tilt = ppm->n_niv;
-            one_running = ppm->alpha_niv;
-          }
+        if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad)) {
+          one_amplitude = ppm->A_s;
+          one_tilt = ppm->n_s;
+          one_running = ppm->alpha_s;
         }
 
-      if _tensors_ {
-
-          if (index_ic1 == ppt->index_ic_ten) {
-            one_amplitude = ppm->A_s*ppm->r;
-            one_tilt = ppm->n_t+1.; /* +1 to match usual definition of n_t (equivalent to n_s-1) */
-            one_running = ppm->alpha_t;
-          }
+        if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi)) {
+          one_amplitude = ppm->A_s*ppm->f_bi*ppm->f_bi;
+          one_tilt = ppm->n_bi;
+          one_running = ppm->alpha_bi;
         }
+
+        if ((ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_cdi)) {
+          one_amplitude = ppm->A_s*ppm->f_cdi*ppm->f_cdi;
+          one_tilt = ppm->n_cdi;
+          one_running = ppm->alpha_cdi;
+        }
+
+        if ((ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_nid)) {
+          one_amplitude = ppm->A_s*ppm->f_nid*ppm->f_nid;
+          one_tilt = ppm->n_nid;
+          one_running = ppm->alpha_nid;
+        }
+
+        if ((ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_niv)) {
+          one_amplitude = ppm->A_s*ppm->f_niv*ppm->f_niv;
+          one_tilt = ppm->n_niv;
+          one_running = ppm->alpha_niv;
+        }
+      }
+
+      if (_tensors_) {
+
+        if (index_ic1 == ppt->index_ic_ten) {
+          one_amplitude = ppm->A_s*ppm->r;
+          one_tilt = ppm->n_t+1.; /* +1 to match usual definition of n_t (equivalent to n_s-1) */
+          one_running = ppm->alpha_t;
+        }
+      }
 
       class_test(one_amplitude <= 0.,
                  ppm->error_message,
@@ -770,7 +798,7 @@ int primordial_analytic_spectrum_init(
                  one_amplitude,index_md,index_ic1);
 
       index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
-      
+
       ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
       ppm->amplitude[index_md][index_ic1_ic2] = one_amplitude;
       ppm->tilt[index_md][index_ic1_ic2] = one_tilt;
@@ -781,90 +809,90 @@ int primordial_analytic_spectrum_init(
 
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
       for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
-     
-        if _scalars_ {
- 
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
-                 ((index_ic1 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
-              one_correlation = ppm->c_ad_bi;
-              one_tilt = ppm->n_ad_bi;
-              one_running = ppm->alpha_ad_bi;
-            }
 
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) ||
-                 ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_cdi)))) {
-              one_correlation = ppm->c_ad_cdi;
-              one_tilt = ppm->n_ad_cdi;
-              one_running = ppm->alpha_ad_cdi;
-            }
+        if (_scalars_) {
 
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) ||
-                 ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_nid)))) {
-              one_correlation = ppm->c_ad_nid;
-              one_tilt = ppm->n_ad_nid;
-              one_running = ppm->alpha_ad_nid;
-            }
-
-            if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_ad_niv;
-              one_tilt = ppm->n_ad_niv;
-              one_running = ppm->alpha_ad_niv;
-            }
-
-            if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) ||
-                 ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_cdi)))) {
-              one_correlation = ppm->c_bi_cdi;
-              one_tilt = ppm->n_bi_cdi;
-              one_running = ppm->alpha_bi_cdi;
-            }
-
-            if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) ||
-                 ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_nid)))) {
-              one_correlation = ppm->c_bi_nid;
-              one_tilt = ppm->n_bi_nid;
-              one_running = ppm->alpha_bi_nid;
-            }
-
-            if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_bi_niv;
-              one_tilt = ppm->n_bi_niv;
-              one_running = ppm->alpha_bi_niv;
-            }
-
-            if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) ||
-                 ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_nid)))) {
-              one_correlation = ppm->c_cdi_nid;
-              one_tilt = ppm->n_cdi_nid;
-              one_running = ppm->alpha_cdi_nid;
-            }
-
-            if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_cdi_niv;
-              one_tilt = ppm->n_cdi_niv;
-              one_running = ppm->alpha_cdi_niv;
-            }
-
-            if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) && 
-                (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) ||
-                 ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_niv)))) {
-              one_correlation = ppm->c_nid_niv;
-              one_tilt = ppm->n_nid_niv;
-              one_running = ppm->alpha_nid_niv;
-            }
-
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) ||
+               ((index_ic1 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_bi)))) {
+            one_correlation = ppm->c_ad_bi;
+            one_tilt = ppm->n_ad_bi;
+            one_running = ppm->alpha_ad_bi;
           }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) ||
+               ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_cdi)))) {
+            one_correlation = ppm->c_ad_cdi;
+            one_tilt = ppm->n_ad_cdi;
+            one_running = ppm->alpha_ad_cdi;
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) ||
+               ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_nid)))) {
+            one_correlation = ppm->c_ad_nid;
+            one_tilt = ppm->n_ad_nid;
+            one_running = ppm->alpha_ad_nid;
+          }
+
+          if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_ad) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_ad_niv;
+            one_tilt = ppm->n_ad_niv;
+            one_running = ppm->alpha_ad_niv;
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) ||
+               ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_cdi)))) {
+            one_correlation = ppm->c_bi_cdi;
+            one_tilt = ppm->n_bi_cdi;
+            one_running = ppm->alpha_bi_cdi;
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) ||
+               ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_nid)))) {
+            one_correlation = ppm->c_bi_nid;
+            one_tilt = ppm->n_bi_nid;
+            one_running = ppm->alpha_bi_nid;
+          }
+
+          if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_bi) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_bi_niv;
+            one_tilt = ppm->n_bi_niv;
+            one_running = ppm->alpha_bi_niv;
+          }
+
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) ||
+               ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_nid)))) {
+            one_correlation = ppm->c_cdi_nid;
+            one_tilt = ppm->n_cdi_nid;
+            one_running = ppm->alpha_cdi_nid;
+          }
+
+          if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_cdi) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_cdi_niv;
+            one_tilt = ppm->n_cdi_niv;
+            one_running = ppm->alpha_cdi_niv;
+          }
+
+          if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
+              (((index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) ||
+               ((index_ic2 == ppt->index_ic_nid) && (index_ic1 == ppt->index_ic_niv)))) {
+            one_correlation = ppm->c_nid_niv;
+            one_tilt = ppm->n_nid_niv;
+            one_running = ppm->alpha_nid_niv;
+          }
+
+        }
 
         class_test((one_correlation < -1) || (one_correlation > 1),
                    ppm->error_message,
@@ -882,15 +910,15 @@ int primordial_analytic_spectrum_init(
         }
         else {
           ppm->is_non_zero[index_md][index_ic1_ic2] = _TRUE_;
-          ppm->amplitude[index_md][index_ic1_ic2] = 
+          ppm->amplitude[index_md][index_ic1_ic2] =
             sqrt(ppm->amplitude[index_md][index_ic1_ic1]*
                  ppm->amplitude[index_md][index_ic2_ic2])*
             one_correlation;
-          ppm->tilt[index_md][index_ic1_ic2] = 
+          ppm->tilt[index_md][index_ic1_ic2] =
             0.5*(ppm->tilt[index_md][index_ic1_ic1]
                  +ppm->tilt[index_md][index_ic2_ic2])
             + one_tilt;
-          ppm->running[index_md][index_ic1_ic2] = 
+          ppm->running[index_md][index_ic1_ic2] =
             0.5*(ppm->running[index_md][index_ic1_ic1]
                  +ppm->running[index_md][index_ic2_ic2])
             + one_running;
@@ -898,7 +926,7 @@ int primordial_analytic_spectrum_init(
       }
     }
   }
-  
+
   return _SUCCESS_;
 
 }
@@ -908,10 +936,10 @@ int primordial_analytic_spectrum_init(
  * amplitudes, tilts, runnings, for each mode (scalar/tensor...),
  * pair of initial conditions, and wavenumber.
  *
- * @param ppm            Input/output: pointer to primordial structure 
- * @param index_md     Input: index of mode (scalar, tensor, ...) 
+ * @param ppm            Input/output: pointer to primordial structure
+ * @param index_md     Input: index of mode (scalar, tensor, ...)
  * @param index_ic1_ic2  Input: pair of initial conditions (ic1, ic2)
- * @param k              Input: wavenumber in same units as pivot scale, i.e. in 1/Mpc 
+ * @param k              Input: wavenumber in same units as pivot scale, i.e. in 1/Mpc
  * @param pk             Output: primordial power spectrum A (k/k_pivot)^(n+...)
  * @return the error status
  */
@@ -922,8 +950,8 @@ int primordial_analytic_spectrum(
                                  int index_ic1_ic2,
                                  double k,
                                  double * pk
-                                 ) {  
-  
+                                 ) {
+
   if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
     *pk = ppm->amplitude[index_md][index_ic1_ic2]
       *exp((ppm->tilt[index_md][index_ic1_ic2]-1.)*log(k/ppm->k_pivot)
@@ -935,13 +963,13 @@ int primordial_analytic_spectrum(
   }
 
   return _SUCCESS_;
-  
+
 }
 
 /**
- * This routine encodes the inflaton scalar potential 
+ * This routine encodes the inflaton scalar potential
  *
- * @param ppm            Input: pointer to primordial structure 
+ * @param ppm            Input: pointer to primordial structure
  * @param phi            Input: background inflaton field value in units of Mp
  * @param V              Output: inflaton potential in units of MP^4
  * @param dV             Output: first derivative of inflaton potential wrt the field
@@ -963,7 +991,7 @@ int primordial_inflation_potential(
     *V   = ppm->V0+(phi-ppm->phi_pivot)*ppm->V1+pow((phi-ppm->phi_pivot),2)/2.*ppm->V2+pow((phi-ppm->phi_pivot),3)/6.*ppm->V3+pow((phi-ppm->phi_pivot),4)/24.*ppm->V4;
     *dV  = ppm->V1+(phi-ppm->phi_pivot)*ppm->V2+pow((phi-ppm->phi_pivot),2)/2.*ppm->V3+pow((phi-ppm->phi_pivot),3)/6.*ppm->V4;
     *ddV = ppm->V2+(phi-ppm->phi_pivot)*ppm->V3+pow((phi-ppm->phi_pivot),2)/2.*ppm->V4;
-  
+
   }
 
   /* V(phi) = Lambda^4(1+cos(phi/f)) = V0 (1+cos(phi/V1)) */
@@ -981,9 +1009,9 @@ int primordial_inflation_potential(
 }
 
 /**
- * This routine defines indices used by the inflation simulator 
+ * This routine defines indices used by the inflation simulator
  *
- * @param ppm  Input/output: pointer to primordial structure 
+ * @param ppm  Input/output: pointer to primordial structure
  * @return the error status
  */
 int primordial_inflation_indices(
@@ -1035,9 +1063,9 @@ int primordial_inflation_indices(
  * phi=phi_pivot, and then, if this evolution is suitable, to call the
  * routine primordial_inflation_spectra().
  *
- * @param ppt  Input: pointer to perturbation structure 
+ * @param ppt  Input: pointer to perturbation structure
  * @param ppm  Input/output: pointer to primordial structure
- * @param ppr  Input: pointer to precision structure  
+ * @param ppr  Input: pointer to precision structure
  * @return the error status
  */
 
@@ -1075,7 +1103,7 @@ int primordial_inflation_solve_inflation(
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
-  
+
   if (ppm->primordial_verbose > 1)
     printf(" (search attractor at pivot)\n");
 
@@ -1093,15 +1121,15 @@ int primordial_inflation_solve_inflation(
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
-  
+
   /* find a_pivot, value of scale factor when k_pivot crosses horizon while phi=phi_pivot */
   a_pivot = ppm->k_pivot/H_pivot;
-  
+
   /* integrate background solution starting from phi_pivot and until
      k_max>>aH. This ensure that the inflationary model considered
      here is valid and that the primordial spectrum can be
      computed. Otherwise, if slow-roll brakes too early, model is not
-     suitable and run stops. */ 
+     suitable and run stops. */
   k_max = exp(ppm->lnk[ppm->lnk_size-1]);
   y[ppm->index_in_a] = a_pivot;
   y[ppm->index_in_phi] = ppm->phi_pivot;
@@ -1118,13 +1146,13 @@ int primordial_inflation_solve_inflation(
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
-  
+
   /* we need to do the opposite: to check that there is an initial
      time such that k_min << (aH)_ini. One such time is found by
      iterations. If no solution exist (no long-enough slow-roll period
      before the pivot scale), the run stops. */
   aH_ini = exp(ppm->lnk[0])/ppr->primordial_inflation_ratio_min;
-	       
+
   a_try = a_pivot;
   H_try = H_pivot;
   phi_try = ppm->phi_pivot;
@@ -1181,7 +1209,7 @@ int primordial_inflation_solve_inflation(
                       free(y);free(y_ini);free(dy));
 
     a_try = a_pivot/y[ppm->index_in_a];
-    
+
     if (ppm->primordial_verbose > 1)
       printf(" (--> found %f e-folds\n",-log(a_try));
 
@@ -1207,7 +1235,7 @@ int primordial_inflation_solve_inflation(
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
-  
+
   /* before ending, we want to compute and store the values of phi correspondig to k=aH for k_min and k_max */
 
   y[ppm->index_in_a] = y_ini[ppm->index_in_a];
@@ -1246,9 +1274,9 @@ int primordial_inflation_solve_inflation(
  * integrate the perturbation equations, and then it stores the result
  * for the scalar/tensor spectra.
  *
- * @param ppt   Input: pointer to perturbation structure 
+ * @param ppt   Input: pointer to perturbation structure
  * @param ppm   Input/output: pointer to primordial structure
- * @param ppr   Input: pointer to precision structure  
+ * @param ppr   Input: pointer to precision structure
  * @param y_ini Input: initial conditions for the vector of background/perturbations, already allocated and filled
  * @param y     Input: running vector of background/perturbations, already allocated
  * @param dy    Input: running vector of background/perturbation derivatives, already allocated
@@ -1277,20 +1305,20 @@ int primordial_inflation_spectra(
   class_call(primordial_inflation_potential(ppm,y_ini[ppm->index_in_phi],&V,&dV,&ddV),
              ppm->error_message,
              ppm->error_message);
-  
+
   /* get initial aH from Friedmann equation */
   aH = sqrt((8*_PI_/3.)*(0.5*y_ini[ppm->index_in_dphi]*y_ini[ppm->index_in_dphi]+y_ini[ppm->index_in_a]*y_ini[ppm->index_in_a]*V));
 
   class_test(aH >= exp(ppm->lnk[0])/ppr->primordial_inflation_ratio_min,
              ppm->error_message,
              "at initial time, a_k_min > a*H*ratio_min");
-  
+
   /* loop over Fourier wavenumbers */
   for (index_k=0; index_k < ppm->lnk_size; index_k++) {
 
     k = exp(ppm->lnk[index_k]);
 
-    /* initialize the background part of the running vector */ 
+    /* initialize the background part of the running vector */
     y[ppm->index_in_a] = y_ini[ppm->index_in_a];
     y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
     y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
@@ -1303,7 +1331,7 @@ int primordial_inflation_spectra(
     /* evolve the background/perturbation equations from this time and until some time fater Horizon crossing */
     class_call(primordial_inflation_one_k(ppm,ppr,k,y,dy,&curvature,&tensors),
                ppm->error_message,
-               ppm->error_message);	     
+               ppm->error_message);
 
     class_test(curvature<=0.,
                ppm->error_message,
@@ -1316,15 +1344,16 @@ int primordial_inflation_spectra(
     /* store the obtained result for curvatute and tensor perturbations */
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
-    ppm->is_non_zero[ppt->index_md_scalars][0] = _TRUE_;
-    ppm->is_non_zero[ppt->index_md_tensors][0] = _TRUE_;
-   
+
     /* fprintf(stderr,"%e %e %e\n", */
     /* 	    ppm->lnk[index_k], */
     /* 	    ppm->lnpk[ppt->index_md_scalars][index_k], */
     /* 	    ppm->lnpk[ppt->index_md_tensors][index_k]); */
-	    
+
   }
+
+  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
+  ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
 
   return _SUCCESS_;
 
@@ -1335,12 +1364,12 @@ int primordial_inflation_spectra(
  * or each wavenumber, and returning the scalr and tensor spectrum.
  *
  * @param ppm   Input: pointer to primordial structure
- * @param ppr   Input: pointer to precision structure  
+ * @param ppr   Input: pointer to precision structure
  * @param k     Input: Fourier wavenumber
  * @param y     Input: running vector of background/perturbations, already allocated and initialized
  * @param dy    Input: running vector of background/perturbation derivatives, already allocated
- * @param curvature  Output: curvature perturbation    
- * @param tensor     Output: tensor perturbation    
+ * @param curvature  Output: curvature perturbation
+ * @param tensor     Output: tensor perturbation
  * @return the error status
  */
 
@@ -1353,7 +1382,7 @@ int primordial_inflation_one_k(
                                double * curvature,
                                double * tensor
                                ) {
-  
+
   double tau_start,tau_end,dtau;
   double z,ksi2,ah2;
   double aH;
@@ -1390,7 +1419,7 @@ int primordial_inflation_one_k(
 
   /* intialize conformal time to arbitrary value (here, only variations
      of tau matter: the equations that we integrate do not depend
-     explicitely on time) */ 
+     explicitely on time) */
   tau_end = 0;
 
   /* compute derivative of initial vector and infer first value of adaptative time-step */
@@ -1401,21 +1430,21 @@ int primordial_inflation_one_k(
                                          ppm->error_message),
              ppm->error_message,
              ppm->error_message);
-    
+
   dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/MAX(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
 
   /* loop over time */
   do {
-    
+
     /* new time interval [tau_start, tau_end] over which equations will be integrated */
     tau_start = tau_end;
-    
+
     tau_end = tau_start + dtau;
-    
+
     class_test(dtau/tau_start < ppr->smallest_allowed_variation,
                ppm->error_message,
                "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",dtau/tau_start);
-  
+
     /* evolve the system */
     class_call(generic_integrator(primordial_inflation_derivs,
                                   tau_start,
@@ -1436,7 +1465,7 @@ int primordial_inflation_one_k(
                                            ppm->error_message),
                ppm->error_message,
                ppm->error_message);
-    
+
     /* new time step */
     dtau = ppr->primordial_inflation_pt_stepsize*2.*_PI_/MAX(sqrt(fabs(dy[ppm->index_in_dksi_re]/y[ppm->index_in_ksi_re])),k);
 
@@ -1454,7 +1483,7 @@ int primordial_inflation_one_k(
     /* variation of curvature with time (dimensionless) */
     dlnPdN = (curvature_new-curvature_old)/dtau*y[ppm->index_in_a]/dy[ppm->index_in_a]/curvature_new;
 
-    /* stop when (k >> aH) AND curvature is stable */  
+    /* stop when (k >> aH) AND curvature is stable */
   } while ((k/aH >= ppr->primordial_inflation_ratio_max) || (fabs(dlnPdN) > ppr->primordial_inflation_tol_curvature));
 
   /* clean the generic integrator */
@@ -1480,13 +1509,13 @@ int primordial_inflation_one_k(
  * tolerance, returns error message.
  *
  * @param ppm       Input: pointer to primordial structure
- * @param ppr       Input: pointer to precision structure  
+ * @param ppr       Input: pointer to precision structure
  * @param phi_0     Input: field value at which we wish to find the solution
  * @param precision Input: tolerance on output values (if too large, an attractor will always considered to be found)
  * @param y         Input: running vector of background variables, already allocated and initialized
  * @param dy        Input: running vector of background derivatives, already allocated
- * @param H0        Output: Hubble value at phi_0 for attractor solution    
- * @param dphidt_0  Output: field derivative value at phi_0 for attractor solution  
+ * @param H0        Output: Hubble value at phi_0 for attractor solution
+ * @param dphidt_0  Output: field derivative value at phi_0 for attractor solution
  * @return the error status
  */
 
@@ -1567,10 +1596,10 @@ int primordial_inflation_find_attractor(
  * y contrains the final background values.
  *
  * @param ppm       Input: pointer to primordial structure
- * @param ppr       Input: pointer to precision structure  
+ * @param ppr       Input: pointer to precision structure
  * @param y         Input/output: running vector of background variables, already allocated and initialized
  * @param dy        Input: running vector of background derivatives, already allocated
- * @param phi_stop  Input: final field value 
+ * @param phi_stop  Input: final field value
  * @return the error status
  */
 
@@ -1609,12 +1638,12 @@ int primordial_inflation_evolve_background(
                                          ppm->error_message),
              ppm->error_message,
              ppm->error_message);
-      
+
   aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
   dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
   while (y[ppm->index_in_phi] <= (phi_stop-y[ppm->index_in_dphi]*dtau)) {
-    
+
     class_call_except(primordial_inflation_check_potential(ppm,
                                                            y[ppm->index_in_phi]),
                       ppm->error_message,
@@ -1631,7 +1660,7 @@ int primordial_inflation_evolve_background(
                       ppm->error_message,
                       ppm->error_message,
                       cleanup_generic_integrator(&gi));
-      
+
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
     dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
@@ -1666,7 +1695,7 @@ int primordial_inflation_evolve_background(
 
     class_test_except((epsilon > 1) && (epsilon_old <= 1),
                       ppm->error_message,
-                      cleanup_generic_integrator(&gi), 
+                      cleanup_generic_integrator(&gi),
                       "Inflaton evolution crosses the border from epsilon<1 to epsilon>1 at phi=%g. Inflation disrupted during the observable e-folds",
                       y[ppm->index_in_phi]);
 
@@ -1700,10 +1729,10 @@ int primordial_inflation_evolve_background(
  * y contrains the final background values.
  *
  * @param ppm       Input: pointer to primordial structure
- * @param ppr       Input: pointer to precision structure  
+ * @param ppr       Input: pointer to precision structure
  * @param y         Input/output: running vector of background variables, already allocated and initialized
  * @param dy        Input: running vector of background derivatives, already allocated
- * @param aH_stop  Input: final aH value 
+ * @param aH_stop  Input: final aH value
  * @return the error status
  */
 
@@ -1753,7 +1782,7 @@ int primordial_inflation_reach_aH(
                                            ppm->error_message),
                ppm->error_message,
                ppm->error_message);
-      
+
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
     dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
@@ -1791,7 +1820,7 @@ int primordial_inflation_reach_aH(
  * the first option.
  *
  * @param ppm       Input: pointer to primordial structure
- * @param phi       Input: field value where to perform the check 
+ * @param phi       Input: field value where to perform the check
  * @return the error status
  */
 
@@ -1810,12 +1839,12 @@ int primordial_inflation_check_potential(
              ppm->error_message,
              "This potential becomes negative at phi=%g, before the end of observable inflation. It  cannot be treated by this code",
              phi);
-  
+
   class_test(dV >= 0.,
              ppm->error_message,
              "All the code is written for the case dV/dphi<0. Here, in phi=%g, we have dV/dphi=%g. This potential cannot be treated by this code",
              phi,dV);
-  
+
   return _SUCCESS_;
 }
 
@@ -1835,11 +1864,11 @@ int primordial_inflation_get_epsilon(
                                      ) {
 
   double V=0.,dV=0.,ddV=0.;
-  
+
   class_call(primordial_inflation_potential(ppm,phi,&V,&dV,&ddV),
              ppm->error_message,
              ppm->error_message);
-  
+
   *epsilon = 1./16./_PI_*pow(dV/V,2);
 
   //*eta = 1./8./pi*(ddV/V)
@@ -1872,10 +1901,10 @@ int primordial_inflation_derivs(
 
   struct primordial_inflation_parameters_and_workspace * ppipaw;
   struct primordial * ppm;
-  
+
   ppipaw = parameters_and_workspace;
   ppm = ppipaw->ppm;
-  
+
   class_call(primordial_inflation_potential(ppm,
                                             y[ppm->index_in_phi],
                                             &(ppipaw->V),
@@ -1890,7 +1919,7 @@ int primordial_inflation_derivs(
   ppipaw->a2V=y[ppm->index_in_a]*y[ppm->index_in_a]*ppipaw->V;
   // a**2 dV/dphi
   ppipaw->a2dV=y[ppm->index_in_a]*y[ppm->index_in_a]*ppipaw->dV;
-  // a H = a'/a      
+  // a H = a'/a
   ppipaw->aH = sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->a2V));
 
   // 1: a
@@ -1908,11 +1937,11 @@ int primordial_inflation_derivs(
   // a**2 d2V/dphi2
   ppipaw->a2ddV=y[ppm->index_in_a]*y[ppm->index_in_a]*ppipaw->ddV;
   // z''/z
-  ppipaw->zpp_over_z=2*ppipaw->aH*ppipaw->aH - ppipaw->a2ddV - 4.*_PI_*(7.*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+4.*y[ppm->index_in_dphi]/ppipaw->aH*ppipaw->a2dV) 
+  ppipaw->zpp_over_z=2*ppipaw->aH*ppipaw->aH - ppipaw->a2ddV - 4.*_PI_*(7.*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+4.*y[ppm->index_in_dphi]/ppipaw->aH*ppipaw->a2dV)
     +32.*_PI_*_PI_*pow(y[ppm->index_in_dphi],4)/pow(ppipaw->aH,2);
   // a''/a
   ppipaw->app_over_a=2.*ppipaw->aH*ppipaw->aH - 4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
-  
+
   // SCALARS
   // 4: ksi_re
   dy[ppm->index_in_ksi_re]=y[ppm->index_in_dksi_re];
@@ -1932,7 +1961,179 @@ int primordial_inflation_derivs(
   dy[ppm->index_in_dah_re]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_re];
   // 11: d ah_im / dtau
   dy[ppm->index_in_dah_im]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_im];
-    
+
   return _SUCCESS_;
 
+}
+
+/**
+ * This routine reads the primordial spectrum from an external command,
+ * and stores the tabulated values.
+ * The sampling of the k's given by the external command is preserved.
+ *
+ * Author: Jesus Torrado (torradocacho@lorentz.leidenuniv.nl)
+ * Date:   2013-12-20
+ *
+ * @param ppm  Input/output: pointer to perturbs structure
+ * @param ppm  Input/output: pointer to primordial structure
+ * @return the error status
+ */
+
+int primordial_external_spectrum_init(
+                                      struct perturbs * ppt,
+                                      struct primordial * ppm
+                                      ) {
+
+  char arguments[_ARGUMENT_LENGTH_MAX_];
+  char line[_LINE_LENGTH_MAX_];
+  char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
+  FILE *process;
+  int n_data_guess, n_data = 0;
+  double *k = NULL, *pks = NULL, *pkt = NULL, *tmp = NULL;
+  double this_k, this_pks, this_pkt;
+  int status;
+  int index_k;
+
+  /** 1. Initialization */
+  /* Prepare the data (with some initial size) */
+  n_data_guess = 100;
+  k   = (double *)malloc(n_data_guess*sizeof(double));
+  pks = (double *)malloc(n_data_guess*sizeof(double));
+  if (ppt->has_tensors == _TRUE_)
+    pkt = (double *)malloc(n_data_guess*sizeof(double));
+  /* Prepare the command */
+  /* If the command is just a "cat", no arguments need to be passed */
+  if(strncmp("cat ", ppm->command, 4) == 0) {
+    sprintf(arguments, " ");
+  }
+  /* otherwise pass the list of arguments */
+  else {
+    sprintf(arguments, " %g %g %g %g %g %g %g %g %g %g",
+            ppm->custom1, ppm->custom2, ppm->custom3, ppm->custom4, ppm->custom5,
+            ppm->custom6, ppm->custom7, ppm->custom8, ppm->custom9, ppm->custom10);
+  }
+  /* write the actual command in a string */
+  sprintf(command_with_arguments, "%s %s", ppm->command, arguments);
+  if (ppm->primordial_verbose > 0)
+    printf(" -> running: %s\n",command_with_arguments);
+
+  /** 2. Launch the command and retrieve the output */
+  /* Launch the process */
+  process = popen(command_with_arguments, "r");
+  class_test(process == NULL,
+             ppm->error_message,
+             "The program failed to set the environment for the external command. Maybe you ran out of memory.");
+  /* Read output and store it */
+  while (fgets(line, sizeof(line)-1, process) != NULL) {
+    if (ppt->has_tensors == _TRUE_) {
+      sscanf(line, "%lf %lf %lf", &this_k, &this_pks, &this_pkt);
+    }
+    else {
+      sscanf(line, "%lf %lf", &this_k, &this_pks);
+    }
+    /* Standard technique in C: if too many data, double the size of the vectors */
+    /* (it is faster and safer that reallocating every new line) */
+    if((n_data+1) > n_data_guess) {
+      n_data_guess *= 2;
+      tmp = (double *)realloc(k,   n_data_guess*sizeof(double));
+      class_test(tmp == NULL,
+                 ppm->error_message,
+                 "Error allocating memory to read the external spectrum.\n");
+      k = tmp;
+      tmp = (double *)realloc(pks, n_data_guess*sizeof(double));
+      class_test(tmp == NULL,
+                 ppm->error_message,
+                 "Error allocating memory to read the external spectrum.\n");
+      pks = tmp;
+      if (ppt->has_tensors == _TRUE_) {
+        tmp = (double *)realloc(pkt, n_data_guess*sizeof(double));
+        class_test(tmp == NULL,
+                   ppm->error_message,
+                   "Error allocating memory to read the external spectrum.\n");
+        pkt = tmp;
+      };
+    };
+    /* Store */
+    k  [n_data]   = this_k;
+    pks[n_data]   = this_pks;
+    if (ppt->has_tensors == _TRUE_) {
+      pkt[n_data] = this_pkt;
+    }
+    n_data++;
+    /* Check ascending order of the k's */
+    if(n_data>1) {
+      class_test(k[n_data-1] <= k[n_data-2],
+                 ppm->error_message,
+                 "The k's are not strictly sorted in ascending order, "
+                 "as it is required for the calculation of the splines.\n");
+    }
+  }
+  /* Close the process */
+  status = pclose(process);
+  class_test(status != 0.,
+             ppm->error_message,
+             "The attempt to launch the external command was unsuccessful. "
+             "Try doing it by hand to check for errors.");
+  /* Test limits of the k's */
+  class_test(k[1] > ppt->k[0],
+             ppm->error_message,
+             "Your table for the primordial spectrum does not have "
+             "at least 2 points before the minimum value of k: %e . "
+             "The splines interpolation would not be safe.",ppt->k[0]);
+  class_test(k[n_data-2] < ppt->k[ppt->k_size-1],
+             ppm->error_message,
+             "Your table for the primordial spectrum does not have "
+             "at least 2 points after the maximum value of k: %e . "
+             "The splines interpolation would not be safe.",ppt->k[ppt->k_size-1]);
+
+  /** 3. Store the read results into CLASS structures */
+  ppm->lnk_size = n_data;
+  /** Make room */
+  class_realloc(ppm->lnk,
+                ppm->lnk,
+                ppm->lnk_size*sizeof(double),
+                ppm->error_message);
+  class_realloc(ppm->lnpk[ppt->index_md_scalars],
+                ppm->lnpk[ppt->index_md_scalars],
+                ppm->lnk_size*sizeof(double),
+                ppm->error_message);
+  class_realloc(ppm->ddlnpk[ppt->index_md_scalars],
+                ppm->ddlnpk[ppt->index_md_scalars],
+                ppm->lnk_size*sizeof(double),
+                ppm->error_message);
+  if (ppt->has_tensors == _TRUE_) {
+    class_realloc(ppm->lnpk[ppt->index_md_tensors],
+                  ppm->lnpk[ppt->index_md_tensors],
+                  ppm->lnk_size*sizeof(double),
+                  ppm->error_message);
+    class_realloc(ppm->ddlnpk[ppt->index_md_tensors],
+                  ppm->ddlnpk[ppt->index_md_tensors],
+                  ppm->lnk_size*sizeof(double),
+                  ppm->error_message);
+  };
+  /** Store them */
+  for (index_k=0; index_k<ppm->lnk_size; index_k++) {
+    ppm->lnk[index_k] = log(k[index_k]);
+    ppm->lnpk[ppt->index_md_scalars][index_k] = log(pks[index_k]);
+    if (ppt->has_tensors == _TRUE_)
+      ppm->lnpk[ppt->index_md_tensors][index_k] = log(pkt[index_k]);
+    /* DEBUG (with tensors)
+       fprintf(stderr,"Storing[%d(+1) of %d]: \n k = %g == %g\n pks = %g == %g\n pkt = %g == %g\n",
+       index_k, n_data,
+       ppm->lnk[index_k], log(k[index_k]),
+       ppm->lnpk[ppt->index_md_scalars][index_k], log(pks[index_k]),
+       ppm->lnpk[ppt->index_md_tensors][index_k], log(pkt[index_k]));
+    */
+  };
+  /** Release the memory used locally */
+  free(k);
+  free(pks);
+  if (ppt->has_tensors == _TRUE_)
+    free(pkt);
+  /** Tell CLASS that the are scalar (and tensor) modes */
+  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
+  if (ppt->has_tensors == _TRUE_)
+    ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
+
+  return _SUCCESS_;
 }

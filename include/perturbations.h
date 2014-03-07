@@ -12,11 +12,11 @@
 #define _tensors_ ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors))
 
 #define _set_source_(index) ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index][index_tau * ppt->k_size + index_k]
-        
-/**  
- * flags for various approximation schemes 
- * (tca = tight-coupling approximation, 
- *  rsa = radiation streaming approximation, 
+
+/**
+ * flags for various approximation schemes
+ * (tca = tight-coupling approximation,
+ *  rsa = radiation streaming approximation,
  *  ufa = massless neutrinos / ultra-relativistic relics fluid approximation)
  *
  * CAUTION: must be listed below in chronological order, and cannot be
@@ -46,8 +46,8 @@ enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 
 //@}
 
-/** 
- * List of coded gauges. More gauges can in principle be defined. 
+/**
+ * List of coded gauges. More gauges can in principle be defined.
  */
 
 //@{
@@ -69,6 +69,18 @@ enum selection_type {gaussian,tophat,dirac};
 
 //@}
 
+
+//@{
+
+/**
+ * maximum number of k-values for perturbation output
+ */
+#define _MAX_NUMBER_OF_K_FILES_ 30
+
+//@}
+
+
+
 /**
  * Structure containing everything about perturbations that other
  * modules need to know, in particular tabuled values of the source
@@ -85,7 +97,7 @@ struct perturbs
    *  (all other quantitites are computed in this module, given these
    *  parameters and the content of the 'precision', 'background' and
    *  'thermodynamics' structures) */
-  
+
   //@{
 
   short has_perturbations; /**< do we need to compute perturbations at all ? */
@@ -102,21 +114,32 @@ struct perturbs
   short has_nid;     /**< do we need isocurvature nid mode? */
   short has_niv;     /**< do we need isocurvature niv mode? */
 
+/* perturbed recombination */
+/* Do we want to consider perturbed temperature and ionization fraction? */
+	short has_perturbed_recombination;
+
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
-  short has_cl_lensing_potential;     /**< do we need Cl's for galaxy lensing potential? */ 
-  short has_cl_density;               /**< do we need Cl's for matter density? */
+  short has_cl_lensing_potential;     /**< do we need Cl's for galaxy lensing potential? */
+  short has_cl_number_count;          /**< do we need Cl's for density number count? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
+
+  short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
+
+  short has_nc_density;  /**< in dCl, do we want density terms ? */
+  short has_nc_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
+  short has_nc_lens;     /**< in dCl, do we want lensing terms ? */
+  short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
   int l_scalar_max; /**< maximum l value for CMB scalars C_ls */
   int l_tensor_max; /**< maximum l value for CMB tensors C_ls */
   int l_lss_max; /**< maximum l value for LSS C_ls (density and lensing potential in  bins) */
   double k_max_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
 
-  int selection_num;                            /**< number of selection functions 
+  int selection_num;                            /**< number of selection functions
                                                    (i.e. bins) for matter density Cls */
   enum selection_type selection;                /**< type of selection functions */
   double selection_mean[_SELECTION_NUM_MAX_]; /**< centers of selection functions */
@@ -128,6 +151,12 @@ struct perturbs
   int switch_dop;  /**< in temperature calculation, do we want to include the Doppler term? */
   int switch_pol;  /**< in temperature calculation, do we want to include the polarisation-related term? */
   double eisw_lisw_split_z; /**< at which redshift do we define the cut between eisw and lisw ?*/
+
+  int k_output_values_num;       /**< Number of perturbation outputs (default=0) */
+  double k_output_values[_MAX_NUMBER_OF_K_FILES_];    /**< List of k values where perturbation output is requested. */
+  int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]; /**< List of indices corresponding to k-values close to k_output_values */
+  FileName root; /**< Same as root in output structure, for writing perturbations.*/
+
 
   //@}
 
@@ -144,7 +173,7 @@ struct perturbs
 
   //@{
 
-  enum possible_gauges gauge; 
+  enum possible_gauges gauge;
 
   //@}
 
@@ -181,20 +210,24 @@ struct perturbs
 
   short has_source_t;  /**< do we need source for CMB temperature? */
   short has_source_p;  /**< do we need source for CMB polarisation? */
-  short has_source_g;  /**< do we need source for gravitationnal potential? */
-  short has_source_delta_pk; /**< do we need source for delta total? */ 
-  short has_source_delta_g;   /**< do we need source for delta of gammas? */
-  short has_source_delta_b;   /**< do we need source for delta of baryons? */
-  short has_source_delta_cdm; /**< do we need source for delta of cold dark matter? */
+  short has_source_delta_m;   /**< do we need source for delta of total matter? */
+  short has_source_delta_g;    /**< do we need source for delta of gammas? */
+  short has_source_delta_b;    /**< do we need source for delta of baryons? */
+  short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
   short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
-  short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_ur;   /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_theta_g;   /**< do we need source for theta of gammas? */
-  short has_source_theta_b;   /**< do we need source for theta of baryons? */
-  short has_source_theta_cdm; /**< do we need source for theta of cold dark matter? */
+  short has_source_theta_m;    /**< do we need source for theta of total matter? */
+  short has_source_theta_g;    /**< do we need source for theta of gammas? */
+  short has_source_theta_b;    /**< do we need source for theta of baryons? */
+  short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
   short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
-  short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_phi;          /**< do we need source for metric fluctuation phi? */
+  short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
+  short has_source_phi_plus_psi; /**< do we need source for metric fluctuation (phi+psi)? */
+  short has_source_psi;          /**< do we need source for metric fluctuation psi? */
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -204,26 +237,38 @@ struct perturbs
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
-  int index_tp_g; /**< index value for gravitationnal potential */
-  int index_tp_delta_pk; /**< index value for delta tot */
-  int index_tp_delta_g;   /**< index value for delta of gammas */
-  int index_tp_delta_b;   /**< index value for delta of baryons */
-  int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
-  int index_tp_delta_fld;  /**< index value for delta of dark energy */
-  int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
+
+  int index_tp_delta_m;     /**< index value for delta of total matter */
+  int index_tp_delta_g;     /**< index value for delta of gammas */
+  int index_tp_delta_b;     /**< index value for delta of baryons */
+  int index_tp_delta_cdm;   /**< index value for delta of cold dark matter */
+  int index_tp_delta_fld;   /**< index value for delta of dark energy */
+  int index_tp_delta_ur;    /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
-  int index_tp_theta_g;   /**< index value for theta of gammas */
-  int index_tp_theta_b;   /**< index value for theta of baryons */
-  int index_tp_theta_cdm; /**< index value for theta of cold dark matter */
-  int index_tp_theta_fld;  /**< index value for theta of dark energy */
-  int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
+
+  /* perturbed recombination */
+  int index_tp_perturbed_recombination_delta_temp;
+  int index_tp_perturbed_recombination_delta_chi;
+
+  int index_tp_theta_m;     /**< index value for theta of total matter */
+  int index_tp_theta_g;     /**< index value for theta of gammas */
+  int index_tp_theta_b;     /**< index value for theta of baryons */
+  int index_tp_theta_cdm;   /**< index value for theta of cold dark matter */
+  int index_tp_theta_fld;   /**< index value for theta of dark energy */
+  int index_tp_theta_ur;    /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
+
+  int index_tp_phi;          /**< index value for metric fluctuation phi */
+  int index_tp_phi_prime;    /**< index value for metric fluctuation phi' */
+  int index_tp_phi_plus_psi; /**< index value for metric fluctuation phi+psi */
+  int index_tp_psi;          /**< index value for metric fluctuation psi */
+
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
   //@}
 
   /** @name - list of k values for each mode */
-  
+
   //@{
 
   int k_size_cmb;  /**< k_size_cmb[index_md] number of k values used
@@ -259,7 +304,7 @@ struct perturbs
   double * selection_tau_min; /**< value of conformal time below which W(tau) is considered to vanish for each bin */
   double * selection_tau_max; /**< value of conformal time above which W(tau) is considered to vanish for each bin */
   double * selection_tau; /**< value of conformal time at the center of each bin */
-  double * selection_function; /** selection function W(tau), normalized to \int W(tau) dtau=1, stored in selection_function[bin*ppt->tau_size+index_tau] */ 
+  double * selection_function; /** selection function W(tau), normalized to \int W(tau) dtau=1, stored in selection_function[bin*ppt->tau_size+index_tau] */
 
   //@}
 
@@ -317,6 +362,10 @@ struct perturb_vector
   int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
   int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
+/* perturbed recombination */
+	int index_pt_perturbed_recombination_delta_temp;		/* Gas temperature perturbation */
+	int index_pt_perturbed_recombination_delta_chi;			/* Inionization fraction perturbation */
+
   int index_pt_psi0_ncdm1;
   int N_ncdm;
   int* l_max_ncdm;
@@ -334,7 +383,7 @@ struct perturb_vector
   int * used_in_sources; /**< boolean array specifying which
                             perturbations enter in the calculation of
                             source functions */
- 
+
 };
 
 
@@ -346,7 +395,7 @@ struct perturb_vector
  * (scalar/.../tensor) and each thread (in case of parallel computing)
  */
 
-struct perturb_workspace 
+struct perturb_workspace
 {
 
   /** @name - all possible useful indices for those metric
@@ -395,7 +444,10 @@ struct perturb_workspace
   double * theta_ncdm;
   double * shear_ncdm;
 
-  double delta_pk;
+  double delta_m;
+  double theta_m;
+
+  FILE * perturb_output_file; /**< filepointer to output file*/
 
   //@}
 
@@ -404,7 +456,7 @@ struct perturb_workspace
   //@{
 
   short inter_mode;
- 
+
   int last_index_back;   /**< the background interpolation function background_at_tau() keeps memory of the last point called through this index */
   int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
 
@@ -416,7 +468,7 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_ufa; /**< index for ur fluid approximation */  
+  int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
 
@@ -439,7 +491,7 @@ struct perturb_workspace
  * Structure pointing towards all what the function that perturb_derivs
  * needs to know: fixed input parameters and indices contained in the
  * various structures, workspace, etc.
- */ 
+ */
 
 struct perturb_parameters_and_workspace {
 
@@ -452,13 +504,13 @@ struct perturb_parameters_and_workspace {
   int index_k;
   double k;
   struct perturb_workspace * ppw; /**< worspace defined above */
-  
+
 };
 
 /*************************************************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -638,7 +690,8 @@ extern "C" {
                       ErrorMsg error_message
                       );
 
-  int perturb_print_variables(double tau,
+  int perturb_print_variables(
+                              double tau,
                               double * y,
                               double * dy,
                               void * parameters_and_workspace,
@@ -671,7 +724,12 @@ extern "C" {
                                   struct perturb_workspace * ppw
                                   );
 
-    
+  int perturb_prepare_output_file(struct background * pba,
+                                  struct perturbs * ppt,
+                                  struct perturb_workspace * ppw,
+                                  int index_ikout,
+                                  int index_md);
+
 #ifdef __cplusplus
 }
 #endif

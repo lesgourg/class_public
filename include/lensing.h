@@ -3,7 +3,7 @@
 #ifndef __LENSING__
 #define __LENSING__
 
-#include "nonlinear.h"
+#include "spectra.h"
 
 /**
  * Structure containing everything about lensed spectra that other modules need to know.
@@ -20,7 +20,7 @@ struct lensing {
    *  (all other quantitites are computed in this module, given these
    *  parameters and the content of the 'precision', 'background' and
    *  'thermodynamics' structures) */
-  
+
   //@{
 
   short has_lensed_cls; /**< do we need to compute lensed Cl's at all ? */
@@ -72,9 +72,9 @@ struct lensing {
   int * l_max_lt;    /**< last multipole (given as an input) at which
 		    we want to output C_ls for a given mode and type */
 
-  double * l;       /**< table of multipole values l[index_l] */  
+  double * l;       /**< table of multipole values l[index_l] */
   double * cl_lens; /**< table of anisotropy spectra for each
-			   multipole and types, 
+			   multipole and types,
 			   cl[index_l * ple->lt_size + index_lt] */
 
   double * ddcl_lens; /**< second derivatives for interpolation */
@@ -95,7 +95,7 @@ struct lensing {
 /*************************************************************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -118,29 +118,29 @@ extern "C" {
   int lensing_free(
                    struct lensing * ple
                    );
-    
+
   int lensing_indices(
 		      struct precision * ppr,
                       struct spectra * psp,
                       struct lensing * ple
                       );
-  
+
   int lensing_lensed_cl_tt(
-                        double *ksi, 
+                        double *ksi,
                         double **d00,
                         double *w8,
                         int nmu,
                         struct lensing * ple
                         );
-  
+
   int lensing_lensed_cl_te(
-                           double *ksiX, 
+                           double *ksiX,
                            double **d20,
                            double *w8,
                            int nmu,
                            struct lensing * ple
                            );
-  
+
   int lensing_lensed_cl_ee_bb(
 			      double *ksip,
 			      double *ksim,
@@ -174,7 +174,7 @@ extern "C" {
                    double * sigma2,
                    double ** X000
                    );
-    
+
   int lensing_Xp000(
                     double * mu,
                     int num_mu,
@@ -182,7 +182,7 @@ extern "C" {
                     double * sigma2,
                     double ** Xp000
                     );
-  
+
   int lensing_X220(
                    double * mu,
                    int num_mu,
@@ -190,7 +190,7 @@ extern "C" {
                    double * sigma2,
                    double ** X220
                    );
-  
+
   int lensing_X022(
                    double * mu,
                    int num_mu,
@@ -206,7 +206,7 @@ extern "C" {
                    double * sigma2,
                    double ** Xp022
                    );
-  
+
   int lensing_X121(
                    double * mu,
                    int num_mu,
@@ -214,7 +214,7 @@ extern "C" {
                    double * sigma2,
                    double ** X121
                    );
-  
+
   int lensing_X132(
                    double * mu,
                    int num_mu,
@@ -222,7 +222,7 @@ extern "C" {
                    double * sigma2,
                    double ** X132
                    );
-  
+
   int lensing_X242(
                    double * mu,
                    int num_mu,
@@ -230,7 +230,7 @@ extern "C" {
                    double * sigma2,
                    double ** X242
                    );
-  
+
   int lensing_d00(
                   double * mu,
                   int num_mu,
@@ -258,7 +258,7 @@ extern "C" {
                    int lmax,
                    double ** d2m2
                    );
-  
+
   int lensing_d22(
                    double * mu,
                    int num_mu,
@@ -272,49 +272,49 @@ extern "C" {
                    int lmax,
                    double ** d20
                    );
-  
+
   int lensing_d31(
                    double * mu,
                    int num_mu,
                    int lmax,
                    double ** d3m1
                    );
-  
+
   int lensing_d3m1(
                    double * mu,
                    int num_mu,
                    int lmax,
                    double ** d3m1
                    );
-  
+
   int lensing_d3m3(
                    double * mu,
                    int num_mu,
                    int lmax,
                    double ** d3m3
                    );
-  
+
   int lensing_d40(
                    double * mu,
                    int num_mu,
                    int lmax,
                    double ** d40
                    );
-  
+
   int lensing_d4m2(
                    double * mu,
                    int num_mu,
                    int lmax,
                    double ** d4m2
                    );
-  
+
   int lensing_d4m4(
                    double * mu,
                    int num_mu,
                    int lmax,
                    double ** d4m4
                    );
-      
+
 #ifdef __cplusplus
 }
 #endif

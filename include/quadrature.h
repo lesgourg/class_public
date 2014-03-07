@@ -30,8 +30,8 @@ typedef struct adaptive_integration_tree_node{
     extern "C" {
 #endif
       int get_qsampling(double *x,
-			double *w, 
-			int *N, 
+			double *w,
+			int *N,
 			int N_max, double rtol,
 			double *qvec,
 			int qsiz,
@@ -51,9 +51,9 @@ typedef struct adaptive_integration_tree_node{
 		   int (*test)(void * params_for_function, double q, double *psi),
 		   int (*function)(void * params_for_function, double q, double *f0),
 		   void * params_for_function,
-		   double tol, 
-		   int treemode, 
-		   double a, 
+		   double tol,
+		   int treemode,
+		   double a,
 		   double b,
 		   int isindefinite,
 		   ErrorMsg errmsg);
@@ -62,8 +62,8 @@ typedef struct adaptive_integration_tree_node{
       int gk_quad(int (*test)(void * params_for_function, double q, double *psi),
 		  int (*function)(void * params_for_function, double q, double *f0),
 		  void * params_for_function,
-		  qss_node* node, 
-		  double a, 
+		  qss_node* node,
+		  double a,
 		  double b,
 		  int isindefinite);
       double testfun(double x);
@@ -79,7 +79,7 @@ typedef struct adaptive_integration_tree_node{
 				       int n,
 				       double * x,
 				       double * y,
-				       double * w, 
+				       double * w,
 				       ErrorMsg error_message);
 
       int quadrature_in_rectangle(
@@ -90,7 +90,7 @@ typedef struct adaptive_integration_tree_node{
 				  int *n,
 				  double ** x,
 				  double ** y,
-				  double ** w, 
+				  double ** w,
 				  ErrorMsg error_message);
 
       int cubature_order_eleven(

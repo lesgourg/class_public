@@ -1,4 +1,5 @@
 from classy import Class
+from classy import CosmoSevereError
 import itertools
 import numpy as np
 import unittest
@@ -35,7 +36,7 @@ class TestClass(unittest.TestCase):
             'nonlinear_verbose': 1,
             'lensing_verbose': 1,
             'output_verbose': 1}
-        self.scenario = {}
+        self.scenario = {'lensing':'yes'}
 
     def tearDown(self):
         self.cosmo.cleanup()
@@ -50,10 +51,14 @@ class TestClass(unittest.TestCase):
             ('LCDM',
              'Mnu',
              'Positive_Omega_k',
-             'Negative_Omega_k'),
+             'Negative_Omega_k',
+             'Isocurvature_modes'),
             ({}, {'output': 'mPk'}, {'output': 'tCl'},
-             {'output': 'tCl lCl'}, {'output': 'mPk tCl lCl'})))
-    def test_parameters(self, name, scenario):
+             {'output': 'tCl pCl lCl'}, {'output': 'mPk tCl lCl','P_k_max_h/Mpc':10},
+             {'output': 'nCl sCl'}, {'output': 'tCl pCl lCl nCl sCl'}),
+            ({'gauge': 'newtonian'}, {'gauge': 'sync'}),
+            ({}, {'non linear': 'halofit'})))
+    def test_parameters(self, name, scenario, gauge, nonlinear):
         """Create a few instances based on different cosmologies"""
         if name == 'Mnu':
             self.scenario.update({'N_ncdm': 1, 'm_ncdm': 0.06})
@@ -61,8 +66,13 @@ class TestClass(unittest.TestCase):
             self.scenario.update({'Omega_k': 0.01})
         elif name == 'Negative_Omega_k':
             self.scenario.update({'Omega_k': -0.01})
+        elif name == 'Isocurvature_modes':
+            self.scenario.update({'ic':'ad,cdi,nid','c_ad_cdi':-0.5})
 
         self.scenario.update(scenario)
+        if scenario != {}:
+            self.scenario.update(gauge)
+        self.scenario.update(nonlinear)
 
         print '\n\n--------------------------'
         print '| Test case %s |' % name
@@ -75,6 +85,8 @@ class TestClass(unittest.TestCase):
             dict(self.verbose.items()+self.scenario.items()))
         self.assertTrue(setting, "Class failed to initialize with input dict")
 
+        cl_list = ['tCl', 'lCl', 'pCl', 'nCl', 'sCl']
+
         self.cosmo.compute()
         self.assertTrue(
             self.cosmo.state,
@@ -84,8 +96,9 @@ class TestClass(unittest.TestCase):
         # Depending
         if 'output' in self.scenario.keys():
             # Positive tests
-            for elem in self.scenario['output'].split():
-                if elem == 'tCl':
+            output = self.scenario['output']
+            for elem in output.split():
+                if elem in cl_list:
                     print '--> testing raw_cl function'
                     cl = self.cosmo.raw_cl(100)
                     self.assertIsNotNone(cl, "raw_cl returned nothing")
@@ -97,15 +110,13 @@ class TestClass(unittest.TestCase):
                     pk = self.cosmo.pk(0.1, 0)
                     self.assertIsNotNone(pk, "pk returned nothing")
             # Negative tests of output functions
-            if 'tCl' not in self.scenario['output'].split():
-                print '--> testing absence of tCl'
-                self.assertRaises(NameError, self.cosmo.raw_cl, 100)
-            #if 'mPk' not in self.scenario['output'].split():
-                #print '--> testing absence of mPk'
-                ##args = (1, 0)
-                #pk = self.cosmo.pk(0.1, 0.)
-                #print pk
-                #self.assertRaises(NameError, self.cosmo.pk, *args)
+            if not any([elem in cl_list for elem in output.split()]):
+                print '--> testing absence of any Cl'
+                self.assertRaises(CosmoSevereError, self.cosmo.raw_cl, 100)
+            if 'mPk' not in self.scenario['output'].split():
+                print '--> testing absence of mPk'
+                #args = (0.1, 0)
+                self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
 
         print '~~~~~~~~ passed ? '
 

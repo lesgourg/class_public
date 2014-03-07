@@ -71,30 +71,30 @@ extern "C" {
   void eqvec(double *datavec,double *emptyvec, int n);
   int lubksb(double **a, int n, int *indx, double b[]);
   int ludcmp(double **a, int n, int *indx, double *d, double *vv);
-  
+
   int numjac(int (*derivs)(double x,double * y,double * dy,void * parameters_and_workspace,ErrorMsg error_message),
 	     double t, double *y, double *fval, struct jacobian *jac, struct numjac_workspace *nj_ws,
 	     double thresh, int neq, int *nfe,
 	     void * parameters_and_workspace_for_derivs, ErrorMsg error_message);
-  
-  
+
+
 int evolver_ndf15(
 	int (*derivs)(double x,double * y,double * dy,
 		void * parameters_and_workspace, ErrorMsg error_message),
 	double x_ini,
 	double x_final,
-	double * y_inout, 
+	double * y_inout,
  	int * used_in_output,
-	int neq, 
+	int neq,
 	void * parameters_and_workspace_for_derivs,
-	double rtol, 
-	double minimum_variation, 
-	int (*timescale_and_approximation)(double x, 
-					   void * parameters_and_workspace, 
+	double rtol,
+	double minimum_variation,
+	int (*timescale_and_approximation)(double x,
+					   void * parameters_and_workspace,
 					   double * timescales,
 					   ErrorMsg error_message),
-	double timestep_over_timescale, 
-	double * t_vec, 
+	double timestep_over_timescale,
+	double * t_vec,
 	int t_res,
 	int (*output)(double x,double y[],double dy[],int index_x,void * parameters_and_workspace,
 		ErrorMsg error_message),

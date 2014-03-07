@@ -1,8 +1,8 @@
 /** Hermite interpolation of order 4 for Phi, dPhi, and d2Phi. When xinterp
-    is sorted (increasing), computations can be reused. On the other hand, 
+    is sorted (increasing), computations can be reused. On the other hand,
     for a randomly called value, the routine is not much slower than a
     routine optimised for this case. The more sorted the vector, the faster
-    the execution time. For closed case, the interpolation structure only 
+    the execution time. For closed case, the interpolation structure only
     covers [safety;pi/2-safety]. The calling routine should respect this.
     if sinK and cosK are not NULL, we will also interpolate them.
 */
@@ -59,7 +59,7 @@ next_border = xmin;
 for (j=0; j<nxi; j++){
   x = xinterp[j];
   //take advantage of periodicity of functions in closed case
-  if (pHIS->K==1) 
+  if (pHIS->K==1)
     ClosedModY(l, (int)(pHIS->beta+0.2), &x, &phisign, &dphisign);
   //Loop over output values
   if ((x<xmin)||(x>xmax)){
@@ -77,7 +77,7 @@ for (j=0; j<nxi; j++){
   }
   if ((x>right_border)||(x<left_border)){
     if ((x>next_border)||(x<left_border)){
-      current_border_idx = ((int) ((x-xmin)/deltax))+1; 
+      current_border_idx = ((int) ((x-xmin)/deltax))+1;
       current_border_idx = MAX(1,current_border_idx);
       current_border_idx = MIN(nx-1,current_border_idx);
       //printf("Current border index at jump: %d\n",current_border_idx);
@@ -129,7 +129,7 @@ for (j=0; j<nxi; j++){
     d3yp = -2*cotKp*d2yp-2*yp*lxlp1*cotKp/sinKp2+
       dyp*(K-beta2+(2+lxlp1)/sinKp2);
 #endif
-  
+
 #ifdef HERMITE_DO_PHI
     a[0] = dym*deltax;
     a[1] = -2*dym*deltax-dyp*deltax-3*ym+3*yp;

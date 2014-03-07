@@ -38,7 +38,7 @@ OMPFLAG   = -fopenmp
 CCFLAG = -g -fPIC
 LDFLAG = -g -fPIC
 
-# leave blank to compile without HyRec, or put path to HyRec directory 
+# leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
 HYREC = hyrec
 
@@ -61,7 +61,7 @@ vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
 INCLUDES += -I../hyrec
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o 
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
 endif
 
 %.o:  %.c .base
@@ -69,7 +69,7 @@ endif
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o
 
-SOURCE = input.o background.o thermodynamics.o perturbations.o transfer.o primordial.o spectra.o trg.o nonlinear.o lensing.o
+SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o
 
 INPUT = input.o
 
@@ -79,7 +79,7 @@ BACKGROUND = background.o
 
 THERMO = thermodynamics.o
 
-PERTURBATIONS = perturbations.o 
+PERTURBATIONS = perturbations.o
 
 TRANSFER = transfer.o
 
@@ -87,7 +87,7 @@ PRIMORDIAL = primordial.o
 
 SPECTRA = spectra.o
 
-NONLINEAR = trg.o nonlinear.o
+NONLINEAR = nonlinear.o
 
 LENSING = lensing.o
 
@@ -101,6 +101,8 @@ TEST_DEGENERACY = test_degeneracy.o
 
 TEST_TRANSFER = test_transfer.o
 
+TEST_NONLINEAR = test_nonlinear.o
+
 TEST_PERTURBATIONS = test_perturbations.o
 
 TEST_THERMODYNAMICS = test_thermodynamics.o
@@ -113,14 +115,15 @@ TEST_STEPHANE = test_stephane.o
 
 C_TOOLS =  $(addprefix tools/, $(addsuffix .c,$(basename $(TOOLS))))
 C_SOURCE = $(addprefix source/, $(addsuffix .c,$(basename $(SOURCE) $(OUTPUT))))
-C_TEST = $(addprefix test/, $(addsuffix .c,$(basename $(TEST_DEGENERACY) $(TEST_LOOPS) $(TEST_TRANSFER) $(TEST_PERTURBATIONS) $(TEST_THERMODYNAMICS))))
+C_TEST = $(addprefix test/, $(addsuffix .c,$(basename $(TEST_DEGENERACY) $(TEST_LOOPS) $(TEST_TRANSFER) $(TEST_NONLINEAR) $(TEST_PERTURBATIONS) $(TEST_THERMODYNAMICS))))
 C_MAIN = $(addprefix main/, $(addsuffix .c,$(basename $(CLASS))))
 C_ALL = $(C_MAIN) $(C_TOOLS) $(C_SOURCE)
 H_ALL = $(addprefix include/, common.h svnversion.h $(addsuffix .h, $(basename $(notdir $(C_ALL)))))
-PRE_ALL = chi2pl0.01.pre chi2pl0.1.pre chi2pl10.pre chi2pl1.pre chi2plT0.01lensed.pre chi2plT0.01.pre chi2plT0.1lensed.pre chi2plT0.1.pre cl_2permille.pre cl_3permille.pre cl_permille.pre cl_ref.pre clt_permille.pre pk_ref.pre REFCLASS.pre REFCLASS_tClpCl.pre
-INI_ALL = concise.ini explanatory.ini lcdm.ini trg.ini
-MISC_FILES = Makefile CPU psd_FD_single.dat README bbn/sBBN.dat
-PYTHON = python/classy.pyx python/setup.py
+PRE_ALL = cl_ref.pre clt_permille.pre
+INI_ALL = explanatory.ini lcdm.ini
+MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
+PYTHON = python/classy.pyx python/setup.py python/cclassy.pxd python/test_class.py
+
 
 
 
@@ -144,7 +147,10 @@ test_stephane: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_STEPHANE)
 test_degeneracy: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_DEGENERACY)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
-test_transfer: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(TRANSFER) $(EXTERNAL) $(TEST_TRANSFER)
+test_transfer: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(PRIMORDIAL) $(NONLINEAR) $(TRANSFER) $(EXTERNAL) $(TEST_TRANSFER)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+
+test_nonlinear: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(PRIMORDIAL) $(NONLINEAR) $(EXTERNAL) $(TEST_NONLINEAR)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_perturbations: $(TOOLS) $(INPUT) $(BACKGROUND) $(THERMO) $(PERTURBATIONS) $(EXTERNAL) $(TEST_PERTURBATIONS)
@@ -161,3 +167,4 @@ tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(
 
 clean: .base
 	rm -rf $(WRKDIR);
+	rm -f libclass.a

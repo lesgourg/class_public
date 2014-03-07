@@ -13,7 +13,7 @@
  */
 
 enum recombination_algorithm {
-  recfast, 
+  recfast,
   hyrec
 };
 
@@ -24,7 +24,7 @@ enum recombination_algorithm {
 enum reionization_parametrization {
   reio_none, /**< no reionization */
   reio_camb,  /**< reionization parameterized like in CAMB */
-  reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */ 
+  reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
   reio_half_tanh  /**< half a tanh, intead of the full tanh */
 };
 
@@ -53,12 +53,12 @@ enum reionization_z_or_tau {
  * used for interpolation in other modules.
  */
 
-struct thermo 
+struct thermo
 {
   /** @name - input parameters initialized by user in input module
    *  (all other quantitites are computed in this module, given these parameters
    *   and the content of the 'precision' and 'background' structures) */
-  
+
   //@{
 
   double YHe;  /**< \f$ Y_{He} \f$ : primordial helium fraction */
@@ -98,7 +98,7 @@ struct thermo
   /** parameters for energy injection */
 
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-  
+
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
 
   double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
@@ -117,7 +117,7 @@ struct thermo
 			     this is the value of z at which the
 			     parameter annihilation is defined, i.e.
 			     F(annihilation_z)=annihilation */
-  
+
   double annihilation_zmax; /** if annihilation_variation is non-zero,
 				redhsift above which annihilation rate
 				is maximal */
@@ -147,9 +147,9 @@ struct thermo
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
-  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */ 
+  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \tau), used for computing integration step in perturbation module */
-  int th_size;                /**< size of thermodynamics vector */ 
+  int th_size;                /**< size of thermodynamics vector */
 
   //@}
 
@@ -214,10 +214,10 @@ struct thermo
 
   //@}
 
-  /** 
+  /**
    *@name - some flags needed for thermodynamics functions
    */
-  
+
   //@{
 
   short inter_normal;  /**< flag for calling thermodynamics_at_z and find position in interpolation table normally */
@@ -229,7 +229,7 @@ struct thermo
 
   //@{
 
-  short thermodynamics_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */ 
+  short thermodynamics_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
 
@@ -240,9 +240,9 @@ struct thermo
 /**
  * Temporary structure where all the recombination history is defined and stored.
  *
- * This structure is used internally by the thermodynamics module, 
+ * This structure is used internally by the thermodynamics module,
  * but never passed to other modules.
- */ 
+ */
 
 struct recombination {
 
@@ -296,7 +296,7 @@ struct recombination {
   /** parameters for energy injection */
 
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-  
+
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
 
   double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
@@ -315,7 +315,7 @@ struct recombination {
 			     this is the value of z at which the
 			     parameter annihilation is defined, i.e.
 			     F(annihilation_z)=annihilation */
-  
+
   double annihilation_zmax; /** if annihilation_variation is non-zero,
 				redhsift above which annihilation rate
 				is maximal */
@@ -334,9 +334,9 @@ struct recombination {
 /**
  * Temporary structure where all the reionization history is defined and stored.
  *
- * This structure is used internally by the thermodynamics module, 
+ * This structure is used internally by the thermodynamics module,
  * but never passed to other modules.
- */ 
+ */
 
 struct reionization {
 
@@ -417,8 +417,8 @@ struct reionization {
 
 };
 
-/** 
- * temporary  parameters and workspace passed to the thermodynamics_derivs function 
+/**
+ * temporary  parameters and workspace passed to the thermodynamics_derivs function
  */
 
 struct thermodynamics_parameters_and_workspace {
@@ -436,7 +436,7 @@ struct thermodynamics_parameters_and_workspace {
 /**************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -482,7 +482,7 @@ extern "C" {
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );
-  
+
   int thermodynamics_energy_injection(
 				      struct precision * ppr,
 				      struct background * pba,
@@ -491,7 +491,7 @@ extern "C" {
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );
-  
+
   int thermodynamics_reionization_function(
 					   double z,
 					   struct thermo * pth,
@@ -516,12 +516,13 @@ extern "C" {
 					 struct reionization * preio,
 					 double * pvecback
 					 );
-  
-  int thermodynamics_get_xe_before_reionization(struct precision * ppr,
-						struct thermo * pth,
-						struct recombination * preco,
-						double z,
-						double * xe);
+
+  int thermodynamics_get_xe_before_reionization(
+                                                struct precision * ppr,
+                                                struct thermo * pth,
+                                                struct recombination * preco,
+                                                double z,
+                                                double * xe);
 
   int thermodynamics_recombination(
 				   struct precision * ppr,
@@ -578,7 +579,7 @@ extern "C" {
 
 //@}
 
-/**  
+/**
  * @name Some basic constants needed by RECFAST:
  */
 
@@ -592,7 +593,7 @@ extern "C" {
 
 //@}
 
-/**  
+/**
  * @name Some specific constants needed by RECFAST:
  */
 
@@ -618,7 +619,7 @@ extern "C" {
 
 //@}
 
-/**  
+/**
  * @name Some specific constants needed by recfast_derivs:
  */
 
@@ -637,7 +638,7 @@ extern "C" {
 
 //@}
 
-/**  
+/**
  * @name Some limits imposed on cosmological parameter values:
  */
 
