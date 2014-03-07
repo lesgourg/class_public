@@ -36,7 +36,7 @@ class TestClass(unittest.TestCase):
             'nonlinear_verbose': 1,
             'lensing_verbose': 1,
             'output_verbose': 1}
-        self.scenario = {}
+        self.scenario = {'lensing':'yes'}
 
     def tearDown(self):
         self.cosmo.cleanup()
@@ -51,10 +51,11 @@ class TestClass(unittest.TestCase):
             ('LCDM',
              'Mnu',
              'Positive_Omega_k',
-             'Negative_Omega_k'),
+             'Negative_Omega_k',
+             'Isocurvature_modes'),
             ({}, {'output': 'mPk'}, {'output': 'tCl'},
-             {'output': 'tCl lCl'}, {'output': 'mPk tCl lCl'},
-             {'output': 'nCl sCl'}, {'output': 'mPk nCl sCl'}),
+             {'output': 'tCl pCl lCl'}, {'output': 'mPk tCl lCl','P_k_max_h/Mpc':10},
+             {'output': 'nCl sCl'}, {'output': 'tCl pCl lCl nCl sCl'}),
             ({'gauge': 'newtonian'}, {'gauge': 'sync'}),
             ({}, {'non linear': 'halofit'})))
     def test_parameters(self, name, scenario, gauge, nonlinear):
@@ -65,6 +66,8 @@ class TestClass(unittest.TestCase):
             self.scenario.update({'Omega_k': 0.01})
         elif name == 'Negative_Omega_k':
             self.scenario.update({'Omega_k': -0.01})
+        elif name == 'Isocurvature_modes':
+            self.scenario.update({'ic':'ad,cdi,nid','c_ad_cdi':-0.5})
 
         self.scenario.update(scenario)
         if scenario != {}:
