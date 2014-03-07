@@ -18,6 +18,8 @@
 
 #include "spectra.h"
 
+
+
 int spectra_bandpower(struct spectra * psp,
                       int l1,
                       int l2,
@@ -33,8 +35,8 @@ int spectra_bandpower(struct spectra * psp,
   double ** cl_md_ic;
 
   class_alloc(cl_tot,psp->ct_size*sizeof(double),psp->error_message);
-  class_alloc(cl_md,psp->md_size*sizeof(double),psp->error_message);
-  class_alloc(cl_md_ic,psp->md_size*sizeof(double),psp->error_message);
+  class_alloc(cl_md,psp->md_size*sizeof(double*),psp->error_message);
+  class_alloc(cl_md_ic,psp->md_size*sizeof(double*),psp->error_message);
   for (index_md=0;index_md<psp->md_size; index_md++) {
     class_alloc(cl_md[index_md],psp->ct_size*sizeof(double),psp->error_message);
     class_alloc(cl_md_ic[index_md],psp->ct_size*psp->ic_ic_size[index_md]*sizeof(double),psp->error_message);
@@ -1212,6 +1214,8 @@ int spectra_init(
 
   /** Summary: */
 
+  double TT_II,TT_RI,TT_RR;
+
   /** - check that we really want to compute at least one spectrum */
 
   if ((ppt->has_cls == _FALSE_) &&
@@ -1282,7 +1286,11 @@ int spectra_init(
     psp->ln_k_size=0;
   }
 
-  double TT_II,TT_RI,TT_RR;
+  /* if there are isocurvature mode, compute and store in the psp
+     structure the isocurvature contribution to some bandpowers in
+     different ranges of l, and the contribution to the primordial
+     spectrum at different wavenumbers (used in the Planck
+     analysis) */
 
   if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars]>1)) {
 
@@ -1293,6 +1301,7 @@ int spectra_init(
     class_test(TT_II+TT_RI+TT_RR==0.,
                psp->error_message,
                "should never happen");
+
     psp->alpha_II_2_20=TT_II/(TT_II+TT_RI+TT_RR);
     psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
@@ -1304,6 +1313,7 @@ int spectra_init(
     class_test(TT_II+TT_RI+TT_RR==0.,
                psp->error_message,
                "should never happen");
+
     psp->alpha_II_21_200=TT_II/(TT_II+TT_RI+TT_RR);
     psp->alpha_RI_21_200=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_21_200=TT_RR/(TT_II+TT_RI+TT_RR);
@@ -1315,6 +1325,7 @@ int spectra_init(
     class_test(TT_II+TT_RI+TT_RR==0.,
                psp->error_message,
                "should never happen");
+
     psp->alpha_II_201_2500=TT_II/(TT_II+TT_RI+TT_RR);
     psp->alpha_RI_201_2500=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_201_2500=TT_RR/(TT_II+TT_RI+TT_RR);
@@ -1326,6 +1337,7 @@ int spectra_init(
     class_test(TT_II+TT_RI+TT_RR==0.,
                psp->error_message,
                "should never happen");
+
     psp->alpha_II_2_2500=TT_II/(TT_II+TT_RI+TT_RR);
     psp->alpha_RI_2_2500=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_2_2500=TT_RR/(TT_II+TT_RI+TT_RR);
@@ -1365,27 +1377,6 @@ int spectra_init(
       psp->alpha_k2=ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot))
         /(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot)));
     }
-
-    /*
-      fprintf(stderr,"%f  %f  %f  %f\n",
-      psp->alpha_II_2_200,
-      psp->alpha_RI_2_200,
-      psp->alpha_RR_2_200,
-      psp->alpha_II_2_200+psp->alpha_RI_2_200+psp->alpha_RR_2_200);
-
-      fprintf(stderr,"%f  %f  %f  %f\n",
-      psp->alpha_II_201_2500,
-      psp->alpha_RI_201_2500,
-      psp->alpha_RR_201_2500,
-      psp->alpha_II_201_2500+psp->alpha_RI_201_2500+psp->alpha_RR_201_2500);
-
-      fprintf(stderr,"%f  %f  %f  %f\n",
-      psp->alpha_II_2_20,
-      psp->alpha_RI_2_20,
-      psp->alpha_RR_2_20,
-      psp->alpha_II_2_20+psp->alpha_RI_2_20+psp->alpha_RR_2_20);
-    */
-
   }
 
   return _SUCCESS_;
