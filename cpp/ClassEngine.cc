@@ -68,7 +68,7 @@ ClassEngine::ClassEngine(const ClassParams& pars): cl(0),dofree(true){
   size_t n=pars.size();
   //
   parser_init(&fc,n,_errmsg);
-  
+
   //config
   for (size_t i=0;i<pars.size();i++){
     strcpy(fc.name[i],pars.key(i).c_str());
@@ -76,7 +76,7 @@ ClassEngine::ClassEngine(const ClassParams& pars): cl(0),dofree(true){
   }
 
     //input
-  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_) 
+  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_)
     throw invalid_argument(_errmsg);
 
   //proetction parametres mal defini
@@ -86,7 +86,7 @@ ClassEngine::ClassEngine(const ClassParams& pars): cl(0),dofree(true){
 
   //calcul class
   computeCls();
-  
+
   //cout <<"creating " << sp.ct_size << " arrays" <<endl;
   cl=new double[sp.ct_size];
 
@@ -122,9 +122,9 @@ ClassEngine::ClassEngine(const ClassParams& pars,const string & precision_file):
 
   //parser_free(&fc_input);
   parser_free(&fc_precision);
-  
+
   //input
-  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_) 
+  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,_errmsg) == _FAILURE_)
     throw invalid_argument(_errmsg);
 
   //proetction parametres mal defini
@@ -134,7 +134,7 @@ ClassEngine::ClassEngine(const ClassParams& pars,const string & precision_file):
 
   //calcul class
   computeCls();
-  
+
   //cout <<"creating " << sp.ct_size << " arrays" <<endl;
   cl=new double[sp.ct_size];
 
@@ -142,7 +142,7 @@ ClassEngine::ClassEngine(const ClassParams& pars,const string & precision_file):
 
 
 }
-  
+
 
 
 //--------------
@@ -183,18 +183,18 @@ int ClassEngine::class(
                        struct background * pba,
                        struct thermo * pth,
                        struct perturbs * ppt,
-                       struct transfers * ptr,
                        struct primordial * ppm,
-                       struct spectra * psp,
                        struct nonlinear * pnl,
+                       struct transfers * ptr,
+                       struct spectra * psp,
                        struct lensing * ple,
                        struct output * pop,
                        ErrorMsg errmsg) {
-  
+
 
 
   if (input_init(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     dofree=false;
     return _FAILURE_;
   }
@@ -204,7 +204,7 @@ int ClassEngine::class(
     dofree=false;
     return _FAILURE_;
   }
-    
+
   if (thermodynamics_init(ppr,pba,pth) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",pth->error_message);
     background_free(&ba);
@@ -220,18 +220,8 @@ int ClassEngine::class(
     return _FAILURE_;
   }
 
-  if (transfer_init(ppr,pba,pth,ppt,ptr) == _FAILURE_) {
-    printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
-    perturb_free(&pt);
-    thermodynamics_free(&th);
-    background_free(&ba);
-    dofree=false;
-    return _FAILURE_;
-  }
-
   if (primordial_init(ppr,ppt,ppm) == _FAILURE_) {
     printf("\n\nError in primordial_init \n=>%s\n",ppm->error_message);
-    transfer_free(&tr);
     perturb_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
@@ -239,22 +229,32 @@ int ClassEngine::class(
     return _FAILURE_;
   }
 
-  if (spectra_init(ppr,pba,ppt,ptr,ppm,psp) == _FAILURE_) {
-    printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
-    primordial_free(&pm);
-    transfer_free(&tr);
-    perturb_free(&pt);
-    thermodynamics_free(&th);
-    background_free(&ba);
-    dofree=false;
-    return _FAILURE_;
-  }
-
-  if (nonlinear_init(ppr,pba,pth,ppt,ptr,ppm,psp,pnl) == _FAILURE_)  {
+  if (nonlinear_init(ppr,pba,pth,ppt,ppm,pnl) == _FAILURE_)  {
     printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
-    spectra_free(&sp);
     primordial_free(&pm);
+    perturb_free(&pt);
+    thermodynamics_free(&th);
+    background_free(&ba);
+    dofree=false;
+    return _FAILURE_;
+  }
+
+  if (transfer_init(ppr,pba,pth,ppt,pnl,ptr) == _FAILURE_) {
+    printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
+    nonlinear_free(&nl);
+    primordial_free(&pm);
+    perturb_free(&pt);
+    thermodynamics_free(&th);
+    background_free(&ba);
+    dofree=false;
+    return _FAILURE_;
+  }
+
+  if (spectra_init(ppr,pba,ppt,ppm,pnl,ptr,psp) == _FAILURE_) {
+    printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
     transfer_free(&tr);
+    nonlinear_free(&nl);
+    primordial_free(&pm);
     perturb_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
@@ -264,17 +264,17 @@ int ClassEngine::class(
 
   if (lensing_init(ppr,ppt,psp,pnl,ple) == _FAILURE_) {
     printf("\n\nError in lensing_init \n=>%s\n",ple->error_message);
-    nonlinear_free(&nl);
     spectra_free(&sp);
-    primordial_free(&pm);
     transfer_free(&tr);
+    nonlinear_free(&nl);
+    primordial_free(&pm);
     perturb_free(&pt);
     thermodynamics_free(&th);
     background_free(&ba);
     dofree=false;
     return _FAILURE_;
   }
-  
+
   //fprintf(stderr,"%d %e %e %e\n",l,cl[l][0],cl[l][1],cl[l][2]);
 
   dofree=true;
@@ -291,28 +291,28 @@ int ClassEngine::computeCls(){
 
 int
 ClassEngine::freeStructs(){
-  
-  
+
+
   if (lensing_free(&le) == _FAILURE_) {
     printf("\n\nError in spectra_free \n=>%s\n",le.error_message);
     return _FAILURE_;
   }
-  
+
   if (nonlinear_free(&nl) == _FAILURE_) {
     printf("\n\nError in nonlinear_free \n=>%s\n",nl.error_message);
     return _FAILURE_;
   }
-  
+
   if (spectra_free(&sp) == _FAILURE_) {
     printf("\n\nError in spectra_free \n=>%s\n",sp.error_message);
     return _FAILURE_;
   }
-    
+
   if (primordial_free(&pm) == _FAILURE_) {
     printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }
-  
+
   if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
     return _FAILURE_;
@@ -336,7 +336,7 @@ ClassEngine::freeStructs(){
   return _SUCCESS_;
 }
 
-// int 
+// int
 // ClassEngine::l_size(Engine::cltype t){
 //   int lmax(-1);
 
@@ -347,7 +347,7 @@ ClassEngine::freeStructs(){
 //       break;
 //     case TE:
 //       if (sp.has_te==_TRUE_) lmax=sp.l_size[sp.index_ct_te] ;
-//       break; 
+//       break;
 //     case EE:
 //       if (sp.has_ee==_TRUE_) lmax=sp.l_size[sp.index_ct_ee] ;
 //       break;
@@ -375,7 +375,7 @@ ClassEngine::getCl(Engine::cltype t,const long &l){
   if (!dofree) throw out_of_range("no Cl available because CLASS failed");
 
   if (output_total_cl_at_l(&sp,&le,&op,static_cast<double>(l),cl) == _FAILURE_){
-    cerr << ">>>fail getting Cl type=" << (int)t << " @l=" << l <<endl; 
+    cerr << ">>>fail getting Cl type=" << (int)t << " @l=" << l <<endl;
     throw out_of_range(sp.error_message);
   }
 
@@ -391,7 +391,7 @@ ClassEngine::getCl(Engine::cltype t,const long &l){
       break;
     case TE:
       (sp.has_te==_TRUE_) ? zecl=tomuk2*cl[sp.index_ct_te] : throw invalid_argument("no ClTE available");
-      break; 
+      break;
     case EE:
       (sp.has_ee==_TRUE_) ? zecl=tomuk2*cl[sp.index_ct_ee] : throw invalid_argument("no ClEE available");
       break;
@@ -408,22 +408,22 @@ ClassEngine::getCl(Engine::cltype t,const long &l){
       (sp.has_ep==_TRUE_) ? zecl=tomuk*cl[sp.index_ct_ep] : throw invalid_argument("no ClE-Phi available");
       break;
     }
-  
+
   return zecl;
 
 }
-void 
-ClassEngine::getCls(const std::vector<unsigned>& lvec, //input 
-		      std::vector<double>& cltt, 
-		      std::vector<double>& clte, 
-		      std::vector<double>& clee, 
+void
+ClassEngine::getCls(const std::vector<unsigned>& lvec, //input
+		      std::vector<double>& cltt,
+		      std::vector<double>& clte,
+		      std::vector<double>& clee,
 		      std::vector<double>& clbb)
 {
   cltt.resize(lvec.size());
   clte.resize(lvec.size());
   clee.resize(lvec.size());
   clbb.resize(lvec.size());
-  
+
   for (size_t i=0;i<lvec.size();i++){
     try{
       cltt[i]=getCl(ClassEngine::TT,lvec[i]);
@@ -438,18 +438,18 @@ ClassEngine::getCls(const std::vector<unsigned>& lvec, //input
 
 }
 
- 
-bool 
-ClassEngine::getLensing(const std::vector<unsigned>& lvec, //input 
-		std::vector<double>& clpp    , 
-		std::vector<double>& cltp  , 
+
+bool
+ClassEngine::getLensing(const std::vector<unsigned>& lvec, //input
+		std::vector<double>& clpp    ,
+		std::vector<double>& cltp  ,
 		std::vector<double>& clep  ){
- 
+
 
   clpp.resize(lvec.size());
   cltp.resize(lvec.size());
   clep.resize(lvec.size());
-  
+
   for (size_t i=0;i<lvec.size();i++){
     try{
       clpp[i]=getCl(ClassEngine::PP,lvec[i]);
@@ -466,36 +466,36 @@ ClassEngine::getLensing(const std::vector<unsigned>& lvec, //input
 }
 
 
-void 
+void
 ClassEngine::writeCls(std::ostream &of,int ttmax){
 
   vector<unsigned> lvec(ttmax-1,1);
   lvec[0]=2;
   partial_sum(lvec.begin(),lvec.end(),lvec.begin());
-      
+
   vector<double> cltt,clte,clee,clbb,clpp,cltp,clep;
   bool hasLensing=false;
   try{
     getCls(lvec,cltt,clte,clee,clbb);
-    hasLensing=getLensing(lvec,clpp,cltp,clep); 
+    hasLensing=getLensing(lvec,clpp,cltp,clep);
   }
   catch (std::exception &e){
     cout << "GIOSH" << e.what() << endl;
   }
-      
+
   //cout.precision( 16 );
   for (size_t i=0;i<lvec.size();i++) {
-    of << lvec[i] << "\t" 
-       << cltt[i] << "\t" 
-       << clte[i] << "\t" 
-       << clee[i] << "\t" 
+    of << lvec[i] << "\t"
+       << cltt[i] << "\t"
+       << clte[i] << "\t"
+       << clee[i] << "\t"
        << clbb[i];
     if (hasLensing){
       of << "\t" << clpp[i] << "\t" << cltp[i] << "\t" << clep[i];
     }
     of << "\n";
   }
-  
+
 
 
 }
