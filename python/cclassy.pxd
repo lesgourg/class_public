@@ -170,9 +170,9 @@ cdef extern from "class.h":
     int thermodynamics_init(void*,void*,void*)
     int perturb_init(void*,void*,void*,void*)
     int primordial_init(void*,void*,void*)
-    int transfer_init(void*,void*,void*,void*,void*)
-    int spectra_init(void*,void*,void*,void*,void*,void*)
-    int nonlinear_init(void*,void*,void*,void*,void*,void*,void*,void*)
+    int nonlinear_init(void*,void*,void*,void*,void*,void*)
+    int transfer_init(void*,void*,void*,void*,void*,void*)
+    int spectra_init(void*,void*,void*,void*,void*,void*,void*)
     int lensing_init(void*,void*,void*,void*,void*)
 
     int background_tau_of_z(void* pba, double z,double* tau)
@@ -198,24 +198,22 @@ cdef extern from "class.h":
         double * pk,
         double * pk_ic)
 
-    int nonlinear_pk_at_z(
-        void * pnl,
-        double z,
-        double * pz_density,
-        double * pz_velocity,
-        double * pz_cross,
-        int * k_size_at_z)
-
-    int nonlinear_pk_at_k_and_z(
-        void * pnl,
+    int spectra_pk_nl_at_k_and_z(
+        void* pba,
+        void * ppm,
+        void * psp,
         double k,
         double z,
-        double * pz_density,
-        double * pz_velocity,
-        double * pz_cross,
-        int * k_size_at_z)
+        double * pk)
 
-    int nonlinear_k_nl_at_z(void* pnl, double z, double* k_nl)
+    int spectra_pk_nl_at_z(
+        void * pba,
+        void * psp,
+        int mode,
+        double z,
+        double * output_tot)
+
+    int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl)
 
     cdef enum linear_or_logarithmic:
         linear

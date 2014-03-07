@@ -31,7 +31,7 @@ from cclassy cimport *
 # MontePython to handle things differently.
 class CosmoError(Exception):
     def __init__(self, message=""):
-        self.message = message 
+        self.message = message
 
     def __str__(self):
         return '\n\nError in Class: ' + self.message
@@ -74,11 +74,11 @@ cdef class Class:
     cdef thermo th
     cdef perturbs pt
     cdef primordial pm
+    cdef nonlinear nl
     cdef transfers tr
     cdef spectra sp
     cdef output op
     cdef lensing le
-    cdef nonlinear nl
     cdef file_content fc
 
     cpdef int ready # Flag
@@ -180,12 +180,12 @@ cdef class Class:
              return
         if "lensing" in self.ncp:
             lensing_free(&self.le)
-        if "nonlinear" in self.ncp:
-            nonlinear_free (&self.nl)
         if "spectra" in self.ncp:
             spectra_free(&self.sp)
         if "transfer" in self.ncp:
             transfer_free(&self.tr)
+        if "nonlinear" in self.ncp:
+            nonlinear_free(&self.nl)
         if "primordial" in self.ncp:
             primordial_free(&self.pm)
         if "perturb" in self.ncp:
@@ -199,12 +199,12 @@ cdef class Class:
     # Ensure the full module dependency
     def _check_task_dependency(self,lvl):
         if "lensing" in lvl:
-            lvl.append("nonlinear")
-        if "nonlinear" in lvl:
             lvl.append("spectra")
         if "spectra" in lvl:
             lvl.append("transfer")
         if "transfer" in lvl:
+            lvl.append("nonlinear")
+        if "nonlinear" in lvl:
             lvl.append("primordial")
         if "primordial" in lvl:
             lvl.append("perturb")
@@ -328,23 +328,23 @@ cdef class Class:
                 raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
 
+        if "nonlinear" in lvl:
+            if nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.pm,&self.nl) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.nl.error_message)
+            self.ncp.add("nonlinear")
+
         if "transfer" in lvl:
-            if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.tr)) == _FAILURE_:
+            if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.nl),&(self.tr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
 
         if "spectra" in lvl:
-            if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.tr),&(self.pm),&(self.sp)) == _FAILURE_:
+            if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.pm),&(self.nl),&(self.tr),&(self.sp)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sp.error_message)
             self.ncp.add("spectra")
-
-        if "nonlinear" in lvl:
-            if (nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.tr,&self.pm,&self.sp,&self.nl) == _FAILURE_):
-                self.struct_cleanup()
-                raise CosmoComputationError(self.nl.error_message)
-            self.ncp.add("nonlinear")
 
         if "lensing" in lvl:
             if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.nl),&(self.le)) == _FAILURE_:
@@ -518,8 +518,8 @@ cdef class Class:
              if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
         else:
-             if nonlinear_pk_at_k_and_z(&self.nl,k,z,&pk,&pk_velo,&pk_cross,&dummy)==_FAILURE_:
-                    raise CosmoSevereError(self.nl.error_message)
+             if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
+                    raise CosmoSevereError(self.sp.error_message)
         #free(junk)
         return pk
 
@@ -906,7 +906,7 @@ cdef class Class:
 
         #k_nl = <double*> calloc(z_size,sizeof(double))
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.nl,z[index_z],&k_nl[index_z]) == _FAILURE_:
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z]) == _FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)
 
         return k_nl
