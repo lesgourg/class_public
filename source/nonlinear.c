@@ -337,11 +337,12 @@ int nonlinear_halofit(
              pnl->error_message);
   sigma  = sqrt(sum1);
 
-  class_test(sigma < 1.,
-             pnl->error_message,
-             "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
-             pnl->k[pnl->k_size-1],
-             pba->a_today/pvecback[pba->index_bg_a]-1.);
+  class_test_except(sigma < 1.,
+                    pnl->error_message,
+                    free(pvecback);free(integrand_array),
+                    "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
+                    pnl->k[pnl->k_size-1],
+                    pba->a_today/pvecback[pba->index_bg_a]-1.);
 
   xlogr1 = log(R)/log(10.);
 
@@ -364,10 +365,11 @@ int nonlinear_halofit(
              pnl->error_message);
   sigma  = sqrt(sum1);
 
-  class_test(sigma > 1.,
-             pnl->error_message,
-             "Your input value for the precision parameter halofit_min_k_nonlinear=%e is too large, the non-linear wavenumber k_nl must be smaller than that",
-             ppr->halofit_min_k_nonlinear);
+  class_test_except(sigma > 1.,
+                    pnl->error_message,
+                    free(pvecback);free(integrand_array),
+                    "Your input value for the precision parameter halofit_min_k_nonlinear=%e is too large, the non-linear wavenumber k_nl must be smaller than that",
+                    ppr->halofit_min_k_nonlinear);
 
   xlogr2 = log(R)/log(10.);
 
@@ -425,9 +427,10 @@ int nonlinear_halofit(
       /*fprintf(stderr,"going down, new xlogr2=%g\n",xlogr2);*/
     }
 
-    class_test(counter > _MAX_IT_,
-               pnl->error_message,
-               "could not converge within maximum allowed number of iterations");
+    class_test_except(counter > _MAX_IT_,
+                      pnl->error_message,
+                      free(pvecback);free(integrand_array),
+                      "could not converge within maximum allowed number of iterations");
 
   } while (fabs(diff) > 0.001);
 
