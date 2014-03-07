@@ -1,7 +1,7 @@
-/** @file class.c 
- * Julien Lesgourgues, 17.04.2011    
+/** @file class.c
+ * Julien Lesgourgues, 17.04.2011
  */
- 
+
 /* this main calls CLASS several times in a loop, with different input
    parameters. It illustrates how the code could be interfaced with a
    parameter extraction code. */
@@ -14,10 +14,10 @@ int class(
           struct background * pba,
           struct thermo * pth,
           struct perturbs * ppt,
-          struct transfers * ptr,
           struct primordial * ppm,
-          struct spectra * psp,
           struct nonlinear * pnl,
+          struct transfers * ptr,
+          struct spectra * psp,
           struct lensing * ple,
           struct output * pop,
           int l_max,
@@ -38,7 +38,7 @@ int main() {
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error messages */
 
-  int i; 
+  int i;
   int l,l_max;
   int num_ct_max=7;
   double ** cl;
@@ -46,18 +46,18 @@ int main() {
 
   /* choose a value of l_max in C_l's */
   l_max=3000;
-  
+
   /* all parameters for which we don't want to keep default values
      should be passed to the code through a file_content
      structure. Create such a structure with the size you need: 9 in
      this exemple */
-  parser_init(&fc,10,errmsg);
+  parser_init(&fc,10,"",errmsg);
 
   /* assign values to these 9 parameters. Some will be fixed, some
      will be varied in the loop. */
   strcpy(fc.name[0],"output");
   strcpy(fc.value[0],"tCl,pCl,lCl");
-  
+
   strcpy(fc.name[1],"l_max_scalars");
   sprintf(fc.value[1],"%d",l_max);
 
@@ -72,7 +72,7 @@ int main() {
 
   strcpy(fc.name[5],"omega_cdm");
   sprintf(fc.value[5],"%e",0.05);
-  
+
   strcpy(fc.name[6],"z_reio");
   sprintf(fc.value[6],"%e",10.);
 
@@ -95,7 +95,7 @@ int main() {
 
   /* read input parameters */
   if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
 
@@ -108,7 +108,7 @@ int main() {
     printf("#run with omega_b = %s\n",fc.value[4]);
 
     /* calls class and return the C_l's*/
-    class(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,l_max,cl,errmsg);
+    class(&fc,&pr,&ba,&th,&pt,&pm,&nl,&tr,&sp,&le,&op,l_max,cl,errmsg);
 
     /* printf the lensed C_l^TT, C_l^EE, C_l^TE's for this run */
     for (l=2;l<=l_max;l++) {
@@ -121,12 +121,12 @@ int main() {
     fprintf(stdout,"\n");
   }
 
-  for (l=0;l<l_max;l++) 
+  for (l=0;l<l_max;l++)
     free(cl[l]);
   free(cl);
 
   return _SUCCESS_;
-  
+
 }
 
 int class(
@@ -135,20 +135,20 @@ int class(
           struct background * pba,
           struct thermo * pth,
           struct perturbs * ppt,
-          struct transfers * ptr,
           struct primordial * ppm,
-          struct spectra * psp,
           struct nonlinear * pnl,
+          struct transfers * ptr,
+          struct spectra * psp,
           struct lensing * ple,
           struct output * pop,
           int l_max,
           double ** cl,
           ErrorMsg errmsg) {
-  
+
   int l;
 
   if (input_init(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
 
@@ -156,7 +156,7 @@ int class(
     printf("\n\nError running background_init \n=>%s\n",pba->error_message);
     return _FAILURE_;
   }
-    
+
   if (thermodynamics_init(ppr,pba,pth) == _FAILURE_) {
     printf("\n\nError in thermodynamics_init \n=>%s\n",pth->error_message);
     return _FAILURE_;
@@ -167,23 +167,23 @@ int class(
     return _FAILURE_;
   }
 
-  if (transfer_init(ppr,pba,pth,ppt,ptr) == _FAILURE_) {
-    printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
-    return _FAILURE_;
-  }
-
   if (primordial_init(ppr,ppt,ppm) == _FAILURE_) {
     printf("\n\nError in primordial_init \n=>%s\n",ppm->error_message);
     return _FAILURE_;
   }
 
-  if (spectra_init(ppr,pba,ppt,ptr,ppm,psp) == _FAILURE_) {
-    printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
+  if (nonlinear_init(ppr,pba,pth,ppt,ppm,pnl) == _FAILURE_) {
+    printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
     return _FAILURE_;
   }
 
-  if (nonlinear_init(ppr,pba,pth,ppt,ptr,ppm,psp,pnl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
+  if (transfer_init(ppr,pba,pth,ppt,pnl,ptr) == _FAILURE_) {
+    printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
+    return _FAILURE_;
+  }
+
+  if (spectra_init(ppr,pba,ppt,ppm,pnl,ptr,psp) == _FAILURE_) {
+    printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
     return _FAILURE_;
   }
 
@@ -210,23 +210,23 @@ int class(
     return _FAILURE_;
   }
 
-  if (nonlinear_free(pnl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_free \n=>%s\n",pnl->error_message);
-    return _FAILURE_;
-  }
-    
   if (spectra_free(psp) == _FAILURE_) {
     printf("\n\nError in spectra_free \n=>%s\n",psp->error_message);
     return _FAILURE_;
   }
-    
-  if (primordial_free(ppm) == _FAILURE_) {
-    printf("\n\nError in primordial_free \n=>%s\n",ppm->error_message);
-    return _FAILURE_;
-  }
-  
+
   if (transfer_free(ptr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",ptr->error_message);
+    return _FAILURE_;
+  }
+
+  if (nonlinear_free(pnl) == _FAILURE_) {
+    printf("\n\nError in nonlinear_free \n=>%s\n",pnl->error_message);
+    return _FAILURE_;
+  }
+
+  if (primordial_free(ppm) == _FAILURE_) {
+    printf("\n\nError in primordial_free \n=>%s\n",ppm->error_message);
     return _FAILURE_;
   }
 

@@ -1,7 +1,7 @@
-/** @file class.c 
- * Julien Lesgourgues, 17.04.2011    
+/** @file class.c
+ * Julien Lesgourgues, 17.04.2011
  */
- 
+
 /* this main only runs the modules up to the transfer one */
 
 #include "class.h"
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   ErrorMsg errmsg;            /* for error messages */
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
 
@@ -40,7 +40,17 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (transfer_init(&pr,&ba,&th,&pt,&tr) == _FAILURE_) {
+  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
+    printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
+    return _FAILURE_;
+  }
+
+  if (nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl) == _FAILURE_) {
+    printf("\n\nError in nonlinear_init \n=>%s\n",nl.error_message);
+    return _FAILURE_;
+  }
+
+  if (transfer_init(&pr,&ba,&th,&pt,&nl,&tr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
@@ -58,7 +68,7 @@ int main(int argc, char **argv) {
 
   /* 2) here is an illustration of how to output the transfer
      functions at some (k,l)'s of your choice */
- 
+
   /*
   int index_l = 0;
   double q=3.6e-4;
@@ -75,7 +85,7 @@ int main(int argc, char **argv) {
     printf("\n\nError in transfer_function_at_k \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
-  
+
   printf("%d %e %e\n",tr.l[index_l],q,transfer);
   */
 
@@ -88,21 +98,21 @@ int main(int argc, char **argv) {
 
   output=fopen("output/test.trsf","w");
 
-  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) { 
-    for (index_q=0; index_q<tr.q_size; index_q++) { 
+  for (index_l=0; index_l<tr.l_size[index_mode]; index_l++) {
+    for (index_q=0; index_q<tr.q_size; index_q++) {
 
           /* use this to plot a single type : */
-    
+
           transfer = tr.transfer[index_mode]
             [((index_ic * tr.tt_size[index_mode] + index_type)
               * tr.l_size[index_mode] + index_l)
              * tr.q_size + index_q];
-    
+
           /* or use this to plot the full temperature transfer function: */
           /*
-          transfer = 
-            tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
-            tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] + 
+          transfer =
+            tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t0) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] +
+            tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t1) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q] +
             tr.transfer[index_mode][((index_ic * tr.tt_size[index_mode] + tr.index_tt_t2) * tr.l_size[index_mode] + index_l) * tr.q_size + index_q];
           */
 
@@ -115,10 +125,10 @@ int main(int argc, char **argv) {
                     transfer);
           }
         }
-    
+
         fprintf(output,"\n\n");
         //}
-  } 
+  }
 
   fclose(output);
 
@@ -126,6 +136,16 @@ int main(int argc, char **argv) {
 
   if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
+    return _FAILURE_;
+  }
+
+  if (nonlinear_free(&nl) == _FAILURE_) {
+    printf("\n\nError in nonlinear_free \n=>%s\n",nl.error_message);
+    return _FAILURE_;
+  }
+
+  if (primordial_free(&pm) == _FAILURE_) {
+    printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);
     return _FAILURE_;
   }
 

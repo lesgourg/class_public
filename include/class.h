@@ -24,10 +24,10 @@
 #include "background.h"
 #include "thermodynamics.h"
 #include "perturbations.h"
-#include "transfer.h"
 #include "primordial.h"
-#include "spectra.h"
 #include "nonlinear.h"
+#include "transfer.h"
+#include "spectra.h"
 #include "lensing.h"
 #include "output.h"
 
