@@ -2857,7 +2857,7 @@ int transfer_sources(
                 if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) {
 
                   rescaling +=
-                    (2.-5.*ptr->s_bias)/2.
+                    -(2.-5.*ptr->s_bias)/2.
                     *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     /tau0_minus_tau[index_tau]
                     /tau0_minus_tau_lensing_sources[index_tau_sources]
@@ -3181,7 +3181,7 @@ int transfer_dNdz_analytic(
   double z0,alpha,beta;
 
   z0 = 0.55;
-  alpha = 0.63;
+  alpha = 2.0;
   beta = 1.5;
 
   *dNdz = pow(z/z0,alpha) * exp(-pow(z/z0,beta));
