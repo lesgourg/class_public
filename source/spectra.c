@@ -1215,6 +1215,7 @@ int spectra_init(
   /** Summary: */
 
   double TT_II,TT_RI,TT_RR;
+  int l1,l2;
 
   /** - check that we really want to compute at least one spectrum */
 
@@ -1294,7 +1295,10 @@ int spectra_init(
 
   if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars]>1)) {
 
-    class_call(spectra_bandpower(psp,2,20,&TT_II,&TT_RI,&TT_RR),
+    l1=2;
+    l2=20;
+
+    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
                psp->error_message,
                psp->error_message);
 
@@ -1306,7 +1310,10 @@ int spectra_init(
     psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    class_call(spectra_bandpower(psp,21,200,&TT_II,&TT_RI,&TT_RR),
+    l1=21;
+    l2=200;
+
+    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
                psp->error_message,
                psp->error_message);
 
@@ -1318,7 +1325,10 @@ int spectra_init(
     psp->alpha_RI_21_200=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_21_200=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    class_call(spectra_bandpower(psp,201,2500,&TT_II,&TT_RI,&TT_RR),
+    l1=201;
+    l2=2500;
+
+    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
                psp->error_message,
                psp->error_message);
 
@@ -1330,7 +1340,10 @@ int spectra_init(
     psp->alpha_RI_201_2500=TT_RI/(TT_II+TT_RI+TT_RR);
     psp->alpha_RR_201_2500=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    class_call(spectra_bandpower(psp,2,2500,&TT_II,&TT_RI,&TT_RR),
+    l1=2;
+    l2=2500;
+
+    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
                psp->error_message,
                psp->error_message);
 
