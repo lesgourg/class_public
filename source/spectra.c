@@ -1287,13 +1287,14 @@ int spectra_init(
     psp->ln_k_size=0;
   }
 
-  /* if there are isocurvature mode, compute and store in the psp
+  /* if there is one isocurvature mode, compute and store in the psp
      structure the isocurvature contribution to some bandpowers in
      different ranges of l, and the contribution to the primordial
      spectrum at different wavenumbers (used in the Planck
      analysis) */
 
-  if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars]>1)) {
+  /*
+  if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars]=2)) {
 
     l1=2;
     l2=20;
@@ -1391,6 +1392,7 @@ int spectra_init(
         /(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot)));
     }
   }
+  */
 
   return _SUCCESS_;
 }
