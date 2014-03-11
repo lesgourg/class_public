@@ -22,7 +22,92 @@ int class(
           struct output * pop,
           int l_max,
           double ** cl,
-          ErrorMsg errmsg);
+          ErrorMsg errmsg) {
+
+  int l;
+
+  class_call(input_init(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,errmsg),
+             errmsg,
+             errmsg);
+
+  class_call(background_init(ppr,pba),
+             pba->error_message,
+             errmsg);
+
+  class_call(thermodynamics_init(ppr,pba,pth),
+             pth->error_message,
+             errmsg);
+
+  class_call(perturb_init(ppr,pba,pth,ppt),
+             ppt->error_message,
+             errmsg);
+
+  class_call(primordial_init(ppr,ppt,ppm),
+             ppm->error_message,
+             errmsg);
+
+  class_call(nonlinear_init(ppr,pba,pth,ppt,ppm,pnl),
+             pnl->error_message,
+             errmsg);
+
+  class_call(transfer_init(ppr,pba,pth,ppt,pnl,ptr),
+             ptr->error_message,
+             errmsg);
+
+  class_call(spectra_init(ppr,pba,ppt,ppm,pnl,ptr,psp),
+             psp->error_message,
+             errmsg);
+
+  class_call(lensing_init(ppr,ppt,psp,pnl,ple),
+             ple->error_message,
+             errmsg);
+
+  /****** write the Cl values in the input array cl[l]  *******/
+
+  for (l=2; l <= l_max; l++) {
+
+    class_call(output_total_cl_at_l(psp,ple,pop,(double)l,cl[l]),
+               psp->error_message,
+               errmsg);
+  }
+
+  /****** all calculations done, now free the structures ******/
+
+  class_call(lensing_free(ple),
+             ple->error_message,
+             errmsg);
+
+  class_call(spectra_free(psp),
+             psp->error_message,
+             errmsg);
+
+  class_call(transfer_free(ptr),
+             ptr->error_message,
+             errmsg);
+
+  class_call(nonlinear_free(pnl),
+             pnl->error_message,
+             errmsg);
+
+  class_call(primordial_free(ppm),
+             ppm->error_message,
+             errmsg);
+
+  class_call(perturb_free(ppt),
+             ppt->error_message,
+             errmsg);
+
+  class_call(thermodynamics_free(pth),
+             pth->error_message,
+             errmsg);
+
+  class_call(background_free(pba),
+             pba->error_message,
+             errmsg);
+
+  return _SUCCESS_;
+
+}
 
 int main() {
 
@@ -93,12 +178,6 @@ int main() {
   for (l=0;l<=l_max;l++)
     cl[l]=malloc(num_ct_max*sizeof(double));
 
-  /* read input parameters */
-  if (input_init(&fc,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
-    return _FAILURE_;
-  }
-
   /* now, loop over values of some of these parameters: in this
      exemple, omega_b */
   for (i=0; i<=10; i++) {
@@ -108,15 +187,18 @@ int main() {
     printf("#run with omega_b = %s\n",fc.value[4]);
 
     /* calls class and return the C_l's*/
-    class(&fc,&pr,&ba,&th,&pt,&pm,&nl,&tr,&sp,&le,&op,l_max,cl,errmsg);
+    if (class(&fc,&pr,&ba,&th,&pt,&pm,&nl,&tr,&sp,&le,&op,l_max,cl,errmsg) == _FAILURE_) {
+      printf("\n\nError in class \n=>%s\n",errmsg);
+      return _FAILURE_;
+    }
 
-    /* printf the lensed C_l^TT, C_l^EE, C_l^TE's for this run */
+    /* print the lensed C_l^TT, C_l^EE, C_l^TE's for this run */
     for (l=2;l<=l_max;l++) {
-      /*fprintf(stdout,"%d  %e  %e  %e\n",
+      fprintf(stdout,"%d  %e  %e  %e\n",
 	      l,
 	      cl[l][sp.index_ct_tt],
 	      cl[l][sp.index_ct_ee],
-	      cl[l][sp.index_ct_te]);*/
+	      cl[l][sp.index_ct_te]);
     }
     fprintf(stdout,"\n");
   }
@@ -124,126 +206,6 @@ int main() {
   for (l=0;l<l_max;l++)
     free(cl[l]);
   free(cl);
-
-  return _SUCCESS_;
-
-}
-
-int class(
-          struct file_content *pfc,
-          struct precision * ppr,
-          struct background * pba,
-          struct thermo * pth,
-          struct perturbs * ppt,
-          struct primordial * ppm,
-          struct nonlinear * pnl,
-          struct transfers * ptr,
-          struct spectra * psp,
-          struct lensing * ple,
-          struct output * pop,
-          int l_max,
-          double ** cl,
-          ErrorMsg errmsg) {
-
-  int l;
-
-  if (input_init(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
-    return _FAILURE_;
-  }
-
-  if (background_init(ppr,pba) == _FAILURE_) {
-    printf("\n\nError running background_init \n=>%s\n",pba->error_message);
-    return _FAILURE_;
-  }
-
-  if (thermodynamics_init(ppr,pba,pth) == _FAILURE_) {
-    printf("\n\nError in thermodynamics_init \n=>%s\n",pth->error_message);
-    return _FAILURE_;
-  }
-
-  if (perturb_init(ppr,pba,pth,ppt) == _FAILURE_) {
-    printf("\n\nError in perturb_init \n=>%s\n",ppt->error_message);
-    return _FAILURE_;
-  }
-
-  if (primordial_init(ppr,ppt,ppm) == _FAILURE_) {
-    printf("\n\nError in primordial_init \n=>%s\n",ppm->error_message);
-    return _FAILURE_;
-  }
-
-  if (nonlinear_init(ppr,pba,pth,ppt,ppm,pnl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_init \n=>%s\n",pnl->error_message);
-    return _FAILURE_;
-  }
-
-  if (transfer_init(ppr,pba,pth,ppt,pnl,ptr) == _FAILURE_) {
-    printf("\n\nError in transfer_init \n=>%s\n",ptr->error_message);
-    return _FAILURE_;
-  }
-
-  if (spectra_init(ppr,pba,ppt,ppm,pnl,ptr,psp) == _FAILURE_) {
-    printf("\n\nError in spectra_init \n=>%s\n",psp->error_message);
-    return _FAILURE_;
-  }
-
-  if (lensing_init(ppr,ppt,psp,pnl,ple) == _FAILURE_) {
-    printf("\n\nError in lensing_init \n=>%s\n",ple->error_message);
-    return _FAILURE_;
-  }
-
-  for (l=2; l <= l_max; l++) {
-
-    if (output_total_cl_at_l(psp,ple,pop,(double)l,cl[l]) == _FAILURE_) {
-      printf("\n\nError in spectra_cl_at_l \n=>%s\n",psp->error_message);
-      return _FAILURE_;
-    }
-
-    fprintf(stderr,"%d %e %e %e\n",l,cl[l][0],cl[l][1],cl[l][2]);
-
-  }
-
-  /****** all calculations done, now free the structures ******/
-
-  if (lensing_free(ple) == _FAILURE_) {
-    printf("\n\nError in spectra_free \n=>%s\n",ple->error_message);
-    return _FAILURE_;
-  }
-
-  if (spectra_free(psp) == _FAILURE_) {
-    printf("\n\nError in spectra_free \n=>%s\n",psp->error_message);
-    return _FAILURE_;
-  }
-
-  if (transfer_free(ptr) == _FAILURE_) {
-    printf("\n\nError in transfer_free \n=>%s\n",ptr->error_message);
-    return _FAILURE_;
-  }
-
-  if (nonlinear_free(pnl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_free \n=>%s\n",pnl->error_message);
-    return _FAILURE_;
-  }
-
-  if (primordial_free(ppm) == _FAILURE_) {
-    printf("\n\nError in primordial_free \n=>%s\n",ppm->error_message);
-    return _FAILURE_;
-  }
-
-  if (perturb_free(ppt) == _FAILURE_) {
-    printf("\n\nError in perturb_free \n=>%s\n",ppt->error_message);
-    return _FAILURE_;
-  }
-
-  if (thermodynamics_free(pth) == _FAILURE_) {
-    printf("\n\nError in thermodynamics_free \n=>%s\n",pth->error_message);
-    return _FAILURE_;
-  }
-
-  if (background_free(pba) == _FAILURE_) {
-    printf("\n\nError in background_free \n=>%s\n",pba->error_message);
-    return _FAILURE_;
-  }
 
   return _SUCCESS_;
 
