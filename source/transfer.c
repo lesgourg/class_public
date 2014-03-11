@@ -534,19 +534,18 @@ int transfer_free(
     free(ptr->k);
     free(ptr->transfer);
 
-  }
+    if (ptr->nz_size > 0) {
+      free(ptr->nz_z);
+      free(ptr->nz_nz);
+      free(ptr->nz_ddnz);
+    }
 
-  if (ptr->nz_size > 0) {
-    free(ptr->nz_z);
-    free(ptr->nz_nz);
-    free(ptr->nz_ddnz);
-  }
-
-  if (ptr->nz_evo_size > 0) {
-    free(ptr->nz_evo_z);
-    free(ptr->nz_evo_nz);
-    free(ptr->nz_evo_dlog_nz);
-    free(ptr->nz_evo_dd_dlog_nz);
+    if (ptr->nz_evo_size > 0) {
+      free(ptr->nz_evo_z);
+      free(ptr->nz_evo_nz);
+      free(ptr->nz_evo_dlog_nz);
+      free(ptr->nz_evo_dd_dlog_nz);
+    }
   }
 
   return _SUCCESS_;
