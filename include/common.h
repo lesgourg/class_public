@@ -49,9 +49,9 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _HUGE_ 1.e99
 
-#define _OUTPUTPRECISION_ 10 /**< Number of significant digits in some output files */
+#define _OUTPUTPRECISION_ 12 /**< Number of significant digits in some output files */
 
-#define _COLUMNWIDTH_ 20 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
+#define _COLUMNWIDTH_ 24 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
 
 #ifndef __CLASSDIR__
 #define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */
@@ -237,7 +237,9 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
                                   title,                                \
                                   condition){                           \
     if (condition == _TRUE_)                                            \
-      fprintf(file,"%*s%-*s ",MAX(0,_COLUMNWIDTH_-_OUTPUTPRECISION_-6),"",_OUTPUTPRECISION_+6,title); \
+      fprintf(file,"%*s%-*s ",\
+              MAX(0,MIN(_COLUMNWIDTH_-_OUTPUTPRECISION_-6,_COLUMNWIDTH_-((int) strlen(title)))), \
+              "",_OUTPUTPRECISION_+6,title);                            \
   }
 
 /** parameters related to the precision of the code and to the method of calculation */

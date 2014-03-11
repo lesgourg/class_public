@@ -1692,34 +1692,35 @@ int output_open_background_file(
                                 ) {
 
   int n;
-
+  char tmp[30]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
   class_open(*backfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(*backfile,"# Table of selected background quantitites\n");
     fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
-    fprintf(*backfile,"                        z");
-    fprintf(*backfile,"        proper time [Gyr]");
-    fprintf(*backfile," conformal time * c [Mpc]");
-    fprintf(*backfile,"            H / c [1/Mpc]");
-    fprintf(*backfile,"       comov. dist. [Mpc]");
-    fprintf(*backfile,"   ang. diam. dist. [Mpc]");
-    fprintf(*backfile,"   luminosity dist. [Mpc]");
-    fprintf(*backfile," comov. sound hori. [Mpc]");
-    fprintf(*backfile,"  (8piG/3) rho_g [Mpc^-2]");
-    fprintf(*backfile,"       (.) rho_b [Mpc^-2]");
-    if (pba->Omega0_cdm != 0.)
-      fprintf(*backfile,"     (.) rho_cdm [Mpc^-2]");
-    if (pba->Omega0_ncdm_tot != 0.)
-      for (n=0; n<pba->N_ncdm; n++)
-        fprintf(*backfile," (.) rho_ncdm[%d] [Mpc^-2]",n);
-    if (pba->Omega0_lambda != 0.)
-      fprintf(*backfile,"  (.) rho_Lambda [Mpc^-2]");
-    if (pba->Omega0_fld != 0.)
-      fprintf(*backfile,"     (.) rho_fld [Mpc^-2]");
-    if (pba->Omega0_ur != 0.)
-      fprintf(*backfile,"      (.) rho_ur [Mpc^-2]");
-    fprintf(*backfile,"    (.) rho_crit [Mpc^-2]");
+    /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
+        but it can be as long as . */
+    class_fprintf_columntitle(*backfile,"z",_TRUE_);
+    class_fprintf_columntitle(*backfile,"proper time [Gyr]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"conf. time * c [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"H / c [1/Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"comov. dist. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"ang.diam.dist. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"lum. dist. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"comov.snd.hrz. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"(.)rho_g [Mpc^-2]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"(.)rho_b [Mpc^-2]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"(.)rho_cdm [Mpc^-2]",pba->has_cdm);
+    if (pba->has_ncdm == _TRUE_){
+      for (n=0; n<pba->N_ncdm; n++){
+        sprintf(tmp,"(.)rho_ncdm[%d] [Mpc^-2]",n);
+        class_fprintf_columntitle(*backfile,tmp,_TRUE_);
+      }
+    }
+    class_fprintf_columntitle(*backfile,"(.)rho_lambda [Mpc^-2]",pba->has_lambda);
+    class_fprintf_columntitle(*backfile,"(.)rho_fld [Mpc^-2]",pba->has_fld);
+    class_fprintf_columntitle(*backfile,"(.)rho_ur [Mpc^-2]",pba->has_ur);
+    class_fprintf_columntitle(*backfile,"(.)rho_crit[Mpc^-2]",_TRUE_);
     fprintf(*backfile,"\n");
   }
 
@@ -1743,28 +1744,27 @@ int output_one_line_of_background(
 
   int n;
 
-  fprintf(backfile,"%25.12e",pba->a_today/pvecback[pba->index_bg_a]-1.);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_time]/_Gyr_over_Mpc_);
-  fprintf(backfile,"%25.12e",pba->conformal_age-pvecback[pba->index_bg_conf_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_H]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_conf_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_ang_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_lum_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rs]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_g]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_b]);
-  if (pba->Omega0_cdm != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_cdm]);
-  if (pba->Omega0_ncdm_tot != 0.)
-    for (n=0; n<pba->N_ncdm; n++)
-      fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_ncdm1+n]);
-  if (pba->Omega0_lambda != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_lambda]);
-  if (pba->Omega0_fld != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_fld]);
-  if (pba->Omega0_ur != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_ur]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_crit]);
+
+  class_fprintf_double(backfile,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_);
+  class_fprintf_double(backfile,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_H],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_conf_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_ang_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_lum_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rs],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_g],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_b],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_cdm],pba->has_cdm);
+  if (pba->has_ncdm == _TRUE_){
+    for (n=0; n<pba->N_ncdm; n++,_TRUE_)
+      class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_);
+  }
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_lambda],pba->has_lambda);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_fld],pba->has_fld);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ur],pba->has_ur);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_crit],_TRUE_);
+
   fprintf(backfile,"\n");
 
   return _SUCCESS_;

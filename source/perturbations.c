@@ -1933,7 +1933,7 @@ int perturb_prepare_output_file(struct background * pba,
   int n_ncdm;
   double k;
   FileName file_name;
-  char tmp[_COLUMNWIDTH_];
+  char tmp[20];
 
   k = ppt->k[ppt->index_k_output_values[index_ikout]];
 
