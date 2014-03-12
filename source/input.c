@@ -1779,7 +1779,19 @@ int input_init(
 
   }
 
-  /** (i.2) shall we write perturbation quantitites in files? */
+  /** (i.2) shall we write thermodynamics quantitites in a file? */
+
+  class_call(parser_read_string(pfc,"write thermodynamics",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    pop->write_thermodynamics = _TRUE_;
+
+  }
+
+  /** (i.3) shall we write perturbation quantitites in files? */
 
   class_call(parser_read_list_of_doubles(pfc,
                                          "k_output_values",
@@ -1802,7 +1814,7 @@ int input_init(
     free(pointer1);
   }
 
-  /** (i.3) shall we write primordial spectra in a file? */
+  /** (i.4) shall we write primordial spectra in a file? */
 
   class_call(parser_read_string(pfc,"write primordial",&string1,&flag1,errmsg),
              errmsg,
@@ -2098,6 +2110,7 @@ int input_default_params(
   pop->write_header = _TRUE_;
   pop->output_format = class_format;
   pop->write_background = _FALSE_;
+  pop->write_thermodynamics = _FALSE_;
   pop->write_primordial = _FALSE_;
 
   /** - spectra structure */
