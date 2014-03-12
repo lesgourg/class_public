@@ -505,17 +505,6 @@ int input_init(
     class_read_double("w0_fld",pba->w0_fld);
     class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
-
-    class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
-               errmsg,
-               "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
-
-    class_test(pba->w0_fld+pba->w0_fld>=1./3.,
-               errmsg,
-               "Your choice for w0_fld+wa_fld=%g is suspicious, ther would not be radiation domination at early times\n",
-               pba->w0_fld+pba->wa_fld);
-
-
   }
 
   /* scale factor today (arbitrary) */

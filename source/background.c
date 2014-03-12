@@ -315,6 +315,13 @@ int background_init(
              pba->error_message,
              "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);
 
+  if (pba->has_fld == _TRUE_) {
+    class_test(pba->w0_fld+pba->wa_fld>=1./3.,
+               pba->error_message,
+               "Your choice for w0_fld+wa_fld=%g is suspicious, there would not be radiation domination at early times\n",
+               pba->w0_fld+pba->wa_fld);
+  }
+
   /* in verbose mode, inform the user about the value of the ncdm
      masses in eV and about the ratio [m/omega_ncdm] in eV (the usual
      93 point something)*/
