@@ -1293,8 +1293,7 @@ int spectra_init(
      spectrum at different wavenumbers (used in the Planck
      analysis) */
 
-  /*
-  if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars]=2)) {
+  if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars] == 2)) {
 
     l1=2;
     l2=20;
@@ -1392,7 +1391,6 @@ int spectra_init(
         /(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot)));
     }
   }
-  */
 
   return _SUCCESS_;
 }
@@ -1496,7 +1494,9 @@ int spectra_indices(
   int index_ic1_ic2;
   int index_tr;
 
-  psp->md_size = ppm->md_size;
+  psp->md_size = ppt->md_size;
+  if (ppt->has_scalars == _TRUE_)
+    psp->index_md_scalars = ppt->index_md_scalars;
 
   class_alloc(psp->ic_size,
               sizeof(int)*psp->md_size,
@@ -2483,8 +2483,6 @@ int spectra_k_and_tau(
              psp->error_message,
              "you cannot ask for matter power spectrum since you turned off scalar modes");
 
-  psp->index_md_scalars = ppt->index_md_scalars;
-
   /** - check the maximum redshift z_max_pk at which P(k,z) and T_i(k,z) should be
       computable by interpolation. If it is equal to zero, only P(k,z=0)
       needs to be computed. If it is higher, we will store in a table
@@ -2589,7 +2587,6 @@ int spectra_pk(
              psp->error_message,
              "you cannot ask for matter power spectrum since you turned off scalar modes");
 
-  psp->index_md_scalars = ppt->index_md_scalars;
   index_md = psp->index_md_scalars;
 
   /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
@@ -2876,7 +2873,6 @@ int spectra_matter_transfers(
              psp->error_message,
              "you cannot ask for matter power spectrum since you turned off scalar modes");
 
-  psp->index_md_scalars = ppt->index_md_scalars;
   index_md = psp->index_md_scalars;
 
   /** - allocate and fill array of T_i(k,tau) values */
