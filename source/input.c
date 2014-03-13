@@ -505,17 +505,6 @@ int input_init(
     class_read_double("w0_fld",pba->w0_fld);
     class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
-
-    class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
-               errmsg,
-               "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
-
-    class_test(pba->w0_fld+pba->w0_fld>=1./3.,
-               errmsg,
-               "Your choice for w0_fld+wa_fld=%g is suspicious, ther would not be radiation domination at early times\n",
-               pba->w0_fld+pba->wa_fld);
-
-
   }
 
   /* scale factor today (arbitrary) */
@@ -1790,7 +1779,19 @@ int input_init(
 
   }
 
-  /** (i.2) shall we write perturbation quantitites in files? */
+  /** (i.2) shall we write thermodynamics quantitites in a file? */
+
+  class_call(parser_read_string(pfc,"write thermodynamics",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    pop->write_thermodynamics = _TRUE_;
+
+  }
+
+  /** (i.3) shall we write perturbation quantitites in files? */
 
   class_call(parser_read_list_of_doubles(pfc,
                                          "k_output_values",
@@ -1813,7 +1814,7 @@ int input_init(
     free(pointer1);
   }
 
-  /** (i.3) shall we write primordial spectra in a file? */
+  /** (i.4) shall we write primordial spectra in a file? */
 
   class_call(parser_read_string(pfc,"write primordial",&string1,&flag1,errmsg),
              errmsg,
@@ -2109,6 +2110,7 @@ int input_default_params(
   pop->write_header = _TRUE_;
   pop->output_format = class_format;
   pop->write_background = _FALSE_;
+  pop->write_thermodynamics = _FALSE_;
   pop->write_primordial = _FALSE_;
 
   /** - spectra structure */

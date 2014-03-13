@@ -320,13 +320,6 @@ extern "C" {
 			double * pvecback
 			);
 
-  int background_functions(
-			   struct background *pba,
-			   double a,
-			   short return_format,
-			   double * pvecback
-			   );
-
   int background_tau_of_z(
 			  struct background *pba,
 			  double z,
@@ -345,6 +338,13 @@ extern "C" {
   int background_indices(
 			 struct background *pba
 			 );
+
+  int background_functions(
+			   struct background *pba,
+			   double a,
+			   short return_format,
+			   double * pvecback
+			   );
 
   int background_ncdm_distribution(
 				  void *pba,

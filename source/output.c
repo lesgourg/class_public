@@ -116,7 +116,7 @@ int output_init(
 
   /** - check that we really want to output at least one file */
 
-  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_) && (pop->write_primordial == _FALSE_)) {
+  if ((ppt->has_cls == _FALSE_) && (ppt->has_pk_matter == _FALSE_) && (ppt->has_density_transfers == _FALSE_) && (ppt->has_velocity_transfers == _FALSE_) && (pop->write_background == _FALSE_) && (pop->write_thermodynamics == _FALSE_) && (pop->write_primordial == _FALSE_)) {
     if (pop->output_verbose > 0)
       printf("No output files requested. Output module skipped.\n");
     return _SUCCESS_;
@@ -164,6 +164,16 @@ int output_init(
   if (pop->write_background == _TRUE_) {
 
     class_call(output_background(pba,pop),
+               pop->error_message,
+               pop->error_message);
+
+  }
+
+  /** - deal with thermodynamics quantitites */
+
+  if (pop->write_thermodynamics == _TRUE_) {
+
+    class_call(output_thermodynamics(pba,pth,pop),
                pop->error_message,
                pop->error_message);
 
@@ -1229,6 +1239,58 @@ int output_background(
 
   }
 
+  fclose(out);
+
+  return _SUCCESS_;
+
+}
+
+int output_thermodynamics(
+                          struct background * pba,
+                          struct thermo * pth,
+                          struct output * pop
+                      ) {
+
+  FILE * out;
+  FileName file_name;
+  int index_z;
+  double tau;
+
+  sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
+
+  class_call(output_open_thermodynamics_file(
+                                             pth,
+                                             pop,
+                                             &out,
+                                             file_name
+                                             ),
+             pop->error_message,
+             pop->error_message);
+
+  for (index_z=0; index_z<pth->tt_size; index_z++) {
+
+    class_call(background_tau_of_z(
+                                   pba,
+                                   pth->z_table[index_z],
+                                   &tau
+                                   ),
+               pop->error_message,
+               pop->error_message);
+
+    class_call(output_one_line_of_thermodynamics(
+                                                 pth,
+                                                 out,
+                                                 tau,
+                                                 pth->z_table[index_z],
+                                                 pth->thermodynamics_table+index_z*pth->th_size
+                                                 ),
+               pop->error_message,
+               pop->error_message);
+
+  }
+
+  fclose(out);
+
   return _SUCCESS_;
 
 }
@@ -1265,6 +1327,8 @@ int output_primordial(
                pop->error_message);
 
   }
+
+  fclose(out);
 
   return _SUCCESS_;
 
@@ -1692,34 +1756,35 @@ int output_open_background_file(
                                 ) {
 
   int n;
-
+  char tmp[30]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
   class_open(*backfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(*backfile,"# Table of selected background quantitites\n");
     fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
-    fprintf(*backfile,"                        z");
-    fprintf(*backfile,"        proper time [Gyr]");
-    fprintf(*backfile," conformal time * c [Mpc]");
-    fprintf(*backfile,"            H / c [1/Mpc]");
-    fprintf(*backfile,"       comov. dist. [Mpc]");
-    fprintf(*backfile,"   ang. diam. dist. [Mpc]");
-    fprintf(*backfile,"   luminosity dist. [Mpc]");
-    fprintf(*backfile," comov. sound hori. [Mpc]");
-    fprintf(*backfile,"  (8piG/3) rho_g [Mpc^-2]");
-    fprintf(*backfile,"       (.) rho_b [Mpc^-2]");
-    if (pba->Omega0_cdm != 0.)
-      fprintf(*backfile,"     (.) rho_cdm [Mpc^-2]");
-    if (pba->Omega0_ncdm_tot != 0.)
-      for (n=0; n<pba->N_ncdm; n++)
-        fprintf(*backfile," (.) rho_ncdm[%d] [Mpc^-2]",n);
-    if (pba->Omega0_lambda != 0.)
-      fprintf(*backfile,"  (.) rho_Lambda [Mpc^-2]");
-    if (pba->Omega0_fld != 0.)
-      fprintf(*backfile,"     (.) rho_fld [Mpc^-2]");
-    if (pba->Omega0_ur != 0.)
-      fprintf(*backfile,"      (.) rho_ur [Mpc^-2]");
-    fprintf(*backfile,"    (.) rho_crit [Mpc^-2]");
+    /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
+        but it can be as long as . */
+    class_fprintf_columntitle(*backfile,"z",_TRUE_);
+    class_fprintf_columntitle(*backfile,"proper time [Gyr]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"conf. time * c [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"H / c [1/Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"comov. dist. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"ang.diam.dist. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"lum. dist. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"comov.snd.hrz. [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"(.)rho_g [Mpc^-2]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"(.)rho_b [Mpc^-2]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"(.)rho_cdm [Mpc^-2]",pba->has_cdm);
+    if (pba->has_ncdm == _TRUE_){
+      for (n=0; n<pba->N_ncdm; n++){
+        sprintf(tmp,"(.)rho_ncdm[%d] [Mpc^-2]",n);
+        class_fprintf_columntitle(*backfile,tmp,_TRUE_);
+      }
+    }
+    class_fprintf_columntitle(*backfile,"(.)rho_lambda [Mpc^-2]",pba->has_lambda);
+    class_fprintf_columntitle(*backfile,"(.)rho_fld [Mpc^-2]",pba->has_fld);
+    class_fprintf_columntitle(*backfile,"(.)rho_ur [Mpc^-2]",pba->has_ur);
+    class_fprintf_columntitle(*backfile,"(.)rho_crit[Mpc^-2]",_TRUE_);
     fprintf(*backfile,"\n");
   }
 
@@ -1743,29 +1808,122 @@ int output_one_line_of_background(
 
   int n;
 
-  fprintf(backfile,"%25.12e",pba->a_today/pvecback[pba->index_bg_a]-1.);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_time]/_Gyr_over_Mpc_);
-  fprintf(backfile,"%25.12e",pba->conformal_age-pvecback[pba->index_bg_conf_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_H]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_conf_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_ang_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_lum_distance]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rs]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_g]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_b]);
-  if (pba->Omega0_cdm != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_cdm]);
-  if (pba->Omega0_ncdm_tot != 0.)
-    for (n=0; n<pba->N_ncdm; n++)
-      fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_ncdm1+n]);
-  if (pba->Omega0_lambda != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_lambda]);
-  if (pba->Omega0_fld != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_fld]);
-  if (pba->Omega0_ur != 0.)
-    fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_ur]);
-  fprintf(backfile,"%25.12e",pvecback[pba->index_bg_rho_crit]);
+
+  class_fprintf_double(backfile,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_);
+  class_fprintf_double(backfile,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_H],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_conf_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_ang_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_lum_distance],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rs],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_g],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_b],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_cdm],pba->has_cdm);
+  if (pba->has_ncdm == _TRUE_){
+    for (n=0; n<pba->N_ncdm; n++,_TRUE_)
+      class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_);
+  }
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_lambda],pba->has_lambda);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_fld],pba->has_fld);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ur],pba->has_ur);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_crit],_TRUE_);
+
   fprintf(backfile,"\n");
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * This routine opens one file where some thermodynamics quantitites will be written, and writes
+ * a heading with some general information concerning its content.
+ *
+ * @param pth        Input: pointer to thermodynamics structure
+ * @param pop        Input : pointer to output structure
+ * @param thermofile Output: returned pointer to file pointer
+ * @param filename   Input : name of the file
+ * @return the error status
+ */
+
+int output_open_thermodynamics_file(
+                                    struct thermo * pth,
+                                    struct output * pop,
+                                    FILE ** thermofile,
+                                    FileName filename
+                                    ) {
+
+  class_open(*thermofile,filename,"w",pop->error_message);
+
+  if (pop->write_header == _TRUE_) {
+    fprintf(*thermofile,"# Table of selected thermodynamics quantitites\n");
+    fprintf(*thermofile,"# The following notation is used in column titles:\n");
+    fprintf(*thermofile,"#    x_e = electron ionisation fraction\n");
+    fprintf(*thermofile,"# -kappa = optical depth\n");
+    fprintf(*thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
+    fprintf(*thermofile,"#      g = kappa' e^-kappa = visibility function \n");
+    fprintf(*thermofile,"#     Tb = baryon temperature \n");
+    fprintf(*thermofile,"#  c_b^2 = baryon sound speed squared \n");
+    fprintf(*thermofile,"#  tau_d = baryon drag optical depth \n");
+
+    /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
+        but it can be as long as _COLUMNTITLE_. */
+
+    class_fprintf_columntitle(*thermofile,"z",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"conf. time [Mpc]",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"x_e",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"kappa' [Mpc^-1]",_TRUE_);
+    //class_fprintf_columntitle(*thermofile,"kappa''",_TRUE_);
+    //class_fprintf_columntitle(*thermofile,"kappa'''",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"exp(-kappa)",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"g [Mpc^-1]",_TRUE_);
+    //class_fprintf_columntitle(*thermofile,"g'",_TRUE_);
+    //class_fprintf_columntitle(*thermofile,"g''",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"Tb [K]",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"c_b^2",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"tau_d",_TRUE_);
+    //class_fprintf_columntitle(*thermofile,"max. rate",_TRUE_);
+    fprintf(*thermofile,"\n");
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * This routine writes one line with thermodynamics quantitites
+ *
+ * @param pth        Input : pointer to thermodynamics structure
+ * @param thermofile Input : file pointer
+ * @param tau        Input : conformal time
+ * @param z          Input : redshift
+ * @param pvecthermo Input : vector of thermodynamics quantitites
+ * @return the error status
+ */
+
+int output_one_line_of_thermodynamics(
+                                      struct thermo * pth,
+                                      FILE * thermofile,
+                                      double tau,
+                                      double z,
+                                      double * pvecthermo
+                                      ) {
+
+  class_fprintf_double(thermofile,z,_TRUE_);
+  class_fprintf_double(thermofile,tau,_TRUE_);
+  class_fprintf_double(thermofile,pvecthermo[pth->index_th_xe],_TRUE_);
+  class_fprintf_double(thermofile,pvecthermo[pth->index_th_dkappa],_TRUE_);
+  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_ddkappa],_TRUE_);
+  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_dddkappa],_TRUE_);
+  class_fprintf_double(thermofile,pvecthermo[pth->index_th_exp_m_kappa],_TRUE_);
+  class_fprintf_double(thermofile,pvecthermo[pth->index_th_g],_TRUE_);
+  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_dg],_TRUE_);
+  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_ddg],_TRUE_);
+  class_fprintf_double(thermofile,pvecthermo[pth->index_th_Tb],_TRUE_);
+  class_fprintf_double(thermofile,pvecthermo[pth->index_th_cb2],_TRUE_);
+  class_fprintf_double(thermofile,pvecthermo[pth->index_th_tau_d],_TRUE_);
+  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_rate],_TRUE_);
+
+  fprintf(thermofile,"\n");
 
   return _SUCCESS_;
 

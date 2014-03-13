@@ -54,10 +54,9 @@
  * any other qunatity, we can call background_at_tau(), which
  * interpolates in the table and returns all values. Finally it can be
  * useful to get 'tau' for a given redshift 'z': this can be done with
- * background_tau_of_z(). So, in principle, if we know z, calling
- * background_tau_of_z() and then background_at_tau() will provide
- * roughly the same information as calling directly
- * background_functions() with a=a_0/(1+z).
+ * background_tau_of_z(). So if we are somewhere in the code, knowing
+ * z and willing to get background quantitites, we should call first
+ * background_tau_of_z() and then background_at_tau().
  *
  *
  * In order to save time, background_at_tau() can be called in three
@@ -75,7 +74,7 @@
  * In summary, the following functions can be called from other modules:
  *
  * -# background_init() at the beginning
- * -# background_at_tau(), background_functions(), background_tau_of_z() at any later time
+ * -# background_at_tau(), background_tau_of_z() at any later time
  * -# background_free() at the end, when no more calls to the previous functions are needed
  */
 
@@ -226,181 +225,6 @@ int background_tau_of_z(
 }
 
 /**
- * Background quantities at given a.
- *
- * Function evaluating all background quantities which can be computed
- * analytically as a function of parameters like the scale factor 'a'
- * (see discussion at the beginnign of this file). In extended
- * comsological models, we would include other input parameters than
- * just 'a', e.g. (phi, phidot) for quintessence, some temperature of
- * exotic relics, etc...
- *
- * @param pba           Input: pointer to background structure
- * @param a             Input: value of scale factor
- * @param return_format Input: format of output vector
- * @param pvecback      Output: vector of background quantities (assmued to be already allocated)
- * @return the error status
- */
-
-int background_functions(
-                         struct background *pba,
-                         double a, /* in extended models there could be more than one argument: phi, phidot of quintessence; temperature of some particles; etc. */
-                         short return_format,
-                         double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
-                         ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  /* total density */
-  double rho_tot;
-  /* total pressure */
-  double p_tot;
-  /* total relativistic density */
-  double rho_r;
-  /* total non-relativistic density */
-  double rho_m;
-  /* scale factor relative to scale factor today */
-  double a_rel;
-  /* background ncdm quantities */
-  double rho_ncdm,p_ncdm,pseudo_p_ncdm;
-  /* index for n_ncdm species */
-  int n_ncdm;
-
-  /** - initialize local variables */
-  rho_tot = 0.;
-  p_tot = 0.;
-  rho_r=0.;
-  rho_m=0.;
-  a_rel = a / pba->a_today;
-
-  class_test(a_rel <= 0.,
-             pba->error_message,
-             "a = %e instead of strictly positive",a_rel);
-
-  /** - pass value of a to output */
-  pvecback[pba->index_bg_a] = a;
-
-  /** - compute each component's density and pressure */
-
-  /* photons */
-  pvecback[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a_rel,4);
-  rho_tot += pvecback[pba->index_bg_rho_g];
-  p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
-  rho_r += pvecback[pba->index_bg_rho_g];
-
-  /* baryons */
-  pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a_rel,3);
-  rho_tot += pvecback[pba->index_bg_rho_b];
-  p_tot += 0;
-  rho_m += pvecback[pba->index_bg_rho_b];
-
-  /* cdm */
-  if (pba->has_cdm == _TRUE_) {
-    pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a_rel,3);
-    rho_tot += pvecback[pba->index_bg_rho_cdm];
-    p_tot += 0.;
-    rho_m += pvecback[pba->index_bg_rho_cdm];
-  }
-
-  /* ncdm */
-  if (pba->has_ncdm == _TRUE_) {
-
-    /* Loop over species: */
-    for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
-
-      /* function returning background ncdm[n_ncdm] quantities (only
-         those for which non-NULL pointers are passed) */
-      class_call(background_ncdm_momenta(
-                                         pba->q_ncdm_bg[n_ncdm],
-                                         pba->w_ncdm_bg[n_ncdm],
-                                         pba->q_size_ncdm_bg[n_ncdm],
-                                         pba->M_ncdm[n_ncdm],
-                                         pba->factor_ncdm[n_ncdm],
-                                         1./a_rel-1.,
-                                         NULL,
-                                         &rho_ncdm,
-                                         &p_ncdm,
-                                         NULL,
-                                         &pseudo_p_ncdm),
-                 pba->error_message,
-                 pba->error_message);
-
-      pvecback[pba->index_bg_rho_ncdm1+n_ncdm] = rho_ncdm;
-      rho_tot += rho_ncdm;
-      pvecback[pba->index_bg_p_ncdm1+n_ncdm] = p_ncdm;
-      p_tot += p_ncdm;
-      pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
-
-      /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
-      rho_r += 3.* p_ncdm;
-
-      /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution
-         to rho_ncdm1 */
-      rho_m += rho_ncdm - 3.* p_ncdm;
-    }
-  }
-
-  /* Lambda */
-  if (pba->has_lambda == _TRUE_) {
-    pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
-    rho_tot += pvecback[pba->index_bg_rho_lambda];
-    p_tot -= pvecback[pba->index_bg_rho_lambda];
-  }
-
-  /* fluid with w=w0+wa(1-a/a0) and constant cs2 */
-  if (pba->has_fld == _TRUE_) {
-    pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2)
-      / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld))
-      * exp(3.*pba->wa_fld*(a_rel-1.));
-    rho_tot += pvecback[pba->index_bg_rho_fld];
-    p_tot += (pba->w0_fld+pba->wa_fld*(1.-a_rel)) * pvecback[pba->index_bg_rho_fld];
-  }
-
-  /* relativistic neutrinos (and all relativistic relics) */
-  if (pba->has_ur == _TRUE_) {
-    pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a_rel,4);
-    rho_tot += pvecback[pba->index_bg_rho_ur];
-    p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
-    rho_r += pvecback[pba->index_bg_rho_ur];
-  }
-
-  /** - compute expansion rate H from Friedmann equation: this is the
-      unique place where the Friedmann equation is assumed. Remember
-      that densities are all expressed in units of [3c^2/8piG], ie
-      rho_class = [8 pi G rho_physical / 3 c^2] */
-  pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
-
-  /** - compute derivative of H with respect to conformal time */
-  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->K/a;
-
-  /** - compute relativistic density to total density ratio */
-  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
-
-  /** - compute other quantities in the exhaustive, redundent format: */
-  if (return_format == pba->long_info) {
-
-    /** - compute critical density */
-    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->K/a/a;
-    class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
-               pba->error_message,
-               "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
-
-    /** - compute Omega_m */
-    pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
-
-    /* one can put other variables here */
-    /*  */
-    /*  */
-
-  }
-
-  return _SUCCESS_;
-
-}
-
-/**
  * Initialize the background structure, and in particular the
  * background interpolation table.
  *
@@ -490,6 +314,13 @@ int background_init(
   class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
              pba->error_message,
              "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);
+
+  if (pba->has_fld == _TRUE_) {
+    class_test(pba->w0_fld+pba->wa_fld>=1./3.,
+               pba->error_message,
+               "Your choice for w0_fld+wa_fld=%g is suspicious, there would not be radiation domination at early times\n",
+               pba->w0_fld+pba->wa_fld);
+  }
 
   /* in verbose mode, inform the user about the value of the ncdm
      masses in eV and about the ratio [m/omega_ncdm] in eV (the usual
@@ -758,6 +589,181 @@ int background_indices(
 
   pba->inter_normal=0;
   pba->inter_closeby=1;
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Background quantities at given a.
+ *
+ * Function evaluating all background quantities which can be computed
+ * analytically as a function of parameters like the scale factor 'a'
+ * (see discussion at the beginnign of this file). In extended
+ * comsological models, we would include other input parameters than
+ * just 'a', e.g. (phi, phidot) for quintessence, some temperature of
+ * exotic relics, etc...
+ *
+ * @param pba           Input: pointer to background structure
+ * @param a             Input: value of scale factor
+ * @param return_format Input: format of output vector
+ * @param pvecback      Output: vector of background quantities (assmued to be already allocated)
+ * @return the error status
+ */
+
+int background_functions(
+                         struct background *pba,
+                         double a, /* in extended models there could be more than one argument: phi, phidot of quintessence; temperature of some particles; etc. */
+                         short return_format,
+                         double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
+                         ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  /* total density */
+  double rho_tot;
+  /* total pressure */
+  double p_tot;
+  /* total relativistic density */
+  double rho_r;
+  /* total non-relativistic density */
+  double rho_m;
+  /* scale factor relative to scale factor today */
+  double a_rel;
+  /* background ncdm quantities */
+  double rho_ncdm,p_ncdm,pseudo_p_ncdm;
+  /* index for n_ncdm species */
+  int n_ncdm;
+
+  /** - initialize local variables */
+  rho_tot = 0.;
+  p_tot = 0.;
+  rho_r=0.;
+  rho_m=0.;
+  a_rel = a / pba->a_today;
+
+  class_test(a_rel <= 0.,
+             pba->error_message,
+             "a = %e instead of strictly positive",a_rel);
+
+  /** - pass value of a to output */
+  pvecback[pba->index_bg_a] = a;
+
+  /** - compute each component's density and pressure */
+
+  /* photons */
+  pvecback[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a_rel,4);
+  rho_tot += pvecback[pba->index_bg_rho_g];
+  p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
+  rho_r += pvecback[pba->index_bg_rho_g];
+
+  /* baryons */
+  pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a_rel,3);
+  rho_tot += pvecback[pba->index_bg_rho_b];
+  p_tot += 0;
+  rho_m += pvecback[pba->index_bg_rho_b];
+
+  /* cdm */
+  if (pba->has_cdm == _TRUE_) {
+    pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a_rel,3);
+    rho_tot += pvecback[pba->index_bg_rho_cdm];
+    p_tot += 0.;
+    rho_m += pvecback[pba->index_bg_rho_cdm];
+  }
+
+  /* ncdm */
+  if (pba->has_ncdm == _TRUE_) {
+
+    /* Loop over species: */
+    for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++){
+
+      /* function returning background ncdm[n_ncdm] quantities (only
+         those for which non-NULL pointers are passed) */
+      class_call(background_ncdm_momenta(
+                                         pba->q_ncdm_bg[n_ncdm],
+                                         pba->w_ncdm_bg[n_ncdm],
+                                         pba->q_size_ncdm_bg[n_ncdm],
+                                         pba->M_ncdm[n_ncdm],
+                                         pba->factor_ncdm[n_ncdm],
+                                         1./a_rel-1.,
+                                         NULL,
+                                         &rho_ncdm,
+                                         &p_ncdm,
+                                         NULL,
+                                         &pseudo_p_ncdm),
+                 pba->error_message,
+                 pba->error_message);
+
+      pvecback[pba->index_bg_rho_ncdm1+n_ncdm] = rho_ncdm;
+      rho_tot += rho_ncdm;
+      pvecback[pba->index_bg_p_ncdm1+n_ncdm] = p_ncdm;
+      p_tot += p_ncdm;
+      pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
+
+      /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
+      rho_r += 3.* p_ncdm;
+
+      /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution
+         to rho_ncdm1 */
+      rho_m += rho_ncdm - 3.* p_ncdm;
+    }
+  }
+
+  /* Lambda */
+  if (pba->has_lambda == _TRUE_) {
+    pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
+    rho_tot += pvecback[pba->index_bg_rho_lambda];
+    p_tot -= pvecback[pba->index_bg_rho_lambda];
+  }
+
+  /* fluid with w=w0+wa(1-a/a0) and constant cs2 */
+  if (pba->has_fld == _TRUE_) {
+    pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2)
+      / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld))
+      * exp(3.*pba->wa_fld*(a_rel-1.));
+    rho_tot += pvecback[pba->index_bg_rho_fld];
+    p_tot += (pba->w0_fld+pba->wa_fld*(1.-a_rel)) * pvecback[pba->index_bg_rho_fld];
+  }
+
+  /* relativistic neutrinos (and all relativistic relics) */
+  if (pba->has_ur == _TRUE_) {
+    pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a_rel,4);
+    rho_tot += pvecback[pba->index_bg_rho_ur];
+    p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
+    rho_r += pvecback[pba->index_bg_rho_ur];
+  }
+
+  /** - compute expansion rate H from Friedmann equation: this is the
+      unique place where the Friedmann equation is assumed. Remember
+      that densities are all expressed in units of [3c^2/8piG], ie
+      rho_class = [8 pi G rho_physical / 3 c^2] */
+  pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
+
+  /** - compute derivative of H with respect to conformal time */
+  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->K/a;
+
+  /** - compute relativistic density to total density ratio */
+  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
+
+  /** - compute other quantities in the exhaustive, redundent format: */
+  if (return_format == pba->long_info) {
+
+    /** - compute critical density */
+    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->K/a/a;
+    class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
+               pba->error_message,
+               "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
+
+    /** - compute Omega_m */
+    pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
+
+    /* one can put other variables here */
+    /*  */
+    /*  */
+
+  }
 
   return _SUCCESS_;
 

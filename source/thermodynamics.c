@@ -392,7 +392,9 @@ int thermodynamics_init(
   class_alloc(tau_table,pth->tt_size*sizeof(double),pth->error_message);
 
   for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
-    class_call(background_tau_of_z(pba,pth->z_table[index_tau],tau_table+index_tau),
+    class_call(background_tau_of_z(pba,
+                                   pth->z_table[index_tau],
+                                   tau_table+index_tau),
                pba->error_message,
                pth->error_message);
   }
@@ -404,12 +406,17 @@ int thermodynamics_init(
   /** - fill missing columns (quantities not computed previously but related) */
 
   /** -> baryon drag interaction rate time minus one, -[R * kappa'], stored temporarily in column ddkappa */
+
+  last_index_back = pba->bg_size-1;
+
   for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
-    class_call(background_functions(pba,
-                                    1./(1.+pth->z_table[index_tau]),
-                                    pba->short_info,
-                                    pvecback),
+    class_call(background_at_tau(pba,
+                                 tau_table[index_tau],
+                                 pba->short_info,
+                                 pba->inter_closeby,
+                                 &last_index_back,
+                                 pvecback),
                pba->error_message,
                pth->error_message);
 
@@ -1763,6 +1770,8 @@ int thermodynamics_reionization_sample(
   double Tb,Yp,dTdz,opacity,mu;
   double dkappadtau,dkappadtau_next;
   double energy_rate;
+  double tau;
+  int last_index_back;
 
   Yp = pth->YHe;
 
@@ -1798,7 +1807,19 @@ int thermodynamics_reionization_sample(
   reio_vector[preio->index_re_xe] = xe;
 
   /** - get \f$ d kappa / d z = (d kappa / d tau) * (d tau / d z) = - (d kappa / d tau) / H \f$ */
-  class_call(background_functions(pba,1./(1.+z),pba->short_info,pvecback),
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pth->error_message);
+
+  class_call(background_at_tau(pba,
+                               tau,
+                               pba->short_info,
+                               pba->inter_normal,
+                               &last_index_back,
+                               pvecback),
              pba->error_message,
              pth->error_message);
 
@@ -1847,7 +1868,18 @@ int thermodynamics_reionization_sample(
                pth->error_message,
                pth->error_message);
 
-    class_call(background_functions(pba,1./(1.+z_next),pba->short_info,pvecback),
+    class_call(background_tau_of_z(pba,
+                                   z_next,
+                                   &tau),
+               pba->error_message,
+               pth->error_message);
+
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->short_info,
+                                 pba->inter_normal,
+                                 &last_index_back,
+                                 pvecback),
                pba->error_message,
                pth->error_message);
 
@@ -1880,7 +1912,18 @@ int thermodynamics_reionization_sample(
                  pth->error_message,
                  pth->error_message);
 
-      class_call(background_functions(pba,1./(1.+z_next),pba->short_info,pvecback),
+      class_call(background_tau_of_z(pba,
+                                     z_next,
+                                     &tau),
+                 pba->error_message,
+                 pth->error_message);
+
+      class_call(background_at_tau(pba,
+                                   tau,
+                                   pba->short_info,
+                                   pba->inter_closeby,
+                                   &last_index_back,
+                                   pvecback),
                  pba->error_message,
                  pth->error_message);
 
@@ -1946,7 +1989,18 @@ int thermodynamics_reionization_sample(
 
     z = preio->reionization_table[i*preio->re_size+preio->index_re_z];
 
-    class_call(background_functions(pba,1./(1.+z),pba->normal_info,pvecback),
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau),
+               pba->error_message,
+               pth->error_message);
+
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->normal_info,
+                                 pba->inter_normal,
+                                 &last_index_back,
+                                 pvecback),
                pba->error_message,
                pth->error_message);
 
@@ -2085,6 +2139,8 @@ int thermodynamics_recombination_with_hyrec(
   double L2s1s_current;
   void * buffer;
   int buf_size;
+  double tau;
+  int last_index_back;
 
   /** - Fill hyrec parameter structure */
 
@@ -2262,7 +2318,18 @@ int thermodynamics_recombination_with_hyrec(
                pth->error_message,
                pth->error_message);
 
-    class_call(background_functions(pba,pba->a_today/(1.+z),pba->short_info,pvecback),
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau),
+               pba->error_message,
+               pth->error_message);
+
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->short_info,
+                                 pba->inter_normal,
+                                 &last_index_back,
+                                 pvecback),
                pba->error_message,
                pth->error_message);
 
@@ -2784,6 +2851,9 @@ int thermodynamics_derivs_with_recfast(
   //double C_He;
   double energy_rate;
 
+  double tau;
+  int last_index_back;
+
   ptpaw = parameters_and_workspace;
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
@@ -2799,7 +2869,18 @@ int thermodynamics_derivs_with_recfast(
   n_He = preco->fHe * n;
   Trad = preco->Tnow * (1.+z);
 
-  class_call(background_functions(pba,1./(1.+z),pba->short_info,pvecback),
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             error_message);
+
+  class_call(background_at_tau(pba,
+                               tau,
+                               pba->short_info,
+                               pba->inter_normal,
+                               &last_index_back,
+                               pvecback),
              pba->error_message,
              error_message);
 

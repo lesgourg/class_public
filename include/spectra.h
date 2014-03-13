@@ -39,6 +39,7 @@ struct spectra {
   //@{
 
   int md_size;           /**< number of modes (scalar, tensor, ...) included in computation */
+  int index_md_scalars; /**< index for scalar modes */
 
   int * ic_size;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
   int * ic_ic_size;      /**< for a given mode, ic_ic_size[index_md] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_md] */
@@ -141,8 +142,6 @@ struct spectra {
   /** @name - table of pre-computed matter power spectrum P(k) values, and related quantitites */
 
   //@{
-
-  int index_md_scalars; /**< index for scalar modes (the matter power spectrum refers by construction to scalar modes) */
 
   int ln_k_size;    /**< number ln(k) values */
   double * ln_k;    /**< list of ln(k) values ln_k[index_k] */

@@ -176,6 +176,18 @@ int perturb_init(
                 "your ncdm_fluid_approximation is set to %d, out of range defined in perturbations.h",ppr->ncdm_fluid_approximation);
   }
 
+    if (pba->has_fld == _TRUE_) {
+
+      class_test(pba->w0_fld+pba->wa_fld >= 0.,
+                 ppt->error_message,
+                 "So far, the fluid is meant to be negligible at early time, and not to be important for defining the initial conditions of other species. You are using parameters for which this assumption may break down, so maybe it's the case to fully implement the fluid in the initial condition routine");
+
+      class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
+                 ppt->error_message,
+                 "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
+
+    }
+
   class_test(ppt->has_vectors == _TRUE_,
              ppt->error_message,
              "Vectors not coded yet");
@@ -1933,7 +1945,7 @@ int perturb_prepare_output_file(struct background * pba,
   int n_ncdm;
   double k;
   FileName file_name;
-  char tmp[_COLUMNWIDTH_];
+  char tmp[20];
 
   k = ppt->k[ppt->index_k_output_values[index_ikout]];
 
@@ -3317,14 +3329,6 @@ int perturb_initial_conditions(struct precision * ppr,
         rho_r += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
         rho_nu += ppw->pvecback[pba->index_bg_rho_ncdm1 + n_ncdm];
       }
-    }
-
-    if (pba->has_fld == _TRUE_) {
-
-      class_test(pba->w0_fld+pba->wa_fld >= 0.,
-                 ppt->error_message,
-                 "So far, the fluid is meant to be negligible at early time, and not to be important for defining the initial conditions of other species. You are using parameters for which this assumption may break down, so maybe it's the case to fully implement the fluid in the initial condition routine");
-
     }
 
     class_test(rho_r == 0.,

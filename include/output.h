@@ -52,6 +52,7 @@ struct output {
   enum file_format output_format;
 
   short write_background;
+  short write_thermodynamics;
   short write_primordial;
 
   //@}
@@ -129,6 +130,12 @@ extern "C" {
                         struct background * pba,
                         struct output * pop
                         );
+
+  int output_thermodynamics(
+                            struct background * pba,
+                            struct thermo * pth,
+                            struct output * pop
+                            );
 
   int output_primordial(
                         struct perturbs * ppt,
@@ -212,6 +219,21 @@ extern "C" {
                                     FILE * backfile,
                                     double * pvecback
                                     );
+
+  int output_open_thermodynamics_file(
+                                      struct thermo * pth,
+                                      struct output * pop,
+                                      FILE ** thermofile,
+                                      FileName filename
+                                      );
+
+  int output_one_line_of_thermodynamics(
+                                        struct thermo * pth,
+                                        FILE * thermofile,
+                                        double tau,
+                                        double z,
+                                        double * pvecthermo
+                                        );
 
   int output_open_primordial_file(
                                   struct perturbs * ppt,
