@@ -1,6 +1,7 @@
 from classy import Class
 from classy import CosmoSevereError
 import itertools
+import sys
 import numpy as np
 import unittest
 from nose_parameterized import parameterized
@@ -42,19 +43,15 @@ class TestClass(unittest.TestCase):
         self.cosmo.cleanup()
         del self.scenario
 
-             #'Mnu',
-             #'Positive_Omega_k',
-             #'Negative_Omega_k'),
-    #@parameterized.expand([
     @parameterized.expand(
         itertools.product(
             ('LCDM',
              'Mnu',
              'Positive_Omega_k',
              'Negative_Omega_k',
-             'Isocurvature_modes'),
-            ({}, {'output': 'mPk'}, {'output': 'tCl'},
-             {'output': 'tCl pCl lCl'}, {'output': 'mPk tCl lCl','P_k_max_h/Mpc':10},
+             'Isocurvature_modes', ),
+            ({'output': ''}, {'output': 'mPk'}, {'output': 'tCl'},
+             {'output': 'tCl pCl lCl'}, {'output': 'mPk tCl lCl', 'P_k_max_h/Mpc':10},
              {'output': 'nCl sCl'}, {'output': 'tCl pCl lCl nCl sCl'}),
             ({'gauge': 'newtonian'}, {'gauge': 'sync'}),
             ({}, {'non linear': 'halofit'})))
@@ -67,19 +64,19 @@ class TestClass(unittest.TestCase):
         elif name == 'Negative_Omega_k':
             self.scenario.update({'Omega_k': -0.01})
         elif name == 'Isocurvature_modes':
-            self.scenario.update({'ic':'ad,cdi,nid','c_ad_cdi':-0.5})
+            self.scenario.update({'ic': 'ad,nid,cdi', 'c_ad_cdi': -0.5})
 
         self.scenario.update(scenario)
         if scenario != {}:
             self.scenario.update(gauge)
         self.scenario.update(nonlinear)
 
-        print '\n\n--------------------------'
-        print '| Test case %s |' % name
-        print '--------------------------'
+        sys.stderr.write('\n\n---------------------------------\n')
+        sys.stderr.write('| Test case %s |\n' % name)
+        sys.stderr.write('---------------------------------\n')
         for key, value in self.scenario.iteritems():
-            print key, '=', value
-        print
+            sys.stderr.write("%s = %s\n" % (key, value))
+        sys.stderr.write("\n")
 
         setting = self.cosmo.set(
             dict(self.verbose.items()+self.scenario.items()))
@@ -87,7 +84,22 @@ class TestClass(unittest.TestCase):
 
         cl_list = ['tCl', 'lCl', 'pCl', 'nCl', 'sCl']
 
-        self.cosmo.compute()
+        # Depending on the cases, the compute should fail or not
+        should_fail = True
+        output = self.scenario['output'].split()
+        for elem in output:
+            if elem in ['tCl', 'pCl']:
+                for elem2 in output:
+                    if elem2 == 'lCl':
+                        should_fail = False
+                        break
+
+        if not should_fail:
+            self.cosmo.compute()
+        else:
+            self.assertRaises(CosmoSevereError, self.cosmo.compute)
+            return
+
         self.assertTrue(
             self.cosmo.state,
             "Class failed to go through all __init__ methods")
