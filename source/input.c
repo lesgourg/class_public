@@ -68,11 +68,14 @@ int input_init_from_arguments(
                    "You have passed more than one input file with extension '.ini', choose one.");
         strcpy(input_file,argv[i]);
       }
-      if (strcmp(extension,".pre") == 0) {
+      else if (strcmp(extension,".pre") == 0) {
         class_test(precision_file[0] != '\0',
                    errmsg,
                    "You have passed more than one precision with extension '.pre', choose one.");
         strcpy(precision_file,argv[i]);
+      }
+      else {
+        fprintf(stdout,"Warning: the file %s has an extension different from .ini and .pre, so it has been ignored\n",argv[i]);
       }
     }
   }
