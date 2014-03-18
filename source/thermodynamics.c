@@ -663,7 +663,7 @@ int thermodynamics_init(
       interpolation) and sound horizon at that time */
 
   index_tau=0;
-  while (pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.)
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.) && (index_tau < pth->tt_size))
     index_tau++;
 
   pth->z_d = pth->z_table[index_tau-1]+
