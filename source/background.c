@@ -315,6 +315,12 @@ int background_init(
              pba->error_message,
              "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);
 
+  /* H0 in Mpc^{-1} */
+  class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
+             pba->error_message,
+             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);
+
+  /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
     class_test(pba->w0_fld+pba->wa_fld>=1./3.,
                pba->error_message,
