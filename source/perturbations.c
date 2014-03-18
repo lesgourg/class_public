@@ -1966,6 +1966,7 @@ int perturb_prepare_output_file(struct background * pba,
     fprintf(ppw->perturb_output_file,
             "#scalar perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
+    fprintf(ppw->perturb_output_file,"#");
     class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
@@ -2006,6 +2007,7 @@ int perturb_prepare_output_file(struct background * pba,
     fprintf(ppw->perturb_output_file,
             "#tensor perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
+    fprintf(ppw->perturb_output_file,"#");
     class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
@@ -5200,6 +5202,7 @@ int perturb_print_variables(double tau,
 
     }
 
+    fprintf(ppw->perturb_output_file," ");
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
@@ -5264,6 +5267,7 @@ int perturb_print_variables(double tau,
       pol4_g = 0.;
     }
 
+    fprintf(ppw->perturb_output_file," ");
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
