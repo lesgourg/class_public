@@ -413,7 +413,7 @@ int thermodynamics_init(
 
     class_call(background_at_tau(pba,
                                  tau_table[index_tau],
-                                 pba->short_info,
+                                 pba->normal_info,
                                  pba->inter_closeby,
                                  &last_index_back,
                                  pvecback),
