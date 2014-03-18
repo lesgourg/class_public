@@ -1966,7 +1966,8 @@ int perturb_prepare_output_file(struct background * pba,
     fprintf(ppw->perturb_output_file,
             "#scalar perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc^-1]",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"theta_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_);
@@ -2005,7 +2006,8 @@ int perturb_prepare_output_file(struct background * pba,
     fprintf(ppw->perturb_output_file,
             "#tensor perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc^-1]",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"l4_g",_TRUE_);
@@ -5199,6 +5201,7 @@ int perturb_print_variables(double tau,
     }
 
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
+    class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, theta_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, shear_g, _TRUE_);
@@ -5262,6 +5265,7 @@ int perturb_print_variables(double tau,
     }
 
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
+    class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, shear_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, l4_g, _TRUE_);
