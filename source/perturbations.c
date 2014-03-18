@@ -1825,6 +1825,18 @@ int perturb_solve(
   ppaw.ppw = ppw;
   ppaw.ppw->inter_mode = pba->inter_closeby;
 
+  /** - check whether we need to print perturbations to a file for this wavenumber */
+
+  perhaps_print_variables = NULL;
+  for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
+    if (ppt->index_k_output_values[index_ikout] == index_k){
+      perhaps_print_variables = perturb_print_variables;
+      class_call(perturb_prepare_output_file(pba,ppt,ppw,index_ikout,index_md),
+                 ppt->error_message,
+                 ppt->error_message);
+    }
+  }
+
   /** - loop over intervals over which approximatiomn scheme is uniform. For each interval: */
 
   for (index_interval=0; index_interval<interval_number; index_interval++) {
@@ -1876,16 +1888,6 @@ int perturb_solve(
       generic_evolver = evolver_ndf15;
     }
 
-    perhaps_print_variables = NULL;
-    for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
-      if (ppt->index_k_output_values[index_ikout] == index_k){
-        perhaps_print_variables = perturb_print_variables;
-        class_call(perturb_prepare_output_file(pba,ppt,ppw,index_ikout,index_md),
-                   ppt->error_message,
-                   ppt->error_message);
-      }
-    }
-
     class_call(generic_evolver(perturb_derivs,
                                interval_limit[index_interval],
                                interval_limit[index_interval+1],
@@ -1905,10 +1907,12 @@ int perturb_solve(
                ppt->error_message,
                ppt->error_message);
 
-
-    if (perhaps_print_variables != NULL)
-      fclose(ppw->perturb_output_file);
   }
+
+  /** - if perturbations were printed in a file, close the file */
+
+  if (perhaps_print_variables != NULL)
+    fclose(ppw->perturb_output_file);
 
   /** fill the source terms array with zeros for all times between
       then last integrated time tau_max and tau_today. */
