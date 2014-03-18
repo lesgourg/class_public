@@ -2562,8 +2562,9 @@ int thermodynamics_recombination_with_recfast(
 
   for(i=0; i <Nz; i++) {
 
-    zstart = zinitial * (1. - (double)i / (double)Nz);
-    zend   = zinitial * (1. - (double)(i+1) / (double)Nz);
+    zstart = zinitial * (double)(Nz-i) / (double)Nz;
+    zend   = zinitial * (double)(Nz-i-1) / (double)Nz;
+
     z = zend;
 
     /** -> first approximation: H and Helium fully ionized */
