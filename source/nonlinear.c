@@ -274,7 +274,7 @@ int nonlinear_halofit(
                       double *k_nl
                       ) {
 
-  double Omega_m,Omega_v,fnu,Omega0_m;
+  double Omega_m,Omega_v,fnu,Omega0_m, w0;
 
   /** determine non linear ratios (from pk) **/
 
@@ -283,7 +283,7 @@ int nonlinear_halofit(
   double sigma,rknl,rneff,rncur,d1,d2;
   double diff,xlogr1,xlogr2,rmid;
 
-  double extragam,gam,a,b,c,xmu,xnu,alpha,beta,f1,f2,f3;
+  double gam,a,b,c,xmu,xnu,alpha,beta,f1,f2,f3;
   double pk_linaa;
   double y;
   double f1a,f2a,f3a,f1b,f2b,f3b,frac;
@@ -302,6 +302,7 @@ int nonlinear_halofit(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot);
+  w0 = pba->w0_fld;
   fnu      = pba->Omega0_ncdm_tot/(pba->Omega0_b + pba->Omega0_cdm+pba->Omega0_ncdm_tot);
   anorm    = 1./(2*pow(_PI_,2));
 
@@ -454,18 +455,19 @@ int nonlinear_halofit(
        * scales by a factor of two. Add an extra correction from the
        * simulations in Bird, Viel,Haehnelt 2011 which partially accounts for
        * this.*/
-
-      extragam = 0.3159 -0.0765*rneff -0.8350*rncur;
-      gam=extragam+0.86485+0.2989*rneff+0.1631*rncur;
-
-      a=1.4861+1.83693*rneff+1.67618*rneff*rneff+0.7940*rneff*rneff*rneff+0.1670756*rneff*rneff*rneff*rneff-0.620695*rncur;
+      /*SPB14: This version of halofit is an updated version of the fit to the massive neutrinos
+       * based on the results of Takahashi 2012, (arXiv:1208.2701).
+       */
+      gam=0.1971-0.0843*rneff+0.8460*rncur;
+      a=1.5222+2.8553*rneff+2.3706*rneff*rneff+0.9903*rneff*rneff*rneff+ 0.2250*rneff*rneff*rneff*rneff-0.6038*rncur+0.1749*Omega_v*(1.+w0);
       a=pow(10,a);
-      b=pow(10,(0.9463+0.9466*rneff+0.3084*rneff*rneff-0.940*rncur));
-      c=pow(10,(-0.2807+0.6669*rneff+0.3214*rneff*rneff-0.0793*rncur));
-      xmu   = pow(10,(-3.54419+0.19086*rneff));
-      xnu   = pow(10,(0.95897+1.2857*rneff));
-      alpha = 1.38848+0.3701*rneff-0.1452*rneff*rneff;
-      beta  = 0.8291+0.9854*rneff+0.3400*pow(rneff,2)+fnu*(-6.4868+1.4373*pow(rneff,2));
+      b=pow(10, (-0.5642+0.5864*rneff+0.5716*rneff*rneff-1.5474*rncur+0.2279*Omega_v*(1.+w0)));
+      c=pow(10, 0.3698+2.0404*rneff+0.8161*rneff*rneff+0.5869*rncur);
+      xmu=0.;
+      xnu=pow(10,5.2105+3.6902*rneff);
+      alpha=abs(6.0835+1.3373*rneff-0.1959*rneff*rneff-5.5274*rncur);
+      beta=2.0379-0.7354*rneff+0.3157*pow(rneff,2)+1.2490*pow(rneff,3)+0.3980*pow(rneff,4)-0.1682*rncur + fnu*(1.081 + 0.395*pow(rneff,2));
+
       if(fabs(1-Omega_m)>0.01) { /*then omega evolution */
         f1a=pow(Omega_m,(-0.0732));
         f2a=pow(Omega_m,(-0.1423));
@@ -486,8 +488,8 @@ int nonlinear_halofit(
 
       y=(rk/rknl);
       pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
-      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(2.080-12.39*(Omega0_m-0.3))/(1+1.201e-03*pow(y,3)));
-      pk_linaa=pk_lin*(1+fnu*26.29*pow(rk,2)/(1+1.5*pow(rk,2)));
+      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(0.977-18.015*(Omega0_m-0.3)));
+      pk_linaa=pk_lin*(1+fnu*47.48*pow(rk,2)/(1+1.5*pow(rk,2)));
       pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
 
       pk_nl[index_k] = (pk_halo+pk_quasi)/pow(pnl->k[index_k],3)/anorm;
