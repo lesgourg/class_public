@@ -75,7 +75,7 @@ int nonlinear_init(
 
   else if (pnl->method == nl_halofit) {
     if (pnl->nonlinear_verbose > 0)
-      printf("Computing non-linear matter power spectrum with Halofit (including update by Bird et al 2011)\n");
+      printf("Computing non-linear matter power spectrum with Halofit (including update Takahashi et al. 2012 and Bird 2014)\n");
 
     if (pba->has_ncdm) {
       for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
