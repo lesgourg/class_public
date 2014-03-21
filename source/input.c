@@ -1137,34 +1137,39 @@ int input_init(
 
       class_read_double("r",ppm->r);
 
-      class_call(parser_read_string(pfc,"n_t",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-
-      if (flag1 == _TRUE_) {
-
-        if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-          ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
-        }
-        else {
-          class_read_double("n_t",ppm->n_t);
-        }
-
+      if (ppm->r <= 0) {
+        ppt->has_tensors = _FALSE_;
       }
+      else {
 
-      class_call(parser_read_string(pfc,"alpha_t",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
+        class_call(parser_read_string(pfc,"n_t",&string1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
 
-      if (flag1 == _TRUE_) {
+        if (flag1 == _TRUE_) {
 
-        if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-          ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
+          if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
+            ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
+          }
+          else {
+            class_read_double("n_t",ppm->n_t);
+          }
+
         }
-        else {
-          class_read_double("alpha_t",ppm->alpha_t);
-        }
 
+        class_call(parser_read_string(pfc,"alpha_t",&string1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+
+        if (flag1 == _TRUE_) {
+
+          if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
+            ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
+          }
+          else {
+            class_read_double("alpha_t",ppm->alpha_t);
+          }
+        }
       }
     }
   }

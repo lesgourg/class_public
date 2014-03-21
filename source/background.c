@@ -242,7 +242,7 @@ int background_init(
 
   /** - local variables : */
   int n_ncdm;
-  double Omega0_tot,rho_ncdm_rel,rho_nu_rel;
+  double rho_ncdm_rel,rho_nu_rel;
   int filenum=0;
 
   /** - in verbose mode, provide some information */
@@ -338,24 +338,6 @@ int background_init(
              pba->m_ncdm_in_eV[n_ncdm],
              pba->m_ncdm_in_eV[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
     }
-  }
-
-  /* compute Omega0_tot and check curvature */
-  Omega0_tot = pba->Omega0_g + pba->Omega0_b;
-  if (pba->has_cdm == _TRUE_) {
-    Omega0_tot += pba->Omega0_cdm;
-  }
-  if (pba->has_ncdm == _TRUE_) {
-    Omega0_tot += pba->Omega0_ncdm_tot;
-  }
-  if (pba->has_lambda == _TRUE_) {
-    Omega0_tot += pba->Omega0_lambda;
-  }
-  if (pba->has_fld == _TRUE_) {
-    Omega0_tot += pba->Omega0_fld;
-  }
-  if (pba->has_ur == _TRUE_) {
-    Omega0_tot += pba->Omega0_ur;
   }
 
   /* check other quantities which would lead to segmentation fault if zero */
