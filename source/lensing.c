@@ -691,13 +691,15 @@ int lensing_init(
 
   /** - compute lensed Cls by integration */
   //debut = omp_get_wtime();
-  class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
-             ple->error_message,
-             ple->error_message);
-  if (ppr->accurate_lensing == _FALSE_) {
-    class_call(lensing_addback_cl_tt(ple,cl_tt),
+  if (ple->has_tt==_TRUE_) {
+    class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
                ple->error_message,
                ple->error_message);
+    if (ppr->accurate_lensing == _FALSE_) {
+      class_call(lensing_addback_cl_tt(ple,cl_tt),
+                 ple->error_message,
+                 ple->error_message);
+    }
   }
 
   if (ple->has_te==_TRUE_) {
