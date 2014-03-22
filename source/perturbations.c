@@ -199,11 +199,6 @@ int perturb_init(
   if ((ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0))
     printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n");
 
-  if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
-      (ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0)) {
-    printf("Warning: yet unexplained difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
-  }
-
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
   class_call(perturb_indices_of_perturbs(ppr,

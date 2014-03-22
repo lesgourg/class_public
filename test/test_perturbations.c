@@ -1,5 +1,5 @@
-/** @file class.c 
- * Julien Lesgourgues, 17.04.2011    
+/** @file class.c
+ * Julien Lesgourgues, 17.04.2011
  */
 
 /* this main runs only the background, thermodynamics and perturbation part */
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   ErrorMsg errmsg;            /* for error messages */
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg); 
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
 
@@ -40,40 +40,44 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  /*********************************************************************/
-  /*  here you can output the source function S(k,tau) of your choice  */
-  /*********************************************************************/
+  if (pt.has_perturbations == _TRUE_) {
 
-  FILE * output;
-  int index_k,index_tau;
+    /*********************************************************************/
+    /*  here you can output the source function S(k,tau) of your choice  */
+    /*********************************************************************/
 
-  /* choose a mode (scalar, tensor, ...) */
-  int index_mode=pt.index_md_scalars; 
+    FILE * output;
+    int index_k,index_tau;
 
-  /* choose a type (temperature, polarization, grav. pot., ...) */
-  int index_type=pt.index_tp_t0;
+    /* choose a mode (scalar, tensor, ...) */
+    int index_mode=pt.index_md_scalars;
 
-  /* choose an initial condition (ad, bi, cdi, nid, niv, ...) */
-  int index_ic=pt.index_ic_ad;
+    /* choose a type (temperature, polarization, grav. pot., ...) */
+    int index_type=pt.index_tp_t0;
 
-  output=fopen("output/source.dat","w");
-  fprintf(output,"#   k       tau       S\n");
+    /* choose an initial condition (ad, bi, cdi, nid, niv, ...) */
+    int index_ic=pt.index_ic_ad;
 
-  for (index_k=0; index_k < pt.k_size; index_k++) {
-    for (index_tau=0; index_tau < pt.tau_size; index_tau++) { 
-      
-      fprintf(output,"%e %e %e\n",
-	      pt.k[index_k],
-	      pt.tau_sampling[index_tau],
-	      pt.sources[index_mode]
-	      [index_ic * pt.tp_size[index_mode] + index_type]
-	      [index_tau * pt.k_size + index_k]
-	      );
+    output=fopen("output/source.dat","w");
+    fprintf(output,"#   k       tau       S\n");
+
+    for (index_k=0; index_k < pt.k_size; index_k++) {
+      for (index_tau=0; index_tau < pt.tau_size; index_tau++) {
+
+        fprintf(output,"%e %e %e\n",
+                pt.k[index_k],
+                pt.tau_sampling[index_tau],
+                pt.sources[index_mode]
+                [index_ic * pt.tp_size[index_mode] + index_type]
+                [index_tau * pt.k_size + index_k]
+                );
+      }
+      fprintf(output,"\n");
     }
-    fprintf(output,"\n");
+
+    fclose(output);
+
   }
-  
-  fclose(output);
 
   /****** all calculations done, now free the structures ******/
 
