@@ -445,6 +445,8 @@ extern "C" {
 #define _TCMB_BIG_ 2.8         /**< maximal \f$ T_{cmb} \f$ in K */
 #define _TCMB_SMALL_ 2.7       /**< minimal \f$ T_{cmb}  \f$ in K */
 #define _TOLERANCE_ON_CURVATURE_ 1.e-5 /**< if \f$ | \Omega_k | \f$ smaller than this, considered as flat */
+#define _OMEGAK_BIG_ 0.5     /**< maximal \f$ Omega_k \f$ */
+#define _OMEGAK_SMALL_ -0.5  /**< minimal \f$ Omega_k \f$ */
 
 //@}
 

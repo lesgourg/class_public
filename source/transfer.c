@@ -1153,10 +1153,10 @@ int transfer_get_q_list(
 
     /* max contribution from non-integer nu values */
     q_step = 1.+q_period*ppr->q_logstep_spline;
-    q_size_max = 2*(int)(log(q_max/q_min)/log(q_step));
+    q_size_max = 5*(int)(log(q_max/q_min)/log(q_step));
 
     q_step = q_period*ppr->q_linstep;
-    q_size_max += 2*(int)((q_max-q_min)/q_step);
+    q_size_max += 5*(int)((q_max-q_min)/q_step);
 
   }
 

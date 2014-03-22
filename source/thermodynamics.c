@@ -413,7 +413,7 @@ int thermodynamics_init(
 
     class_call(background_at_tau(pba,
                                  tau_table[index_tau],
-                                 pba->short_info,
+                                 pba->normal_info,
                                  pba->inter_closeby,
                                  &last_index_back,
                                  pvecback),
@@ -663,7 +663,7 @@ int thermodynamics_init(
       interpolation) and sound horizon at that time */
 
   index_tau=0;
-  while (pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.)
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.) && (index_tau < pth->tt_size))
     index_tau++;
 
   pth->z_d = pth->z_table[index_tau-1]+
@@ -2562,8 +2562,9 @@ int thermodynamics_recombination_with_recfast(
 
   for(i=0; i <Nz; i++) {
 
-    zstart = zinitial * (1. - (double)i / (double)Nz);
-    zend   = zinitial * (1. - (double)(i+1) / (double)Nz);
+    zstart = zinitial * (double)(Nz-i) / (double)Nz;
+    zend   = zinitial * (double)(Nz-i-1) / (double)Nz;
+
     z = zend;
 
     /** -> first approximation: H and Helium fully ionized */

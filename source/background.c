@@ -242,7 +242,7 @@ int background_init(
 
   /** - local variables : */
   int n_ncdm;
-  double Omega0_tot,rho_ncdm_rel,rho_nu_rel;
+  double rho_ncdm_rel,rho_nu_rel;
   int filenum=0;
 
   /** - in verbose mode, provide some information */
@@ -315,6 +315,12 @@ int background_init(
              pba->error_message,
              "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);
 
+  /* H0 in Mpc^{-1} */
+  class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
+             pba->error_message,
+             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);
+
+  /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
     class_test(pba->w0_fld+pba->wa_fld>=1./3.,
                pba->error_message,
@@ -332,24 +338,6 @@ int background_init(
              pba->m_ncdm_in_eV[n_ncdm],
              pba->m_ncdm_in_eV[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
     }
-  }
-
-  /* compute Omega0_tot and check curvature */
-  Omega0_tot = pba->Omega0_g + pba->Omega0_b;
-  if (pba->has_cdm == _TRUE_) {
-    Omega0_tot += pba->Omega0_cdm;
-  }
-  if (pba->has_ncdm == _TRUE_) {
-    Omega0_tot += pba->Omega0_ncdm_tot;
-  }
-  if (pba->has_lambda == _TRUE_) {
-    Omega0_tot += pba->Omega0_lambda;
-  }
-  if (pba->has_fld == _TRUE_) {
-    Omega0_tot += pba->Omega0_fld;
-  }
-  if (pba->has_ur == _TRUE_) {
-    Omega0_tot += pba->Omega0_ur;
   }
 
   /* check other quantities which would lead to segmentation fault if zero */

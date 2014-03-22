@@ -1764,6 +1764,7 @@ int output_open_background_file(
     fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
     /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
         but it can be as long as . */
+    fprintf(*backfile,"#");
     class_fprintf_columntitle(*backfile,"z",_TRUE_);
     class_fprintf_columntitle(*backfile,"proper time [Gyr]",_TRUE_);
     class_fprintf_columntitle(*backfile,"conf. time * c [Mpc]",_TRUE_);
@@ -1808,7 +1809,7 @@ int output_one_line_of_background(
 
   int n;
 
-
+  fprintf(backfile," ");
   class_fprintf_double(backfile,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_);
   class_fprintf_double(backfile,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_);
   class_fprintf_double(backfile,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_);
@@ -1869,6 +1870,7 @@ int output_open_thermodynamics_file(
     /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
         but it can be as long as _COLUMNTITLE_. */
 
+    fprintf(*thermofile,"#");
     class_fprintf_columntitle(*thermofile,"z",_TRUE_);
     class_fprintf_columntitle(*thermofile,"conf. time [Mpc]",_TRUE_);
     class_fprintf_columntitle(*thermofile,"x_e",_TRUE_);
@@ -1908,6 +1910,7 @@ int output_one_line_of_thermodynamics(
                                       double * pvecthermo
                                       ) {
 
+  fprintf(thermofile," ");
   class_fprintf_double(thermofile,z,_TRUE_);
   class_fprintf_double(thermofile,tau,_TRUE_);
   class_fprintf_double(thermofile,pvecthermo[pth->index_th_xe],_TRUE_);

@@ -199,11 +199,6 @@ int perturb_init(
   if ((ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0))
     printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n");
 
-  if ((ppt->has_cl_cmb_polarization == _TRUE_) &&
-      (ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0)) {
-    printf("Warning: yet unexplained difference with CAMB for impact of reionization on polarized tensors,\n affecting ClEE,  BB, TE for typically l<10\n");
-  }
-
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
   class_call(perturb_indices_of_perturbs(ppr,
@@ -1825,6 +1820,18 @@ int perturb_solve(
   ppaw.ppw = ppw;
   ppaw.ppw->inter_mode = pba->inter_closeby;
 
+  /** - check whether we need to print perturbations to a file for this wavenumber */
+
+  perhaps_print_variables = NULL;
+  for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
+    if (ppt->index_k_output_values[index_ikout] == index_k){
+      perhaps_print_variables = perturb_print_variables;
+      class_call(perturb_prepare_output_file(pba,ppt,ppw,index_ikout,index_md),
+                 ppt->error_message,
+                 ppt->error_message);
+    }
+  }
+
   /** - loop over intervals over which approximatiomn scheme is uniform. For each interval: */
 
   for (index_interval=0; index_interval<interval_number; index_interval++) {
@@ -1876,16 +1883,6 @@ int perturb_solve(
       generic_evolver = evolver_ndf15;
     }
 
-    perhaps_print_variables = NULL;
-    for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
-      if (ppt->index_k_output_values[index_ikout] == index_k){
-        perhaps_print_variables = perturb_print_variables;
-        class_call(perturb_prepare_output_file(pba,ppt,ppw,index_ikout,index_md),
-                   ppt->error_message,
-                   ppt->error_message);
-      }
-    }
-
     class_call(generic_evolver(perturb_derivs,
                                interval_limit[index_interval],
                                interval_limit[index_interval+1],
@@ -1905,10 +1902,12 @@ int perturb_solve(
                ppt->error_message,
                ppt->error_message);
 
-
-    if (perhaps_print_variables != NULL)
-      fclose(ppw->perturb_output_file);
   }
+
+  /** - if perturbations were printed in a file, close the file */
+
+  if (perhaps_print_variables != NULL)
+    fclose(ppw->perturb_output_file);
 
   /** fill the source terms array with zeros for all times between
       then last integrated time tau_max and tau_today. */
@@ -1962,7 +1961,9 @@ int perturb_prepare_output_file(struct background * pba,
     fprintf(ppw->perturb_output_file,
             "#scalar perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc^-1]",_TRUE_);
+    fprintf(ppw->perturb_output_file,"#");
+    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"theta_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_);
@@ -2001,7 +2002,9 @@ int perturb_prepare_output_file(struct background * pba,
     fprintf(ppw->perturb_output_file,
             "#tensor perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc^-1]",_TRUE_);
+    fprintf(ppw->perturb_output_file,"#");
+    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"l4_g",_TRUE_);
@@ -5194,7 +5197,9 @@ int perturb_print_variables(double tau,
 
     }
 
+    fprintf(ppw->perturb_output_file," ");
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
+    class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, theta_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, shear_g, _TRUE_);
@@ -5257,7 +5262,9 @@ int perturb_print_variables(double tau,
       pol4_g = 0.;
     }
 
+    fprintf(ppw->perturb_output_file," ");
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
+    class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, shear_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, l4_g, _TRUE_);
