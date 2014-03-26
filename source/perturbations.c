@@ -2013,6 +2013,12 @@ int perturb_prepare_output_file(struct background * pba,
     class_fprintf_columntitle(ppw->perturb_output_file,"pol4_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"H (gw)",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"Hdot (gwdot)",_TRUE_);
+    if (ppt->accurate_tensor){
+      class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",pba->has_ur);
+      class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",pba->has_ur);
+      class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",pba->has_ur);
+    }
+
 
     fprintf(ppw->perturb_output_file,"\n");
 
@@ -2608,6 +2614,19 @@ int perturb_vector_init(
       }
     }
 
+    if (ppt->accurate_tensor == _TRUE_){
+
+    /* ultra relativistic neutrinos */
+
+      class_define_index(ppv->index_pt_delta_ur,pba->has_ur,index_pt,1); /* ur density  */
+      class_define_index(ppv->index_pt_theta_ur,pba->has_ur,index_pt,1); /* ur velocity */
+      class_define_index(ppv->index_pt_shear_ur,pba->has_ur,index_pt,1); /* ur shear */
+      ppv->l_max_ur = ppr->l_max_ur;
+      class_define_index(ppv->index_pt_l3_ur,pba->has_ur,index_pt,ppv->l_max_ur-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
+
+    }
+
+
     /** (b) metric perturbation h is a propagating degree of freedom, so h and hdot are included
         in the vector of ordinary perturbations, no in that of metric perturbations */
 
@@ -3177,11 +3196,37 @@ int perturb_vector_init(
           the approximation switching is. We treat them here. Below
           we will treat other variables case by case. */
 
+
       ppv->y[ppv->index_pt_gw] =
         ppw->pv->y[ppw->pv->index_pt_gw];
 
       ppv->y[ppv->index_pt_gwdot] =
         ppw->pv->y[ppw->pv->index_pt_gwdot];
+
+      if (ppt->accurate_tensor == _TRUE_){
+
+        if (pba->has_ur == _TRUE_){
+
+          /** For now, neutrinos go here. */
+          ppv->y[ppv->index_pt_delta_ur] =
+            ppw->pv->y[ppw->pv->index_pt_delta_ur];
+
+          ppv->y[ppv->index_pt_theta_ur] =
+            ppw->pv->y[ppw->pv->index_pt_theta_ur];
+
+          ppv->y[ppv->index_pt_shear_ur] =
+            ppw->pv->y[ppw->pv->index_pt_shear_ur];
+
+          ppv->y[ppv->index_pt_l3_ur] =
+            ppw->pv->y[ppw->pv->index_pt_l3_ur];
+
+          for (l=4; l <= ppv->l_max_ur; l++)
+            ppv->y[ppv->index_pt_delta_ur+l] =
+              ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
+
+        }
+
+      }
 
       /* -- case of switching off tight coupling
          approximation. Provide correct initial conditions to new set
@@ -5069,7 +5114,7 @@ int perturb_print_variables(double tau,
   double delta_g,theta_g,shear_g,l4_g,pol0_g,pol1_g,pol2_g,pol4_g;
   double delta_b,theta_b;
   double delta_cdm=0.,theta_cdm=0.;
-  double delta_ur=0.,theta_ur=0.,shear_ur=0.;
+  double delta_ur=0.,theta_ur=0.,shear_ur=0.,l4_ur=0.;
   int n_ncdm;
   double phi=0.,psi=0.;
   double delta_temp=0., delta_chi=0.;
@@ -5262,6 +5307,12 @@ int perturb_print_variables(double tau,
       pol4_g = 0.;
     }
 
+    if (pba->has_ur == _TRUE_){
+      delta_ur = y[ppw->pv->index_pt_delta_ur];
+      shear_ur = y[ppw->pv->index_pt_shear_ur];
+      l4_ur = y[ppw->pv->index_pt_delta_ur+4];
+    }
+
     fprintf(ppw->perturb_output_file," ");
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
@@ -5273,6 +5324,14 @@ int perturb_print_variables(double tau,
     class_fprintf_double(ppw->perturb_output_file, pol4_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gw], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gwdot], _TRUE_);
+
+    if (ppt->accurate_tensor){
+      class_fprintf_double(ppw->perturb_output_file, delta_ur, pba->has_ur);
+      class_fprintf_double(ppw->perturb_output_file, shear_ur, pba->has_ur);
+      class_fprintf_double(ppw->perturb_output_file, l4_ur, pba->has_ur);
+      //printf("index_pt_delta+ur = %d\n",ppw->pv->index_pt_delta_ur);
+
+    }
 
     fprintf(ppw->perturb_output_file,"\n");
 
@@ -5352,7 +5411,7 @@ int perturb_derivs(double tau,
 
 
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
-  double P2, gw_source_g;
+  double P2, gw_source;
 
   /* for use with fluid (fld): */
   double w,w_prime;
@@ -5958,7 +6017,7 @@ int perturb_derivs(double tau,
   /** - tensor mode */
   if (_tensors_) {
 
-    gw_source_g = 0.;
+    gw_source = 0.;
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
@@ -6044,24 +6103,57 @@ int perturb_derivs(double tau,
              -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
           -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
 
-        gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[pv->index_pt_delta_g]+
-                                                                   4./21.*y[pv->index_pt_shear_g]+
-                                                                   1./35.*y[pv->index_pt_l3_g+1]);
+        gw_source = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[pv->index_pt_delta_g]+
+                                                                 4./21.*y[pv->index_pt_shear_g]+
+                                                                 1./35.*y[pv->index_pt_l3_g+1]);
 
       }
 
     }
 
 
+    if (ppt->accurate_tensor == _TRUE_){
+
+      if (pba->has_ur == _TRUE_) {
+
+        dy[pv->index_pt_delta_ur] = -4./3.*y[pv->index_pt_theta_ur]+_SQRT6_*y[pv->index_pt_gwdot];
+
+        dy[pv->index_pt_theta_ur] = k2*(y[pv->index_pt_delta_ur]/4.-s2_squared*y[pv->index_pt_shear_ur]);
+
+        dy[pv->index_pt_shear_ur] = (4./15.*y[pv->index_pt_theta_ur]
+                                     -3./10.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_ur+1]);
+
+        l = 3;
+        dy[pv->index_pt_l3_ur] = k/(2.*l+1.)*
+          (l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_ur]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_ur+1]);
+
+        for (l = 4; l < pv->l_max_ur; l++) {
+          dy[pv->index_pt_delta_ur+l] = k/(2.*l+1)*
+            (l*s_l[l]*y[pv->index_pt_delta_ur+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_ur+l+1]);
+        }
+
+        l = pv->l_max_ur;
+        dy[pv->index_pt_delta_ur+l] =
+          k*(s_l[l]*y[pv->index_pt_delta_ur+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_ur+l]);
+
+        /** ur contribution to gravitational wave source: */
+        gw_source += (-_SQRT6_*4*a2*pvecback[pba->index_bg_rho_ur]*(1./15.*y[pv->index_pt_delta_ur]+
+                                                                    4./21.*y[pv->index_pt_shear_ur]+
+                                                                    1./35.*y[pv->index_pt_l3_ur+1]));
+
+      }
+
+    }
+
     /* tensor metric perturbation h (gravitational waves) */
     dy[pv->index_pt_gw] = y[pv->index_pt_gwdot];
 
     /* its time-derivative */
-    dy[pv->index_pt_gwdot] = -2.*a_prime_over_a*y[pv->index_pt_gwdot]-(k2+2.*pba->K)*y[pv->index_pt_gw]+gw_source_g;
+    dy[pv->index_pt_gwdot] = -2.*a_prime_over_a*y[pv->index_pt_gwdot]-(k2+2.*pba->K)*y[pv->index_pt_gw]+gw_source;
     // add source (photons and neutrinos)
     // Photon source added
-
   }
+
 
   return _SUCCESS_;
 }

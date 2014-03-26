@@ -114,9 +114,11 @@ struct perturbs
   short has_nid;     /**< do we need isocurvature nid mode? */
   short has_niv;     /**< do we need isocurvature niv mode? */
 
-/* perturbed recombination */
-/* Do we want to consider perturbed temperature and ionization fraction? */
-	short has_perturbed_recombination;
+  /* perturbed recombination */
+  /* Do we want to consider perturbed temperature and ionization fraction? */
+  short has_perturbed_recombination;
+  /** Neutrino contribution to tensors */
+  short accurate_tensor; /**< flag for including ur and ncdm in tensor computation */
 
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
