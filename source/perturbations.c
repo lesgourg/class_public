@@ -1379,6 +1379,8 @@ int perturb_workspace_init(
   }
   if (_tensors_) {
     ppw->max_l_max = MAX(ppr->l_max_g_ten, ppr->l_max_pol_g_ten);
+    if (pba->has_ur == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ur);
+    if (pba->has_ncdm == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ncdm);
   }
 
   /** Allocate s_l[] array for freestreaming of multipoles (see arXiv:1305.3261) and initialise
@@ -2625,6 +2627,25 @@ int perturb_vector_init(
       ppv->l_max_ur = ppr->l_max_ur;
       class_define_index(ppv->index_pt_l3_ur,pba->has_ur,index_pt,ppv->l_max_ur-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
 
+      if (pba->has_ncdm == _TRUE_) {
+        ppv->index_pt_psi0_ncdm1 = index_pt;
+        ppv->N_ncdm = pba->N_ncdm;
+        class_alloc(ppv->l_max_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
+        class_alloc(ppv->q_size_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
+
+        for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          // Set value of ppv->l_max_ncdm:
+          class_test(ppr->l_max_ncdm < 4,
+                     ppt->error_message,
+                     "ppr->l_max_ncdm=%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
+            //Copy value from precision parameter:
+            ppv->l_max_ncdm[n_ncdm] = ppr->l_max_ncdm;
+            ppv->q_size_ncdm[n_ncdm] = pba->q_size_ncdm[n_ncdm];
+
+            index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
+        }
+      }
+
     }
 
 
@@ -3225,6 +3246,20 @@ int perturb_vector_init(
             ppv->y[ppv->index_pt_delta_ur+l] =
               ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
 
+        }
+
+        if (pba->has_ncdm == _TRUE_) {
+          index_pt = 0;
+          for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+            for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){
+              for(l=0; l<=ppv->l_max_ncdm[n_ncdm];l++){
+                // This is correct with or without ncdmfa, since ppv->lmax_ncdm is set accordingly.
+                ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] =
+                  ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+                index_pt++;
+              }
+            }
+          }
         }
 
       }
@@ -4676,28 +4711,43 @@ int perturb_total_stress_energy(
 
   if (_tensors_) {
 
-    ppw->gw_source = -_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_g]*(1./15.*y[ppw->pv->index_pt_delta_g]+
-                                                             4./21.*y[ppw->pv->index_pt_shear_g]+
-                                                             1./35.*y[ppw->pv->index_pt_l3_g+1]);
+    ppw->gw_source = 0.0;
+
+    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
+
+        ppw->gw_source += (-_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_g]*
+                           (1./15.*y[ppw->pv->index_pt_delta_g]+
+                            4./21.*y[ppw->pv->index_pt_shear_g]+
+                            1./35.*y[ppw->pv->index_pt_l3_g+1]));
+      }
+    }
 
     if (ppt->accurate_tensor == _TRUE_){
 
       if (pba->has_ur == _TRUE_) {
 
         /** ur contribution to gravitational wave source: */
-        ppw->gw_source += (-_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_ur]*(1./15.*y[ppw->pv->index_pt_delta_ur]+
-                                                                    4./21.*y[ppw->pv->index_pt_shear_ur]+
-                                                                    1./35.*y[ppw->pv->index_pt_l3_ur+1]));
+        ppw->gw_source += (-_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_ur]*
+                           (1./15.*y[ppw->pv->index_pt_delta_ur]+
+                            4./21.*y[ppw->pv->index_pt_shear_ur]+
+                            1./35.*y[ppw->pv->index_pt_l3_ur+1]));
       }
 
       /* non-cold dark matter contribution */
       if (pba->has_ncdm == _TRUE_) {
+
+        double tmp=0., factor, gwur, gwncdm;
+
+        gwur = (-_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_ur]*
+                           (1./15.*y[ppw->pv->index_pt_delta_ur]+
+                            4./21.*y[ppw->pv->index_pt_shear_ur]+
+                            1./35.*y[ppw->pv->index_pt_l3_ur+1]));
+
         idx = ppw->pv->index_pt_psi0_ncdm1;
 
         // We must integrate to find perturbations:
         for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          rho_delta_ncdm = 0.0;
-          rho_plus_p_shear_ncdm = 0.0;
 
           factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
 
@@ -4707,22 +4757,23 @@ int perturb_total_stress_energy(
             q2 = q*q;
             epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
 
-            rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
-
-            rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
+            tmp += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*
+              (-0.5*_SQRT6_)*(1./3.*y[idx]+10./7.*y[idx+2]+1./7.*y[idx+4]);
 
 
             //Jump to next momentum bin:
             idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
           }
 
-          rho_delta_ncdm *= factor;
+          tmp *= (factor*a2*4./3./(ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+
+                                   ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]));
 
-          rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
+          gwncdm = 3.*ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]*8./5.*tmp;
 
+          //printf("gw_ur = %.12e, gw_ncdm = %.12e\n",gwur,gwncdm);
 
-          ppw->gw_source += -_SQRT6_*4*a2*(1./15.*rho_delta_ncdm+
-                                       4./21.*3./4.*rho_plus_p_shear_ncdm);
+          ppw->gw_source += gwncdm;
+
         }
       }
     }
