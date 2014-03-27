@@ -413,6 +413,7 @@ struct perturb_workspace
   int index_mt_eta_prime;     /**< eta' (wrt conf. time) in synchronous gauge */
   int index_mt_alpha;         /**< \alpha = (h' + 6 \eta') / (2 k^2) \f$ in synchronous gauge */
   int index_mt_alpha_prime;   /**< alpha' wrt conf. time) in synchronous gauge */
+  int index_mt_gw_prime_prime;/**< second derivative wrt confromal time of gravitational wave field, often called h */
   int mt_size;                /**< size of metric perturbation vector */
 
   //@}
@@ -434,6 +435,7 @@ struct perturb_workspace
   double rho_plus_p_theta;
   double rho_plus_p_shear;
   double delta_p;
+  double gw_source;
 
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
   double tca_slip;    /**< photon-baryon slip in tight-coupling approximation */
@@ -678,6 +680,7 @@ extern "C" {
                                   struct background * pba,
                                   struct thermo * pth,
                                   struct perturbs * ppt,
+                                  int index_md,
                                   double k,
                                   double * y,
                                   struct perturb_workspace * ppw
