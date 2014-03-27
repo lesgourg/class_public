@@ -2020,6 +2020,16 @@ int perturb_prepare_output_file(struct background * pba,
       class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",pba->has_ur);
       class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",pba->has_ur);
       class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",pba->has_ur);
+      if (pba->has_ncdm == _TRUE_) {
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
+          class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+          sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
+          class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+          sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
+          class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        }
+      }
     }
 
 
@@ -4456,6 +4466,7 @@ int perturb_total_stress_energy(
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_m,delta_rho_m,rho_plus_p_m,rho_plus_p_theta_m;
   double w;
+  double gwncdm;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -4737,17 +4748,12 @@ int perturb_total_stress_energy(
       /* non-cold dark matter contribution */
       if (pba->has_ncdm == _TRUE_) {
 
-        double tmp=0., factor, gwur, gwncdm;
-
-        gwur = (-_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_ur]*
-                           (1./15.*y[ppw->pv->index_pt_delta_ur]+
-                            4./21.*y[ppw->pv->index_pt_shear_ur]+
-                            1./35.*y[ppw->pv->index_pt_l3_ur+1]));
-
         idx = ppw->pv->index_pt_psi0_ncdm1;
 
         // We must integrate to find perturbations:
         for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+
+          gwncdm = 0.;
 
           factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
 
@@ -4757,20 +4763,13 @@ int perturb_total_stress_energy(
             q2 = q*q;
             epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
 
-            tmp += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*
-              (-0.5*_SQRT6_)*(1./3.*y[idx]+10./7.*y[idx+2]+1./7.*y[idx+4]);
-
+            gwncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*(1./15.*y[idx]+2./21.*y[idx+2]+1./35.*y[idx+4]);
 
             //Jump to next momentum bin:
             idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
           }
 
-          tmp *= (factor*a2*4./3./(ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+
-                                   ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]));
-
-          gwncdm = 3.*ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]*8./5.*tmp;
-
-          //printf("gw_ur = %.12e, gw_ncdm = %.12e\n",gwur,gwncdm);
+          gwncdm *= -_SQRT6_*4*a2*factor;
 
           ppw->gw_source += gwncdm;
 
@@ -5230,8 +5229,19 @@ int perturb_print_variables(double tau,
   double delta_cdm=0.,theta_cdm=0.;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l4_ur=0.;
   int n_ncdm;
+  double delta_ncdm,theta_ncdm,shear_ncdm;
   double phi=0.,psi=0.;
   double delta_temp=0., delta_chi=0.;
+
+  double rho_delta_ncdm = 0.0;
+  double rho_plus_p_theta_ncdm = 0.0;
+  double rho_plus_p_shear_ncdm = 0.0;
+  double delta_p_ncdm = 0.0;
+  double factor = 0.0;
+  double q,q2,epsilon;
+  double a,a2;
+  int idx,index_q;
+
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -5245,6 +5255,9 @@ int perturb_print_variables(double tau,
   ppw = pppaw->ppw;
   pvecback = ppw->pvecback;
   pvecmetric = ppw->pvecmetric;
+
+  a = pvecback[pba->index_bg_a];
+  a2 = a*a;
 
   /** perturbed recombination **/
 
@@ -5440,11 +5453,57 @@ int perturb_print_variables(double tau,
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gwdot], _TRUE_);
 
     if (ppt->accurate_tensor){
+
       class_fprintf_double(ppw->perturb_output_file, delta_ur, pba->has_ur);
       class_fprintf_double(ppw->perturb_output_file, shear_ur, pba->has_ur);
       class_fprintf_double(ppw->perturb_output_file, l4_ur, pba->has_ur);
       //printf("index_pt_delta+ur = %d\n",ppw->pv->index_pt_delta_ur);
 
+      /* Non-cold Dark Matter */
+      if (pba->has_ncdm == _TRUE_) {
+
+        idx = ppw->pv->index_pt_psi0_ncdm1;
+
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+
+          rho_delta_ncdm = 0.0;
+          rho_plus_p_theta_ncdm = 0.0;
+          rho_plus_p_shear_ncdm = 0.0;
+          delta_p_ncdm = 0.0;
+          factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
+
+          for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
+
+            q = pba->q_ncdm[n_ncdm][index_q];
+            q2 = q*q;
+            epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
+
+            rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+            rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
+            rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
+            delta_p_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+
+            //Jump to next momentum bin:
+            idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
+          }
+
+          rho_delta_ncdm *= factor;
+          rho_plus_p_theta_ncdm *= k*factor;
+          rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
+          delta_p_ncdm *= factor/3.;
+
+
+          delta_ncdm = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+          theta_ncdm = rho_plus_p_theta_ncdm/
+            (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+          shear_ncdm = rho_plus_p_shear_ncdm/
+            (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+
+          class_fprintf_double(ppw->perturb_output_file, delta_ncdm, _TRUE_);
+          class_fprintf_double(ppw->perturb_output_file, theta_ncdm, _TRUE_);
+          class_fprintf_double(ppw->perturb_output_file, shear_ncdm, _TRUE_);
+        }
+      }
     }
 
     fprintf(ppw->perturb_output_file,"\n");
