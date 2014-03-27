@@ -196,9 +196,6 @@ int perturb_init(
     printf("Warning: the niv initial conditions in CLASS (and also in CAMB) should still be double-checked: if you want to do it and send feedback, you are welcome!\n");
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0))
-    printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n");
-
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
   class_call(perturb_indices_of_perturbs(ppr,
