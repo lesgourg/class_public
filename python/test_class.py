@@ -40,7 +40,8 @@ class TestClass(unittest.TestCase):
         self.scenario = {'lensing':'yes'}
 
     def tearDown(self):
-        self.cosmo.cleanup()
+        self.cosmo.struct_cleanup()
+        self.cosmo.empty()
         del self.scenario
 
     @parameterized.expand(
@@ -131,6 +132,35 @@ class TestClass(unittest.TestCase):
                 self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
 
         print '~~~~~~~~ passed ? '
+
+    @parameterized.expand(
+        itertools.product(
+            ('massless', 'massive', 'both'),
+            ('photons', 'massless', 'exact'),
+            ('t', 's, t')))
+    def test_tensors(self, scenario, method, modes):
+        """Test the new tensor mode implementation"""
+        self.scenario = {}
+        if scenario == 'massless':
+            self.scenario.update({'N_eff': 3.046, 'N_ncdm':0})
+        elif scenario == 'massiv':
+            self.scenario.update(
+                {'N_eff': 0, 'N_ncdm': 2, 'm_ncdm': '0.03, 0.04',
+                 'deg_ncdm': '2, 1'})
+        elif scenario == 'both':
+            self.scenario.update(
+                {'N_eff': 1.5, 'N_ncdm': 2, 'm_ncdm': '0.03, 0.04',
+                 'deg_ncdm': '1, 0.5'})
+
+        self.scenario.update({
+            'tensor method': method, 'modes': modes,
+            'output': 'tCl, pCl'})
+        for key, value in self.scenario.iteritems():
+            sys.stderr.write("%s = %s\n" % (key, value))
+        sys.stderr.write("\n")
+        self.cosmo.set(
+            dict(self.verbose.items()+self.scenario.items()))
+        self.cosmo.compute()
 
 if __name__ == '__main__':
     unittest.main()
