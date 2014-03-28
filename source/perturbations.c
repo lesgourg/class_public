@@ -176,17 +176,17 @@ int perturb_init(
                 "your ncdm_fluid_approximation is set to %d, out of range defined in perturbations.h",ppr->ncdm_fluid_approximation);
   }
 
-    if (pba->has_fld == _TRUE_) {
+  if (pba->has_fld == _TRUE_) {
 
-      class_test(pba->w0_fld+pba->wa_fld >= 0.,
-                 ppt->error_message,
-                 "So far, the fluid is meant to be negligible at early time, and not to be important for defining the initial conditions of other species. You are using parameters for which this assumption may break down, so maybe it's the case to fully implement the fluid in the initial condition routine");
+    class_test(pba->w0_fld+pba->wa_fld >= 0.,
+               ppt->error_message,
+               "So far, the fluid is meant to be negligible at early time, and not to be important for defining the initial conditions of other species. You are using parameters for which this assumption may break down, so maybe it's the case to fully implement the fluid in the initial condition routine");
 
-      class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
-                 ppt->error_message,
-                 "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
+    class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
+               ppt->error_message,
+               "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
 
-    }
+  }
 
   class_test(ppt->has_vectors == _TRUE_,
              ppt->error_message,
@@ -196,8 +196,29 @@ int perturb_init(
     printf("Warning: the niv initial conditions in CLASS (and also in CAMB) should still be double-checked: if you want to do it and send feedback, you are welcome!\n");
   }
 
-  if ((ppt->has_tensors == _TRUE_) && (ppt->perturbations_verbose > 0))
-    printf("Warning: neglect coupling between gravity waves and neutrino shear:\n leads to typically 40 per cent error, but only for l > 150 (so irrelevant for current experiments)\n");
+  if (ppt->has_tensors == _TRUE_) {
+
+    ppt->evolve_tensor_ur = _FALSE_;
+    ppt->evolve_tensor_ncdm = _FALSE_;
+
+    switch (ppt->tensor_method) {
+
+    case (tm_photons_only):
+      break;
+
+    case (tm_massless_approximation):
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_))
+        ppt->evolve_tensor_ur = _TRUE_;
+      break;
+
+    case (tm_exact):
+      if (pba->has_ur == _TRUE_)
+        ppt->evolve_tensor_ur = _TRUE_;
+      if (pba->has_ncdm == _TRUE_)
+        ppt->evolve_tensor_ncdm = _TRUE_;
+      break;
+    }
+  }
 
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
@@ -1379,6 +1400,8 @@ int perturb_workspace_init(
   }
   if (_tensors_) {
     ppw->max_l_max = MAX(ppr->l_max_g_ten, ppr->l_max_pol_g_ten);
+    if (pba->has_ur == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ur);
+    if (pba->has_ncdm == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ncdm);
   }
 
   /** Allocate s_l[] array for freestreaming of multipoles (see arXiv:1305.3261) and initialise
@@ -1419,8 +1442,9 @@ int perturb_workspace_init(
 
   }
 
-  /* Remark: no such quantity for tensors, h and h_prime are in the
-     vector of quantities to be integrated */
+  if (_tensors_) {
+    class_define_index(ppw->index_mt_gw_prime_prime,_TRUE_,index_mt,1);
+  }
 
   ppw->mt_size = index_mt;
 
@@ -2013,6 +2037,22 @@ int perturb_prepare_output_file(struct background * pba,
     class_fprintf_columntitle(ppw->perturb_output_file,"pol4_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"H (gw)",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"Hdot (gwdot)",_TRUE_);
+
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",ppt->evolve_tensor_ur);
+    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",ppt->evolve_tensor_ur);
+    class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",ppt->evolve_tensor_ur);
+
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+        sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+      }
+    }
+
 
     fprintf(ppw->perturb_output_file,"\n");
 
@@ -2608,6 +2648,34 @@ int perturb_vector_init(
       }
     }
 
+    /* ultra relativistic neutrinos */
+
+    class_define_index(ppv->index_pt_delta_ur,ppt->evolve_tensor_ur,index_pt,1); /* ur density  */
+    class_define_index(ppv->index_pt_theta_ur,ppt->evolve_tensor_ur,index_pt,1); /* ur velocity */
+    class_define_index(ppv->index_pt_shear_ur,ppt->evolve_tensor_ur,index_pt,1); /* ur shear */
+    ppv->l_max_ur = ppr->l_max_ur;
+    class_define_index(ppv->index_pt_l3_ur,ppt->evolve_tensor_ur,index_pt,ppv->l_max_ur-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
+
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
+      ppv->index_pt_psi0_ncdm1 = index_pt;
+      ppv->N_ncdm = pba->N_ncdm;
+      class_alloc(ppv->l_max_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
+      class_alloc(ppv->q_size_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
+
+      for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+        // Set value of ppv->l_max_ncdm:
+        class_test(ppr->l_max_ncdm < 4,
+                   ppt->error_message,
+                   "ppr->l_max_ncdm=%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
+        //Copy value from precision parameter:
+        ppv->l_max_ncdm[n_ncdm] = ppr->l_max_ncdm;
+        ppv->q_size_ncdm[n_ncdm] = pba->q_size_ncdm[n_ncdm];
+
+        index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
+      }
+    }
+
+
     /** (b) metric perturbation h is a propagating degree of freedom, so h and hdot are included
         in the vector of ordinary perturbations, no in that of metric perturbations */
 
@@ -3177,11 +3245,48 @@ int perturb_vector_init(
           the approximation switching is. We treat them here. Below
           we will treat other variables case by case. */
 
+
       ppv->y[ppv->index_pt_gw] =
         ppw->pv->y[ppw->pv->index_pt_gw];
 
       ppv->y[ppv->index_pt_gwdot] =
         ppw->pv->y[ppw->pv->index_pt_gwdot];
+
+      if (ppt->evolve_tensor_ur == _TRUE_){
+
+        /** For now, neutrinos go here. */
+        ppv->y[ppv->index_pt_delta_ur] =
+          ppw->pv->y[ppw->pv->index_pt_delta_ur];
+
+        ppv->y[ppv->index_pt_theta_ur] =
+          ppw->pv->y[ppw->pv->index_pt_theta_ur];
+
+        ppv->y[ppv->index_pt_shear_ur] =
+          ppw->pv->y[ppw->pv->index_pt_shear_ur];
+
+        ppv->y[ppv->index_pt_l3_ur] =
+          ppw->pv->y[ppw->pv->index_pt_l3_ur];
+
+        for (l=4; l <= ppv->l_max_ur; l++)
+          ppv->y[ppv->index_pt_delta_ur+l] =
+            ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
+
+      }
+
+      if (ppt->evolve_tensor_ncdm == _TRUE_){
+
+        index_pt = 0;
+        for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+          for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){
+            for(l=0; l<=ppv->l_max_ncdm[n_ncdm];l++){
+              // This is correct with or without ncdmfa, since ppv->lmax_ncdm is set accordingly.
+              ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] =
+                ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+              index_pt++;
+            }
+          }
+        }
+      }
 
       /* -- case of switching off tight coupling
          approximation. Provide correct initial conditions to new set
@@ -4214,14 +4319,14 @@ int perturb_einstein(
   a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
   s2_squared = 1.-3.*pba->K/k2;
 
+  /* sum up perturbations from all species */
+  class_call(perturb_total_stress_energy(ppr,pba,pth,ppt,index_md,k,y,ppw),
+             ppt->error_message,
+             ppt->error_message);
+
   /** - for scalar modes: */
 
   if (_scalars_) {
-
-    /* sum up perturbations from all species */
-    class_call(perturb_total_stress_energy(ppr,pba,pth,ppt,k,y,ppw),
-               ppt->error_message,
-               ppt->error_message);
 
     /** (c) infer metric perturbations from Einstein equations */
 
@@ -4333,8 +4438,12 @@ int perturb_einstein(
     }
   }
 
-  /* nothing to be done for tensors: only one propagating degree of
-     freedom, no constraint equation */
+  if (_tensors_) {
+
+    /* single einstein equation for tensor perturbations */
+    ppw->pvecmetric[ppw->index_mt_gw_prime_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_gwdot]-(k2+2.*pba->K)*y[ppw->pv->index_pt_gw]+ppw->gw_source;
+
+  }
 
   return _SUCCESS_;
 
@@ -4345,6 +4454,7 @@ int perturb_total_stress_energy(
                                 struct background * pba,
                                 struct thermo * pth,
                                 struct perturbs * ppt,
+                                int index_md,
                                 double k,
                                 double * y,
                                 struct perturb_workspace * ppw
@@ -4370,152 +4480,313 @@ int perturb_total_stress_energy(
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_m,delta_rho_m,rho_plus_p_m,rho_plus_p_theta_m;
   double w;
+  double gwncdm;
+  double rho_relativistic;
 
   /** - wavenumber and scale factor related quantities */
 
   a = ppw->pvecback[pba->index_bg_a];
   a2 = a * a;
 
-  /** (a) deal with approximation schemes */
+  if (_scalars_) {
 
-  /** (a.1) photons */
+    /** (a) deal with approximation schemes */
 
-  if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
+    /** (a.1) photons */
 
-    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+    if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
-      /** (a.1.1) no approximation */
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+
+        /** (a.1.1) no approximation */
+
+        delta_g = y[ppw->pv->index_pt_delta_g];
+        theta_g = y[ppw->pv->index_pt_theta_g];
+        shear_g = y[ppw->pv->index_pt_shear_g];
+
+      }
+      else {
+
+        /** (a.1.2) radiation streaming approximation */
+
+        delta_g = 0.; /* actual free streaming approximation imposed after evaluation of einstein equations */
+        theta_g = 0.; /* actual free streaming approximation imposed after evaluation of einstein equations */
+        shear_g = 0.; /* shear always neglected in radiation streaming approximation */
+      }
+    }
+    else {
+
+      /** (a.1.3) tight coupling approximation */
 
       delta_g = y[ppw->pv->index_pt_delta_g];
       theta_g = y[ppw->pv->index_pt_theta_g];
-      shear_g = y[ppw->pv->index_pt_shear_g];
 
-    }
-    else {
-
-      /** (a.1.2) radiation streaming approximation */
-
-      delta_g = 0.; /* actual free streaming approximation imposed after evaluation of einstein equations */
-      theta_g = 0.; /* actual free streaming approximation imposed after evaluation of einstein equations */
-      shear_g = 0.; /* shear always neglected in radiation streaming approximation */
-    }
-  }
-  else {
-
-    /** (a.1.3) tight coupling approximation */
-
-    delta_g = y[ppw->pv->index_pt_delta_g];
-    theta_g = y[ppw->pv->index_pt_theta_g];
-
-    /* first-order tight-coupling approximation for photon shear */
-    if (ppt->gauge == newtonian) {
-      shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_g];
-    }
-    else {
-      shear_g = 0.; /* in the synchronous gauge, the expression of
-                       shear_g (at first-order in a tight-coupling
-                       expansion) is a function of h' and eta'; but h'
-                       and eta' are calculated in perturb_einstein()
-                       as a function of delta_g and theta_g.  Hence,
-                       we set shear_g temporarily to zero, and set it
-                       to the right first-order value in
-                       perturb_einstein(), just before using the
-                       Einstein equation for the shear. */
-    }
-  }
-
-  /** (a.2) ur */
-
-  if (pba->has_ur == _TRUE_) {
-
-    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
-
-      delta_ur = y[ppw->pv->index_pt_delta_ur];
-      theta_ur = y[ppw->pv->index_pt_theta_ur];
-      shear_ur = y[ppw->pv->index_pt_shear_ur];
-
-    }
-
-    else {
-
-      delta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
-      theta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
-      shear_ur = 0.; /* shear always neglected in free streaming approximatio */
-
-    }
-
-  }
-
-  /** (b) compute the total density, velocity and shear perturbations */
-
-  /* photon and baryon contribution */
-  ppw->delta_rho = ppw->pvecback[pba->index_bg_rho_g]*delta_g
-    + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
-  ppw->rho_plus_p_theta = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g
-    + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
-  ppw->rho_plus_p_shear = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
-  ppw->delta_p = 1./3.*ppw->pvecback[pba->index_bg_rho_g]*delta_g
-    + ppw->pvecthermo[pth->index_th_cb2]*ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
-
-  /* cdm contribution */
-  if (pba->has_cdm == _TRUE_) {
-    ppw->delta_rho = ppw->delta_rho + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
-    if (ppt->gauge == newtonian)
-      ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
-  }
-
-  /* fluid contribution */
-  if (pba->has_fld == _TRUE_) {
-
-    w = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
-
-    ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
-    ppw->rho_plus_p_theta += (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
-    ppw->delta_p = ppw->delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
-  }
-
-  /* ultra-relativistic neutrino/relics contribution */
-
-  if (pba->has_ur == _TRUE_) {
-    ppw->delta_rho = ppw->delta_rho + ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
-    ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*theta_ur;
-    ppw->rho_plus_p_shear = ppw->rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*shear_ur;
-    ppw->delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
-  }
-
-  /* non-cold dark matter contribution */
-  if (pba->has_ncdm == _TRUE_) {
-    idx = ppw->pv->index_pt_psi0_ncdm1;
-    if(ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_on){
-      // The perturbations are evolved integrated:
-      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-        rho_ncdm_bg = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-        p_ncdm_bg = ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
-        pseudo_p_ncdm = ppw->pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm];
-
-        rho_plus_p_ncdm = rho_ncdm_bg + p_ncdm_bg;
-        w_ncdm = p_ncdm_bg/rho_ncdm_bg;
-        cg2_ncdm = w_ncdm*(1.0-1.0/(3.0+3.0*w_ncdm)*(3.0*w_ncdm-2.0+pseudo_p_ncdm/p_ncdm_bg));
-        if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
-          ppw->delta_ncdm[n_ncdm] = y[idx];
-          ppw->theta_ncdm[n_ncdm] = y[idx+1];
-          ppw->shear_ncdm[n_ncdm] = y[idx+2];
-        }
-
-        ppw->delta_rho += rho_ncdm_bg*y[idx];
-        ppw->rho_plus_p_theta += rho_plus_p_ncdm*y[idx+1];
-        ppw->rho_plus_p_shear += rho_plus_p_ncdm*y[idx+2];
-        ppw->delta_p += cg2_ncdm*rho_ncdm_bg*y[idx];
-        idx += ppw->pv->l_max_ncdm[n_ncdm]+1;
+      /* first-order tight-coupling approximation for photon shear */
+      if (ppt->gauge == newtonian) {
+        shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_g];
+      }
+      else {
+        shear_g = 0.; /* in the synchronous gauge, the expression of
+                         shear_g (at first-order in a tight-coupling
+                         expansion) is a function of h' and eta'; but h'
+                         and eta' are calculated in perturb_einstein()
+                         as a function of delta_g and theta_g.  Hence,
+                         we set shear_g temporarily to zero, and set it
+                         to the right first-order value in
+                         perturb_einstein(), just before using the
+                         Einstein equation for the shear. */
       }
     }
-    else{
+
+    /** (a.2) ur */
+
+    if (pba->has_ur == _TRUE_) {
+
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+
+        delta_ur = y[ppw->pv->index_pt_delta_ur];
+        theta_ur = y[ppw->pv->index_pt_theta_ur];
+        shear_ur = y[ppw->pv->index_pt_shear_ur];
+
+      }
+
+      else {
+
+        delta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
+        theta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
+        shear_ur = 0.; /* shear always neglected in free streaming approximatio */
+
+      }
+
+    }
+
+    /** (b) compute the total density, velocity and shear perturbations */
+
+    /* photon and baryon contribution */
+    ppw->delta_rho = ppw->pvecback[pba->index_bg_rho_g]*delta_g
+      + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
+    ppw->rho_plus_p_theta = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g
+      + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
+    ppw->rho_plus_p_shear = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
+    ppw->delta_p = 1./3.*ppw->pvecback[pba->index_bg_rho_g]*delta_g
+      + ppw->pvecthermo[pth->index_th_cb2]*ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
+
+    /* cdm contribution */
+    if (pba->has_cdm == _TRUE_) {
+      ppw->delta_rho = ppw->delta_rho + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
+      if (ppt->gauge == newtonian)
+        ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
+    }
+
+    /* fluid contribution */
+    if (pba->has_fld == _TRUE_) {
+
+      w = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+
+      ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
+      ppw->rho_plus_p_theta += (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+      ppw->delta_p = ppw->delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
+    }
+
+    /* ultra-relativistic neutrino/relics contribution */
+
+    if (pba->has_ur == _TRUE_) {
+      ppw->delta_rho = ppw->delta_rho + ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
+      ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*theta_ur;
+      ppw->rho_plus_p_shear = ppw->rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*shear_ur;
+      ppw->delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
+    }
+
+    /* non-cold dark matter contribution */
+    if (pba->has_ncdm == _TRUE_) {
+      idx = ppw->pv->index_pt_psi0_ncdm1;
+      if(ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_on){
+        // The perturbations are evolved integrated:
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          rho_ncdm_bg = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+          p_ncdm_bg = ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+          pseudo_p_ncdm = ppw->pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm];
+
+          rho_plus_p_ncdm = rho_ncdm_bg + p_ncdm_bg;
+          w_ncdm = p_ncdm_bg/rho_ncdm_bg;
+          cg2_ncdm = w_ncdm*(1.0-1.0/(3.0+3.0*w_ncdm)*(3.0*w_ncdm-2.0+pseudo_p_ncdm/p_ncdm_bg));
+          if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
+            ppw->delta_ncdm[n_ncdm] = y[idx];
+            ppw->theta_ncdm[n_ncdm] = y[idx+1];
+            ppw->shear_ncdm[n_ncdm] = y[idx+2];
+          }
+
+          ppw->delta_rho += rho_ncdm_bg*y[idx];
+          ppw->rho_plus_p_theta += rho_plus_p_ncdm*y[idx+1];
+          ppw->rho_plus_p_shear += rho_plus_p_ncdm*y[idx+2];
+          ppw->delta_p += cg2_ncdm*rho_ncdm_bg*y[idx];
+          idx += ppw->pv->l_max_ncdm[n_ncdm]+1;
+        }
+      }
+      else{
+        // We must integrate to find perturbations:
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          rho_delta_ncdm = 0.0;
+          rho_plus_p_theta_ncdm = 0.0;
+          rho_plus_p_shear_ncdm = 0.0;
+          delta_p_ncdm = 0.0;
+          factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
+
+          for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
+
+            q = pba->q_ncdm[n_ncdm][index_q];
+            q2 = q*q;
+            epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
+
+            rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+            rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
+            rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
+            delta_p_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+
+            //Jump to next momentum bin:
+            idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
+          }
+
+          rho_delta_ncdm *= factor;
+          rho_plus_p_theta_ncdm *= k*factor;
+          rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
+          delta_p_ncdm *= factor/3.;
+
+          if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
+            ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+            ppw->theta_ncdm[n_ncdm] = rho_plus_p_theta_ncdm/
+              (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+            ppw->shear_ncdm[n_ncdm] = rho_plus_p_shear_ncdm/
+              (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+          }
+
+          ppw->delta_rho += rho_delta_ncdm;
+          ppw->rho_plus_p_theta += rho_plus_p_theta_ncdm;
+          ppw->rho_plus_p_shear += rho_plus_p_shear_ncdm;
+          ppw->delta_p += delta_p_ncdm;
+        }
+      }
+    }
+
+    /* store delta_m in the current gauge. In perturb_einstein, this
+       will be transformed later on into the gauge-independent variable D
+       = delta_m - 2H'/H \theta_m/k^2 .  */
+
+    if (ppt->has_source_delta_m == _TRUE_) {
+
+      /* include baryons and cold dark matter */
+
+      delta_rho_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
+      rho_m = ppw->pvecback[pba->index_bg_rho_b];
+
+      if (pba->has_cdm == _TRUE_) {
+        delta_rho_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
+        rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
+      }
+
+      /* include any other species non-relativistic today (like ncdm species) */
+
+      if (pba->has_ncdm == _TRUE_) {
+
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+
+          delta_rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]*ppw->delta_ncdm[n_ncdm];
+          rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+        }
+      }
+
+      /* infer delta_m */
+
+      ppw->delta_m = delta_rho_m/rho_m;
+
+    }
+
+    /* store theta_m in the current gauge. In perturb_einstein, this
+       will be transformed later on into the gauge-independent variable
+       Theta . Note that computing theta_m is necessary also if we want
+       the delta_m source only, because the gauge-invariant delta_m
+       involves theta_m in the current gauge. */
+
+    if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
+
+      /* include baryons and cold dark matter */
+
+      rho_plus_p_theta_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
+      rho_plus_p_m = ppw->pvecback[pba->index_bg_rho_b];
+
+      if (pba->has_cdm == _TRUE_) {
+        if (ppt->gauge == newtonian)
+          rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
+        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
+      }
+
+      /* include any other species non-relativistic today (like ncdm species) */
+
+      if (pba->has_ncdm == _TRUE_) {
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          rho_plus_p_theta_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm])*ppw->theta_ncdm[n_ncdm];
+          rho_plus_p_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+        }
+      }
+
+      /* infer theta_m */
+
+      ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
+    }
+  }
+
+  if (_tensors_) {
+
+    ppw->gw_source = 0.0;
+
+    /** photon contribution to gravitational wave source: */
+    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
+
+        ppw->gw_source += (-_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_g]*
+                           (1./15.*y[ppw->pv->index_pt_delta_g]+
+                            4./21.*y[ppw->pv->index_pt_shear_g]+
+                            1./35.*y[ppw->pv->index_pt_l3_g+1]));
+      }
+    }
+
+    /** ur contribution to gravitational wave source: */
+    if (ppt->evolve_tensor_ur == _TRUE_){
+
+      rho_relativistic = 0.;
+
+      if (ppt->tensor_method == tm_exact)
+        rho_relativistic += ppw->pvecback[pba->index_bg_rho_ur];
+
+      if (ppt->tensor_method == tm_massless_approximation) {
+
+        if (pba->has_ur == _TRUE_)
+          rho_relativistic += ppw->pvecback[pba->index_bg_rho_ur];
+
+        if (pba->has_ncdm == _TRUE_) {
+          for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+            /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
+            rho_relativistic += 3.*ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+          }
+        }
+      }
+
+      ppw->gw_source += (-_SQRT6_*4*a2*rho_relativistic*
+                         (1./15.*y[ppw->pv->index_pt_delta_ur]+
+                          4./21.*y[ppw->pv->index_pt_shear_ur]+
+                          1./35.*y[ppw->pv->index_pt_l3_ur+1]));
+    }
+
+    /** ncdm contribution to gravitational wave source: */
+    if (ppt->evolve_tensor_ncdm == _TRUE_){
+
+      idx = ppw->pv->index_pt_psi0_ncdm1;
+
       // We must integrate to find perturbations:
       for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-        rho_delta_ncdm = 0.0;
-        rho_plus_p_theta_ncdm = 0.0;
-        rho_plus_p_shear_ncdm = 0.0;
-        delta_p_ncdm = 0.0;
+
+        gwncdm = 0.;
+
         factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
 
         for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
@@ -4524,100 +4795,18 @@ int perturb_total_stress_energy(
           q2 = q*q;
           epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
 
-          rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
-          rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
-          rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
-          delta_p_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+          gwncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*(1./15.*y[idx]+2./21.*y[idx+2]+1./35.*y[idx+4]);
 
           //Jump to next momentum bin:
           idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
         }
 
-        rho_delta_ncdm *= factor;
-        rho_plus_p_theta_ncdm *= k*factor;
-        rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
-        delta_p_ncdm *= factor/3.;
+        gwncdm *= -_SQRT6_*4*a2*factor;
 
-        if ((ppt->has_source_delta_ncdm == _TRUE_) || (ppt->has_source_theta_ncdm == _TRUE_) || (ppt->has_source_delta_m == _TRUE_)) {
-          ppw->delta_ncdm[n_ncdm] = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-          ppw->theta_ncdm[n_ncdm] = rho_plus_p_theta_ncdm/
-            (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
-          ppw->shear_ncdm[n_ncdm] = rho_plus_p_shear_ncdm/
-            (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
-        }
+        ppw->gw_source += gwncdm;
 
-        ppw->delta_rho += rho_delta_ncdm;
-        ppw->rho_plus_p_theta += rho_plus_p_theta_ncdm;
-        ppw->rho_plus_p_shear += rho_plus_p_shear_ncdm;
-        ppw->delta_p += delta_p_ncdm;
       }
     }
-  }
-
-  /* store delta_m in the current gauge. In perturb_einstein, this
-     will be transformed later on into the gauge-independent variable D
-     = delta_m - 2H'/H \theta_m/k^2 .  */
-
-  if (ppt->has_source_delta_m == _TRUE_) {
-
-    /* include baryons and cold dark matter */
-
-    delta_rho_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
-    rho_m = ppw->pvecback[pba->index_bg_rho_b];
-
-    if (pba->has_cdm == _TRUE_) {
-      delta_rho_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
-      rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
-    }
-
-    /* include any other species non-relativistic today (like ncdm species) */
-
-    if (pba->has_ncdm == _TRUE_) {
-
-      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-
-        delta_rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]*ppw->delta_ncdm[n_ncdm];
-        rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-      }
-    }
-
-    /* infer delta_m */
-
-    ppw->delta_m = delta_rho_m/rho_m;
-
-  }
-
-  /* store theta_m in the current gauge. In perturb_einstein, this
-     will be transformed later on into the gauge-independent variable
-     Theta . Note that computing theta_m is necessary also if we want
-     the delta_m source only, because the gauge-invariant delta_m
-     involves theta_m in the current gauge. */
-
-  if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
-
-    /* include baryons and cold dark matter */
-
-    rho_plus_p_theta_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
-    rho_plus_p_m = ppw->pvecback[pba->index_bg_rho_b];
-
-    if (pba->has_cdm == _TRUE_) {
-      if (ppt->gauge == newtonian)
-        rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
-      rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
-    }
-
-    /* include any other species non-relativistic today (like ncdm species) */
-
-    if (pba->has_ncdm == _TRUE_) {
-      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-        rho_plus_p_theta_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm])*ppw->theta_ncdm[n_ncdm];
-        rho_plus_p_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
-      }
-    }
-
-    /* infer theta_m */
-
-    ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
   }
 
   return _SUCCESS_;
@@ -5069,10 +5258,21 @@ int perturb_print_variables(double tau,
   double delta_g,theta_g,shear_g,l4_g,pol0_g,pol1_g,pol2_g,pol4_g;
   double delta_b,theta_b;
   double delta_cdm=0.,theta_cdm=0.;
-  double delta_ur=0.,theta_ur=0.,shear_ur=0.;
+  double delta_ur=0.,theta_ur=0.,shear_ur=0.,l4_ur=0.;
   int n_ncdm;
+  double delta_ncdm,theta_ncdm,shear_ncdm;
   double phi=0.,psi=0.;
   double delta_temp=0., delta_chi=0.;
+
+  double rho_delta_ncdm = 0.0;
+  double rho_plus_p_theta_ncdm = 0.0;
+  double rho_plus_p_shear_ncdm = 0.0;
+  double delta_p_ncdm = 0.0;
+  double factor = 0.0;
+  double q,q2,epsilon;
+  double a,a2;
+  int idx,index_q;
+
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -5086,6 +5286,9 @@ int perturb_print_variables(double tau,
   ppw = pppaw->ppw;
   pvecback = ppw->pvecback;
   pvecmetric = ppw->pvecmetric;
+
+  a = pvecback[pba->index_bg_a];
+  a2 = a*a;
 
   /** perturbed recombination **/
 
@@ -5262,6 +5465,12 @@ int perturb_print_variables(double tau,
       pol4_g = 0.;
     }
 
+    if (ppt->evolve_tensor_ur == _TRUE_){
+      delta_ur = y[ppw->pv->index_pt_delta_ur];
+      shear_ur = y[ppw->pv->index_pt_shear_ur];
+      l4_ur = y[ppw->pv->index_pt_delta_ur+4];
+    }
+
     fprintf(ppw->perturb_output_file," ");
     class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
@@ -5273,6 +5482,56 @@ int perturb_print_variables(double tau,
     class_fprintf_double(ppw->perturb_output_file, pol4_g, _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gw], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gwdot], _TRUE_);
+
+    class_fprintf_double(ppw->perturb_output_file, delta_ur, ppt->evolve_tensor_ur);
+    class_fprintf_double(ppw->perturb_output_file, shear_ur, ppt->evolve_tensor_ur);
+    class_fprintf_double(ppw->perturb_output_file, l4_ur, ppt->evolve_tensor_ur);
+    //printf("index_pt_delta+ur = %d\n",ppw->pv->index_pt_delta_ur);
+
+    /* Non-cold Dark Matter */
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
+
+      idx = ppw->pv->index_pt_psi0_ncdm1;
+
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+
+        rho_delta_ncdm = 0.0;
+        rho_plus_p_theta_ncdm = 0.0;
+        rho_plus_p_shear_ncdm = 0.0;
+        delta_p_ncdm = 0.0;
+        factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
+
+        for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
+
+          q = pba->q_ncdm[n_ncdm][index_q];
+          q2 = q*q;
+          epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
+
+          rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+          rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
+          rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
+          delta_p_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+
+          //Jump to next momentum bin:
+          idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
+        }
+
+        rho_delta_ncdm *= factor;
+        rho_plus_p_theta_ncdm *= k*factor;
+        rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
+        delta_p_ncdm *= factor/3.;
+
+        delta_ncdm = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+        theta_ncdm = rho_plus_p_theta_ncdm/
+          (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+        shear_ncdm = rho_plus_p_shear_ncdm/
+          (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+
+        class_fprintf_double(ppw->perturb_output_file, delta_ncdm, _TRUE_);
+        class_fprintf_double(ppw->perturb_output_file, theta_ncdm, _TRUE_);
+        class_fprintf_double(ppw->perturb_output_file, shear_ncdm, _TRUE_);
+      }
+    }
 
     fprintf(ppw->perturb_output_file,"\n");
 
@@ -5352,7 +5611,7 @@ int perturb_derivs(double tau,
 
 
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
-  double P2, gw_source_g;
+  double P2;
 
   /* for use with fluid (fld): */
   double w,w_prime;
@@ -5406,6 +5665,19 @@ int perturb_derivs(double tau,
              pth->error_message,
              error_message);
 
+  /** get metric perturbations with perturb_einstein() */
+  class_call(perturb_einstein(ppr,
+                              pba,
+                              pth,
+                              ppt,
+                              index_md,
+                              k,
+                              tau,
+                              y,
+                              ppw),
+             ppt->error_message,
+             error_message);
+
   /** - compute related background quantities */
 
   a = pvecback[pba->index_bg_a];
@@ -5440,7 +5712,7 @@ int perturb_derivs(double tau,
     theta_b = y[pv->index_pt_theta_b];
     cb2 = pvecthermo[pth->index_th_cb2];
 
-    /** perturbed recombination **/
+    /** (b) perturbed recombination **/
 
     if ((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca]==(int)tca_off)){
 
@@ -5477,20 +5749,7 @@ int perturb_derivs(double tau,
 
     } // end of perturbed recombination related quantities
 
-      /** (c) get metric perturbations with perturb_einstein() */
-    class_call(perturb_einstein(ppr,
-                                pba,
-                                pth,
-                                ppt,
-                                index_md,
-                                k,
-                                tau,
-                                y,
-                                ppw),
-               ppt->error_message,
-               error_message);
-
-    /** (d) compute metric-related quantities (depending on gauge; additional gauges can be coded below)
+    /** (c) compute metric-related quantities (depending on gauge; additional gauges can be coded below)
 
         Each continuity equation contains a term in (theta+metric_continuity) with
         metric_continuity = (h_prime/2) in synchronous gauge, (-3 phi_prime) in newtonian gauge
@@ -5524,14 +5783,14 @@ int perturb_derivs(double tau,
       metric_ufa_class = -6.*pvecmetric[ppw->index_mt_phi_prime];
     }
 
-    /** (e) if some approximation schemes are turned on, enforce a few y[] values computed in perturb_einstein */
+    /** (d) if some approximation schemes are turned on, enforce a few y[] values computed in perturb_einstein */
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on) {
       delta_g = ppw->rsa_delta_g;
       theta_g = ppw->rsa_theta_g;
     }
 
-    /** (d) BEGINNING OF ACTUAL SYSTEM OF EQUATIONS OF EVOLUTION: */
+    /** (e) BEGINNING OF ACTUAL SYSTEM OF EQUATIONS OF EVOLUTION: */
 
     /* Note concerning perturbed recombination: $cb2*delta_b$ must be replaced everywhere by $cb2*(delta_b+delta_temp)$. If perturbed recombination is not required, delta_temp is equal to zero. */
 
@@ -5958,8 +6217,6 @@ int perturb_derivs(double tau,
   /** - tensor mode */
   if (_tensors_) {
 
-    gw_source_g = 0.;
-
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
 
@@ -6044,22 +6301,81 @@ int perturb_derivs(double tau,
              -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
           -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
 
-        gw_source_g = -_SQRT6_*4*a2*pvecback[pba->index_bg_rho_g]*(1./15.*y[pv->index_pt_delta_g]+
-                                                                   4./21.*y[pv->index_pt_shear_g]+
-                                                                   1./35.*y[pv->index_pt_l3_g+1]);
-
       }
+    }
+
+    if (ppt->evolve_tensor_ur == _TRUE_) {
+
+      dy[pv->index_pt_delta_ur] = -4./3.*y[pv->index_pt_theta_ur]+_SQRT6_*y[pv->index_pt_gwdot];
+
+      dy[pv->index_pt_theta_ur] = k2*(y[pv->index_pt_delta_ur]/4.-s2_squared*y[pv->index_pt_shear_ur]);
+
+      dy[pv->index_pt_shear_ur] = (4./15.*y[pv->index_pt_theta_ur]
+                                   -3./10.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_ur+1]);
+
+      l = 3;
+      dy[pv->index_pt_l3_ur] = k/(2.*l+1.)*
+        (l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_ur]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_ur+1]);
+
+      for (l = 4; l < pv->l_max_ur; l++) {
+        dy[pv->index_pt_delta_ur+l] = k/(2.*l+1)*
+          (l*s_l[l]*y[pv->index_pt_delta_ur+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_ur+l+1]);
+      }
+
+      l = pv->l_max_ur;
+      dy[pv->index_pt_delta_ur+l] =
+        k*(s_l[l]*y[pv->index_pt_delta_ur+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_ur+l]);
 
     }
 
+    /** -> non-cold dark matter (ncdm): massive neutrinos, WDM, etc. */
+    //TBC: curvature in all ncdm
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
+
+      idx = pv->index_pt_psi0_ncdm1;
+
+      /** -----> loop over species */
+
+      for (n_ncdm=0; n_ncdm<pv->N_ncdm; n_ncdm++) {
+
+        /** -----> loop over momentum */
+
+        for (index_q=0; index_q < pv->q_size_ncdm[n_ncdm]; index_q++) {
+
+          /** -----> define intermediate quantitites */
+
+          dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+          q = pba->q_ncdm[n_ncdm][index_q];
+          epsilon = sqrt(q*q+a2*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
+          qk_div_epsilon = k*q/epsilon;
+
+          /** -----> ncdm density for given momentum bin */
+
+          dy[idx] = -qk_div_epsilon*y[idx+1]-0.25*_SQRT6_*y[pv->index_pt_gwdot]*dlnf0_dlnq;
+
+          /** -----> ncdm l>0 for given momentum bin */
+
+          for(l=1; l<pv->l_max_ncdm[n_ncdm]; l++){
+            dy[idx+l] = qk_div_epsilon/(2.*l+1.0)*(l*s_l[l]*y[idx+(l-1)]-(l+1.)*s_l[l+1]*y[idx+(l+1)]);
+          }
+
+          /** -----> ncdm lmax for given momentum bin (truncation as in Ma and Bertschinger)
+              but with curvature taken into account a la arXiv:1305.3261 */
+
+          dy[idx+l] = qk_div_epsilon*y[idx+l-1]-(1.+l)*k*cotKgen*y[idx+l];
+
+          /** -----> jump to next momentum bin or species */
+
+          idx += (pv->l_max_ncdm[n_ncdm]+1);
+        }
+      }
+    }
 
     /* tensor metric perturbation h (gravitational waves) */
     dy[pv->index_pt_gw] = y[pv->index_pt_gwdot];
 
     /* its time-derivative */
-    dy[pv->index_pt_gwdot] = -2.*a_prime_over_a*y[pv->index_pt_gwdot]-(k2+2.*pba->K)*y[pv->index_pt_gw]+gw_source_g;
-    // add source (photons and neutrinos)
-    // Photon source added
+    dy[pv->index_pt_gwdot] = pvecmetric[ppw->index_mt_gw_prime_prime];
 
   }
 

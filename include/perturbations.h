@@ -43,6 +43,7 @@ enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
+enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};
 
 //@}
 
@@ -114,9 +115,14 @@ struct perturbs
   short has_nid;     /**< do we need isocurvature nid mode? */
   short has_niv;     /**< do we need isocurvature niv mode? */
 
-/* perturbed recombination */
-/* Do we want to consider perturbed temperature and ionization fraction? */
-	short has_perturbed_recombination;
+  /* perturbed recombination */
+  /* Do we want to consider perturbed temperature and ionization fraction? */
+  short has_perturbed_recombination;
+  /** Neutrino contribution to tensors */
+  enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations(neglect, approximate as massless, take exact equations) */
+
+  short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either becasue we have ur species, or we have ncdm species with massless approximation) ? */
+  short evolve_tensor_ncdm;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
 
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
@@ -411,6 +417,7 @@ struct perturb_workspace
   int index_mt_eta_prime;     /**< eta' (wrt conf. time) in synchronous gauge */
   int index_mt_alpha;         /**< \alpha = (h' + 6 \eta') / (2 k^2) \f$ in synchronous gauge */
   int index_mt_alpha_prime;   /**< alpha' wrt conf. time) in synchronous gauge */
+  int index_mt_gw_prime_prime;/**< second derivative wrt confromal time of gravitational wave field, often called h */
   int mt_size;                /**< size of metric perturbation vector */
 
   //@}
@@ -432,6 +439,7 @@ struct perturb_workspace
   double rho_plus_p_theta;
   double rho_plus_p_shear;
   double delta_p;
+  double gw_source;
 
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
   double tca_slip;    /**< photon-baryon slip in tight-coupling approximation */
@@ -676,6 +684,7 @@ extern "C" {
                                   struct background * pba,
                                   struct thermo * pth,
                                   struct perturbs * ppt,
+                                  int index_md,
                                   double k,
                                   double * y,
                                   struct perturb_workspace * ppw

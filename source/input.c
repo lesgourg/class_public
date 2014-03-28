@@ -295,15 +295,37 @@ int input_init(
   Omega_tot += pba->Omega0_b;
 
   /* Omega_0_ur (ultra-relativistic species / massless neutrino) */
-  class_call(parser_read_double(pfc,"N_eff",&param1,&flag1,errmsg),
+
+  /* (a) try to read N_ur */
+  class_call(parser_read_double(pfc,"N_ur",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
+
+  /* these lines have been added for coimpatibility with deprecated syntax 'N_eff' instead of 'N_ur', in the future they could be supressed */
+  class_call(parser_read_double(pfc,"N_eff",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+             errmsg,
+             "In input file, you can only enter one of N_eff (deprecated syntax) or N_ur (up-to-date syntax), since they botgh describe the same, i.e. the contribution ukltra-relativistic species to the effective neutrino number");
+  if (flag2 == _TRUE_) {
+    param1 = param2;
+    flag1 = _TRUE_;
+    flag2 = _FALSE_;
+  }
+  /* end of lines for deprecated syntax */
+
+  /* (b) try to read Omega_ur */
   class_call(parser_read_double(pfc,"Omega_ur",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
+
+  /* (c) try to read omega_ur */
   class_call(parser_read_double(pfc,"omega_ur",&param3,&flag3,errmsg),
              errmsg,
              errmsg);
+
+  /* (d) infer the unpassed ones from the passed one */
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
              "In input file, you can only enter one of N_eff, Omega_ur or omega_ur, choose one");
@@ -1649,6 +1671,21 @@ int input_init(
 
   class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation);
 
+  if (ppt->has_tensors == _TRUE_) {
+    /** Include ur and ncdm shear in tensor computation? */
+    class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_) {
+      if (strstr(string1,"photons") != NULL)
+        ppt->tensor_method = tm_photons_only;
+      if (strstr(string1,"massless") != NULL)
+        ppt->tensor_method = tm_massless_approximation;
+      if (strstr(string1,"exact") != NULL)
+        ppt->tensor_method = tm_exact;
+    }
+  }
+
   /** derivatives of baryon sound speed only computed if some non-minimal tight-coupling schemes is requested */
   if ((ppr->tight_coupling_approximation == (int)first_order_CLASS) || (ppr->tight_coupling_approximation == (int)second_order_CLASS)) {
     pth->compute_cb2_derivatives = _TRUE_;
@@ -2008,6 +2045,9 @@ int input_default_params(
   ppt->has_niv=_FALSE_;
 
   ppt->has_perturbed_recombination=_FALSE_;
+  ppt->tensor_method = tm_massless_approximation;
+  ppt->evolve_tensor_ur = _FALSE_;
+  ppt->evolve_tensor_ncdm = _FALSE_;
 
   ppt->has_scalars=_TRUE_;
   ppt->has_vectors=_FALSE_;
