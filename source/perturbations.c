@@ -2624,8 +2624,6 @@ int perturb_vector_init(
       }
     }
 
-    fprintf(stderr,"%d %d %d\n",ppt->tensor_method,tm_photons_only,tm_exact);
-
     if (ppt->tensor_method == tm_exact){
 
       /* ultra relativistic neutrinos */
@@ -5433,10 +5431,12 @@ int perturb_print_variables(double tau,
       pol4_g = 0.;
     }
 
-    if (pba->has_ur == _TRUE_){
-      delta_ur = y[ppw->pv->index_pt_delta_ur];
-      shear_ur = y[ppw->pv->index_pt_shear_ur];
-      l4_ur = y[ppw->pv->index_pt_delta_ur+4];
+    if (ppt->tensor_method != tm_photons_only){
+      if (pba->has_ur == _TRUE_){
+        delta_ur = y[ppw->pv->index_pt_delta_ur];
+        shear_ur = y[ppw->pv->index_pt_shear_ur];
+        l4_ur = y[ppw->pv->index_pt_delta_ur+4];
+      }
     }
 
     fprintf(ppw->perturb_output_file," ");
