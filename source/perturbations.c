@@ -2013,7 +2013,7 @@ int perturb_prepare_output_file(struct background * pba,
     class_fprintf_columntitle(ppw->perturb_output_file,"pol4_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"H (gw)",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"Hdot (gwdot)",_TRUE_);
-    if (ppt->accurate_tensor){
+    if (ppt->tensor_method == tm_exact){
       class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",pba->has_ur);
       class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",pba->has_ur);
       class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",pba->has_ur);
@@ -2624,7 +2624,9 @@ int perturb_vector_init(
       }
     }
 
-    if (ppt->accurate_tensor == _TRUE_){
+    fprintf(stderr,"%d %d %d\n",ppt->tensor_method,tm_photons_only,tm_exact);
+
+    if (ppt->tensor_method == tm_exact){
 
       /* ultra relativistic neutrinos */
 
@@ -3232,7 +3234,7 @@ int perturb_vector_init(
       ppv->y[ppv->index_pt_gwdot] =
         ppw->pv->y[ppw->pv->index_pt_gwdot];
 
-      if (ppt->accurate_tensor == _TRUE_){
+      if (ppt->tensor_method == tm_exact){
 
         if (pba->has_ur == _TRUE_){
 
@@ -4731,7 +4733,7 @@ int perturb_total_stress_energy(
       }
     }
 
-    if (ppt->accurate_tensor == _TRUE_){
+    if (ppt->tensor_method == tm_exact){
 
       if (pba->has_ur == _TRUE_) {
 
@@ -5449,7 +5451,7 @@ int perturb_print_variables(double tau,
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gw], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gwdot], _TRUE_);
 
-    if (ppt->accurate_tensor){
+    if (ppt->tensor_method == tm_exact){
 
       class_fprintf_double(ppw->perturb_output_file, delta_ur, pba->has_ur);
       class_fprintf_double(ppw->perturb_output_file, shear_ur, pba->has_ur);
@@ -6275,7 +6277,7 @@ int perturb_derivs(double tau,
     }
 
 
-    if (ppt->accurate_tensor == _TRUE_){
+    if (ppt->tensor_method == tm_exact){
 
       if (pba->has_ur == _TRUE_) {
 

@@ -43,6 +43,7 @@ enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
+enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};
 
 //@}
 
@@ -118,7 +119,7 @@ struct perturbs
   /* Do we want to consider perturbed temperature and ionization fraction? */
   short has_perturbed_recombination;
   /** Neutrino contribution to tensors */
-  short accurate_tensor; /**< flag for including ur and ncdm in tensor computation */
+  enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations(neglect, approximate as massless, take exact equations) */
 
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
