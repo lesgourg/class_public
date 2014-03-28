@@ -196,6 +196,30 @@ int perturb_init(
     printf("Warning: the niv initial conditions in CLASS (and also in CAMB) should still be double-checked: if you want to do it and send feedback, you are welcome!\n");
   }
 
+  if (ppt->has_tensors == _TRUE_) {
+
+    ppt->evolve_tensor_ur = _FALSE_;
+    ppt->evolve_tensor_ncdm = _FALSE_;
+
+    switch (ppt->tensor_method) {
+
+    case (tm_photons_only):
+      break;
+
+    case (tm_massless_approximation):
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_))
+        ppt->evolve_tensor_ur = _TRUE_;
+      break;
+
+    case (tm_exact):
+      if (pba->has_ur == _TRUE_)
+        ppt->evolve_tensor_ur = _TRUE_;
+      if (pba->has_ncdm == _TRUE_)
+        ppt->evolve_tensor_ncdm = _TRUE_;
+      break;
+    }
+  }
+
   /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
 
   class_call(perturb_indices_of_perturbs(ppr,
@@ -2013,19 +2037,19 @@ int perturb_prepare_output_file(struct background * pba,
     class_fprintf_columntitle(ppw->perturb_output_file,"pol4_g",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"H (gw)",_TRUE_);
     class_fprintf_columntitle(ppw->perturb_output_file,"Hdot (gwdot)",_TRUE_);
-    if (ppt->tensor_method == tm_exact){
-      class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",pba->has_ur);
-      class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",pba->has_ur);
-      class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",pba->has_ur);
-      if (pba->has_ncdm == _TRUE_) {
-        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
-          class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
-          sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
-          class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
-          sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
-          class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
-        }
+
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",ppt->evolve_tensor_ur);
+    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",ppt->evolve_tensor_ur);
+    class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",ppt->evolve_tensor_ur);
+
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+        sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
       }
     }
 
@@ -2624,35 +2648,31 @@ int perturb_vector_init(
       }
     }
 
-    if (ppt->tensor_method == tm_exact){
+    /* ultra relativistic neutrinos */
 
-      /* ultra relativistic neutrinos */
+    class_define_index(ppv->index_pt_delta_ur,ppt->evolve_tensor_ur,index_pt,1); /* ur density  */
+    class_define_index(ppv->index_pt_theta_ur,ppt->evolve_tensor_ur,index_pt,1); /* ur velocity */
+    class_define_index(ppv->index_pt_shear_ur,ppt->evolve_tensor_ur,index_pt,1); /* ur shear */
+    ppv->l_max_ur = ppr->l_max_ur;
+    class_define_index(ppv->index_pt_l3_ur,ppt->evolve_tensor_ur,index_pt,ppv->l_max_ur-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
 
-      class_define_index(ppv->index_pt_delta_ur,pba->has_ur,index_pt,1); /* ur density  */
-      class_define_index(ppv->index_pt_theta_ur,pba->has_ur,index_pt,1); /* ur velocity */
-      class_define_index(ppv->index_pt_shear_ur,pba->has_ur,index_pt,1); /* ur shear */
-      ppv->l_max_ur = ppr->l_max_ur;
-      class_define_index(ppv->index_pt_l3_ur,pba->has_ur,index_pt,ppv->l_max_ur-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
+      ppv->index_pt_psi0_ncdm1 = index_pt;
+      ppv->N_ncdm = pba->N_ncdm;
+      class_alloc(ppv->l_max_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
+      class_alloc(ppv->q_size_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
 
-      if (pba->has_ncdm == _TRUE_) {
-        ppv->index_pt_psi0_ncdm1 = index_pt;
-        ppv->N_ncdm = pba->N_ncdm;
-        class_alloc(ppv->l_max_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
-        class_alloc(ppv->q_size_ncdm,ppv->N_ncdm*sizeof(double),ppt->error_message);
+      for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+        // Set value of ppv->l_max_ncdm:
+        class_test(ppr->l_max_ncdm < 4,
+                   ppt->error_message,
+                   "ppr->l_max_ncdm=%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
+        //Copy value from precision parameter:
+        ppv->l_max_ncdm[n_ncdm] = ppr->l_max_ncdm;
+        ppv->q_size_ncdm[n_ncdm] = pba->q_size_ncdm[n_ncdm];
 
-        for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          // Set value of ppv->l_max_ncdm:
-          class_test(ppr->l_max_ncdm < 4,
-                     ppt->error_message,
-                     "ppr->l_max_ncdm=%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
-            //Copy value from precision parameter:
-            ppv->l_max_ncdm[n_ncdm] = ppr->l_max_ncdm;
-            ppv->q_size_ncdm[n_ncdm] = pba->q_size_ncdm[n_ncdm];
-
-            index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
-        }
+        index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
       }
-
     }
 
 
@@ -3232,43 +3252,40 @@ int perturb_vector_init(
       ppv->y[ppv->index_pt_gwdot] =
         ppw->pv->y[ppw->pv->index_pt_gwdot];
 
-      if (ppt->tensor_method == tm_exact){
+      if (ppt->evolve_tensor_ur == _TRUE_){
 
-        if (pba->has_ur == _TRUE_){
+        /** For now, neutrinos go here. */
+        ppv->y[ppv->index_pt_delta_ur] =
+          ppw->pv->y[ppw->pv->index_pt_delta_ur];
 
-          /** For now, neutrinos go here. */
-          ppv->y[ppv->index_pt_delta_ur] =
-            ppw->pv->y[ppw->pv->index_pt_delta_ur];
+        ppv->y[ppv->index_pt_theta_ur] =
+          ppw->pv->y[ppw->pv->index_pt_theta_ur];
 
-          ppv->y[ppv->index_pt_theta_ur] =
-            ppw->pv->y[ppw->pv->index_pt_theta_ur];
+        ppv->y[ppv->index_pt_shear_ur] =
+          ppw->pv->y[ppw->pv->index_pt_shear_ur];
 
-          ppv->y[ppv->index_pt_shear_ur] =
-            ppw->pv->y[ppw->pv->index_pt_shear_ur];
+        ppv->y[ppv->index_pt_l3_ur] =
+          ppw->pv->y[ppw->pv->index_pt_l3_ur];
 
-          ppv->y[ppv->index_pt_l3_ur] =
-            ppw->pv->y[ppw->pv->index_pt_l3_ur];
+        for (l=4; l <= ppv->l_max_ur; l++)
+          ppv->y[ppv->index_pt_delta_ur+l] =
+            ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
 
-          for (l=4; l <= ppv->l_max_ur; l++)
-            ppv->y[ppv->index_pt_delta_ur+l] =
-              ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
+      }
 
-        }
+      if (ppt->evolve_tensor_ncdm == _TRUE_){
 
-        if (pba->has_ncdm == _TRUE_) {
-          index_pt = 0;
-          for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
-            for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){
-              for(l=0; l<=ppv->l_max_ncdm[n_ncdm];l++){
-                // This is correct with or without ncdmfa, since ppv->lmax_ncdm is set accordingly.
-                ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] =
-                  ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
-                index_pt++;
-              }
+        index_pt = 0;
+        for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+          for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){
+            for(l=0; l<=ppv->l_max_ncdm[n_ncdm];l++){
+              // This is correct with or without ncdmfa, since ppv->lmax_ncdm is set accordingly.
+              ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] =
+                ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+              index_pt++;
             }
           }
         }
-
       }
 
       /* -- case of switching off tight coupling
@@ -4464,6 +4481,7 @@ int perturb_total_stress_energy(
   double rho_m,delta_rho_m,rho_plus_p_m,rho_plus_p_theta_m;
   double w;
   double gwncdm;
+  double rho_relativistic;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -4721,6 +4739,7 @@ int perturb_total_stress_energy(
 
     ppw->gw_source = 0.0;
 
+    /** photon contribution to gravitational wave source: */
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
 
@@ -4731,46 +4750,61 @@ int perturb_total_stress_energy(
       }
     }
 
-    if (ppt->tensor_method == tm_exact){
+    /** ur contribution to gravitational wave source: */
+    if (ppt->evolve_tensor_ur == _TRUE_){
 
-      if (pba->has_ur == _TRUE_) {
+      rho_relativistic = 0.;
 
-        /** ur contribution to gravitational wave source: */
-        ppw->gw_source += (-_SQRT6_*4*a2*ppw->pvecback[pba->index_bg_rho_ur]*
-                           (1./15.*y[ppw->pv->index_pt_delta_ur]+
-                            4./21.*y[ppw->pv->index_pt_shear_ur]+
-                            1./35.*y[ppw->pv->index_pt_l3_ur+1]));
+      if (ppt->tensor_method == tm_exact)
+        rho_relativistic += ppw->pvecback[pba->index_bg_rho_ur];
+
+      if (ppt->tensor_method == tm_massless_approximation) {
+
+        if (pba->has_ur == _TRUE_)
+          rho_relativistic += ppw->pvecback[pba->index_bg_rho_ur];
+
+        if (pba->has_ncdm == _TRUE_) {
+          for(n_ncdm = 0; n_ncdm < ppw->pv->N_ncdm; n_ncdm++) {
+            /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
+            rho_relativistic += 3.*ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+          }
+        }
       }
 
-      /* non-cold dark matter contribution */
-      if (pba->has_ncdm == _TRUE_) {
+      ppw->gw_source += (-_SQRT6_*4*a2*rho_relativistic*
+                         (1./15.*y[ppw->pv->index_pt_delta_ur]+
+                          4./21.*y[ppw->pv->index_pt_shear_ur]+
+                          1./35.*y[ppw->pv->index_pt_l3_ur+1]));
+    }
 
-        idx = ppw->pv->index_pt_psi0_ncdm1;
+    /** ncdm contribution to gravitational wave source: */
+    if (ppt->evolve_tensor_ncdm == _TRUE_){
 
-        // We must integrate to find perturbations:
-        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+      idx = ppw->pv->index_pt_psi0_ncdm1;
 
-          gwncdm = 0.;
+      // We must integrate to find perturbations:
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
 
-          factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
+        gwncdm = 0.;
 
-          for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
+        factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
 
-            q = pba->q_ncdm[n_ncdm][index_q];
-            q2 = q*q;
-            epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
+        for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
 
-            gwncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*(1./15.*y[idx]+2./21.*y[idx+2]+1./35.*y[idx+4]);
+          q = pba->q_ncdm[n_ncdm][index_q];
+          q2 = q*q;
+          epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
 
-            //Jump to next momentum bin:
-            idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
-          }
+          gwncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*(1./15.*y[idx]+2./21.*y[idx+2]+1./35.*y[idx+4]);
 
-          gwncdm *= -_SQRT6_*4*a2*factor;
-
-          ppw->gw_source += gwncdm;
-
+          //Jump to next momentum bin:
+          idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
         }
+
+        gwncdm *= -_SQRT6_*4*a2*factor;
+
+        ppw->gw_source += gwncdm;
+
       }
     }
   }
@@ -5431,12 +5465,10 @@ int perturb_print_variables(double tau,
       pol4_g = 0.;
     }
 
-    if (ppt->tensor_method != tm_photons_only){
-      if (pba->has_ur == _TRUE_){
-        delta_ur = y[ppw->pv->index_pt_delta_ur];
-        shear_ur = y[ppw->pv->index_pt_shear_ur];
-        l4_ur = y[ppw->pv->index_pt_delta_ur+4];
-      }
+    if (ppt->evolve_tensor_ur == _TRUE_){
+      delta_ur = y[ppw->pv->index_pt_delta_ur];
+      shear_ur = y[ppw->pv->index_pt_shear_ur];
+      l4_ur = y[ppw->pv->index_pt_delta_ur+4];
     }
 
     fprintf(ppw->perturb_output_file," ");
@@ -5451,57 +5483,53 @@ int perturb_print_variables(double tau,
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gw], _TRUE_);
     class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gwdot], _TRUE_);
 
-    if (ppt->tensor_method == tm_exact){
+    class_fprintf_double(ppw->perturb_output_file, delta_ur, ppt->evolve_tensor_ur);
+    class_fprintf_double(ppw->perturb_output_file, shear_ur, ppt->evolve_tensor_ur);
+    class_fprintf_double(ppw->perturb_output_file, l4_ur, ppt->evolve_tensor_ur);
+    //printf("index_pt_delta+ur = %d\n",ppw->pv->index_pt_delta_ur);
 
-      class_fprintf_double(ppw->perturb_output_file, delta_ur, pba->has_ur);
-      class_fprintf_double(ppw->perturb_output_file, shear_ur, pba->has_ur);
-      class_fprintf_double(ppw->perturb_output_file, l4_ur, pba->has_ur);
-      //printf("index_pt_delta+ur = %d\n",ppw->pv->index_pt_delta_ur);
+    /* Non-cold Dark Matter */
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
 
-      /* Non-cold Dark Matter */
-      if (pba->has_ncdm == _TRUE_) {
+      idx = ppw->pv->index_pt_psi0_ncdm1;
 
-        idx = ppw->pv->index_pt_psi0_ncdm1;
+      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
 
-        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+        rho_delta_ncdm = 0.0;
+        rho_plus_p_theta_ncdm = 0.0;
+        rho_plus_p_shear_ncdm = 0.0;
+        delta_p_ncdm = 0.0;
+        factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
 
-          rho_delta_ncdm = 0.0;
-          rho_plus_p_theta_ncdm = 0.0;
-          rho_plus_p_shear_ncdm = 0.0;
-          delta_p_ncdm = 0.0;
-          factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
+        for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
 
-          for (index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q ++) {
+          q = pba->q_ncdm[n_ncdm][index_q];
+          q2 = q*q;
+          epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
 
-            q = pba->q_ncdm[n_ncdm][index_q];
-            q2 = q*q;
-            epsilon = sqrt(q2+pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]*a2);
+          rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
+          rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
+          rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
+          delta_p_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
 
-            rho_delta_ncdm += q2*epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
-            rho_plus_p_theta_ncdm += q2*q*pba->w_ncdm[n_ncdm][index_q]*y[idx+1];
-            rho_plus_p_shear_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx+2];
-            delta_p_ncdm += q2*q2/epsilon*pba->w_ncdm[n_ncdm][index_q]*y[idx];
-
-            //Jump to next momentum bin:
-            idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
-          }
-
-          rho_delta_ncdm *= factor;
-          rho_plus_p_theta_ncdm *= k*factor;
-          rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
-          delta_p_ncdm *= factor/3.;
-
-
-          delta_ncdm = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-          theta_ncdm = rho_plus_p_theta_ncdm/
-            (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
-          shear_ncdm = rho_plus_p_shear_ncdm/
-            (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
-
-          class_fprintf_double(ppw->perturb_output_file, delta_ncdm, _TRUE_);
-          class_fprintf_double(ppw->perturb_output_file, theta_ncdm, _TRUE_);
-          class_fprintf_double(ppw->perturb_output_file, shear_ncdm, _TRUE_);
+          //Jump to next momentum bin:
+          idx+=(ppw->pv->l_max_ncdm[n_ncdm]+1);
         }
+
+        rho_delta_ncdm *= factor;
+        rho_plus_p_theta_ncdm *= k*factor;
+        rho_plus_p_shear_ncdm *= 2.0/3.0*factor;
+        delta_p_ncdm *= factor/3.;
+
+        delta_ncdm = rho_delta_ncdm/ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+        theta_ncdm = rho_plus_p_theta_ncdm/
+          (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+        shear_ncdm = rho_plus_p_shear_ncdm/
+          (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
+
+        class_fprintf_double(ppw->perturb_output_file, delta_ncdm, _TRUE_);
+        class_fprintf_double(ppw->perturb_output_file, theta_ncdm, _TRUE_);
+        class_fprintf_double(ppw->perturb_output_file, shear_ncdm, _TRUE_);
       }
     }
 
@@ -6276,73 +6304,69 @@ int perturb_derivs(double tau,
       }
     }
 
+    if (ppt->evolve_tensor_ur == _TRUE_) {
 
-    if (ppt->tensor_method == tm_exact){
+      dy[pv->index_pt_delta_ur] = -4./3.*y[pv->index_pt_theta_ur]+_SQRT6_*y[pv->index_pt_gwdot];
 
-      if (pba->has_ur == _TRUE_) {
+      dy[pv->index_pt_theta_ur] = k2*(y[pv->index_pt_delta_ur]/4.-s2_squared*y[pv->index_pt_shear_ur]);
 
-        dy[pv->index_pt_delta_ur] = -4./3.*y[pv->index_pt_theta_ur]+_SQRT6_*y[pv->index_pt_gwdot];
+      dy[pv->index_pt_shear_ur] = (4./15.*y[pv->index_pt_theta_ur]
+                                   -3./10.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_ur+1]);
 
-        dy[pv->index_pt_theta_ur] = k2*(y[pv->index_pt_delta_ur]/4.-s2_squared*y[pv->index_pt_shear_ur]);
+      l = 3;
+      dy[pv->index_pt_l3_ur] = k/(2.*l+1.)*
+        (l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_ur]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_ur+1]);
 
-        dy[pv->index_pt_shear_ur] = (4./15.*y[pv->index_pt_theta_ur]
-                                     -3./10.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_ur+1]);
-
-        l = 3;
-        dy[pv->index_pt_l3_ur] = k/(2.*l+1.)*
-          (l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_ur]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_ur+1]);
-
-        for (l = 4; l < pv->l_max_ur; l++) {
-          dy[pv->index_pt_delta_ur+l] = k/(2.*l+1)*
-            (l*s_l[l]*y[pv->index_pt_delta_ur+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_ur+l+1]);
-        }
-
-        l = pv->l_max_ur;
-        dy[pv->index_pt_delta_ur+l] =
-          k*(s_l[l]*y[pv->index_pt_delta_ur+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_ur+l]);
-
+      for (l = 4; l < pv->l_max_ur; l++) {
+        dy[pv->index_pt_delta_ur+l] = k/(2.*l+1)*
+          (l*s_l[l]*y[pv->index_pt_delta_ur+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_ur+l+1]);
       }
 
-      /** -> non-cold dark matter (ncdm): massive neutrinos, WDM, etc. */
-      //TBC: curvature in all ncdm
-      if (pba->has_ncdm == _TRUE_) {
+      l = pv->l_max_ur;
+      dy[pv->index_pt_delta_ur+l] =
+        k*(s_l[l]*y[pv->index_pt_delta_ur+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_ur+l]);
 
-        idx = pv->index_pt_psi0_ncdm1;
+    }
 
-        /** -----> loop over species */
+    /** -> non-cold dark matter (ncdm): massive neutrinos, WDM, etc. */
+    //TBC: curvature in all ncdm
+    if (ppt->evolve_tensor_ncdm == _TRUE_) {
 
-        for (n_ncdm=0; n_ncdm<pv->N_ncdm; n_ncdm++) {
+      idx = pv->index_pt_psi0_ncdm1;
 
-          /** -----> loop over momentum */
+      /** -----> loop over species */
 
-          for (index_q=0; index_q < pv->q_size_ncdm[n_ncdm]; index_q++) {
+      for (n_ncdm=0; n_ncdm<pv->N_ncdm; n_ncdm++) {
 
-            /** -----> define intermediate quantitites */
+        /** -----> loop over momentum */
 
-            dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
-            q = pba->q_ncdm[n_ncdm][index_q];
-            epsilon = sqrt(q*q+a2*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
-            qk_div_epsilon = k*q/epsilon;
+        for (index_q=0; index_q < pv->q_size_ncdm[n_ncdm]; index_q++) {
 
-            /** -----> ncdm density for given momentum bin */
+          /** -----> define intermediate quantitites */
 
-            dy[idx] = -qk_div_epsilon*y[idx+1]-0.25*_SQRT6_*y[pv->index_pt_gwdot]*dlnf0_dlnq;
+          dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+          q = pba->q_ncdm[n_ncdm][index_q];
+          epsilon = sqrt(q*q+a2*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
+          qk_div_epsilon = k*q/epsilon;
 
-            /** -----> ncdm l>0 for given momentum bin */
+          /** -----> ncdm density for given momentum bin */
 
-            for(l=1; l<pv->l_max_ncdm[n_ncdm]; l++){
-              dy[idx+l] = qk_div_epsilon/(2.*l+1.0)*(l*s_l[l]*y[idx+(l-1)]-(l+1.)*s_l[l+1]*y[idx+(l+1)]);
-            }
+          dy[idx] = -qk_div_epsilon*y[idx+1]-0.25*_SQRT6_*y[pv->index_pt_gwdot]*dlnf0_dlnq;
 
-            /** -----> ncdm lmax for given momentum bin (truncation as in Ma and Bertschinger)
-                but with curvature taken into account a la arXiv:1305.3261 */
+          /** -----> ncdm l>0 for given momentum bin */
 
-            dy[idx+l] = qk_div_epsilon*y[idx+l-1]-(1.+l)*k*cotKgen*y[idx+l];
-
-            /** -----> jump to next momentum bin or species */
-
-            idx += (pv->l_max_ncdm[n_ncdm]+1);
+          for(l=1; l<pv->l_max_ncdm[n_ncdm]; l++){
+            dy[idx+l] = qk_div_epsilon/(2.*l+1.0)*(l*s_l[l]*y[idx+(l-1)]-(l+1.)*s_l[l+1]*y[idx+(l+1)]);
           }
+
+          /** -----> ncdm lmax for given momentum bin (truncation as in Ma and Bertschinger)
+              but with curvature taken into account a la arXiv:1305.3261 */
+
+          dy[idx+l] = qk_div_epsilon*y[idx+l-1]-(1.+l)*k*cotKgen*y[idx+l];
+
+          /** -----> jump to next momentum bin or species */
+
+          idx += (pv->l_max_ncdm[n_ncdm]+1);
         }
       }
     }

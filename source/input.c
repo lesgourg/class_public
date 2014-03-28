@@ -1649,17 +1649,19 @@ int input_init(
 
   class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation);
 
-  /** Include ur and ncdm shear in tensor computation? */
-  class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  if (flag1 == _TRUE_) {
-    if (strstr(string1,"photons") != NULL)
-      ppt->tensor_method = tm_photons_only;
-    if (strstr(string1,"massless") != NULL)
-      ppt->tensor_method = tm_massless_approximation;
-    if (strstr(string1,"exact") != NULL)
-      ppt->tensor_method = tm_exact;
+  if (ppt->has_tensors == _TRUE_) {
+    /** Include ur and ncdm shear in tensor computation? */
+    class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_) {
+      if (strstr(string1,"photons") != NULL)
+        ppt->tensor_method = tm_photons_only;
+      if (strstr(string1,"massless") != NULL)
+        ppt->tensor_method = tm_massless_approximation;
+      if (strstr(string1,"exact") != NULL)
+        ppt->tensor_method = tm_exact;
+    }
   }
 
   /** derivatives of baryon sound speed only computed if some non-minimal tight-coupling schemes is requested */
@@ -2022,6 +2024,8 @@ int input_default_params(
 
   ppt->has_perturbed_recombination=_FALSE_;
   ppt->tensor_method = tm_massless_approximation;
+  ppt->evolve_tensor_ur = _FALSE_;
+  ppt->evolve_tensor_ncdm = _FALSE_;
 
   ppt->has_scalars=_TRUE_;
   ppt->has_vectors=_FALSE_;

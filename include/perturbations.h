@@ -121,6 +121,9 @@ struct perturbs
   /** Neutrino contribution to tensors */
   enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations(neglect, approximate as massless, take exact equations) */
 
+  short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either becasue we have ur species, or we have ncdm species with massless approximation) ? */
+  short evolve_tensor_ncdm;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
+
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
