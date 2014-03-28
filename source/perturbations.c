@@ -4764,7 +4764,7 @@ int perturb_total_stress_energy(
           rho_relativistic += ppw->pvecback[pba->index_bg_rho_ur];
 
         if (pba->has_ncdm == _TRUE_) {
-          for(n_ncdm = 0; n_ncdm < ppw->pv->N_ncdm; n_ncdm++) {
+          for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++) {
             /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
             rho_relativistic += 3.*ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
           }
