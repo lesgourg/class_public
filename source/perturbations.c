@@ -186,6 +186,10 @@ int perturb_init(
                ppt->error_message,
                "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
 
+    class_test(((pba->w0_fld + pba->wa_fld +1.0)*(pba->w0_fld+1.0)) < 0.0,
+               ppt->error_message,
+               "w crosses -1 between the infinite past and today, and this would lead to divergent perturbation equations for the fluid.");
+
   }
 
   class_test(ppt->has_vectors == _TRUE_,
