@@ -700,7 +700,8 @@ int thermodynamics_init(
     printf(" -> recombination at z = %f\n",pth->z_rec);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
     printf("    with comoving sound horizon = %f Mpc\n",pth->rs_rec);
-    printf("    and angular diameter distance = %f Mpc\n",pth->da_rec);
+    printf("    angular diameter distance = %f Mpc\n",pth->da_rec);
+    printf("    and sound horizon angle 100*theta_s = %f\n",100.*pth->rs_rec/pth->ra_rec);
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
