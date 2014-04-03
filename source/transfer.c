@@ -432,7 +432,7 @@ int transfer_init(
 #endif
 
       if (ptr->transfer_verbose > 2)
-        printf("Compute transfer for wavenumber [%d/%d]\n",index_q,ptr->q_size-1);
+        printf("Compute transfer for wavenumber [%d/%zu]\n",index_q,ptr->q_size-1);
 
       /* Update interpolation structure: */
       class_call_parallel(transfer_update_HIS(ppr,
@@ -1274,7 +1274,7 @@ int transfer_get_q_list(
       if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
     }
     if (ptr->transfer_verbose > 1)
-      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %zu wavenumebrs over a total of %zu\n",
              ptr->q_size-ptr->index_q_flat_approximation,ptr->q_size);
   }
 
@@ -1485,7 +1485,7 @@ int transfer_get_q_list_v1(
       if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
     }
     if (ptr->transfer_verbose > 1)
-      printf("Flat bessel approximation spares hyperspherical bessel computations for %d wavenumebrs over a total of %d\n",
+      printf("Flat bessel approximation spares hyperspherical bessel computations for %zu wavenumebrs over a total of %zu\n",
              ptr->q_size-ptr->index_q_flat_approximation,ptr->q_size);
   }
 

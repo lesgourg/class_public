@@ -134,7 +134,7 @@ struct transfers {
 
   //@{
 
-  int q_size; /**< number of wavenumber values */
+  size_t q_size; /**< number of wavenumber values */
 
   double * q;  /**< list of wavenumber values, q[index_q] */
 
