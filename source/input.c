@@ -218,6 +218,9 @@ int input_init(
 
   /** (a) background parameters */
 
+  /* scale factor today (arbitrary) */
+  class_read_double("a_today",pba->a_today);
+
   /* h (dimensionless) and [H0/c] in Mpc^{-1} = h / 2999.7 */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
              errmsg,
@@ -364,6 +367,28 @@ int input_init(
     pba->Omega0_cdm = param2/pba->h/pba->h;
 
   Omega_tot += pba->Omega0_cdm;
+
+  /* Omega_0_dcdm (DCDM) */
+  class_call(parser_read_double(pfc,"Omega_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_dcdm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
+  if (flag1 == _TRUE_)
+    pba->Omega0_dcdm = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_dcdm = param2/pba->h/pba->h;
+
+  /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
+  class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
+  /* Convert to Mpc */
+  pba->Gamma_dcdm *= (1.e3 / _c_);
+
+  Omega_tot += pba->Omega0_dcdm;
 
   /* non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
@@ -513,7 +538,7 @@ int input_init(
              "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
   if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {
-    pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+    pba->Omega0_lambda = 1.-pba->Omega0_k-Omega_tot;
   }
   else {
     if (flag1 == _TRUE_) {
@@ -532,9 +557,94 @@ int input_init(
     class_read_double("cs2_fld",pba->cs2_fld);
   }
 
-  /* scale factor today (arbitrary) */
-  class_read_double("a_today",pba->a_today);
+  /** background parameter shooting range: Here we can search for a single initial background
+      value in order to match a given input value.*/
 
+  /* Read verbose parameter early for controling output here.*/
+  class_read_int("background_verbose",pba->background_verbose);
+
+  if (pba->Omega0_dcdm > 0.0){
+    /** We must make a guess. Note that we should always try to search
+        for a parameter which is time independent at early times. The
+        reason is that ncdm species may require the code to decrease
+        the initial scale factor. While the initial value would be the
+        same for all, this change could invalidate our guess. Also,
+        the curent value of a_ini could be overwritten in the precision
+        parameter section.*/
+
+    double sqrt_one_minus_M, Jini_over_J, x1, x2, f1, f2, dx;
+    int iter, search_dir, fevals=1;
+    struct input_pprpba container;
+    container.ppr = ppr;
+    container.pba = pba;
+    /* This formula is exact in a Matter + Lambda Universe.
+     Just use Omega_tot (already computed) for Omega0_M*/
+
+
+    sqrt_one_minus_M = sqrt(1.0 - Omega_tot);
+    Jini_over_J = exp(2./3.*pba->Gamma_dcdm/pba->H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+    x1 = pba->Omega0_dcdm * Jini_over_J;
+    dx = 0.1*x1;
+    /* Call function at best guess */
+    class_call(input_fzerofun_for_background(x1,
+                                             &container,
+                                             &f1,
+                                             errmsg),
+               errmsg,errmsg);
+    /* if f1=y(x1)-y_true > 0, we must decrease y(xnext). According to above formula,
+       this corresponds to xnext = x1 - dx.
+    */
+    if (f1>0.0)
+      search_dir = -1;
+    else
+      search_dir = 1;
+
+    if (pba->background_verbose > 4){
+      printf("Target Omega0_dcdm = %g.\nGuess for Omega_ini_dcdm was %g, resulting in Omega0=%g.\nProceeding to search by adding %g to Omega_ini_dcdm.\n",
+             pba->Omega0_dcdm, x1, f1+pba->Omega0_dcdm, search_dir*dx);
+    }
+
+    /** Do linear hunt for boundaries: */
+    for (iter=1; iter<=10; iter++){
+      x2 = x1 + search_dir*dx;
+
+      class_call(input_fzerofun_for_background(x2,
+                                               &container,
+                                               &f2,
+                                               errmsg),
+                 errmsg,errmsg);
+      fevals++;
+
+      if (f1*f2<0.0){
+        /** root has been bracketed */
+        if (pba->background_verbose > 4){
+          printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
+        }
+        break;
+      }
+
+      x1 = x2;
+      f1 = f2;
+    }
+    /** Find root using Ridders method. (Exchange for bisection if you are old-school.) */
+    class_call(class_fzero_ridder(input_fzerofun_for_background,
+                                  x1,
+                                  x2,
+                                  1e-6*MAX(fabs(x1),fabs(x2)),
+                                  &container,
+                                  &f1,
+                                  &f2,
+                                  &(pba->Omega_ini_dcdm),
+                                  &fevals,
+                                  errmsg),
+               errmsg, errmsg);
+
+
+    if (pba->background_verbose > 4){
+      printf("Root found, Omega0_ini_dcdm = %g. Total number of background evaluations: %d.\n",
+             pba->Omega_ini_dcdm,fevals);
+    }
+  }
   /** (b) assign values to thermodynamics cosmological parameters */
 
   /* primordial helium fraction */
@@ -1693,6 +1803,7 @@ int input_init(
 
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
+  class_read_int("l_max_dr",ppr->l_max_dr);
   class_read_int("l_max_ur",ppr->l_max_ur);
   if (pba->N_ncdm>0)
     class_read_int("l_max_ncdm",ppr->l_max_ncdm);
@@ -1962,6 +2073,8 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
   pba->Omega0_cdm = 0.1122/0.704/0.704;
+  pba->Omega0_dcdm = 0.0;
+  pba->Gamma_dcdm = 0.0;
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
   pba->ksi_ncdm_default = 0.;
@@ -1972,11 +2085,12 @@ int input_default_params(
   pba->deg_ncdm = NULL;
   pba->ncdm_psd_parameters = NULL;
   pba->ncdm_psd_files = NULL;
+  pba->keep_ncdm_stuff = _FALSE_;
 
   pba->Omega0_k = 0.;
   pba->K = 0.;
   pba->sgnK = 0;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdm;
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->w0_fld=-1.;
@@ -2308,6 +2422,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->l_max_g=12;
   ppr->l_max_pol_g=10;
+  ppr->l_max_dr=12;
   ppr->l_max_ur=12;
   ppr->l_max_ncdm=12;
   ppr->l_max_g_ten=5;
@@ -2455,19 +2570,135 @@ int class_version(
  * allowed variation (minimum epsilon * _TOLVAR_)
  */
 
-int get_machine_precision(double * smallest_allowed_variation) {
-  double one, meps, sum;
+ int get_machine_precision(double * smallest_allowed_variation) {
+   double one, meps, sum;
 
-  one = 1.0;
-  meps = 1.0;
-  do {
-    meps /= 2.0;
-    sum = one + meps;
-  } while (sum != one);
-  meps *= 2.0;
+   one = 1.0;
+   meps = 1.0;
+   do {
+     meps /= 2.0;
+     sum = one + meps;
+   } while (sum != one);
+   meps *= 2.0;
 
-  *smallest_allowed_variation = meps * _TOLVAR_;
+   *smallest_allowed_variation = meps * _TOLVAR_;
 
-  return _SUCCESS_;
+   return _SUCCESS_;
 
-}
+ }
+
+ int input_fzerofun_for_background(double Omega_ini_dcdm,
+                                   void* container,
+                                   double *valout,
+                                   ErrorMsg error_message){
+
+   double rho_dcdm_today, rho_dr_today;
+   struct input_pprpba * pprpba;
+   struct background *pba;
+   pprpba = (struct input_pprpba *) container;
+   pba = pprpba->pba;
+
+   pba->Omega_ini_dcdm = Omega_ini_dcdm;
+   pba->keep_ncdm_stuff = _TRUE_;
+
+   class_call(background_init(pprpba->ppr,
+                              pba),
+              pba->error_message, error_message);
+   rho_dcdm_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dcdm];
+   rho_dr_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dr];
+   //  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm]; /*Remember that rho is defined such that H^2=sum(rho_i) */
+
+   *valout = (rho_dcdm_today+rho_dr_today)/(pba->H0*pba->H0)-pba->Omega0_dcdm;
+
+   if (pba->background_verbose > 3)
+     printf("rho_dcdm_today = %e, corresponding to %e\n",rho_dcdm_today,rho_dcdm_today/(pba->H0*pba->H0));
+
+   class_call(background_free(pba), pba->error_message, error_message);
+
+   return _SUCCESS_;
+ }
+
+ int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
+                        double x1,
+                        double x2,
+                        double xtol,
+                        void *param,
+                        double *Fx1,
+                        double *Fx2,
+                        double *xzero,
+                        int *fevals,
+                        ErrorMsg error_message){
+   /**Using Ridders' method, return the root of a function func known to
+      lie between x1 and x2. The root, returned as zriddr, will be found to
+      an approximate accuracy xtol.
+   */
+   int j,MAXIT=1000;
+    double ans,fh,fl,fm,fnew,s,xh,xl,xm,xnew;
+    if ((Fx1!=NULL)&&(Fx2!=NULL)){
+      fl = *Fx1;
+      fh = *Fx2;
+    }
+    else{
+      class_call((*func)(x1, param, &fl, error_message),
+                 error_message, error_message);
+      class_call((*func)(x2, param, &fh, error_message),
+                 error_message, error_message);
+
+      *fevals = (*fevals)+2;
+    }
+    if ((fl > 0.0 && fh < 0.0) || (fl < 0.0 && fh > 0.0)) {
+      xl=x1;
+      xh=x2;
+      ans=-1.11e11;
+      for (j=1;j<=MAXIT;j++) {
+        xm=0.5*(xl+xh);
+        class_call((*func)(xm, param, &fm, error_message),
+                 error_message, error_message);
+        *fevals = (*fevals)+1;
+        s=sqrt(fm*fm-fl*fh);
+        if (s == 0.0){
+          *xzero = ans;
+          //printf("Success 1\n");
+          return _SUCCESS_;
+        }
+        xnew=xm+(xm-xl)*((fl >= fh ? 1.0 : -1.0)*fm/s);
+        if (fabs(xnew-ans) <= xtol) {
+          *xzero = ans;
+          return _SUCCESS_;
+        }
+        ans=xnew;
+        class_call((*func)(ans, param, &fnew, error_message),
+                   error_message, error_message);
+        *fevals = (*fevals)+1;
+        if (fnew == 0.0){
+          *xzero = ans;
+          //printf("Success 2, ans=%g\n",ans);
+          return _SUCCESS_;
+        }
+        if (NRSIGN(fm,fnew) != fm) {
+          xl=xm;
+          fl=fm;
+          xh=ans;
+          fh=fnew;
+        } else if (NRSIGN(fl,fnew) != fl) {
+          xh=ans;
+          fh=fnew;
+        } else if (NRSIGN(fh,fnew) != fh) {
+          xl=ans;
+          fl=fnew;
+        } else return _FAILURE_;
+        if (fabs(xh-xl) <= xtol) {
+          *xzero = ans;
+          //        printf("Success 3\n");
+          return _SUCCESS_;
+        }
+      }
+      class_stop("zriddr exceed maximum iterations","");
+    }
+    else {
+      if (fl == 0.0) return x1;
+      if (fh == 0.0) return x2;
+      class_stop("root must be bracketed in zriddr.","");
+    }
+    class_stop("Failure in zriddr.","");
+ }

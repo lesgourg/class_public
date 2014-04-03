@@ -130,6 +130,15 @@
 		name,entries_read,siz);				\
   } while(0);
 
+/**
+ * temporary parameters for background fzero function
+ */
+
+struct input_pprpba {
+  struct precision * ppr;
+  struct background * pba;
+};
+
 
 /**************************************************************/
 
@@ -188,6 +197,22 @@ extern "C" {
 			      );
 
   int get_machine_precision(double * smallest_allowed_variation);
+
+  int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
+			 double x1,
+			 double x2,
+			 double xtol,
+			 void *param,
+			 double *Fx1,
+			 double *Fx2,
+			 double *xzero,
+			 int *fevals,
+			 ErrorMsg error_message);
+
+  int input_fzerofun_for_background(double Omega_ini_dcdm,
+				    void* container,
+				    double *valout,
+				    ErrorMsg error_message);
 
 #ifdef __cplusplus
 }

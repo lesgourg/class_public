@@ -220,15 +220,19 @@ struct perturbs
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
   short has_source_delta_b;    /**< do we need source for delta of baryons? */
   short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
+  short has_source_delta_dcdm; /**< do we need source for delta of DCDM? */
   short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
-  short has_source_delta_ur;   /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
+  short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
   short has_source_theta_b;    /**< do we need source for theta of baryons? */
   short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
+  short has_source_theta_dcdm; /**< do we need source for theta of DCDM? */
   short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
-  short has_source_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_dr; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_phi;          /**< do we need source for metric fluctuation phi? */
   short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
@@ -243,25 +247,27 @@ struct perturbs
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
-
-  int index_tp_delta_m;     /**< index value for delta of total matter */
-  int index_tp_delta_g;     /**< index value for delta of gammas */
-  int index_tp_delta_b;     /**< index value for delta of baryons */
-  int index_tp_delta_cdm;   /**< index value for delta of cold dark matter */
-  int index_tp_delta_fld;   /**< index value for delta of dark energy */
-  int index_tp_delta_ur;    /**< index value for delta of ultra-relativistic neutrinos/relics */
+  int index_tp_g; /**< index value for gravitationnal potential */
+  int index_tp_delta_m; /**< index value for delta tot */
+  int index_tp_delta_g;   /**< index value for delta of gammas */
+  int index_tp_delta_b;   /**< index value for delta of baryons */
+  int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
+  int index_tp_delta_dcdm;/**< index value for delta of DCDM */
+  int index_tp_delta_fld;  /**< index value for delta of dark energy */
+  int index_tp_delta_dr; /**< index value for delta of decay radiation */
+  int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
+  int index_tp_perturbed_recombination_delta_temp;		/* Gas temperature perturbation */
+  int index_tp_perturbed_recombination_delta_chi;			/* Inionization fraction perturbation */
 
-  /* perturbed recombination */
-  int index_tp_perturbed_recombination_delta_temp;
-  int index_tp_perturbed_recombination_delta_chi;
-
-  int index_tp_theta_m;     /**< index value for theta of total matter */
-  int index_tp_theta_g;     /**< index value for theta of gammas */
-  int index_tp_theta_b;     /**< index value for theta of baryons */
-  int index_tp_theta_cdm;   /**< index value for theta of cold dark matter */
-  int index_tp_theta_fld;   /**< index value for theta of dark energy */
-  int index_tp_theta_ur;    /**< index value for theta of ultra-relativistic neutrinos/relics */
+  int index_tp_theta_m;   /**< index value for theta tot */
+  int index_tp_theta_g;   /**< index value for theta of gammas */
+  int index_tp_theta_b;   /**< index value for theta of baryons */
+  int index_tp_theta_cdm; /**< index value for theta of cold dark matter */
+  int index_tp_theta_dcdm;/**< index value for theta of DCDM */
+  int index_tp_theta_fld;  /**< index value for theta of dark energy */
+  int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
+  int index_tp_theta_dr; /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
 
   int index_tp_phi;          /**< index value for metric fluctuation phi */
@@ -361,6 +367,8 @@ struct perturb_vector
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
   int index_pt_theta_cdm; /**< cdm velocity */
+  int index_pt_delta_dcdm; /**< dcdm density */
+  int index_pt_theta_dcdm; /**< dcdm velocity */
   int index_pt_delta_fld;  /**< dark energy density */
   int index_pt_theta_fld;  /**< dark energy velocity */
   int index_pt_delta_ur; /**< density of ultra-relativistic neutrinos/relics */
@@ -369,9 +377,14 @@ struct perturb_vector
   int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
 /* perturbed recombination */
-	int index_pt_perturbed_recombination_delta_temp;		/* Gas temperature perturbation */
-	int index_pt_perturbed_recombination_delta_chi;			/* Inionization fraction perturbation */
+  int index_pt_perturbed_recombination_delta_temp;		/* Gas temperature perturbation */
+  int index_pt_perturbed_recombination_delta_chi;			/* Inionization fraction perturbation */
 
+  /** The index to the first Legendre multipole of the DR expansion. Not
+      that this is not exactly the usual delta, see Kaplinghat et al.,
+      astro-ph/9907388. */
+  int index_pt_F0_dr;
+  int l_max_dr;          /**< max momentum in Boltzmann hierarchy for dr) */
   int index_pt_psi0_ncdm1;
   int N_ncdm;
   int* l_max_ncdm;

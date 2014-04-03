@@ -47,6 +47,11 @@ struct background
 
   double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$ : cold dark matter */
 
+  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$ : decaying cold dark matter */
+
+  double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$ : decay constant for decaying cold dark matter */
+  double Omega0_dr; /**< \f$ \Omega_{0 \nu r} \f$ : decay radiation */
+
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$ : cosmological constant */
 
   double Omega0_fld; /**< \f$ \Omega_{0 de} \f$ : fluid with constant
@@ -95,6 +100,9 @@ struct background
   char * ncdm_psd_files;                /**< list of filenames for tabulated p-s-d */
   /* end of parameters for tabulated ncdm p-s-d */
 
+  /* rescaled initial value for dcdm density. */
+  double Omega_ini_dcdm;
+
   //@}
 
   /** @name - related parameters */
@@ -135,6 +143,8 @@ struct background
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_fld;       /**< fluid with constant w density */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
+  int index_bg_rho_dcdm;      /**< dcdm density */
+  int index_bg_rho_dr;        /**< dr density */
 
   int index_bg_rho_ncdm1;     /**< density of first ncdm species (others contiguous) */
   int index_bg_p_ncdm1;       /**< pressure of first ncdm species (others contiguous) */
@@ -189,16 +199,22 @@ struct background
    * be integrated with time: the scale factor, using the Friedmann
    * equation). These indices refer to the vector of
    * quantities to be integrated with time.
+   * {B} quantities are needed by background_functions() while {C} quantities are not.
    */
 
   //@{
 
-  int index_bi_a;       /**< scale factor */
-  int index_bi_time;    /**< proper (cosmological) time in Mpc */
-  int index_bi_rs;      /**< sound horizon */
-  int index_bi_tau;     /**< conformal time in Mpc */
-  int index_bi_growth;  /**< integral over [da/(aH)^3]=[dtau/(aH^2)], useful for growth factor */
-  int bi_size;
+  int index_bi_a;       /**< {B} scale factor */
+  int index_bi_rho_dcdm;/**< {B} dcdm density */
+  int index_bi_rho_dr;  /**< {B} dr density */
+
+  int index_bi_time;    /**< {C} proper (cosmological) time in Mpc */
+  int index_bi_rs;      /**< {C} sound horizon */
+  int index_bi_tau;     /**< {C} conformal time in Mpc */
+  int index_bi_growth;  /**< {C} integral over [da/(aH)^3]=[dtau/(aH^2)], useful for growth factor */
+
+  int bi_B_size;        /**< Number of {B} parameters */
+  int bi_size;          /**< Number of {B}+{C} parameters */
 
   //@}
 
@@ -213,6 +229,8 @@ struct background
   //@{
 
   short has_cdm;       /**< presence of cold dark matter? */
+  short has_dcdm;      /**< presence of decaying cold dark matter? */
+  short has_dr;        /**< presence of relativistic decay radiation? */
   short has_ncdm;      /**< presence of non-cold dark matter? */
   short has_lambda;    /**< presence of cosmological constant? */
   short has_fld;       /**< presence of fluid with constant w and cs2? */
@@ -228,6 +246,7 @@ struct background
 
   //@{
 
+  int keep_ncdm_stuff;  /* Do not free ncdm arrays with background_free() */
   double ** q_ncdm_bg;  /* Pointers to vectors of background sampling in q */
   double ** w_ncdm_bg;  /* Pointers to vectors of corresponding quadrature weights w */
   double ** q_ncdm;     /* Pointers to vectors of perturbation sampling in q */
@@ -320,6 +339,13 @@ extern "C" {
 			double * pvecback
 			);
 
+  int background_functions(
+			   struct background *pba,
+			   double * pvecback_B,
+			   short return_format,
+			   double * pvecback
+			   );
+
   int background_tau_of_z(
 			  struct background *pba,
 			  double z,
@@ -338,13 +364,6 @@ extern "C" {
   int background_indices(
 			 struct background *pba
 			 );
-
-  int background_functions(
-			   struct background *pba,
-			   double a,
-			   short return_format,
-			   double * pvecback
-			   );
 
   int background_ncdm_distribution(
 				  void *pba,
