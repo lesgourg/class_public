@@ -154,6 +154,40 @@ int input_init(
                ErrorMsg errmsg
                ) {
 
+  class_call(input_read_parameters(pfc,
+                                   ppr,
+                                   pba,
+                                   pth,
+                                   ppt,
+                                   ptr,
+                                   ppm,
+                                   psp,
+                                   pnl,
+                                   ple,
+                                   pop,
+                                   errmsg),
+             errmsg,
+             errmsg);
+
+  return _SUCCESS_;
+
+}
+
+int input_read_parameters(
+                          struct file_content * pfc,
+                          struct precision * ppr,
+                          struct background *pba,
+                          struct thermo *pth,
+                          struct perturbs *ppt,
+                          struct transfers *ptr,
+                          struct primordial *ppm,
+                          struct spectra *psp,
+                          struct nonlinear * pnl,
+                          struct lensing *ple,
+                          struct output *pop,
+                          ErrorMsg errmsg
+                          ) {
+
   /** Summary: */
 
   /** - define local variables */
@@ -2702,3 +2736,42 @@ int class_version(
     }
     class_stop("Failure in zriddr.","");
  }
+
+
+/*
+ int input_fzerofun_for_background(double * independent_parameters,
+                                   int independent_parameters_size,
+                                   void * file_content,
+                                   double * output,
+                                   ErrorMsg error_message){
+
+   struct background ba;
+   struct background th;
+
+
+   double rho_dcdm_today, rho_dr_today;
+   struct input_pprpba * pprpba;
+   struct background *pba;
+   pprpba = (struct input_pprpba *) container;
+   pba = pprpba->pba;
+
+   pba->Omega_ini_dcdm = Omega_ini_dcdm;
+   pba->keep_ncdm_stuff = _TRUE_;
+
+   class_call(background_init(pprpba->ppr,
+                              pba),
+              pba->error_message, error_message);
+   rho_dcdm_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dcdm];
+   rho_dr_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dr];
+   rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm];
+
+   *valout = (rho_dcdm_today+rho_dr_today)/(pba->H0*pba->H0)-pba->Omega0_dcdm;
+
+   if (pba->background_verbose > 3)
+     printf("rho_dcdm_today = %e, corresponding to %e\n",rho_dcdm_today,rho_dcdm_today/(pba->H0*pba->H0));
+
+   class_call(background_free(pba), pba->error_message, error_message);
+
+   return _SUCCESS_;
+ }
+*/
