@@ -2734,44 +2734,79 @@ int class_version(
       if (fh == 0.0) return x2;
       class_stop("root must be bracketed in zriddr.","");
     }
-    class_stop("Failure in zriddr.","");
+    class_stop("Failure in int.","");
  }
 
 
-/*
- int input_fzerofun_for_background(double * independent_parameters,
-                                   int independent_parameters_size,
-                                   void * file_content,
-                                   double * output,
-                                   ErrorMsg error_message){
+int input_try_unknow_parameters(double * unknown_parameter,
+                                int * unknown_parameters_index,
+                                int unknown_parameters_size,
+                                struct file_content * pfc,
+                                enum target_names * target_name,
+                                double * target_value,
+                                int target_size,
+                                double * output,
+                                ErrorMsg errmsg){
 
-   struct background ba;
-   struct background th;
+  struct precision pr;        /* for precision parameters */
+  struct background ba;       /* for cosmological background */
+  struct thermo th;           /* for thermodynamics */
+  struct perturbs pt;         /* for source functions */
+  struct transfers tr;        /* for transfer functions */
+  struct primordial pm;       /* for primordial spectra */
+  struct spectra sp;          /* for output spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
+  struct output op;           /* for output files */
+  int i;
 
+  for (i=0; i < unknown_parameters_size; i++) {
+    sprintf(pfc->value[unknown_parameters_index[i]],
+            "%e",unknown_parameter[i]);
+  }
 
-   double rho_dcdm_today, rho_dr_today;
-   struct input_pprpba * pprpba;
-   struct background *pba;
-   pprpba = (struct input_pprpba *) container;
-   pba = pprpba->pba;
+   class_call(input_read_parameters(pfc,
+                                    &pr,
+                                    &ba,
+                                    &th,
+                                    &pt,
+                                    &tr,
+                                    &pm,
+                                    &sp,
+                                    &nl,
+                                    &le,
+                                    &op,
+                                    errmsg),
+              errmsg,
+              errmsg);
 
-   pba->Omega_ini_dcdm = Omega_ini_dcdm;
-   pba->keep_ncdm_stuff = _TRUE_;
+   class_call(background_init(&pr,&ba),
+              ba.error_message,
+              errmsg);
 
-   class_call(background_init(pprpba->ppr,
-                              pba),
-              pba->error_message, error_message);
-   rho_dcdm_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dcdm];
-   rho_dr_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dr];
-   rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm];
+   class_call(thermodynamics_init(&pr,&ba,&th),
+              th.error_message,
+              errmsg);
 
-   *valout = (rho_dcdm_today+rho_dr_today)/(pba->H0*pba->H0)-pba->Omega0_dcdm;
+   *output = 0.;
+   for (i=0; i < target_size; i++) {
+     switch (target_name[i]) {
+     case theta_s:
+       *output += 100.*th.rs_rec/th.ra_rec-target_value[i];
+     }
+   }
 
-   if (pba->background_verbose > 3)
-     printf("rho_dcdm_today = %e, corresponding to %e\n",rho_dcdm_today,rho_dcdm_today/(pba->H0*pba->H0));
+   class_call(thermodynamics_free(&th),
+              ba.error_message,
+              errmsg);
 
-   class_call(background_free(pba), pba->error_message, error_message);
+   class_call(background_free(&ba),
+              th.error_message,
+              errmsg);
+
+   for (i=0; i<pfc->size; i++) {
+     pfc->read[i] = _FALSE_;
+   }
 
    return _SUCCESS_;
  }
-*/
