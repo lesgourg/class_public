@@ -154,6 +154,105 @@ int input_init(
                ErrorMsg errmsg
                ) {
 
+  int flag1;
+  double param1;
+  int counter;
+  double * unknown_parameter;
+  int * unknown_parameters_index;
+  int unknown_parameters_size;
+  enum target_names * target_name;
+  double * target_value;
+  int target_size;
+  double output;
+  int position;
+
+  /* Do we need to fix unknown parameters? */
+  unknown_parameters_size = 0;
+
+  class_call(parser_read_double(pfc,"theta_s",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if (flag1 == _TRUE_) unknown_parameters_size++;
+
+  /* case with unknown parameters */
+  if (unknown_parameters_size > 0) {
+
+    class_alloc(unknown_parameter,
+                unknown_parameters_size*sizeof(double),
+                errmsg);
+    class_alloc(unknown_parameters_index,
+                unknown_parameters_size*sizeof(int),
+                errmsg);
+    target_size = unknown_parameters_size;
+    class_alloc(target_name,
+                target_size*sizeof(enum target_names),
+                errmsg);
+    class_alloc(target_value,
+                target_size*sizeof(double),
+                errmsg);
+
+    /* go through all cases with a counter */
+    counter = 0;
+
+    /* case theta_s */
+    class_call(parser_read_double_and_position(pfc,
+                                               "theta_s",
+                                               &param1,
+                                               &position,
+                                               &flag1,
+                                               errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      // store name of target parameter
+      target_name[counter] = theta_s;
+      // store target value of target parameter
+      target_value[counter] = param1;
+      // substitute the name of the target parameter with the name of the corresponding unknown parameter
+      unknown_parameters_index[counter]=position;
+      strcpy(pfc->name[unknown_parameters_index[counter]],"h"); // substitute the name of the target parameter with the name of the corresponding unknown parameter
+      counter++;
+    }
+
+    /* for testing, call the function to set to zero */
+
+    unknown_parameter[0] = 0.7; // set h for testing
+
+    class_call(input_try_unknow_parameters(unknown_parameter,
+                                           unknown_parameters_index,
+                                           unknown_parameters_size,
+                                           pfc,
+                                           target_name,
+                                           target_value,
+                                           target_size,
+                                           &output,
+                                           errmsg),
+               errmsg,
+               errmsg);
+
+    fprintf(stderr,"h = %e     delta theta_s = %e\n",unknown_parameter[0],output);
+
+    unknown_parameter[0] = 0.75; // set h for testing
+
+    class_call(input_try_unknow_parameters(unknown_parameter,
+                                           unknown_parameters_index,
+                                           unknown_parameters_size,
+                                           pfc,
+                                           target_name,
+                                           target_value,
+                                           target_size,
+                                           &output,
+                                           errmsg),
+               errmsg,
+               errmsg);
+
+      fprintf(stderr,"h = %e     delta theta_s = %e\n",unknown_parameter[0],output);
+
+  }
+
+  /* now read all parameters */
   class_call(input_read_parameters(pfc,
                                    ppr,
                                    pba,
