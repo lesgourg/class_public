@@ -165,11 +165,13 @@ int input_init(
   int target_size;
   double output;
   int position;
+  double input_plus,input_minus;
+  short get_valid_guess;
 
   /* Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
 
-  class_call(parser_read_double(pfc,"theta_s",&param1,&flag1,errmsg),
+  class_call(parser_read_double(pfc,"100*theta_s",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
 
@@ -197,7 +199,7 @@ int input_init(
 
     /* case theta_s */
     class_call(parser_read_double_and_position(pfc,
-                                               "theta_s",
+                                               "100*theta_s",
                                                &param1,
                                                &position,
                                                &flag1,
@@ -218,38 +220,112 @@ int input_init(
 
     /* for testing, call the function to set to zero */
 
-    unknown_parameter[0] = 0.7; // set h for testing
+    unknown_parameter[0] = _H0_SMALL_*2999.7*1.01; // set h for testing
 
-    class_call(input_try_unknow_parameters(unknown_parameter,
-                                           unknown_parameters_index,
-                                           unknown_parameters_size,
-                                           pfc,
-                                           target_name,
-                                           target_value,
-                                           target_size,
-                                           &output,
-                                           errmsg),
+    do {
+      //fprintf(stderr,"try h=%e\n",unknown_parameter[0]);
+      if (input_try_unknow_parameters(unknown_parameter,
+                                      unknown_parameters_index,
+                                      unknown_parameters_size,
+                                      pfc,
+                                      target_name,
+                                      target_value,
+                                      target_size,
+                                      &output,
+                                      errmsg) == _FAILURE_) {
+        //fprintf(stderr,"failed for invalid h=%e\n",unknown_parameter[0]);
+        unknown_parameter[0]+= 0.01;
+        get_valid_guess = _FALSE_;
+      }
+      else {
+        //fprintf(stderr,"succeeded for valid h=%e\n",unknown_parameter[0]);
+        get_valid_guess = _TRUE_;
+      }
+    }
+    while ((get_valid_guess == _FALSE_) && (unknown_parameter[0] < _H0_BIG_*2999.7*0.99));
+
+    class_test(unknown_parameter[0] >= _H0_BIG_*2999.7*0.99,
                errmsg,
-               errmsg);
+               "Input value of theta_s=%e represents extreme departure from standard model, impossible to converge on h\n",
+               target_value[0]);
 
-    fprintf(stderr,"h = %e     delta theta_s = %e\n",unknown_parameter[0],output);
+    input_minus = unknown_parameter[0];
 
-    unknown_parameter[0] = 0.75; // set h for testing
-
-    class_call(input_try_unknow_parameters(unknown_parameter,
-                                           unknown_parameters_index,
-                                           unknown_parameters_size,
-                                           pfc,
-                                           target_name,
-                                           target_value,
-                                           target_size,
-                                           &output,
-                                           errmsg),
+    class_test(output>0,
                errmsg,
-               errmsg);
+               "correct theta_s(h=%e)=%e, correct value not bracketed from below by h=%e",
+               unknown_parameter[0],
+               output,
+               unknown_parameter[0]);
 
-      fprintf(stderr,"h = %e     delta theta_s = %e\n",unknown_parameter[0],output);
+    unknown_parameter[0] = _H0_BIG_*2999.7*0.99; // set h for testing
 
+    do {
+      //fprintf(stderr,"try h=%e\n",unknown_parameter[0]);
+      if (input_try_unknow_parameters(unknown_parameter,
+                                      unknown_parameters_index,
+                                      unknown_parameters_size,
+                                      pfc,
+                                      target_name,
+                                      target_value,
+                                      target_size,
+                                      &output,
+                                      errmsg) == _FAILURE_) {
+        //fprintf(stderr,"failed for invalid h=%e\n",unknown_parameter[0]);
+        unknown_parameter[0]-= 0.01;
+        get_valid_guess = _FALSE_;
+      }
+      else {
+        //fprintf(stderr,"succeeded for valid h=%e\n",unknown_parameter[0]);
+        get_valid_guess = _TRUE_;
+      }
+    }
+    while ((get_valid_guess == _FALSE_) && (unknown_parameter[0]>input_minus));
+
+    class_test(unknown_parameter[0]<=input_minus,
+               errmsg,
+               "Input value of theta_s=%e represents extreme departure from standard model, impossible to converge on h\n",
+               target_value[0]);
+
+    input_plus = unknown_parameter[0];
+
+    class_test(output<0,
+               errmsg,
+               "correct theta_s(h=%e)=%e, correct value not bracketed from above by h=%e",
+               unknown_parameter[0],
+               output,
+               unknown_parameter[0]);
+
+    fprintf(stdout," -> search for h bracketed by [%e : %e]\n",input_minus,input_plus);
+
+    while (fabs(output) > 1.e-5) {
+
+      unknown_parameter[0] = (input_plus+input_minus)/2.;
+
+      class_call(input_try_unknow_parameters(unknown_parameter,
+                                             unknown_parameters_index,
+                                             unknown_parameters_size,
+                                             pfc,
+                                             target_name,
+                                             target_value,
+                                             target_size,
+                                             &output,
+                                             errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (output>0.) {
+        input_plus = unknown_parameter[0];
+      }
+      else {
+        input_minus = unknown_parameter[0];
+      }
+    }
+    fprintf(stdout," -> found %s=%s to get theta_s=%e with error %e\n",
+              pfc->name[unknown_parameters_index[0]],
+              pfc->value[unknown_parameters_index[0]],
+              target_value[0],
+              output);
   }
 
   /* now read all parameters */
@@ -2879,10 +2955,13 @@ int input_try_unknow_parameters(double * unknown_parameter,
               errmsg,
               errmsg);
 
+   ba.background_verbose = 0;
+
    class_call(background_init(&pr,&ba),
               ba.error_message,
               errmsg);
 
+   th.thermodynamics_verbose = 0;
    class_call(thermodynamics_init(&pr,&ba,&th),
               th.error_message,
               errmsg);
