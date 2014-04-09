@@ -220,7 +220,7 @@ int input_init(
 
     /* for testing, call the function to set to zero */
 
-    unknown_parameter[0] = _H0_SMALL_*2999.7*1.01; // set h for testing
+    unknown_parameter[0] = _H0_SMALL_*_c_/1.e5*1.01; // set h for testing
 
     do {
       //fprintf(stderr,"try h=%e\n",unknown_parameter[0]);
@@ -242,9 +242,9 @@ int input_init(
         get_valid_guess = _TRUE_;
       }
     }
-    while ((get_valid_guess == _FALSE_) && (unknown_parameter[0] < _H0_BIG_*2999.7*0.99));
+    while ((get_valid_guess == _FALSE_) && (unknown_parameter[0] < _H0_BIG_*_c_/1.e5*0.99));
 
-    class_test(unknown_parameter[0] >= _H0_BIG_*2999.7*0.99,
+    class_test(unknown_parameter[0] >= _H0_BIG_*_c_/1.e5*0.99,
                errmsg,
                "Input value of theta_s=%e represents extreme departure from standard model, impossible to converge on h\n",
                target_value[0]);
@@ -258,7 +258,7 @@ int input_init(
                output,
                unknown_parameter[0]);
 
-    unknown_parameter[0] = _H0_BIG_*2999.7*0.99; // set h for testing
+    unknown_parameter[0] = _H0_BIG_*_c_/1.e5*0.99; // set h for testing
 
     do {
       //fprintf(stderr,"try h=%e\n",unknown_parameter[0]);
@@ -430,7 +430,7 @@ int input_read_parameters(
   /* scale factor today (arbitrary) */
   class_read_double("a_today",pba->a_today);
 
-  /* h (dimensionless) and [H0/c] in Mpc^{-1} = h / 2999.7 */
+  /* h (dimensionless) and [H0/c] in Mpc^{-1} = h / 2997.9... = h * 10^5 / c */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
@@ -2962,6 +2962,7 @@ int input_try_unknow_parameters(double * unknown_parameter,
               errmsg);
 
    th.thermodynamics_verbose = 0;
+
    class_call(thermodynamics_init(&pr,&ba,&th),
               th.error_message,
               errmsg);
