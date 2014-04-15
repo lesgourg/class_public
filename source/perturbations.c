@@ -1454,13 +1454,13 @@ int perturb_workspace_init(
 
       class_define_index(ppw->index_mt_V_prime,_TRUE_,index_mt,1)
 
-    }
+        }
 
     if (ppt->gauge == synchronous) {
 
       class_define_index(ppw->index_mt_hv_prime_prime,_TRUE_,index_mt,1)
 
-    }
+        }
 
   }
 
@@ -3306,13 +3306,13 @@ int perturb_vector_init(
       if (ppt->gauge == synchronous){
 
         ppv->y[ppv->index_pt_hv_prime] =
-        ppw->pv->y[ppw->pv->index_pt_hv_prime];
+          ppw->pv->y[ppw->pv->index_pt_hv_prime];
 
       }
       if (ppt->gauge == newtonian){
 
-      ppv->y[ppv->index_pt_V] =
-        ppw->pv->y[ppw->pv->index_pt_V];
+        ppv->y[ppv->index_pt_V] =
+          ppw->pv->y[ppw->pv->index_pt_V];
 
       }
 
@@ -3330,10 +3330,10 @@ int perturb_vector_init(
           fprintf(stdout,"Mode k=%e: switch off tight-coupling approximation at tau=%e\n",k,tau);
 
         ppv->y[ppv->index_pt_delta_g] = 0.0; //TBC
-          //-4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        //-4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
 
         ppv->y[ppv->index_pt_pol0_g] = 0.0; //TBC
-          //1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        //1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
       }
 
       /* -- case of switching on radiation streaming
@@ -5953,6 +5953,164 @@ int perturb_derivs(double tau,
 
     /** -> baryon density */
 
+    dy[pv->index_pt_delta_b] = -(theta_b+metric_continuity);
+
+    /** -> baryon velocity (depends on tight-coupling approximation=tca) */
+
+    if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
+
+      /* without tca */
+
+      /** perturbed recombination has an impact **/
+      dy[pv->index_pt_theta_b] =
+        - a_prime_over_a*theta_b
+        + metric_euler
+        + k2*cb2*(delta_b+delta_temp)
+        + R*pvecthermo[pth->index_th_dkappa]*(theta_g-theta_b);
+
+    }
+
+    else {
+
+      /* with tca */
+      class_call(perturb_tca_slip_and_shear(y,pppaw,error_message),
+                 error_message,
+                 error_message);
+
+      /** perturbed recombination has an impact **/
+      dy[pv->index_pt_theta_b] =
+        (-a_prime_over_a*theta_b
+         +k2*(cb2*(delta_b+delta_temp)+R*(delta_g/4.-s2_squared*ppw->tca_shear_g))
+         +R*ppw->tca_slip)/(1.+R)
+        +metric_euler;
+
+    }
+
+    /** -> photon temperature higher momenta and photon polarisation (depend on tight-coupling approximation) : */
+
+    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+
+      /** ---> if photon tight-coupling is off: */
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
+
+        /** -----> define \f$ \Pi = G_{\gamma 0} + G_{\gamma 2} + F_{\gamma 2} \f$ */
+        P0 = (y[pv->index_pt_pol0_g] + y[pv->index_pt_pol2_g] + 2.*s_l[2]*y[pv->index_pt_shear_g])/8.;
+
+        /** -----> photon temperature velocity */
+
+        dy[pv->index_pt_theta_g] =
+          k2*(delta_g/4.-s2_squared*y[pv->index_pt_shear_g])
+          + metric_euler
+          + pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
+
+        /** -----> photon temperature shear */
+        dy[pv->index_pt_shear_g] =
+          0.5*(8./15.*(theta_g+metric_shear)
+               -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_l3_g]
+               -pvecthermo[pth->index_th_dkappa]*(2.*y[pv->index_pt_shear_g]-4./5./s_l[2]*P0));
+
+        /** -----> photon temperature l=3 */
+
+        l = 3;
+        dy[pv->index_pt_l3_g] = k/(2.0*l+1.0)*
+          (l*s_l[l]*2.*s_l[2]*y[pv->index_pt_shear_g]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_g+1])
+          - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
+
+        /** -----> photon temperature l>3 */
+        for (l = 4; l < pv->l_max_g; l++) {
+
+          dy[pv->index_pt_delta_g+l] = k/(2.0*l+1.0)*
+            (l*s_l[l]*y[pv->index_pt_delta_g+l-1]-(l+1)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
+            - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+        }
+
+        /** -----> photon temperature lmax */
+        l = pv->l_max_g; /* l=lmax */
+        dy[pv->index_pt_delta_g+l] =
+          k*(s_l[l]*y[pv->index_pt_delta_g+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
+          - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+
+        /** -----> photon polarisation l=0 */
+
+        dy[pv->index_pt_pol0_g] =
+          -k*y[pv->index_pt_pol0_g+1]
+          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-4.*P0);
+
+        /** -----> photon polarisation l=1 */
+
+        dy[pv->index_pt_pol1_g] =
+          k/3.*(y[pv->index_pt_pol1_g-1]-2.*s_l[2]*y[pv->index_pt_pol1_g+1])
+          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol1_g];
+
+        /** -----> photon polarisation l=2 */
+
+        dy[pv->index_pt_pol2_g] =
+          k/5.*(2.*s_l[2]*y[pv->index_pt_pol2_g-1]-3.*s_l[3]*y[pv->index_pt_pol2_g+1])
+          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol2_g]-4./5.*P0);
+
+        /** -----> photon polarisation l>2 */
+
+        for (l=3; l < pv->l_max_pol_g; l++)
+          dy[pv->index_pt_pol0_g+l] = k/(2.*l+1)*
+            (l*s_l[l]*y[pv->index_pt_pol0_g+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
+            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+
+        /** -----> photon polarisation lmax_pol */
+
+        l = pv->l_max_pol_g;
+        dy[pv->index_pt_pol0_g+l] =
+          k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]-(l+1)*cotKgen*y[pv->index_pt_pol0_g+l])
+          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+
+      }
+
+      /** ---> if photon tight-coupling is on: */
+
+      else {
+
+        /** ----> in that case, only need photon velocity */
+
+
+        /** perturbed recombination has an impact **/
+        dy[pv->index_pt_theta_g] =
+          -(dy[pv->index_pt_theta_b]+a_prime_over_a*theta_b-cb2*k2*(delta_b+delta_temp))/R
+          +k2*(0.25*delta_g-s2_squared*ppw->tca_shear_g)+(1.+R)/R*metric_euler;
+      }
+    }
+
+    /** -> cdm */
+
+    if (pba->has_cdm == _TRUE_) {
+
+      /** ---> newtonian gauge: cdm density and velocity */
+
+      if (ppt->gauge == newtonian) {
+        dy[pv->index_pt_delta_cdm] = -(y[pv->index_pt_theta_cdm]+metric_continuity); /* cdm density */
+
+        dy[pv->index_pt_theta_cdm] = - a_prime_over_a*y[pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
+      }
+
+      /** ---> synchronous gauge: cdm density only (velocity set to zero by definition of the gauge) */
+
+      if (ppt->gauge == synchronous) {
+        dy[pv->index_pt_delta_cdm] = -metric_continuity; /* cdm density */
+      }
+
+    }
+
+    /* perturbed recombination */
+    /* computes the derivatives of delta x_e and delta T_b */
+
+    if((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca] == (int)tca_off)){
+
+      // alpha * n_H is in inverse seconds, so we have to multiply it by Mpc_in_sec
+      dy[ppw->pv->index_pt_perturbed_recombination_delta_chi] = - alpha_rec* a * chi*n_H  *(delta_alpha_rec + delta_chi + delta_b) * _Mpc_over_m_ / _c_ ;
+
+      // see the documentation for this formula
+      dy[ppw->pv->index_pt_perturbed_recombination_delta_temp] =  2./3. * dy[ppw->pv->index_pt_delta_b] - a * Compton_CR * pow(pba->T_cmb/a, 4) * chi / (1.+chi+fHe) * ( (1.-pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb])*(delta_g + delta_chi*(1.+fHe)/(1.+chi+fHe)) + pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb] *(delta_temp - 1./4. * delta_g) );
+
+    }
+
     /** -> fluid (fld) */
 
     if (pba->has_fld == _TRUE_) {
@@ -6207,6 +6365,9 @@ int perturb_derivs(double tau,
 
   /** - vector mode */
   if (_vectors_) {
+
+    fprintf(stderr,"we are in vectors\n");
+
     ssqrt3 = sqrt(1.-2.*pba->K/k2);
     cb2 = pvecthermo[pth->index_th_cb2];
 
@@ -6244,31 +6405,31 @@ int perturb_derivs(double tau,
 
         if (ppt->gauge == synchronous) {
 
-        /* photon density (delta_g = F_0) */
-        dy[pv->index_pt_delta_g] =
-          -4./3.*theta_g
-          -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b]);
+          /* photon density (delta_g = F_0) */
+          dy[pv->index_pt_delta_g] =
+            -4./3.*theta_g
+            -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b]);
 
-        /* photon velocity (theta_g = (3k/4)*F_1) */
-        dy[pv->index_pt_theta_g] =
-          k2*(delta_g/4.-s_l[2]*shear_g)
-          -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1)
-          +4.0/(3.0*_SQRT2_)*ssqrt3*y[pv->index_pt_hv_prime];
+          /* photon velocity (theta_g = (3k/4)*F_1) */
+          dy[pv->index_pt_theta_g] =
+            k2*(delta_g/4.-s_l[2]*shear_g)
+            -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1)
+            +4.0/(3.0*_SQRT2_)*ssqrt3*y[pv->index_pt_hv_prime];
 
         }
 
         else if (ppt->gauge == newtonian) {
 
-        /* photon density (delta_g = F_0) */
-        dy[pv->index_pt_delta_g] =
-          -4./3.*theta_g
-          -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
-          -2.*_SQRT2_*pvecmetric[ppw->index_mt_V_prime];
+          /* photon density (delta_g = F_0) */
+          dy[pv->index_pt_delta_g] =
+            -4./3.*theta_g
+            -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
+            -2.*_SQRT2_*pvecmetric[ppw->index_mt_V_prime];
 
-        /* photon velocity (theta_g = (3k/4)*F_1) */
-        dy[pv->index_pt_theta_g] =
-          k2*(delta_g/4.-s_l[2]*shear_g)
-          -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1);
+          /* photon velocity (theta_g = (3k/4)*F_1) */
+          dy[pv->index_pt_theta_g] =
+            k2*(delta_g/4.-s_l[2]*shear_g)
+            -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1);
 
         }
 
@@ -6299,7 +6460,7 @@ int perturb_derivs(double tau,
         /* photon polarization, l=0 (pol0_g = G_0)*/
         dy[pv->index_pt_pol0_g] =
           -k*y[pv->index_pt_pol0_g+1]
-          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P2);
+          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P1);
 
         /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
         for (l=1; l < pv->l_max_pol_g; l++)
