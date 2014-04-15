@@ -392,6 +392,9 @@ struct perturb_vector
 
   int index_pt_eta;       /**< synchronous gauge metric perturbation eta*/
   int index_pt_phi;
+  int index_pt_hv_prime;  /**< vector metric perturbation h_v' in synchronous gauge */
+  int index_pt_V;         /**< vector metric perturbation V in Newtonian gauge */
+
   int index_pt_gw;        /**< tensor metric perturbation h (gravitational waves) */
   int index_pt_gwdot;     /**< its time-derivative */
   int pt_size;            /**< size of perturbation vector */
@@ -431,6 +434,8 @@ struct perturb_workspace
   int index_mt_alpha;         /**< \alpha = (h' + 6 \eta') / (2 k^2) \f$ in synchronous gauge */
   int index_mt_alpha_prime;   /**< alpha' wrt conf. time) in synchronous gauge */
   int index_mt_gw_prime_prime;/**< second derivative wrt confromal time of gravitational wave field, often called h */
+  int index_mt_V_prime;       /**< derivative of Newtonian gauge vector metric perturbation V */
+  int index_mt_hv_prime_prime;/**< Second derivative of Synchronous gauge vector metric perturbation h_v */
   int mt_size;                /**< size of metric perturbation vector */
 
   //@}
