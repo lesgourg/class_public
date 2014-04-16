@@ -1452,15 +1452,15 @@ int perturb_workspace_init(
 
     if (ppt->gauge == newtonian) {
 
-      class_define_index(ppw->index_mt_V_prime,_TRUE_,index_mt,1)
+      class_define_index(ppw->index_mt_V_prime,_TRUE_,index_mt,1);
 
-        }
+    }
 
     if (ppt->gauge == synchronous) {
 
-      class_define_index(ppw->index_mt_hv_prime_prime,_TRUE_,index_mt,1)
+      class_define_index(ppw->index_mt_hv_prime_prime,_TRUE_,index_mt,1);
 
-        }
+    }
 
   }
 
@@ -4586,6 +4586,29 @@ int perturb_einstein(
 
       }
     }
+  }
+
+  if (_vectors_) {
+
+    if (ppt->gauge == newtonian) {
+
+      ppw->pvecmetric[ppw->index_mt_V_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_V] - 3.*ppw->vector_source/k;
+
+    }
+
+    if (ppt->gauge == synchronous) {
+
+      ppw->pvecmetric[ppw->index_mt_hv_prime_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_hv_prime] - 3.*ppw->vector_source/k2;
+
+      /* in synchronous a la HW, vector_source contains total shear
+         in synchronous a la cmbeasy, vector_source contains total theta and hv' is given directly by it (no differential equations)
+
+         to get seeds liek MK, we must add extra contribution to vector_soruce a la cmbeasy
+      */
+
+
+    }
+
   }
 
   if (_tensors_) {
