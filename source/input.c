@@ -2631,9 +2631,9 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->l_max_g=12;
   ppr->l_max_pol_g=10;
-  ppr->l_max_dr=12;
-  ppr->l_max_ur=12;
-  ppr->l_max_ncdm=12;
+  ppr->l_max_dr=17;
+  ppr->l_max_ur=17;
+  ppr->l_max_ncdm=17;
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 
@@ -2645,7 +2645,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_integration_stepsize=0.5;
 
   ppr->tol_tau_approx=1.e-10;
-  ppr->tol_perturb_integration=3.e-4;
+  ppr->tol_perturb_integration=1.e-5;
   ppr->perturb_sampling_stepsize=0.10;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
@@ -2653,10 +2653,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
 
   ppr->ur_fluid_approximation = ufa_CLASS;
-  ppr->ur_fluid_trigger_tau_over_tau_k = 15.;
+  ppr->ur_fluid_trigger_tau_over_tau_k = 30.;
 
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
-  ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.;
+  ppr->ncdm_fluid_trigger_tau_over_tau_k = 30.;
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
