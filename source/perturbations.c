@@ -4592,20 +4592,22 @@ int perturb_einstein(
 
     if (ppt->gauge == newtonian) {
 
-      ppw->pvecmetric[ppw->index_mt_V_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_V] - 3.*ppw->vector_source/k;
+      ppw->pvecmetric[ppw->index_mt_V_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_V] - 3.*ppw->vector_source_pi/k;
 
     }
 
     if (ppt->gauge == synchronous) {
 
-      ppw->pvecmetric[ppw->index_mt_hv_prime_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_hv_prime] - 3.*ppw->vector_source/k2;
+      // assuming    vector_source_pi = p_class a^2 pi_T^{(1)} and  vector_source_v = (rho_class+p_class)a^2 v^{(1)}
 
-      /* in synchronous a la HW, vector_source contains total shear
-         in synchronous a la cmbeasy, vector_source contains total theta and hv' is given directly by it (no differential equations)
+      // from Hu and White:
+      ppw->pvecmetric[ppw->index_mt_hv_prime_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_hv_prime] - 3.*ppw->vector_source_pi/k2;
 
-         to get seeds liek MK, we must add extra contribution to vector_soruce a la cmbeasy
-      */
+      // what we suspect:
+      //ppw->pvecmetric[ppw->index_mt_hv_prime_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_hv_prime] - 3.*ppw->vector_source_pi;
 
+      // if we use the other equation:
+      //ppw->pvecmetric[ppw->index_mt_hv_prime] = -2./k/ (1.-2.*pba->K/k2) * 3. * ppw->vector_source_v;
 
     }
 
@@ -4906,6 +4908,31 @@ int perturb_total_stress_energy(
 
       ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
     }
+  }
+
+  if (_vectors_) {
+
+    ppw->vector_source_pi = 0.;
+    ppw->vector_source_v = 0.;
+
+    /** photon contribution to vector sources: */
+    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
+
+        ppw->vector_source_v += 4./3.*a2*ppw->pvecback[pba->index_bg_rho_g]
+          * (-1./4.*_SQRT2_)
+          * (y[ppw->pv->index_pt_delta_g]+2.*y[ppw->pv->index_pt_delta_g]y[ppw->pv->index_pt_sigma_g]);
+
+        ppw->vector_source_pi += 1./3.*a2*ppw->pvecback[pba->index_bg_rho_g]
+          * (6.*_SQRT2_/5./sqrt(1.-2.*pba->K/k2))
+          * (4./3./k*y[ppw->pv->index_pt_theta_g]+y[ppw->pv->index_pt_l3]);
+
+      }
+    }
+
+    /* baryons */
+
+
   }
 
   if (_tensors_) {
@@ -6398,109 +6425,115 @@ int perturb_derivs(double tau,
 
     if (ppt->gauge == synchronous) {
 
-      dy[pv->index_pt_theta_b] = -(1-3.*cb2)*a_prime_over_a*y[pv->index_pt_theta_b];
+      dy[pv->index_pt_theta_b] = -(1-3.*cb2)*a_prime_over_a*y[pv->index_pt_theta_b]
+        - pvecthermo[pth->index_th_dkappa]*(_SQRT2_/4.*delta_g + y[pv->index_pt_theta_b]);
 
     }
 
     else if (ppt->gauge == newtonian) {
 
       dy[pv->index_pt_theta_b] = -(1-3.*cb2)*a_prime_over_a*y[pv->index_pt_theta_b]
-        +pvecmetric[ppw->index_mt_V_prime]+(1.-3.*cb2)*a_prime_over_a*y[pv->index_pt_V];
+        - _SQRT2_/4.*pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
+        + pvecmetric[ppw->index_mt_V_prime]+(1.-3.*cb2)*a_prime_over_a*y[pv->index_pt_V];
 
     }
 
-    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+    /*
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
+    */
 
-        /* short-cut notations for the tensor perturbations */
-        delta_g = y[pv->index_pt_delta_g];
-        theta_g = y[pv->index_pt_theta_g];
-        shear_g = y[pv->index_pt_shear_g];
+    /* short-cut notations for the tensor perturbations */
+    delta_g = y[pv->index_pt_delta_g];
+    theta_g = y[pv->index_pt_theta_g];
+    shear_g = y[pv->index_pt_shear_g];
 
 
-        /* (P^{(1)}) (see Eq. B.23 in 1305.3261)*/
-        P1 = -_SQRT6_/40.*(
-                           4./(3.*k)*theta_g //F1
-                           +y[pv->index_pt_delta_g+3]
-                           +2.*y[pv->index_pt_pol0_g]
-                           +10./7.*y[pv->index_pt_pol2_g]
-                           -4./7.*y[pv->index_pt_pol0_g+4]);
+    /* (P^{(1)}) (see Eq. B.23 in 1305.3261)*/
+    P1 = -_SQRT6_/40.*(
+                       4./(3.*k)*theta_g //F1
+                       +y[pv->index_pt_delta_g+3]
+                       +2.*y[pv->index_pt_pol0_g]
+                       +10./7.*y[pv->index_pt_pol2_g]
+                       -4./7.*y[pv->index_pt_pol0_g+4]);
 
-        if (ppt->gauge == synchronous) {
+    if (ppt->gauge == synchronous) {
 
-          /* photon density (delta_g = F_0) */
-          dy[pv->index_pt_delta_g] =
-            -4./3.*theta_g
-            -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b]);
+      /* photon density (delta_g = F_0) */
+      dy[pv->index_pt_delta_g] =
+        -4./3.*theta_g
+        -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b]);
 
-          /* photon velocity (theta_g = (3k/4)*F_1) */
-          dy[pv->index_pt_theta_g] =
-            k2*(delta_g/4.-s_l[2]*shear_g)
-            -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1)
-            +4.0/(3.0*_SQRT2_)*ssqrt3*y[pv->index_pt_hv_prime];
+      /* photon velocity (theta_g = (3k/4)*F_1) */
+      dy[pv->index_pt_theta_g] =
+        k2*(delta_g/4.-s_l[2]*shear_g)
+        -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1)
+        +4.0/(3.0*_SQRT2_)*ssqrt3*y[pv->index_pt_hv_prime];
 
-        }
-
-        else if (ppt->gauge == newtonian) {
-
-          /* photon density (delta_g = F_0) */
-          dy[pv->index_pt_delta_g] =
-            -4./3.*theta_g
-            -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
-            -2.*_SQRT2_*pvecmetric[ppw->index_mt_V_prime];
-
-          /* photon velocity (theta_g = (3k/4)*F_1) */
-          dy[pv->index_pt_theta_g] =
-            k2*(delta_g/4.-s_l[2]*shear_g)
-            -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1);
-
-        }
-
-        /* photon shear (shear_g = F_2/2) */
-        dy[pv->index_pt_shear_g] =
-          4./15.*s_l[2]*theta_g-3./10.*k*s_l[3]*y[pv->index_pt_shear_g+1]
-          -pvecthermo[pth->index_th_dkappa]*shear_g;
-
-        /* photon l=3 */
-        dy[pv->index_pt_l3_g] =
-          k/7.*(6.*s_l[3]*shear_g-4.*s_l[4]*y[pv->index_pt_l3_g+1])
-          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
-
-        /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
-        for (l=4; l < pv->l_max_g; l++)
-          dy[pv->index_pt_delta_g+l] =
-            k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_delta_g+l-1]
-                         -(l+1.)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
-            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
-
-        /* l=lmax */
-        l = pv->l_max_g;
-        dy[pv->index_pt_delta_g+l] =
-          k*(s_l[l]*y[pv->index_pt_delta_g+l-1]
-             -(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
-          - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
-
-        /* photon polarization, l=0 (pol0_g = G_0)*/
-        dy[pv->index_pt_pol0_g] =
-          -k*y[pv->index_pt_pol0_g+1]
-          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P1);
-
-        /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
-        for (l=1; l < pv->l_max_pol_g; l++)
-          dy[pv->index_pt_pol0_g+l] =
-            k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_pol0_g+l-1]
-                         -(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
-            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
-
-        /* l=lmax */
-        l = pv->l_max_pol_g;
-        dy[pv->index_pt_pol0_g+l] =
-          k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]
-             -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
-          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
-
-      }
     }
+
+    else if (ppt->gauge == newtonian) {
+
+      /* photon density (delta_g = F_0) */
+      dy[pv->index_pt_delta_g] =
+        -4./3.*theta_g
+        -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
+        -2.*_SQRT2_*pvecmetric[ppw->index_mt_V_prime];
+
+      /* photon velocity (theta_g = (3k/4)*F_1) */
+      dy[pv->index_pt_theta_g] =
+        k2*(delta_g/4.-s_l[2]*shear_g)
+        -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1);
+
+    }
+
+    /* photon shear (shear_g = F_2/2) */
+    dy[pv->index_pt_shear_g] =
+      4./15.*s_l[2]*theta_g-3./10.*k*s_l[3]*y[pv->index_pt_shear_g+1]
+      -pvecthermo[pth->index_th_dkappa]*shear_g;
+
+    /* photon l=3 */
+    dy[pv->index_pt_l3_g] =
+      k/7.*(6.*s_l[3]*shear_g-4.*s_l[4]*y[pv->index_pt_l3_g+1])
+      -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
+
+    /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
+    for (l=4; l < pv->l_max_g; l++)
+      dy[pv->index_pt_delta_g+l] =
+        k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_delta_g+l-1]
+                     -(l+1.)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
+        -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+
+    /* l=lmax */
+    l = pv->l_max_g;
+    dy[pv->index_pt_delta_g+l] =
+      k*(s_l[l]*y[pv->index_pt_delta_g+l-1]
+         -(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
+      - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+
+    /* photon polarization, l=0 (pol0_g = G_0)*/
+    dy[pv->index_pt_pol0_g] =
+      -k*y[pv->index_pt_pol0_g+1]
+      -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P1);
+
+    /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
+    for (l=1; l < pv->l_max_pol_g; l++)
+      dy[pv->index_pt_pol0_g+l] =
+        k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_pol0_g+l-1]
+                     -(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
+        -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+
+    /* l=lmax */
+    l = pv->l_max_pol_g;
+    dy[pv->index_pt_pol0_g+l] =
+      k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]
+         -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
+      -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+
+    /*
+      }
+      }
+    */
 
     if (ppt->gauge == synchronous) {
 
