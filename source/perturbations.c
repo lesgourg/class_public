@@ -4921,11 +4921,11 @@ int perturb_total_stress_energy(
 
         ppw->vector_source_v += 4./3.*a2*ppw->pvecback[pba->index_bg_rho_g]
           * (-1./4.*_SQRT2_)
-          * (y[ppw->pv->index_pt_delta_g]+2.*y[ppw->pv->index_pt_delta_g]y[ppw->pv->index_pt_sigma_g]);
+          * (y[ppw->pv->index_pt_delta_g]+2.*y[ppw->pv->index_pt_delta_g]+y[ppw->pv->index_pt_shear_g]);
 
         ppw->vector_source_pi += 1./3.*a2*ppw->pvecback[pba->index_bg_rho_g]
-          * (6.*_SQRT2_/5./sqrt(1.-2.*pba->K/k2))
-          * (4./3./k*y[ppw->pv->index_pt_theta_g]+y[ppw->pv->index_pt_l3]);
+          * (6.*_SQRT2_/5./sqrt(1.-2.*pba->K/k/k))
+          * (4./3./k*y[ppw->pv->index_pt_theta_g]+y[ppw->pv->index_pt_l3_g]);
 
       }
     }

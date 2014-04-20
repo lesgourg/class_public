@@ -1790,19 +1790,19 @@ int background_derivs(
   /** calculate growth' = 1/(aH^2) */
   dy[pba->index_bi_growth] = 1./(y[pba->index_bi_a] * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_H]);
 
-  if (pba->has_dcdm){
+  if (pba->has_dcdm == _TRUE_){
     /** compute dcdm density rho' = -3aH rho - a Gamma rho*/
     dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
   }
 
-  if (pba->has_dcdm){
+  if (pba->has_dcdm == _TRUE_){
     /** compute dcdm density rho' = -3aH rho - a Gamma rho*/
     dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
   }
 
-  if ((pba->has_dcdm)&&(pba->has_dr)){
+  if ((pba->has_dcdm == _TRUE_) && (pba->has_dr == _TRUE_)){
     /** Compute dr density rho' = -4aH rho - a Gamma rho*/
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
