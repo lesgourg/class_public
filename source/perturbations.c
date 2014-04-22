@@ -259,6 +259,9 @@ int perturb_init(
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
+    if (ppt->perturbations_verbose > 1)
+      printf("Evolving mode %d/%d\n",index_md+1,ppt->md_size);
+
     abort = _FALSE_;
 
     sz = sizeof(struct perturb_workspace);
@@ -296,6 +299,12 @@ int perturb_init(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
+      if (ppt->perturbations_verbose > 1)
+        printf("Evolving ic %d/%d\n",index_ic+1,ppt->ic_size[index_md]);
+
+        if (ppt->perturbations_verbose > 1)
+          printf("evolving %d wavenumbers\n",ppt->k_size);
+
       abort = _FALSE_;
 
 #pragma omp parallel                                    \
@@ -316,7 +325,7 @@ int perturb_init(
         for (index_k = ppt->k_size-1; index_k >=0; index_k--) {
 
           if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
-            printf("evolving mode k=%e /Mpc",ppt->k[index_k]);
+            printf("evolving mode k=%e /Mpc  (%d/%d)",ppt->k[index_k],index_k+1,ppt->k_size);
             if (pba->sgnK != 0)
               printf(" (for scalar modes, corresponds to nu=%e)",sqrt(ppt->k[index_k]*ppt->k[index_k]+pba->K)/sqrt(pba->sgnK*pba->K));
             printf("\n");
@@ -1332,8 +1341,8 @@ int perturb_get_k_list(
   */
 
   /** If perturbations are requested, find corresponding indices in
-      ppt->k. I am assuming that ppt->k is sorted and growing, but
-      I am not assuming anything about ppt->k_output_values. */
+      ppt->k. We are assuming that ppt->k is sorted and growing, but
+      we am not assuming anything about ppt->k_output_values. */
   for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
     k_target = ppt->k_output_values[index_k_output];
     for (index_k=0; index_k<ppt->k_size; index_k++){
