@@ -10,7 +10,7 @@
  * written in output files
  */
 
-#define _Z_PK_NUM_MAX_ 10
+#define _Z_PK_NUM_MAX_ 100
 
 /**
  * Different ways to present output files
