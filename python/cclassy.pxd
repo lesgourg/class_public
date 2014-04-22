@@ -100,12 +100,15 @@ cdef extern from "class.h":
         int l_max_tot
         int ln_k_size
         int ct_size
+        int md_size
+        int * ic_ic_size
         int index_ct_tt
         int index_ct_te
         int index_ct_ee
         int index_ct_bb
         int index_ct_pp
         int index_ct_tp
+        int index_md_scalars
         double* ln_k
         double sigma8
         double alpha_II_2_20

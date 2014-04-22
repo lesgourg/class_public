@@ -381,6 +381,16 @@ cdef class Class:
         cdef int lmaxR
         cdef double *rcl = <double*> calloc(self.sp.ct_size,sizeof(double))
 
+        # Quantities for tensor modes
+        cdef double **cl_md = <double**> calloc(self.sp.md_size, sizeof(double*))
+        for index_md in range(self.sp.md_size):
+            cl_md[index_md] = <double*> calloc(self.sp.ct_size, sizeof(double))
+
+        # Quantities for isocurvature modes
+        cdef double **cl_md_ic = <double**> calloc(self.sp.md_size, sizeof(double*))
+        for index_md in range(self.sp.md_size):
+            cl_md_ic[index_md] = <double*> calloc(self.sp.ct_size*self.sp.ic_ic_size[index_md], sizeof(double))
+
         lmaxR = self.sp.l_max_tot
         if lmax==-1:
             lmax=lmaxR
@@ -396,7 +406,7 @@ cdef class Class:
             cl[elem] = np.ndarray(lmax+1, dtype=np.double)
             cl[elem][:2]=0
         for ell from 2<=ell<lmax+1:
-            if spectra_cl_at_l(&self.sp,ell,rcl,NULL,NULL) == _FAILURE_:
+            if spectra_cl_at_l(&self.sp,ell,rcl,cl_md,cl_md_ic) == _FAILURE_:
                 raise CosmoSevereError(self.sp.error_message)
             cl['tt'][ell] = rcl[self.sp.index_ct_tt]
             cl['te'][ell] = rcl[self.sp.index_ct_te]
@@ -501,6 +511,8 @@ cdef class Class:
         cdef double pk_cross
         cdef int dummy
 
+        # Quantities for the isocurvature modes
+        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         abort = True
         if 'output' in self._pars:
             options = self._pars['output'].split()
@@ -515,7 +527,7 @@ cdef class Class:
                 " spectrum, then")
 
         if (self.nl.method == 0):
-             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
+             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
         else:
              if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
