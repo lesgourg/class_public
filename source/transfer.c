@@ -1094,20 +1094,31 @@ int transfer_get_q_list(
   int last_index=0;
   double q_logstep_spline;
   double q_logstep_trapzd;
+  int index_md;
 
   /* first and last value in flat case*/
 
   if (sgnK == 0) {
-    q_min = ppt->k[0][0];
-    q_max = ppt->k[0][ppt->k_size_cl[0]-1];
+    q_min = ppt->k_min;
+
+    q_max = 0.;
+    for (index_md=0; index_md<ppt->md_size; index_md++) {
+      q_max = MAX(q_max,ppt->k[index_md][ppt->k_size_cl[index_md]-1]);
+    }
+
     K=0;
   }
 
   /* first and last value in open case*/
 
   else if (sgnK == -1) {
-    q_min = sqrt(ppt->k[0][0]*ppt->k[0][0]+K);
-    k_max = ppt->k[0][ppt->k_size_cl[0]-1];
+    q_min = sqrt(ppt->k_min*ppt->k_min+K);
+
+    k_max = 0.;
+    for (index_md=0; index_md<ppt->md_size; index_md++) {
+      k_max = MAX(k_max,ppt->k[index_md][ppt->k_size_cl[index_md]-1]);
+    }
+
     q_max = sqrt(k_max*k_max+K);
     if (ppt->has_vectors == _TRUE_)
       q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
@@ -1120,7 +1131,11 @@ int transfer_get_q_list(
   else if (sgnK == 1) {
     nu_min = 3;
     q_min = nu_min * sqrt(K);
-    q_max = ppt->k[0][ppt->k_size_cl[0]-1];
+
+    q_max = 0.;
+    for (index_md=0; index_md<ppt->md_size; index_md++) {
+      q_max = MAX(q_max,ppt->k[index_md][ppt->k_size_cl[index_md]-1]);
+    }
   }
 
   /* adjust the parameter governing the log step size to curvature */
@@ -1267,217 +1282,6 @@ int transfer_get_q_list(
 
   if (sgnK != 0) {
 
-    q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
-    for (ptr->index_q_flat_approximation=0;
-         ptr->index_q_flat_approximation < ptr->q_size-1;
-         ptr->index_q_flat_approximation++) {
-      if (ptr->q[ptr->index_q_flat_approximation] > q_approximation) break;
-    }
-    if (ptr->transfer_verbose > 1)
-      printf("Flat bessel approximation spares hyperspherical bessel computations for %zu wavenumebrs over a total of %zu\n",
-             ptr->q_size-ptr->index_q_flat_approximation,ptr->q_size);
-  }
-
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine defines the number and values of wavenumbers q for
- * each mode (different in perturbation module and transfer module:
- * here we impose an upper bound on the linear step. So, typically,
- * for small q, the sampling is identical to that in the perturbation
- * module, while at high q it is denser and source functions are
- * interpolated).
- *
- * @param ppr     Input : pointer to precision structure
- * @param ppt     Input : pointer to perturbation structure
- * @param ptr     Input/Output : pointer to transfers structure containing q's
- * @param rs_rec  Input : comoving distance to recombination
- * @param index_md Input: index of requested mode (scalar, tensor, etc)
- * @return the error status
- */
-
-int transfer_get_q_list_v1(
-                           struct precision * ppr,
-                           struct perturbs * ppt,
-                           struct transfers * ptr,
-                           double q_period,
-                           double K,
-                           int sgnK
-                           ) {
-
-  int index_k;
-  int index_q;
-  double q_min=0.,q_max,q_step_max=0.,k_max;
-  int nu, nu_min, nu_proposed;
-  int q_size_max;
-  double q_approximation;
-
-  /* find q_step_max, the maximum value of the step */
-
-  q_step_max = q_period*ppr->q_linstep;
-
-  class_test(q_step_max == 0.,
-             ptr->error_message,
-             "stop to avoid infinite loop");
-
-  /* first deal with case K=0 (flat) and K<0 (open). The case K>0 (closed) is very different, and is dealt with separately below. */
-
-  if (sgnK <= 0) {
-
-    /* first and last value */
-
-    if (sgnK == 0) {
-      q_min = ppt->k[0][0];
-      q_max = ppt->k[0][ppt->k_size_cl[0]-1];
-      K=0;
-    }
-    else {
-      q_min = sqrt(ppt->k[0][0]*ppt->k[0][0]+K);
-      k_max = ppt->k[0][ppt->k_size_cl[0]-1];
-      q_max = sqrt(k_max*k_max+K);
-      if (ppt->has_vectors == _TRUE_)
-        q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
-      if (ppt->has_tensors == _TRUE_)
-        q_max = MIN(q_max,sqrt(k_max*k_max+3.*K));
-    }
-
-    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
-
-    q_size_max = 2+ppt->k_size_cl[0]+(int)((q_max-q_min)/q_step_max);
-
-    class_alloc(ptr->q,
-                q_size_max*sizeof(double),
-                ptr->error_message);
-
-    /* - first point */
-
-    index_q = 0;
-
-    ptr->q[index_q] = q_min;
-
-    index_q++;
-
-    /* - points taken from perturbation module if step small enough */
-
-    while ((index_q < ppt->k_size_cl[0]) && ((sqrt(ppt->k[0][index_q]*ppt->k[0][index_q]+K) - ptr->q[index_q-1]) < q_step_max)) {
-
-      class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
-      ptr->q[index_q] = sqrt(ppt->k[0][index_q]*ppt->k[0][index_q]+K);
-      index_q++;
-
-    }
-
-    /* - then, points spaced linearily with step q_step_max */
-
-    while (ptr->q[index_q-1] < q_max) {
-
-      class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
-      ptr->q[index_q] = ptr->q[index_q-1] + q_step_max;
-      index_q++;
-
-    }
-
-    /* - get number of valid points in order to re-allocate list */
-
-    if (ptr->q[index_q-1] > q_max)
-      ptr->q_size=index_q-1;
-    else
-      ptr->q_size=index_q;
-
-  }
-
-  /* deal with K>0 (closed) case */
-
-  else {
-
-    /* first and last value */
-
-    nu_min = 3;
-    q_min = nu_min * sqrt(K);
-    q_max = ppt->k[0][ppt->k_size_cl[0]-1];
-
-    /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
-
-    q_size_max = 2+(int)((q_max-q_min)/sqrt(K));
-
-    class_alloc(ptr->q,
-                q_size_max*sizeof(double),
-                ptr->error_message);
-
-    /* - first point */
-
-    index_q = 0;
-    index_k = 0;
-
-    ptr->q[index_q] = q_min;
-    nu = nu_min;
-
-    index_q++;
-
-    while (index_k < ppt->k_size_cl[0]-2) {
-
-      index_k++;
-      nu_proposed = (int)(sqrt(pow(ppt->k[0][index_k],2)+K)/sqrt(K));
-      if (nu_proposed > nu) {
-        if (nu_proposed*sqrt(K)-ptr->q[index_q-1] > q_step_max) break;
-        ptr->q[index_q] = nu_proposed*sqrt(K);
-        nu = nu_proposed;
-        index_q++;
-      }
-    }
-
-    while (ptr->q[index_q-1] < q_max) {
-
-      nu_proposed = (int)((ptr->q[index_q-1]+q_step_max)/sqrt(K));
-      if (nu_proposed > nu) {
-        ptr->q[index_q] = nu_proposed*sqrt(K);
-        nu = nu_proposed;
-        index_q++;
-      }
-    }
-
-    /* - get number of valid points in order to re-allocate list */
-
-    if (ptr->q[index_q-1] > q_max)
-      ptr->q_size=index_q-1;
-    else
-      ptr->q_size=index_q;
-
-  }
-
-  /* check size of q_list and realloc the array to the correct size */
-
-  class_test(ptr->q_size<2,ptr->error_message,"buggy q-list definition");
-
-  class_realloc(ptr->q,
-                ptr->q,
-                ptr->q_size*sizeof(double),
-                ptr->error_message);
-
-  /* consistency checks */
-
-  class_test(ptr->q[0] <= 0.,
-             ptr->error_message,
-             "bug in q list calculation, q_min=%e, should always be strictly positive",ptr->q[0]);
-
-  if (sgnK == 1) {
-    class_test(ptr->q[0] < 3.*sqrt(K),
-               ptr->error_message,
-               "bug in q list calculation, q_min=%e, should be greater or equal to 3sqrt(K)=%e in positivevly curved universe",ptr->q[0],3.*sqrt(K));
-  }
-
-  for (index_q=1; index_q<ptr->q_size; index_q++) {
-    class_test(ptr->q[index_q] <= ptr->q[index_q-1],
-               ptr->error_message,
-               "bug in q list calculation, q values should be in strictly growing order");
-  }
-
-  /* in curved universe, check at which index the flat rescaling
-     approximation will start being used */
-
-  if (sgnK != 0) {
     q_approximation = ppr->hyper_flat_approximation_nu * sqrt(sgnK*K);
     for (ptr->index_q_flat_approximation=0;
          ptr->index_q_flat_approximation < ptr->q_size-1;
