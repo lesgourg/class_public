@@ -138,14 +138,14 @@ int transfer_init(
 
   /* array of sources S(k,tau), just taken from perturbation module,
      or transformed if non-linear corrections are needed
-     sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp][index_tau * ppt->k_size + index_k]
+     sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp][index_tau * ppt->k_size[index_md] + index_k]
   */
   double *** sources;
 
   /* array of source derivatives S''(k,tau)
      (second derivative with respect to k, not tau!),
      used to interpolate sources at the right values of k,
-     sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp][index_tau * ppt->k_size + index_k]
+     sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp][index_tau * ppt->k_size[index_md] + index_k]
   */
   double *** sources_spline;
 
@@ -745,18 +745,18 @@ int transfer_perturbation_copy_sources_and_nl_corrections(
              ((ppt->has_source_psi == _TRUE_) && (index_tp == ppt->index_tp_psi)))) {
 
           class_alloc(sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                      ppt->k_size*ppt->tau_size*sizeof(double),
+                      ppt->k_size[index_md]*ppt->tau_size*sizeof(double),
                       ptr->error_message);
 
           for (index_tau=0; index_tau<ppt->tau_size; index_tau++) {
-            for (index_k=0; index_k<ppt->k_size; index_k++) {
+            for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
               sources[index_md]
                 [index_ic * ppt->tp_size[index_md] + index_tp]
-                [index_tau * ppt->k_size + index_k] =
+                [index_tau * ppt->k_size[index_md] + index_k] =
                 ppt->sources[index_md]
                 [index_ic * ppt->tp_size[index_md] + index_tp]
-                [index_tau * ppt->k_size + index_k]
-                * pnl->nl_corr_density[index_tau * ppt->k_size + index_k];
+                [index_tau * ppt->k_size[index_md] + index_k]
+                * pnl->nl_corr_density[index_tau * ppt->k_size[index_md] + index_k];
             }
           }
         }
@@ -794,11 +794,11 @@ int transfer_perturbation_source_spline(
       for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
 
         class_alloc(sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                    ppt->k_size*ppt->tau_size*sizeof(double),
+                    ppt->k_size[index_md]*ppt->tau_size*sizeof(double),
                     ptr->error_message);
 
-        class_call(array_spline_table_columns2(ppt->k,
-                                               ppt->k_size,
+        class_call(array_spline_table_columns2(ppt->k[index_md],
+                                               ppt->k_size[index_md],
                                                sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
                                                ppt->tau_size,
                                                sources_spline[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
@@ -1098,16 +1098,16 @@ int transfer_get_q_list(
   /* first and last value in flat case*/
 
   if (sgnK == 0) {
-    q_min = ppt->k[0];
-    q_max = ppt->k[ppt->k_size_cl-1];
+    q_min = ppt->k[0][0];
+    q_max = ppt->k[0][ppt->k_size_cl[0]-1];
     K=0;
   }
 
   /* first and last value in open case*/
 
   else if (sgnK == -1) {
-    q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
-    k_max = ppt->k[ppt->k_size_cl-1];
+    q_min = sqrt(ppt->k[0][0]*ppt->k[0][0]+K);
+    k_max = ppt->k[0][ppt->k_size_cl[0]-1];
     q_max = sqrt(k_max*k_max+K);
     if (ppt->has_vectors == _TRUE_)
       q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
@@ -1120,7 +1120,7 @@ int transfer_get_q_list(
   else if (sgnK == 1) {
     nu_min = 3;
     q_min = nu_min * sqrt(K);
-    q_max = ppt->k[ppt->k_size_cl-1];
+    q_max = ppt->k[0][ppt->k_size_cl[0]-1];
   }
 
   /* adjust the parameter governing the log step size to curvature */
@@ -1329,13 +1329,13 @@ int transfer_get_q_list_v1(
     /* first and last value */
 
     if (sgnK == 0) {
-      q_min = ppt->k[0];
-      q_max = ppt->k[ppt->k_size_cl-1];
+      q_min = ppt->k[0][0];
+      q_max = ppt->k[0][ppt->k_size_cl[0]-1];
       K=0;
     }
     else {
-      q_min = sqrt(ppt->k[0]*ppt->k[0]+K);
-      k_max = ppt->k[ppt->k_size_cl-1];
+      q_min = sqrt(ppt->k[0][0]*ppt->k[0][0]+K);
+      k_max = ppt->k[0][ppt->k_size_cl[0]-1];
       q_max = sqrt(k_max*k_max+K);
       if (ppt->has_vectors == _TRUE_)
         q_max = MIN(q_max,sqrt(k_max*k_max+2.*K));
@@ -1345,7 +1345,7 @@ int transfer_get_q_list_v1(
 
     /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
 
-    q_size_max = 2+ppt->k_size_cl+(int)((q_max-q_min)/q_step_max);
+    q_size_max = 2+ppt->k_size_cl[0]+(int)((q_max-q_min)/q_step_max);
 
     class_alloc(ptr->q,
                 q_size_max*sizeof(double),
@@ -1361,10 +1361,10 @@ int transfer_get_q_list_v1(
 
     /* - points taken from perturbation module if step small enough */
 
-    while ((index_q < ppt->k_size_cl) && ((sqrt(ppt->k[index_q]*ppt->k[index_q]+K) - ptr->q[index_q-1]) < q_step_max)) {
+    while ((index_q < ppt->k_size_cl[0]) && ((sqrt(ppt->k[0][index_q]*ppt->k[0][index_q]+K) - ptr->q[index_q-1]) < q_step_max)) {
 
       class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
-      ptr->q[index_q] = sqrt(ppt->k[index_q]*ppt->k[index_q]+K);
+      ptr->q[index_q] = sqrt(ppt->k[0][index_q]*ppt->k[0][index_q]+K);
       index_q++;
 
     }
@@ -1396,7 +1396,7 @@ int transfer_get_q_list_v1(
 
     nu_min = 3;
     q_min = nu_min * sqrt(K);
-    q_max = ppt->k[ppt->k_size_cl-1];
+    q_max = ppt->k[0][ppt->k_size_cl[0]-1];
 
     /* conservative estimate of maximum size of the list (will be reduced later with realloc) */
 
@@ -1416,10 +1416,10 @@ int transfer_get_q_list_v1(
 
     index_q++;
 
-    while (index_k < ppt->k_size_cl-2) {
+    while (index_k < ppt->k_size_cl[0]-2) {
 
       index_k++;
-      nu_proposed = (int)(sqrt(pow(ppt->k[index_k],2)+K)/sqrt(K));
+      nu_proposed = (int)(sqrt(pow(ppt->k[0][index_k],2)+K)/sqrt(K));
       if (nu_proposed > nu) {
         if (nu_proposed*sqrt(K)-ptr->q[index_q-1] > q_step_max) break;
         ptr->q[index_q] = nu_proposed*sqrt(K);
@@ -1533,17 +1533,17 @@ int transfer_get_k_list(
       ptr->k[index_md][index_q] = sqrt(ptr->q[index_q]*ptr->q[index_q]-K*(m+1.));
     }
 
-    class_test(ptr->k[index_md][0] < ppt->k[0],
+    class_test(ptr->k[index_md][0] < ppt->k[0][0],
                ptr->error_message,
                "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
-               ppt->k[0],
+               ppt->k[0][0],
                index_md,
                ptr->k[index_md][0]);
 
-    class_test(ptr->k[index_md][ptr->q_size-1] > ppt->k[ppt->k_size_cl-1],
+    class_test(ptr->k[index_md][ptr->q_size-1] > ppt->k[0][ppt->k_size_cl[0]-1],
                ptr->error_message,
                "bug in k_list calculation: in perturbation module k_max=%e, in transfer module k_max[mode=%d]=%e, interpolation impossible",
-               ppt->k[ppt->k_size_cl],
+               ppt->k[0][ppt->k_size_cl[0]],
                index_md,
                ptr->k[index_md][ptr->q_size-1]);
 
@@ -2248,29 +2248,29 @@ int transfer_interpolate_sources(
       spline interpolation algorithm. */
 
   index_k = 0;
-  h = ppt->k[index_k+1] - ppt->k[index_k];
+  h = ppt->k[index_md][index_k+1] - ppt->k[index_md][index_k];
 
-  while (((index_k+1) < ppt->k_size) &&
-         (ppt->k[index_k+1] <
+  while (((index_k+1) < ppt->k_size[index_md]) &&
+         (ppt->k[index_md][index_k+1] <
           ptr->k[index_md][index_q])) {
     index_k++;
-    h = ppt->k[index_k+1] - ppt->k[index_k];
+    h = ppt->k[index_md][index_k+1] - ppt->k[index_md][index_k];
   }
 
   class_test(h==0.,
              ptr->error_message,
              "stop to avoid division by zero");
 
-  b = (ptr->k[index_md][index_q] - ppt->k[index_k])/h;
+  b = (ptr->k[index_md][index_q] - ppt->k[index_md][index_k])/h;
   a = 1.-b;
 
   for (index_tau = 0; index_tau < ppt->tau_size; index_tau++) {
 
     interpolated_sources[index_tau] =
-      a * pert_source[index_tau*ppt->k_size+index_k]
-      + b * pert_source[index_tau*ppt->k_size+index_k+1]
-      + ((a*a*a-a) * pert_source_spline[index_tau*ppt->k_size+index_k]
-         +(b*b*b-b) * pert_source_spline[index_tau*ppt->k_size+index_k+1])*h*h/6.0;
+      a * pert_source[index_tau*ppt->k_size[index_md]+index_k]
+      + b * pert_source[index_tau*ppt->k_size[index_md]+index_k+1]
+      + ((a*a*a-a) * pert_source_spline[index_tau*ppt->k_size[index_md]+index_k]
+         +(b*b*b-b) * pert_source_spline[index_tau*ppt->k_size[index_md]+index_k+1])*h*h/6.0;
 
   }
 

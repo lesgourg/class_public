@@ -59,11 +59,11 @@ int perturb_sources_at_tau(
                                        1,
                                        0,
                                        ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
-                                       ppt->k_size,
+                                       ppt->k_size[index_md],
                                        ppt->tau_size,
                                        tau,
                                        psource,
-                                       ppt->k_size,
+                                       ppt->k_size[index_md],
                                        ppt->error_message),
              ppt->error_message,
              ppt->error_message);
@@ -303,7 +303,7 @@ int perturb_init(
         printf("Evolving ic %d/%d\n",index_ic+1,ppt->ic_size[index_md]);
 
         if (ppt->perturbations_verbose > 1)
-          printf("evolving %d wavenumbers\n",ppt->k_size);
+          printf("evolving %d wavenumbers\n",ppt->k_size[index_md]);
 
       abort = _FALSE_;
 
@@ -322,12 +322,12 @@ int perturb_init(
 
         /* integrating backwards is slightly more optimal for parallel runs */
         //for (index_k = 0; index_k < ppt->k_size; index_k++) {
-        for (index_k = ppt->k_size-1; index_k >=0; index_k--) {
+        for (index_k = ppt->k_size[index_md]-1; index_k >=0; index_k--) {
 
           if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
-            printf("evolving mode k=%e /Mpc  (%d/%d)",ppt->k[index_k],index_k+1,ppt->k_size);
+            printf("evolving mode k=%e /Mpc  (%d/%d)",ppt->k[index_md][index_k],index_k+1,ppt->k_size[index_md]);
             if (pba->sgnK != 0)
-              printf(" (for scalar modes, corresponds to nu=%e)",sqrt(ppt->k[index_k]*ppt->k[index_k]+pba->K)/sqrt(pba->sgnK*pba->K));
+              printf(" (for scalar modes, corresponds to nu=%e)",sqrt(ppt->k[index_md][index_k]*ppt->k[index_md][index_k]+pba->K)/sqrt(pba->sgnK*pba->K));
             printf("\n");
           }
 
@@ -427,6 +427,8 @@ int perturb_free(
 
       free(ppt->sources[index_md]);
 
+      free(ppt->k[index_md]);
+
     }
 
     free(ppt->tau_sampling);
@@ -436,6 +438,12 @@ int perturb_free(
     free(ppt->ic_size);
 
     free(ppt->k);
+
+    free(ppt->k_size_cmb);
+
+    free(ppt->k_size_cl);
+
+    free(ppt->k_size);
 
     free(ppt->sources);
   }
@@ -1085,7 +1093,7 @@ int perturb_timesampling_for_sources(
       for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
         class_alloc(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
-                    ppt->k_size * ppt->tau_size * sizeof(double),
+                    ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
                     ppt->error_message);
 
       }
@@ -1114,6 +1122,7 @@ int perturb_get_k_list(
                        struct perturbs * ppt
                        ) {
   int index_k, index_k_output;
+  int index_md;
   double k,k_min=0.,k_rec,step,tau1;
   double k_max_cmb=0.;
   double k_max_cl=0.;
@@ -1237,16 +1246,32 @@ int perturb_get_k_list(
      k_min, we define exactly the same sampling in the three cases
      K=0, K<0, K>0 */
 
+  /* allocate array for each mode */
+
+  class_alloc(ppt->k_size_cmb,
+              ppt->md_size*sizeof(int),
+              ppt->error_message);
+  class_alloc(ppt->k_size_cl,
+              ppt->md_size*sizeof(int),
+              ppt->error_message);
+  class_alloc(ppt->k_size,
+              ppt->md_size*sizeof(int),
+              ppt->error_message);
+  class_alloc(ppt->k,
+              ppt->md_size*sizeof(double*),
+              ppt->error_message);
+
   /* allocate array with, for the moment, the largest possible size */
-  class_alloc(ppt->k,((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-                      (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
+  class_alloc(ppt->k[0],
+              ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+               (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
               *sizeof(double),ppt->error_message);
 
   /* first value */
 
   index_k=0;
   k = k_min;
-  ppt->k[index_k] = k;
+  ppt->k[0][index_k] = k;
   index_k++;
 
   /* values until k_max_cmb */
@@ -1283,16 +1308,16 @@ int perturb_get_k_list(
 
     k += step;
 
-    class_test(k <= ppt->k[index_k-1],
+    class_test(k <= ppt->k[0][index_k-1],
                ppt->error_message,
                "consecutive values of k should differ and should be in growing order");
 
-    ppt->k[index_k] = k;
+    ppt->k[0][index_k] = k;
 
     index_k++;
   }
 
-  ppt->k_size_cmb = index_k;
+  ppt->k_size_cmb[0] = index_k;
 
   /* values until k_max_cl */
 
@@ -1302,11 +1327,11 @@ int perturb_get_k_list(
                      +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
                      *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
 
-    ppt->k[index_k] = k;
+    ppt->k[0][index_k] = k;
     index_k++;
   }
 
-  ppt->k_size_cl = index_k;
+  ppt->k_size_cl[0] = index_k;
 
   /* values until k_max */
 
@@ -1316,15 +1341,15 @@ int perturb_get_k_list(
                      +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
                      *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
 
-    ppt->k[index_k] = k;
+    ppt->k[0][index_k] = k;
     index_k++;
   }
 
-  ppt->k_size = index_k;
+  ppt->k_size[0] = index_k;
 
-  class_realloc(ppt->k,
-                ppt->k,
-                ppt->k_size*sizeof(double),
+  class_realloc(ppt->k[0],
+                ppt->k[0],
+                ppt->k_size[0]*sizeof(double),
                 ppt->error_message);
 
   /* For testing, can be useful to print the k list in a file:
@@ -1340,26 +1365,58 @@ int perturb_get_k_list(
      fclose(out);
   */
 
+  if (ppt->md_size>1) {
+    for (index_md=1; index_md<ppt->md_size; index_md++) {
+
+      class_alloc(ppt->k[index_md],
+                  ppt->k_size[0]*sizeof(double),
+                  ppt->error_message);
+
+      ppt->k_size_cmb[index_md] = ppt->k_size_cmb[0];
+      ppt->k_size_cl[index_md] = ppt->k_size_cl[0];
+      ppt->k_size[index_md] = ppt->k_size[0];
+
+      for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
+        ppt->k[index_md][index_k] = ppt->k[0][index_k];
+      }
+    }
+  }
+
+  ppt->k_min = _HUGE_;
+  ppt->k_max = 0.;
+  if (ppt->has_scalars == _TRUE_) {
+    ppt->k_min = MIN(ppt->k_min,ppt->k[ppt->index_md_scalars][0]); /* first value, inferred from perturbations structure */
+    ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_scalars][ppt->k_size[ppt->index_md_scalars]-1]); /* last value, inferred from perturbations structure */
+  }
+  if (ppt->has_vectors == _TRUE_) {
+    ppt->k_min = MIN(ppt->k_min,ppt->k[ppt->index_md_vectors][0]); /* first value, inferred from perturbations structure */
+    ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_vectors][ppt->k_size[ppt->index_md_vectors]-1]); /* last value, inferred from perturbations structure */
+  }
+  if (ppt->has_tensors == _TRUE_) {
+    ppt->k_min = MIN(ppt->k_min,ppt->k[ppt->index_md_tensors][0]); /* first value, inferred from perturbations structure */
+    ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1]); /* last value, inferred from perturbations structure */
+  }
+
   /** If perturbations are requested, find corresponding indices in
       ppt->k. We are assuming that ppt->k is sorted and growing, but
       we am not assuming anything about ppt->k_output_values. */
   for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
     k_target = ppt->k_output_values[index_k_output];
-    for (index_k=0; index_k<ppt->k_size; index_k++){
-      if (ppt->k[index_k] > k_target)
+    for (index_k=0; index_k<ppt->k_size[0]; index_k++){
+      if (ppt->k[0][index_k] > k_target)
         break;
     }
     if (index_k == 0){
       //k_target smaller than the smallest k in the list
       ppt->index_k_output_values[index_k_output] = 0;
     }
-    else if (index_k == ppt->k_size){
+    else if (index_k == ppt->k_size[0]){
       //k_target is larger than the largest k in the list
-      ppt->index_k_output_values[index_k_output] = ppt->k_size-1;
+      ppt->index_k_output_values[index_k_output] = ppt->k_size[0]-1;
     }
     else{
       //Find the closest k value
-      if ((k_target-ppt->k[index_k-1])<(ppt->k[index_k]-k_target))
+      if ((k_target-ppt->k[0][index_k-1])<(ppt->k[0][index_k]-k_target))
         ppt->index_k_output_values[index_k_output] = index_k - 1;
       else
         ppt->index_k_output_values[index_k_output] = index_k;
@@ -1682,7 +1739,7 @@ int perturb_solve(
   ppw->inter_mode = pba->inter_normal;
 
   /** - get wavenumber value */
-  k = ppt->k[index_k];
+  k = ppt->k[index_md][index_k];
 
   class_test(k == 0.,
              ppt->error_message,
@@ -1740,7 +1797,7 @@ int perturb_solve(
              ppr->start_large_k_at_tau_h_over_tau_k,
              ppt->error_message,
              "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_large_k_at_tau_h_over_tau_k' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
-             ppt->k[ppt->k_size-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
+             ppt->k[index_md][ppt->k_size[index_md]-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
 
   if (pba->has_ncdm == _TRUE_) {
     for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
@@ -1971,7 +2028,7 @@ int perturb_solve(
     for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
       ppt->sources[index_md]
         [index_ic * ppt->tp_size[index_md] + index_type]
-        [index_tau * ppt->k_size + index_k] = 0.;
+        [index_tau * ppt->k_size[index_md] + index_k] = 0.;
     }
   }
 
@@ -2001,7 +2058,7 @@ int perturb_prepare_output_file(struct background * pba,
   FileName file_name;
   char tmp[20];
 
-  k = ppt->k[ppt->index_k_output_values[index_ikout]];
+  k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
 
   if (_scalars_)
     sprintf(file_name,"%s%s%d%s",ppt->root,"perturbations_k",index_ikout,"_s.dat");

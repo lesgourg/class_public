@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     int index_k,index_tau;
 
     /* choose a mode (scalar, tensor, ...) */
-    int index_mode=pt.index_md_scalars;
+    int index_md=pt.index_md_scalars;
 
     /* choose a type (temperature, polarization, grav. pot., ...) */
     int index_type=pt.index_tp_t0;
@@ -61,15 +61,15 @@ int main(int argc, char **argv) {
     output=fopen("output/source.dat","w");
     fprintf(output,"#   k       tau       S\n");
 
-    for (index_k=0; index_k < pt.k_size; index_k++) {
+    for (index_k=0; index_k < pt.k_size[index_md]; index_k++) {
       for (index_tau=0; index_tau < pt.tau_size; index_tau++) {
 
         fprintf(output,"%e %e %e\n",
-                pt.k[index_k],
+                pt.k[index_md][index_k],
                 pt.tau_sampling[index_tau],
-                pt.sources[index_mode]
-                [index_ic * pt.tp_size[index_mode] + index_type]
-                [index_tau * pt.k_size + index_k]
+                pt.sources[index_md]
+                [index_ic * pt.tp_size[index_md] + index_type]
+                [index_tau * pt.k_size[index_md] + index_k]
                 );
       }
       fprintf(output,"\n");

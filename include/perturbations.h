@@ -11,7 +11,7 @@
 #define _vectors_ ((ppt->has_vectors == _TRUE_) && (index_md == ppt->index_md_vectors))
 #define _tensors_ ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors))
 
-#define _set_source_(index) ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index][index_tau * ppt->k_size + index_k]
+#define _set_source_(index) ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index][index_tau * ppt->k_size[index_md] + index_k]
 
 /**
  * flags for various approximation schemes
@@ -282,19 +282,22 @@ struct perturbs
 
   //@{
 
-  int k_size_cmb;  /**< k_size_cmb[index_md] number of k values used
+  int * k_size_cmb;  /**< k_size_cmb[index_md] number of k values used
                         for CMB calculations, requiring a fine
                         sampling in k-space */
 
-  int k_size_cl;  /**< k_size_cl number of k values used
+  int * k_size_cl;  /**< k_size_cl[index_md] number of k values used
                        for non-CMB Cl calculations, requering a coarse
                        sampling in k-space. */
 
-  int k_size;     /**< k_size = total number of k
+  int * k_size;     /**< k_size[index_md] = total number of k
                        values, including those needed for P(k) but not
                        for Cl's */
 
-  double * k;      /**< k[index_k] = list of values */
+  double ** k;      /**< k[index_md][index_k] = list of values */
+
+  double k_min;     /**< minimum valut (over all modes) */
+  double k_max;     /**< maximum valut (over all modes) */
 
   //@}
 

@@ -86,10 +86,10 @@ int nonlinear_init(
 
     /** - copy list of (k,tau) from perturbation module */
 
-    pnl->k_size = ppt->k_size;
+    pnl->k_size = ppt->k_size[ppt->index_md_scalars];
     class_alloc(pnl->k,pnl->k_size*sizeof(double),pnl->error_message);
     for (index_k=0; index_k<pnl->k_size; index_k++)
-      pnl->k[index_k] = ppt->k[index_k];
+      pnl->k[index_k] = ppt->k[ppt->index_md_scalars][index_k];
 
     pnl->tau_size = ppt->tau_size;
     class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
@@ -137,12 +137,12 @@ int nonlinear_init(
         */
 
         for (index_k=0; index_k<pnl->k_size; index_k++) {
-          pnl->nl_corr_density[index_tau * ppt->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
+          pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
         }
       }
       else {
         for (index_k=0; index_k<pnl->k_size; index_k++) {
-          pnl->nl_corr_density[index_tau * ppt->k_size + index_k] = 1.;
+          pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
         }
       }
     }
@@ -150,7 +150,7 @@ int nonlinear_init(
     /*
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
       for (index_k=0; index_k<pnl->k_size; index_k++) {
-        fprintf(stdout,"%e  %e\n",pnl->k[index_k],pnl->nl_corr_density[index_tau * ppt->k_size + index_k]);
+        fprintf(stdout,"%e  %e\n",pnl->k[index_k],pnl->nl_corr_density[index_tau * pnl->k_size + index_k]);
       }
       fprintf(stdout,"\n\n");
     }
@@ -224,7 +224,7 @@ int nonlinear_pk_l(
 
       source_ic1 = ppt->sources[index_md]
         [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-        [index_tau * ppt->k_size + index_k];
+        [index_tau * ppt->k_size[index_md] + index_k];
 
       pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
         *source_ic1*source_ic1
@@ -241,11 +241,11 @@ int nonlinear_pk_l(
 
           source_ic1 = ppt->sources[index_md]
             [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-            [index_tau * ppt->k_size + index_k];
+            [index_tau * ppt->k_size[index_md] + index_k];
 
           source_ic2 = ppt->sources[index_md]
             [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-            [index_tau * ppt->k_size + index_k];
+            [index_tau * ppt->k_size[index_md] + index_k];
 
           pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
             *source_ic1*source_ic2
