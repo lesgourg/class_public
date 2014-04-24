@@ -163,11 +163,6 @@ int transfer_init(
   HyperInterpStruct BIS;
   double xmax;
 
-  /* for reading selection function */
-  FILE * input_file;
-  int row,status;
-  double tmp1,tmp2;
-
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
@@ -291,104 +286,9 @@ int transfer_init(
 
   /** - eventually read the selection and evolution functions */
 
-  ptr->nz_size = 0;
-
-  if (ptr->has_nz_file == _TRUE_) {
-
-    input_file = fopen(ptr->nz_file_name,"r");
-    class_test(input_file == NULL,
-               ptr->error_message,
-               "Could not open file %s!",ptr->nz_file_name);
-
-    /* Find size of table */
-    for (row=0,status=2; status==2; row++){
-      status = fscanf(input_file,"%lf %lf",&tmp1,&tmp2);
-    }
-    rewind(input_file);
-    ptr->nz_size = row-1;
-
-    /* Allocate room for interpolation table */
-    class_alloc(ptr->nz_z,sizeof(double)*ptr->nz_size,ptr->error_message);
-    class_alloc(ptr->nz_nz,sizeof(double)*ptr->nz_size,ptr->error_message);
-    class_alloc(ptr->nz_ddnz,sizeof(double)*ptr->nz_size,ptr->error_message);
-
-    for (row=0; row<ptr->nz_size; row++){
-      status = fscanf(input_file,"%lf %lf",
-                      &ptr->nz_z[row],&ptr->nz_nz[row]);
-      //printf("%d: (z,dNdz) = (%g,%g)\n",row,ptr->nz_z[row],ptr->nz_nz[row]);
-    }
-    fclose(input_file);
-
-    /* Call spline interpolation: */
-    class_call(array_spline_table_lines(ptr->nz_z,
-                                        ptr->nz_size,
-                                        ptr->nz_nz,
-                                        1,
-                                        ptr->nz_ddnz,
-                                        _SPLINE_EST_DERIV_,
-                                        ptr->error_message),
-               ptr->error_message,
-               ptr->error_message);
-  }
-
-  ptr->nz_evo_size = 0;
-
-  if (ptr->has_nz_evo_file == _TRUE_) {
-
-    input_file = fopen(ptr->nz_evo_file_name,"r");
-    class_test(input_file == NULL,
-               ptr->error_message,
-               "Could not open file %s!",ptr->nz_evo_file_name);
-
-    /* Find size of table */
-    for (row=0,status=2; status==2; row++){
-      status = fscanf(input_file,"%lf %lf",&tmp1,&tmp2);
-    }
-    rewind(input_file);
-    ptr->nz_evo_size = row-1;
-
-    /* Allocate room for interpolation table */
-    class_alloc(ptr->nz_evo_z,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
-    class_alloc(ptr->nz_evo_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
-    class_alloc(ptr->nz_evo_dlog_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
-    class_alloc(ptr->nz_evo_dd_dlog_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
-
-    for (row=0; row<ptr->nz_evo_size; row++){
-      status = fscanf(input_file,"%lf %lf",
-                      &ptr->nz_evo_z[row],&ptr->nz_evo_nz[row]);
-    }
-    fclose(input_file);
-
-    /* infer dlog(dN/dz)/dz from dN/dz */
-    ptr->nz_evo_dlog_nz[0] =
-      (ptr->nz_evo_nz[1]-ptr->nz_evo_nz[0])
-      /(ptr->nz_evo_z[1]-ptr->nz_evo_z[0]);
-    for (row=1; row<ptr->nz_evo_size-1; row++){
-      ptr->nz_evo_dlog_nz[row] =
-        (ptr->nz_evo_nz[row+1]-ptr->nz_evo_nz[row-1])
-        /(ptr->nz_evo_z[row+1]-ptr->nz_evo_z[row-1]);
-    }
-    ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1] =
-      (ptr->nz_evo_nz[ptr->nz_evo_size-1]-ptr->nz_evo_nz[ptr->nz_evo_size-2])
-      /(ptr->nz_evo_z[ptr->nz_evo_size-1]-ptr->nz_evo_z[ptr->nz_evo_size-2]);
-
-    /* to test that the file is read:
-       for (row=0; row<ptr->nz_evo_size; row++){
-       fprintf(stdout,"%d: (z,dNdz,dlndNdzdz) = (%g,%g,%g)\n",row,ptr->nz_evo_z[row],ptr->nz_evo_nz[row],ptr->nz_evo_dlog_nz[row]);
-       }
-    */
-
-    /* Call spline interpolation: */
-    class_call(array_spline_table_lines(ptr->nz_evo_z,
-                                        ptr->nz_evo_size,
-                                        ptr->nz_evo_dlog_nz,
-                                        1,
-                                        ptr->nz_evo_dd_dlog_nz,
-                                        _SPLINE_EST_DERIV_,
-                                        ptr->error_message),
-               ptr->error_message,
-               ptr->error_message);
-  }
+  class_call(transfer_global_selection_read(ptr),
+             ptr->error_message,
+             ptr->error_message);
 
   /** (a.3.) workspace, allocated in a parallel zone since in openmp
       version there is one workspace per thread */
@@ -4535,6 +4435,120 @@ int transfer_select_radial_function(
   return _SUCCESS_;
 
 }
+
+/* for reading global selection function (ie the one multiplying the selection function of each bin) */
+
+int transfer_global_selection_read(
+                                   struct transfers * ptr
+                                   ) {
+
+  /* for reading selection function */
+  FILE * input_file;
+  int row,status;
+  double tmp1,tmp2;
+
+  ptr->nz_size = 0;
+
+  if (ptr->has_nz_file == _TRUE_) {
+
+    input_file = fopen(ptr->nz_file_name,"r");
+    class_test(input_file == NULL,
+               ptr->error_message,
+               "Could not open file %s!",ptr->nz_file_name);
+
+    /* Find size of table */
+    for (row=0,status=2; status==2; row++){
+      status = fscanf(input_file,"%lf %lf",&tmp1,&tmp2);
+    }
+    rewind(input_file);
+    ptr->nz_size = row-1;
+
+    /* Allocate room for interpolation table */
+    class_alloc(ptr->nz_z,sizeof(double)*ptr->nz_size,ptr->error_message);
+    class_alloc(ptr->nz_nz,sizeof(double)*ptr->nz_size,ptr->error_message);
+    class_alloc(ptr->nz_ddnz,sizeof(double)*ptr->nz_size,ptr->error_message);
+
+    for (row=0; row<ptr->nz_size; row++){
+      status = fscanf(input_file,"%lf %lf",
+                      &ptr->nz_z[row],&ptr->nz_nz[row]);
+      //printf("%d: (z,dNdz) = (%g,%g)\n",row,ptr->nz_z[row],ptr->nz_nz[row]);
+    }
+    fclose(input_file);
+
+    /* Call spline interpolation: */
+    class_call(array_spline_table_lines(ptr->nz_z,
+                                        ptr->nz_size,
+                                        ptr->nz_nz,
+                                        1,
+                                        ptr->nz_ddnz,
+                                        _SPLINE_EST_DERIV_,
+                                        ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+  }
+
+  ptr->nz_evo_size = 0;
+
+  if (ptr->has_nz_evo_file == _TRUE_) {
+
+    input_file = fopen(ptr->nz_evo_file_name,"r");
+    class_test(input_file == NULL,
+               ptr->error_message,
+               "Could not open file %s!",ptr->nz_evo_file_name);
+
+    /* Find size of table */
+    for (row=0,status=2; status==2; row++){
+      status = fscanf(input_file,"%lf %lf",&tmp1,&tmp2);
+    }
+    rewind(input_file);
+    ptr->nz_evo_size = row-1;
+
+    /* Allocate room for interpolation table */
+    class_alloc(ptr->nz_evo_z,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+    class_alloc(ptr->nz_evo_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+    class_alloc(ptr->nz_evo_dlog_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+    class_alloc(ptr->nz_evo_dd_dlog_nz,sizeof(double)*ptr->nz_evo_size,ptr->error_message);
+
+    for (row=0; row<ptr->nz_evo_size; row++){
+      status = fscanf(input_file,"%lf %lf",
+                      &ptr->nz_evo_z[row],&ptr->nz_evo_nz[row]);
+    }
+    fclose(input_file);
+
+    /* infer dlog(dN/dz)/dz from dN/dz */
+    ptr->nz_evo_dlog_nz[0] =
+      (ptr->nz_evo_nz[1]-ptr->nz_evo_nz[0])
+      /(ptr->nz_evo_z[1]-ptr->nz_evo_z[0]);
+    for (row=1; row<ptr->nz_evo_size-1; row++){
+      ptr->nz_evo_dlog_nz[row] =
+        (ptr->nz_evo_nz[row+1]-ptr->nz_evo_nz[row-1])
+        /(ptr->nz_evo_z[row+1]-ptr->nz_evo_z[row-1]);
+    }
+    ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1] =
+      (ptr->nz_evo_nz[ptr->nz_evo_size-1]-ptr->nz_evo_nz[ptr->nz_evo_size-2])
+      /(ptr->nz_evo_z[ptr->nz_evo_size-1]-ptr->nz_evo_z[ptr->nz_evo_size-2]);
+
+    /* to test that the file is read:
+       for (row=0; row<ptr->nz_evo_size; row++){
+       fprintf(stdout,"%d: (z,dNdz,dlndNdzdz) = (%g,%g,%g)\n",row,ptr->nz_evo_z[row],ptr->nz_evo_nz[row],ptr->nz_evo_dlog_nz[row]);
+       }
+    */
+
+    /* Call spline interpolation: */
+    class_call(array_spline_table_lines(ptr->nz_evo_z,
+                                        ptr->nz_evo_size,
+                                        ptr->nz_evo_dlog_nz,
+                                        1,
+                                        ptr->nz_evo_dd_dlog_nz,
+                                        _SPLINE_EST_DERIV_,
+                                        ptr->error_message),
+               ptr->error_message,
+               ptr->error_message);
+  }
+
+  return _SUCCESS_;
+
+};
 
 int transfer_workspace_init(
                             struct transfers * ptr,

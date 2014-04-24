@@ -621,6 +621,10 @@ extern "C" {
                                     HyperInterpStruct *pHIS
                                     );
 
+  int transfer_global_selection_read(
+                                     struct transfers * ptr
+                                     );
+
   int transfer_workspace_init(
                               struct transfers * ptr,
                               struct precision * ppr,
