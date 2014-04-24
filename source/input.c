@@ -1602,6 +1602,10 @@ int input_read_parameters(
         class_read_double("l_max_lss",ppt->l_lss_max);
     }
 
+    if (ppt->has_vectors == _TRUE_) {
+      class_read_double("l_max_vectors",ppt->l_vector_max);
+    }
+
     if (ppt->has_tensors == _TRUE_) {
       class_read_double("l_max_tensors",ppt->l_tensor_max);
     }
@@ -2380,6 +2384,7 @@ int input_default_params(
   ppt->has_tensors=_FALSE_;
 
   ppt->l_scalar_max=2500;
+  ppt->l_vector_max=500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
   ppt->k_max_for_pk=0.1;
@@ -2659,7 +2664,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->ur_fluid_trigger_tau_over_tau_k = 30.;
 
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
-  ppr->ncdm_fluid_trigger_tau_over_tau_k = 30.;
+  ppr->ncdm_fluid_trigger_tau_over_tau_k = 31.;
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 

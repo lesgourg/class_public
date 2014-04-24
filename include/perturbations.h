@@ -141,6 +141,7 @@ struct perturbs
   short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
   int l_scalar_max; /**< maximum l value for CMB scalars C_ls */
+  int l_vector_max; /**< maximum l value for CMB vectors C_ls */
   int l_tensor_max; /**< maximum l value for CMB tensors C_ls */
   int l_lss_max; /**< maximum l value for LSS C_ls (density and lensing potential in  bins) */
   double k_max_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
