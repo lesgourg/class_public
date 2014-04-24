@@ -373,9 +373,9 @@ int transfer_init(
       /(ptr->nz_evo_z[ptr->nz_evo_size-1]-ptr->nz_evo_z[ptr->nz_evo_size-2]);
 
     /* to test that the file is read:
-    for (row=0; row<ptr->nz_evo_size; row++){
-      fprintf(stdout,"%d: (z,dNdz,dlndNdzdz) = (%g,%g,%g)\n",row,ptr->nz_evo_z[row],ptr->nz_evo_nz[row],ptr->nz_evo_dlog_nz[row]);
-    }
+       for (row=0; row<ptr->nz_evo_size; row++){
+       fprintf(stdout,"%d: (z,dNdz,dlndNdzdz) = (%g,%g,%g)\n",row,ptr->nz_evo_z[row],ptr->nz_evo_nz[row],ptr->nz_evo_dlog_nz[row]);
+       }
     */
 
     /* Call spline interpolation: */
@@ -848,10 +848,10 @@ int transfer_perturbation_sources_free(
 }
 
 int transfer_perturbation_sources_spline_free(
-                                             struct perturbs * ppt,
-                                             struct transfers * ptr,
-                                             double *** sources_spline
-                                             ) {
+                                              struct perturbs * ppt,
+                                              struct transfers * ptr,
+                                              double *** sources_spline
+                                              ) {
   int index_md;
   int index_ic;
   int index_tp;
@@ -1802,164 +1802,170 @@ int transfer_compute_for_each_q(
 
   for (index_md = 0; index_md < ptr->md_size; index_md++) {
 
-    /** - loop over initial conditions. For each of them: */
+    /* if we reached q_max for this mode, there is nothing to be done */
 
-    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+    if (ptr->k[index_md][index_q] <= ppt->k[index_md][ppt->k_size_cl[index_md]-1]) {
 
-      /* initialize the previous type index */
-      previous_type=-1;
+      /** - loop over initial conditions. For each of them: */
 
-      /** - loop over types. For each of them: */
+      for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+        /* initialize the previous type index */
+        previous_type=-1;
 
-        /** check if we must now deal with a new source with a
-            new index ppt->index_type. If yes, interpolate it at the
-            right values of k. */
+        /** - loop over types. For each of them: */
 
-        if (tp_of_tt[index_md][index_tt] != previous_type) {
+        for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
 
-          class_call(transfer_interpolate_sources(ppt,
-                                                  ptr,
-                                                  index_q,
-                                                  index_md,
-                                                  index_ic,
-                                                  tp_of_tt[index_md][index_tt],
-                                                  pert_sources[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_md][index_tt]],
-                                                  pert_sources_spline[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_md][index_tt]],
-                                                  interpolated_sources),
-                     ptr->error_message,
-                     ptr->error_message);
-        }
+          /** check if we must now deal with a new source with a
+              new index ppt->index_type. If yes, interpolate it at the
+              right values of k. */
 
-        previous_type = tp_of_tt[index_md][index_tt];
+          if (tp_of_tt[index_md][index_tt] != previous_type) {
 
-        /* the code makes a distinction between "perturbation
-           sources" (e.g. gravitational potential) and "transfer
-           sources" (e.g. total density fluctuations, obtained
-           through the Poisson equation, and observed with a given
-           selection function).
+            class_call(transfer_interpolate_sources(ppt,
+                                                    ptr,
+                                                    index_q,
+                                                    index_md,
+                                                    index_ic,
+                                                    tp_of_tt[index_md][index_tt],
+                                                    pert_sources[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_md][index_tt]],
+                                                    pert_sources_spline[index_md][index_ic * ppt->tp_size[index_md] + tp_of_tt[index_md][index_tt]],
+                                                    interpolated_sources),
+                       ptr->error_message,
+                       ptr->error_message);
+          }
 
-           The next routine computes the transfer source given the
-           interpolated perturbation source, and copies it in the
-           workspace. */
+          previous_type = tp_of_tt[index_md][index_tt];
 
-        class_call(transfer_sources(ppr,
-                                    pba,
-                                    ppt,
-                                    ptr,
-                                    interpolated_sources,
-                                    tau_rec,
-                                    index_q,
-                                    index_md,
-                                    index_tt,
-                                    sources,
-                                    tau0_minus_tau,
-                                    w_trapz,
-                                    tau_size),
-                   ptr->error_message,
-                   ptr->error_message);
+          /* the code makes a distinction between "perturbation
+             sources" (e.g. gravitational potential) and "transfer
+             sources" (e.g. total density fluctuations, obtained
+             through the Poisson equation, and observed with a given
+             selection function).
 
-        /* now that the array of times tau0_minus_tau is known, we can
-           infer the arry of radial coordinates r(tau0_minus_tau) as well as a
-           few other quantities related by trigonometric functions */
+             The next routine computes the transfer source given the
+             interpolated perturbation source, and copies it in the
+             workspace. */
 
-        class_call(transfer_radial_coordinates(ptr,ptw,index_md,index_q),
-                   ptr->error_message,
-                   ptr->error_message);
-
-        /** Select radial function type: */
-        class_call(transfer_select_radial_function(
-                                                   ppt,
-                                                   ptr,
-                                                   index_md,
-                                                   index_tt,
-                                                   &radial_type),
-                   ptr->error_message,
-                   ptr->error_message);
-
-        for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
-
-          l = (double)ptr->l[index_l];
-
-          /* neglect transfer function when l is much smaller than k*tau0 */
-          class_call(transfer_can_be_neglected(ppr,
-                                               ppt,
-                                               ptr,
-                                               index_md,
-                                               index_ic,
-                                               index_tt,
-                                               (pba->conformal_age-tau_rec)*ptr->angular_rescaling,
-                                               ptr->q[index_q],
-                                               l,
-                                               &neglect),
+          class_call(transfer_sources(ppr,
+                                      pba,
+                                      ppt,
+                                      ptr,
+                                      interpolated_sources,
+                                      tau_rec,
+                                      index_q,
+                                      index_md,
+                                      index_tt,
+                                      sources,
+                                      tau0_minus_tau,
+                                      w_trapz,
+                                      tau_size),
                      ptr->error_message,
                      ptr->error_message);
 
-          /* for K>0 (closed), transfer functions only defined for l<nu */
-          if ((ptw->sgnK == 1) && (ptr->l[index_l] >= (int)(ptr->q[index_q]/sqrt(ptw->K)+0.2))) {
-            neglect = _TRUE_;
-          }
-          /* This would maybe go into transfer_can_be_neglected later: */
-          if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size) && (index_q < ptr->index_q_flat_approximation)) {
-            neglect = _TRUE_;
-          }
-          if (neglect == _TRUE_) {
+          /* now that the array of times tau0_minus_tau is known, we can
+             infer the arry of radial coordinates r(tau0_minus_tau) as well as a
+             few other quantities related by trigonometric functions */
 
-            ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
-                                     * ptr->l_size[index_md] + index_l)
-                                    * ptr->q_size + index_q] = 0.;
-          }
-          else {
+          class_call(transfer_radial_coordinates(ptr,ptw,index_md,index_q),
+                     ptr->error_message,
+                     ptr->error_message);
 
-            /* for a given l, maximum value of k such that we can
-               convolve the source with Bessel functions j_l(x)
-               without reaching x_max (this is relevant in the flat
-               case when the bessels are compiuted with the old bessel
-               module. otherwise this condition is guaranteed by the
-               choice of proper xmax when computing bessels) */
-            if (ptw->sgnK == 0) {
-              q_max_bessel = ptw->pBIS->x[ptw->pBIS->x_size-1]/tau0_minus_tau[0];
+          /** Select radial function type: */
+          class_call(transfer_select_radial_function(
+                                                     ppt,
+                                                     ptr,
+                                                     index_md,
+                                                     index_tt,
+                                                     &radial_type),
+                     ptr->error_message,
+                     ptr->error_message);
+
+          for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
+
+            l = (double)ptr->l[index_l];
+
+            /* neglect transfer function when l is much smaller than k*tau0 */
+            class_call(transfer_can_be_neglected(ppr,
+                                                 ppt,
+                                                 ptr,
+                                                 index_md,
+                                                 index_ic,
+                                                 index_tt,
+                                                 (pba->conformal_age-tau_rec)*ptr->angular_rescaling,
+                                                 ptr->q[index_q],
+                                                 l,
+                                                 &neglect),
+                       ptr->error_message,
+                       ptr->error_message);
+
+            /* for K>0 (closed), transfer functions only defined for l<nu */
+            if ((ptw->sgnK == 1) && (ptr->l[index_l] >= (int)(ptr->q[index_q]/sqrt(ptw->K)+0.2))) {
+              neglect = _TRUE_;
+            }
+            /* This would maybe go into transfer_can_be_neglected later: */
+            if ((ptw->sgnK != 0) && (index_l>=ptw->HIS.l_size) && (index_q < ptr->index_q_flat_approximation)) {
+              neglect = _TRUE_;
+            }
+            if (neglect == _TRUE_) {
+
+              ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
+                                       * ptr->l_size[index_md] + index_l)
+                                      * ptr->q_size + index_q] = 0.;
             }
             else {
-              q_max_bessel = ptr->q[ptr->q_size-1];
+
+              /* for a given l, maximum value of k such that we can
+                 convolve the source with Bessel functions j_l(x)
+                 without reaching x_max (this is relevant in the flat
+                 case when the bessels are compiuted with the old bessel
+                 module. otherwise this condition is guaranteed by the
+                 choice of proper xmax when computing bessels) */
+              if (ptw->sgnK == 0) {
+                q_max_bessel = ptw->pBIS->x[ptw->pBIS->x_size-1]/tau0_minus_tau[0];
+              }
+              else {
+                q_max_bessel = ptr->q[ptr->q_size-1];
+              }
+
+              /* neglect late time CMB sources when l is above threshold */
+              class_call(transfer_late_source_can_be_neglected(ppr,
+                                                               ppt,
+                                                               ptr,
+                                                               index_md,
+                                                               index_tt,
+                                                               l,
+                                                               &(ptw->neglect_late_source)),
+                         ptr->error_message,
+                         ptr->error_message);
+
+              /* compute the transfer function for this l */
+              class_call(transfer_compute_for_each_l(
+                                                     ptw,
+                                                     ppr,
+                                                     ppt,
+                                                     ptr,
+                                                     index_q,
+                                                     index_md,
+                                                     index_ic,
+                                                     index_tt,
+                                                     index_l,
+                                                     l,
+                                                     q_max_bessel,
+                                                     radial_type
+                                                     ),
+                         ptr->error_message,
+                         ptr->error_message);
             }
 
-            /* neglect late time CMB sources when l is above threshold */
-            class_call(transfer_late_source_can_be_neglected(ppr,
-                                                             ppt,
-                                                             ptr,
-                                                             index_md,
-                                                             index_tt,
-                                                             l,
-                                                             &(ptw->neglect_late_source)),
-                       ptr->error_message,
-                       ptr->error_message);
+          } /* end of loop over l */
 
-            /* compute the transfer function for this l */
-            class_call(transfer_compute_for_each_l(
-                                                   ptw,
-                                                   ppr,
-                                                   ppt,
-                                                   ptr,
-                                                   index_q,
-                                                   index_md,
-                                                   index_ic,
-                                                   index_tt,
-                                                   index_l,
-                                                   l,
-                                                   q_max_bessel,
-                                                   radial_type
-                                                   ),
-                       ptr->error_message,
-                       ptr->error_message);
-          }
+        } /* end of loop over type */
 
-        } /* end of loop over l */
+      } /* end of loop over initial condition */
 
-      } /* end of loop over type */
-
-    } /* end of loop over initial condition */
+    }
 
   } /* end of loop over mode */
 
@@ -2390,7 +2396,7 @@ int transfer_sources(
             if((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
 
               f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
-                    + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+                + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
               z = pba->a_today/pvecback[pba->index_bg_a]-1.;
 
@@ -2964,7 +2970,7 @@ int transfer_selection_function(
  * @param dNdz         Output: density per redshift, dN/dZ
  * @param dln_dNdz_dz  Output: dln(dN/dz)/dz, used optionally for the source evolution
  * @return the error status
-*/
+ */
 
 int transfer_dNdz_analytic(
                            struct transfers * ptr,

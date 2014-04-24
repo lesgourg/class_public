@@ -1116,13 +1116,12 @@ int perturb_timesampling_for_sources(
  */
 
 int perturb_get_k_list(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct thermo * pth,
-                       struct perturbs * ppt
-                       ) {
+                        struct precision * ppr,
+                        struct background * pba,
+                        struct thermo * pth,
+                        struct perturbs * ppt
+                        ) {
   int index_k, index_k_output;
-  int index_md;
   double k,k_min=0.,k_rec,step,tau1;
   double k_max_cmb=0.;
   double k_max_cl=0.;
@@ -1138,115 +1137,7 @@ int perturb_get_k_list(
              ppt->error_message,
              "stop to avoid division by zero");
 
-  /** - find k_min */
-
-  /* first value */
-  if (pba->sgnK == 0) {
-
-    /* K<0 (flat)  : start close to zero */
-    k_min=ppr->k_min_tau0/pba->conformal_age;
-
-  }
-  else if (pba->sgnK == -1) {
-
-    /* K<0 (open)  : start close to sqrt(-K)
-       (in transfer modules, for scalars, this will correspond to q close to zero;
-       for vectors and tensors, this value is even smaller than the minimum necessary value) */
-    k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
-
-  }
-  else if (pba->sgnK == 1) {
-
-    /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
-    k_min = sqrt((8.-1.e-4)*pba->K);
-    if (ppt->has_vectors == _TRUE_) {
-      k_min = MIN(k_min,sqrt((7.-1.e-4)*pba->K));
-    }
-    if (ppt->has_tensors == _TRUE_) {
-      k_min = MIN(k_min,sqrt((6.-1e-4)*pba->K));
-    }
-  }
-
-  /** - find k_max (as well as k_max_cmb, k_max_cl) */
-
-  k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
-
-  k_max_cmb = k_min;
-  k_max_cl = k_min;
-  k_max = k_min;
-
-  if (ppt->has_cls == _TRUE_) {
-
-    /* find k_max_cmb: */
-
-    /* choose a k_max_cmb corresponding to a wavelength on the last
-       scattering surface seen today under an angle smaller than
-       pi/lmax: this is equivalent to
-       k_max_cl*[comvoving.ang.diameter.distance] > l_max */
-
-    k_max_cmb = ppr->k_max_tau0_over_l_max*MAX(ppt->l_scalar_max,ppt->l_tensor_max)
-      /pba->conformal_age/pth->angular_rescaling;
-    k_max_cl  = k_max_cmb;
-    k_max     = k_max_cmb;
-
-    /* find k_max_cl: */
-
-    /* if we need density/lensing Cl's, we must impose a stronger condition,
-       such that the minimum wavelength on the shell corresponding
-       to the center of smallest redshift bin is seen under an
-       angle smaller than pi/lmax. So we must mutiply our previous
-       k_max_cl by the ratio tau0/(tau0-tau[center of smallest
-       redhsift bin]). Note that we could do the same with the
-       lensing potential if we needed a very precise C_l^phi-phi at
-       large l. We don't do it by default, because the lensed ClT,
-       ClE would be marginally affected. */
-
-    if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
-
-      class_call(background_tau_of_z(pba,
-                                     ppt->selection_mean[0],
-                                     &tau1),
-                 pba->error_message,
-                 ppt->error_message);
-
-      k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
-      k_max    = k_max_cl;
-    }
-  }
-
-  /* find k_max: */
-
-  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
-    k_max = MAX(k_max,ppt->k_max_for_pk);
-
-  if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
-    k_max = MAX(k_max,ppr->halofit_min_k_max);
-
-  /** - test that result for k_min, k_max make sense */
-
-  class_test(k_min<0.,
-             ppt->error_message,
-             "buggy definition of k_min");
-
-  class_test(k_max<0.,
-             ppt->error_message,
-             "buggy definition of k_max");
-
-  class_test(k_max<k_min,
-             ppt->error_message,
-             "buggy definition of k_min and/or k_max");
-
-  /* if K>0, the transfer function will be calculated for discrete
-     integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
-     m=0,1,2 for scalars/vectors/tensors. However we are free to
-     define in the perturbation module some arbitrary values of k:
-     later on, the transfer module will interpolate at values of k
-     corresponding exactly to integer values of nu. Hence, apart
-     from the value of k_min and the step size in thevicinity of
-     k_min, we define exactly the same sampling in the three cases
-     K=0, K<0, K>0 */
-
-  /* allocate array for each mode */
+  /* allocate arrays related to k list for each mode */
 
   class_alloc(ppt->k_size_cmb,
               ppt->md_size*sizeof(int),
@@ -1261,96 +1152,469 @@ int perturb_get_k_list(
               ppt->md_size*sizeof(double*),
               ppt->error_message);
 
-  /* allocate array with, for the moment, the largest possible size */
-  class_alloc(ppt->k[0],
-              ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-               (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
-              *sizeof(double),ppt->error_message);
+  /** - scalar modes */
 
-  /* first value */
+  if (ppt->has_scalars == _TRUE_) {
 
-  index_k=0;
-  k = k_min;
-  ppt->k[0][index_k] = k;
-  index_k++;
+    /* first value */
+    if (pba->sgnK == 0) {
+      /* K<0 (flat)  : start close to zero */
+      k_min=ppr->k_min_tau0/pba->conformal_age;
+    }
+    else if (pba->sgnK == -1) {
+      /* K<0 (open)  : start close to sqrt(-K)
+         (in transfer modules, for scalars, this will correspond to q close to zero;
+         for vectors and tensors, this value is even smaller than the minimum necessary value) */
+      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
 
-  /* values until k_max_cmb */
+    }
+    else if (pba->sgnK == 1) {
+      /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+      k_min = sqrt((8.-1.e-4)*pba->K);
+    }
 
-  while (k < k_max_cmb) {
+    /** - find k_max (as well as k_max_cmb, k_max_cl) */
 
-    /* the linear step is not constant, it has a step-like shape,
-       centered around the characteristic scale set by the sound
-       horizon at recombination (associated to the comoving wavenumber
-       k_rec) */
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
-    step = (ppr->k_step_super
-            + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
-            * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+    k_max_cmb = k_min;
+    k_max_cl = k_min;
+    k_max = k_min;
 
-    /* there is one other thing to take into account in the step
-       size. There are two other characteristic scales that matter for
-       the sampling: the Hubble scale today, k0=a0H0, and eventually
-       curvature scale sqrt(|K|). We define "scale2" as the sum of the
-       squared Hubble radius and squared curvature radius. We need to
-       increase the sampling for k<sqrt(scale2), in order to get the
-       first mutipoles accurate enough. The formula below reduces it
-       gradually in the k-->0 limit, by up to a factor 10. The actual
-       stepsize is still fixed by k_step_super, this is just a
-       reduction factor. */
+    if (ppt->has_cls == _TRUE_) {
 
-    scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+      /* find k_max_cmb: */
 
-    step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+      /* choose a k_max_cmb corresponding to a wavelength on the last
+         scattering surface seen today under an angle smaller than
+         pi/lmax: this is equivalent to
+         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
 
-    class_test(step / k < ppr->smallest_allowed_variation,
+      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
+        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cl  = k_max_cmb;
+      k_max     = k_max_cmb;
+
+      /* find k_max_cl: */
+
+      /* if we need density/lensing Cl's, we must impose a stronger condition,
+         such that the minimum wavelength on the shell corresponding
+         to the center of smallest redshift bin is seen under an
+         angle smaller than pi/lmax. So we must mutiply our previous
+         k_max_cl by the ratio tau0/(tau0-tau[center of smallest
+         redhsift bin]). Note that we could do the same with the
+         lensing potential if we needed a very precise C_l^phi-phi at
+         large l. We don't do it by default, because the lensed ClT,
+         ClE would be marginally affected. */
+
+      if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
+
+        class_call(background_tau_of_z(pba,
+                                       ppt->selection_mean[0],
+                                       &tau1),
+                   pba->error_message,
+                   ppt->error_message);
+
+        k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
+        k_max    = k_max_cl;
+      }
+    }
+
+    /* find k_max: */
+
+    if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
+      k_max = MAX(k_max,ppt->k_max_for_pk);
+
+    if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
+      k_max = MAX(k_max,ppr->halofit_min_k_max);
+
+    /** - test that result for k_min, k_max make sense */
+
+    class_test(k_min<0.,
                ppt->error_message,
-               "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
+               "buggy definition of k_min");
 
-    k += step;
-
-    class_test(k <= ppt->k[0][index_k-1],
+    class_test(k_max<0.,
                ppt->error_message,
-               "consecutive values of k should differ and should be in growing order");
+               "buggy definition of k_max");
 
-    ppt->k[0][index_k] = k;
+    class_test(k_max<k_min,
+               ppt->error_message,
+               "buggy definition of k_min and/or k_max");
 
+    /* if K>0, the transfer function will be calculated for discrete
+       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+       m=0,1,2 for scalars/vectors/tensors. However we are free to
+       define in the perturbation module some arbitrary values of k:
+       later on, the transfer module will interpolate at values of k
+       corresponding exactly to integer values of nu. Hence, apart
+       from the value of k_min and the step size in thevicinity of
+       k_min, we define exactly the same sampling in the three cases
+       K=0, K<0, K>0 */
+
+    /* allocate array with, for the moment, the largest possible size */
+    class_alloc(ppt->k[ppt->index_md_scalars],
+                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+                 (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
+                *sizeof(double),ppt->error_message);
+
+    /* first value */
+
+    index_k=0;
+    k = k_min;
+    ppt->k[ppt->index_md_scalars][index_k] = k;
     index_k++;
+
+    /* values until k_max_cmb */
+
+    while (k < k_max_cmb) {
+
+      /* the linear step is not constant, it has a step-like shape,
+         centered around the characteristic scale set by the sound
+         horizon at recombination (associated to the comoving wavenumber
+         k_rec) */
+
+      step = (ppr->k_step_super
+              + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
+              * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+
+      /* there is one other thing to take into account in the step
+         size. There are two other characteristic scales that matter for
+         the sampling: the Hubble scale today, k0=a0H0, and eventually
+         curvature scale sqrt(|K|). We define "scale2" as the sum of the
+         squared Hubble radius and squared curvature radius. We need to
+         increase the sampling for k<sqrt(scale2), in order to get the
+         first mutipoles accurate enough. The formula below reduces it
+         gradually in the k-->0 limit, by up to a factor 10. The actual
+         stepsize is still fixed by k_step_super, this is just a
+         reduction factor. */
+
+      scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+      step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+
+      class_test(step / k < ppr->smallest_allowed_variation,
+                 ppt->error_message,
+                 "k step =%e < machine precision : leads either to numerical error or infinite loop",
+                 step * k_rec);
+
+      k += step;
+
+      class_test(k <= ppt->k[ppt->index_md_scalars][index_k-1],
+                 ppt->error_message,
+                 "consecutive values of k should differ and should be in growing order");
+
+      ppt->k[ppt->index_md_scalars][index_k] = k;
+
+      index_k++;
+    }
+
+    ppt->k_size_cmb[ppt->index_md_scalars] = index_k;
+
+    /* values until k_max_cl */
+
+    while (k < k_max_cl) {
+
+      k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                       *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+
+      ppt->k[ppt->index_md_scalars][index_k] = k;
+      index_k++;
+    }
+
+    ppt->k_size_cl[ppt->index_md_scalars] = index_k;
+
+    /* values until k_max */
+
+    while (k < k_max) {
+
+      k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                       *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+
+      ppt->k[ppt->index_md_scalars][index_k] = k;
+      index_k++;
+    }
+
+    ppt->k_size[ppt->index_md_scalars] = index_k;
+
+    class_realloc(ppt->k[ppt->index_md_scalars],
+                  ppt->k[ppt->index_md_scalars],
+                  ppt->k_size[ppt->index_md_scalars]*sizeof(double),
+                  ppt->error_message);
+
   }
 
-  ppt->k_size_cmb[0] = index_k;
+  /** - vector modes */
 
-  /* values until k_max_cl */
+  if (ppt->has_vectors == _TRUE_) {
 
-  while (k < k_max_cl) {
+    /* first value */
+    if (pba->sgnK == 0) {
+      /* K<0 (flat)  : start close to zero */
+      k_min=ppr->k_min_tau0/pba->conformal_age;
+    }
+    else if (pba->sgnK == -1) {
+      /* K<0 (open)  : start close to sqrt(-K)
+         (in transfer modules, for scalars, this will correspond to q close to zero;
+         for vectors and tensors, this value is even smaller than the minimum necessary value) */
+      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
 
-    k *= pow(10.,1./(ppr->k_per_decade_for_pk
-                     +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
-                     *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+    }
+    else if (pba->sgnK == 1) {
+      /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+      k_min = sqrt((7.-1.e-4)*pba->K);
+    }
 
-    ppt->k[0][index_k] = k;
+    /** - find k_max (as well as k_max_cmb, k_max_cl) */
+
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+
+    k_max_cmb = k_min;
+    k_max_cl = k_min;
+    k_max = k_min;
+
+    if (ppt->has_cls == _TRUE_) {
+
+      /* find k_max_cmb: */
+
+      /* choose a k_max_cmb corresponding to a wavelength on the last
+         scattering surface seen today under an angle smaller than
+         pi/lmax: this is equivalent to
+         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
+
+      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_vector_max
+        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cl  = k_max_cmb;
+      k_max     = k_max_cmb;
+    }
+
+    /** - test that result for k_min, k_max make sense */
+
+    class_test(k_min<0.,
+               ppt->error_message,
+               "buggy definition of k_min");
+
+    class_test(k_max<0.,
+               ppt->error_message,
+               "buggy definition of k_max");
+
+    class_test(k_max<k_min,
+               ppt->error_message,
+               "buggy definition of k_min and/or k_max");
+
+    /* if K>0, the transfer function will be calculated for discrete
+       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+       m=0,1,2 for scalars/vectors/tensors. However we are free to
+       define in the perturbation module some arbitrary values of k:
+       later on, the transfer module will interpolate at values of k
+       corresponding exactly to integer values of nu. Hence, apart
+       from the value of k_min and the step size in thevicinity of
+       k_min, we define exactly the same sampling in the three cases
+       K=0, K<0, K>0 */
+
+    /* allocate array with, for the moment, the largest possible size */
+    class_alloc(ppt->k[ppt->index_md_vectors],
+                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+                *sizeof(double),ppt->error_message);
+
+    /* first value */
+
+    index_k=0;
+    k = k_min;
+    ppt->k[ppt->index_md_vectors][index_k] = k;
     index_k++;
+
+    /* values until k_max_cmb */
+
+    while (k < k_max_cmb) {
+
+      /* the linear step is not constant, it has a step-like shape,
+         centered around the characteristic scale set by the sound
+         horizon at recombination (associated to the comoving wavenumber
+         k_rec) */
+
+      step = (ppr->k_step_super
+              + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
+              * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+
+      /* there is one other thing to take into account in the step
+         size. There are two other characteristic scales that matter for
+         the sampling: the Hubble scale today, k0=a0H0, and eventually
+         curvature scale sqrt(|K|). We define "scale2" as the sum of the
+         squared Hubble radius and squared curvature radius. We need to
+         increase the sampling for k<sqrt(scale2), in order to get the
+         first mutipoles accurate enough. The formula below reduces it
+         gradually in the k-->0 limit, by up to a factor 10. The actual
+         stepsize is still fixed by k_step_super, this is just a
+         reduction factor. */
+
+      scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+      step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+
+      class_test(step / k < ppr->smallest_allowed_variation,
+                 ppt->error_message,
+                 "k step =%e < machine precision : leads either to numerical error or infinite loop",
+                 step * k_rec);
+
+      k += step;
+
+      class_test(k <= ppt->k[ppt->index_md_scalars][index_k-1],
+                 ppt->error_message,
+                 "consecutive values of k should differ and should be in growing order");
+
+      ppt->k[ppt->index_md_vectors][index_k] = k;
+
+      index_k++;
+    }
+
+    ppt->k_size_cmb[ppt->index_md_vectors] = index_k;
+    ppt->k_size_cl[ppt->index_md_vectors] = index_k;
+    ppt->k_size[ppt->index_md_vectors] = index_k;
+
+    class_realloc(ppt->k[ppt->index_md_vectors],
+                  ppt->k[ppt->index_md_vectors],
+                  ppt->k_size[ppt->index_md_vectors]*sizeof(double),
+                  ppt->error_message);
+
   }
 
-  ppt->k_size_cl[0] = index_k;
+  /** - tensor modes */
 
-  /* values until k_max */
+  if (ppt->has_tensors == _TRUE_) {
 
-  while (k < k_max) {
+    /* first value */
+    if (pba->sgnK == 0) {
+      /* K<0 (flat)  : start close to zero */
+      k_min=ppr->k_min_tau0/pba->conformal_age;
+    }
+    else if (pba->sgnK == -1) {
+      /* K<0 (open)  : start close to sqrt(-K)
+         (in transfer modules, for scalars, this will correspond to q close to zero;
+         for vectors and tensors, this value is even smaller than the minimum necessary value) */
+      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
 
-    k *= pow(10.,1./(ppr->k_per_decade_for_pk
-                     +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
-                     *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+    }
+    else if (pba->sgnK == 1) {
+      /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+      k_min = sqrt((6.-1.e-4)*pba->K);
+    }
 
-    ppt->k[0][index_k] = k;
+    /** - find k_max (as well as k_max_cmb, k_max_cl) */
+
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+
+    k_max_cmb = k_min;
+    k_max_cl = k_min;
+    k_max = k_min;
+
+    if (ppt->has_cls == _TRUE_) {
+
+      /* find k_max_cmb: */
+
+      /* choose a k_max_cmb corresponding to a wavelength on the last
+         scattering surface seen today under an angle smaller than
+         pi/lmax: this is equivalent to
+         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
+
+      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_tensor_max
+        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cl  = k_max_cmb;
+      k_max     = k_max_cmb;
+    }
+
+    /** - test that result for k_min, k_max make sense */
+
+    class_test(k_min<0.,
+               ppt->error_message,
+               "buggy definition of k_min");
+
+    class_test(k_max<0.,
+               ppt->error_message,
+               "buggy definition of k_max");
+
+    class_test(k_max<k_min,
+               ppt->error_message,
+               "buggy definition of k_min and/or k_max");
+
+    /* if K>0, the transfer function will be calculated for discrete
+       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+       m=0,1,2 for scalars/vectors/tensors. However we are free to
+       define in the perturbation module some arbitrary values of k:
+       later on, the transfer module will interpolate at values of k
+       corresponding exactly to integer values of nu. Hence, apart
+       from the value of k_min and the step size in thevicinity of
+       k_min, we define exactly the same sampling in the three cases
+       K=0, K<0, K>0 */
+
+    /* allocate array with, for the moment, the largest possible size */
+    class_alloc(ppt->k[ppt->index_md_tensors],
+                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+                *sizeof(double),ppt->error_message);
+
+    /* first value */
+
+    index_k=0;
+    k = k_min;
+    ppt->k[ppt->index_md_tensors][index_k] = k;
     index_k++;
+
+    /* values until k_max_cmb */
+
+    while (k < k_max_cmb) {
+
+      /* the linear step is not constant, it has a step-like shape,
+         centered around the characteristic scale set by the sound
+         horizon at recombination (associated to the comoving wavenumber
+         k_rec) */
+
+      step = (ppr->k_step_super
+              + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
+              * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+
+      /* there is one other thing to take into account in the step
+         size. There are two other characteristic scales that matter for
+         the sampling: the Hubble scale today, k0=a0H0, and eventually
+         curvature scale sqrt(|K|). We define "scale2" as the sum of the
+         squared Hubble radius and squared curvature radius. We need to
+         increase the sampling for k<sqrt(scale2), in order to get the
+         first mutipoles accurate enough. The formula below reduces it
+         gradually in the k-->0 limit, by up to a factor 10. The actual
+         stepsize is still fixed by k_step_super, this is just a
+         reduction factor. */
+
+      scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+      step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+
+      class_test(step / k < ppr->smallest_allowed_variation,
+                 ppt->error_message,
+                 "k step =%e < machine precision : leads either to numerical error or infinite loop",
+                 step * k_rec);
+
+      k += step;
+
+      class_test(k <= ppt->k[ppt->index_md_tensors][index_k-1],
+                 ppt->error_message,
+                 "consecutive values of k should differ and should be in growing order");
+
+      ppt->k[ppt->index_md_tensors][index_k] = k;
+
+      index_k++;
+    }
+
+    ppt->k_size_cmb[ppt->index_md_tensors] = index_k;
+    ppt->k_size_cl[ppt->index_md_tensors] = index_k;
+    ppt->k_size[ppt->index_md_tensors] = index_k;
+
+    class_realloc(ppt->k[ppt->index_md_tensors],
+                  ppt->k[ppt->index_md_tensors],
+                  ppt->k_size[ppt->index_md_tensors]*sizeof(double),
+                  ppt->error_message);
+
   }
-
-  ppt->k_size[0] = index_k;
-
-  class_realloc(ppt->k[0],
-                ppt->k[0],
-                ppt->k_size[0]*sizeof(double),
-                ppt->error_message);
 
   /* For testing, can be useful to print the k list in a file:
 
@@ -1364,23 +1628,6 @@ int perturb_get_k_list(
 
      fclose(out);
   */
-
-  if (ppt->md_size>1) {
-    for (index_md=1; index_md<ppt->md_size; index_md++) {
-
-      class_alloc(ppt->k[index_md],
-                  ppt->k_size[0]*sizeof(double),
-                  ppt->error_message);
-
-      ppt->k_size_cmb[index_md] = ppt->k_size_cmb[0];
-      ppt->k_size_cl[index_md] = ppt->k_size_cl[0];
-      ppt->k_size[index_md] = ppt->k_size[0];
-
-      for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
-        ppt->k[index_md][index_k] = ppt->k[0][index_k];
-      }
-    }
-  }
 
   ppt->k_min = _HUGE_;
   ppt->k_max = 0.;

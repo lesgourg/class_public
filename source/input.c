@@ -1599,6 +1599,10 @@ int input_read_parameters(
         class_read_double("l_max_lss",ppt->l_lss_max);
     }
 
+    if (ppt->has_vectors == _TRUE_) {
+      class_read_double("l_max_vectors",ppt->l_vector_max);
+    }
+
     if (ppt->has_tensors == _TRUE_) {
       class_read_double("l_max_tensors",ppt->l_tensor_max);
     }
@@ -2377,6 +2381,7 @@ int input_default_params(
   ppt->has_tensors=_FALSE_;
 
   ppt->l_scalar_max=2500;
+  ppt->l_vector_max=500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
   ppt->k_max_for_pk=0.1;
