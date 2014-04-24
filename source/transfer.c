@@ -1867,6 +1867,20 @@ int transfer_compute_for_each_q(
 
     }
 
+    else {
+
+      for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+        for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+          for (index_l = 0; index_l < ptr->l_size[index_md]; index_l++) {
+
+            ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
+                                     * ptr->l_size[index_md] + index_l)
+                                    * ptr->q_size + index_q] = 0.;
+          }
+        }
+      }
+    }
+
   } /* end of loop over mode */
 
   return _SUCCESS_;
