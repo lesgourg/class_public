@@ -296,7 +296,7 @@ int input_init(
                output,
                unknown_parameter[0]);
 
-    fprintf(stdout," -> search for h bracketed by [%e : %e]\n",input_minus,input_plus);
+    //fprintf(stdout," -> search for h bracketed by [%e : %e]\n",input_minus,input_plus);
 
     while (fabs(output) > 1.e-5) {
 
@@ -321,11 +321,14 @@ int input_init(
         input_minus = unknown_parameter[0];
       }
     }
+
+    /*
     fprintf(stdout," -> found %s=%s to get theta_s=%e with error %e\n",
               pfc->name[unknown_parameters_index[0]],
               pfc->value[unknown_parameters_index[0]],
               target_value[0],
               output);
+    */
   }
 
   /* now read all parameters */

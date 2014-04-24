@@ -804,6 +804,8 @@ cdef class Class:
                 data.mcmc_parameters[elem]['current'] = self.th.rs_d
             elif elem == 'rs_d_h':
                 data.mcmc_parameters[elem]['current'] = self.th.rs_d*self.ba.h
+            elif elem == '100*theta_s':
+                data.mcmc_parameters[elem]['current'] = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
             elif elem == 'YHe':
                 data.mcmc_parameters[elem]['current'] = self.th.YHe
             elif elem == 'n_e':
