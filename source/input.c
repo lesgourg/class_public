@@ -1490,29 +1490,24 @@ int input_read_parameters(
                    errmsg,
                    errmsg);
 
-        if (flag1 == _TRUE_) {
-
-          if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-            ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
-          }
-          else {
-            class_read_double("n_t",ppm->n_t);
-          }
-
+        if ((flag1 == _TRUE_) && !((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL))) {
+          class_read_double("n_t",ppm->n_t);
+        }
+        else {
+          /* enforce single slow-roll self-consistency condition (order 2 in slow-roll) */
+          ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
         }
 
         class_call(parser_read_string(pfc,"alpha_t",&string1,&flag1,errmsg),
                    errmsg,
                    errmsg);
 
-        if (flag1 == _TRUE_) {
-
-          if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-            ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
-          }
-          else {
-            class_read_double("alpha_t",ppm->alpha_t);
-          }
+        if ((flag1 == _TRUE_) && !((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL))) {
+          class_read_double("alpha_t",ppm->alpha_t);
+        }
+        else {
+          /* enforce single slow-roll self-consistency condition (order 2 in slow-roll) */
+          ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
         }
       }
     }
