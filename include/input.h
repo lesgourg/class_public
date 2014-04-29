@@ -261,7 +261,7 @@ extern "C" {
                         ErrorMsg error_message);
 
   int input_get_guess(double *xguess,
-                      double *dydx,
+                      double *dxdy,
                       struct fzerofun_workspace * pfzw,
                       int index_guess,
                       ErrorMsg errmsg);

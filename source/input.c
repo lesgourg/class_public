@@ -222,15 +222,15 @@ int input_init(
     }
 
     if (1==1){ //Thomas implementation
-      double dx, dydx;
+      double dx, dxdy;
       int search_dir, fevals, iter;
 
       double x1, f1, x2, f2, xzero;
       /** Here is our guess: */
-      class_call(input_get_guess(&x1, &dydx, &fzw, 0, errmsg),
+      class_call(input_get_guess(&x1, &dxdy, &fzw, 0, errmsg),
                  errmsg, errmsg);
       //      x1 = 3.54*pow(fzw.target_value[0],2)-5.455*fzw.target_value[0]+2.548;
-      //dydx = (7.08*fzw.target_value[0]-5.455);
+      //dxdy = (7.08*fzw.target_value[0]-5.455);
 
 
       class_call(input_fzerofun_1d(x1,
@@ -246,7 +246,7 @@ int input_init(
         search_dir = 1;
 
       //dx = 0.1*x1;
-      dx = 10.0*f1/dydx;
+      dx = 10.0*f1*dxdy;
 
       /** Do linear hunt for boundaries: */
       for (iter=1; iter<=10; iter++){
@@ -3169,15 +3169,19 @@ int input_try_unknown_parameters2(double * unknown_parameter,
  }
 
 int input_get_guess(double *xguess,
-                    double *dydx,
+                    double *dxdy,
                     struct fzerofun_workspace * pfzw,
                     int index_guess,
                     ErrorMsg errmsg){
 
+  /** Here we should right reasonable guesses for the unknown parameters.
+      Also estimate dxdy, i.e. how the unknown parameter responds to the known.
+      This can simply be estimated as the derivative of the guess formula.*/
+
   switch (pfzw->target_name[index_guess]) {
      case theta_s:
       *xguess = 3.54*pow(pfzw->target_value[0],2)-5.455*pfzw->target_value[0]+2.548;
-      *dydx = (7.08*pfzw->target_value[0]-5.455);
+      *dxdy = (7.08*pfzw->target_value[0]-5.455);
       break;
   }
   return _SUCCESS_;
