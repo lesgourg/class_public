@@ -218,6 +218,14 @@ int input_init(
       counter++;
     }
 
+    if (1==1){ //Thomas implementation
+
+    }
+    /** We should have a good way of guessing the unknown parameter */
+
+
+    if (0==1){ //Juliens implementation
+
     /* for testing, call the function to set to zero */
 
     unknown_parameter[0] = _H0_SMALL_*_c_/1.e5*1.01; // set h for testing
@@ -320,6 +328,7 @@ int input_init(
       else {
         input_minus = unknown_parameter[0];
       }
+    }
     }
 
     /*
