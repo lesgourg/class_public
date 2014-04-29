@@ -141,6 +141,14 @@ struct input_pprpba {
   struct background * pba;
 };
 
+struct fzerofun_workspace {
+  int * unknown_parameters_index;
+  struct file_content * pfc;
+  enum target_names * target_name;
+  double * target_value;
+  int target_size;
+};
+
 
 /**************************************************************/
 
@@ -241,6 +249,22 @@ extern "C" {
                                   double * output,
                                   ErrorMsg errmsg);
 
+  int input_try_unknown_parameters2(double * unknown_parameter,
+                                    int unknown_parameters_size,
+                                    struct fzerofun_workspace * pfzw,
+                                    double * output,
+                                    ErrorMsg errmsg);
+
+  int input_fzerofun_1d(double input,
+                        void* fzerofun_workspace,
+                        double *output,
+                        ErrorMsg error_message);
+
+  int input_get_guess(double *xguess,
+                      double *dydx,
+                      struct fzerofun_workspace * pfzw,
+                      int index_guess,
+                      ErrorMsg errmsg);
 #ifdef __cplusplus
 }
 #endif

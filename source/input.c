@@ -158,20 +158,23 @@ int input_init(
   double param1;
   int counter;
   double * unknown_parameter;
-  int * unknown_parameters_index;
+  //int * unknown_parameters_index;
   int unknown_parameters_size;
-  enum target_names * target_name;
-  double * target_value;
-  int target_size;
-  double output;
+  //enum target_names * target_name;
+  //double * target_value;
+  //int target_size;
+  //double output;
   int position;
   double input_plus,input_minus;
   short get_valid_guess;
 
+  struct fzerofun_workspace fzw;
+  fzw.pfc = pfc;
+
   /* Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
 
-  class_call(parser_read_double(pfc,"100*theta_s",&param1,&flag1,errmsg),
+  class_call(parser_read_double(fzw.pfc,"100*theta_s",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
 
@@ -183,22 +186,22 @@ int input_init(
     class_alloc(unknown_parameter,
                 unknown_parameters_size*sizeof(double),
                 errmsg);
-    class_alloc(unknown_parameters_index,
+    class_alloc(fzw.unknown_parameters_index,
                 unknown_parameters_size*sizeof(int),
                 errmsg);
-    target_size = unknown_parameters_size;
-    class_alloc(target_name,
-                target_size*sizeof(enum target_names),
+    fzw.target_size = unknown_parameters_size;
+    class_alloc(fzw.target_name,
+                fzw.target_size*sizeof(enum target_names),
                 errmsg);
-    class_alloc(target_value,
-                target_size*sizeof(double),
+    class_alloc(fzw.target_value,
+                fzw.target_size*sizeof(double),
                 errmsg);
 
     /* go through all cases with a counter */
     counter = 0;
 
     /* case theta_s */
-    class_call(parser_read_double_and_position(pfc,
+    class_call(parser_read_double_and_position(fzw.pfc,
                                                "100*theta_s",
                                                &param1,
                                                &position,
@@ -209,23 +212,90 @@ int input_init(
 
     if (flag1 == _TRUE_) {
       // store name of target parameter
-      target_name[counter] = theta_s;
+      fzw.target_name[counter] = theta_s;
       // store target value of target parameter
-      target_value[counter] = param1;
+      fzw.target_value[counter] = param1;
       // substitute the name of the target parameter with the name of the corresponding unknown parameter
-      unknown_parameters_index[counter]=position;
-      strcpy(pfc->name[unknown_parameters_index[counter]],"h"); // substitute the name of the target parameter with the name of the corresponding unknown parameter
+      fzw.unknown_parameters_index[counter]=position;
+      strcpy(pfc->name[fzw.unknown_parameters_index[counter]],"h"); // substitute the name of the target parameter with the name of the corresponding unknown parameter
       counter++;
     }
 
     if (1==1){ //Thomas implementation
+      double dx, dydx;
+      int search_dir, fevals, iter;
+
+      double x1, f1, x2, f2, xzero;
+      /** Here is our guess: */
+      class_call(input_get_guess(&x1, &dydx, &fzw, 0, errmsg),
+                 errmsg, errmsg);
+      //      x1 = 3.54*pow(fzw.target_value[0],2)-5.455*fzw.target_value[0]+2.548;
+      //dydx = (7.08*fzw.target_value[0]-5.455);
+
+
+      class_call(input_fzerofun_1d(x1,
+                                   &fzw,
+                                   &f1,
+                                   errmsg),
+                 errmsg, errmsg);
+      printf("x1= %g, f1= %g\n",x1,f1);
+
+      if (f1>0.0)
+        search_dir = -1;
+      else
+        search_dir = 1;
+
+      //dx = 0.1*x1;
+      dx = 10.0*f1/dydx;
+
+      /** Do linear hunt for boundaries: */
+      for (iter=1; iter<=10; iter++){
+        x2 = x1 + search_dir*dx;
+
+        class_call(input_fzerofun_1d(x2,
+                                     &fzw,
+                                     &f2,
+                                     errmsg),
+                   errmsg,errmsg);
+        printf("x2= %g, f2= %g\n",x2,f2);
+
+        fevals++;
+
+        if (f1*f2<0.0){
+          /** root has been bracketed */
+          if (1==1){//(pba->background_verbose > 4){
+            printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
+          }
+          break;
+        }
+
+        x1 = x2;
+        f1 = f2;
+      }
+      /** Find root using Ridders method. (Exchange for bisection if you are old-school.) */
+      class_call(class_fzero_ridder(input_fzerofun_1d,
+                                    x1,
+                                    x2,
+                                    1e-5*MAX(fabs(x1),fabs(x2)),
+                                    &fzw,
+                                    &f1,
+                                    &f2,
+                                    &xzero,
+                                    &fevals,
+                                    errmsg),
+                 errmsg, errmsg);
+
+      printf("Total function evaluations: %d\n",fevals);
 
     }
-    /** We should have a good way of guessing the unknown parameter */
 
-
-    if (0==1){ //Juliens implementation
-
+    else { //Juliens implementation
+      int * unknown_parameters_index=fzw.unknown_parameters_index;
+      enum target_names * target_name = fzw.target_name;
+      double * target_value = fzw.target_value;
+      int target_size = fzw.target_size;
+      double output;
+      int evals = 0;
     /* for testing, call the function to set to zero */
 
     unknown_parameter[0] = _H0_SMALL_*_c_/1.e5*1.01; // set h for testing
@@ -249,8 +319,11 @@ int input_init(
         //fprintf(stderr,"succeeded for valid h=%e\n",unknown_parameter[0]);
         get_valid_guess = _TRUE_;
       }
+      evals++;
     }
     while ((get_valid_guess == _FALSE_) && (unknown_parameter[0] < _H0_BIG_*_c_/1.e5*0.99));
+
+    printf("Evals at this point: %d\n",evals);
 
     class_test(unknown_parameter[0] >= _H0_BIG_*_c_/1.e5*0.99,
                errmsg,
@@ -287,8 +360,11 @@ int input_init(
         //fprintf(stderr,"succeeded for valid h=%e\n",unknown_parameter[0]);
         get_valid_guess = _TRUE_;
       }
+      evals++;
     }
     while ((get_valid_guess == _FALSE_) && (unknown_parameter[0]>input_minus));
+
+    printf("Evals at this point: %d\n",evals);
 
     class_test(unknown_parameter[0]<=input_minus,
                errmsg,
@@ -321,7 +397,7 @@ int input_init(
                                              errmsg),
                  errmsg,
                  errmsg);
-
+      evals++;
       if (output>0.) {
         input_plus = unknown_parameter[0];
       }
@@ -329,6 +405,7 @@ int input_init(
         input_minus = unknown_parameter[0];
       }
     }
+    printf("Evals at this point: %d\n",evals);
     }
 
     /*
@@ -2839,6 +2916,22 @@ int class_version(
    return _SUCCESS_;
  }
 
+int input_fzerofun_1d(double input,
+                      void* pfzw,
+                      double *output,
+                      ErrorMsg error_message){
+
+  class_call(input_try_unknown_parameters2(&input,
+                                           1,
+                                           (struct fzerofun_workspace *) pfzw,
+                                           output,
+                                           error_message),
+             error_message,
+             error_message);
+
+  return _SUCCESS_;
+}
+
  int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
                         double x1,
                         double x2,
@@ -3001,3 +3094,91 @@ int input_try_unknow_parameters(double * unknown_parameter,
 
    return _SUCCESS_;
  }
+
+int input_try_unknown_parameters2(double * unknown_parameter,
+                                  int unknown_parameters_size,
+                                  struct fzerofun_workspace * pfzw,
+                                  double * output,
+                                  ErrorMsg errmsg){
+
+  struct precision pr;        /* for precision parameters */
+  struct background ba;       /* for cosmological background */
+  struct thermo th;           /* for thermodynamics */
+  struct perturbs pt;         /* for source functions */
+  struct transfers tr;        /* for transfer functions */
+  struct primordial pm;       /* for primordial spectra */
+  struct spectra sp;          /* for output spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
+  struct output op;           /* for output files */
+  int i;
+
+  for (i=0; i < unknown_parameters_size; i++) {
+    sprintf(pfzw->pfc->value[pfzw->unknown_parameters_index[i]],
+            "%e",unknown_parameter[i]);
+  }
+
+   class_call(input_read_parameters(pfzw->pfc,
+                                    &pr,
+                                    &ba,
+                                    &th,
+                                    &pt,
+                                    &tr,
+                                    &pm,
+                                    &sp,
+                                    &nl,
+                                    &le,
+                                    &op,
+                                    errmsg),
+              errmsg,
+              errmsg);
+
+   ba.background_verbose = 0;
+
+   class_call(background_init(&pr,&ba),
+              ba.error_message,
+              errmsg);
+
+   th.thermodynamics_verbose = 0;
+
+   class_call(thermodynamics_init(&pr,&ba,&th),
+              th.error_message,
+              errmsg);
+
+   *output = 0.;
+   for (i=0; i < pfzw->target_size; i++) {
+     switch (pfzw->target_name[i]) {
+     case theta_s:
+       *output += 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
+     }
+   }
+
+   class_call(thermodynamics_free(&th),
+              ba.error_message,
+              errmsg);
+
+   class_call(background_free(&ba),
+              th.error_message,
+              errmsg);
+
+   for (i=0; i<pfzw->pfc->size; i++) {
+     pfzw->pfc->read[i] = _FALSE_;
+   }
+
+   return _SUCCESS_;
+ }
+
+int input_get_guess(double *xguess,
+                    double *dydx,
+                    struct fzerofun_workspace * pfzw,
+                    int index_guess,
+                    ErrorMsg errmsg){
+
+  switch (pfzw->target_name[index_guess]) {
+     case theta_s:
+      *xguess = 3.54*pow(pfzw->target_value[0],2)-5.455*pfzw->target_value[0]+2.548;
+      *dydx = (7.08*pfzw->target_value[0]-5.455);
+      break;
+  }
+  return _SUCCESS_;
+}
