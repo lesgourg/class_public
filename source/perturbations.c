@@ -513,14 +513,18 @@ int perturb_indices_of_perturbs(
   ppt->has_source_delta_g = _FALSE_;
   ppt->has_source_delta_b = _FALSE_;
   ppt->has_source_delta_cdm = _FALSE_;
+  ppt->has_source_delta_dcdm = _FALSE_;
   ppt->has_source_delta_fld = _FALSE_;
+  ppt->has_source_delta_dr = _FALSE_;
   ppt->has_source_delta_ur = _FALSE_;
   ppt->has_source_delta_ncdm = _FALSE_;
   ppt->has_source_theta_m = _FALSE_;
   ppt->has_source_theta_g = _FALSE_;
   ppt->has_source_theta_b = _FALSE_;
   ppt->has_source_theta_cdm = _FALSE_;
+  ppt->has_source_theta_dcdm = _FALSE_;
   ppt->has_source_theta_fld = _FALSE_;
+  ppt->has_source_theta_dr = _FALSE_;
   ppt->has_source_theta_ur = _FALSE_;
   ppt->has_source_theta_ncdm = _FALSE_;
   ppt->has_source_phi = _FALSE_;
@@ -592,10 +596,14 @@ int perturb_indices_of_perturbs(
         ppt->has_source_delta_b = _TRUE_;
         if (pba->has_cdm == _TRUE_)
           ppt->has_source_delta_cdm = _TRUE_;
+        if (pba->has_dcdm == _TRUE_)
+          ppt->has_source_delta_dcdm = _TRUE_;
         if (pba->has_fld == _TRUE_)
           ppt->has_source_delta_fld = _TRUE_;
         if (pba->has_ur == _TRUE_)
           ppt->has_source_delta_ur = _TRUE_;
+        if (pba->has_dr == _TRUE_)
+          ppt->has_source_delta_dr = _TRUE_;
         if (pba->has_ncdm == _TRUE_)
           ppt->has_source_delta_ncdm = _TRUE_;
       }
@@ -606,10 +614,14 @@ int perturb_indices_of_perturbs(
         ppt->has_source_theta_b = _TRUE_;
         if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
           ppt->has_source_theta_cdm = _TRUE_;
+        if (pba->has_dcdm == _TRUE_)
+          ppt->has_source_theta_dcdm = _TRUE_;
         if (pba->has_fld == _TRUE_)
           ppt->has_source_theta_fld = _TRUE_;
         if (pba->has_ur == _TRUE_)
           ppt->has_source_theta_ur = _TRUE_;
+        if (pba->has_dr == _TRUE_)
+          ppt->has_source_theta_dr = _TRUE_;
         if (pba->has_ncdm == _TRUE_)
           ppt->has_source_theta_ncdm = _TRUE_;
       }
@@ -640,14 +652,18 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
       class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_type,1);
       class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_type,1);
       class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
+      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_type,1);
       class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
       class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
       class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
       class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
       class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_type,1);
       class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_theta_dcdm, ppt->has_source_theta_dcdm,index_type,1);
       class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
+      class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_type,1);
       class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
       class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
       class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_type,1);
@@ -2841,6 +2857,13 @@ int perturb_vector_init(
                ppt->error_message,
                "ppr->l_max_pol_g should be at least 4");
 
+    /* reject inconsistent values of the number of mutipoles in decay radiation hierachy */
+    if (pba->has_dr == _TRUE_) {
+      class_test(ppr->l_max_dr < 4,
+                 ppt->error_message,
+                 "ppr->l_max_ur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
+    }
+
     /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
     if (pba->has_ur == _TRUE_) {
       class_test(ppr->l_max_ur < 4,
@@ -2884,6 +2907,17 @@ int perturb_vector_init(
 
     class_define_index(ppv->index_pt_delta_cdm,pba->has_cdm,index_pt,1); /* cdm density */
     class_define_index(ppv->index_pt_theta_cdm,pba->has_cdm && (ppt->gauge == newtonian),index_pt,1); /* cdm velocity */
+
+    /* dcdm */
+
+    class_define_index(ppv->index_pt_delta_dcdm,pba->has_dcdm,index_pt,1); /* dcdm density */
+    class_define_index(ppv->index_pt_theta_dcdm,pba->has_dcdm,index_pt,1); /* dcdm velocity */
+
+    /* ultra relativistic decay radiation */
+    if (pba->has_dr==_TRUE_){
+      ppv->l_max_dr = ppr->l_max_dr;
+      class_define_index(ppv->index_pt_F0_dr,_TRUE_,index_pt,ppv->l_max_dr+1); /* all momenta in Boltzmann hierarchy  */
+    }
 
     /* fluid */
 
@@ -3267,6 +3301,21 @@ int perturb_vector_init(
           ppv->y[ppv->index_pt_theta_cdm] =
             ppw->pv->y[ppw->pv->index_pt_theta_cdm];
         }
+      }
+
+      if (pba->has_dcdm == _TRUE_) {
+
+        ppv->y[ppv->index_pt_delta_dcdm] =
+          ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
+
+        ppv->y[ppv->index_pt_theta_dcdm] =
+          ppw->pv->y[ppw->pv->index_pt_theta_dcdm];
+      }
+
+      if (pba->has_dr == _TRUE_){
+        for (l=0; l <= ppv->l_max_dr; l++)
+          ppv->y[ppv->index_pt_F0_dr+l] =
+            ppw->pv->y[ppw->pv->index_pt_F0_dr+l];
       }
 
       if (pba->has_fld == _TRUE_) {
@@ -3860,6 +3909,15 @@ int perturb_initial_conditions(struct precision * ppr,
 
     if (pba->has_cdm == _TRUE_) {
       rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
+    }
+
+    if (pba->has_dcdm == _TRUE_) {
+      rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+    }
+
+    if (pba->has_dr == _TRUE_) {
+      rho_r += ppw->pvecback[pba->index_bg_rho_dr];
+      rho_nu += ppw->pvecback[pba->index_bg_rho_dr];
     }
 
     if (pba->has_ur == _TRUE_) {
@@ -4970,6 +5028,7 @@ int perturb_total_stress_energy(
   double w;
   double gwncdm;
   double rho_relativistic;
+  double rho_dr_over_f;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5066,6 +5125,12 @@ int perturb_total_stress_energy(
         ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
     }
 
+    /* dcdm contribution */
+    if (pba->has_dcdm == _TRUE_) {
+      ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
+      ppw->rho_plus_p_theta += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
+    }
+
     /* fluid contribution */
     if (pba->has_fld == _TRUE_) {
 
@@ -5074,6 +5139,21 @@ int perturb_total_stress_energy(
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
       ppw->rho_plus_p_theta += (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
       ppw->delta_p = ppw->delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
+    }
+
+    /* ultra-relativistic decay radiation */
+
+    if (pba->has_dr == _TRUE_) {
+      /* We have delta_rho_dr = rho_dr * F0_dr / f, where F follows the
+         convention in astro-ph/9907388 and f is defined as
+         f = rho_dr*a^4/rho_crit_today. In CLASS density units
+         rho_crit_today = H0^2.
+      */
+      rho_dr_over_f = pow(pba->H0/a2,2);
+      ppw->delta_rho += rho_dr_over_f*y[ppw->pv->index_pt_F0_dr];
+      ppw->rho_plus_p_theta += 4./3.*3./4*k*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+1];
+      ppw->rho_plus_p_shear += 2./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+2];
+      ppw->delta_p += 1./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr];
     }
 
     /* ultra-relativistic neutrino/relics contribution */
@@ -5172,6 +5252,13 @@ int perturb_total_stress_energy(
         rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
       }
 
+      /* include decaying cold dark matter */
+
+      if (pba->has_dcdm == _TRUE_) {
+        delta_rho_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
+        rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+      }
+
       /* include any other species non-relativistic today (like ncdm species) */
 
       if (pba->has_ncdm == _TRUE_) {
@@ -5206,6 +5293,11 @@ int perturb_total_stress_energy(
         if (ppt->gauge == newtonian)
           rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
         rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
+      }
+
+      if (pba->has_dcdm == _TRUE_) {
+        rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
+        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_dcdm];
       }
 
       /* include any other species non-relativistic today (like ncdm species) */
@@ -5386,6 +5478,8 @@ int perturb_sources(
   double a_prime_over_a_prime=0.;  /* (a'/a)' */
   int switch_isw = 1;
 
+  double a_rel, a2_rel, f_dr;
+
   /** - rename structure fields (just to avoid heavy notations) */
 
   pppaw = parameters_and_workspace;
@@ -5425,6 +5519,9 @@ int perturb_sources(
                                  pvecthermo),
              pth->error_message,
              error_message);
+
+  a_rel = ppw->pvecback[pba->index_bg_a]/pba->a_today;
+  a2_rel = a_rel * a_rel;
 
   /* derived background quantities, useful only in synchronous gauge */
   if (ppt->gauge == synchronous) {
@@ -5621,9 +5718,20 @@ int perturb_sources(
       _set_source_(ppt->index_tp_delta_cdm) = y[ppw->pv->index_pt_delta_cdm];
     }
 
+    /* delta_dcdm */
+    if (ppt->has_source_delta_dcdm == _TRUE_) {
+      _set_source_(ppt->index_tp_delta_dcdm) = y[ppw->pv->index_pt_delta_dcdm];
+    }
+
     /* delta_fld */
     if (ppt->has_source_delta_fld == _TRUE_) {
       _set_source_(ppt->index_tp_delta_fld) = y[ppw->pv->index_pt_delta_fld];
+    }
+
+    /* delta_dr */
+    if (ppt->has_source_delta_dr == _TRUE_) {
+      f_dr = pow(a2_rel/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      _set_source_(ppt->index_tp_delta_dr) = y[ppw->pv->index_pt_F0_dr]/f_dr;
     }
 
     /* delta_ur */
@@ -5664,9 +5772,20 @@ int perturb_sources(
       _set_source_(ppt->index_tp_theta_cdm) = y[ppw->pv->index_pt_theta_cdm];
     }
 
+    /* theta_dcdm */
+    if (ppt->has_source_theta_dcdm == _TRUE_) {
+      _set_source_(ppt->index_tp_theta_dcdm) = y[ppw->pv->index_pt_theta_dcdm];
+    }
+
     /* theta_fld */
     if (ppt->has_source_theta_fld == _TRUE_) {
       _set_source_(ppt->index_tp_theta_fld) = y[ppw->pv->index_pt_theta_fld];
+    }
+
+    /* theta_dr */
+    if (ppt->has_source_theta_dr == _TRUE_) {
+      f_dr = pow(a2_rel/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      _set_source_(ppt->index_tp_theta_dr) = 3./4.*k*y[ppw->pv->index_pt_F0_dr+1]/f_dr;
     }
 
     /* theta_ur */
@@ -5771,6 +5890,8 @@ int perturb_print_variables(double tau,
   double delta_g,theta_g,shear_g,l4_g,pol0_g,pol1_g,pol2_g,pol4_g;
   double delta_b,theta_b;
   double delta_cdm=0.,theta_cdm=0.;
+  double delta_dcdm=0.,theta_dcdm=0.;
+  double delta_dr=0.,theta_dr=0.,shear_dr=0., f_dr=1.0;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l4_ur=0.;
   int n_ncdm;
   double delta_ncdm,theta_ncdm,shear_ncdm;
@@ -5889,6 +6010,20 @@ int perturb_print_variables(double tau,
       phi = 0.0;
     }
 
+    if (pba->has_dcdm == _TRUE_) {
+
+      delta_dcdm = y[ppw->pv->index_pt_delta_dcdm];
+      theta_dcdm = y[ppw->pv->index_pt_theta_dcdm];
+
+    }
+
+    if (pba->has_dr == _TRUE_) {
+      f_dr = pow(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a]/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      delta_dr = y[ppw->pv->index_pt_F0_dr]/f_dr;
+      theta_dr = y[ppw->pv->index_pt_F0_dr+1]*3./4.*k/f_dr;
+      shear_dr = y[ppw->pv->index_pt_F0_dr+2]*0.5/f_dr;
+    }
+
     /* converting synchronous variables to newtonian ones */
     if (ppt->gauge == synchronous) {
 
@@ -5905,11 +6040,20 @@ int perturb_print_variables(double tau,
         theta_ur += k*k*pvecmetric[ppw->index_mt_alpha];
       }
 
+      if (pba->has_dr == _TRUE_) {
+        delta_dr -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        theta_dr += k*k*pvecmetric[ppw->index_mt_alpha];
+      }
+
       if (pba->has_cdm == _TRUE_) {
         delta_cdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
         theta_cdm += k*k*pvecmetric[ppw->index_mt_alpha];
       }
 
+      if (pba->has_dcdm == _TRUE_) {
+        delta_dcdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        theta_dcdm += k*k*pvecmetric[ppw->index_mt_alpha];
+      }
 
     }
 
@@ -5944,6 +6088,13 @@ int perturb_print_variables(double tau,
         class_fprintf_double(ppw->perturb_output_file, ppw->shear_ncdm[n_ncdm], _TRUE_);
       }
     }
+    /* Decaying cold dark matter */
+    class_fprintf_double(ppw->perturb_output_file, delta_dcdm, pba->has_dcdm);
+    class_fprintf_double(ppw->perturb_output_file, theta_dcdm, pba->has_dcdm);
+    /* Decay radiation */
+    class_fprintf_double(ppw->perturb_output_file, delta_dr, pba->has_dr);
+    class_fprintf_double(ppw->perturb_output_file, theta_dr, pba->has_dr);
+    class_fprintf_double(ppw->perturb_output_file, shear_dr, pba->has_dr);
 
     fprintf(ppw->perturb_output_file,"\n");
 
@@ -6136,6 +6287,9 @@ int perturb_derivs(double tau,
   /* for use with curvature */
   double cotKgen, sqrt_absK;
   double s2_squared, ssqrt3;
+
+  /* for use with dcdm and dr */
+  double f_dr, fprime_dr;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -6471,6 +6625,53 @@ int perturb_derivs(double tau,
 
       // see the documentation for this formula
       dy[ppw->pv->index_pt_perturbed_recombination_delta_temp] =  2./3. * dy[ppw->pv->index_pt_delta_b] - a * Compton_CR * pow(pba->T_cmb/a, 4) * chi / (1.+chi+fHe) * ( (1.-pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb])*(delta_g + delta_chi*(1.+fHe)/(1.+chi+fHe)) + pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb] *(delta_temp - 1./4. * delta_g) );
+
+    }
+
+    /** -> dcdm and dr */
+
+    if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)) {
+
+      /* f = rho_dr*a^4/rho_crit_today. In CLASS density units
+         rho_crit_today = H0^2.
+      */
+      f_dr = pow(a*a/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      fprime_dr = pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]*pow(a,5)/pow(pba->H0,2);
+
+      /** -> dcdm */
+
+      dy[pv->index_pt_delta_dcdm] = -(y[pv->index_pt_theta_dcdm]+metric_continuity); /* dcdm density */
+
+      dy[pv->index_pt_theta_dcdm] = - a_prime_over_a*y[pv->index_pt_theta_dcdm] + metric_euler; /* dcdm velocity */
+
+      /** -> dr */
+
+      /** -----> dr F0 */
+      dy[pv->index_pt_F0_dr] = -k*y[pv->index_pt_F0_dr+1]-4./3.*metric_continuity*f_dr+
+        fprime_dr*y[pv->index_pt_delta_dcdm];
+
+      /** -----> dr F1 */
+      dy[pv->index_pt_F0_dr+1] = k/3.*y[pv->index_pt_F0_dr]-2./3.*k*y[pv->index_pt_F0_dr+2]*s2_squared +
+        4*metric_euler/(3.*k)*f_dr;
+
+      /** -----> exact dr F2 */
+      dy[pv->index_pt_F0_dr+2] = 8./15.*(3./4.*k*y[pv->index_pt_F0_dr+1]+metric_shear*f_dr) -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_F0_dr+3];
+
+      /** -----> exact dr l=3 */
+      l = 3;
+      dy[pv->index_pt_F0_dr+3] = k/(2.*l+1.)*
+        (l*s_l[l]*s_l[2]*y[pv->index_pt_F0_dr+2]-(l+1.)*s_l[l+1]*y[pv->index_pt_F0_dr+4]);
+
+      /** -----> exact dr l>3 */
+      for (l = 4; l < pv->l_max_dr; l++) {
+        dy[pv->index_pt_F0_dr+l] = k/(2.*l+1)*
+          (l*s_l[l]*y[pv->index_pt_F0_dr+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_F0_dr+l+1]);
+      }
+
+      /** -----> exact dr lmax_dr */
+      l = pv->l_max_dr;
+      dy[pv->index_pt_F0_dr+l] =
+        k*(s_l[l]*y[pv->index_pt_F0_dr+l-1]-(1.+l)*cotKgen*y[pv->index_pt_F0_dr+l]);
 
     }
 
