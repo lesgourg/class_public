@@ -1773,6 +1773,7 @@ int thermodynamics_reionization_sample(
   double energy_rate;
   double tau;
   int last_index_back;
+  double relative_variation;
 
   Yp = pth->YHe;
 
@@ -1857,6 +1858,8 @@ int thermodynamics_reionization_sample(
     -preco->recombination_table[(i-1)*preco->re_size+preco->index_re_z];
 
   /** (e) loop over redshift values in order to find values of z, x_e, kappa' (Tb and cb2 found later by integration). The sampling in z space is found here. */
+
+  if (1 == 0) {
 
   while (z > 0.) {
 
@@ -1957,6 +1960,90 @@ int thermodynamics_reionization_sample(
                pth->error_message);
 
     number_of_redshifts++;
+  }
+
+  }
+
+  else {
+
+    /** - initial step */
+    dz = dz_max;
+
+    while (z > 0.) {
+
+      class_test(dz < ppr->smallest_allowed_variation,
+                 pth->error_message,
+                 "stuck in the loop for reionisation sampling, as if you were trying to impose a discontinuous evolution for xe(z)");
+
+      /* - try next step */
+      z_next=z-dz;
+      if (z_next < 0.) z_next=0.;
+
+      class_call(thermodynamics_reionization_function(z_next,pth,preio,&xe_next),
+                 pth->error_message,
+                 pth->error_message);
+
+      class_call(background_tau_of_z(pba,
+                                     z_next,
+                                     &tau),
+                 pba->error_message,
+                 pth->error_message);
+
+      class_call(background_at_tau(pba,
+                                   tau,
+                                   pba->short_info,
+                                   pba->inter_normal,
+                                   &last_index_back,
+                                   pvecback),
+                 pba->error_message,
+                 pth->error_message);
+
+      class_test(pvecback[pba->index_bg_H] == 0.,
+                 pth->error_message,
+                 "stop to avoid division by zero");
+
+      dkappadz_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_ / pvecback[pba->index_bg_H];
+
+      dkappadtau_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_;
+
+      class_test((dkappadz == 0.) || (dkappadtau == 0.),
+                 pth->error_message,
+                 "stop to avoid division by zero");
+
+      relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
+        fabs((dkappadtau_next-dkappadtau)/dkappadtau);
+
+      if (relative_variation < ppr->reionization_sampling) {
+        /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
+
+        z=z_next;
+        xe=xe_next;
+        dkappadz=dkappadz_next;
+        dkappadtau= dkappadtau_next;
+
+        class_test((dkappadz == 0.) || (dkappadtau == 0.),
+                   pth->error_message,
+                   "dkappadz=%e, dkappadtau=%e, stop to avoid division by zero",dkappadz,dkappadtau);
+
+        reio_vector[preio->index_re_z] = z;
+        reio_vector[preio->index_re_xe] = xe;
+        reio_vector[preio->index_re_dkappadz] = dkappadz;
+        reio_vector[preio->index_re_dkappadtau] = dkappadz * pvecback[pba->index_bg_H];
+
+        class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
+                   gTable.error_message,
+                   pth->error_message);
+
+        number_of_redshifts++;
+
+        dz = MIN(0.9*(ppr->reionization_sampling/relative_variation),5.)*dz;
+        dz = MIN(dz,dz_max);
+      }
+      else {
+        /* do not accept the step and update dz */
+        dz = 0.9*(ppr->reionization_sampling/relative_variation)*dz;
+      }
+    }
   }
 
   /** (f) allocate reionization_table with correct size */
