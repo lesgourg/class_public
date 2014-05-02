@@ -2370,6 +2370,14 @@ int perturb_prepare_output_file(struct background * pba,
         class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
       }
     }
+    /* Decaying cold dark matter */
+    class_fprintf_columntitle(ppw->perturb_output_file, "delta_dcdm", pba->has_dcdm);
+    class_fprintf_columntitle(ppw->perturb_output_file, "theta_dcdm", pba->has_dcdm);
+    /* Decay radiation */
+    class_fprintf_columntitle(ppw->perturb_output_file, "delta_dr", pba->has_dr);
+    class_fprintf_columntitle(ppw->perturb_output_file, "theta_dr", pba->has_dr);
+    class_fprintf_columntitle(ppw->perturb_output_file, "shear_dr", pba->has_dr);
+
     fprintf(ppw->perturb_output_file,"\n");
 
   }
