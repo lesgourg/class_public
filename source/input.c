@@ -159,8 +159,9 @@ int input_init(
   int counter;
   double * unknown_parameter;
   int unknown_parameters_size;
-  double dx, dxdy;
-  int search_dir, fevals=1, iter;
+  double dx, dxdy=0.;
+  int fevals=1, iter, iter2;
+  int return_function;
   double x1, f1, x2, f2, xzero;
 
   struct fzerofun_workspace fzw;
@@ -240,31 +241,37 @@ int input_init(
                                  &f1,
                                  errmsg),
                errmsg, errmsg);
-    printf("x1= %g, f1= %g\n",x1,f1);
+    //printf("x1= %g, f1= %g\n",x1,f1);
 
-    if (f1>0.0)
-      search_dir = -1;
-    else
-      search_dir = 1;
-
-    dx = 10.0*f1*dxdy;
+    dx = 1.5*f1*dxdy;
 
     /** Do linear hunt for boundaries: */
     for (iter=1; iter<=10; iter++){
-      x2 = x1 + search_dir*dx;
+      //x2 = x1 + search_dir*dx;
+      x2 = x1 - dx;
 
-      class_call(input_fzerofun_1d(x2,
-                                   &fzw,
-                                   &f2,
-                                   errmsg),
-                 errmsg,errmsg);
-      printf("x2= %g, f2= %g\n",x2,f2);
+      for (iter2=1; iter2 <= 3; iter2++) {
+        return_function = input_fzerofun_1d(x2,&fzw,&f2,errmsg);
+        fevals++;
+        //printf("x2= %g, f2= %g\n",x2,f2);
+        //fprintf(stderr,"iter2=%d\n",iter2);
 
-      fevals++;
+        if (return_function ==_SUCCESS_) {
+          break;
+        }
+        else if (iter2 < 3) {
+          dx*=0.5;
+          x2 = x1-dx;
+        }
+        else {
+          //fprintf(stderr,"get here\n");
+          class_stop(errmsg,errmsg);
+        }
+      }
 
       if (f1*f2<0.0){
         /** root has been bracketed */
-        if (1==1){//(pba->background_verbose > 4){
+        if (0==1){//(pba->background_verbose > 4){
           printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
         }
         break;
@@ -289,7 +296,7 @@ int input_init(
 
       /* Store xzero */
       sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
-      printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
+      //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
 
 
       /**     Read all parameters from tuned pfc: */
