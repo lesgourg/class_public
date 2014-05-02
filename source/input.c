@@ -294,28 +294,28 @@ int input_init(
                                   errmsg),
                errmsg, errmsg);
 
-      /* Store xzero */
-      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
-      //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
+    /* Store xzero */
+    sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
+    //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
 
 
-      /**     Read all parameters from tuned pfc: */
-      class_call(input_read_parameters(&(fzw.fc),
-                                       ppr,
-                                       pba,
-                                       pth,
-                                       ppt,
-                                       ptr,
-                                       ppm,
-                                       psp,
-                                       pnl,
-                                       ple,
-                                       pop,
-                                       errmsg),
-                 errmsg,
-                 errmsg);
-      // Free tuned pfc
-      parser_free(&(fzw.fc));
+    /**     Read all parameters from tuned pfc: */
+    class_call(input_read_parameters(&(fzw.fc),
+                                     ppr,
+                                     pba,
+                                     pth,
+                                     ppt,
+                                     ptr,
+                                     ppm,
+                                     psp,
+                                     pnl,
+                                     ple,
+                                     pop,
+                                     errmsg),
+               errmsg,
+               errmsg);
+    // Free tuned pfc
+    parser_free(&(fzw.fc));
   }
   else{
 
@@ -779,7 +779,7 @@ int input_read_parameters(
     container.ppr = ppr;
     container.pba = pba;
     /* This formula is exact in a Matter + Lambda Universe.
-     Just use Omega_tot (already computed) for Omega0_M*/
+       Just use Omega_tot (already computed) for Omega0_M*/
 
 
     sqrt_one_minus_M = sqrt(1.0 - Omega_tot);
@@ -1768,12 +1768,12 @@ int input_read_parameters(
     }
 
     class_call(parser_read_string(pfc,
-				"dNdz_selection",
-				&(string1),
-				&(flag1),
-				errmsg),
-	     errmsg,
-	     errmsg);
+                                  "dNdz_selection",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
 
     if ((flag1 == _TRUE_)) {
       if ((strstr(string1,"analytic") != NULL))
@@ -2771,53 +2771,53 @@ int class_version(
  * allowed variation (minimum epsilon * _TOLVAR_)
  */
 
- int get_machine_precision(double * smallest_allowed_variation) {
-   double one, meps, sum;
+int get_machine_precision(double * smallest_allowed_variation) {
+  double one, meps, sum;
 
-   one = 1.0;
-   meps = 1.0;
-   do {
-     meps /= 2.0;
-     sum = one + meps;
-   } while (sum != one);
-   meps *= 2.0;
+  one = 1.0;
+  meps = 1.0;
+  do {
+    meps /= 2.0;
+    sum = one + meps;
+  } while (sum != one);
+  meps *= 2.0;
 
-   *smallest_allowed_variation = meps * _TOLVAR_;
+  *smallest_allowed_variation = meps * _TOLVAR_;
 
-   return _SUCCESS_;
+  return _SUCCESS_;
 
- }
+}
 
- int input_fzerofun_for_background(double Omega_ini_dcdm,
-                                   void* container,
-                                   double *valout,
-                                   ErrorMsg error_message){
+int input_fzerofun_for_background(double Omega_ini_dcdm,
+                                  void* container,
+                                  double *valout,
+                                  ErrorMsg error_message){
 
-   double rho_dcdm_today, rho_dr_today;
-   struct input_pprpba * pprpba;
-   struct background *pba;
-   pprpba = (struct input_pprpba *) container;
-   pba = pprpba->pba;
+  double rho_dcdm_today, rho_dr_today;
+  struct input_pprpba * pprpba;
+  struct background *pba;
+  pprpba = (struct input_pprpba *) container;
+  pba = pprpba->pba;
 
-   pba->Omega_ini_dcdm = Omega_ini_dcdm;
-   pba->keep_ncdm_stuff = _TRUE_;
+  pba->Omega_ini_dcdm = Omega_ini_dcdm;
+  pba->keep_ncdm_stuff = _TRUE_;
 
-   class_call(background_init(pprpba->ppr,
-                              pba),
-              pba->error_message, error_message);
-   rho_dcdm_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dcdm];
-   rho_dr_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dr];
-   //  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm]; /*Remember that rho is defined such that H^2=sum(rho_i) */
+  class_call(background_init(pprpba->ppr,
+                             pba),
+             pba->error_message, error_message);
+  rho_dcdm_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dcdm];
+  rho_dr_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dr];
+  //  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm]; /*Remember that rho is defined such that H^2=sum(rho_i) */
 
-   *valout = (rho_dcdm_today+rho_dr_today)/(pba->H0*pba->H0)-pba->Omega0_dcdm;
+  *valout = (rho_dcdm_today+rho_dr_today)/(pba->H0*pba->H0)-pba->Omega0_dcdm;
 
-   if (pba->background_verbose > 3)
-     printf("rho_dcdm_today = %e, corresponding to %e\n",rho_dcdm_today,rho_dcdm_today/(pba->H0*pba->H0));
+  if (pba->background_verbose > 3)
+    printf("rho_dcdm_today = %e, corresponding to %e\n",rho_dcdm_today,rho_dcdm_today/(pba->H0*pba->H0));
 
-   class_call(background_free(pba), pba->error_message, error_message);
+  class_call(background_free(pba), pba->error_message, error_message);
 
-   return _SUCCESS_;
- }
+  return _SUCCESS_;
+}
 
 int input_fzerofun_1d(double input,
                       void* pfzw,
@@ -2835,90 +2835,90 @@ int input_fzerofun_1d(double input,
   return _SUCCESS_;
 }
 
- int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
-                        double x1,
-                        double x2,
-                        double xtol,
-                        void *param,
-                        double *Fx1,
-                        double *Fx2,
-                        double *xzero,
-                        int *fevals,
-                        ErrorMsg error_message){
-   /**Using Ridders' method, return the root of a function func known to
-      lie between x1 and x2. The root, returned as zriddr, will be found to
-      an approximate accuracy xtol.
-   */
-   int j,MAXIT=1000;
-    double ans,fh,fl,fm,fnew,s,xh,xl,xm,xnew;
-    if ((Fx1!=NULL)&&(Fx2!=NULL)){
-      fl = *Fx1;
-      fh = *Fx2;
-    }
-    else{
-      class_call((*func)(x1, param, &fl, error_message),
-                 error_message, error_message);
-      class_call((*func)(x2, param, &fh, error_message),
-                 error_message, error_message);
+int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
+                       double x1,
+                       double x2,
+                       double xtol,
+                       void *param,
+                       double *Fx1,
+                       double *Fx2,
+                       double *xzero,
+                       int *fevals,
+                       ErrorMsg error_message){
+  /**Using Ridders' method, return the root of a function func known to
+     lie between x1 and x2. The root, returned as zriddr, will be found to
+     an approximate accuracy xtol.
+  */
+  int j,MAXIT=1000;
+  double ans,fh,fl,fm,fnew,s,xh,xl,xm,xnew;
+  if ((Fx1!=NULL)&&(Fx2!=NULL)){
+    fl = *Fx1;
+    fh = *Fx2;
+  }
+  else{
+    class_call((*func)(x1, param, &fl, error_message),
+               error_message, error_message);
+    class_call((*func)(x2, param, &fh, error_message),
+               error_message, error_message);
 
-      *fevals = (*fevals)+2;
-    }
-    if ((fl > 0.0 && fh < 0.0) || (fl < 0.0 && fh > 0.0)) {
-      xl=x1;
-      xh=x2;
-      ans=-1.11e11;
-      for (j=1;j<=MAXIT;j++) {
-        xm=0.5*(xl+xh);
-        class_call((*func)(xm, param, &fm, error_message),
+    *fevals = (*fevals)+2;
+  }
+  if ((fl > 0.0 && fh < 0.0) || (fl < 0.0 && fh > 0.0)) {
+    xl=x1;
+    xh=x2;
+    ans=-1.11e11;
+    for (j=1;j<=MAXIT;j++) {
+      xm=0.5*(xl+xh);
+      class_call((*func)(xm, param, &fm, error_message),
                  error_message, error_message);
-        *fevals = (*fevals)+1;
-        s=sqrt(fm*fm-fl*fh);
-        if (s == 0.0){
-          *xzero = ans;
-          //printf("Success 1\n");
-          return _SUCCESS_;
-        }
-        xnew=xm+(xm-xl)*((fl >= fh ? 1.0 : -1.0)*fm/s);
-        if (fabs(xnew-ans) <= xtol) {
-          *xzero = ans;
-          return _SUCCESS_;
-        }
-        ans=xnew;
-        class_call((*func)(ans, param, &fnew, error_message),
-                   error_message, error_message);
-        *fevals = (*fevals)+1;
-        if (fnew == 0.0){
-          *xzero = ans;
-          //printf("Success 2, ans=%g\n",ans);
-          return _SUCCESS_;
-        }
-        if (NRSIGN(fm,fnew) != fm) {
-          xl=xm;
-          fl=fm;
-          xh=ans;
-          fh=fnew;
-        } else if (NRSIGN(fl,fnew) != fl) {
-          xh=ans;
-          fh=fnew;
-        } else if (NRSIGN(fh,fnew) != fh) {
-          xl=ans;
-          fl=fnew;
-        } else return _FAILURE_;
-        if (fabs(xh-xl) <= xtol) {
-          *xzero = ans;
-          //        printf("Success 3\n");
-          return _SUCCESS_;
-        }
+      *fevals = (*fevals)+1;
+      s=sqrt(fm*fm-fl*fh);
+      if (s == 0.0){
+        *xzero = ans;
+        //printf("Success 1\n");
+        return _SUCCESS_;
       }
-      class_stop("zriddr exceed maximum iterations","");
+      xnew=xm+(xm-xl)*((fl >= fh ? 1.0 : -1.0)*fm/s);
+      if (fabs(xnew-ans) <= xtol) {
+        *xzero = ans;
+        return _SUCCESS_;
+      }
+      ans=xnew;
+      class_call((*func)(ans, param, &fnew, error_message),
+                 error_message, error_message);
+      *fevals = (*fevals)+1;
+      if (fnew == 0.0){
+        *xzero = ans;
+        //printf("Success 2, ans=%g\n",ans);
+        return _SUCCESS_;
+      }
+      if (NRSIGN(fm,fnew) != fm) {
+        xl=xm;
+        fl=fm;
+        xh=ans;
+        fh=fnew;
+      } else if (NRSIGN(fl,fnew) != fl) {
+        xh=ans;
+        fh=fnew;
+      } else if (NRSIGN(fh,fnew) != fh) {
+        xl=ans;
+        fl=fnew;
+      } else return _FAILURE_;
+      if (fabs(xh-xl) <= xtol) {
+        *xzero = ans;
+        //        printf("Success 3\n");
+        return _SUCCESS_;
+      }
     }
-    else {
-      if (fl == 0.0) return x1;
-      if (fh == 0.0) return x2;
-      class_stop("root must be bracketed in zriddr.","");
-    }
-    class_stop("Failure in int.","");
- }
+    class_stop("zriddr exceed maximum iterations","");
+  }
+  else {
+    if (fl == 0.0) return x1;
+    if (fh == 0.0) return x2;
+    class_stop("root must be bracketed in zriddr.","");
+  }
+  class_stop("Failure in int.","");
+}
 
 int input_try_unknown_parameters(double * unknown_parameter,
                                  int unknown_parameters_size,
@@ -2955,43 +2955,43 @@ int input_try_unknown_parameters(double * unknown_parameter,
                                    &le,
                                    &op,
                                    errmsg),
-              errmsg,
-              errmsg);
+             errmsg,
+             errmsg);
 
-   ba.background_verbose = 0;
+  ba.background_verbose = 0;
 
-   class_call(background_init(&pr,&ba),
-              ba.error_message,
-              errmsg);
+  class_call(background_init(&pr,&ba),
+             ba.error_message,
+             errmsg);
 
-   th.thermodynamics_verbose = 0;
+  th.thermodynamics_verbose = 0;
 
-   class_call(thermodynamics_init(&pr,&ba,&th),
-              th.error_message,
-              errmsg);
+  class_call(thermodynamics_init(&pr,&ba,&th),
+             th.error_message,
+             errmsg);
 
-   *output = 0.;
-   for (i=0; i < pfzw->target_size; i++) {
-     switch (pfzw->target_name[i]) {
-     case theta_s:
-       *output += 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
-     }
-   }
+  *output = 0.;
+  for (i=0; i < pfzw->target_size; i++) {
+    switch (pfzw->target_name[i]) {
+    case theta_s:
+      *output += 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
+    }
+  }
 
-   class_call(thermodynamics_free(&th),
-              ba.error_message,
-              errmsg);
+  class_call(thermodynamics_free(&th),
+             ba.error_message,
+             errmsg);
 
-   class_call(background_free(&ba),
-              th.error_message,
-              errmsg);
+  class_call(background_free(&ba),
+             th.error_message,
+             errmsg);
 
-   for (i=0; i<pfzw->fc.size; i++) {
-     pfzw->fc.read[i] = _FALSE_;
-   }
+  for (i=0; i<pfzw->fc.size; i++) {
+    pfzw->fc.read[i] = _FALSE_;
+  }
 
-   return _SUCCESS_;
- }
+  return _SUCCESS_;
+}
 
 int input_get_guess(double *xguess,
                     double *dxdy,
@@ -3004,10 +3004,10 @@ int input_get_guess(double *xguess,
       This can simply be estimated as the derivative of the guess formula.*/
 
   switch (pfzw->target_name[index_guess]) {
-     case theta_s:
-      *xguess = 3.54*pow(pfzw->target_value[0],2)-5.455*pfzw->target_value[0]+2.548;
-      *dxdy = (7.08*pfzw->target_value[0]-5.455);
-      break;
+  case theta_s:
+    *xguess = 3.54*pow(pfzw->target_value[0],2)-5.455*pfzw->target_value[0]+2.548;
+    *dxdy = (7.08*pfzw->target_value[0]-5.455);
+    break;
   }
   return _SUCCESS_;
 }
