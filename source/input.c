@@ -169,19 +169,34 @@ int input_init(
   short get_valid_guess;
 
   struct fzerofun_workspace fzw;
-  fzw.pfc = pfc;
+  //fzw.pfc = pfc;
 
   /* Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
 
-  class_call(parser_read_double(fzw.pfc,"100*theta_s",&param1,&flag1,errmsg),
+  class_call(parser_read_double(pfc,"100*theta_s",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
-
-  if (flag1 == _TRUE_) unknown_parameters_size++;
+  if (flag1 == _TRUE_) {
+    /* In principle I could check for compatibility, but the input module
+       already handles the case of multiple or inconsistent input values,
+       so it should be fine. */
+    unknown_parameters_size++;
+  }
 
   /* case with unknown parameters */
   if (unknown_parameters_size > 0) {
+
+    /* Create file content structure with additional entries */
+    class_call(parser_init(&(fzw.fc),
+                           pfc->size+unknown_parameters_size,
+                           pfc->filename,
+                           errmsg),
+               errmsg,errmsg);
+    /* Copy input file content to the new file content structure: */
+    memcpy(fzw.fc.name, pfc->name, pfc->size*sizeof(FileArg));
+    memcpy(fzw.fc.value, pfc->value, pfc->size*sizeof(FileArg));
+    memcpy(fzw.fc.read, pfc->read, pfc->size*sizeof(short));
 
     class_alloc(unknown_parameter,
                 unknown_parameters_size*sizeof(double),
@@ -201,7 +216,7 @@ int input_init(
     counter = 0;
 
     /* case theta_s */
-    class_call(parser_read_double_and_position(fzw.pfc,
+    class_call(parser_read_double_and_position(pfc,
                                                "100*theta_s",
                                                &param1,
                                                &position,
@@ -210,20 +225,22 @@ int input_init(
                errmsg,
                errmsg);
 
+
     if (flag1 == _TRUE_) {
       // store name of target parameter
       fzw.target_name[counter] = theta_s;
       // store target value of target parameter
       fzw.target_value[counter] = param1;
       // substitute the name of the target parameter with the name of the corresponding unknown parameter
-      fzw.unknown_parameters_index[counter]=position;
-      strcpy(pfc->name[fzw.unknown_parameters_index[counter]],"h"); // substitute the name of the target parameter with the name of the corresponding unknown parameter
+      //      fzw.unknown_parameters_index[counter]=position;
+      fzw.unknown_parameters_index[counter]=pfc->size+counter;
+      strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],"h"); // substitute the name of the target parameter with the name of the corresponding unknown parameter
       counter++;
     }
 
     if (1==1){ //Thomas implementation
       double dx, dxdy;
-      int search_dir, fevals, iter;
+      int search_dir, fevals=1, iter;
 
       double x1, f1, x2, f2, xzero;
       /** Here is our guess: */
@@ -285,7 +302,9 @@ int input_init(
                                     errmsg),
                  errmsg, errmsg);
 
-      printf("Total function evaluations: %d\n",fevals);
+      /* Store xzero */
+      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
+      printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
 
     }
 
@@ -405,7 +424,7 @@ int input_init(
         input_minus = unknown_parameter[0];
       }
     }
-    printf("Evals at this point: %d\n",evals);
+    printf("Total function evaluations: %d, h=%e\n",evals,unknown_parameter[0]);
     }
 
     /*
@@ -415,23 +434,43 @@ int input_init(
               target_value[0],
               output);
     */
-  }
 
-  /* now read all parameters */
-  class_call(input_read_parameters(pfc,
-                                   ppr,
-                                   pba,
-                                   pth,
-                                   ppt,
-                                   ptr,
-                                   ppm,
-                                   psp,
-                                   pnl,
-                                   ple,
-                                   pop,
-                                   errmsg),
-             errmsg,
-             errmsg);
+    //     Read all parameters from tuned pfc:
+    class_call(input_read_parameters(&(fzw.fc),
+                                     ppr,
+                                     pba,
+                                     pth,
+                                     ppt,
+                                     ptr,
+                                     ppm,
+                                     psp,
+                                     pnl,
+                                     ple,
+                                     pop,
+                                     errmsg),
+               errmsg,
+               errmsg);
+    // Free tuned pfc
+    parser_free(&(fzw.fc));
+  }
+  else{
+
+    /* just read all parameters from input pfc: */
+    class_call(input_read_parameters(pfc,
+                                     ppr,
+                                     pba,
+                                     pth,
+                                     ppt,
+                                     ptr,
+                                     ppm,
+                                     psp,
+                                     pnl,
+                                     ple,
+                                     pop,
+                                     errmsg),
+               errmsg,
+               errmsg);
+  }
 
   return _SUCCESS_;
 
@@ -3114,22 +3153,22 @@ int input_try_unknown_parameters2(double * unknown_parameter,
   int i;
 
   for (i=0; i < unknown_parameters_size; i++) {
-    sprintf(pfzw->pfc->value[pfzw->unknown_parameters_index[i]],
+    sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
             "%e",unknown_parameter[i]);
   }
 
-   class_call(input_read_parameters(pfzw->pfc,
-                                    &pr,
-                                    &ba,
-                                    &th,
-                                    &pt,
-                                    &tr,
-                                    &pm,
-                                    &sp,
-                                    &nl,
-                                    &le,
-                                    &op,
-                                    errmsg),
+  class_call(input_read_parameters(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
               errmsg,
               errmsg);
 
@@ -3161,8 +3200,8 @@ int input_try_unknown_parameters2(double * unknown_parameter,
               th.error_message,
               errmsg);
 
-   for (i=0; i<pfzw->pfc->size; i++) {
-     pfzw->pfc->read[i] = _FALSE_;
+   for (i=0; i<pfzw->fc.size; i++) {
+     pfzw->fc.read[i] = _FALSE_;
    }
 
    return _SUCCESS_;

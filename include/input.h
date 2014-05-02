@@ -143,7 +143,7 @@ struct input_pprpba {
 
 struct fzerofun_workspace {
   int * unknown_parameters_index;
-  struct file_content * pfc;
+  struct file_content fc;
   enum target_names * target_name;
   double * target_value;
   int target_size;
