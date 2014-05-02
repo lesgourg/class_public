@@ -759,12 +759,14 @@ cdef class Class:
 
             This method used to take as an argument directly the data class from
             Monte Python. To maintain compatibility with this old feature, a
-            check is performed to verify that names is indeed a list.
+            check is performed to verify that names is indeed a list. If not, it
+            returns a TypeError. The old version of this function, when asked
+            with the new argument, will raise an AttributeError.
 
         """
-
         if type(names) != type([]):
             raise TypeError("Deprecated")
+
         derived = {}
         for name in names:
             if name == 'h':
