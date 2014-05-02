@@ -239,21 +239,11 @@ extern "C" {
 				    double *valout,
 				    ErrorMsg error_message);
 
-  int input_try_unknow_parameters(double * unknown_parameter,
-                                  int * unknown_parameters_index,
-                                  int unknown_parameters_size,
-                                  struct file_content * pfc,
-                                  enum target_names * target_name,
-                                  double * target_value,
-                                  int target_size,
-                                  double * output,
-                                  ErrorMsg errmsg);
-
-  int input_try_unknown_parameters2(double * unknown_parameter,
-                                    int unknown_parameters_size,
-                                    struct fzerofun_workspace * pfzw,
-                                    double * output,
-                                    ErrorMsg errmsg);
+  int input_try_unknown_parameters(double * unknown_parameter,
+                                   int unknown_parameters_size,
+                                   struct fzerofun_workspace * pfzw,
+                                   double * output,
+                                   ErrorMsg errmsg);
 
   int input_fzerofun_1d(double input,
                         void* fzerofun_workspace,
