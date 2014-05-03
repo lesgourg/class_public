@@ -237,11 +237,12 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
 #define class_fprintf_columntitle(file,                                 \
                                   title,                                \
-                                  condition){                           \
+                                  condition,                            \
+                                  colnum){                              \
     if (condition == _TRUE_)                                            \
-      fprintf(file,"%*s%-*s ",\
-              MAX(0,MIN(_COLUMNWIDTH_-_OUTPUTPRECISION_-6,_COLUMNWIDTH_-((int) strlen(title)))), \
-              "",_OUTPUTPRECISION_+6,title);                            \
+      fprintf(file,"%*s%2d:%-*s ",                                      \
+              MAX(0,MIN(_COLUMNWIDTH_-_OUTPUTPRECISION_-6-3,_COLUMNWIDTH_-((int) strlen(title))-3)), \
+              "",colnum++,_OUTPUTPRECISION_+6,title);                   \
   }
 
 /** parameters related to the precision of the code and to the method of calculation */

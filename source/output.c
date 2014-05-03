@@ -1756,36 +1756,38 @@ int output_open_background_file(
                                 ) {
 
   int n;
+  int colnum=1;
   char tmp[30]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
   class_open(*backfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(*backfile,"# Table of selected background quantitites\n");
     fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
+    fprintf(*backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
     /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
         but it can be as long as . */
     fprintf(*backfile,"#");
-    class_fprintf_columntitle(*backfile,"z",_TRUE_);
-    class_fprintf_columntitle(*backfile,"proper time [Gyr]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"conf. time * c [Mpc]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"H / c [1/Mpc]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"comov. dist. [Mpc]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"ang.diam.dist. [Mpc]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"lum. dist. [Mpc]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"comov.snd.hrz. [Mpc]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"(.)rho_g [Mpc^-2]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"(.)rho_b [Mpc^-2]",_TRUE_);
-    class_fprintf_columntitle(*backfile,"(.)rho_cdm [Mpc^-2]",pba->has_cdm);
+    class_fprintf_columntitle(*backfile,"z",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"proper time [Gyr]",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"conf. time [Mpc]",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"H [1/Mpc]",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"comov. dist.",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"ang.diam.dist.",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"lum. dist.",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"comov.snd.hrz.",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_g",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_b",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_cdm",pba->has_cdm,colnum);
     if (pba->has_ncdm == _TRUE_){
       for (n=0; n<pba->N_ncdm; n++){
-        sprintf(tmp,"(.)rho_ncdm[%d] [Mpc^-2]",n);
-        class_fprintf_columntitle(*backfile,tmp,_TRUE_);
+        sprintf(tmp,"(.)rho_ncdm[%d]",n);
+        class_fprintf_columntitle(*backfile,tmp,_TRUE_,colnum);
       }
     }
-    class_fprintf_columntitle(*backfile,"(.)rho_lambda [Mpc^-2]",pba->has_lambda);
-    class_fprintf_columntitle(*backfile,"(.)rho_fld [Mpc^-2]",pba->has_fld);
-    class_fprintf_columntitle(*backfile,"(.)rho_ur [Mpc^-2]",pba->has_ur);
-    class_fprintf_columntitle(*backfile,"(.)rho_crit[Mpc^-2]",_TRUE_);
+    class_fprintf_columntitle(*backfile,"(.)rho_lambda",pba->has_lambda,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_fld",pba->has_fld,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_ur",pba->has_ur,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_crit",_TRUE_,colnum);
     fprintf(*backfile,"\n");
   }
 
@@ -1853,7 +1855,7 @@ int output_open_thermodynamics_file(
                                     FILE ** thermofile,
                                     FileName filename
                                     ) {
-
+  int colnum=1;
   class_open(*thermofile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
@@ -1871,20 +1873,20 @@ int output_open_thermodynamics_file(
         but it can be as long as _COLUMNTITLE_. */
 
     fprintf(*thermofile,"#");
-    class_fprintf_columntitle(*thermofile,"z",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"conf. time [Mpc]",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"x_e",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"kappa' [Mpc^-1]",_TRUE_);
-    //class_fprintf_columntitle(*thermofile,"kappa''",_TRUE_);
-    //class_fprintf_columntitle(*thermofile,"kappa'''",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"exp(-kappa)",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"g [Mpc^-1]",_TRUE_);
-    //class_fprintf_columntitle(*thermofile,"g'",_TRUE_);
-    //class_fprintf_columntitle(*thermofile,"g''",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"Tb [K]",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"c_b^2",_TRUE_);
-    class_fprintf_columntitle(*thermofile,"tau_d",_TRUE_);
-    //class_fprintf_columntitle(*thermofile,"max. rate",_TRUE_);
+    class_fprintf_columntitle(*thermofile,"z",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"conf. time [Mpc]",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"x_e",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"kappa' [Mpc^-1]",_TRUE_,colnum);
+    //class_fprintf_columntitle(*thermofile,"kappa''",_TRUE_,colnum);
+    //class_fprintf_columntitle(*thermofile,"kappa'''",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"exp(-kappa)",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"g [Mpc^-1]",_TRUE_,colnum);
+    //class_fprintf_columntitle(*thermofile,"g'",_TRUE_,colnum);
+    //class_fprintf_columntitle(*thermofile,"g''",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"Tb [K]",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"c_b^2",_TRUE_,colnum);
+    class_fprintf_columntitle(*thermofile,"tau_d",_TRUE_,colnum);
+    //class_fprintf_columntitle(*thermofile,"max. rate",_TRUE_,colnum);
     fprintf(*thermofile,"\n");
   }
 
