@@ -314,6 +314,16 @@ int input_init(
                                      errmsg),
                errmsg,
                errmsg);
+
+    /* all parameters read in fzw must be considered as read in
+       pfc. At the same time the parameters read before in pfc (like
+       theta_s,...) must still be considered as read (hence we could
+       not do a memcopy) */
+    for (counter=0; counter < pfc->size; counter ++) {
+      if (fzw.fc.read[counter] == _TRUE_)
+        pfc->read[counter] = _TRUE_;
+    }
+
     // Free tuned pfc
     parser_free(&(fzw.fc));
   }
