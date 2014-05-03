@@ -255,6 +255,8 @@ extern "C" {
                       struct fzerofun_workspace * pfzw,
                       int index_guess,
                       ErrorMsg errmsg);
+
+  int file_exists(const char *fname);
 #ifdef __cplusplus
 }
 #endif

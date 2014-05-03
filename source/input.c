@@ -36,13 +36,19 @@ int input_init_from_arguments(
 
   struct file_content fc;
   struct file_content fc_input;
+  struct file_content * pfc_input;
   struct file_content fc_precision;
+  struct file_content fc_root;
+  struct file_content fc_inputroot;
 
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
+  char tmp_file[_ARGUMENT_LENGTH_MAX_];
 
   int i;
   char extension[5];
+  FileArg stringoutput, inifilename;
+  int flag1, filenum;
 
   /** - Initialize the two file_content structures (for input
       parameters and precision parameters) to some null content. If no
@@ -88,6 +94,38 @@ int input_init_from_arguments(
                errmsg,
                errmsg);
 
+  /** - if root has not been set, use root=output/inputfilenname#_ */
+  class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
+             errmsg, errmsg);
+  if (flag1 == _FALSE_){
+    strncpy(inifilename, input_file, strlen(input_file)-4);
+    for (filenum = 0; filenum < 100; filenum++){
+      sprintf(tmp_file,"output/%s%02d_cl.dat", inifilename, filenum);
+      if (file_exists(tmp_file) == _TRUE_)
+        continue;
+      sprintf(tmp_file,"output/%s%02d_parameters.ini", inifilename, filenum);
+      if (file_exists(tmp_file) == _TRUE_)
+        continue;
+      break;
+    }
+    class_call(parser_init(&fc_root,
+                           1,
+                           fc_input.filename,
+                           errmsg),
+               errmsg,errmsg);
+    sprintf(fc_root.name[0],"root");
+    sprintf(fc_root.value[0],"output/%s%02d_",inifilename,filenum);
+    fc_root.read[0] = 0;
+    class_call(parser_cat(&fc_input,&fc_root,&fc_inputroot,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_free(&fc_input),errmsg,errmsg);
+    pfc_input = &fc_inputroot;
+  }
+  else{
+    pfc_input = &fc_input;
+  }
+
   /** - if there is an 'xxx.pre' file, read it and store its content. */
 
   if (precision_file[0] != '\0')
@@ -101,11 +139,11 @@ int input_init_from_arguments(
 
   if ((input_file[0]!='\0') || (precision_file[0]!='\0'))
 
-    class_call(parser_cat(&fc_input,&fc_precision,&fc,errmsg),
+    class_call(parser_cat(pfc_input,&fc_precision,&fc,errmsg),
                errmsg,
                errmsg);
 
-  class_call(parser_free(&fc_input),errmsg,errmsg);
+  class_call(parser_free(pfc_input),errmsg,errmsg);
   class_call(parser_free(&fc_precision),errmsg,errmsg);
 
   /** - now, initialize all parameters given the input 'file_content'
@@ -3020,4 +3058,13 @@ int input_get_guess(double *xguess,
     break;
   }
   return _SUCCESS_;
+}
+
+int file_exists(const char *fname){
+  FILE *file = fopen(fname, "r");
+  if (file != NULL){
+    fclose(file);
+    return _TRUE_;
+  }
+  return _FALSE_;
 }
