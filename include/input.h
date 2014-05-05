@@ -135,6 +135,7 @@
  */
 
 enum target_names {theta_s};
+#define _NUM_TARGETS_ 1 //Keep this number as number of target_names
 
 struct input_pprpba {
   struct precision * ppr;

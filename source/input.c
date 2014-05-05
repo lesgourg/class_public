@@ -194,27 +194,36 @@ int input_init(
 
   int flag1;
   double param1;
-  int counter;
+  int counter, index_target;
   double * unknown_parameter;
   int unknown_parameters_size;
   double dx, dxdy=0.;
   int fevals=1, iter, iter2;
   int return_function;
   double x1, f1, x2, f2, xzero;
+  int target_indices[_NUM_TARGETS_];
 
   struct fzerofun_workspace fzw;
+  /** These two arrays must contain the strings of names to be searched
+      for and the coresponding new parameter */
+  char * const target_namestrings[] = {"100*theta_s"};
+  char * const unknown_namestrings[] = {"h"};
+
 
   /* Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
-
-  class_call(parser_read_double(pfc,"100*theta_s",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  if (flag1 == _TRUE_) {
-    /* In principle I could check for compatibility, but the input module
-       already handles the case of multiple or inconsistent input values,
-       so it should be fine. */
-    unknown_parameters_size++;
+  for (index_target = 0; index_target < _NUM_TARGETS_; index_target++){
+    class_call(parser_read_double(pfc,
+                                  target_namestrings[index_target],
+                                  &param1,
+                                  &flag1,
+                                  errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_){
+      target_indices[unknown_parameters_size] = index_target;
+      unknown_parameters_size++;
+    }
   }
 
   /* case with unknown parameters */
@@ -245,97 +254,98 @@ int input_init(
                 fzw.target_size*sizeof(double),
                 errmsg);
 
-    /* go through all cases with a counter */
-    counter = 0;
-
-    /* case theta_s */
-    class_call(parser_read_double(pfc,
-                                  "100*theta_s",
-                                  &param1,
-                                  &flag1,
-                                  errmsg),
+    /* go through all cases with unknown parameters: */
+    for (counter = 0; counter < unknown_parameters_size; counter++){
+      index_target = target_indices[counter];
+      class_call(parser_read_double(pfc,
+                                    target_namestrings[index_target],
+                                    &param1,
+                                    &flag1,
+                                    errmsg),
                errmsg,
                errmsg);
 
-
-    if (flag1 == _TRUE_) {
       // store name of target parameter
-      fzw.target_name[counter] = theta_s;
+      fzw.target_name[counter] = index_target;
       // store target value of target parameter
       fzw.target_value[counter] = param1;
-      // substitute the name of the target parameter with the name of the corresponding unknown parameter
-      //      fzw.unknown_parameters_index[counter]=position;
       fzw.unknown_parameters_index[counter]=pfc->size+counter;
-      strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],"h"); // substitute the name of the target parameter with the name of the corresponding unknown parameter
+      // substitute the name of the target parameter with the name of the corresponding unknown parameter
+      strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
       counter++;
     }
 
-    /** Here is our guess: */
-    class_call(input_get_guess(&x1, &dxdy, &fzw, 0, errmsg),
-               errmsg, errmsg);
+    if (unknown_parameters_size == 1){
+      /* We can do 1 dimensional root finding */
+      /** Here is our guess: */
+      class_call(input_get_guess(&x1, &dxdy, &fzw, 0, errmsg),
+                 errmsg, errmsg);
 
-    class_call(input_fzerofun_1d(x1,
-                                 &fzw,
-                                 &f1,
-                                 errmsg),
-               errmsg, errmsg);
-    //printf("x1= %g, f1= %g\n",x1,f1);
+      class_call(input_fzerofun_1d(x1,
+                                   &fzw,
+                                   &f1,
+                                   errmsg),
+                 errmsg, errmsg);
+      //printf("x1= %g, f1= %g\n",x1,f1);
 
-    dx = 1.5*f1*dxdy;
+      dx = 1.5*f1*dxdy;
 
-    /** Do linear hunt for boundaries: */
-    for (iter=1; iter<=10; iter++){
-      //x2 = x1 + search_dir*dx;
-      x2 = x1 - dx;
+      /** Do linear hunt for boundaries: */
+      for (iter=1; iter<=10; iter++){
+        //x2 = x1 + search_dir*dx;
+        x2 = x1 - dx;
 
-      for (iter2=1; iter2 <= 3; iter2++) {
-        return_function = input_fzerofun_1d(x2,&fzw,&f2,errmsg);
-        fevals++;
-        //printf("x2= %g, f2= %g\n",x2,f2);
-        //fprintf(stderr,"iter2=%d\n",iter2);
+        for (iter2=1; iter2 <= 3; iter2++) {
+          return_function = input_fzerofun_1d(x2,&fzw,&f2,errmsg);
+          fevals++;
+          //printf("x2= %g, f2= %g\n",x2,f2);
+          //fprintf(stderr,"iter2=%d\n",iter2);
 
-        if (return_function ==_SUCCESS_) {
+          if (return_function ==_SUCCESS_) {
+            break;
+          }
+          else if (iter2 < 3) {
+            dx*=0.5;
+            x2 = x1-dx;
+          }
+          else {
+            //fprintf(stderr,"get here\n");
+            class_stop(errmsg,errmsg);
+          }
+        }
+
+        if (f1*f2<0.0){
+          /** root has been bracketed */
+          if (0==1){//(pba->background_verbose > 4){
+            printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
+          }
           break;
         }
-        else if (iter2 < 3) {
-          dx*=0.5;
-          x2 = x1-dx;
-        }
-        else {
-          //fprintf(stderr,"get here\n");
-          class_stop(errmsg,errmsg);
-        }
+
+        x1 = x2;
+        f1 = f2;
       }
 
-      if (f1*f2<0.0){
-        /** root has been bracketed */
-        if (0==1){//(pba->background_verbose > 4){
-          printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
-        }
-        break;
-      }
+      /** Find root using Ridders method. (Exchange for bisection if you are old-school.) */
+      class_call(class_fzero_ridder(input_fzerofun_1d,
+                                    x1,
+                                    x2,
+                                    1e-5*MAX(fabs(x1),fabs(x2)),
+                                    &fzw,
+                                    &f1,
+                                    &f2,
+                                    &xzero,
+                                    &fevals,
+                                    errmsg),
+                 errmsg, errmsg);
 
-      x1 = x2;
-      f1 = f2;
+      /* Store xzero */
+      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
+      //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
     }
-
-    /** Find root using Ridders method. (Exchange for bisection if you are old-school.) */
-    class_call(class_fzero_ridder(input_fzerofun_1d,
-                                  x1,
-                                  x2,
-                                  1e-5*MAX(fabs(x1),fabs(x2)),
-                                  &fzw,
-                                  &f1,
-                                  &f2,
-                                  &xzero,
-                                  &fevals,
-                                  errmsg),
-               errmsg, errmsg);
-
-    /* Store xzero */
-    sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
-    //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
-
+    else{
+      class_stop(errmsg,"Multidimensional root finding not coded yet\n");
+    }
 
     /**     Read all parameters from tuned pfc: */
     class_call(input_read_parameters(&(fzw.fc),
