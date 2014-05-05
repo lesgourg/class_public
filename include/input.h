@@ -134,8 +134,9 @@
  * temporary parameters for background fzero function
  */
 
-enum target_names {theta_s};
-#define _NUM_TARGETS_ 1 //Keep this number as number of target_names
+enum target_names {theta_s, Omega_dcdm};
+enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations, cs_spectra};
+#define _NUM_TARGETS_ 2 //Keep this number as number of target_names
 
 struct input_pprpba {
   struct precision * ppr;
@@ -148,6 +149,7 @@ struct fzerofun_workspace {
   enum target_names * target_name;
   double * target_value;
   int target_size;
+  enum computation_stage required_computation_stage;
 };
 
 
@@ -254,7 +256,6 @@ extern "C" {
   int input_get_guess(double *xguess,
                       double *dxdy,
                       struct fzerofun_workspace * pfzw,
-                      int index_guess,
                       ErrorMsg errmsg);
 
   int file_exists(const char *fname);

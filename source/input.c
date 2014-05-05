@@ -206,12 +206,13 @@ int input_init(
   struct fzerofun_workspace fzw;
   /** These two arrays must contain the strings of names to be searched
       for and the coresponding new parameter */
-  char * const target_namestrings[] = {"100*theta_s"};
-  char * const unknown_namestrings[] = {"h"};
-
+  char * const target_namestrings[] = {"100*theta_s","Omega_dcdm"};
+  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm"};
+  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background};
 
   /* Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
+  fzw.required_computation_stage = 0;
   for (index_target = 0; index_target < _NUM_TARGETS_; index_target++){
     class_call(parser_read_double(pfc,
                                   target_namestrings[index_target],
@@ -220,8 +221,13 @@ int input_init(
                                   errmsg),
                errmsg,
                errmsg);
-    if (flag1 == _TRUE_){
+    if ((flag1 == _TRUE_)&&(param1 != 0.)){
+      /** The param!=0. takes care of the case where for instance Omega_dcdm is set to 0.0.
+          If at some point we have parameters crossing zero, we must deal with this case in
+          a more robust way.
+      */
       target_indices[unknown_parameters_size] = index_target;
+      fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
       unknown_parameters_size++;
     }
   }
@@ -272,15 +278,16 @@ int input_init(
       fzw.unknown_parameters_index[counter]=pfc->size+counter;
       // substitute the name of the target parameter with the name of the corresponding unknown parameter
       strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
+      //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
       counter++;
     }
 
     if (unknown_parameters_size == 1){
       /* We can do 1 dimensional root finding */
       /** Here is our guess: */
-      class_call(input_get_guess(&x1, &dxdy, &fzw, 0, errmsg),
+      class_call(input_get_guess(&x1, &dxdy, &fzw, errmsg),
                  errmsg, errmsg);
-
+      //      printf("x1= %g\n",x1);
       class_call(input_fzerofun_1d(x1,
                                    &fzw,
                                    &f1,
@@ -821,8 +828,8 @@ int input_read_parameters(
 
   /* Read verbose parameter early for controling output here.*/
   class_read_int("background_verbose",pba->background_verbose);
-
-  if (pba->Omega0_dcdm > 0.0){
+  class_read_double("Omega_ini_dcdm",pba->Omega_ini_dcdm);
+  if ((1==0)&&(pba->Omega0_dcdm > 0.0)){
     /** We must make a guess. Note that we should always try to search
         for a parameter which is time independent at early times. The
         reason is that ncdm species may require the code to decrease
@@ -2995,6 +3002,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
   int i;
+  double rho_dcdm_today, rho_dr_today;
 
   for (i=0; i < unknown_parameters_size; i++) {
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
@@ -3016,33 +3024,44 @@ int input_try_unknown_parameters(double * unknown_parameter,
              errmsg,
              errmsg);
 
-  ba.background_verbose = 0;
 
-  class_call(background_init(&pr,&ba),
-             ba.error_message,
-             errmsg);
+  if (pfzw->required_computation_stage >= cs_background){
+    ba.background_verbose = 0;
+    class_call(background_init(&pr,&ba),
+               ba.error_message,
+               errmsg);
+  }
 
-  th.thermodynamics_verbose = 0;
+  if (pfzw->required_computation_stage >= cs_thermodynamics){
+    th.thermodynamics_verbose = 0;
+    class_call(thermodynamics_init(&pr,&ba,&th),
+               th.error_message,
+               errmsg);
+  }
 
-  class_call(thermodynamics_init(&pr,&ba,&th),
-             th.error_message,
-             errmsg);
-
-  *output = 0.;
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
     case theta_s:
-      *output += 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
+      output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
+      break;
+    case Omega_dcdm:
+      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
+      rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
     }
   }
 
-  class_call(thermodynamics_free(&th),
-             ba.error_message,
-             errmsg);
+  if (pfzw->required_computation_stage >= cs_thermodynamics){
+    class_call(thermodynamics_free(&th),
+               ba.error_message,
+               errmsg);
+  }
 
-  class_call(background_free(&ba),
-             th.error_message,
-             errmsg);
+  if (pfzw->required_computation_stage >= cs_background){
+    class_call(background_free(&ba),
+               th.error_message,
+               errmsg);
+  }
 
   for (i=0; i<pfzw->fc.size; i++) {
     pfzw->fc.read[i] = _FALSE_;
@@ -3054,19 +3073,67 @@ int input_try_unknown_parameters(double * unknown_parameter,
 int input_get_guess(double *xguess,
                     double *dxdy,
                     struct fzerofun_workspace * pfzw,
-                    int index_guess,
                     ErrorMsg errmsg){
+
+  struct precision pr;        /* for precision parameters */
+  struct background ba;       /* for cosmological background */
+  struct thermo th;           /* for thermodynamics */
+  struct perturbs pt;         /* for source functions */
+  struct transfers tr;        /* for transfer functions */
+  struct primordial pm;       /* for primordial spectra */
+  struct spectra sp;          /* for output spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
+  struct output op;           /* for output files */
+  int i;
+
+  double Omega_M, sqrt_one_minus_M;
+  int index_guess;
+
+  /* Cheat to read only known parameters: */
+  pfzw->fc.size -= pfzw->target_size;
+  class_call(input_read_parameters(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
+             errmsg,
+             errmsg);
+  pfzw->fc.size += pfzw->target_size;
 
   /** Here we should right reasonable guesses for the unknown parameters.
       Also estimate dxdy, i.e. how the unknown parameter responds to the known.
       This can simply be estimated as the derivative of the guess formula.*/
 
-  switch (pfzw->target_name[index_guess]) {
-  case theta_s:
-    *xguess = 3.54*pow(pfzw->target_value[0],2)-5.455*pfzw->target_value[0]+2.548;
-    *dxdy = (7.08*pfzw->target_value[0]-5.455);
-    break;
+  for (index_guess=0; index_guess < pfzw->target_size; index_guess++) {
+    switch (pfzw->target_name[index_guess]) {
+    case theta_s:
+      *xguess = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
+      *dxdy = (7.08*pfzw->target_value[index_guess]-5.455);
+      break;
+    case Omega_dcdm:
+      /* This formula is exact in a Matter + Lambda Universe. */
+      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdm+ba.Omega0_b;
+      sqrt_one_minus_M = sqrt(1.0 - Omega_M);
+      *xguess = pfzw->target_value[index_guess]*
+        exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+      *dxdy = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+      //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+    }
   }
+
+  for (i=0; i<pfzw->fc.size; i++) {
+    pfzw->fc.read[i] = _FALSE_;
+  }
+
+
   return _SUCCESS_;
 }
 
