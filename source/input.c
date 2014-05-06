@@ -212,6 +212,7 @@ int input_init(
   int return_function;
   double x1, f1, x2, f2, xzero;
   int target_indices[_NUM_TARGETS_];
+  double *dxdF, *x_inout;
 
   struct fzerofun_workspace fzw;
   /** These two arrays must contain the strings of names to be searched
@@ -236,6 +237,7 @@ int input_init(
           If at some point we have parameters crossing zero, we must deal with this case in
           a more robust way.
       */
+      //printf("Found target: %s\n",target_namestrings[index_target]);
       target_indices[unknown_parameters_size] = index_target;
       fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
       unknown_parameters_size++;
@@ -360,7 +362,36 @@ int input_init(
       //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
     }
     else{
-      class_stop(errmsg,"Multidimensional root finding not coded yet\n");
+      class_alloc(x_inout,
+                  sizeof(double)*unknown_parameters_size,
+                  errmsg);
+      class_alloc(dxdF,
+                  sizeof(double)*unknown_parameters_size,
+                  errmsg);
+      class_call(input_get_guess(x_inout,
+                                 dxdF,
+                                 &fzw,
+                                 errmsg),
+                 errmsg, errmsg);
+
+      class_call(fzero_Newton(input_try_unknown_parameters,
+                              x_inout,
+                              dxdF,
+                              unknown_parameters_size,
+                              1e-3,
+                              1e-6,
+                              &fzw,
+                              errmsg),
+                 errmsg,errmsg);
+
+      /* Store xzero */
+      for (counter = 0; counter < unknown_parameters_size; counter++){
+        sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
+                "%e",x_inout[counter]);
+      }
+
+      free(x_inout);
+      free(dxdF);
     }
 
     /**     Read all parameters from tuned pfc: */
@@ -2815,7 +2846,7 @@ int input_fzerofun_1d(double input,
 
   class_call(input_try_unknown_parameters(&input,
                                           1,
-                                          (struct fzerofun_workspace *) pfzw,
+                                          pfzw,
                                           output,
                                           error_message),
              error_message,
@@ -2911,7 +2942,7 @@ int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg er
 
 int input_try_unknown_parameters(double * unknown_parameter,
                                  int unknown_parameters_size,
-                                 struct fzerofun_workspace * pfzw,
+                                 void * voidpfzw,
                                  double * output,
                                  ErrorMsg errmsg){
 
@@ -2927,6 +2958,8 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct output op;           /* for output files */
   int i;
   double rho_dcdm_today, rho_dr_today;
+  struct fzerofun_workspace * pfzw;
+  pfzw = (struct fzerofun_workspace *) voidpfzw;
 
   for (i=0; i < unknown_parameters_size; i++) {
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
@@ -3083,17 +3116,18 @@ int input_get_guess(double *xguess,
   for (index_guess=0; index_guess < pfzw->target_size; index_guess++) {
     switch (pfzw->target_name[index_guess]) {
     case theta_s:
-      *xguess = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
-      *dxdy = (7.08*pfzw->target_value[index_guess]-5.455);
+      xguess[index_guess] = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
+      dxdy[index_guess] = (7.08*pfzw->target_value[index_guess]-5.455);
       break;
     case Omega_dcdm:
       /* This formula is exact in a Matter + Lambda Universe. */
       Omega_M = ba.Omega0_cdm+ba.Omega0_dcdm+ba.Omega0_b;
       sqrt_one_minus_M = sqrt(1.0 - Omega_M);
-      *xguess = pfzw->target_value[index_guess]*
+      xguess[index_guess] = pfzw->target_value[index_guess]*
         exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
-      *dxdy = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+      dxdy[index_guess] = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      break;
     }
   }
 

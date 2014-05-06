@@ -245,7 +245,7 @@ extern "C" {
 
   int input_try_unknown_parameters(double * unknown_parameter,
                                    int unknown_parameters_size,
-                                   struct fzerofun_workspace * pfzw,
+                                   void * pfzw,
                                    double * output,
                                    ErrorMsg errmsg);
 
