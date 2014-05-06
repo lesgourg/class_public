@@ -34,12 +34,12 @@ int input_init_from_arguments(
 
   /** - define local variables */
 
-  struct file_content fc;
-  struct file_content fc_input;
-  struct file_content * pfc_input;
-  struct file_content fc_precision;
-  struct file_content fc_root;
-  struct file_content fc_inputroot;
+  struct file_content fc;             /**< the final structure with all parameters */
+  struct file_content fc_input;       /**< a temporary structure with all input parameters */
+  struct file_content fc_precision;   /**< a temporary structure with all precision parameters */
+  struct file_content fc_root;        /**< a temporary structure with only the root name */
+  struct file_content fc_inputroot;   /**< sum of fc_inoput and fc_root */
+  struct file_content * pfc_input;    /**< a pointer to either fc_root or fc_inputroot */
 
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
@@ -94,13 +94,23 @@ int input_init_from_arguments(
                errmsg,
                errmsg);
 
-  /** - if root has not been set, use root=output/inputfilenname#_ */
+  /** - check whether a root name has been set */
+
   class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
              errmsg, errmsg);
+
+  /** - if root has not been set, use root=output/inputfilenname#_ */
+
   if (flag1 == _FALSE_){
     strncpy(inifilename, input_file, strlen(input_file)-4);
     for (filenum = 0; filenum < 100; filenum++){
       sprintf(tmp_file,"output/%s%02d_cl.dat", inifilename, filenum);
+      if (file_exists(tmp_file) == _TRUE_)
+        continue;
+      sprintf(tmp_file,"output/%s%02d_pk.dat", inifilename, filenum);
+      if (file_exists(tmp_file) == _TRUE_)
+        continue;
+      sprintf(tmp_file,"output/%s%02d_tk.dat", inifilename, filenum);
       if (file_exists(tmp_file) == _TRUE_)
         continue;
       sprintf(tmp_file,"output/%s%02d_parameters.ini", inifilename, filenum);
@@ -115,7 +125,7 @@ int input_init_from_arguments(
                errmsg,errmsg);
     sprintf(fc_root.name[0],"root");
     sprintf(fc_root.value[0],"output/%s%02d_",inifilename,filenum);
-    fc_root.read[0] = 0;
+    fc_root.read[0] = _FALSE_;
     class_call(parser_cat(&fc_input,&fc_root,&fc_inputroot,errmsg),
                errmsg,
                errmsg);
