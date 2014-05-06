@@ -227,6 +227,10 @@ int input_init(
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background};
 
+  int input_verbose = 0, int1;
+
+  class_read_int("input_verbose",input_verbose);
+
   /* Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
   fzw.required_computation_stage = 0;
@@ -366,6 +370,12 @@ int input_init(
       /* Store xzero */
       sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
       //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
+      if (input_verbose > 0) {
+        fprintf(stdout,"Computing unknown input parameters\n");
+        fprintf(stdout," -> found %s = %s\n",
+                fzw.fc.name[fzw.unknown_parameters_index[0]],
+                fzw.fc.value[fzw.unknown_parameters_index[0]]);
+      }
     }
     else{
       class_alloc(x_inout,
@@ -390,10 +400,19 @@ int input_init(
                               errmsg),
                  errmsg,errmsg);
 
+      if (input_verbose > 0) {
+        fprintf(stdout,"Computing unknown input parameters\n");
+      }
+
       /* Store xzero */
       for (counter = 0; counter < unknown_parameters_size; counter++){
         sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
                 "%e",x_inout[counter]);
+        if (input_verbose > 0) {
+          fprintf(stdout," -> found %s = %s\n",
+                  fzw.fc.name[fzw.unknown_parameters_index[counter]],
+                  fzw.fc.value[fzw.unknown_parameters_index[counter]]);
+        }
       }
 
       free(x_inout);
