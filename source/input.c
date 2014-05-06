@@ -204,7 +204,7 @@ int input_init(
 
   int flag1;
   double param1;
-  int counter, index_target;
+  int counter, index_target, i;
   double * unknown_parameter;
   int unknown_parameters_size;
   double dx, dxdy=0.;
@@ -213,6 +213,12 @@ int input_init(
   double x1, f1, x2, f2, xzero;
   int target_indices[_NUM_TARGETS_];
   double *dxdF, *x_inout;
+
+  char string1[_ARGUMENT_LENGTH_MAX_];
+  FILE * param_output;
+  FILE * param_unused;
+  char param_output_name[_LINE_LENGTH_MAX_];
+  char param_unused_name[_LINE_LENGTH_MAX_];
 
   struct fzerofun_workspace fzw;
   /** These two arrays must contain the strings of names to be searched
@@ -414,9 +420,9 @@ int input_init(
        pfc. At the same time the parameters read before in pfc (like
        theta_s,...) must still be considered as read (hence we could
        not do a memcopy) */
-    for (counter=0; counter < pfc->size; counter ++) {
-      if (fzw.fc.read[counter] == _TRUE_)
-        pfc->read[counter] = _TRUE_;
+    for (i=0; i < pfc->size; i ++) {
+      if (fzw.fc.read[i] == _TRUE_)
+        pfc->read[i] = _TRUE_;
     }
 
     // Free tuned pfc
@@ -439,6 +445,55 @@ int input_init(
                                      errmsg),
                errmsg,
                errmsg);
+  }
+
+  /** eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
+
+  class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
+    sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
+
+    class_open(param_output,param_output_name,"w",errmsg);
+    class_open(param_unused,param_unused_name,"w",errmsg);
+
+    fprintf(param_output,"# List of input/precision parameters actually read\n");
+    fprintf(param_output,"# (all other parameters set to default values)\n");
+    fprintf(param_output,"# Obtained with CLASS %s (for developpers: svn version %s)\n",_VERSION_,_SVN_VERSION_);
+    fprintf(param_output,"#\n");
+    fprintf(param_output,"# This file can be used as the input file of another run\n");
+    fprintf(param_output,"#\n");
+
+    fprintf(param_unused,"# List of input/precision parameters passed\n");
+    fprintf(param_unused,"# but not used (just for info)\n");
+    fprintf(param_unused,"#\n");
+
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _TRUE_)
+        fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
+      else
+        fprintf(param_unused,"%s = %s\n",pfc->name[i],pfc->value[i]);
+    }
+    fprintf(param_output,"#\n");
+
+    fclose(param_output);
+    fclose(param_unused);
+  }
+
+  class_call(parser_read_string(pfc,"write warnings",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _FALSE_)
+        fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
+    }
   }
 
   return _SUCCESS_;
@@ -487,11 +542,6 @@ int input_read_parameters(
   double Omega_tot;
 
   int i;
-
-  FILE * param_output;
-  FILE * param_unused;
-  char param_output_name[_LINE_LENGTH_MAX_];
-  char param_unused_name[_LINE_LENGTH_MAX_];
 
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
@@ -2200,55 +2250,6 @@ int input_read_parameters(
 
     pop->write_primordial = _TRUE_;
 
-  }
-
-  /** (j) eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
-
-  class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-
-    sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
-    sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
-
-    class_open(param_output,param_output_name,"w",errmsg);
-    class_open(param_unused,param_unused_name,"w",errmsg);
-
-    fprintf(param_output,"# List of input/precision parameters actually read\n");
-    fprintf(param_output,"# (all other parameters set to default values)\n");
-    fprintf(param_output,"# Obtained with CLASS %s (for developpers: svn version %s)\n",_VERSION_,_SVN_VERSION_);
-    fprintf(param_output,"#\n");
-    fprintf(param_output,"# This file can be used as the input file of another run\n");
-    fprintf(param_output,"#\n");
-
-    fprintf(param_unused,"# List of input/precision parameters passed\n");
-    fprintf(param_unused,"# but not used (just for info)\n");
-    fprintf(param_unused,"#\n");
-
-    for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _TRUE_)
-        fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
-      else
-        fprintf(param_unused,"%s = %s\n",pfc->name[i],pfc->value[i]);
-    }
-    fprintf(param_output,"#\n");
-
-    fclose(param_output);
-    fclose(param_unused);
-  }
-
-  class_call(parser_read_string(pfc,"write warnings",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-
-    for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _FALSE_)
-        fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
-    }
   }
 
   return _SUCCESS_;
