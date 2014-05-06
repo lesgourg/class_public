@@ -647,6 +647,9 @@ int input_read_parameters(
     pba->Omega0_dcdm = param1;
   if (flag2 == _TRUE_)
     pba->Omega0_dcdm = param2/pba->h/pba->h;
+  /** Omega_ini_dcdm will never be read from input, but is instead found automatically by shooting */
+  class_read_double("Omega_ini_dcdm",pba->Omega_ini_dcdm);
+
 
   /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
   class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
@@ -822,94 +825,6 @@ int input_read_parameters(
     class_read_double("cs2_fld",pba->cs2_fld);
   }
 
-  /** background parameter shooting range: Here we can search for a single initial background
-      value in order to match a given input value.*/
-
-  /* Read verbose parameter early for controling output here.*/
-  class_read_int("background_verbose",pba->background_verbose);
-  class_read_double("Omega_ini_dcdm",pba->Omega_ini_dcdm);
-  if ((1==0)&&(pba->Omega0_dcdm > 0.0)){
-    /** We must make a guess. Note that we should always try to search
-        for a parameter which is time independent at early times. The
-        reason is that ncdm species may require the code to decrease
-        the initial scale factor. While the initial value would be the
-        same for all, this change could invalidate our guess. Also,
-        the curent value of a_ini could be overwritten in the precision
-        parameter section.*/
-
-    double sqrt_one_minus_M, Jini_over_J, x1, x2, f1, f2, dx;
-    int iter, search_dir, fevals=1;
-    struct input_pprpba container;
-    container.ppr = ppr;
-    container.pba = pba;
-    /* This formula is exact in a Matter + Lambda Universe.
-       Just use Omega_tot (already computed) for Omega0_M*/
-
-
-    sqrt_one_minus_M = sqrt(1.0 - Omega_tot);
-    Jini_over_J = exp(2./3.*pba->Gamma_dcdm/pba->H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
-    x1 = pba->Omega0_dcdm * Jini_over_J;
-    dx = 0.1*x1;
-    /* Call function at best guess */
-    class_call(input_fzerofun_for_background(x1,
-                                             &container,
-                                             &f1,
-                                             errmsg),
-               errmsg,errmsg);
-    /* if f1=y(x1)-y_true > 0, we must decrease y(xnext). According to above formula,
-       this corresponds to xnext = x1 - dx.
-    */
-    if (f1>0.0)
-      search_dir = -1;
-    else
-      search_dir = 1;
-
-    if (pba->background_verbose > 4){
-      printf("Target Omega0_dcdm = %g.\nGuess for Omega_ini_dcdm was %g, resulting in Omega0=%g.\nProceeding to search by adding %g to Omega_ini_dcdm.\n",
-             pba->Omega0_dcdm, x1, f1+pba->Omega0_dcdm, search_dir*dx);
-    }
-
-    /** Do linear hunt for boundaries: */
-    for (iter=1; iter<=10; iter++){
-      x2 = x1 + search_dir*dx;
-
-      class_call(input_fzerofun_for_background(x2,
-                                               &container,
-                                               &f2,
-                                               errmsg),
-                 errmsg,errmsg);
-      fevals++;
-
-      if (f1*f2<0.0){
-        /** root has been bracketed */
-        if (pba->background_verbose > 4){
-          printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
-        }
-        break;
-      }
-
-      x1 = x2;
-      f1 = f2;
-    }
-    /** Find root using Ridders method. (Exchange for bisection if you are old-school.) */
-    class_call(class_fzero_ridder(input_fzerofun_for_background,
-                                  x1,
-                                  x2,
-                                  1e-6*MAX(fabs(x1),fabs(x2)),
-                                  &container,
-                                  &f1,
-                                  &f2,
-                                  &(pba->Omega_ini_dcdm),
-                                  &fevals,
-                                  errmsg),
-               errmsg, errmsg);
-
-
-    if (pba->background_verbose > 4){
-      printf("Root found, Omega0_ini_dcdm = %g. Total number of background evaluations: %d.\n",
-             pba->Omega_ini_dcdm,fevals);
-    }
-  }
   /** (b) assign values to thermodynamics cosmological parameters */
 
   /* primordial helium fraction */
