@@ -279,7 +279,6 @@ int input_init(
       // substitute the name of the target parameter with the name of the corresponding unknown parameter
       strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
       //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
-      counter++;
     }
 
     if (unknown_parameters_size == 1){
@@ -3025,19 +3024,50 @@ int input_try_unknown_parameters(double * unknown_parameter,
              errmsg);
 
 
+
+  /** Do computations */
   if (pfzw->required_computation_stage >= cs_background){
+    //printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call(background_init(&pr,&ba),
-               ba.error_message,
-               errmsg);
+    class_call(background_init(&pr,&ba), ba.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
+    //printf("Stage 2: thermodynamics\n");
     th.thermodynamics_verbose = 0;
-    class_call(thermodynamics_init(&pr,&ba,&th),
-               th.error_message,
-               errmsg);
+    class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
+
+  if (pfzw->required_computation_stage >= cs_perturbations){
+    //printf("Stage 3: perturbations\n");
+    pt.perturbations_verbose = 0;
+    class_call(perturb_init(&pr,&ba,&th,&pt), pt.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_primordial){
+    //printf("Stage 4: primordial\n");
+    pm.primordial_verbose = 0;
+    class_call(primordial_init(&pr,&pt,&pm), pm.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_nonlinear){
+    //printf("Stage 5: nonlinear\n");
+    nl.nonlinear_verbose = 0;
+    class_call(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl), nl.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_transfer){
+    //printf("Stage 6: transfer\n");
+    tr.transfer_verbose = 0;
+    class_call(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_spectra){
+    //printf("Stage 7: spectra\n");
+    sp.spectra_verbose = 0;
+    class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
+  }
+
 
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
@@ -3051,18 +3081,31 @@ int input_try_unknown_parameters(double * unknown_parameter,
     }
   }
 
+
+  /** Free structures */
+  if (pfzw->required_computation_stage >= cs_spectra){
+    class_call(spectra_free(&sp), sp.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_transfer){
+    class_call(transfer_free(&tr), tr.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_nonlinear){
+    class_call(nonlinear_free(&nl), nl.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_primordial){
+    class_call(primordial_free(&pm), pm.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_perturbations){
+    class_call(perturb_free(&pt), pt.error_message, errmsg);
+  }
   if (pfzw->required_computation_stage >= cs_thermodynamics){
-    class_call(thermodynamics_free(&th),
-               ba.error_message,
-               errmsg);
+    class_call(thermodynamics_free(&th), th.error_message, errmsg);
   }
-
   if (pfzw->required_computation_stage >= cs_background){
-    class_call(background_free(&ba),
-               th.error_message,
-               errmsg);
+    class_call(background_free(&ba), ba.error_message, errmsg);
   }
 
+  /* Set filecontent to unread */
   for (i=0; i<pfzw->fc.size; i++) {
     pfzw->fc.read[i] = _FALSE_;
   }
