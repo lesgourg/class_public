@@ -35,6 +35,7 @@ function plot_CLASS_output(datafiles,varargin)
 %    EpsFilename          Filename for output
 %    xvariable            'a' or 'z' (will convert one from the other)
 %    xscale               'log' or 'linear'
+%    yscale               'log' or 'linear'
 %    xlim                 [xmin xmax]
 
 if mod(nargin,2)==0
@@ -90,9 +91,12 @@ for fileidx = 1:length(datafiles)
     S = importdata(datafile,' ',titleline);
     data = S.data;
     
-    varnames = reshape(titlestring(2:end)',[],size(S.data,2))';
-    cellnames = cellstr(varnames);
-    cellnames = strtrim(cellnames);
+    %remove leading #
+    titlestring = titlestring(2:end);
+    colonidx = [find(titlestring==':'),length(titlestring)+1];
+    for j=1:(length(colonidx)-1)
+        cellnames{j} = strtrim(titlestring(colonidx(j)+1:colonidx(j+1)-3));
+    end
     
     %Determine independent variable:
     x = data(:,1);
@@ -170,6 +174,9 @@ yl = ylim;
 ylim([max(1e-100,yl(1)),yl(2)])
 xlabel(xlab)
 set(gca,'xscale',xscale);
+if isfield(opt,'yscale')
+    set(gca,'yscale',opt.yscale);
+end
 if isfield(opt,'xlim')
     xlim(opt.xlim)
 else
