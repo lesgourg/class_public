@@ -242,11 +242,9 @@ int input_init(
                                   errmsg),
                errmsg,
                errmsg);
-    if ((flag1 == _TRUE_)&&(param1 != 0.)){
-      /** The param!=0. takes care of the case where for instance Omega_dcdm is set to 0.0.
-          If at some point we have parameters crossing zero, we must deal with this case in
-          a more robust way.
-      */
+    if ((flag1 == _TRUE_)&&(input_auxillary_target_conditions(index_target,param1) == _TRUE_)){
+      /** input_auxillary_target_conditions() takes care of the case where for instance Omega_dcdm is set to 0.0.
+       */
       //printf("Found target: %s\n",target_namestrings[index_target]);
       target_indices[unknown_parameters_size] = index_target;
       fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
@@ -3166,4 +3164,14 @@ int file_exists(const char *fname){
     return _TRUE_;
   }
   return _FALSE_;
+}
+
+int input_auxillary_target_conditions(enum target_names target_name, double target_value){
+  if (target_name == Omega_dcdm){
+    /* Check that Omega_dcdm is nonzero: */
+    if (target_value == 0.)
+      return _FALSE_;
+  }
+  /* Default is no additional checks */
+  return _TRUE_;
 }

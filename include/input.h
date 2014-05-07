@@ -260,6 +260,8 @@ extern "C" {
                       ErrorMsg errmsg);
 
   int file_exists(const char *fname);
+
+  int input_auxillary_target_conditions(enum target_names target_name, double target_value);
 #ifdef __cplusplus
 }
 #endif
