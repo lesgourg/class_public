@@ -50,6 +50,8 @@ int input_init_from_arguments(
   FileArg stringoutput, inifilename;
   int flag1, filenum;
 
+  pfc_input = &fc_input;
+
   /** - Initialize the two file_content structures (for input
       parameters and precision parameters) to some null content. If no
       arguments are passed, they will remain null and inform
@@ -88,52 +90,50 @@ int input_init_from_arguments(
 
   /** - if there is an 'xxx.ini' file, read it and store its content. */
 
-  if (input_file[0] != '\0')
+  if (input_file[0] != '\0'){
 
     class_call(parser_read_file(input_file,&fc_input,errmsg),
                errmsg,
                errmsg);
 
-  /** - check whether a root name has been set */
+    /** - check whether a root name has been set */
 
-  class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
-             errmsg, errmsg);
+    class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
+               errmsg, errmsg);
 
-  /** - if root has not been set, use root=output/inputfilenname#_ */
+    /** - if root has not been set, use root=output/inputfilenname#_ */
 
-  if (flag1 == _FALSE_){
-    strncpy(inifilename, input_file, strlen(input_file)-4);
-    for (filenum = 0; filenum < 100; filenum++){
-      sprintf(tmp_file,"output/%s%02d_cl.dat", inifilename, filenum);
-      if (file_exists(tmp_file) == _TRUE_)
-        continue;
-      sprintf(tmp_file,"output/%s%02d_pk.dat", inifilename, filenum);
-      if (file_exists(tmp_file) == _TRUE_)
-        continue;
-      sprintf(tmp_file,"output/%s%02d_tk.dat", inifilename, filenum);
-      if (file_exists(tmp_file) == _TRUE_)
-        continue;
-      sprintf(tmp_file,"output/%s%02d_parameters.ini", inifilename, filenum);
-      if (file_exists(tmp_file) == _TRUE_)
-        continue;
-      break;
+    if (flag1 == _FALSE_){
+      strncpy(inifilename, input_file, strlen(input_file)-4);
+      for (filenum = 0; filenum < 100; filenum++){
+        sprintf(tmp_file,"output/%s%02d_cl.dat", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        sprintf(tmp_file,"output/%s%02d_pk.dat", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        sprintf(tmp_file,"output/%s%02d_tk.dat", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        sprintf(tmp_file,"output/%s%02d_parameters.ini", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        break;
+      }
+      class_call(parser_init(&fc_root,
+                             1,
+                             fc_input.filename,
+                             errmsg),
+                 errmsg,errmsg);
+      sprintf(fc_root.name[0],"root");
+      sprintf(fc_root.value[0],"output/%s%02d_",inifilename,filenum);
+      fc_root.read[0] = _FALSE_;
+      class_call(parser_cat(&fc_input,&fc_root,&fc_inputroot,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_free(&fc_input),errmsg,errmsg);
+      pfc_input = &fc_inputroot;
     }
-    class_call(parser_init(&fc_root,
-                           1,
-                           fc_input.filename,
-                           errmsg),
-               errmsg,errmsg);
-    sprintf(fc_root.name[0],"root");
-    sprintf(fc_root.value[0],"output/%s%02d_",inifilename,filenum);
-    fc_root.read[0] = _FALSE_;
-    class_call(parser_cat(&fc_input,&fc_root,&fc_inputroot,errmsg),
-               errmsg,
-               errmsg);
-    class_call(parser_free(&fc_input),errmsg,errmsg);
-    pfc_input = &fc_inputroot;
-  }
-  else{
-    pfc_input = &fc_input;
   }
 
   /** - if there is an 'xxx.pre' file, read it and store its content. */
