@@ -235,6 +235,15 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
       fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,output);    \
   }
 
+#define class_fprintf_int(file,                                         \
+                          output,                                       \
+                          condition){                                   \
+    if (condition == _TRUE_)                                            \
+      fprintf(file,"%*d%*s ",                                           \
+              MAX(0,_COLUMNWIDTH_-_OUTPUTPRECISION_-5),                 \
+              output, _OUTPUTPRECISION_+5," ");                          \
+  }
+
 #define class_fprintf_columntitle(file,                                 \
                                   title,                                \
                                   condition,                            \

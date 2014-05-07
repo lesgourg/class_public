@@ -1357,6 +1357,8 @@ int output_open_cl_file(
                         ) {
 
   int index_d1,index_d2;
+  int colnum = 1;
+  char tmp[60]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
 
   class_open(*clfile,filename,"w",pop->error_message);
 
@@ -1378,86 +1380,79 @@ int output_open_cl_file(
 
     fprintf(*clfile,"# -> if you don't want to see such a header, set 'headers' to 'no' in input file\n");
     fprintf(*clfile,"#\n");
-    fprintf(*clfile,"#  l ");
 
+    if (0==1){
+      fprintf(*clfile,"#");
+      class_fprintf_columntitle(*clfile,"l",_TRUE_,colnum);
+    }
+    else{
+      fprintf(*clfile,"# 1:l ");
+      colnum++;
+    }
     if (pop->output_format == class_format) {
-      if (psp->has_tt == _TRUE_)
-        fprintf(*clfile,"TT               ");
-      if (psp->has_ee == _TRUE_)
-        fprintf(*clfile,"EE               ");
-      if (psp->has_te == _TRUE_)
-        fprintf(*clfile,"TE                ");
-      if (psp->has_bb == _TRUE_)
-        fprintf(*clfile,"BB               ");
-      if (psp->has_pp == _TRUE_)
-        fprintf(*clfile,"phiphi           ");
-      if (psp->has_tp == _TRUE_)
-        fprintf(*clfile,"Tphi             ");
-      if (psp->has_ep == _TRUE_)
-        fprintf(*clfile,"Ephi             ");
-      if (psp->has_dd == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
-            fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
-      if (psp->has_td == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          fprintf(*clfile,"T-dens[%d]        ",index_d1+1);
-      if (psp->has_pd == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          fprintf(*clfile,"phi-dens[%d]      ",index_d1+1);
-      if (psp->has_ll == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
-            fprintf(*clfile,"lens[%d]-lens[%d]  ",index_d1+1,index_d2+1);
-      if (psp->has_tl == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          fprintf(*clfile,"T-lens[%d]        ",index_d1+1);
-      if (psp->has_dl == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
-            fprintf(*clfile,"dens[%d]-lens[%d]  ",index_d1+1,index_d2+1);
-      fprintf(*clfile,"\n");
+      class_fprintf_columntitle(*clfile,"TT",psp->has_tt,colnum);
+      class_fprintf_columntitle(*clfile,"EE",psp->has_ee,colnum);
+      class_fprintf_columntitle(*clfile,"TE",psp->has_te,colnum);
+      class_fprintf_columntitle(*clfile,"BB",psp->has_bb,colnum);
+      class_fprintf_columntitle(*clfile,"phiphi",psp->has_pp,colnum);
+      class_fprintf_columntitle(*clfile,"TPhi",psp->has_tp,colnum);
+      class_fprintf_columntitle(*clfile,"Ephi",psp->has_ep,colnum);
+    }
+    else if (pop->output_format == camb_format) {
+      class_fprintf_columntitle(*clfile,"TT",psp->has_tt,colnum);
+      class_fprintf_columntitle(*clfile,"EE",psp->has_ee,colnum);
+      class_fprintf_columntitle(*clfile,"BB",psp->has_bb,colnum);
+      class_fprintf_columntitle(*clfile,"TE",psp->has_te,colnum);
+      class_fprintf_columntitle(*clfile,"dd",psp->has_pp,colnum);
+      class_fprintf_columntitle(*clfile,"dT",psp->has_tp,colnum);
+      class_fprintf_columntitle(*clfile,"dE",psp->has_ep,colnum);
     }
 
-    if (pop->output_format == camb_format) {
-      if (psp->has_tt == _TRUE_)
-        fprintf(*clfile,"TT               ");
-      if (psp->has_ee == _TRUE_)
-        fprintf(*clfile,"EE               ");
-      if (psp->has_bb == _TRUE_)
-        fprintf(*clfile,"BB               ");
-      if (psp->has_te == _TRUE_)
-        fprintf(*clfile,"TE                ");
-      if (psp->has_pp == _TRUE_)
-        fprintf(*clfile,"dd               ");
-      if (psp->has_tp == _TRUE_)
-        fprintf(*clfile,"dT               ");
-      if (psp->has_ep == _TRUE_)
-        fprintf(*clfile,"dE               ");
-      if (psp->has_dd == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
-            fprintf(*clfile,"dens[%d]-dens[%d]  ",index_d1+1,index_d2+1);
-      if (psp->has_td == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          fprintf(*clfile,"T-dens[%d]        ",index_d1+1);
-      if (psp->has_pd == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          fprintf(*clfile,"phi-dens[%d]      ",index_d1+1);
-      if (psp->has_ll == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
-            fprintf(*clfile,"lens[%d]-lens[%d]  ",index_d1+1,index_d2+1);
-      if (psp->has_tl == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          fprintf(*clfile,"T-lens[%d]        ",index_d1+1);
-      if (psp->has_dl == _TRUE_)
-        for (index_d1=0; index_d1<psp->d_size; index_d1++)
-          for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++)
-            fprintf(*clfile,"dens[%d]-lens[%d]  ",index_d1+1,index_d2+1);
-      fprintf(*clfile,"\n");
+    /** Rest of the entries are independent of format type */
 
+    if (psp->has_dd == _TRUE_){
+      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++){
+          sprintf(tmp,"dens[%d]-dens[%d]",index_d1+1,index_d2+1);
+          class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+        }
+      }
     }
+    if (psp->has_td == _TRUE_){
+      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+        sprintf(tmp,"T-dens[%d]",index_d1+1);
+        class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+      }
+    }
+    if (psp->has_pd == _TRUE_){
+      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+        sprintf(tmp,"phi-dens[%d]",index_d1+1);
+        class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+      }
+    }
+    if (psp->has_ll == _TRUE_){
+      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++){
+          sprintf(tmp,"lens[%d]-lens[%d]",index_d1+1,index_d2+1);
+          class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+        }
+      }
+    }
+    if (psp->has_tl == _TRUE_){
+      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+        sprintf(tmp,"T-lens[%d]",index_d1+1);
+        class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+      }
+    }
+    if (psp->has_dl == _TRUE_){
+      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++){
+          sprintf(tmp,"dens[%d]-lens[%d]",index_d1+1,index_d2+1);
+          class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+        }
+      }
+    }
+    fprintf(*clfile,"\n");
   }
 
   return _SUCCESS_;
@@ -1486,23 +1481,62 @@ int output_one_line_of_cl(
                           double * cl, /* array with argument cl[index_ct] */
                           int ct_size
                           ) {
-  int index_ct;
+  int index_ct, index_ct_rest;
   double factor;
 
   factor = l*(l+1)/2./_PI_;
 
-  fprintf(clfile,"%4d",(int)l);
+  fprintf(clfile," ");
+
+  if (0==1){
+    class_fprintf_int(clfile, (int)l, _TRUE_);
+  }
+  else{
+    fprintf(clfile,"%4d ",(int)l);
+  }
 
   if (pop->output_format == class_format) {
 
     for (index_ct=0; index_ct < ct_size; index_ct++) {
-      fprintf(clfile," %16.10e",factor*cl[index_ct]);
+      class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
     }
     fprintf(clfile,"\n");
   }
 
   if (pop->output_format == camb_format) {
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_tt], psp->has_tt);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_ee], psp->has_ee);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_bb], psp->has_bb);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_te], psp->has_te);
+    class_fprintf_double(clfile, l*(l+1)*factor*cl[psp->index_ct_pp], psp->has_pp);
+    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_tp], psp->has_tp);
+    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_ep], psp->has_ep);
+    index_ct_rest = 0;
+    if (psp->has_tt == _TRUE_)
+      index_ct_rest++;
+    if (psp->has_ee == _TRUE_)
+      index_ct_rest++;
+    if (psp->has_bb == _TRUE_)
+      index_ct_rest++;
+    if (psp->has_te == _TRUE_)
+      index_ct_rest++;
+    if (psp->has_pp == _TRUE_)
+      index_ct_rest++;
+    if (psp->has_tp == _TRUE_)
+      index_ct_rest++;
+    if (psp->has_ep == _TRUE_)
+      index_ct_rest++;
+    /** Now print the remaining (if any) entries:*/
+    for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {
+      class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
+    }
 
+    fprintf(clfile,"\n");
+
+  }
+
+  /** Old camb_format output. Seems overly complicated.
+  if (pop->output_format == camb_format) {
     if (psp->has_tt == _TRUE_)
       fprintf(clfile," %16.10e",factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_tt]);
     if (psp->has_ee == _TRUE_)
@@ -1536,8 +1570,9 @@ int output_one_line_of_cl(
       for (index_ct=0; index_ct<(psp->d_size*(psp->d_size+1) - (psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2; index_ct++)
         fprintf(clfile," %16.10e",factor*cl[psp->index_ct_dl+index_ct]);
     fprintf(clfile,"\n");
-  }
 
+  }
+  */
   return _SUCCESS_;
 
 }
@@ -1566,6 +1601,7 @@ int output_open_pk_file(
                         double z
                         ) {
 
+  int colnum = 1;
   class_open(*pkfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
@@ -1574,7 +1610,12 @@ int output_open_pk_file(
             exp(psp->ln_k[0])/pba->h,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
     fprintf(*pkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
-    fprintf(*pkfile,"# k (h/Mpc)  P (Mpc/h)^3:\n");
+
+    fprintf(*pkfile,"#");
+    class_fprintf_columntitle(*pkfile,"k (h/Mpc)",_TRUE_,colnum);
+    class_fprintf_columntitle(*pkfile,"P (Mpc/h)^3",_TRUE_,colnum);
+
+    fprintf(*pkfile,"\n");
   }
 
   return _SUCCESS_;
@@ -1595,7 +1636,10 @@ int output_one_line_of_pk(
                           double one_pk
                           ) {
 
-  fprintf(pkfile,"%e %16.10e\n",one_k,one_pk);
+  fprintf(pkfile," ");
+  class_fprintf_double(pkfile,one_k,_TRUE_);
+  class_fprintf_double(pkfile,one_pk,_TRUE_);
+  fprintf(pkfile,"\n");
 
   return _SUCCESS_;
 
@@ -1626,6 +1670,8 @@ int output_open_tk_file(
                         ) {
 
   int n_ncdm;
+  int colnum = 1;
+  char tmp[30]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
 
   class_open(*tkfile,filename,"w",pop->error_message);
 
@@ -1647,38 +1693,35 @@ int output_open_tk_file(
         fprintf(*tkfile,"# t_tot stands for (sum_i [rho_i+p_i] theta_i)/(sum_i [rho_i+p_i]))(k,z)\n");
       }
       fprintf(*tkfile,"#\n");
-      fprintf(*tkfile,"# k (h/Mpc)       ");
+      fprintf(*tkfile,"#");
+      class_fprintf_columntitle(*tkfile,"k (h/Mpc)",_TRUE_,colnum);
       if (ppt->has_density_transfers == _TRUE_) {
-        fprintf(*tkfile,"d_g                ");
-        fprintf(*tkfile,"d_b                ");
-        if (pba->has_cdm == _TRUE_)
-          fprintf(*tkfile,"d_cdm              ");
-        if (pba->has_fld == _TRUE_)
-          fprintf(*tkfile,"d_de               ");
-        if (pba->has_ur == _TRUE_)
-          fprintf(*tkfile,"d_ur               ");
+        class_fprintf_columntitle(*tkfile,"d_g",_TRUE_,colnum);
+        class_fprintf_columntitle(*tkfile,"d_b",_TRUE_,colnum);
+        class_fprintf_columntitle(*tkfile,"d_cdm",pba->has_cdm,colnum);
+        class_fprintf_columntitle(*tkfile,"d_de",pba->has_fld,colnum);
+        class_fprintf_columntitle(*tkfile,"d_ur",pba->has_ur,colnum);
         if (pba->has_ncdm == _TRUE_) {
           for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-            fprintf(*tkfile,"d_ncdm[%d]          ",n_ncdm);
+            sprintf(tmp,"d_ncdm[%d]",n_ncdm);
+            class_fprintf_columntitle(*tkfile,tmp,_TRUE_,colnum);
           }
         }
-        fprintf(*tkfile,"d_tot              ");
+        class_fprintf_columntitle(*tkfile,"d_tot",_TRUE_,colnum);
       }
       if (ppt->has_velocity_transfers == _TRUE_) {
-        fprintf(*tkfile,"t_g                ");
-        fprintf(*tkfile,"t_b                ");
-        if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
-          fprintf(*tkfile,"t_cdm              ");
-        if (pba->has_fld == _TRUE_)
-          fprintf(*tkfile,"t_de               ");
-        if (pba->has_ur == _TRUE_)
-          fprintf(*tkfile,"t_ur               ");
+        class_fprintf_columntitle(*tkfile,"t_g",_TRUE_,colnum);
+        class_fprintf_columntitle(*tkfile,"t_b",_TRUE_,colnum);
+        class_fprintf_columntitle(*tkfile,"t_cdm",((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)),colnum);
+        class_fprintf_columntitle(*tkfile,"t_de",pba->has_fld,colnum);
+        class_fprintf_columntitle(*tkfile,"t_ur",pba->has_ur,colnum);
         if (pba->has_ncdm == _TRUE_) {
           for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-            fprintf(*tkfile,"t_ncdm[%d]          ",n_ncdm);
+            sprintf(tmp,"t_ncdm[%d]",n_ncdm);
+            class_fprintf_columntitle(*tkfile,tmp,_TRUE_,colnum);
           }
         }
-        fprintf(*tkfile,"t_tot              ");
+        class_fprintf_columntitle(*tkfile,"t_tot",_TRUE_,colnum);
       }
       fprintf(*tkfile,"\n");
     }
@@ -1691,13 +1734,14 @@ int output_open_tk_file(
       fprintf(*tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
       fprintf(*tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
       fprintf(*tkfile,"#\n");
-      fprintf(*tkfile,"# k (h/Mpc)       ");
-      fprintf(*tkfile,"-T_cdm/k2         ");
-      fprintf(*tkfile,"-T_b/k2           ");
-      fprintf(*tkfile,"-T_g/k2           ");
-      fprintf(*tkfile,"-T_ur/k2          ");
-      fprintf(*tkfile,"-T_ncdm/k2        ");
-      fprintf(*tkfile,"-T_tot/k2         ");
+      fprintf(*tkfile,"#");
+      class_fprintf_columntitle(*tkfile,"k (h/Mpc)",_TRUE_,colnum);
+      class_fprintf_columntitle(*tkfile,"-T_cdm/k2",_TRUE_,colnum);
+      class_fprintf_columntitle(*tkfile,"-T_b/k2",_TRUE_,colnum);
+      class_fprintf_columntitle(*tkfile,"-T_g/k2",_TRUE_,colnum);
+      class_fprintf_columntitle(*tkfile,"-T_ur/k2",_TRUE_,colnum);
+      class_fprintf_columntitle(*tkfile,"-T_ncdm/k2",_TRUE_,colnum);
+      class_fprintf_columntitle(*tkfile,"-T_tot/k2",_TRUE_,colnum);
       fprintf(*tkfile,"\n");
 
     }
@@ -1726,10 +1770,11 @@ int output_one_line_of_tk(
 
   int index_tr;
 
-  fprintf(tkfile,"%16.10e",one_k);
+  fprintf(tkfile," ");
+  class_fprintf_double(tkfile, one_k, _TRUE_);
 
   for (index_tr=0; index_tr<tr_size; index_tr++)
-    fprintf(tkfile,"  %16.10e",tk[index_tr]);
+    class_fprintf_double(tkfile, tk[index_tr], _TRUE_);
 
   fprintf(tkfile,"\n");
 
@@ -1954,14 +1999,15 @@ int output_open_primordial_file(
                                 FileName filename
                                 ) {
 
+  int colnum = 1;
   class_open(*outputfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(*outputfile,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
-    fprintf(*outputfile,"                k [1/Mpc]");
-    fprintf(*outputfile,"              P_scalar(k)");
-    if (ppt->has_tensors == _TRUE_)
-      fprintf(*outputfile,"              P_tensor(k)");
+    fprintf(*outputfile,"#");
+    class_fprintf_columntitle(*outputfile,"k [1/Mpc]",_TRUE_,colnum);
+    class_fprintf_columntitle(*outputfile,"P_scalar(k)",_TRUE_,colnum);
+    class_fprintf_columntitle(*outputfile,"P_tensor(k)",ppt->has_tensors,colnum);
     fprintf(*outputfile,"\n");
   }
 
@@ -1985,10 +2031,10 @@ int output_one_line_of_primordial(
                                   int index_k
                                   ) {
 
-  fprintf(outputfile,"%25.12e",exp(ppm->lnk[index_k]));
-  fprintf(outputfile,"%25.12e",exp(ppm->lnpk[ppt->index_md_scalars][index_k]));
-  if (ppt->has_tensors == _TRUE_)
-    fprintf(outputfile,"%25.12e",exp(ppm->lnpk[ppt->index_md_tensors][index_k]));
+  fprintf(outputfile," ");
+  class_fprintf_double(outputfile, exp(ppm->lnk[index_k]), _TRUE_);
+  class_fprintf_double(outputfile, exp(ppm->lnpk[ppt->index_md_scalars][index_k]), _TRUE_);
+  class_fprintf_double(outputfile, exp(ppm->lnpk[ppt->index_md_tensors][index_k]), ppt->has_tensors);
   fprintf(outputfile,"\n");
 
   return _SUCCESS_;
