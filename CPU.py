@@ -25,7 +25,7 @@ import os
 import matplotlib.pyplot as plt
 import sys
 import argparse
-import textwrap
+import itertools
 
 START_LINE = {}
 START_LINE['error'] = [r' /|\   ',
@@ -72,7 +72,7 @@ def create_parser():
 
 
 def plot_CLASS_output(files, selection, ratio=False, output_name='',
-                      extension='', x_variable='', scale=''):
+                      extension='', x_variable='', scale='lin'):
     """
     Load the data to numpy arrays, write a Python script and plot them.
 
@@ -112,73 +112,58 @@ import numpy as np\n'''
     # Create the full_path_files list, that contains the absolute path, so that
     # the future python script can import them directly.
     full_path_files = [os.path.abspath(elem) for elem in files]
+
+    # Recover the base name of the files, everything before the .
+    roots = [elem.split(os.path.sep)[-1].split('.')[0] for elem in files]
+
     text += '''files = %s\n''' % full_path_files
     text += '''
 data = []
 for data_file in files:
-    data.append(np.loadtxt(data_file))
-selection = %s"\n''' % selection
+    data.append(np.loadtxt(data_file))\n'''
 
     # Recover the number of columns in the first file, as well as their title.
-    with open(files[0], 'r') as header_file:
-        header = [line for line in header_file if line[0] == '#']
-        header = header[-1]
+    num_columns, names, tex_names = extract_headers(files[0])
 
-    # Count the number of columns in the file, and recover their name. Thanks
-    # Thomas Tram for the trick
-    indices = [i+1 for i in range(len(header)) if
-               header.startswith(':', i)]
-    num_columns = len(indices)
-    long_names = [header[indices[i]:indices[(i+1)]-2].strip() if i < num_columns-1
-             else header[indices[i]:].strip()
-             for i in range(num_columns)]
-
-
-    # Process long_names further to handle special cases, and extract names,
-    # which will correspond to the tags specified in "selection".
-    names = []
-    for index, name in enumerate(long_names):
-        # This can happen in the background file
-        if name.startswith('(.)', 0):
-            temp_name = name[3:]
-            long_names[index] = replace_scale(name)
-        # Otherwise, we simply
-        else:
-            names.append(name)
-            pass
-
-    print long_names
+    # Check if everything is in order
     if num_columns == 2:
-        selection = None
+        selection = [names[1]]
     elif num_columns > 2:
         # in case selection was only a string, cast it to a list
         if isinstance(selection, str):
             selection = [selection]
         for elem in selection:
-            print elem
             if elem not in names:
                 raise InputError(
-                    "Expected in selection a name of a field in the"
-                    " specified files.")
+                    "The entry 'selection' must contain names of the fields "
+                    "in the specified files. You asked for %s " % elem +
+                    "where I only found %s." % names)
+    # Store the selected text and tex_names to the script
+    text += 'selection = %s\n' % selection
+    text += 'tex_names = %s\n' % [elem for (elem, name) in
+                                  zip(tex_names, names) if name in selection]
+
     # Create the figure and ax objects
     fig, ax = plt.subplots()
     text += '\nfig, ax = plt.subplots()\n'
 
     # if ratio is not set, then simply plot them all
     if not ratio:
-        text += 'for curve in data:'
-        for curve in data:
-            text += 'ax.'
-            #if spectrum_type == 'cl_lin':
-                #text += 'plot'
-                #ax.plot(curve[:, 0], curve[:, colnum])
-            #elif spectrum_type == 'cl_log':
-                #text += 'loglog'
-                #ax.loglog(curve[:, 0], curve[:, colnum])
-            #elif spectrum_type == 'pk':
-                #text += 'loglog'
-                #ax.loglog(curve[:, 0], curve[:, colnum])
-            #text += '(curve[:, 0], curve[:, colnum])\n'
+        text += 'for curve in data:\n'
+        for idx, curve in enumerate(data):
+            _, curve_names, _ = extract_headers(files[idx])
+            for selec in selection:
+                index = curve_names.index(selec)
+                text += '    ax.'
+                if scale == 'lin':
+                    text += 'plot(curve[:, 0], curve[:, %i])\n' % index
+                    ax.plot(curve[:, 0], curve[:, index])
+                elif scale == 'loglog':
+                    text += 'loglog(curve[:, 0], curve[:, %i])\n' % index
+                    ax.loglog(curve[:, 0], curve[:, index])
+        ax.legend([root+': '+elem for (root, elem) in
+                   itertools.product(roots, selection)], loc='lower right')
+        #ax.legend([
     else:
         ref = data[0]
         #for index in range(1, len(data)):
@@ -194,101 +179,22 @@ selection = %s"\n''' % selection
         python_script.write(text)
 
 
-# Errors ###########################
-class MyError(Exception):
-    """
-    Base class defining the general presentation of error messages
-    """
-    def __init__(self, message):
-        """Reformat the name of the class for easier reading"""
-        Exception.__init__(self)
-        self.message = message
-        name = self.__class__.__name__
-        self.name = ''
-        # Extract the name, and add spaces between the capital letters
-        for index, letter in enumerate(name):
-            if letter.isupper():
-                if index > 0:
-                    self.name += ' ' + letter
-                else:
-                    self.name += letter
-            else:
-                self.name += letter
-
-    def __str__(self):
-        """Define the behaviour under the print statement"""
-        return '\n\n' + self.name + ':' + pretty_print(
-            self.message, "error", True)
-
-
-def pretty_print(string, status, return_string=False):
-    """
-    Return the string formatted according to its status
-
-    The input is a potentially long message, describing the problem.
-    According to the severity of its status (so far, 'error' will exit the
-    program, whereas 'warning' and 'info' will go through anyway).
-
-    Standard length has been defined globally, as well as the ascii-art
-    dictionary of arrays START_LINE.
-
-    """
-
-    if return_string:
-        output = ''
-    length = STANDARD_LENGTH-len(START_LINE[status][0])
-    # Remove unwanted spaces (coming from carriage returns in the input string)
-    # and handle voluntary carriage returns specified with \n
-    first_cleanup = [' '.join(elem.lstrip(' ').split())
-                     for elem in string.split('\n')]
-    splitted = []
-    # Recover the lines splitted at correct length
-    for elem in first_cleanup:
-        splitted.extend(textwrap.wrap(elem, length))
-
-    if status == 'error':
-        # Add a blank line so that the error displays better
-        if return_string:
-            output += '\n'
-        else:
-            print
-
-    # Add in front the appropriate fancy display
-    index = 0
-    for line in splitted:
-        # If the number of needed lines is bigger than the ascii-art, the last
-        # line of it (empty) will be used.
-        if index < len(START_LINE[status]):
-            start_index = index
-        else:
-            start_index = len(START_LINE[status])-1
-        if return_string:
-            output += START_LINE[status][start_index]+line+'\n'
-        else:
-            print START_LINE[status][start_index]+line
-        index += 1
-    if return_string:
-        return output
-    else:
-        return
-
-
-class FormatError(MyError):
+class FormatError(Exception):
     """Format not recognised"""
     pass
 
 
-class TypeError(MyError):
+class TypeError(Exception):
     """Spectrum type not recognised"""
     pass
 
 
-class NumberOfFilesError(MyError):
+class NumberOfFilesError(Exception):
     """Invalid number of files"""
     pass
 
 
-class InputError(MyError):
+class InputError(Exception):
     """Incompatible input requirements"""
     pass
 
@@ -307,6 +213,64 @@ def replace_scale(string):
     return ''.join(string_list)
 
 
+def process_long_names(long_names):
+    """
+    Given the names extracted from the header, return two arrays, one with the
+    short version, and one tex version
+
+    >>> names, tex_names = process_long_names(['(.)toto', 'proper time [Gyr]'])
+    >>> print names
+    >>> ['toto', 'proper time']
+    >>> print tex_names
+    >>> ['(8\\pi G/3)toto, 'proper time [Gyr]']
+
+    """
+    names = []
+    tex_names = []
+    # First pass, to remove the leading scales
+    for name in long_names:
+        # This can happen in the background file
+        if name.startswith('(.)', 0):
+            temp_name = name[3:]
+            names.append(temp_name)
+            tex_names.append(replace_scale(name))
+        # Otherwise, we simply
+        else:
+            names.append(name)
+            tex_names.append(name)
+    # Second pass, to remove from the short names the indication of scale,
+    # which should look like something between parenthesis, or square brackets,
+    # and located at the end of the string
+    for index, name in enumerate(names):
+        if name.find('(') != -1:
+            names[index] = name[:name.index('(')]
+        elif name.find('[') != -1:
+            names[index] = name[:name.index('[')]
+
+    return names, tex_names
+
+
+def extract_headers(header_path):
+    with open(header_path, 'r') as header_file:
+        header = [line for line in header_file if line[0] == '#']
+        header = header[-1]
+
+    # Count the number of columns in the file, and recover their name. Thanks
+    # Thomas Tram for the trick
+    indices = [i+1 for i in range(len(header)) if
+               header.startswith(':', i)]
+    num_columns = len(indices)
+    long_names = [header[indices[i]:indices[(i+1)]-3].strip() if i < num_columns-1
+                  else header[indices[i]:].strip()
+                  for i in range(num_columns)]
+
+    # Process long_names further to handle special cases, and extract names,
+    # which will correspond to the tags specified in "selection".
+    names, tex_names = process_long_names(long_names)
+
+    return num_columns, names, tex_names
+
+
 def main():
     print '~~~ Running CPU, a CLASS Plotting Utility ~~~'
     parser = create_parser()
@@ -318,6 +282,10 @@ def main():
         parser.print_usage()
         return
 
+    # Ratio is not implemented yet, catch it
+    if args.ratio:
+        raise InputError(
+            "Sorry, this is not working yet")
     # if the first file name contains cl or pk, infer the type of desired
     # spectrum
     if not args.selection:
@@ -330,9 +298,14 @@ def main():
         else:
             raise TypeError(
                 "Please specify a field to plot")
-        if not args.scale:
-            args.scale = scale
         args.selection = selection
+    else:
+        scale = ''
+    if not args.scale:
+        if scale:
+            args.scale = scale
+        else:
+            args.scale = 'lin'
 
     # If ratio is asked, but only one file was passed in argument, politely
     # complain
