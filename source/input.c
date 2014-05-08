@@ -778,7 +778,8 @@ int input_read_parameters(
     pba->N_ncdm = N_ncdm;
     /* Precision parameters for ncdm has to be read now since they are used here:*/
     class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
-    class_read_double("tol_ncdm",ppr->tol_ncdm);
+    class_read_double("tol_ncdm_newtonian",ppr->tol_ncdm_newtonian);
+    class_read_double("tol_ncdm_synchronous",ppr->tol_ncdm_synchronous);
     class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
 
     /* Read temperatures: */
@@ -1277,10 +1278,12 @@ int input_read_parameters(
 
       if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
         ppt->gauge = newtonian;
+        ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
       }
 
       if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
         ppt->gauge = synchronous;
+        ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
       }
     }
 
@@ -2577,6 +2580,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_initial_Omega_r = 1.e-4;
   ppr->tol_M_ncdm = 1.e-7;
   ppr->tol_ncdm = 1.e-3;
+  ppr->tol_ncdm_synchronous = 1.e-3;
+  ppr->tol_ncdm_newtonian = 1.e-5;
   ppr->tol_ncdm_bg = 1.e-5;
   ppr->tol_ncdm_initial_w=1.e-3;
 

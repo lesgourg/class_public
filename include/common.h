@@ -324,6 +324,8 @@ struct precision
    * phase-space distribution during perturbation calculation
    */
   double tol_ncdm;
+  double tol_ncdm_newtonian;
+  double tol_ncdm_synchronous;
 
   /**
    * parameter controlling relative precision of integrals over ncdm
