@@ -1833,6 +1833,9 @@ int output_open_background_file(
     class_fprintf_columntitle(*backfile,"(.)rho_fld",pba->has_fld,colnum);
     class_fprintf_columntitle(*backfile,"(.)rho_ur",pba->has_ur,colnum);
     class_fprintf_columntitle(*backfile,"(.)rho_crit",_TRUE_,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_dcdm",pba->has_dcdm,colnum);
+    class_fprintf_columntitle(*backfile,"(.)rho_dr",pba->has_dr,colnum);
+
     fprintf(*backfile,"\n");
   }
 
@@ -1876,6 +1879,8 @@ int output_one_line_of_background(
   class_fprintf_double(backfile,pvecback[pba->index_bg_rho_fld],pba->has_fld);
   class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ur],pba->has_ur);
   class_fprintf_double(backfile,pvecback[pba->index_bg_rho_crit],_TRUE_);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dr],pba->has_dr);
 
   fprintf(backfile,"\n");
 
