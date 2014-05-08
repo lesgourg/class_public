@@ -208,7 +208,7 @@ int input_init(
   double * unknown_parameter;
   int unknown_parameters_size;
   double dx, dxdy=0.;
-  int fevals=1, iter, iter2;
+  int fevals=0, iter, iter2;
   int return_function;
   double x1, f1, x2, f2, xzero;
   int target_indices[_NUM_TARGETS_];
@@ -312,6 +312,7 @@ int input_init(
                                    &f1,
                                    errmsg),
                  errmsg, errmsg);
+      fevals++;
       //printf("x1= %g, f1= %g\n",x1,f1);
 
       dx = 1.5*f1*dxdy;
@@ -367,7 +368,6 @@ int input_init(
 
       /* Store xzero */
       sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
-      //printf("Total function evaluations: %d, h=%e\n",fevals, xzero);
       if (input_verbose > 0) {
         fprintf(stdout,"Computing unknown input parameters\n");
         fprintf(stdout," -> found %s = %s\n",
@@ -392,9 +392,10 @@ int input_init(
                               x_inout,
                               dxdF,
                               unknown_parameters_size,
-                              1e-3,
+                              1e-4,
                               1e-6,
                               &fzw,
+                              &fevals,
                               errmsg),
                  errmsg,errmsg);
 
@@ -416,6 +417,11 @@ int input_init(
       free(x_inout);
       free(dxdF);
     }
+
+    if (input_verbose > 1) {
+      fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
+    }
+
 
     /**     Read all parameters from tuned pfc: */
     class_call(input_read_parameters(&(fzw.fc),
@@ -2977,6 +2983,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
   int i;
   double rho_dcdm_today, rho_dr_today;
   struct fzerofun_workspace * pfzw;
+  int input_verbose;
+  int flag;
+  int param;
+
   pfzw = (struct fzerofun_workspace *) voidpfzw;
 
   for (i=0; i < unknown_parameters_size; i++) {
@@ -2999,48 +3009,65 @@ int input_try_unknown_parameters(double * unknown_parameter,
              errmsg,
              errmsg);
 
-
+  class_call(parser_read_int(&(pfzw->fc),
+                             "input_verbose",
+                             &param,
+                             &flag,
+                             errmsg),
+             errmsg,
+             errmsg);
+  if (flag == _TRUE_)
+    input_verbose = param;
+  else
+    input_verbose = 0;
 
   /** Do computations */
   if (pfzw->required_computation_stage >= cs_background){
-    //printf("Stage 1: background\n");
+    if (input_verbose>2)
+      printf("Stage 1: background\n");
     ba.background_verbose = 0;
     class_call(background_init(&pr,&ba), ba.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
-    //printf("Stage 2: thermodynamics\n");
-    pr.recfast_Nz0 = 5000;
+   if (input_verbose>2)
+     printf("Stage 2: thermodynamics\n");
+    pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
-    //printf("Stage 3: perturbations\n");
+       if (input_verbose>2)
+         printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
     class_call(perturb_init(&pr,&ba,&th,&pt), pt.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_primordial){
-    //printf("Stage 4: primordial\n");
+    if (input_verbose>2)
+      printf("Stage 4: primordial\n");
     pm.primordial_verbose = 0;
     class_call(primordial_init(&pr,&pt,&pm), pm.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_nonlinear){
-    //printf("Stage 5: nonlinear\n");
+    if (input_verbose>2)
+      printf("Stage 5: nonlinear\n");
     nl.nonlinear_verbose = 0;
     class_call(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl), nl.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_transfer){
-    //printf("Stage 6: transfer\n");
+    if (input_verbose>2)
+      printf("Stage 6: transfer\n");
     tr.transfer_verbose = 0;
     class_call(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_spectra){
-    //printf("Stage 7: spectra\n");
+    if (input_verbose>2)
+      printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
     class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
   }

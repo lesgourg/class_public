@@ -1065,6 +1065,7 @@ int fzero_Newton(int (*func)(double *x,
                  double tolx,
                  double tolF,
                  void *param,
+                 int *fevals,
                  ErrorMsg error_message){
   /**Given an initial guess x[1..n] for a root in n dimensions,
      take ntrial Newton-Raphson steps to improve the root.
@@ -1074,7 +1075,7 @@ int fzero_Newton(int (*func)(double *x,
   double errx,errf,d,*F0,*Fdel,**Fjac,*p, *lu_work;
   int has_converged = _FALSE_;
   double toljac = 1e-3;
-  double delx;
+  double *delx;
 
   /** All arrays are indexed as [0, n-1] with the exception of p, indx,
       lu_work and Fjac, since they are passed to ludcmp and lubksb. */
@@ -1089,11 +1090,13 @@ int fzero_Newton(int (*func)(double *x,
   }
 
   class_alloc(F0, sizeof(double)*x_size, error_message);
+  class_alloc(delx, sizeof(double)*x_size, error_message);
   class_alloc(Fdel, sizeof(double)*x_size, error_message);
   for (k=1;k<=ntrial;k++) {
     /** Compute F(x): */
     class_call(func(x_inout, x_size, param, F0, error_message),
                error_message, error_message);
+    *fevals = *fevals + 1;
     errf=0.0; //fvec and Jacobian matrix in fjac.
     for (i=1; i<=x_size; i++)
       errf += fabs(F0[i-1]); //Check function convergence.
@@ -1103,15 +1106,21 @@ int fzero_Newton(int (*func)(double *x,
     }
 
     /** Compute the jacobian of F: */
+    if (k==1){
+      for (i=1; i<=x_size; i++){
+        delx[i-1] = toljac*dxdF[i-1]*F0[i-1];
+      }
+    }
+
     for (i=1; i<=x_size; i++){
-      delx = toljac*dxdF[i-1]*F0[i-1];
-      x_inout[i-1] += delx;
+      x_inout[i-1] += delx[i-1];
       class_call(func(x_inout, x_size, param, Fdel, error_message),
                  error_message, error_message);
       for (j=1; j<=x_size; j++)
-        Fjac[j][i] = (Fdel[j-1]-F0[j-1])/delx;
-      x_inout[i-1] -= delx;
+        Fjac[j][i] = (Fdel[j-1]-F0[j-1])/delx[i-1];
+      x_inout[i-1] -= delx[i-1];
     }
+    *fevals = *fevals + x_size;
 
     for (i=1; i<=x_size; i++)
       p[i] = -F0[i-1]; //Right-hand side of linear equations.

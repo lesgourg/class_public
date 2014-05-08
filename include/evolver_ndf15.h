@@ -82,6 +82,7 @@ extern "C" {
                    double tolx,
                    double tolF,
                    void *param,
+                   int *fevals,
                    ErrorMsg error_message);
 
   int numjac(int (*derivs)(double x,double * y,double * dy,void * parameters_and_workspace,ErrorMsg error_message),
