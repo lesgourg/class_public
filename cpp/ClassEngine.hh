@@ -9,8 +9,7 @@
 //	Stephane Plaszczynski (plaszczy@lal.in2p3.fr)
 //
 // History (add to end):
-//	creation:   ven. nov. 4 11:02:20 CET 2011
-//  updated to class v2.1 by Julien Lesgourgues (7 March 2014)
+//	creation:   ven. nov. 4 11:02:20 CET 2011 
 //
 //-----------------------------------------------------------------------
 
@@ -51,7 +50,7 @@ public:
   pars.push_back(make_pair(key,str(val)));
   return pars.size();
   }
-
+  
   //accesors
   inline unsigned size() const {return pars.size();}
   inline string key(const unsigned& i) const {return pars[i].first;}
@@ -73,41 +72,55 @@ public:
   ClassEngine(const ClassParams& pars);
   //with a class .pre file
   ClassEngine(const ClassParams& pars,const string & precision_file);
-
+  
 
   // destructor
   ~ClassEngine();
 
   //modfiers: _FAILURE_ returned if CLASS pb:
-  int updateParValues(const std::vector<double>& par);
+  bool updateParValues(const std::vector<double>& par);
 
 
   //get value at l ( 2<l<lmax): in units = (micro-K)^2
   //don't call if FAILURE returned previously
   //throws std::execption if pb
 
-  double getCl(Engine::cltype t,const long &l);
-  void getCls(const std::vector<unsigned>& lVec, //input
-	      std::vector<double>& cltt,
-	      std::vector<double>& clte,
-	      std::vector<double>& clee,
+  double getCl(Engine::cltype t,const long &l);  
+  void getCls(const std::vector<unsigned>& lVec, //input 
+	      std::vector<double>& cltt, 
+	      std::vector<double>& clte, 
+	      std::vector<double>& clee, 
 	      std::vector<double>& clbb);
 
-
-  bool getLensing(const std::vector<unsigned>& lVec, //input
-	      std::vector<double>& clphiphi,
-	      std::vector<double>& cltphi,
+  
+  bool getLensing(const std::vector<unsigned>& lVec, //input 
+	      std::vector<double>& clphiphi, 
+	      std::vector<double>& cltphi, 
 	      std::vector<double>& clephi);
 
+ //for BAO
+  inline double z_drag() const {return th.z_d;}
+  inline double rs_drag() const {return th.rs_d;} 
+  double get_Dv(double z);
+
+  double get_Da(double z);
+  double get_sigma8(double z);
+  double get_f(double z);
+
+  double get_Fz(double z);
+  double get_Hz(double z);
+  double get_Az(double z);
+
+  double getTauReio() const {return th.tau_reio;}
 
   //may need that
   inline int numCls() const {return sp.ct_size;};
   inline double Tcmb() const {return ba.T_cmb;}
 
+  inline int l_max_scalars() const {return _lmax;}
+
   //print content of file_content
   void printFC();
-  void writeCls(std::ostream &o,int lmax);
-
 
 private:
   //structures class en commun
@@ -134,24 +147,27 @@ private:
   int computeCls();
 
   int class_main(
-                 struct file_content *pfc,
-                 struct precision * ppr,
-                 struct background * pba,
-                 struct thermo * pth,
-                 struct perturbs * ppt,
-                 struct primordial * ppm,
-                 struct nonlinear * pnl,
-                 struct transfers * ptr,
-                 struct spectra * psp,
-                 struct lensing * ple,
-                 struct output * pop,
-                 ErrorMsg errmsg);
+		 struct file_content *pfc,
+		 struct precision * ppr,
+		 struct background * pba,
+		 struct thermo * pth,
+		 struct perturbs * ppt,
+		 struct transfers * ptr,
+		 struct primordial * ppm,
+		 struct spectra * psp,
+		 struct nonlinear * pnl,
+		 struct lensing * ple,
+		 struct output * pop,
+		 ErrorMsg errmsg);
+  //parnames
+  std::vector<std::string> parNames;
 
 protected:
-
-
+ 
+  
 };
 
 
 ;
 #endif
+
