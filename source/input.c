@@ -318,7 +318,7 @@ int input_init(
       dx = 1.5*f1*dxdy;
 
       /** Do linear hunt for boundaries: */
-      for (iter=1; iter<=10; iter++){
+      for (iter=1; iter<=15; iter++){
         //x2 = x1 + search_dir*dx;
         x2 = x1 - dx;
 
@@ -2959,14 +2959,14 @@ int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg er
         return _SUCCESS_;
       }
     }
-    class_stop("zriddr exceed maximum iterations","");
+    class_stop(error_message,"zriddr exceed maximum iterations");
   }
   else {
     if (fl == 0.0) return x1;
     if (fh == 0.0) return x2;
-    class_stop("root must be bracketed in zriddr.","");
+    class_stop(error_message,"root must be bracketed in zriddr.");
   }
-  class_stop("Failure in int.","");
+  class_stop(error_message,"Failure in int.");
 }
 
 int input_try_unknown_parameters(double * unknown_parameter,
@@ -3139,7 +3139,7 @@ int input_get_guess(double *xguess,
   struct output op;           /* for output files */
   int i;
 
-  double Omega_M, sqrt_one_minus_M;
+  double Omega_M, a_decay, gamma;
   int index_guess;
 
   /* Cheat to read only known parameters: */
@@ -3171,12 +3171,22 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = (7.08*pfzw->target_value[index_guess]-5.455);
       break;
     case Omega_dcdm:
-      /* This formula is exact in a Matter + Lambda Universe. */
       Omega_M = ba.Omega0_cdm+ba.Omega0_dcdm+ba.Omega0_b;
-      sqrt_one_minus_M = sqrt(1.0 - Omega_M);
-      xguess[index_guess] = pfzw->target_value[index_guess]*
-        exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
-      dxdy[index_guess] = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+      /* This formula is exact in a Matter + Lambda Universe, but only
+         for Omega_dcdm, not the combined.
+         sqrt_one_minus_M = sqrt(1.0 - Omega_M);
+         xguess[index_guess] = pfzw->target_value[index_guess]*
+         exp(2./3.*ba.Gamma_dcdm/ba.H0*
+         atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+         dxdy[index_guess] = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+      */
+      gamma = ba.Gamma_dcdm/ba.H0;
+      if (gamma < 1)
+        a_decay = 1.0;
+      else
+        a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
+      xguess[index_guess] = pfzw->target_value[index_guess]/a_decay;
+      dxdy[index_guess] = 1./a_decay;
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     }
