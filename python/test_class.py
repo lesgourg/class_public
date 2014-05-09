@@ -172,7 +172,7 @@ class TestClass(unittest.TestCase):
 
     @parameterized.expand(
         itertools.izip(
-            powerset(['100*theta_s', 'Omega_dcdm']),
+            powerset(['100*theta_s', 'Omega_dcdmdr']),
             powerset([1.04, 0.20]),))
     def test_shooting_method(self, variables, values):
         Omega_cdm = 0.25
@@ -182,10 +182,10 @@ class TestClass(unittest.TestCase):
         for variable, value in zip(variables, values):
             scenario.update({variable: value})
 
-        if 'Omega_dcdm' in variables:
+        if 'Omega_dcdmdr' in variables:
             scenario.update({
                 'Gamma_dcdm': 100,
-                'Omega_cdm': Omega_cdm-scenario['Omega_dcdm']})
+                'Omega_cdm': Omega_cdm-scenario['Omega_dcdmdr']})
         else:
             scenario.update({
                 'Omega_cdm': Omega_cdm})
@@ -212,6 +212,7 @@ class TestClass(unittest.TestCase):
                     [variable])[variable]
                 self.assertAlmostEqual(
                     value, computed_value, places=5)
+                    ['Omega_m'])['Omega_m']
 
 
 if __name__ == '__main__':
