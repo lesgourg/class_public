@@ -761,17 +761,15 @@ int input_read_parameters(
     pba->Omega0_dcdmdr = param1;
   if (flag2 == _TRUE_)
     pba->Omega0_dcdmdr = param2/pba->h/pba->h;
+  Omega_tot += pba->Omega0_dcdmdr;
 
   /** Omega_ini_dcdm will never be read from input, but is instead found automatically by shooting */
   class_read_double("Omega_ini_dcdm",pba->Omega_ini_dcdm);
-
 
   /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
   class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
   /* Convert to Mpc */
   pba->Gamma_dcdm *= (1.e3 / _c_);
-
-  Omega_tot += pba->Omega0_dcdm;
 
   /* non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
@@ -2339,7 +2337,7 @@ int input_default_params(
   pba->Omega0_k = 0.;
   pba->K = 0.;
   pba->sgnK = 0;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdm;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->w0_fld=-1.;
@@ -2839,37 +2837,6 @@ int get_machine_precision(double * smallest_allowed_variation) {
 
 }
 
-int input_fzerofun_for_background(double Omega_ini_dcdm,
-                                  void* container,
-                                  double *valout,
-                                  ErrorMsg error_message){
-
-  double rho_dcdm_today, rho_dr_today;
-  struct input_pprpba * pprpba;
-  struct background *pba;
-  pprpba = (struct input_pprpba *) container;
-  pba = pprpba->pba;
-
-  pba->Omega_ini_dcdm = Omega_ini_dcdm;
-  pba->keep_ncdm_stuff = _TRUE_;
-
-  class_call(background_init(pprpba->ppr,
-                             pba),
-             pba->error_message, error_message);
-  rho_dcdm_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dcdm];
-  rho_dr_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dr];
-  //  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm]; /*Remember that rho is defined such that H^2=sum(rho_i) */
-
-  *valout = (rho_dcdm_today+rho_dr_today)/(pba->H0*pba->H0)-pba->Omega0_dcdm;
-
-  if (pba->background_verbose > 3)
-    printf("rho_dcdm_today = %e, corresponding to %e\n",rho_dcdm_today,rho_dcdm_today/(pba->H0*pba->H0));
-
-  class_call(background_free(pba), pba->error_message, error_message);
-
-  return _SUCCESS_;
-}
-
 int input_fzerofun_1d(double input,
                       void* pfzw,
                       double *output,
@@ -3089,10 +3056,12 @@ int input_try_unknown_parameters(double * unknown_parameter,
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
       rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
+      break;
     case omega_dcdmdr:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
       rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i]/ba.h/ba.h;
+      break;
     }
   }
 
@@ -3175,9 +3144,12 @@ int input_get_guess(double *xguess,
     case theta_s:
       xguess[index_guess] = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
       dxdy[index_guess] = (7.08*pfzw->target_value[index_guess]-5.455);
+      /** Update pb to reflect guess */
+      ba.h = xguess[index_guess];
+      ba.H0 = ba.h *  1.e5 / _c_;
       break;
     case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdm+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* This formula is exact in a Matter + Lambda Universe, but only
          for Omega_dcdm, not the combined.
          sqrt_one_minus_M = sqrt(1.0 - Omega_M);
@@ -3196,7 +3168,7 @@ int input_get_guess(double *xguess,
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     case omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdm+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* This formula is exact in a Matter + Lambda Universe, but only
          for Omega_dcdm, not the combined.
          sqrt_one_minus_M = sqrt(1.0 - Omega_M);
@@ -3215,6 +3187,7 @@ int input_get_guess(double *xguess,
         //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     }
+    //printf("xguess = %g\n",xguess[index_guess]);
   }
 
   for (i=0; i<pfzw->fc.size; i++) {
