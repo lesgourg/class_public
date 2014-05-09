@@ -2794,6 +2794,7 @@ int spectra_sigma(
 
   for (i=0;i<psp->ln_k_size;i++) {
     k=exp(psp->ln_k[i]);
+    if (i == (psp->ln_k_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
     W=3./x/x/x*(sin(x)-x*cos(x));
     class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic),
