@@ -212,7 +212,6 @@ class TestClass(unittest.TestCase):
                     [variable])[variable]
                 self.assertAlmostEqual(
                     value, computed_value, places=5)
-                    ['Omega_m'])['Omega_m']
 
 
 if __name__ == '__main__':
