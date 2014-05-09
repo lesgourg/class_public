@@ -223,7 +223,7 @@ int input_init(
   struct fzerofun_workspace fzw;
   /** These two arrays must contain the strings of names to be searched
       for and the coresponding new parameter */
-  char * const target_namestrings[] = {"100*theta_s","Omega_dcdm"};
+  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background};
 
@@ -243,7 +243,7 @@ int input_init(
                errmsg,
                errmsg);
     if ((flag1 == _TRUE_)&&(input_auxillary_target_conditions(index_target,param1) == _TRUE_)){
-      /** input_auxillary_target_conditions() takes care of the case where for instance Omega_dcdm is set to 0.0.
+      /** input_auxillary_target_conditions() takes care of the case where for instance Omega_dcdmdr is set to 0.0.
        */
       //printf("Found target: %s\n",target_namestrings[index_target]);
       target_indices[unknown_parameters_size] = index_target;
@@ -747,20 +747,8 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_cdm;
 
-  /* Omega_0_dcdm (DCDM) */
-  class_call(parser_read_double(pfc,"Omega_dcdm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_dcdm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
-  if (flag1 == _TRUE_)
-    pba->Omega0_dcdm = param1;
-  if (flag2 == _TRUE_)
-    pba->Omega0_dcdm = param2/pba->h/pba->h;
+  /* Omega_0_dcdmdr (DCDM) */
+  class_read_double("Omega_dcdmdr",pba->Omega0_dcdmdr);
   /** Omega_ini_dcdm will never be read from input, but is instead found automatically by shooting */
   class_read_double("Omega_ini_dcdm",pba->Omega_ini_dcdm);
 
@@ -3083,7 +3071,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     case theta_s:
       output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
       break;
-    case Omega_dcdm:
+    case Omega_dcdmdr:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
       rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
@@ -3170,7 +3158,7 @@ int input_get_guess(double *xguess,
       xguess[index_guess] = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
       dxdy[index_guess] = (7.08*pfzw->target_value[index_guess]-5.455);
       break;
-    case Omega_dcdm:
+    case Omega_dcdmdr:
       Omega_M = ba.Omega0_cdm+ba.Omega0_dcdm+ba.Omega0_b;
       /* This formula is exact in a Matter + Lambda Universe, but only
          for Omega_dcdm, not the combined.
@@ -3210,8 +3198,8 @@ int file_exists(const char *fname){
 }
 
 int input_auxillary_target_conditions(enum target_names target_name, double target_value){
-  if (target_name == Omega_dcdm){
-    /* Check that Omega_dcdm is nonzero: */
+  if (target_name == Omega_dcdmdr){
+    /* Check that Omega_dcdmdr is nonzero: */
     if (target_value == 0.)
       return _FALSE_;
   }

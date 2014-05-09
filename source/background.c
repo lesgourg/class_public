@@ -647,11 +647,10 @@ int background_indices(
   if (pba->Omega0_ncdm_tot != 0.)
     pba->has_ncdm = _TRUE_;
 
-  if (pba->Omega0_dcdm != 0.)
+  if (pba->Omega0_dcdmdr != 0.){
     pba->has_dcdm = _TRUE_;
-
-  if (pba->Omega0_dcdm != 0.) /** If decay is not to DR this is wrong. We need to think then. */
     pba->has_dr = _TRUE_;
+  }
 
   if (pba->Omega0_lambda != 0.)
     pba->has_lambda = _TRUE_;
@@ -1467,6 +1466,14 @@ int background_solve(
   pba->age = pvecback_integration[pba->index_bi_time]/_Gyr_over_Mpc_;
   /* -> conformal age in Mpc */
   pba->conformal_age = pvecback_integration[pba->index_bi_tau];
+  /* -> contribution of decaying dark matter and dark radiation to the critical density today: */
+  if (pba->has_dcdm == _TRUE_){
+    pba->Omega0_dcdm = pvecback_integration[pba->index_bi_rho_dcdm]/pba->H0/pba->H0;
+  }
+  if (pba->has_dr == _TRUE_){
+    pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
+  }
+
 
   /** - allocate background tables */
   class_alloc(pba->tau_table,pba->bt_size * sizeof(double),pba->error_message);
@@ -1570,9 +1577,13 @@ int background_solve(
     printf(" -> conformal age = %f Mpc\n",pba->conformal_age);
   }
 
-  if (pba->background_verbose > 3) {
-    if (pba->has_dcdm == _TRUE_){
-      printf("Y_Lattanzi = %.16e\n",pba->Omega_ini_dcdm/pba->Omega0_b);
+  if (pba->background_verbose > 2) {
+    if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)){
+      printf("    Decaying Cold Dark Matter details: (DCDM --> DR)\n");
+      printf("     -> Omega0_dcdm = %f\n",pba->Omega0_dcdm);
+      printf("     -> Omega0_dr = %f\n",pba->Omega0_dr);
+      printf("     -> Omega0_dr+Omega0_dcdm = %f, input value = %f\n",
+             pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
     }
   }
 

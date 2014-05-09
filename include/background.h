@@ -47,10 +47,13 @@ struct background
 
   double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$ : cold dark matter */
 
+  double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$ : dcdm decaying to dr */
+
   double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$ : decaying cold dark matter */
 
   double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$ : decay constant for decaying cold dark matter */
-  double Omega0_dr; /**< \f$ \Omega_{0 \nu r} \f$ : decay radiation */
+
+  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$ : decay radiation */
 
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$ : cosmological constant */
 
