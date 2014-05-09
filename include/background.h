@@ -47,14 +47,6 @@ struct background
 
   double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$ : cold dark matter */
 
-  double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$ : dcdm decaying to dr */
-
-  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$ : decaying cold dark matter */
-
-  double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$ : decay constant for decaying cold dark matter */
-
-  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$ : decay radiation */
-
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$ : cosmological constant */
 
   double Omega0_fld; /**< \f$ \Omega_{0 de} \f$ : fluid with constant
@@ -68,6 +60,10 @@ struct background
 		     newtonian gauge!!!) */
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
+
+  double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$ : dcdm decaying to dr */
+
+  double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$ : decay constant for decaying cold dark matter */
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
 
@@ -119,6 +115,9 @@ struct background
   int sgnK; /**< K/|K|: -1, 0 or 1 */
   double * m_ncdm_in_eV; /**< list of ncdm masses in eV (infered from M_ncdm and other parameters above) */
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
+  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$ : decaying cold dark matter */
+  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$ : decay radiation */
+
 
   //@}
 
