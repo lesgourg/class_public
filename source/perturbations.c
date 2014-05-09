@@ -59,11 +59,11 @@ int perturb_sources_at_tau(
                                        1,
                                        0,
                                        ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
-                                       ppt->k_size,
+                                       ppt->k_size[index_md],
                                        ppt->tau_size,
                                        tau,
                                        psource,
-                                       ppt->k_size,
+                                       ppt->k_size[index_md],
                                        ppt->error_message),
              ppt->error_message,
              ppt->error_message);
@@ -186,6 +186,10 @@ int perturb_init(
                ppt->error_message,
                "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant");
 
+    class_test(((pba->w0_fld + pba->wa_fld +1.0)*(pba->w0_fld+1.0)) < 0.0,
+               ppt->error_message,
+               "w crosses -1 between the infinite past and today, and this would lead to divergent perturbation equations for the fluid.");
+
   }
 
   class_test(ppt->has_vectors == _TRUE_,
@@ -255,6 +259,9 @@ int perturb_init(
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
+    if (ppt->perturbations_verbose > 1)
+      printf("Evolving mode %d/%d\n",index_md+1,ppt->md_size);
+
     abort = _FALSE_;
 
     sz = sizeof(struct perturb_workspace);
@@ -292,6 +299,12 @@ int perturb_init(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
+      if (ppt->perturbations_verbose > 1)
+        printf("Evolving ic %d/%d\n",index_ic+1,ppt->ic_size[index_md]);
+
+        if (ppt->perturbations_verbose > 1)
+          printf("evolving %d wavenumbers\n",ppt->k_size[index_md]);
+
       abort = _FALSE_;
 
 #pragma omp parallel                                    \
@@ -309,12 +322,12 @@ int perturb_init(
 
         /* integrating backwards is slightly more optimal for parallel runs */
         //for (index_k = 0; index_k < ppt->k_size; index_k++) {
-        for (index_k = ppt->k_size-1; index_k >=0; index_k--) {
+        for (index_k = ppt->k_size[index_md]-1; index_k >=0; index_k--) {
 
           if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
-            printf("evolving mode k=%e /Mpc",ppt->k[index_k]);
+            printf("evolving mode k=%e /Mpc  (%d/%d)",ppt->k[index_md][index_k],index_k+1,ppt->k_size[index_md]);
             if (pba->sgnK != 0)
-              printf(" (for scalar modes, corresponds to nu=%e)",sqrt(ppt->k[index_k]*ppt->k[index_k]+pba->K)/sqrt(pba->sgnK*pba->K));
+              printf(" (for scalar modes, corresponds to nu=%e)",sqrt(ppt->k[index_md][index_k]*ppt->k[index_md][index_k]+pba->K)/sqrt(pba->sgnK*pba->K));
             printf("\n");
           }
 
@@ -414,6 +427,8 @@ int perturb_free(
 
       free(ppt->sources[index_md]);
 
+      free(ppt->k[index_md]);
+
     }
 
     free(ppt->tau_sampling);
@@ -423,6 +438,12 @@ int perturb_free(
     free(ppt->ic_size);
 
     free(ppt->k);
+
+    free(ppt->k_size_cmb);
+
+    free(ppt->k_size_cl);
+
+    free(ppt->k_size);
 
     free(ppt->sources);
   }
@@ -492,14 +513,18 @@ int perturb_indices_of_perturbs(
   ppt->has_source_delta_g = _FALSE_;
   ppt->has_source_delta_b = _FALSE_;
   ppt->has_source_delta_cdm = _FALSE_;
+  ppt->has_source_delta_dcdm = _FALSE_;
   ppt->has_source_delta_fld = _FALSE_;
+  ppt->has_source_delta_dr = _FALSE_;
   ppt->has_source_delta_ur = _FALSE_;
   ppt->has_source_delta_ncdm = _FALSE_;
   ppt->has_source_theta_m = _FALSE_;
   ppt->has_source_theta_g = _FALSE_;
   ppt->has_source_theta_b = _FALSE_;
   ppt->has_source_theta_cdm = _FALSE_;
+  ppt->has_source_theta_dcdm = _FALSE_;
   ppt->has_source_theta_fld = _FALSE_;
+  ppt->has_source_theta_dr = _FALSE_;
   ppt->has_source_theta_ur = _FALSE_;
   ppt->has_source_theta_ncdm = _FALSE_;
   ppt->has_source_phi = _FALSE_;
@@ -571,10 +596,14 @@ int perturb_indices_of_perturbs(
         ppt->has_source_delta_b = _TRUE_;
         if (pba->has_cdm == _TRUE_)
           ppt->has_source_delta_cdm = _TRUE_;
+        if (pba->has_dcdm == _TRUE_)
+          ppt->has_source_delta_dcdm = _TRUE_;
         if (pba->has_fld == _TRUE_)
           ppt->has_source_delta_fld = _TRUE_;
         if (pba->has_ur == _TRUE_)
           ppt->has_source_delta_ur = _TRUE_;
+        if (pba->has_dr == _TRUE_)
+          ppt->has_source_delta_dr = _TRUE_;
         if (pba->has_ncdm == _TRUE_)
           ppt->has_source_delta_ncdm = _TRUE_;
       }
@@ -585,10 +614,14 @@ int perturb_indices_of_perturbs(
         ppt->has_source_theta_b = _TRUE_;
         if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
           ppt->has_source_theta_cdm = _TRUE_;
+        if (pba->has_dcdm == _TRUE_)
+          ppt->has_source_theta_dcdm = _TRUE_;
         if (pba->has_fld == _TRUE_)
           ppt->has_source_theta_fld = _TRUE_;
         if (pba->has_ur == _TRUE_)
           ppt->has_source_theta_ur = _TRUE_;
+        if (pba->has_dr == _TRUE_)
+          ppt->has_source_theta_dr = _TRUE_;
         if (pba->has_ncdm == _TRUE_)
           ppt->has_source_theta_ncdm = _TRUE_;
       }
@@ -619,14 +652,18 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
       class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_type,1);
       class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_type,1);
       class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
+      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_type,1);
       class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
       class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
       class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
       class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
       class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_type,1);
       class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_theta_dcdm, ppt->has_source_theta_dcdm,index_type,1);
       class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
+      class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_type,1);
       class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
       class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
       class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_type,1);
@@ -1072,7 +1109,7 @@ int perturb_timesampling_for_sources(
       for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
 
         class_alloc(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
-                    ppt->k_size * ppt->tau_size * sizeof(double),
+                    ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
                     ppt->error_message);
 
       }
@@ -1095,11 +1132,11 @@ int perturb_timesampling_for_sources(
  */
 
 int perturb_get_k_list(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct thermo * pth,
-                       struct perturbs * ppt
-                       ) {
+                        struct precision * ppr,
+                        struct background * pba,
+                        struct thermo * pth,
+                        struct perturbs * ppt
+                        ) {
   int index_k, index_k_output;
   double k,k_min=0.,k_rec,step,tau1;
   double k_max_cmb=0.;
@@ -1116,203 +1153,484 @@ int perturb_get_k_list(
              ppt->error_message,
              "stop to avoid division by zero");
 
-  /** - find k_min */
+  /* allocate arrays related to k list for each mode */
 
-  /* first value */
-  if (pba->sgnK == 0) {
+  class_alloc(ppt->k_size_cmb,
+              ppt->md_size*sizeof(int),
+              ppt->error_message);
+  class_alloc(ppt->k_size_cl,
+              ppt->md_size*sizeof(int),
+              ppt->error_message);
+  class_alloc(ppt->k_size,
+              ppt->md_size*sizeof(int),
+              ppt->error_message);
+  class_alloc(ppt->k,
+              ppt->md_size*sizeof(double*),
+              ppt->error_message);
 
-    /* K<0 (flat)  : start close to zero */
-    k_min=ppr->k_min_tau0/pba->conformal_age;
+  /** - scalar modes */
 
-  }
-  else if (pba->sgnK == -1) {
+  if (ppt->has_scalars == _TRUE_) {
 
-    /* K<0 (open)  : start close to sqrt(-K)
-       (in transfer modules, for scalars, this will correspond to q close to zero;
-       for vectors and tensors, this value is even smaller than the minimum necessary value) */
-    k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
-
-  }
-  else if (pba->sgnK == 1) {
-
-    /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
-    k_min = sqrt((8.-1.e-4)*pba->K);
-    if (ppt->has_vectors == _TRUE_) {
-      k_min = MIN(k_min,sqrt((7.-1.e-4)*pba->K));
+    /* first value */
+    if (pba->sgnK == 0) {
+      /* K<0 (flat)  : start close to zero */
+      k_min=ppr->k_min_tau0/pba->conformal_age;
     }
-    if (ppt->has_tensors == _TRUE_) {
-      k_min = MIN(k_min,sqrt((6.-1e-4)*pba->K));
+    else if (pba->sgnK == -1) {
+      /* K<0 (open)  : start close to sqrt(-K)
+         (in transfer modules, for scalars, this will correspond to q close to zero;
+         for vectors and tensors, this value is even smaller than the minimum necessary value) */
+      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
+
     }
-  }
-
-  /** - find k_max (as well as k_max_cmb, k_max_cl) */
-
-  k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
-
-  k_max_cmb = k_min;
-  k_max_cl = k_min;
-  k_max = k_min;
-
-  if (ppt->has_cls == _TRUE_) {
-
-    /* find k_max_cmb: */
-
-    /* choose a k_max_cmb corresponding to a wavelength on the last
-       scattering surface seen today under an angle smaller than
-       pi/lmax: this is equivalent to
-       k_max_cl*[comvoving.ang.diameter.distance] > l_max */
-
-    k_max_cmb = ppr->k_max_tau0_over_l_max*MAX(ppt->l_scalar_max,ppt->l_tensor_max)
-      /pba->conformal_age/pth->angular_rescaling;
-    k_max_cl  = k_max_cmb;
-    k_max     = k_max_cmb;
-
-    /* find k_max_cl: */
-
-    /* if we need density/lensing Cl's, we must impose a stronger condition,
-       such that the minimum wavelength on the shell corresponding
-       to the center of smallest redshift bin is seen under an
-       angle smaller than pi/lmax. So we must mutiply our previous
-       k_max_cl by the ratio tau0/(tau0-tau[center of smallest
-       redhsift bin]). Note that we could do the same with the
-       lensing potential if we needed a very precise C_l^phi-phi at
-       large l. We don't do it by default, because the lensed ClT,
-       ClE would be marginally affected. */
-
-    if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
-
-      class_call(background_tau_of_z(pba,
-                                     ppt->selection_mean[0],
-                                     &tau1),
-                 pba->error_message,
-                 ppt->error_message);
-
-      k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
-      k_max    = k_max_cl;
+    else if (pba->sgnK == 1) {
+      /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+      k_min = sqrt((8.-1.e-4)*pba->K);
     }
-  }
 
-  /* find k_max: */
+    /** - find k_max (as well as k_max_cmb, k_max_cl) */
 
-  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
-    k_max = MAX(k_max,ppt->k_max_for_pk);
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
-  if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
-    k_max = MAX(k_max,ppr->halofit_min_k_max);
+    k_max_cmb = k_min;
+    k_max_cl = k_min;
+    k_max = k_min;
 
-  /** - test that result for k_min, k_max make sense */
+    if (ppt->has_cls == _TRUE_) {
 
-  class_test(k_min<0.,
-             ppt->error_message,
-             "buggy definition of k_min");
+      /* find k_max_cmb: */
 
-  class_test(k_max<0.,
-             ppt->error_message,
-             "buggy definition of k_max");
+      /* choose a k_max_cmb corresponding to a wavelength on the last
+         scattering surface seen today under an angle smaller than
+         pi/lmax: this is equivalent to
+         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
 
-  class_test(k_max<k_min,
-             ppt->error_message,
-             "buggy definition of k_min and/or k_max");
+      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
+        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cl  = k_max_cmb;
+      k_max     = k_max_cmb;
 
-  /* if K>0, the transfer function will be calculated for discrete
-     integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
-     m=0,1,2 for scalars/vectors/tensors. However we are free to
-     define in the perturbation module some arbitrary values of k:
-     later on, the transfer module will interpolate at values of k
-     corresponding exactly to integer values of nu. Hence, apart
-     from the value of k_min and the step size in thevicinity of
-     k_min, we define exactly the same sampling in the three cases
-     K=0, K<0, K>0 */
+      /* find k_max_cl: */
 
-  /* allocate array with, for the moment, the largest possible size */
-  class_alloc(ppt->k,((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-                      (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
-              *sizeof(double),ppt->error_message);
+      /* if we need density/lensing Cl's, we must impose a stronger condition,
+         such that the minimum wavelength on the shell corresponding
+         to the center of smallest redshift bin is seen under an
+         angle smaller than pi/lmax. So we must mutiply our previous
+         k_max_cl by the ratio tau0/(tau0-tau[center of smallest
+         redhsift bin]). Note that we could do the same with the
+         lensing potential if we needed a very precise C_l^phi-phi at
+         large l. We don't do it by default, because the lensed ClT,
+         ClE would be marginally affected. */
 
-  /* first value */
+      if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
-  index_k=0;
-  k = k_min;
-  ppt->k[index_k] = k;
-  index_k++;
+        class_call(background_tau_of_z(pba,
+                                       ppt->selection_mean[0],
+                                       &tau1),
+                   pba->error_message,
+                   ppt->error_message);
 
-  /* values until k_max_cmb */
+        k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
+        k_max    = k_max_cl;
+      }
+    }
 
-  while (k < k_max_cmb) {
+    /* find k_max: */
 
-    /* the linear step is not constant, it has a step-like shape,
-       centered around the characteristic scale set by the sound
-       horizon at recombination (associated to the comoving wavenumber
-       k_rec) */
+    if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
+      k_max = MAX(k_max,ppt->k_max_for_pk);
 
-    step = (ppr->k_step_super
-            + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
-            * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+    if (ppt->has_nl_corrections_based_on_delta_m == _TRUE_)
+      k_max = MAX(k_max,ppr->halofit_min_k_max);
 
-    /* there is one other thing to take into account in the step
-       size. There are two other characteristic scales that matter for
-       the sampling: the Hubble scale today, k0=a0H0, and eventually
-       curvature scale sqrt(|K|). We define "scale2" as the sum of the
-       squared Hubble radius and squared curvature radius. We need to
-       increase the sampling for k<sqrt(scale2), in order to get the
-       first mutipoles accurate enough. The formula below reduces it
-       gradually in the k-->0 limit, by up to a factor 10. The actual
-       stepsize is still fixed by k_step_super, this is just a
-       reduction factor. */
+    /** - test that result for k_min, k_max make sense */
 
-    scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
-
-    step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
-
-    class_test(step / k < ppr->smallest_allowed_variation,
+    class_test(k_min<0.,
                ppt->error_message,
-               "k step =%e < machine precision : leads either to numerical error or infinite loop",step * k_rec);
+               "buggy definition of k_min");
 
-    k += step;
-
-    class_test(k <= ppt->k[index_k-1],
+    class_test(k_max<0.,
                ppt->error_message,
-               "consecutive values of k should differ and should be in growing order");
+               "buggy definition of k_max");
 
-    ppt->k[index_k] = k;
+    class_test(k_max<k_min,
+               ppt->error_message,
+               "buggy definition of k_min and/or k_max");
 
+    /* if K>0, the transfer function will be calculated for discrete
+       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+       m=0,1,2 for scalars/vectors/tensors. However we are free to
+       define in the perturbation module some arbitrary values of k:
+       later on, the transfer module will interpolate at values of k
+       corresponding exactly to integer values of nu. Hence, apart
+       from the value of k_min and the step size in thevicinity of
+       k_min, we define exactly the same sampling in the three cases
+       K=0, K<0, K>0 */
+
+    /* allocate array with, for the moment, the largest possible size */
+    class_alloc(ppt->k[ppt->index_md_scalars],
+                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+                 (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
+                *sizeof(double),ppt->error_message);
+
+    /* first value */
+
+    index_k=0;
+    k = k_min;
+    ppt->k[ppt->index_md_scalars][index_k] = k;
     index_k++;
+
+    /* values until k_max_cmb */
+
+    while (k < k_max_cmb) {
+
+      /* the linear step is not constant, it has a step-like shape,
+         centered around the characteristic scale set by the sound
+         horizon at recombination (associated to the comoving wavenumber
+         k_rec) */
+
+      step = (ppr->k_step_super
+              + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
+              * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+
+      /* there is one other thing to take into account in the step
+         size. There are two other characteristic scales that matter for
+         the sampling: the Hubble scale today, k0=a0H0, and eventually
+         curvature scale sqrt(|K|). We define "scale2" as the sum of the
+         squared Hubble radius and squared curvature radius. We need to
+         increase the sampling for k<sqrt(scale2), in order to get the
+         first mutipoles accurate enough. The formula below reduces it
+         gradually in the k-->0 limit, by up to a factor 10. The actual
+         stepsize is still fixed by k_step_super, this is just a
+         reduction factor. */
+
+      scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+      step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+
+      class_test(step / k < ppr->smallest_allowed_variation,
+                 ppt->error_message,
+                 "k step =%e < machine precision : leads either to numerical error or infinite loop",
+                 step * k_rec);
+
+      k += step;
+
+      class_test(k <= ppt->k[ppt->index_md_scalars][index_k-1],
+                 ppt->error_message,
+                 "consecutive values of k should differ and should be in growing order");
+
+      ppt->k[ppt->index_md_scalars][index_k] = k;
+
+      index_k++;
+    }
+
+    ppt->k_size_cmb[ppt->index_md_scalars] = index_k;
+
+    /* values until k_max_cl */
+
+    while (k < k_max_cl) {
+
+      k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                       *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+
+      ppt->k[ppt->index_md_scalars][index_k] = k;
+      index_k++;
+    }
+
+    ppt->k_size_cl[ppt->index_md_scalars] = index_k;
+
+    /* values until k_max */
+
+    while (k < k_max) {
+
+      k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                       *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+
+      ppt->k[ppt->index_md_scalars][index_k] = k;
+      index_k++;
+    }
+
+    ppt->k_size[ppt->index_md_scalars] = index_k;
+
+    class_realloc(ppt->k[ppt->index_md_scalars],
+                  ppt->k[ppt->index_md_scalars],
+                  ppt->k_size[ppt->index_md_scalars]*sizeof(double),
+                  ppt->error_message);
+
   }
 
-  ppt->k_size_cmb = index_k;
+  /** - vector modes */
 
-  /* values until k_max_cl */
+  if (ppt->has_vectors == _TRUE_) {
 
-  while (k < k_max_cl) {
+    /* first value */
+    if (pba->sgnK == 0) {
+      /* K<0 (flat)  : start close to zero */
+      k_min=ppr->k_min_tau0/pba->conformal_age;
+    }
+    else if (pba->sgnK == -1) {
+      /* K<0 (open)  : start close to sqrt(-K)
+         (in transfer modules, for scalars, this will correspond to q close to zero;
+         for vectors and tensors, this value is even smaller than the minimum necessary value) */
+      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
 
-    k *= pow(10.,1./(ppr->k_per_decade_for_pk
-                     +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
-                     *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+    }
+    else if (pba->sgnK == 1) {
+      /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+      k_min = sqrt((7.-1.e-4)*pba->K);
+    }
 
-    ppt->k[index_k] = k;
+    /** - find k_max (as well as k_max_cmb, k_max_cl) */
+
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+
+    k_max_cmb = k_min;
+    k_max_cl = k_min;
+    k_max = k_min;
+
+    if (ppt->has_cls == _TRUE_) {
+
+      /* find k_max_cmb: */
+
+      /* choose a k_max_cmb corresponding to a wavelength on the last
+         scattering surface seen today under an angle smaller than
+         pi/lmax: this is equivalent to
+         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
+
+      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_vector_max
+        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cl  = k_max_cmb;
+      k_max     = k_max_cmb;
+    }
+
+    /** - test that result for k_min, k_max make sense */
+
+    class_test(k_min<0.,
+               ppt->error_message,
+               "buggy definition of k_min");
+
+    class_test(k_max<0.,
+               ppt->error_message,
+               "buggy definition of k_max");
+
+    class_test(k_max<k_min,
+               ppt->error_message,
+               "buggy definition of k_min and/or k_max");
+
+    /* if K>0, the transfer function will be calculated for discrete
+       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+       m=0,1,2 for scalars/vectors/tensors. However we are free to
+       define in the perturbation module some arbitrary values of k:
+       later on, the transfer module will interpolate at values of k
+       corresponding exactly to integer values of nu. Hence, apart
+       from the value of k_min and the step size in thevicinity of
+       k_min, we define exactly the same sampling in the three cases
+       K=0, K<0, K>0 */
+
+    /* allocate array with, for the moment, the largest possible size */
+    class_alloc(ppt->k[ppt->index_md_vectors],
+                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+                *sizeof(double),ppt->error_message);
+
+    /* first value */
+
+    index_k=0;
+    k = k_min;
+    ppt->k[ppt->index_md_vectors][index_k] = k;
     index_k++;
+
+    /* values until k_max_cmb */
+
+    while (k < k_max_cmb) {
+
+      /* the linear step is not constant, it has a step-like shape,
+         centered around the characteristic scale set by the sound
+         horizon at recombination (associated to the comoving wavenumber
+         k_rec) */
+
+      step = (ppr->k_step_super
+              + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
+              * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+
+      /* there is one other thing to take into account in the step
+         size. There are two other characteristic scales that matter for
+         the sampling: the Hubble scale today, k0=a0H0, and eventually
+         curvature scale sqrt(|K|). We define "scale2" as the sum of the
+         squared Hubble radius and squared curvature radius. We need to
+         increase the sampling for k<sqrt(scale2), in order to get the
+         first mutipoles accurate enough. The formula below reduces it
+         gradually in the k-->0 limit, by up to a factor 10. The actual
+         stepsize is still fixed by k_step_super, this is just a
+         reduction factor. */
+
+      scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+      step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+
+      class_test(step / k < ppr->smallest_allowed_variation,
+                 ppt->error_message,
+                 "k step =%e < machine precision : leads either to numerical error or infinite loop",
+                 step * k_rec);
+
+      k += step;
+
+      class_test(k <= ppt->k[ppt->index_md_scalars][index_k-1],
+                 ppt->error_message,
+                 "consecutive values of k should differ and should be in growing order");
+
+      ppt->k[ppt->index_md_vectors][index_k] = k;
+
+      index_k++;
+    }
+
+    ppt->k_size_cmb[ppt->index_md_vectors] = index_k;
+    ppt->k_size_cl[ppt->index_md_vectors] = index_k;
+    ppt->k_size[ppt->index_md_vectors] = index_k;
+
+    class_realloc(ppt->k[ppt->index_md_vectors],
+                  ppt->k[ppt->index_md_vectors],
+                  ppt->k_size[ppt->index_md_vectors]*sizeof(double),
+                  ppt->error_message);
+
   }
 
-  ppt->k_size_cl = index_k;
+  /** - tensor modes */
 
-  /* values until k_max */
+  if (ppt->has_tensors == _TRUE_) {
 
-  while (k < k_max) {
+    /* first value */
+    if (pba->sgnK == 0) {
+      /* K<0 (flat)  : start close to zero */
+      k_min=ppr->k_min_tau0/pba->conformal_age;
+    }
+    else if (pba->sgnK == -1) {
+      /* K<0 (open)  : start close to sqrt(-K)
+         (in transfer modules, for scalars, this will correspond to q close to zero;
+         for vectors and tensors, this value is even smaller than the minimum necessary value) */
+      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
 
-    k *= pow(10.,1./(ppr->k_per_decade_for_pk
-                     +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
-                     *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+    }
+    else if (pba->sgnK == 1) {
+      /* K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K) */
+      k_min = sqrt((6.-1.e-4)*pba->K);
+    }
 
-    ppt->k[index_k] = k;
+    /** - find k_max (as well as k_max_cmb, k_max_cl) */
+
+    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+
+    k_max_cmb = k_min;
+    k_max_cl = k_min;
+    k_max = k_min;
+
+    if (ppt->has_cls == _TRUE_) {
+
+      /* find k_max_cmb: */
+
+      /* choose a k_max_cmb corresponding to a wavelength on the last
+         scattering surface seen today under an angle smaller than
+         pi/lmax: this is equivalent to
+         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
+
+      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_tensor_max
+        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cl  = k_max_cmb;
+      k_max     = k_max_cmb;
+    }
+
+    /** - test that result for k_min, k_max make sense */
+
+    class_test(k_min<0.,
+               ppt->error_message,
+               "buggy definition of k_min");
+
+    class_test(k_max<0.,
+               ppt->error_message,
+               "buggy definition of k_max");
+
+    class_test(k_max<k_min,
+               ppt->error_message,
+               "buggy definition of k_min and/or k_max");
+
+    /* if K>0, the transfer function will be calculated for discrete
+       integer values of nu=3,4,5,... where nu=sqrt(k2+(1+m)K) and
+       m=0,1,2 for scalars/vectors/tensors. However we are free to
+       define in the perturbation module some arbitrary values of k:
+       later on, the transfer module will interpolate at values of k
+       corresponding exactly to integer values of nu. Hence, apart
+       from the value of k_min and the step size in thevicinity of
+       k_min, we define exactly the same sampling in the three cases
+       K=0, K<0, K>0 */
+
+    /* allocate array with, for the moment, the largest possible size */
+    class_alloc(ppt->k[ppt->index_md_tensors],
+                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+                *sizeof(double),ppt->error_message);
+
+    /* first value */
+
+    index_k=0;
+    k = k_min;
+    ppt->k[ppt->index_md_tensors][index_k] = k;
     index_k++;
+
+    /* values until k_max_cmb */
+
+    while (k < k_max_cmb) {
+
+      /* the linear step is not constant, it has a step-like shape,
+         centered around the characteristic scale set by the sound
+         horizon at recombination (associated to the comoving wavenumber
+         k_rec) */
+
+      step = (ppr->k_step_super
+              + 0.5 * (tanh((k-k_rec)/k_rec/ppr->k_step_transition)+1.)
+              * (ppr->k_step_sub-ppr->k_step_super)) * k_rec;
+
+      /* there is one other thing to take into account in the step
+         size. There are two other characteristic scales that matter for
+         the sampling: the Hubble scale today, k0=a0H0, and eventually
+         curvature scale sqrt(|K|). We define "scale2" as the sum of the
+         squared Hubble radius and squared curvature radius. We need to
+         increase the sampling for k<sqrt(scale2), in order to get the
+         first mutipoles accurate enough. The formula below reduces it
+         gradually in the k-->0 limit, by up to a factor 10. The actual
+         stepsize is still fixed by k_step_super, this is just a
+         reduction factor. */
+
+      scale2 = pow(pba->a_today*pba->H0,2)+fabs(pba->K);
+
+      step *= (k*k/scale2+1.)/(k*k/scale2+1./ppr->k_step_super_reduction);
+
+      class_test(step / k < ppr->smallest_allowed_variation,
+                 ppt->error_message,
+                 "k step =%e < machine precision : leads either to numerical error or infinite loop",
+                 step * k_rec);
+
+      k += step;
+
+      class_test(k <= ppt->k[ppt->index_md_tensors][index_k-1],
+                 ppt->error_message,
+                 "consecutive values of k should differ and should be in growing order");
+
+      ppt->k[ppt->index_md_tensors][index_k] = k;
+
+      index_k++;
+    }
+
+    ppt->k_size_cmb[ppt->index_md_tensors] = index_k;
+    ppt->k_size_cl[ppt->index_md_tensors] = index_k;
+    ppt->k_size[ppt->index_md_tensors] = index_k;
+
+    class_realloc(ppt->k[ppt->index_md_tensors],
+                  ppt->k[ppt->index_md_tensors],
+                  ppt->k_size[ppt->index_md_tensors]*sizeof(double),
+                  ppt->error_message);
+
   }
-
-  ppt->k_size = index_k;
-
-  class_realloc(ppt->k,
-                ppt->k,
-                ppt->k_size*sizeof(double),
-                ppt->error_message);
 
   /* For testing, can be useful to print the k list in a file:
 
@@ -1327,26 +1645,41 @@ int perturb_get_k_list(
      fclose(out);
   */
 
+  ppt->k_min = _HUGE_;
+  ppt->k_max = 0.;
+  if (ppt->has_scalars == _TRUE_) {
+    ppt->k_min = MIN(ppt->k_min,ppt->k[ppt->index_md_scalars][0]); /* first value, inferred from perturbations structure */
+    ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_scalars][ppt->k_size[ppt->index_md_scalars]-1]); /* last value, inferred from perturbations structure */
+  }
+  if (ppt->has_vectors == _TRUE_) {
+    ppt->k_min = MIN(ppt->k_min,ppt->k[ppt->index_md_vectors][0]); /* first value, inferred from perturbations structure */
+    ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_vectors][ppt->k_size[ppt->index_md_vectors]-1]); /* last value, inferred from perturbations structure */
+  }
+  if (ppt->has_tensors == _TRUE_) {
+    ppt->k_min = MIN(ppt->k_min,ppt->k[ppt->index_md_tensors][0]); /* first value, inferred from perturbations structure */
+    ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1]); /* last value, inferred from perturbations structure */
+  }
+
   /** If perturbations are requested, find corresponding indices in
-      ppt->k. I am assuming that ppt->k is sorted and growing, but
-      I am not assuming anything about ppt->k_output_values. */
+      ppt->k. We are assuming that ppt->k is sorted and growing, but
+      we am not assuming anything about ppt->k_output_values. */
   for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
     k_target = ppt->k_output_values[index_k_output];
-    for (index_k=0; index_k<ppt->k_size; index_k++){
-      if (ppt->k[index_k] > k_target)
+    for (index_k=0; index_k<ppt->k_size[0]; index_k++){
+      if (ppt->k[0][index_k] > k_target)
         break;
     }
     if (index_k == 0){
       //k_target smaller than the smallest k in the list
       ppt->index_k_output_values[index_k_output] = 0;
     }
-    else if (index_k == ppt->k_size){
+    else if (index_k == ppt->k_size[0]){
       //k_target is larger than the largest k in the list
-      ppt->index_k_output_values[index_k_output] = ppt->k_size-1;
+      ppt->index_k_output_values[index_k_output] = ppt->k_size[0]-1;
     }
     else{
       //Find the closest k value
-      if ((k_target-ppt->k[index_k-1])<(ppt->k[index_k]-k_target))
+      if ((k_target-ppt->k[0][index_k-1])<(ppt->k[0][index_k]-k_target))
         ppt->index_k_output_values[index_k_output] = index_k - 1;
       else
         ppt->index_k_output_values[index_k_output] = index_k;
@@ -1437,6 +1770,24 @@ int perturb_workspace_init(
       class_define_index(ppw->index_mt_eta_prime,_TRUE_,index_mt,1);     /* eta' */
       class_define_index(ppw->index_mt_alpha,_TRUE_,index_mt,1);         /* alpha = (h' + 6 tau') / (2 k**2) */
       class_define_index(ppw->index_mt_alpha_prime,_TRUE_,index_mt,1);   /* alpha' */
+
+    }
+
+  }
+
+  if (_vectors_) {
+
+    /* newtonian gauge */
+
+    if (ppt->gauge == newtonian) {
+
+      class_define_index(ppw->index_mt_V_prime,_TRUE_,index_mt,1);
+
+    }
+
+    if (ppt->gauge == synchronous) {
+
+      class_define_index(ppw->index_mt_hv_prime_prime,_TRUE_,index_mt,1);
 
     }
 
@@ -1651,7 +2002,7 @@ int perturb_solve(
   ppw->inter_mode = pba->inter_normal;
 
   /** - get wavenumber value */
-  k = ppt->k[index_k];
+  k = ppt->k[index_md][index_k];
 
   class_test(k == 0.,
              ppt->error_message,
@@ -1709,7 +2060,7 @@ int perturb_solve(
              ppr->start_large_k_at_tau_h_over_tau_k,
              ppt->error_message,
              "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_large_k_at_tau_h_over_tau_k' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
-             ppt->k[ppt->k_size-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
+             ppt->k[index_md][ppt->k_size[index_md]-1]/ppw->pvecback[pba->index_bg_a]/ ppw->pvecback[pba->index_bg_H]);
 
   if (pba->has_ncdm == _TRUE_) {
     for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
@@ -1940,7 +2291,7 @@ int perturb_solve(
     for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
       ppt->sources[index_md]
         [index_ic * ppt->tp_size[index_md] + index_type]
-        [index_tau * ppt->k_size + index_k] = 0.;
+        [index_tau * ppt->k_size[index_md] + index_k] = 0.;
     }
   }
 
@@ -1965,12 +2316,13 @@ int perturb_prepare_output_file(struct background * pba,
                                 struct perturb_workspace * ppw,
                                 int index_ikout,
                                 int index_md){
+  int colnum=1;
   int n_ncdm;
   double k;
   FileName file_name;
   char tmp[20];
 
-  k = ppt->k[ppt->index_k_output_values[index_ikout]];
+  k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
 
   if (_scalars_)
     sprintf(file_name,"%s%s%d%s",ppt->root,"perturbations_k",index_ikout,"_s.dat");
@@ -1986,39 +2338,47 @@ int perturb_prepare_output_file(struct background * pba,
             "#scalar perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
     fprintf(ppw->perturb_output_file,"#");
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol0_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol1_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol2_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_b",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_b",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"psi",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"phi",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"theta_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"pol0_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"pol1_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"pol2_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_b",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"theta_b",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"psi",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"phi",_TRUE_,colnum);
     /* Perturbed recombination */
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_Tb",ppt->has_perturbed_recombination);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_chi",ppt->has_perturbed_recombination);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_Tb",ppt->has_perturbed_recombination,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_chi",ppt->has_perturbed_recombination,colnum);
     /* Ultrarelativistic species */
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",pba->has_ur);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_ur",pba->has_ur);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",pba->has_ur);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",pba->has_ur,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"theta_ur",pba->has_ur,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",pba->has_ur,colnum);
     /* Cold dark matter */
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_cdm",pba->has_cdm);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_cdm",pba->has_cdm);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_cdm",pba->has_cdm,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"theta_cdm",pba->has_cdm,colnum);
     /* Non-cold dark matter */
     if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_))) {
       for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
         sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
         sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
         sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
       }
     }
+    /* Decaying cold dark matter */
+    class_fprintf_columntitle(ppw->perturb_output_file, "delta_dcdm", pba->has_dcdm,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file, "theta_dcdm", pba->has_dcdm,colnum);
+    /* Decay radiation */
+    class_fprintf_columntitle(ppw->perturb_output_file, "delta_dr", pba->has_dr,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file, "theta_dr", pba->has_dr,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file, "shear_dr", pba->has_dr,colnum);
+
     fprintf(ppw->perturb_output_file,"\n");
 
   }
@@ -2027,29 +2387,29 @@ int perturb_prepare_output_file(struct background * pba,
             "#tensor perturbations for mode k = %.*e Mpc^(-1)\n",
             _OUTPUTPRECISION_,k);
     fprintf(ppw->perturb_output_file,"#");
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"l4_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol0_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol2_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol4_g",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"H (gw)",_TRUE_);
-    class_fprintf_columntitle(ppw->perturb_output_file,"Hdot (gwdot)",_TRUE_);
+    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"l4_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"pol0_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"pol2_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"pol4_g",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"H (gw)",_TRUE_,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"Hdot (gwdot)",_TRUE_,colnum);
 
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",ppt->evolve_tensor_ur);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",ppt->evolve_tensor_ur);
-    class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",ppt->evolve_tensor_ur);
+    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",ppt->evolve_tensor_ur,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",ppt->evolve_tensor_ur,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",ppt->evolve_tensor_ur,colnum);
 
     if (ppt->evolve_tensor_ncdm == _TRUE_) {
       for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
         sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
         sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
         sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_);
+        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
       }
     }
 
@@ -2506,6 +2866,13 @@ int perturb_vector_init(
                ppt->error_message,
                "ppr->l_max_pol_g should be at least 4");
 
+    /* reject inconsistent values of the number of mutipoles in decay radiation hierachy */
+    if (pba->has_dr == _TRUE_) {
+      class_test(ppr->l_max_dr < 4,
+                 ppt->error_message,
+                 "ppr->l_max_ur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
+    }
+
     /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
     if (pba->has_ur == _TRUE_) {
       class_test(ppr->l_max_ur < 4,
@@ -2549,6 +2916,17 @@ int perturb_vector_init(
 
     class_define_index(ppv->index_pt_delta_cdm,pba->has_cdm,index_pt,1); /* cdm density */
     class_define_index(ppv->index_pt_theta_cdm,pba->has_cdm && (ppt->gauge == newtonian),index_pt,1); /* cdm velocity */
+
+    /* dcdm */
+
+    class_define_index(ppv->index_pt_delta_dcdm,pba->has_dcdm,index_pt,1); /* dcdm density */
+    class_define_index(ppv->index_pt_theta_dcdm,pba->has_dcdm,index_pt,1); /* dcdm velocity */
+
+    /* ultra relativistic decay radiation */
+    if (pba->has_dr==_TRUE_){
+      ppv->l_max_dr = ppr->l_max_dr;
+      class_define_index(ppv->index_pt_F0_dr,_TRUE_,index_pt,ppv->l_max_dr+1); /* all momenta in Boltzmann hierarchy  */
+    }
 
     /* fluid */
 
@@ -2614,6 +2992,42 @@ int perturb_vector_init(
        integration is numerically more stable if we actually evolve
        phi) */
     class_define_index(ppv->index_pt_phi,ppt->gauge == newtonian,index_pt,1);
+
+  }
+
+  if (_vectors_) {
+
+    /* Vector baryon velocity: v_b^{(1)}. */
+    class_define_index(ppv->index_pt_theta_b,_TRUE_,index_pt,1);
+
+    /* eventually reject inconsistent values of the number of mutipoles in photon temperature hierachy and polarisation*/
+
+    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
+
+        ppv->l_max_g = ppr->l_max_g_ten;
+
+        class_define_index(ppv->index_pt_delta_g,_TRUE_,index_pt,1); /* photon density */
+        class_define_index(ppv->index_pt_theta_g,_TRUE_,index_pt,1); /* photon velocity */
+        class_define_index(ppv->index_pt_shear_g,_TRUE_,index_pt,1); /* photon shear */
+        class_define_index(ppv->index_pt_l3_g,_TRUE_,index_pt,ppv->l_max_g-2); /* photon l=3 */
+
+        ppv->l_max_pol_g = ppr->l_max_pol_g_ten;
+
+        class_define_index(ppv->index_pt_pol0_g,_TRUE_,index_pt,1); /* photon polarization, l=0 */
+        class_define_index(ppv->index_pt_pol1_g,_TRUE_,index_pt,1); /* photon polarization, l=1 */
+        class_define_index(ppv->index_pt_pol2_g,_TRUE_,index_pt,1); /* photon polarization, l=2 */
+        class_define_index(ppv->index_pt_pol3_g,_TRUE_,index_pt,ppv->l_max_pol_g-2); /* photon polarization, l=3 */
+      }
+    }
+
+    /** (b) metric perturbations V or h_v depending on gauge */
+    if (ppt->gauge == synchronous){
+      class_define_index(ppv->index_pt_hv_prime,_TRUE_,index_pt,1);
+    }
+    if (ppt->gauge == newtonian){
+      class_define_index(ppv->index_pt_V,_TRUE_,index_pt,1);
+    }
 
   }
 
@@ -2896,6 +3310,21 @@ int perturb_vector_init(
           ppv->y[ppv->index_pt_theta_cdm] =
             ppw->pv->y[ppw->pv->index_pt_theta_cdm];
         }
+      }
+
+      if (pba->has_dcdm == _TRUE_) {
+
+        ppv->y[ppv->index_pt_delta_dcdm] =
+          ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
+
+        ppv->y[ppv->index_pt_theta_dcdm] =
+          ppw->pv->y[ppw->pv->index_pt_theta_dcdm];
+      }
+
+      if (pba->has_dr == _TRUE_){
+        for (l=0; l <= ppv->l_max_dr; l++)
+          ppv->y[ppv->index_pt_F0_dr+l] =
+            ppw->pv->y[ppw->pv->index_pt_F0_dr+l];
       }
 
       if (pba->has_fld == _TRUE_) {
@@ -3227,7 +3656,71 @@ int perturb_vector_init(
       }
     }
 
-    /** (b) for the tensor mode */
+    /** (b) for the vector mode */
+
+    if (_vectors_) {
+
+      /** -- check that the change of approximation scheme makes
+          sense (note: before calling this routine there is already a
+          check that we wish to change only one approximation flag at
+          a time) */
+
+      class_test((pa_old[ppw->index_ap_tca] == (int)tca_off) && (ppw->approx[ppw->index_ap_tca] == (int)tca_on),
+                 ppt->error_message,
+                 "at tau=%g: the tight-coupling approximation can be switched off, not on",tau);
+
+      /** -- some variables (gw, gwdot, ...) are not affected by
+          any approximation. They need to be reconducted whatever
+          the approximation switching is. We treat them here. Below
+          we will treat other variables case by case. */
+
+      if (ppt->gauge == synchronous){
+
+        ppv->y[ppv->index_pt_hv_prime] =
+          ppw->pv->y[ppw->pv->index_pt_hv_prime];
+
+      }
+      if (ppt->gauge == newtonian){
+
+        ppv->y[ppv->index_pt_V] =
+          ppw->pv->y[ppw->pv->index_pt_V];
+
+      }
+
+      ppv->y[ppv->index_pt_theta_b] =
+        ppw->pv->y[ppw->pv->index_pt_theta_b];
+
+
+      /* -- case of switching off tight coupling
+         approximation. Provide correct initial conditions to new set
+         of variables */
+
+      if ((pa_old[ppw->index_ap_tca] == (int)tca_on) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off)) {
+
+        if (ppt->perturbations_verbose>2)
+          fprintf(stdout,"Mode k=%e: switch off tight-coupling approximation at tau=%e\n",k,tau);
+
+        ppv->y[ppv->index_pt_delta_g] = 0.0; //TBC
+        //-4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+
+        ppv->y[ppv->index_pt_pol0_g] = 0.0; //TBC
+        //1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+      }
+
+      /* -- case of switching on radiation streaming
+         approximation. Provide correct initial conditions to new set
+         of variables */
+
+      if ((pa_old[ppw->index_ap_rsa] == (int)rsa_off) && (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on)) {
+
+        if (ppt->perturbations_verbose>2)
+          fprintf(stdout,"Mode k=%e: switch on radiation streaming approximation at tau=%e with Omega_r=%g\n",k,tau,ppw->pvecback[pba->index_bg_Omega_r]);
+
+      }
+
+    }
+
+    /** (c) for the tensor mode */
 
     if (_tensors_) {
 
@@ -3425,6 +3918,15 @@ int perturb_initial_conditions(struct precision * ppr,
 
     if (pba->has_cdm == _TRUE_) {
       rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
+    }
+
+    if (pba->has_dcdm == _TRUE_) {
+      rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+    }
+
+    if (pba->has_dr == _TRUE_) {
+      rho_r += ppw->pvecback[pba->index_bg_rho_dr];
+      rho_nu += ppw->pvecback[pba->index_bg_rho_dr];
     }
 
     if (pba->has_ur == _TRUE_) {
@@ -4242,6 +4744,36 @@ int perturb_timescale(
 
   }
 
+  /** - for vector modes: */
+
+  if ((ppt->has_vectors == _TRUE_) && (pppaw->index_md == ppt->index_md_vectors)) {
+
+    *timescale = MIN(tau_h,tau_k);
+
+    if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
+
+      class_call(thermodynamics_at_z(pba,
+                                     pth,
+                                     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                     ppw->inter_mode,
+                                     &(ppw->last_index_thermo),
+                                     pvecback,
+                                     pvecthermo),
+                 pth->error_message,
+                 error_message);
+
+      if (pvecthermo[pth->index_th_dkappa] != 0.) {
+
+        /** compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
+
+        tau_c = 1./pvecthermo[pth->index_th_dkappa];
+
+        *timescale = MIN(tau_c,*timescale);
+
+      }
+    }
+  }
+
   /** - for tensor modes: */
 
   if ((ppt->has_tensors == _TRUE_) && (pppaw->index_md == ppt->index_md_tensors)) {
@@ -4271,8 +4803,6 @@ int perturb_timescale(
       }
     }
   }
-
-  /** - vectors not coded yet */
 
   return _SUCCESS_;
 }
@@ -4438,6 +4968,31 @@ int perturb_einstein(
     }
   }
 
+  if (_vectors_) {
+
+    if (ppt->gauge == newtonian) {
+
+      ppw->pvecmetric[ppw->index_mt_V_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_V] - 3.*ppw->vector_source_pi/k;
+
+    }
+
+    if (ppt->gauge == synchronous) {
+
+      // assuming    vector_source_pi = p_class a^2 pi_T^{(1)} and  vector_source_v = (rho_class+p_class)a^2 v^{(1)}
+
+      // from Hu and White:
+      ppw->pvecmetric[ppw->index_mt_hv_prime_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_hv_prime] - 3.*ppw->vector_source_pi/k2;
+
+      // what we suspect:
+      //ppw->pvecmetric[ppw->index_mt_hv_prime_prime] = -2.*a_prime_over_a*y[ppw->pv->index_pt_hv_prime] - 3.*ppw->vector_source_pi;
+
+      // if we use the other equation:
+      //ppw->pvecmetric[ppw->index_mt_hv_prime] = -2./k/ (1.-2.*pba->K/k2) * 3. * ppw->vector_source_v;
+
+    }
+
+  }
+
   if (_tensors_) {
 
     /* single einstein equation for tensor perturbations */
@@ -4482,6 +5037,7 @@ int perturb_total_stress_energy(
   double w;
   double gwncdm;
   double rho_relativistic;
+  double rho_dr_over_f;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -4578,6 +5134,12 @@ int perturb_total_stress_energy(
         ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
     }
 
+    /* dcdm contribution */
+    if (pba->has_dcdm == _TRUE_) {
+      ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
+      ppw->rho_plus_p_theta += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
+    }
+
     /* fluid contribution */
     if (pba->has_fld == _TRUE_) {
 
@@ -4586,6 +5148,21 @@ int perturb_total_stress_energy(
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
       ppw->rho_plus_p_theta += (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
       ppw->delta_p = ppw->delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
+    }
+
+    /* ultra-relativistic decay radiation */
+
+    if (pba->has_dr == _TRUE_) {
+      /* We have delta_rho_dr = rho_dr * F0_dr / f, where F follows the
+         convention in astro-ph/9907388 and f is defined as
+         f = rho_dr*a^4/rho_crit_today. In CLASS density units
+         rho_crit_today = H0^2.
+      */
+      rho_dr_over_f = pow(pba->H0/a2,2);
+      ppw->delta_rho += rho_dr_over_f*y[ppw->pv->index_pt_F0_dr];
+      ppw->rho_plus_p_theta += 4./3.*3./4*k*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+1];
+      ppw->rho_plus_p_shear += 2./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+2];
+      ppw->delta_p += 1./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr];
     }
 
     /* ultra-relativistic neutrino/relics contribution */
@@ -4684,6 +5261,13 @@ int perturb_total_stress_energy(
         rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
       }
 
+      /* include decaying cold dark matter */
+
+      if (pba->has_dcdm == _TRUE_) {
+        delta_rho_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
+        rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+      }
+
       /* include any other species non-relativistic today (like ncdm species) */
 
       if (pba->has_ncdm == _TRUE_) {
@@ -4720,6 +5304,11 @@ int perturb_total_stress_energy(
         rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
       }
 
+      if (pba->has_dcdm == _TRUE_) {
+        rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
+        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+      }
+
       /* include any other species non-relativistic today (like ncdm species) */
 
       if (pba->has_ncdm == _TRUE_) {
@@ -4733,6 +5322,31 @@ int perturb_total_stress_energy(
 
       ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
     }
+  }
+
+  if (_vectors_) {
+
+    ppw->vector_source_pi = 0.;
+    ppw->vector_source_v = 0.;
+
+    /** photon contribution to vector sources: */
+    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
+      if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
+
+        ppw->vector_source_v += 4./3.*a2*ppw->pvecback[pba->index_bg_rho_g]
+          * (-1./4.*_SQRT2_)
+          * (y[ppw->pv->index_pt_delta_g]+2.*y[ppw->pv->index_pt_delta_g]+y[ppw->pv->index_pt_shear_g]);
+
+        ppw->vector_source_pi += 1./3.*a2*ppw->pvecback[pba->index_bg_rho_g]
+          * (6.*_SQRT2_/5./sqrt(1.-2.*pba->K/k/k))
+          * (4./3./k*y[ppw->pv->index_pt_theta_g]+y[ppw->pv->index_pt_l3_g]);
+
+      }
+    }
+
+    /* baryons */
+
+
   }
 
   if (_tensors_) {
@@ -4873,6 +5487,8 @@ int perturb_sources(
   double a_prime_over_a_prime=0.;  /* (a'/a)' */
   int switch_isw = 1;
 
+  double a_rel, a2_rel, f_dr;
+
   /** - rename structure fields (just to avoid heavy notations) */
 
   pppaw = parameters_and_workspace;
@@ -4912,6 +5528,9 @@ int perturb_sources(
                                  pvecthermo),
              pth->error_message,
              error_message);
+
+  a_rel = ppw->pvecback[pba->index_bg_a]/pba->a_today;
+  a2_rel = a_rel * a_rel;
 
   /* derived background quantities, useful only in synchronous gauge */
   if (ppt->gauge == synchronous) {
@@ -5108,9 +5727,20 @@ int perturb_sources(
       _set_source_(ppt->index_tp_delta_cdm) = y[ppw->pv->index_pt_delta_cdm];
     }
 
+    /* delta_dcdm */
+    if (ppt->has_source_delta_dcdm == _TRUE_) {
+      _set_source_(ppt->index_tp_delta_dcdm) = y[ppw->pv->index_pt_delta_dcdm];
+    }
+
     /* delta_fld */
     if (ppt->has_source_delta_fld == _TRUE_) {
       _set_source_(ppt->index_tp_delta_fld) = y[ppw->pv->index_pt_delta_fld];
+    }
+
+    /* delta_dr */
+    if (ppt->has_source_delta_dr == _TRUE_) {
+      f_dr = pow(a2_rel/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      _set_source_(ppt->index_tp_delta_dr) = y[ppw->pv->index_pt_F0_dr]/f_dr;
     }
 
     /* delta_ur */
@@ -5151,9 +5781,20 @@ int perturb_sources(
       _set_source_(ppt->index_tp_theta_cdm) = y[ppw->pv->index_pt_theta_cdm];
     }
 
+    /* theta_dcdm */
+    if (ppt->has_source_theta_dcdm == _TRUE_) {
+      _set_source_(ppt->index_tp_theta_dcdm) = y[ppw->pv->index_pt_theta_dcdm];
+    }
+
     /* theta_fld */
     if (ppt->has_source_theta_fld == _TRUE_) {
       _set_source_(ppt->index_tp_theta_fld) = y[ppw->pv->index_pt_theta_fld];
+    }
+
+    /* theta_dr */
+    if (ppt->has_source_theta_dr == _TRUE_) {
+      f_dr = pow(a2_rel/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      _set_source_(ppt->index_tp_theta_dr) = 3./4.*k*y[ppw->pv->index_pt_F0_dr+1]/f_dr;
     }
 
     /* theta_ur */
@@ -5258,6 +5899,8 @@ int perturb_print_variables(double tau,
   double delta_g,theta_g,shear_g,l4_g,pol0_g,pol1_g,pol2_g,pol4_g;
   double delta_b,theta_b;
   double delta_cdm=0.,theta_cdm=0.;
+  double delta_dcdm=0.,theta_dcdm=0.;
+  double delta_dr=0.,theta_dr=0.,shear_dr=0., f_dr=1.0;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l4_ur=0.;
   int n_ncdm;
   double delta_ncdm,theta_ncdm,shear_ncdm;
@@ -5376,6 +6019,20 @@ int perturb_print_variables(double tau,
       phi = 0.0;
     }
 
+    if (pba->has_dcdm == _TRUE_) {
+
+      delta_dcdm = y[ppw->pv->index_pt_delta_dcdm];
+      theta_dcdm = y[ppw->pv->index_pt_theta_dcdm];
+
+    }
+
+    if (pba->has_dr == _TRUE_) {
+      f_dr = pow(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a]/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      delta_dr = y[ppw->pv->index_pt_F0_dr]/f_dr;
+      theta_dr = y[ppw->pv->index_pt_F0_dr+1]*3./4.*k/f_dr;
+      shear_dr = y[ppw->pv->index_pt_F0_dr+2]*0.5/f_dr;
+    }
+
     /* converting synchronous variables to newtonian ones */
     if (ppt->gauge == synchronous) {
 
@@ -5392,11 +6049,20 @@ int perturb_print_variables(double tau,
         theta_ur += k*k*pvecmetric[ppw->index_mt_alpha];
       }
 
+      if (pba->has_dr == _TRUE_) {
+        delta_dr -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        theta_dr += k*k*pvecmetric[ppw->index_mt_alpha];
+      }
+
       if (pba->has_cdm == _TRUE_) {
         delta_cdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
         theta_cdm += k*k*pvecmetric[ppw->index_mt_alpha];
       }
 
+      if (pba->has_dcdm == _TRUE_) {
+        delta_dcdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        theta_dcdm += k*k*pvecmetric[ppw->index_mt_alpha];
+      }
 
     }
 
@@ -5431,6 +6097,13 @@ int perturb_print_variables(double tau,
         class_fprintf_double(ppw->perturb_output_file, ppw->shear_ncdm[n_ncdm], _TRUE_);
       }
     }
+    /* Decaying cold dark matter */
+    class_fprintf_double(ppw->perturb_output_file, delta_dcdm, pba->has_dcdm);
+    class_fprintf_double(ppw->perturb_output_file, theta_dcdm, pba->has_dcdm);
+    /* Decay radiation */
+    class_fprintf_double(ppw->perturb_output_file, delta_dr, pba->has_dr);
+    class_fprintf_double(ppw->perturb_output_file, theta_dr, pba->has_dr);
+    class_fprintf_double(ppw->perturb_output_file, shear_dr, pba->has_dr);
 
     fprintf(ppw->perturb_output_file,"\n");
 
@@ -5597,7 +6270,6 @@ int perturb_derivs(double tau,
   /* short-cut notations for the perturbations */
   double delta_g=0.,theta_g=0.,shear_g=0.;
   double delta_b,theta_b;
-  double P0;
   double cb2,cs2,ca2;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_ufa_class=0.;
 
@@ -5611,7 +6283,7 @@ int perturb_derivs(double tau,
 
 
   /* Non-metric source terms for photons, i.e. \mathcal{P}^{(m)} from arXiv:1305.3261  */
-  double P2;
+  double P0,P1,P2;
 
   /* for use with fluid (fld): */
   double w,w_prime;
@@ -5623,7 +6295,10 @@ int perturb_derivs(double tau,
 
   /* for use with curvature */
   double cotKgen, sqrt_absK;
-  double s2_squared;
+  double s2_squared, ssqrt3;
+
+  /* for use with dcdm and dr */
+  double f_dr, fprime_dr;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -5962,6 +6637,53 @@ int perturb_derivs(double tau,
 
     }
 
+    /** -> dcdm and dr */
+
+    if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)) {
+
+      /* f = rho_dr*a^4/rho_crit_today. In CLASS density units
+         rho_crit_today = H0^2.
+      */
+      f_dr = pow(a*a/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      fprime_dr = pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]*pow(a,5)/pow(pba->H0,2);
+
+      /** -> dcdm */
+
+      dy[pv->index_pt_delta_dcdm] = -(y[pv->index_pt_theta_dcdm]+metric_continuity); /* dcdm density */
+
+      dy[pv->index_pt_theta_dcdm] = - a_prime_over_a*y[pv->index_pt_theta_dcdm] + metric_euler; /* dcdm velocity */
+
+      /** -> dr */
+
+      /** -----> dr F0 */
+      dy[pv->index_pt_F0_dr] = -k*y[pv->index_pt_F0_dr+1]-4./3.*metric_continuity*f_dr+
+        fprime_dr*y[pv->index_pt_delta_dcdm];
+
+      /** -----> dr F1 */
+      dy[pv->index_pt_F0_dr+1] = k/3.*y[pv->index_pt_F0_dr]-2./3.*k*y[pv->index_pt_F0_dr+2]*s2_squared +
+        4*metric_euler/(3.*k)*f_dr;
+
+      /** -----> exact dr F2 */
+      dy[pv->index_pt_F0_dr+2] = 8./15.*(3./4.*k*y[pv->index_pt_F0_dr+1]+metric_shear*f_dr) -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_F0_dr+3];
+
+      /** -----> exact dr l=3 */
+      l = 3;
+      dy[pv->index_pt_F0_dr+3] = k/(2.*l+1.)*
+        (l*s_l[l]*s_l[2]*y[pv->index_pt_F0_dr+2]-(l+1.)*s_l[l+1]*y[pv->index_pt_F0_dr+4]);
+
+      /** -----> exact dr l>3 */
+      for (l = 4; l < pv->l_max_dr; l++) {
+        dy[pv->index_pt_F0_dr+l] = k/(2.*l+1)*
+          (l*s_l[l]*y[pv->index_pt_F0_dr+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_F0_dr+l+1]);
+      }
+
+      /** -----> exact dr lmax_dr */
+      l = pv->l_max_dr;
+      dy[pv->index_pt_F0_dr+l] =
+        k*(s_l[l]*y[pv->index_pt_F0_dr+l-1]-(1.+l)*cotKgen*y[pv->index_pt_F0_dr+l]);
+
+    }
+
     /** -> fluid (fld) */
 
     if (pba->has_fld == _TRUE_) {
@@ -6213,6 +6935,144 @@ int perturb_derivs(double tau,
     }
 
   }
+
+  /** - vector mode */
+  if (_vectors_) {
+
+    fprintf(stderr,"we are in vectors\n");
+
+    ssqrt3 = sqrt(1.-2.*pba->K/k2);
+    cb2 = pvecthermo[pth->index_th_cb2];
+
+    /** -> baryon velocity */
+
+    if (ppt->gauge == synchronous) {
+
+      dy[pv->index_pt_theta_b] = -(1-3.*cb2)*a_prime_over_a*y[pv->index_pt_theta_b]
+        - pvecthermo[pth->index_th_dkappa]*(_SQRT2_/4.*delta_g + y[pv->index_pt_theta_b]);
+
+    }
+
+    else if (ppt->gauge == newtonian) {
+
+      dy[pv->index_pt_theta_b] = -(1-3.*cb2)*a_prime_over_a*y[pv->index_pt_theta_b]
+        - _SQRT2_/4.*pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
+        + pvecmetric[ppw->index_mt_V_prime]+(1.-3.*cb2)*a_prime_over_a*y[pv->index_pt_V];
+
+    }
+
+    /*
+      if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+      if (ppw->approx[ppw->index_ap_tca]==(int)tca_off) {
+    */
+
+    /* short-cut notations for the tensor perturbations */
+    delta_g = y[pv->index_pt_delta_g];
+    theta_g = y[pv->index_pt_theta_g];
+    shear_g = y[pv->index_pt_shear_g];
+
+
+    /* (P^{(1)}) (see Eq. B.23 in 1305.3261)*/
+    P1 = -_SQRT6_/40.*(
+                       4./(3.*k)*theta_g //F1
+                       +y[pv->index_pt_delta_g+3]
+                       +2.*y[pv->index_pt_pol0_g]
+                       +10./7.*y[pv->index_pt_pol2_g]
+                       -4./7.*y[pv->index_pt_pol0_g+4]);
+
+    if (ppt->gauge == synchronous) {
+
+      /* photon density (delta_g = F_0) */
+      dy[pv->index_pt_delta_g] =
+        -4./3.*theta_g
+        -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b]);
+
+      /* photon velocity (theta_g = (3k/4)*F_1) */
+      dy[pv->index_pt_theta_g] =
+        k2*(delta_g/4.-s_l[2]*shear_g)
+        -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1)
+        +4.0/(3.0*_SQRT2_)*ssqrt3*y[pv->index_pt_hv_prime];
+
+    }
+
+    else if (ppt->gauge == newtonian) {
+
+      /* photon density (delta_g = F_0) */
+      dy[pv->index_pt_delta_g] =
+        -4./3.*theta_g
+        -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
+        -2.*_SQRT2_*pvecmetric[ppw->index_mt_V_prime];
+
+      /* photon velocity (theta_g = (3k/4)*F_1) */
+      dy[pv->index_pt_theta_g] =
+        k2*(delta_g/4.-s_l[2]*shear_g)
+        -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1);
+
+    }
+
+    /* photon shear (shear_g = F_2/2) */
+    dy[pv->index_pt_shear_g] =
+      4./15.*s_l[2]*theta_g-3./10.*k*s_l[3]*y[pv->index_pt_shear_g+1]
+      -pvecthermo[pth->index_th_dkappa]*shear_g;
+
+    /* photon l=3 */
+    dy[pv->index_pt_l3_g] =
+      k/7.*(6.*s_l[3]*shear_g-4.*s_l[4]*y[pv->index_pt_l3_g+1])
+      -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
+
+    /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
+    for (l=4; l < pv->l_max_g; l++)
+      dy[pv->index_pt_delta_g+l] =
+        k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_delta_g+l-1]
+                     -(l+1.)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
+        -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+
+    /* l=lmax */
+    l = pv->l_max_g;
+    dy[pv->index_pt_delta_g+l] =
+      k*(s_l[l]*y[pv->index_pt_delta_g+l-1]
+         -(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
+      - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+
+    /* photon polarization, l=0 (pol0_g = G_0)*/
+    dy[pv->index_pt_pol0_g] =
+      -k*y[pv->index_pt_pol0_g+1]
+      -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P1);
+
+    /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
+    for (l=1; l < pv->l_max_pol_g; l++)
+      dy[pv->index_pt_pol0_g+l] =
+        k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_pol0_g+l-1]
+                     -(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
+        -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+
+    /* l=lmax */
+    l = pv->l_max_pol_g;
+    dy[pv->index_pt_pol0_g+l] =
+      k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]
+         -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
+      -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+
+    /*
+      }
+      }
+    */
+
+    if (ppt->gauge == synchronous) {
+
+      /* Vector metric perturbation in synchronous gauge: */
+      dy[pv->index_pt_hv_prime] = pvecmetric[ppw->index_mt_hv_prime_prime];
+
+    }
+    else if (ppt->gauge == newtonian){
+
+      /* Vector metric perturbation in Newtonian gauge: */
+      dy[pv->index_pt_V] = pvecmetric[ppw->index_mt_V_prime];
+
+    }
+
+  }
+
 
   /** - tensor mode */
   if (_tensors_) {

@@ -134,7 +134,7 @@ struct transfers {
 
   //@{
 
-  int q_size; /**< number of wavenumber values */
+  size_t q_size; /**< number of wavenumber values */
 
   double * q;  /**< list of wavenumber values, q[index_q] */
 
@@ -620,6 +620,10 @@ extern "C" {
                                     struct transfers * ptr,
                                     HyperInterpStruct *pHIS
                                     );
+
+  int transfer_global_selection_read(
+                                     struct transfers * ptr
+                                     );
 
   int transfer_workspace_init(
                               struct transfers * ptr,

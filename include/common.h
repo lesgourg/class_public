@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.2.0"
+#define _VERSION_ "v2.3.0"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -34,6 +34,8 @@ typedef char FileName[_FILENAMESIZE_];
 #define _PIHALF_ 1.57079632679489661923132169164e0 /**< pi divided by 2 */
 
 #define _TWOPI_ 6.283185307179586476925286766559e0 /**< 2 times pi */
+
+#define _SQRT2_ 1.41421356237309504880168872421e0 /** < square root of 2. */
 
 #define _SQRT6_ 2.4494897427831780981972840747059e0 /**< square root of 6. */
 
@@ -233,13 +235,23 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
       fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,output);    \
   }
 
+#define class_fprintf_int(file,                                         \
+                          output,                                       \
+                          condition){                                   \
+    if (condition == _TRUE_)                                            \
+      fprintf(file,"%*d%*s ",                                           \
+              MAX(0,_COLUMNWIDTH_-_OUTPUTPRECISION_-5),                 \
+              output, _OUTPUTPRECISION_+5," ");                          \
+  }
+
 #define class_fprintf_columntitle(file,                                 \
                                   title,                                \
-                                  condition){                           \
+                                  condition,                            \
+                                  colnum){                              \
     if (condition == _TRUE_)                                            \
-      fprintf(file,"%*s%-*s ",\
-              MAX(0,MIN(_COLUMNWIDTH_-_OUTPUTPRECISION_-6,_COLUMNWIDTH_-((int) strlen(title)))), \
-              "",_OUTPUTPRECISION_+6,title);                            \
+      fprintf(file,"%*s%2d:%-*s ",                                      \
+              MAX(0,MIN(_COLUMNWIDTH_-_OUTPUTPRECISION_-6-3,_COLUMNWIDTH_-((int) strlen(title))-3)), \
+              "",colnum++,_OUTPUTPRECISION_+6,title);                   \
   }
 
 /** parameters related to the precision of the code and to the method of calculation */
@@ -312,6 +324,8 @@ struct precision
    * phase-space distribution during perturbation calculation
    */
   double tol_ncdm;
+  double tol_ncdm_newtonian;
+  double tol_ncdm_synchronous;
 
   /**
    * parameter controlling relative precision of integrals over ncdm
@@ -456,6 +470,7 @@ struct precision
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
+  int l_max_dr;   /**< number of momenta in Boltzmann hierarchy for decay radiation, at least 4 */
   int l_max_ur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_ncdm;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */

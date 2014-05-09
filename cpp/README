@@ -1,8 +1,11 @@
-The C++ wrapper ClassEngine.cc for Class (written by S. Plaszczynski) is distributed together with a test code, testKlass.cc, in which you can write a list of input parameters. This test code can be compiled with (assuming you are already in the directory cpp/):
+The C++ wrapper ClassEngine.cc for Class (written by S. Plaszczynski) is distributed together with a test code, testKlass.cc, in which you can write a list of input parameters. This test code can be compiled with (assuming you are already in the directory cpp/ and you have a c++ compiler compatible with openmp):
 
+> c++ -O2 -fopenmp -I../include -c Engine.cc -o Engine.o
 > c++ -O2 -fopenmp -I../include -c ClassEngine.cc -o ClassEngine.o
 > c++ -O2 -fopenmp -I../include -c testKlass.cc -o testKlass.o
 > cd ..
-> c++ -O2 -fopenmp build/growTable.o build/dei_rkck.o build/sparse.o build/evolver_rkck.o build/evolver_ndf15.o build/arrays.o build/parser.o build/quadrature.o build/input.o build/background.o build/thermodynamics.o build/perturbations.o build/bessel.o build/transfer.o build/primordial.o build/spectra.o build/trg.o build/nonlinear.o build/lensing.o build/hyrectools.o build/helium.o build/hydrogen.o build/history.o build/output.o cpp/ClassEngine.o cpp/testKlass.o -o testKlass
+> c++ -O2 -fopenmp build/arrays.o build/background.o build/common.o build/dei_rkck.o build/evolver_ndf15.o build/evolver_rkck.o build/growTable.o build/helium.o build/history.o build/hydrogen.o build/hyperspherical.o build/hyrectools.o build/input.o build/lensing.o build/nonlinear.o build/output.o build/parser.o build/perturbations.o build/primordial.o build/quadrature.o build/sparse.o build/spectra.o build/thermodynamics.o build/transfer.o cpp/ClassEngine.o cpp/Engine.o cpp/testKlass.o -o testKlass
 
-then run ./testKlass.cc
+then run with:
+
+> ./testKlass

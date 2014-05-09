@@ -34,15 +34,23 @@ int input_init_from_arguments(
 
   /** - define local variables */
 
-  struct file_content fc;
-  struct file_content fc_input;
-  struct file_content fc_precision;
+  struct file_content fc;             /**< the final structure with all parameters */
+  struct file_content fc_input;       /**< a temporary structure with all input parameters */
+  struct file_content fc_precision;   /**< a temporary structure with all precision parameters */
+  struct file_content fc_root;        /**< a temporary structure with only the root name */
+  struct file_content fc_inputroot;   /**< sum of fc_inoput and fc_root */
+  struct file_content * pfc_input;    /**< a pointer to either fc_root or fc_inputroot */
 
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
+  char tmp_file[_ARGUMENT_LENGTH_MAX_];
 
   int i;
   char extension[5];
+  FileArg stringoutput, inifilename;
+  int flag1, filenum;
+
+  pfc_input = &fc_input;
 
   /** - Initialize the two file_content structures (for input
       parameters and precision parameters) to some null content. If no
@@ -82,11 +90,51 @@ int input_init_from_arguments(
 
   /** - if there is an 'xxx.ini' file, read it and store its content. */
 
-  if (input_file[0] != '\0')
+  if (input_file[0] != '\0'){
 
     class_call(parser_read_file(input_file,&fc_input,errmsg),
                errmsg,
                errmsg);
+
+    /** - check whether a root name has been set */
+
+    class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
+               errmsg, errmsg);
+
+    /** - if root has not been set, use root=output/inputfilenname#_ */
+
+    if (flag1 == _FALSE_){
+      strncpy(inifilename, input_file, strlen(input_file)-4);
+      for (filenum = 0; filenum < 100; filenum++){
+        sprintf(tmp_file,"output/%s%02d_cl.dat", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        sprintf(tmp_file,"output/%s%02d_pk.dat", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        sprintf(tmp_file,"output/%s%02d_tk.dat", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        sprintf(tmp_file,"output/%s%02d_parameters.ini", inifilename, filenum);
+        if (file_exists(tmp_file) == _TRUE_)
+          continue;
+        break;
+      }
+      class_call(parser_init(&fc_root,
+                             1,
+                             fc_input.filename,
+                             errmsg),
+                 errmsg,errmsg);
+      sprintf(fc_root.name[0],"root");
+      sprintf(fc_root.value[0],"output/%s%02d_",inifilename,filenum);
+      fc_root.read[0] = _FALSE_;
+      class_call(parser_cat(&fc_input,&fc_root,&fc_inputroot,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_free(&fc_input),errmsg,errmsg);
+      pfc_input = &fc_inputroot;
+    }
+  }
 
   /** - if there is an 'xxx.pre' file, read it and store its content. */
 
@@ -101,11 +149,11 @@ int input_init_from_arguments(
 
   if ((input_file[0]!='\0') || (precision_file[0]!='\0'))
 
-    class_call(parser_cat(&fc_input,&fc_precision,&fc,errmsg),
+    class_call(parser_cat(pfc_input,&fc_precision,&fc,errmsg),
                errmsg,
                errmsg);
 
-  class_call(parser_free(&fc_input),errmsg,errmsg);
+  class_call(parser_free(pfc_input),errmsg,errmsg);
   class_call(parser_free(&fc_precision),errmsg,errmsg);
 
   /** - now, initialize all parameters given the input 'file_content'
@@ -154,6 +202,342 @@ int input_init(
                ErrorMsg errmsg
                ) {
 
+  int flag1;
+  double param1;
+  int counter, index_target, i;
+  double * unknown_parameter;
+  int unknown_parameters_size;
+  double dx, dxdy=0.;
+  int fevals=0, iter, iter2;
+  int return_function;
+  double x1, f1, x2, f2, xzero;
+  int target_indices[_NUM_TARGETS_];
+  double *dxdF, *x_inout;
+
+  char string1[_ARGUMENT_LENGTH_MAX_];
+  FILE * param_output;
+  FILE * param_unused;
+  char param_output_name[_LINE_LENGTH_MAX_];
+  char param_unused_name[_LINE_LENGTH_MAX_];
+
+  struct fzerofun_workspace fzw;
+  /** These two arrays must contain the strings of names to be searched
+      for and the coresponding new parameter */
+  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr"};
+  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm"};
+  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background};
+
+  int input_verbose = 0, int1;
+
+  class_read_int("input_verbose",input_verbose);
+
+  /* Do we need to fix unknown parameters? */
+  unknown_parameters_size = 0;
+  fzw.required_computation_stage = 0;
+  for (index_target = 0; index_target < _NUM_TARGETS_; index_target++){
+    class_call(parser_read_double(pfc,
+                                  target_namestrings[index_target],
+                                  &param1,
+                                  &flag1,
+                                  errmsg),
+               errmsg,
+               errmsg);
+    if ((flag1 == _TRUE_)&&(input_auxillary_target_conditions(index_target,param1) == _TRUE_)){
+      /** input_auxillary_target_conditions() takes care of the case where for instance Omega_dcdmdr is set to 0.0.
+       */
+      //printf("Found target: %s\n",target_namestrings[index_target]);
+      target_indices[unknown_parameters_size] = index_target;
+      fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
+      unknown_parameters_size++;
+    }
+  }
+
+  /* case with unknown parameters */
+  if (unknown_parameters_size > 0) {
+
+    /* Create file content structure with additional entries */
+    class_call(parser_init(&(fzw.fc),
+                           pfc->size+unknown_parameters_size,
+                           pfc->filename,
+                           errmsg),
+               errmsg,errmsg);
+    /* Copy input file content to the new file content structure: */
+    memcpy(fzw.fc.name, pfc->name, pfc->size*sizeof(FileArg));
+    memcpy(fzw.fc.value, pfc->value, pfc->size*sizeof(FileArg));
+    memcpy(fzw.fc.read, pfc->read, pfc->size*sizeof(short));
+
+    class_alloc(unknown_parameter,
+                unknown_parameters_size*sizeof(double),
+                errmsg);
+    class_alloc(fzw.unknown_parameters_index,
+                unknown_parameters_size*sizeof(int),
+                errmsg);
+    fzw.target_size = unknown_parameters_size;
+    class_alloc(fzw.target_name,
+                fzw.target_size*sizeof(enum target_names),
+                errmsg);
+    class_alloc(fzw.target_value,
+                fzw.target_size*sizeof(double),
+                errmsg);
+
+    /* go through all cases with unknown parameters: */
+    for (counter = 0; counter < unknown_parameters_size; counter++){
+      index_target = target_indices[counter];
+      class_call(parser_read_double(pfc,
+                                    target_namestrings[index_target],
+                                    &param1,
+                                    &flag1,
+                                    errmsg),
+               errmsg,
+               errmsg);
+
+      // store name of target parameter
+      fzw.target_name[counter] = index_target;
+      // store target value of target parameter
+      fzw.target_value[counter] = param1;
+      fzw.unknown_parameters_index[counter]=pfc->size+counter;
+      // substitute the name of the target parameter with the name of the corresponding unknown parameter
+      strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
+      //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
+    }
+
+    if (unknown_parameters_size == 1){
+      /* We can do 1 dimensional root finding */
+      /** Here is our guess: */
+      class_call(input_get_guess(&x1, &dxdy, &fzw, errmsg),
+                 errmsg, errmsg);
+      //      printf("x1= %g\n",x1);
+      class_call(input_fzerofun_1d(x1,
+                                   &fzw,
+                                   &f1,
+                                   errmsg),
+                 errmsg, errmsg);
+      fevals++;
+      //printf("x1= %g, f1= %g\n",x1,f1);
+
+      dx = 1.5*f1*dxdy;
+
+      /** Do linear hunt for boundaries: */
+      for (iter=1; iter<=15; iter++){
+        //x2 = x1 + search_dir*dx;
+        x2 = x1 - dx;
+
+        for (iter2=1; iter2 <= 3; iter2++) {
+          return_function = input_fzerofun_1d(x2,&fzw,&f2,errmsg);
+          fevals++;
+          //printf("x2= %g, f2= %g\n",x2,f2);
+          //fprintf(stderr,"iter2=%d\n",iter2);
+
+          if (return_function ==_SUCCESS_) {
+            break;
+          }
+          else if (iter2 < 3) {
+            dx*=0.5;
+            x2 = x1-dx;
+          }
+          else {
+            //fprintf(stderr,"get here\n");
+            class_stop(errmsg,errmsg);
+          }
+        }
+
+        if (f1*f2<0.0){
+          /** root has been bracketed */
+          if (0==1){//(pba->background_verbose > 4){
+            printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
+          }
+          break;
+        }
+
+        x1 = x2;
+        f1 = f2;
+      }
+
+      /** Find root using Ridders method. (Exchange for bisection if you are old-school.) */
+      class_call(class_fzero_ridder(input_fzerofun_1d,
+                                    x1,
+                                    x2,
+                                    1e-5*MAX(fabs(x1),fabs(x2)),
+                                    &fzw,
+                                    &f1,
+                                    &f2,
+                                    &xzero,
+                                    &fevals,
+                                    errmsg),
+                 errmsg, errmsg);
+
+      /* Store xzero */
+      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
+      if (input_verbose > 0) {
+        fprintf(stdout,"Computing unknown input parameters\n");
+        fprintf(stdout," -> found %s = %s\n",
+                fzw.fc.name[fzw.unknown_parameters_index[0]],
+                fzw.fc.value[fzw.unknown_parameters_index[0]]);
+      }
+    }
+    else{
+      class_alloc(x_inout,
+                  sizeof(double)*unknown_parameters_size,
+                  errmsg);
+      class_alloc(dxdF,
+                  sizeof(double)*unknown_parameters_size,
+                  errmsg);
+      class_call(input_get_guess(x_inout,
+                                 dxdF,
+                                 &fzw,
+                                 errmsg),
+                 errmsg, errmsg);
+
+      class_call(fzero_Newton(input_try_unknown_parameters,
+                              x_inout,
+                              dxdF,
+                              unknown_parameters_size,
+                              1e-4,
+                              1e-6,
+                              &fzw,
+                              &fevals,
+                              errmsg),
+                 errmsg,errmsg);
+
+      if (input_verbose > 0) {
+        fprintf(stdout,"Computing unknown input parameters\n");
+      }
+
+      /* Store xzero */
+      for (counter = 0; counter < unknown_parameters_size; counter++){
+        sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
+                "%e",x_inout[counter]);
+        if (input_verbose > 0) {
+          fprintf(stdout," -> found %s = %s\n",
+                  fzw.fc.name[fzw.unknown_parameters_index[counter]],
+                  fzw.fc.value[fzw.unknown_parameters_index[counter]]);
+        }
+      }
+
+      free(x_inout);
+      free(dxdF);
+    }
+
+    if (input_verbose > 1) {
+      fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
+    }
+
+
+    /**     Read all parameters from tuned pfc: */
+    class_call(input_read_parameters(&(fzw.fc),
+                                     ppr,
+                                     pba,
+                                     pth,
+                                     ppt,
+                                     ptr,
+                                     ppm,
+                                     psp,
+                                     pnl,
+                                     ple,
+                                     pop,
+                                     errmsg),
+               errmsg,
+               errmsg);
+
+    /* all parameters read in fzw must be considered as read in
+       pfc. At the same time the parameters read before in pfc (like
+       theta_s,...) must still be considered as read (hence we could
+       not do a memcopy) */
+    for (i=0; i < pfc->size; i ++) {
+      if (fzw.fc.read[i] == _TRUE_)
+        pfc->read[i] = _TRUE_;
+    }
+
+    // Free tuned pfc
+    parser_free(&(fzw.fc));
+  }
+  else{
+
+    /* just read all parameters from input pfc: */
+    class_call(input_read_parameters(pfc,
+                                     ppr,
+                                     pba,
+                                     pth,
+                                     ppt,
+                                     ptr,
+                                     ppm,
+                                     psp,
+                                     pnl,
+                                     ple,
+                                     pop,
+                                     errmsg),
+               errmsg,
+               errmsg);
+  }
+
+  /** eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
+
+  class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
+    sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
+
+    class_open(param_output,param_output_name,"w",errmsg);
+    class_open(param_unused,param_unused_name,"w",errmsg);
+
+    fprintf(param_output,"# List of input/precision parameters actually read\n");
+    fprintf(param_output,"# (all other parameters set to default values)\n");
+    fprintf(param_output,"# Obtained with CLASS %s (for developpers: svn version %s)\n",_VERSION_,_SVN_VERSION_);
+    fprintf(param_output,"#\n");
+    fprintf(param_output,"# This file can be used as the input file of another run\n");
+    fprintf(param_output,"#\n");
+
+    fprintf(param_unused,"# List of input/precision parameters passed\n");
+    fprintf(param_unused,"# but not used (just for info)\n");
+    fprintf(param_unused,"#\n");
+
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _TRUE_)
+        fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
+      else
+        fprintf(param_unused,"%s = %s\n",pfc->name[i],pfc->value[i]);
+    }
+    fprintf(param_output,"#\n");
+
+    fclose(param_output);
+    fclose(param_unused);
+  }
+
+  class_call(parser_read_string(pfc,"write warnings",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+    for (i=0; i<pfc->size; i++) {
+      if (pfc->read[i] == _FALSE_)
+        fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
+    }
+  }
+
+  return _SUCCESS_;
+
+}
+
+int input_read_parameters(
+                          struct file_content * pfc,
+                          struct precision * ppr,
+                          struct background *pba,
+                          struct thermo *pth,
+                          struct perturbs *ppt,
+                          struct transfers *ptr,
+                          struct primordial *ppm,
+                          struct spectra *psp,
+                          struct nonlinear * pnl,
+                          struct lensing *ple,
+                          struct output *pop,
+                          ErrorMsg errmsg
+                          ) {
+
   /** Summary: */
 
   /** - define local variables */
@@ -181,11 +565,6 @@ int input_init(
   double Omega_tot;
 
   int i;
-
-  FILE * param_output;
-  FILE * param_unused;
-  char param_output_name[_LINE_LENGTH_MAX_];
-  char param_unused_name[_LINE_LENGTH_MAX_];
 
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
 
@@ -218,7 +597,10 @@ int input_init(
 
   /** (a) background parameters */
 
-  /* h (dimensionless) and [H0/c] in Mpc^{-1} = h / 2999.7 */
+  /* scale factor today (arbitrary) */
+  class_read_double("a_today",pba->a_today);
+
+  /* h (dimensionless) and [H0/c] in Mpc^{-1} = h / 2997.9... = h * 10^5 / c */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
@@ -365,13 +747,27 @@ int input_init(
 
   Omega_tot += pba->Omega0_cdm;
 
+  /* Omega_0_dcdmdr (DCDM) */
+  class_read_double("Omega_dcdmdr",pba->Omega0_dcdmdr);
+  /** Omega_ini_dcdm will never be read from input, but is instead found automatically by shooting */
+  class_read_double("Omega_ini_dcdm",pba->Omega_ini_dcdm);
+
+
+  /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
+  class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
+  /* Convert to Mpc */
+  pba->Gamma_dcdm *= (1.e3 / _c_);
+
+  Omega_tot += pba->Omega0_dcdm;
+
   /* non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
   if ((flag1 == _TRUE_) && (N_ncdm > 0)){
     pba->N_ncdm = N_ncdm;
     /* Precision parameters for ncdm has to be read now since they are used here:*/
     class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
-    class_read_double("tol_ncdm",ppr->tol_ncdm);
+    class_read_double("tol_ncdm_newtonian",ppr->tol_ncdm_newtonian);
+    class_read_double("tol_ncdm_synchronous",ppr->tol_ncdm_synchronous);
     class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
 
     /* Read temperatures: */
@@ -513,7 +909,7 @@ int input_init(
              "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
 
   if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {
-    pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+    pba->Omega0_lambda = 1.-pba->Omega0_k-Omega_tot;
   }
   else {
     if (flag1 == _TRUE_) {
@@ -531,9 +927,6 @@ int input_init(
     class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
   }
-
-  /* scale factor today (arbitrary) */
-  class_read_double("a_today",pba->a_today);
 
   /** (b) assign values to thermodynamics cosmological parameters */
 
@@ -873,10 +1266,12 @@ int input_init(
 
       if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
         ppt->gauge = newtonian;
+        ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
       }
 
       if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
         ppt->gauge = synchronous;
+        ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
       }
     }
 
@@ -1168,29 +1563,24 @@ int input_init(
                    errmsg,
                    errmsg);
 
-        if (flag1 == _TRUE_) {
-
-          if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-            ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
-          }
-          else {
-            class_read_double("n_t",ppm->n_t);
-          }
-
+        if ((flag1 == _TRUE_) && !((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL))) {
+          class_read_double("n_t",ppm->n_t);
+        }
+        else {
+          /* enforce single slow-roll self-consistency condition (order 2 in slow-roll) */
+          ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
         }
 
         class_call(parser_read_string(pfc,"alpha_t",&string1,&flag1,errmsg),
                    errmsg,
                    errmsg);
 
-        if (flag1 == _TRUE_) {
-
-          if ((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL)) {
-            ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
-          }
-          else {
-            class_read_double("alpha_t",ppm->alpha_t);
-          }
+        if ((flag1 == _TRUE_) && !((strstr(string1,"SCC") != NULL) || (strstr(string1,"scc") != NULL))) {
+          class_read_double("alpha_t",ppm->alpha_t);
+        }
+        else {
+          /* enforce single slow-roll self-consistency condition (order 2 in slow-roll) */
+          ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
         }
       }
     }
@@ -1278,6 +1668,10 @@ int input_init(
 
       if ((ppt->has_cl_lensing_potential == _TRUE_) || (ppt->has_cl_number_count == _TRUE_))
         class_read_double("l_max_lss",ppt->l_lss_max);
+    }
+
+    if (ppt->has_vectors == _TRUE_) {
+      class_read_double("l_max_vectors",ppt->l_vector_max);
     }
 
     if (ppt->has_tensors == _TRUE_) {
@@ -1458,12 +1852,12 @@ int input_init(
     }
 
     class_call(parser_read_string(pfc,
-				"dNdz_selection",
-				&(string1),
-				&(flag1),
-				errmsg),
-	     errmsg,
-	     errmsg);
+                                  "dNdz_selection",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
 
     if ((flag1 == _TRUE_)) {
       if ((strstr(string1,"analytic") != NULL))
@@ -1693,6 +2087,7 @@ int input_init(
 
   class_read_int("l_max_g",ppr->l_max_g);
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
+  class_read_int("l_max_dr",ppr->l_max_dr);
   class_read_int("l_max_ur",ppr->l_max_ur);
   if (pba->N_ncdm>0)
     class_read_int("l_max_ncdm",ppr->l_max_ncdm);
@@ -1871,55 +2266,6 @@ int input_init(
 
   }
 
-  /** (j) eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
-
-  class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-
-    sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
-    sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
-
-    class_open(param_output,param_output_name,"w",errmsg);
-    class_open(param_unused,param_unused_name,"w",errmsg);
-
-    fprintf(param_output,"# List of input/precision parameters actually read\n");
-    fprintf(param_output,"# (all other parameters set to default values)\n");
-    fprintf(param_output,"# Obtained with CLASS %s (for developpers: svn version %s)\n",_VERSION_,_SVN_VERSION_);
-    fprintf(param_output,"#\n");
-    fprintf(param_output,"# This file can be used as the input file of another run\n");
-    fprintf(param_output,"#\n");
-
-    fprintf(param_unused,"# List of input/precision parameters passed\n");
-    fprintf(param_unused,"# but not used (just for info)\n");
-    fprintf(param_unused,"#\n");
-
-    for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _TRUE_)
-        fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
-      else
-        fprintf(param_unused,"%s = %s\n",pfc->name[i],pfc->value[i]);
-    }
-    fprintf(param_output,"#\n");
-
-    fclose(param_output);
-    fclose(param_unused);
-  }
-
-  class_call(parser_read_string(pfc,"write warnings",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-
-    for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _FALSE_)
-        fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
-    }
-  }
-
   return _SUCCESS_;
 
 }
@@ -1962,6 +2308,8 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.02253/0.704/0.704;
   pba->Omega0_cdm = 0.1122/0.704/0.704;
+  pba->Omega0_dcdm = 0.0;
+  pba->Gamma_dcdm = 0.0;
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
   pba->ksi_ncdm_default = 0.;
@@ -1972,11 +2320,12 @@ int input_default_params(
   pba->deg_ncdm = NULL;
   pba->ncdm_psd_parameters = NULL;
   pba->ncdm_psd_files = NULL;
+  pba->keep_ncdm_stuff = _FALSE_;
 
   pba->Omega0_k = 0.;
   pba->K = 0.;
   pba->sgnK = 0;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdm;
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->w0_fld=-1.;
@@ -2054,6 +2403,7 @@ int input_default_params(
   ppt->has_tensors=_FALSE_;
 
   ppt->l_scalar_max=2500;
+  ppt->l_vector_max=500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
   ppt->k_max_for_pk=0.1;
@@ -2218,6 +2568,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_initial_Omega_r = 1.e-4;
   ppr->tol_M_ncdm = 1.e-7;
   ppr->tol_ncdm = 1.e-3;
+  ppr->tol_ncdm_synchronous = 1.e-3;
+  ppr->tol_ncdm_newtonian = 1.e-5;
   ppr->tol_ncdm_bg = 1.e-5;
   ppr->tol_ncdm_initial_w=1.e-3;
 
@@ -2274,7 +2626,7 @@ int input_default_precision ( struct precision * ppr ) {
   /* for reionization */
 
   ppr->reionization_z_start_max = 50.;
-  ppr->reionization_sampling=1.e-2;
+  ppr->reionization_sampling=5.e-2;
   ppr->reionization_optical_depth_tol=1.e-4;
   ppr->reionization_start_factor=8.;
 
@@ -2308,8 +2660,9 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->l_max_g=12;
   ppr->l_max_pol_g=10;
-  ppr->l_max_ur=12;
-  ppr->l_max_ncdm=12;
+  ppr->l_max_dr=17;
+  ppr->l_max_ur=17;
+  ppr->l_max_ncdm=17;
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
 
@@ -2321,7 +2674,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->perturb_integration_stepsize=0.5;
 
   ppr->tol_tau_approx=1.e-10;
-  ppr->tol_perturb_integration=3.e-4;
+  ppr->tol_perturb_integration=1.e-5;
   ppr->perturb_sampling_stepsize=0.10;
 
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
@@ -2329,10 +2682,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
 
   ppr->ur_fluid_approximation = ufa_CLASS;
-  ppr->ur_fluid_trigger_tau_over_tau_k = 15.;
+  ppr->ur_fluid_trigger_tau_over_tau_k = 30.;
 
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
-  ppr->ncdm_fluid_trigger_tau_over_tau_k = 16.;
+  ppr->ncdm_fluid_trigger_tau_over_tau_k = 31.;
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
@@ -2470,4 +2823,386 @@ int get_machine_precision(double * smallest_allowed_variation) {
 
   return _SUCCESS_;
 
+}
+
+int input_fzerofun_for_background(double Omega_ini_dcdm,
+                                  void* container,
+                                  double *valout,
+                                  ErrorMsg error_message){
+
+  double rho_dcdm_today, rho_dr_today;
+  struct input_pprpba * pprpba;
+  struct background *pba;
+  pprpba = (struct input_pprpba *) container;
+  pba = pprpba->pba;
+
+  pba->Omega_ini_dcdm = Omega_ini_dcdm;
+  pba->keep_ncdm_stuff = _TRUE_;
+
+  class_call(background_init(pprpba->ppr,
+                             pba),
+             pba->error_message, error_message);
+  rho_dcdm_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dcdm];
+  rho_dr_today = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_rho_dr];
+  //  rho0 = pba->H0*pba->H0*pba->Omega0_ncdm[n_ncdm]; /*Remember that rho is defined such that H^2=sum(rho_i) */
+
+  *valout = (rho_dcdm_today+rho_dr_today)/(pba->H0*pba->H0)-pba->Omega0_dcdm;
+
+  if (pba->background_verbose > 3)
+    printf("rho_dcdm_today = %e, corresponding to %e\n",rho_dcdm_today,rho_dcdm_today/(pba->H0*pba->H0));
+
+  class_call(background_free(pba), pba->error_message, error_message);
+
+  return _SUCCESS_;
+}
+
+int input_fzerofun_1d(double input,
+                      void* pfzw,
+                      double *output,
+                      ErrorMsg error_message){
+
+  class_call(input_try_unknown_parameters(&input,
+                                          1,
+                                          pfzw,
+                                          output,
+                                          error_message),
+             error_message,
+             error_message);
+
+  return _SUCCESS_;
+}
+
+int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
+                       double x1,
+                       double x2,
+                       double xtol,
+                       void *param,
+                       double *Fx1,
+                       double *Fx2,
+                       double *xzero,
+                       int *fevals,
+                       ErrorMsg error_message){
+  /**Using Ridders' method, return the root of a function func known to
+     lie between x1 and x2. The root, returned as zriddr, will be found to
+     an approximate accuracy xtol.
+  */
+  int j,MAXIT=1000;
+  double ans,fh,fl,fm,fnew,s,xh,xl,xm,xnew;
+  if ((Fx1!=NULL)&&(Fx2!=NULL)){
+    fl = *Fx1;
+    fh = *Fx2;
+  }
+  else{
+    class_call((*func)(x1, param, &fl, error_message),
+               error_message, error_message);
+    class_call((*func)(x2, param, &fh, error_message),
+               error_message, error_message);
+
+    *fevals = (*fevals)+2;
+  }
+  if ((fl > 0.0 && fh < 0.0) || (fl < 0.0 && fh > 0.0)) {
+    xl=x1;
+    xh=x2;
+    ans=-1.11e11;
+    for (j=1;j<=MAXIT;j++) {
+      xm=0.5*(xl+xh);
+      class_call((*func)(xm, param, &fm, error_message),
+                 error_message, error_message);
+      *fevals = (*fevals)+1;
+      s=sqrt(fm*fm-fl*fh);
+      if (s == 0.0){
+        *xzero = ans;
+        //printf("Success 1\n");
+        return _SUCCESS_;
+      }
+      xnew=xm+(xm-xl)*((fl >= fh ? 1.0 : -1.0)*fm/s);
+      if (fabs(xnew-ans) <= xtol) {
+        *xzero = ans;
+        return _SUCCESS_;
+      }
+      ans=xnew;
+      class_call((*func)(ans, param, &fnew, error_message),
+                 error_message, error_message);
+      *fevals = (*fevals)+1;
+      if (fnew == 0.0){
+        *xzero = ans;
+        //printf("Success 2, ans=%g\n",ans);
+        return _SUCCESS_;
+      }
+      if (NRSIGN(fm,fnew) != fm) {
+        xl=xm;
+        fl=fm;
+        xh=ans;
+        fh=fnew;
+      } else if (NRSIGN(fl,fnew) != fl) {
+        xh=ans;
+        fh=fnew;
+      } else if (NRSIGN(fh,fnew) != fh) {
+        xl=ans;
+        fl=fnew;
+      } else return _FAILURE_;
+      if (fabs(xh-xl) <= xtol) {
+        *xzero = ans;
+        //        printf("Success 3\n");
+        return _SUCCESS_;
+      }
+    }
+    class_stop(error_message,"zriddr exceed maximum iterations");
+  }
+  else {
+    if (fl == 0.0) return x1;
+    if (fh == 0.0) return x2;
+    class_stop(error_message,"root must be bracketed in zriddr.");
+  }
+  class_stop(error_message,"Failure in int.");
+}
+
+int input_try_unknown_parameters(double * unknown_parameter,
+                                 int unknown_parameters_size,
+                                 void * voidpfzw,
+                                 double * output,
+                                 ErrorMsg errmsg){
+
+  struct precision pr;        /* for precision parameters */
+  struct background ba;       /* for cosmological background */
+  struct thermo th;           /* for thermodynamics */
+  struct perturbs pt;         /* for source functions */
+  struct transfers tr;        /* for transfer functions */
+  struct primordial pm;       /* for primordial spectra */
+  struct spectra sp;          /* for output spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
+  struct output op;           /* for output files */
+  int i;
+  double rho_dcdm_today, rho_dr_today;
+  struct fzerofun_workspace * pfzw;
+  int input_verbose;
+  int flag;
+  int param;
+
+  pfzw = (struct fzerofun_workspace *) voidpfzw;
+
+  for (i=0; i < unknown_parameters_size; i++) {
+    sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
+            "%e",unknown_parameter[i]);
+  }
+
+  class_call(input_read_parameters(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
+             errmsg,
+             errmsg);
+
+  class_call(parser_read_int(&(pfzw->fc),
+                             "input_verbose",
+                             &param,
+                             &flag,
+                             errmsg),
+             errmsg,
+             errmsg);
+  if (flag == _TRUE_)
+    input_verbose = param;
+  else
+    input_verbose = 0;
+
+  /** Do computations */
+  if (pfzw->required_computation_stage >= cs_background){
+    if (input_verbose>2)
+      printf("Stage 1: background\n");
+    ba.background_verbose = 0;
+    class_call(background_init(&pr,&ba), ba.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_thermodynamics){
+   if (input_verbose>2)
+     printf("Stage 2: thermodynamics\n");
+    pr.recfast_Nz0 = 10000;
+    th.thermodynamics_verbose = 0;
+    class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_perturbations){
+       if (input_verbose>2)
+         printf("Stage 3: perturbations\n");
+    pt.perturbations_verbose = 0;
+    class_call(perturb_init(&pr,&ba,&th,&pt), pt.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_primordial){
+    if (input_verbose>2)
+      printf("Stage 4: primordial\n");
+    pm.primordial_verbose = 0;
+    class_call(primordial_init(&pr,&pt,&pm), pm.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_nonlinear){
+    if (input_verbose>2)
+      printf("Stage 5: nonlinear\n");
+    nl.nonlinear_verbose = 0;
+    class_call(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl), nl.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_transfer){
+    if (input_verbose>2)
+      printf("Stage 6: transfer\n");
+    tr.transfer_verbose = 0;
+    class_call(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg);
+  }
+
+  if (pfzw->required_computation_stage >= cs_spectra){
+    if (input_verbose>2)
+      printf("Stage 7: spectra\n");
+    sp.spectra_verbose = 0;
+    class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
+  }
+
+
+  for (i=0; i < pfzw->target_size; i++) {
+    switch (pfzw->target_name[i]) {
+    case theta_s:
+      output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
+      break;
+    case Omega_dcdmdr:
+      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
+      rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
+    }
+  }
+
+
+  /** Free structures */
+  if (pfzw->required_computation_stage >= cs_spectra){
+    class_call(spectra_free(&sp), sp.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_transfer){
+    class_call(transfer_free(&tr), tr.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_nonlinear){
+    class_call(nonlinear_free(&nl), nl.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_primordial){
+    class_call(primordial_free(&pm), pm.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_perturbations){
+    class_call(perturb_free(&pt), pt.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_thermodynamics){
+    class_call(thermodynamics_free(&th), th.error_message, errmsg);
+  }
+  if (pfzw->required_computation_stage >= cs_background){
+    class_call(background_free(&ba), ba.error_message, errmsg);
+  }
+
+  /* Set filecontent to unread */
+  for (i=0; i<pfzw->fc.size; i++) {
+    pfzw->fc.read[i] = _FALSE_;
+  }
+
+  return _SUCCESS_;
+}
+
+int input_get_guess(double *xguess,
+                    double *dxdy,
+                    struct fzerofun_workspace * pfzw,
+                    ErrorMsg errmsg){
+
+  struct precision pr;        /* for precision parameters */
+  struct background ba;       /* for cosmological background */
+  struct thermo th;           /* for thermodynamics */
+  struct perturbs pt;         /* for source functions */
+  struct transfers tr;        /* for transfer functions */
+  struct primordial pm;       /* for primordial spectra */
+  struct spectra sp;          /* for output spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
+  struct output op;           /* for output files */
+  int i;
+
+  double Omega_M, a_decay, gamma;
+  int index_guess;
+
+  /* Cheat to read only known parameters: */
+  pfzw->fc.size -= pfzw->target_size;
+  class_call(input_read_parameters(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
+             errmsg,
+             errmsg);
+  pfzw->fc.size += pfzw->target_size;
+
+  /** Here we should right reasonable guesses for the unknown parameters.
+      Also estimate dxdy, i.e. how the unknown parameter responds to the known.
+      This can simply be estimated as the derivative of the guess formula.*/
+
+  for (index_guess=0; index_guess < pfzw->target_size; index_guess++) {
+    switch (pfzw->target_name[index_guess]) {
+    case theta_s:
+      xguess[index_guess] = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
+      dxdy[index_guess] = (7.08*pfzw->target_value[index_guess]-5.455);
+      break;
+    case Omega_dcdmdr:
+      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdm+ba.Omega0_b;
+      /* This formula is exact in a Matter + Lambda Universe, but only
+         for Omega_dcdm, not the combined.
+         sqrt_one_minus_M = sqrt(1.0 - Omega_M);
+         xguess[index_guess] = pfzw->target_value[index_guess]*
+         exp(2./3.*ba.Gamma_dcdm/ba.H0*
+         atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+         dxdy[index_guess] = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
+      */
+      gamma = ba.Gamma_dcdm/ba.H0;
+      if (gamma < 1)
+        a_decay = 1.0;
+      else
+        a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
+      xguess[index_guess] = pfzw->target_value[index_guess]/a_decay;
+      dxdy[index_guess] = 1./a_decay;
+      //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      break;
+    }
+  }
+
+  for (i=0; i<pfzw->fc.size; i++) {
+    pfzw->fc.read[i] = _FALSE_;
+  }
+
+
+  return _SUCCESS_;
+}
+
+int file_exists(const char *fname){
+  FILE *file = fopen(fname, "r");
+  if (file != NULL){
+    fclose(file);
+    return _TRUE_;
+  }
+  return _FALSE_;
+}
+
+int input_auxillary_target_conditions(enum target_names target_name, double target_value){
+  if (target_name == Omega_dcdmdr){
+    /* Check that Omega_dcdmdr is nonzero: */
+    if (target_value == 0.)
+      return _FALSE_;
+  }
+  /* Default is no additional checks */
+  return _TRUE_;
 }

@@ -6,6 +6,11 @@ import numpy as np
 import unittest
 from nose_parameterized import parameterized
 
+def powerset(iterable):
+    xs = list(iterable)
+    # note we return an iterator rather than a list
+    return itertools.chain.from_iterable(
+        itertools.combinations(xs,n) for n in range(1, len(xs)+1))
 
 class TestClass(unittest.TestCase):
     """
@@ -28,6 +33,7 @@ class TestClass(unittest.TestCase):
         self.cosmo = Class()
 
         self.verbose = {
+            'input_verbose': 1,
             'background_verbose': 1,
             'thermodynamics_verbose': 1,
             'perturbations_verbose': 1,
@@ -56,7 +62,7 @@ class TestClass(unittest.TestCase):
              {'output': 'nCl sCl'}, {'output': 'tCl pCl lCl nCl sCl'}),
             ({'gauge': 'newtonian'}, {'gauge': 'sync'}),
             ({}, {'non linear': 'halofit'})))
-    def test_parameters(self, name, scenario, gauge, nonlinear):
+    def test_wrapper_implementation(self, name, scenario, gauge, nonlinear):
         """Create a few instances based on different cosmologies"""
         if name == 'Mnu':
             self.scenario.update({'N_ncdm': 1, 'm_ncdm': 0.06})
@@ -131,8 +137,6 @@ class TestClass(unittest.TestCase):
                 #args = (0.1, 0)
                 self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
 
-        print '~~~~~~~~ passed ? '
-
     @parameterized.expand(
         itertools.product(
             ('massless', 'massive', 'both'),
@@ -152,6 +156,10 @@ class TestClass(unittest.TestCase):
                 {'N_eff': 1.5, 'N_ncdm': 2, 'm_ncdm': '0.03, 0.04',
                  'deg_ncdm': '1, 0.5'})
 
+        sys.stderr.write('\n\n---------------------------------\n')
+        sys.stderr.write('| Test case: %s %s %s |\n' % (
+            scenario, method, modes))
+        sys.stderr.write('---------------------------------\n')
         self.scenario.update({
             'tensor method': method, 'modes': modes,
             'output': 'tCl, pCl'})
@@ -161,6 +169,50 @@ class TestClass(unittest.TestCase):
         self.cosmo.set(
             dict(self.verbose.items()+self.scenario.items()))
         self.cosmo.compute()
+
+    @parameterized.expand(
+        itertools.izip(
+            powerset(['100*theta_s', 'Omega_dcdmdr']),
+            powerset([1.04, 0.20]),))
+    def test_shooting_method(self, variables, values):
+        Omega_cdm = 0.25
+
+        scenario = {'Omega_b': 0.05, }
+
+        for variable, value in zip(variables, values):
+            scenario.update({variable: value})
+
+        if 'Omega_dcdmdr' in variables:
+            scenario.update({
+                'Gamma_dcdm': 100,
+                'Omega_cdm': Omega_cdm-scenario['Omega_dcdmdr']})
+        else:
+            scenario.update({
+                'Omega_cdm': Omega_cdm})
+
+        sys.stderr.write('\n\n---------------------------------\n')
+        sys.stderr.write('| Test shooting: %s |\n' % (
+            ', '.join(variables)))
+        sys.stderr.write('---------------------------------\n')
+        for key, value in scenario.iteritems():
+            sys.stderr.write("%s = %s\n" % (key, value))
+        sys.stderr.write("\n")
+
+        scenario.update(self.verbose)
+        self.assertTrue(
+            self.cosmo.set(scenario),
+            "Class failed to initialise with this input")
+        self.assertRaises
+        self.cosmo.compute()
+
+        # Now, check that the values are properly extracted
+        for variable, value in zip(variables, values):
+            if variable == '100*theta_s':
+                computed_value = self.cosmo.get_current_derived_parameters(
+                    [variable])[variable]
+                self.assertAlmostEqual(
+                    value, computed_value, places=5)
+
 
 if __name__ == '__main__':
     unittest.main()

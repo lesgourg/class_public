@@ -216,8 +216,8 @@ int primordial_init(
 
   /** - get kmin and kmax from perturbation structure. Test that they make sense. */
 
-  k_min = ppt->k[0]; /* first value, inferred from perturbations structure */
-  k_max = ppt->k[ppt->k_size-1]; /* last value, inferred from perturbations structure */
+  k_min = ppt->k_min; /* first value, inferred from perturbations structure */
+  k_max = ppt->k_max; /* last value, inferred from perturbations structure */
 
   class_test(k_min <= 0.,
              ppm->error_message,
@@ -2075,16 +2075,16 @@ int primordial_external_spectrum_init(
              "The attempt to launch the external command was unsuccessful. "
              "Try doing it by hand to check for errors.");
   /* Test limits of the k's */
-  class_test(k[1] > ppt->k[0],
+  class_test(k[1] > ppt->k_min,
              ppm->error_message,
              "Your table for the primordial spectrum does not have "
              "at least 2 points before the minimum value of k: %e . "
-             "The splines interpolation would not be safe.",ppt->k[0]);
-  class_test(k[n_data-2] < ppt->k[ppt->k_size-1],
+             "The splines interpolation would not be safe.",ppt->k_min);
+  class_test(k[n_data-2] < ppt->k_max,
              ppm->error_message,
              "Your table for the primordial spectrum does not have "
              "at least 2 points after the maximum value of k: %e . "
-             "The splines interpolation would not be safe.",ppt->k[ppt->k_size-1]);
+             "The splines interpolation would not be safe.",ppt->k_max);
 
   /** 3. Store the read results into CLASS structures */
   ppm->lnk_size = n_data;

@@ -20,7 +20,7 @@ struct file_content {
 /**************************************************************/
 
 /*
- * Boilerplate for C++ 
+ * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
@@ -67,6 +67,15 @@ int parser_read_double(
 		    ErrorMsg errmsg
 		    );
 
+  int parser_read_double_and_position(
+                                      struct file_content * pfc,
+                                      char * name,
+                                      double * value,
+                                      int * position,
+                                      int * found,
+                                      ErrorMsg errmsg
+                                      );
+
 int parser_read_string(
 		       struct file_content * pfc,
 		       char * name,
@@ -83,7 +92,7 @@ int parser_read_list_of_doubles(
 				int * found,
 				ErrorMsg errmsg
 				);
-				
+
 int parser_read_list_of_integers(
 				struct file_content * pfc,
 				char * name,

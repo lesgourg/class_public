@@ -130,6 +130,29 @@
 		name,entries_read,siz);				\
   } while(0);
 
+/**
+ * temporary parameters for background fzero function
+ */
+
+enum target_names {theta_s, Omega_dcdmdr};
+enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations,
+                        cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
+#define _NUM_TARGETS_ 2 //Keep this number as number of target_names
+
+struct input_pprpba {
+  struct precision * ppr;
+  struct background * pba;
+};
+
+struct fzerofun_workspace {
+  int * unknown_parameters_index;
+  struct file_content fc;
+  enum target_names * target_name;
+  double * target_value;
+  int target_size;
+  enum computation_stage required_computation_stage;
+};
+
 
 /**************************************************************/
 
@@ -171,6 +194,21 @@ extern "C" {
 		 ErrorMsg errmsg
 		 );
 
+  int input_read_parameters(
+                            struct file_content * pfc,
+                            struct precision * ppr,
+                            struct background *pba,
+                            struct thermo *pth,
+                            struct perturbs *ppt,
+                            struct transfers *ptr,
+                            struct primordial *ppm,
+                            struct spectra *psp,
+                            struct nonlinear *pnl,
+                            struct lensing *ple,
+                            struct output *pop,
+                            ErrorMsg errmsg
+                            );
+
   int input_default_params(
 			   struct background *pba,
 			   struct thermo *pth,
@@ -189,6 +227,41 @@ extern "C" {
 
   int get_machine_precision(double * smallest_allowed_variation);
 
+  int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
+			 double x1,
+			 double x2,
+			 double xtol,
+			 void *param,
+			 double *Fx1,
+			 double *Fx2,
+			 double *xzero,
+			 int *fevals,
+			 ErrorMsg error_message);
+
+  int input_fzerofun_for_background(double Omega_ini_dcdm,
+				    void* container,
+				    double *valout,
+				    ErrorMsg error_message);
+
+  int input_try_unknown_parameters(double * unknown_parameter,
+                                   int unknown_parameters_size,
+                                   void * pfzw,
+                                   double * output,
+                                   ErrorMsg errmsg);
+
+  int input_fzerofun_1d(double input,
+                        void* fzerofun_workspace,
+                        double *output,
+                        ErrorMsg error_message);
+
+  int input_get_guess(double *xguess,
+                      double *dxdy,
+                      struct fzerofun_workspace * pfzw,
+                      ErrorMsg errmsg);
+
+  int file_exists(const char *fname);
+
+  int input_auxillary_target_conditions(enum target_names target_name, double target_value);
 #ifdef __cplusplus
 }
 #endif

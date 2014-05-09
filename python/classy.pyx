@@ -381,6 +381,16 @@ cdef class Class:
         cdef int lmaxR
         cdef double *rcl = <double*> calloc(self.sp.ct_size,sizeof(double))
 
+        # Quantities for tensor modes
+        cdef double **cl_md = <double**> calloc(self.sp.md_size, sizeof(double*))
+        for index_md in range(self.sp.md_size):
+            cl_md[index_md] = <double*> calloc(self.sp.ct_size, sizeof(double))
+
+        # Quantities for isocurvature modes
+        cdef double **cl_md_ic = <double**> calloc(self.sp.md_size, sizeof(double*))
+        for index_md in range(self.sp.md_size):
+            cl_md_ic[index_md] = <double*> calloc(self.sp.ct_size*self.sp.ic_ic_size[index_md], sizeof(double))
+
         lmaxR = self.sp.l_max_tot
         if lmax==-1:
             lmax=lmaxR
@@ -396,7 +406,7 @@ cdef class Class:
             cl[elem] = np.ndarray(lmax+1, dtype=np.double)
             cl[elem][:2]=0
         for ell from 2<=ell<lmax+1:
-            if spectra_cl_at_l(&self.sp,ell,rcl,NULL,NULL) == _FAILURE_:
+            if spectra_cl_at_l(&self.sp,ell,rcl,cl_md,cl_md_ic) == _FAILURE_:
                 raise CosmoSevereError(self.sp.error_message)
             cl['tt'][ell] = rcl[self.sp.index_ct_tt]
             cl['te'][ell] = rcl[self.sp.index_ct_te]
@@ -501,6 +511,8 @@ cdef class Class:
         cdef double pk_cross
         cdef int dummy
 
+        # Quantities for the isocurvature modes
+        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         abort = True
         if 'output' in self._pars:
             options = self._pars['output'].split()
@@ -515,7 +527,7 @@ cdef class Class:
                 " spectrum, then")
 
         if (self.nl.method == 0):
-             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,NULL)==_FAILURE_:
+             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
         else:
              if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
@@ -726,165 +738,183 @@ cdef class Class:
         """
         return self.ba.Omega0_b+self.ba.Omega0_cdm
 
-    def get_current_derived_parameters(self, data):
+    def get_current_derived_parameters(self, names):
         """
-        get_current_derived_parameters(data)
+        get_current_derived_parameters(names)
 
-        Give the value of all the derived parameters defined in the data class
-        (from Monte Python)
+        Return a dictionary containing an entry for all the names defined in the
+        input list.
 
         Parameters
         ----------
-        data : class
-                Initialized inside Monte Python, contains a list of derived parameters
-        """
+        names : list
+                Derived parameters that can be asked from Monte Python, or
+                elsewhere.
 
-        for elem in data.get_mcmc_parameters(['derived']):
-            if elem == 'h':
-                data.mcmc_parameters[elem]['current'] = self.ba.h
-            elif elem == 'Omega0_lambda' or elem == 'Omega_Lambda':
-                data.mcmc_parameters[elem]['current'] = self.ba.Omega0_lambda
-            elif elem == 'Omega0_fld':
-                data.mcmc_parameters[elem]['current'] = self.ba.Omega0_fld
-            elif elem == 'age':
-                data.mcmc_parameters[elem]['current'] = self.ba.age
-            elif elem == 'conformal_age':
-                data.mcmc_parameters[elem]['current'] = self.ba.conformal_age
-            elif elem == 'm_ncdm_in_eV':
-                data.mcmc_parameters[elem]['current'] = self.ba.m_ncdm_in_eV[0]
-            elif elem == 'm_ncdm_tot':
-                data.mcmc_parameters[elem]['current'] = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
-            elif elem == 'Neff':
-                data.mcmc_parameters[elem]['current'] = self.ba.Neff
-            elif elem == 'tau_reio':
-                data.mcmc_parameters[elem]['current'] = self.th.tau_reio
-            elif elem == 'z_reio':
-                data.mcmc_parameters[elem]['current'] = self.th.z_reio
-            elif elem == 'z_rec':
-                data.mcmc_parameters[elem]['current'] = self.th.z_rec
-            elif elem == 'tau_rec':
-                data.mcmc_parameters[elem]['current'] = self.th.tau_rec
-            elif elem == 'rs_rec':
-                data.mcmc_parameters[elem]['current'] = self.th.rs_rec
-            elif elem == 'rs_rec_h':
-                data.mcmc_parameters[elem]['current'] = self.th.rs_rec*self.ba.h
-            elif elem == 'ds_rec':
-                data.mcmc_parameters[elem]['current'] = self.th.ds_rec
-            elif elem == 'ds_rec_h':
-                data.mcmc_parameters[elem]['current'] = self.th.ds_rec*self.ba.h
-            elif elem == 'ra_rec':
-                data.mcmc_parameters[elem]['current'] = self.th.da_rec*(1.+self.th.z_rec)
-            elif elem == 'ra_rec_h':
-                data.mcmc_parameters[elem]['current'] = self.th.da_rec*(1.+self.th.z_rec)*self.ba.h
-            elif elem == 'da_rec':
-                data.mcmc_parameters[elem]['current'] = self.th.da_rec
-            elif elem == 'da_rec_h':
-                data.mcmc_parameters[elem]['current'] = self.th.da_rec*self.ba.h
-            elif elem == 'z_d':
-                data.mcmc_parameters[elem]['current'] = self.th.z_d
-            elif elem == 'tau_d':
-                data.mcmc_parameters[elem]['current'] = self.th.tau_d
-            elif elem == 'ds_d':
-                data.mcmc_parameters[elem]['current'] = self.th.ds_d
-            elif elem == 'ds_d_h':
-                data.mcmc_parameters[elem]['current'] = self.th.ds_d*self.ba.h
-            elif elem == 'rs_d':
-                data.mcmc_parameters[elem]['current'] = self.th.rs_d
-            elif elem == 'rs_d_h':
-                data.mcmc_parameters[elem]['current'] = self.th.rs_d*self.ba.h
-            elif elem == 'YHe':
-                data.mcmc_parameters[elem]['current'] = self.th.YHe
-            elif elem == 'n_e':
-                data.mcmc_parameters[elem]['current'] = self.th.n_e
-            elif elem == 'A_s':
-                data.mcmc_parameters[elem]['current'] = self.pm.A_s
-            elif elem == 'ln10^{10}A_s':
-                data.mcmc_parameters[elem]['current'] = log(1.e10*self.pm.A_s)
-            elif elem == 'n_s':
-                data.mcmc_parameters[elem]['current'] = self.pm.n_s
-            elif elem == 'alpha_s':
-                data.mcmc_parameters[elem]['current'] = self.pm.alpha_s
-            elif elem == 'beta_s':
-                data.mcmc_parameters[elem]['current'] = self.pm.beta_s
-            elif elem == 'r':
-                data.mcmc_parameters[elem]['current'] = self.pm.r
-            elif elem == 'n_t':
-                data.mcmc_parameters[elem]['current'] = self.pm.n_t
-            elif elem == 'alpha_t':
-                data.mcmc_parameters[elem]['current'] = self.pm.alpha_t
-            elif elem == 'V_0':
-                data.mcmc_parameters[elem]['current'] = self.pm.V0
-            elif elem == 'V_1':
-                data.mcmc_parameters[elem]['current'] = self.pm.V1
-            elif elem == 'V_2':
-                data.mcmc_parameters[elem]['current'] = self.pm.V2
-            elif elem == 'V_3':
-                data.mcmc_parameters[elem]['current'] = self.pm.V3
-            elif elem == 'V_4':
-                data.mcmc_parameters[elem]['current'] = self.pm.V4
-            elif elem == 'epsilon_V':
+        Returns
+        -------
+        derived : dict
+
+        .. warning::
+
+            This method used to take as an argument directly the data class from
+            Monte Python. To maintain compatibility with this old feature, a
+            check is performed to verify that names is indeed a list. If not, it
+            returns a TypeError. The old version of this function, when asked
+            with the new argument, will raise an AttributeError.
+
+        """
+        if type(names) != type([]):
+            raise TypeError("Deprecated")
+
+        derived = {}
+        for name in names:
+            if name == 'h':
+                value = self.ba.h
+            elif name == 'Omega0_lambda' or name == 'Omega_Lambda':
+                value = self.ba.Omega0_lambda
+            elif name == 'Omega0_fld':
+                value = self.ba.Omega0_fld
+            elif name == 'age':
+                value = self.ba.age
+            elif name == 'conformal_age':
+                value = self.ba.conformal_age
+            elif name == 'm_ncdm_in_eV':
+                value = self.ba.m_ncdm_in_eV[0]
+            elif name == 'm_ncdm_tot':
+                value = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
+            elif name == 'Neff':
+                value = self.ba.Neff
+            elif name == 'Omega_m':
+                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
+                         self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)
+            elif name == 'omega_m':
+                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
+                         self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)/self.ba.h**2
+            elif name == 'tau_reio':
+                value = self.th.tau_reio
+            elif name == 'z_reio':
+                value = self.th.z_reio
+            elif name == 'z_rec':
+                value = self.th.z_rec
+            elif name == 'tau_rec':
+                value = self.th.tau_rec
+            elif name == 'rs_rec':
+                value = self.th.rs_rec
+            elif name == 'rs_rec_h':
+                value = self.th.rs_rec*self.ba.h
+            elif name == 'ds_rec':
+                value = self.th.ds_rec
+            elif name == 'ds_rec_h':
+                value = self.th.ds_rec*self.ba.h
+            elif name == 'ra_rec':
+                value = self.th.da_rec*(1.+self.th.z_rec)
+            elif name == 'ra_rec_h':
+                value = self.th.da_rec*(1.+self.th.z_rec)*self.ba.h
+            elif name == 'da_rec':
+                value = self.th.da_rec
+            elif name == 'da_rec_h':
+                value = self.th.da_rec*self.ba.h
+            elif name == 'z_d':
+                value = self.th.z_d
+            elif name == 'tau_d':
+                value = self.th.tau_d
+            elif name == 'ds_d':
+                value = self.th.ds_d
+            elif name == 'ds_d_h':
+                value = self.th.ds_d*self.ba.h
+            elif name == 'rs_d':
+                value = self.th.rs_d
+            elif name == 'rs_d_h':
+                value = self.th.rs_d*self.ba.h
+            elif name == '100*theta_s':
+                value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
+            elif name == 'YHe':
+                value = self.th.YHe
+            elif name == 'n_e':
+                value = self.th.n_e
+            elif name == 'A_s':
+                value = self.pm.A_s
+            elif name == 'ln10^{10}A_s':
+                value = log(1.e10*self.pm.A_s)
+            elif name == 'n_s':
+                value = self.pm.n_s
+            elif name == 'alpha_s':
+                value = self.pm.alpha_s
+            elif name == 'beta_s':
+                value = self.pm.beta_s
+            elif name == 'r':
+                value = self.pm.r
+            elif name == 'n_t':
+                value = self.pm.n_t
+            elif name == 'alpha_t':
+                value = self.pm.alpha_t
+            elif name == 'V_0':
+                value = self.pm.V0
+            elif name == 'V_1':
+                value = self.pm.V1
+            elif name == 'V_2':
+                value = self.pm.V2
+            elif name == 'V_3':
+                value = self.pm.V3
+            elif name == 'V_4':
+                value = self.pm.V4
+            elif name == 'epsilon_V':
                 eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
                 eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
-                data.mcmc_parameters[elem]['current'] = eps1*((1.-eps1/3.+eps2/6.)/(1.-eps1/3.))**2
-            elif elem == 'eta_V':
+                value = eps1*((1.-eps1/3.+eps2/6.)/(1.-eps1/3.))**2
+            elif name == 'eta_V':
                 eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
                 eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
                 eps23 = 1./8.*(self.pm.r**2/8.+(self.pm.n_s-1.)*self.pm.r-8.*self.pm.alpha_s)
-                data.mcmc_parameters[elem]['current'] = (2.*eps1-eps2/2.-2./3.*eps1**2+5./6.*eps1*eps2-eps2**2/12.-eps23/6.)/(1.-eps1/3.)
-            elif elem == 'ksi_V^2':
+                value = (2.*eps1-eps2/2.-2./3.*eps1**2+5./6.*eps1*eps2-eps2**2/12.-eps23/6.)/(1.-eps1/3.)
+            elif name == 'ksi_V^2':
                 eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
                 eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
                 eps23 = 1./8.*(self.pm.r**2/8.+(self.pm.n_s-1.)*self.pm.r-8.*self.pm.alpha_s)
-                data.mcmc_parameters[elem]['current'] = 2.*(1.-eps1/3.+eps2/6.)*(2.*eps1**2-3./2.*eps1*eps2+eps23/4.)/(1.-eps1/3.)**2
-            elif elem == 'exp_m_2_tau_As':
-                data.mcmc_parameters[elem]['current'] = exp(-2.*self.th.tau_reio)*self.pm.A_s
-            elif elem == 'phi_min':
-                data.mcmc_parameters[elem]['current'] = self.pm.phi_min
-            elif elem == 'phi_max':
-                data.mcmc_parameters[elem]['current'] = self.pm.phi_max
-#            elif elem == 'P_{RR}^1':
-#                data.mcmc_parameters[elem]['current'] = self.pm.A_s*exp(self.pm.n_s*log(0.002/self.pm.k_pivot))
-#            elif elem == 'P_{RR}^2':
-#                data.mcmc_parameters[elem]['current'] = self.pm.A_s*exp(self.pm.n_s*log(0.1/self.pm.k_pivot))
-#            elif elem == 'P_{II}^2':
-#                data.mcmc_parameters[elem]['current'] = self.pm.A_s*self.pm.f_nid*self.pm.f_nid*exp(self.pm.n_nid*log(0.1/self.pm.k_pivot))
-#            elif elem == 'P_{RI}^2':
-#                data.mcmc_parameters[elem]['current'] = self.pm.A_s*self.pm.f_nid*self.pm.c_ad_nid*exp((self.pm.n_ad_nid+0.5*(self.pm.n_s+self.pm.n_nid))*log(0.1/self.pm.k_pivot))
-            elif elem == 'alpha_kp':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_kp
-            elif elem == 'alpha_k1':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_k1
-            elif elem == 'alpha_k2':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_k2
-            elif elem == 'alpha_II_2_20':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_2_20
-            elif elem == 'alpha_RI_2_20':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_2_20
-            elif elem == 'alpha_RR_2_20':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_2_20
-            elif elem == 'alpha_II_21_200':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_21_200
-            elif elem == 'alpha_RI_21_200':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_21_200
-            elif elem == 'alpha_RR_21_200':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_21_200
-            elif elem == 'alpha_II_201_2500':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_201_2500
-            elif elem == 'alpha_RI_201_2500':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_201_2500
-            elif elem == 'alpha_RR_201_2500':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_201_2500
-            elif elem == 'alpha_II_2_2500':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_II_2_2500
-            elif elem == 'alpha_RI_2_2500':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RI_2_2500
-            elif elem == 'alpha_RR_2_2500':
-                data.mcmc_parameters[elem]['current'] = self.sp.alpha_RR_2_2500
-            elif elem == 'sigma8':
-                data.mcmc_parameters[elem]['current'] = self.sp.sigma8
+                value = 2.*(1.-eps1/3.+eps2/6.)*(2.*eps1**2-3./2.*eps1*eps2+eps23/4.)/(1.-eps1/3.)**2
+            elif name == 'exp_m_2_tau_As':
+                value = exp(-2.*self.th.tau_reio)*self.pm.A_s
+            elif name == 'phi_min':
+                value = self.pm.phi_min
+            elif name == 'phi_max':
+                value = self.pm.phi_max
+            elif name == 'alpha_kp':
+                value = self.sp.alpha_kp
+            elif name == 'alpha_k1':
+                value = self.sp.alpha_k1
+            elif name == 'alpha_k2':
+                value = self.sp.alpha_k2
+            elif name == 'alpha_II_2_20':
+                value = self.sp.alpha_II_2_20
+            elif name == 'alpha_RI_2_20':
+                value = self.sp.alpha_RI_2_20
+            elif name == 'alpha_RR_2_20':
+                value = self.sp.alpha_RR_2_20
+            elif name == 'alpha_II_21_200':
+                value = self.sp.alpha_II_21_200
+            elif name == 'alpha_RI_21_200':
+                value = self.sp.alpha_RI_21_200
+            elif name == 'alpha_RR_21_200':
+                value = self.sp.alpha_RR_21_200
+            elif name == 'alpha_II_201_2500':
+                value = self.sp.alpha_II_201_2500
+            elif name == 'alpha_RI_201_2500':
+                value = self.sp.alpha_RI_201_2500
+            elif name == 'alpha_RR_201_2500':
+                value = self.sp.alpha_RR_201_2500
+            elif name == 'alpha_II_2_2500':
+                value = self.sp.alpha_II_2_2500
+            elif name == 'alpha_RI_2_2500':
+                value = self.sp.alpha_RI_2_2500
+            elif name == 'alpha_RR_2_2500':
+                value = self.sp.alpha_RR_2_2500
+            elif name == 'sigma8':
+                value = self.sp.sigma8
             else:
-                raise CosmoSevereError("%s was not recognized as a derived parameter" % elem)
-        return
+                raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
+            derived[name] = value
+        return derived
 
     def nonlinear_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """

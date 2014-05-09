@@ -259,6 +259,61 @@ int parser_read_double(
 
 }
 
+int parser_read_double_and_position(
+		       struct file_content * pfc,
+		       char * name,
+		       double * value,
+               int * position,
+		       int * found,
+		       ErrorMsg errmsg
+		       ) {
+  int index;
+  int i;
+
+  /* intialize the 'found' flag to false */
+
+  * found = _FALSE_;
+
+  /* search parameter */
+
+  index=0;
+  while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
+    index++;
+
+  /* if parameter not found, return with 'found' flag still equal to false */
+
+  if (index == pfc->size)
+    return _SUCCESS_;
+
+  /* read parameter value. If this fails, return an error */
+
+  class_test(sscanf(pfc->value[index],"%lg",value) != 1,
+	     errmsg,
+	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
+
+  /* if parameter read correctly, set 'found' flag to true, as well as the flag
+     associated with this parameter in the file_content structure */
+
+  * found = _TRUE_;
+  pfc->read[index] = _TRUE_;
+
+  /* check for multiple entries of the same parameter. If another occurence is found,
+     return an error. */
+
+  for (i=index+1; i < pfc->size; i++) {
+    class_test(strcmp(pfc->name[i],name) == 0,
+	       errmsg,
+	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+  }
+
+  /* if everything proceeded normally, return with 'found' flag equal to true */
+
+  * position = index;
+
+  return _SUCCESS_;
+
+}
+
 int parser_read_string(
 		       struct file_content * pfc,
 		       char * name,

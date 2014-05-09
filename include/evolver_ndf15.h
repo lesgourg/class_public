@@ -71,6 +71,19 @@ extern "C" {
   void eqvec(double *datavec,double *emptyvec, int n);
   int lubksb(double **a, int n, int *indx, double b[]);
   int ludcmp(double **a, int n, int *indx, double *d, double *vv);
+  int fzero_Newton(int (*func)(double *x,
+                               int x_size,
+                               void *param,
+                               double *F,
+                               ErrorMsg error_message),
+                   double *x_inout,
+                   double *dxdF,
+                   int x_size,
+                   double tolx,
+                   double tolF,
+                   void *param,
+                   int *fevals,
+                   ErrorMsg error_message);
 
   int numjac(int (*derivs)(double x,double * y,double * dy,void * parameters_and_workspace,ErrorMsg error_message),
 	     double t, double *y, double *fval, struct jacobian *jac, struct numjac_workspace *nj_ws,
