@@ -21,6 +21,7 @@ python CPU.py output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat -r
 
 """
 import numpy as np
+from scipy.interpolate import splrep, splev
 import os
 import matplotlib.pyplot as plt
 import sys
@@ -63,7 +64,7 @@ def create_parser():
     parser.add_argument(
         '-p, --print',
         dest='printfile', action='store_true', default=False,
-        help='print the graph directly in a .png file')
+        help='print the graph directly in a .pdf file')
     parser.add_argument(
         '-r, --repeat',
         dest='repeat', action='store_true', default=False,
@@ -71,8 +72,9 @@ def create_parser():
     return parser
 
 
-def plot_CLASS_output(files, selection, ratio=False, output_name='',
-                      extension='', x_variable='', scale='lin'):
+def plot_CLASS_output(files, selection, ratio=False, printing=False,
+                      output_name='', extension='', x_variable='',
+                      scale='lin'):
     """
     Load the data to numpy arrays, write a Python script and plot them.
 
@@ -105,6 +107,7 @@ def plot_CLASS_output(files, selection, ratio=False, output_name='',
 
     # Create the python script, and initialise it
     python_script_path = files[0]+'.py'
+    pdf_path = files[0]+'.pdf'
     text = '''
 import matplotlib.pyplot as plt
 import numpy as np\n'''
@@ -161,15 +164,33 @@ for data_file in files:
                 elif scale == 'loglog':
                     text += 'loglog(curve[:, 0], curve[:, %i])\n' % index
                     ax.loglog(curve[:, 0], curve[:, index])
+                elif scale == 'loglin':
+                    text += 'semilogx(curve[:, 0], curve[:, %i])\n' % index
+                    ax.semilogx(curve[:, 0], curve[:, index])
+
         ax.legend([root+': '+elem for (root, elem) in
                    itertools.product(roots, selection)], loc='lower right')
         #ax.legend([
     else:
         ref = data[0]
-        #for index in range(1, len(data)):
-            #current = data[index]
+        _, ref_curve_names, _ = extract_headers(files[0])
+        for idx in range(1, len(data)):
+            current = data[idx]
+            _, curve_names, _ = extract_headers(files[idx])
+            for selec in selection:
+                # Do the interpolation
+                axis = ref[:, 0]
+                reference = ref[:, ref_curve_names.index(selec)]
+                interpolated = splrep(current[:, 0],
+                                        current[:, curve_names.index(selec)])
+                ax.plot(axis, splev(ref[:, 0], interpolated)/reference-1)
+
             #if np.allclose(current[0], ref[0]):
                 #ax.plot(current[0], current[colnum]/ref[colnum])
+    if 'TT' in curve_names:
+        ax.set_xlabel('$\ell$', fontsize=20)
+    elif 'P' in curve_names:
+        ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=20)
     text += 'plt.show()\n'
     plt.show()
 
@@ -177,6 +198,10 @@ for data_file in files:
     # the plot by running "python output/something_cl.dat.py"
     with open(python_script_path, 'w') as python_script:
         python_script.write(text)
+
+    # If the use wants to print the figure to a file
+    if printing:
+        fig.savefig(pdf_path)
 
 
 class FormatError(Exception):
@@ -282,10 +307,6 @@ def main():
         parser.print_usage()
         return
 
-    # Ratio is not implemented yet, catch it
-    if args.ratio:
-        raise InputError(
-            "Sorry, this is not working yet")
     # if the first file name contains cl or pk, infer the type of desired
     # spectrum
     if not args.selection:
@@ -317,8 +338,8 @@ def main():
     # actual plotting. By default, a simple superposition of the graph is
     # performed. If asked to be divided, the ratio is shown - whether a need
     # for interpolation arises or not.
-    plot_CLASS_output(args.files, args.selection,
-                      ratio=args.ratio, scale=args.scale)
+    plot_CLASS_output(args.files, args.selection, ratio=args.ratio,
+                      printing=args.printfile, scale=args.scale)
 
 if __name__ == '__main__':
     sys.exit(main())
