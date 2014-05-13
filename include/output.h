@@ -201,8 +201,12 @@ extern "C" {
                           );
 
   int output_one_line_of_tk(
+                            struct background * pba,
+                            struct perturbs * ppt,
+                            struct spectra * psp,
+                            struct output * pop,
                             FILE * tkfile,
-                            double one_k,
+                            double k_over_h,
                             double * tk,
                             int tr_size
                             );

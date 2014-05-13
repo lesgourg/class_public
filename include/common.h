@@ -235,6 +235,16 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
       fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,output);    \
   }
 
+#define class_fprintf_double_or_default(file,                           \
+                                        output,                         \
+                                        condition,                      \
+                                        defaultvalue){                  \
+    if (condition == _TRUE_)                                            \
+      fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,output);    \
+    else                                                                \
+      fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,defaultvalue);    \
+}
+
 #define class_fprintf_int(file,                                         \
                           output,                                       \
                           condition){                                   \
@@ -338,6 +348,11 @@ struct precision
    * initial time
    */
   double tol_ncdm_initial_w;
+
+  /**
+   * parameter controling the initial scalar field in background functions
+   */
+  double safe_phi_scf;
 
   //@}
 

@@ -1016,9 +1016,6 @@ int output_tk(
   double * tk;  /* array with argument
                    pk_ic[(index_k * psp->ic_size[index_md] + index_ic)*psp->tr_size+index_tr] */
 
-  double * tk_cmbfast = NULL; /* array with argument tk_cmbfast[index_tr] */
-
-
   int index_md;
   int index_ic;
   int index_k;
@@ -1142,59 +1139,23 @@ int output_tk(
 
     /** - fourth, write in files */
 
-    if (pop->output_format == camb_format)
-      class_alloc(tk_cmbfast,
-                  6*sizeof(double),
-                  pop->error_message);
-
     for (index_k=0; index_k<psp->ln_k_size; index_k++) {
       for (index_ic = 0; index_ic < psp->ic_size[index_md]; index_ic++) {
+        class_call(output_one_line_of_tk(pba,
+                                         ppt,
+                                         psp,
+                                         pop,
+                                         out_ic[index_ic],
+                                         exp(psp->ln_k[index_k])/pba->h,
+                                         &(tk[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size]),
+                                         psp->tr_size),
+                   pop->error_message,
+                   pop->error_message);
 
-        if (pop->output_format == class_format) {
-
-          class_call(output_one_line_of_tk(out_ic[index_ic],
-                                           exp(psp->ln_k[index_k])/pba->h,
-                                           &(tk[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size]),
-                                           psp->tr_size),
-                     pop->error_message,
-                     pop->error_message);
-
-        }
-        else if (pop->output_format == camb_format) {
-
-          /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
-
-          if (pba->has_cdm == _TRUE_)
-            tk_cmbfast[0]=-tk[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+psp->index_tr_delta_cdm]/exp(2.*psp->ln_k[index_k]);
-          else
-            tk_cmbfast[0]= 0.;
-          tk_cmbfast[1]=-tk[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+psp->index_tr_delta_b]/exp(2.*psp->ln_k[index_k]);
-          tk_cmbfast[2]=-tk[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+psp->index_tr_delta_g]/exp(2.*psp->ln_k[index_k]);
-          if (pba->has_ur == _TRUE_)
-            tk_cmbfast[3]=-tk[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+psp->index_tr_delta_ur]/exp(2.*psp->ln_k[index_k]);
-          else
-            tk_cmbfast[3]=0.;
-          if (pba->has_ncdm == _TRUE_)
-            tk_cmbfast[4]=-tk[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+psp->index_tr_delta_ncdm1]/exp(2.*psp->ln_k[index_k]);
-          else
-            tk_cmbfast[4]=0.;
-          tk_cmbfast[5]=-tk[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+psp->index_tr_delta_tot]/exp(2.*psp->ln_k[index_k]);
-
-          class_call(output_one_line_of_tk(out_ic[index_ic],
-                                           exp(psp->ln_k[index_k])/pba->h,
-                                           tk_cmbfast,
-                                           6),
-                     pop->error_message,
-                     pop->error_message);
-
-        }
       }
     }
 
     /** - fifth, free memory and close files */
-
-    if (pop->output_format == camb_format)
-      free(tk_cmbfast);
 
     free(tk);
 
@@ -1707,6 +1668,9 @@ int output_open_tk_file(
             class_fprintf_columntitle(*tkfile,tmp,_TRUE_,colnum);
           }
         }
+        class_fprintf_columntitle(*tkfile,"d_dcdm",pba->has_dcdm,colnum);
+        class_fprintf_columntitle(*tkfile,"d_dr",pba->has_dr,colnum);
+        class_fprintf_columntitle(*tkfile,"d_phi_scf",pba->has_scf,colnum);
         class_fprintf_columntitle(*tkfile,"d_tot",_TRUE_,colnum);
       }
       if (ppt->has_velocity_transfers == _TRUE_) {
@@ -1721,6 +1685,9 @@ int output_open_tk_file(
             class_fprintf_columntitle(*tkfile,tmp,_TRUE_,colnum);
           }
         }
+        class_fprintf_columntitle(*tkfile,"t_dcdm",pba->has_dcdm,colnum);
+        class_fprintf_columntitle(*tkfile,"t_dr",pba->has_dr,colnum);
+        class_fprintf_columntitle(*tkfile,"t_phi'_scf",pba->has_scf,colnum);
         class_fprintf_columntitle(*tkfile,"t_tot",_TRUE_,colnum);
       }
       fprintf(*tkfile,"\n");
@@ -1762,19 +1729,73 @@ int output_open_tk_file(
  */
 
 int output_one_line_of_tk(
+                          struct background * pba,
+                          struct perturbs * ppt,
+                          struct spectra * psp,
+                          struct output * pop,
                           FILE * tkfile,
-                          double one_k,
+                          double k_over_h,
                           double * tk,
                           int tr_size
                           ) {
 
-  int index_tr;
+  int n_ncdm;
+  double k, k2;
+
+  k = k_over_h*pba->h;
+  k2 = k*k;
 
   fprintf(tkfile," ");
-  class_fprintf_double(tkfile, one_k, _TRUE_);
+  class_fprintf_double(tkfile, k_over_h, _TRUE_);
 
-  for (index_tr=0; index_tr<tr_size; index_tr++)
-    class_fprintf_double(tkfile, tk[index_tr], _TRUE_);
+
+  /* indices for species associated with a velocity transfer function in Fourier space */
+
+  if (pop->output_format == class_format) {
+
+    if (ppt->has_density_transfers == _TRUE_) {
+
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_g],ppt->has_source_delta_g);
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_b],ppt->has_source_delta_b);
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_cdm],ppt->has_source_delta_cdm);
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_fld],ppt->has_source_delta_fld);
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_ur],ppt->has_source_delta_ur);
+      if (pba->has_ncdm == _TRUE_){
+        for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          class_fprintf_double(tkfile,tk[psp->index_tr_delta_ncdm1+n_ncdm],ppt->has_source_delta_ncdm);
+        }
+      }
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_tot],_TRUE_);
+
+    }
+    if (ppt->has_velocity_transfers == _TRUE_) {
+
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_g],ppt->has_source_theta_g);
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_b],ppt->has_source_theta_b);
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_cdm],ppt->has_source_theta_cdm);
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_fld],ppt->has_source_theta_fld);
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_ur],ppt->has_source_theta_ur);
+      if (pba->has_ncdm == _TRUE_){
+        for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          class_fprintf_double(tkfile,tk[psp->index_tr_theta_ncdm1+n_ncdm],ppt->has_source_theta_ncdm);
+        }
+      }
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_tot],_TRUE_);
+
+    }
+
+  }
+  else if (pop->output_format == camb_format) {
+
+    /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
+    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_cdm]/k2,ppt->has_source_delta_cdm,0.0);
+    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_b]/k2,ppt->has_source_delta_b,0.0);
+    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_g]/k2,ppt->has_source_delta_g,0.0);
+    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_ur]/k2,ppt->has_source_delta_ur,0.0);
+    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_ncdm1]/k2,ppt->has_source_delta_ncdm,0.0);
+    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_tot]/k2,_TRUE_,0.0);
+
+  }
 
   fprintf(tkfile,"\n");
 
