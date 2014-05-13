@@ -223,6 +223,7 @@ struct perturbs
   short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
   short has_source_delta_dcdm; /**< do we need source for delta of DCDM? */
   short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
+  short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
   short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
@@ -232,6 +233,7 @@ struct perturbs
   short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
   short has_source_theta_dcdm; /**< do we need source for theta of DCDM? */
   short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
+  short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
   short has_source_theta_dr; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
@@ -254,6 +256,7 @@ struct perturbs
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
   int index_tp_delta_dcdm;/**< index value for delta of DCDM */
   int index_tp_delta_fld;  /**< index value for delta of dark energy */
+  int index_tp_delta_scf;  /**< index value for delta of scalar field */
   int index_tp_delta_dr; /**< index value for delta of decay radiation */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
@@ -266,6 +269,7 @@ struct perturbs
   int index_tp_theta_cdm; /**< index value for theta of cold dark matter */
   int index_tp_theta_dcdm;/**< index value for theta of DCDM */
   int index_tp_theta_fld;  /**< index value for theta of dark energy */
+  int index_tp_theta_scf;  /**< index value for theta of scalar field */
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_dr; /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
@@ -374,6 +378,8 @@ struct perturb_vector
   int index_pt_theta_dcdm; /**< dcdm velocity */
   int index_pt_delta_fld;  /**< dark energy density */
   int index_pt_theta_fld;  /**< dark energy velocity */
+  int index_pt_phi_scf;  /**< scalar field density */
+  int index_pt_phi_prime_scf;  /**< scalar field velocity */
   int index_pt_delta_ur; /**< density of ultra-relativistic neutrinos/relics */
   int index_pt_theta_ur; /**< velocity of ultra-relativistic neutrinos/relics */
   int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */

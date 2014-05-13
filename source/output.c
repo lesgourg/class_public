@@ -1660,7 +1660,7 @@ int output_open_tk_file(
         class_fprintf_columntitle(*tkfile,"d_g",_TRUE_,colnum);
         class_fprintf_columntitle(*tkfile,"d_b",_TRUE_,colnum);
         class_fprintf_columntitle(*tkfile,"d_cdm",pba->has_cdm,colnum);
-        class_fprintf_columntitle(*tkfile,"d_de",pba->has_fld,colnum);
+        class_fprintf_columntitle(*tkfile,"d_fld",pba->has_fld,colnum);
         class_fprintf_columntitle(*tkfile,"d_ur",pba->has_ur,colnum);
         if (pba->has_ncdm == _TRUE_) {
           for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
@@ -1677,7 +1677,7 @@ int output_open_tk_file(
         class_fprintf_columntitle(*tkfile,"t_g",_TRUE_,colnum);
         class_fprintf_columntitle(*tkfile,"t_b",_TRUE_,colnum);
         class_fprintf_columntitle(*tkfile,"t_cdm",((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)),colnum);
-        class_fprintf_columntitle(*tkfile,"t_de",pba->has_fld,colnum);
+        class_fprintf_columntitle(*tkfile,"t_fld",pba->has_fld,colnum);
         class_fprintf_columntitle(*tkfile,"t_ur",pba->has_ur,colnum);
         if (pba->has_ncdm == _TRUE_) {
           for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
@@ -1765,6 +1765,9 @@ int output_one_line_of_tk(
           class_fprintf_double(tkfile,tk[psp->index_tr_delta_ncdm1+n_ncdm],ppt->has_source_delta_ncdm);
         }
       }
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_dcdm],ppt->has_source_delta_dcdm);
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_dr],ppt->has_source_delta_dr);
+      class_fprintf_double(tkfile,tk[psp->index_tr_delta_scf],ppt->has_source_delta_scf);
       class_fprintf_double(tkfile,tk[psp->index_tr_delta_tot],_TRUE_);
 
     }
@@ -1780,6 +1783,9 @@ int output_one_line_of_tk(
           class_fprintf_double(tkfile,tk[psp->index_tr_theta_ncdm1+n_ncdm],ppt->has_source_theta_ncdm);
         }
       }
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_dcdm],ppt->has_source_theta_dcdm);
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_dr],ppt->has_source_theta_dr);
+      class_fprintf_double(tkfile,tk[psp->index_tr_theta_scf],ppt->has_source_theta_scf);
       class_fprintf_double(tkfile,tk[psp->index_tr_theta_tot],_TRUE_);
 
     }

@@ -223,9 +223,9 @@ int input_init(
   struct fzerofun_workspace fzw;
   /** These two arrays must contain the strings of names to be searched
       for and the coresponding new parameter */
-  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr"};
-  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm"};
-  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background};
+  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr","Omega_scf"};
+  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm","scf_lambda"};
+  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background, cs_background};
 
   int input_verbose = 0, int1;
 
@@ -908,35 +908,93 @@ int input_read_parameters(
   if (pba->K > 0.) pba->sgnK = 1;
   else if (pba->K < 0.) pba->sgnK = -1;
 
-  /* Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid) */
+  /* Scalar field */
+  class_read_double("Omega_scf",pba->Omega0_scf);
+
+  /* Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid),
+     Omega0_scf (scalar field) */
   class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
   class_call(parser_read_double(pfc,"Omega_fld",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
-  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+  class_call(parser_read_double(pfc,"Omega_scf",&param3,&flag3,errmsg),
              errmsg,
-             "In input file, you can enter only two out of Omega_Lambda, Omega_de, Omega_k, the third one is inferred");
+             errmsg);
 
-  if ((flag1 == _FALSE_) && (flag2 == _FALSE_)) {
-    pba->Omega0_lambda = 1.-pba->Omega0_k-Omega_tot;
+  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_) && ((flag3 == _FALSE_) || (param3 >= 0.)),
+             errmsg,
+             "In input file, either Omega_Lambda or Omega_fld must be left unspecified, except if Omega_scf is set and <0.0, in which case the contribution from the scalar field will be the free parameter.");
+
+  /** (flag3 == _FALSE_) || (param3 >= 0.) explained:
+      it means that either we have not read Omega_scf so we are ignoring it
+      (unlike lambda and fld!) OR we have read it, but it had a
+      positive value and should not be used for filling.
+
+      We now proceed in two steps:
+      1) set each Omega0 and add to the total for each specified component.
+      2) go through the components in order {lambda, fld, scf} and
+         fill using first unspecified component.
+  */
+
+  /** Step 1 */
+  if (flag1 == _TRUE_){
+    pba->Omega0_lambda = param1;
+    Omega_tot += pba->Omega0_lambda;
   }
-  else {
-    if (flag1 == _TRUE_) {
-      pba->Omega0_lambda= param1;
-      pba->Omega0_fld = 1. - pba->Omega0_k - param1 - Omega_tot;
-    }
-    if (flag2 == _TRUE_) {
-      pba->Omega0_lambda= 1. - pba->Omega0_k - param2 - Omega_tot;
-      pba->Omega0_fld = param2;
-    }
+  if (flag2 == _TRUE_){
+    pba->Omega0_fld = param2;
+    Omega_tot += pba->Omega0_fld;
   }
+  if ((flag3 == _FALSE_) || (param3 >= 0.)){
+    pba->Omega0_scf = param3;
+    Omega_tot += pba->Omega0_scf;
+  }
+  /** Step 2 */
+  if (flag1 == _FALSE_) //Fill with Lambda
+    pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
+  else if (flag2 == _FALSE_)  // Fill up with fluid
+    pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
+  else if ((flag3 == _TRUE_) && (param3 < 0.)) // Fill up with scalar field
+    pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
 
   if (pba->Omega0_fld != 0.) {
     class_read_double("w0_fld",pba->w0_fld);
     class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
+  }
+
+  /* Additional SCF parameters: */
+  if (pba->Omega0_scf != 0.){
+    /** exponent field coefficient */
+    class_read_double("scf_lambda",pba->scf_lambda);
+
+    if ((abs(pba->scf_lambda) <3.)&&(pba->background_verbose>1))
+      printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",pba->scf_lambda);
+
+    class_read_double("scf_alpha",pba->scf_alpha); // polynomial exponent
+    class_read_double("scf_B",pba->scf_B); // polynomial shift
+    class_read_double("scf_A",pba->scf_A); // polynomial offset
+
+    class_call(parser_read_string(pfc,
+                                  "attractor_ic_scf",
+                                  &string1,
+                                  &flag1,
+                                  errmsg),
+                errmsg,
+                errmsg);
+
+    if (flag1 == _TRUE_){
+      if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+        pba->attractor_ic_scf = _TRUE_;
+      }
+      else{
+	pba->attractor_ic_scf = _FALSE_;
+	class_read_double("initial_phi_scf",pba->phi_ini_scf);
+	class_read_double("initial_phi_prime_scf",pba->phi_prime_ini_scf);
+      }
+    }
   }
 
   /** (b) assign values to thermodynamics cosmological parameters */
@@ -1993,6 +2051,7 @@ int input_read_parameters(
   class_read_double("tol_background_integration",ppr->tol_background_integration);
   class_read_double("tol_initial_Omega_r",ppr->tol_initial_Omega_r);
   class_read_double("tol_ncdm_initial_w",ppr->tol_ncdm_initial_w);
+  class_read_double("safe_phi_scf",ppr->safe_phi_scf);
 
   /** h.2. parameters related to the thermodynamics */
 
@@ -2333,6 +2392,16 @@ int input_default_params(
   pba->ncdm_psd_parameters = NULL;
   pba->ncdm_psd_files = NULL;
   pba->keep_ncdm_stuff = _FALSE_;
+
+  pba->Omega0_scf = 0.; /* Scalar field defaults */
+  pba->attractor_ic_scf = _TRUE_;
+  pba->scf_lambda = -10.; /*exponential slope parameter */
+  pba->scf_alpha = 0; /*Albrecht-Skordis polynomial bump defaults */
+  pba->scf_A = 0;
+  pba->scf_B = 0;
+  //MZ: initial conditions are as multiplicative factors of the radiation attractor values
+  pba->phi_ini_scf = 1;
+  pba->phi_prime_ini_scf = 1;
 
   pba->Omega0_k = 0.;
   pba->K = 0.;
@@ -3062,6 +3131,11 @@ int input_try_unknown_parameters(double * unknown_parameter,
       rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i]/ba.h/ba.h;
       break;
+    case Omega_scf:
+      /** In case scalar field is used to fill, pba->Omega0_scf is not equal to pfzw->target_value[i].*/
+      output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_scf]/(ba.H0*ba.H0)
+        -ba.Omega0_scf;
+      break;
     }
   }
 
@@ -3186,6 +3260,11 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = 1./a_decay/ba.h/ba.h;
         //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
+    case Omega_scf:
+      /** This guess is arbitrary, something nice using WKB should be implemented.*/
+      xguess[index_guess] = -5.0;
+      dxdy[index_guess] = 10.0;
+      break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);
   }
@@ -3214,7 +3293,12 @@ int input_auxillary_target_conditions(enum target_names target_name, double targ
       return _FALSE_;
   }
   if (target_name == omega_dcdmdr){
-    /* Check that Omega_dcdmdr is nonzero: */
+    /* Check that omega_dcdmdr is nonzero: */
+    if (target_value == 0.)
+      return _FALSE_;
+  }
+  if (target_name == Omega_scf){
+    /* Check that Omega_scf is nonzero: */
     if (target_value == 0.)
       return _FALSE_;
   }
