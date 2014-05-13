@@ -1757,66 +1757,23 @@ int spectra_indices(
   /* indices for species associated with a matter transfer function in Fourier space */
 
   index_tr=0;
-
-  if (ppt->has_source_delta_g == _TRUE_) {
-    psp->index_tr_delta_g = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_delta_b == _TRUE_) {
-    psp->index_tr_delta_b = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_delta_cdm == _TRUE_) {
-    psp->index_tr_delta_cdm = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_delta_fld == _TRUE_) {
-    psp->index_tr_delta_fld = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_delta_ur == _TRUE_) {
-    psp->index_tr_delta_ur = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_delta_ncdm == _TRUE_) {
-    psp->index_tr_delta_ncdm1 = index_tr;
-    index_tr+=pba->N_ncdm;
-  }
-  if (ppt->has_density_transfers == _TRUE_) {
-    psp->index_tr_delta_tot = index_tr;
-    index_tr++;
-  }
+  class_define_index(psp->index_tr_delta_g,ppt->has_source_delta_g,index_tr,1);
+  class_define_index(psp->index_tr_delta_b,ppt->has_source_delta_b,index_tr,1);
+  class_define_index(psp->index_tr_delta_cdm,ppt->has_source_delta_cdm,index_tr,1);
+  class_define_index(psp->index_tr_delta_fld,ppt->has_source_delta_fld,index_tr,1);
+  class_define_index(psp->index_tr_delta_ur,ppt->has_source_delta_ur,index_tr,1);
+  class_define_index(psp->index_tr_delta_ncdm1,ppt->has_source_delta_ncdm,index_tr,pba->N_ncdm);
+  class_define_index(psp->index_tr_delta_tot,ppt->has_density_transfers,index_tr,1);
 
   /* indices for species associated with a velocity transfer function in Fourier space */
 
-  if (ppt->has_source_theta_g == _TRUE_) {
-    psp->index_tr_theta_g = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_theta_b == _TRUE_) {
-    psp->index_tr_theta_b = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_theta_cdm == _TRUE_) {
-    psp->index_tr_theta_cdm = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_theta_fld == _TRUE_) {
-    psp->index_tr_theta_fld = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_theta_ur == _TRUE_) {
-    psp->index_tr_theta_ur = index_tr;
-    index_tr++;
-  }
-  if (ppt->has_source_theta_ncdm == _TRUE_) {
-    psp->index_tr_theta_ncdm1 = index_tr;
-    index_tr+=pba->N_ncdm;
-  }
-  if (ppt->has_velocity_transfers == _TRUE_) {
-    psp->index_tr_theta_tot = index_tr;
-    index_tr++;
-  }
+  class_define_index(psp->index_tr_theta_g,ppt->has_source_theta_g,index_tr,1);
+  class_define_index(psp->index_tr_theta_b,ppt->has_source_theta_b,index_tr,1);
+  class_define_index(psp->index_tr_theta_cdm,ppt->has_source_theta_cdm,index_tr,1);
+  class_define_index(psp->index_tr_theta_fld,ppt->has_source_theta_fld,index_tr,1);
+  class_define_index(psp->index_tr_theta_ur,ppt->has_source_theta_ur,index_tr,1);
+  class_define_index(psp->index_tr_theta_ncdm1,ppt->has_source_theta_ncdm,index_tr,pba->N_ncdm);
+  class_define_index(psp->index_tr_theta_tot,ppt->has_velocity_transfers,index_tr,1);
 
   psp->tr_size = index_tr;
 
