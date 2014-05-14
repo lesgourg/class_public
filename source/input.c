@@ -3261,9 +3261,10 @@ int input_get_guess(double *xguess,
         //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     case Omega_scf:
-      /** This guess is arbitrary, something nice using WKB should be implemented.*/
-      xguess[index_guess] = -5.0;
-      dxdy[index_guess] = 10.0;
+      /** This guess is arbitrary, something nice using WKB should be implemented.
+       Version 2: use a fit.*/
+      xguess[index_guess] = 1.77835*pow(ba.Omega0_scf,-2./7.);
+      dxdy[index_guess] = -0.5081*pow(ba.Omega0_scf,-9./7.);
       break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);
