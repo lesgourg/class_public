@@ -61,6 +61,8 @@ def create_parser():
     parser.add_argument('--scale', choices=['lin', 'loglog', 'loglin'],
                         type=str,
                         help='Specify the scale to use for the plot')
+    parser.add_argument('--xlim', dest='xlim', nargs='+', type=float,
+                        default= [], help='Specify the x range')
     parser.add_argument(
         '-p, --print',
         dest='printfile', action='store_true', default=False,
@@ -74,7 +76,7 @@ def create_parser():
 
 def plot_CLASS_output(files, selection, ratio=False, printing=False,
                       output_name='', extension='', x_variable='',
-                      scale='lin'):
+                      scale='lin', xlim=[]):
     """
     Load the data to numpy arrays, write a Python script and plot them.
 
@@ -183,7 +185,14 @@ for data_file in files:
                 reference = ref[:, ref_curve_names.index(selec)]
                 interpolated = splrep(current[:, 0],
                                         current[:, curve_names.index(selec)])
-                ax.plot(axis, splev(ref[:, 0], interpolated)/reference-1)
+                if scale == 'lin':
+                    ax.plot(axis, splev(ref[:, 0], interpolated)/reference-1)
+                elif scale == 'loglin':
+                    ax.semilogx(axis, splev(ref[:, 0],
+                                interpolated)/reference-1)
+                elif scale == 'loglog':
+                    raise InputError(
+                        "loglog plot is not available for ratios")
 
             #if np.allclose(current[0], ref[0]):
                 #ax.plot(current[0], current[colnum]/ref[colnum])
@@ -191,6 +200,12 @@ for data_file in files:
         ax.set_xlabel('$\ell$', fontsize=20)
     elif 'P' in curve_names:
         ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=20)
+    if xlim:
+        if len(xlim) > 1:
+            ax.set_xlim(xlim)
+        else:
+            ax.set_xlim(xlim[0])
+        ax.set_ylim()
     text += 'plt.show()\n'
     plt.show()
 
@@ -272,6 +287,8 @@ def process_long_names(long_names):
         elif name.find('[') != -1:
             names[index] = name[:name.index('[')]
 
+    # Finally, remove any extra spacing
+    names = [''.join(elem.split()) for elem in names]
     return names, tex_names
 
 
@@ -311,10 +328,10 @@ def main():
     # spectrum
     if not args.selection:
         if args.files[0].rfind('cl') != -1:
-            selection = 'TT'
+            selection = ['TT']
             scale = 'loglog'
         elif args.files[0].rfind('pk') != -1:
-            selection = 'P'
+            selection = ['P']
             scale = 'loglog'
         else:
             raise TypeError(
@@ -328,6 +345,8 @@ def main():
         else:
             args.scale = 'lin'
 
+    # Remove extra spacing in the selection list
+    args.selection = [''.join(elem.split()) for elem in args.selection]
     # If ratio is asked, but only one file was passed in argument, politely
     # complain
     if args.ratio:
@@ -339,7 +358,8 @@ def main():
     # performed. If asked to be divided, the ratio is shown - whether a need
     # for interpolation arises or not.
     plot_CLASS_output(args.files, args.selection, ratio=args.ratio,
-                      printing=args.printfile, scale=args.scale)
+                      printing=args.printfile, scale=args.scale,
+                      xlim=args.xlim)
 
 if __name__ == '__main__':
     sys.exit(main())
