@@ -1963,8 +1963,6 @@ int input_read_parameters(
   class_read_string("root",pop->root);
   sprintf(ppt->root,pop->root);
 
-  class_read_string("root",pop->root);
-
   class_call(parser_read_string(pfc,
                                 "headers",
                                 &(string1),
