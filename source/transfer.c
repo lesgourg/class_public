@@ -1237,7 +1237,7 @@ int transfer_get_k_list(
       ptr->k[index_md][index_q] = sqrt(ptr->q[index_q]*ptr->q[index_q]-K*(m+1.));
     }
 
-    class_test(ptr->k[index_md][0] < ppt->k[0][0],
+    class_test(ptr->k[index_md][0] < ppt->k[index_md][0],
                ptr->error_message,
                "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
                ppt->k[0][0],
