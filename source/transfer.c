@@ -1237,13 +1237,29 @@ int transfer_get_k_list(
       ptr->k[index_md][index_q] = sqrt(ptr->q[index_q]*ptr->q[index_q]-K*(m+1.));
     }
 
-    class_test(ptr->k[index_md][0] < ppt->k[index_md][0],
-               ptr->error_message,
-               "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
-               ppt->k[0][0],
-               index_md,
-               ptr->k[index_md][0]);
+    if (ptr->k[index_md][0] < ppt->k[index_md][0]){
+      /** If ptr->k[index_md][0] < ppt->k[index_md][0] at the level of rounding,
+          adjust first value of k_list to avoid interpolation errors: */
+      if ((ppt->k[index_md][0]-ptr->k[index_md][0]) < 10.*DBL_EPSILON){
+        ptr->k[index_md][0] = ppt->k[index_md][0];
+      }
+      else{
+        class_stop(ptr->error_message,
+                   "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
+                   ppt->k[0][0],
+                   index_md,
+                   ptr->k[index_md][0]);
+      }
+    }
 
+    /**
+       class_test(ptr->k[index_md][0] < ppt->k[index_md][0],
+       ptr->error_message,
+       "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
+       ppt->k[0][0],
+       index_md,
+       ptr->k[index_md][0]);
+    */
     class_test(ptr->k[index_md][ptr->q_size-1] > ppt->k[0][ppt->k_size_cl[0]-1],
                ptr->error_message,
                "bug in k_list calculation: in perturbation module k_max=%e, in transfer module k_max[mode=%d]=%e, interpolation impossible",
