@@ -3902,6 +3902,7 @@ int perturb_initial_conditions(struct precision * ppr,
   double rho_r,rho_m,rho_nu,rho_m_over_rho_r;
   double fracnu,fracg,fracb,fraccdm,om;
   double ktau_two,ktau_three;
+  double f_dr;
 
   double delta_tot;
   double velocity_tot;
@@ -4040,6 +4041,13 @@ int perturb_initial_conditions(struct precision * ppr,
         /* cdm velocity velocity vanishes in the synchronous gauge */
       }
 
+      if (pba->has_dcdm == _TRUE_) {
+        ppw->pv->y[ppw->pv->index_pt_delta_dcdm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* dcdm density */
+        /* dcdm velocity velocity vanishes initially in the synchronous gauge */
+
+      }
+
+
       /* fluid (assumes wa=0, if this is not the case the
          fluid will catch anyway the attractor solution) */
       if (pba->has_fld == _TRUE_) {
@@ -4069,7 +4077,7 @@ int perturb_initial_conditions(struct precision * ppr,
       }
 
       /* all relativistic relics: ur and early ncdm */
-      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_)) {
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_) || (pba->has_dr == _TRUE_)) {
 
         delta_ur = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
 
@@ -4242,7 +4250,7 @@ int perturb_initial_conditions(struct precision * ppr,
          = [(4/3) (f_g theta_g + f_nu theta_nu) + (rho_m/rho_r) (f_b delta_b + f_cdm 0)] / (1 + rho_m/rho_r)
       */
 
-      if (pba->has_cdm == _TRUE_) {
+      if ((pba->has_cdm == _TRUE_) || (pba->has_dcdm == _TRUE_)) {
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_cdm];
       }
       else {
@@ -4270,6 +4278,11 @@ int perturb_initial_conditions(struct precision * ppr,
         ppw->pv->y[ppw->pv->index_pt_theta_cdm] = k*k*alpha;
       }
 
+      if (pba->has_dcdm == _TRUE_) {
+        ppw->pv->y[ppw->pv->index_pt_delta_dcdm] -= 3.*a_prime_over_a*alpha;
+        ppw->pv->y[ppw->pv->index_pt_theta_dcdm] = k*k*alpha;
+      }
+
       /* fluid */
       if (pba->has_fld == _TRUE_) {
         ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+pba->w0_fld+pba->wa_fld)*a_prime_over_a*alpha;
@@ -4282,7 +4295,7 @@ int perturb_initial_conditions(struct precision * ppr,
         ppw->pv->y[ppw->pv->index_pt_phi_prime_scf] += 0.; // write the gauge transformation here?
       }
 
-      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_)) {
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_) || (pba->has_dr == _TRUE_)) {
 
         delta_ur -= 4.*a_prime_over_a*alpha;
         theta_ur += k*k*alpha;
@@ -4329,6 +4342,21 @@ int perturb_initial_conditions(struct precision * ppr,
         }
       }
     }
+
+    if (pba->has_dr == _TRUE_) {
+
+      f_dr = pow(pow(a/pba->a_today,2)/pba->H0,2)*ppw->pvecback[pba->index_bg_rho_dr];
+
+      ppw->pv->y[ppw->pv->index_pt_F0_dr] = delta_ur*f_dr;
+
+      ppw->pv->y[ppw->pv->index_pt_F0_dr+1] = 3./4.*theta_ur*k*f_dr;
+
+      ppw->pv->y[ppw->pv->index_pt_F0_dr+2] = 2.*shear_ur*f_dr;
+
+      ppw->pv->y[ppw->pv->index_pt_F0_dr+3] = l3_ur*f_dr;
+
+    }
+
   }
 
   /** - for tensors */
@@ -6716,7 +6744,7 @@ int perturb_derivs(double tau,
       /* f = rho_dr*a^4/rho_crit_today. In CLASS density units
          rho_crit_today = H0^2.
       */
-      f_dr = pow(a*a/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      f_dr = pow(pow(a/pba->a_today,2)/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
       fprime_dr = pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]*pow(a,5)/pow(pba->H0,2);
 
       /** -> dcdm */
