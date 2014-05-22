@@ -908,9 +908,6 @@ int input_read_parameters(
   if (pba->K > 0.) pba->sgnK = 1;
   else if (pba->K < 0.) pba->sgnK = -1;
 
-  /* Scalar field */
-  class_read_double("Omega_scf",pba->Omega0_scf);
-
   /* Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid),
      Omega0_scf (scalar field) */
   class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
@@ -947,7 +944,7 @@ int input_read_parameters(
     pba->Omega0_fld = param2;
     Omega_tot += pba->Omega0_fld;
   }
-  if ((flag3 == _FALSE_) || (param3 >= 0.)){
+  if ((flag3 == _TRUE_) && (param3 >= 0.)){
     pba->Omega0_scf = param3;
     Omega_tot += pba->Omega0_scf;
   }
@@ -1961,7 +1958,7 @@ int input_read_parameters(
   }
 
   class_read_string("root",pop->root);
-  sprintf(ppt->root,pop->root);
+  strcpy(ppt->root,pop->root);
 
   class_call(parser_read_string(pfc,
                                 "headers",
