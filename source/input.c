@@ -104,7 +104,9 @@ int input_init_from_arguments(
     /** - if root has not been set, use root=output/inputfilenname#_ */
 
     if (flag1 == _FALSE_){
+      //printf("strlen-4 = %zu\n",strlen(input_file)-4);
       strncpy(inifilename, input_file, strlen(input_file)-4);
+      inifilename[strlen(input_file)-4] = '\0';
       for (filenum = 0; filenum < 100; filenum++){
         sprintf(tmp_file,"output/%s%02d_cl.dat", inifilename, filenum);
         if (file_exists(tmp_file) == _TRUE_)
@@ -3257,9 +3259,12 @@ int input_get_guess(double *xguess,
       break;
     case Omega_scf:
       /** This guess is arbitrary, something nice using WKB should be implemented.
-       Version 2: use a fit.*/
+       Version 2: use a fit:
       xguess[index_guess] = 1.77835*pow(ba.Omega0_scf,-2./7.);
       dxdy[index_guess] = -0.5081*pow(ba.Omega0_scf,-9./7.);
+       Version 3: use attractor solution: */
+      xguess[index_guess] = sqrt(3.0/ba.Omega0_scf);
+      dxdy[index_guess] = -0.5*sqrt(3.0)*pow(ba.Omega0_scf,-1.5);
       break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);
