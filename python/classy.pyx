@@ -422,7 +422,7 @@ cdef class Class:
         """
         lensed_cl(lmax=-1, nofail=False)
 
-        Return a dictionary of the lensed C_l
+        Return a dictionary of the lensed C_l, computed by CLASS
 
         Parameters
         ----------
@@ -442,6 +442,41 @@ cdef class Class:
         cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
         lmaxR = self.le.l_lensed_max
 
+        spectra = []
+        #for elem in ['tt', 'te', 'ee', 'bb']:
+            #if getattr(getattr(self, 'sp'), 'has_%s' % elem) == _TRUE_:
+                #spectra.append(elem)
+        if self.sp.has_tt == _TRUE_:
+            spectra.append('tt')
+            l_max_tt = self.sp.l_size[self.sp.index_ct_tt]
+            if l_max_tt < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the TT spectrum was computed until l=%i " % l_max_tt +
+                    "but you asked a l=%i" % lmax)
+        if self.sp.has_te == _TRUE_:
+            spectra.append('te')
+            l_max_te = self.sp.l_size[self.sp.index_ct_te]
+            if l_max_te < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the TE spectrum was computed until l=%i " % l_max_te +
+                    "but you asked a l=%i" % lmax)
+        if self.sp.has_ee == _TRUE_:
+            spectra.append('ee')
+            l_max_ee = self.sp.l_size[self.sp.index_ct_ee]
+            if l_max_ee < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the TE spectrum was computed until l=%i " % l_max_ee +
+                    "but you asked a l=%i" % lmax)
+        if self.sp.has_bb == _TRUE_:
+            spectra.append('bb')
+            l_max_bb = self.sp.l_size[self.sp.index_ct_bb]
+            if l_max_bb < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the TE spectrum was computed until l=%i " % l_max_bb +
+                    "but you asked a l=%i" % lmax)
+        print spectra
+        lmaxR = self.le.l_lensed_max  # problem if lss ?
+
         if lmax==-1:
             lmax=lmaxR
         if lmax>lmaxR:
@@ -452,9 +487,14 @@ cdef class Class:
                 raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
 
         cl = {}
-        for elem in ['tt','te','ee','bb','pp','tp']:
+        # Simple Cls, for temperature and polarisation, are not so big in size
+        for elem in ['tt', 'te', 'ee', 'bb', 'pp', 'tp', 'ell']:
             cl[elem] = np.ndarray(lmax+1, dtype=np.double)
             cl[elem][:2]=0
+        # For density Cls, the size is bigger
+        for elem in ['dd', 'll']:
+            cl[elem] = np.ndarray(lmax+1, dtype=np.double)
+
         for ell from 2<=ell<lmax+1:
             if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
                 raise CosmoSevereError(self.le.error_message)
@@ -464,8 +504,63 @@ cdef class Class:
             cl['bb'][ell] = lcl[self.le.index_lt_bb]
             cl['pp'][ell] = lcl[self.le.index_lt_pp]
             cl['tp'][ell] = lcl[self.le.index_lt_tp]
+        cl['ell'] = np.arange(lmax+1)
 
         free(lcl)
+        return cl
+
+    def density_cl(self, lmax=-1, nofail=False):
+        """
+        density_cl(lmax=-1, nofail=False)
+
+        Return a dictionary of the primary C_l for the matter
+
+        Parameters
+        ----------
+        lmax : int, optional
+            Define the maximum l for which the C_l will be returned (inclusively)
+        nofail: bool, optional
+            Check and enforce the computation of the lensing module beforehand
+
+        Returns
+        -------
+        cl : numpy array of numpy.ndarrays
+            Array that contains the list (in this order) of self correlation of
+            1st bin, then successive correlations (set by non_diagonal) to the
+            following bins, then self correlation of 2nd bin, etc. The array
+            starts at index_ct_dd.
+        """
+        cdef int lmaxR
+        cdef double *rcl = <double*> calloc(self.sp.ct_size,sizeof(double))
+
+        lmaxR = self.pt.l_lss_max
+        if lmax==-1:
+            lmax=lmaxR
+        if lmax>lmaxR:
+            if nofail:
+                self._pars_check("l_max_lss",lmax)
+                self._pars_check("output",'rCl')
+                self.compute()
+            else:
+                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
+
+        cl = []
+
+        # computes the size, given the number of correlations needed to be computed
+        size = (self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
+                (self.sp.d_size-1-self.sp.non_diag))/2;
+        for index in range(size):
+            cl.append(np.ndarray(lmax+1, dtype=np.double))
+            cl[index][:2]=0
+        cl = np.array(cl)
+
+        for ell from 2<=ell<lmax+1:
+            if spectra_cl_at_l(&self.sp,ell,rcl,NULL,NULL) == _FAILURE_:
+                raise CosmoComputationError(self.sp.error_message)
+            for index in range(size):
+                cl[index][ell] = rcl[self.sp.index_ct_dd+index]
+
+        free(rcl)
         return cl
 
     def z_of_r (self,z_array):

@@ -11,7 +11,7 @@ cdef extern from "class.h":
     ctypedef char FileArg[40]
 
     ctypedef char* ErrorMsg
-  
+
     cdef struct precision:
         ErrorMsg error_message
 
@@ -98,17 +98,30 @@ cdef extern from "class.h":
 
     cdef struct spectra:
         ErrorMsg error_message
+        int has_tt
+        int has_te
+        int has_ee
+        int has_bb
         int l_max_tot
         int ln_k_size
         int ct_size
-        int md_size
         int * ic_ic_size
+        int md_size
+        int d_size
+        int non_diag
         int index_ct_tt
         int index_ct_te
         int index_ct_ee
         int index_ct_bb
         int index_ct_pp
         int index_ct_tp
+        int index_ct_dd
+        int index_ct_td
+        int index_ct_pd
+        int index_ct_ll
+        int index_ct_tl
+        int index_ct_dl
+        int * l_size
         int index_md_scalars
         double* ln_k
         double sigma8
