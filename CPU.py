@@ -21,12 +21,18 @@ python CPU.py output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat -r
 
 """
 import numpy as np
+from numpy import ma
+MaskedArray = ma.MaskedArray
 from scipy.interpolate import splrep, splev
 import os
 import matplotlib.pyplot as plt
 import sys
 import argparse
 import itertools
+from math import floor
+from matplotlib import scale as mscale
+from matplotlib.transforms import Transform
+from matplotlib.ticker import FixedLocator
 
 START_LINE = {}
 START_LINE['error'] = [r' /|\   ',
@@ -58,9 +64,11 @@ def create_parser():
     parser.add_argument('-s', '--selection', dest='selection',
                         nargs='+',
                         help='specify the fields you want to plot.')
-    parser.add_argument('--scale', choices=['lin', 'loglog', 'loglin'],
-                        type=str,
+    parser.add_argument('--scale', type=str,
+                        choices=['lin', 'loglog', 'loglin', 'george'],
                         help='Specify the scale to use for the plot')
+    parser.add_argument('--xlim', dest='xlim', nargs='+', type=float,
+                        default=[], help='Specify the x range')
     parser.add_argument(
         '-p, --print',
         dest='printfile', action='store_true', default=False,
@@ -71,10 +79,136 @@ def create_parser():
         help='repeat the step for all redshifts with same base name')
     return parser
 
+# Helper code from cosmo_mini_toolbox, by Jesus Torrado, available fully at
+# https://github.com/JesusTorrado/cosmo_mini_toolbox, to use the log then
+# linear scale for the multipole axis when plotting Cl.
+nonpos = "mask"
+change = 50.0
+factor = 500.
+
+
+def _mask_nonpos(a):
+    """
+Return a Numpy masked array where all non-positive 1 are
+masked. If there are no non-positive, the original array
+is returned.
+"""
+    mask = a <= 0.0
+    if mask.any():
+        return ma.MaskedArray(a, mask=mask)
+    return a
+
+
+def _clip_smaller_than_one(a):
+    a[a <= 0.0] = 1e-300
+    return a
+
+
+class PlanckScale(mscale.ScaleBase):
+    """
+Scale used by the Planck collaboration to plot Temperature power spectra:
+base-10 logarithmic up to l=50, and linear from there on.
+
+Care is taken so non-positive values are not plotted.
+"""
+    name = 'planck'
+
+    def __init__(self, axis, **kwargs):
+        pass
+
+    def set_default_locators_and_formatters(self, axis):
+        axis.set_major_locator(
+            FixedLocator(
+                np.concatenate((np.array([2, 10, change]),
+                                np.arange(500, 2500, 500)))))
+        axis.set_minor_locator(
+            FixedLocator(
+                np.concatenate((np.arange(2, 10),
+                                np.arange(10, 50, 10),
+                                np.arange(floor(change/100), 2500, 100)))))
+
+    def get_transform(self):
+        """
+        Return a :class:`~matplotlib.transforms.Transform` instance
+        appropriate for the given logarithm base.
+        """
+        return self.PlanckTransform(nonpos)
+
+    def limit_range_for_scale(self, vmin, vmax, minpos):
+        """
+        Limit the domain to positive values.
+        """
+        return (vmin <= 0.0 and minpos or vmin,
+                vmax <= 0.0 and minpos or vmax)
+
+    class PlanckTransform(Transform):
+        input_dims = 1
+        output_dims = 1
+        is_separable = True
+        has_inverse = True
+
+        def __init__(self, nonpos):
+            Transform.__init__(self)
+            if nonpos == 'mask':
+                self._handle_nonpos = _mask_nonpos
+            else:
+                self._handle_nonpos = _clip_nonpos
+
+        def transform_non_affine(self, a):
+            lower = a[np.where(a<=change)]
+            greater = a[np.where(a> change)]
+            if lower.size:
+                lower = self._handle_nonpos(lower * 10.0)/10.0
+                if isinstance(lower, MaskedArray):
+                    lower = ma.log10(lower)
+                else:
+                    lower = np.log10(lower)
+                lower = factor*lower
+            if greater.size:
+                greater = (factor*np.log10(change) + (greater-change))
+            # Only low
+            if not(greater.size):
+                return lower
+            # Only high
+            if not(lower.size):
+                return greater
+            return np.concatenate((lower, greater))
+
+        def inverted(self):
+            return PlanckScale.InvertedPlanckTransform()
+
+    class InvertedPlanckTransform(Transform):
+        input_dims = 1
+        output_dims = 1
+        is_separable = True
+        has_inverse = True
+
+        def transform_non_affine(self, a):
+            lower = a[np.where(a<=factor*np.log10(change))]
+            greater = a[np.where(a> factor*np.log10(change))]
+            if lower.size:
+                if isinstance(lower, MaskedArray):
+                    lower = ma.power(10.0, lower/float(factor))
+                else:
+                    lower = np.power(10.0, lower/float(factor))
+            if greater.size:
+                greater = (greater + change - factor*np.log10(change))
+            # Only low
+            if not(greater.size):
+                return lower
+            # Only high
+            if not(lower.size):
+                return greater
+            return np.concatenate((lower, greater))
+        def inverted(self):
+            return PlanckTransform()
+
+# Finished. Register the scale!
+mscale.register_scale(PlanckScale)
 
 def plot_CLASS_output(files, selection, ratio=False, printing=False,
                       output_name='', extension='', x_variable='',
-                      scale='lin'):
+                      scale='lin', xlim=[]):
     """
     Load the data to numpy arrays, write a Python script and plot them.
 
@@ -152,6 +286,7 @@ for data_file in files:
 
     # if ratio is not set, then simply plot them all
     if not ratio:
+        loc = ''
         text += 'for curve in data:\n'
         for idx, curve in enumerate(data):
             _, curve_names, _ = extract_headers(files[idx])
@@ -167,10 +302,16 @@ for data_file in files:
                 elif scale == 'loglin':
                     text += 'semilogx(curve[:, 0], curve[:, %i])\n' % index
                     ax.semilogx(curve[:, 0], curve[:, index])
+                elif scale == 'george':
+                    text += 'plot(curve[:, 0], curve[:, %i])\n' % index
+                    ax.plot(curve[:, 0], curve[:, index])
+                    ax.set_xscale('planck')
+                    loc = 'upper right'
+        if not loc:
+            loc = 'lower right'
 
         ax.legend([root+': '+elem for (root, elem) in
-                   itertools.product(roots, selection)], loc='lower right')
-        #ax.legend([
+                   itertools.product(roots, selection)], loc=loc)
     else:
         ref = data[0]
         _, ref_curve_names, _ = extract_headers(files[0])
@@ -183,7 +324,14 @@ for data_file in files:
                 reference = ref[:, ref_curve_names.index(selec)]
                 interpolated = splrep(current[:, 0],
                                         current[:, curve_names.index(selec)])
-                ax.plot(axis, splev(ref[:, 0], interpolated)/reference-1)
+                if scale == 'lin':
+                    ax.plot(axis, splev(ref[:, 0], interpolated)/reference-1)
+                elif scale == 'loglin':
+                    ax.semilogx(axis, splev(ref[:, 0],
+                                interpolated)/reference-1)
+                elif scale == 'loglog':
+                    raise InputError(
+                        "loglog plot is not available for ratios")
 
             #if np.allclose(current[0], ref[0]):
                 #ax.plot(current[0], current[colnum]/ref[colnum])
@@ -191,6 +339,12 @@ for data_file in files:
         ax.set_xlabel('$\ell$', fontsize=20)
     elif 'P' in curve_names:
         ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=20)
+    if xlim:
+        if len(xlim) > 1:
+            ax.set_xlim(xlim)
+        else:
+            ax.set_xlim(xlim[0])
+        ax.set_ylim()
     text += 'plt.show()\n'
     plt.show()
 
@@ -272,6 +426,8 @@ def process_long_names(long_names):
         elif name.find('[') != -1:
             names[index] = name[:name.index('[')]
 
+    # Finally, remove any extra spacing
+    names = [''.join(elem.split()) for elem in names]
     return names, tex_names
 
 
@@ -311,10 +467,10 @@ def main():
     # spectrum
     if not args.selection:
         if args.files[0].rfind('cl') != -1:
-            selection = 'TT'
+            selection = ['TT']
             scale = 'loglog'
         elif args.files[0].rfind('pk') != -1:
-            selection = 'P'
+            selection = ['P']
             scale = 'loglog'
         else:
             raise TypeError(
@@ -328,6 +484,8 @@ def main():
         else:
             args.scale = 'lin'
 
+    # Remove extra spacing in the selection list
+    args.selection = [''.join(elem.split()) for elem in args.selection]
     # If ratio is asked, but only one file was passed in argument, politely
     # complain
     if args.ratio:
@@ -339,7 +497,8 @@ def main():
     # performed. If asked to be divided, the ratio is shown - whether a need
     # for interpolation arises or not.
     plot_CLASS_output(args.files, args.selection, ratio=args.ratio,
-                      printing=args.printfile, scale=args.scale)
+                      printing=args.printfile, scale=args.scale,
+                      xlim=args.xlim)
 
 if __name__ == '__main__':
     sys.exit(main())
