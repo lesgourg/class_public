@@ -844,7 +844,13 @@ cdef class Class:
             elif name == 'beta_s':
                 value = self.pm.beta_s
             elif name == 'r':
+                # This is at the pivot scale
                 value = self.pm.r
+            elif name == 'r_0002':
+                # at k_pivot = 0.002/Mpc
+                value = self.pm.r*(0.002/self.pm.k_pivot)**(
+                    self.pm.n_t-self.pm.n_s-1+0.5*self.pm.alpha_s*log(
+                        0.002/self.pm.k_pivot))
             elif name == 'n_t':
                 value = self.pm.n_t
             elif name == 'alpha_t':

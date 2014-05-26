@@ -165,7 +165,7 @@ for fileidx = 1:length(datafiles)
     loglog(x(mask),abs(data(mask,indices)),'LineWidth',2,'LineStyle',linestyle)
     
     hold on
-    legendcell = [legendcell,cellnames(indices)'];
+    legendcell = [legendcell,cellnames(indices)];
 end
 
 legend(legendcell,'Interpreter','none','Location','best')
