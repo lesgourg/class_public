@@ -3898,6 +3898,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
   double a,a_prime_over_a;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha;
+  double delta_dr=0.,theta_dr=0.,shear_dr=0.,l3_dr=0.;
   double q,epsilon,k2;
   int index_q,n_ncdm,idx;
   double rho_r,rho_m,rho_nu,rho_m_over_rho_r;
@@ -4078,7 +4079,7 @@ int perturb_initial_conditions(struct precision * ppr,
       }
 
       /* all relativistic relics: ur and early ncdm */
-      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_) || (pba->has_dr == _TRUE_)) {
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_) ) {
 
         delta_ur = ppw->pv->y[ppw->pv->index_pt_delta_g]; /* density of ultra-relativistic neutrinos/relics */
 
@@ -4087,6 +4088,15 @@ int perturb_initial_conditions(struct precision * ppr,
         shear_ur = ktau_two/(45.+12.*fracnu) * (3.*s2_squared-1.) * (1.+(4.*fracnu-5.)/4./(2.*fracnu+15.)*tau*om) * ppr->curvature_ini;//TBC /s2_squared; /* shear of ultra-relativistic neutrinos/relics */  //TBC:0
 
         l3_ur = ktau_three*2./7./(12.*fracnu+45.)* ppr->curvature_ini;//TBC
+
+      }
+
+      if (pba->has_dr == _TRUE_) {
+
+        delta_dr = ppw->pv->y[ppw->pv->index_pt_delta_g];
+        theta_dr = - k*ktau_three/36./(4.*fracnu+15.) * (4.*fracnu+11.+12.*s2_squared-3.*(8.*fracnu*fracnu+50.*fracnu+275.)/20./(2.*fracnu+15.)*tau*om) * ppr->curvature_ini * s2_squared;
+        shear_dr = ktau_two/(45.+12.*fracnu) * (3.*s2_squared-1.) * (1.+(4.*fracnu-5.)/4./(2.*fracnu+15.)*tau*om) * ppr->curvature_ini;
+        l3_dr = ktau_three*2./7./(12.*fracnu+45.)* ppr->curvature_ini;
 
       }
 
@@ -4280,7 +4290,7 @@ int perturb_initial_conditions(struct precision * ppr,
       }
 
       if (pba->has_dcdm == _TRUE_) {
-        ppw->pv->y[ppw->pv->index_pt_delta_dcdm] -= 3.*a_prime_over_a*alpha;
+        ppw->pv->y[ppw->pv->index_pt_delta_dcdm] += alpha*(-a*pba->Gamma_dcdm-3.*a_prime_over_a);
         ppw->pv->y[ppw->pv->index_pt_theta_dcdm] = k*k*alpha;
       }
 
@@ -4296,11 +4306,17 @@ int perturb_initial_conditions(struct precision * ppr,
         ppw->pv->y[ppw->pv->index_pt_phi_prime_scf] += 0.; // write the gauge transformation here?
       }
 
-      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_) || (pba->has_dr == _TRUE_)) {
+      if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_) ) {
 
         delta_ur -= 4.*a_prime_over_a*alpha;
         theta_ur += k*k*alpha;
         /* shear and l3 are gauge invariant */
+      }
+
+      if (pba->has_dr == _TRUE_){
+
+        delta_dr += alpha*(a*pba->Gamma_dcdm - 4.*a_prime_over_a);
+        theta_dr += k*k*alpha;
       }
 
     } /* end of gauge transformation to newtonian gauge */
@@ -4348,13 +4364,13 @@ int perturb_initial_conditions(struct precision * ppr,
 
       f_dr = pow(pow(a/pba->a_today,2)/pba->H0,2)*ppw->pvecback[pba->index_bg_rho_dr];
 
-      ppw->pv->y[ppw->pv->index_pt_F0_dr] = delta_ur*f_dr;
+      ppw->pv->y[ppw->pv->index_pt_F0_dr] = delta_dr*f_dr;
 
-      ppw->pv->y[ppw->pv->index_pt_F0_dr+1] = 3./4.*theta_ur*k*f_dr;
+      ppw->pv->y[ppw->pv->index_pt_F0_dr+1] = 4./(3.*k)*theta_dr*f_dr;
 
-      ppw->pv->y[ppw->pv->index_pt_F0_dr+2] = 2.*shear_ur*f_dr;
+      ppw->pv->y[ppw->pv->index_pt_F0_dr+2] = 2.*shear_dr*f_dr;
 
-      ppw->pv->y[ppw->pv->index_pt_F0_dr+3] = l3_ur*f_dr;
+      ppw->pv->y[ppw->pv->index_pt_F0_dr+3] = l3_dr*f_dr;
 
     }
 
@@ -6014,7 +6030,7 @@ int perturb_print_variables(double tau,
   double delta_p_ncdm = 0.0;
   double factor = 0.0;
   double q,q2,epsilon;
-  double a,a2;
+  double a,a2,H;
   int idx,index_q;
 
 
@@ -6033,6 +6049,7 @@ int perturb_print_variables(double tau,
 
   a = pvecback[pba->index_bg_a];
   a2 = a*a;
+  H = pvecback[pba->index_bg_H];
 
   /** perturbed recombination **/
 
@@ -6151,7 +6168,7 @@ int perturb_print_variables(double tau,
       }
 
       if (pba->has_dr == _TRUE_) {
-        delta_dr -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        delta_dr += pvecmetric[ppw->index_mt_alpha]*(a*pba->Gamma_dcdm-4.*a*H);
         theta_dr += k*k*pvecmetric[ppw->index_mt_alpha];
       }
 
@@ -6161,7 +6178,7 @@ int perturb_print_variables(double tau,
       }
 
       if (pba->has_dcdm == _TRUE_) {
-        delta_dcdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*pvecmetric[ppw->index_mt_alpha];
+        delta_dcdm += pvecmetric[ppw->index_mt_alpha]*(-a*pba->Gamma_dcdm-3.*a*H);
         theta_dcdm += k*k*pvecmetric[ppw->index_mt_alpha];
       }
 
@@ -6756,9 +6773,13 @@ int perturb_derivs(double tau,
 
       /** -> dr */
 
+      double delta_dcdm_syn;
+      delta_dcdm_syn = y[pv->index_pt_delta_dcdm];
+        //+y[pv->index_pt_theta_dcdm]/k2*(a*pba->Gamma_dcdm+3.*a_prime_over_a);
+
       /** -----> dr F0 */
       dy[pv->index_pt_F0_dr] = -k*y[pv->index_pt_F0_dr+1]-4./3.*metric_continuity*f_dr+
-        fprime_dr*y[pv->index_pt_delta_dcdm];
+        fprime_dr*delta_dcdm_syn;
 
       /** -----> dr F1 */
       dy[pv->index_pt_F0_dr+1] = k/3.*y[pv->index_pt_F0_dr]-2./3.*k*y[pv->index_pt_F0_dr+2]*s2_squared +
