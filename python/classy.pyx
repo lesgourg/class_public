@@ -474,7 +474,6 @@ cdef class Class:
                 raise CosmoSevereError(
                     "the TE spectrum was computed until l=%i " % l_max_bb +
                     "but you asked a l=%i" % lmax)
-        print spectra
         lmaxR = self.le.l_lensed_max  # problem if lss ?
 
         if lmax==-1:
@@ -488,22 +487,28 @@ cdef class Class:
 
         cl = {}
         # Simple Cls, for temperature and polarisation, are not so big in size
-        for elem in ['tt', 'te', 'ee', 'bb', 'pp', 'tp', 'ell']:
+        for elem in spectra:
             cl[elem] = np.ndarray(lmax+1, dtype=np.double)
             cl[elem][:2]=0
         # For density Cls, the size is bigger
-        for elem in ['dd', 'll']:
-            cl[elem] = np.ndarray(lmax+1, dtype=np.double)
+        #for elem in ['dd', 'll']:
+            #cl[elem] = np.ndarray(lmax+1, dtype=np.double)
 
         for ell from 2<=ell<lmax+1:
             if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
                 raise CosmoSevereError(self.le.error_message)
-            cl['tt'][ell] = lcl[self.le.index_lt_tt]
-            cl['te'][ell] = lcl[self.le.index_lt_te]
-            cl['ee'][ell] = lcl[self.le.index_lt_ee]
-            cl['bb'][ell] = lcl[self.le.index_lt_bb]
-            cl['pp'][ell] = lcl[self.le.index_lt_pp]
-            cl['tp'][ell] = lcl[self.le.index_lt_tp]
+            if 'tt' in spectra:
+                cl['tt'][ell] = lcl[self.le.index_lt_tt]
+            if 'tt' in spectra:
+                cl['te'][ell] = lcl[self.le.index_lt_te]
+            if 'ee' in spectra:
+                cl['ee'][ell] = lcl[self.le.index_lt_ee]
+            if 'bb' in spectra:
+                cl['bb'][ell] = lcl[self.le.index_lt_bb]
+            if 'pp' in spectra:
+                cl['pp'][ell] = lcl[self.le.index_lt_pp]
+            if 'tp' in spectra:
+                cl['tp'][ell] = lcl[self.le.index_lt_tp]
         cl['ell'] = np.arange(lmax+1)
 
         free(lcl)
@@ -631,22 +636,14 @@ cdef class Class:
         return pk
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        #cdef np.ndarray[DTYPE_t, ndim = 3] k_int = k
-        #cdef np.ndarray[DTYPE_t, ndim = 1] z_int = z
-        #cdef np.ndarray k_int
-        #cdef np.ndarray z_int
-
-        #k_int = np.zeros((k_size,z_size,mu_size),'float64')
-        #z_int = np.zeros((z_size),'float64')
-        #k_int = k
-        #z_int = z
+        """ Fast function to get a power spectrum on a k and z array """
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
         for index_k in xrange(k_size):
             for index_z in xrange(z_size):
                 for index_mu in xrange(mu_size):
-                    pk[index_k,index_z,index_mu] = self._pk(k[index_k,index_z,index_mu],z[index_z])
+                    pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
     # Avoids using hardcoded numbers for tt, te, ... indexes in the tables.
