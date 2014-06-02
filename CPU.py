@@ -297,8 +297,8 @@ for data_file in files:
                     text += 'plot(curve[:, 0], curve[:, %i])\n' % index
                     ax.plot(curve[:, 0], curve[:, index])
                 elif scale == 'loglog':
-                    text += 'loglog(curve[:, 0], curve[:, %i])\n' % index
-                    ax.loglog(curve[:, 0], curve[:, index])
+                    text += 'loglog(curve[:, 0], abs(curve[:, %i]))\n' % index
+                    ax.loglog(curve[:, 0], abs(curve[:, index]))
                 elif scale == 'loglin':
                     text += 'semilogx(curve[:, 0], curve[:, %i])\n' % index
                     ax.semilogx(curve[:, 0], curve[:, index])
