@@ -1092,10 +1092,18 @@ int fzero_Newton(int (*func)(double *x,
   class_alloc(F0, sizeof(double)*x_size, error_message);
   class_alloc(delx, sizeof(double)*x_size, error_message);
   class_alloc(Fdel, sizeof(double)*x_size, error_message);
+
+  for (i=1; i<=x_size; i++){
+    delx[i-1] = toljac*dxdF[i-1];
+  }
+
   for (k=1;k<=ntrial;k++) {
     /** Compute F(x): */
+    /**printf("x = [%f, %f], delx = [%e, %e]\n",
+       x_inout[0],x_inout[1],delx[0],delx[1]);*/
     class_call(func(x_inout, x_size, param, F0, error_message),
                error_message, error_message);
+    /**    printf("F0 = [%f, %f]\n",F0[0],F0[1]);*/
     *fevals = *fevals + 1;
     errf=0.0; //fvec and Jacobian matrix in fjac.
     for (i=1; i<=x_size; i++)
@@ -1105,17 +1113,25 @@ int fzero_Newton(int (*func)(double *x,
       break;
     }
 
-    /** Compute the jacobian of F: */
+    /**
     if (k==1){
       for (i=1; i<=x_size; i++){
-        delx[i-1] = toljac*dxdF[i-1]*F0[i-1];
+        delx[i-1] *= F0[i-1];
       }
     }
+    */
 
+    /** Compute the jacobian of F: */
     for (i=1; i<=x_size; i++){
+      if (F0[i-1]<0.0)
+        delx[i-1] *= -1;
       x_inout[i-1] += delx[i-1];
+
+      /**      printf("x = [%f, %f], delx = [%e, %e]\n",
+               x_inout[0],x_inout[1],delx[0],delx[1]);*/
       class_call(func(x_inout, x_size, param, Fdel, error_message),
                  error_message, error_message);
+      /**      printf("F = [%f, %f]\n",Fdel[0],Fdel[1]);*/
       for (j=1; j<=x_size; j++)
         Fjac[j][i] = (Fdel[j-1]-F0[j-1])/delx[i-1];
       x_inout[i-1] -= delx[i-1];
