@@ -1621,6 +1621,7 @@ int background_solve(
       printf("     -> Omega0_dr = %f\n",pba->Omega0_dr);
       printf("     -> Omega0_dr+Omega0_dcdm = %f, input value = %f\n",
              pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
+      printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
     if (pba->has_scf == _TRUE_){
       printf("    Scalar field details:\n");

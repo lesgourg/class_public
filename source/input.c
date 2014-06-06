@@ -225,11 +225,14 @@ int input_init(
   struct fzerofun_workspace fzw;
   /** These two arrays must contain the strings of names to be searched
       for and the coresponding new parameter */
-  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr","Omega_scf"};
-  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm","scf_lambda"};
-  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background, cs_background};
+  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
+                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm"};
+  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
+                                        "scf_lambda","Omega_dcdmdr","omega_dcdmdr"};
+  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
+                                        cs_background, cs_background, cs_background};
 
-  int input_verbose = 0, int1;
+  int input_verbose = 0, int1, aux_flag;
 
   class_read_int("input_verbose",input_verbose);
 
@@ -244,13 +247,22 @@ int input_init(
                                   errmsg),
                errmsg,
                errmsg);
-    if ((flag1 == _TRUE_)&&(input_auxillary_target_conditions(index_target,param1) == _TRUE_)){
-      /** input_auxillary_target_conditions() takes care of the case where for instance Omega_dcdmdr is set to 0.0.
+    if (flag1 == _TRUE_){
+      /** input_auxillary_target_conditions() takes care of the case where for
+          instance Omega_dcdmdr is set to 0.0.
        */
-      //printf("Found target: %s\n",target_namestrings[index_target]);
-      target_indices[unknown_parameters_size] = index_target;
-      fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
-      unknown_parameters_size++;
+      class_call(input_auxillary_target_conditions(pfc,
+                                                   index_target,
+                                                   param1,
+                                                   &aux_flag,
+                                                   errmsg),
+                 errmsg, errmsg);
+      if (aux_flag == _TRUE_){
+        //printf("Found target: %s\n",target_namestrings[index_target]);
+        target_indices[unknown_parameters_size] = index_target;
+        fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
+        unknown_parameters_size++;
+      }
     }
   }
 
@@ -765,8 +777,20 @@ int input_read_parameters(
     pba->Omega0_dcdmdr = param2/pba->h/pba->h;
   Omega_tot += pba->Omega0_dcdmdr;
 
-  /** Omega_ini_dcdm will never be read from input, but is instead found automatically by shooting */
-  class_read_double("Omega_ini_dcdm",pba->Omega_ini_dcdm);
+  /** Read Omega_ini_dcdm or omega_ini_dcdm */
+  class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
+  if (flag1 == _TRUE_)
+    pba->Omega_ini_dcdm = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega_ini_dcdm = param2/pba->h/pba->h;
 
   /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
   class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
@@ -3133,6 +3157,12 @@ int input_try_unknown_parameters(double * unknown_parameter,
       output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_scf]/(ba.H0*ba.H0)
         -ba.Omega0_scf;
       break;
+    case Omega_ini_dcdm:
+    case omega_ini_dcdm:
+      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
+      rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
+      break;
     }
   }
 
@@ -3266,6 +3296,21 @@ int input_get_guess(double *xguess,
       xguess[index_guess] = sqrt(3.0/ba.Omega0_scf);
       dxdy[index_guess] = -0.5*sqrt(3.0)*pow(ba.Omega0_scf,-1.5);
       break;
+    case Omega_ini_dcdm:
+    case omega_ini_dcdm:
+      /** This works since correspondence is
+          Omega_ini_dcdm -> Omega_dcdmdr and
+          omega_ini_dcdm -> omega_dcdmdr */
+      Omega_M = ba.Omega0_cdm+pfzw->target_value[index_guess]+ba.Omega0_b;
+      gamma = ba.Gamma_dcdm/ba.H0;
+      if (gamma < 1)
+        a_decay = 1.0;
+      else
+        a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
+      xguess[index_guess] = pfzw->target_value[index_guess]*a_decay;
+      dxdy[index_guess] = a_decay;
+      //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);
   }
@@ -3287,22 +3332,32 @@ int file_exists(const char *fname){
   return _FALSE_;
 }
 
-int input_auxillary_target_conditions(enum target_names target_name, double target_value){
-  if (target_name == Omega_dcdmdr){
-    /* Check that Omega_dcdmdr is nonzero: */
+int input_auxillary_target_conditions(struct file_content * pfc,
+                                      enum target_names target_name,
+                                      double target_value,
+                                      int * aux_flag,
+                                      ErrorMsg errmsg){
+  *aux_flag = _TRUE_;
+  /**
+  double param1;
+  int int1, flag1;
+  int input_verbose = 0;
+  class_read_int("input_verbose",input_verbose);
+  */
+  switch (target_name){
+  case Omega_dcdmdr:
+  case omega_dcdmdr:
+  case Omega_scf:
+  case Omega_ini_dcdm:
+  case omega_ini_dcdm:
+    /* Check that Omega's or omega's are nonzero: */
     if (target_value == 0.)
-      return _FALSE_;
+      *aux_flag = _FALSE_;
+    break;
+  default:
+    /* Default is no additional checks */
+    *aux_flag = _TRUE_;
+    break;
   }
-  if (target_name == omega_dcdmdr){
-    /* Check that omega_dcdmdr is nonzero: */
-    if (target_value == 0.)
-      return _FALSE_;
-  }
-  if (target_name == Omega_scf){
-    /* Check that Omega_scf is nonzero: */
-    if (target_value == 0.)
-      return _FALSE_;
-  }
-  /* Default is no additional checks */
-  return _TRUE_;
+  return _SUCCESS_;
 }
