@@ -145,6 +145,16 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct lensing:
+        int has_tt;
+        int has_ee;
+        int has_te;
+        int has_bb;
+        int has_pp;
+        int has_tp;
+        int has_dd;
+        int has_td;
+        int has_ll;
+        int has_tl;
         int index_lt_tt
         int index_lt_te
         int index_lt_ee
