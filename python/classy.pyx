@@ -446,33 +446,48 @@ cdef class Class:
         #for elem in ['tt', 'te', 'ee', 'bb']:
             #if getattr(getattr(self, 'sp'), 'has_%s' % elem) == _TRUE_:
                 #spectra.append(elem)
-        if self.sp.has_tt == _TRUE_:
+        if self.le.has_tt == _TRUE_:
             spectra.append('tt')
             l_max_tt = self.sp.l_size[self.sp.index_ct_tt]
             if l_max_tt < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the TT spectrum was computed until l=%i " % l_max_tt +
                     "but you asked a l=%i" % lmax)
-        if self.sp.has_te == _TRUE_:
+        if self.le.has_te == _TRUE_:
             spectra.append('te')
             l_max_te = self.sp.l_size[self.sp.index_ct_te]
             if l_max_te < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the TE spectrum was computed until l=%i " % l_max_te +
                     "but you asked a l=%i" % lmax)
-        if self.sp.has_ee == _TRUE_:
+        if self.le.has_ee == _TRUE_:
             spectra.append('ee')
             l_max_ee = self.sp.l_size[self.sp.index_ct_ee]
             if l_max_ee < lmax and lmax > 0:
                 raise CosmoSevereError(
-                    "the TE spectrum was computed until l=%i " % l_max_ee +
+                    "the EE spectrum was computed until l=%i " % l_max_ee +
                     "but you asked a l=%i" % lmax)
-        if self.sp.has_bb == _TRUE_:
+        if self.le.has_bb == _TRUE_:
             spectra.append('bb')
             l_max_bb = self.sp.l_size[self.sp.index_ct_bb]
             if l_max_bb < lmax and lmax > 0:
                 raise CosmoSevereError(
-                    "the TE spectrum was computed until l=%i " % l_max_bb +
+                    "the BB spectrum was computed until l=%i " % l_max_bb +
+                    "but you asked a l=%i" % lmax)
+
+        if self.le.has_pp == _TRUE_:
+            spectra.append('pp')
+            l_max_pp = self.sp.l_size[self.sp.index_ct_pp]
+            if l_max_pp < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the PP spectrum was computed until l=%i " % l_max_pp +
+                    "but you asked a l=%i" % lmax)
+        if self.le.has_tp == _TRUE_:
+            spectra.append('tp')
+            l_max_tp = self.sp.l_size[self.sp.index_ct_tp]
+            if l_max_tp < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the PP spectrum was computed until l=%i " % l_max_tp +
                     "but you asked a l=%i" % lmax)
         lmaxR = self.le.l_lensed_max  # problem if lss ?
 
