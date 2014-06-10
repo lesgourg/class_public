@@ -161,6 +161,11 @@ cdef extern from "class.h":
         int index_lt_bb
         int index_lt_pp
         int index_lt_tp
+        int index_lt_dd
+        int index_lt_td
+        int index_lt_ll
+        int index_lt_tl
+        int * l_max_lt
         int lt_size
         int has_lensed_cls
         int l_lensed_max

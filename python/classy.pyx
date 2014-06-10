@@ -448,46 +448,66 @@ cdef class Class:
                 #spectra.append(elem)
         if self.le.has_tt == _TRUE_:
             spectra.append('tt')
-            l_max_tt = self.sp.l_size[self.sp.index_ct_tt]
+            l_max_tt = self.le.l_max_lt[self.le.index_lt_tt]
             if l_max_tt < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the TT spectrum was computed until l=%i " % l_max_tt +
                     "but you asked a l=%i" % lmax)
         if self.le.has_te == _TRUE_:
             spectra.append('te')
-            l_max_te = self.sp.l_size[self.sp.index_ct_te]
+            l_max_te = self.le.l_max_lt[self.le.index_lt_te]
             if l_max_te < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the TE spectrum was computed until l=%i " % l_max_te +
                     "but you asked a l=%i" % lmax)
         if self.le.has_ee == _TRUE_:
             spectra.append('ee')
-            l_max_ee = self.sp.l_size[self.sp.index_ct_ee]
+            l_max_ee = self.le.l_max_lt[self.le.index_lt_ee]
             if l_max_ee < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the EE spectrum was computed until l=%i " % l_max_ee +
                     "but you asked a l=%i" % lmax)
         if self.le.has_bb == _TRUE_:
             spectra.append('bb')
-            l_max_bb = self.sp.l_size[self.sp.index_ct_bb]
+            l_max_bb = self.le.l_max_lt[self.le.index_lt_bb]
             if l_max_bb < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the BB spectrum was computed until l=%i " % l_max_bb +
                     "but you asked a l=%i" % lmax)
-
         if self.le.has_pp == _TRUE_:
             spectra.append('pp')
-            l_max_pp = self.sp.l_size[self.sp.index_ct_pp]
+            l_max_pp = self.le.l_max_lt[self.le.index_lt_pp]
             if l_max_pp < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the PP spectrum was computed until l=%i " % l_max_pp +
                     "but you asked a l=%i" % lmax)
         if self.le.has_tp == _TRUE_:
             spectra.append('tp')
-            l_max_tp = self.sp.l_size[self.sp.index_ct_tp]
+            l_max_tp = self.le.l_max_lt[self.le.index_lt_tp]
             if l_max_tp < lmax and lmax > 0:
                 raise CosmoSevereError(
                     "the PP spectrum was computed until l=%i " % l_max_tp +
+                    "but you asked a l=%i" % lmax)
+        if self.le.has_dd == _TRUE_:
+            spectra.append('dd')
+            l_max_dd = self.le.l_max_lt[self.le.index_lt_dd]
+            if l_max_dd < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the DD spectrum was computed until l=%i " % l_max_dd +
+                    "but you asked a l=%i" % lmax)
+        if self.le.has_ll == _TRUE_:
+            spectra.append('ll')
+            l_max_ll = self.le.l_max_lt[self.le.index_lt_ll]
+            if l_max_ll < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the LL spectrum was computed until l=%i " % l_max_ll +
+                    "but you asked a l=%i" % lmax)
+        if self.le.has_tl == _TRUE_:
+            spectra.append('tl')
+            l_max_tl = self.le.l_max_lt[self.le.index_lt_tl]
+            if l_max_tl < lmax and lmax > 0:
+                raise CosmoSevereError(
+                    "the TL spectrum was computed until l=%i " % l_max_tl +
                     "but you asked a l=%i" % lmax)
         lmaxR = self.le.l_lensed_max  # problem if lss ?
 
@@ -502,12 +522,20 @@ cdef class Class:
 
         cl = {}
         # Simple Cls, for temperature and polarisation, are not so big in size
-        for elem in spectra:
-            cl[elem] = np.ndarray(lmax+1, dtype=np.double)
-            cl[elem][:2]=0
+        for elem in ['tt', 'te', 'ee', 'bb', 'pp', 'tp']:
+            if elem in spectra:
+                cl[elem] = np.ndarray(lmax+1, dtype=np.double)
+                cl[elem][:2]=0
         # For density Cls, the size is bigger
-        #for elem in ['dd', 'll']:
-            #cl[elem] = np.ndarray(lmax+1, dtype=np.double)
+        for elem in ['dd', 'll', 'dl']:
+            if elem in spectra:
+                size = (self.sp.d_size*(self.sp.d_size+1)-
+                    (self.sp.d_size-self.sp.non_diag)*(
+                    self.sp.d_size-1-self.sp.non_diag))/2
+                cl[elem] = {}
+                for index in range(size):
+                    cl[elem][index] = np.ndarray(lmax+1, dtype=np.double)
+                    cl[elem][index][:2] = 0
 
         for ell from 2<=ell<lmax+1:
             if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
@@ -524,6 +552,14 @@ cdef class Class:
                 cl['pp'][ell] = lcl[self.le.index_lt_pp]
             if 'tp' in spectra:
                 cl['tp'][ell] = lcl[self.le.index_lt_tp]
+            if 'dd' in spectra:
+                for index in range(size):
+                    cl['dd'][index][ell] = lcl[self.le.index_lt_dd+index]
+            if 'll' in spectra:
+                for index in range(size):
+                    cl['ll'][index][ell] = lcl[self.le.index_lt_ll+index]
+            if 'tl' in spectra:
+                cl['tl'][ell] = lcl[self.le.index_lt_tl]
         cl['ell'] = np.arange(lmax+1)
 
         free(lcl)
