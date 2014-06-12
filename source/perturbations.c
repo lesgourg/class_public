@@ -4263,12 +4263,12 @@ int perturb_initial_conditions(struct precision * ppr,
          = [(4/3) (f_g theta_g + f_nu theta_nu) + (rho_m/rho_r) (f_b delta_b + f_cdm 0)] / (1 + rho_m/rho_r)
       */
 
-      if ((pba->has_cdm == _TRUE_) || (pba->has_dcdm == _TRUE_)) {
+      if (pba->has_cdm == _TRUE_)
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_cdm];
-      }
-      else {
+      else if (pba->has_dcdm == _TRUE_)
+        delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
+      else
         delta_cdm=0.;
-      }
 
       // note: if there are no neutrinos, fracnu, delta_ur and theta_ur below will consistently be zero.
 
@@ -6761,13 +6761,7 @@ int perturb_derivs(double tau,
 
     /** -> dcdm and dr */
 
-    if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)) {
-
-      /* f = rho_dr*a^4/rho_crit_today. In CLASS density units
-         rho_crit_today = H0^2.
-      */
-      f_dr = pow(pow(a/pba->a_today,2)/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
-      fprime_dr = pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]*pow(a,5)/pow(pba->H0,2);
+    if (pba->has_dcdm == _TRUE_) {
 
       /** -> dcdm */
 
@@ -6775,8 +6769,19 @@ int perturb_derivs(double tau,
         - a * pba->Gamma_dcdm / k2 * metric_euler; /* dcdm density */
 
       dy[pv->index_pt_theta_dcdm] = - a_prime_over_a*y[pv->index_pt_theta_dcdm] + metric_euler; /* dcdm velocity */
+    }
 
-      /** -> dr */
+    /** -> dr */
+
+    if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)) {
+
+
+      /* f = rho_dr*a^4/rho_crit_today. In CLASS density units
+         rho_crit_today = H0^2.
+      */
+
+      f_dr = pow(pow(a/pba->a_today,2)/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
+      fprime_dr = pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]*pow(a,5)/pow(pba->H0,2);
 
       /** -----> dr F0 */
       dy[pv->index_pt_F0_dr] = -k*y[pv->index_pt_F0_dr+1]-4./3.*metric_continuity*f_dr+

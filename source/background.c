@@ -670,7 +670,8 @@ int background_indices(
 
   if (pba->Omega0_dcdmdr != 0.){
     pba->has_dcdm = _TRUE_;
-    pba->has_dr = _TRUE_;
+    if (pba->Gamma_dcdm != 0.)
+      pba->has_dr = _TRUE_;
   }
 
   if (pba->Omega0_scf != 0.)

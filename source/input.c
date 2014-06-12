@@ -3144,12 +3144,18 @@ int input_try_unknown_parameters(double * unknown_parameter,
       break;
     case Omega_dcdmdr:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
-      rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      if (ba.has_dr == _TRUE_)
+        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      else
+        rho_dr_today = 0.;
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
       break;
     case omega_dcdmdr:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
-      rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      if (ba.has_dr == _TRUE_)
+        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      else
+        rho_dr_today = 0.;
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i]/ba.h/ba.h;
       break;
     case Omega_scf:
@@ -3160,7 +3166,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
     case Omega_ini_dcdm:
     case omega_ini_dcdm:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
-      rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      if (ba.has_dr == _TRUE_)
+        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+      else
+        rho_dr_today = 0.;
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
     }
