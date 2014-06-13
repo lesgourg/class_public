@@ -5243,13 +5243,13 @@ int perturb_total_stress_energy(
     /* scalar field contribution */
     if (pba->has_scf == _TRUE_) {
 
-      ppw->delta_rho +=  1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+      ppw->delta_rho +=  1./3.*1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
         + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf];
 
-      ppw->rho_plus_p_theta +=  k*k/a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
+      ppw->rho_plus_p_theta +=  1./3.*k*k/a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
       //checked
 
-      ppw->delta_p +=  1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+      ppw->delta_p +=  1./3.*1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
         - ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf];
 
     }
@@ -5843,7 +5843,7 @@ int perturb_sources(
 
     /* delta_scf */
     if (ppt->has_source_delta_scf == _TRUE_) {
-      _set_source_(ppt->index_tp_delta_scf) = 1./pvecback[pba->index_bg_rho_scf]*
+      _set_source_(ppt->index_tp_delta_scf) = 1./3.*1./pvecback[pba->index_bg_rho_scf]*
         ((1./a2_rel*pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
           + pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]));
     }
@@ -5904,7 +5904,7 @@ int perturb_sources(
 
     /* theta_scf */
     if (ppt->has_source_theta_scf == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_scf) = 1./(pvecback[pba->index_bg_p_scf])*
+      _set_source_(ppt->index_tp_theta_scf) = 1./3.*1./(pvecback[pba->index_bg_p_scf])*
         k*k/a2_rel*pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
     }
 
