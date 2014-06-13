@@ -627,6 +627,10 @@ int background_free(
       if(pba->ncdm_psd_parameters!=NULL)  free(pba->ncdm_psd_parameters);
     }
   }
+  if (pba->has_scf == _TRUE_){
+    if (pba->scf_parameters != NULL) free(pba->scf_parameters);
+  }
+
   return _SUCCESS_;
 }
 
@@ -1631,8 +1635,12 @@ int background_solve(
       if(pba->has_lambda == _TRUE_)
 	printf("     -> Omega_Lambda = %g, wished %g\n",
                pvecback[pba->index_bg_rho_lambda]/pvecback[pba->index_bg_rho_crit], pba->Omega0_lambda);
-      printf("     -> parameters: lambda = %.3g, alpha = %.3g, B = %.3g, A = %.3g \n",
-             pba->scf_lambda, pba->scf_alpha, pba->scf_B, pba->scf_A);
+      printf("     -> parameters: [lambda, alpha, A, B] = \n");
+      printf("                    [");
+      for (i=0; i<pba->scf_parameters_size-1; i++){
+        printf("%.3f, ",pba->scf_parameters[i]);
+      }
+      printf("%.3f]\n",pba->scf_parameters[pba->scf_parameters_size-1]);
     }
   }
 
@@ -1670,6 +1678,7 @@ int background_initial_conditions(
   double rho_ncdm, p_ncdm;
   double f,Omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
+  double scf_lambda;
 
   /** - fix initial value of \f$ a \f$ */
   a = ppr->a_ini_over_a_today_default * pba->a_today;
@@ -1755,14 +1764,15 @@ int background_initial_conditions(
    * -is rho_ur all there is early on?
    */
   if(pba->has_scf == _TRUE_){
+    scf_lambda = pba->scf_parameters[0];
     if(pba->attractor_ic_scf == _TRUE_){
-      pvecback_integration[pba->index_bi_phi_scf] = -1/pba->scf_lambda*
-        log(rho_rad*4./(3*pow(pba->scf_lambda,2)-12))*pba->phi_ini_scf;
-      if (3.*pow(pba->scf_lambda,2)-12. < 0){
+      pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
+        log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
+      if (3.*pow(scf_lambda,2)-12. < 0){
         /** if there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan*/
-    	pvecback_integration[pba->index_bi_phi_scf] = 1./pba->scf_lambda;//seems to the work
+    	pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
 	if (pba->background_verbose > 0)
-	  printf(" No attractor IC for lambda = %.3e ! \n ",pba->scf_lambda);
+	  printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
       }
       pvecback_integration[pba->index_bi_phi_prime_scf] = 2*pvecback_integration[pba->index_bi_a]*
         sqrt(V_scf(pba,pvecback_integration[pba->index_bi_phi_scf]))*pba->phi_prime_ini_scf;
@@ -1934,19 +1944,34 @@ int background_derivs(
 double V_e_scf(struct background *pba,
                double phi
                ) {
-  return  exp(-pba->scf_lambda*phi);
+  double scf_lambda = pba->scf_parameters[0];
+  //  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  //  double scf_B      = pba->scf_parameters[3];
+
+  return  exp(-scf_lambda*phi);
 }
 
 double dV_e_scf(struct background *pba,
                 double phi
                 ) {
-  return -pba->scf_lambda*V_scf(pba,phi);
+  double scf_lambda = pba->scf_parameters[0];
+  //  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  //  double scf_B      = pba->scf_parameters[3];
+
+  return -scf_lambda*V_scf(pba,phi);
 }
 
 double ddV_e_scf(struct background *pba,
                  double phi
                  ) {
-  return pow(-pba->scf_lambda,2)*V_scf(pba,phi);
+  double scf_lambda = pba->scf_parameters[0];
+  //  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  //  double scf_B      = pba->scf_parameters[3];
+
+  return pow(-scf_lambda,2)*V_scf(pba,phi);
 }
 
 
@@ -1960,19 +1985,35 @@ double ddV_e_scf(struct background *pba,
 double V_p_scf(
                struct background *pba,
                double phi) {
-  return  pow(phi - pba->scf_B,  pba->scf_alpha) +  pba->scf_A;
+  //  double scf_lambda = pba->scf_parameters[0];
+  double scf_alpha  = pba->scf_parameters[1];
+  double scf_A      = pba->scf_parameters[2];
+  double scf_B      = pba->scf_parameters[3];
+
+  return  pow(phi - scf_B,  scf_alpha) +  scf_A;
 }
 
 double dV_p_scf(
                 struct background *pba,
                 double phi) {
-  return   pba->scf_alpha*pow(phi -  pba->scf_B,  pba->scf_alpha - 1);
+
+  //  double scf_lambda = pba->scf_parameters[0];
+  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  double scf_B      = pba->scf_parameters[3];
+
+  return   scf_alpha*pow(phi -  scf_B,  scf_alpha - 1);
 }
 
 double ddV_p_scf(
                  struct background *pba,
                  double phi) {
-  return  pba->scf_alpha*(pba->scf_alpha - 1)*pow(phi -  pba->scf_B,  pba->scf_alpha - 2);
+  //  double scf_lambda = pba->scf_parameters[0];
+  double scf_alpha  = pba->scf_parameters[1];
+  //  double scf_A      = pba->scf_parameters[2];
+  double scf_B      = pba->scf_parameters[3];
+
+  return  scf_alpha*(scf_alpha - 1.)*pow(phi -  scf_B,  scf_alpha - 2);
 }
 
 /** now the overall potential \f$ V = V_p*V_e \f$

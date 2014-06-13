@@ -228,7 +228,7 @@ int input_init(
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
                                        "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
-                                        "scf_lambda","Omega_dcdmdr","omega_dcdmdr"};
+                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
                                         cs_background, cs_background, cs_background};
 
@@ -560,6 +560,7 @@ int input_read_parameters(
   double param1,param2,param3;
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
+  double scf_lambda;
   double fnu_factor;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
@@ -979,8 +980,15 @@ int input_read_parameters(
     pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
   else if (flag2 == _FALSE_)  // Fill up with fluid
     pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
-  else if ((flag3 == _TRUE_) && (param3 < 0.)) // Fill up with scalar field
+  else if ((flag3 == _TRUE_) && (param3 < 0.)){ // Fill up with scalar field
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
+  }
+
+  /** Test that the user have not specified Omega_scf = -1 but left either
+      Omega_lambda or Omega_fld unspecified:*/
+  class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
+             errmsg,
+             "It looks like you want to fulfil the closure relation sum Omega = 1 using the scalar field, so you have to specify both Omega_lambda and Omega_fld in the .ini file");
 
   if (pba->Omega0_fld != 0.) {
     class_read_double("w0_fld",pba->w0_fld);
@@ -990,15 +998,24 @@ int input_read_parameters(
 
   /* Additional SCF parameters: */
   if (pba->Omega0_scf != 0.){
-    /** exponent field coefficient */
-    class_read_double("scf_lambda",pba->scf_lambda);
+    /** Read parameters describing scalar field potential */
+    class_call(parser_read_list_of_doubles(pfc,
+                                           "scf_parameters",
+                                           &(pba->scf_parameters_size),
+                                           &(pba->scf_parameters),
+                                           &flag1,
+                                           errmsg),
+               errmsg,errmsg);
+    class_read_int("scf_tuning_index",pba->scf_tuning_index);
+    class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
+               errmsg,
+               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.");
+    /** Assign shooting parameter */
+    class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
 
-    if ((abs(pba->scf_lambda) <3.)&&(pba->background_verbose>1))
-      printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",pba->scf_lambda);
-
-    class_read_double("scf_alpha",pba->scf_alpha); // polynomial exponent
-    class_read_double("scf_B",pba->scf_B); // polynomial shift
-    class_read_double("scf_A",pba->scf_A); // polynomial offset
+    scf_lambda = pba->scf_parameters[0];
+    if ((abs(scf_lambda) <3.)&&(pba->background_verbose>1))
+      printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",scf_lambda);
 
     class_call(parser_read_string(pfc,
                                   "attractor_ic_scf",
@@ -2416,10 +2433,9 @@ int input_default_params(
 
   pba->Omega0_scf = 0.; /* Scalar field defaults */
   pba->attractor_ic_scf = _TRUE_;
-  pba->scf_lambda = -10.; /*exponential slope parameter */
-  pba->scf_alpha = 0; /*Albrecht-Skordis polynomial bump defaults */
-  pba->scf_A = 0;
-  pba->scf_B = 0;
+  pba->scf_parameters = NULL;
+  pba->scf_parameters_size = 0;
+  pba->scf_tuning_index = 0;
   //MZ: initial conditions are as multiplicative factors of the radiation attractor values
   pba->phi_ini_scf = 1;
   pba->phi_prime_ini_scf = 1;
@@ -3302,8 +3318,15 @@ int input_get_guess(double *xguess,
       xguess[index_guess] = 1.77835*pow(ba.Omega0_scf,-2./7.);
       dxdy[index_guess] = -0.5081*pow(ba.Omega0_scf,-9./7.);
        Version 3: use attractor solution: */
-      xguess[index_guess] = sqrt(3.0/ba.Omega0_scf);
-      dxdy[index_guess] = -0.5*sqrt(3.0)*pow(ba.Omega0_scf,-1.5);
+      if (ba.scf_tuning_index == 0){
+        xguess[index_guess] = sqrt(3.0/ba.Omega0_scf);
+        dxdy[index_guess] = -0.5*sqrt(3.0)*pow(ba.Omega0_scf,-1.5);
+      }
+      else{
+        /* Default so that xguess and index_guess is always defined. */
+        xguess[index_guess] = 0.;
+        dxdy[index_guess] = 1.;
+      }
       break;
     case Omega_ini_dcdm:
     case omega_ini_dcdm:

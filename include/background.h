@@ -65,14 +65,18 @@ struct background
 
   double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$ : decay constant for decaying cold dark matter */
 
-  double Omega0_scf; /**< \f$ \Omega_{0 scf} \f$ : scalar field */
-  short attractor_ic_scf; /** < whether the scalar field has attractor initial conditions */
-  double phi_ini_scf; /**< \f$ \phi(t_0) \f$ : scalar field initial value */
+  double Omega0_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field */
+  short attractor_ic_scf;   /** < whether the scalar field has attractor initial conditions */
+  double phi_ini_scf;       /**< \f$ \phi(t_0) \f$ : scalar field initial value */
   double phi_prime_ini_scf; /**< \f$ d\phi(t_0)/d\tau \f$ : scalar field initial derivative wrt conformal time */
-  double scf_lambda; /**< \f$ \lambda \f$ : scalar field exponential potential slope */
-  double scf_alpha;  /**< \f$ \alpha \f$ : Albrecht-Skordis polynomial slope */
-  double scf_B; /**< \f$ \alpha \f$ : Albrecht-Skordis field shift */
-  double scf_A; /**< \f$ \alpha \f$ : Albrecht-Skordis offset */
+  double * scf_parameters;  /**< list of parameters describing the scalar field potential */
+  int scf_parameters_size;  /**< size of scf_parameters */
+  int scf_tuning_index;     /**< index in scf_parameters used for tuning */
+  //double scf_lambda; /**< \f$ \lambda \f$ : scalar field exponential potential slope */
+  //double scf_alpha;  /**< \f$ \alpha \f$ : Albrecht-Skordis polynomial slope */
+  //double scf_B; /**< \f$ \alpha \f$ : Albrecht-Skordis field shift */
+  //double scf_A; /**< \f$ \alpha \f$ : Albrecht-Skordis offset */
+
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
 
