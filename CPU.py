@@ -271,17 +271,23 @@ for data_file in files:
         # in case selection was only a string, cast it to a list
         if isinstance(selection, str):
             selection = [selection]
-        for elem in selection:
-            if elem not in names:
-                raise InputError(
-                    "The entry 'selection' must contain names of the fields "
-                    "in the specified files. You asked for %s " % elem +
-                    "where I only found %s." % names)
+        # This is not needed anymore, as you can specify not entire strings
+        #for elem in selection:
+            #if elem not in names:
+                #raise InputError(
+                    #"The entry 'selection' must contain names of the fields "
+                    #"in the specified files. You asked for %s " % elem +
+                    #"where I only found %s." % names)
     # Store the selected text and tex_names to the script
-    text += 'selection = %s\n' % selection
+    selected = []
+    for elem in selection:
+        selected.extend([name for name in names if name.find(elem) != -1 and
+        name not in selected])
+    text += 'selection = %s\n' % selected
     text += 'tex_names = %s\n' % [elem for (elem, name) in
-                                  zip(tex_names, names) if name in selection]
+                                  zip(tex_names, names) if name in selected]
 
+    selection = selected
     # Create the figure and ax objects
     fig, ax = plt.subplots()
     text += '\nfig, ax = plt.subplots()\n'
@@ -424,14 +430,6 @@ def process_long_names(long_names):
         else:
             names.append(name)
             tex_names.append(name)
-    # Second pass, to remove from the short names the indication of scale,
-    # which should look like something between parenthesis, or square brackets,
-    # and located at the end of the string
-    for index, name in enumerate(names):
-        if name.find('(') != -1:
-            names[index] = name[:name.index('(')]
-        elif name.find('[') != -1:
-            names[index] = name[:name.index('[')]
 
     # Finally, remove any extra spacing
     names = [''.join(elem.split()) for elem in names]
@@ -505,7 +503,7 @@ def main():
     # for interpolation arises or not.
     plot_CLASS_output(args.files, args.selection, ratio=args.ratio,
                       printing=args.printfile, scale=args.scale,
-                      xlim=args.xlim,ylim=args.ylim)
+                      xlim=args.xlim, ylim=args.ylim)
 
 if __name__ == '__main__':
     sys.exit(main())
