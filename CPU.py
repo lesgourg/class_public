@@ -69,6 +69,8 @@ def create_parser():
                         help='Specify the scale to use for the plot')
     parser.add_argument('--xlim', dest='xlim', nargs='+', type=float,
                         default=[], help='Specify the x range')
+    parser.add_argument('--ylim', dest='ylim', nargs='+', type=float,
+                        default=[], help='Specify the y range')
     parser.add_argument(
         '-p, --print',
         dest='printfile', action='store_true', default=False,
@@ -208,7 +210,7 @@ mscale.register_scale(PlanckScale)
 
 def plot_CLASS_output(files, selection, ratio=False, printing=False,
                       output_name='', extension='', x_variable='',
-                      scale='lin', xlim=[]):
+                      scale='lin', xlim=[], ylim=[]):
     """
     Load the data to numpy arrays, write a Python script and plot them.
 
@@ -308,7 +310,7 @@ for data_file in files:
                     ax.set_xscale('planck')
                     loc = 'upper right'
         if not loc:
-            loc = 'lower right'
+            loc = 'upper right'
 
         ax.legend([root+': '+elem for (root, elem) in
                    itertools.product(roots, selection)], loc=loc)
@@ -345,6 +347,11 @@ for data_file in files:
         else:
             ax.set_xlim(xlim[0])
         ax.set_ylim()
+    if ylim:
+        if len(ylim) > 1:
+            ax.set_ylim(ylim)
+        else:
+            ax.set_ylim(ylim[0])
     text += 'plt.show()\n'
     plt.show()
 
@@ -498,7 +505,7 @@ def main():
     # for interpolation arises or not.
     plot_CLASS_output(args.files, args.selection, ratio=args.ratio,
                       printing=args.printfile, scale=args.scale,
-                      xlim=args.xlim)
+                      xlim=args.xlim,ylim=args.ylim)
 
 if __name__ == '__main__':
     sys.exit(main())
