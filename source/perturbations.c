@@ -2395,6 +2395,9 @@ int perturb_prepare_output_file(struct background * pba,
     class_fprintf_columntitle(ppw->perturb_output_file, "delta_dr", pba->has_dr,colnum);
     class_fprintf_columntitle(ppw->perturb_output_file, "theta_dr", pba->has_dr,colnum);
     class_fprintf_columntitle(ppw->perturb_output_file, "shear_dr", pba->has_dr,colnum);
+    /* Scalar field scf */
+    class_fprintf_columntitle(ppw->perturb_output_file, "delta_scf", pba->has_scf,colnum);
+    class_fprintf_columntitle(ppw->perturb_output_file, "theta_scf", pba->has_scf,colnum);
 
     fprintf(ppw->perturb_output_file,"\n");
 
@@ -3905,7 +3908,7 @@ int perturb_initial_conditions(struct precision * ppr,
   /** - declare local variables */
 
   double a,a_prime_over_a;
-  double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha;
+  double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha, alpha_prime;
   double delta_dr=0;
   double q,epsilon,k2;
   int index_q,n_ncdm,idx;
@@ -4304,8 +4307,15 @@ int perturb_initial_conditions(struct precision * ppr,
 
       /* scalar field: check */
       if (pba->has_scf == _TRUE_) {
-        ppw->pv->y[ppw->pv->index_pt_phi_scf] += 0.; // The derivative is invariant! CHECK
-        ppw->pv->y[ppw->pv->index_pt_phi_prime_scf] += 0.; // write the gauge transformation here?
+        alpha_prime = 0.0;
+          /**- 2. * a_prime_over_a * alpha + eta
+             - 4.5 * (a2/k2) * ppw->rho_plus_p_shear; */
+
+        ppw->pv->y[ppw->pv->index_pt_phi_scf] += alpha*ppw->pvecback[pba->index_bg_phi_prime_scf];
+        ppw->pv->y[ppw->pv->index_pt_phi_prime_scf] +=
+          (-2.*a_prime_over_a*alpha*ppw->pvecback[pba->index_bg_phi_prime_scf]
+           -a*a* dV_scf(pba,ppw->pvecback[pba->index_bg_phi_scf])*alpha
+           +ppw->pvecback[pba->index_bg_phi_prime_scf]*alpha_prime);
       }
 
       if ((pba->has_ur == _TRUE_) || (pba->has_ncdm == _TRUE_) || (pba->has_dr == _TRUE_)) {
@@ -5128,6 +5138,7 @@ int perturb_total_stress_energy(
   double gwncdm;
   double rho_relativistic;
   double rho_dr_over_f;
+  double delta_rho_scf, delta_p_scf, psi;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5240,20 +5251,6 @@ int perturb_total_stress_energy(
       ppw->delta_p = ppw->delta_p + pba->cs2_fld * ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
     }
 
-    /* scalar field contribution */
-    if (pba->has_scf == _TRUE_) {
-
-      ppw->delta_rho +=  1./3.*1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
-        + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf];
-
-      ppw->rho_plus_p_theta +=  1./3.*k*k/a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
-      //checked
-
-      ppw->delta_p +=  1./3.*1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
-        - ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf];
-
-    }
-
     /* ultra-relativistic decay radiation */
 
     if (pba->has_dr == _TRUE_) {
@@ -5348,6 +5345,45 @@ int perturb_total_stress_energy(
         }
       }
     }
+
+    /* scalar field contribution.
+       In Newtonian gauge, delta_scf depends on the metric perturbation psi which is inferred
+       from rho_plus_p_shear. So the contribution from the scalar field must be below all
+       species with non-zero shear.
+    */
+    if (pba->has_scf == _TRUE_) {
+
+      if (ppt->gauge == synchronous){
+        delta_rho_scf =  1./3.*
+          (1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]);
+        delta_p_scf = 1./3.*
+          (1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           - ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]);
+      }
+      else{
+        /* equation for psi */
+        psi = y[ppw->pv->index_pt_phi] - 4.5 * (a2/k/k) * ppw->rho_plus_p_shear;
+
+        delta_rho_scf =  1./3.*
+          (1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]
+           - 1./a2*pow(ppw->pvecback[pba->index_bg_phi_prime_scf],2)*psi);
+        delta_p_scf =  1./3.*
+          (1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           - ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]
+           - 1./a2*pow(ppw->pvecback[pba->index_bg_phi_prime_scf],2)*psi);
+      }
+
+      ppw->delta_rho += delta_rho_scf;
+
+      ppw->rho_plus_p_theta +=  1./3.*
+        k*k/a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
+
+      ppw->delta_p += delta_p_scf;
+
+    }
+
 
     /* store delta_m in the current gauge. In perturb_einstein, this
        will be transformed later on into the gauge-independent variable D
@@ -5586,7 +5622,7 @@ int perturb_sources(
   double * pvecthermo;
   double * pvecmetric;
 
-  double delta_g;
+  double delta_g, delta_rho_scf, rho_plus_p_theta_scf;
   double a_prime_over_a=0.;  /* (a'/a) */
   double a_prime_over_a_prime=0.;  /* (a'/a)' */
   int switch_isw = 1;
@@ -5843,9 +5879,18 @@ int perturb_sources(
 
     /* delta_scf */
     if (ppt->has_source_delta_scf == _TRUE_) {
-      _set_source_(ppt->index_tp_delta_scf) = 1./3.*1./pvecback[pba->index_bg_rho_scf]*
-        ((1./a2_rel*pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
-          + pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]));
+      if (ppt->gauge == synchronous){
+        delta_rho_scf =  1./3.*
+          (1./a2_rel*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]);
+      }
+      else{
+        delta_rho_scf =  1./3.*
+          (1./a2_rel*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]
+           - 1./a2_rel*pow(ppw->pvecback[pba->index_bg_phi_prime_scf],2)*ppw->pvecmetric[ppw->index_mt_psi]);
+      }
+      _set_source_(ppt->index_tp_delta_scf) = delta_rho_scf/pvecback[pba->index_bg_rho_scf];
     }
 
     /* delta_dr */
@@ -5904,8 +5949,10 @@ int perturb_sources(
 
     /* theta_scf */
     if (ppt->has_source_theta_scf == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_scf) = 1./3.*1./(pvecback[pba->index_bg_p_scf])*
-        k*k/a2_rel*pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
+      rho_plus_p_theta_scf = 1./3.*
+        k*k/a2_rel*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
+      _set_source_(ppt->index_tp_theta_scf) = rho_plus_p_theta_scf/
+        (pvecback[pba->index_bg_rho_scf]+pvecback[pba->index_bg_p_scf]);
     }
 
     /* theta_dr */
@@ -6019,6 +6066,8 @@ int perturb_print_variables(double tau,
   double delta_dcdm=0.,theta_dcdm=0.;
   double delta_dr=0.,theta_dr=0.,shear_dr=0., f_dr=1.0;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l4_ur=0.;
+  double delta_rho_scf=0., rho_plus_p_theta_scf=0.;
+  double delta_scf=0., theta_scf=0.;
   int n_ncdm;
   double delta_ncdm,theta_ncdm,shear_ncdm;
   double phi=0.,psi=0.,alpha=0.;
@@ -6154,6 +6203,27 @@ int perturb_print_variables(double tau,
       shear_dr = y[ppw->pv->index_pt_F0_dr+2]*0.5/f_dr;
     }
 
+    if (pba->has_scf == _TRUE_){
+      if (ppt->gauge == synchronous){
+        delta_rho_scf =  1./3.*
+          (1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]);
+      }
+      else{
+        delta_rho_scf =  1./3.*
+          (1./a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
+           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]
+           - 1./a2*pow(ppw->pvecback[pba->index_bg_phi_prime_scf],2)*ppw->pvecmetric[ppw->index_mt_psi]);
+      }
+
+      rho_plus_p_theta_scf =  1./3.*
+        k*k/a2*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
+
+      delta_scf = delta_rho_scf/pvecback[pba->index_bg_rho_scf];
+      theta_scf = rho_plus_p_theta_scf/(pvecback[pba->index_bg_rho_scf]+pvecback[pba->index_bg_p_scf]);
+
+    }
+
     /* converting synchronous variables to newtonian ones */
     if (ppt->gauge == synchronous) {
 
@@ -6184,6 +6254,11 @@ int perturb_print_variables(double tau,
       if (pba->has_dcdm == _TRUE_) {
         delta_dcdm += alpha*(-a*pba->Gamma_dcdm-3.*a*H);
         theta_dcdm += k*k*alpha;
+      }
+
+      if (pba->has_scf == _TRUE_) {
+        delta_scf += alpha*(-3.0*H*(1.0+pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf]));
+        theta_scf += k*k*alpha;
       }
 
     }
@@ -6226,6 +6301,9 @@ int perturb_print_variables(double tau,
     class_fprintf_double(ppw->perturb_output_file, delta_dr, pba->has_dr);
     class_fprintf_double(ppw->perturb_output_file, theta_dr, pba->has_dr);
     class_fprintf_double(ppw->perturb_output_file, shear_dr, pba->has_dr);
+    /* Scalar field scf*/
+    class_fprintf_double(ppw->perturb_output_file, delta_scf, pba->has_scf);
+    class_fprintf_double(ppw->perturb_output_file, theta_scf, pba->has_scf);
 
     fprintf(ppw->perturb_output_file,"\n");
 

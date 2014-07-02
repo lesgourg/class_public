@@ -1940,6 +1940,15 @@ int background_derivs(
  * Numerical derivatives may further serve as a consistency check.
  */
 
+/** The units of phi, tau in the derivatives and the potential V are the following:
+    --> phi is given in units of the reduced Planck mass m_pl = (8 pi G)^(-1/2)
+    --> tau in the derivative is given in units of Mpc.
+    --> the potential V(phi) is given in units of m_pl^2/Mpc^2.
+    With this convention, we have
+    rho^{class} = (8 pi G)/3 rho^{physical} = 1/(3 m_pl^2) rho^{physical}
+                = 1/3 * [ 1/(2a^2) (phi')^2 + V(phi) ]
+    and rho^{class} has the proper dimension Mpc^-2.
+ */
 
 double V_e_scf(struct background *pba,
                double phi
