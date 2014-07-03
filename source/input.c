@@ -1009,7 +1009,7 @@ int input_read_parameters(
     class_read_int("scf_tuning_index",pba->scf_tuning_index);
     class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
                errmsg,
-               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.");
+               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",pba->scf_tuning_index,pba->scf_parameters_size);
     /** Assign shooting parameter */
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
 
@@ -1031,8 +1031,11 @@ int input_read_parameters(
       }
       else{
 	pba->attractor_ic_scf = _FALSE_;
-	class_read_double("initial_phi_scf",pba->phi_ini_scf);
-	class_read_double("initial_phi_prime_scf",pba->phi_prime_ini_scf);
+        class_test(pba->scf_parameters_size<2,
+               errmsg,
+               "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
+	pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
+	pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
       }
     }
   }
@@ -3323,8 +3326,8 @@ int input_get_guess(double *xguess,
         dxdy[index_guess] = -0.5*sqrt(3.0)*pow(ba.Omega0_scf,-1.5);
       }
       else{
-        /* Default so that xguess and index_guess is always defined. */
-        xguess[index_guess] = 0.;
+        /* Default: take the passed value as xguess and set dxdy to 1. */
+        xguess[index_guess] = ba.scf_parameters[ba.scf_tuning_index];
         dxdy[index_guess] = 1.;
       }
       break;
