@@ -1836,6 +1836,13 @@ int output_open_background_file(
     fprintf(*backfile,"# Table of selected background quantitites\n");
     fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
     fprintf(*backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
+    if (pba->has_scf == _TRUE_){
+      fprintf(*backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
+      fprintf(*backfile,"# --> phi is given in units of the reduced Planck mass m_Pl = (8 pi G)^(-1/2)\n");
+      fprintf(*backfile,"# --> tau in the derivative of V(phi) is given in units of Mpc.\n");
+      fprintf(*backfile,"# --> the potential V(phi) is given in units of m_Pl^2/Mpc^2.\n");
+    }
+
     /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
         but it can be as long as . */
     fprintf(*backfile,"#");
@@ -1862,6 +1869,14 @@ int output_open_background_file(
     class_fprintf_columntitle(*backfile,"(.)rho_crit",_TRUE_,colnum);
     class_fprintf_columntitle(*backfile,"(.)rho_dcdm",pba->has_dcdm,colnum);
     class_fprintf_columntitle(*backfile,"(.)rho_dr",pba->has_dr,colnum);
+
+    class_fprintf_columntitle(*backfile,"(.)rho_scf",pba->has_scf,colnum);
+    class_fprintf_columntitle(*backfile,"(.)p_scf",pba->has_scf,colnum);
+    class_fprintf_columntitle(*backfile,"phi_scf",pba->has_scf,colnum);
+    class_fprintf_columntitle(*backfile,"phi'_scf",pba->has_scf,colnum);
+    class_fprintf_columntitle(*backfile,"V_scf",pba->has_scf,colnum);
+    class_fprintf_columntitle(*backfile,"V'_scf",pba->has_scf,colnum);
+    class_fprintf_columntitle(*backfile,"V''_scf",pba->has_scf,colnum);
 
     fprintf(*backfile,"\n");
   }
@@ -1908,6 +1923,14 @@ int output_one_line_of_background(
   class_fprintf_double(backfile,pvecback[pba->index_bg_rho_crit],_TRUE_);
   class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm);
   class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dr],pba->has_dr);
+
+  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_scf],pba->has_scf);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_p_scf],pba->has_scf);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_phi_scf],pba->has_scf);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_V_scf],pba->has_scf);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_dV_scf],pba->has_scf);
+  class_fprintf_double(backfile,pvecback[pba->index_bg_ddV_scf],pba->has_scf);
 
   fprintf(backfile,"\n");
 
