@@ -1670,7 +1670,7 @@ int output_open_tk_file(
         }
         class_fprintf_columntitle(*tkfile,"d_dcdm",pba->has_dcdm,colnum);
         class_fprintf_columntitle(*tkfile,"d_dr",pba->has_dr,colnum);
-        class_fprintf_columntitle(*tkfile,"d_phi_scf",pba->has_scf,colnum);
+        class_fprintf_columntitle(*tkfile,"d_scf",pba->has_scf,colnum);
         class_fprintf_columntitle(*tkfile,"d_tot",_TRUE_,colnum);
       }
       if (ppt->has_velocity_transfers == _TRUE_) {
@@ -1687,7 +1687,7 @@ int output_open_tk_file(
         }
         class_fprintf_columntitle(*tkfile,"t_dcdm",pba->has_dcdm,colnum);
         class_fprintf_columntitle(*tkfile,"t_dr",pba->has_dr,colnum);
-        class_fprintf_columntitle(*tkfile,"t_phi'_scf",pba->has_scf,colnum);
+        class_fprintf_columntitle(*tkfile,"t__scf",pba->has_scf,colnum);
         class_fprintf_columntitle(*tkfile,"t_tot",_TRUE_,colnum);
       }
       fprintf(*tkfile,"\n");
