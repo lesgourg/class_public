@@ -1293,102 +1293,104 @@ int spectra_init(
      spectrum at different wavenumbers (used in the Planck
      analysis) */
 
-  if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars] == 2)) {
+  if (ppt->has_scalars == _TRUE_) {
+    if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars] == 2)) {
 
-    l1=2;
-    l2=20;
+      l1=2;
+      l2=20;
 
-    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
-               psp->error_message,
-               psp->error_message);
+      class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
+                 psp->error_message,
+                 psp->error_message);
 
-    class_test(TT_II+TT_RI+TT_RR==0.,
-               psp->error_message,
-               "should never happen");
+      class_test(TT_II+TT_RI+TT_RR==0.,
+                 psp->error_message,
+                 "should never happen");
 
-    psp->alpha_II_2_20=TT_II/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
+      psp->alpha_II_2_20=TT_II/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RI_2_20=TT_RI/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RR_2_20=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    l1=21;
-    l2=200;
+      l1=21;
+      l2=200;
 
-    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
-               psp->error_message,
-               psp->error_message);
+      class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
+                 psp->error_message,
+                 psp->error_message);
 
-    class_test(TT_II+TT_RI+TT_RR==0.,
-               psp->error_message,
-               "should never happen");
+      class_test(TT_II+TT_RI+TT_RR==0.,
+                 psp->error_message,
+                 "should never happen");
 
-    psp->alpha_II_21_200=TT_II/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RI_21_200=TT_RI/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RR_21_200=TT_RR/(TT_II+TT_RI+TT_RR);
+      psp->alpha_II_21_200=TT_II/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RI_21_200=TT_RI/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RR_21_200=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    l1=201;
-    l2=2500;
+      l1=201;
+      l2=2500;
 
-    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
-               psp->error_message,
-               psp->error_message);
+      class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
+                 psp->error_message,
+                 psp->error_message);
 
-    class_test(TT_II+TT_RI+TT_RR==0.,
-               psp->error_message,
-               "should never happen");
+      class_test(TT_II+TT_RI+TT_RR==0.,
+                 psp->error_message,
+                 "should never happen");
 
-    psp->alpha_II_201_2500=TT_II/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RI_201_2500=TT_RI/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RR_201_2500=TT_RR/(TT_II+TT_RI+TT_RR);
+      psp->alpha_II_201_2500=TT_II/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RI_201_2500=TT_RI/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RR_201_2500=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    l1=2;
-    l2=2500;
+      l1=2;
+      l2=2500;
 
-    class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
-               psp->error_message,
-               psp->error_message);
+      class_call(spectra_bandpower(psp,l1,l2,&TT_II,&TT_RI,&TT_RR),
+                 psp->error_message,
+                 psp->error_message);
 
-    class_test(TT_II+TT_RI+TT_RR==0.,
-               psp->error_message,
-               "should never happen");
+      class_test(TT_II+TT_RI+TT_RR==0.,
+                 psp->error_message,
+                 "should never happen");
 
-    psp->alpha_II_2_2500=TT_II/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RI_2_2500=TT_RI/(TT_II+TT_RI+TT_RR);
-    psp->alpha_RR_2_2500=TT_RR/(TT_II+TT_RI+TT_RR);
+      psp->alpha_II_2_2500=TT_II/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RI_2_2500=TT_RI/(TT_II+TT_RI+TT_RR);
+      psp->alpha_RR_2_2500=TT_RR/(TT_II+TT_RI+TT_RR);
 
-    if (ppt->has_cdi==_TRUE_) {
+      if (ppt->has_cdi==_TRUE_) {
 
-      psp->alpha_kp=ppm->f_cdi*ppm->f_cdi
-        /(1.+ppm->f_cdi*ppm->f_cdi);
+        psp->alpha_kp=ppm->f_cdi*ppm->f_cdi
+          /(1.+ppm->f_cdi*ppm->f_cdi);
 
-      psp->alpha_k1=ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.002/ppm->k_pivot))
-        /(1.+ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.002/ppm->k_pivot)));
+        psp->alpha_k1=ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.002/ppm->k_pivot))
+          /(1.+ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.002/ppm->k_pivot)));
 
-      psp->alpha_k2=ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.1/ppm->k_pivot))
-        /(1.+ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.1/ppm->k_pivot)));
-    }
+        psp->alpha_k2=ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.1/ppm->k_pivot))
+          /(1.+ppm->f_cdi*ppm->f_cdi*exp((ppm->n_cdi-ppm->n_s)*log(0.1/ppm->k_pivot)));
+      }
 
-    if (ppt->has_nid==_TRUE_) {
+      if (ppt->has_nid==_TRUE_) {
 
-      psp->alpha_kp=ppm->f_nid*ppm->f_nid
-        /(1.+ppm->f_nid*ppm->f_nid);
+        psp->alpha_kp=ppm->f_nid*ppm->f_nid
+          /(1.+ppm->f_nid*ppm->f_nid);
 
-      psp->alpha_k1=ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.002/ppm->k_pivot))
-        /(1.+ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.002/ppm->k_pivot)));
+        psp->alpha_k1=ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.002/ppm->k_pivot))
+          /(1.+ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.002/ppm->k_pivot)));
 
-      psp->alpha_k2=ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.1/ppm->k_pivot))
-        /(1.+ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.1/ppm->k_pivot)));
-    }
+        psp->alpha_k2=ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.1/ppm->k_pivot))
+          /(1.+ppm->f_nid*ppm->f_nid*exp((ppm->n_nid-ppm->n_s)*log(0.1/ppm->k_pivot)));
+      }
 
-    if (ppt->has_niv==_TRUE_) {
+      if (ppt->has_niv==_TRUE_) {
 
-      psp->alpha_kp=ppm->f_niv*ppm->f_niv
-        /(1.+ppm->f_niv*ppm->f_niv);
+        psp->alpha_kp=ppm->f_niv*ppm->f_niv
+          /(1.+ppm->f_niv*ppm->f_niv);
 
-      psp->alpha_k1=ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.002/ppm->k_pivot))
-        /(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.002/ppm->k_pivot)));
+        psp->alpha_k1=ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.002/ppm->k_pivot))
+          /(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.002/ppm->k_pivot)));
 
-      psp->alpha_k2=ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot))
-        /(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot)));
+        psp->alpha_k2=ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot))
+          /(1.+ppm->f_niv*ppm->f_niv*exp((ppm->n_niv-ppm->n_s)*log(0.1/ppm->k_pivot)));
+      }
     }
   }
 
