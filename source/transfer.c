@@ -3722,6 +3722,7 @@ int transfer_limber(
 
   double x_limber=0.;
   double tau0_minus_tau_limber=0.;
+  double IPhiFlat = 0.;
 
   if (radial_type == SCALAR_TEMPERATURE_0) {
 
@@ -3759,15 +3760,15 @@ int transfer_limber(
         = source*[tau0-tau] * sqrt(pi/(2l+1))/(l+1/2)
     */
 
-    *trsf = sqrt(_PI_/2.)*S/sqrt(l+0.5);
+    IPhiFlat = sqrt(_PI_/(2.*l))*(1.-0.25/l+1./32./(l*l));
+
+    *trsf = IPhiFlat*S;
 
     if (ptw->sgnK == 0) {
       *trsf /= (l+0.5);
     }
     else {
-      *trsf *=
-        pow(1.-ptw->K*l*l/q/q,-1./4.) // here is the famous factor...good luck!
-        *pow(tau0_minus_tau_limber*q,-1.);
+      *trsf *= pow(1.-ptw->K*l*l/q/q,-1./4.)/(tau0_minus_tau_limber*q);
     }
 
   }
