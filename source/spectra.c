@@ -1293,7 +1293,7 @@ int spectra_init(
      spectrum at different wavenumbers (used in the Planck
      analysis) */
 
-  if ((ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars] == 2)) {
+  if ((ppt->has_scalars == _TRUE_) && (ppt->has_cls == _TRUE_) && (ppt->ic_size[ppt->index_md_scalars] == 2)) {
 
     l1=2;
     l2=20;
