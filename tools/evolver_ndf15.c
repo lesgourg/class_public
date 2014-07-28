@@ -1159,6 +1159,7 @@ int fzero_Newton(int (*func)(double *x,
   free(Fjac[1]);
   free(Fjac);
   free(F0);
+  free(delx);
   free(Fdel);
 
   if (has_converged == _TRUE_){

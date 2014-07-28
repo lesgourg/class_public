@@ -465,6 +465,11 @@ int input_init(
 
     // Free tuned pfc
     parser_free(&(fzw.fc));
+    /** Free arrays allocated*/
+    free(unknown_parameter);
+    free(fzw.unknown_parameters_index);
+    free(fzw.target_name);
+    free(fzw.target_value);
   }
   else{
 
