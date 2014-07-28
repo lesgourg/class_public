@@ -134,6 +134,7 @@ int input_init_from_arguments(
                  errmsg,
                  errmsg);
       class_call(parser_free(&fc_input),errmsg,errmsg);
+      class_call(parser_free(&fc_root),errmsg,errmsg);
       pfc_input = &fc_inputroot;
     }
   }
