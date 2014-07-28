@@ -1287,7 +1287,7 @@ int perturb_get_k_list(
     /* allocate array with, for the moment, the largest possible size */
     class_alloc(ppt->k[ppt->index_md_scalars],
                 ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-                 (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+1)
+                 (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                 *sizeof(double),ppt->error_message);
 
     /* first value */
