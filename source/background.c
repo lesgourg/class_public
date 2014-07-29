@@ -587,7 +587,7 @@ int background_init(
 int background_free(
                     struct background *pba
                     ) {
-  int k;
+  int err;
 
   free(pba->tau_table);
   free(pba->z_table);
@@ -595,42 +595,59 @@ int background_free(
   free(pba->background_table);
   free(pba->d2background_dtau2_table);
 
-  if (pba->has_ncdm == _TRUE_) {
-    if (pba->keep_ncdm_stuff == _TRUE_){
-      pba->keep_ncdm_stuff = _FALSE_;
-    }
-    else{
-      for(k=0; k<pba->N_ncdm; k++){
-        free(pba->q_ncdm[k]);
-        free(pba->w_ncdm[k]);
-        free(pba->q_ncdm_bg[k]);
-        free(pba->w_ncdm_bg[k]);
-        free(pba->dlnf0_dlnq_ncdm[k]);
-      }
+  err = background_free_input(pba);
 
-      free(pba->q_ncdm);
-      free(pba->w_ncdm);
-      free(pba->q_ncdm_bg);
-      free(pba->w_ncdm_bg);
-      free(pba->dlnf0_dlnq_ncdm);
-      free(pba->q_size_ncdm);
-      free(pba->q_size_ncdm_bg);
-      free(pba->M_ncdm);
-      free(pba->T_ncdm);
-      free(pba->ksi_ncdm);
-      free(pba->deg_ncdm);
-      free(pba->Omega0_ncdm);
-      free(pba->m_ncdm_in_eV);
-      free(pba->factor_ncdm);
-      if(pba->got_files!=NULL) free(pba->got_files);
-      if(pba->ncdm_psd_files!=NULL)  free(pba->ncdm_psd_files);
-      if(pba->ncdm_psd_parameters!=NULL)  free(pba->ncdm_psd_parameters);
+  return err;
+}
+
+/**
+ * Free pointers inside background structure which were
+ * allocated in input_read_parameters()
+ *
+ * @param pba Input : pointer to background structure
+ * @return the error status
+ */
+
+int background_free_input(
+                          struct background *pba
+                          ) {
+
+  int k;
+  if (pba->Omega0_ncdm_tot != 0.){
+    for(k=0; k<pba->N_ncdm; k++){
+      free(pba->q_ncdm[k]);
+      free(pba->w_ncdm[k]);
+      free(pba->q_ncdm_bg[k]);
+      free(pba->w_ncdm_bg[k]);
+      free(pba->dlnf0_dlnq_ncdm[k]);
     }
-  }
-  if (pba->has_scf == _TRUE_){
-    if (pba->scf_parameters != NULL) free(pba->scf_parameters);
+
+    free(pba->q_ncdm);
+    free(pba->w_ncdm);
+    free(pba->q_ncdm_bg);
+    free(pba->w_ncdm_bg);
+    free(pba->dlnf0_dlnq_ncdm);
+    free(pba->q_size_ncdm);
+    free(pba->q_size_ncdm_bg);
+    free(pba->M_ncdm);
+    free(pba->T_ncdm);
+    free(pba->ksi_ncdm);
+    free(pba->deg_ncdm);
+    free(pba->Omega0_ncdm);
+    free(pba->m_ncdm_in_eV);
+    free(pba->factor_ncdm);
+    if(pba->got_files!=NULL)
+      free(pba->got_files);
+    if(pba->ncdm_psd_files!=NULL)
+      free(pba->ncdm_psd_files);
+    if(pba->ncdm_psd_parameters!=NULL)
+      free(pba->ncdm_psd_parameters);
   }
 
+  if (pba->Omega0_scf != 0.){
+    if (pba->scf_parameters != NULL)
+      free(pba->scf_parameters);
+  }
   return _SUCCESS_;
 }
 

@@ -2438,7 +2438,6 @@ int input_default_params(
   pba->deg_ncdm = NULL;
   pba->ncdm_psd_parameters = NULL;
   pba->ncdm_psd_files = NULL;
-  pba->keep_ncdm_stuff = _FALSE_;
 
   pba->Omega0_scf = 0.; /* Scalar field defaults */
   pba->attractor_ic_scf = _TRUE_;
@@ -3360,6 +3359,8 @@ int input_get_guess(double *xguess,
     pfzw->fc.read[i] = _FALSE_;
   }
 
+  /** Deallocate everything allocated by input_read_parameters */
+  background_free_input(&ba);
 
   return _SUCCESS_;
 }

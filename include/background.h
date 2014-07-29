@@ -272,7 +272,6 @@ struct background
 
   //@{
 
-  int keep_ncdm_stuff;  /* Do not free ncdm arrays with background_free() */
   double ** q_ncdm_bg;  /* Pointers to vectors of background sampling in q */
   double ** w_ncdm_bg;  /* Pointers to vectors of corresponding quadrature weights w */
   double ** q_ncdm;     /* Pointers to vectors of perturbation sampling in q */
@@ -386,6 +385,10 @@ extern "C" {
   int background_free(
 		      struct background *pba
 		      );
+
+  int background_free_input(
+                            struct background *pba
+                            );
 
   int background_indices(
 			 struct background *pba
