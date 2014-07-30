@@ -274,9 +274,10 @@ int perturb_init(
 
     sz = sizeof(struct perturb_workspace);
 
-#pragma omp parallel                            \
-  shared(pppw,ppr,pba,pth,ppt,index_md,abort)   \
-  private(thread)
+#pragma omp parallel                                             \
+  shared(pppw,ppr,pba,pth,ppt,index_md,abort,number_of_threads)  \
+  private(thread)                                                \
+  num_threads(number_of_threads)
 
     {
 
@@ -315,9 +316,10 @@ int perturb_init(
 
       abort = _FALSE_;
 
-#pragma omp parallel                                    \
-  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort)  \
-  private(index_k,thread,tstart,tstop,tspent)
+#pragma omp parallel                                                    \
+  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort,number_of_threads) \
+  private(index_k,thread,tstart,tstop,tspent)                           \
+  num_threads(number_of_threads)
 
       {
 
@@ -378,9 +380,10 @@ int perturb_init(
 
     abort = _FALSE_;
 
-#pragma omp parallel                            \
-  shared(pppw,ppt,index_md,abort)               \
-  private(thread)
+#pragma omp parallel                                    \
+  shared(pppw,ppt,index_md,abort,number_of_threads)     \
+  private(thread)                                       \
+  num_threads(number_of_threads)
 
     {
 
