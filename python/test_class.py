@@ -3,6 +3,7 @@ from classy import CosmoSevereError
 import itertools
 import sys
 import numpy as np
+from math import log10
 import unittest
 from nose_parameterized import parameterized
 
@@ -31,6 +32,7 @@ class TestClass(unittest.TestCase):
         setUp is called before each test function execution.
         """
         self.cosmo = Class()
+        self.cosmo_newt = Class()
 
         self.verbose = {
             'input_verbose': 1,
@@ -48,6 +50,8 @@ class TestClass(unittest.TestCase):
     def tearDown(self):
         self.cosmo.struct_cleanup()
         self.cosmo.empty()
+        self.cosmo_newt.struct_cleanup()
+        self.cosmo_newt.empty()
         del self.scenario
 
     @parameterized.expand(
@@ -60,9 +64,8 @@ class TestClass(unittest.TestCase):
             ({'output': ''}, {'output': 'mPk'}, {'output': 'tCl'},
              {'output': 'tCl pCl lCl'}, {'output': 'mPk tCl lCl', 'P_k_max_h/Mpc':10},
              {'output': 'nCl sCl'}, {'output': 'tCl pCl lCl nCl sCl'}),
-            ({'gauge': 'newtonian'}, {'gauge': 'sync'}),
             ({}, {'non linear': 'halofit'})))
-    def test_wrapper_implementation(self, name, scenario, gauge, nonlinear):
+    def test_wrapper_implementation(self, name, scenario, nonlinear):
         """Create a few instances based on different cosmologies"""
         if name == 'Mnu':
             self.scenario.update({'N_ncdm': 1, 'm_ncdm': 0.06})
@@ -74,8 +77,6 @@ class TestClass(unittest.TestCase):
             self.scenario.update({'ic': 'ad,nid,cdi', 'c_ad_cdi': -0.5})
 
         self.scenario.update(scenario)
-        if scenario != {}:
-            self.scenario.update(gauge)
         self.scenario.update(nonlinear)
 
         sys.stderr.write('\n\n---------------------------------\n')
@@ -137,6 +138,18 @@ class TestClass(unittest.TestCase):
                 #args = (0.1, 0)
                 self.assertRaises(CosmoSevereError, self.cosmo.pk, 0.1, 0)
 
+        # Now, compute with Newtonian gauge, and compare the results
+        self.cosmo_newt.set(
+            dict(self.verbose.items()+self.scenario.items()))
+        self.cosmo_newt.set({'gauge': 'newtonian'})
+        self.cosmo_newt.compute()
+        # Check that the computation worked
+        self.assertTrue(
+            self.cosmo_newt.state,
+            "Class failed to go through all __init__ methods in Newtonian gauge")
+
+        self.compare_output(self.cosmo, self.cosmo_newt)
+
     @parameterized.expand(
         itertools.product(
             ('massless', 'massive', 'both'),
@@ -147,7 +160,7 @@ class TestClass(unittest.TestCase):
         self.scenario = {}
         if scenario == 'massless':
             self.scenario.update({'N_eff': 3.046, 'N_ncdm':0})
-        elif scenario == 'massiv':
+        elif scenario == 'massive':
             self.scenario.update(
                 {'N_eff': 0, 'N_ncdm': 2, 'm_ncdm': '0.03, 0.04',
                  'deg_ncdm': '2, 1'})
@@ -212,6 +225,41 @@ class TestClass(unittest.TestCase):
                     [variable])[variable]
                 self.assertAlmostEqual(
                     value, computed_value, places=5)
+
+    def compare_output(self, reference, candidate):
+        sys.stderr.write('\n\n---------------------------------\n')
+        sys.stderr.write('| Comparing synch and Newt: |\n')
+        sys.stderr.write('---------------------------------\n')
+
+        raw_to_test = candidate.raw_cl()
+        for key, value in reference.raw_cl().iteritems():
+            print '--> testing equality of raw Cl %s' % key
+            np.testing.assert_allclose(
+                value, raw_to_test[key], rtol=1e-06, atol=1e-20)
+
+        lensed_to_test = candidate.lensed_cl()
+        for key, value in reference.lensed_cl().iteritems():
+            print '--> testing equality of lensed Cl %s' % key
+            np.testing.assert_allclose(
+                value, lensed_to_test[key], rtol=1e-06, atol=1e-20)
+
+        density_to_test = candidate.lensed_density_cl()
+        for key, value in reference.lensed_density_cl().iteritems():
+            print '--> testing equality of density Cl %s' % key
+            np.testing.assert_allclose(
+                value, density_to_test[key], rtol=1e-06, atol=1e-20)
+
+        if 'output' in self.scenario.keys():
+            if self.scenario['output'].find('mPk') != -1:
+                print '--> testing equality of Pk'
+                k = np.logspace(
+                    -2, log10(self.scenario['P_k_max_h/Mpc']))
+                reference_pk = np.array(
+                    [reference.pk(elem, 0) for elem in k])
+                candidate_pk = np.array(
+                    [candidate.pk(elem, 0) for elem in k])
+                np.testing.assert_allclose(
+                    reference_pk, candidate_pk, rtol=1e-06, atol=1e-20)
 
 
 if __name__ == '__main__':
