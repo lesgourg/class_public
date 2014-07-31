@@ -406,12 +406,6 @@ cdef class Class:
         for flag, index, name in has_flags:
             if flag:
                 spectra.append(name)
-                l_max_flag = self.sp.l_max_ct[self.sp.index_md_scalars][index]
-                if l_max_flag < lmax and lmax > 0:
-                    raise CosmoSevereError(
-                        "the %s raw spectrum was computed until l=%i " % (
-                            name.upper(), l_max_flag) +
-                        "but you asked a l=%i" % lmax)
 
         lmaxR = self.sp.l_max_tot
         if lmax == -1:
@@ -479,12 +473,6 @@ cdef class Class:
         for flag, index, name in has_flags:
             if flag:
                 spectra.append(name)
-                l_max_flag = self.le.l_max_lt[index]
-                if l_max_flag < lmax and lmax > 0:
-                    raise CosmoSevereError(
-                        "the %s spectrum was computed until l=%i " % (
-                            name.upper(), l_max_flag) +
-                        "but you asked a l=%i" % lmax)
 
         lmaxR = self.le.l_lensed_max
 
