@@ -62,6 +62,7 @@ cdef extern from "class.h":
     cdef struct perturbs:
         ErrorMsg error_message
         int has_pk_matter
+        int l_lss_max
 
     cdef struct transfers:
         ErrorMsg error_message
@@ -103,6 +104,7 @@ cdef extern from "class.h":
         int has_ee
         int has_bb
         int l_max_tot
+        int ** l_max_ct
         int ln_k_size
         int ct_size
         int * ic_ic_size

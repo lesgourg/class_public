@@ -391,29 +391,50 @@ cdef class Class:
         for index_md in range(self.sp.md_size):
             cl_md_ic[index_md] = <double*> calloc(self.sp.ct_size*self.sp.ic_ic_size[index_md], sizeof(double))
 
+        # Define a list of integers, refering to the flags and indices of each
+        # possible output Cl. It allows for a clear and concise way of looping
+        # over them, checking if they are defined or not.
+        has_flags = [
+            (self.sp.has_tt, self.sp.index_ct_tt, 'tt'),
+            (self.sp.has_ee, self.sp.index_ct_ee, 'ee'),
+            (self.sp.has_te, self.sp.index_ct_te, 'te'),
+            (self.sp.has_bb, self.sp.index_ct_bb, 'bb'),
+            (self.le.has_pp, self.le.index_lt_pp, 'pp'),
+            (self.le.has_tp, self.le.index_lt_tp, 'tp'),]
+        spectra = []
+
+        for flag, index, name in has_flags:
+            if flag:
+                spectra.append(name)
+                l_max_flag = self.sp.l_max_ct[self.sp.index_md_scalars][index]
+                if l_max_flag < lmax and lmax > 0:
+                    raise CosmoSevereError(
+                        "the %s raw spectrum was computed until l=%i " % (
+                            name.upper(), l_max_flag) +
+                        "but you asked a l=%i" % lmax)
+
         lmaxR = self.sp.l_max_tot
-        if lmax==-1:
-            lmax=lmaxR
-        if lmax>lmaxR:
+        if lmax == -1:
+            lmax = lmaxR
+        if lmax > lmaxR:
             if nofail:
                 self._pars_check("l_max_scalars",lmax)
                 self.compute(["lensing"])
             else:
                 raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
 
+        # Initialise all the needed Cls arrays
         cl = {}
-        for elem in ['tt','te','ee','bb','pp','tp']:
-            cl[elem] = np.ndarray(lmax+1, dtype=np.double)
-            cl[elem][:2]=0
+        for elem in spectra:
+            cl[elem] = np.zeros(lmax+1, dtype=np.double)
+
+        # Recover for each ell the information from CLASS
         for ell from 2<=ell<lmax+1:
-            if spectra_cl_at_l(&self.sp,ell,rcl,cl_md,cl_md_ic) == _FAILURE_:
+            if spectra_cl_at_l(&self.sp, ell, rcl, cl_md, cl_md_ic) == _FAILURE_:
                 raise CosmoSevereError(self.sp.error_message)
-            cl['tt'][ell] = rcl[self.sp.index_ct_tt]
-            cl['te'][ell] = rcl[self.sp.index_ct_te]
-            cl['ee'][ell] = rcl[self.sp.index_ct_ee]
-            cl['bb'][ell] = rcl[self.sp.index_ct_bb]
-            cl['pp'][ell] = rcl[self.sp.index_ct_pp]
-            cl['tp'][ell] = rcl[self.sp.index_ct_tp]
+            for flag, index, name in has_flags:
+                if name in spectra:
+                    cl[name][ell] = rcl[index]
 
         free(rcl)
         return cl
@@ -422,7 +443,9 @@ cdef class Class:
         """
         lensed_cl(lmax=-1, nofail=False)
 
-        Return a dictionary of the lensed C_l, computed by CLASS
+        Return a dictionary of the lensed C_l, computed by CLASS, without the
+        density C_ls. They must be asked separately with the function aptly
+        named density_cl
 
         Parameters
         ----------
@@ -440,80 +463,34 @@ cdef class Class:
         """
         cdef int lmaxR
         cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
+
+        # Define a list of integers, refering to the flags and indices of each
+        # possible output Cl. It allows for a clear and concise way of looping
+        # over them, checking if they are defined or not.
+        has_flags = [
+            (self.le.has_tt, self.le.index_lt_tt, 'tt'),
+            (self.le.has_ee, self.le.index_lt_ee, 'ee'),
+            (self.le.has_te, self.le.index_lt_te, 'te'),
+            (self.le.has_bb, self.le.index_lt_bb, 'bb'),
+            (self.le.has_pp, self.le.index_lt_pp, 'pp'),
+            (self.le.has_tp, self.le.index_lt_tp, 'tp'),]
+        spectra = []
+
+        for flag, index, name in has_flags:
+            if flag:
+                spectra.append(name)
+                l_max_flag = self.le.l_max_lt[index]
+                if l_max_flag < lmax and lmax > 0:
+                    raise CosmoSevereError(
+                        "the %s spectrum was computed until l=%i " % (
+                            name.upper(), l_max_flag) +
+                        "but you asked a l=%i" % lmax)
+
         lmaxR = self.le.l_lensed_max
 
-        spectra = []
-        #for elem in ['tt', 'te', 'ee', 'bb']:
-            #if getattr(getattr(self, 'sp'), 'has_%s' % elem) == _TRUE_:
-                #spectra.append(elem)
-        if self.le.has_tt == _TRUE_:
-            spectra.append('tt')
-            l_max_tt = self.le.l_max_lt[self.le.index_lt_tt]
-            if l_max_tt < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the TT spectrum was computed until l=%i " % l_max_tt +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_te == _TRUE_:
-            spectra.append('te')
-            l_max_te = self.le.l_max_lt[self.le.index_lt_te]
-            if l_max_te < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the TE spectrum was computed until l=%i " % l_max_te +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_ee == _TRUE_:
-            spectra.append('ee')
-            l_max_ee = self.le.l_max_lt[self.le.index_lt_ee]
-            if l_max_ee < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the EE spectrum was computed until l=%i " % l_max_ee +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_bb == _TRUE_:
-            spectra.append('bb')
-            l_max_bb = self.le.l_max_lt[self.le.index_lt_bb]
-            if l_max_bb < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the BB spectrum was computed until l=%i " % l_max_bb +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_pp == _TRUE_:
-            spectra.append('pp')
-            l_max_pp = self.le.l_max_lt[self.le.index_lt_pp]
-            if l_max_pp < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the PP spectrum was computed until l=%i " % l_max_pp +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_tp == _TRUE_:
-            spectra.append('tp')
-            l_max_tp = self.le.l_max_lt[self.le.index_lt_tp]
-            if l_max_tp < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the PP spectrum was computed until l=%i " % l_max_tp +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_dd == _TRUE_:
-            spectra.append('dd')
-            l_max_dd = self.le.l_max_lt[self.le.index_lt_dd]
-            if l_max_dd < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the DD spectrum was computed until l=%i " % l_max_dd +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_ll == _TRUE_:
-            spectra.append('ll')
-            l_max_ll = self.le.l_max_lt[self.le.index_lt_ll]
-            if l_max_ll < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the LL spectrum was computed until l=%i " % l_max_ll +
-                    "but you asked a l=%i" % lmax)
-        if self.le.has_tl == _TRUE_:
-            spectra.append('tl')
-            l_max_tl = self.le.l_max_lt[self.le.index_lt_tl]
-            if l_max_tl < lmax and lmax > 0:
-                raise CosmoSevereError(
-                    "the TL spectrum was computed until l=%i " % l_max_tl +
-                    "but you asked a l=%i" % lmax)
-        lmaxR = self.le.l_lensed_max  # problem if lss ?
-
-        if lmax==-1:
-            lmax=lmaxR
-        if lmax>lmaxR:
+        if lmax == -1:
+            lmax = lmaxR
+        if lmax > lmaxR:
             if nofail:
                 self._pars_check("l_max_scalars",lmax)
                 self.compute(["lensing"])
@@ -522,52 +499,22 @@ cdef class Class:
 
         cl = {}
         # Simple Cls, for temperature and polarisation, are not so big in size
-        for elem in ['tt', 'te', 'ee', 'bb', 'pp', 'tp']:
-            if elem in spectra:
-                cl[elem] = np.ndarray(lmax+1, dtype=np.double)
-                cl[elem][:2]=0
-        # For density Cls, the size is bigger
-        for elem in ['dd', 'll', 'dl']:
-            if elem in spectra:
-                size = (self.sp.d_size*(self.sp.d_size+1)-
-                    (self.sp.d_size-self.sp.non_diag)*(
-                    self.sp.d_size-1-self.sp.non_diag))/2
-                cl[elem] = {}
-                for index in range(size):
-                    cl[elem][index] = np.ndarray(lmax+1, dtype=np.double)
-                    cl[elem][index][:2] = 0
-
+        for elem in spectra:
+            cl[elem] = np.zeros(lmax+1, dtype=np.double)
         for ell from 2<=ell<lmax+1:
             if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
                 raise CosmoSevereError(self.le.error_message)
-            if 'tt' in spectra:
-                cl['tt'][ell] = lcl[self.le.index_lt_tt]
-            if 'tt' in spectra:
-                cl['te'][ell] = lcl[self.le.index_lt_te]
-            if 'ee' in spectra:
-                cl['ee'][ell] = lcl[self.le.index_lt_ee]
-            if 'bb' in spectra:
-                cl['bb'][ell] = lcl[self.le.index_lt_bb]
-            if 'pp' in spectra:
-                cl['pp'][ell] = lcl[self.le.index_lt_pp]
-            if 'tp' in spectra:
-                cl['tp'][ell] = lcl[self.le.index_lt_tp]
-            if 'dd' in spectra:
-                for index in range(size):
-                    cl['dd'][index][ell] = lcl[self.le.index_lt_dd+index]
-            if 'll' in spectra:
-                for index in range(size):
-                    cl['ll'][index][ell] = lcl[self.le.index_lt_ll+index]
-            if 'tl' in spectra:
-                cl['tl'][ell] = lcl[self.le.index_lt_tl]
+            for flag, index, name in has_flags:
+                if name in spectra:
+                    cl[name][ell] = lcl[index]
         cl['ell'] = np.arange(lmax+1)
 
         free(lcl)
         return cl
 
-    def density_cl(self, lmax=-1, nofail=False):
+    def lensed_density_cl(self, lmax=-1, nofail=False):
         """
-        density_cl(lmax=-1, nofail=False)
+        lensed_density_cl(lmax=-1, nofail=False)
 
         Return a dictionary of the primary C_l for the matter
 
@@ -587,12 +534,29 @@ cdef class Class:
             starts at index_ct_dd.
         """
         cdef int lmaxR
-        cdef double *rcl = <double*> calloc(self.sp.ct_size,sizeof(double))
+        cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
 
         lmaxR = self.pt.l_lss_max
-        if lmax==-1:
-            lmax=lmaxR
-        if lmax>lmaxR:
+        has_flags = [
+            (self.le.has_dd, self.le.index_lt_dd, 'dd'),
+            (self.le.has_td, self.le.index_lt_td, 'td'),
+            (self.le.has_ll, self.le.index_lt_ll, 'll'),
+            (self.le.has_tl, self.le.index_lt_tl, 'tl')]
+        spectra = []
+
+        for flag, index, name in has_flags:
+            if flag:
+                spectra.append(name)
+                l_max_flag = self.le.l_max_lt[index]
+                if l_max_flag < lmax and lmax > 0:
+                    raise CosmoSevereError(
+                        "the %s spectrum was computed until l=%i " % (
+                            name.upper(), l_max_flag) +
+                        "but you asked a l=%i" % lmax)
+
+        if lmax == -1:
+            lmax = lmaxR
+        if lmax > lmaxR:
             if nofail:
                 self._pars_check("l_max_lss",lmax)
                 self._pars_check("output",'rCl')
@@ -600,23 +564,38 @@ cdef class Class:
             else:
                 raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
 
-        cl = []
+        cl = {}
 
+        # For density Cls, the size is bigger (different redshfit bins)
         # computes the size, given the number of correlations needed to be computed
         size = (self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
                 (self.sp.d_size-1-self.sp.non_diag))/2;
-        for index in range(size):
-            cl.append(np.ndarray(lmax+1, dtype=np.double))
-            cl[index][:2]=0
-        cl = np.array(cl)
+        for elem in ['dd', 'll']:
+            if elem in spectra:
+                cl[elem] = {}
+                for index in range(size):
+                    cl[elem][index] = np.zeros(
+                        lmax+1, dtype=np.double)
+        for elem in ['td', 'tl']:
+            if elem in spectra:
+                cl[elem] = np.zeros(lmax+1, dtype=np.double)
 
         for ell from 2<=ell<lmax+1:
-            if spectra_cl_at_l(&self.sp,ell,rcl,NULL,NULL) == _FAILURE_:
-                raise CosmoComputationError(self.sp.error_message)
-            for index in range(size):
-                cl[index][ell] = rcl[self.sp.index_ct_dd+index]
+            if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
+                raise CosmoSevereError(self.le.error_message)
+            if 'dd' in spectra:
+                for index in range(size):
+                    cl['dd'][index][ell] = lcl[self.le.index_lt_dd+index]
+            if 'll' in spectra:
+                for index in range(size):
+                    cl['ll'][index][ell] = lcl[self.le.index_lt_ll+index]
+            if 'td' in spectra:
+                cl['td'][ell] = lcl[self.le.index_lt_td]
+            if 'tl' in spectra:
+                cl['tl'][ell] = lcl[self.le.index_lt_tl]
+        cl['ell'] = np.arange(lmax+1)
 
-        free(rcl)
+        free(lcl)
         return cl
 
     def z_of_r (self,z_array):
