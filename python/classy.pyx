@@ -119,9 +119,6 @@ cdef class Class:
         self.ncp = set()
         if default: self.set_default()
 
-        # TEST
-        #raise CosmoSevereError
-
     # Set up the dictionary
     def set(self,*pars,**kars):
         if len(pars)==1:
@@ -196,27 +193,44 @@ cdef class Class:
             background_free(&self.ba)
         self.ready = False
 
-    # Ensure the full module dependency
-    def _check_task_dependency(self,lvl):
-        if "lensing" in lvl:
-            lvl.append("spectra")
-        if "spectra" in lvl:
-            lvl.append("transfer")
-        if "transfer" in lvl:
-            lvl.append("nonlinear")
-        if "nonlinear" in lvl:
-            lvl.append("primordial")
-        if "primordial" in lvl:
-            lvl.append("perturb")
-        if "perturb" in lvl:
-            lvl.append("thermodynamics")
-        if "thermodynamics" in lvl:
-            lvl.append("background")
-        if len(lvl)!=0 :
-            lvl.append("input")
-        return lvl
+    def _check_task_dependency(self, level):
+        """
+        Fill the level list with all the needed modules
 
-    def _pars_check(self,key,value,contains=False,add=""):
+        .. warning::
+
+            the ordering of modules is obviously dependent on CLASS module order
+            in the main.c file. This has to be updated in case of a change to
+            this file.
+
+        Parameters
+        ----------
+
+        level : list
+            list of strings, containing initially only the last module required.
+            For instance, to recover all the modules, the input should be
+            ['lensing']
+
+        """
+        if "lensing" in level:
+            level.append("spectra")
+        if "spectra" in level:
+            level.append("transfer")
+        if "transfer" in level:
+            level.append("nonlinear")
+        if "nonlinear" in level:
+            level.append("primordial")
+        if "primordial" in level:
+            level.append("perturb")
+        if "perturb" in level:
+            level.append("thermodynamics")
+        if "thermodynamics" in level:
+            level.append("background")
+        if len(level)!=0 :
+            level.append("input")
+        return level
+
+    def _pars_check(self, key, value, contains=False, add=""):
         val = ""
         if key in self._pars:
             val = self._pars[key]
@@ -238,61 +252,65 @@ cdef class Class:
             return True
         return False
 
-    # Main function, computes (call _init methods for all desired modules). This
-    # is called in MontePython, and this ensures that the Class instance of this
-    # class contains all the relevant quantities. Then, one can deduce Pk, Cl,
-    # etc...
-    # lvl default value should be left as an array (was creating problem when
-    # casting as a set later on in check_task_dependency) (TOFIX more)
-    def compute(self, lvl=["lensing"]):
+    def compute(self, level=["lensing"]):
         """
-        compute(lvl=["lensing"])
+        compute(level=["lensing"])
 
-        Compute CMB quantities up to module lvl
+        Main function, execute all the _init methods for all desired modules.
+        This is called in MontePython, and this ensures that the Class instance
+        of this class contains all the relevant quantities. Then, one can deduce
+        Pk, Cl, etc...
 
         Parameters
         ----------
-        lvl : list
-                last module desired. For instance, "lensing". Then Class will compute all
-                the modules required to compute this desired module through the
-                (internal) function _check_task_dependency
+        level : list
+                list of the last module desired. The internal function
+                _check_task_dependency will then add to this list all the
+                necessary modules to compute in order to initialize this last
+                one. The default last module is "lensing".
+
+        .. warning::
+            
+            level default value should be left as an array (it was creating
+            problem when casting as a set later on, in _check_task_dependency)
 
         """
         cdef ErrorMsg errmsg
-        cdef int ierr
-        cdef char* dumc
 
-        lvl = self._check_task_dependency(lvl)
+        # Append to the list level all the modules necessary to compute.
+        level = self._check_task_dependency(level)
 
-        if self.ready and self.ncp.issuperset(lvl):
+        # Check if this function ran before (self.ready should be true), and
+        # if no other modules were requested, i.e. if self.ncp contains (or is
+        # equivalent to) level. If it is the case, simply stop the execution of
+        # the function.
+        if self.ready and self.ncp.issuperset(level):
             return
 
+        # Otherwise, proceed with the normal computation.
         self.ready = False
 
+        # Equivalent of writing a parameter file
         self._fillparfile()
 
-        # empty all
+        # self.ncp will contain the list of computed modules (under the form of
+        # a set, instead of a python list)
         self.ncp=set()
 
-        # compute
-        if "input" in lvl:
-            ierr = input_init(
-                &self.fc,
-                &self.pr,
-                &self.ba,
-                &self.th,
-                &self.pt,
-                &self.tr,
-                &self.pm,
-                &self.sp,
-                &self.nl,
-                &self.le,
-                &self.op,
-                errmsg)
-            if ierr == _FAILURE_:
+        # --------------------------------------------------------------------
+        # Check the presence for all CLASS modules in the list 'level'. If a
+        # module is found in level, executure its "_init" method.
+        # --------------------------------------------------------------------
+        # The input module should raise a CosmoSevereError, because
+        # non-understood parameters asked to the wrapper is a problematic
+        # situation.
+        if "input" in level:
+            if input_init(&self.fc, &self.pr, &self.ba, &self.th,
+                          &self.pt, &self.tr, &self.pm, &self.sp,
+                          &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
                 raise CosmoSevereError(errmsg)
             self.ncp.add("input")
-
+            # This part is done to list all the unread parameters, for debugging
             problem_flag = False
             problematic_parameters = []
             for i in range(self.fc.size):
@@ -304,50 +322,61 @@ cdef class Class:
                     "Class did not read input parameter(s): %s\n" % ', '.join(
                     problematic_parameters))
 
-        if "background" in lvl:
-            if background_init(&(self.pr),&(self.ba)) == _FAILURE_:
+        # The following list of computation is straightforward. If the "_init"
+        # methods fail, call `struct_cleanup` and raise a CosmoComputationError
+        # with the error message from the faulty module of CLASS.
+        if "background" in level:
+            if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
             self.ncp.add("background")
 
-        if "thermodynamics" in lvl:
-            if thermodynamics_init(&(self.pr),&(self.ba),&(self.th)) == _FAILURE_:
+        if "thermodynamics" in level:
+            if thermodynamics_init(&(self.pr), &(self.ba),
+                                   &(self.th)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
 
-        if "perturb" in lvl:
-            if perturb_init(&(self.pr),&(self.ba),&(self.th),&(self.pt)) == _FAILURE_:
+        if "perturb" in level:
+            if perturb_init(&(self.pr), &(self.ba),
+                            &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
 
-        if "primordial" in lvl:
-            if primordial_init(&(self.pr),&(self.pt),&(self.pm)) == _FAILURE_:
+        if "primordial" in level:
+            if primordial_init(&(self.pr), &(self.pt),
+                               &(self.pm)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
 
-        if "nonlinear" in lvl:
-            if nonlinear_init(&self.pr,&self.ba,&self.th,&self.pt,&self.pm,&self.nl) == _FAILURE_:
+        if "nonlinear" in level:
+            if nonlinear_init(&self.pr, &self.ba, &self.th,
+                              &self.pt, &self.pm, &self.nl) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.nl.error_message)
             self.ncp.add("nonlinear")
 
-        if "transfer" in lvl:
-            if transfer_init(&(self.pr),&(self.ba),&(self.th),&(self.pt),&(self.nl),&(self.tr)) == _FAILURE_:
+        if "transfer" in level:
+            if transfer_init(&(self.pr), &(self.ba), &(self.th),
+                             &(self.pt), &(self.nl), &(self.tr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
 
-        if "spectra" in lvl:
-            if spectra_init(&(self.pr),&(self.ba),&(self.pt),&(self.pm),&(self.nl),&(self.tr),&(self.sp)) == _FAILURE_:
+        if "spectra" in level:
+            if spectra_init(&(self.pr), &(self.ba), &(self.pt),
+                            &(self.pm), &(self.nl), &(self.tr),
+                            &(self.sp)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sp.error_message)
             self.ncp.add("spectra")
 
-        if "lensing" in lvl:
-            if lensing_init(&(self.pr),&(self.pt),&(self.sp),&(self.nl),&(self.le)) == _FAILURE_:
+        if "lensing" in level:
+            if lensing_init(&(self.pr), &(self.pt), &(self.sp),
+                            &(self.nl), &(self.le)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
@@ -367,16 +396,22 @@ cdef class Class:
         Parameters
         ----------
         lmax : int, optional
-                Define the maximum l for which the C_l will be returned (inclusively)
+                Define the maximum l for which the C_l will be returned
+                (inclusively). This number will be checked against the maximum l
+                at which they were actually computed by CLASS, and an error will
+                be raised if the desired lmax is bigger than what CLASS can
+                give.
         nofail: bool, optional
-                Check and enforce the computation of the lensing module beforehand
+                Check and enforce the computation of the spectra module
+                beforehand, with the desired lmax.
 
         Returns
         -------
         cl : dict
                 Dictionary that contains the power spectrum for 'tt', 'te', etc... The
                 index associated with each is defined wrt. Class convention, and are non
-                important from the python point of view.
+                important from the python point of view. It also returns now the
+                ell array.
         """
         cdef int lmaxR
         cdef double *rcl = <double*> calloc(self.sp.ct_size,sizeof(double))
