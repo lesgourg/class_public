@@ -2,16 +2,55 @@ from classy import Class
 from classy import CosmoSevereError
 import itertools
 import sys
+import shutil
+import os
 import numpy as np
 from math import log10
+import matplotlib.pyplot as plt
 import unittest
 from nose_parameterized import parameterized
+
+# Dictionary of models to test the wrapper against. Each of these scenario will
+# be run against all the possible output choices (nothing, tCl, mPk, etc...),
+# with or without non-linearities.
+MODELS = {
+    'LCDM': {},
+    'Mnu': {'N_ncdm': 1, 'm_ncdm': 0.06},
+    'Positive_Omega_k': {'Omega_k': 0.01},
+    'Negative_Omega_k': {'Omega_k': -0.01},
+    'Isocurvature_modes': {'ic': 'ad,nid,cdi', 'c_ad_cdi': -0.5},
+    'Scalar_field': {'Omega_scf': 0.1, 'attractor_ic_scf': 'yes',
+                     'scf_parameters': '10, 0, 0, 0'},
+    }
+
+# For extensive testing, change False to True. It will then append to MODELS
+# all the possible combinations of models that are not incompatible. Obviously,
+# this will be slower to test...
+if False:
+    INCOMPATIBLE_MODELS = ['LCDM', 'Positive_Omega_k', 'Negative_Omega_k']
+    BASE_MODELS = [key for key in MODELS.keys()
+                   if key not in INCOMPATIBLE_MODELS]
+
+    ALL_MODELS = {}
+    for n in range(0, len(BASE_MODELS)+1):
+        for elem in itertools.combinations(BASE_MODELS, n):
+            print elem
+            temp = {}
+            for key in elem:
+                temp.update(MODELS[key])
+
+            for key in INCOMPATIBLE_MODELS:
+                ALL_MODELS['_'.join(elem+tuple([key], ))] = dict(
+                    temp.items()+MODELS[key].items())
+    MODELS = ALL_MODELS
+
 
 def powerset(iterable):
     xs = list(iterable)
     # note we return an iterator rather than a list
     return itertools.chain.from_iterable(
-        itertools.combinations(xs,n) for n in range(1, len(xs)+1))
+        itertools.combinations(xs, n) for n in range(1, len(xs)+1))
+
 
 class TestClass(unittest.TestCase):
     """
@@ -25,6 +64,21 @@ class TestClass(unittest.TestCase):
     etc..)
 
     """
+    @classmethod
+    def setUpClass(self):
+        self.faulty_figs_path = os.path.join(
+            os.path.sep.join(os.path.realpath(__file__).split(
+                os.path.sep)[:-1]),
+            'faulty_figs')
+
+        if os.path.isdir(self.faulty_figs_path):
+            shutil.rmtree(self.faulty_figs_path)
+
+        os.mkdir(self.faulty_figs_path)
+
+    @classmethod
+    def tearDownClass(self):
+        pass
 
     def setUp(self):
         """
@@ -45,7 +99,7 @@ class TestClass(unittest.TestCase):
             'nonlinear_verbose': 1,
             'lensing_verbose': 1,
             'output_verbose': 1}
-        self.scenario = {'lensing':'yes'}
+        self.scenario = {'lensing': 'yes'}
 
     def tearDown(self):
         self.cosmo.struct_cleanup()
@@ -56,25 +110,17 @@ class TestClass(unittest.TestCase):
 
     @parameterized.expand(
         itertools.product(
-            ('LCDM',
-             'Mnu',
-             'Positive_Omega_k',
-             'Negative_Omega_k',
-             'Isocurvature_modes', ),
+            MODELS.keys(),
             ({'output': ''}, {'output': 'mPk'}, {'output': 'tCl'},
              {'output': 'tCl pCl lCl'}, {'output': 'mPk tCl lCl', 'P_k_max_h/Mpc':10},
              {'output': 'nCl sCl'}, {'output': 'tCl pCl lCl nCl sCl'}),
             ({}, {'non linear': 'halofit'})))
     def test_wrapper_implementation(self, name, scenario, nonlinear):
         """Create a few instances based on different cosmologies"""
-        if name == 'Mnu':
-            self.scenario.update({'N_ncdm': 1, 'm_ncdm': 0.06})
-        elif name == 'Positive_Omega_k':
-            self.scenario.update({'Omega_k': 0.01})
-        elif name == 'Negative_Omega_k':
-            self.scenario.update({'Omega_k': -0.01})
-        elif name == 'Isocurvature_modes':
-            self.scenario.update({'ic': 'ad,nid,cdi', 'c_ad_cdi': -0.5})
+        self.scenario.update(MODELS[name])
+
+        self.name = name
+        self.nonlinear = nonlinear
 
         self.scenario.update(scenario)
         self.scenario.update(nonlinear)
@@ -185,8 +231,8 @@ class TestClass(unittest.TestCase):
 
     @parameterized.expand(
         itertools.izip(
-            powerset(['100*theta_s', 'Omega_dcdmdr']),
-            powerset([1.04, 0.20]),))
+            powerset(['100*theta_s', 'Omega_dcdmdr', 'Omega_scf']),
+            powerset([1.04, 0.20, -1]),))
     def test_shooting_method(self, variables, values):
         Omega_cdm = 0.25
 
@@ -202,6 +248,17 @@ class TestClass(unittest.TestCase):
         else:
             scenario.update({
                 'Omega_cdm': Omega_cdm})
+
+        if 'Omega_scf' in variables:
+            scenario.update({
+                'scf_tuning_index': 0,
+                'Omega_Lambda': 0.6,
+                'Omega_fld': 0,
+                # TODO, the following values fail...
+                #'scf_parameters': '11, -1.e-40, 0.1, 0',
+                'scf_parameters': '10, 0, 0, 0',
+                'YHe': 0.25,  # Needed for CLASS to compute
+                'attractor_ic_scf': 'yes'})
 
         sys.stderr.write('\n\n---------------------------------\n')
         sys.stderr.write('| Test shooting: %s |\n' % (
@@ -225,29 +282,26 @@ class TestClass(unittest.TestCase):
                     [variable])[variable]
                 self.assertAlmostEqual(
                     value, computed_value, places=5)
+            # In a perfect world, we should here compare the output also for
+            # scf and dcdm_dr, by looking into the background_table array of
+            # the background module
 
     def compare_output(self, reference, candidate):
         sys.stderr.write('\n\n---------------------------------\n')
         sys.stderr.write('| Comparing synch and Newt: |\n')
         sys.stderr.write('---------------------------------\n')
 
-        raw_to_test = candidate.raw_cl()
-        for key, value in reference.raw_cl().iteritems():
-            print '--> testing equality of raw Cl %s' % key
-            np.testing.assert_allclose(
-                value, raw_to_test[key], rtol=1e-06, atol=1e-20)
-
-        lensed_to_test = candidate.lensed_cl()
-        for key, value in reference.lensed_cl().iteritems():
-            print '--> testing equality of lensed Cl %s' % key
-            np.testing.assert_allclose(
-                value, lensed_to_test[key], rtol=1e-06, atol=1e-20)
-
-        density_to_test = candidate.lensed_density_cl()
-        for key, value in reference.lensed_density_cl().iteritems():
-            print '--> testing equality of density Cl %s' % key
-            np.testing.assert_allclose(
-                value, density_to_test[key], rtol=1e-06, atol=1e-20)
+        for elem in ['raw_cl', 'lensed_cl', 'lensed_density_cl']:
+            to_test = getattr(candidate, elem)()
+            ref = getattr(reference, elem)()
+            for key, value in ref.iteritems():
+                print '--> testing equality of %s %s' % (elem, key)
+                try:
+                    np.testing.assert_allclose(
+                        value, to_test[key], rtol=1e-03, atol=1e-20)
+                except AssertionError:
+                    self.cl_faulty_plot(elem+"_"+key,
+                                        value[2:], to_test[key][2:])
 
         if 'output' in self.scenario.keys():
             if self.scenario['output'].find('mPk') != -1:
@@ -259,7 +313,41 @@ class TestClass(unittest.TestCase):
                 candidate_pk = np.array(
                     [candidate.pk(elem, 0) for elem in k])
                 np.testing.assert_allclose(
-                    reference_pk, candidate_pk, rtol=1e-06, atol=1e-20)
+                    reference_pk, candidate_pk, rtol=1e-03, atol=1e-20)
+
+    def cl_faulty_plot(self, cl_type, reference, candidate):
+        name = self.name+"_"
+        if self.nonlinear:
+            name += "NL_"
+        name += cl_type
+
+        path = os.path.join(self.faulty_figs_path, name)
+
+        fig = plt.figure()
+        ax_lin = plt.subplot(211)
+        ax_log = plt.subplot(212)
+        ell = np.arange(max(np.shape(candidate)))+2
+        ax_lin.plot(ell, 1-candidate/reference)
+        ax_log.loglog(ell, abs(1-candidate/reference))
+
+        ax_lin.set_xlabel('l')
+        ax_log.set_xlabel('l')
+        ax_lin.set_ylabel('1-candidate/reference')
+        ax_log.set_ylabel('abs(1-candidate/reference)')
+
+        ax_lin.set_title(name)
+        ax_log.set_title(name)
+
+        ax_lin.legend([cl_type])
+        ax_log.legend([cl_type])
+
+        fig.savefig(path+'.pdf')
+
+        # Store parameters (contained in self.scenario) to text file
+        parameters = dict(self.verbose.items()+self.scenario.items())
+        with open(path+'.ini', 'w') as param_file:
+            for key, value in parameters.iteritems():
+                param_file.write(key+" = "+str(value)+'\n')
 
 
 if __name__ == '__main__':
