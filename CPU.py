@@ -5,45 +5,46 @@
 .. version:: 2.0
 
 This is a small python program aimed to gain time when comparing two spectra,
-i.e. from CAMB and CLASS, or a non-linear spectrum to a linear one.  It is
-designed to be used in a command line fashion, not being restricted to your
-CLASS directory, though it recognized mainly CLASS output format.  Far from
-perfect, or complete, it could use any suggestion for enhancing it, just to
-avoid losing time on useless matters for others.  Be warned that, when
-comparing with other format, the following is assumed: there are no empty line
-(especially at the end of file). Gnuplot comment lines (starting with a # are
-allowed). This issue will cause a non-very descriptive error in CPU, any
-suggestion for testing it is welcome.  Example of use: To superimpose two
-different spectra and see their global shape :
+i.e. from CAMB and CLASS, or a non-linear spectrum to a linear one.
+
+It is designed to be used in a command line fashion, not being restricted to
+your CLASS directory, though it recognizes mainly CLASS output format. Far from
+perfect, or complete, it could use any suggestion for enhancing it,
+just to avoid losing time on useless matters for others.
+
+Be warned that, when comparing with other format, the following is assumed:
+there are no empty line (especially at the end of file). Gnuplot comment lines
+(starting with a # are allowed). This issue will cause a non-very descriptive
+error in CPU, any suggestion for testing it is welcome.
+
+Example of use:
+- To superimpose two different spectra and see their global shape :
 python CPU.py output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat
-To see in details their ratio:
+- To see in details their ratio:
 python CPU.py output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat -r
 
+The "PlanckScale" is taken with permission from Jesus Torrado's:
+cosmo_mini_toolbox, available under GPL at
+https://github.com/JesusTorrado/cosmo_mini_toolbox
+
 """
-import numpy as np
-from numpy import ma
-MaskedArray = ma.MaskedArray
-from scipy.interpolate import splrep, splev
+# System imports
 import os
-import matplotlib.pyplot as plt
 import sys
 import argparse
 import itertools
+
+# Numerics
+import numpy as np
+from numpy import ma
+from scipy.interpolate import splrep, splev
 from math import floor
+
+# Plotting
+import matplotlib.pyplot as plt
 from matplotlib import scale as mscale
 from matplotlib.transforms import Transform
 from matplotlib.ticker import FixedLocator
-
-START_LINE = {}
-START_LINE['error'] = [r' /|\   ',
-                       r'/_o_\  ',
-                       r'       ']
-START_LINE['warning'] = [r' /!\ ',
-                         r'     ']
-START_LINE['info'] = [r' /!\ ',
-                      r'     ']
-
-STANDARD_LENGTH = 80  # standard, increase if you have a big screen
 
 
 def create_parser():
@@ -81,138 +82,13 @@ def create_parser():
         help='repeat the step for all redshifts with same base name')
     return parser
 
-# Helper code from cosmo_mini_toolbox, by Jesus Torrado, available fully at
-# https://github.com/JesusTorrado/cosmo_mini_toolbox, to use the log then
-# linear scale for the multipole axis when plotting Cl.
-nonpos = "mask"
-change = 50.0
-factor = 500.
-
-
-def _mask_nonpos(a):
-    """
-Return a Numpy masked array where all non-positive 1 are
-masked. If there are no non-positive, the original array
-is returned.
-"""
-    mask = a <= 0.0
-    if mask.any():
-        return ma.MaskedArray(a, mask=mask)
-    return a
-
-
-def _clip_smaller_than_one(a):
-    a[a <= 0.0] = 1e-300
-    return a
-
-
-class PlanckScale(mscale.ScaleBase):
-    """
-Scale used by the Planck collaboration to plot Temperature power spectra:
-base-10 logarithmic up to l=50, and linear from there on.
-
-Care is taken so non-positive values are not plotted.
-"""
-    name = 'planck'
-
-    def __init__(self, axis, **kwargs):
-        pass
-
-    def set_default_locators_and_formatters(self, axis):
-        axis.set_major_locator(
-            FixedLocator(
-                np.concatenate((np.array([2, 10, change]),
-                                np.arange(500, 2500, 500)))))
-        axis.set_minor_locator(
-            FixedLocator(
-                np.concatenate((np.arange(2, 10),
-                                np.arange(10, 50, 10),
-                                np.arange(floor(change/100), 2500, 100)))))
-
-    def get_transform(self):
-        """
-        Return a :class:`~matplotlib.transforms.Transform` instance
-        appropriate for the given logarithm base.
-        """
-        return self.PlanckTransform(nonpos)
-
-    def limit_range_for_scale(self, vmin, vmax, minpos):
-        """
-        Limit the domain to positive values.
-        """
-        return (vmin <= 0.0 and minpos or vmin,
-                vmax <= 0.0 and minpos or vmax)
-
-    class PlanckTransform(Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-        has_inverse = True
-
-        def __init__(self, nonpos):
-            Transform.__init__(self)
-            if nonpos == 'mask':
-                self._handle_nonpos = _mask_nonpos
-            else:
-                self._handle_nonpos = _clip_nonpos
-
-        def transform_non_affine(self, a):
-            lower = a[np.where(a<=change)]
-            greater = a[np.where(a> change)]
-            if lower.size:
-                lower = self._handle_nonpos(lower * 10.0)/10.0
-                if isinstance(lower, MaskedArray):
-                    lower = ma.log10(lower)
-                else:
-                    lower = np.log10(lower)
-                lower = factor*lower
-            if greater.size:
-                greater = (factor*np.log10(change) + (greater-change))
-            # Only low
-            if not(greater.size):
-                return lower
-            # Only high
-            if not(lower.size):
-                return greater
-            return np.concatenate((lower, greater))
-
-        def inverted(self):
-            return PlanckScale.InvertedPlanckTransform()
-
-    class InvertedPlanckTransform(Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-        has_inverse = True
-
-        def transform_non_affine(self, a):
-            lower = a[np.where(a<=factor*np.log10(change))]
-            greater = a[np.where(a> factor*np.log10(change))]
-            if lower.size:
-                if isinstance(lower, MaskedArray):
-                    lower = ma.power(10.0, lower/float(factor))
-                else:
-                    lower = np.power(10.0, lower/float(factor))
-            if greater.size:
-                greater = (greater + change - factor*np.log10(change))
-            # Only low
-            if not(greater.size):
-                return lower
-            # Only high
-            if not(lower.size):
-                return greater
-            return np.concatenate((lower, greater))
-        def inverted(self):
-            return PlanckTransform()
-
-# Finished. Register the scale!
-mscale.register_scale(PlanckScale)
 
 def plot_CLASS_output(files, selection, ratio=False, printing=False,
                       output_name='', extension='', x_variable='',
                       scale='lin', xlim=[], ylim=[]):
     """
-    Load the data to numpy arrays, write a Python script and plot them.
+    Load the data to numpy arrays, write all the commands for plotting to a
+    Python script for further refinment, and display them.
 
     Inspired heavily by the matlab version by Thomas Tram
 
@@ -233,7 +109,6 @@ def plot_CLASS_output(files, selection, ratio=False, printing=False,
         Specify a different name for the produced figure (by default, it takes
         the name of the first file, and replace the .dat by .pdf)
     extension : str
-
 
     """
     # Load all the graphs
@@ -271,18 +146,11 @@ for data_file in files:
         # in case selection was only a string, cast it to a list
         if isinstance(selection, str):
             selection = [selection]
-        # This is not needed anymore, as you can specify not entire strings
-        #for elem in selection:
-            #if elem not in names:
-                #raise InputError(
-                    #"The entry 'selection' must contain names of the fields "
-                    #"in the specified files. You asked for %s " % elem +
-                    #"where I only found %s." % names)
     # Store the selected text and tex_names to the script
     selected = []
     for elem in selection:
         selected.extend([name for name in names if name.find(elem) != -1 and
-        name not in selected])
+                         name not in selected])
     text += 'selection = %s\n' % selected
     text += 'tex_names = %s\n' % [elem for (elem, name) in
                                   zip(tex_names, names) if name in selected]
@@ -331,7 +199,7 @@ for data_file in files:
                 axis = ref[:, 0]
                 reference = ref[:, ref_curve_names.index(selec)]
                 interpolated = splrep(current[:, 0],
-                                        current[:, curve_names.index(selec)])
+                                      current[:, curve_names.index(selec)])
                 if scale == 'lin':
                     ax.plot(axis, splev(ref[:, 0], interpolated)/reference-1)
                 elif scale == 'loglin':
@@ -341,8 +209,6 @@ for data_file in files:
                     raise InputError(
                         "loglog plot is not available for ratios")
 
-            #if np.allclose(current[0], ref[0]):
-                #ax.plot(current[0], current[colnum]/ref[colnum])
     if 'TT' in curve_names:
         ax.set_xlabel('$\ell$', fontsize=20)
     elif 'P' in curve_names:
@@ -504,6 +370,134 @@ def main():
     plot_CLASS_output(args.files, args.selection, ratio=args.ratio,
                       printing=args.printfile, scale=args.scale,
                       xlim=args.xlim, ylim=args.ylim)
+
+
+# Helper code from cosmo_mini_toolbox, by Jesus Torrado, available fully at
+# https://github.com/JesusTorrado/cosmo_mini_toolbox, to use the log then
+# linear scale for the multipole axis when plotting Cl.
+nonpos = "mask"
+change = 50.0
+factor = 500.
+
+
+def _mask_nonpos(a):
+    """
+Return a Numpy masked array where all non-positive 1 are
+masked. If there are no non-positive, the original array
+is returned.
+"""
+    mask = a <= 0.0
+    if mask.any():
+        return ma.MaskedArray(a, mask=mask)
+    return a
+
+
+def _clip_smaller_than_one(a):
+    a[a <= 0.0] = 1e-300
+    return a
+
+
+class PlanckScale(mscale.ScaleBase):
+    """
+Scale used by the Planck collaboration to plot Temperature power spectra:
+base-10 logarithmic up to l=50, and linear from there on.
+
+Care is taken so non-positive values are not plotted.
+"""
+    name = 'planck'
+
+    def __init__(self, axis, **kwargs):
+        pass
+
+    def set_default_locators_and_formatters(self, axis):
+        axis.set_major_locator(
+            FixedLocator(
+                np.concatenate((np.array([2, 10, change]),
+                                np.arange(500, 2500, 500)))))
+        axis.set_minor_locator(
+            FixedLocator(
+                np.concatenate((np.arange(2, 10),
+                                np.arange(10, 50, 10),
+                                np.arange(floor(change/100), 2500, 100)))))
+
+    def get_transform(self):
+        """
+        Return a :class:`~matplotlib.transforms.Transform` instance
+        appropriate for the given logarithm base.
+        """
+        return self.PlanckTransform(nonpos)
+
+    def limit_range_for_scale(self, vmin, vmax, minpos):
+        """
+        Limit the domain to positive values.
+        """
+        return (vmin <= 0.0 and minpos or vmin,
+                vmax <= 0.0 and minpos or vmax)
+
+    class PlanckTransform(Transform):
+        input_dims = 1
+        output_dims = 1
+        is_separable = True
+        has_inverse = True
+
+        def __init__(self, nonpos):
+            Transform.__init__(self)
+            if nonpos == 'mask':
+                self._handle_nonpos = _mask_nonpos
+            else:
+                self._handle_nonpos = _clip_nonpos
+
+        def transform_non_affine(self, a):
+            lower = a[np.where(a<=change)]
+            greater = a[np.where(a> change)]
+            if lower.size:
+                lower = self._handle_nonpos(lower * 10.0)/10.0
+                if isinstance(lower, ma.MaskedArray):
+                    lower = ma.log10(lower)
+                else:
+                    lower = np.log10(lower)
+                lower = factor*lower
+            if greater.size:
+                greater = (factor*np.log10(change) + (greater-change))
+            # Only low
+            if not(greater.size):
+                return lower
+            # Only high
+            if not(lower.size):
+                return greater
+            return np.concatenate((lower, greater))
+
+        def inverted(self):
+            return PlanckScale.InvertedPlanckTransform()
+
+    class InvertedPlanckTransform(Transform):
+        input_dims = 1
+        output_dims = 1
+        is_separable = True
+        has_inverse = True
+
+        def transform_non_affine(self, a):
+            lower = a[np.where(a<=factor*np.log10(change))]
+            greater = a[np.where(a> factor*np.log10(change))]
+            if lower.size:
+                if isinstance(lower, ma.MaskedArray):
+                    lower = ma.power(10.0, lower/float(factor))
+                else:
+                    lower = np.power(10.0, lower/float(factor))
+            if greater.size:
+                greater = (greater + change - factor*np.log10(change))
+            # Only low
+            if not(greater.size):
+                return lower
+            # Only high
+            if not(lower.size):
+                return greater
+            return np.concatenate((lower, greater))
+        def inverted(self):
+            return PlanckTransform()
+
+# Finished. Register the scale!
+mscale.register_scale(PlanckScale)
 
 if __name__ == '__main__':
     sys.exit(main())
