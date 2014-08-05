@@ -535,9 +535,9 @@ cdef class Class:
         free(lcl)
         return cl
 
-    def lensed_density_cl(self, lmax=-1, nofail=False):
+    def density_cl(self, lmax=-1, nofail=False):
         """
-        lensed_density_cl(lmax=-1, nofail=False)
+        density_cl(lmax=-1, nofail=False)
 
         Return a dictionary of the primary C_l for the matter
 
