@@ -591,6 +591,7 @@ int input_read_parameters(
 
   double rho_ncdm;
   double R0,R1,R2,R3,R4;
+  double PSR0,PSR1,PSR2,PSR3,PSR4;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -1713,30 +1714,36 @@ int input_read_parameters(
 
     class_read_double("phi_pivot",ppm->phi_pivot);
 
-    class_call(parser_read_string(pfc,"R_0",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
+    class_call(parser_read_string(pfc,"PSR_0",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
 
     if (flag1 == _TRUE_) {
 
-      R0=0.;
-      R1=0.;
-      R2=0.;
-      R3=0.;
-      R4=0.;
+      PSR0=0.;
+      PSR1=0.;
+      PSR2=0.;
+      PSR3=0.;
+      PSR4=0.;
 
-      class_read_double("R_0",R0);
-      class_read_double("R_1",R1);
-      class_read_double("R_2",R2);
-      class_read_double("R_3",R3);
-      class_read_double("R_4",R4);
+      class_read_double("PSR_0",PSR0);
+      class_read_double("PSR_1",PSR1);
+      class_read_double("PSR_2",PSR2);
+      class_read_double("PSR_3",PSR3);
+      class_read_double("PSR_4",PSR4);
 
-      class_test(R0 <= 0.,
-                 errmsg,
-                 "inconsistent parametrisation of polynomial inflation potential");
-      class_test(R1 <= 0.,
-                 errmsg,
-                 "inconsistent parametrisation of polynomial inflation potential");
+      class_test(PSR0 <= 0.,
+		 errmsg,
+		 "inconsistent parametrisation of polynomial inflation potential");
+      class_test(PSR1 <= 0.,
+		 errmsg,
+		 "inconsistent parametrisation of polynomial inflation potential");
+
+      R0 = PSR0;
+      R1 = PSR1*16.*_PI_;
+      R2 = PSR2*8.*_PI_;
+      R3 = PSR3*pow(8.*_PI_,2);
+      R4 = PSR4*pow(8.*_PI_,3);
 
       ppm->V0 = R0*R1*3./128./_PI_;
       ppm->V1 = -sqrt(R1)*ppm->V0;
@@ -1744,12 +1751,50 @@ int input_read_parameters(
       ppm->V3 = R3*ppm->V0*ppm->V0/ppm->V1;
       ppm->V4 = R4*ppm->V0/R1;
     }
+
     else {
-      class_read_double("V_0",ppm->V0);
-      class_read_double("V_1",ppm->V1);
-      class_read_double("V_2",ppm->V2);
-      class_read_double("V_3",ppm->V3);
-      class_read_double("V_4",ppm->V4);
+
+      class_call(parser_read_string(pfc,"R_0",&string1,&flag1,errmsg),
+		 errmsg,
+		 errmsg);
+      
+      if (flag1 == _TRUE_) {
+	
+	R0=0.;
+	R1=0.;
+	R2=0.;
+	R3=0.;
+	R4=0.;
+	
+	class_read_double("R_0",R0);
+	class_read_double("R_1",R1);
+	class_read_double("R_2",R2);
+	class_read_double("R_3",R3);
+	class_read_double("R_4",R4);
+	
+	class_test(R0 <= 0.,
+		   errmsg,
+		   "inconsistent parametrisation of polynomial inflation potential");
+	class_test(R1 <= 0.,
+		   errmsg,
+		   "inconsistent parametrisation of polynomial inflation potential");
+	
+	ppm->V0 = R0*R1*3./128./_PI_;
+	ppm->V1 = -sqrt(R1)*ppm->V0;
+	ppm->V2 = R2*ppm->V0;
+	ppm->V3 = R3*ppm->V0*ppm->V0/ppm->V1;
+	ppm->V4 = R4*ppm->V0/R1;
+      }
+
+      else {
+
+	class_read_double("V_0",ppm->V0);
+	class_read_double("V_1",ppm->V1);
+	class_read_double("V_2",ppm->V2);
+	class_read_double("V_3",ppm->V3);
+	class_read_double("V_4",ppm->V4);
+
+      }
     }
   }
 

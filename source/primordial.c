@@ -1178,7 +1178,7 @@ int primordial_inflation_solve_inflation(
 
     phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*dV/V/8./_PI_;
 
-    printf(" (--> search attractor at phi_try=%e)\n",phi_try);
+    //printf(" (--> search attractor at phi_try=%e)\n",phi_try);
 
     class_call_except(primordial_inflation_find_attractor(ppm,
                                                           ppr,
