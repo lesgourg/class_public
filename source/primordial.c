@@ -1085,7 +1085,7 @@ int primordial_inflation_solve_inflation(
   double aH_ini;
   double k_max;
   int counter;
-  double V,dV,ddV;
+  double V=0.,dV=0.,ddV;
 
   //  fprintf(stdout,"Expected slow-roll A_s: %g\n",128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
   //  fprintf(stdout,"Expected slow-roll T/S: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_);
@@ -1964,6 +1964,92 @@ int primordial_inflation_derivs(
 
   return _SUCCESS_;
 
+}
+
+/**
+ * This routine encodes the function H(phi)
+ *
+ * @param ppm            Input: pointer to primordial structure
+ * @param phi            Input: background inflaton field value in units of Mp
+ * @param H              Output: Hubble parameters in units of Mp
+ * @param dH             Output: dH / dphi
+ * @param ddH            Output: d2H / dphi2
+ * @param dddH           Output: d3H / dphi3
+ * @return the error status
+ */
+
+int primordial_inflationH_hubble(
+                                 struct primordial * ppm,
+                                 double phi,
+                                 double * H,
+                                 double * dH,
+                                 double * ddH,
+                                 double * dddH
+                                 ) {
+
+  double epsilon1;
+
+  *H =    ppm->H0 + phi*ppm->H1 + pow(phi,2)/2.*ppm->H2 + pow(phi,3)/6.*ppm->H3 + pow(phi,4)/24.*ppm->H4;
+  *dH =   ppm->H1 + phi*ppm->H2 + pow(phi,2)/2.*ppm->H3 + pow(phi,3)/6.*ppm->H4;
+  *ddH =  ppm->H2 + phi*ppm->H3 + pow(phi,2)/2.*ppm->H4;
+  *dddH = ppm->H3 + phi*ppm->H4;
+
+  epsilon1 = 1./4./_PI_*pow(*dH / *H,2);
+
+  class_test(epsilon1 > 1.,
+             ppm->error_message,
+             "this model is not inflationary. Epsilon1 = %e",
+             epsilon1);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * This routine defines indices used by the inflationH simulator
+ *
+ * @param ppm  Input/output: pointer to primordial structure
+ * @return the error status
+ */
+int primordial_inflationH_indices(
+                                 struct primordial * ppm
+                                 ) {
+
+  int index_in;
+
+  index_in = 0;
+
+  /* indices for background quantitites */
+  ppm->index_in_a = index_in;
+  index_in ++;
+  ppm->index_in_phi = index_in;
+  index_in ++;
+
+  /* size of background vector */
+  ppm->in_bg_size = index_in;
+
+  /* indices for perturbations */
+  ppm->index_in_ksi_re = index_in;
+  index_in ++;
+  ppm->index_in_ksi_im = index_in;
+  index_in ++;
+  ppm->index_in_dksi_re = index_in;
+  index_in ++;
+  ppm->index_in_dksi_im = index_in;
+  index_in ++;
+  ppm->index_in_ah_re = index_in;
+  index_in ++;
+  ppm->index_in_ah_im = index_in;
+  index_in ++;
+  ppm->index_in_dah_re = index_in;
+  index_in ++;
+  ppm->index_in_dah_im = index_in;
+  index_in ++;
+
+  /* size of perturbation vector */
+  ppm->in_size = index_in;
+
+  return _SUCCESS_;
 }
 
 /**

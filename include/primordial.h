@@ -119,12 +119,23 @@ struct primordial {
 
   enum potential_shape potential;
 
-  double phi_pivot;
   double V0;
   double V1;
   double V2;
   double V3;
   double V4;
+
+  /** - parameters describing the case primordial_spec_type = inflation_H */
+
+  double H0;
+  double H1;
+  double H2;
+  double H3;
+  double H4;
+
+  /** - parameters describing both inflation_V and inflation_H */
+
+  double phi_pivot;
 
   /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 
@@ -390,6 +401,19 @@ extern "C" {
                                   void * parameters_and_workspace,
                                   ErrorMsg error_message
                                   );
+
+  int primordial_inflationH_hubble(
+                                   struct primordial * ppm,
+                                   double phi,
+                                   double * H,
+                                   double * dH,
+                                   double * ddH,
+                                   double * dddH
+                                   );
+
+  int primordial_inflationH_indices(
+                                   struct primordial * ppm
+                                   );
 
   int primordial_external_spectrum_init(
                                         struct perturbs * ppt,
