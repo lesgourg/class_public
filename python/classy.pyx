@@ -916,6 +916,8 @@ cdef class Class:
         for name in names:
             if name == 'h':
                 value = self.ba.h
+            elif name == 'H0':
+                value = self.ba.h*100
             elif name == 'Omega0_lambda' or name == 'Omega_Lambda':
                 value = self.ba.Omega0_lambda
             elif name == 'Omega0_fld':
