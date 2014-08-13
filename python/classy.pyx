@@ -270,7 +270,7 @@ cdef class Class:
                 one. The default last module is "lensing".
 
         .. warning::
-            
+
             level default value should be left as an array (it was creating
             problem when casting as a set later on, in _check_task_dependency)
 
@@ -685,7 +685,6 @@ cdef class Class:
         else:
              if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
                     raise CosmoSevereError(self.sp.error_message)
-        #free(junk)
         return pk
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
