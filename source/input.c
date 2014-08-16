@@ -1808,12 +1808,39 @@ int input_read_parameters(
 
     else {
 
-      class_read_double("H_0",ppm->H0);
-      class_read_double("H_1",ppm->H1);
-      class_read_double("H_2",ppm->H2);
-      class_read_double("H_3",ppm->H3);
-      class_read_double("H_4",ppm->H4);
+      class_call(parser_read_string(pfc,"HSR_0",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
 
+      if (flag1 == _TRUE_) {
+
+        HSR0=0.;
+        HSR1=0.;
+        HSR2=0.;
+        HSR3=0.;
+        HSR4=0.;
+
+        class_read_double("HSR_0",PSR0);
+        class_read_double("HSR_1",PSR1);
+        class_read_double("HSR_2",PSR2);
+        class_read_double("HSR_3",PSR3);
+        class_read_double("HSR_4",PSR4);
+
+        ppm->H0 = sqrt(HSR0*HSR1*_PI_);
+        ppm->H1 = sqrt(4.*_PI_*HSR1)*ppm->H0;
+        ppm->H2 = 4.*_PI*HSR2*ppm->H0;
+        ppm->H3 = 4.*_PI*HSR3*ppm->H0*ppm->H0/ppm->H1;
+        ppm->H4 = 4.*_PI*HSR4*ppm->H0*ppm->H0*ppm->H0/ppm->H1/ppm->H1;
+
+      }
+      else {
+
+        class_read_double("H_0",ppm->H0);
+        class_read_double("H_1",ppm->H1);
+        class_read_double("H_2",ppm->H2);
+        class_read_double("H_3",ppm->H3);
+        class_read_double("H_4",ppm->H4);
+      }
     }
   }
 
