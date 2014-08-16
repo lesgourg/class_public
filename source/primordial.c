@@ -1172,14 +1172,16 @@ int primordial_inflation_solve_inflation(
 
     /* get H at phi_pivot */
     class_call_except(primordial_inflation_hubble(ppm,
-                                                   ppm->phi_pivot,
-                                                   &H_pivot,
-                                                   &dH,
-                                                   &ddH,
-                                                   &dddH),
+                                                  ppm->phi_pivot,
+                                                  &H_pivot,
+                                                  &dH,
+                                                  &ddH,
+                                                  &dddH),
                       ppm->error_message,
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
+
+    fprintf(stderr,"hubble: %e %e\n",ppm->phi_pivot,H_pivot);
 
   }
 
@@ -1223,7 +1225,11 @@ int primordial_inflation_solve_inflation(
   if (ppm->primordial_verbose > 1)
     printf(" (check inflation duration before pivot, with phi_pivot=%e)\n",phi_try);
 
+  fprintf(stderr,"%e %e %e\n",a_try,H_try,aH_ini);
+
   while ((a_try*H_try) >= aH_ini) {
+
+    fprintf(stderr,"%e %e %e\n",a_try,H_try,aH_ini);
 
     counter ++;
 
@@ -1390,6 +1396,8 @@ int primordial_inflation_spectra(
 
   }
 
+  fprintf(stderr,"aH = %e\n",aH);
+
   class_test(aH >= exp(ppm->lnk[0])/ppr->primordial_inflation_ratio_min,
              ppm->error_message,
              "at initial time, a_k_min > a*H*ratio_min");
@@ -1426,6 +1434,9 @@ int primordial_inflation_spectra(
     /* store the obtained result for curvatute and tensor perturbations */
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
+
+    if (index_k==0)
+      fprintf(stderr,"s:%e  t:%e\n",curvature,tensors);
 
     /* fprintf(stderr,"%e %e %e\n", */
     /* 	    ppm->lnk[index_k], */
@@ -1558,7 +1569,7 @@ int primordial_inflation_one_k(
     curvature_old =  curvature_new;
 
     /* new curvature */
-    z = y[ppm->index_in_a]*y[ppm->index_in_dphi]/aH;
+    z = y[ppm->index_in_a]*dy[ppm->index_in_phi]/aH;
     ksi2 = y[ppm->index_in_ksi_re]*y[ppm->index_in_ksi_re]+y[ppm->index_in_ksi_im]*y[ppm->index_in_ksi_im];
     curvature_new = k*k*k/2./_PI_/_PI_*ksi2/z/z;
 
@@ -1727,7 +1738,7 @@ int primordial_inflation_evolve_background(
     dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
   }
   else {
-    dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_phi]/dy[ppm->index_in_phi]));
+    dtau = ppr->primordial_inflation_bg_stepsize*(1./aH);
   }
 
   while (y[ppm->index_in_phi] <= (phi_stop-dy[ppm->index_in_phi]*dtau)) {
@@ -1764,7 +1775,7 @@ int primordial_inflation_evolve_background(
       dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
     }
     else {
-      dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_phi]/dy[ppm->index_in_phi]));
+      dtau = ppr->primordial_inflation_bg_stepsize*(1./aH);
     }
 
     tau_end = tau_start + dtau;
@@ -1898,7 +1909,7 @@ int primordial_inflation_reach_aH(
       dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
     }
     else {
-      dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_phi]/dy[ppm->index_in_phi]));
+      dtau = ppr->primordial_inflation_bg_stepsize*(1./aH);
     }
 
     tau_end = tau_start + dtau;
@@ -2145,7 +2156,7 @@ int primordial_inflation_derivs(
 
     // a''/a
     ppipaw->app_over_a = 2.*ppipaw->a2*ppipaw->H*ppipaw->H
-      -4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
+      -4.*_PI_*dy[ppm->index_in_phi]*dy[ppm->index_in_phi];
 
   }
 

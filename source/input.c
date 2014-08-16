@@ -1821,14 +1821,14 @@ int input_read_parameters(
         HSR3=0.;
         HSR4=0.;
 
-        class_read_double("HSR_0",PSR0);
-        class_read_double("HSR_1",PSR1);
-        class_read_double("HSR_2",PSR2);
-        class_read_double("HSR_3",PSR3);
-        class_read_double("HSR_4",PSR4);
+        class_read_double("HSR_0",HSR0);
+        class_read_double("HSR_1",HSR1);
+        class_read_double("HSR_2",HSR2);
+        class_read_double("HSR_3",HSR3);
+        class_read_double("HSR_4",HSR4);
 
         ppm->H0 = sqrt(HSR0*HSR1*_PI_);
-        ppm->H1 = sqrt(4.*_PI_*HSR1)*ppm->H0;
+        ppm->H1 = -sqrt(4.*_PI_*HSR1)*ppm->H0;
         ppm->H2 = 4.*_PI_*HSR2*ppm->H0;
         ppm->H3 = 4.*_PI_*HSR3*ppm->H0*ppm->H0/ppm->H1;
         ppm->H4 = 4.*_PI_*HSR4*ppm->H0*ppm->H0*ppm->H0/ppm->H1/ppm->H1;
@@ -1842,6 +1842,11 @@ int input_read_parameters(
         class_read_double("H_3",ppm->H3);
         class_read_double("H_4",ppm->H4);
       }
+
+      class_test(ppm->H0 <= 0.,
+                 errmsg,
+                 "inconsistent parametrisation of polynomial inflation potential");
+
     }
   }
 
