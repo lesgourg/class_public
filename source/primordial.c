@@ -1152,7 +1152,8 @@ int primordial_inflation_solve_inflation(
   k_max = exp(ppm->lnk[ppm->lnk_size-1]);
   y[ppm->index_in_a] = a_pivot;
   y[ppm->index_in_phi] = ppm->phi_pivot;
-  y[ppm->index_in_dphi] = a_pivot*dphidt_pivot;
+  if (ppm->primordial_spec_type == inflation_V)
+    y[ppm->index_in_dphi] = a_pivot*dphidt_pivot;
 
   if (ppm->primordial_verbose > 1)
     printf(" (check inflation duration after pivot)\n");
@@ -1239,7 +1240,8 @@ int primordial_inflation_solve_inflation(
      initialize background quantitites at this time. */
   y_ini[ppm->index_in_a] = a_try;
   y_ini[ppm->index_in_phi] = phi_try;
-  y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
+  if (ppm->primordial_spec_type == inflation_V)
+    y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
 
   if (ppm->primordial_verbose > 1)
     printf(" (compute spectrum)\n");
@@ -1259,7 +1261,8 @@ int primordial_inflation_solve_inflation(
 
   y[ppm->index_in_a] = y_ini[ppm->index_in_a];
   y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
-  y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
+  if (ppm->primordial_spec_type == inflation_V)
+    y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
   class_call_except(primordial_inflation_reach_aH(ppm,ppr,y,dy,exp(ppm->lnk[0])),
                     ppm->error_message,
@@ -1313,20 +1316,37 @@ int primordial_inflation_spectra(
   double aH,k;
   int index_k;
   double V,dV,ddV;
+  double H,dH,ddH,dddH;
   double curvature,tensors;
 
-  /* check positivity and negative slope of potential in initial field value */
-  class_call(primordial_inflation_check_potential(ppm,y_ini[ppm->index_in_phi]),
-             ppm->error_message,
-             ppm->error_message);
+  if (ppm->primordial_spec_type == inflation_V) {
 
-  /* get scalar potential in initial field value */
-  class_call(primordial_inflation_potential(ppm,y_ini[ppm->index_in_phi],&V,&dV,&ddV),
-             ppm->error_message,
-             ppm->error_message);
+    /* check positivity and negative slope of potential in initial field value */
+    class_call(primordial_inflation_check_potential(ppm,y_ini[ppm->index_in_phi]),
+               ppm->error_message,
+               ppm->error_message);
 
-  /* get initial aH from Friedmann equation */
-  aH = sqrt((8*_PI_/3.)*(0.5*y_ini[ppm->index_in_dphi]*y_ini[ppm->index_in_dphi]+y_ini[ppm->index_in_a]*y_ini[ppm->index_in_a]*V));
+    /* get scalar potential in initial field value */
+    class_call(primordial_inflation_potential(ppm,y_ini[ppm->index_in_phi],&V,&dV,&ddV),
+               ppm->error_message,
+               ppm->error_message);
+
+    /* get initial aH from Friedmann equation */
+    aH = sqrt((8*_PI_/3.)*(0.5*y_ini[ppm->index_in_dphi]*y_ini[ppm->index_in_dphi]+y_ini[ppm->index_in_a]*y_ini[ppm->index_in_a]*V));
+
+  }
+
+  else {
+
+    class_call(primordial_inflationH_hubble(ppm,
+                                            y_ini[ppm->index_in_phi],
+                                            &H,&dH,&ddH,&dddH),
+               ppm->error_message,
+               ppm->error_message);
+
+    aH = y_ini[ppm->index_in_a]*H;
+
+  }
 
   class_test(aH >= exp(ppm->lnk[0])/ppr->primordial_inflation_ratio_min,
              ppm->error_message,
@@ -1340,7 +1360,8 @@ int primordial_inflation_spectra(
     /* initialize the background part of the running vector */
     y[ppm->index_in_a] = y_ini[ppm->index_in_a];
     y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
-    y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
+    if (ppm->primordial_spec_type == inflation_V)
+      y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
     /* evolve the background until the relevant initial time for integrating perturbations */
     class_call(primordial_inflation_reach_aH(ppm,ppr,y,dy,k/ppr->primordial_inflation_ratio_min),
@@ -1659,15 +1680,23 @@ int primordial_inflation_evolve_background(
              ppm->error_message);
 
   aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
-  dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
 
-  while (y[ppm->index_in_phi] <= (phi_stop-y[ppm->index_in_dphi]*dtau)) {
+  if (ppm->primordial_spec_type == inflation_V) {
+    dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+  }
+  else {
+    dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_phi]/dy[ppm->index_in_phi]));
+  }
 
-    class_call_except(primordial_inflation_check_potential(ppm,
-                                                           y[ppm->index_in_phi]),
-                      ppm->error_message,
-                      ppm->error_message,
-                      cleanup_generic_integrator(&gi));
+  while (y[ppm->index_in_phi] <= (phi_stop-dy[ppm->index_in_phi]*dtau)) {
+
+    if (ppm->primordial_spec_type == inflation_V) {
+      class_call_except(primordial_inflation_check_potential(ppm,
+                                                             y[ppm->index_in_phi]),
+                        ppm->error_message,
+                        ppm->error_message,
+                        cleanup_generic_integrator(&gi));
+    }
 
     tau_start = tau_end;
 
@@ -1681,7 +1710,13 @@ int primordial_inflation_evolve_background(
                       cleanup_generic_integrator(&gi));
 
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
-    dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+
+    if (ppm->primordial_spec_type == inflation_V) {
+      dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+    }
+    else {
+      dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_phi]/dy[ppm->index_in_phi]));
+    }
 
     tau_end = tau_start + dtau;
 
@@ -1718,8 +1753,6 @@ int primordial_inflation_evolve_background(
                       "Inflaton evolution crosses the border from epsilon<1 to epsilon>1 at phi=%g. Inflation disrupted during the observable e-folds",
                       y[ppm->index_in_phi]);
 
-
-
   }
 
   class_call(cleanup_generic_integrator(&gi),
@@ -1737,7 +1770,8 @@ int primordial_inflation_evolve_background(
   dtau = (phi_stop-y[ppm->index_in_phi])/dy[ppm->index_in_dphi];
   y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
   y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
-  y[ppm->index_in_dphi] += dy[ppm->index_in_dphi]*dtau;
+  if (ppm->primordial_spec_type == inflation_V)
+    y[ppm->index_in_dphi] += dy[ppm->index_in_dphi]*dtau;
 
   return _SUCCESS_;
 }
@@ -1787,10 +1821,12 @@ int primordial_inflation_reach_aH(
 
   while (dy[ppm->index_in_a]/y[ppm->index_in_a] < aH_stop) {
 
-    class_call(primordial_inflation_check_potential(ppm,
-                                                    y[ppm->index_in_phi]),
-               ppm->error_message,
-               ppm->error_message);
+    if (ppm->primordial_spec_type == inflation_V) {
+      class_call(primordial_inflation_check_potential(ppm,
+                                                      y[ppm->index_in_phi]),
+                 ppm->error_message,
+                 ppm->error_message);
+    }
 
     tau_start = tau_end;
 
@@ -1803,7 +1839,12 @@ int primordial_inflation_reach_aH(
                ppm->error_message);
 
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
-    dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+    if (ppm->primordial_spec_type == inflation_V) {
+      dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+    }
+    else {
+      dtau = ppr->primordial_inflation_bg_stepsize*MIN(1./aH,fabs(y[ppm->index_in_phi]/dy[ppm->index_in_phi]));
+    }
 
     tau_end = tau_start + dtau;
 
@@ -1883,14 +1924,28 @@ int primordial_inflation_get_epsilon(
                                      ) {
 
   double V=0.,dV=0.,ddV=0.;
+  double H,dH,ddH,dddH;
 
-  class_call(primordial_inflation_potential(ppm,phi,&V,&dV,&ddV),
-             ppm->error_message,
-             ppm->error_message);
+  if (ppm->primordial_spec_type == inflation_V) {
+    class_call(primordial_inflation_potential(ppm,phi,&V,&dV,&ddV),
+               ppm->error_message,
+               ppm->error_message);
 
-  *epsilon = 1./16./_PI_*pow(dV/V,2);
+    *epsilon = 1./16./_PI_*pow(dV/V,2);
 
-  //*eta = 1./8./pi*(ddV/V)
+    //*eta = 1./8./pi*(ddV/V)
+
+  }
+  else {
+    class_call(primordial_inflationH_hubble(ppm,
+                                            phi,
+                                            &H,&dH,&ddH,&dddH),
+               ppm->error_message,
+               ppm->error_message);
+
+    *epsilon = 1./4./_PI_*pow(dH/H,2);
+
+  }
 
   return _SUCCESS_;
 
@@ -2056,9 +2111,19 @@ int primordial_inflationH_hubble(
   *ddH =  ppm->H2 + phi*ppm->H3 + pow(phi,2)/2.*ppm->H4;
   *dddH = ppm->H3 + phi*ppm->H4;
 
+  class_test(*H < 0.,
+             ppm->error_message,
+             "this H(phi) is not physical. H = %e",
+             *H);
+
+  class_test(*dH > 0.,
+             ppm->error_message,
+             "this H(phi) is not decreasing with growing phi. dH/dphi = %e",
+             *dH);
+
   epsilon1 = 1./4./_PI_*pow(*dH / *H,2);
 
-  class_test(epsilon1 > 1.,
+  class_test(epsilon1 > 10.,
              ppm->error_message,
              "this model is not inflationary. Epsilon1 = %e",
              epsilon1);
