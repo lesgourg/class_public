@@ -1,3 +1,6 @@
+// TODO unify evolve_background and reach_aH
+// TODO to find a_try, phi_try, in thflation_H case, instead of doing tries, should integrate backward the first order equations
+
 /** @file primordial.c Documented primordial module.
  *
  * Julien Lesgourgues, 24.08.2010
@@ -11,7 +14,7 @@
  *
  * -# primordial_init() at the beginning (anytime after perturb_init() and before spectra_init())
  * -# primordial_spectrum_at_k() at any time for computing P(k) at any k
- * -# primordial_free() at the end
+ * -# p_primordial_free() at the end
  */
 
 #include "primordial.h"
@@ -1009,6 +1012,36 @@ int primordial_inflation_potential(
 }
 
 /**
+ * This routine encodes the function H(phi)
+ *
+ * @param ppm            Input: pointer to primordial structure
+ * @param phi            Input: background inflaton field value in units of Mp
+ * @param H              Output: Hubble parameters in units of Mp
+ * @param dH             Output: dH / dphi
+ * @param ddH            Output: d2H / dphi2
+ * @param dddH           Output: d3H / dphi3
+ * @return the error status
+ */
+
+int primordial_inflation_hubble(
+                                 struct primordial * ppm,
+                                 double phi,
+                                 double * H,
+                                 double * dH,
+                                 double * ddH,
+                                 double * dddH
+                                 ) {
+
+  *H =    ppm->H0 + phi*ppm->H1 + pow(phi,2)/2.*ppm->H2 + pow(phi,3)/6.*ppm->H3 + pow(phi,4)/24.*ppm->H4;
+  *dH =   ppm->H1 + phi*ppm->H2 + pow(phi,2)/2.*ppm->H3 + pow(phi,3)/6.*ppm->H4;
+  *ddH =  ppm->H2 + phi*ppm->H3 + pow(phi,2)/2.*ppm->H4;
+  *dddH = ppm->H3 + phi*ppm->H4;
+
+  return _SUCCESS_;
+
+}
+
+/**
  * This routine defines indices used by the inflation simulator
  *
  * @param ppm  Input/output: pointer to primordial structure
@@ -1087,8 +1120,9 @@ int primordial_inflation_solve_inflation(
   double aH_ini;
   double k_max;
   int counter;
-  double V=0.,dV=0.,ddV;
-  double H,dH,ddH,dddH;
+  //double V=0.,dV=0.,ddV;
+  double dH,ddH,dddH;
+  double epsilon;
 
   //  fprintf(stdout,"Expected slow-roll A_s: %g\n",128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
   //  fprintf(stdout,"Expected slow-roll T/S: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_);
@@ -1130,7 +1164,14 @@ int primordial_inflation_solve_inflation(
 
   else {  // if  (ppm->primordial_spec_type == inflation_H)
 
-    class_call_except(primordial_inflationH_hubble(ppm,
+    /* check positivity and negative slope of potential in field pivot value */
+    class_call_except(primordial_inflation_check_hubble(ppm,ppm->phi_pivot),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+
+    /* get H at phi_pivot */
+    class_call_except(primordial_inflation_hubble(ppm,
                                                    ppm->phi_pivot,
                                                    &H_pivot,
                                                    &dH,
@@ -1139,6 +1180,7 @@ int primordial_inflation_solve_inflation(
                       ppm->error_message,
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
+
   }
 
   /* find a_pivot, value of scale factor when k_pivot crosses horizon while phi=phi_pivot */
@@ -1191,30 +1233,35 @@ int primordial_inflation_solve_inflation(
                       "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
                       counter);
 
-    class_call_except(primordial_inflation_potential(ppm,phi_try,&V,&dV,&ddV),
+    class_call_except(primordial_inflation_get_epsilon(ppm,phi_try,&epsilon),
                       ppm->error_message,
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
 
-    phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*dV/V/8./_PI_;
 
-    //printf(" (--> search attractor at phi_try=%e)\n",phi_try);
-
-    class_call_except(primordial_inflation_find_attractor(ppm,
-                                                          ppr,
-                                                          phi_try,
-                                                          ppr->primordial_inflation_attractor_precision_initial,
-                                                          y,
-                                                          dy,
-                                                          &H_try,
-                                                          &dphidt_try),
-                      ppm->error_message,
-                      ppm->error_message,
-                      free(y);free(y_ini);free(dy));
+    //phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*dV/V/8./_PI_;
+    phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*sqrt(2.*epsilon/8./_PI_);
 
     y[ppm->index_in_a] = 1.;
     y[ppm->index_in_phi] = phi_try;
-    y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try;
+
+    if (ppm->primordial_spec_type == inflation_V) {
+      //printf(" (--> search attractor at phi_try=%e)\n",phi_try);
+
+      class_call_except(primordial_inflation_find_attractor(ppm,
+                                                            ppr,
+                                                            phi_try,
+                                                            ppr->primordial_inflation_attractor_precision_initial,
+                                                            y,
+                                                            dy,
+                                                            &H_try,
+                                                            &dphidt_try),
+                        ppm->error_message,
+                        ppm->error_message,
+                        free(y);free(y_ini);free(dy));
+
+      y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try;
+    }
 
     if (ppm->primordial_verbose > 1)
       printf(" (--> compute e-folds from phi_try=%e to phi_pivot=%e with dphi/dt_try=%e)\n",phi_try,ppm->phi_pivot,dphidt_try);
@@ -1246,7 +1293,7 @@ int primordial_inflation_solve_inflation(
   if (ppm->primordial_verbose > 1)
     printf(" (compute spectrum)\n");
 
-  /* statting from this time, we run the routine which takes care of computing the primordial spectrum. */
+  /* starting from this time, we run the routine which takes care of computing the primordial spectrum. */
   class_call_except(primordial_inflation_spectra(ppt,
                                                  ppm,
                                                  ppr,
@@ -1321,11 +1368,6 @@ int primordial_inflation_spectra(
 
   if (ppm->primordial_spec_type == inflation_V) {
 
-    /* check positivity and negative slope of potential in initial field value */
-    class_call(primordial_inflation_check_potential(ppm,y_ini[ppm->index_in_phi]),
-               ppm->error_message,
-               ppm->error_message);
-
     /* get scalar potential in initial field value */
     class_call(primordial_inflation_potential(ppm,y_ini[ppm->index_in_phi],&V,&dV,&ddV),
                ppm->error_message,
@@ -1338,12 +1380,14 @@ int primordial_inflation_spectra(
 
   else {
 
-    class_call(primordial_inflationH_hubble(ppm,
+    /* get H in initial field value */
+    class_call(primordial_inflation_hubble(ppm,
                                             y_ini[ppm->index_in_phi],
                                             &H,&dH,&ddH,&dddH),
                ppm->error_message,
                ppm->error_message);
 
+    /* get initial aH */
     aH = y_ini[ppm->index_in_a]*H;
 
   }
@@ -1697,6 +1741,13 @@ int primordial_inflation_evolve_background(
                         ppm->error_message,
                         cleanup_generic_integrator(&gi));
     }
+    else {
+      class_call_except(primordial_inflation_check_hubble(ppm,
+                                                          y[ppm->index_in_phi]),
+                        ppm->error_message,
+                        ppm->error_message,
+                        cleanup_generic_integrator(&gi));
+    }
 
     tau_start = tau_end;
 
@@ -1827,6 +1878,12 @@ int primordial_inflation_reach_aH(
                  ppm->error_message,
                  ppm->error_message);
     }
+    else {
+      class_call(primordial_inflation_check_hubble(ppm,
+                                                   y[ppm->index_in_phi]),
+                 ppm->error_message,
+                 ppm->error_message);
+    }
 
     tau_start = tau_end;
 
@@ -1909,6 +1966,46 @@ int primordial_inflation_check_potential(
 }
 
 /**
+ * Routine checking positivity and negative slope of H(phi). The
+ * negative slope is an arbitrary choice. Currently the code can only
+ * deal with monotonic variations of the inflaton during
+ * inflation. And H can only decrease with time. So the slope dH/dphi
+ * has to be always negative or always positive... we took the first
+ * option: phi increases, H decreases.
+ *
+ * @param ppm       Input: pointer to primordial structure
+ * @param phi       Input: field value where to perform the check
+ * @return the error status
+ */
+
+int primordial_inflation_check_hubble(
+                                      struct primordial * ppm,
+                                      double phi
+                                      ) {
+
+  double H,dH,ddH,dddH;
+
+  class_call(primordial_inflation_hubble(ppm,
+                                         phi,
+                                         &H,&dH,&ddH,&dddH),
+             ppm->error_message,
+             ppm->error_message);
+
+  class_test(H < 0.,
+             ppm->error_message,
+             "this H(phi) is not physical. H = %e",
+             H);
+
+  class_test(dH > 0.,
+             ppm->error_message,
+             "this H(phi) is not decreasing with growing phi. dH/dphi = %e",
+             dH);
+
+  return _SUCCESS_;
+
+}
+
+/**
  * Routine computing the first slow-roll parameter epsilon
  *
  * @param ppm       Input: pointer to primordial structure
@@ -1937,7 +2034,7 @@ int primordial_inflation_get_epsilon(
 
   }
   else {
-    class_call(primordial_inflationH_hubble(ppm,
+    class_call(primordial_inflation_hubble(ppm,
                                             phi,
                                             &H,&dH,&ddH,&dddH),
                ppm->error_message,
@@ -2021,7 +2118,7 @@ int primordial_inflation_derivs(
 
   else {
 
-    class_call(primordial_inflationH_hubble(ppm,
+    class_call(primordial_inflation_hubble(ppm,
                                             y[ppm->index_in_phi],
                                             &(ppipaw->H),
                                             &(ppipaw->dH),
@@ -2078,55 +2175,6 @@ int primordial_inflation_derivs(
   dy[ppm->index_in_dah_re]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_re];
   // 11: d ah_im / dtau
   dy[ppm->index_in_dah_im]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_im];
-
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine encodes the function H(phi)
- *
- * @param ppm            Input: pointer to primordial structure
- * @param phi            Input: background inflaton field value in units of Mp
- * @param H              Output: Hubble parameters in units of Mp
- * @param dH             Output: dH / dphi
- * @param ddH            Output: d2H / dphi2
- * @param dddH           Output: d3H / dphi3
- * @return the error status
- */
-
-int primordial_inflationH_hubble(
-                                 struct primordial * ppm,
-                                 double phi,
-                                 double * H,
-                                 double * dH,
-                                 double * ddH,
-                                 double * dddH
-                                 ) {
-
-  double epsilon1;
-
-  *H =    ppm->H0 + phi*ppm->H1 + pow(phi,2)/2.*ppm->H2 + pow(phi,3)/6.*ppm->H3 + pow(phi,4)/24.*ppm->H4;
-  *dH =   ppm->H1 + phi*ppm->H2 + pow(phi,2)/2.*ppm->H3 + pow(phi,3)/6.*ppm->H4;
-  *ddH =  ppm->H2 + phi*ppm->H3 + pow(phi,2)/2.*ppm->H4;
-  *dddH = ppm->H3 + phi*ppm->H4;
-
-  class_test(*H < 0.,
-             ppm->error_message,
-             "this H(phi) is not physical. H = %e",
-             *H);
-
-  class_test(*dH > 0.,
-             ppm->error_message,
-             "this H(phi) is not decreasing with growing phi. dH/dphi = %e",
-             *dH);
-
-  epsilon1 = 1./4./_PI_*pow(*dH / *H,2);
-
-  class_test(epsilon1 > 10.,
-             ppm->error_message,
-             "this model is not inflationary. Epsilon1 = %e",
-             epsilon1);
 
   return _SUCCESS_;
 

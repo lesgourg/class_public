@@ -334,6 +334,15 @@ extern "C" {
                                      double * ddV
                                      );
 
+  int primordial_inflation_hubble(
+                                   struct primordial * ppm,
+                                   double phi,
+                                   double * H,
+                                   double * dH,
+                                   double * ddH,
+                                   double * dddH
+                                   );
+
   int primordial_inflation_indices(
                                    struct primordial * ppm
                                    );
@@ -394,6 +403,11 @@ extern "C" {
                                            double phi
                                            );
 
+  int primordial_inflation_check_hubble(
+                                        struct primordial * ppm,
+                                        double phi
+                                        );
+
   int primordial_inflation_get_epsilon(
                                        struct primordial * ppm,
                                        double phi,
@@ -407,15 +421,6 @@ extern "C" {
                                   void * parameters_and_workspace,
                                   ErrorMsg error_message
                                   );
-
-  int primordial_inflationH_hubble(
-                                   struct primordial * ppm,
-                                   double phi,
-                                   double * H,
-                                   double * dH,
-                                   double * ddH,
-                                   double * dddH
-                                   );
 
   int primordial_external_spectrum_init(
                                         struct perturbs * ppt,
