@@ -1181,8 +1181,6 @@ int primordial_inflation_solve_inflation(
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
 
-    fprintf(stderr,"hubble: %e %e\n",ppm->phi_pivot,H_pivot);
-
   }
 
   /* find a_pivot, value of scale factor when k_pivot crosses horizon while phi=phi_pivot */
@@ -1225,11 +1223,7 @@ int primordial_inflation_solve_inflation(
   if (ppm->primordial_verbose > 1)
     printf(" (check inflation duration before pivot, with phi_pivot=%e)\n",phi_try);
 
-  fprintf(stderr,"%e %e %e\n",a_try,H_try,aH_ini);
-
   while ((a_try*H_try) >= aH_ini) {
-
-    fprintf(stderr,"%e %e %e\n",a_try,H_try,aH_ini);
 
     counter ++;
 
@@ -1396,8 +1390,6 @@ int primordial_inflation_spectra(
 
   }
 
-  fprintf(stderr,"aH = %e\n",aH);
-
   class_test(aH >= exp(ppm->lnk[0])/ppr->primordial_inflation_ratio_min,
              ppm->error_message,
              "at initial time, a_k_min > a*H*ratio_min");
@@ -1434,9 +1426,6 @@ int primordial_inflation_spectra(
     /* store the obtained result for curvatute and tensor perturbations */
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
-
-    if (index_k==0)
-      fprintf(stderr,"s:%e  t:%e\n",curvature,tensors);
 
     /* fprintf(stderr,"%e %e %e\n", */
     /* 	    ppm->lnk[index_k], */
