@@ -351,9 +351,9 @@ int primordial_init(
     }
   }
 
-  /** - deal with case of inflation with given V(phi) */
+  /** - deal with case of inflation with given V(phi) or H(phi) */
 
-  else if (ppm->primordial_spec_type == inflation_V) {
+  else if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H)) {
 
     class_test(ppt->has_scalars == _FALSE_,
                ppm->error_message,
@@ -1027,8 +1027,10 @@ int primordial_inflation_indices(
   index_in ++;
   ppm->index_in_phi = index_in;
   index_in ++;
-  ppm->index_in_dphi = index_in;
-  index_in ++;
+  if (ppm->primordial_spec_type == inflation_V) {
+    ppm->index_in_dphi = index_in;
+    index_in ++;
+  }
 
   /* size of background vector */
   ppm->in_bg_size = index_in;
@@ -1086,6 +1088,7 @@ int primordial_inflation_solve_inflation(
   double k_max;
   int counter;
   double V=0.,dV=0.,ddV;
+  double H,dH,ddH,dddH;
 
   //  fprintf(stdout,"Expected slow-roll A_s: %g\n",128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
   //  fprintf(stdout,"Expected slow-roll T/S: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_);
@@ -1098,29 +1101,45 @@ int primordial_inflation_solve_inflation(
   class_alloc(y_ini,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
 
-  /* check positivity and negative slope of potential in field pivot value */
-  class_call_except(primordial_inflation_check_potential(ppm,ppm->phi_pivot),
-                    ppm->error_message,
-                    ppm->error_message,
-                    free(y);free(y_ini);free(dy));
+  if (ppm->primordial_spec_type == inflation_V) {
 
-  if (ppm->primordial_verbose > 1)
-    printf(" (search attractor at pivot)\n");
+    /* check positivity and negative slope of potential in field pivot value */
+    class_call_except(primordial_inflation_check_potential(ppm,ppm->phi_pivot),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
 
-  /* find value of phi_dot and H for field's pivot value, assuming slow-roll
-     attractor solution has been reached. If no solution, code will
-     stop there. */
-  class_call_except(primordial_inflation_find_attractor(ppm,
-                                                        ppr,
-                                                        ppm->phi_pivot,
-                                                        ppr->primordial_inflation_attractor_precision_pivot,
-                                                        y,
-                                                        dy,
-                                                        &H_pivot,
-                                                        &dphidt_pivot),
-                    ppm->error_message,
-                    ppm->error_message,
-                    free(y);free(y_ini);free(dy));
+    if (ppm->primordial_verbose > 1)
+      printf(" (search attractor at pivot)\n");
+
+    /* find value of phi_dot and H for field's pivot value, assuming slow-roll
+       attractor solution has been reached. If no solution, code will
+       stop there. */
+    class_call_except(primordial_inflation_find_attractor(ppm,
+                                                          ppr,
+                                                          ppm->phi_pivot,
+                                                          ppr->primordial_inflation_attractor_precision_pivot,
+                                                          y,
+                                                          dy,
+                                                          &H_pivot,
+                                                          &dphidt_pivot),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+  }
+
+  else {  // if  (ppm->primordial_spec_type == inflation_H)
+
+    class_call_except(primordial_inflationH_hubble(ppm,
+                                                   ppm->phi_pivot,
+                                                   &H_pivot,
+                                                   &dH,
+                                                   &ddH,
+                                                   &dddH),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+  }
 
   /* find a_pivot, value of scale factor when k_pivot crosses horizon while phi=phi_pivot */
   a_pivot = ppm->k_pivot/H_pivot;
@@ -1905,42 +1924,85 @@ int primordial_inflation_derivs(
   ppipaw = parameters_and_workspace;
   ppm = ppipaw->ppm;
 
-  class_call(primordial_inflation_potential(ppm,
+  // a2
+  ppipaw->a2=y[ppm->index_in_a]*y[ppm->index_in_a];
+
+  // inflation_V: BACKGROUND
+
+  if (ppm->primordial_spec_type == inflation_V) {
+
+    class_call(primordial_inflation_potential(ppm,
+                                              y[ppm->index_in_phi],
+                                              &(ppipaw->V),
+                                              &(ppipaw->dV),
+                                              &(ppipaw->ddV)),
+               ppm->error_message,
+               ppm->error_message);
+
+    // a H = a'/a
+    ppipaw->aH = sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->a2*ppipaw->V));
+
+    // 1: a
+    dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
+    // 2: phi
+    dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
+    // 3: dphi/dtau
+    dy[ppm->index_in_dphi]=-2.*ppipaw->aH*y[ppm->index_in_dphi]-ppipaw->a2*ppipaw->dV;
+
+    // z''/z
+    ppipaw->zpp_over_z=
+      2*ppipaw->aH*ppipaw->aH
+      - ppipaw->a2*ppipaw->ddV
+      - 4.*_PI_*(7.*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]
+                 +4.*y[ppm->index_in_dphi]/ppipaw->aH*ppipaw->a2*ppipaw->dV)
+      +32.*_PI_*_PI_*pow(y[ppm->index_in_dphi],4)/pow(ppipaw->aH,2);
+
+    // a''/a
+    ppipaw->app_over_a=2.*ppipaw->aH*ppipaw->aH - 4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
+
+  }
+
+  // inflation_H: BACKGROUND
+
+  else {
+
+    class_call(primordial_inflationH_hubble(ppm,
                                             y[ppm->index_in_phi],
-                                            &(ppipaw->V),
-                                            &(ppipaw->dV),
-                                            &(ppipaw->ddV)),
-             ppm->error_message,
-             ppm->error_message);
+                                            &(ppipaw->H),
+                                            &(ppipaw->dH),
+                                            &(ppipaw->ddH),
+                                            &(ppipaw->dddH)),
+               ppm->error_message,
+               ppm->error_message);
 
-  // BACKGROUND
+    // a2
+    ppipaw->a2=y[ppm->index_in_a]*y[ppm->index_in_a];
 
-  // a**2 V
-  ppipaw->a2V=y[ppm->index_in_a]*y[ppm->index_in_a]*ppipaw->V;
-  // a**2 dV/dphi
-  ppipaw->a2dV=y[ppm->index_in_a]*y[ppm->index_in_a]*ppipaw->dV;
-  // a H = a'/a
-  ppipaw->aH = sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->a2V));
+    // 1: a
+    dy[ppm->index_in_a]=ppipaw->a2*ppipaw->H;
+    // 2: phi
+    dy[ppm->index_in_phi]=-1./4./_PI_*y[ppm->index_in_a]*ppipaw->dH;
 
-  // 1: a
-  dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
-  // 2: phi
-  dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
-  // 3: dphi/dtau
-  dy[ppm->index_in_dphi]=-2.*ppipaw->aH*y[ppm->index_in_dphi]-ppipaw->a2dV;
+    // z''/z
+    ppipaw->zpp_over_z =
+      2.               *ppipaw->a2*ppipaw->H*ppipaw->H
+      -3./4./_PI_      *ppipaw->a2*ppipaw->H*ppipaw->ddH
+      +1./16./_PI_/_PI_*ppipaw->a2*ppipaw->ddH*ppipaw->ddH
+      +1./16./_PI_/_PI_*ppipaw->a2*ppipaw->dH*ppipaw->dddH
+      -1./4./_PI_/_PI_ *ppipaw->a2*ppipaw->dH*ppipaw->dH*ppipaw->ddH/ppipaw->H
+      +1./2./_PI_      *ppipaw->a2*ppipaw->dH*ppipaw->dH
+      +1./8./_PI_/_PI_ *ppipaw->a2*ppipaw->dH*ppipaw->dH*ppipaw->dH*ppipaw->dH/ppipaw->H/ppipaw->H;
+
+    // a''/a
+    ppipaw->app_over_a = 2.*ppipaw->a2*ppipaw->H*ppipaw->H
+      -4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
+
+  }
 
   if (ppipaw->N == ppm->in_bg_size)
     return _SUCCESS_;
 
   // PERTURBATIONS
-
-  // a**2 d2V/dphi2
-  ppipaw->a2ddV=y[ppm->index_in_a]*y[ppm->index_in_a]*ppipaw->ddV;
-  // z''/z
-  ppipaw->zpp_over_z=2*ppipaw->aH*ppipaw->aH - ppipaw->a2ddV - 4.*_PI_*(7.*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+4.*y[ppm->index_in_dphi]/ppipaw->aH*ppipaw->a2dV)
-    +32.*_PI_*_PI_*pow(y[ppm->index_in_dphi],4)/pow(ppipaw->aH,2);
-  // a''/a
-  ppipaw->app_over_a=2.*ppipaw->aH*ppipaw->aH - 4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
 
   // SCALARS
   // 4: ksi_re
@@ -2003,53 +2065,6 @@ int primordial_inflationH_hubble(
 
   return _SUCCESS_;
 
-}
-
-/**
- * This routine defines indices used by the inflationH simulator
- *
- * @param ppm  Input/output: pointer to primordial structure
- * @return the error status
- */
-int primordial_inflationH_indices(
-                                 struct primordial * ppm
-                                 ) {
-
-  int index_in;
-
-  index_in = 0;
-
-  /* indices for background quantitites */
-  ppm->index_in_a = index_in;
-  index_in ++;
-  ppm->index_in_phi = index_in;
-  index_in ++;
-
-  /* size of background vector */
-  ppm->in_bg_size = index_in;
-
-  /* indices for perturbations */
-  ppm->index_in_ksi_re = index_in;
-  index_in ++;
-  ppm->index_in_ksi_im = index_in;
-  index_in ++;
-  ppm->index_in_dksi_re = index_in;
-  index_in ++;
-  ppm->index_in_dksi_im = index_in;
-  index_in ++;
-  ppm->index_in_ah_re = index_in;
-  index_in ++;
-  ppm->index_in_ah_im = index_in;
-  index_in ++;
-  ppm->index_in_dah_re = index_in;
-  index_in ++;
-  ppm->index_in_dah_im = index_in;
-  index_in ++;
-
-  /* size of perturbation vector */
-  ppm->in_size = index_in;
-
-  return _SUCCESS_;
 }
 
 /**

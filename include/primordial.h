@@ -253,16 +253,22 @@ struct primordial {
 struct primordial_inflation_parameters_and_workspace {
 
   struct primordial * ppm;
+  double N;
+  double a2;
+
   double V;
   double dV;
   double ddV;
-  double a2V;
-  double a2dV;
   double aH;
-  double N;
-  double a2ddV;
+
+  double H;
+  double dH;
+  double ddH;
+  double dddH;
+
   double zpp_over_z;
   double app_over_a;
+
   double k;
 
 };
@@ -409,10 +415,6 @@ extern "C" {
                                    double * dH,
                                    double * ddH,
                                    double * dddH
-                                   );
-
-  int primordial_inflationH_indices(
-                                   struct primordial * ppm
                                    );
 
   int primordial_external_spectrum_init(
