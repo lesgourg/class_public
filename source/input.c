@@ -592,6 +592,7 @@ int input_read_parameters(
   double rho_ncdm;
   double R0,R1,R2,R3,R4;
   double PSR0,PSR1,PSR2,PSR3,PSR4;
+  double HSR0,HSR1,HSR2,HSR3,HSR4;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -1828,9 +1829,9 @@ int input_read_parameters(
 
         ppm->H0 = sqrt(HSR0*HSR1*_PI_);
         ppm->H1 = sqrt(4.*_PI_*HSR1)*ppm->H0;
-        ppm->H2 = 4.*_PI*HSR2*ppm->H0;
-        ppm->H3 = 4.*_PI*HSR3*ppm->H0*ppm->H0/ppm->H1;
-        ppm->H4 = 4.*_PI*HSR4*ppm->H0*ppm->H0*ppm->H0/ppm->H1/ppm->H1;
+        ppm->H2 = 4.*_PI_*HSR2*ppm->H0;
+        ppm->H3 = 4.*_PI_*HSR3*ppm->H0*ppm->H0/ppm->H1;
+        ppm->H4 = 4.*_PI_*HSR4*ppm->H0*ppm->H0*ppm->H0/ppm->H1/ppm->H1;
 
       }
       else {

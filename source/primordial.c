@@ -1238,12 +1238,7 @@ int primordial_inflation_solve_inflation(
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
 
-
-    //phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*dV/V/8./_PI_;
-    phi_try += ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*sqrt(2.*epsilon/8./_PI_);
-
-    y[ppm->index_in_a] = 1.;
-    y[ppm->index_in_phi] = phi_try;
+    phi_try -= ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*sqrt(2.*epsilon/8./_PI_);
 
     if (ppm->primordial_spec_type == inflation_V) {
       //printf(" (--> search attractor at phi_try=%e)\n",phi_try);
@@ -1259,9 +1254,12 @@ int primordial_inflation_solve_inflation(
                         ppm->error_message,
                         ppm->error_message,
                         free(y);free(y_ini);free(dy));
-
-      y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try;
     }
+
+    y[ppm->index_in_a] = 1.;
+    y[ppm->index_in_phi] = phi_try;
+    if (ppm->primordial_spec_type == inflation_V)
+      y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try;
 
     if (ppm->primordial_verbose > 1)
       printf(" (--> compute e-folds from phi_try=%e to phi_pivot=%e with dphi/dt_try=%e)\n",phi_try,ppm->phi_pivot,dphidt_try);
@@ -1278,7 +1276,7 @@ int primordial_inflation_solve_inflation(
     a_try = a_pivot/y[ppm->index_in_a];
 
     if (ppm->primordial_verbose > 1)
-      printf(" (--> found %f e-folds\n",-log(a_try));
+      printf(" (--> found %f e-folds\n",-log(a_try/a_pivot));
 
   }
 
