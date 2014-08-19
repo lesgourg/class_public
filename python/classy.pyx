@@ -648,6 +648,24 @@ cdef class Class:
         free(pvecback)
         return r[:],dzdr[:]
 
+    def luminosity_distance(self, z):
+        """
+        luminosity_distance(z)
+        """
+        cdef double tau=0.0
+        cdef int last_index = 0  # junk
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba, z, &tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba, tau, self.ba.long_info,
+                self.ba.inter_normal, &last_index, pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+        lum_distance = pvecback[self.ba.index_bg_lum_distance]
+        free(pvecback)
+        return lum_distance
+
     # Gives the pk for a given (k,z)
     def pk(self,double k,double z):
         """
@@ -697,17 +715,6 @@ cdef class Class:
                 for index_mu in xrange(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
         return pk
-
-    # Avoids using hardcoded numbers for tt, te, ... indexes in the tables.
-    def return_index(self):
-        index = {}
-        index['tt'] = self.le.index_lt_tt
-        index['te'] = self.le.index_lt_te
-        index['ee'] = self.le.index_lt_ee
-        index['bb'] = self.le.index_lt_bb
-        index['pp'] = self.le.index_lt_pp
-        index['tp'] = self.le.index_lt_tp
-        return index
 
     def age(self):
         self.compute(["background"])
