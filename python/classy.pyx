@@ -464,6 +464,7 @@ cdef class Class:
             for flag, index, name in has_flags:
                 if name in spectra:
                     cl[name][ell] = rcl[index]
+        cl['ell'] = np.arange(lmax+1)
 
         free(rcl)
         return cl
