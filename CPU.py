@@ -1,11 +1,13 @@
+#!/usr/bin/env python
 """
 .. module:: CPU
     :synopsis: CPU, a CLASS Plotting Utility
-.. moduleauthor:: Benjamin Audren <benj_audren@yahoo.fr>
+.. moduleauthor:: Benjamin Audren <benjamin.audren@gmail.com>
+.. credits:: Benjamin Audren, Jesus Torrado
 .. version:: 2.0
 
 This is a small python program aimed to gain time when comparing two spectra,
-i.e. from CAMB and CLASS, or a non-linear spectrum to a linear one.
+e.g. from CAMB and CLASS, or a non-linear spectrum to a linear one.
 
 It is designed to be used in a command line fashion, not being restricted to
 your CLASS directory, though it recognizes mainly CLASS output format. Far from
@@ -24,7 +26,7 @@ python CPU.py output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat
 python CPU.py output/lcdm_z2_pk.dat output/lncdm_z2_pk.dat -r
 
 The "PlanckScale" is taken with permission from Jesus Torrado's:
-cosmo_mini_toolbox, available under GPL at
+cosmo_mini_toolbox, available under GPLv3 at
 https://github.com/JesusTorrado/cosmo_mini_toolbox
 
 """
@@ -47,7 +49,7 @@ from matplotlib.transforms import Transform
 from matplotlib.ticker import FixedLocator
 
 
-def create_parser():
+def CPU_parser():
     parser = argparse.ArgumentParser(
         description=(
             'CPU, a CLASS Plotting Utility, specify wether you want\n'
@@ -62,9 +64,10 @@ def create_parser():
         'files', type=str, nargs='*', help='Files to plot')
     parser.add_argument('-r', '--ratio', dest='ratio', action='store_true',
                         help='Plot the ratio of the spectra')
-    parser.add_argument('-s', '--selection', dest='selection',
-                        nargs='+',
+    parser.add_argument('-y', '--y-axis', dest='y_axis', nargs='+',
                         help='specify the fields you want to plot.')
+    parser.add_argument('-x', '--x-axis', dest='x_axis', type=str,
+                        help='specify the field to be used on the x-axis')
     parser.add_argument('--scale', type=str,
                         choices=['lin', 'loglog', 'loglin', 'george'],
                         help='Specify the scale to use for the plot')
@@ -83,7 +86,7 @@ def create_parser():
     return parser
 
 
-def plot_CLASS_output(files, selection, ratio=False, printing=False,
+def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
                       output_name='', extension='', x_variable='',
                       scale='lin', xlim=[], ylim=[]):
     """
@@ -96,7 +99,9 @@ def plot_CLASS_output(files, selection, ratio=False, printing=False,
     ----------
     files : list
         List of files to plot
-    selection : list, or string
+    x-axis : string
+        name of the column to use as the x coordinate
+    y-axis : list, str
         List of items to plot, which should match the way they appear in the
         file, for instance: ['TT', 'BB]
 
@@ -111,126 +116,173 @@ def plot_CLASS_output(files, selection, ratio=False, printing=False,
     extension : str
 
     """
+    # Define the python script name, and the pdf path
+    python_script_path = files[0]+'.py'
+    pdf_path = files[0]+'.pdf'
+
+    # The variable text will contain all the lines to be printed in the end to
+    # the python script path, joined with newline characters. Beware of the
+    # indentation.
+    text = ['import matplotlib.pyplot as plt',
+            'import numpy as np',
+            'import itertools', '']
+
     # Load all the graphs
     data = []
     for data_file in files:
         data.append(np.loadtxt(data_file))
 
-    # Create the python script, and initialise it
-    python_script_path = files[0]+'.py'
-    pdf_path = files[0]+'.pdf'
-    text = '''
-import matplotlib.pyplot as plt
-import numpy as np\n'''
-
     # Create the full_path_files list, that contains the absolute path, so that
     # the future python script can import them directly.
     full_path_files = [os.path.abspath(elem) for elem in files]
 
+    text += ['files = %s' % full_path_files]
+    text += ['data = []',
+             'for data_file in files:',
+             '    data.append(np.loadtxt(data_file))']
+
     # Recover the base name of the files, everything before the .
     roots = [elem.split(os.path.sep)[-1].split('.')[0] for elem in files]
-
-    text += '''files = %s\n''' % full_path_files
-    text += '''
-data = []
-for data_file in files:
-    data.append(np.loadtxt(data_file))\n'''
+    text += ['roots = [%s]' % ', '.join(["'%s'" % root for root in roots])]
 
     # Recover the number of columns in the first file, as well as their title.
     num_columns, names, tex_names = extract_headers(files[0])
 
     # Check if everything is in order
     if num_columns == 2:
-        selection = [names[1]]
+        y_axis = [names[1]]
     elif num_columns > 2:
-        # in case selection was only a string, cast it to a list
-        if isinstance(selection, str):
-            selection = [selection]
+        # in case y_axis was only a string, cast it to a list
+        if isinstance(y_axis, str):
+            y_axis = [y_axis]
+
     # Store the selected text and tex_names to the script
     selected = []
-    for elem in selection:
+    for elem in y_axis:
         selected.extend([name for name in names if name.find(elem) != -1 and
                          name not in selected])
-    text += 'selection = %s\n' % selected
-    text += 'tex_names = %s\n' % [elem for (elem, name) in
-                                  zip(tex_names, names) if name in selected]
+    y_axis = selected
 
-    selection = selected
+    text += ['y_axis = %s' % selected]
+    text += ['tex_names = %s' % [elem for (elem, name) in
+                                 zip(tex_names, names) if name in selected]]
+
+    # Decide for the x_axis, by default the index will be set to zero
+    x_index = 0
+    if x_axis:
+        if x_axis in names:
+            x_index = names.index(x_axis)
+    text += ["x_axis = '%s'" % tex_names[x_index]]
+
+    # Store the limits variable in the text
+    text += ["ylim = %s" % ylim]
+    text += ["xlim = %s" % xlim]
+
     # Create the figure and ax objects
     fig, ax = plt.subplots()
-    text += '\nfig, ax = plt.subplots()\n'
+    text += ['', 'fig, ax = plt.subplots()']
 
     # if ratio is not set, then simply plot them all
     if not ratio:
-        loc = ''
-        text += 'for curve in data:\n'
+        text += ['for curve in data:']
         for idx, curve in enumerate(data):
             _, curve_names, _ = extract_headers(files[idx])
-            for selec in selection:
+            for selec in y_axis:
                 index = curve_names.index(selec)
-                text += '    ax.'
+                plot_line = '    ax.'
                 if scale == 'lin':
-                    text += 'plot(curve[:, 0], curve[:, %i])\n' % index
-                    ax.plot(curve[:, 0], curve[:, index])
+                    plot_line += 'plot(curve[:, %i], curve[:, %i])' % (
+                        x_index, index)
+                    ax.plot(curve[:, x_index], curve[:, index])
                 elif scale == 'loglog':
-                    text += 'loglog(curve[:, 0], abs(curve[:, %i]))\n' % index
-                    ax.loglog(curve[:, 0], abs(curve[:, index]))
+                    plot_line += 'loglog(curve[:, %i], abs(curve[:, %i]))' % (
+                        x_index, index)
+                    ax.loglog(curve[:, x_index], abs(curve[:, index]))
                 elif scale == 'loglin':
-                    text += 'semilogx(curve[:, 0], curve[:, %i])\n' % index
-                    ax.semilogx(curve[:, 0], curve[:, index])
+                    plot_line += 'semilogx(curve[:, %i], curve[:, %i])' % (
+                        x_index, index)
+                    ax.semilogx(curve[:, x_index], curve[:, index])
                 elif scale == 'george':
-                    text += 'plot(curve[:, 0], curve[:, %i])\n' % index
-                    ax.plot(curve[:, 0], curve[:, index])
+                    plot_line += 'plot(curve[:, %i], curve[:, %i])' % (
+                        x_index, index)
+                    ax.plot(curve[:, x_index], curve[:, index])
                     ax.set_xscale('planck')
-                    loc = 'upper right'
-        if not loc:
-            loc = 'upper right'
+                text += [plot_line]
 
         ax.legend([root+': '+elem for (root, elem) in
-                   itertools.product(roots, selection)], loc=loc)
+                   itertools.product(roots, y_axis)], loc='best')
+        text += ["",
+                 "ax.legend([root+': '+elem for (root, elem) in",
+                 "    itertools.product(roots, y_axis)], loc='best')",
+                 ""]
     else:
+        text += ['from scipy.interpolate import splrep, splev']
         ref = data[0]
+        text += ['ref = data[0]']
         _, ref_curve_names, _ = extract_headers(files[0])
+        text += ['for idx in range(1, len(data)):',
+                 '    current = data[idx]']
         for idx in range(1, len(data)):
             current = data[idx]
             _, curve_names, _ = extract_headers(files[idx])
-            for selec in selection:
+            for selec in y_axis:
                 # Do the interpolation
-                axis = ref[:, 0]
+                axis = ref[:, x_index]
                 reference = ref[:, ref_curve_names.index(selec)]
-                interpolated = splrep(current[:, 0],
+                interpolated = splrep(current[:, x_index],
                                       current[:, curve_names.index(selec)])
+                text += ['    axis = ref[:, %i]' % x_index,
+                         '    reference = ref[:, %i]' % ref_curve_names.index(selec),
+                         '    interpolated = splrep(current[:, %i],' % x_index,
+                         '        current[:, %i])' % curve_names.index(selec)]
                 if scale == 'lin':
-                    ax.plot(axis, splev(ref[:, 0], interpolated)/reference-1)
+                    text += ['    ax.plot(axis, splev(ref[:, 0],' % x_index,
+                             '        interpolated)/reference-1)']
+                    ax.plot(axis, splev(ref[:, x_index],
+                                        interpolated)/reference-1)
                 elif scale == 'loglin':
-                    ax.semilogx(axis, splev(ref[:, 0],
-                                interpolated)/reference-1)
+                    text += ['    ax.semilogx(axis, splev(ref[:, %i],' % x_index,
+                             '        interpolated)/reference-1)']
+                    ax.semilogx(axis, splev(ref[:, x_index],
+                                            interpolated)/reference-1)
                 elif scale == 'loglog':
                     raise InputError(
                         "loglog plot is not available for ratios")
 
     if 'TT' in curve_names:
-        ax.set_xlabel('$\ell$', fontsize=20)
+        ax.set_xlabel('$\ell$', fontsize=16)
+        text += ["ax.set_xlabel('$\ell$', fontsize=16)"]
     elif 'P' in curve_names:
-        ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=20)
+        ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=16)
+        text += ["ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=16)"]
+    else:
+        ax.set_xlabel(tex_names[x_index], fontsize=16)
+        text += ["ax.set_xlabel('%s', fontsize=16)" % tex_names[x_index]]
     if xlim:
         if len(xlim) > 1:
             ax.set_xlim(xlim)
+            text += ["ax.set_xlim(xlim)"]
         else:
             ax.set_xlim(xlim[0])
+            text += ["ax.set_xlim(xlim[0])"]
         ax.set_ylim()
+        text += ["ax.set_ylim()"]
     if ylim:
         if len(ylim) > 1:
             ax.set_ylim(ylim)
+            text += ["ax.set_ylim(ylim)"]
         else:
             ax.set_ylim(ylim[0])
-    text += 'plt.show()\n'
+            text += ["ax.set_ylim(ylim[0])"]
+    text += ['plt.show()']
     plt.show()
 
     # Write to the python file all the issued commands. You can then reproduce
     # the plot by running "python output/something_cl.dat.py"
     with open(python_script_path, 'w') as python_script:
-        python_script.write(text)
+        print 'Creating a python script to reproduce the figure'
+        print '--> stored in %s' % python_script_path
+        python_script.write('\n'.join(text))
 
     # If the use wants to print the figure to a file
     if printing:
@@ -317,7 +369,7 @@ def extract_headers(header_path):
                   for i in range(num_columns)]
 
     # Process long_names further to handle special cases, and extract names,
-    # which will correspond to the tags specified in "selection".
+    # which will correspond to the tags specified in "y_axis".
     names, tex_names = process_long_names(long_names)
 
     return num_columns, names, tex_names
@@ -325,7 +377,7 @@ def extract_headers(header_path):
 
 def main():
     print '~~~ Running CPU, a CLASS Plotting Utility ~~~'
-    parser = create_parser()
+    parser = CPU_parser()
     # Parse the command line arguments
     args = parser.parse_args()
 
@@ -336,17 +388,17 @@ def main():
 
     # if the first file name contains cl or pk, infer the type of desired
     # spectrum
-    if not args.selection:
+    if not args.y_axis:
         if args.files[0].rfind('cl') != -1:
-            selection = ['TT']
+            y_axis = ['TT']
             scale = 'loglog'
         elif args.files[0].rfind('pk') != -1:
-            selection = ['P']
+            y_axis = ['P']
             scale = 'loglog'
         else:
             raise TypeError(
                 "Please specify a field to plot")
-        args.selection = selection
+        args.y_axis = y_axis
     else:
         scale = ''
     if not args.scale:
@@ -355,8 +407,8 @@ def main():
         else:
             args.scale = 'lin'
 
-    # Remove extra spacing in the selection list
-    args.selection = [''.join(elem.split()) for elem in args.selection]
+    # Remove extra spacing in the y_axis list
+    args.y_axis = [''.join(elem.split()) for elem in args.y_axis]
     # If ratio is asked, but only one file was passed in argument, politely
     # complain
     if args.ratio:
@@ -367,9 +419,9 @@ def main():
     # actual plotting. By default, a simple superposition of the graph is
     # performed. If asked to be divided, the ratio is shown - whether a need
     # for interpolation arises or not.
-    plot_CLASS_output(args.files, args.selection, ratio=args.ratio,
-                      printing=args.printfile, scale=args.scale,
-                      xlim=args.xlim, ylim=args.ylim)
+    plot_CLASS_output(args.files, args.x_axis, args.y_axis,
+                      ratio=args.ratio, printing=args.printfile,
+                      scale=args.scale, xlim=args.xlim, ylim=args.ylim)
 
 
 # Helper code from cosmo_mini_toolbox, by Jesus Torrado, available fully at
@@ -382,10 +434,10 @@ factor = 500.
 
 def _mask_nonpos(a):
     """
-Return a Numpy masked array where all non-positive 1 are
-masked. If there are no non-positive, the original array
-is returned.
-"""
+    Return a Numpy masked array where all non-positive 1 are
+    masked. If there are no non-positive, the original array
+    is returned.
+    """
     mask = a <= 0.0
     if mask.any():
         return ma.MaskedArray(a, mask=mask)
@@ -399,11 +451,11 @@ def _clip_smaller_than_one(a):
 
 class PlanckScale(mscale.ScaleBase):
     """
-Scale used by the Planck collaboration to plot Temperature power spectra:
-base-10 logarithmic up to l=50, and linear from there on.
+    Scale used by the Planck collaboration to plot Temperature power spectra:
+    base-10 logarithmic up to l=50, and linear from there on.
 
-Care is taken so non-positive values are not plotted.
-"""
+    Care is taken so non-positive values are not plotted.
+    """
     name = 'planck'
 
     def __init__(self, axis, **kwargs):
