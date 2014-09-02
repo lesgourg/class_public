@@ -29,6 +29,13 @@ enum potential_shape {
   natural
 };
 
+/** enum defining which quantity plays the role of a target for evolving inflationary equations */
+
+enum target_quantity {
+  _aH_,
+  _phi_
+};
+
 /**
  * Structure containing everything about primordial spectra that other modules need to know.
  *
@@ -388,15 +395,10 @@ extern "C" {
                                              struct precision * ppr,
                                              double * y,
                                              double * dy,
-                                             double phi_stop);
-
-  int primordial_inflation_reach_aH(
-                                    struct primordial * ppm,
-                                    struct precision * ppr,
-                                    double * y,
-                                    double * dy,
-                                    double aH_stop
-                                    );
+                                             enum target_quantity target,
+                                             double stop,
+                                             short check_epsilon
+                                             );
 
   int primordial_inflation_check_potential(
                                            struct primordial * ppm,
