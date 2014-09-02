@@ -1319,7 +1319,7 @@ int primordial_inflation_solve_inflation(
 
   ppm->phi_min=y[ppm->index_in_phi];
 
-  class_call_except(primordial_inflation_evolve_background(ppm,ppr,y,dy,_aH_,exp(ppm->lnk[ppm->lnk_size]),_FALSE_),
+  class_call_except(primordial_inflation_evolve_background(ppm,ppr,y,dy,_aH_,exp(ppm->lnk[ppm->lnk_size-1]),_FALSE_),
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
@@ -1832,22 +1832,30 @@ int primordial_inflation_evolve_background(
              gi.error_message,
              ppm->error_message);
 
-  if (target == _phi_) {
+  // Perform one last step with a simple trapezoidal integral.
+  // This will bring exactly phi to phi_stop, or approximately aH to aH_stop.
 
-    class_call(primordial_inflation_derivs(tau_end,
-                                           y,
-                                           dy,
-                                           &pipaw,
-                                           ppm->error_message),
-               ppm->error_message,
-               ppm->error_message);
+  class_call(primordial_inflation_derivs(tau_end,
+                                         y,
+                                         dy,
+                                         &pipaw,
+                                         ppm->error_message),
+             ppm->error_message,
+             ppm->error_message);
 
+  switch (target) {
+  case _aH_:
+    dtau = (stop/aH-1.)/aH;
+    break;
+  case _phi_:
     dtau = (stop-y[ppm->index_in_phi])/dy[ppm->index_in_dphi];
-    y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
-    y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
-    if (ppm->primordial_spec_type == inflation_V)
-      y[ppm->index_in_dphi] += dy[ppm->index_in_dphi]*dtau;
+    break;
   }
+
+  y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
+  y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
+  if (ppm->primordial_spec_type == inflation_V)
+    y[ppm->index_in_dphi] += dy[ppm->index_in_dphi]*dtau;
 
   return _SUCCESS_;
 }
