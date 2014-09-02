@@ -407,7 +407,8 @@ extern "C" {
 
   int primordial_inflation_check_hubble(
                                         struct primordial * ppm,
-                                        double phi
+                                        double phi,
+                                        double *H
                                         );
 
   int primordial_inflation_get_epsilon(

@@ -1,4 +1,5 @@
 // TODO to find a_try, phi_try, in thflation_H case, instead of doing tries, should integrate backward the first order equations
+// TODO check_potential and check_hubble should return values, to spare re-calling more functions just after
 
 /** @file primordial.c Documented primordial module.
  *
@@ -548,7 +549,7 @@ int primordial_init(
       ppm->alpha_t = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
 
       if (ppm->primordial_verbose > 0)
-        printf(" -> r=%g  n_r=%g  alpha_r=%g\n",ppm->r,ppm->n_t,ppm->alpha_t);
+        printf(" -> r=%g  n_t=%g  alpha_t=%g\n",ppm->r,ppm->n_t,ppm->alpha_t);
 
     }
 
@@ -987,25 +988,29 @@ int primordial_inflation_potential(
                                    double * ddV
                                    ) {
 
-  /* V(phi)=polynomial in (phi-phi*) */
-  if (ppm->potential == polynomial) {
+  switch (ppm->potential) {
 
+  /* V(phi)=polynomial in (phi-phi*) */
+  case polynomial:
     *V   = ppm->V0+(phi-ppm->phi_pivot)*ppm->V1+pow((phi-ppm->phi_pivot),2)/2.*ppm->V2+pow((phi-ppm->phi_pivot),3)/6.*ppm->V3+pow((phi-ppm->phi_pivot),4)/24.*ppm->V4;
     *dV  = ppm->V1+(phi-ppm->phi_pivot)*ppm->V2+pow((phi-ppm->phi_pivot),2)/2.*ppm->V3+pow((phi-ppm->phi_pivot),3)/6.*ppm->V4;
     *ddV = ppm->V2+(phi-ppm->phi_pivot)*ppm->V3+pow((phi-ppm->phi_pivot),2)/2.*ppm->V4;
-
-  }
+    break;
 
   /* V(phi) = Lambda^4(1+cos(phi/f)) = V0 (1+cos(phi/V1)) */
-  if (ppm->potential == natural) {
+  case natural:
 
     *V   = ppm->V0*(1.+cos(phi/ppm->V1));
     *dV  = -ppm->V0/ppm->V1*sin(phi/ppm->V1);
     *ddV = -ppm->V0/ppm->V1/ppm->V1*cos(phi/ppm->V1);
-
-  }
+    break;
 
   /* code here other shapes */
+
+  default:
+    class_stop(ppm->error_message,"ppm->potential=%d different from all known cases",ppm->potential);
+    break;
+  }
 
   return _SUCCESS_;
 }
@@ -1119,22 +1124,24 @@ int primordial_inflation_solve_inflation(
   double aH_ini;
   double k_max;
   int counter;
-  //double V=0.,dV=0.,ddV;
-  double dH,ddH,dddH;
   double epsilon;
 
-  //  fprintf(stdout,"Expected slow-roll A_s: %g\n",128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
-  //  fprintf(stdout,"Expected slow-roll T/S: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_);
-  //  fprintf(stdout,"Expected slow-roll A_T: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_*128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
-  //  fprintf(stdout,"Expected slow-roll n_s: %g\n",1.-6./16./_PI_*pow(ppm->V1/ppm->V0,2)+2./8./_PI_*(ppm->V2/ppm->V0));
-  //  fprintf(stdout,"Expected slow-roll n_t: %g\n",-2./16./_PI_*pow(ppm->V1/ppm->V0,2));
+  // uncomment these lines if for checking, you want first-order slow-roll predictions
+  //fprintf(stdout,"Expected slow-roll A_s: %g\n",128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
+  //fprintf(stdout,"Expected slow-roll T/S: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_);
+  //fprintf(stdout,"Expected slow-roll A_T: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_*128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
+  //fprintf(stdout,"Expected slow-roll n_s: %g\n",1.-6./16./_PI_*pow(ppm->V1/ppm->V0,2)+2./8./_PI_*(ppm->V2/ppm->V0));
+  //fprintf(stdout,"Expected slow-roll n_t: %g\n",-2./16./_PI_*pow(ppm->V1/ppm->V0,2));
 
   /* allocate vectors for background/perturbed quantitites */
   class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(y_ini,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
 
-  if (ppm->primordial_spec_type == inflation_V) {
+  /* compute H_pivot at phi_pivot */
+  switch (ppm->primordial_spec_type) {
+
+  case inflation_V:
 
     /* check positivity and negative slope of potential in field pivot value */
     class_call_except(primordial_inflation_check_potential(ppm,ppm->phi_pivot),
@@ -1159,27 +1166,20 @@ int primordial_inflation_solve_inflation(
                       ppm->error_message,
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
-  }
+    break;
 
-  else {  // if  (ppm->primordial_spec_type == inflation_H)
+  case inflation_H:
 
-    /* check positivity and negative slope of potential in field pivot value */
-    class_call_except(primordial_inflation_check_hubble(ppm,ppm->phi_pivot),
+    /* check positivity and negative slope of H(phi) in field pivot value, and get H_pivot */
+    class_call_except(primordial_inflation_check_hubble(ppm,ppm->phi_pivot,&H_pivot),
                       ppm->error_message,
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
+    break;
 
-    /* get H at phi_pivot */
-    class_call_except(primordial_inflation_hubble(ppm,
-                                                  ppm->phi_pivot,
-                                                  &H_pivot,
-                                                  &dH,
-                                                  &ddH,
-                                                  &dddH),
-                      ppm->error_message,
-                      ppm->error_message,
-                      free(y);free(y_ini);free(dy));
-
+  default:
+    class_stop(ppm->error_message,"ppm->primordial_spec_type=%d different from possible relevant cases",ppm->primordial_spec_type);
+    break;
   }
 
   /* find a_pivot, value of scale factor when k_pivot crosses horizon while phi=phi_pivot */
@@ -1701,7 +1701,7 @@ int primordial_inflation_evolve_background(
   struct primordial_inflation_parameters_and_workspace pipaw;
   struct generic_integrator_workspace gi;
   double tau_start,tau_end,dtau;
-  double aH;
+  double H,aH;
   double epsilon,epsilon_old;
   double quantity;
 
@@ -1759,7 +1759,8 @@ int primordial_inflation_evolve_background(
     }
     else {
       class_call(primordial_inflation_check_hubble(ppm,
-                                                   y[ppm->index_in_phi]),
+                                                   y[ppm->index_in_phi],
+                                                   &H),
                  ppm->error_message,
                  ppm->error_message);
     }
@@ -1906,26 +1907,28 @@ int primordial_inflation_check_potential(
  *
  * @param ppm       Input: pointer to primordial structure
  * @param phi       Input: field value where to perform the check
+ * @param H         Output: value if H in phi
  * @return the error status
  */
 
 int primordial_inflation_check_hubble(
                                       struct primordial * ppm,
-                                      double phi
+                                      double phi,
+                                      double * H
                                       ) {
 
-  double H,dH,ddH,dddH;
+  double dH,ddH,dddH;
 
   class_call(primordial_inflation_hubble(ppm,
                                          phi,
-                                         &H,&dH,&ddH,&dddH),
+                                         H,&dH,&ddH,&dddH),
              ppm->error_message,
              ppm->error_message);
 
-  class_test(H < 0.,
+  class_test(*H < 0.,
              ppm->error_message,
              "this H(phi) is not physical. H = %e",
-             H);
+             *H);
 
   class_test(dH > 0.,
              ppm->error_message,
