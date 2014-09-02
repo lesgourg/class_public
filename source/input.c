@@ -1378,6 +1378,23 @@ int input_read_parameters(
 
     }
 
+    if (ppt->has_vectors == _TRUE_){
+
+      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_), 
+                 errmsg,
+                 "inconsistent input: you asked for vectors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
+
+    }
+
+    if (ppt->has_tensors == _TRUE_){
+
+      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_), 
+                 errmsg,
+                 "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
+
+    }
+
+
     class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
                errmsg,
                errmsg);

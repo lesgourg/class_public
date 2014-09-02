@@ -719,9 +719,11 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_t1,ppt->has_source_t,index_type,1);
       ppt->tp_size[index_md] = index_type;
 
+      /**
       class_test(index_type == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for vectors, so you should have at least one non-zero vector source type (temperature or polarisation). Please adjust your input.");
+      */
 
       /** -- initial conditions for vectors*/
 
@@ -740,9 +742,11 @@ int perturb_indices_of_perturbs(
       /* nothing specific, unlike for vectors and scalars! */
       ppt->tp_size[index_md] = index_type;
 
+      /**
       class_test(index_type == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
+      */
 
       /** -- only one initial condition for tensors*/
 
