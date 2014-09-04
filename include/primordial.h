@@ -402,13 +402,19 @@ extern "C" {
 
   int primordial_inflation_check_potential(
                                            struct primordial * ppm,
-                                           double phi
+                                           double phi,
+                                           double * V,
+                                           double * dV,
+                                           double * ddV
                                            );
 
   int primordial_inflation_check_hubble(
                                         struct primordial * ppm,
                                         double phi,
-                                        double *H
+                                        double *H,
+                                        double * dH,
+                                        double * ddH,
+                                        double * dddH
                                         );
 
   int primordial_inflation_get_epsilon(
