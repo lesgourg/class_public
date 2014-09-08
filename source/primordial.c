@@ -1,4 +1,4 @@
-// TODO could save lines by merging inflation_derivs and inflation_derivs_backward, as well as evolve_background and evolve_background_backward
+// TODO could save lines by merging evolve_background and evolve_background_backward
 // TODO in find_attractor, it shoudl be possible to conclude very quickly that the series does not converge, without needing to wait that the counter reaches a large value
 
 /** @file primordial.c Documented primordial module.
@@ -1629,6 +1629,7 @@ int primordial_inflation_one_k(
      in background, thermodynamics and perturbation modules) */
   pipaw.ppm = ppm;
   pipaw.N = ppm->in_size;
+  pipaw.integrate = forward;
   pipaw.k = k;
 
   class_call(initialize_generic_integrator(pipaw.N,&gi),
@@ -1896,6 +1897,7 @@ int primordial_inflation_evolve_background(
 
   pipaw.ppm = ppm;
   pipaw.N = ppm->in_bg_size;
+  pipaw.integrate = forward;
 
   class_call(initialize_generic_integrator(pipaw.N,&gi),
              gi.error_message,
@@ -2134,6 +2136,8 @@ int primordial_inflation_evolve_background_backward(
     break;
   }
 
+  pipaw.integrate = backward;
+
   class_call(initialize_generic_integrator(pipaw.N,&gi),
              gi.error_message,
              ppm->error_message);
@@ -2153,11 +2157,11 @@ int primordial_inflation_evolve_background_backward(
 
   tau_end = 0;
 
-  class_call(primordial_inflation_derivs_backward(tau_end,
-                                                  y,
-                                                  dy,
-                                                  &pipaw,
-                                                  ppm->error_message),
+  class_call(primordial_inflation_derivs(tau_end,
+                                         y,
+                                         dy,
+                                         &pipaw,
+                                         ppm->error_message),
              ppm->error_message,
              ppm->error_message);
 
@@ -2214,7 +2218,7 @@ int primordial_inflation_evolve_background_backward(
                ppm->error_message,
                "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",fabs(dtau/tau_start));
 
-    class_call(generic_integrator(primordial_inflation_derivs_backward,
+    class_call(generic_integrator(primordial_inflation_derivs,
                                   tau_start,
                                   tau_end,
                                   y,
@@ -2247,11 +2251,11 @@ int primordial_inflation_evolve_background_backward(
 
     /* recompute new value of next conformal time step */
 
-    class_call(primordial_inflation_derivs_backward(tau_start,
-                                                    y,
-                                                    dy,
-                                                    &pipaw,
-                                                    ppm->error_message),
+    class_call(primordial_inflation_derivs(tau_start,
+                                           y,
+                                           dy,
+                                           &pipaw,
+                                           ppm->error_message),
                ppm->error_message,
                ppm->error_message);
 
@@ -2477,26 +2481,45 @@ int primordial_inflation_derivs(
                ppm->error_message,
                ppm->error_message);
 
-    // a H = a'/a
-    ppipaw->aH = sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->a2*ppipaw->V));
+    switch (ppipaw->integrate) {
 
-    // 1: a
-    dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
-    // 2: phi
-    dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
-    // 3: dphi/dtau
-    dy[ppm->index_in_dphi]=-2.*ppipaw->aH*y[ppm->index_in_dphi]-ppipaw->a2*ppipaw->dV;
+    case forward:
 
-    // z''/z
-    ppipaw->zpp_over_z=
-      2*ppipaw->aH*ppipaw->aH
-      - ppipaw->a2*ppipaw->ddV
-      - 4.*_PI_*(7.*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]
-                 +4.*y[ppm->index_in_dphi]/ppipaw->aH*ppipaw->a2*ppipaw->dV)
-      +32.*_PI_*_PI_*pow(y[ppm->index_in_dphi],4)/pow(ppipaw->aH,2);
+      // a H = a'/a
+      ppipaw->aH = sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->a2*ppipaw->V));
+      // 1: a
+      dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
+      // 2: phi
+      dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
+      // 3: dphi/dtau
+      dy[ppm->index_in_dphi]=-2.*ppipaw->aH*y[ppm->index_in_dphi]-ppipaw->a2*ppipaw->dV;
 
-    // a''/a
-    ppipaw->app_over_a=2.*ppipaw->aH*ppipaw->aH - 4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
+      // z''/z
+      ppipaw->zpp_over_z=
+        2*ppipaw->aH*ppipaw->aH
+        - ppipaw->a2*ppipaw->ddV
+        - 4.*_PI_*(7.*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]
+                   +4.*y[ppm->index_in_dphi]/ppipaw->aH*ppipaw->a2*ppipaw->dV)
+        +32.*_PI_*_PI_*pow(y[ppm->index_in_dphi],4)/pow(ppipaw->aH,2);
+
+      // a''/a
+      ppipaw->app_over_a=2.*ppipaw->aH*ppipaw->aH - 4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
+
+      break;
+
+      // For backward integration of approximate slow-roll solution:
+      // Neglect kinetic energy of the field phi'^2/(2a^2) w.r.t. potential energy V
+      // Neglect phi'' w.r.t 2aHphi', reducing 2nd order Klein-Gordon to approximate 1st-order
+    case backward:
+
+      // a H = a'/a
+      ppipaw->aH = sqrt((8*_PI_/3.)*ppipaw->a2*ppipaw->V);
+      // 1: a
+      dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
+      // 2: phi
+      dy[ppm->index_in_phi]= -ppipaw->a2*ppipaw->dV/3./ppipaw->aH;
+      break;
+    }
 
     break;
 
@@ -2538,7 +2561,7 @@ int primordial_inflation_derivs(
 
   }
 
-  if (ppipaw->N == ppm->in_bg_size)
+  if (ppipaw->N <= ppm->in_bg_size) // mind the <= instead of ==, necessary because for backward integration 1 equation is removed
     return _SUCCESS_;
 
   // PERTURBATIONS
@@ -2562,96 +2585,6 @@ int primordial_inflation_derivs(
   dy[ppm->index_in_dah_re]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_re];
   // 11: d ah_im / dtau
   dy[ppm->index_in_dah_im]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_im];
-
-  return _SUCCESS_;
-}
-
-/**
- * Routine returning derivative of system of background variables when
- * one wants to integrate backward in time, sticking to the attractor
- * inflationary solution. In the case inflation_H, the derivatives are
- * identical to those in the forward integral, and the solution is
- * still exact. In the inflation_V case, the Klein-Gordon equation is
- * reduced to an approximate first-order equation giving the
- * first-order approximation to the attractor solution (based on
- * phi'=-aV'/2H, and H^2 given by V). Like other routines used by the
- * generic integrator (background_derivs, thermodynamics_derivs,
- * perturb_derivs), this routine has a generic list of arguments, and
- * a slightly different error management, with the error message
- * returned directly in an ErrMsg field.
- *
- * @param tau                      Input: time (not used explicitely inside the routine, but requested by the generic integrator)
- * @param y                        Input/output: running vector of background variables, already allocated and initialized
- * @param dy                       Input: running vector of background derivatives, already allocated
- * @param parameters_and_workspace Input: all necessary input variables apart from y
- * @return the error status
- */
-
-int primordial_inflation_derivs_backward(
-                                         double tau,
-                                         double * y,
-                                         double * dy,
-                                         void * parameters_and_workspace,
-                                         ErrorMsg error_message
-                                         ) {
-
-  struct primordial_inflation_parameters_and_workspace * ppipaw;
-  struct primordial * ppm;
-
-  ppipaw = parameters_and_workspace;
-  ppm = ppipaw->ppm;
-
-  // a2
-  ppipaw->a2=y[ppm->index_in_a]*y[ppm->index_in_a];
-
-  // BACKGROUND
-
-  switch (ppm->primordial_spec_type) {
-  case inflation_V:
-
-    class_call(primordial_inflation_potential(ppm,
-                                              y[ppm->index_in_phi],
-                                              &(ppipaw->V),
-                                              &(ppipaw->dV),
-                                              &(ppipaw->ddV)),
-               ppm->error_message,
-               ppm->error_message);
-
-    // a H = a'/a, approximate solution!
-    // Neglect kinetic energy of the field phi'^2/(2a^2) w.r.t. potential energy V
-    ppipaw->aH = sqrt((8*_PI_/3.)*(ppipaw->a2*ppipaw->V));
-
-    // 1: a
-    dy[ppm->index_in_a] = y[ppm->index_in_a]*ppipaw->aH;
-    // 2: phi, approximate solution!
-    // Neglect phi'' w.r.t 2aHphi'
-    dy[ppm->index_in_phi]= -ppipaw->a2*ppipaw->dV/3./ppipaw->aH;
-
-    break;
-
-  case inflation_H:
-
-    class_call(primordial_inflation_hubble(ppm,
-                                            y[ppm->index_in_phi],
-                                            &(ppipaw->H),
-                                            &(ppipaw->dH),
-                                            &(ppipaw->ddH),
-                                            &(ppipaw->dddH)),
-               ppm->error_message,
-               ppm->error_message);
-
-    // 1: a
-    dy[ppm->index_in_a] = ppipaw->a2*ppipaw->H;
-    // 2: phi
-    dy[ppm->index_in_phi] = -1./4./_PI_*y[ppm->index_in_a]*ppipaw->dH;
-
-    break;
-
-  default:
-    class_stop(ppm->error_message,"ppm->primordial_spec_type=%d different from possible relevant cases",ppm->primordial_spec_type);
-    break;
-
-  }
 
   return _SUCCESS_;
 }

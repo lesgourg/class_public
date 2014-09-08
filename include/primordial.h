@@ -36,6 +36,13 @@ enum target_quantity {
   _phi_
 };
 
+/** enum specifying if we want to integrate equations forward or backward in time */
+
+enum integration_direction {
+  backward,
+  forward
+};
+
 /**
  * Structure containing everything about primordial spectra that other modules need to know.
  *
@@ -278,6 +285,8 @@ struct primordial_inflation_parameters_and_workspace {
 
   double k;
 
+  enum integration_direction integrate;
+
 };
 
 
@@ -440,14 +449,6 @@ extern "C" {
                                   void * parameters_and_workspace,
                                   ErrorMsg error_message
                                   );
-
-  int primordial_inflation_derivs_backward(
-                                           double tau,
-                                           double * y,
-                                           double * dy,
-                                           void * parameters_and_workspace,
-                                           ErrorMsg error_message
-                                           );
 
   int primordial_external_spectrum_init(
                                         struct perturbs * ppt,
