@@ -1394,7 +1394,9 @@ int primordial_inflation_solve_inflation(
       y[ppm->index_in_a] = a_try;
       y[ppm->index_in_phi] = phi_try;
 
-    } while (y_ini[ppm->index_in_a]*H_try > aH_ini);
+      //fprintf(stderr,"%d: %e %e\n",counter,a_try*H_try,aH_ini);
+
+    } while (a_try*H_try > aH_ini);
 
     y_ini[ppm->index_in_a] = a_try;
     y_ini[ppm->index_in_phi] = phi_try;
