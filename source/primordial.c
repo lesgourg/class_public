@@ -1,4 +1,4 @@
-// TODO to find a_try, phi_try, in the inflation_H case, instead of doing tries, should integrate backward the first order equations; in the inflation_V case, same with first-order slow-roll equation phi'=-V'/3H
+// TODO could save lines by merging inflation_derivs and inflation_derivs_backward, as well as evolve_background and evolve_background_backward
 // TODO in find_attractor, it shoudl be possible to conclude very quickly that the series does not converge, without needing to wait that the counter reaches a large value
 
 /** @file primordial.c Documented primordial module.
@@ -475,7 +475,7 @@ int primordial_init(
       ppm->n_s = (lnpk_plus-lnpk_minus)/(2.*dlnk)+1.;
       ppm->alpha_s = (lnpk_plus-2.*lnpk_pivot+lnpk_minus)/pow(dlnk,2);
 
-      /** expression for n_s comes from:
+      /** expression for alpha_s comes from:
 
           ns_2 = (lnpk_plus-lnpk_pivot)/(dlnk)+1.
           ns_1 = (lnpk_pivot-lnpk_minus)/(dlnk)+1.
@@ -1117,14 +1117,18 @@ int primordial_inflation_solve_inflation(
   double * y;
   double * y_ini;
   double * dy;
-  double a_pivot,a_try;
-  double H_pivot,H_try;
-  double phi_try;
-  double dphidt_pivot,dphidt_try;
+  double a_pivot;
+  //double a_try;
+  double H_pivot;
+  //double H_try;
+  double H_ini,dphidt_ini;
+  //double phi_try;
+  double dphidt_pivot;
+  //double dphidt_try;
   double aH_ini,aH_end;
   double k_max,k_min;
-  int counter;
-  double epsilon;
+  //int counter;
+  //double epsilon;
   double dH,ddH,dddH;
 
   // uncomment these lines if for checking, you want first-order slow-roll predictions
@@ -1230,6 +1234,9 @@ int primordial_inflation_solve_inflation(
   k_min = exp(ppm->lnk[0]);
   aH_ini = k_min/ppr->primordial_inflation_ratio_min;
 
+  /*********************/
+  // OLD METHOD: do several tries of initial time, for each of them integrate the background equations forward in time
+  /*
   a_try = a_pivot;
   H_try = H_pivot;
   phi_try = ppm->phi_pivot;
@@ -1245,9 +1252,7 @@ int primordial_inflation_solve_inflation(
                       "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
                       counter);
 
-    /* compute epsilon in order to make a reasonnable guess on how
-       phi_try should be decreased in order to encompass a time such
-       that k_min << (aH)_ini */
+    // compute epsilon in order to make a reasonnable guess on how phi_try should be decreased in order to encompass a time such that k_min << (aH)_ini
 
     class_call_except(primordial_inflation_get_epsilon(ppm,phi_try,&epsilon),
                       ppm->error_message,
@@ -1298,14 +1303,55 @@ int primordial_inflation_solve_inflation(
 
   }
 
-  /* we found an initial time labeled 'try' with a_try < a_ini, and
-     such that an inflationary attractor solution exists. We
-     initialize background quantitites at this time. */
+  // we found an initial time labeled 'try' with a_try < a_ini, and such that an inflationary attractor solution exists. We initialize background quantitites at this time.
 
   y_ini[ppm->index_in_a] = a_try;
   y_ini[ppm->index_in_phi] = phi_try;
   if (ppm->primordial_spec_type == inflation_V)
     y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
+
+  */
+  /********************/
+  // NEW METHOD: integrate backward in time. This can be done exactly for inflation_H, or only approximately for inflation_V (using the first-order approximation to the attractor inflationary solution). However this approximation is irrelevant becasue nevertheless, later on, we compute the attractor solution at the initial time with excellent accuracy, and then we integrate the background equations forward in time. hence the approximation made here introduces zero mistkae on the final result. It is just a way to find quickly a reasonnable initial phi value.
+
+  y[ppm->index_in_a] = a_pivot;
+  y[ppm->index_in_phi] = ppm->phi_pivot;
+
+  class_call_except(primordial_inflation_evolve_background_backward(ppm,
+                                                                    ppr,
+                                                                    y,
+                                                                    dy,
+                                                                    _aH_,
+                                                                    aH_ini,
+                                                                    _TRUE_),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+
+  y_ini[ppm->index_in_a] = y[ppm->index_in_a];
+  y_ini[ppm->index_in_phi] = y[ppm->index_in_phi];
+
+  /* in inflation_V case, find the accurate attractor solution for phi_ini' */
+
+  if (ppm->primordial_spec_type == inflation_V) {
+
+    class_call_except(primordial_inflation_find_attractor(ppm,
+                                                          ppr,
+                                                          y_ini[ppm->index_in_phi],
+                                                          ppr->primordial_inflation_attractor_precision_initial,
+                                                          y,
+                                                          dy,
+                                                          &H_ini,
+                                                          &dphidt_ini),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+
+    y_ini[ppm->index_in_dphi] = y_ini[ppm->index_in_a]*dphidt_ini; // dphi/dtau = a dphi/dt
+
+  }
+
+  /*********************/
 
   /* starting from this time, we run the routine which takes care of
      computing the primordial spectrum. */
@@ -1951,6 +1997,220 @@ int primordial_inflation_evolve_background(
 }
 
 /**
+ * Routine integrating background equations only, from initial values
+ * stored in y, to a final value (if target = _aH_, until aH =
+ * aH_stop; if target = _phi_, till phi = phi_stop). Here the
+ * integration is performed backward in time. For the inflation_H case
+ * this can be done exactly, for the inflation_V case it is done only
+ * approximately, sticking to the apporximate (first-order) attractor
+ * inflationary solution. In output, y contains the background values
+ * at the target time. In addition, if check_epsilon is true, the
+ * routine controls at each step that the expansion is accelerated and
+ * that inflation hold (wepsilon>1), otherwise it returns an error.
+ *
+ * @param ppm       Input: pointer to primordial structure
+ * @param ppr       Input: pointer to precision structure
+ * @param y         Input/output: running vector of background variables, already allocated and initialized
+ * @param dy        Input: running vector of background derivatives, already allocated
+ * @param aH_stop  Input: final aH value
+ * @return the error status
+ */
+
+int primordial_inflation_evolve_background_backward(
+                                                    struct primordial * ppm,
+                                                    struct precision * ppr,
+                                                    double * y,
+                                                    double * dy,
+                                                    enum target_quantity target,
+                                                    double stop,
+                                                    short check_epsilon
+                                                    ) {
+
+  struct primordial_inflation_parameters_and_workspace pipaw;
+  struct generic_integrator_workspace gi;
+  double tau_start,tau_end,dtau;
+  double H,dH,ddH,dddH,aH;
+  double epsilon,epsilon_old;
+  double quantity;
+  double V,dV,ddV;
+
+  pipaw.ppm = ppm;
+
+  switch (ppm->primordial_spec_type) {
+  case inflation_V:
+    pipaw.N = ppm->in_bg_size-1; // -1 to remove the differential equation for phi', since we stick to the attractor
+    break;
+  case inflation_H:
+    pipaw.N = ppm->in_bg_size;
+    break;
+  default:
+    class_stop(ppm->error_message,"ppm->primordial_spec_type=%d different from possible relevant cases",ppm->primordial_spec_type);
+    break;
+  }
+
+  class_call(initialize_generic_integrator(pipaw.N,&gi),
+             gi.error_message,
+             ppm->error_message);
+
+  /* at starting point, compute eventually epsilon */
+
+  if (check_epsilon == _TRUE_) {
+
+    class_call(primordial_inflation_get_epsilon(ppm,
+                                                y[ppm->index_in_phi],
+                                                &epsilon),
+               ppm->error_message,
+               ppm->error_message);
+  }
+
+  /* at starting point, compute the stepsize dtau */
+
+  tau_end = 0;
+
+  class_call(primordial_inflation_derivs_backward(tau_end,
+                                                  y,
+                                                  dy,
+                                                  &pipaw,
+                                                  ppm->error_message),
+             ppm->error_message,
+             ppm->error_message);
+
+  aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
+
+  dtau = -ppr->primordial_inflation_bg_stepsize*(1./aH); // mind - sign (backward in time)
+
+  /* expected value of either aH or phi after the next step */
+
+  switch (target) {
+  case _aH_:
+    quantity = aH + aH*aH*dtau;
+    break;
+  case _phi_:
+    quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
+    break;
+  }
+
+  /* loop over time steps, checking that there will be no overshooting */
+
+  while (quantity > stop) {
+
+    /* check that V(phi) or H(phi) do not take forbidden values
+       (negative or positive derivative) */
+
+    if (ppm->primordial_spec_type == inflation_V) {
+      class_call(primordial_inflation_check_potential(ppm,
+                                                      y[ppm->index_in_phi],
+                                                      &V,
+                                                      &dV,
+                                                      &ddV),
+                 ppm->error_message,
+                 ppm->error_message);
+    }
+    else {
+      class_call(primordial_inflation_check_hubble(ppm,
+                                                   y[ppm->index_in_phi],
+                                                   &H,
+                                                   &dH,
+                                                   &ddH,
+                                                   &dddH),
+                 ppm->error_message,
+                 ppm->error_message);
+    }
+
+    /* take one time step */
+
+    tau_start = tau_end;
+
+    tau_end = tau_start + dtau;
+
+    // mind the fabs(...) below (backward in time)
+    class_test(fabs(dtau/tau_start) < ppr->smallest_allowed_variation,
+               ppm->error_message,
+               "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",fabs(dtau/tau_start));
+
+    class_call(generic_integrator(primordial_inflation_derivs_backward,
+                                  tau_start,
+                                  tau_end,
+                                  y,
+                                  &pipaw,
+                                  ppr->primordial_inflation_tol_integration,
+                                  ppr->smallest_allowed_variation,
+                                  &gi),
+               gi.error_message,
+               ppm->error_message);
+
+    /* eventually, check that epsilon is not becoming greater than one */
+
+    if (check_epsilon == _TRUE_) {
+
+      epsilon_old = epsilon;
+
+      class_call_except(primordial_inflation_get_epsilon(ppm,
+                                                         y[ppm->index_in_phi],
+                                                         &epsilon),
+                        ppm->error_message,
+                        ppm->error_message,
+                        cleanup_generic_integrator(&gi));
+
+      class_test_except((epsilon > 1) && (epsilon_old <= 1),
+                        ppm->error_message,
+                        cleanup_generic_integrator(&gi),
+                        "Inflaton evolution crosses the border from epsilon<1 to epsilon>1 at phi=%g. Inflation disrupted during the observable e-folds",
+                        y[ppm->index_in_phi]);
+    }
+
+    /* recompute new value of next conformal time step */
+
+    class_call(primordial_inflation_derivs_backward(tau_start,
+                                                    y,
+                                                    dy,
+                                                    &pipaw,
+                                                    ppm->error_message),
+               ppm->error_message,
+               ppm->error_message);
+
+    aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
+
+    dtau = -ppr->primordial_inflation_bg_stepsize*(1./aH); // mind - sign (backward in time)
+
+    /* expected value of either aH or phi after the next step */
+
+    switch (target) {
+    case _aH_:
+      quantity = aH + aH*aH*dtau;
+      break;
+    case _phi_:
+      quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
+      break;
+    }
+  }
+
+  /* won't use the integrator anymore */
+
+  class_call(cleanup_generic_integrator(&gi),
+             gi.error_message,
+             ppm->error_message);
+
+  /* Perform one last step with a simple trapezoidal integral. This
+     will bring exactly phi to phi_stop, or approximately aH to
+     aH_stop. */
+
+  switch (target) {
+  case _aH_:
+    dtau = (stop/aH-1.)/aH;
+    break;
+  case _phi_:
+    dtau = (stop-y[ppm->index_in_phi])/dy[ppm->index_in_dphi];
+    break;
+  }
+
+  y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
+  y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
+
+  return _SUCCESS_;
+}
+
+/**
  * Routine checking positivity and negative slope of potential. The
  * negative slope is an arbitrary choice. Currently the code can only
  * deal with monotonic variations of the inflaton during inflation. So
@@ -2165,9 +2425,6 @@ int primordial_inflation_derivs(
                ppm->error_message,
                ppm->error_message);
 
-    // a2
-    ppipaw->a2=y[ppm->index_in_a]*y[ppm->index_in_a];
-
     // 1: a
     dy[ppm->index_in_a]=ppipaw->a2*ppipaw->H;
     // 2: phi
@@ -2219,6 +2476,96 @@ int primordial_inflation_derivs(
   dy[ppm->index_in_dah_re]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_re];
   // 11: d ah_im / dtau
   dy[ppm->index_in_dah_im]=-(ppipaw->k*ppipaw->k-ppipaw->app_over_a)*y[ppm->index_in_ah_im];
+
+  return _SUCCESS_;
+}
+
+/**
+ * Routine returning derivative of system of background variables when
+ * one wants to integrate backward in time, sticking to the attractor
+ * inflationary solution. In the case inflation_H, the derivatives are
+ * identical to those in the forward integral, and the solution is
+ * still exact. In the inflation_V case, the Klein-Gordon equation is
+ * reduced to an approximate first-order equation giving the
+ * first-order approximation to the attractor solution (based on
+ * phi'=-aV'/2H, and H^2 given by V). Like other routines used by the
+ * generic integrator (background_derivs, thermodynamics_derivs,
+ * perturb_derivs), this routine has a generic list of arguments, and
+ * a slightly different error management, with the error message
+ * returned directly in an ErrMsg field.
+ *
+ * @param tau                      Input: time (not used explicitely inside the routine, but requested by the generic integrator)
+ * @param y                        Input/output: running vector of background variables, already allocated and initialized
+ * @param dy                       Input: running vector of background derivatives, already allocated
+ * @param parameters_and_workspace Input: all necessary input variables apart from y
+ * @return the error status
+ */
+
+int primordial_inflation_derivs_backward(
+                                         double tau,
+                                         double * y,
+                                         double * dy,
+                                         void * parameters_and_workspace,
+                                         ErrorMsg error_message
+                                         ) {
+
+  struct primordial_inflation_parameters_and_workspace * ppipaw;
+  struct primordial * ppm;
+
+  ppipaw = parameters_and_workspace;
+  ppm = ppipaw->ppm;
+
+  // a2
+  ppipaw->a2=y[ppm->index_in_a]*y[ppm->index_in_a];
+
+  // BACKGROUND
+
+  switch (ppm->primordial_spec_type) {
+  case inflation_V:
+
+    class_call(primordial_inflation_potential(ppm,
+                                              y[ppm->index_in_phi],
+                                              &(ppipaw->V),
+                                              &(ppipaw->dV),
+                                              &(ppipaw->ddV)),
+               ppm->error_message,
+               ppm->error_message);
+
+    // a H = a'/a, approximate solution!
+    // Neglect kinetic energy of the field phi'^2/(2a^2) w.r.t. potential energy V
+    ppipaw->aH = sqrt((8*_PI_/3.)*(ppipaw->a2*ppipaw->V));
+
+    // 1: a
+    dy[ppm->index_in_a] = y[ppm->index_in_a]*ppipaw->aH;
+    // 2: phi, approximate solution!
+    // Neglect phi'' w.r.t 2aHphi'
+    dy[ppm->index_in_phi]= -ppipaw->a2*ppipaw->dV/3./ppipaw->aH;
+
+    break;
+
+  case inflation_H:
+
+    class_call(primordial_inflation_hubble(ppm,
+                                            y[ppm->index_in_phi],
+                                            &(ppipaw->H),
+                                            &(ppipaw->dH),
+                                            &(ppipaw->ddH),
+                                            &(ppipaw->dddH)),
+               ppm->error_message,
+               ppm->error_message);
+
+    // 1: a
+    dy[ppm->index_in_a] = ppipaw->a2*ppipaw->H;
+    // 2: phi
+    dy[ppm->index_in_phi] = -1./4./_PI_*y[ppm->index_in_a]*ppipaw->dH;
+
+    break;
+
+  default:
+    class_stop(ppm->error_message,"ppm->primordial_spec_type=%d different from possible relevant cases",ppm->primordial_spec_type);
+    break;
+
+  }
 
   return _SUCCESS_;
 }

@@ -400,6 +400,16 @@ extern "C" {
                                              short check_epsilon
                                              );
 
+  int primordial_inflation_evolve_background_backward(
+                                                      struct primordial * ppm,
+                                                      struct precision * ppr,
+                                                      double * y,
+                                                      double * dy,
+                                                      enum target_quantity target,
+                                                      double stop,
+                                                      short check_epsilon
+                                                      );
+
   int primordial_inflation_check_potential(
                                            struct primordial * ppm,
                                            double phi,
@@ -430,6 +440,14 @@ extern "C" {
                                   void * parameters_and_workspace,
                                   ErrorMsg error_message
                                   );
+
+  int primordial_inflation_derivs_backward(
+                                           double tau,
+                                           double * y,
+                                           double * dy,
+                                           void * parameters_and_workspace,
+                                           ErrorMsg error_message
+                                           );
 
   int primordial_external_spectrum_init(
                                         struct perturbs * ppt,
