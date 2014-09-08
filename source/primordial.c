@@ -1309,8 +1309,8 @@ int primordial_inflation_solve_inflation(
   y_ini[ppm->index_in_phi] = phi_try;
   if (ppm->primordial_spec_type == inflation_V)
     y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
-
   */
+
   /********************/
   // NEW METHOD: integrate backward in time. This can be done exactly for inflation_H, or only approximately for inflation_V (using the first-order approximation to the attractor inflationary solution). However this approximation is irrelevant becasue nevertheless, later on, we compute the attractor solution at the initial time with excellent accuracy, and then we integrate the background equations forward in time. hence the approximation made here introduces zero mistkae on the final result. It is just a way to find quickly a reasonnable initial phi value.
 
@@ -1331,10 +1331,13 @@ int primordial_inflation_solve_inflation(
   y_ini[ppm->index_in_a] = y[ppm->index_in_a];
   y_ini[ppm->index_in_phi] = y[ppm->index_in_phi];
 
-  /* in inflation_V case, find the accurate attractor solution for phi_ini' */
+  // in inflation_V case, find the accurate attractor solution for phi_ini',
+  // and then the correct value of a_ini,
+  // and finally of dphi/dtau_ini
 
   if (ppm->primordial_spec_type == inflation_V) {
 
+    // find dphi/dt_ini (unlike dphi/dtau_ini, this does not depend on normalisation of a)
     class_call_except(primordial_inflation_find_attractor(ppm,
                                                           ppr,
                                                           y_ini[ppm->index_in_phi],
@@ -1347,11 +1350,44 @@ int primordial_inflation_solve_inflation(
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
 
+    // we need to normalise a properly so that a=a_pivot when phi=phi_pivot.
+    // to do so, we evolve starting arbitrarily from a_ini=1, and then we rescale a_ini appropriately.
+    y[ppm->index_in_a] = 1.;
+    y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
+    y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_ini; // dphi/dtau = a dphi/dt
+
+    class_call_except(primordial_inflation_evolve_background(ppm,
+                                                             ppr,
+                                                             y,
+                                                             dy,
+                                                             _phi_,
+                                                             ppm->phi_pivot,
+                                                             _TRUE_),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+
+    // now impose the correct a_ini
+    y_ini[ppm->index_in_a] = a_pivot/y[ppm->index_in_a];
+    // and the correct dphi/dtau_ini
     y_ini[ppm->index_in_dphi] = y_ini[ppm->index_in_a]*dphidt_ini; // dphi/dtau = a dphi/dt
+
+    class_test_except(y_ini[ppm->index_in_a]*H_ini > aH_ini,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy),
+                      "the routine in charge of finding an initial time such that aH < aH_ini did not succeed. A solution would be to pass in argument of the routine primordial_inflation_evolve_background_backward(), not aH_ini, but e.g. 0.5*aH_ini");
 
   }
 
+
   /*********************/
+
+  /*
+  fprintf(stderr,"ini: %e %e %e\n",
+          y_ini[ppm->index_in_a],
+          y_ini[ppm->index_in_phi],
+          y_ini[ppm->index_in_dphi]);
+  */
 
   /* starting from this time, we run the routine which takes care of
      computing the primordial spectrum. */
@@ -1805,7 +1841,7 @@ int primordial_inflation_evolve_background(
   double tau_start,tau_end,dtau;
   double H,dH,ddH,dddH,aH;
   double epsilon,epsilon_old;
-  double quantity;
+  double quantity=0.;
   double V,dV,ddV;
 
   pipaw.ppm = ppm;
@@ -2031,7 +2067,7 @@ int primordial_inflation_evolve_background_backward(
   double tau_start,tau_end,dtau;
   double H,dH,ddH,dddH,aH;
   double epsilon,epsilon_old;
-  double quantity;
+  double quantity=0.;
   double V,dV,ddV;
 
   pipaw.ppm = ppm;
