@@ -946,9 +946,40 @@ int thermodynamics_helium_from_bbn(
   double DeltaNeff;
   double omega_b;
   int last_index;
+  double Neff_bbn, z_bbn, tau_bbn, *pvecback;
+
+  /** Infer effective number of neutrinos at the time of BBN */
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+
+  /** 8.6173e-11 converts from Kelvin to MeV. We randomly choose 0.1 MeV to be the temperature of BBN */
+  z_bbn = 0.1/(8.6173e-11*pba->T_cmb)-1.0; 
+  
+  class_call(background_tau_of_z(pba,
+                                 z_bbn,
+                                 &tau_bbn),
+             pba->error_message,
+             pth->error_message);
+
+  class_call(background_at_tau(pba,
+                               tau_bbn,
+                               pba->long_info,
+                               pba->inter_normal,
+                               &last_index,
+                               pvecback),
+             pba->error_message,
+             pth->error_message);
+
+  Neff_bbn = (pvecback[pba->index_bg_Omega_r]
+	      *pvecback[pba->index_bg_rho_crit]
+	      -pvecback[pba->index_bg_rho_g])
+    /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);
+
+  free(pvecback);
+
+  //  printf("Neff early = %g, Neff at bbn: %g\n",pba->Neff,Neff_bbn);
 
   /* compute Delta N_eff as defined in bbn file, i.e. Delta N_eff=0 means N_eff=3.046 */
-  DeltaNeff = pba->Neff - 3.046;
+  DeltaNeff = Neff_bbn - 3.046;
 
   /* the following file is assumed to contain (apart from comments and blank lines):
      - the two numbers (num_omegab, num_deltaN) = number of values of BBN free paramters
