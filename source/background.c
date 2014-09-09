@@ -1692,7 +1692,7 @@ int background_initial_conditions(
   /* scale factor */
   double a;
 
-  double rho_ncdm, p_ncdm;
+  double rho_ncdm, p_ncdm, rho_ncdm_rel_tot=0.;
   double f,Omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
   double scf_lambda;
@@ -1710,6 +1710,7 @@ int background_initial_conditions(
     for (counter=0; counter < _MAX_IT_; counter++) {
 
       is_early_enough = _TRUE_;
+      rho_ncdm_rel_tot = 0.;
 
       for (n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++) {
 
@@ -1726,6 +1727,7 @@ int background_initial_conditions(
 					   NULL),
                    pba->error_message,
                    pba->error_message);
+	rho_ncdm_rel_tot += 3.*p_ncdm;
 	if (fabs(p_ncdm/rho_ncdm-1./3.)>ppr->tol_ncdm_initial_w)
 	  is_early_enough = _FALSE_;
       }
@@ -1745,10 +1747,11 @@ int background_initial_conditions(
   Omega_rad = pba->Omega0_g;
   if (pba->has_ur == _TRUE_)
     Omega_rad += pba->Omega0_ur;
-  if (pba->has_ncdm == _TRUE_)
-    Omega_rad += pba->Omega0_ncdm_tot;
   rho_rad = Omega_rad*pow(pba->H0,2)/pow(a/pba->a_today,4);
-
+  if (pba->has_ncdm == _TRUE_){
+    /** We must add the relativistic contribution from NCDM species: */
+    rho_rad += rho_ncdm_rel_tot;
+  }
   if (pba->has_dcdm == _TRUE_){
     /* Remember that the critical density today in CLASS conventions is H0^2 */
     pvecback_integration[pba->index_bi_rho_dcdm] =
