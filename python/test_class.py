@@ -1,3 +1,73 @@
+"""
+.. module:: test_class
+    :synopsis: python script for testing CLASS using nose
+.. moduleauthor:: Benjamin Audren <benjamin.audren@gmail.com> 
+.. credits:: Benjamin Audren, Thomas Tram
+.. version:: 1.0
+
+This is a python script for testing CLASS and its wrapper Classy using nose. 
+To run the test suite, type
+nosetests test_class.py
+If you want to extract the problematic input parameters at a later stage, 
+you should type
+nosetests test_class.py 1>stdoutfile 2>stderrfile
+and then use the python script extract_errors.py on the stderrfile.
+
+When adding a new input parameter to CLASS (by modifying input.c), you 
+should also include tests of this new input. You will be in one of the 
+two cases:
+1:  The new input is supposed to be compatible with any existing input. 
+    This is the standard case when adding a new species for instance.
+2:  The new input is incompatible with one of the existing inputs. This 
+    would be the case if you have added (or just want to test) some other
+    value of an already defined parameter. (Maybe you have allowed for 
+    negative mass neutrinos and you want to test CLASS using a negative mass.)
+
+In case 1, you must add an entry in the CLASS_INPUT dictionary:
+CLASS_INPUT['Mnu'] = (
+    [{'N_eff': 0.0, 'N_ncdm': 1, 'm_ncdm': 0.06, 'deg_ncdm': 3.0},
+     {'N_eff': 1.5, 'N_ncdm': 1, 'm_ncdm': 0.03, 'deg_ncdm': 1.5}],
+    'normal')
+The key 'Mnu' is not being used in the code, so its purpose is just to
+describe the entry to the reader.
+the value is a 2-tuple where the first entry [{},{},...,{}] is an array of
+dictionaries containg the actual input to CLASS. The second entry is a keyword
+which can be either 'normal' or 'power'. It tells the script how this input
+will be combined with other inputs.
+
+What does 'normal' and 'power' mean?
+If an entry has the 'power' keyword, it will be combined with any other entry.
+If an entry has the 'normal' keyword, it will not be combined with any other
+entry having the 'normal' keyword, but it will be combined with all entries
+carrying the 'power keyword.
+Beware that the number of tests grow a lot when using the 'power' keyword.
+
+In case 2, you should find the relevant entry and just add a new dictionary 
+to the array. E.g. if you want to test some negative mass model you should add
+{'N_ncdm': 1, 'm_ncdm': -0.1, 'deg_ncdm': 1.0}
+
+How are default parameters handled?
+Any input array implicitly contains the empty dictionary. That means that if 
+Omega_k:0.0 is the default value, writing
+CLASS_INPUT['Curvature'] = (
+    [{'Omega_k': 0.01},
+     {'Omega_k': -0.01}],
+    'normal')
+will test the default value Omega_k=0.0 along with the two specified models.
+
+How to deal with inconsistent input?
+Sometimes a specific feature requires the presence of another input parameter. 
+For instance, if we ask for tensor modes we must have temperature and/or
+polarisation in the output. If not, CLASS is supposed to fail during the
+evaluation of the input module and return an error message. This fail is the
+correct behaviour of CLASS. To implement such a case, modify the function
+test_incompatible_input(self)
+
+Comparing output: When the flag 'COMPARE_OUTPUT' is set to true, the code will 
+rerun CLASS for each case under Newtonian gauge and then compare Cl's and 
+matter power spectrum. If the two are not close enough, it will generate a 
+PDF plot of this and save it in the 'fail' folder.
+"""
 from classy import Class
 from classy import CosmoSevereError
 import itertools
