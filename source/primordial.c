@@ -1225,96 +1225,27 @@ int primordial_inflation_solve_inflation(
                     free(y);free(y_ini);free(dy));
 
   /* we need to do the opposite: to check that there is an initial
-     time such that k_min << (aH)_ini. One such time is found by
-     iterations. If no solution exist (no long-enough slow-roll period
-     before the pivot scale), the run stops. */
+     time such that k_min << (aH)_ini. A guess is made by integrating
+     backward in time. This can be done exactly for inflation_H, or
+     only approximately for inflation_V (using the first-order
+     approximation to the attractor inflationary solution). However
+     this approximation is irrelevant because nevertheless, later on,
+     we compute the attractor solution at the initial time with high
+     accuracy, and then we integrate the background equations forward
+     in time. Hence the approximation made here introduces zero
+     mistake on the final result. It is just a way to find quickly a
+     reasonnable initial phi value. In the inflation_V case, if the
+     exact forward integration reveals that the guess was not good
+     (i.e. does not correspond to "early enough"), we iterate over
+     sequences of backward/forward integration, until a correct time is
+     found. For potential such that no solution exists (no long-enough
+     slow-roll period before the pivot scale), the run stops. */
 
   if (ppm->primordial_verbose > 1)
     printf(" (check inflation duration before pivot)\n");
 
   k_min = exp(ppm->lnk[0]);
   aH_ini = k_min/ppr->primordial_inflation_ratio_min;
-
-  /*********************/
-  // OLD METHOD: do several tries of initial time, for each of them integrate the background equations forward in time
-  /*
-  a_try = a_pivot;
-  H_try = H_pivot;
-  phi_try = ppm->phi_pivot;
-  counter = 0;
-
-  while ((a_try*H_try) >= aH_ini) {
-
-    counter ++;
-
-    class_test_except(counter >= ppr->primordial_inflation_phi_ini_maxit,
-                      ppm->error_message,
-                      free(y);free(y_ini);free(dy),
-                      "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
-                      counter);
-
-    // compute epsilon in order to make a reasonnable guess on how phi_try should be decreased in order to encompass a time such that k_min << (aH)_ini
-
-    class_call_except(primordial_inflation_get_epsilon(ppm,phi_try,&epsilon),
-                      ppm->error_message,
-                      ppm->error_message,
-                      free(y);free(y_ini);free(dy));
-
-    phi_try -= ppr->primordial_inflation_jump_initial*log(a_try*H_try/aH_ini)*sqrt(2.*epsilon/8./_PI_);
-
-    if (ppm->primordial_spec_type == inflation_V) {
-      //printf(" (--> search attractor at phi_try=%e)\n",phi_try);
-
-      class_call_except(primordial_inflation_find_attractor(ppm,
-                                                            ppr,
-                                                            phi_try,
-                                                            ppr->primordial_inflation_attractor_precision_initial,
-                                                            y,
-                                                            dy,
-                                                            &H_try,
-                                                            &dphidt_try),
-                        ppm->error_message,
-                        ppm->error_message,
-                        free(y);free(y_ini);free(dy));
-    }
-
-    y[ppm->index_in_a] = 1.;
-    y[ppm->index_in_phi] = phi_try;
-    if (ppm->primordial_spec_type == inflation_V)
-      y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try;
-
-    if (ppm->primordial_verbose > 1)
-      printf(" (--> compute e-folds from phi_try=%e to phi_pivot=%e with dphi/dt_try=%e)\n",phi_try,ppm->phi_pivot,dphidt_try);
-
-    class_call_except(primordial_inflation_evolve_background(ppm,
-                                                             ppr,
-                                                             y,
-                                                             dy,
-                                                             _phi_,
-                                                             ppm->phi_pivot,
-                                                             _TRUE_,
-                                                             forward),
-                      ppm->error_message,
-                      ppm->error_message,
-                      free(y);free(y_ini);free(dy));
-
-    a_try = a_pivot/y[ppm->index_in_a];
-
-    if (ppm->primordial_verbose > 1)
-      printf(" (--> found %f e-folds\n",-log(a_try/a_pivot));
-
-  }
-
-  // we found an initial time labeled 'try' with a_try < a_ini, and such that an inflationary attractor solution exists. We initialize background quantitites at this time.
-
-  y_ini[ppm->index_in_a] = a_try;
-  y_ini[ppm->index_in_phi] = phi_try;
-  if (ppm->primordial_spec_type == inflation_V)
-    y_ini[ppm->index_in_dphi] = a_try*dphidt_try;
-  */
-
-  /********************/
-  // NEW METHOD: integrate backward in time. This can be done exactly for inflation_H, or only approximately for inflation_V (using the first-order approximation to the attractor inflationary solution). However this approximation is irrelevant because nevertheless, later on, we compute the attractor solution at the initial time with excellent accuracy, and then we integrate the background equations forward in time. Hence the approximation made here introduces zero mistake on the final result. It is just a way to find quickly a reasonnable initial phi value.
 
   switch (ppm->primordial_spec_type) {
 
@@ -1327,7 +1258,7 @@ int primordial_inflation_solve_inflation(
 
     do {
 
-      // counter to avoid infinite loop
+      /* counter to avoid infinite loop */
       counter ++;
 
       class_test_except(counter >= ppr->primordial_inflation_phi_ini_maxit,
@@ -1336,11 +1267,11 @@ int primordial_inflation_solve_inflation(
                         "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
                         counter);
 
-      // try to find a value phi_try such that aH=aH_ini*0.9. But this
-      // is using the approximate backward solution. So, anyway, we
-      // will check using the exact forward solution that at this
-      // phi_try, we really have aH < aH_ini; if this is not the
-      // case, we will iterate until a correct phi_try is found.
+      /* try to find a value phi_try such that aH=aH_ini*0.9. But this
+         is using the approximate backward solution. So, anyway, we
+         will check using the exact forward solution that at this
+         phi_try, we really have aH < aH_ini; if this is not the case,
+         we will iterate until a correct phi_try is found. */
 
       class_call_except(primordial_inflation_evolve_background(ppm,
                                                                ppr,
@@ -1356,11 +1287,11 @@ int primordial_inflation_solve_inflation(
 
       phi_try = y[ppm->index_in_phi];
 
-      // in inflation_V case, find the accurate attractor solution for phi_ini',
-      // and then the correct value of a_ini,
-      // and finally of dphi/dtau_ini
+      /* in inflation_V case, find the accurate attractor solution for
+         phi_ini', and then the correct value of a_ini, and finally of
+         dphi/dtau_ini */
 
-      // find dphi/dt_ini (unlike dphi/dtau_ini, this does not depend on normalisation of a)
+      /* find dphi/dt_ini (unlike dphi/dtau_ini, this does not depend on normalisation of a) */
       class_call_except(primordial_inflation_find_attractor(ppm,
                                                             ppr,
                                                             phi_try,
@@ -1373,8 +1304,10 @@ int primordial_inflation_solve_inflation(
                         ppm->error_message,
                         free(y);free(y_ini);free(dy));
 
-      // we need to normalise a properly so that a=a_pivot when phi=phi_pivot.
-      // to do so, we evolve starting arbitrarily from a_ini=1, and then we rescale a_ini appropriately.
+      /* we need to normalise a properly so that a=a_pivot when
+         phi=phi_pivot. To do so, we evolve starting arbitrarily from
+         a_ini=1, and then we rescale a_ini appropriately. */
+
       y[ppm->index_in_a] = 1.;
       y[ppm->index_in_phi] = phi_try;
       y[ppm->index_in_dphi] = y[ppm->index_in_a]*dphidt_try; // dphi/dtau = a dphi/dt
@@ -1391,14 +1324,12 @@ int primordial_inflation_solve_inflation(
                         ppm->error_message,
                         free(y);free(y_ini);free(dy));
 
-      // now impose the correct a_ini
+      /* now impose the correct a_ini */
       a_try = a_pivot/y[ppm->index_in_a];
 
-      // in case another iteration will be needed, set a new starting point for the routine primordial_inflation_evolve_background(...,backward)
+      /* in case another iteration will be needed, set a new starting point for the routine primordial_inflation_evolve_background(...,backward) */
       y[ppm->index_in_a] = a_try;
       y[ppm->index_in_phi] = phi_try;
-
-      //fprintf(stderr,"%d: %e %e\n",counter,a_try*H_try,aH_ini);
 
     } while (a_try*H_try > aH_ini);
 
@@ -1436,16 +1367,8 @@ int primordial_inflation_solve_inflation(
     break;
   }
 
-  /*********************/
-  /*
-  fprintf(stderr,"ini: %e %e %e\n",
-          y_ini[ppm->index_in_a],
-          y_ini[ppm->index_in_phi],
-          y_ini[ppm->index_in_dphi]);
-  */
-
-  /* starting from this time, we run the routine which takes care of
-     computing the primordial spectrum. */
+  /* starting from this time, i.e. from y_ini[], we run the routine
+     which takes care of computing the primordial spectrum. */
 
   if (ppm->primordial_verbose > 1)
     printf(" (compute spectrum)\n");
@@ -1460,7 +1383,8 @@ int primordial_inflation_solve_inflation(
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
 
-  /* before ending, we want to compute and store the values of phi corresponding to k=aH for k_min and k_max */
+  /* before ending, we want to compute and store the values of phi
+     corresponding to k=aH for k_min and k_max */
 
   y[ppm->index_in_a] = y_ini[ppm->index_in_a];
   y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
