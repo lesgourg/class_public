@@ -406,18 +406,9 @@ extern "C" {
                                              double * dy,
                                              enum target_quantity target,
                                              double stop,
-                                             short check_epsilon
+                                             short check_epsilon,
+                                             enum integration_direction direction
                                              );
-
-  int primordial_inflation_evolve_background_backward(
-                                                      struct primordial * ppm,
-                                                      struct precision * ppr,
-                                                      double * y,
-                                                      double * dy,
-                                                      enum target_quantity target,
-                                                      double stop,
-                                                      short check_epsilon
-                                                      );
 
   int primordial_inflation_check_potential(
                                            struct primordial * ppm,
