@@ -575,6 +575,7 @@ struct precision
   int primordial_inflation_attractor_maxit;
   double primordial_inflation_jump_initial;
   double primordial_inflation_tol_curvature;
+  double primordial_inflation_aH_ini_target;
 
   //@}
 

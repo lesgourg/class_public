@@ -1,4 +1,3 @@
-// TODO remove some commentd lines in inflation_solve
 // TODO in find_attractor, it shoudl be possible to conclude very quickly that the series does not converge, without needing to wait that the counter reaches a large value
 
 /** @file primordial.c Documented primordial module.
@@ -1267,18 +1266,20 @@ int primordial_inflation_solve_inflation(
                         "when searching for an initial value of phi just before observable inflation takes place, could not converge after %d iterations. The potential does not allow eough inflationary e-folds before reaching the pivot scale",
                         counter);
 
-      /* try to find a value phi_try such that aH=aH_ini*0.9. But this
-         is using the approximate backward solution. So, anyway, we
-         will check using the exact forward solution that at this
-         phi_try, we really have aH < aH_ini; if this is not the case,
-         we will iterate until a correct phi_try is found. */
+      /* try to find a value phi_try such that
+         aH=aH_ini*(ppr->primordial_inflation_aH_ini_target) (default:
+         aH_ini*0.9). But this is using the approximate backward
+         solution. So, anyway, we will check using the exact forward
+         solution that at this phi_try, we really have aH < aH_ini; if
+         this is not the case, we will iterate until a correct phi_try
+         is found. */
 
       class_call_except(primordial_inflation_evolve_background(ppm,
                                                                ppr,
                                                                y,
                                                                dy,
                                                                _aH_,
-                                                               aH_ini*0.9,
+                                                               aH_ini*ppr->primordial_inflation_aH_ini_target,
                                                                _TRUE_,
                                                                backward),
                         ppm->error_message,

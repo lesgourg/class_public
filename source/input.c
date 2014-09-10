@@ -1380,7 +1380,7 @@ int input_read_parameters(
 
     if (ppt->has_vectors == _TRUE_){
 
-      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_), 
+      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_),
                  errmsg,
                  "inconsistent input: you asked for vectors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
 
@@ -1388,7 +1388,7 @@ int input_read_parameters(
 
     if (ppt->has_tensors == _TRUE_){
 
-      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_), 
+      class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_),
                  errmsg,
                  "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
 
@@ -2375,6 +2375,7 @@ int input_read_parameters(
   class_read_int("primordial_inflation_attractor_maxit",ppr->primordial_inflation_attractor_maxit);
   class_read_double("primordial_inflation_jump_initial",ppr->primordial_inflation_jump_initial);
   class_read_double("primordial_inflation_tol_curvature",ppr->primordial_inflation_tol_curvature);
+  class_read_double("primordial_inflation_aH_ini_target",ppr->primordial_inflation_aH_ini_target);
 
   /** h.6. parameter related to the transfer functions */
 
@@ -2948,6 +2949,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->primordial_inflation_attractor_maxit=10000;
   ppr->primordial_inflation_jump_initial=1.2;
   ppr->primordial_inflation_tol_curvature=1.e-3;
+  ppr->primordial_inflation_aH_ini_target=0.9;
 
   /**
    * - parameter related to the transfer functions
