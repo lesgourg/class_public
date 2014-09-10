@@ -2946,7 +2946,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->primordial_inflation_tol_integration=1.e-3;
   ppr->primordial_inflation_attractor_precision_pivot=0.001;
   ppr->primordial_inflation_attractor_precision_initial=0.1;
-  ppr->primordial_inflation_attractor_maxit=10000;
+  ppr->primordial_inflation_attractor_maxit=10;
   ppr->primordial_inflation_jump_initial=1.2;
   ppr->primordial_inflation_tol_curvature=1.e-3;
   ppr->primordial_inflation_aH_ini_target=0.9;
