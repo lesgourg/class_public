@@ -618,6 +618,26 @@ int input_read_parameters(
       and interpret each of them, and tune accordingly the relevant
       input parameters */
 
+  /** Knowing the gauge from the very beginning is useful (even if
+      this could be a run not requiring perturbations at all: even in
+      that case, knwoing the gauge is important e.g. for fixing the
+      sampling in momentum space for non-cold dark matter) */
+
+  class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if (flag1 == _TRUE_) {
+
+    if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
+      ppt->gauge = newtonian;
+    }
+
+    if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
+      ppt->gauge = synchronous;
+    }
+  }
+
   /** (a) background parameters */
 
   /* scale factor today (arbitrary) */
@@ -815,6 +835,10 @@ int input_read_parameters(
     class_read_double("tol_ncdm_newtonian",ppr->tol_ncdm_newtonian);
     class_read_double("tol_ncdm_synchronous",ppr->tol_ncdm_synchronous);
     class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
+    if (ppt->gauge == synchronous)
+      ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
+    if (ppt->gauge == newtonian)
+      ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
 
     /* Read temperatures: */
     class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
@@ -1393,25 +1417,6 @@ int input_read_parameters(
                  "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
 
     }
-
-
-    class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1 == _TRUE_) {
-
-      if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
-        ppt->gauge = newtonian;
-        ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
-      }
-
-      if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
-        ppt->gauge = synchronous;
-        ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
-      }
-    }
-
   }
 
   /** (d) define the primordial spectrum */
