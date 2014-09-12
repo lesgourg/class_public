@@ -1144,7 +1144,7 @@ int primordial_inflation_solve_inflation(
   /* eventually, needs first to find phi_pivot */
   if (ppm->primordial_spec_type == inflation_V_end) {
 
-    class_call(primordial_find_phi_pivot(ppm,ppr),
+    class_call(primordial_find_phi_pivot(ppm,ppr,y,dy),
                ppm->error_message,
                ppm->error_message);
 
@@ -1867,7 +1867,7 @@ int primordial_inflation_evolve_background(
 
   pipaw.N = ppm->in_bg_size;
 
-  if ((direction == backward) && (ppm->primordial_spec_type == inflation_V)) {
+  if ((direction == backward) && ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))) {
     // -1 to remove the differential equation for phi', since we stick to the attractor
     pipaw.N -= 1;
   }
@@ -1912,7 +1912,7 @@ int primordial_inflation_evolve_background(
 
   aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
 
-  if ((direction == forward) && (ppm->primordial_spec_type == inflation_V)) {
+  if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V))) {
     dtau = ppr->primordial_inflation_bg_stepsize
         *MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
   }
@@ -1939,7 +1939,7 @@ int primordial_inflation_evolve_background(
     /* check that V(phi) or H(phi) do not take forbidden values
        (negative or positive derivative) */
 
-    if (ppm->primordial_spec_type == inflation_V) {
+    if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end)) {
       class_call(primordial_inflation_check_potential(ppm,
                                                       y[ppm->index_in_phi],
                                                       &V,
@@ -2003,7 +2003,7 @@ int primordial_inflation_evolve_background(
 
     /* recompute new value of next conformal time step */
 
-    class_call(primordial_inflation_derivs(tau_start,
+    class_call(primordial_inflation_derivs(tau_end,
                                            y,
                                            dy,
                                            &pipaw,
@@ -2013,7 +2013,7 @@ int primordial_inflation_evolve_background(
 
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
 
-    if ((direction == forward) && (ppm->primordial_spec_type == inflation_V)) {
+    if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V)||(ppm->primordial_spec_type == inflation_V_end))) {
       dtau = ppr->primordial_inflation_bg_stepsize
         *MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
     }
@@ -2055,7 +2055,7 @@ int primordial_inflation_evolve_background(
 
   y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
   y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
-  if ((direction == forward) && (ppm->primordial_spec_type == inflation_V))
+  if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V)||(ppm->primordial_spec_type == inflation_V_end)))
     y[ppm->index_in_dphi] += dy[ppm->index_in_dphi]*dtau;
 
   return _SUCCESS_;
@@ -2200,11 +2200,56 @@ int primordial_inflation_get_epsilon(
 }
 
 int primordial_find_phi_pivot(
-                                struct primordial * ppm,
-                                struct precision * ppr
+                              struct primordial * ppm,
+                              struct precision * ppr,
+                              double * y,
+                              double * dy
                               ) {
 
-  class_call(primordial_find_phi_end(ppm,ppr),
+  double aH_stop,aH_pivot;
+  double V,dV,ddV;
+
+  class_call(primordial_find_phi_stop(ppm,ppr),
+             ppm->error_message,
+             ppm->error_message);
+
+  class_call(primordial_inflation_potential(ppm,
+                                            ppm->phi_stop,
+                                            &V,
+                                            &dV,
+                                            &ddV),
+             ppm->error_message,
+             ppm->error_message);
+
+  /* infer aH at phi=phi_stop, assuming that a is normalized to 1 at this
+     time, and that (phi')^2=a^2V (which is exactly true at the end of
+     inflation, when a''=0) */
+
+  aH_stop = sqrt((8*_PI_/3.)*1.5*V);
+
+  /* now we know what is our target aH_pivot */
+
+  aH_pivot = aH_stop / ppm->aH_ratio;
+
+  y[ppm->index_in_a]=1.;
+  y[ppm->index_in_phi]=ppm->phi_stop;
+
+  /* try to find a value phi_try such that
+     aH=aH_pivot*(ppr->primordial_inflation_aH_ini_target) (default:
+     aH_ini*0.9). But this is using the approximate backward
+     solution. So, anyway, we will check using the exact forward
+     solution that at this phi_try, we really have aH < aH_ini; if
+     this is not the case, we will iterate until a correct phi_try
+     is found. */
+
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _aH_,
+                                                    aH_pivot*ppr->primordial_inflation_aH_ini_target,
+                                                    _TRUE_,
+                                                    backward),
              ppm->error_message,
              ppm->error_message);
 
@@ -2226,10 +2271,10 @@ int primordial_find_phi_pivot(
  * @return the error status
  */
 
-int primordial_find_phi_end(
-                            struct primordial * ppm,
-                            struct precision * ppr
-                            ) {
+int primordial_find_phi_stop(
+                             struct primordial * ppm,
+                             struct precision * ppr
+                             ) {
 
   double epsilon,dphi;
   double phi_left,phi_right,phi_mid;
@@ -2341,7 +2386,9 @@ int primordial_inflation_derivs(
   // BACKGROUND
 
   switch (ppm->primordial_spec_type) {
+
   case inflation_V:
+  case inflation_V_end:
 
     class_call(primordial_inflation_potential(ppm,
                                               y[ppm->index_in_phi],

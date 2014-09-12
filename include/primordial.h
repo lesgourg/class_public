@@ -155,6 +155,7 @@ struct primordial {
   /** - parameters describing inflation_V_end */
 
   double phi_end;
+  double aH_ratio;
 
   /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 
@@ -441,13 +442,15 @@ extern "C" {
 
   int primordial_find_phi_pivot(
                                 struct primordial * ppm,
-                                struct precision * ppr
+                                struct precision * ppr,
+                                double * y,
+                                double * dy
                                 );
 
-  int primordial_find_phi_end(
-                              struct primordial * ppm,
-                              struct precision * ppr
-                              );
+  int primordial_find_phi_stop(
+                               struct primordial * ppm,
+                               struct precision * ppr
+                               );
 
   int primordial_inflation_derivs(
                                   double tau,
