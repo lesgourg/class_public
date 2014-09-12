@@ -576,6 +576,9 @@ struct precision
   double primordial_inflation_jump_initial;
   double primordial_inflation_tol_curvature;
   double primordial_inflation_aH_ini_target;
+  double primordial_inflation_end_dphi;
+  double primordial_inflation_end_phi_stop_precision;
+  double primordial_inflation_end_logstep;
 
   //@}
 

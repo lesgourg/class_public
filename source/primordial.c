@@ -355,7 +355,7 @@ int primordial_init(
 
   /** - deal with case of inflation with given V(phi) or H(phi) */
 
-  else if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H)) {
+  else if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H) || (ppm->primordial_spec_type == inflation_V_end)) {
 
     class_test(ppt->has_scalars == _FALSE_,
                ppm->error_message,
@@ -1140,6 +1140,17 @@ int primordial_inflation_solve_inflation(
   class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(y_ini,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
+
+  /* eventually, needs first to find phi_pivot */
+  if (ppm->primordial_spec_type == inflation_V_end) {
+
+    class_call(primordial_find_phi_pivot(ppm,ppr),
+               ppm->error_message,
+               ppm->error_message);
+
+    class_stop(ppm->error_message,"case inflation_V_end under development");
+
+  }
 
   /* compute H_pivot at phi_pivot */
   switch (ppm->primordial_spec_type) {
@@ -2155,7 +2166,9 @@ int primordial_inflation_get_epsilon(
   double H,dH,ddH,dddH;
 
   switch (ppm->primordial_spec_type) {
+
   case inflation_V:
+  case inflation_V_end:
 
     class_call(primordial_inflation_potential(ppm,
                                               phi,
@@ -2184,6 +2197,113 @@ int primordial_inflation_get_epsilon(
   }
 
   return _SUCCESS_;
+}
+
+int primordial_find_phi_pivot(
+                                struct primordial * ppm,
+                                struct precision * ppr
+                              ) {
+
+  class_call(primordial_find_phi_end(ppm,ppr),
+             ppm->error_message,
+             ppm->error_message);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Find the value of the field such inflation ends. In input, the
+ * routine takes ppm->phi_end, in ourput it will give
+ * ppm->phi_stop. If the routine finds that in phi_end, epsilon is
+ * still <1, then phi_stop=phi_end (indeed this means that one wants
+ * to impose inflation to end abruptly at some point, like in hybrid
+ * inflation). If not, it will look for the closest point phi_stop
+ * smaller than phi_end such that epsilon is 1.
+ *
+ * @param ppm   Input/Output: primordial structure
+ * @param ppr   Input: precision structure
+ * @return the error status
+ */
+
+int primordial_find_phi_end(
+                            struct primordial * ppm,
+                            struct precision * ppr
+                            ) {
+
+  double epsilon,dphi;
+  double phi_left,phi_right,phi_mid;
+
+  /* we don't want to compute epsilon exactly in phi_end because for
+     some potential, this might be a point with an singularity
+     (e.g. the potential could have a term log(phi_end)). So we
+     evaluate it extremely close to phi_end. The very small shift dphi
+     is fixed through a precision parameter,
+     ppr->primordial_inflation_end_dphi. This number should really be
+     very small, because if one is dealing with a model of inflation
+     (e.g. at very low energy) such that there is a significant number
+     of inflationary e-folds between phi_end-dphi and phi_end, then
+     the following algorithm would become inaccurate. A default value
+     of e.g. dphi=1.e-10 should avoid that. */
+
+  dphi = ppr->primordial_inflation_end_dphi;
+
+  class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
+             ppm->error_message,
+             ppm->error_message);
+
+  /* case for which inflation is going on until phi_end */
+  if (epsilon<1) {
+    ppm->phi_stop = ppm->phi_end - dphi;
+
+    if (ppm->primordial_verbose>1)
+      printf(" (in this case, inflation takes place till the input value phi_end, like in hybrid inflation)\n");
+  }
+
+  /* case for which inflation breaks before reaching phi_end: then we need to find phi_stop */
+  else {
+
+    /* first, we want to bracket phi_stop. We do so by incrementing
+       over a logarithmic step ppr->priordial_inflation_end_logstep
+       (10 is a good default choice) */
+    do {
+      dphi *= ppr->primordial_inflation_end_logstep;
+      class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
+             ppm->error_message,
+             ppm->error_message);
+    } while (epsilon >1);
+
+    //class_stop(ppm->error_message,"hi");
+
+    /* we have now bracketed phi_end between phi_end-dphi and
+       phi_end-dphi/primordial_inflation_end_logstep. We go on with a
+       simple bisection. */
+
+    phi_left = ppm->phi_end-dphi;
+    phi_right = ppm->phi_end-dphi/ppr->primordial_inflation_end_logstep;
+
+    do {
+      phi_mid = 0.5*(phi_left+phi_right);
+      class_call(primordial_inflation_get_epsilon(ppm,phi_mid,&epsilon),
+             ppm->error_message,
+             ppm->error_message);
+
+      if (epsilon<1)
+        phi_left = phi_mid;
+      else
+        phi_right = phi_mid;
+
+    } while (fabs((phi_right-phi_left)/phi_mid) > ppr->primordial_inflation_end_phi_stop_precision);
+
+    ppm->phi_stop = phi_mid;
+
+    if (ppm->primordial_verbose>1)
+      printf(" (inflation stops when phi=%e\n",ppm->phi_stop);
+
+  }
+
+  return _SUCCESS_;
+
 }
 
 /**

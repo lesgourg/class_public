@@ -1443,6 +1443,10 @@ int input_read_parameters(
       ppm->primordial_spec_type = inflation_H;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"inflation_V_end") == 0) {
+      ppm->primordial_spec_type = inflation_V_end;
+      flag2=_TRUE_;
+    }
     if (strcmp(string1,"external_Pk") == 0) {
       ppm->primordial_spec_type = external_Pk;
       flag2=_TRUE_;
@@ -1872,6 +1876,16 @@ int input_read_parameters(
     }
   }
 
+  else if (ppm->primordial_spec_type == inflation_V_end) {
+
+    class_read_double("phi_end",ppm->phi_end);
+    class_read_double("Vparam0",ppm->V0);
+    class_read_double("Vparam1",ppm->V1);
+    class_read_double("Vparam2",ppm->V2);
+    class_read_double("Vparam3",ppm->V3);
+    class_read_double("Vparam4",ppm->V4);
+
+  }
   else if (ppm->primordial_spec_type == external_Pk) {
     class_call(parser_read_string(pfc, "command", &(string1), &(flag1), errmsg),
                errmsg, errmsg);
@@ -2381,6 +2395,9 @@ int input_read_parameters(
   class_read_double("primordial_inflation_jump_initial",ppr->primordial_inflation_jump_initial);
   class_read_double("primordial_inflation_tol_curvature",ppr->primordial_inflation_tol_curvature);
   class_read_double("primordial_inflation_aH_ini_target",ppr->primordial_inflation_aH_ini_target);
+  class_read_double("primordial_inflation_end_dphi",ppr->primordial_inflation_end_dphi);
+  class_read_double("primordial_inflation_end_phi_stop_precision",ppr->primordial_inflation_end_phi_stop_precision);
+  class_read_double("primordial_inflation_end_logstep",ppr->primordial_inflation_end_logstep);
 
   /** h.6. parameter related to the transfer functions */
 
@@ -2714,6 +2731,7 @@ int input_default_params(
   ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
   ppm->potential=polynomial;
   ppm->phi_pivot=0.;
+  ppm->phi_end=0.;
   ppm->V0=1.25e-13;
   ppm->V1=-1.12e-14;
   ppm->V2=-6.95e-14;
@@ -2955,6 +2973,9 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->primordial_inflation_jump_initial=1.2;
   ppr->primordial_inflation_tol_curvature=1.e-3;
   ppr->primordial_inflation_aH_ini_target=0.9;
+  ppr->primordial_inflation_end_dphi=1.e-10;
+  ppr->primordial_inflation_end_phi_stop_precision=1.e-4;
+  ppr->primordial_inflation_end_logstep=10.;
 
   /**
    * - parameter related to the transfer functions

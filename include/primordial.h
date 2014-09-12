@@ -12,6 +12,7 @@ enum primordial_spectrum_type {
   two_scales,
   inflation_V,
   inflation_H,
+  inflation_V_end,
   external_Pk
 };
 
@@ -151,6 +152,10 @@ struct primordial {
 
   double phi_pivot;
 
+  /** - parameters describing inflation_V_end */
+
+  double phi_end;
+
   /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 
   char*  command;
@@ -249,6 +254,7 @@ struct primordial {
 
   double phi_min;        /**< in inflationary module, value of phi when k_min=aH */
   double phi_max;        /**< in inflationary module, value of phi when k_max=aH */
+  double phi_stop;       /**< in inflationary module, value of phi at the end of inflation */
 
   //@}
 
@@ -432,6 +438,16 @@ extern "C" {
                                        double phi,
                                        double * epsilon
                                        );
+
+  int primordial_find_phi_pivot(
+                                struct primordial * ppm,
+                                struct precision * ppr
+                                );
+
+  int primordial_find_phi_end(
+                              struct primordial * ppm,
+                              struct precision * ppr
+                              );
 
   int primordial_inflation_derivs(
                                   double tau,
