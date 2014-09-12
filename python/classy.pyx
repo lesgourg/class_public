@@ -442,6 +442,8 @@ cdef class Class:
             if flag:
                 spectra.append(name)
 
+        if not spectra:
+            raise CosmoSevereError("No Cl computed")
         lmaxR = self.sp.l_max_tot
         if lmax == -1:
             lmax = lmaxR
@@ -510,6 +512,8 @@ cdef class Class:
             if flag:
                 spectra.append(name)
 
+        if not spectra:
+            raise CosmoSevereError("No lensed Cl computed")
         lmaxR = self.le.l_lensed_max
 
         if lmax == -1:
@@ -578,6 +582,8 @@ cdef class Class:
                             name.upper(), l_max_flag) +
                         "but you asked a l=%i" % lmax)
 
+        if not spectra:
+            raise CosmoSevereError("No density Cl computed")
         if lmax == -1:
             lmax = lmaxR
         if lmax > lmaxR:
