@@ -264,6 +264,24 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
               "",colnum++,_OUTPUTPRECISION_+6,title);                   \
   }
 
+#define class_store_columntitle(titlestring,                            \
+				title,					\
+				condition){				\
+    if (condition == _TRUE_){                                           \
+      strcat(titlestring,title);                                        \
+      strcat(titlestring,_DELIMITER_);                                  \
+    }                                                                   \
+  }
+//,_MAXTITLESTRINGLENGTH_-strlen(titlestring)-1);
+
+#define class_store_double(storage,					\
+			   value,					\
+			   condition,                                   \
+                           dataindex){                                  \
+    if (condition == _TRUE_)                                            \
+      storage[dataindex++] = value;                                     \
+  }
+
 /** parameters related to the precision of the code and to the method of calculation */
 
 /**

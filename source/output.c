@@ -179,6 +179,16 @@ int output_init(
 
   }
 
+  /** - deal with perturbation quantitites */
+
+  if (pop->write_perturbations == _TRUE_) {
+
+    class_call(output_perturbations(pba,ppt,pop),
+               pop->error_message,
+               pop->error_message);
+
+  }
+
   /** - deal with primordial spectra */
 
   if (pop->write_primordial == _TRUE_) {
@@ -1256,6 +1266,65 @@ int output_thermodynamics(
 
 }
 
+int output_perturbations(
+                         struct background * pba,
+                         struct perturbs * ppt,
+                         struct output * pop
+                         ) {
+
+  FILE * out;
+  FileName file_name;
+  int index_ikout, index_md;
+  double k;
+
+  for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
+
+    if (ppt->has_scalars == _TRUE_){
+      index_md = 0;
+      k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
+      sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_s.dat");
+      class_open(out, file_name, "w", ppt->error_message);
+      fprintf(out,"#scalar perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
+      output_print_perturbations(out,
+                                 ppt->scalar_titles,
+                                 ppt->scalar_perturbations_data[index_ikout],
+                                 ppt->size_scalar_perturbation_data[index_ikout]);
+
+      fclose(out);
+    }
+    if (ppt->has_vectors == _TRUE_){
+      index_md = 1;
+      k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
+      sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_v.dat");
+      class_open(out, file_name, "w", ppt->error_message);
+      fprintf(out,"#vector perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
+      output_print_perturbations(out,
+                                 ppt->vector_titles,
+                                 ppt->vector_perturbations_data[index_ikout],
+                                 ppt->size_vector_perturbation_data[index_ikout]);
+
+      fclose(out);
+    }
+    if (ppt->has_tensors == _TRUE_){
+      index_md = 2;
+      k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
+      sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_t.dat");
+      class_open(out, file_name, "w", ppt->error_message);
+      fprintf(out,"#tensor perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
+      output_print_perturbations(out,
+                                 ppt->tensor_titles,
+                                 ppt->tensor_perturbations_data[index_ikout],
+                                 ppt->size_tensor_perturbation_data[index_ikout]);
+
+      fclose(out);
+    }
+
+
+  }
+  return _SUCCESS_;
+
+}
+
 int output_primordial(
                       struct perturbs * ppt,
                       struct primordial * ppm,
@@ -1294,6 +1363,41 @@ int output_primordial(
   return _SUCCESS_;
 
 }
+
+int output_print_perturbations(FILE *out,
+                               char titles[_MAXTITLESTRINGLENGTH_],
+                               double *dataptr,
+                               int size_dataptr){
+  int colnum=1, number_of_titles;
+  int index_title, index_tau;
+  char thetitle[_MAXTITLESTRINGLENGTH_];
+  char *pch;
+
+  /** Print titles */
+  fprintf(out,"#");
+
+  strcpy(thetitle,titles);
+  pch = strtok(thetitle,_DELIMITER_);
+  while (pch != NULL){
+    class_fprintf_columntitle(out, pch, _TRUE_, colnum);
+    pch = strtok(NULL,_DELIMITER_);
+  }
+
+
+  /** Print data: */
+  number_of_titles = colnum-1;
+  if (number_of_titles>0){
+    for (index_tau=0; index_tau<size_dataptr/number_of_titles; index_tau++){
+      fprintf(out," ");
+      for (index_title=0; index_title<number_of_titles; index_title++){
+        class_fprintf_double(out, dataptr[index_tau*number_of_titles+index_title], _TRUE_);
+      }
+      fprintf(out,"\n");
+    }
+  }
+  return _SUCCESS_;
+}
+
 
 /**
  * This routine opens one file where some C_l's will be written, and writes

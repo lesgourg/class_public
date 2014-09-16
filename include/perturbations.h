@@ -78,6 +78,16 @@ enum selection_type {gaussian,tophat,dirac};
  */
 #define _MAX_NUMBER_OF_K_FILES_ 30
 
+/**
+ * character used for delimiting titles in the title strings
+ */
+#define _DELIMITER_ "\t"
+
+/**
+ * Maximum number of characters in title strings
+ */
+#define _MAXTITLESTRINGLENGTH_ 8000
+
 //@}
 
 
@@ -162,8 +172,20 @@ struct perturbs
   int k_output_values_num;       /**< Number of perturbation outputs (default=0) */
   double k_output_values[_MAX_NUMBER_OF_K_FILES_];    /**< List of k values where perturbation output is requested. */
   int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]; /**< List of indices corresponding to k-values close to k_output_values */
-  FileName root; /**< Same as root in output structure, for writing perturbations.*/
+  char scalar_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for scalar perturbation output files. */
+  char vector_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for vector perturbation output files. */
+  char tensor_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for tensor perturbation output files. */
+  int number_of_scalar_titles;
+  int number_of_vector_titles;
+  int number_of_tensor_titles;
 
+
+  double * scalar_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for scalars */
+  double * vector_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for vectors */
+  double * tensor_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for tensors */
+ int size_scalar_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of scalar double pointers  */
+ int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of vector double pointers  */
+ int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of tensor double pointers  */
 
   //@}
 
@@ -485,6 +507,7 @@ struct perturb_workspace
   double theta_m;
 
   FILE * perturb_output_file; /**< filepointer to output file*/
+  int index_ikout; /**< index for output k value */
 
   //@}
 
@@ -767,6 +790,11 @@ extern "C" {
                                   struct perturb_workspace * ppw,
                                   int index_ikout,
                                   int index_md);
+
+  int perturb_prepare_output(struct background * pba,
+                             struct perturbs * ppt);
+
+  int perturb_get_number_of_titles(char * titlestring);
 
 #ifdef __cplusplus
 }

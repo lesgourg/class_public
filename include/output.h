@@ -53,6 +53,7 @@ struct output {
 
   short write_background;
   short write_thermodynamics;
+  short write_perturbations;
   short write_primordial;
 
   //@}
@@ -137,12 +138,22 @@ extern "C" {
                             struct output * pop
                             );
 
+  int output_perturbations(
+                           struct background * pba,
+                           struct perturbs * ppt,
+                           struct output * pop
+                           );
+
   int output_primordial(
                         struct perturbs * ppt,
                         struct primordial * ppm,
                         struct output * pop
                         );
 
+  int output_print_perturbations(FILE *out,
+                                 char titles[_MAXTITLESTRINGLENGTH_],
+                                 double *dataptr,
+                                 int tau_size);
   int output_open_cl_file(
                           struct spectra * psp,
                           struct output * pop,

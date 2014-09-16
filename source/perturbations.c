@@ -251,6 +251,12 @@ int perturb_init(
              ppt->error_message,
              ppt->error_message);
 
+  /** - if we want to store perturbations, write titles and allocate storage */
+  class_call(perturb_prepare_output(pba,ppt),
+             ppt->error_message,
+             ppt->error_message);
+
+
   /** - create an array of workspaces in multi-thread case */
 
 #ifdef _OPENMP
@@ -421,6 +427,7 @@ int perturb_free(
                  ) {
 
   int index_md,index_ic,index_type;
+  int filenum;
 
   if (ppt->has_perturbations == _TRUE_) {
 
@@ -457,6 +464,19 @@ int perturb_free(
     free(ppt->k_size);
 
     free(ppt->sources);
+
+    /** Stuff related to perturbations output: */
+
+    /** Free non-NULL pointers: */
+    for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
+      if (ppt->scalar_perturbations_data[filenum] != NULL)
+        free(ppt->scalar_perturbations_data[filenum]);
+      if (ppt->vector_perturbations_data[filenum] != NULL)
+        free(ppt->vector_perturbations_data[filenum]);
+      if (ppt->tensor_perturbations_data[filenum] != NULL)
+        free(ppt->tensor_perturbations_data[filenum]);
+    }
+
   }
 
   return _SUCCESS_;
@@ -2222,12 +2242,16 @@ int perturb_solve(
   /** - check whether we need to print perturbations to a file for this wavenumber */
 
   perhaps_print_variables = NULL;
+  ppw->index_ikout = -1;
   for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
     if (ppt->index_k_output_values[index_ikout] == index_k){
+      ppw->index_ikout = index_ikout;
       perhaps_print_variables = perturb_print_variables;
-      class_call(perturb_prepare_output_file(pba,ppt,ppw,index_ikout,index_md),
-                 ppt->error_message,
-                 ppt->error_message);
+      /**class_call(perturb_prepare_output_file(
+         pba,ppt,ppw,index_ikout,index_md),
+         ppt->error_message,
+         ppt->error_message);
+      */
     }
   }
 
@@ -2305,8 +2329,8 @@ int perturb_solve(
 
   /** - if perturbations were printed in a file, close the file */
 
-  if (perhaps_print_variables != NULL)
-    fclose(ppw->perturb_output_file);
+  //if (perhaps_print_variables != NULL)
+  //  fclose(ppw->perturb_output_file);
 
   /** fill the source terms array with zeros for all times between
       then last integrated time tau_max and tau_today. */
@@ -2335,119 +2359,113 @@ int perturb_solve(
   return _SUCCESS_;
 }
 
-int perturb_prepare_output_file(struct background * pba,
-                                struct perturbs * ppt,
-                                struct perturb_workspace * ppw,
-                                int index_ikout,
-                                int index_md){
-  int colnum=1;
+int perturb_get_number_of_titles(char * titlestring){
+  int i;
+  int number_of_titles=0;
+
+  for (i=0; i<strlen(titlestring); i++){
+    if (titlestring[i] == '\t')
+      number_of_titles++;
+  }
+  return number_of_titles;
+}
+
+int perturb_prepare_output(struct background * pba,
+			   struct perturbs * ppt){
+
   int n_ncdm;
-  double k;
-  FileName file_name;
-  char tmp[20];
+  char tmp[40];
 
-  k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
+  if (ppt->k_output_values_num > 0) {
 
-  if (_scalars_)
-    sprintf(file_name,"%s%s%d%s",ppt->root,"perturbations_k",index_ikout,"_s.dat");
-  else if (_vectors_)
-    sprintf(file_name,"%s%s%d%s",ppt->root,"perturbations_k",index_ikout,"_v.dat");
-  else
-    sprintf(file_name,"%s%s%d%s",ppt->root,"perturbations_k",index_ikout,"_t.dat");
-  class_open(ppw->perturb_output_file, file_name, "w", ppt->error_message);
+    if (ppt->has_scalars == _TRUE_){
 
-
-  if (_scalars_){
-    fprintf(ppw->perturb_output_file,
-            "#scalar perturbations for mode k = %.*e Mpc^(-1)\n",
-            _OUTPUTPRECISION_,k);
-    fprintf(ppw->perturb_output_file,"#");
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol0_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol1_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol2_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_b",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_b",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"psi",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"phi",_TRUE_,colnum);
-    /* Perturbed recombination */
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_Tb",ppt->has_perturbed_recombination,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_chi",ppt->has_perturbed_recombination,colnum);
-    /* Ultrarelativistic species */
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",pba->has_ur,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_ur",pba->has_ur,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",pba->has_ur,colnum);
-    /* Cold dark matter */
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_cdm",pba->has_cdm,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"theta_cdm",pba->has_cdm,colnum);
-    /* Non-cold dark matter */
-    if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_))) {
-      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-        sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
-        sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
-        sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
+      class_store_columntitle(ppt->scalar_titles,"tau [Mpc]",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"a",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"delta_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"theta_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"shear_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"pol0_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"pol1_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"pol2_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"delta_b",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"theta_b",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"psi",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"phi",_TRUE_);
+      /* Perturbed recombination */
+      class_store_columntitle(ppt->scalar_titles,"delta_Tb",ppt->has_perturbed_recombination);
+      class_store_columntitle(ppt->scalar_titles,"delta_chi",ppt->has_perturbed_recombination);
+      /* Ultrarelativistic species */
+      class_store_columntitle(ppt->scalar_titles,"delta_ur",pba->has_ur);
+      class_store_columntitle(ppt->scalar_titles,"theta_ur",pba->has_ur);
+      class_store_columntitle(ppt->scalar_titles,"shear_ur",pba->has_ur);
+      /* Cold dark matter */
+      class_store_columntitle(ppt->scalar_titles,"delta_cdm",pba->has_cdm);
+      class_store_columntitle(ppt->scalar_titles,"theta_cdm",pba->has_cdm);
+      /* Non-cold dark matter */
+      if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_))) {
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
+          class_store_columntitle(ppt->scalar_titles,tmp,_TRUE_);
+          sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
+          class_store_columntitle(ppt->scalar_titles,tmp,_TRUE_);
+          sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
+          class_store_columntitle(ppt->scalar_titles,tmp,_TRUE_);
+        }
       }
-    }
-    /* Decaying cold dark matter */
-    class_fprintf_columntitle(ppw->perturb_output_file, "delta_dcdm", pba->has_dcdm,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file, "theta_dcdm", pba->has_dcdm,colnum);
-    /* Decay radiation */
-    class_fprintf_columntitle(ppw->perturb_output_file, "delta_dr", pba->has_dr,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file, "theta_dr", pba->has_dr,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file, "shear_dr", pba->has_dr,colnum);
-    /* Scalar field scf */
-    class_fprintf_columntitle(ppw->perturb_output_file, "delta_scf", pba->has_scf,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file, "theta_scf", pba->has_scf,colnum);
+      /* Decaying cold dark matter */
+      class_store_columntitle(ppt->scalar_titles, "delta_dcdm", pba->has_dcdm);
+      class_store_columntitle(ppt->scalar_titles, "theta_dcdm", pba->has_dcdm);
+      /* Decay radiation */
+      class_store_columntitle(ppt->scalar_titles, "delta_dr", pba->has_dr);
+      class_store_columntitle(ppt->scalar_titles, "theta_dr", pba->has_dr);
+      class_store_columntitle(ppt->scalar_titles, "shear_dr", pba->has_dr);
+      /* Scalar field scf */
+      class_store_columntitle(ppt->scalar_titles, "delta_scf", pba->has_scf);
+      class_store_columntitle(ppt->scalar_titles, "theta_scf", pba->has_scf);
 
-    fprintf(ppw->perturb_output_file,"\n");
-
-  }
-  if (_tensors_){
-    fprintf(ppw->perturb_output_file,
-            "#tensor perturbations for mode k = %.*e Mpc^(-1)\n",
-            _OUTPUTPRECISION_,k);
-    fprintf(ppw->perturb_output_file,"#");
-    class_fprintf_columntitle(ppw->perturb_output_file,"tau [Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"a",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"l4_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol0_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol2_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"pol4_g",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"H (gw)",_TRUE_,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"Hdot (gwdot)",_TRUE_,colnum);
-
-    class_fprintf_columntitle(ppw->perturb_output_file,"delta_ur",ppt->evolve_tensor_ur,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"shear_ur",ppt->evolve_tensor_ur,colnum);
-    class_fprintf_columntitle(ppw->perturb_output_file,"l4_ur",ppt->evolve_tensor_ur,colnum);
-
-    if (ppt->evolve_tensor_ncdm == _TRUE_) {
-      for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-        sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
-        sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
-        sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
-        class_fprintf_columntitle(ppw->perturb_output_file,tmp,_TRUE_,colnum);
-      }
+      ppt->number_of_scalar_titles =
+        perturb_get_number_of_titles(ppt->scalar_titles);
     }
 
+    if (ppt->has_tensors == _TRUE_){
 
-    fprintf(ppw->perturb_output_file,"\n");
+      class_store_columntitle(ppt->tensor_titles,"tau [Mpc]",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"a",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"delta_g",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"shear_g",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"l4_g",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"pol0_g",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"pol2_g",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"pol4_g",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"H (gw)",_TRUE_);
+      class_store_columntitle(ppt->tensor_titles,"Hdot (gwdot)",_TRUE_);
+
+      class_store_columntitle(ppt->tensor_titles,"delta_ur",ppt->evolve_tensor_ur);
+      class_store_columntitle(ppt->tensor_titles,"shear_ur",ppt->evolve_tensor_ur);
+      class_store_columntitle(ppt->tensor_titles,"l4_ur",ppt->evolve_tensor_ur);
+
+      if (ppt->evolve_tensor_ncdm == _TRUE_) {
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          sprintf(tmp,"delta_ncdm[%d]",n_ncdm);
+          class_store_columntitle(ppt->tensor_titles,tmp,_TRUE_);
+          sprintf(tmp,"theta_ncdm[%d]",n_ncdm);
+          class_store_columntitle(ppt->tensor_titles,tmp,_TRUE_);
+          sprintf(tmp,"shear_ncdm[%d]",n_ncdm);
+          class_store_columntitle(ppt->tensor_titles,tmp,_TRUE_);
+        }
+      }
+
+      ppt->number_of_tensor_titles =
+        perturb_get_number_of_titles(ppt->tensor_titles);
+
+    }
 
   }
-
   return _SUCCESS_;
 
 }
+
 
 /**
  * For a given mode and wavenumber, find the number of interval of
@@ -6087,7 +6105,8 @@ int perturb_print_variables(double tau,
   double factor = 0.0;
   double q,q2,epsilon;
   double a,a2,H;
-  int idx,index_q;
+  int idx,index_q, storeidx;
+  double *dataptr;
 
 
   /** - rename structure fields (just to avoid heavy notations) */
@@ -6270,49 +6289,66 @@ int perturb_print_variables(double tau,
 
     }
 
-    fprintf(ppw->perturb_output_file," ");
-    class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, theta_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, shear_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pol0_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pol1_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pol2_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, delta_b, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, theta_b, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, psi, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, phi, _TRUE_);
+    //    fprintf(ppw->perturb_output_file," ");
+    /** Handle (re-)allocation */
+    if (ppt->scalar_perturbations_data[ppw->index_ikout] == NULL){
+      class_alloc(ppt->scalar_perturbations_data[ppw->index_ikout],
+                  sizeof(double)*ppt->number_of_scalar_titles,
+                  error_message);
+      ppt->size_scalar_perturbation_data[ppw->index_ikout] = 0;
+    }
+    else{
+      ppt->scalar_perturbations_data[ppw->index_ikout] =
+        realloc(ppt->scalar_perturbations_data[ppw->index_ikout],
+                sizeof(double)*(ppt->size_scalar_perturbation_data[ppw->index_ikout]+ppt->number_of_scalar_titles));
+    }
+    storeidx = 0;
+    dataptr = ppt->scalar_perturbations_data[ppw->index_ikout]+
+      ppt->size_scalar_perturbation_data[ppw->index_ikout];
+    ppt->size_scalar_perturbation_data[ppw->index_ikout] += ppt->number_of_scalar_titles;
+
+    class_store_double(dataptr, tau, _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[pba->index_bg_a], _TRUE_, storeidx);
+    class_store_double(dataptr, delta_g, _TRUE_, storeidx);
+    class_store_double(dataptr, theta_g, _TRUE_, storeidx);
+    class_store_double(dataptr, shear_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol0_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol1_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol2_g, _TRUE_, storeidx);
+    class_store_double(dataptr, delta_b, _TRUE_, storeidx);
+    class_store_double(dataptr, theta_b, _TRUE_, storeidx);
+    class_store_double(dataptr, psi, _TRUE_, storeidx);
+    class_store_double(dataptr, phi, _TRUE_, storeidx);
     /* perturbed recombination */
-    class_fprintf_double(ppw->perturb_output_file, delta_temp, ppt->has_perturbed_recombination);
-    class_fprintf_double(ppw->perturb_output_file, delta_chi, ppt->has_perturbed_recombination);
+    class_store_double(dataptr, delta_temp, ppt->has_perturbed_recombination, storeidx);
+    class_store_double(dataptr, delta_chi, ppt->has_perturbed_recombination, storeidx);
     /* Ultra relativistic species */
-    class_fprintf_double(ppw->perturb_output_file, delta_ur, pba->has_ur);
-    class_fprintf_double(ppw->perturb_output_file, theta_ur, pba->has_ur);
-    class_fprintf_double(ppw->perturb_output_file, shear_ur, pba->has_ur);
+    class_store_double(dataptr, delta_ur, pba->has_ur, storeidx);
+    class_store_double(dataptr, theta_ur, pba->has_ur, storeidx);
+    class_store_double(dataptr, shear_ur, pba->has_ur, storeidx);
     /* Cold dark matter */
-    class_fprintf_double(ppw->perturb_output_file, delta_cdm, pba->has_cdm);
-    class_fprintf_double(ppw->perturb_output_file, theta_cdm, pba->has_cdm);
+    class_store_double(dataptr, delta_cdm, pba->has_cdm, storeidx);
+    class_store_double(dataptr, theta_cdm, pba->has_cdm, storeidx);
     /* Non-cold Dark Matter */
     if ((pba->has_ncdm == _TRUE_) && ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_source_delta_m == _TRUE_))) {
       for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-        class_fprintf_double(ppw->perturb_output_file, ppw->delta_ncdm[n_ncdm], _TRUE_);
-        class_fprintf_double(ppw->perturb_output_file, ppw->theta_ncdm[n_ncdm], _TRUE_);
-        class_fprintf_double(ppw->perturb_output_file, ppw->shear_ncdm[n_ncdm], _TRUE_);
+        class_store_double(dataptr, ppw->delta_ncdm[n_ncdm], _TRUE_, storeidx);
+        class_store_double(dataptr, ppw->theta_ncdm[n_ncdm], _TRUE_, storeidx);
+        class_store_double(dataptr, ppw->shear_ncdm[n_ncdm], _TRUE_, storeidx);
       }
     }
     /* Decaying cold dark matter */
-    class_fprintf_double(ppw->perturb_output_file, delta_dcdm, pba->has_dcdm);
-    class_fprintf_double(ppw->perturb_output_file, theta_dcdm, pba->has_dcdm);
+    class_store_double(dataptr, delta_dcdm, pba->has_dcdm, storeidx);
+    class_store_double(dataptr, theta_dcdm, pba->has_dcdm, storeidx);
     /* Decay radiation */
-    class_fprintf_double(ppw->perturb_output_file, delta_dr, pba->has_dr);
-    class_fprintf_double(ppw->perturb_output_file, theta_dr, pba->has_dr);
-    class_fprintf_double(ppw->perturb_output_file, shear_dr, pba->has_dr);
+    class_store_double(dataptr, delta_dr, pba->has_dr, storeidx);
+    class_store_double(dataptr, theta_dr, pba->has_dr, storeidx);
+    class_store_double(dataptr, shear_dr, pba->has_dr, storeidx);
     /* Scalar field scf*/
-    class_fprintf_double(ppw->perturb_output_file, delta_scf, pba->has_scf);
-    class_fprintf_double(ppw->perturb_output_file, theta_scf, pba->has_scf);
+    class_store_double(dataptr, delta_scf, pba->has_scf, storeidx);
+    class_store_double(dataptr, theta_scf, pba->has_scf, storeidx);
 
-    fprintf(ppw->perturb_output_file,"\n");
+    //fprintf(ppw->perturb_output_file,"\n");
 
   }
 
@@ -6351,21 +6387,38 @@ int perturb_print_variables(double tau,
       l4_ur = y[ppw->pv->index_pt_delta_ur+4];
     }
 
-    fprintf(ppw->perturb_output_file," ");
-    class_fprintf_double(ppw->perturb_output_file, tau, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pvecback[pba->index_bg_a], _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, delta_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, shear_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, l4_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pol0_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pol2_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, pol4_g, _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gw], _TRUE_);
-    class_fprintf_double(ppw->perturb_output_file, y[ppw->pv->index_pt_gwdot], _TRUE_);
+    /** Handle (re-)allocation */
+    if (ppt->tensor_perturbations_data[ppw->index_ikout] == NULL){
+      class_alloc(ppt->tensor_perturbations_data[ppw->index_ikout],
+                  sizeof(double)*ppt->number_of_tensor_titles,
+                  error_message);
+      ppt->size_tensor_perturbation_data[ppw->index_ikout] = 0;
+    }
+    else{
+      ppt->tensor_perturbations_data[ppw->index_ikout] =
+        realloc(ppt->tensor_perturbations_data[ppw->index_ikout],
+                sizeof(double)*(ppt->size_tensor_perturbation_data[ppw->index_ikout]+ppt->number_of_tensor_titles));
+    }
+    storeidx = 0;
+    dataptr = ppt->tensor_perturbations_data[ppw->index_ikout]+
+      ppt->size_tensor_perturbation_data[ppw->index_ikout];
+    ppt->size_tensor_perturbation_data[ppw->index_ikout] += ppt->number_of_tensor_titles;
 
-    class_fprintf_double(ppw->perturb_output_file, delta_ur, ppt->evolve_tensor_ur);
-    class_fprintf_double(ppw->perturb_output_file, shear_ur, ppt->evolve_tensor_ur);
-    class_fprintf_double(ppw->perturb_output_file, l4_ur, ppt->evolve_tensor_ur);
+    //fprintf(ppw->perturb_output_file," ");
+    class_store_double(dataptr, tau, _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[pba->index_bg_a], _TRUE_, storeidx);
+    class_store_double(dataptr, delta_g, _TRUE_, storeidx);
+    class_store_double(dataptr, shear_g, _TRUE_, storeidx);
+    class_store_double(dataptr, l4_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol0_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol2_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol4_g, _TRUE_, storeidx);
+    class_store_double(dataptr, y[ppw->pv->index_pt_gw], _TRUE_, storeidx);
+    class_store_double(dataptr, y[ppw->pv->index_pt_gwdot], _TRUE_, storeidx);
+
+    class_store_double(dataptr, delta_ur, ppt->evolve_tensor_ur, storeidx);
+    class_store_double(dataptr, shear_ur, ppt->evolve_tensor_ur, storeidx);
+    class_store_double(dataptr, l4_ur, ppt->evolve_tensor_ur, storeidx);
     //printf("index_pt_delta+ur = %d\n",ppw->pv->index_pt_delta_ur);
 
     /* Non-cold Dark Matter */
@@ -6407,13 +6460,13 @@ int perturb_print_variables(double tau,
         shear_ncdm = rho_plus_p_shear_ncdm/
           (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
 
-        class_fprintf_double(ppw->perturb_output_file, delta_ncdm, _TRUE_);
-        class_fprintf_double(ppw->perturb_output_file, theta_ncdm, _TRUE_);
-        class_fprintf_double(ppw->perturb_output_file, shear_ncdm, _TRUE_);
+        class_store_double(dataptr, delta_ncdm, _TRUE_, storeidx);
+        class_store_double(dataptr, theta_ncdm, _TRUE_, storeidx);
+        class_store_double(dataptr, shear_ncdm, _TRUE_, storeidx);
       }
     }
 
-    fprintf(ppw->perturb_output_file,"\n");
+    //    fprintf(ppw->perturb_output_file,"\n");
 
   }
 
