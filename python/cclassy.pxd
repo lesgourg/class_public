@@ -6,6 +6,9 @@
 # If, for whatever reason, you need an other, existing parameter from Class,
 # remember to add it inside this cdef.
 
+DEF _MAX_NUMBER_OF_K_FILES_ = 30
+DEF _MAXTITLESTRINGLENGTH_ = 8000
+
 cdef extern from "class.h":
 
     ctypedef char FileArg[40]
@@ -60,10 +63,33 @@ cdef extern from "class.h":
         double YHe
         double n_e
 
+    cdef int _MAXTITLESTRINGLENGTH_
+
     cdef struct perturbs:
         ErrorMsg error_message
+        short has_scalars
+        short has_vectors
+        short has_tensors
+
         int has_pk_matter
         int l_lss_max
+        int k_output_values_num
+        double k_output_values[_MAX_NUMBER_OF_K_FILES_]
+        int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]
+        char scalar_titles[_MAXTITLESTRINGLENGTH_]
+        char vector_titles[_MAXTITLESTRINGLENGTH_]
+        char tensor_titles[_MAXTITLESTRINGLENGTH_]
+        int number_of_scalar_titles
+        int number_of_vector_titles
+        int number_of_tensor_titles
+
+
+        double * scalar_perturbations_data[_MAX_NUMBER_OF_K_FILES_]
+        double * vector_perturbations_data[_MAX_NUMBER_OF_K_FILES_]
+        double * tensor_perturbations_data[_MAX_NUMBER_OF_K_FILES_]
+        int size_scalar_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
+        int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
+        int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
 
     cdef struct transfers:
         ErrorMsg error_message
