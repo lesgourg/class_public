@@ -34,7 +34,8 @@ enum potential_shape {
 
 enum target_quantity {
   _aH_,
-  _phi_
+  _phi_,
+  _end_inflation_
 };
 
 /** enum specifying if we want to integrate equations forward or backward in time */
@@ -446,6 +447,13 @@ extern "C" {
                                 double * y,
                                 double * dy
                                 );
+
+  int primordial_find_phi_pivot2(
+                                 struct primordial * ppm,
+                                 struct precision * ppr,
+                                 double * y,
+                                 double * dy
+                                 );
 
   int primordial_find_phi_stop(
                                struct primordial * ppm,

@@ -1063,7 +1063,7 @@ int primordial_inflation_indices(
   index_in ++;
   ppm->index_in_phi = index_in;
   index_in ++;
-  if (ppm->primordial_spec_type == inflation_V) {
+  if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end)) {
     ppm->index_in_dphi = index_in;
     index_in ++;
   }
@@ -1144,7 +1144,7 @@ int primordial_inflation_solve_inflation(
   /* eventually, needs first to find phi_pivot */
   if (ppm->primordial_spec_type == inflation_V_end) {
 
-    class_call(primordial_find_phi_pivot(ppm,ppr,y,dy),
+    class_call(primordial_find_phi_pivot2(ppm,ppr,y,dy),
                ppm->error_message,
                ppm->error_message);
 
@@ -1156,6 +1156,7 @@ int primordial_inflation_solve_inflation(
   switch (ppm->primordial_spec_type) {
 
   case inflation_V:
+  case inflation_V_end:
 
     /* check positivity and negative slope of potential in field pivot
        value, and find value of phi_dot and H for field's pivot value,
@@ -1219,7 +1220,7 @@ int primordial_inflation_solve_inflation(
 
   y[ppm->index_in_a] = a_pivot;
   y[ppm->index_in_phi] = ppm->phi_pivot;
-  if (ppm->primordial_spec_type == inflation_V)
+  if ((ppm->primordial_spec_type == inflation_V) && (ppm->primordial_spec_type == inflation_V_end))
     y[ppm->index_in_dphi] = a_pivot*dphidt_pivot;
 
   class_call_except(primordial_inflation_evolve_background(ppm,
@@ -1260,6 +1261,7 @@ int primordial_inflation_solve_inflation(
   switch (ppm->primordial_spec_type) {
 
   case inflation_V:
+  case inflation_V_end:
 
     counter = 0;
 
@@ -1400,7 +1402,7 @@ int primordial_inflation_solve_inflation(
 
   y[ppm->index_in_a] = y_ini[ppm->index_in_a];
   y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
-  if (ppm->primordial_spec_type == inflation_V)
+  if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
     y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
   class_call_except(primordial_inflation_evolve_background(ppm,
@@ -1480,7 +1482,7 @@ int primordial_inflation_spectra(
     /* initialize the background part of the running vector */
     y[ppm->index_in_a] = y_ini[ppm->index_in_a];
     y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
-    if (ppm->primordial_spec_type == inflation_V)
+    if ((ppm->primordial_spec_type == inflation_V) && (ppm->primordial_spec_type == inflation_V_end))
       y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
     /* evolve the background until the relevant initial time for
@@ -1912,7 +1914,10 @@ int primordial_inflation_evolve_background(
 
   aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
 
-  if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V))) {
+  printf("pre-check: %e %e %e %e %e\n",y[0],y[1],dy[0],dy[1],aH);
+  //class_stop(ppm->error_message,"pfou");
+
+  if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))) {
     dtau = ppr->primordial_inflation_bg_stepsize
         *MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
   }
@@ -1930,7 +1935,24 @@ int primordial_inflation_evolve_background(
   case _phi_:
     quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
     break;
+  case _end_inflation_:
+    // in this case, the goal is to reach d2a/dt2 = 0 (end of accelerated expansion)
+    stop = 0.;
+    // quantity = - d2a/dt2 = [- (a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
+    quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
+    // check that we are in the right case
+    class_test(ppm->primordial_spec_type != inflation_V_end,
+               ppm->error_message,
+               "the target _end_inflation_ is only coded to work with inflation_V_end (but could be generalised if needed)");
+
+    // for testing
+    printf("%e\n",quantity);
+
+    break;
   }
+
+  printf("check: %e %e %e %e %e\n",sign_dtau,aH,quantity,stop,sign_dtau*(quantity - stop));
+  //class_stop(ppm->error_message,"pfou");
 
   /* loop over time steps, checking that there will be no overshooting */
 
@@ -1980,6 +2002,8 @@ int primordial_inflation_evolve_background(
                                   &gi),
                gi.error_message,
                ppm->error_message);
+
+    //printf("in evolve: %e %e\n",y[0],y[1]);
 
     /* eventually, check that epsilon is not becoming greater than one */
 
@@ -2031,7 +2055,14 @@ int primordial_inflation_evolve_background(
     case _phi_:
       quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
       break;
+    case _end_inflation_:
+      // quantity = -d2a/dt2 = [-(a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
+      quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
+      //for testing
+      printf("%e\n",quantity);
+      break;
     }
+
   }
 
   /* won't use the integrator anymore */
@@ -2051,12 +2082,37 @@ int primordial_inflation_evolve_background(
   case _phi_:
     dtau = (stop-y[ppm->index_in_phi])/dy[ppm->index_in_phi];
     break;
+  case _end_inflation_:
+    class_call(primordial_inflation_check_potential(ppm,y[ppm->index_in_phi],&V,&dV,&ddV),
+               ppm->error_message,
+               ppm->error_message);
+    dtau = - quantity/8./_PI_/pow(dy[ppm->index_in_phi],2)/aH*y[ppm->index_in_a]*y[ppm->index_in_a];
+    /*dtau = 0.*(y[ppm->index_in_dphi]*y[ppm->index_in_dphi]*-y[ppm->index_in_a]*y[ppm->index_in_a]*V)/
+      (2.*y[ppm->index_in_a]*dy[ppm->index_in_a]*V
+       +y[ppm->index_in_a]*y[ppm->index_in_a]*dV*y[ppm->index_in_dphi]
+       -2.*y[ppm->index_in_dphi]*dy[ppm->index_in_dphi]);*/
+    break;
   }
 
   y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
   y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
   if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V)||(ppm->primordial_spec_type == inflation_V_end)))
     y[ppm->index_in_dphi] += dy[ppm->index_in_dphi]*dtau;
+
+  //for testing
+  if (target == _end_inflation_) {
+    class_call(primordial_inflation_derivs(tau_end,
+                                           y,
+                                           dy,
+                                           &pipaw,
+                                           ppm->error_message),
+               ppm->error_message,
+               ppm->error_message);
+
+    aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
+    quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
+    printf("at the end: %e\n",quantity);
+  }
 
   return _SUCCESS_;
 }
@@ -2257,9 +2313,110 @@ int primordial_find_phi_pivot(
 
 }
 
+int primordial_find_phi_pivot2(
+                              struct primordial * ppm,
+                              struct precision * ppr,
+                              double * y,
+                              double * dy
+                              ) {
+
+  double epsilon,phi,dphi;
+  double V,dV,ddV;
+  double phi_try,H_try,dphidt_try,aH_try;
+  double aH_ratio;
+
+  // assume that inflation ends up naturally
+
+  // find latest phi such that epsilon=0.1
+  // following attractor solution, go back by 90% of requested inflationary amount
+  // find attractor and compute e-folds till end
+  // if bigger than necessary, evolve from same point to necessary point
+  // if smaller than necessary, iterate with steps of 1 e-fold
+
+  dphi = ppr->primordial_inflation_end_dphi;
+
+  do {
+    dphi *= ppr->primordial_inflation_end_logstep;
+    class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
+               ppm->error_message,
+               ppm->error_message);
+    printf("phi=%e, epsilon=%e\n",ppm->phi_end-dphi,epsilon);
+  } while (epsilon >0.1);
+
+  phi_try = ppm->phi_end-dphi;
+
+  printf("phi=%e, epsilon=%e\n",phi_try,epsilon);
+
+  // need to bracket better!!
+
+  class_call(primordial_inflation_check_potential(ppm,phi_try,&V,&dV,&ddV),
+             ppm->error_message,
+             ppm->error_message);
+
+  // in this point, normalise z to one and fix phi' to first-order slow-roll solution (phi'=-V'/3/(aH)_slow-roll)
+  y[ppm->index_in_a]=1.;
+  y[ppm->index_in_phi]= phi_try;
+
+  aH_try = sqrt(8.*_PI_/3.*V);
+  //y[ppm->index_in_dphi]=-dV/3./aH_try;
+
+  printf("phi=%e aH=%e\n",y[ppm->index_in_phi],aH_try);
+
+  // following approximate slow-roll attractor solution, evolve by fraction of needed efolds
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _aH_,
+                                                    aH_try/50.,
+                                                    _TRUE_,
+                                                    backward),
+             ppm->error_message,
+             ppm->error_message);
+
+  phi_try = y[ppm->index_in_phi];
+
+  fprintf(stderr,"phi=%e\n",phi_try);
+  //class_stop(ppm->error_message,"pfou");
+
+  class_call(primordial_inflation_find_attractor(ppm,
+                                                 ppr,
+                                                 phi_try,
+                                                 ppr->primordial_inflation_attractor_precision_initial,
+                                                 y,
+                                                 dy,
+                                                 &H_try,
+                                                 &dphidt_try),
+             ppm->error_message,
+             ppm->error_message);
+
+  fprintf(stderr,"attractor: %e %e %e\n",phi_try,H_try,dphidt_try);
+
+  y[ppm->index_in_a]=1.;
+  y[ppm->index_in_phi]= phi_try;
+  y[ppm->index_in_dphi]= y[ppm->index_in_a]*dphidt_try;
+
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _end_inflation_,
+                                                    0.,
+                                                    _FALSE_,
+                                                    forward),
+             ppm->error_message,
+             ppm->error_message);
+
+  aH_ratio = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_try;
+
+  printf("reached phi=%e aH_ratio=%e\n",y[1],aH_ratio);
+
+  return _SUCCESS_;
+}
+
 /**
- * Find the value of the field such inflation ends. In input, the
- * routine takes ppm->phi_end, in ourput it will give
+ * Find the value of the field such that epsilon=1. In input, the
+ * routine takes ppm->phi_end, in output it will give
  * ppm->phi_stop. If the routine finds that in phi_end, epsilon is
  * still <1, then phi_stop=phi_end (indeed this means that one wants
  * to impose inflation to end abruptly at some point, like in hybrid
@@ -2429,12 +2586,17 @@ int primordial_inflation_derivs(
       // Neglect phi'' w.r.t 2aHphi', reducing 2nd order Klein-Gordon to approximate 1st-order
     case backward:
 
+      //printf("I am here\n");
+
       // a H = a'/a
       ppipaw->aH = sqrt((8*_PI_/3.)*ppipaw->a2*ppipaw->V);
       // 1: a
       dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
       // 2: phi
       dy[ppm->index_in_phi]= -ppipaw->a2*ppipaw->dV/3./ppipaw->aH;
+
+      //printf("in derivs:%e %e %e %e\n",y[0],y[1],dy[0],dy[1]);
+
       break;
     }
 
