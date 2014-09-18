@@ -19,3 +19,14 @@ void class_protect_fprintf(FILE* stream, char* tpl,...) {
 void* class_protect_memcpy(void* dest, void* from, size_t sz) {
   return memcpy(dest, from,sz);
 }
+
+int get_number_of_titles(char * titlestring){
+  int i;
+  int number_of_titles=0;
+
+  for (i=0; i<strlen(titlestring); i++){
+    if (titlestring[i] == '\t')
+      number_of_titles++;
+  }
+  return number_of_titles;
+}

@@ -150,10 +150,10 @@ extern "C" {
                         struct output * pop
                         );
 
-  int output_print_perturbations(FILE *out,
-                                 char titles[_MAXTITLESTRINGLENGTH_],
-                                 double *dataptr,
-                                 int tau_size);
+  int output_print_data(FILE *out,
+                        char titles[_MAXTITLESTRINGLENGTH_],
+                        double *dataptr,
+                        int tau_size);
   int output_open_cl_file(
                           struct spectra * psp,
                           struct output * pop,

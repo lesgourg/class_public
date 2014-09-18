@@ -78,16 +78,6 @@ enum selection_type {gaussian,tophat,dirac};
  */
 #define _MAX_NUMBER_OF_K_FILES_ 30
 
-/**
- * character used for delimiting titles in the title strings
- */
-#define _DELIMITER_ "\t"
-
-/**
- * Maximum number of characters in title strings
- */
-#define _MAXTITLESTRINGLENGTH_ 8000
-
 //@}
 
 
@@ -793,8 +783,6 @@ extern "C" {
 
   int perturb_prepare_output(struct background * pba,
                              struct perturbs * ppt);
-
-  int perturb_get_number_of_titles(char * titlestring);
 
 #ifdef __cplusplus
 }

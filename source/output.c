@@ -1185,6 +1185,41 @@ int output_background(
                       struct output * pop
                       ) {
 
+  FILE * backfile;
+  FileName file_name;
+
+  sprintf(file_name,"%s%s",pop->root,"background.dat");
+  class_open(backfile,file_name,"w",pop->error_message);
+
+  if (pop->write_header == _TRUE_) {
+    fprintf(backfile,"# Table of selected background quantitites\n");
+    fprintf(backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
+    fprintf(backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
+    if (pba->has_scf == _TRUE_){
+      fprintf(backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
+      fprintf(backfile,"# --> phi is given in units of the reduced Planck mass m_Pl = (8 pi G)^(-1/2)\n");
+      fprintf(backfile,"# --> tau in the derivative of V(phi) is given in units of Mpc.\n");
+      fprintf(backfile,"# --> the potential V(phi) is given in units of m_Pl^2/Mpc^2.\n");
+    }
+  }
+
+  output_print_data(backfile,
+                    pba->background_titles,
+                    pba->background_data,
+                    pba->size_background_data);
+
+  fclose(backfile);
+
+  return _SUCCESS_;
+
+}
+
+/**
+int output_background(
+                      struct background * pba,
+                      struct output * pop
+                      ) {
+
   FILE * out;
   FileName file_name;
   int index_eta;
@@ -1215,6 +1250,44 @@ int output_background(
   return _SUCCESS_;
 
 }
+*/
+
+int output_thermodynamics(
+                          struct background * pba,
+                          struct thermo * pth,
+                          struct output * pop
+                      ) {
+
+  FileName file_name;
+  FILE * thermofile;
+
+  sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
+  class_open(thermofile,file_name,"w",pop->error_message);
+
+  if (pop->write_header == _TRUE_) {
+    fprintf(thermofile,"# Table of selected thermodynamics quantitites\n");
+    fprintf(thermofile,"# The following notation is used in column titles:\n");
+    fprintf(thermofile,"#    x_e = electron ionisation fraction\n");
+    fprintf(thermofile,"# -kappa = optical depth\n");
+    fprintf(thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
+    fprintf(thermofile,"#      g = kappa' e^-kappa = visibility function \n");
+    fprintf(thermofile,"#     Tb = baryon temperature \n");
+    fprintf(thermofile,"#  c_b^2 = baryon sound speed squared \n");
+    fprintf(thermofile,"#  tau_d = baryon drag optical depth \n");
+  }
+
+  output_print_data(thermofile,
+                    pth->thermodynamics_titles,
+                    pth->thermodynamics_data,
+                    pth->size_thermodynamics_data);
+
+  fclose(thermofile);
+
+  return _SUCCESS_;
+
+}
+
+/**
 
 int output_thermodynamics(
                           struct background * pba,
@@ -1265,6 +1338,7 @@ int output_thermodynamics(
   return _SUCCESS_;
 
 }
+*/
 
 int output_perturbations(
                          struct background * pba,
@@ -1285,10 +1359,10 @@ int output_perturbations(
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_s.dat");
       class_open(out, file_name, "w", ppt->error_message);
       fprintf(out,"#scalar perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
-      output_print_perturbations(out,
-                                 ppt->scalar_titles,
-                                 ppt->scalar_perturbations_data[index_ikout],
-                                 ppt->size_scalar_perturbation_data[index_ikout]);
+      output_print_data(out,
+                        ppt->scalar_titles,
+                        ppt->scalar_perturbations_data[index_ikout],
+                        ppt->size_scalar_perturbation_data[index_ikout]);
 
       fclose(out);
     }
@@ -1298,10 +1372,10 @@ int output_perturbations(
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_v.dat");
       class_open(out, file_name, "w", ppt->error_message);
       fprintf(out,"#vector perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
-      output_print_perturbations(out,
-                                 ppt->vector_titles,
-                                 ppt->vector_perturbations_data[index_ikout],
-                                 ppt->size_vector_perturbation_data[index_ikout]);
+      output_print_data(out,
+                        ppt->vector_titles,
+                        ppt->vector_perturbations_data[index_ikout],
+                        ppt->size_vector_perturbation_data[index_ikout]);
 
       fclose(out);
     }
@@ -1311,10 +1385,10 @@ int output_perturbations(
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_t.dat");
       class_open(out, file_name, "w", ppt->error_message);
       fprintf(out,"#tensor perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
-      output_print_perturbations(out,
-                                 ppt->tensor_titles,
-                                 ppt->tensor_perturbations_data[index_ikout],
-                                 ppt->size_tensor_perturbation_data[index_ikout]);
+      output_print_data(out,
+                        ppt->tensor_titles,
+                        ppt->tensor_perturbations_data[index_ikout],
+                        ppt->size_tensor_perturbation_data[index_ikout]);
 
       fclose(out);
     }
@@ -1364,10 +1438,10 @@ int output_primordial(
 
 }
 
-int output_print_perturbations(FILE *out,
-                               char titles[_MAXTITLESTRINGLENGTH_],
-                               double *dataptr,
-                               int size_dataptr){
+int output_print_data(FILE *out,
+                      char titles[_MAXTITLESTRINGLENGTH_],
+                      double *dataptr,
+                      int size_dataptr){
   int colnum=1, number_of_titles;
   int index_title, index_tau;
   char thetitle[_MAXTITLESTRINGLENGTH_];
@@ -1382,7 +1456,7 @@ int output_print_perturbations(FILE *out,
     class_fprintf_columntitle(out, pch, _TRUE_, colnum);
     pch = strtok(NULL,_DELIMITER_);
   }
-
+  fprintf(out,"\n");
 
   /** Print data: */
   number_of_titles = colnum-1;

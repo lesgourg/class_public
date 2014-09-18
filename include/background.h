@@ -214,6 +214,19 @@ struct background
 
   //@}
 
+  /** @name - background formatted output */
+
+  //@{
+
+  int store_background; /**< flag deciding if we need to store formatted output */
+  char background_titles[_MAXTITLESTRINGLENGTH_]; /**< string of all background titles separated by _DELIMITER_*/
+  int number_of_background_titles; /**< number of titles stored in background_titles */
+  double * background_data;  /**< array[index_tau*pba->bt_size+titlenum] with formatted output values */
+  int size_background_data;  /**< size of background data array */
+
+  //@}
+
+
   /** @name - all indices for the vector of background quantities to be integrated (=bi)
    *
    * Most background quantities can be immediately inferred from the
@@ -443,6 +456,8 @@ extern "C" {
 				    double * pvecback,
 				    double * pvecback_integration
 				    );
+
+  int background_prepare_output(struct background * pba);
 
   int background_derivs(
 			 double z,

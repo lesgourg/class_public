@@ -43,6 +43,11 @@ cdef extern from "class.h":
         double wa_fld
         double cs2_fld
 
+        char background_titles[_MAXTITLESTRINGLENGTH_]
+        int number_of_background_titles
+        double * background_data
+        int size_background_data
+
     cdef struct thermo:
         ErrorMsg error_message
         int th_size
@@ -63,7 +68,10 @@ cdef extern from "class.h":
         double YHe
         double n_e
 
-    cdef int _MAXTITLESTRINGLENGTH_
+        char thermodynamics_titles[_MAXTITLESTRINGLENGTH_]
+        int number_of_thermodynamics_titles
+        double * thermodynamics_data
+        int size_thermodynamics_data
 
     cdef struct perturbs:
         ErrorMsg error_message

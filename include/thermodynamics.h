@@ -171,6 +171,19 @@ struct thermo
 
   //@}
 
+  /** @name - thermodynamics formatted output */
+
+  //@{
+
+  int store_thermodynamics; /**< flag deciding if we need to store formatted output */
+  char thermodynamics_titles[_MAXTITLESTRINGLENGTH_]; /**< string of all thermodynamics titles separated by _DELIMITER_*/
+  int number_of_thermodynamics_titles; /**< number of titles stored in thermodynamics_titles */
+  double * thermodynamics_data;  /**< array[index_tau*pth->tt_size+titlenum] with formatted output values */
+  int size_thermodynamics_data;  /**< size of thermodynamics data array */
+
+  //@}
+
+
   /** @name - redshift, conformal time and sound horizon at recombination */
 
   //@{
@@ -562,6 +575,9 @@ extern "C" {
 					 struct recombination * preco,
 					 struct reionization * preio
 					 );
+
+  int thermodynamics_prepare_output(struct background * pba,
+                                    struct thermo *pth);
 
 #ifdef __cplusplus
 }

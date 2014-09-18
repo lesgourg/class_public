@@ -890,6 +890,56 @@ cdef class Class:
         """
         return self.ba.Omega0_b+self.ba.Omega0_cdm
 
+    def get_background(self):
+        """
+        Return the background quantities.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        background : dictionary containing background.
+        """
+
+        background = {}
+
+        tmp = <bytes> self.ba.background_titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.ba.size_background_data/number_of_titles;
+        for i in range(number_of_titles):
+            background[names[i]] = np.zeros(timesteps, dtype=np.double)
+            for index in range(timesteps):
+                background[names[i]][index] = self.ba.background_data[index*number_of_titles+i]
+
+        return background
+
+    def get_thermodynamics(self):
+        """
+        Return the thermodynamics quantities.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        thermodynamics : dictionary containing thermodynamics.
+        """
+
+        thermodynamics = {}
+
+        tmp = <bytes> self.th.thermodynamics_titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.th.size_thermodynamics_data/number_of_titles;
+        for i in range(number_of_titles):
+            thermodynamics[names[i]] = np.zeros(timesteps, dtype=np.double)
+            for index in range(timesteps):
+                thermodynamics[names[i]][index] = self.th.thermodynamics_data[index*number_of_titles+i]
+
+        return thermodynamics
+
     def get_perturbations(self):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested

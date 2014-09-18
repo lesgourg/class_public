@@ -55,6 +55,12 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _COLUMNWIDTH_ 24 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
 
+#define _MAXTITLESTRINGLENGTH_ 8000 /**< Maximum number of characters in title strings */
+
+#define _DELIMITER_ "\t" /**< character used for delimiting titles in the title strings */
+
+
+
 #ifndef __CLASSDIR__
 #define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */
 #endif
@@ -71,6 +77,7 @@ void class_protect_sprintf(char* dest, char* tpl,...);
 void class_protect_fprintf(FILE* dest, char* tpl,...);
 void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
+int get_number_of_titles(char * titlestring);
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
   ErrorMsg FMsg;                                                                                                 \

@@ -726,6 +726,15 @@ int thermodynamics_init(
 
   free(pvecback);
 
+  /** Do we need to store selected output quantities? */
+  if (pth->store_thermodynamics == _TRUE_){
+    class_call(thermodynamics_prepare_output(pba,
+                                             pth),
+               pth->error_message,
+               pth->error_message);
+
+  }
+
   return _SUCCESS_;
 }
 
@@ -744,6 +753,9 @@ int thermodynamics_free(
   free(pth->z_table);
   free(pth->thermodynamics_table);
   free(pth->d2thermodynamics_dz2_table);
+
+  if (pth->thermodynamics_data != NULL)
+    free(pth->thermodynamics_data);
 
   return _SUCCESS_;
 }
@@ -952,8 +964,8 @@ int thermodynamics_helium_from_bbn(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
 
   /** 8.6173e-11 converts from Kelvin to MeV. We randomly choose 0.1 MeV to be the temperature of BBN */
-  z_bbn = 0.1/(8.6173e-11*pba->T_cmb)-1.0; 
-  
+  z_bbn = 0.1/(8.6173e-11*pba->T_cmb)-1.0;
+
   class_call(background_tau_of_z(pba,
                                  z_bbn,
                                  &tau_bbn),
@@ -3122,6 +3134,75 @@ int thermodynamics_merge_reco_and_reio(
 
   if (pth->reio_parametrization != reio_none)
     free(preio->reionization_table);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Subroutine for formatting thermodynamics output
+ */
+
+int thermodynamics_prepare_output(struct background * pba,
+                                  struct thermo *pth){
+
+  /** Length of the columntitle should be less than _OUTPUTPRECISION_+6
+      to be indented correctly, but it can be as long as . */
+
+  int index_z, storeidx;
+  double *dataptr, *pvecthermo;
+  double z,tau;
+
+  class_store_columntitle(pth->thermodynamics_titles,"z",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"conf. time [Mpc]",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"x_e",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"kappa' [Mpc^-1]",_TRUE_);
+  //class_store_columntitle(pth->thermodynamics_titles,"kappa''",_TRUE_);
+  //class_store_columntitle(pth->thermodynamics_titles,"kappa'''",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"exp(-kappa)",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"g [Mpc^-1]",_TRUE_);
+  //class_store_columntitle(pth->thermodynamics_titles,"g'",_TRUE_);
+  //class_store_columntitle(pth->thermodynamics_titles,"g''",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"Tb [K]",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"c_b^2",_TRUE_);
+  class_store_columntitle(pth->thermodynamics_titles,"tau_d",_TRUE_);
+  //class_store_columntitle(pth->thermodynamics_titles,"max. rate",_TRUE_,colnum);
+
+  pth->number_of_thermodynamics_titles = get_number_of_titles(pth->thermodynamics_titles);
+  pth->size_thermodynamics_data = pth->number_of_thermodynamics_titles*pth->tt_size;
+
+  class_alloc(pth->thermodynamics_data, sizeof(double)*pth->size_thermodynamics_data, pth->error_message);
+
+  /** Store quantities: */
+  for (index_z=0; index_z<pth->tt_size; index_z++){
+    dataptr = pth->thermodynamics_data + index_z*pth->number_of_thermodynamics_titles;
+    pvecthermo = pth->thermodynamics_table+index_z*pth->th_size;
+    z = pth->z_table[index_z];
+    storeidx=0;
+
+    class_call(background_tau_of_z(
+                                   pba,
+                                   z,
+                                   &tau
+                                   ),
+               pba->error_message,
+               pth->error_message);
+
+    class_store_double(dataptr,z,_TRUE_,storeidx);
+    class_store_double(dataptr,tau,_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_xe],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_dkappa],_TRUE_,storeidx);
+    //class_store_double(dataptr,pvecthermo[pth->index_th_ddkappa],_TRUE_,storeidx);
+    //class_store_double(dataptr,pvecthermo[pth->index_th_dddkappa],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_exp_m_kappa],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_g],_TRUE_,storeidx);
+    //class_store_double(dataptr,pvecthermo[pth->index_th_dg],_TRUE_,storeidx);
+    //class_store_double(dataptr,pvecthermo[pth->index_th_ddg],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_Tb],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_cb2],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_tau_d],_TRUE_,storeidx);
+    //class_store_double(dataptr,pvecthermo[pth->index_th_rate],_TRUE_,storeidx);
+
+  }
 
   return _SUCCESS_;
 }

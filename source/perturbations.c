@@ -2359,17 +2359,6 @@ int perturb_solve(
   return _SUCCESS_;
 }
 
-int perturb_get_number_of_titles(char * titlestring){
-  int i;
-  int number_of_titles=0;
-
-  for (i=0; i<strlen(titlestring); i++){
-    if (titlestring[i] == '\t')
-      number_of_titles++;
-  }
-  return number_of_titles;
-}
-
 int perturb_prepare_output(struct background * pba,
 			   struct perturbs * ppt){
 
@@ -2425,7 +2414,7 @@ int perturb_prepare_output(struct background * pba,
       class_store_columntitle(ppt->scalar_titles, "theta_scf", pba->has_scf);
 
       ppt->number_of_scalar_titles =
-        perturb_get_number_of_titles(ppt->scalar_titles);
+        get_number_of_titles(ppt->scalar_titles);
     }
 
     if (ppt->has_tensors == _TRUE_){
@@ -2457,7 +2446,7 @@ int perturb_prepare_output(struct background * pba,
       }
 
       ppt->number_of_tensor_titles =
-        perturb_get_number_of_titles(ppt->tensor_titles);
+        get_number_of_titles(ppt->tensor_titles);
 
     }
 
