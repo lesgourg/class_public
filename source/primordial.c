@@ -1816,18 +1816,19 @@ int primordial_inflation_find_attractor(
 /**
  * Routine integrating background equations only, from initial values
  * stored in y, to a final value (if target = _aH_, until aH =
- * aH_stop; if target = _phi_, till phi = phi_stop). In output, y
- * contains the final background values. In addition, if check_epsilon
- * is true, the routine controls at each step that the expansion is
- * accelerated and that inflation hold (wepsilon>1), otherwise it
- * returns an error. Thanks to the last argument, it is also possible
- * to specify whether the integration should be carried forward or
- * backward in time. For the inflation_H case, only a 1st order
- * differential equation is involved, so the forwrad and backward case
- * can be done exactly without problems. For the inflation_V case, the
- * equation of motion is 2nd order. What the module will do in the
- * backward case is to search for an approximate solution,
- * corresponding to the (first-order) attractor inflationary
+ * aH_stop; if target = _phi_, till phi = phi_stop; if target =
+ * _end_inflation_, until d^2a/dt^2 = 0 (here t = proper time)). In
+ * output, y contains the final background values. In addition, if
+ * check_epsilon is true, the routine controls at each step that the
+ * expansion is accelerated and that inflation hold (wepsilon>1),
+ * otherwise it returns an error. Thanks to the last argument, it is
+ * also possible to specify whether the integration should be carried
+ * forward or backward in time. For the inflation_H case, only a 1st
+ * order differential equation is involved, so the forwrad and
+ * backward case can be done exactly without problems. For the
+ * inflation_V case, the equation of motion is 2nd order. What the
+ * module will do in the backward case is to search for an approximate
+ * solution, corresponding to the (first-order) attractor inflationary
  * solution. This approximate backward solution is used in order to
  * estimate some initial times, but the approximation made here will
  * never impact the final result: the module is written in such way
@@ -1914,9 +1915,6 @@ int primordial_inflation_evolve_background(
 
   aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
 
-  printf("pre-check: %e %e %e %e %e\n",y[0],y[1],dy[0],dy[1],aH);
-  //class_stop(ppm->error_message,"pfou");
-
   if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))) {
     dtau = ppr->primordial_inflation_bg_stepsize
         *MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
@@ -1930,29 +1928,24 @@ int primordial_inflation_evolve_background(
 
   switch (target) {
   case _aH_:
+    // next (approximate) value of aH after next step
     quantity = aH + aH*aH*dtau;
     break;
   case _phi_:
+    // next (approximate) value of phi after next step
     quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
     break;
   case _end_inflation_:
     // in this case, the goal is to reach d2a/dt2 = 0 (end of accelerated expansion)
     stop = 0.;
-    // quantity = - d2a/dt2 = [- (a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
+    // current value of quantity = - d2a/dt2 /a = [- (a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
     quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
     // check that we are in the right case
     class_test(ppm->primordial_spec_type != inflation_V_end,
                ppm->error_message,
                "the target _end_inflation_ is only coded to work with inflation_V_end (but could be generalised if needed)");
-
-    // for testing
-    printf("%e\n",quantity);
-
     break;
   }
-
-  printf("check: %e %e %e %e %e\n",sign_dtau,aH,quantity,stop,sign_dtau*(quantity - stop));
-  //class_stop(ppm->error_message,"pfou");
 
   /* loop over time steps, checking that there will be no overshooting */
 
@@ -2003,8 +1996,6 @@ int primordial_inflation_evolve_background(
                gi.error_message,
                ppm->error_message);
 
-    //printf("in evolve: %e %e\n",y[0],y[1]);
-
     /* eventually, check that epsilon is not becoming greater than one */
 
     if (check_epsilon == _TRUE_) {
@@ -2050,16 +2041,16 @@ int primordial_inflation_evolve_background(
 
     switch (target) {
     case _aH_:
+      // next (approximate) valiue of aH
       quantity = aH + aH*aH*dtau;
       break;
     case _phi_:
+      // next (approximate) value of phi
       quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
       break;
     case _end_inflation_:
-      // quantity = -d2a/dt2 = [-(a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
+      // current value of quantity = -d2a/dt2 /a = [-(a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
       quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
-      //for testing
-      printf("%e\n",quantity);
       break;
     }
 
@@ -2072,8 +2063,9 @@ int primordial_inflation_evolve_background(
              ppm->error_message);
 
   /* Perform one last step with a simple trapezoidal integral. This
-     will bring exactly phi to phi_stop, or approximately aH to
-     aH_stop. */
+     will bring exactly phi fowrward to phi_stop, or approximately aH
+     forward to aH_stop, or approximately [-d2a/dt2 /a] backward to
+     zero. */
 
   switch (target) {
   case _aH_:
@@ -2086,11 +2078,9 @@ int primordial_inflation_evolve_background(
     class_call(primordial_inflation_check_potential(ppm,y[ppm->index_in_phi],&V,&dV,&ddV),
                ppm->error_message,
                ppm->error_message);
-    dtau = - quantity/8./_PI_/pow(dy[ppm->index_in_phi],2)/aH*y[ppm->index_in_a]*y[ppm->index_in_a];
-    /*dtau = 0.*(y[ppm->index_in_dphi]*y[ppm->index_in_dphi]*-y[ppm->index_in_a]*y[ppm->index_in_a]*V)/
-      (2.*y[ppm->index_in_a]*dy[ppm->index_in_a]*V
-       +y[ppm->index_in_a]*y[ppm->index_in_a]*dV*y[ppm->index_in_dphi]
-       -2.*y[ppm->index_in_dphi]*dy[ppm->index_in_dphi]);*/
+    // We can easily pull back quantity=-d2a/dt2 /a by noticing that d(quantity)/dtau = 8piG phi' phi'' / a^2 (exact relation!)
+    // By taking the step dtau = - quantity / [d(quantity)/dtau] we nearly reach quantity=0 (end of inflation), up to very good approximation
+    dtau = -quantity/(8.*_PI_/y[ppm->index_in_a]/y[ppm->index_in_a]*dy[ppm->index_in_phi]*dy[ppm->index_in_dphi]);
     break;
   }
 
@@ -2111,7 +2101,6 @@ int primordial_inflation_evolve_background(
 
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
     quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
-    printf("at the end: %e\n",quantity);
   }
 
   return _SUCCESS_;
