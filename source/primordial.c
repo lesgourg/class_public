@@ -2089,7 +2089,17 @@ int primordial_inflation_evolve_background(
   if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V)||(ppm->primordial_spec_type == inflation_V_end)))
     y[ppm->index_in_dphi] += dy[ppm->index_in_dphi]*dtau;
 
+  // this last step updates also the dy[]
+  class_call(primordial_inflation_derivs(tau_end,
+                                         y,
+                                         dy,
+                                         &pipaw,
+                                         ppm->error_message),
+             ppm->error_message,
+             ppm->error_message);
+
   //for testing
+  /*
   if (target == _end_inflation_) {
     class_call(primordial_inflation_derivs(tau_end,
                                            y,
@@ -2102,6 +2112,7 @@ int primordial_inflation_evolve_background(
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
     quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
   }
+  */
 
   return _SUCCESS_;
 }
@@ -2313,6 +2324,11 @@ int primordial_find_phi_pivot2(
   double V,dV,ddV;
   double phi_try,H_try,dphidt_try,aH_try;
   double aH_ratio;
+  double phi_left,phi_right,phi_mid;
+  double phi_small_epsilon;
+  double dphidt_small_epsilon;
+  double H_small_epsilon;
+  double aH_ratio_after_small_epsilon;
 
   // assume that inflation ends up naturally
 
@@ -2322,6 +2338,8 @@ int primordial_find_phi_pivot2(
   // if bigger than necessary, evolve from same point to necessary point
   // if smaller than necessary, iterate with steps of 1 e-fold
 
+  phi_right = 0.;
+
   dphi = ppr->primordial_inflation_end_dphi;
 
   do {
@@ -2329,27 +2347,55 @@ int primordial_find_phi_pivot2(
     class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
                ppm->error_message,
                ppm->error_message);
-    printf("phi=%e, epsilon=%e\n",ppm->phi_end-dphi,epsilon);
   } while (epsilon >0.1);
+  phi_left = ppm->phi_end-dphi;
 
-  phi_try = ppm->phi_end-dphi;
+  do {
+    phi_mid = 0.5*(phi_left+phi_right);
+    class_call(primordial_inflation_get_epsilon(ppm,phi_mid,&epsilon),
+               ppm->error_message,
+               ppm->error_message);
+    if (epsilon<0.1) phi_left=phi_mid;
+    else phi_right=phi_mid;
+  } while (fabs(epsilon-0.1)>0.01);
 
-  printf("phi=%e, epsilon=%e\n",phi_try,epsilon);
+  phi_small_epsilon = phi_mid;
 
-  // need to bracket better!!
-
-  class_call(primordial_inflation_check_potential(ppm,phi_try,&V,&dV,&ddV),
+  class_call(primordial_inflation_find_attractor(ppm,
+                                                 ppr,
+                                                 phi_small_epsilon,
+                                                 ppr->primordial_inflation_attractor_precision_initial,
+                                                 y,
+                                                 dy,
+                                                 &H_small_epsilon,
+                                                 &dphidt_small_epsilon),
              ppm->error_message,
              ppm->error_message);
 
-  // in this point, normalise z to one and fix phi' to first-order slow-roll solution (phi'=-V'/3/(aH)_slow-roll)
+  printf("phi_small_epsilon=%e\n",phi_small_epsilon);
+
   y[ppm->index_in_a]=1.;
-  y[ppm->index_in_phi]= phi_try;
+  y[ppm->index_in_phi]= phi_small_epsilon;
+  y[ppm->index_in_dphi]=y[ppm->index_in_a]*dphidt_small_epsilon;
 
-  aH_try = sqrt(8.*_PI_/3.*V);
-  //y[ppm->index_in_dphi]=-dV/3./aH_try;
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _end_inflation_,
+                                                    0.,
+                                                    _FALSE_,
+                                                    forward),
+             ppm->error_message,
+             ppm->error_message);
 
-  printf("phi=%e aH=%e\n",y[ppm->index_in_phi],aH_try);
+  aH_ratio_after_small_epsilon = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_small_epsilon;
+
+  printf("aH_ratio_after_small_epsilon=%e\n",aH_ratio_after_small_epsilon);
+  printf("here we find phi_stop = %e\n",y[1]);
+
+  y[ppm->index_in_a]=1.;
+  y[ppm->index_in_phi]= phi_small_epsilon;
 
   // following approximate slow-roll attractor solution, evolve by fraction of needed efolds
   class_call(primordial_inflation_evolve_background(ppm,
@@ -2357,7 +2403,7 @@ int primordial_find_phi_pivot2(
                                                     y,
                                                     dy,
                                                     _aH_,
-                                                    aH_try/50.,
+                                                    H_small_epsilon/(ppm->aH_ratio*1.05)*aH_ratio_after_small_epsilon,
                                                     _TRUE_,
                                                     backward),
              ppm->error_message,
@@ -2365,7 +2411,7 @@ int primordial_find_phi_pivot2(
 
   phi_try = y[ppm->index_in_phi];
 
-  fprintf(stderr,"phi=%e\n",phi_try);
+  fprintf(stderr,"phi_try=%e\n",phi_try);
   //class_stop(ppm->error_message,"pfou");
 
   class_call(primordial_inflation_find_attractor(ppm,
@@ -2379,7 +2425,7 @@ int primordial_find_phi_pivot2(
              ppm->error_message,
              ppm->error_message);
 
-  fprintf(stderr,"attractor: %e %e %e\n",phi_try,H_try,dphidt_try);
+  fprintf(stderr,"attractor at phi_try: %e %e %e\n",phi_try,H_try,dphidt_try);
 
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_try;
@@ -2396,9 +2442,30 @@ int primordial_find_phi_pivot2(
              ppm->error_message,
              ppm->error_message);
 
-  aH_ratio = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_try;
+  printf("here we find phi_stop = %e\n",y[1]);
 
-  printf("reached phi=%e aH_ratio=%e\n",y[1],aH_ratio);
+  aH_try = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_try;
+
+  printf("aH_try=%e\n",aH_try);
+
+  y[ppm->index_in_a]=1.;
+  y[ppm->index_in_phi]= phi_try;
+  y[ppm->index_in_dphi]= y[ppm->index_in_a]*dphidt_try;
+
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _aH_,
+                                                    H_try*aH_try/ppm->aH_ratio,
+                                                    _FALSE_,
+                                                    forward),
+             ppm->error_message,
+             ppm->error_message);
+
+
+  printf("reached phi_pivot=%e\n",y[1]);
+  ppm->phi_pivot = y[1];
 
   return _SUCCESS_;
 }

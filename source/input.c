@@ -2733,7 +2733,7 @@ int input_default_params(
   ppm->potential=polynomial;
   ppm->phi_pivot=0.;
   ppm->phi_end=0.;
-  ppm->aH_ratio=60;
+  ppm->aH_ratio=50;
   ppm->V0=1.25e-13;
   ppm->V1=-1.12e-14;
   ppm->V2=-6.95e-14;
