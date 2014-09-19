@@ -1230,7 +1230,8 @@ int primordial_inflation_solve_inflation(
                                                            _aH_,
                                                            aH_end,
                                                            _TRUE_,
-                                                           forward),
+                                                           forward,
+                                                           conformal),
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
@@ -1294,7 +1295,8 @@ int primordial_inflation_solve_inflation(
                                                                _aH_,
                                                                aH_ini*ppr->primordial_inflation_aH_ini_target,
                                                                _TRUE_,
-                                                               backward),
+                                                               backward,
+                                                               conformal),
                         ppm->error_message,
                         ppm->error_message,
                         free(y);free(y_ini);free(dy));
@@ -1333,7 +1335,8 @@ int primordial_inflation_solve_inflation(
                                                                _phi_,
                                                                ppm->phi_pivot,
                                                                _TRUE_,
-                                                               forward),
+                                                               forward,
+                                                               conformal),
                         ppm->error_message,
                         ppm->error_message,
                         free(y);free(y_ini);free(dy));
@@ -1365,7 +1368,8 @@ int primordial_inflation_solve_inflation(
                                                              _aH_,
                                                              aH_ini,
                                                              _TRUE_,
-                                                             backward),
+                                                             backward,
+                                                             conformal),
                       ppm->error_message,
                       ppm->error_message,
                       free(y);free(y_ini);free(dy));
@@ -1412,7 +1416,8 @@ int primordial_inflation_solve_inflation(
                                                            _aH_,
                                                            k_min,
                                                            _FALSE_,
-                                                           forward),
+                                                           forward,
+                                                           conformal),
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
@@ -1426,7 +1431,8 @@ int primordial_inflation_solve_inflation(
                                                            _aH_,
                                                            k_max,
                                                            _FALSE_,
-                                                           forward),
+                                                           forward,
+                                                           conformal),
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
@@ -1494,7 +1500,8 @@ int primordial_inflation_spectra(
                                                       _aH_,
                                                       k/ppr->primordial_inflation_ratio_min,
                                                       _FALSE_,
-                                                      forward),
+                                                      forward,
+                                                      conformal),
                ppm->error_message,
                ppm->error_message);
 
@@ -1576,6 +1583,7 @@ int primordial_inflation_one_k(
   pipaw.ppm = ppm;
   pipaw.N = ppm->in_size;
   pipaw.integrate = forward;
+  pipaw.time = conformal;
   pipaw.k = k;
 
   class_call(initialize_generic_integrator(pipaw.N,&gi),
@@ -1788,7 +1796,8 @@ int primordial_inflation_find_attractor(
                                                       _phi_,
                                                       phi_0,
                                                       _TRUE_,
-                                                      forward),
+                                                      forward,
+                                                      conformal),
                ppm->error_message,
                ppm->error_message);
 
@@ -1854,7 +1863,8 @@ int primordial_inflation_evolve_background(
                                            enum target_quantity target,
                                            double stop,
                                            short check_epsilon,
-                                           enum integration_direction direction
+                                           enum integration_direction direction,
+                                           enum time_definition time
                                            ) {
 
   struct primordial_inflation_parameters_and_workspace pipaw;
@@ -1876,6 +1886,7 @@ int primordial_inflation_evolve_background(
   }
 
   pipaw.integrate = direction;
+  pipaw.time = time;
 
   switch (direction) {
   case forward:
@@ -1923,6 +1934,8 @@ int primordial_inflation_evolve_background(
     // minus sign for backward in time
     dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*(1./aH);
   }
+
+  //print("tau_start=%e  a=%e  phi=%e  dtau=%e\n",tau_start,y[0],y[1],dtau);
 
   /* expected value of either aH or phi after the next step */
 
@@ -2036,6 +2049,8 @@ int primordial_inflation_evolve_background(
       // minus sign for backward in time
       dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*(1./aH);
     }
+
+    printf("tau_start=%e  a=%e  phi=%e  dtau=%e\n",tau_start,y[0],y[1],dtau);
 
     /* expected value of either aH or phi after the next step */
 
@@ -2285,7 +2300,7 @@ int primordial_find_phi_pivot(
 
   /* now we know what is our target aH_pivot */
 
-  aH_pivot = aH_stop / ppm->aH_ratio;
+  aH_pivot = aH_stop / exp(ppm->ln_aH_ratio);
 
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]=ppm->phi_stop;
@@ -2305,7 +2320,8 @@ int primordial_find_phi_pivot(
                                                     _aH_,
                                                     aH_pivot*ppr->primordial_inflation_aH_ini_target,
                                                     _TRUE_,
-                                                    backward),
+                                                    backward,
+                                                    conformal),
              ppm->error_message,
              ppm->error_message);
 
@@ -2320,10 +2336,8 @@ int primordial_find_phi_pivot2(
                               double * dy
                               ) {
 
-  double epsilon,phi,dphi;
-  double V,dV,ddV;
+  double epsilon,dphi;
   double phi_try,H_try,dphidt_try,aH_try;
-  double aH_ratio;
   double phi_left,phi_right,phi_mid;
   double phi_small_epsilon;
   double dphidt_small_epsilon;
@@ -2385,7 +2399,8 @@ int primordial_find_phi_pivot2(
                                                     _end_inflation_,
                                                     0.,
                                                     _FALSE_,
-                                                    forward),
+                                                    forward,
+                                                    conformal),
              ppm->error_message,
              ppm->error_message);
 
@@ -2403,9 +2418,10 @@ int primordial_find_phi_pivot2(
                                                     y,
                                                     dy,
                                                     _aH_,
-                                                    H_small_epsilon/(ppm->aH_ratio*1.05)*aH_ratio_after_small_epsilon,
+                                                    H_small_epsilon/exp(ppm->ln_aH_ratio+2.)*aH_ratio_after_small_epsilon,
                                                     _TRUE_,
-                                                    backward),
+                                                    backward,
+                                                    conformal),
              ppm->error_message,
              ppm->error_message);
 
@@ -2438,7 +2454,8 @@ int primordial_find_phi_pivot2(
                                                     _end_inflation_,
                                                     0.,
                                                     _FALSE_,
-                                                    forward),
+                                                    forward,
+                                                    conformal),
              ppm->error_message,
              ppm->error_message);
 
@@ -2457,9 +2474,10 @@ int primordial_find_phi_pivot2(
                                                     y,
                                                     dy,
                                                     _aH_,
-                                                    H_try*aH_try/ppm->aH_ratio,
+                                                    H_try*aH_try/exp(ppm->ln_aH_ratio),
                                                     _FALSE_,
-                                                    forward),
+                                                    forward,
+                                                    conformal),
              ppm->error_message,
              ppm->error_message);
 

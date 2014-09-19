@@ -1884,7 +1884,7 @@ int input_read_parameters(
     class_read_double("Vparam2",ppm->V2);
     class_read_double("Vparam3",ppm->V3);
     class_read_double("Vparam4",ppm->V4);
-    class_read_double("aH_ratio",ppm->aH_ratio);
+    class_read_double("ln_aH_ratio",ppm->ln_aH_ratio);
 
   }
   else if (ppm->primordial_spec_type == external_Pk) {
@@ -2733,7 +2733,7 @@ int input_default_params(
   ppm->potential=polynomial;
   ppm->phi_pivot=0.;
   ppm->phi_end=0.;
-  ppm->aH_ratio=50;
+  ppm->ln_aH_ratio=50;
   ppm->V0=1.25e-13;
   ppm->V1=-1.12e-14;
   ppm->V2=-6.95e-14;

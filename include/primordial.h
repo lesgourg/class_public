@@ -45,6 +45,13 @@ enum integration_direction {
   forward
 };
 
+/** enum specifying if we want to evolve quantities with conformal or proper time */
+
+enum time_definition {
+  conformal,
+  proper
+};
+
 /**
  * Structure containing everything about primordial spectra that other modules need to know.
  *
@@ -156,7 +163,7 @@ struct primordial {
   /** - parameters describing inflation_V_end */
 
   double phi_end;
-  double aH_ratio;
+  double ln_aH_ratio;
 
   /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 
@@ -294,6 +301,7 @@ struct primordial_inflation_parameters_and_workspace {
   double k;
 
   enum integration_direction integrate;
+  enum time_definition time;
 
 };
 
@@ -415,7 +423,8 @@ extern "C" {
                                              enum target_quantity target,
                                              double stop,
                                              short check_epsilon,
-                                             enum integration_direction direction
+                                             enum integration_direction direction,
+                                             enum time_definition time
                                              );
 
   int primordial_inflation_check_potential(
