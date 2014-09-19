@@ -80,7 +80,8 @@ import matplotlib.pyplot as plt
 import unittest
 from nose_parameterized import parameterized
 
-# To avoid testing for differences between synchronous and Newtonian gauge, set this flag to False
+# To avoid testing for differences between synchronous and Newtonian gauge, set
+# this flag to False
 COMPARE_OUTPUT = True
 
 # Dictionary of models to test the wrapper against. Each of these scenario will
@@ -136,7 +137,8 @@ CLASS_INPUT['Lensing'] = (
     [{'lensing': 'yes'}],
     'power')
 
-# Let's kill the machine (replace all 'normal' flags with power', uncomment at you own risk)
+# Let's kill the machine (replace all 'normal' flags with power', uncomment at
+# you own risk)
 # for k, v in CLASS_INPUT.iteritems():
 #     models, state = v
 #     CLASS_INPUT[k] = (models, 'power')
@@ -356,19 +358,16 @@ class TestClass(unittest.TestCase):
             if not has_tensor(self.scenario):
                 should_fail = True
 
-
         # If we have specified non linear, we must have some form of
         # perturbations output.
         if 'non linear' in self.scenario.keys():
             if 'output' not in self.scenario.keys():
                 should_fail = True
 
-
         # If we ask for Cl's of lensing potential, we must have scalar modes.
         if 'output' in self.scenario.keys() and 'lCl' in self.scenario['output'].split():
             if 'modes' in self.scenario.keys() and self.scenario['modes'].find('s') == -1:
                 should_fail = True
-
 
         return should_fail
 
@@ -427,7 +426,7 @@ class TestClass(unittest.TestCase):
                     [candidate.pk(elem, 0) for elem in k])
                 try:
                     np.testing.assert_allclose(
-                        reference_pk, candidate_pk, rtol=1e-03, atol=1e-20)
+                        reference_pk, candidate_pk, rtol=5e-03, atol=1e-20)
                 except AssertionError:
                     self.pk_faulty_plot(k, reference_pk, candidate_pk)
 
