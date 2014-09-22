@@ -43,6 +43,7 @@ cdef extern from "class.h":
         double wa_fld
         double cs2_fld
 
+        int store_background
         char background_titles[_MAXTITLESTRINGLENGTH_]
         int number_of_background_titles
         double * background_data
@@ -68,6 +69,7 @@ cdef extern from "class.h":
         double YHe
         double n_e
 
+        int store_thermodynamics
         char thermodynamics_titles[_MAXTITLESTRINGLENGTH_]
         int number_of_thermodynamics_titles
         double * thermodynamics_data
@@ -81,6 +83,8 @@ cdef extern from "class.h":
 
         int has_pk_matter
         int l_lss_max
+
+        int store_perturbations
         int k_output_values_num
         double k_output_values[_MAX_NUMBER_OF_K_FILES_]
         int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]

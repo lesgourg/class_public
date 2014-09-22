@@ -892,7 +892,7 @@ cdef class Class:
 
     def get_background(self):
         """
-        Return the background quantities.
+        Return the background quantities if 'store_output' is set to yes.
 
         Parameters
         ----------
@@ -901,8 +901,10 @@ cdef class Class:
         -------
         background : dictionary containing background.
         """
-
         background = {}
+
+        if not self.ba.store_background:
+            return background
 
         tmp = <bytes> self.ba.background_titles
         names = tmp.split("\t")[:-1]
@@ -928,6 +930,9 @@ cdef class Class:
         """
 
         thermodynamics = {}
+
+        if not self.th.store_thermodynamics:
+            return thermodynamics
 
         tmp = <bytes> self.th.thermodynamics_titles
         names = tmp.split("\t")[:-1]
@@ -957,6 +962,9 @@ cdef class Class:
         """
 
         perturbations = {}
+
+        if not self.pt.store_perturbations:
+            return perturbations
 
         # Doing the exact same thing 3 times, for scalar, vector and tensor. Sorry
         # for copy-and-paste here, but I don't know what else to do.
