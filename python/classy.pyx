@@ -921,9 +921,6 @@ cdef class Class:
         """
         Return the thermodynamics quantities.
 
-        Parameters
-        ----------
-
         Returns
         -------
         thermodynamics : dictionary containing thermodynamics.
@@ -950,8 +947,10 @@ cdef class Class:
         Return scalar, vector and/or tensor perturbations as arrays for requested
         k-values.
 
-        Parameters
-        ----------
+        .. note::
+
+            you need to specify both 'k_output_values', and have some
+            perturbations computed, for instance by setting 'output' to 'tCl'.
 
         Returns
         -------
@@ -965,6 +964,8 @@ cdef class Class:
 
         if not self.pt.store_perturbations:
             return perturbations
+        if self.pt.k_output_values_num<1:
+            return perturbations
 
         # Doing the exact same thing 3 times, for scalar, vector and tensor. Sorry
         # for copy-and-paste here, but I don't know what else to do.
@@ -975,14 +976,15 @@ cdef class Class:
             names = tmp.split("\t")[:-1]
             number_of_titles = len(names)
             tmparray = [];
-            for j in range(self.pt.k_output_values_num):
-                timesteps = self.pt.size_scalar_perturbation_data[j]/number_of_titles;
-                tmpdict={}
-                for i in range(number_of_titles):
-                    tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
-                    for index in range(timesteps):
-                        tmpdict[names[i]][index] = self.pt.scalar_perturbations_data[j][index*number_of_titles+i]
-                tmparray.append(tmpdict)
+            if number_of_titles != 0:
+                for j in range(self.pt.k_output_values_num):
+                    timesteps = self.pt.size_scalar_perturbation_data[j]/number_of_titles;
+                    tmpdict={}
+                    for i in range(number_of_titles):
+                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                        for index in range(timesteps):
+                            tmpdict[names[i]][index] = self.pt.scalar_perturbations_data[j][index*number_of_titles+i]
+                    tmparray.append(tmpdict)
             perturbations['scalar'] = tmparray;
 
         #Vector:
@@ -991,14 +993,15 @@ cdef class Class:
             names = tmp.split("\t")[:-1]
             number_of_titles = len(names)
             tmparray = [];
-            for j in range(self.pt.k_output_values_num):
-                timesteps = self.pt.size_vector_perturbation_data[j]/number_of_titles;
-                tmpdict={}
-                for i in range(number_of_titles):
-                    tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
-                    for index in range(timesteps):
-                        tmpdict[names[i]][index] = self.pt.vector_perturbations_data[j][index*number_of_titles+i]
-                tmparray.append(tmpdict)
+            if number_of_titles != 0:
+                for j in range(self.pt.k_output_values_num):
+                    timesteps = self.pt.size_vector_perturbation_data[j]/number_of_titles;
+                    tmpdict={}
+                    for i in range(number_of_titles):
+                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                        for index in range(timesteps):
+                            tmpdict[names[i]][index] = self.pt.vector_perturbations_data[j][index*number_of_titles+i]
+                    tmparray.append(tmpdict)
             perturbations['vector'] = tmparray;
 
         #Tensor:
@@ -1007,36 +1010,18 @@ cdef class Class:
             names = tmp.split("\t")[:-1]
             number_of_titles = len(names)
             tmparray = [];
-            for j in range(self.pt.k_output_values_num):
-                timesteps = self.pt.size_tensor_perturbation_data[j]/number_of_titles;
-                tmpdict={}
-                for i in range(number_of_titles):
-                    tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
-                    for index in range(timesteps):
-                        tmpdict[names[i]][index] = self.pt.tensor_perturbations_data[j][index*number_of_titles+i]
-                tmparray.append(tmpdict)
+            if number_of_titles != 0:
+                for j in range(self.pt.k_output_values_num):
+                    timesteps = self.pt.size_tensor_perturbation_data[j]/number_of_titles;
+                    tmpdict={}
+                    for i in range(number_of_titles):
+                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                        for index in range(timesteps):
+                            tmpdict[names[i]][index] = self.pt.tensor_perturbations_data[j][index*number_of_titles+i]
+                    tmparray.append(tmpdict)
             perturbations['tensor'] = tmparray;
 
         return perturbations
-
-
-        """
-        if not self.pt.has_perturbations:
-            return perturbations
-        if self.pt.k_output_values_num<1:
-            return perturbations
-
-        if self.pt.has_scalars:
-            perturbations['scalar'] = []
-        if self.pt.has_vector:
-            perturbations['vector'] = []
-        if self.pt.has_tensors:
-            perturbations['tensor'] = []
-
-        for i in range(self.pt.k_output_values_num):
-        """
-        #return perturbations
-
 
     def get_current_derived_parameters(self, names):
         """
