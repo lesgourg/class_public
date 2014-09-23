@@ -222,33 +222,6 @@ extern "C" {
                             int tr_size
                             );
 
-  int output_open_background_file(
-                                  struct background * pba,
-                                  struct output * pop,
-                                  FILE ** backfile,
-                                  FileName filename
-                                  );
-
-  int output_one_line_of_background(
-                                    struct background * pba,
-                                    FILE * backfile,
-                                    double * pvecback
-                                    );
-
-  int output_open_thermodynamics_file(
-                                      struct thermo * pth,
-                                      struct output * pop,
-                                      FILE ** thermofile,
-                                      FileName filename
-                                      );
-
-  int output_one_line_of_thermodynamics(
-                                        struct thermo * pth,
-                                        FILE * thermofile,
-                                        double tau,
-                                        double z,
-                                        double * pvecthermo
-                                        );
 
   int output_open_primordial_file(
                                   struct perturbs * ppt,

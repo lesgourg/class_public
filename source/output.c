@@ -1188,6 +1188,22 @@ int output_background(
   FILE * backfile;
   FileName file_name;
 
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
+
+  class_call(background_output_titles(pba,titles),
+             pba->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*pba->bt_size;
+  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_call(background_output_data(pba,
+                                    number_of_titles,
+                                    data),
+             pba->error_message,
+             pop->error_message);
+
   sprintf(file_name,"%s%s",pop->root,"background.dat");
   class_open(backfile,file_name,"w",pop->error_message);
 
@@ -1204,53 +1220,16 @@ int output_background(
   }
 
   output_print_data(backfile,
-                    pba->background_titles,
-                    pba->background_data,
-                    pba->size_background_data);
+                    titles,
+                    data,
+                    size_data);
 
+  free(data);
   fclose(backfile);
 
   return _SUCCESS_;
 
 }
-
-/**
-int output_background(
-                      struct background * pba,
-                      struct output * pop
-                      ) {
-
-  FILE * out;
-  FileName file_name;
-  int index_eta;
-
-  sprintf(file_name,"%s%s",pop->root,"background.dat");
-
-  class_call(output_open_background_file(pba,
-                                         pop,
-                                         &out,
-                                         file_name
-                                         ),
-             pop->error_message,
-             pop->error_message);
-
-  for (index_eta=0; index_eta<pba->bt_size; index_eta++) {
-
-    class_call(output_one_line_of_background(pba,
-                                             out,
-                                             &(pba->background_table[index_eta*pba->bg_size])
-                                             ),
-               pop->error_message,
-               pop->error_message);
-
-  }
-
-  fclose(out);
-
-  return _SUCCESS_;
-
-}
-*/
 
 int output_thermodynamics(
                           struct background * pba,
@@ -1260,6 +1239,22 @@ int output_thermodynamics(
 
   FileName file_name;
   FILE * thermofile;
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
+
+  class_call(thermodynamics_output_titles(pba,pth,titles),
+             pth->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*pth->tt_size;
+  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_call(thermodynamics_output_data(pba,
+                                        pth,
+                                        number_of_titles,
+                                        data),
+             pth->error_message,
+             pop->error_message);
 
   sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
   class_open(thermofile,file_name,"w",pop->error_message);
@@ -1277,68 +1272,17 @@ int output_thermodynamics(
   }
 
   output_print_data(thermofile,
-                    pth->thermodynamics_titles,
-                    pth->thermodynamics_data,
-                    pth->size_thermodynamics_data);
+                    titles,
+                    data,
+                    size_data);
 
+  free(data);
   fclose(thermofile);
 
   return _SUCCESS_;
 
 }
 
-/**
-
-int output_thermodynamics(
-                          struct background * pba,
-                          struct thermo * pth,
-                          struct output * pop
-                      ) {
-
-  FILE * out;
-  FileName file_name;
-  int index_z;
-  double tau;
-
-  sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
-
-  class_call(output_open_thermodynamics_file(
-                                             pth,
-                                             pop,
-                                             &out,
-                                             file_name
-                                             ),
-             pop->error_message,
-             pop->error_message);
-
-  for (index_z=0; index_z<pth->tt_size; index_z++) {
-
-    class_call(background_tau_of_z(
-                                   pba,
-                                   pth->z_table[index_z],
-                                   &tau
-                                   ),
-               pop->error_message,
-               pop->error_message);
-
-    class_call(output_one_line_of_thermodynamics(
-                                                 pth,
-                                                 out,
-                                                 tau,
-                                                 pth->z_table[index_z],
-                                                 pth->thermodynamics_table+index_z*pth->th_size
-                                                 ),
-               pop->error_message,
-               pop->error_message);
-
-  }
-
-  fclose(out);
-
-  return _SUCCESS_;
-
-}
-*/
 
 int output_perturbations(
                          struct background * pba,
@@ -1948,230 +1892,6 @@ int output_one_line_of_tk(
 
 }
 
-/**
- * This routine opens one file where some background quantitites will be written, and writes
- * a heading with some general information concerning its content.
- *
- * @param pba        Input: pointer to background structure
- * @param pop        Input : pointer to output structure
- * @param backfile   Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @return the error status
- */
-
-int output_open_background_file(
-                                struct background * pba,
-                                struct output * pop,
-                                FILE * * backfile,
-                                FileName filename
-                                ) {
-
-  int n;
-  int colnum=1;
-  char tmp[30]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
-  class_open(*backfile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-    fprintf(*backfile,"# Table of selected background quantitites\n");
-    fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
-    fprintf(*backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
-    if (pba->has_scf == _TRUE_){
-      fprintf(*backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
-      fprintf(*backfile,"# --> phi is given in units of the reduced Planck mass m_Pl = (8 pi G)^(-1/2)\n");
-      fprintf(*backfile,"# --> tau in the derivative of V(phi) is given in units of Mpc.\n");
-      fprintf(*backfile,"# --> the potential V(phi) is given in units of m_Pl^2/Mpc^2.\n");
-    }
-
-    /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
-        but it can be as long as . */
-    fprintf(*backfile,"#");
-    class_fprintf_columntitle(*backfile,"z",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"proper time [Gyr]",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"conf. time [Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"H [1/Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"comov. dist.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"ang.diam.dist.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"lum. dist.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"comov.snd.hrz.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_g",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_b",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_cdm",pba->has_cdm,colnum);
-    if (pba->has_ncdm == _TRUE_){
-      for (n=0; n<pba->N_ncdm; n++){
-        sprintf(tmp,"(.)rho_ncdm[%d]",n);
-        class_fprintf_columntitle(*backfile,tmp,_TRUE_,colnum);
-      }
-    }
-    class_fprintf_columntitle(*backfile,"(.)rho_lambda",pba->has_lambda,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_fld",pba->has_fld,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_ur",pba->has_ur,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_crit",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_dcdm",pba->has_dcdm,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_dr",pba->has_dr,colnum);
-
-    class_fprintf_columntitle(*backfile,"(.)rho_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"(.)p_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"phi_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"phi'_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"V_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"V'_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"V''_scf",pba->has_scf,colnum);
-
-    fprintf(*backfile,"\n");
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine writes one line with background quantitites
- *
- * @param pba        Input: pointer to background structure
- * @param backfile   Input : file pointer
- * @param pvecback   Input : vector of background quantitites
- * @return the error status
- */
-
-int output_one_line_of_background(
-                                  struct background * pba,
-                                  FILE * backfile,
-                                  double * pvecback
-                                  ) {
-
-  int n;
-
-  fprintf(backfile," ");
-  class_fprintf_double(backfile,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_);
-  class_fprintf_double(backfile,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_H],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_conf_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_ang_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_lum_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rs],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_g],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_b],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_cdm],pba->has_cdm);
-  if (pba->has_ncdm == _TRUE_){
-    for (n=0; n<pba->N_ncdm; n++,_TRUE_)
-      class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_);
-  }
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_lambda],pba->has_lambda);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_fld],pba->has_fld);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ur],pba->has_ur);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_crit],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dr],pba->has_dr);
-
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_p_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_phi_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_V_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_dV_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_ddV_scf],pba->has_scf);
-
-  fprintf(backfile,"\n");
-
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine opens one file where some thermodynamics quantitites will be written, and writes
- * a heading with some general information concerning its content.
- *
- * @param pth        Input: pointer to thermodynamics structure
- * @param pop        Input : pointer to output structure
- * @param thermofile Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @return the error status
- */
-
-int output_open_thermodynamics_file(
-                                    struct thermo * pth,
-                                    struct output * pop,
-                                    FILE ** thermofile,
-                                    FileName filename
-                                    ) {
-  int colnum=1;
-  class_open(*thermofile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-    fprintf(*thermofile,"# Table of selected thermodynamics quantitites\n");
-    fprintf(*thermofile,"# The following notation is used in column titles:\n");
-    fprintf(*thermofile,"#    x_e = electron ionisation fraction\n");
-    fprintf(*thermofile,"# -kappa = optical depth\n");
-    fprintf(*thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
-    fprintf(*thermofile,"#      g = kappa' e^-kappa = visibility function \n");
-    fprintf(*thermofile,"#     Tb = baryon temperature \n");
-    fprintf(*thermofile,"#  c_b^2 = baryon sound speed squared \n");
-    fprintf(*thermofile,"#  tau_d = baryon drag optical depth \n");
-
-    /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
-        but it can be as long as _COLUMNTITLE_. */
-
-    fprintf(*thermofile,"#");
-    class_fprintf_columntitle(*thermofile,"z",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"conf. time [Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"x_e",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"kappa' [Mpc^-1]",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"kappa''",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"kappa'''",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"exp(-kappa)",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"g [Mpc^-1]",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"g'",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"g''",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"Tb [K]",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"c_b^2",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"tau_d",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"max. rate",_TRUE_,colnum);
-    fprintf(*thermofile,"\n");
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine writes one line with thermodynamics quantitites
- *
- * @param pth        Input : pointer to thermodynamics structure
- * @param thermofile Input : file pointer
- * @param tau        Input : conformal time
- * @param z          Input : redshift
- * @param pvecthermo Input : vector of thermodynamics quantitites
- * @return the error status
- */
-
-int output_one_line_of_thermodynamics(
-                                      struct thermo * pth,
-                                      FILE * thermofile,
-                                      double tau,
-                                      double z,
-                                      double * pvecthermo
-                                      ) {
-
-  fprintf(thermofile," ");
-  class_fprintf_double(thermofile,z,_TRUE_);
-  class_fprintf_double(thermofile,tau,_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_xe],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_dkappa],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_ddkappa],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_dddkappa],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_exp_m_kappa],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_g],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_dg],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_ddg],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_Tb],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_cb2],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_tau_d],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_rate],_TRUE_);
-
-  fprintf(thermofile,"\n");
-
-  return _SUCCESS_;
-
-}
 
 /**
  * This routine opens one file where the primordial spectrum/spectra will be written,

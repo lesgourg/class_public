@@ -726,15 +726,6 @@ int thermodynamics_init(
 
   free(pvecback);
 
-  /** Do we need to store selected output quantities? */
-  if (pth->store_thermodynamics == _TRUE_){
-    class_call(thermodynamics_prepare_output(pba,
-                                             pth),
-               pth->error_message,
-               pth->error_message);
-
-  }
-
   return _SUCCESS_;
 }
 
@@ -753,9 +744,6 @@ int thermodynamics_free(
   free(pth->z_table);
   free(pth->thermodynamics_table);
   free(pth->d2thermodynamics_dz2_table);
-
-  if (pth->thermodynamics_data != NULL)
-    free(pth->thermodynamics_data);
 
   return _SUCCESS_;
 }
@@ -3142,39 +3130,46 @@ int thermodynamics_merge_reco_and_reio(
  * Subroutine for formatting thermodynamics output
  */
 
-int thermodynamics_prepare_output(struct background * pba,
-                                  struct thermo *pth){
+int thermodynamics_output_titles(struct background * pba,
+                                 struct thermo *pth,
+                                 char titles[_MAXTITLESTRINGLENGTH_]
+                                 ){
 
-  /** Length of the columntitle should be less than _OUTPUTPRECISION_+6
-      to be indented correctly, but it can be as long as . */
+  class_store_columntitle(titles,"z",_TRUE_);
+  class_store_columntitle(titles,"conf. time [Mpc]",_TRUE_);
+  class_store_columntitle(titles,"x_e",_TRUE_);
+  class_store_columntitle(titles,"kappa' [Mpc^-1]",_TRUE_);
+  //class_store_columntitle(titles,"kappa''",_TRUE_);
+  //class_store_columntitle(titles,"kappa'''",_TRUE_);
+  class_store_columntitle(titles,"exp(-kappa)",_TRUE_);
+  class_store_columntitle(titles,"g [Mpc^-1]",_TRUE_);
+  //class_store_columntitle(titles,"g'",_TRUE_);
+  //class_store_columntitle(titles,"g''",_TRUE_);
+  class_store_columntitle(titles,"Tb [K]",_TRUE_);
+  class_store_columntitle(titles,"c_b^2",_TRUE_);
+  class_store_columntitle(titles,"tau_d",_TRUE_);
+  //class_store_columntitle(titles,"max. rate",_TRUE_,colnum);
+
+  return _SUCCESS_;
+}
+
+int thermodynamics_output_data(struct background * pba,
+                               struct thermo *pth,
+                               int number_of_titles,
+                               double *data
+                               ){
 
   int index_z, storeidx;
   double *dataptr, *pvecthermo;
   double z,tau;
 
-  class_store_columntitle(pth->thermodynamics_titles,"z",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"conf. time [Mpc]",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"x_e",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"kappa' [Mpc^-1]",_TRUE_);
-  //class_store_columntitle(pth->thermodynamics_titles,"kappa''",_TRUE_);
-  //class_store_columntitle(pth->thermodynamics_titles,"kappa'''",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"exp(-kappa)",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"g [Mpc^-1]",_TRUE_);
-  //class_store_columntitle(pth->thermodynamics_titles,"g'",_TRUE_);
-  //class_store_columntitle(pth->thermodynamics_titles,"g''",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"Tb [K]",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"c_b^2",_TRUE_);
-  class_store_columntitle(pth->thermodynamics_titles,"tau_d",_TRUE_);
-  //class_store_columntitle(pth->thermodynamics_titles,"max. rate",_TRUE_,colnum);
+  //  pth->number_of_thermodynamics_titles = get_number_of_titles(pth->thermodynamics_titles);
+  //pth->size_thermodynamics_data = pth->number_of_thermodynamics_titles*pth->tt_size;
 
-  pth->number_of_thermodynamics_titles = get_number_of_titles(pth->thermodynamics_titles);
-  pth->size_thermodynamics_data = pth->number_of_thermodynamics_titles*pth->tt_size;
-
-  class_alloc(pth->thermodynamics_data, sizeof(double)*pth->size_thermodynamics_data, pth->error_message);
 
   /** Store quantities: */
   for (index_z=0; index_z<pth->tt_size; index_z++){
-    dataptr = pth->thermodynamics_data + index_z*pth->number_of_thermodynamics_titles;
+    dataptr = data + index_z*number_of_titles;
     pvecthermo = pth->thermodynamics_table+index_z*pth->th_size;
     z = pth->z_table[index_z];
     storeidx=0;

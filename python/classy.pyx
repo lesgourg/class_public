@@ -23,6 +23,8 @@ ctypedef np.int_t DTYPE_i
 # Import the .pxd containing definitions
 from cclassy cimport *
 
+DEF _MAXTITLESTRINGLENGTH_ = 8000
+
 # Implement a specific Exception (this might not be optimally designed, nor
 # even acceptable for python standards. It, however, does the job).
 # The idea is to raise either an AttributeError if the problem happened while
@@ -901,19 +903,29 @@ cdef class Class:
         -------
         background : dictionary containing background.
         """
-        background = {}
+        cdef char *titles
+        cdef double* data
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
-        if not self.ba.store_background:
-            return background
+        if background_output_titles(&self.ba, titles)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
 
-        tmp = <bytes> self.ba.background_titles
+        tmp = <bytes> titles
         names = tmp.split("\t")[:-1]
         number_of_titles = len(names)
-        timesteps = self.ba.size_background_data/number_of_titles;
+        timesteps = self.ba.bt_size
+
+        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+
+        if background_output_data(&self.ba, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        background = {}
+
         for i in range(number_of_titles):
             background[names[i]] = np.zeros(timesteps, dtype=np.double)
             for index in range(timesteps):
-                background[names[i]][index] = self.ba.background_data[index*number_of_titles+i]
+                background[names[i]][index] = data[index*number_of_titles+i]
 
         return background
 
@@ -925,20 +937,30 @@ cdef class Class:
         -------
         thermodynamics : dictionary containing thermodynamics.
         """
+        cdef char *titles
+        cdef double* data
+
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if thermodynamics_output_titles(&self.ba, &self.th, titles)==_FAILURE_:
+            raise CosmoSevereError(self.th.error_message)
+
+        tmp = <bytes> titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.th.tt_size
+
+        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+
+        if thermodynamics_output_data(&self.ba, &self.th, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.th.error_message)
 
         thermodynamics = {}
 
-        if not self.th.store_thermodynamics:
-            return thermodynamics
-
-        tmp = <bytes> self.th.thermodynamics_titles
-        names = tmp.split("\t")[:-1]
-        number_of_titles = len(names)
-        timesteps = self.th.size_thermodynamics_data/number_of_titles;
         for i in range(number_of_titles):
             thermodynamics[names[i]] = np.zeros(timesteps, dtype=np.double)
             for index in range(timesteps):
-                thermodynamics[names[i]][index] = self.th.thermodynamics_data[index*number_of_titles+i]
+                thermodynamics[names[i]][index] = data[index*number_of_titles+i]
 
         return thermodynamics
 

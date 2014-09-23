@@ -43,11 +43,7 @@ cdef extern from "class.h":
         double wa_fld
         double cs2_fld
 
-        int store_background
-        char background_titles[_MAXTITLESTRINGLENGTH_]
-        int number_of_background_titles
-        double * background_data
-        int size_background_data
+        int bt_size
 
     cdef struct thermo:
         ErrorMsg error_message
@@ -69,11 +65,7 @@ cdef extern from "class.h":
         double YHe
         double n_e
 
-        int store_thermodynamics
-        char thermodynamics_titles[_MAXTITLESTRINGLENGTH_]
-        int number_of_thermodynamics_titles
-        double * thermodynamics_data
-        int size_thermodynamics_data
+        int tt_size
 
     cdef struct perturbs:
         ErrorMsg error_message
@@ -252,7 +244,14 @@ cdef extern from "class.h":
 
     int background_tau_of_z(void* pba, double z,double* tau)
     int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
+    int background_output_titles(void * pba, char titles[_MAXTITLESTRINGLENGTH_])
+    int background_output_data(void *pba, int number_of_titles, double *data)
+
     int thermodynamics_at_z(void * pba, void * pth, double z, short inter_mode, int * last_index, double *pvecback, double *pvecthermo)
+    int thermodynamics_output_titles(void * pba, void *pth, char titles[_MAXTITLESTRINGLENGTH_])
+    int thermodynamics_output_data(void *pba, void *pth, int number_of_titles, double *data)
+
+
     int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
     int spectra_pk_at_z(

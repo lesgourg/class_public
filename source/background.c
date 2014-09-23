@@ -572,13 +572,6 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
-  /** - if the user asked for background output, prepare data: */
-  if (pba->store_background == _TRUE_){
-    class_call(background_prepare_output(pba),
-               pba->error_message,
-               pba->error_message);
-  }
-
   return _SUCCESS_;
 
 }
@@ -601,9 +594,6 @@ int background_free(
   free(pba->d2tau_dz2_table);
   free(pba->background_table);
   free(pba->d2background_dtau2_table);
-
-  if (pba->background_data != NULL)
-    free(pba->background_data);
 
   err = background_free_input(pba);
 
@@ -1864,53 +1854,60 @@ int background_initial_conditions(
  * Subroutine for formatting background output
  */
 
-int background_prepare_output(struct background * pba){
+int background_output_titles(struct background * pba,
+                             char titles[_MAXTITLESTRINGLENGTH_]
+                             ){
+
   /** Length of the columntitle should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
-  int n, index_tau, storeidx;
-  double *dataptr, *pvecback;
+  int n;
   char tmp[20];
 
-  class_store_columntitle(pba->background_titles,"z",_TRUE_);
-  class_store_columntitle(pba->background_titles,"proper time [Gyr]",_TRUE_);
-  class_store_columntitle(pba->background_titles,"conf. time [Mpc]",_TRUE_);
-  class_store_columntitle(pba->background_titles,"H [1/Mpc]",_TRUE_);
-  class_store_columntitle(pba->background_titles,"comov. dist.",_TRUE_);
-  class_store_columntitle(pba->background_titles,"ang.diam.dist.",_TRUE_);
-  class_store_columntitle(pba->background_titles,"lum. dist.",_TRUE_);
-  class_store_columntitle(pba->background_titles,"comov.snd.hrz.",_TRUE_);
-  class_store_columntitle(pba->background_titles,"(.)rho_g",_TRUE_);
-  class_store_columntitle(pba->background_titles,"(.)rho_b",_TRUE_);
-  class_store_columntitle(pba->background_titles,"(.)rho_cdm",pba->has_cdm);
+  class_store_columntitle(titles,"z",_TRUE_);
+  class_store_columntitle(titles,"proper time [Gyr]",_TRUE_);
+  class_store_columntitle(titles,"conf. time [Mpc]",_TRUE_);
+  class_store_columntitle(titles,"H [1/Mpc]",_TRUE_);
+  class_store_columntitle(titles,"comov. dist.",_TRUE_);
+  class_store_columntitle(titles,"ang.diam.dist.",_TRUE_);
+  class_store_columntitle(titles,"lum. dist.",_TRUE_);
+  class_store_columntitle(titles,"comov.snd.hrz.",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_g",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_b",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_cdm",pba->has_cdm);
   if (pba->has_ncdm == _TRUE_){
     for (n=0; n<pba->N_ncdm; n++){
       sprintf(tmp,"(.)rho_ncdm[%d]",n);
-      class_store_columntitle(pba->background_titles,tmp,_TRUE_);
+      class_store_columntitle(titles,tmp,_TRUE_);
     }
   }
-  class_store_columntitle(pba->background_titles,"(.)rho_lambda",pba->has_lambda);
-  class_store_columntitle(pba->background_titles,"(.)rho_fld",pba->has_fld);
-  class_store_columntitle(pba->background_titles,"(.)rho_ur",pba->has_ur);
-  class_store_columntitle(pba->background_titles,"(.)rho_crit",_TRUE_);
-  class_store_columntitle(pba->background_titles,"(.)rho_dcdm",pba->has_dcdm);
-  class_store_columntitle(pba->background_titles,"(.)rho_dr",pba->has_dr);
+  class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
+  class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
+  class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
+  class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
+  class_store_columntitle(titles,"(.)rho_dr",pba->has_dr);
 
-  class_store_columntitle(pba->background_titles,"(.)rho_scf",pba->has_scf);
-  class_store_columntitle(pba->background_titles,"(.)p_scf",pba->has_scf);
-  class_store_columntitle(pba->background_titles,"phi_scf",pba->has_scf);
-  class_store_columntitle(pba->background_titles,"phi'_scf",pba->has_scf);
-  class_store_columntitle(pba->background_titles,"V_scf",pba->has_scf);
-  class_store_columntitle(pba->background_titles,"V'_scf",pba->has_scf);
-  class_store_columntitle(pba->background_titles,"V''_scf",pba->has_scf);
+  class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
+  class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
+  class_store_columntitle(titles,"phi_scf",pba->has_scf);
+  class_store_columntitle(titles,"phi'_scf",pba->has_scf);
+  class_store_columntitle(titles,"V_scf",pba->has_scf);
+  class_store_columntitle(titles,"V'_scf",pba->has_scf);
+  class_store_columntitle(titles,"V''_scf",pba->has_scf);
 
-  pba->number_of_background_titles = get_number_of_titles(pba->background_titles);
-  pba->size_background_data = pba->number_of_background_titles*pba->bt_size;
+  return _SUCCESS_;
+}
 
-  class_alloc(pba->background_data, sizeof(double)*pba->size_background_data, pba->error_message);
+int background_output_data(
+                           struct background *pba,
+                           int number_of_titles,
+                           double *data){
+  int index_tau, storeidx, n;
+  double *dataptr, *pvecback;
 
   /** Store quantities: */
   for (index_tau=0; index_tau<pba->bt_size; index_tau++){
-    dataptr = pba->background_data + index_tau*pba->number_of_background_titles;
+    dataptr = data + index_tau*number_of_titles;
     pvecback = pba->background_table + index_tau*pba->bg_size;
     storeidx = 0;
 

@@ -2448,7 +2448,6 @@ int input_read_parameters(
 
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
-    pba->store_background = _TRUE_;
     pop->write_background = _TRUE_;
 
   }
@@ -2461,7 +2460,6 @@ int input_read_parameters(
 
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
-    pth->store_thermodynamics = _TRUE_;
     pop->write_thermodynamics = _TRUE_;
 
   }
@@ -2500,18 +2498,6 @@ int input_read_parameters(
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
     pop->write_primordial = _TRUE_;
-
-  }
-
-  /** Short cut for storing everything when calling through the wrapper */
-  class_call(parser_read_string(pfc,"store output",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-
-    pba->store_background = _TRUE_;
-    pth->store_thermodynamics = _TRUE_;
 
   }
 
@@ -2591,11 +2577,6 @@ int input_default_params(
   pba->wa_fld=0.;
   pba->cs2_fld=1.;
 
-  pba->store_background = _FALSE_;
-  pba->number_of_background_titles = 0;
-  pba->background_data = NULL;
-  pba->size_background_data = 0;
-
   /** - thermodynamics structure */
 
   pth->YHe=_BBN_;
@@ -2625,11 +2606,6 @@ int input_default_params(
   pth->has_on_the_spot = _TRUE_;
 
   pth->compute_cb2_derivatives=_FALSE_;
-
-  pth->store_thermodynamics = _FALSE_;
-  pth->number_of_thermodynamics_titles = 0;
-  pth->thermodynamics_data = NULL;
-  pth->size_thermodynamics_data = 0;
 
   /** - perturbation structure */
 
