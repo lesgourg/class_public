@@ -1348,39 +1348,43 @@ int output_primordial(
                       struct primordial * ppm,
                       struct output * pop
                       ) {
-
-  FILE * out;
   FileName file_name;
-  int index_k;
+  FILE * out;
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
 
   sprintf(file_name,"%s%s",pop->root,"primordial_Pk.dat");
 
-  class_call(output_open_primordial_file(ppt,
-                                         ppm,
-                                         pop,
-                                         &out,
-                                         file_name
-                                         ),
-             pop->error_message,
+  class_call(primordial_output_titles(ppt,ppm,titles),
+             ppm->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*ppm->lnk_size;
+  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_call(primordial_output_data(ppt,
+                                    ppm,
+                                    number_of_titles,
+                                    data),
+             ppm->error_message,
              pop->error_message);
 
-  for (index_k=0; index_k<ppm->lnk_size; index_k++) {
-
-    class_call(output_one_line_of_primordial(ppt,
-                                             ppm,
-                                             out,
-                                             index_k
-                                             ),
-               pop->error_message,
-               pop->error_message);
-
+  class_open(out,file_name,"w",pop->error_message);
+  if (pop->write_header == _TRUE_) {
+    fprintf(out,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
   }
 
+  output_print_data(out,
+                    titles,
+                    data,
+                    size_data);
+
+  free(data);
   fclose(out);
 
   return _SUCCESS_;
-
 }
+
 
 int output_print_data(FILE *out,
                       char titles[_MAXTITLESTRINGLENGTH_],

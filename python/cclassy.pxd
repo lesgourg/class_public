@@ -128,6 +128,7 @@ cdef extern from "class.h":
         double phi_min
         double phi_max
 
+        int lnk_size
     cdef struct spectra:
         ErrorMsg error_message
         int has_tt
@@ -251,6 +252,8 @@ cdef extern from "class.h":
     int thermodynamics_output_titles(void * pba, void *pth, char titles[_MAXTITLESTRINGLENGTH_])
     int thermodynamics_output_data(void *pba, void *pth, int number_of_titles, double *data)
 
+    int primordial_output_titles(void * ppt, void *ppm, char titles[_MAXTITLESTRINGLENGTH_])
+    int primordial_output_data(void *ppt, void *ppm, int number_of_titles, double *data)
 
     int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)

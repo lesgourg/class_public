@@ -446,6 +446,15 @@ extern "C" {
                                         struct primordial * ppm
                                         );
 
+  int primordial_output_titles(struct perturbs * ppt,
+                               struct primordial * ppm,
+                               char titles[_MAXTITLESTRINGLENGTH_]
+                               );
+
+  int primordial_output_data(struct perturbs * ppt,
+                             struct primordial * ppm,
+                             int number_of_titles,
+                             double *data);
 #ifdef __cplusplus
 }
 #endif

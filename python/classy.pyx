@@ -964,6 +964,42 @@ cdef class Class:
 
         return thermodynamics
 
+    def get_primordial(self):
+        """
+        Return the primordial quantities.
+
+        Returns
+        -------
+        primordial : dictionary containing primordial.
+        """
+        cdef char *titles
+        cdef double* data
+
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if primordial_output_titles(&self.pt, &self.pm, titles)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        tmp = <bytes> titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.pm.lnk_size
+
+        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+
+        if primordial_output_data(&self.pt, &self.pm, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        primordial = {}
+
+        for i in range(number_of_titles):
+            primordial[names[i]] = np.zeros(timesteps, dtype=np.double)
+            for index in range(timesteps):
+                primordial[names[i]][index] = data[index*number_of_titles+i]
+
+        return primordial
+
+
     def get_perturbations(self):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested
