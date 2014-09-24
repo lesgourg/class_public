@@ -1081,6 +1081,64 @@ cdef class Class:
 
         return perturbations
 
+    def get_transfer(self, z=0.):
+        """
+        Return the transfer functions for all initial conditions today, or possibly at any z
+        provided that 'z_pk' has been set and that z is inside the region spanned by 'z_pk'.
+
+        Parameters
+        ----------
+        z  : redshift (default = 0)
+
+        Returns
+        -------
+        tk : dictionary containing transfer functions.
+        """
+        cdef char *titles
+        cdef double* data
+        cdef char ic_info[1024]
+        cdef FileName ic_suffix
+
+        index_md = 0;
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if spectra_output_tk_titles(&self.ba,&self.pt, &self.op, titles)==_FAILURE_:
+            raise CosmoSevereError(self.op.error_message)
+
+        tmp = <bytes> titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.sp.ln_k_size
+
+        size_ic_data = timesteps*number_of_titles;
+        ic_num = self.sp.ic_size[index_md];
+
+        data = <double*>malloc(sizeof(double)*size_ic_data*ic_num)
+
+        if spectra_output_tk_data(&self.ba, &self.pt, &self.sp, &self.op, <double> z, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.sp.error_message)
+
+        spectra = {}
+
+        for index_ic in range(ic_num):
+            if output_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
+                raise CosmoSevereError(self.op.error_message)
+            ic_key = <bytes> ic_suffix
+
+            tmpdict = {}
+            for i in range(number_of_titles):
+                tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                for index in range(timesteps):
+                    tmpdict[names[i]][index] = data[index_ic*size_ic_data+index*number_of_titles+i]
+
+            if ic_num==1:
+                spectra = tmpdict
+            else:
+                spectra[ic_key] = tmpdict
+
+        return spectra
+
+
     def get_current_derived_parameters(self, names):
         """
         get_current_derived_parameters(names)

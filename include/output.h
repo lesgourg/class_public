@@ -238,6 +238,27 @@ extern "C" {
                                     int index_k
                                     );
 
+  int spectra_output_tk_titles(struct background *pba,
+                               struct perturbs *ppt,
+                               struct output *pop,
+                               char titles[_MAXTITLESTRINGLENGTH_]
+                               );
+
+  int spectra_output_tk_data(
+                             struct background * pba,
+                             struct perturbs * ppt,
+                             struct spectra * psp,
+                             struct output * pop,
+                             double z,
+                             int number_of_titles,
+                             double *data
+                             );
+
+  int output_firstline_and_ic_suffix(struct perturbs *ppt,
+                                     int index_ic,
+                                     char first_line[_LINE_LENGTH_MAX_],
+                                     FileName ic_suffix);
+
 #ifdef __cplusplus
 }
 #endif

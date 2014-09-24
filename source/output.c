@@ -999,6 +999,7 @@ int output_pk_nl(
 
 }
 
+
 /**
  * This routines writes the output in files for matter transfer functions T_i(k)'s.
  *
@@ -1018,23 +1019,22 @@ int output_tk(
   /** Summary: */
 
   /** - define local variables */
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
 
-  FILE ** out_ic; /* array of pointers to files with argument
-                     out_ic[index_ic]
-                     (will contain T_i(k)'s for each initial conditions) */
-
-  double * tk;  /* array with argument
-                   pk_ic[(index_k * psp->ic_size[index_md] + index_ic)*psp->tr_size+index_tr] */
+  FILE * tkfile;
 
   int index_md;
   int index_ic;
-  int index_k;
   int index_z;
-  int index_tr;
+
+  double z;
 
   FileName file_name;
   FileName redshift_suffix;
   char first_line[_LINE_LENGTH_MAX_];
+  FileName ic_suffix;
 
   index_md=ppt->index_md_scalars;
 
@@ -1049,7 +1049,18 @@ int output_tk(
                "you wish to output the transfer functions in CMBFAST/CAMB format, but you requested velocity transfer functions. The two are not compatible (since CMBFAST/CAMB do not compute velocity transfer functions): switch to CLASS output format, or ask only for density transfer function");
   }
 
+
+  class_call(spectra_output_tk_titles(pba,ppt,pop,titles),
+             pba->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*psp->ln_k_size;
+
+  class_alloc(data, sizeof(double)*psp->ic_size[index_md]*size_data, pop->error_message);
+
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
+
+    z = pop->z_pk[index_z];
 
     /** - first, check that requested redshift z_pk is consistent */
 
@@ -1064,117 +1075,72 @@ int output_tk(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_alloc(out_ic,
-                psp->ic_size[index_md]*sizeof(FILE *),
-                pop->error_message);
-
-    class_alloc(tk,
-                psp->ln_k_size*psp->ic_size[index_md]*psp->tr_size*sizeof(double),
-                pop->error_message);
+    class_call(spectra_output_tk_data(pba,
+                                      ppt,
+                                      psp,
+                                      pop,
+                                      pop->z_pk[index_z],
+                                      number_of_titles,
+                                      data
+                                      ),
+               psp->error_message,
+               pop->error_message);
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
+      class_call(output_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
+                 pop->error_message, pop->error_message);
 
-        if (ppt->ic_size[index_md] == 1)
-          sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
-        else
-          sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_ad.dat");
-        strcpy(first_line,"for adiabatic (AD) mode (normalized to initial curvature=1) ");
-      }
+      if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
+        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
+      else
+        sprintf(file_name,"%s%s%s%s%s",pop->root,redshift_suffix,"tk_",ic_suffix,".dat");
 
-      if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
+      class_open(tkfile, file_name, "w", pop->error_message);
 
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_bi.dat");
-        strcpy(first_line,"for baryon isocurvature (BI) mode (normalized to initial entropy=1)");
-      }
-
-      if ((ppt->has_cdi == _TRUE_) && (index_ic == ppt->index_ic_cdi)) {
-
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_cdi.dat");
-        strcpy(first_line,"for CDM isocurvature (CDI) mode (normalized to initial entropy=1)");
-      }
-
-      if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
-
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_nid.dat");
-        strcpy(first_line,"for neutrino density isocurvature (NID) mode (normalized to initial entropy=1)");
-      }
-
-      if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
-
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_niv.dat");
-        strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
-      }
-
-      class_call(output_open_tk_file(pba,
-                                     ppt,
-                                     psp,
-                                     pop,
-                                     &(out_ic[index_ic]),
-                                     file_name,
-                                     first_line,
-                                     pop->z_pk[index_z]
-                                     ),
-                 pop->error_message,
-                 pop->error_message);
-
-    }
-
-    /** - third, compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
-
-    /* if z_pk = 0, no interpolation needed */
-
-    if (pop->z_pk[index_z] == 0.) {
-
-      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-        for (index_tr=0; index_tr<psp->tr_size; index_tr++) {
-          for (index_ic=0; index_ic<psp->ic_size[index_md]; index_ic++) {
-            tk[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(((psp->ln_tau_size-1)*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr];
+      if (pop->write_header == _TRUE_) {
+        if (pop->output_format == class_format) {
+          fprintf(tkfile,"# Transfer functions T_i(k) %sat redshift z=%g\n",first_line,z);
+          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+          fprintf(tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+          if (ppt->has_density_transfers == _TRUE_) {
+            fprintf(tkfile,"# d_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+            fprintf(tkfile,"# d_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
+            fprintf(tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
+            fprintf(tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
           }
+          if (ppt->has_velocity_transfers == _TRUE_) {
+            fprintf(tkfile,"# t_i   stands for theta_i(k,z) with above normalization \n");
+            fprintf(tkfile,"# t_tot stands for (sum_i [rho_i+p_i] theta_i)/(sum_i [rho_i+p_i]))(k,z)\n");
+          }
+          fprintf(tkfile,"#\n");
+        }
+        else if (pop->output_format == camb_format) {
+
+          fprintf(tkfile,"# Rescaled matter transfer functions [-T_i(k)/k^2] %sat redshift z=%g\n",first_line,z);
+          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+          fprintf(tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+          fprintf(tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+          fprintf(tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
+          fprintf(tkfile,"#\n");
+          fprintf(tkfile,"#");
+          fprintf(tkfile,"\n");
+
         }
       }
+
+      output_print_data(tkfile,
+                        titles,
+                        data+index_ic*size_data,
+                        size_data);
+
+      fclose(tkfile);
+
     }
-
-    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
-    else {
-
-      class_call(spectra_tk_at_z(pba,
-                                 psp,
-                                 pop->z_pk[index_z],
-                                 tk),
-                 psp->error_message,
-                 pop->error_message);
-    }
-
-    /** - fourth, write in files */
-
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-      for (index_ic = 0; index_ic < psp->ic_size[index_md]; index_ic++) {
-        class_call(output_one_line_of_tk(pba,
-                                         ppt,
-                                         psp,
-                                         pop,
-                                         out_ic[index_ic],
-                                         exp(psp->ln_k[index_k])/pba->h,
-                                         &(tk[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size]),
-                                         psp->tr_size),
-                   pop->error_message,
-                   pop->error_message);
-
-      }
-    }
-
-    /** - fifth, free memory and close files */
-
-    free(tk);
-
-    for (index_ic = 0; index_ic < psp->ic_size[index_md]; index_ic++) {
-      fclose(out_ic[index_ic]);
-    }
-    free(out_ic);
 
   }
+
+  free(data);
 
   return _SUCCESS_;
 
@@ -1957,4 +1923,233 @@ int output_one_line_of_primordial(
 
   return _SUCCESS_;
 
+}
+
+
+int spectra_output_tk_titles(struct background *pba,
+                             struct perturbs *ppt,
+                             struct output *pop,
+                             char titles[_MAXTITLESTRINGLENGTH_]
+                             ){
+  int n_ncdm;
+  char tmp[40];
+
+  if (pop->output_format == class_format) {
+    class_store_columntitle(titles,"k (h/Mpc)",_TRUE_);
+    if (ppt->has_density_transfers == _TRUE_) {
+      class_store_columntitle(titles,"d_g",_TRUE_);
+      class_store_columntitle(titles,"d_b",_TRUE_);
+      class_store_columntitle(titles,"d_cdm",pba->has_cdm);
+      class_store_columntitle(titles,"d_fld",pba->has_fld);
+      class_store_columntitle(titles,"d_ur",pba->has_ur);
+      if (pba->has_ncdm == _TRUE_) {
+        for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+          sprintf(tmp,"d_ncdm[%d]",n_ncdm);
+          class_store_columntitle(titles,tmp,_TRUE_);
+        }
+      }
+      class_store_columntitle(titles,"d_dcdm",pba->has_dcdm);
+      class_store_columntitle(titles,"d_dr",pba->has_dr);
+      class_store_columntitle(titles,"d_scf",pba->has_scf);
+      class_store_columntitle(titles,"d_tot",_TRUE_);
+    }
+    if (ppt->has_velocity_transfers == _TRUE_) {
+      class_store_columntitle(titles,"t_g",_TRUE_);
+      class_store_columntitle(titles,"t_b",_TRUE_);
+      class_store_columntitle(titles,"t_cdm",((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)));
+      class_store_columntitle(titles,"t_fld",pba->has_fld);
+      class_store_columntitle(titles,"t_ur",pba->has_ur);
+      if (pba->has_ncdm == _TRUE_) {
+        for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+          sprintf(tmp,"t_ncdm[%d]",n_ncdm);
+          class_store_columntitle(titles,tmp,_TRUE_);
+        }
+      }
+      class_store_columntitle(titles,"t_dcdm",pba->has_dcdm);
+      class_store_columntitle(titles,"t_dr",pba->has_dr);
+      class_store_columntitle(titles,"t__scf",pba->has_scf);
+      class_store_columntitle(titles,"t_tot",_TRUE_);
+    }
+  }
+
+  else if (pop->output_format == camb_format) {
+
+    class_store_columntitle(titles,"k (h/Mpc)",_TRUE_);
+    class_store_columntitle(titles,"-T_cdm/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_b/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_g/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_ur/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_ncdm/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_tot/k2",_TRUE_);
+
+  }
+
+  return _SUCCESS_;
+
+}
+
+int spectra_output_tk_data(
+                          struct background * pba,
+                          struct perturbs * ppt,
+                          struct spectra * psp,
+                          struct output * pop,
+                          double z,
+                          int number_of_titles,
+                          double *data
+                          ) {
+
+  int n_ncdm;
+  double k, k_over_h, k2;
+  double * tkfull;  /* array with argument
+                   pk_ic[(index_k * psp->ic_size[index_md] + index_ic)*psp->tr_size+index_tr] */
+  double *tk;
+  double *dataptr;
+
+  int index_md=0;
+  int index_ic;
+  int index_k;
+  int index_tr;
+  int storeidx;
+
+  class_alloc(tkfull,
+              psp->ln_k_size*psp->ic_size[index_md]*psp->tr_size*sizeof(double),
+              psp->error_message);
+
+
+    /** - compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
+
+    /* if z_pk = 0, no interpolation needed */
+
+    if (z == 0.) {
+
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+        for (index_tr=0; index_tr<psp->tr_size; index_tr++) {
+          for (index_ic=0; index_ic<psp->ic_size[index_md]; index_ic++) {
+            tkfull[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(((psp->ln_tau_size-1)*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr];
+          }
+        }
+      }
+    }
+
+    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
+    else {
+
+      class_call(spectra_tk_at_z(pba,
+                                 psp,
+                                 z,
+                                 tkfull),
+                 psp->error_message,
+                 psp->error_message);
+    }
+
+    /** - store data */
+
+    for (index_ic = 0; index_ic < psp->ic_size[index_md]; index_ic++) {
+
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+
+        storeidx = 0;
+        dataptr = data+index_ic*(psp->ln_k_size*number_of_titles)+index_k*number_of_titles;
+        tk = &(tkfull[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size]);
+        k = exp(psp->ln_k[index_k]);
+        k2 = k*k;
+        k_over_h = k/pba->h;
+
+        class_store_double(dataptr, k_over_h, _TRUE_,storeidx);
+
+        /* indices for species associated with a velocity transfer function in Fourier space */
+
+        if (pop->output_format == class_format) {
+
+          if (ppt->has_density_transfers == _TRUE_) {
+
+            class_store_double(dataptr,tk[psp->index_tr_delta_g],ppt->has_source_delta_g,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_b],ppt->has_source_delta_b,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_cdm],ppt->has_source_delta_cdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_fld],ppt->has_source_delta_fld,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_ur],ppt->has_source_delta_ur,storeidx);
+            if (pba->has_ncdm == _TRUE_){
+              for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+                class_store_double(dataptr,tk[psp->index_tr_delta_ncdm1+n_ncdm],ppt->has_source_delta_ncdm,storeidx);
+              }
+            }
+            class_store_double(dataptr,tk[psp->index_tr_delta_dcdm],ppt->has_source_delta_dcdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_dr],ppt->has_source_delta_dr,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_scf],ppt->has_source_delta_scf,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_tot],_TRUE_,storeidx);
+
+          }
+          if (ppt->has_velocity_transfers == _TRUE_) {
+
+            class_store_double(dataptr,tk[psp->index_tr_theta_g],ppt->has_source_theta_g,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_b],ppt->has_source_theta_b,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_cdm],ppt->has_source_theta_cdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_fld],ppt->has_source_theta_fld,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_ur],ppt->has_source_theta_ur,storeidx);
+            if (pba->has_ncdm == _TRUE_){
+              for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+                class_store_double(dataptr,tk[psp->index_tr_theta_ncdm1+n_ncdm],ppt->has_source_theta_ncdm,storeidx);
+              }
+            }
+            class_store_double(dataptr,tk[psp->index_tr_theta_dcdm],ppt->has_source_theta_dcdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_dr],ppt->has_source_theta_dr,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_scf],ppt->has_source_theta_scf,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_tot],_TRUE_,storeidx);
+
+          }
+
+        }
+        else if (pop->output_format == camb_format) {
+
+          /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_cdm]/k2,ppt->has_source_delta_cdm,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_b]/k2,ppt->has_source_delta_b,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_g]/k2,ppt->has_source_delta_g,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ur]/k2,ppt->has_source_delta_ur,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ncdm1]/k2,ppt->has_source_delta_ncdm,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_tot]/k2,_TRUE_,storeidx,0.0);
+
+        }
+      }
+    }
+
+    free(tkfull);
+
+    return _SUCCESS_;
+}
+
+ int output_firstline_and_ic_suffix(struct perturbs *ppt,
+                                    int index_ic,
+                                    char first_line[_LINE_LENGTH_MAX_],
+                                    FileName ic_suffix){
+
+  first_line[0]='\0';
+  ic_suffix[0]='\0';
+
+
+  if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
+    strcpy(ic_suffix,"ad");
+    strcpy(first_line,"for adiabatic (AD) mode (normalized to initial curvature=1) ");
+  }
+
+  if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
+    strcpy(ic_suffix,"bi");
+    strcpy(first_line,"for baryon isocurvature (BI) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_cdi == _TRUE_) && (index_ic == ppt->index_ic_cdi)) {
+    strcpy(ic_suffix,"cdi");
+    strcpy(first_line,"for CDM isocurvature (CDI) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
+    strcpy(ic_suffix,"nid");
+    strcpy(first_line,"for neutrino density isocurvature (NID) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
+    strcpy(ic_suffix,"niv");
+    strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
+  }
+  return _SUCCESS_;
 }

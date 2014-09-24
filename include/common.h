@@ -289,6 +289,17 @@ int get_number_of_titles(char * titlestring);
       storage[dataindex++] = value;                                     \
   }
 
+#define class_store_double_or_default(storage,                          \
+                                      value,                            \
+                                      condition,                        \
+                                      dataindex,                        \
+                                      defaultvalue){                    \
+    if (condition == _TRUE_)                                            \
+      storage[dataindex++] = value;                                     \
+    else                                                                \
+      storage[dataindex++] = defaultvalue;                              \
+}
+
 /** parameters related to the precision of the code and to the method of calculation */
 
 /**
