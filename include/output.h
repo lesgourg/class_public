@@ -38,7 +38,7 @@ struct output {
 
   //@{
 
-  double z_pk_num;
+  int z_pk_num;
   double z_pk[_Z_PK_NUM_MAX_];
 
   //@}
