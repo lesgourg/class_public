@@ -156,10 +156,6 @@ struct primordial {
   double H3;
   double H4;
 
-  /** - parameters describing both inflation_V and inflation_H */
-
-  double phi_pivot;
-
   /** - parameters describing inflation_V_end */
 
   double phi_end;
@@ -261,6 +257,10 @@ struct primordial {
 
   //@{
 
+  double phi_pivot;      /**< in inflationary module, value of
+                            phi_pivot (set to 0 for inflation_V,
+                            inflation_H; found by code for
+                            inflation_V_end) */
   double phi_min;        /**< in inflationary module, value of phi when k_min=aH */
   double phi_max;        /**< in inflationary module, value of phi when k_max=aH */
   double phi_stop;       /**< in inflationary module, value of phi at the end of inflation */
@@ -450,24 +450,12 @@ extern "C" {
                                        double * epsilon
                                        );
 
-  int primordial_find_phi_pivot(
-                                struct primordial * ppm,
-                                struct precision * ppr,
-                                double * y,
-                                double * dy
-                                );
-
-  int primordial_find_phi_pivot2(
-                                 struct primordial * ppm,
-                                 struct precision * ppr,
-                                 double * y,
-                                 double * dy
-                                 );
-
-  int primordial_find_phi_stop(
-                               struct primordial * ppm,
-                               struct precision * ppr
-                               );
+  int primordial_inflation_find_phi_pivot(
+                                          struct primordial * ppm,
+                                          struct precision * ppr,
+                                          double * y,
+                                          double * dy
+                                          );
 
   int primordial_inflation_derivs(
                                   double tau,
