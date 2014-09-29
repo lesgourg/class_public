@@ -1,13 +1,17 @@
-Readme file for CLASS - the Cosmic Linear Anisotropy Solving System
+==============================================
+CLASS: Cosmic Linear Anisotropy Solving System
+==============================================
 
-By Julien Lesgourgues, with several major inputs from other people,
-especially Thomas Tram, as well as Benjamin Audren, Simon Prunet, etc.
+:Author: Julien Lesgourgues
+         
+with several major inputs from other people, especially Thomas Tram,
+as well as Benjamin Audren, Simon Prunet, etc.
 
 For download and information, see http://class-code.net
 
-------------------------------------------------------------------
 
-COMPILING CLASS AND GETTING STARTED
+Compiling CLASS and getting started
+-----------------------------------
 
 (the information below can also be found on the webpage, just below
 the download button)
@@ -26,7 +30,7 @@ an advancesd step that you probably don't need).
 
 Adapt your input parameters in the file explanatory.ini and run with:
 
-./class explanatory.ini
+    ./class explanatory.ini
 
 Or, even better, make a copy of explanatory.ini into another file, for
 instance test.ini, and remove everything in test.ini that you judge
@@ -34,24 +38,24 @@ useless for your own purpose: in that way you can keep explanatory.ini
 as a reference file, and play with a more concise and friendly input
 file. You can then run with
 
-./class test.ini.
+    ./class test.ini.
 
 If you want to play with the precision/speed of the code, you can use
 one of the provided precision files (e.g. cl_permille.pre) or modify
 one of them, and run with two input files, for instance:
 
-./class test.ini cl_permille.pre
+    ./class test.ini cl_permille.pre
 
-A simplified documentation can be found in the paper ``CLASS I:
-Overview'', arXiv:1104.2932 [astro-ph.IM]. On top of that, if you wish
-to modify the code, you will find lots of comments directly into the
-files (and the amount of such comments will increase with the version
-number). A more complete documentation may become available some day
-if enough users ask for it...
+A simplified documentation can be found in the paper
+`CLASS I: Overview <http://arxiv.org/abs/1104.2932>`_. On top of that,
+if you wish to modify the code, you will find lots of comments
+directly into the files (and the amount of such comments will increase
+with the version number). A more complete documentation may become
+available some day if enough users ask for it...
 
----------------------------------------------------------------------
 
-PLOTTING UTILITY
+Plotting utility
+----------------
 
 Since version 1.2, the package includes a convenient plotting script
 called CPU (Class Plotting Utility), written by Benjamin Audren. It
@@ -75,17 +79,17 @@ anything, if scipy and gnuplot are installed on your computer, the
 CPU command will work immediately.
 
 You can plot a spectrum produced by CLASS (or by another code) and
-stored e.g. in the file output/xxx.dat with:
+stored e.g. in the file `output/xxx.dat` with:
 
-> python CPU output/xxx.dat
+    python CPU output/xxx.dat
 
 or two different spectra with:
 
-> python CPU output/xxx.dat output/yyy.dat 
+    python CPU output/xxx.dat output/yyy.dat 
 
 You can get a list of all available options by typing
 
-> python CPU --help
+    python CPU --help
 
 These options allow you to choose between linear and log scale, to
 plot ratios or relative differences between two files, to send the
