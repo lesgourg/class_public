@@ -416,7 +416,7 @@ int primordial_init(
 
     class_test(0==0,
                ppm->error_message,
-               "only analytic, external and inflation_V primordial spectrum coded yet");
+               "primordial spectrum type not recognised");
 
   }
 
@@ -989,8 +989,9 @@ int primordial_inflation_potential(
 
   switch (ppm->potential) {
 
-  /* V(phi)=polynomial in (phi-phi*) */
+  /* V(phi)=polynomial in phi */
   case polynomial:
+
     *V   = ppm->V0+phi*ppm->V1+pow(phi,2)/2.*ppm->V2+pow(phi,3)/6.*ppm->V3+pow(phi,4)/24.*ppm->V4;
     *dV  = ppm->V1+phi*ppm->V2+pow(phi,2)/2.*ppm->V3+pow(phi,3)/6.*ppm->V4;
     *ddV = ppm->V2+phi*ppm->V3+pow(phi,2)/2.*ppm->V4;
@@ -1126,15 +1127,7 @@ int primordial_inflation_solve_inflation(
   double aH_ini,aH_end;
   double k_max,k_min;
   int counter;
-  //double epsilon;
   double dH,ddH,dddH;
-
-  // uncomment these lines if for checking, you want first-order slow-roll predictions
-  //fprintf(stdout,"Expected slow-roll A_s: %g\n",128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
-  //fprintf(stdout,"Expected slow-roll T/S: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_);
-  //fprintf(stdout,"Expected slow-roll A_T: %g\n",pow(ppm->V1/ppm->V0,2)/_PI_*128.*_PI_/3.*pow(ppm->V0,3)/pow(ppm->V1,2));
-  //fprintf(stdout,"Expected slow-roll n_s: %g\n",1.-6./16./_PI_*pow(ppm->V1/ppm->V0,2)+2./8./_PI_*(ppm->V2/ppm->V0));
-  //fprintf(stdout,"Expected slow-roll n_t: %g\n",-2./16./_PI_*pow(ppm->V1/ppm->V0,2));
 
   /* allocate vectors for background/perturbed quantitites */
   class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
@@ -1151,6 +1144,21 @@ int primordial_inflation_solve_inflation(
   }
   else {
     ppm->phi_pivot = 0.;
+  }
+
+  // uncomment these lines if for checking, you want first-order slow-roll predictions
+  if (ppm->primordial_verbose>0) {
+    if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end)) {
+      double V,dV,ddV;
+      class_call(primordial_inflation_check_potential(ppm,ppm->phi_pivot,&V,&dV,&ddV),
+                 ppm->error_message,
+                 ppm->error_message);
+      fprintf(stdout," -> 1st-order slow-roll prediction for A_s: %g\n",128.*_PI_/3.*pow(V,3)/pow(dV,2));
+      fprintf(stdout," -> 1st-order slow-roll prediction for T/S: %g\n",pow(dV/V,2)/_PI_);
+      fprintf(stdout," -> 1st-order slow-roll prediction for A_T: %g\n",pow(dV/V,2)/_PI_*128.*_PI_/3.*pow(V,3)/pow(dV,2));
+      fprintf(stdout," -> 1st-order slow-roll prediction for n_s: %g\n",1.-6./16./_PI_*pow(dV/V,2)+2./8./_PI_*(ddV/V));
+      fprintf(stdout," -> 1st-order slow-roll prediction for n_t: %g\n",-2./16./_PI_*pow(dV/V,2));
+    }
   }
 
   /* compute H_pivot at phi_pivot */
@@ -1917,8 +1925,6 @@ int primordial_inflation_evolve_background(
 
   tau_end = 0;
 
-  printf("get here 1\n");
-
   class_call(primordial_inflation_derivs(tau_end,
                                          y,
                                          dy,
@@ -1926,8 +1932,6 @@ int primordial_inflation_evolve_background(
                                          ppm->error_message),
              ppm->error_message,
              ppm->error_message);
-
-  printf("get here 2\n");
 
   // compute timestep (if time = conformal, dtau is the conformal time step,
   // if time = proper, dtau is in fact dt, the proper time step)
@@ -1972,9 +1976,6 @@ int primordial_inflation_evolve_background(
   }
 
   /* loop over time steps, checking that there will be no overshooting */
-
-  printf("get here 3\n");
-  printf("quantity=%e\n",quantity);
 
   while (sign_dtau*(quantity - stop) < 0.) {
 
@@ -2064,8 +2065,6 @@ int primordial_inflation_evolve_background(
       dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*y[ppm->index_in_a]/dy[ppm->index_in_a];
     }
 
-    //printf("tau_start=%e  a=%e  phi=%e  dtau=%e\n",tau_start,y[0],y[1],dtau);
-
     /* expected value of either aH or phi after the next step */
 
     switch (target) {
@@ -2087,13 +2086,7 @@ int primordial_inflation_evolve_background(
       break;
     }
 
-    printf("quantity=%e\n",quantity);
-
   }
-
-  printf("get here 4\n");
-  printf("there: %e  %e  %e\n",y[0],y[1],y[2]);
-  printf("there: %e  %e  %e\n",dy[0],dy[1],dy[2]);
 
   /* won't use the integrator anymore */
 
@@ -2140,8 +2133,6 @@ int primordial_inflation_evolve_background(
     }
     break;
   }
-
-  printf("get here 5\n");
 
   y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
   y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
@@ -2371,8 +2362,6 @@ int primordial_inflation_find_phi_pivot(
              ppm->error_message,
              ppm->error_message);
 
-  printf("phi_small_epsilon=%e\n",phi_small_epsilon);
-
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_small_epsilon;
   y[ppm->index_in_dphi]=y[ppm->index_in_a]*dphidt_small_epsilon;
@@ -2390,9 +2379,6 @@ int primordial_inflation_find_phi_pivot(
              ppm->error_message);
 
   aH_ratio_after_small_epsilon = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_small_epsilon;
-
-  printf("aH_ratio_after_small_epsilon=%e\n",aH_ratio_after_small_epsilon);
-  printf("here we find phi_stop = %e\n",y[1]);
 
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_small_epsilon;
@@ -2412,9 +2398,6 @@ int primordial_inflation_find_phi_pivot(
 
   phi_try = y[ppm->index_in_phi];
 
-  fprintf(stderr,"phi_try=%e\n",phi_try);
-  //class_stop(ppm->error_message,"pfou");
-
   class_call(primordial_inflation_find_attractor(ppm,
                                                  ppr,
                                                  phi_try,
@@ -2425,8 +2408,6 @@ int primordial_inflation_find_phi_pivot(
                                                  &dphidt_try),
              ppm->error_message,
              ppm->error_message);
-
-  fprintf(stderr,"attractor at phi_try: %e %e %e\n",phi_try,H_try,dphidt_try);
 
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_try;
@@ -2447,8 +2428,6 @@ int primordial_inflation_find_phi_pivot(
   printf("here we find phi_stop = %e\n",y[1]);
 
   aH_try = dy[ppm->index_in_a]/H_try;
-
-  printf("aH_try=%e\n",aH_try);
 
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_try;
@@ -2472,9 +2451,6 @@ int primordial_inflation_find_phi_pivot(
 
   // part for testing that this phi_pivot is correct
   double aH = dy[0];
-
-  printf("here: %e  %e  %e\n",y[0],y[1],y[2]);
-  printf("here: %e  %e  %e\n",dy[0],dy[1],dy[2]);
 
   class_call(primordial_inflation_evolve_background(ppm,
                                                     ppr,
@@ -2590,8 +2566,6 @@ int primordial_inflation_derivs(
       // Neglect phi'' w.r.t 2aHphi', reducing 2nd order Klein-Gordon to approximate 1st-order
     case backward:
 
-      //printf("I am here\n");
-
       switch (ppipaw->time) {
 
       case conformal:
@@ -2614,8 +2588,6 @@ int primordial_inflation_derivs(
         dy[ppm->index_in_phi]= -ppipaw->dV/3./ppipaw->aH*y[ppm->index_in_a];
         break;
       }
-
-      //printf("in derivs:%e %e %e %e\n",y[0],y[1],dy[0],dy[1]);
 
       break;
     }
