@@ -2304,7 +2304,7 @@ int primordial_inflation_get_epsilon(
 }
 
 /**
- * Routine searching
+ * Routine searching phi_pivot when a given amount of inflation is requested.
  *
  * @param ppm       Input/output: pointer to primordial structure
  * @param ppr       Input: pointer to precision structure
@@ -2323,42 +2323,42 @@ int primordial_inflation_find_phi_pivot(
   double epsilon,dphi;
   double phi_try,H_try,dphidt_try,aH_try;
   double phi_left,phi_right,phi_mid;
-  double phi_small_epsilon;
+  double phi_small_epsilon,phi_stop;
   double dphidt_small_epsilon;
   double H_small_epsilon;
   double aH_ratio_after_small_epsilon;
 
   // assume that inflation ends up naturally
 
-  // find latest phi such that epsilon=0.1
-  // following attractor solution, go back by 90% of requested inflationary amount
-  // find attractor and compute e-folds till end
-  // if bigger than necessary, evolve from same point to necessary point
-  // if smaller than necessary, iterate with steps of 1 e-fold
+  /* find latest value of the field such that epsilon = primordial_inflation_small_epsilon (default: 0.1) */
 
-  phi_right = 0.;
+  /* bracketing right-hand value is phi_end (but the potential will not be evaluated exactly there, only closeby */
+  phi_right = ppm->phi_end;
 
+  /* bracketing left-hand value is found by iterating with logarithmic step until epsilon < primordial_inflation_small_epsilon */
   dphi = ppr->primordial_inflation_end_dphi;
-
   do {
     dphi *= ppr->primordial_inflation_end_logstep;
     class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
                ppm->error_message,
                ppm->error_message);
-  } while (epsilon >0.1);
+  } while (epsilon > ppr->primordial_inflation_small_epsilon);
   phi_left = ppm->phi_end-dphi;
 
+  /* find value such that epsilon = primordial_inflation_small_epsilon by bisection */
   do {
     phi_mid = 0.5*(phi_left+phi_right);
     class_call(primordial_inflation_get_epsilon(ppm,phi_mid,&epsilon),
                ppm->error_message,
                ppm->error_message);
-    if (epsilon<0.1) phi_left=phi_mid;
+    if (epsilon < ppr->primordial_inflation_small_epsilon) phi_left=phi_mid;
     else phi_right=phi_mid;
-  } while (fabs(epsilon-0.1)>0.01);
+  } while (fabs(epsilon-ppr->primordial_inflation_small_epsilon) > ppr->primordial_inflation_small_epsilon_tol);
 
+  /* value found and stored as phi_small_epsilon */
   phi_small_epsilon = phi_mid;
 
+  /* find inflationry attractor in phi_small_epsilon (should exist since epsilon<<1 there) */
   class_call(primordial_inflation_find_attractor(ppm,
                                                  ppr,
                                                  phi_small_epsilon,
@@ -2370,6 +2370,7 @@ int primordial_inflation_find_phi_pivot(
              ppm->error_message,
              ppm->error_message);
 
+  /* compute amount of inflation between this phi_small_epsilon and the end of inflation */
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_small_epsilon;
   y[ppm->index_in_dphi]=y[ppm->index_in_a]*dphidt_small_epsilon;
@@ -2388,23 +2389,36 @@ int primordial_inflation_find_phi_pivot(
 
   aH_ratio_after_small_epsilon = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_small_epsilon;
 
+  /* by starting from phi_small_epsilon and integrating an approximate
+     solution backward in time, try to estimate roughly a value close
+     to phi_pivot but a bit smaller. This is done by trying to reach
+     an amount of inflation equal to the requested one, minus the
+     amount after phi_small_epsilon, and plus
+     primordial_inflation_extra_efolds efolds (default: two). Note
+     that it is not agressive to require two extra e-folds of
+     inflation before the pivot, since the calculation of the spectrum
+     in the observable range will require even more. */
+
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_small_epsilon;
 
-  // following approximate slow-roll attractor solution, evolve by fraction of needed efolds
   class_call(primordial_inflation_evolve_background(ppm,
                                                     ppr,
                                                     y,
                                                     dy,
                                                     _aH_,
-                                                    H_small_epsilon/exp(ppm->ln_aH_ratio+2.)*aH_ratio_after_small_epsilon,
+                                                    H_small_epsilon/exp(ppm->ln_aH_ratio+ppr->primordial_inflation_extra_efolds)*aH_ratio_after_small_epsilon,
                                                     _TRUE_,
                                                     backward,
                                                     conformal),
              ppm->error_message,
              ppm->error_message);
 
+  /* we now have a value phi_try belived to be close to and slightly smaller than phi_pivot */
+
   phi_try = y[ppm->index_in_phi];
+
+  /* find attractor in phi_try */
 
   class_call(primordial_inflation_find_attractor(ppm,
                                                  ppr,
@@ -2416,6 +2430,8 @@ int primordial_inflation_find_phi_pivot(
                                                  &dphidt_try),
              ppm->error_message,
              ppm->error_message);
+
+  /* check the total amount of inflation between phi_try and the end of inflation */
 
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_try;
@@ -2433,10 +2449,22 @@ int primordial_inflation_find_phi_pivot(
              ppm->error_message,
              ppm->error_message);
 
-  printf("here we find phi_stop = %e\n",y[1]);
-
   aH_try = dy[ppm->index_in_a]/H_try;
 
+  class_test(log(aH_try) < ppm->ln_aH_ratio,
+             ppm->error_message,
+             "phi_try not small enough, log(aH_stop/ah_try) = %e instead of requested %e; must write here a loop to deal automatically with this situation (by decreasing phi_try iteratively), or must increase precision parameter primordial_inflation_extra_efolds",
+             log(aH_try),
+             ppm->ln_aH_ratio);
+
+  phi_stop = y[1];
+
+  if (ppm->primordial_verbose > 1)
+    printf(" (inflation stops in phi_stop = %e)\n",phi_stop);
+
+  /* go back to phi_try, and now find phi_pivot such that the amount
+     of inflation between phi_pivot and the end of inflation is
+     exactly the one requested. */
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_try;
   y[ppm->index_in_dphi]= dphidt_try;
@@ -2453,27 +2481,31 @@ int primordial_inflation_find_phi_pivot(
              ppm->error_message,
              ppm->error_message);
 
-
-  printf("reached phi_pivot=%e\n",y[1]);
   ppm->phi_pivot = y[1];
 
-  // part for testing that this phi_pivot is correct
-  double aH = dy[0];
+  if (ppm->primordial_verbose > 1)
+    printf(" (reached phi_pivot=%e)\n",ppm->phi_pivot);
 
-  class_call(primordial_inflation_evolve_background(ppm,
-                                                    ppr,
-                                                    y,
-                                                    dy,
-                                                    _phi_,
-                                                    -1.999774e-01,
-                                                    _FALSE_,
-                                                    forward,
-                                                    proper),
-             ppm->error_message,
-             ppm->error_message);
-
-  printf("from phi_pivot till the end, ln(aH_2/aH_1) = %e \n",log(dy[0]/aH));
-
+  /* uncomment this part if you want to check that phi_pivot is
+     correct. Done by restarting from phi_pivot and going again till
+     the end of inflation. */
+  /*
+  if (ppm->primordial_verbose > 1) {
+    double aH = dy[0];
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _end_inflation_,
+                                                      0.,
+                                                      _FALSE_,
+                                                      forward,
+                                                      proper),
+               ppm->error_message,
+               ppm->error_message);
+    printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e)\n",log(dy[0]/aH));
+  }
+  */
 
   return _SUCCESS_;
 }
