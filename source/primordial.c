@@ -1,5 +1,3 @@
-// TODO in find_attractor, it shoudl be possible to conclude very quickly that the series does not converge, without needing to wait that the counter reaches a large value
-
 /** @file primordial.c Documented primordial module.
  *
  * Julien Lesgourgues, 24.08.2010
@@ -1147,6 +1145,7 @@ int primordial_inflation_solve_inflation(
   }
 
   // uncomment these lines if for checking, you want first-order slow-roll predictions
+  /*
   if (ppm->primordial_verbose>0) {
     if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end)) {
       double V,dV,ddV;
@@ -1160,6 +1159,7 @@ int primordial_inflation_solve_inflation(
       fprintf(stdout," -> 1st-order slow-roll prediction for n_t: %g\n",-2./16./_PI_*pow(dV/V,2));
     }
   }
+  */
 
   /* compute H_pivot at phi_pivot */
   switch (ppm->primordial_spec_type) {
@@ -1944,10 +1944,7 @@ int primordial_inflation_evolve_background(
     dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*y[ppm->index_in_a]/dy[ppm->index_in_a];
   }
 
-  //print("tau_start=%e  a=%e  phi=%e  dtau=%e\n",tau_start,y[0],y[1],dtau);
-
   /* expected value of either aH or phi after the next step */
-
   switch (target) {
   case _aH_:
     // next (approximate) value of aH after next step
@@ -1955,7 +1952,6 @@ int primordial_inflation_evolve_background(
     // where dtau can be conformal or proper time
     quantity = dy[ppm->index_in_a] * (1.+ dy[ppm->index_in_a]/y[ppm->index_in_a] * dtau);
     if (time == conformal) quantity /= y[ppm->index_in_a];
-      // old: quantity = aH + aH*aH*dtau;
     break;
   case _phi_:
     // next (approximate) value of phi after next step
@@ -2148,7 +2144,7 @@ int primordial_inflation_evolve_background(
              ppm->error_message,
              ppm->error_message);
 
-  //for testing
+  // uncomment if you want to test that the routine really reached the point at which d2a/dt2=0
   /*
   if (target == _end_inflation_) {
     class_call(primordial_inflation_derivs(tau_end,
@@ -2161,6 +2157,8 @@ int primordial_inflation_evolve_background(
 
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
     quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
+    if (ppm->primordial_verbose>1)
+      printf(" (-d2a/dt2 /a = %e)\n",quantity);
   }
   */
 
@@ -2304,6 +2302,16 @@ int primordial_inflation_get_epsilon(
 
   return _SUCCESS_;
 }
+
+/**
+ * Routine searching
+ *
+ * @param ppm       Input/output: pointer to primordial structure
+ * @param ppr       Input: pointer to precision structure
+ * @param y         Input: running vector of background variables, already allocated and initialized
+ * @param dy        Input: running vector of background derivatives, already allocated
+ * @return the error status
+ */
 
 int primordial_inflation_find_phi_pivot(
                                         struct primordial * ppm,
@@ -2474,7 +2482,7 @@ int primordial_inflation_find_phi_pivot(
  * Routine returning derivative of system of background/perturbation
  * variables. Like other routines used by the generic integrator
  * (background_derivs, thermodynamics_derivs, perturb_derivs), this
- * routine has a generci list of arguments, and a slightly different
+ * routine has a generic list of arguments, and a slightly different
  * error management, with the error message returned directly in an
  * ErrMsg field.
  *
@@ -2543,12 +2551,12 @@ int primordial_inflation_derivs(
         dy[ppm->index_in_a]=ppipaw->aH;
         // 2: phi
         dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
-        // 3: dphi/dtau
+        // 3: dphi/dt
         dy[ppm->index_in_dphi]=-3.*ppipaw->aH/y[ppm->index_in_a]*y[ppm->index_in_dphi]-ppipaw->dV;
         break;
       }
 
-      // z''/z
+      // z''/z (assumes that conformal time is requested)
       ppipaw->zpp_over_z=
         2*ppipaw->aH*ppipaw->aH
         - ppipaw->a2*ppipaw->ddV
@@ -2556,7 +2564,7 @@ int primordial_inflation_derivs(
                    +4.*y[ppm->index_in_dphi]/ppipaw->aH*ppipaw->a2*ppipaw->dV)
         +32.*_PI_*_PI_*pow(y[ppm->index_in_dphi],4)/pow(ppipaw->aH,2);
 
-      // a''/a
+      // a''/a (assumes that conformal time is requested)
       ppipaw->app_over_a=2.*ppipaw->aH*ppipaw->aH - 4.*_PI_*y[ppm->index_in_dphi]*y[ppm->index_in_dphi];
 
       break;
@@ -2580,7 +2588,7 @@ int primordial_inflation_derivs(
 
       case proper:
 
-        // a H = adot
+        // a H = da/dt
         ppipaw->aH = y[ppm->index_in_a]*sqrt((8*_PI_/3.)*ppipaw->V);
         // 1: a
         dy[ppm->index_in_a]=ppipaw->aH;
@@ -2624,7 +2632,7 @@ int primordial_inflation_derivs(
       break;
     }
 
-    // z''/z
+    // z''/z (assumes that conformal time is requested)
     ppipaw->zpp_over_z =
       2.               *ppipaw->a2*ppipaw->H*ppipaw->H
       -3./4./_PI_      *ppipaw->a2*ppipaw->H*ppipaw->ddH
@@ -2634,7 +2642,7 @@ int primordial_inflation_derivs(
       +1./2./_PI_      *ppipaw->a2*ppipaw->dH*ppipaw->dH
       +1./8./_PI_/_PI_ *ppipaw->a2*ppipaw->dH*ppipaw->dH*ppipaw->dH*ppipaw->dH/ppipaw->H/ppipaw->H;
 
-    // a''/a
+    // a''/a (assumes that conformal time is requested)
     ppipaw->app_over_a = 2.*ppipaw->a2*ppipaw->H*ppipaw->H
       -4.*_PI_*dy[ppm->index_in_phi]*dy[ppm->index_in_phi];
 
