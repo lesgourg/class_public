@@ -3237,3 +3237,234 @@ int spectra_matter_transfers(
 
   return _SUCCESS_;
 }
+
+int spectra_output_tk_titles(struct background *pba,
+                             struct perturbs *ppt,
+                             enum file_format output_format,
+                             char titles[_MAXTITLESTRINGLENGTH_]
+                             ){
+  int n_ncdm;
+  char tmp[40];
+
+  if (output_format == class_format) {
+    class_store_columntitle(titles,"k (h/Mpc)",_TRUE_);
+    if (ppt->has_density_transfers == _TRUE_) {
+      class_store_columntitle(titles,"d_g",_TRUE_);
+      class_store_columntitle(titles,"d_b",_TRUE_);
+      class_store_columntitle(titles,"d_cdm",pba->has_cdm);
+      class_store_columntitle(titles,"d_fld",pba->has_fld);
+      class_store_columntitle(titles,"d_ur",pba->has_ur);
+      if (pba->has_ncdm == _TRUE_) {
+        for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+          sprintf(tmp,"d_ncdm[%d]",n_ncdm);
+          class_store_columntitle(titles,tmp,_TRUE_);
+        }
+      }
+      class_store_columntitle(titles,"d_dcdm",pba->has_dcdm);
+      class_store_columntitle(titles,"d_dr",pba->has_dr);
+      class_store_columntitle(titles,"d_scf",pba->has_scf);
+      class_store_columntitle(titles,"d_tot",_TRUE_);
+    }
+    if (ppt->has_velocity_transfers == _TRUE_) {
+      class_store_columntitle(titles,"t_g",_TRUE_);
+      class_store_columntitle(titles,"t_b",_TRUE_);
+      class_store_columntitle(titles,"t_cdm",((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)));
+      class_store_columntitle(titles,"t_fld",pba->has_fld);
+      class_store_columntitle(titles,"t_ur",pba->has_ur);
+      if (pba->has_ncdm == _TRUE_) {
+        for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
+          sprintf(tmp,"t_ncdm[%d]",n_ncdm);
+          class_store_columntitle(titles,tmp,_TRUE_);
+        }
+      }
+      class_store_columntitle(titles,"t_dcdm",pba->has_dcdm);
+      class_store_columntitle(titles,"t_dr",pba->has_dr);
+      class_store_columntitle(titles,"t__scf",pba->has_scf);
+      class_store_columntitle(titles,"t_tot",_TRUE_);
+    }
+  }
+
+  else if (output_format == camb_format) {
+
+    class_store_columntitle(titles,"k (h/Mpc)",_TRUE_);
+    class_store_columntitle(titles,"-T_cdm/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_b/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_g/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_ur/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_ncdm/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_tot/k2",_TRUE_);
+
+  }
+
+  return _SUCCESS_;
+
+}
+
+int spectra_output_tk_data(
+                          struct background * pba,
+                          struct perturbs * ppt,
+                          struct spectra * psp,
+                          enum file_format output_format,
+                          double z,
+                          int number_of_titles,
+                          double *data
+                          ) {
+
+  int n_ncdm;
+  double k, k_over_h, k2;
+  double * tkfull=NULL;  /* array with argument
+                   pk_ic[(index_k * psp->ic_size[index_md] + index_ic)*psp->tr_size+index_tr] */
+  double *tk;
+  double *dataptr;
+
+  int index_md=0;
+  int index_ic;
+  int index_k;
+  int index_tr;
+  int storeidx;
+
+  if (psp->ln_k_size*psp->ic_size[index_md]*psp->tr_size > 0){
+  class_alloc(tkfull,
+              psp->ln_k_size*psp->ic_size[index_md]*psp->tr_size*sizeof(double),
+              psp->error_message);
+  }
+
+    /** - compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
+
+    /* if z_pk = 0, no interpolation needed */
+
+    if (z == 0.) {
+
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+        for (index_tr=0; index_tr<psp->tr_size; index_tr++) {
+          for (index_ic=0; index_ic<psp->ic_size[index_md]; index_ic++) {
+            tkfull[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(((psp->ln_tau_size-1)*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr];
+          }
+        }
+      }
+    }
+
+    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
+    else {
+
+      class_call(spectra_tk_at_z(pba,
+                                 psp,
+                                 z,
+                                 tkfull),
+                 psp->error_message,
+                 psp->error_message);
+    }
+
+    /** - store data */
+
+    for (index_ic = 0; index_ic < psp->ic_size[index_md]; index_ic++) {
+
+      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
+
+        storeidx = 0;
+        dataptr = data+index_ic*(psp->ln_k_size*number_of_titles)+index_k*number_of_titles;
+        tk = &(tkfull[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size]);
+        k = exp(psp->ln_k[index_k]);
+        k2 = k*k;
+        k_over_h = k/pba->h;
+
+        class_store_double(dataptr, k_over_h, _TRUE_,storeidx);
+
+        /* indices for species associated with a velocity transfer function in Fourier space */
+
+        if (output_format == class_format) {
+
+          if (ppt->has_density_transfers == _TRUE_) {
+
+            class_store_double(dataptr,tk[psp->index_tr_delta_g],ppt->has_source_delta_g,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_b],ppt->has_source_delta_b,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_cdm],ppt->has_source_delta_cdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_fld],ppt->has_source_delta_fld,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_ur],ppt->has_source_delta_ur,storeidx);
+            if (pba->has_ncdm == _TRUE_){
+              for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+                class_store_double(dataptr,tk[psp->index_tr_delta_ncdm1+n_ncdm],ppt->has_source_delta_ncdm,storeidx);
+              }
+            }
+            class_store_double(dataptr,tk[psp->index_tr_delta_dcdm],ppt->has_source_delta_dcdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_dr],ppt->has_source_delta_dr,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_scf],ppt->has_source_delta_scf,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_delta_tot],_TRUE_,storeidx);
+
+          }
+          if (ppt->has_velocity_transfers == _TRUE_) {
+
+            class_store_double(dataptr,tk[psp->index_tr_theta_g],ppt->has_source_theta_g,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_b],ppt->has_source_theta_b,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_cdm],ppt->has_source_theta_cdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_fld],ppt->has_source_theta_fld,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_ur],ppt->has_source_theta_ur,storeidx);
+            if (pba->has_ncdm == _TRUE_){
+              for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
+                class_store_double(dataptr,tk[psp->index_tr_theta_ncdm1+n_ncdm],ppt->has_source_theta_ncdm,storeidx);
+              }
+            }
+            class_store_double(dataptr,tk[psp->index_tr_theta_dcdm],ppt->has_source_theta_dcdm,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_dr],ppt->has_source_theta_dr,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_scf],ppt->has_source_theta_scf,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_theta_tot],_TRUE_,storeidx);
+
+          }
+
+        }
+        else if (output_format == camb_format) {
+
+          /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_cdm]/k2,ppt->has_source_delta_cdm,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_b]/k2,ppt->has_source_delta_b,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_g]/k2,ppt->has_source_delta_g,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ur]/k2,ppt->has_source_delta_ur,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ncdm1]/k2,ppt->has_source_delta_ncdm,storeidx,0.0);
+          class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_tot]/k2,_TRUE_,storeidx,0.0);
+
+        }
+      }
+    }
+
+    //Neccessary because the size could be zero (if psp->tr_size is zero)
+    if (tkfull != NULL)
+      free(tkfull);
+
+    return _SUCCESS_;
+}
+
+ int spectra_firstline_and_ic_suffix(struct perturbs *ppt,
+                                    int index_ic,
+                                    char first_line[_LINE_LENGTH_MAX_],
+                                    FileName ic_suffix){
+
+  first_line[0]='\0';
+  ic_suffix[0]='\0';
+
+
+  if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
+    strcpy(ic_suffix,"ad");
+    strcpy(first_line,"for adiabatic (AD) mode (normalized to initial curvature=1) ");
+  }
+
+  if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
+    strcpy(ic_suffix,"bi");
+    strcpy(first_line,"for baryon isocurvature (BI) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_cdi == _TRUE_) && (index_ic == ppt->index_ic_cdi)) {
+    strcpy(ic_suffix,"cdi");
+    strcpy(first_line,"for CDM isocurvature (CDI) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
+    strcpy(ic_suffix,"nid");
+    strcpy(first_line,"for neutrino density isocurvature (NID) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
+    strcpy(ic_suffix,"niv");
+    strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
+  }
+  return _SUCCESS_;
+}

@@ -6,11 +6,26 @@
 # If, for whatever reason, you need an other, existing parameter from Class,
 # remember to add it inside this cdef.
 
+DEF _MAX_NUMBER_OF_K_FILES_ = 30
+DEF _MAXTITLESTRINGLENGTH_ = 8000
+DEF _FILENAMESIZE_ = 256
+DEF _LINE_LENGTH_MAX_ = 1024
+
 cdef extern from "class.h":
 
     ctypedef char FileArg[40]
 
     ctypedef char* ErrorMsg
+
+    ctypedef char FileName[_FILENAMESIZE_]
+
+    cdef enum linear_or_logarithmic:
+        linear
+        logarithmic
+
+    cdef enum file_format:
+         class_format
+         camb_format
 
     cdef struct precision:
         ErrorMsg error_message
@@ -40,6 +55,8 @@ cdef extern from "class.h":
         double wa_fld
         double cs2_fld
 
+        int bt_size
+
     cdef struct thermo:
         ErrorMsg error_message
         int th_size
@@ -60,10 +77,38 @@ cdef extern from "class.h":
         double YHe
         double n_e
 
+        int tt_size
+
     cdef struct perturbs:
         ErrorMsg error_message
+        short has_scalars
+        short has_vectors
+        short has_tensors
+
+        short has_density_transfers
+        short has_velocity_transfers
+
         int has_pk_matter
         int l_lss_max
+
+        int store_perturbations
+        int k_output_values_num
+        double k_output_values[_MAX_NUMBER_OF_K_FILES_]
+        int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]
+        char scalar_titles[_MAXTITLESTRINGLENGTH_]
+        char vector_titles[_MAXTITLESTRINGLENGTH_]
+        char tensor_titles[_MAXTITLESTRINGLENGTH_]
+        int number_of_scalar_titles
+        int number_of_vector_titles
+        int number_of_tensor_titles
+
+
+        double * scalar_perturbations_data[_MAX_NUMBER_OF_K_FILES_]
+        double * vector_perturbations_data[_MAX_NUMBER_OF_K_FILES_]
+        double * tensor_perturbations_data[_MAX_NUMBER_OF_K_FILES_]
+        int size_scalar_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
+        int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
+        int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
 
     cdef struct transfers:
         ErrorMsg error_message
@@ -98,6 +143,7 @@ cdef extern from "class.h":
         double phi_min
         double phi_max
 
+        int lnk_size
     cdef struct spectra:
         ErrorMsg error_message
         int has_tt
@@ -110,6 +156,7 @@ cdef extern from "class.h":
         int ** l_max_ct
         int ln_k_size
         int ct_size
+        int * ic_size
         int * ic_ic_size
         int md_size
         int d_size
@@ -214,7 +261,19 @@ cdef extern from "class.h":
 
     int background_tau_of_z(void* pba, double z,double* tau)
     int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
+    int background_output_titles(void * pba, char titles[_MAXTITLESTRINGLENGTH_])
+    int background_output_data(void *pba, int number_of_titles, double *data)
+
     int thermodynamics_at_z(void * pba, void * pth, double z, short inter_mode, int * last_index, double *pvecback, double *pvecthermo)
+    int thermodynamics_output_titles(void * pba, void *pth, char titles[_MAXTITLESTRINGLENGTH_])
+    int thermodynamics_output_data(void *pba, void *pth, int number_of_titles, double *data)
+
+    int primordial_output_titles(void * ppt, void *ppm, char titles[_MAXTITLESTRINGLENGTH_])
+    int primordial_output_data(void *ppt, void *ppm, int number_of_titles, double *data)
+
+    int spectra_output_tk_titles(void *pba, void *ppt,  file_format output_format, char titles[_MAXTITLESTRINGLENGTH_])
+    int spectra_output_tk_data(void *pba,void *ppt,void *psp,  file_format output_format, double z, int number_of_titles, double *data)
+
     int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
     int spectra_pk_at_z(
@@ -252,6 +311,4 @@ cdef extern from "class.h":
 
     int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl)
 
-    cdef enum linear_or_logarithmic:
-        linear
-        logarithmic
+    int spectra_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)

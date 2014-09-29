@@ -3,6 +3,7 @@
 #ifndef __OUTPUT__
 #define __OUTPUT__
 
+#include "common.h"
 #include "lensing.h"
 
 /**
@@ -11,12 +12,6 @@
  */
 
 #define _Z_PK_NUM_MAX_ 100
-
-/**
- * Different ways to present output files
- */
-
-enum file_format {class_format,camb_format};
 
 /**
  * Structure containing various informations on the output format,
@@ -38,7 +33,7 @@ struct output {
 
   //@{
 
-  double z_pk_num;
+  int z_pk_num;
   double z_pk[_Z_PK_NUM_MAX_];
 
   //@}
@@ -53,6 +48,7 @@ struct output {
 
   short write_background;
   short write_thermodynamics;
+  short write_perturbations;
   short write_primordial;
 
   //@}
@@ -137,12 +133,22 @@ extern "C" {
                             struct output * pop
                             );
 
+  int output_perturbations(
+                           struct background * pba,
+                           struct perturbs * ppt,
+                           struct output * pop
+                           );
+
   int output_primordial(
                         struct perturbs * ppt,
                         struct primordial * ppm,
                         struct output * pop
                         );
 
+  int output_print_data(FILE *out,
+                        char titles[_MAXTITLESTRINGLENGTH_],
+                        double *dataptr,
+                        int tau_size);
   int output_open_cl_file(
                           struct spectra * psp,
                           struct output * pop,
@@ -189,70 +195,6 @@ extern "C" {
                              int k_size
                              );
 
-  int output_open_tk_file(
-                          struct background * pba,
-                          struct perturbs * ppt,
-                          struct spectra * psp,
-                          struct output * pop,
-                          FILE ** tkfile,
-                          FileName filename,
-                          char * first_line,
-                          double z
-                          );
-
-  int output_one_line_of_tk(
-                            struct background * pba,
-                            struct perturbs * ppt,
-                            struct spectra * psp,
-                            struct output * pop,
-                            FILE * tkfile,
-                            double k_over_h,
-                            double * tk,
-                            int tr_size
-                            );
-
-  int output_open_background_file(
-                                  struct background * pba,
-                                  struct output * pop,
-                                  FILE ** backfile,
-                                  FileName filename
-                                  );
-
-  int output_one_line_of_background(
-                                    struct background * pba,
-                                    FILE * backfile,
-                                    double * pvecback
-                                    );
-
-  int output_open_thermodynamics_file(
-                                      struct thermo * pth,
-                                      struct output * pop,
-                                      FILE ** thermofile,
-                                      FileName filename
-                                      );
-
-  int output_one_line_of_thermodynamics(
-                                        struct thermo * pth,
-                                        FILE * thermofile,
-                                        double tau,
-                                        double z,
-                                        double * pvecthermo
-                                        );
-
-  int output_open_primordial_file(
-                                  struct perturbs * ppt,
-                                  struct primordial * ppm,
-                                  struct output * pop,
-                                  FILE * * outputfile,
-                                  FileName filename
-                                  );
-
-  int output_one_line_of_primordial(
-                                    struct perturbs * ppt,
-                                    struct primordial * ppm,
-                                    FILE * outputfile,
-                                    int index_k
-                                    );
 
 #ifdef __cplusplus
 }

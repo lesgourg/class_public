@@ -2141,7 +2141,6 @@ int input_read_parameters(
   }
 
   class_read_string("root",pop->root);
-  strcpy(ppt->root,pop->root);
 
   class_call(parser_read_string(pfc,
                                 "headers",
@@ -2508,6 +2507,8 @@ int input_read_parameters(
       ppt->k_output_values[i] = pointer1[i];
     }
     free(pointer1);
+    ppt->store_perturbations = _TRUE_;
+    pop->write_perturbations = _TRUE_;
   }
 
   /** (i.4) shall we write primordial spectra in a file? */
@@ -2552,6 +2553,7 @@ int input_default_params(
                          ) {
 
   double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+  int filenum;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -2676,6 +2678,15 @@ int input_default_params(
   ppt->gauge=synchronous;
 
   ppt->k_output_values_num=0;
+  ppt->store_perturbations = _FALSE_;
+  ppt->number_of_scalar_titles=0;
+  ppt->number_of_vector_titles=0;
+  ppt->number_of_tensor_titles=0;
+  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
+    ppt->scalar_perturbations_data[filenum] = NULL;
+    ppt->vector_perturbations_data[filenum] = NULL;
+    ppt->tensor_perturbations_data[filenum] = NULL;
+  }
 
   /** - primordial structure */
 
@@ -2775,6 +2786,7 @@ int input_default_params(
   pop->output_format = class_format;
   pop->write_background = _FALSE_;
   pop->write_thermodynamics = _FALSE_;
+  pop->write_perturbations = _FALSE_;
   pop->write_primordial = _FALSE_;
 
   /** - spectra structure */

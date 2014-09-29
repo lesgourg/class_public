@@ -3035,3 +3035,37 @@ int primordial_external_spectrum_init(
 
   return _SUCCESS_;
 }
+
+int primordial_output_titles(struct perturbs * ppt,
+                             struct primordial * ppm,
+                             char titles[_MAXTITLESTRINGLENGTH_]
+                             ){
+  class_store_columntitle(titles,"k [1/Mpc]",_TRUE_);
+  class_store_columntitle(titles,"P_scalar(k)",_TRUE_);
+  class_store_columntitle(titles,"P_tensor(k)",ppt->has_tensors);
+
+  return _SUCCESS_;
+
+}
+
+int primordial_output_data(struct perturbs * ppt,
+                           struct primordial * ppm,
+                           int number_of_titles,
+                           double *data){
+
+  int index_k, storeidx;
+  double *dataptr;
+
+  for (index_k=0; index_k<ppm->lnk_size; index_k++) {
+    dataptr = data + index_k*number_of_titles;
+    storeidx = 0;
+
+    class_store_double(dataptr, exp(ppm->lnk[index_k]), _TRUE_,storeidx);
+    class_store_double(dataptr, exp(ppm->lnpk[ppt->index_md_scalars][index_k]), _TRUE_,storeidx);
+    class_store_double(dataptr, exp(ppm->lnpk[ppt->index_md_tensors][index_k]), ppt->has_tensors,storeidx);
+  }
+
+
+  return _SUCCESS_;
+
+}

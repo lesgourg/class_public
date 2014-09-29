@@ -214,6 +214,7 @@ struct background
 
   //@}
 
+
   /** @name - all indices for the vector of background quantities to be integrated (=bi)
    *
    * Most background quantities can be immediately inferred from the
@@ -443,6 +444,15 @@ extern "C" {
 				    double * pvecback,
 				    double * pvecback_integration
 				    );
+
+  int background_output_titles(struct background * pba,
+                               char titles[_MAXTITLESTRINGLENGTH_]
+                               );
+
+  int background_output_data(
+                           struct background *pba,
+                           int number_of_titles,
+                           double *data);
 
   int background_derivs(
 			 double z,

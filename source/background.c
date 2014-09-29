@@ -1851,6 +1851,102 @@ int background_initial_conditions(
 }
 
 /**
+ * Subroutine for formatting background output
+ */
+
+int background_output_titles(struct background * pba,
+                             char titles[_MAXTITLESTRINGLENGTH_]
+                             ){
+
+  /** Length of the columntitle should be less than _OUTPUTPRECISION_+6
+      to be indented correctly, but it can be as long as . */
+  int n;
+  char tmp[20];
+
+  class_store_columntitle(titles,"z",_TRUE_);
+  class_store_columntitle(titles,"proper time [Gyr]",_TRUE_);
+  class_store_columntitle(titles,"conf. time [Mpc]",_TRUE_);
+  class_store_columntitle(titles,"H [1/Mpc]",_TRUE_);
+  class_store_columntitle(titles,"comov. dist.",_TRUE_);
+  class_store_columntitle(titles,"ang.diam.dist.",_TRUE_);
+  class_store_columntitle(titles,"lum. dist.",_TRUE_);
+  class_store_columntitle(titles,"comov.snd.hrz.",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_g",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_b",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_cdm",pba->has_cdm);
+  if (pba->has_ncdm == _TRUE_){
+    for (n=0; n<pba->N_ncdm; n++){
+      sprintf(tmp,"(.)rho_ncdm[%d]",n);
+      class_store_columntitle(titles,tmp,_TRUE_);
+    }
+  }
+  class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
+  class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
+  class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
+  class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
+  class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
+  class_store_columntitle(titles,"(.)rho_dr",pba->has_dr);
+
+  class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
+  class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
+  class_store_columntitle(titles,"phi_scf",pba->has_scf);
+  class_store_columntitle(titles,"phi'_scf",pba->has_scf);
+  class_store_columntitle(titles,"V_scf",pba->has_scf);
+  class_store_columntitle(titles,"V'_scf",pba->has_scf);
+  class_store_columntitle(titles,"V''_scf",pba->has_scf);
+
+  return _SUCCESS_;
+}
+
+int background_output_data(
+                           struct background *pba,
+                           int number_of_titles,
+                           double *data){
+  int index_tau, storeidx, n;
+  double *dataptr, *pvecback;
+
+  /** Store quantities: */
+  for (index_tau=0; index_tau<pba->bt_size; index_tau++){
+    dataptr = data + index_tau*number_of_titles;
+    pvecback = pba->background_table + index_tau*pba->bg_size;
+    storeidx = 0;
+
+    class_store_double(dataptr,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_,storeidx);
+    class_store_double(dataptr,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_H],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_conf_distance],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_ang_distance],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_lum_distance],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rs],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_g],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_b],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
+    if (pba->has_ncdm == _TRUE_){
+      for (n=0; n<pba->N_ncdm; n++)
+        class_store_double(dataptr,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_,storeidx);
+    }
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_dr],pba->has_dr,storeidx);
+
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_phi_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_dV_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_ddV_scf],pba->has_scf,storeidx);
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
  * Subroutine evaluating the derivative with respect to conformal time
  * of quantities which are integrated (a, t, etc).
  *

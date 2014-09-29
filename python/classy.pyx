@@ -23,6 +23,8 @@ ctypedef np.int_t DTYPE_i
 # Import the .pxd containing definitions
 from cclassy cimport *
 
+DEF _MAXTITLESTRINGLENGTH_ = 8000
+
 # Implement a specific Exception (this might not be optimally designed, nor
 # even acceptable for python standards. It, however, does the job).
 # The idea is to raise either an AttributeError if the problem happened while
@@ -895,6 +897,265 @@ cdef class Class:
         Return the sum of Omega0 for baryon and CDM
         """
         return self.ba.Omega0_b+self.ba.Omega0_cdm
+
+    def get_background(self):
+        """
+        Return the background quantities.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        background : dictionary containing background.
+        """
+        cdef char *titles
+        cdef double* data
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if background_output_titles(&self.ba, titles)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        tmp = <bytes> titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.ba.bt_size
+
+        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+
+        if background_output_data(&self.ba, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        background = {}
+
+        for i in range(number_of_titles):
+            background[names[i]] = np.zeros(timesteps, dtype=np.double)
+            for index in range(timesteps):
+                background[names[i]][index] = data[index*number_of_titles+i]
+
+        return background
+
+    def get_thermodynamics(self):
+        """
+        Return the thermodynamics quantities.
+
+        Returns
+        -------
+        thermodynamics : dictionary containing thermodynamics.
+        """
+        cdef char *titles
+        cdef double* data
+
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if thermodynamics_output_titles(&self.ba, &self.th, titles)==_FAILURE_:
+            raise CosmoSevereError(self.th.error_message)
+
+        tmp = <bytes> titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.th.tt_size
+
+        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+
+        if thermodynamics_output_data(&self.ba, &self.th, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.th.error_message)
+
+        thermodynamics = {}
+
+        for i in range(number_of_titles):
+            thermodynamics[names[i]] = np.zeros(timesteps, dtype=np.double)
+            for index in range(timesteps):
+                thermodynamics[names[i]][index] = data[index*number_of_titles+i]
+
+        return thermodynamics
+
+    def get_primordial(self):
+        """
+        Return the primordial scalar and/or tensor spectrum depending on 'modes'.
+        'output' must be set to something, e.g. 'tCl'.
+
+        Returns
+        -------
+        primordial : dictionary containing k-vector and primordial scalar and tensor P(k).
+        """
+        cdef char *titles
+        cdef double* data
+
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if primordial_output_titles(&self.pt, &self.pm, titles)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        tmp = <bytes> titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.pm.lnk_size
+
+        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+
+        if primordial_output_data(&self.pt, &self.pm, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.pm.error_message)
+
+        primordial = {}
+
+        for i in range(number_of_titles):
+            primordial[names[i]] = np.zeros(timesteps, dtype=np.double)
+            for index in range(timesteps):
+                primordial[names[i]][index] = data[index*number_of_titles+i]
+
+        return primordial
+
+
+    def get_perturbations(self):
+        """
+        Return scalar, vector and/or tensor perturbations as arrays for requested
+        k-values.
+
+        .. note::
+
+            you need to specify both 'k_output_values', and have some
+            perturbations computed, for instance by setting 'output' to 'tCl'.
+
+        Returns
+        -------
+        perturbations : dict of array of dicts
+                perturbations['scalar'] is an array of length 'k_output_values' of
+                dictionary containing scalar perturbations.
+                Similar for perturbations['vector'] and perturbations['tensor'].
+        """
+
+        perturbations = {}
+
+        if self.pt.k_output_values_num<1:
+            return perturbations
+
+        # Doing the exact same thing 3 times, for scalar, vector and tensor. Sorry
+        # for copy-and-paste here, but I don't know what else to do.
+
+        #Scalar:
+        if self.pt.has_scalars:
+            tmp = <bytes> self.pt.scalar_titles
+            names = tmp.split("\t")[:-1]
+            number_of_titles = len(names)
+            tmparray = [];
+            if number_of_titles != 0:
+                for j in range(self.pt.k_output_values_num):
+                    timesteps = self.pt.size_scalar_perturbation_data[j]/number_of_titles;
+                    tmpdict={}
+                    for i in range(number_of_titles):
+                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                        for index in range(timesteps):
+                            tmpdict[names[i]][index] = self.pt.scalar_perturbations_data[j][index*number_of_titles+i]
+                    tmparray.append(tmpdict)
+            perturbations['scalar'] = tmparray;
+
+        #Vector:
+        if self.pt.has_vectors:
+            tmp = <bytes> self.pt.vector_titles
+            names = tmp.split("\t")[:-1]
+            number_of_titles = len(names)
+            tmparray = [];
+            if number_of_titles != 0:
+                for j in range(self.pt.k_output_values_num):
+                    timesteps = self.pt.size_vector_perturbation_data[j]/number_of_titles;
+                    tmpdict={}
+                    for i in range(number_of_titles):
+                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                        for index in range(timesteps):
+                            tmpdict[names[i]][index] = self.pt.vector_perturbations_data[j][index*number_of_titles+i]
+                    tmparray.append(tmpdict)
+            perturbations['vector'] = tmparray;
+
+        #Tensor:
+        if self.pt.has_tensors:
+            tmp = <bytes> self.pt.tensor_titles
+            names = tmp.split("\t")[:-1]
+            number_of_titles = len(names)
+            tmparray = [];
+            if number_of_titles != 0:
+                for j in range(self.pt.k_output_values_num):
+                    timesteps = self.pt.size_tensor_perturbation_data[j]/number_of_titles;
+                    tmpdict={}
+                    for i in range(number_of_titles):
+                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                        for index in range(timesteps):
+                            tmpdict[names[i]][index] = self.pt.tensor_perturbations_data[j][index*number_of_titles+i]
+                    tmparray.append(tmpdict)
+            perturbations['tensor'] = tmparray;
+
+        return perturbations
+
+    def get_transfer(self, z=0., output_format='class'):
+        """
+        Return the density and/or velocity transfer functions for all initial
+        conditions today. You must include 'dCl' and 'vCl' in the list of
+        'output'. The transfer functions can also be computed at higher redshift z
+        provided that 'z_pk' has been set and that z is inside the region spanned by 'z_pk'.
+
+        Parameters
+        ----------
+        z  : redshift (default = 0)
+        output_format  : ('class' or 'camb') Format transfer functions according to
+                         CLASS convention (default) or CAMB convention.
+
+        Returns
+        -------
+        tk : dictionary containing transfer functions.
+        """
+        cdef char *titles
+        cdef double* data
+        cdef char ic_info[1024]
+        cdef FileName ic_suffix
+        cdef file_format outf
+
+        if (not self.pt.has_density_transfers) and (not self.pt.has_velocity_transfers):
+            return {}
+
+        if output_format == 'camb':
+            outf = camb_format
+        else:
+            outf = class_format
+
+        index_md = 0;
+        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+
+        if spectra_output_tk_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
+            raise CosmoSevereError(self.op.error_message)
+
+        tmp = <bytes> titles
+        names = tmp.split("\t")[:-1]
+        number_of_titles = len(names)
+        timesteps = self.sp.ln_k_size
+
+        size_ic_data = timesteps*number_of_titles;
+        ic_num = self.sp.ic_size[index_md];
+
+        data = <double*>malloc(sizeof(double)*size_ic_data*ic_num)
+
+        if spectra_output_tk_data(&self.ba, &self.pt, &self.sp, outf, <double> z, number_of_titles, data)==_FAILURE_:
+            raise CosmoSevereError(self.sp.error_message)
+
+        spectra = {}
+
+        for index_ic in range(ic_num):
+            if spectra_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
+                raise CosmoSevereError(self.op.error_message)
+            ic_key = <bytes> ic_suffix
+
+            tmpdict = {}
+            for i in range(number_of_titles):
+                tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
+                for index in range(timesteps):
+                    tmpdict[names[i]][index] = data[index_ic*size_ic_data+index*number_of_titles+i]
+
+            if ic_num==1:
+                spectra = tmpdict
+            else:
+                spectra[ic_key] = tmpdict
+
+        return spectra
+
 
     def get_current_derived_parameters(self, names):
         """

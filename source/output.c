@@ -179,6 +179,16 @@ int output_init(
 
   }
 
+  /** - deal with perturbation quantitites */
+
+  if (pop->write_perturbations == _TRUE_) {
+
+    class_call(output_perturbations(pba,ppt,pop),
+               pop->error_message,
+               pop->error_message);
+
+  }
+
   /** - deal with primordial spectra */
 
   if (pop->write_primordial == _TRUE_) {
@@ -989,6 +999,7 @@ int output_pk_nl(
 
 }
 
+
 /**
  * This routines writes the output in files for matter transfer functions T_i(k)'s.
  *
@@ -1008,23 +1019,22 @@ int output_tk(
   /** Summary: */
 
   /** - define local variables */
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
 
-  FILE ** out_ic; /* array of pointers to files with argument
-                     out_ic[index_ic]
-                     (will contain T_i(k)'s for each initial conditions) */
-
-  double * tk;  /* array with argument
-                   pk_ic[(index_k * psp->ic_size[index_md] + index_ic)*psp->tr_size+index_tr] */
+  FILE * tkfile;
 
   int index_md;
   int index_ic;
-  int index_k;
   int index_z;
-  int index_tr;
+
+  double z;
 
   FileName file_name;
   FileName redshift_suffix;
   char first_line[_LINE_LENGTH_MAX_];
+  FileName ic_suffix;
 
   index_md=ppt->index_md_scalars;
 
@@ -1039,7 +1049,18 @@ int output_tk(
                "you wish to output the transfer functions in CMBFAST/CAMB format, but you requested velocity transfer functions. The two are not compatible (since CMBFAST/CAMB do not compute velocity transfer functions): switch to CLASS output format, or ask only for density transfer function");
   }
 
+
+  class_call(spectra_output_tk_titles(pba,ppt,pop->output_format,titles),
+             pba->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*psp->ln_k_size;
+
+  class_alloc(data, sizeof(double)*psp->ic_size[index_md]*size_data, pop->error_message);
+
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
+
+    z = pop->z_pk[index_z];
 
     /** - first, check that requested redshift z_pk is consistent */
 
@@ -1054,117 +1075,72 @@ int output_tk(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_alloc(out_ic,
-                psp->ic_size[index_md]*sizeof(FILE *),
-                pop->error_message);
-
-    class_alloc(tk,
-                psp->ln_k_size*psp->ic_size[index_md]*psp->tr_size*sizeof(double),
-                pop->error_message);
+    class_call(spectra_output_tk_data(pba,
+                                      ppt,
+                                      psp,
+                                      pop->output_format,
+                                      pop->z_pk[index_z],
+                                      number_of_titles,
+                                      data
+                                      ),
+               psp->error_message,
+               pop->error_message);
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
+      class_call(spectra_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
+                 pop->error_message, pop->error_message);
 
-        if (ppt->ic_size[index_md] == 1)
-          sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
-        else
-          sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_ad.dat");
-        strcpy(first_line,"for adiabatic (AD) mode (normalized to initial curvature=1) ");
-      }
+      if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
+        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
+      else
+        sprintf(file_name,"%s%s%s%s%s",pop->root,redshift_suffix,"tk_",ic_suffix,".dat");
 
-      if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
+      class_open(tkfile, file_name, "w", pop->error_message);
 
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_bi.dat");
-        strcpy(first_line,"for baryon isocurvature (BI) mode (normalized to initial entropy=1)");
-      }
-
-      if ((ppt->has_cdi == _TRUE_) && (index_ic == ppt->index_ic_cdi)) {
-
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_cdi.dat");
-        strcpy(first_line,"for CDM isocurvature (CDI) mode (normalized to initial entropy=1)");
-      }
-
-      if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
-
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_nid.dat");
-        strcpy(first_line,"for neutrino density isocurvature (NID) mode (normalized to initial entropy=1)");
-      }
-
-      if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
-
-        sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk_niv.dat");
-        strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
-      }
-
-      class_call(output_open_tk_file(pba,
-                                     ppt,
-                                     psp,
-                                     pop,
-                                     &(out_ic[index_ic]),
-                                     file_name,
-                                     first_line,
-                                     pop->z_pk[index_z]
-                                     ),
-                 pop->error_message,
-                 pop->error_message);
-
-    }
-
-    /** - third, compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
-
-    /* if z_pk = 0, no interpolation needed */
-
-    if (pop->z_pk[index_z] == 0.) {
-
-      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-        for (index_tr=0; index_tr<psp->tr_size; index_tr++) {
-          for (index_ic=0; index_ic<psp->ic_size[index_md]; index_ic++) {
-            tk[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr] = psp->matter_transfer[(((psp->ln_tau_size-1)*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr];
+      if (pop->write_header == _TRUE_) {
+        if (pop->output_format == class_format) {
+          fprintf(tkfile,"# Transfer functions T_i(k) %sat redshift z=%g\n",first_line,z);
+          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+          fprintf(tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+          if (ppt->has_density_transfers == _TRUE_) {
+            fprintf(tkfile,"# d_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+            fprintf(tkfile,"# d_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
+            fprintf(tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
+            fprintf(tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
           }
+          if (ppt->has_velocity_transfers == _TRUE_) {
+            fprintf(tkfile,"# t_i   stands for theta_i(k,z) with above normalization \n");
+            fprintf(tkfile,"# t_tot stands for (sum_i [rho_i+p_i] theta_i)/(sum_i [rho_i+p_i]))(k,z)\n");
+          }
+          fprintf(tkfile,"#\n");
+        }
+        else if (pop->output_format == camb_format) {
+
+          fprintf(tkfile,"# Rescaled matter transfer functions [-T_i(k)/k^2] %sat redshift z=%g\n",first_line,z);
+          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+          fprintf(tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+          fprintf(tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
+          fprintf(tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
+          fprintf(tkfile,"#\n");
+          fprintf(tkfile,"#");
+          fprintf(tkfile,"\n");
+
         }
       }
+
+      output_print_data(tkfile,
+                        titles,
+                        data+index_ic*size_data,
+                        size_data);
+
+      fclose(tkfile);
+
     }
-
-    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
-    else {
-
-      class_call(spectra_tk_at_z(pba,
-                                 psp,
-                                 pop->z_pk[index_z],
-                                 tk),
-                 psp->error_message,
-                 pop->error_message);
-    }
-
-    /** - fourth, write in files */
-
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-      for (index_ic = 0; index_ic < psp->ic_size[index_md]; index_ic++) {
-        class_call(output_one_line_of_tk(pba,
-                                         ppt,
-                                         psp,
-                                         pop,
-                                         out_ic[index_ic],
-                                         exp(psp->ln_k[index_k])/pba->h,
-                                         &(tk[(index_k * psp->ic_size[index_md] + index_ic) * psp->tr_size]),
-                                         psp->tr_size),
-                   pop->error_message,
-                   pop->error_message);
-
-      }
-    }
-
-    /** - fifth, free memory and close files */
-
-    free(tk);
-
-    for (index_ic = 0; index_ic < psp->ic_size[index_md]; index_ic++) {
-      fclose(out_ic[index_ic]);
-    }
-    free(out_ic);
 
   }
+
+  free(data);
 
   return _SUCCESS_;
 
@@ -1175,32 +1151,47 @@ int output_background(
                       struct output * pop
                       ) {
 
-  FILE * out;
+  FILE * backfile;
   FileName file_name;
-  int index_eta;
 
-  sprintf(file_name,"%s%s",pop->root,"background.dat");
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
 
-  class_call(output_open_background_file(pba,
-                                         pop,
-                                         &out,
-                                         file_name
-                                         ),
-             pop->error_message,
+  class_call(background_output_titles(pba,titles),
+             pba->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*pba->bt_size;
+  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_call(background_output_data(pba,
+                                    number_of_titles,
+                                    data),
+             pba->error_message,
              pop->error_message);
 
-  for (index_eta=0; index_eta<pba->bt_size; index_eta++) {
+  sprintf(file_name,"%s%s",pop->root,"background.dat");
+  class_open(backfile,file_name,"w",pop->error_message);
 
-    class_call(output_one_line_of_background(pba,
-                                             out,
-                                             &(pba->background_table[index_eta*pba->bg_size])
-                                             ),
-               pop->error_message,
-               pop->error_message);
-
+  if (pop->write_header == _TRUE_) {
+    fprintf(backfile,"# Table of selected background quantitites\n");
+    fprintf(backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
+    fprintf(backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
+    if (pba->has_scf == _TRUE_){
+      fprintf(backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
+      fprintf(backfile,"# --> phi is given in units of the reduced Planck mass m_Pl = (8 pi G)^(-1/2)\n");
+      fprintf(backfile,"# --> tau in the derivative of V(phi) is given in units of Mpc.\n");
+      fprintf(backfile,"# --> the potential V(phi) is given in units of m_Pl^2/Mpc^2.\n");
+    }
   }
 
-  fclose(out);
+  output_print_data(backfile,
+                    titles,
+                    data,
+                    size_data);
+
+  free(data);
+  fclose(backfile);
 
   return _SUCCESS_;
 
@@ -1212,46 +1203,108 @@ int output_thermodynamics(
                           struct output * pop
                       ) {
 
-  FILE * out;
   FileName file_name;
-  int index_z;
-  double tau;
+  FILE * thermofile;
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
 
-  sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
-
-  class_call(output_open_thermodynamics_file(
-                                             pth,
-                                             pop,
-                                             &out,
-                                             file_name
-                                             ),
-             pop->error_message,
+  class_call(thermodynamics_output_titles(pba,pth,titles),
+             pth->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*pth->tt_size;
+  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_call(thermodynamics_output_data(pba,
+                                        pth,
+                                        number_of_titles,
+                                        data),
+             pth->error_message,
              pop->error_message);
 
-  for (index_z=0; index_z<pth->tt_size; index_z++) {
+  sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
+  class_open(thermofile,file_name,"w",pop->error_message);
 
-    class_call(background_tau_of_z(
-                                   pba,
-                                   pth->z_table[index_z],
-                                   &tau
-                                   ),
-               pop->error_message,
-               pop->error_message);
-
-    class_call(output_one_line_of_thermodynamics(
-                                                 pth,
-                                                 out,
-                                                 tau,
-                                                 pth->z_table[index_z],
-                                                 pth->thermodynamics_table+index_z*pth->th_size
-                                                 ),
-               pop->error_message,
-               pop->error_message);
-
+  if (pop->write_header == _TRUE_) {
+    fprintf(thermofile,"# Table of selected thermodynamics quantitites\n");
+    fprintf(thermofile,"# The following notation is used in column titles:\n");
+    fprintf(thermofile,"#    x_e = electron ionisation fraction\n");
+    fprintf(thermofile,"# -kappa = optical depth\n");
+    fprintf(thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
+    fprintf(thermofile,"#      g = kappa' e^-kappa = visibility function \n");
+    fprintf(thermofile,"#     Tb = baryon temperature \n");
+    fprintf(thermofile,"#  c_b^2 = baryon sound speed squared \n");
+    fprintf(thermofile,"#  tau_d = baryon drag optical depth \n");
   }
 
-  fclose(out);
+  output_print_data(thermofile,
+                    titles,
+                    data,
+                    size_data);
 
+  free(data);
+  fclose(thermofile);
+
+  return _SUCCESS_;
+
+}
+
+
+int output_perturbations(
+                         struct background * pba,
+                         struct perturbs * ppt,
+                         struct output * pop
+                         ) {
+
+  FILE * out;
+  FileName file_name;
+  int index_ikout, index_md;
+  double k;
+
+  for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
+
+    if (ppt->has_scalars == _TRUE_){
+      index_md = 0;
+      k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
+      sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_s.dat");
+      class_open(out, file_name, "w", ppt->error_message);
+      fprintf(out,"#scalar perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
+      output_print_data(out,
+                        ppt->scalar_titles,
+                        ppt->scalar_perturbations_data[index_ikout],
+                        ppt->size_scalar_perturbation_data[index_ikout]);
+
+      fclose(out);
+    }
+    if (ppt->has_vectors == _TRUE_){
+      index_md = 1;
+      k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
+      sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_v.dat");
+      class_open(out, file_name, "w", ppt->error_message);
+      fprintf(out,"#vector perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
+      output_print_data(out,
+                        ppt->vector_titles,
+                        ppt->vector_perturbations_data[index_ikout],
+                        ppt->size_vector_perturbation_data[index_ikout]);
+
+      fclose(out);
+    }
+    if (ppt->has_tensors == _TRUE_){
+      index_md = 2;
+      k = ppt->k[index_md][ppt->index_k_output_values[index_ikout]];
+      sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_t.dat");
+      class_open(out, file_name, "w", ppt->error_message);
+      fprintf(out,"#tensor perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
+      output_print_data(out,
+                        ppt->tensor_titles,
+                        ppt->tensor_perturbations_data[index_ikout],
+                        ppt->size_tensor_perturbation_data[index_ikout]);
+
+      fclose(out);
+    }
+
+
+  }
   return _SUCCESS_;
 
 }
@@ -1261,39 +1314,78 @@ int output_primordial(
                       struct primordial * ppm,
                       struct output * pop
                       ) {
-
-  FILE * out;
   FileName file_name;
-  int index_k;
+  FILE * out;
+  char titles[_MAXTITLESTRINGLENGTH_]={0};
+  double * data;
+  int size_data, number_of_titles;
 
   sprintf(file_name,"%s%s",pop->root,"primordial_Pk.dat");
 
-  class_call(output_open_primordial_file(ppt,
-                                         ppm,
-                                         pop,
-                                         &out,
-                                         file_name
-                                         ),
-             pop->error_message,
+  class_call(primordial_output_titles(ppt,ppm,titles),
+             ppm->error_message,
+             pop->error_message);
+  number_of_titles = get_number_of_titles(titles);
+  size_data = number_of_titles*ppm->lnk_size;
+  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_call(primordial_output_data(ppt,
+                                    ppm,
+                                    number_of_titles,
+                                    data),
+             ppm->error_message,
              pop->error_message);
 
-  for (index_k=0; index_k<ppm->lnk_size; index_k++) {
-
-    class_call(output_one_line_of_primordial(ppt,
-                                             ppm,
-                                             out,
-                                             index_k
-                                             ),
-               pop->error_message,
-               pop->error_message);
-
+  class_open(out,file_name,"w",pop->error_message);
+  if (pop->write_header == _TRUE_) {
+    fprintf(out,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
   }
 
+  output_print_data(out,
+                    titles,
+                    data,
+                    size_data);
+
+  free(data);
   fclose(out);
 
   return _SUCCESS_;
-
 }
+
+
+int output_print_data(FILE *out,
+                      char titles[_MAXTITLESTRINGLENGTH_],
+                      double *dataptr,
+                      int size_dataptr){
+  int colnum=1, number_of_titles;
+  int index_title, index_tau;
+  char thetitle[_MAXTITLESTRINGLENGTH_];
+  char *pch;
+
+  /** Print titles */
+  fprintf(out,"#");
+
+  strcpy(thetitle,titles);
+  pch = strtok(thetitle,_DELIMITER_);
+  while (pch != NULL){
+    class_fprintf_columntitle(out, pch, _TRUE_, colnum);
+    pch = strtok(NULL,_DELIMITER_);
+  }
+  fprintf(out,"\n");
+
+  /** Print data: */
+  number_of_titles = colnum-1;
+  if (number_of_titles>0){
+    for (index_tau=0; index_tau<size_dataptr/number_of_titles; index_tau++){
+      fprintf(out," ");
+      for (index_title=0; index_title<number_of_titles; index_title++){
+        class_fprintf_double(out, dataptr[index_tau*number_of_titles+index_title], _TRUE_);
+      }
+      fprintf(out,"\n");
+    }
+  }
+  return _SUCCESS_;
+}
+
 
 /**
  * This routine opens one file where some C_l's will be written, and writes
@@ -1562,496 +1654,6 @@ int output_one_line_of_pk(
   class_fprintf_double(pkfile,one_k,_TRUE_);
   class_fprintf_double(pkfile,one_pk,_TRUE_);
   fprintf(pkfile,"\n");
-
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine opens one file where some T_i(k)'s will be written, and writes
- * a heading with some general information concerning its content.
- *
- * @param psp        Input : pointer to spectra structure
- * @param pop        Input : pointer to output structure
- * @param tkfile     Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @param first_line Input : text describing the content (initial conditions, ...)
- * @param z          Input : redshift of the output
- * @return the error status
- */
-
-int output_open_tk_file(
-                        struct background * pba,
-                        struct perturbs * ppt,
-                        struct spectra * psp,
-                        struct output * pop,
-                        FILE * * tkfile,
-                        FileName filename,
-                        char * first_line,
-                        double z
-                        ) {
-
-  int n_ncdm;
-  int colnum = 1;
-  char tmp[30]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
-
-  class_open(*tkfile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-
-    if (pop->output_format == class_format) {
-
-      fprintf(*tkfile,"# Transfer functions T_i(k) %sat redshift z=%g\n",first_line,z);
-      fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
-      fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
-      if (ppt->has_density_transfers == _TRUE_) {
-        fprintf(*tkfile,"# d_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
-        fprintf(*tkfile,"# d_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
-        fprintf(*tkfile,"# (note that this differs from the transfer function output from CAMB/CMBFAST, which gives the same\n");
-        fprintf(*tkfile,"#  quantities divided by -k^2 with k in Mpc^-1; use format=camb to match CAMB)\n");
-      }
-      if (ppt->has_velocity_transfers == _TRUE_) {
-        fprintf(*tkfile,"# t_i   stands for theta_i(k,z) with above normalization \n");
-        fprintf(*tkfile,"# t_tot stands for (sum_i [rho_i+p_i] theta_i)/(sum_i [rho_i+p_i]))(k,z)\n");
-      }
-      fprintf(*tkfile,"#\n");
-      fprintf(*tkfile,"#");
-      class_fprintf_columntitle(*tkfile,"k (h/Mpc)",_TRUE_,colnum);
-      if (ppt->has_density_transfers == _TRUE_) {
-        class_fprintf_columntitle(*tkfile,"d_g",_TRUE_,colnum);
-        class_fprintf_columntitle(*tkfile,"d_b",_TRUE_,colnum);
-        class_fprintf_columntitle(*tkfile,"d_cdm",pba->has_cdm,colnum);
-        class_fprintf_columntitle(*tkfile,"d_fld",pba->has_fld,colnum);
-        class_fprintf_columntitle(*tkfile,"d_ur",pba->has_ur,colnum);
-        if (pba->has_ncdm == _TRUE_) {
-          for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-            sprintf(tmp,"d_ncdm[%d]",n_ncdm);
-            class_fprintf_columntitle(*tkfile,tmp,_TRUE_,colnum);
-          }
-        }
-        class_fprintf_columntitle(*tkfile,"d_dcdm",pba->has_dcdm,colnum);
-        class_fprintf_columntitle(*tkfile,"d_dr",pba->has_dr,colnum);
-        class_fprintf_columntitle(*tkfile,"d_scf",pba->has_scf,colnum);
-        class_fprintf_columntitle(*tkfile,"d_tot",_TRUE_,colnum);
-      }
-      if (ppt->has_velocity_transfers == _TRUE_) {
-        class_fprintf_columntitle(*tkfile,"t_g",_TRUE_,colnum);
-        class_fprintf_columntitle(*tkfile,"t_b",_TRUE_,colnum);
-        class_fprintf_columntitle(*tkfile,"t_cdm",((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)),colnum);
-        class_fprintf_columntitle(*tkfile,"t_fld",pba->has_fld,colnum);
-        class_fprintf_columntitle(*tkfile,"t_ur",pba->has_ur,colnum);
-        if (pba->has_ncdm == _TRUE_) {
-          for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-            sprintf(tmp,"t_ncdm[%d]",n_ncdm);
-            class_fprintf_columntitle(*tkfile,tmp,_TRUE_,colnum);
-          }
-        }
-        class_fprintf_columntitle(*tkfile,"t_dcdm",pba->has_dcdm,colnum);
-        class_fprintf_columntitle(*tkfile,"t_dr",pba->has_dr,colnum);
-        class_fprintf_columntitle(*tkfile,"t__scf",pba->has_scf,colnum);
-        class_fprintf_columntitle(*tkfile,"t_tot",_TRUE_,colnum);
-      }
-      fprintf(*tkfile,"\n");
-    }
-
-    else if (pop->output_format == camb_format) {
-
-      fprintf(*tkfile,"# Rescaled matter transfer functions [-T_i(k)/k^2] %sat redshift z=%g\n",first_line,z);
-      fprintf(*tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
-      fprintf(*tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
-      fprintf(*tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
-      fprintf(*tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
-      fprintf(*tkfile,"#\n");
-      fprintf(*tkfile,"#");
-      class_fprintf_columntitle(*tkfile,"k (h/Mpc)",_TRUE_,colnum);
-      class_fprintf_columntitle(*tkfile,"-T_cdm/k2",_TRUE_,colnum);
-      class_fprintf_columntitle(*tkfile,"-T_b/k2",_TRUE_,colnum);
-      class_fprintf_columntitle(*tkfile,"-T_g/k2",_TRUE_,colnum);
-      class_fprintf_columntitle(*tkfile,"-T_ur/k2",_TRUE_,colnum);
-      class_fprintf_columntitle(*tkfile,"-T_ncdm/k2",_TRUE_,colnum);
-      class_fprintf_columntitle(*tkfile,"-T_tot/k2",_TRUE_,colnum);
-      fprintf(*tkfile,"\n");
-
-    }
-
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine writes one line with k and T_i(k)'s
- *
- * @param tkfile  Input : file pointer
- * @param one_k   Input : wavenumber
- * @param tk      Input : vector of transfer functions tk[index_tr]
- * @param tr_size Input : number of transfer functions
- * @return the error status
- */
-
-int output_one_line_of_tk(
-                          struct background * pba,
-                          struct perturbs * ppt,
-                          struct spectra * psp,
-                          struct output * pop,
-                          FILE * tkfile,
-                          double k_over_h,
-                          double * tk,
-                          int tr_size
-                          ) {
-
-  int n_ncdm;
-  double k, k2;
-
-  k = k_over_h*pba->h;
-  k2 = k*k;
-
-  fprintf(tkfile," ");
-  class_fprintf_double(tkfile, k_over_h, _TRUE_);
-
-
-  /* indices for species associated with a velocity transfer function in Fourier space */
-
-  if (pop->output_format == class_format) {
-
-    if (ppt->has_density_transfers == _TRUE_) {
-
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_g],ppt->has_source_delta_g);
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_b],ppt->has_source_delta_b);
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_cdm],ppt->has_source_delta_cdm);
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_fld],ppt->has_source_delta_fld);
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_ur],ppt->has_source_delta_ur);
-      if (pba->has_ncdm == _TRUE_){
-        for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          class_fprintf_double(tkfile,tk[psp->index_tr_delta_ncdm1+n_ncdm],ppt->has_source_delta_ncdm);
-        }
-      }
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_dcdm],ppt->has_source_delta_dcdm);
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_dr],ppt->has_source_delta_dr);
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_scf],ppt->has_source_delta_scf);
-      class_fprintf_double(tkfile,tk[psp->index_tr_delta_tot],_TRUE_);
-
-    }
-    if (ppt->has_velocity_transfers == _TRUE_) {
-
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_g],ppt->has_source_theta_g);
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_b],ppt->has_source_theta_b);
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_cdm],ppt->has_source_theta_cdm);
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_fld],ppt->has_source_theta_fld);
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_ur],ppt->has_source_theta_ur);
-      if (pba->has_ncdm == _TRUE_){
-        for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          class_fprintf_double(tkfile,tk[psp->index_tr_theta_ncdm1+n_ncdm],ppt->has_source_theta_ncdm);
-        }
-      }
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_dcdm],ppt->has_source_theta_dcdm);
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_dr],ppt->has_source_theta_dr);
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_scf],ppt->has_source_theta_scf);
-      class_fprintf_double(tkfile,tk[psp->index_tr_theta_tot],_TRUE_);
-
-    }
-
-  }
-  else if (pop->output_format == camb_format) {
-
-    /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
-    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_cdm]/k2,ppt->has_source_delta_cdm,0.0);
-    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_b]/k2,ppt->has_source_delta_b,0.0);
-    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_g]/k2,ppt->has_source_delta_g,0.0);
-    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_ur]/k2,ppt->has_source_delta_ur,0.0);
-    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_ncdm1]/k2,ppt->has_source_delta_ncdm,0.0);
-    class_fprintf_double_or_default(tkfile,-tk[psp->index_tr_delta_tot]/k2,_TRUE_,0.0);
-
-  }
-
-  fprintf(tkfile,"\n");
-
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine opens one file where some background quantitites will be written, and writes
- * a heading with some general information concerning its content.
- *
- * @param pba        Input: pointer to background structure
- * @param pop        Input : pointer to output structure
- * @param backfile   Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @return the error status
- */
-
-int output_open_background_file(
-                                struct background * pba,
-                                struct output * pop,
-                                FILE * * backfile,
-                                FileName filename
-                                ) {
-
-  int n;
-  int colnum=1;
-  char tmp[30]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
-  class_open(*backfile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-    fprintf(*backfile,"# Table of selected background quantitites\n");
-    fprintf(*backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
-    fprintf(*backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
-    if (pba->has_scf == _TRUE_){
-      fprintf(*backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
-      fprintf(*backfile,"# --> phi is given in units of the reduced Planck mass m_Pl = (8 pi G)^(-1/2)\n");
-      fprintf(*backfile,"# --> tau in the derivative of V(phi) is given in units of Mpc.\n");
-      fprintf(*backfile,"# --> the potential V(phi) is given in units of m_Pl^2/Mpc^2.\n");
-    }
-
-    /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
-        but it can be as long as . */
-    fprintf(*backfile,"#");
-    class_fprintf_columntitle(*backfile,"z",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"proper time [Gyr]",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"conf. time [Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"H [1/Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"comov. dist.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"ang.diam.dist.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"lum. dist.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"comov.snd.hrz.",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_g",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_b",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_cdm",pba->has_cdm,colnum);
-    if (pba->has_ncdm == _TRUE_){
-      for (n=0; n<pba->N_ncdm; n++){
-        sprintf(tmp,"(.)rho_ncdm[%d]",n);
-        class_fprintf_columntitle(*backfile,tmp,_TRUE_,colnum);
-      }
-    }
-    class_fprintf_columntitle(*backfile,"(.)rho_lambda",pba->has_lambda,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_fld",pba->has_fld,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_ur",pba->has_ur,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_crit",_TRUE_,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_dcdm",pba->has_dcdm,colnum);
-    class_fprintf_columntitle(*backfile,"(.)rho_dr",pba->has_dr,colnum);
-
-    class_fprintf_columntitle(*backfile,"(.)rho_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"(.)p_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"phi_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"phi'_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"V_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"V'_scf",pba->has_scf,colnum);
-    class_fprintf_columntitle(*backfile,"V''_scf",pba->has_scf,colnum);
-
-    fprintf(*backfile,"\n");
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine writes one line with background quantitites
- *
- * @param pba        Input: pointer to background structure
- * @param backfile   Input : file pointer
- * @param pvecback   Input : vector of background quantitites
- * @return the error status
- */
-
-int output_one_line_of_background(
-                                  struct background * pba,
-                                  FILE * backfile,
-                                  double * pvecback
-                                  ) {
-
-  int n;
-
-  fprintf(backfile," ");
-  class_fprintf_double(backfile,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_);
-  class_fprintf_double(backfile,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_H],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_conf_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_ang_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_lum_distance],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rs],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_g],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_b],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_cdm],pba->has_cdm);
-  if (pba->has_ncdm == _TRUE_){
-    for (n=0; n<pba->N_ncdm; n++,_TRUE_)
-      class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_);
-  }
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_lambda],pba->has_lambda);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_fld],pba->has_fld);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_ur],pba->has_ur);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_crit],_TRUE_);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_dr],pba->has_dr);
-
-  class_fprintf_double(backfile,pvecback[pba->index_bg_rho_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_p_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_phi_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_V_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_dV_scf],pba->has_scf);
-  class_fprintf_double(backfile,pvecback[pba->index_bg_ddV_scf],pba->has_scf);
-
-  fprintf(backfile,"\n");
-
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine opens one file where some thermodynamics quantitites will be written, and writes
- * a heading with some general information concerning its content.
- *
- * @param pth        Input: pointer to thermodynamics structure
- * @param pop        Input : pointer to output structure
- * @param thermofile Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @return the error status
- */
-
-int output_open_thermodynamics_file(
-                                    struct thermo * pth,
-                                    struct output * pop,
-                                    FILE ** thermofile,
-                                    FileName filename
-                                    ) {
-  int colnum=1;
-  class_open(*thermofile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-    fprintf(*thermofile,"# Table of selected thermodynamics quantitites\n");
-    fprintf(*thermofile,"# The following notation is used in column titles:\n");
-    fprintf(*thermofile,"#    x_e = electron ionisation fraction\n");
-    fprintf(*thermofile,"# -kappa = optical depth\n");
-    fprintf(*thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
-    fprintf(*thermofile,"#      g = kappa' e^-kappa = visibility function \n");
-    fprintf(*thermofile,"#     Tb = baryon temperature \n");
-    fprintf(*thermofile,"#  c_b^2 = baryon sound speed squared \n");
-    fprintf(*thermofile,"#  tau_d = baryon drag optical depth \n");
-
-    /** Length of the columntitle should be less than _OUTPUTPRECISION_+6 to be indented correctly,
-        but it can be as long as _COLUMNTITLE_. */
-
-    fprintf(*thermofile,"#");
-    class_fprintf_columntitle(*thermofile,"z",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"conf. time [Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"x_e",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"kappa' [Mpc^-1]",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"kappa''",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"kappa'''",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"exp(-kappa)",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"g [Mpc^-1]",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"g'",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"g''",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"Tb [K]",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"c_b^2",_TRUE_,colnum);
-    class_fprintf_columntitle(*thermofile,"tau_d",_TRUE_,colnum);
-    //class_fprintf_columntitle(*thermofile,"max. rate",_TRUE_,colnum);
-    fprintf(*thermofile,"\n");
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine writes one line with thermodynamics quantitites
- *
- * @param pth        Input : pointer to thermodynamics structure
- * @param thermofile Input : file pointer
- * @param tau        Input : conformal time
- * @param z          Input : redshift
- * @param pvecthermo Input : vector of thermodynamics quantitites
- * @return the error status
- */
-
-int output_one_line_of_thermodynamics(
-                                      struct thermo * pth,
-                                      FILE * thermofile,
-                                      double tau,
-                                      double z,
-                                      double * pvecthermo
-                                      ) {
-
-  fprintf(thermofile," ");
-  class_fprintf_double(thermofile,z,_TRUE_);
-  class_fprintf_double(thermofile,tau,_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_xe],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_dkappa],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_ddkappa],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_dddkappa],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_exp_m_kappa],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_g],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_dg],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_ddg],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_Tb],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_cb2],_TRUE_);
-  class_fprintf_double(thermofile,pvecthermo[pth->index_th_tau_d],_TRUE_);
-  //class_fprintf_double(thermofile,pvecthermo[pth->index_th_rate],_TRUE_);
-
-  fprintf(thermofile,"\n");
-
-  return _SUCCESS_;
-
-}
-
-/**
- * This routine opens one file where the primordial spectrum/spectra will be written,
- * and writes a heading with some general information concerning its content.
- *
- * @param ppt        Input: pointer to perturbation structure
- * @param ppm        Input: pointer to primordial structure
- * @param pop        Input : pointer to output structure
- * @param outputfile Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @return the error status
- */
-
-int output_open_primordial_file(
-                                struct perturbs * ppt,
-                                struct primordial * ppm,
-                                struct output * pop,
-                                FILE * * outputfile,
-                                FileName filename
-                                ) {
-
-  int colnum = 1;
-  class_open(*outputfile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-    fprintf(*outputfile,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
-    fprintf(*outputfile,"#");
-    class_fprintf_columntitle(*outputfile,"k [1/Mpc]",_TRUE_,colnum);
-    class_fprintf_columntitle(*outputfile,"P_scalar(k)",_TRUE_,colnum);
-    class_fprintf_columntitle(*outputfile,"P_tensor(k)",ppt->has_tensors,colnum);
-    fprintf(*outputfile,"\n");
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine writes one line with the primordial spectrum/spectra
- *
- * @param ppt        Input: pointer to perturbation structure
- * @param ppm        Input: pointer to primordial structure
- * @param outputfile   Input : file pointer
- * @param index_k    Input: index for wavenumebr in ppm structure
- * @return the error status
- */
-
-int output_one_line_of_primordial(
-                                  struct perturbs * ppt,
-                                  struct primordial * ppm,
-                                  FILE * outputfile,
-                                  int index_k
-                                  ) {
-
-  fprintf(outputfile," ");
-  class_fprintf_double(outputfile, exp(ppm->lnk[index_k]), _TRUE_);
-  class_fprintf_double(outputfile, exp(ppm->lnpk[ppt->index_md_scalars][index_k]), _TRUE_);
-  class_fprintf_double(outputfile, exp(ppm->lnpk[ppt->index_md_tensors][index_k]), ppt->has_tensors);
-  fprintf(outputfile,"\n");
 
   return _SUCCESS_;
 
