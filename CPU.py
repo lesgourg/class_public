@@ -35,6 +35,10 @@ import os
 import sys
 import argparse
 import itertools
+from math import floor
+from matplotlib import scale as mscale
+from matplotlib.transforms import Transform
+from matplotlib.ticker import FixedLocator
 
 # Numerics
 import numpy as np
@@ -545,6 +549,7 @@ class PlanckScale(mscale.ScaleBase):
             if not(lower.size):
                 return greater
             return np.concatenate((lower, greater))
+
         def inverted(self):
             return PlanckTransform()
 
