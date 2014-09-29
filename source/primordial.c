@@ -1870,7 +1870,7 @@ int primordial_inflation_evolve_background(
   struct primordial_inflation_parameters_and_workspace pipaw;
   struct generic_integrator_workspace gi;
   double tau_start,tau_end,dtau=0.;
-  double H,dH,ddH,dddH,aH;
+  double H,dH,ddH,dddH;
   double epsilon,epsilon_old;
   double quantity=0.;
   double V,dV,ddV;
@@ -1916,6 +1916,8 @@ int primordial_inflation_evolve_background(
 
   tau_end = 0;
 
+  printf("get here 1\n");
+
   class_call(primordial_inflation_derivs(tau_end,
                                          y,
                                          dy,
@@ -1924,15 +1926,17 @@ int primordial_inflation_evolve_background(
              ppm->error_message,
              ppm->error_message);
 
-  aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
+  printf("get here 2\n");
 
+  // compute timestep (if time = conformal, dtau is the conformal time step,
+  // if time = proper, dtau is in fact dt, the proper time step)
   if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))) {
     dtau = ppr->primordial_inflation_bg_stepsize
-        *MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+      *MIN(y[ppm->index_in_a]/dy[ppm->index_in_a],fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
   }
   else {
     // minus sign for backward in time
-    dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*(1./aH);
+    dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*y[ppm->index_in_a]/dy[ppm->index_in_a];
   }
 
   //print("tau_start=%e  a=%e  phi=%e  dtau=%e\n",tau_start,y[0],y[1],dtau);
@@ -1942,7 +1946,11 @@ int primordial_inflation_evolve_background(
   switch (target) {
   case _aH_:
     // next (approximate) value of aH after next step
-    quantity = aH + aH*aH*dtau;
+    // (a+[da/dx]*dx) H = aH (1 + [da/dx] / a dx)
+    // where dtau can be conformal or proper time
+    quantity = dy[ppm->index_in_a] * (1.+ dy[ppm->index_in_a]/y[ppm->index_in_a] * dtau);
+    if (time == conformal) quantity /= y[ppm->index_in_a];
+      // old: quantity = aH + aH*aH*dtau;
     break;
   case _phi_:
     // next (approximate) value of phi after next step
@@ -1952,7 +1960,9 @@ int primordial_inflation_evolve_background(
     // in this case, the goal is to reach d2a/dt2 = 0 (end of accelerated expansion)
     stop = 0.;
     // current value of quantity = - d2a/dt2 /a = [- (a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
-    quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
+    quantity = -pow(dy[ppm->index_in_a]/y[ppm->index_in_a],2) + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi];
+    if (time == conformal) quantity /= pow(y[ppm->index_in_a],2);
+
     // check that we are in the right case
     class_test(ppm->primordial_spec_type != inflation_V_end,
                ppm->error_message,
@@ -1961,6 +1971,9 @@ int primordial_inflation_evolve_background(
   }
 
   /* loop over time steps, checking that there will be no overshooting */
+
+  printf("get here 3\n");
+  printf("quantity=%e\n",quantity);
 
   while (sign_dtau*(quantity - stop) < 0.) {
 
@@ -2039,37 +2052,47 @@ int primordial_inflation_evolve_background(
                ppm->error_message,
                ppm->error_message);
 
-    aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
-
-    if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V)||(ppm->primordial_spec_type == inflation_V_end))) {
+    // compute timestep (if time = conformal, dtau is the conformal time step,
+    // if time = proper, dtau is in fact dt, the proper time step)
+    if ((direction == forward) && ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))) {
       dtau = ppr->primordial_inflation_bg_stepsize
-        *MIN(1./aH,fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
+        *MIN(y[ppm->index_in_a]/dy[ppm->index_in_a],fabs(y[ppm->index_in_dphi]/dy[ppm->index_in_dphi]));
     }
     else {
       // minus sign for backward in time
-      dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*(1./aH);
+      dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*y[ppm->index_in_a]/dy[ppm->index_in_a];
     }
 
-    printf("tau_start=%e  a=%e  phi=%e  dtau=%e\n",tau_start,y[0],y[1],dtau);
+    //printf("tau_start=%e  a=%e  phi=%e  dtau=%e\n",tau_start,y[0],y[1],dtau);
 
     /* expected value of either aH or phi after the next step */
 
     switch (target) {
     case _aH_:
-      // next (approximate) valiue of aH
-      quantity = aH + aH*aH*dtau;
+      // next (approximate) value of aH after next step
+      // (a+[da/dx]*dx) H = aH (1 + [da/dx] / a dx)
+      // where dtau can be conformal or proper time
+      quantity = dy[ppm->index_in_a] * (1.+ dy[ppm->index_in_a]/y[ppm->index_in_a] * dtau);
+      if (time == conformal) quantity /= y[ppm->index_in_a];
       break;
     case _phi_:
-      // next (approximate) value of phi
+      // next (approximate) value of phi after next step
       quantity = y[ppm->index_in_phi]+dy[ppm->index_in_phi]*dtau;
       break;
     case _end_inflation_:
-      // current value of quantity = -d2a/dt2 /a = [-(a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
-      quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
+      // current value of quantity = - d2a/dt2 /a = [- (a'/a)^2 + 3/2 8pi/3 phi'^2]/a^2
+      quantity = -pow(dy[ppm->index_in_a]/y[ppm->index_in_a],2) + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi];
+      if (time == conformal) quantity /= pow(y[ppm->index_in_a],2);
       break;
     }
 
+    printf("quantity=%e\n",quantity);
+
   }
+
+  printf("get here 4\n");
+  printf("there: %e  %e  %e\n",y[0],y[1],y[2]);
+  printf("there: %e  %e  %e\n",dy[0],dy[1],dy[2]);
 
   /* won't use the integrator anymore */
 
@@ -2084,7 +2107,14 @@ int primordial_inflation_evolve_background(
 
   switch (target) {
   case _aH_:
-    dtau = (stop/aH-1.)/aH;
+    switch (time){
+    case proper:
+      dtau = (stop/dy[ppm->index_in_a]-1.)/dy[ppm->index_in_a];
+      break;
+    case conformal:
+      dtau = (stop/(dy[ppm->index_in_a]/y[ppm->index_in_a])-1.)/(dy[ppm->index_in_a]/y[ppm->index_in_a]);
+      break;
+    }
     break;
   case _phi_:
     dtau = (stop-y[ppm->index_in_phi])/dy[ppm->index_in_phi];
@@ -2093,11 +2123,24 @@ int primordial_inflation_evolve_background(
     class_call(primordial_inflation_check_potential(ppm,y[ppm->index_in_phi],&V,&dV,&ddV),
                ppm->error_message,
                ppm->error_message);
-    // We can easily pull back quantity=-d2a/dt2 /a by noticing that d(quantity)/dtau = 8piG phi' phi'' / a^2 (exact relation!)
+    // We can easily pull back quantity=-d2a/dt2 /a by noticing that
+    // d(quantity)/dtau = 8piG phi' phi'' / a^2 (exact relation!)
+    // or
+    // d(quantity)/dtau = 8piG phi^dot (a phi^dot)^dot = 8piG phi^dot (a^dot phi^dot+ a phi^dotdot)
     // By taking the step dtau = - quantity / [d(quantity)/dtau] we nearly reach quantity=0 (end of inflation), up to very good approximation
-    dtau = -quantity/(8.*_PI_/y[ppm->index_in_a]/y[ppm->index_in_a]*dy[ppm->index_in_phi]*dy[ppm->index_in_dphi]);
+    switch (time){
+    case proper:
+      dtau = -quantity/(8.*_PI_*dy[ppm->index_in_phi]*(dy[ppm->index_in_a]*dy[ppm->index_in_phi]+y[ppm->index_in_a]*dy[ppm->index_in_dphi]));
+
+      break;
+    case conformal:
+      dtau = -quantity/(8.*_PI_/y[ppm->index_in_a]/y[ppm->index_in_a]*dy[ppm->index_in_phi]*dy[ppm->index_in_dphi]);
+      break;
+    }
     break;
   }
+
+  printf("get here 5\n");
 
   y[ppm->index_in_a] += dy[ppm->index_in_a]*dtau;
   y[ppm->index_in_phi] += dy[ppm->index_in_phi]*dtau;
@@ -2445,7 +2488,65 @@ int primordial_find_phi_pivot2(
 
   y[ppm->index_in_a]=1.;
   y[ppm->index_in_phi]= phi_try;
-  y[ppm->index_in_dphi]= y[ppm->index_in_a]*dphidt_try;
+  y[ppm->index_in_dphi]= dphidt_try;
+
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _end_inflation_,
+                                                    0.,
+                                                    _FALSE_,
+                                                    forward,
+                                                    proper),
+             ppm->error_message,
+             ppm->error_message);
+
+  printf("here we find phi_stop = %e\n",y[1]);
+
+  aH_try = dy[ppm->index_in_a]/H_try;
+
+  printf("aH_try=%e\n",aH_try);
+
+  y[ppm->index_in_a]=1.;
+  y[ppm->index_in_phi]= phi_try;
+  y[ppm->index_in_dphi]= dphidt_try;
+
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _aH_,
+                                                    H_try*aH_try/exp(ppm->ln_aH_ratio),
+                                                    _FALSE_,
+                                                    forward,
+                                                    proper),
+             ppm->error_message,
+             ppm->error_message);
+
+
+  printf("reached phi_pivot=%e\n",y[1]);
+  ppm->phi_pivot = y[1];
+
+  // part for testing that this phi_pivot is correct
+  double aH = dy[0];
+
+  printf("here: %e  %e  %e\n",y[0],y[1],y[2]);
+  printf("here: %e  %e  %e\n",dy[0],dy[1],dy[2]);
+
+  /*
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _phi_,
+                                                    -1.999774e-01,
+                                                    _FALSE_,
+                                                    forward,
+                                                    proper),
+             ppm->error_message,
+             ppm->error_message);
+  */
 
   class_call(primordial_inflation_evolve_background(ppm,
                                                     ppr,
@@ -2459,31 +2560,8 @@ int primordial_find_phi_pivot2(
              ppm->error_message,
              ppm->error_message);
 
-  printf("here we find phi_stop = %e\n",y[1]);
+  printf("from phi_pivot till the end, ln(aH_2/aH_1) = %e \n",log(dy[0]/aH));
 
-  aH_try = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_try;
-
-  printf("aH_try=%e\n",aH_try);
-
-  y[ppm->index_in_a]=1.;
-  y[ppm->index_in_phi]= phi_try;
-  y[ppm->index_in_dphi]= y[ppm->index_in_a]*dphidt_try;
-
-  class_call(primordial_inflation_evolve_background(ppm,
-                                                    ppr,
-                                                    y,
-                                                    dy,
-                                                    _aH_,
-                                                    H_try*aH_try/exp(ppm->ln_aH_ratio),
-                                                    _FALSE_,
-                                                    forward,
-                                                    conformal),
-             ppm->error_message,
-             ppm->error_message);
-
-
-  printf("reached phi_pivot=%e\n",y[1]);
-  ppm->phi_pivot = y[1];
 
   return _SUCCESS_;
 }
@@ -2633,14 +2711,32 @@ int primordial_inflation_derivs(
 
     case forward:
 
-      // a H = a'/a
-      ppipaw->aH = sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->a2*ppipaw->V));
-      // 1: a
-      dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
-      // 2: phi
-      dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
-      // 3: dphi/dtau
-      dy[ppm->index_in_dphi]=-2.*ppipaw->aH*y[ppm->index_in_dphi]-ppipaw->a2*ppipaw->dV;
+      switch (ppipaw->time) {
+
+      case conformal:
+
+        // a H = a'/a
+        ppipaw->aH = sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->a2*ppipaw->V));
+        // 1: a
+        dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
+        // 2: phi
+        dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
+        // 3: dphi/dtau
+        dy[ppm->index_in_dphi]=-2.*ppipaw->aH*y[ppm->index_in_dphi]-ppipaw->a2*ppipaw->dV;
+        break;
+
+      case proper:
+
+        // a H = adot
+        ppipaw->aH = y[ppm->index_in_a]*sqrt((8*_PI_/3.)*(0.5*y[ppm->index_in_dphi]*y[ppm->index_in_dphi]+ppipaw->V));
+        // 1: a
+        dy[ppm->index_in_a]=ppipaw->aH;
+        // 2: phi
+        dy[ppm->index_in_phi]=y[ppm->index_in_dphi];
+        // 3: dphi/dtau
+        dy[ppm->index_in_dphi]=-3.*ppipaw->aH/y[ppm->index_in_a]*y[ppm->index_in_dphi]-ppipaw->dV;
+        break;
+      }
 
       // z''/z
       ppipaw->zpp_over_z=
@@ -2662,12 +2758,28 @@ int primordial_inflation_derivs(
 
       //printf("I am here\n");
 
-      // a H = a'/a
-      ppipaw->aH = sqrt((8*_PI_/3.)*ppipaw->a2*ppipaw->V);
-      // 1: a
-      dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
-      // 2: phi
-      dy[ppm->index_in_phi]= -ppipaw->a2*ppipaw->dV/3./ppipaw->aH;
+      switch (ppipaw->time) {
+
+      case conformal:
+
+        // a H = a'/a
+        ppipaw->aH = sqrt((8*_PI_/3.)*ppipaw->a2*ppipaw->V);
+        // 1: a
+        dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->aH;
+        // 2: phi
+        dy[ppm->index_in_phi]= -ppipaw->a2*ppipaw->dV/3./ppipaw->aH;
+        break;
+
+      case proper:
+
+        // a H = adot
+        ppipaw->aH = y[ppm->index_in_a]*sqrt((8*_PI_/3.)*ppipaw->V);
+        // 1: a
+        dy[ppm->index_in_a]=ppipaw->aH;
+        // 2: phi
+        dy[ppm->index_in_phi]= -ppipaw->dV/3./ppipaw->aH*y[ppm->index_in_a];
+        break;
+      }
 
       //printf("in derivs:%e %e %e %e\n",y[0],y[1],dy[0],dy[1]);
 
@@ -2687,10 +2799,24 @@ int primordial_inflation_derivs(
                ppm->error_message,
                ppm->error_message);
 
-    // 1: a
-    dy[ppm->index_in_a]=ppipaw->a2*ppipaw->H;
-    // 2: phi
-    dy[ppm->index_in_phi]=-1./4./_PI_*y[ppm->index_in_a]*ppipaw->dH;
+    switch (ppipaw->time) {
+
+    case conformal:
+
+      // 1: a
+      dy[ppm->index_in_a]=ppipaw->a2*ppipaw->H;
+      // 2: phi
+      dy[ppm->index_in_phi]=-1./4./_PI_*y[ppm->index_in_a]*ppipaw->dH;
+      break;
+
+    case proper:
+
+      // 1: a
+      dy[ppm->index_in_a]=y[ppm->index_in_a]*ppipaw->H;
+      // 2: phi
+      dy[ppm->index_in_phi]=-1./4./_PI_*ppipaw->dH;
+      break;
+    }
 
     // z''/z
     ppipaw->zpp_over_z =
@@ -2718,6 +2844,10 @@ int primordial_inflation_derivs(
     return _SUCCESS_;
 
   // PERTURBATIONS
+
+  class_test(ppipaw->time == proper,
+             ppm->error_message,
+             "For inflaton perturbations, only conformal time is coded.");
 
   // SCALARS
   // 4: ksi_re
