@@ -991,9 +991,9 @@ int primordial_inflation_potential(
 
   /* V(phi)=polynomial in (phi-phi*) */
   case polynomial:
-    *V   = ppm->V0+(phi-ppm->phi_pivot)*ppm->V1+pow((phi-ppm->phi_pivot),2)/2.*ppm->V2+pow((phi-ppm->phi_pivot),3)/6.*ppm->V3+pow((phi-ppm->phi_pivot),4)/24.*ppm->V4;
-    *dV  = ppm->V1+(phi-ppm->phi_pivot)*ppm->V2+pow((phi-ppm->phi_pivot),2)/2.*ppm->V3+pow((phi-ppm->phi_pivot),3)/6.*ppm->V4;
-    *ddV = ppm->V2+(phi-ppm->phi_pivot)*ppm->V3+pow((phi-ppm->phi_pivot),2)/2.*ppm->V4;
+    *V   = ppm->V0+phi*ppm->V1+pow(phi,2)/2.*ppm->V2+pow(phi,3)/6.*ppm->V3+pow(phi,4)/24.*ppm->V4;
+    *dV  = ppm->V1+phi*ppm->V2+pow(phi,2)/2.*ppm->V3+pow(phi,3)/6.*ppm->V4;
+    *ddV = ppm->V2+phi*ppm->V3+pow(phi,2)/2.*ppm->V4;
     break;
 
   /* V(phi) = Lambda^4(1+cos(phi/f)) = V0 (1+cos(phi/V1)) */
@@ -1148,8 +1148,9 @@ int primordial_inflation_solve_inflation(
                ppm->error_message,
                ppm->error_message);
 
-    class_stop(ppm->error_message,"case inflation_V_end under development");
-
+  }
+  else {
+    ppm->phi_pivot = 0.;
   }
 
   /* compute H_pivot at phi_pivot */
@@ -1220,7 +1221,7 @@ int primordial_inflation_solve_inflation(
 
   y[ppm->index_in_a] = a_pivot;
   y[ppm->index_in_phi] = ppm->phi_pivot;
-  if ((ppm->primordial_spec_type == inflation_V) && (ppm->primordial_spec_type == inflation_V_end))
+  if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
     y[ppm->index_in_dphi] = a_pivot*dphidt_pivot;
 
   class_call_except(primordial_inflation_evolve_background(ppm,
@@ -1488,7 +1489,7 @@ int primordial_inflation_spectra(
     /* initialize the background part of the running vector */
     y[ppm->index_in_a] = y_ini[ppm->index_in_a];
     y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
-    if ((ppm->primordial_spec_type == inflation_V) && (ppm->primordial_spec_type == inflation_V_end))
+    if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
       y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
     /* evolve the background until the relevant initial time for
@@ -2534,7 +2535,6 @@ int primordial_find_phi_pivot2(
   printf("here: %e  %e  %e\n",y[0],y[1],y[2]);
   printf("here: %e  %e  %e\n",dy[0],dy[1],dy[2]);
 
-  /*
   class_call(primordial_inflation_evolve_background(ppm,
                                                     ppr,
                                                     y,
@@ -2544,19 +2544,6 @@ int primordial_find_phi_pivot2(
                                                     _FALSE_,
                                                     forward,
                                                     proper),
-             ppm->error_message,
-             ppm->error_message);
-  */
-
-  class_call(primordial_inflation_evolve_background(ppm,
-                                                    ppr,
-                                                    y,
-                                                    dy,
-                                                    _end_inflation_,
-                                                    0.,
-                                                    _FALSE_,
-                                                    forward,
-                                                    conformal),
              ppm->error_message,
              ppm->error_message);
 
