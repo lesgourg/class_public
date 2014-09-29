@@ -987,7 +987,7 @@ int primordial_inflation_potential(
 
   switch (ppm->potential) {
 
-  /* V(phi)=polynomial in phi */
+    /* V(phi)=polynomial in phi */
   case polynomial:
 
     *V   = ppm->V0+phi*ppm->V1+pow(phi,2)/2.*ppm->V2+pow(phi,3)/6.*ppm->V3+pow(phi,4)/24.*ppm->V4;
@@ -995,7 +995,7 @@ int primordial_inflation_potential(
     *ddV = ppm->V2+phi*ppm->V3+pow(phi,2)/2.*ppm->V4;
     break;
 
-  /* V(phi) = Lambda^4(1+cos(phi/f)) = V0 (1+cos(phi/V1)) */
+    /* V(phi) = Lambda^4(1+cos(phi/f)) = V0 (1+cos(phi/V1)) */
   case natural:
 
     *V   = ppm->V0*(1.+cos(phi/ppm->V1));
@@ -1003,7 +1003,7 @@ int primordial_inflation_potential(
     *ddV = -ppm->V0/ppm->V1/ppm->V1*cos(phi/ppm->V1);
     break;
 
-  /* code here other shapes */
+    /* code here other shapes */
 
   default:
     class_stop(ppm->error_message,"ppm->potential=%d different from all known cases",ppm->potential);
@@ -1026,13 +1026,13 @@ int primordial_inflation_potential(
  */
 
 int primordial_inflation_hubble(
-                                 struct primordial * ppm,
-                                 double phi,
-                                 double * H,
-                                 double * dH,
-                                 double * ddH,
-                                 double * dddH
-                                 ) {
+                                struct primordial * ppm,
+                                double phi,
+                                double * H,
+                                double * dH,
+                                double * ddH,
+                                double * dddH
+                                ) {
 
   *H =    ppm->H0 + phi*ppm->H1 + pow(phi,2)/2.*ppm->H2 + pow(phi,3)/6.*ppm->H3 + pow(phi,4)/24.*ppm->H4;
   *dH =   ppm->H1 + phi*ppm->H2 + pow(phi,2)/2.*ppm->H3 + pow(phi,3)/6.*ppm->H4;
@@ -1146,19 +1146,19 @@ int primordial_inflation_solve_inflation(
 
   // uncomment these lines if for checking, you want first-order slow-roll predictions
   /*
-  if (ppm->primordial_verbose>0) {
+    if (ppm->primordial_verbose>0) {
     if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end)) {
-      double V,dV,ddV;
-      class_call(primordial_inflation_check_potential(ppm,ppm->phi_pivot,&V,&dV,&ddV),
-                 ppm->error_message,
-                 ppm->error_message);
-      fprintf(stdout," -> 1st-order slow-roll prediction for A_s: %g\n",128.*_PI_/3.*pow(V,3)/pow(dV,2));
-      fprintf(stdout," -> 1st-order slow-roll prediction for T/S: %g\n",pow(dV/V,2)/_PI_);
-      fprintf(stdout," -> 1st-order slow-roll prediction for A_T: %g\n",pow(dV/V,2)/_PI_*128.*_PI_/3.*pow(V,3)/pow(dV,2));
-      fprintf(stdout," -> 1st-order slow-roll prediction for n_s: %g\n",1.-6./16./_PI_*pow(dV/V,2)+2./8./_PI_*(ddV/V));
-      fprintf(stdout," -> 1st-order slow-roll prediction for n_t: %g\n",-2./16./_PI_*pow(dV/V,2));
+    double V,dV,ddV;
+    class_call(primordial_inflation_check_potential(ppm,ppm->phi_pivot,&V,&dV,&ddV),
+    ppm->error_message,
+    ppm->error_message);
+    fprintf(stdout," -> 1st-order slow-roll prediction for A_s: %g\n",128.*_PI_/3.*pow(V,3)/pow(dV,2));
+    fprintf(stdout," -> 1st-order slow-roll prediction for T/S: %g\n",pow(dV/V,2)/_PI_);
+    fprintf(stdout," -> 1st-order slow-roll prediction for A_T: %g\n",pow(dV/V,2)/_PI_*128.*_PI_/3.*pow(V,3)/pow(dV,2));
+    fprintf(stdout," -> 1st-order slow-roll prediction for n_s: %g\n",1.-6./16./_PI_*pow(dV/V,2)+2./8./_PI_*(ddV/V));
+    fprintf(stdout," -> 1st-order slow-roll prediction for n_t: %g\n",-2./16./_PI_*pow(dV/V,2));
     }
-  }
+    }
   */
 
   /* compute H_pivot at phi_pivot */
@@ -2146,20 +2146,20 @@ int primordial_inflation_evolve_background(
 
   // uncomment if you want to test that the routine really reached the point at which d2a/dt2=0
   /*
-  if (target == _end_inflation_) {
+    if (target == _end_inflation_) {
     class_call(primordial_inflation_derivs(tau_end,
-                                           y,
-                                           dy,
-                                           &pipaw,
-                                           ppm->error_message),
-               ppm->error_message,
-               ppm->error_message);
+    y,
+    dy,
+    &pipaw,
+    ppm->error_message),
+    ppm->error_message,
+    ppm->error_message);
 
     aH = dy[ppm->index_in_a]/y[ppm->index_in_a];
     quantity = (-aH*aH + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi])/y[ppm->index_in_a]/y[ppm->index_in_a];
     if (ppm->primordial_verbose>1)
-      printf(" (-d2a/dt2 /a = %e)\n",quantity);
-  }
+    printf(" (-d2a/dt2 /a = %e)\n",quantity);
+    }
   */
 
   return _SUCCESS_;
@@ -2287,8 +2287,8 @@ int primordial_inflation_get_epsilon(
   case inflation_H:
 
     class_call(primordial_inflation_hubble(ppm,
-                                            phi,
-                                            &H,&dH,&ddH,&dddH),
+                                           phi,
+                                           &H,&dH,&ddH,&dddH),
                ppm->error_message,
                ppm->error_message);
 
@@ -2328,170 +2328,126 @@ int primordial_inflation_find_phi_pivot(
   double H_small_epsilon;
   double aH_ratio_after_small_epsilon;
 
-  // assume that inflation ends up naturally
+  /* check whether in vicinity of phi_end, inflation is still ongoing */
 
-  /* find latest value of the field such that epsilon = primordial_inflation_small_epsilon (default: 0.1) */
+  class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-ppr->primordial_inflation_end_dphi,&epsilon),
+             ppm->error_message,
+             ppm->error_message);
 
-  /* bracketing right-hand value is phi_end (but the potential will not be evaluated exactly there, only closeby */
-  phi_right = ppm->phi_end;
+  /* case in which epsilon>1: hence we must find the value phi_stop <
+     phi_end where inflation ends up naturally */
 
-  /* bracketing left-hand value is found by iterating with logarithmic step until epsilon < primordial_inflation_small_epsilon */
-  dphi = ppr->primordial_inflation_end_dphi;
-  do {
-    dphi *= ppr->primordial_inflation_end_logstep;
-    class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
+  if (epsilon > 1.) {
+
+    // assume that inflation ends up naturally
+
+    /* find latest value of the field such that epsilon = primordial_inflation_small_epsilon (default: 0.1) */
+
+    /* bracketing right-hand value is phi_end (but the potential will not be evaluated exactly there, only closeby */
+    phi_right = ppm->phi_end;
+
+    /* bracketing left-hand value is found by iterating with logarithmic step until epsilon < primordial_inflation_small_epsilon */
+    dphi = ppr->primordial_inflation_end_dphi;
+    do {
+      dphi *= ppr->primordial_inflation_end_logstep;
+      class_call(primordial_inflation_get_epsilon(ppm,ppm->phi_end-dphi,&epsilon),
+                 ppm->error_message,
+                 ppm->error_message);
+    } while (epsilon > ppr->primordial_inflation_small_epsilon);
+    phi_left = ppm->phi_end-dphi;
+
+    /* find value such that epsilon = primordial_inflation_small_epsilon by bisection */
+    do {
+      phi_mid = 0.5*(phi_left+phi_right);
+      class_call(primordial_inflation_get_epsilon(ppm,phi_mid,&epsilon),
+                 ppm->error_message,
+                 ppm->error_message);
+      if (epsilon < ppr->primordial_inflation_small_epsilon) phi_left=phi_mid;
+      else phi_right=phi_mid;
+    } while (fabs(epsilon-ppr->primordial_inflation_small_epsilon) > ppr->primordial_inflation_small_epsilon_tol);
+
+    /* value found and stored as phi_small_epsilon */
+    phi_small_epsilon = phi_mid;
+
+    /* find inflationry attractor in phi_small_epsilon (should exist since epsilon<<1 there) */
+    class_call(primordial_inflation_find_attractor(ppm,
+                                                   ppr,
+                                                   phi_small_epsilon,
+                                                   ppr->primordial_inflation_attractor_precision_initial,
+                                                   y,
+                                                   dy,
+                                                   &H_small_epsilon,
+                                                   &dphidt_small_epsilon),
                ppm->error_message,
                ppm->error_message);
-  } while (epsilon > ppr->primordial_inflation_small_epsilon);
-  phi_left = ppm->phi_end-dphi;
 
-  /* find value such that epsilon = primordial_inflation_small_epsilon by bisection */
-  do {
-    phi_mid = 0.5*(phi_left+phi_right);
-    class_call(primordial_inflation_get_epsilon(ppm,phi_mid,&epsilon),
+    /* compute amount of inflation between this phi_small_epsilon and the end of inflation */
+    y[ppm->index_in_a]=1.;
+    y[ppm->index_in_phi]= phi_small_epsilon;
+    y[ppm->index_in_dphi]=y[ppm->index_in_a]*dphidt_small_epsilon;
+
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _end_inflation_,
+                                                      0.,
+                                                      _FALSE_,
+                                                      forward,
+                                                      conformal),
                ppm->error_message,
                ppm->error_message);
-    if (epsilon < ppr->primordial_inflation_small_epsilon) phi_left=phi_mid;
-    else phi_right=phi_mid;
-  } while (fabs(epsilon-ppr->primordial_inflation_small_epsilon) > ppr->primordial_inflation_small_epsilon_tol);
 
-  /* value found and stored as phi_small_epsilon */
-  phi_small_epsilon = phi_mid;
+    aH_ratio_after_small_epsilon = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_small_epsilon;
 
-  /* find inflationry attractor in phi_small_epsilon (should exist since epsilon<<1 there) */
-  class_call(primordial_inflation_find_attractor(ppm,
-                                                 ppr,
-                                                 phi_small_epsilon,
-                                                 ppr->primordial_inflation_attractor_precision_initial,
-                                                 y,
-                                                 dy,
-                                                 &H_small_epsilon,
-                                                 &dphidt_small_epsilon),
-             ppm->error_message,
-             ppm->error_message);
+    /* by starting from phi_small_epsilon and integrating an approximate
+       solution backward in time, try to estimate roughly a value close
+       to phi_pivot but a bit smaller. This is done by trying to reach
+       an amount of inflation equal to the requested one, minus the
+       amount after phi_small_epsilon, and plus
+       primordial_inflation_extra_efolds efolds (default: two). Note
+       that it is not agressive to require two extra e-folds of
+       inflation before the pivot, since the calculation of the spectrum
+       in the observable range will require even more. */
 
-  /* compute amount of inflation between this phi_small_epsilon and the end of inflation */
-  y[ppm->index_in_a]=1.;
-  y[ppm->index_in_phi]= phi_small_epsilon;
-  y[ppm->index_in_dphi]=y[ppm->index_in_a]*dphidt_small_epsilon;
+    y[ppm->index_in_a]=1.;
+    y[ppm->index_in_phi]= phi_small_epsilon;
 
-  class_call(primordial_inflation_evolve_background(ppm,
-                                                    ppr,
-                                                    y,
-                                                    dy,
-                                                    _end_inflation_,
-                                                    0.,
-                                                    _FALSE_,
-                                                    forward,
-                                                    conformal),
-             ppm->error_message,
-             ppm->error_message);
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _aH_,
+                                                      H_small_epsilon/exp(ppm->ln_aH_ratio+ppr->primordial_inflation_extra_efolds)*aH_ratio_after_small_epsilon,
+                                                      _TRUE_,
+                                                      backward,
+                                                      conformal),
+               ppm->error_message,
+               ppm->error_message);
 
-  aH_ratio_after_small_epsilon = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_small_epsilon;
+    /* we now have a value phi_try belived to be close to and slightly smaller than phi_pivot */
 
-  /* by starting from phi_small_epsilon and integrating an approximate
-     solution backward in time, try to estimate roughly a value close
-     to phi_pivot but a bit smaller. This is done by trying to reach
-     an amount of inflation equal to the requested one, minus the
-     amount after phi_small_epsilon, and plus
-     primordial_inflation_extra_efolds efolds (default: two). Note
-     that it is not agressive to require two extra e-folds of
-     inflation before the pivot, since the calculation of the spectrum
-     in the observable range will require even more. */
+    phi_try = y[ppm->index_in_phi];
 
-  y[ppm->index_in_a]=1.;
-  y[ppm->index_in_phi]= phi_small_epsilon;
+    /* find attractor in phi_try */
 
-  class_call(primordial_inflation_evolve_background(ppm,
-                                                    ppr,
-                                                    y,
-                                                    dy,
-                                                    _aH_,
-                                                    H_small_epsilon/exp(ppm->ln_aH_ratio+ppr->primordial_inflation_extra_efolds)*aH_ratio_after_small_epsilon,
-                                                    _TRUE_,
-                                                    backward,
-                                                    conformal),
-             ppm->error_message,
-             ppm->error_message);
+    class_call(primordial_inflation_find_attractor(ppm,
+                                                   ppr,
+                                                   phi_try,
+                                                   ppr->primordial_inflation_attractor_precision_initial,
+                                                   y,
+                                                   dy,
+                                                   &H_try,
+                                                   &dphidt_try),
+               ppm->error_message,
+               ppm->error_message);
 
-  /* we now have a value phi_try belived to be close to and slightly smaller than phi_pivot */
+    /* check the total amount of inflation between phi_try and the end of inflation */
 
-  phi_try = y[ppm->index_in_phi];
+    y[ppm->index_in_a]=1.;
+    y[ppm->index_in_phi]= phi_try;
+    y[ppm->index_in_dphi]= dphidt_try;
 
-  /* find attractor in phi_try */
-
-  class_call(primordial_inflation_find_attractor(ppm,
-                                                 ppr,
-                                                 phi_try,
-                                                 ppr->primordial_inflation_attractor_precision_initial,
-                                                 y,
-                                                 dy,
-                                                 &H_try,
-                                                 &dphidt_try),
-             ppm->error_message,
-             ppm->error_message);
-
-  /* check the total amount of inflation between phi_try and the end of inflation */
-
-  y[ppm->index_in_a]=1.;
-  y[ppm->index_in_phi]= phi_try;
-  y[ppm->index_in_dphi]= dphidt_try;
-
-  class_call(primordial_inflation_evolve_background(ppm,
-                                                    ppr,
-                                                    y,
-                                                    dy,
-                                                    _end_inflation_,
-                                                    0.,
-                                                    _FALSE_,
-                                                    forward,
-                                                    proper),
-             ppm->error_message,
-             ppm->error_message);
-
-  aH_try = dy[ppm->index_in_a]/H_try;
-
-  class_test(log(aH_try) < ppm->ln_aH_ratio,
-             ppm->error_message,
-             "phi_try not small enough, log(aH_stop/ah_try) = %e instead of requested %e; must write here a loop to deal automatically with this situation (by decreasing phi_try iteratively), or must increase precision parameter primordial_inflation_extra_efolds",
-             log(aH_try),
-             ppm->ln_aH_ratio);
-
-  phi_stop = y[1];
-
-  if (ppm->primordial_verbose > 1)
-    printf(" (inflation stops in phi_stop = %e)\n",phi_stop);
-
-  /* go back to phi_try, and now find phi_pivot such that the amount
-     of inflation between phi_pivot and the end of inflation is
-     exactly the one requested. */
-  y[ppm->index_in_a]=1.;
-  y[ppm->index_in_phi]= phi_try;
-  y[ppm->index_in_dphi]= dphidt_try;
-
-  class_call(primordial_inflation_evolve_background(ppm,
-                                                    ppr,
-                                                    y,
-                                                    dy,
-                                                    _aH_,
-                                                    H_try*aH_try/exp(ppm->ln_aH_ratio),
-                                                    _FALSE_,
-                                                    forward,
-                                                    proper),
-             ppm->error_message,
-             ppm->error_message);
-
-  ppm->phi_pivot = y[1];
-
-  if (ppm->primordial_verbose > 1)
-    printf(" (reached phi_pivot=%e)\n",ppm->phi_pivot);
-
-  /* uncomment this part if you want to check that phi_pivot is
-     correct. Done by restarting from phi_pivot and going again till
-     the end of inflation. */
-  /*
-  if (ppm->primordial_verbose > 1) {
-    double aH = dy[0];
     class_call(primordial_inflation_evolve_background(ppm,
                                                       ppr,
                                                       y,
@@ -2503,9 +2459,199 @@ int primordial_inflation_find_phi_pivot(
                                                       proper),
                ppm->error_message,
                ppm->error_message);
-    printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e)\n",log(dy[0]/aH));
+
+    aH_try = dy[ppm->index_in_a]/H_try;
+
+    class_test(log(aH_try) < ppm->ln_aH_ratio,
+               ppm->error_message,
+               "phi_try not small enough, log(aH_stop/aH_try) = %e instead of requested %e; must write here a loop to deal automatically with this situation (by decreasing phi_try iteratively), or must increase precision parameter primordial_inflation_extra_efolds",
+               log(aH_try),
+               ppm->ln_aH_ratio);
+
+    phi_stop = y[1];
+
+    if (ppm->primordial_verbose > 1)
+      printf(" (inflation stops in phi_stop = %e)\n",phi_stop);
+
+    /* go back to phi_try, and now find phi_pivot such that the amount
+       of inflation between phi_pivot and the end of inflation is
+       exactly the one requested. */
+    y[ppm->index_in_a]=1.;
+    y[ppm->index_in_phi]= phi_try;
+    y[ppm->index_in_dphi]= dphidt_try;
+
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _aH_,
+                                                      H_try*aH_try/exp(ppm->ln_aH_ratio),
+                                                      _FALSE_,
+                                                      forward,
+                                                      proper),
+               ppm->error_message,
+               ppm->error_message);
+
+    ppm->phi_pivot = y[1];
+
+    if (ppm->primordial_verbose > 1)
+      printf(" (reached phi_pivot=%e)\n",ppm->phi_pivot);
+
+    /* uncomment this part if you want to check that phi_pivot is
+       correct. Done by restarting from phi_pivot and going again till
+       the end of inflation. */
+    /*
+      if (ppm->primordial_verbose > 1) {
+      double aH = dy[0];
+      class_call(primordial_inflation_evolve_background(ppm,
+      ppr,
+      y,
+      dy,
+      _end_inflation_,
+      0.,
+      _FALSE_,
+      forward,
+      proper),
+      ppm->error_message,
+      ppm->error_message);
+      printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e)\n",log(dy[0]/aH));
+      }
+    */
+
   }
-  */
+
+  else {
+
+    /* find inflationry attractor in phi_small_epsilon (should exist since epsilon<1 there) */
+    class_call(primordial_inflation_find_attractor(ppm,
+                                                   ppr,
+                                                   ppm->phi_end,
+                                                   ppr->primordial_inflation_attractor_precision_initial,
+                                                   y,
+                                                   dy,
+                                                   &H_small_epsilon,
+                                                   &dphidt_small_epsilon),
+               ppm->error_message,
+               ppm->error_message);
+
+    /* by starting from phi_end and integrating an approximate
+       solution backward in time, try to estimate roughly a value close
+       to phi_pivot but a bit smaller. This is done by trying to reach
+       an amount of inflation equal to the requested one, minus the
+       amount after phi_small_epsilon, and plus
+       primordial_inflation_extra_efolds efolds (default: two). Note
+       that it is not agressive to require two extra e-folds of
+       inflation before the pivot, since the calculation of the spectrum
+       in the observable range will require even more. */
+
+    y[ppm->index_in_a]=1.;
+    y[ppm->index_in_phi]= ppm->phi_end;
+
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _aH_,
+                                                      H_small_epsilon/exp(ppm->ln_aH_ratio+ppr->primordial_inflation_extra_efolds),
+                                                      _TRUE_,
+                                                      backward,
+                                                      conformal),
+               ppm->error_message,
+               ppm->error_message);
+
+    /* we now have a value phi_try belived to be close to and slightly smaller than phi_pivot */
+
+    phi_try = y[ppm->index_in_phi];
+
+    /* find attractor in phi_try */
+
+    class_call(primordial_inflation_find_attractor(ppm,
+                                                   ppr,
+                                                   phi_try,
+                                                   ppr->primordial_inflation_attractor_precision_initial,
+                                                   y,
+                                                   dy,
+                                                   &H_try,
+                                                   &dphidt_try),
+               ppm->error_message,
+               ppm->error_message);
+
+    /* check the total amount of inflation between phi_try and the end of inflation */
+
+    y[ppm->index_in_a]=1.;
+    y[ppm->index_in_phi]= phi_try;
+    y[ppm->index_in_dphi]= dphidt_try;
+
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _phi_,
+                                                      ppm->phi_end,
+                                                      _FALSE_,
+                                                      forward,
+                                                      proper),
+               ppm->error_message,
+               ppm->error_message);
+
+    aH_try = dy[ppm->index_in_a]/H_try;
+
+    class_test(log(aH_try) < ppm->ln_aH_ratio,
+               ppm->error_message,
+               "phi_try not small enough, log(aH_stop/aH_try) = %e instead of requested %e; must write here a loop to deal automatically with this situation (by decreasing phi_try iteratively), or must increase precision parameter primordial_inflation_extra_efolds",
+               log(aH_try),
+               ppm->ln_aH_ratio);
+
+    phi_stop = y[1];
+
+    if (ppm->primordial_verbose > 1)
+      printf(" (inflation stops in phi_stop = %e)\n",phi_stop);
+
+    /* go back to phi_try, and now find phi_pivot such that the amount
+       of inflation between phi_pivot and the end of inflation is
+       exactly the one requested. */
+    y[ppm->index_in_a]=1.;
+    y[ppm->index_in_phi]= phi_try;
+    y[ppm->index_in_dphi]= dphidt_try;
+
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _aH_,
+                                                      H_try*aH_try/exp(ppm->ln_aH_ratio),
+                                                      _FALSE_,
+                                                      forward,
+                                                      proper),
+               ppm->error_message,
+               ppm->error_message);
+
+    ppm->phi_pivot = y[1];
+
+    if (ppm->primordial_verbose > 1)
+      printf(" (reached phi_pivot=%e)\n",ppm->phi_pivot);
+
+    /* uncomment this part if you want to check that phi_pivot is
+       correct. Done by restarting from phi_pivot and going again till
+       the end of inflation. */
+    /*
+    if (ppm->primordial_verbose > 1) {
+      double aH = dy[0];
+      class_call(primordial_inflation_evolve_background(ppm,
+                                                        ppr,
+                                                        y,
+                                                        dy,
+                                                        _phi_,
+                                                        ppm->phi_end,
+                                                        _FALSE_,
+                                                        forward,
+                                                        proper),
+                 ppm->error_message,
+                 ppm->error_message);
+      printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e)\n",log(dy[0]/aH));
+    }
+    */
+  }
 
   return _SUCCESS_;
 }
@@ -2637,11 +2783,11 @@ int primordial_inflation_derivs(
   case inflation_H:
 
     class_call(primordial_inflation_hubble(ppm,
-                                            y[ppm->index_in_phi],
-                                            &(ppipaw->H),
-                                            &(ppipaw->dH),
-                                            &(ppipaw->ddH),
-                                            &(ppipaw->dddH)),
+                                           y[ppm->index_in_phi],
+                                           &(ppipaw->H),
+                                           &(ppipaw->dH),
+                                           &(ppipaw->ddH),
+                                           &(ppipaw->dddH)),
                ppm->error_message,
                ppm->error_message);
 
