@@ -1062,12 +1062,12 @@ int input_read_parameters(
         pba->attractor_ic_scf = _TRUE_;
       }
       else{
-	pba->attractor_ic_scf = _FALSE_;
+        pba->attractor_ic_scf = _FALSE_;
         class_test(pba->scf_parameters_size<2,
                errmsg,
                "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
-	pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
-	pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
+        pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
+        pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
       }
     }
   }
