@@ -1738,16 +1738,13 @@ int input_read_parameters(
 
   else if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H)) {
 
-    class_read_double("phi_pivot",ppm->phi_pivot);
-
     if (ppm->primordial_spec_type == inflation_V) {
 
       class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
-      /** only polynomial coded so far: no need to interpret string1 **/
 
-      class_read_double("phi_pivot",ppm->phi_pivot);
+      /** only polynomial coded so far: no need to interpret string1 **/
 
       class_call(parser_read_string(pfc,"PSR_0",&string1,&flag1,errmsg),
                  errmsg,
@@ -2397,8 +2394,10 @@ int input_read_parameters(
   class_read_double("primordial_inflation_tol_curvature",ppr->primordial_inflation_tol_curvature);
   class_read_double("primordial_inflation_aH_ini_target",ppr->primordial_inflation_aH_ini_target);
   class_read_double("primordial_inflation_end_dphi",ppr->primordial_inflation_end_dphi);
-  class_read_double("primordial_inflation_end_phi_stop_precision",ppr->primordial_inflation_end_phi_stop_precision);
   class_read_double("primordial_inflation_end_logstep",ppr->primordial_inflation_end_logstep);
+  class_read_double("primordial_inflation_small_epsilon",ppr->primordial_inflation_small_epsilon);
+  class_read_double("primordial_inflation_small_epsilon_tol",ppr->primordial_inflation_small_epsilon_tol);
+  class_read_double("primordial_inflation_extra_efolds",ppr->primordial_inflation_extra_efolds);
 
   /** h.6. parameter related to the transfer functions */
 
@@ -2731,7 +2730,6 @@ int input_default_params(
   ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
   ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
   ppm->potential=polynomial;
-  ppm->phi_pivot=0.;
   ppm->phi_end=0.;
   ppm->ln_aH_ratio=50;
   ppm->V0=1.25e-13;
@@ -2976,8 +2974,10 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->primordial_inflation_tol_curvature=1.e-3;
   ppr->primordial_inflation_aH_ini_target=0.9;
   ppr->primordial_inflation_end_dphi=1.e-10;
-  ppr->primordial_inflation_end_phi_stop_precision=1.e-4;
   ppr->primordial_inflation_end_logstep=10.;
+  ppr->primordial_inflation_small_epsilon=0.1;
+  ppr->primordial_inflation_small_epsilon_tol=0.01;
+  ppr->primordial_inflation_extra_efolds=2.;
 
   /**
    * - parameter related to the transfer functions
