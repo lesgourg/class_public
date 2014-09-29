@@ -3,6 +3,7 @@
 #ifndef __OUTPUT__
 #define __OUTPUT__
 
+#include "common.h"
 #include "lensing.h"
 
 /**
@@ -11,12 +12,6 @@
  */
 
 #define _Z_PK_NUM_MAX_ 100
-
-/**
- * Different ways to present output files
- */
-
-enum file_format {class_format,camb_format};
 
 /**
  * Structure containing various informations on the output format,
@@ -200,64 +195,6 @@ extern "C" {
                              int k_size
                              );
 
-  int output_open_tk_file(
-                          struct background * pba,
-                          struct perturbs * ppt,
-                          struct spectra * psp,
-                          struct output * pop,
-                          FILE ** tkfile,
-                          FileName filename,
-                          char * first_line,
-                          double z
-                          );
-
-  int output_one_line_of_tk(
-                            struct background * pba,
-                            struct perturbs * ppt,
-                            struct spectra * psp,
-                            struct output * pop,
-                            FILE * tkfile,
-                            double k_over_h,
-                            double * tk,
-                            int tr_size
-                            );
-
-
-  int output_open_primordial_file(
-                                  struct perturbs * ppt,
-                                  struct primordial * ppm,
-                                  struct output * pop,
-                                  FILE * * outputfile,
-                                  FileName filename
-                                  );
-
-  int output_one_line_of_primordial(
-                                    struct perturbs * ppt,
-                                    struct primordial * ppm,
-                                    FILE * outputfile,
-                                    int index_k
-                                    );
-
-  int spectra_output_tk_titles(struct background *pba,
-                               struct perturbs *ppt,
-                               struct output *pop,
-                               char titles[_MAXTITLESTRINGLENGTH_]
-                               );
-
-  int spectra_output_tk_data(
-                             struct background * pba,
-                             struct perturbs * ppt,
-                             struct spectra * psp,
-                             struct output * pop,
-                             double z,
-                             int number_of_titles,
-                             double *data
-                             );
-
-  int output_firstline_and_ic_suffix(struct perturbs *ppt,
-                                     int index_ic,
-                                     char first_line[_LINE_LENGTH_MAX_],
-                                     FileName ic_suffix);
 
 #ifdef __cplusplus
 }

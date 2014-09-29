@@ -19,6 +19,14 @@ cdef extern from "class.h":
 
     ctypedef char FileName[_FILENAMESIZE_]
 
+    cdef enum linear_or_logarithmic:
+        linear
+        logarithmic
+
+    cdef enum file_format:
+         class_format
+         camb_format
+
     cdef struct precision:
         ErrorMsg error_message
 
@@ -76,6 +84,9 @@ cdef extern from "class.h":
         short has_scalars
         short has_vectors
         short has_tensors
+
+        short has_density_transfers
+        short has_velocity_transfers
 
         int has_pk_matter
         int l_lss_max
@@ -260,8 +271,8 @@ cdef extern from "class.h":
     int primordial_output_titles(void * ppt, void *ppm, char titles[_MAXTITLESTRINGLENGTH_])
     int primordial_output_data(void *ppt, void *ppm, int number_of_titles, double *data)
 
-    int spectra_output_tk_titles(void *pba, void *ppt, void *pop, char titles[_MAXTITLESTRINGLENGTH_])
-    int spectra_output_tk_data(void *pba,void *ppt,void *psp, void* pop, double z, int number_of_titles, double *data)
+    int spectra_output_tk_titles(void *pba, void *ppt,  file_format output_format, char titles[_MAXTITLESTRINGLENGTH_])
+    int spectra_output_tk_data(void *pba,void *ppt,void *psp,  file_format output_format, double z, int number_of_titles, double *data)
 
     int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
@@ -300,8 +311,4 @@ cdef extern from "class.h":
 
     int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl)
 
-    int output_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
-
-    cdef enum linear_or_logarithmic:
-        linear
-        logarithmic
+    int spectra_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)

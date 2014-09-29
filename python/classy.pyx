@@ -894,7 +894,7 @@ cdef class Class:
 
     def get_background(self):
         """
-        Return the background quantities if 'store_output' is set to yes.
+        Return the background quantities.
 
         Parameters
         ----------
@@ -966,11 +966,12 @@ cdef class Class:
 
     def get_primordial(self):
         """
-        Return the primordial quantities.
+        Return the primordial scalar and/or tensor spectrum depending on 'modes'.
+        'output' must be set to something, e.g. 'tCl'.
 
         Returns
         -------
-        primordial : dictionary containing primordial.
+        primordial : dictionary containing k-vector and primordial scalar and tensor P(k).
         """
         cdef char *titles
         cdef double* data
@@ -1020,8 +1021,6 @@ cdef class Class:
 
         perturbations = {}
 
-        if not self.pt.store_perturbations:
-            return perturbations
         if self.pt.k_output_values_num<1:
             return perturbations
 
@@ -1081,14 +1080,18 @@ cdef class Class:
 
         return perturbations
 
-    def get_transfer(self, z=0.):
+    def get_transfer(self, z=0., output_format='class'):
         """
-        Return the transfer functions for all initial conditions today, or possibly at any z
+        Return the density and/or velocity transfer functions for all initial
+        conditions today. You must include 'dCl' and 'vCl' in the list of
+        'output'. The transfer functions can also be computed at higher redshift z
         provided that 'z_pk' has been set and that z is inside the region spanned by 'z_pk'.
 
         Parameters
         ----------
         z  : redshift (default = 0)
+        output_format  : ('class' or 'camb') Format transfer functions according to
+                         CLASS convention (default) or CAMB convention.
 
         Returns
         -------
@@ -1098,11 +1101,20 @@ cdef class Class:
         cdef double* data
         cdef char ic_info[1024]
         cdef FileName ic_suffix
+        cdef file_format outf
+
+        if (not self.pt.has_density_transfers) and (not self.pt.has_velocity_transfers):
+            return {}
+
+        if output_format == 'camb':
+            outf = camb_format
+        else:
+            outf = class_format
 
         index_md = 0;
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
-        if spectra_output_tk_titles(&self.ba,&self.pt, &self.op, titles)==_FAILURE_:
+        if spectra_output_tk_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
             raise CosmoSevereError(self.op.error_message)
 
         tmp = <bytes> titles
@@ -1115,13 +1127,13 @@ cdef class Class:
 
         data = <double*>malloc(sizeof(double)*size_ic_data*ic_num)
 
-        if spectra_output_tk_data(&self.ba, &self.pt, &self.sp, &self.op, <double> z, number_of_titles, data)==_FAILURE_:
+        if spectra_output_tk_data(&self.ba, &self.pt, &self.sp, outf, <double> z, number_of_titles, data)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
 
         spectra = {}
 
         for index_ic in range(ic_num):
-            if output_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
+            if spectra_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
                 raise CosmoSevereError(self.op.error_message)
             ic_key = <bytes> ic_suffix
 

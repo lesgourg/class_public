@@ -1923,7 +1923,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_b],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
     if (pba->has_ncdm == _TRUE_){
-      for (n=0; n<pba->N_ncdm; n++,_TRUE_)
+      for (n=0; n<pba->N_ncdm; n++)
         class_store_double(dataptr,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_,storeidx);
     }
     class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);

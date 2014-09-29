@@ -322,6 +322,11 @@ enum pk_def {
   delta_bc_squared, /**< delta_bc includes contribution of baryons and cdm only to (delta rho) and to rho */
   delta_tot_from_poisson_squared /**< use delta_tot inferred from gravitational potential through Poisson equation */
 };
+/**
+ * Different ways to present output files
+ */
+
+enum file_format {class_format,camb_format};
 
 /**
  * All precision parameters.
