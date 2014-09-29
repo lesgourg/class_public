@@ -110,6 +110,12 @@ CLASS_INPUT['Scalar_field'] = (
       'scf_parameters': '10, 0, 0, 0'}],
     'normal')
 
+CLASS_INPUT['Inflation'] = (
+    [{'P_k_ini type': 'inflation_V'},
+     {'P_k_ini type': 'inflation_H'},
+     {'P_k_ini type': 'inflation_V_end'}],
+    'normal')
+
 CLASS_INPUT['modes'] = (
     [{'modes': 't'},
      {'modes': 's, t'}],
