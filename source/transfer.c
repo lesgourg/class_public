@@ -3394,14 +3394,12 @@ int transfer_compute_for_each_l(
 
   if (use_limber == _TRUE_) {
 
-    class_call(transfer_limber(ptw->tau_size,
-                               ptr,
+    class_call(transfer_limber(ptr,
+                               ptw,
                                index_md,
                                index_q,
                                l,
                                q,
-                               ptw->tau0_minus_tau,
-                               ptw->sources,
                                radial_type,
                                &transfer_function),
                ptr->error_message,
@@ -3694,27 +3692,23 @@ int transfer_integrate(
  * (passed in input in the array interpolated_sources) at a single value of
  * tau (the Bessel function being approximated as a Dirac distribution)
  *
- * @param ppt                   Input : pointer to perturbation structure
  * @param ptr                   Input : pointer to transfers structure
- * @param tau0                  Input : conformal time today
- * @param index_md            Input : index of mode
- * @param index_tt              Input : index of type
+ * @param ptw                   Input : pointer to transfer workspace structure
+ * @param index_md              Input : index of mode
  * @param index_l               Input : index of multipole
  * @param index_q               Input : index of wavenumber
- * @param interpolated_sources  Input: array of interpolated sources
+ * @param radial_type           Input : type of radial (Bessel) functions to convolve with
  * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$
  * @return the error status
  */
 
 int transfer_limber(
-                    int tau_size,
                     struct transfers * ptr,
+                    struct transfer_workspace * ptw,
                     int index_md,
                     int index_q,
                     double l,
-                    double k,
-                    double * tau0_minus_tau,
-                    double * sources, /* array with argument interpolated_sources[index_q*ppt->tau_size+index_tau] */
+                    double q,
                     radial_function_type radial_type,
                     double * trsf
                     ){
@@ -3726,56 +3720,81 @@ int transfer_limber(
   /* interpolated source and its derivatives at this value */
   double S, Sp, Sm;
 
+  double x_limber=0.;
+  double tau0_minus_tau_limber=0.;
+  double IPhiFlat = 0.;
+
   if (radial_type == SCALAR_TEMPERATURE_0) {
 
     /** - get k, l and infer tau such that k(tau0-tau)=l+1/2;
         check that tau is in appropriate range */
 
-    if (((l+0.5)/k > tau0_minus_tau[0]) ||
-        ((l+0.5)/k < tau0_minus_tau[tau_size-1])) {
+    if (ptw->sgnK == 0) {
+      tau0_minus_tau_limber = (l+0.5)/q;
+    }
+    else if (ptw->sgnK == 1) {
+      x_limber = asin(sqrt(l*(l+1.))/q*sqrt(ptw->K));
+      tau0_minus_tau_limber = x_limber/sqrt(ptw->K);
+    }
+    else if (ptw->sgnK == -1) {
+      x_limber = asinh((l+0.5)/q*sqrt(-ptw->K));
+      tau0_minus_tau_limber = x_limber/sqrt(-ptw->K);
+    }
+
+    if ((tau0_minus_tau_limber > ptw->tau0_minus_tau[0]) ||
+        (tau0_minus_tau_limber < ptw->tau0_minus_tau[ptw->tau_size-1])) {
       *trsf = 0.;
       return _SUCCESS_;
     }
 
     class_call(transfer_limber_interpolate(ptr,
-                                           tau0_minus_tau,
-                                           sources,
-                                           tau_size,
-                                           (l+0.5)/k,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           tau0_minus_tau_limber,
                                            &S),
                ptr->error_message,
                ptr->error_message);
 
-    /** - get transfer = source * sqrt(pi/(2l+1))/k
+    /** - get transfer = source * sqrt(pi/(2l+1))/q
         = source*[tau0-tau] * sqrt(pi/(2l+1))/(l+1/2)
     */
 
-    *trsf = sqrt(_PI_/(2.*l+1.))*S/(l+0.5);
+    IPhiFlat = sqrt(_PI_/(2.*l))*(1.-0.25/l+1./32./(l*l));
+
+    *trsf = IPhiFlat*S;
+
+    if (ptw->sgnK == 0) {
+      *trsf /= (l+0.5);
+    }
+    else {
+      *trsf *= pow(1.-ptw->K*l*l/q/q,-1./4.)/(tau0_minus_tau_limber*q);
+    }
 
   }
 
   else if (radial_type == SCALAR_TEMPERATURE_1) {
 
-    if (((l+1.5)/k > tau0_minus_tau[0]) ||
-        ((l-0.5)/k < tau0_minus_tau[tau_size-1])) {
+    if (((l+1.5)/q > ptw->tau0_minus_tau[0]) ||
+        ((l-0.5)/q < ptw->tau0_minus_tau[ptw->tau_size-1])) {
       *trsf = 0.;
       return _SUCCESS_;
     }
 
     class_call(transfer_limber_interpolate(ptr,
-                                           tau0_minus_tau,
-                                           sources,
-                                           tau_size,
-                                           (l+1.5)/k,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           (l+1.5)/q,
                                            &Sp),
                ptr->error_message,
                ptr->error_message);
 
     class_call(transfer_limber_interpolate(ptr,
-                                           tau0_minus_tau,
-                                           sources,
-                                           tau_size,
-                                           (l-0.5)/k,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           (l-0.5)/q,
                                            &Sm),
                ptr->error_message,
                ptr->error_message);
@@ -3788,35 +3807,35 @@ int transfer_limber(
 
   else if (radial_type == NC_RSD) {
 
-    if (((l+2.5)/k > tau0_minus_tau[0]) ||
-        ((l-1.5)/k < tau0_minus_tau[tau_size-1])) {
+    if (((l+2.5)/q > ptw->tau0_minus_tau[0]) ||
+        ((l-1.5)/q < ptw->tau0_minus_tau[ptw->tau_size-1])) {
       *trsf = 0.;
       return _SUCCESS_;
     }
 
     class_call(transfer_limber_interpolate(ptr,
-                                           tau0_minus_tau,
-                                           sources,
-                                           tau_size,
-                                           (l+2.5)/k,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           (l+2.5)/q,
                                            &Sp),
                ptr->error_message,
                ptr->error_message);
 
     class_call(transfer_limber_interpolate(ptr,
-                                           tau0_minus_tau,
-                                           sources,
-                                           tau_size,
-                                           (l-1.5)/k,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           (l-1.5)/q,
                                            &Sm),
                ptr->error_message,
                ptr->error_message);
 
     class_call(transfer_limber_interpolate(ptr,
-                                           tau0_minus_tau,
-                                           sources,
-                                           tau_size,
-                                           (l+0.5)/k,
+                                           ptw->tau0_minus_tau,
+                                           ptw->sources,
+                                           ptw->tau_size,
+                                           (l+0.5)/q,
                                            &S),
                ptr->error_message,
                ptr->error_message);

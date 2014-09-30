@@ -57,7 +57,8 @@ int main(int argc, char **argv) {
 
   /****** output the transfer functions ******/
 
-  printf("Output of transfer functions (l, k, Delta)\n");
+  printf("Output of transfer functions (l, q, k, nu, Delta)\n");
+  printf("(in flat space, q=k and nu=inf) \n");
 
   /* 1) select the mode, initial condition, type and multipole of the
      function you want to plot: */

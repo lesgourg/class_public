@@ -12,6 +12,7 @@ enum primordial_spectrum_type {
   two_scales,
   inflation_V,
   inflation_H,
+  inflation_V_end,
   external_Pk
 };
 
@@ -27,6 +28,28 @@ enum linear_or_logarithmic {
 enum potential_shape {
   polynomial,
   natural
+};
+
+/** enum defining which quantity plays the role of a target for evolving inflationary equations */
+
+enum target_quantity {
+  _aH_,
+  _phi_,
+  _end_inflation_
+};
+
+/** enum specifying if we want to integrate equations forward or backward in time */
+
+enum integration_direction {
+  backward,
+  forward
+};
+
+/** enum specifying if we want to evolve quantities with conformal or proper time */
+
+enum time_definition {
+  conformal,
+  proper
 };
 
 /**
@@ -119,12 +142,24 @@ struct primordial {
 
   enum potential_shape potential;
 
-  double phi_pivot;
   double V0;
   double V1;
   double V2;
   double V3;
   double V4;
+
+  /** - parameters describing the case primordial_spec_type = inflation_H */
+
+  double H0;
+  double H1;
+  double H2;
+  double H3;
+  double H4;
+
+  /** - parameters describing inflation_V_end */
+
+  double phi_end;
+  double ln_aH_ratio;
 
   /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 
@@ -222,8 +257,13 @@ struct primordial {
 
   //@{
 
+  double phi_pivot;      /**< in inflationary module, value of
+                            phi_pivot (set to 0 for inflation_V,
+                            inflation_H; found by code for
+                            inflation_V_end) */
   double phi_min;        /**< in inflationary module, value of phi when k_min=aH */
   double phi_max;        /**< in inflationary module, value of phi when k_max=aH */
+  double phi_stop;       /**< in inflationary module, value of phi at the end of inflation */
 
   //@}
 
@@ -242,17 +282,26 @@ struct primordial {
 struct primordial_inflation_parameters_and_workspace {
 
   struct primordial * ppm;
+  double N;
+  double a2;
+
   double V;
   double dV;
   double ddV;
-  double a2V;
-  double a2dV;
   double aH;
-  double N;
-  double a2ddV;
+
+  double H;
+  double dH;
+  double ddH;
+  double dddH;
+
   double zpp_over_z;
   double app_over_a;
+
   double k;
+
+  enum integration_direction integrate;
+  enum time_definition time;
 
 };
 
@@ -317,6 +366,15 @@ extern "C" {
                                      double * ddV
                                      );
 
+  int primordial_inflation_hubble(
+                                   struct primordial * ppm,
+                                   double phi,
+                                   double * H,
+                                   double * dH,
+                                   double * ddH,
+                                   double * dddH
+                                   );
+
   int primordial_inflation_indices(
                                    struct primordial * ppm
                                    );
@@ -362,26 +420,42 @@ extern "C" {
                                              struct precision * ppr,
                                              double * y,
                                              double * dy,
-                                             double phi_stop);
-
-  int primordial_inflation_reach_aH(
-                                    struct primordial * ppm,
-                                    struct precision * ppr,
-                                    double * y,
-                                    double * dy,
-                                    double aH_stop
-                                    );
+                                             enum target_quantity target,
+                                             double stop,
+                                             short check_epsilon,
+                                             enum integration_direction direction,
+                                             enum time_definition time
+                                             );
 
   int primordial_inflation_check_potential(
                                            struct primordial * ppm,
-                                           double phi
+                                           double phi,
+                                           double * V,
+                                           double * dV,
+                                           double * ddV
                                            );
+
+  int primordial_inflation_check_hubble(
+                                        struct primordial * ppm,
+                                        double phi,
+                                        double *H,
+                                        double * dH,
+                                        double * ddH,
+                                        double * dddH
+                                        );
 
   int primordial_inflation_get_epsilon(
                                        struct primordial * ppm,
                                        double phi,
                                        double * epsilon
                                        );
+
+  int primordial_inflation_find_phi_pivot(
+                                          struct primordial * ppm,
+                                          struct precision * ppr,
+                                          double * y,
+                                          double * dy
+                                          );
 
   int primordial_inflation_derivs(
                                   double tau,
@@ -396,6 +470,15 @@ extern "C" {
                                         struct primordial * ppm
                                         );
 
+  int primordial_output_titles(struct perturbs * ppt,
+                               struct primordial * ppm,
+                               char titles[_MAXTITLESTRINGLENGTH_]
+                               );
+
+  int primordial_output_data(struct perturbs * ppt,
+                             struct primordial * ppm,
+                             int number_of_titles,
+                             double *data);
 #ifdef __cplusplus
 }
 #endif

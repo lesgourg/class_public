@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.3.2"
+#define _VERSION_ "v2.4.0"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -55,6 +55,12 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _COLUMNWIDTH_ 24 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
 
+#define _MAXTITLESTRINGLENGTH_ 8000 /**< Maximum number of characters in title strings */
+
+#define _DELIMITER_ "\t" /**< character used for delimiting titles in the title strings */
+
+
+
 #ifndef __CLASSDIR__
 #define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */
 #endif
@@ -71,6 +77,7 @@ void class_protect_sprintf(char* dest, char* tpl,...);
 void class_protect_fprintf(FILE* dest, char* tpl,...);
 void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
+int get_number_of_titles(char * titlestring);
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
   ErrorMsg FMsg;                                                                                                 \
@@ -235,6 +242,16 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
       fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,output);    \
   }
 
+#define class_fprintf_double_or_default(file,                           \
+                                        output,                         \
+                                        condition,                      \
+                                        defaultvalue){                  \
+    if (condition == _TRUE_)                                            \
+      fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,output);    \
+    else                                                                \
+      fprintf(file,"%*.*e ",_COLUMNWIDTH_,_OUTPUTPRECISION_,defaultvalue);    \
+}
+
 #define class_fprintf_int(file,                                         \
                           output,                                       \
                           condition){                                   \
@@ -253,6 +270,35 @@ void* class_protect_memcpy(void* dest, void* from, size_t sz);
               MAX(0,MIN(_COLUMNWIDTH_-_OUTPUTPRECISION_-6-3,_COLUMNWIDTH_-((int) strlen(title))-3)), \
               "",colnum++,_OUTPUTPRECISION_+6,title);                   \
   }
+
+#define class_store_columntitle(titlestring,                            \
+				title,					\
+				condition){				\
+    if (condition == _TRUE_){                                           \
+      strcat(titlestring,title);                                        \
+      strcat(titlestring,_DELIMITER_);                                  \
+    }                                                                   \
+  }
+//,_MAXTITLESTRINGLENGTH_-strlen(titlestring)-1);
+
+#define class_store_double(storage,					\
+			   value,					\
+			   condition,                                   \
+                           dataindex){                                  \
+    if (condition == _TRUE_)                                            \
+      storage[dataindex++] = value;                                     \
+  }
+
+#define class_store_double_or_default(storage,                          \
+                                      value,                            \
+                                      condition,                        \
+                                      dataindex,                        \
+                                      defaultvalue){                    \
+    if (condition == _TRUE_)                                            \
+      storage[dataindex++] = value;                                     \
+    else                                                                \
+      storage[dataindex++] = defaultvalue;                              \
+}
 
 /** parameters related to the precision of the code and to the method of calculation */
 
@@ -276,6 +322,11 @@ enum pk_def {
   delta_bc_squared, /**< delta_bc includes contribution of baryons and cdm only to (delta rho) and to rho */
   delta_tot_from_poisson_squared /**< use delta_tot inferred from gravitational potential through Poisson equation */
 };
+/**
+ * Different ways to present output files
+ */
+
+enum file_format {class_format,camb_format};
 
 /**
  * All precision parameters.
@@ -338,6 +389,11 @@ struct precision
    * initial time
    */
   double tol_ncdm_initial_w;
+
+  /**
+   * parameter controling the initial scalar field in background functions
+   */
+  double safe_phi_scf;
 
   //@}
 
@@ -560,6 +616,12 @@ struct precision
   int primordial_inflation_attractor_maxit;
   double primordial_inflation_jump_initial;
   double primordial_inflation_tol_curvature;
+  double primordial_inflation_aH_ini_target;
+  double primordial_inflation_end_dphi;
+  double primordial_inflation_end_logstep;
+  double primordial_inflation_small_epsilon;
+  double primordial_inflation_small_epsilon_tol;
+  double primordial_inflation_extra_efolds;
 
   //@}
 

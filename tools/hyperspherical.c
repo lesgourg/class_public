@@ -154,7 +154,7 @@ int hyperspherical_HIS_create(int K,
 
 #pragma omp for schedule (dynamic)              \
 
-    /*
+
     for (j=0; j<MIN(nx,xfwdidx); j++){
       //Use backwards method:
       hyperspherical_backwards_recurrence(K,
@@ -172,8 +172,8 @@ int hyperspherical_HIS_create(int K,
         pHIS->phi[k*nx+j] = PhiL[l];
         pHIS->dphi[k*nx+j] = l*pHIS->cotK[j]*PhiL[l]-sqrtK[l+1]*PhiL[l+1];
       }
-    }*/
-
+    }
+    /**
     for (j=0; j<MIN(nx,xfwdidx); j+= _HYPER_CHUNK_){
       current_chunk = MIN(_HYPER_CHUNK_,MIN(nx,xfwdidx)-j);
       //Use backwards method:
@@ -199,7 +199,7 @@ int hyperspherical_HIS_create(int K,
       }
     }
 
-
+    */
 
 #pragma omp for schedule (dynamic)              \
 

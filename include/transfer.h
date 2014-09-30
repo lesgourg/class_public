@@ -540,14 +540,12 @@ extern "C" {
                          );
 
   int transfer_limber(
-                      int tau_size,
                       struct transfers * ptr,
+                      struct transfer_workspace * ptw,
                       int index_md,
                       int index_q,
                       double l,
                       double q,
-                      double * tau0_minus_tau,
-                      double * sources,
                       radial_function_type radial_type,
                       double * trsf
                       );
