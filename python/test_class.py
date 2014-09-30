@@ -105,10 +105,10 @@ CLASS_INPUT['Isocurvature_modes'] = (
     [{'ic': 'ad,nid,cdi', 'c_ad_cdi': -0.5}],
     'normal')
 
-CLASS_INPUT['Scalar_field'] = (
-    [{'Omega_scf': 0.1, 'attractor_ic_scf': 'yes',
-      'scf_parameters': '10, 0, 0, 0'}],
-    'normal')
+#CLASS_INPUT['Scalar_field'] = (
+    #[{'Omega_scf': 0.1, 'attractor_ic_scf': 'yes',
+      #'scf_parameters': '10, 0, 0, 0'}],
+    #'normal')
 
 CLASS_INPUT['Inflation'] = (
     [{'P_k_ini type': 'inflation_V'},
@@ -397,15 +397,31 @@ class TestClass(unittest.TestCase):
                         elem, key))
                     # For all self spectra, try to compare allclose
                     if key[0] == key[1]:
-                        try:
-                            np.testing.assert_allclose(
-                                value, to_test[key], rtol=1e-03, atol=1e-20)
-                        except AssertionError:
-                            self.cl_faulty_plot(elem+"_"+key,
-                                                value[2:], to_test[key][2:])
-                        except TypeError:
-                            self.cl_faulty_plot(elem+"_"+key,
-                                                value[2:], to_test[key][2:])
+                        # If it is a 'dd' or 'll', it is a dictionary.
+                        if isinstance(value, dict):
+                            for subkey in value.iterkeys():
+                                try:
+                                    np.testing.assert_allclose(
+                                        value[subkey], to_test[key][subkey],
+                                        rtol=1e-03, atol=1e-20)
+                                except AssertionError:
+                                    self.cl_faulty_plot(elem+"_"+key,
+                                                        value[subkey][2:],
+                                                        to_test[key][subkey][2:])
+                                except TypeError:
+                                    self.cl_faulty_plot(elem+"_"+key,
+                                                        value[subkey][2:],
+                                                        to_test[key][subkey][2:])
+                        else:
+                            try:
+                                np.testing.assert_allclose(
+                                    value, to_test[key], rtol=1e-03, atol=1e-20)
+                            except AssertionError:
+                                self.cl_faulty_plot(elem+"_"+key,
+                                                    value[2:], to_test[key][2:])
+                            except TypeError:
+                                self.cl_faulty_plot(elem+"_"+key,
+                                                    value[2:], to_test[key][2:])
                     # For cross-spectra, as there can be zero-crossing, we
                     # instead compare the difference.
                     else:
