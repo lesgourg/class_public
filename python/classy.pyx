@@ -564,20 +564,30 @@ cdef class Class:
             starts at index_ct_dd.
         """
         cdef int lmaxR
-        cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
+        cdef double *dcl = <double*> calloc(self.sp.ct_size,sizeof(double))
+
+        # Quantities for tensor modes
+        cdef double **cl_md = <double**> calloc(self.sp.md_size, sizeof(double*))
+        for index_md in range(self.sp.md_size):
+            cl_md[index_md] = <double*> calloc(self.sp.ct_size, sizeof(double))
+
+        # Quantities for isocurvature modes
+        cdef double **cl_md_ic = <double**> calloc(self.sp.md_size, sizeof(double*))
+        for index_md in range(self.sp.md_size):
+            cl_md_ic[index_md] = <double*> calloc(self.sp.ct_size*self.sp.ic_ic_size[index_md], sizeof(double))
 
         lmaxR = self.pt.l_lss_max
         has_flags = [
-            (self.le.has_dd, self.le.index_lt_dd, 'dd'),
-            (self.le.has_td, self.le.index_lt_td, 'td'),
-            (self.le.has_ll, self.le.index_lt_ll, 'll'),
-            (self.le.has_tl, self.le.index_lt_tl, 'tl')]
+            (self.sp.has_dd, self.sp.index_ct_dd, 'dd'),
+            (self.sp.has_td, self.sp.index_ct_td, 'td'),
+            (self.sp.has_ll, self.sp.index_ct_ll, 'll'),
+            (self.sp.has_tl, self.sp.index_ct_tl, 'tl')]
         spectra = []
 
         for flag, index, name in has_flags:
             if flag:
                 spectra.append(name)
-                l_max_flag = self.le.l_max_lt[index]
+                l_max_flag = self.sp.l_max_ct[self.sp.index_md_scalars][index]
                 if l_max_flag < lmax and lmax > 0:
                     raise CosmoSevereError(
                         "the %s spectrum was computed until l=%i " % (
@@ -613,21 +623,21 @@ cdef class Class:
                 cl[elem] = np.zeros(lmax+1, dtype=np.double)
 
         for ell from 2<=ell<lmax+1:
-            if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
-                raise CosmoSevereError(self.le.error_message)
+            if spectra_cl_at_l(&self.sp, ell, dcl, cl_md, cl_md_ic) == _FAILURE_:
+                raise CosmoSevereError(self.sp.error_message)
             if 'dd' in spectra:
                 for index in range(size):
-                    cl['dd'][index][ell] = lcl[self.le.index_lt_dd+index]
+                    cl['dd'][index][ell] = dcl[self.sp.index_ct_dd+index]
             if 'll' in spectra:
                 for index in range(size):
-                    cl['ll'][index][ell] = lcl[self.le.index_lt_ll+index]
+                    cl['ll'][index][ell] = dcl[self.sp.index_ct_ll+index]
             if 'td' in spectra:
-                cl['td'][ell] = lcl[self.le.index_lt_td]
+                cl['td'][ell] = dcl[self.sp.index_ct_td]
             if 'tl' in spectra:
-                cl['tl'][ell] = lcl[self.le.index_lt_tl]
+                cl['tl'][ell] = dcl[self.sp.index_ct_tl]
         cl['ell'] = np.arange(lmax+1)
 
-        free(lcl)
+        free(dcl)
         return cl
 
     def z_of_r (self,z_array):

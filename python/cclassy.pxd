@@ -152,6 +152,10 @@ cdef extern from "class.h":
         int has_bb
         int has_pp
         int has_tp
+        int has_dd
+        int has_td
+        int has_ll
+        int has_tl
         int l_max_tot
         int ** l_max_ct
         int ln_k_size
