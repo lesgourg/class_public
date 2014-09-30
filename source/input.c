@@ -2748,6 +2748,11 @@ int input_default_params(
   ppm->V2=-6.95e-14;
   ppm->V3=0.;
   ppm->V4=0.;
+  ppm->H0=3.69e-6;
+  ppm->H1=-5.84e-7;
+  ppm->H2=0.;
+  ppm->H3=0.;
+  ppm->H4=0.;
   ppm->command="write here your command for the external Pk";
   ppm->custom1=0.;
   ppm->custom2=0.;
