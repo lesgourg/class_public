@@ -175,8 +175,10 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
     # Decide for the x_axis, by default the index will be set to zero
     x_index = 0
     if x_axis:
-        if x_axis in names:
-            x_index = names.index(x_axis)
+        for index, name in enumerate(names):
+            if name.find(x_axis) != -1:
+                x_index = index
+                break
     text += ["x_axis = '%s'" % tex_names[x_index]]
 
     # Store the limits variable in the text
