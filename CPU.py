@@ -81,16 +81,17 @@ def CPU_parser():
                         default=[], help='Specify the y range')
     parser.add_argument(
         '-p, --print',
-        dest='printfile', action='store_true', default=False,
-        help='print the graph directly in a .pdf file')
+        dest='printfile', default='',
+        help=('print the graph directly in a file. If no name is specified, it'
+              'uses the name of the first input file'))
     parser.add_argument(
-        '-r, --repeat',
+        '--repeat',
         dest='repeat', action='store_true', default=False,
         help='repeat the step for all redshifts with same base name')
     return parser
 
 
-def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
+def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
                       output_name='', extension='', x_variable='',
                       scale='lin', xlim=[], ylim=[]):
     """
@@ -240,7 +241,7 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
                          '    interpolated = splrep(current[:, %i],' % x_index,
                          '        current[:, %i])' % curve_names.index(selec)]
                 if scale == 'lin':
-                    text += ['    ax.plot(axis, splev(ref[:, 0],' % x_index,
+                    text += ['    ax.plot(axis, splev(ref[:, %i],' % x_index,
                              '        interpolated)/reference-1)']
                     ax.plot(axis, splev(ref[:, x_index],
                                         interpolated)/reference-1)
@@ -281,6 +282,11 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
     text += ['plt.show()']
     plt.show()
 
+    # If the use wants to print the figure to a file
+    if printing:
+        fig.savefig(printing)
+        text += ["fig.savefig('%s')" % printing]
+
     # Write to the python file all the issued commands. You can then reproduce
     # the plot by running "python output/something_cl.dat.py"
     with open(python_script_path, 'w') as python_script:
@@ -290,7 +296,7 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
 
     # If the use wants to print the figure to a file
     if printing:
-        fig.savefig(pdf_path)
+        fig.savefig(printing)
 
 
 class FormatError(Exception):
@@ -423,6 +429,10 @@ def main():
     # actual plotting. By default, a simple superposition of the graph is
     # performed. If asked to be divided, the ratio is shown - whether a need
     # for interpolation arises or not.
+    if args.ratio and args.scale == 'loglog':
+        print "Defaulting to loglin scale"
+        args.scale = 'loglin'
+
     plot_CLASS_output(args.files, args.x_axis, args.y_axis,
                       ratio=args.ratio, printing=args.printfile,
                       scale=args.scale, xlim=args.xlim, ylim=args.ylim)
