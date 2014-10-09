@@ -1928,21 +1928,28 @@ int input_read_parameters(
     }
   }
 
-  if ((ppt->has_scalars == _TRUE_) &&
-      ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) &&
-      (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
+  class_call(parser_read_string(pfc,
+                                "lensing",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
 
-    class_call(parser_read_string(pfc,
-                                  "lensing",
-                                  &(string1),
-                                  &(flag1),
-                                  errmsg),
-               errmsg,
-               errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
-    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    if ((ppt->has_scalars == _TRUE_) &&
+        ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) &&
+        (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
       ple->has_lensed_cls = _TRUE_;
     }
+    else {
+      class_stop(errmsg,"you asked for lensed CMB Cls, but this requires a minimal number of options: 'modes' should include 's', 'output' should include 'tCl' and/or 'pCL', and also, importantly, 'lCl', the CMB lenisng potential spectrum. You forgot one of those in your input.");
+    }
+  }
+
+  if ((ppt->has_scalars == _TRUE_) &&
+      (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
 
     class_read_double("lcmb_rescale",ptr->lcmb_rescale);
     class_read_double("lcmb_tilt",ptr->lcmb_tilt);
