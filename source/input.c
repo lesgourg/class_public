@@ -2595,7 +2595,7 @@ int input_default_params(
   pba->Omega0_ncdm_tot = 0.;
   pba->ksi_ncdm_default = 0.;
   pba->ksi_ncdm = NULL;
-  pba->T_ncdm_default = pow(4.0/11.0,1.0/3.0);
+  pba->T_ncdm_default = 0.71611; /* this value gives m/omega = 93.14 eV b*/
   pba->T_ncdm = NULL;
   pba->deg_ncdm_default = 1.;
   pba->deg_ncdm = NULL;
