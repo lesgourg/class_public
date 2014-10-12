@@ -43,7 +43,7 @@ from matplotlib.ticker import FixedLocator
 # Numerics
 import numpy as np
 from numpy import ma
-from scipy.interpolate import splrep, splev
+from scipy.interpolate import splrep, splev, InterpolatedUnivariateSpline
 from math import floor
 
 # Plotting
@@ -81,16 +81,17 @@ def CPU_parser():
                         default=[], help='Specify the y range')
     parser.add_argument(
         '-p, --print',
-        dest='printfile', action='store_true', default=False,
-        help='print the graph directly in a .pdf file')
+        dest='printfile', default='',
+        help=('print the graph directly in a file. If no name is specified, it'
+              'uses the name of the first input file'))
     parser.add_argument(
-        '-r, --repeat',
+        '--repeat',
         dest='repeat', action='store_true', default=False,
         help='repeat the step for all redshifts with same base name')
     return parser
 
 
-def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
+def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
                       output_name='', extension='', x_variable='',
                       scale='lin', xlim=[], ylim=[]):
     """
@@ -149,114 +150,170 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
     roots = [elem.split(os.path.sep)[-1].split('.')[0] for elem in files]
     text += ['roots = [%s]' % ', '.join(["'%s'" % root for root in roots])]
 
-    # Recover the number of columns in the first file, as well as their title.
-    num_columns, names, tex_names = extract_headers(files[0])
-
-    # Check if everything is in order
-    if num_columns == 2:
-        y_axis = [names[1]]
-    elif num_columns > 2:
-        # in case y_axis was only a string, cast it to a list
-        if isinstance(y_axis, str):
-            y_axis = [y_axis]
-
-    # Store the selected text and tex_names to the script
-    selected = []
-    for elem in y_axis:
-        selected.extend([name for name in names if name.find(elem) != -1 and
-                         name not in selected])
-    y_axis = selected
-
-    text += ['y_axis = %s' % selected]
-    text += ['tex_names = %s' % [elem for (elem, name) in
-                                 zip(tex_names, names) if name in selected]]
-
-    # Decide for the x_axis, by default the index will be set to zero
-    x_index = 0
-    if x_axis:
-        if x_axis in names:
-            x_index = names.index(x_axis)
-    text += ["x_axis = '%s'" % tex_names[x_index]]
-
-    # Store the limits variable in the text
-    text += ["ylim = %s" % ylim]
-    text += ["xlim = %s" % xlim]
-
     # Create the figure and ax objects
     fig, ax = plt.subplots()
     text += ['', 'fig, ax = plt.subplots()']
 
     # if ratio is not set, then simply plot them all
+    original_y_axis = y_axis
+    legend = []
     if not ratio:
-        text += ['for curve in data:']
-        for idx, curve in enumerate(data):
-            _, curve_names, _ = extract_headers(files[idx])
+        for index, curve in enumerate(data):
+            # Recover the number of columns in the first file, as well as their
+            # title.
+            num_columns, names, tex_names = extract_headers(files[index])
+
+            # Check if everything is in order
+            if num_columns == 2:
+                y_axis = [names[1]]
+            elif num_columns > 2:
+                # in case y_axis was only a string, cast it to a list
+                if isinstance(original_y_axis, str):
+                    y_axis = [original_y_axis]
+                else:
+                    y_axis = original_y_axis
+
+            # Store the selected text and tex_names to the script
+            selected = []
+            for elem in y_axis:
+                selected.extend([name for name in names if name.find(elem) != -1 and
+                                 name not in selected])
+            y_axis = selected
+
+            text += ['y_axis = %s' % selected]
+            text += ['tex_names = %s' % [elem for (elem, name) in
+                                         zip(tex_names, names) if name in selected]]
+
+            # Decide for the x_axis, by default the index will be set to zero
+            x_index = 0
+            if x_axis:
+                for index_name, name in enumerate(names):
+                    if name.find(x_axis) != -1:
+                        x_index = index_name
+                        break
+            text += ["x_axis = '%s'" % tex_names[x_index]]
+
+            # Store the limits variable in the text
+            text += ["ylim = %s" % ylim]
+            text += ["xlim = %s" % xlim]
+
             for selec in y_axis:
-                index = curve_names.index(selec)
+                index_selec = names.index(selec)
                 plot_line = '    ax.'
                 if scale == 'lin':
                     plot_line += 'plot(curve[:, %i], curve[:, %i])' % (
-                        x_index, index)
-                    ax.plot(curve[:, x_index], curve[:, index])
+                        x_index, index_selec)
+                    ax.plot(curve[:, x_index], curve[:, index_selec])
                 elif scale == 'loglog':
                     plot_line += 'loglog(curve[:, %i], abs(curve[:, %i]))' % (
-                        x_index, index)
-                    ax.loglog(curve[:, x_index], abs(curve[:, index]))
+                        x_index, index_selec)
+                    ax.loglog(curve[:, x_index], abs(curve[:, index_selec]))
                 elif scale == 'loglin':
                     plot_line += 'semilogx(curve[:, %i], curve[:, %i])' % (
-                        x_index, index)
-                    ax.semilogx(curve[:, x_index], curve[:, index])
+                        x_index, index_selec)
+                    ax.semilogx(curve[:, x_index], curve[:, index_selec])
                 elif scale == 'george':
                     plot_line += 'plot(curve[:, %i], curve[:, %i])' % (
-                        x_index, index)
-                    ax.plot(curve[:, x_index], curve[:, index])
+                        x_index, index_selec)
+                    ax.plot(curve[:, x_index], curve[:, index_selec])
                     ax.set_xscale('planck')
                 text += [plot_line]
 
-        ax.legend([root+': '+elem for (root, elem) in
-                   itertools.product(roots, y_axis)], loc='best')
+            legend.extend([roots[index]+': '+elem for elem in y_axis])
+
+        ax.legend(legend, loc='best')
         text += ["",
                  "ax.legend([root+': '+elem for (root, elem) in",
                  "    itertools.product(roots, y_axis)], loc='best')",
                  ""]
     else:
-        text += ['from scipy.interpolate import splrep, splev']
         ref = data[0]
-        text += ['ref = data[0]']
-        _, ref_curve_names, _ = extract_headers(files[0])
-        text += ['for idx in range(1, len(data)):',
-                 '    current = data[idx]']
+        num_columns, ref_curve_names, ref_tex_names = extract_headers(files[0])
+        # Check if everything is in order
+        if num_columns == 2:
+            y_axis_ref = [ref_curve_names[1]]
+        elif num_columns > 2:
+            # in case y_axis was only a string, cast it to a list
+            if isinstance(original_y_axis, str):
+                y_axis_ref = [original_y_axis]
+            else:
+                y_axis_ref = original_y_axis
+
+        # Store the selected text and tex_names to the script
+        selected = []
+        for elem in y_axis_ref:
+            selected.extend([name for name in ref_curve_names if name.find(elem) != -1 and
+                             name not in selected])
+        y_axis_ref = selected
+
+        # Decide for the x_axis, by default the index will be set to zero
+        x_index_ref = 0
+        if x_axis:
+            for index_name, name in enumerate(ref_curve_names):
+                if name.find(x_axis) != -1:
+                    x_index_ref = index_name
+                    break
+
         for idx in range(1, len(data)):
             current = data[idx]
-            _, curve_names, _ = extract_headers(files[idx])
+            num_columns, names, tex_names = extract_headers(files[idx])
+
+            # Check if everything is in order
+            if num_columns == 2:
+                y_axis = [names[1]]
+            elif num_columns > 2:
+                # in case y_axis was only a string, cast it to a list
+                if isinstance(original_y_axis, str):
+                    y_axis = [original_y_axis]
+                else:
+                    y_axis = original_y_axis
+
+            # Store the selected text and tex_names to the script
+            selected = []
+            for elem in y_axis:
+                selected.extend([name for name in names if name.find(elem) != -1 and
+                                 name not in selected])
+            y_axis = selected
+
+            text += ['y_axis = %s' % selected]
+            text += ['tex_names = %s' % [elem for (elem, name) in
+                                         zip(tex_names, names) if name in selected]]
+
+            # Decide for the x_axis, by default the index will be set to zero
+            x_index = 0
+            if x_axis:
+                for index_name, name in enumerate(names):
+                    if name.find(x_axis) != -1:
+                        x_index = index_name
+                        break
+
+            text += ["x_axis = '%s'" % tex_names[x_index]]
             for selec in y_axis:
                 # Do the interpolation
-                axis = ref[:, x_index]
+                axis = ref[:, x_index_ref]
                 reference = ref[:, ref_curve_names.index(selec)]
-                interpolated = splrep(current[:, x_index],
-                                      current[:, curve_names.index(selec)])
-                text += ['    axis = ref[:, %i]' % x_index,
-                         '    reference = ref[:, %i]' % ref_curve_names.index(selec),
-                         '    interpolated = splrep(current[:, %i],' % x_index,
-                         '        current[:, %i])' % curve_names.index(selec)]
+                #plt.loglog(current[:, x_index], current[:, names.index(selec)])
+                #plt.show()
+                #interpolated = splrep(current[:, x_index],
+                                      #current[:, names.index(selec)])
+                interpolated = InterpolatedUnivariateSpline(current[:, x_index],
+                                      current[:, names.index(selec)])
                 if scale == 'lin':
-                    text += ['    ax.plot(axis, splev(ref[:, 0],' % x_index,
-                             '        interpolated)/reference-1)']
-                    ax.plot(axis, splev(ref[:, x_index],
-                                        interpolated)/reference-1)
+                    #ax.plot(axis, splev(ref[:, x_index_ref],
+                                        #interpolated)/reference-1)
+                    ax.plot(axis, interpolated(ref[:, x_index_ref])/reference-1)
                 elif scale == 'loglin':
-                    text += ['    ax.semilogx(axis, splev(ref[:, %i],' % x_index,
-                             '        interpolated)/reference-1)']
-                    ax.semilogx(axis, splev(ref[:, x_index],
-                                            interpolated)/reference-1)
+                    #ax.semilogx(axis, splev(ref[:, x_index_ref],
+                                            #interpolated)/reference-1)
+                    ax.semilogx(axis, interpolated(ref[:, x_index_ref])/reference-1)
                 elif scale == 'loglog':
                     raise InputError(
                         "loglog plot is not available for ratios")
 
-    if 'TT' in curve_names:
+    if 'TT' in names:
         ax.set_xlabel('$\ell$', fontsize=16)
         text += ["ax.set_xlabel('$\ell$', fontsize=16)"]
-    elif 'P' in curve_names:
+    elif 'P' in names:
         ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=16)
         text += ["ax.set_xlabel('$k$ [$h$/Mpc]', fontsize=16)"]
     else:
@@ -281,6 +338,11 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
     text += ['plt.show()']
     plt.show()
 
+    # If the use wants to print the figure to a file
+    if printing:
+        fig.savefig(printing)
+        text += ["fig.savefig('%s')" % printing]
+
     # Write to the python file all the issued commands. You can then reproduce
     # the plot by running "python output/something_cl.dat.py"
     with open(python_script_path, 'w') as python_script:
@@ -290,7 +352,7 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing=False,
 
     # If the use wants to print the figure to a file
     if printing:
-        fig.savefig(pdf_path)
+        fig.savefig(printing)
 
 
 class FormatError(Exception):
@@ -423,6 +485,10 @@ def main():
     # actual plotting. By default, a simple superposition of the graph is
     # performed. If asked to be divided, the ratio is shown - whether a need
     # for interpolation arises or not.
+    if args.ratio and args.scale == 'loglog':
+        print "Defaulting to loglin scale"
+        args.scale = 'loglin'
+
     plot_CLASS_output(args.files, args.x_axis, args.y_axis,
                       ratio=args.ratio, printing=args.printfile,
                       scale=args.scale, xlim=args.xlim, ylim=args.ylim)

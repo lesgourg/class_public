@@ -460,6 +460,7 @@ int background_init(
   /** - local variables : */
   int n_ncdm;
   double rho_ncdm_rel,rho_nu_rel;
+  double Neff;
   int filenum=0;
 
   /** - in verbose mode, provide some information */
@@ -469,6 +470,8 @@ int background_init(
 
     /* below we want to inform the user about ncdm species*/
     if (pba->N_ncdm > 0) {
+
+      Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
 
       /* loop over ncdm species */
       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
@@ -502,12 +505,18 @@ int background_init(
         rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
           pow(_Mpc_over_m_,2)*pow(pba->T_cmb*_k_B_,4);
 
-        printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives N_eff = %g\n",
+        printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives Delta N_eff = %g\n",
                n_ncdm+1,
                pba->q_size_ncdm_bg[n_ncdm],
                pba->q_size_ncdm[n_ncdm],
                rho_ncdm_rel/rho_nu_rel);
+
+        Neff += rho_ncdm_rel/rho_nu_rel;
+
       }
+
+      printf(" -> total N_eff = %g (sumed over ultra-relativistic and ncdm species)\n",Neff);
+
     }
   }
 
@@ -553,7 +562,7 @@ int background_init(
       printf(" -> non-cold dark matter species with i=%d has m_i = %e eV (so m_i / omega_i =%e eV)\n",
              n_ncdm+1,
              pba->m_ncdm_in_eV[n_ncdm],
-             pba->m_ncdm_in_eV[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
+             pba->m_ncdm_in_eV[n_ncdm]*pba->deg_ncdm[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
     }
   }
 

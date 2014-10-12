@@ -1928,21 +1928,28 @@ int input_read_parameters(
     }
   }
 
-  if ((ppt->has_scalars == _TRUE_) &&
-      ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) &&
-      (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
+  class_call(parser_read_string(pfc,
+                                "lensing",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
 
-    class_call(parser_read_string(pfc,
-                                  "lensing",
-                                  &(string1),
-                                  &(flag1),
-                                  errmsg),
-               errmsg,
-               errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
-    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    if ((ppt->has_scalars == _TRUE_) &&
+        ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) &&
+        (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
       ple->has_lensed_cls = _TRUE_;
     }
+    else {
+      class_stop(errmsg,"you asked for lensed CMB Cls, but this requires a minimal number of options: 'modes' should include 's', 'output' should include 'tCl' and/or 'pCL', and also, importantly, 'lCl', the CMB lenisng potential spectrum. You forgot one of those in your input.");
+    }
+  }
+
+  if ((ppt->has_scalars == _TRUE_) &&
+      (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
 
     class_read_double("lcmb_rescale",ptr->lcmb_rescale);
     class_read_double("lcmb_tilt",ptr->lcmb_tilt);
@@ -2559,13 +2566,28 @@ int input_default_params(
 
   /** - background structure */
 
-  pba->h = 0.704;
+  /* 5.10.2014: default parameters matched to Planck 2013 + WP
+     best-fitting model, with ones small difference: the published
+     Planck 2013 + WP bestfit is with h=0.6704 and one massive
+     neutrino species with m_ncdm=0.06eV; here we assume only massless
+     neutrinos in the default model; for the CMB, taking m_ncdm = 0 or
+     0.06 eV makes practically no difference, provided that we adapt
+     the value of h in order ot get the same peak scale, i.e. the same
+     100*theta_s. The Planck 2013 + WP best-fitting model with
+     h=0.6704 gives 100*theta_s = 1.042143 (or equivalently
+     100*theta_MC=1.04119). By taking only massless neutrinos, one
+     gets the same 100*theta_s provided that h is increased to
+     0.67556. Hence, we take h=0.67556, N_ur=3.046, N_ncdm=0, and all
+     other parameters from the Planck2013 Cosmological Parameter
+     paper. */
+
+  pba->h = 0.67556;
   pba->H0 = pba->h * 1.e5 / _c_;
-  pba->T_cmb = 2.726;
+  pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-  pba->Omega0_b = 0.02253/0.704/0.704;
-  pba->Omega0_cdm = 0.1122/0.704/0.704;
+  pba->Omega0_b = 0.022032/pow(pba->h,2);
+  pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
   pba->Omega0_dcdm = 0.0;
   pba->Gamma_dcdm = 0.0;
@@ -2573,7 +2595,7 @@ int input_default_params(
   pba->Omega0_ncdm_tot = 0.;
   pba->ksi_ncdm_default = 0.;
   pba->ksi_ncdm = NULL;
-  pba->T_ncdm_default = pow(4.0/11.0,1.0/3.0);
+  pba->T_ncdm_default = 0.71611; /* this value gives m/omega = 93.14 eV b*/
   pba->T_ncdm = NULL;
   pba->deg_ncdm_default = 1.;
   pba->deg_ncdm = NULL;
@@ -2605,10 +2627,10 @@ int input_default_params(
   pth->recombination=recfast;
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
-  pth->z_reio=10.3;
-  pth->tau_reio=0.085;
+  pth->z_reio=11.357;
+  pth->tau_reio=0.0925;
   pth->reionization_exponent=1.5;
-  pth->reionization_width=1.5;
+  pth->reionization_width=0.5;
   pth->helium_fullreio_redshift=3.5;
   pth->helium_fullreio_width=0.5;
 
@@ -2691,9 +2713,9 @@ int input_default_params(
   /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
-  ppm->k_pivot = 0.002;
-  ppm->A_s = 2.42e-9;
-  ppm->n_s = 0.967;
+  ppm->k_pivot = 0.05;
+  ppm->A_s = 2.215e-9;
+  ppm->n_s = 0.9619;
   ppm->alpha_s = 0.;
   ppm->f_bi = 1.;
   ppm->n_bi = 1.;
