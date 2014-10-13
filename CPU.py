@@ -176,8 +176,11 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
             # Store the selected text and tex_names to the script
             selected = []
             for elem in y_axis:
-                selected.extend([name for name in names if name.find(elem) != -1 and
-                                 name not in selected])
+                selected.extend(
+                    [name for name in names if name.find(elem) != -1 and
+                     name not in selected])
+            if not y_axis:
+                selected = names[1:]
             y_axis = selected
 
             text += ['y_axis = %s' % selected]
@@ -456,15 +459,12 @@ def main():
     # spectrum
     if not args.y_axis:
         if args.files[0].rfind('cl') != -1:
-            y_axis = ['TT']
             scale = 'loglog'
         elif args.files[0].rfind('pk') != -1:
-            y_axis = ['P']
             scale = 'loglog'
         else:
-            raise TypeError(
-                "Please specify a field to plot")
-        args.y_axis = y_axis
+            scale = 'lin'
+        args.y_axis = []
     else:
         scale = ''
     if not args.scale:
