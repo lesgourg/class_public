@@ -122,8 +122,8 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
 
     """
     # Define the python script name, and the pdf path
-    python_script_path = files[0]+'.py'
-    pdf_path = files[0]+'.pdf'
+    python_script_path = files[0][:-3]+'py'
+    pdf_path = files[0][:-3]+'pdf'
 
     # The variable text will contain all the lines to be printed in the end to
     # the python script path, joined with newline characters. Beware of the
