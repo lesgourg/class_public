@@ -2364,6 +2364,7 @@ int primordial_inflation_find_phi_pivot(
   double dphidt_small_epsilon;
   double H_small_epsilon;
   double aH_ratio_after_small_epsilon;
+  double ln_aH_ratio=0.;
 
   /* check whether in vicinity of phi_end, inflation is still ongoing */
 
@@ -2437,6 +2438,31 @@ int primordial_inflation_find_phi_pivot(
 
     aH_ratio_after_small_epsilon = dy[ppm->index_in_a]/y[ppm->index_in_a]/H_small_epsilon;
 
+
+    /* get the target value of ln_aH_ratio */
+    if (ppm->ln_aH_ratio == _aH_ratio_auto_) {
+
+      double rho_end = 2./8./_PI_*pow(dy[ppm->index_in_a]/y[ppm->index_in_a],2);
+      rho_end = 8*_PI_/3.*rho_end/(_G_*_h_P_/pow(_c_,3))*pow(_Mpc_over_m_,2);
+      double h = 0.7;
+      double H0 = h * 1.e5 / _c_;
+      double rho_c0 = pow(H0,2);
+
+      double sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
+      double Omega_g0 = (4.*sigma_B/_c_*pow(2.726,4.)) / (3.*_c_*_c_*1.e10*h*h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
+      double Omega_r0 = 3.046*7./8.*pow(4./11.,4./3.)*Omega_g0;
+
+      ln_aH_ratio = log(H0/0.05*pow(Omega_r0,0.5)*pow(2./100.,1./12.)*pow(rho_end/rho_c0,0.25));
+
+      //fprintf(stderr,"auto: log(aH_end/aH_*)=%e\n",ln_aH_ratio);
+
+    }
+    else {
+      ln_aH_ratio = ppm->ln_aH_ratio;
+
+      //fprintf(stderr,"fixed: log(aH_end/aH_*)=%e\n",ln_aH_ratio);
+    }
+
     /* by starting from phi_small_epsilon and integrating an approximate
        solution backward in time, try to estimate roughly a value close
        to phi_pivot but a bit smaller. This is done by trying to reach
@@ -2455,7 +2481,7 @@ int primordial_inflation_find_phi_pivot(
                                                       y,
                                                       dy,
                                                       _aH_,
-                                                      H_small_epsilon/exp(ppm->ln_aH_ratio+ppr->primordial_inflation_extra_efolds)*aH_ratio_after_small_epsilon,
+                                                      H_small_epsilon/exp(ln_aH_ratio+ppr->primordial_inflation_extra_efolds)*aH_ratio_after_small_epsilon,
                                                       _TRUE_,
                                                       backward,
                                                       conformal),
@@ -2499,11 +2525,11 @@ int primordial_inflation_find_phi_pivot(
 
     aH_try = dy[ppm->index_in_a]/H_try;
 
-    class_test(log(aH_try) < ppm->ln_aH_ratio,
+    class_test(log(aH_try) < ln_aH_ratio,
                ppm->error_message,
                "phi_try not small enough, log(aH_stop/aH_try) = %e instead of requested %e; must write here a loop to deal automatically with this situation (by decreasing phi_try iteratively), or must increase precision parameter primordial_inflation_extra_efolds",
                log(aH_try),
-               ppm->ln_aH_ratio);
+               ln_aH_ratio);
 
     phi_stop = y[1];
 
@@ -2522,7 +2548,7 @@ int primordial_inflation_find_phi_pivot(
                                                       y,
                                                       dy,
                                                       _aH_,
-                                                      H_try*aH_try/exp(ppm->ln_aH_ratio),
+                                                      H_try*aH_try/exp(ln_aH_ratio),
                                                       _FALSE_,
                                                       forward,
                                                       proper),
@@ -2589,7 +2615,7 @@ int primordial_inflation_find_phi_pivot(
                                                       y,
                                                       dy,
                                                       _aH_,
-                                                      H_small_epsilon/exp(ppm->ln_aH_ratio+ppr->primordial_inflation_extra_efolds),
+                                                      H_small_epsilon/exp(ln_aH_ratio+ppr->primordial_inflation_extra_efolds),
                                                       _TRUE_,
                                                       backward,
                                                       conformal),
@@ -2633,11 +2659,11 @@ int primordial_inflation_find_phi_pivot(
 
     aH_try = dy[ppm->index_in_a]/H_try;
 
-    class_test(log(aH_try) < ppm->ln_aH_ratio,
+    class_test(log(aH_try) < ln_aH_ratio,
                ppm->error_message,
                "phi_try not small enough, log(aH_stop/aH_try) = %e instead of requested %e; must write here a loop to deal automatically with this situation (by decreasing phi_try iteratively), or must increase precision parameter primordial_inflation_extra_efolds",
                log(aH_try),
-               ppm->ln_aH_ratio);
+               ln_aH_ratio);
 
     phi_stop = y[1];
 
@@ -2656,7 +2682,7 @@ int primordial_inflation_find_phi_pivot(
                                                       y,
                                                       dy,
                                                       _aH_,
-                                                      H_try*aH_try/exp(ppm->ln_aH_ratio),
+                                                      H_try*aH_try/exp(ln_aH_ratio),
                                                       _FALSE_,
                                                       forward,
                                                       proper),

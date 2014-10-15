@@ -1897,7 +1897,21 @@ int input_read_parameters(
     class_read_double("Vparam2",ppm->V2);
     class_read_double("Vparam3",ppm->V3);
     class_read_double("Vparam4",ppm->V4);
-    class_read_double("ln_aH_ratio",ppm->ln_aH_ratio);
+
+    class_call(parser_read_string(pfc,"ln_aH_ratio",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+
+      if ((strstr(string1,"auto") != NULL) || (strstr(string1,"AUTO") != NULL)) {
+        ppm->ln_aH_ratio = _aH_ratio_auto_;
+      }
+      else {
+        class_read_double("ln_aH_ratio",ppm->ln_aH_ratio);
+      }
+
+    }
 
   }
   else if (ppm->primordial_spec_type == external_Pk) {
