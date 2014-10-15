@@ -985,6 +985,8 @@ int primordial_inflation_potential(
                                    double * ddV
                                    ) {
 
+  double e,de,dde,mu,dmu,ddmu,l,dl,ddl,p,dp,ddp;
+
   switch (ppm->potential) {
 
     /* V(phi)=polynomial in phi */
@@ -1001,6 +1003,39 @@ int primordial_inflation_potential(
     *V   = ppm->V0*(1.+cos(phi/ppm->V1));
     *dV  = -ppm->V0/ppm->V1*sin(phi/ppm->V1);
     *ddV = -ppm->V0/ppm->V1/ppm->V1*cos(phi/ppm->V1);
+    break;
+
+    /* Higgs inflation from arXiv:1403.6078 */
+  case higgs_inflation:
+
+    // correspondance with 1403.6078:
+    // V0 = b
+    // V1 = ksi
+    // V2 = kappa
+    // V3 = delta_lambda
+    // mu = bar(mu)/M_P
+    // phi = -chi/M_P
+
+    e = exp(2./sqrt(6.)*sqrt(8.*_PI_)*phi);
+    de = 2./sqrt(6.)*sqrt(8.*_PI_)*e;
+    dde = 2./3. * 8.*_PI_ * e;
+
+    mu = pow(1.-e,0.5);
+    dmu = -0.5*de*pow(1.-e,-0.5);
+    ddmu = -0.5*dde*pow(1.-e,-0.5)-0.25*de*de*pow(1.-e,-1.5);
+
+    l = log(mu/ppm->V2);
+    dl = dmu/mu;
+    ddl = ddmu/mu - dl*dl;
+
+    p = 1./16. + ppm->V3/ppm->V0 + l*l;
+    dp = 2.*dl*l;
+    ddp = 2.*ddl*l+2.*dl*dl;
+
+    *V = ppm->V0/4./pow(8.*_PI_,2)/ppm->V1/ppm->V1*p*pow(mu,4);
+    *dV = ppm->V0/4./pow(8.*_PI_,2)/ppm->V1/ppm->V1*(dp*pow(mu,4)+4.*p*dmu*pow(mu,3));
+    *ddV = ppm->V0/4./pow(8.*_PI_,2)/ppm->V1/ppm->V1*(ddp*pow(mu,4)+8.*dp*dmu*pow(mu,3)+4.*p*ddmu*pow(mu,3)+12.*p*pow(dmu*mu,2));
+
     break;
 
     /* code here other shapes */

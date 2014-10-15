@@ -1875,6 +1875,22 @@ int input_read_parameters(
 
   else if (ppm->primordial_spec_type == inflation_V_end) {
 
+    class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if (strcmp(string1,"polynomial") == 0) {
+        ppm->potential = polynomial;
+      }
+      else if (strcmp(string1,"higgs_inflation") == 0) {
+        ppm->potential = higgs_inflation;
+      }
+      else {
+        class_stop(errmsg,"did not recognize input parameter 'potential': should be one of 'polynomial' or 'higgs_inflation'");
+      }
+    }
+
     class_read_double("phi_end",ppm->phi_end);
     class_read_double("Vparam0",ppm->V0);
     class_read_double("Vparam1",ppm->V1);
