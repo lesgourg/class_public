@@ -1036,6 +1036,8 @@ int primordial_inflation_potential(
     *dV = ppm->V0/4./pow(8.*_PI_,2)/ppm->V1/ppm->V1*(dp*pow(mu,4)+4.*p*dmu*pow(mu,3));
     *ddV = ppm->V0/4./pow(8.*_PI_,2)/ppm->V1/ppm->V1*(ddp*pow(mu,4)+8.*dp*dmu*pow(mu,3)+4.*p*ddmu*pow(mu,3)+12.*p*pow(dmu*mu,2));
 
+    //fprintf(stderr,"%e  %e  %e\n",*V,p,mu);
+
     break;
 
     /* code here other shapes */

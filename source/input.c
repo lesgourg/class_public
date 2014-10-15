@@ -1875,7 +1875,7 @@ int input_read_parameters(
 
   else if (ppm->primordial_spec_type == inflation_V_end) {
 
-    class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"full_potential",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
 
