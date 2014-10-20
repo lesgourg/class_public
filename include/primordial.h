@@ -36,7 +36,8 @@ enum potential_shape {
 enum target_quantity {
   _aH_,
   _phi_,
-  _end_inflation_
+  _end_inflation_,
+  _a_
 };
 
 /** enum specifying if we want to integrate equations forward or backward in time */

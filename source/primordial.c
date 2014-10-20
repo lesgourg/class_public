@@ -1981,7 +1981,7 @@ int primordial_inflation_evolve_background(
     dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*y[ppm->index_in_a]/dy[ppm->index_in_a];
   }
 
-  /* expected value of either aH or phi after the next step */
+  /* expected value of target quantity after the next step */
   switch (target) {
   case _aH_:
     // next (approximate) value of aH after next step
@@ -2005,6 +2005,10 @@ int primordial_inflation_evolve_background(
     class_test(ppm->primordial_spec_type != inflation_V_end,
                ppm->error_message,
                "the target _end_inflation_ is only coded to work with inflation_V_end (but could be generalised if needed)");
+    break;
+  case _a_:
+    // next (approximate) value of a after next step
+    quantity = y[ppm->index_in_a]+dy[ppm->index_in_a]*dtau;
     break;
   }
 
@@ -2098,7 +2102,7 @@ int primordial_inflation_evolve_background(
       dtau = sign_dtau * ppr->primordial_inflation_bg_stepsize*y[ppm->index_in_a]/dy[ppm->index_in_a];
     }
 
-    /* expected value of either aH or phi after the next step */
+    /* expected value of target quantity after the next step */
 
     switch (target) {
     case _aH_:
@@ -2117,6 +2121,10 @@ int primordial_inflation_evolve_background(
       quantity = -pow(dy[ppm->index_in_a]/y[ppm->index_in_a],2) + 4*_PI_ *  y[ppm->index_in_dphi] * y[ppm->index_in_dphi];
       if (time == conformal) quantity /= pow(y[ppm->index_in_a],2);
       break;
+    case _a_:
+      // next (approximate) value of a after next step
+      quantity = y[ppm->index_in_a]+dy[ppm->index_in_a]*dtau;
+      break;
     }
 
   }
@@ -2128,9 +2136,9 @@ int primordial_inflation_evolve_background(
              ppm->error_message);
 
   /* Perform one last step with a simple trapezoidal integral. This
-     will bring exactly phi fowrward to phi_stop, or approximately aH
-     forward to aH_stop, or approximately [-d2a/dt2 /a] backward to
-     zero. */
+     will bring exactly phi or a forward to phi_stop or a_stop, or
+     approximately aH forward to aH_stop, or approximately [-d2a/dt2
+     /a] backward to zero. */
 
   switch (target) {
   case _aH_:
@@ -2164,6 +2172,9 @@ int primordial_inflation_evolve_background(
       dtau = -quantity/(8.*_PI_/y[ppm->index_in_a]/y[ppm->index_in_a]*dy[ppm->index_in_phi]*dy[ppm->index_in_dphi]);
       break;
     }
+    break;
+  case _a_:
+    dtau = (stop-y[ppm->index_in_a])/dy[ppm->index_in_a];
     break;
   }
 
