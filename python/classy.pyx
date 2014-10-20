@@ -1401,7 +1401,8 @@ cdef class Class:
 
         # Compute the derived paramter value and store them
         params = ctx.getData()
-        self.get_current_derived_parameters(data)
+        self.get_current_derived_parameters(
+            data.get_mcmc_parameters(['derived']))
         for elem in data.get_mcmc_parameters(['derived']):
             data.mcmc_parameters[elem]['current'] /= \
                 data.mcmc_parameters[elem]['scale']
