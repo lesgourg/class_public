@@ -54,6 +54,14 @@ enum time_definition {
   proper
 };
 
+/** enum specifying how, in the inflation_V_end case, the value of phi_pivot should calculated */
+
+enum phi_pivot_methods {
+  N_star,
+  ln_aH_ratio,
+  ln_aH_ratio_auto
+};
+
 /** number meaning that for the computation of phi_pivot in inflation_V_end, the schem to use is the automatic one */
 
 #define _aH_ratio_auto_ -1.
@@ -165,7 +173,8 @@ struct primordial {
   /** - parameters describing inflation_V_end */
 
   double phi_end;
-  double ln_aH_ratio;
+  enum phi_pivot_methods phi_pivot_method;
+  double phi_pivot_target;
 
   /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 

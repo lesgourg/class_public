@@ -570,6 +570,7 @@ int input_read_parameters(
   double fnu_factor;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
+  char string2[_ARGUMENT_LENGTH_MAX_];
   double k1=0.;
   double k2=0.;
   double prr1=0.;
@@ -1902,15 +1903,27 @@ int input_read_parameters(
                errmsg,
                errmsg);
 
-    if (flag1 == _TRUE_) {
+    class_call(parser_read_string(pfc,"N_star",&string2,&flag2,errmsg),
+               errmsg,
+               errmsg);
 
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+               errmsg,
+               "In input file, you can only enter one of ln_aH_ratio or N_star, the two are not compatible");
+
+    if (flag1 == _TRUE_) {
       if ((strstr(string1,"auto") != NULL) || (strstr(string1,"AUTO") != NULL)) {
-        ppm->ln_aH_ratio = _aH_ratio_auto_;
+        ppm->phi_pivot_method = ln_aH_ratio_auto;
       }
       else {
-        class_read_double("ln_aH_ratio",ppm->ln_aH_ratio);
+        ppm->phi_pivot_method = ln_aH_ratio;
+        class_read_double("ln_aH_ratio",ppm->phi_pivot_target);
       }
+    }
 
+    if (flag2 == _TRUE_) {
+      ppm->phi_pivot_method = N_star;
+      class_read_double("N_star",ppm->phi_pivot_target);
     }
 
   }
@@ -2794,7 +2807,8 @@ int input_default_params(
   ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
   ppm->potential=polynomial;
   ppm->phi_end=0.;
-  ppm->ln_aH_ratio=50;
+  ppm->phi_pivot_method = N_star;
+  ppm->phi_pivot_target = 60;
   ppm->V0=1.25e-13;
   ppm->V1=-1.12e-14;
   ppm->V2=-6.95e-14;
