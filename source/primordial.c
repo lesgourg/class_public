@@ -2377,6 +2377,7 @@ int primordial_inflation_find_phi_pivot(
   double aH_ratio_after_small_epsilon=0.;
   double a_ratio_after_small_epsilon=0.;
   double target=0.;
+  double a_pivot,aH_pivot;
 
   double rho_end;
   double h;
@@ -2541,7 +2542,7 @@ int primordial_inflation_find_phi_pivot(
       break;
     }
 
-    /* we now have a value phi_try belived to be close to and slightly smaller than phi_pivot */
+    /* we now have a value phi_try believed to be close to and slightly smaller than phi_pivot */
 
     phi_try = y[ppm->index_in_phi];
 
@@ -2646,35 +2647,36 @@ int primordial_inflation_find_phi_pivot(
 
     ppm->phi_pivot = y[1];
 
-    if (ppm->primordial_verbose > 1)
+    if (ppm->primordial_verbose > 1) {
+
       printf(" (reached phi_pivot=%e)\n",ppm->phi_pivot);
 
-    /* uncomment this part if you want to check that phi_pivot is
-       correct. Done by restarting from phi_pivot and going again till
-       the end of inflation. */
-    /*
-      if (ppm->primordial_verbose > 1) {
-      double aH = dy[0];
+      /* In verbose mode, check that phi_pivot is correct. Done by
+         restarting from phi_pivot and going again till the end of
+         inflation. */
+
+      aH_pivot = dy[0];
+      a_pivot = y[0];
       class_call(primordial_inflation_evolve_background(ppm,
-      ppr,
-      y,
-      dy,
-      _end_inflation_,
-      0.,
-      _FALSE_,
-      forward,
-      proper),
-      ppm->error_message,
-      ppm->error_message);
-      printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e)\n",log(dy[0]/aH));
-      }
-    */
+                                                        ppr,
+                                                        y,
+                                                        dy,
+                                                        _end_inflation_,
+                                                        0.,
+                                                        _FALSE_,
+                                                        forward,
+                                                        proper),
+                 ppm->error_message,
+                 ppm->error_message);
+      printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e, ln(a_2/a_1) = %e)\n",log(dy[0]/aH_pivot),log(y[0]/a_pivot));
+    }
+
 
   }
 
   else {
 
-    /* find inflationry attractor in phi_small_epsilon (should exist since epsilon<1 there) */
+    /* find inflationary attractor in phi_small_epsilon (should exist since epsilon<1 there) */
     class_call(primordial_inflation_find_attractor(ppm,
                                                    ppr,
                                                    ppm->phi_end,
@@ -2838,15 +2840,16 @@ int primordial_inflation_find_phi_pivot(
 
     ppm->phi_pivot = y[1];
 
-    if (ppm->primordial_verbose > 1)
+    if (ppm->primordial_verbose > 1) {
+
       printf(" (reached phi_pivot=%e)\n",ppm->phi_pivot);
 
-    /* uncomment this part if you want to check that phi_pivot is
-       correct. Done by restarting from phi_pivot and going again till
-       the end of inflation. */
-    /*
-    if (ppm->primordial_verbose > 1) {
-      double aH = dy[0];
+      /* In verbose mode, check that phi_pivot is correct. Done by
+         restarting from phi_pivot and going again till the end of
+         inflation. */
+
+      aH_pivot = dy[0];
+      a_pivot = y[0];
       class_call(primordial_inflation_evolve_background(ppm,
                                                         ppr,
                                                         y,
@@ -2858,9 +2861,9 @@ int primordial_inflation_find_phi_pivot(
                                                         proper),
                  ppm->error_message,
                  ppm->error_message);
-      printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e)\n",log(dy[0]/aH));
+      printf(" (from phi_pivot till the end, ln(aH_2/aH_1) = %e, ln(a_2/a_1) = %e)\n",log(dy[0]/aH_pivot),log(y[0]/a_pivot));
     }
-    */
+
   }
 
   return _SUCCESS_;

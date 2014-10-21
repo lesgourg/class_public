@@ -62,10 +62,6 @@ enum phi_pivot_methods {
   ln_aH_ratio_auto
 };
 
-/** number meaning that for the computation of phi_pivot in inflation_V_end, the schem to use is the automatic one */
-
-#define _aH_ratio_auto_ -1.
-
 /**
  * Structure containing everything about primordial spectra that other modules need to know.
  *
