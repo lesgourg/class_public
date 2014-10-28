@@ -133,14 +133,7 @@ cdef class Class:
 
     def empty(self):
         self._pars = {}
-        self.ready=False
-
-    def cleanup(self):
-        if self.ready==False:
-            return True
-        for i in range(len(self._pars)):
-            if self.fc.read[i]==0:
-                del(self._pars[self.fc.name[i]])
+        self.ready = False
 
     # Create an equivalent of the parameter file. Non specified values will be
     # taken at their default (in Class)
