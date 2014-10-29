@@ -1904,6 +1904,9 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"V'_scf",pba->has_scf);
   class_store_columntitle(titles,"V''_scf",pba->has_scf);
 
+  class_store_columntitle(titles,"gr.fac. D",_TRUE_);
+  class_store_columntitle(titles,"gr.fac. f",_TRUE_);
+
   return _SUCCESS_;
 }
 
@@ -1949,6 +1952,9 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_dV_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_ddV_scf],pba->has_scf,storeidx);
+
+    class_store_double(dataptr,pvecback[pba->index_bg_D],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_f],_TRUE_,storeidx);
   }
 
   return _SUCCESS_;
