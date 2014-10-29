@@ -1180,7 +1180,7 @@ int perturb_get_k_list(
                         struct thermo * pth,
                         struct perturbs * ppt
                         ) {
-  int index_k, index_k_output;
+  int index_k, index_k_output, index_mode;
   double k,k_min=0.,k_rec,step,tau1;
   double k_max_cmb=0.;
   double k_max_cl=0.;
@@ -1706,29 +1706,31 @@ int perturb_get_k_list(
   /** If perturbations are requested, find corresponding indices in
       ppt->k. We are assuming that ppt->k is sorted and growing, but
       we am not assuming anything about ppt->k_output_values. */
-  for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
-    k_target = ppt->k_output_values[index_k_output];
-    for (index_k=0; index_k<ppt->k_size[0]; index_k++){
-      if (ppt->k[0][index_k] > k_target)
-        break;
-    }
-    if (index_k == 0){
-      //k_target smaller than the smallest k in the list
-      ppt->index_k_output_values[index_k_output] = 0;
-    }
-    else if (index_k == ppt->k_size[0]){
-      //k_target is larger than the largest k in the list
-      ppt->index_k_output_values[index_k_output] = ppt->k_size[0]-1;
-    }
-    else{
-      //Find the closest k value
-      if ((k_target-ppt->k[0][index_k-1])<(ppt->k[0][index_k]-k_target))
-        ppt->index_k_output_values[index_k_output] = index_k - 1;
-      else
-        ppt->index_k_output_values[index_k_output] = index_k;
+  for (index_mode=0; index_mode<ppt->md_size; index_mode++){
+
+    for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
+      k_target = ppt->k_output_values[index_k_output];
+      for (index_k=0; index_k<ppt->k_size[index_mode]; index_k++){
+        if (ppt->k[index_mode][index_k] > k_target)
+          break;
+      }
+      if (index_k == 0){
+        //k_target smaller than the smallest k in the list
+        ppt->index_k_output_values[index_mode][index_k_output] = 0;
+      }
+      else if (index_k == ppt->k_size[index_mode]){
+        //k_target is larger than the largest k in the list
+        ppt->index_k_output_values[index_mode][index_k_output] = ppt->k_size[index_mode]-1;
+      }
+      else{
+        //Find the closest k value
+        if ((k_target-ppt->k[index_mode][index_k-1])<(ppt->k[index_mode][index_k]-k_target))
+          ppt->index_k_output_values[index_mode][index_k_output] = index_k - 1;
+        else
+          ppt->index_k_output_values[index_mode][index_k_output] = index_k;
+      }
     }
   }
-
 
   return _SUCCESS_;
 
@@ -2244,7 +2246,7 @@ int perturb_solve(
   perhaps_print_variables = NULL;
   ppw->index_ikout = -1;
   for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
-    if (ppt->index_k_output_values[index_ikout] == index_k){
+    if (ppt->index_k_output_values[index_md][index_ikout] == index_k){
       ppw->index_ikout = index_ikout;
       perhaps_print_variables = perturb_print_variables;
       /**class_call(perturb_prepare_output_file(
@@ -2364,6 +2366,10 @@ int perturb_prepare_output(struct background * pba,
 
   int n_ncdm;
   char tmp[40];
+
+  ppt->scalar_titles[0]='\0';
+  ppt->vector_titles[0]='\0';
+  ppt->tensor_titles[0]='\0';
 
   if (ppt->k_output_values_num > 0) {
 
