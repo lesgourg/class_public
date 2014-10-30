@@ -468,6 +468,9 @@ int perturb_free(
     /** Stuff related to perturbations output: */
 
     /** Free non-NULL pointers: */
+    if (ppt->index_k_output_values != NULL)
+      free(ppt->index_k_output_values);
+
     for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
       if (ppt->scalar_perturbations_data[filenum] != NULL)
         free(ppt->scalar_perturbations_data[filenum]);
@@ -1186,7 +1189,6 @@ int perturb_get_k_list(
   double k_max_cl=0.;
   double k_max=0.;
   double scale2;
-  double k_target;
 
   class_test(ppr->k_step_transition == 0.,
              ppt->error_message,
@@ -1703,35 +1705,6 @@ int perturb_get_k_list(
     ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1]); /* last value, inferred from perturbations structure */
   }
 
-  /** If perturbations are requested, find corresponding indices in
-      ppt->k. We are assuming that ppt->k is sorted and growing, but
-      we am not assuming anything about ppt->k_output_values. */
-  for (index_mode=0; index_mode<ppt->md_size; index_mode++){
-
-    for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
-      k_target = ppt->k_output_values[index_k_output];
-      for (index_k=0; index_k<ppt->k_size[index_mode]; index_k++){
-        if (ppt->k[index_mode][index_k] > k_target)
-          break;
-      }
-      if (index_k == 0){
-        //k_target smaller than the smallest k in the list
-        ppt->index_k_output_values[index_mode][index_k_output] = 0;
-      }
-      else if (index_k == ppt->k_size[index_mode]){
-        //k_target is larger than the largest k in the list
-        ppt->index_k_output_values[index_mode][index_k_output] = ppt->k_size[index_mode]-1;
-      }
-      else{
-        //Find the closest k value
-        if ((k_target-ppt->k[index_mode][index_k-1])<(ppt->k[index_mode][index_k]-k_target))
-          ppt->index_k_output_values[index_mode][index_k_output] = index_k - 1;
-        else
-          ppt->index_k_output_values[index_mode][index_k_output] = index_k;
-      }
-    }
-  }
-
   return _SUCCESS_;
 
 }
@@ -2246,7 +2219,7 @@ int perturb_solve(
   perhaps_print_variables = NULL;
   ppw->index_ikout = -1;
   for (index_ikout=0; index_ikout<ppt->k_output_values_num; index_ikout++){
-    if (ppt->index_k_output_values[index_md][index_ikout] == index_k){
+    if (ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout] == index_k){
       ppw->index_ikout = index_ikout;
       perhaps_print_variables = perturb_print_variables;
       /**class_call(perturb_prepare_output_file(
@@ -2366,13 +2339,49 @@ int perturb_prepare_output(struct background * pba,
 
   int n_ncdm;
   char tmp[40];
+  int index_mode, index_k, index_k_output;
+  double k_target;
 
   ppt->scalar_titles[0]='\0';
   ppt->vector_titles[0]='\0';
   ppt->tensor_titles[0]='\0';
 
+
   if (ppt->k_output_values_num > 0) {
 
+    /* Allocate storage */
+    class_alloc(ppt->index_k_output_values,sizeof(double)*ppt->md_size*ppt->k_output_values_num,ppt->error_message);
+
+    /** Find indices in ppt->k[index_md] corresponding to 'k_output_values'.
+        We are assuming that ppt->k is sorted and growing, but
+        we are not assuming anything about ppt->k_output_values. */
+    for (index_mode=0; index_mode<ppt->md_size; index_mode++){
+
+      for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
+        k_target = ppt->k_output_values[index_k_output];
+        for (index_k=0; index_k<ppt->k_size[index_mode]; index_k++){
+          if (ppt->k[index_mode][index_k] > k_target)
+            break;
+        }
+        if (index_k == 0){
+          //k_target smaller than the smallest k in the list
+          ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = 0;
+        }
+        else if (index_k == ppt->k_size[index_mode]){
+          //k_target is larger than the largest k in the list
+          ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = ppt->k_size[index_mode]-1;
+        }
+        else{
+          //Find the closest k value
+          if ((k_target-ppt->k[index_mode][index_k-1])<(ppt->k[index_mode][index_k]-k_target))
+            ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = index_k - 1;
+          else
+            ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = index_k;
+        }
+      }
+    }
+
+    /** Write titles for all perturbations that we would like to print/store. */
     if (ppt->has_scalars == _TRUE_){
 
       class_store_columntitle(ppt->scalar_titles,"tau [Mpc]",_TRUE_);
