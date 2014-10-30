@@ -1327,7 +1327,7 @@ int output_primordial(
              pop->error_message);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*ppm->lnk_size;
-  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_alloc(data,sizeof(double)*size_data,pop->error_message);
   class_call(primordial_output_data(ppt,
                                     ppm,
                                     number_of_titles,
