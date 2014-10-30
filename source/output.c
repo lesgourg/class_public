@@ -1265,7 +1265,7 @@ int output_perturbations(
 
     if (ppt->has_scalars == _TRUE_){
       index_md = ppt->index_md_scalars;
-      k = ppt->k[index_md][ppt->index_k_output_values[index_md][index_ikout]];
+      k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_s.dat");
       class_open(out, file_name, "w", ppt->error_message);
       fprintf(out,"#scalar perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
@@ -1278,7 +1278,7 @@ int output_perturbations(
     }
     if (ppt->has_vectors == _TRUE_){
       index_md = ppt->index_md_vectors;
-      k = ppt->k[index_md][ppt->index_k_output_values[index_md][index_ikout]];
+      k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_v.dat");
       class_open(out, file_name, "w", ppt->error_message);
       fprintf(out,"#vector perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
@@ -1291,7 +1291,7 @@ int output_perturbations(
     }
     if (ppt->has_tensors == _TRUE_){
       index_md = ppt->index_md_tensors;
-      k = ppt->k[index_md][ppt->index_k_output_values[index_md][index_ikout]];
+      k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_t.dat");
       class_open(out, file_name, "w", ppt->error_message);
       fprintf(out,"#tensor perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);

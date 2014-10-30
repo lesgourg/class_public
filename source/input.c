@@ -2752,6 +2752,7 @@ int input_default_params(
     ppt->vector_perturbations_data[filenum] = NULL;
     ppt->tensor_perturbations_data[filenum] = NULL;
   }
+  ppt->index_k_output_values=NULL;
 
   /** - primordial structure */
 
