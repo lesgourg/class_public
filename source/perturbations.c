@@ -1189,6 +1189,11 @@ int perturb_get_k_list(
   double k_max_cl=0.;
   double k_max=0.;
   double scale2;
+  double *tmp_k_list;
+  int newk_size, index_newk, add_k_output_value;
+  double k_max_cl_svt[3]={0};
+  double k_max_cmb_svt[3]={0};
+
 
   class_test(ppr->k_step_transition == 0.,
              ppt->error_message,
@@ -1405,6 +1410,9 @@ int perturb_get_k_list(
                   ppt->k_size[ppt->index_md_scalars]*sizeof(double),
                   ppt->error_message);
 
+    k_max_cl_svt[0]=k_max_cl;
+    k_max_cmb_svt[0]=k_max_cmb;
+
   }
 
   /** - vector modes */
@@ -1539,6 +1547,9 @@ int perturb_get_k_list(
                   ppt->k[ppt->index_md_vectors],
                   ppt->k_size[ppt->index_md_vectors]*sizeof(double),
                   ppt->error_message);
+
+    k_max_cl_svt[1]=k_max_cl;
+    k_max_cmb_svt[1]=k_max_cmb;
 
   }
 
@@ -1675,18 +1686,148 @@ int perturb_get_k_list(
                   ppt->k_size[ppt->index_md_tensors]*sizeof(double),
                   ppt->error_message);
 
+    k_max_cl_svt[2]=k_max_cl;
+    k_max_cmb_svt[2]=k_max_cmb;
+
   }
+
+  /** Debug:
+  if (ppt->has_scalars == _TRUE_){
+    printf("Scalars:\n");
+    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
+           ppt->k[ppt->index_md_scalars][ppt->k_size[ppt->index_md_scalars]-1],
+           k_max_cl_svt[0],
+           k_max_cmb_svt[0]);
+
+    printf("Old sizes: %d, %d, %d\n",
+           ppt->k_size_cmb[ppt->index_md_scalars],
+           ppt->k_size_cl[ppt->index_md_scalars],
+           ppt->k_size[ppt->index_md_scalars]);
+  }
+  if (ppt->has_tensors == _TRUE_){
+    printf("Tensors:\n");
+    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
+           ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1],
+           k_max_cl_svt[2],
+           k_max_cmb_svt[2]);
+
+    printf("Old sizes: %d, %d, %d\n",
+           ppt->k_size_cmb[ppt->index_md_tensors],
+           ppt->k_size_cl[ppt->index_md_tensors],
+           ppt->k_size[ppt->index_md_tensors]);
+  }
+  */
+
+  /* If user asked for k_output_values, add those to all k lists: */
+  if (ppt->k_output_values_num>0){
+    /* Allocate storage */
+    class_alloc(ppt->index_k_output_values,sizeof(double)*ppt->md_size*ppt->k_output_values_num,ppt->error_message);
+
+    /** Find indices in ppt->k[index_md] corresponding to 'k_output_values'.
+        We are assuming that ppt->k is sorted and growing, and we have made sure
+        that ppt->k_output_values is also sorted and growing.*/
+    for (index_mode=0; index_mode<ppt->md_size; index_mode++){
+
+      newk_size = ppt->k_size[index_mode]+ppt->k_output_values_num;
+
+      class_alloc(tmp_k_list,sizeof(double)*newk_size,ppt->error_message);
+
+      index_k=0;
+      index_k_output=0;
+      for (index_newk=0; index_newk<newk_size; index_newk++){
+        /** Decide if we should add k_output_value now. This has to be this complicated, since we
+            can only compare the k-values when both indices are in range.*/
+        if (index_k >= ppt->k_size[index_mode])
+          add_k_output_value = _TRUE_;
+        else if (index_k_output >= ppt->k_output_values_num)
+          add_k_output_value = _FALSE_;
+        else if (ppt->k_output_values[index_k_output] < ppt->k[index_mode][index_k])
+          add_k_output_value = _TRUE_;
+        else
+          add_k_output_value = _FALSE_;
+
+        if (add_k_output_value == _TRUE_){
+          tmp_k_list[index_newk] = ppt->k_output_values[index_k_output];
+          ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output]=index_newk;
+          index_k_output++;
+        }
+        else{
+          tmp_k_list[index_newk] = ppt->k[index_mode][index_k];
+          index_k++;
+        }
+      }
+
+      free(ppt->k[index_mode]);
+      ppt->k[index_mode] = tmp_k_list;
+      ppt->k_size[index_mode] = newk_size;
+
+
+      /** Set ppt->k_size_cmb and ppt->k_size_cl to their correct values: */
+      if ((ppt->has_scalars == _TRUE_)&&(index_mode == ppt->index_md_scalars)){
+        k_max_cl = k_max_cl_svt[0];
+        k_max_cmb = k_max_cmb_svt[0];
+      }
+      else if ((ppt->has_vectors == _TRUE_)&&(index_mode == ppt->index_md_vectors)){
+        k_max_cl = k_max_cl_svt[1];
+        k_max_cmb = k_max_cmb_svt[1];
+      }
+      else if ((ppt->has_tensors == _TRUE_)&&(index_mode == ppt->index_md_tensors)){
+        k_max_cl = k_max_cl_svt[2];
+        k_max_cmb = k_max_cmb_svt[2];
+      }
+
+      index_k = newk_size-1;
+      while (ppt->k[index_mode][index_k] > k_max_cl)
+        index_k--;
+      ppt->k_size_cl[index_mode] = MIN(index_k+2,ppt->k_size[index_mode]);
+
+      index_k = newk_size-1;
+      while (ppt->k[index_mode][index_k] > k_max_cmb)
+        index_k--;
+      ppt->k_size_cmb[index_mode] = MIN(index_k+2,ppt->k_size[index_mode]);
+
+      /** The two MIN statements is here because in a normal run, the cl and cmb
+          arrays contain a single k value larger than their respective k_max.
+          We are mimicing this behaviour. */
+    }
+  }
+
+  /** Debug region related to k_outout_values:
+  if (ppt->has_scalars == _TRUE_){
+    printf("Scalars:\n");
+    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
+           ppt->k[ppt->index_md_scalars][ppt->k_size[ppt->index_md_scalars]-1],
+           ppt->k[ppt->index_md_scalars][ppt->k_size_cl[ppt->index_md_scalars]-1],
+           ppt->k[ppt->index_md_scalars][ppt->k_size_cmb[ppt->index_md_scalars]-1]);
+
+    printf("New sizes: %d, %d, %d\n",
+           ppt->k_size_cmb[ppt->index_md_scalars],
+           ppt->k_size_cl[ppt->index_md_scalars],
+           ppt->k_size[ppt->index_md_scalars]);
+  }
+  if (ppt->has_tensors == _TRUE_){
+    printf("Tensors:\n");
+    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
+           ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1],
+           ppt->k[ppt->index_md_tensors][ppt->k_size_cl[ppt->index_md_tensors]-1],
+           ppt->k[ppt->index_md_tensors][ppt->k_size_cmb[ppt->index_md_tensors]-1]);
+
+    printf("New sizes: %d, %d, %d\n",
+           ppt->k_size_cmb[ppt->index_md_tensors],
+           ppt->k_size_cl[ppt->index_md_tensors],
+           ppt->k_size[ppt->index_md_tensors]);
+  }
+  */
 
   /* For testing, can be useful to print the k list in a file:
 
-     FILE * out=fopen("output/k","w");
+  FILE * out=fopen("output/k","w");
 
-     for (index_k=0; index_k < ppt->k_size; index_k++) {
+  for (index_k=0; index_k < ppt->k_size[0]; index_k++) {
 
-     fprintf(out,"%e %e\n",ppt->k[index_k],pba->K);
+    fprintf(out,"%e\n",ppt->k[0][index_k],pba->K);
 
-     }
-
+  }
      fclose(out);
   */
 
@@ -2348,38 +2489,6 @@ int perturb_prepare_output(struct background * pba,
 
 
   if (ppt->k_output_values_num > 0) {
-
-    /* Allocate storage */
-    class_alloc(ppt->index_k_output_values,sizeof(double)*ppt->md_size*ppt->k_output_values_num,ppt->error_message);
-
-    /** Find indices in ppt->k[index_md] corresponding to 'k_output_values'.
-        We are assuming that ppt->k is sorted and growing, but
-        we are not assuming anything about ppt->k_output_values. */
-    for (index_mode=0; index_mode<ppt->md_size; index_mode++){
-
-      for (index_k_output=0; index_k_output<ppt->k_output_values_num; index_k_output++){
-        k_target = ppt->k_output_values[index_k_output];
-        for (index_k=0; index_k<ppt->k_size[index_mode]; index_k++){
-          if (ppt->k[index_mode][index_k] > k_target)
-            break;
-        }
-        if (index_k == 0){
-          //k_target smaller than the smallest k in the list
-          ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = 0;
-        }
-        else if (index_k == ppt->k_size[index_mode]){
-          //k_target is larger than the largest k in the list
-          ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = ppt->k_size[index_mode]-1;
-        }
-        else{
-          //Find the closest k value
-          if ((k_target-ppt->k[index_mode][index_k-1])<(ppt->k[index_mode][index_k]-k_target))
-            ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = index_k - 1;
-          else
-            ppt->index_k_output_values[index_mode*ppt->k_output_values_num+index_k_output] = index_k;
-        }
-      }
-    }
 
     /** Write titles for all perturbations that we would like to print/store. */
     if (ppt->has_scalars == _TRUE_){
