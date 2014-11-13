@@ -1905,6 +1905,26 @@ int input_read_parameters(
     class_read_double("custom10",ppm->custom10);
   }
 
+  /** Tests moved from primordial module: */
+  if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H) || (ppm->primordial_spec_type == inflation_V_end)) {
+
+    class_test(ppt->has_scalars == _FALSE_,
+               errmsg,
+               "inflationary module cannot work if you do not ask for scalar modes");
+
+    class_test(ppt->has_vectors == _TRUE_,
+               errmsg,
+               "inflationary module cannot work if you ask for vector modes");
+
+    class_test(ppt->has_tensors == _FALSE_,
+               errmsg,
+               "inflationary module cannot work if you do not ask for tensor modes");
+
+    class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
+               errmsg,
+               "inflationary module cannot work if you ask for isocurvature modes");
+  }
+
   /** (e) parameters for final spectra */
 
   if (ppt->has_cls == _TRUE_) {

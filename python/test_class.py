@@ -91,15 +91,15 @@ COMPARE_OUTPUT = True
 # against. Indeed, when not specifying a field, CLASS takes the default input.
 CLASS_INPUT = {}
 
-CLASS_INPUT['Mnu'] = (
-    [{'N_eff': 0.0, 'N_ncdm': 1, 'm_ncdm': 0.06, 'deg_ncdm': 3.0},
-     {'N_eff': 1.5, 'N_ncdm': 1, 'm_ncdm': 0.03, 'deg_ncdm': 1.5}],
-    'normal')
+#CLASS_INPUT['Mnu'] = (
+#    [{'N_eff': 0.0, 'N_ncdm': 1, 'm_ncdm': 0.06, 'deg_ncdm': 3.0},
+#     {'N_eff': 1.5, 'N_ncdm': 1, 'm_ncdm': 0.03, 'deg_ncdm': 1.5}],
+#    'normal')
 
-CLASS_INPUT['Curvature'] = (
-    [{'Omega_k': 0.01},
-     {'Omega_k': -0.01}],
-    'normal')
+#CLASS_INPUT['Curvature'] = (
+#    [{'Omega_k': 0.01},
+#     {'Omega_k': -0.01}],
+#    'normal')
 
 CLASS_INPUT['Isocurvature_modes'] = (
     [{'ic': 'ad,nid,cdi', 'c_ad_cdi': -0.5}],
@@ -374,6 +374,30 @@ class TestClass(unittest.TestCase):
         if 'output' in self.scenario.keys() and 'lCl' in self.scenario['output'].split():
             if 'modes' in self.scenario.keys() and self.scenario['modes'].find('s') == -1:
                 should_fail = True
+
+        # If we specify initial conditions (for scalar modes), we must have
+        # perturbations and scalar modes.
+        if 'ic' in self.scenario.keys():
+            if 'modes' in self.scenario.keys() and self.scenario['modes'].find('s') == -1:
+                should_fail = True
+            if 'output' not in self.scenario.keys():
+                should_fail = True
+
+        # If we use inflation module, we must have scalar modes,
+        # tensor modes, no vector modes and we should only have adiabatic IC:
+        if 'P_k_ini type' in self.scenario.keys() and self.scenario['P_k_ini type'].find('inflation') != -1:
+            if 'modes' not in self.scenario.keys():
+                should_fail = True
+            else:
+                if self.scenario['modes'].find('s') == -1:
+                    should_fail = True
+                if self.scenario['modes'].find('v') != -1:
+                    should_fail = True
+                if self.scenario['modes'].find('t') == -1:
+                    should_fail = True
+            if 'ic' in self.scenario.keys() and self.scenario['ic'].find('i') != -1:
+                should_fail = True
+
 
         return should_fail
 
