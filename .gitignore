@@ -7,5 +7,6 @@ class
 libclass.a
 *out
 python/classy.c
-python/*.pyc
+*.py[co]
 python/build/
+*cscope.out
