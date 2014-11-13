@@ -1,4 +1,5 @@
-output/
+output/*
+!output/.gitignore
 *~
 build/
 class
