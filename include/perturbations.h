@@ -178,6 +178,9 @@ struct perturbs
  int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of vector double pointers  */
  int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of tensor double pointers  */
 
+  double three_ceff2_ur;/**< 3 x effective squared sound speed for the ultrarelativistic perturbations */
+  double three_cvis2_ur;/**< 3 x effective viscosity parameter for the ultrarelativistic perturbations */
+
   //@}
 
   /** @name - useful flags infered from the ones above */

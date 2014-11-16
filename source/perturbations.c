@@ -7007,16 +7007,28 @@ int perturb_derivs(double tau,
       if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
         /** -----> ur density */
-        dy[pv->index_pt_delta_ur] = -4./3.*(y[pv->index_pt_theta_ur] + metric_continuity);
+        dy[pv->index_pt_delta_ur] =
+          // standard term
+          -4./3.*(y[pv->index_pt_theta_ur] + metric_continuity)
+          // non-standard term, non-zero if if ceff2_ur not 1/3
+          +(1.-ppt->three_ceff2_ur)*a_prime_over_a*(y[pv->index_pt_delta_ur] + 4.*a_prime_over_a*y[pv->index_pt_theta_ur]/k/k);
 
         /** -----> ur velocity */
-        dy[pv->index_pt_theta_ur] = k2*(y[pv->index_pt_delta_ur]/4.-s2_squared*y[pv->index_pt_shear_ur]) + metric_euler;
+        dy[pv->index_pt_theta_ur] =
+          // standard term with extra coefficient (3 ceff2_ur), normally equal to one
+          k2*(ppt->three_ceff2_ur*y[pv->index_pt_delta_ur]/4.-s2_squared*y[pv->index_pt_shear_ur]) + metric_euler
+          // non-standard term, non-zero if ceff2_ur not 1/3
+          -(1.-ppt->three_ceff2_ur)*a_prime_over_a*y[pv->index_pt_theta_ur];
 
         if(ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
 
           /** -----> exact ur shear */
-          dy[pv->index_pt_shear_ur] = 0.5*(8./15.*(y[pv->index_pt_theta_ur]+metric_shear)
-                                           -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_ur+1]);
+          dy[pv->index_pt_shear_ur] =
+            0.5*(
+                 // standard term
+                 8./15.*(y[pv->index_pt_theta_ur]+metric_shear)-3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_ur+1]
+                 // non-standard term, non-zero if cvis2_ur not 1/3
+                 -(1.-ppt->three_cvis2_ur)*(8./15.*(y[pv->index_pt_theta_ur]+metric_shear)));
 
           /** -----> exact ur l=3 */
           l = 3;

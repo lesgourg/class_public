@@ -772,6 +772,16 @@ int input_read_parameters(
     }
   }
 
+  class_call(parser_read_double(pfc,"ceff2_ur",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if (flag1 == _TRUE_) ppt->three_ceff2_ur = 3.*param1;
+
+  class_call(parser_read_double(pfc,"cvis2_ur",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if (flag1 == _TRUE_) ppt->three_cvis2_ur = 3.*param1;
+
   Omega_tot += pba->Omega0_ur;
 
   /* Omega_0_cdm (CDM) */
@@ -2753,6 +2763,9 @@ int input_default_params(
     ppt->tensor_perturbations_data[filenum] = NULL;
   }
   ppt->index_k_output_values=NULL;
+
+  ppt->three_ceff2_ur=1.;
+  ppt->three_cvis2_ur=1.;
 
   /** - primordial structure */
 
