@@ -1185,15 +1185,12 @@ int perturb_get_k_list(
                         ) {
   int index_k, index_k_output, index_mode;
   double k,k_min=0.,k_rec,step,tau1;
-  double k_max_cmb=0.;
-  double k_max_cl=0.;
+  double * k_max_cmb;
+  double * k_max_cl;
   double k_max=0.;
   double scale2;
   double *tmp_k_list;
   int newk_size, index_newk, add_k_output_value;
-  double k_max_cl_svt[3]={0};
-  double k_max_cmb_svt[3]={0};
-
 
   class_test(ppr->k_step_transition == 0.,
              ppt->error_message,
@@ -1218,6 +1215,15 @@ int perturb_get_k_list(
               ppt->md_size*sizeof(double*),
               ppt->error_message);
 
+  class_calloc(k_max_cmb,
+               ppt->md_size,
+               sizeof(double),
+               ppt->error_message);
+  class_calloc(k_max_cl,
+               ppt->md_size,
+               sizeof(double),
+               ppt->error_message);
+
   /** - scalar modes */
 
   if (ppt->has_scalars == _TRUE_) {
@@ -1239,35 +1245,35 @@ int perturb_get_k_list(
       k_min = sqrt((8.-1.e-4)*pba->K);
     }
 
-    /** - find k_max (as well as k_max_cmb, k_max_cl) */
+    /** - find k_max (as well as k_max_cmb[ppt->index_md_scalars], k_max_cl[ppt->index_md_scalars]) */
 
     k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
-    k_max_cmb = k_min;
-    k_max_cl = k_min;
+    k_max_cmb[ppt->index_md_scalars] = k_min;
+    k_max_cl[ppt->index_md_scalars] = k_min;
     k_max = k_min;
 
     if (ppt->has_cls == _TRUE_) {
 
-      /* find k_max_cmb: */
+      /* find k_max_cmb[ppt->index_md_scalars] : */
 
-      /* choose a k_max_cmb corresponding to a wavelength on the last
+      /* choose a k_max_cmb[ppt->index_md_scalars] corresponding to a wavelength on the last
          scattering surface seen today under an angle smaller than
          pi/lmax: this is equivalent to
-         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
+         k_max_cl[ppt->index_md_scalars]*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
+      k_max_cmb[ppt->index_md_scalars] = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
         /pba->conformal_age/pth->angular_rescaling;
-      k_max_cl  = k_max_cmb;
-      k_max     = k_max_cmb;
+      k_max_cl[ppt->index_md_scalars] = k_max_cmb[ppt->index_md_scalars];
+      k_max     = k_max_cmb[ppt->index_md_scalars];
 
-      /* find k_max_cl: */
+      /* find k_max_cl[ppt->index_md_scalars] : */
 
       /* if we need density/lensing Cl's, we must impose a stronger condition,
          such that the minimum wavelength on the shell corresponding
          to the center of smallest redshift bin is seen under an
          angle smaller than pi/lmax. So we must mutiply our previous
-         k_max_cl by the ratio tau0/(tau0-tau[center of smallest
+         k_max_cl[ppt->index_md_scalars] by the ratio tau0/(tau0-tau[center of smallest
          redhsift bin]). Note that we could do the same with the
          lensing potential if we needed a very precise C_l^phi-phi at
          large l. We don't do it by default, because the lensed ClT,
@@ -1281,8 +1287,8 @@ int perturb_get_k_list(
                    pba->error_message,
                    ppt->error_message);
 
-        k_max_cl = MAX(k_max_cl,ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
-        k_max    = k_max_cl;
+        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
+        k_max    = k_max_cl[ppt->index_md_scalars];
       }
     }
 
@@ -1320,7 +1326,7 @@ int perturb_get_k_list(
 
     /* allocate array with, for the moment, the largest possible size */
     class_alloc(ppt->k[ppt->index_md_scalars],
-                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+                ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
                  (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                 *sizeof(double),ppt->error_message);
 
@@ -1331,9 +1337,9 @@ int perturb_get_k_list(
     ppt->k[ppt->index_md_scalars][index_k] = k;
     index_k++;
 
-    /* values until k_max_cmb */
+    /* values until k_max_cmb[ppt->index_md_scalars] */
 
-    while (k < k_max_cmb) {
+    while (k < k_max_cmb[ppt->index_md_scalars]) {
 
       /* the linear step is not constant, it has a step-like shape,
          centered around the characteristic scale set by the sound
@@ -1377,9 +1383,9 @@ int perturb_get_k_list(
 
     ppt->k_size_cmb[ppt->index_md_scalars] = index_k;
 
-    /* values until k_max_cl */
+    /* values until k_max_cl[ppt->index_md_scalars] */
 
-    while (k < k_max_cl) {
+    while (k < k_max_cl[ppt->index_md_scalars]) {
 
       k *= pow(10.,1./(ppr->k_per_decade_for_pk
                        +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
@@ -1409,10 +1415,6 @@ int perturb_get_k_list(
                   ppt->k[ppt->index_md_scalars],
                   ppt->k_size[ppt->index_md_scalars]*sizeof(double),
                   ppt->error_message);
-
-    k_max_cl_svt[0]=k_max_cl;
-    k_max_cmb_svt[0]=k_max_cmb;
-
   }
 
   /** - vector modes */
@@ -1436,12 +1438,12 @@ int perturb_get_k_list(
       k_min = sqrt((7.-1.e-4)*pba->K);
     }
 
-    /** - find k_max (as well as k_max_cmb, k_max_cl) */
+    /** - find k_max (as well as k_max_cmb[ppt->index_md_vectors], k_max_cl[ppt->index_md_vectors]) */
 
     k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
-    k_max_cmb = k_min;
-    k_max_cl = k_min;
+    k_max_cmb[ppt->index_md_vectors] = k_min;
+    k_max_cl[ppt->index_md_vectors] = k_min;
     k_max = k_min;
 
     if (ppt->has_cls == _TRUE_) {
@@ -1453,10 +1455,10 @@ int perturb_get_k_list(
          pi/lmax: this is equivalent to
          k_max_cl*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_vector_max
+      k_max_cmb[ppt->index_md_vectors] = ppr->k_max_tau0_over_l_max*ppt->l_vector_max
         /pba->conformal_age/pth->angular_rescaling;
-      k_max_cl  = k_max_cmb;
-      k_max     = k_max_cmb;
+      k_max_cl[ppt->index_md_vectors]  = k_max_cmb[ppt->index_md_vectors];
+      k_max     = k_max_cmb[ppt->index_md_vectors];
     }
 
     /** - test that result for k_min, k_max make sense */
@@ -1485,7 +1487,7 @@ int perturb_get_k_list(
 
     /* allocate array with, for the moment, the largest possible size */
     class_alloc(ppt->k[ppt->index_md_vectors],
-                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+                ((int)((k_max_cmb[ppt->index_md_vectors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
                 *sizeof(double),ppt->error_message);
 
     /* first value */
@@ -1495,9 +1497,9 @@ int perturb_get_k_list(
     ppt->k[ppt->index_md_vectors][index_k] = k;
     index_k++;
 
-    /* values until k_max_cmb */
+    /* values until k_max_cmb[ppt->index_md_vectors] */
 
-    while (k < k_max_cmb) {
+    while (k < k_max_cmb[ppt->index_md_vectors]) {
 
       /* the linear step is not constant, it has a step-like shape,
          centered around the characteristic scale set by the sound
@@ -1547,10 +1549,6 @@ int perturb_get_k_list(
                   ppt->k[ppt->index_md_vectors],
                   ppt->k_size[ppt->index_md_vectors]*sizeof(double),
                   ppt->error_message);
-
-    k_max_cl_svt[1]=k_max_cl;
-    k_max_cmb_svt[1]=k_max_cmb;
-
   }
 
   /** - tensor modes */
@@ -1574,27 +1572,27 @@ int perturb_get_k_list(
       k_min = sqrt((6.-1.e-4)*pba->K);
     }
 
-    /** - find k_max (as well as k_max_cmb, k_max_cl) */
+    /** - find k_max (as well as k_max_cmb[ppt->index_md_tensors], k_max_cl[ppt->index_md_tensors]) */
 
     k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
 
-    k_max_cmb = k_min;
-    k_max_cl = k_min;
+    k_max_cmb[ppt->index_md_tensors] = k_min;
+    k_max_cl[ppt->index_md_tensors] = k_min;
     k_max = k_min;
 
     if (ppt->has_cls == _TRUE_) {
 
-      /* find k_max_cmb: */
+      /* find k_max_cmb[ppt->index_md_tensors]: */
 
-      /* choose a k_max_cmb corresponding to a wavelength on the last
+      /* choose a k_max_cmb[ppt->index_md_tensors] corresponding to a wavelength on the last
          scattering surface seen today under an angle smaller than
          pi/lmax: this is equivalent to
-         k_max_cl*[comvoving.ang.diameter.distance] > l_max */
+         k_max_cl[ppt->index_md_tensors]*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb = ppr->k_max_tau0_over_l_max*ppt->l_tensor_max
+      k_max_cmb[ppt->index_md_tensors] = ppr->k_max_tau0_over_l_max*ppt->l_tensor_max
         /pba->conformal_age/pth->angular_rescaling;
-      k_max_cl  = k_max_cmb;
-      k_max     = k_max_cmb;
+      k_max_cl[ppt->index_md_tensors]  = k_max_cmb[ppt->index_md_tensors];
+      k_max     = k_max_cmb[ppt->index_md_tensors];
     }
 
     /** - test that result for k_min, k_max make sense */
@@ -1623,7 +1621,7 @@ int perturb_get_k_list(
 
     /* allocate array with, for the moment, the largest possible size */
     class_alloc(ppt->k[ppt->index_md_tensors],
-                ((int)((k_max_cmb-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
+                ((int)((k_max_cmb[ppt->index_md_tensors]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+1)
                 *sizeof(double),ppt->error_message);
 
     /* first value */
@@ -1633,9 +1631,9 @@ int perturb_get_k_list(
     ppt->k[ppt->index_md_tensors][index_k] = k;
     index_k++;
 
-    /* values until k_max_cmb */
+    /* values until k_max_cmb[ppt->index_md_tensors] */
 
-    while (k < k_max_cmb) {
+    while (k < k_max_cmb[ppt->index_md_tensors]) {
 
       /* the linear step is not constant, it has a step-like shape,
          centered around the characteristic scale set by the sound
@@ -1685,38 +1683,7 @@ int perturb_get_k_list(
                   ppt->k[ppt->index_md_tensors],
                   ppt->k_size[ppt->index_md_tensors]*sizeof(double),
                   ppt->error_message);
-
-    k_max_cl_svt[2]=k_max_cl;
-    k_max_cmb_svt[2]=k_max_cmb;
-
   }
-
-  /** Debug:
-  if (ppt->has_scalars == _TRUE_){
-    printf("Scalars:\n");
-    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
-           ppt->k[ppt->index_md_scalars][ppt->k_size[ppt->index_md_scalars]-1],
-           k_max_cl_svt[0],
-           k_max_cmb_svt[0]);
-
-    printf("Old sizes: %d, %d, %d\n",
-           ppt->k_size_cmb[ppt->index_md_scalars],
-           ppt->k_size_cl[ppt->index_md_scalars],
-           ppt->k_size[ppt->index_md_scalars]);
-  }
-  if (ppt->has_tensors == _TRUE_){
-    printf("Tensors:\n");
-    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
-           ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1],
-           k_max_cl_svt[2],
-           k_max_cmb_svt[2]);
-
-    printf("Old sizes: %d, %d, %d\n",
-           ppt->k_size_cmb[ppt->index_md_tensors],
-           ppt->k_size_cl[ppt->index_md_tensors],
-           ppt->k_size[ppt->index_md_tensors]);
-  }
-  */
 
   /* If user asked for k_output_values, add those to all k lists: */
   if (ppt->k_output_values_num>0){
@@ -1761,63 +1728,21 @@ int perturb_get_k_list(
       ppt->k[index_mode] = tmp_k_list;
       ppt->k_size[index_mode] = newk_size;
 
-
-      /** Set ppt->k_size_cmb and ppt->k_size_cl to their correct values: */
-      if ((ppt->has_scalars == _TRUE_)&&(index_mode == ppt->index_md_scalars)){
-        k_max_cl = k_max_cl_svt[0];
-        k_max_cmb = k_max_cmb_svt[0];
-      }
-      else if ((ppt->has_vectors == _TRUE_)&&(index_mode == ppt->index_md_vectors)){
-        k_max_cl = k_max_cl_svt[1];
-        k_max_cmb = k_max_cmb_svt[1];
-      }
-      else if ((ppt->has_tensors == _TRUE_)&&(index_mode == ppt->index_md_tensors)){
-        k_max_cl = k_max_cl_svt[2];
-        k_max_cmb = k_max_cmb_svt[2];
-      }
-
       index_k = newk_size-1;
-      while (ppt->k[index_mode][index_k] > k_max_cl)
+      while (ppt->k[index_mode][index_k] > k_max_cl[index_mode])
         index_k--;
       ppt->k_size_cl[index_mode] = MIN(index_k+2,ppt->k_size[index_mode]);
 
       index_k = newk_size-1;
-      while (ppt->k[index_mode][index_k] > k_max_cmb)
+      while (ppt->k[index_mode][index_k] > k_max_cmb[index_mode])
         index_k--;
       ppt->k_size_cmb[index_mode] = MIN(index_k+2,ppt->k_size[index_mode]);
 
       /** The two MIN statements is here because in a normal run, the cl and cmb
           arrays contain a single k value larger than their respective k_max.
-          We are mimicing this behaviour. */
+          We are mimicking this behaviour. */
     }
   }
-
-  /** Debug region related to k_outout_values:
-  if (ppt->has_scalars == _TRUE_){
-    printf("Scalars:\n");
-    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
-           ppt->k[ppt->index_md_scalars][ppt->k_size[ppt->index_md_scalars]-1],
-           ppt->k[ppt->index_md_scalars][ppt->k_size_cl[ppt->index_md_scalars]-1],
-           ppt->k[ppt->index_md_scalars][ppt->k_size_cmb[ppt->index_md_scalars]-1]);
-
-    printf("New sizes: %d, %d, %d\n",
-           ppt->k_size_cmb[ppt->index_md_scalars],
-           ppt->k_size_cl[ppt->index_md_scalars],
-           ppt->k_size[ppt->index_md_scalars]);
-  }
-  if (ppt->has_tensors == _TRUE_){
-    printf("Tensors:\n");
-    printf("kmax = %g, kmax_cl=%g, kmax_cmb=%g\n",
-           ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1],
-           ppt->k[ppt->index_md_tensors][ppt->k_size_cl[ppt->index_md_tensors]-1],
-           ppt->k[ppt->index_md_tensors][ppt->k_size_cmb[ppt->index_md_tensors]-1]);
-
-    printf("New sizes: %d, %d, %d\n",
-           ppt->k_size_cmb[ppt->index_md_tensors],
-           ppt->k_size_cl[ppt->index_md_tensors],
-           ppt->k_size[ppt->index_md_tensors]);
-  }
-  */
 
   /* For testing, can be useful to print the k list in a file:
 
@@ -1830,6 +1755,8 @@ int perturb_get_k_list(
   }
      fclose(out);
   */
+
+  /* finally, find the global k_min and k_max for the ensemble of all modes 9scalars, vectors, tensors) */
 
   ppt->k_min = _HUGE_;
   ppt->k_max = 0.;
@@ -1845,6 +1772,9 @@ int perturb_get_k_list(
     ppt->k_min = MIN(ppt->k_min,ppt->k[ppt->index_md_tensors][0]); /* first value, inferred from perturbations structure */
     ppt->k_max = MAX(ppt->k_max,ppt->k[ppt->index_md_tensors][ppt->k_size[ppt->index_md_tensors]-1]); /* last value, inferred from perturbations structure */
   }
+
+  free(k_max_cmb);
+  free(k_max_cl);
 
   return _SUCCESS_;
 
@@ -2480,8 +2410,6 @@ int perturb_prepare_output(struct background * pba,
 
   int n_ncdm;
   char tmp[40];
-  int index_mode, index_k, index_k_output;
-  double k_target;
 
   ppt->scalar_titles[0]='\0';
   ppt->vector_titles[0]='\0';

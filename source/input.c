@@ -2518,8 +2518,6 @@ int input_read_parameters(
 
     /** Sort the k_array using qsort */
     qsort (ppt->k_output_values, ppt->k_output_values_num, sizeof(double), compare_doubles);
-    for (i=0; i<int1; i++)
-      printf("%g ",ppt->k_output_values[i]);
 
     ppt->store_perturbations = _TRUE_;
     pop->write_perturbations = _TRUE_;
@@ -3607,10 +3605,10 @@ int compare_integers (const void * elem1, const void * elem2) {
 
 int compare_doubles(const void *a,const void *b) {
   double *x = (double *) a;
-double *y = (double *) b;
- if (*x < *y)
-   return -1;
- else if
-   (*x > *y) return 1;
- return 0;
+  double *y = (double *) b;
+  if (*x < *y)
+    return -1;
+  else if
+    (*x > *y) return 1;
+  return 0;
 }
