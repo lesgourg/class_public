@@ -1905,6 +1905,26 @@ int input_read_parameters(
     class_read_double("custom10",ppm->custom10);
   }
 
+  /** Tests moved from primordial module: */
+  if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H) || (ppm->primordial_spec_type == inflation_V_end)) {
+
+    class_test(ppt->has_scalars == _FALSE_,
+               errmsg,
+               "inflationary module cannot work if you do not ask for scalar modes");
+
+    class_test(ppt->has_vectors == _TRUE_,
+               errmsg,
+               "inflationary module cannot work if you ask for vector modes");
+
+    class_test(ppt->has_tensors == _FALSE_,
+               errmsg,
+               "inflationary module cannot work if you do not ask for tensor modes");
+
+    class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
+               errmsg,
+               "inflationary module cannot work if you ask for isocurvature modes");
+  }
+
   /** (e) parameters for final spectra */
 
   if (ppt->has_cls == _TRUE_) {
@@ -2510,10 +2530,15 @@ int input_read_parameters(
                "you want to write some output for %d different values of k, hence you should increase _MAX_NUMBER_OF_K_FILES_ in include/perturbations.h to at least this number",
                int1);
     ppt->k_output_values_num = int1;
+
     for (i=0; i<int1; i++) {
       ppt->k_output_values[i] = pointer1[i];
     }
     free(pointer1);
+
+    /** Sort the k_array using qsort */
+    qsort (ppt->k_output_values, ppt->k_output_values_num, sizeof(double), compare_doubles);
+
     ppt->store_perturbations = _TRUE_;
     pop->write_perturbations = _TRUE_;
   }
@@ -2709,6 +2734,7 @@ int input_default_params(
     ppt->vector_perturbations_data[filenum] = NULL;
     ppt->tensor_perturbations_data[filenum] = NULL;
   }
+  ppt->index_k_output_values=NULL;
 
   /** - primordial structure */
 
@@ -3587,4 +3613,22 @@ int input_auxillary_target_conditions(struct file_content * pfc,
     break;
   }
   return _SUCCESS_;
+}
+
+int compare_integers (const void * elem1, const void * elem2) {
+    int f = *((int*)elem1);
+    int s = *((int*)elem2);
+    if (f > s) return  1;
+    if (f < s) return -1;
+    return 0;
+}
+
+int compare_doubles(const void *a,const void *b) {
+  double *x = (double *) a;
+  double *y = (double *) b;
+  if (*x < *y)
+    return -1;
+  else if
+    (*x > *y) return 1;
+  return 0;
 }

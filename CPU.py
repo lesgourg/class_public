@@ -30,20 +30,16 @@ cosmo_mini_toolbox, available under GPLv3 at
 https://github.com/JesusTorrado/cosmo_mini_toolbox
 
 """
+from __future__ import unicode_literals
 # System imports
 import os
 import sys
 import argparse
-import itertools
-from math import floor
-from matplotlib import scale as mscale
-from matplotlib.transforms import Transform
-from matplotlib.ticker import FixedLocator
 
 # Numerics
 import numpy as np
 from numpy import ma
-from scipy.interpolate import splrep, splev, InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline
 from math import floor
 
 # Plotting
@@ -122,8 +118,7 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
 
     """
     # Define the python script name, and the pdf path
-    python_script_path = files[0]+'.py'
-    pdf_path = files[0]+'.pdf'
+    python_script_path = os.path.splitext(files[0])[0]+'.py'
 
     # The variable text will contain all the lines to be printed in the end to
     # the python script path, joined with newline characters. Beware of the
@@ -146,7 +141,7 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
              'for data_file in files:',
              '    data.append(np.loadtxt(data_file))']
 
-    # Recover the base name of the files, everything before the .
+    # Recover the base name of the files, everything before the dot
     roots = [elem.split(os.path.sep)[-1].split('.')[0] for elem in files]
     text += ['roots = [%s]' % ', '.join(["'%s'" % root for root in roots])]
 
@@ -163,6 +158,7 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
             # title.
             num_columns, names, tex_names = extract_headers(files[index])
 
+            text += ['', 'index, curve = %i, data[%i]' % (index, index)]
             # Check if everything is in order
             if num_columns == 2:
                 y_axis = [names[1]]
@@ -176,13 +172,12 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
             # Store the selected text and tex_names to the script
             selected = []
             for elem in y_axis:
-                selected.extend([name for name in names if name.find(elem) != -1 and
-                                 name not in selected])
+                selected.extend(
+                    [name for name in names if name.find(elem) != -1 and
+                     name not in selected])
+            if not y_axis:
+                selected = names[1:]
             y_axis = selected
-
-            text += ['y_axis = %s' % selected]
-            text += ['tex_names = %s' % [elem for (elem, name) in
-                                         zip(tex_names, names) if name in selected]]
 
             # Decide for the x_axis, by default the index will be set to zero
             x_index = 0
@@ -191,15 +186,17 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
                     if name.find(x_axis) != -1:
                         x_index = index_name
                         break
+            # Store to text
+            text += ['y_axis = %s' % selected]
+            text += ['tex_names = %s' % [elem for (elem, name) in
+                     zip(tex_names, names) if name in selected]]
             text += ["x_axis = '%s'" % tex_names[x_index]]
-
-            # Store the limits variable in the text
             text += ["ylim = %s" % ylim]
             text += ["xlim = %s" % xlim]
 
             for selec in y_axis:
                 index_selec = names.index(selec)
-                plot_line = '    ax.'
+                plot_line = 'ax.'
                 if scale == 'lin':
                     plot_line += 'plot(curve[:, %i], curve[:, %i])' % (
                         x_index, index_selec)
@@ -456,15 +453,12 @@ def main():
     # spectrum
     if not args.y_axis:
         if args.files[0].rfind('cl') != -1:
-            y_axis = ['TT']
             scale = 'loglog'
         elif args.files[0].rfind('pk') != -1:
-            y_axis = ['P']
             scale = 'loglog'
         else:
-            raise TypeError(
-                "Please specify a field to plot")
-        args.y_axis = y_axis
+            scale = 'lin'
+        args.y_axis = []
     else:
         scale = ''
     if not args.scale:

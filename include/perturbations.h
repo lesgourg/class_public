@@ -162,7 +162,7 @@ struct perturbs
   int store_perturbations;  /**< Do we want to store perturbations? */
   int k_output_values_num;       /**< Number of perturbation outputs (default=0) */
   double k_output_values[_MAX_NUMBER_OF_K_FILES_];    /**< List of k values where perturbation output is requested. */
-  int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]; /**< List of indices corresponding to k-values close to k_output_values */
+  int *index_k_output_values; /**< List of indices corresponding to k-values close to k_output_values for each mode. [index_md*k_output_values_num+ik]*/
   char scalar_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for scalar perturbation output files. */
   char vector_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for vector perturbation output files. */
   char tensor_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for tensor perturbation output files. */
