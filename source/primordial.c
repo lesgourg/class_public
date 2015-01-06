@@ -355,22 +355,6 @@ int primordial_init(
 
   else if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_H) || (ppm->primordial_spec_type == inflation_V_end)) {
 
-    class_test(ppt->has_scalars == _FALSE_,
-               ppm->error_message,
-               "inflationary module cannot work if you do not ask for scalar modes");
-
-    class_test(ppt->has_vectors == _TRUE_,
-               ppm->error_message,
-               "inflationary module cannot work if you ask for vector modes");
-
-    class_test(ppt->has_tensors == _FALSE_,
-               ppm->error_message,
-               "inflationary module cannot work if you do not ask for tensor modes");
-
-    class_test(ppt->has_bi == _TRUE_ || ppt->has_cdi == _TRUE_ || ppt->has_nid == _TRUE_ || ppt->has_niv == _TRUE_,
-               ppm->error_message,
-               "inflationary module cannot work if you ask for isocurvature modes");
-
     class_call(primordial_inflation_indices(ppm),
                ppm->error_message,
                ppm->error_message);
