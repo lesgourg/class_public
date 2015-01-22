@@ -2264,6 +2264,10 @@ int transfer_sources(
                    ptr->error_message,
                    ptr->error_message);
 
+        class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
+                   ptr->error_message,
+                   "this should not happen, there was probably a rounding error, if this error occured, then this must be coded more carefully");
+
         /* resample the source at those times */
         class_call(transfer_source_resample(ppr,
                                             pba,
@@ -2585,18 +2589,20 @@ int transfer_sources(
                 if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) {
 
                   rescaling +=
-                    (2.-5.*ptr->s_bias)/2.
-                    *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
+                    (tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     /tau0_minus_tau[index_tau]
                     /tau0_minus_tau_lensing_sources[index_tau_sources]
                     * selection[index_tau_sources]
                     * w_trapz_lensing_sources[index_tau_sources];
+                  // note: there was a typo until 2.4.3: there was a
+                  // spurious factor (2.-5.*ptr->s_bias)/2. like for
+                  // galaxy lensing
                 }
 
                 if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) {
 
-                  rescaling +=
-                    -(2.-5.*ptr->s_bias)/2.
+                  rescaling -=
+                    (2.-5.*ptr->s_bias)/2.
                     *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     /tau0_minus_tau[index_tau]
                     /tau0_minus_tau_lensing_sources[index_tau_sources]
@@ -2976,6 +2982,10 @@ int transfer_selection_sampling(
              ptr->error_message,
              ptr->error_message);
 
+  class_test(tau_size <= 0,
+             ptr->error_message,
+             "should be at least one");
+
   /* case selection == dirac */
   if (tau_min == tau_max) {
     class_test(tau_size !=1,
@@ -2986,9 +2996,10 @@ int transfer_selection_sampling(
   /* for other cases (gaussian, tophat...) define new sampled values
      of (tau0-tau) with even spacing */
   else {
-    for (index_tau=0; index_tau<tau_size; index_tau++) {
+    for (index_tau=0; index_tau<tau_size-1; index_tau++) {
       tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau_max-tau_min);
     }
+    tau0_minus_tau[tau_size-1]=pba->conformal_age-tau_max;
   }
 
   return _SUCCESS_;

@@ -3081,7 +3081,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_neglect_late_source = 400.;
 
   ppr->l_switch_limber=10.;
+  // For density Cl, we recommend not to use the Limber approximation
+  // at all, and hence to put here a very large number (e.g. 10000); but
+  // if you have wide and smooth selection functions you may wish to
+  // use it; then 30 might be OK
   ppr->l_switch_limber_for_cl_density_over_z=30.;
+
 
   ppr->selection_cut_at_sigma=5.;
   ppr->selection_sampling=50;

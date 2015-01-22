@@ -5122,8 +5122,10 @@ int perturb_einstein(
        really want gauge-dependent results) */
 
     if (ppt->has_source_delta_m == _TRUE_) {
-      //ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
-      ppw->delta_m -= 2.*ppw->pvecback[pba->index_bg_H_prime]/ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+      ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+      // note: until 2.4.3 there was a typo, the factor was -2 instead
+      // of 3. There is the same typo in the CLASSgal paper
+      // 1307.1459v1,v2,v3. In summary: it is really +3 !!!
     }
 
     if (ppt->has_source_theta_m == _TRUE_) {
