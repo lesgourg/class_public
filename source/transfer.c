@@ -2190,7 +2190,25 @@ int transfer_sources(
             rescaling=0.;
           }
           else {
-            rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);
+            switch (pba->sgnK){
+            case 1:
+              rescaling = sqrt(pba->K)
+                *sin((tau_rec-tau)*sqrt(pba->K))
+                /sin((tau0-tau)*sqrt(pba->K))
+                /sin((tau0-tau_rec)*sqrt(pba->K));
+              rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);
+              break;
+            case 0:
+              rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);
+              break;
+            case -1:
+              rescaling = sqrt(-pba->K)
+                *sinh((tau_rec-tau)*sqrt(-pba->K))
+                /sinh((tau0-tau)*sqrt(-pba->K))
+                /sinh((tau0-tau_rec)*sqrt(-pba->K));
+              break;
+            }
+            // Note: until 2.4.3 there was a bug here: the curvature effects had been ommitted.
           }
 
           /* copy from input array to output array */
@@ -2589,14 +2607,12 @@ int transfer_sources(
                 if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) {
 
                   rescaling +=
-                    (tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
+                    (2.-5.*ptr->s_bias)/2.
+                    *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     /tau0_minus_tau[index_tau]
                     /tau0_minus_tau_lensing_sources[index_tau_sources]
                     * selection[index_tau_sources]
                     * w_trapz_lensing_sources[index_tau_sources];
-                  // note: there was a typo until 2.4.3: there was a
-                  // spurious factor (2.-5.*ptr->s_bias)/2. like for
-                  // galaxy lensing
                 }
 
                 if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) {
