@@ -4376,7 +4376,8 @@ int transfer_radial_function(
     //s2 = sqrt(1.0-3.0*K/k2);
     factor = 1.0;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*d2Phi[j]*rescale_argument*rescale_argument*rescale_function[j];
+      radial_function[x_size-1-j] = factor*absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument*rescale_function[j];
+      // Note: in previous line there was a missing factor absK_over_k2 until version 2.4.3. Credits Francesco Montanari.
     break;
   }
 
