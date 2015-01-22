@@ -1775,6 +1775,8 @@ int transfer_compute_for_each_q(
                                       index_tt,
                                       sources,
                                       tau0_minus_tau,
+                                      ptw->cotKgen,
+                                      ptw->cscKgen,
                                       w_trapz,
                                       tau_size),
                      ptr->error_message,
@@ -2054,6 +2056,8 @@ int transfer_sources(
                      int index_tt,
                      double * sources,
                      double * tau0_minus_tau,
+                     double * cotKgen,
+                     double * cscKgen,
                      double * w_trapz,
                      int * tau_size_out
                      )  {
@@ -2080,6 +2084,12 @@ int transfer_sources(
 
   /* conformal time */
   double tau, tau0;
+
+  /* geometrical quantities */
+  double sinKgen_source;
+  double sinKgen_source_to_lens;
+  double cotKgen_source;
+  double cscKgen_lens;
 
   /* rescaling factor depending on the background at a given time */
   double rescaling=0.;
@@ -2164,7 +2174,7 @@ int transfer_sources(
 
     if (_scalars_) {
 
-      /* lensing source: throw away times before recombuination, and multiply psi by window function */
+      /* lensing source: throw away times before recombination, and multiply psi by window function */
 
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb)) {
 
@@ -2330,6 +2340,23 @@ int transfer_sources(
           /* conformal time */
           tau = tau0 - tau0_minus_tau[index_tau];
 
+          /* geometrical quantity */
+          switch (pba->sgnK){
+          case 1:
+            cotKgen_source = sqrt(pba->K)/ptr->k[index_md][index_q]
+              *cos(tau0_minus_tau[index_tau]*sqrt(pba->K))
+              /sin(tau0_minus_tau[index_tau]*sqrt(pba->K));
+            break;
+          case 0:
+            cotKgen_source = 1./(ptr->k[index_md][index_q]*tau0_minus_tau[index_tau]);
+            break;
+          case -1:
+            cotKgen_source = sqrt(-pba->K)/ptr->k[index_md][index_q]
+              *cosh(tau0_minus_tau[index_tau]*sqrt(-pba->K))
+              /sinh(tau0_minus_tau[index_tau]*sqrt(-pba->K));
+            break;
+          }
+
           /* corresponding background quantities */
           class_call(background_at_tau(pba,
                                        tau,
@@ -2424,7 +2451,8 @@ int transfer_sources(
                                               /pvecback[pba->index_bg_H]
                                               /pvecback[pba->index_bg_H]
                                               +(2.-5.*ptr->s_bias)
-                                              /tau0_minus_tau[index_tau]
+                                              // /tau0_minus_tau[index_tau] // in flat space
+                                              *cotKgen_source*ptr->k[index_md][index_q]  // in general case
                                               /pvecback[pba->index_bg_a]
                                               /pvecback[pba->index_bg_H]
                                               +5.*ptr->s_bias
@@ -2443,7 +2471,8 @@ int transfer_sources(
                                                /pvecback[pba->index_bg_H]
                                                /pvecback[pba->index_bg_H]
                                                +(2.-5.*ptr->s_bias)
-                                               /tau0_minus_tau[index_tau]
+                                               // /tau0_minus_tau[index_tau]  // in flat space
+                                               *cotKgen_source*ptr->k[index_md][index_q]  // in general case
                                                /pvecback[pba->index_bg_a]
                                                /pvecback[pba->index_bg_H]
                                                -f_evo
@@ -2597,9 +2626,32 @@ int transfer_sources(
 
             rescaling = 0.;
 
+
             for (index_tau_sources=0;
                  index_tau_sources < tau_sources_size;
                  index_tau_sources++) {
+
+              switch (pba->sgnK){
+              case 1:
+                sinKgen_source = ptr->k[index_md][index_q]*sin(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sqrt(pba->K);
+                sinKgen_source_to_lens = ptr->k[index_md][index_q]*sin((tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])*sqrt(pba->K))/sqrt(pba->K);
+                cotKgen_source = pow(ptr->k[index_md][index_q],2)*cos(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sinKgen_source/pba->K; //TBC
+                cscKgen_lens = sqrt(pba->K)/ptr->k[index_md][index_q]/sin(sqrt(pba->K)*tau0_minus_tau[index_tau]);
+                break;
+              case 0:
+                sinKgen_source = ptr->k[index_md][index_q]*tau0_minus_tau_lensing_sources[index_tau_sources];
+                sinKgen_source_to_lens = ptr->k[index_md][index_q]*(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources]);
+                cotKgen_source = 1./(ptr->k[index_md][index_q]*tau0_minus_tau_lensing_sources[index_tau_sources]);
+                cscKgen_lens = 1./(ptr->k[index_md][index_q]*tau0_minus_tau[index_tau]);
+                break;
+              case -1:
+                sinKgen_source = ptr->k[index_md][index_q]*sinh(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(-pba->K))/sqrt(-pba->K);
+                sinKgen_source_to_lens = ptr->k[index_md][index_q]*sinh((tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])*sqrt(-pba->K))/sqrt(-pba->K);
+                cotKgen_source = -pow(ptr->k[index_md][index_q],2)*cosh(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sinKgen_source/pba->K; //TBC
+                cscKgen_lens = sqrt(-pba->K)/ptr->k[index_md][index_q]/sinh(sqrt(-pba->K)*tau0_minus_tau[index_tau]);
+                break;
+              }
+
 
               /* condition for excluding from the sum the sources located in z=zero */
               if ((tau0_minus_tau_lensing_sources[index_tau_sources] > 0.) && (tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau] > 0.)) {
@@ -2608,9 +2660,13 @@ int transfer_sources(
 
                   rescaling +=
                     (2.-5.*ptr->s_bias)/2.
-                    *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
-                    /tau0_minus_tau[index_tau]
-                    /tau0_minus_tau_lensing_sources[index_tau_sources]
+                    //  *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
+                    //  /tau0_minus_tau[index_tau]
+                    //  /tau0_minus_tau_lensing_sources[index_tau_sources]
+                    *ptr->k[index_md][index_q]
+                    *sinKgen_source_to_lens
+                    *cscKgen_lens
+                    /sinKgen_source
                     * selection[index_tau_sources]
                     * w_trapz_lensing_sources[index_tau_sources];
                 }
@@ -2619,9 +2675,13 @@ int transfer_sources(
 
                   rescaling -=
                     (2.-5.*ptr->s_bias)/2.
-                    *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
-                    /tau0_minus_tau[index_tau]
-                    /tau0_minus_tau_lensing_sources[index_tau_sources]
+                    //  *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
+                    //  /tau0_minus_tau[index_tau]
+                    //  /tau0_minus_tau_lensing_sources[index_tau_sources]
+                    *ptr->k[index_md][index_q]
+                    *sinKgen_source_to_lens
+                    *cscKgen_lens
+                    /sinKgen_source
                     * selection[index_tau_sources]
                     * w_trapz_lensing_sources[index_tau_sources];
                 }
@@ -2630,9 +2690,11 @@ int transfer_sources(
 
                   rescaling +=
                     (2.-5.*ptr->s_bias)
-                    /tau0_minus_tau_lensing_sources[index_tau_sources]
+                    // /tau0_minus_tau_lensing_sources[index_tau_sources]
+                    * cotKgen_source*ptr->k[index_md][index_q]
                     * selection[index_tau_sources]
                     * w_trapz_lensing_sources[index_tau_sources];
+
                 }
 
                 if (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr)) {
@@ -2704,7 +2766,8 @@ int transfer_sources(
                      /pvecback[pba->index_bg_H]
                      /pvecback[pba->index_bg_H]
                      + (2.-5.*ptr->s_bias)
-                     /tau0_minus_tau_lensing_sources[index_tau_sources]
+                     //  /tau0_minus_tau_lensing_sources[index_tau_sources]
+                     * cotKgen_source*ptr->k[index_md][index_q]
                      /pvecback[pba->index_bg_a]
                      /pvecback[pba->index_bg_H]
                      + 5.*ptr->s_bias

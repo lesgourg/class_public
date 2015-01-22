@@ -425,6 +425,8 @@ extern "C" {
                        int index_tt,
                        double * sources,
                        double * tau0_minus_tau,
+                       double * cotKgen,
+                       double * cscKgen,
                        double * delta_tau,
                        int * tau_size_out
                        );
