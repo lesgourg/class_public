@@ -2086,10 +2086,10 @@ int transfer_sources(
   double tau, tau0;
 
   /* geometrical quantities */
-  double sinKgen_source;
-  double sinKgen_source_to_lens;
-  double cotKgen_source;
-  double cscKgen_lens;
+  double sinKgen_source=0.;
+  double sinKgen_source_to_lens=0.;
+  double cotKgen_source=0.;
+  double cscKgen_lens=0.;
 
   /* rescaling factor depending on the background at a given time */
   double rescaling=0.;
@@ -2635,7 +2635,7 @@ int transfer_sources(
               case 1:
                 sinKgen_source = ptr->k[index_md][index_q]*sin(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sqrt(pba->K);
                 sinKgen_source_to_lens = ptr->k[index_md][index_q]*sin((tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])*sqrt(pba->K))/sqrt(pba->K);
-                cotKgen_source = pow(ptr->k[index_md][index_q],2)*cos(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sinKgen_source/pba->K; //TBC
+                cotKgen_source = cos(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sinKgen_source;
                 cscKgen_lens = sqrt(pba->K)/ptr->k[index_md][index_q]/sin(sqrt(pba->K)*tau0_minus_tau[index_tau]);
                 break;
               case 0:
@@ -2647,7 +2647,7 @@ int transfer_sources(
               case -1:
                 sinKgen_source = ptr->k[index_md][index_q]*sinh(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(-pba->K))/sqrt(-pba->K);
                 sinKgen_source_to_lens = ptr->k[index_md][index_q]*sinh((tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])*sqrt(-pba->K))/sqrt(-pba->K);
-                cotKgen_source = -pow(ptr->k[index_md][index_q],2)*cosh(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sinKgen_source/pba->K; //TBC
+                cotKgen_source = cosh(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(-pba->K))/sinKgen_source;
                 cscKgen_lens = sqrt(-pba->K)/ptr->k[index_md][index_q]/sinh(sqrt(-pba->K)*tau0_minus_tau[index_tau]);
                 break;
               }
@@ -2714,7 +2714,7 @@ int transfer_sources(
 
                   if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)) {
 
-                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau_lensing_sources[index_tau_sources]
+                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]*cotKgen_source*ptr->k[index_md][index_q]
                       + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
                     z = pba->a_today/pvecback[pba->index_bg_a]-1.;
