@@ -594,7 +594,7 @@ cdef class Class:
         if lmax > lmaxR:
             if nofail:
                 self._pars_check("l_max_lss",lmax)
-                self._pars_check("output",'rCl')
+                self._pars_check("output",'nCl')
                 self.compute()
             else:
                 raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
