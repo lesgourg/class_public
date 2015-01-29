@@ -2652,7 +2652,7 @@ int transfer_sources(
 
                   if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)) {
 
-                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
+                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau_lensing_sources[index_tau_sources]
                       + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
                     z = pba->a_today/pvecback[pba->index_bg_a]-1.;
@@ -4594,15 +4594,15 @@ int transfer_global_selection_read(
 
     /* infer dlog(dN/dz)/dz from dN/dz */
     ptr->nz_evo_dlog_nz[0] =
-      (ptr->nz_evo_nz[1]-ptr->nz_evo_nz[0])
+      (log(ptr->nz_evo_nz[1])-log(ptr->nz_evo_nz[0]))
       /(ptr->nz_evo_z[1]-ptr->nz_evo_z[0]);
     for (row=1; row<ptr->nz_evo_size-1; row++){
       ptr->nz_evo_dlog_nz[row] =
-        (ptr->nz_evo_nz[row+1]-ptr->nz_evo_nz[row-1])
+        (log(ptr->nz_evo_nz[row+1])-log(ptr->nz_evo_nz[row-1]))
         /(ptr->nz_evo_z[row+1]-ptr->nz_evo_z[row-1]);
     }
     ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1] =
-      (ptr->nz_evo_nz[ptr->nz_evo_size-1]-ptr->nz_evo_nz[ptr->nz_evo_size-2])
+      (log(ptr->nz_evo_nz[ptr->nz_evo_size-1])-log(ptr->nz_evo_nz[ptr->nz_evo_size-2]))
       /(ptr->nz_evo_z[ptr->nz_evo_size-1]-ptr->nz_evo_z[ptr->nz_evo_size-2]);
 
     /* to test that the file is read:
