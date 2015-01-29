@@ -2432,7 +2432,7 @@ int transfer_sources(
           */
 
           if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
-            rescaling = ptr->bias*selection[index_tau];
+            rescaling = ptr->selection_bias[bin]*selection[index_tau];
 
           /* redhsift space distorsion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
 
@@ -2450,12 +2450,12 @@ int transfer_sources(
                                               /pvecback[pba->index_bg_a]
                                               /pvecback[pba->index_bg_H]
                                               /pvecback[pba->index_bg_H]
-                                              +(2.-5.*ptr->s_bias)
+                                              +(2.-5.*ptr->selection_magnification_bias[bin])
                                               // /tau0_minus_tau[index_tau] // in flat space
                                               *cotKgen_source*ptr->k[index_md][index_q]  // in general case
                                               /pvecback[pba->index_bg_a]
                                               /pvecback[pba->index_bg_H]
-                                              +5.*ptr->s_bias
+                                              +5.*ptr->selection_magnification_bias[bin]
                                               -f_evo
                                               )/ptr->k[index_md][index_q];
 
@@ -2470,7 +2470,7 @@ int transfer_sources(
                                                /pvecback[pba->index_bg_a]
                                                /pvecback[pba->index_bg_H]
                                                /pvecback[pba->index_bg_H]
-                                               +(2.-5.*ptr->s_bias)
+                                               +(2.-5.*ptr->selection_magnification_bias[bin])
                                                // /tau0_minus_tau[index_tau]  // in flat space
                                                *cotKgen_source*ptr->k[index_md][index_q]  // in general case
                                                /pvecback[pba->index_bg_a]
@@ -2659,7 +2659,7 @@ int transfer_sources(
                 if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) {
 
                   rescaling +=
-                    (2.-5.*ptr->s_bias)/2.
+                    (2.-5.*ptr->selection_magnification_bias[bin])/2.
                     //  *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     //  /tau0_minus_tau[index_tau]
                     //  /tau0_minus_tau_lensing_sources[index_tau_sources]
@@ -2674,7 +2674,7 @@ int transfer_sources(
                 if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) {
 
                   rescaling -=
-                    (2.-5.*ptr->s_bias)/2.
+                    (2.-5.*ptr->selection_magnification_bias[bin])/2.
                     //  *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     //  /tau0_minus_tau[index_tau]
                     //  /tau0_minus_tau_lensing_sources[index_tau_sources]
@@ -2689,7 +2689,7 @@ int transfer_sources(
                 if (_index_tt_in_range_(ptr->index_tt_nc_g4, ppt->selection_num, ppt->has_nc_gr)) {
 
                   rescaling +=
-                    (2.-5.*ptr->s_bias)
+                    (2.-5.*ptr->selection_magnification_bias[bin])
                     // /tau0_minus_tau_lensing_sources[index_tau_sources]
                     * cotKgen_source*ptr->k[index_md][index_q]
                     * selection[index_tau_sources]
@@ -2765,12 +2765,12 @@ int transfer_sources(
                      /pvecback[pba->index_bg_a]
                      /pvecback[pba->index_bg_H]
                      /pvecback[pba->index_bg_H]
-                     + (2.-5.*ptr->s_bias)
+                     + (2.-5.*ptr->selection_magnification_bias[bin])
                      //  /tau0_minus_tau_lensing_sources[index_tau_sources]
                      * cotKgen_source*ptr->k[index_md][index_q]
                      /pvecback[pba->index_bg_a]
                      /pvecback[pba->index_bg_H]
-                     + 5.*ptr->s_bias
+                     + 5.*ptr->selection_magnification_bias[bin]
                      - f_evo)
                     * ptr->k[index_md][index_q]
                     * selection[index_tau_sources]

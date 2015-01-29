@@ -2140,6 +2140,8 @@ int input_read_parameters(
                    errmsg,
                    "input of selection functions: the list of mean redshifts must be passed in growing order; you entered %e before %e",ppt->selection_mean[i-1],ppt->selection_mean[i]);
         ppt->selection_width[i] = ppt->selection_width[0];
+        ptr->selection_bias[i] = ptr->selection_bias[0];
+        ptr->selection_magnification_bias[i] = ptr->selection_magnification_bias[0];
       }
 
       class_call(parser_read_list_of_doubles(pfc,
@@ -2170,6 +2172,65 @@ int input_read_parameters(
         }
         free(pointer1);
       }
+
+      class_call(parser_read_list_of_doubles(pfc,
+                                             "selection_bias",
+                                             &(int1),
+                                             &(pointer1),
+                                             &flag1,
+                                             errmsg),
+                 errmsg,
+                 errmsg);
+
+      if ((flag1 == _TRUE_) && (int1>0)) {
+
+        if (int1==1) {
+          for (i=0; i<ppt->selection_num; i++) {
+            ptr->selection_bias[i] = pointer1[0];
+          }
+        }
+        else if (int1==ppt->selection_num) {
+          for (i=0; i<int1; i++) {
+            ptr->selection_bias[i] = pointer1[i];
+          }
+        }
+        else {
+          class_stop(errmsg,
+                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases",
+                     ppt->selection_num,int1,ppt->selection_num);
+        }
+        free(pointer1);
+      }
+
+      class_call(parser_read_list_of_doubles(pfc,
+                                             "selection_magnification_bias",
+                                             &(int1),
+                                             &(pointer1),
+                                             &flag1,
+                                             errmsg),
+                 errmsg,
+                 errmsg);
+
+      if ((flag1 == _TRUE_) && (int1>0)) {
+
+        if (int1==1) {
+          for (i=0; i<ppt->selection_num; i++) {
+            ptr->selection_magnification_bias[i] = pointer1[0];
+          }
+        }
+        else if (int1==ppt->selection_num) {
+          for (i=0; i<int1; i++) {
+            ptr->selection_magnification_bias[i] = pointer1[i];
+          }
+        }
+        else {
+          class_stop(errmsg,
+                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases",
+                     ppt->selection_num,int1,ppt->selection_num);
+        }
+        free(pointer1);
+      }
+
     }
 
     if (ppt->selection_num>1) {
@@ -2214,9 +2275,21 @@ int input_read_parameters(
       }
     }
 
-    class_read_double("bias",ptr->bias);
-    class_read_double("s_bias",ptr->s_bias);
+    flag1 == _FALSE_;
+    class_call(parser_read_double(pfc,"bias",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_test(flag1 == _TRUE_,
+               errmsg,
+               "the input parameter 'bias' is obsolete, because you can now pass an independent light-to-mass bias for each bin/selection function. The new input name is 'selection_bias'. It can be set to a single number (common bias for all bins) or as many numbers as the number of bins");
 
+    flag1 == _FALSE_;
+    class_call(parser_read_double(pfc,"s_bias",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_test(flag1 == _TRUE_,
+               errmsg,
+               "the input parameter 's_bias' is obsolete, because you can now pass an independent magnitude bias for each bin/selection function. The new input name is 'selection_magnitude_bias'. It can be set to a single number (common magnitude bias for all bins) or as many numbers as the number of bins");
 
   }
 
@@ -2792,6 +2865,11 @@ int input_default_params(
   ppt->three_ceff2_ur=1.;
   ppt->three_cvis2_ur=1.;
 
+  ppt->selection_num=1;
+  ppt->selection=gaussian;
+  ppt->selection_mean[0]=1.;
+  ppt->selection_width[0]=0.1;
+
   /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
@@ -2872,10 +2950,8 @@ int input_default_params(
 
   /** - transfer structure */
 
-  ppt->selection_num=1;
-  ppt->selection=gaussian;
-  ppt->selection_mean[0]=1.;
-  ppt->selection_width[0]=0.1;
+  ptr->selection_bias[0]=1.;
+  ptr->selection_magnification_bias[0]=1.;
   ptr->lcmb_rescale=1.;
   ptr->lcmb_pivot=0.1;
   ptr->lcmb_tilt=0.;
@@ -2884,8 +2960,6 @@ int input_default_params(
   ptr->has_nz_file = _FALSE_;
   ptr->has_nz_evo_analytic = _FALSE_;
   ptr->has_nz_evo_file = _FALSE_;
-  ptr->bias = 1.;
-  ptr->s_bias = 0.;
 
   /** - output structure */
 
