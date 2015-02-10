@@ -1243,7 +1243,7 @@ int thermodynamics_energy_injection(
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
                  error_message,
                  error_message);
-      first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
       result = 0.5*dz*first_integrand;
 
       /* other points in trapezoidal integral */
@@ -1253,7 +1253,7 @@ int thermodynamics_energy_injection(
         class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
                    error_message,
                    error_message);
-        integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot;
+        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
         result += dz*integrand;
 
       } while (integrand/first_integrand > 0.02);
@@ -2171,6 +2171,7 @@ int thermodynamics_recombination_with_hyrec(
   param.dlna = 8.49e-5;
   param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
   param.annihilation = pth->annihilation;
+  param.has_on_the_spot = pth->has_on_the_spot;
   param.decay = pth->decay;
   param.annihilation_variation = pth->annihilation_variation;
   param.annihilation_z = pth->annihilation_z;
