@@ -9,8 +9,8 @@
 /*            - written November 2010                                                            */
 /*            - January 2011: changed various switches (notably for post-Saha expansions)        */
 /*                             so that they remain valid for arbitrary cosmologies               */
-/*************************************************************************************************/ 
- 
+/*************************************************************************************************/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -21,8 +21,8 @@
 #include "hydrogen.h"
 #include "history.h"
 
-/************************************************************************************************* 
-Cosmological parameters Input/Output 
+/*************************************************************************************************
+Cosmological parameters Input/Output
 *************************************************************************************************/
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
@@ -47,19 +47,19 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
 
   param->nH0 = 11.223846333047*param->obh2*(1.-param->Y);  /* number density of hudrogen today in m-3 */
   param->fHe = param->Y/(1-param->Y)/3.97153;              /* abundance of helium by number */
-  
+
 
   /* Redshift range */
   param->zstart = 8000.;
   param->zend = 0.;
   param->dlna = 8.49e-5;
-  param->nz = (long) floor(2+log((1.+param->zstart)/(1.+param->zend))/param->dlna);  
+  param->nz = (long) floor(2+log((1.+param->zstart)/(1.+param->zend))/param->dlna);
 
   if (fout!=NULL && PROMPT==1) fprintf(fout, "\n");
 }
 
-/************************************************************************************* 
-Hubble expansion parameter in sec^-1 
+/*************************************************************************************
+Hubble expansion parameter in sec^-1
 *************************************************************************************/
 
 double rec_HubbleConstant(REC_COSMOPARAMS *param, double z) {
@@ -76,7 +76,7 @@ double rec_HubbleConstant(REC_COSMOPARAMS *param, double z) {
    /* Curvature */
    rho_i[1] = param->okh2 *ainv*ainv;
 
-   /* Dark energy */  
+   /* Dark energy */
    rho_i[2] = param->odeh2 * pow(ainv, 3*(1+param->w0)) * exp(3*param->wa* (log(ainv)-1.+1./ainv));
 
    /* Get radiation density.
@@ -94,26 +94,38 @@ double rec_HubbleConstant(REC_COSMOPARAMS *param, double z) {
    return( 3.2407792896393e-18 * sqrt(rho) );
 }
 
-/***************************************************************************************** 
-Matter temperature -- 1st order steady state, from Hirata 2008 
+/*****************************************************************************************
+Matter temperature -- 1st order steady state, from Hirata 2008
 ******************************************************************************************/
 
 double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate) {
-	
+
+  double chi_heat;
+
+  //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
+  chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+  if (chi_heat > 1.) chi_heat = 1.;
+
   return Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
-    +2./3./kBoltz*(1.+2.*xe)/(3.*nH)*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
-  
+    +2./3./kBoltz*chi_heat/nH*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
+
   /* Coefficient = 8 sigma_T a_r / (3 m_e c) */
 }
 
-/****************************************************************************************** 
-Matter temperature evolution derivative 
+/******************************************************************************************
+Matter temperature evolution derivative
 ******************************************************************************************/
 
 double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe, double nH, double energy_rate) {
-	
+
+  double chi_heat;
+
+  //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
+  chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+  if (chi_heat > 1.) chi_heat = 1.;
+
   return -2.*Tm + 4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+fHe)*(Tr-Tm)/H
-    +2./3./kBoltz*(1.+2.*xe)/(3*nH)*energy_rate/(1.+xe+fHe)/H;
+    +2./3./kBoltz*chi_heat/nH*energy_rate/(1.+xe+fHe)/H;
 }
 
 /**********************************************************************************************
@@ -123,16 +135,16 @@ Evolves xe only, assumes Tm is given by the steady-state solution
 
 void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *xe_out,
                       HRATEEFF *rate_table, int func_select, unsigned iz, TWO_PHOTON_PARAMS *twog_params,
-		      double **logfminus_hist, double *logfminus_Ly_hist[], 
+		      double **logfminus_hist, double *logfminus_Ly_hist[],
                       double *z_prev, double *dxedlna_prev, double *z_prev2, double *dxedlna_prev2) {
 
-  double dxedlna, Tr, nH, ainv, H, Tm; 
-    
+  double dxedlna, Tr, nH, ainv, H, Tm;
+
     Tr = param->T0 * (ainv=1.+z1);
     nH = param->nH0 * ainv*ainv*ainv;
-    H = rec_HubbleConstant(param, z1); 
-    Tm = rec_Tmss(xe_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1)); 
-   
+    H = rec_HubbleConstant(param, z1);
+    Tm = rec_Tmss(xe_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1));
+
     #if (MODEL == PEEBLES)
         dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
                                            rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1));
@@ -144,18 +156,18 @@ void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *x
                                            rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table);
     #else
         dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-	  func_select==FUNC_H2G  ? rec_HMLA_2photon_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, rate_table, twog_params, 
+	  func_select==FUNC_H2G  ? rec_HMLA_2photon_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, rate_table, twog_params,
 							    param->zstart, param->dlna, logfminus_hist, logfminus_Ly_hist, iz, z1, energy_injection_rate(param,z1))
 	  :rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table);
-    #endif                    
-                      
-    *xe_out = xe_in + param->dlna * (1.25 * dxedlna - 0.25 * (*dxedlna_prev2)); 
+    #endif
+
+    *xe_out = xe_in + param->dlna * (1.25 * dxedlna - 0.25 * (*dxedlna_prev2));
 
     *z_prev2       = *z_prev;
     *dxedlna_prev2 = *dxedlna_prev;
     *z_prev        = z1;
     *dxedlna_prev  = dxedlna;
-	
+
 }
 
 /**********************************************************************************************
@@ -165,16 +177,16 @@ Evolves xe and Tm simultaneously
 
 void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm_in, double *xe_out, double *Tm_out,
                       HRATEEFF *rate_table, int func_select, unsigned iz, TWO_PHOTON_PARAMS *twog_params,
-		      double **logfminus_hist, double *logfminus_Ly_hist[], 
-                      double *z_prev, double *dxedlna_prev, double *dTmdlna_prev, 
+		      double **logfminus_hist, double *logfminus_Ly_hist[],
+                      double *z_prev, double *dxedlna_prev, double *dTmdlna_prev,
                       double *z_prev2, double *dxedlna_prev2, double *dTmdlna_prev2) {
 
-    double dxedlna, dTmdlna, Tr, nH, ainv, H;  
+    double dxedlna, dTmdlna, Tr, nH, ainv, H;
 
     Tr = param->T0 * (ainv=1.+z1);
     nH = param->nH0 * ainv*ainv*ainv;
-    H = rec_HubbleConstant(param, z1); 
-  
+    H = rec_HubbleConstant(param, z1);
+
     #if (MODEL == PEEBLES)
          dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
                                             rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1));
@@ -186,16 +198,16 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
                                             rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table);
     #else
          dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
-                   func_select==FUNC_H2G  ? rec_HMLA_2photon_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, rate_table, twog_params, 
+                   func_select==FUNC_H2G  ? rec_HMLA_2photon_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, rate_table, twog_params,
                                                                      param->zstart, param->dlna, logfminus_hist, logfminus_Ly_hist, iz, z1,
-																	 energy_injection_rate(param,z1)):        
+																	 energy_injection_rate(param,z1)):
 	           func_select==FUNC_HMLA ? rec_HMLA_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), rate_table)
                                            :rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm_in*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1)); /* used for z < 20 only */
-    #endif    
+    #endif
 
 	 dTmdlna = rec_dTmdlna(xe_in, Tm_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1));
-                                          
-    *xe_out = xe_in + param->dlna * (1.25 * dxedlna - 0.25 * (*dxedlna_prev2)); 
+
+    *xe_out = xe_in + param->dlna * (1.25 * dxedlna - 0.25 * (*dxedlna_prev2));
     *Tm_out = Tm_in + param->dlna * (1.25 * dTmdlna - 0.25 * (*dTmdlna_prev2));
 
     *z_prev2       = *z_prev;
@@ -204,32 +216,32 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     *z_prev        = z1;
     *dxedlna_prev  = dxedlna;
     *dTmdlna_prev  = dTmdlna;
-	
-	
+
+
 }
 
-/**************************************************************************************************** 
-Builds a recombination history 
+/****************************************************************************************************
+Builds a recombination history
 ****************************************************************************************************/
 
 void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog_params,
                        double *xe_output, double *Tm_output) {
 
-  
+
    long iz;
-   double **logfminus_hist; 
+   double **logfminus_hist;
    double *logfminus_Ly_hist[3];
    double H, z, z_prev, dxedlna_prev, z_prev2, dxedlna_prev2, dTmdlna_prev, dTmdlna_prev2;
    double Delta_xe;
-	
+
    /* history of photon occupation numbers */
    logfminus_hist = create_2D_array(NVIRT, param->nz);
    logfminus_Ly_hist[0] = create_1D_array(param->nz);   /* Ly-alpha */
-   logfminus_Ly_hist[1] = create_1D_array(param->nz);   /* Ly-beta  */ 
-   logfminus_Ly_hist[2] = create_1D_array(param->nz);   /* Ly-gamma */ 
+   logfminus_Ly_hist[1] = create_1D_array(param->nz);   /* Ly-beta  */
+   logfminus_Ly_hist[2] = create_1D_array(param->nz);   /* Ly-gamma */
 
 
-   z = param->zstart; 
+   z = param->zstart;
 
 
    /********* He II + III Saha phase *********/
@@ -238,119 +250,119 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
    for(iz=0; iz<param->nz && Delta_xe > 1e-9; iz++) {
       z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
       xe_output[iz] = rec_sahaHeII(param->nH0,param->T0,param->fHe,z, &Delta_xe);
-      Tm_output[iz] = param->T0 * (1.+z); 
+      Tm_output[iz] = param->T0 * (1.+z);
    }
 
    /******* He I + II post-Saha phase *********/
    Delta_xe = 0.;     /* Delta_xe = xe - xe(Saha) */
-   
-   for (; iz<param->nz && Delta_xe < 5e-4; iz++) {    
-      z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.; 
+
+   for (; iz<param->nz && Delta_xe < 5e-4; iz++) {
+      z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
       xe_output[iz] = xe_PostSahaHe(param->nH0,param->T0,param->fHe, rec_HubbleConstant(param,z), z, &Delta_xe);
       Tm_output[iz] = param->T0 * (1.+z);
    }
-   
-   /****** Segment where we follow the helium recombination evolution, Tm fixed to steady state *******/ 
 
-   z_prev2 = (1.+param->zstart)*exp(-param->dlna*(iz-3)) - 1.; 
-   dxedlna_prev2 = (xe_output[iz-2] - xe_output[iz-4])/2./param->dlna;  
+   /****** Segment where we follow the helium recombination evolution, Tm fixed to steady state *******/
 
-   z_prev = (1.+param->zstart)*exp(-param->dlna*(iz-2)) - 1.; 
+   z_prev2 = (1.+param->zstart)*exp(-param->dlna*(iz-3)) - 1.;
+   dxedlna_prev2 = (xe_output[iz-2] - xe_output[iz-4])/2./param->dlna;
+
+   z_prev = (1.+param->zstart)*exp(-param->dlna*(iz-2)) - 1.;
    dxedlna_prev = (xe_output[iz-1] - xe_output[iz-3])/2./param->dlna;
-      
+
    Delta_xe = 1.;  /* Difference between xe and H-Saha value */
-    
+
    for(; iz<param->nz && (Delta_xe > 1e-4 || z > 1650.); iz++) {
-   
+
       rec_get_xe_next1(param, z, xe_output[iz-1], xe_output+iz, rate_table, FUNC_HEI, iz-1, twog_params,
-		     logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &z_prev2, &dxedlna_prev2); 
-      
-      z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.; 
-      Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe, param->nH0*cube(1.+z), energy_injection_rate(param,z)); 
+		     logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &z_prev2, &dxedlna_prev2);
+
+      z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
+      Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe, param->nH0*cube(1.+z), energy_injection_rate(param,z));
 
       /* Starting to populate the photon occupation number with thermal values */
-      update_fminus_Saha(logfminus_hist, logfminus_Ly_hist, xe_output[iz], param->T0*(1.+z)*kBoltz, 
-                         param->nH0*cube(1.+z)*1e-6, twog_params, param->zstart, param->dlna, iz, z, 0);    
-          
-      Delta_xe = fabs(xe_output[iz]- rec_saha_xe_H(param->nH0, param->T0, z)); 
+      update_fminus_Saha(logfminus_hist, logfminus_Ly_hist, xe_output[iz], param->T0*(1.+z)*kBoltz,
+                         param->nH0*cube(1.+z)*1e-6, twog_params, param->zstart, param->dlna, iz, z, 0);
+
+      Delta_xe = fabs(xe_output[iz]- rec_saha_xe_H(param->nH0, param->T0, z));
     }
 
- 
+
    /******* Hydrogen post-Saha equilibrium phase *********/
    Delta_xe = 0.;  /*Difference between xe and Saha value */
-   
+
    for(; iz<param->nz && Delta_xe < 5e-5; iz++) {
-      z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.; 
+      z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
       H = rec_HubbleConstant(param,z);
       xe_output[iz] =  xe_PostSahaH(param->nH0*cube(1.+z)*1e-6, H, kBoltz*param->T0*(1.+z), rate_table, twog_params,
-				    param->zstart, param->dlna, logfminus_hist, logfminus_Ly_hist, iz, z, &Delta_xe, MODEL, energy_injection_rate(param,z)); 
+				    param->zstart, param->dlna, logfminus_hist, logfminus_Ly_hist, iz, z, &Delta_xe, MODEL, energy_injection_rate(param,z));
       Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), H, param->fHe, param->nH0*cube(1.+z), energy_injection_rate(param,z));
-    }   
-  
+    }
+
     /******* Segment where we follow the hydrogen recombination evolution with two-photon processes
              Tm fixed to steady state ******/
-    
-    z_prev2 = (1.+param->zstart)*exp(-param->dlna*(iz-3)) - 1.; 
-    dxedlna_prev2 = (xe_output[iz-2] - xe_output[iz-4])/2./param->dlna;  
-  
-    z_prev = (1.+param->zstart)*exp(-param->dlna*(iz-2)) - 1.; 
+
+    z_prev2 = (1.+param->zstart)*exp(-param->dlna*(iz-3)) - 1.;
+    dxedlna_prev2 = (xe_output[iz-2] - xe_output[iz-4])/2./param->dlna;
+
+    z_prev = (1.+param->zstart)*exp(-param->dlna*(iz-2)) - 1.;
     dxedlna_prev = (xe_output[iz-1] - xe_output[iz-3])/2./param->dlna;
-        
-    for(; iz<param->nz && 1.-Tm_output[iz-1]/param->T0/(1.+z) < 5e-4 && z > 700.; iz++) {  
-    
+
+    for(; iz<param->nz && 1.-Tm_output[iz-1]/param->T0/(1.+z) < 5e-4 && z > 700.; iz++) {
+
        rec_get_xe_next1(param, z, xe_output[iz-1], xe_output+iz, rate_table, FUNC_H2G, iz-1, twog_params,
-               	      logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &z_prev2, &dxedlna_prev2); 
-       z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.; 
-       Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe, param->nH0*cube(1.+z)*1e-6, energy_injection_rate(param,z)); 
+               	      logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &z_prev2, &dxedlna_prev2);
+       z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
+       Tm_output[iz] = rec_Tmss(xe_output[iz], param->T0*(1.+z), rec_HubbleConstant(param, z), param->fHe, param->nH0*cube(1.+z)*1e-6, energy_injection_rate(param,z));
     }
-     
+
    /******* Segment where we follow the hydrogen recombination evolution with two-photon processes
             AND Tm evolution ******/
 
-    dTmdlna_prev2 = rec_dTmdlna(xe_output[iz-3], Tm_output[iz-3], param->T0*(1.+z_prev2), 
+    dTmdlna_prev2 = rec_dTmdlna(xe_output[iz-3], Tm_output[iz-3], param->T0*(1.+z_prev2),
                                 rec_HubbleConstant(param, z_prev2), param->fHe, param->nH0*cube(1.+z_prev2), energy_injection_rate(param,z_prev2));
-    dTmdlna_prev  = rec_dTmdlna(xe_output[iz-2], Tm_output[iz-2], param->T0*(1.+z_prev), 
-                                rec_HubbleConstant(param, z_prev), param->fHe, param->nH0*cube(1.+z_prev), energy_injection_rate(param,z_prev));      
+    dTmdlna_prev  = rec_dTmdlna(xe_output[iz-2], Tm_output[iz-2], param->T0*(1.+z_prev),
+                                rec_HubbleConstant(param, z_prev), param->fHe, param->nH0*cube(1.+z_prev), energy_injection_rate(param,z_prev));
 
-    for(; iz<param->nz && z > 700.; iz++) { 
-        
-        rec_get_xe_next2(param, z, xe_output[iz-1], Tm_output[iz-1], xe_output+iz, Tm_output+iz, rate_table, FUNC_H2G,  
-                        iz-1, twog_params, logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &dTmdlna_prev, 
-                        &z_prev2, &dxedlna_prev2, &dTmdlna_prev2); 
+    for(; iz<param->nz && z > 700.; iz++) {
+
+        rec_get_xe_next2(param, z, xe_output[iz-1], Tm_output[iz-1], xe_output+iz, Tm_output+iz, rate_table, FUNC_H2G,
+                        iz-1, twog_params, logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &dTmdlna_prev,
+                        &z_prev2, &dxedlna_prev2, &dTmdlna_prev2);
         z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
      }
 
-    /***** Segment where we follow Tm as well as xe *****/ 
+    /***** Segment where we follow Tm as well as xe *****/
     /* Radiative transfer effects switched off here */
-    for(; iz<param->nz && z>20.; iz++) { 
-        
-        rec_get_xe_next2(param, z, xe_output[iz-1], Tm_output[iz-1], xe_output+iz, Tm_output+iz, rate_table, FUNC_HMLA,  
-                        iz-1, twog_params, logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &dTmdlna_prev, 
-                        &z_prev2, &dxedlna_prev2, &dTmdlna_prev2); 
+    for(; iz<param->nz && z>20.; iz++) {
+
+        rec_get_xe_next2(param, z, xe_output[iz-1], Tm_output[iz-1], xe_output+iz, Tm_output+iz, rate_table, FUNC_HMLA,
+                        iz-1, twog_params, logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &dTmdlna_prev,
+                        &z_prev2, &dxedlna_prev2, &dTmdlna_prev2);
         z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
     }
-  
-    /*** For z < 20 use Peeble's model. The precise model does not metter much here as 
-            1) the free electron fraction is basically zero (~1e-4) in any case and 
-            2) the universe is going to be reionized around that epoch 
+
+    /*** For z < 20 use Peeble's model. The precise model does not metter much here as
+            1) the free electron fraction is basically zero (~1e-4) in any case and
+            2) the universe is going to be reionized around that epoch
          Tm is still evolved explicitly ***/
-    for(; iz<param->nz; iz++) { 
-        
-        rec_get_xe_next2(param, z, xe_output[iz-1], Tm_output[iz-1], xe_output+iz, Tm_output+iz, rate_table, FUNC_PEEBLES,  
-                        iz-1, twog_params, logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &dTmdlna_prev, 
-                        &z_prev2, &dxedlna_prev2, &dTmdlna_prev2); 
+    for(; iz<param->nz; iz++) {
+
+        rec_get_xe_next2(param, z, xe_output[iz-1], Tm_output[iz-1], xe_output+iz, Tm_output+iz, rate_table, FUNC_PEEBLES,
+                        iz-1, twog_params, logfminus_hist, logfminus_Ly_hist, &z_prev, &dxedlna_prev, &dTmdlna_prev,
+                        &z_prev2, &dxedlna_prev2, &dTmdlna_prev2);
         z = (1.+param->zstart)*exp(-param->dlna*iz) - 1.;
     }
 
     /* Cleanup */
     free_2D_array(logfminus_hist, NVIRT);
-    free(logfminus_Ly_hist[0]); 
+    free(logfminus_Ly_hist[0]);
     free(logfminus_Ly_hist[1]);
     free(logfminus_Ly_hist[2]);
 
 }
 
-double onthespot_injection_rate(REC_COSMOPARAMS *param, 
+double onthespot_injection_rate(REC_COSMOPARAMS *param,
 			     double z) {
 
   double annihilation_at_z;
@@ -359,7 +371,7 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
   double erfc;
 
   /*redshift-dependent annihilation parameter*/
-	
+
   if (z>param->annihilation_zmax) {
 
     annihilation_at_z = param->annihilation*
@@ -392,7 +404,7 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
 
 }
 
-double energy_injection_rate(REC_COSMOPARAMS *param, 
+double energy_injection_rate(REC_COSMOPARAMS *param,
 					double z) {
 
   double zp,dz;
@@ -405,23 +417,23 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
 
       /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
       factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
-    
+
       /* integral over z'(=zp) with step dz */
       dz=1.;
-    
+
       /* first point in trapezoidal integral */
       zp = z;
-      first_integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp);
+      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
       result = 0.5*dz*first_integrand;
-    
+
       /* other points in trapezoidal integral */
       do {
-      
+
 	zp += dz;
-	integrand = factor*pow(1+z,6)/pow(1+zp,5.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp);
+	integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
 	result += dz*integrand;
 	//moment += dz*integrand*(zp-z);
-      
+
       } while (integrand/first_integrand > 0.02);
 
       /* test lines for printing energy rate rescaled by (1=z)^6 in J/m^3/s w/o approximation */
