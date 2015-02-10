@@ -102,8 +102,9 @@ double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double en
 
   double chi_heat;
 
-  //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-  chi_heat = min(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1.); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+  //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
+  chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+  if (chi_heat > 1.) chi_heat = 1.;
 
   return Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
     +2./3./kBoltz*chi_heat/nH*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
@@ -119,8 +120,9 @@ double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe, double
 
   double chi_heat;
 
-  //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-  chi_heat = min(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1.); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+  //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
+  chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+  if (chi_heat > 1.) chi_heat = 1.;
 
   return -2.*Tm + 4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+fHe)*(Tr-Tm)/H
     +2./3./kBoltz*chi_heat/nH*energy_rate/(1.+xe+fHe)/H;

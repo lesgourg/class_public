@@ -2030,7 +2030,7 @@ int thermodynamics_reionization_sample(
                pth->error_message);
 
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-    chi_heat = min(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1); // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+    chi_heat = MIN(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1); // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
 
     dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
       -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
@@ -2870,6 +2870,7 @@ int thermodynamics_derivs_with_recfast(
 
   double tau;
   double chi_heat;
+  double chi_ion_H;
   int last_index_back;
 
   ptpaw = parameters_and_workspace;
@@ -2990,15 +2991,21 @@ int thermodynamics_derivs_with_recfast(
     dy[0] = 0.;
   else {
     /* equations modified to take into account energy injection from dark matter */
+    //chi_ion_H = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+    if (x < 1.)
+      chi_ion_H = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+    else
+      chi_ion_H = 0.;
+
     if (x_H > ppr->recfast_x_H0_trigger2) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z))
-		-energy_rate*(1.-x)/(3*n)/(_L_H_ion_*_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+		-energy_rate*chi_ion_H/n/(_L_H_ion_*_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 
     }
     else {
       C=(1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)))
-        -energy_rate*(1.-x)/(3*n)*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+        -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 
     }
   }
@@ -3044,7 +3051,7 @@ int thermodynamics_derivs_with_recfast(
     /* equations modified to take into account energy injection from dark matter */
 
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-    chi_heat = min(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1.); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+    chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1.); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
 
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
