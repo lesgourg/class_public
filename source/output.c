@@ -1499,7 +1499,7 @@ int output_open_cl_file(
     }
     if (psp->has_dl == _TRUE_){
       for (index_d1=0; index_d1<psp->d_size; index_d1++){
-        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++){
+        for (index_d2=MAX(index_d1-psp->non_diag,0); index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
           sprintf(tmp,"dens[%d]-lens[%d]",index_d1+1,index_d2+1);
           class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
         }
