@@ -2284,6 +2284,8 @@ int perturb_solve(
   ppaw.k = k;
   ppaw.ppw = ppw;
   ppaw.ppw->inter_mode = pba->inter_closeby;
+  ppaw.ppw->last_index_back = 0;
+  ppaw.ppw->last_index_thermo = 0;
 
   /** - check whether we need to print perturbations to a file for this wavenumber */
 
