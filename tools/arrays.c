@@ -2279,6 +2279,17 @@ int array_interpolate_spline_growing_closeby(
   int inf,sup,i;
   double h,a,b;
 
+  /*
+  if (*last_index < 0) {
+    sprintf(errmsg,"%s(L:%d) problem with last_index =%d < 0",__func__,__LINE__,*last_index);
+    return _FAILURE_;
+  }
+  if (*last_index > (n_lines-1)) {
+    sprintf(errmsg,"%s(L:%d) problem with last_index =%d > %d",__func__,__LINE__,*last_index,n_lines-1);
+    return _FAILURE_;
+  }
+  */
+
   inf = *last_index;
   class_test(inf<0 || inf>(n_lines-1),
 	     errmsg,
