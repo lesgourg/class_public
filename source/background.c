@@ -1887,6 +1887,8 @@ int background_output_titles(struct background * pba,
     for (n=0; n<pba->N_ncdm; n++){
       sprintf(tmp,"(.)rho_ncdm[%d]",n);
       class_store_columntitle(titles,tmp,_TRUE_);
+      sprintf(tmp,"(.)p_ncdm[%d]",n);
+      class_store_columntitle(titles,tmp,_TRUE_);
     }
   }
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
@@ -1935,8 +1937,10 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_b],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
     if (pba->has_ncdm == _TRUE_){
-      for (n=0; n<pba->N_ncdm; n++)
+      for (n=0; n<pba->N_ncdm; n++){
         class_store_double(dataptr,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_,storeidx);
+        class_store_double(dataptr,pvecback[pba->index_bg_p_ncdm1+n],_TRUE_,storeidx);
+      }
     }
     class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
