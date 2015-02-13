@@ -1388,7 +1388,7 @@ int numjac(
 	  for(i=1;i<=neq;i++){
 	    Fdiff_absrm = MAX(Fdiff_absrm,fabs(Fdiff_new));
 	    Fdiff_new = nj_ws->ffdel[i]-fval[i];
-	    nj_ws->tmp[i] = Fdiff_new/del2;
+	    nj_ws->tmp[i-1] = Fdiff_new/del2;
 	    if(fabs(Fdiff_new)>=Fdiff_absrm){
 	      rowmax2 = i;
 	      difmax2 = fabs(Fdiff_new);
