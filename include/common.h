@@ -438,25 +438,21 @@ struct precision
   double recfast_z_He_1;              /**< down to which redshift Helium fully ionized */
   double recfast_delta_z_He_1;        /**< z range over which transition is smoothed */
 
-  double recfast_z_He_2;              /**< down to which redshift first Helium recombination
-					   not complete */
+  double recfast_z_He_2;              /**< down to which redshift first Helium recombination not complete */
   double recfast_delta_z_He_2;        /**< z range over which transition is smoothed */
 
   double recfast_z_He_3;              /**< down to which redshift Helium singly ionized */
   double recfast_delta_z_He_3;        /**< z range over which transition is smoothed */
 
-  double recfast_x_He0_trigger;       /**< below which Helium ionization fraction start using
-                                           full equation for Helium */
+  double recfast_x_He0_trigger;       /**< value below which recfast uses the full equation for Helium */
   double recfast_x_He0_trigger2;      /**< a second threshold used in derivative routine */
   double recfast_x_He0_trigger_delta; /**< x_He range over which transition is smoothed */
 
-  double recfast_x_H0_trigger;        /**< below which Helium ionization fraction start using
-                                           full equation for Helium */
+  double recfast_x_H0_trigger;        /**< value below which recfast uses the full equation for Hydrogen */
   double recfast_x_H0_trigger2;       /**< a second threshold used in derivative routine */
   double recfast_x_H0_trigger_delta;  /**< x_H range over which transition is smoothed */
 
-  double recfast_H_frac;              /**< governs time at which full equation of evolution
-					   for Tmat is used */
+  double recfast_H_frac;              /**< governs time at which full equation of evolution for Tmat is used */
 
   FileName hyrec_Alpha_inf_file;
   FileName hyrec_R_inf_file;
