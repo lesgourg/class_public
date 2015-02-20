@@ -308,6 +308,11 @@ int thermodynamics_init(
              pth->error_message,
              "annihilation parameter cannot be negative");
 
+  class_test((pth->annihilation>1.e-4),
+             pth->error_message,
+             "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",
+             pth->annihilation);
+
   class_test((pth->annihilation_variation>0),
              pth->error_message,
              "annihilation variation parameter must be negative (decreasing annihilation rate)");
@@ -327,6 +332,10 @@ int thermodynamics_init(
   class_test((pth->annihilation>0)&&(pba->has_cdm==_FALSE_),
              pth->error_message,
              "CDM annihilation effects require the presence of CDM!");
+
+  class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
+             pth->error_message,
+             "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
 
   class_test((pth->annihilation_f_halo<0),
              pth->error_message,
@@ -2987,28 +2996,47 @@ int thermodynamics_derivs_with_recfast(
   timeTh=(1./(preco->CT*pow(Trad,4)))*(1.+x+preco->fHe)/x;
   timeH=2./(3.*preco->H0*pow(1.+z,1.5));
 
+  /************/
+  /* hydrogen */
+  /************/
+
   if (x_H > ppr->recfast_x_H0_trigger)
     dy[0] = 0.;
   else {
-    /* equations modified to take into account energy injection from dark matter */
-    //chi_ion_H = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+
+    /* Peebles' coefficient (approximated as one when the Hydrogen
+       ionisation fraction is very close to one) */
+    if (x_H < ppr->recfast_x_H0_trigger2) {
+      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
+    }
+    else {
+      C = 1.;
+    }
+
+    /* For DM annihilation: fraction of injected energy going into
+       ionisation and Lya excitation */
+
+    /* - old approximation from Chen and Kamionkowski: */
+
+    //chi_ion_H = (1.-x)/3.;
+
+    /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
+
     if (x < 1.)
       chi_ion_H = 0.369202*pow(1.-pow(x,0.463929),1.70237);
     else
       chi_ion_H = 0.;
 
-    if (x_H > ppr->recfast_x_H0_trigger2) {
-      dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z))
-		-energy_rate*chi_ion_H/n/(_L_H_ion_*_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+    /* evolution of hydrogen ionisation fraction: */
 
-    }
-    else {
-      C=(1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
-      dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)))
-        -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+    dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z))       /* Peeble's equation with fudged factors */
+      -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 
-    }
   }
+
+  /************/
+  /* helium   */
+  /************/
 
   if (x_He < 1.e-15)
     dy[1]=0.;
