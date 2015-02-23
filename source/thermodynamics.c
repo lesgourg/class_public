@@ -1131,6 +1131,250 @@ int thermodynamics_helium_from_bbn(
 
 }
 
+/*****MODIF Vivian Poulin : Add new functions for energy repartition from DM annihilations or decays*****/
+int thermodynamics_annihilation_coefficients_init(
+                                                  struct precision * ppr,
+                                                  struct background * pba,
+                                                  struct thermo * pth
+                                                  ) {
+
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+
+  int num_lines=0;
+  int array_line=0;
+
+
+  /*
+
+      the following file is assumed to contain (apart from comments and blank lines):
+     - One number (num_lines) = number of lines of the file
+     - six columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where each chi represents the fraction of energy going respectively into
+     heat, excitation of lyman-alpha level, Hydrogen ionisation, Helium ionisation, photons below 10.2 eV unseeable by the IGM.
+
+  */
+
+  class_open(fA,ppr->annihil_coeff_file, "r",pth->error_message);
+
+  /* go through each line */
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+
+    /* eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* check that the line is neither blank nor a comment. In
+       ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %,
+       etc.) */
+    if (left[0] > 39) {
+
+      /* if the line contains data, we must interprete it. If
+         num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (num_lines == 0) {
+
+        /* read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&num_lines) != 1,
+                   pth->error_message,
+                   "could not read value of parameters num_lines in file %s\n",ppr->annihil_coeff_file);
+
+        class_alloc(pth->annihil_coef_xe,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_heat,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_lya,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_ionH,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_ionHe,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_lowE,num_lines*sizeof(double),pth->error_message);
+
+        class_alloc(pth->annihil_coef_dd_heat,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_dd_lya,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_dd_ionH,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_ionHe,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_lowE,num_lines*sizeof(double),pth->error_message);
+        pth->annihil_coef_num_lines = num_lines;
+
+        array_line=0;
+
+      }
+      else {
+
+        /* read coefficients */
+        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
+                          &(pth->annihil_coef_xe[array_line]),
+                          &(pth->annihil_coef_heat[array_line]),
+                          &(pth->annihil_coef_lya[array_line]),
+                          &(pth->annihil_coef_ionH[array_line]),
+                          &(pth->annihil_coef_ionHe[array_line]),
+                          &(pth->annihil_coef_lowE[array_line])) != 6,
+                   pth->error_message,
+                   "could not read value of parameters coeeficients in file %s\n",ppr->annihil_coeff_file);
+        array_line ++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* spline in one dimension */
+  class_call(array_spline_table_lines(pth->annihil_coef_xe,
+                                      num_lines,
+                                      pth->annihil_coef_heat,
+                                      1,
+                                      pth->annihil_coef_dd_heat,
+                                      _SPLINE_NATURAL_,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+  class_call(array_spline_table_lines(pth->annihil_coef_xe,
+                                      num_lines,
+                                      pth->annihil_coef_lya,
+                                      1,
+                                      pth->annihil_coef_dd_lya,
+                                      _SPLINE_NATURAL_,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+  class_call(array_spline_table_lines(pth->annihil_coef_xe,
+                                      num_lines,
+                                      pth->annihil_coef_ionH,
+                                      1,
+                                      pth->annihil_coef_dd_ionH,
+                                      _SPLINE_NATURAL_,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+  class_call(array_spline_table_lines(pth->annihil_coef_xe,
+                                     num_lines,
+                                     pth->annihil_coef_ionHe,
+                                     1,
+                                     pth->annihil_coef_dd_ionHe,
+                                     _SPLINE_NATURAL_,
+                                     pth->error_message),
+              pth->error_message,
+              pth->error_message);
+  class_call(array_spline_table_lines(pth->annihil_coef_xe,
+                                      num_lines,
+                                      pth->annihil_coef_lowE,
+                                      1,
+                                      pth->annihil_coef_dd_lowE,
+                                      _SPLINE_NATURAL_,
+                                      pth->error_message),
+               pth->error_message,
+               pth->error_message);
+
+  return _SUCCESS_;
+
+}
+
+
+int thermodynamics_annihilation_coefficients_interpolate(
+                                                         struct precision * ppr,
+                                                         struct background * pba,
+                                                         struct thermo * pth,
+                                                         double xe,
+                                                         double * chi_heat,
+                                                         double * chi_lya,
+                                                         double * chi_ionH,
+                                                         double * chi_ionHe,
+                                                         double * chi_lowE,
+                                                         ) {
+
+  int last_index;
+
+  class_call(array_interpolate_spline(pth->annihil_coef_xe,
+                                      pth->annihil_coef_num_lines,
+                                      pth->annihil_coef_heat,
+                                      pth->annihil_coef_dd_heat,
+                                      1,
+                                      xe,
+                                      &last_index,
+                                      &(chi_heat),
+                                      1,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+  class_call(array_interpolate_spline(pth->annihil_coef_xe,
+                                      pth->annihil_coef_num_lines,
+                                      pth->annihil_coef_lya,
+                                      pth->annihil_coef_dd_lya,
+                                      1,
+                                      xe,
+                                      &last_index,
+                                      &(chi_ion_lya),
+                                      1,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+  class_call(array_interpolate_spline(pth->annihil_coef_xe,
+                                      pth->annihil_coef_num_lines,
+                                      pth->annihil_coef_ionH,
+                                      pth->annihil_coef_dd_ionH,
+                                      1,
+                                      xe,
+                                      &last_index,
+                                      &(chi_ionH),
+                                      1,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+    class_call(array_interpolate_spline(pth->annihil_coef_xe,
+                                       pth->annihil_coef_num_lines,
+                                       pth->annihil_coef_ionHe,
+                                       pth->annihil_coef_dd_ionHe,
+                                       1,
+                                       xe,
+                                       &last_index,
+                                       &(chi_ionHe),
+                                       1,
+                                       pth->error_message),
+              pth->error_message,
+              pth->error_message);
+    class_call(array_interpolate_spline(pth->annihil_coef_xe,
+                                       pth->annihil_coef_num_lines,
+                                       pth->annihil_coef_lowE,
+                                       pth->annihil_coef_dd_lowE,
+                                       1,
+                                       xe,
+                                       &last_index,
+                                       &(chi_lowE),
+                                       1,
+                                       pth->error_message),
+              pth->error_message,
+              pth->error_message);
+
+  return _SUCCESS_;
+
+}
+
+
+int thermodynamics_annihilation_coefficients_free(
+                                                  struct thermo * pth
+                                                  ) {
+
+  free(pth->annihil_coef_xe);
+  free(pth->annihil_coef_heat);
+  free(pth->annihil_coef_lya);
+  free(pth->annihil_coef_ionH);
+  free(pth->annihil_coef_ionHe);
+  free(pth->annihil_coef_lowE);
+
+  free(pth->annihil_coef_dd_heat);
+  free(pth->annihil_coef_dd_lya);
+  free(pth->annihil_coef_dd_ionH);
+  free(pth->annihil_coef_dd_ionHe);
+  free(pth->annihil_coef_dd_lowE);
+
+  return _SUCCESS_;
+
+}
+/********** END OF MODIFICATION By Vivian Poulin **************/
 /**
  * In case of non-minimal cosmology, this function determines the
  * energy rate injected in the IGM at a given redhsift z (= on-the-spot

@@ -2262,7 +2262,7 @@ int input_read_parameters(
   /** h.2. parameters related to the thermodynamics */
 
   class_read_string("sBBN file",ppr->sBBN_file);
-
+  class_read_string("annihilation coefficient file",ppr->annihil_coeff_file);
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
@@ -2911,7 +2911,9 @@ int input_default_precision ( struct precision * ppr ) {
   /* for bbn */
   sprintf(ppr->sBBN_file,__CLASSDIR__);
   strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
-
+  /*For energy injection from DM annihilation or decays */
+  sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
+  strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
   /* for recombination */
 
   ppr->recfast_z_initial=1.e4;

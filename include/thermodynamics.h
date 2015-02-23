@@ -128,7 +128,19 @@ struct thermo
 
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
+  double annihil_coef_xe;
+  double annihil_coef_heat;
+  double annihil_coef_lya;
+  double annihil_coef_ionH;
+  double annihil_coef_ionHe;
+  double annihil_coef_lowE;
+  double annihil_coef_dd_heat;
+  double annihil_coef_dd_lya;
+  double annihil_coef_dd_ionH;
+  double annihil_coef_dd_ionHe;
+  double annihil_coef_dd_lowE;
 
+  int num_lines;
   //@}
 
   /** @name - all indices for the vector of thermodynamical (=th) quantities stored in table */

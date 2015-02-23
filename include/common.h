@@ -405,6 +405,10 @@ struct precision
 
   FileName sBBN_file;
 
+  /** - For Energy injection from DM annihilations or decays */
+
+  FileName annihil_coeff_file;
+
   /** - for recombination */
 
   /* initial and final redshifts in recfast */
