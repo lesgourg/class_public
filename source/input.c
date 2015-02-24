@@ -321,7 +321,7 @@ int input_init(
       /** Here is our guess: */
       class_call(input_get_guess(&x1, &dxdy, &fzw, errmsg),
                  errmsg, errmsg);
-      //      printf("x1= %g\n",x1);
+      //printf("x1= %g\n",x1);
       class_call(input_fzerofun_1d(x1,
                                    &fzw,
                                    &f1,
@@ -3595,7 +3595,7 @@ int input_get_guess(double *xguess,
   struct output op;           /* for output files */
   int i;
 
-  double Omega_M, a_decay, gamma;
+  double Omega_M, a_decay, gamma, Omega0_dcdmdr=1.0;
   int index_guess;
 
   /* Cheat to read only known parameters: */
@@ -3683,12 +3683,14 @@ int input_get_guess(double *xguess,
         dxdy[index_guess] = 1.;
       }
       break;
-    case Omega_ini_dcdm:
     case omega_ini_dcdm:
+      Omega0_dcdmdr = 1./(ba.h*ba.h);
+    case Omega_ini_dcdm:
       /** This works since correspondence is
           Omega_ini_dcdm -> Omega_dcdmdr and
           omega_ini_dcdm -> omega_dcdmdr */
-      Omega_M = ba.Omega0_cdm+pfzw->target_value[index_guess]+ba.Omega0_b;
+      Omega0_dcdmdr *=pfzw->target_value[index_guess];
+      Omega_M = ba.Omega0_cdm+Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
@@ -3696,6 +3698,9 @@ int input_get_guess(double *xguess,
         a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
       xguess[index_guess] = pfzw->target_value[index_guess]*a_decay;
       dxdy[index_guess] = a_decay;
+      if (gamma > 100)
+        dxdy[index_guess] *= gamma/100;
+
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     }
