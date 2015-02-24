@@ -39,10 +39,10 @@ double alphaB_PPB(double TM) {
 Peebles recombination rate
 ***************************************************************************************************/
 
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate) {
+double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE) {
 
   double RLya, alphaB, four_betaB, C;
-  double chi_ion_H;
+
 
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
   alphaB = alphaB_PPB(TM);
@@ -50,14 +50,14 @@ double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR
 
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);
 
-  // chi_ion_H = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-  if (xe < 1.)
-    chi_ion_H = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 4 in Table V of Galli et al. 2013)
-  else
-    chi_ion_H = 0.;
-
+  // chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
+  if (xe >=1){
+    chi_ionH = 0.;
+    chi_ionHe = 0.;
+    chi_lya = 0.;
+  }
   return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
-    +chi_ion_H/nH*energy_rate*(1./EI+(1.-C)/E21)/H;
+    +1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C)/E21)/H;
 
 }
 
@@ -66,10 +66,11 @@ RecFast recombination rate (Seager et al 1999, 2000): effective three-level atom
 with a fudge factor F = 1.14
 ****************************************************************************************************/
 
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate) {
+double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE) {
 
   double RLya, alphaB, four_betaB, C;
-  double chi_ion_H;
+  fprintf(stdout,"%e      %e     %e      %e      %e    \n", xe,chi_lya, chi_ionH,chi_ionHe,chi_lowE);
+
 
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
   alphaB = 1.14 * alphaB_PPB(TM);
@@ -77,14 +78,15 @@ double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR
 
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);
 
-  //chi_ion_H = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-  if (xe < 1.)
-    chi_ion_H = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 4 in Table V of Galli et al. 2013)
-  else
-    chi_ion_H = 0.;
+  //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
+  if (xe >=1){
+    chi_ionH = 0.;
+    chi_ionHe = 0.;
+    chi_lya = 0.;
+  }
 
   return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
-    +chi_ion_H/nH*energy_rate*(1./EI+(1.-C)/E21)/H;
+    +1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C)/E21)/H;
 
 }
 
@@ -207,7 +209,7 @@ Uses standard rate for 2s-->1s decay and Sobolev for Lyman alpha (no feedback)
 Inputs: xe, nH in cm^{-3}, H in s^{-1}, TM, TR in eV. Output: dxe/dlna
 ************************************************************************************************/
 
-double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, HRATEEFF *rate_table){
+double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE, HRATEEFF *rate_table){
 
    double Alpha[2];
    double Beta[2];
@@ -218,7 +220,6 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
    double x2[2];
    double x1s_db;
    double C_2p;
-   double chi_ion_H;
 
    interpolate_rates(Alpha, Beta, &R2p2s, TR, TM / TR, rate_table);
 
@@ -243,14 +244,15 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
 
    C_2p=(RLya+R2p2s*L2s1s/matrix[0][0])/(matrix[1][1]-R2p2s*3.*R2p2s/matrix[0][0]);
 
-   //chi_ion_H = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-    if (xe < 1.)
-      chi_ion_H = 0.369202*pow(1.-pow(xe,463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 4 in Table V of Galli et al. 2013)
-    else
-      chi_ion_H = 0.;
+   //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
 
+    if (xe >=1){
+      chi_ionH = 0.;
+      chi_ionHe = 0.;
+      chi_lya = 0.;
+    }
    return  (x1s_db*(L2s1s + 3.*RLya) -x2[0]*L2s1s -x2[1]*RLya)/Hubble
-     +chi_ion_H/nH*energy_rate*(1./EI+(1.-C_2p)/E21)/Hubble;
+     +1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C_2p)/E21)/Hubble;
 
 }
 
@@ -652,7 +654,7 @@ fminus[0..iz-1] is known. Update fminus[iz]
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
                                 HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                                 double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-                                unsigned iz, double z, double energy_rate){
+                                unsigned iz, double z, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE){
 
    double xr[2];
    double xv[NVIRT];
@@ -674,7 +676,6 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
    double R2p2s;
    double C_2p;
 
-   double chi_ion_H;
 
    for (i = 0; i < 2; i++) Trv[i] = create_1D_array(NVIRT);
    for (i = 0; i < 2; i++) Tvr[i] = create_1D_array(NVIRT);
@@ -707,15 +708,16 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
 
    /*************************************************************/
 
-   //chi_ion_H = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-   if (xe < 1.)
-     chi_ion_H = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 4 in Table V of Galli et al. 2013)
-   else
-     chi_ion_H = 0.;
+   //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
+   if (xe >=1){
+     chi_ionH = 0.;
+     chi_ionHe = 0.;
+     chi_lya = 0.;
+   }
 
    /* Obtain xe_dot */
    xedot = -nH*xe*xe*(Alpha[0]+Alpha[1]) + xr[0]*Beta[0] + xr[1]*Beta[1]
-	+chi_ion_H/nH*energy_rate*(1./EI+(1.-C_2p)/E21);
+	+1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C_2p)/E21);
 
 
    /* Update fminuses */
@@ -754,7 +756,7 @@ ADDED JANUARY 2011
 
 double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                            double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-		    unsigned iz, double z, double *Dxe, int model, double energy_rate){
+		    unsigned iz, double z, double *Dxe, int model, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE){
 
     double s, xeSaha, dxeSaha_dlna, Ddxedlna_Dxe;
 
@@ -763,28 +765,28 @@ double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHO
     dxeSaha_dlna = -(EI/T - 1.5)/(2.*xeSaha + s)*xeSaha*xeSaha;             /* Analytic derivative of above expression */
 
     if (model == 0) {         /* Peebles model */
-      Ddxedlna_Dxe = (rec_HPeebles_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate)
-		      - rec_HPeebles_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate))/0.02/(1.-xeSaha);
+      Ddxedlna_Dxe = (rec_HPeebles_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE)
+		      - rec_HPeebles_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE))/0.02/(1.-xeSaha);
     }
     else if (model == 1)  {   /* "Recfast" model */
-        Ddxedlna_Dxe = (rec_HRecFast_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate)
-		      - rec_HRecFast_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate))/0.02/(1.-xeSaha);
+        Ddxedlna_Dxe = (rec_HRecFast_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE)
+		      - rec_HRecFast_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE))/0.02/(1.-xeSaha);
     }
     else if (model == 2) { /* EMLA model with 2s and 2p decays only, no radiative transfer */
-        Ddxedlna_Dxe = (rec_HMLA_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, rate_table)
-		      - rec_HMLA_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, rate_table))/0.02/(1.-xeSaha);
+        Ddxedlna_Dxe = (rec_HMLA_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE, rate_table)
+		      - rec_HMLA_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE, rate_table))/0.02/(1.-xeSaha);
     }
     else {    /* Default mode, with radiative transfer */
         Ddxedlna_Dxe = (rec_HMLA_2photon_dxedlna(xeSaha+0.01*(1.-xeSaha),nH, H, T, T,
-                         rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate)
+                         rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE)
                       - rec_HMLA_2photon_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T,
-	                 rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate))/0.02/(1.-xeSaha);
+	                 rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE))/0.02/(1.-xeSaha);
     }
 
     *Dxe = dxeSaha_dlna/Ddxedlna_Dxe;
 
      /* Compute derivative again just so the fminuses are properly updated */
-    //dxedlna = rec_HMLA_2photon_dxedlna(xeSaha + *Dxe, nH, H, T, T,rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate);
+    //dxedlna = rec_HMLA_2photon_dxedlna(xeSaha + *Dxe, nH, H, T, T,rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate, chi_lya, chi_ionH, chi_ionHe, chi_lowE);
 
     return xeSaha + *Dxe;
 

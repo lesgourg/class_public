@@ -2914,6 +2914,7 @@ int input_default_precision ( struct precision * ppr ) {
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
   strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
+
   /* for recombination */
 
   ppr->recfast_z_initial=1.e4;

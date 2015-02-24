@@ -128,19 +128,25 @@ struct thermo
 
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
-  double annihil_coef_xe;
-  double annihil_coef_heat;
-  double annihil_coef_lya;
-  double annihil_coef_ionH;
-  double annihil_coef_ionHe;
-  double annihil_coef_lowE;
-  double annihil_coef_dd_heat;
-  double annihil_coef_dd_lya;
-  double annihil_coef_dd_ionH;
-  double annihil_coef_dd_ionHe;
-  double annihil_coef_dd_lowE;
 
-  int num_lines;
+  double * annihil_coef_xe;
+  double * annihil_coef_heat;
+  double * annihil_coef_lya;
+  double * annihil_coef_ionH;
+  double * annihil_coef_ionHe;
+  double * annihil_coef_lowE;
+  double * annihil_coef_dd_heat;
+  double * annihil_coef_dd_lya;
+  double * annihil_coef_dd_ionH;
+  double * annihil_coef_dd_ionHe;
+  double * annihil_coef_dd_lowE;
+
+  double chi_heat;
+  double chi_lya;
+  double chi_ionH;
+  double chi_ionHe;
+  double chi_lowE;
+  int annihil_coef_num_lines;
   //@}
 
   /** @name - all indices for the vector of thermodynamical (=th) quantities stored in table */
@@ -440,7 +446,7 @@ struct thermodynamics_parameters_and_workspace {
   struct background * pba;
   struct precision * ppr;
   struct recombination * preco;
-
+  struct thermo * pth;
   /* workspace */
   double * pvecback;
 
@@ -486,7 +492,25 @@ extern "C" {
 				     struct background * pba,
 				     struct thermo * pth
 				     );
-
+  int thermodynamics_annihilation_coefficients_init(
+                                                    struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct thermo * pth
+                                                  );
+  int thermodynamics_annihilation_coefficients_interpolate(
+                                                     struct precision * ppr,
+                                                     struct background * pba,
+                                                     struct thermo * pth,
+                                                     double xe,
+                                                     double * chi_heat,
+                                                     double * chi_lya,
+                                                     double * chi_ionH,
+                                                     double * chi_ionHe,
+                                                     double * chi_lowE
+                                                   );
+  int thermodynamics_annihilation_coefficients_free(
+                                                   struct thermo * pth
+                                                 );
   int thermodynamics_onthespot_energy_injection(
 				      struct precision * ppr,
 				      struct background * pba,

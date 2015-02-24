@@ -301,7 +301,16 @@ int thermodynamics_init(
   class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
              pth->error_message,
              "Y_He=%g out of bounds (%g<Y_He<%g)",pth->YHe,_YHE_SMALL_,_YHE_BIG_);
+  /** Initialize annihilation coefficient */
 
+
+  if(pth->annihilation>0.){
+
+    class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
+               pth->error_message,
+               pth->error_message);
+
+  }
   /** - check energy injection parameters */
 
   class_test((pth->annihilation<0),
@@ -1181,7 +1190,6 @@ int thermodynamics_annihilation_coefficients_init(
         class_test(sscanf(line,"%d",&num_lines) != 1,
                    pth->error_message,
                    "could not read value of parameters num_lines in file %s\n",ppr->annihil_coeff_file);
-
         class_alloc(pth->annihil_coef_xe,num_lines*sizeof(double),pth->error_message);
         class_alloc(pth->annihil_coef_heat,num_lines*sizeof(double),pth->error_message);
         class_alloc(pth->annihil_coef_lya,num_lines*sizeof(double),pth->error_message);
@@ -1192,9 +1200,10 @@ int thermodynamics_annihilation_coefficients_init(
         class_alloc(pth->annihil_coef_dd_heat,num_lines*sizeof(double),pth->error_message);
         class_alloc(pth->annihil_coef_dd_lya,num_lines*sizeof(double),pth->error_message);
         class_alloc(pth->annihil_coef_dd_ionH,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_ionHe,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_lowE,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_dd_ionHe,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_coef_dd_lowE,num_lines*sizeof(double),pth->error_message);
         pth->annihil_coef_num_lines = num_lines;
+
 
         array_line=0;
 
@@ -1281,7 +1290,7 @@ int thermodynamics_annihilation_coefficients_interpolate(
                                                          double * chi_lya,
                                                          double * chi_ionH,
                                                          double * chi_ionHe,
-                                                         double * chi_lowE,
+                                                         double * chi_lowE
                                                          ) {
 
   int last_index;
@@ -1293,7 +1302,7 @@ int thermodynamics_annihilation_coefficients_interpolate(
                                       1,
                                       xe,
                                       &last_index,
-                                      &(chi_heat),
+                                      &(pth->chi_heat),
                                       1,
                                       pth->error_message),
              pth->error_message,
@@ -1306,7 +1315,7 @@ int thermodynamics_annihilation_coefficients_interpolate(
                                       1,
                                       xe,
                                       &last_index,
-                                      &(chi_ion_lya),
+                                      &(pth->chi_lya),
                                       1,
                                       pth->error_message),
              pth->error_message,
@@ -1319,7 +1328,7 @@ int thermodynamics_annihilation_coefficients_interpolate(
                                       1,
                                       xe,
                                       &last_index,
-                                      &(chi_ionH),
+                                      &(pth->chi_ionH),
                                       1,
                                       pth->error_message),
              pth->error_message,
@@ -1331,7 +1340,7 @@ int thermodynamics_annihilation_coefficients_interpolate(
                                        1,
                                        xe,
                                        &last_index,
-                                       &(chi_ionHe),
+                                       &(pth->chi_ionHe),
                                        1,
                                        pth->error_message),
               pth->error_message,
@@ -1343,7 +1352,7 @@ int thermodynamics_annihilation_coefficients_interpolate(
                                        1,
                                        xe,
                                        &last_index,
-                                       &(chi_lowE),
+                                       &(pth->chi_lowE),
                                        1,
                                        pth->error_message),
               pth->error_message,
@@ -2048,6 +2057,11 @@ int thermodynamics_reionization_sample(
   double energy_rate;
   double tau;
   double chi_heat;
+  double chi_lya;
+  double chi_ionH;
+  double chi_ionHe;
+  double chi_lowE;
+
   int last_index_back;
   double relative_variation;
 
@@ -2272,9 +2286,11 @@ int thermodynamics_reionization_sample(
     class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                pth->error_message,
                pth->error_message);
-
+     class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+               pth->error_message,
+               pth->error_message);
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-    chi_heat = MIN(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1); // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+    chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
 
     dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
       -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
@@ -2399,6 +2415,11 @@ int thermodynamics_recombination_with_hyrec(
   void * buffer;
   int buf_size;
   double tau;
+  double chi_heat;
+  double chi_lya;
+  double chi_ionH;
+  double chi_ionHe;
+  double chi_lowE;
   int last_index_back;
 
   /** - Fill hyrec parameter structure */
@@ -2427,7 +2448,14 @@ int thermodynamics_recombination_with_hyrec(
   param.annihilation_zmin = pth->annihilation_zmin;
   param.annihilation_f_halo = pth->annihilation_f_halo;
   param.annihilation_z_halo = pth->annihilation_z_halo;
-
+  class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,xe,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+              pth->error_message,
+              pth->error_message);
+  param.chi_heat = pth->chi_heat;
+  param.chi_lya = pth->chi_lya;
+  param.chi_ionH = pth->chi_ionH;
+  param.chi_ionHe = pth->chi_ionHe;
+  param.chi_lowE = pth->chi_lowE;
   /** - Build effective rate tables */
 
   /* allocate contiguous memory zone */
@@ -2617,7 +2645,7 @@ int thermodynamics_recombination_with_hyrec(
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z),pth->chi_heat) / Tm / 3.,pth->chi_heat);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -2803,6 +2831,7 @@ int thermodynamics_recombination_with_recfast(
   tpaw.pba = pba;
   tpaw.ppr = ppr;
   tpaw.preco = preco;
+  tpaw.pth = pth;
   tpaw.pvecback = pvecback;
 
   /** - impose initial conditions at early times */
@@ -3104,6 +3133,7 @@ int thermodynamics_derivs_with_recfast(
   struct thermodynamics_parameters_and_workspace * ptpaw;
   struct precision * ppr;
   struct background * pba;
+  struct thermo * pth;
   struct recombination * preco;
   double * pvecback;
 
@@ -3114,12 +3144,17 @@ int thermodynamics_derivs_with_recfast(
 
   double tau;
   double chi_heat;
-  double chi_ion_H;
+  double chi_lya;
+  double chi_ionH;
+  double chi_ionHe;
+  double chi_lowE;
+
   int last_index_back;
 
   ptpaw = parameters_and_workspace;
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
+  pth = ptpaw->pth;
   preco = ptpaw->preco;
   pvecback = ptpaw->pvecback;
 
@@ -3151,6 +3186,10 @@ int thermodynamics_derivs_with_recfast(
              error_message,
              error_message);
 
+   class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+               error_message,
+               error_message);
+ // fprintf(stdout,"%e      %e     %e      %e      %e    \n", x,pth->chi_heat,pth->chi_lya, pth->chi_ionH,pth->chi_ionHe,pth->chi_lowE);
   /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
 
@@ -3235,21 +3274,21 @@ int thermodynamics_derivs_with_recfast(
     dy[0] = 0.;
   else {
     /* equations modified to take into account energy injection from dark matter */
-    //chi_ion_H = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+    //chi_ionH = (1.-x)/3.; // old approximation from Chen and Kamionkowski
     if (x < 1.)
-      chi_ion_H = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+      chi_ionH = pth->chi_ionH;// coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
     else
-      chi_ion_H = 0.;
+      chi_ionH = 0.;
 
     if (x_H > ppr->recfast_x_H0_trigger2) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z))
-		-energy_rate*chi_ion_H/n/(_L_H_ion_*_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+		-energy_rate*chi_ionH/n/(_L_H_ion_*_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 
     }
     else {
       C=(1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)))
-        -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+        -energy_rate*1/n*((chi_ionH+chi_ionHe)/_L_H_ion_+chi_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (consider fraction going to helium as the one going to hydrogen) */
 
     }
   }
@@ -3295,10 +3334,10 @@ int thermodynamics_derivs_with_recfast(
     /* equations modified to take into account energy injection from dark matter */
 
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-    chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1.); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+    chi_heat= MIN(pth->chi_heat,1.); // coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
 
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
-      -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
+      -2./(3.*_k_B_)*energy_rate*pth->chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
   }
 
   return _SUCCESS_;
