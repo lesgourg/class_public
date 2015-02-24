@@ -3275,10 +3275,17 @@ int thermodynamics_derivs_with_recfast(
   else {
     /* equations modified to take into account energy injection from dark matter */
     //chi_ionH = (1.-x)/3.; // old approximation from Chen and Kamionkowski
-    if (x < 1.)
-      chi_ionH = pth->chi_ionH;// coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
-    else
+    if (x < 1.){
+      chi_ionH = pth->chi_ionH;// coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+      chi_ionHe = pth->chi_ionHe;
+      chi_lya = pth->chi_lya;
+    }
+    else{
       chi_ionH = 0.;
+      chi_ionHe = 0.;
+      chi_lya = 0.;
+    }
+
 
     if (x_H > ppr->recfast_x_H0_trigger2) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z))

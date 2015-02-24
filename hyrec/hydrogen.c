@@ -69,7 +69,6 @@ with a fudge factor F = 1.14
 double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE) {
 
   double RLya, alphaB, four_betaB, C;
-  fprintf(stdout,"%e      %e     %e      %e      %e    \n", xe,chi_lya, chi_ionH,chi_ionHe,chi_lowE);
 
 
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
