@@ -1181,12 +1181,14 @@ int input_read_parameters(
   /* energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
   class_read_double("decay",pth->decay);
-  class_read_double("annihilation_variation",pth->annihilation_variation);
-  class_read_double("annihilation_z",pth->annihilation_z);
-  class_read_double("annihilation_zmax",pth->annihilation_zmax);
-  class_read_double("annihilation_zmin",pth->annihilation_zmin);
-  class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
-  class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+  if (pth->annihilation > 0.) {
+    class_read_double("annihilation_variation",pth->annihilation_variation);
+    class_read_double("annihilation_z",pth->annihilation_z);
+    class_read_double("annihilation_zmax",pth->annihilation_zmax);
+    class_read_double("annihilation_zmin",pth->annihilation_zmin);
+    class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
+    class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+  }
 
   class_call(parser_read_string(pfc,
                                 "on the spot",
