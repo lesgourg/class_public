@@ -99,8 +99,14 @@ Matter temperature -- 1st order steady state, from Hirata 2008
 ******************************************************************************************/
 
 double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate, double chi_heat) {
-
-
+  // short _SPLINE_NATURAL_;
+  int num_lines=10;
+  double chi_dd_heat;
+  // double error_message;
+  int y_size=1;
+  /*********************MODIF by Vivian Poulin*****************/
+  array_spline_table_lines_hyrec(xe,num_lines,chi_heat,y_size,chi_dd_heat,_SPLINE_NATURAL_,pth->error_message);
+  /***********************************************************/
 
   //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
   //Otherwise coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)

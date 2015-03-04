@@ -124,6 +124,14 @@ extern "C" {
 		       short spline_mode,
 		       ErrorMsg errmsg
 		       );
+  int array_spline_table_lines_hyrec(
+		       double * x,
+		       int x_size,
+		       double * y_array,
+		       int y_size,
+		       double * ddy_array,
+		       short spline_mode
+		       );
 
   int array_logspline_table_lines(
 				  double * x,
