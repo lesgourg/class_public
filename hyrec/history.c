@@ -166,6 +166,7 @@ double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe, double
   //Otherwise coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
   // &chi_heat = param->annihil_coef_heat;
   if (chi_heat > 1.) chi_heat = 1.;
+  fprintf(stdout,"%e        \n", xe,chi_heat);
 
 
   return -2.*Tm + 4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+fHe)*(Tr-Tm)/H
