@@ -60,6 +60,19 @@ typedef struct {
 				     negative), and with a maximum in
 				     zmax; it will be constant outside
 				     this range */
+   int annihil_coef_num_lines;
+   double *annihil_coef_heat;
+   double *annihil_coef_ionH;
+   double *annihil_coef_ionHe;
+   double *annihil_coef_lya;
+   double *annihil_coef_lowE;
+   double *annihil_coef_xe;
+   double *annihil_coef_dd_heat;
+   double *annihil_coef_dd_ionH;
+   double *annihil_coef_dd_ionHe;
+   double *annihil_coef_dd_lya;
+   double *annihil_coef_dd_lowE;
+
 
    double annihilation_z; /** if annihilation_variation is non-zero,
 			     this is the value of z at which the
@@ -76,17 +89,13 @@ typedef struct {
 
    double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
    double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
-   double chi_heat;
-   double chi_ionH;
-   double chi_ionHe;
-   double chi_lya;
-   double chi_lowE;
+
 } REC_COSMOPARAMS;
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param);
 double rec_HubbleConstant(REC_COSMOPARAMS *param, double z);
-double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate, double chi_heat);
-double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe , double nH, double energy_rate, double chi_heat);
+double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate,REC_COSMOPARAMS *param);
+double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe , double nH, double energy_rate,REC_COSMOPARAMS *param);
 void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *xe_out,
                       HRATEEFF *rate_table, int func_select, unsigned iz, TWO_PHOTON_PARAMS *twog_params,
 		      double **logfminus_hist, double *logfminus_Ly_hist[],

@@ -2448,6 +2448,18 @@ int thermodynamics_recombination_with_hyrec(
   param.annihilation_zmin = pth->annihilation_zmin;
   param.annihilation_f_halo = pth->annihilation_f_halo;
   param.annihilation_z_halo = pth->annihilation_z_halo;
+  param.annihil_coef_num_lines = pth->annihil_coef_num_lines;
+  param.annihil_coef_xe = pth->annihil_coef_xe;
+  param.annihil_coef_heat = pth->annihil_coef_heat;
+  param.annihil_coef_ionH = pth->annihil_coef_ionH;
+  param.annihil_coef_ionHe = pth->annihil_coef_ionHe;
+  param.annihil_coef_lya = pth->annihil_coef_lya;
+  param.annihil_coef_lowE = pth->annihil_coef_lowE;
+  param.annihil_coef_dd_heat = pth->annihil_coef_dd_heat;
+  param.annihil_coef_dd_ionH = pth->annihil_coef_dd_ionH;
+  param.annihil_coef_dd_ionHe = pth->annihil_coef_dd_ionHe;
+  param.annihil_coef_dd_lya = pth->annihil_coef_dd_lya;
+  param.annihil_coef_dd_lowE = pth->annihil_coef_lowE;
 
   /** - Build effective rate tables */
 
@@ -2638,7 +2650,7 @@ int thermodynamics_recombination_with_hyrec(
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.,pth->chi_heat);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z),&param) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)

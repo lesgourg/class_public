@@ -8,7 +8,6 @@
 /*         Version: Januray 2011    (updated value of 2s--1s decay rate,                         */
 /*                                  changed temperature range for effective rates)               */
 /*************************************************************************************************/
-
 /****** CONSTANTS IN CGS + EV UNIT SYSTEM *******/
 
 #define EI   13.598286071938324              /* Hydrogen ionization energy in eV, reduced mass, no relativistic corrections */
@@ -34,8 +33,8 @@ double cube(double x);
 /*********** PEEBLES + POST-SAHA + RECFAST ***************/
 
 double alphaB_PPB(double TM);
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE);
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE);
+double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate);
+double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate);
 
 /************* EFFECTIVE MULTI LEVEL ATOM *******************/
 
@@ -63,7 +62,7 @@ HRATEEFF;
 
 void read_rates(HRATEEFF *rate_table);
 void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR, HRATEEFF *rate_table);
-double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE, HRATEEFF *rate_table);
+double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, HRATEEFF *rate_table);
 
 /************ TWO-PHOTON PROCESSES AND DIFFUSION  ************/
 
@@ -107,10 +106,10 @@ void fplus_from_fminus(double fplus[NVIRT], double fplus_Ly[], double **logfminu
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
                                 HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                                 double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[], unsigned iz, double z,
-								double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE);
+								double energy_rate);
 double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                     double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-                    unsigned iz, double z, double *Dxe, int model, double energy_rate, double chi_lya, double chi_ionH, double chi_ionHe, double chi_lowE);
+                    unsigned iz, double z, double *Dxe, int model, double energy_rate);
 void update_fminus_Saha(double **logfminus_hist, double *logfminus_Ly_hist[],
                         double xe, double TR, double nH, TWO_PHOTON_PARAMS *twog,
 			double zstart, double dlna, unsigned iz, double z, int func_select);

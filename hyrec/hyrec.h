@@ -14,4 +14,3 @@
 #include "history.h"
 #include "arrays.h"
 #include "common.h"
-#include "thermodynamics.h"
