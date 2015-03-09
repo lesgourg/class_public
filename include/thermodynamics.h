@@ -147,6 +147,17 @@ struct thermo
   double chi_ionHe;
   double chi_lowE;
   int annihil_coef_num_lines;
+
+  double * annihil_z;
+  double * annihil_f_halos;
+  double * annihil_dd_f_halos;
+
+  double f_halos;
+  int annihil_f_halos_num_lines;
+
+  double annihilation_boost_factor;
+  double annihilation_m_DM;
+
   //@}
 
   /** @name - all indices for the vector of thermodynamical (=th) quantities stored in table */
@@ -511,6 +522,21 @@ extern "C" {
   int thermodynamics_annihilation_coefficients_free(
                                                    struct thermo * pth
                                                  );
+  int thermodynamics_annihilation_f_halos_init(
+                                                   struct precision * ppr,
+                                                   struct background * pba,
+                                                   struct thermo * pth
+                                                 );
+  int thermodynamics_annihilation_f_halos_interpolate(
+                                                    struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct thermo * pth,
+                                                    double z,
+                                                    double * f_halos
+                                                  );
+  int thermodynamics_annihilation_f_halos_free(
+                                                  struct thermo * pth
+                                                );
   int thermodynamics_onthespot_energy_injection(
 				      struct precision * ppr,
 				      struct background * pba,

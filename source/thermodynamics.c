@@ -311,7 +311,14 @@ int thermodynamics_init(
                pth->error_message);
 
   }
-  /** - check energy injection parameters */
+  if(pth->annihilation>0. && pth->annihilation_f_halo >0.){
+
+    class_call(thermodynamics_annihilation_f_halos_init(ppr,pba,pth),
+               pth->error_message,
+               pth->error_message);
+
+  }
+    /** - check energy injection parameters */
 
   class_test((pth->annihilation<0),
              pth->error_message,
@@ -1383,6 +1390,141 @@ int thermodynamics_annihilation_coefficients_free(
   return _SUCCESS_;
 
 }
+/****************MODIF Vivian Poulin 2 : Add f(z) functions in halos****************/
+int thermodynamics_annihilation_f_halos_init(
+                                                  struct precision * ppr,
+                                                  struct background * pba,
+                                                  struct thermo * pth
+                                                  ) {
+
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+
+  int num_lines=0;
+  int array_line=0;
+
+
+  /*
+
+      the following file is assumed to contain (apart from comments and blank lines):
+     - One number (num_lines) = number of lines of the file
+     - One column (z , f(z)) where f(z) represents the "effective" fraction of energy deposited into the medium at redshift z, in presence of halo formation.
+
+  */
+
+  class_open(fA,ppr->annihil_f_halos_file, "r",pth->error_message);
+
+  /* go through each line */
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+
+    /* eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* check that the line is neither blank nor a comment. In
+       ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %,
+       etc.) */
+    if (left[0] > 39) {
+
+      /* if the line contains data, we must interprete it. If
+         num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (num_lines == 0) {
+
+        /* read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&num_lines) != 1,
+                   pth->error_message,
+                   "could not read value of parameters num_lines in file %s\n",ppr->annihil_coeff_file);
+        class_alloc(pth->annihil_z,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_f_halos,num_lines*sizeof(double),pth->error_message);
+
+
+        class_alloc(pth->annihil_dd_z,num_lines*sizeof(double),pth->error_message);
+        class_alloc(pth->annihil_dd_f_halos,num_lines*sizeof(double),pth->error_message);
+
+        pth->annihil_f_halos_num_lines = num_lines;
+
+
+        array_line=0;
+
+      }
+      else {
+
+        /* read coefficients */
+        class_test(sscanf(line,"%lg %lg",
+                          &(pth->annihil_z[array_line]),
+                          &(pth->annihil_f_halos[array_line])!= 2,
+                   pth->error_message,
+                   "could not read value of parameters coefficients in file %s\n",ppr->annihil_f_halos_file);
+        array_line ++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* spline in one dimension */
+  class_call(array_spline_table_lines(pth->annihil_z,
+                                      num_lines,
+                                      pth->annihil_f_halos,
+                                      1,
+                                      pth->annihil_dd_f_halos,
+                                      _SPLINE_NATURAL_,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+
+  return _SUCCESS_;
+
+}
+
+
+int thermodynamics_annihilation_f_halos_interpolate(
+                                                         struct precision * ppr,
+                                                         struct background * pba,
+                                                         struct thermo * pth,
+                                                         double z,
+                                                         double * f_halos,
+                                                         ) {
+
+  int last_index;
+
+  class_call(array_interpolate_spline(pth->annihil_z,
+                                      pth->annihil_coef_num_lines,
+                                      pth->annihil_f_halos,
+                                      pth->annihil_dd_f_halos,
+                                      1,
+                                      z,
+                                      &last_index,
+                                      &(pth->f_halos),
+                                      1,
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+
+  return _SUCCESS_;
+
+}
+
+
+int thermodynamics_annihilation_f_halos_free(
+                                                  struct thermo * pth
+                                                  ) {
+
+  free(pth->annihil_z);
+  free(pth->annihil_f_halos);
+  free(pth->annihil_dd_f_halos);
+
+
+  return _SUCCESS_;
+
+}
 /********** END OF MODIFICATION By Vivian Poulin **************/
 /**
  * In case of non-minimal cosmology, this function determines the
@@ -1447,7 +1589,35 @@ int thermodynamics_onthespot_energy_injection(
   return _SUCCESS_;
 
 }
+int thermodynamics_beyond_onthespot_energy_injection(
+                                              struct precision * ppr,
+                                              struct background * pba,
+                                              struct thermodynamics *pth,
+                                              double z,
+                                              double * energy_rate,
+                                              ErrorMsg error_message
+                                              ) {
 
+  double annihilation_at_z;
+  double rho_cdm_today;
+  double sigma_thermal = ;
+
+  /*redshift-dependent annihilation parameter*/
+
+
+
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+  class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,pth,z,&f_halos),
+            pth->error_message,
+            pth->error_message);
+
+
+  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*pth->annihilation_boost_factor*sigma_thermal/pth->annihilation_m_DM*f_halos;
+  /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
+
+  return _SUCCESS_;
+
+}
 /**
  * In case of non-minimal cosmology, this function determines the
  * effective energy rate absorbed by the IGM at a given redhsift
@@ -1467,6 +1637,7 @@ int thermodynamics_energy_injection(
                                     struct precision * ppr,
                                     struct background * pba,
                                     struct recombination * preco,
+                                    struct thermodynamics *pth,
                                     double z,
                                     double * energy_rate,
                                     ErrorMsg error_message
@@ -1481,41 +1652,43 @@ int thermodynamics_energy_injection(
   if (preco->annihilation > 0) {
 
     if (preco->has_on_the_spot == _FALSE_) {
-
-      /* number of hydrogen nuclei today in m**-3 */
-      nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
-
-      /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-
-      /* integral over z'(=zp) with step dz */
-      dz=1.;
-
-      /* first point in trapezoidal integral */
-      zp = z;
-      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+      //
+      // /* number of hydrogen nuclei today in m**-3 */
+      // nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+      //
+      // /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
+      // factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+      //
+      // /* integral over z'(=zp) with step dz */
+      // dz=1.;
+      //
+      // /* first point in trapezoidal integral */
+      // zp = z;
+      // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+      //            error_message,
+      //            error_message);
+      // first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+      // result = 0.5*dz*first_integrand;
+      //
+      // /* other points in trapezoidal integral */
+      // do {
+      //
+      //   zp += dz;
+      //   class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+      //              error_message,
+      //              error_message);
+      //   integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+      //   result += dz*integrand;
+      //
+      // } while (integrand/first_integrand > 0.02);
+      //
+      // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
+      // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
+      //            error_message,
+      //            error_message);
+      class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
                  error_message,
                  error_message);
-      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-      result = 0.5*dz*first_integrand;
-
-      /* other points in trapezoidal integral */
-      do {
-
-        zp += dz;
-        class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-                   error_message,
-                   error_message);
-        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-        result += dz*integrand;
-
-      } while (integrand/first_integrand > 0.02);
-
-      /* uncomment these lines if you also want to compute the on-the-spot for comparison */
-      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
-                 error_message,
-                 error_message);
-
     }
     else {
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),

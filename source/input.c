@@ -1176,6 +1176,8 @@ int input_read_parameters(
   class_read_double("annihilation_zmin",pth->annihilation_zmin);
   class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+  class_read_double("annihilation_boost_factor",pth->annihilation_boost_factor);
+  class_read_double("annihilation_m_DM",pth->annihilation_m_DM);
 
   class_call(parser_read_string(pfc,
                                 "on the spot",
@@ -2263,6 +2265,7 @@ int input_read_parameters(
 
   class_read_string("sBBN file",ppr->sBBN_file);
   class_read_string("annihilation coefficient file",ppr->annihil_coeff_file);
+  class_read_string("annihilation f_halos file",ppr->annihil_f_halos_file);
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
@@ -2914,6 +2917,8 @@ int input_default_precision ( struct precision * ppr ) {
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
   strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
+  sprintf(ppr->annihil_f_halos_file,__CLASSDIR__);
+  strcat(ppr->annihil_f_halos_file,"/DM_annihilation/DM_annihilation_f_halos.dat");
 
   /* for recombination */
 
