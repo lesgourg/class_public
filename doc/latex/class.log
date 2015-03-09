@@ -1,0 +1,137 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.9.26)  23 FEB 2015 15:24
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**class.tex
+(./class.tex
+LaTeX2e <2014/05/01>
+Babel <3.9k> and hyphenation patterns for 21 languages loaded.
+(/usr/local/texlive/2014basic/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2007/10/19 v1.4h Standard LaTeX document class
+(/usr/local/texlive/2014basic/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+No file class.aux.
+\openout1 = `class.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 15.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 15.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 15.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 30.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 30.
+[1
+
+{/usr/local/texlive/2014basic/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 79.
+
+(/usr/local/texlive/2014basic/texmf-dist/tex/latex/base/omscmr.fd
+File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 79.
+
+Underfull \hbox (badness 10000) in paragraph at lines 83--102
+
+ []
+
+[2]
+Overfull \hbox (44.94586pt too wide) in paragraph at lines 110--126
+\OT1/cmr/m/n/10 struc-ture is ini-tial-ized in a sim-ple mod-ule \OT1/cmtt/m/n/
+10 precision.c \OT1/cmr/m/n/10 by the func-tion \OT1/cmtt/m/n/10 precision[]ini
+t()\OT1/cmr/m/n/10 .
+ []
+
+
+Overfull \hbox (14.08533pt too wide) in paragraph at lines 110--126
+\OT1/cmr/m/n/10 ram-e-ters; the func-tion fills the rest of this struc-ture. Th
+e func-tion \OT1/cmtt/m/n/10 input[]init(...)
+ []
+
+LaTeX Font Info:    Try loading font information for OMS+cmtt on input line 147
+.
+LaTeX Font Info:    No file OMScmtt.fd. on input line 147.
+
+LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbraceleft' on input line 147.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--180
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--180
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--180
+
+ []
+
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 198--205
+
+ []
+
+[4] [5] (./class.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 260 strings out of 494522
+ 2963 string characters out of 6167205
+ 54172 words of memory out of 5000000
+ 3590 multiletter control sequences out of 15000+600000
+ 8703 words of font info for 31 fonts, out of 8000000 for 9000
+ 319 hyphenation exceptions out of 8191
+ 23i,6n,19p,143b,187s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2014basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx1
+2.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mcsc10.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/type1/public/amsfonts
+/cm/cmmi10.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmmi7.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmr10.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmr12.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmr17.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/type1
+/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2014basic/texmf-dist/fonts/t
+ype1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2014basic/texmf-dist/fon
+ts/type1/public/amsfonts/cm/cmtt10.pfb>
+Output written on class.pdf (5 pages, 123060 bytes).
+PDF statistics:
+ 60 PDF objects out of 1000 (max. 8388607)
+ 42 compressed objects within 1 object stream
+ 0 named destinations out of 1000 (max. 500000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+

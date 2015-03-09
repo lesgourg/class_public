@@ -29,12 +29,82 @@
 double square(double x);
 double cube(double x);
 
+/**** Cosmological parameters.
+      Include information on starting and ending redshit and timestep  ****/
+
+typedef struct {
+   double T0;                   /* CMB temperature today in K*/
+   double obh2, omh2, okh2;     /* cosmological parameters */
+   double odeh2, w0, wa;        /* dark energy parameters */
+   double Y;                    /* primordial helium abundance */
+   double Nnueff;               /* effective number of neutrinos */
+
+   /* Secondary parameters, to avoid recalculating every time */
+   double nH0;                  /* density of hydrogen today in m^{-3} */
+   double fHe;                  /* Helium fraction by number */
+
+   double zstart, zend, dlna;   /* initial and final redshift and step size in log a */
+   long nz;                     /* total number of redshift steps */
+
+   /** parameters for energy injection */
+
+   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+
+   short has_on_the_spot; /** do we want to use the on-the-spot approximation? */
+
+   double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+
+   double annihilation_variation; /** if this parameter is non-zero,
+				     the function F(z)=(f <sigma*v> /
+				     m_cdm)(z) will be a parabola in
+				     log-log scale between zmin and
+				     zmax, with a curvature given by
+				     annihlation_variation (must ne
+				     negative), and with a maximum in
+				     zmax; it will be constant outside
+				     this range */
+   int annihil_coef_num_lines;
+   double *annihil_coef_heat;
+   double *annihil_coef_ionH;
+   double *annihil_coef_ionHe;
+   double *annihil_coef_lya;
+   double *annihil_coef_lowE;
+   double *annihil_coef_xe;
+   double *annihil_coef_dd_heat;
+   double *annihil_coef_dd_ionH;
+   double *annihil_coef_dd_ionHe;
+   double *annihil_coef_dd_lya;
+   double *annihil_coef_dd_lowE;
+   double chi_heat;
+   double chi_lya;
+   double chi_ionH;
+   double chi_ionHe;
+   double chi_lowE;
+
+   double annihilation_z; /** if annihilation_variation is non-zero,
+			     this is the value of z at which the
+			     parameter annihilation is defined, i.e.
+			     F(annihilation_z)=annihilation */
+
+   double annihilation_zmax; /** if annihilation_variation is non-zero,
+				redhsift above which annihilation rate
+				is maximal */
+
+   double annihilation_zmin; /** if annihilation_variation is non-zero,
+				redhsift below which annihilation rate
+				is constant */
+
+   double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
+   double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
+
+} REC_COSMOPARAMS;
+
 
 /*********** PEEBLES + POST-SAHA + RECFAST ***************/
 
 double alphaB_PPB(double TM);
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate);
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate);
+double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param);
+double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param);
 
 /************* EFFECTIVE MULTI LEVEL ATOM *******************/
 
@@ -62,7 +132,7 @@ HRATEEFF;
 
 void read_rates(HRATEEFF *rate_table);
 void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR, HRATEEFF *rate_table);
-double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, HRATEEFF *rate_table);
+double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param, HRATEEFF *rate_table);
 
 /************ TWO-PHOTON PROCESSES AND DIFFUSION  ************/
 
@@ -90,6 +160,7 @@ typedef struct {
     double A4s4d_tab[NVIRT];    /* (dLambda_4s/dE + 5*dLambda_4d/dE) * Delta E */
 }  TWO_PHOTON_PARAMS;
 
+
 void read_twog_params(TWO_PHOTON_PARAMS *twog);
 void populate_Diffusion(double *Aup, double *Adn, double *A2p_up, double *A2p_dn,
                         double TM, double Eb_tab[NVIRT], double A1s_tab[NVIRT]);
@@ -106,10 +177,19 @@ void fplus_from_fminus(double fplus[NVIRT], double fplus_Ly[], double **logfminu
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
                                 HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                                 double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[], unsigned iz, double z,
-								double energy_rate);
+								double energy_rate, REC_COSMOPARAMS *param);
 double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                     double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-                    unsigned iz, double z, double *Dxe, int model, double energy_rate);
+                    unsigned iz, double z, double *Dxe, int model, double energy_rate, REC_COSMOPARAMS *param);
 void update_fminus_Saha(double **logfminus_hist, double *logfminus_Ly_hist[],
                         double xe, double TR, double nH, TWO_PHOTON_PARAMS *twog,
 			double zstart, double dlna, unsigned iz, double z, int func_select);
+
+int hyrec_annihilation_coefficients_interpolate(REC_COSMOPARAMS *param,
+                                                        double xe,
+                                                        double * chi_heat,
+                                                        double * chi_lya,
+                                                        double * chi_ionH,
+                                                        double * chi_ionHe,
+                                                        double * chi_lowE
+                                                      );

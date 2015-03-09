@@ -1,0 +1,22 @@
+Running CLASS version v2.4.2
+Computing background
+ -> age = 13.795359 Gyr
+ -> conformal age = 14165.045412 Mpc
+Computing thermodynamics with Y_He=0.2477
+ -> calling HyRec version Nov2011,
+    by Y. Ali-Haïmoud & C. Hirata
+ -> recombination at z = 1086.002772
+    corresponding to conformal time = 281.204547 Mpc
+    with comoving sound horizon = 144.981584 Mpc
+    angular diameter distance = 12.772590 Mpc
+    and sound horizon angle 100*theta_s = 1.044247
+ -> baryon drag stops at z = 1049.596817
+    corresponding to conformal time = 288.426705 Mpc
+    with comoving sound horizon rs = 148.252264 Mpc
+No sources requested. Perturbation module skipped.
+No perturbations requested. Primordial module skipped.
+No non-linear spectra requested. Nonlinear module skipped.
+No harmonic space transfer functions to compute. Transfer module skipped.
+No spectra requested. Spectra module skipped.
+No lensing requested. Lensing module skipped.
+Writing output files in output/hyrec_giesen_avec_halo_ee1GeV_sans_variation_... 

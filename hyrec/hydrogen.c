@@ -20,10 +20,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-
+#include "common.h"
+#include "arrays.h"
 #include "hyrectools.h"
 #include "hydrogen.h"
-
 
 /**************************************************************************************************
 Case-B recombination coefficient, fit of Pequignot et al 1991, in cm^3 s^{-1}
@@ -39,10 +39,10 @@ double alphaB_PPB(double TM) {
 Peebles recombination rate
 ***************************************************************************************************/
 
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate) {
+double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param) {
 
   double RLya, alphaB, four_betaB, C;
-  double chi_ionH, chi_ionHe, chi_lya;
+  double chi_heat, chi_ionH, chi_ionHe, chi_lya, chi_lowE;
 
 
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
@@ -52,11 +52,24 @@ double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);
 
   // chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-  if (xe < 1.){
-    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
-    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
-    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
-  }
+  // if (xe < 1.){
+  //   chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
+  //   chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
+  //   chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
+  // }
+  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+  hyrec_annihilation_coefficients_interpolate(param,
+                                               xe,
+                                               &chi_heat,
+                                               &chi_lya,
+                                               &chi_ionH,
+                                               &chi_ionHe,
+                                               &chi_lowE
+                                             );
+ // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
   if (xe >=1){
     chi_ionH = 0.;
     chi_ionHe = 0.;
@@ -72,12 +85,12 @@ RecFast recombination rate (Seager et al 1999, 2000): effective three-level atom
 with a fudge factor F = 1.14
 ****************************************************************************************************/
 
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate) {
+double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param) {
 
   double RLya, alphaB, four_betaB, C;
-  double chi_ionH, chi_ionHe, chi_lya;
-
-
+  double chi_lowE, chi_heat, chi_ionH, chi_ionHe, chi_lya;
+  int last_index;
+  ErrorMsg error_message;
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
   alphaB = 1.14 * alphaB_PPB(TM);
   four_betaB  = 3.016103031869581e21 *TR*sqrt(TR) *exp(-0.25*EI/TR) *alphaB;
@@ -85,16 +98,29 @@ double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);
 
   //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-  if (xe < 1.){
-    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
-    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
-    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
-  }
-  if (xe >=1){
-    chi_ionH = 0.;
-    chi_ionHe = 0.;
-    chi_lya = 0.;
-  }
+  // if (xe < 1.){
+  //   chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
+  //   chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
+  //   chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
+  // }
+  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+  hyrec_annihilation_coefficients_interpolate(param,
+                                               xe,
+                                               &chi_heat,
+                                               &chi_lya,
+                                               &chi_ionH,
+                                               &chi_ionHe,
+                                               &chi_lowE
+                                             );
+ // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ if (xe >=1){
+   chi_ionH = 0.;
+   chi_ionHe = 0.;
+   chi_lya = 0.;
+ }
 
   return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
     +1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C)/E21)/H;
@@ -220,7 +246,7 @@ Uses standard rate for 2s-->1s decay and Sobolev for Lyman alpha (no feedback)
 Inputs: xe, nH in cm^{-3}, H in s^{-1}, TM, TR in eV. Output: dxe/dlna
 ************************************************************************************************/
 
-double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, HRATEEFF *rate_table){
+double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param, HRATEEFF *rate_table){
 
    double Alpha[2];
    double Beta[2];
@@ -231,7 +257,7 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
    double x2[2];
    double x1s_db;
    double C_2p;
-   double chi_ionH, chi_ionHe, chi_lya;
+   double chi_heat, chi_lowE, chi_ionH, chi_ionHe, chi_lya;
 
    interpolate_rates(Alpha, Beta, &R2p2s, TR, TM / TR, rate_table);
 
@@ -257,11 +283,24 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
    C_2p=(RLya+R2p2s*L2s1s/matrix[0][0])/(matrix[1][1]-R2p2s*3.*R2p2s/matrix[0][0]);
 
    //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-   if (xe < 1.){
-     chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
-     chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
-     chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
-   }
+  //  if (xe < 1.){
+  //    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
+  //    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
+  //    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
+  //  }
+  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+  hyrec_annihilation_coefficients_interpolate(param,
+                                               xe,
+                                               &chi_heat,
+                                               &chi_lya,
+                                               &chi_ionH,
+                                               &chi_ionHe,
+                                               &chi_lowE
+                                             );
+ // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
     if (xe >=1){
       chi_ionH = 0.;
       chi_ionHe = 0.;
@@ -670,7 +709,7 @@ fminus[0..iz-1] is known. Update fminus[iz]
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
                                 HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                                 double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-                                unsigned iz, double z, double energy_rate){
+                                unsigned iz, double z, double energy_rate, REC_COSMOPARAMS *param){
 
    double xr[2];
    double xv[NVIRT];
@@ -691,7 +730,7 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
    double RLya;
    double R2p2s;
    double C_2p;
-   double chi_ionH, chi_ionHe, chi_lya;
+   double chi_lowE, chi_heat, chi_ionH, chi_ionHe, chi_lya;
 
    for (i = 0; i < 2; i++) Trv[i] = create_1D_array(NVIRT);
    for (i = 0; i < 2; i++) Tvr[i] = create_1D_array(NVIRT);
@@ -725,11 +764,24 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
    /*************************************************************/
 
    //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-   if (xe < 1.){
-     chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
-     chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
-     chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
-   }
+  //  if (xe < 1.){
+  //    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
+  //    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
+  //    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
+  // //  }
+  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+  hyrec_annihilation_coefficients_interpolate(param,
+                                               xe,
+                                               &chi_heat,
+                                               &chi_lya,
+                                               &chi_ionH,
+                                               &chi_ionHe,
+                                               &chi_lowE
+                                             );
+ // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
+ chi_ionH=MAX(param->chi_ionH,0.);
    if (xe >=1){
      chi_ionH = 0.;
      chi_ionHe = 0.;
@@ -777,7 +829,7 @@ ADDED JANUARY 2011
 
 double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                            double zstart, double dlna, double **logfminus_hist, double *logfminus_Ly_hist[],
-		    unsigned iz, double z, double *Dxe, int model, double energy_rate){
+		    unsigned iz, double z, double *Dxe, int model, double energy_rate, REC_COSMOPARAMS *param){
 
     double s, xeSaha, dxeSaha_dlna, Ddxedlna_Dxe;
 
@@ -786,28 +838,28 @@ double xe_PostSahaH(double nH, double H, double T, HRATEEFF *rate_table, TWO_PHO
     dxeSaha_dlna = -(EI/T - 1.5)/(2.*xeSaha + s)*xeSaha*xeSaha;             /* Analytic derivative of above expression */
 
     if (model == 0) {         /* Peebles model */
-      Ddxedlna_Dxe = (rec_HPeebles_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate)
-		      - rec_HPeebles_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate))/0.02/(1.-xeSaha);
+      Ddxedlna_Dxe = (rec_HPeebles_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, param)
+		      - rec_HPeebles_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, param))/0.02/(1.-xeSaha);
     }
     else if (model == 1)  {   /* "Recfast" model */
-        Ddxedlna_Dxe = (rec_HRecFast_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate)
-		      - rec_HRecFast_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate))/0.02/(1.-xeSaha);
+        Ddxedlna_Dxe = (rec_HRecFast_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, param)
+		      - rec_HRecFast_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, param))/0.02/(1.-xeSaha);
     }
     else if (model == 2) { /* EMLA model with 2s and 2p decays only, no radiative transfer */
-        Ddxedlna_Dxe = (rec_HMLA_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, rate_table)
-		      - rec_HMLA_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, rate_table))/0.02/(1.-xeSaha);
+        Ddxedlna_Dxe = (rec_HMLA_dxedlna(xeSaha+0.01*(1.-xeSaha), nH, H, T, T, energy_rate, param, rate_table)
+		      - rec_HMLA_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T, energy_rate, param, rate_table))/0.02/(1.-xeSaha);
     }
     else {    /* Default mode, with radiative transfer */
         Ddxedlna_Dxe = (rec_HMLA_2photon_dxedlna(xeSaha+0.01*(1.-xeSaha),nH, H, T, T,
-                         rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate)
+                         rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate, param)
                       - rec_HMLA_2photon_dxedlna(xeSaha-0.01*(1.-xeSaha), nH, H, T, T,
-	                 rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate))/0.02/(1.-xeSaha);
+	                 rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate, param))/0.02/(1.-xeSaha);
     }
 
     *Dxe = dxeSaha_dlna/Ddxedlna_Dxe;
 
      /* Compute derivative again just so the fminuses are properly updated */
-    //dxedlna = rec_HMLA_2photon_dxedlna(xeSaha + *Dxe, nH, H, T, T,rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate);
+    //dxedlna = rec_HMLA_2photon_dxedlna(xeSaha + *Dxe, nH, H, T, T,rate_table, twog, zstart, dlna, logfminus_hist, logfminus_Ly_hist, iz, z, energy_rate, param);
 
     return xeSaha + *Dxe;
 
@@ -849,3 +901,74 @@ void update_fminus_Saha(double **logfminus_hist, double *logfminus_Ly_hist[],
 }
 
 /***********************************************************************************************************/
+/***********************Return values for the annihilation coefficients after interpolation*****************/
+//
+//
+int hyrec_annihilation_coefficients_interpolate(REC_COSMOPARAMS *param,
+                                                          double xe,
+                                                          double * chi_heat,
+                                                          double * chi_lya,
+                                                          double * chi_ionH,
+                                                          double * chi_ionHe,
+                                                          double * chi_lowE
+                                                          ) {
+      int last_index;
+      ErrorMsg error_message;
+      array_interpolate_spline(param->annihil_coef_xe,
+                                param->annihil_coef_num_lines,
+                                param->annihil_coef_heat,
+                                param->annihil_coef_dd_heat,
+                                1,
+                                xe,
+                                &last_index,
+                                &(param->chi_heat),
+                                1,
+                                error_message);
+
+      array_interpolate_spline(param->annihil_coef_xe,
+                                param->annihil_coef_num_lines,
+                                param->annihil_coef_lya,
+                                param->annihil_coef_dd_lya,
+                                1,
+                                xe,
+                                &last_index,
+                                &(param->chi_lya),
+                                1,
+                                error_message);
+
+      array_interpolate_spline(param->annihil_coef_xe,
+                                param->annihil_coef_num_lines,
+                                param->annihil_coef_ionH,
+                                param->annihil_coef_dd_ionH,
+                                1,
+                                xe,
+                                &last_index,
+                                &(param->chi_ionH),
+                                1,
+                                error_message);
+      array_interpolate_spline(param->annihil_coef_xe,
+                                param->annihil_coef_num_lines,
+                                param->annihil_coef_ionHe,
+                                param->annihil_coef_dd_ionHe,
+                                1,
+                                xe,
+                                &last_index,
+                                &(param->chi_ionHe),
+                                1,
+                                error_message);
+      array_interpolate_spline(param->annihil_coef_xe,
+                                param->annihil_coef_num_lines,
+                                param->annihil_coef_lowE,
+                                param->annihil_coef_dd_lowE,
+                                1,
+                                xe,
+                                &last_index,
+                                &(param->chi_lowE),
+                                1,
+                                error_message);
+    // fprintf(stdout,"%e      %e     %e      %e      %e    \n", xe,chi_heat,chi_lya, chi_ionH,chi_ionHe,chi_lowE);
+
+        return _SUCCESS_;
+
+
+}
