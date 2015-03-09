@@ -304,20 +304,20 @@ int thermodynamics_init(
   /** Initialize annihilation coefficient */
 
 
-  if(pth->annihilation>0.){
+
 
     class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
                pth->error_message,
                pth->error_message);
 
+
+  if(pth->annihilation>0. && pth->annihilation_f_halo >0.){
+
+    class_call(thermodynamics_annihilation_f_halos_init(ppr,pba,preco),
+               preco->error_message,
+               preco->error_message);
+
   }
-  // if(pth->annihilation>0. && pth->annihilation_f_halo >0.){
-  //
-  //   class_call(thermodynamics_annihilation_f_halos_init(ppr,pba,preco),
-  //              preco->error_message,
-  //              preco->error_message);
-  //
-  // }
     /** - check energy injection parameters */
 
   class_test((pth->annihilation<0),
@@ -1391,138 +1391,138 @@ int thermodynamics_annihilation_coefficients_free(
 
 }
 // /****************MODIF Vivian Poulin 2 : Add f(z) functions in halos****************/
-// int thermodynamics_annihilation_f_halos_init(
-//                                                   struct precision * ppr,
-//                                                   struct background * pba,
-//                                                   struct recombination * preco
-//                                                   ) {
-//
-//   FILE * fA;
-//   char line[_LINE_LENGTH_MAX_];
-//   char * left;
-//
-//   int num_lines=0;
-//   int array_line=0;
-//
-//
-//   /*
-//
-//       the following file is assumed to contain (apart from comments and blank lines):
-//      - One number (num_lines) = number of lines of the file
-//      - One column (z , f(z)) where f(z) represents the "effective" fraction of energy deposited into the medium at redshift z, in presence of halo formation.
-//
-//   */
-//
-//   class_open(fA,ppr->annihil_f_halos_file, "r",preco->error_message);
-//
-//   /* go through each line */
-//   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
-//
-//     /* eliminate blank spaces at beginning of line */
-//     left=line;
-//     while (left[0]==' ') {
-//       left++;
-//     }
-//
-//     /* check that the line is neither blank nor a comment. In
-//        ASCII, left[0]>39 means that first non-blank charachter might
-//        be the beginning of some data (it is not a newline, a #, a %,
-//        etc.) */
-//     if (left[0] > 39) {
-//
-//       /* if the line contains data, we must interprete it. If
-//          num_lines == 0 , the current line must contain
-//          its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-//       if (num_lines == 0) {
-//
-//         /* read num_lines, infer size of arrays and allocate them */
-//         class_test(sscanf(line,"%d",&num_lines) != 1,
-//                    preco->error_message,
-//                    "could not read value of parameters num_lines in file %s\n",ppr->annihil_f_halos_file);
-//         class_alloc(preco->annihil_z,num_lines*sizeof(double),preco->error_message);
-//         class_alloc(preco->annihil_f_halos,num_lines*sizeof(double),preco->error_message);
-//
-//         class_alloc(preco->annihil_dd_f_halos,num_lines*sizeof(double),preco->error_message);
-//
-//         preco->annihil_f_halos_num_lines = num_lines;
-//
-//
-//         array_line=0;
-//
-//       }
-//       else {
-//
-//         /* read coefficients */
-//         class_test(sscanf(line,"%lg %lg",
-//                           &(preco->annihil_z[array_line]),
-//                           &(preco->annihil_f_halos[array_line]))!= 2,
-//                    preco->error_message,
-//                    "could not read value of parameters coefficients in file %s\n",ppr->annihil_f_halos_file);
-//         array_line ++;
-//       }
-//     }
-//   }
-//
-//   fclose(fA);
-//
-//   /* spline in one dimension */
-//   class_call(array_spline_table_lines(preco->annihil_z,
-//                                       num_lines,
-//                                       preco->annihil_f_halos,
-//                                       1,
-//                                       preco->annihil_dd_f_halos,
-//                                       _SPLINE_NATURAL_,
-//                                       preco->error_message),
-//              preco->error_message,
-//              preco->error_message);
-//
-//
-//   return _SUCCESS_;
-//
-// }
-//
-//
-// int thermodynamics_annihilation_f_halos_interpolate(
-//                                                   struct precision * ppr,
-//                                                   struct background * pba,
-//                                                   struct recombination * preco,
-//                                                   double z,
-//                                                   double * f_halos
-//                                                 ) {
-//
-//   int last_index;
-//
-//   class_call(array_interpolate_spline(preco->annihil_z,
-//                                       preco->annihil_f_halos_num_lines,
-//                                       preco->annihil_f_halos,
-//                                       preco->annihil_dd_f_halos,
-//                                       1,
-//                                       z,
-//                                       &last_index,
-//                                       &(preco->f_halos),
-//                                       1,
-//                                       preco->error_message),
-//              preco->error_message,
-//              preco->error_message);
-//
-//
-//   return _SUCCESS_;
-//
-// }
-//
-//
-// int thermodynamics_annihilation_f_halos_free(
-//                                                   struct recombination * preco
-//                                                   ) {
-//
-//   free(preco->annihil_z);
-//   free(preco->annihil_f_halos);
-//   free(preco->annihil_dd_f_halos);
-//
-//
-//   return _SUCCESS_;
-//
-// }
+int thermodynamics_annihilation_f_halos_init(
+                                                  struct precision * ppr,
+                                                  struct background * pba,
+                                                  struct recombination * preco
+                                                  ) {
+
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+
+  int num_lines=0;
+  int array_line=0;
+
+
+  /*
+
+      the following file is assumed to contain (apart from comments and blank lines):
+     - One number (num_lines) = number of lines of the file
+     - One column (z , f(z)) where f(z) represents the "effective" fraction of energy deposited into the medium at redshift z, in presence of halo formation.
+
+  */
+
+  class_open(fA,ppr->annihil_f_halos_file, "r",preco->error_message);
+
+  /* go through each line */
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+
+    /* eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* check that the line is neither blank nor a comment. In
+       ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %,
+       etc.) */
+    if (left[0] > 39) {
+
+      /* if the line contains data, we must interprete it. If
+         num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (num_lines == 0) {
+
+        /* read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&num_lines) != 1,
+                   preco->error_message,
+                   "could not read value of parameters num_lines in file %s\n",ppr->annihil_f_halos_file);
+        class_alloc(preco->annihil_z,num_lines*sizeof(double),preco->error_message);
+        class_alloc(preco->annihil_f_halos,num_lines*sizeof(double),preco->error_message);
+
+        class_alloc(preco->annihil_dd_f_halos,num_lines*sizeof(double),preco->error_message);
+
+        preco->annihil_f_halos_num_lines = num_lines;
+
+
+        array_line=0;
+
+      }
+      else {
+
+        /* read coefficients */
+        class_test(sscanf(line,"%lg %lg",
+                          &(preco->annihil_z[array_line]),
+                          &(preco->annihil_f_halos[array_line]))!= 2,
+                   preco->error_message,
+                   "could not read value of parameters coefficients in file %s\n",ppr->annihil_f_halos_file);
+        array_line ++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* spline in one dimension */
+  class_call(array_spline_table_lines(preco->annihil_z,
+                                      num_lines,
+                                      preco->annihil_f_halos,
+                                      1,
+                                      preco->annihil_dd_f_halos,
+                                      _SPLINE_NATURAL_,
+                                      preco->error_message),
+             preco->error_message,
+             preco->error_message);
+
+
+  return _SUCCESS_;
+
+}
+
+
+int thermodynamics_annihilation_f_halos_interpolate(
+                                                  struct precision * ppr,
+                                                  struct background * pba,
+                                                  struct recombination * preco,
+                                                  double z,
+                                                  double * f_halos
+                                                ) {
+
+  int last_index;
+
+  class_call(array_interpolate_spline(preco->annihil_z,
+                                      preco->annihil_f_halos_num_lines,
+                                      preco->annihil_f_halos,
+                                      preco->annihil_dd_f_halos,
+                                      1,
+                                      z,
+                                      &last_index,
+                                      &(preco->f_halos),
+                                      1,
+                                      preco->error_message),
+             preco->error_message,
+             preco->error_message);
+
+
+  return _SUCCESS_;
+
+}
+
+
+int thermodynamics_annihilation_f_halos_free(
+                                                  struct recombination * preco
+                                                  ) {
+
+  free(preco->annihil_z);
+  free(preco->annihil_f_halos);
+  free(preco->annihil_dd_f_halos);
+
+
+  return _SUCCESS_;
+
+}
 /********** END OF MODIFICATION By Vivian Poulin **************/
 /**
  * In case of non-minimal cosmology, this function determines the
@@ -1552,11 +1552,9 @@ int thermodynamics_onthespot_energy_injection(
   double rho_cdm_today;
   double u_min;
   double erfc;
-  double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
-  double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
+
   /*redshift-dependent annihilation parameter*/
-  // if(preco->annihilation==0 && preco->annihilation_boost_factor !=0)preco->annihilation = preco->annihilation_boost_factor*sigma_thermal/(preco->annihilation_m_DM*conversion);
-  // fprintf(stdout,"your parameter annihilation = %e \n", preco->annihilation);
+
   if (z>preco->annihilation_zmax) {
 
     annihilation_at_z = preco->annihilation*
@@ -1589,35 +1587,35 @@ int thermodynamics_onthespot_energy_injection(
   return _SUCCESS_;
 
 }
-// int thermodynamics_beyond_onthespot_energy_injection(
-//                                               struct precision * ppr,
-//                                               struct background * pba,
-//                                               struct recombination * preco,
-//                                               double z,
-//                                               double *energy_rate,
-//                                               ErrorMsg error_message
-//                                               ) {
-//
-//   double rho_cdm_today;
-//   double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
-//   double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
-//   double f_halos;
-//   /*redshift-dependent annihilation parameter*/
-//
-//
-//
-//   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
-//   class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
-//             preco->error_message,
-//             preco->error_message);
-//
-//   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation_boost_factor*sigma_thermal/(preco->annihilation_m_DM*conversion)*f_halos;
-//   /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-//   fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
-//
-//   return _SUCCESS_;
-//
-// }
+int thermodynamics_beyond_onthespot_energy_injection(
+                                              struct precision * ppr,
+                                              struct background * pba,
+                                              struct recombination * preco,
+                                              double z,
+                                              double *energy_rate,
+                                              ErrorMsg error_message
+                                              ) {
+
+  double rho_cdm_today;
+  double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
+  double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
+  double f_halos;
+  /*redshift-dependent annihilation parameter*/
+
+
+
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+  class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
+            preco->error_message,
+            preco->error_message);
+
+  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation_boost_factor*sigma_thermal/(preco->annihilation_m_DM*conversion)*f_halos;
+  /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
+  fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
+
+  return _SUCCESS_;
+
+}
 /**
  * In case of non-minimal cosmology, this function determines the
  * effective energy rate absorbed by the IGM at a given redhsift
@@ -1684,9 +1682,9 @@ int thermodynamics_energy_injection(
       // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
       //            error_message);
-      // class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
-      //            error_message,
-      //            error_message);
+      class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
+                 error_message,
+                 error_message);
     }
     else {
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
@@ -2591,8 +2589,11 @@ int thermodynamics_recombination_with_hyrec(
   double chi_ionH;
   double chi_ionHe;
   double chi_lowE;
+  double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
+  double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
   int last_index_back;
-
+  if(pth->annihilation==0 && pth->annihilation_boost_factor !=0)pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
+  fprintf(stdout,"your parameter annihilation = %e \n", pth->annihilation);
   /** - Fill hyrec parameter structure */
 
   param.T0 = pba->T_cmb;
@@ -2611,6 +2612,8 @@ int thermodynamics_recombination_with_hyrec(
   param.dlna = 8.49e-5;
   param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
   param.annihilation = pth->annihilation;
+  param.annihilation_boost_factor = pth->annihilation_boost_factor;
+  param.annihilation_m_DM = pth->annihilation_m_DM;
   param.has_on_the_spot = pth->has_on_the_spot;
   param.decay = pth->decay;
   param.annihilation_variation = pth->annihilation_variation;
@@ -2631,6 +2634,10 @@ int thermodynamics_recombination_with_hyrec(
   param.annihil_coef_dd_ionHe = pth->annihil_coef_dd_ionHe;
   param.annihil_coef_dd_lya = pth->annihil_coef_dd_lya;
   param.annihil_coef_dd_lowE = pth->annihil_coef_lowE;
+  param.annihil_f_halos_num_lines = preco->annihil_f_halos_num_lines;
+  param.annihil_z = preco->annihil_z;
+  param.annihil_f_halos = preco->annihil_f_halos;
+  param.annihil_dd_f_halos = preco->annihil_dd_f_halos;
 
   /** - Build effective rate tables */
 
@@ -2910,7 +2917,10 @@ int thermodynamics_recombination_with_recfast(
   double z,mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He;
   double zstart,zend,rhs;
   int i,Nz;
-
+  double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
+  double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
+  if(pth->annihilation==0 && pth->annihilation_boost_factor !=0)pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
+  fprintf(stdout,"your parameter annihilation = %e \n", pth->annihilation);
   /* introduced by JL for smoothing the various steps */
   double x0_previous,x0_new,s,weight;
 
@@ -2983,6 +2993,8 @@ int thermodynamics_recombination_with_recfast(
   preco->decay = pth->decay;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
+  preco->annihilation_boost_factor = pth->annihilation_boost_factor;
+  preco->annihilation_m_DM = pth->annihilation_m_DM;
 
   /* quantities related to constants defined in thermodynamics.h */
   //n = preco->Nnow * pow((1.+z),3);

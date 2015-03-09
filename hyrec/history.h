@@ -42,5 +42,6 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
                       double *z_prev2, double *dxedlna_prev2, double *dTmdlna_prev2);
 void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog_params,
                        double *xe_output, double *Tm_output);
-
+double onthespot_injection_rate( REC_COSMOPARAMS *param, double z);
 double energy_injection_rate(REC_COSMOPARAMS *param, double z);
+double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param, double z);

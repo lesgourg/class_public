@@ -49,7 +49,8 @@ typedef struct {
    /** parameters for energy injection */
 
    double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-
+   double annihilation_boost_factor;
+   double annihilation_m_DM;
    short has_on_the_spot; /** do we want to use the on-the-spot approximation? */
 
    double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
@@ -96,6 +97,12 @@ typedef struct {
 
    double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
    double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
+   double * annihil_z;
+   double * annihil_f_halos;
+   double * annihil_dd_f_halos;
+
+   double f_halos;
+   int annihil_f_halos_num_lines;
 
 } REC_COSMOPARAMS;
 

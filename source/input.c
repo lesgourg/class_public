@@ -1169,6 +1169,8 @@ int input_read_parameters(
 
   /* energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
+  class_read_double("boost_factor",pth->annihilation_boost_factor);
+  class_read_double("m_DM",pth->annihilation_m_DM);
   class_read_double("decay",pth->decay);
   class_read_double("annihilation_variation",pth->annihilation_variation);
   class_read_double("annihilation_z",pth->annihilation_z);
@@ -2917,8 +2919,8 @@ int input_default_precision ( struct precision * ppr ) {
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
   strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
-  // sprintf(ppr->annihil_f_halos_file,__CLASSDIR__);
-  // strcat(ppr->annihil_f_halos_file,"/DM_annihilation/DM_annihilation_f_halos.dat");
+  sprintf(ppr->annihil_f_halos_file,__CLASSDIR__);
+  strcat(ppr->annihil_f_halos_file,"/DM_annihilation/DM_annihilation_f_halos.dat");
 
   /* for recombination */
 
