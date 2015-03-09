@@ -98,6 +98,8 @@ struct thermo
   /** parameters for energy injection */
 
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation_boost_factor;
+  double annihilation_m_DM;
 
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
 
@@ -148,15 +150,9 @@ struct thermo
   double chi_lowE;
   int annihil_coef_num_lines;
 
-  double * annihil_z;
-  double * annihil_f_halos;
-  double * annihil_dd_f_halos;
 
-  double f_halos;
-  int annihil_f_halos_num_lines;
 
-  double annihilation_boost_factor;
-  double annihilation_m_DM;
+
 
   //@}
 
@@ -326,6 +322,8 @@ struct recombination {
   /** parameters for energy injection */
 
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation_boost_factor;
+  double annihilation_m_DM;
 
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
 
@@ -356,9 +354,15 @@ struct recombination {
 
   double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
-
   //@}
+  double * annihil_z;
+  double * annihil_f_halos;
+  double * annihil_dd_f_halos;
 
+  double f_halos;
+  int annihil_f_halos_num_lines;
+
+  ErrorMsg error_message;
 };
 
 /**
@@ -525,17 +529,17 @@ extern "C" {
   int thermodynamics_annihilation_f_halos_init(
                                                    struct precision * ppr,
                                                    struct background * pba,
-                                                   struct thermo * pth
+                                                   struct recombination * preco
                                                  );
   int thermodynamics_annihilation_f_halos_interpolate(
                                                     struct precision * ppr,
                                                     struct background * pba,
-                                                    struct thermo * pth,
+                                                    struct recombination * preco,
                                                     double z,
                                                     double * f_halos
                                                   );
   int thermodynamics_annihilation_f_halos_free(
-                                                  struct thermo * pth
+                                                  struct recombination * preco
                                                 );
   int thermodynamics_onthespot_energy_injection(
 				      struct precision * ppr,
@@ -545,12 +549,19 @@ extern "C" {
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );
-
+  int thermodynamics_beyond_onthespot_energy_injection(
+                                                struct precision * ppr,
+                                                struct background * pba,
+                                                struct recombination * preco,
+                                                double z,
+                                                double *energy_rate,
+                                                ErrorMsg error_message
+                                              );
   int thermodynamics_energy_injection(
 				      struct precision * ppr,
 				      struct background * pba,
 				      struct recombination * preco,
-				      double z,
+ 				      double z,
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );

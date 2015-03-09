@@ -408,7 +408,7 @@ struct precision
   /** - For Energy injection from DM annihilations or decays */
 
   FileName annihil_coeff_file;
-
+  FileName annihil_f_halos_file;
   /** - for recombination */
 
   /* initial and final redshifts in recfast */
