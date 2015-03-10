@@ -2190,7 +2190,24 @@ int transfer_sources(
             rescaling=0.;
           }
           else {
-            rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);
+            switch (pba->sgnK){
+            case 1:
+              rescaling = sqrt(pba->K)
+                *sin((tau_rec-tau)*sqrt(pba->K))
+                /sin((tau0-tau)*sqrt(pba->K))
+                /sin((tau0-tau_rec)*sqrt(pba->K));
+              break;
+            case 0:
+              rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);
+              break;
+            case -1:
+              rescaling = sqrt(-pba->K)
+                *sinh((tau_rec-tau)*sqrt(-pba->K))
+                /sinh((tau0-tau)*sqrt(-pba->K))
+                /sinh((tau0-tau_rec)*sqrt(-pba->K));
+              break;
+            }
+            // Note: until 2.4.3 there was a bug here: the curvature effects had been ommitted.
           }
 
           /* copy from input array to output array */
@@ -2263,6 +2280,10 @@ int transfer_sources(
                                                tau_size),
                    ptr->error_message,
                    ptr->error_message);
+
+        class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
+                   ptr->error_message,
+                   "this should not happen, there was probably a rounding error, if this error occured, then this must be coded more carefully");
 
         /* resample the source at those times */
         class_call(transfer_source_resample(ppr,
@@ -2595,8 +2616,8 @@ int transfer_sources(
 
                 if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) {
 
-                  rescaling +=
-                    -(2.-5.*ptr->s_bias)/2.
+                  rescaling -=
+                    (2.-5.*ptr->s_bias)/2.
                     *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     /tau0_minus_tau[index_tau]
                     /tau0_minus_tau_lensing_sources[index_tau_sources]
@@ -2630,7 +2651,7 @@ int transfer_sources(
 
                   if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)) {
 
-                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
+                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau_lensing_sources[index_tau_sources]
                       + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
                     z = pba->a_today/pvecback[pba->index_bg_a]-1.;
@@ -2976,6 +2997,10 @@ int transfer_selection_sampling(
              ptr->error_message,
              ptr->error_message);
 
+  class_test(tau_size <= 0,
+             ptr->error_message,
+             "should be at least one");
+
   /* case selection == dirac */
   if (tau_min == tau_max) {
     class_test(tau_size !=1,
@@ -2986,9 +3011,10 @@ int transfer_selection_sampling(
   /* for other cases (gaussian, tophat...) define new sampled values
      of (tau0-tau) with even spacing */
   else {
-    for (index_tau=0; index_tau<tau_size; index_tau++) {
+    for (index_tau=0; index_tau<tau_size-1; index_tau++) {
       tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau_max-tau_min);
     }
+    tau0_minus_tau[tau_size-1]=pba->conformal_age-tau_max;
   }
 
   return _SUCCESS_;
@@ -4376,7 +4402,8 @@ int transfer_radial_function(
     //s2 = sqrt(1.0-3.0*K/k2);
     factor = 1.0;
     for (j=0; j<x_size; j++)
-      radial_function[x_size-1-j] = factor*d2Phi[j]*rescale_argument*rescale_argument*rescale_function[j];
+      radial_function[x_size-1-j] = factor*absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument*rescale_function[j];
+      // Note: in previous line there was a missing factor absK_over_k2 until version 2.4.3. Credits Francesco Montanari.
     break;
   }
 
@@ -4566,15 +4593,15 @@ int transfer_global_selection_read(
 
     /* infer dlog(dN/dz)/dz from dN/dz */
     ptr->nz_evo_dlog_nz[0] =
-      (ptr->nz_evo_nz[1]-ptr->nz_evo_nz[0])
+      (log(ptr->nz_evo_nz[1])-log(ptr->nz_evo_nz[0]))
       /(ptr->nz_evo_z[1]-ptr->nz_evo_z[0]);
     for (row=1; row<ptr->nz_evo_size-1; row++){
       ptr->nz_evo_dlog_nz[row] =
-        (ptr->nz_evo_nz[row+1]-ptr->nz_evo_nz[row-1])
+        (log(ptr->nz_evo_nz[row+1])-log(ptr->nz_evo_nz[row-1]))
         /(ptr->nz_evo_z[row+1]-ptr->nz_evo_z[row-1]);
     }
     ptr->nz_evo_dlog_nz[ptr->nz_evo_size-1] =
-      (ptr->nz_evo_nz[ptr->nz_evo_size-1]-ptr->nz_evo_nz[ptr->nz_evo_size-2])
+      (log(ptr->nz_evo_nz[ptr->nz_evo_size-1])-log(ptr->nz_evo_nz[ptr->nz_evo_size-2]))
       /(ptr->nz_evo_z[ptr->nz_evo_size-1]-ptr->nz_evo_z[ptr->nz_evo_size-2]);
 
     /* to test that the file is read:

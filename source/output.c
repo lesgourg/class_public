@@ -1163,7 +1163,7 @@ int output_background(
              pop->error_message);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*pba->bt_size;
-  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_alloc(data,sizeof(double)*size_data,pop->error_message);
   class_call(background_output_data(pba,
                                     number_of_titles,
                                     data),
@@ -1214,7 +1214,7 @@ int output_thermodynamics(
              pop->error_message);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*pth->tt_size;
-  class_alloc(data,sizeof(double*)*size_data,pop->error_message);
+  class_alloc(data,sizeof(double)*size_data,pop->error_message);
   class_call(thermodynamics_output_data(pba,
                                         pth,
                                         number_of_titles,
@@ -1499,7 +1499,7 @@ int output_open_cl_file(
     }
     if (psp->has_dl == _TRUE_){
       for (index_d1=0; index_d1<psp->d_size; index_d1++){
-        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++){
+        for (index_d2=MAX(index_d1-psp->non_diag,0); index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
           sprintf(tmp,"dens[%d]-lens[%d]",index_d1+1,index_d2+1);
           class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
         }
