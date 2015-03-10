@@ -1169,30 +1169,40 @@ int input_read_parameters(
 
   /* energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
-  class_read_double("decay",pth->decay);
+
   if (pth->annihilation > 0.) {
+
     class_read_double("annihilation_variation",pth->annihilation_variation);
     class_read_double("annihilation_z",pth->annihilation_z);
     class_read_double("annihilation_zmax",pth->annihilation_zmax);
     class_read_double("annihilation_zmin",pth->annihilation_zmin);
     class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
     class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+
+    class_call(parser_read_string(pfc,
+                                  "on the spot",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        pth->has_on_the_spot = _TRUE_;
+      }
+      else {
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          pth->has_on_the_spot = _FALSE_;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+        }
+      }
+    }
   }
 
-  class_call(parser_read_string(pfc,
-                                "on the spot",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-    pth->has_on_the_spot = _TRUE_;
-  }
-  else {
-    pth->has_on_the_spot = _FALSE_;
-  }
+  class_read_double("decay",pth->decay);
 
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
