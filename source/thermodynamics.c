@@ -311,7 +311,7 @@ int thermodynamics_init(
                pth->error_message);
 
 
-  if(pth->annihilation>0. && pth->annihilation_f_halo >0.){
+  if(pth->annihilation_f_halo >0.){
 
     class_call(thermodynamics_annihilation_f_halos_init(ppr,pba,preco),
                preco->error_message,
@@ -1412,7 +1412,6 @@ int thermodynamics_annihilation_f_halos_init(
      - One column (z , f(z)) where f(z) represents the "effective" fraction of energy deposited into the medium at redshift z, in presence of halo formation.
 
   */
-
   class_open(fA,ppr->annihil_f_halos_file, "r",preco->error_message);
 
   /* go through each line */
@@ -1491,7 +1490,6 @@ int thermodynamics_annihilation_f_halos_interpolate(
                                                 ) {
 
   int last_index;
-
   class_call(array_interpolate_spline(preco->annihil_z,
                                       preco->annihil_f_halos_num_lines,
                                       preco->annihil_f_halos,
@@ -1605,13 +1603,15 @@ int thermodynamics_beyond_onthespot_energy_injection(
 
 
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
-  class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
-            preco->error_message,
-            preco->error_message);
+  f_halos = 1;
+  // class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
+  //           preco->error_message,
+  //           preco->error_message);
+  // fprintf(stdout,"here !!\n" );
 
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation_boost_factor*sigma_thermal/(preco->annihilation_m_DM*conversion)*f_halos;
   /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-  fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
+  // fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
 
   return _SUCCESS_;
 
@@ -1682,6 +1682,7 @@ int thermodynamics_energy_injection(
       // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
       //            error_message);
+      fprintf(stdout,"annihilation_variation %e \n",preco->annihilation_variation);
       class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                  error_message,
                  error_message);

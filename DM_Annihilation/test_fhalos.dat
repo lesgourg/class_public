@@ -1,0 +1,24 @@
+#Energy fractions from DM annihilation or decays, calculated in arXiv:1306.0563 by Galli et al.
+#format : first line must contain the number of lines
+# other lines must contain (xe, chi_heat, chi_lya, chi_ionH, chi_ionHe, chi_lowE (E < 10.2eV))
+# blank lines and lines starting with # neglected
+
+18
+0.000000 0.151800
+1 0.151880
+10 0.174825
+10 0.188520
+100 0.210027
+200 0.258912
+300 0.289871
+400 0.338316
+500 0.458621
+600 0.531628
+700 0.654816
+800 0.849031
+900 0.923644
+1000 0.975679
+1500 0.987026
+2000 0.995299
+5000 1.000000
+10000 1.000000
