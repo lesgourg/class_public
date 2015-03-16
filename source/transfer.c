@@ -2196,7 +2196,6 @@ int transfer_sources(
                 *sin((tau_rec-tau)*sqrt(pba->K))
                 /sin((tau0-tau)*sqrt(pba->K))
                 /sin((tau0-tau_rec)*sqrt(pba->K));
-              rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);
               break;
             case 0:
               rescaling = (tau_rec-tau)/(tau0-tau)/(tau0-tau_rec);

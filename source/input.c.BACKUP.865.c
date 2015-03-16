@@ -1169,9 +1169,9 @@ int input_read_parameters(
 
   /* energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
+<<<<<<< HEAD
+
   if (pth->annihilation > 0.) {
-  class_read_double("boost_factor",pth->annihilation_boost_factor);
-  class_read_double("m_DM",pth->annihilation_m_DM);
   class_read_double("decay",pth->decay);
   class_read_double("annihilation_variation",pth->annihilation_variation);
   class_read_double("annihilation_z",pth->annihilation_z);
@@ -1179,32 +1179,60 @@ int input_read_parameters(
   class_read_double("annihilation_zmin",pth->annihilation_zmin);
   class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
-  class_read_double("annihilation_boost_factor",pth->annihilation_boost_factor);
-  class_read_double("annihilation_m_DM",pth->annihilation_m_DM);
+=======
+>>>>>>> 2.4
 
-  class_call(parser_read_string(pfc,
-                                "on the spot",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
+  if (pth->annihilation > 0.) {
 
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pth->has_on_the_spot = _TRUE_;
-    }
-    else {
-      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        pth->has_on_the_spot = _FALSE_;
+<<<<<<< HEAD
+   if (flag1 == _TRUE_) {
+     if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+       pth->has_on_the_spot = _TRUE_;
+     }
+     else {
+       if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+         pth->has_on_the_spot = _FALSE_;
+       }
+       else {
+         class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+       }
+     }
+   }
+  }
+=======
+    class_read_double("annihilation_variation",pth->annihilation_variation);
+    class_read_double("annihilation_z",pth->annihilation_z);
+    class_read_double("annihilation_zmax",pth->annihilation_zmax);
+    class_read_double("annihilation_zmin",pth->annihilation_zmin);
+    class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
+    class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+
+    class_call(parser_read_string(pfc,
+                                  "on the spot",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        pth->has_on_the_spot = _TRUE_;
       }
       else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          pth->has_on_the_spot = _FALSE_;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+        }
       }
     }
   }
-  }
 
+  class_read_double("decay",pth->decay);
+
+>>>>>>> 2.4
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
   ppt->has_perturbations = _FALSE_;
@@ -2276,7 +2304,6 @@ int input_read_parameters(
 
   class_read_string("sBBN file",ppr->sBBN_file);
   class_read_string("annihilation coefficient file",ppr->annihil_coeff_file);
-  class_read_string("annihilation f_halos file",ppr->annihil_f_halos_file);
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
@@ -2928,8 +2955,6 @@ int input_default_precision ( struct precision * ppr ) {
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
   strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
-  sprintf(ppr->annihil_f_halos_file,__CLASSDIR__);
-  strcat(ppr->annihil_f_halos_file,"/DM_annihilation/f_z_withhalos_ee_1GeV.dat");
 
   /* for recombination */
 
