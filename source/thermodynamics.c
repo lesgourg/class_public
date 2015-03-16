@@ -175,7 +175,6 @@ int thermodynamics_at_z(
 
     /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
     if ((pth->reio_parametrization == reio_half_tanh) && (z < 2*pth->z_reio)) {
-
       class_call(array_interpolate_linear(
                                           pth->z_table,
                                           pth->tt_size,
@@ -1639,7 +1638,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
                 preco->error_message);
       // fprintf(stdout,"here !!\n" );
 
-      *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*f_halos;
+      *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*f_halos+rho_cdm_today*pow((1+z),3)*preco->decay;
       /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
       // fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
     }
