@@ -383,44 +383,68 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
     free(logfminus_Ly_hist[2]);
 
 }
+/* Old version, corrected by Vivian Poulin. Kept for comparaison */
+// double onthespot_injection_rate(REC_COSMOPARAMS *param,
+// 			     double z) {
+//
+//   double annihilation_at_z;
+//   double rho_cdm_today;
+//   double u_min;
+//   double erfc;
+//
+//   /*redshift-dependent annihilation parameter*/
+//
+//   if (z>param->annihilation_zmax) {
+//
+//     annihilation_at_z = param->annihilation*
+//       exp(-param->annihilation_variation*pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2));
+//   }
+//   else if (z>param->annihilation_zmin) {
+//
+//     annihilation_at_z = param->annihilation*
+//       exp(param->annihilation_variation*(-pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2)
+// 					 +pow(log((z+1.)/(param->annihilation_zmax+1.)),2)));
+//   }
+//   else {
+//
+//     annihilation_at_z = param->annihilation*
+//       exp(param->annihilation_variation*(-pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2)
+// 					 +pow(log((param->annihilation_zmin+1.)/(param->annihilation_zmax+1.)),2)));
+//   }
+//
+//   rho_cdm_today = param->omh2*1.44729366e-9; /* energy density in Kg/m^3 */
+//
+//   u_min = (1+z)/(1+param->annihilation_z_halo);
+//
+//   erfc = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
+//   // fprintf(stdout,"param->annihilation = %e\n",param->annihilation);
+//
+//   return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),3)*
+//     (pow((1.+z),3)*annihilation_at_z+param->annihilation_f_halo*erfc)
+//     +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
+//
+//   /* energy density rate in eV/cm^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
+//   /* note that the injection rate used by recfast, defined in therodynamics.c, is in J/m^3/s. Here we multiplied by 1/1.e6/1.60217653e-19 to convert to eV and cm. */
+//
+// }
+/**********************************************************************************************/
 
+/*************************New version, corrected by Vivian Poulin******************************/
 double onthespot_injection_rate(REC_COSMOPARAMS *param,
 			     double z) {
 
   double annihilation_at_z;
   double rho_cdm_today;
-  double u_min;
-  double erfc;
 
-  /*redshift-dependent annihilation parameter*/
-
-  if (z>param->annihilation_zmax) {
-
-    annihilation_at_z = param->annihilation*
-      exp(-param->annihilation_variation*pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2));
-  }
-  else if (z>param->annihilation_zmin) {
-
-    annihilation_at_z = param->annihilation*
-      exp(param->annihilation_variation*(-pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2)
-					 +pow(log((z+1.)/(param->annihilation_zmax+1.)),2)));
-  }
-  else {
-
-    annihilation_at_z = param->annihilation*
-      exp(param->annihilation_variation*(-pow(log((param->annihilation_z+1.)/(param->annihilation_zmax+1.)),2)
-					 +pow(log((param->annihilation_zmin+1.)/(param->annihilation_zmax+1.)),2)));
-  }
 
   rho_cdm_today = param->omh2*1.44729366e-9; /* energy density in Kg/m^3 */
 
-  u_min = (1+z)/(1+param->annihilation_z_halo);
-
-  erfc = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
   // fprintf(stdout,"param->annihilation = %e\n",param->annihilation);
-  return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),3)*
-    (pow((1.+z),3)*annihilation_at_z+param->annihilation_f_halo*erfc)
+
+  return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
+    param->annihilation
     +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
+
   /* energy density rate in eV/cm^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   /* note that the injection rate used by recfast, defined in therodynamics.c, is in J/m^3/s. Here we multiplied by 1/1.e6/1.60217653e-19 to convert to eV and cm. */
 
@@ -435,11 +459,15 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
   int last_index;
   ErrorMsg error_message;
   double energy_rate;
+  double zp,dz;
+  double integrand,first_integrand;
+  double factor;
   /*redshift-dependent annihilation parameter*/
 
 
 
   rho_cdm_today = param->omh2*1.44729366e-9; /* energy density in Kg/m^3 */
+  if (param->annihilation_f_halo > 0.){
   array_interpolate_spline(param->annihil_z,
                                       param->annihil_f_halos_num_lines,
                                       param->annihil_f_halos,
@@ -450,51 +478,78 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
                                       &(f_halos),
                                       1,
                                       error_message);
-
   energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*
-  param->annihilation_boost_factor*sigma_thermal/(param->annihilation_m_DM*conversion)*f_halos/1.e6/1.60217653e-19;
-  /* energy density rate in eV/cm^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-  // fprintf(stdout,"%e   %e   %e\n", z,f_halos,energy_rate);
+  param->annihilation*f_halos/1.e6/1.60217653e-19;
 
+  /* energy density rate in eV/cm^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
+  fprintf(stdout,"%e   %e   %e\n", z,f_halos,energy_rate);
+  }
+
+  else{
+
+        /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
+        factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
+
+        /* integral over z'(=zp) with step dz */
+        dz=1.;
+
+        /* first point in trapezoidal integral */
+        zp = z;
+        first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+        energy_rate = 0.5*dz*first_integrand;
+
+        /* other points in trapezoidal integral */
+        do {
+
+  	zp += dz;
+  	integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+  	energy_rate += dz*integrand;
+  	//moment += dz*integrand*(zp-z);
+
+        } while (integrand/first_integrand > 0.02);
+
+  }
   return energy_rate;
 
 }
 double energy_injection_rate(REC_COSMOPARAMS *param,
 					double z) {
 
-  double zp,dz;
-  double integrand,first_integrand;
-  double factor,result;
-
+double result;
+double energy_rate;
+double zp,dz;
+double integrand,first_integrand;
+double factor;
   if (param->annihilation > 0.) {
 
     if (param->has_on_the_spot == 0) {
 
-  //     /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
-  //     factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
-  //
-  //     /* integral over z'(=zp) with step dz */
-  //     dz=1.;
-  //
-  //     /* first point in trapezoidal integral */
-  //     zp = z;
-  //     first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-  //     result = 0.5*dz*first_integrand;
-  //
-  //     /* other points in trapezoidal integral */
-  //     do {
-  //
-	// zp += dz;
-	// integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-	// result += dz*integrand;
-	// //moment += dz*integrand*(zp-z);
-  //
-  //     } while (integrand/first_integrand > 0.02);
-  //
-  //     /* test lines for printing energy rate rescaled by (1=z)^6 in J/m^3/s w/o approximation */
-  //     /*                                                                                                                                                                                                                    fprintf(stdout,"%e  %e  %e\n",                                                                                                                                                                                     1.+z,                                                                                                                                                                                                              result/pow(1.+z,6)*1.602176487e-19*1.e6,                                                                                                                                                                           onthespot_injection_rate(param,z)/pow(1.+z,6)*1.602176487e-19*1.e6);                                                                                                                                            */
-      result = beyond_onthespot_injection_rate(param,z);
+              /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
+              factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
 
+              /* integral over z'(=zp) with step dz */
+              dz=1.;
+
+              /* first point in trapezoidal integral */
+              zp = z;
+              first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+              result = 0.5*dz*first_integrand;
+
+              /* other points in trapezoidal integral */
+              do {
+
+        	zp += dz;
+        	integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+        	result += dz*integrand;
+        	//moment += dz*integrand*(zp-z);
+
+              } while (integrand/first_integrand > 0.02);
+      // result = beyond_onthespot_injection_rate(param,z);
+      /* test lines for printing energy rate rescaled by (1=z)^6 in J/m^3/s w/o approximation */
+      /*  fprintf(stdout,"%e  %e  %e\n",
+      1.+z,result/pow(1.+z,6)*1.602176487e-19*1.e6,
+      onthespot_injection_rate(param,z)/pow(1.+z,6)*1.602176487e-19*1.e6);
+      */
     }
     else {
       result = onthespot_injection_rate(param,z);

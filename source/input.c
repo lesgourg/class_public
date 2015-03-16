@@ -1169,18 +1169,34 @@ int input_read_parameters(
 
   /* energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
-  if (pth->annihilation > 0.) {
   class_read_double("boost_factor",pth->annihilation_boost_factor);
   class_read_double("m_DM",pth->annihilation_m_DM);
+
+  if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
+      double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
+      double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
+      class_test(pth->annihilation_m_DM<=0.,errmsg,
+        "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
+      pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
+      fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
+  }
+  else if(pth->annihilation>0. && pth->annihilation_boost_factor >0.){
+    fprintf(stdout,"You gave both boost factor and annihilation parameter, the first one will be ignored. \n");
+  }
+
+  if (pth->annihilation > 0.) {
   class_read_double("decay",pth->decay);
   class_read_double("annihilation_variation",pth->annihilation_variation);
   class_read_double("annihilation_z",pth->annihilation_z);
   class_read_double("annihilation_zmax",pth->annihilation_zmax);
   class_read_double("annihilation_zmin",pth->annihilation_zmin);
   class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
+
+  class_test(pth->recombination != hyrec && pth->annihilation_f_halo > 0.,errmsg,
+  "Recfast cannot be used to compute effect of dark matter halos on reionization, because its parametrization goes outside is range of validity. Please restart in 'recombination = hyrec' mode.");
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
-  class_read_double("annihilation_boost_factor",pth->annihilation_boost_factor);
-  class_read_double("annihilation_m_DM",pth->annihilation_m_DM);
+
+
 
   class_call(parser_read_string(pfc,
                                 "on the spot",
@@ -1203,7 +1219,14 @@ int input_read_parameters(
       }
     }
   }
+
+  if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
+    fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
+    pth->has_on_the_spot = _FALSE_;
   }
+
+  }
+
 
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
@@ -2679,6 +2702,8 @@ int input_default_params(
   pth->binned_reio_step_sharpness = 0.3;
 
   pth->annihilation = 0.;
+  pth->annihilation_boost_factor = 0.;
+  pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;
@@ -2930,6 +2955,7 @@ int input_default_precision ( struct precision * ppr ) {
   strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
   sprintf(ppr->annihil_f_halos_file,__CLASSDIR__);
   strcat(ppr->annihil_f_halos_file,"/DM_annihilation/f_z_withhalos_ee_1GeV.dat");
+
 
   /* for recombination */
 

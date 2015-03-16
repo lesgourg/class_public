@@ -1536,7 +1536,58 @@ int thermodynamics_annihilation_f_halos_free(
  * @param error_message Output: error message
  * @return the error status
  */
+ /* Old version "thermodynamics_onthespot_energy_injection", corrected by Vivian Poulin. Kept for comparaison */
+// int thermodynamics_onthespot_energy_injection(
+//                                               struct precision * ppr,
+//                                               struct background * pba,
+//                                               struct recombination * preco,
+//                                               double z,
+//                                               double * energy_rate,
+//                                               ErrorMsg error_message
+//                                               ) {
+//
+//   double annihilation_at_z;
+//   double rho_cdm_today;
+//   double u_min;
+//   double erfc;
+//
+//   /*redshift-dependent annihilation parameter*/
+//
+//   if (z>preco->annihilation_zmax) {
+//
+//     annihilation_at_z = preco->annihilation*
+//       exp(-preco->annihilation_variation*pow(log((preco->annihilation_z+1.)/(preco->annihilation_zmax+1.)),2));
+//   }
+//   else if (z>preco->annihilation_zmin) {
+//
+//     annihilation_at_z = preco->annihilation*
+//       exp(preco->annihilation_variation*(-pow(log((preco->annihilation_z+1.)/(preco->annihilation_zmax+1.)),2)
+//                                          +pow(log((z+1.)/(preco->annihilation_zmax+1.)),2)));
+//   }
+//   else {
+//
+//     annihilation_at_z = preco->annihilation*
+//       exp(preco->annihilation_variation*(-pow(log((preco->annihilation_z+1.)/(preco->annihilation_zmax+1.)),2)
+//                                          +pow(log((preco->annihilation_zmin+1.)/(preco->annihilation_zmax+1.)),2)));
+//   }
+//
+//   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+//
+//   u_min = (1+z)/(1+preco->annihilation_z_halo);
+//
+//   erfc = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
+//
+//   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
+//     (pow((1.+z),3)*annihilation_at_z+preco->annihilation_f_halo*erfc)
+//     +rho_cdm_today*pow((1+z),3)*preco->decay;
+//   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
+//
+//   return _SUCCESS_;
+//
+// }
+/**********************************************************************************************/
 
+/*************************New version, corrected by Vivian Poulin******************************/
 int thermodynamics_onthespot_energy_injection(
                                               struct precision * ppr,
                                               struct background * pba,
@@ -1548,37 +1599,9 @@ int thermodynamics_onthespot_energy_injection(
 
   double annihilation_at_z;
   double rho_cdm_today;
-  double u_min;
-  double erfc;
-
-  /*redshift-dependent annihilation parameter*/
-
-  if (z>preco->annihilation_zmax) {
-
-    annihilation_at_z = preco->annihilation*
-      exp(-preco->annihilation_variation*pow(log((preco->annihilation_z+1.)/(preco->annihilation_zmax+1.)),2));
-  }
-  else if (z>preco->annihilation_zmin) {
-
-    annihilation_at_z = preco->annihilation*
-      exp(preco->annihilation_variation*(-pow(log((preco->annihilation_z+1.)/(preco->annihilation_zmax+1.)),2)
-                                         +pow(log((z+1.)/(preco->annihilation_zmax+1.)),2)));
-  }
-  else {
-
-    annihilation_at_z = preco->annihilation*
-      exp(preco->annihilation_variation*(-pow(log((preco->annihilation_z+1.)/(preco->annihilation_zmax+1.)),2)
-                                         +pow(log((preco->annihilation_zmin+1.)/(preco->annihilation_zmax+1.)),2)));
-  }
-
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
-
-  u_min = (1+z)/(1+preco->annihilation_z_halo);
-
-  erfc = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
 
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
-    (pow((1.+z),3)*annihilation_at_z+preco->annihilation_f_halo*erfc)
+    (pow((1.+z),3)*preco->annihilation)
     +rho_cdm_today*pow((1+z),3)*preco->decay;
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
 
@@ -1603,13 +1626,12 @@ int thermodynamics_beyond_onthespot_energy_injection(
 
 
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
-  f_halos = 1;
-  // class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
-  //           preco->error_message,
-  //           preco->error_message);
+  class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
+            preco->error_message,
+            preco->error_message);
   // fprintf(stdout,"here !!\n" );
 
-  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation_boost_factor*sigma_thermal/(preco->annihilation_m_DM*conversion)*f_halos;
+  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*f_halos;
   /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
   // fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
 
@@ -1648,7 +1670,8 @@ int thermodynamics_energy_injection(
 
   if (preco->annihilation > 0) {
     if (preco->has_on_the_spot == _FALSE_) {
-      //
+      /**************Old version, corrected by Vivian Poulin. Kept for comparaison*************/
+
       // /* number of hydrogen nuclei today in m**-3 */
       // nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
       //
@@ -1682,7 +1705,7 @@ int thermodynamics_energy_injection(
       // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
       //            error_message);
-      fprintf(stdout,"annihilation_variation %e \n",preco->annihilation_variation);
+      /***********************************************************************************************************************/
       class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                  error_message,
                  error_message);
@@ -2590,11 +2613,8 @@ int thermodynamics_recombination_with_hyrec(
   double chi_ionH;
   double chi_ionHe;
   double chi_lowE;
-  double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
-  double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
   int last_index_back;
-  if(pth->annihilation==0 && pth->annihilation_boost_factor !=0)pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
-  fprintf(stdout,"your parameter annihilation = %e \n", pth->annihilation);
+
   /** - Fill hyrec parameter structure */
 
   param.T0 = pba->T_cmb;
@@ -2613,8 +2633,6 @@ int thermodynamics_recombination_with_hyrec(
   param.dlna = 8.49e-5;
   param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
   param.annihilation = pth->annihilation;
-  param.annihilation_boost_factor = pth->annihilation_boost_factor;
-  param.annihilation_m_DM = pth->annihilation_m_DM;
   param.has_on_the_spot = pth->has_on_the_spot;
   param.decay = pth->decay;
   param.annihilation_variation = pth->annihilation_variation;
@@ -2756,8 +2774,6 @@ int thermodynamics_recombination_with_hyrec(
   preco->decay = pth->decay;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
-  preco->annihilation_boost_factor = pth->annihilation_boost_factor;
-  preco->annihilation_m_DM = pth->annihilation_m_DM;
   pth->n_e=preco->Nnow;
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
@@ -2918,10 +2934,7 @@ int thermodynamics_recombination_with_recfast(
   double z,mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He;
   double zstart,zend,rhs;
   int i,Nz;
-  double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
-  double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
-  if(pth->annihilation==0 && pth->annihilation_boost_factor !=0)pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
-  fprintf(stdout,"your parameter annihilation = %e \n", pth->annihilation);
+
   /* introduced by JL for smoothing the various steps */
   double x0_previous,x0_new,s,weight;
 
@@ -2994,8 +3007,7 @@ int thermodynamics_recombination_with_recfast(
   preco->decay = pth->decay;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
-  preco->annihilation_boost_factor = pth->annihilation_boost_factor;
-  preco->annihilation_m_DM = pth->annihilation_m_DM;
+
 
   /* quantities related to constants defined in thermodynamics.h */
   //n = preco->Nnow * pow((1.+z),3);
