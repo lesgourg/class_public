@@ -544,7 +544,7 @@ double factor;
         	//moment += dz*integrand*(zp-z);
 
               } while (integrand/first_integrand > 0.02);
-      // result = beyond_onthespot_injection_rate(param,z);
+      result = beyond_onthespot_injection_rate(param,z);
       /* test lines for printing energy rate rescaled by (1=z)^6 in J/m^3/s w/o approximation */
       /*  fprintf(stdout,"%e  %e  %e\n",
       1.+z,result/pow(1.+z,6)*1.602176487e-19*1.e6,

@@ -1621,19 +1621,59 @@ int thermodynamics_beyond_onthespot_energy_injection(
   double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
   double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
   double f_halos;
+
+  double zp,dz;
+  double integrand,first_integrand;
+  double factor,result;
+  double nH0;
+  double onthespot;
+
   /*redshift-dependent annihilation parameter*/
 
 
 
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
-  class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
-            preco->error_message,
-            preco->error_message);
-  // fprintf(stdout,"here !!\n" );
+      rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+      if(preco->annihilation_f_halo>0.){
+      class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
+                preco->error_message,
+                preco->error_message);
+      // fprintf(stdout,"here !!\n" );
 
-  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*f_halos;
-  /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-  // fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
+      *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*f_halos;
+      /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
+      // fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
+    }
+    else{
+      /* number of hydrogen nuclei today in m**-3 */
+      nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+
+      /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
+      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+
+      /* integral over z'(=zp) with step dz */
+      dz=1.;
+
+      /* first point in trapezoidal integral */
+      zp = z;
+      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+                 error_message,
+                 error_message);
+      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+      result = 0.5*dz*first_integrand;
+
+      /* other points in trapezoidal integral */
+      do {
+
+        zp += dz;
+        class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+                   error_message,
+                   error_message);
+        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+        result += dz*integrand;
+
+      } while (integrand/first_integrand > 0.02);
+    }
+
 
   return _SUCCESS_;
 
