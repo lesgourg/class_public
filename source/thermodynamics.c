@@ -1839,14 +1839,19 @@ int thermodynamics_reionization_function(
       }
 
       /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
-
-      if (pth->reio_parametrization == reio_camb) {
+      /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
         argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
           /preio->reionization_parameters[preio->index_helium_fullreio_width];
         /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
         *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
           * (tanh(argument)+1.)/2.;
-      }
+      // if (pth->reio_parametrization == reio_camb) {
+      //   argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
+      //     /preio->reionization_parameters[preio->index_helium_fullreio_width];
+      //   /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+      //   *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
+      //     * (tanh(argument)+1.)/2.;
+      // }
     }
 
     return _SUCCESS_;
@@ -1978,7 +1983,10 @@ int thermodynamics_reionization(
       preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
     }
     if (pth->reio_parametrization == reio_half_tanh) {
-      preio->reionization_parameters[preio->index_reio_xe_after] = 1.; /* xe_after_reio: neglect He ionization */
+      /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
+      preio->reionization_parameters[preio->index_reio_xe_after] = 1.
+      // ; /* xe_after_reio: neglect He ionization */
+      + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized H */
       //+ 2*pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + fully ionized He */
     }
     preio->reionization_parameters[preio->index_reio_exponent] = pth->reionization_exponent; /* reio_exponent */
