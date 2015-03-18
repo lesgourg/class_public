@@ -1629,7 +1629,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
 
   /*redshift-dependent annihilation parameter*/
 
-
+  // fprintf(stdout,"here\n");
 
       rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
       if(preco->annihilation_f_halo>0.){
@@ -1638,9 +1638,9 @@ int thermodynamics_beyond_onthespot_energy_injection(
                 preco->error_message);
       // fprintf(stdout,"here !!\n" );
 
-      *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*f_halos+rho_cdm_today*pow((1+z),3)*preco->decay;
+      *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_halos+rho_cdm_today*pow((1+z),3)*preco->decay;
       /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-      // fprintf(stdout,"%e   %e   %e\n", z,f_halos,*energy_rate);
+      fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_halos,*energy_rate);
     }
     else{
       /* number of hydrogen nuclei today in m**-3 */
