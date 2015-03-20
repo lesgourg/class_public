@@ -1169,28 +1169,40 @@ int input_read_parameters(
 
   /* energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
+
+  if (pth->annihilation > 0.) {
+
+    class_read_double("annihilation_variation",pth->annihilation_variation);
+    class_read_double("annihilation_z",pth->annihilation_z);
+    class_read_double("annihilation_zmax",pth->annihilation_zmax);
+    class_read_double("annihilation_zmin",pth->annihilation_zmin);
+    class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
+    class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+
+    class_call(parser_read_string(pfc,
+                                  "on the spot",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        pth->has_on_the_spot = _TRUE_;
+      }
+      else {
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          pth->has_on_the_spot = _FALSE_;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+        }
+      }
+    }
+  }
+
   class_read_double("decay",pth->decay);
-  class_read_double("annihilation_variation",pth->annihilation_variation);
-  class_read_double("annihilation_z",pth->annihilation_z);
-  class_read_double("annihilation_zmax",pth->annihilation_zmax);
-  class_read_double("annihilation_zmin",pth->annihilation_zmin);
-  class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
-  class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
-
-  class_call(parser_read_string(pfc,
-                                "on the spot",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-    pth->has_on_the_spot = _TRUE_;
-  }
-  else {
-    pth->has_on_the_spot = _FALSE_;
-  }
 
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
@@ -3081,7 +3093,12 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->transfer_neglect_late_source = 400.;
 
   ppr->l_switch_limber=10.;
+  // For density Cl, we recommend not to use the Limber approximation
+  // at all, and hence to put here a very large number (e.g. 10000); but
+  // if you have wide and smooth selection functions you may wish to
+  // use it; then 30 might be OK
   ppr->l_switch_limber_for_cl_density_over_z=30.;
+
 
   ppr->selection_cut_at_sigma=5.;
   ppr->selection_sampling=50;

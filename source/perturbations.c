@@ -2284,6 +2284,8 @@ int perturb_solve(
   ppaw.k = k;
   ppaw.ppw = ppw;
   ppaw.ppw->inter_mode = pba->inter_closeby;
+  ppaw.ppw->last_index_back = 0;
+  ppaw.ppw->last_index_thermo = 0;
 
   /** - check whether we need to print perturbations to a file for this wavenumber */
 
@@ -5122,8 +5124,16 @@ int perturb_einstein(
        really want gauge-dependent results) */
 
     if (ppt->has_source_delta_m == _TRUE_) {
-      //ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
-      ppw->delta_m -= 2.*ppw->pvecback[pba->index_bg_H_prime]/ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+      ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;
+      // note: until 2.4.3 there was a typo, the factor was (-2 H'/H) instead
+      // of (3 aH). There is the same typo in the CLASSgal paper
+      // 1307.1459v1,v2,v3. It came from a confusion between (1+w_total)
+      // and (1+w_matter)=1 [the latter is the relevant one here].
+      //
+      // note2: at this point this gauge-invariant variable is only
+      // valid if all matter components are pressureless and
+      // stable. This relation will be generalised soon to the case
+      // of decaying dark matter.
     }
 
     if (ppt->has_source_theta_m == _TRUE_) {

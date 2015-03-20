@@ -1666,7 +1666,7 @@ int spectra_indices(
     if ((ppt->has_cl_number_count == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_dl = _TRUE_;
       psp->index_ct_dl=index_ct;
-      index_ct+=(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2;
+      index_ct += psp->d_size*psp->d_size - (psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag);
     }
     else {
       psp->has_dl = _FALSE_;
@@ -1729,7 +1729,7 @@ int spectra_indices(
 
       if (psp->has_dl == _TRUE_)
         for (index_ct=psp->index_ct_dl;
-             index_ct<psp->index_ct_dl+(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2;
+             index_ct < psp->index_ct_dl+(psp->d_size*psp->d_size - (psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag));
              index_ct++)
           psp->l_max_ct[ppt->index_md_scalars][index_ct] = ppt->l_lss_max;
 
@@ -2304,11 +2304,10 @@ int spectra_compute_cl(
     if (_scalars_ && (psp->has_dl == _TRUE_)) {
       index_ct=0;
       for (index_d1=0; index_d1<psp->d_size; index_d1++) {
-        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
+        for (index_d2=MAX(index_d1-psp->non_diag,0); index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
           cl_integrand[index_q*cl_integrand_num_columns+1+psp->index_ct_dl+index_ct]=
             primordial_pk[index_ic1_ic2]
-            * 0.5*(transfer_ic1_nc[index_d1] * transfer_ic2[ptr->index_tt_lensing+index_d2] +
-                   transfer_ic1[ptr->index_tt_lensing+index_d1] * transfer_ic2_nc[index_d2])
+            * transfer_ic1_nc[index_d1] * transfer_ic2[ptr->index_tt_lensing+index_d2]
             * factor;
           index_ct++;
         }

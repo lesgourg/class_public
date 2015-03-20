@@ -1401,7 +1401,7 @@ int numjac(
 	       use the column computed with this increment.
 	       This depends on wether we are in sparse mode or not: */
 	    if ((jac->use_sparse)&&(jac->repeated_pattern >= jac->trust_sparse)){
-	      for(i=Ap[j-1];i<Ap[j];i++) jac->xjac[i]=nj_ws->tmp[Ai[i]];
+	      for(i=Ap[j-1];i<Ap[j];i++) jac->xjac[i]=nj_ws->tmp[Ai[i]+1];
 	    }
 	    else{
 	      for(i=1;i<=neq;i++) dFdy[i][j]=nj_ws->tmp[i];

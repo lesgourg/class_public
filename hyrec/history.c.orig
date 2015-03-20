@@ -100,6 +100,10 @@ Matter temperature -- 1st order steady state, from Hirata 2008
 
 double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate) {
 
+<<<<<<< HEAD
+  return Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
+    +2./3./kBoltz*(1.+2.*xe)/(3.*nH)*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
+=======
   double chi_heat;
 
   //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
@@ -108,6 +112,7 @@ double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double en
 
   return Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
     +2./3./kBoltz*chi_heat/nH*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
+>>>>>>> 129d024b0b2c8a97075096c61738869f8603afc4
 
   /* Coefficient = 8 sigma_T a_r / (3 m_e c) */
 }
@@ -118,12 +123,15 @@ Matter temperature evolution derivative
 
 double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe, double nH, double energy_rate) {
 
+<<<<<<< HEAD
+=======
   double chi_heat;
 
   //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
   chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
   if (chi_heat > 1.) chi_heat = 1.;
 
+>>>>>>> 129d024b0b2c8a97075096c61738869f8603afc4
   return -2.*Tm + 4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+fHe)*(Tr-Tm)/H
     +2./3./kBoltz*chi_heat/nH*energy_rate/(1.+xe+fHe)/H;
 }
@@ -263,10 +271,17 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
    }
 
    /****** Segment where we follow the helium recombination evolution, Tm fixed to steady state *******/
+<<<<<<< HEAD
 
    z_prev2 = (1.+param->zstart)*exp(-param->dlna*(iz-3)) - 1.;
    dxedlna_prev2 = (xe_output[iz-2] - xe_output[iz-4])/2./param->dlna;
 
+=======
+
+   z_prev2 = (1.+param->zstart)*exp(-param->dlna*(iz-3)) - 1.;
+   dxedlna_prev2 = (xe_output[iz-2] - xe_output[iz-4])/2./param->dlna;
+
+>>>>>>> 129d024b0b2c8a97075096c61738869f8603afc4
    z_prev = (1.+param->zstart)*exp(-param->dlna*(iz-2)) - 1.;
    dxedlna_prev = (xe_output[iz-1] - xe_output[iz-3])/2./param->dlna;
 
@@ -437,8 +452,12 @@ double energy_injection_rate(REC_COSMOPARAMS *param,
       } while (integrand/first_integrand > 0.02);
 
       /* test lines for printing energy rate rescaled by (1=z)^6 in J/m^3/s w/o approximation */
-      /*                                                                                                                                                                                                                    fprintf(stdout,"%e  %e  %e\n",                                                                                                                                                                                     1.+z,                                                                                                                                                                                                              result/pow(1.+z,6)*1.602176487e-19*1.e6,                                                                                                                                                                           onthespot_injection_rate(param,z)/pow(1.+z,6)*1.602176487e-19*1.e6);                                                                                                                                            */
-
+      /*
+      fprintf(stdout,"%e  %e  %e\n",
+      1.+z,
+      result/pow(1.+z,6)*1.602176487e-19*1.e6,
+      onthespot_injection_rate(param,z)/pow(1.+z,6)*1.602176487e-19*1.e6);
+      */
     }
     else {
       result = onthespot_injection_rate(param,z);
