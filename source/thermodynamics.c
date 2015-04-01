@@ -1798,17 +1798,32 @@ int thermodynamics_reionization_function(
   /** - define local variables */
   double argument;
   int i;
-
+  double x_tmp;
   /** - implementation of ionization function similar to the one in CAMB */
-
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
 
     /** -> case z > z_reio_start */
-
-    if (z > preio->reionization_parameters[preio->index_reio_start]) {
-
+    if(z > preio->reionization_parameters[preio->index_reio_start]) {
+      // fprintf(stdout,"z start = %e\n",preio->reionization_parameters[preio->index_reio_start]);
       *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+      if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)){
+        /** Added by Vivian Poulin, to avoid having a too small tau_reio **/
+      argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+                      preio->reionization_parameters[preio->index_reio_exponent])
+                  - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
+        /(preio->reionization_parameters[preio->index_reio_exponent]
+          /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+          *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+               (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
+        /preio->reionization_parameters[preio->index_reio_width];
 
+        x_tmp = (preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])
+               *(tanh(argument)+1.)/2.
+               +preio->reionization_parameters[preio->index_reio_xe_before];
+
+        if(*xe<x_tmp)*xe=x_tmp;
+      }
     }
 
     else {
@@ -1825,18 +1840,29 @@ int thermodynamics_reionization_function(
         /preio->reionization_parameters[preio->index_reio_width];
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
 
-      if (pth->reio_parametrization == reio_camb) {
-        *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
-               -preio->reionization_parameters[preio->index_reio_xe_before])
-          *(tanh(argument)+1.)/2.
-          +preio->reionization_parameters[preio->index_reio_xe_before];
-      }
-      else {
-        *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
-               -preio->reionization_parameters[preio->index_reio_xe_before])
-          *tanh(argument)
-          +preio->reionization_parameters[preio->index_reio_xe_before];
-      }
+
+
+      /** Old version, when halos are switch on, a half_tanh is used to model effect of stars **/
+      // if (pth->reio_parametrization == reio_camb) {
+      //   *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+      //          -preio->reionization_parameters[preio->index_reio_xe_before])
+      //     *(tanh(argument)+1.)/2.
+      //     +preio->reionization_parameters[preio->index_reio_xe_before];
+      // }
+      // else {
+      //   *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+      //          -preio->reionization_parameters[preio->index_reio_xe_before])
+      //     *tanh(argument)
+      //     +preio->reionization_parameters[preio->index_reio_xe_before];
+      // }
+
+      /** New version by Vivian Poulin, to avoid having a too small tau_reio **/
+      *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+             -preio->reionization_parameters[preio->index_reio_xe_before])
+        *(tanh(argument)+1.)/2.
+        +preio->reionization_parameters[preio->index_reio_xe_before];
+
+
 
       /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
       /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
@@ -1857,7 +1883,6 @@ int thermodynamics_reionization_function(
     return _SUCCESS_;
 
   }
-
   /** - implementation of binned ionization function similar to astro-ph/0606552 */
 
   if (pth->reio_parametrization == reio_bins_tanh) {
