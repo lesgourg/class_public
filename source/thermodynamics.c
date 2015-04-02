@@ -1861,7 +1861,9 @@ int thermodynamics_reionization_function(
              -preio->reionization_parameters[preio->index_reio_xe_before])
         *(tanh(argument)+1.)/2.
         +preio->reionization_parameters[preio->index_reio_xe_before];
-
+        fprintf(stdout,"tanh = %e\n",(preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])
+          *(tanh(argument)+1.)/2.);
 
 
       /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
@@ -2326,7 +2328,7 @@ int thermodynamics_reionization_sample(
   double chi_ionH;
   double chi_ionHe;
   double chi_lowE;
-
+  double argument;
   int last_index_back;
   double relative_variation;
 
@@ -2563,12 +2565,26 @@ int thermodynamics_reionization_sample(
       -2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
       /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
-
     /** - increment baryon temperature */
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
 
+
+//       argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+//                       preio->reionization_parameters[preio->index_reio_exponent])
+//                   - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
+//         /(preio->reionization_parameters[preio->index_reio_exponent]
+//           /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+//           *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+//                (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
+//         /preio->reionization_parameters[preio->index_reio_width];
+//       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+//
+//   if(z< preio->reionization_parameters[preio->index_reio_start])
+//   preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (preio->reionization_parameters[preio->index_reio_xe_after]
+//          -preio->reionization_parameters[preio->index_reio_xe_before])
+// *(tanh(argument)+1.)/2. + preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
     /** - get baryon sound speed */
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] = _k_B_/ ( _c_ * _c_ * mu)
