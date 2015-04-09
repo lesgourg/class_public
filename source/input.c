@@ -1226,7 +1226,29 @@ int input_read_parameters(
   }
 
   }
+  class_call(parser_read_string(pfc,
+                                "Increase T from stars",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
 
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pth->increase_T_from_stars = _TRUE_;
+      // fprintf(stdout,"i'm here !\n");
+
+    }
+    else {
+      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        pth->increase_T_from_stars = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'Increase T from stars'",string1);
+      }
+    }
+  }
 
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
@@ -2712,7 +2734,7 @@ int input_default_params(
   pth->annihilation_f_halo = 0.;
   pth->annihilation_z_halo = 30.;
   pth->has_on_the_spot = _TRUE_;
-
+  pth->increase_T_from_stars = _FALSE_;
   pth->compute_cb2_derivatives=_FALSE_;
 
   /** - perturbation structure */

@@ -2569,22 +2569,22 @@ int thermodynamics_reionization_sample(
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
-
-
-//       argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-//                       preio->reionization_parameters[preio->index_reio_exponent])
-//                   - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
-//         /(preio->reionization_parameters[preio->index_reio_exponent]
-//           /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-//           *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-//                (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
-//         /preio->reionization_parameters[preio->index_reio_width];
-//       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-//
-//   if(z< preio->reionization_parameters[preio->index_reio_start])
-//   preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (preio->reionization_parameters[preio->index_reio_xe_after]
-//          -preio->reionization_parameters[preio->index_reio_xe_before])
-// *(tanh(argument)+1.)/2. + preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
+    /** Modified by Vivian Poulin to take into account increase of T from star formation. Use the same tanh as for impact on xe but renormalized to fit data.**/
+ if(pth->increase_T_from_stars==_TRUE_){
+      argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+                      preio->reionization_parameters[preio->index_reio_exponent])
+                  - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
+        /(preio->reionization_parameters[preio->index_reio_exponent]
+          /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+          *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+               (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
+        /preio->reionization_parameters[preio->index_reio_width];
+      /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+        if(z< preio->reionization_parameters[preio->index_reio_start])
+        preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])
+      *(tanh(argument)+1.)/2.*250 + preio->reionization_table[i*preio->re_size+preio->index_re_Tb]; //The factor 250 is a normalization chosen to fit data.
+      }
     /** - get baryon sound speed */
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] = _k_B_/ ( _c_ * _c_ * mu)
