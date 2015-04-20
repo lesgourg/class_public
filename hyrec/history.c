@@ -482,7 +482,7 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
   param->annihilation*f_halos/1.e6/1.60217653e-19;
 
   /* energy density rate in eV/cm^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-  fprintf(stdout,"%e   %e   %e\n", z,f_halos,energy_rate);
+  // fprintf(stdout,"%e   %e   %e\n", z,f_halos,energy_rate);
   }
 
   else{

@@ -25,7 +25,8 @@ enum reionization_parametrization {
   reio_none, /**< no reionization */
   reio_camb,  /**< reionization parameterized like in CAMB */
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
-  reio_half_tanh  /**< half a tanh, intead of the full tanh */
+  reio_half_tanh,  /**< half a tanh, intead of the full tanh */
+  reio_stars_and_halos /**< To be used when computing effect of stars and DM halos on the reionisation history */
 };
 
 /**
@@ -568,8 +569,10 @@ extern "C" {
 
   int thermodynamics_reionization_function(
 					   double z,
+             int i,
 					   struct thermo * pth,
 					   struct reionization * preio,
+             struct recombination * preco,
 					   double * xe
 					   );
 

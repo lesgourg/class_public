@@ -174,7 +174,7 @@ int thermodynamics_at_z(
   else {
 
     /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
-    if ((pth->reio_parametrization == reio_half_tanh) && (z < 2*pth->z_reio)) {
+    if ((pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos) && (z < 2*pth->z_reio)) {
       class_call(array_interpolate_linear(
                                           pth->z_table,
                                           pth->tt_size,
@@ -720,7 +720,7 @@ int thermodynamics_init(
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
-    if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
+    if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
       if (pth->reio_z_or_tau==reio_tau)
         printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
@@ -873,7 +873,7 @@ int thermodynamics_indices(
   index++;
 
   /* case where x_e(z) taken like in CAMB (other cases can be added) */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
 
     preio->index_reio_redshift = index;
     index++;
@@ -1640,7 +1640,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
 
       *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_halos+rho_cdm_today*pow((1+z),3)*preco->decay;
       /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-      fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_halos,*energy_rate);
+      // fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_halos,*energy_rate);
     }
     else{
       /* number of hydrogen nuclei today in m**-3 */
@@ -1788,8 +1788,10 @@ int thermodynamics_energy_injection(
 
 int thermodynamics_reionization_function(
                                          double z,
+                                         int i,
                                          struct thermo * pth,
                                          struct reionization * preio,
+                                         struct recombination * preco,
                                          double * xe
                                          ) {
 
@@ -1797,38 +1799,18 @@ int thermodynamics_reionization_function(
 
   /** - define local variables */
   double argument;
-  int i;
   double x_tmp;
   /** - implementation of ionization function similar to the one in CAMB */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
-
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
     /** -> case z > z_reio_start */
     if(z > preio->reionization_parameters[preio->index_reio_start]) {
-      // fprintf(stdout,"z start = %e\n",preio->reionization_parameters[preio->index_reio_start]);
       *xe = preio->reionization_parameters[preio->index_reio_xe_before];
-      if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)){
-        /** Added by Vivian Poulin, to avoid having a too small tau_reio **/
-      argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-                      preio->reionization_parameters[preio->index_reio_exponent])
-                  - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
-        /(preio->reionization_parameters[preio->index_reio_exponent]
-          /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-          *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-               (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
-        /preio->reionization_parameters[preio->index_reio_width];
-
-        x_tmp = (preio->reionization_parameters[preio->index_reio_xe_after]
-               -preio->reionization_parameters[preio->index_reio_xe_before])
-               *(tanh(argument)+1.)/2.
-               +preio->reionization_parameters[preio->index_reio_xe_before];
-
-        if(*xe<x_tmp)*xe=x_tmp;
-      }
     }
 
     else {
 
       /** -> case z < z_reio_start: hydrogen contribution (tanh of complicated argument) */
+
 
       argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
                       preio->reionization_parameters[preio->index_reio_exponent])
@@ -1842,37 +1824,26 @@ int thermodynamics_reionization_function(
 
 
 
-      /** Old version, when halos are switch on, a half_tanh is used to model effect of stars **/
-      // if (pth->reio_parametrization == reio_camb) {
-      //   *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
-      //          -preio->reionization_parameters[preio->index_reio_xe_before])
-      //     *(tanh(argument)+1.)/2.
-      //     +preio->reionization_parameters[preio->index_reio_xe_before];
-      // }
-      // else {
-      //   *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
-      //          -preio->reionization_parameters[preio->index_reio_xe_before])
-      //     *tanh(argument)
-      //     +preio->reionization_parameters[preio->index_reio_xe_before];
-      // }
-
-      /** New version by Vivian Poulin, to avoid having a too small tau_reio **/
-      *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
-             -preio->reionization_parameters[preio->index_reio_xe_before])
-        *(tanh(argument)+1.)/2.
-        +preio->reionization_parameters[preio->index_reio_xe_before];
-        fprintf(stdout,"tanh = %e\n",(preio->reionization_parameters[preio->index_reio_xe_after]
+      if (pth->reio_parametrization == reio_camb|| (pth->reio_parametrization == reio_stars_and_halos)) {
+        *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])
-          *(tanh(argument)+1.)/2.);
+          *(tanh(argument)+1.)/2.
+          +preio->reionization_parameters[preio->index_reio_xe_before];
+      }
+      else {
+        *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])
+          *tanh(argument)
+          +preio->reionization_parameters[preio->index_reio_xe_before];
+      }
 
-
-      /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
-      /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
-        argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
-          /preio->reionization_parameters[preio->index_helium_fullreio_width];
-        /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-        *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
-          * (tanh(argument)+1.)/2.;
+        /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
+        /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
+          argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
+            /preio->reionization_parameters[preio->index_helium_fullreio_width];
+          /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+          *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
+            * (tanh(argument)+1.)/2.;
       // if (pth->reio_parametrization == reio_camb) {
       //   argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
       //     /preio->reionization_parameters[preio->index_helium_fullreio_width];
@@ -2002,14 +1973,14 @@ int thermodynamics_reionization(
 
   /** (a) if reionization implemented like in CAMB */
 
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) || (pth->reio_parametrization == reio_stars_and_halos)) {
 
     /** - set values of these parameters, excepted those depending on the reionization redshift */
 
     if (pth->reio_parametrization == reio_camb) {
       preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
     }
-    if (pth->reio_parametrization == reio_half_tanh) {
+    if (pth->reio_parametrization == reio_half_tanh || (pth->reio_parametrization == reio_stars_and_halos)) {
       /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
       preio->reionization_parameters[preio->index_reio_xe_after] = 1.
       // ; /* xe_after_reio: neglect He ionization */
@@ -2043,7 +2014,7 @@ int thermodynamics_reionization(
 
       /* infer starting redshift for hydrogen */
 
-      if (pth->reio_parametrization == reio_camb) {
+      if (pth->reio_parametrization == reio_camb || pth->reio_parametrization == reio_half_tanh || (pth->reio_parametrization == reio_stars_and_halos)) {
 
         preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
 
@@ -2312,12 +2283,12 @@ int thermodynamics_reionization_sample(
   /* current vector of values related to reionization */
   double * reio_vector;
   /* running index inside thermodynamics table */
-  int i;
+  int i,j;
   int number_of_redshifts;
   /* values of z, dz, X_e */
   double dz,dz_max;
   double z,z_next;
-  double xe,xe_next;
+  double xe,xe_next,x_tmp;
   double dkappadz,dkappadz_next;
   double Tb,Yp,dTdz,opacity,mu;
   double dkappadtau,dkappadtau_next;
@@ -2352,18 +2323,18 @@ int thermodynamics_reionization_sample(
                pth->error_message,
                "reionization_z_start_max = %e > largest redshift in thermodynamics table",ppr->reionization_z_start_max);
   }
-
+  j=i;
   /** - get redshift */
   z=preco->recombination_table[i*preco->re_size+preco->index_re_z];
   reio_vector[preio->index_re_z]=z;
   preio->index_reco_when_reio_start=i;
-
   /** - get \f$ X_e \f$ */
-  class_call(thermodynamics_reionization_function(z,pth,preio,&xe),
+  class_call(thermodynamics_reionization_function(z,i,pth,preio,preco,&xe),
              pth->error_message,
              pth->error_message);
 
   reio_vector[preio->index_re_xe] = xe;
+  printf("xe = %e at z = %e\n",xe,z);
 
   /** - get \f$ d kappa / d z = (d kappa / d tau) * (d tau / d z) = - (d kappa / d tau) / H \f$ */
 
@@ -2420,7 +2391,7 @@ int thermodynamics_reionization_sample(
   dz = dz_max;
 
   while (z > 0.) {
-
+    // printf("dz %e \n",dz);
     class_test(dz < ppr->smallest_allowed_variation,
                pth->error_message,
                "stuck in the loop for reionisation sampling, as if you were trying to impose a discontinuous evolution for xe(z)");
@@ -2428,11 +2399,17 @@ int thermodynamics_reionization_sample(
     /* - try next step */
     z_next=z-dz;
     if (z_next < 0.) z_next=0.;
-
-    class_call(thermodynamics_reionization_function(z_next,pth,preio,&xe_next),
+    if(z<preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z])j--;
+    // printf("j = %d\n",j);
+    class_call(thermodynamics_reionization_function(z_next,j,pth,preio,preco,&xe_next),
                pth->error_message,
                pth->error_message);
 
+    if(reio_stars_and_halos){x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
+      -preco->recombination_table[(j)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j)*preco->re_size+preco->index_re_z])+
+      preco->recombination_table[j*preco->re_size+preco->index_re_xe]  ;
+    xe_next=MAX(xe_next,x_tmp);
+    }
     class_call(background_tau_of_z(pba,
                                    z_next,
                                    &tau),
@@ -2462,15 +2439,15 @@ int thermodynamics_reionization_sample(
 
     relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
       fabs((dkappadtau_next-dkappadtau)/dkappadtau);
-
+      // printf("variation = %e, autorise = %e\n",relative_variation,ppr->reionization_sampling);
     if (relative_variation < ppr->reionization_sampling) {
       /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
+      printf("im here\n");
 
       z=z_next;
       xe=xe_next;
       dkappadz=dkappadz_next;
       dkappadtau= dkappadtau_next;
-
       class_test((dkappadz == 0.) || (dkappadtau == 0.),
                  pth->error_message,
                  "dkappadz=%e, dkappadtau=%e, stop to avoid division by zero",dkappadz,dkappadtau);

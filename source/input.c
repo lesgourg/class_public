@@ -1126,14 +1126,17 @@ int input_read_parameters(
       pth->reio_parametrization=reio_half_tanh;
       flag2=_TRUE_;
     }
-
+    if (strcmp(string1,"reio_stars_and_halos") == 0) {
+      pth->reio_parametrization=reio_stars_and_halos;
+      flag2=_TRUE_;
+    }
     class_test(flag2==_FALSE_,
                errmsg,
                "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', ...");
   }
 
   /* reionization parameters if reio_parametrization=reio_camb */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)){
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) || (pth->reio_parametrization == reio_stars_and_halos) ){
     class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
