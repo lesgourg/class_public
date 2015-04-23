@@ -797,7 +797,7 @@ int transfer_get_l_list(
     ppr->l_linstep*ptr->angular_rescaling);
   */
 
-  /* check that largests need value of l_max */
+  /* check the largest value needed for l */
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -822,74 +822,82 @@ int transfer_get_l_list(
 
   /** - start from l = 2 and increase with logarithmic step */
 
-  index_l = 0;
-  current_l = 2;
-  increment = MAX((int)(current_l * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
+  /* Change the steps according to the curvature of the Universe */
+  int l_linstep = ppr->l_linstep;
+  double l_logstep = ppr->l_logstep;
 
-  while (((current_l+increment) < l_max) &&
-         (increment < ppr->l_linstep*ptr->angular_rescaling)) {
-
-    index_l ++;
-    current_l += increment;
-    increment = MAX((int)(current_l * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
-
+  if (sgnK != 0) {
+    l_linstep *= ptr->angular_rescaling;
+    l_logstep = pow(ppr->l_logstep,ptr->angular_rescaling);
   }
 
-  /** - when the logarithmic step becomes larger than some linear step,
+  index_l = 0;
+  current_l = 2;
+  increment = MAX((int)(current_l * (l_logstep-1.)),1);
+  
+  while (((current_l+increment) < l_max) && (increment < l_linstep)) {
+    
+    index_l ++;
+    current_l += increment;
+    increment = MAX((int)(current_l * (l_logstep-1.)),1);
+    
+  }
+
+  /** - when the logarithmic step becomes larger than some linear step, 
       stick to this linear step till l_max */
 
-  increment = ppr->l_linstep*ptr->angular_rescaling;
+  increment = MAX (l_linstep, 1);
 
   while ((current_l+increment) <= l_max) {
-
+    
     index_l ++;
     current_l += increment;
 
   }
 
   /** - last value set to exactly l_max */
-
+  
   if (current_l != l_max) {
-
+    
     index_l ++;
     current_l = l_max;
-
-  }
-
+    
+  } 
+  
   ptr->l_size_max = index_l+1;
 
   /** - so far we just counted the number of values. Now repeat the
       whole thing but fill array with values. */
-
+  
   class_alloc(ptr->l,ptr->l_size_max*sizeof(int),ptr->error_message);
-
+  
   index_l = 0;
   ptr->l[0] = 2;
-  increment = MAX((int)(ptr->l[0] * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
-
-  while (((ptr->l[index_l]+increment) < l_max) &&
-         (increment < ppr->l_linstep*ptr->angular_rescaling)) {
-
+  increment = MAX((int)(ptr->l[0] * (l_logstep-1.)),1);
+  
+  while (((ptr->l[index_l]+increment) < l_max) && 
+         (increment < l_linstep)) {
+    
     index_l ++;
     ptr->l[index_l]=ptr->l[index_l-1]+increment;
-    increment = MAX((int)(ptr->l[index_l] * (pow(ppr->l_logstep,ptr->angular_rescaling)-1.)),1);
-
+    increment = MAX((int)(ptr->l[index_l] * (l_logstep-1.)),1);
+    
   }
-
-  increment = ppr->l_linstep*ptr->angular_rescaling;
-
+  
+  increment = l_linstep;
+  
   while ((ptr->l[index_l]+increment) <= l_max) {
-
+    
     index_l ++;
     ptr->l[index_l]=ptr->l[index_l-1]+increment;
-
+    
   }
-
+  
   if (ptr->l[index_l] != l_max) {
-
+    
     index_l ++;
     ptr->l[index_l]= l_max;
-
+    
   }
 
   /* for each mode and type, find relevant size of l array,
