@@ -2294,7 +2294,7 @@ int thermodynamics_reionization_sample(
   double dkappadtau,dkappadtau_next;
   double energy_rate;
   double tau;
-  double chi_heat;
+  double chi_heat, chi_heat_x_ray;
   double chi_lya;
   double chi_ionH;
   double chi_ionHe;
@@ -2302,7 +2302,7 @@ int thermodynamics_reionization_sample(
   double argument;
   int last_index_back;
   double relative_variation;
-
+  double f_X, epsilon_X, rho_sfr, ap, bp, cp, dp, _erg_to_joule_, _switch_;
   Yp = pth->YHe;
 
   /** (a) allocate vector of values related to reionization */
@@ -2334,7 +2334,6 @@ int thermodynamics_reionization_sample(
              pth->error_message);
 
   reio_vector[preio->index_re_xe] = xe;
-  printf("xe = %e at z = %e\n",xe,z);
 
   /** - get \f$ d kappa / d z = (d kappa / d tau) * (d tau / d z) = - (d kappa / d tau) / H \f$ */
 
@@ -2442,7 +2441,6 @@ int thermodynamics_reionization_sample(
       // printf("variation = %e, autorise = %e\n",relative_variation,ppr->reionization_sampling);
     if (relative_variation < ppr->reionization_sampling) {
       /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
-      printf("im here\n");
 
       z=z_next;
       xe=xe_next;
@@ -2535,32 +2533,71 @@ int thermodynamics_reionization_sample(
                pth->error_message);
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
     chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+    f_X = 0.5;
+    ap = 0.01376;
+    bp = 3.26;
+    cp = 2.59;
+    dp = 5.68;
+    rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp));
+    _erg_to_joule_ = pow(10,-7);
+    epsilon_X = 3.4 * pow(10,40)* f_X * rho_sfr*_erg_to_joule_/pow(_Mpc_over_m_,3);
+    _switch_=0.;
+    chi_heat_x_ray = (1+2*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
+    if (pth->increase_T_from_stars==_TRUE_) {
+      _switch_=1.;
+    }
+
 
     dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
       -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
       (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H]
       -2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
+      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)) /* energy injection */
+      -_switch_*(2./(3.*_k_B_)*epsilon_X*chi_heat/(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
+      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));/* x-ray heating */
     /** - increment baryon temperature */
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
     /** Modified by Vivian Poulin to take into account increase of T from star formation. Use the same tanh as for impact on xe but renormalized to fit data.**/
  if(pth->increase_T_from_stars==_TRUE_){
-      argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-                      preio->reionization_parameters[preio->index_reio_exponent])
-                  - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
-        /(preio->reionization_parameters[preio->index_reio_exponent]
-          /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-          *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-               (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
-        /preio->reionization_parameters[preio->index_reio_width];
-      /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-        if(z< preio->reionization_parameters[preio->index_reio_start])
-        preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (preio->reionization_parameters[preio->index_reio_xe_after]
-               -preio->reionization_parameters[preio->index_reio_xe_before])
-      *(tanh(argument)+1.)/2.*250 + preio->reionization_table[i*preio->re_size+preio->index_re_Tb]; //The factor 250 is a normalization chosen to fit data.
+
+    /******************************************************************************************************************************************************/
+    /****************************************************************Add a tanh term in the temperature****************************************************/
+      // argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+      //                 preio->reionization_parameters[preio->index_reio_exponent])
+      //             - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
+      //   /(preio->reionization_parameters[preio->index_reio_exponent]
+      //     /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+      //     *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+      //          (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
+      //   /preio->reionization_parameters[preio->index_reio_width];
+      // /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+      //   if(z< preio->reionization_parameters[preio->index_reio_start])
+      //   preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (preio->reionization_parameters[preio->index_reio_xe_after]
+      //          -preio->reionization_parameters[preio->index_reio_xe_before])
+      // *(tanh(argument)+1.)/2.*170 + preio->reionization_table[i*preio->re_size+preio->index_re_Tb]; //The factor 250 is a normalization chosen to fit data.
+      //
+    /*******************************************************************************************************************************************************/
+    /*******************************************************************************************************************************************************/
+    /***************************************************A more realistic model, X-ray heating from stars****************************************************/
+    // f_X = 0.5;
+    // ap = 0.01376;
+    // bp = 3.26;
+    // cp = 2.59;
+    // dp = 5.68;
+    // rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp));
+    // _erg_to_joule_ = pow(10,-7);
+    // epsilon_X = 3.4 * pow(10,40)* f_X * rho_sfr*_erg_to_joule_/pow(_Mpc_over_m_,3);
+    //
+    // preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]-=dz*
+    // (2./(3.*_k_B_)*epsilon_X*0.2/(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
+    // /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));
+    //
+
+
+
       }
     /** - get baryon sound speed */
 
