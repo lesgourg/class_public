@@ -1553,6 +1553,7 @@ int thermodynamics_reionization(
   double z_sup,z_mid,z_inf;
   double tau_sup,tau_mid,tau_inf;
   int bin;
+  double xe_input,xe_actual;
 
   /** - allocate the vector of parameters defining the function \f$ X_e(z) \f$ */
 
@@ -1841,7 +1842,7 @@ int thermodynamics_reionization(
                pth->error_message,
                "current implementation of reio_many_tanh requires at least one jump center");
 
-    /* check that this input can be interpreted by the code */
+    /* check that z input can be interpreted by the code */
     for (bin=1; bin<pth->many_tanh_num; bin++) {
       class_test(pth->many_tanh_z[bin-1]>=pth->many_tanh_z[bin],
                  pth->error_message,
@@ -1855,8 +1856,30 @@ int thermodynamics_reionization(
        First, fill all entries except the first and the last */
 
     for (bin=1; bin<preio->reio_num_z-1; bin++) {
+
       preio->reionization_parameters[preio->index_reio_first_z+bin] = pth->many_tanh_z[bin-1];
-      preio->reionization_parameters[preio->index_reio_first_xe+bin] = pth->many_tanh_xe[bin-1];
+
+      /* check that xe input can be interpreted by the code */
+      xe_input = pth->many_tanh_xe[bin-1];
+      if (xe_input >= 0.) {
+        xe_actual = xe_input;
+      }
+      //-1 means "after hydrogen + first helium recombination"
+      else if ((xe_input<-0.9) && (xe_input>-1.1)) {
+        xe_actual = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
+      }
+      //-2 means "after hydrogen + second helium recombination"
+      else if ((xe_input<-1.9) && (xe_input>-2.1)) {
+        xe_actual = 1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe));
+      }
+      //other negative number is nonsense
+      else {
+        class_stop(pth->error_message,
+                   "Your entry for many_tanh_xe[%d] is %e, this makes no sense (either positive or 0,-1,-2)",
+                   bin-1,pth->many_tanh_xe[bin-1]);
+      }
+
+      preio->reionization_parameters[preio->index_reio_first_xe+bin] = xe_actual;
     }
 
     /* find largest value of z in the array. We choose to define it as
@@ -1897,7 +1920,7 @@ int thermodynamics_reionization(
 
     /* infer xe after reio */
 
-    preio->reionization_parameters[preio->index_reio_first_xe] = pth->many_tanh_xe[0];
+    preio->reionization_parameters[preio->index_reio_first_xe] = preio->reionization_parameters[preio->index_reio_first_xe+1];
 
     /* if we want to model only hydrogen reionization and neglect both helium reionization */
     //preio->reionization_parameters[preio->index_reio_first_xe] = 1.;
