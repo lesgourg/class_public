@@ -1689,9 +1689,11 @@ int thermodynamics_reionization(
 
     /* check that this input can be interpreted by the code */
     for (bin=1; bin<pth->binned_reio_num; bin++) {
-      class_test(pth->binned_reio_z[bin]<pth->binned_reio_z[bin],
+      class_test(pth->binned_reio_z[bin-1]>=pth->binned_reio_z[bin],
                  pth->error_message,
-                 "value of reionization bin centers z_i expected to be passed in growing order");
+                 "value of reionization bin centers z_i expected to be passed in growing order: %e, %e",
+                 pth->binned_reio_z[bin-1],
+                 pth->binned_reio_z[bin]);
     }
 
     /* the code will not only copy here the "bin centers" passed in
@@ -1730,9 +1732,15 @@ int thermodynamics_reionization(
       -preio->reionization_parameters[preio->index_reio_first_z+2];
 
     /* check it's not too small */
+    /* 6.06.2015: changed this test to simply imposing that the first z is at least zero */
+    /*
     class_test(preio->reionization_parameters[preio->index_reio_first_z] < 0,
                pth->error_message,
                "final redshift for reionization = %e, you must change the binning or redefine the way in which the code extrapolates below the first value of z_i",preio->reionization_parameters[preio->index_reio_first_z]);
+    */
+    if (preio->reionization_parameters[preio->index_reio_first_z] < 0) {
+      preio->reionization_parameters[preio->index_reio_first_z] = 0.;
+    }
 
     /* infer xe before reio */
     class_call(thermodynamics_get_xe_before_reionization(ppr,
