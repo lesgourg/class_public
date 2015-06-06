@@ -25,7 +25,8 @@ enum reionization_parametrization {
   reio_none, /**< no reionization */
   reio_camb,  /**< reionization parameterized like in CAMB */
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
-  reio_half_tanh  /**< half a tanh, intead of the full tanh */
+  reio_half_tanh,  /**< half a tanh, intead of the full tanh */
+  reio_many_tanh   /**< similar to reio_camb but with more than one tanh */
 };
 
 /**
@@ -87,13 +88,23 @@ struct thermo
 
   /** parameters for reio_bins_tanh */
 
-  int binned_reio_num; /**< with how many bins de we want to describe reionization? */
+  int binned_reio_num; /**< with how many bins do we want to describe reionization? */
 
   double * binned_reio_z; /**< central z value for each bin */
 
   double * binned_reio_xe; /**< imposed x_e(z) value at center of each bin */
 
   double binned_reio_step_sharpness; /**< sharpness of tanh() step interpolating between binned values */
+
+    /** parameters for reio_many_tanh */
+
+  int many_tanh_num; /**< with how many jumps do we want to describe reionization? */
+
+  double * many_tanh_z; /**< central z value for each tanh jump */
+
+  double * many_tanh_xe; /**< imposed x_e(z) value at the end of each jump */
+
+  double many_tanh_width; /**< sharpness of tanh() steps */
 
   /** parameters for energy injection */
 
@@ -388,7 +399,7 @@ struct reionization {
   int index_helium_fullreio_redshift; /**< helium full reionization redshift */
   int index_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
 
-  /** parameters used by reio_bins_tanh */
+  /** parameters used by reio_bins_tanh and reio_many_tanh */
 
   int reio_num_z;
   int index_reio_first_z;
@@ -575,6 +586,12 @@ extern "C" {
                                  double *data
                                  );
 
+  int thermodynamics_tanh(double x,
+                          double center,
+                          double before,
+                          double after,
+                          double width,
+                          double * result);
 
 #ifdef __cplusplus
 }

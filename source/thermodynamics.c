@@ -727,6 +727,9 @@ int thermodynamics_init(
     if (pth->reio_parametrization == reio_bins_tanh) {
       printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
     }
+    if (pth->reio_parametrization == reio_many_tanh) {
+      printf(" -> many-step reionization gives optical depth = %f\n",pth->tau_reio);
+    }
     if (pth->thermodynamics_verbose > 1) {
       printf(" -> free-streaming approximation can be turned on as soon as tau=%g Mpc\n",
              pth->tau_free_streaming);
@@ -896,6 +899,25 @@ int thermodynamics_indices(
        this array has a dimension bigger than the bin center array */
 
     preio->reio_num_z=pth->binned_reio_num+2; /** add two values: beginning and end of reio */
+
+    preio->index_reio_first_z = index;
+    index+= preio->reio_num_z;
+    preio->index_reio_first_xe = index;
+    index+= preio->reio_num_z;
+    preio->index_reio_step_sharpness = index;
+    index++;
+
+    preio->reio_num_params = index;
+  }
+
+  /* case where x_e(z) has many tanh jumps */
+  if (pth->reio_parametrization == reio_many_tanh) {
+
+    /* the code will not only copy here the "jump centers" passed in
+       input. It will add an initial and final value for (z,xe). So
+       this array has a dimension bigger than the jump center array */
+
+    preio->reio_num_z=pth->many_tanh_num+2; /** add two values: beginning and end of reio */
 
     preio->index_reio_first_z = index;
     index+= preio->reio_num_z;
@@ -1323,6 +1345,9 @@ int thermodynamics_reionization_function(
   double argument;
   int i;
 
+  int jump;
+  double center,before, after,width,one_jump;
+
   /** - implementation of ionization function similar to the one in CAMB */
 
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
@@ -1406,6 +1431,47 @@ int thermodynamics_reionization_function(
           -preio->reionization_parameters[preio->index_reio_first_xe+i]);
 
 
+    }
+
+    return _SUCCESS_;
+
+  }
+
+  /** - implementation of many tanh jumps */
+
+  if (pth->reio_parametrization == reio_many_tanh) {
+
+    /** -> case z > z_reio_start */
+
+    if (z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]) {
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1];
+    }
+
+    else if (z > preio->reionization_parameters[preio->index_reio_first_z]) {
+
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1];
+
+      for (jump=1; jump<preio->reio_num_z-1; jump++){
+
+        center = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1-jump];
+        // before and after are meant with respect to growing z, not growing time
+        before = preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1-jump]
+          -preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-jump];
+        after = 0.;
+        width = preio->reionization_parameters[preio->index_reio_step_sharpness];
+
+        class_call(thermodynamics_tanh(z,center,before,after,width,&one_jump),
+                   pth->error_message,
+                   pth->error_message);
+
+        *xe += one_jump;
+
+      }
+
+    }
+
+    else {
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe];
     }
 
     return _SUCCESS_;
@@ -1756,6 +1822,99 @@ int thermodynamics_reionization(
 
     /* pass step sharpness parameter */
     preio->reionization_parameters[preio->index_reio_step_sharpness] = pth->binned_reio_step_sharpness;
+
+    /* fill reionization table */
+    class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
+               pth->error_message,
+               pth->error_message);
+
+    pth->tau_reio=preio->reionization_optical_depth;
+
+    return _SUCCESS_;
+
+  }
+
+  if (pth->reio_parametrization == reio_many_tanh) {
+
+    /* this algorithm requires at least one jump centers */
+    class_test(pth->many_tanh_num<1,
+               pth->error_message,
+               "current implementation of reio_many_tanh requires at least one jump center");
+
+    /* check that this input can be interpreted by the code */
+    for (bin=1; bin<pth->many_tanh_num; bin++) {
+      class_test(pth->many_tanh_z[bin-1]>=pth->many_tanh_z[bin],
+                 pth->error_message,
+                 "value of reionization bin centers z_i expected to be passed in growing order: %e, %e",
+                 pth->many_tanh_z[bin-1],
+                 pth->many_tanh_z[bin]);
+    }
+
+    /* the code will not only copy here the "jump centers" passed in
+       input. It will add an initial and final value for (z,xe).
+       First, fill all entries except the first and the last */
+
+    for (bin=1; bin<preio->reio_num_z-1; bin++) {
+      preio->reionization_parameters[preio->index_reio_first_z+bin] = pth->many_tanh_z[bin-1];
+      preio->reionization_parameters[preio->index_reio_first_xe+bin] = pth->many_tanh_xe[bin-1];
+    }
+
+    /* find largest value of z in the array. We choose to define it as
+       z_(i_max) + ppr->reionization_start_factor*step_sharpness. */
+    preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] =
+      preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
+      +ppr->reionization_start_factor*pth->many_tanh_width;
+
+    /* copy this value in reio_start */
+    preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1];
+
+    /* check it's not too big */
+    class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
+               pth->error_message,
+               "starting redshift for reionization = %e, reionization_z_start_max = %e, you must change the binning or increase reionization_z_start_max",
+               preio->reionization_parameters[preio->index_reio_start],
+               ppr->reionization_z_start_max);
+
+    /* find smallest value of z in the array. We choose
+       to define it as z_0 - ppr->reionization_start_factor*step_sharpness, but at least zero. */
+
+    preio->reionization_parameters[preio->index_reio_first_z] =
+      preio->reionization_parameters[preio->index_reio_first_z+1]
+      -ppr->reionization_start_factor*pth->many_tanh_width;
+
+    if (preio->reionization_parameters[preio->index_reio_first_z] < 0) {
+      preio->reionization_parameters[preio->index_reio_first_z] = 0.;
+    }
+
+    /* infer xe before reio */
+    class_call(thermodynamics_get_xe_before_reionization(ppr,
+                                                         pth,
+                                                         preco,
+                                                         preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1],
+                                                         &(preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1])),
+               pth->error_message,
+               pth->error_message);
+
+    /* infer xe after reio */
+
+    preio->reionization_parameters[preio->index_reio_first_xe] = pth->many_tanh_xe[0];
+
+    /* if we want to model only hydrogen reionization and neglect both helium reionization */
+    //preio->reionization_parameters[preio->index_reio_first_xe] = 1.;
+
+    /* if we want to model only hydrogen + first helium reionization and neglect second helium reionization */
+    //preio->reionization_parameters[preio->index_reio_first_xe] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
+
+    /* if we want to model hydrogen + two helium reionization */
+    //preio->reionization_parameters[preio->index_reio_first_xe] = 1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe));
+
+    /* pass step sharpness parameter */
+    class_test(pth->many_tanh_width<=0,
+               pth->error_message,
+               "many_tanh_width must be strictly positive, you passed %e",
+               pth->many_tanh_width);
+
+    preio->reionization_parameters[preio->index_reio_step_sharpness] = pth->many_tanh_width;
 
     /* fill reionization table */
     class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
@@ -3262,6 +3421,18 @@ int thermodynamics_output_data(struct background * pba,
     //class_store_double(dataptr,pvecthermo[pth->index_th_rate],_TRUE_,storeidx);
 
   }
+
+  return _SUCCESS_;
+}
+
+int thermodynamics_tanh(double x,
+                        double center,
+                        double before,
+                        double after,
+                        double width,
+                        double * result) {
+
+  *result = before + (after-before)*(tanh((x-center)/width)+1.)/2.;
 
   return _SUCCESS_;
 }

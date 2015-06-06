@@ -1137,10 +1137,14 @@ int input_read_parameters(
       pth->reio_parametrization=reio_half_tanh;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_many_tanh") == 0) {
+      pth->reio_parametrization=reio_many_tanh;
+      flag2=_TRUE_;
+    }
 
     class_test(flag2==_FALSE_,
                errmsg,
-               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', ...");
+               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh'...");
   }
 
   /* reionization parameters if reio_parametrization=reio_camb */
@@ -1176,6 +1180,14 @@ int input_read_parameters(
     class_read_list_of_doubles("binned_reio_z",pth->binned_reio_z,pth->binned_reio_num);
     class_read_list_of_doubles("binned_reio_xe",pth->binned_reio_xe,pth->binned_reio_num);
     class_read_double("binned_reio_step_sharpness",pth->binned_reio_step_sharpness);
+  }
+
+  /* reionization parameters if reio_parametrization=reio_bins_tanh */
+  if (pth->reio_parametrization == reio_many_tanh) {
+    class_read_int("many_tanh_num",pth->many_tanh_num);
+    class_read_list_of_doubles("many_tanh_z",pth->many_tanh_z,pth->many_tanh_num);
+    class_read_list_of_doubles("many_tanh_xe",pth->many_tanh_xe,pth->many_tanh_num);
+    class_read_double("many_tanh_width",pth->many_tanh_width);
   }
 
   /* energy injection parameters from CDM annihilation/decay */
