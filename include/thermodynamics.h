@@ -102,7 +102,7 @@ struct thermo
 
   double * many_tanh_z; /**< central z value for each tanh jump */
 
-  double * many_tanh_xe; /**< imposed x_e(z) value at the end of each jump */
+  double * many_tanh_xe; /**< imposed x_e(z) value at the end of each jump (ie at later times)*/
 
   double many_tanh_width; /**< sharpness of tanh() steps */
 
