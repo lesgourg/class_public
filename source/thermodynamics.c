@@ -1344,6 +1344,7 @@ int thermodynamics_reionization_function(
   /** - define local variables */
   double argument;
   int i;
+  double z_jump;
 
   int jump;
   double center,before, after,width,one_jump;
@@ -1421,6 +1422,13 @@ int thermodynamics_reionization_function(
       i = 0;
       while (preio->reionization_parameters[preio->index_reio_first_z+i+1]<z) i++;
 
+      /* This is the expression of the tanh-like jumps of the
+         reio_bins_tanh scheme until the 10.06.2015. It appeared to be
+         not robust enough. It could lead to a kink in xe(z) near the
+         maximum value of z at which reionisation is sampled. It has
+         been replaced by the simpler and more robust expression
+         below.
+
       *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
         +0.5*(tanh((2.*(z-preio->reionization_parameters[preio->index_reio_first_z+i])
                     /(preio->reionization_parameters[preio->index_reio_first_z+i+1]
@@ -1429,7 +1437,27 @@ int thermodynamics_reionization_function(
               /tanh(1./preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
         *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
           -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+      */
 
+      /* compute the central redshift value of the tanh jump */
+
+      if (i == preio->reio_num_z-2) {
+        z_jump = preio->reionization_parameters[preio->index_reio_first_z+i]
+          + 0.5*(preio->reionization_parameters[preio->index_reio_first_z+i]
+                 -preio->reionization_parameters[preio->index_reio_first_z+i-1]);
+      }
+      else  {
+        z_jump =  0.5*(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+                       + preio->reionization_parameters[preio->index_reio_first_z+i]);
+      }
+
+      /* implementation of the tanh jump */
+
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+        +0.5*(tanh((z-z_jump)
+                   /preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
+        *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+          -preio->reionization_parameters[preio->index_reio_first_xe+i]);
 
     }
 
@@ -1774,11 +1802,12 @@ int thermodynamics_reionization(
 
 
     /* find largest value of z in the array. We choose to define it as
-       z_(i_max) + (the distance between z_(i_max) and z_(i_max-1)). E.g. if
-       the bins are in 10,12,14, the largest z will be 16. */
+       z_(i_max) + 2*(the distance between z_(i_max) and z_(i_max-1)). E.g. if
+       the bins are in 10,12,14, the largest z will be 18. */
     preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] =
-      2.*preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
-      -preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-3];
+      preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
+      +2.*(preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
+        -preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-3]);
 
     /* copy this value in reio_start */
     preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1];
