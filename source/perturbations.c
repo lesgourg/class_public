@@ -241,6 +241,25 @@ int perturb_init(
              ppt->error_message,
              ppt->error_message);
 
+
+  if (ppt->z_max_pk > pth->z_rec) {
+
+    class_test(ppt->has_cmb == _TRUE_,
+               ppt->error_message,
+               "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you don't ask for a calculation of the CMB source function(s). Remove any CMB from your output and try e.g. with 'output=mTk' or 'output=mTk,vTk'",
+               ppt->z_max_pk,
+               pth->z_rec);
+
+        class_test(ppt->has_source_delta_m == _TRUE_,
+               ppt->error_message,
+               "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you ask only transfer functions, e.g. with 'output=mTk' or 'output=mTk,vTk'. But if you need the total matter (e.g. with 'mPk', 'dCl', etc.) there is an issue with the calculation of delta_m at very early times. By default, delta_m is a gauge-invariant variable (the density fluctuation in comoving gauge) and this quantity is hard to get accurately at very early times. The solution is to define delta_m as the density fluctuation in the current gauge, synchronous or newtonian. For the moment this must be done manually by commenting the line 'ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;' in perturb_sources(). In the future there will be an option for doing it in an easier way.",
+               ppt->z_max_pk,
+               pth->z_rec);
+
+  }
+
+
+
   /** - define the common time sampling for all sources using
       perturb_timesampling_for_sources() */
 
