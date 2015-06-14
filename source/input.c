@@ -2098,13 +2098,15 @@ int input_read_parameters(
                errmsg);
 
     if (flag1==_TRUE_) {
-      psp->z_max_pk = param1;
+      ppt->z_max_pk = param1;
     }
     else {
-      psp->z_max_pk = 0.;
-      for (i=0; i<pop->z_pk_num; i++)
-        psp->z_max_pk = MAX(psp->z_max_pk,pop->z_pk[i]);
+      ppt->z_max_pk = 0.;
+      for (i=0; i<pop->z_pk_num; i++) {
+        ppt->z_max_pk = MAX(ppt->z_max_pk,pop->z_pk[i]);
+      }
     }
+    psp->z_max_pk = ppt->z_max_pk;
   }
 
   /* deal with selection functions */
@@ -2888,6 +2890,8 @@ int input_default_params(
 
   ppt->three_ceff2_ur=1.;
   ppt->three_cvis2_ur=1.;
+
+  ppt->z_max_pk=0.;
 
   ppt->selection_num=1;
   ppt->selection=gaussian;

@@ -960,8 +960,15 @@ int perturb_timesampling_for_sources(
   }
   else {
 
-    /* case when CMB not requested: start at recombination time */
-    tau_ini = pth->tau_rec;
+    /* check the time corresponding to the highest redshift requested in output plus one */
+    class_call(background_tau_of_z(pba,
+                                   ppt->z_max_pk+1,
+                                   &tau_ini),
+               pba->error_message,
+               ppt->error_message);
+
+    /* obsolete: previous choice was to start always at recombination time */
+    /* tau_ini = pth->tau_rec; */
 
     /* set values of first_index_back/thermo */
     class_call(background_at_tau(pba,
@@ -984,9 +991,6 @@ int perturb_timesampling_for_sources(
                ppt->error_message);
   }
 
-
-  counter = 1;
-
   /** (b) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where:
       - if CMB requested:
       timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
@@ -996,6 +1000,7 @@ int perturb_timesampling_for_sources(
       timescale_source = 1/aH; repeat till today.
   */
 
+  counter = 1;
   last_index_back = first_index_back;
   last_index_thermo = first_index_thermo;
   tau = tau_ini;

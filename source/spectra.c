@@ -2471,14 +2471,18 @@ int spectra_k_and_tau(
                psp->error_message);
 
     index_tau=0;
-    class_test((tau_min < ppt->tau_sampling[index_tau]),
+    class_test((tau_min <= ppt->tau_sampling[index_tau]),
                psp->error_message,
-               "you asked for zmax=%e, i.e. taumin=%e, smaller than first possible value =%e",psp->z_max_pk,tau_min,ppt->tau_sampling[0]);
+               "you asked for zmax=%e, i.e. taumin=%e, smaller than or equal to the first possible value =%e; it should be strictly bigger for a successfull interpolation",psp->z_max_pk,tau_min,ppt->tau_sampling[0]);
 
     while (ppt->tau_sampling[index_tau] < tau_min){
       index_tau++;
     }
     index_tau --;
+    class_test(index_tau<0,
+               psp->error_message,
+               "by construction, this should never happen, a bug must have been introduced somewhere");
+
     /* whenever possible, take a few more values in to avoid boundary effects in the interpolation */
     if (index_tau>0) index_tau--;
     if (index_tau>0) index_tau--;
