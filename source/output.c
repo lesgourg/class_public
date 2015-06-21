@@ -98,6 +98,11 @@ int output_total_cl_at_l(
  * @param ppt Input : pointer perturbation structure
  * @param psp Input : pointer to spectra structure
  * @param pop Input : pointer to output structure
+ * @param pth $$$ : pointer to thermodynamics structure $$$
+ * @param ppm $$$ : pointer to primordial structure$$$
+ * @param ptr $$$ : pointer to transfer structure $$$
+ * @param pnl $$$ : pointer to nonlinear structure $$$
+ * @param ple $$$ : pointer to lensing structure $$$
  */
 
 int output_init(
@@ -1598,7 +1603,7 @@ int output_one_line_of_cl(
  * @param pba        Input: pointer to background structure (needed for h)
  * @param psp        Input : pointer to spectra structure
  * @param pop        Input : pointer to output structure
- * @param tkfile     Output: returned pointer to file pointer
+ * @param pkfile     Output: returned pointer to file pointer
  * @param filename   Input : name of the file
  * @param first_line Input : text describing the content (initial conditions, ...)
  * @param z          Input : redshift of the output
@@ -1638,7 +1643,7 @@ int output_open_pk_file(
 /**
  * This routine writes one line with k and P(k)
  *
- * @param tkfile  Input : file pointer
+ * @param pkfile  Input : file pointer
  * @param one_k   Input : wavenumber
  * @param one_pk  Input : matter power sectrum
  * @return the error status

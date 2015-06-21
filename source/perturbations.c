@@ -1173,7 +1173,6 @@ int perturb_timesampling_for_sources(
  * @param pba        Input : pointer to background strucutre
  * @param pth        Input : pointer to thermodynamics structure
  * @param ppt        Input : pointer to perturbation structure
- * @param index_md Input: index describing the mode (scalar, tensor, etc.)
  * @return the error status
  */
 
@@ -2523,8 +2522,8 @@ int perturb_prepare_output(struct background * pba,
  * @param pba                Input: pointer to background structure
  * @param pth                Input: pointer to the thermodynamics structure
  * @param ppt                Input: pointer to the perturbation structure
- * @param index_md         Input: index of mode under consideration (scalar/.../tensor)
- * @param index_k            Input: index of wavenumber
+ * @param index_md           Input: index of mode under consideration (scalar/.../tensor)
+ * @param k                  Input: index of wavenumber
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
  * @param tau_end            Input: final time of the perturbation integration
@@ -2608,11 +2607,12 @@ int perturb_find_approximation_number(
  * @param pba                Input: pointer to background structure
  * @param pth                Input: pointer to the thermodynamics structure
  * @param ppt                Input: pointer to the perturbation structure
- * @param index_md         Input: index of mode under consideration (scalar/.../tensor)
- * @param index_k            Input: index of wavenumber
+ * @param index_md           Input: index of mode under consideration (scalar/.../tensor)
+ * @param k                  Input: index of wavenumber
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
  * @param tau_end            Input: final time of the perturbation integration
+ * @param precision          $$$comment here $$$
  * @param interval_number    Input: total number of intervals
  * @param interval_number_of Input: number of intervals with respect to each particular approximation
  * @param interval_limit     Output: value of time at the boundary of the intervals: tau_ini, tau_switch1, ..., tau_end
@@ -4985,8 +4985,9 @@ int perturb_timescale(
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
+ * @param pth        $$$Input: pointer to thermodynamics structure$$$
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_md Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md   Input: index of mode under consideration (scalar/.../tensor)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
  * @param y          Input: vector of perturbations (those integrated over time) (already allocated)

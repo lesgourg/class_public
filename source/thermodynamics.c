@@ -87,7 +87,7 @@
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure (containing pre-computed table)
  * @param z          Input: redshift
- * @param intermode  Input: interpolation mode (normal or growing_closeby)
+ * @param inter_mode Input: interpolation mode (normal or growing_closeby)
  * @param last_index Input/Ouput: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
  * @param pvecback   Input: vector of background quantitites (used only in case z>z_initial for getting ddkappa and dddkappa; in that case, should be already allocated and filled, with format short_info or larger; in other cases, will be ignored)
  * @param pvecthermo Output: vector of thermodynamics quantities (assumed to be already allocated)
@@ -371,13 +371,13 @@ int thermodynamics_init(
              pth->error_message,
              pth->error_message);
 
-  /** - solve recombination and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f $ with thermodynamics_recombination() */
+  /** - solve recombination and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_recombination() */
 
   class_call(thermodynamics_recombination(ppr,pba,pth,preco,pvecback),
              pth->error_message,
              pth->error_message);
 
-  /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f $ with thermodynamics_reionization()*/
+  /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_reionization()*/
 
   if (pth->reio_parametrization != reio_none) {
     class_call(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
@@ -531,7 +531,7 @@ int thermodynamics_init(
 
   free(tau_table);
 
-  /** -> compute visibility : \f$ g= (d \kappa/d \tau) e^{- \kappa} */
+  /** -> compute visibility : \f$ g= (d \kappa/d \tau) e^{- \kappa} \f$ */
 
   /* loop on z (decreasing z, increasing time) */
   for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {

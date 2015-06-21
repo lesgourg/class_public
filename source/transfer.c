@@ -48,11 +48,12 @@
  * calculated in the perturbation module: for a given value of q, this
  * should be done at the corresponding k(q).
  *
- * @param index_md Input: index of requested mode
+ * @param ptr        $$$: pointer to transfer structure $$$
+ * @param index_md   Input: index of requested mode
  * @param index_ic   Input: index of requested initial condition
  * @param index_tt   Input: index of requested type
  * @param index_l    Input: index of requested multipole
- * @param k          Input: any wavenumber
+ * @param q          Input: any wavenumber
  * @param transfer_function Output: transfer function
  * @return the error status
  */
@@ -106,6 +107,7 @@ int transfer_functions_at_q(
  * @param pba Input : pointer to background structure
  * @param pth Input : pointer to thermodynamics structure
  * @param ppt Input : pointer to perturbation structure
+ * @param ptr $$$: pointer to nonlinear structure $$$
  * @param ptr Output: pointer to initialized transfers structure
  * @return the error status
  */
@@ -3417,7 +3419,7 @@ int transfer_selection_compute(
  * @param ptr                   Input/output : pointer to transfers structure (result stored there)
  * @param tau0                  Input : conformal time today
  * @param tau_rec               Input : conformal time at recombination
- * @param index_md            Input : index of mode
+ * @param index_md              Input : index of mode
  * @param index_ic              Input : index of initial condition
  * @param index_tt              Input : index of type of transfer
  * @param index_l               Input : index of multipole
@@ -3710,7 +3712,7 @@ int transfer_integrate(
      due to the source. */
   index_tau_max_Bessel = index_tau_max;
 
-  /** (b) the source function can vanish at large $\f \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
+  /** (b) the source function can vanish at large \f$ \tau \f$. Check if further points can be eliminated. After this step and if we did not return a null transfer function, index_tau_max can be as small as zero, but not negative. */
   while (sources[index_tau_max] == 0.) {
     index_tau_max--;
     if (index_tau_max < 0) {

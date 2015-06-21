@@ -2707,6 +2707,8 @@ int input_read_parameters(
  * @param ppm Input : pointer to primordial structure
  * @param psp Input : pointer to spectra structure
  * @param pop Input : pointer to output structure
+ * @param pnl $$$Input : pointer to nonlinear structure$$$
+ * @param ple $$$Output: pointer to initialized lensing structure$$$
  * @return the error status
  */
 

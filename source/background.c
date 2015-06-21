@@ -235,7 +235,7 @@ int background_tau_of_z(
  * exotic relics, etc...
  *
  * @param pba           Input: pointer to background structure
- * @param a             Input: value of scale factor
+ * @param pvecback_B    Input: value of scale factor $$$changed from a$$$
  * @param return_format Input: format of output vector
  * @param pvecback      Output: vector of background quantities (assmued to be already allocated)
  * @return the error status
@@ -1019,7 +1019,7 @@ int background_ncdm_distribution(
  *
  * @param pbadist Input:  structure containing all parameters defining f0(q)
  * @param q       Input:  momentum
- * @param f0      Output: phase-space distribution
+ * @param f0      Output: phase-space distribution $$$should be test?$$$
  */
 
 int background_ncdm_test_function(
