@@ -1019,7 +1019,7 @@ int background_ncdm_distribution(
  *
  * @param pbadist Input:  structure containing all parameters defining f0(q)
  * @param q       Input:  momentum
- * @param f0      Output: phase-space distribution $$$should be test?$$$
+ * @param test    Output: phase-space distribution $$$check the comment, was changed from f0 to test$$$
  */
 
 int background_ncdm_test_function(

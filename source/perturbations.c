@@ -2612,7 +2612,7 @@ int perturb_find_approximation_number(
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
  * @param tau_end            Input: final time of the perturbation integration
- * @param precision          $$$comment here $$$
+ * @param precision          $$$ Input: tolerance on output values $$$
  * @param interval_number    Input: total number of intervals
  * @param interval_number_of Input: number of intervals with respect to each particular approximation
  * @param interval_limit     Output: value of time at the boundary of the intervals: tau_ini, tau_switch1, ..., tau_end

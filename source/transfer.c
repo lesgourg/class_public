@@ -3815,13 +3815,17 @@ int transfer_integrate(
  * (passed in input in the array interpolated_sources) at a single value of
  * tau (the Bessel function being approximated as a Dirac distribution)
  *
- * @param ptr                   Input : pointer to transfers structure
- * @param ptw                   Input : pointer to transfer workspace structure
- * @param index_md              Input : index of mode
- * @param index_l               Input : index of multipole
- * @param index_q               Input : index of wavenumber
- * @param radial_type           Input : type of radial (Bessel) functions to convolve with
- * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$
+ * $$$ this was not a variable of the functon 
+ * index_l               Input : index of multipole $$$
+ * 
+ * @param l              $$$ Comment here $$$
+ * @param q              $$$ Comment here $$$
+ * @param ptr            Input : pointer to transfers structure
+ * @param ptw            Input : pointer to transfer workspace structure
+ * @param index_md       Input : index of mode
+ * @param index_q        Input : index of wavenumber
+ * @param radial_type    Input : type of radial (Bessel) functions to convolve with
+ * @param trsf           Output: transfer function \f$ \Delta_l(k) \f$
  * @return the error status
  */
 
@@ -4055,15 +4059,23 @@ int transfer_limber_interpolate(
  * wavenumber k, by using the Limber approximation at ordet two, i.e
  * as a function of the source function and its first two derivatives
  * at a single value of tau
- *
- * @param ppt                   Input : pointer to perturbation structure
+ * 
+ * $$$ These are not variables of this function 
+ * ppt                   Input : pointer to perturbation structure
+ * tau0                  Input : conformal time today 
+ * index_tt              Input : index of type
+ * index_l               Input : index of multipole
+ * interpolated_sources  Input : array of interpolated sources $$$
+ * 
+ * @param tau_size              $$$ Comment here $$$
+ * @param l                     $$$ Comment here $$$
+ * @param k                     $$$ Comment here $$$
+ * @param tau0_minus_tau        $$$ Comment here $$$
+ * @param sources               $$$ Comment here $$$
+ * @param radial_type           $$$ Comment here $$$
  * @param ptr                   Input : pointer to transfers structure
- * @param tau0                  Input : conformal time today
- * @param index_md            Input : index of mode
- * @param index_tt              Input : index of type
- * @param index_l               Input : index of multipole
+ * @param index_md              Input : index of mode
  * @param index_k               Input : index of wavenumber
- * @param interpolated_sources  Input: array of interpolated sources
  * @param trsf                  Output: transfer function \f$ \Delta_l(k) \f$
  * @return the error status
  */

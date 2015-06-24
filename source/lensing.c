@@ -821,9 +821,9 @@ int lensing_free(
 /**
  * This routine defines indices and allocates tables in the lensing structure
  *
- * @param ppr $$$ : pointer to precision structure $$$
- * @param psp  Input       : pointer to spectra structure
- * @param ple  Input/output: pointer to lensing structure
+ * @param ppr $$$ Input : pointer to precision structure $$$
+ * @param psp  Input : pointer to spectra structure
+ * @param ple  Input/output : pointer to lensing structure
  * @return the error status
  */
 
