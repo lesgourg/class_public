@@ -2403,7 +2403,7 @@ int thermodynamics_reionization_sample(
                pth->error_message,
                pth->error_message);
 
-    if(reio_stars_and_halos){x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
+    if(pth->reio_parametrization == reio_stars_and_halos){x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
       -preco->recombination_table[(j)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j)*preco->re_size+preco->index_re_z])+
       preco->recombination_table[j*preco->re_size+preco->index_re_xe]  ;
     xe_next=MAX(xe_next,x_tmp); // New reionization parametrization by Vivian Poulin
