@@ -1626,7 +1626,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
   double factor,result;
   double nH0;
   double onthespot;
-
+  double Boost_factor;
   /*redshift-dependent annihilation parameter*/
 
   // fprintf(stdout,"here\n");
@@ -1637,8 +1637,8 @@ int thermodynamics_beyond_onthespot_energy_injection(
                 preco->error_message,
                 preco->error_message);
       // fprintf(stdout,"here !!\n" );
-
-      *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_halos+rho_cdm_today*pow((1+z),3)*preco->decay;
+      Boost_factor = preco->annihilation_f_halo*erfc((1+z)/(1+preco->annihilation_z_halo))/pow(1+z,3);
+      *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*(1+Boost_factor)*preco->f_halos+rho_cdm_today*pow((1+z),3)*preco->decay;
       /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
       // fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_halos,*energy_rate);
     }
@@ -1972,7 +1972,6 @@ int thermodynamics_reionization(
   class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message);
 
   /** (a) if reionization implemented like in CAMB */
-
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) || (pth->reio_parametrization == reio_stars_and_halos)) {
 
     /** - set values of these parameters, excepted those depending on the reionization redshift */
@@ -2407,7 +2406,8 @@ int thermodynamics_reionization_sample(
     if(reio_stars_and_halos){x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
       -preco->recombination_table[(j)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j)*preco->re_size+preco->index_re_z])+
       preco->recombination_table[j*preco->re_size+preco->index_re_xe]  ;
-    xe_next=MAX(xe_next,x_tmp);
+    xe_next=MAX(xe_next,x_tmp); // New reionization parametrization by Vivian Poulin
+    //Here we interpolate linearly in the old table containing reionisation fractions due to DM and compare it to the ionisation fraction from stars. If xe_stars > xe_DM, xe_stars is recorded. Otherwise, we keep xe_DM.
     }
     class_call(background_tau_of_z(pba,
                                    z_next,
