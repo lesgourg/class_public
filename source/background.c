@@ -2066,7 +2066,7 @@ int background_derivs(
 /**
  * Scalar field potential and its derivatives with respect to the field _scf
  * For Albrecht & Skordis model: 9908085
- * \f$ V = V_p_scf*V_e_scf \f$
+ * \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
  * \f$ V_e =  \exp(-\lambda \phi) (exponential) \f$
  * \f$ V_p = (\phi - B)^\alpha + A (polynomial bump) \f$
  * TODO: -Add some functionality to include different models/potentials (tuning would be difficult, though)
