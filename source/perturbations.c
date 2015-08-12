@@ -2411,8 +2411,6 @@ int perturb_prepare_output(struct background * pba,
 
   int n_ncdm;
   char tmp[40];
-  int index_mode, index_k, index_k_output;
-  double k_target;
 
   ppt->scalar_titles[0]='\0';
   ppt->vector_titles[0]='\0';
@@ -2612,7 +2610,7 @@ int perturb_find_approximation_number(
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
  * @param tau_end            Input: final time of the perturbation integration
- * @param precision          $$$ Input: tolerance on output values $$$
+ * @param precision          Input: tolerance on output values
  * @param interval_number    Input: total number of intervals
  * @param interval_number_of Input: number of intervals with respect to each particular approximation
  * @param interval_limit     Output: value of time at the boundary of the intervals: tau_ini, tau_switch1, ..., tau_end
@@ -4985,7 +4983,7 @@ int perturb_timescale(
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
- * @param pth        $$$Input: pointer to thermodynamics structure$$$
+ * @param pth        Input: pointer to thermodynamics structure
  * @param ppt        Input: pointer to the perturbation structure
  * @param index_md   Input: index of mode under consideration (scalar/.../tensor)
  * @param k          Input: wavenumber
@@ -6151,7 +6149,7 @@ int perturb_print_variables(double tau,
   double delta_scf=0., theta_scf=0.;
   /** ncdm sector begin */
   int n_ncdm;
-  double *delta_ncdm, *theta_ncdm, *shear_ncdm, *delta_p_over_delta_rho_ncdm;
+  double *delta_ncdm=NULL, *theta_ncdm=NULL, *shear_ncdm=NULL, *delta_p_over_delta_rho_ncdm=NULL;
   double rho_ncdm_bg, p_ncdm_bg, pseudo_p_ncdm, w_ncdm;
   double rho_delta_ncdm = 0.0;
   double rho_plus_p_theta_ncdm = 0.0;

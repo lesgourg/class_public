@@ -235,7 +235,7 @@ int background_tau_of_z(
  * exotic relics, etc...
  *
  * @param pba           Input: pointer to background structure
- * @param pvecback_B    Input: value of scale factor $$$changed from a$$$
+ * @param pvecback_B    Input: vector containing all {B} type quantities (scale factor, ...)
  * @param return_format Input: format of output vector
  * @param pvecback      Output: vector of background quantities (assmued to be already allocated)
  * @return the error status
@@ -1014,12 +1014,12 @@ int background_ncdm_distribution(
 /**
  * This function is only used for the purpose of finding optimal
  * quadrature weigths. The logic is: if we can convolve accurately
- * f0(q) with this function, then we can convolve it accuractely with
+ * f0(q) with this function, then we can convolve it accurately with
  * any other relevant function.
  *
- * @param pbadist Input:  structure containing all parameters defining f0(q)
+ * @param pbadist Input:  structure containing all background parameters
  * @param q       Input:  momentum
- * @param test    Output: phase-space distribution $$$check the comment, was changed from f0 to test$$$
+ * @param test    Output: value of the test function test(q)
  */
 
 int background_ncdm_test_function(

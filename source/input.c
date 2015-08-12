@@ -2287,7 +2287,7 @@ int input_read_parameters(
       }
     }
 
-    flag1 == _FALSE_;
+    flag1 = _FALSE_;
     class_call(parser_read_double(pfc,"bias",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -2295,7 +2295,7 @@ int input_read_parameters(
                errmsg,
                "the input parameter 'bias' is obsolete, because you can now pass an independent light-to-mass bias for each bin/selection function. The new input name is 'selection_bias'. It can be set to a single number (common bias for all bins) or as many numbers as the number of bins");
 
-    flag1 == _FALSE_;
+    flag1 = _FALSE_;
     class_call(parser_read_double(pfc,"s_bias",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -2706,9 +2706,9 @@ int input_read_parameters(
  * @param ptr Input : pointer to transfer structure
  * @param ppm Input : pointer to primordial structure
  * @param psp Input : pointer to spectra structure
+ * @param pnl Input : pointer to nonlinear structure
+ * @param ple Input : pointer to lensing structure
  * @param pop Input : pointer to output structure
- * @param pnl $$$ Input : pointer to nonlinear structure $$$
- * @param ple $$$ Input : pointer to initialized lensing structure $$$
  * @return the error status
  */
 

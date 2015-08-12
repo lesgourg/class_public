@@ -95,14 +95,14 @@ int output_total_cl_at_l(
  *
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
+ * @param pth Input : pointer to thermodynamics structure
  * @param ppt Input : pointer perturbation structure
+ * @param ppm Input : pointer to primordial structure
+ * @param ptr Input : pointer to transfer structure
  * @param psp Input : pointer to spectra structure
+ * @param pnl Input : pointer to nonlinear structure
+ * @param ple Input : pointer to lensing structure
  * @param pop Input : pointer to output structure
- * @param pth $$$Input : pointer to thermodynamics structure $$$
- * @param ppm $$$Input : pointer to primordial structure$$$
- * @param ptr $$$Input : pointer to transfer structure $$$
- * @param pnl $$$Input : pointer to nonlinear structure $$$
- * @param ple $$$Input : pointer to lensing structure $$$
  */
 
 int output_init(
