@@ -348,7 +348,7 @@ struct background_parameters_for_distributions {
 };
 
 /**************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */ 
 /*
  * Boilerplate for C++
  */
@@ -551,3 +551,4 @@ extern "C" {
 
 
 #endif
+/* @endcond */ 

@@ -318,7 +318,7 @@ struct primordial_inflation_parameters_and_workspace {
 
 
 /*************************************************************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */ 
 /*
  * Boilerplate for C++
  */
@@ -495,7 +495,7 @@ extern "C" {
 #endif
 
 /**************************************************************/
-
+/* @endcond */ 
 /**
  * @name Some limits imposed on parameter values:
  */

@@ -38,11 +38,11 @@ enum reionization_z_or_tau {
 };
 
 /**
- * Two useful smooth step functions, for smoothing transitions in recfast.
+ * Two useful smooth step functions, for smoothing transitions in recfast. 
  */
 
-#define f1(x) (-0.75*x*(x*x/3.-1.)+0.5)  /* goes from 0 to 1 when x goes from -1 to 1 */
-#define f2(x) (x*x*(0.5-x/3.)*6.)        /* goes from 0 to 1 when x goes from  0 to 1 */
+#define f1(x) (-0.75*x*(x*x/3.-1.)+0.5)  /**< goes from 0 to 1 when x goes from -1 to 1 */
+#define f2(x) (x*x*(0.5-x/3.)*6.)        /**< goes from 0 to 1 when x goes from  0 to 1 */
 
 /**
  * All thermodynamics parameters and evolution that other modules need to know.
@@ -435,7 +435,7 @@ struct thermodynamics_parameters_and_workspace {
 };
 
 /**************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */ 
 /*
  * Boilerplate for C++
  */
@@ -654,7 +654,7 @@ extern "C" {
 /**
  * @name Some limits imposed on cosmological parameter values:
  */
-
+/* @endcond */ 
 //@{
 
 #define _YHE_BIG_ 0.5      /**< maximal \f$ Y_{He} \f$ */

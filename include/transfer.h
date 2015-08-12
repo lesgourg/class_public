@@ -249,7 +249,7 @@ typedef enum {SCALAR_TEMPERATURE_0,
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 
 /*************************************************************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */ 
 /*
  * Boilerplate for C++
  */
@@ -672,3 +672,4 @@ extern "C" {
 #endif
 
 #endif
+/* @endcond */ 

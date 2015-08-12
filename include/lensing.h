@@ -93,7 +93,7 @@ struct lensing {
 };
 
 /*************************************************************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -320,3 +320,4 @@ extern "C" {
 #endif
 
 #endif
+/* @endcond */
