@@ -1198,7 +1198,7 @@ int spectra_tk_at_k_and_z(
  * @param ppt Input : pointer to perturbation structure
  * @param ptr Input : pointer to transfer structure
  * @param ppm Input : pointer to primordial structure
- * @param pnl $$$ Input : pointer to nonlinear structure $$$
+ * @param pnl Input : pointer to nonlinear structure
  * @param psp Output: pointer to initialized spectra structure
  * @return the error status
  */
@@ -1475,7 +1475,7 @@ int spectra_free(
 /**
  * This routine defines indices and allocates tables in the spectra structure
  *
- * @param pba  $$$Input : pointer to background structure $$$
+ * @param pba  Input : pointer to background structure
  * @param ppt  Input : pointer to perturbation structure
  * @param ptr  Input : pointer to transfers structure
  * @param ppm  Input : pointer to primordial structure
@@ -1793,7 +1793,7 @@ int spectra_indices(
  * This routine computes a table of values for all harmonic spectra C_l's,
  * given the transfer functions and primordial spectra.
  *
- * @param pba $$$ Input : pointer to background structure $$$
+ * @param pba Input : pointer to background structure
  * @param ppt Input : pointer to perturbation structure
  * @param ptr Input : pointer to transfers structure
  * @param ppm Input : pointer to primordial structure
@@ -1992,7 +1992,7 @@ int spectra_cls(
  * and multipole, but for all types (TT, TE...), by convolving the
  * transfer functions with the primordial spectra.
  *
- * @param pba           $$$ Input : pointer to background structure $$$
+ * @param pba           Input : pointer to background structure
  * @param ppt           Input : pointer to perturbation structure
  * @param ptr           Input : pointer to transfers structure
  * @param ppm           Input : pointer to primordial structure
@@ -2522,7 +2522,7 @@ int spectra_k_and_tau(
  * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
  * @param ppt Input : pointer to perturbation structure (contain source functions)
  * @param ppm Input : pointer to primordial structure
- * @param pnl $$$ Input : pointer to nonlinear structure $$$
+ * @param pnl Input : pointer to nonlinear structure
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */

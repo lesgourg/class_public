@@ -73,7 +73,7 @@ int lensing_cl_at_l(
  * This routine initializes the lensing structure (in particular,
  * computes table of lensed anisotropy spectra \f$ C_l^{X} \f$)
  *
- * @param ppr $$$Input : pointer to precision structure $$$
+ * @param ppr Input : pointer to precision structure
  * @param ppt Input : pointer to perturbation structure (just in case, not used in current version...)
  * @param psp Input : pointer to spectra structure
  * @param pnl Input : pointer to nonlinear structure
@@ -821,7 +821,7 @@ int lensing_free(
 /**
  * This routine defines indices and allocates tables in the lensing structure
  *
- * @param ppr $$$ Input : pointer to precision structure $$$
+ * @param ppr  Input : pointer to precision structure
  * @param psp  Input : pointer to spectra structure
  * @param ple  Input/output : pointer to lensing structure
  * @return the error status
