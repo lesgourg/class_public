@@ -495,7 +495,7 @@ extern "C" {
 #endif
 
 /**************************************************************/
-/* @endcond */ 
+
 /**
  * @name Some limits imposed on parameter values:
  */
@@ -507,3 +507,4 @@ extern "C" {
 //@}
 
 #endif
+/* @endcond */ 

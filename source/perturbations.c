@@ -3115,7 +3115,7 @@ int perturb_vector_init(
       }
     }
 
-    /** (b) metric perturbations V or h_v depending on gauge */
+    /** (b) metric perturbations V or \f$ h_v \f$ depending on gauge */
     if (ppt->gauge == synchronous){
       class_define_index(ppv->index_pt_hv_prime,_TRUE_,index_pt,1);
     }
@@ -4145,10 +4145,10 @@ int perturb_initial_conditions(struct precision * ppr,
         /** Canonical field (solving for the perturbations):
             initial perturbations set to zero, they should reach the attractor soon enough.
             TODO: Incorporate the attractor IC from 1004.5509
-            delta_phi = -(a/k)^2/phi'(rho + p)theta
-            delta_phi_prime = a^2/phi' (delta_rho_phi + V'delta_phi)
+            delta_phi \f$ = -(a/k)^2/\phi'(\rho + p)\theta \f$
+            delta_phi_prime \f$ = a^2/\phi' \f$ (delta_rho_phi + V'delta_phi)
             and assume theta, delta_rho as for perfect fluid
-            with c_s^2 = 1 and w = 1/3 (ASSUMES radiation TRACKING)
+            with \f$ c_s^2 = 1 \f$ and w = 1/3 (ASSUMES radiation TRACKING)
         */
 
         ppw->pv->y[ppw->pv->index_pt_phi_scf] = 0.;

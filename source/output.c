@@ -131,7 +131,7 @@ int output_init(
       printf("Writing output files in %s... \n",pop->root);
   }
 
-  /** - deal with all anisotropy power spectra C_l's */
+  /** - deal with all anisotropy power spectra \f$ C_l\f$'s */
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -502,7 +502,7 @@ int output_cl(
     }
   }
 
-  /** - third, perform loop over l. For each multipole, get all C_l's
+  /** - third, perform loop over l. For each multipole, get all \f$ C_l\f$'s
       by calling spectra_cl_at_l() and distribute the results to
       relevant files */
 
@@ -1006,7 +1006,7 @@ int output_pk_nl(
 
 
 /**
- * This routines writes the output in files for matter transfer functions T_i(k)'s.
+ * This routines writes the output in files for matter transfer functions \f$ T_i(k)\f$'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
  * @param ppt Input : pointer perturbation structure
@@ -1393,7 +1393,7 @@ int output_print_data(FILE *out,
 
 
 /**
- * This routine opens one file where some C_l's will be written, and writes
+ * This routine opens one file where some \f$ C_l\f$'s will be written, and writes
  * a heading with some general information concerning its content.
  *
  * @param psp        Input : pointer to spectra structure

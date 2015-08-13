@@ -588,7 +588,7 @@ int input_read_parameters(
 
   int i;
 
-  double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+  double sigma_B; /**< Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
 
   double rho_ncdm;
   double R0,R1,R2,R3,R4;
@@ -2724,7 +2724,7 @@ int input_default_params(
                          struct output *pop
                          ) {
 
-  double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+  double sigma_B; /**< Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
   int filenum;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
