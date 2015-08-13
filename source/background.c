@@ -51,7 +51,7 @@
  * quantity {A}, the quickest and most procise way is to call directly
  * background_functions() (for instance, in simple models, if we want
  * H at a given value of the scale factor). If we know 'tau' and want
- * any other qunatity, we can call background_at_tau(), which
+ * any other quantity, we can call background_at_tau(), which
  * interpolates in the table and returns all values. Finally it can be
  * useful to get 'tau' for a given redshift 'z': this can be done with
  * background_tau_of_z(). So if we are somewhere in the code, knowing
@@ -235,7 +235,7 @@ int background_tau_of_z(
  * exotic relics, etc...
  *
  * @param pba           Input: pointer to background structure
- * @param a             Input: value of scale factor
+ * @param pvecback_B    Input: vector containing all {B} type quantities (scale factor, ...)
  * @param return_format Input: format of output vector
  * @param pvecback      Output: vector of background quantities (assmued to be already allocated)
  * @return the error status
@@ -409,8 +409,8 @@ int background_functions(
 
   /** - compute expansion rate H from Friedmann equation: this is the
       unique place where the Friedmann equation is assumed. Remember
-      that densities are all expressed in units of [3c^2/8piG], ie
-      rho_class = [8 pi G rho_physical / 3 c^2] */
+      that densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
+      rho_class = \f$[8 \pi G \f$ rho_physical \f$/ 3 c^2]\f$ */
   pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
 
   /** - compute derivative of H with respect to conformal time */
@@ -949,8 +949,8 @@ int background_ncdm_distribution(
     /**
        Enter here your analytic expression(s) for the p.s.d.'s. If
        you need different p.s.d.'s for different species, put each
-       p.s.d inside a condition, like for instance: if (n_ncdm==2) {
-       *f0=...}.  Remember that n_ncdm = 0 refers to the first
+       p.s.d inside a condition, like for instance: if (n_ncdm==2) 
+       {*f0=...}.  Remember that n_ncdm = 0 refers to the first
        species.
     */
 
@@ -1014,12 +1014,12 @@ int background_ncdm_distribution(
 /**
  * This function is only used for the purpose of finding optimal
  * quadrature weigths. The logic is: if we can convolve accurately
- * f0(q) with this function, then we can convolve it accuractely with
+ * f0(q) with this function, then we can convolve it accurately with
  * any other relevant function.
  *
- * @param pbadist Input:  structure containing all parameters defining f0(q)
+ * @param pbadist Input:  structure containing all background parameters
  * @param q       Input:  momentum
- * @param f0      Output: phase-space distribution
+ * @param test    Output: value of the test function test(q)
  */
 
 int background_ncdm_test_function(
@@ -1033,7 +1033,7 @@ int background_ncdm_test_function(
   double e = 2.0/(45.0*_zeta5_);
 
   /** Using a + bq creates problems for otherwise acceptable distributions
-      which diverges as 1/r or 1/r^2 for r->0 */
+      which diverges as \f$ 1/r \f$ or \f$ 1/r^2 \f$ for \f$ r\to 0 \f$*/
   *test = pow(2.0*_PI_,3)/6.0*(c*q*q-d*q*q*q-e*q*q*q*q);
 
   return _SUCCESS_;
@@ -1847,11 +1847,11 @@ int background_initial_conditions(
       (good approximation for most purposes) */
   pvecback_integration[pba->index_bi_tau] = 1./(a * pvecback[pba->index_bg_H]);
 
-  /** - compute initial sound horizon, assuming c_s=1/sqrt(3) initially */
+  /** - compute initial sound horizon, assuming \f$ c_s=1/\sqrt{3} \f$ initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
 
-  /** - compute initial value of the integral over dtau/(aH^2),
-      assumed to be proportional to a^4 during RD, but with arbitrary
+  /** - compute initial value of the integral over \f$ d\tau /(aH^2) \f$,
+      assumed to be proportional to \f$ a^4 \f$ during RD, but with arbitrary
       normalization */
   pvecback_integration[pba->index_bi_growth] = 1./(4.*a*a*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]);
 
@@ -2011,41 +2011,41 @@ int background_derivs(
   pba =  pbpaw->pba;
   pvecback = pbpaw->pvecback;
 
-  /** - Calculates functions of /f$ a /f$ with background_functions() */
+  /** - Calculates functions of \f$ a \f$ with background_functions() */
   class_call(background_functions(pba, y, pba->normal_info, pvecback),
              pba->error_message,
              error_message);
 
-  /** - calculate /f$ a'=a^2 H /f$ */
+  /** - calculate \f$ a'=a^2 H \f$ */
   dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
 
-  /** - calculate /f$ t' = a /f$ */
+  /** - calculate \f$ t' = a \f$ */
   dy[pba->index_bi_time] = y[pba->index_bi_a];
 
   class_test(pvecback[pba->index_bg_rho_g] <= 0.,
              error_message,
              "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
-  /** - calculate rs' = c_s */
+  /** - calculate \f$ rs' = c_s \f$*/
   dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]))*sqrt(1.-pba->K*y[pba->index_bi_rs]*y[pba->index_bi_rs]); // TBC: curvature correction
 
-  /** calculate growth' = 1/(aH^2) */
+  /** calculate growth' \f$ = 1/(aH^2) \f$ */
   dy[pba->index_bi_growth] = 1./(y[pba->index_bi_a] * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_H]);
 
   if (pba->has_dcdm == _TRUE_){
-    /** compute dcdm density rho' = -3aH rho - a Gamma rho*/
+    /** compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
     dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
   }
 
   if (pba->has_dcdm == _TRUE_){
-    /** compute dcdm density rho' = -3aH rho - a Gamma rho*/
+    /** compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$ */ 
     dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
   }
 
   if ((pba->has_dcdm == _TRUE_) && (pba->has_dr == _TRUE_)){
-    /** Compute dr density rho' = -4aH rho - a Gamma rho*/
+    /** Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
   }
@@ -2066,9 +2066,9 @@ int background_derivs(
 /**
  * Scalar field potential and its derivatives with respect to the field _scf
  * For Albrecht & Skordis model: 9908085
- * \f$ V = V_p_scf*V_e_scf \f$
- * \f$ V_e =  \exp(-\lambda \phi) (exponential) \f$
- * \f$ V_p = (\phi - B)^\alpha + A (polynomial bump) \f$
+ * \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
+ * \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential) 
+ * \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump) 
  * TODO: -Add some functionality to include different models/potentials (tuning would be difficult, though)
  * - Generalize to Kessence/Horndeski/PPF and/or couplings
  * - A default module to numerically compute the derivatives when no analytic functions are given should be added.
@@ -2076,13 +2076,13 @@ int background_derivs(
  */
 
 /** The units of phi, tau in the derivatives and the potential V are the following:
-    --> phi is given in units of the reduced Planck mass m_pl = (8 pi G)^(-1/2)
+    --> phi is given in units of the reduced Planck mass \f$ m_{pl} = (8 \pi G)^{(-1/2)}\f$
     --> tau in the derivative is given in units of Mpc.
-    --> the potential V(phi) is given in units of m_pl^2/Mpc^2.
+    --> the potential \f$ V(\phi) \f$ is given in units of \f$ m_{pl}^2/Mpc^2 \f$.
     With this convention, we have
-    rho^{class} = (8 pi G)/3 rho^{physical} = 1/(3 m_pl^2) rho^{physical}
-                = 1/3 * [ 1/(2a^2) (phi')^2 + V(phi) ]
-    and rho^{class} has the proper dimension Mpc^-2.
+    rho^{class} = \f$ (8 \pi G)/3 \f$ rho^{physical} \f$= 1/(3 m_{pl}^2) \f$ rho^{physical}
+                \f$ = 1/3 * [ 1/(2a^2) (\phi')^2 + V(\phi) ] \f$
+    and rho^{class} has the proper dimension \f$ Mpc^-2 \f$.
  */
 
 double V_e_scf(struct background *pba,

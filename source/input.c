@@ -588,7 +588,7 @@ int input_read_parameters(
 
   int i;
 
-  double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+  double sigma_B; /**< Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
 
   double rho_ncdm;
   double R0,R1,R2,R3,R4;
@@ -2301,7 +2301,7 @@ int input_read_parameters(
       }
     }
 
-    flag1 == _FALSE_;
+    flag1 = _FALSE_;
     class_call(parser_read_double(pfc,"bias",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -2309,7 +2309,7 @@ int input_read_parameters(
                errmsg,
                "the input parameter 'bias' is obsolete, because you can now pass an independent light-to-mass bias for each bin/selection function. The new input name is 'selection_bias'. It can be set to a single number (common bias for all bins) or as many numbers as the number of bins");
 
-    flag1 == _FALSE_;
+    flag1 = _FALSE_;
     class_call(parser_read_double(pfc,"s_bias",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -2720,6 +2720,8 @@ int input_read_parameters(
  * @param ptr Input : pointer to transfer structure
  * @param ppm Input : pointer to primordial structure
  * @param psp Input : pointer to spectra structure
+ * @param pnl Input : pointer to nonlinear structure
+ * @param ple Input : pointer to lensing structure
  * @param pop Input : pointer to output structure
  * @return the error status
  */
@@ -2736,7 +2738,7 @@ int input_default_params(
                          struct output *pop
                          ) {
 
-  double sigma_B; /**< Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
+  double sigma_B; /**< Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
   int filenum;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);

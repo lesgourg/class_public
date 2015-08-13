@@ -95,8 +95,13 @@ int output_total_cl_at_l(
  *
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
+ * @param pth Input : pointer to thermodynamics structure
  * @param ppt Input : pointer perturbation structure
+ * @param ppm Input : pointer to primordial structure
+ * @param ptr Input : pointer to transfer structure
  * @param psp Input : pointer to spectra structure
+ * @param pnl Input : pointer to nonlinear structure
+ * @param ple Input : pointer to lensing structure
  * @param pop Input : pointer to output structure
  */
 
@@ -126,7 +131,7 @@ int output_init(
       printf("Writing output files in %s... \n",pop->root);
   }
 
-  /** - deal with all anisotropy power spectra C_l's */
+  /** - deal with all anisotropy power spectra \f$ C_l\f$'s */
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -497,7 +502,7 @@ int output_cl(
     }
   }
 
-  /** - third, perform loop over l. For each multipole, get all C_l's
+  /** - third, perform loop over l. For each multipole, get all \f$ C_l\f$'s
       by calling spectra_cl_at_l() and distribute the results to
       relevant files */
 
@@ -1001,7 +1006,7 @@ int output_pk_nl(
 
 
 /**
- * This routines writes the output in files for matter transfer functions T_i(k)'s.
+ * This routines writes the output in files for matter transfer functions \f$ T_i(k)\f$'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
  * @param ppt Input : pointer perturbation structure
@@ -1388,7 +1393,7 @@ int output_print_data(FILE *out,
 
 
 /**
- * This routine opens one file where some C_l's will be written, and writes
+ * This routine opens one file where some \f$ C_l\f$'s will be written, and writes
  * a heading with some general information concerning its content.
  *
  * @param psp        Input : pointer to spectra structure
@@ -1598,7 +1603,7 @@ int output_one_line_of_cl(
  * @param pba        Input: pointer to background structure (needed for h)
  * @param psp        Input : pointer to spectra structure
  * @param pop        Input : pointer to output structure
- * @param tkfile     Output: returned pointer to file pointer
+ * @param pkfile     Output: returned pointer to file pointer
  * @param filename   Input : name of the file
  * @param first_line Input : text describing the content (initial conditions, ...)
  * @param z          Input : redshift of the output
@@ -1638,7 +1643,7 @@ int output_open_pk_file(
 /**
  * This routine writes one line with k and P(k)
  *
- * @param tkfile  Input : file pointer
+ * @param pkfile  Input : file pointer
  * @param one_k   Input : wavenumber
  * @param one_pk  Input : matter power sectrum
  * @return the error status

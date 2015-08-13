@@ -1,4 +1,4 @@
-/** @file cl.c Documented nonlinear module
+/** @file nonlinear.c Documented nonlinear module
  *
  * Julien Lesgourgues, 6.03.2014
  *

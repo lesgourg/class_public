@@ -42,10 +42,10 @@
  * been called yet.
  *
  * @param ppm        Input: pointer to primordial structure containing tabulated primordial spectrum
- * @param index_md Input: index of mode (scalar, tensor, ...)
+ * @param index_md   Input: index of mode (scalar, tensor, ...)
  * @param mode       Input: linear or logarithmic
- * @param k          Input: wavenumber in 1/Mpc (linear mode) or its logarithm (logarithmic mode)
- * @param pk         Ouput: for each pair of initial conditions, primordial spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
+ * @param input      Input: wavenumber in 1/Mpc (linear mode) or its logarithm (logarithmic mode)
+ * @param output     Ouput: for each pair of initial conditions, primordial spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
  * @return the error status
  */
 
@@ -1744,7 +1744,7 @@ int primordial_inflation_one_k(
  * @param precision Input: tolerance on output values (if too large, an attractor will always considered to be found)
  * @param y         Input: running vector of background variables, already allocated and initialized
  * @param dy        Input: running vector of background derivatives, already allocated
- * @param H0        Output: Hubble value at phi_0 for attractor solution
+ * @param H_0       Output: Hubble value at phi_0 for attractor solution
  * @param dphidt_0  Output: field derivative value at phi_0 for attractor solution
  * @return the error status
  */
@@ -1882,6 +1882,7 @@ int primordial_inflation_find_attractor(
  * @param stop          Input: the target value of either aH or phi
  * @param check_epsilon Input: whether we should impose inflation (epsilon>1) at each step
  * @param direction     Input: whether we should integrate forward or backward in time
+ * @param time          Input: definition of time (proper or conformal)
  * @return the error status
  */
 
@@ -2865,6 +2866,7 @@ int primordial_inflation_find_phi_pivot(
  * @param y                        Input/output: running vector of background variables, already allocated and initialized
  * @param dy                       Input: running vector of background derivatives, already allocated
  * @param parameters_and_workspace Input: all necessary input variables apart from y
+ * @param error_message            Output : error message
  * @return the error status
  */
 
@@ -3069,7 +3071,7 @@ int primordial_inflation_derivs(
  * Author: Jesus Torrado (torradocacho@lorentz.leidenuniv.nl)
  * Date:   2013-12-20
  *
- * @param ppm  Input/output: pointer to perturbs structure
+ * @param ppt  Input/output: pointer to perturbs structure
  * @param ppm  Input/output: pointer to primordial structure
  * @return the error status
  */

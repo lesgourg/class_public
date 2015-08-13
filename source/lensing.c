@@ -19,10 +19,10 @@
 #include <time.h>
 
 /**
- * Anisotropy power spectra C_l's for all types, modes and initial conditions.
+ * Anisotropy power spectra \f$ C_l\f$'s for all types, modes and initial conditions.
  * SO FAR: ONLY SCALAR
  *
- * This routine evaluates all the lensed C_l's at a given value of l by
+ * This routine evaluates all the lensed \f$ C_l\f$'s at a given value of l by
  * picking it in the pre-computed table. When relevant, it also
  * sums over all initial conditions for each mode, and over all modes.
  *
@@ -73,6 +73,7 @@ int lensing_cl_at_l(
  * This routine initializes the lensing structure (in particular,
  * computes table of lensed anisotropy spectra \f$ C_l^{X} \f$)
  *
+ * @param ppr Input : pointer to precision structure
  * @param ppt Input : pointer to perturbation structure (just in case, not used in current version...)
  * @param psp Input : pointer to spectra structure
  * @param pnl Input : pointer to nonlinear structure
@@ -232,7 +233,7 @@ int lensing_init(
     }
   }
 
-  /** - compute d^l_mm'(mu) */
+  /** - compute \f$ d^l_{mm'} (\mu) \f$*/
 
   icount = 0;
   class_alloc(d00,
@@ -401,7 +402,7 @@ int lensing_init(
                ple->error_message);
   }
 
-  /** - compute Cgl(mu), Cgl2(mu) and sigma2(mu) */
+  /** - compute \f$ Cgl(\mu)\f$, \f$ Cgl2(\mu) \f$ and sigma2(\f$\mu \f$) */
 
   class_alloc(Cgl,
               num_mu*sizeof(double),
@@ -820,8 +821,9 @@ int lensing_free(
 /**
  * This routine defines indices and allocates tables in the lensing structure
  *
- * @param psp  Input       : pointer to spectra structure
- * @param ple  Input/output: pointer to lensing structure
+ * @param ppr  Input : pointer to precision structure
+ * @param psp  Input : pointer to spectra structure
+ * @param ple  Input/output : pointer to lensing structure
  * @return the error status
  */
 
@@ -1234,7 +1236,7 @@ int lensing_addback_cl_ee_bb(
  * @param d00    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1291,7 +1293,7 @@ int lensing_d00(
  * @param d11    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1348,7 +1350,7 @@ int lensing_d11(
  * @param d1m1    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1405,7 +1407,7 @@ int lensing_d1m1(
  * @param d2m2    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1462,7 +1464,7 @@ int lensing_d2m2(
  * @param d22    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1519,7 +1521,7 @@ int lensing_d22(
  * @param d20    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1574,7 +1576,7 @@ int lensing_d20(
  * @param d31    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1632,7 +1634,7 @@ int lensing_d31(
  * @param d3m1   Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1690,7 +1692,7 @@ int lensing_d3m1(
  * @param d3m3   Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1748,7 +1750,7 @@ int lensing_d3m3(
  * @param d40    Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1805,7 +1807,7 @@ int lensing_d40(
  * @param d4m2   Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 
@@ -1864,7 +1866,7 @@ int lensing_d4m2(
  * @param d4m4   Input/output: Result is stored here
  *
  * Wigner d-functions, computed by recurrence
- * actual recurrence on sqrt((2l+1)/2) d^l_{mm'} for stability
+ * actual recurrence on \f$ \sqrt{(2l+1)/2} d^l_{mm'} \f$ for stability
  * Formulae from Kostelec & Rockmore 2003
  **/
 

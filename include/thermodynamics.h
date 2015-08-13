@@ -39,11 +39,11 @@ enum reionization_z_or_tau {
 };
 
 /**
- * Two useful smooth step functions, for smoothing transitions in recfast.
+ * Two useful smooth step functions, for smoothing transitions in recfast. 
  */
 
-#define f1(x) (-0.75*x*(x*x/3.-1.)+0.5)  /* goes from 0 to 1 when x goes from -1 to 1 */
-#define f2(x) (x*x*(0.5-x/3.)*6.)        /* goes from 0 to 1 when x goes from  0 to 1 */
+#define f1(x) (-0.75*x*(x*x/3.-1.)+0.5)  /**< goes from 0 to 1 when x goes from -1 to 1 */
+#define f2(x) (x*x*(0.5-x/3.)*6.)        /**< goes from 0 to 1 when x goes from  0 to 1 */
 
 /**
  * All thermodynamics parameters and evolution that other modules need to know.
@@ -159,7 +159,7 @@ struct thermo
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
   int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
-  int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}, g and (d g / d \tau), used for computing integration step in perturbation module */
+  int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int th_size;                /**< size of thermodynamics vector */
 
   //@}
@@ -266,7 +266,7 @@ struct recombination {
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
   int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
+  int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau \f$ (units 1/Mpc) */
   int re_size;             /**< size of this vector */
 
   //@}
@@ -446,7 +446,7 @@ struct thermodynamics_parameters_and_workspace {
 };
 
 /**************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */ 
 /*
  * Boilerplate for C++
  */
@@ -671,7 +671,7 @@ extern "C" {
 /**
  * @name Some limits imposed on cosmological parameter values:
  */
-
+/* @endcond */ 
 //@{
 
 #define _YHE_BIG_ 0.5      /**< maximal \f$ Y_{He} \f$ */

@@ -1197,7 +1197,6 @@ int perturb_timesampling_for_sources(
  * @param pba        Input : pointer to background strucutre
  * @param pth        Input : pointer to thermodynamics structure
  * @param ppt        Input : pointer to perturbation structure
- * @param index_md Input: index describing the mode (scalar, tensor, etc.)
  * @return the error status
  */
 
@@ -2436,8 +2435,6 @@ int perturb_prepare_output(struct background * pba,
 
   int n_ncdm;
   char tmp[40];
-  int index_mode, index_k, index_k_output;
-  double k_target;
 
   ppt->scalar_titles[0]='\0';
   ppt->vector_titles[0]='\0';
@@ -2547,8 +2544,8 @@ int perturb_prepare_output(struct background * pba,
  * @param pba                Input: pointer to background structure
  * @param pth                Input: pointer to the thermodynamics structure
  * @param ppt                Input: pointer to the perturbation structure
- * @param index_md         Input: index of mode under consideration (scalar/.../tensor)
- * @param index_k            Input: index of wavenumber
+ * @param index_md           Input: index of mode under consideration (scalar/.../tensor)
+ * @param k                  Input: index of wavenumber
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
  * @param tau_end            Input: final time of the perturbation integration
@@ -2632,11 +2629,12 @@ int perturb_find_approximation_number(
  * @param pba                Input: pointer to background structure
  * @param pth                Input: pointer to the thermodynamics structure
  * @param ppt                Input: pointer to the perturbation structure
- * @param index_md         Input: index of mode under consideration (scalar/.../tensor)
- * @param index_k            Input: index of wavenumber
+ * @param index_md           Input: index of mode under consideration (scalar/.../tensor)
+ * @param k                  Input: index of wavenumber
  * @param ppw                Input: pointer to perturb_workspace structure containing index values and workspaces
  * @param tau_ini            Input: initial time of the perturbation integration
  * @param tau_end            Input: final time of the perturbation integration
+ * @param precision          Input: tolerance on output values
  * @param interval_number    Input: total number of intervals
  * @param interval_number_of Input: number of intervals with respect to each particular approximation
  * @param interval_limit     Output: value of time at the boundary of the intervals: tau_ini, tau_switch1, ..., tau_end
@@ -3141,7 +3139,7 @@ int perturb_vector_init(
       }
     }
 
-    /** (b) metric perturbations V or h_v depending on gauge */
+    /** (b) metric perturbations V or \f$ h_v \f$ depending on gauge */
     if (ppt->gauge == synchronous){
       class_define_index(ppv->index_pt_hv_prime,_TRUE_,index_pt,1);
     }
@@ -4171,10 +4169,10 @@ int perturb_initial_conditions(struct precision * ppr,
         /** Canonical field (solving for the perturbations):
             initial perturbations set to zero, they should reach the attractor soon enough.
             TODO: Incorporate the attractor IC from 1004.5509
-            delta_phi = -(a/k)^2/phi'(rho + p)theta
-            delta_phi_prime = a^2/phi' (delta_rho_phi + V'delta_phi)
+            delta_phi \f$ = -(a/k)^2/\phi'(\rho + p)\theta \f$
+            delta_phi_prime \f$ = a^2/\phi' \f$ (delta_rho_phi + V'delta_phi)
             and assume theta, delta_rho as for perfect fluid
-            with c_s^2 = 1 and w = 1/3 (ASSUMES radiation TRACKING)
+            with \f$ c_s^2 = 1 \f$ and w = 1/3 (ASSUMES radiation TRACKING)
         */
 
         ppw->pv->y[ppw->pv->index_pt_phi_scf] = 0.;
@@ -5017,8 +5015,9 @@ int perturb_timescale(
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to thermodynamics structure
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_md Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md   Input: index of mode under consideration (scalar/.../tensor)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
  * @param y          Input: vector of perturbations (those integrated over time) (already allocated)
@@ -6182,7 +6181,7 @@ int perturb_print_variables(double tau,
   double delta_scf=0., theta_scf=0.;
   /** ncdm sector begin */
   int n_ncdm;
-  double *delta_ncdm, *theta_ncdm, *shear_ncdm, *delta_p_over_delta_rho_ncdm;
+  double *delta_ncdm=NULL, *theta_ncdm=NULL, *shear_ncdm=NULL, *delta_p_over_delta_rho_ncdm=NULL;
   double rho_ncdm_bg, p_ncdm_bg, pseudo_p_ncdm, w_ncdm;
   double rho_delta_ncdm = 0.0;
   double rho_plus_p_theta_ncdm = 0.0;
