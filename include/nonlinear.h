@@ -12,7 +12,7 @@ enum non_linear_method {nl_none,nl_halofit};
 /**
  * Structure containing all information on non-linear spectra.
  *
- * Once initialised by nonlinear_init(), contains a table for all two points correlation functions
+ * Once initialized by nonlinear_init(), contains a table for all two points correlation functions
  * and for all the ai,bj functions (containing the three points correlation functions), for each
  * time and wave-number.
  */
@@ -20,7 +20,7 @@ enum non_linear_method {nl_none,nl_halofit};
 struct nonlinear {
 
   /** @name - input parameters initialized by user in input module
-      (all other quantitites are computed in this module, given these
+      (all other quantities are computed in this module, given these
       parameters and the content of the 'precision', 'background',
       'thermo', 'primordial' and 'spectra' structures) */
 

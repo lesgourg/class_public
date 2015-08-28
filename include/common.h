@@ -20,7 +20,7 @@
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
 
-#define _SUCCESS_ 0 /**< integer returned after successfull call of a function */
+#define _SUCCESS_ 0 /**< integer returned after successful call of a function */
 #define _FAILURE_ 1 /**< integer returned after failure in a function */
 
 #define _ERRORMSGSIZE_ 2048 /**< generic error messages are cut beyond this number of characters */
@@ -69,7 +69,7 @@ typedef char FileName[_FILENAMESIZE_];
 #define MAX(a,b) (((a)<(b)) ? (b) : (a) ) /**< the usual "max" function */
 #define SIGN(a) (((a)>0) ? 1. : -1. )
 #define NRSIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
-#define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? (i2+N*i1-(i1*(i1+1))/2) : (i1+N*i2-(i2*(i2+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without loosing or double-counting any information */
+#define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? (i2+N*i1-(i1*(i1+1))/2) : (i1+N*i2-(i2*(i2+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without losing or double-counting any information */
 /* @endcond */
 // needed because of weird openmp bug on macosx lion...
 void class_protect_sprintf(char* dest, char* tpl,...);
@@ -312,7 +312,7 @@ enum evolver_type {
 /**
  * List of ways in which matter power spectrum P(k) can be defined.
  * The standard definition is the first one (delta_m_squared) but
- * alternative definitions can be usfeul in some projects.
+ * alternative definitions can be useful in some projects.
  *
  */
 enum pk_def {
@@ -390,7 +390,7 @@ struct precision
   double tol_ncdm_initial_w;
 
   /**
-   * parameter controling the initial scalar field in background functions
+   * parameter controlling the initial scalar field in background functions
    */
   double safe_phi_scf;
 
@@ -495,7 +495,7 @@ struct precision
 
   double start_small_k_at_tau_c_over_tau_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_largek_at_tau_c_over_tau_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
 
-  double start_large_k_at_tau_h_over_tau_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hibble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ wich is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
+  double start_large_k_at_tau_h_over_tau_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hubble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ which is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
   /**
    * when to switch off tight-coupling approximation: first condition:
@@ -520,19 +520,19 @@ struct precision
   int tight_coupling_approximation;
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
-  int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
+  int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
   int l_max_dr;   /**< number of momenta in Boltzmann hierarchy for decay radiation, at least 4 */
   int l_max_ur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_ncdm;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
-  int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarisation (tensor), at least 4 */
+  int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 */
 
   double curvature_ini;     /**< initial condition for curvature for adiabatic */
   double entropy_ini; /**< initial condition for entropy perturbation for isocurvature */
   double gw_ini;      /**< initial condition for tensor metric perturbation h */
 
   /**
-   * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usally, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
+   * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usually, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
    */
   double perturb_integration_stepsize;
 
@@ -646,7 +646,7 @@ struct precision
                                recombination) */
 
   double q_logstep_spline; /**< initial logarithmic sampling step in q
-                                space, in units of 2pi/r_a(tau_rec)
+                                space, in units of \f$ 2\pi/r_a(tau_{rec})\f$
                                 (comoving angular diameter distance to
                                 recombination) */
 
@@ -658,7 +658,7 @@ struct precision
                                 Omega_k */
 
   double q_logstep_trapzd; /**< initial logarithmic sampling step in q
-                                space, in units of 2pi/r_a(tau_rec)
+                                space, in units of \f$ 2\pi/r_a(tau_{rec}) \f$
                                 (comoving angular diameter distance to
                                 recombination), in the case of small
                                 q's in the closed case, for which one

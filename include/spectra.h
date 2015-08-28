@@ -17,7 +17,7 @@
 struct spectra {
 
   /** @name - input parameters initialized by user in input module
-      (all other quantitites are computed in this module, given these parameters
+      (all other quantities are computed in this module, given these parameters
       and the content of the 'background', 'perturbs', 'transfers' and
       'primordial' structures) */
 
@@ -85,7 +85,7 @@ struct spectra {
 
   //@}
 
-  /** @name - table of pre-computed C_l values, and related quantitites */
+  /** @name - table of pre-computed C_l values, and related quantities */
 
   //@{
 
@@ -139,7 +139,7 @@ struct spectra {
 
   //@}
 
-  /** @name - table of pre-computed matter power spectrum P(k) values, and related quantitites */
+  /** @name - table of pre-computed matter power spectrum P(k) values, and related quantities */
 
   //@{
 
@@ -210,7 +210,7 @@ struct spectra {
                               */
   double * ddmatter_transfer; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
-  /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations betzeen various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
+  /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations between various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
 
   /* double * LTdCl; /\**< cross (temperature * density) Cl's in the Limber plus thin shell approximation; depends on index_tau,index_l as: LTdCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
 

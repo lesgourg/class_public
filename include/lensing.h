@@ -17,7 +17,7 @@
 struct lensing {
 
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these
+   *  (all other quantities are computed in this module, given these
    *  parameters and the content of the 'precision', 'background' and
    *  'thermodynamics' structures) */
 
@@ -57,7 +57,7 @@ struct lensing {
 
   //@}
 
-  /** @name - table of pre-computed C_l values, and related quantitites */
+  /** @name - table of pre-computed C_l values, and related quantities */
 
   //@{
 

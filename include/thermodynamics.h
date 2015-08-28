@@ -24,8 +24,8 @@ enum recombination_algorithm {
 enum reionization_parametrization {
   reio_none, /**< no reionization */
   reio_camb,  /**< reionization parameterized like in CAMB */
-  reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
-  reio_half_tanh  /**< half a tanh, intead of the full tanh */
+  reio_bins_tanh,  /**< binned reionization history with tanh interpolation between bins */
+  reio_half_tanh  /**< half a tanh, instead of the full tanh */
 };
 
 /**
@@ -56,7 +56,7 @@ enum reionization_z_or_tau {
 struct thermo
 {
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these parameters
+   *  (all other quantities are computed in this module, given these parameters
    *   and the content of the 'precision' and 'background' structures) */
 
   //@{
@@ -101,14 +101,14 @@ struct thermo
 
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   double annihilation_variation; /** if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
 				     m_cdm)(z) will be a parabola in
 				     log-log scale between zmin and
 				     zmax, with a curvature given by
-				     annihlation_variation (must ne
+				     annihlation_variation (must be
 				     negative), and with a maximum in
 				     zmax; it will be constant outside
 				     this range */
@@ -119,11 +119,11 @@ struct thermo
 			     F(annihilation_z)=annihilation */
 
   double annihilation_zmax; /** if annihilation_variation is non-zero,
-				redhsift above which annihilation rate
+				redshift above which annihilation rate
 				is maximal */
 
   double annihilation_zmin; /** if annihilation_variation is non-zero,
-				redhsift below which annihilation rate
+				redshift below which annihilation rate
 				is constant */
 
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
@@ -146,7 +146,7 @@ struct thermo
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
+  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
   int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int th_size;                /**< size of thermodynamics vector */
@@ -260,7 +260,7 @@ struct recombination {
 
   //@}
 
-  /** @name - table of the above variables at each redshift, and number of redshits */
+  /** @name - table of the above variables at each redshift, and number of redshifts */
 
   //@{
 
@@ -300,14 +300,14 @@ struct recombination {
 
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   double annihilation_variation; /** if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
 				     m_cdm)(z) will be a parabola in
 				     log-log scale between zmin and
 				     zmax, with a curvature given by
-				     annihlation_variation (must ne
+				     annihlation_variation (must be
 				     negative), and with a maximum in
 				     zmax; it will be constant outside
 				     this range */
@@ -318,11 +318,11 @@ struct recombination {
 			     F(annihilation_z)=annihilation */
 
   double annihilation_zmax; /** if annihilation_variation is non-zero,
-				redhsift above which annihilation rate
+				redshift above which annihilation rate
 				is maximal */
 
   double annihilation_zmin; /** if annihilation_variation is non-zero,
-				redhsift below which annihilation rate
+				redshift below which annihilation rate
 				is constant */
 
   double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
@@ -356,7 +356,7 @@ struct reionization {
 
   //@}
 
-  /** @name - table of the above variables at each redshift, and number of redshits */
+  /** @name - table of the above variables at each redshift, and number of redshifts */
 
   //@{
 
@@ -365,7 +365,7 @@ struct reionization {
 
   //@}
 
-  /** @name - reionization optical depth infered from reionization history */
+  /** @name - reionization optical depth inferred from reionization history */
 
   //@{
 
@@ -384,7 +384,7 @@ struct reionization {
   int index_reio_width;     /**< a width defining the duration of hydrogen reionization in the reio_camb scheme */
   int index_reio_xe_before; /**< ionization fraction at redshift 'reio_start' */
   int index_reio_xe_after;  /**< ionization fraction after full reionization */
-  int index_helium_fullreio_fraction; /**< helium full reionization fraction infered from primordial helium fraction */
+  int index_helium_fullreio_fraction; /**< helium full reionization fraction inferred from primordial helium fraction */
   int index_helium_fullreio_redshift; /**< helium full reionization redshift */
   int index_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
 

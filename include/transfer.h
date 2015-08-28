@@ -38,7 +38,7 @@
 struct transfers {
 
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these
+   *  (all other quantities are computed in this module, given these
    *  parameters and the content of previous structures) */
 
   //@{
@@ -47,7 +47,7 @@ struct transfers {
                           exceptionally to rescale by hand the CMB
                           lensing potential */
   double lcmb_tilt;    /**< normally set to zero, can be used
-                          excelptionally to tilt by hand the CMB
+                          exceptionally to tilt by hand the CMB
                           lensing potential */
   double lcmb_pivot;   /**< if lcmb_tilt non-zero, corresponding pivot
                           scale */
@@ -97,7 +97,7 @@ struct transfers {
   int index_tt_density; /**< index for first bin of transfer type = matter density */
   int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
 
-  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distorsion of number count */
+  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distortion of number count */
   int index_tt_d0;      /**< index for first bin of transfer type = doppler effect for of number count (j=0 term) */
   int index_tt_d1;      /**< index for first bin of transfer type = doppler effect for of number count (j=1 term) */
   int index_tt_nc_lens; /**< index for first bin of transfer type = lensing for of number count */
@@ -139,7 +139,7 @@ struct transfers {
 
   double ** k; /**< list of wavenumber values for each requested mode, k[index_md][index_q]. In flat universes k=q. In non-flat universes q and k differ through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector, tensor. q should be used throughout the transfer module, excepted when interpolating or manipulating the source functions S(k,tau): for a given value of q this should be done in k(q). */
 
-  int index_q_flat_approximation; /**< index of the first q value using the flat rscaling approximation */
+  int index_q_flat_approximation; /**< index of the first q value using the flat rescaling approximation */
 
   //@}
 
@@ -201,7 +201,7 @@ struct transfer_workspace {
                                     used in transfer module, possibly
                                     differing from those in the
                                     perturbation module by some
-                                    reampling or rescaling */
+                                    resampling or rescaling */
   double * tau0_minus_tau;       /**< tau0_minus_tau[index_tau] : values of (tau0 - tau) */
   double * w_trapz;              /**< w_trapz[index_tau] : values of weights in trapezoidal integration (related to time steps) */
   double * chi;                  /**< chi[index_tau] : value of argument of bessel
@@ -227,7 +227,7 @@ struct transfer_workspace {
 };
 
 /**
- * enumeration of possible source types. This looks redundent with
+ * enumeration of possible source types. This looks redundant with
  * respect to the definition of indices index_tt_... This definition is however
  * convenient and time-saving: it allows to use a "case" statement in
  * transfer_radial_function()

@@ -25,7 +25,7 @@ enum spatial_curvature {flat,open,closed};
 struct background
 {
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these parameters
+   *  (all other quantities are computed in this module, given these parameters
    *   and the content of the 'precision' structure)
    *
    * The background cosmological parameters listed here form a parameter
@@ -80,7 +80,7 @@ struct background
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
 
-  int N_ncdm;                            /**< Number of distinguishabe ncdm species */
+  int N_ncdm;                            /**< Number of distinguishable ncdm species */
   double * M_ncdm;                       /**<vector of masses of non-cold relic:
                                              dimensionless ratios m_ncdm/T_ncdm */
   double * Omega0_ncdm, Omega0_ncdm_tot; /**<Omega0_ncdm for each species and for the total Omega0_ncdm */
@@ -102,7 +102,7 @@ struct background
 					     ksi_ncdm1/T_ncdm1; and its
 					     default value */
   double * ncdm_psd_parameters;         /**< list of parameters for specifying/modifying
-                                             ncdm p.s.d.'s, to be cutomized for given model
+                                             ncdm p.s.d.'s, to be customized for given model
                                              (could be e.g. mixing angles) */
   /* end of parameters for analytical ncdm p-s-d */
 
@@ -124,9 +124,9 @@ struct background
   double h; /** reduced Hubble parameter */
   double age; /**< age in Gyears */
   double conformal_age; /**< conformal age in Mpc */
-  double K; /**< \f$ K \f$ : Curvature parameter K=-Omega0_k*a_today^2*H_0^2; */
+  double K; /**< \f$ K \f$ : Curvature parameter \f$ K=-Omega0_k*a_today^2*H_0^2\f$; */
   int sgnK; /**< K/|K|: -1, 0 or 1 */
-  double * m_ncdm_in_eV; /**< list of ncdm masses in eV (infered from M_ncdm and other parameters above) */
+  double * m_ncdm_in_eV; /**< list of ncdm masses in eV (inferred from M_ncdm and other parameters above) */
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
   double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$ : decaying cold dark matter */
   double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$ : decay radiation */
@@ -150,7 +150,7 @@ struct background
   int index_bg_H;             /**< Hubble parameter in Mpc^{-1} */
   int index_bg_H_prime;       /**< its derivative w.r.t. conformal time */
 
-  /* end of vector in short format, now quantitites in normal format */
+  /* end of vector in short format, now quantities in normal format */
 
   int index_bg_rho_g;         /**< photon density */
   int index_bg_rho_b;         /**< baryon density */
@@ -175,7 +175,7 @@ struct background
 
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
 
-  /* end of vector in normal format, now quantitites in long format */
+  /* end of vector in normal format, now quantities in long format */
 
   int index_bg_rho_crit;      /**< critical density */
   int index_bg_Omega_m;       /**< non-relativistic density fraction (\f$ \Omega_b + \Omega_cdm + \Omega_{\nu nr} \f$) */
@@ -237,7 +237,7 @@ struct background
   int index_bi_time;    /**< {C} proper (cosmological) time in Mpc */
   int index_bi_rs;      /**< {C} sound horizon */
   int index_bi_tau;     /**< {C} conformal time in Mpc */
-  int index_bi_growth;  /**< {C} integral over [da/(aH)^3]=[dtau/(aH^2)], useful for growth factor */
+  int index_bi_growth;  /**< {C} integral over \f$ [da/(aH)^3]=[dtau/(aH^2)]\f$, useful for growth factor */
 
   int bi_B_size;        /**< Number of {B} parameters */
   int bi_size;          /**< Number of {B}+{C} parameters */
@@ -537,7 +537,7 @@ extern "C" {
 
 //@{
 
-#define _SCALE_BACK_ 0.1  /**< logsrithmic step used when searching
+#define _SCALE_BACK_ 0.1  /**< logarithmic step used when searching
 			     for an initial scale factor at which ncdm
 			     are still relativistic */
 

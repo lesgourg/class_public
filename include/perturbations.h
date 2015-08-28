@@ -63,7 +63,7 @@ enum possible_gauges {
 //@{
 
 /**
- * maximumu number and types of selection function (for bins of matter density or cosmic shear)
+ * maximum number and types of selection function (for bins of matter density or cosmic shear)
  */
 #define _SELECTION_NUM_MAX_ 100
 enum selection_type {gaussian,tophat,dirac};
@@ -84,10 +84,10 @@ enum selection_type {gaussian,tophat,dirac};
 
 /**
  * Structure containing everything about perturbations that other
- * modules need to know, in particular tabuled values of the source
+ * modules need to know, in particular tabled values of the source
  * functions \f$ S(k, \tau) \f$ for all requested modes
  * (scalar/vector/tensor), initial conditions, types (temperature,
- * E-polarization, B-polarisation, lensing potential, etc), multipole
+ * E-polarization, B-polarization, lensing potential, etc), multipole
  * l and wavenumber k.
  *
  */
@@ -95,7 +95,7 @@ enum selection_type {gaussian,tophat,dirac};
 struct perturbs
 {
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these
+   *  (all other quantities are computed in this module, given these
    *  parameters and the content of the 'precision', 'background' and
    *  'thermodynamics' structures) */
 
@@ -121,7 +121,7 @@ struct perturbs
   /** Neutrino contribution to tensors */
   enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations(neglect, approximate as massless, take exact equations) */
 
-  short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either becasue we have ur species, or we have ncdm species with massless approximation) ? */
+  short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */
   short evolve_tensor_ncdm;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
 
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
@@ -136,7 +136,7 @@ struct perturbs
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
   short has_nc_density;  /**< in dCl, do we want density terms ? */
-  short has_nc_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
+  short has_nc_rsd;      /**< in dCl, do we want redshift space distortion terms ? */
   short has_nc_lens;     /**< in dCl, do we want lensing terms ? */
   short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
@@ -156,7 +156,7 @@ struct perturbs
   int switch_eisw; /**< in temperature calculation, do we want to include the early integrated Sachs Wolfe term? */
   int switch_lisw; /**< in temperature calculation, do we want to include the late integrated Sachs Wolfe term? */
   int switch_dop;  /**< in temperature calculation, do we want to include the Doppler term? */
-  int switch_pol;  /**< in temperature calculation, do we want to include the polarisation-related term? */
+  int switch_pol;  /**< in temperature calculation, do we want to include the polarization-related term? */
   double eisw_lisw_split_z; /**< at which redshift do we define the cut between eisw and lisw ?*/
 
   int store_perturbations;  /**< Do we want to store perturbations? */
@@ -183,7 +183,7 @@ struct perturbs
 
   //@}
 
-  /** @name - useful flags infered from the ones above */
+  /** @name - useful flags inferred from the ones above */
 
   //@{
 
@@ -232,7 +232,7 @@ struct perturbs
   //@{
 
   short has_source_t;  /**< do we need source for CMB temperature? */
-  short has_source_p;  /**< do we need source for CMB polarisation? */
+  short has_source_p;  /**< do we need source for CMB polarization? */
   short has_source_delta_m;   /**< do we need source for delta of total matter? */
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
   short has_source_delta_b;    /**< do we need source for delta of baryons? */
@@ -308,7 +308,7 @@ struct perturbs
                         sampling in k-space */
 
   int * k_size_cl;  /**< k_size_cl[index_md] number of k values used
-                       for non-CMB Cl calculations, requering a coarse
+                       for non-CMB Cl calculations, requiring a coarse
                        sampling in k-space. */
 
   int * k_size;     /**< k_size[index_md] = total number of k
@@ -317,8 +317,8 @@ struct perturbs
 
   double ** k;      /**< k[index_md][index_k] = list of values */
 
-  double k_min;     /**< minimum valut (over all modes) */
-  double k_max;     /**< maximum valut (over all modes) */
+  double k_min;     /**< minimum value (over all modes) */
+  double k_max;     /**< maximum value (over all modes) */
 
   //@}
 
@@ -436,7 +436,7 @@ struct perturb_vector
 
 /**
  * Workspace containing, among other things, the value at a given time
- * of all background/perturbed quantitites, as well as their indices.
+ * of all background/perturbed quantities, as well as their indices.
  *
  * There will be one such structure created for each mode
  * (scalar/.../tensor) and each thread (in case of parallel computing)
@@ -458,7 +458,7 @@ struct perturb_workspace
   int index_mt_eta_prime;     /**< eta' (wrt conf. time) in synchronous gauge */
   int index_mt_alpha;         /**< \f$ \alpha = (h' + 6 \eta') / (2 k^2) \f$ in synchronous gauge */
   int index_mt_alpha_prime;   /**< alpha' wrt conf. time) in synchronous gauge */
-  int index_mt_gw_prime_prime;/**< second derivative wrt confromal time of gravitational wave field, often called h */
+  int index_mt_gw_prime_prime;/**< second derivative wrt conformal time of gravitational wave field, often called h */
   int index_mt_V_prime;       /**< derivative of Newtonian gauge vector metric perturbation V */
   int index_mt_hv_prime_prime;/**< Second derivative of Synchronous gauge vector metric perturbation h_v */
   int mt_size;                /**< size of metric perturbation vector */
@@ -466,14 +466,14 @@ struct perturb_workspace
   //@}
 
   /** @name - value at a given time of all background/perturbed
-      quantitites
+      quantities
   */
 
   //@{
 
-  double * pvecback;          /**< background quantitites */
-  double * pvecthermo;        /**< thermodynamics quantitites */
-  double * pvecmetric;        /**< metric quantitites */
+  double * pvecback;          /**< background quantities */
+  double * pvecthermo;        /**< thermodynamics quantities */
+  double * pvecmetric;        /**< metric quantities */
   struct perturb_vector * pv; /**< pointer to vector of integrated
                                  perturbations and their
                                  time-derivatives */
@@ -505,7 +505,7 @@ struct perturb_workspace
 
   //@}
 
-  /** @name - indices useful for searching background/termo quantitites in tables */
+  /** @name - indices useful for searching background/thermo quantities in tables */
 
   //@{
 
@@ -557,7 +557,7 @@ struct perturb_parameters_and_workspace {
   int index_ic;
   int index_k;
   double k;
-  struct perturb_workspace * ppw; /**< worspace defined above */
+  struct perturb_workspace * ppw; /**< workspace defined above */
 
 };
 

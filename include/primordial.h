@@ -5,7 +5,7 @@
 
 #include "perturbations.h"
 
-/** enum defining how should the primnordial spectrum be compurted */
+/** enum defining how should the primordial spectrum be computed */
 
 enum primordial_spectrum_type {
   analytic_Pk,
@@ -72,7 +72,7 @@ enum phi_pivot_methods {
 struct primordial {
 
   /** @name - input parameters initialized by user in input module
-      (all other quantitites are computed in this module, given these parameters
+      (all other quantities are computed in this module, given these parameters
       and the content of the 'precision' and 'perturbs' structures) */
 
   //@{
@@ -259,7 +259,7 @@ struct primordial {
   int index_in_ah_im;   /**< tensor perturbation (imaginary part) */
   int index_in_dah_re;  /**< tensor perturbation (real part, time derivative) */
   int index_in_dah_im;  /**< tensor perturbation (imaginary part, time derivative) */
-  int in_bg_size;       /**< size of vector of background quantitites only */
+  int in_bg_size;       /**< size of vector of background quantities only */
   int in_size;          /**< full size of vector */
 
   //@}
