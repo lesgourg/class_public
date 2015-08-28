@@ -5,7 +5,7 @@
  * This module computes the primordial spectra. Can be used in different modes:
  * simple parametric form, evolving inflaton perturbations, etc. So far only
  * the mode corresponding to a simple analytic form in terms of amplitudes, tilts
- * and runnings has been developped.
+ * and runnings has been developed.
  *
  * The following functions can be called from other modules:
  *
@@ -45,7 +45,7 @@
  * @param index_md   Input: index of mode (scalar, tensor, ...)
  * @param mode       Input: linear or logarithmic
  * @param input      Input: wavenumber in 1/Mpc (linear mode) or its logarithm (logarithmic mode)
- * @param output     Ouput: for each pair of initial conditions, primordial spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
+ * @param output     Output: for each pair of initial conditions, primordial spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
  * @return the error status
  */
 
@@ -398,7 +398,7 @@ int primordial_init(
 
     class_test(0==0,
                ppm->error_message,
-               "primordial spectrum type not recognised");
+               "primordial spectrum type not recognized");
 
   }
 
@@ -992,7 +992,7 @@ int primordial_inflation_potential(
     /* Higgs inflation from arXiv:1403.6078 */
   case higgs_inflation:
 
-    // correspondance with 1403.6078:
+    // correspondence with 1403.6078:
     // V0 = b
     // V1 = ksi
     // V2 = kappa
@@ -1078,7 +1078,7 @@ int primordial_inflation_indices(
 
   index_in = 0;
 
-  /* indices for background quantitites */
+  /* indices for background quantities */
   ppm->index_in_a = index_in;
   index_in ++;
   ppm->index_in_phi = index_in;
@@ -1148,7 +1148,7 @@ int primordial_inflation_solve_inflation(
   int counter;
   double dH,ddH,dddH;
 
-  /* allocate vectors for background/perturbed quantitites */
+  /* allocate vectors for background/perturbed quantities */
   class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(y_ini,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
@@ -1276,7 +1276,7 @@ int primordial_inflation_solve_inflation(
      accuracy, and then we integrate the background equations forward
      in time. Hence the approximation made here introduces zero
      mistake on the final result. It is just a way to find quickly a
-     reasonnable initial phi value. In the inflation_V case, if the
+     reasonable initial phi value. In the inflation_V case, if the
      exact forward integration reveals that the guess was not good
      (i.e. does not correspond to "early enough"), we iterate over
      sequences of backward/forward integration, until a correct time is
@@ -1337,7 +1337,7 @@ int primordial_inflation_solve_inflation(
          phi_ini', and then the correct value of a_ini, and finally of
          dphi/dtau_ini */
 
-      /* find dphi/dt_ini (unlike dphi/dtau_ini, this does not depend on normalisation of a) */
+      /* find dphi/dt_ini (unlike dphi/dtau_ini, this does not depend on normalization of a) */
       class_call_except(primordial_inflation_find_attractor(ppm,
                                                             ppr,
                                                             phi_try,
@@ -1350,7 +1350,7 @@ int primordial_inflation_solve_inflation(
                         ppm->error_message,
                         free(y);free(y_ini);free(dy));
 
-      /* we need to normalise a properly so that a=a_pivot when
+      /* we need to normalize a properly so that a=a_pivot when
          phi=phi_pivot. To do so, we evolve starting arbitrarily from
          a_ini=1, and then we rescale a_ini appropriately. */
 
@@ -1555,7 +1555,7 @@ int primordial_inflation_spectra(
                ppm->error_message,
                "negative tensor spectrum");
 
-    /* store the obtained result for curvatute and tensor perturbations */
+    /* store the obtained result for curvature and tensor perturbations */
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
 
@@ -1631,17 +1631,17 @@ int primordial_inflation_one_k(
   y[ppm->index_in_dah_re]=0.;
   y[ppm->index_in_dah_im]=-k*y[ppm->index_in_ah_re];
 
-  /* intialize variable used for deciding when to stop the calculation
+  /* initialize variable used for deciding when to stop the calculation
      (= when the curvature remains stable) */
   curvature_new = _HUGE_;
 
-  /* intialize conformal time to arbitrary value (here, only variations
+  /* initialize conformal time to arbitrary value (here, only variations
      of tau matter: the equations that we integrate do not depend
-     explicitely on time) */
+     explicitly on time) */
   tau_end = 0;
 
   /* compute derivative of initial vector and infer first value of
-     adaptative time-step */
+     adaptive time-step */
   class_call(primordial_inflation_derivs(tau_end,
                                          y,
                                          dy,
@@ -1715,7 +1715,7 @@ int primordial_inflation_one_k(
   /* store final value of curvature for this wavenumber */
   *curvature = curvature_new;
 
-  /* stor final value of tensor perturbation for this wavenumber */
+  /* store final value of tensor perturbation for this wavenumber */
   ah2 = y[ppm->index_in_ah_re]*y[ppm->index_in_ah_re]+y[ppm->index_in_ah_im]*y[ppm->index_in_ah_im];
   *tensor = 32.*k*k*k/_PI_*ah2/y[ppm->index_in_a]/y[ppm->index_in_a];
 
@@ -1769,7 +1769,7 @@ int primordial_inflation_find_attractor(
   /* we want a series of value of phi' in phi_0, obtained by
      integrating the system from earlier and earlier time. The first
      value iof the series is the slow-roll prediction phi' =
-     -V'/3H. The following lines compute this value and initialize televant quantites. */
+     -V'/3H. The following lines compute this value and initialize relevant quantities. */
 
   class_call(primordial_inflation_check_potential(ppm,phi_0,&V_0,&dV_0,&ddV_0),
              ppm->error_message,
@@ -1805,7 +1805,7 @@ int primordial_inflation_find_attractor(
     phi=phi+dV_0/V_0/16./_PI_;
 
     /* fix the initial phi' to the slow-roll prediction in that point,
-       and initialize other rrelevant quantitites */
+       and initialize other relevant quantities */
 
     class_call(primordial_inflation_check_potential(ppm,phi,&V,&dV,&ddV),
                ppm->error_message,
@@ -1863,7 +1863,7 @@ int primordial_inflation_find_attractor(
  * otherwise it returns an error. Thanks to the last argument, it is
  * also possible to specify whether the integration should be carried
  * forward or backward in time. For the inflation_H case, only a 1st
- * order differential equation is involved, so the forwrad and
+ * order differential equation is involved, so the forward and
  * backward case can be done exactly without problems. For the
  * inflation_V case, the equation of motion is 2nd order. What the
  * module will do in the backward case is to search for an approximate
@@ -1989,7 +1989,7 @@ int primordial_inflation_evolve_background(
     // check that we are in the right case
     class_test(ppm->primordial_spec_type != inflation_V_end,
                ppm->error_message,
-               "the target _end_inflation_ is only coded to work with inflation_V_end (but could be generalised if needed)");
+               "the target _end_inflation_ is only coded to work with inflation_V_end (but could be generalized if needed)");
     break;
   case _a_:
     // next (approximate) value of a after next step
@@ -2030,7 +2030,7 @@ int primordial_inflation_evolve_background(
 
     tau_end = tau_start + dtau;
 
-    // mind the fabs(...) below (works for both foward and backward integration)
+    // mind the fabs(...) below (works for both forward and backward integration)
     class_test(fabs(dtau/tau_start) < ppr->smallest_allowed_variation,
                ppm->error_message,
                "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",dtau/tau_start);
@@ -2289,7 +2289,7 @@ int primordial_inflation_check_hubble(
  *
  * @param ppm       Input: pointer to primordial structure
  * @param phi       Input: field value where to compute epsilon
- * @param epsilon   Ouput: result
+ * @param epsilon   Output: result
  * @return the error status
  */
 
@@ -2413,7 +2413,7 @@ int primordial_inflation_find_phi_pivot(
     /* value found and stored as phi_small_epsilon */
     phi_small_epsilon = phi_mid;
 
-    /* find inflationry attractor in phi_small_epsilon (should exist since epsilon<<1 there) */
+    /* find inflationary attractor in phi_small_epsilon (should exist since epsilon<<1 there) */
     class_call(primordial_inflation_find_attractor(ppm,
                                                    ppr,
                                                    phi_small_epsilon,
@@ -2486,7 +2486,7 @@ int primordial_inflation_find_phi_pivot(
        an amount of inflation equal to the requested one, minus the
        amount after phi_small_epsilon, and plus
        primordial_inflation_extra_efolds efolds (default: two). Note
-       that it is not agressive to require two extra e-folds of
+       that it is not aggressive to require two extra e-folds of
        inflation before the pivot, since the calculation of the spectrum
        in the observable range will require even more. */
 
@@ -2679,7 +2679,7 @@ int primordial_inflation_find_phi_pivot(
        an amount of inflation equal to the requested one, minus the
        amount after phi_small_epsilon, and plus
        primordial_inflation_extra_efolds efolds (default: two). Note
-       that it is not agressive to require two extra e-folds of
+       that it is not aggressive to require two extra e-folds of
        inflation before the pivot, since the calculation of the spectrum
        in the observable range will require even more. */
 
@@ -2720,7 +2720,7 @@ int primordial_inflation_find_phi_pivot(
       break;
     }
 
-    /* we now have a value phi_try belived to be close to and slightly smaller than phi_pivot */
+    /* we now have a value phi_try believed to be close to and slightly smaller than phi_pivot */
 
     phi_try = y[ppm->index_in_phi];
 
@@ -2862,7 +2862,7 @@ int primordial_inflation_find_phi_pivot(
  * error management, with the error message returned directly in an
  * ErrMsg field.
  *
- * @param tau                      Input: time (not used explicitely inside the routine, but requested by the generic integrator)
+ * @param tau                      Input: time (not used explicitly inside the routine, but requested by the generic integrator)
  * @param y                        Input/output: running vector of background variables, already allocated and initialized
  * @param dy                       Input: running vector of background derivatives, already allocated
  * @param parameters_and_workspace Input: all necessary input variables apart from y

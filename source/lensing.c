@@ -596,7 +596,7 @@ int lensing_init(
       X_p000 = -fac*X_000;
       /* X_220 = 0.25*sqrt1[l] * exp(-(fac-0.5)*sigma2[index_mu]); */
       X_220 = 0.25*sqrt1[l] * X_000; /* Order 0 */
-      /* next 5 lines useless, but avoid compilator warning 'may be used uninitialized' */
+      /* next 5 lines useless, but avoid compiler warning 'may be used uninitialized' */
       X_242=0.;
       X_132=0.;
       X_121=0.;
@@ -1007,7 +1007,7 @@ int lensing_indices(
   /* we want to output Cl_lensed up to the same l_max as Cl_unlensed
      (even if a number delta_l_max of extra values of l have been used
      internally for more accurate results). Notable exception to the
-     above rule: ClBB_lensed(saclars) must be outputed at least up to the same l_max as
+     above rule: ClBB_lensed(scalars) must be outputed at least up to the same l_max as
      ClEE_unlensed(scalars) (since ClBB_unlensed is null for scalars)
   */
 

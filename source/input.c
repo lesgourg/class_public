@@ -225,7 +225,7 @@ int input_init(
 
   struct fzerofun_workspace fzw;
   /** These two arrays must contain the strings of names to be searched
-      for and the coresponding new parameter */
+      for and the corresponding new parameter */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
                                        "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
@@ -506,7 +506,7 @@ int input_init(
 
     fprintf(param_output,"# List of input/precision parameters actually read\n");
     fprintf(param_output,"# (all other parameters set to default values)\n");
-    fprintf(param_output,"# Obtained with CLASS %s (for developpers: svn version %s)\n",_VERSION_,_SVN_VERSION_);
+    fprintf(param_output,"# Obtained with CLASS %s (for developers: svn version %s)\n",_VERSION_,_SVN_VERSION_);
     fprintf(param_output,"#\n");
     fprintf(param_output,"# This file can be used as the input file of another run\n");
     fprintf(param_output,"#\n");
@@ -621,7 +621,7 @@ int input_read_parameters(
 
   /** Knowing the gauge from the very beginning is useful (even if
       this could be a run not requiring perturbations at all: even in
-      that case, knwoing the gauge is important e.g. for fixing the
+      that case, knowing the gauge is important e.g. for fixing the
       sampling in momentum space for non-cold dark matter) */
 
   class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
@@ -727,7 +727,7 @@ int input_read_parameters(
              errmsg,
              errmsg);
 
-  /* these lines have been added for coimpatibility with deprecated syntax 'N_eff' instead of 'N_ur', in the future they could be supressed */
+  /* these lines have been added for compatibility with deprecated syntax 'N_eff' instead of 'N_ur', in the future they could be suppressed */
   class_call(parser_read_double(pfc,"N_eff",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
@@ -883,7 +883,7 @@ int input_read_parameters(
            the mass (all parameters must have a default value; most of
            them are defined in input_default_params{}, but the ncdm mass
            is a bit special and there is no better place for setting its
-           default value). We put an aribitrary value m << 10^-3 eV,
+           default value). We put an arbitrary value m << 10^-3 eV,
            i.e. the ultra-relativistic limit.*/
         pba->m_ncdm_in_eV[n]=1.e-5;
       }
@@ -907,7 +907,7 @@ int input_read_parameters(
         class_test(flag2 == _FALSE_,errmsg,
                    "Input use_ncdm_files is found, but no filenames found!");
         class_test(entries_read != fileentries,errmsg,
-                   "Numer of filenames found, %d, does not match number of _TRUE_ values in use_ncdm_files, %d",
+                   "Number of filenames found, %d, does not match number of _TRUE_ values in use_ncdm_files, %d",
                    entries_read,fileentries);
       }
     }
@@ -925,7 +925,7 @@ int input_read_parameters(
 
     /* We must calculate M from omega or vice versa if one of them is missing.
        If both are present, we must update the degeneracy parameter to
-       reflect the implicit normalisation of the distribution function.*/
+       reflect the implicit normalization of the distribution function.*/
     for (n=0; n < N_ncdm; n++){
       if (pba->m_ncdm_in_eV[n] != 0.0){
         /* Case of only mass or mass and Omega/omega: */
@@ -950,7 +950,7 @@ int input_read_parameters(
           fnu_factor = (pba->H0*pba->H0*pba->Omega0_ncdm[n]/rho_ncdm);
           pba->factor_ncdm[n] *= fnu_factor;
           /* dlnf0dlnq is already computed, but it is
-             independent of any normalisation of f0.
+             independent of any normalization of f0.
              We don't need the factor anymore, but we
              store it nevertheless:*/
           pba->deg_ncdm[n] *=fnu_factor;
@@ -1429,7 +1429,7 @@ int input_read_parameters(
 
       class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_),
                  errmsg,
-                 "inconsistent input: you asked for vectors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
+                 "inconsistent input: you asked for vectors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
 
     }
 
@@ -1437,7 +1437,7 @@ int input_read_parameters(
 
       class_test((ppt->has_cl_cmb_temperature == _FALSE_) && (ppt->has_cl_cmb_polarization == _FALSE_),
                  errmsg,
-                 "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
+                 "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
 
     }
   }
@@ -1789,10 +1789,10 @@ int input_read_parameters(
 
         class_test(PSR0 <= 0.,
                    errmsg,
-                   "inconsistent parametrisation of polynomial inflation potential");
+                   "inconsistent parametrization of polynomial inflation potential");
         class_test(PSR1 <= 0.,
                    errmsg,
-                   "inconsistent parametrisation of polynomial inflation potential");
+                   "inconsistent parametrization of polynomial inflation potential");
 
         R0 = PSR0;
         R1 = PSR1*16.*_PI_;
@@ -1829,10 +1829,10 @@ int input_read_parameters(
 
           class_test(R0 <= 0.,
                      errmsg,
-                     "inconsistent parametrisation of polynomial inflation potential");
+                     "inconsistent parametrization of polynomial inflation potential");
           class_test(R1 <= 0.,
                      errmsg,
-                     "inconsistent parametrisation of polynomial inflation potential");
+                     "inconsistent parametrization of polynomial inflation potential");
 
           ppm->V0 = R0*R1*3./128./_PI_;
           ppm->V1 = -sqrt(R1)*ppm->V0;
@@ -1891,7 +1891,7 @@ int input_read_parameters(
 
       class_test(ppm->H0 <= 0.,
                  errmsg,
-                 "inconsistent parametrisation of polynomial inflation potential");
+                 "inconsistent parametrization of polynomial inflation potential");
 
     }
   }
@@ -1954,7 +1954,7 @@ int input_read_parameters(
                errmsg, errmsg);
     class_test(strlen(string1) == 0,
                errmsg,
-               "You ommitted to write a command for the external Pk");
+               "You omitted to write a command for the external Pk");
 
     ppm->command = (char *) malloc (strlen(string1) + 1);
     strcpy(ppm->command, string1);
@@ -2029,7 +2029,7 @@ int input_read_parameters(
       ple->has_lensed_cls = _TRUE_;
     }
     else {
-      class_stop(errmsg,"you asked for lensed CMB Cls, but this requires a minimal number of options: 'modes' should include 's', 'output' should include 'tCl' and/or 'pCL', and also, importantly, 'lCl', the CMB lenisng potential spectrum. You forgot one of those in your input.");
+      class_stop(errmsg,"you asked for lensed CMB Cls, but this requires a minimal number of options: 'modes' should include 's', 'output' should include 'tCl' and/or 'pCL', and also, importantly, 'lCl', the CMB lensing potential spectrum. You forgot one of those in your input.");
     }
   }
 
@@ -2179,7 +2179,7 @@ int input_read_parameters(
         }
         else {
           class_stop(errmsg,
-                     "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin witdths",
+                     "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin widths",
                      ppt->selection_num,int1,ppt->selection_num);
         }
         free(pointer1);
@@ -2627,7 +2627,7 @@ int input_read_parameters(
   if (ple->has_lensed_cls == _TRUE_)
     ppt->l_scalar_max+=ppr->delta_l_max;
 
-  /** (i.1) shall we write background quantitites in a file? */
+  /** (i.1) shall we write background quantities in a file? */
 
   class_call(parser_read_string(pfc,"write background",&string1,&flag1,errmsg),
              errmsg,
@@ -2639,7 +2639,7 @@ int input_read_parameters(
 
   }
 
-  /** (i.2) shall we write thermodynamics quantitites in a file? */
+  /** (i.2) shall we write thermodynamics quantities in a file? */
 
   class_call(parser_read_string(pfc,"write thermodynamics",&string1,&flag1,errmsg),
              errmsg,
@@ -2651,7 +2651,7 @@ int input_read_parameters(
 
   }
 
-  /** (i.3) shall we write perturbation quantitites in files? */
+  /** (i.3) shall we write perturbation quantities in files? */
 
   class_call(parser_read_list_of_doubles(pfc,
                                          "k_output_values",
@@ -3021,10 +3021,10 @@ int input_default_params(
 /**
  * Initialize the precision parameter structure.
  *
- * All precision parameters used in the other moduels are listed here
+ * All precision parameters used in the other modules are listed here
  * and assigned here a default value.
  *
- * @param ppr Input/Ouput: a precision_params structure pointer
+ * @param ppr Input/Output: a precision_params structure pointer
  * @return the error status
  *
  */

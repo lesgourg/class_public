@@ -15,7 +15,7 @@
  *   generalize the module to more complicated reionization histories.
  *
  * - to provide a routine which allow other modules to evaluate any
- *   thermodynamical quantitites at a given redshft value (by
+ *   thermodynamical quantities at a given redshift value (by
  *   interpolating within the interpolation table).
  *
  *
@@ -25,7 +25,7 @@
  *   and computes the ionization fraction, Thomson scattering rate,
  *   baryon temperature, etc., using RECFAST. The result is stored in
  *   a temporary table 'recombination_table' (within a temporary
- *   structure of type 'recombination') for each redshfit in a range 0
+ *   structure of type 'recombination') for each redshift in a range 0
  *   < z < z_initial.  The sampling in z space is done with a simple
  *   linear step size.
  * - in a second step, the code adds the reionization history,
@@ -55,7 +55,7 @@
  *   integration/derivation routines from the 'array.c' tools module.
  *
  * - small detail: one of the columns contains the maximum variation
- *   rate of a few relevant thermodynamical quantitites. This rate
+ *   rate of a few relevant thermodynamical quantities. This rate
  *   will be used for defining automatically the sampling step size in
  *   the perturbation module. Hence, the exact value of this rate is
  *   unimportant, but its order of magnitude at a given z defines the
@@ -88,8 +88,8 @@
  * @param pth        Input: pointer to the thermodynamics structure (containing pre-computed table)
  * @param z          Input: redshift
  * @param inter_mode Input: interpolation mode (normal or growing_closeby)
- * @param last_index Input/Ouput: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
- * @param pvecback   Input: vector of background quantitites (used only in case z>z_initial for getting ddkappa and dddkappa; in that case, should be already allocated and filled, with format short_info or larger; in other cases, will be ignored)
+ * @param last_index Input/Output: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
+ * @param pvecback   Input: vector of background quantities (used only in case z>z_initial for getting ddkappa and dddkappa; in that case, should be already allocated and filled, with format short_info or larger; in other cases, will be ignored)
  * @param pvecthermo Output: vector of thermodynamics quantities (assumed to be already allocated)
  * @return the error status
  */
@@ -113,12 +113,12 @@ int thermodynamics_at_z(
   /* - the fact that z is in the pre-computed range 0 <= z <= z_initial
      will be checked in the interpolation routines below. Before
      trying to interpolate, allow the routine to deal with the case z
-     > z_intial: then, all relevant quantitites can be extrapolated
+     > z_intial: then, all relevant quantities can be extrapolated
      using simple analytic approximations */
 
   if (z >= pth->z_table[pth->tt_size-1]) {
 
-    /* ionization fraction assmued to reamin constant at large z */
+    /* ionization fraction assumed to remain constant at large z */
     x0= pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_xe];
     pvecthermo[pth->index_th_xe] = x0;
 
@@ -408,7 +408,7 @@ int thermodynamics_init(
                pth->error_message);
   }
 
-  /** - store initial value of conformal time in the straucture */
+  /** - store initial value of conformal time in the structure */
 
   pth->tau_ini = tau_table[pth->tt_size-1];
 
@@ -781,7 +781,7 @@ int thermodynamics_indices(
   /* a running index for the vector of thermodynamics quantities */
   int index;
 
-  /** - intialization of all indices and flags in thermo structure */
+  /** - initialization of all indices and flags in thermo structure */
   index = 0;
 
   pth->index_th_xe = index;
@@ -821,7 +821,7 @@ int thermodynamics_indices(
   /* end of indices */
   pth->th_size = index;
 
-  /** - intialization of all indices and flags in recombination structure */
+  /** - initialization of all indices and flags in recombination structure */
   index = 0;
 
   preco->index_re_z = index;
@@ -838,7 +838,7 @@ int thermodynamics_indices(
   /* end of indices */
   preco->re_size = index;
 
-  /** - intialization of all indices and flags in reionization structure */
+  /** - initialization of all indices and flags in reionization structure */
   index = 0;
 
   preio->index_re_z = index;
@@ -991,7 +991,7 @@ int thermodynamics_helium_from_bbn(
   DeltaNeff = Neff_bbn - 3.046;
 
   /* the following file is assumed to contain (apart from comments and blank lines):
-     - the two numbers (num_omegab, num_deltaN) = number of values of BBN free paramters
+     - the two numbers (num_omegab, num_deltaN) = number of values of BBN free parameters
      - three columns (omegab, deltaN, YHe) where omegab = Omega0_b h^2 and deltaN = Neff-3.046 by definition
      - omegab and deltaN are assumed to be arranged as:
      omegab1 deltaN1 YHe
@@ -1013,13 +1013,13 @@ int thermodynamics_helium_from_bbn(
       left++;
     }
 
-    /* check that the line is neiyher blank neither a comment. In
-       ASCII, left[0]>39 means that first non-blank charachter might
+    /* check that the line is neither blank neither a comment. In
+       ASCII, left[0]>39 means that first non-blank character might
        be the beginning of some data (it is not a newline, a #, a %,
        etc.) */
     if (left[0] > 39) {
 
-      /* if the line contains data, we must interprete it. If
+      /* if the line contains data, we must interpret it. If
          (num_omegab, num_deltaN)=(0,0), the current line must contain
          their values. Otherwise, it must contain (omegab, delatN,
          YHe). */
@@ -1071,22 +1071,22 @@ int thermodynamics_helium_from_bbn(
 
   class_test(omega_b < omegab[0],
              pth->error_message,
-             "You have asked for an unrealistic small value omega_b = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             "You have asked for an unrealistic small value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
              omega_b);
 
   class_test(omega_b > omegab[num_omegab-1],
              pth->error_message,
-             "You have asked for an unrealistic high value omega_b = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
              omega_b);
 
   class_test(DeltaNeff < deltaN[0],
              pth->error_message,
-             "You have asked for an unrealistic small value of Delta N_eff = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
              DeltaNeff);
 
   class_test(DeltaNeff > deltaN[num_deltaN-1],
              pth->error_message,
-             "You have asked for an unrealistic high value of Delta N_eff = %e. The corrresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+             "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
              DeltaNeff);
 
   /* interpolate in one dimension (along deltaN) */
@@ -1142,7 +1142,7 @@ int thermodynamics_helium_from_bbn(
 
 /**
  * In case of non-minimal cosmology, this function determines the
- * energy rate injected in the IGM at a given redhsift z (= on-the-spot
+ * energy rate injected in the IGM at a given redshift z (= on-the-spot
  * annihilation). This energy injection may come e.g. from dark matter
  * annihilation or decay.
  *
@@ -1206,7 +1206,7 @@ int thermodynamics_onthespot_energy_injection(
 
 /**
  * In case of non-minimal cosmology, this function determines the
- * effective energy rate absorbed by the IGM at a given redhsift
+ * effective energy rate absorbed by the IGM at a given redshift
  * (beyond the on-the-spot annihilation). This energy injection may
  * come e.g. from dark matter annihilation or decay.
  *
@@ -1252,7 +1252,7 @@ int thermodynamics_energy_injection(
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
                  error_message,
                  error_message);
-      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
       result = 0.5*dz*first_integrand;
 
       /* other points in trapezoidal integral */
@@ -1262,7 +1262,7 @@ int thermodynamics_energy_injection(
         class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
                    error_message,
                    error_message);
-        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
         result += dz*integrand;
 
       } while (integrand/first_integrand > 0.02);
@@ -1466,7 +1466,7 @@ int thermodynamics_get_xe_before_reionization(
  * @param pth Input : pointer to thermo structure
  * @param preco Input : pointer to filled recombination structure
  * @param preio Input/Output: pointer to reionization structure (to be filled)
- * @param pvecback   Input: vector of background quantitites (used as workspace: must be already allocated, with format short_info or larger, but does not need to be filled)
+ * @param pvecback   Input: vector of background quantities (used as workspace: must be already allocated, with format short_info or larger, but does not need to be filled)
  * @return the error status
  */
 
@@ -1775,7 +1775,7 @@ int thermodynamics_reionization(
  * @param pth Input : pointer to thermo structure
  * @param preco Input : pointer to filled recombination structure
  * @param preio Input/Output: pointer to reionization structure (to be filled)
- * @param pvecback   Input: vector of background quantitites (used as workspace: must be already allocated, with format short_info or larger, but does not need to be filled)
+ * @param pvecback   Input: vector of background quantities (used as workspace: must be already allocated, with format short_info or larger, but does not need to be filled)
  * @return the error status
  */
 
@@ -1907,7 +1907,7 @@ int thermodynamics_reionization_sample(
 
     class_test(dz < ppr->smallest_allowed_variation,
                pth->error_message,
-               "stuck in the loop for reionisation sampling, as if you were trying to impose a discontinuous evolution for xe(z)");
+               "stuck in the loop for reionization sampling, as if you were trying to impose a discontinuous evolution for xe(z)");
 
     /* - try next step */
     z_next=z-dz;
@@ -2143,7 +2143,7 @@ int thermodynamics_recombination(
  * @param ppr      Input: pointer to precision structure
  * @param pba      Input: pointer to background structure
  * @param pth      Input: pointer to thermodynamics structure
- * @param preco    Ouput: pointer to recombination structure
+ * @param preco    Output: pointer to recombination structure
  * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
  *
  */
@@ -2183,7 +2183,7 @@ int thermodynamics_recombination_with_hyrec(
   param.wa = pba->wa_fld;
   param.Y = pth->YHe;
   param.Nnueff = pba->Neff;
-  param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hudrogen today in m-3 */
+  param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hydrogen today in m-3 */
   param.fHe = param.Y/(1-param.Y)/3.97153;              /* abundance of helium by number */
   param.zstart = ppr->recfast_z_initial; /* Redshift range */
   param.zend = 0.;
@@ -2403,7 +2403,7 @@ int thermodynamics_recombination_with_hyrec(
 #else
 
   class_stop(pth->error_message,
-             "you compiled without including the HyRec code, and now whish to use it. Either set the input parameter 'recombination' to something else than 'HyRec', or recompile after setting in the Makefile the appropriate path HYREC=... ");
+             "you compiled without including the HyRec code, and now wish to use it. Either set the input parameter 'recombination' to something else than 'HyRec', or recompile after setting in the Makefile the appropriate path HYREC=... ");
 
 #endif
 
@@ -2449,7 +2449,7 @@ int thermodynamics_recombination_with_hyrec(
  * @param ppr      Input: pointer to precision structure
  * @param pba      Input: pointer to background structure
  * @param pth      Input: pointer to thermodynamics structure
- * @param preco    Ouput: pointer to recombination structure
+ * @param preco    Output: pointer to recombination structure
  * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
  * @return the error status
  */
@@ -3011,7 +3011,7 @@ int thermodynamics_derivs_with_recfast(
   else {
 
     /* Peebles' coefficient (approximated as one when the Hydrogen
-       ionisation fraction is very close to one) */
+       ionization fraction is very close to one) */
     if (x_H < ppr->recfast_x_H0_trigger2) {
       C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
     }
@@ -3020,7 +3020,7 @@ int thermodynamics_derivs_with_recfast(
     }
 
     /* For DM annihilation: fraction of injected energy going into
-       ionisation and Lya excitation */
+       ionization and Lya excitation */
 
     /* - old approximation from Chen and Kamionkowski: */
 

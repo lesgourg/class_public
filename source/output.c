@@ -164,7 +164,7 @@ int output_init(
                pop->error_message);
   }
 
-  /** - deal with background quantitites */
+  /** - deal with background quantities */
 
   if (pop->write_background == _TRUE_) {
 
@@ -174,7 +174,7 @@ int output_init(
 
   }
 
-  /** - deal with thermodynamics quantitites */
+  /** - deal with thermodynamics quantities */
 
   if (pop->write_thermodynamics == _TRUE_) {
 
@@ -184,7 +184,7 @@ int output_init(
 
   }
 
-  /** - deal with perturbation quantitites */
+  /** - deal with perturbation quantities */
 
   if (pop->write_perturbations == _TRUE_) {
 
@@ -1179,8 +1179,8 @@ int output_background(
   class_open(backfile,file_name,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
-    fprintf(backfile,"# Table of selected background quantitites\n");
-    fprintf(backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
+    fprintf(backfile,"# Table of selected background quantities\n");
+    fprintf(backfile,"# All densities are multiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
     fprintf(backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
     if (pba->has_scf == _TRUE_){
       fprintf(backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
@@ -1231,9 +1231,9 @@ int output_thermodynamics(
   class_open(thermofile,file_name,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
-    fprintf(thermofile,"# Table of selected thermodynamics quantitites\n");
+    fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
     fprintf(thermofile,"# The following notation is used in column titles:\n");
-    fprintf(thermofile,"#    x_e = electron ionisation fraction\n");
+    fprintf(thermofile,"#    x_e = electron ionization fraction\n");
     fprintf(thermofile,"# -kappa = optical depth\n");
     fprintf(thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
     fprintf(thermofile,"#      g = kappa' e^-kappa = visibility function \n");
@@ -1401,7 +1401,7 @@ int output_print_data(FILE *out,
  * @param clfile     Output: returned pointer to file pointer
  * @param filename   Input : name of the file
  * @param first_line Input : text describing the content (mode, initial condition..)
- * @param lmax       Input : last multipole in the file (the first one is assmued to be 2)
+ * @param lmax       Input : last multipole in the file (the first one is assumed to be 2)
  * @return the error status
  */
 
@@ -1645,7 +1645,7 @@ int output_open_pk_file(
  *
  * @param pkfile  Input : file pointer
  * @param one_k   Input : wavenumber
- * @param one_pk  Input : matter power sectrum
+ * @param one_pk  Input : matter power spectrum
  * @return the error status
  */
 

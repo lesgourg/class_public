@@ -3,7 +3,7 @@
  * Julien Lesgourgues, 23.09.2010
  *
  * Deals with the perturbation evolution.
- * This mdule has two purposes:
+ * This module has two purposes:
  *
  * - at the beginning, to initialize the perturbations, i.e. to
  * integrate the perturbation equations, and store temporarily the terms
@@ -34,7 +34,7 @@
  * the pre-computed table and interpolating.
  *
  * @param ppt        Input : pointer to perturbation structure containing interpolation tables
- * @param index_md Input : index of requested mode
+ * @param index_md   Input : index of requested mode
  * @param index_ic   Input : index of requested initial condition
  * @param index_type Input : index of requested source function type
  * @param tau        Input : any value of conformal time
@@ -89,7 +89,7 @@ int perturb_sources_at_tau(
  *    compute and store the source functions.
  *
  * @param ppr Input : pointer to precision structure
- * @param pba Input : pointer to background strucutre
+ * @param pba Input : pointer to background structure
  * @param pth Input : pointer to thermodynamics structure
  * @param ppt Output: Initialized perturbation structure
  * @return the error status
@@ -122,7 +122,7 @@ int perturb_init(
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
      parallel region. */
   int abort;
 
@@ -490,7 +490,7 @@ int perturb_free(
  * Initialize all indices and allocate most arrays in perturbs structure.
  *
  * @param ppr Input : pointer to precision structure
- * @param pba Input : pointer to background strucutre
+ * @param pba Input : pointer to background structure
  * @param pth Input : pointer to thermodynamics structure
  * @param ppt Input/Output: Initialized perturbation structure
  * @return the error status
@@ -716,7 +716,7 @@ int perturb_indices_of_perturbs(
 
       class_test(index_type == 0,
                  ppt->error_message,
-                 "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarisation, lensing/gravitational potential, ...). Please adjust your input.");
+                 "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarization, lensing/gravitational potential, ...). Please adjust your input.");
 
       /** -- count scalar initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) and assign corresponding indices */
 
@@ -745,7 +745,7 @@ int perturb_indices_of_perturbs(
       /**
       class_test(index_type == 0,
                  ppt->error_message,
-                 "inconsistent input: you asked for vectors, so you should have at least one non-zero vector source type (temperature or polarisation). Please adjust your input.");
+                 "inconsistent input: you asked for vectors, so you should have at least one non-zero vector source type (temperature or polarization). Please adjust your input.");
       */
 
       /** -- initial conditions for vectors*/
@@ -768,7 +768,7 @@ int perturb_indices_of_perturbs(
       /**
       class_test(index_type == 0,
                  ppt->error_message,
-                 "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarisation). Please adjust your input.");
+                 "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
       */
 
       /** -- only one initial condition for tensors*/
@@ -799,7 +799,7 @@ int perturb_indices_of_perturbs(
  * arrays of source functions.
  *
  * @param ppr Input : pointer to precision structure
- * @param pba Input : pointer to background strucutre
+ * @param pba Input : pointer to background structure
  * @param pth Input : pointer to thermodynamics structure
  * @param ppt Input/Output: Initialized perturbation structure
  * @return the error status
@@ -1170,7 +1170,7 @@ int perturb_timesampling_for_sources(
  * passed in the precision structure.
  *
  * @param ppr        Input : pointer to precision structure
- * @param pba        Input : pointer to background strucutre
+ * @param pba        Input : pointer to background structure
  * @param pth        Input : pointer to thermodynamics structure
  * @param ppt        Input : pointer to perturbation structure
  * @return the error status
@@ -1271,9 +1271,9 @@ int perturb_get_k_list(
       /* if we need density/lensing Cl's, we must impose a stronger condition,
          such that the minimum wavelength on the shell corresponding
          to the center of smallest redshift bin is seen under an
-         angle smaller than pi/lmax. So we must mutiply our previous
+         angle smaller than pi/lmax. So we must multiply our previous
          k_max_cl[ppt->index_md_scalars] by the ratio tau0/(tau0-tau[center of smallest
-         redhsift bin]). Note that we could do the same with the
+         redshift bin]). Note that we could do the same with the
          lensing potential if we needed a very precise C_l^phi-phi at
          large l. We don't do it by default, because the lensed ClT,
          ClE would be marginally affected. */
@@ -1286,7 +1286,7 @@ int perturb_get_k_list(
                    pba->error_message,
                    ppt->error_message);
 
-        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redhsift instead of comoving radius: would implement corrections dependning on curvature
+        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redshift instead of comoving radius: would implement corrections depending on curvature
         k_max    = k_max_cl[ppt->index_md_scalars];
       }
     }
@@ -1319,7 +1319,7 @@ int perturb_get_k_list(
        define in the perturbation module some arbitrary values of k:
        later on, the transfer module will interpolate at values of k
        corresponding exactly to integer values of nu. Hence, apart
-       from the value of k_min and the step size in thevicinity of
+       from the value of k_min and the step size in the vicinity of
        k_min, we define exactly the same sampling in the three cases
        K=0, K<0, K>0 */
 
@@ -1480,7 +1480,7 @@ int perturb_get_k_list(
        define in the perturbation module some arbitrary values of k:
        later on, the transfer module will interpolate at values of k
        corresponding exactly to integer values of nu. Hence, apart
-       from the value of k_min and the step size in thevicinity of
+       from the value of k_min and the step size in the vicinity of
        k_min, we define exactly the same sampling in the three cases
        K=0, K<0, K>0 */
 
@@ -1614,7 +1614,7 @@ int perturb_get_k_list(
        define in the perturbation module some arbitrary values of k:
        later on, the transfer module will interpolate at values of k
        corresponding exactly to integer values of nu. Hence, apart
-       from the value of k_min and the step size in thevicinity of
+       from the value of k_min and the step size in the vicinity of
        k_min, we define exactly the same sampling in the three cases
        K=0, K<0, K>0 */
 
@@ -1739,7 +1739,7 @@ int perturb_get_k_list(
 
       /** The two MIN statements is here because in a normal run, the cl and cmb
           arrays contain a single k value larger than their respective k_max.
-          We are mimicking this behaviour. */
+          We are mimicking this behavior. */
     }
   }
 
@@ -1826,7 +1826,7 @@ int perturb_workspace_init(
     if (pba->has_ncdm == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ncdm);
   }
 
-  /** Allocate s_l[] array for freestreaming of multipoles (see arXiv:1305.3261) and initialise
+  /** Allocate s_l[] array for freestreaming of multipoles (see arXiv:1305.3261) and initialize
       to 1.0 which is the K=0 value. */
   class_alloc(ppw->s_l, sizeof(double)*(ppw->max_l_max+1),ppt->error_message);
   for (l=0; l<=ppw->max_l_max; l++){
@@ -1914,7 +1914,7 @@ int perturb_workspace_init(
   if (ppw->ap_size > 0)
     class_alloc(ppw->approx,ppw->ap_size*sizeof(int),ppt->error_message);
 
-  /** - For definitness, initialize approximation flags to arbitrary
+  /** - For definiteness, initialize approximation flags to arbitrary
       values (correct values are overwritten in
       pertub_find_approximation_switches) */
 
@@ -2048,7 +2048,7 @@ int perturb_solve(
   /* running index over types (temperature, etc) */
   int index_type;
 
-  /* fourier mode */
+  /* Fourier mode */
   double k;
 
   /* number of time intervals where the approximation scheme is uniform */
@@ -2302,7 +2302,7 @@ int perturb_solve(
     }
   }
 
-  /** - loop over intervals over which approximatiomn scheme is uniform. For each interval: */
+  /** - loop over intervals over which approximation scheme is uniform. For each interval: */
 
   for (index_interval=0; index_interval<interval_number; index_interval++) {
 
@@ -2390,7 +2390,7 @@ int perturb_solve(
     }
   }
 
-  /** - free quantitites allocated at the beginning of the routine */
+  /** - free quantities allocated at the beginning of the routine */
 
   class_call(perturb_vector_free(ppw->pv),
              ppt->error_message,
@@ -2513,7 +2513,7 @@ int perturb_prepare_output(struct background * pba,
 
 /**
  * For a given mode and wavenumber, find the number of interval of
- * times bewteen tau_ini and tau_end such that the approximation
+ * times between tau_ini and tau_end such that the approximation
  * scheme (and the number of perturbation equations) is uniform.
  *
  * @param ppr                Input: pointer to precision structure
@@ -2868,8 +2868,8 @@ int perturb_find_approximation_switches(
 /**
  * Initialize the field '->pv' of a perturb_workspace structure, which
  * is a perturb_vector structure. This structure contains indices and
- * values of all quantitites which need to be integrated with respect
- * to time (and only them: quantitites fixed analytically or obeying a
+ * values of all quantities which need to be integrated with respect
+ * to time (and only them: quantities fixed analytically or obeying a
  * constraint equations are NOT included in this vector). This routine
  * distinguishes between two cases:
  *
@@ -2877,7 +2877,7 @@ int perturb_find_approximation_switches(
  *
  * This happens when we start integrating over a new wavenumber and we
  * want to set initial conditions for the perturbations. Then, it is
- * assumed that ppw->pv is not yet alloacted. This routine allocates
+ * assumed that ppw->pv is not yet allocated. This routine allocates
  * it, defines all indices, and then fill the vector ppw->pv->y with
  * the initial conditions defined in perturb_initial_conditions.
  *
@@ -2888,7 +2888,7 @@ int perturb_find_approximation_switches(
  * integrating over a given wavenumber. The new approximation
  * described by ppw->pa is then different from pa_old. Then, this
  * routine allocates a new vector with a new size and new index
- * values; it fills this vector with initial condtions taken from the
+ * values; it fills this vector with initial conditions taken from the
  * previous vector passed as an input in ppw->pv, and eventually with
  * some analytic approximations for the new variables appearing at
  * this time; then the new vector comes in replacement of the old one,
@@ -2902,8 +2902,8 @@ int perturb_find_approximation_switches(
  * @param index_ic   Input: index of initial condition under consideration (ad, iso...)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
- * @param ppw        Input/Output: workspace containing input the approximation scheme, the background/thermodynamics/metric quantitites, and eventually the previous vector y; and in output the new vector y.
- * @param pa_old     Input: NULL is we need to set y to initial conditions for a new wavnumber; points towards a perturb_approximations if we want to switch of approximation.
+ * @param ppw        Input/Output: workspace containing input the approximation scheme, the background/thermodynamics/metric quantities, and eventually the previous vector y; and in output the new vector y.
+ * @param pa_old     Input: NULL is we need to set y to initial conditions for a new wavenumber; points towards a perturb_approximations if we want to switch of approximation.
  * @return the error status
  */
 
@@ -2946,24 +2946,24 @@ int perturb_vector_init(
 
   if (_scalars_) {
 
-    /* reject inconsistent values of the number of mutipoles in photon temperature hierachy */
+    /* reject inconsistent values of the number of mutipoles in photon temperature hierarchy */
     class_test(ppr->l_max_g < 4,
                ppt->error_message,
                "ppr->l_max_g should be at least 4, i.e. we must integrate at least over photon density, velocity, shear, third and fourth momentum");
 
-    /* reject inconsistent values of the number of mutipoles in photon polarization hierachy */
+    /* reject inconsistent values of the number of mutipoles in photon polarization hierarchy */
     class_test(ppr->l_max_pol_g < 4,
                ppt->error_message,
                "ppr->l_max_pol_g should be at least 4");
 
-    /* reject inconsistent values of the number of mutipoles in decay radiation hierachy */
+    /* reject inconsistent values of the number of mutipoles in decay radiation hierarchy */
     if (pba->has_dr == _TRUE_) {
       class_test(ppr->l_max_dr < 4,
                  ppt->error_message,
                  "ppr->l_max_dr should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
     }
 
-    /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
+    /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierarchy */
     if (pba->has_ur == _TRUE_) {
       class_test(ppr->l_max_ur < 4,
                  ppt->error_message,
@@ -3059,7 +3059,7 @@ int perturb_vector_init(
       for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
         // Set value of ppv->l_max_ncdm:
         if(ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_off){
-          /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierachy */
+          /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierarchy */
           class_test(ppr->l_max_ncdm < 4,
                      ppt->error_message,
                      "ppr->l_max_ncdm=%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
@@ -3068,7 +3068,7 @@ int perturb_vector_init(
           ppv->q_size_ncdm[n_ncdm] = pba->q_size_ncdm[n_ncdm];
         }
         else{
-          // In the fluid approximaation, hierarcy is cut at lmax = 2 and q dependance is integrated out:
+          // In the fluid approximation, hierarchy is cut at lmax = 2 and q dependence is integrated out:
           ppv->l_max_ncdm[n_ncdm] = 2;
           ppv->q_size_ncdm[n_ncdm] = 1;
         }
@@ -3076,7 +3076,7 @@ int perturb_vector_init(
       }
     }
 
-    /* metric (only quantitites to be integrated, not those obeying constraint equations) */
+    /* metric (only quantities to be integrated, not those obeying constraint equations) */
 
     /* metric perturbation eta of synchronous gauge */
     class_define_index(ppv->index_pt_eta,ppt->gauge == synchronous,index_pt,1);
@@ -3094,7 +3094,7 @@ int perturb_vector_init(
     /* Vector baryon velocity: v_b^{(1)}. */
     class_define_index(ppv->index_pt_theta_b,_TRUE_,index_pt,1);
 
-    /* eventually reject inconsistent values of the number of mutipoles in photon temperature hierachy and polarisation*/
+    /* eventually reject inconsistent values of the number of mutipoles in photon temperature hierarchy and polarization*/
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) { /* if tight-coupling approximation is off */
@@ -3127,12 +3127,12 @@ int perturb_vector_init(
 
   if (_tensors_) {
 
-    /* reject inconsistent values of the number of mutipoles in photon temperature hierachy */
+    /* reject inconsistent values of the number of mutipoles in photon temperature hierarchy */
     class_test(ppr->l_max_g_ten < 4,
                ppt->error_message,
                "ppr->l_max_g_ten should be at least 4, i.e. we must integrate at least over photon density, velocity, shear, third momentum");
 
-    /* reject inconsistent values of the number of mutipoles in photon polarization hierachy */
+    /* reject inconsistent values of the number of mutipoles in photon polarization hierarchy */
     class_test(ppr->l_max_pol_g_ten < 4,
                ppt->error_message,
                "ppr->l_max_pol_g_ten should be at least 4");
@@ -3223,7 +3223,7 @@ int perturb_vector_init(
         for (index_pt=ppv->index_pt_l3_g; index_pt <= ppv->index_pt_delta_g+ppv->l_max_g; index_pt++)
           ppv->used_in_sources[index_pt]=_FALSE_;
 
-        /* for polarisation, we only need l=0,2 (but l =1,3, ... are
+        /* for polarization, we only need l=0,2 (but l =1,3, ... are
            defined only when rsa and tca are off) */
 
         ppv->used_in_sources[ppv->index_pt_pol1_g]=_FALSE_;
@@ -3281,7 +3281,7 @@ int perturb_vector_init(
         for (index_pt=ppv->index_pt_delta_g+5; index_pt <= ppv->index_pt_delta_g+ppv->l_max_g; index_pt++)
           ppv->used_in_sources[index_pt]=_FALSE_;
 
-        /* same for polarisation, we only need l=0,2,4 */
+        /* same for polarization, we only need l=0,2,4 */
 
         ppv->used_in_sources[ppv->index_pt_pol1_g]=_FALSE_;
         ppv->used_in_sources[ppv->index_pt_pol3_g]=_FALSE_;
@@ -3960,7 +3960,7 @@ int perturb_vector_free(
  * @param index_ic   Input: index of initial condition under consideration (ad, iso...)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
- * @param ppw        Input/Output: workspace containing input the approximation scheme, the background/thermodynamics/metric quantitites, and eventually the previous vector y; and in output the new vector y.
+ * @param ppw        Input/Output: workspace containing input the approximation scheme, the background/thermodynamics/metric quantities, and eventually the previous vector y; and in output the new vector y.
  * @return the error status
  */
 
@@ -4068,7 +4068,7 @@ int perturb_initial_conditions(struct precision * ppr,
     /* omega = Omega_m(t_i) a(t_i) H(t_i) / sqrt(Omega_r(t_i))
        = Omega_m(t_0) a(t_0) H(t_0) / sqrt(Omega_r(t_0)) assuming rho_m in a-3 and rho_r in a^-4
        = (8piG/3 rho_m(t_i)) a(t_i) / sqrt(8piG/3 rho_r(t_i))  in Mpc-1
-       This (a priori stange) parameter is the relevant one for expressing a
+       This (a priori strange) parameter is the relevant one for expressing a
        as a function of tau during radiation and matter domination (but not DE domination).
        Indeed the exact solution of Friedmann when there is only radiation and matter in
        the universe is
@@ -4102,7 +4102,7 @@ int perturb_initial_conditions(struct precision * ppr,
          theta_ur, shear_ur, tau
 
          In the non-flat case the relation R=eta is still valid
-         outsode the horizon for adiabatic IC. Hence eta is still
+         outside the horizon for adiabatic IC. Hence eta is still
          set to ppr->curvature_ini at leading order.  Factors s2
          appear through the solution of Einstein equations and
          equations of motion. */
@@ -4482,9 +4482,9 @@ int perturb_initial_conditions(struct precision * ppr,
        curvature R, and F is a function of k2/K, where K is the curvature
        parameter. F is equal to one in flat space (K=0), and coming
        from the contraction of the laplacian eigentensor Q_ij with
-       itself. We will give F explicitely below.
+       itself. We will give F explicitly below.
 
-       Similarily the scalar (S) and tensor (T) C_ls are given by
+       Similarly the scalar (S) and tensor (T) C_ls are given by
 
        C_l^S = 4pi \int dk/k [Delta_l^S(q)]^2 calPR(k)
        C_l^T = 4pi \int dk/k [Delta_l^T(q)]^2 F(k^2/K) calPh(k)
@@ -4561,8 +4561,8 @@ int perturb_initial_conditions(struct precision * ppr,
 
        h = sqrt[ [k2(k2-K)]/[(k2+3K)(k2+2K)] / 6 * tanh(pi*nu/2) ]
 
-       We leave the freedom to mutiply by an arbitrary number
-       ppr->gw_ini. The standard convenrtion corresponding to
+       We leave the freedom to multiply by an arbitrary number
+       ppr->gw_ini. The standard convention corresponding to
        standard definitions of r, A_T, n_T is however ppr->gw_ini=1.
 
     */
@@ -4621,7 +4621,7 @@ int perturb_initial_conditions(struct precision * ppr,
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to thermodynamics structure
  * @param ppt        Input: pointer to the perturbation structure
- * @param index_md Input: index of mode under consideration (scalar/.../tensor)
+ * @param index_md   Input: index of mode under consideration (scalar/.../tensor)
  * @param k          Input: wavenumber
  * @param tau        Input: conformal time
  * @param ppw        Input/Output: in output contains the approximation to be used at this time
@@ -4819,7 +4819,7 @@ int perturb_approximations(
  *
  * @param tau                      Input : conformal time
  * @param parameters_and_workspace Input : fixed parameters (e.g. indices), workspace, approximation used, etc.
- * @param timescale                Output: perturbation variation timescale (given the apprtoximation used)
+ * @param timescale                Output: perturbation variation timescale (given the approximation used)
  * @param error_message            Output: error message
  */
 
@@ -5135,7 +5135,7 @@ int perturb_einstein(
       //
       // note2: at this point this gauge-invariant variable is only
       // valid if all matter components are pressureless and
-      // stable. This relation will be generalised soon to the case
+      // stable. This relation will be generalized soon to the case
       // of decaying dark matter.
     }
 
@@ -5290,7 +5290,7 @@ int perturb_total_stress_energy(
 
         delta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
         theta_ur = 0.; /* actual free streaming approximation imposed after evaluation of 1st einstein equation */
-        shear_ur = 0.; /* shear always neglected in free streaming approximatio */
+        shear_ur = 0.; /* shear always neglected in free streaming approximation */
 
       }
 
@@ -5598,7 +5598,7 @@ int perturb_total_stress_energy(
 
         if (pba->has_ncdm == _TRUE_) {
           for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-            /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
+            /* (3 p_ncdm1) is the "relativistic" contribution to rho_ncdm1 */
             rho_relativistic += 3.*ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
           }
         }
@@ -5666,7 +5666,7 @@ int perturb_total_stress_energy(
  * @param y                        Input: vector of perturbations
  * @param dy                       Input: vector of time derivative of perturbations
  * @param index_tau                Input: index in the array tau_sampling
- * @param parameters_and_workspace Input/Output: in input, all parameters needed by perturb_derivs, in ourput, source terms
+ * @param parameters_and_workspace Input/Output: in input, all parameters needed by perturb_derivs, in output, source terms
  * @param error_message            Output: error message
  * @return the error status
  */
@@ -5926,7 +5926,7 @@ int perturb_sources(
           a_prime_over_a * pvecmetric[ppw->index_mt_alpha] + pvecmetric[ppw->index_mt_alpha_prime];
     }
 
-    /* total matter overdensity (gauge-invariant, defined as in arXiv:1307.1459) */
+    /* total matter over density (gauge-invariant, defined as in arXiv:1307.1459) */
     if (ppt->has_source_delta_m == _TRUE_) {
       _set_source_(ppt->index_tp_delta_m) = ppw->delta_m;
     }
@@ -6088,7 +6088,7 @@ int perturb_sources(
     /* tensor polarization */
     if (ppt->has_source_p == _TRUE_) {
 
-      /* Note that the correct formula for the polarisation source
+      /* Note that the correct formula for the polarization source
          should have a minus sign, as shown in Hu & White. We put a
          plus sign to comply with the 'historical convention'
          established in CMBFAST and CAMB. */
@@ -6105,7 +6105,7 @@ int perturb_sources(
 /**
  * When testing the code or a cosmological model, it can be useful to
  * output perturbations at each step of integration (and not just the
- * delta's at each source sampling point, which is acheived simply by
+ * delta's at each source sampling point, which is achieved simply by
  * asking for matter transfer functions). Then this function can be
  * passed to the generic_evolver routine.
  *
@@ -6633,7 +6633,7 @@ int perturb_print_variables(double tau,
  *
  * @param tau                      Input: conformal time
  * @param y                        Input: vector of perturbations
- * @param dy                       Ouput: vector of its derivatives (already allocated)
+ * @param dy                       Output: vector of its derivatives (already allocated)
  * @param parameters_and_workspace Input/Output: in input, fixed parameters (e.g. indices); in output, background and thermo quantities evaluated at tau.
  * @param error_message            Output : error message
  */
@@ -6914,7 +6914,7 @@ int perturb_derivs(double tau,
 
     }
 
-    /** -> photon temperature higher momenta and photon polarisation (depend on tight-coupling approximation) : */
+    /** -> photon temperature higher momenta and photon polarization (depend on tight-coupling approximation) : */
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
 
@@ -6958,32 +6958,32 @@ int perturb_derivs(double tau,
           k*(s_l[l]*y[pv->index_pt_delta_g+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
           - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
 
-        /** -----> photon polarisation l=0 */
+        /** -----> photon polarization l=0 */
 
         dy[pv->index_pt_pol0_g] =
           -k*y[pv->index_pt_pol0_g+1]
           -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-4.*P0);
 
-        /** -----> photon polarisation l=1 */
+        /** -----> photon polarization l=1 */
 
         dy[pv->index_pt_pol1_g] =
           k/3.*(y[pv->index_pt_pol1_g-1]-2.*s_l[2]*y[pv->index_pt_pol1_g+1])
           -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol1_g];
 
-        /** -----> photon polarisation l=2 */
+        /** -----> photon polarization l=2 */
 
         dy[pv->index_pt_pol2_g] =
           k/5.*(2.*s_l[2]*y[pv->index_pt_pol2_g-1]-3.*s_l[3]*y[pv->index_pt_pol2_g+1])
           -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol2_g]-4./5.*P0);
 
-        /** -----> photon polarisation l>2 */
+        /** -----> photon polarization l>2 */
 
         for (l=3; l < pv->l_max_pol_g; l++)
           dy[pv->index_pt_pol0_g+l] = k/(2.*l+1)*
             (l*s_l[l]*y[pv->index_pt_pol0_g+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
             -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
 
-        /** -----> photon polarisation lmax_pol */
+        /** -----> photon polarization lmax_pol */
 
         l = pv->l_max_pol_g;
         dy[pv->index_pt_pol0_g+l] =
@@ -7188,7 +7188,7 @@ int perturb_derivs(double tau,
 
         else {
 
-          /** -----> in fluid approximation (ufa): only ur shear neeeded */
+          /** -----> in fluid approximation (ufa): only ur shear needed */
           //TBC: curvature?
           /* a la Ma & Bertschinger */
           if (ppr->ur_fluid_approximation == ufa_mb) {
@@ -7239,7 +7239,7 @@ int perturb_derivs(double tau,
           rho_ncdm_bg = pvecback[pba->index_bg_rho_ncdm1+n_ncdm]; /* background density */
           p_ncdm_bg = pvecback[pba->index_bg_p_ncdm1+n_ncdm]; /* background pressure */
           pseudo_p_ncdm = pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm]; /* pseudo-pressure (see CLASS IV paper) */
-          w_ncdm = p_ncdm_bg/rho_ncdm_bg; /* eqaution of state parameter */
+          w_ncdm = p_ncdm_bg/rho_ncdm_bg; /* equation of state parameter */
           ca2_ncdm = w_ncdm/3.0/(1.0+w_ncdm)*(5.0-pseudo_p_ncdm/p_ncdm_bg); /* adiabatic sound speed */
 
           /* c_eff is (delta p / delta rho) in the gauge under
@@ -7314,7 +7314,7 @@ int perturb_derivs(double tau,
 
           for (index_q=0; index_q < pv->q_size_ncdm[n_ncdm]; index_q++) {
 
-            /** -----> define intermediate quantitites */
+            /** -----> define intermediate quantities */
 
             dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
             q = pba->q_ncdm[n_ncdm][index_q];
@@ -7638,7 +7638,7 @@ int perturb_derivs(double tau,
 
         for (index_q=0; index_q < pv->q_size_ncdm[n_ncdm]; index_q++) {
 
-          /** -----> define intermediate quantitites */
+          /** -----> define intermediate quantities */
 
           dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
           q = pba->q_ncdm[n_ncdm][index_q];

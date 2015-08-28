@@ -34,7 +34,7 @@
  *
  * For a given mode (scalar, vector, tensor), initial condition, type
  * (temperature, polarization, lensing, etc) and multipole, computes
- * the transfer function for an arbitary value of q by interpolating
+ * the transfer function for an arbitrary value of q by interpolating
  * between pre-computed values of q. This
  * function can be called from whatever module at whatever time,
  * provided that transfer_init() has been called before, and
@@ -42,7 +42,7 @@
  *
  * Wavenumbers are called q in this module and k in the perturbation
  * module. In flat universes k=q. In non-flat universes q and k differ
- * through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector,
+ * through \f$ q2 = k2 + K(1+m)\f$, where m=0,1,2 for scalar, vector,
  * tensor. q should be used throughout the transfer module, excepted
  * when interpolating or manipulating the source functions S(k,tau)
  * calculated in the perturbation module: for a given value of q, this
@@ -100,7 +100,7 @@ int transfer_functions_at_q(
  *
  * - for each thread (in case of parallel run), initialize the fields of a memory zone called the transfer_workspace with transfer_workspace_init()
  *
- * - loop over q values. For each q, compute the bessel functions if needed with transfer_update_HIS(), and defer the calculation of all transfer functions to transfer_compute_for_each_q()
+ * - loop over q values. For each q, compute the Bessel functions if needed with transfer_update_HIS(), and defer the calculation of all transfer functions to transfer_compute_for_each_q()
  * - for each thread, free the the workspace with transfer_workspace_free()
  *
  * @param ppr Input : pointer to precision structure
@@ -154,7 +154,7 @@ int transfer_init(
   /* pointer on workspace (one per thread if openmp) */
   struct transfer_workspace * ptw;
 
-  /** - array with the correspondance between the index of sources in
+  /** - array with the correspondence between the index of sources in
       the perturbation module and in the transfer module,
       tp_of_tt[index_md][index_tt]
   */
@@ -168,7 +168,7 @@ int transfer_init(
   /* This code can be optionally compiled with the openmp option for parallel computation.
      Inside parallel regions, the use of the command "return" is forbidden.
      For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
      parallel region. */
   int abort;
 
@@ -204,8 +204,8 @@ int transfer_init(
   tau0 = pba->conformal_age;
   tau_rec = pth->tau_rec;
 
-  /** - correspondance between k and l depend on angular diameter
-      diatance, i.e. on curvature. */
+  /** - correspondence between k and l depend on angular diameter
+      distance, i.e. on curvature. */
 
   ptr->angular_rescaling = pth->angular_rescaling;
 
@@ -323,7 +323,7 @@ int transfer_init(
                         ptr->error_message,
                         ptr->error_message);
 
-    /** - loop over all wavenumbers (parallelised). For each wavenumber: */
+    /** - loop over all wavenumbers (parallelized). For each wavenumber: */
 
 #pragma omp for schedule (dynamic)
 
@@ -774,7 +774,7 @@ int transfer_perturbation_sources_spline_free(
 }
 
 /**
- * This routine defines the number and values of mutipoles l for all modes.
+ * This routine defines the number and values of multipoles l for all modes.
  *
  * @param ppr  Input : pointer to precision structure
  * @param ppt  Input : pointer to perturbation structure
@@ -1126,7 +1126,7 @@ int transfer_get_q_list(
        nu<nu_flat_approximation
 
        - for nu>nu_flat_approximation, the step gradually catches up
-       the same expression as in the flat/opne case, and there is no
+       the same expression as in the flat/open case, and there is no
        need to round up to integer nu's.
     */
 
@@ -1163,7 +1163,7 @@ int transfer_get_q_list(
     index_q++;
   }
 
-  /* infer total number of values (also checking if we overshooted the last point) */
+  /* infer total number of values (also checking if we overshot the last point) */
 
   if (ptr->q[index_q-1] > q_max)
     ptr->q_size=index_q-1;
@@ -1204,7 +1204,7 @@ int transfer_get_q_list(
 
 /**
  * This routine infers from the q values a list of corresponding k
- * avlues for each mode.
+ * values for each mode.
  *
  * @param ppt     Input : pointer to perturbation structure
  * @param ptr     Input/Output : pointer to transfers structure containing q's
@@ -1285,7 +1285,7 @@ int transfer_get_k_list(
  *
  * @param ppt  Input : pointer to perturbation structure
  * @param ptr  Input : pointer to transfers structure containing l's
- * @param tp_of_tt : Input/Output: array with the correspondance (allocated before, filled here)
+ * @param tp_of_tt : Input/Output: array with the correspondence (allocated before, filled here)
  * @return the error status
  */
 
@@ -1465,9 +1465,9 @@ int transfer_source_tau_size_max(
  * @param ptr                   Input : pointer to transfers structure
  * @param tau_rec               Input : recombination time
  * @param tau0                  Input : time today
- * @param index_md            Input : index of the mode (scalar, tensor)
+ * @param index_md              Input : index of the mode (scalar, tensor)
  * @param index_tt              Input : index of transfer type
- * @param tau_size              Output: pointer to number of smapled times
+ * @param tau_size              Output: pointer to number of sampled times
  * @return the error status
  */
 
@@ -1491,7 +1491,7 @@ int transfer_source_tau_size(
   /* value of l at which limber approximation is switched on */
   int l_limber;
 
-  /* current redhsift bin number */
+  /* current redshift bin number */
   int bin=0;
 
   /* scalar mode */
@@ -1502,7 +1502,7 @@ int transfer_source_tau_size(
         ((index_tt == ptr->index_tt_t0) || (index_tt == ptr->index_tt_t1) || (index_tt == ptr->index_tt_t2)))
       *tau_size = ppt->tau_size;
 
-    /* scalar polarisation */
+    /* scalar polarization */
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == ptr->index_tt_e))
       *tau_size = ppt->tau_size;
 
@@ -1681,7 +1681,7 @@ int transfer_compute_for_each_q(
      per thread) containing various fields used by the integration
      routine */
 
-  /* - first workspace field: perturbation source interpolated from perturbation stucture */
+  /* - first workspace field: perturbation source interpolated from perturbation structure */
   double * interpolated_sources;
 
   /* - second workspace field: list of tau0-tau values, tau0_minus_tau[index_tau] */
@@ -1785,7 +1785,7 @@ int transfer_compute_for_each_q(
                      ptr->error_message);
 
           /* now that the array of times tau0_minus_tau is known, we can
-             infer the arry of radial coordinates r(tau0_minus_tau) as well as a
+             infer the array of radial coordinates r(tau0_minus_tau) as well as a
              few other quantities related by trigonometric functions */
 
           class_call(transfer_radial_coordinates(ptr,ptw,index_md,index_q),
@@ -1839,7 +1839,7 @@ int transfer_compute_for_each_q(
               /* for a given l, maximum value of k such that we can
                  convolve the source with Bessel functions j_l(x)
                  without reaching x_max (this is relevant in the flat
-                 case when the bessels are compiuted with the old bessel
+                 case when the bessels are computed with the old bessel
                  module. otherwise this condition is guaranteed by the
                  choice of proper xmax when computing bessels) */
               if (ptw->sgnK == 0) {
@@ -2125,9 +2125,9 @@ int transfer_sources(
   double dln_dNdz_dz;
 
   /* in which cases are perturbation and transfer sources are different?
-     I.e., in which case do we need to mutiply the sources by some
+     I.e., in which case do we need to multiply the sources by some
      background and/or window function, and eventually to resample it,
-     or redfine its time limits? */
+     or redefine its time limits? */
 
   redefine_source = _FALSE_;
 
@@ -2221,7 +2221,7 @@ int transfer_sources(
                 /sinh((tau0-tau_rec)*sqrt(-pba->K));
               break;
             }
-            // Note: until 2.4.3 there was a bug here: the curvature effects had been ommitted.
+            // Note: until 2.4.3 there was a bug here: the curvature effects had been omitted.
           }
 
           /* copy from input array to output array */
@@ -2297,7 +2297,7 @@ int transfer_sources(
 
         class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
                    ptr->error_message,
-                   "this should not happen, there was probably a rounding error, if this error occured, then this must be coded more carefully");
+                   "this should not happen, there was probably a rounding error, if this error occurred, then this must be coded more carefully");
 
         /* resample the source at those times */
         class_call(transfer_source_resample(ppr,
@@ -2386,7 +2386,7 @@ int transfer_sources(
 
                 class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
                            ptr->error_message,
-                           "Your input file for the selection function only covers the redhsift range [%f : %f]. However, your input for the selection function requires z=%f",
+                           "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
                            ptr->nz_evo_z[0],
                            ptr->nz_evo_z[ptr->nz_evo_size-1],
                            z);
@@ -2437,7 +2437,7 @@ int transfer_sources(
           if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
             rescaling = ptr->selection_bias[bin]*selection[index_tau];
 
-          /* redhsift space distorsion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
+          /* redshift space distortion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
 
           if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
             rescaling = selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
@@ -2726,7 +2726,7 @@ int transfer_sources(
 
                       class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
                                  ptr->error_message,
-                                 "Your input file for the selection function only covers the redhsift range [%f : %f]. However, your input for the selection function requires z=%f",
+                                 "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
                                  ptr->nz_evo_z[0],
                                  ptr->nz_evo_z[ptr->nz_evo_size-1],
                                  z);
@@ -2886,7 +2886,7 @@ int transfer_selection_function(
 
         class_test((z<ptr->nz_z[0]) || (z>ptr->nz_z[ptr->nz_size-1]),
                    ptr->error_message,
-                   "Your input file for the selection function only covers the redhsift range [%f : %f]. However, your input for the selection function requires z=%f",
+                   "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
                    ptr->nz_z[0],
                    ptr->nz_z[ptr->nz_size-1],
                    z);
@@ -2924,12 +2924,12 @@ int transfer_selection_function(
   /* top-hat case, with smoothed edges. The problem with sharp edges
      is that the final result will be affected by random
      noise. Indeed, the values of k at which the transfer functions
-     Delta_l(k) are sampled will never coicide with the actual edges
+     Delta_l(k) are sampled will never coincide with the actual edges
      of the true transfer function (computed with or even without the
      Limber approximation). Hence the integral Cl=\int dk
-     Delta_l(k)**2 (...) will be unprecise and will fluctuate randomly
+     Delta_l(k)**2 (...) will be imprecise and will fluctuate randomly
      with the resolution along k. With smooth edges, the problem is
-     sloved, and the final Cls become mildly dependent on the
+     solved, and the final Cls become mildly dependent on the
      resolution along k. */
 
   if (ppt->selection==tophat) {
@@ -3001,7 +3001,7 @@ int transfer_dNdz_analytic(
      function. Typical function for photometric sample: dN/dz =
      (z/z0)^alpha exp[-(z/z0)^beta]. Then: dln(dN/dz)/dz = (alpha -
      beta*(z/z0)^beta)/z. In principle, one is free to use different
-     ansaztz for the selection function and the evolution
+     ansatz for the selection function and the evolution
      function. Since the selection function uses only dN/dz, while the
      evolution uses only dln(dN/dz)/dz, it is possible to use
      different functions for dN/dz and dln(dN/dz)/dz */
@@ -3021,7 +3021,7 @@ int transfer_dNdz_analytic(
 }
 
 /**
- * for sources that need to be mutiplied by a selection function,
+ * for sources that need to be multiplied by a selection function,
  * redefine a finer time sampling in a small range
  *
  * @param ppr                   Input : pointer to precision structure
@@ -3141,7 +3141,7 @@ int transfer_lensing_sampling(
 
 
 /**
- * for sources that need to be mutiplied by a selection function,
+ * for sources that need to be multiplied by a selection function,
  * redefine a finer time sampling in a small range, and resample the
  * perturbation sources at the new value by linear interpolation
  *
@@ -3152,7 +3152,7 @@ int transfer_lensing_sampling(
  * @param bin                   Input : redshift bin number
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param tau_size              Output: pointer to size of previous array
- * @param index_md            Input : index of mode
+ * @param index_md              Input : index of mode
  * @param tau0                  Input : time today
  * @param interpolated_sources  Input : interpolated perturbation source
  * @param sources               Output: resampled transfer source
@@ -3183,7 +3183,7 @@ int transfer_source_resample(
               sizeof(double),
               ptr->error_message);
 
-  /* interpolate the sources linearily at the new time values */
+  /* interpolate the sources linearly at the new time values */
   for (index_tau=0; index_tau<tau_size; index_tau++) {
 
     class_call(array_interpolate_two(ppt->tau_sampling,
@@ -3290,7 +3290,7 @@ int transfer_selection_times(
 }
 
 /**
- * compute and normalise selection function for a set of time values
+ * compute and normalize selection function for a set of time values
  *
  * @param ppr                   Input : pointer to precision structure
  * @param pba                   Input : pointer to background structure
@@ -3331,7 +3331,7 @@ int transfer_selection_compute(
   /* used for calling background_at_tau() */
   int last_index;
 
-  /* runnign value of redshift */
+  /* running value of redshift */
   double z;
 
   if (tau_size > 1) {
@@ -3342,7 +3342,7 @@ int transfer_selection_compute(
       /* running value of time */
       tau = tau0 - tau0_minus_tau[index_tau];
 
-      /* get background quantitites at this time */
+      /* get background quantities at this time */
       class_call(background_at_tau(pba,
                                    tau,
                                    pba->long_info,
@@ -3352,7 +3352,7 @@ int transfer_selection_compute(
                  pba->error_message,
                  ptr->error_message);
 
-      /* infer redhsift */
+      /* infer redshift */
       z = pba->a_today/pvecback[pba->index_bg_a]-1.;
 
       /* get corresponding dN/dz(z,bin) */
@@ -3400,16 +3400,16 @@ int transfer_selection_compute(
  * as a function of wavenumber k for a given mode, initial condition,
  * type and multipole l passed in input.
  *
- * For a given value of k, the transfer function is infered from
+ * For a given value of k, the transfer function is inferred from
  * the source function (passed in input in the array interpolated_sources)
  * and from Bessel functions (passed in input in the bessels structure),
- * either by convolving them along tau, or by a Limber appoximation.
+ * either by convolving them along tau, or by a Limber approximation.
  * This elementary task is distributed either to transfer_integrate()
  * or to transfer_limber(). The task of this routine is mainly to
  * loop over k values, and to decide at which k_max the calculation can
  * be stopped, according to some approximation scheme designed to find a
  * compromise between execution time and precision. The approximation scheme
- * is defined by parameters in bthe precision structure.
+ * is defined by parameters in the precision structure.
  *
  * @param ptw                   Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation)
  * @param ppr                   Input : pointer to precision structure
@@ -3454,7 +3454,7 @@ int transfer_compute_for_each_l(
   /* whether to use the Limber approximation */
   short use_limber;
 
-  /* return zero tranbsfer function if l is above l_max */
+  /* return zero transfer function if l is above l_max */
   if (index_l >= ptr->l_size_tt[index_md][index_tt]) {
 
     ptr->transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt)
@@ -3535,7 +3535,7 @@ int transfer_use_limber(
                         short * use_limber) {
 
 
-  /* criterium for chosing between integration and Limber
+  /* criteria for choosing between integration and Limber
      must be implemented here */
 
   *use_limber = _FALSE_;
@@ -3758,7 +3758,7 @@ int transfer_integrate(
              ptr->error_message);
 
   /** This integral is correct for the case where no truncation has
-      occured. If it has been truncated at some index_tau_max because
+      occurred. If it has been truncated at some index_tau_max because
       f[index_tau_max+1]==0, it is still correct. The 'mistake' in using
       the wrong weight w_trapz[index_tau_max] is exactly compensated by the
       triangle we miss. However, for the Bessel cut off, we must subtract the
@@ -4020,7 +4020,7 @@ int transfer_limber_interpolate(
 /**
  * This routine computes the transfer functions \f$ \Delta_l^{X} (k)
  * \f$) for each mode, initial condition, type, multipole l and
- * wavenumber k, by using the Limber approximation at ordet two, i.e
+ * wavenumber k, by using the Limber approximation at order two, i.e
  * as a function of the source function and its first two derivatives
  * at a single value of tau
  *
@@ -4094,7 +4094,7 @@ int transfer_limber2(
              ptr->error_message);
 
 
-  /** - get transfer from 2nd order Limber approx (infered from 0809.5112 [astro-ph]) */
+  /** - get transfer from 2nd order Limber approx (inferred from 0809.5112 [astro-ph]) */
 
   *trsf = sqrt(_PI_/(2.*l+1.))/k*((1.-3./2./(2.*l+1.)/(2.*l+1.))*S+dS/k/(2.*l+1.)-0.5*ddS/k/k);
 
@@ -4167,7 +4167,7 @@ int transfer_late_source_can_be_neglected(
 
   if (l > ppr->transfer_neglect_late_source*ptr->angular_rescaling) {
 
-    /* sources at late times canb be neglected for CMB, excepted when
+    /* sources at late times can be neglected for CMB, excepted when
        there is a LISW: this means for tt_t1, t2, e */
 
     if (_scalars_) {
@@ -5002,7 +5002,7 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
       *index_l_right=index_l_mid;
   }
   //printf("Done\n");
-  /**  printf("Hunt left iter=%d, hunt right iter=%d (fevals: %d). For binary seach: %d (fevals: %d)\n",
+  /**  printf("Hunt left iter=%d, hunt right iter=%d (fevals: %d). For binary search: %d (fevals: %d)\n",
        hil,hir,fevalshunt,bini,fevals);
   */
   return _SUCCESS_;

@@ -13,7 +13,7 @@
  * - to provide routines which allow other modules to evaluate any
  *    background quantity for a given value of the conformal time (by
  *    interpolating within the interpolation table), or to find the
- *    correspondance between redhsift and conformal time.
+ *    correspondence between redshift and conformal time.
  *
  *
  * The overall logic in this module is the following:
@@ -25,18 +25,18 @@
  * plus e.g. (phi, phidot) for quintessence, or some temperature for
  * exotic particles, etc...).
  *
- * 2. in turn, quantitites {B} can be found as a function of conformal
+ * 2. in turn, quantities {B} can be found as a function of conformal
  * time by integrating the background equations.
  *
- * 3. some other quantitites that we will call {C} (like e.g. the
+ * 3. some other quantities that we will call {C} (like e.g. the
  * sound horizon or proper time) also require an integration with
- * respect to time, that cannot be infered analytically from
+ * respect to time, that cannot be inferred analytically from
  * parameters {B}.
  *
  * So, we define the following routines:
  *
  * - background_functions() returns all background
- *    quantitites {A} as a function of quantitites {B}.
+ *    quantities {A} as a function of quantities {B}.
  *
  * - background_solve() integrates the quantities {B} and {C} with
  *    respect to conformal time; this integration requires many calls
@@ -44,31 +44,31 @@
  *
  * - the result is stored in the form of a big table in the background
  *    structure. There is one column for conformal time 'tau'; one or
- *    more for quantitites {B}; then several columns for quantities {A}
+ *    more for quantities {B}; then several columns for quantities {A}
  *    and {C}.
  *
  * Later in the code, if we know the variables {B} and need some
- * quantity {A}, the quickest and most procise way is to call directly
+ * quantity {A}, the quickest and most precise way is to call directly
  * background_functions() (for instance, in simple models, if we want
  * H at a given value of the scale factor). If we know 'tau' and want
  * any other quantity, we can call background_at_tau(), which
  * interpolates in the table and returns all values. Finally it can be
  * useful to get 'tau' for a given redshift 'z': this can be done with
  * background_tau_of_z(). So if we are somewhere in the code, knowing
- * z and willing to get background quantitites, we should call first
+ * z and willing to get background quantities, we should call first
  * background_tau_of_z() and then background_at_tau().
  *
  *
  * In order to save time, background_at_tau() can be called in three
  * modes: short_info, normal_info, long_info (returning only essential
- * quantities, or useful quantitites, or rarely useful
+ * quantities, or useful quantities, or rarely useful
  * quantities). Each line in the interpolation table is a vector which
  * first few elements correspond to the short_info format; a larger
  * fraction contribute to the normal format; and the full vector
  * corresponds to the long format. The guideline is that short_info
- * returns only geometric quantitites like a, H, H'; normal format
+ * returns only geometric quantities like a, H, H'; normal format
  * returns quantities strictly needed at each step in the integration
- * of perturbations; long_info returns quantitites needed only
+ * of perturbations; long_info returns quantities needed only
  * occasionally.
  *
  * In summary, the following functions can be called from other modules:
@@ -90,7 +90,7 @@
  * @param tau           Input: value of conformal time
  * @param return_format Input: format of output vector (short, normal, long)
  * @param intermode     Input: interpolation mode (normal or closeby)
- * @param last_index    Input/Ouput: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
+ * @param last_index    Input/Output: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
  * @param pvecback      Output: vector (assumed to be already allocated)
  * @return the error status
  */
@@ -101,7 +101,7 @@ int background_at_tau(
                       short return_format,
                       short intermode,
                       int * last_index,
-                      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
+                      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
                       ) {
 
   /** Summary: */
@@ -174,7 +174,7 @@ int background_at_tau(
 }
 
 /**
- * Conformal time at given redhsift.
+ * Conformal time at given redshift.
  *
  * Returns tau(z) by interpolation from pre-computed table.
  *
@@ -229,15 +229,15 @@ int background_tau_of_z(
  *
  * Function evaluating all background quantities which can be computed
  * analytically as a function of {B} parameters such as the scale factor 'a'
- * (see discussion at the begining of this file). In extended
- * comsological models, the pvecback_B vector contains other input parameters than
+ * (see discussion at the beginning of this file). In extended
+ * cosmological models, the pvecback_B vector contains other input parameters than
  * just 'a', e.g. (phi, phidot) for quintessence, some temperature of
  * exotic relics, etc...
  *
  * @param pba           Input: pointer to background structure
  * @param pvecback_B    Input: vector containing all {B} type quantities (scale factor, ...)
  * @param return_format Input: format of output vector
- * @param pvecback      Output: vector of background quantities (assmued to be already allocated)
+ * @param pvecback      Output: vector of background quantities (assumed to be already allocated)
  * @return the error status
  */
 
@@ -245,7 +245,7 @@ int background_functions(
                          struct background *pba,
                          double * pvecback_B, /* Vector containing all {B} quantities. */
                          short return_format,
-                         double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size comptible with return_format) */
+                         double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
                          ) {
 
   /** Summary: */
@@ -268,7 +268,7 @@ int background_functions(
   int n_ncdm;
   /* scale factor */
   double a;
-  /* scalar field quantitites */
+  /* scalar field quantities */
   double phi, phi_prime;
 
   /** - initialize local variables */
@@ -374,7 +374,7 @@ int background_functions(
       p_tot += p_ncdm;
       pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
 
-      /* (3 p_ncdm1) is the "relativistic" contrinution to rho_ncdm1 */
+      /* (3 p_ncdm1) is the "relativistic" contribution to rho_ncdm1 */
       rho_r += 3.* p_ncdm;
 
       /* (rho_ncdm1 - 3 p_ncdm1) is the "non-relativistic" contribution
@@ -419,7 +419,7 @@ int background_functions(
   /** - compute relativistic density to total density ratio */
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
 
-  /** - compute other quantities in the exhaustive, redundent format: */
+  /** - compute other quantities in the exhaustive, redundant format: */
   if (return_format == pba->long_info) {
 
     /** - compute critical density */
@@ -719,7 +719,7 @@ int background_indices(
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
 
-  /** - intialization of all indices */
+  /** - initialization of all indices */
 
   index_bg=0;
 
@@ -896,7 +896,7 @@ int background_ncdm_distribution(
   double ksi;
   double qlast,dqlast,f0last,df0last;
   double *param;
-  /** Variables corresponing to entries in param: */
+  /** Variables corresponding to entries in param: */
   //double square_s12,square_s23,square_s13;
   //double mixing_matrix[3][3];
   //int i;
@@ -1013,7 +1013,7 @@ int background_ncdm_distribution(
 
 /**
  * This function is only used for the purpose of finding optimal
- * quadrature weigths. The logic is: if we can convolve accurately
+ * quadrature weights. The logic is: if we can convolve accurately
  * f0(q) with this function, then we can convolve it accurately with
  * any other relevant function.
  *
@@ -1226,22 +1226,22 @@ int background_ncdm_init(
 }
 
 /**
- * For a given ncdm sepcies: given the quadrature weights, the mass
+ * For a given ncdm species: given the quadrature weights, the mass
  * and the redshift, find background quantities by a quick weighted
  * sum over.  Input parameters passed as NULL pointers are not
  * evaluated for speed-up
  *
- * @param qvec     Input: smapled momenta
- * @param wvec     Input: quadrature weigths
- * @param qsize    Input: number of momenta/weigths
+ * @param qvec     Input: sampled momenta
+ * @param wvec     Input: quadrature weights
+ * @param qsize    Input: number of momenta/weights
  * @param M        Input: mass
  * @param factor   Input: normalization factor for the p.s.d.
- * @param z        Input: redhsift
+ * @param z        Input: redshift
  * @param n        Output: number density
  * @param rho      Output: energy density
  * @param p        Output: pressure
  * @param drho_dM  Output: derivative used in next function
- * @param pseudo_p Ouput: pseudo-pressure used in perturbation module for fluid approx
+ * @param pseudo_p Output: pseudo-pressure used in perturbation module for fluid approx
  *
  */
 
@@ -1292,7 +1292,7 @@ int background_ncdm_momenta(
     if (pseudo_p!=NULL) *pseudo_p += pow(q2/epsilon,3)/3.0*wvec[index_q];
   }
 
-  /** - ajust normalization */
+  /** - adjust normalization */
   if (n!=NULL) *n *= factor2*(1.+z);
   if (rho!=NULL) *rho *= factor2;
   if (p!=NULL) *p *= factor2;
@@ -1339,7 +1339,7 @@ int background_ncdm_M_from_Omega(
              "The value of Omega for the %dth species, %g, is less than for a massless species! It should be atleast %g. Check your input.",
              n_ncdm,pba->Omega0_ncdm[n_ncdm],pba->Omega0_ncdm[n_ncdm]*rho/rho0);
 
-  /* In the strict NR limit we have rho = n*(M) today, giving a zero'th order guess: */
+  /* In the strict NR limit we have rho = n*(M) today, giving a zeroth order guess: */
   M = rho0/n; /* This is our guess for M. */
   for (iter=1; iter<=maxiter; iter++){
 
@@ -1557,7 +1557,7 @@ int background_solve(
   /** - In a loop over lines, fill background table using the result of the integration plus background_functions() */
   for (i=0; i < pba->bt_size; i++) {
 
-    /* -> establish correspondance between the integrated variable and the bg variables */
+    /* -> establish correspondence between the integrated variable and the bg variables */
 
     pba->tau_table[i] = pData[i*pba->bi_size+pba->index_bi_tau];
 
@@ -1682,8 +1682,8 @@ int background_solve(
  *
  * @param ppr                  Input : pointer to precision structure
  * @param pba                  Input : pointer to background structure
- * @param pvecback             Input : vector of background quantitites used as workspace
- * @param pvecback_integration Output : vector of background quantitites to be integrated, returned with proper initial values
+ * @param pvecback             Input : vector of background quantities used as workspace
+ * @param pvecback_integration Output : vector of background quantities to be integrated, returned with proper initial values
  * @return the error status
  */
 
@@ -1867,7 +1867,7 @@ int background_output_titles(struct background * pba,
                              char titles[_MAXTITLESTRINGLENGTH_]
                              ){
 
-  /** Length of the columntitle should be less than _OUTPUTPRECISION_+6
+  /** Length of the column title should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
   int n;
   char tmp[20];
@@ -1974,7 +1974,7 @@ int background_output_data(
  * should work with functions passed from various modules, the format
  * of the arguments is a bit special:
  *
- * - fixed input parameters and wokspaces are passed through a generic
+ * - fixed input parameters and workspaces are passed through a generic
  * pointer. Here, this is just a pointer to the background structure
  * and to a background vector, but generic_integrator() doesn't know
  * its fine structure.

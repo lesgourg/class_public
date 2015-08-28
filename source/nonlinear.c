@@ -5,7 +5,7 @@
  * New module replacing an older one present up to version 2.0 The new
  * module is located in a better place in the main, allowing it to
  * compute non-linear correction to Cl's and not just P(k).  It will
- * also be easier to generalise to new methods.  The old implemenation
+ * also be easier to generalize to new methods.  The old implementation
  * of one-loop calculations and TRG calculations has been dropped from
  * this version, they can still be found in older versions.
  *
@@ -249,7 +249,7 @@ int nonlinear_pk_l(
 
           pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
             *source_ic1*source_ic2
-            *primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symetric term ic2,ic1)
+            *primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)
 
         }
       }
