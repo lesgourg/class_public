@@ -663,6 +663,12 @@ int perturb_indices_of_perturbs(
           ppt->has_source_delta_dr = _TRUE_;
         if (pba->has_ncdm == _TRUE_)
           ppt->has_source_delta_ncdm = _TRUE_;
+        // Thanks to the following lines, (phi,psi) are also stored as sources
+        // (Obtained directly in newtonian gauge, infereed from (h,eta) in synchronous gauge).
+        // If density transfer functions are requested in the (default) CLASS format,
+        // (phi, psi) will be appended to the delta_i's in the final output.
+        ppt->has_source_phi = _TRUE_;
+        ppt->has_source_psi = _TRUE_;
       }
 
       if (ppt->has_velocity_transfers == _TRUE_) {
