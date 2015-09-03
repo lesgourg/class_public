@@ -39,7 +39,7 @@ enum reionization_z_or_tau {
 };
 
 /**
- * Two useful smooth step functions, for smoothing transitions in recfast. 
+ * Two useful smooth step functions, for smoothing transitions in recfast.
  */
 
 #define f1(x) (-0.75*x*(x*x/3.-1.)+0.5)  /**< goes from 0 to 1 when x goes from -1 to 1 */
@@ -75,6 +75,8 @@ struct thermo
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
 
   short compute_cb2_derivatives; /**< do we want to include in computation derivatives of baryon sound speed? */
+
+  short compute_damping_scale; /**< do we want to compute the simplest analytic approximation to the photon damping (or diffusion) scale? */
 
   /** parameters for reio_camb */
 
@@ -160,6 +162,7 @@ struct thermo
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-mininmal tight-coupling schemes is requested) */
   int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
+  int index_th_r_d;           /**< simple analytic approximation to the photon comoving damping scale */
   int th_size;                /**< size of thermodynamics vector */
 
   //@}
@@ -193,6 +196,7 @@ struct thermo
   double ds_rec;  /**< physical sound horizon at recombination */
   double ra_rec;  /**< conformal angular diameter distance to recombination */
   double da_rec;  /**< physical angular diameter distance to recombination */
+  double rd_rec;  /**< comoving photon damping scale at recombination */
   double z_d;     /**< baryon drag redshift */
   double tau_d;   /**< baryon drag time */
   double ds_d;    /**< physical sound horizon at baryon drag */
@@ -446,7 +450,7 @@ struct thermodynamics_parameters_and_workspace {
 };
 
 /**************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -671,7 +675,7 @@ extern "C" {
 /**
  * @name Some limits imposed on cosmological parameter values:
  */
-/* @endcond */ 
+/* @endcond */
 //@{
 
 #define _YHE_BIG_ 0.5      /**< maximal \f$ Y_{He} \f$ */

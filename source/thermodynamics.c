@@ -128,6 +128,13 @@ int thermodynamics_at_z(
     /* tau_d scales like (1+z)**2 */
     pvecthermo[pth->index_th_tau_d] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_d]*pow((1+z)/(1.+pth->z_table[pth->tt_size-1]),2);
 
+    if (pth->compute_damping_scale == _TRUE_) {
+
+      /* r_d scales like (1+z)**-3/2 */
+      pvecthermo[pth->index_th_r_d] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_r_d]*pow((1+z)/(1.+pth->z_table[pth->tt_size-1]),-1.5);
+
+    }
+
     /* Calculate d2kappa/dtau2 = dz/dtau d/dz[dkappa/dtau] given that [dkappa/dtau] proportional to (1+z)^2 and dz/dtau = -H */
     pvecthermo[pth->index_th_ddkappa] = -pvecback[pba->index_bg_H] * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
 
@@ -261,6 +268,8 @@ int thermodynamics_init(
   int last_index_back;
   /* temporary table of values of tau associated with z values in pth->z_table */
   double * tau_table;
+  /* same ordered in growing time rather than growing redshift */
+  double * tau_table_growing;
   /* conformal time of reionization */
   double tau_reio;
   /* structures for storing temporarily information on recombination
@@ -460,9 +469,66 @@ int thermodynamics_init(
              pth->error_message);
 
   /* the temporary quantities stored in columns ddkappa and dddkappa
-     will not be used anymore, they will be overwritten below by the
-     true ddkappa and dddkappa */
+     will not be used anymore, they will be overwritten */
 
+  /** -> compute r_d = [int_{tau_ini}^{tau} dtau [1/kappa'] */
+  if (pth->compute_damping_scale == _TRUE_) {
+
+    class_alloc(tau_table_growing,pth->tt_size*sizeof(double),pth->error_message);
+
+    /* compute integrand 1/kappa' and store temporarily in column "ddkappa" */
+    for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
+
+      tau_table_growing[index_tau]=tau_table[pth->tt_size-1-index_tau];
+
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
+        1./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa];
+
+    }
+
+    /* compute second derivative of integrand 1/kappa' and store temporarily in column "dddkappa" */
+    class_call(array_spline_table_line_to_line(tau_table_growing,
+                                               pth->tt_size,
+                                               pth->thermodynamics_table,
+                                               pth->th_size,
+                                               pth->index_th_ddkappa,
+                                               pth->index_th_dddkappa,
+                                               _SPLINE_EST_DERIV_,
+                                               pth->error_message),
+               pth->error_message,
+               pth->error_message);
+
+    /* compute integrated quantity r_d^2 and store temporarily in column "g" */
+     class_call(array_integrate_spline_table_line_to_line(tau_table_growing,
+                                                          pth->tt_size,
+                                                          pth->thermodynamics_table,
+                                                          pth->th_size,
+                                                          pth->index_th_ddkappa,
+                                                          pth->index_th_dddkappa,
+                                                          pth->index_th_g,
+                                                          pth->error_message),
+                pth->error_message,
+                pth->error_message);
+
+     free(tau_table_growing);
+
+     /* an analytic calculation shows that in the early
+        radiation-dominated and ionized universe, when kappa' is
+        proportional to (1+z)^2 and tau is proportional to the scale
+        factor, r_d^2 is equal to eta/(3 kappa'). So [r_d,ini^2] =
+        [tau_ini/3/kappa'_ini] should be added to the integral in
+        order to account for the integration between 0 and tau_ini */
+
+     /* compute r_d */
+     for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
+
+       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_r_d] =
+         sqrt(tau_table[pth->tt_size-1]/3./pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dkappa]
+              +pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_g]);
+
+     }
+
+  }
 
   /** -> second derivative with respect to tau of dkappa (in view of spline interpolation) */
   class_call(array_spline_table_line_to_line(tau_table,
@@ -648,6 +714,15 @@ int thermodynamics_init(
   pth->ra_rec=pth->da_rec*(1.+pth->z_rec)/pba->a_today;
   pth->angular_rescaling=pth->ra_rec/(pba->conformal_age-pth->tau_rec);
 
+  /** - find damping scale at recombination (using linear interpolation) */
+
+  if (pth->compute_damping_scale == _TRUE_) {
+
+    pth->rd_rec = (pth->z_table[index_tau+1]-pth->z_rec)/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_r_d]
+      +(pth->z_rec-pth->z_table[index_tau])/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_r_d];
+
+  }
+
   /** - find time (always after recombination) at which tau_c/tau
       falls below some threshold, defining tau_free_streaming */
 
@@ -711,6 +786,10 @@ int thermodynamics_init(
     printf("    with comoving sound horizon = %f Mpc\n",pth->rs_rec);
     printf("    angular diameter distance = %f Mpc\n",pth->da_rec);
     printf("    and sound horizon angle 100*theta_s = %f\n",100.*pth->rs_rec/pth->ra_rec);
+    if (pth->compute_damping_scale == _TRUE_) {
+      printf("    and with comoving photon damping scale = %f Mpc\n",pth->rd_rec);
+      printf("    or comoving damping wavenumber k_d = %f 1/Mpc\n",2.*_PI_/pth->rd_rec);
+    }
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
@@ -820,6 +899,11 @@ int thermodynamics_indices(
 
   pth->index_th_rate = index;
   index++;
+
+  if (pth->compute_damping_scale == _TRUE_) {
+    pth->index_th_r_d = index;
+    index++;
+  }
 
   /* end of indices */
   pth->th_size = index;
@@ -3424,6 +3508,7 @@ int thermodynamics_output_titles(struct background * pba,
   class_store_columntitle(titles,"c_b^2",_TRUE_);
   class_store_columntitle(titles,"tau_d",_TRUE_);
   //class_store_columntitle(titles,"max. rate",_TRUE_,colnum);
+  class_store_columntitle(titles,"r_d",pth->compute_damping_scale);
 
   return _SUCCESS_;
 }
@@ -3471,6 +3556,7 @@ int thermodynamics_output_data(struct background * pba,
     class_store_double(dataptr,pvecthermo[pth->index_th_cb2],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_tau_d],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_rate],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_r_d],pth->compute_damping_scale,storeidx);
 
   }
 

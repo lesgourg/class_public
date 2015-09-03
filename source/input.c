@@ -1227,6 +1227,28 @@ int input_read_parameters(
 
   class_read_double("decay",pth->decay);
 
+  class_call(parser_read_string(pfc,
+                                "compute damping scale",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
+
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pth->compute_damping_scale = _TRUE_;
+    }
+    else {
+      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        pth->compute_damping_scale = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'compute damping scale'",string1);
+      }
+    }
+  }
+
   /** (c) define which perturbations and sources should be computed, and down to which scale */
 
   ppt->has_perturbations = _FALSE_;
@@ -2820,6 +2842,7 @@ int input_default_params(
 
   pth->annihilation = 0.;
   pth->decay = 0.;
+
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;
   pth->annihilation_zmax = 2500.;
@@ -2829,6 +2852,8 @@ int input_default_params(
   pth->has_on_the_spot = _TRUE_;
 
   pth->compute_cb2_derivatives=_FALSE_;
+
+  pth->compute_damping_scale = _FALSE_;
 
   /** - perturbation structure */
 

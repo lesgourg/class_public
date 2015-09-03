@@ -1240,6 +1240,9 @@ int output_thermodynamics(
     fprintf(thermofile,"#     Tb = baryon temperature \n");
     fprintf(thermofile,"#  c_b^2 = baryon sound speed squared \n");
     fprintf(thermofile,"#  tau_d = baryon drag optical depth \n");
+    if (pth->compute_damping_scale == _TRUE_) {
+      fprintf(thermofile,"#  r_d = simplest analytic approximation to photon comoving damping scale \n");
+    }
   }
 
   output_print_data(thermofile,
