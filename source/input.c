@@ -34,12 +34,12 @@ int input_init_from_arguments(
 
   /** - define local variables */
 
-  struct file_content fc;             /**< the final structure with all parameters */
-  struct file_content fc_input;       /**< a temporary structure with all input parameters */
-  struct file_content fc_precision;   /**< a temporary structure with all precision parameters */
-  struct file_content fc_root;        /**< a temporary structure with only the root name */
-  struct file_content fc_inputroot;   /**< sum of fc_inoput and fc_root */
-  struct file_content * pfc_input;    /**< a pointer to either fc_root or fc_inputroot */
+  struct file_content fc;             /** -# the final structure with all parameters */
+  struct file_content fc_input;       /** -# a temporary structure with all input parameters */
+  struct file_content fc_precision;   /** -# a temporary structure with all precision parameters */
+  struct file_content fc_root;        /** -# a temporary structure with only the root name */
+  struct file_content fc_inputroot;   /** -# sum of fc_inoput and fc_root */
+  struct file_content * pfc_input;    /** -# a pointer to either fc_root or fc_inputroot */
 
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
@@ -101,7 +101,7 @@ int input_init_from_arguments(
     class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
                errmsg, errmsg);
 
-    /** - if root has not been set, use root=output/inputfilenname#_ */
+    /** - if root has not been set, use root=output/inputfilennameN_ */
 
     if (flag1 == _FALSE_){
       //printf("strlen-4 = %zu\n",strlen(input_file)-4);
@@ -184,7 +184,7 @@ int input_init_from_arguments(
 }
 
 /**
- * Initialize each parameters, first to its default values, and then
+ * Initialize each parameter, first to its default values, and then
  * from what can be interpreted from the values passed in the input
  * 'file_content' structure. If its size is null, all parameters keep
  * their default values.
@@ -588,7 +588,7 @@ int input_read_parameters(
 
   int i;
 
-  double sigma_B; /**< Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
+  double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
 
   double rho_ncdm;
   double R0,R1,R2,R3,R4;

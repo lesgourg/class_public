@@ -2043,8 +2043,6 @@ int transfer_interpolate_sources(
  * @param index_tt              Input : index of type of (transfer) source
  * @param sources               Output: transfer source
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
- * @param cotKgen
- * @param cscKgen
  * @param w_trapz               Output: trapezoidal weights for integration over tau
  * @param tau_size_out          Output: pointer to size of previous two arrays, converted to double
  * @return the error status

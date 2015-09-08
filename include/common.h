@@ -347,7 +347,7 @@ struct precision
 
   /**
    * default step d tau in background integration, in units of
-   * conformal Hubble time (\f$ d tau \f$ = back_integration_stepsize / aH )
+   * conformal Hubble time (\f$ d \tau \f$ = back_integration_stepsize / aH )
    */
   double back_integration_stepsize;
 
@@ -374,8 +374,8 @@ struct precision
    * phase-space distribution during perturbation calculation
    */
   double tol_ncdm;
-  double tol_ncdm_newtonian;
-  double tol_ncdm_synchronous;
+  double tol_ncdm_newtonian; /**< $$$ definition missing $$$ */
+  double tol_ncdm_synchronous; /**< $$$ definition missing $$$ */
 
   /**
    * parameter controlling relative precision of integrals over ncdm
@@ -400,11 +400,11 @@ struct precision
 
   //@{
 
-  /** - for bbn */
-
+  /* - for bbn */
+/* @cond INCLUDE_WITH_DOXYGEN */
   FileName sBBN_file;
-
-  /** - for recombination */
+/* @endcond */
+  /* - for recombination */
 
   /* initial and final redshifts in recfast */
 
@@ -452,19 +452,19 @@ struct precision
   double recfast_x_H0_trigger_delta;  /**< x_H range over which transition is smoothed */
 
   double recfast_H_frac;              /**< governs time at which full equation of evolution for Tmat is used */
-
+/* @cond INCLUDE_WITH_DOXYGEN */
   FileName hyrec_Alpha_inf_file;
   FileName hyrec_R_inf_file;
   FileName hyrec_two_photon_tables_file;
-
-  /** - for reionization */
+/* @endcond */
+  /* - for reionization */
 
   double reionization_z_start_max; /**< maximum redshift at which reionization should start. If not, return an error. */
   double reionization_sampling; /**< control stepsize in z during reionization */
   double reionization_optical_depth_tol; /**< fractional error on optical_depth */
   double reionization_start_factor; /**< parameter for CAMB-like parametrization */
 
-  /** - general */
+  /* - general */
 
   int thermo_rate_smoothing_radius; /**< plays a minor (almost aesthetic) role in the definition of the variation rate of thermodynamical quantities */
 
@@ -474,7 +474,7 @@ struct precision
 
   //@{
 
-  enum evolver_type evolver; /* which type of evolver for integrating perturbations (Runge-Kutta? Stiff?...) */
+  enum evolver_type evolver; /**< which type of evolver for integrating perturbations (Runge-Kutta? Stiff?...) */
 
   double k_min_tau0; /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
@@ -517,7 +517,7 @@ struct precision
 
   double start_sources_at_tau_c_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
-  int tight_coupling_approximation;
+  int tight_coupling_approximation; /**< $$$ definition missing $$$ */
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
@@ -574,7 +574,7 @@ struct precision
    */
   double radiation_streaming_trigger_tau_c_over_tau;
 
-  int ur_fluid_approximation;
+  int ur_fluid_approximation; /**< $$$ definition missing $$$ */
 
   /**
    * when to switch off ur (massless neutrinos / ultra-relativistic
@@ -582,7 +582,7 @@ struct precision
    */
   double ur_fluid_trigger_tau_over_tau_k;
 
-  int ncdm_fluid_approximation;
+  int ncdm_fluid_approximation; /**< $$$ definition missing $$$ */
 
   /**
    * when to switch off ncdm (massive neutrinos / non-cold
@@ -590,7 +590,7 @@ struct precision
    */
   double ncdm_fluid_trigger_tau_over_tau_k;
 
-  double neglect_CMB_sources_below_visibility;
+  double neglect_CMB_sources_below_visibility; /**< $$$ definition missing $$$ */
 
   //@}
 
@@ -600,23 +600,23 @@ struct precision
 
   double k_per_decade_primordial; /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
-  double primordial_inflation_ratio_min;
-  double primordial_inflation_ratio_max;
-  int primordial_inflation_phi_ini_maxit;
-  double primordial_inflation_pt_stepsize;
-  double primordial_inflation_bg_stepsize;
-  double primordial_inflation_tol_integration;
-  double primordial_inflation_attractor_precision_pivot;
-  double primordial_inflation_attractor_precision_initial;
-  int primordial_inflation_attractor_maxit;
-  double primordial_inflation_jump_initial;
-  double primordial_inflation_tol_curvature;
-  double primordial_inflation_aH_ini_target;
-  double primordial_inflation_end_dphi;
-  double primordial_inflation_end_logstep;
-  double primordial_inflation_small_epsilon;
-  double primordial_inflation_small_epsilon_tol;
-  double primordial_inflation_extra_efolds;
+  double primordial_inflation_ratio_min; /**< $$$ definition missing $$$ */
+  double primordial_inflation_ratio_max; /**< $$$ definition missing $$$ */
+  int primordial_inflation_phi_ini_maxit; /**< $$$ definition missing $$$ */
+  double primordial_inflation_pt_stepsize; /**< $$$ definition missing $$$ */
+  double primordial_inflation_bg_stepsize; /**< $$$ definition missing $$$ */
+  double primordial_inflation_tol_integration; /**< $$$ definition missing $$$ */
+  double primordial_inflation_attractor_precision_pivot; /**< $$$ definition missing $$$ */
+  double primordial_inflation_attractor_precision_initial; /**< $$$ definition missing $$$ */
+  int primordial_inflation_attractor_maxit; /**< $$$ definition missing $$$ */
+  double primordial_inflation_jump_initial; /**< $$$ definition missing $$$ */
+  double primordial_inflation_tol_curvature; /**< $$$ definition missing $$$ */
+  double primordial_inflation_aH_ini_target; /**< $$$ definition missing $$$ */
+  double primordial_inflation_end_dphi; /**< $$$ definition missing $$$ */
+  double primordial_inflation_end_logstep; /**< $$$ definition missing $$$ */
+  double primordial_inflation_small_epsilon; /**< $$$ definition missing $$$ */
+  double primordial_inflation_small_epsilon_tol; /**< $$$ definition missing $$$ */
+  double primordial_inflation_extra_efolds; /**< $$$ definition missing $$$ */
 
   //@}
 
@@ -629,24 +629,24 @@ struct precision
   double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
   /* parameters relevant for bessel functions */
-  double hyper_x_min;
-  double hyper_sampling_flat;
-  double hyper_sampling_curved_low_nu;
-  double hyper_sampling_curved_high_nu;
-  double hyper_nu_sampling_step;
-  double hyper_phi_min_abs;
-  double hyper_x_tol;
-  double hyper_flat_approximation_nu;
+  double hyper_x_min;  /**< $$$ definition missing $$$ */
+  double hyper_sampling_flat;  /**< $$$ definition missing $$$ */
+  double hyper_sampling_curved_low_nu;  /**< $$$ definition missing $$$ */
+  double hyper_sampling_curved_high_nu;  /**< $$$ definition missing $$$ */
+  double hyper_nu_sampling_step;  /**< $$$ definition missing $$$ */
+  double hyper_phi_min_abs;  /**< $$$ definition missing $$$ */
+  double hyper_x_tol;  /**< $$$ definition missing $$$ */
+  double hyper_flat_approximation_nu;  /**< $$$ definition missing $$$ */
 
   /* parameters relevant for transfer function */
 
   double q_linstep;         /**< asymptotic linear sampling step in q
-                               space, in units of 2pi/r_a(tau_rec)
+                               space, in units of \f$ 2\pi/r_a(\tau_rec) \f$
                                (comoving angular diameter distance to
                                recombination) */
 
   double q_logstep_spline; /**< initial logarithmic sampling step in q
-                                space, in units of \f$ 2\pi/r_a(tau_{rec})\f$
+                                space, in units of \f$ 2\pi/r_a(\tau_{rec})\f$
                                 (comoving angular diameter distance to
                                 recombination) */
 
@@ -658,7 +658,7 @@ struct precision
                                 Omega_k */
 
   double q_logstep_trapzd; /**< initial logarithmic sampling step in q
-                                space, in units of \f$ 2\pi/r_a(tau_{rec}) \f$
+                                space, in units of \f$ 2\pi/r_a(\tau_{rec}) \f$
                                 (comoving angular diameter distance to
                                 recombination), in the case of small
                                 q's in the closed case, for which one
@@ -673,20 +673,20 @@ struct precision
                                  q_logstep_spline steps (transition
                                  must be smooth for spline) */
 
-  /** for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
-  double transfer_neglect_delta_k_S_t0;
-  double transfer_neglect_delta_k_S_t1;
-  double transfer_neglect_delta_k_S_t2;
-  double transfer_neglect_delta_k_S_e;
-  double transfer_neglect_delta_k_V_t1;
-  double transfer_neglect_delta_k_V_t2;
-  double transfer_neglect_delta_k_V_e;
-  double transfer_neglect_delta_k_V_b;
-  double transfer_neglect_delta_k_T_t2;
-  double transfer_neglect_delta_k_T_e;
-  double transfer_neglect_delta_k_T_b;
+  /* for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
+  double transfer_neglect_delta_k_S_t0; /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_S_t1; /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_S_t2; /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_S_e;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_V_t1; /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_V_t2; /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_V_e;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_V_b;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_T_t2; /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_T_e;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_T_b;  /**< $$$ definition missing $$$ */
 
-  double transfer_neglect_late_source;
+  double transfer_neglect_late_source;  /**< $$$ definition missing $$$ */
 
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;
@@ -714,24 +714,24 @@ struct precision
 
   /** parameters relevant for HALOFIT computation */
 
-  double halofit_dz; /* spacing in redshift space defining values of z
+  double halofit_dz; /**< spacing in redshift space defining values of z
 			at which HALOFIT will be used. Intermediate
 			values will be obtained by
 			interpolation. Decrease for more precise
 			interpolations, at the expense of increasing
 			time spent in nonlinear_init() */
 
-  double halofit_min_k_nonlinear; /* value of k in 1/Mpc above
+  double halofit_min_k_nonlinear; /**< value of k in 1/Mpc above
 				     which non-linear corrections will
 				     be computed */
 
-  double halofit_sigma_precision; /* a smaller value will lead to a
+  double halofit_sigma_precision; /**< a smaller value will lead to a
 				      more precise halofit result at
 				      the highest requested redshift,
 				      at the expense of requiring a
 				      larger k_max */
 
-  double halofit_min_k_max; /* when halofit is used, k_max must be at
+  double halofit_min_k_max; /**< when halofit is used, k_max must be at
                                least equal to this value (otherwise
                                halofit could not find the scale of
                                non-linearity) */
@@ -744,7 +744,7 @@ struct precision
 
   int accurate_lensing; /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
   int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
-  int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
+  int delta_l_max; /**< difference between l_max in unlensed and lensed spectra */
   double tol_gauss_legendre; /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
   //@}
 
@@ -760,7 +760,7 @@ struct precision
 
   //@{
 
-  ErrorMsg error_message;
+  ErrorMsg error_message;  /**< zone for writing error messages */
 
   //@}
 

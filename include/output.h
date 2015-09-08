@@ -21,11 +21,9 @@
 
 struct output {
 
-  /** @name - root for all file names */
-
   //@{
 
-  FileName root;
+  FileName root; /**< root for all file names */
 
   //@}
 
@@ -33,8 +31,8 @@ struct output {
 
   //@{
 
-  int z_pk_num;
-  double z_pk[_Z_PK_NUM_MAX_];
+  int z_pk_num; /**< number of redshift at which P(k,z) and T_i(k,z) should be written */
+  double z_pk[_Z_PK_NUM_MAX_]; /**< value(s) of redshift at which P(k,z) and T_i(k,z) should be written */
 
   //@}
 
@@ -42,14 +40,14 @@ struct output {
 
   //@{
 
-  short write_header;
+  short write_header; /**< $$$ definition missing $$$ */
 
-  enum file_format output_format;
+  enum file_format output_format; /**< $$$ definition missing $$$ */
 
-  short write_background;
-  short write_thermodynamics;
-  short write_perturbations;
-  short write_primordial;
+  short write_background; /**< $$$ definition missing $$$ */
+  short write_thermodynamics; /**< $$$ definition missing $$$ */
+  short write_perturbations; /**< $$$ definition missing $$$ */
+  short write_primordial; /**< $$$ definition missing $$$ */
 
   //@}
 

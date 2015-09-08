@@ -1772,11 +1772,12 @@ int background_initial_conditions(
   if (pba->has_dr == _TRUE_){
     if (pba->has_dcdm == _TRUE_){
       /** f is the critical density fraction of DR. The exact solution is
-	  f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);
-	  but it is not numerically stable for very small f which is always the case.
-	  Instead we use the Taylor expansion of this equation, which is equivalent to
-	  ignoring f(a) in the Hubble rate.
-      */
+       * 
+       * f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);
+       * but it is not numerically stable for very small f which is always the case.
+       * Instead we use the Taylor expansion of this equation, which is equivalent to
+       * ignoring f(a) in the Hubble rate.
+       */
       f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
       pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
     }
@@ -1788,9 +1789,11 @@ int background_initial_conditions(
 
   /** - fix initial value of \f$ \phi, \phi' \f$
    * set directly in the radiation attractor => fixes the units in terms of rho_ur
-   * TODO: - There seems to be some small oscillation when it starts.
-   * -Check equations and signs. Sign of phi_prime?
-   * -is rho_ur all there is early on?
+   * 
+   * TODO: 
+   * - There seems to be some small oscillation when it starts. 
+   * - Check equations and signs. Sign of phi_prime? 
+   * - is rho_ur all there is early on?
    */
   if(pba->has_scf == _TRUE_){
     scf_lambda = pba->scf_parameters[0];
@@ -2069,20 +2072,21 @@ int background_derivs(
  * \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
  * \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential) 
  * \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump) 
- * TODO: -Add some functionality to include different models/potentials (tuning would be difficult, though)
+ * 
+ * TODO: 
+ * - Add some functionality to include different models/potentials (tuning would be difficult, though)
  * - Generalize to Kessence/Horndeski/PPF and/or couplings
  * - A default module to numerically compute the derivatives when no analytic functions are given should be added.
  * Numerical derivatives may further serve as a consistency check.
  */
 
 /** The units of phi, tau in the derivatives and the potential V are the following:
-    --> phi is given in units of the reduced Planck mass \f$ m_{pl} = (8 \pi G)^{(-1/2)}\f$
-    --> tau in the derivative is given in units of Mpc.
-    --> the potential \f$ V(\phi) \f$ is given in units of \f$ m_{pl}^2/Mpc^2 \f$.
-    With this convention, we have
-    rho^{class} = \f$ (8 \pi G)/3 \f$ rho^{physical} \f$= 1/(3 m_{pl}^2) \f$ rho^{physical}
-                \f$ = 1/3 * [ 1/(2a^2) (\phi')^2 + V(\phi) ] \f$
-    and rho^{class} has the proper dimension \f$ Mpc^-2 \f$.
+ * - phi is given in units of the reduced Planck mass \f$ m_{pl} = (8 \pi G)^{(-1/2)}\f$
+ * - tau in the derivative is given in units of Mpc.
+ * - the potential \f$ V(\phi) \f$ is given in units of \f$ m_{pl}^2/Mpc^2 \f$.
+ * With this convention, we have
+ * \f$ \rho^{class} = (8 \pi G)/3 \rho^{physical} = 1/(3 m_{pl}^2) \rho^{physical} = 1/3 * [ 1/(2a^2) (\phi')^2 + V(\phi) ] \f$
+    and \f$ \rho^{class} \f$ has the proper dimension \f$ Mpc^-2 \f$.
  */
 
 double V_e_scf(struct background *pba,
@@ -2120,9 +2124,12 @@ double ddV_e_scf(struct background *pba,
 
 
 /** parameters and functions for the polynomial coefficient
- * \f$ V_p = (\phi - B)^\alpha + A (polynomial bump) \f$
+ * \f$ V_p = (\phi - B)^\alpha + A \f$(polynomial bump) 
+ * 
  * double scf_alpha = 2;
+ * 
  * double scf_B = 34.8;
+ * 
  * double scf_A = 0.01; (values for their Figure 2)
  */
 

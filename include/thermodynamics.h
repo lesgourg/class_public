@@ -203,7 +203,7 @@ struct thermo
 
   //@{
 
-  double tau_ini;
+  double tau_ini; /**< initial conformal time at which thermodynamical variables have been be integrated */
 
   //@}
 
@@ -211,7 +211,7 @@ struct thermo
 
   //@{
 
-  double n_e;
+  double n_e; /**< total number density of electrons today (free or not) */
 
   //@}
 
@@ -274,35 +274,35 @@ struct recombination {
 
   //@{
 
-  double CDB;
-  double CR;
-  double CK;
-  double CL;
-  double CT;
-  double fHe;
-  double CDB_He;
-  double CK_He;
-  double CL_He;
-  double fu;
-  double H_frac;
-  double Tnow;
-  double Nnow;
-  double Bfact;
-  double CB1;
-  double CB1_He1;
-  double CB1_He2;
-  double H0;
-  double YHe;
+  double CDB; /**< $$$ definition missing $$$ */
+  double CR;  /**< $$$ definition missing $$$ */
+  double CK;  /**< $$$ definition missing $$$ */
+  double CL;  /**< $$$ definition missing $$$ */
+  double CT;  /**< $$$ definition missing $$$ */
+  double fHe; /**< $$$ definition missing $$$ */
+  double CDB_He; /**< $$$ definition missing $$$ */
+  double CK_He;  /**< $$$ definition missing $$$ */
+  double CL_He;  /**< $$$ definition missing $$$ */
+  double fu; /**< $$$ definition missing $$$ */
+  double H_frac; /**< $$$ definition missing $$$ */
+  double Tnow;   /**< $$$ definition missing $$$ */
+  double Nnow;   /**< $$$ definition missing $$$ */
+  double Bfact;  /**< $$$ definition missing $$$ */
+  double CB1;    /**< $$$ definition missing $$$ */
+  double CB1_He1; /**< $$$ definition missing $$$ */
+  double CB1_He2; /**< $$$ definition missing $$$ */
+  double H0;  /**< $$$ definition missing $$$ */
+  double YHe; /**< $$$ definition missing $$$ */
 
-  /** parameters for energy injection */
+  /* parameters for energy injection */
 
-  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation; /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
 
-  short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
+  short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
-  double annihilation_variation; /** if this parameter is non-zero,
+  double annihilation_variation; /**< if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
 				     m_cdm)(z) will be a parabola in
 				     log-log scale between zmin and
@@ -312,21 +312,21 @@ struct recombination {
 				     zmax; it will be constant outside
 				     this range */
 
-  double annihilation_z; /** if annihilation_variation is non-zero,
+  double annihilation_z; /**< if annihilation_variation is non-zero,
 			     this is the value of z at which the
 			     parameter annihilation is defined, i.e.
 			     F(annihilation_z)=annihilation */
 
-  double annihilation_zmax; /** if annihilation_variation is non-zero,
+  double annihilation_zmax; /**< if annihilation_variation is non-zero,
 				redshift above which annihilation rate
 				is maximal */
 
-  double annihilation_zmin; /** if annihilation_variation is non-zero,
+  double annihilation_zmin; /**< if annihilation_variation is non-zero,
 				redshift below which annihilation rate
 				is constant */
 
-  double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
-  double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
+  double annihilation_f_halo; /**< takes the contribution of DM annihilation in halos into account*/
+  double annihilation_z_halo; /**< characteristic redshift for DM annihilation in halos*/
 
   //@}
 
@@ -369,7 +369,7 @@ struct reionization {
 
   //@{
 
-  double reionization_optical_depth;
+  double reionization_optical_depth; /**< reionization optical depth inferred from reionization history */
 
   //@}
 
@@ -377,7 +377,7 @@ struct reionization {
 
   //@{
 
-  /** parameters used by reio_camb */
+  /* parameters used by reio_camb */
 
   int index_reio_redshift;  /**< hydrogen reionization redshift */
   int index_reio_exponent;  /**< an exponent used in the function x_e(z) in the reio_camb scheme */
@@ -388,14 +388,14 @@ struct reionization {
   int index_helium_fullreio_redshift; /**< helium full reionization redshift */
   int index_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
 
-  /** parameters used by reio_bins_tanh */
+  /* parameters used by reio_bins_tanh */
 
-  int reio_num_z;
-  int index_reio_first_z;
-  int index_reio_first_xe;
-  int index_reio_step_sharpness;
+  int reio_num_z; /**< $$$ definition missing $$$ */
+  int index_reio_first_z; /**< $$$ definition missing $$$ */
+  int index_reio_first_xe; /**< $$$ definition missing $$$ */
+  int index_reio_step_sharpness; /**< $$$ definition missing $$$ */
 
-  /** parameters used by all schemes */
+  /* parameters used by all schemes */
 
   int index_reio_start;     /**< redshift above which hydrogen reionization neglected */
 
@@ -403,8 +403,8 @@ struct reionization {
 
   /** @name - vector of such parameters, and its size */
 
-  double * reionization_parameters;
-  int reio_num_params;
+  double * reionization_parameters; /**< $$$ definition missing $$$ */
+  int reio_num_params; /**< $$$ definition missing $$$ */
 
   //@}
 
@@ -412,7 +412,7 @@ struct reionization {
 
   //@{
 
-  int index_reco_when_reio_start;
+  int index_reco_when_reio_start; /**< index of line in recombination table corresponding to first line of reionization table*/
 
   //@}
 

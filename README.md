@@ -1,7 +1,7 @@
 CLASS: Cosmic Linear Anisotropy Solving System  {#mainpage}
 ==============================================
 
-:Author: Julien Lesgourgues
+Author: Julien Lesgourgues
 
 with several major inputs from other people, especially Thomas Tram,
 as well as Benjamin Audren, Simon Prunet, Jesus Torrado, Miguel
@@ -36,7 +36,7 @@ To check that the code runs, type:
     ./class explanatory.ini
 
 The explanatory.ini file is a reference input file, containing and
-explaning the use of all possible input parameters. We recommend to
+explaining the use of all possible input parameters. We recommend to
 read it, to keep it unchanged (for future reference), and to create
 for your own purposes some shorter input files, containing only the
 input lines which are useful for you. Input files must have a *.ini
@@ -71,13 +71,13 @@ Plotting utility
 Since version 2.3, the package includes an improved plotting script
 called CPU.py (Class Plotting Utility), written by Benjamin Audren and
 Jesus Torrado. It can plot the Cl's, the P(k) or any other CLASS
-puput, for one or several models, as well as their ratio or percentage
+output, for one or several models, as well as their ratio or percentage
 difference. The syntax and list of available options is obtained by
 typing 'pyhton CPU.py --help'. There is a similar script for MATLAB,
 written by Thomas Tram. To use it, once in MATLAB, type 'help
 plot_CLASS_output.m'
 
-Developping the code
+Developing the code
 --------------------
 
 If you want to develop the code, we suggest that you download it from
