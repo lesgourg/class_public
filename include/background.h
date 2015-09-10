@@ -61,9 +61,11 @@ struct background
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
 
-  double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$ : dcdm decaying to dr */
+  double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$ : decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
   double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$ : decay constant for decaying cold dark matter */
+
+  double Omega_ini_dcdm;    /**< \f$ \Omega_{ini,dcdm} \f$ : rescaled initial value for dcdm density (see 1407.2418 for definitions) */
 
   double Omega0_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field */
   short attractor_ic_scf;   /**< whether the scalar field has attractor initial conditions */
@@ -76,7 +78,6 @@ struct background
   //double scf_alpha;  /**< \f$ \alpha \f$ : Albrecht-Skordis polynomial slope */
   //double scf_B; /**< \f$ \alpha \f$ : Albrecht-Skordis field shift */
   //double scf_A; /**< \f$ \alpha \f$ : Albrecht-Skordis offset */
-
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
 
@@ -111,9 +112,6 @@ struct background
 					     p-s-d is passed through file */
   char * ncdm_psd_files;                /**< list of filenames for tabulated p-s-d */
   /* end of parameters for tabulated ncdm p-s-d */
-
-  /* rescaled initial value for dcdm density. */
-  double Omega_ini_dcdm;                /**< $$$ definition missing $$$ */
 
   //@}
 
@@ -348,7 +346,7 @@ struct background_parameters_for_distributions {
 };
 
 /**************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -551,4 +549,4 @@ extern "C" {
 
 
 #endif
-/* @endcond */ 
+/* @endcond */
