@@ -371,11 +371,24 @@ struct precision
 
   /**
    * parameter controlling relative precision of integrals over ncdm
-   * phase-space distribution during perturbation calculation
+   * phase-space distribution during perturbation calculation: value
+   * to be applied in Newtonian gauge
+   */
+  double tol_ncdm_newtonian;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution during perturbation calculation: value
+   * to be applied in synchronous gauge
+   */
+  double tol_ncdm_synchronous;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution during perturbation calculation: value
+   * actually applied in chosen gauge
    */
   double tol_ncdm;
-  double tol_ncdm_newtonian; /**< $$$ definition missing $$$ */
-  double tol_ncdm_synchronous; /**< $$$ definition missing $$$ */
 
   /**
    * parameter controlling relative precision of integrals over ncdm
@@ -517,7 +530,7 @@ struct precision
 
   double start_sources_at_tau_c_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
-  int tight_coupling_approximation; /**< $$$ definition missing $$$ */
+  int tight_coupling_approximation; /**< method for tight coiupling approximation */
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
@@ -574,7 +587,7 @@ struct precision
    */
   double radiation_streaming_trigger_tau_c_over_tau;
 
-  int ur_fluid_approximation; /**< $$$ definition missing $$$ */
+  int ur_fluid_approximation; /**< method for ultra relativistic fluid apporximation */
 
   /**
    * when to switch off ur (massless neutrinos / ultra-relativistic
@@ -582,7 +595,7 @@ struct precision
    */
   double ur_fluid_trigger_tau_over_tau_k;
 
-  int ncdm_fluid_approximation; /**< $$$ definition missing $$$ */
+  int ncdm_fluid_approximation; /**< method for non-cold dark matter fluid approxmation */
 
   /**
    * when to switch off ncdm (massive neutrinos / non-cold
@@ -590,7 +603,11 @@ struct precision
    */
   double ncdm_fluid_trigger_tau_over_tau_k;
 
-  double neglect_CMB_sources_below_visibility; /**< $$$ definition missing $$$ */
+  /**
+   * whether CMB source functions can be approximated as zero when
+   * visibility function g(tau) is tiny
+   */
+  double neglect_CMB_sources_below_visibility;
 
   //@}
 
@@ -600,23 +617,22 @@ struct precision
 
   double k_per_decade_primordial; /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
-  double primordial_inflation_ratio_min; /**< $$$ definition missing $$$ */
-  double primordial_inflation_ratio_max; /**< $$$ definition missing $$$ */
-  int primordial_inflation_phi_ini_maxit; /**< $$$ definition missing $$$ */
-  double primordial_inflation_pt_stepsize; /**< $$$ definition missing $$$ */
-  double primordial_inflation_bg_stepsize; /**< $$$ definition missing $$$ */
-  double primordial_inflation_tol_integration; /**< $$$ definition missing $$$ */
-  double primordial_inflation_attractor_precision_pivot; /**< $$$ definition missing $$$ */
-  double primordial_inflation_attractor_precision_initial; /**< $$$ definition missing $$$ */
-  int primordial_inflation_attractor_maxit; /**< $$$ definition missing $$$ */
-  double primordial_inflation_jump_initial; /**< $$$ definition missing $$$ */
-  double primordial_inflation_tol_curvature; /**< $$$ definition missing $$$ */
-  double primordial_inflation_aH_ini_target; /**< $$$ definition missing $$$ */
-  double primordial_inflation_end_dphi; /**< $$$ definition missing $$$ */
-  double primordial_inflation_end_logstep; /**< $$$ definition missing $$$ */
-  double primordial_inflation_small_epsilon; /**< $$$ definition missing $$$ */
-  double primordial_inflation_small_epsilon_tol; /**< $$$ definition missing $$$ */
-  double primordial_inflation_extra_efolds; /**< $$$ definition missing $$$ */
+  double primordial_inflation_ratio_min; /**< for each k, start following wavenumber when aH = k/primordial_inflation_ratio_min */
+  double primordial_inflation_ratio_max; /**< for each k, stop following wavenumber, at the latest, when aH = k/primordial_inflation_ratio_max */
+  int primordial_inflation_phi_ini_maxit;      /**< maximum number of iteration when searching a suitable initial field value phi_ini (value reached when no long-enough slow-roll period before the pivot scale) */
+  double primordial_inflation_pt_stepsize;     /**< controls the integration timestep for inflaton perturbations */
+  double primordial_inflation_bg_stepsize;     /**< controls the integration timestep for inflaton background */
+  double primordial_inflation_tol_integration; /**< controls the precision of the ODE integration during inflation */
+  double primordial_inflation_attractor_precision_pivot;   /**< targeted precision when searching attractor solution near phi_pivot */
+  double primordial_inflation_attractor_precision_initial; /**< targeted precision when searching attractor solution near phi_ini */
+  int primordial_inflation_attractor_maxit; /**< maximum number of iteration when searching attractor solution */
+  double primordial_inflation_tol_curvature; /**< for each k, stop following wavenumber, at the latest, when curvature perturbation R is stable up to to this tolerance */
+  double primordial_inflation_aH_ini_target; /**< control the step size in the search for a suitable initial field value */
+  double primordial_inflation_end_dphi; /**< first bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
+  double primordial_inflation_end_logstep; /**< logarithmic step for updating the bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
+  double primordial_inflation_small_epsilon; /**< value of slow-roll parameter epsilon used to define a field value phi_end close to the end of inflation (doesn't need to be exactly at the end): epsilon(phi_end)=small_epsilon (should be smaller than one) */
+  double primordial_inflation_small_epsilon_tol; /**< tolerance in the search for phi_end */
+  double primordial_inflation_extra_efolds; /**< a small number of efolds, irrelevant at the end, used in the search for the pivot scale (backward from the end of inflation) */
 
   //@}
 
