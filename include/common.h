@@ -645,14 +645,14 @@ struct precision
   double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
   /* parameters relevant for bessel functions */
-  double hyper_x_min;  /**< $$$ definition missing $$$ */
-  double hyper_sampling_flat;  /**< $$$ definition missing $$$ */
-  double hyper_sampling_curved_low_nu;  /**< $$$ definition missing $$$ */
-  double hyper_sampling_curved_high_nu;  /**< $$$ definition missing $$$ */
-  double hyper_nu_sampling_step;  /**< $$$ definition missing $$$ */
-  double hyper_phi_min_abs;  /**< $$$ definition missing $$$ */
-  double hyper_x_tol;  /**< $$$ definition missing $$$ */
-  double hyper_flat_approximation_nu;  /**< $$$ definition missing $$$ */
+  double hyper_x_min;  /**< flat case: lower bound on the smallest value of x at which we sample Phi_l^nu(x) or j_l(x)*/
+  double hyper_sampling_flat;  /**< flat case: number of sampled points x per approximate wavelength 2pi */
+  double hyper_sampling_curved_low_nu;  /**< open/closed cases: number of sampled points x per approximate wavelength 2pi/nu, when nu smaller than hyper_nu_sampling_step */
+  double hyper_sampling_curved_high_nu; /**< open/closed cases: number of sampled points x per approximate wavelength 2pi/nu, when nu greater than hyper_nu_sampling_step */
+  double hyper_nu_sampling_step;  /**< open/closed cases: value of nu at which sampling changes  */
+  double hyper_phi_min_abs;  /**< small value of Bessel function used in calculation of first point x (Phi_l^nu(x) equals hyper_phi_min_abs) */
+  double hyper_x_tol;  /**< tolerance parameter used to determine first value of x */
+  double hyper_flat_approximation_nu;  /**< value of nu below which the flat approximation is used to compute Bessel function */
 
   /* parameters relevant for transfer function */
 
@@ -689,20 +689,19 @@ struct precision
                                  q_logstep_spline steps (transition
                                  must be smooth for spline) */
 
-  /* for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
-  double transfer_neglect_delta_k_S_t0; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_S_t1; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_S_t2; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_S_e;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_t1; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_t2; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_e;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_b;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_T_t2; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_T_e;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_T_b;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_S_t0; /**< for temperature source function T0 of scalar mode, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
+  double transfer_neglect_delta_k_S_t1; /**< same for temperature source function T1 of scalar mode */
+  double transfer_neglect_delta_k_S_t2; /**< same for temperature source function T2 of scalar mode */
+  double transfer_neglect_delta_k_S_e;  /**< same for polarisation source function E of scalar mode */
+  double transfer_neglect_delta_k_V_t1; /**< same for temperature source function T1 of vector mode */
+  double transfer_neglect_delta_k_V_t2; /**< same for temperature source function T2 of vector mode */
+  double transfer_neglect_delta_k_V_e;  /**< same for polarisation source function E of vector mode */
+  double transfer_neglect_delta_k_V_b;  /**< same for polarisation source function B of vector mode */
+  double transfer_neglect_delta_k_T_t2; /**< same for temperature source function T2 of tensor mode */
+  double transfer_neglect_delta_k_T_e;  /**< same for polarisation source function E of tensor mode */
+  double transfer_neglect_delta_k_T_b;  /**< same for polarisation source function B of tensor mode */
 
-  double transfer_neglect_late_source;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_late_source;  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;
