@@ -20,7 +20,7 @@ After downloading the code, unpack the archive (tar -zxvf
 class_v*.tar.gz), go to the class directory (cd class_v*/) and compile
 (make clean; make class). If the first compilation attempt fails, you
 may need to open the Makefile and adapt the name of the compiler
-(default: gcc), of the optization flag (default: -O4) and of the
+(default: gcc), of the optimization flag (default: -O4) and of the
 OpenMP flag (default: -fopenmp; this flag is facultative, you are free
 to compile without OpenMP if you don't want parallel execution; note
 that you need the version 4.2 or higher of gcc to be able to compile
@@ -50,7 +50,7 @@ one of them, and run with two input files, for instance:
 
 A simplified documentation can be found in the paper `CLASS I:
 Overview <http://arxiv.org/abs/1104.2932>`_. On top of that, if you
-wish to modify the code, you will find lots of comments directly into
+wish to modify the code, you will find lots of comments directly in
 the files. Other CLASS papers dedicated to various aspects of the code
 are listed in the CLASS web page. Slides from CLASS-dedicated courses
 can be seen at

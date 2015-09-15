@@ -1737,7 +1737,7 @@ int perturb_get_k_list(
         index_k--;
       ppt->k_size_cmb[index_mode] = MIN(index_k+2,ppt->k_size[index_mode]);
 
-      /** The two MIN statements is here because in a normal run, the cl and cmb
+      /** The two MIN statements are here because in a normal run, the cl and cmb
           arrays contain a single k value larger than their respective k_max.
           We are mimicking this behavior. */
     }
@@ -4121,7 +4121,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
       if (pba->has_cdm == _TRUE_) {
         ppw->pv->y[ppw->pv->index_pt_delta_cdm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* cdm density */
-        /* cdm velocity velocity vanishes in the synchronous gauge */
+        /* cdm velocity vanishes in the synchronous gauge */
       }
 
       if (pba->has_dcdm == _TRUE_) {

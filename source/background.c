@@ -1,7 +1,7 @@
 /** @file background.c Documented background module
  *
- * Julien Lesgourgues, 17.04.2011
- * routines related to ncdm written by T. Tram in 2011
+ * * Julien Lesgourgues, 17.04.2011
+ * * routines related to ncdm written by T. Tram in 2011
  *
  * Deals with the cosmological background evolution.
  * This module has two purposes:
@@ -62,7 +62,7 @@
  * In order to save time, background_at_tau() can be called in three
  * modes: short_info, normal_info, long_info (returning only essential
  * quantities, or useful quantities, or rarely useful
- * quantities). Each line in the interpolation table is a vector which
+ * quantities). Each line in the interpolation table is a vector whose
  * first few elements correspond to the short_info format; a larger
  * fraction contribute to the normal format; and the full vector
  * corresponds to the long format. The guideline is that short_info
@@ -84,7 +84,7 @@
  * Background quantities at given conformal time tau.
  *
  * Evaluates all background quantities at a given value of
- * conformal time by reading the pre-computed table ant interpolating.
+ * conformal time by reading the pre-computed table and interpolating.
  *
  * @param pba           Input: pointer to background structure (containing pre-computed table)
  * @param tau           Input: value of conformal time
@@ -225,7 +225,7 @@ int background_tau_of_z(
 }
 
 /**
- * Background quantities at given a.
+ * Background quantities at given \f$ a \f$.
  *
  * Function evaluating all background quantities which can be computed
  * analytically as a function of {B} parameters such as the scale factor 'a'
@@ -408,9 +408,9 @@ int background_functions(
   }
 
   /** - compute expansion rate H from Friedmann equation: this is the
-      unique place where the Friedmann equation is assumed. Remember
+      only place where the Friedmann equation is assumed. Remember
       that densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
-      rho_class = \f$[8 \pi G \f$ rho_physical \f$/ 3 c^2]\f$ */
+      \f$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]\f$ */
   pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
 
   /** - compute derivative of H with respect to conformal time */
@@ -419,7 +419,7 @@ int background_functions(
   /** - compute relativistic density to total density ratio */
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
 
-  /** - compute other quantities in the exhaustive, redundant format: */
+  /** - compute other quantities in the exhaustive, redundant format */
   if (return_format == pba->long_info) {
 
     /** - compute critical density */
@@ -457,7 +457,7 @@ int background_init(
 
   /** Summary: */
 
-  /** - local variables : */
+  /** - define local variables */
   int n_ncdm;
   double rho_ncdm_rel,rho_nu_rel;
   double Neff;
@@ -719,7 +719,7 @@ int background_indices(
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
 
-  /** - initialization of all indices */
+  /** - initialize all indices */
 
   index_bg=0;
 
@@ -896,7 +896,7 @@ int background_ncdm_distribution(
   double ksi;
   double qlast,dqlast,f0last,df0last;
   double *param;
-  /** Variables corresponding to entries in param: */
+  /* Variables corresponding to entries in param: */
   //double square_s12,square_s23,square_s13;
   //double mixing_matrix[3][3];
   //int i;
@@ -910,7 +910,7 @@ int background_ncdm_distribution(
 
   /** - shall we interpolate in file, or shall we use analytical formula below? */
 
-  /** -> deal first with the case of interpolating in files */
+  /** - a) deal first with the case of interpolating in files */
   if (pba->got_files[n_ncdm]==_TRUE_) {
 
     lastidx = pbadist_local->tablesize-1;
@@ -944,10 +944,10 @@ int background_ncdm_distribution(
     }
   }
 
-  /** -> deal now with case of reading analytical function */
+  /** - b) deal now with case of reading analytical function */
   else{
     /**
-       Enter here your analytic expression(s) for the p.s.d.'s. If
+       Next enter your analytic expression(s) for the p.s.d.'s. If
        you need different p.s.d.'s for different species, put each
        p.s.d inside a condition, like for instance: if (n_ncdm==2) 
        {*f0=...}.  Remember that n_ncdm = 0 refers to the first
@@ -963,10 +963,10 @@ int background_ncdm_distribution(
     /**************************************************/
 
     /** This form is only appropriate for approximate studies, since in
-        reality the chemical potential are associated with flavor
+        reality the chemical potentials are associated with flavor
         eigenstates, not mass eigenstates. It is easy to take this into
         account by introducing the mixing angles. In the later part
-        (not read by the code) we illustrate how to do this */
+        (not read by the code) we illustrate how to do this. */
 
     if (_FALSE_) {
 
@@ -1013,7 +1013,7 @@ int background_ncdm_distribution(
 
 /**
  * This function is only used for the purpose of finding optimal
- * quadrature weights. The logic is: if we can convolve accurately
+ * quadrature weights. The logic is: if we can accurately convolve
  * f0(q) with this function, then we can convolve it accurately with
  * any other relevant function.
  *
@@ -1303,8 +1303,8 @@ int background_ncdm_momenta(
 }
 
 /**
- * When the user passed in input the density fraction Omeha_ncdm or
- * omega_ncdm but not the mass, infer the mass with Newton iteration method.
+ * When the user passed the density fraction Omega_ncdm or
+ * omega_ncdm in input but not the mass, infer the mass with Newton iteration method.
  *
  * @param ppr    Input: precision structure
  * @param pba    Input/Output: background structure
@@ -1627,9 +1627,8 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - compute remaining "related parameters" */
-
-  /** -> so-called "effective neutrino number", computed at earliest
+  /** - compute remaining "related parameters" 
+   *     - so-called "effective neutrino number", computed at earliest
       time in interpolation table. This should be seen as a
       definition: Neff is the equivalent number of
       instantaneously-decoupled neutrinos accounting for the
@@ -1709,7 +1708,7 @@ int background_initial_conditions(
   /** - fix initial value of \f$ a \f$ */
   a = ppr->a_ini_over_a_today_default * pba->a_today;
 
-  /** If we have ncdm species, perhaps we need to start earlier
+  /**  If we have ncdm species, perhaps we need to start earlier
       than the standard value for the species to be relativistic.
       This could happen for some WDM models.
   */
@@ -1758,7 +1757,7 @@ int background_initial_conditions(
     Omega_rad += pba->Omega0_ur;
   rho_rad = Omega_rad*pow(pba->H0,2)/pow(a/pba->a_today,4);
   if (pba->has_ncdm == _TRUE_){
-    /** We must add the relativistic contribution from NCDM species: */
+    /** - We must add the relativistic contribution from NCDM species */
     rho_rad += rho_ncdm_rel_tot;
   }
   if (pba->has_dcdm == _TRUE_){
@@ -1771,9 +1770,10 @@ int background_initial_conditions(
 
   if (pba->has_dr == _TRUE_){
     if (pba->has_dcdm == _TRUE_){
-      /** f is the critical density fraction of DR. The exact solution is
+      /**  f is the critical density fraction of DR. The exact solution is:
        * 
-       * f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);
+       * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
+       * 
        * but it is not numerically stable for very small f which is always the case.
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
@@ -1782,12 +1782,12 @@ int background_initial_conditions(
       pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
     }
     else{
-      /** This is reserved for a future case where dr is not sourced by dcdm */
+      /** There is also a space reserved for a future case where dr is not sourced by dcdm */
       pvecback_integration[pba->index_bi_rho_dr] = 0.0;
     }
   }
 
-  /** - fix initial value of \f$ \phi, \phi' \f$
+  /** - Fix initial value of \f$ \phi, \phi' \f$
    * set directly in the radiation attractor => fixes the units in terms of rho_ur
    * 
    * TODO: 
@@ -1801,7 +1801,7 @@ int background_initial_conditions(
       pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
         log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
       if (3.*pow(scf_lambda,2)-12. < 0){
-        /** if there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan*/
+        /** --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
     	pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
 	if (pba->background_verbose > 0)
 	  printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
@@ -1811,7 +1811,7 @@ int background_initial_conditions(
     }
     else{
       printf("Not using attractor initial conditions\n");
-      /** If no attractor initial conditions are assigned, gets the provided ones */
+      /** --> If no attractor initial conditions are assigned, gets the provided ones. */
       pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
       pvecback_integration[pba->index_bi_phi_prime_scf] = pba->phi_prime_ini_scf;
     }
@@ -1864,6 +1864,7 @@ int background_initial_conditions(
 
 /**
  * Subroutine for formatting background output
+ * 
  */
 
 int background_output_titles(struct background * pba,
@@ -1922,7 +1923,7 @@ int background_output_data(
   int index_tau, storeidx, n;
   double *dataptr, *pvecback;
 
-  /** Store quantities: */
+  /** Stores quantities */
   for (index_tau=0; index_tau<pba->bt_size; index_tau++){
     dataptr = data + index_tau*number_of_titles;
     pvecback = pba->background_table + index_tau*pba->bg_size;
@@ -2032,23 +2033,17 @@ int background_derivs(
   /** - calculate \f$ rs' = c_s \f$*/
   dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]))*sqrt(1.-pba->K*y[pba->index_bi_rs]*y[pba->index_bi_rs]); // TBC: curvature correction
 
-  /** calculate growth' \f$ = 1/(aH^2) \f$ */
+  /** - calculate growth' \f$ = 1/(aH^2) \f$ */
   dy[pba->index_bi_growth] = 1./(y[pba->index_bi_a] * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_H]);
 
   if (pba->has_dcdm == _TRUE_){
-    /** compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
-    dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
-      y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
-  }
-
-  if (pba->has_dcdm == _TRUE_){
-    /** compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$ */ 
+    /** - compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
     dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
   }
 
   if ((pba->has_dcdm == _TRUE_) && (pba->has_dr == _TRUE_)){
-    /** Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
+    /** - Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
   }
@@ -2069,9 +2064,9 @@ int background_derivs(
 /**
  * Scalar field potential and its derivatives with respect to the field _scf
  * For Albrecht & Skordis model: 9908085
- * \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
- * \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential) 
- * \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump) 
+ * - \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
+ * - \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential) 
+ * - \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump) 
  * 
  * TODO: 
  * - Add some functionality to include different models/potentials (tuning would be difficult, though)
@@ -2167,7 +2162,7 @@ double ddV_p_scf(
   return  scf_alpha*(scf_alpha - 1.)*pow(phi -  scf_B,  scf_alpha - 2);
 }
 
-/** now the overall potential \f$ V = V_p*V_e \f$
+/** Fianlly we can obtain the overall potential \f$ V = V_p*V_e \f$
  */
 
 double V_scf(
