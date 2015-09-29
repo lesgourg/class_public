@@ -38,7 +38,7 @@ enum reionization_z_or_tau {
 };
 
 /**
- * Two useful smooth step functions, for smoothing transitions in recfast. 
+ * Two useful smooth step functions, for smoothing transitions in recfast.
  */
 
 #define f1(x) (-0.75*x*(x*x/3.-1.)+0.5)  /**< goes from 0 to 1 when x goes from -1 to 1 */
@@ -274,25 +274,25 @@ struct recombination {
 
   //@{
 
-  double CDB; /**< $$$ definition missing $$$ */
-  double CR;  /**< $$$ definition missing $$$ */
-  double CK;  /**< $$$ definition missing $$$ */
-  double CL;  /**< $$$ definition missing $$$ */
-  double CT;  /**< $$$ definition missing $$$ */
-  double fHe; /**< $$$ definition missing $$$ */
-  double CDB_He; /**< $$$ definition missing $$$ */
-  double CK_He;  /**< $$$ definition missing $$$ */
-  double CL_He;  /**< $$$ definition missing $$$ */
-  double fu; /**< $$$ definition missing $$$ */
-  double H_frac; /**< $$$ definition missing $$$ */
-  double Tnow;   /**< $$$ definition missing $$$ */
-  double Nnow;   /**< $$$ definition missing $$$ */
-  double Bfact;  /**< $$$ definition missing $$$ */
-  double CB1;    /**< $$$ definition missing $$$ */
-  double CB1_He1; /**< $$$ definition missing $$$ */
-  double CB1_He2; /**< $$$ definition missing $$$ */
-  double H0;  /**< $$$ definition missing $$$ */
-  double YHe; /**< $$$ definition missing $$$ */
+  double CDB; /**< defined as in RECFAST */
+  double CR;  /**< defined as in RECFAST */
+  double CK;  /**< defined as in RECFAST */
+  double CL;  /**< defined as in RECFAST */
+  double CT;  /**< defined as in RECFAST */
+  double fHe; /**< defined as in RECFAST */
+  double CDB_He; /**< defined as in RECFAST */
+  double CK_He;  /**< defined as in RECFAST */
+  double CL_He;  /**< defined as in RECFAST */
+  double fu; /**< defined as in RECFAST */
+  double H_frac; /**< defined as in RECFAST */
+  double Tnow;   /**< defined as in RECFAST */
+  double Nnow;   /**< defined as in RECFAST */
+  double Bfact;  /**< defined as in RECFAST */
+  double CB1;    /**< defined as in RECFAST */
+  double CB1_He1; /**< defined as in RECFAST */
+  double CB1_He2; /**< defined as in RECFAST */
+  double H0;  /**< defined as in RECFAST */
+  double YHe; /**< defined as in RECFAST */
 
   /* parameters for energy injection */
 
@@ -390,10 +390,10 @@ struct reionization {
 
   /* parameters used by reio_bins_tanh */
 
-  int reio_num_z; /**< $$$ definition missing $$$ */
-  int index_reio_first_z; /**< $$$ definition missing $$$ */
-  int index_reio_first_xe; /**< $$$ definition missing $$$ */
-  int index_reio_step_sharpness; /**< $$$ definition missing $$$ */
+  int reio_num_z; /**< number of reionization jumps */
+  int index_reio_first_z; /**< redshift at which we start to impose reionisation function */
+  int index_reio_first_xe; /**< ionisation fraction at redhsift first_z (inferred from recombination code) */
+  int index_reio_step_sharpness; /**< sharpness of tanh jump */
 
   /* parameters used by all schemes */
 
@@ -403,8 +403,8 @@ struct reionization {
 
   /** @name - vector of such parameters, and its size */
 
-  double * reionization_parameters; /**< $$$ definition missing $$$ */
-  int reio_num_params; /**< $$$ definition missing $$$ */
+  double * reionization_parameters; /**< vector containing all reionization parameters necessary to compute xe(z) */
+  int reio_num_params; /**< length of vector reionization_parameters */
 
   //@}
 
@@ -435,7 +435,7 @@ struct thermodynamics_parameters_and_workspace {
 };
 
 /**************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -654,7 +654,7 @@ extern "C" {
 /**
  * @name Some limits imposed on cosmological parameter values:
  */
-/* @endcond */ 
+/* @endcond */
 //@{
 
 #define _YHE_BIG_ 0.5      /**< maximal \f$ Y_{He} \f$ */
