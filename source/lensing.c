@@ -32,7 +32,7 @@
  *
  * @param ple        Input : pointer to lensing structure
  * @param l          Input : multipole number
- * @param cl_lensed  Output: lensed C_l's for all types (TT, TE, EE, etc..)
+ * @param cl_lensed  Output: lensed \f$ C_l\f$'s for all types (TT, TE, EE, etc..)
  * @return the error status
  */
 
@@ -88,8 +88,9 @@ int lensing_init(
                  struct nonlinear * pnl,
                  struct lensing * ple
                  ) {
-
-  /** local variables */
+  
+  /** Summary: */
+  /** - Define local variables */
 
   double * mu; /* mu[index_mu]: discretized values of mu
                   between -1 and 1, roots of Legendre polynomial */
@@ -160,8 +161,6 @@ int lensing_init(
   //double debut, fin;
   //double cpu_time;
 
-  /** Summary: */
-
   /** - check that we really want to compute at least one spectrum */
 
   if (ple->has_lensed_cls == _FALSE_) {
@@ -186,8 +185,8 @@ int lensing_init(
              ple->error_message,
              ple->error_message);
 
-  /** put here all precision variables; will be stored later in precision structure */
-  /** Last element in mu will be for mu=1, needed for sigma2
+  /** - put all precision variables hare; will be stored later in precision structure */
+  /** - Last element in mu will be for mu=1, needed for sigma2.
       The rest will be chosen as roots of a Gauss-Legendre quadrature **/
 
   if (ppr->accurate_lensing == _TRUE_) {
@@ -233,7 +232,7 @@ int lensing_init(
     }
   }
 
-  /** - compute \f$ d^l_{mm'} (\mu) \f$*/
+  /** - Compute \f$ d^l_{mm'} (\mu) \f$*/
 
   icount = 0;
   class_alloc(d00,
@@ -295,7 +294,7 @@ int lensing_init(
 
   icount += 5*(ple->l_unlensed_max+1); /* for arrays sqrt1[l] to sqrt5[l] */
 
-  /** Allocate main contiguous buffer **/
+  /** - Allocate main contiguous buffer **/
   class_alloc(buf_dxx,
               icount * sizeof(double),
               ple->error_message);
@@ -421,7 +420,7 @@ int lensing_init(
               ple->error_message);
 
 
-  /** Locally store unlensed temperature cl_tt and potential cl_pp spectra **/
+  /** - Locally store unlensed temperature \f$ cl_{tt}\f$ and potential \f$ cl_{pp}\f$ spectra **/
   class_alloc(cl_tt,
               (ple->l_unlensed_max+1)*sizeof(double),
               ple->error_message);
@@ -494,7 +493,7 @@ int lensing_init(
   free(cl_md_ic);
   free(cl_md);
 
-  /** Compute sigma2(mu) and Cgl2(mu) **/
+  /** - Compute sigma2(mu) and Cgl2(mu) **/
 
   //debut = omp_get_wtime();
 #pragma omp parallel for                        \
@@ -531,7 +530,7 @@ int lensing_init(
 
   /** - compute ksi, ksi+, ksi-, ksiX */
 
-  /** ksi is for TT **/
+  /** - --> ksi is for TT **/
   if (ple->has_tt==_TRUE_) {
 
     class_calloc(ksi,
@@ -540,7 +539,7 @@ int lensing_init(
                  ple->error_message);
   }
 
-  /** ksiX is for TE **/
+  /** - --> ksiX is for TE **/
   if (ple->has_te==_TRUE_) {
 
     class_calloc(ksiX,
@@ -549,7 +548,7 @@ int lensing_init(
                  ple->error_message);
   }
 
-  /** ksip, ksim for EE, BB **/
+  /** - --> ksip, ksim for EE, BB **/
   if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
 
     class_calloc(ksip,
@@ -690,7 +689,7 @@ int lensing_init(
   //printf("time in ksi=%4.3f s\n",cpu_time);
 
 
-  /** - compute lensed Cls by integration */
+  /** - compute lensed \f$ C_l\f$'s by integration */
   //debut = omp_get_wtime();
   if (ple->has_tt==_TRUE_) {
     class_call(lensing_lensed_cl_tt(ksi,d00,w8,num_mu-1,ple),
@@ -729,7 +728,7 @@ int lensing_init(
   //cpu_time = (fin-debut);
   //printf("time in final lensing computation=%4.3f s\n",cpu_time);
 
-  /** - spline computed Cls in view of interpolation */
+  /** - spline computed \f$ C_l\f$'s in view of interpolation */
 
   class_call(array_spline_table_lines(ple->l,
                                       ple->l_size,
@@ -741,7 +740,7 @@ int lensing_init(
              ple->error_message,
              ple->error_message);
 
-  /** Free lots of stuff **/
+  /** - Free lots of stuff **/
   free(buf_dxx);
 
   free(d00);
@@ -785,7 +784,7 @@ int lensing_init(
     free(cl_bb);
   }
   free(cl_pp);
-  /** Exits **/
+  /** - Exit **/
 
   return _SUCCESS_;
 
@@ -1032,7 +1031,7 @@ int lensing_indices(
  * This routine computes the lensed power spectra by Gaussian quadrature
  *
  * @param ksi  Input       : Lensed correlation function (ksi[index_mu])
- * @param d00  Input       : Legendre polynomials (d^l_{00}[l][index_mu])
+ * @param d00  Input       : Legendre polynomials (\f$ d^l_{00}\f$[l][index_mu])
  * @param w8   Input       : Legendre quadrature weights (w8[index_mu])
  * @param nmu  Input       : Number of quadrature points (0<=index_mu<=nmu)
  * @param ple  Input/output: Pointer to the lensing structure
@@ -1069,7 +1068,7 @@ int lensing_lensed_cl_tt(
 }
 
 /**
- * This routine adds back the unlensed cl_tt power spectrum
+ * This routine adds back the unlensed \f$ cl_{tt}\f$ power spectrum
  * Used in case of fast (and BB inaccurate) integration of
  * correlation functions.
  *
@@ -1095,7 +1094,7 @@ int lensing_addback_cl_tt(
  * This routine computes the lensed power spectra by Gaussian quadrature
  *
  * @param ksiX Input       : Lensed correlation function (ksiX[index_mu])
- * @param d20  Input       : Wigner d-function (d^l_{20}[l][index_mu])
+ * @param d20  Input       : Wigner d-function (\f$ d^l_{20}\f$[l][index_mu])
  * @param w8   Input       : Legendre quadrature weights (w8[index_mu])
  * @param nmu  Input       : Number of quadrature points (0<=index_mu<=nmu)
  * @param ple  Input/output: Pointer to the lensing structure
@@ -1132,7 +1131,7 @@ int lensing_lensed_cl_te(
 }
 
 /**
- * This routine adds back the unlensed cl_te power spectrum
+ * This routine adds back the unlensed \f$ cl_{te}\f$ power spectrum
  * Used in case of fast (and BB inaccurate) integration of
  * correlation functions.
  *
@@ -1159,8 +1158,8 @@ int lensing_addback_cl_te(
  *
  * @param ksip Input       : Lensed correlation function (ksi+[index_mu])
  * @param ksim Input       : Lensed correlation function (ksi-[index_mu])
- * @param d22  Input       : Wigner d-function (d^l_{22}[l][index_mu])
- * @param d2m2 Input       : Wigner d-function (d^l_{2-2}[l][index_mu])
+ * @param d22  Input       : Wigner d-function (\f$ d^l_{22}\f$[l][index_mu])
+ * @param d2m2 Input       : Wigner d-function (\f$ d^l_{2-2}\f$[l][index_mu])
  * @param w8   Input       : Legendre quadrature weights (w8[index_mu])
  * @param nmu  Input       : Number of quadrature points (0<=index_mu<=nmu)
  * @param ple  Input/output: Pointer to the lensing structure
@@ -1201,7 +1200,7 @@ int lensing_lensed_cl_ee_bb(
 }
 
 /**
- * This routine adds back the unlensed cl_ee, cl_bb power spectra
+ * This routine adds back the unlensed \f$ cl_{ee}\f$, \f$ cl_{bb}\f$ power spectra
  * Used in case of fast (and BB inaccurate) integration of
  * correlation functions.
  *

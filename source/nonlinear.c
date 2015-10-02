@@ -4,7 +4,7 @@
  *
  * New module replacing an older one present up to version 2.0 The new
  * module is located in a better place in the main, allowing it to
- * compute non-linear correction to Cl's and not just P(k).  It will
+ * compute non-linear correction to \f$ C_l\f$'s and not just \f$ P(k)\f$. It will
  * also be easier to generalize to new methods.  The old implementation
  * of one-loop calculations and TRG calculations has been dropped from
  * this version, they can still be found in older versions.
@@ -64,14 +64,14 @@ int nonlinear_init(
   double *pk_l;
   double *pk_nl;
 
-  /** (a) if non non-linear corrections requested */
+  /** (a) First deal with the case where non non-linear corrections requested */
 
   if (pnl->method == nl_none) {
     if (pnl->nonlinear_verbose > 0)
       printf("No non-linear spectra requested. Nonlinear module skipped.\n");
   }
 
-  /** (b) for HALOFIT non-linear spectrum */
+  /** (b) Compute for HALOFIT non-linear spectrum */
 
   else if (pnl->method == nl_halofit) {
     if (pnl->nonlinear_verbose > 0)
