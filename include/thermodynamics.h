@@ -26,7 +26,9 @@ enum reionization_parametrization {
   reio_camb,  /**< reionization parameterized like in CAMB */
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
-  reio_stars_and_halos /**< To be used when computing effect of stars and DM halos on the reionisation history */
+  reio_stars_and_halos, /**< To be used when computing effect of stars and DM halos on the reionisation history */
+  reio_bins_stars_and_halos, /**< To be used when computing effect of stars (binned history with tanh inteprolation between bins) and DM halos on the reionisation history */
+
 };
 
 /**

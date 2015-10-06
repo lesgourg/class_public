@@ -1130,6 +1130,10 @@ int input_read_parameters(
       pth->reio_parametrization=reio_stars_and_halos;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_bins_stars_and_halos") == 0) {
+      pth->reio_parametrization=reio_bins_stars_and_halos;
+      flag2=_TRUE_;
+    }
     class_test(flag2==_FALSE_,
                errmsg,
                "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', ...");
@@ -1163,7 +1167,7 @@ int input_read_parameters(
   }
 
   /* reionization parameters if reio_parametrization=reio_bins_tanh */
-  if (pth->reio_parametrization == reio_bins_tanh) {
+  if (pth->reio_parametrization == reio_bins_tanh || pth->reio_parametrization == reio_bins_stars_and_halos) {
     class_read_int("binned_reio_num",pth->binned_reio_num);
     class_read_list_of_doubles("binned_reio_z",pth->binned_reio_z,pth->binned_reio_num);
     class_read_list_of_doubles("binned_reio_xe",pth->binned_reio_xe,pth->binned_reio_num);

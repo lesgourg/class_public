@@ -730,7 +730,7 @@ int thermodynamics_init(
                  pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
     }
-    if (pth->reio_parametrization == reio_bins_tanh) {
+    if (pth->reio_parametrization == reio_bins_tanh || pth->reio_parametrization == reio_bins_stars_and_halos) {
       printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
     }
     if (pth->thermodynamics_verbose > 1) {
@@ -895,7 +895,7 @@ int thermodynamics_indices(
   }
 
   /* case where x_e(z) is binned */
-  if (pth->reio_parametrization == reio_bins_tanh) {
+  if (pth->reio_parametrization == reio_bins_tanh|| pth->reio_parametrization == reio_bins_stars_and_halos) {
 
     /* the code will not only copy here the "bin centers" passed in
        input. It will add an initial and final value for (z,xe). So
@@ -1858,7 +1858,7 @@ int thermodynamics_reionization_function(
   }
   /** - implementation of binned ionization function similar to astro-ph/0606552 */
 
-  if (pth->reio_parametrization == reio_bins_tanh) {
+  if (pth->reio_parametrization == reio_bins_tanh|| pth->reio_parametrization == reio_bins_stars_and_halos) {
 
     /** -> case z > z_reio_start */
 
@@ -2160,7 +2160,7 @@ int thermodynamics_reionization(
 
   }
 
-  if (pth->reio_parametrization == reio_bins_tanh) {
+  if (pth->reio_parametrization == reio_bins_tanh|| pth->reio_parametrization == reio_bins_stars_and_halos) {
 
     /* this algorithm requires at least two bin centers (i.e. at least
        4 values in the (z,xe) array, counting the edges). */
@@ -2303,6 +2303,7 @@ int thermodynamics_reionization_sample(
   double relative_variation;
   double f_X, epsilon_X, rho_sfr, ap, bp, cp, dp, _erg_to_joule_, _switch_;
   Yp = pth->YHe;
+  fprintf(stdout, "here\n");
 
   /** (a) allocate vector of values related to reionization */
   class_alloc(reio_vector,preio->re_size*sizeof(double),pth->error_message);
@@ -2389,6 +2390,7 @@ int thermodynamics_reionization_sample(
   dz = dz_max;
 
   while (z > 0.) {
+
     // printf("dz %e \n",dz);
     class_test(dz < ppr->smallest_allowed_variation,
                pth->error_message,
@@ -2403,12 +2405,18 @@ int thermodynamics_reionization_sample(
                pth->error_message,
                pth->error_message);
 
-    if(pth->reio_parametrization == reio_stars_and_halos){x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
+    if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
+
+      x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
       -preco->recombination_table[(j)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j)*preco->re_size+preco->index_re_z])+
       preco->recombination_table[j*preco->re_size+preco->index_re_xe]  ;
-    xe_next=MAX(xe_next,x_tmp); // New reionization parametrization by Vivian Poulin
+      fprintf(stdout, "z=%e  x_e_halo=%e x_e=%e\n",z,x_tmp,xe_next);
+
+    xe_next=MAX(xe_next,x_tmp);
+    // New reionization parametrization by Vivian Poulin
     //Here we interpolate linearly in the old table containing reionisation fractions due to DM and compare it to the ionisation fraction from stars. If xe_stars > xe_DM, xe_stars is recorded. Otherwise, we keep xe_DM.
     }
+
     class_call(background_tau_of_z(pba,
                                    z_next,
                                    &tau),
