@@ -2303,7 +2303,6 @@ int thermodynamics_reionization_sample(
   double relative_variation;
   double f_X, epsilon_X, rho_sfr, ap, bp, cp, dp, _erg_to_joule_, _switch_;
   Yp = pth->YHe;
-  fprintf(stdout, "here\n");
 
   /** (a) allocate vector of values related to reionization */
   class_alloc(reio_vector,preio->re_size*sizeof(double),pth->error_message);
@@ -2410,7 +2409,6 @@ int thermodynamics_reionization_sample(
       x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
       -preco->recombination_table[(j)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j)*preco->re_size+preco->index_re_z])+
       preco->recombination_table[j*preco->re_size+preco->index_re_xe]  ;
-      fprintf(stdout, "z=%e  x_e_halo=%e x_e=%e\n",z,x_tmp,xe_next);
 
     xe_next=MAX(xe_next,x_tmp);
     // New reionization parametrization by Vivian Poulin
@@ -2562,8 +2560,8 @@ int thermodynamics_reionization_sample(
       -2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
       /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)) /* energy injection */
-      -_switch_*(2./(3.*_k_B_)*epsilon_X*chi_heat/(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));/* x-ray heating */
+      // -_switch_*(2./(3.*_k_B_)*epsilon_X*chi_heat/(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
+      // /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));/* x-ray heating */
     /** - increment baryon temperature */
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
