@@ -2534,7 +2534,7 @@ int thermodynamics_reionization_sample(
     class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                pth->error_message,
                pth->error_message);
-     class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+    if(pth->annihilation!=0)class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                pth->error_message,
                pth->error_message);
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
@@ -3459,6 +3459,18 @@ int thermodynamics_derivs_with_recfast(
   double chi_ionH;
   double chi_ionHe;
   double chi_lowE;
+   /*used for reionization from realistic star model*/
+   double ap,bp,cp,dp,rho_sfr,stars_xe,dNion_over_dt,f_esc,Zeta_ion;
+   double MPCcube_to_mcube=2.93799895*pow(10,67);
+   f_esc=0.2;
+   Zeta_ion=pow(10,53.14);
+   ap = 0.01376;
+   bp = 3.26;
+   cp = 2.59;
+   dp = 5.68;
+   rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp));
+   dNion_over_dt=f_esc*Zeta_ion*rho_sfr;
+
 
   int last_index_back;
 
@@ -3497,9 +3509,10 @@ int thermodynamics_derivs_with_recfast(
              error_message,
              error_message);
 
-   class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+   if(pth->annihilation!=0)class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                error_message,
                error_message);
+
  // fprintf(stdout,"%e      %e     %e      %e      %e    \n", x,pth->chi_heat,pth->chi_lya, pth->chi_ionH,pth->chi_ionHe,pth->chi_lowE);
   /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
@@ -3597,16 +3610,20 @@ int thermodynamics_derivs_with_recfast(
       chi_lya = 0.;
     }
 
-
+    stars_xe=dNion_over_dt/MPCcube_to_mcube/(Hz*(1.+z)*n);
+    // if(stars_xe==1)
+    // stars_xe = 0;
+    // fprintf(stdout,"xe = %e, stars_xe = %e at z = %e\n",y[0],stars_xe,z);
     if (x_H > ppr->recfast_x_H0_trigger2) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z))
 		-energy_rate*chi_ionH/n/(_L_H_ion_*_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
-
+      dy[0] -= stars_xe;
     }
     else {
       C=(1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)))
         -energy_rate*1/n*((chi_ionH+chi_ionHe)/_L_H_ion_+chi_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (consider fraction going to helium as the one going to hydrogen) */
+        dy[0] -= stars_xe;
 
     }
   }
