@@ -2559,7 +2559,7 @@ int thermodynamics_reionization_sample(
       (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H]
       -2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)) /* energy injection */
+      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
       // -_switch_*(2./(3.*_k_B_)*epsilon_X*chi_heat/(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
       // /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));/* x-ray heating */
     /** - increment baryon temperature */
