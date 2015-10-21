@@ -1322,6 +1322,7 @@ int thermodynamics_reionization_function(
   /** - define local variables */
   double argument;
   int i;
+  double z_jump;
 
   /** - implementation of ionization function similar to the one in CAMB */
 
@@ -1396,6 +1397,13 @@ int thermodynamics_reionization_function(
       i = 0;
       while (preio->reionization_parameters[preio->index_reio_first_z+i+1]<z) i++;
 
+      /* This is the expression of the tanh-like jumps of the
+         reio_bins_tanh scheme until the 10.06.2015. It appeared to be
+         not robust enough. It could lead to a kink in xe(z) near the
+         maximum value of z at which reionisation is sampled. It has
+         been replaced by the simpler and more robust expression
+         below.
+
       *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
         +0.5*(tanh((2.*(z-preio->reionization_parameters[preio->index_reio_first_z+i])
                     /(preio->reionization_parameters[preio->index_reio_first_z+i+1]
@@ -1404,7 +1412,27 @@ int thermodynamics_reionization_function(
               /tanh(1./preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
         *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
           -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+      */
 
+      /* compute the central redshift value of the tanh jump */
+
+      if (i == preio->reio_num_z-2) {
+        z_jump = preio->reionization_parameters[preio->index_reio_first_z+i]
+          + 0.5*(preio->reionization_parameters[preio->index_reio_first_z+i]
+                 -preio->reionization_parameters[preio->index_reio_first_z+i-1]);
+      }
+      else  {
+        z_jump =  0.5*(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+                       + preio->reionization_parameters[preio->index_reio_first_z+i]);
+      }
+
+      /* implementation of the tanh jump */
+
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+        +0.5*(tanh((z-z_jump)
+                   /preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
+        *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+          -preio->reionization_parameters[preio->index_reio_first_xe+i]);
 
     }
 
@@ -1689,9 +1717,11 @@ int thermodynamics_reionization(
 
     /* check that this input can be interpreted by the code */
     for (bin=1; bin<pth->binned_reio_num; bin++) {
-      class_test(pth->binned_reio_z[bin]<pth->binned_reio_z[bin],
+      class_test(pth->binned_reio_z[bin-1]>=pth->binned_reio_z[bin],
                  pth->error_message,
-                 "value of reionization bin centers z_i expected to be passed in growing order");
+                 "value of reionization bin centers z_i expected to be passed in growing order: %e, %e",
+                 pth->binned_reio_z[bin-1],
+                 pth->binned_reio_z[bin]);
     }
 
     /* the code will not only copy here the "bin centers" passed in
@@ -1705,11 +1735,12 @@ int thermodynamics_reionization(
 
 
     /* find largest value of z in the array. We choose to define it as
-       z_(i_max) + (the distance between z_(i_max) and z_(i_max-1)). E.g. if
-       the bins are in 10,12,14, the largest z will be 16. */
+       z_(i_max) + 2*(the distance between z_(i_max) and z_(i_max-1)). E.g. if
+       the bins are in 10,12,14, the largest z will be 18. */
     preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] =
-      2.*preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
-      -preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-3];
+      preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
+      +2.*(preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
+        -preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-3]);
 
     /* copy this value in reio_start */
     preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1];
@@ -1730,9 +1761,15 @@ int thermodynamics_reionization(
       -preio->reionization_parameters[preio->index_reio_first_z+2];
 
     /* check it's not too small */
+    /* 6.06.2015: changed this test to simply imposing that the first z is at least zero */
+    /*
     class_test(preio->reionization_parameters[preio->index_reio_first_z] < 0,
                pth->error_message,
                "final redshift for reionization = %e, you must change the binning or redefine the way in which the code extrapolates below the first value of z_i",preio->reionization_parameters[preio->index_reio_first_z]);
+    */
+    if (preio->reionization_parameters[preio->index_reio_first_z] < 0) {
+      preio->reionization_parameters[preio->index_reio_first_z] = 0.;
+    }
 
     /* infer xe before reio */
     class_call(thermodynamics_get_xe_before_reionization(ppr,
@@ -2034,19 +2071,33 @@ int thermodynamics_reionization_sample(
 
     /** - derivative of baryon temperature */
 
-    class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
-               pth->error_message,
-               pth->error_message);
-
-    //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-    chi_heat = MIN(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1); // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
-
     dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
       -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
-      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H]
-      -2./(3.*_k_B_)*energy_rate*chi_heat
-      /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
+      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
+
+    if (preco->annihilation > 0) {
+
+      class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+
+      // old approximation from Chen and Kamionkowski:
+      // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
+
+      // coefficient as revised by Slatyer et al. 2013
+      // (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V
+      // of Slatyer et al. 2013):
+      xe = preio->reionization_table[i*preio->re_size+preio->index_re_xe];
+      if (xe < 1.)
+        chi_heat = MIN(0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)),1);
+      else
+        chi_heat = 1.;
+
+      dTdz+= -2./(3.*_k_B_)*energy_rate*chi_heat
+        /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
+        /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
+
+    }
 
     /** - increment baryon temperature */
 
@@ -3079,7 +3130,12 @@ int thermodynamics_derivs_with_recfast(
     /* equations modified to take into account energy injection from dark matter */
 
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-    chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1.); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+
+    // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+    if (x < 1.)
+      chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
+    else
+      chi_heat = 1.;
 
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
