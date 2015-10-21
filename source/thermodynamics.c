@@ -2071,25 +2071,33 @@ int thermodynamics_reionization_sample(
 
     /** - derivative of baryon temperature */
 
-    class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
-               pth->error_message,
-               pth->error_message);
-
-    //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-
-    // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
-    xe = preio->reionization_table[i*preio->re_size+preio->index_re_xe];
-    if (xe < 1.)
-      chi_heat = MIN(0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)),1);
-    else
-      chi_heat = 1.;
-
     dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
       -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
-      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H]
-      -2./(3.*_k_B_)*energy_rate*chi_heat
-      /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
+      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
+
+    if (preco->annihilation > 0) {
+
+      class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+
+      // old approximation from Chen and Kamionkowski:
+      // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
+
+      // coefficient as revised by Slatyer et al. 2013
+      // (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V
+      // of Slatyer et al. 2013):
+      xe = preio->reionization_table[i*preio->re_size+preio->index_re_xe];
+      if (xe < 1.)
+        chi_heat = MIN(0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)),1);
+      else
+        chi_heat = 1.;
+
+      dTdz+= -2./(3.*_k_B_)*energy_rate*chi_heat
+        /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
+        /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
+
+    }
 
     /** - increment baryon temperature */
 
