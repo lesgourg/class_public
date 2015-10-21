@@ -115,7 +115,7 @@ double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double en
                                       error_message);
   //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
   if (chi_heat > 1.) chi_heat = 1.;
-
+  fprintf(stdout,"%e   %e     \n", xe,chi_heat);
   return Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
     +2./3./kBoltz*chi_heat/nH*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
 
@@ -207,7 +207,28 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
 
     Tr = param->T0 * (ainv=1.+z1);
     nH = param->nH0 * ainv*ainv*ainv;
+    double f_esc=0.2;
+    double Zeta_ion=pow(10,53.14);
+    double rho_sfr = 0.01376*pow(1+z1,3.26)/(1+pow((1+z1)/2.59,5.68))*ainv*ainv*ainv*exp(-z1/15);//Comoving to physical
+    if(z1>25)rho_sfr =0;
+    double dNion_over_dt;
+    double erg_to_ev = 6.24150913*pow(10,11);
+    double E_x = 3.4*pow(10,40)*erg_to_ev;
+    // double rho_sfr = (0.01/pow(8,-3.6))*pow(1+z1,-3.6);
+    double stars_xe;
+    double MPCcube_to_mcube=2.93799895*pow(10,67);
+    double MPCcube_to_cmcube=2.93799895*pow(10,73);
+    dNion_over_dt = f_esc*Zeta_ion*rho_sfr;
+    double f_abs =1;
+    double f_X =0.2;
     H = rec_HubbleConstant(param, z1);
+    double L_x = 2*E_x  * f_X*f_abs* rho_sfr/(3*MPCcube_to_mcube*kBoltz*nH*H*(1.+xe_in+param->fHe));
+    fprintf(stdout,"z= %e, L_x = %e ",z1,L_x);
+
+    // if(z1>25)stars_xe = 0;
+    // else
+    stars_xe = dNion_over_dt/(MPCcube_to_mcube)/(H*nH);
+    // stars_xe = 0;
 
     #if (MODEL == PEEBLES)
          dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
@@ -228,8 +249,25 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     #endif
 
 	 dTmdlna = rec_dTmdlna(xe_in, Tm_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1), param);
+  //  dTmdlna+=L_x*f_abs*f_X;
+  //  dTmdlna+=L_x*(1-pow(1-pow(xe_in,0.27),1.32));
+   dTmdlna+=L_x*(1+2*xe_in)/3.;
+  //  dTmdlna+=L_x;
+  //  dTmdlna+=stars_xe*(1-pow(1-pow(xe_in,0.27),1.32));
+  //  dTmdlna+=stars_xe*f_abs*2/(3*kBoltz)/(1.+xe_in+param->fHe);
+  //  dTmdlna+=stars_xe*(1-pow(1-pow(xe_in,0.27),1.32))*2/(3*kBoltz)/(1.+xe_in+param->fHe);
+   dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
+  //  dxedlna+=stars_xe*((1+param->Y/2-xe_in))*10*(1+tanh((6-z1)/0.25))/2;
+  // dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
+  // if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
+  // dxedlna+=stars_xe*(0.39*pow(1-pow(xe_in,0.41),1.76)+0.47*pow(1-pow(xe_in,0.27),1.52)+0.0554*pow(1-pow(xe_in,0.4614),1.6660)+0.0246*pow(1-pow(xe_in,0.4049),1.6594))*20;
 
-    *xe_out = xe_in + param->dlna * (1.25 * dxedlna - 0.25 * (*dxedlna_prev2));
+  // if(z1<6)  dxedlna+=stars_xe*0.39*pow(param->fHe-pow(xe_in,0.41),1.76)*1;
+
+  //  dxedlna+=stars_xe*(1-xe_in);
+   fprintf(stdout, "%e\n",stars_xe);
+    *xe_out = xe_in + param->dlna * (1.25 * (dxedlna) - 0.25 * (*dxedlna_prev2));
+    /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
     *Tm_out = Tm_in + param->dlna * (1.25 * dTmdlna - 0.25 * (*dTmdlna_prev2));
 
     *z_prev2       = *z_prev;

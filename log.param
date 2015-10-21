@@ -1,0 +1,253 @@
+#-----CLASS v2.4.3 (branch: 2.4, hash: 7dc4bd787e70f3cd78f57817a6e9f06644fe5e36)-----
+
+data.experiments=['Planck_highl','Planck_lowl','Planck_lensing','bao_boss','WiggleZ_bao','WiggleZ']
+
+#------ Settings for the over-sampling.
+# The first element will always be set to 1, for it is the sampling of the
+# cosmological parameters. The other numbers describe the over sampling of the
+# nuisance parameter space. This array must have the same dimension as the
+# number of blocks in your run (so, 1 for cosmological parameters, and then 1
+# for each experiment with varying nuisance parameters).
+# Note that when using Planck likelihoods, you definitely want to use [1, 4],
+# to oversample as much as possible the 14 nuisance parameters.
+# Remember to order manually the experiments from slowest to fastest (putting
+# Planck as the first set of experiments should be a safe bet, except if you
+# also have LSS experiments).
+# If you have experiments without nuisance, you do not need to specify an
+# additional entry in the over_sampling list (notice for instance that, out of
+# the three Planck likelihoods used, only Planck_highl requires nuisance
+# parameters, therefore over_sampling has a length of two (cosmology, plus one
+# set of nuisance).
+data.over_sampling=[1, 10]
+
+#------ Parameter list -------
+
+# data.parameters[class name] = [mean, min, max, 1-sigma, scale, role]
+# - if min max irrelevant, put to None
+# - if fixed, put 1-sigma to 0
+# - if scale irrelevant, put to 1, otherwise to the appropriate factor
+# - role is either 'cosmo', 'nuisance' or 'derived'. You should put the
+# derived
+# parameters at the end, and in case you are using the `-j fast` Cholesky
+# decomposition, you should order your nuisance parameters from slowest to
+# fastest.
+
+# Cosmological parameters list
+
+data.parameters['omega_b']      = [ 2.2253,  None,  None,  0.028, 0.01, 'cosmo']
+data.parameters['omega_dcdmdr'] = [0.11919,  None,  None, 0.0027,    1, 'cosmo']
+data.parameters['Gamma_dcdm']   = [      0,     0,  None,    0.1,    1, 'cosmo']
+#data.parameters['Gamma_dcdm']   = [  1.e-6, 1.e-6, 1.e-6,      0,    1, 'cosmo']
+data.parameters['100*theta_s']  = [ 1.0418,  None,  None,   3e-4,    1, 'cosmo']
+data.parameters['ln10^{10}A_s'] = [ 3.0753,  None,  None, 0.0029,    1, 'cosmo']
+data.parameters['n_s']          = [0.96229,  None,  None, 0.0074,    1, 'cosmo']
+data.parameters['tau_reio']     = [0.09463,  0.04,  None,  0.013,    1, 'cosmo']
+
+# Nuisance parameter list, same call, except the name does not have to be a
+  class name
+
+data.parameters['A_cib_217']         = [ 64.173,    0,  200,   6.8,    1,'nuisance']
+data.parameters['cib_index']         = [   -1.3, -1.3, -1.3,     0,    1,'nuisance']
+data.parameters['xi_sz_cib']         = [0.47384,    0,    1,   0.3,    1,'nuisance']
+data.parameters['A_sz']              = [ 8.6536,    0,   10,   1.7,    1,'nuisance']
+data.parameters['ps_A_100_100']      = [ 223.31,    0,  400,    30,    1,'nuisance']
+data.parameters['ps_A_143_143']      = [ 25.988,    0,  400,    10,    1,'nuisance']
+data.parameters['ps_A_143_217']      = [ 33.580,    0,  400,    11,    1,'nuisance']
+data.parameters['ps_A_217_217']      = [ 88.265,    0,  400,    11,    1,'nuisance']
+data.parameters['ksz_norm']          = [ 9.6073,    0,   10,   2.5,    1,'nuisance']
+data.parameters['gal545_A_100']      = [ 6.1692,    0,   50,   1.9,    1,'nuisance']
+data.parameters['gal545_A_143']      = [ 8.6539,    0,   50,   1.9,    1,'nuisance']
+data.parameters['gal545_A_143_217']  = [ 17.237,    0,  100,   4.2,    1,'nuisance']
+data.parameters['gal545_A_217']      = [ 78.898,    0,  400,   7.5,    1,'nuisance']
+data.parameters['calib_100T']        = [ 998.16,    0, 3000,  0.79,0.001,'nuisance']
+data.parameters['calib_217T']        = [ 994.84,    0, 3000,   1.5,0.001,'nuisance']
+data.parameters['A_planck']          = [100.022,   90,  110,  0.25, 0.01,'nuisance']
+
+# Derived parameters
+
+data.parameters['z_reio']          = [1,-1,-1, 0,     1,   'derived']
+data.parameters['Omega_Lambda']    = [1,-1,-1, 0,     1,   'derived']
+data.parameters['YHe']             = [1,-1,-1, 0,     1,   'derived']
+data.parameters['H0']              = [1,-1,-1, 0,     1,   'derived']
+data.parameters['A_s']             = [1,-1,-1, 0,     1,   'derived']
+data.parameters['sigma8']          = [1,-1,-1, 0,     1,   'derived']
+
+# Other cosmo parameters (fixed parameters, precision parameters, etc.)
+
+data.cosmo_arguments['k_pivot'] = 0.05
+data.cosmo_arguments['omega_cdm'] = 0.001
+
+# The base model features two massless
+# and one massive neutrino with m=0.06eV.
+# The settings below ensures that these
+# three species contribute equally
+# to the radiation density at large
+# redshift, with a total of Neff=3.046
+data.cosmo_arguments['N_eff'] = 2.03351
+data.cosmo_arguments['N_ncdm'] = 1
+data.cosmo_arguments['m_ncdm'] = 0.06
+data.cosmo_arguments['T_ncdm'] = 0.715985
+
+# These two are required to get sigma8 as a derived parameter 
+# (class must compute the P(k) until sufficient k)
+data.cosmo_arguments['output'] = 'mPk'
+data.cosmo_arguments['P_k_max_h/Mpc'] = 1.
+
+#------ Mcmc parameters ----
+
+data.N=10
+data.write_step=5
+
+
+#-----Likelihood-Planck_highl-----
+Planck_highl.calib_100T_prior_variance = 0.001
+Planck_highl.gal545_A_143_217_prior_center = 21
+Planck_highl.gal545_A_217_prior_center = 80
+Planck_highl.gal545_A_100_prior_variance = 2
+Planck_highl.calib_217T_prior_variance = 0.002
+Planck_highl.gal545_A_143_prior_center = 9
+Planck_highl.gal545_A_217_prior_variance = 20
+Planck_highl.A_planck_prior_variance = 0.0025
+Planck_highl.calib_217T_prior_center = 0.99501
+Planck_highl.path_clik = '/home/lesgourg/planck/plc-2.0b8/../hi_l/plik/plik_dx11dr2_HM_v18_TT.clik'
+Planck_highl.calib_100T_prior_center = 0.9990004
+Planck_highl.gal545_A_143_217_prior_variance = 8.5
+Planck_highl.A_planck_prior_center = 1
+Planck_highl.gal545_A_100_prior_center = 7
+Planck_highl.gal545_A_143_prior_variance = 2
+
+
+#-----Likelihood-Planck_lowl-----
+Planck_lowl.path_clik = '/home/lesgourg/planck/plc-2.0b8/../low_l/bflike/lowl_SMW_70_dx11d_2014_10_03_v5c_Ap.clik'
+
+
+#-----Likelihood-Planck_lensing-----
+Planck_lensing.path_clik = '/home/lesgourg/planck/plc-2.0b8/../lensing/smica_g30_ftl_full_pp.clik_lensing'
+
+
+#-----Likelihood-bao_boss-----
+bao_boss.exclude = []
+bao_boss.file = 'bao_2014.txt'
+bao_boss.data_directory = '/home/project_ddm/montepython_public/data'
+
+
+#-----Likelihood-WiggleZ_bao-----
+WiggleZ_bao.rs_fiducial = 148.6
+WiggleZ_bao.file = 'measurements.dat'
+WiggleZ_bao.data_directory = '/home/project_ddm/montepython_public/data/WiggleZ/bao'
+WiggleZ_bao.inverse_covmat_file = 'table_4.dat'
+
+
+#-----Likelihood-WiggleZ-----
+WiggleZ.use_giggleZ = True
+WiggleZ.max_mpk_points_use = 30
+WiggleZ.num_mpk_points_full = 50
+WiggleZ.use_giggleZPP0 = False
+WiggleZ.min_mpk_points_use = 3
+WiggleZ.num_mpk_kbands_full = 100
+WiggleZ.use_halofit = True
+WiggleZ.data_directory = '/home/project_ddm/montepython_public/data/WiggleZ/nov2011'
+WiggleZ.max_mpk_kbands_use = 100
+WiggleZ.use_scaling = True
+WiggleZ.redshift_bins_files = ['wigglez_pp020_a.data', 'wigglez_pp020_b.data', 'wigglez_pp020_c.data', 'wigglez_pp020_d.data']
+WiggleZ.min_mpk_kbands_use = 1
+
+
+#-----Likelihood-WiggleZ_a-----
+WiggleZ_a.has_regions = True
+WiggleZ_a.giggleZ_fidpk_size = 500
+WiggleZ_a.sigmav = 360
+WiggleZ_a.Use_simpledamp = False
+WiggleZ_a.Ag = 1.4
+WiggleZ_a.redshift = 0.22
+WiggleZ_a.used_region = [True, True, True, True, True, True, True]
+WiggleZ_a.Q_sigma = 1.5
+WiggleZ_a.covmat_file = 'wigglez_nov11a_cov.txt'
+WiggleZ_a.kbands_file = 'wigglez_nov11_kbands.txt'
+WiggleZ_a.Use_jennings = False
+WiggleZ_a.d_radial_fid = 3876.81
+WiggleZ_a.Q_mid = 4.0
+WiggleZ_a.measurements_file = 'wigglez_nov11a_measurements.txt'
+WiggleZ_a.d_angular_fid = 736.293
+WiggleZ_a.Q_marge = False
+WiggleZ_a.windows_file = 'wigglez_nov11a_windows.txt'
+WiggleZ_a.giggleZ_fidpoly = [4.619, -13.7787, 58.941, -175.24, 284.321, -187.284]
+WiggleZ_a.giggleZ_fidpk_file = 'gigglezfiducialmodel_matterpower_a.dat'
+
+
+#-----Likelihood-WiggleZ_b-----
+WiggleZ_b.has_regions = True
+WiggleZ_b.giggleZ_fidpk_size = 500
+WiggleZ_b.sigmav = 308
+WiggleZ_b.Use_simpledamp = False
+WiggleZ_b.Ag = 1.4
+WiggleZ_b.redshift = 0.41
+WiggleZ_b.used_region = [True, True, True, True, True, True, True]
+WiggleZ_b.Q_sigma = 1.5
+WiggleZ_b.covmat_file = 'wigglez_nov11b_cov.txt'
+WiggleZ_b.kbands_file = 'wigglez_nov11_kbands.txt'
+WiggleZ_b.Use_jennings = False
+WiggleZ_b.d_radial_fid = 3511.96
+WiggleZ_b.Q_mid = 4.0
+WiggleZ_b.measurements_file = 'wigglez_nov11b_measurements.txt'
+WiggleZ_b.d_angular_fid = 1134.87
+WiggleZ_b.Q_marge = False
+WiggleZ_b.windows_file = 'wigglez_nov11b_windows.txt'
+WiggleZ_b.giggleZ_fidpoly = [4.63079, -12.6293, 42.9265, -91.8068, 97.808, -37.633]
+WiggleZ_b.giggleZ_fidpk_file = 'gigglezfiducialmodel_matterpower_b.dat'
+
+
+#-----Likelihood-WiggleZ_c-----
+WiggleZ_c.has_regions = True
+WiggleZ_c.giggleZ_fidpk_size = 500
+WiggleZ_c.sigmav = 325
+WiggleZ_c.Use_simpledamp = False
+WiggleZ_c.Ag = 1.4
+WiggleZ_c.redshift = 0.6
+WiggleZ_c.used_region = [True, True, True, True, True, True, True]
+WiggleZ_c.Q_sigma = 1.5
+WiggleZ_c.covmat_file = 'wigglez_nov11c_cov.txt'
+WiggleZ_c.kbands_file = 'wigglez_nov11_kbands.txt'
+WiggleZ_c.Use_jennings = False
+WiggleZ_c.d_radial_fid = 3160.38
+WiggleZ_c.Q_mid = 4.0
+WiggleZ_c.measurements_file = 'wigglez_nov11c_measurements.txt'
+WiggleZ_c.d_angular_fid = 1396.05
+WiggleZ_c.Q_marge = False
+WiggleZ_c.windows_file = 'wigglez_nov11c_windows.txt'
+WiggleZ_c.giggleZ_fidpoly = [4.69659, -12.7287, 42.5681, -89.5578, 96.664, -41.2564]
+WiggleZ_c.giggleZ_fidpk_file = 'gigglezfiducialmodel_matterpower_c.dat'
+
+
+#-----Likelihood-WiggleZ_d-----
+WiggleZ_d.has_regions = True
+WiggleZ_d.giggleZ_fidpk_size = 500
+WiggleZ_d.sigmav = 212
+WiggleZ_d.Use_simpledamp = False
+WiggleZ_d.Ag = 1.4
+WiggleZ_d.redshift = 0.78
+WiggleZ_d.used_region = [True, True, True, True, True, True, True]
+WiggleZ_d.Q_sigma = 1.5
+WiggleZ_d.covmat_file = 'wigglez_nov11d_cov.txt'
+WiggleZ_d.kbands_file = 'wigglez_nov11_kbands.txt'
+WiggleZ_d.Use_jennings = False
+WiggleZ_d.d_radial_fid = 2852.95
+WiggleZ_d.Q_mid = 4.0
+WiggleZ_d.measurements_file = 'wigglez_nov11d_measurements.txt'
+WiggleZ_d.d_angular_fid = 1558.68
+WiggleZ_d.Q_marge = False
+WiggleZ_d.windows_file = 'wigglez_nov11d_windows.txt'
+WiggleZ_d.giggleZ_fidpoly = [4.6849, -13.4747, 53.7172, -145.832, 216.638, -132.782]
+WiggleZ_d.giggleZ_fidpk_file = 'gigglezfiducialmodel_matterpower_d.dat'
+
+
+#-----------Cosmological-arguments---------
+data.cosmo_arguments.update({'P_k_max_h/Mpc': 2.0093391352906056, 'output': 'mPk tCl lCl pCl ', 'l_max_scalars': 2508, 'z_max_pk': 0.78, 'm_ncdm': 0.06, 'omega_cdm': 0.001, 'k_pivot': 0.05, 'lensing': ' yes ', 'non linear': ' halofit ', 'N_ncdm': 1, 'T_ncdm': 0.715985, 'N_eff': 2.03351})
+
+
+#--------Default-Configuration------
+data.path['cosmo']	= '/home/project_ddm/class_public'
+data.path['root']	= '/home/project_ddm/montepython_public'
+data.path['data']	= '/home/project_ddm/montepython_public/data'
+data.path['clik']	= '/home/lesgourg/planck/plc-2.0b8'
+data.path['MontePython']	= '/home/project_ddm/montepython_public/montepython'

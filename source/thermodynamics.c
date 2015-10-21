@@ -730,6 +730,7 @@ int thermodynamics_init(
                  pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
     }
+
     if (pth->reio_parametrization == reio_bins_tanh || pth->reio_parametrization == reio_bins_stars_and_halos) {
       printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
     }
@@ -2301,7 +2302,7 @@ int thermodynamics_reionization_sample(
   double argument;
   int last_index_back;
   double relative_variation;
-  double f_X, epsilon_X, rho_sfr, ap, bp, cp, dp, _erg_to_joule_, _switch_;
+  double f_X, f_abs,epsilon_X, rho_sfr, ap, bp, cp, dp, _erg_to_joule_;
   Yp = pth->YHe;
 
   /** (a) allocate vector of values related to reionization */
@@ -2539,19 +2540,6 @@ int thermodynamics_reionization_sample(
                pth->error_message);
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
     chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
-    f_X = 0.5;
-    ap = 0.01376;
-    bp = 3.26;
-    cp = 2.59;
-    dp = 5.68;
-    rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp));
-    _erg_to_joule_ = pow(10,-7);
-    epsilon_X = 3.4 * pow(10,40)* f_X * rho_sfr*_erg_to_joule_/pow(_Mpc_over_m_,3);
-    _switch_=0.;
-    chi_heat_x_ray = (1+2*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
-    if (pth->increase_T_from_stars==_TRUE_) {
-      _switch_=1.;
-    }
 
 
     dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
@@ -2560,8 +2548,6 @@ int thermodynamics_reionization_sample(
       -2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
       /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
-      // -_switch_*(2./(3.*_k_B_)*epsilon_X*chi_heat/(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-      // /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));/* x-ray heating */
     /** - increment baryon temperature */
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
@@ -2588,19 +2574,20 @@ int thermodynamics_reionization_sample(
     /*******************************************************************************************************************************************************/
     /*******************************************************************************************************************************************************/
     /***************************************************A more realistic model, X-ray heating from stars****************************************************/
-    // f_X = 0.5;
-    // ap = 0.01376;
-    // bp = 3.26;
-    // cp = 2.59;
-    // dp = 5.68;
-    // rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp));
-    // _erg_to_joule_ = pow(10,-7);
-    // epsilon_X = 3.4 * pow(10,40)* f_X * rho_sfr*_erg_to_joule_/pow(_Mpc_over_m_,3);
-    //
-    // preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]-=dz*
-    // (2./(3.*_k_B_)*epsilon_X*0.2/(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-    // /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));
-    //
+    f_X = 2;
+    f_abs = 0.2;
+    ap = 0.01376;
+    bp = 3.26;
+    cp = 2.59;
+    dp = 5.68;
+    rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp))*pow(1+z,3);
+    _erg_to_joule_ = pow(10,-7);
+    epsilon_X = 3.4 * pow(10,40)* f_X * f_abs*rho_sfr*_erg_to_joule_/pow(_Mpc_over_m_,3);
+
+    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]+=dz*
+    (2./(3.*_k_B_)*epsilon_X/(preco->Nnow*pow(1.+z,3)*(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe]))
+    /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));
+
 
 
 
@@ -3470,7 +3457,10 @@ int thermodynamics_derivs_with_recfast(
    dp = 5.68;
    rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp));
    dNion_over_dt=f_esc*Zeta_ion*rho_sfr;
-
+   double erg_to_ev = 6.24150913*pow(10,11);
+   double E_x = 3.4*pow(10,40)*erg_to_ev;
+   double f_abs = 2;
+   double L_x ;
 
   int last_index_back;
 
@@ -3617,13 +3607,13 @@ int thermodynamics_derivs_with_recfast(
     if (x_H > ppr->recfast_x_H0_trigger2) {
       dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat))/ (Hz*(1.+z))
 		-energy_rate*chi_ionH/n/(_L_H_ion_*_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
-      dy[0] -= stars_xe;
+      // dy[0] -= stars_xe;
     }
     else {
       C=(1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
       dy[0] = ((x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) *(1. + K*_Lambda_*n*(1.-x_H))) /(Hz*(1.+z)*(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x)))
         -energy_rate*1/n*((chi_ionH+chi_ionHe)/_L_H_ion_+chi_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (consider fraction going to helium as the one going to hydrogen) */
-        dy[0] -= stars_xe;
+        // dy[0] -= stars_xe*0.39*pow(1-pow(x,0.41),1.76);
 
     }
   }
@@ -3670,9 +3660,15 @@ int thermodynamics_derivs_with_recfast(
 
     //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
     chi_heat= MIN(pth->chi_heat,1.); // coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+    stars_xe=dNion_over_dt/MPCcube_to_mcube/(Hz*(1.+z)*n);
 
+    L_x= 2*E_x * f_esc * f_abs* rho_sfr/(3*MPCcube_to_mcube*_k_B_*n*Hz*(1.+x+preco->fHe));
+    // L_x= stars_xe*f_abs*2./(3.*_k_B_)/(1.+x+preco->fHe);
+    fprintf(stdout, "stars_xe = %e L_x = %e \n",stars_xe,L_x);
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*pth->chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
+      //  dy[2]-=L_x;
+
   }
 
   return _SUCCESS_;
