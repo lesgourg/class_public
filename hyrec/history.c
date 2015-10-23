@@ -258,8 +258,8 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
   //  dTmdlna+=stars_xe*(1-pow(1-pow(xe_in,0.27),1.32))*2/(3*kBoltz)/(1.+xe_in+param->fHe);
    dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
   //  dxedlna+=stars_xe*((1+param->Y/2-xe_in))*10*(1+tanh((6-z1)/0.25))/2;
-  // dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
-  // if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
+  dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
+  if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
   // dxedlna+=stars_xe*(0.39*pow(1-pow(xe_in,0.41),1.76)+0.47*pow(1-pow(xe_in,0.27),1.52)+0.0554*pow(1-pow(xe_in,0.4614),1.6660)+0.0246*pow(1-pow(xe_in,0.4049),1.6594))*20;
 
   // if(z1<6)  dxedlna+=stars_xe*0.39*pow(param->fHe-pow(xe_in,0.41),1.76)*1;
