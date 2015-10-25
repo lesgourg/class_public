@@ -3664,7 +3664,7 @@ int thermodynamics_derivs_with_recfast(
 
     L_x= 2*E_x * f_esc * f_abs* rho_sfr/(3*MPCcube_to_mcube*_k_B_*n*Hz*(1.+x+preco->fHe));
     // L_x= stars_xe*f_abs*2./(3.*_k_B_)/(1.+x+preco->fHe);
-    fprintf(stdout, "stars_xe = %e L_x = %e \n",stars_xe,L_x);
+    // fprintf(stdout, "stars_xe = %e L_x = %e \n",stars_xe,L_x);
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*pth->chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
       //  dy[2]-=L_x;

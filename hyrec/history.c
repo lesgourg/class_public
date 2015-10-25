@@ -223,7 +223,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     double f_X =0.2;
     H = rec_HubbleConstant(param, z1);
     double L_x = 2*E_x  * f_X*f_abs* rho_sfr/(3*MPCcube_to_mcube*kBoltz*nH*H*(1.+xe_in+param->fHe));
-    fprintf(stdout,"z= %e, L_x = %e ",z1,L_x);
+    // fprintf(stdout,"z= %e, L_x = %e ",z1,L_x);
 
     // if(z1>25)stars_xe = 0;
     // else
@@ -249,26 +249,19 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     #endif
 
 	 dTmdlna = rec_dTmdlna(xe_in, Tm_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1), param);
-  //  dTmdlna+=L_x*f_abs*f_X;
-  //  dTmdlna+=L_x*(1-pow(1-pow(xe_in,0.27),1.32));
-   dTmdlna+=L_x*(1+2*xe_in)/3.;
-  //  dTmdlna+=L_x;
-  //  dTmdlna+=stars_xe*(1-pow(1-pow(xe_in,0.27),1.32));
-  //  dTmdlna+=stars_xe*f_abs*2/(3*kBoltz)/(1.+xe_in+param->fHe);
-  //  dTmdlna+=stars_xe*(1-pow(1-pow(xe_in,0.27),1.32))*2/(3*kBoltz)/(1.+xe_in+param->fHe);
-   dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
-  //  dxedlna+=stars_xe*((1+param->Y/2-xe_in))*10*(1+tanh((6-z1)/0.25))/2;
-  dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
-  if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
-  // dxedlna+=stars_xe*(0.39*pow(1-pow(xe_in,0.41),1.76)+0.47*pow(1-pow(xe_in,0.27),1.52)+0.0554*pow(1-pow(xe_in,0.4614),1.6660)+0.0246*pow(1-pow(xe_in,0.4049),1.6594))*20;
+  //
+  //  dTmdlna+=L_x*(1+2*xe_in)/3.;
+  //  dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
+  // /*******************Helium**********************/
+  // dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
+  // if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
+  // /********************************************/
 
-  // if(z1<6)  dxedlna+=stars_xe*0.39*pow(param->fHe-pow(xe_in,0.41),1.76)*1;
-
-  //  dxedlna+=stars_xe*(1-xe_in);
-   fprintf(stdout, "%e\n",stars_xe);
+  //  fprintf(stdout, "%e\n",stars_xe);
     *xe_out = xe_in + param->dlna * (1.25 * (dxedlna) - 0.25 * (*dxedlna_prev2));
     /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
     *Tm_out = Tm_in + param->dlna * (1.25 * dTmdlna - 0.25 * (*dTmdlna_prev2));
+     fprintf(stdout, "%e\n",*Tm_out);
 
     *z_prev2       = *z_prev;
     *dxedlna_prev2 = *dxedlna_prev;
@@ -579,27 +572,27 @@ double factor;
   if (param->annihilation > 0.) {
 
     if (param->has_on_the_spot == 0) {
-
-              /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
-              factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
-
-              /* integral over z'(=zp) with step dz */
-              dz=1.;
-
-              /* first point in trapezoidal integral */
-              zp = z;
-              first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-              result = 0.5*dz*first_integrand;
-
-              /* other points in trapezoidal integral */
-              do {
-
-        	zp += dz;
-        	integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-        	result += dz*integrand;
-        	//moment += dz*integrand*(zp-z);
-
-              } while (integrand/first_integrand > 0.02);
+          // 
+          //     /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
+          //     factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
+          //
+          //     /* integral over z'(=zp) with step dz */
+          //     dz=1.;
+          //
+          //     /* first point in trapezoidal integral */
+          //     zp = z;
+          //     first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+          //     result = 0.5*dz*first_integrand;
+          //
+          //     /* other points in trapezoidal integral */
+          //     do {
+          //
+        	// zp += dz;
+        	// integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot_injection_rate(param,zp); // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
+        	// result += dz*integrand;
+        	// //moment += dz*integrand*(zp-z);
+          //
+          //     } while (integrand/first_integrand > 0.02);
       result = beyond_onthespot_injection_rate(param,z);
       /* test lines for printing energy rate rescaled by (1=z)^6 in J/m^3/s w/o approximation */
       /*  fprintf(stdout,"%e  %e  %e\n",
