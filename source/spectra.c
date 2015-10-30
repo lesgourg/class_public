@@ -75,9 +75,9 @@ int spectra_bandpower(struct spectra * psp,
 }
 
 /**
- * Anisotropy power spectra C_l's for all types, modes and initial conditions.
+ * Anisotropy power spectra \f$ C_l\f$'s for all types, modes and initial conditions.
  *
- * This routine evaluates all the C_l's at a given value of l by
+ * This routine evaluates all the \f$C_l\f$'s at a given value of l by
  * interpolating in the pre-computed table. When relevant, it also
  * sums over all initial conditions for each mode, and over all modes.
  *
@@ -88,9 +88,9 @@ int spectra_bandpower(struct spectra * psp,
  *
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param l          Input: multipole number
- * @param cl_tot     Output: total C_l's for all types (TT, TE, EE, etc..)
- * @param cl_md      Output: C_l's for all types (TT, TE, EE, etc..) decomposed mode by mode (scalar, tensor, ...) when relevant
- * @param cl_md_ic   Output: C_l's for all types (TT, TE, EE, etc..) decomposed by pairs of initial conditions (adiabatic, isocurvatures) for each mode (usually, only for the scalar mode) when relevant
+ * @param cl_tot     Output: total \f$C_l\f$'s for all types (TT, TE, EE, etc..)
+ * @param cl_md      Output: \f$C_l\f$'s for all types (TT, TE, EE, etc..) decomposed mode by mode (scalar, tensor, ...) when relevant
+ * @param cl_md_ic   Output: \f$C_l\f$'s for all types (TT, TE, EE, etc..) decomposed by pairs of initial conditions (adiabatic, isocurvatures) for each mode (usually, only for the scalar mode) when relevant
  * @return the error status
  */
 
@@ -111,7 +111,7 @@ int spectra_cl_at_l(
   int index_ic1,index_ic2,index_ic1_ic2;
   int index_ct;
 
-  /** A) treat case in which there is only one mode and one initial condition.
+  /** - A) treat case in which there is only one mode and one initial condition.
       Then, only cl_tot needs to be filled. */
 
   if ((psp->md_size == 1) && (psp->ic_size[0] == 1)) {
@@ -143,7 +143,7 @@ int spectra_cl_at_l(
     }
   }
 
-  /** B) treat case in which there is only one mode
+  /** - B) treat case in which there is only one mode
       with several initial condition.
       Fill cl_md_ic[index_md=0] and sum it to get cl_tot. */
 
@@ -190,7 +190,7 @@ int spectra_cl_at_l(
     }
   }
 
-  /** C) loop over modes */
+  /** - C) loop over modes */
 
   if (psp->md_size > 1) {
 
@@ -199,7 +199,7 @@ int spectra_cl_at_l(
 
     for (index_md = 0; index_md < psp->md_size; index_md++) {
 
-      /** C.1) treat case in which the mode under consideration
+      /** - --> C.1) treat case in which the mode under consideration
           has only one initial condition.
           Fill cl_md[index_md]. */
 
@@ -229,7 +229,7 @@ int spectra_cl_at_l(
         }
       }
 
-      /** C.2) treat case in which the mode under consideration
+      /** - --> C.2) treat case in which the mode under consideration
           has several initial conditions.
           Fill cl_md_ic[index_md] and sum it to get cl_md[index_md] */
 
@@ -294,7 +294,7 @@ int spectra_cl_at_l(
         }
       }
 
-      /** C.3) add contribution of cl_md[index_md] to cl_tot */
+      /** - --> C.3) add contribution of cl_md[index_md] to cl_tot */
 
       for (index_ct=0; index_ct<psp->ct_size; index_ct++)
         cl_tot[index_ct]+=cl_md[index_md][index_ct];
@@ -317,12 +317,12 @@ int spectra_cl_at_l(
  *
  * - linear: returns P(k) (units: \f$ Mpc^3\f$)
  *
- * - logarithmic: returns ln(P(k))
+ * - logarithmic: returns \f$\ln{P(k)}\f$
  *
  * One little subtlety: in case of several correlated initial conditions,
  * the cross-correlation spectrum can be negative. Then, in logarithmic mode,
- * the non-diagonal elements contain the cross-correlation angle P_12/sqrt(P_11 P_22)
- * (from -1 to 1) instead of ln(P_12)
+ * the non-diagonal elements contain the cross-correlation angle \f$ P_{12}/\sqrt{P_{11} P_{22}}\f$
+ * (from -1 to 1) instead of \f$\ln{P_{12}}\f$
  *
  * This function can be
  * called from whatever module at whatever time, provided that
@@ -359,7 +359,7 @@ int spectra_pk_at_z(
 
   index_md = psp->index_md_scalars;
 
-  /** - first step: convert z into ln(tau) */
+  /** - first step: convert z into \f$\ln{\tau}\f$ */
 
   class_call(background_tau_of_z(pba,z,&tau),
              pba->error_message,
@@ -373,7 +373,7 @@ int spectra_pk_at_z(
 
   /** - second step: for both modes (linear or logarithmic), store the spectrum in logarithmic format in the output array(s) */
 
-  /**   (a.) if only values at tau=tau_today are stored and we want P(k,z=0), no need to interpolate */
+  /** - --> (a) if only values at tau=tau_today are stored and we want \f$ P(k,z=0)\f$, no need to interpolate */
 
   if (psp->ln_tau_size == 1) {
 
@@ -393,7 +393,7 @@ int spectra_pk_at_z(
       }
   }
 
-  /**   (b.) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
+  /** - --> (b) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
 
   else {
 
@@ -464,7 +464,7 @@ int spectra_pk_at_z(
 
   /** - fourth step: depending on requested mode (linear or logarithmic), apply necessary transformation to the output arrays */
 
-  /**   (a.) linear mode: if only one initial condition, convert output_pk to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
+  /** - --> (a) linear mode: if only one initial condition, convert output_pk to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
 
   if (mode == linear) {
 
@@ -493,7 +493,7 @@ int spectra_pk_at_z(
     }
   }
 
-  /**   (b.) logarithmic mode: if only one initial condition, nothing to be done; if several initial conditions, convert output_tot to logarithmic format, output_ic is already in this format */
+  /** - --> (b) logarithmic mode: if only one initial condition, nothing to be done; if several initial conditions, convert output_tot to logarithmic format, output_ic is already in this format */
 
   else {
 
