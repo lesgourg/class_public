@@ -1,7 +1,6 @@
 Updating the manual  
 ===================
-Author: D. C. Hooper (deanna.hooper@rwth-aachen.de)
-
+Author: D. C. Hooper (Hooper@physik.rwth-aachen.de)
 
 This pdf manual and accompanying web version have been generated using the doxygen software (http://www.doxygen.org). This software directly reads the code and extracts the necessary comments to form the manual, meaning it is very easy to generate newer versions of the manual as desired.
 

@@ -3,6 +3,8 @@ CLASS: Cosmic Linear Anisotropy Solving System
 
 Author: Julien Lesgourgues
 
+_This manual is under construction; this is only a provisional version. The definitive version will be made available soon, as well as all the necessary documentation to generate new versions of the manual. Currently the introduction is outdated and the definitions for some specific variables in the header files are missing. There are also some unresolved formatting issues in the documentation for spectra.c and transfer.c, which will be corrected shortly._
+
 Overall architecture of `class`
 ==========================================
 
