@@ -2554,7 +2554,6 @@ int input_read_parameters(
   class_read_double("primordial_inflation_attractor_precision_pivot",ppr->primordial_inflation_attractor_precision_pivot);
   class_read_double("primordial_inflation_attractor_precision_initial",ppr->primordial_inflation_attractor_precision_initial);
   class_read_int("primordial_inflation_attractor_maxit",ppr->primordial_inflation_attractor_maxit);
-  class_read_double("primordial_inflation_jump_initial",ppr->primordial_inflation_jump_initial);
   class_read_double("primordial_inflation_tol_curvature",ppr->primordial_inflation_tol_curvature);
   class_read_double("primordial_inflation_aH_ini_target",ppr->primordial_inflation_aH_ini_target);
   class_read_double("primordial_inflation_end_dphi",ppr->primordial_inflation_end_dphi);
@@ -3182,7 +3181,6 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->primordial_inflation_attractor_precision_pivot=0.001;
   ppr->primordial_inflation_attractor_precision_initial=0.1;
   ppr->primordial_inflation_attractor_maxit=10;
-  ppr->primordial_inflation_jump_initial=1.2;
   ppr->primordial_inflation_tol_curvature=1.e-3;
   ppr->primordial_inflation_aH_ini_target=0.9;
   ppr->primordial_inflation_end_dphi=1.e-10;

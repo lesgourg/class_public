@@ -166,9 +166,9 @@ struct perturbs
   char scalar_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for scalar perturbation output files. */
   char vector_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for vector perturbation output files. */
   char tensor_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for tensor perturbation output files. */
-  int number_of_scalar_titles; /**< $$$ definition missing $$$ */
-  int number_of_vector_titles; /**< $$$ definition missing $$$ */
-  int number_of_tensor_titles; /**< $$$ definition missing $$$ */
+  int number_of_scalar_titles; /**< number of titles/columns in scalar perturbation output files */
+  int number_of_vector_titles; /**< number of titles/columns in vector perturbation output files*/
+  int number_of_tensor_titles; /**< number of titles/columns in tensor perturbation output files*/
 
 
   double * scalar_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for scalars */
@@ -410,7 +410,7 @@ struct perturb_vector
       astro-ph/9907388. */
   int index_pt_F0_dr;
   int l_max_dr;          /**< max momentum in Boltzmann hierarchy for dr) */
-  int index_pt_psi0_ncdm1; /**< $$$ definition missing $$$ */
+  int index_pt_psi0_ncdm1; /**< first multipole of perturbation of first ncdm species, Psi_0 */
   int N_ncdm;		/**< $$$ definition missing $$$ */
   int* l_max_ncdm;	/**< $$$ definition missing $$$ */
   int* q_size_ncdm;	/**< $$$ definition missing $$$ */
@@ -562,7 +562,7 @@ struct perturb_parameters_and_workspace {
 };
 
 /*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */

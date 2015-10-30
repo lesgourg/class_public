@@ -371,11 +371,24 @@ struct precision
 
   /**
    * parameter controlling relative precision of integrals over ncdm
-   * phase-space distribution during perturbation calculation
+   * phase-space distribution during perturbation calculation: value
+   * to be applied in Newtonian gauge
+   */
+  double tol_ncdm_newtonian;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution during perturbation calculation: value
+   * to be applied in synchronous gauge
+   */
+  double tol_ncdm_synchronous;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution during perturbation calculation: value
+   * actually applied in chosen gauge
    */
   double tol_ncdm;
-  double tol_ncdm_newtonian; /**< $$$ definition missing $$$ */
-  double tol_ncdm_synchronous; /**< $$$ definition missing $$$ */
 
   /**
    * parameter controlling relative precision of integrals over ncdm
@@ -517,7 +530,7 @@ struct precision
 
   double start_sources_at_tau_c_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
-  int tight_coupling_approximation; /**< $$$ definition missing $$$ */
+  int tight_coupling_approximation; /**< method for tight coiupling approximation */
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
@@ -574,7 +587,7 @@ struct precision
    */
   double radiation_streaming_trigger_tau_c_over_tau;
 
-  int ur_fluid_approximation; /**< $$$ definition missing $$$ */
+  int ur_fluid_approximation; /**< method for ultra relativistic fluid apporximation */
 
   /**
    * when to switch off ur (massless neutrinos / ultra-relativistic
@@ -582,7 +595,7 @@ struct precision
    */
   double ur_fluid_trigger_tau_over_tau_k;
 
-  int ncdm_fluid_approximation; /**< $$$ definition missing $$$ */
+  int ncdm_fluid_approximation; /**< method for non-cold dark matter fluid approxmation */
 
   /**
    * when to switch off ncdm (massive neutrinos / non-cold
@@ -590,7 +603,11 @@ struct precision
    */
   double ncdm_fluid_trigger_tau_over_tau_k;
 
-  double neglect_CMB_sources_below_visibility; /**< $$$ definition missing $$$ */
+  /**
+   * whether CMB source functions can be approximated as zero when
+   * visibility function g(tau) is tiny
+   */
+  double neglect_CMB_sources_below_visibility;
 
   //@}
 
@@ -600,23 +617,22 @@ struct precision
 
   double k_per_decade_primordial; /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
-  double primordial_inflation_ratio_min; /**< $$$ definition missing $$$ */
-  double primordial_inflation_ratio_max; /**< $$$ definition missing $$$ */
-  int primordial_inflation_phi_ini_maxit; /**< $$$ definition missing $$$ */
-  double primordial_inflation_pt_stepsize; /**< $$$ definition missing $$$ */
-  double primordial_inflation_bg_stepsize; /**< $$$ definition missing $$$ */
-  double primordial_inflation_tol_integration; /**< $$$ definition missing $$$ */
-  double primordial_inflation_attractor_precision_pivot; /**< $$$ definition missing $$$ */
-  double primordial_inflation_attractor_precision_initial; /**< $$$ definition missing $$$ */
-  int primordial_inflation_attractor_maxit; /**< $$$ definition missing $$$ */
-  double primordial_inflation_jump_initial; /**< $$$ definition missing $$$ */
-  double primordial_inflation_tol_curvature; /**< $$$ definition missing $$$ */
-  double primordial_inflation_aH_ini_target; /**< $$$ definition missing $$$ */
-  double primordial_inflation_end_dphi; /**< $$$ definition missing $$$ */
-  double primordial_inflation_end_logstep; /**< $$$ definition missing $$$ */
-  double primordial_inflation_small_epsilon; /**< $$$ definition missing $$$ */
-  double primordial_inflation_small_epsilon_tol; /**< $$$ definition missing $$$ */
-  double primordial_inflation_extra_efolds; /**< $$$ definition missing $$$ */
+  double primordial_inflation_ratio_min; /**< for each k, start following wavenumber when aH = k/primordial_inflation_ratio_min */
+  double primordial_inflation_ratio_max; /**< for each k, stop following wavenumber, at the latest, when aH = k/primordial_inflation_ratio_max */
+  int primordial_inflation_phi_ini_maxit;      /**< maximum number of iteration when searching a suitable initial field value phi_ini (value reached when no long-enough slow-roll period before the pivot scale) */
+  double primordial_inflation_pt_stepsize;     /**< controls the integration timestep for inflaton perturbations */
+  double primordial_inflation_bg_stepsize;     /**< controls the integration timestep for inflaton background */
+  double primordial_inflation_tol_integration; /**< controls the precision of the ODE integration during inflation */
+  double primordial_inflation_attractor_precision_pivot;   /**< targeted precision when searching attractor solution near phi_pivot */
+  double primordial_inflation_attractor_precision_initial; /**< targeted precision when searching attractor solution near phi_ini */
+  int primordial_inflation_attractor_maxit; /**< maximum number of iteration when searching attractor solution */
+  double primordial_inflation_tol_curvature; /**< for each k, stop following wavenumber, at the latest, when curvature perturbation R is stable up to to this tolerance */
+  double primordial_inflation_aH_ini_target; /**< control the step size in the search for a suitable initial field value */
+  double primordial_inflation_end_dphi; /**< first bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
+  double primordial_inflation_end_logstep; /**< logarithmic step for updating the bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
+  double primordial_inflation_small_epsilon; /**< value of slow-roll parameter epsilon used to define a field value phi_end close to the end of inflation (doesn't need to be exactly at the end): epsilon(phi_end)=small_epsilon (should be smaller than one) */
+  double primordial_inflation_small_epsilon_tol; /**< tolerance in the search for phi_end */
+  double primordial_inflation_extra_efolds; /**< a small number of efolds, irrelevant at the end, used in the search for the pivot scale (backward from the end of inflation) */
 
   //@}
 
@@ -629,14 +645,14 @@ struct precision
   double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
   /* parameters relevant for bessel functions */
-  double hyper_x_min;  /**< $$$ definition missing $$$ */
-  double hyper_sampling_flat;  /**< $$$ definition missing $$$ */
-  double hyper_sampling_curved_low_nu;  /**< $$$ definition missing $$$ */
-  double hyper_sampling_curved_high_nu;  /**< $$$ definition missing $$$ */
-  double hyper_nu_sampling_step;  /**< $$$ definition missing $$$ */
-  double hyper_phi_min_abs;  /**< $$$ definition missing $$$ */
-  double hyper_x_tol;  /**< $$$ definition missing $$$ */
-  double hyper_flat_approximation_nu;  /**< $$$ definition missing $$$ */
+  double hyper_x_min;  /**< flat case: lower bound on the smallest value of x at which we sample Phi_l^nu(x) or j_l(x)*/
+  double hyper_sampling_flat;  /**< flat case: number of sampled points x per approximate wavelength 2pi */
+  double hyper_sampling_curved_low_nu;  /**< open/closed cases: number of sampled points x per approximate wavelength 2pi/nu, when nu smaller than hyper_nu_sampling_step */
+  double hyper_sampling_curved_high_nu; /**< open/closed cases: number of sampled points x per approximate wavelength 2pi/nu, when nu greater than hyper_nu_sampling_step */
+  double hyper_nu_sampling_step;  /**< open/closed cases: value of nu at which sampling changes  */
+  double hyper_phi_min_abs;  /**< small value of Bessel function used in calculation of first point x (Phi_l^nu(x) equals hyper_phi_min_abs) */
+  double hyper_x_tol;  /**< tolerance parameter used to determine first value of x */
+  double hyper_flat_approximation_nu;  /**< value of nu below which the flat approximation is used to compute Bessel function */
 
   /* parameters relevant for transfer function */
 
@@ -673,20 +689,19 @@ struct precision
                                  q_logstep_spline steps (transition
                                  must be smooth for spline) */
 
-  /* for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
-  double transfer_neglect_delta_k_S_t0; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_S_t1; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_S_t2; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_S_e;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_t1; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_t2; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_e;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_V_b;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_T_t2; /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_T_e;  /**< $$$ definition missing $$$ */
-  double transfer_neglect_delta_k_T_b;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_delta_k_S_t0; /**< for temperature source function T0 of scalar mode, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
+  double transfer_neglect_delta_k_S_t1; /**< same for temperature source function T1 of scalar mode */
+  double transfer_neglect_delta_k_S_t2; /**< same for temperature source function T2 of scalar mode */
+  double transfer_neglect_delta_k_S_e;  /**< same for polarisation source function E of scalar mode */
+  double transfer_neglect_delta_k_V_t1; /**< same for temperature source function T1 of vector mode */
+  double transfer_neglect_delta_k_V_t2; /**< same for temperature source function T2 of vector mode */
+  double transfer_neglect_delta_k_V_e;  /**< same for polarisation source function E of vector mode */
+  double transfer_neglect_delta_k_V_b;  /**< same for polarisation source function B of vector mode */
+  double transfer_neglect_delta_k_T_t2; /**< same for temperature source function T2 of tensor mode */
+  double transfer_neglect_delta_k_T_e;  /**< same for polarisation source function E of tensor mode */
+  double transfer_neglect_delta_k_T_b;  /**< same for polarisation source function B of tensor mode */
 
-  double transfer_neglect_late_source;  /**< $$$ definition missing $$$ */
+  double transfer_neglect_late_source;  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;
