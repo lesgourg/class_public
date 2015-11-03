@@ -520,6 +520,12 @@ int background_init(
     }
   }
 
+  /** - if shooting failed during input, catch the error here: */
+  class_test(pba->shooting_failed == _TRUE_,
+             pba->error_message,
+             "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
+             pba->shooting_error);
+
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
   class_call(background_indices(pba),
              pba->error_message,
