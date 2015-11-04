@@ -63,7 +63,7 @@ enum possible_gauges {
 //@{
 
 /**
- * maximumu number and types of selection function (for bins of matter density or cosmic shear)
+ * maximum number and types of selection function (for bins of matter density or cosmic shear)
  */
 #define _SELECTION_NUM_MAX_ 100
 enum selection_type {gaussian,tophat,dirac};
@@ -84,10 +84,10 @@ enum selection_type {gaussian,tophat,dirac};
 
 /**
  * Structure containing everything about perturbations that other
- * modules need to know, in particular tabuled values of the source
+ * modules need to know, in particular tabled values of the source
  * functions \f$ S(k, \tau) \f$ for all requested modes
  * (scalar/vector/tensor), initial conditions, types (temperature,
- * E-polarization, B-polarisation, lensing potential, etc), multipole
+ * E-polarization, B-polarization, lensing potential, etc), multipole
  * l and wavenumber k.
  *
  */
@@ -95,7 +95,7 @@ enum selection_type {gaussian,tophat,dirac};
 struct perturbs
 {
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these
+   *  (all other quantities are computed in this module, given these
    *  parameters and the content of the 'precision', 'background' and
    *  'thermodynamics' structures) */
 
@@ -116,12 +116,12 @@ struct perturbs
   short has_niv;     /**< do we need isocurvature niv mode? */
 
   /* perturbed recombination */
-  /* Do we want to consider perturbed temperature and ionization fraction? */
+  /** Do we want to consider perturbed temperature and ionization fraction? */
   short has_perturbed_recombination;
   /** Neutrino contribution to tensors */
   enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations(neglect, approximate as massless, take exact equations) */
 
-  short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either becasue we have ur species, or we have ncdm species with massless approximation) ? */
+  short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */
   short evolve_tensor_ncdm;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
 
   short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
@@ -136,7 +136,7 @@ struct perturbs
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
   short has_nc_density;  /**< in dCl, do we want density terms ? */
-  short has_nc_rsd;      /**< in dCl, do we want redshift space distorsion terms ? */
+  short has_nc_rsd;      /**< in dCl, do we want redshift space distortion terms ? */
   short has_nc_lens;     /**< in dCl, do we want lensing terms ? */
   short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
@@ -156,7 +156,7 @@ struct perturbs
   int switch_eisw; /**< in temperature calculation, do we want to include the early integrated Sachs Wolfe term? */
   int switch_lisw; /**< in temperature calculation, do we want to include the late integrated Sachs Wolfe term? */
   int switch_dop;  /**< in temperature calculation, do we want to include the Doppler term? */
-  int switch_pol;  /**< in temperature calculation, do we want to include the polarisation-related term? */
+  int switch_pol;  /**< in temperature calculation, do we want to include the polarization-related term? */
   double eisw_lisw_split_z; /**< at which redshift do we define the cut between eisw and lisw ?*/
 
   int store_perturbations;  /**< Do we want to store perturbations? */
@@ -166,9 +166,9 @@ struct perturbs
   char scalar_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for scalar perturbation output files. */
   char vector_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for vector perturbation output files. */
   char tensor_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for tensor perturbation output files. */
-  int number_of_scalar_titles;
-  int number_of_vector_titles;
-  int number_of_tensor_titles;
+  int number_of_scalar_titles; /**< number of titles/columns in scalar perturbation output files */
+  int number_of_vector_titles; /**< number of titles/columns in vector perturbation output files*/
+  int number_of_tensor_titles; /**< number of titles/columns in tensor perturbation output files*/
 
 
   double * scalar_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for scalars */
@@ -185,7 +185,7 @@ struct perturbs
 
   //@}
 
-  /** @name - useful flags infered from the ones above */
+  /** @name - useful flags inferred from the ones above */
 
   //@{
 
@@ -198,7 +198,7 @@ struct perturbs
 
   //@{
 
-  enum possible_gauges gauge;
+  enum possible_gauges gauge; /**< gauge in which to perform this calculation */
 
   //@}
 
@@ -234,7 +234,7 @@ struct perturbs
   //@{
 
   short has_source_t;  /**< do we need source for CMB temperature? */
-  short has_source_p;  /**< do we need source for CMB polarisation? */
+  short has_source_p;  /**< do we need source for CMB polarization? */
   short has_source_delta_m;   /**< do we need source for delta of total matter? */
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
   short has_source_delta_b;    /**< do we need source for delta of baryons? */
@@ -278,8 +278,8 @@ struct perturbs
   int index_tp_delta_dr; /**< index value for delta of decay radiation */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
-  int index_tp_perturbed_recombination_delta_temp;		/* Gas temperature perturbation */
-  int index_tp_perturbed_recombination_delta_chi;			/* Inionization fraction perturbation */
+  int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
+  int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
 
   int index_tp_theta_m;   /**< index value for theta tot */
   int index_tp_theta_g;   /**< index value for theta of gammas */
@@ -310,7 +310,7 @@ struct perturbs
                         sampling in k-space */
 
   int * k_size_cl;  /**< k_size_cl[index_md] number of k values used
-                       for non-CMB Cl calculations, requering a coarse
+                       for non-CMB Cl calculations, requiring a coarse
                        sampling in k-space. */
 
   int * k_size;     /**< k_size[index_md] = total number of k
@@ -319,8 +319,8 @@ struct perturbs
 
   double ** k;      /**< k[index_md][index_k] = list of values */
 
-  double k_min;     /**< minimum valut (over all modes) */
-  double k_max;     /**< maximum valut (over all modes) */
+  double k_min;     /**< minimum value (over all modes) */
+  double k_max;     /**< maximum value (over all modes) */
 
   //@}
 
@@ -341,7 +341,7 @@ struct perturbs
   double * selection_tau_min; /**< value of conformal time below which W(tau) is considered to vanish for each bin */
   double * selection_tau_max; /**< value of conformal time above which W(tau) is considered to vanish for each bin */
   double * selection_tau; /**< value of conformal time at the center of each bin */
-  double * selection_function; /** selection function W(tau), normalized to \int W(tau) dtau=1, stored in selection_function[bin*ppt->tau_size+index_tau] */
+  double * selection_function; /**< selection function W(tau), normalized to \f$ \int W(tau) dtau=1 \f$, stored in selection_function[bin*ppt->tau_size+index_tau] */
 
   //@}
 
@@ -404,21 +404,21 @@ struct perturb_vector
   int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
 /* perturbed recombination */
-  int index_pt_perturbed_recombination_delta_temp;		/* Gas temperature perturbation */
-  int index_pt_perturbed_recombination_delta_chi;			/* Inionization fraction perturbation */
+  int index_pt_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
+  int index_pt_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
 
   /** The index to the first Legendre multipole of the DR expansion. Not
       that this is not exactly the usual delta, see Kaplinghat et al.,
       astro-ph/9907388. */
   int index_pt_F0_dr;
   int l_max_dr;          /**< max momentum in Boltzmann hierarchy for dr) */
-  int index_pt_psi0_ncdm1;
-  int N_ncdm;
-  int* l_max_ncdm;
-  int* q_size_ncdm;
+  int index_pt_psi0_ncdm1; /**< first multipole of perturbation of first ncdm species, Psi_0 */
+  int N_ncdm;		/**< $$$ definition missing $$$ */
+  int* l_max_ncdm;	/**< $$$ definition missing $$$ */
+  int* q_size_ncdm;	/**< $$$ definition missing $$$ */
 
   int index_pt_eta;       /**< synchronous gauge metric perturbation eta*/
-  int index_pt_phi;
+  int index_pt_phi;	  /**< $$$ definition missing $$$ */
   int index_pt_hv_prime;  /**< vector metric perturbation h_v' in synchronous gauge */
   int index_pt_V;         /**< vector metric perturbation V in Newtonian gauge */
 
@@ -438,7 +438,7 @@ struct perturb_vector
 
 /**
  * Workspace containing, among other things, the value at a given time
- * of all background/perturbed quantitites, as well as their indices.
+ * of all background/perturbed quantities, as well as their indices.
  *
  * There will be one such structure created for each mode
  * (scalar/.../tensor) and each thread (in case of parallel computing)
@@ -459,34 +459,34 @@ struct perturb_workspace
   int index_mt_h_prime_prime; /**< h'' (wrt conf. time) in synchronous gauge */
   int index_mt_eta_prime;     /**< eta' (wrt conf. time) in synchronous gauge */
   int index_mt_alpha;         /**< \f$ \alpha = (h' + 6 \eta') / (2 k^2) \f$ in synchronous gauge */
-  int index_mt_alpha_prime;   /**< alpha' wrt conf. time) in synchronous gauge */
-  int index_mt_gw_prime_prime;/**< second derivative wrt confromal time of gravitational wave field, often called h */
+  int index_mt_alpha_prime;   /**< \f$ \alpha'\f$ wrt conf. time) in synchronous gauge */
+  int index_mt_gw_prime_prime;/**< second derivative wrt conformal time of gravitational wave field, often called h */
   int index_mt_V_prime;       /**< derivative of Newtonian gauge vector metric perturbation V */
-  int index_mt_hv_prime_prime;/**< Second derivative of Synchronous gauge vector metric perturbation h_v */
+  int index_mt_hv_prime_prime;/**< Second derivative of Synchronous gauge vector metric perturbation \f$ h_v\f$ */
   int mt_size;                /**< size of metric perturbation vector */
 
   //@}
 
   /** @name - value at a given time of all background/perturbed
-      quantitites
+      quantities
   */
 
   //@{
 
-  double * pvecback;          /**< background quantitites */
-  double * pvecthermo;        /**< thermodynamics quantitites */
-  double * pvecmetric;        /**< metric quantitites */
+  double * pvecback;          /**< background quantities */
+  double * pvecthermo;        /**< thermodynamics quantities */
+  double * pvecmetric;        /**< metric quantities */
   struct perturb_vector * pv; /**< pointer to vector of integrated
                                  perturbations and their
                                  time-derivatives */
 
-  double delta_rho;
-  double rho_plus_p_theta;
-  double rho_plus_p_shear;
-  double delta_p;
-  double gw_source;
-  double vector_source_pi;
-  double vector_source_v;
+  double delta_rho;		/**< $$$ definition missing $$$ */
+  double rho_plus_p_theta;	/**< $$$ definition missing $$$ */
+  double rho_plus_p_shear;	/**< $$$ definition missing $$$ */
+  double delta_p;		/**< $$$ definition missing $$$ */
+  double gw_source;		/**< $$$ definition missing $$$ */
+  double vector_source_pi;	/**< $$$ definition missing $$$ */
+  double vector_source_v;	/**< $$$ definition missing $$$ */
 
   double tca_shear_g; /**< photon shear in tight-coupling approximation */
   double tca_slip;    /**< photon-baryon slip in tight-coupling approximation */
@@ -495,23 +495,23 @@ struct perturb_workspace
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
   double rsa_theta_ur; /**< photon velocity in radiation streaming approximation */
 
-  double * delta_ncdm;
-  double * theta_ncdm;
-  double * shear_ncdm;
+  double * delta_ncdm;	/**< $$$ definition missing $$$ */
+  double * theta_ncdm;	/**< $$$ definition missing $$$ */
+  double * shear_ncdm;	/**< $$$ definition missing $$$ */
 
-  double delta_m;
-  double theta_m;
+  double delta_m;	/**< $$$ definition missing $$$ */
+  double theta_m;	/**< $$$ definition missing $$$ */
 
   FILE * perturb_output_file; /**< filepointer to output file*/
   int index_ikout; /**< index for output k value */
 
   //@}
 
-  /** @name - indices useful for searching background/termo quantitites in tables */
+  /** @name - indices useful for searching background/thermo quantities in tables */
 
   //@{
 
-  short inter_mode;
+  short inter_mode;	/**< $$$ definition missing $$$ */
 
   int last_index_back;   /**< the background interpolation function background_at_tau() keeps memory of the last point called through this index */
   int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
@@ -537,7 +537,7 @@ struct perturb_workspace
   //@{
 
   int max_l_max;    /**< maximum l_max for any multipole */
-  double * s_l;     /**< array of freestreaming coefficients s_l = sqrt(1-K*(l^2-1)/k^2) */
+  double * s_l;     /**< array of freestreaming coefficients \f$ s_l = \sqrt{1-K*(l^2-1)/k^2} \f$*/
 
   //@}
 
@@ -556,15 +556,15 @@ struct perturb_parameters_and_workspace {
   struct thermo * pth;            /**< pointer to the thermodynamics structure */
   struct perturbs * ppt;          /**< pointer to the precision structure */
   int index_md;                 /**< index of mode (scalar/.../vector/tensor) */
-  int index_ic;
-  int index_k;
-  double k;
-  struct perturb_workspace * ppw; /**< worspace defined above */
+  int index_ic;			/**< $$$ definition missing $$$ */
+  int index_k;			/**< $$$ definition missing $$$ */
+  double k;			/**< $$$ definition missing $$$ */
+  struct perturb_workspace * ppw; /**< workspace defined above */
 
 };
 
 /*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */

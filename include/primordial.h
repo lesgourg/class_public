@@ -5,7 +5,7 @@
 
 #include "perturbations.h"
 
-/** enum defining how should the primnordial spectrum be compurted */
+/** enum defining how the primordial spectrum should be computed */
 
 enum primordial_spectrum_type {
   analytic_Pk,
@@ -72,39 +72,39 @@ enum phi_pivot_methods {
 struct primordial {
 
   /** @name - input parameters initialized by user in input module
-      (all other quantitites are computed in this module, given these parameters
+      (all other quantities are computed in this module, given these parameters
       and the content of the 'precision' and 'perturbs' structures) */
 
   //@{
 
-  double k_pivot; /**< pivot scale in Mpc-1 */
+  double k_pivot; /**< pivot scale in \f$ Mpc^{-1} \f$ */
 
   enum primordial_spectrum_type primordial_spec_type; /**< type of primordial spectrum (simple analytic from, integration of inflationary perturbations, etc.) */
 
-  /** - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
+  /* - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
 
   double A_s;  /**< usual scalar amplitude = curvature power spectrum at pivot scale */
   double n_s;  /**< usual scalar tilt = [curvature power spectrum tilt at pivot scale -1] */
   double alpha_s; /**< usual scalar running */
   double beta_s;  /**< running of running */
 
-  double r;    /**< usual tensor to scalar ratio of power spectra, r=A_T/A_S=P_h/P_R */
+  double r;    /**< usual tensor to scalar ratio of power spectra, \f$ r=A_T/A_S=P_h/P_R \f$*/
   double n_t;  /**< usual tensor tilt = [GW power spectrum tilt at pivot scale] */
   double alpha_t; /**< usual tensor running */
 
-  double f_bi;  /**< baryon isocurvature (BI) entropy-to-curvature ratio S_bi/R */
+  double f_bi;  /**< baryon isocurvature (BI) entropy-to-curvature ratio \f$ S_{bi}/R \f$*/
   double n_bi;  /**< BI tilt */
   double alpha_bi; /**< BI running */
 
-  double f_cdi;  /**< CDM isocurvature (CDI) entropy-to-curvature ratio S_cdi/R */
+  double f_cdi;  /**< CDM isocurvature (CDI) entropy-to-curvature ratio \f$ S_{cdi}/R \f$*/
   double n_cdi;  /**< CDI tilt */
   double alpha_cdi; /**< CDI running */
 
-  double f_nid;  /**< neutrino density isocurvature (NID) entropy-to-curvature ratio S_nid/R */
+  double f_nid;  /**< neutrino density isocurvature (NID) entropy-to-curvature ratio \f$ S_{nid}/R \f$*/
   double n_nid;  /**< NID tilt */
   double alpha_nid; /**< NID running */
 
-  double f_niv;  /**< neutrino velocity isocurvature (NIV) entropy-to-curvature ratio S_niv/R */
+  double f_niv;  /**< neutrino velocity isocurvature (NIV) entropy-to-curvature ratio \f$ S_{niv}/R \f$*/
   double n_niv;  /**< NIV tilt */
   double alpha_niv; /**< NIV running */
 
@@ -148,43 +148,43 @@ struct primordial {
   double n_nid_niv; /**< NIDxNIV cross-correlation tilt */
   double alpha_nid_niv; /**< NIDxNIV cross-correlation running */
 
-  /** - parameters describing the case primordial_spec_type = inflation_V */
+  /** parameters describing the case primordial_spec_type = inflation_V */
 
   enum potential_shape potential;
 
-  double V0;
-  double V1;
-  double V2;
-  double V3;
-  double V4;
+  double V0;	/**< $$$ definition missing $$$ */
+  double V1;	/**< $$$ definition missing $$$ */
+  double V2;	/**< $$$ definition missing $$$ */
+  double V3;	/**< $$$ definition missing $$$ */
+  double V4;	/**< $$$ definition missing $$$ */
 
-  /** - parameters describing the case primordial_spec_type = inflation_H */
+  /* parameters describing the case primordial_spec_type = inflation_H */
 
-  double H0;
-  double H1;
-  double H2;
-  double H3;
-  double H4;
+  double H0;	/**< $$$ definition missing $$$ */
+  double H1;	/**< $$$ definition missing $$$ */
+  double H2;	/**< $$$ definition missing $$$ */
+  double H3;	/**< $$$ definition missing $$$ */
+  double H4;	/**< $$$ definition missing $$$ */
 
-  /** - parameters describing inflation_V_end */
+  /* parameters describing inflation_V_end */
 
-  double phi_end;
-  enum phi_pivot_methods phi_pivot_method;
-  double phi_pivot_target;
+  double phi_end;	/**< $$$ definition missing $$$ */
+  enum phi_pivot_methods phi_pivot_method; /**< $$$ definition missing $$$ */
+  double phi_pivot_target; /**< $$$ definition missing $$$ */
 
-  /** - 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
+  /** 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 
   char*  command;
-  double custom1;
-  double custom2;
-  double custom3;
-  double custom4;
-  double custom5;
-  double custom6;
-  double custom7;
-  double custom8;
-  double custom9;
-  double custom10;
+  double custom1;  /**< $$$ definition missing $$$ */
+  double custom2;  /**< $$$ definition missing $$$ */
+  double custom3;  /**< $$$ definition missing $$$ */
+  double custom4;  /**< $$$ definition missing $$$ */
+  double custom5;  /**< $$$ definition missing $$$ */
+  double custom6;  /**< $$$ definition missing $$$ */
+  double custom7;  /**< $$$ definition missing $$$ */
+  double custom8;  /**< $$$ definition missing $$$ */
+  double custom9;  /**< $$$ definition missing $$$ */
+  double custom10; /**< $$$ definition missing $$$ */
 
   //@}
 
@@ -259,7 +259,7 @@ struct primordial {
   int index_in_ah_im;   /**< tensor perturbation (imaginary part) */
   int index_in_dah_re;  /**< tensor perturbation (real part, time derivative) */
   int index_in_dah_im;  /**< tensor perturbation (imaginary part, time derivative) */
-  int in_bg_size;       /**< size of vector of background quantitites only */
+  int in_bg_size;       /**< size of vector of background quantities only */
   int in_size;          /**< full size of vector */
 
   //@}
@@ -272,8 +272,8 @@ struct primordial {
                             phi_pivot (set to 0 for inflation_V,
                             inflation_H; found by code for
                             inflation_V_end) */
-  double phi_min;        /**< in inflationary module, value of phi when k_min=aH */
-  double phi_max;        /**< in inflationary module, value of phi when k_max=aH */
+  double phi_min;        /**< in inflationary module, value of phi when \f$ k_{min}=aH \f$*/
+  double phi_max;        /**< in inflationary module, value of phi when \f$ k_{max}=aH \f$*/
   double phi_stop;       /**< in inflationary module, value of phi at the end of inflation */
 
   //@}

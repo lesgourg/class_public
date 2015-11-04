@@ -4,7 +4,7 @@
  *
  * This module writes the output in files.
  *
- * The following function can be called from other modules or from the main:
+ * The following functions can be called from other modules or from the main:
  *
  * -# output_init() (must be called after spectra_init())
  * -# output_total_cl_at_l() (can be called even before output_init())
@@ -164,7 +164,7 @@ int output_init(
                pop->error_message);
   }
 
-  /** - deal with background quantitites */
+  /** - deal with background quantities */
 
   if (pop->write_background == _TRUE_) {
 
@@ -174,7 +174,7 @@ int output_init(
 
   }
 
-  /** - deal with thermodynamics quantitites */
+  /** - deal with thermodynamics quantities */
 
   if (pop->write_thermodynamics == _TRUE_) {
 
@@ -184,7 +184,7 @@ int output_init(
 
   }
 
-  /** - deal with perturbation quantitites */
+  /** - deal with perturbation quantities */
 
   if (pop->write_perturbations == _TRUE_) {
 
@@ -209,9 +209,9 @@ int output_init(
 }
 
 /**
- * This routines writes the output in files for anisotropy power spectra C_l's.
+ * This routines writes the output in files for anisotropy power spectra \f$ C_l\f$'s.
  *
- * @param pba Input: pointer to background structure (needed for T_cmb)
+ * @param pba Input: pointer to background structure (needed for \f$ T_{cmb}\f$)
  * @param ppt Input : pointer perturbation structure
  * @param psp Input : pointer to spectra structure
  * @param ple Input : pointer to lensing structure
@@ -258,7 +258,7 @@ int output_cl(
   FileName file_name;
   char first_line[_LINE_LENGTH_MAX_];
 
-  /** - first, allocate all arrays of files and cls */
+  /** - first, allocate all arrays of files and \f$ C_l\f$'s */
 
   class_alloc(out_md_ic,
               psp->md_size*sizeof(FILE * *),
@@ -554,7 +554,7 @@ int output_cl(
     }
   }
 
-  /** - finally, close files and free arrays of files and cls */
+  /** - finally, close files and free arrays of files and \f$ C_l\f$'s */
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
     if (ppt->ic_size[index_md] > 1) {
@@ -646,7 +646,7 @@ int output_pk(
     else
       sprintf(redshift_suffix,"z%d_",index_z+1);
 
-    /** - second, open only the relevant files, and write a heading in each of them */
+    /** - second, open only the relevant files and write a heading in each of them */
 
     sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk.dat");
 
@@ -1138,7 +1138,8 @@ int output_tk(
                         titles,
                         data+index_ic*size_data,
                         size_data);
-
+      
+      /** - free memory and close files */
       fclose(tkfile);
 
     }
@@ -1179,8 +1180,8 @@ int output_background(
   class_open(backfile,file_name,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
-    fprintf(backfile,"# Table of selected background quantitites\n");
-    fprintf(backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
+    fprintf(backfile,"# Table of selected background quantities\n");
+    fprintf(backfile,"# All densities are multiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
     fprintf(backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
     if (pba->has_scf == _TRUE_){
       fprintf(backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
@@ -1231,9 +1232,9 @@ int output_thermodynamics(
   class_open(thermofile,file_name,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
-    fprintf(thermofile,"# Table of selected thermodynamics quantitites\n");
+    fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
     fprintf(thermofile,"# The following notation is used in column titles:\n");
-    fprintf(thermofile,"#    x_e = electron ionisation fraction\n");
+    fprintf(thermofile,"#    x_e = electron ionization fraction\n");
     fprintf(thermofile,"# -kappa = optical depth\n");
     fprintf(thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
     fprintf(thermofile,"#      g = kappa' e^-kappa = visibility function \n");
@@ -1369,7 +1370,7 @@ int output_print_data(FILE *out,
   char thetitle[_MAXTITLESTRINGLENGTH_];
   char *pch;
 
-  /** Print titles */
+  /** First we print the titles */
   fprintf(out,"#");
 
   strcpy(thetitle,titles);
@@ -1380,7 +1381,7 @@ int output_print_data(FILE *out,
   }
   fprintf(out,"\n");
 
-  /** Print data: */
+  /** Then we print the data */
   number_of_titles = colnum-1;
   if (number_of_titles>0){
     for (index_tau=0; index_tau<size_dataptr/number_of_titles; index_tau++){
@@ -1404,7 +1405,7 @@ int output_print_data(FILE *out,
  * @param clfile     Output: returned pointer to file pointer
  * @param filename   Input : name of the file
  * @param first_line Input : text describing the content (mode, initial condition..)
- * @param lmax       Input : last multipole in the file (the first one is assmued to be 2)
+ * @param lmax       Input : last multipole in the file (the first one is assumed to be 2)
  * @return the error status
  */
 
@@ -1424,6 +1425,8 @@ int output_open_cl_file(
   class_open(*clfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
+    
+    /** First we deal with the entries that are dependent of format type */
 
     if (pop->output_format == class_format) {
       fprintf(*clfile,"# dimensionless %s\n",first_line);
@@ -1469,7 +1472,7 @@ int output_open_cl_file(
       class_fprintf_columntitle(*clfile,"dE",psp->has_ep,colnum);
     }
 
-    /** Rest of the entries are independent of format type */
+    /** Next deal with entries that are independent of format type */
 
     if (psp->has_dd == _TRUE_){
       for (index_d1=0; index_d1<psp->d_size; index_d1++){
@@ -1521,14 +1524,14 @@ int output_open_cl_file(
 }
 
 /**
- * This routine write one line with l and all C_l's for all types (TT, TE...)
+ * This routine write one line with l and all \f$ C_l\f$'s for all types (TT, TE...)
  *
- * @param pba        Input: pointer to background structure (needed for T_cmb)
+ * @param pba        Input: pointer to background structure (needed for \f$ T_{cmb}\f$)
  * @param psp        Input : pointer to spectra structure
  * @param pop        Input : pointer to output structure
  * @param clfile  Input : file pointer
  * @param l       Input : multipole
- * @param cl      Input : C_l's for all types
+ * @param cl      Input : \f$ C_l\f$'s for all types
  * @param ct_size Input : number of types
  * @return the error status
  */
@@ -1587,7 +1590,7 @@ int output_one_line_of_cl(
       index_ct_rest++;
     if (psp->has_ep == _TRUE_)
       index_ct_rest++;
-    /** Now print the remaining (if any) entries:*/
+    /* Now print the remaining (if any) entries:*/
     for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {
       class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
     }
@@ -1648,7 +1651,7 @@ int output_open_pk_file(
  *
  * @param pkfile  Input : file pointer
  * @param one_k   Input : wavenumber
- * @param one_pk  Input : matter power sectrum
+ * @param one_pk  Input : matter power spectrum
  * @return the error status
  */
 

@@ -25,7 +25,7 @@
  * Wavenumbers are called q in this module and k in the perturbation
  * module. In flat universes k=q. In non-flat universes q and k differ
  * through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector,
- * tensor. q should be used throughout the transfer module, excepted
+ * tensor. q should be used throughout the transfer module, except
  * when interpolating or manipulating the source functions S(k,tau)
  * calculated in the perturbation module: for a given value of q, this
  * should be done at the corresponding k(q).
@@ -38,7 +38,7 @@
 struct transfers {
 
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these
+   *  (all other quantities are computed in this module, given these
    *  parameters and the content of previous structures) */
 
   //@{
@@ -47,7 +47,7 @@ struct transfers {
                           exceptionally to rescale by hand the CMB
                           lensing potential */
   double lcmb_tilt;    /**< normally set to zero, can be used
-                          excelptionally to tilt by hand the CMB
+                          exceptionally to tilt by hand the CMB
                           lensing potential */
   double lcmb_pivot;   /**< if lcmb_tilt non-zero, corresponding pivot
                           scale */
@@ -58,19 +58,19 @@ struct transfers {
   short has_nz_file;    /**< Has dN/dz (selection function) input file? */
   short has_nz_analytic; /**< Use analytic form for dN/dz (selection function) distribution? */
   FileName nz_file_name; /**< dN/dz (selection function) input file name */
-  int nz_size;
-  double * nz_z;
-  double * nz_nz;
-  double * nz_ddnz;
+  int nz_size;     /**< $$$ definition missing $$$ */
+  double * nz_z;   /**< $$$ definition missing $$$ */
+  double * nz_nz;  /**< $$$ definition missing $$$ */
+  double * nz_ddnz; /**< $$$ definition missing $$$ */
 
   short has_nz_evo_file;    /**< Has dN/dz (evolution function) input file? */
   short has_nz_evo_analytic; /**< Use analytic form for dN/dz (evolution function) distribution? */
   FileName nz_evo_file_name; /**< dN/dz (evolution function) input file name */
-  int nz_evo_size;
-  double * nz_evo_z;
-  double * nz_evo_nz;
-  double * nz_evo_dlog_nz;
-  double * nz_evo_dd_dlog_nz;
+  int nz_evo_size; /**< $$$ definition missing $$$ */
+  double * nz_evo_z;  /**< $$$ definition missing $$$ */
+  double * nz_evo_nz;  /**< $$$ definition missing $$$ */
+  double * nz_evo_dlog_nz; /**< $$$ definition missing $$$ */
+  double * nz_evo_dd_dlog_nz; /**< $$$ definition missing $$$ */
 
   //@}
 
@@ -97,7 +97,7 @@ struct transfers {
   int index_tt_density; /**< index for first bin of transfer type = matter density */
   int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
 
-  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distorsion of number count */
+  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distortion of number count */
   int index_tt_d0;      /**< index for first bin of transfer type = doppler effect for of number count (j=0 term) */
   int index_tt_d1;      /**< index for first bin of transfer type = doppler effect for of number count (j=1 term) */
   int index_tt_nc_lens; /**< index for first bin of transfer type = lensing for of number count */
@@ -139,7 +139,7 @@ struct transfers {
 
   double ** k; /**< list of wavenumber values for each requested mode, k[index_md][index_q]. In flat universes k=q. In non-flat universes q and k differ through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector, tensor. q should be used throughout the transfer module, excepted when interpolating or manipulating the source functions S(k,tau): for a given value of q this should be done in k(q). */
 
-  int index_q_flat_approximation; /**< index of the first q value using the flat rscaling approximation */
+  int index_q_flat_approximation; /**< index of the first q value using the flat rescaling approximation */
 
   //@}
 
@@ -181,7 +181,7 @@ struct transfer_workspace {
 
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
 
-  HyperInterpStruct * pBIS;
+  HyperInterpStruct * pBIS;  /**< $$$ definition missing $$$ */
 
   int l_size;        /**< number of l values */
 
@@ -201,7 +201,7 @@ struct transfer_workspace {
                                     used in transfer module, possibly
                                     differing from those in the
                                     perturbation module by some
-                                    reampling or rescaling */
+                                    resampling or rescaling */
   double * tau0_minus_tau;       /**< tau0_minus_tau[index_tau] : values of (tau0 - tau) */
   double * w_trapz;              /**< w_trapz[index_tau] : values of weights in trapezoidal integration (related to time steps) */
   double * chi;                  /**< chi[index_tau] : value of argument of bessel
@@ -222,12 +222,12 @@ struct transfer_workspace {
 
   //@}
 
-  double tau0_minus_tau_cut;
-  short neglect_late_source;
+  double tau0_minus_tau_cut; /**< $$$ definition missing $$$ */
+  short neglect_late_source; /**< $$$ definition missing $$$ */
 };
 
 /**
- * enumeration of possible source types. This looks redundent with
+ * enumeration of possible source types. This looks redundant with
  * respect to the definition of indices index_tt_... This definition is however
  * convenient and time-saving: it allows to use a "case" statement in
  * transfer_radial_function()
