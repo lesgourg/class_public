@@ -209,7 +209,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     nH = param->nH0 * ainv*ainv*ainv;
     double f_esc=0.2;
     double Zeta_ion=pow(10,53.14);
-    double rho_sfr = 0.01376*pow(1+z1,3.26)/(1+pow((1+z1)/2.59,5.68))*ainv*ainv*ainv*exp(-z1/15);//Comoving to physical
+    double rho_sfr = 0.01376*pow(1+z1,3.26)/(1+pow((1+z1)/2.59,5.68))*ainv*ainv*ainv*exp(-z1/12);//Comoving to physical
     if(z1>25)rho_sfr =0;
     double dNion_over_dt;
     double erg_to_ev = 6.24150913*pow(10,11);
@@ -250,12 +250,14 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
 
 	 dTmdlna = rec_dTmdlna(xe_in, Tm_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1), param);
   //
+
+  //
   //  dTmdlna+=L_x*(1+2*xe_in)/3.;
   //  dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
   // /*******************Helium**********************/
   // dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
   // if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
-  // /********************************************/
+  /********************************************/
 
   //  fprintf(stdout, "%e\n",stars_xe);
     *xe_out = xe_in + param->dlna * (1.25 * (dxedlna) - 0.25 * (*dxedlna_prev2));
@@ -572,7 +574,7 @@ double factor;
   if (param->annihilation > 0.) {
 
     if (param->has_on_the_spot == 0) {
-          // 
+          //
           //     /* factor = c sigma_T n_H(0) / H(0) (dimensionless) */
           //     factor = 2.99792458e8 * 6.6524616e-29 * param->nH0 / (3.2407792896393e-18 * sqrt(param->omh2));
           //

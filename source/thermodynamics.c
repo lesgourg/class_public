@@ -2290,7 +2290,7 @@ int thermodynamics_reionization_sample(
   double z,z_next;
   double xe,xe_next,x_tmp;
   double dkappadz,dkappadz_next;
-  double Tb,Yp,dTdz,opacity,mu;
+  double Tb,Yp,dTdz,dTdz_adia,dTdz_CMB,dTdz_DM,opacity,mu;
   double dkappadtau,dkappadtau_next;
   double energy_rate;
   double tau;
@@ -2410,7 +2410,7 @@ int thermodynamics_reionization_sample(
       x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
       -preco->recombination_table[(j)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j)*preco->re_size+preco->index_re_z])+
       preco->recombination_table[j*preco->re_size+preco->index_re_xe]  ;
-
+      fprintf(stdout,"im here\n");
     xe_next=MAX(xe_next,x_tmp);
     // New reionization parametrization by Vivian Poulin
     //Here we interpolate linearly in the old table containing reionisation fractions due to DM and compare it to the ionisation fraction from stars. If xe_stars > xe_DM, xe_stars is recorded. Otherwise, we keep xe_DM.
@@ -2542,16 +2542,26 @@ int thermodynamics_reionization_sample(
     chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
 
 
-    dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
-      -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
-      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H]
-      -2./(3.*_k_B_)*energy_rate*chi_heat
+    dTdz_adia=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
+
+    dTdz_CMB = - 2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
+      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
+
+      dTdz_DM = - 2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
       /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
+ // if(pth->increase_T_from_stars==_TRUE_){
+
+    dTdz = dTdz_adia+dTdz_CMB+dTdz_DM;
     /** - increment baryon temperature */
 
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
+
+
+      preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]+=dz*
+      (2./(3.*_k_B_)*epsilon_X/(preco->Nnow*pow(1.+z,3)*(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe]))
+      /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));
     /** Modified by Vivian Poulin to take into account increase of T from star formation. Use the same tanh as for impact on xe but renormalized to fit data.**/
  if(pth->increase_T_from_stars==_TRUE_){
 
@@ -2588,6 +2598,7 @@ int thermodynamics_reionization_sample(
     (2./(3.*_k_B_)*epsilon_X/(preco->Nnow*pow(1.+z,3)*(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe]))
     /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));
 
+    fprintf(stdout,"i'm here\n");
 
 
 
