@@ -210,7 +210,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     double f_esc=0.2;
     double Zeta_ion=pow(10,53.14);
     double rho_sfr = 0.01376*pow(1+z1,3.26)/(1+pow((1+z1)/2.59,5.68))*ainv*ainv*ainv*exp(-z1/12);//Comoving to physical
-    if(z1>25)rho_sfr =0;
+    rho_sfr =0;
     double dNion_over_dt;
     double erg_to_ev = 6.24150913*pow(10,11);
     double E_x = 3.4*pow(10,40)*erg_to_ev;
@@ -222,7 +222,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     double f_abs =1;
     double f_X =0.2;
     H = rec_HubbleConstant(param, z1);
-    double L_x = 2*E_x  * f_X*f_abs* rho_sfr/(3*MPCcube_to_mcube*kBoltz*nH*H*(1.+xe_in+param->fHe));
+    double L_x = E_x  * f_X* rho_sfr/(3*MPCcube_to_mcube*kBoltz*nH*H*(1.+xe_in+param->fHe));
     // fprintf(stdout,"z= %e, L_x = %e ",z1,L_x);
 
     // if(z1>25)stars_xe = 0;
@@ -252,12 +252,15 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
   //
 
   //
-  //  dTmdlna+=L_x*(1+2*xe_in)/3.;
-  //  dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
-  // /*******************Helium**********************/
-  // dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
-  // if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
-  /********************************************/
+  if(param->reio_parametrization==1){
+    dTmdlna+=L_x*(1+2*xe_in)/3.;
+    dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
+    /*******************Helium**********************/
+    dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
+    if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
+    /***********************************************/
+  }
+
 
   //  fprintf(stdout, "%e\n",stars_xe);
     *xe_out = xe_in + param->dlna * (1.25 * (dxedlna) - 0.25 * (*dxedlna_prev2));

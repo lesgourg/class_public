@@ -103,6 +103,7 @@ typedef struct {
 
    double f_halos;
    int annihil_f_halos_num_lines;
+   int reio_parametrization; /*Do we want the realistic stars modeling ? 0 = no, 1 = yes*/
 
 } REC_COSMOPARAMS;
 

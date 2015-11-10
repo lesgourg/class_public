@@ -1134,6 +1134,10 @@ int input_read_parameters(
       pth->reio_parametrization=reio_bins_stars_and_halos;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_stars_realistic_model") == 0) {
+      pth->reio_parametrization=reio_stars_realistic_model;
+      flag2=_TRUE_;
+    }
     class_test(flag2==_FALSE_,
                errmsg,
                "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', ...");
