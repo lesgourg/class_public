@@ -1182,6 +1182,7 @@ int input_read_parameters(
   class_read_double("annihilation",pth->annihilation);
   class_read_double("boost_factor",pth->annihilation_boost_factor);
   class_read_double("m_DM",pth->annihilation_m_DM);
+  class_read_double("decay",pth->decay);
 
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
@@ -1196,7 +1197,6 @@ int input_read_parameters(
   }
 
   if (pth->annihilation > 0.) {
-  class_read_double("decay",pth->decay);
   class_read_double("annihilation_variation",pth->annihilation_variation);
   class_read_double("annihilation_z",pth->annihilation_z);
   class_read_double("annihilation_zmax",pth->annihilation_zmax);
@@ -1238,7 +1238,7 @@ int input_read_parameters(
 
   }
   class_call(parser_read_string(pfc,
-                                "Increase T from stars",
+                                "increase_T_from_stars",
                                 &(string1),
                                 &(flag1),
                                 errmsg),

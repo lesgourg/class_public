@@ -359,9 +359,9 @@ int thermodynamics_init(
              pth->error_message,
              "decay parameter cannot be negative");
 
-  class_test((pth->decay>0)&&(pba->has_cdm==_FALSE_),
-             pth->error_message,
-             "CDM decay effects require the presence of CDM!");
+  // class_test((pth->decay>0)&&(pba->has_cdm==_FALSE_),
+  //            pth->error_message,
+  //            "CDM decay effects require the presence of CDM!");
 
   /* tests in order to prevent segmentation fault in the following */
   class_test(_not4_ == 0.,
@@ -1599,10 +1599,32 @@ int thermodynamics_onthespot_energy_injection(
 
   double annihilation_at_z;
   double rho_cdm_today;
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
 
+  int i, n_step = 1000;
+  if(z<1000)n_step*=10;
+  double z1,z2,z3,t1,t2,t3,t=0,result_integrale=0;
+  double delta_z = (ppr->recfast_Nz0-z)/((double) n_step);
+  if(preco->decay>0){
+    for(i = 0 ; i<n_step ; i++){
+      if(i!=0)z1=z3;
+      else z1=ppr->recfast_Nz0;
+      z2=z1-delta_z/2.;
+      z3=z2-delta_z/2.;
+      t1= 1/((1+z1)*sqrt(pba->Omega0_g*pow(1+z1,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z1,3)+pba->Omega0_lambda));
+      t2= 1/((1+z2)*sqrt(pba->Omega0_g*pow(1+z2,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z2,3)+pba->Omega0_lambda));
+      t3= 1/((1+z3)*sqrt(pba->Omega0_g*pow(1+z3,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z3,3)+pba->Omega0_lambda));
+      t += delta_z/6*(t1+4*t2+t3);
+      // fprintf(stdout, "t1 = %e, t2 = %e,t3 = %e,t = %e\n",t1,t2,t3,t);
+    }
+    t*=1/(pba->H0);
+    result_integrale = exp(-t*pba->Gamma_dcdm);
+    // fprintf(stdout, " %e  %e\n",z, result_integrale);
+  }
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
     (pow((1.+z),3)*preco->annihilation)
-    +rho_cdm_today*pow((1+z),3)*preco->decay;
+    +rho_cdm_today*pow((1+z),3)*preco->decay*result_integrale*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
+    // fprintf(stdout, "here decay = %e energy_rate = %e tau = %e [s]\n", preco->decay,*energy_rate,1/(pba->Gamma_dcdm*_c_/_Mpc_over_m_));
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
 
   return _SUCCESS_;
@@ -1708,7 +1730,7 @@ int thermodynamics_energy_injection(
   double nH0;
   double onthespot;
 
-  if (preco->annihilation > 0) {
+  if (preco->annihilation > 0 || preco->decay > 0) {
     if (preco->has_on_the_spot == _FALSE_) {
       /**************Old version, corrected by Vivian Poulin. Kept for comparaison*************/
 
@@ -2410,7 +2432,6 @@ int thermodynamics_reionization_sample(
       x_tmp= (preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-preco->recombination_table[j*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z]
       -preco->recombination_table[(j)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j)*preco->re_size+preco->index_re_z])+
       preco->recombination_table[j*preco->re_size+preco->index_re_xe]  ;
-      fprintf(stdout,"im here\n");
     xe_next=MAX(xe_next,x_tmp);
     // New reionization parametrization by Vivian Poulin
     //Here we interpolate linearly in the old table containing reionisation fractions due to DM and compare it to the ionisation fraction from stars. If xe_stars > xe_DM, xe_stars is recorded. Otherwise, we keep xe_DM.
@@ -2535,10 +2556,10 @@ int thermodynamics_reionization_sample(
     class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                pth->error_message,
                pth->error_message);
-    if(pth->annihilation!=0)class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+    if(pth->annihilation!=0 || pth->decay!=0)class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                pth->error_message,
                pth->error_message);
-    //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
+    // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
     chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
 
 
@@ -2720,9 +2741,17 @@ int thermodynamics_recombination_with_hyrec(
 
   param.T0 = pba->T_cmb;
   param.obh2 = pba->Omega0_b*pba->h*pba->h;
+  param.ocdmh2 = (pba->Omega0_cdm)*pba->h*pba->h;
+  param.odcdmh2 = (pba->Omega0_dcdmdr)*pba->h*pba->h;
   param.omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
   param.okh2 = pba->Omega0_k*pba->h*pba->h;
   param.odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
+  param.Omega0_g=pba->Omega0_g;
+  param.Omega0_b=pba->Omega0_b;
+  param.Omega0_cdm=pba->Omega0_cdm;
+  param.Omega0_dcdm=pba->Omega0_dcdmdr;
+  param.Omega0_lambda = pba->Omega0_lambda;
+  param.H0 = pba->H0;
   param.w0 = pba->w0_fld;
   param.wa = pba->wa_fld;
   param.Y = pth->YHe;
@@ -2736,6 +2765,7 @@ int thermodynamics_recombination_with_hyrec(
   param.annihilation = pth->annihilation;
   param.has_on_the_spot = pth->has_on_the_spot;
   param.decay = pth->decay;
+  param.Gamma_dcdm = pba->Gamma_dcdm;
   param.annihilation_variation = pth->annihilation_variation;
   param.annihilation_z = pth->annihilation_z;
   param.annihilation_zmax = pth->annihilation_zmax;
@@ -2758,6 +2788,7 @@ int thermodynamics_recombination_with_hyrec(
   param.annihil_z = preco->annihil_z;
   param.annihil_f_halos = preco->annihil_f_halos;
   param.annihil_dd_f_halos = preco->annihil_dd_f_halos;
+
   if(pth->reio_parametrization==reio_stars_realistic_model)param.reio_parametrization = 1;
   else param.reio_parametrization = 0;
   /** - Build effective rate tables */
@@ -3462,7 +3493,7 @@ int thermodynamics_derivs_with_recfast(
    bp = 3.26;
    cp = 2.59;
    dp = 5.68;
-   rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp))*exp(-z/5)*pow(1+z,3);
+   rho_sfr = ap*pow(1+z,bp)/(1+pow((1+z)/cp,dp))*exp(-z/12)*pow(1+z,3);
    dNion_over_dt=f_esc*Zeta_ion*rho_sfr;
    double erg_to_ev = 6.24150913*pow(10,11);
    double E_x = 3.4*pow(10,40)*erg_to_ev;
@@ -3506,7 +3537,7 @@ int thermodynamics_derivs_with_recfast(
              error_message,
              error_message);
 
-   if(pth->annihilation!=0)class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+   if(pth->annihilation!=0 || pth->decay!=0 )class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                error_message,
                error_message);
 
@@ -3595,7 +3626,9 @@ int thermodynamics_derivs_with_recfast(
     dy[0] = 0.;
   else {
     /* equations modified to take into account energy injection from dark matter */
-    //chi_ionH = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+    // chi_ionH = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+    // chi_ionHe=0.;
+    // chi_lya = chi_ionH;
     if (x < 1.){
       chi_ionH = pth->chi_ionH;// coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
       chi_ionHe = pth->chi_ionHe;

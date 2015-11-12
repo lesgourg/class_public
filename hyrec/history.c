@@ -115,7 +115,7 @@ double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double en
                                       error_message);
   //chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
   if (chi_heat > 1.) chi_heat = 1.;
-  fprintf(stdout,"%e   %e     \n", xe,chi_heat);
+  // fprintf(stdout,"%e   %e     \n", xe,chi_heat);
   return Tr/(1.+H/4.91466895548409e-22/Tr/Tr/Tr/Tr*(1.+xe+fHe)/xe)
     +2./3./kBoltz*chi_heat/nH*energy_rate/(4.91466895548409e-22*pow(Tr,4)*xe);
 
@@ -255,6 +255,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
   if(param->reio_parametrization==1){
     dTmdlna+=L_x*(1+2*xe_in)/3.;
     dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
+    // fprintf(stdout, "Computing star reionisation\n" );
     /*******************Helium**********************/
     dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
     if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
@@ -266,7 +267,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     *xe_out = xe_in + param->dlna * (1.25 * (dxedlna) - 0.25 * (*dxedlna_prev2));
     /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
     *Tm_out = Tm_in + param->dlna * (1.25 * dTmdlna - 0.25 * (*dTmdlna_prev2));
-     fprintf(stdout, "%e\n",*Tm_out);
+    //  fprintf(stdout, "%e\n",*Tm_out);
 
     *z_prev2       = *z_prev;
     *dxedlna_prev2 = *dxedlna_prev;
@@ -470,16 +471,42 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
 			     double z) {
 
   double annihilation_at_z;
+  double rho_dcdm_today;
   double rho_cdm_today;
+  double _Mpc_over_m_;
 
-
-  rho_cdm_today = param->omh2*1.44729366e-9; /* energy density in Kg/m^3 */
-
-  // fprintf(stdout,"param->annihilation = %e\n",param->annihilation);
+  rho_dcdm_today = param->odcdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
+  rho_cdm_today = param->ocdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
+  _Mpc_over_m_ = 3.085677581282*pow(10,22);
+    int i, n_step = 1000;
+    if(z<1000)n_step*=10;
+    double z1,z2,z3,t1,t2,t3,t=0,result_integrale=0;
+    double delta_z = (param->zstart-z)/((double) n_step);
+    if(param->decay>0){
+      for(i = 0 ; i<n_step ; i++){
+        if(i!=0)z1=z3;
+        else z1=param->zstart;
+        z2=z1-delta_z/2.;
+        z3=z2-delta_z/2.;
+        t1= 1/((1+z1)*sqrt(param->Omega0_g*pow(1+z1,4)+(param->Omega0_b+param->Omega0_cdm)*pow(1+z1,3)+param->Omega0_lambda));
+        t2= 1/((1+z2)*sqrt(param->Omega0_g*pow(1+z2,4)+(param->Omega0_b+param->Omega0_cdm)*pow(1+z2,3)+param->Omega0_lambda));
+        t3= 1/((1+z3)*sqrt(param->Omega0_g*pow(1+z3,4)+(param->Omega0_b+param->Omega0_cdm)*pow(1+z3,3)+param->Omega0_lambda));
+        t += delta_z/6*(t1+4*t2+t3);
+        // fprintf(stdout, "t1 = %e, t2 = %e,t3 = %e,t = %e\n",t1,t2,t3,t);
+      }
+      t*=1/(param->H0);
+      result_integrale = exp(-t*param->Gamma_dcdm);
+      // fprintf(stdout, " %e  %e\n",z, result_integrale);
+    }
+    // fprintf(stdout, " %e  %e\n",rho_cdm_today, rho_dcdm_today);
 
   return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
     param->annihilation
-    +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
+    +rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
+    /* Old version, kept for comparaison */
+  // return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
+  //   param->annihilation
+  //   +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
 
   /* energy density rate in eV/cm^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   /* note that the injection rate used by recfast, defined in therodynamics.c, is in J/m^3/s. Here we multiplied by 1/1.e6/1.60217653e-19 to convert to eV and cm. */
@@ -574,7 +601,7 @@ double energy_rate;
 double zp,dz;
 double integrand,first_integrand;
 double factor;
-  if (param->annihilation > 0.) {
+  if (param->annihilation > 0. || param->decay > 0.) {
 
     if (param->has_on_the_spot == 0) {
           //
