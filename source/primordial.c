@@ -1481,6 +1481,80 @@ int primordial_inflation_solve_inflation(
 }
 
 /**
+ * Routine for the computation of an analytic apporoximation to the
+ * the primordial spectrum. In general, should be used only for
+ * comparing with exact numerical computation performed by
+ * primordial_inflation_spectra().
+ *
+ * @param ppt   Input: pointer to perturbation structure
+ * @param ppm   Input/output: pointer to primordial structure
+ * @param ppr   Input: pointer to precision structure
+ * @param y_ini Input: initial conditions for the vector of background/perturbations, already allocated and filled
+ * @return the error status
+ */
+
+int primordial_inflation_analytic_spectra(
+                                          struct perturbs * ppt,
+                                          struct primordial * ppm,
+                                          struct precision * ppr,
+                                          double * y_ini
+                                          ) {
+  double * y;
+  double * dy;
+  int index_k;
+  double k,phi_k;
+  double curvature,tensors;
+  double V,dV,ddV;
+
+  /** - allocate vectors for background/perturbed quantities */
+  class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
+  class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
+
+  /* initialize the background part of the running vector */
+  y[ppm->index_in_a] = y_ini[ppm->index_in_a];
+  y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
+  if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
+    y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
+
+  /* loop over Fourier wavenumbers */
+  for (index_k=0; index_k < ppm->lnk_size; index_k++) {
+
+    k = exp(ppm->lnk[index_k]);
+
+    /* evolve background until k=aH is reached */
+    class_call(primordial_inflation_evolve_background(ppm,
+                                                      ppr,
+                                                      y,
+                                                      dy,
+                                                      _aH_,
+                                                      k,
+                                                      _FALSE_,
+                                                      forward,
+                                                      conformal),
+               ppm->error_message,
+               ppm->error_message);
+
+    /* read value of phi at time when k=aH */
+    phi_k = y[ppm->index_in_phi];
+
+    /* get potential (and its derivatibves) at this value */
+    class_call(primordial_inflation_check_potential(ppm,phi_k,&V,&dV,&ddV),
+               ppm->error_message,
+               ppm->error_message);
+
+    /* analytic slow-roll formula for the spectra */
+    curvature = 128.*_PI_/3.*pow(V,3)/pow(dV,2);
+    tensors = pow(dV/V,2)/_PI_*128.*_PI_/3.*pow(V,3)/pow(dV,2);
+
+    /* store the obtained result for curvature and tensor perturbations */
+    ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
+    ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
  * Routine with a loop over wavenumbers for the computation of the primordial
  * spectrum. For each wavenumber it calls primordial_inflation_one_wavenumber()
  *
@@ -1488,8 +1562,6 @@ int primordial_inflation_solve_inflation(
  * @param ppm   Input/output: pointer to primordial structure
  * @param ppr   Input: pointer to precision structure
  * @param y_ini Input: initial conditions for the vector of background/perturbations, already allocated and filled
- * @param y     Input: running vector of background/perturbations, already allocated
- * @param dy    Input: running vector of background/perturbation derivatives, already allocated
  * @return the error status
  */
 
@@ -1586,8 +1658,6 @@ int primordial_inflation_spectra(
  * @param ppm     Input/output: pointer to primordial structure
  * @param ppr     Input: pointer to precision structure
  * @param y_ini   Input: initial conditions for the vector of background/perturbations, already allocated and filled
- * @param y       Input: running vector of background/perturbations, already allocated
- * @param dy      Input: running vector of background/perturbation derivatives, already allocated
  * @param index_k Input: index of wavenumber to be considered
  * @return the error status
  */

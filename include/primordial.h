@@ -396,6 +396,13 @@ extern "C" {
                                            struct precision * ppr
                                            );
 
+  int primordial_inflation_analytic_spectra(
+                                            struct perturbs * ppt,
+                                            struct primordial * ppm,
+                                            struct precision * ppr,
+                                            double * y_ini
+                                            );
+
   int primordial_inflation_spectra(
                                    struct perturbs * ppt,
                                    struct primordial * ppm,
