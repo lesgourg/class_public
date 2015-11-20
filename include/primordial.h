@@ -318,7 +318,7 @@ struct primordial_inflation_parameters_and_workspace {
 
 
 /*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -400,10 +400,16 @@ extern "C" {
                                    struct perturbs * ppt,
                                    struct primordial * ppm,
                                    struct precision * ppr,
-                                   double * y_ini,
-                                   double * y,
-                                   double * dy
+                                   double * y_ini
                                    );
+
+  int primordial_inflation_one_wavenumber(
+                                          struct perturbs * ppt,
+                                          struct primordial * ppm,
+                                          struct precision * ppr,
+                                          double * y_ini,
+                                          int index_k
+                                          );
 
   int primordial_inflation_one_k(
                                  struct primordial * ppm,
@@ -507,4 +513,4 @@ extern "C" {
 //@}
 
 #endif
-/* @endcond */ 
+/* @endcond */

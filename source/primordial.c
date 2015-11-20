@@ -459,9 +459,9 @@ int primordial_init(
       /** - expression for alpha_s comes from:
 
               `ns_2 = (lnpk_plus-lnpk_pivot)/(dlnk)+1`
-          
+
               `ns_1 = (lnpk_pivot-lnpk_minus)/(dlnk)+1`
-          
+
               `alpha_s = dns/dlnk = (ns_2-ns_1)/dlnk = (lnpk_plus-lnpk_pivot-lnpk_pivot+lnpk_minus)/(dlnk)/(dlnk)`
 
       **/
@@ -485,12 +485,12 @@ int primordial_init(
 
       /** - expression for beta_s:
 
-              `ppm->beta_s = (alpha_plus-alpha_minus)/dlnk = (lnpk_plusplus-2.*lnpk_plus+lnpk_pivot - 
+              `ppm->beta_s = (alpha_plus-alpha_minus)/dlnk = (lnpk_plusplus-2.*lnpk_plus+lnpk_pivot -
               (lnpk_pivot-2.*lnpk_minus+lnpk_minusminus)/pow(dlnk,3)`
       **/
 
       /* Simplification of the beta_s expression: */
-      
+
       ppm->beta_s = (lnpk_plusplus-2.*lnpk_plus+2.*lnpk_minus-lnpk_minusminus)/pow(dlnk,3);
 
       if (ppm->primordial_verbose > 0)
@@ -1423,9 +1423,7 @@ int primordial_inflation_solve_inflation(
   class_call_except(primordial_inflation_spectra(ppt,
                                                  ppm,
                                                  ppr,
-                                                 y_ini,
-                                                 y,
-                                                 dy),
+                                                 y_ini),
                     ppm->error_message,
                     ppm->error_message,
                     free(y);free(y_ini);free(dy));
@@ -1483,10 +1481,8 @@ int primordial_inflation_solve_inflation(
 }
 
 /**
- * Routine coordinating the computation of the primordial
- * spectrum. For each wavenumber it calls primordial_inflation_one_k() to
- * integrate the perturbation equations, and then it stores the result
- * for the scalar/tensor spectra.
+ * Routine with a loop over wavenumbers for the computation of the primordial
+ * spectrum. For each wavenumber it calls primordial_inflation_one_wavenumber()
  *
  * @param ppt   Input: pointer to perturbation structure
  * @param ppm   Input/output: pointer to primordial structure
@@ -1501,76 +1497,173 @@ int primordial_inflation_spectra(
                                  struct perturbs * ppt,
                                  struct primordial * ppm,
                                  struct precision * ppr,
-                                 double * y_ini,
-                                 double * y,
-                                 double * dy
+                                 double * y_ini
                                  ) {
-  double k;
   int index_k;
-  double curvature,tensors;
 
-  /* loop over Fourier wavenumbers */
-  for (index_k=0; index_k < ppm->lnk_size; index_k++) {
+  /* number of threads (always one if no openmp) */
+  int number_of_threads=1;
+  /* index of the thread (always 0 if no openmp) */
+  int thread=0;
 
-    k = exp(ppm->lnk[index_k]);
 
-    /* initialize the background part of the running vector */
-    y[ppm->index_in_a] = y_ini[ppm->index_in_a];
-    y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
-    if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
-      y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
+  /* This code can be optionally compiled with the openmp option for parallel computation.
+     Inside parallel regions, the use of the command "return" is forbidden.
+     For error management, instead of "return _FAILURE_", we will set the variable below
+     to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
+     parallel region. */
+  int abort;
 
-    /* evolve the background until the relevant initial time for
-       integrating perturbations */
-    class_call(primordial_inflation_evolve_background(ppm,
-                                                      ppr,
-                                                      y,
-                                                      dy,
-                                                      _aH_,
-                                                      k/ppr->primordial_inflation_ratio_min,
-                                                      _FALSE_,
-                                                      forward,
-                                                      conformal),
-               ppm->error_message,
-               ppm->error_message);
+#ifdef _OPENMP
+  /* instrumentation times */
+  double tstart, tstop, tspent;
+#endif
 
-    /* evolve the background/perturbation equations from this time and
-       until some time after Horizon crossing */
-    class_call(primordial_inflation_one_k(ppm,
-                                          ppr,
-                                          k,
-                                          y,
-                                          dy,
-                                          &curvature,
-                                          &tensors),
-               ppm->error_message,
-               ppm->error_message);
+#ifdef _OPENMP
 
-    class_test(curvature<=0.,
-               ppm->error_message,
-               "negative curvature spectrum");
-
-    class_test(tensors<=0.,
-               ppm->error_message,
-               "negative tensor spectrum");
-
-    /* store the obtained result for curvature and tensor perturbations */
-    ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
-    ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
-
-    /* uncomment if you want to print here the spectra for testing */
-    /* fprintf(stderr,"%e %e %e\n", */
-    /* 	    ppm->lnk[index_k], */
-    /* 	    ppm->lnpk[ppt->index_md_scalars][index_k], */
-    /* 	    ppm->lnpk[ppt->index_md_tensors][index_k]); */
-
+#pragma omp parallel
+  {
+    number_of_threads = omp_get_num_threads();
   }
+#endif
+
+  abort = _FALSE_;
+
+#pragma omp parallel shared(ppt,ppm,ppr,abort,y_ini) private(index_k,thread,tspent,tstart,tstop) num_threads(number_of_threads)
+
+  {
+
+#ifdef _OPENMP
+    thread = omp_get_thread_num();
+    tspent=0.;
+#endif
+
+#pragma omp for schedule (dynamic)
+
+    /* loop over Fourier wavenumbers */
+    for (index_k=0; index_k < ppm->lnk_size; index_k++) {
+
+#ifdef _OPENMP
+      tstart = omp_get_wtime();
+#endif
+
+      class_call_parallel(primordial_inflation_one_wavenumber(ppt,ppm,ppr,y_ini,index_k),
+                          ppm->error_message,
+                          ppm->error_message);
+
+#ifdef _OPENMP
+      tstop = omp_get_wtime();
+
+      tspent += tstop-tstart;
+#endif
+
+     }
+
+#ifdef _OPENMP
+    if (ppm->primordial_verbose>1)
+      printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
+             __func__,tspent,thread);
+#endif
+
+  } /* end of parallel zone */
+
+  if (abort == _TRUE_) return _FAILURE_;
 
   ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
   ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
 
   return _SUCCESS_;
 
+}
+
+/**
+ * Routine coordinating the computation of the primordial
+ * spectrum for one wavenumber. It calls primordial_inflation_one_k() to
+ * integrate the perturbation equations, and then it stores the result
+ * for the scalar/tensor spectra.
+ *
+ * @param ppt     Input: pointer to perturbation structure
+ * @param ppm     Input/output: pointer to primordial structure
+ * @param ppr     Input: pointer to precision structure
+ * @param y_ini   Input: initial conditions for the vector of background/perturbations, already allocated and filled
+ * @param y       Input: running vector of background/perturbations, already allocated
+ * @param dy      Input: running vector of background/perturbation derivatives, already allocated
+ * @param index_k Input: index of wavenumber to be considered
+ * @return the error status
+ */
+
+int primordial_inflation_one_wavenumber(
+                                        struct perturbs * ppt,
+                                        struct primordial * ppm,
+                                        struct precision * ppr,
+                                        double * y_ini,
+                                        int index_k
+                                        ) {
+  double k;
+  double curvature,tensors;
+  double * y;
+  double * dy;
+
+  k = exp(ppm->lnk[index_k]);
+
+  /** - allocate vectors for background/perturbed quantities */
+  class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
+  class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
+
+  /* initialize the background part of the running vector */
+  y[ppm->index_in_a] = y_ini[ppm->index_in_a];
+  y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
+  if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
+    y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
+
+  /* evolve the background until the relevant initial time for
+     integrating perturbations */
+  class_call(primordial_inflation_evolve_background(ppm,
+                                                    ppr,
+                                                    y,
+                                                    dy,
+                                                    _aH_,
+                                                    k/ppr->primordial_inflation_ratio_min,
+                                                    _FALSE_,
+                                                    forward,
+                                                    conformal),
+             ppm->error_message,
+             ppm->error_message);
+
+  /* evolve the background/perturbation equations from this time and
+     until some time after Horizon crossing */
+  class_call(primordial_inflation_one_k(ppm,
+                                        ppr,
+                                        k,
+                                        y,
+                                        dy,
+                                        &curvature,
+                                        &tensors),
+             ppm->error_message,
+             ppm->error_message);
+
+  free(y);
+  free(dy);
+
+  class_test(curvature<=0.,
+             ppm->error_message,
+             "negative curvature spectrum");
+
+  class_test(tensors<=0.,
+             ppm->error_message,
+             "negative tensor spectrum");
+
+  /* store the obtained result for curvature and tensor perturbations */
+  ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
+  ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
+
+  /* uncomment if you want to print here the spectra for testing */
+  /* fprintf(stderr,"%e %e %e\n", */
+  /* 	    ppm->lnk[index_k], */
+  /* 	    ppm->lnpk[ppt->index_md_scalars][index_k], */
+  /* 	    ppm->lnpk[ppt->index_md_tensors][index_k]); */
+
+  return _SUCCESS_;
 }
 
 /**
@@ -1596,9 +1689,9 @@ int primordial_inflation_one_k(
                                double * curvature,
                                double * tensor
                                ) {
-  
+
   /** Summary: */
-  
+
   /** - define local variables */
   double tau_start,tau_end,dtau;
   double z,ksi2,ah2;
@@ -1612,7 +1705,7 @@ int primordial_inflation_one_k(
 
   /** - initialize the generic integrator (same integrator already used
       in background, thermodynamics and perturbation modules) */
-  
+
   pipaw.ppm = ppm;
   pipaw.N = ppm->in_size;
   pipaw.integrate = forward;
@@ -2354,7 +2447,7 @@ int primordial_inflation_find_phi_pivot(
                                         double * dy
                                         ) {
   /** Summary: */
-  
+
   /** - define local variables */
   double epsilon,dphi;
   double phi_try,H_try,dphidt_try,ratio_try=0.;
@@ -3084,7 +3177,7 @@ int primordial_external_spectrum_init(
                                       struct primordial * ppm
                                       ) {
   /** Summary: */
-  
+
   char arguments[_ARGUMENT_LENGTH_MAX_];
   char line[_LINE_LENGTH_MAX_];
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
