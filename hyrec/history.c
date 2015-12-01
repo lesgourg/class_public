@@ -515,7 +515,10 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
 double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
                                      double z) {
 
-  double rho_cdm_today;
+  double rho_cdm_today,rho_dcdm_today,_Mpc_over_m_;
+  rho_dcdm_today = param->odcdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
+  _Mpc_over_m_ = 3.085677581282*pow(10,22);
+
   double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
   double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
   double f_halos;
@@ -560,7 +563,10 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
                                         &(f_halos),
                                         1,
                                         error_message);
-    energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*param->annihilation*f_halos/1.e6/1.60217653e-19;
+    fprintf(stdout,"fhalos = %e, z = %e\n",f_halos,z);
+    if(param->annihilation>0)energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*param->annihilation*f_halos/1.e6/1.60217653e-19;
+    // else if(param->decay>0) energy_rate = (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*rho_dcdm_today*pow((1+z),3)*param->decay*f_halos*
+    //                                       (param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
 }
     /* energy density rate in eV/cm^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*convers
 

@@ -227,9 +227,9 @@ int input_init(
   /** These two arrays must contain the strings of names to be searched
       for and the coresponding new parameter */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
-                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm"};
+                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","f_ini_dcdm"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
-                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr"};
+                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","omega_dcdmdr"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
                                         cs_background, cs_background, cs_background};
 
@@ -259,7 +259,7 @@ int input_init(
                                                    errmsg),
                  errmsg, errmsg);
       if (aux_flag == _TRUE_){
-        //printf("Found target: %s\n",target_namestrings[index_target]);
+        printf("Found target: %s\n",target_namestrings[index_target]);
         target_indices[unknown_parameters_size] = index_target;
         fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
         unknown_parameters_size++;
@@ -821,10 +821,65 @@ int input_read_parameters(
   if (flag2 == _TRUE_)
     pba->Omega_ini_dcdm = param2/pba->h/pba->h;
 
+  /** Read f_ini_dcdm and omega_ini_cdmtot */
+  class_call(parser_read_double(pfc,"f_ini_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_ini_cdmtot",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"Omega_ini_cdmtot",&param3,&flag3,errmsg),
+              errmsg,
+              errmsg);
+  class_test((((flag1 == _TRUE_) && (flag2 == _FALSE_) && (flag3 == _FALSE_) ) || ((flag1 == _FALSE_) && (flag2 == _TRUE_) && (flag3 == _FALSE_)) || ((flag1 == _FALSE_) && (flag2 == _FALSE_) && (flag3 == _TRUE_)) ),
+             errmsg,
+             "In input file, you have to enter both f_ini_dcdm && (omega_ini_cdmtot || Omega_ini_cdmtot).");
+  class_test(((flag2 == _TRUE_) && (flag3 == _TRUE_)),
+            errmsg,
+            "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
+  class_test((flag1 == _TRUE_) && ((param1 > 1)),
+            errmsg,
+            "In input file, you must enter f_ini_dcdm <= 1.");
+
+  if (flag1 == _TRUE_ && flag3==_TRUE_){
+    pba->Omega_ini_dcdm = param1*param3;
+    pba->Omega0_cdm = param3-param1*param3;
+    fprintf(stdout, "you have chosen f_ini_dcdm = %e and Omega_ini_cdmtot = %e which implies Omega_ini_dcdm = %e and Omega0_cdm = %e \n",param1,param3,pba->Omega_ini_dcdm,pba->Omega0_cdm);
+  }
+  if (flag1 == _TRUE_ && flag2==_TRUE_){
+    pba->Omega_ini_dcdm = param1*param2/pba->h/pba->h;
+    pba->Omega0_cdm = param2/pba->h/pba->h-param1*param2/pba->h/pba->h;
+    fprintf(stdout, "you have chosen f_ini_dcdm = %e and omega_ini_cdmtot = %e which implies omega_ini_dcdm = %e and omega0_cdm = %e \n",param1,param2,pba->Omega_ini_dcdm*pba->h*pba->h,pba->Omega0_cdm*pba->h*pba->h);
+  }
+
+
   /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
-  class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
+  class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+              errmsg,
+              "In input file, you can only enter one of Gamma_dcdm or tau_dcdm, choose one");
+  // class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
   /* Convert to Mpc */
-  pba->Gamma_dcdm *= (1.e3 / _c_);
+  // pba->Gamma_dcdm *= (1.e3 / _c_);
+  if (flag1 == _TRUE_)
+    pba->Gamma_dcdm = param1*(1.e3 / _c_);
+  if (flag2 == _TRUE_){
+  pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_);
+  // fprintf(stdout, "you have chosen Gamma = %e, tau = %e\n",pba->Gamma_dcdm/(1.e3 / _c_),param2/(1e9*365*24*3600));
+  }
+  //
+  // class_call(parser_read_double(pfc,"tau_dcdm",&param1,&flag1,errmsg),
+  //            errmsg,
+  //            errmsg);  /* Convert to Mpc */
+  // pba->Gamma_dcdm = 1/(param1/(1e9*365*24*3600))*1.02e-3*(1.e3 / _c_);
+  // fprintf(stdout, "you have chosen Gamma = %e, tau = %e\n",pba->Gamma_dcdm/(1.e3 / _c_),param1);
+
+
 
   /* non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
@@ -3483,6 +3538,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       break;
     case Omega_ini_dcdm:
     case omega_ini_dcdm:
+    case f_ini_dcdm:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
       if (ba.has_dr == _TRUE_)
         rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
@@ -3630,6 +3686,7 @@ int input_get_guess(double *xguess,
         dxdy[index_guess] = 1.;
       }
       break;
+    case f_ini_dcdm:
     case Omega_ini_dcdm:
     case omega_ini_dcdm:
       /** This works since correspondence is
@@ -3643,7 +3700,7 @@ int input_get_guess(double *xguess,
         a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
       xguess[index_guess] = pfzw->target_value[index_guess]*a_decay;
       dxdy[index_guess] = a_decay;
-      //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      // printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);
@@ -3686,6 +3743,7 @@ int input_auxillary_target_conditions(struct file_content * pfc,
   case Omega_scf:
   case Omega_ini_dcdm:
   case omega_ini_dcdm:
+  case f_ini_dcdm:
     /* Check that Omega's or omega's are nonzero: */
     if (target_value == 0.)
       *aux_flag = _FALSE_;

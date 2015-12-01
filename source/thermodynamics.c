@@ -310,8 +310,8 @@ int thermodynamics_init(
                pth->error_message);
 
 
-  if(pth->annihilation_f_halo >0.){
-
+  if(pth->has_on_the_spot==_FALSE_ ){
+    // fprintf(stdout, "here\n" );
     class_call(thermodynamics_annihilation_f_halos_init(ppr,pba,preco),
                preco->error_message,
                preco->error_message);
