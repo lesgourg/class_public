@@ -1420,13 +1420,29 @@ int primordial_inflation_solve_inflation(
   if (ppm->primordial_verbose > 1)
     printf(" (compute spectrum)\n");
 
-  class_call_except(primordial_inflation_spectra(ppt,
-                                                 ppm,
-                                                 ppr,
-                                                 y_ini),
-                    ppm->error_message,
-                    ppm->error_message,
-                    free(y);free(y_ini);free(dy));
+  if (ppm->behavior == numerical) {
+
+    class_call_except(primordial_inflation_spectra(ppt,
+                                                   ppm,
+                                                   ppr,
+                                                   y_ini),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+  }
+  else if (ppm->behavior == analytical) {
+
+    class_call_except(primordial_inflation_analytic_spectra(ppt,
+                                                              ppm,
+                                                              ppr,
+                                                              y_ini),
+                      ppm->error_message,
+                      ppm->error_message,
+                      free(y);free(y_ini);free(dy));
+  }
+  else {
+    class_stop(ppm->error_message,"Uncomprehensible value of the flag ppm->behavior=%d",ppm->behavior);
+  }
 
   /** - before ending, we want to compute and store the values of \f$ \phi \f$
       corresponding to k=aH for k_min and k_max */

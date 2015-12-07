@@ -62,6 +62,13 @@ enum phi_pivot_methods {
   ln_aH_ratio_auto
 };
 
+/** enum specifying how the inflation module computes the primordial spectrum (default: numerical) */
+
+enum inflation_module_behavior {
+  numerical,
+  analytical
+};
+
 /**
  * Structure containing everything about primordial spectra that other modules need to know.
  *
@@ -171,6 +178,9 @@ struct primordial {
   double phi_end;	/**< $$$ definition missing $$$ */
   enum phi_pivot_methods phi_pivot_method; /**< $$$ definition missing $$$ */
   double phi_pivot_target; /**< $$$ definition missing $$$ */
+
+  /* behavior of the inflation module */
+  enum inflation_module_behavior behavior;
 
   /** 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 

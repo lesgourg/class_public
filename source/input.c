@@ -1983,7 +1983,23 @@ int input_read_parameters(
       class_read_double("N_star",ppm->phi_pivot_target);
     }
 
+    class_call(parser_read_string(pfc,"inflation_behavior",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if (strstr(string1,"numerical") != NULL) {
+        ppm->behavior = numerical;
+      }
+      else if (strstr(string1,"analytical") != NULL) {
+        ppm->behavior = analytical;
+      }
+      else {
+        class_stop(errmsg,"Your entry for 'inflation behavior' could not be understood");
+      }
+    }
   }
+
   else if (ppm->primordial_spec_type == external_Pk) {
     class_call(parser_read_string(pfc, "command", &(string1), &(flag1), errmsg),
                errmsg, errmsg);
@@ -2993,6 +3009,7 @@ int input_default_params(
   ppm->H2=0.;
   ppm->H3=0.;
   ppm->H4=0.;
+  ppm->behavior=numerical;
   ppm->command="write here your command for the external Pk";
   ppm->custom1=0.;
   ppm->custom2=0.;
