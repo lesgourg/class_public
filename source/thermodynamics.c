@@ -3058,7 +3058,7 @@ int thermodynamics_derivs_with_recfast(
     /* Peebles' coefficient (approximated as one when the Hydrogen
        ionisation fraction is very close to one) */
     if (x_H < ppr->recfast_x_H0_trigger2) {
-      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
+      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
     }
     else {
       C = 1.;
