@@ -209,8 +209,8 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     nH = param->nH0 * ainv*ainv*ainv;
     double f_esc=0.2;
     double Zeta_ion=pow(10,53.14);
-    double rho_sfr = 0.01376*pow(1+z1,3.26)/(1+pow((1+z1)/2.59,5.68))*ainv*ainv*ainv*exp(-z1/12);//Comoving to physical
-    rho_sfr =0;
+    double rho_sfr = 0.01376*pow(ainv,3.26)/(1+pow((ainv)/2.59,5.68))*ainv*ainv*ainv*exp(-z1/12);//Comoving to physical
+    // rho_sfr =0;
     double dNion_over_dt;
     double erg_to_ev = 6.24150913*pow(10,11);
     double E_x = 3.4*pow(10,40)*erg_to_ev;
@@ -255,7 +255,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
   if(param->reio_parametrization==1){
     dTmdlna+=L_x*(1+2*xe_in)/3.;
     dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
-    // fprintf(stdout, "Computing star reionisation\n" );
+    // fprintf(stdout, "Computing star reionisation, rho_sfr = %e,z1 = %e\n",rho_sfr,z1 );
     /*******************Helium**********************/
     dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
     if(z1<6)dxedlna+=stars_xe*param->fHe*(1+tanh((3.5-z1)/0.5));
@@ -474,7 +474,7 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
   double rho_dcdm_today;
   double rho_cdm_today;
   double _Mpc_over_m_;
-
+  double energy_rate;
   rho_dcdm_today = param->odcdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
   rho_cdm_today = param->ocdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
   _Mpc_over_m_ = 3.085677581282*pow(10,22);
@@ -500,14 +500,20 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
     }
     // fprintf(stdout, " %e  %e\n",rho_cdm_today, rho_dcdm_today);
 
-  return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
-    param->annihilation
-    +rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
+  energy_rate =  (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
+    param->annihilation);
+    if(rho_dcdm_today!=0){
+      energy_rate+=(pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)
+    *rho_dcdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
+}
+    else energy_rate+=(pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)
+    *rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
     /* Old version, kept for comparaison */
   // return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
   //   param->annihilation
   //   +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
-
+  // fprintf(stdout,"z = %e, energy_rate = %e\n",z,energy_rate);
+return energy_rate;
   /* energy density rate in eV/cm^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   /* note that the injection rate used by recfast, defined in therodynamics.c, is in J/m^3/s. Here we multiplied by 1/1.e6/1.60217653e-19 to convert to eV and cm. */
 
@@ -563,10 +569,12 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
                                         &(f_halos),
                                         1,
                                         error_message);
-    fprintf(stdout,"fhalos = %e, z = %e\n",f_halos,z);
+    // if(f_halos<0)f_halos*=-1;
     if(param->annihilation>0)energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*param->annihilation*f_halos/1.e6/1.60217653e-19;
-    // else if(param->decay>0) energy_rate = (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*rho_dcdm_today*pow((1+z),3)*param->decay*f_halos*
-    //                                       (param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
+    else if(param->decay>0) energy_rate = (rho_cdm_today*pow((1+z),3)*param->decay*f_halos*
+                                          (param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
+    // fprintf(stdout,"fhalos = %e, z = %e, energy_rate = %e\n",f_halos,z,energy_rate);
+
 }
     /* energy density rate in eV/cm^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*convers
 

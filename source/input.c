@@ -1262,36 +1262,38 @@ int input_read_parameters(
   "Recfast cannot be used to compute effect of dark matter halos on reionization, because its parametrization goes outside is range of validity. Please restart in 'recombination = hyrec' mode.");
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
 
+  }
+
+if(pth->annihilation>0. || pth->decay>0.){
 
 
-  class_call(parser_read_string(pfc,
-                                "on the spot",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
+    class_call(parser_read_string(pfc,
+                                  "on the spot",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
 
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pth->has_on_the_spot = _TRUE_;
-    }
-    else {
-      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        pth->has_on_the_spot = _FALSE_;
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        pth->has_on_the_spot = _TRUE_;
       }
       else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          pth->has_on_the_spot = _FALSE_;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+        }
       }
     }
-  }
 
-  if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
-    fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
-    pth->has_on_the_spot = _FALSE_;
-  }
-
-  }
+    if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
+      fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
+      pth->has_on_the_spot = _FALSE_;
+    }
+}
   class_call(parser_read_string(pfc,
                                 "increase_T_from_stars",
                                 &(string1),
