@@ -805,7 +805,36 @@ int input_read_parameters(
   if (flag2 == _TRUE_)
     pba->Omega0_dcdmdr = param2/pba->h/pba->h;
   Omega_tot += pba->Omega0_dcdmdr;
+  /** Read f_dcdm and omega_cdmtot */
+  class_call(parser_read_double(pfc,"f_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_cdmtot",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"Omega_cdmtot",&param3,&flag3,errmsg),
+              errmsg,
+              errmsg);
+  class_test((((flag1 == _TRUE_) && (flag2 == _FALSE_) && (flag3 == _FALSE_) ) || ((flag1 == _FALSE_) && (flag2 == _TRUE_) && (flag3 == _FALSE_)) || ((flag1 == _FALSE_) && (flag2 == _FALSE_) && (flag3 == _TRUE_)) ),
+             errmsg,
+             "In input file, you have to enter both f_dcdm && (omega_cdmtot || Omega_cdmtot).");
+  class_test(((flag2 == _TRUE_) && (flag3 == _TRUE_)),
+            errmsg,
+            "In input file, you can only enter one of Omega_dcdm or omega_dcdm, choose one");
+  class_test((flag1 == _TRUE_) && ((param1 > 1)),
+            errmsg,
+            "In input file, you must enter f_dcdm <= 1.");
 
+  if (flag1 == _TRUE_ && flag3==_TRUE_){
+    pba->Omega0_dcdmdr = param1*param3;
+    pba->Omega0_cdm = param3-param1*param3;
+    fprintf(stdout, "you have chosen f_dcdm = %e and Omega_cdmtot = %e which implies Omega_dcdm = %e and Omega0_cdm = %e \n",param1,param3,pba->Omega0_dcdmdr,pba->Omega0_cdm);
+  }
+  if (flag1 == _TRUE_ && flag2==_TRUE_){
+    pba->Omega0_dcdmdr = param1*param2/pba->h/pba->h;
+    pba->Omega0_cdm = param2/pba->h/pba->h-param1*param2/pba->h/pba->h;
+    fprintf(stdout, "you have chosen f_dcdm = %e and omega_cdmtot = %e which implies omega_dcdm = %e and omega0_cdm = %e \n",param1,param2,pba->Omega0_dcdmdr*pba->h*pba->h,pba->Omega0_cdm*pba->h*pba->h);
+  }
   /** Read Omega_ini_dcdm or omega_ini_dcdm */
   class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
              errmsg,
@@ -820,6 +849,7 @@ int input_read_parameters(
     pba->Omega_ini_dcdm = param1;
   if (flag2 == _TRUE_)
     pba->Omega_ini_dcdm = param2/pba->h/pba->h;
+
 
   /** Read f_ini_dcdm and omega_ini_cdmtot */
   class_call(parser_read_double(pfc,"f_ini_dcdm",&param1,&flag1,errmsg),
@@ -870,7 +900,7 @@ int input_read_parameters(
     pba->Gamma_dcdm = param1*(1.e3 / _c_);
   if (flag2 == _TRUE_){
   pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_);
-  // fprintf(stdout, "you have chosen Gamma = %e, tau = %e\n",pba->Gamma_dcdm/(1.e3 / _c_),param2/(1e9*365*24*3600));
+  fprintf(stdout, "you have chosen Gamma = %e*H0, tau = %e\n s",pba->Gamma_dcdm/(1.e3 / _c_)/67,param2);
   }
   //
   // class_call(parser_read_double(pfc,"tau_dcdm",&param1,&flag1,errmsg),
