@@ -1468,6 +1468,50 @@ int array_integrate_all_spline(
   return _SUCCESS_;
 }
 
+int array_integrate_all_spline_nint(
+       double * array,
+       int n_columns,
+       int n_lines,
+       int n_int,
+       int index_x,   /** from 0 to (n_columns-1) */
+       int index_y,
+       int index_ddy,
+       double * result,
+       ErrorMsg errmsg) {
+
+  int i,index_previous;
+  double kh,dkh;
+  double integrand;
+  double integrand_previous = 0.;
+  index_previous=0;
+
+  *result = 0.;
+
+  dkh = (log(array[(n_lines-1)*n_columns+index_x])-log(array[index_x]))/n_int;
+  //dkh = ((array[(n_lines-1)*n_columns+index_x])-(array[index_x]))/n_int;
+  //printf("kmax = %lf\nkmin = %lf\ndkh = %lf\n", array[(n_lines-1)*n_columns+index_x], array[index_x], dkh );
+
+  //FILE *f2 = fopen("/home/matteo/prove_nonlin/output.txt","a");
+
+  for (i=1; i <= n_int; i++) {
+    kh = exp(log(array[index_x])+i*dkh);
+    //kh = (array[index_x])+i*dkh;
+    array_interpolate_all_spline(array,n_columns,n_lines,index_x,index_y,index_ddy,kh,&index_previous,&integrand,errmsg);
+    //fprintf(f2,"%e\t%e\n",kh,integrand);
+    integrand *= kh;
+    *result += 0.5*(integrand_previous+integrand)*dkh;
+    integrand_previous = integrand;
+  }
+
+  //fclose(f2);
+
+  // FILE *f1 = fopen("/home/matteo/prove_nonlin/input.txt","a");
+  // for(i=0; i<n_lines; i++) fprintf(f1,"%e\t%e\n",array[i*n_columns+index_x],array[i*n_columns+index_y]);
+  // fclose(f1);
+
+  return _SUCCESS_;
+}
+
 int array_integrate_all_trapzd_or_spline(
 		   double * array,
 		   int n_columns,
@@ -1749,6 +1793,103 @@ int array_interpolate_spline(
 
   return _SUCCESS_;
 }
+
+
+
+int array_interpolate_all_spline(
+                             double * array,
+                             int n_columns,
+                             int n_lines,
+                             int index_x,
+                             int index_y,
+                             int index_ddy,
+                             double x,
+                             int * last_index,
+                             double * result,
+                             ErrorMsg errmsg) {
+
+  int inf,sup,mid,i;
+  double h,a,b;
+
+  inf=0;
+  sup=n_lines-1;
+
+  // if (x>array[*last_index*n_columns+index_x] ) inf = *last_index;
+
+  // if ( x > array[*last_index*n_columns+index_x]  && x < array[(*last_index+1)*n_columns+index_x] )
+  // {
+  //   sup = inf+1;
+  // }
+  // else
+  // {
+
+  if (array[inf*n_columns+index_x] < array[sup*n_columns+index_x]){
+
+    if (x < array[inf*n_columns+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,array[inf*n_columns+index_x]);
+      return _FAILURE_;
+    }
+
+    if (x > array[sup*n_columns+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,array[sup*n_columns+index_x]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x < array[mid*n_columns+index_x]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  else {
+
+    if (x < array[sup*n_columns+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,array[sup*n_columns+index_x]);
+      return _FAILURE_;
+    }
+
+    if (x > array[inf*n_columns+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,array[inf*n_columns+index_x]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x > array[mid*n_columns+index_x]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+  //}
+
+  *last_index = inf;
+
+  h = array[sup*n_columns+index_x] - array[inf*n_columns+index_x];
+  b = (x-array[inf*n_columns+index_x])/h;
+  a = 1-b;
+
+  /*for (i=0; i<result_size; i++)*/
+    *result =
+      a * array[inf*n_columns+index_y] +
+      b * array[sup*n_columns+index_y] +
+      ((a*a*a-a)* array[inf*n_columns+index_ddy] +
+       (b*b*b-b)* array[sup*n_columns+index_ddy])*h*h/6.;
+
+  // FILE *f3 = fopen("/home/matteo/prove_nonlin/supinf_spline.txt","a");
+  // fprintf(f3,"%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",h,a,b,array[inf*n_columns+index_y],array[sup*n_columns+index_y],array[inf*n_columns+index_ddy],array[sup*n_columns+index_ddy],*result);
+  // fclose(f3);
+
+  return _SUCCESS_;
+}
+
+
+
 
  /**
   * interpolate to get y_i(x), when x and y_i are in different arrays
