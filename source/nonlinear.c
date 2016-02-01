@@ -119,8 +119,6 @@ int nonlinear_init(
 
       //class_stop(pnl->error_message,"stop here");
 
-      //printf("dz = %lf  ",ppr->halofit_dz);
-
       /* get P_NL(k) at this time */
       if (nonlinear_halofit(ppr,
                             pba,
@@ -375,8 +373,7 @@ int nonlinear_halofit(
                     ppr->halofit_min_k_nonlinear);
 
   xlogr2 = log(R)/log(10.);
-  //xlogr1=-2.;
-  //xlogr2=3.5;
+
   counter = 0;
   do {
     rmid = pow(10,(xlogr2+xlogr1)/2.0);

@@ -1491,9 +1491,7 @@ int array_integrate_all_spline_nint(
 
   for (i=1; i <= n_int; i++) {
     kh = exp(log(array[index_x])+i*dkh);
-    //kh = (array[index_x])+i*dkh;
     array_interpolate_all_spline(array,n_columns,n_lines,index_x,index_y,index_ddy,kh,&index_previous,&integrand,errmsg);
-    //fprintf(f2,"%e\t%e\n",kh,integrand);
     integrand *= kh;
     *result += 0.5*(integrand_previous+integrand)*dkh;
     integrand_previous = integrand;
