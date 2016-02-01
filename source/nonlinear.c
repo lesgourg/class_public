@@ -118,7 +118,7 @@ int nonlinear_init(
       */
 
       //class_stop(pnl->error_message,"stop here");
-      
+
       //printf("dz = %lf  ",ppr->halofit_dz);
 
       /* get P_NL(k) at this time */
@@ -339,7 +339,7 @@ int nonlinear_halofit(
              pnl->error_message,
              pnl->error_message);
   sigma  = sqrt(sum1);
-  
+
   class_test_except(sigma < 1.,
                     pnl->error_message,
                     free(pvecback);free(integrand_array),
@@ -360,7 +360,6 @@ int nonlinear_halofit(
   }
   /* fill in second derivatives */
   class_call(array_spline(integrand_array,7,pnl->k_size,0,1,2,_SPLINE_EST_DERIV_,pnl->error_message),
-  //class_call(array_spline(integrand_array,7,pnl->k_size,0,1,2,_SPLINE_NATURAL_,pnl->error_message),
              pnl->error_message,
              pnl->error_message);
   /* integrate */
@@ -395,7 +394,7 @@ int nonlinear_halofit(
       integrand_array[index_k*7 + 5] = pk_l[index_k]*pow(pnl->k[index_k],2)*anorm*4.*x2*(1.-x2)*exp(-x2);
     }
     /* fill in second derivatives */
-    class_call(array_spline(integrand_array,7,pnl->k_size,0,1,2,_SPLINE_NATURAL_,pnl->error_message),
+    class_call(array_spline(integrand_array,7,pnl->k_size,0,1,2,_SPLINE_EST_DERIV_,pnl->error_message),
                pnl->error_message,
                pnl->error_message);
     class_call(array_spline(integrand_array,7,pnl->k_size,0,3,4,_SPLINE_EST_DERIV_,pnl->error_message),
@@ -406,7 +405,7 @@ int nonlinear_halofit(
                pnl->error_message);
 
     /* integrate */
-    
+
     class_call(array_integrate_all_spline_nint(integrand_array,7,pnl->k_size,3e+3,0,1,2,&sum1,pnl->error_message),
                pnl->error_message,
                pnl->error_message);
@@ -445,9 +444,6 @@ int nonlinear_halofit(
   rncur = -d2;
 
   *k_nl = rknl;
-
-  //printf("Number of ks = %i\n",pnl->k_size);
-  //printf("%lf     %lf     %lf     %lf\n",pba->a_today/pvecback[pba->index_bg_a]-1.,rknl,rneff,rncur);
 
   for (index_k = 0; index_k < pnl->k_size; index_k++){
 
@@ -494,7 +490,7 @@ int nonlinear_halofit(
         f3=1.;
       }
 
-      y=(rk/rknl); 
+      y=(rk/rknl);
       pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
       pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(0.977-18.015*(Omega0_m-0.3)));
       pk_linaa=pk_lin*(1+fnu*47.48*pow(rk,2)/(1+1.5*pow(rk,2)));
