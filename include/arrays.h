@@ -171,6 +171,17 @@ extern "C" {
 				 ErrorMsg errmsg
 				 );
 
+  int array_integrate_all_spline_nint(
+				 double * array,
+				 int n_columns,
+				 int n_lines,
+				 int n_int,
+				 int index_x,   /** from 0 to (n_columns-1) */
+				 int index_y,
+				 int index_ddy,
+				 double * result,
+				 ErrorMsg errmsg);
+
 int array_integrate_all_trapzd_or_spline(
 		   double * array,
 		   int n_columns,
@@ -240,6 +251,18 @@ int array_integrate_all_trapzd_or_spline(
 			       int * __restrict__ last_index,
 			       double * __restrict__ result,
 			       int result_size, /** from 1 to n_columns */
+			       ErrorMsg errmsg);
+
+  int array_interpolate_all_spline(
+			       double * array,
+			       int n_columns,
+			       int n_lines,
+			       int index_x,
+			       int index_y,
+			       int index_ddy,
+			       double x,
+			       int * last_index,
+			       double * result,
 			       ErrorMsg errmsg);
 
   int array_interpolate_linear(

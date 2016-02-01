@@ -333,7 +333,7 @@ int nonlinear_halofit(
              pnl->error_message,
              pnl->error_message);
   /* integrate */
-  class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size,0,1,2,&sum1,pnl->error_message),
+  class_call(array_integrate_all_spline_nint(integrand_array,7,pnl->k_size,3e+3,0,1,2,&sum1,pnl->error_message),
              pnl->error_message,
              pnl->error_message);
   sigma  = sqrt(sum1);
@@ -361,7 +361,7 @@ int nonlinear_halofit(
              pnl->error_message,
              pnl->error_message);
   /* integrate */
-  class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size,0,1,2,&sum1,pnl->error_message),
+  class_call(array_integrate_all_spline_nint(integrand_array,7,pnl->k_size,3e+3,0,1,2,&sum1,pnl->error_message),
              pnl->error_message,
              pnl->error_message);
   sigma  = sqrt(sum1);
@@ -402,13 +402,14 @@ int nonlinear_halofit(
                pnl->error_message);
 
     /* integrate */
-    class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size,0,1,2,&sum1,pnl->error_message),
+
+    class_call(array_integrate_all_spline_nint(integrand_array,7,pnl->k_size,3e+3,0,1,2,&sum1,pnl->error_message),
                pnl->error_message,
                pnl->error_message);
-    class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size,0,3,4,&sum2,pnl->error_message),
+    class_call(array_integrate_all_spline_nint(integrand_array,7,pnl->k_size,3e+3,0,3,4,&sum2,pnl->error_message),
                pnl->error_message,
                pnl->error_message);
-    class_call(array_integrate_all_spline(integrand_array,7,pnl->k_size,0,5,6,&sum3,pnl->error_message),
+    class_call(array_integrate_all_spline_nint(integrand_array,7,pnl->k_size,3e+3,0,5,6,&sum3,pnl->error_message),
                pnl->error_message,
                pnl->error_message);
 
@@ -465,7 +466,7 @@ int nonlinear_halofit(
       c=pow(10, 0.3698+2.0404*rneff+0.8161*rneff*rneff+0.5869*rncur);
       xmu=0.;
       xnu=pow(10,5.2105+3.6902*rneff);
-      alpha=abs(6.0835+1.3373*rneff-0.1959*rneff*rneff-5.5274*rncur);
+      alpha=fabs(6.0835+1.3373*rneff-0.1959*rneff*rneff-5.5274*rncur);
       beta=2.0379-0.7354*rneff+0.3157*pow(rneff,2)+1.2490*pow(rneff,3)+0.3980*pow(rneff,4)-0.1682*rncur + fnu*(1.081 + 0.395*pow(rneff,2));
 
       if(fabs(1-Omega_m)>0.01) { /*then omega evolution */
