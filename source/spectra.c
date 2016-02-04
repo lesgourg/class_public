@@ -2915,9 +2915,9 @@ int spectra_matter_transfers(
 
           delta_rho_tot += rho_i * delta_i;
 
-          rho_tot += rho_i;
-
         }
+
+        rho_tot += rho_i;
 
         if (ppt->has_source_theta_b == _TRUE_) {
 
@@ -2929,9 +2929,9 @@ int spectra_matter_transfers(
 
           rho_plus_p_theta_tot += rho_i * theta_i;
 
-          rho_plus_p_tot += rho_i;
-
         }
+
+        rho_plus_p_tot += rho_i;
 
         /* T_cdm(k,tau) */
 
@@ -2949,9 +2949,9 @@ int spectra_matter_transfers(
 
             delta_rho_tot += rho_i * delta_i;
 
-            rho_tot += rho_i;
-
           }
+
+          rho_tot += rho_i;
 
           if (ppt->has_source_theta_cdm == _TRUE_) {
 
@@ -2963,9 +2963,9 @@ int spectra_matter_transfers(
 
             rho_plus_p_theta_tot += rho_i * theta_i;
 
-            rho_plus_p_tot += rho_i;
-
           }
+
+          rho_plus_p_tot += rho_i;
 
         }
 
@@ -2985,9 +2985,9 @@ int spectra_matter_transfers(
 
             delta_rho_tot += rho_i * delta_i;
 
-            rho_tot += rho_i;
-
           }
+
+          rho_tot += rho_i;
 
           if (ppt->has_source_theta_dcdm == _TRUE_) {
 
@@ -2999,9 +2999,9 @@ int spectra_matter_transfers(
 
             rho_plus_p_theta_tot += rho_i * theta_i;
 
-            rho_plus_p_tot += rho_i;
-
           }
+
+          rho_plus_p_tot += rho_i;
 
         }
 
@@ -3021,8 +3021,9 @@ int spectra_matter_transfers(
 
             delta_rho_tot += rho_i * delta_i;
 
-            rho_tot += rho_i;
           }
+
+          rho_tot += rho_i;
 
           if (ppt->has_source_theta_scf == _TRUE_) {
 
@@ -3034,8 +3035,9 @@ int spectra_matter_transfers(
 
             rho_plus_p_theta_tot += (rho_i + pvecback_sp_long[pba->index_bg_p_scf]) * theta_i;
 
-            rho_plus_p_tot += (rho_i + pvecback_sp_long[pba->index_bg_p_scf]);
           }
+
+          rho_plus_p_tot += (rho_i + pvecback_sp_long[pba->index_bg_p_scf]);
 
         }
 
@@ -3056,9 +3058,9 @@ int spectra_matter_transfers(
 
             delta_rho_tot += rho_i * delta_i;
 
-            rho_tot += rho_i;
-
           }
+
+          rho_tot += rho_i;
 
           if (ppt->has_source_theta_fld == _TRUE_) {
 
@@ -3070,9 +3072,9 @@ int spectra_matter_transfers(
 
             rho_plus_p_theta_tot += (1. + pba->w0_fld + pba->wa_fld * (1. - pvecback_sp_long[pba->index_bg_a] / pba->a_today)) * rho_i * theta_i;
 
-            rho_plus_p_tot += (1. + pba->w0_fld + pba->wa_fld * (1. - pvecback_sp_long[pba->index_bg_a] / pba->a_today)) * rho_i;
-
           }
+
+          rho_plus_p_tot += (1. + pba->w0_fld + pba->wa_fld * (1. - pvecback_sp_long[pba->index_bg_a] / pba->a_today)) * rho_i;
 
         }
 
@@ -3092,9 +3094,9 @@ int spectra_matter_transfers(
 
             delta_rho_tot += rho_i * delta_i;
 
-            rho_tot += rho_i;
-
           }
+
+          rho_tot += rho_i;
 
           if (ppt->has_source_theta_ur == _TRUE_) {
 
@@ -3106,9 +3108,9 @@ int spectra_matter_transfers(
 
             rho_plus_p_theta_tot += 4./3. * rho_i * theta_i;
 
-            rho_plus_p_tot += 4./3. * rho_i;
-
           }
+
+          rho_plus_p_tot += 4./3. * rho_i;
 
         }
 
@@ -3128,9 +3130,9 @@ int spectra_matter_transfers(
 
             delta_rho_tot += rho_i * delta_i;
 
-            rho_tot += rho_i;
-
           }
+
+          rho_tot += rho_i;
 
           if (ppt->has_source_theta_dr == _TRUE_) {
 
@@ -3142,9 +3144,9 @@ int spectra_matter_transfers(
 
             rho_plus_p_theta_tot += 4./3. * rho_i * theta_i;
 
-            rho_plus_p_tot += 4./3. * rho_i;
-
           }
+
+          rho_plus_p_tot += 4./3. * rho_i;
 
         }
 
@@ -3166,8 +3168,9 @@ int spectra_matter_transfers(
 
               delta_rho_tot += rho_i * delta_i;
 
-              rho_tot += rho_i;
             }
+
+            rho_tot += rho_i;
 
             if (ppt->has_source_theta_ncdm == _TRUE_) {
 
@@ -3179,8 +3182,9 @@ int spectra_matter_transfers(
 
               rho_plus_p_theta_tot += (rho_i + pvecback_sp_long[pba->index_bg_p_ncdm1+n_ncdm]) * theta_i;
 
-              rho_plus_p_tot += (rho_i + pvecback_sp_long[pba->index_bg_p_ncdm1+n_ncdm]);
             }
+
+            rho_plus_p_tot += (rho_i + pvecback_sp_long[pba->index_bg_p_ncdm1+n_ncdm]);
 
           }
 
