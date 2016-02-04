@@ -1598,8 +1598,9 @@ int thermodynamics_onthespot_energy_injection(
                                               ) {
 
   double annihilation_at_z;
-  double rho_cdm_today;
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+  double rho_cdm_today, rho_dcdm_today;
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm+pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
+  rho_dcdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
 
   int i, n_step = 1000;
   if(z<1000)n_step*=10;
@@ -1613,7 +1614,7 @@ int thermodynamics_onthespot_energy_injection(
       z3=z2-delta_z/2.;
       t1= 1/((1+z1)*sqrt(pba->Omega0_g*pow(1+z1,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z1,3)+pba->Omega0_lambda));
       t2= 1/((1+z2)*sqrt(pba->Omega0_g*pow(1+z2,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z2,3)+pba->Omega0_lambda));
-      t3= 1/((1+z3)*sqrt(pba->Omega0_g*pow(1+z3,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z3,3)+pba->Omega0_lambda));
+      t3= 1/((1+z3)*sqrt(pba->Omega0_g*pow(1+z3,4)+(pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_dcdmdr)*pow(1+z3,3)+pba->Omega0_lambda));
       t += delta_z/6*(t1+4*t2+t3);
       // fprintf(stdout, "t1 = %e, t2 = %e,t3 = %e,t = %e\n",t1,t2,t3,t);
     }

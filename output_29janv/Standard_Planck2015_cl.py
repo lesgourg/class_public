@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import itertools
 
-files = ['/Users/poulin/Documents/Labo/ProgrammeDarkAges/class_public-2.4.2/output_29janv/Standard_Planck2015_cl.dat', '/Users/poulin/Documents/Labo/ProgrammeDarkAges/class_public-2.4.2/output_4fev/check_decay_cl.dat']
+files = ['/Users/poulin/Documents/Labo/ProgrammeDarkAges/class_public-2.4.2/output_29janv/Standard_Planck2015_cl.dat', '/Users/poulin/Documents/Labo/ProgrammeDarkAges/class_public-2.4.2/output_2fev/F1_G1_cl.dat']
 data = []
 for data_file in files:
     data.append(np.loadtxt(data_file))
-roots = ['Standard_Planck2015_cl', 'check_decay_cl']
+roots = ['Standard_Planck2015_cl', 'F1_G1_cl']
 
 fig, ax = plt.subplots()
 
