@@ -571,7 +571,6 @@ extern "C" {
 
   int thermodynamics_reionization_function(
 					   double z,
-             int i,
 					   struct thermo * pth,
 					   struct reionization * preio,
              struct recombination * preco,
