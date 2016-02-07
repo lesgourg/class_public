@@ -1607,33 +1607,53 @@ int thermodynamics_onthespot_energy_injection(
                                               ) {
 
   double annihilation_at_z;
-  double rho_cdm_today, rho_dcdm_today;
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm+pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
-  rho_dcdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
+  double rho_cdm_today, rho_dcdm;
+  double tau;
+  int last_index_back;
+  double * pvecback;
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
+  // rho_dcdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             ppr->error_message);
 
-  int i, n_step = 1000;
-  if(z<1000)n_step*=10;
-  double z1,z2,z3,t1,t2,t3,t=0,result_integrale=0;
-  double delta_z = (ppr->recfast_Nz0-z)/((double) n_step);
-  if(preco->decay>0){
-    for(i = 0 ; i<n_step ; i++){
-      if(i!=0)z1=z3;
-      else z1=ppr->recfast_Nz0;
-      z2=z1-delta_z/2.;
-      z3=z2-delta_z/2.;
-      t1= 1/((1+z1)*sqrt(pba->Omega0_g*pow(1+z1,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z1,3)+pba->Omega0_lambda));
-      t2= 1/((1+z2)*sqrt(pba->Omega0_g*pow(1+z2,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z2,3)+pba->Omega0_lambda));
-      t3= 1/((1+z3)*sqrt(pba->Omega0_g*pow(1+z3,4)+(pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_dcdmdr)*pow(1+z3,3)+pba->Omega0_lambda));
-      t += delta_z/6*(t1+4*t2+t3);
-      // fprintf(stdout, "t1 = %e, t2 = %e,t3 = %e,t = %e\n",t1,t2,t3,t);
-    }
-    t*=1/(pba->H0);
-    result_integrale = exp(-t*pba->Gamma_dcdm);
-    // fprintf(stdout, " %e  %e\n",z, result_integrale);
-  }
+  class_call(background_at_tau(pba,
+                               tau,
+                               pba->normal_info,
+                               pba->inter_normal,
+                               &last_index_back,
+                               pvecback),
+             pba->error_message,
+             ppr->error_message);
+   rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*pow(_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in J/m^3 */
+
+  // int i, n_step = 1000;
+  // if(z<1000)n_step*=10;
+  // double z1,z2,z3,t1,t2,t3,t=0,result_integrale=0;
+  // double delta_z = (ppr->recfast_Nz0-z)/((double) n_step);
+  // if(preco->decay>0){
+  //   for(i = 0 ; i<n_step ; i++){
+  //     if(i!=0)z1=z3;
+  //     else z1=ppr->recfast_Nz0;
+  //     z2=z1-delta_z/2.;
+  //     z3=z2-delta_z/2.;
+  //     t1= 1/((1+z1)*sqrt(pba->Omega0_g*pow(1+z1,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z1,3)+pba->Omega0_lambda));
+  //     t2= 1/((1+z2)*sqrt(pba->Omega0_g*pow(1+z2,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z2,3)+pba->Omega0_lambda));
+  //     t3= 1/((1+z3)*sqrt(pba->Omega0_g*pow(1+z3,4)+(pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_dcdmdr)*pow(1+z3,3)+pba->Omega0_lambda));
+  //     t += delta_z/6*(t1+4*t2+t3);
+  //     // fprintf(stdout, "t1 = %e, t2 = %e,t3 = %e,t = %e\n",t1,t2,t3,t);
+  //   }
+  //   t*=1/(pba->H0);
+  //   result_integrale = exp(-t*pba->Gamma_dcdm);
+  //   // fprintf(stdout, " %e  %e\n",z, result_integrale);
+  // }
+  // fprintf(stdout, "z = %e proper time = %e t = %e rho_dcdm = %e rho computed = %e rho_cdm = %e\n", z,pvecback[pba->index_bg_time],t, pvecback[pba->index_bg_rho_cdm]*pow(_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_, rho_cdm_today*pow((1+z),3),(pvecback[pba->index_bg_rho_cdm]*pow(_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_-rho_cdm_today*pow((1+z),3))/(rho_cdm_today*pow((1+z),3))*100);
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
     (pow((1.+z),3)*preco->annihilation)
-    +rho_cdm_today*pow((1+z),3)*preco->decay*result_integrale*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
+    +rho_dcdm*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
     // fprintf(stdout, "here decay = %e energy_rate = %e tau = %e [s]\n", preco->decay,*energy_rate,1/(pba->Gamma_dcdm*_c_/_Mpc_over_m_));
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
 
@@ -3588,9 +3608,9 @@ int thermodynamics_derivs_with_recfast(
              error_message,
              error_message);
 
-class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-               error_message,
-               error_message);
+// class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+//                error_message,
+//                error_message);
 }
 else energy_rate=0;
  // fprintf(stdout,"%e      %e     %e      %e      %e    \n", x,pth->chi_heat,pth->chi_lya, pth->chi_ionH,pth->chi_ionHe,pth->chi_lowE);

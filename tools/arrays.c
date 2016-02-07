@@ -706,144 +706,7 @@ int array_spline_table_lines(
 
   return _SUCCESS_;
  }
-int array_spline_table_lines_hyrec(
-			     double * x, /* vector of size x_size */
-			     int x_size,
-			     double * y_array, /* array of size x_size*y_size with elements
-						  y_array[index_x*y_size+index_y] */
-			     int y_size,
-			     double * ddy_array, /* array of size x_size*y_size */
-			     short spline_mode
-			     ) {
 
-  double * p;
-  double * qn;
-  double * un;
-  double * u;
-  double sig;
-  int index_x;
-  int index_y;
-  double dy_first;
-  double dy_last;
-
-  u = malloc((x_size-1) * y_size * sizeof(double));
-  p = malloc(y_size * sizeof(double));
-  qn = malloc(y_size * sizeof(double));
-  un = malloc(y_size * sizeof(double));
-
-
-
-
-  index_x=0;
-
-  if (spline_mode == _SPLINE_NATURAL_) {
-    for (index_y=0; index_y < y_size; index_y++) {
-      ddy_array[index_x*y_size+index_y] = u[index_x*y_size+index_y] = 0.0;
-    }
-  }
-  else {
-    if (spline_mode == _SPLINE_EST_DERIV_) {
-
-      for (index_y=0; index_y < y_size; index_y++) {
-
-	dy_first =
-	  ((x[2]-x[0])*(x[2]-x[0])*
-	   (y_array[1*y_size+index_y]-y_array[0*y_size+index_y])-
-	   (x[1]-x[0])*(x[1]-x[0])*
-	   (y_array[2*y_size+index_y]-y_array[0*y_size+index_y]))/
-	  ((x[2]-x[0])*(x[1]-x[0])*(x[2]-x[1]));
-
-	ddy_array[index_x*y_size+index_y] = -0.5;
-
-	u[index_x*y_size+index_y] =
-	  (3./(x[1] -  x[0]))*
-	  ((y_array[1*y_size+index_y]-y_array[0*y_size+index_y])/
-	   (x[1] - x[0])-dy_first);
-
-      }
-    }
-
-  }
-
-
-  for (index_x=1; index_x < x_size-1; index_x++) {
-
-    sig = (x[index_x] - x[index_x-1])/(x[index_x+1] - x[index_x-1]);
-
-    for (index_y=0; index_y < y_size; index_y++) {
-
-      p[index_y] = sig * ddy_array[(index_x-1)*y_size+index_y] + 2.0;
-
-      ddy_array[index_x*y_size+index_y] = (sig-1.0)/p[index_y];
-
-      u[index_x*y_size+index_y] =
-	(y_array[(index_x+1)*y_size+index_y] - y_array[index_x*y_size+index_y])
-	/ (x[index_x+1] - x[index_x])
-	- (y_array[index_x*y_size+index_y] - y_array[(index_x-1)*y_size+index_y])
-	/ (x[index_x] - x[index_x-1]);
-
-      u[index_x*y_size+index_y] = (6.0 * u[index_x*y_size+index_y] /
-				   (x[index_x+1] - x[index_x-1])
-				   - sig * u[(index_x-1)*y_size+index_y]) / p[index_y];
-    }
-
-  }
-
-  if (spline_mode == _SPLINE_NATURAL_) {
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      qn[index_y]=un[index_y]=0.0;
-    }
-
-  }
-  else {
-    if (spline_mode == _SPLINE_EST_DERIV_) {
-
-      for (index_y=0; index_y < y_size; index_y++) {
-
-	dy_last =
-	  ((x[x_size-3]-x[x_size-1])*(x[x_size-3]-x[x_size-1])*
-	   (y_array[(x_size-2)*y_size+index_y]-y_array[(x_size-1)*y_size+index_y])-
-	   (x[x_size-2]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*
-	   (y_array[(x_size-3)*y_size+index_y]-y_array[(x_size-1)*y_size+index_y]))/
-	  ((x[x_size-3]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*(x[x_size-3]-x[x_size-2]));
-
-	qn[index_y]=0.5;
-
-	un[index_y]=
-	  (3./(x[x_size-1] - x[x_size-2]))*
-	  (dy_last-(y_array[(x_size-1)*y_size+index_y] - y_array[(x_size-2)*y_size+index_y])/
-	   (x[x_size-1] - x[x_size-2]));
-
-      }
-    }
-
-  }
-
-  index_x=x_size-1;
-
-  for (index_y=0; index_y < y_size; index_y++) {
-    ddy_array[index_x*y_size+index_y] =
-      (un[index_y] - qn[index_y] * u[(index_x-1)*y_size+index_y]) /
-      (qn[index_y] * ddy_array[(index_x-1)*y_size+index_y] + 1.0);
-  }
-
-  for (index_x=x_size-2; index_x >= 0; index_x--) {
-    for (index_y=0; index_y < y_size; index_y++) {
-
-      ddy_array[index_x*y_size+index_y] = ddy_array[index_x*y_size+index_y] *
-	ddy_array[(index_x+1)*y_size+index_y] + u[index_x*y_size+index_y];
-
-    }
-  }
-
-  free(qn);
-  free(un);
-  free(p);
-  free(u);
-
-  return _SUCCESS_;
- }
 int array_logspline_table_lines(
 			     double * x, /* vector of size x_size */
 			     int x_size,
@@ -2392,6 +2255,56 @@ int array_interpolate_growing_closeby(
       + weight * *(array+sup*n_columns+i);
 
   *(result+index_x) = x;
+
+  return _SUCCESS_;
+}
+
+/**
+  * interpolate to get y(x), when x and y are two columns of the same array, x is arranged in growing order, and the point x is presumably close to the previous point x from the last call of this function.
+  *
+  * Called by background_at_eta(); background_eta_of_z(); background_solve(); thermodynamics_at_z().
+  */
+int array_interpolate_one_growing_closeby(
+		   double * array,
+		   int n_columns,
+		   int n_lines,
+		   int index_x,   /** from 0 to (n_columns-1) */
+		   double x,
+		   int * last_index,
+           int index_y,
+		   double * result,
+		   ErrorMsg errmsg) {
+
+  int inf,sup;
+  double weight;
+
+  inf = *last_index;
+  sup = *last_index+1;
+
+  while (x < *(array+inf*n_columns+index_x)) {
+    inf--;
+    if (inf < 0) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,
+	      x,array[index_x]);
+      return _FAILURE_;
+    }
+  }
+  sup = inf+1;
+  while (x > *(array+sup*n_columns+index_x)) {
+    sup++;
+    if (sup > (n_lines-1)) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,
+	      x,array[(n_lines-1)*n_columns+index_x]);
+      return _FAILURE_;
+    }
+  }
+  inf = sup-1;
+
+  *last_index = inf;
+
+  weight=(x-*(array+inf*n_columns+index_x))/(*(array+sup*n_columns+index_x)-*(array+inf*n_columns+index_x));
+
+  *result = *(array+inf*n_columns+index_y) * (1.-weight) + *(array+sup*n_columns+index_y) * weight;
 
   return _SUCCESS_;
 }
