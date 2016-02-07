@@ -2612,11 +2612,11 @@ if(pth->annihilation!=0 || pth->decay!=0){
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
-      class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-                 pth->error_message,
-                 pth->error_message);
-      // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-      chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+      // class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+      //            pth->error_message,
+      //            pth->error_message);
+      chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
+      // chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
 
       dTdz_DM = - 2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
@@ -3691,9 +3691,12 @@ else energy_rate=0;
 
     if(preco->annihilation > 0 || preco->decay > 0){
     if (x < 1.){
-      chi_ionH = pth->chi_ionH;// coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
-      chi_ionHe = pth->chi_ionHe;
-      chi_lya = pth->chi_lya;
+      // chi_ionH = pth->chi_ionH;// coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+      // chi_ionHe = pth->chi_ionHe;
+      // chi_lya = pth->chi_lya;
+      chi_ionH = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+      chi_ionHe=0.;
+      chi_lya = chi_ionH;
     }
   }
 
@@ -3768,8 +3771,10 @@ else energy_rate=0;
   else {
     /* equations modified to take into account energy injection from dark matter */
 
-    //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-    if(pth->annihilation >0 || pth->decay > 0)chi_heat= MIN(pth->chi_heat,1.); // coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+    if(pth->annihilation >0 || pth->decay > 0){
+      chi_heat = (1.+2.*x)/3.; // old approximation from Chen and Kamionkowski
+      // chi_heat= MIN(pth->chi_heat,1.); // coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
+    }
     else chi_heat = 0.;
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*pth->chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
