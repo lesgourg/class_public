@@ -574,6 +574,7 @@ cdef class Class:
             (self.sp.has_dd, self.sp.index_ct_dd, 'dd'),
             (self.sp.has_td, self.sp.index_ct_td, 'td'),
             (self.sp.has_ll, self.sp.index_ct_ll, 'll'),
+            (self.sp.has_dl, self.sp.index_ct_dl, 'dl'),
             (self.sp.has_tl, self.sp.index_ct_tl, 'tl')]
         spectra = []
 
@@ -605,7 +606,7 @@ cdef class Class:
         # computes the size, given the number of correlations needed to be computed
         size = (self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
                 (self.sp.d_size-1-self.sp.non_diag))/2;
-        for elem in ['dd', 'll']:
+        for elem in ['dd', 'll','dl']:
             if elem in spectra:
                 cl[elem] = {}
                 for index in range(size):
@@ -624,6 +625,9 @@ cdef class Class:
             if 'll' in spectra:
                 for index in range(size):
                     cl['ll'][index][ell] = dcl[self.sp.index_ct_ll+index]
+            if 'dl' in spectra:
+                for index in range(size):
+                    cl['dl'][index][ell] = dcl[self.sp.index_ct_dl+index]
             if 'td' in spectra:
                 cl['td'][ell] = dcl[self.sp.index_ct_td]
             if 'tl' in spectra:
