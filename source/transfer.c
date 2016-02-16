@@ -2360,6 +2360,7 @@ int transfer_sources(
                            ptr->nz_evo_z[ptr->nz_evo_size-1],
                            z);
 
+
                 class_call(array_interpolate_spline(
                                                     ptr->nz_evo_z,
                                                     ptr->nz_evo_size,
@@ -2606,8 +2607,7 @@ int transfer_sources(
                 if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) {
 
                   rescaling +=
-                    (2.-5.*ptr->s_bias)/2.
-                    *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
+                    (tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
                     /tau0_minus_tau[index_tau]
                     /tau0_minus_tau_lensing_sources[index_tau_sources]
                     * selection[index_tau_sources]
