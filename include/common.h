@@ -100,6 +100,14 @@ int get_number_of_titles(char * titlestring);
   }                                                                                                              \
 }
 
+/* macro for trying to call function */
+#define class_call_try(function, error_message_from_function, error_message_output,list_of_commands) { \
+  if (function == _FAILURE_) {                                                                                   \
+    class_call_message(error_message_output,#function,error_message_from_function);                              \
+    list_of_commands;                                                                                            \
+  }                                                                                                              \
+}
+
 /* macro for calling function and returning error if it failed */
 #define class_call(function, error_message_from_function, error_message_output)                                  \
   class_call_except(function, error_message_from_function,error_message_output,)

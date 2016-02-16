@@ -1615,17 +1615,19 @@ int thermodynamics_get_xe_before_reionization(
                                               double * xe
                                               ) {
 
-  int i;
+  int last_index=0;
 
-  i=0;
-  while (preco->recombination_table[i*preco->re_size+preco->index_re_z] < z) {
-    i++;
-    class_test(i == ppr->recfast_Nz0,
-               pth->error_message,
-               "z = %e > largest redshift in thermodynamics table \n",ppr->reionization_z_start_max);
-  }
-
-  *xe = preco->recombination_table[i*preco->re_size+preco->index_re_xe];
+  class_call(array_interpolate_one_growing_closeby(preco->recombination_table,
+                                                   preco->re_size,
+                                                   preco->rt_size,
+                                                   preco->index_re_z,
+                                                   z,
+                                                   &last_index,
+                                                   preco->index_re_xe,
+                                                   xe,
+                                                   pth->error_message),
+             pth->error_message,
+             pth->error_message);
 
   return _SUCCESS_;
 
