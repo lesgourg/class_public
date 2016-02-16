@@ -301,7 +301,7 @@ int nonlinear_halofit(
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
-  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot);
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
   w0 = pba->w0_fld;
   fnu      = pba->Omega0_ncdm_tot/(pba->Omega0_b + pba->Omega0_cdm+pba->Omega0_ncdm_tot);
   anorm    = 1./(2*pow(_PI_,2));
