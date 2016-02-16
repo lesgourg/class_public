@@ -995,7 +995,7 @@ int input_read_parameters(
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
 
     scf_lambda = pba->scf_parameters[0];
-    if ((abs(scf_lambda) <3.)&&(pba->background_verbose>1))
+    if ((fabs(scf_lambda) <3.)&&(pba->background_verbose>1))
       printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",scf_lambda);
 
     class_call(parser_read_string(pfc,
