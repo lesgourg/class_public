@@ -760,6 +760,11 @@ struct precision
                                halofit could not find the scale of
                                non-linearity) */
 
+  double halofit_k_per_decade; /* halofit needs to evalute integrals
+                                  (linear power spectrum times some
+                                  kernels). They are sampled using
+                                  this logarithmic step size. */
+
   //@}
 
   /** @name - parameters related to lensing */

@@ -1007,7 +1007,7 @@ int input_read_parameters(
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
 
     scf_lambda = pba->scf_parameters[0];
-    if ((abs(scf_lambda) <3.)&&(pba->background_verbose>1))
+    if ((fabs(scf_lambda) <3.)&&(pba->background_verbose>1))
       printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",scf_lambda);
 
     class_call(parser_read_string(pfc,
@@ -2616,6 +2616,7 @@ int input_read_parameters(
 
   class_read_double("halofit_dz",ppr->halofit_dz);
   class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
+  class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
 
   /** - (h.7.) parameter related to lensing */
@@ -3261,6 +3262,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->halofit_dz=0.1;
   ppr->halofit_min_k_nonlinear=0.0035;
+  ppr->halofit_k_per_decade = 80.;
   ppr->halofit_sigma_precision=0.05;
   ppr->halofit_min_k_max=5.;
 

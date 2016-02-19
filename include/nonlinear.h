@@ -56,7 +56,8 @@ struct nonlinear {
 };
 
 /********************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -88,7 +89,10 @@ extern "C" {
                      struct primordial *ppm,
                      struct nonlinear *pnl,
                      int index_tau,
-                     double *pk_l);
+                     double *pk_l,
+                     double *lnk,
+                     double *lnpk,
+                     double *ddlnpk);
 
   int nonlinear_halofit(
                         struct precision *ppr,
@@ -97,6 +101,9 @@ extern "C" {
                         struct nonlinear *pnl,
                         double tau,
                         double *pk_l,
+                        double *lnk,
+                        double *lnpk,
+                        double *ddlnpk,
                         double *pk_nl,
                         double *k_nl
                         );
@@ -108,4 +115,3 @@ extern "C" {
 /**************************************************************/
 
 #endif
-/* @endcond */ 
