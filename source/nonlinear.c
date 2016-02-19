@@ -348,7 +348,7 @@ int nonlinear_halofit(
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
   w0 = pba->w0_fld;
-  fnu      = pba->Omega0_ncdm_tot/(pba->Omega0_b + pba->Omega0_cdm+pba->Omega0_ncdm_tot);
+  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
   anorm    = 1./(2*pow(_PI_,2));
 
   /*      Until the 17.02.2015 the values of k used for integrating sigma(R) quantities needed by Halofit where the same as in the perturbation module.
