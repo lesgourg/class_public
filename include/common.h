@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.4.4"
+#define _VERSION_ "v2.4.5"
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
@@ -97,6 +97,14 @@ int get_number_of_titles(char * titlestring);
     class_call_message(error_message_output,#function,error_message_from_function);                              \
     list_of_commands;                                                                                            \
     return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
+
+/* macro for trying to call function */
+#define class_call_try(function, error_message_from_function, error_message_output,list_of_commands) { \
+  if (function == _FAILURE_) {                                                                                   \
+    class_call_message(error_message_output,#function,error_message_from_function);                              \
+    list_of_commands;                                                                                            \
   }                                                                                                              \
 }
 
@@ -736,6 +744,11 @@ struct precision
                                least equal to this value (otherwise
                                halofit could not find the scale of
                                non-linearity) */
+
+  double halofit_k_per_decade; /* halofit needs to evalute integrals
+                                  (linear power spectrum times some
+                                  kernels). They are sampled using
+                                  this logarithmic step size. */
 
   //@}
 

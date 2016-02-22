@@ -303,6 +303,10 @@ struct background
 
   //@{
 
+  short shooting_failed;  /**< flag is set to true if shooting failed. */
+
+  ErrorMsg shooting_error; /**< Error message from shooting failed. */
+
   short background_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
