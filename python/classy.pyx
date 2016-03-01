@@ -303,7 +303,7 @@ cdef class Class:
             if input_init(&self.fc, &self.pr, &self.ba, &self.th,
                           &self.pt, &self.tr, &self.pm, &self.sp,
                           &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
-                raise CosmoSevereError(errmsg)
+                raise CosmoComputationError(errmsg)
             self.ncp.add("input")
             # This part is done to list all the unread parameters, for debugging
             problem_flag = False
