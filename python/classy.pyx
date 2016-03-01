@@ -738,9 +738,14 @@ cdef class Class:
     def n_s(self):
         return self.pm.n_s
 
-    # Defined twice ?
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm
+
+    def Omega_nlde(self):
+        return self.ba.Omega0_nlde #**NonLocal
+
+    def gnl(self):
+        return self.ba.gnl #**Nonlocal
 
     def Omega_b(self):
         return self.ba.Omega0_b
@@ -1195,8 +1200,14 @@ cdef class Class:
                 value = self.ba.h
             elif name == 'H0':
                 value = self.ba.h*100
+            elif name == 'Omega_nlde': #**NonLocal
+                value = self.ba.Omega0_nlde
+            elif name == 'gnl':
+                value = self.ba.gnl
             elif name == 'Omega0_lambda' or name == 'Omega_Lambda':
                 value = self.ba.Omega0_lambda
+            elif name == 'Omega_cdm':
+               value = self.ba.Omega0_cdm
             elif name == 'Omega0_fld':
                 value = self.ba.Omega0_fld
             elif name == 'age':
