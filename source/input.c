@@ -958,7 +958,7 @@ int input_read_parameters(
             pba->Omega0_cdm =  1. - Omega_tot - param1 - param4; /**NonLocal: fill with Omega0_cdm */
             class_test(pba->Omega0_cdm < 0.,
                      errmsg,
-                     "Omega_cdm derived negative.");/**NonLocal: check for positivity of Omega0_cdm: for details see in classy.pyx*/
+                     "Omega_cdm derived negative.");/**NonLocal: check for positivity of Omega0_cdm for safe background computation*/
       }
       if((flag1 == _TRUE_) && (flag4 == _FALSE_)){/**NonLocal DE mixed with just the cosmological constant specified: nonlocal DE will be derived form flatness condition, while DE fluid and scalar field are put to zero*/
             pba->Omega0_k = 0.;
