@@ -740,7 +740,7 @@ cdef class Class:
 
     # Defined twice ?
     def Omega_m(self):
-        return self.ba.Omega0_b+self.ba.Omega0_cdm
+        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
     def Omega_b(self):
         return self.ba.Omega0_b
@@ -897,9 +897,9 @@ cdef class Class:
 
     def Omega0_m(self):
         """
-        Return the sum of Omega0 for baryon and CDM
+        Return the sum of Omega0 for all non-relativistic components
         """
-        return self.ba.Omega0_b+self.ba.Omega0_cdm
+        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
     def get_background(self):
         """
