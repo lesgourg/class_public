@@ -159,42 +159,42 @@ struct primordial {
 
   enum potential_shape potential;
 
-  double V0;	/**< $$$ definition missing $$$ */
-  double V1;	/**< $$$ definition missing $$$ */
-  double V2;	/**< $$$ definition missing $$$ */
-  double V3;	/**< $$$ definition missing $$$ */
-  double V4;	/**< $$$ definition missing $$$ */
+  double V0;	/**< one parameter of the function V(phi) */
+  double V1;	/**< one parameter of the function V(phi) */
+  double V2;	/**< one parameter of the function V(phi) */
+  double V3;	/**< one parameter of the function V(phi) */
+  double V4;	/**< one parameter of the function V(phi) */
 
   /* parameters describing the case primordial_spec_type = inflation_H */
 
-  double H0;	/**< $$$ definition missing $$$ */
-  double H1;	/**< $$$ definition missing $$$ */
-  double H2;	/**< $$$ definition missing $$$ */
-  double H3;	/**< $$$ definition missing $$$ */
-  double H4;	/**< $$$ definition missing $$$ */
+  double H0;	/**< one parameter of the function H(phi) */
+  double H1;	/**< one parameter of the function H(phi) */
+  double H2;	/**< one parameter of the function H(phi) */
+  double H3;	/**< one parameter of the function H(phi) */
+  double H4;	/**< one parameter of the function H(phi) */
 
   /* parameters describing inflation_V_end */
 
-  double phi_end;	/**< $$$ definition missing $$$ */
-  enum phi_pivot_methods phi_pivot_method; /**< $$$ definition missing $$$ */
-  double phi_pivot_target; /**< $$$ definition missing $$$ */
+  double phi_end;	/**< value of inflaton at the end of inflation */
+  enum phi_pivot_methods phi_pivot_method; /**< flag for method used to define and find the pivot scale */
+  double phi_pivot_target; /**< For each of the above methods, critical value to be reached between pivot and end of inflation (N_star, [aH]ratio, etc.) */
 
   /* behavior of the inflation module */
   enum inflation_module_behavior behavior;
 
   /** 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 
-  char*  command;
-  double custom1;  /**< $$$ definition missing $$$ */
-  double custom2;  /**< $$$ definition missing $$$ */
-  double custom3;  /**< $$$ definition missing $$$ */
-  double custom4;  /**< $$$ definition missing $$$ */
-  double custom5;  /**< $$$ definition missing $$$ */
-  double custom6;  /**< $$$ definition missing $$$ */
-  double custom7;  /**< $$$ definition missing $$$ */
-  double custom8;  /**< $$$ definition missing $$$ */
-  double custom9;  /**< $$$ definition missing $$$ */
-  double custom10; /**< $$$ definition missing $$$ */
+  char*  command;  /**< string with the command for calling 'external_Pk' */
+  double custom1;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom2;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom3;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom4;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom5;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom6;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom7;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom8;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom9;  /**< one parameter of the primordial computed in 'external_Pk' */
+  double custom10; /**< one parameter of the primordial computed in 'external_Pk' */
 
   //@}
 

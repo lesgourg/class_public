@@ -44,10 +44,10 @@ struct output {
 
   enum file_format output_format; /**< which format for output files (definitions, order of columns, etc.) */
 
-  short write_background; /**< $$$ definition missing $$$ */
-  short write_thermodynamics; /**< $$$ definition missing $$$ */
-  short write_perturbations; /**< $$$ definition missing $$$ */
-  short write_primordial; /**< $$$ definition missing $$$ */
+  short write_background; /**< flag for outputing background evolution in file */
+  short write_thermodynamics; /**< flag for outputing thermodynamical evolution in file */
+  short write_perturbations; /**< flag for outputing perturbations of selected wavenumber(s) in file(s) */
+  short write_primordial; /**< flag for outputing scalar/tensor primordial spectra in files */
 
   //@}
 

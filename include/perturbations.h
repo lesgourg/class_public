@@ -413,12 +413,12 @@ struct perturb_vector
   int index_pt_F0_dr;
   int l_max_dr;          /**< max momentum in Boltzmann hierarchy for dr) */
   int index_pt_psi0_ncdm1; /**< first multipole of perturbation of first ncdm species, Psi_0 */
-  int N_ncdm;		/**< $$$ definition missing $$$ */
-  int* l_max_ncdm;	/**< $$$ definition missing $$$ */
-  int* q_size_ncdm;	/**< $$$ definition missing $$$ */
+  int N_ncdm;		/**< number of distinct non-cold-dark-matter (ncdm) species */
+  int* l_max_ncdm;	/**< mutipole l at which Boltzmann hierarchy is truncated (for each ncdm species) */
+  int* q_size_ncdm;	/**< number of discrete momenta (for each ncdm species) */
 
   int index_pt_eta;       /**< synchronous gauge metric perturbation eta*/
-  int index_pt_phi;	  /**< $$$ definition missing $$$ */
+  int index_pt_phi;	      /**< newtonian gauge metric perturbation phi */
   int index_pt_hv_prime;  /**< vector metric perturbation h_v' in synchronous gauge */
   int index_pt_V;         /**< vector metric perturbation V in Newtonian gauge */
 
@@ -480,30 +480,30 @@ struct perturb_workspace
                                  perturbations and their
                                  time-derivatives */
 
-  double delta_rho;		/**< $$$ definition missing $$$ */
-  double rho_plus_p_theta;	/**< $$$ definition missing $$$ */
-  double rho_plus_p_shear;	/**< $$$ definition missing $$$ */
-  double delta_p;		/**< $$$ definition missing $$$ */
-  double gw_source;		/**< $$$ definition missing $$$ */
-  double vector_source_pi;	/**< $$$ definition missing $$$ */
-  double vector_source_v;	/**< $$$ definition missing $$$ */
+  double delta_rho;		    /**< total density perturbation (gives delta Too) */
+  double rho_plus_p_theta;	/**< total (rho+p)*theta perturbation (gives delta Toi) */
+  double rho_plus_p_shear;	/**< total (rho+p)*shear (gives delta Tij) */
+  double delta_p;		    /**< total pressure perturbation (gives Tii) */
+  double gw_source;		    /**< stress-energy source term in Einstein's tensor equations (gives Tij[tensor]) */
+  double vector_source_pi;	/**< first stress-energy source term in Einstein's vector equations */
+  double vector_source_v;	/**< second stress-energy source term in Einstein's vector equations */
 
-  double tca_shear_g; /**< photon shear in tight-coupling approximation */
-  double tca_slip;    /**< photon-baryon slip in tight-coupling approximation */
-  double rsa_delta_g; /**< photon density in radiation streaming approximation */
-  double rsa_theta_g; /**< photon velocity in radiation streaming approximation */
+  double tca_shear_g;  /**< photon shear in tight-coupling approximation */
+  double tca_slip;     /**< photon-baryon slip in tight-coupling approximation */
+  double rsa_delta_g;  /**< photon density in radiation streaming approximation */
+  double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
   double rsa_theta_ur; /**< photon velocity in radiation streaming approximation */
 
-  double * delta_ncdm;	/**< $$$ definition missing $$$ */
-  double * theta_ncdm;	/**< $$$ definition missing $$$ */
-  double * shear_ncdm;	/**< $$$ definition missing $$$ */
+  double * delta_ncdm;	/**< relative density perturbation of each ncdm species */
+  double * theta_ncdm;	/**< velocity divergence theta of each ncdm species */
+  double * shear_ncdm;	/**< shear for each ncdm species */
 
-  double delta_m;	/**< $$$ definition missing $$$ */
-  double theta_m;	/**< $$$ definition missing $$$ */
+  double delta_m;	/**< relative density perturbation of all non-relativistic species */
+  double theta_m;	/**< velocity divergence theta of all non-relativistic species */
 
   FILE * perturb_output_file; /**< filepointer to output file*/
-  int index_ikout; /**< index for output k value */
+  int index_ikout;            /**< index for output k value (when k_output_values is set) */
 
   //@}
 
@@ -511,7 +511,7 @@ struct perturb_workspace
 
   //@{
 
-  short inter_mode;	/**< $$$ definition missing $$$ */
+  short inter_mode;	/**< flag defining the method used for interpolation background/thermo quantities tables */
 
   int last_index_back;   /**< the background interpolation function background_at_tau() keeps memory of the last point called through this index */
   int last_index_thermo; /**< the thermodynamics interpolation function thermodynamics_at_z() keeps memory of the last point called through this index */
@@ -555,10 +555,10 @@ struct perturb_parameters_and_workspace {
   struct background * pba;        /**< pointer to the background structure */
   struct thermo * pth;            /**< pointer to the thermodynamics structure */
   struct perturbs * ppt;          /**< pointer to the precision structure */
-  int index_md;                 /**< index of mode (scalar/.../vector/tensor) */
-  int index_ic;			/**< $$$ definition missing $$$ */
-  int index_k;			/**< $$$ definition missing $$$ */
-  double k;			/**< $$$ definition missing $$$ */
+  int index_md;                   /**< index of mode (scalar/.../vector/tensor) */
+  int index_ic;			          /**< index of initial condition (adiabatic/isocurvature(s)/...) */
+  int index_k;			          /**< index of wavenumber */
+  double k;			              /**< current value of wavenumber in 1/Mpc */
   struct perturb_workspace * ppw; /**< workspace defined above */
 
 };
