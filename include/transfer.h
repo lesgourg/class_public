@@ -55,22 +55,22 @@ struct transfers {
   double selection_bias[_SELECTION_NUM_MAX_];               /**< light-to-mass bias in the transfer function of density number count */
   double selection_magnification_bias[_SELECTION_NUM_MAX_]; /**< magnification bias in the transfer function of density number count */
 
-  short has_nz_file;    /**< Has dN/dz (selection function) input file? */
+  short has_nz_file;     /**< Has dN/dz (selection function) input file? */
   short has_nz_analytic; /**< Use analytic form for dN/dz (selection function) distribution? */
   FileName nz_file_name; /**< dN/dz (selection function) input file name */
-  int nz_size;     /**< $$$ definition missing $$$ */
-  double * nz_z;   /**< $$$ definition missing $$$ */
-  double * nz_nz;  /**< $$$ definition missing $$$ */
-  double * nz_ddnz; /**< $$$ definition missing $$$ */
+  int nz_size;           /**< number of redshift values in input tabulated selection function */
+  double * nz_z;         /**< redshift values in input tabulated selection function */
+  double * nz_nz;        /**< input tabulated values of selection function */
+  double * nz_ddnz;      /**< second derivatives in splined selection function*/
 
-  short has_nz_evo_file;    /**< Has dN/dz (evolution function) input file? */
-  short has_nz_evo_analytic; /**< Use analytic form for dN/dz (evolution function) distribution? */
-  FileName nz_evo_file_name; /**< dN/dz (evolution function) input file name */
-  int nz_evo_size; /**< $$$ definition missing $$$ */
-  double * nz_evo_z;  /**< $$$ definition missing $$$ */
-  double * nz_evo_nz;  /**< $$$ definition missing $$$ */
-  double * nz_evo_dlog_nz; /**< $$$ definition missing $$$ */
-  double * nz_evo_dd_dlog_nz; /**< $$$ definition missing $$$ */
+  short has_nz_evo_file;      /**< Has dN/dz (evolution function) input file? */
+  short has_nz_evo_analytic;  /**< Use analytic form for dN/dz (evolution function) distribution? */
+  FileName nz_evo_file_name;  /**< dN/dz (evolution function) input file name */
+  int nz_evo_size;            /**< number of redshift values in input tabulated evolution function */
+  double * nz_evo_z;          /**< redshift values in input tabulated evolution function */
+  double * nz_evo_nz;         /**< input tabulated values of evolution function */
+  double * nz_evo_dlog_nz;    /**< log of tabulated values of evolution function */
+  double * nz_evo_dd_dlog_nz; /**< second derivatives in splined log of evolution function */
 
   //@}
 
@@ -181,7 +181,7 @@ struct transfer_workspace {
 
   int HIS_allocated; /**< flag specifying whether the previous structure has been allocated */
 
-  HyperInterpStruct * pBIS;  /**< $$$ definition missing $$$ */
+  HyperInterpStruct * pBIS;  /**< pointer to structure containing all the spherical bessel functions of the flat case (used even in the non-flat case, for approximation schemes). pBIS = pointer to Bessel Interpolation Structure. */
 
   int l_size;        /**< number of l values */
 
@@ -222,8 +222,8 @@ struct transfer_workspace {
 
   //@}
 
-  double tau0_minus_tau_cut; /**< $$$ definition missing $$$ */
-  short neglect_late_source; /**< $$$ definition missing $$$ */
+  double tau0_minus_tau_cut; /**< critical value of (tau0-tau) in time cut approximation for the wavenumber at hand */
+  short neglect_late_source; /**< flag stating whether we use the time cut approximation for the wavenumber at hand */
 };
 
 /**
@@ -249,7 +249,7 @@ typedef enum {SCALAR_TEMPERATURE_0,
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 
 /*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -670,4 +670,4 @@ extern "C" {
 #endif
 
 #endif
-/* @endcond */ 
+/* @endcond */

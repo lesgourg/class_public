@@ -79,7 +79,7 @@ struct spectra {
   int index_ct_tl; /**< first index for type \f$ C_l^{Tl} \f$(d_size values) */
   int index_ct_dl; /**< first index for type \f$ C_l^{dl} \f$(d_size values) */
 
-  int d_size; /**< $$$ definition missing $$$ */
+  int d_size;      /**< number of bins for which density Cl's are computed */
 
   int ct_size; /**< number of \f$ C_l \f$ types requested */
 
@@ -117,25 +117,25 @@ struct spectra {
   double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */
 
-  double alpha_II_2_20;	/**< $$$ definition missing $$$ */
-  double alpha_RI_2_20;	/**< $$$ definition missing $$$ */
-  double alpha_RR_2_20;	/**< $$$ definition missing $$$ */
+  double alpha_II_2_20;	/**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,20] (see Planck parameter papers) */
+  double alpha_RI_2_20;	/**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,20] (see Planck parameter papers) */
+  double alpha_RR_2_20;	/**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,20] (see Planck parameter papers) */
 
-  double alpha_II_21_200; /**< $$$ definition missing $$$ */
-  double alpha_RI_21_200; /**< $$$ definition missing $$$ */
-  double alpha_RR_21_200; /**< $$$ definition missing $$$ */
+  double alpha_II_21_200; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [21,200] (see Planck parameter papers) */
+  double alpha_RI_21_200; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [21,200] (see Planck parameter papers) */
+  double alpha_RR_21_200; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [21,200] (see Planck parameter papers) */
 
-  double alpha_II_201_2500; /**< $$$ definition missing $$$ */
-  double alpha_RI_201_2500; /**< $$$ definition missing $$$ */
-  double alpha_RR_201_2500; /**< $$$ definition missing $$$ */
+  double alpha_II_201_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [201,2500] (see Planck parameter papers) */
+  double alpha_RI_201_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [201,2500] (see Planck parameter papers) */
+  double alpha_RR_201_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [201,2500] (see Planck parameter papers) */
 
-  double alpha_II_2_2500; /**< $$$ definition missing $$$ */
-  double alpha_RI_2_2500; /**< $$$ definition missing $$$ */
-  double alpha_RR_2_2500; /**< $$$ definition missing $$$ */
+  double alpha_II_2_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,2500] (see Planck parameter papers) */
+  double alpha_RI_2_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,2500] (see Planck parameter papers) */
+  double alpha_RR_2_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,2500] (see Planck parameter papers) */
 
-  double alpha_kp; /**< $$$ definition missing $$$ */
-  double alpha_k1; /**< $$$ definition missing $$$ */
-  double alpha_k2; /**< $$$ definition missing $$$ */
+  double alpha_kp; /**< parameter describing adiabatic versus isocurvature contribution at pivot scale (see Planck parameter papers) */
+  double alpha_k1; /**< parameter describing adiabatic versus isocurvature contribution at scale k1 (see Planck parameter papers) */
+  double alpha_k2; /**< parameter describing adiabatic versus isocurvature contribution at scale k2 (see Planck parameter papers) */
 
   //@}
 
