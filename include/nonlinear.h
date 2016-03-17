@@ -26,7 +26,7 @@ struct nonlinear {
 
   //@{
 
-  enum non_linear_method method; /**< $$$ definition missing $$$ */
+  enum non_linear_method method; /**< method for computing non-linear corrections (none, Halogit, etc.) */
 
   //@}
 
@@ -40,7 +40,7 @@ struct nonlinear {
   double * tau;    /**< tau[index_tau] = list of time values */
 
   double * nl_corr_density;   /**< nl_corr_density[index_tau * ppt->k_size + index_k] */
-  double * k_nl;  /**< $$$ definition missing $$$ */
+  double * k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
 
   //@}
 

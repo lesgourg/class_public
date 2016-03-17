@@ -40,9 +40,9 @@ struct output {
 
   //@{
 
-  short write_header; /**< $$$ definition missing $$$ */
+  short write_header; /**< flag stating whether we should write a header in output files */
 
-  enum file_format output_format; /**< $$$ definition missing $$$ */
+  enum file_format output_format; /**< which format for output files (definitions, order of columns, etc.) */
 
   short write_background; /**< $$$ definition missing $$$ */
   short write_thermodynamics; /**< $$$ definition missing $$$ */
@@ -63,7 +63,7 @@ struct output {
 };
 
 /*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -199,4 +199,4 @@ extern "C" {
 #endif
 
 #endif
-/* @endcond */ 
+/* @endcond */
