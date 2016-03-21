@@ -114,7 +114,8 @@ struct background
 
   /* rescaled initial value for dcdm density. */
   double Omega_ini_dcdm;
-  // double f_ini_dcdm;
+  double Omega_ini_cdmtot;
+  double f_ini_dcdm;
   //@}
 
   /** @name - related parameters */

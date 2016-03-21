@@ -52,6 +52,8 @@ double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);
 
   // chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
+  // chi_ionHe = 0; // old approximation from Chen and Kamionkowski
+  // chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski
   // if (xe < 1.){
   //   chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
   //   chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
@@ -97,13 +99,15 @@ double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR
 
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);
 
-  //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-  // if (xe < 1.){
+  // chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
+  // chi_ionHe = 0; // old approximation from Chen and Kamionkowski
+  // chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski
+    // if (xe < 1.){
   //   chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
   //   chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
   //   chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
   // }
-  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+  // Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
   hyrec_annihilation_coefficients_interpolate(param,
                                                xe,
                                                &chi_heat,
@@ -282,13 +286,14 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
 
    C_2p=(RLya+R2p2s*L2s1s/matrix[0][0])/(matrix[1][1]-R2p2s*3.*R2p2s/matrix[0][0]);
 
-   //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-  //  if (xe < 1.){
+  //  chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
+  //  chi_ionHe = 0; // old approximation from Chen and Kamionkowski
+  //  chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski  //  if (xe < 1.){
   //    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
   //    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
   //    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
   //  }
-  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+  // Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
   hyrec_annihilation_coefficients_interpolate(param,
                                                xe,
                                                &chi_heat,
@@ -763,8 +768,9 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
 
    /*************************************************************/
 
-   //chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
-  //  if (xe < 1.){
+  //  chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
+  //  chi_ionHe = 0; // old approximation from Chen and Kamionkowski
+  //  chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski  //  if (xe < 1.){
   //    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
   //    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
   //    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);

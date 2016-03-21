@@ -1,4 +1,3 @@
-output/
 *~
 build/
 class
@@ -10,3 +9,5 @@ python/classy.c
 python/*.pyc
 python/build/
 DM_annihilation/
+*.dat
+output*

@@ -700,6 +700,7 @@ int background_indices(
 
   if (pba->Omega0_dcdmdr != 0.){
     pba->has_dcdm = _TRUE_;
+    // fprintf(stdout, "pba->Omega0_dcdmdr %e \n", pba->Omega0_dcdmdr);
     if (pba->Gamma_dcdm != 0.)
       pba->has_dr = _TRUE_;
   }
