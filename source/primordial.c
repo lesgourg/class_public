@@ -1567,6 +1567,9 @@ int primordial_inflation_analytic_spectra(
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
   }
 
+  ppm->is_non_zero[ppt->index_md_scalars][ppt->index_ic_ad] = _TRUE_;
+  ppm->is_non_zero[ppt->index_md_tensors][ppt->index_ic_ten] = _TRUE_;
+
   return _SUCCESS_;
 }
 
