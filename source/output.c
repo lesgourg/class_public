@@ -95,14 +95,14 @@ int output_total_cl_at_l(
  *
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param pth Input : pointer to thermodynamics structure
- * @param ppt Input : pointer perturbation structure
- * @param ppm Input : pointer to primordial structure
- * @param ptr Input : pointer to transfer structure
- * @param psp Input : pointer to spectra structure
- * @param pnl Input : pointer to nonlinear structure
- * @param ple Input : pointer to lensing structure
- * @param pop Input : pointer to output structure
+ * @param pth Input: pointer to thermodynamics structure
+ * @param ppt Input: pointer perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param ptr Input: pointer to transfer structure
+ * @param psp Input: pointer to spectra structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param ple Input: pointer to lensing structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_init(
@@ -212,10 +212,10 @@ int output_init(
  * This routines writes the output in files for anisotropy power spectra \f$ C_l\f$'s.
  *
  * @param pba Input: pointer to background structure (needed for \f$ T_{cmb}\f$)
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param ple Input : pointer to lensing structure
- * @param pop Input : pointer to output structure
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param ple Input: pointer to lensing structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_cl(
@@ -593,9 +593,9 @@ int output_cl(
  * This routines writes the output in files for Fourier matter power spectra P(k)'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param pop Input : pointer to output structure
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_pk(
@@ -898,9 +898,9 @@ int output_pk(
  * This routines writes the output in files for Fourier non-linear matter power spectra P(k)'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param pop Input : pointer to output structure
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_pk_nl(
@@ -1009,9 +1009,9 @@ int output_pk_nl(
  * This routines writes the output in files for matter transfer functions \f$ T_i(k)\f$'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param pop Input : pointer to output structure
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_tk(
@@ -1397,12 +1397,12 @@ int output_print_data(FILE *out,
  * This routine opens one file where some \f$ C_l\f$'s will be written, and writes
  * a heading with some general information concerning its content.
  *
- * @param psp        Input : pointer to spectra structure
- * @param pop        Input : pointer to output structure
+ * @param psp        Input: pointer to spectra structure
+ * @param pop        Input: pointer to output structure
  * @param clfile     Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @param first_line Input : text describing the content (mode, initial condition..)
- * @param lmax       Input : last multipole in the file (the first one is assumed to be 2)
+ * @param filename   Input: name of the file
+ * @param first_line Input: text describing the content (mode, initial condition..)
+ * @param lmax       Input: last multipole in the file (the first one is assumed to be 2)
  * @return the error status
  */
 
@@ -1524,12 +1524,12 @@ int output_open_cl_file(
  * This routine write one line with l and all \f$ C_l\f$'s for all types (TT, TE...)
  *
  * @param pba        Input: pointer to background structure (needed for \f$ T_{cmb}\f$)
- * @param psp        Input : pointer to spectra structure
- * @param pop        Input : pointer to output structure
- * @param clfile  Input : file pointer
- * @param l       Input : multipole
- * @param cl      Input : \f$ C_l\f$'s for all types
- * @param ct_size Input : number of types
+ * @param psp        Input: pointer to spectra structure
+ * @param pop        Input: pointer to output structure
+ * @param clfile  Input: file pointer
+ * @param l       Input: multipole
+ * @param cl      Input: \f$ C_l\f$'s for all types
+ * @param ct_size Input: number of types
  * @return the error status
  */
 
@@ -1604,12 +1604,12 @@ int output_one_line_of_cl(
  * a heading with some general information concerning its content.
  *
  * @param pba        Input: pointer to background structure (needed for h)
- * @param psp        Input : pointer to spectra structure
- * @param pop        Input : pointer to output structure
+ * @param psp        Input: pointer to spectra structure
+ * @param pop        Input: pointer to output structure
  * @param pkfile     Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @param first_line Input : text describing the content (initial conditions, ...)
- * @param z          Input : redshift of the output
+ * @param filename   Input: name of the file
+ * @param first_line Input: text describing the content (initial conditions, ...)
+ * @param z          Input: redshift of the output
  * @return the error status
  */
 
@@ -1646,9 +1646,9 @@ int output_open_pk_file(
 /**
  * This routine writes one line with k and P(k)
  *
- * @param pkfile  Input : file pointer
- * @param one_k   Input : wavenumber
- * @param one_pk  Input : matter power spectrum
+ * @param pkfile  Input: file pointer
+ * @param one_k   Input: wavenumber
+ * @param one_pk  Input: matter power spectrum
  * @return the error status
  */
 

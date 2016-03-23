@@ -391,8 +391,8 @@ struct reionization {
   /* parameters used by reio_bins_tanh */
 
   int reio_num_z; /**< number of reionization jumps */
-  int index_reio_first_z; /**< redshift at which we start to impose reionisation function */
-  int index_reio_first_xe; /**< ionisation fraction at redhsift first_z (inferred from recombination code) */
+  int index_reio_first_z; /**< redshift at which we start to impose reionization function */
+  int index_reio_first_xe; /**< ionization fraction at redshift first_z (inferred from recombination code) */
   int index_reio_step_sharpness; /**< sharpness of tanh jump */
 
   /* parameters used by all schemes */

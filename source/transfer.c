@@ -103,11 +103,11 @@ int transfer_functions_at_q(
  * - loop over q values. For each q, compute the Bessel functions if needed with transfer_update_HIS(), and defer the calculation of all transfer functions to transfer_compute_for_each_q()
  * - for each thread, free the the workspace with transfer_workspace_free()
  *
- * @param ppr Input : pointer to precision structure
- * @param pba Input : pointer to background structure
- * @param pth Input : pointer to thermodynamics structure
- * @param ppt Input : pointer to perturbation structure
- * @param pnl Input : pointer to nonlinear structure
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pth Input: pointer to thermodynamics structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param pnl Input: pointer to nonlinear structure
  * @param ptr Output: pointer to initialized transfers structure
  * @return the error status
  */
@@ -462,12 +462,12 @@ int transfer_free(
  * arrays in the transfers structure. Allocate the array of transfer
  * function tables.
  *
- * @param ppr      Input : pointer to precision structure
- * @param ppt      Input : pointer to perturbation structure
+ * @param ppr      Input: pointer to precision structure
+ * @param ppt      Input: pointer to perturbation structure
  * @param ptr      Input/Output: pointer to transfer structure
  * @param q_period Input: order of magnitude of the oscillation period of transfer functions
- * @param K        Input : spatial curvature (in absolute value)
- * @param sgnK     Input : spatial curvature sign (open/closed/flat)
+ * @param K        Input: spatial curvature (in absolute value)
+ * @param sgnK     Input: spatial curvature sign (open/closed/flat)
  * @return the error status
  */
 
@@ -776,9 +776,9 @@ int transfer_perturbation_sources_spline_free(
 /**
  * This routine defines the number and values of multipoles l for all modes.
  *
- * @param ppr  Input : pointer to precision structure
- * @param ppt  Input : pointer to perturbation structure
- * @param ptr  Input/Output : pointer to transfers structure containing l's
+ * @param ppr  Input: pointer to precision structure
+ * @param ppt  Input: pointer to perturbation structure
+ * @param ptr  Input/Output: pointer to transfers structure containing l's
  * @return the error status
  */
 
@@ -972,12 +972,12 @@ int transfer_get_l_list(
  * each mode (goes smoothly from logarithmic step for small q's to
  * linear step for large q's).
  *
- * @param ppr     Input : pointer to precision structure
- * @param ppt     Input : pointer to perturbation structure
- * @param ptr     Input/Output : pointer to transfers structure containing q's
+ * @param ppr     Input: pointer to precision structure
+ * @param ppt     Input: pointer to perturbation structure
+ * @param ptr     Input/Output: pointer to transfers structure containing q's
  * @param q_period Input: order of magnitude of the oscillation period of transfer functions
- * @param K        Input : spatial curvature (in absolute value)
- * @param sgnK     Input : spatial curvature sign (open/closed/flat)
+ * @param K        Input: spatial curvature (in absolute value)
+ * @param sgnK     Input: spatial curvature sign (open/closed/flat)
  * @return the error status
  */
 
@@ -1206,9 +1206,9 @@ int transfer_get_q_list(
  * This routine infers from the q values a list of corresponding k
  * values for each mode.
  *
- * @param ppt     Input : pointer to perturbation structure
- * @param ptr     Input/Output : pointer to transfers structure containing q's
- * @param K       Input : spatial curvature
+ * @param ppt     Input: pointer to perturbation structure
+ * @param ptr     Input/Output: pointer to transfers structure containing q's
+ * @param K       Input: spatial curvature
  * @return the error status
  */
 
@@ -1283,9 +1283,9 @@ int transfer_get_k_list(
  * This routine defines the correspondence between the sources in the
  * perturbation and transfer module.
  *
- * @param ppt  Input : pointer to perturbation structure
- * @param ptr  Input : pointer to transfers structure containing l's
- * @param tp_of_tt : Input/Output: array with the correspondence (allocated before, filled here)
+ * @param ppt  Input: pointer to perturbation structure
+ * @param ptr  Input: pointer to transfers structure containing l's
+ * @param tp_of_tt Input/Output: array with the correspondence (allocated before, filled here)
  * @return the error status
  */
 
@@ -1459,14 +1459,14 @@ int transfer_source_tau_size_max(
  * This routine computes the number of sampled time values for each type
  * of transfer sources.
  *
- * @param ppr                   Input : pointer to precision structure
- * @param pba                   Input : pointer to background structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param tau_rec               Input : recombination time
- * @param tau0                  Input : time today
- * @param index_md              Input : index of the mode (scalar, tensor)
- * @param index_tt              Input : index of transfer type
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param tau_rec               Input: recombination time
+ * @param tau0                  Input: time today
+ * @param index_md              Input: index of the mode (scalar, tensor)
+ * @param index_tt              Input: index of transfer type
  * @param tau_size              Output: pointer to number of sampled times
  * @return the error status
  */
@@ -1952,14 +1952,14 @@ int transfer_radial_coordinates(
  * initial condition and type (of perturbation module), to get them at
  * the right values of k, using the spline interpolation method.
  *
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param index_q               Input : index of wavenumber
- * @param index_md              Input : index of mode
- * @param index_ic              Input : index of initial condition
- * @param index_type            Input : index of type of source (in perturbation module)
- * @param pert_source           Input : array of sources
- * @param pert_source_spline    Input : array of second derivative of sources
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param index_q               Input: index of wavenumber
+ * @param index_md              Input: index of mode
+ * @param index_ic              Input: index of initial condition
+ * @param index_type            Input: index of type of source (in perturbation module)
+ * @param pert_source           Input: array of sources
+ * @param pert_source_spline    Input: array of second derivative of sources
  * @param interpolated_sources  Output: array of interpolated sources (filled here but allocated in transfer_init() to avoid numerous reallocation)
  * @return the error status
  */
@@ -2032,15 +2032,15 @@ int transfer_interpolate_sources(
  * This routine computes the transfer source given the interpolated
  * perturbation source, and copies it in the workspace.
  *
- * @param ppr                   Input : pointer to precision structure
- * @param pba                   Input : pointer to background structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param interpolated_sources  Input : interpolated perturbation source
- * @param tau_rec               Input : recombination time
- * @param index_q               Input : index of wavenumber
- * @param index_md              Input : index of mode
- * @param index_tt              Input : index of type of (transfer) source
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param interpolated_sources  Input: interpolated perturbation source
+ * @param tau_rec               Input: recombination time
+ * @param index_q               Input: index of wavenumber
+ * @param index_md              Input: index of mode
+ * @param index_tt              Input: index of type of (transfer) source
  * @param sources               Output: transfer source
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param w_trapz               Output: trapezoidal weights for integration over tau
@@ -2835,11 +2835,11 @@ int transfer_sources(
 /**
  * arbitrarily normalized selection function dN/dz(z,bin)
  *
- * @param ppr                   Input : pointer to precision structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param bin                   Input : redshift bin number
- * @param z                     Input : one value of redshift
+ * @param ppr                   Input: pointer to precision structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param bin                   Input: redshift bin number
+ * @param z                     Input: one value of redshift
  * @param selection             Output: pointer to selection function
  * @return the error status
  */
@@ -3022,11 +3022,11 @@ int transfer_dNdz_analytic(
  * for sources that need to be multiplied by a selection function,
  * redefine a finer time sampling in a small range
  *
- * @param ppr                   Input : pointer to precision structure
- * @param pba                   Input : pointer to background structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param bin                   Input : redshift bin number
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param bin                   Input: redshift bin number
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param tau_size              Output: pointer to size of previous array
  * @return the error status
@@ -3089,12 +3089,12 @@ int transfer_selection_sampling(
  * tau_min of the selection function up to tau0
  *
  *
- * @param ppr                   Input : pointer to precision structure
- * @param pba                   Input : pointer to background structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param bin                   Input : redshift bin number
- * @param tau0                  Input : time today
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param bin                   Input: redshift bin number
+ * @param tau0                  Input: time today
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param tau_size              Output: pointer to size of previous array
  * @return the error status
@@ -3143,16 +3143,16 @@ int transfer_lensing_sampling(
  * redefine a finer time sampling in a small range, and resample the
  * perturbation sources at the new value by linear interpolation
  *
- * @param ppr                   Input : pointer to precision structure
- * @param pba                   Input : pointer to background structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param bin                   Input : redshift bin number
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param bin                   Input: redshift bin number
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param tau_size              Output: pointer to size of previous array
- * @param index_md              Input : index of mode
- * @param tau0                  Input : time today
- * @param interpolated_sources  Input : interpolated perturbation source
+ * @param index_md              Input: index of mode
+ * @param tau0                  Input: time today
+ * @param interpolated_sources  Input: interpolated perturbation source
  * @param sources               Output: resampled transfer source
  * @return the error status
  */
@@ -3213,11 +3213,11 @@ int transfer_source_resample(
  * of conformal time (associated to the min, mean and max values of
  * redshift specified by the user)
  *
- * @param ppr                   Input : pointer to precision structure
- * @param pba                   Input : pointer to background structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
- * @param bin                   Input : redshift bin number
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param bin                   Input: redshift bin number
  * @param tau_min               Output: smallest time in the selection interval
  * @param tau_mean              Output: time corresponding to z_mean
  * @param tau_max               Output: largest time in the selection interval
@@ -3290,17 +3290,17 @@ int transfer_selection_times(
 /**
  * compute and normalize selection function for a set of time values
  *
- * @param ppr                   Input : pointer to precision structure
- * @param pba                   Input : pointer to background structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input : pointer to transfers structure
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
  * @param selection             Output: normalized selection function
- * @param tau0_minus_tau        Input : values of (tau0-tau) at which source are sample
- * @param w_trapz               Input : trapezoidal weights for integration over tau
- * @param tau_size              Input : size of previous two arrays
- * @param pvecback              Input : allocated array of background values
- * @param tau0                  Input : time today
- * @param bin                   Input : redshift bin number
+ * @param tau0_minus_tau        Input: values of (tau0-tau) at which source are sample
+ * @param w_trapz               Input: trapezoidal weights for integration over tau
+ * @param tau_size              Input: size of previous two arrays
+ * @param pvecback              Input: allocated array of background values
+ * @param tau0                  Input: time today
+ * @param bin                   Input: redshift bin number
  * @return the error status
  */
 
@@ -3409,18 +3409,18 @@ int transfer_selection_compute(
  * compromise between execution time and precision. The approximation scheme
  * is defined by parameters in the precision structure.
  *
- * @param ptw                   Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation)
- * @param ppr                   Input : pointer to precision structure
- * @param ppt                   Input : pointer to perturbation structure
- * @param ptr                   Input/output : pointer to transfers structure (result stored there)
- * @param index_q               Input : index of wavenumber
- * @param index_md              Input : index of mode
- * @param index_ic              Input : index of initial condition
- * @param index_tt              Input : index of type of transfer
- * @param index_l               Input : index of multipole
- * @param l                     Input : multipole
- * @param q_max_bessel          Input : maximum value of argument q at which Bessel functions are computed
- * @param radial_type           Input : type of radial (Bessel) functions to convolve with
+ * @param ptw                   Input: pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation)
+ * @param ppr                   Input: pointer to precision structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input/output: pointer to transfers structure (result stored there)
+ * @param index_q               Input: index of wavenumber
+ * @param index_md              Input: index of mode
+ * @param index_ic              Input: index of initial condition
+ * @param index_tt              Input: index of type of transfer
+ * @param index_l               Input: index of multipole
+ * @param l                     Input: multipole
+ * @param q_max_bessel          Input: maximum value of argument q at which Bessel functions are computed
+ * @param radial_type           Input: type of radial (Bessel) functions to convolve with
  * @return the error status
  */
 
@@ -3596,16 +3596,16 @@ int transfer_use_limber(
  * interpolated_sources) with Bessel functions (passed in input in the
  * bessels structure).
  *
- * @param ppt            Input : pointer to perturbation structure
- * @param ptr            Input : pointer to transfers structure
- * @param ptw            Input : pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation)
- * @param index_q        Input : index of wavenumber
- * @param index_md       Input : index of mode
- * @param index_tt       Input : index of type
- * @param l              Input : multipole
- * @param index_l        Input : index of multipole
- * @param k              Input : wavenumber
- * @param radial_type    Input : type of radial (Bessel) functions to convolve with
+ * @param ppt            Input: pointer to perturbation structure
+ * @param ptr            Input: pointer to transfers structure
+ * @param ptw            Input: pointer to transfer_workspace structure (allocated in transfer_init() to avoid numerous reallocation)
+ * @param index_q        Input: index of wavenumber
+ * @param index_md       Input: index of mode
+ * @param index_tt       Input: index of type
+ * @param l              Input: multipole
+ * @param index_l        Input: index of multipole
+ * @param k              Input: wavenumber
+ * @param radial_type    Input: type of radial (Bessel) functions to convolve with
  * @param trsf           Output: transfer function \f$ \Delta_l(k) \f$
  * @return the error status
  */
@@ -3780,13 +3780,13 @@ int transfer_integrate(
  * tau (the Bessel function being approximated as a Dirac distribution)
  *
  *
- * @param ptr            Input : pointer to transfers structure
- * @param ptw            Input : pointer to transfer workspace structure
- * @param index_md       Input : index of mode
- * @param index_q        Input : index of wavenumber
- * @param l              Input : multipole
- * @param q              Input : wavenumber
- * @param radial_type    Input : type of radial (Bessel) functions to convolve with
+ * @param ptr            Input: pointer to transfers structure
+ * @param ptw            Input: pointer to transfer workspace structure
+ * @param index_md       Input: index of mode
+ * @param index_q        Input: index of wavenumber
+ * @param l              Input: multipole
+ * @param q              Input: wavenumber
+ * @param radial_type    Input: type of radial (Bessel) functions to convolve with
  * @param trsf           Output: transfer function \f$ \Delta_l(k) \f$
  * @return the error status
  */
@@ -4022,15 +4022,15 @@ int transfer_limber_interpolate(
  * as a function of the source function and its first two derivatives
  * at a single value of tau
  *
- * @param tau_size        Input : size of conformal time array
- * @param ptr             Input : pointer to transfers structure
- * @param index_md        Input : index of mode
- * @param index_k         Input : index of wavenumber
- * @param l               Input : multipole
- * @param k               Input : wavenumber
- * @param tau0_minus_tau  Input : array of values of (tau_today - tau)
- * @param sources         Input : source functions
- * @param radial_type     Input : type of radial (Bessel) functions to convolve with
+ * @param tau_size        Input: size of conformal time array
+ * @param ptr             Input: pointer to transfers structure
+ * @param index_md        Input: index of mode
+ * @param index_k         Input: index of wavenumber
+ * @param l               Input: multipole
+ * @param k               Input: wavenumber
+ * @param tau0_minus_tau  Input: array of values of (tau_today - tau)
+ * @param sources         Input: source functions
+ * @param radial_type     Input: type of radial (Bessel) functions to convolve with
  * @param trsf            Output: transfer function \f$ \Delta_l(k) \f$
  * @return the error status
  */

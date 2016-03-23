@@ -2700,15 +2700,15 @@ int input_read_parameters(
 /**
  * All default parameter values (for input parameters)
  *
- * @param pba Input : pointer to background structure
- * @param pth Input : pointer to thermodynamics structure
- * @param ppt Input : pointer to perturbation structure
- * @param ptr Input : pointer to transfer structure
- * @param ppm Input : pointer to primordial structure
- * @param psp Input : pointer to spectra structure
- * @param pnl Input : pointer to nonlinear structure
- * @param ple Input : pointer to lensing structure
- * @param pop Input : pointer to output structure
+ * @param pba Input: pointer to background structure
+ * @param pth Input: pointer to thermodynamics structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ptr Input: pointer to transfer structure
+ * @param ppm Input: pointer to primordial structure
+ * @param psp Input: pointer to spectra structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param ple Input: pointer to lensing structure
+ * @param pop Input: pointer to output structure
  * @return the error status
  */
 

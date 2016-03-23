@@ -1193,12 +1193,12 @@ int spectra_tk_at_k_and_z(
  * This routine initializes the spectra structure (in particular,
  * computes table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
  *
- * @param ppr Input : pointer to precision structure
- * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
- * @param ppt Input : pointer to perturbation structure
- * @param ptr Input : pointer to transfer structure
- * @param ppm Input : pointer to primordial structure
- * @param pnl Input : pointer to nonlinear structure
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param ppt Input: pointer to perturbation structure
+ * @param ptr Input: pointer to transfer structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
  * @param psp Output: pointer to initialized spectra structure
  * @return the error status
  */
@@ -1475,10 +1475,10 @@ int spectra_free(
 /**
  * This routine defines indices and allocates tables in the spectra structure
  *
- * @param pba  Input : pointer to background structure
- * @param ppt  Input : pointer to perturbation structure
- * @param ptr  Input : pointer to transfers structure
- * @param ppm  Input : pointer to primordial structure
+ * @param pba  Input: pointer to background structure
+ * @param ppt  Input: pointer to perturbation structure
+ * @param ptr  Input: pointer to transfers structure
+ * @param ppm  Input: pointer to primordial structure
  * @param psp  Input/output: pointer to spectra structure
  * @return the error status
  */
@@ -1793,10 +1793,10 @@ int spectra_indices(
  * This routine computes a table of values for all harmonic spectra C_l's,
  * given the transfer functions and primordial spectra.
  *
- * @param pba Input : pointer to background structure
- * @param ppt Input : pointer to perturbation structure
- * @param ptr Input : pointer to transfers structure
- * @param ppm Input : pointer to primordial structure
+ * @param pba Input: pointer to background structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ptr Input: pointer to transfers structure
+ * @param ppm Input: pointer to primordial structure
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -1992,20 +1992,20 @@ int spectra_cls(
  * and multipole, but for all types (TT, TE...), by convolving the
  * transfer functions with the primordial spectra.
  *
- * @param pba           Input : pointer to background structure
- * @param ppt           Input : pointer to perturbation structure
- * @param ptr           Input : pointer to transfers structure
- * @param ppm           Input : pointer to primordial structure
+ * @param pba           Input: pointer to background structure
+ * @param ppt           Input: pointer to perturbation structure
+ * @param ptr           Input: pointer to transfers structure
+ * @param ppm           Input: pointer to primordial structure
  * @param psp           Input/Output: pointer to spectra structure (result stored here)
- * @param index_md      Input : index of mode under consideration
- * @param index_ic1     Input : index of first initial condition in the correlator
- * @param index_ic2     Input : index of second initial condition in the correlator
- * @param index_l       Input : index of multipole under consideration
- * @param cl_integrand_num_columns Input : number of columns in cl_integrand
- * @param cl_integrand  Input : an allocated workspace
- * @param primordial_pk Input : table of primordial spectrum values
- * @param transfer_ic1  Input : table of transfer function values for first initial condition
- * @param transfer_ic2  Input : table of transfer function values for second initial condition
+ * @param index_md      Input: index of mode under consideration
+ * @param index_ic1     Input: index of first initial condition in the correlator
+ * @param index_ic2     Input: index of second initial condition in the correlator
+ * @param index_l       Input: index of multipole under consideration
+ * @param cl_integrand_num_columns Input: number of columns in cl_integrand
+ * @param cl_integrand  Input: an allocated workspace
+ * @param primordial_pk Input: table of primordial spectrum values
+ * @param transfer_ic1  Input: table of transfer function values for first initial condition
+ * @param transfer_ic2  Input: table of transfer function values for second initial condition
  * @return the error status
  */
 
@@ -2423,8 +2423,8 @@ int spectra_compute_cl(
  * power spectra P(k,tau) and the matter transfer functions T_i(k,tau)
  * will be stored.
  *
- * @param pba Input : pointer to background structure (for z to tau conversion)
- * @param ppt Input : pointer to perturbation structure (contain source functions)
+ * @param pba Input: pointer to background structure (for z to tau conversion)
+ * @param ppt Input: pointer to perturbation structure (contain source functions)
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -2519,10 +2519,10 @@ int spectra_k_and_tau(
  * This routine computes a table of values for all matter power spectra P(k),
  * given the source functions and primordial spectra.
  *
- * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
- * @param ppt Input : pointer to perturbation structure (contain source functions)
- * @param ppm Input : pointer to primordial structure
- * @param pnl Input : pointer to nonlinear structure
+ * @param pba Input: pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param ppt Input: pointer to perturbation structure (contain source functions)
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -2808,8 +2808,8 @@ int spectra_sigma(
  * This routine computes a table of values for all matter power spectra P(k),
  * given the source functions and primordial spectra.
  *
- * @param pba Input : pointer to background structure (will provide density of each species)
- * @param ppt Input : pointer to perturbation structure (contain source functions)
+ * @param pba Input: pointer to background structure (will provide density of each species)
+ * @param ppt Input: pointer to perturbation structure (contain source functions)
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
