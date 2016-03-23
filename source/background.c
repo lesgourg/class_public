@@ -445,8 +445,8 @@ int background_functions(
  * Initialize the background structure, and in particular the
  * background interpolation table.
  *
- * @param ppr Input : pointer to precision structure
- * @param pba Input/Output : pointer to initialized background structure
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input/Output: pointer to initialized background structure
  * @return the error status
  */
 
@@ -595,7 +595,7 @@ int background_init(
  * Free all memory space allocated by background_init().
  *
  *
- * @param pba Input : pointer to background structure (to be freed)
+ * @param pba Input: pointer to background structure (to be freed)
  * @return the error status
  */
 
@@ -619,7 +619,7 @@ int background_free(
  * Free pointers inside background structure which were
  * allocated in input_read_parameters()
  *
- * @param pba Input : pointer to background structure
+ * @param pba Input: pointer to background structure
  * @return the error status
  */
 
@@ -669,7 +669,7 @@ int background_free_input(
 /**
  * Assign value to each relevant index in vectors of background quantities.
  *
- * @param pba Input : pointer to background structure
+ * @param pba Input: pointer to background structure
  * @return the error status
  */
 
@@ -1685,10 +1685,10 @@ int background_solve(
 /**
  * Assign initial values to background integrated variables.
  *
- * @param ppr                  Input : pointer to precision structure
- * @param pba                  Input : pointer to background structure
- * @param pvecback             Input : vector of background quantities used as workspace
- * @param pvecback_integration Output : vector of background quantities to be integrated, returned with proper initial values
+ * @param ppr                  Input: pointer to precision structure
+ * @param pba                  Input: pointer to background structure
+ * @param pvecback             Input: vector of background quantities used as workspace
+ * @param pvecback_integration Output: vector of background quantities to be integrated, returned with proper initial values
  * @return the error status
  */
 
@@ -1993,11 +1993,11 @@ int background_output_data(
  * usual to pba->error_message, but to a generic error_message passed
  * in the list of arguments.
  *
- * @param tau                      Input : conformal time
- * @param y                        Input : vector of variable
- * @param dy                       Output : its derivative (already allocated)
+ * @param tau                      Input: conformal time
+ * @param y                        Input: vector of variable
+ * @param dy                       Output: its derivative (already allocated)
  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
- * @param error_message            Output : error message
+ * @param error_message            Output: error message
  */
 int background_derivs(
                       double tau,

@@ -508,9 +508,9 @@ int perturb_free(
 /**
  * Initialize all indices and allocate most arrays in perturbs structure.
  *
- * @param ppr Input : pointer to precision structure
- * @param pba Input : pointer to background structure
- * @param pth Input : pointer to thermodynamics structure
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pth Input: pointer to thermodynamics structure
  * @param ppt Input/Output: Initialized perturbation structure
  * @return the error status
  */
