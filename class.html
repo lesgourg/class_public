@@ -1,0 +1,701 @@
+<?php
+	define('SALT', 'class');
+
+	function encrypt($text)
+	{
+		return trim(base64_encode($text));
+	}
+
+	function decrypt($text)
+	{
+		return trim(base64_decode($text));
+	}
+
+
+	if (isset($_COOKIE["classemail"])) {
+		$hasmail=TRUE;
+		$themail=decrypt($_COOKIE["classemail"]);
+		$keepinformed=$_COOKIE["keepinformed"];
+	} else {
+		$hasmail=FALSE;
+		$themail="";
+		$keepinformed=0;
+	}
+?>
+
+<html>
+<head>
+<title>CLASS Home Page</title>
+<link rel="shortcut icon" href="http://lesgourg.web.cern.ch/lesgourg/class.ico">
+<style type="text/css">
+   <!--
+   BODY {
+      background-color: #191919;
+      color: #FFFFE0;
+      font-family:sans-serif}
+      a  {color: #ff7f00}
+      .nounderline a {text-decoration:none}
+      tt {color: #d2b48c;font-size: 120%}
+      -->
+    </style>
+<!-- scrippled type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-22769456-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script -->
+<!-- validation checks -->
+		  <script language="JavaScript" type="text/javascript">
+
+
+		  //function to check valid email address
+		  function isValidEmail(strEmail){
+			  validRegExp = /^[^@]+@[^@]+.[a-z]{2,}$/i;
+			  strEmail = document.forms[0].emailaddress.value;
+
+			  // search email text for regular exp matches
+			  if (strEmail.search(validRegExp) == -1)
+			  {
+				  alert('A valid e-mail address is required.\nPlease retry');
+				  return false;
+			  }
+			  return true;
+		  }
+
+
+		  //function that performs all functions, defined in the onsubmit event handler
+
+		  function check(form){
+			  if (isValidEmail(form.emailaddress)){
+				  return true;
+			  }
+			  return false;
+		  }
+
+		  </script>
+
+
+</head>
+
+<body>
+
+<br>
+
+<table width="100%" align=center>
+<tr>
+<td align=center>
+<img src="vinrond_orange.gif">
+</td>
+<td>
+
+<hr color=#FF7f00>
+<h1 align=center>C L A S S</h1>
+<h4 align=center>
+<tt>
+the
+Cosmic
+Linear
+Anisotropy
+Solving
+System
+</tt>
+</h4>
+<hr color=#FF7f00>
+<td>
+<td align=center>
+<img src="gandrond_orange.gif">
+</td>
+</tr>
+</table>
+
+<img src="v50.gif">
+
+<table>
+<td align="middle" valign="top" width="25%">
+<DIV CLASS="nounderline">
+<table>
+  <tr><td><hr color=#d2b48c></td></tr>
+	  <tr><td bgcolor="black">
+	<a href="class.php#download">
+	&gt;&nbsp;Download
+	</a>
+	  </td></tr>
+	  <tr><td bgcolor="black">
+
+	<a href="class.php#documentation">
+&gt;&nbsp;Documentation
+	</a>
+	  </td></tr>
+	  <tr><td bgcolor="black">
+	  <a href="class.php#papers">
+	  &gt;&nbsp;Papers
+	</a>
+	  </td></tr>
+	  <tr><td bgcolor="black">
+	<a href="class.php#versions">
+	  &gt;&nbsp;Versions
+	  </a>
+	  </td></tr>
+	  <tr><td bgcolor="black">
+	<a href="class.php#contact">
+	&gt;&nbsp;Support
+	</a>
+	  </td></tr>
+  <tr><td><hr color=#d2b48c></td></tr>
+</table>
+</div>
+</td>
+<td align="left" valign="top" width="50%">
+The purpose of CLASS is to simulate the evolution of linear perturbations in the universe and to compute CMB and large scale structure observables. Its name also comes from the fact that it is written in object-oriented style mimicking the notion of class. Classes are a wonderfull programming feature available e.g. in C++ and python, but these languages are known to be less vectorizable/parallelizable than plain C (or Fortran), and hence potentially slower. For CLASS we choose to use plain C for high performances, while organizing the code in a few modules that reproduce the architecture and philosophy of C++ classes, for optimal readability and modularity.
+<p>
+<h2><a name="download">Download</a></h2>
+<p>
+The use of CLASS is free provided that if you use it in a publication, you will cite at least the paper <a href="http://arxiv.org/abs/1104.2933">CLASS II: Approximation schemes</a> (reference below). You are welcome to cite any other CLASS paper if relevant!
+<p>
+There are two ways to download CLASS. The simplest thing is to clik the download button below, to get the code as a single compressed <tt>.tar.gz</tt> file. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, you will prefer to download it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
+<p>
+<table width="100%">
+<tr>
+<td align="left" valign="middle" width="100%">
+Download version&nbsp;v2.4.4&nbsp;:
+</td>
+</tr>
+<tr>
+<td align="left" valign="top" width="100%">
+<form name="theform" action="download.php" method="POST" onSubmit="return check(this);">
+<table width="100%">
+		  <tr>
+		  <?php if(!$hasmail){ echo '
+			  <td width="70%">
+Email addres: <input type="text" name="emailaddress" size="65"/><br />
+			  <input type="checkbox" name="keepinformed" value="1" checked="yes"/>Keep me informed about future updates of CLASS
+			  </td>';
+		  } else {
+			  echo '<input type="hidden" name="emailaddress" value="'.$themail.'" />
+			  <input type="hidden" name="keepinformed" value="'.$keepinformed.'" />';
+		  }
+		  ?>
+<td width="30%">
+<input type="image" name="thebutton" action="submit" src="small_square.png" border="0" />
+<!-- <a href="class/class_public-2.4.4.tar.gz"><img src="small_square.png" BORDER="0"></a> -->
+</td>
+</tr>
+<td>
+<tr>
+(check that your browser accepts cookies, otherwise you may bounce back to the same page)
+</tr>
+</td>
+</table></form></td>
+</tr>
+</table>
+<br>
+<hr color=#d2b48c>
+<h2><a name="documentation">Documentation</a></h2>
+
+After downloading the code, unpack the archive (<tt>tar -zxvf
+class_v*.tar.gz</tt>), go to the class directory (<tt>cd
+class_v*/</tt>) and compile (<tt>make clean; make class</tt>). If the
+first compilation attempt fails, you may need to open the Makefile and
+adapt the name of the compiler (default: <tt>gcc</tt>), of the
+optization flag (default: <tt>-O4</tt>) and of the OpenMP flag
+(default: <tt>-fopenmp</tt>; this flag is facultative, you are free to
+compile without OpenMP if you don't want parallel execution; note that
+you need the version 4.2 or higher of <tt>gcc</tt> to be able to
+compile with <tt>-fopenmp</tt>).  Several details on the CLASS
+compilation are given on the <a
+href="https://github.com/lesgourg/class_public/wiki/Installation"
+target="new"> installation wiki page</a> (in particular, for compiling
+on Mac 10.9 Mavericks).
+
+<p>
+
+To check that the code runs, type: <tt>./class explanatory.ini</tt>
+The <tt>explanatory.ini</tt> file is a reference input file,
+containing and explaning the use of all possible input parameters. We
+recommend to read it, to keep it unchanged (for future reference), and
+to create for your own purposes some shorter input files, containing
+only the input lines which are useful for you. Input files must have a
+<tt>*.ini</tt> extension.
+
+<p>
+
+If you want to play with the precision/speed of the code, you can use
+one of the provided precision files (e.g. <tt>cl_permille.pre</tt>) or
+modify one of them, and run with two input files (e.g. <tt>./class
+test.ini cl_permille.pre</tt>).
+
+<p>
+
+A simplified documentation can be found in the <a
+href="http://arxiv.org/abs/1104.2932">CLASS I: Overview</a> paper.  On
+top of that, if you wish to modify the code, you will find lots of
+comments directly into the files. Other CLASS papers dedicated to
+various aspects of the code are listed <a href="class.php#papers">below</a>. You can
+also look at <a
+href="http://lesgourg.web.cern.ch/lesgourg/class-tour/class-tour.html"
+target="new"> slides from CLASS-dedicated courses</a>.
+
+<p>
+
+To use CLASS from python, or ipython notebooks, or from the Monte
+Python parameter extraction code, you need to compile not only the
+code, but also its python wrapper. This can be done by typing just
+<tt>make</tt> instead of <tt>make class</tt>. More details on the
+wrapper and its compilation are found on the <a
+href="https://github.com/lesgourg/class_public/wiki" target="new">wiki
+page</a>.
+
+<p>
+
+Since version 2.3, the package includes an improved plotting script
+called <tt>CPU.py</tt> (Class Plotting Utility), written by Benjamin
+Audren and Jesus Torrado. It can plot the Cl's, the P(k) or any other
+CLASS puput, for one or several models, as well as their ratio or
+percentage difference. The syntax and list of available options is
+obtained by typing <tt>pyhton CPU.py --help</tt>. There is a similar
+script for MATLAB, written by Thomas Tram. To use it, once in MATLAB,
+type <tt>help plot_CLASS_output.m</tt>
+
+<p>
+
+If you want to develop the code, we
+suggest that you download it from the <a
+href="https://github.com/lesgourg/class_public" target="new"> github
+webpage</a> rather than from class-code.net. Then you will enjoy all
+the feature of git repositories. You can even develop your own branch
+and get it merged to the public distribution, following the <a
+href="https://github.com/lesgourg/class_public/wiki/Public-Contributing"
+target="new"> related instructions</a>.
+
+<hr
+color=#d2b48c> <h2><a name="papers">Papers</a></h2> <ul> <li>CLASS I:
+Overview, by J. Lesgourgues, <a
+href="http://arxiv.org/abs/1104.2932">arXiv:1104.2932
+[astro-ph.IM]</a> <li>CLASS II: Approximation schemes, by D. Blas,
+J. Lesgourgues, T. Tram, <a
+href="http://arxiv.org/abs/1104.2933">arXiv:1104.2933
+[astro-ph.CO]</a>, JCAP 1107 (2011) 034 <li>CLASS III: Comparision
+with CAMB for LambdaCDM, by J. Lesgourgues, <a
+href="http://arxiv.org/abs/1104.2934">arXiv:1104.2934
+[astro-ph.CO]</a> <li>CLASS IV: Efficient implementation of non-cold
+relics, by J. Lesgourgues, T. Tram, <a
+href="http://arxiv.org/abs/1104.2935">arXiv:1104.2935
+[astro-ph.CO]</a>, JCAP 1109 (2011) 032 <li>Efficient computation of
+the non-linear matter power spectrum of LambdaCDM, by B. Audren,
+J. Lesgourgues, <a
+href="http://arxiv.org/abs/1106.2607">arXiv:1106.2607
+[astro-ph.CO]</a>, JCAP 1110 (2011) 037 <li>Optimal polarisation
+equations in FLRW universes, by Thomas Tram, Julien Lesgourgues, <a
+href="http://arxiv.org/abs/1305.3261">JCAP 1310 (2013) 002 </a>
+<li>Fast and accurate CMB computations in non-flat FLRW universes, by
+Julien Lesgourgues, Thomas Tram, <a
+href="http://iopscience.iop.org/1475-7516/2014/09/032/pdf/jcap092014032.pdf">JCAP
+09 (2014) 032</a> <li>The CLASSgal code for Relativistic Cosmological
+Large Scale Structure, by E. Di Dio, F. Montanari, J. Lesgourgues and
+R. Durrer, <a href="http://arXiv.org/abs/arXiv:1307.1459">JCAP 1311
+(2013) 044</a> </ul> <hr color=#d2b48c> <h2><a name="versions">Version
+history</a></h2> The developement of CLASS benefits from various
+contributors credited below. In absence of specific credits,
+developements are written by the main CLASS authors, Julien
+Lesgourgues and Thomas Tram.  <p> <table> <tr> <td
+valign=top>v2.4&nbsp;(29.09.2014)</td> <td> <ul> <li> extended
+inflation simulator embedded in the primordial module. Option
+<tt>'inflation_V'</tt> (input = V(phi) function in observable range)
+still exists, but more efficient; two new options
+<tt>'inflation_H'</tt> (input = H(phi) function in observable range)
+and <tt>'inflation_V_end'</tt> (input = V(phi) trusted until the end
+of inflation, and parameters specifying the amount of inflation
+between the Hubble crossing for the pivot scale and the end of
+inflation). See <tt>explanatory.ini</tt> for details on new input
+parameters.  <li> improved accuracy of Limber approximation in curved
+space, as explained in Appendix E of <a
+href="http://iopscience.iop.org/1475-7516/2014/09/032/pdf/jcap092014032.pdf"
+target=new>JCAP 09 (2014) 032</a> <li> the python code for plotting
+output files, <tt>CPU.py</tt>, has been significantly improved (type
+<tt>python CPU.py --help</tt> to check options and input format)
+(credits: Benjamin Audren, Jesus Torrado).  <li> the <tt>classy</tt>
+wrapper can now output many more quantities than just the CMB Cl's and
+P(k): density Cl's (this can be used for Euclid forecast with
+detailled modelling of the power spectrum, credits Benjamin Audren),
+evolution of background, thermodynamical, perturbation quantities,
+density and velocity transfer functions.  <li> expanded automatic
+tests, with a detailled explanation in the header of
+<tt>python/test_class.py</tt>. It is now easy to combine models, add
+new scenarios to test, and systematically compare the implementation
+in synchronous and Newtonian gauge.  <li> improvements in the Decay
+Dark Matter (<tt>ddm</tt>) sector: choice between more input formats,
+fixed error in Newtonian gauge.  <li> increased precision settings for
+CMB and P(k) with massive neutrinos or WDM (<tt>ncdm</tt>) in the
+Newtonian gauge (thanks to Mathias Garny).  <li> various small bug
+fixes (credits Guido Pettinari) and memory leak fixes.
+<li> 12.10.2014 (<tt>v2.4.1</tt>): default parameter values updated close
+to Planck 2013 best fit
+<li> 06.01.2015 (<tt>v2.4.2</tt>): minor improvements, mainly related to the plotting unit <tt>CPU.py</tt>, to the <tt>Makefile</tt> and to the use of the functionality <tt>k_output_values=...</tt> (perturbations are now stored in files for exactly those values, not values close to them)
+<li> 10.03.2015 (<tt>v2.4.3</tt>): minor mistakes corrected (lensing potential in curved space, details of <tt>nCl</tt> and DM annihilation calculation, density-lensing correlations between bins), as well as a long-standing rare bug in the integrator
+<li> 21.10.2015 (<tt>v2.4.4</tt>): few bugs corrected in thermodynamics and transfer module. One of them, introduced in <tt>2.4.3</tt>, could cause the code to remained stalled (only on some architectures). Another one was problematic only when using HyRec with annihilating Dark Matter. Small revision of the expression and sampling of the jumps in the <tt>reio_bins_tanh</tt> scheme, to make it more robust against interpolation errors
+</ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v2.3.2.tar.gz">v2.3</a>&nbsp;(09.05.2014)</td> <td>
+<ul> <li> implemented a new species: decaying cold dark matter
+(<tt>dcdm</tt>) and its relativistic decay product (<tt>dr</tt>);
+also, background module improved, now ready for adding easily other
+cases where one needs to integrate more background quantitites over
+time than just the scale factor a(tau).  <li> implemented a new input
+parameter: <tt>'100*theta_s'</tt>, the angle of the sound horizon at
+decoupling (thanks to S. Plaszczynski); also, input module improved,
+now ready for adding easily several input parameters which require a
+shooting method (like <tt>'100*theta_s'</tt> or the decaying dark
+matter density today <tt>'Omega_dcdmdr'</tt>, another example not
+written yet would be <tt>'sigma_8'</tt>) <li> increased precision
+settings, consequences mainly for P(k) at large k >> 0.1 h/Mpc (thanks
+to Chi-Ting Chiang, Mathias Garny, Aurel Schneider) <li> tensor
+calculation sped up, thanks to independent sampling of wavenumber
+space for scalars and tensors <li> the <tt>'root'</tt> name preceeding
+all output file names is now set by default to the input file name
+plus the first available integer number
+(e.g. <tt>output/myname00_</tt> the first time,
+<tt>output/myname01_</tt> in the next run...); also, improved output
+file headers with automatic column numbering <li> classy wrapper
+improved (installation compatible with both Python2.6 and 2.7, handles
+tensor and isocurvature modes, improved automatic testing with
+<tt>nosetests python/test_class.py</tt>, changed the function
+<tt>get_current_derived_parameters()</tt> to accept as argument a list
+of names) (credits: Benjamin Audren) <li> new MATLAB plotting routine
+<tt>plot_CLASS_output.m</tt>, type <tt>help plot_CLASS_output.m</tt>
+in MATLAB for usage <li> the other plotting routine, <tt>CPU</tt>, is
+in the process of being rewritten. A new file, <tt>CPU.py</tt> is
+using matplotlib, and works exactly like the MATLAB routine - but is
+so far incomplete (credits: Benjamin Audren) <li> 26.05.2014
+(<tt>v2.3.2</tt>): fixed minor bugs and extended functionalities of
+CPU.py </ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v2.2.0.tar.gz">v2.2</a>&nbsp;(28.03.2014)</td> <td>
+<ul> <li> incorporated massless and massive neutrinos (in the language
+of the code, the ultra-relativistic <tt>ur</tt> and non-cold dark
+matter <tt>ncdm</tt> species) in the calculation of tensor modes (for
+temperature and polarisation) <li> for speed up, included two
+approximation schemes for tensors, described in the field <tt>tensor
+method</tt> of <tt>explanatory.ini</tt>. By default, when evolving
+tensor perturbations, the code will replace massive neutrinos by an
+appropriate amount of massless ones. This works very well, especially
+for masses below 0.6eV, and even above. The exact calculation
+involving the <tt>ncdm</tt> momentum space can always be restored.
+</ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v2.1.2.tar.gz">v2.1</a>&nbsp;(07.03.2014)</td> <td>
+<ul> <li> the ClassGAL features developped in <a
+href="http://arXiv.org/abs/arXiv:1307.1459">JCAP 1311 (2013) 044</a>
+(by E. Di Dio, F. Montanari, J. Lesgourgues and R. Durrer) have been
+imported into the main distribution of the code. The naive "density
+Cl's" are replaced by the "number count Cls", calculated if the
+<tt>'output'</tt> entry includes <tt>'nCl'</tt>. The user can choose
+to include all relativistic corrections by passing <tt>'number count
+contributions = density, rsd, lensing, gr'</tt>, or only the dominant
+terms. One can also tune the selection function, linear bias,
+magnification bias and evolution effects (see the description of the
+fields <tt>'dNdz_selection', 'bias', 's_bias', 'dNdz_evolution'</tt>
+in <tt>explanatory.ini</tt> and in the appendix of <a
+href="http://arXiv.org/abs/arXiv:1307.1459">JCAP 1311 (2013) 044</a>).
+<li> the non-linear module has been completely re-written. In the main
+function, the non-linear module is now called before the transfer
+module, to allow for the calculation of lensing Cl's, density Cl's and
+lensed CMB Cl's including non-linear corrections. The module features
+HALOFIT recalibrated by Takahashi et al., extended to massive
+neutrinos following the same method as in <a
+href="http://arXiv.org/abs/arXiv:1109.4416">arXiv:1109.4416</a> (input
+command <tt>'non linear = halofit'</tt> (vredits Simeon Bird). The
+one-loop and time renormalisation algorithms of previous versions have
+been dropped temporarily, but new methods are now easier to
+incorporate, and will be implemented in the future.  <li> new features
+for passing or plotting the primordial power spectrum (credits Jesus
+Torrado). They are active when the input is set to <tt>'P_k_ini type =
+external_Pk'</tt> (instead of the other options <tt>'analytic_Pk',
+'inflation_V', 'two scales'</tt>). The user can pass the primordial
+spectrum as an input file, or even compute it on-the-fly with an
+external code (in whatever language). The input is then the command
+line for running that code. This is described briefly in
+<tt>explanatory.ini</tt> and extensively in the
+<tt>external_Pk/README.md</tt> file delivered with the code. Finally,
+for whatever way of computing the primordial spectrum, the user can
+output it in a file with the input command <tt>'write primordial'</tt>
+described in <tt>explanatory.ini</tt>.  <li> implementation of
+perturbed recombination (credits Luc Voruz), based on <a
+href="http://arXiv.org/abs/arXiv:0707.2727">arXiv:0707.2727</a> and <a
+href="http://arXiv.org/abs/astro-ph/0503196">astro-ph/0503196</a>. A
+detailed description of related equations is provided in these <a
+href="https://lesgourg.web.cern.ch/lesgourg/class/perturbed_recombination.pdf"
+target="new">notes</a>. Perturbed recombination can be switched on by
+passing <tt>'perturbed recombination = yes'</tt>, as explained in
+<tt>explanatory.ini</tt>.  <li> facility for printing perturbations as
+a function of time (credits Thomas Tram). In order to physically
+understand what you are doing, or produce nice plots in a paper, it is
+useful to output the evolution of each perturbation (of matter
+components, of the metric, etc.) as a function of time. This feature
+is now directly accessible from the input file, by passing a list of
+wavenumbers in the field <tt>'k_output_values'</tt> as described in
+<tt>explanatory.ini</tt>. Then the corresponding output files will be
+written.  <li> compatible with version 2.0 of <a
+href="http://montepython.net">Monte Python</a> (credits Benjamin
+Audren) <li> improved Python wrapper <tt>classy.pyx</tt> (credits
+Benjamin Audren), mainly a change of function names and error
+classes. (For developers: a test suite has been written, in
+<tt>python/test_class.py</tt>, which necessitates the python "nose"
+package. It calls CLASS sequentially on many combinations of models,
+and is useful to check that CLASS is still working after having made
+modifications.) For details see the new <a
+href="https://github.com/lesgourg/class_public/wiki/Python-wrapper"
+target="new">wiki</a> on the python wrapper and on the python test
+function.  <li> 22.03.2013 (<tt>v2.1.2</tt>): corrected a few bugs
+introduced in v2.1.0 (most important related to calculation of baryon
+drag redshift, credits Francesco Montesano), and updated Halofit with
+the revision of Takahashi et al. 2012 extended to massive neutrinos
+(credits Simeon Bird) </ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v2.0.4.tar.gz">v2.0</a>&nbsp;(01.10.2013)</td> <td>
+<ul> <li> implementation of spatial curvature (credits Thomas
+Tram). Curvature is set using the <tt>'Omega_k'</tt> input parameter
+(positive for negative curvature, following the usual convention).
+<li> the perturbation module relies on the optimal Boltzmann hierarchy
+described in <a href="http://arxiv.org/abs/1305.3261">arXiv:1305.3261
+[astro-ph.CO]</a>.  <li> the transfer module has exprienced major
+changes. For the computation of hyperspherical Bessel functions and
+transfer functions, some explanations on the methodology, the
+precision, the comparison with other codes are given in <a
+href="http://arxiv.org/abs/1312.2697">arXiv:1312.2697</a>. In brief,
+with default precision settings, the scalar temperature Cls are
+precise at the 0.1% level, and the scalar polarisation Cls at the 0.2%
+level. The code remains very fast for small curvature, but the running
+time increases with the absolute value of <tt>Omega_k</tt>.  <li> more
+accurate for tensor modes, and ready for working with vector modes
+(they are already implemented in the transfer module).  <li> spherical
+Bessel functions cannot be stored/read from a file anymore, because
+the gain in time was too marginal. All Bessel functions are now
+computed on-the-fly by a set of new efficient functions, called
+directly from the transfer module. Hence, the <tt>bessels</tt> module
+and structure have been eliminated.  <li> 09.10.2013
+(<tt>v2.0.2</tt>): added the possibility to output the correlation Cls
+between density and galaxy lensing; computation of hyperspherical
+bessel functions made faster thanks to a vectorisation scheme; fixed a
+few bugs; restored the same sign convention for E-modes as CAMB and
+CMBFAST, while <tt>v2.0.1</tt> had the opposite convention, taken from
+Hu & White.  <li> 31.10.2013 (<tt>v2.0.3</tt>): several little bug
+fixes, accuracy of ClTphi and ClEphi restored, thanks to
+S. Plaszczynski and G. Pettinari <li> 09.12.2013 (<tt>v2.0.4</tt>):
+wavenumber sampling and few approximations improved, to match <a
+href="http://arxiv.org/abs/1312.2697">arXiv:1312.2697</a>. New input
+field <tt>temperature contributions</tt>, allows to compute separately
+the SW, late and early ISW, Doppler and polarisation contributions.
+</ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v1.7.2.tar.gz">v1.7</a>&nbsp;(21.03.2013)</td> <td>
+<ul> <li> version ready for use with Planck. Three precision
+parameters increased to match Planck sensitivity. With new default
+settings, Planck chi2 accurate up to approximately 0.5. This has been
+proved to be sufficient for parameter extraction from Planck data when
+using MCMC algorithms (checked through intensive testing within Planck
+collaboration, comparing different codes and various accuracy
+settings). Still possible to use higher precision settings when
+needed, e.g. for a very precise minimization of Planck chi2, or to
+derive frequentist bounds.  <li> compatible with version 1.2 of <a
+href="http://montepython.net">Monte Python</a> (credits Benjamin
+Audren). This version of the parameter extraction code is interfaced
+with the Planck and WMAP9 likelihoods, and features fast nuisance
+parameters (similar to the new CosmoMC implementation but simpler:
+does the Cholesky parameter rotation, but not the fast-parameter
+dragging scheme; this is sufficient for a considerable speed up)
+(credits A. Lewis) <li> implements an alternative parameter set for
+the primordial spectrum, consisting in amplitudes at two scales
+instead of one amplitude and one tilt, identical to the parameters in
+the isocurvature section of the Planck inflation paper. See
+<tt>explanatory.ini</tt> for all possibilities.  <li> plethora of
+derived parameters defined in the python wrapper
+<tt>python/classy.pyx</tt>, ready to be used in <a
+href="http://montepython.net">Monte Python</a>: slow-roll parameters,
+isocurvature fraction defined in different manners, tilt and running
+computed numerically at the end of the inflationary module.  <li> for
+DM annihilation, new flag to switch on/off the on-the-spot
+approximation.  <li> 28.03.2013: restored computation of lensed BB
+spectrum, set accidentally to zero in versions 1.6.x and 1.7.0 (but OK
+in earlier versions; thanks to Giulio Fabbian for pointing it out)
+<li> 04.04.2013: fixed bug introduced in 1.7.0, leading to
+segmentation fault in newtonian gauge (thanks to Ivan Duran Sancho for
+pointing it out) </ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v1.6.0.tar.gz">v1.6</a>&nbsp;(15.01.2013)</td>
+<td><ul> <li> computation of full-sky galaxy lensing potential Cl's,
+useful for cosmic shear experiments (if you add <tt>sCl</tt> to the
+field <tt>output=...</tt>) <li> for both lensing Cl's (<tt>sCl</tt>)
+and density Cl's (<tt>dCl</tt>), source galaxies can be distributed in
+redshift bins with either <tt>gaussian</tt>, <tt>tophat</tt> or
+<tt>dirac</tt>-like selection functions (see field <tt>selection</tt>
+in <tt>explanatory.ini</tt>). Also the <tt>dCl</tt> calculation has
+been speeded up and redesigned for more accurate results, even when
+the bins are many, and/or thin, and/or at small redhsift.  <li> the
+python wrapper <tt>python/classy.pyx</tt> includes more
+functionalities, useful for running with the updated version 1.1 of <a
+href="http://montepython.net">Monte Python</a> (credits Benjamin
+Audren) <li> several bugs fixed (many thanks to Stephane Plaszczynski,
+Sophie Henrot-Versille, Alberto Vallinotto, Katarina Markovic, Guido
+Pettinari, Matthieu Roman). The major one affected the CMB lensing
+potential Cl's, but only occasionally and when running with high
+precision settings (with a value of the precision parameter
+<tt>perturb_sampling_stepsize</tt> smaller than the default
+one). Another bug could occasionally affect the result of the Halofit
+routine.  </ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v1.5.0.tar.gz">v1.5</a>&nbsp;(25.10.2012)</td>
+<td><ul> <li> changed three defaut values of RECFAST parameters to
+match RECFAST v1.5.2 <li> module <tt>primordial</tt> includes an
+inflation simulator computing the primordial spectrum fully
+numerically, for a given expression of the scalar potential valid
+within the observable inflation range (as in <a
+href="http://arXiv.org/abs/astro-ph/0703625">Lesgourgues and
+Walkenburg (2007)</a>), see <tt>explanatory.ini</tt> for details on
+possible input parameters <li> includes several parameters to model
+CDM annihilation (in the smooth background and in halos), as in <a
+href="http://arXiv.org/abs/arXiv:1209.0247">Gisen et al. (2012)</a>
+<li> code can output not only individual density transfer functions,
+but also individual velocity transfer functions (if you add
+<tt>vTk</tt> to the field <tt>output=...</tt>) <li> python wrapper
+<tt>python/classy.pyx</tt> expanded for compatibility with parameter
+inference code <a href="http://montepython.net">Monte Python</a> v1.0
+<li> corrected bug that showed up when trying to get finely sampled
+transfer functions. Sampling can now be arbitrarily fine.  <li>
+internal re-ordering of operations in <tt>transfer</tt> modules, that
+speeds up the calculation of matter density Cl's. Also, the user can
+compute correlation between all shells or only between neighbouring
+shells.  </ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v1.4.1.tar.gz">v1.4</a>&nbsp;(13.02.2012)</td>
+<td><ul> <li> recombination can be computed either with RECFAST v1.5,
+or with the <a href="http://arXiv.org/abs/arXiv:1011.3758">HyRec code
+by Y. Ali-Haimoud & C. Hirata</a>. Just set the input parameter
+<tt>recombination</tt> to either <tt>RECFAST</tt> or
+<tt>HyRec</tt>. HyRec is slower, but more precise and flexible. Both
+codes agree at the level of precision of Planck and for standard
+cosmology. The November 2011 version of HyRec is distributed together
+with v1.4. Class can be compiled without HyRec by leaving <tt>HYREC =
+</tt> blank in the Makefile, instead of putting there the path to
+HyRec (default: compiled with the distributed version, located in
+<tt>class/hyrec/</tt>) (credits Y. Ali-Haimoud and C. Hirata) <li>
+user can choose between the same reionization history as in CAMB
+(featuring a single step for hydrogen reionization), or a binned
+reionization history, with arbitrary bin number, position and width
+(similar to implementation in <a
+href="http://arXiv.org/abs/astro-ph/0606552">Lewis, Weller and Battye
+(2006)</a>). Set input parameter <tt>reionization</tt> to either
+<tt>reio_camb</tt> or <tt>reio_bins_tanh</tt>, and see
+<tt>explanatory.ini</tt> for more details on input parameters
+(<tt>binned_reio_z</tt>, <tt>binned_reio_z</tt>, etc.)  <li> user can
+choose to pass a numerical value for the primordial helium fraction
+<tt>YHe</tt>, or let it be fixed as a function of omega_b and N_eff by
+standard BBN calculations, by setting <tt>YHe</tt> to <tt>BBN</tt> (as
+in <a href="http://arXiv.org/abs/arXiv:0712.2826">Hamann, Lesgourgues
+and Mangano (2008)</a>) <li> includes latest version of HALOFIT,
+working even in presence of massive neutrinos (from <a
+href="http://arXiv.org/abs/arXiv:1109.4416">Bird, Viel and Haehnelt
+(2011)</a>). Set <tt>non linear</tt> to <tt>HALOFIT</tt> to get the
+non-linear P(k) (credits B. Audren and S. Bird) <li> improved
+newtonian gauge: <tt>phi</tt> is integrated over time rather than
+infered from constraint equation; in that way newtonian gauge
+calculations are more accurate than in v1.3, and remain stable even in
+presence of isocurvature modes or massive neutrinos (credits Guido
+W. Pettinari) <li> user can choose to pass some numerical values for
+the tensor tilt and running (<tt>n_t</tt>, <tt>alpha_t</tt>), or let
+them be fixed by the two <a
+href="http://arXiv.org/abs/arXiv:0912.0522">self-consistency
+conditions of single field slow-roll inflation</a>, by setting these
+entries to <tt>scc</tt> (see <tt>explanatory.ini</tt> for details)
+<li> if <tt>output</tt> includes <tt>dCl</tt>, the code will compute
+the Cl spectra of matter density perturbations in an arbitrary number
+of redshift bins (defined by gaussian window functions, with arbitrary
+centers and widths, fixed through input variables
+<tt>selection_mean</tt> and <tt>selection_width</tt>). The output
+<tt>..._cl.dat</tt> file will then contain CMB (if requested) plus
+density spectra, including all possible cross-correlations. See
+<tt>explanatory.ini</tt> for details on input parameters.  <li>
+corrected a few bugs previously affecting temperature/polarization
+tensor spectra.  <li> python wrapper for class, available in the
+<tt>python/</tt> directory (see <tt>python/README</tt>). Used by the
+cosmological parameter extraction code that we will release soon
+(credits K. Benabed and B. Audren) <li> c++ wrapper for class,
+available in the <tt>cpp/</tt> directory (see <tt>cpp/README</tt>)
+(credits S. Plaszczynski) </ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v1.3.2.tar.gz">v1.3</a>&nbsp;(08.11.2011)</td>
+<td><ul> <li>implementation of the Newtonian / longitudinal gauge
+equations on top of the synchronous ones. The user can choose the
+gauge by writing e.g. <tt>gauge=newtonian</tt> in the input file (by
+default, set to synchronous gauge). The Newtonian gauge calculations
+turn out to be essentially as stable, fast and accurate as the
+synchronous ones for LambdaCDM. Instabilities may occur when
+<tt>ncdm</tt> (= non-cold dark matter, e.g. massive neutrinos) and/or
+isocurvature modes are turned on: in those two cases, the code outputs
+roughly the right answer (provided that the <tt>tol_ncdm</tt>
+precision parameter is decreased by a factor 100), but the convergence
+of the spectra in the limit of increased precision parameters is not
+obvious.  <li> by default, the component called <tt>fluid</tt> can
+have not only an arbitrary sound speed, but also a time-varying
+equation of state of the form <tt>w=w0+wa*(1-a/a0)</tt>; a couple of
+bugs in this fluid sector have been fixed.  <li> <tt>CPU</tt> (Class
+Plotting Utility) upgraded to version 1.3, with an extra option
+<tt>-colnum N</tt> useful for plotting polarisation and lensing
+potential spectra. More details on <tt>CPU</tt> in the README file.
+<li> issue of initial conditions in the power spectrum renormalisation
+module <tt>trg.c</tt> fixed according to discussion in <a
+href="http://arxiv.org/abs/1106.2607">Audren & Lesgourgues 2011</a>.
+</ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v1.2.4.tar.gz">v1.2</a>&nbsp;(13.06.2011)</td>
+<td><ul> <li>new <tt>trg.c</tt> module allowing to compute the
+non-linear density, velocity and cross density-velocity power spectra
+on mildly non-linear scales, using either the dynamical 1-loop method
+(fast) or the Time Renormalization Group method (1 hour/number of
+CPU); see <a href="http://arxiv.org/abs/1106.2607">Audren &
+Lesgourgues 2011</a>.  In the input file, you just need to set <tt>non
+linear=one-loop</tt> or <tt>non linear=trg</tt>.  So far, this module
+works only for LambdaCDM with no non-cold relics or dark energy.
+<li>fast mode for CMB lensed spectra calculation. Speeds up the code
+significantly. For very accurate calculations, you can still tune the
+precision parameter <tt>accurate_lensing</tt> and use the previous
+method. Credits: Simon Prunet.  <li>in input file, user can choose the
+format of output files: <tt>format=class</tt> for CLASS format (as in
+previous versions), <tt>format=camb</tt> for camb-like format
+(compatible with Healpix, etc.). Also, all output file headers can be
+omitted with <tt>headers=no</tt>.  <li>convenient python module named
+<tt>CPU</tt> for plotting CLASS output spectra. Can plot one or
+several spectra, or the relative difference between two spectra (even
+when they are sampled with different values, as it is usually the case
+for P(k)'s). Works for C_l^TT and P(k). Detects the type of output
+file and infers axes and labels. See the various options by typing
+<tt>python CPU --help</tt> or <tt>python CPU -h</tt>. Typical usage:
+<tt>python CPU output/myspectrum.dat</tt> for a single spectrum. For
+using CPU you need to have on your machine a recent version of python
+and scientific python (scipy), as well as gnuplot.  <li>new precision
+file <tt>chi2pl10.pre</tt> for even faster (but less accurate) CMB
+calculation than with default settings.  <li>bug in dark energy fluid
+equations fixed on 16.06.11, thanks to Vid Irsic for pointing it out.
+</ul> </td> </tr> <tr> <td valign=top><a
+href="class/class_v1.1.tar.gz">v1.1</a>&nbsp;(16.05.2011)</td>
+<td><ul> <li>slightly modified definition of three trigger parameters
+controlling UFA and RSA approximations (refer to tau instead of
+tau_h). Changed precision files accordingly.  <li>corrected bug
+previously leading to segmentation fault when computing lensed
+temperature but not polarisation </ul> </td> </tr> <tr> <td
+valign=top><a
+href="class/class_v1.0.tar.gz">v1.0</a>&nbsp;(16.04.2011)</td>
+<td><ul> <li>first public version </ul> </td> </tr> </table> <hr
+color=#d2b48c> <h2><a name="contact">Support</a></h2> Please report
+bugs, ask questions and send comments/suggestions through the GitHub
+website <a href="https://github.com/lesgourg/class_public"
+target="_blank">class_public</a>. Go to that page, click
+<tt>issue</tt> and then <tt>New issue</tt>. Then write your text and
+press <tt>Submit new issue</tt>. Your text will automatically be sent
+by e-mail to the class developpers, and they will answer you as soon
+as possible.  <br> If your question is related to the MontePython
+code, you should do the same but on the <a
+href="https://github.com/baudren/montepython_public"
+target="_blank">montepython_public</a> page.  <hr color=#d2b48c> </td>
+<td width=30> </td> </table>
+
+<h5>Webmaster Julien Lesgourgues; thanks to Diego Blas for logo and aesthetic supervision; thanks to Wessel Valkenburg and Manuel Malo De Molina Martinez for interactive script.</hr>
+<h5>Last update on the 26.10.2015</h5>
+</body>
+</html>
