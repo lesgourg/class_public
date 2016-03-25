@@ -1107,7 +1107,7 @@ int perturb_timesampling_for_sources(
   /** - --> (b.2.) next sampling point = previous + ppr->perturb_sampling_stepsize * timescale_source, where
       timescale_source1 = \f$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} \f$;
       timescale_source2 = \f$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} \f$ (to sample correctly the late ISW effect; and
-      timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today. 
+      timescale_source=1/(1/timescale_source1+1/timescale_source2); repeat till today.
       If CMB not requested:
       timescale_source = 1/aH; repeat till today.  */
 
@@ -4549,13 +4549,13 @@ int perturb_initial_conditions(struct precision * ppr,
 
        Hence we should have
 
-       \f[ \mathcal{P}_h(k) = \frac{A_t}{6} \tanh{(\pi*\frac{\nu}{2})} (k/k_{pivot})^{[n_t+...]}\f]
+       \f[ \mathcal{P}_h(k) = \frac{A_t}{6} [ \tanh(\pi*\frac{\nu}{2})]  (k/k_{pivot})^{(n_t+...)}\f]
 
-       where the brackets mean "if K<0"
+       where the brackets \f[ [...] \f] mean "if K<0"
 
        Then
 
-       \f[ C_l^T = 4\pi \int \frac{dk}{k} [\Delta_l^T(q)]^2 F\left(\frac{k^2}{K}\right) \frac{A_t}{6} \tanh{(\pi*\frac{\nu}{2})} (k/k_{pivot})^{[n_t+...]} \f]
+       \f[ C_l^T = 4\pi \int \frac{dk}{k} [\Delta_l^T(q)]^2 F\left(\frac{k^2}{K}\right) \frac{A_t}{6} [\tanh(\pi*\frac{\nu}{2})] (k/k_{pivot})^{(n_t+...)} \f]
 
        In the code, it is then a matter of choice to write:
 
