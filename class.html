@@ -162,37 +162,6 @@ The use of CLASS is free provided that if you use it in a publication, you will 
   There are two ways to download CLASS. The simplest thing is to download an archive of the latest released (master branch) version, by cliking
   <a href="https://raw.githubusercontent.com/downloads/lesgourg/class_public/class_public.zip">.zip</a> or
   <a href="https://raw.githubusercontent.com/downloads/lesgourg/class_public/class_public.tar.gz">.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, or see all public branches and/or old versions, you will prefer to download it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
-<p>
-<table width="100%">
-  <tr>
-<td align="left" valign="middle" width="100%">
-Download version&nbsp;v2.4.4&nbsp;:
-</td>
-</tr>
-<tr>
-<td align="left" valign="top" width="100%">
-<form name="theform" action="download.php" method="POST" onSubmit="return check(this);">
-<table width="100%">
-		  <tr>
-		  <?php if(!$hasmail){ echo '
-			  <td width="70%">
-Email addres: <input type="text" name="emailaddress" size="65"/><br />
-			  <input type="checkbox" name="keepinformed" value="1" checked="yes"/>Keep me informed about future updates of CLASS
-			  </td>';
-		  } else {
-			  echo '<input type="hidden" name="emailaddress" value="'.$themail.'" />
-			  <input type="hidden" name="keepinformed" value="'.$keepinformed.'" />';
-		  }
-		  ?>
-<td width="30%">
-<input type="image" name="thebutton" action="submit" src="small_square.png" border="0" />
-<!-- <a href="class/class_public-2.4.4.tar.gz"><img src="small_square.png" BORDER="0"></a> -->
-</td>
-</tr>
-<td>
-<tr>
-(check that your browser accepts cookies, otherwise you may bounce back to the same page)
-</tr>
 </td>
 </table></form></td>
 </tr>
