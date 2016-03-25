@@ -16,7 +16,7 @@ enum spatial_curvature {flat,open,closed};
  * All background parameters and evolution that other modules need to know.
  *
  * Once initialized by the backgound_init(), contains all necessary
- * information on the background evolution (excepted thermodynamics),
+ * information on the background evolution (except thermodynamics),
  * and in particular, a table of all background quantities as a
  * function of time and scale factor, used for interpolation in other
  * modules.
@@ -37,40 +37,40 @@ struct background
 
   //@{
 
-  double H0; /**< \f$ H_0 \f$ : Hubble parameter (in fact, [\f$H_0/c\f$]) in \f$ Mpc^{-1} \f$ */
+  double H0; /**< \f$ H_0 \f$: Hubble parameter (in fact, [\f$H_0/c\f$]) in \f$ Mpc^{-1} \f$ */
 
-  double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$ : photons */
+  double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$: photons */
 
-  double T_cmb; /**< \f$ T_{cmb} \f$ : current CMB temperature in Kelvins */
+  double T_cmb; /**< \f$ T_{cmb} \f$: current CMB temperature in Kelvins */
 
-  double Omega0_b; /**< \f$ \Omega_{0 b} \f$ : baryons */
+  double Omega0_b; /**< \f$ \Omega_{0 b} \f$: baryons */
 
-  double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$ : cold dark matter */
+  double Omega0_cdm; /**< \f$ \Omega_{0 cdm} \f$: cold dark matter */
 
-  double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$ : cosmological constant */
+  double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$: cosmological constant */
 
-  double Omega0_fld; /**< \f$ \Omega_{0 de} \f$ : fluid with constant
+  double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid with constant
 			\f$ w \f$ and \f$ c_s^2 \f$ */
-  double w0_fld; /**< \f$ w0_{DE} \f$ : current fluid equation of state parameter */
-  double wa_fld; /**< \f$ wa_{DE} \f$ : fluid equation of state parameter derivative */
+  double w0_fld; /**< \f$ w0_{DE} \f$: current fluid equation of state parameter */
+  double wa_fld; /**< \f$ wa_{DE} \f$: fluid equation of state parameter derivative */
 
-  double cs2_fld; /**< \f$ c^2_{s~DE} \f$ : sound speed of the fluid
+  double cs2_fld; /**< \f$ c^2_{s~DE} \f$: sound speed of the fluid
 		     in the frame comoving with the fluid (so, this is
 		     not [delta p/delta rho] in the synchronous or
 		     newtonian gauge!!!) */
 
-  double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$ : ultra-relativistic neutrinos */
+  double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
-  double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$ : decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
+  double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
-  double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$ : decay constant for decaying cold dark matter */
+  double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$: decay constant for decaying cold dark matter */
 
-  double Omega_ini_dcdm;    /**< \f$ \Omega_{ini,dcdm} \f$ : rescaled initial value for dcdm density (see 1407.2418 for definitions) */
+  double Omega_ini_dcdm;    /**< \f$ \Omega_{ini,dcdm} \f$: rescaled initial value for dcdm density (see 1407.2418 for definitions) */
 
-  double Omega0_scf;        /**< \f$ \Omega_{0 scf} \f$ : scalar field */
+  double Omega0_scf;        /**< \f$ \Omega_{0 scf} \f$: scalar field */
   short attractor_ic_scf;   /**< whether the scalar field has attractor initial conditions */
-  double phi_ini_scf;       /**< \f$ \phi(t_0) \f$ : scalar field initial value */
-  double phi_prime_ini_scf; /**< \f$ d\phi(t_0)/d\tau \f$ : scalar field initial derivative wrt conformal time */
+  double phi_ini_scf;       /**< \f$ \phi(t_0) \f$: scalar field initial value */
+  double phi_prime_ini_scf; /**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
   double * scf_parameters;  /**< list of parameters describing the scalar field potential */
   int scf_parameters_size;  /**< size of scf_parameters */
   int scf_tuning_index;     /**< index in scf_parameters used for tuning */
@@ -79,7 +79,7 @@ struct background
   //double scf_B; /**< \f$ \alpha \f$ : Albrecht-Skordis field shift */
   //double scf_A; /**< \f$ \alpha \f$ : Albrecht-Skordis offset */
 
-  double Omega0_k; /**< \f$ \Omega_{0_k} \f$ : curvature contribution */
+  double Omega0_k; /**< \f$ \Omega_{0_k} \f$: curvature contribution */
 
   int N_ncdm;                            /**< Number of distinguishable ncdm species */
   double * M_ncdm;                       /**< vector of masses of non-cold relic:
@@ -122,12 +122,12 @@ struct background
   double h; /**< reduced Hubble parameter */
   double age; /**< age in Gyears */
   double conformal_age; /**< conformal age in Mpc */
-  double K; /**< \f$ K \f$ : Curvature parameter \f$ K=-\Omega0_k*a_{today}^2*H_0^2\f$; */
+  double K; /**< \f$ K \f$: Curvature parameter \f$ K=-\Omega0_k*a_{today}^2*H_0^2\f$; */
   int sgnK; /**< K/|K|: -1, 0 or 1 */
   double * m_ncdm_in_eV; /**< list of ncdm masses in eV (inferred from M_ncdm and other parameters above) */
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
-  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$ : decaying cold dark matter */
-  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$ : decay radiation */
+  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
+  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
 
 
   //@}

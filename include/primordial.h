@@ -180,7 +180,7 @@ struct primordial {
   double phi_pivot_target; /**< For each of the above methods, critical value to be reached between pivot and end of inflation (N_star, [aH]ratio, etc.) */
 
   /* behavior of the inflation module */
-  enum inflation_module_behavior behavior;
+  enum inflation_module_behavior behavior; /**< Specifies if the inflation module computes the primordial spectrum numerically (default) or analytically*/
 
   /** 'external_Pk' mode: command generating the table of Pk and custom parameters to be passed to it */
 

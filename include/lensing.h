@@ -70,7 +70,7 @@ struct lensing {
   int l_size;       /**< number of l values */
 
   int * l_max_lt;    /**< last multipole (given as an input) at which
-		    we want to output \f$ C_l \f$s for a given mode and type */
+		    we want to output \f$ C_l \f$'s for a given mode and type */
 
   double * l;       /**< table of multipole values l[index_l] */
   double * cl_lens; /**< table of anisotropy spectra for each

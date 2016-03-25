@@ -654,12 +654,12 @@ struct precision
   double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
   /* parameters relevant for bessel functions */
-  double hyper_x_min;  /**< flat case: lower bound on the smallest value of x at which we sample Phi_l^nu(x) or j_l(x)*/
-  double hyper_sampling_flat;  /**< flat case: number of sampled points x per approximate wavelength 2pi */
-  double hyper_sampling_curved_low_nu;  /**< open/closed cases: number of sampled points x per approximate wavelength 2pi/nu, when nu smaller than hyper_nu_sampling_step */
-  double hyper_sampling_curved_high_nu; /**< open/closed cases: number of sampled points x per approximate wavelength 2pi/nu, when nu greater than hyper_nu_sampling_step */
+  double hyper_x_min;  /**< flat case: lower bound on the smallest value of x at which we sample \f$ \Phi_l^{\nu}(x)\f$ or \f$ j_l(x)\f$ */
+  double hyper_sampling_flat;  /**< flat case: number of sampled points x per approximate wavelength \f$ 2\pi \f$*/
+  double hyper_sampling_curved_low_nu;  /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ smaller than hyper_nu_sampling_step */
+  double hyper_sampling_curved_high_nu; /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ greater than hyper_nu_sampling_step */
   double hyper_nu_sampling_step;  /**< open/closed cases: value of nu at which sampling changes  */
-  double hyper_phi_min_abs;  /**< small value of Bessel function used in calculation of first point x (Phi_l^nu(x) equals hyper_phi_min_abs) */
+  double hyper_phi_min_abs;  /**< small value of Bessel function used in calculation of first point x (\f$ \Phi_l^{\nu}(x) \f$ equals hyper_phi_min_abs) */
   double hyper_x_tol;  /**< tolerance parameter used to determine first value of x */
   double hyper_flat_approximation_nu;  /**< value of nu below which the flat approximation is used to compute Bessel function */
 
@@ -760,7 +760,7 @@ struct precision
                                halofit could not find the scale of
                                non-linearity) */
 
-  double halofit_k_per_decade; /* halofit needs to evalute integrals
+  double halofit_k_per_decade; /**< halofit needs to evalute integrals
                                   (linear power spectrum times some
                                   kernels). They are sampled using
                                   this logarithmic step size. */

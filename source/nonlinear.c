@@ -67,7 +67,9 @@ int nonlinear_init(
   double *lnpk_l;
   double *ddlnpk_l;
 
-  /** (a) First deal with the case where non non-linear corrections requested */
+  /** Summary 
+   * 
+   * (a) First deal with the case where non non-linear corrections requested */
 
   if (pnl->method == nl_none) {
     if (pnl->nonlinear_verbose > 0)
@@ -307,7 +309,7 @@ int nonlinear_halofit(
 
   double Omega_m,Omega_v,fnu,Omega0_m, w0;
 
-  /** determine non linear ratios (from pk) **/
+  /** Determine non linear ratios (from pk) **/
 
   int index_k;
   double pk_lin,pk_quasi,pk_halo,rk;

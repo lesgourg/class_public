@@ -283,7 +283,7 @@ int background_functions(
              pba->error_message,
              "a = %e instead of strictly positive",a_rel);
 
-  /** - pass value of a to output */
+  /** - pass value of \f$ a\f$ to output */
   pvecback[pba->index_bg_a] = a;
 
   /** - compute each component's density and pressure */
@@ -445,8 +445,8 @@ int background_functions(
  * Initialize the background structure, and in particular the
  * background interpolation table.
  *
- * @param ppr Input : pointer to precision structure
- * @param pba Input/Output : pointer to initialized background structure
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input/Output: pointer to initialized background structure
  * @return the error status
  */
 
@@ -520,7 +520,7 @@ int background_init(
     }
   }
 
-  /** - if shooting failed during input, catch the error here: */
+  /** - if shooting failed during input, catch the error here */
   class_test(pba->shooting_failed == _TRUE_,
              pba->error_message,
              "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
@@ -595,7 +595,7 @@ int background_init(
  * Free all memory space allocated by background_init().
  *
  *
- * @param pba Input : pointer to background structure (to be freed)
+ * @param pba Input: pointer to background structure (to be freed)
  * @return the error status
  */
 
@@ -619,7 +619,7 @@ int background_free(
  * Free pointers inside background structure which were
  * allocated in input_read_parameters()
  *
- * @param pba Input : pointer to background structure
+ * @param pba Input: pointer to background structure
  * @return the error status
  */
 
@@ -669,7 +669,7 @@ int background_free_input(
 /**
  * Assign value to each relevant index in vectors of background quantities.
  *
- * @param pba Input : pointer to background structure
+ * @param pba Input: pointer to background structure
  * @return the error status
  */
 
@@ -1270,7 +1270,8 @@ int background_ncdm_momenta(
   double epsilon;
   double q2;
   double factor2;
-
+  /** Summary: */
+  
   /** - rescale normalization at given redshift */
   factor2 = factor*pow(1+z,4);
 
@@ -1451,7 +1452,7 @@ int background_solve(
   /* initialize the counter for the number of steps */
   pba->bt_size=0;
 
-  /** - loop over integration steps : call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of tau */
+  /** - loop over integration steps: call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of tau */
 
   while (pvecback_integration[pba->index_bi_a] < pba->a_today) {
 
@@ -1685,10 +1686,10 @@ int background_solve(
 /**
  * Assign initial values to background integrated variables.
  *
- * @param ppr                  Input : pointer to precision structure
- * @param pba                  Input : pointer to background structure
- * @param pvecback             Input : vector of background quantities used as workspace
- * @param pvecback_integration Output : vector of background quantities to be integrated, returned with proper initial values
+ * @param ppr                  Input: pointer to precision structure
+ * @param pba                  Input: pointer to background structure
+ * @param pvecback             Input: vector of background quantities used as workspace
+ * @param pvecback_integration Output: vector of background quantities to be integrated, returned with proper initial values
  * @return the error status
  */
 
@@ -1776,7 +1777,7 @@ int background_initial_conditions(
 
   if (pba->has_dr == _TRUE_){
     if (pba->has_dcdm == _TRUE_){
-      /**  f is the critical density fraction of DR. The exact solution is:
+      /**  - f is the critical density fraction of DR. The exact solution is:
        * 
        * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
        * 
@@ -1807,7 +1808,7 @@ int background_initial_conditions(
       pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
         log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
       if (3.*pow(scf_lambda,2)-12. < 0){
-        /** --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
+        /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
     	pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
 	if (pba->background_verbose > 0)
 	  printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
@@ -1817,7 +1818,7 @@ int background_initial_conditions(
     }
     else{
       printf("Not using attractor initial conditions\n");
-      /** --> If no attractor initial conditions are assigned, gets the provided ones. */
+      /** - --> If no attractor initial conditions are assigned, gets the provided ones. */
       pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
       pvecback_integration[pba->index_bi_phi_prime_scf] = pba->phi_prime_ini_scf;
     }
@@ -1877,7 +1878,7 @@ int background_output_titles(struct background * pba,
                              char titles[_MAXTITLESTRINGLENGTH_]
                              ){
 
-  /** Length of the column title should be less than _OUTPUTPRECISION_+6
+  /** - Length of the column title should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
   int n;
   char tmp[20];
@@ -1979,7 +1980,7 @@ int background_output_data(
  * Subroutine evaluating the derivative with respect to conformal time
  * of quantities which are integrated (a, t, etc).
  *
- * This is one of the few functions in the code which are passed to
+ * This is one of the few functions in the code which is passed to
  * the generic_integrator() routine.  Since generic_integrator()
  * should work with functions passed from various modules, the format
  * of the arguments is a bit special:
@@ -1993,11 +1994,11 @@ int background_output_data(
  * usual to pba->error_message, but to a generic error_message passed
  * in the list of arguments.
  *
- * @param tau                      Input : conformal time
- * @param y                        Input : vector of variable
- * @param dy                       Output : its derivative (already allocated)
+ * @param tau                      Input: conformal time
+ * @param y                        Input: vector of variable
+ * @param dy                       Output: its derivative (already allocated)
  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
- * @param error_message            Output : error message
+ * @param error_message            Output: error message
  */
 int background_derivs(
                       double tau,
@@ -2021,7 +2022,7 @@ int background_derivs(
   pba =  pbpaw->pba;
   pvecback = pbpaw->pvecback;
 
-  /** - Calculates functions of \f$ a \f$ with background_functions() */
+  /** - calculate functions of \f$ a \f$ with background_functions() */
   class_call(background_functions(pba, y, pba->normal_info, pvecback),
              pba->error_message,
              error_message);
@@ -2078,10 +2079,13 @@ int background_derivs(
  * - Add some functionality to include different models/potentials (tuning would be difficult, though)
  * - Generalize to Kessence/Horndeski/PPF and/or couplings
  * - A default module to numerically compute the derivatives when no analytic functions are given should be added.
- * Numerical derivatives may further serve as a consistency check.
+ * - Numerical derivatives may further serve as a consistency check.
+ * 
  */
 
-/** The units of phi, tau in the derivatives and the potential V are the following:
+/** 
+ * 
+ * The units of phi, tau in the derivatives and the potential V are the following:
  * - phi is given in units of the reduced Planck mass \f$ m_{pl} = (8 \pi G)^{(-1/2)}\f$
  * - tau in the derivative is given in units of Mpc.
  * - the potential \f$ V(\phi) \f$ is given in units of \f$ m_{pl}^2/Mpc^2 \f$.

@@ -1414,7 +1414,7 @@ int primordial_inflation_solve_inflation(
     break;
   }
 
-  /** - starting from this time, i.e. from y_ini[], we run the routine
+  /** - starting from this time, i.e. from y_ini[ ], we run the routine
       which takes care of computing the primordial spectrum. */
 
   if (ppm->primordial_verbose > 1)
@@ -1522,17 +1522,18 @@ int primordial_inflation_analytic_spectra(
   double curvature,tensors;
   double V,dV,ddV;
 
+  /** Summary */
   /** - allocate vectors for background/perturbed quantities */
   class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
 
-  /* initialize the background part of the running vector */
+  /** - initialize the background part of the running vector */
   y[ppm->index_in_a] = y_ini[ppm->index_in_a];
   y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
   if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
     y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
-  /* loop over Fourier wavenumbers */
+  /** - loop over Fourier wavenumbers */
   for (index_k=0; index_k < ppm->lnk_size; index_k++) {
 
     k = exp(ppm->lnk[index_k]);
@@ -1550,19 +1551,19 @@ int primordial_inflation_analytic_spectra(
                ppm->error_message,
                ppm->error_message);
 
-    /* read value of phi at time when k=aH */
+    /** - read value of phi at time when k=aH */
     phi_k = y[ppm->index_in_phi];
 
-    /* get potential (and its derivatibves) at this value */
+    /** - get potential (and its derivatives) at this value */
     class_call(primordial_inflation_check_potential(ppm,phi_k,&V,&dV,&ddV),
                ppm->error_message,
                ppm->error_message);
 
-    /* analytic slow-roll formula for the spectra */
+    /** - calculate the analytic slow-roll formula for the spectra */
     curvature = 128.*_PI_/3.*pow(V,3)/pow(dV,2);
     tensors = pow(dV/V,2)/_PI_*128.*_PI_/3.*pow(V,3)/pow(dV,2);
 
-    /* store the obtained result for curvature and tensor perturbations */
+    /** - store the obtained result for curvature and tensor perturbations */
     ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
     ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
   }
@@ -1695,17 +1696,18 @@ int primordial_inflation_one_wavenumber(
 
   k = exp(ppm->lnk[index_k]);
 
+  /** Summary */
   /** - allocate vectors for background/perturbed quantities */
   class_alloc(y,ppm->in_size*sizeof(double),ppm->error_message);
   class_alloc(dy,ppm->in_size*sizeof(double),ppm->error_message);
 
-  /* initialize the background part of the running vector */
+  /** - initialize the background part of the running vector */
   y[ppm->index_in_a] = y_ini[ppm->index_in_a];
   y[ppm->index_in_phi] = y_ini[ppm->index_in_phi];
   if ((ppm->primordial_spec_type == inflation_V) || (ppm->primordial_spec_type == inflation_V_end))
     y[ppm->index_in_dphi] = y_ini[ppm->index_in_dphi];
 
-  /* evolve the background until the relevant initial time for
+  /** - evolve the background until the relevant initial time for
      integrating perturbations */
   class_call(primordial_inflation_evolve_background(ppm,
                                                     ppr,
@@ -1719,7 +1721,7 @@ int primordial_inflation_one_wavenumber(
              ppm->error_message,
              ppm->error_message);
 
-  /* evolve the background/perturbation equations from this time and
+  /** - evolve the background/perturbation equations from this time and
      until some time after Horizon crossing */
   class_call(primordial_inflation_one_k(ppm,
                                         ppr,
@@ -1742,7 +1744,7 @@ int primordial_inflation_one_wavenumber(
              ppm->error_message,
              "negative tensor spectrum");
 
-  /* store the obtained result for curvature and tensor perturbations */
+  /** - store the obtained result for curvature and tensor perturbations */
   ppm->lnpk[ppt->index_md_scalars][index_k] = log(curvature);
   ppm->lnpk[ppt->index_md_tensors][index_k] = log(tensors);
 
@@ -2821,7 +2823,7 @@ int primordial_inflation_find_phi_pivot(
 
       printf(" (reached phi_pivot=%e)\n",ppm->phi_pivot);
 
-      /* In verbose mode, check that phi_pivot is correct. Done by
+      /* - --> In verbose mode, check that phi_pivot is correct. Done by
          restarting from phi_pivot and going again till the end of
          inflation. */
 

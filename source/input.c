@@ -34,12 +34,12 @@ int input_init_from_arguments(
 
   /** - define local variables */
 
-  struct file_content fc;             /** -# the final structure with all parameters */
-  struct file_content fc_input;       /** -# a temporary structure with all input parameters */
-  struct file_content fc_precision;   /** -# a temporary structure with all precision parameters */
-  struct file_content fc_root;        /** -# a temporary structure with only the root name */
-  struct file_content fc_inputroot;   /** -# sum of fc_inoput and fc_root */
-  struct file_content * pfc_input;    /** -# a pointer to either fc_root or fc_inputroot */
+  struct file_content fc;             /** - --> the final structure with all parameters */
+  struct file_content fc_input;       /** - --> a temporary structure with all input parameters */
+  struct file_content fc_precision;   /** - --> a temporary structure with all precision parameters */
+  struct file_content fc_root;        /** - --> a temporary structure with only the root name */
+  struct file_content fc_inputroot;   /** - --> sum of fc_inoput and fc_root */
+  struct file_content * pfc_input;    /** - --> a pointer to either fc_root or fc_inputroot */
 
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
@@ -63,7 +63,7 @@ int input_init_from_arguments(
   input_file[0]='\0';
   precision_file[0]='\0';
 
-  /** If some arguments are passed, identify eventually some 'xxx.ini'
+  /** - If some arguments are passed, identify eventually some 'xxx.ini'
       and 'xxx.pre' files, and store their name. */
 
   if (argc > 1) {
@@ -188,6 +188,7 @@ int input_init_from_arguments(
  * from what can be interpreted from the values passed in the input
  * 'file_content' structure. If its size is null, all parameters keep
  * their default values.
+ * 
  */
 
 int input_init(
@@ -224,8 +225,10 @@ int input_init(
   char param_unused_name[_LINE_LENGTH_MAX_];
 
   struct fzerofun_workspace fzw;
-  /** These two arrays must contain the strings of names to be searched
-      for and the corresponding new parameter */
+  /** 
+   * 
+   * These two arrays must contain the strings of names to be searched
+   *  for and the corresponding new parameter */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
                                        "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
@@ -237,7 +240,7 @@ int input_init(
 
   class_read_int("input_verbose",input_verbose);
 
-  /** --> Do we need to fix unknown parameters? */
+  /** - Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
   fzw.required_computation_stage = 0;
   for (index_target = 0; index_target < _NUM_TARGETS_; index_target++){
@@ -249,7 +252,7 @@ int input_init(
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){
-      /** - input_auxillary_target_conditions() takes care of the case where for
+      /** - --> input_auxillary_target_conditions() takes care of the case where for
           instance Omega_dcdmdr is set to 0.0.
        */
       class_call(input_auxillary_target_conditions(pfc,
@@ -267,7 +270,7 @@ int input_init(
     }
   }
 
-  /** --> case with unknown parameters */
+  /** - case with unknown parameters */
   if (unknown_parameters_size > 0) {
 
     /* Create file content structure with additional entries */
@@ -295,7 +298,7 @@ int input_init(
                 fzw.target_size*sizeof(double),
                 errmsg);
 
-    /** - go through all cases with unknown parameters: */
+    /** - --> go through all cases with unknown parameters: */
     for (counter = 0; counter < unknown_parameters_size; counter++){
       index_target = target_indices[counter];
       class_call(parser_read_double(pfc,
@@ -384,7 +387,7 @@ int input_init(
     }
 
 
-    /** - Read all parameters from tuned pfc: */
+    /** - --> Read all parameters from tuned pfc */
     class_call(input_read_parameters(&(fzw.fc),
                                      ppr,
                                      pba,
@@ -400,7 +403,7 @@ int input_init(
                errmsg,
                errmsg);
 
-    /** Set status of shooting: */
+    /** - --> Set status of shooting */
     pba->shooting_failed = shooting_failed;
 
     /* all parameters read in fzw must be considered as read in
@@ -414,16 +417,16 @@ int input_init(
 
     // Free tuned pfc
     parser_free(&(fzw.fc));
-    /** - Free arrays allocated*/
+    /** - --> Free arrays allocated*/
     free(unknown_parameter);
     free(fzw.unknown_parameters_index);
     free(fzw.target_name);
     free(fzw.target_value);
   }
-  /** --> case with no unknown parameters */
+  /** - case with no unknown parameters */
   else{
 
-    /** - just read all parameters from input pfc: */
+    /** - --> just read all parameters from input pfc: */
     class_call(input_read_parameters(pfc,
                                      ppr,
                                      pba,
@@ -440,7 +443,7 @@ int input_init(
                errmsg);
   }
 
-  /** --> eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
+  /** - eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
 
   class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
              errmsg,
@@ -594,7 +597,7 @@ int input_read_parameters(
   /** - scale factor today (arbitrary) */
   class_read_double("a_today",pba->a_today);
 
-  /** - h (dimensionless) and [H0/c] in \f$ Mpc^{-1} = h / 2997.9... = h * 10^5 / c \f$ */
+  /** - h (dimensionless) and [\f$ H_0/c\f$] in \f$ Mpc^{-1} = h / 2997.9... = h * 10^5 / c \f$ */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
@@ -635,7 +638,7 @@ int input_read_parameters(
     if (flag1 == _TRUE_) {
       /** - Omega0_g = rho_g / rho_c0, each of them expressed in \f$ Kg/m/s^2 \f$*/
       /** - rho_g = (4 sigma_B / c) \f$ T^4 \f$*/
-      /** - rho_c0 \f$ = 3 c^2 H0^2 / (8 \pi G) \f$*/
+      /** - rho_c0 \f$ = 3 c^2 H_0^2 / (8 \pi G) \f$*/
       pba->Omega0_g = (4.*sigma_B/_c_*pow(param1,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
       pba->T_cmb=param1;
     }
@@ -944,15 +947,14 @@ int input_read_parameters(
              errmsg,
              "In input file, either Omega_Lambda or Omega_fld must be left unspecified, except if Omega_scf is set and <0.0, in which case the contribution from the scalar field will be the free parameter.");
 
-  /** --> (flag3 == _FALSE_) || (param3 >= 0.) explained:
-      it means that either we have not read Omega_scf so we are ignoring it
-      (unlike lambda and fld!) OR we have read it, but it had a
-      positive value and should not be used for filling.
-
-      We now proceed in two steps:
-      1) set each Omega0 and add to the total for each specified component.
-      2) go through the components in order {lambda, fld, scf} and
-         fill using first unspecified component.
+  /** - --> (flag3 == _FALSE_) || (param3 >= 0.) explained:
+   *  it means that either we have not read Omega_scf so we are ignoring it
+   *  (unlike lambda and fld!) OR we have read it, but it had a
+   *  positive value and should not be used for filling.
+   *  We now proceed in two steps:
+   *  1) set each Omega0 and add to the total for each specified component.
+   *  2) go through the components in order {lambda, fld, scf} and
+   *     fill using first unspecified component.
   */
 
   /* Step 1 */
@@ -2483,7 +2485,7 @@ int input_read_parameters(
   class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation);
 
   if (ppt->has_tensors == _TRUE_) {
-    /** - --> Include ur and ncdm shear in tensor computation? */
+    /** - ---> Include ur and ncdm shear in tensor computation? */
     class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -2497,7 +2499,7 @@ int input_read_parameters(
     }
   }
 
-  /** - --> derivatives of baryon sound speed only computed if some non-minimal tight-coupling schemes is requested */
+  /** - ---> derivatives of baryon sound speed only computed if some non-minimal tight-coupling schemes is requested */
   if ((ppr->tight_coupling_approximation == (int)first_order_CLASS) || (ppr->tight_coupling_approximation == (int)second_order_CLASS)) {
     pth->compute_cb2_derivatives = _TRUE_;
   }
@@ -2704,15 +2706,15 @@ int input_read_parameters(
 /**
  * All default parameter values (for input parameters)
  *
- * @param pba Input : pointer to background structure
- * @param pth Input : pointer to thermodynamics structure
- * @param ppt Input : pointer to perturbation structure
- * @param ptr Input : pointer to transfer structure
- * @param ppm Input : pointer to primordial structure
- * @param psp Input : pointer to spectra structure
- * @param pnl Input : pointer to nonlinear structure
- * @param ple Input : pointer to lensing structure
- * @param pop Input : pointer to output structure
+ * @param pba Input: pointer to background structure
+ * @param pth Input: pointer to thermodynamics structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ptr Input: pointer to transfer structure
+ * @param ppm Input: pointer to primordial structure
+ * @param psp Input: pointer to spectra structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param ple Input: pointer to lensing structure
+ * @param pop Input: pointer to output structure
  * @return the error status
  */
 
@@ -2733,7 +2735,7 @@ int input_default_params(
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
-  /** Define all default parameter values (for input parameters) for each structure*/
+  /** Define all default parameter values (for input parameters) for each structure:*/
   /** - background structure */
 
   /* 5.10.2014: default parameters matched to Planck 2013 + WP
@@ -3043,8 +3045,6 @@ int input_default_params(
  */
 
 int input_default_precision ( struct precision * ppr ) {
-
-  /** Summary: */
 
   /** Initialize presicion parameters for different structures:
    * - parameters related to the background
@@ -3756,7 +3756,9 @@ int input_find_root(double *xzero,
   double x1, x2, f1, f2, dxdy, dx;
   int iter, iter2;
   int return_function;
-  /** Here is our guess: */
+  /** Summary: */
+  
+  /** - Fisrt we do our guess */
   class_call(input_get_guess(&x1, &dxdy, pfzw, errmsg),
              errmsg, errmsg);
   //      printf("x1= %g\n",x1);
@@ -3770,7 +3772,7 @@ int input_find_root(double *xzero,
 
   dx = 1.5*f1*dxdy;
 
-  /** Do linear hunt for boundaries: */
+  /** - Do linear hunt for boundaries */
   for (iter=1; iter<=15; iter++){
     //x2 = x1 + search_dir*dx;
     x2 = x1 - dx;
@@ -3795,7 +3797,7 @@ int input_find_root(double *xzero,
     }
 
     if (f1*f2<0.0){
-      /** root has been bracketed */
+      /** - root has been bracketed */
       if (0==1){
         printf("Root has been bracketed after %d iterations: [%g, %g].\n",iter,x1,x2);
       }
@@ -3806,7 +3808,7 @@ int input_find_root(double *xzero,
     f1 = f2;
   }
 
-  /** Find root using Ridders method. (Exchange for bisection if you are old-school.)*/
+  /** - Find root using Ridders method. (Exchange for bisection if you are old-school.)*/
   class_call(class_fzero_ridder(input_fzerofun_1d,
                                 x1,
                                 x2,

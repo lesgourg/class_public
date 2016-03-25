@@ -103,7 +103,7 @@ struct perturbs
 
   short has_perturbations; /**< do we need to compute perturbations at all ? */
 
-  short has_cls; /**< do we need any harmonic space spectrum C_l (and hence Bessel functions, transfer functions, ...)? */
+  short has_cls; /**< do we need any harmonic space spectrum \f$ C_l \f$ (and hence Bessel functions, transfer functions, ...)? */
 
   short has_scalars; /**< do we need scalars? */
   short has_vectors; /**< do we need vectors? */
@@ -124,11 +124,11 @@ struct perturbs
   short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */
   short evolve_tensor_ncdm;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
 
-  short has_cl_cmb_temperature;       /**< do we need Cl's for CMB temperature? */
-  short has_cl_cmb_polarization;      /**< do we need Cl's for CMB polarization? */
-  short has_cl_cmb_lensing_potential; /**< do we need Cl's for CMB lensing potential? */
-  short has_cl_lensing_potential;     /**< do we need Cl's for galaxy lensing potential? */
-  short has_cl_number_count;          /**< do we need Cl's for density number count? */
+  short has_cl_cmb_temperature;       /**< do we need \f$ C_l \f$'s for CMB temperature? */
+  short has_cl_cmb_polarization;      /**< do we need \f$ C_l \f$'s for CMB polarization? */
+  short has_cl_cmb_lensing_potential; /**< do we need \f$ C_l \f$'s for CMB lensing potential? */
+  short has_cl_lensing_potential;     /**< do we need \f$ C_l \f$'s for galaxy lensing potential? */
+  short has_cl_number_count;          /**< do we need \f$ C_l \f$'s for density number count? */
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
@@ -140,14 +140,14 @@ struct perturbs
   short has_nc_lens;     /**< in dCl, do we want lensing terms ? */
   short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
-  int l_scalar_max; /**< maximum l value for CMB scalars C_ls */
-  int l_vector_max; /**< maximum l value for CMB vectors C_ls */
-  int l_tensor_max; /**< maximum l value for CMB tensors C_ls */
-  int l_lss_max; /**< maximum l value for LSS C_ls (density and lensing potential in  bins) */
-  double k_max_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if C_ls also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
+  int l_scalar_max; /**< maximum l value for CMB scalars \f$ C_l \f$'s */
+  int l_vector_max; /**< maximum l value for CMB vectors \f$ C_l \f$'s */
+  int l_tensor_max; /**< maximum l value for CMB tensors \f$ C_l \f$'s */
+  int l_lss_max; /**< maximum l value for LSS \f$ C_l \f$'s (density and lensing potential in  bins) */
+  double k_max_for_pk; /**< maximum value of k in 1/Mpc in P(k) (if \f$ C_l \f$'s also requested, overseeded by value kmax inferred from l_scalar_max if it is bigger) */
 
   int selection_num;                            /**< number of selection functions
-                                                   (i.e. bins) for matter density Cls */
+                                                   (i.e. bins) for matter density \f$ C_l \f$'s */
   enum selection_type selection;                /**< type of selection functions */
   double selection_mean[_SELECTION_NUM_MAX_]; /**< centers of selection functions */
   double selection_width[_SELECTION_NUM_MAX_];  /**< widths of selection functions */
@@ -310,12 +310,12 @@ struct perturbs
                         sampling in k-space */
 
   int * k_size_cl;  /**< k_size_cl[index_md] number of k values used
-                       for non-CMB Cl calculations, requiring a coarse
+                       for non-CMB \f$ C_l \f$ calculations, requiring a coarse
                        sampling in k-space. */
 
   int * k_size;     /**< k_size[index_md] = total number of k
                        values, including those needed for P(k) but not
-                       for Cl's */
+                       for \f$ C_l \f$'s */
 
   double ** k;      /**< k[index_md][index_k] = list of values */
 
@@ -439,7 +439,6 @@ struct perturb_vector
 /**
  * Workspace containing, among other things, the value at a given time
  * of all background/perturbed quantities, as well as their indices.
- *
  * There will be one such structure created for each mode
  * (scalar/.../tensor) and each thread (in case of parallel computing)
  */

@@ -193,23 +193,23 @@ struct transfer_workspace {
 
   int tau_size;                  /**< number of discrete time values for a given type */
   int tau_size_max;              /**< maximum number of discrete time values for all types */
-  double * interpolated_sources; /**< interpolated_sources[index_tau]
-                                    : sources interpolated from the
+  double * interpolated_sources; /**< interpolated_sources[index_tau]: 
+                                    sources interpolated from the
                                     perturbation module at the right
                                     value of k */
-  double * sources;              /**< sources[index_tau] : sources
+  double * sources;              /**< sources[index_tau]: sources
                                     used in transfer module, possibly
                                     differing from those in the
                                     perturbation module by some
                                     resampling or rescaling */
-  double * tau0_minus_tau;       /**< tau0_minus_tau[index_tau] : values of (tau0 - tau) */
-  double * w_trapz;              /**< w_trapz[index_tau] : values of weights in trapezoidal integration (related to time steps) */
-  double * chi;                  /**< chi[index_tau] : value of argument of bessel
+  double * tau0_minus_tau;       /**< tau0_minus_tau[index_tau]: values of (tau0 - tau) */
+  double * w_trapz;              /**< w_trapz[index_tau]: values of weights in trapezoidal integration (related to time steps) */
+  double * chi;                  /**< chi[index_tau]: value of argument of bessel
                                     function: k(tau0-tau) (flat case)
                                     or sqrt(|K|)(tau0-tau) (non-flat
                                     case) */
-  double * cscKgen;              /**< cscKgen[index_tau] : useful trigonometric function */
-  double * cotKgen;              /**< cotKgen[index_tau] : useful trigonometric function */
+  double * cscKgen;              /**< cscKgen[index_tau]: useful trigonometric function */
+  double * cotKgen;              /**< cotKgen[index_tau]: useful trigonometric function */
 
   //@}
 
