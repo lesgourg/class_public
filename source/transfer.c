@@ -323,7 +323,7 @@ int transfer_init(
                         ptr->error_message,
                         ptr->error_message);
 
-    /** - loop over all wavenumbers (parallelized).*/ 
+    /** - loop over all wavenumbers (parallelized).*/
     /* For each wavenumber: */
 
 #pragma omp for schedule (dynamic)
@@ -1286,7 +1286,7 @@ int transfer_get_k_list(
  *
  * @param ppt  Input: pointer to perturbation structure
  * @param ptr  Input: pointer to transfers structure containing l's
- * @param tp_of_tt: Input/Output: array with the correspondence (allocated before, filled here)
+ * @param tp_of_tt Input/Output: array with the correspondence (allocated before, filled here)
  * @return the error status
  */
 

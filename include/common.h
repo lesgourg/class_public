@@ -539,7 +539,7 @@ struct precision
 
   double start_sources_at_tau_c_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
-  int tight_coupling_approximation; /**< method for tight coiupling approximation */
+  int tight_coupling_approximation; /**< method for tight coupling approximation */
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
@@ -596,7 +596,7 @@ struct precision
    */
   double radiation_streaming_trigger_tau_c_over_tau;
 
-  int ur_fluid_approximation; /**< method for ultra relativistic fluid apporximation */
+  int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
 
   /**
    * when to switch off ur (massless neutrinos / ultra-relativistic
@@ -604,7 +604,7 @@ struct precision
    */
   double ur_fluid_trigger_tau_over_tau_k;
 
-  int ncdm_fluid_approximation; /**< method for non-cold dark matter fluid approxmation */
+  int ncdm_fluid_approximation; /**< method for non-cold dark matter fluid approximation */
 
   /**
    * when to switch off ncdm (massive neutrinos / non-cold
@@ -701,14 +701,14 @@ struct precision
   double transfer_neglect_delta_k_S_t0; /**< for temperature source function T0 of scalar mode, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
   double transfer_neglect_delta_k_S_t1; /**< same for temperature source function T1 of scalar mode */
   double transfer_neglect_delta_k_S_t2; /**< same for temperature source function T2 of scalar mode */
-  double transfer_neglect_delta_k_S_e;  /**< same for polarisation source function E of scalar mode */
+  double transfer_neglect_delta_k_S_e;  /**< same for polarization source function E of scalar mode */
   double transfer_neglect_delta_k_V_t1; /**< same for temperature source function T1 of vector mode */
   double transfer_neglect_delta_k_V_t2; /**< same for temperature source function T2 of vector mode */
-  double transfer_neglect_delta_k_V_e;  /**< same for polarisation source function E of vector mode */
-  double transfer_neglect_delta_k_V_b;  /**< same for polarisation source function B of vector mode */
+  double transfer_neglect_delta_k_V_e;  /**< same for polarization source function E of vector mode */
+  double transfer_neglect_delta_k_V_b;  /**< same for polarization source function B of vector mode */
   double transfer_neglect_delta_k_T_t2; /**< same for temperature source function T2 of tensor mode */
-  double transfer_neglect_delta_k_T_e;  /**< same for polarisation source function E of tensor mode */
-  double transfer_neglect_delta_k_T_b;  /**< same for polarisation source function B of tensor mode */
+  double transfer_neglect_delta_k_T_e;  /**< same for polarization source function E of tensor mode */
+  double transfer_neglect_delta_k_T_b;  /**< same for polarization source function B of tensor mode */
 
   double transfer_neglect_late_source;  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 
