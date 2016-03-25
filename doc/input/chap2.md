@@ -5,8 +5,25 @@ Author: Julien Lesgourgues
 
 
 * __For what the code can actually compute__: all possible input parameters, all coded cosmological models, all functionalities, all observables, etc.: read the file `explanatory.ini` in the main `CLASS` directory: it is a reference file where we keep track of all possible input.
+
+* __For the structure, style, and concrete aspects of the code__: this documentation; plus the slides of our `CLASS` lectures, for instance those from Tokyo 2014 available at 
+
+    `https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl_DDUBEzAjjdywMjeTya2a?dl=0`
+
+    in the folder `CLASS_Lecture_slides/`.
+
+* __For the python wrapper of `CLASS`__: at the moment, the best is the slides from these lectures, for instance following the previous link and looking into
+
+     `CLASS_Lecture_slides/lecture7_wrapper.pdf`
+ 
+     and into
+  
+     `IPython_Notebooks`
+
+     for example of python sessions. We will expand soon the documentation on this part with a dedicated webpage.
+
 * __For the physics and equations used in the code__: mainly, the following papers:
-    - "_Cosmological perturbation theory in the synchronous and conformal Newtonian gauges_"
+    - *Cosmological perturbation theory in the synchronous and conformal Newtonian gauges*
 
      C. P. Ma and E. Bertschinger.
 
@@ -16,7 +33,7 @@ Author: Julien Lesgourgues
 
      Astrophys. J. __455__, 7 (1995)
 
-    - "_The Cosmic Linear Anisotropy Solving System (CLASS) II: Approximation schemes_"
+    - *The Cosmic Linear Anisotropy Solving System (CLASS) II: Approximation schemes*
 
      D. Blas, J. Lesgourgues and T. Tram.
 
@@ -26,7 +43,7 @@ Author: Julien Lesgourgues
 
      JCAP __1107__, 034 (2011)
 
-    - "_The Cosmic Linear Anisotropy Solving System (CLASS) IV: efficient implementation of non-cold relics_"
+    - *The Cosmic Linear Anisotropy Solving System (CLASS) IV: efficient implementation of non-cold relics*
 
      J. Lesgourgues and T. Tram.
 
@@ -36,7 +53,7 @@ Author: Julien Lesgourgues
 
      JCAP __1109__, 032 (2011)
 
-    - "_Optimal polarisation equations in FLRW universes_"
+    - *Optimal polarisation equations in FLRW universes*
 
      T. Tram and J. Lesgourgues.
 
@@ -46,7 +63,7 @@ Author: Julien Lesgourgues
 
      JCAP __1310__, 002 (2013)
 
-    - "_Fast and accurate CMB computations in non-flat FLRW universes_"
+    - *Fast and accurate CMB computations in non-flat FLRW universes*
 
      J. Lesgourgues and T. Tram.
 
@@ -56,7 +73,7 @@ Author: Julien Lesgourgues
 
      JCAP __1409__, no. 09, 032 (2014)
 
-    - "_The CLASSgal code for Relativistic Cosmological Large Scale Structure_"
+    - *The CLASSgal code for Relativistic Cosmological Large Scale Structure*
 
      E. Di Dio, F. Montanari, J. Lesgourgues and R. Durrer.
 
@@ -66,18 +83,3 @@ Author: Julien Lesgourgues
 
      JCAP __1311__, 044 (2013)
 
-* __For the structure, style, and concrete aspects of the code__: this documentation; plus the slides of our `CLASS` lectures, for instance those from Tokyo 2014 available at 
-
-`https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl\_DDUBEzAjjdywMjeTya2a?dl=0`
-
-in the folder `CLASS_Lecture_slides/`.
-
-* __For the python wrapper of `CLASS`__: at the moment, the best is the slides from these lectures, for instance following the previous link and looking into
-
-`CLASS_Lecture_slides/lecture7_wrapper.pdf`
- 
-and into
-  
-`IPython_Notebooks`
-
-for example of python sessions. We will expand soon the documentation on this part with a dedicated webpage.

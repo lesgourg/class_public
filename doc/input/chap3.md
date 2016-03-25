@@ -6,11 +6,11 @@ Author: Julien Lesgourgues
 
 # Overall architecture of `class` #
 
-## Files and directories` ##
+## Files and directories ##
 
 After downloading `CLASS`, one can see the following files in the root directory contains:
 
-- some example of input files, the most important being `explanatory.ini`. a reference input file containing all possible flags, options and physical input parameters. While this documentation explains the structure and use of the code, `explanatory.ini` can be seen as the _physical_ documentation of `CLASS`. The other input file are alternative parameter input files (ending with `.ini`)and precision input files (ending with `.pre`)
+- some example of input files, the most important being `explanatory.ini`. a reference input file containing all possible flags, options and physical input parameters. While this documentation explains the structure and use of the code, `explanatory.ini` can be seen as the _physical_ documentation of `CLASS`. The other input file are alternative parameter input files (ending with `.ini`) and precision input files (ending with `.pre`)
 
 - the `Makefile`,  with which you can compile the code by typing `make clean; make;` this will create the executable `class` and some binary files in the directory `build/`. The `Makefile` contains other compilation options that you can view inside the file.
 
@@ -47,7 +47,7 @@ it can be interfaced with other codes, etc.
 
 - `doc/` contains the automatic documentation (manual and input files required to build it)
 
-- `external_Pk/` contains exemples of external codes that can be used to generate the primordial spectrum and be interfaced with `CLASS`, when one of the many options already built inside the code are not sufficient.
+- `external_Pk/` contains examples of external codes that can be used to generate the primordial spectrum and be interfaced with `CLASS`, when one of the many options already built inside the code are not sufficient.
 
 - `bbn/` contains interpolation tables produced by BBN codes, in order to predict e.g. \f$ Y_\mathrm{He}(\omega_b, \Delta N_\mathrm{eff})\f$.
 
@@ -64,9 +64,9 @@ or modules:
 
 1. set input parameter values.
 
-2. compute the evolution of cosmological background quantitites.
+2. compute the evolution of cosmological background quantities.
 
-3. compute the evolution of thermodynamical quantitites (ionization fractions, etc.)
+3. compute the evolution of thermodynamical quantities (ionization fractions, etc.)
 
 4. compute the evolution of source functions \f$S(k,\tau)\f$ (by integrating over all perturbations).
 
@@ -87,7 +87,7 @@ or modules:
 
 In `class`, each of these steps is associated with a structure:
 
-1. `struct precision`   for input precision parameters (input physical paramaters are dispatched among the other structures listed below)
+1. `struct precision`   for input precision parameters (input physical parameters are dispatched among the other structures listed below)
 2. `struct background`  for cosmological background,
 3. `struct thermo`      for thermodynamics,
 4. `struct perturbs`    for source functions,
@@ -102,13 +102,13 @@ A given structure contains "everything concerning one step that the
 subsequent steps need to know" (for instance, `struct perturbs` contains everything about source
 functions that the transfer module needs to know). In particular, each
 structure contains one array of tabulated values (for `struct background`, background
-quantitites as a function of time, for `struct thermo`, thermodynamical quantitites as a
+quantities as a function of time, for `struct thermo`, thermodynamical quantities as a
 function of redshift, for `struct perturbs`, sources \f$S(k, \tau)\f$, etc.).  It
 also contains information about the size of this array and the value
 of the index of each physical quantity, so that the table can be
 easily read and interpolated. Finally, it contains any derived
 quantity that other modules might need to know. Hence, the
-comunication from one module A to another module B
+communication from one module A to another module B
 consists in passing a pointer to the structure filled by A, and nothing else.
 
 All "precision parameters" are grouped in the single structure
@@ -145,38 +145,35 @@ where _module_ is one of `input, background, thermodynamics, perturb, primordial
 
 The first function allocates and fills each structure. This can be
 done provided that the previous structures in the hierarchy have been
-already allocated and filled. In summary, calling one of _module_`_
-init(...)` amounts in solving entirely one of the steps 1 to 10.
+already allocated and filled. In summary, calling one of `module_init(...)` amounts in solving entirely one of the steps 1 to 10.
 
 The second function deallocates the fields of each structure. This
 can be done optionally at the end of the code (or, when the code is embedded
 in a sampler, this __must__ be done 
-between each execution of `class`, and especially before calling _module_`_
-init(...)` again with different input parameters).
+between each execution of `class`, and especially before calling `module_init(...)` again with different input parameters).
 
-Thethird function is able to interpolate the pre-computed tables. For
+The third function is able to interpolate the pre-computed tables. For
 instance, `background_init()` fills a table of background
-quantitites for discrete values of conformal time \f$\tau\f$, but 
+quantities for discrete values of conformal time \f$\tau\f$, but 
 `background_at_tau(tau, * values)` will return these values for any
 arbitrary \f$\tau\f$. 
 
 Note that functions of the type `module_something_at_somevalue` are the only ones which are
-called from another module, while functions of the type {_module_`_
-init(...)` and _module_`_free(...)` are the only
+called from another module, while functions of the type `module_init(...)` and `module_free(...)` are the only
 one called by the main executable.  All other functions are for
 internal use in each module. 
 
 When writing a C code, the ordering of the functions in the *.c file is in principle arbitrary. However, for the sake of clarity, we always respected the following order in each `CLASS` module:
 
-1. all functions that may be called by other modules, i.e. ``external functions'',  usually named like {\it module`_{\it something`_`at`_{\it somevalue`{\tt(...)`
+1. all functions that may be called by other modules, i.e. "external functions",  usually named like `module_something_at_somevalue(...)`
 2. then, `module_init(...)`
 3. then, `module_free()`
 4. then, all functions used only internally by the module
 
 
-## `main()` function(s) ##
+## The  `main()` function(s) ##
 
-### The `main.c` file ###
+### The  `main.c` file ###
 
 The main executable of `class` is the function `main()` located in the file `main/main.c`.
 This function consist only in the 
@@ -250,11 +247,11 @@ We can come back on the role of each argument. The arguments above are all point
 
 `input_init_from_arguments` needs all structures, because it will set the precision parameters inside the `precision` structure, and the physical parameters in some fields of the respective other structures. For instance, an input parameter relevant for the primordial spectrum calculation (like the tilt \f$n_s\f$) will be stored in the `primordial` structure. Hence, in ` input_init_from_arguments`, all structures can be seen as output arguments.
 
-Other _module_`_init()` functions typically need all previous structures, which contain the result of the previous modules, plus its own structures, which contain some relevant input parameters before the function is called, as well as all the result form the module when the function has been executed. Hence all passed structures can be seen as input argument, excepted the last one which is both input and output. An example is `perturb_init(&pr,&ba,&th,&pt)`.
+Other `module_init()` functions typically need all previous structures, which contain the result of the previous modules, plus its own structures, which contain some relevant input parameters before the function is called, as well as all the result form the module when the function has been executed. Hence all passed structures can be seen as input argument, excepted the last one which is both input and output. An example is `perturb_init(&pr,&ba,&th,&pt)`.
 
-Each function _module_`_init()`  does not need __all__ previous structures, it happens that a module does not depend on a __all__ previous one. For instance, the primordial module does not need information on the background and thermodynamics evolution in order to compute the primordial spectra, so the dependency is reduced: `primordial_init(&pr,&pt,&pm)`.
+Each function `module_init()`  does not need __all__ previous structures, it happens that a module does not depend on a __all__ previous one. For instance, the primordial module does not need information on the background and thermodynamics evolution in order to compute the primordial spectra, so the dependency is reduced: `primordial_init(&pr,&pt,&pm)`.
 
-Each function _module_`_init()` only deallocates arrays defined in the structure of their own module, so they need only their own structure as argument. (This is possible because all structures are self-contained, in the sense that when the structure contains an allocated array, it also contains the size of this array). The first and last module, `input` and `output`, have no `input_free()` or `output_free()` functions, because the structures `precision` and `output` do not contain arrays that would need to be de-allocated after the execution of the module.
+Each function `module_init()` only deallocates arrays defined in the structure of their own module, so they need only their own structure as argument. (This is possible because all structures are self-contained, in the sense that when the structure contains an allocated array, it also contains the size of this array). The first and last module, `input` and `output`, have no `input_free()` or `output_free()` functions, because the structures `precision` and `output` do not contain arrays that would need to be de-allocated after the execution of the module.
 
 ### The `test_<...>.c` files ###
 
@@ -263,12 +260,12 @@ intermediate steps (only background quantities, only the
 thermodynamics, only the perturbations and sources, etc.) It is
 then straightforward to truncate the full hierarchy of modules 1, ... 10 at some
 arbitrary order. We provide several "reduced executables" achieving precisely this.
-They are located in `test/test_`_module_`.c` (like, for instance, `test/test_perturbations.c`) and they can
+They are located in `test/test_module_.c` (like, for instance, `test/test_perturbations.c`) and they can
 be complied using the Makefile, which contains the appropriate commands and definitions (for instance, you can type `make test_perturbations`).
 
 The `test/` directory contains other useful example of alternative main functions, like for instance
 `test_loops.c` which shows how to call `CLASS` within a loop over different parameter values.
-There is also a version `test/test_loops_omp.c` using a double level of openMP parallelisation: one for running several `CLASS` instances in parallel, one for running each `CLASS` instance on several cores. The comments in theses files are self-explanatory.
+There is also a version `test/test_loops_omp.c` using a double level of openMP parallelisation: one for running several `CLASS` instances in parallel, one for running each `CLASS` instance on several cores. The comments in these files are self-explanatory.
 
 # Input/output #
 
@@ -282,7 +279,7 @@ There are two types of input:
 
 The code can be executed with a maximum of two input files, e.g.
 
-     `./class explanatory.ini cl_permille.pre`
+     ./class explanatory.ini cl_permille.pre
 
 
 The file with a `.ini` extension is the cosmological parameter
@@ -293,7 +290,7 @@ replaced by the parameters passed in the two input files. For
 instance, if one is happy with default accuracy settings, it is enough
 to run with 
 
-     `./class explanatory.ini`
+     ./class explanatory.ini
 
 Input files do not
 necessarily contain a line for each parameter, since many of them can
@@ -315,17 +312,17 @@ The syntax of the input files is explained at the beginning of
 `explanatory.ini`.  Typically, lines in those files look like:
 
 
-`parameter1 = value1`
+      parameter1 = value1
 
-`free comments`
+      free comments
 
-`parameter2 = value2 \# further comments`
+      parameter2 = value2 # further comments
 
-`\# commented_parameter = commented_value`
+      # commented_parameter = commented_value
 
 and parameters can be entered in arbitrary order. This is rather
-intuitive. The user should just be careful not to put an "`=`"
-sign not preceded by a "`\#`" sign inside a comment: the code
+intuitive. The user should just be careful not to put an "="
+sign not preceded by a "#" sign inside a comment: the code
 would then think that one is trying to pass some unidentified input
 parameter.
 
@@ -344,30 +341,30 @@ the `input.c` module. For instance, the Hubble parameter, the photon
 density, the baryon density and the ultra-relativistic neutrino density can be
 entered as:
 
-`h = 0.7 `
+      h = 0.7 
 
-`T_cmb = 2.726     # Kelvin units`
+      T_cmb = 2.726     # Kelvin units
 
-`omega_b = 0.02`
+      omega_b = 0.02
 
-`N_eff = 3.04`
+      N_eff = 3.04
 
 
 (in arbitrary order), or as
 
 
-`H0 = 70`
+      H0 = 70
 
-`omega_g = 2.5e-5     # g is the label for photons`
+      omega_g = 2.5e-5     # g is the label for photons
 
-`Omega_b = 0.04`
+      Omega_b = 0.04
 
-`omega_ur = 1.7e-5    # ur is the label for ultra-relativistic species`\\
+      omega_ur = 1.7e-5    # ur is the label for ultra-relativistic species
 
 
 or any combination of the two. The code knows that for the photon
 density, one should pass one (but not more than one) parameter out of
-`\f$T_{cmb}\f$`, `omega_g`, `Omega_g` (where small omega's refer to
+`T_cmb`, `omega_g`, `Omega_g` (where small omega's refer to
 \f$\omega_i \equiv \Omega_i h^2\f$). It searches for one of these values,
 and if needed, it converts it into one of the other two parameters,
 using also other input parameters. For instance, `omega_g` will
@@ -384,7 +381,6 @@ user does not need to think too much, and can pass his preferred set
 of parameters in a nearly informal way.
 
 Let us mention a two useful parameters defined at the end of `explanatory.ini`, that we recommend setting to `yes` in order to run the code in a safe way:
-
 
 `write parameters =  [yes or no]` (_default_: `no`)
 
@@ -406,7 +402,7 @@ _This part of the documentation will be expanded with details on default precisi
 
 The input file may contain a line
 
-     `root = <root>`
+      root = <root>
 
 where `<root>` is a path of your choice, e.g. `output/test_`.
 Then all output files will start like this, e.g. `output/test_cl.dat`, `output/test_cl_lensed.dat`, etc.
@@ -414,7 +410,7 @@ Of course the number of output files depends on your settings in the input file.
 
 If you do not pass explicitly a `root = <root>`, the code will name the output in its own way, by concatenating `output/`, the name of the input parameter file, and the first available integer number, e.g.
 
-     `output/explanatory03_cl.dat`, etc.
+     output/explanatory03_cl.dat, etc.
 
 
 # General principles #
@@ -422,23 +418,22 @@ If you do not pass explicitly a `root = <root>`, the code will name the output i
 ## Error management ##
 
 Error management is based on the fact that all functions are defined
-as integers returning either `\_SUCCESS\_` or `\_FAILURE\_`. Before returning `\_FAILURE\_`, they write an
+as integers returning either `_SUCCESS_` or `_FAILURE_`. Before returning `_FAILURE_`, they write an
 error message in the structure of the module to which they belong. The
 calling function will read this message, append it to its own error
-message, and return a `\_FAILURE\_`; and so on and so forth, until
+message, and return a `_FAILURE_`; and so on and so forth, until
 the main routine is reached. This error management allows the user to
 see the whole nested structure of error messages when an error has
 been met. The structure associated to each module contains a field
 for writing error messages, called `structure_i.error_message`, where `structure_i` could be one of `background`, `thermo`, `perturbs`, etc. So, when a function from a module \f$i\f$
 is called within module \f$j\f$ and returns an error, the goal is to write
 in `structure_j.error_message` a local error message, and to
-append to it the error message in `structure_i.error_message`. These steps are implemented in a macro
-`class_call()`, used for calling whatever function:
+append to it the error message in `structure_i.error_message`. These steps are implemented in a macro `class_call()`, used for calling whatever function:
 
 
-`class_call(module_i_function(...,structure_i),`
-          `structure_i.error_message,` 
-          `structure_j.error_message);`
+      class_call(module_i_function(...,structure_i),
+                structure_i.error_message, 
+                structure_j.error_message);
     
 
 So, the first argument of `call_call()` is the function we want
@@ -447,22 +442,18 @@ returned by this function; and the third one is the location of the
 error message which should be returned to the higher level. 
 Usually, in the bulk of the code, we use pointer to structures rather than structure themselves; then the syntax is
 
-
-`class_call(module_i_function(...,pi),`
-         `pi->error_message,` 
-         `pj->error_message);`
-
+      class_call(module_i_function(...,pi),
+             pi->error_message,
+             pj->error_message);`
 
 where in this generic example, `pi` and `pj` are assumed to be pointers towards the structures 
 `structure_i` and `structure_j`.
-
 
 The user will find in `include/common.h` a list of additional macros, all
 starting by `class_...()`, which are all based on this logic. For
 instance, the macro `class_test()` offers a generic way to return
 an error in a standard format if a condition is not fulfilled. A
 typical error message from `CLASS` looks like:
-
 
 
 `Error in module_j_function1`
@@ -483,17 +474,14 @@ automatically by the macros. For instance, in the above example, it
 was only necessary to write inside the function `module_x_functionN()` a test like:
 
 
-`class_test(blabla >= 1,`
-
-            `px->error_message,` 
-
-         `"your choice of input parameter blabla=\%e
-is not consistent with the constraint blabla<\%e",`
-
-           `blabla,blablamax);`
+      class_test(blabla >= 1,
+                  px->error_message,
+               "your choice of input parameter blabla=%e
+      is not consistent with the constraint blabla<%e",
+                 blabla,blablamax);
 
 
-Allthe rest was added step by step by the various `class_call()` macros.
+All the rest was added step by step by the various `class_call()` macros.
 
 
 ## Dynamical allocation of indices ##
@@ -513,4 +501,4 @@ _This part of the documentation will be expanded with concrete guidelines._
 
 # Units and equations #
 
-_This part of the documentation will be expanded with concrete guidlines._
+_This part of the documentation will be expanded with concrete guidelines._
