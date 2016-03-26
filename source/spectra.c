@@ -585,9 +585,9 @@ int spectra_pk_at_k_and_z(
     }
 
     /** - --> (b) subcase 0<k<kmin: in this case we know that on super-Hubble scales:
-     *          P(k) = [some number] * k  * P_primordial(k) 
+     *          P(k) = [some number] * k  * P_primordial(k)
      *          so
-     *          P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin)) 
+     *          P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin))
      *          (note that the result is accurate only if kmin is such that [a0 kmin] << H0)
      */
 
@@ -1781,7 +1781,7 @@ int spectra_indices(
   class_define_index(psp->index_tr_theta_scf,ppt->has_source_theta_scf,index_tr,1);
   class_define_index(psp->index_tr_theta_fld,ppt->has_source_theta_fld,index_tr,1);
   class_define_index(psp->index_tr_theta_ur,ppt->has_source_theta_ur,index_tr,1);
-  class_define_index(psp->index_tr_theta_dr,ppt->has_source_theta_ur,index_tr,1);
+  class_define_index(psp->index_tr_theta_dr,ppt->has_source_theta_dr,index_tr,1);
   class_define_index(psp->index_tr_theta_ncdm1,ppt->has_source_theta_ncdm,index_tr,pba->N_ncdm);
   class_define_index(psp->index_tr_theta_tot,ppt->has_velocity_transfers,index_tr,1);
 
