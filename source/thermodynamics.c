@@ -2450,11 +2450,11 @@ int thermodynamics_recombination(
  * thermodynamics_recombination(), from thermodynamics_init().
  *
  *************************************************************************************************
- *                 HYREC: Hydrogen and Helium Recombination Code                                 
- *         Written by Yacine Ali-Haimoud and Chris Hirata (Caltech)                              
+ *                 HYREC: Hydrogen and Helium Recombination Code
+ *         Written by Yacine Ali-Haimoud and Chris Hirata (Caltech)
  *************************************************************************************************
  *
- * 
+ *
  * @param ppr      Input: pointer to precision structure
  * @param pba      Input: pointer to background structure
  * @param pth      Input: pointer to thermodynamics structure
@@ -2732,30 +2732,30 @@ int thermodynamics_recombination_with_hyrec(
  * thermodynamics_init()). Called once by
  * thermodynamics_recombination, from thermodynamics_init().
  *
- * 
+ *
  *******************************************************************************
- * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium,   
- * developed by Douglas Scott (dscott@astro.ubc.ca)                            
- * based on calculations in the paper Seager, Sasselov & Scott                 
- * (ApJ, 523, L1, 1999).                                                       
- * and "fudge" updates in Wong, Moss & Scott (2008).                           
- *                                                                             
- * Permission to use, copy, modify and distribute without fee or royalty at    
- * any tier, this software and its documentation, for any purpose and without  
- * fee or royalty is hereby granted, provided that you agree to comply with    
- * the following copyright notice and statements, including the disclaimer,    
- * and that the same appear on ALL copies of the software and documentation,   
- * including modifications that you make for internal use or for distribution: 
- *                                                                             
+ * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium,
+ * developed by Douglas Scott (dscott@astro.ubc.ca)
+ * based on calculations in the paper Seager, Sasselov & Scott
+ * (ApJ, 523, L1, 1999).
+ * and "fudge" updates in Wong, Moss & Scott (2008).
+ *
+ * Permission to use, copy, modify and distribute without fee or royalty at
+ * any tier, this software and its documentation, for any purpose and without
+ * fee or royalty is hereby granted, provided that you agree to comply with
+ * the following copyright notice and statements, including the disclaimer,
+ * and that the same appear on ALL copies of the software and documentation,
+ * including modifications that you make for internal use or for distribution:
+ *
  * Copyright 1999-2010 by University of British Columbia.  All rights reserved.
- *                                                                             
- * THIS SOFTWARE IS PROVIDED "AS IS", AND U.B.C. MAKES NO                      
- * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.                          
- * BY WAY OF EXAMPLE, BUT NOT LIMITATION,                                      
- * U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES OF                            
- * MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT               
- * THE USE OF THE LICENSED SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE         
- * ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.            
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS", AND U.B.C. MAKES NO
+ * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
+ * BY WAY OF EXAMPLE, BUT NOT LIMITATION,
+ * U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES OF
+ * MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT
+ * THE USE OF THE LICENSED SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE
+ * ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
  *******************************************************************************
  *
  * Version 1.5: includes extra fitting function from
@@ -3172,7 +3172,7 @@ int thermodynamics_derivs_with_recfast(
                                        ErrorMsg error_message
                                        ) {
 
- 
+
   /* define local variables */
 
   double x,n,n_He,Trad,Tmat,x_H,x_He,Hz,dHdz,epsilon;
@@ -3327,7 +3327,7 @@ int thermodynamics_derivs_with_recfast(
     /* Peebles' coefficient (approximated as one when the Hydrogen
        ionization fraction is very close to one) */
     if (x_H < ppr->recfast_x_H0_trigger2) {
-      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x)/preco->fu +K*Rup*n*(1.-x));
+      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
     }
     else {
       C = 1.;
