@@ -66,9 +66,13 @@ int nonlinear_init(
   double *lnk_l;
   double *lnpk_l;
   double *ddlnpk_l;
+  short print_warning=_FALSE_;
+  double * pvecback;
+  int last_index;
+  double a,z;
 
-  /** Summary 
-   * 
+  /** Summary
+   *
    * (a) First deal with the case where non non-linear corrections requested */
 
   if (pnl->method == nl_none) {
@@ -153,9 +157,23 @@ int nonlinear_init(
         }
       }
       else {
+        /* when Halofit failed, use 1 as the non-linear correction, and print a warning */
         for (index_k=0; index_k<pnl->k_size; index_k++) {
           pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
         }
+        if ((pnl->nonlinear_verbose > 0) && (print_warning == _FALSE_)) {
+          class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+          class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
+                     pba->error_message,
+                     pnl->error_message);
+          a = pvecback[pba->index_bg_a];
+          z = pba->a_today/a-1.;
+          fprintf(stdout,
+                  " -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is probably because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase P_k_max_h/Mpc or P_k_max_1/Mpc until reaching desired z.\n",
+                  z);
+          free(pvecback);
+        }
+        print_warning = _TRUE_;
       }
     }
 

@@ -188,7 +188,7 @@ int input_init_from_arguments(
  * from what can be interpreted from the values passed in the input
  * 'file_content' structure. If its size is null, all parameters keep
  * their default values.
- * 
+ *
  */
 
 int input_init(
@@ -211,10 +211,8 @@ int input_init(
   int counter, index_target, i;
   double * unknown_parameter;
   int unknown_parameters_size;
-  double dx, dxdy=0.;
-  int fevals=0, iter, iter2;
-  int return_function;
-  double x1, f1, x2, f2, xzero;
+  int fevals=0;
+  double xzero;
   int target_indices[_NUM_TARGETS_];
   double *dxdF, *x_inout;
 
@@ -225,8 +223,8 @@ int input_init(
   char param_unused_name[_LINE_LENGTH_MAX_];
 
   struct fzerofun_workspace fzw;
-  /** 
-   * 
+  /**
+   *
    * These two arrays must contain the strings of names to be searched
    *  for and the corresponding new parameter */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
@@ -3757,7 +3755,7 @@ int input_find_root(double *xzero,
   int iter, iter2;
   int return_function;
   /** Summary: */
-  
+
   /** - Fisrt we do our guess */
   class_call(input_get_guess(&x1, &dxdy, pfzw, errmsg),
              errmsg, errmsg);
