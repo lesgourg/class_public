@@ -546,6 +546,9 @@ int input_read_parameters(
   double PSR0,PSR1,PSR2,PSR3,PSR4;
   double HSR0,HSR1,HSR2,HSR3,HSR4;
 
+  double z_max;
+  int bin;
+
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /** - set all parameters (input and precision) to default values */
@@ -2081,21 +2084,6 @@ int input_read_parameters(
       }
       free(pointer1);
     }
-
-    class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1==_TRUE_) {
-      ppt->z_max_pk = param1;
-    }
-    else {
-      ppt->z_max_pk = 0.;
-      for (i=0; i<pop->z_pk_num; i++) {
-        ppt->z_max_pk = MAX(ppt->z_max_pk,pop->z_pk[i]);
-      }
-    }
-    psp->z_max_pk = ppt->z_max_pk;
   }
 
   /* deal with selection functions */
@@ -2307,6 +2295,48 @@ int input_read_parameters(
                "the input parameter 's_bias' is obsolete, because you can now pass an independent magnitude bias for each bin/selection function. The new input name is 'selection_magnitude_bias'. It can be set to a single number (common magnitude bias for all bins) or as many numbers as the number of bins");
 
   }
+  /* end of selection function section */
+
+  /* deal with z_max issues */
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_)) {
+
+    class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1==_TRUE_) {
+      ppt->z_max_pk = param1;
+    }
+    else {
+      ppt->z_max_pk = 0.;
+
+      if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
+        for (i=0; i<pop->z_pk_num; i++) {
+          ppt->z_max_pk = MAX(ppt->z_max_pk,pop->z_pk[i]);
+        }
+      }
+
+      if (ppt->has_cl_number_count == _TRUE_) {
+
+        for (bin=0; bin<ppt->selection_num; bin++) {
+
+          if (ppt->selection==gaussian) {
+            z_max = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
+          }
+          if (ppt->selection==tophat) {
+            z_max = ppt->selection_mean[bin]+(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[bin];
+          }
+          if (ppt->selection==dirac) {
+            z_max = ppt->selection_mean[bin];
+          }
+          fprintf(stderr,"bin &d z_max %e\n",bin,z_max);
+          ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
+        }
+      }
+    }
+    psp->z_max_pk = ppt->z_max_pk;
+  }
+  /* end of z_max section */
 
   class_read_string("root",pop->root);
 
@@ -3255,10 +3285,14 @@ int input_default_precision ( struct precision * ppr ) {
   // For density Cl, we recommend not to use the Limber approximation
   // at all, and hence to put here a very large number (e.g. 10000); but
   // if you have wide and smooth selection functions you may wish to
-  // use it; then 30 might be OK
-  ppr->l_switch_limber_for_nc_local_over_z=10000.;
-  // For terms integrated along the line-of-sight involving spherical Bessel functions (but not their derivatives), Limber approximation works well
-  ppr->l_switch_limber_for_nc_los_over_z=2000.;
+  // use it; then 100 might be OK
+  ppr->l_switch_limber_for_nc_local_over_z=100.;
+  // For terms integrated along the line-of-sight involving spherical
+  // Bessel functions (but not their derivatives), Limber
+  // approximation works well. High precision can be reached with 2000
+  // only. But if you have wide and smooth selection functions you may
+  // reduce to e.g. 30.
+  ppr->l_switch_limber_for_nc_los_over_z=30.;
 
   ppr->selection_cut_at_sigma=5.;
   ppr->selection_sampling=50;
