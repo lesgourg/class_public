@@ -1574,8 +1574,7 @@ int transfer_source_tau_size(
 
         /* value of l at which the code switches to Limber approximation
            (necessary for next step) */
-        l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[bin];
-
+        l_limber=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[bin];
         /* check that bessel well sampled, if not define finer sampling
            overwriting the previous one.
            One Bessel oscillations corresponds to [Delta tau]=2pi/k.
@@ -1627,17 +1626,23 @@ int transfer_source_tau_size(
 
       /* value of l at which the code switches to Limber approximation
          (necessary for next step) */
-      l_limber=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[bin];
-
-      /* check that bessel well sampled, if not define finer sampling
-         overwriting the previous one.
-         One Bessel oscillations corresponds to [Delta tau]=2pi/k.
-         This is minimal for largest relevant k_max,
-         namely k_max=l_limber/((tau0-tau_mean)/2).
-         We need to cut the interval (tau_0-tau_min) in pieces of size
-         [Delta tau]=2pi/k_max. This gives the number below.
-      */
-      *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel);
+      if(_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)) {
+        /* Even if G5 is integrated along the line-of-sight, we do not apply the same Limber criteria as for the other integrated terms, because here we have the derivative of the Bessel.  */
+        l_limber=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[bin];
+        *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel);
+      }
+      else {
+        l_limber=ppr->l_switch_limber_for_nc_los_over_z*ppt->selection_mean[bin];
+        /* check that bessel well sampled, if not define finer sampling
+           overwriting the previous one.
+           One Bessel oscillations corresponds to [Delta tau]=2pi/k.
+           This is minimal for largest relevant k_max,
+           namely k_max=l_limber/((tau0-tau_mean)/2).
+           We need to cut the interval (tau_0-tau_min) in pieces of size
+           [Delta tau]=2pi/k_max. This gives the number below.
+        */
+        *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel_los);
+      }
     }
   }
 
@@ -3553,37 +3558,37 @@ int transfer_use_limber(
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb) && (l>ppr->l_switch_limber)) {
         *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density])) {
+      if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_density])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_rsd])) {
+      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_rsd])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_d0])) {
+      if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_d0])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_d1])) {
+      if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_d1])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_lens])) {
+      if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens) && (l>=ppr->l_switch_limber_for_nc_los_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_lens])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_nc_g1, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g1])) {
+      if (_index_tt_in_range_(ptr->index_tt_nc_g1, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g1])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_nc_g2, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g2])) {
+      if (_index_tt_in_range_(ptr->index_tt_nc_g2, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g2])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_nc_g3, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g3])) {
+      if (_index_tt_in_range_(ptr->index_tt_nc_g3, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g3])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_nc_g4, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g4])) {
+      if (_index_tt_in_range_(ptr->index_tt_nc_g4, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_nc_los_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g4])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g5])) {
+      if (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr) && (l>=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[index_tt-ptr->index_tt_nc_g5])) {
         if (ppt->selection != dirac) *use_limber = _TRUE_;
       }
-      if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential) && (l>=ppr->l_switch_limber_for_cl_density_over_z*ppt->selection_mean[index_tt-ptr->index_tt_lensing])) {
+      if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential) && (l>=ppr->l_switch_limber_for_nc_los_over_z*ppt->selection_mean[index_tt-ptr->index_tt_lensing])) {
         *use_limber = _TRUE_;
       }
     }

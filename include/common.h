@@ -715,8 +715,11 @@ struct precision
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;
 
-  /** when to use the Limber approximation for density cl's (relative to central redshift of each bin) */
-  double l_switch_limber_for_cl_density_over_z;
+  /** when to use the Limber approximation for local number count contributions to cl's (relative to central redshift of each bin) */
+  double l_switch_limber_for_nc_local_over_z;
+
+  /** when to use the Limber approximation for number count contributions to cl's integrated along the line-of-sight (relative to central redshift of each bin) */
+  double l_switch_limber_for_nc_los_over_z;
 
   /** in sigma units, where to cut gaussian selection functions */
   double selection_cut_at_sigma;
@@ -726,6 +729,9 @@ struct precision
 
   /** controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling */
   double selection_sampling_bessel;
+
+  /** controls sampling of integral over time when selection functions vary slower than Bessel functions. This parameter is specific to number counts contributions to Cl integrated along the line of sight. Increase for better sampling */
+  double selection_sampling_bessel_los;
 
   /** controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
   double selection_tophat_edge;

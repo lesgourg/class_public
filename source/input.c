@@ -2606,10 +2606,26 @@ int input_read_parameters(
   class_read_double("transfer_neglect_late_source",ppr->transfer_neglect_late_source);
 
   class_read_double("l_switch_limber",ppr->l_switch_limber);
-  class_read_double("l_switch_limber_for_cl_density_over_z",ppr->l_switch_limber_for_cl_density_over_z);
+
+  class_call(parser_read_string(pfc,
+                                "l_switch_limber_for_cl_density_over_z",
+                                &string1,
+                                &flag1,
+                                errmsg),
+             errmsg,
+             errmsg);
+
+  class_test(flag1 == _TRUE_,
+             errmsg,
+             "You passed in input a precision parameter called l_switch_limber_for_cl_density_over_z. This syntax is deprecated since v2.5.0. Please use instead the two precision parameters l_switch_limber_for_nc_local_over_z, l_switch_limber_for_nc_los_over_z, defined in include/common.h, and allowing for better performance.");
+
+  class_read_double("l_switch_limber_for_nc_local_over_z",ppr->l_switch_limber_for_nc_local_over_z);
+  class_read_double("l_switch_limber_for_nc_los_over_z",ppr->l_switch_limber_for_nc_los_over_z);
+
   class_read_double("selection_cut_at_sigma",ppr->selection_cut_at_sigma);
   class_read_double("selection_sampling",ppr->selection_sampling);
   class_read_double("selection_sampling_bessel",ppr->selection_sampling_bessel);
+  class_read_double("selection_sampling_bessel_los",ppr->selection_sampling_bessel_los);
   class_read_double("selection_tophat_edge",ppr->selection_tophat_edge);
 
   /** - (h.6.) parameters related to nonlinear calculations */
@@ -3240,12 +3256,14 @@ int input_default_precision ( struct precision * ppr ) {
   // at all, and hence to put here a very large number (e.g. 10000); but
   // if you have wide and smooth selection functions you may wish to
   // use it; then 30 might be OK
-  ppr->l_switch_limber_for_cl_density_over_z=30.;
-
+  ppr->l_switch_limber_for_nc_local_over_z=10000.;
+  // For terms integrated along the line-of-sight involving spherical Bessel functions (but not their derivatives), Limber approximation works well
+  ppr->l_switch_limber_for_nc_los_over_z=2000.;
 
   ppr->selection_cut_at_sigma=5.;
   ppr->selection_sampling=50;
   ppr->selection_sampling_bessel=20;
+  ppr->selection_sampling_bessel_los=ppr->selection_sampling_bessel;
   ppr->selection_tophat_edge=0.1;
 
   /**
