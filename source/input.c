@@ -2320,6 +2320,7 @@ int input_read_parameters(
 
         for (bin=0; bin<ppt->selection_num; bin++) {
 
+            /* the few lines below should be consistent with their counterpart in transfer.c, in transfer_selection_times() */
           if (ppt->selection==gaussian) {
             z_max = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
           }

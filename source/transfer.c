@@ -3246,7 +3246,7 @@ int transfer_selection_times(
   double z=0.;
 
   /* lower edge of time interval for this bin */
-
+  /* the few lines below should be consistent with their counterpart in input.c */
   if (ppt->selection==gaussian) {
     z = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
   }
