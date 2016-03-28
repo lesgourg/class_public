@@ -2298,7 +2298,7 @@ int input_read_parameters(
   /* end of selection function section */
 
   /* deal with z_max issues */
-  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_)) {
+  if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
                errmsg,
@@ -2316,7 +2316,7 @@ int input_read_parameters(
         }
       }
 
-      if (ppt->has_cl_number_count == _TRUE_) {
+      if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
         for (bin=0; bin<ppt->selection_num; bin++) {
 
@@ -2329,7 +2329,6 @@ int input_read_parameters(
           if (ppt->selection==dirac) {
             z_max = ppt->selection_mean[bin];
           }
-          fprintf(stderr,"bin &d z_max %e\n",bin,z_max);
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
       }
