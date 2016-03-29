@@ -1,11 +1,11 @@
-/** @file cl.c Documented nonlinear module
+/** @file nonlinear.c Documented nonlinear module
  *
  * Julien Lesgourgues, 6.03.2014
  *
  * New module replacing an older one present up to version 2.0 The new
  * module is located in a better place in the main, allowing it to
- * compute non-linear correction to Cl's and not just P(k).  It will
- * also be easier to generalise to new methods.  The old implemenation
+ * compute non-linear correction to \f$ C_l\f$'s and not just \f$ P(k)\f$. It will
+ * also be easier to generalize to new methods.  The old implementation
  * of one-loop calculations and TRG calculations has been dropped from
  * this version, they can still be found in older versions.
  *
@@ -66,15 +66,21 @@ int nonlinear_init(
   double *lnk_l;
   double *lnpk_l;
   double *ddlnpk_l;
+  short print_warning=_FALSE_;
+  double * pvecback;
+  int last_index;
+  double a,z;
 
-  /** (a) if non non-linear corrections requested */
+  /** Summary
+   *
+   * (a) First deal with the case where non non-linear corrections requested */
 
   if (pnl->method == nl_none) {
     if (pnl->nonlinear_verbose > 0)
       printf("No non-linear spectra requested. Nonlinear module skipped.\n");
   }
 
-  /** (b) for HALOFIT non-linear spectrum */
+  /** (b) Compute for HALOFIT non-linear spectrum */
 
   else if (pnl->method == nl_halofit) {
     if (pnl->nonlinear_verbose > 0)
@@ -151,9 +157,23 @@ int nonlinear_init(
         }
       }
       else {
+        /* when Halofit failed, use 1 as the non-linear correction, and print a warning */
         for (index_k=0; index_k<pnl->k_size; index_k++) {
           pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
         }
+        if ((pnl->nonlinear_verbose > 0) && (print_warning == _FALSE_)) {
+          class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+          class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
+                     pba->error_message,
+                     pnl->error_message);
+          a = pvecback[pba->index_bg_a];
+          z = pba->a_today/a-1.;
+          fprintf(stdout,
+                  " -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is probably because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase P_k_max_h/Mpc or P_k_max_1/Mpc until reaching desired z.\n",
+                  z);
+          free(pvecback);
+        }
+        print_warning = _TRUE_;
       }
     }
 
@@ -265,7 +285,7 @@ int nonlinear_pk_l(
 
           pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
             *source_ic1*source_ic2
-            *primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symetric term ic2,ic1)
+            *primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)
 
         }
       }
@@ -307,7 +327,7 @@ int nonlinear_halofit(
 
   double Omega_m,Omega_v,fnu,Omega0_m, w0;
 
-  /** determine non linear ratios (from pk) **/
+  /** Determine non linear ratios (from pk) **/
 
   int index_k;
   double pk_lin,pk_quasi,pk_halo,rk;

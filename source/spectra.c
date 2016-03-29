@@ -1,4 +1,4 @@
-/** @file cl.c Documented spectra module
+/** @file spectra.c Documented spectra module
  *
  * Julien Lesgourgues, 25.08.2010
  *
@@ -10,7 +10,7 @@
  * The following functions can be called from other modules:
  *
  * -# spectra_init() at the beginning (but after transfer_init())
- * -# spectra_cl_at_l() at any time for computing C at any l
+ * -# spectra_cl_at_l() at any time for computing \f$ C_l \f$ at any l
  * -# spectra_spectrum_at_z() at any time for computing P(k) at any z
  * -# spectra_spectrum_at_k_and z() at any time for computing P at any k and z
  * -# spectra_free() at the end
@@ -75,9 +75,9 @@ int spectra_bandpower(struct spectra * psp,
 }
 
 /**
- * Anisotropy power spectra C_l's for all types, modes and initial conditions.
+ * Anisotropy power spectra \f$ C_l\f$'s for all types, modes and initial conditions.
  *
- * This routine evaluates all the C_l's at a given value of l by
+ * This routine evaluates all the \f$C_l\f$'s at a given value of l by
  * interpolating in the pre-computed table. When relevant, it also
  * sums over all initial conditions for each mode, and over all modes.
  *
@@ -88,9 +88,9 @@ int spectra_bandpower(struct spectra * psp,
  *
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param l          Input: multipole number
- * @param cl_tot     Ouput: total C_l's for all types (TT, TE, EE, etc..)
- * @param cl_md      Ouput: C_l's for all types (TT, TE, EE, etc..) decomposed mode by mode (scalar, tensor, ...) when relevant
- * @param cl_md_ic   Ouput: C_l's for all types (TT, TE, EE, etc..) decomposed by pairs of initial conditions (adiabatic, isocurvatures) for each mode (usually, only for the scalar mode) when relevant
+ * @param cl_tot     Output: total \f$C_l\f$'s for all types (TT, TE, EE, etc..)
+ * @param cl_md      Output: \f$C_l\f$'s for all types (TT, TE, EE, etc..) decomposed mode by mode (scalar, tensor, ...) when relevant
+ * @param cl_md_ic   Output: \f$C_l\f$'s for all types (TT, TE, EE, etc..) decomposed by pairs of initial conditions (adiabatic, isocurvatures) for each mode (usually, only for the scalar mode) when relevant
  * @return the error status
  */
 
@@ -111,7 +111,7 @@ int spectra_cl_at_l(
   int index_ic1,index_ic2,index_ic1_ic2;
   int index_ct;
 
-  /** A) treat case in which there is only one mode and one initial condition.
+  /** - (a) treat case in which there is only one mode and one initial condition.
       Then, only cl_tot needs to be filled. */
 
   if ((psp->md_size == 1) && (psp->ic_size[0] == 1)) {
@@ -143,7 +143,7 @@ int spectra_cl_at_l(
     }
   }
 
-  /** B) treat case in which there is only one mode
+  /** - (b) treat case in which there is only one mode
       with several initial condition.
       Fill cl_md_ic[index_md=0] and sum it to get cl_tot. */
 
@@ -190,7 +190,7 @@ int spectra_cl_at_l(
     }
   }
 
-  /** C) loop over modes */
+  /** - (c) loop over modes */
 
   if (psp->md_size > 1) {
 
@@ -199,7 +199,7 @@ int spectra_cl_at_l(
 
     for (index_md = 0; index_md < psp->md_size; index_md++) {
 
-      /** C.1) treat case in which the mode under consideration
+      /** - --> (c.1.) treat case in which the mode under consideration
           has only one initial condition.
           Fill cl_md[index_md]. */
 
@@ -229,7 +229,7 @@ int spectra_cl_at_l(
         }
       }
 
-      /** C.2) treat case in which the mode under consideration
+      /** - --> (c.2.) treat case in which the mode under consideration
           has several initial conditions.
           Fill cl_md_ic[index_md] and sum it to get cl_md[index_md] */
 
@@ -294,7 +294,7 @@ int spectra_cl_at_l(
         }
       }
 
-      /** C.3) add contribution of cl_md[index_md] to cl_tot */
+      /** - --> (c.3.) add contribution of cl_md[index_md] to cl_tot */
 
       for (index_ct=0; index_ct<psp->ct_size; index_ct++)
         cl_tot[index_ct]+=cl_md[index_md][index_ct];
@@ -315,14 +315,14 @@ int spectra_cl_at_l(
  *
  * Can be called in two modes: linear or logarithmic.
  *
- * - linear: returns P(k) (units: Mpc^3)
+ * - linear: returns P(k) (units: \f$ Mpc^3\f$)
  *
- * - logarithmic: returns ln(P(k))
+ * - logarithmic: returns \f$\ln{P(k)}\f$
  *
  * One little subtlety: in case of several correlated initial conditions,
  * the cross-correlation spectrum can be negative. Then, in logarithmic mode,
- * the non-diagonal elements contain the cross-correlation angle P_12/sqrt(P_11 P_22)
- * (from -1 to 1) instead of ln(P_12)
+ * the non-diagonal elements contain the cross-correlation angle \f$ P_{12}/\sqrt{P_{11} P_{22}}\f$
+ * (from -1 to 1) instead of \f$\ln{P_{12}}\f$
  *
  * This function can be
  * called from whatever module at whatever time, provided that
@@ -333,8 +333,8 @@ int spectra_cl_at_l(
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param mode       Input: linear or logarithmic
  * @param z          Input: redshift
- * @param output_tot Ouput: total matter power spectrum P(k) in Mpc**3 (linear mode), or its logarithms (logarithmic mode)
- * @param output_ic  Ouput: for each pair of initial conditions, matter power spectra P(k) in Mpc**3 (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
+ * @param output_tot Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param output_ic  Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
  * @return the error status
  */
 
@@ -359,7 +359,7 @@ int spectra_pk_at_z(
 
   index_md = psp->index_md_scalars;
 
-  /** - first step: convert z into ln(tau) */
+  /** - first step: convert z into \f$\ln{\tau}\f$ */
 
   class_call(background_tau_of_z(pba,z,&tau),
              pba->error_message,
@@ -373,7 +373,7 @@ int spectra_pk_at_z(
 
   /** - second step: for both modes (linear or logarithmic), store the spectrum in logarithmic format in the output array(s) */
 
-  /**   (a.) if only values at tau=tau_today are stored and we want P(k,z=0), no need to interpolate */
+  /** - --> (a) if only values at tau=tau_today are stored and we want \f$ P(k,z=0)\f$, no need to interpolate */
 
   if (psp->ln_tau_size == 1) {
 
@@ -393,7 +393,7 @@ int spectra_pk_at_z(
       }
   }
 
-  /**   (b.) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
+  /** - --> (b) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
 
   else {
 
@@ -464,7 +464,7 @@ int spectra_pk_at_z(
 
   /** - fourth step: depending on requested mode (linear or logarithmic), apply necessary transformation to the output arrays */
 
-  /**   (a.) linear mode: if only one initial condition, convert output_pk to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
+  /** - --> (a) linear mode: if only one initial condition, convert output_pk to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
 
   if (mode == linear) {
 
@@ -493,7 +493,7 @@ int spectra_pk_at_z(
     }
   }
 
-  /**   (b.) logarithmic mode: if only one initial condition, nothing to be done; if several initial conditions, convert output_tot to logarithmic format, output_ic is already in this format */
+  /** - --> (b) logarithmic mode: if only one initial condition, nothing to be done; if several initial conditions, convert output_tot to logarithmic format, output_ic is already in this format */
 
   else {
 
@@ -528,8 +528,8 @@ int spectra_pk_at_z(
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param k          Input: wavenumber in 1/Mpc
  * @param z          Input: redshift
- * @param pk_tot     Ouput: total matter power spectrum P(k) in Mpc**3
- * @param pk_ic      Ouput: for each pair of initial conditions, matter power spectra P(k) in Mpc**3
+ * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$
+ * @param pk_ic      Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3\f$
  * @return the error status
  */
 
@@ -571,7 +571,7 @@ int spectra_pk_at_k_and_z(
 
   if (k < exp(psp->ln_k[0])) {
 
-    /**   (a.) subcase k=0: then P(k)=0 */
+    /** - --> (a) subcase k=0: then P(k)=0 */
 
     if (k == 0.) {
       if (psp->ic_size[index_md] == 1) {
@@ -584,7 +584,7 @@ int spectra_pk_at_k_and_z(
       }
     }
 
-    /**    (b.) subcase 0<k<kmin: in this case we know that on super-Hubble scales:
+    /** - --> (b) subcase 0<k<kmin: in this case we know that on super-Hubble scales:
      *          P(k) = [some number] * k  * P_primordial(k)
      *          so
      *          P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin))
@@ -821,7 +821,7 @@ int spectra_pk_at_k_and_z(
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param mode       Input: linear or logarithmic
  * @param z          Input: redshift
- * @param output_tot Ouput: total matter power spectrum P(k) in Mpc**3 (linear mode), or its logarithms (logarithmic mode)
+ * @param output_tot Output: total matter power spectrum P(k) in \f$ Mpc^3\f$ (linear mode), or its logarithms (logarithmic mode)
  * @return the error status
  */
 
@@ -855,7 +855,7 @@ int spectra_pk_nl_at_z(
 
   /** - second step: for both modes (linear or logarithmic), store the spectrum in logarithmic format in the output array(s) */
 
-  /**   (a.) if only values at tau=tau_today are stored and we want P(k,z=0), no need to interpolate */
+  /** - --> (a) if only values at tau=tau_today are stored and we want P(k,z=0), no need to interpolate */
 
   if (psp->ln_tau_size == 1) {
 
@@ -868,7 +868,7 @@ int spectra_pk_nl_at_z(
     }
   }
 
-  /**   (b.) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
+  /** - --> (b) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
 
   else {
 
@@ -917,7 +917,7 @@ int spectra_pk_nl_at_z(
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param k          Input: wavenumber in 1/Mpc
  * @param z          Input: redshift
- * @param pk_tot     Ouput: total matter power spectrum P(k) in Mpc**3
+ * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3\f$
  * @return the error status
  */
 
@@ -942,13 +942,13 @@ int spectra_pk_nl_at_k_and_z(
 
   index_md = psp->index_md_scalars;
 
-  /** - first step: check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_pk_at_z()) */
+  /** - check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_pk_at_z()) */
 
   class_test((k < exp(psp->ln_k[0])) || (k > exp(psp->ln_k[psp->ln_k_size-1])),
              psp->error_message,
              "k=%e out of bounds [%e:%e]",k,0.,exp(psp->ln_k[psp->ln_k_size-1]));
 
-  /* compute P(k,z) (in logarithmic format for more accurate interpolation) */
+  /** - compute P(k,z) (in logarithmic format for more accurate interpolation) */
   class_alloc(spectrum_at_z,
               psp->ln_k_size*sizeof(double),
               psp->error_message);
@@ -961,7 +961,7 @@ int spectra_pk_nl_at_k_and_z(
              psp->error_message,
              psp->error_message);
 
-  /* get its second derivatives with spline, then interpolate, then convert to linear format */
+  /** - get its second derivatives with spline, then interpolate, then convert to linear format */
 
   class_alloc(spline,
               sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
@@ -1001,12 +1001,12 @@ int spectra_pk_nl_at_k_and_z(
 
 
 /**
- * Matter transfer functions T_i(k) for arbitrary redshift and for all
+ * Matter transfer functions \f$ T_i(k) \f$ for arbitrary redshift and for all
  * initial conditions.
  *
  * This routine evaluates the matter transfer functions at a given value of z by
  * interpolating in the pre-computed table (if several values of z have been stored)
- * or by directly reading it (if it only contains values at z=0 and we want T_i(k,z=0))
+ * or by directly reading it (if it only contains values at z=0 and we want \f$ T_i(k,z=0)\f$)
  *
  *
  * This function can be
@@ -1017,7 +1017,7 @@ int spectra_pk_nl_at_k_and_z(
  * @param pba        Input: pointer to background structure (used for converting z into tau)
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param z          Input: redshift
- * @param output     Ouput: matter transfer functions
+ * @param output     Output: matter transfer functions
  * @return the error status
  */
 
@@ -1055,7 +1055,7 @@ int spectra_tk_at_z(
 
   /** - second step: store the matter transfer functions in the output array */
 
-  /**   (a.) if only values at tau=tau_today are stored and we want T_i(k,z=0), no need to interpolate */
+  /** - --> (a) if only values at tau=tau_today are stored and we want \f$ T_i(k,z=0)\f$, no need to interpolate */
 
   if (psp->ln_tau_size == 1) {
 
@@ -1071,7 +1071,7 @@ int spectra_tk_at_z(
 
   }
 
-  /**   (b.) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
+  /** - --> (b) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
 
   else {
 
@@ -1095,11 +1095,11 @@ int spectra_tk_at_z(
 }
 
 /**
- * Matter transfer functions T_i(k) for arbitrary wavenumber, redshift
+ * Matter transfer functions \f$ T_i(k)\f$ for arbitrary wavenumber, redshift
  * and initial condition.
  *
  * This routine evaluates the matter transfer functions at a given
- * value of k and z by interpolating in a table of all T_i(k,z)'s
+ * value of k and z by interpolating in a table of all \f$ T_i(k,z)\f$'s
  * computed at this z by spectra_tk_at_z() (when kmin <= k <= kmax).
  * Returns an error when k<kmin or k > kmax.
  *
@@ -1111,7 +1111,7 @@ int spectra_tk_at_z(
  * @param psp        Input: pointer to spectra structure (containing pre-computed table)
  * @param k          Input: wavenumber in 1/Mpc
  * @param z          Input: redshift
- * @param output     Ouput: matter transfer functions
+ * @param output     Output: matter transfer functions
  * @return the error status
  */
 
@@ -1134,13 +1134,13 @@ int spectra_tk_at_k_and_z(
 
   index_md = psp->index_md_scalars;
 
-  /** - first step: check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_tk_at_z()) */
+  /** - check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_tk_at_z()) */
 
   class_test((k < 0.) || (k > exp(psp->ln_k[psp->ln_k_size-1])),
              psp->error_message,
              "k=%e out of bounds [%e:%e]",k,0.,exp(psp->ln_k[psp->ln_k_size-1]));
 
-  /* compute T_i(k,z) */
+  /** - compute T_i(k,z) */
 
   class_alloc(tks_at_z,
               psp->ln_k_size*psp->tr_size*psp->ic_size[index_md]*sizeof(double),
@@ -1153,7 +1153,7 @@ int spectra_tk_at_k_and_z(
              psp->error_message,
              psp->error_message);
 
-  /* get its second derivatives w.r.t. k with spline, then interpolate */
+  /** - get its second derivatives w.r.t. k with spline, then interpolate */
 
   class_alloc(ddtks_at_z,
               psp->ln_k_size*psp->tr_size*psp->ic_size[index_md]*sizeof(double),
@@ -1193,11 +1193,12 @@ int spectra_tk_at_k_and_z(
  * This routine initializes the spectra structure (in particular,
  * computes table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
  *
- * @param ppr Input : pointer to precision structure
- * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
- * @param ppt Input : pointer to perturbation structure
- * @param ptr Input : pointer to transfer structure
- * @param ppm Input : pointer to primordial structure
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param ppt Input: pointer to perturbation structure
+ * @param ptr Input: pointer to transfer structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
  * @param psp Output: pointer to initialized spectra structure
  * @return the error status
  */
@@ -1240,7 +1241,7 @@ int spectra_init(
              psp->error_message,
              psp->error_message);
 
-  /** - deal with C_l's, if any */
+  /** - deal with \f$ C_l\f$'s, if any */
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -1253,7 +1254,7 @@ int spectra_init(
     psp->ct_size=0;
   }
 
-  /** - deal with P(k,tau) and T_i(k,tau) */
+  /** - deal with \f$ P(k,\tau)\f$ and \f$ T_i(k,\tau)\f$ */
 
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
@@ -1474,9 +1475,10 @@ int spectra_free(
 /**
  * This routine defines indices and allocates tables in the spectra structure
  *
- * @param ppt  Input : pointer to perturbation structure
- * @param ptr  Input : pointer to transfers structure
- * @param ppm  Input : pointer to primordial structure
+ * @param pba  Input: pointer to background structure
+ * @param ppt  Input: pointer to perturbation structure
+ * @param ptr  Input: pointer to transfers structure
+ * @param ppm  Input: pointer to primordial structure
  * @param psp  Input/output: pointer to spectra structure
  * @return the error status
  */
@@ -1767,6 +1769,8 @@ int spectra_indices(
   class_define_index(psp->index_tr_delta_dr,ppt->has_source_delta_dr,index_tr,1);
   class_define_index(psp->index_tr_delta_ncdm1,ppt->has_source_delta_ncdm,index_tr,pba->N_ncdm);
   class_define_index(psp->index_tr_delta_tot,ppt->has_density_transfers,index_tr,1);
+  class_define_index(psp->index_tr_phi,ppt->has_source_phi,index_tr,1);
+  class_define_index(psp->index_tr_psi,ppt->has_source_psi,index_tr,1);
 
   /* indices for species associated with a velocity transfer function in Fourier space */
 
@@ -1777,7 +1781,7 @@ int spectra_indices(
   class_define_index(psp->index_tr_theta_scf,ppt->has_source_theta_scf,index_tr,1);
   class_define_index(psp->index_tr_theta_fld,ppt->has_source_theta_fld,index_tr,1);
   class_define_index(psp->index_tr_theta_ur,ppt->has_source_theta_ur,index_tr,1);
-  class_define_index(psp->index_tr_theta_dr,ppt->has_source_theta_ur,index_tr,1);
+  class_define_index(psp->index_tr_theta_dr,ppt->has_source_theta_dr,index_tr,1);
   class_define_index(psp->index_tr_theta_ncdm1,ppt->has_source_theta_ncdm,index_tr,pba->N_ncdm);
   class_define_index(psp->index_tr_theta_tot,ppt->has_velocity_transfers,index_tr,1);
 
@@ -1788,12 +1792,13 @@ int spectra_indices(
 }
 
 /**
- * This routine computes a table of values for all harmonic spectra C_l's,
+ * This routine computes a table of values for all harmonic spectra \f$ C_l \f$'s,
  * given the transfer functions and primordial spectra.
  *
- * @param ppt Input : pointer to perturbation structure
- * @param ptr Input : pointer to transfers structure
- * @param ppm Input : pointer to primordial structure
+ * @param pba Input: pointer to background structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ptr Input: pointer to transfers structure
+ * @param ppm Input: pointer to primordial structure
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -1851,17 +1856,17 @@ int spectra_cls(
 
   for (index_md = 0; index_md < psp->md_size; index_md++) {
 
-    /** - a) store number of l values for this mode */
+    /** - --> (a) store number of l values for this mode */
 
     psp->l_size[index_md] = ptr->l_size[index_md];
 
-    /** - b) allocate arrays where results will be stored */
+    /** - --> (b) allocate arrays where results will be stored */
 
     class_alloc(psp->cl[index_md],sizeof(double)*psp->l_size[index_md]*psp->ct_size*psp->ic_ic_size[index_md],psp->error_message);
     class_alloc(psp->ddcl[index_md],sizeof(double)*psp->l_size[index_md]*psp->ct_size*psp->ic_ic_size[index_md],psp->error_message);
     cl_integrand_num_columns = 1+psp->ct_size*2; /* one for k, ct_size for each type, ct_size for each second derivative of each type */
 
-    /** d) loop over initial conditions */
+    /** - --> (c) loop over initial conditions */
 
     for (index_ic1 = 0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
@@ -1903,8 +1908,8 @@ int spectra_cls(
 
 #pragma omp for schedule (dynamic)
 
-            /** - loop over l values defined in the transfer module.
-                For each l, compute the C_l's for all types (TT, TE, ...)
+            /** - ---> loop over l values defined in the transfer module.
+                For each l, compute the \f$ C_l\f$'s for all types (TT, TE, ...)
                 by convolving primordial spectra with transfer  functions.
                 This elementary task is assigned to spectra_compute_cl() */
 
@@ -1965,7 +1970,7 @@ int spectra_cls(
       }
     }
 
-    /** - e) now that for a given mode, all possible C_l's have been computed,
+    /** - --> (d) now that for a given mode, all possible \f$ C_l\f$'s have been computed,
         compute second derivative of the array in which they are stored,
         in view of spline interpolation. */
 
@@ -1985,23 +1990,24 @@ int spectra_cls(
 }
 
 /**
- * This routine computes the C_l's for a given mode, pair of initial conditions
+ * This routine computes the \f$ C_l\f$'s for a given mode, pair of initial conditions
  * and multipole, but for all types (TT, TE...), by convolving the
  * transfer functions with the primordial spectra.
  *
- * @param ppt           Input : pointer to perturbation structure
- * @param ptr           Input : pointer to transfers structure
- * @param ppm           Input : pointer to primordial structure
+ * @param pba           Input: pointer to background structure
+ * @param ppt           Input: pointer to perturbation structure
+ * @param ptr           Input: pointer to transfers structure
+ * @param ppm           Input: pointer to primordial structure
  * @param psp           Input/Output: pointer to spectra structure (result stored here)
- * @param index_md    Input : index of mode under consideration
- * @param index_ic1     Input : index of first initial condition in the correlator
- * @param index_ic2     Input : index of second initial condition in the correlato
- * @param index_l       Input : index of multipole under consideration
- * @param cl_integrand_num_column Input : number of columns in cl_integrand
- * @param cl_integrand  Input : an allocated workspace
- * @param primordial_pk Input : table of primordial spectrum values
- * @param transfer_ic1  Input : table of transfer function values for first initial condition
- * @param transfer_ic2  Input : table of transfer function values for second initial condition
+ * @param index_md      Input: index of mode under consideration
+ * @param index_ic1     Input: index of first initial condition in the correlator
+ * @param index_ic2     Input: index of second initial condition in the correlator
+ * @param index_l       Input: index of multipole under consideration
+ * @param cl_integrand_num_columns Input: number of columns in cl_integrand
+ * @param cl_integrand  Input: an allocated workspace
+ * @param primordial_pk Input: table of primordial spectrum values
+ * @param transfer_ic1  Input: table of transfer function values for first initial condition
+ * @param transfer_ic2  Input: table of transfer function values for second initial condition
  * @return the error status
  */
 
@@ -2383,7 +2389,7 @@ int spectra_compute_cl(
                  psp->error_message);
 
       /* in the closed case, instead of an integral, we have a
-         discrete sum. In practise, this does not matter: the previous
+         discrete sum. In practice, this does not matter: the previous
          routine does give a correct approximation of the discrete
          sum, both in the trapezoidal and spline regions. The only
          error comes from the first point: the previous routine
@@ -2416,11 +2422,11 @@ int spectra_compute_cl(
 
 /**
  * This routine computes the values of k and tau at which the matter
- * power spectra P(k,tau) and the matter transfer functions T_i(k,tau)
+ * power spectra \f$ P(k,\tau)\f$ and the matter transfer functions \f$ T_i(k,\tau)\f$
  * will be stored.
  *
- * @param pba Input : pointer to background structure (for z to tau conversion)
- * @param ppt Input : pointer to perturbation structure (contain source functions)
+ * @param pba Input: pointer to background structure (for z to tau conversion)
+ * @param ppt Input: pointer to perturbation structure (contain source functions)
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -2445,8 +2451,8 @@ int spectra_k_and_tau(
              psp->error_message,
              "you cannot ask for matter power spectrum since you turned off scalar modes");
 
-  /** - check the maximum redshift z_max_pk at which P(k,z) and T_i(k,z) should be
-      computable by interpolation. If it is equal to zero, only P(k,z=0)
+  /** - check the maximum redshift z_max_pk at which \f$P(k,z)\f$ and \f$ T_i(k,z)\f$ should be
+      computable by interpolation. If it is equal to zero, only \f$ P(k,z=0)\f$
       needs to be computed. If it is higher, we will store in a table
       various P(k,tau) at several values of tau generously encompassing
       the range 0<z<z_max_pk */
@@ -2461,7 +2467,7 @@ int spectra_k_and_tau(
     psp->ln_tau_size=1;
   }
 
-  /* if z_max_pk>0, store several values (with a confortable margin above z_max_pk) in view of interpolation */
+  /* if z_max_pk>0, store several values (with a comfortable margin above z_max_pk) in view of interpolation */
   else{
 
     /* find the first relevant value of tau (last value in the table tau_ampling before tau(z_max)) and infer the number of values of tau at which P(k) must be stored */
@@ -2471,14 +2477,18 @@ int spectra_k_and_tau(
                psp->error_message);
 
     index_tau=0;
-    class_test((tau_min < ppt->tau_sampling[index_tau]),
+    class_test((tau_min <= ppt->tau_sampling[index_tau]),
                psp->error_message,
-               "you asked for zmax=%e, i.e. taumin=%e, smaller than first possible value =%e",psp->z_max_pk,tau_min,ppt->tau_sampling[0]);
+               "you asked for zmax=%e, i.e. taumin=%e, smaller than or equal to the first possible value =%e; it should be strictly bigger for a successfull interpolation",psp->z_max_pk,tau_min,ppt->tau_sampling[0]);
 
     while (ppt->tau_sampling[index_tau] < tau_min){
       index_tau++;
     }
     index_tau --;
+    class_test(index_tau<0,
+               psp->error_message,
+               "by construction, this should never happen, a bug must have been introduced somewhere");
+
     /* whenever possible, take a few more values in to avoid boundary effects in the interpolation */
     if (index_tau>0) index_tau--;
     if (index_tau>0) index_tau--;
@@ -2488,7 +2498,7 @@ int spectra_k_and_tau(
 
   }
 
-  /** - allocate and fill table of tau values at which P(k,tau) and T_i(k,tau) are stored */
+  /** - allocate and fill table of tau values at which \f$P(k,\tau)\f$ and \f$T_i(k,\tau)\f$ are stored */
 
   class_alloc(psp->ln_tau,sizeof(double)*psp->ln_tau_size,psp->error_message);
 
@@ -2496,7 +2506,7 @@ int spectra_k_and_tau(
     psp->ln_tau[index_tau]=log(ppt->tau_sampling[index_tau-psp->ln_tau_size+ppt->tau_size]);
   }
 
-  /** - allocate and fill table of k values at which P(k,tau) is stored */
+  /** - allocate and fill table of k values at which \f$ P(k,\tau)\f$ is stored */
 
   psp->ln_k_size = ppt->k_size[ppt->index_md_scalars];
   class_alloc(psp->ln_k,sizeof(double)*psp->ln_k_size,psp->error_message);
@@ -2515,9 +2525,10 @@ int spectra_k_and_tau(
  * This routine computes a table of values for all matter power spectra P(k),
  * given the source functions and primordial spectra.
  *
- * @param pba Input : pointer to background structure (will provide H, Omega_m at redshift of interest)
- * @param ppt Input : pointer to perturbation structure (contain source functions)
- * @param ppm Input : pointer to primordial structure
+ * @param pba Input: pointer to background structure (will provide H, Omega_m at redshift of interest)
+ * @param ppt Input: pointer to perturbation structure (contain source functions)
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -2551,11 +2562,11 @@ int spectra_pk(
 
   index_md = psp->index_md_scalars;
 
-  /** - allocate temporary vectors where the primordial spectrum and the background quantitites will be stored */
+  /** - allocate temporary vectors where the primordial spectrum and the background quantities will be stored */
 
   class_alloc(primordial_pk,psp->ic_ic_size[index_md]*sizeof(double),psp->error_message);
 
-  /** - allocate and fill array of P(k,tau) values */
+  /** - allocate and fill array of \f$P(k,\tau)\f$ values */
 
   class_alloc(psp->ln_pk,
               sizeof(double)*psp->ln_tau_size*psp->ln_k_size*psp->ic_ic_size[index_md],
@@ -2647,7 +2658,7 @@ int spectra_pk(
     }
   }
 
-  /**- if interpolation of P(k,tau) will be needed (as a function of tau),
+  /**- if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
 
   if (psp->ln_tau_size > 1) {
@@ -2677,7 +2688,7 @@ int spectra_pk(
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
-  /**- if interpolation of P_NL(k,tau) will be needed (as a function of tau),
+  /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
 
   if (pnl->method != nl_none) {
@@ -2710,7 +2721,7 @@ int spectra_pk(
  * @param pba   Input: pointer to background structure
  * @param ppm   Input: pointer to primordial structure
  * @param psp   Input: pointer to spectra structure
- * @param z     Input: redhsift
+ * @param z     Input: redshift
  * @param R     Input: radius in Mpc
  * @param sigma Output: variance in a sphere of radius R (dimensionless)
  */
@@ -2803,8 +2814,8 @@ int spectra_sigma(
  * This routine computes a table of values for all matter power spectra P(k),
  * given the source functions and primordial spectra.
  *
- * @param pba Input : pointer to background structure (will provide density of each species)
- * @param ppt Input : pointer to perturbation structure (contain source functions)
+ * @param pba Input: pointer to background structure (will provide density of each species)
+ * @param ppt Input: pointer to perturbation structure (contain source functions)
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -2838,11 +2849,11 @@ int spectra_matter_transfers(
 
   index_md = psp->index_md_scalars;
 
-  /** - allocate and fill array of T_i(k,tau) values */
+  /** - allocate and fill array of \f$ T_i(k,\tau)\f$ values */
 
   class_alloc(psp->matter_transfer,sizeof(double)*psp->ln_tau_size*psp->ln_k_size*psp->ic_size[index_md]*psp->tr_size,psp->error_message);
 
-  /** - allocate temporary vectors where the background quantitites will be stored */
+  /** - allocate temporary vectors where the background quantities will be stored */
 
   class_alloc(pvecback_sp_long,pba->bg_size*sizeof(double),psp->error_message);
 
@@ -3190,6 +3201,22 @@ int spectra_matter_transfers(
 
         }
 
+        if (ppt->has_source_phi == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_phi] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_phi]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+        }
+
+        if (ppt->has_source_psi == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_psi] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_psi]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+        }
+
         /* could include homogeneous component in rho_tot if uncommented (leave commented to match CMBFAST/CAMB definition) */
 
         /* 	if (pba->has_lambda == _TRUE_) { */
@@ -3217,7 +3244,7 @@ int spectra_matter_transfers(
     }
   }
 
-  /**- if interpolation of P(k,tau) will be needed (as a function of tau),
+  /**- if interpolation of \f$ P(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
 
   if (psp->ln_tau_size > 1) {
@@ -3267,6 +3294,8 @@ int spectra_output_tk_titles(struct background *pba,
       class_store_columntitle(titles,"d_dr",pba->has_dr);
       class_store_columntitle(titles,"d_scf",pba->has_scf);
       class_store_columntitle(titles,"d_tot",_TRUE_);
+      class_store_columntitle(titles,"phi",ppt->has_source_phi);
+      class_store_columntitle(titles,"psi",ppt->has_source_psi);
     }
     if (ppt->has_velocity_transfers == _TRUE_) {
       class_store_columntitle(titles,"t_g",_TRUE_);
@@ -3332,7 +3361,7 @@ int spectra_output_tk_data(
               psp->error_message);
   }
 
-    /** - compute T_i(k) for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
+    /** - compute \f$T_i(k)\f$ for each k (if several ic's, compute it for each ic; if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
 
     /* if z_pk = 0, no interpolation needed */
 
@@ -3393,7 +3422,8 @@ int spectra_output_tk_data(
             class_store_double(dataptr,tk[psp->index_tr_delta_dr],ppt->has_source_delta_dr,storeidx);
             class_store_double(dataptr,tk[psp->index_tr_delta_scf],ppt->has_source_delta_scf,storeidx);
             class_store_double(dataptr,tk[psp->index_tr_delta_tot],_TRUE_,storeidx);
-
+            class_store_double(dataptr,tk[psp->index_tr_phi],ppt->has_source_phi,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_psi],ppt->has_source_psi,storeidx);
           }
           if (ppt->has_velocity_transfers == _TRUE_) {
 
@@ -3424,12 +3454,11 @@ int spectra_output_tk_data(
           class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ur]/k2,ppt->has_source_delta_ur,storeidx,0.0);
           class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ncdm1]/k2,ppt->has_source_delta_ncdm,storeidx,0.0);
           class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_tot]/k2,_TRUE_,storeidx,0.0);
-
         }
       }
     }
 
-    //Neccessary because the size could be zero (if psp->tr_size is zero)
+    //Necessary because the size could be zero (if psp->tr_size is zero)
     if (tkfull != NULL)
       free(tkfull);
 

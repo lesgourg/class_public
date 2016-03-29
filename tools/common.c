@@ -13,7 +13,7 @@ void class_protect_fprintf(FILE* stream, char* tpl,...) {
   va_start(args,tpl);
   vsnprintf(dest, 2048,tpl,args);
   va_end(args);
-  fprintf(stream,dest);
+  fprintf(stream,"%s",dest);
 }
 
 void* class_protect_memcpy(void* dest, void* from, size_t sz) {

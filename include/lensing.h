@@ -9,7 +9,7 @@
  * Structure containing everything about lensed spectra that other modules need to know.
  *
  * Once initialized by lensing_init(), contains a table of all lensed
- * C_l's for the all modes (scalar/tensor), all types (TT, TE...),
+ * \f$ C_l\f$'s for the all modes (scalar/tensor), all types (TT, TE...),
  * and all pairs of initial conditions (adiabatic, isocurvatures...).
  * FOR THE MOMENT, ASSUME ONLY SCALAR & ADIABATIC
  */
@@ -17,13 +17,13 @@
 struct lensing {
 
   /** @name - input parameters initialized by user in input module
-   *  (all other quantitites are computed in this module, given these
+   *  (all other quantities are computed in this module, given these
    *  parameters and the content of the 'precision', 'background' and
    *  'thermodynamics' structures) */
 
   //@{
 
-  short has_lensed_cls; /**< do we need to compute lensed Cl's at all ? */
+  short has_lensed_cls; /**< do we need to compute lensed \f$ C_l\f$'s at all ? */
 
   //@}
 
@@ -31,33 +31,33 @@ struct lensing {
 
   //@{
 
-  int has_tt; /**< do we want lensed C_l^TT ? (T = temperature) */
-  int has_ee; /**< do we want lensed C_l^EE ? (E = E-polarization) */
-  int has_te; /**< do we want lensed C_l^TE ? */
-  int has_bb; /**< do we want C_l^BB ? (B = B-polarization) */
-  int has_pp; /**< do we want C_l^phi-phi ? (phi = CMB lensing potential) */
-  int has_tp; /**< do we want C_l^T-phi ? */
-  int has_dd; /**< do we want C_l^d-d ? (d = matter density) */
-  int has_td; /**< do we want C_l^T-d ? */
-  int has_ll; /**< do we want C_l^l-l ? (l = lensing potential) */
-  int has_tl; /**< do we want C_l^T-l ? */
+  int has_tt; /**< do we want lensed \f$ C_l^{TT}\f$? (T = temperature) */
+  int has_ee; /**< do we want lensed \f$ C_l^{EE}\f$? (E = E-polarization) */
+  int has_te; /**< do we want lensed \f$ C_l^{TE}\f$? */
+  int has_bb; /**< do we want \f$ C_l^{BB}\f$? (B = B-polarization) */
+  int has_pp; /**< do we want \f$ C_l^{\phi\phi}\f$? (\f$ \phi \f$ = CMB lensing potential) */
+  int has_tp; /**< do we want \f$ C_l^{T\phi}\f$? */
+  int has_dd; /**< do we want \f$ C_l^{dd}\f$? (d = matter density) */
+  int has_td; /**< do we want \f$ C_l^{Td}\f$? */
+  int has_ll; /**< do we want \f$ C_l^{ll}\f$? (l = lensing potential) */
+  int has_tl; /**< do we want \f$ C_l^{Tl}\f$? */
 
-  int index_lt_tt; /**< index for type C_l^TT */
-  int index_lt_ee; /**< index for type C_l^EE */
-  int index_lt_te; /**< index for type C_l^TE */
-  int index_lt_bb; /**< index for type C_l^BB */
-  int index_lt_pp; /**< index for type C_l^phi-phi */
-  int index_lt_tp; /**< index for type C_l^T-phi */
-  int index_lt_dd; /**< index for type C_l^d-d */
-  int index_lt_td; /**< index for type C_l^T-d */
-  int index_lt_ll; /**< index for type C_l^d-d */
-  int index_lt_tl; /**< index for type C_l^T-d */
+  int index_lt_tt; /**< index for type \f$ C_l^{TT} \f$*/
+  int index_lt_ee; /**< index for type \f$ C_l^{EE} \f$*/
+  int index_lt_te; /**< index for type \f$ C_l^{TE} \f$*/
+  int index_lt_bb; /**< index for type \f$ C_l^{BB} \f$*/
+  int index_lt_pp; /**< index for type \f$ C_l^{\phi\phi} \f$*/
+  int index_lt_tp; /**< index for type \f$ C_l^{T\phi} \f$*/
+  int index_lt_dd; /**< index for type \f$ C_l^{dd} \f$*/
+  int index_lt_td; /**< index for type \f$ C_l^{Td} \f$*/
+  int index_lt_ll; /**< index for type \f$ C_l^{dd} \f$*/
+  int index_lt_tl; /**< index for type \f$ C_l^{Td} \f$*/
 
-  int lt_size; /**< number of C_l types requested */
+  int lt_size; /**< number of \f$ C_l\f$ types requested */
 
   //@}
 
-  /** @name - table of pre-computed C_l values, and related quantitites */
+  /** @name - table of pre-computed C_l values, and related quantities */
 
   //@{
 
@@ -70,7 +70,7 @@ struct lensing {
   int l_size;       /**< number of l values */
 
   int * l_max_lt;    /**< last multipole (given as an input) at which
-		    we want to output C_ls for a given mode and type */
+		    we want to output \f$ C_l \f$'s for a given mode and type */
 
   double * l;       /**< table of multipole values l[index_l] */
   double * cl_lens; /**< table of anisotropy spectra for each
@@ -93,7 +93,7 @@ struct lensing {
 };
 
 /*************************************************************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -320,3 +320,4 @@ extern "C" {
 #endif
 
 #endif
+/* @endcond */
