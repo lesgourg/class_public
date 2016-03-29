@@ -498,7 +498,7 @@ On might be tempted to decide that in a given array, matrix or vector, a given q
 
 Dynamical indexing is implemented in a very generic way in CLASS, the same rules apply everywhere. They are explained in these lecture slides:
 
-    https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl_DDUBEzAjjdywMjeTya2a?dl=0
+`https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl_DDUBEzAjjdywMjeTya2a?dl=0`
 
 in the folder `CLASS_Lecture_slides/lecture5_index_and_error.pdf`.
 

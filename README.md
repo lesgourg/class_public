@@ -56,7 +56,7 @@ The automatically-generated documentation is located in
 On top of that, if you wish to modify the code, you will find lots of
 comments directly in the files.
 
-Pyhton
+Python
 ------
 
 To use CLASS from python, or ipython notebooks, or from the Monte
