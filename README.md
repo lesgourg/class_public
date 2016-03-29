@@ -1,11 +1,11 @@
 CLASS: Cosmic Linear Anisotropy Solving System  {#mainpage}
 ==============================================
 
-Author: Julien Lesgourgues
+Authors: Julien Lesgourgues and Thomas Tram
 
-with several major inputs from other people, especially Thomas Tram,
-as well as Benjamin Audren, Simon Prunet, Jesus Torrado, Miguel
-Zumalacarregui, etc.
+with several major inputs from other people, especially Benjamin
+Audren, Simon Prunet, Jesus Torrado, Miguel Zumalacarregui, Francesco
+Montanari, etc.
 
 For download and information, see http://class-code.net
 
@@ -24,7 +24,7 @@ may need to open the Makefile and adapt the name of the compiler
 OpenMP flag (default: -fopenmp; this flag is facultative, you are free
 to compile without OpenMP if you don't want parallel execution; note
 that you need the version 4.2 or higher of gcc to be able to compile
-with -fopenmp. Several details on the CLASS compilation are given on
+with -fopenmp). Several details on the CLASS compilation are given on
 the wiki page
 
 https://github.com/lesgourg/class_public/wiki/Installation
@@ -48,14 +48,16 @@ one of them, and run with two input files, for instance:
 
     ./class test.ini cl_permille.pre
 
-A simplified documentation can be found in the paper `CLASS I:
-Overview <http://arxiv.org/abs/1104.2932>`_. On top of that, if you
-wish to modify the code, you will find lots of comments directly in
-the files. Other CLASS papers dedicated to various aspects of the code
-are listed in the CLASS web page. Slides from CLASS-dedicated courses
-can be seen at
+The automatically-generated documentation is located in
 
-http://lesgourg.web.cern.ch/lesgourg/class-tour/class-tour.html
+    doc/manual/html/index.html
+    doc/manual/CLASS_manual.pdf
+
+On top of that, if you wish to modify the code, you will find lots of
+comments directly in the files.
+
+Pyhton
+------
 
 To use CLASS from python, or ipython notebooks, or from the Monte
 Python parameter extraction code, you need to compile not only the
