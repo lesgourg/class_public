@@ -1,0 +1,22 @@
+<map id="lensing_init" name="lensing_init">
+<area shape="rect" id="node2" href="$lensing_8c.html#acbbfdaccd7ac5f9664ca39285784d043" title="lensing_indices" alt="" coords="170,5,281,32"/>
+<area shape="rect" id="node3" href="$spectra_8c.html#a474a08a4d11642f6e688524556442909" title="spectra_cl_at_l" alt="" coords="358,31,469,57"/>
+<area shape="rect" id="node4" href="$lensing_8c.html#a8c0f1ac44db5bc5e348e2c4fd723e0d8" title="lensing_d00" alt="" coords="180,107,271,133"/>
+<area shape="rect" id="node5" href="$lensing_8c.html#a86888e910dc2cb1031063218fd5434e0" title="lensing_d11" alt="" coords="180,157,271,184"/>
+<area shape="rect" id="node6" href="$lensing_8c.html#a137f944542bfd744a148240ea720418c" title="lensing_d1m1" alt="" coords="174,208,277,235"/>
+<area shape="rect" id="node7" href="$lensing_8c.html#a474e545549672efb2259c822bcae6456" title="lensing_d2m2" alt="" coords="174,259,277,285"/>
+<area shape="rect" id="node8" href="$lensing_8c.html#a17edd5fd9b3ad08bc1a1dc735fb8981e" title="lensing_d20" alt="" coords="180,309,271,336"/>
+<area shape="rect" id="node9" href="$lensing_8c.html#aa0c70cf7f8bc1f653545f2f5ef8a2dc4" title="lensing_d3m1" alt="" coords="174,360,277,387"/>
+<area shape="rect" id="node10" href="$lensing_8c.html#a6002602bc0f60403c639242bcc1b0ff8" title="lensing_d4m2" alt="" coords="174,411,277,437"/>
+<area shape="rect" id="node11" href="$lensing_8c.html#ac548af81bc8bdf12f15cf0c5b2ca9b84" title="lensing_d22" alt="" coords="180,461,271,488"/>
+<area shape="rect" id="node12" href="$lensing_8c.html#a9b557bbe75f6d2f3957fb3e4a46c425a" title="lensing_d31" alt="" coords="180,512,271,539"/>
+<area shape="rect" id="node13" href="$lensing_8c.html#aa8448f33066f8a6ed97bf2b0285952da" title="lensing_d3m3" alt="" coords="174,563,277,589"/>
+<area shape="rect" id="node14" href="$lensing_8c.html#a17de01075faba697505383fbf5faf7ad" title="lensing_d40" alt="" coords="180,613,271,640"/>
+<area shape="rect" id="node15" href="$lensing_8c.html#ae1093661395382a2321cb98d290d8515" title="lensing_d4m4" alt="" coords="174,664,277,691"/>
+<area shape="rect" id="node16" href="$lensing_8c.html#a3b21bddff38d4032ee147c49cc367fc8" title="lensing_lensed_cl_tt" alt="" coords="155,715,295,741"/>
+<area shape="rect" id="node17" href="$lensing_8c.html#a93c81c6537273acc4a4deb7573cde6af" title="lensing_addback_cl_tt" alt="" coords="150,765,301,792"/>
+<area shape="rect" id="node18" href="$lensing_8c.html#a272cd58bf07556235aa5b95c734c276a" title="lensing_lensed_cl_te" alt="" coords="154,816,297,843"/>
+<area shape="rect" id="node19" href="$lensing_8c.html#a30167830b4708a0bc60abc6b9be81576" title="lensing_addback_cl_te" alt="" coords="148,867,303,893"/>
+<area shape="rect" id="node20" href="$lensing_8c.html#acf2e6f2c29828502953534af31aa7f34" title="lensing_lensed_cl_ee_bb" alt="" coords="142,917,309,944"/>
+<area shape="rect" id="node21" href="$lensing_8c.html#a84c33f708e98e91ac0eee9378c355fec" title="lensing_addback_cl\l_ee_bb" alt="" coords="157,969,293,1010"/>
+</map>
