@@ -209,6 +209,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     nH = param->nH0 * ainv*ainv*ainv;
     double f_esc=0.2;
     double Zeta_ion=pow(10,53.14);
+    // double rho_sfr = 0.01376*pow(ainv,3.26)/(1+pow((ainv)/2.59,5.68))*ainv*ainv*ainv;//Comoving to physical
     double rho_sfr = 0.01376*pow(ainv,3.26)/(1+pow((ainv)/2.59,5.68))*ainv*ainv*ainv*exp(-z1/12);//Comoving to physical
     // rho_sfr =0;
     double dNion_over_dt;
@@ -254,6 +255,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
   //
   if(param->reio_parametrization==1){
     dTmdlna+=L_x*(1+2*xe_in)/3.;
+    // dTmdlna+=L_x*(1+2*xe_in)/3.*10;
     dxedlna+=stars_xe*((1-xe_in)/3)*2*3;
     // fprintf(stdout, "Computing star reionisation, rho_sfr = %e,z1 = %e\n",rho_sfr,z1 );
     /*******************Helium**********************/
@@ -505,7 +507,8 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
       +2*pow(param->Omega0_g,1.5)*(1+z)-2*param->Omega0_g*pow((1+z)*(param->Omega0_g*(1+z)+(param->Omega0_b+param->Omega0_cdm)),0.5))/(3*pow((param->Omega0_b+param->Omega0_cdm),2)*(1+z)*param->H0));
       // fprintf(stdout, " %e  %e\n",z, result_integrale);
 
-      energy_rate=rho_ini_dcdm*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
+      if(rho_ini_dcdm!=0)energy_rate=rho_ini_dcdm*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
+      else energy_rate=rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
       // if(z>0)fprintf(stdout, "z = %e energy_rate = %e\n", z, energy_rate*1.e6*1.60217653e-19);
     }
 
