@@ -19,6 +19,7 @@ var searchData=
   ['selection_5fnum',['selection_num',['../perturbations_8h.html#a08050531f58de31cac59e09124086850',1,'perturbs']]],
   ['selection_5fsampling',['selection_sampling',['../common_8h.html#a3268045bd1aa56ba4b67d3fc66a7ab17',1,'precision']]],
   ['selection_5fsampling_5fbessel',['selection_sampling_bessel',['../common_8h.html#aff7c31600012254167cd68433ca54948',1,'precision']]],
+  ['selection_5fsampling_5fbessel_5flos',['selection_sampling_bessel_los',['../common_8h.html#ae060611b14823b714e6e450d18123a2b',1,'precision']]],
   ['selection_5ftau',['selection_tau',['../perturbations_8h.html#a2b1aa6f687bc7286a2bb5cb4ca52dbbc',1,'perturbs']]],
   ['selection_5ftau_5fmax',['selection_tau_max',['../perturbations_8h.html#aff391c3d002d7541fe6555fc46b1dd9f',1,'perturbs']]],
   ['selection_5ftau_5fmin',['selection_tau_min',['../perturbations_8h.html#a6c18697e5b2e4dff3c9aaeeb1019d0b2',1,'perturbs']]],

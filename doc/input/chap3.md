@@ -404,7 +404,7 @@ but the run will be extremely long. This is an occasion to run a many-core machi
 
 If you want a reference matter power spectrum P(k), also accurate up to the hundredth of percent level, we recommend using the file `pk_ref.pre`, identical to `cl_ref.pre` excepted that the truncation of the neutrino hierarchy has been pushed to `l_max_ur=150`.
 
-In order to increase moderatley the precision to a tenth of percent, without prohibitive computing time, we recommend using `cl_permille.pre`.
+In order to increase moderately the precision to a tenth of percent, without prohibitive computing time, we recommend using `cl_permille.pre`.
 
 ## Output ##
 
@@ -498,9 +498,9 @@ On might be tempted to decide that in a given array, matrix or vector, a given q
 
 Dynamical indexing is implemented in a very generic way in CLASS, the same rules apply everywhere. They are explained in these lecture slides:
 
-    `https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl_DDUBEzAjjdywMjeTya2a?dl=0`
+    https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl_DDUBEzAjjdywMjeTya2a?dl=0
 
-    in the folder `CLASS_Lecture_slides/lecture5_index_and_error.pdf`.
+in the folder `CLASS_Lecture_slides/lecture5_index_and_error.pdf`.
 
 ## No hard coding ##
 
@@ -508,9 +508,9 @@ Any feature or equation which could be true in one cosmology and not in another 
 
 ## Modifying the code ##
 
-Implementing a new idea completly from scratch would be rather intimidating, even for the main developpers of `CLASS`. Fortunately, we never have to work from scratch. Usually we want to code a new species, a new observable, a new approximation scheme, etc. The trick is to think of another species, obervable, approximation scheme, etc., looking as close as possible to the new one.
+Implementing a new idea completly from scratch would be rather intimidating, even for the main developpers of `CLASS`. Fortunately, we never have to work from scratch. Usually we want to code a new species, a new observable, a new approximation scheme, etc. The trick is to think of another species, observable, approximation scheme, etc., looking as close as possible to the new one.
 
-Then, playing with the `grep` comand and the `search` command of your editor, search for all occurences of this nearest-as-possible other feature. This is usually easy thanks to our naming scheme. For each species, observable, approximation scheme, etc., we usually use the same sequence of few letters everywhere (fo instance, `fld` for the fluid usually representing Dark Energy). Grep for `fld` and you'll get all the lines related to the fluid. There is another way: we use everywhere some conditional jumps  related to a given feature. For instance, the lines related to the fluid are always in between `if (pba->has_fld == _TRUE_) { ... }` and the lines related to the cosmic shear observables are always in between `if (ppt->has_lensing_potential == _TRUE_) { ... }`. Locating these flags and conditional jumps shows you all the parts related to a given feature/ingredient.
+Then, playing with the `grep` command and the `search` command of your editor, search for all occurences of this nearest-as-possible other feature. This is usually easy thanks to our naming scheme. For each species, observable, approximation scheme, etc., we usually use the same sequence of few letters everywhere (fo instance, `fld` for the fluid usually representing Dark Energy). Grep for `fld` and you'll get all the lines related to the fluid. There is another way: we use everywhere some conditional jumps  related to a given feature. For instance, the lines related to the fluid are always in between `if (pba->has_fld == _TRUE_) { ... }` and the lines related to the cosmic shear observables are always in between `if (ppt->has_lensing_potential == _TRUE_) { ... }`. Locating these flags and conditional jumps shows you all the parts related to a given feature/ingredient.
 
 Once you have localised your nearest-as-possible other feature, you can copy/paste these lines and adapt them to the case of your new feature! You are then sure that you didn't miss any step, even the smallest technical steps (definition of indices, etc.)
 

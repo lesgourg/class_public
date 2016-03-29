@@ -1,5 +1,7 @@
 var NAVTREEINDEX3 =
 {
+"perturbations_8h.html#adda35d646eba2eabc09a21861effb845":[6,0,23,0,91],
+"perturbations_8h.html#ade6a029d5354ed2f317951009edc55e0":[6,0,23,0,43],
 "perturbations_8h.html#adf0c33089ac34f54a868c9b4e518c64f":[6,0,23,0,28],
 "perturbations_8h.html#ae00f9b481983465f4d9c648e1ad03d11":[6,0,23,0,45],
 "perturbations_8h.html#ae148066fea5dcba2bdc1b967983c1655":[6,0,23,0,5],
@@ -247,7 +249,5 @@ var NAVTREEINDEX3 =
 "spectra_8h.html#a7ccfff6972618e81fac66595de4b8611":[6,0,29,0,63],
 "spectra_8h.html#a7edbc0f9007b4114cedb0db21dd77fee":[6,0,29,0,12],
 "spectra_8h.html#a7ee0a2f4abb312842c2d4e41d41ed451":[6,0,29,0,22],
-"spectra_8h.html#a8162e028bb6037b6a585c2822b7221b8":[6,0,29,0,47],
-"spectra_8h.html#a82a56f7919678728f1a9b695deabc104":[6,0,29,0,54],
-"spectra_8h.html#a85e7f6e1bc4fedf4b465f9253e39bc0e":[6,0,29,0,33]
+"spectra_8h.html#a8162e028bb6037b6a585c2822b7221b8":[6,0,29,0,47]
 };

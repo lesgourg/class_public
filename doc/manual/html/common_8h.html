@@ -1062,11 +1062,18 @@ l_switch_limber</td>
 <p>when to use the Limber approximation for project gravitational potential cl's </p>
 </td></tr>
 <tr><td class="fieldtype">
-<a class="anchor" id="acec4a10d8c037b81e9d405b1ff35bdce"></a>double</td>
+<a class="anchor" id="acfd2414789a48c1ffea0aae0ebbe6e03"></a>double</td>
 <td class="fieldname">
-l_switch_limber_for_cl_density_over_z</td>
+l_switch_limber_for_nc_local_over_z</td>
 <td class="fielddoc">
-<p>when to use the Limber approximation for density cl's (relative to central redshift of each bin) </p>
+<p>when to use the Limber approximation for local number count contributions to cl's (relative to central redshift of each bin) </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a class="anchor" id="a7a4eb61c1a9b00c560deb9ed6a70fa72"></a>double</td>
+<td class="fieldname">
+l_switch_limber_for_nc_los_over_z</td>
+<td class="fielddoc">
+<p>when to use the Limber approximation for number count contributions to cl's integrated along the line-of-sight (relative to central redshift of each bin) </p>
 </td></tr>
 <tr><td class="fieldtype">
 <a class="anchor" id="a5c6432808b685646fc59de7581ae0b97"></a>double</td>
@@ -1088,6 +1095,13 @@ selection_sampling</td>
 selection_sampling_bessel</td>
 <td class="fielddoc">
 <p>controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a class="anchor" id="ae060611b14823b714e6e450d18123a2b"></a>double</td>
+<td class="fieldname">
+selection_sampling_bessel_los</td>
+<td class="fielddoc">
+<p>controls sampling of integral over time when selection functions vary slower than Bessel functions. This parameter is specific to number counts contributions to Cl integrated along the line of sight. Increase for better sampling </p>
 </td></tr>
 <tr><td class="fieldtype">
 <a class="anchor" id="a159b8a7f01062a7b8456d57935441948"></a>double</td>
@@ -1237,7 +1251,7 @@ error_message</td>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li><li class="navelem"><a class="el" href="common_8h.html">common.h</a></li>
-    <li class="footer">Generated on Fri Mar 25 2016 14:53:12 for CLASS MANUAL by
+    <li class="footer">Generated on Tue Mar 29 2016 13:36:41 for CLASS MANUAL by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.9.1 </li>
   </ul>
