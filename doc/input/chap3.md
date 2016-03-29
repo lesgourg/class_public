@@ -1,4 +1,4 @@
-CLASS: Cosmic Linear Anisotropy Solving System  
+CLASS: Cosmic Linear Anisotropy Solving System
 ==============================================
 
 Author: Julien Lesgourgues
@@ -41,9 +41,9 @@ it can be interfaced with other codes, etc.
 
 - `output/` is where the output files will be written by default (this can be changed to another directory by adjusting the input parameter `root = <...>`)
 
-- `python/` contains the python wrapper of `CLASS`, called classy (see `python/README`) 
+- `python/` contains the python wrapper of `CLASS`, called classy (see `python/README`)
 
-- `cpp/` contains the C++ wrapper of `CLASS`, called ClassEngine (see `cpp/README`) 
+- `cpp/` contains the C++ wrapper of `CLASS`, called ClassEngine (see `cpp/README`)
 
 - `doc/` contains the automatic documentation (manual and input files required to build it)
 
@@ -113,7 +113,7 @@ consists in passing a pointer to the structure filled by A, and nothing else.
 
 All "precision parameters" are grouped in the single structure
 `struct precision`. The code contains _no other arbitrary
-numerical coefficient_. 
+numerical coefficient_.
 
 ### Ten modules ###
 
@@ -124,8 +124,8 @@ Each structure is defined and filled in one of the following modules
 2. `background.c`
 3. `thermodynamics.c`
 4. `perturbations.c `
-5. `primordial.c` 
-6. `nonlinear.c` 
+5. `primordial.c`
+6. `nonlinear.c`
 7. `transfer.c`
 8. `spectra.c`
 9. `lensing.c`
@@ -149,19 +149,19 @@ already allocated and filled. In summary, calling one of `module_init(...)` amou
 
 The second function deallocates the fields of each structure. This
 can be done optionally at the end of the code (or, when the code is embedded
-in a sampler, this __must__ be done 
+in a sampler, this __must__ be done
 between each execution of `class`, and especially before calling `module_init(...)` again with different input parameters).
 
 The third function is able to interpolate the pre-computed tables. For
 instance, `background_init()` fills a table of background
-quantities for discrete values of conformal time \f$\tau\f$, but 
+quantities for discrete values of conformal time \f$\tau\f$, but
 `background_at_tau(tau, * values)` will return these values for any
-arbitrary \f$\tau\f$. 
+arbitrary \f$\tau\f$.
 
 Note that functions of the type `module_something_at_somevalue` are the only ones which are
 called from another module, while functions of the type `module_init(...)` and `module_free(...)` are the only
 one called by the main executable.  All other functions are for
-internal use in each module. 
+internal use in each module.
 
 When writing a C code, the ordering of the functions in the *.c file is in principle arbitrary. However, for the sake of clarity, we always respected the following order in each `CLASS` module:
 
@@ -176,7 +176,7 @@ When writing a C code, the ordering of the functions in the *.c file is in princ
 ### The  `main.c` file ###
 
 The main executable of `class` is the function `main()` located in the file `main/main.c`.
-This function consist only in the 
+This function consist only in the
 following lines
 (not including comments and error-management lines explained later):
 
@@ -185,23 +185,23 @@ following lines
 
      struct background ba;
 
-     struct thermo th;     
+     struct thermo th;
 
-     struct perturbs pt;   
+     struct perturbs pt;
 
-     struct primordial pm;    
+     struct primordial pm;
 
      struct nonlinear nl;
 
-     struct transfers tr;  
+     struct transfers tr;
 
-     struct spectra sp;     
+     struct spectra sp;
 
      struct lensing le;
 
-     struct output op;      
+     struct output op;
 
- 
+
      input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg);
 
      background_init(&pr,&ba);
@@ -288,7 +288,7 @@ file. Both files are optional: all parameters are set to default
 values corresponding to the "most usual choices", and are eventually
 replaced by the parameters passed in the two input files. For
 instance, if one is happy with default accuracy settings, it is enough
-to run with 
+to run with
 
      ./class explanatory.ini
 
@@ -297,7 +297,7 @@ necessarily contain a line for each parameter, since many of them can
 be left to default value. The example file `explanatory.ini` is
 very long and somewhat indigestible, since it contains all possible
 parameters, together with lengthy explanations. We recommend to keep
-this file unchanged for reference, and to copy it in e.g. `test.ini`. 
+this file unchanged for reference, and to copy it in e.g. `test.ini`.
 In the latter file, the user can erase all sections in
 which he/she is absolutely not interested (e.g., all the part on
 isocurvature modes, or on tensors, or on non-cold species,
@@ -308,7 +308,7 @@ cosmological parameters, one line for the `output` entry (where
 one can specifying which power spectra must be computed), and one line
 for the `root` entry (specifying the prefix of all output files).
 
-The syntax of the input files is explained at the beginning of 
+The syntax of the input files is explained at the beginning of
 `explanatory.ini`.  Typically, lines in those files look like:
 
 
@@ -341,7 +341,7 @@ the `input.c` module. For instance, the Hubble parameter, the photon
 density, the baryon density and the ultra-relativistic neutrino density can be
 entered as:
 
-      h = 0.7 
+      h = 0.7
 
       T_cmb = 2.726     # Kelvin units
 
@@ -389,14 +389,22 @@ are written in a file `<root>parameters.ini`, to keep track all the details of t
 
 `write warnings =  [yes or no]` (_default_: `no`)
 
-When set to yes, the parameters  that have been passed and that the code did not read 
+When set to yes, the parameters  that have been passed and that the code did not read
 (because the syntax was wrong, or because the parameter was not relevant in the context of the run) are written
 in the standard output as `[Warning:]....`
 
 There is also a list of "verbose" parameters at the end of `explanatory.ini`. They can be used to control
 the level of information passed to the standard output (0 means silent; 1 means normal, e.g. information on age of the universe, etc.; 2 is useful for instance when you want to check on how many cores the run is parallelised; 3 and more are intended for debugging).
 
-_This part of the documentation will be expanded with details on default precision and on the proposed alternative precision files._
+`CLASS` comes with a list of precision parameter files ending by `.pre`. Honestly we have not been updating all these files recently, and we need to do a bit of cleaning there. However you can trust `cl_ref.pre`. We have derived this file by studying both the convergence of the CMB output with respect to all `CLASS` precision parameters, and the agreement with `CAMB`. We consider that this file generates good reference CMB spectra, accurate up to the hundredth of per cent level, as explained in the CLASS IV paper and re-checked since then. You can try it with e.g.
+
+    ./class explanatory.ini cl_ref.pre
+
+but the run will be extremely long. This is an occasion to run a many-core machine with a lot of RAM. It may work also on your laptop, but in half an hour or so.
+
+If you want a reference matter power spectrum P(k), also accurate up to the hundredth of percent level, we recommend using the file `pk_ref.pre`, identical to `cl_ref.pre` excepted that the truncation of the neutrino hierarchy has been pushed to `l_max_ur=150`.
+
+In order to increase moderatley the precision to a tenth of percent, without prohibitive computing time, we recommend using `cl_permille.pre`.
 
 ## Output ##
 
@@ -432,21 +440,21 @@ append to it the error message in `structure_i.error_message`. These steps are i
 
 
       class_call(module_i_function(...,structure_i),
-                structure_i.error_message, 
+                structure_i.error_message,
                 structure_j.error_message);
-    
+
 
 So, the first argument of `call_call()` is the function we want
 to call; the second argument is the location of the error message
 returned by this function; and the third one is the location of the
-error message which should be returned to the higher level. 
+error message which should be returned to the higher level.
 Usually, in the bulk of the code, we use pointer to structures rather than structure themselves; then the syntax is
 
       class_call(module_i_function(...,pi),
              pi->error_message,
              pj->error_message);`
 
-where in this generic example, `pi` and `pj` are assumed to be pointers towards the structures 
+where in this generic example, `pi` and `pj` are assumed to be pointers towards the structures
 `structure_i` and `structure_j`.
 
 The user will find in `include/common.h` a list of additional macros, all
