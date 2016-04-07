@@ -511,7 +511,7 @@ int input_read_parameters(
 
   /** - define local variables */
 
-/**NonLocal:added flag4 and param4 to read Omega_nlde*/     
+/**NonLocal:added flag4 and param4 to read Omega_nlde*/
   int flag1,flag2,flag3,flag4;
   double param1,param2,param3,param4;
   int N_ncdm=0,n,entries_read;
@@ -595,7 +595,7 @@ int input_read_parameters(
   pba->U_prime_ini_nlde = 0.;
   pba->V_ini_nlde = 0.;
   pba->U_prime_ini_nlde = 0.;
-/**NonLocal: read model flag: 0. -> LCDM, 1. -> RT, 2. -> RR*/    
+/**NonLocal: read model flag: 0. -> LCDM, 1. -> RT, 2. -> RR*/
   class_read_double("model",pba->model);
   if (pba->model != 0.)
       pba->has_nlde = _TRUE_;
@@ -1071,6 +1071,7 @@ int input_read_parameters(
       }
     }
   }
+}
 
   /** (b) assign values to thermodynamics cosmological parameters */
 
