@@ -1,0 +1,7 @@
+<map id="thermodynamics_get_xe_before_reionization" name="thermodynamics_get_xe_before_reionization">
+<area shape="rect" id="node2" href="$thermodynamics_8c.html#aa8e6b48cadc0a989b729fa624e1d61b3" title="thermodynamics_reionization" alt="" coords="214,12,405,39"/>
+<area shape="rect" id="node3" href="$thermodynamics_8c.html#a1acbfae38edb0c73d8991645f89b2d13" title="thermodynamics_init" alt="" coords="454,12,597,39"/>
+<area shape="rect" id="node4" href="$input_8c.html#a8902799b68422227ff6a3293ebd6bd94" title="input_try_unknown_parameters" alt="" coords="645,12,848,39"/>
+<area shape="rect" id="node5" href="$input_8c.html#a31052a91cf14f73d6f2bb0e7874429fb" title="input_init" alt="" coords="896,12,971,39"/>
+<area shape="rect" id="node6" href="$input_8c.html#a40aecd22732b07db752cb4bc34e55ad4" title="input_init_from_arguments" alt="" coords="1019,12,1194,39"/>
+</map>

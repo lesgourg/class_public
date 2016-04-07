@@ -15,12 +15,13 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.4.4"
+#define _VERSION_ "v2.5.0"
+/* @cond INCLUDE_WITH_DOXYGEN */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
 #define _FALSE_ 0 /**< integer associated to false statement */
 
-#define _SUCCESS_ 0 /**< integer returned after successfull call of a function */
+#define _SUCCESS_ 0 /**< integer returned after successful call of a function */
 #define _FAILURE_ 1 /**< integer returned after failure in a function */
 
 #define _ERRORMSGSIZE_ 2048 /**< generic error messages are cut beyond this number of characters */
@@ -69,9 +70,8 @@ typedef char FileName[_FILENAMESIZE_];
 #define MAX(a,b) (((a)<(b)) ? (b) : (a) ) /**< the usual "max" function */
 #define SIGN(a) (((a)>0) ? 1. : -1. )
 #define NRSIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
-
-#define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? (i2+N*i1-(i1*(i1+1))/2) : (i1+N*i2-(i2*(i2+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without loosing or double-counting any information */
-
+#define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? (i2+N*i1-(i1*(i1+1))/2) : (i1+N*i2-(i2*(i2+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without losing or double-counting any information */
+/* @endcond */
 // needed because of weird openmp bug on macosx lion...
 void class_protect_sprintf(char* dest, char* tpl,...);
 void class_protect_fprintf(FILE* dest, char* tpl,...);
@@ -97,6 +97,14 @@ int get_number_of_titles(char * titlestring);
     class_call_message(error_message_output,#function,error_message_from_function);                              \
     list_of_commands;                                                                                            \
     return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
+
+/* macro for trying to call function */
+#define class_call_try(function, error_message_from_function, error_message_output,list_of_commands) { \
+  if (function == _FAILURE_) {                                                                                   \
+    class_call_message(error_message_output,#function,error_message_from_function);                              \
+    list_of_commands;                                                                                            \
   }                                                                                                              \
 }
 
@@ -313,7 +321,7 @@ enum evolver_type {
 /**
  * List of ways in which matter power spectrum P(k) can be defined.
  * The standard definition is the first one (delta_m_squared) but
- * alternative definitions can be usfeul in some projects.
+ * alternative definitions can be useful in some projects.
  *
  */
 enum pk_def {
@@ -348,7 +356,7 @@ struct precision
 
   /**
    * default step d tau in background integration, in units of
-   * conformal Hubble time (\f$ d tau \f$ = back_integration_stepsize / aH )
+   * conformal Hubble time (\f$ d \tau \f$ = back_integration_stepsize / aH )
    */
   double back_integration_stepsize;
 
@@ -372,11 +380,24 @@ struct precision
 
   /**
    * parameter controlling relative precision of integrals over ncdm
-   * phase-space distribution during perturbation calculation
+   * phase-space distribution during perturbation calculation: value
+   * to be applied in Newtonian gauge
+   */
+  double tol_ncdm_newtonian;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution during perturbation calculation: value
+   * to be applied in synchronous gauge
+   */
+  double tol_ncdm_synchronous;
+
+  /**
+   * parameter controlling relative precision of integrals over ncdm
+   * phase-space distribution during perturbation calculation: value
+   * actually applied in chosen gauge
    */
   double tol_ncdm;
-  double tol_ncdm_newtonian;
-  double tol_ncdm_synchronous;
 
   /**
    * parameter controlling relative precision of integrals over ncdm
@@ -391,7 +412,7 @@ struct precision
   double tol_ncdm_initial_w;
 
   /**
-   * parameter controling the initial scalar field in background functions
+   * parameter controlling the initial scalar field in background functions
    */
   double safe_phi_scf;
 
@@ -401,11 +422,11 @@ struct precision
 
   //@{
 
-  /** - for bbn */
-
+  /* - for bbn */
+/* @cond INCLUDE_WITH_DOXYGEN */
   FileName sBBN_file;
-
-  /** - for recombination */
+/* @endcond */
+  /* - for recombination */
 
   /* initial and final redshifts in recfast */
 
@@ -453,19 +474,19 @@ struct precision
   double recfast_x_H0_trigger_delta;  /**< x_H range over which transition is smoothed */
 
   double recfast_H_frac;              /**< governs time at which full equation of evolution for Tmat is used */
-
+/* @cond INCLUDE_WITH_DOXYGEN */
   FileName hyrec_Alpha_inf_file;
   FileName hyrec_R_inf_file;
   FileName hyrec_two_photon_tables_file;
-
-  /** - for reionization */
+/* @endcond */
+  /* - for reionization */
 
   double reionization_z_start_max; /**< maximum redshift at which reionization should start. If not, return an error. */
   double reionization_sampling; /**< control stepsize in z during reionization */
   double reionization_optical_depth_tol; /**< fractional error on optical_depth */
   double reionization_start_factor; /**< parameter for CAMB-like parametrization */
 
-  /** - general */
+  /* - general */
 
   int thermo_rate_smoothing_radius; /**< plays a minor (almost aesthetic) role in the definition of the variation rate of thermodynamical quantities */
 
@@ -475,7 +496,7 @@ struct precision
 
   //@{
 
-  enum evolver_type evolver; /* which type of evolver for integrating perturbations (Runge-Kutta? Stiff?...) */
+  enum evolver_type evolver; /**< which type of evolver for integrating perturbations (Runge-Kutta? Stiff?...) */
 
   double k_min_tau0; /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
@@ -496,7 +517,7 @@ struct precision
 
   double start_small_k_at_tau_c_over_tau_h; /**< largest wavelengths start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_largek_at_tau_c_over_tau_h equals this ratio. Decrease this value to start integrating the wavenumbers earlier in time. */
 
-  double start_large_k_at_tau_h_over_tau_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hibble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ wich is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
+  double start_large_k_at_tau_h_over_tau_k;  /**< largest wavelengths start being sampled when mode is sufficiently outside Hubble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ which is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
   /**
    * when to switch off tight-coupling approximation: first condition:
@@ -518,22 +539,22 @@ struct precision
 
   double start_sources_at_tau_c_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
-  int tight_coupling_approximation;
+  int tight_coupling_approximation; /**< method for tight coupling approximation */
 
   int l_max_g;     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
-  int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarisation (scalar), at least 4 */
+  int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
   int l_max_dr;   /**< number of momenta in Boltzmann hierarchy for decay radiation, at least 4 */
   int l_max_ur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_ncdm;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
-  int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarisation (tensor), at least 4 */
+  int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 */
 
   double curvature_ini;     /**< initial condition for curvature for adiabatic */
   double entropy_ini; /**< initial condition for entropy perturbation for isocurvature */
   double gw_ini;      /**< initial condition for tensor metric perturbation h */
 
   /**
-   * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usally, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
+   * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usually, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
    */
   double perturb_integration_stepsize;
 
@@ -575,7 +596,7 @@ struct precision
    */
   double radiation_streaming_trigger_tau_c_over_tau;
 
-  int ur_fluid_approximation;
+  int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
 
   /**
    * when to switch off ur (massless neutrinos / ultra-relativistic
@@ -583,7 +604,7 @@ struct precision
    */
   double ur_fluid_trigger_tau_over_tau_k;
 
-  int ncdm_fluid_approximation;
+  int ncdm_fluid_approximation; /**< method for non-cold dark matter fluid approximation */
 
   /**
    * when to switch off ncdm (massive neutrinos / non-cold
@@ -591,6 +612,10 @@ struct precision
    */
   double ncdm_fluid_trigger_tau_over_tau_k;
 
+  /**
+   * whether CMB source functions can be approximated as zero when
+   * visibility function g(tau) is tiny
+   */
   double neglect_CMB_sources_below_visibility;
 
   //@}
@@ -601,23 +626,22 @@ struct precision
 
   double k_per_decade_primordial; /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
-  double primordial_inflation_ratio_min;
-  double primordial_inflation_ratio_max;
-  int primordial_inflation_phi_ini_maxit;
-  double primordial_inflation_pt_stepsize;
-  double primordial_inflation_bg_stepsize;
-  double primordial_inflation_tol_integration;
-  double primordial_inflation_attractor_precision_pivot;
-  double primordial_inflation_attractor_precision_initial;
-  int primordial_inflation_attractor_maxit;
-  double primordial_inflation_jump_initial;
-  double primordial_inflation_tol_curvature;
-  double primordial_inflation_aH_ini_target;
-  double primordial_inflation_end_dphi;
-  double primordial_inflation_end_logstep;
-  double primordial_inflation_small_epsilon;
-  double primordial_inflation_small_epsilon_tol;
-  double primordial_inflation_extra_efolds;
+  double primordial_inflation_ratio_min; /**< for each k, start following wavenumber when aH = k/primordial_inflation_ratio_min */
+  double primordial_inflation_ratio_max; /**< for each k, stop following wavenumber, at the latest, when aH = k/primordial_inflation_ratio_max */
+  int primordial_inflation_phi_ini_maxit;      /**< maximum number of iteration when searching a suitable initial field value phi_ini (value reached when no long-enough slow-roll period before the pivot scale) */
+  double primordial_inflation_pt_stepsize;     /**< controls the integration timestep for inflaton perturbations */
+  double primordial_inflation_bg_stepsize;     /**< controls the integration timestep for inflaton background */
+  double primordial_inflation_tol_integration; /**< controls the precision of the ODE integration during inflation */
+  double primordial_inflation_attractor_precision_pivot;   /**< targeted precision when searching attractor solution near phi_pivot */
+  double primordial_inflation_attractor_precision_initial; /**< targeted precision when searching attractor solution near phi_ini */
+  int primordial_inflation_attractor_maxit; /**< maximum number of iteration when searching attractor solution */
+  double primordial_inflation_tol_curvature; /**< for each k, stop following wavenumber, at the latest, when curvature perturbation R is stable up to to this tolerance */
+  double primordial_inflation_aH_ini_target; /**< control the step size in the search for a suitable initial field value */
+  double primordial_inflation_end_dphi; /**< first bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
+  double primordial_inflation_end_logstep; /**< logarithmic step for updating the bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
+  double primordial_inflation_small_epsilon; /**< value of slow-roll parameter epsilon used to define a field value phi_end close to the end of inflation (doesn't need to be exactly at the end): epsilon(phi_end)=small_epsilon (should be smaller than one) */
+  double primordial_inflation_small_epsilon_tol; /**< tolerance in the search for phi_end */
+  double primordial_inflation_extra_efolds; /**< a small number of efolds, irrelevant at the end, used in the search for the pivot scale (backward from the end of inflation) */
 
   //@}
 
@@ -630,24 +654,24 @@ struct precision
   double l_logstep; /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
   /* parameters relevant for bessel functions */
-  double hyper_x_min;
-  double hyper_sampling_flat;
-  double hyper_sampling_curved_low_nu;
-  double hyper_sampling_curved_high_nu;
-  double hyper_nu_sampling_step;
-  double hyper_phi_min_abs;
-  double hyper_x_tol;
-  double hyper_flat_approximation_nu;
+  double hyper_x_min;  /**< flat case: lower bound on the smallest value of x at which we sample \f$ \Phi_l^{\nu}(x)\f$ or \f$ j_l(x)\f$ */
+  double hyper_sampling_flat;  /**< flat case: number of sampled points x per approximate wavelength \f$ 2\pi \f$*/
+  double hyper_sampling_curved_low_nu;  /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ smaller than hyper_nu_sampling_step */
+  double hyper_sampling_curved_high_nu; /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ greater than hyper_nu_sampling_step */
+  double hyper_nu_sampling_step;  /**< open/closed cases: value of nu at which sampling changes  */
+  double hyper_phi_min_abs;  /**< small value of Bessel function used in calculation of first point x (\f$ \Phi_l^{\nu}(x) \f$ equals hyper_phi_min_abs) */
+  double hyper_x_tol;  /**< tolerance parameter used to determine first value of x */
+  double hyper_flat_approximation_nu;  /**< value of nu below which the flat approximation is used to compute Bessel function */
 
   /* parameters relevant for transfer function */
 
   double q_linstep;         /**< asymptotic linear sampling step in q
-                               space, in units of 2pi/r_a(tau_rec)
+                               space, in units of \f$ 2\pi/r_a(\tau_rec) \f$
                                (comoving angular diameter distance to
                                recombination) */
 
   double q_logstep_spline; /**< initial logarithmic sampling step in q
-                                space, in units of 2pi/r_a(tau_rec)
+                                space, in units of \f$ 2\pi/r_a(\tau_{rec})\f$
                                 (comoving angular diameter distance to
                                 recombination) */
 
@@ -659,7 +683,7 @@ struct precision
                                 Omega_k */
 
   double q_logstep_trapzd; /**< initial logarithmic sampling step in q
-                                space, in units of 2pi/r_a(tau_rec)
+                                space, in units of \f$ 2\pi/r_a(\tau_{rec}) \f$
                                 (comoving angular diameter distance to
                                 recombination), in the case of small
                                 q's in the closed case, for which one
@@ -674,26 +698,28 @@ struct precision
                                  q_logstep_spline steps (transition
                                  must be smooth for spline) */
 
-  /** for each type, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
-  double transfer_neglect_delta_k_S_t0;
-  double transfer_neglect_delta_k_S_t1;
-  double transfer_neglect_delta_k_S_t2;
-  double transfer_neglect_delta_k_S_e;
-  double transfer_neglect_delta_k_V_t1;
-  double transfer_neglect_delta_k_V_t2;
-  double transfer_neglect_delta_k_V_e;
-  double transfer_neglect_delta_k_V_b;
-  double transfer_neglect_delta_k_T_t2;
-  double transfer_neglect_delta_k_T_e;
-  double transfer_neglect_delta_k_T_b;
+  double transfer_neglect_delta_k_S_t0; /**< for temperature source function T0 of scalar mode, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
+  double transfer_neglect_delta_k_S_t1; /**< same for temperature source function T1 of scalar mode */
+  double transfer_neglect_delta_k_S_t2; /**< same for temperature source function T2 of scalar mode */
+  double transfer_neglect_delta_k_S_e;  /**< same for polarization source function E of scalar mode */
+  double transfer_neglect_delta_k_V_t1; /**< same for temperature source function T1 of vector mode */
+  double transfer_neglect_delta_k_V_t2; /**< same for temperature source function T2 of vector mode */
+  double transfer_neglect_delta_k_V_e;  /**< same for polarization source function E of vector mode */
+  double transfer_neglect_delta_k_V_b;  /**< same for polarization source function B of vector mode */
+  double transfer_neglect_delta_k_T_t2; /**< same for temperature source function T2 of tensor mode */
+  double transfer_neglect_delta_k_T_e;  /**< same for polarization source function E of tensor mode */
+  double transfer_neglect_delta_k_T_b;  /**< same for polarization source function B of tensor mode */
 
-  double transfer_neglect_late_source;
+  double transfer_neglect_late_source;  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 
   /** when to use the Limber approximation for project gravitational potential cl's */
   double l_switch_limber;
 
-  /** when to use the Limber approximation for density cl's (relative to central redshift of each bin) */
-  double l_switch_limber_for_cl_density_over_z;
+  /** when to use the Limber approximation for local number count contributions to cl's (relative to central redshift of each bin) */
+  double l_switch_limber_for_nc_local_over_z;
+
+  /** when to use the Limber approximation for number count contributions to cl's integrated along the line-of-sight (relative to central redshift of each bin) */
+  double l_switch_limber_for_nc_los_over_z;
 
   /** in sigma units, where to cut gaussian selection functions */
   double selection_cut_at_sigma;
@@ -703,6 +729,9 @@ struct precision
 
   /** controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling */
   double selection_sampling_bessel;
+
+  /** controls sampling of integral over time when selection functions vary slower than Bessel functions. This parameter is specific to number counts contributions to Cl integrated along the line of sight. Increase for better sampling */
+  double selection_sampling_bessel_los;
 
   /** controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
   double selection_tophat_edge;
@@ -715,27 +744,32 @@ struct precision
 
   /** parameters relevant for HALOFIT computation */
 
-  double halofit_dz; /* spacing in redshift space defining values of z
+  double halofit_dz; /**< spacing in redshift space defining values of z
 			at which HALOFIT will be used. Intermediate
 			values will be obtained by
 			interpolation. Decrease for more precise
 			interpolations, at the expense of increasing
 			time spent in nonlinear_init() */
 
-  double halofit_min_k_nonlinear; /* value of k in 1/Mpc above
+  double halofit_min_k_nonlinear; /**< value of k in 1/Mpc above
 				     which non-linear corrections will
 				     be computed */
 
-  double halofit_sigma_precision; /* a smaller value will lead to a
+  double halofit_sigma_precision; /**< a smaller value will lead to a
 				      more precise halofit result at
 				      the highest requested redshift,
 				      at the expense of requiring a
 				      larger k_max */
 
-  double halofit_min_k_max; /* when halofit is used, k_max must be at
+  double halofit_min_k_max; /**< when halofit is used, k_max must be at
                                least equal to this value (otherwise
                                halofit could not find the scale of
                                non-linearity) */
+
+  double halofit_k_per_decade; /**< halofit needs to evalute integrals
+                                  (linear power spectrum times some
+                                  kernels). They are sampled using
+                                  this logarithmic step size. */
 
   //@}
 
@@ -745,7 +779,7 @@ struct precision
 
   int accurate_lensing; /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
   int num_mu_minus_lmax; /**< difference between num_mu and l_max, increase for more precision */
-  int delta_l_max; /**<difference between l_max in unlensed and lensed spectra */
+  int delta_l_max; /**< difference between l_max in unlensed and lensed spectra */
   double tol_gauss_legendre; /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
   //@}
 
@@ -761,7 +795,7 @@ struct precision
 
   //@{
 
-  ErrorMsg error_message;
+  ErrorMsg error_message;  /**< zone for writing error messages */
 
   //@}
 
