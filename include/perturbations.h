@@ -389,6 +389,14 @@ struct perturb_vector
   int index_pt_theta_cdm; /**< cdm velocity */
   int index_pt_delta_dcdm; /**< dcdm density */
   int index_pt_theta_dcdm; /**< dcdm velocity */
+/**NonLocal: perturbations of auxiliary fields*/
+  int index_pt_deltaU_nlde;
+  int index_pt_deltaU_prime_nlde;
+  int index_pt_deltaV_nlde;
+  int index_pt_deltaV_prime_nlde;
+  int index_pt_deltaZ_nlde; /*needed only for the model 1.*/
+  int index_pt_deltaZ_prime_nlde; /*needed only for model 1.*/
+    
   int index_pt_delta_fld;  /**< dark energy density */
   int index_pt_theta_fld;  /**< dark energy velocity */
   int index_pt_phi_scf;  /**< scalar field density */
