@@ -386,6 +386,7 @@ int thermodynamics_init(
              pth->error_message,
              pth->error_message);
 
+
   /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_reionization()*/
 
   if (pth->reio_parametrization != reio_none) {
@@ -803,7 +804,7 @@ int thermodynamics_init(
                  pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
     }
-    if (pth->reio_parametrization == reio_bins_tanh) {
+    if ((pth->reio_parametrization == reio_bins_tanh) || (pth->reio_parametrization == reio_bins_tanh)) {
       printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
     }
     if (pth->reio_parametrization == reio_many_tanh) {
@@ -976,7 +977,7 @@ int thermodynamics_indices(
   }
 
   /* case where x_e(z) is binned */
-  if (pth->reio_parametrization == reio_bins_tanh) {
+  if ((pth->reio_parametrization == reio_bins_tanh) || (pth->reio_parametrization == reio_bins_linear)) {
 
     /* the code will not only copy here the "bin centers" passed in
        input. It will add an initial and final value for (z,xe). So
@@ -1490,7 +1491,7 @@ int thermodynamics_reionization_function(
 
   /** - implementation of binned ionization function similar to astro-ph/0606552 */
 
-  if (pth->reio_parametrization == reio_bins_tanh) {
+  if ((pth->reio_parametrization == reio_bins_tanh) ||  (pth->reio_parametrization == reio_bins_linear)) {
 
     /** - --> case z > z_reio_start */
 
@@ -1507,43 +1508,60 @@ int thermodynamics_reionization_function(
       i = 0;
       while (preio->reionization_parameters[preio->index_reio_first_z+i+1]<z) i++;
 
-      /* This is the expression of the tanh-like jumps of the
-         reio_bins_tanh scheme until the 10.06.2015. It appeared to be
-         not robust enough. It could lead to a kink in xe(z) near the
-         maximum value of z at which reionisation is sampled. It has
-         been replaced by the simpler and more robust expression
-         below.
+      if (pth->reio_parametrization == reio_bins_tanh){
 
-      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
-        +0.5*(tanh((2.*(z-preio->reionization_parameters[preio->index_reio_first_z+i])
-                    /(preio->reionization_parameters[preio->index_reio_first_z+i+1]
-                      -preio->reionization_parameters[preio->index_reio_first_z+i])-1.)
-                   /preio->reionization_parameters[preio->index_reio_step_sharpness])
-              /tanh(1./preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
-        *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
-          -preio->reionization_parameters[preio->index_reio_first_xe+i]);
-      */
+        /* This is the expression of the tanh-like jumps of the
+           reio_bins_tanh scheme until the 10.06.2015. It appeared to be
+           not robust enough. It could lead to a kink in xe(z) near the
+           maximum value of z at which reionisation is sampled. It has
+           been replaced by the simpler and more robust expression
+           below.
 
-      /* compute the central redshift value of the tanh jump */
+        *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+          +0.5*(tanh((2.*(z-preio->reionization_parameters[preio->index_reio_first_z+i])
+                      /(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+                        -preio->reionization_parameters[preio->index_reio_first_z+i])-1.)
+                     /preio->reionization_parameters[preio->index_reio_step_sharpness])
+                /tanh(1./preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
+          *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+            -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+        */
 
-      if (i == preio->reio_num_z-2) {
-        z_jump = preio->reionization_parameters[preio->index_reio_first_z+i]
-          + 0.5*(preio->reionization_parameters[preio->index_reio_first_z+i]
-                 -preio->reionization_parameters[preio->index_reio_first_z+i-1]);
+        /* compute the central redshift value of the tanh jump */
+
+        if (i == preio->reio_num_z-2) {
+          z_jump = preio->reionization_parameters[preio->index_reio_first_z+i]
+            + 0.5*(preio->reionization_parameters[preio->index_reio_first_z+i]
+                   -preio->reionization_parameters[preio->index_reio_first_z+i-1]);
+        }
+        else  {
+          z_jump =  0.5*(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+                         + preio->reionization_parameters[preio->index_reio_first_z+i]);
+        }
+
+        /* implementation of the tanh jump */
+
+        *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+          +0.5*(tanh((z-z_jump)
+                     /preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
+          *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+            -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+
+      } 
+      else if (pth->reio_parametrization == reio_bins_linear) {
+
+        // z_i, z_{i+1}, xe_i, xe_{i+1}
+        // note: at this point we have z_i < z < z_ip1
+        double z_i, z_ip1, xe_i, xe_ip1; 
+
+        z_i    = preio->reionization_parameters[preio->index_reio_first_z+i];
+        z_ip1  = preio->reionization_parameters[preio->index_reio_first_z+i+1];
+        xe_i   = preio->reionization_parameters[preio->index_reio_first_xe+i];
+        xe_ip1 = preio->reionization_parameters[preio->index_reio_first_xe+i+1];
+
+        *xe = xe_i + (z-z_i)/(z_ip1-z_i)*(xe_ip1-xe_i);
+
       }
-      else  {
-        z_jump =  0.5*(preio->reionization_parameters[preio->index_reio_first_z+i+1]
-                       + preio->reionization_parameters[preio->index_reio_first_z+i]);
-      }
-
-      /* implementation of the tanh jump */
-
-      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
-        +0.5*(tanh((z-z_jump)
-                   /preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
-        *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
-          -preio->reionization_parameters[preio->index_reio_first_xe+i]);
-
     }
 
     return _SUCCESS_;
@@ -1861,7 +1879,7 @@ int thermodynamics_reionization(
 
   }
 
-  if (pth->reio_parametrization == reio_bins_tanh) {
+  if ((pth->reio_parametrization == reio_bins_tanh) || (pth->reio_parametrization == reio_bins_linear)) {
 
     /* this algorithm requires at least two bin centers (i.e. at least
        4 values in the (z,xe) array, counting the edges). */
