@@ -110,15 +110,15 @@ double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double en
   if (xe < 1.) {
     //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
     array_interpolate_spline(param->annihil_coef_xe,
-                                        param->annihil_coef_num_lines,
-                                        param->annihil_coef_heat,
-                                        param->annihil_coef_dd_heat,
-                                        1,
-                                        xe,
-                                        &last_index,
-                                        &(chi_heat),
-                                        1,
-                                        error_message);
+                            param->annihil_coef_num_lines,
+                            param->annihil_coef_heat,
+                            param->annihil_coef_dd_heat,
+                            1,
+                            xe,
+                            &last_index,
+                            &(chi_heat),
+                            1,
+                            error_message);
     // chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
     if (chi_heat > 1.) chi_heat = 1.;
     // fprintf(stdout,"%e   %e     \n", xe,chi_heat);
@@ -490,53 +490,31 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
 
   double annihilation_at_z;
   double rho_ini_dcdm;
+  double result_integrale;
   double rho_cdm_today;
   double _Mpc_over_m_;
   double energy_rate;
   rho_ini_dcdm = param->odcdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
   rho_cdm_today = param->ocdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
   _Mpc_over_m_ = 3.085677581282*pow(10,22);
-    int i, n_step = 1000;
-    if(z<1000)n_step*=10;
-    double z1,z2,z3,t1,t2,t3,t=0,result_integrale=0,result_integrale_approchee;
-    double delta_z = (param->zstart-z)/((double) n_step);
     if(param->decay>0){
-      //
-      // if(z<-1){
-      //
-      //   for(i = 0 ; i<n_step ; i++){
-      //     if(i!=0)z1=z3;
-      //     else z1=param->zstart;
-      //     z2=z1-delta_z/2.;
-      //     z3=z2-delta_z/2.;
-      //     t1= 1/((1+z1)*sqrt(param->Omega0_g*pow(1+z1,4)+(param->Omega0_b+param->Omega0_cdm)*pow(1+z1,3)+param->Omega0_lambda));
-      //     t2= 1/((1+z2)*sqrt(param->Omega0_g*pow(1+z2,4)+(param->Omega0_b+param->Omega0_cdm)*pow(1+z2,3)+param->Omega0_lambda));
-      //     t3= 1/((1+z3)*sqrt(param->Omega0_g*pow(1+z3,4)+(param->Omega0_b+param->Omega0_cdm)*pow(1+z3,3)+param->Omega0_lambda));
-      //     t += delta_z/6*(t1+4*t2+t3);
-      //     // fprintf(stdout, "t1 = %e, t2 = %e,t3 = %e,t = %e\n",t1,t2,t3,t);
-      //   }
-      //   t*=1/(param->H0);
-      //   result_integrale = exp(-t*param->Gamma_dcdm);
-      // }
-      // else
+
        result_integrale = exp(-param->Gamma_dcdm*2*((param->Omega0_b+param->Omega0_cdm)*pow(param->Omega0_g+(param->Omega0_b+param->Omega0_cdm)/(1+z),0.5)
       +2*pow(param->Omega0_g,1.5)*(1+z)-2*param->Omega0_g*pow((1+z)*(param->Omega0_g*(1+z)+(param->Omega0_b+param->Omega0_cdm)),0.5))/(3*pow((param->Omega0_b+param->Omega0_cdm),2)*(1+z)*param->H0));
-      // fprintf(stdout, " %e  %e\n",z, result_integrale);
 
       if(rho_ini_dcdm!=0)energy_rate=rho_ini_dcdm*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
       else energy_rate=rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
       // if(z>0)fprintf(stdout, "z = %e energy_rate = %e\n", z, energy_rate*1.e6*1.60217653e-19);
     }
 
-    // fprintf(stdout, "z = %e vrai = %e  approchee = %e relativ diff = %e\n",z,result_integrale, result_integrale_approchee,(result_integrale-result_integrale_approchee)/result_integrale_approchee);
 if(param->annihilation>0.)energy_rate =  (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*param->annihilation)/1.e6/1.60217653e-19;
 
-    // else energy_rate+=rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
     /* Old version, kept for comparaison */
   // return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
   //   param->annihilation
   //   +rho_cdm_today*pow((1+z),3)*param->decay)/1.e6/1.60217653e-19;
   // fprintf(stdout,"z = %e, energy_rate = %e\n",z,energy_rate);
+
 return energy_rate;
   /* energy density rate in eV/cm^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   /* note that the injection rate used by recfast, defined in therodynamics.c, is in J/m^3/s. Here we multiplied by 1/1.e6/1.60217653e-19 to convert to eV and cm. */

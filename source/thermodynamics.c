@@ -1725,32 +1725,38 @@ int thermodynamics_onthespot_energy_injection(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
   // rho_dcdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
-  class_call(background_tau_of_z(pba,
-                                 z,
-                                 &tau),
-             pba->error_message,
-             ppr->error_message);
+  if(pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau),
+               pba->error_message,
+               ppr->error_message);
 
-  class_call(background_at_tau(pba,
-                               tau,
-                               pba->long_info,
-                               pba->inter_normal,
-                               &last_index_back,
-                               pvecback),
-             pba->error_message,
-             ppr->error_message);
-   rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*pow(_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in J/m^3 */
-  //  result_integrale = exp(-pba->Gamma_dcdm*2*((pba->Omega0_b+pba->Omega0_cdm)*pow(pba->Omega0_g+(pba->Omega0_b+pba->Omega0_cdm)/(1+z),0.5)
-  //  +2*pow(pba->Omega0_g,1.5)*(1+z)-2*pba->Omega0_g*pow((1+z)*(pba->Omega0_g*(1+z)+(pba->Omega0_b+pba->Omega0_cdm)),0.5))/(3*pow((pba->Omega0_b+pba->Omega0_cdm),2)*(1+z)*pba->H0));
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->long_info,
+                                 pba->inter_normal,
+                                 &last_index_back,
+                                 pvecback),
+               pba->error_message,
+               ppr->error_message);
+     rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*pow(_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in J/m^3 */
+  }
+  else{
+    result_integrale = exp(-pba->Gamma_dcdm*2*((pba->Omega0_b+pba->Omega0_cdm)*pow(pba->Omega0_g+(pba->Omega0_b+pba->Omega0_cdm)/(1+z),0.5)
+    +2*pow(pba->Omega0_g,1.5)*(1+z)-2*pba->Omega0_g*pow((1+z)*(pba->Omega0_g*(1+z)+(pba->Omega0_b+pba->Omega0_cdm)),0.5))/(3*pow((pba->Omega0_b+pba->Omega0_cdm),2)*(1+z)*pba->H0));
+    rho_dcdm = rho_cdm_today*result_integrale; // Tris trick avoid mixing gravitational and electromagnetic impacts of the decay on the CMB power spectra.
+  }
+
+  /* If uncommented, these lines allow to check approximation when computing the dcdm density with analytical results. Works very well until Omega_lambda dominates, then ~10% difference. */
   //  rho_dcdm_approchee = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega_ini_dcdm)*_c_*_c_*result_integrale*pow(1+z,3);
   //  fprintf(stdout, "z = %e vrai = %e  approchee = %e relativ diff = %e\n",z,rho_dcdm, rho_dcdm_approchee,(rho_dcdm-rho_dcdm_approchee)/rho_dcdm_approchee);
+
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
     (pow((1.+z),3)*preco->annihilation)
     +rho_dcdm*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
     // fprintf(stdout, "z = %e energy_rate = %e\n", z, *energy_rate);
 
-// fprintf(stdout, "%e %e \n",z,exp(-pvecback[pba->index_bg_time]*pba->Gamma_dcdm));
-    // fprintf(stdout, "here decay = %e energy_rate = %e tau = %e [s]\n", preco->decay,*energy_rate,1/(pba->Gamma_dcdm*_c_/_Mpc_over_m_));
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   free(pvecback);
   return _SUCCESS_;
@@ -1784,46 +1790,49 @@ int thermodynamics_beyond_onthespot_energy_injection(
       rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
       rho_ini_dcdm = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega_ini_dcdm*_c_*_c_; /* energy density in J/m^3 */
       if(preco->annihilation > 0.){
-            if(preco->annihilation_f_halo>0.){
-            class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
-                      preco->error_message,
-                      preco->error_message);
+        class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
+                  preco->error_message,
+                  preco->error_message);
+            if(preco->annihilation_z_halo>0.){
             // fprintf(stdout,"here !!\n" );
             Boost_factor = preco->annihilation_f_halo*erfc((1+z)/(1+preco->annihilation_z_halo))/pow(1+z,3);
             *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*(1+Boost_factor)*preco->f_halos;
             /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
             // fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_halos,*energy_rate);
           }
-          else{
-            /* number of hydrogen nuclei today in m**-3 */
-            nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+          else  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_halos;
 
-            /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-            factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-
-            /* integral over z'(=zp) with step dz */
-            dz=1.;
-
-            /* first point in trapezoidal integral */
-            zp = z;
-            class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-                       error_message,
-                       error_message);
-            first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-            result = 0.5*dz*first_integrand;
-
-            /* other points in trapezoidal integral */
-            do {
-
-              zp += dz;
-              class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-                         error_message,
-                         error_message);
-              integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 8 and 7.5
-              result += dz*integrand;
-
-            } while (integrand/first_integrand > 0.02);
-          }
+          /**** Old version of the beyond on the spot treatment, has been replaced by using Slatyer et al. 2015 results. ******/
+          // else{
+          //   /* number of hydrogen nuclei today in m**-3 */
+          //   nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+          //
+          //   /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
+          //   factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+          //
+          //   /* integral over z'(=zp) with step dz */
+          //   dz=1.;
+          //
+          //   /* first point in trapezoidal integral */
+          //   zp = z;
+          //   class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+          //              error_message,
+          //              error_message);
+          //   first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
+          //   result = 0.5*dz*first_integrand;
+          //
+          //   /* other points in trapezoidal integral */
+          //   do {
+          //
+          //     zp += dz;
+          //     class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+          //                error_message,
+          //                error_message);
+          //     integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
+          //     result += dz*integrand;
+          //
+          //   } while (integrand/first_integrand > 0.02);
+          // }
       }
       if(preco->decay > 0.){
 
@@ -2921,11 +2930,11 @@ if(pth->annihilation!=0 || pth->decay!=0){
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
-      class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-                 pth->error_message,
-                 pth->error_message);
-      // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-      chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+      // class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+      //            pth->error_message,
+      //            pth->error_message);
+      chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
+      // chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
 
       dTdz_DM = - 2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
@@ -4007,11 +4016,10 @@ else energy_rate=0;
       // chi_ionH = pth->chi_ionH;// coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
       // chi_ionHe = pth->chi_ionHe;
       // chi_lya = pth->chi_lya;
-      chi_ionH = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+      // chi_ionH = (1.-x)/3.; // old approximation from Chen and Kamionkowski
+      chi_ionH = 0.369202*pow(1.-pow(x,0.463929),1.70237);// coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013):
       chi_ionHe=0.;
       chi_lya = chi_ionH;
-      // chi_ionH = 0.369202*pow(1.-pow(x,0.463929),1.70237);// coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013):
-
     }
   }
 
@@ -4088,8 +4096,8 @@ else energy_rate=0;
 
     if(pth->annihilation >0 || pth->decay > 0){
       if (x < 1.){
-        // chi_heat = pth->chi_heat;
-        chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
+        chi_heat = pth->chi_heat;
+        // chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
         // chi_heat = (1.+2.*x)/3.; // old approximation from Chen and Kamionkowski
       }
       else
