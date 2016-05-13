@@ -3731,7 +3731,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
     switch (pfzw->target_name[i]) {
     case theta_s:
       output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
-      fprintf(stdout, " then h = %e \n", output[i]);
       break;
     case Omega_dcdmdr:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
@@ -3851,7 +3850,6 @@ int input_get_guess(double *xguess,
       /** - Update pb to reflect guess */
       ba.h = xguess[index_guess];
       ba.H0 = ba.h *  1.e5 / _c_;
-      fprintf(stdout, "here h = %e \n", ba.h);
       break;
     case Omega_dcdmdr:
       Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;

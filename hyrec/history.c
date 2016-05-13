@@ -540,8 +540,8 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
 
 
   rho_ini_dcdm = param->odcdmh2*1.44729366e-9; /* energy density in Kg/m^3 */
-
   rho_cdm_today = param->omh2*1.44729366e-9; /* energy density in Kg/m^3 */
+  if(rho_ini_dcdm==0)rho_ini_dcdm = rho_cdm_today;
   if (param->annihilation_f_halo > 0. && param->annihilation_z_halo > 0.){
   array_interpolate_spline(param->annihil_z,
                                       param->annihil_f_halos_num_lines,
@@ -572,12 +572,14 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
                                         1,
                                         error_message);
     // if(f_halos<0)f_halos*=-1;
-    // fprintf(stdout, "here\n" );
+    // fprintf(stdout, "f_halos %e\n", f_halos );
 
     if(param->annihilation>0)energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*param->annihilation*f_halos/1.e6/1.60217653e-19;
-    else if(param->decay>0) energy_rate = (rho_ini_dcdm*pow((1+z),3)*param->decay*f_halos*
+    else if(param->decay>0) {
+      energy_rate = (rho_ini_dcdm*pow((1+z),3)*param->decay*f_halos*
                                           (param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
     // fprintf(stdout,"fhalos = %e, z = %e, energy_rate = %e\n",f_halos,z,energy_rate);
+  }
 
 }
     /* energy density rate in eV/cm^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*convers
