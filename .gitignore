@@ -11,3 +11,4 @@ python/build/
 DM_annihilation/
 *.dat
 output*
+class.dSYM/Contents/Info.plist

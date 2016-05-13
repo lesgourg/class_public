@@ -1,0 +1,605 @@
+\documentclass{article}
+
+\newcommand\CLASS{{\tt CLASS}~}
+\newcommand\CAMB{{\tt CAMB}~}
+
+\begin{document}
+
+\title{The Cosmic Linear Anisotropy Solving System (CLASS)}
+
+\author{Julien Lesgourgues}
+
+%\email{Julien.Lesgourgues@cern.ch}
+
+\date{\today}
+
+%\affiliation{CERN}
+
+\maketitle
+
+
+Where to find information and documentation on \CLASS?
+\begin{itemize}
+\item {\bf for what the code can actually compute:} all possible input parameters, all coded cosmological models, all functionalities, all observables, etc.: read the file {\tt explanatory.ini} in the main \CLASS directory: it is a reference file where we keep track of all possible input.
+\item {\bf for the physics and equations used in the code:} mainly, the following papers:
+\begin{itemize}
+%\cite{Ma:1995ey}
+\item%{Ma:1995ey}
+{\bf ``Cosmological perturbation theory in the synchronous and conformal Newtonian gauges''}
+  \\{}C.~P.~Ma and E.~Bertschinger.
+  \\{}astro-ph/9506072
+  \\{}10.1086/176550
+  \\{}Astrophys.\ J.\  {\bf 455}, 7 (1995)
+%(Jun 1995)
+%\href{http://inspirehep.net/record/396100}{HEP entry}
+%1004 citations counted in INSPIRE as of 25 Mar 2016
+
+%\cite{Blas:2011rf}
+\item%{Blas:2011rf}
+{\bf ``The Cosmic Linear Anisotropy Solving System (CLASS) II: Approximation schemes''}
+  \\{}D.~Blas, J.~Lesgourgues and T.~Tram.
+  \\{}arXiv:1104.2933 [astro-ph.CO]
+  \\{}10.1088/1475-7516/2011/07/034
+  \\{}JCAP {\bf 1107}, 034 (2011)
+%(Apr 2011)
+%\href{http://inspirehep.net/record/896300}{HEP entry}
+%172 citations counted in INSPIRE as of 25 Mar 2016
+
+%\cite{Lesgourgues:2011rh}
+\item%{Lesgourgues:2011rh}
+{\bf ``The Cosmic Linear Anisotropy Solving System (CLASS) IV: efficient implementation of non-cold relics''}
+  \\{}J.~Lesgourgues and T.~Tram.
+  \\{}arXiv:1104.2935 [astro-ph.CO]
+  \\{}10.1088/1475-7516/2011/09/032
+  \\{}JCAP {\bf 1109}, 032 (2011)
+%(Apr 2011)
+%\href{http://inspirehep.net/record/896298}{HEP entry}
+%31 citations counted in INSPIRE as of 25 Mar 2016
+
+%\cite{Tram:2013ima}
+\item%{Tram:2013ima}
+{\bf ``Optimal polarisation equations in FLRW universes''}
+  \\{}T.~Tram and J.~Lesgourgues.
+  \\{}arXiv:1305.3261 [astro-ph.CO]
+  \\{}10.1088/1475-7516/2013/10/002
+  \\{}JCAP {\bf 1310}, 002 (2013)
+%(May 14, 2013)
+%\href{http://inspirehep.net/record/1233344}{HEP entry}
+%5 citations counted in INSPIRE as of 25 Mar 2016
+
+%\cite{Lesgourgues:2013bra}
+\item%{Lesgourgues:2013bra}
+{\bf ``Fast and accurate CMB computations in non-flat FLRW universes''}
+  \\{}J.~Lesgourgues and T.~Tram.
+  \\{}arXiv:1312.2697 [astro-ph.CO]
+  \\{}10.1088/1475-7516/2014/09/032
+  \\{}JCAP {\bf 1409}, no. 09, 032 (2014)
+%(Dec 10, 2013)
+%\href{http://inspirehep.net/record/1268619}{HEP entry}
+%3 citations counted in INSPIRE as of 25 Mar 2016
+
+%\cite{DiDio:2013bqa}
+\item%{DiDio:2013bqa}
+{\bf ``The CLASSgal code for Relativistic Cosmological Large Scale Structure''}
+  \\{}E.~Di Dio, F.~Montanari, J.~Lesgourgues and R.~Durrer.
+  \\{}arXiv:1307.1459 [astro-ph.CO]
+  \\{}10.1088/1475-7516/2013/11/044
+  \\{}JCAP {\bf 1311}, 044 (2013)
+%(Jul 4, 2013)
+%\href{http://inspirehep.net/record/1241553}{HEP entry}
+%28 citations counted in INSPIRE as of 25 Mar 2016
+\end{itemize}
+
+\item {\bf for the structure, style, and concrete aspects of the code:} this documentation; plus the slides of our \CLASS lectures, for instance those from Tokyo 2014 available at \\
+
+{\tt https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl\_DDUBEzAjjdywMjeTya2a?dl=0}\\
+
+in the folder {\tt CLASS\_Lecture\_slides/}.
+
+\item {\bf for the python wrapper of \CLASS:} at the moment, the best is the slides from these lectures, for instance following the previous link and looking into\\
+
+ {\tt CLASS\_Lecture\_slides/lecture7\_wrapper.pdf}\\
+ 
+  and into\\
+  
+{\tt IPython\_Notebooks/}\\
+
+ for example of python sessions. We will expand soon the documentation on this part with a dedicated webpage.
+
+
+\end{itemize}
+
+\section{Overall architecture of {\sc class}}
+
+\subsection{Files and directories}
+
+After downloading \CLASS, one can see the following files in
+the root directory contains:
+\begin{itemize}
+\item some example of input files, the most important being {\tt explanatory.ini}. a reference input file containing all possible flags, options and physical input parameters. While this documentation explains the structure and use of the code, {\tt explanatory.ini} can be seen as the {\it physical} documentation of \CLASS.
+The other input file are alternative parameter input files (ending with {\tt .ini})and precision input files (ending with {\tt .pre})
+\item 
+the {\tt Makefile},  with which you can compile the code by typing {\tt make clean; make;} this will create the executable {\tt class} and some binary files in the directory {\tt build/}. The {\tt Makefile} contains other compilation options that you can view inside the file.
+\item {\tt CPU.py} is a python script designed for plotting the \CLASS output; for documentation type {\tt python CPU.py --help}
+\item {\tt plot\_CLASS\_output.m} is the counterpart of {\tt CPU.py} for MatLab
+\item there are other input files for various applications: an example of a non-cold dark matter distribution functions ({\tt psd\_FD\_single.dat}), and examples of evolution and selection functions for galaxy number count observables ({\tt myevolution.dat, myselection.dat}).
+\end{itemize}
+Other files are split between the
+following directories:
+\begin{itemize} 
+\item
+{\tt source/} contains the C files for each \CLASS module, i.e. each
+block containing some part of the physical equations and logic of
+the Boltzmann code.
+\item
+{\tt tools/} contains purely numerical algorithms, applicable in any
+context: integrators, simple manipulation of arrays (derivation,
+integration, interpolation), Bessel function calculation, quadrature algorithms, parser, etc.
+\item {\tt main/} contains the main module {\tt class.c} with the main
+  routine {\tt class(...)}, to be used in interactive runs (but not
+  necessarily when the code is interfaced with other ones).
+\item
+{\tt test/} contains alternative main routines which can be used to
+run only some part of the code, to test its accuracy, to illustrate how
+it can be interfaced with other codes, etc.
+\item
+{\tt include/} contains all the include files with a {\tt .h} suffix.
+\item
+{\tt   output/} is where the output files will be written by default (this can be changed to another directory by adjusting the input parameter {\tt root = <...>})
+\item
+{\tt   python/} contains the python wrapper of \CLASS, called classy (see {\tt python/README}) 
+\item
+{\tt   cpp/} contains the C++ wrapper of \CLASS, called ClassEngine (see {\tt cpp/README}) 
+\item
+{\tt   doc/} contains the automatic documentation (manual and input files required to build it)
+\item
+{\tt   external\_Pk/} contains exemples of external codes that can be used to generate the primordial spectrum and be interfaced with \CLASS, when one of the many options already built inside the code are not sufficient.
+\item
+{\tt bbn/} contains interpolation tables produced by BBN codes, in order to predict e.g. $Y_\mathrm{He}(\omega_b, \Delta N_\mathrm{eff})$.
+\item
+{\tt   hyrec/} contains the recombination code HyRec of Yacine Ali-Ha\"{\i}moud and Chris Hirata, that can be used as an alternative to the built-in Recfast (using the input parameter {\tt recombination = <...>}).
+\end{itemize}
+
+\subsection{The ten-module backbone}
+
+\subsubsection{Ten tasks}
+
+The purpose of {\sc class} consists in computing some power spectra for a
+given set of cosmological parameters. This task can be decomposed in few steps
+or modules:
+\begin{enumerate}
+\item
+set input parameter values.
+\item
+compute the evolution of cosmological background quantitites.
+\item
+compute the evolution of thermodynamical quantitites (ionization fractions, etc.)
+\item
+compute the evolution of source functions $S(k,\tau)$ (by integrating over all perturbations).
+\item
+compute the primordial spectra.
+\item
+eventually, compute non-linear corrections at small redshift/large wavenumber.
+\item
+compute transfer functions in harmonic space $\Delta_l(k)$ (unless one needs only Fourier spectra $P(k)$'s and no harmonic spectra $C_l$'s).
+\item
+compute the observable power spectra $C_l$'s (by convolving the primordial spectra and the harmonic transfer functions) and/or $P(k)$'s (by multiplying the primordial spectra and the appropriate source functions $S(k,\tau)$).
+\item
+eventually, compute the lensed CMB spectra (using second-order perturbation theory)
+\item
+write results in  files (when \CLASS is used interactively. The pyhton wrapper would not go to this step and just keep the output stored internally).
+\end{enumerate}
+
+
+\subsubsection{Ten structures}
+
+In {\sc class}, each of these steps is associated with a structure:
+\begin{enumerate}
+\item {\tt  struct precision }      for input precision parameters (input physical paramaters are dispatched among the other structures listed below)
+\item {\tt  struct background }      for cosmological background,
+\item {\tt  struct thermo      }     for thermodynamics,
+\item {\tt  struct perturbs     }    for source functions,
+\item {\tt  struct primordial  }        for primordial spectra,
+\item {\tt  struct nonlinear  }        for nonlinear corrections,
+\item {\tt  struct transfers }       for transfer functions,
+\item {\tt  struct spectra     }     for observable spectra,
+\item {\tt  struct lensing     }     for lensed CMB spectra,
+\item {\tt struct output} for auxiliary variable describing the output format.
+\end{enumerate}
+A given structure contains ``everything concerning one step that the
+subsequent steps need to know'' (for instance, {\tt  struct perturbs} contains everything about source
+functions that the transfer module needs to know). In particular, each
+structure contains one array of tabulated values (for {\tt  struct background }, background
+quantitites as a function of time, for {\tt  struct thermo}, thermodynamical quantitites as a
+function of redshift, for {\tt  struct perturbs}, sources $S(k, \tau)$, etc.).  It
+also contains information about the size of this array and the value
+of the index of each physical quantity, so that the table can be
+easily read and interpolated. Finally, it contains any derived
+quantity that other modules might need to know. Hence, the
+comunication from one module A to another module B
+consists in passing a pointer to the structure filled by A, and nothing else.
+
+All ``precision parameters'' are grouped in the single structure
+{\tt struct precision}. The code contains {\it no other arbitrary
+numerical coefficient}. 
+
+\subsubsection{Ten modules}
+
+Each structure is defined and filled in one of the following modules
+(and precisely in the order below):
+\begin{enumerate}
+\item {\tt  input.c }
+\item {\tt  background.c }
+\item {\tt  thermodynamics.c   }
+\item {\tt  perturbations.c    }
+\item {\tt  primordial.c  } 
+\item {\tt  nonlinear.c  } 
+\item {\tt  transfer.c   }
+\item {\tt  spectra.c     }
+\item {\tt  lensing.c     }
+\item {\tt  output.c     }
+\end{enumerate}
+Each of these modules contains at least three functions:
+\begin{itemize}
+\item {\it module}\_{\tt init(...)}
+\item {\it module}\_{\tt free(...)}
+\item {\it module}\_{\it something}\_{\tt at}\_{\it somevalue}{\tt(...)}
+\end{itemize}
+where {\it module} is one of {\tt input, background, thermodynamics, perturb, primordial, nonlinear, transfer, spectra, lensing, output}.
+
+
+The first function allocates and fills each structure. This can be
+done provided that the previous structures in the hierarchy have been
+already allocated and filled. In summary, calling one of {\it module}\_{\tt
+init(...)} amounts in solving entirely one of the steps 1 to 10.
+
+The second function deallocates the fields of each structure. This
+can be done optionally at the end of the code (or, when the code is embedded
+in a sampler, this {\it must} be done 
+between each execution of {\sc class}, and especially before calling {\it
+module}\_{\tt init(...)} again with different input parameters).
+
+The
+third function is able to interpolate the pre-computed tables. For
+instance, {\tt background\_init()} fills a table of background
+quantitites for discrete values of conformal time $\tau$, but {\tt
+background\_at\_tau(tau, * values)} will return these values for any
+arbitrary $\tau$. 
+
+Note that functions of the type {\it module}\_{\it
+something}\_{\tt at}\_{\it somevalue}{\tt(...)} are the only ones which are
+called from another module, while functions of the type {\it
+module}\_{\tt init(...)} and {\it module}\_{\tt free(...)} are the only
+one called by the main executable.  All other functions are for
+internal use in each module. 
+
+When writing a C code, the ordering of the functions in the *.c file is in principle arbitrary. However, for the sake of clarity, we always respected the following order in each \CLASS module:
+
+\begin{enumerate}
+\item all functions that may be called by other modules, i.e. ``external functions'',  usually named like {\it module}\_{\it something}\_{\tt at}\_{\it somevalue}{\tt(...)}
+\item then, {\it module}\_{\tt init(...)}
+\item then, {\it module}\_{\tt free()}
+\item then, all functions used only internally by the module
+\end{enumerate}
+
+\subsection{{\tt main()} function(s)}
+
+\subsubsection{The {\tt main.c} file}
+
+The main executable of {\sc class} is the function {\tt main()} located in the file {\tt main/main.c}.
+This function consist only in the 
+following lines
+(not including comments and error-management lines explained later):
+
+\vspace{0.5cm}
+
+\noindent
+{\tt
+main() \{ \\
+\indent  struct precision pr;\\
+\indent  struct background ba;\\
+\indent  struct thermo th;     \\
+\indent  struct perturbs pt;   \\
+\indent  struct primordial pm;    \\
+\indent  struct nonlinear nl;\\
+\indent  struct transfers tr;  \\
+\indent  struct spectra sp;     \\
+\indent struct lensing le;\\
+\indent  struct output op;      \\
+ \\
+\indent  input\_init\_from\_arguments(argc, argv,\&pr,\&ba,\&th,\&pt,\&tr,\&pm,\&sp,\&nl,\&le,\&op,errmsg);\\
+\indent  background\_init(\&pr,\&ba);\\
+\indent  thermodynamics\_init(\&pr,\&ba,\&th);\\
+\indent  perturb\_init(\&pr,\&ba,\&th,\&pt);\\
+\indent  primordial\_init(\&pr,\&pt,\&pm);\\
+\indent  nonlinear\_init(\&pr,\&ba,\&th,\&pt,\&pm,\&nl);\\
+\indent  transfer\_init(\&pr,\&ba,\&th,\&pt,\&nl,\&tr);\\
+\indent  spectra\_init(\&pr,\&ba,\&pt,\&pm,\&nl,\&tr,\&sp);\\
+\indent  lensing\_init(\&pr,\&pt,\&sp,\&nl,\&le);\\
+\indent  output\_init(\&ba,\&th,\&pt,\&pm,\&tr,\&sp,\&nl,\&le,\&op)\\
+\\
+\indent  /****** done ******/\\
+\\
+\indent lensing\_free(\&le);\\
+\indent spectra\_free(\&sp);\\
+\indent transfer\_free(\&tr);\\
+\indent nonlinear\_free(\&nl);\\
+\indent primordial\_free(\&pm);\\
+\indent perturb\_free(\&pt);\\
+\indent thermodynamics\_free(\&th);\\
+\indent background\_free(\&ba);\\
+\}
+}
+
+\vspace{0.5cm}
+
+We can come back on the role of each argument. The arguments above are all pointers to the 10 structures of the code, excepted {\tt argc, argv} which contains the input files passed by the user, and {\tt errmsg} which contains the output error message of the input module (error management will be described below).
+
+{\tt  input\_init\_from\_arguments} needs all structures, because it will set the precision parameters inside the {\tt precision} structure, and the physical parameters in some fields of the respective other structures. For instance, an input parameter relevant for the primordial spectrum calculation (like the tilt $n_s$) will be stored in the {\tt primordial} structure. Hence, in {\tt  input\_init\_from\_arguments}, all structures can be seen as output arguments.
+
+Other {\it module}{\tt \_init()} functions typically need all previous structures, which contain the result of the previous modules, plus its own structures, which contain some relevant input parameters before the function is called, as well as all the result form the module when the function has been executed. Hence all passed structures can be seen as input argument, excepted the last one which is both input and output. An example is {\tt perturb\_init(\&pr,\&ba,\&th,\&pt)}.
+
+Each function {\it module}{\tt \_init()}  does not need {\it all} previous structures, it happens that a module does not depend on a {\it all} previous one. For instance, the primordial module does not need information on the background and thermodynamics evolution in order to compute the primordial spectra, so the dependency is reduced: {\tt primordial\_init(\&pr,\&pt,\&pm)}.
+
+Each function {\it module}{\tt \_init()} only deallocates arrays defined in the structure of their own module, so they need only their own structure as argument. (This is possible because all structures are self-contained, in the sense that when the structure contains an allocated array, it also contains the size of this array). The first and last module, {\tt input} and {\tt output}, have no {\tt input\_free()} or {\tt output\_free()} functions, because the structures {\tt precision} and {\tt output} do not contain arrays that would need to be de-allocated after the execution of the module.
+
+\subsubsection{The {\tt test\_<...>.c} files}
+
+For a given purpose, somebody could only be interested in the
+intermediate steps (only background quantities, only the
+thermodynamics, only the perturbations and sources, etc.) It is
+then straightforward to truncate the full hierarchy of modules 1, ... 10 at some
+arbitrary order. We provide several ``reduced executables'' achieving precisely this.
+They are located in {\tt test/test}\_{\it module}{\tt.c} (like, for instance, {\tt test/test\_perturbations.c}) and they can
+be complied using the Makefile, which contains the appropriate commands and definitions (for instance, you can type {\tt make test\_perturbations}).
+
+The {\tt test/} directory contains other useful example of alternative main functions, like for instance
+{\tt test\_loops.c} which shows how to call \CLASS within a loop over different parameter values.
+There is also a version {\tt test/test\_loops\_omp.c} using a double level of openMP parallelisation: one for running several \CLASS instances in parallel, one for running each \CLASS instance on several cores. The comments in theses files are self-explanatory.
+
+\section{Input/output}
+
+\subsection{Input}
+
+There are two types of input:
+\begin{enumerate}
+\item ``precision parameters'' (controlling the precision of the output and the execution time),
+\item ``input parameters'' (cosmological parameters, flags telling to the code what it should compute, ...)
+\end{enumerate}
+The code can be executed with a maximum of two input files, e.g.\\
+
+\indent 
+{\tt ./class explanatory.ini cl\_permille.pre}\\
+
+
+\noindent
+The file with a {\tt .ini} extension is the cosmological parameter
+input file, and the one with a {\tt .pre} extension is the precision
+file. Both files are optional: all parameters are set to default
+values corresponding to the ``most usual choices'', and are eventually
+replaced by the parameters passed in the two input files. For
+instance, if one is happy with default accuracy settings, it is enough
+to run with \\
+
+\indent {\tt ./class explanatory.ini}\\ 
+
+\noindent Input files do not
+necessarily contain a line for each parameter, since many of them can
+be left to default value. The example file {\tt explanatory.ini} is
+very long and somewhat indigestible, since it contains all possible
+parameters, together with lengthy explanations. We recommend to keep
+this file unchanged for reference, and to copy it in e.g. {\tt
+test.ini}. In the latter file, the user can erase all sections in
+which he/she is absolutely not interested (e.g., all the part on
+isocurvature modes, or on tensors, or on non-cold species,
+etc.). Another option is to create an input file from scratch, copying
+just the relevant lines from {\tt explanatory.ini}.  For the simplest
+applications, the user will just need a few lines for basic
+cosmological parameters, one line for the {\tt output} entry (where
+one can specifying which power spectra must be computed), and one line
+for the {\tt root} entry (specifying the prefix of all output files).
+
+The syntax of the input files is explained at the beginning of {\tt
+explanatory.ini}.  Typically, lines in those files look like:
+
+\vspace{0.5cm}
+
+\noindent 
+{\tt parameter1 = value1}\\
+{\tt free comments}\\
+{\tt parameter2 = value2 \# further comments}\\
+{\tt \# commented\_parameter = commented\_value}\\
+
+\noindent 
+and parameters can be entered in arbitrary order. This is rather
+intuitive. The user should just be careful not to put an ``{\tt =}''
+sign not preceded by a ``{\tt \#}'' sign inside a comment: the code
+would then think that one is trying to pass some unidentified input
+parameter.
+
+The syntax for the cosmological and precision parameters is the same.
+It is clearer to split these parameters in the two files {\tt .ini}
+and {\tt .pre}, but there is no strict rule about which parameter goes
+into which file: in principle, precision parameters could be passed in
+the {\tt .ini}, and vice-versa. The only important thing is not to pass
+the same parameter twice: the code would then complain and not run.
+
+The \CLASS input files are also user-friendly in the sense that many
+different cosmological parameter bases can be used. This is made
+possible by the fact that the code does not only read parameters, it
+``interprets them'' with the level of logic which has been coded in
+the {\tt input.c} module. For instance, the Hubble parameter, the photon
+density, the baryon density and the ultra-relativistic neutrino density can be
+entered as:
+
+\vspace{0.5cm}
+
+\noindent 
+{\tt h = 0.7}\\
+{\tt T\_cmb = 2.726 ~~~\# Kelvin units}\\
+{\tt omega\_b = 0.02}\\
+{\tt N\_eff = 3.04}\\
+
+
+\noindent
+(in arbitrary order), or as
+
+\vspace{0.5cm}
+
+\noindent 
+{\tt H0 = 70}\\ {\tt omega\_g = 2.5e-5 ~~~\# g is the label for
+photons}\\ {\tt Omega\_b = 0.04}\\ {\tt omega\_ur = 1.7e-5 ~~~\# ur is
+the label for ultra-relativistic species}\\
+
+
+\noindent
+or any combination of the two. The code knows that for the photon
+density, one should pass one (but not more than one) parameter out of
+{\tt T\_cmb, omega\_g, Omega\_g} (where small omega's refer to
+$\omega_i \equiv \Omega_i h^2$). It searches for one of these values,
+and if needed, it converts it into one of the other two parameters,
+using also other input parameters. For instance, {\tt omega\_g} will
+be converted into {\tt Omega\_g} even if $h$ is written later in the
+file than {\tt omega\_g}: the order makes no difference.  Lots of
+alternatives have been defined. If the code finds that not enough
+parameters have been passed for making consistent deductions, it will
+complete the missing information with in-built default values. On the
+contrary, if it finds that there is too much information and no unique
+solution, it will complain and return an error.
+
+In summary, the input syntax has been defined in such way that the
+user does not need to think too much, and can pass his preferred set
+of parameters in a nearly informal way.
+
+Let us mention a two useful parameters defined at the end of {\tt explanatory.ini}, that we recommend setting to {\tt yes} in order to run the code in a safe way:\\
+
+\indent {\tt write parameters =} [{\tt yes} or {\tt no}] {\it (default: {\tt no})}\\
+
+When set to yes, all input/precision parameters which have been read
+are written in a file {\tt <root>parameters.ini}, to keep track all the details of this execution; this file can also be re-used as a new input file. Also, with this option, all parameters that have been passed and that the code did not read (because the syntax was wrong, or because the parameter was not relevant in the context of the run) are written in a file {\tt <root>unused\_parameters}. When you have doubts about your input or your results, you can check what is in there.\\
+
+\indent {\tt write warnings =} [{\tt yes} or {\tt no}] {\it (default: {\tt no})}\\
+
+When set to yes, the parameters  that have been passed and that the code did not read 
+(because the syntax was wrong, or because the parameter was not relevant in the context of the run) are written
+in the standard output as {\tt [Warning:]....}
+
+There is also a list of ``verbose'' parameters at the end of {\tt explanatory.ini}. They can be used to control
+the level of information passed to the standard output (0 means silent; 1 means normal, e.g. information on age of the universe, etc.; 2 is useful for instance when you want to check on how many cores the run is parallelised; 3 and more are intended for debugging).
+
+{\it This part of the documentation will be expanded with details on default precision and on the proposed alternative precision files.}
+
+\subsection{Output}
+
+The input file may contain a line\\
+
+\indent {\tt root = <root>}\\
+
+\noindent where {\tt <root>} is a path of your choice, e.g. {\tt output/test\_}.
+Then all output files will start like this, e.g. {\tt output/test\_cl.dat}, {\tt output/test\_cl\_lensed.dat}, etc.
+Of course the number of output files depends on your settings in the input file. There can be input files for CMB, LSS, background, thermodynamics, transfer functions, primordial spectra, etc. All this is documented in {\tt explanatory.ini}.
+
+If you do not pass explicitly a {\tt root = <root>}, the code will name the output in its own way, by concatenating {\tt output/}, the name of the input parameter file, and the first available integer number, e.g.\\
+
+\indent {\tt output/explanatory03\_cl.dat}, etc.
+
+\section{General principles}
+
+\subsection{Error management}
+
+Error management is based on the fact that all functions are defined
+as integers returning either {\tt \_SUCCESS\_} or {\tt
+  \_FAILURE\_}. Before returning {\tt \_FAILURE\_}, they write an
+error message in the structure of the module to which they belong. The
+calling function will read this message, append it to its own error
+message, and return a {\tt \_FAILURE\_}; and so on and so forth, until
+the main routine is reached. This error management allows the user to
+see the whole nested structure of error messages when an error has
+been met. The structure associated to each module contains a field
+for writing error messages, called {\tt
+  structure\_i.error\_message}, where {\tt structure\_i} could be one of {\tt background}, {\tt thermo}, {\tt perturbs}, etc. So, when a function from a module $i$
+is called within module $j$ and returns an error, the goal is to write
+in {\tt structure\_j.error\_message} a local error message, and to
+append to it the error message in {\tt
+  structure\_i.error\_message}. These steps are implemented in a macro
+{\tt class\_call()}, used for calling whatever function:
+
+\vspace{0.5cm}
+
+\noindent
+{\tt class\_call(module\_i\_function(...,structure\_i),}\\
+\mbox{ }~~~~~~~~~~~~~~~~{\tt structure\_i.error\_message,} \\ 
+\mbox{ }~~~~~~~~~~~~~~~~{\tt structure\_j.error\_message);}\\
+    
+\noindent
+So, the first argument of {\tt call\_call()} is the function we want
+to call; the second argument is the location of the error message
+returned by this function; and the third one is the location of the
+error message which should be returned to the higher level. 
+Usually, in the bulk of the code, we use pointer to structures rather than structure themselves; then the syntax is
+
+\vspace{0.5cm}
+
+\noindent
+{\tt class\_call(module\_i\_function(...,pi),}\\
+\mbox{ }~~~~~~~~~~~~~~~~{\tt pi->error\_message,} \\ 
+\mbox{ }~~~~~~~~~~~~~~~~{\tt pj->error\_message);}\\
+    
+\noindent
+where in this generic example, {\tt pi} and {\tt pj} are assumed to be pointers towards the structures 
+{\tt structure\_i} and {\tt structure\_j}.
+
+
+The user
+will find in {\tt include/common.h} a list of additional macros, all
+starting by {\tt class\_...()}, which are all based on this logic. For
+instance, the macro {\tt class\_test()} offers a generic way to return
+an error in a standard format if a condition is not fulfilled. A
+typical error message from \CLASS looks like:
+
+\vspace{0.5cm}
+
+\noindent
+{\tt Error in module\_j\_function1\\
+=> module\_j\_function1 (L:340) : error in module\_i\_function2(...)\\
+=> module\_i\_function2 (L:275) : error in module\_k\_function3(...)\\
+...\\
+=> module\_x\_functionN (L:735) : your choice of input parameter blabla=30
+is not consistent with the constraint blabla<1\\}
+
+\noindent
+where the {\tt L}'s refer to line numbers in each file. These error
+messages are very informative, and are built almost entirely
+automatically by the macros. For instance, in the above example, it
+was only necessary to write inside the function {\tt module\_x\_functionN()} a test like:\\
+
+\noindent
+{\tt class\_test(blabla >= 1,}\\
+\mbox{ }~~~~~~~~~~~~~~~~{\tt px->error\_message,} \\ 
+\mbox{ }~~~~~~~~~~~~~~~~{\tt "your choice of input parameter blabla=\%e
+is not consistent with the constraint blabla<\%e",}\\
+\mbox{ }~~~~~~~~~~~~~~~~{\tt blabla,blablamax);}\\
+
+\noindent All
+the rest was added step by step by the various {\tt
+class\_call()} macros.
+
+\subsection{Dynamical allocation of indices}
+
+On might be tempted to decide that in a given array, matrix or vector, a given quantity is associated with an explicit index value. However, when modifying the code, extra entries will be needed and will mess up the initial scheme; the user will need to study which index is associated to which quantity, and possibly make an error. All this can be avoided by using systematically a dynamical index allocation. This means that all indices remain under a symbolic form, and in each, run the code attributes automatically a value to each index. The user never needs to know this value.
+{\it This part of the documentation will be expanded with concrete guidelines.}
+
+\subsection{No hard coding}
+
+Any feature or equation which could be true in one cosmology and not in another one should not be written explicitly in the code, and should not be taken as granted in several other places. Discretization and integration steps are usually defined automatically by the code for each cosmology, instead of being set to something which might be optimal for minimal models, and not sufficient for other ones.
+{\it This part of the documentation will be expanded with concrete examples.}
+
+\subsection{Modifying the code}
+
+{\it This part of the documentation will be expanded with concrete guidelines.}
+
+\section{Units and equations}
+
+{\it This part of the documentation will be expanded with concrete guidlines.}
+
+\end{document}

@@ -28,7 +28,7 @@ It is necessary that 1st 4 characters are exactly `cat `.
 Use case #2: getting the spectrum from an external command
 ----------------------------------------------------------
 
-Here an external command is called to generate the spectrum; it may be some compiled C or Fortran code, a python script... This command may be passed up to 10 floating point arguments, named `custom1` to `custom10`, wich are assigned values inside the `.ini` file of CLASS. The `command` parameter would look like
+Here an external command is called to generate the spectrum; it may be some compiled C or Fortran code, a python script... This command may be passed up to 10 floating point arguments, named `custom1` to `custom10`, which are assigned values inside the `.ini` file of CLASS. The `command` parameter would look like
 
     command = /path/to/example.py
 
@@ -61,11 +61,11 @@ Output of the command / format of the table
 
 The command must generate an output separated into lines, each containing a tuple (`k`, `P(k)`). The following requirements must be fulfilled:
 
-* Each line must contain 2 (3, if tensors) floating points numbers: `k` (in `1/Mpc` units) and `P_s(k)` (and `P_t(k)`, if tensors), separated by any number of spaces or tabs. The numbers can be in scientific notation, e.g. `1.4e-3`.
+* Each line must contain 2 (3, if tensors) floating point numbers: `k` (in `1/Mpc` units) and `P_s(k)` (and `P_t(k)`, if tensors), separated by any number of spaces or tabs. The numbers can be in scientific notation, e.g. `1.4e-3`.
 
 * The lines must be sorted in increasing values of `k`.
 
-* There must be at least two points `(k, P(k))` before and after the interval of `k` requested by CLASS, in order not to introduce unnecessary interpolation error. Otherwise, and error will be raised. In most of the cases, generating the spectrum between `1e-6` and `1 1/Mpc` should be more than enough.
+* There must be at least two points `(k, P(k))` before and after the interval of `k` requested by CLASS, in order not to introduce unnecessary interpolation error. Otherwise, an error will be raised. In most of the cases, generating the spectrum between `1e-6` and `1 1/Mpc` should be more than enough.
 
 
 Precision
@@ -75,7 +75,7 @@ This implementation properly handles double-precision floating point numbers (i.
 
 The sampling of `k` given by the command (or table) is preserved to be used internally by CLASS. It must be fine enough a sampling to clearly show the features of the spectrum. The best way to test this is to plot the output/table and check it with the naked eye.
 
-Another thing to have in mind arises at the time of convolving with the transfer funcions. Two precision parameters are implied: the sampling of `k` in the integral, given by `k_step_trans`, and the sampling of the transfer functions in `l`, given by `l_logstep` and `l_linstep`. In general, it will be enough to reduce the values of the first and the third parameters. A good start is to give them rather small values, say `k_step_trans=0.01` and `l_linstep=1`, and to increase them slowly until the point at which the effect of increasing them gets noticeable.
+Another thing to have in mind arises at the time of convolving with the transfer functions. Two precision parameters are implied: the sampling of `k` in the integral, given by `k_step_trans`, and the sampling of the transfer functions in `l`, given by `l_logstep` and `l_linstep`. In general, it will be enough to reduce the values of the first and the third parameters. A good start is to give them rather small values, say `k_step_trans=0.01` and `l_linstep=1`, and to increase them slowly until the point at which the effect of increasing them gets noticeable.
 
 
 Parameter fit with MontePython
@@ -97,5 +97,5 @@ In this case, one would not include the corresponding lines for the primordial p
 Limitations
 -----------
 
-* So far, this mode cannot handle vectors perturbations, neither isocurvature initial conditions.
+* So far, this mode cannot handle vector perturbations, nor isocurvature initial conditions.
 * The external script knows nothing about the rest of the CLASS parameters, so if it needs, e.g., `k_pivot`, it should be either hard coded, or its value passed as one of the `custom` parameters.

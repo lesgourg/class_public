@@ -4,7 +4,7 @@
  *
  * This module writes the output in files.
  *
- * The following function can be called from other modules or from the main:
+ * The following functions can be called from other modules or from the main:
  *
  * -# output_init() (must be called after spectra_init())
  * -# output_total_cl_at_l() (can be called even before output_init())
@@ -95,9 +95,14 @@ int output_total_cl_at_l(
  *
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param pop Input : pointer to output structure
+ * @param pth Input: pointer to thermodynamics structure
+ * @param ppt Input: pointer perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param ptr Input: pointer to transfer structure
+ * @param psp Input: pointer to spectra structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param ple Input: pointer to lensing structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_init(
@@ -126,7 +131,7 @@ int output_init(
       printf("Writing output files in %s... \n",pop->root);
   }
 
-  /** - deal with all anisotropy power spectra C_l's */
+  /** - deal with all anisotropy power spectra \f$ C_l\f$'s */
 
   if (ppt->has_cls == _TRUE_) {
 
@@ -159,7 +164,7 @@ int output_init(
                pop->error_message);
   }
 
-  /** - deal with background quantitites */
+  /** - deal with background quantities */
 
   if (pop->write_background == _TRUE_) {
 
@@ -169,7 +174,7 @@ int output_init(
 
   }
 
-  /** - deal with thermodynamics quantitites */
+  /** - deal with thermodynamics quantities */
 
   if (pop->write_thermodynamics == _TRUE_) {
 
@@ -179,7 +184,7 @@ int output_init(
 
   }
 
-  /** - deal with perturbation quantitites */
+  /** - deal with perturbation quantities */
 
   if (pop->write_perturbations == _TRUE_) {
 
@@ -204,13 +209,13 @@ int output_init(
 }
 
 /**
- * This routines writes the output in files for anisotropy power spectra C_l's.
+ * This routines writes the output in files for anisotropy power spectra \f$ C_l\f$'s.
  *
- * @param pba Input: pointer to background structure (needed for T_cmb)
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param ple Input : pointer to lensing structure
- * @param pop Input : pointer to output structure
+ * @param pba Input: pointer to background structure (needed for \f$ T_{cmb}\f$)
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param ple Input: pointer to lensing structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_cl(
@@ -253,7 +258,7 @@ int output_cl(
   FileName file_name;
   char first_line[_LINE_LENGTH_MAX_];
 
-  /** - first, allocate all arrays of files and cls */
+  /** - first, allocate all arrays of files and \f$ C_l\f$'s */
 
   class_alloc(out_md_ic,
               psp->md_size*sizeof(FILE * *),
@@ -497,7 +502,7 @@ int output_cl(
     }
   }
 
-  /** - third, perform loop over l. For each multipole, get all C_l's
+  /** - third, perform loop over l. For each multipole, get all \f$ C_l\f$'s
       by calling spectra_cl_at_l() and distribute the results to
       relevant files */
 
@@ -549,7 +554,7 @@ int output_cl(
     }
   }
 
-  /** - finally, close files and free arrays of files and cls */
+  /** - finally, close files and free arrays of files and \f$ C_l\f$'s */
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
     if (ppt->ic_size[index_md] > 1) {
@@ -588,9 +593,9 @@ int output_cl(
  * This routines writes the output in files for Fourier matter power spectra P(k)'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param pop Input : pointer to output structure
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_pk(
@@ -641,7 +646,7 @@ int output_pk(
     else
       sprintf(redshift_suffix,"z%d_",index_z+1);
 
-    /** - second, open only the relevant files, and write a heading in each of them */
+    /** - second, open only the relevant files and write a heading in each of them */
 
     sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk.dat");
 
@@ -893,9 +898,9 @@ int output_pk(
  * This routines writes the output in files for Fourier non-linear matter power spectra P(k)'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param pop Input : pointer to output structure
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_pk_nl(
@@ -1001,12 +1006,12 @@ int output_pk_nl(
 
 
 /**
- * This routines writes the output in files for matter transfer functions T_i(k)'s.
+ * This routines writes the output in files for matter transfer functions \f$ T_i(k)\f$'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input : pointer perturbation structure
- * @param psp Input : pointer to spectra structure
- * @param pop Input : pointer to output structure
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param pop Input: pointer to output structure
  */
 
 int output_tk(
@@ -1133,7 +1138,8 @@ int output_tk(
                         titles,
                         data+index_ic*size_data,
                         size_data);
-
+      
+      /** - free memory and close files */
       fclose(tkfile);
 
     }
@@ -1174,8 +1180,8 @@ int output_background(
   class_open(backfile,file_name,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
-    fprintf(backfile,"# Table of selected background quantitites\n");
-    fprintf(backfile,"# All densities are mutiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
+    fprintf(backfile,"# Table of selected background quantities\n");
+    fprintf(backfile,"# All densities are multiplied by (8piG/3) (below, shortcut notation (.) for this factor) \n");
     fprintf(backfile,"# Densities are in units [Mpc^-2] while all distances are in [Mpc]. \n");
     if (pba->has_scf == _TRUE_){
       fprintf(backfile,"# The units of phi, tau in the derivatives and the potential V are the following:\n");
@@ -1226,15 +1232,18 @@ int output_thermodynamics(
   class_open(thermofile,file_name,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
-    fprintf(thermofile,"# Table of selected thermodynamics quantitites\n");
+    fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
     fprintf(thermofile,"# The following notation is used in column titles:\n");
-    fprintf(thermofile,"#    x_e = electron ionisation fraction\n");
+    fprintf(thermofile,"#    x_e = electron ionization fraction\n");
     fprintf(thermofile,"# -kappa = optical depth\n");
     fprintf(thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
     fprintf(thermofile,"#      g = kappa' e^-kappa = visibility function \n");
     fprintf(thermofile,"#     Tb = baryon temperature \n");
     fprintf(thermofile,"#  c_b^2 = baryon sound speed squared \n");
     fprintf(thermofile,"#  tau_d = baryon drag optical depth \n");
+    if (pth->compute_damping_scale == _TRUE_) {
+      fprintf(thermofile,"#  r_d = simplest analytic approximation to photon comoving damping scale \n");
+    }
   }
 
   output_print_data(thermofile,
@@ -1361,7 +1370,9 @@ int output_print_data(FILE *out,
   char thetitle[_MAXTITLESTRINGLENGTH_];
   char *pch;
 
-  /** Print titles */
+  /** Summary*/
+   
+  /** - First we print the titles */
   fprintf(out,"#");
 
   strcpy(thetitle,titles);
@@ -1372,7 +1383,7 @@ int output_print_data(FILE *out,
   }
   fprintf(out,"\n");
 
-  /** Print data: */
+  /** - Then we print the data */
   number_of_titles = colnum-1;
   if (number_of_titles>0){
     for (index_tau=0; index_tau<size_dataptr/number_of_titles; index_tau++){
@@ -1388,15 +1399,15 @@ int output_print_data(FILE *out,
 
 
 /**
- * This routine opens one file where some C_l's will be written, and writes
+ * This routine opens one file where some \f$ C_l\f$'s will be written, and writes
  * a heading with some general information concerning its content.
  *
- * @param psp        Input : pointer to spectra structure
- * @param pop        Input : pointer to output structure
+ * @param psp        Input: pointer to spectra structure
+ * @param pop        Input: pointer to output structure
  * @param clfile     Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @param first_line Input : text describing the content (mode, initial condition..)
- * @param lmax       Input : last multipole in the file (the first one is assmued to be 2)
+ * @param filename   Input: name of the file
+ * @param first_line Input: text describing the content (mode, initial condition..)
+ * @param lmax       Input: last multipole in the file (the first one is assumed to be 2)
  * @return the error status
  */
 
@@ -1408,7 +1419,8 @@ int output_open_cl_file(
                         char * first_line,
                         int lmax
                         ) {
-
+  /** Summary */
+  
   int index_d1,index_d2;
   int colnum = 1;
   char tmp[60]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
@@ -1416,6 +1428,8 @@ int output_open_cl_file(
   class_open(*clfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
+    
+    /** - First we deal with the entries that are dependent of format type */
 
     if (pop->output_format == class_format) {
       fprintf(*clfile,"# dimensionless %s\n",first_line);
@@ -1461,7 +1475,7 @@ int output_open_cl_file(
       class_fprintf_columntitle(*clfile,"dE",psp->has_ep,colnum);
     }
 
-    /** Rest of the entries are independent of format type */
+    /** - Next deal with entries that are independent of format type */
 
     if (psp->has_dd == _TRUE_){
       for (index_d1=0; index_d1<psp->d_size; index_d1++){
@@ -1513,15 +1527,15 @@ int output_open_cl_file(
 }
 
 /**
- * This routine write one line with l and all C_l's for all types (TT, TE...)
+ * This routine write one line with l and all \f$ C_l\f$'s for all types (TT, TE...)
  *
- * @param pba        Input: pointer to background structure (needed for T_cmb)
- * @param psp        Input : pointer to spectra structure
- * @param pop        Input : pointer to output structure
- * @param clfile  Input : file pointer
- * @param l       Input : multipole
- * @param cl      Input : C_l's for all types
- * @param ct_size Input : number of types
+ * @param pba        Input: pointer to background structure (needed for \f$ T_{cmb}\f$)
+ * @param psp        Input: pointer to spectra structure
+ * @param pop        Input: pointer to output structure
+ * @param clfile  Input: file pointer
+ * @param l       Input: multipole
+ * @param cl      Input: \f$ C_l\f$'s for all types
+ * @param ct_size Input: number of types
  * @return the error status
  */
 
@@ -1579,7 +1593,7 @@ int output_one_line_of_cl(
       index_ct_rest++;
     if (psp->has_ep == _TRUE_)
       index_ct_rest++;
-    /** Now print the remaining (if any) entries:*/
+    /* Now print the remaining (if any) entries:*/
     for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {
       class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
     }
@@ -1596,12 +1610,12 @@ int output_one_line_of_cl(
  * a heading with some general information concerning its content.
  *
  * @param pba        Input: pointer to background structure (needed for h)
- * @param psp        Input : pointer to spectra structure
- * @param pop        Input : pointer to output structure
- * @param tkfile     Output: returned pointer to file pointer
- * @param filename   Input : name of the file
- * @param first_line Input : text describing the content (initial conditions, ...)
- * @param z          Input : redshift of the output
+ * @param psp        Input: pointer to spectra structure
+ * @param pop        Input: pointer to output structure
+ * @param pkfile     Output: returned pointer to file pointer
+ * @param filename   Input: name of the file
+ * @param first_line Input: text describing the content (initial conditions, ...)
+ * @param z          Input: redshift of the output
  * @return the error status
  */
 
@@ -1638,9 +1652,9 @@ int output_open_pk_file(
 /**
  * This routine writes one line with k and P(k)
  *
- * @param tkfile  Input : file pointer
- * @param one_k   Input : wavenumber
- * @param one_pk  Input : matter power sectrum
+ * @param pkfile  Input: file pointer
+ * @param one_k   Input: wavenumber
+ * @param one_pk  Input: matter power spectrum
  * @return the error status
  */
 

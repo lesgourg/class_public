@@ -1,0 +1,15 @@
+CLASS automatic documentation folders
+=====================================
+(Deanna Hooper, 25.03.2016)
+
+* the automatically generated PDF manual can be found in
+
+    doc/manual/CLASS_MANUAL.pdf
+
+* or you can open the html version (actually nicer) with your browser: just open the file
+
+    doc/manual/html/index.html
+
+* the files in doc/input/ are auxiliary files for generating it
+
+* if you wish to update this manual yourself using doxygen, look at instructions in section 6 of CLASS_MANUAL.pdf

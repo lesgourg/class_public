@@ -1,0 +1,7 @@
+<map id="thermodynamics_recombination_with_recfast" name="thermodynamics_recombination_with_recfast">
+<area shape="rect" id="node2" href="$thermodynamics_8c.html#a13696727ba92af10edfed3ebf8c43a8a" title="thermodynamics_recombination" alt="" coords="262,12,469,39"/>
+<area shape="rect" id="node3" href="$thermodynamics_8c.html#a1acbfae38edb0c73d8991645f89b2d13" title="thermodynamics_init" alt="" coords="518,12,661,39"/>
+<area shape="rect" id="node4" href="$input_8c.html#a8902799b68422227ff6a3293ebd6bd94" title="input_try_unknown_parameters" alt="" coords="709,12,912,39"/>
+<area shape="rect" id="node5" href="$input_8c.html#a31052a91cf14f73d6f2bb0e7874429fb" title="input_init" alt="" coords="960,12,1035,39"/>
+<area shape="rect" id="node6" href="$input_8c.html#a40aecd22732b07db752cb4bc34e55ad4" title="input_init_from_arguments" alt="" coords="1083,12,1258,39"/>
+</map>

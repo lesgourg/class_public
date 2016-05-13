@@ -155,7 +155,7 @@ struct fzerofun_workspace {
 
 
 /**************************************************************/
-
+/* @cond INCLUDE_WITH_DOXYGEN */ 
 /*
  * Boilerplate for C++
  */
@@ -259,6 +259,11 @@ extern "C" {
                       struct fzerofun_workspace * pfzw,
                       ErrorMsg errmsg);
 
+  int input_find_root(double *xzero,
+                      int *fevals,
+                      struct fzerofun_workspace *pfzw,
+                      ErrorMsg errmsg);
+
   int file_exists(const char *fname);
 
   int input_auxillary_target_conditions(struct file_content * pfc,
@@ -279,3 +284,4 @@ extern "C" {
 /**************************************************************/
 
 #endif
+/* @endcond */
