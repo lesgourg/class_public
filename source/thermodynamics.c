@@ -1741,16 +1741,18 @@ int thermodynamics_onthespot_energy_injection(
                pba->error_message,
                ppr->error_message);
      rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*pow(_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in J/m^3 */
+     /* If uncommented, these lines allow to check approximation when computing the dcdm density with analytical results. Works very well until Omega_lambda dominates, then ~10% difference. */
+     result_integrale = exp(-pba->Gamma_dcdm*2*((pba->Omega0_b+pba->Omega0_cdm)*pow(pba->Omega0_g+(pba->Omega0_b+pba->Omega0_cdm)/(1+z),0.5)
+     +2*pow(pba->Omega0_g,1.5)*(1+z)-2*pba->Omega0_g*pow((1+z)*(pba->Omega0_g*(1+z)+(pba->Omega0_b+pba->Omega0_cdm)),0.5))/(3*pow((pba->Omega0_b+pba->Omega0_cdm),2)*(1+z)*pba->H0));
+      rho_dcdm_approchee = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega_ini_dcdm)*_c_*_c_*result_integrale*pow(1+z,3);
+      fprintf(stdout, "z = %e vrai = %e  approchee = %e relativ diff = %e\n",z,rho_dcdm, rho_dcdm_approchee,(rho_dcdm-rho_dcdm_approchee)/rho_dcdm_approchee);
   }
   else{
     result_integrale = exp(-pba->Gamma_dcdm*2*((pba->Omega0_b+pba->Omega0_cdm)*pow(pba->Omega0_g+(pba->Omega0_b+pba->Omega0_cdm)/(1+z),0.5)
     +2*pow(pba->Omega0_g,1.5)*(1+z)-2*pba->Omega0_g*pow((1+z)*(pba->Omega0_g*(1+z)+(pba->Omega0_b+pba->Omega0_cdm)),0.5))/(3*pow((pba->Omega0_b+pba->Omega0_cdm),2)*(1+z)*pba->H0));
-    rho_dcdm = rho_cdm_today*result_integrale; // Tris trick avoid mixing gravitational and electromagnetic impacts of the decay on the CMB power spectra.
+    rho_dcdm = rho_cdm_today*result_integrale; // This trick avoid mixing gravitational and electromagnetic impacts of the decay on the CMB power spectra.
   }
 
-  /* If uncommented, these lines allow to check approximation when computing the dcdm density with analytical results. Works very well until Omega_lambda dominates, then ~10% difference. */
-  //  rho_dcdm_approchee = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega_ini_dcdm)*_c_*_c_*result_integrale*pow(1+z,3);
-  //  fprintf(stdout, "z = %e vrai = %e  approchee = %e relativ diff = %e\n",z,rho_dcdm, rho_dcdm_approchee,(rho_dcdm-rho_dcdm_approchee)/rho_dcdm_approchee);
 
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
     (pow((1.+z),3)*preco->annihilation)
@@ -2702,7 +2704,10 @@ int thermodynamics_reionization_sample(
   class_call(thermodynamics_reionization_function(z,pth,preio,preco,&xe),
              pth->error_message,
              pth->error_message);
-
+    if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
+      xe=preco->recombination_table[i*preco->re_size+preco->index_re_xe];
+     //  xe=MAX(xe,x_tmp);
+    }
   reio_vector[preio->index_re_xe] = xe;
 
   /** -  --> get \f$ d \kappa / d z = (d \kappa / d \tau) * (d \tau / d z) = - (d \kappa / d \tau) / H \f$ */
@@ -2753,7 +2758,7 @@ int thermodynamics_reionization_sample(
   /** - (d) set the maximum step value (equal to the step in thermodynamics table) */
   dz_max=preco->recombination_table[i*preco->re_size+preco->index_re_z]
     -preco->recombination_table[(i-1)*preco->re_size+preco->index_re_z];
-
+    // fprintf(stderr, "dz %e\n", dz_max);
   /** - (e) loop over redshift values in order to find values of z, x_e, kappa' (Tb and cb2 found later by integration). The sampling in z space is found here. */
 
   /* initial step */
@@ -2763,6 +2768,7 @@ int thermodynamics_reionization_sample(
     if (j<0)j=0;
     // fprintf(stdout, "j %d \n",j);
     dz = MAX(ppr->smallest_allowed_variation,dz);
+
     class_test(dz < ppr->smallest_allowed_variation,
                pth->error_message,
                "stuck in the loop for reionization sampling, as if you were trying to impose a discontinuous evolution for xe(z)");
@@ -2820,8 +2826,8 @@ int thermodynamics_reionization_sample(
 
     relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
       fabs((dkappadtau_next-dkappadtau)/dkappadtau);
-      // printf("variation = %e, autorise = %e\n",relative_variation,ppr->reionization_sampling);
-    if (relative_variation < ppr->reionization_sampling) {
+
+    if (relative_variation < 5*ppr->reionization_sampling) {
       /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
 
       z=z_next;
@@ -2930,16 +2936,21 @@ if(pth->annihilation!=0 || pth->decay!=0){
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
-      // class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-      //            pth->error_message,
-      //            pth->error_message);
-      chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
-      // chi_heat = MIN(pth->chi_heat,1); // coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
-
+     if(preio->reionization_table[i*preio->re_size+preio->index_re_xe]<1){
+       class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+                  pth->error_message,
+                  pth->error_message);// coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+       // chi_heat = MIN(0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035)),1);
+       // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
+       chi_heat = MIN(chi_heat,1);
+     }
+      else{
+        chi_heat=1;
+      }
       dTdz_DM = - 2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
       /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
-      // fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e\n",z,dTdz_CMB,dTdz_DM);
+      // fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat%e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
 
 }
 else dTdz_DM = 0.;
