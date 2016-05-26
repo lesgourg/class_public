@@ -507,8 +507,8 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
       // if(z>0)fprintf(stdout, "z = %e energy_rate = %e\n", z, energy_rate*1.e6*1.60217653e-19);
     }
 
-if(param->annihilation>0.)energy_rate =  (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*param->annihilation)/1.e6/1.60217653e-19;
-
+    else if(param->annihilation>0.)energy_rate =  (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*param->annihilation)/1.e6/1.60217653e-19;
+    else energy_rate = 0;
     /* Old version, kept for comparaison */
   // return (pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1.+z),6)*
   //   param->annihilation
