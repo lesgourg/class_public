@@ -84,7 +84,7 @@ double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR
 
 /****************************************************************************************************
 RecFast recombination rate (Seager et al 1999, 2000): effective three-level atom
-with a fudge factor F = 1.14
+with a fudge factor F = 1.125
 ****************************************************************************************************/
 
 double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param) {
@@ -94,7 +94,7 @@ double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR
   int last_index;
   ErrorMsg error_message;
   RLya   = 4.662899067555897e15 * H / nH / (1.-xe);
-  alphaB = 1.14 * alphaB_PPB(TM);
+  alphaB = 1.125 * alphaB_PPB(TM);
   four_betaB  = 3.016103031869581e21 *TR*sqrt(TR) *exp(-0.25*EI/TR) *alphaB;
 
   C = (3.*RLya + L2s1s)/(3.*RLya + L2s1s + four_betaB);
@@ -180,7 +180,8 @@ void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR
 
     /* Check if TM/TR is in the range tabulated */
     if (TM_TR < TM_TR_MIN || TM_TR > TM_TR_MAX) {
-      fprintf(stderr, "Error: TM/TR-value is out of range in interpolate_rates.\n");
+      fprintf(stderr, "Error: TM/TR-value is out of range in interpolate_rates. \n");
+      // fprintf(stderr, "Error: TM/TR-value is out of range in interpolate_rates. \n %e %e %e\n",TM_TR,TM_TR_MIN,TM_TR_MAX);
       exit(1);
     }
 
@@ -757,7 +758,7 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
 
    /* Dark matter annihilation*/
    RLya = 4.662899067555897e15 *H /nH/(1.-xe);   /*8 PI H/(3 nH x1s lambda_Lya^3) */
-
+  //  fprintf(stderr, "TM %e TR %e\n", TM , TR );
    interpolate_rates(Alpha, Beta, &R2p2s, TR, TM / TR, rate_table);
 
    matrix[0][0] = Beta[0] + 3.*R2p2s + L2s1s;

@@ -182,7 +182,6 @@ void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *x
     nH = param->nH0 * ainv*ainv*ainv;
     H = rec_HubbleConstant(param, z1);
     Tm = rec_Tmss(xe_in, Tr, H, param->fHe, nH*1e-6, energy_injection_rate(param,z1), param);
-
     #if (MODEL == PEEBLES)
         dxedlna = func_select==FUNC_HEI  ? rec_helium_dxedt(xe_in, param->nH0, param->T0, param->fHe, H, z1)/H:
                                            rec_HPeebles_dxedlna(xe_in, nH*1e-6, H, Tm*kBoltz, Tr*kBoltz, energy_injection_rate(param,z1), param);
@@ -286,6 +285,7 @@ void rec_get_xe_next2(REC_COSMOPARAMS *param, double z1, double xe_in, double Tm
     /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
     *Tm_out = Tm_in + param->dlna * (1.25 * dTmdlna - 0.25 * (*dTmdlna_prev2));
     //  fprintf(stdout, "%e\n",*Tm_out);
+    // fprintf(stdout, "xe_out %e Tm_out %e\n",xe_out, Tm_out);
 
     *z_prev2       = *z_prev;
     *dxedlna_prev2 = *dxedlna_prev;
