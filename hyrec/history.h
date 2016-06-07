@@ -16,7 +16,7 @@
 #define FULL      3    /* All radiative transfer effects included. Additional switches in header file hydrogen.h */
 
 /** here is the switch **/
-#define MODEL RECFAST     /* default setting: FULL */
+#define MODEL FULL     /* default setting: FULL */
 
 /***** Switches for derivative d(xe)/dt *****/
 

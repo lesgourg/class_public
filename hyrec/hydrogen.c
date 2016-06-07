@@ -60,23 +60,32 @@ double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR
   //   chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
   // }
   //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
-  hyrec_annihilation_coefficients_interpolate(param,
-                                               xe,
-                                               &chi_heat,
-                                               &chi_lya,
-                                               &chi_ionH,
-                                               &chi_ionHe,
-                                               &chi_lowE
-                                             );
- // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
-  if (xe >=1){
-    chi_ionH = 0.;
-    chi_ionHe = 0.;
-    chi_lya = 0.;
+  if(xe<1){
+    hyrec_annihilation_coefficients_interpolate(param,
+                                                   xe,
+                                                   &chi_heat,
+                                                   &chi_lya,
+                                                   &chi_ionH,
+                                                   &chi_ionHe,
+                                                   &chi_lowE
+                                                 );
+     // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+     chi_ionH=MAX(param->chi_ionH,0.);
+     chi_ionHe=MAX(param->chi_ionHe,0.);
+     chi_lya=MAX(param->chi_lya,0.);
+     chi_heat = MAX(param->chi_heat,0.);
+     chi_ionH=MIN(param->chi_ionH,1.);
+     chi_ionHe=MIN(param->chi_ionHe,1.);
+     chi_lya=MIN(param->chi_lya,1.);
+     chi_heat = MIN(param->chi_heat,1.);
   }
+
+     else {
+       chi_ionH = 0.;
+       chi_ionHe = 0.;
+       chi_lya = 0.;
+       chi_heat = 1.;
+     }
   return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
     +1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C)/E21)/H;
 
@@ -108,23 +117,32 @@ double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR
   //   chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
   // }
   // Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
-  hyrec_annihilation_coefficients_interpolate(param,
-                                               xe,
-                                               &chi_heat,
-                                               &chi_lya,
-                                               &chi_ionH,
-                                               &chi_ionHe,
-                                               &chi_lowE
-                                             );
- // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
- if (xe >=1){
-   chi_ionH = 0.;
-   chi_ionHe = 0.;
-   chi_lya = 0.;
- }
+  if(xe<1){
+    hyrec_annihilation_coefficients_interpolate(param,
+                                                   xe,
+                                                   &chi_heat,
+                                                   &chi_lya,
+                                                   &chi_ionH,
+                                                   &chi_ionHe,
+                                                   &chi_lowE
+                                                 );
+     // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+     chi_ionH=MAX(param->chi_ionH,0.);
+     chi_ionHe=MAX(param->chi_ionHe,0.);
+     chi_lya=MAX(param->chi_lya,0.);
+     chi_heat = MAX(param->chi_heat,0.);
+     chi_ionH=MIN(param->chi_ionH,1.);
+     chi_ionHe=MIN(param->chi_ionHe,1.);
+     chi_lya=MIN(param->chi_lya,1.);
+     chi_heat = MIN(param->chi_heat,1.);
+  }
+
+     else {
+       chi_ionH = 0.;
+       chi_ionHe = 0.;
+       chi_lya = 0.;
+       chi_heat = 1.;
+     }
 
   return (-nH*xe*xe*alphaB + four_betaB*(1.-xe)*exp(-E21/TR))*C/H
     +1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C)/E21)/H;
@@ -180,15 +198,15 @@ void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR
 
     /* Check if TM/TR is in the range tabulated */
     if (TM_TR < TM_TR_MIN || TM_TR > TM_TR_MAX) {
-      fprintf(stderr, "Error: TM/TR-value is out of range in interpolate_rates. \n");
+      // fprintf(stderr, "Error: TM/TR-value is out of range in interpolate_rates. \n");
       // fprintf(stderr, "Error: TM/TR-value is out of range in interpolate_rates. \n %e %e %e\n",TM_TR,TM_TR_MIN,TM_TR_MAX);
-      exit(1);
+      // exit(1);
     }
 
     /* Check if log(TR) is in the range tabulated */
     if (TR < TR_MIN || TR > TR_MAX) {
-      fprintf(stderr,"Error: TR-value is out of range in interpolate_rates.\n");
-      exit(1);
+      // fprintf(stderr,"Error: TR-value is out of range in interpolate_rates.\n");
+      // exit(1);
     }
 
     /* Identify location to interpolate in TM/TR */
@@ -289,30 +307,40 @@ double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double T
 
   //  chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
   //  chi_ionHe = 0; // old approximation from Chen and Kamionkowski
-  //  chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski  //  if (xe < 1.){
+  //  chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski  //
+  // if (xe < 1.){
   //    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
   //    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
   //    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
   //  }
   // Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
-  hyrec_annihilation_coefficients_interpolate(param,
-                                               xe,
-                                               &chi_heat,
-                                               &chi_lya,
-                                               &chi_ionH,
-                                               &chi_ionHe,
-                                               &chi_lowE
-                                             );
- // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
-    if (xe >=1){
-      chi_ionH = 0.;
-      chi_ionHe = 0.;
-      chi_lya = 0.;
-    }
-   return  (x1s_db*(L2s1s + 3.*RLya) -x2[0]*L2s1s -x2[1]*RLya)/Hubble
+  if(xe<1){
+    hyrec_annihilation_coefficients_interpolate(param,
+                                                   xe,
+                                                   &chi_heat,
+                                                   &chi_lya,
+                                                   &chi_ionH,
+                                                   &chi_ionHe,
+                                                   &chi_lowE
+                                                 );
+     // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+     chi_ionH=MAX(param->chi_ionH,0.);
+     chi_ionHe=MAX(param->chi_ionHe,0.);
+     chi_lya=MAX(param->chi_lya,0.);
+     chi_heat = MAX(param->chi_heat,0.);
+     chi_ionH=MIN(param->chi_ionH,1.);
+     chi_ionHe=MIN(param->chi_ionHe,1.);
+     chi_lya=MIN(param->chi_lya,1.);
+     chi_heat = MIN(param->chi_heat,1.);
+  }
+
+     else {
+       chi_ionH = 0.;
+       chi_ionHe = 0.;
+       chi_lya = 0.;
+       chi_heat = 1.;
+     }
+        return  (x1s_db*(L2s1s + 3.*RLya) -x2[0]*L2s1s -x2[1]*RLya)/Hubble
      +1./nH*energy_rate*((chi_ionH+chi_ionHe)/EI+chi_lya*(1.-C_2p)/E21)/Hubble;
 
 }
@@ -771,28 +799,38 @@ double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, doubl
 
   //  chi_ionH = (1.-xe)/3.; // old approximation from Chen and Kamionkowski
   //  chi_ionHe = 0; // old approximation from Chen and Kamionkowski
-  //  chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski  //  if (xe < 1.){
-  //    chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
-  //    chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
-  //    chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
-  // //  }
-  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+  //  chi_lya = chi_ionH; // old approximation from Chen and Kamionkowski  //
+ //  if (xe < 1.){
+ //     chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237); // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of Table V of Galli et al. 2013)
+ //     chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247) ;
+ //     chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
+ //   }
+ //  //Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013)
+if(xe<1){
   hyrec_annihilation_coefficients_interpolate(param,
-                                               xe,
-                                               &chi_heat,
-                                               &chi_lya,
-                                               &chi_ionH,
-                                               &chi_ionHe,
-                                               &chi_lowE
-                                             );
- // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
- chi_ionH=MAX(param->chi_ionH,0.);
-   if (xe >=1){
+                                                 xe,
+                                                 &chi_heat,
+                                                 &chi_lya,
+                                                 &chi_ionH,
+                                                 &chi_ionHe,
+                                                 &chi_lowE
+                                               );
+   // fprintf(stdout,"%e      %e      %e    %e   \n", xe,param->chi_lya,param->chi_ionH,param->chi_ionHe);
+   chi_ionH=MAX(param->chi_ionH,0.);
+   chi_ionHe=MAX(param->chi_ionHe,0.);
+   chi_lya=MAX(param->chi_lya,0.);
+   chi_heat = MAX(param->chi_heat,0.);
+   chi_ionH=MIN(param->chi_ionH,1.);
+   chi_ionHe=MIN(param->chi_ionHe,1.);
+   chi_lya=MIN(param->chi_lya,1.);
+   chi_heat = MIN(param->chi_heat,1.);
+}
+
+   else {
      chi_ionH = 0.;
      chi_ionHe = 0.;
      chi_lya = 0.;
+     chi_heat = 1.;
    }
 
    /* Obtain xe_dot */

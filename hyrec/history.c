@@ -119,8 +119,10 @@ double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double en
                             &(chi_heat),
                             1,
                             error_message);
+    chi_heat = param->chi_heat;
     // chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
     if (chi_heat > 1.) chi_heat = 1.;
+    if (chi_heat < 0.) chi_heat = 0.;
     // fprintf(stdout,"%e   %e     \n", xe,chi_heat);
     // chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035));   // coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
   }
@@ -154,9 +156,12 @@ double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe, double
                                         &(chi_heat),
                                         1,
                                         error_message);
+    chi_heat = param->chi_heat;
     // chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
     // chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035));// coefficient as revised by Galli et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013)
     if (chi_heat > 1.) chi_heat = 1.;
+    if (chi_heat < 0.) chi_heat = 0.;
+
     // fprintf(stdout,"%e   %e     \n", xe,chi_heat);
   }
   else
@@ -503,6 +508,7 @@ double onthespot_injection_rate(REC_COSMOPARAMS *param,
       +2*pow(param->Omega0_g,1.5)*(1+z)-2*param->Omega0_g*pow((1+z)*(param->Omega0_g*(1+z)+(param->Omega0_b+param->Omega0_cdm)),0.5))/(3*pow((param->Omega0_b+param->Omega0_cdm),2)*(1+z)*param->H0));
 
       if(rho_ini_dcdm!=0)energy_rate=rho_ini_dcdm*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
+      // else energy_rate=rho_cdm_today*pow((1+z),3)*param->decay/1.e6/1.60217653e-19;
       else energy_rate=rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
       // if(z>0)fprintf(stdout, "z = %e energy_rate = %e\n", z, energy_rate*1.e6*1.60217653e-19);
     }
