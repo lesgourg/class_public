@@ -1804,38 +1804,6 @@ int thermodynamics_beyond_onthespot_energy_injection(
             // fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_halos,*energy_rate);
           }
           else  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_halos;
-
-          /**** Old version of the beyond on the spot treatment, has been replaced by using Slatyer et al. 2015 results. ******/
-          // else{
-          //   /* number of hydrogen nuclei today in m**-3 */
-          //   nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
-          //
-          //   /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-          //   factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-          //
-          //   /* integral over z'(=zp) with step dz */
-          //   dz=1.;
-          //
-          //   /* first point in trapezoidal integral */
-          //   zp = z;
-          //   class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-          //              error_message,
-          //              error_message);
-          //   first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
-          //   result = 0.5*dz*first_integrand;
-          //
-          //   /* other points in trapezoidal integral */
-          //   do {
-          //
-          //     zp += dz;
-          //     class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-          //                error_message,
-          //                error_message);
-          //     integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
-          //     result += dz*integrand;
-          //
-          //   } while (integrand/first_integrand > 0.02);
-          // }
       }
       if(preco->decay > 0.){
 
@@ -2939,12 +2907,12 @@ if(pth->annihilation!=0 || pth->decay!=0){
                  pth->error_message);
      if(preio->reionization_table[i*preio->re_size+preio->index_re_xe]<1){
        /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-       class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-                  pth->error_message,
-                  pth->error_message);
-      chi_heat = pth->chi_heat;
+      //  class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+      //             pth->error_message,
+      //             pth->error_message);
+      // chi_heat = pth->chi_heat;
       /* coefficient as revised by Slatyer et al. 2013 (in fact it is an fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-      //  chi_heat = 0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035));
+       chi_heat = 0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035));
 
        /* old approximation from Chen and Kamionkowski */
       //  chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
@@ -3658,7 +3626,7 @@ int thermodynamics_recombination_with_recfast(
 
     /** - --> fourth approximation: second Helium recombination starts (analytic approximation) */
 
-    else if (y[1] > ppr->recfast_x_He0_trigger) {
+    else if (y[1] > ppr->recfast_x_He0_trigger && z > 200) {
       x_H0 = 1.;
 
       rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
@@ -3690,7 +3658,7 @@ int thermodynamics_recombination_with_recfast(
         evolution for Helium), H recombination starts (analytic
         approximation) */
 
-    else if (y[0] > ppr->recfast_x_H0_trigger) {
+    else if (y[0] > ppr->recfast_x_H0_trigger && z > 200) {
 
       rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
       x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
@@ -3706,8 +3674,8 @@ int thermodynamics_recombination_with_recfast(
                  gi.error_message,
                  pth->error_message);
 
-      y[0] = x_H0;
-
+      y[0] = MIN(x_H0,1);   //Vivian
+      // fprintf(stdout, "zend %e y[0] %e\n",zend, y[0]);
       /* smoothed transition */
       if (ppr->recfast_x_He0_trigger - y[1] < ppr->recfast_x_He0_trigger_delta) {
         rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
@@ -3724,6 +3692,7 @@ int thermodynamics_recombination_with_recfast(
       else {
         x0 = y[0] + preco->fHe*y[1];
       }
+      // x0 = y[0] + preco->fHe*y[1];
 
     }
 
@@ -3732,11 +3701,12 @@ int thermodynamics_recombination_with_recfast(
     else {
 
       /* quantities used for smoothed transition */
-      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta) {
+      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta && z > 200) {
         rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
         x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
       }
-
+      else x_H0 = y[0];
+      
       class_call(generic_integrator(thermodynamics_derivs_with_recfast,
                                     zstart,
                                     zend,
@@ -3747,9 +3717,11 @@ int thermodynamics_recombination_with_recfast(
                                     &gi),
                  gi.error_message,
                  pth->error_message);
+       y[0] = MIN(y[0],1);//Vivian
+
 
       /* smoothed transition */
-      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta) {
+      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta && z > 200) {
         /* get s from 0 to 1 */
         s = (ppr->recfast_x_H0_trigger - y[0])/ppr->recfast_x_H0_trigger_delta;
         /* infer f2(s) = smooth function interpolating from 0 to 1 */
@@ -3762,6 +3734,9 @@ int thermodynamics_recombination_with_recfast(
       else {
         x0 = y[0] + preco->fHe*y[1];
       }
+        // x0 = y[0] + preco->fHe*y[1];
+        //  fprintf(stdout, "zend %e x0 %e y[0] %e\n",zend, x0, y[0]);
+
     }
 
     /** - --> store the results in the table */
@@ -3771,6 +3746,7 @@ int thermodynamics_recombination_with_recfast(
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=zend;
 
     /* ionization fraction */
+
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe)=x0;
 
     /* Tb */
@@ -3789,14 +3765,14 @@ int thermodynamics_recombination_with_recfast(
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
 
-    /* fprintf(stdout,"%e %e %e %e %e %e\n", */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z), */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe), */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb), */
-    /* 	    (1.+zend) * dy[2], */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2), */
-    /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau) */
-    /* 	    ); */
+    //  fprintf(stdout,"%e %e %e %e %e %e\n",
+    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z),
+    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe),
+    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb),
+    //  	    (1.+zend) * dy[2],
+    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),
+    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
+    //  	    );
 
   }
 
@@ -3849,7 +3825,7 @@ int thermodynamics_derivs_with_recfast(
   /* define local variables */
 
   double x,n,n_He,Trad,Tmat,x_H,x_He,Hz,dHdz,epsilon;
-  double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
+  double Rup,Rup_2,Rdown,K,K_He,Rup_He,Rup_He_2,Rdown_He,He_Boltz;
   double timeTh,timeH;
   double sq_0,sq_1;
 
@@ -3902,11 +3878,21 @@ int thermodynamics_derivs_with_recfast(
   preco = ptpaw->preco;
   pvecback = ptpaw->pvecback;
 
-  x_H = y[0];
-  x_He = y[1];
-  x = x_H + preco->fHe * x_He;
-  Tmat = y[2];
+  /* security added by Vivian Poulin to avoid bug when dealing with energy injection modifying ionisation history */
+  x_H = MIN(y[0],1.);
+  x_H = MAX(y[0],0.);
+  x_He = MIN(y[1],1.);
+  x_He = MAX(y[1],0.);
+  x = MIN(x_H + preco->fHe * x_He,1+preco->fHe);
+  x = MAX(x_H + preco->fHe * x_He,0.);
 
+  // x_H = y[0];
+  // x_He = y[1];
+  // x = x_H + preco->fHe * x_He;
+
+  Tmat = MAX(y[2],0.);
+
+  // fprintf(stderr, "input xH %e xHe %e x %e Tmat %e\n",x_H, x_He, x, Tmat );
   n = preco->Nnow * (1.+z) * (1.+z) * (1.+z);
   n_He = preco->fHe * n;
   Trad = preco->Tnow * (1.+z);
@@ -3938,12 +3924,14 @@ else energy_rate=0;
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
 
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
-  Rup = Rdown * pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat);
+  Rup_2 = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((preco->CR*Trad),1.5)*exp(-preco->CDB/Trad);
+  // Rup = Rdown * pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat);
 
   sq_0 = sqrt(Tmat/_T_0_);
   sq_1 = sqrt(Tmat/_T_1_);
   Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
-  Rup_He = 4.*Rdown_He*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB_He/Tmat);
+  Rup_He_2 = 4.*Rdown_He*pow((preco->CR*Trad),1.5)*exp(-preco->CDB_He/Trad);
+  // Rup_He = 4.*Rdown_He*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB_He/Tmat);
   K = preco->CK/Hz;
 
   /* following is from recfast 1.5 */
@@ -4032,12 +4020,12 @@ else energy_rate=0;
     if(preco->annihilation > 0 || preco->decay > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
-        class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-                       error_message,
-                       error_message);
-        chi_ionH = pth->chi_ionH;
-        chi_ionHe = pth->chi_ionHe;
-        chi_lya = pth->chi_lya;
+        // class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+        //                error_message,
+        //                error_message);
+        // chi_ionH = pth->chi_ionH;
+        // chi_ionHe = pth->chi_ionHe;
+        // chi_lya = pth->chi_lya;
 
         /* old approximation from Chen and Kamionkowski */
         // chi_ionH = (1.-x)/3.;
@@ -4045,9 +4033,9 @@ else energy_rate=0;
         // chi_ionHe=0;
 
         /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
-        // chi_ionH = 0.369202*pow(1.-pow(x,0.463929),1.70237);
-        // chi_ionHe =0.0312604*pow(1.-pow(x,0.200634),0.82247);
-        // chi_lya = 0.335597*pow(1.-pow(x,0.375314),1.80722);
+        chi_ionH = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+        chi_ionHe =0.0312604*pow(1.-pow(x,0.200634),0.82247);
+        chi_lya = 0.335597*pow(1.-pow(x,0.375314),1.80722);
 
 
         chi_ionH = MIN(chi_ionH,1.);
@@ -4062,7 +4050,8 @@ else energy_rate=0;
 
 
     if (x_H < ppr->recfast_x_H0_trigger2) {
-      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
+      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup_2*n*(1.-x_H));
+      // C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
 
     }
     else {
@@ -4071,13 +4060,17 @@ else energy_rate=0;
       }
       /* evolution of hydrogen ionisation fraction: */
 
-      dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z))       /* Peeble's equation with fudged factors */
+      dy[0] = (x*x_H*n*Rdown - Rup_2*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z))       /* Peeble's equation with fudged factors */
             -energy_rate/n*((chi_ionH+chi_ionHe)/_L_H_ion_+chi_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 
+      // dy[0] = -5.89e-5*sqrt(Tmat/1e4)*exp(-1.58e5/Tmat)*(1-x_H)*x/ (Hz*(1.+z)) * 1e-6;     // Collisional ionisation, taken from 1503.04827, last factor is for conversion cm^3->m^3
+
+      // fprintf(stdout, "z %e Tmat %e collision %e DM  %e standard %e\n",z, Tmat, -5.89e-5*sqrt(Tmat/1e4)*exp(-1.58e5/Tmat)*(1-x_H)*x/ (Hz*(1.+z)) * 1e-6,-energy_rate/n*((chi_ionH+chi_ionHe)/_L_H_ion_+chi_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)),(x*x_H*n*Rdown - Rup_2*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z)));
       if(pth->reio_parametrization == reio_stars_realistic_model){
         stars_xe=dNion_over_dt/MPCcube_to_mcube/(Hz*(1.+z)*n);
         dy[0] -= stars_xe;
       }
+
   }
 
   /************/
@@ -4096,11 +4089,11 @@ else energy_rate=0;
     /* equations modified to take into account energy injection from dark matter */
     //C_He=(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)/(1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz);
 
-    dy[1] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat))
+    dy[1] = ((x*x_He*n*Rdown_He - Rup_He_2*(1.-x_He)*exp(-preco->CL_He/Tmat))
              *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))
-      /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz)); /* in case of energy injection due to DM, we neglect the contribution to helium ionization */
+      /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He_2)*n_He*(1.-x_He)*He_Boltz)); /* in case of energy injection due to DM, we neglect the contribution to helium ionization */
 
-
+    // dy[1] += -2.02e-9*sqrt(Tmat/1e4)*exp(-2.85e5/Tmat)*(1-x_He)*x / (Hz*(1.+z)) * 1e-6;     // Collisional ionisation, taken from 1503.04827, last factor is for conversion cm^3->m^3
       //
       // /*******************Helium**********************/
       // dxedlna+=stars_xe*param->fHe*(1+tanh((6-z1)/0.5));
@@ -4125,7 +4118,7 @@ else energy_rate=0;
     dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today* _c_ / _Mpc_over_m_;
     epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x);
     dy[2] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*((dy[0]+preco->fHe*dy[1])/x)
-      - epsilon* dHdz/Hz + 3.*epsilon/(1.+z);
+      - epsilon* dHdz/Hz + 3.*epsilon/(1.+z) ;
   }
   else {
     /* equations modified to take into account energy injection from dark matter */
@@ -4133,13 +4126,13 @@ else energy_rate=0;
     if(pth->annihilation >0 || pth->decay > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-        class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-                       error_message,
-                       error_message);
-        chi_heat = pth->chi_heat;
+        // class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+        //                error_message,
+        //                error_message);
+        // chi_heat = pth->chi_heat;
 
         /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-        // chi_heat = 0.996857*(1.-pow(1.-pow(x,0.300134),1.51035));
+        chi_heat = 0.996857*(1.-pow(1.-pow(x,0.300134),1.51035));
 
         /* old approximation from Chen and Kamionkowski */
         // chi_heat = (1.+2.*x)/3.;
@@ -4154,12 +4147,13 @@ else energy_rate=0;
     else chi_heat = 0.;
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
-      // fprintf(stdout, "z %e dTdz_CMB %e dTdz_DM %e\n", z, preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) ,-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)));
+      // fprintf(stdout, "z %e dT %e Tmat %e Trad %e dTdz_CMB %e dTdz_DM %e x %e\n", z, dy[2], Tmat, Trad, preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) ,-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)),x);
       if(pth->reio_parametrization == reio_stars_realistic_model){
       stars_xe=dNion_over_dt/MPCcube_to_mcube/(Hz*(1.+z)*n);
       L_x= E_x * f_X * rho_sfr/(3*MPCcube_to_mcube*_k_B_*n*Hz*(1.+x+preco->fHe));
        dy[2]-=L_x*(1+2*x)/3.;
     }
+    // dy[2] += 5.89e-5*sqrt(Tmat/1e4)*exp(-1.58e5/Tmat)*(1-x_H)*x/ (Hz*(1.+z)) * 1e-6;
   }
 
   return _SUCCESS_;
