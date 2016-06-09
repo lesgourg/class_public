@@ -261,7 +261,7 @@ int input_init(
                                                    errmsg),
                  errmsg, errmsg);
       if (aux_flag == _TRUE_){
-        printf("Found target: %s, target value =  %e\n",target_namestrings[index_target],param1);
+        // printf("Found target: %s, target value =  %e\n",target_namestrings[index_target],param1);
         target_indices[unknown_parameters_size] = index_target;
         fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
         unknown_parameters_size++;
