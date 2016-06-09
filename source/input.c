@@ -2874,6 +2874,7 @@ if(pth->annihilation>0. || pth->decay>0.){
     pop->write_primordial = _TRUE_;
 
   }
+  fprintf(stdout, "omega_b %e omega_cdm %e As %e n_s %e z_reio %e decay %e\n", pba->Omega0_b*pba->h*pba->h , pba->Omega0_cdm*pba->h*pba->h ,ppm->A_s,ppm->n_s,pth->z_reio, pth->decay );
 
   return _SUCCESS_;
 
