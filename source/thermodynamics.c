@@ -3675,7 +3675,10 @@ int thermodynamics_recombination_with_recfast(
                  pth->error_message);
 
       y[0] = MIN(x_H0,1);   //Vivian
-      // fprintf(stdout, "zend %e y[0] %e\n",zend, y[0]);
+
+      if (pth->thermodynamics_verbose > 1) {
+        fprintf(stdout, "in function thermodynamics_recombination_with_recfast, fifth approximation : zend %e y[0] %e\n",zend, y[0]);
+      }
       /* smoothed transition */
       if (ppr->recfast_x_He0_trigger - y[1] < ppr->recfast_x_He0_trigger_delta) {
         rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
@@ -3706,7 +3709,7 @@ int thermodynamics_recombination_with_recfast(
         x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
       }
       else x_H0 = y[0];
-      
+
       class_call(generic_integrator(thermodynamics_derivs_with_recfast,
                                     zstart,
                                     zend,
@@ -3735,7 +3738,9 @@ int thermodynamics_recombination_with_recfast(
         x0 = y[0] + preco->fHe*y[1];
       }
         // x0 = y[0] + preco->fHe*y[1];
-        //  fprintf(stdout, "zend %e x0 %e y[0] %e\n",zend, x0, y[0]);
+        if(pth->thermodynamics_verbose>1){
+          fprintf(stdout, "in function thermodynamics_recombination_with_recfast, full calculation zend %e x0 %e y[0] %e\n",zend, x0, y[0]);
+        }
 
     }
 
@@ -3764,15 +3769,17 @@ int thermodynamics_recombination_with_recfast(
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
+      if(pth->thermodynamics_verbose>1){
+        fprintf(stdout,"%e %e %e %e %e %e\n",
+             *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z),
+             *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe),
+             *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb),
+             (1.+zend) * dy[2],
+             *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),
+             *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
+             );
+      }
 
-    //  fprintf(stdout,"%e %e %e %e %e %e\n",
-    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z),
-    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe),
-    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb),
-    //  	    (1.+zend) * dy[2],
-    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),
-    //  	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
-    //  	    );
 
   }
 
