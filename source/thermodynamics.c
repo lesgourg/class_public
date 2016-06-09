@@ -4069,9 +4069,9 @@ else energy_rate=0;
 
 
     if (x_H < ppr->recfast_x_H0_trigger2) {
-      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup_2*n*(1.-x_H));
+      C = (1. + K*pth->Lambda_over_theoritical_Lambda*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*pth->Lambda_over_theoritical_Lambda*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup_2*n*(1.-x_H));  /* 2 modifications : 1) Rup -> Rup_2 evaluating the coefficient using Trad instead of Tmat; 2) add pth->Lambda_over_theoritical_Lambda, 1 in the standard case, allow to constraint A2s1s otherwise*/
       // C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
-
+      fprintf(stdout, "A2s1s %e\n", pth->Lambda_over_theoritical_Lambda*_Lambda_);
     }
     else {
       C = 1.;

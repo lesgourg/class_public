@@ -1138,8 +1138,10 @@ int input_read_parameters(
       pth->recombination = hyrec;
     }
 
-  }
 
+  }
+    class_read_double("Lambda_over_theoritical_Lambda",pth->Lambda_over_theoritical_Lambda);
+  
   /** - reionization parametrization */
   class_call(parser_read_string(pfc,"reio_parametrization",&string1,&flag1,errmsg),
              errmsg,
@@ -3019,6 +3021,8 @@ int input_default_params(
   pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
   pth->energy_repart_functions = Galli_et_al_fit;
+
+  pth->Lambda_over_theoritical_Lambda = 1.;
 
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;

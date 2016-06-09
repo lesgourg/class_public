@@ -71,6 +71,7 @@ struct thermo
   //@{
 
   double YHe;  /**< \f$ Y_{He} \f$: primordial helium fraction */
+  double Lambda_over_theoritical_Lambda; /**< ratio of A2s1s transition with respect to theoritical value 8.2206 */
 
   enum recombination_algorithm recombination; /**< recombination code */
 
@@ -726,7 +727,8 @@ extern "C" {
 
 #define _RECFAST_INTEG_SIZE_ 3
 
-#define _Lambda_ 8.2245809
+#define _Lambda_ 8.2206 /*Updated value from (Labzowsky et al 2005)*/
+// #define _Lambda_ 8.2245809 /*Old value from recfast original */
 #define _Lambda_He_ 51.3
 #define _L_H_ion_ 1.096787737e7
 #define _L_H_alpha_ 8.225916453e6
