@@ -2932,7 +2932,10 @@ if(pth->annihilation!=0 || pth->decay!=0){
       dTdz_DM = - 2./(3.*_k_B_)*energy_rate*chi_heat
       /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
       /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
-      // fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat%e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
+
+      if(pth->thermodynamics_verbose>10){
+        fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat%e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
+      }
 
 }
 else dTdz_DM = 0.;
@@ -4081,6 +4084,9 @@ else energy_rate=0;
 
       // dy[0] = -5.89e-5*sqrt(Tmat/1e4)*exp(-1.58e5/Tmat)*(1-x_H)*x/ (Hz*(1.+z)) * 1e-6;     // Collisional ionisation, taken from 1503.04827, last factor is for conversion cm^3->m^3
 
+      if(pth->thermodynamics_verbose>10){
+      fprintf(stdout, "z %e Tmat %e  DM  %e standard %e\n",z, Tmat,-energy_rate/n*((chi_ionH+chi_ionHe)/_L_H_ion_+chi_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)),(x*x_H*n*Rdown - Rup_2*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z)));
+      }
       // fprintf(stdout, "z %e Tmat %e collision %e DM  %e standard %e\n",z, Tmat, -5.89e-5*sqrt(Tmat/1e4)*exp(-1.58e5/Tmat)*(1-x_H)*x/ (Hz*(1.+z)) * 1e-6,-energy_rate/n*((chi_ionH+chi_ionHe)/_L_H_ion_+chi_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)),(x*x_H*n*Rdown - Rup_2*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z)));
       if(pth->reio_parametrization == reio_stars_realistic_model){
         stars_xe=dNion_over_dt/MPCcube_to_mcube/(Hz*(1.+z)*n);
@@ -4167,7 +4173,9 @@ else energy_rate=0;
     else chi_heat = 0.;
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
-      // fprintf(stdout, "z %e dT %e Tmat %e Trad %e dTdz_CMB %e dTdz_DM %e x %e\n", z, dy[2], Tmat, Trad, preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) ,-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)),x);
+      if(pth->thermodynamics_verbose>10){
+      fprintf(stdout, "z %e dT %e Tmat %e Trad %e dTdz_CMB %e dTdz_DM %e x %e\n", z, dy[2], Tmat, Trad, preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) ,-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)),x);
+      }
       if(pth->reio_parametrization == reio_stars_realistic_model){
       stars_xe=dNion_over_dt/MPCcube_to_mcube/(Hz*(1.+z)*n);
       L_x= E_x * f_X * rho_sfr/(3*MPCcube_to_mcube*_k_B_*n*Hz*(1.+x+preco->fHe));
