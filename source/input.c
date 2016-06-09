@@ -1289,6 +1289,31 @@ if(pth->annihilation>0. || pth->decay>0.){
       fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
       pth->has_on_the_spot = _FALSE_;
     }
+
+
+    class_call(parser_read_string(pfc,"energy repartition functions",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_){
+      flag2 = _FALSE_;
+      if (strcmp(string1,"SSCK") == 0) {
+        pth->energy_repart_functions=SSCK;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"Galli_et_al_fit") == 0) {
+        pth->energy_repart_functions=Galli_et_al_fit;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"Galli_et_al_interpolation") == 0) {
+        pth->energy_repart_functions=Galli_et_al_interpolation;
+        flag2=_TRUE_;
+      }
+    class_test(flag2==_FALSE_,
+                 errmsg,
+                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'Galli_et_al_fit', 'Galli_et_al_interpolation'");
+    }
+
+
 }
   class_call(parser_read_string(pfc,
                                 "increase_T_from_stars",
@@ -2993,6 +3018,7 @@ int input_default_params(
   pth->annihilation_boost_factor = 0.;
   pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
+  pth->energy_repart_functions = Galli_et_al_fit;
 
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;

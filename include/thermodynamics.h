@@ -31,6 +31,11 @@ enum reionization_parametrization {
   reio_bins_stars_and_halos, /**< To be used when computing effect of stars (binned history with tanh inteprolation between bins) and DM halos on the reionisation history */
   reio_stars_realistic_model/**< To be used when computing effect of stars  from a more realistic model */
 };
+enum energy_repartition_functions {
+  SSCK, /**< Shull Van Stanbeerg Chen Kamionkowski parameterization */
+  Galli_et_al_fit,  /**< Fit of Galli et al 2013 functions */
+  Galli_et_al_interpolation  /**< Interpolation of Galli et al 2013 functions  */
+};
 
 /**
  * Is the input parameter the reionization redshift or optical depth?
@@ -118,7 +123,7 @@ struct thermo
   double annihilation_m_DM;
   double increase_T_from_stars;
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
-
+  enum energy_repartition_functions energy_repart_functions; /**< reionization scheme */
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   double annihilation_variation; /** if this parameter is non-zero,

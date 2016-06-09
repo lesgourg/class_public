@@ -313,11 +313,11 @@ int thermodynamics_init(
 
 
 
-
+  if(pth->energy_repart_functions==Galli_et_al_interpolation){
     class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
                pth->error_message,
                pth->error_message);
-
+  }
 
   if(pth->has_on_the_spot==_FALSE_ ){
     // fprintf(stdout, "here\n" );
@@ -2907,15 +2907,20 @@ if(pth->annihilation!=0 || pth->decay!=0){
                  pth->error_message);
      if(preio->reionization_table[i*preio->re_size+preio->index_re_xe]<1){
        /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-      //  class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-      //             pth->error_message,
-      //             pth->error_message);
-      // chi_heat = pth->chi_heat;
+       if(pth->energy_repart_functions==Galli_et_al_interpolation){
+         class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+                  pth->error_message,
+                  pth->error_message);
+         chi_heat = pth->chi_heat;
+      }
       /* coefficient as revised by Slatyer et al. 2013 (in fact it is an fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-       chi_heat = 0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035));
-
+       if(pth->energy_repart_functions==Galli_et_al_fit){
+         chi_heat = 0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035));
+       }
        /* old approximation from Chen and Kamionkowski */
-      //  chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
+       if(pth->energy_repart_functions==SSCK){
+         chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
+       }
      }
       else{
         chi_heat=1;
@@ -4027,23 +4032,26 @@ else energy_rate=0;
     if(preco->annihilation > 0 || preco->decay > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
-        // class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-        //                error_message,
-        //                error_message);
-        // chi_ionH = pth->chi_ionH;
-        // chi_ionHe = pth->chi_ionHe;
-        // chi_lya = pth->chi_lya;
-
+        if(pth->energy_repart_functions==Galli_et_al_interpolation){
+          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+                         error_message,
+                         error_message);
+          chi_ionH = pth->chi_ionH;
+          chi_ionHe = pth->chi_ionHe;
+          chi_lya = pth->chi_lya;
+        }
         /* old approximation from Chen and Kamionkowski */
-        // chi_ionH = (1.-x)/3.;
-        // chi_lya = chi_ionH;
-        // chi_ionHe=0;
-
+        if(pth->energy_repart_functions==SSCK){
+          chi_ionH = (1.-x)/3.;
+          chi_lya = chi_ionH;
+          chi_ionHe=0;
+        }
         /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
-        chi_ionH = 0.369202*pow(1.-pow(x,0.463929),1.70237);
-        chi_ionHe =0.0312604*pow(1.-pow(x,0.200634),0.82247);
-        chi_lya = 0.335597*pow(1.-pow(x,0.375314),1.80722);
-
+        if(pth->energy_repart_functions==Galli_et_al_fit){
+          chi_ionH = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+          chi_ionHe =0.0312604*pow(1.-pow(x,0.200634),0.82247);
+          chi_lya = 0.335597*pow(1.-pow(x,0.375314),1.80722);
+        }
 
         chi_ionH = MIN(chi_ionH,1.);
         chi_ionHe = MIN(chi_ionHe,1.);
@@ -4051,6 +4059,7 @@ else energy_rate=0;
         chi_ionH = MAX(chi_ionH,0.);
         chi_ionHe = MAX(chi_ionHe,0.);
         chi_lya = MAX(chi_lya,0.);
+
       }
     }
 
@@ -4133,16 +4142,20 @@ else energy_rate=0;
     if(pth->annihilation >0 || pth->decay > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-        // class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
-        //                error_message,
-        //                error_message);
-        // chi_heat = pth->chi_heat;
-
+        if(pth->energy_repart_functions==Galli_et_al_interpolation){
+          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+                        error_message,
+                        error_message);
+            chi_heat = pth->chi_heat;
+        }
         /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-        chi_heat = 0.996857*(1.-pow(1.-pow(x,0.300134),1.51035));
-
+        if(pth->energy_repart_functions==Galli_et_al_fit){
+            chi_heat = 0.996857*(1.-pow(1.-pow(x,0.300134),1.51035));
+        }
         /* old approximation from Chen and Kamionkowski */
-        // chi_heat = (1.+2.*x)/3.;
+        if(pth->energy_repart_functions==SSCK){
+            chi_heat = (1.+2.*x)/3.;
+        }
       }
       else
         chi_heat = 1.;
