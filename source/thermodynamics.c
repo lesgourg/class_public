@@ -856,6 +856,7 @@ int thermodynamics_free(
   free(pth->thermodynamics_table);
   free(pth->d2thermodynamics_dz2_table);
 
+
   return _SUCCESS_;
 }
 
@@ -4263,7 +4264,12 @@ int thermodynamics_merge_reco_and_reio(
   /** - free the temporary structures */
 
   free(preco->recombination_table);
-
+  if(pth->has_on_the_spot == _FALSE_){
+    thermodynamics_annihilation_f_halos_free(preco);
+  }
+  if(pth->energy_repart_functions == Galli_et_al_interpolation){
+    thermodynamics_annihilation_coefficients_free(pth);
+  }
   if ((pth->reio_parametrization != reio_none) &&  (pth->reio_parametrization != reio_stars_realistic_model))
     free(preio->reionization_table);
 
