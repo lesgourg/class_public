@@ -853,6 +853,7 @@ int input_read_parameters(
     pba->Gamma_dcdm = param1*(1.e3 / _c_);
   if (flag2 == _TRUE_){
   pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_);
+  pba->tau_dcdm = param2;
   // fprintf(stdout, "you have chosen Gamma = %e*H0, tau = %e s \n",pba->Gamma_dcdm/(1.e3 / _c_)/67,param2);
   }
   //
