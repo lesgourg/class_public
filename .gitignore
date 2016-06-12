@@ -8,6 +8,8 @@ libclass.a
 python/classy.c
 python/*.pyc
 python/build/
+DM_Annihilation/
+DM_decay_files/
 DM_annihilation_old/
 DM_decay_files_old/
 output_mai/
