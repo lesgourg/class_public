@@ -812,7 +812,7 @@ int thermodynamics_init(
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
-    if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
+    if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
       if (pth->reio_z_or_tau==reio_tau)
         printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
@@ -1940,7 +1940,7 @@ int thermodynamics_reionization_function(
   /** Summary: */
 
   /** - define local variables */
-  double argument;
+  double argument, A, B;
   int i;
   double z_jump;
   int jump;
@@ -1957,17 +1957,17 @@ int thermodynamics_reionization_function(
     else {
 
       /** - --> case z < z_reio_start: hydrogen contribution (tanh of complicated argument) */
-
-
-      argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-                      preio->reionization_parameters[preio->index_reio_exponent])
-                  - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
-        /(preio->reionization_parameters[preio->index_reio_exponent]
-          /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-          *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-               (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
-        /preio->reionization_parameters[preio->index_reio_width];
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+
+      A = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+                    preio->reionization_parameters[preio->index_reio_exponent])
+                - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]));
+      // A = MAX (A,0.);
+      B = (preio->reionization_parameters[preio->index_reio_exponent]
+        *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+             (preio->reionization_parameters[preio->index_reio_exponent]-1.)))*preio->reionization_parameters[preio->index_reio_width];
+             if(B == 0)argument = 0;
+             else argument = A / B;
 
 
 
@@ -1999,7 +1999,8 @@ int thermodynamics_reionization_function(
       //     * (tanh(argument)+1.)/2.;
       // }
     }
-
+    // fprintf(stdout, "xe %e z%e argument %e A %e B %e A / B %e \n", *xe, z, argument,A,B, A / B);
+    /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
     return _SUCCESS_;
 
   }
@@ -2193,15 +2194,15 @@ int thermodynamics_reionization(
 
     /** - --> set values of these parameters, excepted those depending on the reionization redshift */
 
-    if (pth->reio_parametrization == reio_camb) {
+    if (pth->reio_parametrization == reio_camb || (pth->reio_parametrization == reio_stars_and_halos)) {
       preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
     }
-    if (pth->reio_parametrization == reio_half_tanh || (pth->reio_parametrization == reio_stars_and_halos)) {
+    if (pth->reio_parametrization == reio_half_tanh ) {
       /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
-      preio->reionization_parameters[preio->index_reio_xe_after] = 1.
+      preio->reionization_parameters[preio->index_reio_xe_after] = 1.;
       // ; /* xe_after_reio: neglect He ionization */
-      + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized H */
-      //+ 2*pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + fully ionized He */
+      // + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized H */
+      // + 2*pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + fully ionized He */
     }
     preio->reionization_parameters[preio->index_reio_exponent] = pth->reionization_exponent; /* reio_exponent */
     preio->reionization_parameters[preio->index_reio_width] = pth->reionization_width;    /* reio_width */
@@ -2677,7 +2678,7 @@ int thermodynamics_reionization_sample(
              pth->error_message);
     if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
       xe=preco->recombination_table[i*preco->re_size+preco->index_re_xe];
-     //  xe=MAX(xe,x_tmp);
+      // xe=MAX(xe,x_tmp);
     }
   reio_vector[preio->index_re_xe] = xe;
 
@@ -2761,7 +2762,7 @@ int thermodynamics_reionization_sample(
         preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]  ;
         if(x_tmp < 0.)x_tmp = 0.;
       // x_tmp=preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe];
-      xe_next=MAX(xe_next,x_tmp);
+      if(x_tmp <1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe))) xe_next=MAX(xe_next,x_tmp);
       // fprintf(stdout, "z = %e xe_next = %e x_tmp = %e z table = %e \n",z_next,xe_next,x_tmp,preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z]);
     // }
     // New reionization parametrization by Vivian Poulin
@@ -2786,10 +2787,11 @@ int thermodynamics_reionization_sample(
     class_test(pvecback[pba->index_bg_H] == 0.,
                pth->error_message,
                "stop to avoid division by zero");
-
+    if(xe_next > 1.17) fprintf(stdout, "error xe next %e\n", xe_next);
     dkappadz_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_ / pvecback[pba->index_bg_H];
 
     dkappadtau_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_;
+
 
     class_test((dkappadz == 0.) || (dkappadtau == 0.),
                pth->error_message,
@@ -2798,7 +2800,7 @@ int thermodynamics_reionization_sample(
     relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
       fabs((dkappadtau_next-dkappadtau)/dkappadtau);
 
-    if (relative_variation < ppr->reionization_sampling) {
+    if (relative_variation < ppr->reionization_sampling ) {
       /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
 
       z=z_next;
@@ -2831,6 +2833,8 @@ int thermodynamics_reionization_sample(
       delta_z_old = z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z];
       delta_z_new = z_next-preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z];
       dz = 0.9*(ppr->reionization_sampling/relative_variation)*dz;
+      dz = MIN(dz,dz_max);
+      dz = MAX(ppr->smallest_allowed_variation,dz);
       if(abs(delta_z_old)>abs(delta_z_new))j--;
 
     }
@@ -3636,7 +3640,7 @@ int thermodynamics_recombination_with_recfast(
 
     /** - --> fourth approximation: second Helium recombination starts (analytic approximation) */
 
-    else if (y[1] > ppr->recfast_x_He0_trigger && z > 200) {
+    else if (y[1] > ppr->recfast_x_He0_trigger ) {
       x_H0 = 1.;
 
       rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
@@ -3668,7 +3672,7 @@ int thermodynamics_recombination_with_recfast(
         evolution for Helium), H recombination starts (analytic
         approximation) */
 
-    else if (y[0] > ppr->recfast_x_H0_trigger && z > 200) {
+    else if (y[0] > ppr->recfast_x_H0_trigger ) {
 
       rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
       x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
@@ -3714,7 +3718,7 @@ int thermodynamics_recombination_with_recfast(
     else {
 
       /* quantities used for smoothed transition */
-      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta && z > 200) {
+      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta ) {
         rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
         x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
       }
@@ -3734,7 +3738,7 @@ int thermodynamics_recombination_with_recfast(
 
 
       /* smoothed transition */
-      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta && z > 200) {
+      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta ) {
         /* get s from 0 to 1 */
         s = (ppr->recfast_x_H0_trigger - y[0])/ppr->recfast_x_H0_trigger_delta;
         /* infer f2(s) = smooth function interpolating from 0 to 1 */
