@@ -4745,7 +4745,6 @@ int perturb_approximations(
                  tau,
                  ppw->pvecthermo[pth->index_th_xe]);
 
-
       /** - ----> (b.2.b) check whether tight-coupling approximation should be on */
 
       if ((tau_c/tau_h < ppr->tight_coupling_trigger_tau_c_over_tau_h) &&

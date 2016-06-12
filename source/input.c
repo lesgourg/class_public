@@ -1294,7 +1294,7 @@ if(pth->annihilation>0. || pth->decay>0.){
     }
 
 
-    class_call(parser_read_string(pfc,"energy repartition functions",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){

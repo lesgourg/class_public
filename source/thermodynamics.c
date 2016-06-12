@@ -181,7 +181,7 @@ int thermodynamics_at_z(
   else {
 
     /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
-    if ((pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos) && (z < 2*pth->z_reio)) {
+    if (((pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) && (z < 2*pth->z_reio)) {
       class_call(array_interpolate_linear(
                                           pth->z_table,
                                           pth->tt_size,
@@ -2798,7 +2798,7 @@ int thermodynamics_reionization_sample(
     relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
       fabs((dkappadtau_next-dkappadtau)/dkappadtau);
 
-    if (relative_variation < 5*ppr->reionization_sampling) {
+    if (relative_variation < ppr->reionization_sampling) {
       /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
 
       z=z_next;
@@ -4066,10 +4066,16 @@ else energy_rate=0;
         chi_lya = MAX(chi_lya,0.);
 
       }
+      else {
+        chi_ionH = 0.;
+        chi_ionHe = 0.;
+        chi_lya = 0.;
+      }
     }
+    if(chi_ionH < 0 )fprintf(stdout, "chi_ionH %e \n",chi_ionH);
 
-
-
+    /* Peebles' coefficient (approximated as one when the Hydrogen
+           ionization fraction is very close to one) */
     if (x_H < ppr->recfast_x_H0_trigger2) {
       C = (1. + K*pth->Lambda_over_theoritical_Lambda*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*pth->Lambda_over_theoritical_Lambda*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup_2*n*(1.-x_H));  /* 2 modifications : 1) Rup -> Rup_2 evaluating the coefficient using Trad instead of Tmat; 2) add pth->Lambda_over_theoritical_Lambda, 1 in the standard case, allow to constraint A2s1s otherwise*/
       // C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
