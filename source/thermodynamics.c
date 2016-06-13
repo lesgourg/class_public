@@ -2739,7 +2739,7 @@ int thermodynamics_reionization_sample(
   while (z > 0.) {
     if (j<0)j=0;
     // fprintf(stdout, "j %d \n",j);
-    dz = MAX(ppr->smallest_allowed_variation,dz);
+    // dz = MAX(ppr->smallest_allowed_variation,dz);
 
     class_test(dz < ppr->smallest_allowed_variation,
                pth->error_message,
@@ -2771,7 +2771,7 @@ int thermodynamics_reionization_sample(
         if(x_tmp < 0.)x_tmp = 0.;
       // x_tmp=preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe];
       if(x_tmp <1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe))) xe_next=MAX(xe_next,x_tmp);
-      fprintf(stdout, "z = %e xe_next = %e x_tmp = %e z table = %e \n",z_next,xe_next,x_tmp,preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z]);
+      // fprintf(stdout, "z = %e xe_next = %e x_tmp = %e xe = %e z table = %e \n",z_next,xe_next,x_tmp,xe,preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z]);
     // }
     // New reionization parametrization by Vivian Poulin
     //Here we interpolate linearly in the old table containing reionisation fractions due to DM and compare it to the ionisation fraction from stars. If xe_stars > xe_DM, xe_stars is recorded. Otherwise, we keep xe_DM.
@@ -2808,7 +2808,7 @@ int thermodynamics_reionization_sample(
     relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
       fabs((dkappadtau_next-dkappadtau)/dkappadtau);
 
-    if (relative_variation < ppr->reionization_sampling ) {
+    if (relative_variation < ppr->reionization_sampling || pth->reio_parametrization == reio_stars_and_halos) {
       /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
 
       z=z_next;
@@ -2834,17 +2834,17 @@ int thermodynamics_reionization_sample(
       // if(fabs(delta_z_old)>fabs(delta_z_new))j--;
       j--;
       dz = MIN(0.9*(ppr->reionization_sampling/relative_variation),5.)*dz;
-      dz = MIN(dz,dz_max);
-      dz = MAX(ppr->smallest_allowed_variation,dz);
+      // dz = MIN(dz,dz_max);
+      // dz = MAX(ppr->smallest_allowed_variation,dz);
     }
     else {
       /* do not accept the step and update dz */
       // delta_z_old = z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z];
       // delta_z_new = z_next-preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z];
       dz = 0.9*(ppr->reionization_sampling/relative_variation)*dz;
-      dz = MIN(dz,dz_max);
-      dz = MAX(ppr->smallest_allowed_variation,dz);
-      j--;
+      // dz = MIN(dz,dz_max);
+      // dz = MAX(ppr->smallest_allowed_variation,dz);
+      // j--;
       // if(fabs(delta_z_old)>fabs(delta_z_new))j--;
 
     }
