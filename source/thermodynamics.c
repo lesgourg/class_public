@@ -2747,6 +2747,10 @@ int thermodynamics_reionization_sample(
 
     /* - try next step */
     z_next=z-dz;
+    delta_z_old = z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z];
+    delta_z_new = z_next-preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z];
+    if(fabs(delta_z_old)<fabs(delta_z_new))j++;
+    while(z_next > preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z])j++;
     // fprintf(stdout, "z = %e z_next = %e\n",z,z_next);
 
     if (z_next < 0.) z_next=0.;
@@ -2756,14 +2760,18 @@ int thermodynamics_reionization_sample(
 
     if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
       // fprintf(stdout,"here %e \n");
+      // if(fabs(preco->recombination_table[(j-2)*preco->re_size+preco->index_re_xe]-z_next)>fabs(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-z_next)){
+      //   j++;
+      // }
     // if(z>3) {
       x_tmp= (preco->recombination_table[(j-2)*preco->re_size+preco->index_re_xe]-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe])/(preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z]
         -preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z])*(z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z])+
         preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]  ;
+
         if(x_tmp < 0.)x_tmp = 0.;
       // x_tmp=preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe];
       if(x_tmp <1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe))) xe_next=MAX(xe_next,x_tmp);
-      // fprintf(stdout, "z = %e xe_next = %e x_tmp = %e z table = %e \n",z_next,xe_next,x_tmp,preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z]);
+      fprintf(stdout, "z = %e xe_next = %e x_tmp = %e z table = %e \n",z_next,xe_next,x_tmp,preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z]);
     // }
     // New reionization parametrization by Vivian Poulin
     //Here we interpolate linearly in the old table containing reionisation fractions due to DM and compare it to the ionisation fraction from stars. If xe_stars > xe_DM, xe_stars is recorded. Otherwise, we keep xe_DM.
@@ -2821,21 +2829,23 @@ int thermodynamics_reionization_sample(
                  pth->error_message);
 
       number_of_redshifts++;
-      delta_z_old = z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z];
-      delta_z_new = z_next-preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z];
-      if(abs(delta_z_old)>abs(delta_z_new))j--;
+      // delta_z_old = z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z];
+      // delta_z_new = z_next-preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z];
+      // if(fabs(delta_z_old)>fabs(delta_z_new))j--;
+      j--;
       dz = MIN(0.9*(ppr->reionization_sampling/relative_variation),5.)*dz;
       dz = MIN(dz,dz_max);
       dz = MAX(ppr->smallest_allowed_variation,dz);
     }
     else {
       /* do not accept the step and update dz */
-      delta_z_old = z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z];
-      delta_z_new = z_next-preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z];
+      // delta_z_old = z_next-preco->recombination_table[(j-1)*preco->re_size+preco->index_re_z];
+      // delta_z_new = z_next-preco->recombination_table[(j-2)*preco->re_size+preco->index_re_z];
       dz = 0.9*(ppr->reionization_sampling/relative_variation)*dz;
       dz = MIN(dz,dz_max);
       dz = MAX(ppr->smallest_allowed_variation,dz);
-      if(abs(delta_z_old)>abs(delta_z_new))j--;
+      j--;
+      // if(fabs(delta_z_old)>fabs(delta_z_new))j--;
 
     }
   }
@@ -3672,7 +3682,7 @@ int thermodynamics_recombination_with_recfast(
         evolution for Helium), H recombination starts (analytic
         approximation) */
 
-    else if (y[0] > ppr->recfast_x_H0_trigger ) {
+    else if (y[0] > ppr->recfast_x_H0_trigger && z > 200) {
 
       rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
       x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
@@ -3694,7 +3704,7 @@ int thermodynamics_recombination_with_recfast(
         fprintf(stdout, "in function thermodynamics_recombination_with_recfast, fifth approximation : zend %e y[0] %e\n",zend, y[0]);
       }
       /* smoothed transition */
-      if (ppr->recfast_x_He0_trigger - y[1] < ppr->recfast_x_He0_trigger_delta) {
+      if (ppr->recfast_x_He0_trigger - y[1] < ppr->recfast_x_He0_trigger_delta && z > 200) {
         rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
         x0_previous = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.));
         x0_new = y[0] + preco->fHe*y[1];
@@ -3718,7 +3728,7 @@ int thermodynamics_recombination_with_recfast(
     else {
 
       /* quantities used for smoothed transition */
-      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta ) {
+      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta  && z > 200 ) {
         rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
         x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
       }
@@ -3738,7 +3748,7 @@ int thermodynamics_recombination_with_recfast(
 
 
       /* smoothed transition */
-      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta ) {
+      if (ppr->recfast_x_H0_trigger - y[0] < ppr->recfast_x_H0_trigger_delta && z > 200) {
         /* get s from 0 to 1 */
         s = (ppr->recfast_x_H0_trigger - y[0])/ppr->recfast_x_H0_trigger_delta;
         /* infer f2(s) = smooth function interpolating from 0 to 1 */
