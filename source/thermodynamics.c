@@ -341,9 +341,9 @@ int thermodynamics_init(
              pth->error_message,
              "annihilation variation parameter must be negative (decreasing annihilation rate)");
 
-  class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
-             pth->error_message,
-             "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
+  // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
+  //            pth->error_message,
+  //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
 
   class_test((pth->annihilation_z<0),
              pth->error_message,
@@ -361,9 +361,9 @@ int thermodynamics_init(
              pth->error_message,
              "CDM annihilation effects require the presence of CDM!");
 
-  class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
-             pth->error_message,
-             "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
+  // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
+  //            pth->error_message,
+  //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
 
   class_test((pth->annihilation_f_halo<0),
              pth->error_message,
@@ -1795,11 +1795,11 @@ int thermodynamics_beyond_onthespot_energy_injection(
       rho_ini_dcdm = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega_ini_dcdm*_c_*_c_; /* energy density in J/m^3 */
       if(rho_ini_dcdm == 0)rho_ini_dcdm = rho_cdm_today;
       if(preco->annihilation > 0.){
+
         class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
                   preco->error_message,
                   preco->error_message);
             if(preco->annihilation_z_halo>0.){
-            // fprintf(stdout,"here !!\n" );
             Boost_factor = preco->annihilation_f_halo*erfc((1+z)/(1+preco->annihilation_z_halo))/pow(1+z,3);
             *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*(1+Boost_factor)*preco->f_halos;
             /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
@@ -1808,7 +1808,6 @@ int thermodynamics_beyond_onthespot_energy_injection(
           else  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_halos;
       }
       if(preco->decay > 0.){
-
         class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
                   preco->error_message,
                   preco->error_message);
@@ -2759,7 +2758,7 @@ int thermodynamics_reionization_sample(
                pth->error_message);
 
     if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
-      // fprintf(stdout,"here %e \n");
+      fprintf(stdout,"here %e \n");
       // if(fabs(preco->recombination_table[(j-2)*preco->re_size+preco->index_re_xe]-z_next)>fabs(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-z_next)){
       //   j++;
       // }

@@ -1168,6 +1168,7 @@ int input_read_parameters(
     }
     if (strcmp(string1,"reio_stars_and_halos") == 0) {
       pth->reio_parametrization=reio_stars_and_halos;
+      fprintf(stdout, "here\n");
       flag2=_TRUE_;
     }
     if (strcmp(string1,"reio_bins_stars_and_halos") == 0) {
@@ -1258,8 +1259,8 @@ int input_read_parameters(
   class_read_double("annihilation_zmin",pth->annihilation_zmin);
   class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
 
-  class_test(pth->recombination != hyrec && pth->annihilation_f_halo > 0.,errmsg,
-  "Recfast cannot be used to compute effect of dark matter halos on reionization, because its parametrization goes outside is range of validity. Please restart in 'recombination = hyrec' mode.");
+  // class_test(pth->recombination != hyrec && pth->annihilation_f_halo > 0.,errmsg,
+  // "Recfast cannot be used to compute effect of dark matter halos on reionization, because its parametrization goes outside is range of validity. Please restart in 'recombination = hyrec' mode.");
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
 
