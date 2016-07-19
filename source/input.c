@@ -2883,6 +2883,8 @@ int input_default_params(
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
 
+  ppt->has_metricpotential_transfers = _FALSE_;
+  
   ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
 
   ppt->has_nc_density = _FALSE_;

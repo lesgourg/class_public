@@ -133,6 +133,8 @@ struct perturbs
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
 
+  short has_metricpotential_transfers; /**< do we need to output individual metric-scalar-potential transfer functions? */
+
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
   short has_nc_density;  /**< in dCl, do we want density terms ? */
@@ -260,6 +262,11 @@ struct perturbs
   short has_source_phi_plus_psi; /**< do we need source for metric fluctuation (phi+psi)? */
   short has_source_psi;          /**< do we need source for metric fluctuation psi? */
 
+  short has_source_h;            /**< do we need source for metric fluctuation h? */
+  short has_source_h_prime;      /**< do we need source for metric fluctuation h'? */
+  short has_source_eta;          /**< do we need source for metric fluctuation eta? */
+  short has_source_eta_prime;    /**< do we need source for metric fluctuation eta'? */
+
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
      to avoid the integration by part that would reduce the source to
@@ -296,6 +303,11 @@ struct perturbs
   int index_tp_phi_prime;    /**< index value for metric fluctuation phi' */
   int index_tp_phi_plus_psi; /**< index value for metric fluctuation phi+psi */
   int index_tp_psi;          /**< index value for metric fluctuation psi */
+
+  int index_tp_h;          /**< index value for metric fluctuation h */
+  int index_tp_h_prime;    /**< index value for metric fluctuation h' */
+  int index_tp_eta;        /**< index value for metric fluctuation eta */
+  int index_tp_eta_prime;  /**< index value for metric fluctuation eta' */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
