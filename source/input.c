@@ -1166,15 +1166,6 @@ int input_read_parameters(
       pth->reio_parametrization=reio_half_tanh;
       flag2=_TRUE_;
     }
-    if (strcmp(string1,"reio_stars_and_halos") == 0) {
-      pth->reio_parametrization=reio_stars_and_halos;
-      fprintf(stdout, "here\n");
-      flag2=_TRUE_;
-    }
-    if (strcmp(string1,"reio_bins_stars_and_halos") == 0) {
-      pth->reio_parametrization=reio_bins_stars_and_halos;
-      flag2=_TRUE_;
-    }
     if (strcmp(string1,"reio_stars_realistic_model") == 0) {
       pth->reio_parametrization=reio_stars_realistic_model;
       flag2=_TRUE_;
@@ -1194,7 +1185,7 @@ int input_read_parameters(
   }
 
   /* reionization parameters if reio_parametrization=reio_camb */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) || (pth->reio_parametrization == reio_stars_and_halos) ){
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) ){
 
     class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
                errmsg,
@@ -1229,7 +1220,7 @@ int input_read_parameters(
   }
 
   /* reionization parameters if reio_parametrization=reio_bins_tanh */
-  if (pth->reio_parametrization == reio_bins_tanh || pth->reio_parametrization == reio_bins_stars_and_halos) {
+  if (pth->reio_parametrization == reio_bins_tanh) {
     class_read_int("binned_reio_num",pth->binned_reio_num);
     class_read_list_of_doubles("binned_reio_z",pth->binned_reio_z,pth->binned_reio_num);
     class_read_list_of_doubles("binned_reio_xe",pth->binned_reio_xe,pth->binned_reio_num);
@@ -1328,6 +1319,28 @@ if(pth->annihilation>0. || pth->decay>0.){
                  "could not identify energy repartition functions, check that it is one of 'SSCK', 'Galli_et_al_fit', 'Galli_et_al_interpolation'");
     }
 
+    class_call(parser_read_string(pfc,
+                                  "reio_stars_and_dark_matter",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        pth->reio_stars_and_dark_matter = _TRUE_;
+      }
+      else {
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          pth->reio_stars_and_dark_matter = _FALSE_;
+          pth->reio_parametrization=reio_none;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'reio_stars_and_dark_matter'",string1);
+        }
+      }
+    }
 
 }
   class_call(parser_read_string(pfc,
@@ -3048,6 +3061,7 @@ int input_default_params(
   pth->annihilation_f_halo = 0.;
   pth->annihilation_z_halo = 30.;
   pth->has_on_the_spot = _TRUE_;
+  pth->reio_stars_and_dark_matter = _FALSE_;
   pth->increase_T_from_stars = _FALSE_;
   pth->compute_cb2_derivatives=_FALSE_;
 

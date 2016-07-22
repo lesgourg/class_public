@@ -181,7 +181,7 @@ int thermodynamics_at_z(
   else {
 
     /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
-    if (((pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) && (z < 2*pth->z_reio)) {
+    if (((pth->reio_parametrization == reio_half_tanh)|| (pth->reio_stars_and_dark_matter == _TRUE_)) && (z < 2*pth->z_reio)) {
       class_call(array_interpolate_linear(
                                           pth->z_table,
                                           pth->tt_size,
@@ -812,7 +812,7 @@ int thermodynamics_init(
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
-    if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos) || (pth->reio_parametrization == reio_duspis_et_al)) {
+    if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_duspis_et_al)) {
       if (pth->reio_z_or_tau==reio_tau)
         printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
@@ -823,7 +823,7 @@ int thermodynamics_init(
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
     }
 
-    if (pth->reio_parametrization == reio_bins_tanh || pth->reio_parametrization == reio_bins_stars_and_halos) {
+    if (pth->reio_parametrization == reio_bins_tanh) {
       printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
     }
     if (pth->reio_parametrization == reio_many_tanh) {
@@ -975,7 +975,7 @@ int thermodynamics_indices(
   index++;
 
   /* case where x_e(z) taken like in CAMB (other cases can be added) */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
 
     preio->index_reio_redshift = index;
     index++;
@@ -997,7 +997,7 @@ int thermodynamics_indices(
   }
 
   /* case where x_e(z) is binned */
-  if (pth->reio_parametrization == reio_bins_tanh|| pth->reio_parametrization == reio_bins_stars_and_halos) {
+  if (pth->reio_parametrization == reio_bins_tanh) {
 
     /* the code will not only copy here the "bin centers" passed in
        input. It will add an initial and final value for (z,xe). So
@@ -1969,7 +1969,7 @@ int thermodynamics_reionization_function(
   double center,before, after,width,one_jump;
   double x_tmp;
   /** - implementation of ionization function similar to the one in CAMB */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
     /** -> case z > z_reio_start */
 
     if(z > preio->reionization_parameters[preio->index_reio_start]) {
@@ -1994,7 +1994,7 @@ int thermodynamics_reionization_function(
 
 
 
-      if (pth->reio_parametrization == reio_camb|| (pth->reio_parametrization == reio_stars_and_halos)) {
+      if (pth->reio_parametrization == reio_camb) {
         *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])
           *(tanh(argument)+1.)/2.
@@ -2073,7 +2073,7 @@ int thermodynamics_reionization_function(
   }
   /** - implementation of binned ionization function similar to astro-ph/0606552 */
 
-  if (pth->reio_parametrization == reio_bins_tanh|| pth->reio_parametrization == reio_bins_stars_and_halos) {
+  if (pth->reio_parametrization == reio_bins_tanh) {
 
     /** - --> case z > z_reio_start */
 
@@ -2257,11 +2257,11 @@ int thermodynamics_reionization(
   class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message);
 
   /** (a) if reionization implemented like in CAMB */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) || (pth->reio_parametrization == reio_stars_and_halos)) {
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) ) {
 
     /** - --> set values of these parameters, excepted those depending on the reionization redshift */
 
-    if (pth->reio_parametrization == reio_camb || (pth->reio_parametrization == reio_stars_and_halos)) {
+    if (pth->reio_parametrization == reio_camb ) {
       preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
     }
     if (pth->reio_parametrization == reio_half_tanh ) {
@@ -2298,7 +2298,7 @@ int thermodynamics_reionization(
 
       /* infer starting redshift for hydrogen */
 
-      if (pth->reio_parametrization == reio_camb || pth->reio_parametrization == reio_half_tanh || (pth->reio_parametrization == reio_stars_and_halos)) {
+      if (pth->reio_parametrization == reio_camb || pth->reio_parametrization == reio_half_tanh) {
 
         preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
 
@@ -2445,7 +2445,7 @@ int thermodynamics_reionization(
 
   }
 
-  if (pth->reio_parametrization == reio_bins_tanh|| pth->reio_parametrization == reio_bins_stars_and_halos) {
+  if (pth->reio_parametrization == reio_bins_tanh) {
 
     /* this algorithm requires at least two bin centers (i.e. at least
        4 values in the (z,xe) array, counting the edges). */
@@ -2776,7 +2776,7 @@ int thermodynamics_reionization_sample(
              pth->error_message,
              pth->error_message);
 
-    if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
+    if(pth->reio_stars_and_dark_matter == _TRUE_){
       xe=preco->recombination_table[i*preco->re_size+preco->index_re_xe];
       // xe=MAX(xe,x_tmp);
     }
@@ -2858,7 +2858,7 @@ int thermodynamics_reionization_sample(
                pth->error_message,
                pth->error_message);
 
-    if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
+    if(pth->reio_stars_and_dark_matter == _TRUE_){
       // if(fabs(preco->recombination_table[(j-2)*preco->re_size+preco->index_re_xe]-z_next)>fabs(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-z_next)){
       //   j++;
       // }
@@ -2907,7 +2907,7 @@ int thermodynamics_reionization_sample(
     relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
       fabs((dkappadtau_next-dkappadtau)/dkappadtau);
 
-    if (relative_variation < ppr->reionization_sampling || pth->reio_parametrization == reio_stars_and_halos) {
+    if (relative_variation < ppr->reionization_sampling || pth->reio_stars_and_dark_matter == _TRUE_) {
       /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
 
       z=z_next;

@@ -27,8 +27,6 @@ enum reionization_parametrization {
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
-  reio_stars_and_halos, /**< To be used when computing effect of stars and DM halos on the reionisation history */
-  reio_bins_stars_and_halos, /**< To be used when computing effect of stars (binned history with tanh inteprolation between bins) and DM halos on the reionisation history */
   reio_stars_realistic_model, /**< To be used when computing effect of stars  from a more realistic model */
   reio_duspis_et_al /**< Redshift asymetric reionisation parametrization as introduced by Duspis et al. 1509.02785 and improved by 1605.03928 */
 };
@@ -132,6 +130,7 @@ struct thermo
   double annihilation_m_DM;
   double increase_T_from_stars;
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
+  short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
@@ -474,6 +473,7 @@ struct reionization {
   int index_Qp_duspis_et_al;
   int index_zp_duspis_et_al;
   int index_lambda_duspis_et_al;
+
 
   /* parameters used by all schemes */
 
