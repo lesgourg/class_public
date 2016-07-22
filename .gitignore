@@ -17,3 +17,4 @@ output_avril/
 *.dat
 output*
 class.dSYM/Contents/Info.plist
+test/
