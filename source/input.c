@@ -1179,6 +1179,10 @@ int input_read_parameters(
       pth->reio_parametrization=reio_stars_realistic_model;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_duspis_et_al") == 0) {
+      pth->reio_parametrization=reio_duspis_et_al;
+      flag2=_TRUE_;
+    }
     if (strcmp(string1,"reio_many_tanh") == 0) {
       pth->reio_parametrization=reio_many_tanh;
       flag2=_TRUE_;
@@ -1215,6 +1219,13 @@ int input_read_parameters(
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
 
+  }
+  if (pth->reio_parametrization == reio_duspis_et_al){
+    class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
+    class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
+    class_read_double("lambda_duspis_et_al",pth->lambda_duspis_et_al);
+    class_read_double("Qp_duspis_et_al",pth->Qp_duspis_et_al);
+    class_read_double("zp_duspis_et_al",pth->zp_duspis_et_al);
   }
 
   /* reionization parameters if reio_parametrization=reio_bins_tanh */
@@ -3017,6 +3028,10 @@ int input_default_params(
   pth->binned_reio_z=NULL;
   pth->binned_reio_xe=NULL;
   pth->binned_reio_step_sharpness = 0.3;
+
+  pth->lambda_duspis_et_al = 0.73;
+  pth->zp_duspis_et_al = 6.1;
+  pth->Qp_duspis_et_al = 0.99986;
 
   pth->annihilation = 0.;
   pth->annihilation_boost_factor = 0.;

@@ -29,7 +29,8 @@ enum reionization_parametrization {
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
   reio_stars_and_halos, /**< To be used when computing effect of stars and DM halos on the reionisation history */
   reio_bins_stars_and_halos, /**< To be used when computing effect of stars (binned history with tanh inteprolation between bins) and DM halos on the reionisation history */
-  reio_stars_realistic_model/**< To be used when computing effect of stars  from a more realistic model */
+  reio_stars_realistic_model, /**< To be used when computing effect of stars  from a more realistic model */
+  reio_duspis_et_al /**< Redshift asymetric reionisation parametrization as introduced by Duspis et al. 1509.02785 and improved by 1605.03928 */
 };
 enum energy_repartition_functions {
   SSCK, /**< Shull Van Stanbeerg Chen Kamionkowski parameterization */
@@ -117,6 +118,13 @@ struct thermo
 
   double many_tanh_width; /**< sharpness of tanh() steps */
 
+  /** parameters used by duspis et al. parametrization */
+
+  double Qp_duspis_et_al;
+  double zp_duspis_et_al;
+  double lambda_duspis_et_al;
+
+
   /** parameters for energy injection */
 
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
@@ -124,7 +132,7 @@ struct thermo
   double annihilation_m_DM;
   double increase_T_from_stars;
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
-  enum energy_repartition_functions energy_repart_functions; /**< reionization scheme */
+  enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   double annihilation_variation; /** if this parameter is non-zero,
@@ -460,6 +468,12 @@ struct reionization {
   int index_reio_first_z; /**< redshift at which we start to impose reionization function */
   int index_reio_first_xe; /**< ionization fraction at redshift first_z (inferred from recombination code) */
   int index_reio_step_sharpness; /**< sharpness of tanh jump */
+
+  /* parameters used by duspis et al. parametrization */
+
+  int index_Qp_duspis_et_al;
+  int index_zp_duspis_et_al;
+  int index_lambda_duspis_et_al;
 
   /* parameters used by all schemes */
 

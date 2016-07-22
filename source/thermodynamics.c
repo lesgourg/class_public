@@ -812,7 +812,7 @@ int thermodynamics_init(
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
-    if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos)) {
+    if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_stars_and_halos) || (pth->reio_parametrization == reio_duspis_et_al)) {
       if (pth->reio_z_or_tau==reio_tau)
         printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
@@ -1034,6 +1034,29 @@ int thermodynamics_indices(
     preio->reio_num_params = index;
   }
 
+  if (pth->reio_parametrization == reio_duspis_et_al){
+
+    preio->index_reio_xe_before = index;
+    index++;
+    preio->index_reio_xe_after = index;
+    index++;
+    preio->index_lambda_duspis_et_al = index;
+    index++;
+    preio->index_zp_duspis_et_al = index;
+    index++;
+    preio->index_Qp_duspis_et_al = index;
+    index++;
+    preio->index_helium_fullreio_fraction = index;
+    index++;
+    preio->index_helium_fullreio_redshift = index;
+    index++;
+    preio->index_helium_fullreio_width = index;
+    index++;
+
+
+    preio->reio_num_params = index;
+
+  }
   preio->reio_num_params = index;
 
   /* flags for calling the interpolation routine */
@@ -1939,7 +1962,7 @@ int thermodynamics_reionization_function(
   /** Summary: */
 
   /** - define local variables */
-  double argument, A, B;
+  double argument, A, B, factor;
   int i;
   double z_jump;
   int jump;
@@ -1951,6 +1974,7 @@ int thermodynamics_reionization_function(
 
     if(z > preio->reionization_parameters[preio->index_reio_start]) {
       *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+
     }
 
     else {
@@ -1976,6 +2000,7 @@ int thermodynamics_reionization_function(
           *(tanh(argument)+1.)/2.
           +preio->reionization_parameters[preio->index_reio_xe_before];
       }
+
       else {
         *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])
@@ -1997,9 +2022,52 @@ int thermodynamics_reionization_function(
       //   *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
       //     * (tanh(argument)+1.)/2.;
       // }
+
     }
     // fprintf(stdout, "xe %e z%e argument %e A %e B %e A / B %e \n", *xe, z, argument,A,B, A / B);
     /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+    return _SUCCESS_;
+
+  }
+
+  if(pth->reio_parametrization == reio_duspis_et_al){
+    if(z > preio->reionization_parameters[preio->index_reio_start]) {
+      *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+
+    }
+
+    else {
+
+    if(z < preio->reionization_parameters[preio->index_zp_duspis_et_al]){
+      factor = (1-preio->reionization_parameters[preio->index_Qp_duspis_et_al])/(pow(1+preio->reionization_parameters[preio->index_zp_duspis_et_al],3)-1)
+      *(pow(1+preio->reionization_parameters[preio->index_zp_duspis_et_al],3)-pow(1+z,3))
+      +preio->reionization_parameters[preio->index_Qp_duspis_et_al];
+
+    *xe =  (preio->reionization_parameters[preio->index_reio_xe_after]
+             -preio->reionization_parameters[preio->index_reio_xe_before])*
+             factor;
+
+    }
+    else{
+      factor = preio->reionization_parameters[preio->index_Qp_duspis_et_al]*exp(-preio->reionization_parameters[preio->index_lambda_duspis_et_al]
+        *pow(z-preio->reionization_parameters[preio->index_zp_duspis_et_al],3)/(pow(z-preio->reionization_parameters[preio->index_zp_duspis_et_al],2)+0.2));
+      *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])*
+               factor;
+      *xe = MAX(preio->reionization_parameters[preio->index_reio_xe_before],*xe);
+
+    }
+
+    /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
+    /********Helium reionization is taken into account with a camb-like parametrization***********/
+      argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
+        /preio->reionization_parameters[preio->index_helium_fullreio_width];
+      /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+      *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
+        * (tanh(argument)+1.)/2.;
+    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_duspis_et_al],preio->reionization_parameters[preio->index_zp_duspis_et_al],preio->reionization_parameters[preio->index_Qp_duspis_et_al]);
+
+    }
     return _SUCCESS_;
 
   }
@@ -2582,7 +2650,39 @@ int thermodynamics_reionization(
     return _SUCCESS_;
 
   }
+  if((pth->reio_parametrization == reio_duspis_et_al)){
+    preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
+    preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, checked before that denominator is non-zero) */
+    preio->reionization_parameters[preio->index_helium_fullreio_redshift] = pth->helium_fullreio_redshift; /* helium_fullreio_redshift */
+    preio->reionization_parameters[preio->index_helium_fullreio_width] = pth->helium_fullreio_width;    /* helium_fullreio_width */
+    preio->reionization_parameters[preio->index_lambda_duspis_et_al] = pth->lambda_duspis_et_al;
+    preio->reionization_parameters[preio->index_zp_duspis_et_al] = pth->zp_duspis_et_al;
+    preio->reionization_parameters[preio->index_Qp_duspis_et_al] = pth->Qp_duspis_et_al;
 
+    class_test(preio->reionization_parameters[preio->index_helium_fullreio_width]==0,
+               pth->error_message,
+               "stop to avoid division by zero");
+     preio->reionization_parameters[preio->index_reio_start] = ppr->reionization_z_start_max;
+
+     class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
+                pth->error_message,
+                "starting redshift for reionization > reionization_z_start_max = %e\n",ppr->reionization_z_start_max);
+
+     /* infer xe_before_reio */
+     class_call(thermodynamics_get_xe_before_reionization(ppr,
+                                                          pth,
+                                                          preco,
+                                                          preio->reionization_parameters[preio->index_reio_start],
+                                                          &(preio->reionization_parameters[preio->index_reio_xe_before])),
+                pth->error_message,
+                pth->error_message);
+     /* fill reionization table */
+     class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
+                pth->error_message,
+                pth->error_message);
+     pth->tau_reio=preio->reionization_optical_depth;
+  }
+if((pth->reio_parametrization != reio_duspis_et_al))
   class_test(0 == 0,
              pth->error_message,
              "value of reio_z_or_tau=%d unclear",pth->reio_z_or_tau);
@@ -2675,6 +2775,7 @@ int thermodynamics_reionization_sample(
   class_call(thermodynamics_reionization_function(z,pth,preio,preco,&xe),
              pth->error_message,
              pth->error_message);
+
     if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
       xe=preco->recombination_table[i*preco->re_size+preco->index_re_xe];
       // xe=MAX(xe,x_tmp);
