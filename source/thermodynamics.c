@@ -2758,7 +2758,6 @@ int thermodynamics_reionization_sample(
                pth->error_message);
 
     if(pth->reio_parametrization == reio_stars_and_halos|| pth->reio_parametrization == reio_bins_stars_and_halos){
-      fprintf(stdout,"here %e \n");
       // if(fabs(preco->recombination_table[(j-2)*preco->re_size+preco->index_re_xe]-z_next)>fabs(preco->recombination_table[(j-1)*preco->re_size+preco->index_re_xe]-z_next)){
       //   j++;
       // }
