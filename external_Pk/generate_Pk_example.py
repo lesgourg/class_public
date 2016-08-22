@@ -51,5 +51,5 @@ while ks[-1] <= float(k_max) :
 # Filling the array of Pk's
 for k in ks :
     P_k = P(k)
-    print "%.18g %.18g" % (k, P_k)
+    print("%.18g %.18g" % (k, P_k))
 
