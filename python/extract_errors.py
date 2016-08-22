@@ -1,7 +1,7 @@
 # From the dumped stdout and stderr of a nosetests test_class.py, extract all
 # the failed steps.
 # Usage: python extract_errors.py output
-
+from __future__ import print_function
 import sys
 import os
 

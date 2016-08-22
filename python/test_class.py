@@ -68,6 +68,7 @@ rerun CLASS for each case under Newtonian gauge and then compare Cl's and
 matter power spectrum. If the two are not close enough, it will generate a
 PDF plot of this and save it in the 'fail' folder.
 """
+from __future__ import print_function
 from classy import Class
 from classy import CosmoSevereError
 import itertools

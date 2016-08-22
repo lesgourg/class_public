@@ -31,6 +31,8 @@ https://github.com/JesusTorrado/cosmo_mini_toolbox
 
 """
 
+from __future__ import unicode_literals, print_function
+
 # System imports
 import os
 import sys
