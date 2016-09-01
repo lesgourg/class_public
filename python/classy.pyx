@@ -738,6 +738,10 @@ cdef class Class:
     def n_s(self):
         return self.pm.n_s
 
+    def tau_reio(self):
+         return self.th.tau_reio
+
+
     # Defined twice ?
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
@@ -1219,6 +1223,14 @@ cdef class Class:
                 value = self.th.tau_reio
             elif name == 'z_reio':
                 value = self.th.z_reio
+            elif name == 'z_10_percent':
+                value = self.th.z_10_percent
+            elif name == 'z_50_percent':
+                value = self.th.z_50_percent
+            elif name == 'z_99_percent':
+                value = self.th.z_99_percent
+            elif name == 'duration_of_reionization':
+                value = self.th.duration_of_reionization
             elif name == 'z_rec':
                 value = self.th.z_rec
             elif name == 'tau_rec':
