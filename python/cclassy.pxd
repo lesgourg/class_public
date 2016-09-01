@@ -65,6 +65,10 @@ cdef extern from "class.h":
         short inter_normal
         double tau_reio
         double z_reio
+        double z_10_percent
+        double z_50_percent
+        double z_99_percent
+        double duration_of_reionization
         double z_rec
         double tau_rec
         double rs_rec
