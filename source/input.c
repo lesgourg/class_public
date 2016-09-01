@@ -1174,6 +1174,10 @@ int input_read_parameters(
       pth->reio_parametrization=reio_duspis_et_al;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_asymmetric_planck_16") == 0) {
+      pth->reio_parametrization=reio_asymmetric_planck_16;
+      flag2=_TRUE_;
+    }
     if (strcmp(string1,"reio_many_tanh") == 0) {
       pth->reio_parametrization=reio_many_tanh;
       flag2=_TRUE_;
@@ -1217,6 +1221,13 @@ int input_read_parameters(
     class_read_double("lambda_duspis_et_al",pth->lambda_duspis_et_al);
     class_read_double("Qp_duspis_et_al",pth->Qp_duspis_et_al);
     class_read_double("zp_duspis_et_al",pth->zp_duspis_et_al);
+  }
+  if (pth->reio_parametrization == reio_asymmetric_planck_16){
+    class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
+    class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
+    class_read_double("alpha_asymmetric_planck_16",pth->alpha_asymmetric_planck_16);
+    class_read_double("z_end_asymmetric_planck_16",pth->z_end_asymmetric_planck_16);
+    class_read_double("z_start_asymmetric_planck_16",pth->z_start_asymmetric_planck_16);
   }
 
   /* reionization parameters if reio_parametrization=reio_bins_tanh */
@@ -3045,6 +3056,13 @@ int input_default_params(
   pth->lambda_duspis_et_al = 0.73;
   pth->zp_duspis_et_al = 6.1;
   pth->Qp_duspis_et_al = 0.99986;
+  pth->z_end_asymmetric_planck_16 = 6;
+  pth->z_start_asymmetric_planck_16 = 20;
+  pth->alpha_asymmetric_planck_16 = 3;
+  pth->z_10_percent = 1000;
+  pth->z_50_percent = 1000;
+  pth->z_99_percent = 1000;
+  pth->duration_of_reionization = 0.;
 
   pth->annihilation = 0.;
   pth->annihilation_boost_factor = 0.;

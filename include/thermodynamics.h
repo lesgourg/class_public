@@ -28,7 +28,8 @@ enum reionization_parametrization {
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
   reio_stars_realistic_model, /**< To be used when computing effect of stars  from a more realistic model */
-  reio_duspis_et_al /**< Redshift asymetric reionisation parametrization as introduced by Duspis et al. 1509.02785 and improved by 1605.03928 */
+  reio_duspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by Duspis et al. 1509.02785 and improved by 1605.03928 */
+  reio_asymmetric_planck_16 /**< Redshift asymetric reionisation parametrization as introduced by the Planck collaboration in 2016 data release 1605.03507  */
 };
 enum energy_repartition_functions {
   SSCK, /**< Shull Van Stanbeerg Chen Kamionkowski parameterization */
@@ -122,6 +123,17 @@ struct thermo
   double zp_duspis_et_al;
   double lambda_duspis_et_al;
 
+  /** parameters used by planck 16 asymmetric parametrization */
+
+  double z_end_asymmetric_planck_16;
+  double z_start_asymmetric_planck_16;
+  double alpha_asymmetric_planck_16;
+
+  /** some derived parameters useful to compare reionization models */
+  double duration_of_reionization;   /**< it measures the duration of reionation, it is defined as z_10_percent - z_99_percent*/
+  double z_10_percent;  /** <redshift at which x_e = 0.1*(1+f_He) */
+  double z_50_percent;  /** <redshift at which x_e = 0.5*(1+f_He) */
+  double z_99_percent; /** <redshift at which x_e = 0.99*(1+f_He) */
 
   /** parameters for energy injection */
 
@@ -473,6 +485,12 @@ struct reionization {
   int index_Qp_duspis_et_al;
   int index_zp_duspis_et_al;
   int index_lambda_duspis_et_al;
+
+  /* parameters used by planck 16 asymmetric parametrization */
+
+  int index_z_end_asymmetric_planck_16;
+  int index_z_start_asymmetric_planck_16;
+  int index_alpha_asymmetric_planck_16;
 
 
   /* parameters used by all schemes */
