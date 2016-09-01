@@ -812,7 +812,7 @@ int thermodynamics_init(
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
-    if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)|| (pth->reio_parametrization == reio_duspis_et_al)) {
+    if((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
       if (pth->reio_z_or_tau==reio_tau)
         printf(" -> reionization  at z = %f\n",pth->z_reio);
       if (pth->reio_z_or_tau==reio_z)
@@ -822,7 +822,13 @@ int thermodynamics_init(
                  pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
     }
-
+    if((pth->reio_parametrization == reio_duspis_et_al)){
+      printf(" -> reionization with optical depth = %f\n",pth->tau_reio);
+      class_call(background_tau_of_z(pba,pth->z_reio,&tau_reio),
+               pba->error_message,
+               pth->error_message);
+      printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
+    }
     if (pth->reio_parametrization == reio_bins_tanh) {
       printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
     }
