@@ -534,7 +534,7 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
 
   double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
   double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
-  double f_halos;
+  double f_eff;
   int last_index;
   ErrorMsg error_message;
   double energy_rate;
@@ -550,41 +550,41 @@ double beyond_onthespot_injection_rate( REC_COSMOPARAMS *param,
   if(rho_ini_dcdm==0)rho_ini_dcdm = rho_cdm_today;
   if (param->annihilation_f_halo > 0. && param->annihilation_z_halo > 0.){
   array_interpolate_spline(param->annihil_z,
-                                      param->annihil_f_halos_num_lines,
-                                      param->annihil_f_halos,
-                                      param->annihil_dd_f_halos,
+                                      param->annihil_f_eff_num_lines,
+                                      param->annihil_f_eff,
+                                      param->annihil_dd_f_eff,
                                       1,
                                       z,
                                       &last_index,
-                                      &(f_halos),
+                                      &(f_eff),
                                       1,
                                       error_message);
   Boost_factor = param->annihilation_f_halo*erfc((1+z)/(1+param->annihilation_z_halo))/pow(1+z,3);
-  energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*(1+Boost_factor)*param->annihilation*f_halos/1.e6/1.60217653e-19;
+  energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*(1+Boost_factor)*param->annihilation*f_eff/1.e6/1.60217653e-19;
   // fprintf(stdout, "%e %e\n",z,Boost_factor);
 //
   /* energy density rate in eV/cm^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-  // fprintf(stdout,"%e   %e   %e    %e\n", z,f_halos,energy_rate,1+Boost_factor);
+  // fprintf(stdout,"%e   %e   %e    %e\n", z,f_eff,energy_rate,1+Boost_factor);
   }
   else{
     array_interpolate_spline(param->annihil_z,
-                                        param->annihil_f_halos_num_lines,
-                                        param->annihil_f_halos,
-                                        param->annihil_dd_f_halos,
+                                        param->annihil_f_eff_num_lines,
+                                        param->annihil_f_eff,
+                                        param->annihil_dd_f_eff,
                                         1,
                                         z,
                                         &last_index,
-                                        &(f_halos),
+                                        &(f_eff),
                                         1,
                                         error_message);
-    // if(f_halos<0)f_halos*=-1;
-    // fprintf(stdout, "f_halos %e\n", f_halos );
+    // if(f_eff<0)f_eff*=-1;
+    // fprintf(stdout, "f_eff %e\n", f_eff );
 
-    if(param->annihilation>0)energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*param->annihilation*f_halos/1.e6/1.60217653e-19;
+    if(param->annihilation>0)energy_rate = pow(rho_cdm_today,2)/2.99792458e8/2.99792458e8*pow((1+z),6)*param->annihilation*f_eff/1.e6/1.60217653e-19;
     else if(param->decay>0) {
-      energy_rate = (rho_ini_dcdm*pow((1+z),3)*param->decay*f_halos*
+      energy_rate = (rho_ini_dcdm*pow((1+z),3)*param->decay*f_eff*
                                           (param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_))/1.e6/1.60217653e-19;
-    // fprintf(stdout,"fhalos = %e, z = %e, energy_rate = %e\n",f_halos,z,energy_rate);
+    // fprintf(stdout,"fhalos = %e, z = %e, energy_rate = %e\n",f_eff,z,energy_rate);
   }
 
 }

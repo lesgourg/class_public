@@ -98,11 +98,11 @@ typedef struct {
    double annihilation_f_halo; /* takes the contribution of DM annihilation in halos into account*/
    double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
    double * annihil_z;
-   double * annihil_f_halos;
-   double * annihil_dd_f_halos;
+   double * annihil_f_eff;
+   double * annihil_dd_f_eff;
 
-   double f_halos;
-   int annihil_f_halos_num_lines;
+   double f_eff;
+   int annihil_f_eff_num_lines;
   int reio_parametrization; /*Do we want the realistic stars modeling ? 0 = no, 1 = yes*/
 
    double Omega0_g;

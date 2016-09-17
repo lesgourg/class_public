@@ -313,7 +313,7 @@ int thermodynamics_init(
 
 
 
-  if(pth->energy_repart_functions==Galli_et_al_interpolation){
+  if(pth->energy_repart_functions==Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
     class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
                pth->error_message,
                pth->error_message);
@@ -321,7 +321,7 @@ int thermodynamics_init(
 
   if(pth->has_on_the_spot==_FALSE_ ){
     // fprintf(stdout, "here\n" );
-    class_call(thermodynamics_annihilation_f_halos_init(ppr,pba,preco),
+    class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,preco),
                preco->error_message,
                preco->error_message);
 
@@ -1568,7 +1568,7 @@ int thermodynamics_annihilation_coefficients_free(
 
 }
 // /****************MODIF Vivian Poulin 2 : Add f(z) functions in halos****************/
-int thermodynamics_annihilation_f_halos_init(
+int thermodynamics_annihilation_f_eff_init(
                                                   struct precision * ppr,
                                                   struct background * pba,
                                                   struct recombination * preco
@@ -1589,7 +1589,7 @@ int thermodynamics_annihilation_f_halos_init(
      - One column (z , f(z)) where f(z) represents the "effective" fraction of energy deposited into the medium at redshift z, in presence of halo formation.
 
   */
-  class_open(fA,ppr->annihil_f_halos_file, "r",preco->error_message);
+  class_open(fA,ppr->annihil_f_eff_file, "r",preco->error_message);
 
   /* go through each line */
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
@@ -1614,13 +1614,13 @@ int thermodynamics_annihilation_f_halos_init(
         /* read num_lines, infer size of arrays and allocate them */
         class_test(sscanf(line,"%d",&num_lines) != 1,
                    preco->error_message,
-                   "could not read value of parameters num_lines in file %s\n",ppr->annihil_f_halos_file);
+                   "could not read value of parameters num_lines in file %s\n",ppr->annihil_f_eff_file);
         class_alloc(preco->annihil_z,num_lines*sizeof(double),preco->error_message);
-        class_alloc(preco->annihil_f_halos,num_lines*sizeof(double),preco->error_message);
+        class_alloc(preco->annihil_f_eff,num_lines*sizeof(double),preco->error_message);
 
-        class_alloc(preco->annihil_dd_f_halos,num_lines*sizeof(double),preco->error_message);
+        class_alloc(preco->annihil_dd_f_eff,num_lines*sizeof(double),preco->error_message);
 
-        preco->annihil_f_halos_num_lines = num_lines;
+        preco->annihil_f_eff_num_lines = num_lines;
 
 
         array_line=0;
@@ -1631,9 +1631,9 @@ int thermodynamics_annihilation_f_halos_init(
         /* read coefficients */
         class_test(sscanf(line,"%lg %lg",
                           &(preco->annihil_z[array_line]),
-                          &(preco->annihil_f_halos[array_line]))!= 2,
+                          &(preco->annihil_f_eff[array_line]))!= 2,
                    preco->error_message,
-                   "could not read value of parameters coefficients in file %s\n",ppr->annihil_f_halos_file);
+                   "could not read value of parameters coefficients in file %s\n",ppr->annihil_f_eff_file);
         array_line ++;
       }
     }
@@ -1644,9 +1644,9 @@ int thermodynamics_annihilation_f_halos_init(
   /* spline in one dimension */
   class_call(array_spline_table_lines(preco->annihil_z,
                                       num_lines,
-                                      preco->annihil_f_halos,
+                                      preco->annihil_f_eff,
                                       1,
-                                      preco->annihil_dd_f_halos,
+                                      preco->annihil_dd_f_eff,
                                       _SPLINE_NATURAL_,
                                       preco->error_message),
              preco->error_message,
@@ -1658,23 +1658,23 @@ int thermodynamics_annihilation_f_halos_init(
 }
 
 
-int thermodynamics_annihilation_f_halos_interpolate(
+int thermodynamics_annihilation_f_eff_interpolate(
                                                   struct precision * ppr,
                                                   struct background * pba,
                                                   struct recombination * preco,
                                                   double z,
-                                                  double * f_halos
+                                                  double * f_eff
                                                 ) {
 
   int last_index;
   class_call(array_interpolate_spline(preco->annihil_z,
-                                      preco->annihil_f_halos_num_lines,
-                                      preco->annihil_f_halos,
-                                      preco->annihil_dd_f_halos,
+                                      preco->annihil_f_eff_num_lines,
+                                      preco->annihil_f_eff,
+                                      preco->annihil_dd_f_eff,
                                       1,
                                       z,
                                       &last_index,
-                                      &(preco->f_halos),
+                                      &(preco->f_eff),
                                       1,
                                       preco->error_message),
              preco->error_message,
@@ -1686,13 +1686,13 @@ int thermodynamics_annihilation_f_halos_interpolate(
 }
 
 
-int thermodynamics_annihilation_f_halos_free(
+int thermodynamics_annihilation_f_eff_free(
                                                   struct recombination * preco
                                                   ) {
 
   free(preco->annihil_z);
-  free(preco->annihil_f_halos);
-  free(preco->annihil_dd_f_halos);
+  free(preco->annihil_f_eff);
+  free(preco->annihil_dd_f_eff);
 
 
   return _SUCCESS_;
@@ -1834,7 +1834,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
   double rho_cdm_today, rho_ini_dcdm;
   double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
   double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
-  double f_halos;
+  double f_eff;
   double f_decay;
 
   double zp,dz;
@@ -1851,23 +1851,29 @@ int thermodynamics_beyond_onthespot_energy_injection(
       rho_ini_dcdm = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega_ini_dcdm*_c_*_c_; /* energy density in J/m^3 */
       if(rho_ini_dcdm == 0)rho_ini_dcdm = rho_cdm_today;
       if(preco->annihilation > 0.){
-
-        class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
-                  preco->error_message,
-                  preco->error_message);
-            if(preco->annihilation_z_halo>0.){
-            Boost_factor = preco->annihilation_f_halo*erfc((1+z)/(1+preco->annihilation_z_halo))/pow(1+z,3);
-            *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*(1+Boost_factor)*preco->f_halos;
-            /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
-            // fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_halos,*energy_rate);
-          }
-          else  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_halos;
+        if(preco->energy_repart_functions!=no_factorization){
+          class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
+                    preco->error_message,
+                    preco->error_message);
+        }
+        else preco->f_eff=1.;
+        if(preco->annihilation_z_halo>0.){
+        Boost_factor = preco->annihilation_f_halo*erfc((1+z)/(1+preco->annihilation_z_halo))/pow(1+z,3);
+        *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*(1+Boost_factor)*preco->f_eff;
+        /* energy density rate in J/m^3/s (remember that sigma_thermal/(preco->annihilation_m_DM*conversion) is in m^3/s/Kg) */
+        // fprintf(stdout,"in thermodynamics.c %e   %e   %e\n", z,preco->f_eff,*energy_rate);
+        }
+        else  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),6)*preco->annihilation*preco->f_eff;
       }
       if(preco->decay > 0.){
-        class_call(thermodynamics_annihilation_f_halos_interpolate(ppr,pba,preco,z,&f_halos),
-                  preco->error_message,
-                  preco->error_message);
-        *energy_rate =  rho_ini_dcdm*pow(1+z,3)*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_)*preco->f_halos;
+        if(preco->energy_repart_functions!=no_factorization){
+          class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
+                    preco->error_message,
+                    preco->error_message);
+        }
+        else preco->f_eff=1.;
+        fprintf(stdout, "fEff %e\n", preco->f_eff);
+        *energy_rate =  rho_ini_dcdm*pow(1+z,3)*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_)*preco->f_eff;
       }
 
 
@@ -3192,7 +3198,7 @@ if(pth->annihilation!=0 || pth->decay!=0){
                  pth->error_message);
      if(preio->reionization_table[i*preio->re_size+preio->index_re_xe]<1){
        /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-       if(pth->energy_repart_functions==Galli_et_al_interpolation){
+       if(pth->energy_repart_functions==Galli_et_al_interpolation|| pth->energy_repart_functions==no_factorization){
          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                   pth->error_message,
                   pth->error_message);
@@ -3206,6 +3212,7 @@ if(pth->annihilation!=0 || pth->decay!=0){
        if(pth->energy_repart_functions==SSCK){
          chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
        }
+
      }
       else{
         chi_heat=1;
@@ -3438,10 +3445,10 @@ int thermodynamics_recombination_with_hyrec(
   param.annihil_coef_dd_ionHe = pth->annihil_coef_dd_ionHe;
   param.annihil_coef_dd_lya = pth->annihil_coef_dd_lya;
   param.annihil_coef_dd_lowE = pth->annihil_coef_lowE;
-  param.annihil_f_halos_num_lines = preco->annihil_f_halos_num_lines;
+  param.annihil_f_eff_num_lines = preco->annihil_f_eff_num_lines;
   param.annihil_z = preco->annihil_z;
-  param.annihil_f_halos = preco->annihil_f_halos;
-  param.annihil_dd_f_halos = preco->annihil_dd_f_halos;
+  param.annihil_f_eff = preco->annihil_f_eff;
+  param.annihil_dd_f_eff = preco->annihil_dd_f_eff;
 
   if(pth->reio_parametrization==reio_stars_realistic_model)param.reio_parametrization = 1;
   else param.reio_parametrization = 0;
@@ -4320,7 +4327,7 @@ else energy_rate=0;
     if(preco->annihilation > 0 || preco->decay > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==Galli_et_al_interpolation){
+        if(pth->energy_repart_functions==Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                          error_message,
                          error_message);
@@ -4439,7 +4446,7 @@ else energy_rate=0;
     if(pth->annihilation >0 || pth->decay > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==Galli_et_al_interpolation){
+        if(pth->energy_repart_functions==Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                         error_message,
                         error_message);
@@ -4453,6 +4460,7 @@ else energy_rate=0;
         if(pth->energy_repart_functions==SSCK){
             chi_heat = (1.+2.*x)/3.;
         }
+
       }
       else
         chi_heat = 1.;
@@ -4555,9 +4563,9 @@ int thermodynamics_merge_reco_and_reio(
 
   free(preco->recombination_table);
   if(pth->has_on_the_spot == _FALSE_){
-    thermodynamics_annihilation_f_halos_free(preco);
+    thermodynamics_annihilation_f_eff_free(preco);
   }
-  if(pth->energy_repart_functions == Galli_et_al_interpolation){
+  if(pth->energy_repart_functions == Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
     thermodynamics_annihilation_coefficients_free(pth);
   }
   if ((pth->reio_parametrization != reio_none) &&  (pth->reio_parametrization != reio_stars_realistic_model))

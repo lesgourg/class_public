@@ -34,7 +34,8 @@ enum reionization_parametrization {
 enum energy_repartition_functions {
   SSCK, /**< Shull Van Stanbeerg Chen Kamionkowski parameterization */
   Galli_et_al_fit,  /**< Fit of Galli et al 2013 functions */
-  Galli_et_al_interpolation  /**< Interpolation of Galli et al 2013 functions  */
+  Galli_et_al_interpolation,  /**< Interpolation of Galli et al 2013 functions  */
+  no_factorization
 };
 
 /**
@@ -407,12 +408,14 @@ struct recombination {
   //@}
   /** A few parameters useful if realistic energy deposition is required in case of annihilations in halos or energy injection due to decay of short lived DM */
   double * annihil_z;
-  double * annihil_f_halos;
-  double * annihil_dd_f_halos;
+  double * annihil_f_eff;
+  double * annihil_dd_f_eff;
 
-  double f_halos;
-  int annihil_f_halos_num_lines;
+  double f_eff;
+  int annihil_f_eff_num_lines;
   double increase_T_from_stars; /**< To compute the increase of temperature due to star formation in a given model */
+
+  enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
 
   ErrorMsg error_message;
 };
@@ -591,19 +594,19 @@ extern "C" {
   int thermodynamics_annihilation_coefficients_free(
                                                    struct thermo * pth
                                                  );
-  int thermodynamics_annihilation_f_halos_init(
+  int thermodynamics_annihilation_f_eff_init(
                                                    struct precision * ppr,
                                                    struct background * pba,
                                                    struct recombination * preco
                                                  );
-  int thermodynamics_annihilation_f_halos_interpolate(
+  int thermodynamics_annihilation_f_eff_interpolate(
                                                     struct precision * ppr,
                                                     struct background * pba,
                                                     struct recombination * preco,
                                                     double z,
-                                                    double * f_halos
+                                                    double * f_eff
                                                   );
-  int thermodynamics_annihilation_f_halos_free(
+  int thermodynamics_annihilation_f_eff_free(
                                                   struct recombination * preco
                                                 );
   int thermodynamics_onthespot_energy_injection(

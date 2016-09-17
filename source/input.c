@@ -2628,7 +2628,7 @@ if(pth->annihilation>0. || pth->decay>0.){
 
   class_read_string("sBBN file",ppr->sBBN_file);
   class_read_string("annihilation coefficient file",ppr->annihil_coeff_file);
-  class_read_string("annihilation f_halos file",ppr->annihil_f_halos_file);
+  class_read_string("annihilation f_eff file",ppr->annihil_f_eff_file);
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
@@ -3329,8 +3329,8 @@ int input_default_precision ( struct precision * ppr ) {
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
   strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
-  sprintf(ppr->annihil_f_halos_file,__CLASSDIR__);
-  strcat(ppr->annihil_f_halos_file,"/DM_annihilation/f_z_withhalos_ee_1GeV.dat");
+  sprintf(ppr->annihil_f_eff_file,__CLASSDIR__);
+  strcat(ppr->annihil_f_eff_file,"/DM_annihilation/f_z_withhalos_ee_1GeV.dat");
 
 
   /* for recombination */
