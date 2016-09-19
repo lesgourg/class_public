@@ -1254,7 +1254,7 @@ int input_read_parameters(
   class_read_double("decay",pth->decay);
   class_read_double("PBH_mass",pth->PBH_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
-  class_test(pth->PBH_mass<=0.,errmsg,
+  class_test(pth->PBH_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Kg).");
   class_test(pth->PBH_fraction<=0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0.'");
