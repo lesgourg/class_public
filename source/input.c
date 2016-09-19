@@ -1252,7 +1252,12 @@ int input_read_parameters(
   class_read_double("boost_factor",pth->annihilation_boost_factor);
   class_read_double("m_DM",pth->annihilation_m_DM);
   class_read_double("decay",pth->decay);
-
+  class_read_double("PBH_mass",pth->PBH_mass);
+  class_read_double("PBH_fraction",pth->PBH_fraction);
+  class_test(pth->PBH_mass<=0.,errmsg,
+    "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Kg).");
+  class_test(pth->PBH_fraction<=0.,errmsg,
+    "You need to enter a fraction of PBH being DM 'PBH_fraction > 0.'");
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
       double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
@@ -1277,7 +1282,7 @@ int input_read_parameters(
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
 
-if(pth->annihilation>0. || pth->decay>0.){
+if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0){
 
 
     class_call(parser_read_string(pfc,
@@ -1325,9 +1330,13 @@ if(pth->annihilation>0. || pth->decay>0.){
         pth->energy_repart_functions=Galli_et_al_interpolation;
         flag2=_TRUE_;
       }
+      if (strcmp(string1,"no_factorization") == 0) {
+        pth->energy_repart_functions=Galli_et_al_interpolation;
+        flag2=_TRUE_;
+      }
     class_test(flag2==_FALSE_,
                  errmsg,
-                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'Galli_et_al_fit', 'Galli_et_al_interpolation'");
+                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'Galli_et_al_fit', 'Galli_et_al_interpolation','no_factorization'");
     }
 
     class_call(parser_read_string(pfc,
@@ -3068,6 +3077,8 @@ int input_default_params(
   pth->annihilation_boost_factor = 0.;
   pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
+  pth->PBH_mass = 0.;
+  pth->PBH_fraction = 1.;
   pth->energy_repart_functions = Galli_et_al_fit;
 
   pth->Lambda_over_theoritical_Lambda = 1.;

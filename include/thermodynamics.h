@@ -146,6 +146,8 @@ struct thermo
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_fraction; /**< fraction of Dark Matter being PBH */
 
   double annihilation_variation; /** if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
@@ -377,7 +379,11 @@ struct recombination {
   short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
 
   double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-
+  double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_fraction; /**< fraction of Dark Matter being PBH */
+  double Tm_tmp; /**< To temporarily store the value of the matter temperature*/
+  double xe_tmp; /**< To temporarily store the value of the free electron fraction */
+  double z_tmp; /**< To temporarily store the value of the redshift*/
   double annihilation_variation; /**< if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
 				     m_cdm)(z) will be a parabola in
@@ -416,7 +422,6 @@ struct recombination {
   double increase_T_from_stars; /**< To compute the increase of temperature due to star formation in a given model */
 
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
-
   ErrorMsg error_message;
 };
 

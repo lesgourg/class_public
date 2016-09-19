@@ -1779,9 +1779,16 @@ int thermodynamics_onthespot_energy_injection(
   double tau;
   int last_index_back;
   double * pvecback;
+  //Parameters related to PBH
+  double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
+  double m_H, m_dot, m_dot_2, L_acc_2,L_ed;
+
+
+
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
   // rho_dcdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
+if(preco->decay >0 || preco->annihilation > 0){
   if(pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
     class_call(background_tau_of_z(pba,
                                    z,
@@ -1815,8 +1822,60 @@ int thermodynamics_onthespot_energy_injection(
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
     (pow((1.+z),3)*preco->annihilation)
     +rho_dcdm*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
-    // fprintf(stdout, "z = %e energy_rate = %e\n", z, *energy_rate);
 
+  }
+    // fprintf(stdout, "z = %e energy_rate = %e\n", z, *energy_rate);
+    if(preco->PBH_mass > 0.){
+      class_call(background_tau_of_z(pba,
+                                     z,
+                                     &tau),
+                 pba->error_message,
+                 preco->error_message);
+
+      class_call(background_at_tau(pba,
+                                   tau,
+                                   pba->short_info,
+                                   pba->inter_normal,
+                                   &last_index_back,
+                                   pvecback),
+                 pba->error_message,
+                 preco->error_message);
+
+      // c_s = 5.7e3*pow((1+z)/1000,0.5);//conversion km en m
+      c_s = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
+      if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
+      if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
+      M_sun = 2e30;
+      r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
+      x_e = 1;
+      // x_e = preco->xe_tmp;
+      beta = 2.06e-23*x_e*pow(1+z,4);
+      beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
+      beta_hat = beta_eff*r_B/c_s;
+      x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
+      lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
+
+      //First way of computing m_dot and L_acc
+      L_ed = 1.27e38*(preco->PBH_mass)*1e-7; // 1e-7 = conversion erg -> J;
+      m_dot = (1.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3);
+      L_acc = 0.011*m_dot*m_dot*L_ed;
+      //Second way of computing m_dot and L_acc
+      n_gas = 200*1e6*pow((1+z)/1000,3); // 1e6 = conversion cm^-3 en m^-3;
+      m_H= 1.67e-27;
+      M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
+      M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
+      m_dot_2 = M_b_dot/M_ed_dot;
+      epsilon = 0.011*m_dot_2;
+      L_acc_2 = epsilon*M_b_dot*_c_*_c_;
+
+      Integrale = 1000; // Integration of nu^-0.5*exp(-nu/nu_c) between 1KeV and 511KeV
+
+      Normalization = L_acc_2/Integrale;
+
+      *energy_rate =  (rho_cdm_today/(preco->PBH_mass*M_sun*_c_*_c_))*pow(1+z,3)*Normalization*preco->PBH_fraction;
+      // fprintf(stdout, "%e %e %e %e %e %e %e  \n", m_dot,m_dot_2,m_dot/m_dot_2,L_acc,L_acc_2,*energy_rate,z);
+      // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",lambda, m_dot,m_dot_2,*energy_rate,v_eff,z,beta_hat, x_e);
+    }
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   free(pvecback);
   return _SUCCESS_;
@@ -1843,6 +1902,14 @@ int thermodynamics_beyond_onthespot_energy_injection(
   double nH0;
   double onthespot;
   double Boost_factor;
+
+
+  //Parameters related to PBH
+  double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
+  double tau, m_H, m_dot, m_dot_2, L_acc_2,L_ed;
+  int last_index_back;
+  double * pvecback;
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   /*redshift-dependent annihilation parameter*/
 
   // fprintf(stdout,"here\n");
@@ -1872,8 +1939,64 @@ int thermodynamics_beyond_onthespot_energy_injection(
                     preco->error_message);
         }
         else preco->f_eff=1.;
-        fprintf(stdout, "fEff %e\n", preco->f_eff);
         *energy_rate =  rho_ini_dcdm*pow(1+z,3)*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_)*preco->f_eff;
+      }
+      if(preco->PBH_mass > 0.){
+        class_call(background_tau_of_z(pba,
+                                       z,
+                                       &tau),
+                   pba->error_message,
+                   preco->error_message);
+
+        class_call(background_at_tau(pba,
+                                     tau,
+                                     pba->short_info,
+                                     pba->inter_normal,
+                                     &last_index_back,
+                                     pvecback),
+                   pba->error_message,
+                   preco->error_message);
+
+        if(preco->energy_repart_functions!=no_factorization){
+          class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
+                    preco->error_message,
+                    preco->error_message);
+        }
+        else preco->f_eff=1.;
+        // c_s = 5.7e3*pow((1+z)/1000,0.5);//conversion km en m
+        c_s = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
+        if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
+        if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
+        M_sun = 2e30;
+        r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
+        x_e = 1;
+        // x_e = preco->xe_tmp;
+        beta = 2.06e-23*x_e*pow(1+z,4);
+        beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
+        beta_hat = beta_eff*r_B/c_s;
+        x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
+        lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
+
+        //First way of computing m_dot and L_acc
+        L_ed = 1.27e38*(preco->PBH_mass)*1e-7; // 1e-7 = conversion erg -> J;
+        m_dot = (1.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3);
+        L_acc = 0.011*m_dot*m_dot*L_ed;
+        //Second way of computing m_dot and L_acc
+        n_gas = 200*1e6*pow((1+z)/1000,3); // 1e6 = conversion cm^-3 en m^-3;
+        m_H= 1.67e-27;
+        M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
+        M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
+        m_dot_2 = M_b_dot/M_ed_dot;
+        epsilon = 0.011*m_dot_2;
+        L_acc_2 = epsilon*M_b_dot*_c_*_c_;
+
+        Integrale = 1000; // Integration of nu^-0.5*exp(-nu/nu_c) between 1KeV and 511KeV
+
+        Normalization = L_acc_2/Integrale;
+
+        *energy_rate =  (rho_ini_dcdm/(preco->PBH_mass*M_sun*_c_*_c_))*pow(1+z,3)*Normalization*preco->f_eff*preco->PBH_fraction;
+        // fprintf(stdout, "%e %e %e %e %e %e %e  \n", m_dot,m_dot_2,m_dot/m_dot_2,L_acc,L_acc_2,*energy_rate,z);
+        // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",lambda, m_dot,m_dot_2,*energy_rate,v_eff,z,beta_hat, x_e);
       }
 
 
@@ -1911,11 +2034,11 @@ int thermodynamics_energy_injection(
   double nH0;
   double onthespot;
 
-  if (preco->annihilation > 0 || preco->decay > 0) {
+  if (preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0) {
     if (preco->has_on_the_spot == _FALSE_) {
       /**************Old version, corrected by Vivian Poulin. Kept for comparaison*************/
 
-      // /* number of hydrogen nuclei today in m**-3 */
+      // // /* number of hydrogen nuclei today in m**-3 */
       // nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
       //
       // /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
@@ -1948,7 +2071,7 @@ int thermodynamics_energy_injection(
       // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
       //            error_message);
-      /***********************************************************************************************************************/
+      // /***********************************************************************************************************************/
       class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                  error_message,
                  error_message);
@@ -3188,11 +3311,13 @@ int thermodynamics_reionization_sample(
     dTdz_CMB = - 2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
       (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
 
-if(pth->annihilation!=0 || pth->decay!=0){
+if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0){
 
     /** - --> derivative of baryon temperature */
 
-
+      preco->xe_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_xe];
+      preco->Tm_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
+      preco->z_tmp=z;
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
@@ -3568,6 +3693,8 @@ int thermodynamics_recombination_with_hyrec(
   preco->decay = pth->decay;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
+  preco->PBH_mass = pth->PBH_mass;
+  preco->PBH_fraction = pth->PBH_fraction;
   pth->n_e=preco->Nnow;
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
@@ -3800,6 +3927,9 @@ int thermodynamics_recombination_with_recfast(
   preco->annihilation_zmax = pth->annihilation_zmax;
   preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay = pth->decay;
+  preco->PBH_mass = pth->PBH_mass;
+  preco->PBH_fraction = pth->PBH_fraction;
+
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
 
@@ -4218,7 +4348,10 @@ int thermodynamics_derivs_with_recfast(
                                pvecback),
              pba->error_message,
              error_message);
-   if(pth->annihilation!=0 || pth->decay!=0 ){
+   if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass!=0){
+     preco->xe_tmp=x;
+     preco->Tm_tmp=Tmat;
+     preco->z_tmp=z;
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
              error_message,
              error_message);
@@ -4324,7 +4457,7 @@ else energy_rate=0;
       chi_ionHe = 0.;
       chi_lya = 0.;
 
-    if(preco->annihilation > 0 || preco->decay > 0){
+    if(preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
         if(pth->energy_repart_functions==Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
@@ -4334,6 +4467,7 @@ else energy_rate=0;
           chi_ionH = pth->chi_ionH;
           chi_ionHe = pth->chi_ionHe;
           chi_lya = pth->chi_lya;
+
         }
         /* old approximation from Chen and Kamionkowski */
         if(pth->energy_repart_functions==SSCK){
@@ -4363,7 +4497,9 @@ else energy_rate=0;
       }
     }
     if(chi_ionH < 0 )fprintf(stdout, "chi_ionH %e \n",chi_ionH);
-
+    if(pth->thermodynamics_verbose>10){
+      fprintf(stdout, "chi_ionH %e chi_ionHe %e chi_lya %e z% e\n", chi_ionH , chi_ionHe, chi_lya, z);
+    }
     /* Peebles' coefficient (approximated as one when the Hydrogen
            ionization fraction is very close to one) */
     if (x_H < ppr->recfast_x_H0_trigger2) {
