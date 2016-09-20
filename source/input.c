@@ -1256,6 +1256,10 @@ int input_read_parameters(
   class_read_double("PBH_fraction",pth->PBH_fraction);
   class_test(pth->PBH_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Kg).");
+  class_test(pth->PBH_fraction>0. && pth->PBH_mass==0.,errmsg,
+    "You have asked for a fraction of PBH being DM but you have 'PBH_mass == 0.' Please choose a value (in Kg).");
+  class_test(pth->PBH_mass>0. && pth->PBH_fraction==0.,errmsg,
+    "You have entered a 'PBH_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
   class_test(pth->PBH_fraction<=0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0.'");
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
@@ -1331,9 +1335,12 @@ if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0){
         flag2=_TRUE_;
       }
       if (strcmp(string1,"no_factorization") == 0) {
-        pth->energy_repart_functions=Galli_et_al_interpolation;
+        pth->energy_repart_functions=no_factorization;
         flag2=_TRUE_;
       }
+      class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_functions  == no_factorization,errmsg,
+        "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
+
     class_test(flag2==_FALSE_,
                  errmsg,
                  "could not identify energy repartition functions, check that it is one of 'SSCK', 'Galli_et_al_fit', 'Galli_et_al_interpolation','no_factorization'");
@@ -3078,7 +3085,7 @@ int input_default_params(
   pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
   pth->PBH_mass = 0.;
-  pth->PBH_fraction = 1.;
+  pth->PBH_fraction = 0.;
   pth->energy_repart_functions = Galli_et_al_fit;
 
   pth->Lambda_over_theoritical_Lambda = 1.;

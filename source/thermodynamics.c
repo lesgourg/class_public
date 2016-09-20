@@ -319,7 +319,7 @@ int thermodynamics_init(
                pth->error_message);
   }
 
-  if(pth->has_on_the_spot==_FALSE_ ){
+  if(pth->has_on_the_spot==_FALSE_ && pth->energy_repart_functions!=no_factorization){
     // fprintf(stdout, "here\n" );
     class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,preco),
                preco->error_message,
@@ -1347,7 +1347,6 @@ int thermodynamics_annihilation_coefficients_init(
      heat, excitation of lyman-alpha level, Hydrogen ionisation, Helium ionisation, photons below 10.2 eV unseeable by the IGM.
 
   */
-
   class_open(fA,ppr->annihil_coeff_file, "r",pth->error_message);
 
   /* go through each line */
@@ -1580,7 +1579,6 @@ int thermodynamics_annihilation_f_eff_init(
 
   int num_lines=0;
   int array_line=0;
-
 
   /*
 
@@ -1942,6 +1940,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
         *energy_rate =  rho_ini_dcdm*pow(1+z,3)*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_)*preco->f_eff;
       }
       if(preco->PBH_mass > 0.){
+
         class_call(background_tau_of_z(pba,
                                        z,
                                        &tau),
@@ -1958,11 +1957,13 @@ int thermodynamics_beyond_onthespot_energy_injection(
                    preco->error_message);
 
         if(preco->energy_repart_functions!=no_factorization){
+          fprintf(stdout, "preco->energy_repart_functions %s\n", preco->energy_repart_functions);
           class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
                     preco->error_message,
                     preco->error_message);
         }
         else preco->f_eff=1.;
+
         // c_s = 5.7e3*pow((1+z)/1000,0.5);//conversion km en m
         c_s = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
         if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
@@ -2129,7 +2130,7 @@ int thermodynamics_reionization_function(
   double z_jump;
   int jump;
   double center,before, after,width,one_jump;
-  double x_tmp;
+  double x_tmp,z_tmp;
   /** - implementation of ionization function similar to the one in CAMB */
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
     /** -> case z > z_reio_start */
@@ -2186,24 +2187,28 @@ int thermodynamics_reionization_function(
       // }
 
       if(*xe > 0.1*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_10_percent > 200){
-        pth->z_10_percent = z;
-        // fprintf(stdout, "pth->z_10_percent %e xe %e z %e\n", pth->z_10_percent, *xe, z);
+        pth->z_10_percent = (0.1*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before])-x_tmp)
+        *(z-z_tmp)/(*xe-x_tmp)+z_tmp;
+        // fprintf(stdout, "pth->z_10_percent %e xe %e z %e\n", pth->z_10_percent, *xe/(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]), z);
       }
       if(*xe > 0.50*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_50_percent > 200){
-        pth->z_50_percent = z;
-        // fprintf(stdout, "pth->z_50_percent %e xe %e z %e\n", pth->z_50_percent, *xe, z);
-
+        pth->z_50_percent = (0.5*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before])-x_tmp)
+        *(z-z_tmp)/(*xe-x_tmp)+z_tmp;
+        // fprintf(stdout, "pth->z_50_percent %e xe %e z %e\n", pth->z_50_percent, *xe/(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]), z);
       }
       if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent > 200){
-        pth->z_99_percent = z;
-        // fprintf(stdout, "pth->z_99_percent %e xe %e z %e\n", pth->z_99_percent, *xe, z);
-
+        pth->z_99_percent =  (0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before])-x_tmp)
+        *(z-z_tmp)/(*xe-x_tmp)+z_tmp;
+        // fprintf(stdout, "pth->z_99_percent %e xe %e z %e\n", pth->z_99_percent, *xe/(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]), z);
       }
 
       if(pth->z_99_percent < 200 && pth->z_10_percent < 200 && pth->duration_of_reionization == 0){
         pth->duration_of_reionization = pth->z_10_percent  - pth->z_99_percent;
         // fprintf(stdout, "pth->duration_of_reionization %e\n", pth->duration_of_reionization);
       }
+
+      x_tmp = *xe;
+      z_tmp = z;
     }
 
 
@@ -3323,8 +3328,14 @@ if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0){
                  pth->error_message);
      if(preio->reionization_table[i*preio->re_size+preio->index_re_xe]<1){
        /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-       if(pth->energy_repart_functions==Galli_et_al_interpolation|| pth->energy_repart_functions==no_factorization){
+       if(pth->energy_repart_functions==Galli_et_al_interpolation){
          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+                  pth->error_message,
+                  pth->error_message);
+         chi_heat = pth->chi_heat;
+      }
+       if(pth->energy_repart_functions==no_factorization){
+         class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,z,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                   pth->error_message,
                   pth->error_message);
          chi_heat = pth->chi_heat;
@@ -3695,6 +3706,7 @@ int thermodynamics_recombination_with_hyrec(
   preco->annihilation_z_halo = pth->annihilation_z_halo;
   preco->PBH_mass = pth->PBH_mass;
   preco->PBH_fraction = pth->PBH_fraction;
+  preco->energy_repart_functions = pth->energy_repart_functions;
   pth->n_e=preco->Nnow;
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
@@ -3929,6 +3941,7 @@ int thermodynamics_recombination_with_recfast(
   preco->decay = pth->decay;
   preco->PBH_mass = pth->PBH_mass;
   preco->PBH_fraction = pth->PBH_fraction;
+  preco->energy_repart_functions = pth->energy_repart_functions;
 
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
@@ -4460,8 +4473,17 @@ else energy_rate=0;
     if(preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
+        if(pth->energy_repart_functions==Galli_et_al_interpolation){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+                         error_message,
+                         error_message);
+          chi_ionH = pth->chi_ionH;
+          chi_ionHe = pth->chi_ionHe;
+          chi_lya = pth->chi_lya;
+
+        }
+        if(pth->energy_repart_functions==no_factorization){
+          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,z,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                          error_message,
                          error_message);
           chi_ionH = pth->chi_ionH;
@@ -4579,11 +4601,17 @@ else energy_rate=0;
   else {
     /* equations modified to take into account energy injection from dark matter */
 
-    if(pth->annihilation >0 || pth->decay > 0){
+    if(pth->annihilation >0 || pth->decay > 0 || pth->PBH_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
+        if(pth->energy_repart_functions==Galli_et_al_interpolation){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
+                        error_message,
+                        error_message);
+            chi_heat = pth->chi_heat;
+        }
+        if(pth->energy_repart_functions==no_factorization){
+          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,z,&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
                         error_message,
                         error_message);
             chi_heat = pth->chi_heat;
@@ -4698,7 +4726,7 @@ int thermodynamics_merge_reco_and_reio(
   /** - free the temporary structures */
 
   free(preco->recombination_table);
-  if(pth->has_on_the_spot == _FALSE_){
+  if(pth->has_on_the_spot == _FALSE_ && pth->energy_repart_functions!=no_factorization){
     thermodynamics_annihilation_f_eff_free(preco);
   }
   if(pth->energy_repart_functions == Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
