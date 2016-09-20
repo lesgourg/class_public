@@ -1260,7 +1260,7 @@ int input_read_parameters(
     "You have asked for a fraction of PBH being DM but you have 'PBH_mass == 0.' Please choose a value (in Kg).");
   class_test(pth->PBH_mass>0. && pth->PBH_fraction==0.,errmsg,
     "You have entered a 'PBH_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
-  class_test(pth->PBH_fraction<=0.,errmsg,
+  class_test(pth->PBH_fraction<0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0.'");
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
