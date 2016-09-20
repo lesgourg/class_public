@@ -1779,7 +1779,7 @@ int thermodynamics_onthespot_energy_injection(
   double * pvecback;
   //Parameters related to PBH
   double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
-  double m_H, m_dot, m_dot_2, L_acc_2,L_ed;
+  double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2;
 
 
 
@@ -1856,22 +1856,25 @@ if(preco->decay >0 || preco->annihilation > 0){
       //First way of computing m_dot and L_acc
       L_ed = 1.27e38*(preco->PBH_mass)*1e-7; // 1e-7 = conversion erg -> J;
       m_dot = (1.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3);
-      L_acc = 0.011*m_dot*m_dot*L_ed;
+      if(m_dot > 1) l = preco->PBH_fraction*MIN(0.1*m_dot,1);
+      else l = 0.011*m_dot*m_dot;
+      L_acc = l*L_ed;
       //Second way of computing m_dot and L_acc
       n_gas = 200*1e6*pow((1+z)/1000,3); // 1e6 = conversion cm^-3 en m^-3;
       m_H= 1.67e-27;
       M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
       M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
       m_dot_2 = M_b_dot/M_ed_dot;
-      epsilon = 0.011*m_dot_2;
-      L_acc_2 = epsilon*M_b_dot*_c_*_c_;
+      if(m_dot_2 > 1) l2 = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
+      else l2 = 0.011*m_dot_2*m_dot_2;
+      L_acc_2 = l2*L_ed;
 
       Integrale = 1000; // Integration of nu^-0.5*exp(-nu/nu_c) with nu_c = 511keV between 10.2 eV and nu_c
 
       Normalization = L_acc_2/Integrale;
 
       *energy_rate =  (rho_cdm_today/(preco->PBH_mass*M_sun*_c_*_c_))*pow(1+z,3)*Normalization*preco->PBH_fraction;
-      // fprintf(stdout, "%e %e %e %e %e %e %e  \n", m_dot,m_dot_2,m_dot/m_dot_2,L_acc,L_acc_2,*energy_rate,z);
+      // fprintf(stdout, "%e %e %e %e %e %e %e %e %e   \n",x_e, m_dot,m_dot_2,l,l2,L_acc,L_acc_2,*energy_rate,z);
       // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",lambda, m_dot,m_dot_2,*energy_rate,v_eff,z,beta_hat, x_e);
     }
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
@@ -1904,7 +1907,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
 
   //Parameters related to PBH
   double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
-  double tau, m_H, m_dot, m_dot_2, L_acc_2,L_ed;
+  double tau, m_H, m_dot, m_dot_2, L_acc_2,L_ed,l;
   int last_index_back;
   double * pvecback;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -1981,15 +1984,18 @@ int thermodynamics_beyond_onthespot_energy_injection(
         //First way of computing m_dot and L_acc
         L_ed = 1.27e38*(preco->PBH_mass)*1e-7; // 1e-7 = conversion erg -> J;
         m_dot = (1.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3);
-        L_acc = 0.011*m_dot*m_dot*L_ed;
+        if(m_dot > 1) l = preco->PBH_fraction*MIN(0.1*m_dot,1);
+        else l = 0.011*m_dot*m_dot;
+        L_acc = l*L_ed;
         //Second way of computing m_dot and L_acc
         n_gas = 200*1e6*pow((1+z)/1000,3); // 1e6 = conversion cm^-3 en m^-3;
         m_H= 1.67e-27;
         M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
         M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
         m_dot_2 = M_b_dot/M_ed_dot;
-        epsilon = 0.011*m_dot_2;
-        L_acc_2 = epsilon*M_b_dot*_c_*_c_;
+        if(m_dot_2 > 1) l = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
+        else l = 0.011*m_dot_2*m_dot_2;
+        L_acc_2 = l*L_ed;
 
         Integrale = 1000; // Integration of nu^-0.5*exp(-nu/nu_c) between 1KeV and 511KeV
 
