@@ -1845,8 +1845,8 @@ if(preco->decay >0 || preco->annihilation > 0){
       if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
       M_sun = 2e30;
       r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
-      x_e = 1;
-      // x_e = preco->xe_tmp;
+      // x_e = 1;
+      x_e = preco->xe_tmp;
       beta = 2.06e-23*x_e*pow(1+z,4);
       beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
       beta_hat = beta_eff*r_B/c_s;
@@ -1866,7 +1866,7 @@ if(preco->decay >0 || preco->annihilation > 0){
       epsilon = 0.011*m_dot_2;
       L_acc_2 = epsilon*M_b_dot*_c_*_c_;
 
-      Integrale = 1000; // Integration of nu^-0.5*exp(-nu/nu_c) between 1KeV and 511KeV
+      Integrale = 1000; // Integration of nu^-0.5*exp(-nu/nu_c) with nu_c = 511keV between 10.2 eV and nu_c
 
       Normalization = L_acc_2/Integrale;
 
@@ -1970,8 +1970,8 @@ int thermodynamics_beyond_onthespot_energy_injection(
         if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
         M_sun = 2e30;
         r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
-        x_e = 1;
-        // x_e = preco->xe_tmp;
+        // x_e = 1;
+        x_e = preco->xe_tmp;
         beta = 2.06e-23*x_e*pow(1+z,4);
         beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
         beta_hat = beta_eff*r_B/c_s;
