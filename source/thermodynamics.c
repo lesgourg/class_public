@@ -1780,7 +1780,7 @@ int thermodynamics_onthespot_energy_injection(
   //Parameters related to PBH
   double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
   double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2;
-
+  double f,tau_pbh;
 
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -1877,6 +1877,14 @@ if(preco->decay >0 || preco->annihilation > 0){
       // fprintf(stdout, "%e %e %e %e %e %e %e %e %e   \n",x_e, m_dot,m_dot_2,l,l2,L_acc,L_acc_2,*energy_rate,z);
       // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",lambda, m_dot,m_dot_2,*energy_rate,v_eff,z,beta_hat, x_e);
     }
+
+    if(preco->PBH_low_mass>0){
+      f = 2*2*0.142 + 2*0.06;
+      tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
+      *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction*tau_pbh;
+      fprintf(stdout, "tau_pbh%e M %e energy_rate %e z %e\n",tau_pbh,preco->PBH_low_mass,*energy_rate,z);
+
+    }
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   free(pvecback);
   return _SUCCESS_;
@@ -1908,6 +1916,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
   //Parameters related to PBH
   double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
   double tau, m_H, m_dot, m_dot_2, L_acc_2,L_ed,l;
+  double f,tau_pbh;
   int last_index_back;
   double * pvecback;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -1960,7 +1969,6 @@ int thermodynamics_beyond_onthespot_energy_injection(
                    preco->error_message);
 
         if(preco->energy_repart_functions!=no_factorization){
-          fprintf(stdout, "preco->energy_repart_functions %s\n", preco->energy_repart_functions);
           class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
                     preco->error_message,
                     preco->error_message);
@@ -2006,6 +2014,15 @@ int thermodynamics_beyond_onthespot_energy_injection(
         // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",lambda, m_dot,m_dot_2,*energy_rate,v_eff,z,beta_hat, x_e);
       }
 
+      if(preco->PBH_low_mass>0){
+        if(preco->PBH_low_mass>1e17) f = 2*0.06+6*0.147+2*0.007;
+        else f = 2*2*0.142 + 2*0.06+6*0.147+2*0.007;
+        tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
+        *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh;
+        // fprintf(stdout, "tau_pbh%e M %e energy_rate %e z %e\n",tau_pbh,preco->PBH_low_mass,*energy_rate,z);
+
+      }
+
 
 
   return _SUCCESS_;
@@ -2041,7 +2058,7 @@ int thermodynamics_energy_injection(
   double nH0;
   double onthespot;
 
-  if (preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0) {
+  if (preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0 || preco->PBH_low_mass > 0 ) {
     if (preco->has_on_the_spot == _FALSE_) {
       /**************Old version, corrected by Vivian Poulin. Kept for comparaison*************/
 
@@ -3322,7 +3339,7 @@ int thermodynamics_reionization_sample(
     dTdz_CMB = - 2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
       (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
 
-if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0){
+if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0 || pth->PBH_low_mass != 0){
 
     /** - --> derivative of baryon temperature */
 
@@ -3711,6 +3728,7 @@ int thermodynamics_recombination_with_hyrec(
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
   preco->PBH_mass = pth->PBH_mass;
+  preco->PBH_low_mass = pth->PBH_low_mass;
   preco->PBH_fraction = pth->PBH_fraction;
   preco->energy_repart_functions = pth->energy_repart_functions;
   pth->n_e=preco->Nnow;
@@ -3946,6 +3964,7 @@ int thermodynamics_recombination_with_recfast(
   preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay = pth->decay;
   preco->PBH_mass = pth->PBH_mass;
+  preco->PBH_low_mass = pth->PBH_low_mass;
   preco->PBH_fraction = pth->PBH_fraction;
   preco->energy_repart_functions = pth->energy_repart_functions;
 
@@ -4367,7 +4386,7 @@ int thermodynamics_derivs_with_recfast(
                                pvecback),
              pba->error_message,
              error_message);
-   if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass!=0){
+   if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass!=0 || pth->PBH_low_mass != 0){
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
      preco->z_tmp=z;
@@ -4476,7 +4495,7 @@ else energy_rate=0;
       chi_ionHe = 0.;
       chi_lya = 0.;
 
-    if(preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0){
+    if(preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0 || preco->PBH_low_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
         if(pth->energy_repart_functions==Galli_et_al_interpolation){
@@ -4607,7 +4626,7 @@ else energy_rate=0;
   else {
     /* equations modified to take into account energy injection from dark matter */
 
-    if(pth->annihilation >0 || pth->decay > 0 || pth->PBH_mass > 0){
+    if(pth->annihilation >0 || pth->decay > 0 || pth->PBH_mass > 0 || pth->PBH_low_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
         if(pth->energy_repart_functions==Galli_et_al_interpolation){

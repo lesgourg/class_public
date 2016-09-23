@@ -1253,15 +1253,18 @@ int input_read_parameters(
   class_read_double("m_DM",pth->annihilation_m_DM);
   class_read_double("decay",pth->decay);
   class_read_double("PBH_mass",pth->PBH_mass);
+  class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
   class_test(pth->PBH_mass<0.,errmsg,
-    "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Kg).");
-  class_test(pth->PBH_fraction>0. && pth->PBH_mass==0.,errmsg,
-    "You have asked for a fraction of PBH being DM but you have 'PBH_mass == 0.' Please choose a value (in Kg).");
+    "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Msun).");
+  class_test(pth->PBH_low_mass<0.,errmsg,
+    "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Msun).");
+  class_test(pth->PBH_fraction>0. && (pth->PBH_mass==0. && pth->PBH_low_mass==0.),errmsg,
+    "You have asked for a fraction of PBH being DM but you have 'PBH_mass == 0 && PBH_low_mass ==0'. Please choose a value (in Msun for PBH_mass, in g for PBH_low_mass).");
   class_test(pth->PBH_mass>0. && pth->PBH_fraction==0.,errmsg,
     "You have entered a 'PBH_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
   class_test(pth->PBH_fraction<0.,errmsg,
-    "You need to enter a fraction of PBH being DM 'PBH_fraction > 0.'");
+    "You need to enter a fraction of PBH being DM 'PBH_fraction > 0. Please choose a value for PBH_fraction in ]0,1].'");
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
       double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
@@ -1286,7 +1289,7 @@ int input_read_parameters(
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
 
-if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0){
+if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0 || pth->PBH_low_mass){
 
 
     class_call(parser_read_string(pfc,
@@ -3085,6 +3088,7 @@ int input_default_params(
   pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
   pth->PBH_mass = 0.;
+  pth->PBH_low_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->energy_repart_functions = Galli_et_al_fit;
 

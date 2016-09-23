@@ -147,6 +147,7 @@ struct thermo
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
 
   double annihilation_variation; /** if this parameter is non-zero,
@@ -380,6 +381,7 @@ struct recombination {
 
   double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
   double Tm_tmp; /**< To temporarily store the value of the matter temperature*/
   double xe_tmp; /**< To temporarily store the value of the free electron fraction */
