@@ -1879,10 +1879,11 @@ if(preco->decay >0 || preco->annihilation > 0){
     }
 
     if(preco->PBH_low_mass>0){
-      f = 2*2*0.142 + 2*0.06;
+      if(preco->PBH_low_mass>1e17) f = 2*0.06+6*0.147+2*0.007;
+      else f = 2*2*0.142 + 2*0.06+6*0.147+2*0.007;
       tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
-      *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction*tau_pbh;
-      fprintf(stdout, "tau_pbh%e M %e energy_rate %e z %e\n",tau_pbh,preco->PBH_low_mass,*energy_rate,z);
+      *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh;
+      // fprintf(stdout, "tau_pbh%e M %e energy_rate %e z %e\n",tau_pbh,preco->PBH_low_mass,*energy_rate,z);
 
     }
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
@@ -2024,7 +2025,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
       }
 
 
-
+  free(pvecback);
   return _SUCCESS_;
 
 }
@@ -3342,14 +3343,12 @@ int thermodynamics_reionization_sample(
 if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0 || pth->PBH_low_mass != 0){
 
     /** - --> derivative of baryon temperature */
-
       preco->xe_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_xe];
       preco->Tm_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
       preco->z_tmp=z;
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
-     if(preio->reionization_table[i*preio->re_size+preio->index_re_xe]<1){
        /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
        if(pth->energy_repart_functions==Galli_et_al_interpolation){
          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
@@ -3372,10 +3371,6 @@ if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0 || pth->PBH_low_m
          chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
        }
 
-     }
-      else{
-        chi_heat=1;
-      }
       chi_heat= MIN(chi_heat,1.);
       chi_heat = MAX(chi_heat,0.);
 
@@ -3434,7 +3429,6 @@ else dTdz_DM = 0.;
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]+=dz*
     (2./(3.*_k_B_)*epsilon_X/(preco->Nnow*pow(1.+z,3)*(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe]))
     /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)));
-
 
 
 
