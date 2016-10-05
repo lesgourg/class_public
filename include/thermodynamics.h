@@ -142,6 +142,9 @@ struct thermo
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
 
+  double a_dark;
+  double nindex_dark;//ethos power of the temperature dependence of tau_{DR}^{-1}
+
   //@}
 
   /** @name - all indices for the vector of thermodynamical (=th) quantities stored in table */
@@ -157,6 +160,12 @@ struct thermo
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
+  int index_th_dmu_dark;      /**<ethos */
+  int index_th_ddmu_dark;
+  int index_th_dddmu_dark;
+  int index_th_tau_darkm;
+  int index_th_tau_darkr;
+  int index_th_g_dark;
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
@@ -574,6 +583,7 @@ extern "C" {
 
   int thermodynamics_merge_reco_and_reio(
 					 struct precision * ppr,
+                                         struct background * pba, //ethos add pba
 					 struct thermo * pth,
 					 struct recombination * preco,
 					 struct reionization * preio

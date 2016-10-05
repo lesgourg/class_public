@@ -549,6 +549,8 @@ int input_read_parameters(
   double z_max=0.;
   int bin;
 
+  double N_dark, xi_dark;//ethos
+
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /** - set all parameters (input and precision) to default values */
@@ -737,6 +739,23 @@ int input_read_parameters(
   if (flag1 == _TRUE_) ppt->three_cvis2_ur = 3.*param1;
 
   Omega_tot += pba->Omega0_ur;
+
+/*ethos*/
+  class_read_double("N_dark",N_dark);
+  class_read_double("xi_dark",xi_dark);
+  pba->Omega0_dark = N_dark*7./8.*pow(xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
+  Omega_tot += pba->Omega0_dark;
+  printf("ETHOS N_dark=%e, xi_dark=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, xi_dark, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
+  class_read_double("nindex_dark",pth->nindex_dark);
+  class_read_double("a_dark",pth->a_dark);
+  class_test(((pth->a_dark<0.0)),
+             errmsg,
+             "In input file, a_dark cannot be < 0.0");
+  class_read_int("sigma_dark",ppr->sigma_dark);
+  class_test(((ppr->sigma_dark!=1) && (ppr->sigma_dark!=0)),
+             errmsg,
+             "In input file, you can only enter sigma_dark=0 for a perfect fluid or sigma_dark=1 for free streaming neutrinos, choose one");
+  printf("ETHOS nindex_dark=%e, a_dark=%e, sigma_dark=%d\n",pth->nindex_dark, pth->a_dark, ppr->sigma_dark);
 
   /** - Omega_0_cdm (CDM) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
@@ -2536,6 +2555,7 @@ int input_read_parameters(
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_dr",ppr->l_max_dr);
   class_read_int("l_max_ur",ppr->l_max_ur);
+  class_read_int("l_max_dark",ppr->l_max_dark);//ethos
   if (pba->N_ncdm>0)
     class_read_int("l_max_ncdm",ppr->l_max_ncdm);
   class_read_int("l_max_g_ten",ppr->l_max_g_ten);
@@ -2802,6 +2822,7 @@ int input_default_params(
   pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+  pba->Omega0_dark = 0.0;//ethos
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
@@ -2871,6 +2892,9 @@ int input_default_params(
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;
+
+  pth->a_dark = 0.;//ethos
+  pth->nindex_dark = 0.;//ethos
 
   /** - perturbation structure */
 
@@ -3195,6 +3219,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_pol_g=10;
   ppr->l_max_dr=17;
   ppr->l_max_ur=17;
+  ppr->l_max_dark=17;//ethos
   ppr->l_max_ncdm=17;
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;

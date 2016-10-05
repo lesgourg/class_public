@@ -407,6 +407,14 @@ int background_functions(
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
 
+  /* ethos dark radiation */
+  if (pba->has_dark == _TRUE_) {
+    pvecback[pba->index_bg_rho_dark] = pba->Omega0_dark * pow(pba->H0,2) / pow(a_rel,4);
+    rho_tot += pvecback[pba->index_bg_rho_dark];
+    p_tot += (1./3.) * pvecback[pba->index_bg_rho_dark];
+    rho_r += pvecback[pba->index_bg_rho_dark];
+  }
+
   /** - compute expansion rate H from Friedmann equation: this is the
       only place where the Friedmann equation is assumed. Remember
       that densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
@@ -472,7 +480,7 @@ int background_init(
     if (pba->N_ncdm > 0) {
 
       Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-
+      //Neff += pba->Omega0_dark/7.*8./pow(pba->xi_dark,4./3.)/pba->Omega0_g;//MArchi well ok it is just to get some info
       /* loop over ncdm species */
       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
 
@@ -696,6 +704,7 @@ int background_indices(
   pba->has_lambda = _FALSE_;
   pba->has_fld = _FALSE_;
   pba->has_ur = _FALSE_;
+  pba->has_dark = _FALSE_;//ethos
   pba->has_curvature = _FALSE_;
 
   if (pba->Omega0_cdm != 0.)
@@ -721,6 +730,9 @@ int background_indices(
 
   if (pba->Omega0_ur != 0.)
     pba->has_ur = _TRUE_;
+
+  if (pba->Omega0_dark != 0.)
+    pba->has_dark = _TRUE_;//ethos
 
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
@@ -786,6 +798,8 @@ int background_indices(
      normal vector */
   /*    */
   /*    */
+  /* - index for dark radiation ethos */
+  class_define_index(pba->index_bg_rho_dark,pba->has_dark,index_bg,1);
 
   /* - end of indices in the normal vector of background values */
   pba->bg_size_normal = index_bg;
@@ -1762,6 +1776,8 @@ int background_initial_conditions(
   Omega_rad = pba->Omega0_g;
   if (pba->has_ur == _TRUE_)
     Omega_rad += pba->Omega0_ur;
+  if (pba->has_dark == _TRUE_)
+    Omega_rad += pba->Omega0_dark;//ethos
   rho_rad = Omega_rad*pow(pba->H0,2)/pow(a/pba->a_today,4);
   if (pba->has_ncdm == _TRUE_){
     /** - We must add the relativistic contribution from NCDM species */
@@ -1905,10 +1921,11 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
+  class_store_columntitle(titles,"(.)rho_dark",pba->has_dark);//ethos
   class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
   class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
   class_store_columntitle(titles,"(.)rho_dr",pba->has_dr);
-
+  
   class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
   class_store_columntitle(titles,"phi_scf",pba->has_scf);
@@ -1956,6 +1973,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_dark],pba->has_dark,storeidx);//ethos
     class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dr],pba->has_dr,storeidx);

@@ -545,6 +545,7 @@ struct precision
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
   int l_max_dr;   /**< number of momenta in Boltzmann hierarchy for decay radiation, at least 4 */
   int l_max_ur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+  int l_max_dark; /**< number of momenta in Boltzmann hierarchy for dark radiation, ethos */
   int l_max_ncdm;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
   int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 */
@@ -597,6 +598,9 @@ struct precision
   double radiation_streaming_trigger_tau_c_over_tau;
 
   int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
+ 
+  int sigma_dark;//ethos: perfect fluid=0 or free streaming=1
+  //double bself_dark;//ethos: neutrino self interaction coefficient
 
   /**
    * when to switch off ur (massless neutrinos / ultra-relativistic

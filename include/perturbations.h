@@ -244,6 +244,7 @@ struct perturbs
   short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
   short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_dark; /**< do we need source for dark radiation? ethos*/
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
@@ -254,6 +255,7 @@ struct perturbs
   short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
   short has_source_theta_dr; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_dark; /**< do we need source for theta dark radiation? ethos*/
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_phi;          /**< do we need source for metric fluctuation phi? */
   short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
@@ -277,6 +279,7 @@ struct perturbs
   int index_tp_delta_scf;  /**< index value for delta of scalar field */
   int index_tp_delta_dr; /**< index value for delta of decay radiation */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
+  int index_tp_delta_dark; /**< index value for delta of dark radiation ethos*/
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
@@ -289,6 +292,7 @@ struct perturbs
   int index_tp_theta_fld;  /**< index value for theta of dark energy */
   int index_tp_theta_scf;  /**< index value for theta of scalar field */
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
+  int index_tp_theta_dark; /**< index value for theta of dark radiation ethos*/
   int index_tp_theta_dr; /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
 
@@ -403,6 +407,11 @@ struct perturb_vector
   int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
   int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
+  int index_pt_delta_dark; /**< density of dark radiation ethos*/
+  int index_pt_theta_dark; /**< velocity of dark radiation ethos*/
+  int index_pt_shear_dark; /**< shear of dark radiation ethos*/
+  int index_pt_l3_dark;    /**< l=3 of dark radiation ethos*/
+  int l_max_dark;          /**< max momentum in Boltzmann hierarchy (at least 3) ethos*/
 /* perturbed recombination */
   int index_pt_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_pt_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
