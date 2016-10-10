@@ -385,6 +385,8 @@ struct recombination {
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
   double Tm_tmp; /**< To temporarily store the value of the matter temperature*/
   double xe_tmp; /**< To temporarily store the value of the free electron fraction */
+  double PBH_low_mass_tmp; /**< To temporarily store the value of the (low) mass pbh*/
+  double exponent_pbh_integral; /**< To temporarily store the value of the exponent in the integral of the density of low mass pbh*/
   double z_tmp; /**< To temporarily store the value of the redshift*/
   double annihilation_variation; /**< if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /

@@ -1781,8 +1781,8 @@ int thermodynamics_onthespot_energy_injection(
   double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
   double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2;
   double f,tau_pbh;
-
-
+  double dt_over_dz_1,dt_over_dz_2,dt_over_dz_3,pbh_mass,zinitial=ppr->recfast_z_initial,z_int,z_int_1,z_int_2,z_int_3,dz,dMdz_1,dMdz_2,dMdz_3;
+  double exponent=0, result_integrale_2;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
   // rho_dcdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_dcdmdr)*_c_*_c_; /* energy density in J/m^3 */
@@ -1879,11 +1879,127 @@ if(preco->decay >0 || preco->annihilation > 0){
     }
 
     if(preco->PBH_low_mass>0){
-      if(preco->PBH_low_mass>1e17) f = 2*0.06+6*0.147+2*0.007;
-      else f = 2*2*0.142 + 2*0.06+6*0.147+2*0.007;
-      tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
-      *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh;
-      // fprintf(stdout, "tau_pbh%e M %e energy_rate %e z %e\n",tau_pbh,preco->PBH_low_mass,*energy_rate,z);
+      // fprintf(stdout, "here\n");
+      f = 2*0.06+6*0.147+2*0.007;
+      zinitial = ppr->recfast_z_initial;
+      // zinitial = preco->z_tmp;
+      if(preco->PBH_low_mass<1e15){
+        if(z<zinitial/10)zinitial/=10;
+        dz= (zinitial-z)/2000;
+        for(z_int = zinitial ; z_int > z ; z_int-=dz){
+          // fprintf(stdout, "zint %e z %e dz %e\n",z_int,z,dz );
+          class_call(background_tau_of_z(pba,
+                                         z_int,
+                                         &tau),
+                     pba->error_message,
+                     ppr->error_message);
+
+          class_call(background_at_tau(pba,
+                                       tau,
+                                       pba->short_info,
+                                       pba->inter_normal,
+                                       &last_index_back,
+                                       pvecback),
+                     pba->error_message,
+                     ppr->error_message);
+          // fprintf(stdout, "z_int %e z %e\n",z_int,z);
+          z_int_1 = z_int;
+          z_int_2 = z_int_1 - dz/3.;
+          z_int_3 = z_int_2 - dz/3.;
+          class_call(background_tau_of_z(pba,
+                                         z_int_1,
+                                         &tau),
+                     pba->error_message,
+                     ppr->error_message);
+
+          class_call(background_at_tau(pba,
+                                       tau,
+                                       pba->long_info,
+                                       pba->inter_normal,
+                                       &last_index_back,
+                                       pvecback),
+                     pba->error_message,
+                     ppr->error_message);
+          dt_over_dz_1 = -1/((1+z_int_1)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
+          // class_call(background_tau_of_z(pba,
+          //                                z_int_2,
+          //                                &tau),
+          //            pba->error_message,
+          //            ppr->error_message);
+          //
+          // class_call(background_at_tau(pba,
+          //                              tau,
+          //                              pba->long_info,
+          //                              pba->inter_normal,
+          //                              &last_index_back,
+          //                              pvecback),
+          //            pba->error_message,
+          //            ppr->error_message);
+          // dt_over_dz_2 = -1/((1+z_int_2)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
+          // class_call(background_tau_of_z(pba,
+          //                                z_int_3,
+          //                                &tau),
+          //            pba->error_message,
+          //            ppr->error_message);
+          //
+          // class_call(background_at_tau(pba,
+          //                              tau,
+          //                              pba->long_info,
+          //                              pba->inter_normal,
+          //                              &last_index_back,
+          //                              pvecback),
+          //            pba->error_message,
+          //            ppr->error_message);
+          // dt_over_dz_3= -1/((1+z_int_3)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
+          if(z_int==zinitial){
+            pbh_mass=preco->PBH_low_mass;
+            // pbh_mass=preco->PBH_low_mass_tmp;
+            exponent = 0;
+            // exponent = preco->exponent_pbh_integral;
+          }
+          if(pbh_mass<1e17) f += 2*2*0.142;//electrons
+          if(pbh_mass<1e15) f += 2*2*0.142;//muons
+          if(pbh_mass<1e14) f += 2*2*0.142;//tau
+          if(pbh_mass<5e13) f += 3*12*0.142 + 16*0.06;//u d s and gluons
+          if(pbh_mass<5e10) f += 3*12*0.142;//c b t
+          if(pbh_mass<1e11) f += 3*2*0.06 + 3*0.06 + 0.267;//W,Z,higgs
+          dMdz_1 = -5.34e-5*f*pow(pbh_mass/1e10,-2)*dt_over_dz_1*1e10;
+          // dMdz_2 = -5.34e-5*f*pow(pbh_mass/1e10,-2)*dt_over_dz_2*1e10;
+          // dMdz_3 = -5.34e-5*f*pow(pbh_mass/1e10,-2)*dt_over_dz_3*1e10;
+          pbh_mass-=(dMdz_1)*dz;
+          // pbh_mass-=(dMdz_1+4*dMdz_2+dMdz_3)*dz/6;
+          // fprintf(stdout, "pbh_mass %e dMdz %e z_int %e\n",pbh_mass,dMdz_1+4*dMdz_2+dMdz_3,z_int);
+
+          if(pbh_mass < 0 ) {
+            pbh_mass = 0;
+            tau_pbh = 0;
+            exponent = 0;
+            break; // pbh has evaporated
+          }
+          else tau_pbh = 407*pow(f/15.35,-1)*pow(pbh_mass/(1e10),3);
+          // fprintf(stdout, "preco->PBH_low_mass_tmp %e pbh_mass %e exponent %e dMdz_1 %e z_int %e\n",preco->PBH_low_mass_tmp, pbh_mass,exponent, dMdz_1,z_int);
+          preco->PBH_low_mass_tmp = pbh_mass;
+          exponent += dt_over_dz_1*1/tau_pbh*dz;
+
+
+        }
+        tau_pbh = 407*pow(f/15.35,-1)*pow(pbh_mass/(1e10),3);
+        // fprintf(stdout," %e  %e %e  %e \n",pbh_mass,preco->PBH_low_mass,tau_pbh,z);
+      }
+      else {
+        if(preco->PBH_low_mass<1e17) f += 2*2*0.142;
+        tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
+      }
+      if(tau_pbh < 1e18)result_integrale = exp(-1/tau_pbh*2*((pba->Omega0_b+pba->Omega0_cdm)*pow(pba->Omega0_g+(pba->Omega0_b+pba->Omega0_cdm)/(1+z),0.5)
+      +2*pow(pba->Omega0_g,1.5)*(1+z)-2*pba->Omega0_g*pow((1+z)*(pba->Omega0_g*(1+z)+(pba->Omega0_b+pba->Omega0_cdm)),0.5))/(3*pow((pba->Omega0_b+pba->Omega0_cdm),2)*(1+z)*pba->H0));
+      else result_integrale = 1;
+      if(exponent!=0)result_integrale_2 = MAX(exp(exponent),1e-10);
+      else result_integrale_2 = 0;
+      // fprintf(stdout, "result_integrale %e result_integrale_2 %e \n",result_integrale,result_integrale_2);
+      if(tau!=0)*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh*result_integrale_2;
+      else *energy_rate = 0;
+      if(isnan(*energy_rate)==1)*energy_rate=0.;
+      // fprintf(stdout, "tau_pbh%e M %e energy_rate %e z %e\n",tau_pbh,preco->PBH_low_mass_tmp,*energy_rate,z);
 
     }
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
@@ -1950,7 +2066,10 @@ int thermodynamics_beyond_onthespot_energy_injection(
                     preco->error_message);
         }
         else preco->f_eff=1.;
+        if(preco->f_eff<1e-5) preco->f_eff = 0;
         *energy_rate =  rho_ini_dcdm*pow(1+z,3)*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_)*preco->f_eff;
+        // fprintf(stdout, "f %e energy_rate %e z %e \n", preco->f_eff,*energy_rate, z);
+
       }
       if(preco->PBH_mass > 0.){
 
@@ -3073,6 +3192,7 @@ int thermodynamics_reionization_sample(
   int last_index_back;
   double relative_variation;
   double f_X, f_abs,epsilon_X, rho_sfr, ap, bp, cp, dp, _erg_to_joule_;
+  double last_z;
   Yp = pth->YHe;
 
   /** - (a) allocate vector of values related to reionization */
@@ -3302,7 +3422,10 @@ int thermodynamics_reionization_sample(
              pth->error_message);
 
   free(reio_vector);
-
+  if(preco->PBH_low_mass!=0){
+    preco->PBH_low_mass_tmp=preco->PBH_low_mass;
+    preco->exponent_pbh_integral = 0;
+  }
   /** - (j) another loop on z, to integrate equation for Tb and to compute cb2 */
   for (i=preio->rt_size-1; i >0 ; i--) {
 
@@ -3345,10 +3468,12 @@ if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0 || pth->PBH_low_m
     /** - --> derivative of baryon temperature */
       preco->xe_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_xe];
       preco->Tm_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
-      preco->z_tmp=z;
+
+
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
+      preco->z_tmp=z;
        /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
        if(pth->energy_repart_functions==Galli_et_al_interpolation){
          class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe],&chi_heat,&chi_lya,&chi_ionH,&chi_ionHe,&chi_lowE),
@@ -3723,6 +3848,10 @@ int thermodynamics_recombination_with_hyrec(
   preco->annihilation_z_halo = pth->annihilation_z_halo;
   preco->PBH_mass = pth->PBH_mass;
   preco->PBH_low_mass = pth->PBH_low_mass;
+  if(preco->PBH_low_mass!=0){
+    preco->PBH_low_mass_tmp=preco->PBH_low_mass;
+    preco->exponent_pbh_integral = 0;
+  }
   preco->PBH_fraction = pth->PBH_fraction;
   preco->energy_repart_functions = pth->energy_repart_functions;
   pth->n_e=preco->Nnow;
@@ -3961,7 +4090,10 @@ int thermodynamics_recombination_with_recfast(
   preco->PBH_low_mass = pth->PBH_low_mass;
   preco->PBH_fraction = pth->PBH_fraction;
   preco->energy_repart_functions = pth->energy_repart_functions;
-
+  if(preco->PBH_low_mass!=0){
+    preco->PBH_low_mass_tmp=preco->PBH_low_mass;
+    preco->exponent_pbh_integral = 0;
+  }
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
 
@@ -4292,7 +4424,6 @@ int thermodynamics_derivs_with_recfast(
 
 
   /* define local variables */
-
   double x,n,n_He,Trad,Tmat,x_H,x_He,Hz,dHdz,epsilon;
   double Rup,Rup_2,Rdown,K,K_He,Rup_He,Rup_He_2,Rdown_He,He_Boltz;
   double timeTh,timeH;
@@ -4337,7 +4468,7 @@ int thermodynamics_derivs_with_recfast(
    double E_x = 3.4*pow(10,40)*erg_to_ev;
    double f_abs = 2;
    double L_x ;
-
+   double last_z;
   int last_index_back;
 
   ptpaw = parameters_and_workspace;
@@ -4383,12 +4514,11 @@ int thermodynamics_derivs_with_recfast(
    if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass!=0 || pth->PBH_low_mass != 0){
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
-     preco->z_tmp=z;
+
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
              error_message,
              error_message);
-
-
+     preco->z_tmp=z;
 }
 else energy_rate=0;
  // fprintf(stdout,"%e      %e     %e      %e      %e    \n", x,pth->chi_heat,pth->chi_lya, pth->chi_ionH,pth->chi_ionHe,pth->chi_lowE);
