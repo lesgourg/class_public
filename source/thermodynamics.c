@@ -1887,7 +1887,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         if(z<zinitial/10)zinitial/=10;
         dz= (zinitial-z)/2000;
         for(z_int = zinitial ; z_int > z ; z_int-=dz){
-          // fprintf(stdout, "zint %e z %e dz %e\n",z_int,z,dz );
+          fprintf(stdout, "zint %e z %e dz %e zinitial %e\n",z_int,z,dz,zinitial );
           class_call(background_tau_of_z(pba,
                                          z_int,
                                          &tau),
@@ -2066,9 +2066,9 @@ int thermodynamics_beyond_onthespot_energy_injection(
                     preco->error_message);
         }
         else preco->f_eff=1.;
-        if(preco->f_eff<1e-5) preco->f_eff = 0;
+        if(preco->f_eff<0) preco->f_eff = 0;
         *energy_rate =  rho_ini_dcdm*pow(1+z,3)*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_)*preco->f_eff;
-        // fprintf(stdout, "f %e energy_rate %e z %e \n", preco->f_eff,*energy_rate, z);
+        // fprintf(stdout, "f %e energy_rate %e z %e %e \n", preco->f_eff,*energy_rate, z,1/(pba->Gamma_dcdm*_c_/_Mpc_over_m_));
 
       }
       if(preco->PBH_mass > 0.){
@@ -3469,10 +3469,12 @@ if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0 || pth->PBH_low_m
       preco->xe_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_xe];
       preco->Tm_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
 
-
+      if( z > 2){//Sometimes problem with interpolation
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
+      }
+      else energy_rate = 0;
       preco->z_tmp=z;
        /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
        if(pth->energy_repart_functions==Galli_et_al_interpolation){
@@ -4511,13 +4513,16 @@ int thermodynamics_derivs_with_recfast(
                                pvecback),
              pba->error_message,
              error_message);
-   if(pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass!=0 || pth->PBH_low_mass != 0){
+   if((pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass!=0 || pth->PBH_low_mass != 0) && z > 2){
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
-
+  if( z > 2){//sometimes problem with interpolation
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
              error_message,
              error_message);
+  // fprintf(stdout, "energy rate %e z %e\n",energy_rate,z );
+  }
+  else energy_rate = 0;
      preco->z_tmp=z;
 }
 else energy_rate=0;
