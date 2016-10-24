@@ -1887,7 +1887,7 @@ if(preco->decay >0 || preco->annihilation > 0){
 
 
 
-      if(preco->PBH_low_mass<=1e15){
+      if(preco->PBH_low_mass<1e15){
         class_call(background_tau_of_z(pba,
                                        z,
                                        &tau),
@@ -2153,7 +2153,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         // fprintf(stdout, "energy_rate %e A %e B %e z %e\n",*energy_rate,rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*(dMdt),z);
       }
       else {
-        tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3)/3;
+        tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3)*3;
         *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh;
         if(isnan(*energy_rate)==1)*energy_rate=0.;
 
