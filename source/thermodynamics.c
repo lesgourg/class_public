@@ -2619,8 +2619,6 @@ int thermodynamics_reionization_function(
     if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent == 0){
     // if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent > 200){
       pth->z_99_percent = z;
-      fprintf(stdout, "pth->z_99_percent %e xe %e\n", pth->z_99_percent,*xe);
-
     }
     if(pth->z_99_percent != 0 && pth->z_10_percent != 0 && pth->duration_of_reionization == 0){
       pth->duration_of_reionization = pth->z_10_percent  - pth->z_99_percent;
