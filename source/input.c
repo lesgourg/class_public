@@ -3078,9 +3078,9 @@ int input_default_params(
   pth->z_end_asymmetric_planck_16 = 6;
   pth->z_start_asymmetric_planck_16 = 20;
   pth->alpha_asymmetric_planck_16 = 3;
-  pth->z_10_percent = 1000;
-  pth->z_50_percent = 1000;
-  pth->z_99_percent = 1000;
+  pth->z_10_percent = 0;
+  pth->z_50_percent = 0;
+  pth->z_99_percent = 0;
   pth->duration_of_reionization = 0.;
 
   pth->annihilation = 0.;
