@@ -980,6 +980,15 @@ int input_read_parameters(
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
   }
 
+  /*
+  fprintf(stderr,"%e %e %e %e %e\n",
+          pba->Omega0_lambda,
+          pba->Omega0_fld,
+          pba->Omega0_scf,
+          pba->Omega0_k,
+          Omega_tot);
+  */
+
   /** - Test that the user have not specified Omega_scf = -1 but left either
       Omega_lambda or Omega_fld unspecified:*/
   class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
@@ -1094,10 +1103,14 @@ int input_read_parameters(
       pth->reio_parametrization=reio_many_tanh;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_inter") == 0) {
+      pth->reio_parametrization=reio_inter;
+      flag2=_TRUE_;
+    }
 
     class_test(flag2==_FALSE_,
                errmsg,
-               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh'...");
+               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh', 'reio_inter'...");
   }
 
   /** - reionization parameters if reio_parametrization=reio_camb */
@@ -1141,6 +1154,13 @@ int input_read_parameters(
     class_read_list_of_doubles("many_tanh_z",pth->many_tanh_z,pth->many_tanh_num);
     class_read_list_of_doubles("many_tanh_xe",pth->many_tanh_xe,pth->many_tanh_num);
     class_read_double("many_tanh_width",pth->many_tanh_width);
+  }
+
+  /** - reionization parameters if reio_parametrization=reio_many_tanh */
+  if (pth->reio_parametrization == reio_inter) {
+    class_read_int("reio_inter_num",pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_z",pth->reio_inter_z,pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
   }
 
   /** - energy injection parameters from CDM annihilation/decay */
