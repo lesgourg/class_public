@@ -33,7 +33,7 @@ DEF _MAXTITLESTRINGLENGTH_ = 8000
 # MontePython to handle things differently.
 class CosmoError(Exception):
     def __init__(self, message=""):
-        self.message = message
+        self.message = message.decode() if isinstance(message,bytes) else message
 
     def __str__(self):
         return '\n\nError in Class: ' + self.message
@@ -158,9 +158,10 @@ cdef class Class:
         i = 0
         for kk in self._pars:
 
-            dumc = kk
+            dumcp = kk.encode()
+            dumc = dumcp
             sprintf(self.fc.name[i],"%s",dumc)
-            dumcp = str(self._pars[kk])
+            dumcp = str(self._pars[kk]).encode()
             dumc = dumcp
             sprintf(self.fc.value[i],"%s",dumc)
             self.fc.read[i] = _FALSE_
@@ -311,7 +312,7 @@ cdef class Class:
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
                     problem_flag = True
-                    problematic_parameters.append(self.fc.name[i])
+                    problematic_parameters.append(self.fc.name[i].decode())
             if problem_flag:
                 raise CosmoSevereError(
                     "Class did not read input parameter(s): %s\n" % ', '.join(

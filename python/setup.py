@@ -11,7 +11,7 @@ import os.path as osp
 GCCPATH_STRING = sbp.Popen(
     ['gcc', '-print-libgcc-file-name'],
     stdout=sbp.PIPE).communicate()[0]
-GCCPATH = osp.normpath(osp.dirname(GCCPATH_STRING))
+GCCPATH = osp.normpath(osp.dirname(GCCPATH_STRING)).decode()
 
 # Recover the CLASS version
 with open(os.path.join('..', 'include', 'common.h'), 'r') as v_file:
