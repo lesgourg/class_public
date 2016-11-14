@@ -1780,7 +1780,7 @@ int thermodynamics_onthespot_energy_injection(
   //Parameters related to PBH
   double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
   double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2;
-  double f,tau_pbh,i;
+  double f,f_neutrinos, em_branching,tau_pbh,i;
   double dt_over_dz_1,dt_over_dz_2,dt_over_dz_3,pbh_mass,zinitial=ppr->recfast_z_initial,z_int,z_int_1,z_int_2,z_int_3,dz,dMdz_1,dMdz_2,dMdz_3;
   double exponent=0, result_integrale_2,check=0,dMdt;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -1880,11 +1880,12 @@ if(preco->decay >0 || preco->annihilation > 0){
 
     if(preco->PBH_low_mass>0){
       // fprintf(stdout, "here\n");
+      f_neutrinos = 6*0.147;
       if(preco->PBH_low_mass<1e17) f = (2*0.06+6*0.147+2*0.007+2*2*0.142);//electrons
       if(preco->PBH_low_mass<1e15) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142);//muons
       if(preco->PBH_low_mass<1e14) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142);//tau
       if(preco->PBH_low_mass<5e13) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142+3*12*0.142 + 16*0.06);//u d s and gluons      zinitial = preco->z_tmp;
-
+      em_branching = (f-f_neutrinos)/f;
 
 
       if(preco->PBH_low_mass<1e15){
@@ -1908,7 +1909,8 @@ if(preco->decay >0 || preco->annihilation > 0){
           dMdt = 0;
         }
         else dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
-        // fprintf(stdout,"v1: %e %e %e %e %e %e \n",pow(preco->PBH_low_mass,3),3*5.34e-5*f*1e30*pvecback[pba->index_bg_time]/(_c_ / _Mpc_over_m_),pvecback[pba->index_bg_time]/(_c_ / _Mpc_over_m_),pbh_mass,dMdt,z);
+        // fprintf(stdout, "tau = %e s\n",407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3));
+        // fprintf(stdout,"v1: pbh_mass ini %e dMdt  %e pbh_mass %e z %e em_branching %e \n",preco->PBH_low_mass,dMdt,pbh_mass, z, em_branching);
 
 
 
@@ -2147,14 +2149,15 @@ if(preco->decay >0 || preco->annihilation > 0){
         // if(preco->PBH_low_mass_tmp!=0)*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*(dMdt);
         // else *energy_rate = 0;
         */
-        *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*(dMdt);
+        *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
         // if(tau_pbh!=0)*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh*result_integrale_2;
         if(isnan(*energy_rate)==1)*energy_rate=0.;
         // fprintf(stdout, "energy_rate %e A %e B %e z %e\n",*energy_rate,rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*(dMdt),z);
       }
       else {
+        // fprintf(stdout, "em_branching %e \n",em_branching );
         tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
-        *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh;
+        *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh*em_branching;
         if(isnan(*energy_rate)==1)*energy_rate=0.;
 
       }
