@@ -2193,7 +2193,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
   //Parameters related to PBH
   double c_s, v_eff,r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
   double tau, m_H, m_dot, m_dot_2, L_acc_2,L_ed,l;
-  double f,tau_pbh;
+  double f,tau_pbh,f_neutrinos,em_branching;
   int last_index_back;
   double * pvecback;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -2295,12 +2295,13 @@ int thermodynamics_beyond_onthespot_energy_injection(
       }
 
       if(preco->PBH_low_mass>0){
+        f_neutrinos = 6*0.147;
         if(preco->PBH_low_mass>1e17) f = 2*0.06+6*0.147+2*0.007;
         else f = 2*2*0.142 + 2*0.06+6*0.147+2*0.007;
+        em_branching = (f-f_neutrinos)/f;
         tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
-        *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh;
+        *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh*em_branching;
         // fprintf(stdout, "tau_pbh%e M %e energy_rate %e z %e\n",tau_pbh,preco->PBH_low_mass,*energy_rate,z);
-
       }
 
 
@@ -2501,17 +2502,17 @@ int thermodynamics_reionization_function(
       if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent == 0){
       // if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent > 200){
         pth->z_99_percent = z;
-        class_test(pth->z_99_percent<=6,
-                   pth->error_message,
-                   "z_99_percent < 6, we reject the point");
+        // class_test(pth->z_99_percent<=6,
+        //            pth->error_message,
+        //            "z_99_percent < 6, we reject the point");
 
       }
       if(pth->z_99_percent != 0 && pth->z_10_percent != 0 && pth->duration_of_reionization == 0){
         pth->duration_of_reionization = pth->z_10_percent  - pth->z_99_percent;
         if(pth->duration_of_reionization < 0) pth->duration_of_reionization ==0;
-        class_test(pth->duration_of_reionization<1,
-                   pth->error_message,
-                   "duration_of_reionization < 1, we reject the point");
+        // class_test(pth->duration_of_reionization<1,
+        //            pth->error_message,
+        //            "duration_of_reionization < 1, we reject the point");
         // fprintf(stdout, "pth->duration_of_reionization %e v2 %e \n", pth->duration_of_reionization,pth->z_10_percent  -preio->reionization_parameters[preio->index_z_end_asymmetric_planck_16]);
 
       }
@@ -2581,19 +2582,19 @@ int thermodynamics_reionization_function(
     if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent == 0){
     // if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent > 200){
       pth->z_99_percent = z;
-      class_test(pth->z_99_percent<=6,
-                 pth->error_message,
-                 "z_99_percent < 6, we reject the point");
-     fprintf(stdout, "pth->z_99_percent %e  \n", pth->z_99_percent);
+    //   class_test(pth->z_99_percent<=6,
+    //              pth->error_message,
+    //              "z_99_percent < 6, we reject the point");
+    //  fprintf(stdout, "pth->z_99_percent %e  \n", pth->z_99_percent);
 
 
     }
     if(pth->z_99_percent != 0 && pth->z_10_percent != 0 && pth->duration_of_reionization == 0){
       pth->duration_of_reionization = pth->z_10_percent  - pth->z_99_percent;
       if(pth->duration_of_reionization < 0) pth->duration_of_reionization ==0;
-      class_test(pth->duration_of_reionization<1,
-                 pth->error_message,
-                 "duration_of_reionization < 1, we reject the point");
+      // class_test(pth->duration_of_reionization<1,
+      //            pth->error_message,
+      //            "duration_of_reionization < 1, we reject the point");
       // fprintf(stdout, "pth->duration_of_reionization %e v2 %e \n", pth->duration_of_reionization,pth->z_10_percent  -preio->reionization_parameters[preio->index_z_end_asymmetric_planck_16]);
 
     }
@@ -2637,18 +2638,18 @@ int thermodynamics_reionization_function(
     if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent == 0){
     // if(*xe > 0.99*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_99_percent > 200){
       pth->z_99_percent = z;
-      class_test(pth->z_99_percent<=6,
-                 pth->error_message,
-                 "z_99_percent < 6, we reject the point");
+      // class_test(pth->z_99_percent<=6,
+      //            pth->error_message,
+      //            "z_99_percent < 6, we reject the point");
 
 
     }
     if(pth->z_99_percent != 0 && pth->z_10_percent != 0 && pth->duration_of_reionization == 0){
       pth->duration_of_reionization = pth->z_10_percent  - pth->z_99_percent;
       if(pth->duration_of_reionization < 0) pth->duration_of_reionization ==0;
-      class_test(pth->duration_of_reionization<1,
-                 pth->error_message,
-                 "duration_of_reionization < 1, we reject the point");
+      // class_test(pth->duration_of_reionization<1,
+      //            pth->error_message,
+      //            "duration_of_reionization < 1, we reject the point");
       // fprintf(stdout, "pth->duration_of_reionization %e v2 %e \n", pth->duration_of_reionization,pth->z_10_percent  -preio->reionization_parameters[preio->index_z_end_asymmetric_planck_16]);
 
     }
