@@ -1226,6 +1226,8 @@ int input_read_parameters(
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
     class_read_double("alpha_asymmetric_planck_16",pth->alpha_asymmetric_planck_16);
+    class_test(pth->alpha_asymmetric_planck_16<1.5 || pth->alpha_asymmetric_planck_16>50 ,errmsg,
+      "alpha_asymmetric_planck_16 out of range [1.5,50]: rejected to avoid memory leakage.");
     class_read_double("z_end_asymmetric_planck_16",pth->z_end_asymmetric_planck_16);
     class_read_double("z_start_asymmetric_planck_16",pth->z_start_asymmetric_planck_16);
   }
