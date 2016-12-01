@@ -392,7 +392,8 @@ int thermodynamics_init(
   class_test(pth->YHe == 1.,
              pth->error_message,
              "stop to avoid division by zero");
-
+ class_test(pth->alpha_asymmetric_planck_16<1.5 || pth->alpha_asymmetric_planck_16>50 ,pth->error_message,
+   "alpha_asymmetric_planck_16 out of range [1.5,50]: rejected to avoid memory leakage.");
   /** - assign values to all indices in the structures with thermodynamics_indices()*/
 
   class_call(thermodynamics_indices(pth,preco,preio),
