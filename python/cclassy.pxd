@@ -76,6 +76,10 @@ cdef extern from "class.h":
         double rs_d
         double YHe
         double n_e
+        double a_dark
+        double nindex_dark
+        double xi_dark
+        double m_dm
 
         int tt_size
 
@@ -109,6 +113,11 @@ cdef extern from "class.h":
         int size_scalar_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
+
+        double * alpha_dark
+        double * beta_dark
+        int l_max_alpha
+
 
     cdef struct transfers:
         ErrorMsg error_message

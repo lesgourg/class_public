@@ -144,6 +144,8 @@ struct thermo
 
   double a_dark;
   double nindex_dark;//ethos power of the temperature dependence of tau_{DR}^{-1}
+  double xi_dark;
+  double m_dm;//dark matter mass
 
   //@}
 
@@ -166,6 +168,8 @@ struct thermo
   int index_th_tau_darkm;
   int index_th_tau_darkr;
   int index_th_g_dark;
+  int index_th_cdm2;         /**< dm squared sound speed */
+  int index_th_Tdm;          /**< dm temperature */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */

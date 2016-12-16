@@ -6876,7 +6876,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, dmu_dark;
+  double Sinv, dmu_dark, dmu_drdr, alpha_l, beta_l;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -6939,8 +6939,9 @@ int perturb_derivs(double tau,
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
 
   if((pba->has_dark==_TRUE_)&&(pth->a_dark!=0.)){//ethos
-    Sinv = 4./3. * pvecback[pba->index_bg_rho_dark]/ pvecback[pba->index_bg_rho_cdm];
+    Sinv = (2.+pth->nindex_dark)/3. * pvecback[pba->index_bg_rho_dark]/ pvecback[pba->index_bg_rho_cdm];
     dmu_dark = pvecthermo[pth->index_th_dmu_dark];
+    dmu_drdr = pba->Omega0_dark/pba->Omega0_cdm * dmu_dark;
   }
 
   /** - Compute 'generalised cotK function of argument \f$ \sqrt{|K|}*\tau \f$, for closing hierarchy.
@@ -7199,7 +7200,7 @@ int perturb_derivs(double tau,
         dy[pv->index_pt_theta_cdm] = - a_prime_over_a*y[pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
 
         if(pth->a_dark!=0.)
-          dy[pv->index_pt_theta_cdm] -= Sinv*dmu_dark*(y[pv->index_pt_theta_cdm] - y[pv->index_pt_theta_dark]); // an extra factor *(2.+pth->nindex_dark)/3. should be here according to ethos
+          dy[pv->index_pt_theta_cdm] -= Sinv*dmu_dark*(y[pv->index_pt_theta_cdm] - y[pv->index_pt_theta_dark]) - k2*pvecthermo[pth->index_th_cdm2]*y[pv->index_pt_delta_cdm]; // an extra factor *(2.+pth->nindex_dark)/3. should be here according to ethos  //added to Sinv
 
       }
 
@@ -7335,28 +7336,47 @@ int perturb_derivs(double tau,
         if(ppr->sigma_dark!=0){
 
           /** -----> exact dr shear */
+          l = 2;
           dy[pv->index_pt_shear_dark] = 0.5*(8./15.*(y[pv->index_pt_theta_dark]+metric_shear)
                                            -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_dark+1]);
-          if(pth->a_dark!=0.) dy[pv->index_pt_shear_dark]-= 0.5*dmu_dark*y[pv->index_pt_shear_dark]; // and extra factro *9./5. should be here according to DAO
+          if(pth->a_dark!=0.){
+            alpha_l = ppt->alpha_dark[l-2];
+            beta_l = ppt->beta_dark[l-2];
+            dy[pv->index_pt_shear_dark]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_shear_dark]; // and extra factro *9./5. should be here according to DAO
+          }
 
           /** -----> exact dr l=3 */
           l = 3;
           dy[pv->index_pt_l3_dark] = k/(2.*l+1.)*
             (l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_dark]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_dark+1]);
-          if(pth->a_dark!=0.) dy[pv->index_pt_l3_dark]-= dmu_dark*y[pv->index_pt_l3_dark];
+            if(pth->a_dark!=0.){
+              if (l<=ppt->l_max_alpha) {
+                alpha_l = ppt->alpha_dark[l-2];
+                beta_l = ppt->beta_dark[l-2];
+              }
+              dy[pv->index_pt_l3_dark]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_l3_dark];
+            }
 
           /** -----> exact dr l>3 */
           for (l = 4; l < pv->l_max_dark; l++) {
             dy[pv->index_pt_delta_dark+l] = k/(2.*l+1)*
               (l*s_l[l]*y[pv->index_pt_delta_dark+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_dark+l+1]);
-            if(pth->a_dark!=0.) dy[pv->index_pt_delta_dark+l]-= ppr->sigma_dark*dmu_dark*y[pv->index_pt_delta_dark+l];
+            if(pth->a_dark!=0.){
+              if (l<=ppt->l_max_alpha) {
+                alpha_l = ppt->alpha_dark[l-2];
+                beta_l = ppt->beta_dark[l-2];
+              }
+              dy[pv->index_pt_delta_dark+l]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_delta_dark+l];
+            }
           }
 
           /** -----> exact dr lmax_dr */
           l = pv->l_max_dark;
           dy[pv->index_pt_delta_dark+l] =
             k*(s_l[l]*y[pv->index_pt_delta_dark+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_dark+l]);
-          if(pth->a_dark!=0.) dy[pv->index_pt_delta_dark+l]-= ppr->sigma_dark*dmu_dark*y[pv->index_pt_delta_dark+l];
+            if(pth->a_dark!=0.){
+              dy[pv->index_pt_delta_dark+l]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_delta_dark+l];
+            }
         }
         else{ //TBC only l=0,1 is sigma_dark=0
              dy[pv->index_pt_shear_dark] = 0.;

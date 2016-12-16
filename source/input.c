@@ -549,7 +549,7 @@ int input_read_parameters(
   double z_max=0.;
   int bin;
 
-  double N_dark, xi_dark;//ethos
+  double N_dark=0;//ethos
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -742,10 +742,11 @@ int input_read_parameters(
 
 /*ethos*/
   class_read_double("N_dark",N_dark);
-  class_read_double("xi_dark",xi_dark);
-  pba->Omega0_dark = N_dark*7./8.*pow(xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
+  class_read_double("xi_dark",pth->xi_dark);
+  pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
   Omega_tot += pba->Omega0_dark;
-  printf("ETHOS N_dark=%e, xi_dark=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, xi_dark, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
+  //printf("ETHOS N_dark=%e, xi_dark=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_dark, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
+  class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
   class_read_double("a_dark",pth->a_dark);
   class_test(((pth->a_dark<0.0)),
@@ -755,7 +756,13 @@ int input_read_parameters(
   class_test(((ppr->sigma_dark!=1) && (ppr->sigma_dark!=0)),
              errmsg,
              "In input file, you can only enter sigma_dark=0 for a perfect fluid or sigma_dark=1 for free streaming neutrinos, choose one");
-  printf("ETHOS nindex_dark=%e, a_dark=%e, sigma_dark=%d\n",pth->nindex_dark, pth->a_dark, ppr->sigma_dark);
+  //printf("ETHOS nindex_dark=%e, a_dark=%e, sigma_dark=%d\n",pth->nindex_dark, pth->a_dark, ppr->sigma_dark);
+  class_read_double("l_max_alpha",ppt->l_max_alpha);
+  class_test((ppt->l_max_alpha<2),
+             errmsg,
+             "In input file, l_max_alpha cannot be < 2");
+  class_read_list_of_doubles_or_default("alpha_dark",ppt->alpha_dark,1.,(ppt->l_max_alpha-1));
+  class_read_list_of_doubles_or_default("beta_dark",ppt->beta_dark,1.,(ppt->l_max_alpha-1));
 
   /** - Omega_0_cdm (CDM) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
@@ -2895,6 +2902,8 @@ int input_default_params(
 
   pth->a_dark = 0.;//ethos
   pth->nindex_dark = 0.;//ethos
+  pth->m_dm = 1.e11;//ethos
+  pth->xi_dark = 0.7137659;//ethos
 
   /** - perturbation structure */
 
@@ -2965,6 +2974,8 @@ int input_default_params(
   ppt->selection=gaussian;
   ppt->selection_mean[0]=1.;
   ppt->selection_width[0]=0.1;
+  
+  ppt->l_max_alpha = 2;//ethos
 
   /** - primordial structure */
 
@@ -3246,6 +3257,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->ncdm_fluid_trigger_tau_over_tau_k = 31.;
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
+  
+  ppr->sigma_dark = 1;//ethos
 
   /**
    * - parameter related to the primordial spectra
