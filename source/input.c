@@ -1253,6 +1253,33 @@ int input_read_parameters(
   class_read_double("m_DM",pth->annihilation_m_DM);
   class_read_double("decay",pth->decay);
   class_read_double("PBH_mass",pth->PBH_mass);
+  if(pth->PBH_mass>0.){
+    class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_){
+      flag2 = _FALSE_;
+      if (strcmp(string1,"Ali_Haimoud") == 0) {
+        pth->PBH_accretion_recipe=Ali_Haimoud;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"Ricotti_et_al") == 0) {
+        pth->PBH_accretion_recipe=Ricotti_et_al;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"Horowitz") == 0) {
+        pth->PBH_accretion_recipe=Horowitz;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"Gaggero_et_al") == 0) {
+        pth->PBH_accretion_recipe=Gaggero_et_al;
+        flag2=_TRUE_;
+      }
+    class_test(flag2==_FALSE_,
+                 errmsg,
+                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al'");
+    }
+  }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
   class_test(pth->PBH_mass<0.,errmsg,
@@ -3088,6 +3115,7 @@ int input_default_params(
   pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
   pth->PBH_mass = 0.;
+  pth->PBH_accretion_recipe = Ali_Haimoud;
   pth->PBH_low_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->energy_repart_functions = Galli_et_al_fit;

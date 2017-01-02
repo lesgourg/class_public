@@ -509,7 +509,8 @@ extern "C" {
 #define _c_ 2.99792458e8            /**< c in m/s */
 #define _G_ 6.67428e-11             /**< Newton constant in m^3/Kg/s^2 */
 #define _eV_ 1.602176487e-19        /**< 1 eV expressed in J */
-
+#define _eV_over_Kelvin_ 8.626e-5   /**< kB in eV/K */
+#define _eV_over_joules_ 6.24150647996e+18 /**< eV/J */ 
 /* parameters entering in Stefan-Boltzmann constant sigma_B */
 #define _k_B_ 1.3806504e-23
 #define _h_P_ 6.62606896e-34
